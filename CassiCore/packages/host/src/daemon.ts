@@ -20,6 +20,7 @@ import type { IProvider } from '../types/runtime.js'
 import { ToolRegistry } from './tools/registry.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
+import { buildSystemPrompt } from './workspace/loader.js'
 
 export class Daemon {
   private bus: IEventBus
@@ -183,7 +184,9 @@ export class Daemon {
     }
 
     // Create sessions and turn pipeline
-    this.sessions = createSessionManager(this.logger)
+    const systemPrompt = buildSystemPrompt(this.logger)
+    this.logger.info(`[daemon] System prompt built (${systemPrompt.length} chars)`)
+    this.sessions = createSessionManager(this.logger, systemPrompt)
 
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
