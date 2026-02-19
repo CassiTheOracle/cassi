@@ -97,7 +97,7 @@ export class Daemon {
         void (this.intelligence.reflect as any).onEvent?.(e)
       })
 
-      this.logger.info("[daemon] Intelligence layer loaded — 5 modules active")
+      this.logger.info(`[daemon] Intelligence layer loaded — ${this.intelligence.all.length} modules active`)
     } catch (err) {
       this.logger.warn(`failed to initialize intelligence layer: ${String(err)}`)
     }
