@@ -13,6 +13,10 @@ import type { IntelligenceLayer } from "./intelligence/index.js"
 import { createOrchestrationBus } from './orchestration-bus.js'
 import { createSessionBridge } from './session-bridge.js'
 
+import { createSessionManager } from './session-manager.js'
+import { TurnPipeline } from './turn-pipeline.js'
+import type { IProvider } from '../types/runtime.js'
+
 export class Daemon {
   private bus: IEventBus
   private config!: IConfig
@@ -20,6 +24,8 @@ export class Daemon {
   private logger: ILogger
   private running = false
   private intelligence!: IntelligenceLayer
+  private sessions!: ReturnType<typeof createSessionManager>
+  private pipeline!: TurnPipeline
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -122,10 +128,52 @@ export class Daemon {
       }
     }
 
+    // 7. Load webchat channel worker (Phase 3)
+    const webchatPath = path.resolve(__dirname, "../workers/channels/webchat.js")
+    if (!fs.existsSync(webchatPath)) {
+      this.logger.warn("webchat worker not found; skipping")
+    } else {
+      try {
+        const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
+        await this.pluginHost.load({
+          id: "channel:webchat",
+          entryPoint: webchatPath,
+          restartOnCrash: true,
+          maxRestarts: 5,
+          config: { port: webchatPort },
+        })
+        this.logger.info(`[daemon] Webchat channel listening on port ${webchatPort}`)
+      } catch (err) {
+        this.logger.warn(`failed to load webchat: ${String(err)}`)
+      }
+    }
+    let providers: Map<string, IProvider> = new Map()
+    try {
+      const { createProviders } = await import('./providers/index.js')
+      providers = createProviders(this.config, this.logger)
+    } catch (err) {
+      this.logger.warn('[daemon] Providers not loaded — run Phase 3 providers build')
+    }
+
+    // Create sessions and turn pipeline
+    this.sessions = createSessionManager(this.logger)
+    // @ts-ignore - intelligence may be undefined in edge cases
+    this.pipeline = new TurnPipeline(providers, this.sessions, this.bus, this.logger, this.intelligence?.memory)
+
     // 7. Subscribe to worker:message
-    this.bus.on("worker:message", (e) => {
+    this.bus.on("worker:message", async (e) => {
       // log any message received from workers
-      this.logger.info(`[worker:${(e as any).pluginId}] ${(e as any).payload as string}`)
+      this.logger.debug(`[worker:${(e as any).pluginId}]`, { payload: (e as any).payload })
+
+      try {
+        if ((e as any).pluginId && (e as any).pluginId.startsWith('channel:') && (e as any).payload?.type === 'message') {
+          const inbound = (e as any).payload.payload
+          const result = await this.pipeline.process(inbound)
+          this.pluginHost.send((e as any).pluginId, { type: 'message', payload: { sessionId: inbound.sessionId, content: result.response } })
+        }
+      } catch (err) {
+        this.logger.warn(`error processing inbound message: ${String(err)}`)
+      }
     })
 
     // 8. Subscribe to plugin:crashed -> warn
