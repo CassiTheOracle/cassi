@@ -15,6 +15,7 @@ import { createSessionBridge } from './session-bridge.js'
 import { createAdminApi } from './admin-api.js'
 
 import { createSessionManager } from './session-manager.js'
+import { SessionStore } from './session-store.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import type { IProvider } from '../types/runtime.js'
 import { ToolRegistry } from './tools/registry.js'
@@ -23,14 +24,14 @@ import { registerCoreTools } from './tools/implementations/index.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 
 export class Daemon {
-  private bus: IEventBus
+  public bus: IEventBus
   private config!: IConfig
   private pluginHost!: IPluginHost
   private logger: ILogger
   private running = false
   private intelligence!: IntelligenceLayer
   private sessions!: ReturnType<typeof createSessionManager>
-  private pipeline!: TurnPipeline
+  public pipeline!: TurnPipeline
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -106,6 +107,14 @@ export class Daemon {
       bus.on("plugin:crashed", (e) => {
         void (this.intelligence.recover as any).onEvent?.(e)
         void (this.intelligence.reflect as any).onEvent?.(e)
+      })
+
+      // Optimizer listens for daemon:ready (starts loop) and daemon:shutdown (stops loop)
+      bus.on("daemon:ready", (e) => {
+        void (this.intelligence.optimizer as any).onEvent?.(e)
+      })
+      bus.on("daemon:shutdown", (e) => {
+        void (this.intelligence.optimizer as any).onEvent?.(e)
       })
 
       this.logger.info(`[daemon] Intelligence layer loaded — ${this.intelligence.all.length} modules active`)
@@ -186,7 +195,8 @@ export class Daemon {
     // Create sessions and turn pipeline
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`[daemon] System prompt built (${systemPrompt.length} chars)`)
-    this.sessions = createSessionManager(this.logger, systemPrompt)
+    const sessionStore = SessionStore.open(this.logger)
+    this.sessions = createSessionManager(this.logger, systemPrompt, sessionStore)
 
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
@@ -222,6 +232,11 @@ export class Daemon {
         continuity: this.intelligence.continuity as any,
         thinker: this.intelligence.thinker as any,
       })
+
+      // Wire optimizer to live session manager and pipeline — now it can actually work
+      this.intelligence.optimizer.setSessions(this.sessions)
+      this.intelligence.optimizer.setPipeline(this.pipeline)
+      this.logger.info('[daemon] Optimizer wired to session manager and pipeline')
     }
 
     // 7. Subscribe to worker:message
@@ -232,6 +247,36 @@ export class Daemon {
       try {
         const pluginId = (e as any).pluginId as string
         const payload = (e as any).payload as Record<string, unknown>
+
+        // If the pipeline emitted session-scoped events (pluginId like "session:<id>"),
+        // forward them to the appropriate channel worker using the SessionManager.
+        if (pluginId?.startsWith("session:") && payload?.sessionId) {
+          try {
+            const sid = payload.sessionId as string
+            const s = this.sessions.get(sid)
+            if (s && s.channelId) {
+              const tgt = s.channelId
+              // Map known payload types to channel host messages
+              if (payload.type === 'turn:token' && payload.token) {
+                this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
+                return
+              } else if (payload.type === 'turn:tool_call') {
+                const toolName = (payload.tool as string) || 'tool'
+                const content = `Tool call: ${toolName}`
+                this.pluginHost.send(tgt, { sessionId: sid, content, done: false })
+                return
+              } else if (payload.type === 'turn:error') {
+                this.pluginHost.send(tgt, { sessionId: sid, content: `Error: ${payload.error as string}`, done: true })
+                return
+              } else if (payload.type === 'turn:done') {
+                this.pluginHost.send(tgt, { sessionId: sid, content: payload.content as string || '', done: true })
+                return
+              }
+            }
+          } catch (err) {
+            this.logger.warn(`failed to forward session message: ${String(err)}`)
+          }
+        }
 
         // Route worker log messages to daemon logger
         if (payload?.type === 'log') {
@@ -295,10 +340,10 @@ export class Daemon {
     // 12. Set running
     this.running = true
 
-    // 12. Emit daemon:ready
+    // 13. Emit daemon:ready — triggers optimizer loop start
     this.bus.emit({ type: "daemon:ready", startedAt: new Date() })
 
-    // 13. Log startup banner
+    // 14. Log startup banner
     const loaded = this.pluginHost.all().length
     const pid = process.pid
     this.logger.info("╔══════════════════════════════════╗")
@@ -315,7 +360,7 @@ export class Daemon {
     if (!this.running) return
     this.logger.info("Shutting down gracefully...")
 
-    // emit shutdown
+    // emit shutdown — triggers optimizer loop stop
     this.bus.emit({ type: "daemon:shutdown", reason: "signal" })
 
     // shutdown plugin host
@@ -334,6 +379,11 @@ export class Daemon {
     } catch {
       // ignore
     }
+
+    // close session store
+    try {
+      ;(this.sessions as any).store?.close?.()
+    } catch { /* ignore */ }
 
     // intelligence cleanup
     try {
