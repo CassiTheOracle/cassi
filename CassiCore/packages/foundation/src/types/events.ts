@@ -16,6 +16,8 @@ export type RuntimeEvent =
   | { type: "plugin:stopped"; pluginId: string; reason: "max-restarts" | "manual" }
   | { type: "config:changed"; key: string; oldVal: unknown; newVal: unknown }
   | { type: "config:reloaded" }
+  | { type: "config:override:set"; key: string; value: unknown; meta?: object }
+  | { type: "config:override:cleared"; key: string }
   | { type: "worker:message"; pluginId: string; payload: unknown };
 
 export type EventType = RuntimeEvent["type"];
