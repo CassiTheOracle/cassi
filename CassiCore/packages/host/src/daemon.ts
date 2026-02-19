@@ -166,10 +166,27 @@ export class Daemon {
       this.logger.debug(`[worker:${(e as any).pluginId}]`, { payload: (e as any).payload })
 
       try {
-        if ((e as any).pluginId && (e as any).pluginId.startsWith('channel:') && (e as any).payload?.type === 'message') {
-          const inbound = (e as any).payload.payload
+        const pluginId = (e as any).pluginId as string
+        const payload = (e as any).payload as Record<string, unknown>
+
+        if (pluginId?.startsWith("channel:") && payload?.sessionId && payload?.content && payload?.sessionId !== "system") {
+          // Build a proper InboundMessage from channel payload
+          const { randomUUID } = await import('node:crypto')
+          const inbound = {
+            id: randomUUID(),
+            sessionId: payload.sessionId as string,
+            channelId: pluginId,
+            senderId: payload.sessionId as string,
+            content: payload.content as string,
+            timestamp: new Date(),
+          }
+          this.logger.info(`[daemon] Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId })
           const result = await this.pipeline.process(inbound)
-          this.pluginHost.send((e as any).pluginId, { type: 'message', payload: { sessionId: inbound.sessionId, content: result.response } })
+          this.logger.info(`[daemon] Response generated`, { tokens: result.tokensUsed, model: result.model })
+          this.pluginHost.send(pluginId, {
+            type: 'message',
+            payload: { sessionId: inbound.sessionId, content: result.response }
+          })
         }
       } catch (err) {
         this.logger.warn(`error processing inbound message: ${String(err)}`)
