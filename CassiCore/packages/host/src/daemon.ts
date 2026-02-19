@@ -12,6 +12,7 @@ import type { IntelligenceLayer } from "./intelligence/index.js"
 
 import { createOrchestrationBus } from './orchestration-bus.js'
 import { createSessionBridge } from './session-bridge.js'
+import { createAdminApi } from './admin-api.js'
 
 import { createSessionManager } from './session-manager.js'
 import { TurnPipeline } from './turn-pipeline.js'
@@ -147,6 +148,29 @@ export class Daemon {
         this.logger.warn(`failed to load webchat: ${String(err)}`)
       }
     }
+
+    // 7b. Load Telegram channel worker (optional — requires channels.telegram.token in config)
+    const tgToken = this.config.get<string>("channels.telegram.token", "")
+    if (tgToken) {
+      const tgPath = path.resolve(__dirname, "../workers/channels/telegram.js")
+      if (!fs.existsSync(tgPath)) {
+        this.logger.warn("telegram worker not found; skipping")
+      } else {
+        try {
+          const allowedChatIds = this.config.get<number[]>("channels.telegram.allowedChatIds", [])
+          await this.pluginHost.load({
+            id: "channel:telegram",
+            entryPoint: tgPath,
+            restartOnCrash: true,
+            maxRestarts: 5,
+            config: { token: tgToken, allowedChatIds },
+          })
+          this.logger.info(`[daemon] Telegram channel active`)
+        } catch (err) {
+          this.logger.warn(`failed to load telegram: ${String(err)}`)
+        }
+      }
+    }
     let providers: Map<string, IProvider> = new Map()
     try {
       const { createProviders } = await import('./providers/index.js')
@@ -158,7 +182,19 @@ export class Daemon {
     // Create sessions and turn pipeline
     this.sessions = createSessionManager(this.logger)
     // @ts-ignore - intelligence may be undefined in edge cases
-    this.pipeline = new TurnPipeline(providers, this.sessions, this.bus, this.logger, this.intelligence?.memory)
+    this.pipeline = new TurnPipeline(
+      providers, this.sessions, this.bus, this.logger,
+      this.intelligence?.memory,
+      this.orchestration,
+    )
+
+    // Mount intelligence middlewares (continuity + thinker injection)
+    if (this.intelligence) {
+      this.pipeline.mountIntelligence({
+        continuity: this.intelligence.continuity as any,
+        thinker: this.intelligence.thinker as any,
+      })
+    }
 
     // 7. Subscribe to worker:message
     this.bus.on("worker:message", async (e) => {
@@ -168,6 +204,16 @@ export class Daemon {
       try {
         const pluginId = (e as any).pluginId as string
         const payload = (e as any).payload as Record<string, unknown>
+
+        // Route worker log messages to daemon logger
+        if (payload?.type === 'log') {
+          const level = (payload.level as string) || 'info'
+          const msg = (payload.message as string) || ''
+          if (level === 'error') this.logger.error(msg)
+          else if (level === 'warn') this.logger.warn(msg)
+          else this.logger.info(msg)
+          return
+        }
 
         if (pluginId?.startsWith("channel:") && payload?.sessionId && payload?.content && payload?.sessionId !== "system") {
           // Build a proper InboundMessage from channel payload
@@ -185,7 +231,7 @@ export class Daemon {
           this.logger.info(`[daemon] Response generated`, { tokens: result.tokensUsed, model: result.model })
           this.pluginHost.send(pluginId, {
             type: 'message',
-            payload: { sessionId: inbound.sessionId, content: result.response }
+            payload: { sessionId: inbound.sessionId, content: result.response, done: true }
           })
         }
       } catch (err) {
@@ -208,7 +254,16 @@ export class Daemon {
       this.logger.info("Config reloaded — no restart needed")
     })
 
-    // 11. Set running
+    // 11. Start AdminAPI
+    try {
+      const adminApi = createAdminApi(this, this.logger)
+      await adminApi.start()
+      this.logger.info('[daemon] AdminAPI listening on ~/.claracore/admin.sock + :7432')
+    } catch (err) {
+      this.logger.warn(`AdminAPI failed to start: ${String(err)}`)
+    }
+
+    // 12. Set running
     this.running = true
 
     // 12. Emit daemon:ready
