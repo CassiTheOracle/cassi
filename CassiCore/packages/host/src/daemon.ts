@@ -17,6 +17,9 @@ import { createAdminApi } from './admin-api.js'
 import { createSessionManager } from './session-manager.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import type { IProvider } from '../types/runtime.js'
+import { ToolRegistry } from './tools/registry.js'
+import { ToolExecutor } from './tools/executor.js'
+import { registerCoreTools } from './tools/implementations/index.js'
 
 export class Daemon {
   private bus: IEventBus
@@ -181,11 +184,33 @@ export class Daemon {
 
     // Create sessions and turn pipeline
     this.sessions = createSessionManager(this.logger)
+
+    // Build tool registry + executor
+    const toolRegistry = new ToolRegistry()
+    registerCoreTools(toolRegistry, {
+      memory: this.intelligence?.memory,
+      sessionManager: this.sessions,
+    })
+    const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
+      '/home/valerie/Workspaces',
+      '/tmp/claracore',
+    ])
+    const networkAllowlist = this.config.get<string[]>('tools.networkAllowlist', ['*'])
+    const toolExecutor = new ToolExecutor(toolRegistry, {
+      workingDir: '/home/valerie/Workspaces',
+      allowedPaths,
+      networkAllowlist,
+      logger: this.logger,
+    })
+    this.logger.info(`[daemon] Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
+
     // @ts-ignore - intelligence may be undefined in edge cases
     this.pipeline = new TurnPipeline(
       providers, this.sessions, this.bus, this.logger,
       this.intelligence?.memory,
       this.orchestration,
+      toolRegistry,
+      toolExecutor,
     )
 
     // Mount intelligence middlewares (continuity + thinker injection)
