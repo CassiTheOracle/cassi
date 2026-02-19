@@ -137,3 +137,60 @@ export interface IThinker {
   /** Manually trigger a thinking cycle */
   think(depth: "sonnet" | "opus"): Promise<string>;
 }
+
+// ─── Optimizer ──────────────────────────────────────────────────────────────
+
+export type OptimizationAction = 
+  | "summarize"       // inject summary, agent continues
+  | "steer"           // send corrective prompt
+  | "context-reset"   // kill + respawn with compressed context  
+  | "kill"            // terminate, no respawn
+  | "none"            // healthy, no action needed
+
+export interface SessionHealth {
+  sessionKey: string
+  label?: string
+  model: string
+  estimatedTokens: number
+  tokenVelocity: number      // tokens added per minute
+  outputVelocity: number     // distinct output chunks per minute
+  loopScore: number          // 0-1, higher = more repeated content
+  stuckScore: number         // 0-1, higher = no meaningful progress
+  lastProgressAt: Date
+  runtime: number            // ms since session started
+  interventionCount: number
+  lastAction?: OptimizationAction
+}
+
+export interface OptimizationDecision {
+  sessionKey: string
+  action: OptimizationAction
+  reason: string
+  confidence: number         // 0-1
+  estimatedSavings?: number  // estimated tokens saved
+}
+
+export interface OptimizationOutcome {
+  decisionId: string
+  sessionKey: string
+  action: OptimizationAction
+  tokensBefore: number
+  tokensAfter: number
+  sessionCompleted: boolean
+  sessionSuccess: boolean
+  timestamp: Date
+}
+
+export interface IOptimizer {
+  /** Run an optimization cycle over all active sessions */
+  optimize(): Promise<OptimizationDecision[]>
+  
+  /** Get health score for a specific session */
+  scoreSession(sessionKey: string): Promise<SessionHealth | null>
+  
+  /** Get learned strategy weights (what has worked) */
+  strategyWeights(): Promise<Record<OptimizationAction, number>>
+  
+  /** Get recent optimization history */
+  history(limit?: number): Promise<OptimizationOutcome[]>
+}
