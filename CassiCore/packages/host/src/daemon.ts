@@ -9,6 +9,9 @@ import fs from "node:fs"
 import { createIntelligence } from "./intelligence/index.js"
 import type { IntelligenceLayer } from "./intelligence/index.js"
 
+import { createOrchestrationBus } from './orchestration-bus.js'
+import { createSessionBridge } from './session-bridge.js'
+
 export class Daemon {
   private bus: IEventBus
   private config!: IConfig
@@ -16,10 +19,20 @@ export class Daemon {
   private logger: ILogger
   private running = false
   private intelligence!: IntelligenceLayer
+  // expose orchestration bus for external use
+  public orchestration?: ReturnType<typeof createOrchestrationBus>
 
   constructor(busInstance: IEventBus = bus, logger: ILogger = rootLogger) {
     this.bus = busInstance
     this.logger = logger
+    // create orchestration bus and attach
+    try {
+      this.orchestration = createOrchestrationBus(this.logger.child('orchestration'))
+      // start session bridge
+      createSessionBridge(this.orchestration, this.logger.child('bridge'))
+    } catch (err) {
+      this.logger.warn(`failed to initialize orchestration: ${String(err)}`)
+    }
   }
 
   /**
