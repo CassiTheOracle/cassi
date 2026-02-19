@@ -1,16 +1,24 @@
 /**
- * Phase 3 types: Providers, Channels, Sessions, Turn pipeline
+ * Phase 3+ types: Providers, Channels, Sessions, Turn pipeline, Tool execution
  */
+
+// ─── Content Blocks (for tool-use conversation turns) ────────────────────────
+
+export type ContentBlock =
+  | { type: 'text'; text: string }
+  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
+  | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
 
 // ─── Messages ────────────────────────────────────────────────────────────────
 
 export interface Message {
-  role: "user" | "assistant" | "system";
-  content: string;
+  role: 'user' | 'assistant' | 'system';
+  /** Plain text for normal turns; ContentBlock[] when tool use is involved */
+  content: string | ContentBlock[];
   name?: string;
 }
 
-export type ThinkingLevel = "none" | "low" | "medium" | "high";
+export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high';
 
 export interface CompletionOpts {
   model: string;
@@ -19,14 +27,26 @@ export interface CompletionOpts {
   thinking?: ThinkingLevel;
   systemPrompt?: string;
   stream?: boolean;
+  /** Tool schemas to pass to the model. Anthropic format — providers convert as needed. */
+  tools?: Array<{
+    name: string;
+    description: string;
+    input_schema: Record<string, unknown>;
+  }>
 }
 
 export interface CompletionChunk {
-  type: "token" | "thinking" | "done" | "error";
+  type: 'token' | 'thinking' | 'done' | 'error' | 'tool_use';
   text?: string;
   tokensUsed?: number;
   model?: string;
   error?: string;
+  /** Present when type === 'tool_use' */
+  toolCall?: {
+    id: string;
+    name: string;
+    input: Record<string, unknown>;
+  }
 }
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -36,10 +56,7 @@ export interface IProvider {
   readonly models: string[];
 
   /** Stream a completion. Yields chunks until done. */
-  complete(
-    messages: Message[],
-    opts: CompletionOpts
-  ): AsyncIterable<CompletionChunk>;
+  complete(messages: Message[], opts: CompletionOpts): AsyncIterable<CompletionChunk>;
 
   /** Count tokens for a message array (approximate) */
   countTokens(messages: Message[]): Promise<number>;
@@ -72,17 +89,9 @@ export interface OutboundMessage {
 
 export interface IChannel {
   readonly id: string;
-
-  /** Send a message to the channel */
   send(message: OutboundMessage): Promise<void>;
-
-  /** Register handler for incoming messages */
   onMessage(handler: (msg: InboundMessage) => void): void;
-
-  /** Start listening */
   start(): Promise<void>;
-
-  /** Stop listening */
   stop(): Promise<void>;
 }
 
@@ -107,22 +116,11 @@ export interface Session {
 }
 
 export interface ISessionManager {
-  /** Get or create session for a sender+channel combo */
   getOrCreate(channelId: string, senderId: string, config?: Partial<SessionConfig>): Session;
-
-  /** Get session by id */
   get(sessionId: string): Session | undefined;
-
-  /** Update session history */
   addTurn(sessionId: string, message: Message): void;
-
-  /** Clear session history (but keep session) */
   clear(sessionId: string): void;
-
-  /** Delete session entirely */
   delete(sessionId: string): void;
-
-  /** List all active sessions */
   list(): Session[];
 }
 
@@ -131,7 +129,7 @@ export interface ISessionManager {
 export interface TurnContext {
   session: Session;
   inbound: InboundMessage;
-  messages: Message[];   // full history + current message
+  messages: Message[];
   opts: CompletionOpts;
 }
 
@@ -140,5 +138,6 @@ export interface TurnResult {
   tokensUsed: number;
   model: string;
   durationMs: number;
-  thinkerInjection?: string;  // pre-turn context from Thinker
+  thinkerInjection?: string;
+  toolCalls?: Array<{ name: string; durationMs: number }>
 }
