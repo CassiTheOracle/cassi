@@ -1,6 +1,7 @@
 import { EventBus, bus } from "./event-bus.js"
 import { Logger, rootLogger } from "./logger.js"
 import { Config } from "./config.js"
+import { createLayeredConfig } from "./runtime-config.js"
 import { PluginHost } from "./plugin-host.js"
 import type { IEventBus, ILogger, IConfig, IPluginHost } from "../types/interfaces.js"
 import path from "node:path"
@@ -39,12 +40,23 @@ export class Daemon {
    * Start the daemon: load config, start plugin host, wire signals and workers.
    */
   async start(): Promise<void> {
-    // 1. Load config
-    this.config = await Config.load()
+    // 1. Load base file config
+    const baseCfg = await Config.load()
 
-    // 2. Start config watcher
+    // 2. Create layered runtime config wrapping file config
+    const layered = createLayeredConfig(baseCfg, this.bus, this.logger)
+    // attempt to load persisted runtime overrides
     try {
-      this.config.watch()
+      await layered.loadPersistedOverrides()
+    } catch (err) {
+      this.logger.warn(`failed to load persisted overrides: ${String(err)}`)
+    }
+
+    this.config = layered
+
+    // 3. Start config watcher (file-level)
+    try {
+      baseCfg.watch()
     } catch (err) {
       this.logger.warn("failed to start config watcher")
     }
