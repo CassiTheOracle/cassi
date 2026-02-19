@@ -258,8 +258,9 @@ export class Daemon {
           const result = await this.pipeline.process(inbound)
           this.logger.info(`[daemon] Response generated`, { tokens: result.tokensUsed, model: result.model })
           this.pluginHost.send(pluginId, {
-            type: 'message',
-            payload: { sessionId: inbound.sessionId, content: result.response, done: true }
+            sessionId: inbound.sessionId,
+            content: result.response,
+            done: true,
           })
         }
       } catch (err) {
