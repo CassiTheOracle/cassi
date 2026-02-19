@@ -6,6 +6,8 @@ import type { IEventBus, ILogger, IConfig, IPluginHost } from "../types/interfac
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import fs from "node:fs"
+import { createIntelligence } from "./intelligence/index.js"
+import type { IntelligenceLayer } from "./intelligence/index.js"
 
 export class Daemon {
   private bus: IEventBus
@@ -13,6 +15,7 @@ export class Daemon {
   private pluginHost!: IPluginHost
   private logger: ILogger
   private running = false
+  private intelligence!: IntelligenceLayer
 
   constructor(busInstance: IEventBus = bus, logger: ILogger = rootLogger) {
     this.bus = busInstance
@@ -47,6 +50,32 @@ export class Daemon {
 
     // 5. Create PluginHost with logger
     this.pluginHost = new PluginHost(this.logger)
+
+    // Initialize intelligence layer before loading plugins
+    try {
+      this.intelligence = createIntelligence(this.logger)
+
+      // Wire modules to event bus
+      const bus = this.bus
+      bus.on("turn:start", (e) => {
+        void (this.intelligence.memory as any).onEvent?.(e)
+      })
+
+      bus.on("turn:end", (e) => {
+        void (this.intelligence.memory as any).onEvent?.(e)
+        void (this.intelligence.continuity as any).onEvent?.(e)
+        void (this.intelligence.thinker as any).onEvent?.(e)
+      })
+
+      bus.on("plugin:crashed", (e) => {
+        void (this.intelligence.recover as any).onEvent?.(e)
+        void (this.intelligence.reflect as any).onEvent?.(e)
+      })
+
+      this.logger.info("[daemon] Intelligence layer loaded — 5 modules active")
+    } catch (err) {
+      this.logger.warn(`failed to initialize intelligence layer: ${String(err)}`)
+    }
 
     // 6. Load the echo-channel worker (phase 1)
     const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -130,6 +159,17 @@ export class Daemon {
       }
     } catch {
       // ignore
+    }
+
+    // intelligence cleanup
+    try {
+      for (const m of this.intelligence.all) {
+        if (typeof (m as any).cleanup === "function") {
+          await (m as any).cleanup()
+        }
+      }
+    } catch (err) {
+      this.logger.warn(`error during intelligence cleanup: ${String(err)}`)
     }
 
     this.running = false
