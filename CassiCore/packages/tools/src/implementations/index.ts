@@ -4,6 +4,7 @@ import type { ISessionManager } from '../../../types/runtime.js'
 
 import { shellExecDefinition, shellExecHandler } from './shell-exec.js'
 import { readFileDefinition, readFileHandler } from './read-file.js'
+import { readFilesDefinition, readFilesHandler } from './read-files.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { memorySearchDefinition, makeMemorySearchHandler } from './memory-search.js'
@@ -19,6 +20,7 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // File I/O
   registry.register(readFileDefinition, readFileHandler)
+  registry.register(readFilesDefinition, readFilesHandler)
   registry.register(writeFileDefinition, writeFileHandler)
 
   // Network
