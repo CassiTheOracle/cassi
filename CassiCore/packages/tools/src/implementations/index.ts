@@ -35,7 +35,7 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   registry.register(
     {
       name: 'list_sessions',
-      description: 'List all active ClaraCore sessions with their IDs and last activity.',
+      description: 'List all active CassieCore sessions with their IDs and last activity.',
       parameters: { type: 'object', properties: {}, required: [] },
       timeoutMs: 5_000,
     },
