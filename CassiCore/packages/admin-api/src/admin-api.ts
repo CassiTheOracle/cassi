@@ -5,8 +5,7 @@ import os from 'node:os'
 import type { ILogger } from '../types/interfaces.js'
 
 export function createAdminApi(daemon: any, logger: ILogger) {
-  let server: http.Server | null = null
-  let unixPath = path.join(os.homedir(), '.claracore', 'admin.sock')
+  let unixPath = path.join(os.homedir(), '.cassiecore', 'admin.sock')
   let tcpHost = '127.0.0.1'
   let tcpPort = 7432
 
@@ -55,10 +54,50 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     const parts = url.pathname.split('/').filter(Boolean)
 
     try {
+      // ── Health endpoints ───────────────────────────────────────────────────
+
       if (req.method === 'GET' && url.pathname === '/health') {
-        const uptime = process.uptime()
-        const version = daemon.config.get('daemon.version', '0.1.0')
-        return sendJSON(res, 200, { status: 'ok', uptime, version })
+        // Try to pull the latest snapshot from the HealthMonitor
+        const monitor = daemon.healthMonitor
+        const snapshot = monitor?.latest?.()
+
+        if (snapshot) {
+          // Full rich response
+          const httpCode = snapshot.overall === 'ok' ? 200
+            : snapshot.overall === 'degraded' ? 200   // degraded still serves traffic
+            : 503
+          return sendJSON(res, httpCode, {
+            status:         snapshot.overall,
+            timestamp:      snapshot.timestamp,
+            uptimeMs:       snapshot.uptimeMs,
+            memoryMb:       snapshot.memoryMb,
+            eventLoopLagMs: snapshot.eventLoopLagMs,
+            version:        daemon.config?.get?.('daemon.version', '0.1.0') ?? '0.1.0',
+            checks:         snapshot.checks,
+          })
+        }
+
+        // Fallback: monitor not yet initialised — return minimal response
+        return sendJSON(res, 200, {
+          status:  'starting',
+          uptime:  process.uptime(),
+          version: daemon.config?.get?.('daemon.version', '0.1.0') ?? '0.1.0',
+        })
+      }
+
+      // GET /health/history — rolling snapshot window
+      if (req.method === 'GET' && url.pathname === '/health/history') {
+        const monitor = daemon.healthMonitor
+        const history = monitor?.getHistory?.() ?? []
+        return sendJSON(res, 200, history)
+      }
+
+      // POST /health/check — trigger an immediate check and return the result
+      if (req.method === 'POST' && url.pathname === '/health/check') {
+        const monitor = daemon.healthMonitor
+        if (!monitor) return sendJSON(res, 503, { error: 'health monitor not initialised' })
+        const snapshot = await monitor.runChecks()
+        return sendJSON(res, snapshot.overall === 'down' ? 503 : 200, snapshot)
       }
 
       if (req.method === 'GET' && parts[0] === 'config' && parts.length === 1) {
@@ -69,14 +108,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         const key = parts[1]
         if (req.method === 'GET') {
           const val = daemon.config.get(key as string, undefined)
-          // source detection: simple heuristic
           const source = val === undefined ? 'default' : 'file'
           return sendJSON(res, 200, { key, value: val, source })
         }
         if (req.method === 'POST') {
           const body = await parseBody(req)
           if (!body || !('value' in body)) return sendJSON(res, 400, { error: 'missing value' })
-          // set runtime override on daemon — store in-memory overrides map
           daemon.__admin_overrides = daemon.__admin_overrides || {}
           daemon.__admin_overrides[key] = { value: body.value, reason: body.reason }
           return sendJSON(res, 200, { key, value: body.value })
@@ -101,7 +138,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
         if (req.method === 'POST' && parts[1] === 'register') {
           const body = await parseBody(req)
-          // naive register — emit event
           daemon.bus.emit({ type: 'orchestration:register', payload: body })
           return sendJSON(res, 200, { ok: true })
         }
@@ -125,7 +161,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, 200, list)
       }
       if (parts[0] === 'plugins' && parts.length === 2 && req.method === 'POST' && parts[1] && parts[1].endsWith('restart')) {
-        // allow POST /plugins/:id/restart — parts would be ['plugins', ':id', 'restart'] but our split differs
+        // handled below
       }
       if (parts[0] === 'plugins' && parts.length === 3 && parts[2] === 'restart' && req.method === 'POST') {
         const id = parts[1]
@@ -143,6 +179,104 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, 200, modules)
       }
 
+      // ── Chat endpoints (used by CLI) ───────────────────────────────────────
+
+      // GET /chat/:sessionId/stream  — SSE token stream
+      if (parts[0] === 'chat' && parts.length === 3 && parts[2] === 'stream' && req.method === 'GET') {
+        const sessionId = parts[1]
+        if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        })
+        res.write(': connected\n\n')
+
+        // Subscribe to bus events for this session
+        const busHandler = (e: any) => {
+          if (e.pluginId !== `session:${sessionId}`) return
+          const payload = e.payload as Record<string, unknown>
+          if (payload?.type === 'turn:token') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'token', token: payload.token })}\n\n`)
+            } catch { /* client disconnected */ }
+          } else if (payload?.type === 'turn:done') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+            } catch { /* client disconnected */ }
+          } else if (payload?.type === 'turn:tool_call') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: payload.tool, input: payload.input })}\n\n`)
+            } catch { /* client disconnected */ }
+          } else if (payload?.type === 'turn:error') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'error', error: payload.error })}\n\n`)
+            } catch { /* client disconnected */ }
+          }
+        }
+
+        daemon.bus.on('worker:message', busHandler)
+
+        // Keep-alive ping every 15s
+        const ping = setInterval(() => {
+          try { res.write(': ping\n\n') } catch { clearInterval(ping) }
+        }, 15_000)
+
+        req.on('close', () => {
+          clearInterval(ping)
+          daemon.bus.off('worker:message', busHandler)
+        })
+
+        return
+      }
+
+      // POST /chat/:sessionId/send  — send a message, returns { ok, model, durationMs, tokensUsed }
+      if (parts[0] === 'chat' && parts.length === 3 && parts[2] === 'send' && req.method === 'POST') {
+        const sessionId = parts[1]
+        if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+
+        if (!daemon.pipeline) return sendJSON(res, 503, { error: 'pipeline not ready' })
+
+        const body = await parseBody(req)
+        const content: string = body?.content
+        if (!content) return sendJSON(res, 400, { error: 'missing content' })
+
+        try {
+          const { randomUUID } = await import('node:crypto')
+          const inbound = {
+            id: randomUUID(),
+            sessionId,
+            channelId: 'channel:cli',
+            senderId: sessionId,
+            content,
+            timestamp: new Date(),
+          }
+
+          // Process fires tokens onto the bus (picked up by SSE stream above)
+          // then sends done event when complete
+          daemon.pipeline.process(inbound).then((result: any) => {
+            // Signal done to SSE subscriber
+            daemon.bus.emit({
+              type: 'worker:message',
+              pluginId: `session:${sessionId}`,
+              payload: { type: 'turn:done', sessionId, model: result.model, durationMs: result.durationMs, tokensUsed: result.tokensUsed },
+            })
+          }).catch((err: unknown) => {
+            daemon.bus.emit({
+              type: 'worker:message',
+              pluginId: `session:${sessionId}`,
+              payload: { type: 'turn:error', sessionId, error: String(err) },
+            })
+          })
+
+          return sendJSON(res, 200, { ok: true, sessionId })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // not found
       sendJSON(res, 404, { error: 'not_found' })
     } catch (err) {
@@ -151,37 +285,49 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
+  // Separate servers for Unix socket and TCP
+  let unixServer: http.Server | null = null
+  let tcpServer: http.Server | null = null
+
   return {
     async start() {
-      if (server) return
-      server = http.createServer(handler)
+      if (unixServer || tcpServer) return
 
       // Remove existing socket if present
       try {
         if (fs.existsSync(unixPath)) fs.unlinkSync(unixPath)
       } catch {}
 
+      // Start Unix socket server
+      unixServer = http.createServer(handler)
       await new Promise<void>((resolve, reject) => {
-        server!.listen(unixPath, () => {
+        unixServer!.listen(unixPath, () => {
           try { fs.chmodSync(unixPath, 0o660) } catch {}
           logger.info(`[admin-api] listening on unix:${unixPath}`)
           resolve()
         })
-        server!.on('error', reject)
+        unixServer!.on('error', reject)
       })
 
+      // Start TCP server (separate instance)
+      tcpServer = http.createServer(handler)
       await new Promise<void>((resolve, reject) => {
-        server!.listen(tcpPort, tcpHost, () => {
+        tcpServer!.listen(tcpPort, tcpHost, () => {
           logger.info(`[admin-api] listening on http://${tcpHost}:${tcpPort}`)
           resolve()
         })
-        server!.on('error', reject)
+        tcpServer!.on('error', reject)
       })
     },
     async stop() {
-      if (!server) return
-      await new Promise<void>((resolve) => server!.close(() => resolve()))
-      server = null
+      if (unixServer) {
+        await new Promise<void>((resolve) => unixServer!.close(() => resolve()))
+        unixServer = null
+      }
+      if (tcpServer) {
+        await new Promise<void>((resolve) => tcpServer!.close(() => resolve()))
+        tcpServer = null
+      }
       try { if (fs.existsSync(unixPath)) fs.unlinkSync(unixPath) } catch {}
       logger.info('[admin-api] stopped')
     }
