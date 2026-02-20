@@ -8,6 +8,7 @@ import { readFilesDefinition, readFilesHandler } from './read-files.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { memorySearchDefinition, makeMemorySearchHandler } from './memory-search.js'
+import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
 
 export interface CoreToolDeps {
   memory?: IMemory
@@ -47,5 +48,11 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
         `${s.id} | channel:${s.channelId} | turns:${s.history.length} | active:${s.lastActiveAt.toISOString()}`
       ).join('\n')
     }
+  )
+
+  // spawn_subagent — stub (full integration pending)
+  registry.register(
+    spawnSubagentDefinition,
+    makeSpawnSubagentHandler(deps.sessionManager || ({} as ISessionManager))
   )
 }
