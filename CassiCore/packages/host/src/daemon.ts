@@ -4,7 +4,8 @@ import { Config } from "./config.js"
 import { createLayeredConfig } from "./runtime-config.js"
 import { PluginHost } from "./plugin-host.js"
 import type { IEventBus, ILogger, IConfig, IPluginHost } from "../types/interfaces.js"
-import path from "node:path"
+import path, { join } from "node:path"
+import { homedir } from "node:os"
 import { fileURLToPath } from "node:url"
 import fs from "node:fs"
 import { createIntelligence } from "./intelligence/index.js"
@@ -22,6 +23,7 @@ import { ToolRegistry } from './tools/registry.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { buildSystemPrompt } from './workspace/loader.js'
+import { HealthMonitor } from './health-monitor.js'
 
 export class Daemon {
   public bus: IEventBus
@@ -32,6 +34,7 @@ export class Daemon {
   private intelligence!: IntelligenceLayer
   private sessions!: ReturnType<typeof createSessionManager>
   public pipeline!: TurnPipeline
+  public healthMonitor!: HealthMonitor
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -52,6 +55,9 @@ export class Daemon {
    * Start the daemon: load config, start plugin host, wire signals and workers.
    */
   async start(): Promise<void> {
+    // 0. Load .env secrets (before anything reads env vars)
+    await this._loadEnv()
+
     // 1. Load base file config
     const baseCfg = await Config.load()
 
@@ -90,7 +96,7 @@ export class Daemon {
 
     // Initialize intelligence layer before loading plugins
     try {
-      this.intelligence = createIntelligence(this.logger)
+      this.intelligence = createIntelligence(this.logger, this.config)
 
       // Wire modules to event bus
       const bus = this.bus
@@ -187,16 +193,43 @@ export class Daemon {
     let providers: Map<string, IProvider> = new Map()
     try {
       const { createProviders } = await import('./providers/index.js')
-      providers = createProviders(this.config, this.logger)
+      providers = createProviders(this.config, this.logger, {
+        centralized: true,
+        bus: this.bus,
+      })
     } catch (err) {
       this.logger.warn('[daemon] Providers not loaded — run Phase 3 providers build')
+    }
+
+    // Wire the default provider into the Thinker so it can make real calls
+    if (this.intelligence?.thinker) {
+      const defaultProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'kimi'
+      const thinkerProvider = providers.get(defaultProviderId) ?? providers.values().next().value
+      if (thinkerProvider) {
+        ;(this.intelligence.thinker as any).setProvider(thinkerProvider)
+        this.logger.info(`[daemon] Thinker provider wired: ${thinkerProvider.id}`)
+      } else {
+        this.logger.warn('[daemon] Thinker: no provider available — thinking cycles will be skipped')
+      }
     }
 
     // Create sessions and turn pipeline
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`[daemon] System prompt built (${systemPrompt.length} chars)`)
     const sessionStore = SessionStore.open(this.logger)
-    this.sessions = createSessionManager(this.logger, systemPrompt, sessionStore)
+    // Resolve default model: prefer intelligence config, fall back to kimi-k2-0711-preview
+    const defaultProvider = this.config.get<string>('intelligence.defaultProvider', 'kimi')
+    const configuredModel = this.config.get<string>('intelligence.defaultModel', '')
+    const defaultModel = configuredModel
+      ? `${defaultProvider}/${configuredModel}`
+      : `${defaultProvider}/kimi-k2-0711-preview`
+    if (defaultModel) {
+      this.logger.info(`[daemon] Default model: ${defaultModel}`)
+    }
+    // Resolve thinking level: prefer config override, fall back to 'high'
+    const configuredThinking = this.config.get<string>('intelligence.thinking', 'high') as import('../types/runtime.js').ThinkingLevel
+    this.logger.info(`[daemon] Thinking level: ${configuredThinking}`)
+    this.sessions = createSessionManager(this.logger, systemPrompt, sessionStore, defaultModel, configuredThinking)
 
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
@@ -206,7 +239,7 @@ export class Daemon {
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       '/home/valerie/Workspaces',
-      '/tmp/claracore',
+      '/tmp/cassiecore',
     ])
     const networkAllowlist = this.config.get<string[]>('tools.networkAllowlist', ['*'])
     const toolExecutor = new ToolExecutor(toolRegistry, {
@@ -226,11 +259,11 @@ export class Daemon {
       toolExecutor,
     )
 
-    // Mount intelligence middlewares (continuity + thinker injection)
+    // Mount intelligence middlewares — continuity only (thinker runs fire-and-forget via onTurnEnd)
     if (this.intelligence) {
       this.pipeline.mountIntelligence({
         continuity: this.intelligence.continuity as any,
-        thinker: this.intelligence.thinker as any,
+
       })
 
       // Wire optimizer to live session manager and pipeline — now it can actually work
@@ -238,6 +271,21 @@ export class Daemon {
       this.intelligence.optimizer.setPipeline(this.pipeline)
       this.logger.info('[daemon] Optimizer wired to session manager and pipeline')
     }
+
+    // ── Health Monitor ────────────────────────────────────────────────────────
+    const healthIntervalMs = this.config.get<number>('health.intervalMs', 30_000)
+    this.healthMonitor = new HealthMonitor(this.bus, this.logger, {
+      intervalMs:  healthIntervalMs,
+      historySize: 20,
+      selfHeal:    true,
+    })
+    this.healthMonitor.wire({
+      providers,
+      pluginHost:   this.pluginHost as any,
+      intelligence: this.intelligence as any,
+      pipeline:     this.pipeline,
+      sessions:     this.sessions as any,
+    })
 
     // 7. Subscribe to worker:message
     this.bus.on("worker:message", async (e) => {
@@ -248,28 +296,28 @@ export class Daemon {
         const pluginId = (e as any).pluginId as string
         const payload = (e as any).payload as Record<string, unknown>
 
-        // If the pipeline emitted session-scoped events (pluginId like "session:<id>"),
-        // forward them to the appropriate channel worker using the SessionManager.
+        // ── Session-scoped events from the turn pipeline ──────────────────────
+        // pluginId is "session:<sessionId>" for events emitted by the pipeline.
+        // Route streaming tokens and status events to the channel worker that
+        // owns the session.
         if (pluginId?.startsWith("session:") && payload?.sessionId) {
           try {
             const sid = payload.sessionId as string
             const s = this.sessions.get(sid)
             if (s && s.channelId) {
               const tgt = s.channelId
-              // Map known payload types to channel host messages
+
               if (payload.type === 'turn:token' && payload.token) {
+                // Stream token to channel — done=false keeps stream open
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
                 return
               } else if (payload.type === 'turn:tool_call') {
+                // Show tool usage inline — italicised name, no done flag
                 const toolName = (payload.tool as string) || 'tool'
-                const content = `Tool call: ${toolName}`
-                this.pluginHost.send(tgt, { sessionId: sid, content, done: false })
+                this.pluginHost.send(tgt, { sessionId: sid, content: `\n_[${toolName}]_`, done: false })
                 return
               } else if (payload.type === 'turn:error') {
-                this.pluginHost.send(tgt, { sessionId: sid, content: `Error: ${payload.error as string}`, done: true })
-                return
-              } else if (payload.type === 'turn:done') {
-                this.pluginHost.send(tgt, { sessionId: sid, content: payload.content as string || '', done: true })
+                this.pluginHost.send(tgt, { sessionId: sid, content: `❌ ${payload.error as string}`, done: true })
                 return
               }
             }
@@ -278,7 +326,7 @@ export class Daemon {
           }
         }
 
-        // Route worker log messages to daemon logger
+        // ── Worker log messages ───────────────────────────────────────────────
         if (payload?.type === 'log') {
           const level = (payload.level as string) || 'info'
           const msg = (payload.message as string) || ''
@@ -288,28 +336,59 @@ export class Daemon {
           return
         }
 
-        if (pluginId?.startsWith("channel:") && payload?.sessionId && payload?.content && payload?.sessionId !== "system") {
-          // Build a proper InboundMessage from channel payload
+        // ── Inbound messages from channel workers ─────────────────────────────
+        // Channel workers send { sessionId, content } when a user message arrives.
+        // The pipeline processes it; streaming tokens are handled above via bus
+        // events. The final done=true is sent below via the turn:end subscription.
+        if (pluginId?.startsWith("channel:") && payload?.sessionId && (payload?.content || payload?.attachments) && payload?.sessionId !== "system") {
           const { randomUUID } = await import('node:crypto')
           const inbound = {
             id: randomUUID(),
             sessionId: payload.sessionId as string,
             channelId: pluginId,
             senderId: payload.sessionId as string,
-            content: payload.content as string,
+            content: (payload.content as string) || '(image)',
+            attachments: payload.attachments as import('../types/runtime.js').ImageAttachment[] | undefined,
             timestamp: new Date(),
           }
           this.logger.info(`[daemon] Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId })
-          const result = await this.pipeline.process(inbound)
-          this.logger.info(`[daemon] Response generated`, { tokens: result.tokensUsed, model: result.model })
-          this.pluginHost.send(pluginId, {
-            sessionId: inbound.sessionId,
-            content: result.response,
-            done: true,
-          })
+
+          // Process the turn — streaming tokens flow via bus → worker:message above.
+          // We do NOT send the final response here; the turn:end handler does that
+          // so the stream is finalized exactly once, after all tokens have been sent.
+          try {
+            await this.pipeline.process(inbound)
+            this.logger.info(`[daemon] Turn complete`, { sessionId: inbound.sessionId })
+          } catch (err) {
+            this.logger.warn(`[daemon] pipeline error: ${String(err)}`)
+            // Send error message to channel
+            this.pluginHost.send(pluginId, {
+              sessionId: inbound.sessionId,
+              content: `⚠️ Something went wrong — please try again.`,
+              done: true,
+            })
+          }
         }
       } catch (err) {
         this.logger.warn(`error processing inbound message: ${String(err)}`)
+      }
+    })
+
+    // ── Streaming finalization ────────────────────────────────────────────────
+    // turn:end fires after the pipeline is done. At this point all streaming
+    // tokens have already been forwarded to the channel worker. We send done=true
+    // with an empty content string to close the stream — Telegram will do a final
+    // flush/edit of the accumulated buffer.
+    this.bus.on("turn:end", (e) => {
+      const sid = (e as any).sessionId as string | undefined
+      if (!sid) return
+      try {
+        const s = this.sessions.get(sid)
+        if (s?.channelId) {
+          this.pluginHost.send(s.channelId, { sessionId: sid, content: '', done: true })
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] failed to finalize stream for ${sid}: ${String(err)}`)
       }
     })
 
@@ -332,7 +411,7 @@ export class Daemon {
     try {
       const adminApi = createAdminApi(this, this.logger)
       await adminApi.start()
-      this.logger.info('[daemon] AdminAPI listening on ~/.claracore/admin.sock + :7432')
+      this.logger.info('[daemon] AdminAPI listening on ~/.cassiecore/admin.sock + :7432')
     } catch (err) {
       this.logger.warn(`AdminAPI failed to start: ${String(err)}`)
     }
@@ -343,14 +422,48 @@ export class Daemon {
     // 13. Emit daemon:ready — triggers optimizer loop start
     this.bus.emit({ type: "daemon:ready", startedAt: new Date() })
 
-    // 14. Log startup banner
+    // 14. Start health monitor (after daemon:ready so all subsystems are wired)
+    this.healthMonitor.start()
+
+    // 15. Log startup banner
     const loaded = this.pluginHost.all().length
     const pid = process.pid
     this.logger.info("╔══════════════════════════════════╗")
-    this.logger.info("║   ClaraCore v0.1.0 — Ready       ║")
+    this.logger.info("║   CassieCore v0.1.0 — Ready       ║")
     this.logger.info("╚══════════════════════════════════╝")
     this.logger.info(`[daemon] ${loaded} plugin(s) loaded | hot-reload active | PID: ${pid}`)
   }
+
+  /**
+   * Load secrets from ~/.cassiecore/.env into process.env.
+   * Keys are only set if not already present in the environment.
+   * Safe to call multiple times. .env is optional — silently ignored if missing.
+   */
+  private async _loadEnv(): Promise<void> {
+    const envPath = join(homedir(), '.cassiecore', '.env')
+    try {
+      const raw = fs.readFileSync(envPath, 'utf8')
+      let loaded = 0
+      for (const line of raw.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed || trimmed.startsWith('#')) continue
+        const eq = trimmed.indexOf('=')
+        if (eq < 0) continue
+        const key = trimmed.slice(0, eq).trim()
+        const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '')
+        if (key && !process.env[key]) {
+          process.env[key] = val
+          loaded++
+        }
+      }
+      if (loaded > 0) {
+        this.logger.debug(`[daemon] Loaded ${loaded} secret(s) from .cassiecore/.env`)
+      }
+    } catch {
+      // .env is optional
+    }
+  }
+
 
   /**
    * Stop the daemon gracefully.
@@ -363,6 +476,11 @@ export class Daemon {
     // emit shutdown — triggers optimizer loop stop
     this.bus.emit({ type: "daemon:shutdown", reason: "signal" })
 
+    // stop health monitor
+    try {
+      this.healthMonitor?.stop()
+    } catch { /* ignore */ }
+
     // shutdown plugin host
     try {
       await this.pluginHost.shutdown()
@@ -372,7 +490,6 @@ export class Daemon {
 
     // attempt to stop config watcher if possible
     try {
-      // Config implementation doesn't expose explicit stop; try to access watcher via casting
       if (typeof (this.config as any).watcher?.close === "function") {
         (this.config as any).watcher.close()
       }
@@ -398,7 +515,6 @@ export class Daemon {
 
     this.running = false
     this.logger.info("Goodbye.")
-    // exit
     process.exit(0)
   }
 
@@ -414,7 +530,6 @@ export class Daemon {
       return
     }
 
-    // For each loaded plugin, read new config and update if changed
     const all = this.pluginHost.all()
     for (const p of all) {
       const newCfg = this.config.get<Record<string, unknown>>(`plugins.${p.id}`, {})
