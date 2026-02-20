@@ -1,5 +1,5 @@
 /**
- * Extended IntelligenceModule interfaces for ClaraCore Phase 2.
+ * Extended IntelligenceModule interfaces for CassieCore Phase 2.
  * Intelligence modules run in the main process (core-resident, not workers).
  * They have full access to EventBus, Logger, and each other via dependency injection.
  */

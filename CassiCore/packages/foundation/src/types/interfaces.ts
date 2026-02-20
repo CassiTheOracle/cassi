@@ -1,5 +1,5 @@
 /**
- * Core interface contracts for ClaraCore modules.
+ * Core interface contracts for CassieCore modules.
  * All implementations must satisfy these shapes exactly.
  */
 

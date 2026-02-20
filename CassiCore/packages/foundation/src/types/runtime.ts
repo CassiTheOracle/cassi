@@ -9,6 +9,18 @@ export type ContentBlock =
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
 
+// ─── Image Attachments ────────────────────────────────────────────────────────
+
+export type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+
+export interface ImageAttachment {
+  /** base64-encoded image bytes */
+  data: string
+  mediaType: ImageMediaType
+  /** Optional human label (e.g. filename or Telegram file_id) */
+  label?: string
+}
+
 // ─── Messages ────────────────────────────────────────────────────────────────
 
 export interface Message {
@@ -76,6 +88,8 @@ export interface InboundMessage {
   content: string;
   replyToId?: string;
   timestamp: Date;
+  /** Images attached to this message (e.g. photos sent via Telegram) */
+  attachments?: ImageAttachment[];
   metadata?: Record<string, unknown>;
 }
 
