@@ -25,7 +25,7 @@ function timeStamp(date = new Date()): string {
 }
 
 /**
- * Logger implementation used across ClaraCore.
+ * Logger implementation used across CassieCore.
  */
 export class Logger implements ILogger {
   public readonly component: string;
