@@ -109,7 +109,7 @@ function serveHtml(res: ServerResponse) {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ClaraCore Webchat</title>
+<title>CassieCore Webchat</title>
 <style>
   :root{color-scheme: dark light}
   body{background:#0b0f13;color:#cfd8dc;font-family: Inter, ui-sans-serif, system-ui, -apple-system, Roboto, 'Segoe UI', 'Helvetica Neue', Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
@@ -125,7 +125,7 @@ function serveHtml(res: ServerResponse) {
 </head>
 <body>
 <div class="container">
-  <h1>ClaraCore — Webchat</h1>
+  <h1>CassieCore — Webchat</h1>
   <div class="meta">Session: <span id="sessionId"></span></div>
   <div id="messages" class="messages"></div>
   <div class="controls">
@@ -139,8 +139,8 @@ function serveHtml(res: ServerResponse) {
 <script>
 (function(){
   function uuidv4(){ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);}); }
-  let sessionId = sessionStorage.getItem('claracore:webchat:session');
-  if(!sessionId){ sessionId = uuidv4(); sessionStorage.setItem('claracore:webchat:session', sessionId); }
+  let sessionId = sessionStorage.getItem('cassiecore:webchat:session');
+  if(!sessionId){ sessionId = uuidv4(); sessionStorage.setItem('cassiecore:webchat:session', sessionId); }
   document.getElementById('sessionId').textContent = sessionId;
 
   const messagesEl = document.getElementById('messages');

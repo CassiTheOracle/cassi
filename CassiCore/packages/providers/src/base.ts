@@ -7,8 +7,13 @@ export abstract class BaseProvider implements IProvider {
   abstract countTokens(messages: Message[]): Promise<number>
   abstract ping(): Promise<boolean>
 
-  /** Simple token estimate: ~4 chars per token */
+  /** Token estimate: ~4 chars per token for text, ~256 tokens per image attachment */
   protected estimateTokens(messages: Message[]): number {
-    return Math.ceil(messages.reduce((s, m) => s + m.content.length, 0) / 4)
+    return Math.ceil(messages.reduce((s, m) => {
+      const textLen = typeof m.content === 'string'
+        ? m.content.length
+        : m.content.reduce((cs, b) => cs + ('text' in b ? b.text.length : 50), 0)
+      return s + textLen
+    }, 0) / 4)
   }
 }

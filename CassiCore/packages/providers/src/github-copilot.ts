@@ -1,5 +1,5 @@
 import { BaseProvider } from './base.js'
-import type { Message, ContentBlock, CompletionOpts, CompletionChunk } from '../../types/runtime.js'
+import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
@@ -19,8 +19,6 @@ const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6', 'claude-sonnet-4.5', 'cla
 
 /**
  * Resolve the live Copilot API token from the OpenClaw credentials cache.
- * The oauth token (ghu_) must first be exchanged for a session token.
- * TODO: implement full token exchange flow for standalone ClaraCore operation.
  */
 function resolveCopilotApiToken(oauthToken: string): string {
   try {
@@ -36,36 +34,73 @@ function resolveCopilotApiToken(oauthToken: string): string {
 // ── Message format helpers ────────────────────────────────────────────────────
 
 /**
- * Convert Message.content to Anthropic API format.
- * ContentBlock[] → passed through directly.
- * string → wrapped as [{ type: 'text', text }] for consistency.
+ * Convert Message.content + optional image attachments to Anthropic API format.
+ *
+ * Anthropic multimodal content is an array of blocks:
+ *   [{ type: 'image', source: { type: 'base64', media_type, data } }, ..., { type: 'text', text }]
+ *
+ * Images are prepended before the text block so the model sees them first.
  */
 function toAnthropicContent(
   msg: Message,
+  attachments?: ImageAttachment[],
 ): string | Array<Record<string, unknown>> {
-  if (typeof msg.content === 'string') return msg.content
+  const imageBlocks: Array<Record<string, unknown>> = (attachments ?? []).map(att => ({
+    type: 'image',
+    source: {
+      type: 'base64',
+      media_type: att.mediaType,
+      data: att.data,
+    },
+  }))
+
+  if (typeof msg.content === 'string') {
+    if (imageBlocks.length === 0) return msg.content
+    return [...imageBlocks, { type: 'text', text: msg.content }]
+  }
+
   // ContentBlock[] — convert to Anthropic format
-  return (msg.content as ContentBlock[]).map(b => {
+  const contentBlocks = (msg.content as ContentBlock[]).map(b => {
     if (b.type === 'text') return { type: 'text', text: b.text }
     if (b.type === 'tool_use') return { type: 'tool_use', id: b.id, name: b.name, input: b.input }
     if (b.type === 'tool_result') return { type: 'tool_result', tool_use_id: b.tool_use_id, content: b.content, is_error: b.is_error }
     return b as Record<string, unknown>
   })
+
+  return imageBlocks.length > 0 ? [...imageBlocks, ...contentBlocks] : contentBlocks
 }
 
 /**
  * Convert Message[] to OpenAI format.
+ * Images are injected as image_url content parts (base64 data URIs).
  * tool_result blocks → role: 'tool' messages.
  */
-function toOpenAIMessages(messages: Message[]): Array<Record<string, unknown>> {
+function toOpenAIMessages(
+  messages: Message[],
+  attachmentsByIndex?: Map<number, ImageAttachment[]>,
+): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = []
-  for (const msg of messages) {
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    const attachments = attachmentsByIndex?.get(i) ?? []
+
     if (typeof msg.content === 'string') {
-      out.push({ role: msg.role, content: msg.content })
+      if (attachments.length === 0) {
+        out.push({ role: msg.role, content: msg.content })
+      } else {
+        // Multimodal: mix image_url parts + text part
+        const parts: Array<Record<string, unknown>> = attachments.map(att => ({
+          type: 'image_url',
+          image_url: { url: `data:${att.mediaType};base64,${att.data}` },
+        }))
+        parts.push({ type: 'text', text: msg.content })
+        out.push({ role: msg.role, content: parts })
+      }
       continue
     }
+
     const blocks = msg.content as ContentBlock[]
-    // Separate tool_result blocks (become role:'tool' messages) from the rest
     const textBlocks = blocks.filter(b => b.type !== 'tool_result')
     const toolResults = blocks.filter((b): b is Extract<ContentBlock, { type: 'tool_result' }> => b.type === 'tool_result')
 
@@ -73,31 +108,91 @@ function toOpenAIMessages(messages: Message[]): Array<Record<string, unknown>> {
       const text = textBlocks
         .map(b => (b.type === 'text' ? b.text : b.type === 'tool_use' ? `[tool_use:${b.name}]` : ''))
         .join('')
-      out.push({ role: msg.role, content: text })
+
+      if (attachments.length > 0) {
+        const parts: Array<Record<string, unknown>> = attachments.map(att => ({
+          type: 'image_url',
+          image_url: { url: `data:${att.mediaType};base64,${att.data}` },
+        }))
+        parts.push({ type: 'text', text })
+        out.push({ role: msg.role, content: parts })
+      } else {
+        out.push({ role: msg.role, content: text })
+      }
     }
+
     for (const r of toolResults) {
       out.push({ role: 'tool', tool_call_id: r.tool_use_id, content: r.content })
     }
   }
+
   return out
 }
 
 export class GitHubCopilotProvider extends BaseProvider {
   readonly id = 'github-copilot'
-  readonly models = ['claude-sonnet-4.6', 'claude-sonnet-4.5', 'gpt-5-mini', 'claude-opus-4.6']
+  readonly models = ['gemini-3-flash-preview', 'gemini-3-pro-preview', 'claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5', 'gpt-5-mini']
+
+  // Caching for ping() — prevents health-check spam
+  private lastPingTime = 0
+  private lastPingResult = false
+  private readonly PING_CACHE_MS = 60000  // 60 second cache
+
+  // Caching for token — prevents file read on every request
+  private cachedToken: string | null = null
+  private tokenExpiresAt = 0
+  private readonly TOKEN_REFRESH_BUFFER_MS = 60000  // Refresh 60s before expiry
 
   constructor(private oauthToken: string) { super() }
 
   private get token(): string {
-    return resolveCopilotApiToken(this.oauthToken)
+    // Use cached token if still valid (with buffer)
+    if (this.cachedToken && this.tokenExpiresAt > Date.now() + this.TOKEN_REFRESH_BUFFER_MS) {
+      return this.cachedToken
+    }
+
+    const resolved = resolveCopilotApiToken(this.oauthToken)
+    this.cachedToken = resolved
+
+    // Try to parse expiry from the token cache file
+    try {
+      const cachePath = join(homedir(), '.openclaw', 'credentials', 'github-copilot.token.json')
+      const cache = JSON.parse(readFileSync(cachePath, 'utf8')) as { expiresAt: number }
+      this.tokenExpiresAt = cache.expiresAt
+    } catch {
+      this.tokenExpiresAt = Date.now() + 25 * 60 * 1000  // Default 25min
+    }
+
+    return resolved
   }
 
-  async *complete(messages: Message[], opts: CompletionOpts): AsyncIterable<CompletionChunk> {
+  /** Fetch with timeout and optional retry logic */
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit,
+    timeoutMs = 30000
+  ): Promise<Response> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal })
+      return res
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
+
+  async *complete(
+    messages: Message[],
+    opts: CompletionOpts,
+    attachments?: ImageAttachment[],
+  ): AsyncIterable<CompletionChunk> {
     const model = opts.model || this.models[0]
     if (ANTHROPIC_MODELS.has(model)) {
-      yield* this.completeAnthropic(messages, opts, model)
+      yield* this.completeAnthropic(messages, opts, model, attachments)
     } else {
-      yield* this.completeOpenAI(messages, opts, model)
+      yield* this.completeOpenAI(messages, opts, model, attachments)
     }
   }
 
@@ -106,6 +201,7 @@ export class GitHubCopilotProvider extends BaseProvider {
     messages: Message[],
     opts: CompletionOpts,
     model: string,
+    attachments?: ImageAttachment[],
   ): AsyncIterable<CompletionChunk> {
     const system = opts.systemPrompt || (
       typeof messages.find(m => m.role === 'system')?.content === 'string'
@@ -114,11 +210,20 @@ export class GitHubCopilotProvider extends BaseProvider {
     )
     const filtered = messages.filter(m => m.role !== 'system')
 
+    // Attachments belong to the last user message
+    const lastUserIdx = filtered.map(m => m.role).lastIndexOf('user')
+
     const body: Record<string, unknown> = {
       model,
       max_tokens: opts.maxTokens ?? 8192,
       stream: true,
-      messages: filtered.map(m => ({ role: m.role, content: toAnthropicContent(m) })),
+      messages: filtered.map((m, i) => ({
+        role: m.role,
+        content: toAnthropicContent(
+          m,
+          i === lastUserIdx ? attachments : undefined,
+        ),
+      })),
     }
     if (system) body['system'] = system
     if (opts.thinking === 'high') {
@@ -128,20 +233,27 @@ export class GitHubCopilotProvider extends BaseProvider {
       body['thinking'] = { type: 'enabled', budget_tokens: 4000 }
       body['max_tokens'] = Math.max((opts.maxTokens ?? 8192), 8192)
     }
-    // Attach tools if provided
     if (opts.tools?.length) {
       body['tools'] = opts.tools
     }
 
     let res: Response
     try {
-      res = await fetch(`${BASE_URL}/v1/messages`, {
-        method: 'POST',
-        headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
-        body: JSON.stringify(body),
-      })
+      res = await this.fetchWithTimeout(
+        `${BASE_URL}/v1/messages`,
+        {
+          method: 'POST',
+          headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
+          body: JSON.stringify(body),
+        },
+        60000  // 60s timeout for completions
+      )
     } catch (err) {
-      yield { type: 'error', error: `network error: ${String(err)}` }
+      if (err instanceof Error && err.name === 'AbortError') {
+        yield { type: 'error', error: 'request timeout after 60s' }
+      } else {
+        yield { type: 'error', error: `network error: ${String(err)}` }
+      }
       return
     }
 
@@ -157,13 +269,24 @@ export class GitHubCopilotProvider extends BaseProvider {
     const decoder = new TextDecoder()
     let buf = ''
     let totalTokens = 0
-    // Track tool use block being accumulated
     let currentTool: { id: string; name: string; inputJson: string } | null = null
+
+    // STREAM STALL DETECTION: Track last chunk received time
+    const CHUNK_TIMEOUT_MS = 30000  // 30s without data = stall
+    let lastChunkTime = Date.now()
 
     try {
       while (true) {
+        // Check for stall before reading
+        if (Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS) {
+          reader.releaseLock()
+          yield { type: 'error', error: 'stream stalled - no data received for 30s' }
+          return
+        }
+
         const { done, value } = await reader.read()
         if (done) break
+        lastChunkTime = Date.now()  // Reset stall timer on data
         buf += decoder.decode(value, { stream: true })
         const lines = buf.split('\n')
         buf = lines.pop() ?? ''
@@ -222,10 +345,18 @@ export class GitHubCopilotProvider extends BaseProvider {
     messages: Message[],
     opts: CompletionOpts,
     model: string,
+    attachments?: ImageAttachment[],
   ): AsyncIterable<CompletionChunk> {
+    // Build attachment map: last user message index → attachments
+    const attachmentMap = new Map<number, ImageAttachment[]>()
+    if (attachments?.length) {
+      const lastUserIdx = messages.map(m => m.role).lastIndexOf('user')
+      if (lastUserIdx >= 0) attachmentMap.set(lastUserIdx, attachments)
+    }
+
     const body: Record<string, unknown> = {
       model,
-      messages: toOpenAIMessages(messages),
+      messages: toOpenAIMessages(messages, attachmentMap),
       stream: true,
       max_tokens: opts.maxTokens ?? 4096,
     }
@@ -239,13 +370,21 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     let res: Response
     try {
-      res = await fetch(`${BASE_URL}/chat/completions`, {
-        method: 'POST',
-        headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
-        body: JSON.stringify(body),
-      })
+      res = await this.fetchWithTimeout(
+        `${BASE_URL}/chat/completions`,
+        {
+          method: 'POST',
+          headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
+          body: JSON.stringify(body),
+        },
+        60000  // 60s timeout for completions
+      )
     } catch (err) {
-      yield { type: 'error', error: `network error: ${String(err)}` }
+      if (err instanceof Error && err.name === 'AbortError') {
+        yield { type: 'error', error: 'request timeout after 60s' }
+      } else {
+        yield { type: 'error', error: `network error: ${String(err)}` }
+      }
       return
     }
 
@@ -260,13 +399,24 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     const decoder = new TextDecoder()
     let buf = ''
-    // Accumulate tool_calls across streaming chunks
     const toolCallAccum: Map<number, { id: string; name: string; argsJson: string }> = new Map()
+
+    // STREAM STALL DETECTION: Track last chunk received time
+    const CHUNK_TIMEOUT_MS = 30000  // 30s without data = stall
+    let lastChunkTime = Date.now()
 
     try {
       while (true) {
+        // Check for stall before reading
+        if (Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS) {
+          reader.releaseLock()
+          yield { type: 'error', error: 'stream stalled - no data received for 30s' }
+          return
+        }
+
         const { done, value } = await reader.read()
         if (done) break
+        lastChunkTime = Date.now()  // Reset stall timer on data
         buf += decoder.decode(value, { stream: true })
         const lines = buf.split('\n')
         buf = lines.pop() ?? ''
@@ -274,7 +424,6 @@ export class GitHubCopilotProvider extends BaseProvider {
           if (!line.startsWith('data: ')) continue
           const data = line.slice(6).trim()
           if (data === '[DONE]') {
-            // Flush accumulated tool calls
             for (const tc of toolCallAccum.values()) {
               let parsed: Record<string, unknown> = {}
               try { parsed = JSON.parse(tc.argsJson) } catch { /* empty */ }
@@ -324,11 +473,25 @@ export class GitHubCopilotProvider extends BaseProvider {
   }
 
   async ping(): Promise<boolean> {
+    // CACHE: Return cached result if within TTL
+    const now = Date.now()
+    if (now - this.lastPingTime < this.PING_CACHE_MS) {
+      return this.lastPingResult
+    }
+
     try {
-      const res = await fetch(`${BASE_URL}/v1/models`, {
-        headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
-      })
+      const res = await this.fetchWithTimeout(
+        `${BASE_URL}/v1/models`,
+        { headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` } },
+        10000  // 10s timeout for health check
+      )
+      this.lastPingResult = res.ok
+      this.lastPingTime = now
       return res.ok
-    } catch { return false }
+    } catch {
+      this.lastPingResult = false
+      this.lastPingTime = now
+      return false
+    }
   }
 }
