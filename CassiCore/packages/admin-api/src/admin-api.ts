@@ -343,9 +343,68 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       // intelligence
-      if (parts[0] === 'intelligence' && req.method === 'GET') {
+      if (parts[0] === 'intelligence' && req.method === 'GET' && parts.length === 1) {
         const modules = (daemon.intelligence?.all ?? []).map((m: any) => ({ name: m.name, priority: m.priority, status: 'active' }))
         return sendJSON(res, 200, modules)
+      }
+
+      // GET/POST/DELETE => /intelligence/thinker/strategy
+      if (url.pathname === '/intelligence/thinker/strategy') {
+        try {
+          const mem = daemon.intelligence?.memory
+          if (!mem) return sendJSON(res, 503, { error: 'memory not initialised' })
+
+          if (req.method === 'GET') {
+            const strategy = await mem.kv_get('thinker:strategy')
+            return sendJSON(res, 200, { strategy: strategy ?? null })
+          }
+
+          if (req.method === 'POST') {
+            const body = await parseBody(req)
+            if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'missing strategy body' })
+            await mem.kv_set('thinker:strategy', body)
+            // Emit bus event so Thinker picks it up
+            daemon.bus.emit({ type: 'thinker:strategy-updated', strategy: body })
+            return sendJSON(res, 200, { ok: true })
+          }
+
+          if (req.method === 'DELETE') {
+            await mem.kv_del('thinker:strategy')
+            daemon.bus.emit({ type: 'thinker:strategy-updated', strategy: null })
+            return sendJSON(res, 200, { ok: true })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET/POST/DELETE => /intelligence/thinker/insight-history
+      if (url.pathname === '/intelligence/thinker/insight-history') {
+        try {
+          const mem = daemon.intelligence?.memory
+          if (!mem) return sendJSON(res, 503, { error: 'memory not initialised' })
+
+          if (req.method === 'GET') {
+            const history = await mem.kv_get('thinker:insight-history')
+            return sendJSON(res, 200, { insightHistory: history ?? [] })
+          }
+
+          if (req.method === 'POST') {
+            const body = await parseBody(req)
+            if (!body || !Array.isArray(body)) return sendJSON(res, 400, { error: 'expected array body' })
+            await mem.kv_set('thinker:insight-history', body)
+            daemon.bus.emit({ type: 'thinker:insight-history-updated', history: body })
+            return sendJSON(res, 200, { ok: true })
+          }
+
+          if (req.method === 'DELETE') {
+            await mem.kv_del('thinker:insight-history')
+            daemon.bus.emit({ type: 'thinker:insight-history-updated', history: [] })
+            return sendJSON(res, 200, { ok: true })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
       }
 
       // ── Pi Bridge endpoints ────────────────────────────────────────────────
