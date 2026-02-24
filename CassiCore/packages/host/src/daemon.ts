@@ -94,6 +94,11 @@ export class Daemon {
     process.on("SIGTERM", stopHandler)
     process.on("SIGINT", stopHandler)
 
+    // 5. Global safety: log unhandled promise rejections to avoid daemon crash on library race conditions
+    process.on('unhandledRejection', (reason) => {
+      try { this.logger.warn('[daemon] unhandledRejection', { error: String(reason) }) } catch {}
+    })
+
     // 5. Create PluginHost with logger
     this.pluginHost = new PluginHost(this.logger)
 
