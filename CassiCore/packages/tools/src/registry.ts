@@ -1,4 +1,5 @@
 import type { ToolDefinition, ToolHandler } from './types.js'
+import { bus } from '../event-bus.js'
 
 type Entry = { definition: ToolDefinition; handler: ToolHandler }
 
@@ -6,7 +7,27 @@ export class ToolRegistry {
   private tools = new Map<string, Entry>()
 
   register(definition: ToolDefinition, handler: ToolHandler): void {
+    const existed = this.tools.has(definition.name)
     this.tools.set(definition.name, { definition, handler })
+
+    // Emit a lightweight event so other subsystems (e.g., multi-agent) can
+    // react to newly-available tools in real-time.
+    try {
+      if (!existed) {
+        const server = definition.name.includes('__') ? definition.name.split('__')[0] : undefined
+        bus.emit({
+          type: 'tool:registered',
+          name: definition.name,
+          description: definition.description,
+          parameters: (definition.parameters as unknown) ?? {},
+          server,
+        } as any)
+      }
+    } catch (err) {
+      // Best-effort: do not fail registration if event emission fails
+      // eslint-disable-next-line no-console
+      console.warn('[ToolRegistry] failed to emit tool:registered event', String(err))
+    }
   }
 
   get(name: string): Entry | undefined {
