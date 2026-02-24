@@ -151,6 +151,14 @@ export class Daemon {
         (this.intelligence.aiScientist as any).start()
       }
 
+      // Wire Subconscious to event bus for background consolidation
+      if ((this.intelligence.subconscious as any)?.onEventBus) {
+        (this.intelligence.subconscious as any).onEventBus(bus)
+      }
+      if ((this.intelligence.subconscious as any)?.start) {
+        (this.intelligence.subconscious as any).start()
+      }
+
       // Wire Multi-Agent Coordinator to event bus
       if ((this.intelligence.multiAgent as any)?.onEventBus) {
         (this.intelligence.multiAgent as any).onEventBus(bus)
