@@ -27,7 +27,7 @@ interface InternalWorkerRecord {
 export class PluginHost implements IPluginHost {
   private workers: Map<string, InternalWorkerRecord> = new Map();
 
-  constructor(private logger: ILogger) {}
+  constructor(private logger: ILogger) { }
 
   /**
    * Load and start a plugin worker
@@ -153,7 +153,18 @@ export class PluginHost implements IPluginHost {
    */
   async unload(pluginId: string): Promise<void> {
     const record = this.workers.get(pluginId);
-    if (!record || !record.worker) return;
+    if (!record) return;
+
+    if (record.restartTimer) {
+      clearTimeout(record.restartTimer);
+      record.restartTimer = undefined;
+    }
+
+    if (!record.worker) {
+      this.workers.delete(pluginId);
+      this.logger.info(`plugin ${pluginId} unloaded (was not active)`);
+      return;
+    }
     const w = record.worker;
     try {
       w.postMessage({ type: "shutdown" } as HostMessage);

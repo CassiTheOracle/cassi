@@ -6,15 +6,15 @@
  * and bridges them into the ToolRegistry so the model can use them.
  */
 
-/** Config entry for a single MCP server (stored in ~/.cassiecore/config.json) */
+/** Config entry for a single MCP server (stored in ~/.cassicore/config.json) */
 export interface MCPServerConfig {
   /** Unique identifier — used as tool name prefix: `<id>__<tool>` */
   id: string
+  /** Command to execute (e.g., "node" or "python") */
+  command: string
   /** Human-readable description shown in logs */
   description?: string
-  /** Command to spawn the server process */
-  command: string
-  /** Arguments passed to the command */
+  /** Arguments to pass to the command */
   args?: string[]
   /** Environment variables to set for the server process */
   env?: Record<string, string>

@@ -3,7 +3,7 @@
  *
  * Responsibilities:
  *   - Spawn and connect all configured MCP servers at startup
- *   - Register each server's tools into CassieCore's ToolRegistry
+ *   - Register each server's tools into CassiCore's ToolRegistry
  *   - Monitor for crashes and restart (with backoff)
  *   - Expose status for the health monitor
  *

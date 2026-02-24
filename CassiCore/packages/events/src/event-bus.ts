@@ -25,8 +25,12 @@ export class EventBus implements IEventBus {
     // Snapshot handlers to avoid issues if handlers modify the set during iteration.
     const handlers = Array.from(set);
     for (const h of handlers) {
-      // Type assertion: stored handlers follow the (e: EventOf<T>) => void shape
-      (h as (e: T) => void)(event);
+      try {
+        // Type assertion: stored handlers follow the (e: EventOf<T>) => void shape
+        (h as (e: T) => void)(event);
+      } catch (err) {
+        console.error(`[EventBus] Error in handler for event ${event.type}:`, err);
+      }
     }
   }
 
