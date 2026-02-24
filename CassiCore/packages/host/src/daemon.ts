@@ -370,6 +370,8 @@ export class Daemon {
       networkAllowlist,
       logger: this.logger,
     })
+    // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
+    ;(this as any).toolExecutor = toolExecutor
     this.logger.info(`[daemon] Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
 
     // Initialize MCP registry and connect configured servers
