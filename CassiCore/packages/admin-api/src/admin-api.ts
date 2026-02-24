@@ -409,6 +409,56 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // GET /intelligence/thinker/stats — return thinker runtime stats
+      if (req.method === 'GET' && url.pathname === '/intelligence/thinker/stats') {
+        try {
+          const thinker = daemon.intelligence?.thinker
+          if (!thinker) return sendJSON(res, 503, { error: 'thinker not initialised' })
+          const stats = typeof thinker.stats === 'function' ? await Promise.resolve(thinker.stats()) : undefined
+          return sendJSON(res, 200, { stats: stats ?? null })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/thinker/think — manual Thinker trigger (supports context override)
+      if (req.method === 'POST' && url.pathname === '/intelligence/thinker/think') {
+        try {
+          const body = await parseBody(req)
+          const publicDepth = body?.depth === 'Think' ? 'Think' : 'Ponder'
+          const context = body?.context
+          const wait = body?.wait === false ? false : true
+          const urgency = body?.urgency || 'medium'
+          const trigger = body?.trigger || 'admin'
+          const thinker = daemon.intelligence?.thinker
+          if (!thinker) return sendJSON(res, 503, { error: 'thinker not available' })
+
+          if (context) {
+            // Use private Ponder/Think to pass explicit context
+            const p = publicDepth === 'Think'
+              ? (thinker as any).Think({ context, urgency, trigger })
+              : (thinker as any).Ponder({ context, urgency, trigger })
+
+            if (!wait) {
+              p.catch((e: any) => daemon.logger?.warn?.('admin: thinker background failed', { error: String(e) }))
+              return sendJSON(res, 200, { ok: true, message: 'Thinker triggered (async)' })
+            }
+
+            const result = await p
+            return sendJSON(res, 200, { ok: true, result: result ?? null })
+          } else {
+            if (!wait) {
+              (thinker as any).think(publicDepth).then(() => {}).catch((e: any) => daemon.logger?.warn?.('admin: thinker background failed', { error: String(e) }))
+              return sendJSON(res, 200, { ok: true, message: 'Thinker triggered (async)' })
+            }
+            const insight = await (thinker as any).think(publicDepth)
+            return sendJSON(res, 200, { ok: true, insight })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // ── Multi-Agent endpoints (admin) ───────────────────────────────────────
       // GET /intelligence/multi-agent/metrics
       if (req.method === 'GET' && url.pathname === '/intelligence/multi-agent/metrics') {
@@ -584,10 +634,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           const out = {
             sessionId,
             turnId,
-            depth: depth || 'sonnet',
+            depth: depth || 'Ponder',
             yangBranches: result?.yang?.branches?.length ?? 0,
             yinCritiques: result?.yin?.critiques?.length ?? 0,
-            synthesizer: result?.synthesizer?.synthesis ?? null,
+            serenity: result?.serenity?.synthesis ?? null,
             meta: { totalLatencyMs: result?.totalLatencyMs ?? null, totalCostUsd: result?.totalCostUsd ?? null },
           }
           if (include_raw) (out as any)['raw'] = result
