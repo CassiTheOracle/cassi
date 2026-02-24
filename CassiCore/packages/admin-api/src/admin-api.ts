@@ -5,6 +5,7 @@ import os from 'node:os'
 import type { ILogger } from '../types/interfaces.js'
 import type { DialecticStreamEvent } from '../types/dialectic.js'
 import { createToolsApi } from './tools-api.js'
+import { assembleContext } from './intelligence/context-assembler.js'
 
 // WebSocket state
 interface WSConnection {
@@ -500,3 +501,426 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       // ── Pi Bridge endpoints ────────────────────────────────────────────────
+
+<<<<<<< Updated upstream
+      // POST /pi/completion/:requestId/chunk
+      if (parts[0] === 'pi' && parts[1] === 'completion' && parts[3] === 'chunk' && req.method === 'POST') {
+        const requestId = parts[2]
+        const body = await parseBody(req)
+        if (!body || !body.chunk) return sendJSON(res, 400, { error: 'missing chunk' })
+        
+        daemon.bus.emit({
+          type: 'pi:completion:chunk',
+          requestId,
+          chunk: body.chunk
+        })
+        return sendJSON(res, 200, { ok: true })
+      }
+
+      // ── Dialectic endpoints (C: Query API) ─────────────────────────────────
+
+      // GET /dialectic/:sessionId/history — recent dialectic turns
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'history' && req.method === 'GET') {
+        const sessionId = parts[1]
+        const limit = parseInt(url.searchParams.get('limit') || '10', 10)
+        try {
+          const history = await daemon.intelligence?.dialectic?.getRecent?.(sessionId, limit) ?? []
+          return sendJSON(res, 200, { sessionId, history })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /dialectic/:sessionId/stats — aggregated statistics
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'stats' && req.method === 'GET') {
+        const sessionId = parts[1]
+        try {
+          const stats = await daemon.intelligence?.dialectic?.getStats?.(sessionId) ?? {
+            totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0
+          }
+          return sendJSON(res, 200, { sessionId, stats })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /dialectic/:sessionId/think — trigger dialectic for a session (admin)
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'think' && req.method === 'POST') {
+        try {
+          const sessionId = parts[1]
+          const body = await parseBody(req)
+          // Accept same params as the think tool
+          const { query, depth, include_history, memory_limit, files, extra_context, wait, structured, include_raw } = body || {}
+
+          const ctxObj = await assembleContext(
+            {
+              memory: daemon.intelligence?.memory,
+              sessionManager: daemon.sessions,
+              getPipeline: () => daemon.pipeline,
+              logger: daemon.logger,
+            },
+            {
+              sessionId,
+              query: query || '',
+              includeHistory: include_history !== undefined ? include_history : true,
+              memoryLimit: memory_limit || 5,
+              files: Array.isArray(files) ? files : (files ? [files] : []),
+              extra: extra_context || '',
+              workingDir: process.cwd(),
+              allowedPaths: [],
+            }
+          )
+
+          const turnId = `admin-think-${Date.now()}`
+          const dialectic = daemon.intelligence?.dialectic
+          if (!dialectic) return sendJSON(res, 503, { error: 'dialectic not available' })
+
+          const promise = dialectic.processTurn(sessionId || `admin-session-${Date.now()}`, turnId, query || '', ctxObj)
+          if (wait === false) {
+            promise.catch((e: any) => daemon.logger?.warn?.('admin: background dialectic failed', { error: String(e) }))
+            return sendJSON(res, 200, { ok: true, message: 'Dialectic triggered (async)' })
+          }
+
+          const result = await promise
+          const out = {
+            sessionId,
+            turnId,
+            depth: depth || 'sonnet',
+            yangBranches: result?.yang?.branches?.length ?? 0,
+            yinCritiques: result?.yin?.critiques?.length ?? 0,
+            synthesizer: result?.synthesizer?.synthesis ?? null,
+            meta: { totalLatencyMs: result?.totalLatencyMs ?? null, totalCostUsd: result?.totalCostUsd ?? null },
+          }
+          if (include_raw) out['raw'] = result
+          return sendJSON(res, 200, out)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /dialectic/:sessionId/stream — WebSocket upgrade handled separately
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'stream' && req.method === 'GET') {
+        // Return HTML dashboard for browser requests
+        const acceptHeader = req.headers['accept'] || '';
+        if (acceptHeader.includes('text/html')) {
+          try {
+            const htmlPath = path.join(process.cwd(), 'public', 'dialectic-observatory.html');
+            const html = fs.readFileSync(htmlPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(html);
+            return;
+          } catch (err) {
+            return sendJSON(res, 500, { error: 'Dashboard not found' });
+          }
+        }
+        // Non-WebSocket request without upgrade
+        return sendJSON(res, 426, { error: 'WebSocket upgrade required' });
+      }
+
+      // ── Chat endpoints (used by CLI) ───────────────────────────────────────
+
+      // GET /chat/:sessionId/stream  — SSE token stream
+      if (parts[0] === 'chat' && parts.length === 3 && parts[2] === 'stream' && req.method === 'GET') {
+        const sessionId = parts[1]
+        if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        })
+        res.write(': connected\n\n')
+
+        // Subscribe to bus events for this session
+        const busHandler = (e: any) => {
+          if (e.pluginId !== `session:${sessionId}`) return
+          const payload = e.payload as Record<string, unknown>
+          if (payload?.type === 'turn:token') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'token', token: payload.token })}\n\n`)
+            } catch { /* client disconnected */ }
+          } else if (payload?.type === 'turn:done') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`)
+            } catch { /* client disconnected */ }
+          } else if (payload?.type === 'turn:tool_call') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: payload.tool, input: payload.input })}\n\n`)
+            } catch { /* client disconnected */ }
+          } else if (payload?.type === 'turn:error') {
+            try {
+              res.write(`data: ${JSON.stringify({ type: 'error', error: payload.error })}\n\n`)
+            } catch { /* client disconnected */ }
+          }
+        }
+
+        daemon.bus.on('worker:message', busHandler)
+
+        // Keep-alive ping every 15s
+        const ping = setInterval(() => {
+          try { res.write(': ping\n\n') } catch { clearInterval(ping) }
+        }, 15_000)
+
+        req.on('close', () => {
+          clearInterval(ping)
+          daemon.bus.off('worker:message', busHandler)
+        })
+
+        return
+      }
+
+      // POST /chat/:sessionId/send  — send a message, returns { ok, model, durationMs, tokensUsed }
+      if (parts[0] === 'chat' && parts.length === 3 && parts[2] === 'send' && req.method === 'POST') {
+        const sessionId = parts[1]
+        if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+
+        if (!daemon.pipeline) return sendJSON(res, 503, { error: 'pipeline not ready' })
+
+        const body = await parseBody(req)
+        const content: string = body?.content
+        if (!content) return sendJSON(res, 400, { error: 'missing content' })
+
+        try {
+          const { randomUUID } = await import('node:crypto')
+          const inbound = {
+            id: randomUUID(),
+            sessionId,
+            channelId: 'channel:cli',
+            senderId: sessionId,
+            content,
+            timestamp: new Date(),
+          }
+          logger.info(`[admin-api] Processing chat message for session ${sessionId}`)
+
+          // Process fires tokens onto the bus (picked up by SSE stream above)
+          // then sends done event when complete
+          daemon.pipeline.process(inbound).then((result: any) => {
+            logger.info(`[admin-api] Turn complete for session ${sessionId}`)
+            // Signal done to SSE subscriber
+            daemon.bus.emit({
+              type: 'worker:message',
+              pluginId: `session:${sessionId}`,
+              payload: { type: 'turn:done', sessionId, model: result.model, durationMs: result.durationMs, tokensUsed: result.tokensUsed },
+            })
+          }).catch((err: unknown) => {
+            logger.error(`[admin-api] Pipeline error for session ${sessionId}: ${String(err)}`)
+            daemon.bus.emit({
+              type: 'worker:message',
+              pluginId: `session:${sessionId}`,
+              payload: { type: 'turn:error', sessionId, error: String(err) },
+            })
+          })
+
+          return sendJSON(res, 200, { ok: true, sessionId })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /chat - Simple chat endpoint for provider integration
+      if (parts[0] === "chat" && parts.length === 1 && req.method === "POST") {
+        const body = await parseBody(req);
+        const messages = body?.messages || [];
+        const model = body?.model || "kimi-coding/k2p5";
+        
+        if (!daemon.pipeline) return sendJSON(res, 503, { error: "pipeline not ready" });
+        
+        try {
+          const { randomUUID } = await import("node:crypto");
+          const sessionId = "provider-" + randomUUID();
+          const content = messages[messages.length - 1]?.content || "";
+          
+          const inbound = {
+            id: randomUUID(),
+            sessionId,
+            channelId: "channel:cli",
+            senderId: sessionId,
+            content,
+            timestamp: new Date(),
+          };
+          
+          logger.info(`[admin-api] Processing provider chat for session ${sessionId}`);
+          
+          // Collect response content from bus events
+          let responseContent = "";
+          let responseModel = model;
+          let tokensUsed = 0;
+          let durationMs = 0;
+          
+          const busHandler = (e: any) => {
+            if (e.pluginId !== `session:${sessionId}`) return;
+            const payload = e.payload as Record<string, unknown>;
+            if (payload?.type === "turn:token") {
+              responseContent += String(payload.token || "");
+            } else if (payload?.type === "turn:done") {
+              responseModel = String(payload.model || model);
+              tokensUsed = Number(payload.tokensUsed || 0);
+              durationMs = Number(payload.durationMs || 0);
+            }
+          };
+          
+          daemon.bus.on("worker:message", busHandler);
+          
+          try {
+            await daemon.pipeline.process(inbound);
+            // Wait a bit for events to propagate
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } finally {
+            daemon.bus.off("worker:message", busHandler);
+          }
+          
+          return sendJSON(res, 200, {
+            content: responseContent,
+            model: responseModel,
+            tokensUsed,
+            durationMs
+          });
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) });
+        }
+      }
+
+      
+      // GET /mcp — list configured MCP servers and status
+      if (req.method === 'GET' && url.pathname === '/mcp') {
+        try {
+          // Prefer HealthMonitor's mcp reference (wired in daemon.start)
+          const mcpRef = (daemon.healthMonitor as any)?.mcp ?? (daemon.mcpRegistry as any) ?? undefined
+          if (!mcpRef || typeof mcpRef.status !== 'function') {
+            return sendJSON(res, 200, { servers: [], message: 'No MCP servers configured' })
+          }
+          const servers = mcpRef.status()
+          return sendJSON(res, 200, servers)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/thinker/feedback — record human feedback on an insight
+      if (req.method === 'POST' && url.pathname === '/intelligence/thinker/feedback') {
+        try {
+          const body = await parseBody(req)
+          const insight = body?.insight
+          const helpful = body?.helpful
+          const usedInResponse = body?.usedInResponse ?? false
+          const sessionId = body?.sessionId
+          if (!insight || typeof helpful !== 'boolean') return sendJSON(res, 400, { error: 'missing insight or helpful flag' })
+          // Emit event on the bus for Thinker to consume
+          daemon.bus.emit({ type: 'thinker:feedback', insight, helpful, usedInResponse, sessionId })
+          return sendJSON(res, 200, { ok: true })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /tools/registry — list registered tools (name, description, parameters)
+      if (req.method === 'GET' && url.pathname === '/tools/registry') {
+        try {
+          const toolRegistry = (daemon.pipeline as any)?.toolRegistry ?? (daemon.toolRegistry as any)
+          if (!toolRegistry || typeof toolRegistry.list !== 'function') {
+            return sendJSON(res, 503, { error: 'tool registry not initialised' })
+          }
+          const list = toolRegistry.list().map((t: any) => ({ name: t.name, description: t.description, parameters: t.parameters }))
+          return sendJSON(res, 200, list)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // Tools API endpoints
+      if (parts[0] === "tools" || parts[0] === "fs") {
+        const toolsApi = createToolsApi(logger);
+        return toolsApi.handler(req, res);
+      }
+      sendJSON(res, 404, { error: 'not_found' })
+    } catch (err) {
+      logger.warn(`admin-api error: ${String(err)}`)
+      sendJSON(res, 500, { error: String(err) })
+    }
+  }
+
+  // Separate servers for Unix socket and TCP
+  let unixServer: http.Server | null = null
+  let tcpServer: http.Server | null = null
+
+  return {
+    async start() {
+      if (unixServer || tcpServer) return { tcpPort: currentTcpPort, unixPath }
+
+      // Remove existing socket if present
+      try {
+        if (fs.existsSync(unixPath)) fs.unlinkSync(unixPath)
+      } catch {}
+
+      // Start Unix socket server
+      unixServer = http.createServer(handler)
+      
+      // WebSocket upgrade handling
+      unixServer.on('upgrade', (req, socket, head) => {
+        void handleWebSocketUpgrade(req, socket, head)
+      })
+      
+      await new Promise<void>((resolve, reject) => {
+        unixServer!.listen(unixPath, () => {
+          try { fs.chmodSync(unixPath, 0o660) } catch {}
+          logger.info(`[admin-api] listening on unix:${unixPath}`)
+          resolve()
+        })
+        unixServer!.on('error', reject)
+      })
+
+      // Start TCP server (separate instance) — attempt base port then fallback
+      let boundPort: number | null = null
+      for (let i = 0; i < 10; i++) {
+        const tryPort = baseTcpPort + i
+        const s = http.createServer(handler)
+        s.on('upgrade', (req, socket, head) => { void handleWebSocketUpgrade(req, socket, head) })
+
+        try {
+          await new Promise<void>((resolve, reject) => {
+            s.listen(tryPort, tcpHost, () => resolve())
+            s.once('error', (err) => reject(err))
+          })
+          tcpServer = s
+          boundPort = tryPort
+          currentTcpPort = tryPort
+          logger.info(`[admin-api] listening on http://${tcpHost}:${tryPort}`)
+          break
+        } catch (err: any) {
+          if (err && err.code === 'EADDRINUSE') {
+            logger.warn(`[admin-api] port ${tryPort} in use; trying ${tryPort + 1}`)
+            try { s.close?.(); } catch {}
+            continue
+          }
+          try { s.close?.(); } catch {}
+          throw err
+        }
+      }
+
+      if (!boundPort) {
+        logger.warn('[admin-api] failed to bind TCP admin port (no available port found)')
+      }
+
+      return { tcpPort: boundPort, unixPath }
+    },
+    async stop() {
+      if (unixServer) {
+        await new Promise<void>((resolve) => unixServer!.close(() => resolve()))
+        unixServer = null
+      }
+      if (tcpServer) {
+        await new Promise<void>((resolve) => tcpServer!.close(() => resolve()))
+        tcpServer = null
+      }
+      try { if (fs.existsSync(unixPath)) fs.unlinkSync(unixPath) } catch {}
+      logger.info('[admin-api] stopped')
+    }
+=======
+    }
+  } catch (err) {
+    logger.error("[admin-api] request error: " + String(err))
+    if (!res.headersSent) sendJSON(res, 500, { error: String(err) })
+>>>>>>> Stashed changes
+  }
+}
