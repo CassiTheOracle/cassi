@@ -590,7 +590,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             synthesizer: result?.synthesizer?.synthesis ?? null,
             meta: { totalLatencyMs: result?.totalLatencyMs ?? null, totalCostUsd: result?.totalCostUsd ?? null },
           }
-          if (include_raw) out['raw'] = result
+          if (include_raw) (out as any)['raw'] = result
           return sendJSON(res, 200, out)
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
@@ -794,6 +794,29 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           // Emit event on the bus for Thinker to consume
           daemon.bus.emit({ type: 'thinker:feedback', insight, helpful, usedInResponse, sessionId })
           return sendJSON(res, 200, { ok: true })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /tools/execute — execute a registered tool synchronously (admin)
+      if (req.method === 'POST' && url.pathname === '/tools/execute') {
+        try {
+          const body = await parseBody(req)
+          const toolName = body?.tool || body?.name
+          const input = body?.input || {}
+          const sessionId = body?.sessionId || null
+          if (!toolName) return sendJSON(res, 400, { error: 'missing tool name (tool)' })
+          const exec = (daemon as any).toolExecutor
+          if (!exec || typeof exec.execute !== 'function') return sendJSON(res, 503, { error: 'toolExecutor not available' })
+          const { randomUUID } = await import('node:crypto')
+          const call = { id: randomUUID(), name: toolName, input }
+          try {
+            const result = await exec.execute(call, sessionId || `admin-${Date.now()}`)
+            return sendJSON(res, 200, result)
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
