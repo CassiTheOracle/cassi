@@ -48,7 +48,10 @@ export type RuntimeEvent =
   // Pi Bridge events
   | { type: "pi:completion:request"; requestId: string; messages: any[]; opts: any }
   | { type: "pi:completion:chunk"; requestId: string; chunk: any }
-  | { type: "thinker:insight-applied"; sessionId: string; insight: string };
+  | { type: "thinker:insight-applied"; sessionId: string; insight: string }
+  // Tool registry events — emitted when tools are (re)registered into the system
+  | { type: "tool:registered"; name: string; description: string; parameters?: Record<string, unknown>; server?: string }
+  | { type: "tool:unregistered"; name: string; server?: string };
 
 export type EventType = RuntimeEvent["type"];
 
