@@ -24,6 +24,8 @@ import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 import { HealthMonitor } from './health-monitor.js'
+import { MCPRegistry } from './mcp/registry.js'
+import { CommandDispatcher } from './commands.js'
 
 export class Daemon {
   public bus: IEventBus
@@ -35,6 +37,7 @@ export class Daemon {
   private sessions!: ReturnType<typeof createSessionManager>
   public pipeline!: TurnPipeline
   public healthMonitor!: HealthMonitor
+  private commands!: CommandDispatcher
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -123,16 +126,82 @@ export class Daemon {
         void (this.intelligence.optimizer as any).onEvent?.(e)
       })
 
+      // Wire DialecticSystem to event bus for streaming
+      if ((this.intelligence.dialectic as any)?.onEventBus) {
+        (this.intelligence.dialectic as any).onEventBus(bus)
+      }
+
+      // Wire Thinker to event bus for proactive triggers
+      if ((this.intelligence.thinker as any)?.onEventBus) {
+        (this.intelligence.thinker as any).onEventBus(bus)
+      }
+
+      // Wire AI Scientist to event bus for metrics collection
+      if ((this.intelligence.aiScientist as any)?.onEventBus) {
+        (this.intelligence.aiScientist as any).onEventBus(bus)
+      }
+      
+      // Start AI Scientist monitoring
+      if ((this.intelligence.aiScientist as any)?.start) {
+        (this.intelligence.aiScientist as any).start()
+      }
+
+      // Wire Multi-Agent Coordinator to event bus
+      if ((this.intelligence.multiAgent as any)?.onEventBus) {
+        (this.intelligence.multiAgent as any).onEventBus(bus)
+      }
+
+      // Wire Rule Enforcer to event bus
+      if ((this.intelligence.ruleEnforcer as any)?.onEventBus) {
+        (this.intelligence.ruleEnforcer as any).onEventBus(bus)
+      }
+
+      // ── Phase 3: Thinker Event Listeners ────────────────────────────────────
+      // Listen for Thinker's proactive events
+      ;(bus as any).on('thinker:inject-insight', (e: any) => {
+        this.logger.info('[daemon] Thinker injecting insight', { urgency: e.urgency })
+        // Store for next turn injection via pipeline
+        if (e.insight && this.pipeline) {
+          // This will be picked up by the turn pipeline
+          ;(this.pipeline as any).pendingThinkerInsight = e.insight
+        }
+      })
+
+      ;(bus as any).on('thinker:early-warning', (e: any) => {
+        this.logger.warn('[daemon] Thinker early warning', { pattern: e.pattern })
+        // Trigger optimizer early intervention
+        if (this.intelligence?.optimizer) {
+          ;(this.intelligence.optimizer as any).handleEarlyWarning?.(e)
+        }
+      })
+
+      ;(bus as any).on('thinker:self-modified', (e: any) => {
+        this.logger.info('[daemon] Thinker self-modified strategy', e.newStrategy)
+      })
+
+      ;(bus as any).on('thinker:swarm-deployed', (e: any) => {
+        this.logger.info('[daemon] Thinker deployed swarm', { agents: e.agentsDeployed, roles: e.roles })
+      })
+
       this.logger.info(`[daemon] Intelligence layer loaded — ${this.intelligence.all.length} modules active`)
     } catch (err) {
       this.logger.warn(`failed to initialize intelligence layer: ${String(err)}`)
     }
 
-    // 6. Load the echo-channel worker (phase 1)
+    // Helper to resolve worker path (handles both .js and .ts)
     const __dirname = path.dirname(fileURLToPath(import.meta.url))
-    const echoPath = path.resolve(__dirname, "../workers/echo-channel.js")
+    const resolveWorker = (relPath: string): string | null => {
+      const jsPath = path.resolve(__dirname, relPath + '.js')
+      if (fs.existsSync(jsPath)) return jsPath
+      const tsPath = path.resolve(__dirname, relPath + '.ts')
+      if (fs.existsSync(tsPath)) return tsPath
+      return null
+    }
 
-    if (!fs.existsSync(echoPath)) {
+    // 6. Load the echo-channel worker (phase 1)
+    const echoPath = resolveWorker("../workers/echo-channel")
+
+    if (!echoPath) {
       this.logger.warn("echo-channel worker not found; continuing without it")
     } else {
       try {
@@ -149,30 +218,56 @@ export class Daemon {
     }
 
     // 7. Load webchat channel worker (Phase 3)
-    const webchatPath = path.resolve(__dirname, "../workers/channels/webchat.js")
-    if (!fs.existsSync(webchatPath)) {
+    const webchatPath = resolveWorker("../workers/channels/webchat")
+    if (!webchatPath) {
       this.logger.warn("webchat worker not found; skipping")
     } else {
       try {
-        const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
-        await this.pluginHost.load({
-          id: "channel:webchat",
-          entryPoint: webchatPath,
-          restartOnCrash: true,
-          maxRestarts: 5,
-          config: { port: webchatPort },
-        })
-        this.logger.info(`[daemon] Webchat channel listening on port ${webchatPort}`)
+        const enabled = this.config.get<boolean>("channels.webchat.enabled", false)
+        this.logger.info(`[daemon] webchat.enabled -> ${enabled}`)
+        if (!enabled) {
+          this.logger.info('webchat channel disabled by config; skipping')
+        } else {
+          const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
+          await this.pluginHost.load({
+            id: "channel:webchat",
+            entryPoint: webchatPath,
+            restartOnCrash: true,
+            maxRestarts: 5,
+            config: { port: webchatPort },
+          });
+          this.logger.info(`[daemon] Webchat channel listening on port ${webchatPort}`);
+        }
       } catch (err) {
-        this.logger.warn(`failed to load webchat: ${String(err)}`)
+        this.logger.warn(`failed to load webchat: ${String(err)}`);
       }
     }
 
-    // 7b. Load Telegram channel worker (optional — requires channels.telegram.token in config)
+    // 7b. Load CLI channel worker (always enabled for admin-api support)
+    const cliPath = resolveWorker("../workers/channels/cli")
+    if (!cliPath) {
+      this.logger.warn("cli worker not found; skipping")
+    } else {
+      try {
+        await this.pluginHost.load({
+          id: "channel:cli",
+          entryPoint: cliPath,
+          restartOnCrash: true,
+          maxRestarts: 5,
+          config: {},
+        })
+        this.logger.info(`[daemon] CLI channel active`)
+      } catch (err) {
+        this.logger.warn(`failed to load cli channel: ${String(err)}`)
+      }
+    }
+
+    // 7c. Load Telegram channel worker (optional — requires channels.telegram.token in config)
+    const tgEnabled = this.config.get<boolean>("channels.telegram.enabled", false)
     const tgToken = this.config.get<string>("channels.telegram.token", "")
-    if (tgToken) {
-      const tgPath = path.resolve(__dirname, "../workers/channels/telegram.js")
-      if (!fs.existsSync(tgPath)) {
+    if (tgEnabled && tgToken) {
+      const tgPath = resolveWorker("../workers/channels/telegram")
+      if (!tgPath) {
         this.logger.warn("telegram worker not found; skipping")
       } else {
         try {
@@ -189,6 +284,8 @@ export class Daemon {
           this.logger.warn(`failed to load telegram: ${String(err)}`)
         }
       }
+    } else if (tgToken && !tgEnabled) {
+      this.logger.info(`[daemon] Telegram channel disabled by config; skipping`)
     }
     let providers: Map<string, IProvider> = new Map()
     try {
@@ -213,6 +310,18 @@ export class Daemon {
       }
     }
 
+    // Wire the provider into the DialecticSystem (Yang, Yin, Synthesizer)
+    if (this.intelligence?.dialectic) {
+      const dialecticProviderId = this.config.get<string>('intelligence.dialectic.provider', '') || 'pi-bridge'
+      const dialecticProvider = providers.get(dialecticProviderId) ?? providers.get('pi-bridge') ?? providers.values().next().value
+      if (dialecticProvider) {
+        ;(this.intelligence.dialectic as any).setProvider(dialecticProvider)
+        this.logger.info(`[daemon] Dialectic provider wired: ${dialecticProvider.id}`)
+      } else {
+        this.logger.warn('[daemon] Dialectic: no provider available — dialectic observations will be skipped')
+      }
+    }
+
     // Create sessions and turn pipeline
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`[daemon] System prompt built (${systemPrompt.length} chars)`)
@@ -231,24 +340,43 @@ export class Daemon {
     this.logger.info(`[daemon] Thinking level: ${configuredThinking}`)
     this.sessions = createSessionManager(this.logger, systemPrompt, sessionStore, defaultModel, configuredThinking)
 
+    // Build command dispatcher
+    this.commands = new CommandDispatcher(this.logger, this.sessions, this.bus);
+
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
     registerCoreTools(toolRegistry, {
       memory: this.intelligence?.memory,
       sessionManager: this.sessions,
+      sessionStore: sessionStore,
+      bus: this.bus,
+      logger: this.logger,
+      getPipeline: () => this.pipeline,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
-      '/home/valerie/Workspaces',
-      '/tmp/cassiecore',
+      join(homedir(), 'workspaces'),
+      join(homedir(), '.cassicore'),
+      '/tmp/cassicore',
     ])
     const networkAllowlist = this.config.get<string[]>('tools.networkAllowlist', ['*'])
     const toolExecutor = new ToolExecutor(toolRegistry, {
-      workingDir: '/home/valerie/Workspaces',
+      workingDir: join(homedir(), 'workspaces'),
       allowedPaths,
       networkAllowlist,
       logger: this.logger,
     })
     this.logger.info(`[daemon] Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
+
+    // Initialize MCP registry and connect configured servers
+    let mcpRegistry: MCPRegistry | undefined
+    const mcpConfigs = this.config.get<Array<{ id: string; command: string; args?: string[]; env?: Record<string, string>; restartOnCrash?: boolean; maxRestarts?: number; startupTimeoutMs?: number; description?: string }>>('mcp.servers', [])
+    if (mcpConfigs.length > 0) {
+      this.logger.info(`[daemon] Initializing MCP registry with ${mcpConfigs.length} server(s)`)
+      mcpRegistry = new MCPRegistry(toolRegistry, this.logger)
+      await mcpRegistry.start(mcpConfigs)
+    } else {
+      this.logger.info('[daemon] No MCP servers configured')
+    }
 
     // @ts-ignore - intelligence may be undefined in edge cases
     this.pipeline = new TurnPipeline(
@@ -258,6 +386,11 @@ export class Daemon {
       toolRegistry,
       toolExecutor,
     )
+    
+    // Wire dialectic system to pipeline for parallel processing
+    if (this.intelligence?.dialectic) {
+      this.pipeline.setDialectic(this.intelligence.dialectic)
+    }
 
     // Mount intelligence middlewares — continuity only (thinker runs fire-and-forget via onTurnEnd)
     if (this.intelligence) {
@@ -285,6 +418,7 @@ export class Daemon {
       intelligence: this.intelligence as any,
       pipeline:     this.pipeline,
       sessions:     this.sessions as any,
+      mcp:          mcpRegistry,
     })
 
     // 7. Subscribe to worker:message
@@ -306,10 +440,17 @@ export class Daemon {
             const s = this.sessions.get(sid)
             if (s && s.channelId) {
               const tgt = s.channelId
-
-              if (payload.type === 'turn:token' && payload.token) {
+              if (payload.type === 'turn:direct_message' && payload.content) {
+                // Command dispatcher response — send once and done
+                this.pluginHost.send(tgt, { sessionId: sid, content: payload.content as string, done: true })
+                return
+              } else if (payload.type === 'turn:token' && payload.token) {
                 // Stream token to channel — done=false keeps stream open
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
+                return
+              } else if (payload.type === 'turn:thinking' && payload.token) {
+                // Stream thinking tokens to distinguish
+                this.pluginHost.send(tgt, { sessionId: sid, content: `${payload.token as string}`, done: false })
                 return
               } else if (payload.type === 'turn:tool_call') {
                 // Show tool usage inline — italicised name, no done flag
@@ -341,6 +482,15 @@ export class Daemon {
         // The pipeline processes it; streaming tokens are handled above via bus
         // events. The final done=true is sent below via the turn:end subscription.
         if (pluginId?.startsWith("channel:") && payload?.sessionId && (payload?.content || payload?.attachments) && payload?.sessionId !== "system") {
+          const sid = payload.sessionId as string;
+          const content = payload.content as string;
+
+          // INTERCEPT COMMANDS FIRST
+          if (content && content.startsWith('/')) {
+            const handled = await this.commands.handle(sid, pluginId, content);
+            if (handled) return;
+          }
+
           const { randomUUID } = await import('node:crypto')
           const inbound = {
             id: randomUUID(),
@@ -411,7 +561,7 @@ export class Daemon {
     try {
       const adminApi = createAdminApi(this, this.logger)
       await adminApi.start()
-      this.logger.info('[daemon] AdminAPI listening on ~/.cassiecore/admin.sock + :7432')
+      this.logger.info('[daemon] AdminAPI listening on ~/.cassicore/admin.sock + :7432')
     } catch (err) {
       this.logger.warn(`AdminAPI failed to start: ${String(err)}`)
     }
@@ -429,18 +579,18 @@ export class Daemon {
     const loaded = this.pluginHost.all().length
     const pid = process.pid
     this.logger.info("╔══════════════════════════════════╗")
-    this.logger.info("║   CassieCore v0.1.0 — Ready       ║")
+    this.logger.info("║   CassiCore v0.1.0 — Ready       ║")
     this.logger.info("╚══════════════════════════════════╝")
     this.logger.info(`[daemon] ${loaded} plugin(s) loaded | hot-reload active | PID: ${pid}`)
   }
 
   /**
-   * Load secrets from ~/.cassiecore/.env into process.env.
+  * Load secrets from ~/.cassicore/.env into process.env.
    * Keys are only set if not already present in the environment.
    * Safe to call multiple times. .env is optional — silently ignored if missing.
    */
   private async _loadEnv(): Promise<void> {
-    const envPath = join(homedir(), '.cassiecore', '.env')
+    const envPath = join(homedir(), '.cassicore', '.env')
     try {
       const raw = fs.readFileSync(envPath, 'utf8')
       let loaded = 0
@@ -457,7 +607,7 @@ export class Daemon {
         }
       }
       if (loaded > 0) {
-        this.logger.debug(`[daemon] Loaded ${loaded} secret(s) from .cassiecore/.env`)
+        this.logger.debug(`[daemon] Loaded ${loaded} secret(s) from .cassicore/.env`)
       }
     } catch {
       // .env is optional
@@ -525,6 +675,10 @@ export class Daemon {
     this.logger.info("Reloading config (no restart)...")
     try {
       await this.config.reload()
+      
+      const defaultModel = this.config.get<string>('intelligence.defaultModel', 'github-copilot/gpt-5-mini')
+      const thinking = this.config.get<string>('intelligence.thinking', 'high')
+      this.sessions.setDefaultConfig({ model: defaultModel, thinking: thinking as any })
     } catch (err) {
       this.logger.warn(`failed to reload config: ${String(err)}`)
       return
