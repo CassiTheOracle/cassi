@@ -47,8 +47,20 @@ export function sanitizeMarkdown(text: string): string {
   return text.replace(/([_*\[\]\(\)~`>#+\-=|{}.!])/g, '\\$1')
 }
 
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 export async function sendMessage(chatId: number, text: string, parseMode?: 'MarkdownV2' | 'HTML'): Promise<number | null> {
-  const safeText = parseMode === 'HTML' ? (text || '…') : sanitizeMarkdown(text || '…')
+  let safeText: string
+  if (parseMode === 'HTML') {
+    // If the caller provided HTML-like markup, trust it; otherwise wrap in <pre>
+    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text)
+    safeText = looksLikeHtml ? (text || '…') : `<pre>${escapeHtml(text || '…')}</pre>`
+  } else {
+    safeText = sanitizeMarkdown(text || '…')
+  }
+
   const result = await tgCall<{ message_id: number }>('sendMessage', {
     chat_id: chatId,
     text: safeText,
@@ -57,13 +69,20 @@ export async function sendMessage(chatId: number, text: string, parseMode?: 'Mar
   return result?.message_id ?? null
 }
 
-export async function editMessage(chatId: number, msgId: number, text: string): Promise<boolean> {
-  const safeText = sanitizeMarkdown(text || '…')
+export async function editMessage(chatId: number, msgId: number, text: string, parseMode?: 'MarkdownV2' | 'HTML'): Promise<boolean> {
+  let safeText: string
+  if (parseMode === 'HTML') {
+    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(text)
+    safeText = looksLikeHtml ? (text || '…') : `<pre>${escapeHtml(text || '…')}</pre>`
+  } else {
+    safeText = sanitizeMarkdown(text || '…')
+  }
+
   const result = await tgCall('editMessageText', {
     chat_id: chatId,
     message_id: msgId,
     text: safeText,
-    parse_mode: 'MarkdownV2',
+    parse_mode: parseMode || 'MarkdownV2',
   })
   return result !== null
 }

@@ -193,7 +193,7 @@ export class CommandDispatcher {
 ├─ Primary: qwen-portal/coder-model
 ├─ Fallback: kimi-coding/k2p5
 ├─ Memory: github-copilot/gpt-5-mini
-└─ Dialectic: Yang → Yin → Synthesizer
+└─ Dialectic: Yang → Yin → Serenity
 
 <i>Commands: /status /models /thinking /help</i>`;
 

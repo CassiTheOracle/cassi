@@ -20,7 +20,7 @@
  */
 
 import { parentPort } from 'node:worker_threads'
-import * as tg from './telegram-common.ts'
+import * as tg from './telegram-common.js'
 
 const POLL_TIMEOUT_SEC   = 25           // Telegram server-side long-poll timeout
 const FETCH_TIMEOUT_MS   = (POLL_TIMEOUT_SEC + 10) * 1_000  // must exceed server timeout
