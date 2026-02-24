@@ -1,5 +1,5 @@
 /**
- * Dialectic Intelligence Types — Yang (expansion), Yin (refinement), Synthesizer (mediation)
+ * Dialectic Intelligence Types — Yang (expansion), Yin (refinement), Serenity (mediation)
  */
 
 import type { Message } from "./runtime.js";
@@ -78,7 +78,7 @@ export interface IYinObserver {
   observe(sessionId: string, userMessage: string, yangOutput: YangOutput): Promise<YinOutput>;
 }
 
-// ─── Synthesizer ────────────────────────────────────────────────────────────
+// ─── Serenity ───────────────────────────────────────────────────────────
 
 export type SignalType = 'edge_case' | 'alternative' | 'assumption' | 'connection' | 'contradiction';
 export type Urgency = 'immediate' | 'background';
@@ -98,7 +98,7 @@ export interface Synthesis {
   branchesSurfaced: number;
 }
 
-export interface SynthesizerOutput {
+export interface SerenityOutput {
   synthesis: Synthesis;
   meta: {
     dialecticQuality: number;  // 0-1, measure of yang/yin interplay
@@ -108,19 +108,19 @@ export interface SynthesizerOutput {
   };
 }
 
-export interface ISynthesizer {
-  readonly name: 'synthesizer';
-  synthesize(
+export interface ISerenity {
+  readonly name: 'serenity';
+  synchronize(
     sessionId: string,
     userMessage: string,
     yangOutput: YangOutput,
     yinOutput: YinOutput,
     relevantMemories: string[]
-  ): Promise<SynthesizerOutput>;
+  ): Promise<SerenityOutput>;
 }
 
 // ─── Unified Dialectic System ───────────────────────────────────────────────
-// ORDER: Yin (refinement) → Yang (expansion) → Synthesizer (mediation)
+// ORDER: Yin (refinement) → Yang (expansion) → Serenity (mediation)
 
 export interface DialecticResult {
   sessionId: string;
@@ -128,7 +128,7 @@ export interface DialecticResult {
   timestamp: number;
   yin: YinOutput;      // First: refinement/grounding
   yang: YangOutput;    // Second: expansion within constraints
-  synthesizer: SynthesizerOutput;  // Third: mediation
+  serenity: SerenityOutput;  // Third: mediation
   signalInjected: boolean;
   totalLatencyMs: number;
   totalCostUsd: number;
@@ -145,13 +145,13 @@ export interface IDialecticSystem {
 
 // ─── WebSocket Stream Events ────────────────────────────────────────────────
 
-export type DialecticStage = 'start' | 'yang' | 'yin' | 'synthesizer' | 'complete' | 'error';
+export type DialecticStage = 'start' | 'yang' | 'yin' | 'serenity' | 'complete' | 'error';
 
 export interface DialecticStreamEvent {
   timestamp: number;
   turnId: string;
   stage: DialecticStage;
-  data?: YangOutput | YinOutput | SynthesizerOutput | { error: string } | { taskGuide: string } | null;
+  data?: YangOutput | YinOutput | SerenityOutput | { error: string } | { taskGuide: string } | null;
 }
 
 // ─── Persistence ────────────────────────────────────────────────────────────

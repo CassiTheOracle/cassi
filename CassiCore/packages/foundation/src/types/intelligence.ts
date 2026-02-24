@@ -125,10 +125,10 @@ export interface IReflect {
 export interface ThinkerStats {
   totalInsights: number;   // cumulative insights emitted
   totalTurns: number;      // cumulative turns processed
-  lastSonnetAt?: Date;
-  lastOpusAt?: Date;
-  sonnetInterval: number;
-  opusInterval: number;
+  lastPonderAt?: Date;
+  lastThinkAt?: Date;
+  ponderInterval: number;
+  thinkInterval: number;
   // New: cumulative number of insights emitted (distinct from totalTurns)
   insightCount?: number;
 }
@@ -138,7 +138,7 @@ export interface IThinker {
   stats(): Promise<ThinkerStats>;
 
   /** Manually trigger a thinking cycle */
-  think(depth: "sonnet" | "opus"): Promise<string>;
+  think(depth: "Ponder" | "Think"): Promise<string>;
 }
 
 // ─── Optimizer ──────────────────────────────────────────────────────────────
