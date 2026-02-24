@@ -81,16 +81,30 @@ function getOrCreateStream(chatId: number, sessionId: string): StreamState {
   return s
 }
 
+function chooseParseModeForText(text: string): 'MarkdownV2' | 'HTML' {
+  // Heuristic: prefer HTML <pre> for multi-line code-like content or JSON
+  if (!text) return 'MarkdownV2'
+  if (text.includes('```')) return 'HTML'
+  if (text.includes('{') && text.includes('}')) return 'HTML'
+  if (text.includes('<') || text.includes('>')) return 'HTML'
+  // If there are multiple lines and quotes or backticks, use HTML
+  const lines = text.split('\n')
+  if (lines.length > 1 && (text.includes('"') || text.includes('`') || text.includes(':'))) return 'HTML'
+  return 'MarkdownV2'
+}
+
 async function flushStream(sessionId: string): Promise<void> {
   const s = streams.get(sessionId)
   if (!s || !s.buffer) return
 
   const text = s.buffer
+  const parseMode = chooseParseModeForText(text)
+
   if (s.msgId === null) {
-    const msgId = await tg.sendMessage(s.chatId, text)
+    const msgId = await tg.sendMessage(s.chatId, text, parseMode)
     s.msgId = msgId
   } else {
-    await tg.editMessage(s.chatId, s.msgId as number, text)
+    await tg.editMessage(s.chatId, s.msgId as number, text, parseMode)
   }
 }
 
@@ -276,8 +290,9 @@ parentPort?.on('message', (m: HostMessage) => {
 
     const hasActiveStream = streams.has(sessionId)
     if (done && content && !hasActiveStream) {
-      const parseMode = parse_mode as 'MarkdownV2' | 'HTML' | undefined
-      tg.sendMessage(chatId, content, parseMode).catch(() => {})
+      const providedParse = parse_mode as 'MarkdownV2' | 'HTML' | undefined
+      const finalParse = providedParse ?? chooseParseModeForText(content)
+      tg.sendMessage(chatId, content, finalParse).catch(() => {})
       return
     }
 
