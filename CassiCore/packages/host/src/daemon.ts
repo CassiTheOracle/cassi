@@ -315,7 +315,7 @@ export class Daemon {
       }
     }
 
-    // Wire the provider into the DialecticSystem (Yang, Yin, Synthesizer)
+    // Wire the provider into the DialecticSystem (Yang, Yin, Serenity)
     if (this.intelligence?.dialectic) {
       const dialecticProviderId = this.config.get<string>('intelligence.dialectic.provider', '') || 'pi-bridge'
       const dialecticProvider = providers.get(dialecticProviderId) ?? providers.get('pi-bridge') ?? providers.values().next().value
