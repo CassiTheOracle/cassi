@@ -47,7 +47,8 @@ export type RuntimeEvent =
   | { type: "subagent:failed"; runId: string; sessionId: string; error: string; timestamp: Date }
   // Pi Bridge events
   | { type: "pi:completion:request"; requestId: string; messages: any[]; opts: any }
-  | { type: "pi:completion:chunk"; requestId: string; chunk: any };
+  | { type: "pi:completion:chunk"; requestId: string; chunk: any }
+  | { type: "thinker:insight-applied"; sessionId: string; insight: string };
 
 export type EventType = RuntimeEvent["type"];
 
