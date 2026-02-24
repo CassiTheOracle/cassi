@@ -109,7 +109,7 @@ function serveHtml(res: ServerResponse) {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>CassieCore Webchat</title>
+<title>CassiCore Webchat</title>
 <style>
   :root{color-scheme: dark light}
   body{background:#0b0f13;color:#cfd8dc;font-family: Inter, ui-sans-serif, system-ui, -apple-system, Roboto, 'Segoe UI', 'Helvetica Neue', Arial;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
@@ -125,7 +125,7 @@ function serveHtml(res: ServerResponse) {
 </head>
 <body>
 <div class="container">
-  <h1>CassieCore — Webchat</h1>
+  <h1>CassiCore — Webchat</h1>
   <div class="meta">Session: <span id="sessionId"></span></div>
   <div id="messages" class="messages"></div>
   <div class="controls">
@@ -139,8 +139,8 @@ function serveHtml(res: ServerResponse) {
 <script>
 (function(){
   function uuidv4(){ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c=='x'?r:(r&0x3|0x8);return v.toString(16);}); }
-  let sessionId = sessionStorage.getItem('cassiecore:webchat:session');
-  if(!sessionId){ sessionId = uuidv4(); sessionStorage.setItem('cassiecore:webchat:session', sessionId); }
+  let sessionId = sessionStorage.getItem('cassicore:webchat:session');
+  if(!sessionId){ sessionId = uuidv4(); sessionStorage.setItem('cassicore:webchat:session', sessionId); }
   document.getElementById('sessionId').textContent = sessionId;
 
   const messagesEl = document.getElementById('messages');
@@ -187,6 +187,20 @@ parentPort?.on('message', (m: HostMessage) => {
   try {
     if (m.type === 'init') {
       if (m.config && typeof m.config.port === 'number') serverPort = m.config.port;
+
+      // Start server here, after config is received
+      try {
+        server.listen(serverPort, () => {
+          parentPort?.postMessage({ type: 'ready' });
+          parentPort?.postMessage({ type: 'message', payload: { sessionId: 'system', content: `listening:${serverPort}` } });
+        });
+      } catch (err: any) {
+        if (err.code === 'EADDRINUSE') {
+          parentPort?.postMessage({ type: 'error', message: `port ${serverPort} already in use` });
+          process.exit(0);
+        }
+        throw err;
+      }
     }
 
     if (m.type === 'config:update') {
@@ -212,7 +226,7 @@ parentPort?.on('message', (m: HostMessage) => {
       for (const [sid, res] of clients.entries()) {
         try {
           res.end();
-        } catch (e) {}
+        } catch (e) { }
       }
       server.close(() => process.exit(0));
     }
@@ -221,11 +235,15 @@ parentPort?.on('message', (m: HostMessage) => {
   }
 });
 
-// Start server
-server.listen(serverPort, () => {
-  parentPort?.postMessage({ type: 'ready' });
-  // announce listening port in case host wants it
-  parentPort?.postMessage({ type: 'message', payload: { sessionId: 'system', content: `listening:${serverPort}` } });
+// handle listen errors (e.g. port already in use) so the worker doesn't crash repeatedly
+server.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    parentPort?.postMessage({ type: 'error', message: `port ${serverPort} already in use` });
+    // exit gracefully with success so plugin host won't keep restarting
+    process.exit(0);
+  }
+  // rethrow other errors
+  throw err;
 });
 
 // graceful close on process signals

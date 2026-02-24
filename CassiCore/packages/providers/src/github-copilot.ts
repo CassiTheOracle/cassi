@@ -15,7 +15,7 @@ const COPILOT_HEADERS = {
 }
 
 /** Models that use Anthropic Messages API format */
-const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5'])
+const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6',  'claude-opus-4.6', 'claude-haiku-4.5'])
 
 /**
  * Resolve the live Copilot API token from the OpenClaw credentials cache.

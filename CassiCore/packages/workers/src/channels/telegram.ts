@@ -1,7 +1,7 @@
 /**
- * Telegram channel worker for CassieCore.
+ * Telegram channel worker for CassiCore.
  *
- * Uses long-polling (getUpdates) — no webhook/SSL needed.
+ * Uses long-polling (getUpdates) - no webhook/SSL needed.
  * Session ID = 'tg:' + chatId (stable per conversation).
  *
  * Streaming: buffers tokens, edits the "typing..." message live every ~400ms.
@@ -11,7 +11,7 @@
  * the Bot API, base64-encodes them, and attaches to the inbound payload.
  *
  * FIXES:
- *   - getUpdates fetch timeout is now POLL_TIMEOUT_SEC + 10s (35s) — previously
+ *   - getUpdates fetch timeout is now POLL_TIMEOUT_SEC + 10s (35s) - previously
  *     15s, which meant the fetch always aborted before Telegram responded.
  *   - Exponential backoff (2s → 4s → 8s → cap 30s) on getUpdates errors so
  *     we don't hammer the API after a transient failure.
@@ -20,6 +20,7 @@
  */
 
 import { parentPort } from 'node:worker_threads'
+import * as tg from './telegram-common'
 
 const POLL_TIMEOUT_SEC   = 25           // Telegram server-side long-poll timeout
 const FETCH_TIMEOUT_MS   = (POLL_TIMEOUT_SEC + 10) * 1_000  // must exceed server timeout
@@ -30,7 +31,7 @@ const BACKOFF_MAX_MS     = 30_000
 type HostMessage =
   | { type: 'init';          config: TelegramConfig }
   | { type: 'config:update'; config: Partial<TelegramConfig> }
-  | { type: 'message';       payload: { sessionId: string; content: string; done?: boolean } }
+  | { type: 'message';       payload: { sessionId: string; content: string; done?: boolean; parse_mode?: 'MarkdownV2' | 'HTML' } }
   | { type: 'shutdown' }
 
 interface TelegramConfig {
@@ -40,15 +41,9 @@ interface TelegramConfig {
 
 type WorkerMessage =
   | { type: 'ready' }
-  | { type: 'message'; payload: { sessionId: string; content: string; attachments?: ImageAttachment[] } }
+  | { type: 'message'; payload: { sessionId: string; content: string; attachments?: tg.ImageAttachment[] } }
   | { type: 'error';   message: string }
   | { type: 'log';     level: 'info' | 'warn' | 'error'; message: string }
-
-interface ImageAttachment {
-  data: string
-  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
-  label?: string
-}
 
 // ── state ─────────────────────────────────────────────────────────────────────
 
@@ -66,118 +61,12 @@ interface StreamState {
 }
 const streams = new Map<string, StreamState>()
 
-// ── Telegram API helpers ──────────────────────────────────────────────────────
-
-function apiUrl(method: string): string {
-  return `https://api.telegram.org/bot${cfg.token}/${method}`
+// Wire token into common helper
+function setTokenFromCfg() {
+  tg.setToken(cfg.token)
 }
 
-async function tgCall<T>(method: string, body?: Record<string, unknown>, timeoutMs = 15_000): Promise<T | null> {
-  const ac = new AbortController()
-  const timer = setTimeout(() => ac.abort(), timeoutMs)
-  try {
-    const res = await fetch(apiUrl(method), {
-      method: body ? 'POST' : 'GET',
-      headers: body ? { 'Content-Type': 'application/json' } : {},
-      body: body ? JSON.stringify(body) : undefined,
-      signal: ac.signal,
-    })
-    clearTimeout(timer)
-    const json = await res.json() as { ok: boolean; result: T; description?: string }
-    if (!json.ok) {
-      log('warn', `tg/${method} not ok: ${json.description ?? '?'}`)
-      return null
-    }
-    return json.result
-  } catch (err) {
-    clearTimeout(timer)
-    // Silently swallow AbortError/TimeoutError — these are expected on slow/missing
-    // responses to non-critical API calls (typing indicators etc.)
-    if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) return null
-    log('warn', `tg/${method} error: ${String(err)}`)
-    return null
-  }
-}
-
-/**
- * Escape special characters for Telegram MarkdownV2.
- * This prevents "Can't find end of the entity" errors from unclosed markdown.
- */
-function sanitizeMarkdown(text: string): string {
-  // Escape characters that have special meaning in MarkdownV2
-  // Precede the following characters with a backslash:
-  // _ * [ ] ( ) ~ ` > # + - = | { } . !
-  return text.replace(/([_\*\[\]\(\)~`>#+\-=|{}.!])/g, '\\$1')
-}
-
-async function sendMessage(chatId: number, text: string): Promise<number | null> {
-  const safeText = sanitizeMarkdown(text || '…')
-  const result = await tgCall<{ message_id: number }>('sendMessage', {
-    chat_id:    chatId,
-    text:       safeText,
-    parse_mode: 'MarkdownV2',
-  })
-  return result?.message_id ?? null
-}
-
-async function editMessage(chatId: number, msgId: number, text: string): Promise<boolean> {
-  const safeText = sanitizeMarkdown(text || '…')
-  const result = await tgCall('editMessageText', {
-    chat_id:    chatId,
-    message_id: msgId,
-    text:       safeText,
-    parse_mode: 'MarkdownV2',
-  })
-  return result !== null
-}
-
-async function sendTyping(chatId: number): Promise<void> {
-  await tgCall('sendChatAction', { chat_id: chatId, action: 'typing' })
-}
-
-// ── Image download ────────────────────────────────────────────────────────────
-
-interface TgPhotoSize {
-  file_id:    string
-  file_size?: number
-  width:      number
-  height:     number
-}
-
-/**
- * Download a Telegram file by file_id and return base64-encoded bytes.
- * Returns null on any failure (best-effort — don't crash the turn).
- */
-async function downloadPhoto(fileId: string): Promise<ImageAttachment | null> {
-  try {
-    const fileInfo = await tgCall<{ file_path: string }>('getFile', { file_id: fileId })
-    if (!fileInfo?.file_path) return null
-
-    const fileUrl = `https://api.telegram.org/file/bot${cfg.token}/${fileInfo.file_path}`
-    const photoAc = new AbortController()
-    const photoTimer = setTimeout(() => photoAc.abort(), 20_000)
-    const res = await fetch(fileUrl, { signal: photoAc.signal })
-    clearTimeout(photoTimer)
-    if (!res.ok) return null
-
-    const buf = await res.arrayBuffer()
-    const base64 = Buffer.from(buf).toString('base64')
-
-    const ext = fileInfo.file_path.split('.').pop()?.toLowerCase() ?? ''
-    const mediaType: ImageAttachment['mediaType'] =
-      ext === 'png'  ? 'image/png'  :
-      ext === 'gif'  ? 'image/gif'  :
-      ext === 'webp' ? 'image/webp' :
-      'image/jpeg'
-
-    return { data: base64, mediaType, label: fileId }
-  } catch (err) {
-    log('warn', `failed to download photo ${fileId}: ${String(err)}`)
-    return null
-  }
-}
-
-// ── Streaming: buffer → edit loop ────────────────────────────────────────────
+// ── Streaming: buffer → edit loop (uses tg common helpers) ───────────────────
 
 function sessionIdFor(chatId: number): string {
   return `tg:${chatId}`
@@ -198,10 +87,10 @@ async function flushStream(sessionId: string): Promise<void> {
 
   const text = s.buffer
   if (s.msgId === null) {
-    const msgId = await sendMessage(s.chatId, text)
+    const msgId = await tg.sendMessage(s.chatId, text)
     s.msgId = msgId
   } else {
-    await editMessage(s.chatId, s.msgId, text)
+    await tg.editMessage(s.chatId, s.msgId as number, text)
   }
 }
 
@@ -223,6 +112,13 @@ async function finalizeStream(sessionId: string): Promise<void> {
 }
 
 // ── Long-polling loop ─────────────────────────────────────────────────────────
+
+interface TgPhotoSize {
+  file_id:    string
+  file_size?: number
+  width:      number
+  height:     number
+}
 
 interface TgUpdate {
   update_id: number
@@ -253,7 +149,7 @@ async function pollLoop(): Promise<void> {
 
     let updates: TgUpdate[] | null = null
     try {
-      const res = await fetch(apiUrl('getUpdates'), {
+      const res = await fetch(`https://api.telegram.org/bot${cfg.token}/getUpdates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -311,29 +207,39 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
   }
 
   if (text.startsWith('/start')) {
-    await sendMessage(chatId, '👋 CassieCore is listening.')
+    await tg.sendMessage(chatId, '👋 CassiCore is listening.')
     return
   }
 
   if (!text && !hasPhoto) return
 
-  await sendTyping(chatId)
-
   const sessionId = sessionIdFor(chatId)
+
+  // ── COMMAND BYPASS: Send commands directly without streaming overhead ─────
+  if (text.startsWith('/')) {
+    parentPort?.postMessage({
+      type: 'message',
+      payload: { sessionId, content: text }
+    } satisfies WorkerMessage)
+    return
+  }
+
+  // ── NORMAL MESSAGE: Set up streaming for LLM responses ────────────────────
+  await tg.sendTyping(chatId)
   getOrCreateStream(chatId, sessionId)
   startStreamTimer(sessionId)
 
-  let attachments: ImageAttachment[] | undefined
+  let attachments: tg.ImageAttachment[] | undefined
   if (hasPhoto && msg.photo) {
     const largest = msg.photo[msg.photo.length - 1]
-    const att = await downloadPhoto(largest.file_id)
+    const att = await tg.downloadPhoto(largest.file_id)
     if (att) {
       attachments = [att]
       log('info', `Downloaded photo for session ${sessionId} (${att.data.length} b64 chars)`)
     }
   }
 
-  const payload: { sessionId: string; content: string; attachments?: ImageAttachment[] } = {
+  const payload: { sessionId: string; content: string; attachments?: tg.ImageAttachment[] } = {
     sessionId,
     content: text || '(image)',
   }
@@ -347,6 +253,7 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
 parentPort?.on('message', (m: HostMessage) => {
   if (m.type === 'init') {
     cfg = m.config
+    setTokenFromCfg()
     if (cfg.token) pollLoop().catch((e) => log('error', `poll loop crashed: ${String(e)}`))
     parentPort?.postMessage({ type: 'ready' } satisfies WorkerMessage)
     return
@@ -355,6 +262,7 @@ parentPort?.on('message', (m: HostMessage) => {
   if (m.type === 'config:update') {
     const prevToken = cfg.token
     cfg = { ...cfg, ...m.config }
+    if (cfg.token !== prevToken) setTokenFromCfg()
     if (!prevToken && cfg.token) {
       pollLoop().catch((e) => log('error', `poll loop crashed: ${String(e)}`))
     }
@@ -362,9 +270,16 @@ parentPort?.on('message', (m: HostMessage) => {
   }
 
   if (m.type === 'message') {
-    const { sessionId, content, done } = m.payload
+    const { sessionId, content, done, parse_mode } = m.payload
     const chatId = parseChatId(sessionId)
     if (chatId === null) return
+
+    const hasActiveStream = streams.has(sessionId)
+    if (done && content && !hasActiveStream) {
+      const parseMode = parse_mode as 'MarkdownV2' | 'HTML' | undefined
+      tg.sendMessage(chatId, content, parseMode).catch(() => {})
+      return
+    }
 
     const s = getOrCreateStream(chatId, sessionId)
     s.buffer += content

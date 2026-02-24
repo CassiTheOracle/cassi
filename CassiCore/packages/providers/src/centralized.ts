@@ -35,27 +35,15 @@ interface RateLimitConfig {
  */
 const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   'github-copilot': {
-    maxRequests: 60,      // 60 requests per minute
+    maxRequests: 600,      // 60 requests per minute
     windowMs: 60_000,
-    maxConcurrent: 5,
-    errorCooldownMs: 5_000,
-  },
-  'anthropic': {
-    maxRequests: 40,
-    windowMs: 60_000,
-    maxConcurrent: 3,
-    errorCooldownMs: 10_000,
-  },
-  'kimi': {
-    maxRequests: 30,
-    windowMs: 60_000,
-    maxConcurrent: 3,
+    maxConcurrent: 20,
     errorCooldownMs: 5_000,
   },
   'kimi-coding': {
-    maxRequests: 30,
+    maxRequests: 600,
     windowMs: 60_000,
-    maxConcurrent: 3,
+    maxConcurrent: 20,
     errorCooldownMs: 5_000,
   },
 }
@@ -310,17 +298,24 @@ export class CentralizedProvider implements IProvider {
 
   private extractSessionId(messages: Message[]): string | undefined {
     // Try to find an explicit session identifier in system messages
+    // Look for [session:XXX] marker format (added by systemPromptMiddleware)
     for (const msg of messages) {
       if (msg.role === 'system' && typeof msg.content === 'string') {
-        // Look for explicit session patterns
+        // Look for [session:XXX] marker at the end of system prompt
+        const markerMatch = msg.content.match(/\[session:([^\]]+)\]/i)
+        if (markerMatch) {
+          return `sess_${markerMatch[1]}`
+        }
+        // Fallback: look for session-XXX pattern
         const patterns = [
-          /session[:\s]+([a-zA-Z0-9_-]+)/i,
           /session-([a-zA-Z0-9_-]+)/i,
           /id[:\s]+([a-zA-Z0-9_-]{8,})/i,
         ]
         for (const pattern of patterns) {
           const match = msg.content.match(pattern)
-          if (match) return `sess_${match[1]}`
+          if (match) {
+            return `sess_${match[1]}`
+          }
         }
       }
     }
