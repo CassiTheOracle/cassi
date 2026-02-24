@@ -575,6 +575,35 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       
+      // GET /mcp — list configured MCP servers and status
+      if (req.method === 'GET' && url.pathname === '/mcp') {
+        try {
+          // Prefer HealthMonitor's mcp reference (wired in daemon.start)
+          const mcpRef = (daemon.healthMonitor as any)?.mcp ?? (daemon.mcpRegistry as any) ?? undefined
+          if (!mcpRef || typeof mcpRef.status !== 'function') {
+            return sendJSON(res, 200, { servers: [], message: 'No MCP servers configured' })
+          }
+          const servers = mcpRef.status()
+          return sendJSON(res, 200, servers)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /tools/registry — list registered tools (name, description, parameters)
+      if (req.method === 'GET' && url.pathname === '/tools/registry') {
+        try {
+          const toolRegistry = (daemon.pipeline as any)?.toolRegistry ?? (daemon.toolRegistry as any)
+          if (!toolRegistry || typeof toolRegistry.list !== 'function') {
+            return sendJSON(res, 503, { error: 'tool registry not initialised' })
+          }
+          const list = toolRegistry.list().map((t: any) => ({ name: t.name, description: t.description, parameters: t.parameters }))
+          return sendJSON(res, 200, list)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // Tools API endpoints
       if (parts[0] === "tools" || parts[0] === "fs") {
         const toolsApi = createToolsApi(logger);
