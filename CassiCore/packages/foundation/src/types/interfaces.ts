@@ -5,7 +5,7 @@
 
 import type { EventType, EventOf, Unsubscribe, RuntimeEvent, LogLevel } from "./events.js";
 
-// ─── EventBus ────────────────────────────────────────────────────────────────
+// CassiCore interface types
 
 export interface IEventBus {
   /** Emit a typed event to all registered listeners */

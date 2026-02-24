@@ -5,7 +5,10 @@
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
-export type HealthStatus = "ok" | "degraded" | "down";
+// Health status enum
+export type HealthStatus = "healthy" | "degraded" | "unhealthy";
+
+// CassiCore event types
 
 export type RuntimeEvent =
   | { type: "daemon:ready"; startedAt: Date }
@@ -36,7 +39,15 @@ export type RuntimeEvent =
   | { type: "provider:request_error"; providerId: string; requestId: string; sessionId: string; error: string; consecutiveErrors: number }
   | { type: "provider:request_aborted"; providerId: string; requestId: string; sessionId: string }
   | { type: "provider:deduplicated"; providerId: string; sessionId: string; existingRequestId: string }
-  | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number };
+  | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number }
+  // Subagent lifecycle events
+  | { type: "subagent:spawned"; parentSessionId: string; childSessionId: string; runId: string; label: string; timestamp: Date }
+  | { type: "subagent:started"; runId: string; sessionId: string; timestamp: Date }
+  | { type: "subagent:completed"; runId: string; sessionId: string; result: string; durationMs: number; timestamp: Date }
+  | { type: "subagent:failed"; runId: string; sessionId: string; error: string; timestamp: Date }
+  // Pi Bridge events
+  | { type: "pi:completion:request"; requestId: string; messages: any[]; opts: any }
+  | { type: "pi:completion:chunk"; requestId: string; chunk: any };
 
 export type EventType = RuntimeEvent["type"];
 
