@@ -31,7 +31,7 @@ export const webFetchHandler: ToolHandler = async (input, ctx: ToolExecutionCont
   let res: Response
   try {
     res = await fetch(url, {
-      headers: { 'User-Agent': 'CassieCore/0.1 (+https://github.com/cassiecore)' },
+      headers: { 'User-Agent': 'CassiCore/0.1 (+https://github.com/cassicore)' },
       signal: AbortSignal.timeout(25_000),
     })
   } catch (err) {
