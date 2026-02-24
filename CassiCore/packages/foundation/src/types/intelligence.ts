@@ -128,6 +128,8 @@ export interface ThinkerStats {
   lastOpusAt?: Date;
   sonnetInterval: number;
   opusInterval: number;
+  // New: cumulative number of insights emitted (distinct from totalTurns)
+  insightCount?: number;
 }
 
 export interface IThinker {
