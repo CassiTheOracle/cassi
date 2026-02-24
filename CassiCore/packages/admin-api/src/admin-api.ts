@@ -3,11 +3,24 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import type { ILogger } from '../types/interfaces.js'
+import type { DialecticStreamEvent } from '../types/dialectic.js'
+import { createToolsApi } from './tools-api.js'
+
+// WebSocket state
+interface WSConnection {
+  socket: any
+  sessionId: string
+  subscribed: boolean
+}
 
 export function createAdminApi(daemon: any, logger: ILogger) {
-  let unixPath = path.join(os.homedir(), '.cassiecore', 'admin.sock')
+  let unixPath = path.join(os.homedir(), '.cassicore', 'admin.sock')
   let tcpHost = '127.0.0.1'
   let tcpPort = 7432
+
+  // WebSocket connections store
+  const wsConnections = new Map<string, WSConnection>()
+  let wsConnectionId = 0
 
   function sendJSON(res: http.ServerResponse, code: number, obj: unknown) {
     const s = JSON.stringify(obj)
@@ -42,6 +55,162 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     } catch (err) {
       return true
     }
+  }
+  
+  async function handlePiBridgeWebSocket(req: http.IncomingMessage, socket: any, head: Buffer) {
+    // Accept WebSocket connection
+    const key = req.headers['sec-websocket-key']
+    if (!key) {
+      socket.destroy()
+      return
+    }
+
+    const crypto = await import('node:crypto')
+    const acceptKey = crypto.createHash('sha1')
+      .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+      .digest('base64')
+
+    socket.write(
+      'HTTP/1.1 101 Switching Protocols\r\n' +
+      'Upgrade: websocket\r\n' +
+      'Connection: Upgrade\r\n' +
+      `Sec-WebSocket-Accept: ${acceptKey}\r\n` +
+      '\r\n'
+    )
+
+    const connId = `pi-bridge-${++wsConnectionId}`
+    const conn: WSConnection = { socket, sessionId: 'pi-bridge', subscribed: true }
+    wsConnections.set(connId, conn)
+
+    logger.info(`[admin-api] Pi Bridge WebSocket connected: ${connId}`)
+
+    // Listen for requests from the daemon to be sent to pi
+    const requestHandler = (e: any) => {
+      if (e.type === 'pi:completion:request') {
+        sendWebSocketMessage(socket, JSON.stringify(e))
+      }
+    }
+    daemon.bus.on('pi:completion:request', requestHandler)
+
+    socket.on('close', () => {
+      wsConnections.delete(connId)
+      daemon.bus.off('pi:completion:request', requestHandler)
+      logger.info(`[admin-api] Pi Bridge WebSocket disconnected: ${connId}`)
+    })
+
+    socket.on('error', (err: any) => {
+      logger.warn(`[admin-api] Pi Bridge WebSocket error: ${String(err)}`)
+      socket.destroy()
+    })
+  }
+
+  /**
+   * Set up WebSocket connection handling
+   */
+  async function handleWebSocketUpgrade(req: http.IncomingMessage, socket: any, head: Buffer) {
+    const url = new URL(req.url || '', `http://${tcpHost}:${tcpPort}`)
+    const parts = url.pathname.split('/').filter(Boolean)
+    
+    // Handle /pi-bridge WebSocket connections
+    if (parts[0] === 'pi-bridge') {
+      await handlePiBridgeWebSocket(req, socket, head)
+      return
+    }
+    
+    // Only handle /dialectic/:sessionId/stream WebSocket connections
+    if (parts[0] !== 'dialectic' || parts.length !== 3 || parts[2] !== 'stream') {
+      socket.destroy()
+      return
+    }
+    
+    const sessionId = parts[1]
+    if (!sessionId) {
+      socket.destroy()
+      return
+    }
+
+    // Accept WebSocket connection (minimal implementation)
+    const key = req.headers['sec-websocket-key']
+    if (!key) {
+      socket.destroy()
+      return
+    }
+
+    // Generate accept key
+    const crypto = await import('node:crypto')
+    const acceptKey = crypto.createHash('sha1')
+      .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+      .digest('base64')
+
+    // Send handshake response
+    socket.write(
+      'HTTP/1.1 101 Switching Protocols\r\n' +
+      'Upgrade: websocket\r\n' +
+      'Connection: Upgrade\r\n' +
+      `Sec-WebSocket-Accept: ${acceptKey}\r\n` +
+      '\r\n'
+    )
+
+    const connId = `ws-${++wsConnectionId}`
+    const conn: WSConnection = { socket, sessionId, subscribed: true }
+    wsConnections.set(connId, conn)
+
+    logger.info(`[admin-api] WebSocket connected for dialectic stream: ${sessionId}`)
+
+    // Subscribe to dialectic events for this session
+    const unsubscribe = daemon.intelligence?.dialectic?.subscribeToStream?.(sessionId, (event: DialecticStreamEvent) => {
+      if (!conn.subscribed || socket.destroyed) return
+      try {
+        const message = JSON.stringify(event)
+        sendWebSocketMessage(socket, message)
+      } catch (err) {
+        logger.warn(`[admin-api] WebSocket send error: ${String(err)}`)
+      }
+    })
+
+    // Handle close
+    socket.on('close', () => {
+      conn.subscribed = false
+      wsConnections.delete(connId)
+      unsubscribe?.()
+      logger.info(`[admin-api] WebSocket disconnected: ${sessionId}`)
+    })
+
+    socket.on('error', (err: any) => {
+      logger.warn(`[admin-api] WebSocket error: ${String(err)}`)
+      socket.destroy()
+    })
+  }
+
+  /**
+   * Send a text message over WebSocket
+   */
+  function sendWebSocketMessage(socket: any, message: string) {
+    // Minimal WebSocket text frame encoding (no fragmentation)
+    const msgBuf = Buffer.from(message, 'utf8')
+    const len = msgBuf.length
+    
+    let frame: Buffer
+    if (len < 126) {
+      frame = Buffer.allocUnsafe(2 + len)
+      frame[0] = 0x81 // FIN=1, opcode=text
+      frame[1] = len
+      msgBuf.copy(frame, 2)
+    } else if (len < 65536) {
+      frame = Buffer.allocUnsafe(4 + len)
+      frame[0] = 0x81
+      frame[1] = 126
+      frame.writeUInt16BE(len, 2)
+      msgBuf.copy(frame, 4)
+    } else {
+      frame = Buffer.allocUnsafe(10 + len)
+      frame[0] = 0x81
+      frame[1] = 127
+      frame.writeBigUInt64BE(BigInt(len), 2)
+      msgBuf.copy(frame, 10)
+    }
+    
+    socket.write(frame)
   }
 
   async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
@@ -179,6 +348,68 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, 200, modules)
       }
 
+      // ── Pi Bridge endpoints ────────────────────────────────────────────────
+
+      // POST /pi/completion/:requestId/chunk
+      if (parts[0] === 'pi' && parts[1] === 'completion' && parts[3] === 'chunk' && req.method === 'POST') {
+        const requestId = parts[2]
+        const body = await parseBody(req)
+        if (!body || !body.chunk) return sendJSON(res, 400, { error: 'missing chunk' })
+        
+        daemon.bus.emit({
+          type: 'pi:completion:chunk',
+          requestId,
+          chunk: body.chunk
+        })
+        return sendJSON(res, 200, { ok: true })
+      }
+
+      // ── Dialectic endpoints (C: Query API) ─────────────────────────────────
+
+      // GET /dialectic/:sessionId/history — recent dialectic turns
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'history' && req.method === 'GET') {
+        const sessionId = parts[1]
+        const limit = parseInt(url.searchParams.get('limit') || '10', 10)
+        try {
+          const history = await daemon.intelligence?.dialectic?.getRecent?.(sessionId, limit) ?? []
+          return sendJSON(res, 200, { sessionId, history })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /dialectic/:sessionId/stats — aggregated statistics
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'stats' && req.method === 'GET') {
+        const sessionId = parts[1]
+        try {
+          const stats = await daemon.intelligence?.dialectic?.getStats?.(sessionId) ?? {
+            totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0
+          }
+          return sendJSON(res, 200, { sessionId, stats })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /dialectic/:sessionId/stream — WebSocket upgrade handled separately
+      if (parts[0] === 'dialectic' && parts.length === 3 && parts[2] === 'stream' && req.method === 'GET') {
+        // Return HTML dashboard for browser requests
+        const acceptHeader = req.headers['accept'] || '';
+        if (acceptHeader.includes('text/html')) {
+          try {
+            const htmlPath = path.join(process.cwd(), 'public', 'dialectic-observatory.html');
+            const html = fs.readFileSync(htmlPath, 'utf8');
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(html);
+            return;
+          } catch (err) {
+            return sendJSON(res, 500, { error: 'Dashboard not found' });
+          }
+        }
+        // Non-WebSocket request without upgrade
+        return sendJSON(res, 426, { error: 'WebSocket upgrade required' });
+      }
+
       // ── Chat endpoints (used by CLI) ───────────────────────────────────────
 
       // GET /chat/:sessionId/stream  — SSE token stream
@@ -253,10 +484,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             content,
             timestamp: new Date(),
           }
+          logger.info(`[admin-api] Processing chat message for session ${sessionId}`)
 
           // Process fires tokens onto the bus (picked up by SSE stream above)
           // then sends done event when complete
           daemon.pipeline.process(inbound).then((result: any) => {
+            logger.info(`[admin-api] Turn complete for session ${sessionId}`)
             // Signal done to SSE subscriber
             daemon.bus.emit({
               type: 'worker:message',
@@ -264,6 +497,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               payload: { type: 'turn:done', sessionId, model: result.model, durationMs: result.durationMs, tokensUsed: result.tokensUsed },
             })
           }).catch((err: unknown) => {
+            logger.error(`[admin-api] Pipeline error for session ${sessionId}: ${String(err)}`)
             daemon.bus.emit({
               type: 'worker:message',
               pluginId: `session:${sessionId}`,
@@ -277,7 +511,75 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
-      // not found
+      // POST /chat - Simple chat endpoint for provider integration
+      if (parts[0] === "chat" && parts.length === 1 && req.method === "POST") {
+        const body = await parseBody(req);
+        const messages = body?.messages || [];
+        const model = body?.model || "kimi-coding/k2p5";
+        
+        if (!daemon.pipeline) return sendJSON(res, 503, { error: "pipeline not ready" });
+        
+        try {
+          const { randomUUID } = await import("node:crypto");
+          const sessionId = "provider-" + randomUUID();
+          const content = messages[messages.length - 1]?.content || "";
+          
+          const inbound = {
+            id: randomUUID(),
+            sessionId,
+            channelId: "channel:cli",
+            senderId: sessionId,
+            content,
+            timestamp: new Date(),
+          };
+          
+          logger.info(`[admin-api] Processing provider chat for session ${sessionId}`);
+          
+          // Collect response content from bus events
+          let responseContent = "";
+          let responseModel = model;
+          let tokensUsed = 0;
+          let durationMs = 0;
+          
+          const busHandler = (e: any) => {
+            if (e.pluginId !== `session:${sessionId}`) return;
+            const payload = e.payload as Record<string, unknown>;
+            if (payload?.type === "turn:token") {
+              responseContent += String(payload.token || "");
+            } else if (payload?.type === "turn:done") {
+              responseModel = String(payload.model || model);
+              tokensUsed = Number(payload.tokensUsed || 0);
+              durationMs = Number(payload.durationMs || 0);
+            }
+          };
+          
+          daemon.bus.on("worker:message", busHandler);
+          
+          try {
+            await daemon.pipeline.process(inbound);
+            // Wait a bit for events to propagate
+            await new Promise(resolve => setTimeout(resolve, 500));
+          } finally {
+            daemon.bus.off("worker:message", busHandler);
+          }
+          
+          return sendJSON(res, 200, {
+            content: responseContent,
+            model: responseModel,
+            tokensUsed,
+            durationMs
+          });
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) });
+        }
+      }
+
+      
+      // Tools API endpoints
+      if (parts[0] === "tools" || parts[0] === "fs") {
+        const toolsApi = createToolsApi(logger);
+        return toolsApi.handler(req, res);
+      }
       sendJSON(res, 404, { error: 'not_found' })
     } catch (err) {
       logger.warn(`admin-api error: ${String(err)}`)
@@ -300,6 +602,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
       // Start Unix socket server
       unixServer = http.createServer(handler)
+      
+      // WebSocket upgrade handling
+      unixServer.on('upgrade', (req, socket, head) => {
+        void handleWebSocketUpgrade(req, socket, head)
+      })
+      
       await new Promise<void>((resolve, reject) => {
         unixServer!.listen(unixPath, () => {
           try { fs.chmodSync(unixPath, 0o660) } catch {}
@@ -311,6 +619,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
       // Start TCP server (separate instance)
       tcpServer = http.createServer(handler)
+      
+      // WebSocket upgrade handling
+      tcpServer.on('upgrade', (req, socket, head) => {
+        void handleWebSocketUpgrade(req, socket, head)
+      })
+      
       await new Promise<void>((resolve, reject) => {
         tcpServer!.listen(tcpPort, tcpHost, () => {
           logger.info(`[admin-api] listening on http://${tcpHost}:${tcpPort}`)
