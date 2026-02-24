@@ -330,6 +330,16 @@ export class Daemon {
       if (dialecticProvider) {
         ;(this.intelligence.dialectic as any).setProvider(dialecticProvider)
         this.logger.info(`[daemon] Dialectic provider wired: ${dialecticProvider.id}`)
+
+        // Also wire same provider to Subconscious (LLM syntheses)
+        try {
+          if ((this.intelligence.subconscious as any) && typeof (this.intelligence.subconscious as any).setProvider === 'function') {
+            (this.intelligence.subconscious as any).setProvider(dialecticProvider)
+            this.logger.info(`[daemon] Subconscious provider wired: ${dialecticProvider.id}`)
+          }
+        } catch (err) {
+          this.logger.warn('[daemon] Subconscious: failed to wire provider', { error: String(err) })
+        }
       } else {
         this.logger.warn('[daemon] Dialectic: no provider available — dialectic observations will be skipped')
       }
@@ -389,6 +399,17 @@ export class Daemon {
       this.logger.info(`[daemon] Initializing MCP registry with ${mcpConfigs.length} server(s)`)
       mcpRegistry = new MCPRegistry(toolRegistry, this.logger)
       await mcpRegistry.start(mcpConfigs)
+
+      // Inform the Multi-Agent coordinator about available tools so agents can
+      // automatically include dynamic MCP tool instructions in their prompts.
+      try {
+        if (this.intelligence?.multiAgent && typeof (this.intelligence.multiAgent as any).setToolRegistry === 'function') {
+          (this.intelligence.multiAgent as any).setToolRegistry(toolRegistry)
+          this.logger.info('[daemon] Connected ToolRegistry to Multi-Agent Coordinator')
+        }
+      } catch (e) {
+        this.logger.warn('[daemon] Failed to wire ToolRegistry to Multi-Agent Coordinator', { error: String(e) })
+      }
     } else {
       this.logger.info('[daemon] No MCP servers configured')
     }
