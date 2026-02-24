@@ -1,5 +1,5 @@
 /**
- * DialecticSystem — Unified orchestration of Yang, Yin, and Synthesizer
+ * DialecticSystem — Unified orchestration of Yang, Yin, and Serenity
  * 
  * Runs all three observers in parallel and coordinates their outputs.
  * Handles WebSocket streaming, persistence, and signal injection.
@@ -18,7 +18,7 @@ import type { IProvider } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import { YangObserver, type YangConfig } from '../yang/index.js';
 import { YinObserver, type YinConfig } from '../yin/index.js';
-import { Synthesizer, type SynthesizerConfig } from '../synthesizer/index.js';
+import { Serenity, type SerenityConfig } from '../serenity/index.js';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -27,7 +27,7 @@ export interface DialecticSystemConfig {
   enabled: boolean;
   yang?: Partial<YangConfig>;
   yin?: Partial<YinConfig>;
-  synthesizer?: Partial<SynthesizerConfig>;
+  serenity?: Partial<SerenityConfig>;
   dataDir?: string;
   taskGuide?: {
     enabled?: boolean;
@@ -51,7 +51,7 @@ export class DialecticSystem implements IDialecticSystem {
   
   private yang: YangObserver;
   private yin: YinObserver;
-  private synthesizer: Synthesizer;
+  private serenity: Serenity;
   
   private db?: Database.Database;
   private streamCallbacks: Map<string, Set<(event: DialecticStreamEvent) => void>> = new Map();
@@ -62,7 +62,7 @@ export class DialecticSystem implements IDialecticSystem {
       enabled: config?.enabled ?? true,
       yang: config?.yang ?? {},
       yin: config?.yin ?? {},
-      synthesizer: config?.synthesizer ?? {},
+      serenity: config?.serenity ?? {},
       dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
       taskGuide: config?.taskGuide ?? { enabled: true, mode: 'llm', model: 'gpt-5-mini', maxTokens: 64, temperature: 0.2, timeoutMs: 1000 },
     };
@@ -70,7 +70,7 @@ export class DialecticSystem implements IDialecticSystem {
     // Initialize observers
     this.yang = new YangObserver(this.logger, this.config.yang);
     this.yin = new YinObserver(this.logger, this.config.yin);
-    this.synthesizer = new Synthesizer(this.logger, this.config.synthesizer);
+    this.serenity = new Serenity(this.logger, this.config.serenity);
     
     if (this.config.enabled) {
       this.initPersistence();
@@ -99,7 +99,7 @@ export class DialecticSystem implements IDialecticSystem {
           timestamp INTEGER NOT NULL,
           yang_output TEXT NOT NULL,
           yin_output TEXT NOT NULL,
-          synthesizer_output TEXT NOT NULL,
+          serenity_output TEXT NOT NULL,
           signal_injected BOOLEAN NOT NULL,
           total_latency_ms INTEGER NOT NULL,
           total_cost_usd REAL NOT NULL
@@ -119,7 +119,7 @@ export class DialecticSystem implements IDialecticSystem {
     this.provider = provider;
     this.yang.setProvider(provider);
     this.yin.setProvider(provider);
-    this.synthesizer.setProvider(provider);
+    this.serenity.setProvider(provider);
     this.logger.info('DialecticSystem: provider wired to all observers');
   }
 
@@ -191,7 +191,7 @@ export class DialecticSystem implements IDialecticSystem {
         timestamp: startTime,
         yang: { branches: [], meta: { expansionTemperature: 0.9, generationTimeMs: 0, inputTokens: 0, outputTokens: 0 } },
         yin: { critiques: [], meta: { compressionRatio: 1.0, processingTimeMs: 0, inputTokens: 0, outputTokens: 0 } },
-        synthesizer: {
+        serenity: {
           synthesis: { hasSignal: false, branchesConsidered: 0, branchesSurfaced: 0 },
           meta: { dialecticQuality: 0.5, processingTimeMs: 0, inputTokens: 0, outputTokens: 0 },
         },
@@ -249,8 +249,8 @@ export class DialecticSystem implements IDialecticSystem {
         data: yinOutput,
       });
 
-      // Run Synthesizer on the dialectic (Yang → Yin)
-      const synthesizerOutput = await this.synthesizer.synthesize(
+      // Run Serenity on the dialectic (Yang → Yin)
+      const serenityOutput = await this.serenity.synchronize(
         sessionId,
         userMessage,
         yangOutput,
@@ -261,18 +261,18 @@ export class DialecticSystem implements IDialecticSystem {
       this.emitStreamEvent(sessionId, {
         timestamp: Date.now(),
         turnId,
-        stage: 'synthesizer',
-        data: synthesizerOutput,
+        stage: 'serenity',
+        data: serenityOutput,
       });
 
       // Calculate totals
       const totalLatencyMs = Date.now() - startTime;
-      const totalCostUsd = this.calculateCost(yangOutput, yinOutput, synthesizerOutput);
+      const totalCostUsd = this.calculateCost(yangOutput, yinOutput, serenityOutput);
       
       // Determine if signal should be injected
-      const signalInjected = synthesizerOutput.synthesis.hasSignal && 
-        synthesizerOutput.synthesis.signal?.urgency === 'immediate' &&
-        (synthesizerOutput.synthesis.signal?.confidence || 0) >= 0.7;
+      const signalInjected = serenityOutput.synthesis.hasSignal && 
+        serenityOutput.synthesis.signal?.urgency === 'immediate' &&
+        (serenityOutput.synthesis.signal?.confidence || 0) >= 0.7;
 
       const result: DialecticResult = {
         sessionId,
@@ -280,7 +280,7 @@ export class DialecticSystem implements IDialecticSystem {
         timestamp: startTime,
         yang: yangOutput,
         yin: yinOutput,
-        synthesizer: synthesizerOutput,
+        serenity: serenityOutput,
         signalInjected,
         totalLatencyMs,
         totalCostUsd,
@@ -297,16 +297,16 @@ export class DialecticSystem implements IDialecticSystem {
       });
 
       // If signal should be injected, emit signal event
-      if (signalInjected && synthesizerOutput.synthesis.signal) {
-        this.emitSignal(sessionId, turnId, synthesizerOutput.synthesis.signal);
+      if (signalInjected && serenityOutput.synthesis.signal) {
+        this.emitSignal(sessionId, turnId, serenityOutput.synthesis.signal);
       }
 
-      this.logger.info('DialecticSystem: turn processed (Yang → Yin → Synthesizer)', {
+      this.logger.info('DialecticSystem: turn processed (Yang → Yin → Serenity)', {
         sessionId,
         turnId,
         critiquesCount: yinOutput.critiques.length,
         branchesGenerated: yangOutput.branches.length,
-        signalGenerated: synthesizerOutput.synthesis.hasSignal,
+        signalGenerated: serenityOutput.synthesis.hasSignal,
         signalInjected,
         totalLatencyMs,
         totalCostUsd: totalCostUsd.toFixed(6),
@@ -334,14 +334,14 @@ export class DialecticSystem implements IDialecticSystem {
   private calculateCost(
     yang: DialecticResult['yang'],
     yin: DialecticResult['yin'],
-    synthesizer: DialecticResult['synthesizer']
+    serenity: DialecticResult['serenity']
   ): number {
     // GPT-5 Mini pricing (approximate)
     const inputCostPer1M = 0.15;  // $0.15 per 1M input tokens
     const outputCostPer1M = 0.60; // $0.60 per 1M output tokens
     
-    const totalInput = yang.meta.inputTokens + yin.meta.inputTokens + synthesizer.meta.inputTokens;
-    const totalOutput = yang.meta.outputTokens + yin.meta.outputTokens + synthesizer.meta.outputTokens;
+    const totalInput = yang.meta.inputTokens + yin.meta.inputTokens + serenity.meta.inputTokens;
+    const totalOutput = yang.meta.outputTokens + yin.meta.outputTokens + serenity.meta.outputTokens;
     
     return (totalInput / 1_000_000 * inputCostPer1M) + (totalOutput / 1_000_000 * outputCostPer1M);
   }
@@ -482,7 +482,7 @@ export class DialecticSystem implements IDialecticSystem {
       this.db.prepare(`
         INSERT INTO dialectic_turns (
           session_id, turn_id, timestamp,
-          yang_output, yin_output, synthesizer_output,
+          yang_output, yin_output, serenity_output,
           signal_injected, total_latency_ms, total_cost_usd
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
@@ -491,7 +491,7 @@ export class DialecticSystem implements IDialecticSystem {
         result.timestamp,
         JSON.stringify(result.yang),
         JSON.stringify(result.yin),
-        JSON.stringify(result.synthesizer),
+        JSON.stringify(result.serenity),
         result.signalInjected ? 1 : 0,
         result.totalLatencyMs,
         result.totalCostUsd
@@ -538,7 +538,7 @@ export class DialecticSystem implements IDialecticSystem {
         timestamp: r.timestamp,
         yang: JSON.parse(r.yang_output),
         yin: JSON.parse(r.yin_output),
-        synthesizer: JSON.parse(r.synthesizer_output),
+        serenity: JSON.parse(r.serenity_output),
         signalInjected: Boolean(r.signal_injected),
         totalLatencyMs: r.total_latency_ms,
         totalCostUsd: r.total_cost_usd,
@@ -564,7 +564,7 @@ export class DialecticSystem implements IDialecticSystem {
       const row = this.db.prepare(`
         SELECT 
           COUNT(*) as total_turns,
-          SUM(CASE WHEN json_extract(synthesizer_output, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
+          SUM(CASE WHEN json_extract(serenity_output, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
           SUM(CASE WHEN signal_injected = 1 THEN 1 ELSE 0 END) as signals_injected,
           AVG(total_latency_ms) as avg_latency_ms,
           SUM(total_cost_usd) as total_cost_usd
