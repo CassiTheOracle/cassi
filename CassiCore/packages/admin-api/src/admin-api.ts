@@ -590,6 +590,23 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // POST /intelligence/thinker/feedback — record human feedback on an insight
+      if (req.method === 'POST' && url.pathname === '/intelligence/thinker/feedback') {
+        try {
+          const body = await parseBody(req)
+          const insight = body?.insight
+          const helpful = body?.helpful
+          const usedInResponse = body?.usedInResponse ?? false
+          const sessionId = body?.sessionId
+          if (!insight || typeof helpful !== 'boolean') return sendJSON(res, 400, { error: 'missing insight or helpful flag' })
+          // Emit event on the bus for Thinker to consume
+          daemon.bus.emit({ type: 'thinker:feedback', insight, helpful, usedInResponse, sessionId })
+          return sendJSON(res, 200, { ok: true })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // GET /tools/registry — list registered tools (name, description, parameters)
       if (req.method === 'GET' && url.pathname === '/tools/registry') {
         try {
