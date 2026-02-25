@@ -14,6 +14,7 @@ import type { IntelligenceLayer } from "./intelligence/index.js"
 import { createOrchestrationBus } from './orchestration-bus.js'
 import { createSessionBridge } from './session-bridge.js'
 import { createAdminApi } from './admin-api.js'
+import { createAgentRunner } from './intelligence/agent-runner.js'
 
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
@@ -95,8 +96,21 @@ export class Daemon {
     process.on("SIGINT", stopHandler)
 
     // 5. Global safety: log unhandled promise rejections to avoid daemon crash on library race conditions
-    process.on('unhandledRejection', (reason) => {
-      try { this.logger.warn('[daemon] unhandledRejection', { error: String(reason) }) } catch {}
+    process.on('unhandledRejection', (reason, _promise) => {
+      try {
+        let errMsg = String(reason)
+        try {
+          if (reason && typeof reason === 'object') {
+            errMsg = (reason as any).stack || (reason as any).message || String(reason)
+          }
+        } catch {}
+        // Treat plain timeouts as lower-severity (they are common with provider/polling cancellations)
+        if (String(errMsg).toLowerCase().includes('timeout')) {
+          this.logger.debug?.('[daemon] unhandledRejection (timeout)', { error: errMsg })
+        } else {
+          this.logger.warn?.('[daemon] unhandledRejection', { error: errMsg })
+        }
+      } catch {}
     })
 
     // 5. Create PluginHost with logger
@@ -311,6 +325,16 @@ export class Daemon {
       this.logger.warn('[daemon] Providers not loaded — run Phase 3 providers build')
     }
 
+    // Wire provider map into Multi-Agent Coordinator so providerId hints can be resolved
+    try {
+      if (this.intelligence?.multiAgent && typeof (this.intelligence.multiAgent as any).setProviders === 'function') {
+        (this.intelligence.multiAgent as any).setProviders(providers)
+        this.logger.info('[daemon] Multi-Agent providers wired')
+      }
+    } catch (e) {
+      this.logger.warn('[daemon] failed to wire providers to multi-agent', { error: String(e) })
+    }
+
     // Wire the default provider into the Thinker so it can make real calls
     if (this.intelligence?.thinker) {
       const defaultProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'kimi'
@@ -331,11 +355,14 @@ export class Daemon {
         ;(this.intelligence.dialectic as any).setProvider(dialecticProvider)
         this.logger.info(`[daemon] Dialectic provider wired: ${dialecticProvider.id}`)
 
-        // Also wire same provider to Subconscious (LLM syntheses)
+        // Wire provider to Subconscious. Prefer a dedicated subconscious provider if configured,
+        // otherwise fall back to the dialectic provider.
         try {
-          if ((this.intelligence.subconscious as any) && typeof (this.intelligence.subconscious as any).setProvider === 'function') {
-            (this.intelligence.subconscious as any).setProvider(dialecticProvider)
-            this.logger.info(`[daemon] Subconscious provider wired: ${dialecticProvider.id}`)
+          const subconsciousProviderId = this.config.get<string>('intelligence.subconscious.provider', '') || ''
+          const subconsciousProvider = subconsciousProviderId ? (providers.get(subconsciousProviderId) ?? providers.get(subconsciousProviderId)) : dialecticProvider
+          if (subconsciousProvider && (this.intelligence.subconscious as any) && typeof (this.intelligence.subconscious as any).setProvider === 'function') {
+            (this.intelligence.subconscious as any).setProvider(subconsciousProvider)
+            this.logger.info(`[daemon] Subconscious provider wired: ${subconsciousProvider.id}`)
           }
         } catch (err) {
           this.logger.warn('[daemon] Subconscious: failed to wire provider', { error: String(err) })
@@ -392,6 +419,16 @@ export class Daemon {
     ;(this as any).toolExecutor = toolExecutor
     this.logger.info(`[daemon] Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
 
+    // Start a local agent-runner to execute agent:task-assigned events (spawn_subagent)
+    try {
+      const agentRunner = createAgentRunner(this.logger.child('agent-runner'), this.bus, this.intelligence?.multiAgent as any, toolRegistry, this.sessions);
+      (this as any).agentRunner = agentRunner;
+      agentRunner.start();
+      this.logger.info('[daemon] agent-runner started');
+    } catch (err) {
+      this.logger.warn('[daemon] failed to start agent-runner', { error: String(err) });
+    }
+
     // Initialize MCP registry and connect configured servers
     let mcpRegistry: MCPRegistry | undefined
     const mcpConfigs = this.config.get<Array<{ id: string; command: string; args?: string[]; env?: Record<string, string>; restartOnCrash?: boolean; maxRestarts?: number; startupTimeoutMs?: number; description?: string }>>('mcp.servers', [])
@@ -434,6 +471,27 @@ export class Daemon {
         continuity: this.intelligence.continuity as any,
 
       })
+
+      // Wire Context Manager to sessions + pipeline if available
+      try {
+        if ((this.intelligence as any).contextManager) {
+          const cm = (this.intelligence as any).contextManager
+          if (typeof cm.setSessions === 'function') cm.setSessions(this.sessions)
+          if (typeof cm.setPipeline === 'function') cm.setPipeline(this.pipeline)
+          if (typeof cm.onEventBus === 'function') cm.onEventBus(this.bus)
+          // Start periodic sync if configured
+          try {
+            const enabled = this.config.get<boolean>('intelligence.contextManager.enabled', true)
+            const intervalMs = this.config.get<number>('intelligence.contextManager.syncIntervalMs', 60000)
+            if (enabled && typeof cm.start === 'function') cm.start({ intervalMs })
+            this.logger.info('[daemon] ContextManager wired to session manager and pipeline')
+          } catch (err) {
+            this.logger.warn('[daemon] ContextManager: failed to start sync', { error: String(err) })
+          }
+        }
+      } catch (err) {
+        this.logger.warn('[daemon] failed to wire context manager', { error: String(err) })
+      }
 
       // Wire optimizer to live session manager and pipeline — now it can actually work
       this.intelligence.optimizer.setSessions(this.sessions)
