@@ -216,6 +216,24 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     socket.write(frame)
   }
 
+  // Helper: shallow/object checks and deep merge for nested object merges
+  function isObject(v: unknown): v is Record<string, unknown> {
+    return typeof v === 'object' && v !== null && !Array.isArray(v)
+  }
+
+  function mergeDeep(target: any, src: any): any {
+    if (!isObject(target) || !isObject(src)) return src
+    const out: any = { ...target }
+    for (const k of Object.keys(src)) {
+      if (isObject(src[k])) {
+        out[k] = mergeDeep(out[k] ?? {}, src[k])
+      } else {
+        out[k] = src[k]
+      }
+    }
+    return out
+  }
+
   async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     if (!authOk(req)) {
       sendJSON(res, 401, { error: 'unauthorized' })
@@ -294,6 +312,60 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           daemon.__admin_overrides = daemon.__admin_overrides || {}
           delete daemon.__admin_overrides[key]
           return sendJSON(res, 200, { key, removed: true })
+        }
+      }
+
+      // POST /config/set — set arbitrary config keys (set-and-persist) with nested merge support
+      if (req.method === 'POST' && url.pathname === '/config/set') {
+        try {
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'missing body' })
+          const layered = (daemon.config as any)
+          const updated: string[] = []
+
+          if (Array.isArray(body.updates)) {
+            for (const u of body.updates) {
+              if (!u || typeof u.key !== 'string' || !Object.prototype.hasOwnProperty.call(u, 'value')) continue
+              const k = String(u.key)
+              const v = u.value
+              try {
+                if (typeof layered?.setOverride === 'function') {
+                  const existing = layered.get(k, undefined)
+                  const newVal = isObject(existing) && isObject(v) ? mergeDeep(existing, v) : v
+                  layered.setOverride(k, newVal, { reason: u.reason || 'admin' })
+                } else {
+                  daemon.__admin_overrides = daemon.__admin_overrides || {}
+                  daemon.__admin_overrides[k] = { value: v, reason: u.reason || 'admin' }
+                }
+                updated.push(k)
+              } catch (err) { /* continue */ }
+            }
+          } else if (typeof body.key === 'string' && Object.prototype.hasOwnProperty.call(body, 'value')) {
+            const k = String(body.key)
+            const v = body.value
+            try {
+              if (typeof layered?.setOverride === 'function') {
+                const existing = layered.get(k, undefined)
+                const newVal = isObject(existing) && isObject(v) ? mergeDeep(existing, v) : v
+                layered.setOverride(k, newVal, { reason: body.reason || 'admin' })
+              } else {
+                daemon.__admin_overrides = daemon.__admin_overrides || {}
+                daemon.__admin_overrides[k] = { value: v, reason: body.reason || 'admin' }
+              }
+              updated.push(k)
+            } catch (err) {
+              return sendJSON(res, 500, { error: String(err) })
+            }
+          } else {
+            return sendJSON(res, 400, { error: 'expected { key, value } or { updates: [{ key, value }] }' })
+          }
+
+          try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
+          try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+
+          return sendJSON(res, 200, { ok: true, updated })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
         }
       }
 
@@ -562,6 +634,16 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // GET /providers/config/keys — list provider-specific config keys and defaults
+      if (req.method === 'GET' && url.pathname === '/providers/config/keys') {
+        try {
+          const keys = listProviderConfigKeys()
+          return sendJSON(res, 200, { keys })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // POST /providers/config — set provider global configuration overrides
       // Accepts either { key: 'providers.global.maxConcurrent', value: 16 } or
       // a body with friendly keys { maxConcurrent: 16, windowMs: 60000, ... }
@@ -584,7 +666,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             const k = String(body.key)
             try {
               if (typeof layered?.setOverride === 'function') {
-                layered.setOverride(k, body.value, { reason: body.reason || 'admin' })
+                // Merge nested objects where applicable
+                const existing = layered.get(k, undefined)
+                const newVal = isObject(existing) && isObject(body.value) ? mergeDeep(existing, body.value) : body.value
+                layered.setOverride(k, newVal, { reason: body.reason || 'admin' })
               } else {
                 daemon.__admin_overrides = daemon.__admin_overrides || {}
                 daemon.__admin_overrides[k] = { value: body.value, reason: body.reason }
@@ -599,7 +684,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
                 const k = mapping[friendly]
                 try {
                   if (typeof layered?.setOverride === 'function') {
-                    layered.setOverride(k, (body as any)[friendly], { reason: body.reason || 'admin' })
+                    const existing = layered.get(k, undefined)
+                    const provided = (body as any)[friendly]
+                    const newVal = isObject(existing) && isObject(provided) ? mergeDeep(existing, provided) : provided
+                    layered.setOverride(k, newVal, { reason: body.reason || 'admin' })
                   } else {
                     daemon.__admin_overrides = daemon.__admin_overrides || {}
                     daemon.__admin_overrides[k] = { value: (body as any)[friendly], reason: body.reason || 'admin' }
@@ -704,8 +792,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               const k = String(u.key)
               const v = (u as any).value
               try {
-                if (typeof layered?.setOverride === 'function') layered.setOverride(k, v, { reason: u.reason || 'admin' })
-                else {
+                if (typeof layered?.setOverride === 'function') {
+                  const existing = layered.get(k, undefined)
+                  const newVal = isObject(existing) && isObject(v) ? mergeDeep(existing, v) : v
+                  layered.setOverride(k, newVal, { reason: u.reason || 'admin' })
+                } else {
                   daemon.__admin_overrides = daemon.__admin_overrides || {}
                   daemon.__admin_overrides[k] = { value: v, reason: u.reason || 'admin' }
                 }
@@ -718,8 +809,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             const k = String(body.key)
             const v = body.value
             try {
-              if (typeof layered?.setOverride === 'function') layered.setOverride(k, v, { reason: body.reason || 'admin' })
-              else {
+              if (typeof layered?.setOverride === 'function') {
+                const existing = layered.get(k, undefined)
+                const newVal = isObject(existing) && isObject(v) ? mergeDeep(existing, v) : v
+                layered.setOverride(k, newVal, { reason: body.reason || 'admin' })
+              } else {
                 daemon.__admin_overrides = daemon.__admin_overrides || {}
                 daemon.__admin_overrides[k] = { value: v, reason: body.reason || 'admin' }
               }
@@ -761,8 +855,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           if (typeof body.key === 'string' && Object.prototype.hasOwnProperty.call(body, 'value')) {
             const k = String(body.key)
             try {
-              if (typeof layered?.setOverride === 'function') layered.setOverride(k, body.value, { reason: body.reason || 'admin' })
-              else {
+              if (typeof layered?.setOverride === 'function') {
+                const existing = layered.get(k, undefined)
+                const newVal = isObject(existing) && isObject(body.value) ? mergeDeep(existing, body.value) : body.value
+                layered.setOverride(k, newVal, { reason: body.reason || 'admin' })
+              } else {
                 daemon.__admin_overrides = daemon.__admin_overrides || {}
                 daemon.__admin_overrides[k] = { value: body.value, reason: body.reason || 'admin' }
               }
@@ -775,8 +872,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               if (!u || typeof u.key !== 'string' || !Object.prototype.hasOwnProperty.call(u, 'value')) continue
               const k = String(u.key)
               try {
-                if (typeof layered?.setOverride === 'function') layered.setOverride(k, u.value, { reason: u.reason || 'admin' })
-                else {
+                if (typeof layered?.setOverride === 'function') {
+                  const existing = layered.get(k, undefined)
+                  const newVal = isObject(existing) && isObject(u.value) ? mergeDeep(existing, u.value) : u.value
+                  layered.setOverride(k, newVal, { reason: u.reason || 'admin' })
+                } else {
                   daemon.__admin_overrides = daemon.__admin_overrides || {}
                   daemon.__admin_overrides[k] = { value: u.value, reason: u.reason || 'admin' }
                 }
@@ -789,8 +889,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               if (Object.prototype.hasOwnProperty.call(body, friendly)) {
                 const k = mapping[friendly]
                 try {
-                  if (typeof layered?.setOverride === 'function') layered.setOverride(k, (body as any)[friendly], { reason: body.reason || 'admin' })
-                  else {
+                  if (typeof layered?.setOverride === 'function') {
+                    const existing = layered.get(k, undefined)
+                    const provided = (body as any)[friendly]
+                    const newVal = isObject(existing) && isObject(provided) ? mergeDeep(existing, provided) : provided
+                    layered.setOverride(k, newVal, { reason: body.reason || 'admin' })
+                  } else {
                     daemon.__admin_overrides = daemon.__admin_overrides || {}
                     daemon.__admin_overrides[k] = { value: (body as any)[friendly], reason: body.reason || 'admin' }
                   }
