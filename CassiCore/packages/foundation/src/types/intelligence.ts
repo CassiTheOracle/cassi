@@ -138,7 +138,7 @@ export interface IThinker {
   stats(): Promise<ThinkerStats>;
 
   /** Manually trigger a thinking cycle */
-  think(depth: "Ponder" | "Think"): Promise<string>;
+  think(depth: "Ponder" | "Think", signal?: AbortSignal): Promise<string>;
 }
 
 // ─── Optimizer ──────────────────────────────────────────────────────────────
