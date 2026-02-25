@@ -177,7 +177,12 @@ async function pollLoop(): Promise<void> {
 
       const json = await res.json() as { ok: boolean; result: TgUpdate[]; description?: string }
       if (!json.ok) {
-        log('warn', `tg/getUpdates not ok: ${json.description ?? '?'}`)
+        const desc = String(json.description ?? '')
+        if (desc.includes('Conflict: terminated by other getUpdates request')) {
+          log('info', `tg/getUpdates conflict: ${desc} — backing off`)
+        } else {
+          log('warn', `tg/getUpdates not ok: ${desc}`)
+        }
         await sleep(backoffMs)
         backoffMs = Math.min(backoffMs * 2, BACKOFF_MAX_MS)
         continue

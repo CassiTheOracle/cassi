@@ -56,7 +56,9 @@ function toAnthropicContent(
 
   if (typeof msg.content === 'string') {
     if (imageBlocks.length === 0) return msg.content
-    return [...imageBlocks, { type: 'text', text: msg.content }]
+    const contentParts: Array<Record<string, unknown>> = [...imageBlocks]
+    if (msg.content) contentParts.push({ type: 'text', text: msg.content })
+    return contentParts
   }
 
   // ContentBlock[] — convert to Anthropic format
@@ -94,7 +96,7 @@ function toOpenAIMessages(
           type: 'image_url',
           image_url: { url: `data:${att.mediaType};base64,${att.data}` },
         }))
-        parts.push({ type: 'text', text: msg.content })
+        if (msg.content) parts.push({ type: 'text', text: msg.content })
         out.push({ role: msg.role, content: parts })
       }
       continue
@@ -114,7 +116,7 @@ function toOpenAIMessages(
           type: 'image_url',
           image_url: { url: `data:${att.mediaType};base64,${att.data}` },
         }))
-        parts.push({ type: 'text', text })
+        if (text) parts.push({ type: 'text', text })
         out.push({ role: msg.role, content: parts })
       } else {
         out.push({ role: msg.role, content: text })
@@ -166,20 +168,31 @@ export class GitHubCopilotProvider extends BaseProvider {
     return resolved
   }
 
-  /** Fetch with timeout and optional retry logic */
+  /** Fetch with timeout and optional external abort signal */
   private async fetchWithTimeout(
     url: string,
     options: RequestInit,
-    timeoutMs = 30000
+    timeoutMs = 30000,
+    externalSignal?: AbortSignal,
   ): Promise<Response> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
+    let externalHandler: (() => void) | undefined
     try {
+      if (externalSignal) {
+        if (externalSignal.aborted) controller.abort()
+        else {
+          externalHandler = () => controller.abort()
+          externalSignal.addEventListener('abort', externalHandler)
+        }
+      }
+
       const res = await fetch(url, { ...options, signal: controller.signal })
       return res
     } finally {
       clearTimeout(timeoutId)
+      if (externalSignal && externalHandler) externalSignal.removeEventListener('abort', externalHandler)
     }
   }
 
@@ -187,12 +200,13 @@ export class GitHubCopilotProvider extends BaseProvider {
     messages: Message[],
     opts: CompletionOpts,
     attachments?: ImageAttachment[],
+    signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
     const model = opts.model || this.models[0]
     if (ANTHROPIC_MODELS.has(model)) {
-      yield* this.completeAnthropic(messages, opts, model, attachments)
+      yield* this.completeAnthropic(messages, opts, model, attachments, signal)
     } else {
-      yield* this.completeOpenAI(messages, opts, model, attachments)
+      yield* this.completeOpenAI(messages, opts, model, attachments, signal)
     }
   }
 
@@ -202,6 +216,7 @@ export class GitHubCopilotProvider extends BaseProvider {
     opts: CompletionOpts,
     model: string,
     attachments?: ImageAttachment[],
+    signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
     const system = opts.systemPrompt || (
       typeof messages.find(m => m.role === 'system')?.content === 'string'
@@ -246,11 +261,12 @@ export class GitHubCopilotProvider extends BaseProvider {
           headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
           body: JSON.stringify(body),
         },
-        60000  // 60s timeout for completions
+        60000, // 60s timeout for completions
+        signal,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        yield { type: 'error', error: 'request timeout after 60s' }
+        yield { type: 'error', error: signal?.aborted ? 'cancelled' : 'request timeout after 60s' }
       } else {
         yield { type: 'error', error: `network error: ${String(err)}` }
       }
@@ -277,6 +293,13 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     try {
       while (true) {
+        // Check for external cancellation
+        if (signal?.aborted) {
+          try { await reader.cancel() } catch {}
+          yield { type: 'error', error: 'cancelled' }
+          return
+        }
+
         // Check for stall before reading
         if (Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS) {
           reader.releaseLock()
@@ -346,6 +369,7 @@ export class GitHubCopilotProvider extends BaseProvider {
     opts: CompletionOpts,
     model: string,
     attachments?: ImageAttachment[],
+    signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
     // Build attachment map: last user message index → attachments
     const attachmentMap = new Map<number, ImageAttachment[]>()
@@ -377,7 +401,8 @@ export class GitHubCopilotProvider extends BaseProvider {
           headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
           body: JSON.stringify(body),
         },
-        60000  // 60s timeout for completions
+        60000, // 60s timeout for completions
+        signal,
       )
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
@@ -472,7 +497,7 @@ export class GitHubCopilotProvider extends BaseProvider {
     return this.estimateTokens(messages)
   }
 
-  async ping(): Promise<boolean> {
+  async ping(signal?: AbortSignal): Promise<boolean> {
     // CACHE: Return cached result if within TTL
     const now = Date.now()
     if (now - this.lastPingTime < this.PING_CACHE_MS) {
@@ -483,7 +508,8 @@ export class GitHubCopilotProvider extends BaseProvider {
       const res = await this.fetchWithTimeout(
         `${BASE_URL}/v1/models`,
         { headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` } },
-        10000  // 10s timeout for health check
+        10000, // 10s timeout for health check
+        signal,
       )
       this.lastPingResult = res.ok
       this.lastPingTime = now

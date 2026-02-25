@@ -41,11 +41,17 @@ const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
     errorCooldownMs: 5_000,
   },
   'kimi-coding': {
-    maxRequests: 600,
+    maxRequests: 1200,
     windowMs: 60_000,
-    maxConcurrent: 20,
-    errorCooldownMs: 5_000,
+    maxConcurrent: 40,
+    errorCooldownMs: 2_000,
   },
+  'pi-bridge': {
+    maxRequests: 1200,
+    windowMs: 60_000,
+    maxConcurrent: 40,
+    errorCooldownMs: 2_000,
+  }
 }
 
 /**
@@ -115,22 +121,37 @@ export class CentralizedProvider implements IProvider {
     messages: Message[],
     opts: CompletionOpts,
     attachments?: any,
+    signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
+    // Options understood by CentralizedProvider (extensions to CompletionOpts):
+    // - allowConcurrent (boolean): when true, skip per-session deduplication and
+    //   allow multiple concurrent requests for the same logical session ID.
+    // - dedupe (boolean): when false, equivalent to allowConcurrent=true (legacy)
+    // Use these flags sparingly for internal analysis/backfills where parallelism
+    // is desirable and callers are aware of provider rate limits.
     // Derive session ID from the last user message or use a fallback
     const sessionId = this.extractSessionId(messages) ?? 'unknown'
 
-    // ── 1. Deduplication: prevent simultaneous requests from same session ──
-    const existing = this.inFlight.get(sessionId)
-    if (existing) {
-      this.metrics.deduplicated++
-      this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
-      this.bus.emit({
-        type: 'provider:deduplicated',
-        providerId: this.id,
-        sessionId,
-        existingRequestId: existing.id,
-      } as any)
-      throw new Error(`Request already in progress for session ${sessionId.slice(-8)}`)
+    // ── 1. Deduplication: prevent simultaneous requests from same session unless explicitly allowed ──
+    const dedupeDisabled = (opts as any)?.allowConcurrent === true || (opts as any)?.dedupe === false
+    if (!dedupeDisabled) {
+      const existing = this.inFlight.get(sessionId)
+      if (existing) {
+        this.metrics.deduplicated++
+        this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
+        this.bus.emit({
+          type: 'provider:deduplicated',
+          providerId: this.id,
+          sessionId,
+          existingRequestId: existing.id,
+        } as any)
+        throw new Error(`Request already in progress for session ${sessionId.slice(-8)}`)
+      }
+    } else {
+      // Dedupe intentionally disabled for this call
+      if (typeof (this.logger as any).debug === 'function') {
+        try { (this.logger as any).debug(`[dedup] allowConcurrent set — skipping dedup for session ${sessionId.slice(-8)}`) } catch {}
+      }
     }
 
     // ── 2. Rate limiting check (includes concurrent limit) ──
@@ -156,11 +177,12 @@ export class CentralizedProvider implements IProvider {
 
     // ── 4. Atomically reserve slot and track the request ──
     const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const rawModel = (opts as any)?.model || this.models[0]
     const entry: RequestEntry = {
       id: requestId,
       sessionId,
       providerId: this.id,
-      model: opts.model || this.models[0],
+      model: rawModel,
       startedAt: Date.now(),
       tokensUsed: 0,
       aborted: false,
@@ -169,13 +191,21 @@ export class CentralizedProvider implements IProvider {
     this.inFlight.set(sessionId, entry)
     this.recordRequest()
 
-    this.logger.info(`[request] ${requestId.slice(-12)} session=${sessionId.slice(-8)} model=${entry.model}`)
+    // Normalize model reporting to include provider prefix when not already present
+    let reportedModel = entry.model || ''
+    try {
+      if (reportedModel && !reportedModel.includes('/')) reportedModel = `${this.id}/${reportedModel}`
+    } catch (err) { /* ignore */ }
+    // Persist the normalized model for downstream diagnostics
+    entry.model = reportedModel
+
+    this.logger.info(`[request] ${requestId.slice(-12)} session=${sessionId.slice(-8)} model=${reportedModel}`)
     this.bus.emit({
       type: 'provider:request_start',
       providerId: this.id,
       requestId,
       sessionId,
-      model: entry.model,
+      model: rawModel,
       messageCount: messages.length,
     } as any)
 
@@ -183,7 +213,7 @@ export class CentralizedProvider implements IProvider {
     let completed = false
     try {
       // Use 'as any' to pass attachments (not in IProvider interface but supported by implementations)
-      const stream = (this.wrapped as any).complete(messages, opts, attachments)
+      const stream = (this.wrapped as any).complete(messages, opts, attachments, signal)
       for await (const chunk of stream) {
         // Track tokens from chunk
         if (chunk.tokensUsed) {
@@ -250,9 +280,9 @@ export class CentralizedProvider implements IProvider {
     return this.wrapped.countTokens(messages)
   }
 
-  async ping(): Promise<boolean> {
+  async ping(signal?: AbortSignal): Promise<boolean> {
     // Don't rate-limit pings — they're lightweight health checks
-    return this.wrapped.ping()
+    return (this.wrapped.ping as any)?.(signal) ?? this.wrapped.ping()
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -297,30 +327,34 @@ export class CentralizedProvider implements IProvider {
   // ─────────────────────────────────────────────────────────────────────────
 
   private extractSessionId(messages: Message[]): string | undefined {
-    // Try to find an explicit session identifier in system messages
-    // Look for [session:XXX] marker format (added by systemPromptMiddleware)
+    // 1) Prefer system message marker if present (legacy behavior)
     for (const msg of messages) {
       if (msg.role === 'system' && typeof msg.content === 'string') {
-        // Look for [session:XXX] marker at the end of system prompt
         const markerMatch = msg.content.match(/\[session:([^\]]+)\]/i)
-        if (markerMatch) {
-          return `sess_${markerMatch[1]}`
-        }
-        // Fallback: look for session-XXX pattern
-        const patterns = [
-          /session-([a-zA-Z0-9_-]+)/i,
-          /id[:\s]+([a-zA-Z0-9_-]{8,})/i,
-        ]
+        if (markerMatch) return `sess_${markerMatch[1]}`
+        const patterns = [/session-([a-zA-Z0-9_-]+)/i, /id[:\s]+([a-zA-Z0-9_-]{8,})/i]
         for (const pattern of patterns) {
           const match = msg.content.match(pattern)
-          if (match) {
-            return `sess_${match[1]}`
-          }
+          if (match) return `sess_${match[1]}`
         }
       }
     }
 
-    // Fall back to content-based hash of user messages
+    // 2) If not found in system messages, scan ALL message contents for explicit [session:XXX] markers
+    for (const msg of messages) {
+      if (typeof msg.content === 'string') {
+        const markerMatch = msg.content.match(/\[session:([^\]]+)\]/i)
+        if (markerMatch) return `sess_${markerMatch[1]}`
+      } else {
+        try {
+          const s = JSON.stringify(msg.content)
+          const markerMatch = s.match(/\[session:([^\]]+)\]/i)
+          if (markerMatch) return `sess_${markerMatch[1]}`
+        } catch { /* ignore */ }
+      }
+    }
+
+    // 3) Fall back to content-based hash of user messages
     const userContents = messages
       .filter(m => m.role === 'user')
       .map(m => typeof m.content === 'string' ? m.content : JSON.stringify(m.content))
@@ -330,7 +364,7 @@ export class CentralizedProvider implements IProvider {
       return `sess_${this.hashString(userContents).slice(0, 16)}`
     }
 
-    // Final fallback: hash of all content
+    // 4) Final fallback: hash of all content
     const allContent = messages
       .map(m => typeof m.content === 'string' ? m.content : JSON.stringify(m.content))
       .join('\n')

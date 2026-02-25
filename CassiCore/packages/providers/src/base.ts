@@ -1,11 +1,12 @@
-import type { IProvider, Message, CompletionOpts, CompletionChunk } from '../../types/runtime.js'
+import type { IProvider, Message, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 export abstract class BaseProvider implements IProvider {
   abstract readonly id: string
   abstract readonly models: string[]
-  abstract complete(messages: Message[], opts: CompletionOpts): AsyncIterable<CompletionChunk>
+  // providers may accept optional attachments and an AbortSignal to allow cancellation
+  abstract complete(messages: Message[], opts: CompletionOpts, attachments?: ImageAttachment[], signal?: AbortSignal): AsyncIterable<CompletionChunk>
   abstract countTokens(messages: Message[]): Promise<number>
-  abstract ping(): Promise<boolean>
+  abstract ping(signal?: AbortSignal): Promise<boolean>
 
   /** Token estimate: ~4 chars per token for text, ~256 tokens per image attachment */
   protected estimateTokens(messages: Message[]): number {
