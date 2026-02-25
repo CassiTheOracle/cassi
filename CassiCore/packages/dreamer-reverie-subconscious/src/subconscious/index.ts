@@ -95,6 +95,7 @@ export class Subconscious {
       summarizerModel: config?.summarizerModel ?? process.env.OLLAMA_SUMMARIZER_MODEL ?? 'gpt-5-mini',
       summarizerMaxTokens: config?.summarizerMaxTokens ?? 160,
       summarizerTemperature: config?.summarizerTemperature ?? 0.12,
+      summarizerTimeoutMs: config?.summarizerTimeoutMs ?? 8000,
 
       // anomaly
       recencyWindowMs: config?.recencyWindowMs ?? (24 * 60 * 60 * 1000),
@@ -356,7 +357,7 @@ export class Subconscious {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), this.config.summarizerTimeoutMs);
           try {
-            const stream = this.provider.complete(messages as any, opts as any, undefined, controller.signal) as AsyncIterable<any>;
+            const stream = (this.provider as any).complete(messages as any, opts as any, undefined, controller.signal) as AsyncIterable<any>;
             for await (const chunk of stream) {
               if (chunk.type === 'token' && chunk.text) text += chunk.text;
               if (chunk.type === 'error') throw new Error(chunk.error || 'provider error');
