@@ -48,6 +48,8 @@ export class DialecticSystem implements IDialecticSystem {
   private memory?: IMemory;
   private provider?: IProvider;
   private taskGuideGenerator?: (userMessage: string, context: YangContext, relevantMemories: string[]) => Promise<string> | string;
+  // Track recent taskGuide LLM failures per session to avoid thundering LLM calls
+  private taskGuideFailures: Map<string, { count: number; lastFailAt: number }> = new Map();
   
   private yang: YangObserver;
   private yin: YinObserver;
@@ -64,7 +66,7 @@ export class DialecticSystem implements IDialecticSystem {
       yin: config?.yin ?? {},
       serenity: config?.serenity ?? {},
       dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
-      taskGuide: config?.taskGuide ?? { enabled: true, mode: 'llm', model: 'gpt-5-mini', maxTokens: 64, temperature: 0.2, timeoutMs: 1000 },
+      taskGuide: config?.taskGuide ?? { enabled: true, mode: 'heuristic', model: 'gpt-5-mini', maxTokens: 64, temperature: 0.2, timeoutMs: 5000 },
     };
     
     // Initialize observers
@@ -110,6 +112,31 @@ export class DialecticSystem implements IDialecticSystem {
       `);
       
       this.logger.info('DialecticSystem: persistence initialized', { dbPath });
+
+      // Backwards-compatibility: detect older schemas that used `synthesizer_output` and copy
+      try {
+        const cols = (this.db.prepare("PRAGMA table_info(dialectic_turns)").all() as any[]).map((c: any) => c.name);
+        const hasSynth = cols.includes('synthesizer_output') || cols.includes('synthesizer');
+        const hasSerenity = cols.includes('serenity_output');
+        if (hasSynth && !hasSerenity) {
+          try {
+            this.db.prepare(`ALTER TABLE dialectic_turns ADD COLUMN serenity_output TEXT`).run();
+            // Copy existing synthesizer_output into serenity_output when present
+            try {
+              this.db.prepare(`UPDATE dialectic_turns SET serenity_output = synthesizer_output WHERE serenity_output IS NULL`).run();
+            } catch (err) {
+              // Some older DBs may have different column naming; attempt generic copy
+              try { this.db.prepare(`UPDATE dialectic_turns SET serenity_output = synthesizer WHERE serenity_output IS NULL`).run() } catch {}
+            }
+            this.logger.info('DialecticSystem: migrated synthesizer_output -> serenity_output for backward compatibility');
+          } catch (err) {
+            this.logger.warn('DialecticSystem: failed to add serenity_output column during migration', { error: String(err) });
+          }
+        }
+      } catch (err) {
+        this.logger.debug('DialecticSystem: migration check failed', { error: String(err) });
+      }
+
     } catch (error) {
       this.logger.error('DialecticSystem: failed to initialize persistence', { error: String(error) });
     }
@@ -139,6 +166,13 @@ export class DialecticSystem implements IDialecticSystem {
 
   onEventBus(bus: IEventBus): void {
     this.eventBus = bus;
+    try {
+      if (this.yang && typeof (this.yang as any).setEventBus === 'function') (this.yang as any).setEventBus(bus);
+      if (this.yin && typeof (this.yin as any).setEventBus === 'function') (this.yin as any).setEventBus(bus);
+      if (this.serenity && typeof (this.serenity as any).setEventBus === 'function') (this.serenity as any).setEventBus(bus);
+    } catch (err) {
+      // best-effort — do not fail wiring if observers don't support event bus
+    }
     this.logger.info('DialecticSystem: event bus wired');
   }
 
@@ -180,9 +214,14 @@ export class DialecticSystem implements IDialecticSystem {
     sessionId: string,
     turnId: string,
     userMessage: string,
-    context: YangContext
+    context: YangContext,
+    opts?: { providers?: { yang?: any; yin?: any; serenity?: any } }
   ): Promise<DialecticResult> {
     const startTime = Date.now();
+    // Use a per-invocation dialectic session id so concurrent background
+    // dialectic runs for the same user session don't collide with Centralized
+    // provider deduplication. This avoids rejecting parallel analysis tasks.
+    const dialecticSessionId = `${sessionId}:dialectic:${Date.now()}:${Math.random().toString(36).slice(2,6)}`;
     
     if (!this.config.enabled) {
       return {
@@ -215,7 +254,9 @@ export class DialecticSystem implements IDialecticSystem {
 
       // Build a short task guide and attach to the context so both observers
       // see the same brief instruction at the top of their context.
-      const taskGuide = await this.buildTaskGuide(userMessage, context, relevantMemories);
+      // Allow per-turn provider/model hints (prefer serenity hint, then yang, then yin) to be used by the taskGuide summarizer.
+      const preferredProviderHint = opts?.providers?.serenity ?? opts?.providers?.yang ?? opts?.providers?.yin;
+      const taskGuide = await this.buildTaskGuide(dialecticSessionId, userMessage, context, relevantMemories, preferredProviderHint);
       const ctxWithGuide = { ...context, taskGuide };
 
       // Emit start event with the generated task guide for observability
@@ -230,7 +271,19 @@ export class DialecticSystem implements IDialecticSystem {
       // This allows maximum creativity before applying constraints
       
       // Run Yang first - generate expansive branches
-      const yangOutput = await this.yang.observe(sessionId, userMessage, ctxWithGuide);
+      const yangHints = opts?.providers?.yang;
+      const yangOpts: any = {};
+      if (yangHints) {
+        if (typeof yangHints === 'object' && typeof (yangHints as any).complete === 'function') yangOpts.provider = yangHints as any;
+        else if (typeof yangHints === 'object' && yangHints.model) yangOpts.model = yangHints.model;
+        if (typeof yangHints === 'object' && typeof (yangHints as any).allowConcurrent === 'boolean') yangOpts.allowConcurrent = (yangHints as any).allowConcurrent;
+        if (typeof yangHints === 'object' && typeof (yangHints as any).dedupe === 'boolean') yangOpts.dedupe = (yangHints as any).dedupe;
+      }
+      // Default: allow concurrent dialectic observer calls to avoid false dedup while
+      // the pipeline triggers background dialectic runs for the same session.
+      if (typeof yangOpts.allowConcurrent === 'undefined') yangOpts.allowConcurrent = true;
+
+      const yangOutput = await this.yang.observe(dialecticSessionId, userMessage, ctxWithGuide, yangOpts);
       
       this.emitStreamEvent(sessionId, {
         timestamp: Date.now(),
@@ -240,7 +293,17 @@ export class DialecticSystem implements IDialecticSystem {
       });
 
       // Run Yin (refinement) on Yang's output
-      const yinOutput = await this.yin.observe(sessionId, userMessage, yangOutput, ctxWithGuide);
+      const yinHints = opts?.providers?.yin;
+      const yinOpts: any = {};
+      if (yinHints) {
+        if (typeof yinHints === 'object' && typeof (yinHints as any).complete === 'function') yinOpts.provider = yinHints as any;
+        else if (typeof yinHints === 'object' && yinHints.model) yinOpts.model = yinHints.model;
+        if (typeof yinHints === 'object' && typeof (yinHints as any).allowConcurrent === 'boolean') yinOpts.allowConcurrent = (yinHints as any).allowConcurrent;
+        if (typeof yinHints === 'object' && typeof (yinHints as any).dedupe === 'boolean') yinOpts.dedupe = (yinHints as any).dedupe;
+      }
+      if (typeof yinOpts.allowConcurrent === 'undefined') yinOpts.allowConcurrent = true;
+
+      const yinOutput = await this.yin.observe(dialecticSessionId, userMessage, yangOutput, ctxWithGuide, yinOpts);
       
       this.emitStreamEvent(sessionId, {
         timestamp: Date.now(),
@@ -250,12 +313,23 @@ export class DialecticSystem implements IDialecticSystem {
       });
 
       // Run Serenity on the dialectic (Yang → Yin)
+      const serenityHints = opts?.providers?.serenity;
+      const serenityOpts: any = {};
+      if (serenityHints) {
+        if (typeof serenityHints === 'object' && typeof (serenityHints as any).complete === 'function') serenityOpts.provider = serenityHints as any;
+        else if (typeof serenityHints === 'object' && serenityHints.model) serenityOpts.model = serenityHints.model;
+        if (typeof serenityHints === 'object' && typeof (serenityHints as any).allowConcurrent === 'boolean') serenityOpts.allowConcurrent = (serenityHints as any).allowConcurrent;
+        if (typeof serenityHints === 'object' && typeof (serenityHints as any).dedupe === 'boolean') serenityOpts.dedupe = (serenityHints as any).dedupe;
+      }
+      if (typeof serenityOpts.allowConcurrent === 'undefined') serenityOpts.allowConcurrent = true;
+
       const serenityOutput = await this.serenity.synchronize(
-        sessionId,
+        dialecticSessionId,
         userMessage,
         yangOutput,
         yinOutput,
-        relevantMemories
+        relevantMemories,
+        serenityOpts
       );
       
       this.emitStreamEvent(sessionId, {
@@ -346,19 +420,62 @@ export class DialecticSystem implements IDialecticSystem {
     return (totalInput / 1_000_000 * inputCostPer1M) + (totalOutput / 1_000_000 * outputCostPer1M);
   }
 
+
   /**
    * Build a short task guide string to place at the top of Yang/Yin context.
    * By default this uses an LLM-based summarizer if enabled; falls back to
    * a lightweight heuristic when LLM is disabled or fails.
    */
-  private async buildTaskGuide(userMessage: string, context: YangContext, relevantMemories: string[]): Promise<string> {
+  private async buildTaskGuide(
+    sessionIdOrUserMessage: string,
+    maybeUserMessageOrContext?: any,
+    maybeContextOrMemories?: any,
+    maybeRelevantMemories?: any,
+    maybeProviderHint?: any
+  ): Promise<string> {
+    // Support both new and legacy signatures:
+    // New:   buildTaskGuide(sessionId, userMessage, context, relevantMemories, providerHint)
+    // Legacy: buildTaskGuide(userMessage, context, relevantMemories)
+
+    let sessionId: string
+    let userMessage: string
+    let context: YangContext | undefined
+    let relevantMemories: string[] = []
+    let providerHint: any = maybeProviderHint
+
+    // Detect new signature: second arg is a string (userMessage)
+    if (typeof maybeUserMessageOrContext === 'string') {
+      sessionId = sessionIdOrUserMessage
+      userMessage = maybeUserMessageOrContext
+      context = maybeContextOrMemories as YangContext
+      relevantMemories = maybeRelevantMemories ?? []
+      providerHint = maybeProviderHint
+    } else {
+      // Legacy call: first arg is userMessage, second is context object
+      userMessage = sessionIdOrUserMessage || ''
+      context = maybeUserMessageOrContext as YangContext
+      relevantMemories = maybeContextOrMemories ?? []
+      // Synthesize a per-call session marker to avoid dedup collisions (use local hash to be robust)
+      const localHash = (s: string) => {
+        let h = 0
+        for (let i = 0; i < s.length; i++) {
+          const c = s.charCodeAt(i)
+          h = ((h << 5) - h) + c
+          h |= 0
+        }
+        return Math.abs(h).toString(36)
+      }
+      sessionId = `legacy:${localHash(String(userMessage)).slice(0, 12)}`
+      providerHint = maybeRelevantMemories ?? undefined
+    }
+
     const tgCfg = this.config.taskGuide ?? { enabled: true, mode: 'llm' };
     if (!tgCfg.enabled || tgCfg.mode === 'disabled') return '';
 
     // If a custom generator has been set, use it (pluggable)
     if (this.taskGuideGenerator) {
       try {
-        const r = await this.taskGuideGenerator(userMessage, context, relevantMemories);
+        const r = await this.taskGuideGenerator(userMessage, context as YangContext, relevantMemories);
         return r || '';
       } catch (err) {
         this.logger.warn('DialecticSystem: custom taskGuide generator failed', { error: String(err) });
@@ -366,36 +483,64 @@ export class DialecticSystem implements IDialecticSystem {
       }
     }
 
-    // Heuristic mode (fast, no LLM cost)
-    if (tgCfg.mode === 'heuristic' || !this.provider) {
+    // If we've seen repeated failures for this session recently, avoid thundering LLM calls.
+    const failEntry = this.taskGuideFailures.get(sessionId) ?? { count: 0, lastFailAt: 0 };
+    const FAIL_THRESHOLD = 3;
+    const FAIL_COOLDOWN_MS = 60_000; // 1 minute
+    if (failEntry.count >= FAIL_THRESHOLD && (Date.now() - failEntry.lastFailAt) < FAIL_COOLDOWN_MS) {
+      this.logger.warn('DialecticSystem: skipping taskGuide LLM due to recent failures', { sessionId, failures: failEntry.count });
       return this.buildHeuristicTaskGuide(userMessage, relevantMemories);
     }
 
-    // LLM mode: ask the wired provider to produce a concise TASK GUIDE
-    const provider = this.provider!;
+    // Heuristic mode (fast, no LLM cost) or no provider available
+    if (tgCfg.mode === 'heuristic' || (!this.provider && !providerHint)) {
+      return this.buildHeuristicTaskGuide(userMessage, relevantMemories);
+    }
+
+    // Determine effective provider + model to use
+    let effectiveProvider: any = undefined;
+    let model = tgCfg.model || 'gpt-5-mini';
+
+    if (providerHint) {
+      if (typeof providerHint === 'object' && typeof (providerHint as any).complete === 'function') {
+        effectiveProvider = providerHint;
+      } else if (typeof providerHint === 'object' && providerHint.model) {
+        model = providerHint.model;
+        effectiveProvider = this.provider;
+      } else if (typeof providerHint === 'string') {
+        // string may encode a model name
+        model = providerHint;
+        effectiveProvider = this.provider;
+      }
+    } else {
+      effectiveProvider = this.provider;
+    }
+
+    if (!effectiveProvider) return this.buildHeuristicTaskGuide(userMessage, relevantMemories);
+
     const memoryHint = (relevantMemories && relevantMemories.length > 0)
       ? `Context: ${relevantMemories.length} recent relevant memory snippets available.`
       : '';
 
-    const short = (userMessage || '').replace(/\s+/g, ' ').trim().slice(0, 240);
+    const short = (userMessage || '').toString().replace(/\s+/g, ' ').trim().slice(0, 240);
 
     const prompt = `You are a concise task summarizer for an AI dialectic system.\n\n` +
       `Produce a short TASK GUIDE (1-2 sentences) that should be prepended to downstream observers' prompts to orient their work.\n` +
       `Output only the guide text — do NOT include analysis or explanation.\n\n` +
       `USER MESSAGE:\n"""${userMessage}"""\n\n` +
       `${memoryHint}\n\n` +
-      `GUIDELINES:\n- Keep it extremely short and focused (1-2 sentences).\n- Mention if code examples or debugging steps are preferred based on the user's intent.\n- Use plain language starting with 'TASK GUIDE:'.`;
+      `GUIDELINES:\n- Keep it extremely short and focused (1-2 sentences).\n- Mention if code examples or debugging steps are preferred based on the user's intent.\n- Use plain language starting with 'TASK GUIDE:'.\n\n` +
+      `[session:${sessionId}]`; // Explicit session marker for centralized provider
 
-    const model = tgCfg.model || 'gpt-5-mini';
     const maxTokens = tgCfg.maxTokens ?? 64;
-    const temperature = tgCfg.temperature ?? 0.2;
-    const timeoutMs = tgCfg.timeoutMs ?? 1000;
+    const timeoutMs = tgCfg.timeoutMs ?? 5000;
 
     const messages = [{ role: 'user' as const, content: prompt }];
-    const opts = { model, stream: true as const, maxTokens, temperature, thinking: 'none' as const };
+    // Allow concurrent summarizer calls so taskGuide generation doesn't collide with other dialectic requests
+    const opts = { model, stream: true as const, maxTokens, allowConcurrent: true }; // removed temperature and thinking
 
     try {
-      const stream = (provider as any).complete(messages, opts) as AsyncIterable<any>;
+      const stream = (effectiveProvider as any).complete(messages, opts) as AsyncIterable<any>;
       const iterator = (stream as any)[Symbol.asyncIterator]() as AsyncIterator<any>;
 
       let collected = '';
@@ -407,6 +552,8 @@ export class DialecticSystem implements IDialecticSystem {
           // timeout
           try { await iterator.return?.(); } catch {}
           this.logger.warn('DialecticSystem: taskGuide summarizer timed out');
+          // record failure
+          this.taskGuideFailures.set(sessionId, { count: (failEntry.count || 0) + 1, lastFailAt: Date.now() });
           break;
         }
 
@@ -417,10 +564,13 @@ export class DialecticSystem implements IDialecticSystem {
           const res = await Promise.race([nextPromise, timeoutPromise]) as IteratorResult<any>;
           if (res.done) break;
           const ch = res.value;
-          if (ch.type === 'token' && ch.text) collected += ch.text;
+          // Accept both token and thinking chunks as textual output
+          if ((ch.type === 'token' || ch.type === 'thinking') && ch.text) collected += ch.text;
           if (ch.type === 'done') break;
           if (ch.type === 'error') {
             this.logger.warn('DialecticSystem: taskGuide summarizer error', { error: String(ch.error) });
+            // record failure
+            this.taskGuideFailures.set(sessionId, { count: (failEntry.count || 0) + 1, lastFailAt: Date.now() });
             break;
           }
         } catch (err) {
@@ -428,15 +578,19 @@ export class DialecticSystem implements IDialecticSystem {
           if ((err as Error).message === 'timeout') {
             try { await iterator.return?.(); } catch {}
             this.logger.warn('DialecticSystem: taskGuide summarizer timed out (race)');
+            this.taskGuideFailures.set(sessionId, { count: (failEntry.count || 0) + 1, lastFailAt: Date.now() });
             break;
           }
           this.logger.warn('DialecticSystem: taskGuide summarizer failed', { error: String(err) });
+          this.taskGuideFailures.set(sessionId, { count: (failEntry.count || 0) + 1, lastFailAt: Date.now() });
           break;
         }
       }
 
       const guideText = (collected || '').trim();
       if (guideText) {
+        // Success — reset failure tracker
+        this.taskGuideFailures.delete(sessionId);
         // Ensure it starts with 'TASK GUIDE' for consistency
         if (!/TASK GUIDE/i.test(guideText)) return `TASK GUIDE: ${guideText}`;
         return guideText.split('\n')[0];
@@ -446,13 +600,14 @@ export class DialecticSystem implements IDialecticSystem {
       return this.buildHeuristicTaskGuide(userMessage, relevantMemories);
     } catch (err) {
       this.logger.warn('DialecticSystem: failed to run taskGuide summarizer', { error: String(err) });
+      this.taskGuideFailures.set(sessionId, { count: (failEntry.count || 0) + 1, lastFailAt: Date.now() });
       return this.buildHeuristicTaskGuide(userMessage, relevantMemories);
     }
   }
 
   private buildHeuristicTaskGuide(userMessage: string, relevantMemories: string[]): string {
-    const short = (userMessage || '').replace(/\s+/g, ' ').trim().slice(0, 200);
-    const lc = (userMessage || '').toLowerCase();
+    const short = String(userMessage || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+    const lc = String(userMessage || '').toLowerCase();
 
     let hint = 'Prioritize clarity, relevance, and actionable suggestions.';
     if (/\b(code|function|script|implement|example|snippet|program)\b/.test(lc)) {
@@ -479,23 +634,44 @@ export class DialecticSystem implements IDialecticSystem {
     if (!this.db) return;
     
     try {
-      this.db.prepare(`
-        INSERT INTO dialectic_turns (
-          session_id, turn_id, timestamp,
-          yang_output, yin_output, serenity_output,
-          signal_injected, total_latency_ms, total_cost_usd
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      // Backwards-compatible insert: some older DBs used `synthesizer_output`
+      // while newer schemas use `serenity_output`. Detect which column exists
+      // and insert to that column to avoid NOT NULL constraint failures.
+      const cols = (this.db.prepare("PRAGMA table_info(dialectic_turns)").all() as any[]).map((c: any) => c.name);
+      const hasSynth = cols.includes('synthesizer_output');
+      const hasSer = cols.includes('serenity_output');
+
+      // If the DB has both old & new columns, write to both to keep them in sync.
+      const outputCols = hasSynth && hasSer ? ['synthesizer_output', 'serenity_output']
+        : hasSer ? ['serenity_output']
+        : hasSynth ? ['synthesizer_output']
+        : ['serenity_output'];
+
+      const insertCols = [
+        'session_id', 'turn_id', 'timestamp',
+        'yang_output', 'yin_output', ...outputCols,
+        'signal_injected', 'total_latency_ms', 'total_cost_usd'
+      ];
+
+      const placeholders = insertCols.map(() => '?').join(', ');
+      const stmt = this.db.prepare(`INSERT INTO dialectic_turns (${insertCols.join(',')}) VALUES (${placeholders})`);
+
+      const outputJson = JSON.stringify(result.serenity || {});
+      const args: any[] = [
         result.sessionId,
         result.turnId,
         result.timestamp,
         JSON.stringify(result.yang),
         JSON.stringify(result.yin),
-        JSON.stringify(result.serenity),
-        result.signalInjected ? 1 : 0,
-        result.totalLatencyMs,
-        result.totalCostUsd
-      );
+      ];
+      for (const _ of outputCols) args.push(outputJson);
+      args.push(result.signalInjected ? 1 : 0, result.totalLatencyMs, result.totalCostUsd);
+
+      try {
+        this.logger.info?.('DialecticSystem: persisting result', { sessionId: result.sessionId, turnId: result.turnId, outputCols, outputJsonLength: (outputJson || '').length, argsCount: args.length });
+      } catch {}
+
+      stmt.run(...args);
     } catch (error) {
       this.logger.warn('DialecticSystem: failed to persist result', { error: String(error) });
     }
@@ -519,6 +695,18 @@ export class DialecticSystem implements IDialecticSystem {
     });
   }
 
+  // Lightweight string hashing used for legacy session markers
+  private hashString(str: string): string {
+    let hash = 0
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      // Convert to 32-bit integer
+      hash |= 0
+    }
+    return Math.abs(hash).toString(36)
+  }
+
   // ─── Query Methods ─────────────────────────────────────────────────────────
 
   async getRecent(sessionId: string, limit = 10): Promise<DialecticResult[]> {
@@ -538,7 +726,7 @@ export class DialecticSystem implements IDialecticSystem {
         timestamp: r.timestamp,
         yang: JSON.parse(r.yang_output),
         yin: JSON.parse(r.yin_output),
-        serenity: JSON.parse(r.serenity_output),
+        serenity: JSON.parse(r.serenity_output ?? r.synthesizer_output ?? '{}'),
         signalInjected: Boolean(r.signal_injected),
         totalLatencyMs: r.total_latency_ms,
         totalCostUsd: r.total_cost_usd,
@@ -561,16 +749,22 @@ export class DialecticSystem implements IDialecticSystem {
     }
     
     try {
-      const row = this.db.prepare(`
+      // Determine which column to use for serenity/synthesizer output (backwards compatible)
+      const cols = (this.db.prepare("PRAGMA table_info(dialectic_turns)").all() as any[]).map((c: any) => c.name);
+      const serenityCol = cols.includes('serenity_output') ? 'serenity_output' : (cols.includes('synthesizer_output') ? 'synthesizer_output' : 'serenity_output');
+
+      const sql = `
         SELECT 
           COUNT(*) as total_turns,
-          SUM(CASE WHEN json_extract(serenity_output, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
+          SUM(CASE WHEN json_extract(${serenityCol}, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
           SUM(CASE WHEN signal_injected = 1 THEN 1 ELSE 0 END) as signals_injected,
           AVG(total_latency_ms) as avg_latency_ms,
           SUM(total_cost_usd) as total_cost_usd
         FROM dialectic_turns
         WHERE session_id = ?
-      `).get(sessionId) as any;
+      `;
+
+      const row = this.db.prepare(sql).get(sessionId) as any;
       
       return {
         totalTurns: row?.total_turns || 0,
