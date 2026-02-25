@@ -51,7 +51,15 @@ export type RuntimeEvent =
   | { type: "thinker:insight-applied"; sessionId: string; insight: string }
   // Tool registry events — emitted when tools are (re)registered into the system
   | { type: "tool:registered"; name: string; description: string; parameters?: Record<string, unknown>; server?: string }
-  | { type: "tool:unregistered"; name: string; server?: string };
+  | { type: "tool:unregistered"; name: string; server?: string }
+  // Autonomy lifecycle events
+  | { type: "autonomy:started"; agentId: string; options?: Record<string, unknown> }
+  | { type: "autonomy:stopped"; agentId: string; reason?: string }
+  | { type: "autonomy:tool_called"; agentId: string; tool: string; summary?: string }
+  // Autonomy confirmation lifecycle
+  | { type: "autonomy:confirmation_requested"; id: string; agentId: string; tool: string; reason?: string }
+  | { type: "autonomy:confirmation_approved"; id: string; agentId: string; tool: string; approver?: string; result?: unknown }
+  | { type: "autonomy:confirmation_rejected"; id: string; agentId: string; tool: string; approver?: string; reason?: string };
 
 export type EventType = RuntimeEvent["type"];
 

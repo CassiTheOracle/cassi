@@ -45,6 +45,14 @@ export interface CompletionOpts {
     description: string;
     input_schema: Record<string, unknown>;
   }>
+  /**
+   * Provider coordination flags understood by the centralized provider.
+   * - allowConcurrent: set true to bypass per-session dedup and allow multiple
+   *   concurrent requests for the same logical session. Use cautiously.
+   * - dedupe: set false to explicitly disable deduplication for this call.
+   */
+  allowConcurrent?: boolean;
+  dedupe?: boolean;
 }
 
 export interface CompletionChunk {
@@ -113,6 +121,10 @@ export interface IChannel {
 
 export interface SessionConfig {
   model: string;
+  /** Optional explicit provider ID to pin a provider (e.g. 'pi', 'kimi-coding') */
+  providerId?: string;
+  /** Optional model name without provider prefix (e.g. 'gpt-5-mini') */
+  providerModel?: string;
   systemPrompt?: string;
   thinking?: ThinkingLevel;
   maxContextTokens?: number;

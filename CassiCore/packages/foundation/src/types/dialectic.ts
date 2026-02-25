@@ -26,7 +26,7 @@ export interface YangOutput {
 
 export interface IYangObserver {
   readonly name: 'yang';
-  observe(sessionId: string, userMessage: string, context: YangContext): Promise<YangOutput>;
+  observe(sessionId: string, userMessage: string, context: YangContext, opts?: { model?: string; provider?: import('./runtime.js').IProvider }): Promise<YangOutput>;
 }
 
 export interface YangContext {
@@ -47,7 +47,7 @@ export interface IYinObserver {
    * Observe now receives the Dialectic context so that Yin can see the same
    * brief task guide that Yang received at the top of its context.
    */
-  observe(sessionId: string, userMessage: string, yangOutput: YangOutput, context?: YangContext): Promise<YinOutput>;
+  observe(sessionId: string, userMessage: string, yangOutput: YangOutput, context?: YangContext, opts?: { model?: string; provider?: import('./runtime.js').IProvider }): Promise<YinOutput>;
 }
 
 // ─── Yin Observer ───────────────────────────────────────────────────────────
@@ -115,7 +115,8 @@ export interface ISerenity {
     userMessage: string,
     yangOutput: YangOutput,
     yinOutput: YinOutput,
-    relevantMemories: string[]
+    relevantMemories: string[],
+    opts?: { model?: string; provider?: import('./runtime.js').IProvider }
   ): Promise<SerenityOutput>;
 }
 
@@ -139,7 +140,8 @@ export interface IDialecticSystem {
     sessionId: string,
     turnId: string,
     userMessage: string,
-    context: YangContext
+    context: YangContext,
+    opts?: { providers?: { yang?: any; yin?: any; serenity?: any } }
   ): Promise<DialecticResult>;
 }
 
