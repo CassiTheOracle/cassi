@@ -110,7 +110,7 @@ export function createProviders(
 
   // ── Wrap with centralized request management ───────────────────────────────
   if (centralized && bus) {
-    const wrapped = wrapProvidersWithCentralized(rawProviders, logger, bus)
+    const wrapped = wrapProvidersWithCentralized(rawProviders, logger, bus, config)
     logger.info(`[providers] Centralized request management enabled for ${wrapped.size} provider(s)`)
     return wrapped as Map<string, IProvider>
   }
