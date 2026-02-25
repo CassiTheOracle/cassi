@@ -6,6 +6,7 @@ import type { ILogger } from '../types/interfaces.js'
 import type { DialecticStreamEvent } from '../types/dialectic.js'
 import { createToolsApi } from './tools-api.js'
 import { assembleContext } from './intelligence/context-assembler.js'
+import { listProviderConfigKeys } from './providers/centralized.js'
 
 // WebSocket state
 interface WSConnection {
@@ -502,6 +503,327 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
           const metrics = typeof ma.getMetrics === 'function' ? ma.getMetrics() : undefined
           return sendJSON(res, 200, { metrics: metrics ?? null })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /providers/metrics — aggregated provider + global metrics
+      if (req.method === 'GET' && url.pathname === '/providers/metrics') {
+        try {
+          // Prefer pipeline providers map, fall back to daemon-level providers (if any)
+          const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+          if (!providersMap) return sendJSON(res, 503, { error: 'providers not initialised' })
+
+          const providerMetrics: Array<{ id: string; metrics: any }> = []
+          let globalConfig: any = null
+          for (const [id, prov] of providersMap) {
+            let metrics = null
+            try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch {}
+            providerMetrics.push({ id, metrics })
+            if (!globalConfig && metrics?.globalConfig) globalConfig = metrics.globalConfig
+          }
+
+          return sendJSON(res, 200, { global: globalConfig ?? null, providers: providerMetrics })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /providers/config — view effective provider global configuration and overrides
+      if (req.method === 'GET' && url.pathname === '/providers/config') {
+        try {
+          const layered = (daemon.config as any)
+          const getWithSource = typeof layered?.getWithSource === 'function'
+            ? (k: string) => layered.getWithSource(k)
+            : (k: string) => ({ value: layered?.get?.(k, undefined), source: undefined })
+
+          const keys = [
+            'providers.global.maxConcurrent',
+            'providers.global.windowMs',
+            'providers.global.maxRequestsPerWindow',
+            'providers.global.timeoutMs',
+          ]
+
+          const configView: Record<string, unknown> = {}
+          for (const k of keys) {
+            try {
+              configView[k] = getWithSource(k)
+            } catch (err) {
+              configView[k] = { value: daemon.config.get(k, undefined), source: undefined }
+            }
+          }
+
+          const overrides = typeof layered?.getOverrides === 'function' ? layered.getOverrides() : (daemon.__admin_overrides || {})
+
+          return sendJSON(res, 200, { config: configView, overrides })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /providers/config — set provider global configuration overrides
+      // Accepts either { key: 'providers.global.maxConcurrent', value: 16 } or
+      // a body with friendly keys { maxConcurrent: 16, windowMs: 60000, ... }
+      if (req.method === 'POST' && url.pathname === '/providers/config') {
+        try {
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'missing body' })
+
+          const layered = (daemon.config as any)
+          const mapping: Record<string, string> = {
+            maxConcurrent: 'providers.global.maxConcurrent',
+            windowMs: 'providers.global.windowMs',
+            maxRequestsPerWindow: 'providers.global.maxRequestsPerWindow',
+            timeoutMs: 'providers.global.timeoutMs',
+          }
+
+          const updated: string[] = []
+
+          if (typeof body.key === 'string' && Object.prototype.hasOwnProperty.call(body, 'value')) {
+            const k = String(body.key)
+            try {
+              if (typeof layered?.setOverride === 'function') {
+                layered.setOverride(k, body.value, { reason: body.reason || 'admin' })
+              } else {
+                daemon.__admin_overrides = daemon.__admin_overrides || {}
+                daemon.__admin_overrides[k] = { value: body.value, reason: body.reason }
+              }
+              updated.push(k)
+            } catch (err) {
+              return sendJSON(res, 500, { error: String(err) })
+            }
+          } else {
+            for (const friendly of Object.keys(mapping)) {
+              if (Object.prototype.hasOwnProperty.call(body, friendly)) {
+                const k = mapping[friendly]
+                try {
+                  if (typeof layered?.setOverride === 'function') {
+                    layered.setOverride(k, (body as any)[friendly], { reason: body.reason || 'admin' })
+                  } else {
+                    daemon.__admin_overrides = daemon.__admin_overrides || {}
+                    daemon.__admin_overrides[k] = { value: (body as any)[friendly], reason: body.reason || 'admin' }
+                  }
+                  updated.push(k)
+                } catch (err) {
+                  return sendJSON(res, 500, { error: String(err) })
+                }
+              }
+            }
+          }
+
+          // Persist and reload so listeners (e.g., CentralizedProvider) re-apply new limits
+          try {
+            if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides()
+          } catch (err) { /* best-effort */ }
+
+          try {
+            if (typeof daemon.reload === 'function') await daemon.reload()
+            else daemon.bus.emit({ type: 'config:reloaded' })
+          } catch (err) { /* best-effort */ }
+
+          return sendJSON(res, 200, { ok: true, updated })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // DELETE /providers/config — remove overrides for one or more keys
+      // Body may be { keys: ['providers.global.maxConcurrent'] } or empty to remove all providers.global.* overrides
+      if (req.method === 'DELETE' && url.pathname === '/providers/config') {
+        try {
+          const body = await parseBody(req)
+          const layered = (daemon.config as any)
+          const mapping: Record<string, string> = {
+            maxConcurrent: 'providers.global.maxConcurrent',
+            windowMs: 'providers.global.windowMs',
+            maxRequestsPerWindow: 'providers.global.maxRequestsPerWindow',
+            timeoutMs: 'providers.global.timeoutMs',
+          }
+
+          let toRemove: string[] = []
+          if (body && Array.isArray(body.keys)) {
+            toRemove = body.keys.map(String)
+          } else if (body && typeof body.key === 'string') {
+            toRemove = [String(body.key)]
+          } else if (body && typeof body === 'object' && Object.keys(body).length > 0) {
+            for (const friendly of Object.keys(mapping)) {
+              if ((body as any)[friendly]) toRemove.push(mapping[friendly])
+            }
+          } else {
+            // default: clear all known keys
+            toRemove = Object.values(mapping)
+          }
+
+          const removed: string[] = []
+          for (const k of toRemove) {
+            try {
+              if (typeof layered?.clearOverride === 'function') {
+                layered.clearOverride(k)
+                removed.push(k)
+              } else {
+                daemon.__admin_overrides = daemon.__admin_overrides || {}
+                if (Object.prototype.hasOwnProperty.call(daemon.__admin_overrides, k)) {
+                  delete daemon.__admin_overrides[k]
+                  removed.push(k)
+                }
+              }
+            } catch (err) {
+              // continue
+            }
+          }
+
+          try {
+            if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides()
+          } catch (err) { /* best-effort */ }
+
+          try {
+            if (typeof daemon.reload === 'function') await daemon.reload()
+            else daemon.bus.emit({ type: 'config:reloaded' })
+          } catch (err) { /* best-effort */ }
+
+          return sendJSON(res, 200, { ok: true, removed })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /providers/config/set — set arbitrary provider config keys
+      if (req.method === 'POST' && url.pathname === '/providers/config/set') {
+        try {
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'missing body' })
+
+          const layered = (daemon.config as any)
+          const updated: string[] = []
+
+          // Support batch updates: { updates: [{ key, value, reason }] }
+          if (Array.isArray(body.updates)) {
+            for (const u of body.updates) {
+              if (!u || typeof u.key !== 'string' || !Object.prototype.hasOwnProperty.call(u, 'value')) continue
+              const k = String(u.key)
+              const v = (u as any).value
+              try {
+                if (typeof layered?.setOverride === 'function') layered.setOverride(k, v, { reason: u.reason || 'admin' })
+                else {
+                  daemon.__admin_overrides = daemon.__admin_overrides || {}
+                  daemon.__admin_overrides[k] = { value: v, reason: u.reason || 'admin' }
+                }
+                updated.push(k)
+              } catch (err) {
+                // continue on per-item errors
+              }
+            }
+          } else if (typeof body.key === 'string' && Object.prototype.hasOwnProperty.call(body, 'value')) {
+            const k = String(body.key)
+            const v = body.value
+            try {
+              if (typeof layered?.setOverride === 'function') layered.setOverride(k, v, { reason: body.reason || 'admin' })
+              else {
+                daemon.__admin_overrides = daemon.__admin_overrides || {}
+                daemon.__admin_overrides[k] = { value: v, reason: body.reason || 'admin' }
+              }
+              updated.push(k)
+            } catch (err) {
+              return sendJSON(res, 500, { error: String(err) })
+            }
+          } else {
+            return sendJSON(res, 400, { error: 'expected { key, value } or { updates: [{ key, value }] }' })
+          }
+
+          // Persist and reload
+          try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
+          try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+
+          return sendJSON(res, 200, { ok: true, updated })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /providers/config/apply — update overrides and return providers metrics snapshot
+      if (req.method === 'POST' && url.pathname === '/providers/config/apply') {
+        try {
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'missing body' })
+
+          const layered = (daemon.config as any)
+          const mapping: Record<string, string> = {
+            maxConcurrent: 'providers.global.maxConcurrent',
+            windowMs: 'providers.global.windowMs',
+            maxRequestsPerWindow: 'providers.global.maxRequestsPerWindow',
+            timeoutMs: 'providers.global.timeoutMs',
+          }
+
+          const updated: string[] = []
+
+          // Accept same forms as /providers/config POST plus arbitrary updates
+          if (typeof body.key === 'string' && Object.prototype.hasOwnProperty.call(body, 'value')) {
+            const k = String(body.key)
+            try {
+              if (typeof layered?.setOverride === 'function') layered.setOverride(k, body.value, { reason: body.reason || 'admin' })
+              else {
+                daemon.__admin_overrides = daemon.__admin_overrides || {}
+                daemon.__admin_overrides[k] = { value: body.value, reason: body.reason || 'admin' }
+              }
+              updated.push(k)
+            } catch (err) {
+              return sendJSON(res, 500, { error: String(err) })
+            }
+          } else if (Array.isArray(body.updates)) {
+            for (const u of body.updates) {
+              if (!u || typeof u.key !== 'string' || !Object.prototype.hasOwnProperty.call(u, 'value')) continue
+              const k = String(u.key)
+              try {
+                if (typeof layered?.setOverride === 'function') layered.setOverride(k, u.value, { reason: u.reason || 'admin' })
+                else {
+                  daemon.__admin_overrides = daemon.__admin_overrides || {}
+                  daemon.__admin_overrides[k] = { value: u.value, reason: u.reason || 'admin' }
+                }
+                updated.push(k)
+              } catch (err) { /* continue */ }
+            }
+          } else {
+            // friendly mapping form
+            for (const friendly of Object.keys(mapping)) {
+              if (Object.prototype.hasOwnProperty.call(body, friendly)) {
+                const k = mapping[friendly]
+                try {
+                  if (typeof layered?.setOverride === 'function') layered.setOverride(k, (body as any)[friendly], { reason: body.reason || 'admin' })
+                  else {
+                    daemon.__admin_overrides = daemon.__admin_overrides || {}
+                    daemon.__admin_overrides[k] = { value: (body as any)[friendly], reason: body.reason || 'admin' }
+                  }
+                  updated.push(k)
+                } catch (err) {
+                  return sendJSON(res, 500, { error: String(err) })
+                }
+              }
+            }
+          }
+
+          // Persist and reload so listeners re-apply new limits
+          try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
+          try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+
+          // Now return metrics snapshot
+          try {
+            const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+            if (!providersMap) return sendJSON(res, 503, { error: 'providers not initialised' })
+
+            const providerMetrics: Array<{ id: string; metrics: any }> = []
+            let globalConfig: any = null
+            for (const [id, prov] of providersMap) {
+              let metrics = null
+              try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch {}
+              providerMetrics.push({ id, metrics })
+              if (!globalConfig && metrics?.globalConfig) globalConfig = metrics.globalConfig
+            }
+
+            return sendJSON(res, 200, { ok: true, updated, metrics: { global: globalConfig ?? null, providers: providerMetrics } })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
