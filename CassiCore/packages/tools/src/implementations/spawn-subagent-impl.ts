@@ -18,7 +18,8 @@ import { randomUUID } from 'node:crypto'
 export interface SpawnSubagentOptions {
   task: string
   label: string
-  model: string
+  model?: string
+  providerId?: string
   timeoutSeconds: number
   parentSessionId: string
 }
@@ -59,10 +60,31 @@ export function createSubagentSpawnFunction(ctx: SubagentSpawnContext): (opts: S
       throw new Error(`Parent session ${parentSessionId} not found`)
     }
 
-    // Create child session config (inherit from parent but allow model override)
+    // Create child session config (inherit from parent but allow model/provider override)
+    const parentModel = parentSession.config?.model
+    function deriveFinalModel(optsModel?: string, parentModel?: string, providerId?: string) {
+      if (optsModel) {
+        if (optsModel.includes('/')) return optsModel
+        if (providerId) return `${providerId}/${optsModel}`
+        return optsModel
+      }
+      if (providerId) {
+        if (parentModel && parentModel.includes('/')) {
+          const modelPart = parentModel.split('/').slice(1).join('/')
+          return `${providerId}/${modelPart}`
+        }
+        return `${providerId}/${parentModel || 'gpt-5-mini'}`
+      }
+      return parentModel || 'github-copilot/gpt-5-mini'
+    }
+
+    const finalModel = deriveFinalModel(model, parentModel, opts.providerId)
+
     const childConfig = {
       ...parentSession.config,
-      model: model || parentSession.config.model,
+      model: finalModel,
+      providerId: opts.providerId ?? parentSession.config?.providerId,
+      providerModel: finalModel && finalModel.includes('/') ? finalModel.split('/').slice(1).join('/') : undefined,
     }
 
     // Create the child session directly (bypass getOrCreate to use our specific ID)
@@ -178,14 +200,19 @@ async function runSubagentTask(opts: RunSubagentTaskOptions): Promise<void> {
     ])
 
     const durationMs = Date.now() - startTime
+    const rAny: any = result as any
 
-    // Emit completion event
+    // Emit completion event with telemetry
+    const childSess = ctx.sessionManager.get(childSessionId)
+    const sessionModel = childSess?.config?.model
     bus.emit({
       type: 'subagent:completed',
       runId,
       sessionId: childSessionId,
-      result: result.response,
+      result: rAny.response,
       durationMs,
+      tokensUsed: rAny.tokensUsed ?? 0,
+      model: rAny.model ?? sessionModel ?? undefined,
       timestamp: new Date(),
     })
 

@@ -17,8 +17,12 @@ export const spawnSubagentDefinition: ToolDefinition = {
       },
       model: {
         type: 'string',
-        description: 'Model to use for the subagent. Defaults to gpt-5-mini for cost efficiency.',
+        description: 'Model to use for the subagent. Can be either provider/model or just the model name (when providerId is set).',
         default: 'github-copilot/gpt-5-mini',
+      },
+      providerId: {
+        type: 'string',
+        description: 'Optional explicit provider id to pin the subagent to a particular provider (e.g. "pi", "kimi-coding").',
       },
       timeoutSeconds: {
         type: 'number',
@@ -37,15 +41,17 @@ export function makeSpawnSubagentHandler(
     task: string
     label: string
     model: string
+    providerId?: string
     timeoutSeconds: number
     parentSessionId: string
   }) => Promise<{ runId: string; sessionKey: string }>,
 ): ToolHandler {
   return async (input, ctx) => {
-    const { task, label, model = 'github-copilot/gpt-5-mini', timeoutSeconds = 300 } = input as {
+    const { task, label, model = 'github-copilot/gpt-5-mini', providerId, timeoutSeconds = 300 } = input as {
       task: string
       label: string
       model?: string
+      providerId?: string
       timeoutSeconds?: number
     }
 
@@ -57,13 +63,13 @@ export function makeSpawnSubagentHandler(
     }
 
     // If no spawn function provided, return a simulated response
-    // In production, this would integrate with the actual subagent spawning system
     if (!spawnFn) {
       return JSON.stringify({
         status: 'spawned',
         runId: `simulated-${Date.now()}`,
         label,
         model,
+        providerId: providerId || null,
         timeoutSeconds,
         message: 'Subagent spawn requested. (Subagent system not fully wired yet - this is a stub)',
       })
@@ -74,6 +80,7 @@ export function makeSpawnSubagentHandler(
         task,
         label,
         model,
+        providerId,
         timeoutSeconds,
         parentSessionId: ctx.sessionId,
       })
@@ -84,6 +91,7 @@ export function makeSpawnSubagentHandler(
         sessionKey: result.sessionKey,
         label,
         model,
+        providerId: providerId || null,
         timeoutSeconds,
       })
     } catch (err) {
