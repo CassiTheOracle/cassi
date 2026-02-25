@@ -215,7 +215,7 @@ export class DialecticSystem implements IDialecticSystem {
     turnId: string,
     userMessage: string,
     context: YangContext,
-    opts?: { providers?: { yang?: any; yin?: any; serenity?: any } }
+    opts?: { providers?: { yang?: any; yin?: any; serenity?: any }; signal?: AbortSignal }
   ): Promise<DialecticResult> {
     const startTime = Date.now();
     // Use a per-invocation dialectic session id so concurrent background
@@ -256,7 +256,7 @@ export class DialecticSystem implements IDialecticSystem {
       // see the same brief instruction at the top of their context.
       // Allow per-turn provider/model hints (prefer serenity hint, then yang, then yin) to be used by the taskGuide summarizer.
       const preferredProviderHint = opts?.providers?.serenity ?? opts?.providers?.yang ?? opts?.providers?.yin;
-      const taskGuide = await this.buildTaskGuide(dialecticSessionId, userMessage, context, relevantMemories, preferredProviderHint);
+      const taskGuide = await this.buildTaskGuide(dialecticSessionId, userMessage, context, relevantMemories, preferredProviderHint, { signal: opts?.signal });
       const ctxWithGuide = { ...context, taskGuide };
 
       // Emit start event with the generated task guide for observability
@@ -283,6 +283,7 @@ export class DialecticSystem implements IDialecticSystem {
       // the pipeline triggers background dialectic runs for the same session.
       if (typeof yangOpts.allowConcurrent === 'undefined') yangOpts.allowConcurrent = true;
 
+      if (opts?.signal) yangOpts.signal = opts.signal;
       const yangOutput = await this.yang.observe(dialecticSessionId, userMessage, ctxWithGuide, yangOpts);
       
       this.emitStreamEvent(sessionId, {
@@ -303,6 +304,7 @@ export class DialecticSystem implements IDialecticSystem {
       }
       if (typeof yinOpts.allowConcurrent === 'undefined') yinOpts.allowConcurrent = true;
 
+      if (opts?.signal) yinOpts.signal = opts.signal;
       const yinOutput = await this.yin.observe(dialecticSessionId, userMessage, yangOutput, ctxWithGuide, yinOpts);
       
       this.emitStreamEvent(sessionId, {
@@ -323,6 +325,7 @@ export class DialecticSystem implements IDialecticSystem {
       }
       if (typeof serenityOpts.allowConcurrent === 'undefined') serenityOpts.allowConcurrent = true;
 
+      if (opts?.signal) serenityOpts.signal = opts.signal;
       const serenityOutput = await this.serenity.synchronize(
         dialecticSessionId,
         userMessage,
@@ -431,7 +434,8 @@ export class DialecticSystem implements IDialecticSystem {
     maybeUserMessageOrContext?: any,
     maybeContextOrMemories?: any,
     maybeRelevantMemories?: any,
-    maybeProviderHint?: any
+    maybeProviderHint?: any,
+    maybeOpts?: { signal?: AbortSignal }
   ): Promise<string> {
     // Support both new and legacy signatures:
     // New:   buildTaskGuide(sessionId, userMessage, context, relevantMemories, providerHint)
@@ -540,7 +544,7 @@ export class DialecticSystem implements IDialecticSystem {
     const opts = { model, stream: true as const, maxTokens, allowConcurrent: true }; // removed temperature and thinking
 
     try {
-      const stream = (effectiveProvider as any).complete(messages, opts) as AsyncIterable<any>;
+      const stream = (effectiveProvider as any).complete(messages, opts, undefined, maybeOpts?.signal) as AsyncIterable<any>;
       const iterator = (stream as any)[Symbol.asyncIterator]() as AsyncIterator<any>;
 
       let collected = '';
