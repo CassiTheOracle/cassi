@@ -1,11 +1,18 @@
 /**
- * Subconscious — Background consolidation of dialectic signals
+ * Subconscious — Background consolidation of dialectic signals (v2)
  *
- * Listens for `dialectic:signal` events, aggregates them over time, and
- * persists low-signal / repeated patterns as background "learnings".
+ * Features:
+ * - Semantic clustering using embeddings ( Ollama / configured embedding service )
+ * - Optional LLM summarization for cluster labels and summaries (uses wired provider)
+ * - Rich anomaly scoring combining count, confidence, recency, similarity and spike detection
+ * - Persists learnings to IMemory (preferred) or a fallback JSON file
+ * - Emits events: 'subconscious:learning' and 'subconscious:anomaly'
  *
- * The Subconscious intentionally operates at low priority and runs
- * periodically to avoid impacting turn latency.
+ * Usage notes:
+ * - Configure via runtime config path: intelligence.subconscious
+ * - You may configure a dedicated provider ID via intelligence.subconscious.provider
+ *   — daemon wires that provider (if present) into the Subconscious via setProvider().
+ * - Embedding service defaults to Ollama (process.env.OLLAMA_URL and model snowflake-arctic-embed2)
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js';
@@ -24,8 +31,24 @@ export interface SubconsciousConfig {
   dataDir?: string;                 // where to write fallback file
   persistConfidenceThreshold?: number; // persist if avg confidence >= this
   priority?: number;
-  llmModel?: string;                // fallback model name when calling provider
-  maxGroupsPerBatch?: number;       // limit LLM calls
+
+  // Embedding / clustering
+  embeddingService?: 'ollama' | 'none';
+  embeddingModel?: string;          // default snowflake-arctic-embed2
+  embeddingTimeoutMs?: number;
+  embeddingBatchSize?: number;
+  maxSignalsPerCycle?: number;      // cap how many signals to embed per consolidation
+  clusterSimilarityThreshold?: number; // 0-1, similarity threshold to join a cluster
+  maxClustersPerBatch?: number;
+
+  // Summarization via LLM
+  summarizerEnabled?: boolean;
+  summarizerModel?: string;
+  summarizerMaxTokens?: number;
+  summarizerTemperature?: number;
+
+  // Anomaly parameters
+  recencyWindowMs?: number;         // recency decay horizon
 }
 
 export class Subconscious {
@@ -36,7 +59,7 @@ export class Subconscious {
   private config: Required<SubconsciousConfig>;
   private memory?: IMemory;
   private eventBus?: IEventBus;
-  private provider?: IProvider;
+  private provider?: IProvider; // optional: wired provider for summaries
   private buffer: Array<{ sessionId?: string; turnId?: string; signal: DialecticSignal; ts: number }> = [];
   private timer?: NodeJS.Timeout;
   private filePath: string;
@@ -56,8 +79,24 @@ export class Subconscious {
       dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
       persistConfidenceThreshold: config?.persistConfidenceThreshold ?? 0.85,
       priority: config?.priority ?? 40,
-      llmModel: config?.llmModel ?? 'gpt-5-mini',
-      maxGroupsPerBatch: config?.maxGroupsPerBatch ?? 6,
+
+      // Embedding defaults
+      embeddingService: config?.embeddingService ?? 'ollama',
+      embeddingModel: config?.embeddingModel ?? process.env.OLLAMA_EMBEDDING_MODEL ?? 'snowflake-arctic-embed2',
+      embeddingTimeoutMs: config?.embeddingTimeoutMs ?? 3000,
+      embeddingBatchSize: config?.embeddingBatchSize ?? 32,
+      maxSignalsPerCycle: config?.maxSignalsPerCycle ?? 200,
+      clusterSimilarityThreshold: config?.clusterSimilarityThreshold ?? 0.80,
+      maxClustersPerBatch: config?.maxClustersPerBatch ?? 8,
+
+      // Summarizer defaults
+      summarizerEnabled: config?.summarizerEnabled ?? true,
+      summarizerModel: config?.summarizerModel ?? process.env.OLLAMA_SUMMARIZER_MODEL ?? 'gpt-5-mini',
+      summarizerMaxTokens: config?.summarizerMaxTokens ?? 160,
+      summarizerTemperature: config?.summarizerTemperature ?? 0.12,
+
+      // anomaly
+      recencyWindowMs: config?.recencyWindowMs ?? (24 * 60 * 60 * 1000),
     };
 
     this.priority = this.config.priority;
@@ -125,6 +164,7 @@ export class Subconscious {
     this.timer = setInterval(() => {
       void this.consolidate();
     }, this.config.consolidationIntervalMs);
+    try { (this.timer as any).unref?.() } catch {}
 
     this.logger.info('Subconscious: started', { intervalMs: this.config.consolidationIntervalMs });
   }
@@ -154,101 +194,209 @@ export class Subconscious {
   private async consolidate(): Promise<void> {
     if (this.buffer.length === 0) return;
 
-    const batch = this.buffer.splice(0, this.buffer.length);
-    this.logger.debug('Subconscious: consolidating batch', { batchSize: batch.length });
+    // Work on a recent slice to bound cost
+    const all = this.buffer.splice(0, this.buffer.length);
+    this.logger.debug('Subconscious: consolidating batch', { batchSize: all.length });
 
-    // Group by rough key: type + normalized prefix of content
-    const groups = new Map<string, Array<typeof batch[0]>>();
+    // Sort by recency (most recent first) and trim to maxSignalsPerCycle
+    const sorted = all.sort((a, b) => b.ts - a.ts).slice(0, this.config.maxSignalsPerCycle);
 
-    for (const item of batch) {
-      try {
-        const normalized = ((item.signal.content || '') as string).replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 120);
-        const key = `${item.signal.type}::${normalized.slice(0, Math.min(80, normalized.length))}` || `${item.signal.type}::`;
+    // Build texts for embedding: use signal.content; include type as prefix for small disambiguation
+    const texts = sorted.map(s => `${s.signal.type}: ${s.signal.content}`);
+
+    // Fetch embeddings for the batch (best-effort)
+    let embeddings: Array<number[] | null> = [];
+    try {
+      if (this.config.embeddingService === 'ollama') {
+        embeddings = await this.fetchEmbeddingsBatch(texts, this.config.embeddingTimeoutMs, this.config.embeddingBatchSize);
+      } else {
+        embeddings = texts.map(() => null);
+      }
+    } catch (err) {
+      this.logger.warn('Subconscious: failed to fetch embeddings', { error: String(err) });
+      embeddings = texts.map(() => null);
+    }
+
+    // If no embeddings available, fall back to naive grouping by normalized prefix (cheap)
+    let clusters: Array<{ indices: number[]; centroid?: number[] }> = [];
+    if (embeddings.every(e => e === null)) {
+      // cheap prefix grouping
+      const groups = new Map<string, number[]>();
+      for (let i = 0; i < texts.length; i++) {
+        const key = texts[i].replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 80);
         const arr = groups.get(key) ?? [];
-        arr.push(item);
+        arr.push(i);
         groups.set(key, arr);
-      } catch (err) {
-        // skip problematic item
+      }
+      clusters = Array.from(groups.values()).map(indices => ({ indices }));
+    } else {
+      // Greedy clustering by centroid similarity
+      const threshold = this.config.clusterSimilarityThreshold;
+
+      for (let i = 0; i < embeddings.length; i++) {
+        const emb = embeddings[i];
+        if (!emb) continue; // skip missing
+
+        let placed = false;
+        for (const c of clusters) {
+          if (!c.centroid) continue;
+          const sim = this.cosineSimilarity(emb, c.centroid);
+          if (sim >= threshold) {
+            c.indices.push(i);
+            // incremental centroid update: newCentroid = (centroid * n + emb) / (n+1)
+            const n = c.indices.length;
+            const newCentroid = c.centroid.map((v, k) => ((v * (n - 1)) + (emb[k] || 0)) / n);
+            c.centroid = newCentroid;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) {
+          clusters.push({ indices: [i], centroid: emb.slice() });
+        }
       }
     }
 
+    // Limit the number of clusters we analyze further
+    clusters = clusters.sort((a, b) => b.indices.length - a.indices.length).slice(0, this.config.maxClustersPerBatch);
+
     const learnings: Array<any> = [];
 
-    // Sort groups by size and limit how many we analyze via LLM
-    const sortedGroups = Array.from(groups.entries()).sort((a, b) => b[1].length - a[1].length);
-    const topGroups = sortedGroups.slice(0, this.config.maxGroupsPerBatch);
+    const now = Date.now();
 
-    for (const [key, items] of topGroups) {
+    for (const cluster of clusters) {
+      const items = cluster.indices.map(idx => sorted[idx]).filter(Boolean);
       const count = items.length;
       const avgConfidence = items.reduce((s, it) => s + (it.signal.confidence || 0), 0) / Math.max(1, count);
       const samples = items.slice(0, 6).map(i => i.signal.content).filter(Boolean);
       const type = items[0].signal.type;
+      const firstSeen = items[items.length - 1].ts; // oldest in cluster
+      const lastSeen = items[0].ts; // most recent
 
-      const meta = {
-        key,
-        type,
-        count,
-        avgConfidence,
-        samples,
-        firstSeen: items[0].ts,
-        lastSeen: items[items.length - 1].ts,
-      };
+      // baseline from avgCounts (per type or coarse key)
+      const baselineKey = `${type}`;
+      const prevAvg = this.avgCounts[baselineKey] || 0;
 
-      // Use LLM to summarize & classify this cluster (best-effort)
-      let llmResult: any = null;
-      try {
-        if (this.provider) {
-          const model = (this.provider.models && this.provider.models.length > 0) ? this.provider.models[0] : this.config.llmModel;
-          const prompt = this.buildClusterPrompt(meta);
-          const messages = [{ role: 'user' as const, content: prompt }];
-          const opts = { model, stream: true as const, maxTokens: 300, temperature: 0.2 };
-
-          let collected = '';
-          const stream = this.provider.complete(messages as any, opts as any) as AsyncIterable<any>;
-          for await (const chunk of stream) {
-            if (chunk.type === 'token' && chunk.text) collected += chunk.text;
-            if (chunk.type === 'done') break;
-            if (chunk.type === 'error') throw new Error(chunk.error || 'provider error');
-          }
-
-          // Attempt to extract JSON
-          const jsonMatch = collected.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            try {
-              llmResult = JSON.parse(jsonMatch[0]);
-            } catch (err) {
-              this.logger.debug('Subconscious: failed to parse LLM JSON, falling back to heuristics', { error: String(err) });
-            }
-          }
-
-          // If no parse, try a soft parse: look for lines like 'label:' 'summary:'
-          if (!llmResult) {
-            llmResult = this.fallbackParseFreeform(collected);
-          }
+      // similarity metric: average cosine similarity of each member to centroid (if available)
+      let simAvg = 1;
+      if (cluster.centroid) {
+        let ssum = 0;
+        let sct = 0;
+        for (const idx of cluster.indices) {
+          const vec = embeddings[idx];
+          if (!vec) continue;
+          ssum += this.cosineSimilarity(vec, cluster.centroid);
+          sct++;
         }
-      } catch (err) {
-        this.logger.warn('Subconscious: LLM summarization failed', { error: String(err) });
-        llmResult = null;
+        simAvg = sct > 0 ? (ssum / sct) : 1;
+      } else {
+        // fallback: compute text similarity heuristics
+        simAvg = 0.5;
       }
 
-      // Decide whether to persist based on LLM advice or heuristics
-      const shouldPersist = (llmResult && typeof llmResult.persist === 'boolean')
-        ? llmResult.persist
-        : (count >= this.config.minSignals) || (meta.avgConfidence >= this.config.persistConfidenceThreshold);
+      // recency score (1 = very recent, 0 = stale beyond recencyWindow)
+      const recencyWindow = this.config.recencyWindowMs;
+      const recencyScore = Math.max(0, 1 - ((now - lastSeen) / recencyWindow));
 
-      const summaryText = (llmResult && llmResult.summary) ? llmResult.summary : `Detected ${count} ${type} signal(s). Samples: ${meta.samples.slice(0,3).join(' | ')}`;
-      const clusterLabel = (llmResult && llmResult.clusterLabel) ? llmResult.clusterLabel : `${type}`;
-      const confidence = (llmResult && typeof llmResult.confidence === 'number') ? Math.max(0, Math.min(1, llmResult.confidence)) : Math.min(1, Math.max(0, meta.avgConfidence));
-      const anomalyScore = (llmResult && typeof llmResult.anomalyScore === 'number') ? llmResult.anomalyScore : 0;
-      const anomalyReason = (llmResult && llmResult.anomalyReason) ? llmResult.anomalyReason : '';
+      // spike factor relative to baseline
+      let spikeFactor = 0;
+      if (prevAvg <= 0) {
+        spikeFactor = Math.min(1, count / Math.max(3, this.config.minSignals));
+      } else {
+        const ratio = count / prevAvg;
+        spikeFactor = Math.min(1, Math.max(0, (ratio - 1) / 4)); // ratio 5 -> spikeFactor ~1
+      }
+
+      // countScore normalized
+      const countScore = Math.min(1, count / Math.max(5, prevAvg || 5));
+
+      // Compose anomaly score (weighted)
+      const w_count = 0.25;
+      const w_conf = 0.15;
+      const w_recency = 0.2;
+      const w_similarity = 0.25;
+      const w_spike = 0.15;
+
+      const anomalyScore = Math.max(0, Math.min(1,
+        (w_count * countScore) + (w_conf * avgConfidence) + (w_recency * recencyScore) + (w_similarity * simAvg) + (w_spike * spikeFactor)
+      ));
+
+      const anomalyReasonParts: string[] = [];
+      if (spikeFactor > 0.5) anomalyReasonParts.push(`spike: count=${count} prevAvg=${prevAvg.toFixed(2)}`);
+      if (simAvg > 0.9 && count >= this.config.minSignals) anomalyReasonParts.push('repeated identical signals');
+      if (avgConfidence >= this.config.persistConfidenceThreshold) anomalyReasonParts.push('high confidence signals');
+      if (recencyScore > 0.8) anomalyReasonParts.push('recent activity');
+
+      const anomalyReason = anomalyReasonParts.join('; ');
+
+      // Decide whether to persist the learning (LLM advice optional)
+      let persistAdvice: boolean | null = null;
+      let clusterLabel = `${type}`;
+      let summaryText = `Detected ${count} ${type} signal(s). Samples: ${samples.slice(0,3).join(' | ')}`;
+
+      // Optionally call summarizer LLM for rich label/summary (best-effort)
+      if (this.config.summarizerEnabled && this.provider) {
+        try {
+          const prompt = this.buildClusterSummarizerPrompt({ type, count, avgConfidence, samples, firstSeen, lastSeen, simAvg, anomalyScore });
+
+          const messages = [{ role: 'user' as const, content: prompt }];
+          const modelSpec = this.config.summarizerModel || '';
+          const slashIdx = modelSpec.indexOf('/');
+          const modelName = slashIdx >= 0 ? modelSpec.slice(slashIdx + 1) : modelSpec;
+          const opts = {
+            model: modelName || this.config.summarizerModel,
+            stream: true as const,
+            maxTokens: this.config.summarizerMaxTokens,
+            temperature: this.config.summarizerTemperature,
+            thinking: 'none' as const,
+          } as any;
+
+          let text = '';
+          const stream = this.provider.complete(messages as any, opts as any) as AsyncIterable<any>;
+          for await (const chunk of stream) {
+            if (chunk.type === 'token' && chunk.text) text += chunk.text;
+            if (chunk.type === 'error') throw new Error(chunk.error || 'provider error');
+            if (chunk.type === 'done') break;
+          }
+
+          // Try to parse JSON first
+          const jsonMatch = (text || '').match(/\{[\s\S]*\}/);
+          let parsed: any = null;
+          if (jsonMatch) {
+            try { parsed = JSON.parse(jsonMatch[0]); } catch { parsed = null; }
+          }
+
+          if (parsed) {
+            if (parsed.clusterLabel) clusterLabel = parsed.clusterLabel;
+            if (parsed.summary) summaryText = parsed.summary;
+            if (typeof parsed.persist === 'boolean') persistAdvice = parsed.persist;
+            if (typeof parsed.confidence === 'number') {
+              // blend with avgConfidence
+            }
+          } else {
+            // Soft parse heuristics
+            const soft = this.fallbackParseFreeform(text);
+            if (soft.clusterLabel) clusterLabel = soft.clusterLabel;
+            if (soft.summary) summaryText = soft.summary;
+            if (typeof soft.persist === 'boolean') persistAdvice = soft.persist;
+          }
+        } catch (err) {
+          this.logger.debug('Subconscious: summarizer failed', { error: String(err) });
+        }
+      }
+
+      // Final persist decision
+      const shouldPersist = (persistAdvice !== null)
+        ? persistAdvice
+        : ((count >= this.config.minSignals) || (avgConfidence >= this.config.persistConfidenceThreshold) || (anomalyScore >= 0.75));
 
       const learning: any = {
         summary: summaryText,
         clusterLabel,
-        confidence,
+        confidence: avgConfidence,
         anomalyScore,
         anomalyReason,
-        meta,
+        meta: { type, count, avgConfidence, samples, firstSeen, lastSeen, simAvg },
         persisted: false,
         persistedId: null,
         timestamp: Date.now(),
@@ -257,19 +405,15 @@ export class Subconscious {
       if (shouldPersist) {
         try {
           if (this.memory && this.config.persistMemory) {
-            const id = await this.memory.store({ type: 'insight', content: summaryText, metadata: { clusterLabel, meta, anomalyScore, anomalyReason } });
+            const id = await this.memory.store({ type: 'insight', content: learning.summary, metadata: { clusterLabel, meta: learning.meta, anomalyScore, anomalyReason } });
             learning.persisted = true;
             learning.persistedId = id;
             this.logger.info('Subconscious: persisted learning to memory', { id, clusterLabel, count });
           } else if (this.config.persistToFile) {
             let existing: any[] = [];
-            try {
-              if (fs.existsSync(this.filePath)) {
-                existing = JSON.parse(fs.readFileSync(this.filePath, 'utf8') || '[]') as any[];
-              }
-            } catch {}
+            try { if (fs.existsSync(this.filePath)) existing = JSON.parse(fs.readFileSync(this.filePath, 'utf8') || '[]') as any[]; } catch {}
             const id = `sublearn_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-            const entry = { id, summary: summaryText, clusterLabel, meta, anomalyScore, anomalyReason, timestamp: Date.now() };
+            const entry = { id, summary: learning.summary, clusterLabel, meta: learning.meta, anomalyScore, anomalyReason, timestamp: Date.now() };
             existing.push(entry);
             try { fs.writeFileSync(this.filePath, JSON.stringify(existing, null, 2), 'utf8'); } catch (err) { this.logger.warn('Subconscious: failed to write file', { error: String(err) }); }
             learning.persisted = true;
@@ -290,38 +434,25 @@ export class Subconscious {
         }
       }
 
-      // Anomaly detection heuristics
-      let isAnomaly = false;
-      const anomalyThreshold = 0.7;
-      if ((learning.anomalyScore || 0) >= anomalyThreshold) isAnomaly = true;
-      if (/error|exception|crash|data loss|security|vulnerability|corrupt/i.test(summaryText)) isAnomaly = true;
-
-      // Sliding average baseline update
+      // Update moving average baseline for this type
       try {
-        const prev = this.avgCounts[key] || 0;
+        const prev = this.avgCounts[baselineKey] || 0;
         const updated = (prev * 0.9) + (count * 0.1);
-        this.avgCounts[key] = updated;
+        this.avgCounts[baselineKey] = updated;
         if (this.memory) await this.memory.kv_set('subconscious:avgCounts', this.avgCounts);
-
-        // detect spikes relative to baseline
-        if (prev > 0 && count > Math.max(3, prev * 3)) {
-          isAnomaly = true;
-          learning.anomalyReason = learning.anomalyReason || `Spike: count=${count} prevAvg=${prev.toFixed(2)}`;
-        }
       } catch (err) {
         this.logger.debug('Subconscious: failed to update avgCounts', { error: String(err) });
       }
 
-      // Record learning metrics to event bus and ai-scientist
-      try {
-        (this.eventBus as any)?.emit?.({ type: 'subconscious:learning', learning, sessionId: null });
-      } catch (err) {}
+      // Emit learning event
+      try { (this.eventBus as any)?.emit?.({ type: 'subconscious:learning', learning, sessionId: null }); } catch {}
 
-      if (isAnomaly) {
+      // If anomaly score is high or heuristics triggered, emit anomaly event and persist
+      const anomalyThreshold = 0.72;
+      if (learning.anomalyScore >= anomalyThreshold) {
         try {
-          const anomaly = { summary: learning.summary, clusterLabel: learning.clusterLabel, reason: learning.anomalyReason || '', evidence: learning.meta.samples, confidence: learning.confidence, timestamp: Date.now() };
+          const anomaly = { summary: learning.summary, clusterLabel: learning.clusterLabel, reason: learning.anomalyReason || '', evidence: learning.meta.samples, confidence: learning.confidence, anomalyScore: learning.anomalyScore, timestamp: Date.now() };
           (this.eventBus as any)?.emit?.({ type: 'subconscious:anomaly', anomaly, sessionId: null });
-          // also persist anomaly history
           try {
             if (this.memory) {
               const existing = await this.memory.kv_get<any[]>('subconscious:anomalies') || [];
@@ -342,16 +473,108 @@ export class Subconscious {
     }
   }
 
-  private buildClusterPrompt(meta: { key: string; type: string; count: number; avgConfidence: number; samples: string[]; firstSeen: number; lastSeen: number }): string {
+  // ---------------------- Helpers ----------------------
+
+  private async fetchEmbeddingsBatch(texts: string[], timeoutMs = 3000, chunkSize = 32): Promise<Array<number[] | null>> {
+    if (!texts || texts.length === 0) return [];
+
+    const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+    const model = this.config.embeddingModel;
+
+    // If chunking is required, process in chunks
+    if (texts.length > chunkSize) {
+      const out: Array<number[] | null> = [];
+      for (let i = 0; i < texts.length; i += chunkSize) {
+        const chunk = texts.slice(i, i + chunkSize);
+        const res = await this.fetchEmbeddingsBatch(chunk, timeoutMs, chunkSize);
+        out.push(...res);
+      }
+      return out;
+    }
+
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs + Math.min(2000, texts.length * 60));
+      const body = { model, input: texts.map(t => (t || '').replace(/\n/g, ' ')) };
+      const res = await fetch(`${OLLAMA_URL}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (Array.isArray(data?.embeddings) && data.embeddings.length === texts.length) {
+          return data.embeddings.map((e: any) => Array.isArray(e) ? e : null);
+        }
+        if (Array.isArray(data?.results) && data.results.length === texts.length) {
+          return data.results.map((r: any) => Array.isArray(r?.embedding) ? r.embedding : null);
+        }
+        if (Array.isArray(data?.embedding) && texts.length === 1) return [data.embedding];
+      }
+    } catch (err) {
+      this.logger.debug('Subconscious: batch embeddings request failed', { error: String(err), chunkSize });
+    }
+
+    // fallback to sequential single calls
+    const out: Array<number[] | null> = [];
+    for (const t of texts) {
+      try {
+        const vec = await this.fetchSingleEmbedding(t, timeoutMs);
+        out.push(vec);
+      } catch {
+        out.push(null);
+      }
+    }
+    return out;
+  }
+
+  private async fetchSingleEmbedding(text: string, timeoutMs = 3000): Promise<number[] | null> {
+    const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434';
+    const model = this.config.embeddingModel;
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const res = await fetch(`${OLLAMA_URL}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt: (text || '').replace(/\n/g, ' ') }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) return null;
+      const data = await res.json() as any;
+      if (Array.isArray(data?.embedding)) return data.embedding as number[];
+      if (Array.isArray(data?.embeddings) && data.embeddings.length === 1) return data.embeddings[0];
+      if (Array.isArray(data?.results) && data.results.length === 1) return data.results[0]?.embedding ?? null;
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private cosineSimilarity(a: number[] | null, b: number[] | null): number {
+    if (!a || !b || a.length !== b.length) return 0;
+    let dot = 0, ma = 0, mb = 0;
+    for (let i = 0; i < a.length; i++) {
+      dot += (a[i] || 0) * (b[i] || 0);
+      ma += (a[i] || 0) * (a[i] || 0);
+      mb += (b[i] || 0) * (b[i] || 0);
+    }
+    if (ma === 0 || mb === 0) return 0;
+    return dot / (Math.sqrt(ma) * Math.sqrt(mb));
+  }
+
+  private buildClusterSummarizerPrompt(meta: { type: string; count: number; avgConfidence: number; samples: string[]; firstSeen: number; lastSeen: number; simAvg: number; anomalyScore: number }) {
     const samplesText = meta.samples.slice(0, 6).map((s, i) => `(${i+1}) ${s}`).join('\n');
-    return `You are a background analyst for an AI system. Given the following cluster of signals, produce a JSON object with the fields:\n- clusterLabel: short label (1-5 words)\n- summary: 1-2 sentence summary of the core insight or issue\n- persist: true|false // whether this should be saved as a persistent learning\n- confidence: 0.0-1.0 // how useful/important this is\n- anomalyScore: 0.0-1.0 // how anomalous or urgent this cluster appears\n- anomalyReason: optional string explaining anomaly detection\n\nCluster metadata:\n- type: ${meta.type}\n- count: ${meta.count}\n- avgConfidence: ${meta.avgConfidence.toFixed(2)}\n\nSamples:\n${samplesText}\n\nRespond only with a JSON object.`;
+    return `You are a concise background analyst. Given the cluster metadata below, respond with a JSON object containing:\n- clusterLabel: short label (1-5 words)\n- summary: 1-2 sentence summary of the core insight or issue\n- persist: true|false\n- confidence: 0.0-1.0\n- anomalyScore: 0.0-1.0\n\nCluster metadata:\n- type: ${meta.type}\n- count: ${meta.count}\n- avgConfidence: ${meta.avgConfidence.toFixed(2)}\n- simAvg: ${meta.simAvg.toFixed(2)}\n- anomalyScore: ${meta.anomalyScore.toFixed(2)}\n\nSamples:\n${samplesText}\n\nRespond ONLY with valid JSON.`;
   }
 
   private fallbackParseFreeform(text: string): any {
-    // Simple heuristics to extract label/summary lines
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean);
     const res: any = {};
-    for (const l of lines.slice(0, 8)) {
+    for (const l of lines.slice(0, 12)) {
       const m = l.match(/clusterLabel[:\-]\s*(.+)/i) || l.match(/label[:\-]\s*(.+)/i);
       if (m) res.clusterLabel = m[1].trim();
       const s = l.match(/summary[:\-]\s*(.+)/i);
@@ -365,6 +588,12 @@ export class Subconscious {
       const ar = l.match(/anomalyReason[:\-]\s*(.+)/i);
       if (ar) res.anomalyReason = ar[1].trim();
     }
+    // Quick heuristic: if no clusterLabel but first line short, use that
+    if (!res.clusterLabel && lines.length > 0) {
+      const first = lines[0];
+      if (first.length < 60) res.clusterLabel = first.slice(0, 60);
+    }
+    if (!res.summary && lines.length > 1) res.summary = lines.slice(0, 2).join(' ');
     return res;
   }
 }
