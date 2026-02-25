@@ -421,6 +421,41 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // GET Subconscious learnings
+      if (req.method === 'GET' && url.pathname === '/intelligence/subconscious/learnings') {
+        try {
+          const mem = daemon.intelligence?.memory
+          let learnings: any[] | null = null
+          if (mem) {
+            try { learnings = await mem.kv_get('subconscious:learnings') || null } catch {}
+          }
+          if (!learnings) {
+            // fallback: try reading persisted file
+            const filePath = path.join(process.env.HOME || os.homedir(), '.cassicore', 'data', 'subconscious.json')
+            try {
+              if (fs.existsSync(filePath)) learnings = JSON.parse(fs.readFileSync(filePath, 'utf8') || '[]')
+            } catch (err) { /* ignore */ }
+          }
+          return sendJSON(res, 200, { learnings: learnings ?? [] })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET Subconscious anomalies
+      if (req.method === 'GET' && url.pathname === '/intelligence/subconscious/anomalies') {
+        try {
+          const mem = daemon.intelligence?.memory
+          let anomalies: any[] | null = null
+          if (mem) {
+            try { anomalies = await mem.kv_get('subconscious:anomalies') || null } catch {}
+          }
+          return sendJSON(res, 200, { anomalies: anomalies ?? [] })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // POST /intelligence/thinker/think — manual Thinker trigger (supports context override)
       if (req.method === 'POST' && url.pathname === '/intelligence/thinker/think') {
         try {
@@ -550,6 +585,257 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // GET /intelligence/multi-agent/confirmations — list pending confirmations
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'confirmations') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+
+          // GET list
+          if (req.method === 'GET' && parts.length === 3) {
+            const list = typeof ma.getConfirmations === 'function' ? ma.getConfirmations() : []
+            return sendJSON(res, 200, { confirmations: list })
+          }
+
+          // POST /intelligence/multi-agent/confirmations/:id/approve
+          if (req.method === 'POST' && parts.length === 5 && parts[4] === 'approve') {
+            const id = parts[3]
+            const body = await parseBody(req)
+            try {
+              const result = await ma.approveDestructiveConfirmation(id, body?.approver)
+              return sendJSON(res, 200, { ok: true, result })
+            } catch (err) {
+              return sendJSON(res, 500, { error: String(err) })
+            }
+          }
+
+          // POST /intelligence/multi-agent/confirmations/:id/reject
+          if (req.method === 'POST' && parts.length === 5 && parts[4] === 'reject') {
+            const id = parts[3]
+            const body = await parseBody(req)
+            try {
+              ma.rejectDestructiveConfirmation(id, body?.approver, body?.reason)
+              return sendJSON(res, 200, { ok: true })
+            } catch (err) {
+              return sendJSON(res, 500, { error: String(err) })
+            }
+          }
+
+          return sendJSON(res, 405, { error: 'method not allowed on confirmations endpoint' })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET/POST notification filter for multi-agent tool announcements
+      if (req.method === 'GET' && url.pathname === '/intelligence/multi-agent/notification-filter') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const filter = typeof ma.getNotificationFilter === 'function' ? ma.getNotificationFilter() : null
+          return sendJSON(res, 200, { filter })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      if (req.method === 'POST' && url.pathname === '/intelligence/multi-agent/notification-filter') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'expected notification filter object' })
+          ma.updateNotificationFilter(body)
+          return sendJSON(res, 200, { ok: true })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // ── Multi-Agent Dialectic control endpoints (admin) ───────────────────────
+
+      // POST /intelligence/multi-agent/dialectic/spawn - spawn a Yang/Yin/Serenity trio
+      if (req.method === 'POST' && url.pathname === '/intelligence/multi-agent/dialectic/spawn') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const body = await parseBody(req)
+          const opts: any = {}
+          if (body?.name) opts.name = body.name
+          if (body?.initialInput) opts.initialInput = body.initialInput
+          if (typeof body?.maxIterations === 'number') opts.maxIterations = body.maxIterations
+          if (typeof body?.intervalMs === 'number') opts.intervalMs = body.intervalMs
+          if (typeof body?.allowDestructive === 'boolean') opts.allowDestructive = body.allowDestructive
+          if (body?.providers && typeof body.providers === 'object') opts.providers = body.providers
+          try {
+            const r = await ma.spawnDialecticCassis(opts)
+            // Retrieve instance metadata (if available)
+            const inst = ma.getDialectic?.(r.dialecticId)
+            const meta = inst ? {
+              sessionId: inst.sessionId,
+              createdAt: inst.createdAt,
+              updatedAt: inst.updatedAt,
+              initialInput: inst.initialInput,
+              providers: inst.providers ?? { yang: inst.agents[0]?.provider, yin: inst.agents[1]?.provider, serenity: inst.agents[2]?.provider },
+            } : undefined
+            return sendJSON(res, 200, { ok: true, dialecticId: r.dialecticId, agents: r.agents.map((a: any) => ({ id: a.id, role: a.role.name, provider: a.provider || null })), meta })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/multi-agent/dialectic/:id/start - start loop
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 5 && parts[4] === 'start' && req.method === 'POST') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          const body = await parseBody(req)
+          try {
+            ma.startDialecticCassisLoop(id, { intervalMs: body?.intervalMs, maxIterations: body?.maxIterations, timeoutMs: body?.timeoutMs, initialInput: body?.initialInput })
+            return sendJSON(res, 200, { ok: true })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/multi-agent/dialectic/:id/stop - stop loop
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 5 && parts[4] === 'stop' && req.method === 'POST') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          const body = await parseBody(req)
+          try {
+            ma.stopDialecticCassis(id, body?.reason || 'admin_stop')
+            return sendJSON(res, 200, { ok: true })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/multi-agent/dialectic/:id/resume - resume a paused swarm (optionally update scheduling)
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 5 && parts[4] === 'resume' && req.method === 'POST') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          const body = await parseBody(req)
+          try {
+            const ok = ma.resumeDialecticCassis(id, { intervalMs: body?.intervalMs, maxIterations: body?.maxIterations })
+            return sendJSON(res, 200, { ok })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/multi-agent/dialectic/:id/schedule - update scheduling for a swarm
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 5 && parts[4] === 'schedule' && req.method === 'POST') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          const body = await parseBody(req)
+          try {
+            ma.updateDialecticScheduling(id, { intervalMs: body?.intervalMs, maxIterations: body?.maxIterations, stopConfidenceThreshold: body?.stopConfidenceThreshold })
+            return sendJSON(res, 200, { ok: true })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/multi-agent/dialectic/:id/trigger - request an immediate iteration without changing scheduling
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 5 && parts[4] === 'trigger' && req.method === 'POST') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          try {
+            const ok = ma.requestImmediateDialecticIteration(id)
+            return sendJSON(res, 200, { ok })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/multi-agent/dialectic - list active dialectic swarms
+      if (req.method === 'GET' && url.pathname === '/intelligence/multi-agent/dialectic') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const list = ma.listDialecticSwarms?.() || []
+          return sendJSON(res, 200, { dialectics: list })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/multi-agent/dialectic/:id/history - get iteration history
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 4 && req.method === 'GET') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          try {
+            // Prefer persisted KV history
+            const mem = daemon.intelligence?.memory
+            if (mem) {
+              const history = await mem.kv_get(`dialectic:instance:${id}:history`) as any[] | undefined
+              if (history) return sendJSON(res, 200, { dialecticId: id, history })
+            }
+
+            // Fallback to in-memory snapshot
+            const inst = ma.getDialectic?.(id)
+            if (!inst) return sendJSON(res, 404, { error: 'not found' })
+            return sendJSON(res, 200, { dialecticId: id, history: inst.history || [] })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/multi-agent/dialectic/:id/stats - aggregated statistics for a dialectic
+      if (parts[0] === 'intelligence' && parts[1] === 'multi-agent' && parts[2] === 'dialectic' && parts.length === 5 && parts[4] === 'stats' && req.method === 'GET') {
+        try {
+          const ma = (daemon.intelligence as any)?.multiAgent
+          if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
+          const id = parts[3]
+          try {
+            const mem = daemon.intelligence?.memory
+            const history = mem ? (await mem.kv_get(`dialectic:instance:${id}:history`) as any[] || []) : (ma.getDialectic?.(id)?.history || [])
+            const total = history.length
+            const totalLatency = history.reduce((s: number, it: any) => s + (Number(it.durationMs) || 0), 0)
+            const totalCost = history.reduce((s: number, it: any) => s + (Number(it.costUsd) || 0), 0)
+            const avgLatency = total > 0 ? Math.round(totalLatency / total) : 0
+            return sendJSON(res, 200, { dialecticId: id, totalIterations: total, avgLatencyMs: avgLatency, totalCostUsd: totalCost })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // ── Pi Bridge endpoints ────────────────────────────────────────────────
 
       // POST /pi/completion/:requestId/chunk
@@ -668,6 +954,158 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
       // ── Chat endpoints (used by CLI) ───────────────────────────────────────
 
+      // GET /observability/prompts/stream — SSE aggregated prompts & tokens
+      if (req.method === 'GET' && url.pathname === '/observability/prompts/stream') {
+        // Optional query filters: ?session=<id>&provider=<providerId>&includeTokens=true|false
+        const sessionFilter = url.searchParams.get('session') || null
+        const providerFilter = url.searchParams.get('provider') || null
+        const includeTokens = (url.searchParams.get('includeTokens') || 'true') !== 'false'
+
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        })
+        res.write(': connected\n\n')
+
+        const sendEvent = (eventName: string, payload: unknown) => {
+          try {
+            // Normalize event name to avoid ':' in SSE event names
+            const name = String(eventName).replace(/[:]/g, '.')
+            res.write(`event: ${name}\n`)
+            res.write(`data: ${JSON.stringify(payload)}\n\n`)
+          } catch (err) {
+            // Ignore write errors (client disconnected)
+          }
+        }
+
+        // Named handlers so we can remove them on close
+        // Helper to match both public session ids and centralized provider 'sess_' markers
+        const matchesSessionFilter = (evSessionId: any) => {
+          if (!sessionFilter) return true
+          if (!evSessionId) return false
+          const s = String(evSessionId)
+          if (s === sessionFilter) return true
+          if (s === `sess_${sessionFilter}`) return true
+          if (s.startsWith(`sess_${sessionFilter}`)) return true
+          if (s.includes(sessionFilter)) return true
+          // Also check normalized form (strip leading 'sess_')
+          if (s.startsWith('sess_') && s.slice(5) === sessionFilter) return true
+          return false
+        }
+
+        const onProviderStart = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            if (!matchesSessionFilter(e.sessionId)) return
+            sendEvent('provider:request_start', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, model: e.model, messageCount: e.messageCount, timestamp: Date.now() })
+          } catch {}
+        }
+        const onProviderEnd = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            if (!matchesSessionFilter(e.sessionId)) return
+            sendEvent('provider:request_end', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, tokensUsed: e.tokensUsed, durationMs: e.durationMs, error: e.error || null, timestamp: Date.now() })
+          } catch {}
+        }
+        const onProviderError = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            if (!matchesSessionFilter(e.sessionId)) return
+            sendEvent('provider:request_error', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, error: e.error, consecutiveErrors: e.consecutiveErrors, timestamp: Date.now() })
+          } catch {}
+        }
+        const onProviderDedup = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            if (!matchesSessionFilter(e.sessionId)) return
+            sendEvent('provider:deduplicated', e)
+          } catch {}
+        }
+        const onProviderRateLimited = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            if (!matchesSessionFilter(e.sessionId)) return
+            sendEvent('provider:rate_limited', e)
+          } catch {}
+        }
+
+        const onWorkerMessage = (ev: any) => {
+          try {
+            const pluginId = ev.pluginId as string | undefined
+            const payload = ev.payload as Record<string, any> | undefined
+            const sid = payload?.sessionId || (typeof pluginId === 'string' && pluginId.startsWith('session:') ? pluginId.slice(8) : undefined)
+            if (sessionFilter && sid && String(sid) !== sessionFilter) return
+
+            if (payload?.type === 'turn:token') {
+              if (!includeTokens) return
+              sendEvent('turn.token', { sessionId: sid, token: payload.token, pluginId, timestamp: Date.now() })
+            } else if (payload?.type === 'turn:thinking') {
+              if (!includeTokens) return
+              sendEvent('turn.thinking', { sessionId: sid, token: payload.token, pluginId, timestamp: Date.now() })
+            } else if (payload?.type === 'turn:tool_call') {
+              sendEvent('turn.tool_call', { sessionId: sid, tool: payload.tool, input: payload.input, timestamp: Date.now() })
+            } else if (payload?.type === 'turn:done') {
+              sendEvent('turn.done', { sessionId: sid, model: payload.model, tokensUsed: payload.tokensUsed, durationMs: payload.durationMs, timestamp: Date.now() })
+            } else if (payload?.type === 'turn:error') {
+              sendEvent('turn.error', { sessionId: sid, error: payload.error, timestamp: Date.now() })
+            }
+          } catch (err) { /* swallow */ }
+        }
+
+        const onTurnStart = (e: any) => {
+          try {
+            if (sessionFilter && String(e.sessionId) !== sessionFilter) return
+            sendEvent('turn.start', { sessionId: e.sessionId, message: e.message, timestamp: e.timestamp || Date.now() })
+          } catch {}
+        }
+        const onTurnEnd = (e: any) => {
+          try {
+            if (sessionFilter && String(e.sessionId) !== sessionFilter) return
+            sendEvent('turn.end', { sessionId: e.sessionId, response: e.response, durationMs: e.durationMs, timestamp: Date.now() })
+          } catch {}
+        }
+        const onDialecticStream = (e: any) => {
+          try {
+            if (sessionFilter && String(e.sessionId) !== sessionFilter) return
+            sendEvent('dialectic.stream', e)
+          } catch {}
+        }
+
+        // Register listeners
+        daemon.bus.on('provider:request_start', onProviderStart)
+        daemon.bus.on('provider:request_end', onProviderEnd)
+        daemon.bus.on('provider:request_error', onProviderError)
+        daemon.bus.on('provider:deduplicated', onProviderDedup)
+        daemon.bus.on('provider:rate_limited', onProviderRateLimited)
+        daemon.bus.on('worker:message', onWorkerMessage)
+        daemon.bus.on('turn:start', onTurnStart)
+        daemon.bus.on('turn:end', onTurnEnd)
+        daemon.bus.on('dialectic:stream', onDialecticStream)
+
+        // Keep-alive ping every 15s
+        const ping = setInterval(() => {
+          try { res.write(': ping\n\n') } catch { clearInterval(ping) }
+        }, 15_000)
+        try { (ping as any).unref?.() } catch {}
+
+        req.on('close', () => {
+          clearInterval(ping)
+          try { daemon.bus.off('provider:request_start', onProviderStart) } catch {}
+          try { daemon.bus.off('provider:request_end', onProviderEnd) } catch {}
+          try { daemon.bus.off('provider:request_error', onProviderError) } catch {}
+          try { daemon.bus.off('provider:deduplicated', onProviderDedup) } catch {}
+          try { daemon.bus.off('provider:rate_limited', onProviderRateLimited) } catch {}
+          try { daemon.bus.off('worker:message', onWorkerMessage) } catch {}
+          try { daemon.bus.off('turn:start', onTurnStart) } catch {}
+          try { daemon.bus.off('turn:end', onTurnEnd) } catch {}
+          try { daemon.bus.off('dialectic:stream', onDialecticStream) } catch {}
+        })
+
+        return
+      }
+
       // GET /chat/:sessionId/stream  — SSE token stream
       if (parts[0] === 'chat' && parts.length === 3 && parts[2] === 'stream' && req.method === 'GET') {
         const sessionId = parts[1]
@@ -710,6 +1148,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         const ping = setInterval(() => {
           try { res.write(': ping\n\n') } catch { clearInterval(ping) }
         }, 15_000)
+        try { (ping as any).unref?.() } catch {}
 
         req.on('close', () => {
           clearInterval(ping)
@@ -749,6 +1188,22 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           })
 
           return sendJSON(res, 200, { ok: true, sessionId })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /chat/:sessionId/cancel — best-effort cancel of in-flight turn
+      if (parts[0] === 'chat' && parts.length === 3 && parts[2] === 'cancel' && req.method === 'POST') {
+        const sessionId = parts[1]
+        if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+        if (!daemon.pipeline) return sendJSON(res, 503, { error: 'pipeline not ready' })
+        try {
+          const ok = typeof (daemon.pipeline as any).requestCancel === 'function'
+            ? (daemon.pipeline as any).requestCancel(sessionId)
+            : false
+          if (ok) return sendJSON(res, 200, { ok: true, cancelled: true })
+          return sendJSON(res, 404, { ok: false, error: 'no active turn or not cancellable' })
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
@@ -812,6 +1267,101 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             tokensUsed,
             durationMs
           });
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) });
+        }
+      }
+
+      // GET /models — list models exposed by the daemon (for external clients like CassiCore)
+      if (req.method === 'GET' && url.pathname === '/models') {
+        try {
+          // Attempt to derive models from provider instances loaded into the pipeline.
+          const providerMap = (daemon.pipeline as any)?.providers ?? new Map();
+          const models: any[] = [];
+
+          for (const [provId, prov] of providerMap.entries()) {
+            try {
+              const provModels = (prov as any)?.models ?? (prov as any)?.modelList ?? undefined;
+              if (!provModels || !Array.isArray(provModels)) continue;
+
+              for (const m of provModels) {
+                const modelName = typeof m === 'string' ? m : String((m as any).id ?? m);
+                const id = modelName.includes('/') ? modelName : `${provId}/${modelName}`;
+
+                // Heuristics for sensible defaults
+                let api = 'openai-completions';
+                let reasoning = false;
+                let input: string[] = ['text'];
+                let contextWindow = 131072;
+                let maxTokens = 8192;
+
+                if (String(provId).toLowerCase().includes('kimi')) {
+                  api = 'anthropic-messages';
+                  reasoning = true;
+                  input = ['text', 'image'];
+                  contextWindow = 262144;
+                  maxTokens = 32768;
+                } else if (String(provId).toLowerCase().includes('copilot') || String(provId).toLowerCase().includes('github')) {
+                  api = 'openai-completions';
+                  reasoning = false;
+                }
+
+                // Base metadata
+                const meta: any = {
+                  id,
+                  name: typeof m === 'string' ? id : ((m as any).name ?? id),
+                  api,
+                  reasoning,
+                  input,
+                  cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+                  contextWindow,
+                  maxTokens,
+                };
+
+                // If provider exposes richer metadata via describeModel/getModelInfo, prefer it
+                try {
+                  if (typeof (prov as any).describeModel === 'function') {
+                    const info = await (prov as any).describeModel(modelName)
+                    if (info && typeof info === 'object') {
+                      meta.name = info.name ?? meta.name
+                      meta.api = info.api ?? meta.api
+                      meta.reasoning = info.reasoning ?? meta.reasoning
+                      meta.input = info.input ?? meta.input
+                      meta.cost = info.cost ?? meta.cost
+                      meta.contextWindow = info.contextWindow ?? meta.contextWindow
+                      meta.maxTokens = info.maxTokens ?? meta.maxTokens
+                    }
+                  } else if (typeof (prov as any).getModelInfo === 'function') {
+                    const info = (prov as any).getModelInfo(modelName)
+                    if (info && typeof info === 'object') {
+                      meta.name = info.name ?? meta.name
+                      meta.api = info.api ?? meta.api
+                      meta.reasoning = info.reasoning ?? meta.reasoning
+                      meta.input = info.input ?? meta.input
+                      meta.cost = info.cost ?? meta.cost
+                      meta.contextWindow = info.contextWindow ?? meta.contextWindow
+                      meta.maxTokens = info.maxTokens ?? meta.maxTokens
+                    }
+                  }
+                } catch (err) {
+                  // best-effort; swallow provider metadata errors
+                }
+
+                models.push(meta);
+              }
+            } catch { /* best-effort */ }
+          }
+
+          // Fallback to a small curated set if none discovered
+          if (models.length === 0) {
+            models.push(
+              { id: 'kimi-coding/k2p5', name: 'Kimi K2.5 (CassiCore)', api: 'anthropic-messages', reasoning: true, input: ['text','image'], cost: { input:0,output:0,cacheRead:0,cacheWrite:0 }, contextWindow: 262144, maxTokens: 32768 },
+              { id: 'github-copilot/gpt-5-mini', name: 'GitHub Copilot gpt-5-mini (via CassiCore)', api: 'openai-completions', reasoning: false, input: ['text'], cost: { input:0,output:0,cacheRead:0,cacheWrite:0 }, contextWindow: 131072, maxTokens: 8192 },
+              { id: 'openrouter/auto', name: 'OpenRouter (via CassiCore)', api: 'openai-completions', reasoning: false, input: ['text'], cost: { input:0,output:0,cacheRead:0,cacheWrite:0 }, contextWindow: 131072, maxTokens: 8192 },
+            );
+          }
+
+          return sendJSON(res, 200, { models });
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) });
         }
@@ -885,8 +1435,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           return sendJSON(res, 500, { error: String(err) })
         }
       }
-
-      // Tools API endpoints
       if (parts[0] === "tools" || parts[0] === "fs") {
         const toolsApi = createToolsApi(logger);
         return toolsApi.handler(req, res);
