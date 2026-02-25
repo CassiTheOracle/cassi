@@ -4,6 +4,7 @@
  */
 
 import { BaseProvider } from './base.js'
+import { signalPromise } from '../utils/abort.js'
 import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 const DEFAULT_ENDPOINT = 'https://cloudcode-pa.googleapis.com'
@@ -194,13 +195,12 @@ export class GoogleAntigravityProvider extends BaseProvider {
   async ping(signal?: AbortSignal): Promise<boolean> {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 5000)
-    let externalHandler: (() => void) | undefined
     try {
       if (signal) {
-        if (signal.aborted) controller.abort()
+        if (signal.aborted) try { controller.abort() } catch {}
         else {
-          externalHandler = () => controller.abort()
-          signal.addEventListener('abort', externalHandler)
+          // Wire external abort into our controller without manual listener bookkeeping
+          signalPromise(signal).then(() => { try { controller.abort() } catch {} }).catch(() => {})
         }
       }
       const res = await fetch(`${this.endpoint}/v1internal:loadCodeAssist`, {
@@ -223,7 +223,6 @@ export class GoogleAntigravityProvider extends BaseProvider {
       return false
     } finally {
       clearTimeout(timeoutId)
-      if (signal && externalHandler) signal.removeEventListener('abort', externalHandler)
     }
   }
 }

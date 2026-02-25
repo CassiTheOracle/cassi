@@ -1,5 +1,6 @@
 import type { IProvider, Message, CompletionOpts, CompletionChunk, TurnResult } from '../../types/runtime.js'
 import type { ILogger, IEventBus, IConfig } from '../../types/interfaces.js'
+import { signalPromise } from '../utils/abort.js'
 
 /**
  * Request tracking entry for a single in-flight or completed request.
@@ -54,10 +55,18 @@ const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   }
 }
 
-// Export provider defaults so the Admin API can expose provider-specific config keys and defaults
-export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_RATE_LIMITS
 
-// Export global defaults (derived from env fallbacks present at module initialization)
+/**
+ * Global provider limiter/config — shared across all CentralizedProvider instances.
+ * Can be tuned via runtime config (preferred) or environment variables for quick experiments.
+ */
+let GLOBAL_MAX_CONCURRENT = parseInt(process.env.CASSI_GLOBAL_PROVIDER_MAX_CONCURRENT || '32', 10)
+let GLOBAL_WINDOW_MS = parseInt(process.env.CASSI_GLOBAL_PROVIDER_WINDOW_MS || '60000', 10)
+let GLOBAL_MAX_REQUESTS_PER_WINDOW = parseInt(process.env.CASSI_GLOBAL_PROVIDER_MAX_REQUESTS || '1000', 10)
+let DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '20000', 10)
+
+// Exports for admin APIs to query provider-specific and global defaults
+export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_RATE_LIMITS
 export const GLOBAL_PROVIDER_DEFAULTS = {
   maxConcurrent: GLOBAL_MAX_CONCURRENT,
   windowMs: GLOBAL_WINDOW_MS,
@@ -85,15 +94,6 @@ export function listProviderConfigKeys() {
 
   return { globalKeys, providerSpecific }
 }
-
-/**
- * Global provider limiter/config — shared across all CentralizedProvider instances.
- * Can be tuned via runtime config (preferred) or environment variables for quick experiments.
- */
-let GLOBAL_MAX_CONCURRENT = parseInt(process.env.CASSI_GLOBAL_PROVIDER_MAX_CONCURRENT || '32', 10)
-let GLOBAL_WINDOW_MS = parseInt(process.env.CASSI_GLOBAL_PROVIDER_WINDOW_MS || '60000', 10)
-let GLOBAL_MAX_REQUESTS_PER_WINDOW = parseInt(process.env.CASSI_GLOBAL_PROVIDER_MAX_REQUESTS || '1000', 10)
-let DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '20000', 10)
 
 let globalInFlightCount = 0
 let globalRequestHistory: number[] = []
@@ -300,10 +300,13 @@ export class CentralizedProvider implements IProvider {
     }, requestedTimeoutMs)
 
     // If caller provided a signal, wire it to our controller so caller aborts propagate
-    const onCallerAbort = () => { try { controller.abort() } catch { } }
     if (signal) {
-      if (signal.aborted) onCallerAbort()
-      else signal.addEventListener('abort', onCallerAbort)
+      if (signal.aborted) {
+        try { controller.abort() } catch {}
+      } else {
+        // Use shared helper to avoid manual listener bookkeeping
+        signalPromise(signal).then(() => { try { controller.abort() } catch {} }).catch(() => {})
+      }
     }
 
     try {
@@ -354,9 +357,7 @@ export class CentralizedProvider implements IProvider {
     } finally {
       // ── 6. Cleanup tracking ──
       clearTimeout(timeoutHandle)
-      if (signal) {
-        try { signal.removeEventListener('abort', onCallerAbort) } catch { }
-      }
+      // No external listener removal required when using signalPromise
 
       entry.completedAt = Date.now()
       this.inFlight.delete(sessionId)
