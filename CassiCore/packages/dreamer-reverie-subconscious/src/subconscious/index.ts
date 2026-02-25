@@ -46,6 +46,7 @@ export interface SubconsciousConfig {
   summarizerModel?: string;
   summarizerMaxTokens?: number;
   summarizerTemperature?: number;
+  summarizerTimeoutMs?: number;
 
   // Anomaly parameters
   recencyWindowMs?: number;         // recency decay horizon
@@ -352,11 +353,17 @@ export class Subconscious {
           } as any;
 
           let text = '';
-          const stream = this.provider.complete(messages as any, opts as any) as AsyncIterable<any>;
-          for await (const chunk of stream) {
-            if (chunk.type === 'token' && chunk.text) text += chunk.text;
-            if (chunk.type === 'error') throw new Error(chunk.error || 'provider error');
-            if (chunk.type === 'done') break;
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), this.config.summarizerTimeoutMs);
+          try {
+            const stream = this.provider.complete(messages as any, opts as any, undefined, controller.signal) as AsyncIterable<any>;
+            for await (const chunk of stream) {
+              if (chunk.type === 'token' && chunk.text) text += chunk.text;
+              if (chunk.type === 'error') throw new Error(chunk.error || 'provider error');
+              if (chunk.type === 'done') break;
+            }
+          } finally {
+            clearTimeout(timer);
           }
 
           // Try to parse JSON first
