@@ -66,7 +66,7 @@ export class DialecticSystem implements IDialecticSystem {
       yin: config?.yin ?? {},
       serenity: config?.serenity ?? {},
       dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
-      taskGuide: config?.taskGuide ?? { enabled: true, mode: 'heuristic', model: 'gpt-5-mini', maxTokens: 64, temperature: 0.2, timeoutMs: 5000 },
+      taskGuide: config?.taskGuide ?? { enabled: true, mode: 'heuristic', model: 'gpt-5-mini', maxTokens: 256, temperature: 0.2, timeoutMs: 5000 },
     };
     
     // Initialize observers
@@ -246,7 +246,7 @@ export class DialecticSystem implements IDialecticSystem {
       if (this.memory) {
         try {
           const results = await this.memory.search(userMessage, { limit: 5 });
-          relevantMemories = results.map(r => r.entry.content.slice(0, 200));
+          relevantMemories = results.map(r => r.entry.content.slice(0, 8000));
         } catch (error) {
           this.logger.warn('DialecticSystem: failed to fetch memories', { error: String(error) });
         }
@@ -695,7 +695,7 @@ export class DialecticSystem implements IDialecticSystem {
       sessionId,
       turnId,
       signalType: signal.type,
-      signalContent: signal.content.slice(0, 100),
+      signalContent: signal.content.slice(0, 4000),
     });
   }
 
