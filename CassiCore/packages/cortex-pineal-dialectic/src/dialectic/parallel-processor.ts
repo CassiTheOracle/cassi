@@ -36,7 +36,7 @@ export interface ParallelDialecticOptions {
     yin?: IProvider | { model: string };
     serenity?: IProvider | { model: string };
   };
-  mode?: 'parallel' | 'sequential';
+  mode?: 'parallel' | 'sequential' | 'adaptive';
   signal?: AbortSignal;
 }
 

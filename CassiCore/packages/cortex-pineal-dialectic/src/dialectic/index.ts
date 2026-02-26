@@ -10,24 +10,39 @@ import type { IEventBus } from '../../../types/interfaces.js';
 import type { 
   IDialecticSystem, 
   DialecticResult, 
+  ParallelDialecticResult,
   YangContext,
   DialecticStreamEvent,
-  DialecticSignal 
+  DialecticSignal,
+  DialecticMode 
 } from '../../../types/dialectic.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import { YangObserver, type YangConfig } from '../yang/index.js';
 import { YinObserver, type YinConfig } from '../yin/index.js';
 import { Serenity, type SerenityConfig } from '../serenity/index.js';
+import { ParallelDialecticProcessor, type ParallelDialecticOptions } from './parallel-processor.js';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
 export interface DialecticSystemConfig {
   enabled: boolean;
+  mode?: DialecticMode;  // 'sequential' | 'parallel' | 'adaptive'
   yang?: Partial<YangConfig>;
   yin?: Partial<YinConfig>;
   serenity?: Partial<SerenityConfig>;
+  parallel?: {
+    maxWaitMs?: number;
+    observerTimeoutMs?: number;
+    partialResultsOnFailure?: boolean;
+    synchronization?: 'wait-for-both' | 'best-effort';
+  };
+  adaptive?: {
+    complexityThreshold?: number;
+    qualityThreshold?: number;
+    historyWindowSize?: number;
+  };
   dataDir?: string;
   taskGuide?: {
     enabled?: boolean;
@@ -54,6 +69,7 @@ export class DialecticSystem implements IDialecticSystem {
   private yang: YangObserver;
   private yin: YinObserver;
   private serenity: Serenity;
+  private parallelProcessor?: ParallelDialecticProcessor;
   
   private db?: Database.Database;
   private streamCallbacks: Map<string, Set<(event: DialecticStreamEvent) => void>> = new Map();
@@ -74,9 +90,26 @@ export class DialecticSystem implements IDialecticSystem {
     this.yin = new YinObserver(this.logger, this.config.yin);
     this.serenity = new Serenity(this.logger, this.config.serenity);
     
+    // Initialize parallel processor if needed
+    if (this.config.mode === 'parallel' || this.config.mode === 'adaptive') {
+      this.parallelProcessor = new ParallelDialecticProcessor(
+        this.logger,
+        {
+          maxWaitMs: this.config.parallel?.maxWaitMs ?? 8000,
+          observerTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 6000,
+          partialResultsOnFailure: this.config.parallel?.partialResultsOnFailure ?? true,
+          synchronization: this.config.parallel?.synchronization ?? 'best-effort',
+        },
+        this.config.yang ?? {},
+        this.config.yin ?? {},
+        this.config.serenity ?? {}
+      );
+      this.logger.info('DialecticSystem: parallel processor initialized', { mode: this.config.mode });
+    }
+    
     if (this.config.enabled) {
       this.initPersistence();
-      this.logger.info('DialecticSystem: enabled');
+      this.logger.info('DialecticSystem: enabled', { mode: this.config.mode || 'sequential' });
     } else {
       this.logger.info('DialecticSystem: disabled');
     }
@@ -147,11 +180,17 @@ export class DialecticSystem implements IDialecticSystem {
     this.yang.setProvider(provider);
     this.yin.setProvider(provider);
     this.serenity.setProvider(provider);
+    if (this.parallelProcessor) {
+      this.parallelProcessor.setProvider(provider);
+    }
     this.logger.info('DialecticSystem: provider wired to all observers');
   }
 
   setMemory(memory: IMemory): void {
     this.memory = memory;
+    if (this.parallelProcessor) {
+      this.parallelProcessor.setMemory(memory);
+    }
     this.logger.info('DialecticSystem: memory wired');
   }
 
@@ -170,6 +209,7 @@ export class DialecticSystem implements IDialecticSystem {
       if (this.yang && typeof (this.yang as any).setEventBus === 'function') (this.yang as any).setEventBus(bus);
       if (this.yin && typeof (this.yin as any).setEventBus === 'function') (this.yin as any).setEventBus(bus);
       if (this.serenity && typeof (this.serenity as any).setEventBus === 'function') (this.serenity as any).setEventBus(bus);
+      if (this.parallelProcessor) this.parallelProcessor.setEventBus(bus);
     } catch (err) {
       // best-effort — do not fail wiring if observers don't support event bus
     }
@@ -215,8 +255,33 @@ export class DialecticSystem implements IDialecticSystem {
     turnId: string,
     userMessage: string,
     context: YangContext,
-    opts?: { providers?: { yang?: any; yin?: any; serenity?: any }; signal?: AbortSignal }
-  ): Promise<DialecticResult> {
+    opts?: { 
+      providers?: { yang?: any; yin?: any; serenity?: any }; 
+      signal?: AbortSignal;
+      mode?: 'sequential' | 'parallel' | 'adaptive';
+    }
+  ): Promise<DialecticResult | ParallelDialecticResult> {
+    // Determine execution mode
+    const mode = opts?.mode || this.config.mode || 'sequential';
+    
+    // Route to parallel processor if mode is parallel or adaptive
+    if ((mode === 'parallel' || mode === 'adaptive') && this.parallelProcessor) {
+      // For adaptive mode, check if we should use parallel
+      if (mode === 'adaptive' && !this.shouldUseParallel(userMessage, context)) {
+        this.logger.info('DialecticSystem: adaptive mode selected sequential', { sessionId, turnId });
+      } else {
+        this.logger.info('DialecticSystem: using parallel processor', { mode, sessionId, turnId });
+        return this.parallelProcessor.processTurn(
+          sessionId,
+          turnId,
+          userMessage,
+          context,
+          (event) => this.emitStreamEvent(sessionId, event),
+          { providers: opts?.providers, mode, signal: opts?.signal }
+        );
+      }
+    }
+    
     const startTime = Date.now();
     // Use a per-invocation dialectic session id so concurrent background
     // dialectic runs for the same user session don't collide with Centralized
@@ -406,6 +471,56 @@ export class DialecticSystem implements IDialecticSystem {
       
       throw error;
     }
+  }
+
+  /**
+   * shouldUseParallel — Adaptive mode decision
+   * 
+   * Returns true if parallel mode should be used based on message complexity
+   * and quality history.
+   */
+  private shouldUseParallel(userMessage: string, context: YangContext): boolean {
+    const config = this.config.adaptive;
+    
+    // Simple complexity estimation
+    const complexity = this.estimateComplexity(userMessage);
+    
+    // For now, use parallel for most messages except very complex ones
+    // where sequential quality is more important than speed
+    if (config?.complexityThreshold && complexity > config.complexityThreshold) {
+      this.logger.debug('DialecticSystem: high complexity, using sequential', { complexity });
+      return false;
+    }
+    
+    // Default to parallel for speed
+    return true;
+  }
+
+  private estimateComplexity(userMessage: string): number {
+    // Simple heuristic: longer messages with more concepts are more complex
+    const length = userMessage.length;
+    const words = userMessage.split(/\s+/).length;
+    const sentences = userMessage.split(/[.!?]+/).length;
+    
+    // Keywords that indicate complexity
+    const complexKeywords = [
+      'architecture', 'design', 'implement', 'refactor', 'optimize',
+      'debug', 'analyze', 'compare', 'evaluate', 'synthesize',
+      'complex', 'complicated', 'sophisticated', 'intricate'
+    ];
+    const keywordMatches = complexKeywords.filter(kw => 
+      userMessage.toLowerCase().includes(kw)
+    ).length;
+    
+    // Score 0-10
+    let score = 0;
+    if (length > 500) score += 2;
+    if (length > 1000) score += 2;
+    if (words > 100) score += 2;
+    if (sentences > 10) score += 1;
+    score += keywordMatches;
+    
+    return Math.min(10, score);
   }
 
   private calculateCost(
