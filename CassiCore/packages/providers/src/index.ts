@@ -6,9 +6,13 @@ import { KimiCodingProvider } from './kimi-coding.js'
 import { OpenRouterProvider } from './openrouter.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { PiBridgeProvider } from './pi-bridge.js'
+import { QwenProvider } from './qwen.js'
+import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
 
 export { CentralizedProvider, wrapProvidersWithCentralized }
+export { QwenLoadBalancer, createQwenLoadBalancer }
+export type { QwenAccount }
 
 export interface CreateProvidersOptions {
   /** Enable centralized request tracking and rate limiting (default: true) */
@@ -93,6 +97,71 @@ export function createProviders(
       logger.info('Provider loaded: openrouter')
     } catch (err) {
       logger.warn(`failed to load openrouter provider: ${String(err)}`)
+    }
+  }
+
+  // ── Qwen (Alibaba Qwen models) ─────────────────────────────────────────────
+  // Support multi-account load balancing
+  // First try to load from external qwen-accounts.json, then from config
+  let qwenAccounts: Array<{ profileId: string; credentials: any; baseUrl?: string }> = []
+  try {
+    const qwenAccountsPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/cassi'}/.cassicore/qwen-accounts.json`
+    if (require('node:fs').existsSync(qwenAccountsPath)) {
+      const qwenAccountsConfig = JSON.parse(require('node:fs').readFileSync(qwenAccountsPath, 'utf8'))
+      qwenAccounts = qwenAccountsConfig?.providers?.qwen?.accounts || []
+      if (qwenAccounts.length > 0) {
+        logger.info(`[qwen] Loaded ${qwenAccounts.length} account(s) from ${qwenAccountsPath}`)
+      }
+    }
+  } catch (err) {
+    logger.warn(`[qwen] Failed to load qwen-accounts.json: ${String(err)}`)
+  }
+
+  // Fallback to config if no accounts file
+  if (qwenAccounts.length === 0) {
+    qwenAccounts = config.get<Array<{ profileId: string; credentials: any; baseUrl?: string }>>('providers.qwen.accounts', [])
+  }
+
+  const qwenKey =
+    config.get<string>('providers.qwen.apiKey', '') ||
+    process.env.QWEN_API_KEY ||
+    process.env.DASHSCOPE_API_KEY ||
+    ''
+  
+  if (qwenAccounts.length > 1) {
+    // Multi-account load balancing mode
+    try {
+      const accounts: QwenAccount[] = qwenAccounts.map(acc => ({
+        profileId: acc.profileId,
+        credentials: acc.credentials,
+        baseUrl: acc.baseUrl,
+      }))
+      const loadBalancer = new QwenLoadBalancer({
+        accounts,
+        strategy: 'round-robin',
+        cooldownMs: config.get('providers.qwen.cooldownMs', 60000),
+        maxRetries: config.get('providers.qwen.maxRetries', 2),
+      })
+      rawProviders.set('qwen', loadBalancer)
+      // Alias for compatibility
+      rawProviders.set('qwen-cli', loadBalancer)
+      logger.info(`Provider loaded: qwen (load-balanced across ${accounts.length} accounts)`)
+    } catch (err) {
+      logger.warn(`failed to load qwen load balancer: ${String(err)}`)
+    }
+  } else if (qwenKey) {
+    // Single account mode (legacy)
+    const qwenBaseUrl =
+      config.get<string>('providers.qwen.baseUrl', '') ||
+      process.env.QWEN_BASE_URL ||
+      'https://dashscope.aliyuncs.com/compatible-mode/v1'
+    try {
+      rawProviders.set('qwen', new QwenProvider(qwenKey, qwenBaseUrl))
+      // Alias for qwen-cli compatibility
+      rawProviders.set('qwen-cli', new QwenProvider(qwenKey, qwenBaseUrl))
+      logger.info('Provider loaded: qwen (aliases: qwen, qwen-cli)')
+    } catch (err) {
+      logger.warn(`failed to load qwen provider: ${String(err)}`)
     }
   }
 

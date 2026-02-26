@@ -24,7 +24,7 @@ import * as tg from './telegram-common.js'
 
 const POLL_TIMEOUT_SEC   = 25           // Telegram server-side long-poll timeout
 const FETCH_TIMEOUT_MS   = (POLL_TIMEOUT_SEC + 10) * 1_000  // must exceed server timeout
-const EDIT_INTERVAL_MS   = 450          // how often to flush streaming buffer to Telegram edit
+const EDIT_INTERVAL_MS   = 1000         // Optimized: 1s to respect Telegram's rate limits for edits
 const BACKOFF_BASE_MS    = 2_000
 const BACKOFF_MAX_MS     = 30_000
 
@@ -32,6 +32,7 @@ type HostMessage =
   | { type: 'init';          config: TelegramConfig }
   | { type: 'config:update'; config: Partial<TelegramConfig> }
   | { type: 'message';       payload: { sessionId: string; content: string; done?: boolean; parse_mode?: 'MarkdownV2' | 'HTML' } }
+  | { type: 'status';        payload: { sessionId: string; text: string; type?: string } }
   | { type: 'shutdown' }
 
 interface TelegramConfig {
@@ -42,6 +43,7 @@ interface TelegramConfig {
 type WorkerMessage =
   | { type: 'ready' }
   | { type: 'message'; payload: { sessionId: string; content: string; attachments?: tg.ImageAttachment[] } }
+  | { type: 'signal';  payload: { sessionId: string; signalType: string; content: string } }
   | { type: 'error';   message: string }
   | { type: 'log';     level: 'info' | 'warn' | 'error'; message: string }
 
@@ -82,14 +84,15 @@ function getOrCreateStream(chatId: number, sessionId: string): StreamState {
 }
 
 function chooseParseModeForText(text: string): 'MarkdownV2' | 'HTML' {
-  // Heuristic: prefer HTML <pre> for multi-line code-like content or JSON
   if (!text) return 'MarkdownV2'
-  if (text.includes('```')) return 'HTML'
-  if (text.includes('{') && text.includes('}')) return 'HTML'
-  if (text.includes('<') || text.includes('>')) return 'HTML'
-  // If there are multiple lines and quotes or backticks, use HTML
-  const lines = text.split('\n')
-  if (lines.length > 1 && (text.includes('"') || text.includes('`') || text.includes(':'))) return 'HTML'
+  
+  // If the text already has HTML tags that we explicitly support, use HTML
+  if (text.includes('<code>') || text.includes('<pre>') || text.includes('<b>') || text.includes('<i>') || text.includes('<a href=')) {
+    return 'HTML'
+  }
+  
+  // Default to MarkdownV2 for everything else. 
+  // We will handle markdown-to-entities conversion in the common helper.
   return 'MarkdownV2'
 }
 
@@ -111,8 +114,16 @@ async function flushStream(sessionId: string): Promise<void> {
 function startStreamTimer(sessionId: string): void {
   const s = streams.get(sessionId)
   if (!s || s.timer) return
+  let typingCounter = 0
   s.timer = setInterval(() => {
     flushStream(sessionId).catch(() => {})
+    
+    // Refresh typing indicator every ~5 seconds
+    typingCounter += EDIT_INTERVAL_MS
+    if (typingCounter >= 4000) {
+      tg.sendTyping(s.chatId).catch(() => {})
+      typingCounter = 0
+    }
   }, EDIT_INTERVAL_MS)
 }
 
@@ -121,7 +132,11 @@ async function finalizeStream(sessionId: string): Promise<void> {
   if (!s) return
 
   if (s.timer) { clearInterval(s.timer); s.timer = null }
-  await flushStream(sessionId)
+  
+  // Only flush if there is still something in the buffer
+  if (s.buffer) {
+    await flushStream(sessionId)
+  }
   streams.delete(sessionId)
 }
 
@@ -243,6 +258,32 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
     return
   }
 
+  // ── SIGNAL DETECTION: Recognize feedback/directives ──────────────────────
+  let isSignal = false
+  let signalType = ''
+  
+  if (text.startsWith('!')) {
+    isSignal = true
+    const spaceIdx = text.indexOf(' ')
+    signalType = spaceIdx > 0 ? text.slice(1, spaceIdx) : text.slice(1)
+    if (!signalType) signalType = 'feedback'
+  } else if (text.toLowerCase().includes('fix this') || text.toLowerCase().includes('don\'t do that') || text.toLowerCase().includes('stop')) {
+    isSignal = true
+    signalType = 'feedback'
+  } else if (text.toLowerCase().startsWith('instruction:') || text.toLowerCase().startsWith('directive:')) {
+    isSignal = true
+    signalType = 'instruction'
+  }
+
+  if (isSignal) {
+    log('info', `Detected signal in Telegram: ${signalType}`)
+    parentPort?.postMessage({
+      type: 'signal',
+      payload: { sessionId, signalType, content: text }
+    } satisfies WorkerMessage)
+    // continue to process as message too
+  }
+
   // ── NORMAL MESSAGE: Set up streaming for LLM responses ────────────────────
   await tg.sendTyping(chatId)
   getOrCreateStream(chatId, sessionId)
@@ -294,6 +335,8 @@ parentPort?.on('message', (m: HostMessage) => {
     if (chatId === null) return
 
     const hasActiveStream = streams.has(sessionId)
+    
+    // If it's a one-off message (not part of an active stream)
     if (done && content && !hasActiveStream) {
       const providedParse = parse_mode as 'MarkdownV2' | 'HTML' | undefined
       const finalParse = providedParse ?? chooseParseModeForText(content)
@@ -301,12 +344,31 @@ parentPort?.on('message', (m: HostMessage) => {
       return
     }
 
+    // Append to existing stream or create new one
     const s = getOrCreateStream(chatId, sessionId)
-    s.buffer += content
-    startStreamTimer(sessionId)
+    if (content) {
+      s.buffer += content
+      startStreamTimer(sessionId)
+    }
 
     if (done) {
+      // Finalizing: ensure we stop the timer first to avoid concurrent edits
+      if (s.timer) { clearInterval(s.timer); s.timer = null }
       finalizeStream(sessionId).catch(() => {})
+    }
+    return
+  }
+
+  if (m.type === 'status') {
+    const { sessionId, text, type } = m.payload
+    const chatId = parseChatId(sessionId)
+    if (chatId === null) return
+    
+    // Show a short notice for interesting statuses
+    if (type === 'compaction' || type === 'summarization') {
+      tg.sendMessage(chatId, `🧠 _${text}_`, 'MarkdownV2').catch(() => {})
+    } else {
+      log('info', `Status update for ${sessionId}: ${text}`)
     }
     return
   }

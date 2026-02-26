@@ -35,7 +35,7 @@ processor.register({
     if (!path) return { text: "Usage: /read <path>" };
     try {
       const response = await fetch("http://localhost:7432/tools/read?path=" + encodeURIComponent(path));
-      const result = await response.json();
+      const result = await response.json() as { error?: string; content?: string };
       if (result.error) return { text: "❌ " + result.error };
       return { text: "📄 Contents of " + path + ":\n\n" + result.content };
     } catch {
@@ -59,7 +59,7 @@ processor.register({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, content })
       });
-      const result = await response.json();
+      const result = await response.json() as { error?: string; bytesWritten?: number };
       if (result.error) return { text: "❌ " + result.error };
       return { text: "✅ Written to " + path + " (" + result.bytesWritten + " bytes)" };
     } catch {
@@ -82,7 +82,7 @@ processor.register({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: cmd, timeout: 30000 })
       });
-      const result = await response.json();
+      const result = await response.json() as { output?: string };
       return { text: "$ " + cmd + "\n\n" + result.output };
     } catch {
       return { text: "❌ Command failed" };
@@ -99,7 +99,7 @@ processor.register({
     if (!path) return { text: "Usage: /exists <path>" };
     try {
       const response = await fetch("http://localhost:7432/fs/exists?path=" + encodeURIComponent(path));
-      const result = await response.json();
+      const result = await response.json() as { exists?: boolean };
       return { text: result.exists ? "✅ Exists: " + path : "❌ Not found: " + path };
     } catch {
       return { text: "❌ Failed to check" };
@@ -121,7 +121,7 @@ processor.register({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path })
       });
-      const result = await response.json();
+      const result = await response.json() as { error?: string };
       return { text: result.error ? "❌ " + result.error : "✅ Created: " + path };
     } catch {
       return { text: "❌ Failed to create directory" };

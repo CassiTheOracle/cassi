@@ -413,6 +413,26 @@ export class CentralizedProvider implements IProvider {
     }
   }
 
+  /**
+   * Pass-through for load balancer stats (if wrapped provider supports it)
+   */
+  getStats(): unknown {
+    if (typeof (this.wrapped as any).getStats === 'function') {
+      return (this.wrapped as any).getStats()
+    }
+    return null
+  }
+
+  /**
+   * Pass-through for load balancer active count (if wrapped provider supports it)
+   */
+  getActiveCount(): number {
+    if (typeof (this.wrapped as any).getActiveCount === 'function') {
+      return (this.wrapped as any).getActiveCount()
+    }
+    return 1
+  }
+
   getInFlight(): ReadonlyArray<RequestEntry> {
     return Array.from(this.inFlight.values())
   }

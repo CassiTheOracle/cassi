@@ -1,4 +1,5 @@
 import { BaseProvider } from './base.js'
+import { signalPromise } from '../utils/abort.js'
 import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
@@ -178,21 +179,16 @@ export class GitHubCopilotProvider extends BaseProvider {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
-    let externalHandler: (() => void) | undefined
     try {
       if (externalSignal) {
-        if (externalSignal.aborted) controller.abort()
-        else {
-          externalHandler = () => controller.abort()
-          externalSignal.addEventListener('abort', externalHandler)
-        }
+        if (externalSignal.aborted) try { controller.abort() } catch {}
+        else signalPromise(externalSignal).then(() => { try { controller.abort() } catch {} }).catch(() => {})
       }
 
       const res = await fetch(url, { ...options, signal: controller.signal })
       return res
     } finally {
       clearTimeout(timeoutId)
-      if (externalSignal && externalHandler) externalSignal.removeEventListener('abort', externalHandler)
     }
   }
 
