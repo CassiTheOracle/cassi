@@ -613,7 +613,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         try {
           const client = await ensureScipClient();
           const resp = await client.callTool({ name: 'scip__find_references', arguments: { symbolName } }).catch(() => null);
-          if (resp && resp.content) {
+          if (resp && resp.content && Array.isArray(resp.content)) {
             const txt = resp.content.map(c => c.text).join('\n');
             try { const parsed = JSON.parse(txt); return { content: [ { type: 'text', text: JSON.stringify({ symbol: symbolName, matches: parsed }, null, 2) } ] }; } catch (e) { /* fallthrough */ }
           }
@@ -634,7 +634,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         try {
           const client = await ensureScipClient();
           const resp = await client.callTool({ name: 'scip__find_references', arguments: { symbolName } }).catch(() => null);
-          if (resp && resp.content) {
+          if (resp && resp.content && Array.isArray(resp.content)) {
             const txt = resp.content.map(c => c.text).join('\n');
             try { const parsed = JSON.parse(txt); return { content: [ { type: 'text', text: JSON.stringify({ symbol: symbolName, references: parsed }, null, 2) } ] }; } catch (e) { /* fallthrough */ }
           }
