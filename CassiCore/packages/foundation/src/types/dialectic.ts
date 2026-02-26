@@ -75,7 +75,34 @@ export interface YinOutput {
 
 export interface IYinObserver {
   readonly name: 'yin';
+  // Sequential mode: critique Yang's branches
   observe(sessionId: string, userMessage: string, yangOutput: YangOutput): Promise<YinOutput>;
+  // Parallel mode: generate baseline + self-critique independently
+  observeWithBaseline(sessionId: string, userMessage: string, context: YangContext, opts?: { model?: string; provider?: import('./runtime.js').IProvider }): Promise<YinBaselineOutput>;
+}
+
+/**
+ * YinBaselineOutput — For parallel mode where Yin runs independently
+ * Yin generates its own baseline analysis + self-critique without Yang's output
+ */
+export interface YinBaselineBranch {
+  id: string;
+  type: 'grounding' | 'constraint' | 'reality_check' | 'prioritization' | 'risk_assessment';
+  content: string;
+  confidence: number;
+  relevanceScore: number;
+}
+
+export interface YinBaselineOutput {
+  baselineBranches: YinBaselineBranch[];
+  selfCritiques: YinCritique[];  // Yin's critique of its own baseline
+  meta: {
+    compressionRatio: number;
+    processingTimeMs: number;
+    inputTokens: number;
+    outputTokens: number;
+    relativeTiming: 'before-yang' | 'after-yang' | 'concurrent';
+  };
 }
 
 // ─── Serenity ───────────────────────────────────────────────────────────
@@ -110,6 +137,7 @@ export interface SerenityOutput {
 
 export interface ISerenity {
   readonly name: 'serenity';
+  // Sequential synthesis (Yang → Yin → Serenity)
   synchronize(
     sessionId: string,
     userMessage: string,
@@ -118,18 +146,80 @@ export interface ISerenity {
     relevantMemories: string[],
     opts?: { model?: string; provider?: import('./runtime.js').IProvider }
   ): Promise<SerenityOutput>;
+  // Parallel dual synthesis (Yang + Yin → Serenity)
+  synthesizeDual(
+    sessionId: string,
+    input: DualSynthesisInput,
+    relevantMemories: string[],
+    opts?: { model?: string; provider?: import('./runtime.js').IProvider }
+  ): Promise<SerenityOutput>;
+}
+
+/**
+ * DualSynthesisInput — For parallel mode where Serenity synthesizes
+ * both Yang's expansion and Yin's independent baseline
+ */
+export interface DualSynthesisInput {
+  yang: {
+    branches: YangBranch[];
+    meta: YangOutput['meta'];
+    perspective: 'expansive';
+  };
+  yin: {
+    baselineBranches: YinBaselineBranch[];
+    critiques: YinCritique[];
+    meta: YinBaselineOutput['meta'];
+    perspective: 'constrained';
+  };
+  userMessage: string;
+  context: YangContext;
+}
+
+/**
+ * ParallelConfig — Configuration for parallel dialectic execution
+ */
+export interface ParallelConfig {
+  maxWaitMs: number;              // Max wait time for parallel observers
+  partialResultsOnFailure: boolean; // Return partial results if one observer fails
+  observerTimeoutMs: number;      // Timeout per observer
+  synchronization: 'wait-for-both' | 'best-effort';
+}
+
+/**
+ * ParallelDialecticResult — Result from parallel execution mode
+ */
+export interface ParallelDialecticResult extends DialecticResult {
+  level: number;                  // Recursive depth level (0 = top-level)
+  executionMode: 'parallel' | 'sequential';
+  
+  // Timing breakdown
+  timing: {
+    yangDuration: number;
+    yinDuration: number;
+    serenityDuration: number;
+    totalParallelTime: number;
+    firstCompletion: 'yang' | 'yin';
+  };
+  
+  // Quality metrics
+  quality: {
+    yangYinAgreement: number;     // 0-1, how much they agree
+    dialecticTension: number;     // 0-1, diversity of thought
+    synthesisConfidence: number;  // Serenity's confidence
+  };
 }
 
 // ─── Unified Dialectic System ───────────────────────────────────────────────
-// ORDER: Yin (refinement) → Yang (expansion) → Serenity (mediation)
+// ORDER: Yang (expansion) → Yin (refinement) → Serenity (mediation)
+// Note: In parallel mode, Yang + Yin run concurrently
 
 export interface DialecticResult {
   sessionId: string;
   turnId: string;
   timestamp: number;
-  yin: YinOutput;      // First: refinement/grounding
-  yang: YangOutput;    // Second: expansion within constraints
-  serenity: SerenityOutput;  // Third: mediation
+  yang: YangOutput;                    // Expansion
+  yin: YinOutput | YinBaselineOutput;  // Refinement (sequential or parallel baseline)
+  serenity: SerenityOutput;            // Mediation
   signalInjected: boolean;
   totalLatencyMs: number;
   totalCostUsd: number;
@@ -141,8 +231,12 @@ export interface IDialecticSystem {
     turnId: string,
     userMessage: string,
     context: YangContext,
-    opts?: { providers?: { yang?: any; yin?: any; serenity?: any } }
-  ): Promise<DialecticResult>;
+    opts?: { 
+      providers?: { yang?: any; yin?: any; serenity?: any };
+      mode?: 'sequential' | 'parallel' | 'adaptive';
+      signal?: AbortSignal;
+    }
+  ): Promise<DialecticResult | ParallelDialecticResult>;
 }
 
 // ─── WebSocket Stream Events ────────────────────────────────────────────────
