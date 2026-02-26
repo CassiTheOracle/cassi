@@ -15,6 +15,7 @@ import { createOrchestrationBus } from './orchestration-bus.js'
 import { createSessionBridge } from './session-bridge.js'
 import { createAdminApi } from './admin-api.js'
 import { createAgentRunner } from './intelligence/agent-runner.js'
+import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
@@ -39,6 +40,7 @@ export class Daemon {
   public pipeline!: TurnPipeline
   public healthMonitor!: HealthMonitor
   private commands!: CommandDispatcher
+  public subagentTracker!: SubagentTracker
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -393,6 +395,19 @@ export class Daemon {
     // Build command dispatcher
     this.commands = new CommandDispatcher(this.logger, this.sessions, this.bus);
 
+    // Initialize subagent tracker FIRST (needed for tool registration)
+    try {
+      this.subagentTracker = createSubagentTracker({
+        bus: this.bus,
+        logger: this.logger.child('subagent-tracker'),
+        maxTracked: 1000,
+        defaultMaxAgeMs: 24 * 60 * 60 * 1000, // 24 hours
+      })
+      this.logger.info('[daemon] subagent-tracker started')
+    } catch (err) {
+      this.logger.warn('[daemon] failed to start subagent-tracker', { error: String(err) })
+    }
+
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
     registerCoreTools(toolRegistry, {
@@ -402,6 +417,7 @@ export class Daemon {
       bus: this.bus,
       logger: this.logger,
       getPipeline: () => this.pipeline,
+      subagentTracker: this.subagentTracker,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
@@ -543,8 +559,10 @@ export class Daemon {
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
-                // Stream thinking tokens to distinguish
-                this.pluginHost.send(tgt, { sessionId: sid, content: `${payload.token as string}`, done: false })
+                // Stream thinking tokens only to CLI channel
+                if (tgt === 'channel:cli') {
+                  this.pluginHost.send(tgt, { sessionId: sid, content: `${payload.token as string}`, done: false })
+                }
                 return
               } else if (payload.type === 'turn:tool_call') {
                 // Show tool usage inline — italicised name, no done flag
@@ -585,9 +603,20 @@ export class Daemon {
             if (handled) return;
           }
 
-          const { randomUUID } = await import('node:crypto')
+          // SIGNAL HANDLING
+          if (payload.type === 'signal') {
+            this.bus.emit({
+              type: 'dialectic:signal',
+              sessionId: sid,
+              signalType: (payload.signalType as string) || 'feedback',
+              content: content,
+              confidence: 1.0,
+            } as any);
+          }
+
+          const { generateShortId } = await import('./utils/ids.js')
           const inbound = {
-            id: randomUUID(),
+            id: generateShortId(8),
             sessionId: payload.sessionId as string,
             channelId: pluginId,
             senderId: payload.sessionId as string,
@@ -615,6 +644,27 @@ export class Daemon {
         }
       } catch (err) {
         this.logger.warn(`error processing inbound message: ${String(err)}`)
+      }
+    })
+
+    // ── Status message routing ────────────────────────────────────────────────
+    this.bus.on("session:compacted", (e: any) => {
+      const { sessionId, summary } = e
+      const s = this.sessions.get(sessionId)
+      if (s?.channelId) {
+        this.pluginHost.send(s.channelId, { 
+          type: 'status', 
+          payload: { sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' } 
+        })
+      }
+    })
+
+    this.bus.on("context-manager:sync", (e: any) => {
+      const { sessionId } = e
+      const s = this.sessions.get(sessionId)
+      if (s?.channelId && s.channelId === 'channel:telegram') {
+         // only notify Telegram for now as it's more "detached"
+         // this.pluginHost.send(s.channelId, { type: 'status', payload: { sessionId, text: 'Context synced.', type: 'sync' } })
       }
     })
 
