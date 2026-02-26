@@ -63,7 +63,14 @@ export type RuntimeEvent =
   // Compaction & Context events
   | { type: "session:compacted"; sessionId: string; summary: string }
   | { type: "context-manager:sync"; sessionId: string; payload: any }
-  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number };
+  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number }
+  // Session Agent events
+  | { type: "session_agent:created"; agentId: string; sessionId: string; agentType: string; timestamp: Date }
+  | { type: "session_agent:shutdown"; agentId: string; sessionId: string; timestamp: Date }
+  | { type: "session_agent:status_changed"; agentId: string; sessionId: string; status: string; timestamp: Date }
+  | { type: "session_agent:observation"; agentId: string; sessionId: string; trigger: string; timestamp: Date }
+  | { type: "session_agent:action"; agentId: string; sessionId: string; actionType: string; timestamp: Date }
+  | { type: "session_agent:suggestion"; agentId: string; sessionId: string; suggestionType: string; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 

@@ -4,6 +4,16 @@
 
 import type { Message } from "./runtime.js";
 
+// ─── Execution Modes ────────────────────────────────────────────────────────
+
+export type DialecticMode = 'sequential' | 'parallel' | 'adaptive';
+
+export interface AdaptiveConfig {
+  complexityThreshold: number;  // Above this, use sequential
+  qualityThreshold: number;     // Below this, use sequential  
+  historyWindowSize: number;    // Turns to look back for quality metrics
+}
+
 // ─── Yang Observer ──────────────────────────────────────────────────────────
 
 export interface YangBranch {
@@ -107,7 +117,7 @@ export interface YinBaselineOutput {
 
 // ─── Serenity ───────────────────────────────────────────────────────────
 
-export type SignalType = 'edge_case' | 'alternative' | 'assumption' | 'connection' | 'contradiction';
+export type SignalType = 'edge_case' | 'alternative' | 'assumption' | 'connection' | 'contradiction' | 'convergence' | 'tension' | 'gap';
 export type Urgency = 'immediate' | 'background';
 
 export interface DialecticSignal {
@@ -247,7 +257,7 @@ export interface DialecticStreamEvent {
   timestamp: number;
   turnId: string;
   stage: DialecticStage;
-  data?: YangOutput | YinOutput | SerenityOutput | { error: string } | { taskGuide: string } | null;
+  data?: YangOutput | YinOutput | YinBaselineOutput | SerenityOutput | { error: string } | { taskGuide: string } | { mode: string } | null;
 }
 
 // ─── Persistence ────────────────────────────────────────────────────────────
