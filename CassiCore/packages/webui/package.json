@@ -1,0 +1,47 @@
+{
+	"name": "@cassicore/webui",
+	"version": "0.1.0",
+	"description": "Web UI for CassiCore with tight integration to the daemon",
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./cassicore": "./dist/cassicore/index.js",
+		"./app.css": "./dist/app.css"
+	},
+	"bin": {
+		"cassicore-webui-bridge": "./server/bridge.ts"
+	},
+	"scripts": {
+		"clean": "rm -rf dist",
+		"build": "tsc -p tsconfig.build.json && tailwindcss -i ./src/app.css -o ./dist/app.css --minify",
+		"dev": "concurrently \"tsc -p tsconfig.build.json --watch\" \"tailwindcss -i ./src/app.css -o ./dist/app.css --watch\"",
+		"bridge": "tsx server/bridge.ts",
+		"check": "tsc --noEmit"
+	},
+	"dependencies": {
+		"ws": "^8.18.0",
+		"better-sqlite3": "^11.7.0",
+		"lit": "^3.3.1",
+		"@mariozechner/mini-lit": "^0.2.0"
+	},
+	"devDependencies": {
+		"@types/ws": "^8.5.13",
+		"@types/node": "^22.10.5",
+		"tsx": "^4.19.2",
+		"typescript": "^5.7.3",
+		"tailwindcss": "^4.0.0-beta.14",
+		"concurrently": "^9.2.1"
+	},
+	"keywords": [
+		"cassicore",
+		"ai",
+		"chat",
+		"ui",
+		"llm",
+		"dialectic",
+		"web-components"
+	],
+	"license": "MIT"
+}

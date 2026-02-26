@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CassiCore WebUI</title>
+    <link rel="stylesheet" href="../../dist/app.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #app {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        .header {
+            background: #1e293b;
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+        }
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+        .status-indicator.disconnected {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧠 CassiCore</h1>
+        <div class="status">
+            <div class="status-indicator" id="status-indicator"></div>
+            <span id="status-text">Connecting...</span>
+        </div>
+    </div>
+    <div id="app">
+        <cassicore-chat-panel id="chat-panel"></cassicore-chat-panel>
+    </div>
+
+    <script type="module">
+        import { CassiCoreAdminClient } from '../../dist/cassicore/admin-client.js';
+        import '../../dist/cassicore/cassicore-chat-panel.js';
+        import '../../dist/cassicore/dialectic-panel.js';
+        import '../../dist/cassicore/memory-explorer.js';
+
+        // Configuration
+        const WS_URL = 'ws://localhost:7433';
+        const DEFAULT_SESSION_ID = 'webui-default';
+
+        // DOM elements
+        const statusIndicator = document.getElementById('status-indicator');
+        const statusText = document.getElementById('status-text');
+        const chatPanel = document.getElementById('chat-panel');
+
+        // Admin client (for HTTP API calls via WebSocket bridge)
+        const client = new CassiCoreAdminClient();
+
+        // WebSocket connection
+        let ws = null;
+        let reconnectInterval = null;
+
+        function connect() {
+            ws = new WebSocket(WS_URL);
+
+            ws.onopen = () => {
+                console.log('Connected to CassiCore');
+                statusIndicator.classList.remove('disconnected');
+                statusText.textContent = 'Connected';
+
+                // Initialize chat panel
+                chatPanel.client = client;
+                chatPanel.sessionId = DEFAULT_SESSION_ID;
+
+                // Request initial data
+                ws.send(JSON.stringify({ type: 'health' }));
+                ws.send(JSON.stringify({ type: 'sessions.list' }));
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                handleMessage(message);
+            };
+
+            ws.onclose = () => {
+                console.log('Disconnected from CassiCore');
+                statusIndicator.classList.add('disconnected');
+                statusText.textContent = 'Disconnected - Retrying...';
+
+                // Attempt reconnection
+                if (!reconnectInterval) {
+                    reconnectInterval = setInterval(() => {
+                        console.log('Attempting reconnection...');
+                        connect();
+                    }, 3000);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleMessage(message) {
+            console.log('Received:', message);
+
+            switch (message.type) {
+                case 'connected':
+                    // Clear reconnection interval on successful connection
+                    if (reconnectInterval) {
+                        clearInterval(reconnectInterval);
+                        reconnectInterval = null;
+                    }
+                    break;
+
+                case 'health':
+                    console.log('Health status:', message.payload);
+                    break;
+
+                case 'sessions.list':
+                    console.log('Sessions:', message.payload);
+                    break;
+
+                case 'dialectic.update':
+                    // Dialectic updates are handled by the dialectic-panel component
+                    break;
+
+                case 'error':
+                    console.error('Server error:', message.payload.error);
+                    break;
+            }
+        }
+
+        // Initial connection
+        connect();
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (ws) {
+                ws.close();
+            }
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+            }
+        });
+    </script>
+</body>
+</html>
