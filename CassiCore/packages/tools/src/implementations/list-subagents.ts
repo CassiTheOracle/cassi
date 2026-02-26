@@ -4,7 +4,7 @@
  * Allows agents to inspect their spawned subagents and monitor progress.
  */
 
-import type { ToolDefinition, ToolHandler, ToolContext } from '../types.js'
+import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
 export const listSubagentsDefinition: ToolDefinition = {
   name: 'list_subagents',
@@ -39,7 +39,7 @@ export const listSubagentsDefinition: ToolDefinition = {
 export function makeListSubagentsHandler(
   tracker: { list(): Array<any>; getByParent(parentId: string): Array<any> } | undefined,
 ): ToolHandler {
-  return async (input, ctx: ToolContext) => {
+  return async (input, ctx: ToolExecutionContext) => {
     if (!tracker) {
       return JSON.stringify({
         error: 'Subagent tracker not available. Subagent inspection is disabled.',

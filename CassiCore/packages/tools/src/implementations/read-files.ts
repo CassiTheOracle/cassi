@@ -22,7 +22,7 @@ export const readFilesDefinition: ToolDefinition = {
   timeoutMs: 15_000,
 }
 
-const MAX_BYTES_EACH = 100 * 1024  // 100KB per file
+const MAX_BYTES_EACH = 512 * 1024  // 512KB per file
 
 export const readFilesHandler: ToolHandler = async (input, ctx: ToolExecutionContext) => {
   let paths: string[]

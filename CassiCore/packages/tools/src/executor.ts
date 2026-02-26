@@ -1,7 +1,7 @@
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
 import type { ToolRegistry } from './registry.js'
 
-const MAX_CONCURRENT = 5
+const MAX_CONCURRENT = 20
 
 export class ToolExecutor {
   constructor(

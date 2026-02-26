@@ -17,7 +17,7 @@ export const readFileDefinition: ToolDefinition = {
   timeoutMs: 10_000,
 }
 
-const MAX_BYTES = 200 * 1024  // 200KB
+const MAX_BYTES = 1024 * 1024  // 1MB
 
 export const readFileHandler: ToolHandler = async (input, ctx: ToolExecutionContext) => {
   const rawPath = input['path'] as string
@@ -42,7 +42,7 @@ export const readFileHandler: ToolHandler = async (input, ctx: ToolExecutionCont
   try {
     const raw = readFileSync(realPath)
     if (raw.length > MAX_BYTES) {
-      content = raw.slice(0, MAX_BYTES).toString('utf8') + '\n[file truncated at 200KB]'
+      content = raw.slice(0, MAX_BYTES).toString('utf8') + '\n[file truncated at 1MB]'
     } else {
       content = raw.toString('utf8')
     }

@@ -4,7 +4,7 @@
  * Retrieves the output from a subagent. Can optionally wait for completion.
  */
 
-import type { ToolDefinition, ToolHandler, ToolContext } from '../types.js'
+import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
 export const getSubagentResultDefinition: ToolDefinition = {
   name: 'get_subagent_result',
@@ -42,7 +42,7 @@ export function makeGetSubagentResultHandler(
     getResult(runId: string): { result?: string; error?: string; durationMs?: number } | undefined
   } | undefined,
 ): ToolHandler {
-  return async (input, _ctx: ToolContext) => {
+  return async (input, _ctx: ToolExecutionContext) => {
     if (!tracker) {
       return JSON.stringify({
         error: 'Subagent tracker not available. Subagent inspection is disabled.',

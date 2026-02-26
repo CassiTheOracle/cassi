@@ -15,6 +15,9 @@ import { memorySearchDefinition, makeMemorySearchHandler } from './memory-search
 import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
 import { createSubagentSpawnFunction } from './spawn-subagent-impl.js'
 import { thinkDefinition, makeThinkHandler } from './think.js'
+import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
+import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
+import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 
 export interface CoreToolDeps {
   memory?: IMemory
@@ -24,6 +27,13 @@ export interface CoreToolDeps {
   logger?: ILogger
   /** Lazy getter for pipeline - needed because tools are registered before pipeline is created */
   getPipeline?: () => TurnPipeline
+  /** Subagent tracker for inspection tools */
+  subagentTracker?: {
+    list(): Array<any>
+    get(runId: string): any | undefined
+    getByParent(parentSessionId: string): Array<any>
+    getResult(runId: string): { result?: string; error?: string; durationMs?: number } | undefined
+  }
 }
 
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
@@ -81,5 +91,21 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   // Think tool — trigger the dialectic with expanded context and return the synthesis
   if (deps.getPipeline) {
     registry.register(thinkDefinition, makeThinkHandler(deps))
+  }
+
+  // Subagent inspection tools (requires subagent tracker)
+  if (deps.subagentTracker) {
+    registry.register(
+      listSubagentsDefinition,
+      makeListSubagentsHandler(deps.subagentTracker)
+    )
+    registry.register(
+      getSubagentStatusDefinition,
+      makeGetSubagentStatusHandler(deps.subagentTracker)
+    )
+    registry.register(
+      getSubagentResultDefinition,
+      makeGetSubagentResultHandler(deps.subagentTracker)
+    )
   }
 }

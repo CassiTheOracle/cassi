@@ -5,7 +5,7 @@
  * including timing, progress, and result availability.
  */
 
-import type { ToolDefinition, ToolHandler, ToolContext } from '../types.js'
+import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
 export const getSubagentStatusDefinition: ToolDefinition = {
   name: 'get_subagent_status',
@@ -25,7 +25,7 @@ export const getSubagentStatusDefinition: ToolDefinition = {
 export function makeGetSubagentStatusHandler(
   tracker: { get(runId: string): any | undefined } | undefined,
 ): ToolHandler {
-  return async (input, _ctx: ToolContext) => {
+  return async (input, _ctx: ToolExecutionContext) => {
     if (!tracker) {
       return JSON.stringify({
         error: 'Subagent tracker not available. Subagent inspection is disabled.',
