@@ -4,6 +4,7 @@ import type { ISessionManager } from '../../../types/runtime.js'
 import type { TurnPipeline } from '../../turn-pipeline.js'
 import type { IEventBus, ILogger } from '../../../types/interfaces.js'
 import type { SessionStore } from '../../session-store.js'
+import type { EventHistory } from '../../event-history.js'
 
 import { shellExecDefinition, shellExecHandler } from './shell-exec.js'
 import { readFileDefinition, readFileHandler } from './read-file.js'
@@ -18,6 +19,7 @@ import { thinkDefinition, makeThinkHandler } from './think.js'
 import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
+import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
 
 export interface CoreToolDeps {
   memory?: IMemory
@@ -34,6 +36,8 @@ export interface CoreToolDeps {
     getByParent(parentSessionId: string): Array<any>
     getResult(runId: string): { result?: string; error?: string; durationMs?: number } | undefined
   }
+  /** Event history store for query_events tool */
+  eventHistory?: EventHistory
 }
 
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
@@ -106,6 +110,23 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     registry.register(
       getSubagentResultDefinition,
       makeGetSubagentResultHandler(deps.subagentTracker)
+    )
+  }
+
+  // Event query tool (requires event history)
+  if (deps.eventHistory) {
+    const queryTool = createQueryEventsTool(deps.eventHistory)
+    registry.register(
+      {
+        name: queryTool.name,
+        description: queryTool.description,
+        parameters: queryTool.inputSchema,
+        timeoutMs: 30_000,
+      },
+      async (input, ctx) => {
+        const result = await queryTool.execute(input as any, ctx)
+        return result.success ? result.result : { error: result.error }
+      }
     )
   }
 }
