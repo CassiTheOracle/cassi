@@ -87,11 +87,11 @@ export class MCPClient {
 
     // MCP tool results are an array of content blocks
     const content = result.content as Array<{ type: string; text?: string }> | undefined
-    if (!content || content.length === 0) return ''
+    if (!content || !Array.isArray(content) || content.length === 0) return ''
 
     // Join all text blocks
     return content
-      .filter(c => c.type === 'text' && c.text)
+      .filter(c => c && c.type === 'text' && c.text)
       .map(c => c.text!)
       .join('\n')
   }
