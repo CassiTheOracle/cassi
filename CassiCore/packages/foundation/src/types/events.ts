@@ -59,7 +59,11 @@ export type RuntimeEvent =
   // Autonomy confirmation lifecycle
   | { type: "autonomy:confirmation_requested"; id: string; agentId: string; tool: string; reason?: string }
   | { type: "autonomy:confirmation_approved"; id: string; agentId: string; tool: string; approver?: string; result?: unknown }
-  | { type: "autonomy:confirmation_rejected"; id: string; agentId: string; tool: string; approver?: string; reason?: string };
+  | { type: "autonomy:confirmation_rejected"; id: string; agentId: string; tool: string; approver?: string; reason?: string }
+  // Compaction & Context events
+  | { type: "session:compacted"; sessionId: string; summary: string }
+  | { type: "context-manager:sync"; sessionId: string; payload: any }
+  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number };
 
 export type EventType = RuntimeEvent["type"];
 
