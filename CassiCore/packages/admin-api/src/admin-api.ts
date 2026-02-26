@@ -369,6 +369,54 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // GET /channels/telegram/config — view telegram-specific configuration
+      if (req.method === 'GET' && url.pathname === '/channels/telegram/config') {
+        const tgCfg = daemon.config.get('channels.telegram', {});
+        return sendJSON(res, 200, tgCfg);
+      }
+
+      // POST /channels/telegram/config — update telegram configuration (set-and-persist)
+      if (req.method === 'POST' && url.pathname === '/channels/telegram/config') {
+        try {
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object') return sendJSON(res, 400, { error: 'missing body' })
+          const layered = (daemon.config as any)
+          const updated: string[] = []
+
+          const mapping: Record<string, string> = {
+            allowedChatIds: 'channels.telegram.allowedChatIds',
+            enabled: 'channels.telegram.enabled',
+            token: 'channels.telegram.token'
+          }
+
+          for (const key of Object.keys(mapping)) {
+            if (Object.prototype.hasOwnProperty.call(body, key)) {
+              const k = mapping[key]
+              const v = body[key]
+              try {
+                if (typeof layered?.setOverride === 'function') {
+                  layered.setOverride(k, v, { reason: 'admin' })
+                } else {
+                  daemon.__admin_overrides = daemon.__admin_overrides || {}
+                  daemon.__admin_overrides[k] = { value: v, reason: 'admin' }
+                }
+                updated.push(k)
+              } catch (err) { /* continue */ }
+            }
+          }
+
+          if (updated.length > 0) {
+            try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
+            try { if (typeof daemon.reload === 'function') await daemon.reload() } catch {}
+            return sendJSON(res, 200, { ok: true, updated })
+          } else {
+            return sendJSON(res, 400, { error: 'no valid fields to update' })
+          }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // orchestration endpoints
       if (parts[0] === 'orchestration') {
         if (req.method === 'GET' && parts.length === 1) {
@@ -597,6 +645,36 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           }
 
           return sendJSON(res, 200, { global: globalConfig ?? null, providers: providerMetrics })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /providers/qwen/stats — Qwen load balancer stats
+      if (req.method === 'GET' && url.pathname === '/providers/qwen/stats') {
+        try {
+          const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+          if (!providersMap) return sendJSON(res, 503, { error: 'providers not initialised' })
+
+          const qwenProvider = providersMap.get('qwen')
+          if (!qwenProvider) return sendJSON(res, 404, { error: 'qwen provider not found' })
+
+          // Check if it's a load balancer
+          if (typeof (qwenProvider as any).getStats === 'function') {
+            const stats = (qwenProvider as any).getStats()
+            const activeCount = typeof (qwenProvider as any).getActiveCount === 'function' 
+              ? (qwenProvider as any).getActiveCount() 
+              : undefined
+            
+            return sendJSON(res, 200, {
+              loadBalancing: true,
+              activeCount,
+              accounts: stats,
+            })
+          }
+
+          // Single account mode
+          return sendJSON(res, 200, { loadBalancing: false, accounts: 1 })
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
@@ -1262,6 +1340,114 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // ── Subagent endpoints ─────────────────────────────────────────────────
+
+      // GET /subagents - list all tracked subagents
+      if (req.method === 'GET' && url.pathname === '/subagents') {
+        try {
+          const tracker = daemon.subagentTracker
+          if (!tracker) return sendJSON(res, 503, { error: 'subagent tracker not initialised' })
+          const parentFilter = url.searchParams.get('parent')
+          const statusFilter = url.searchParams.get('status')
+          let list = tracker.list()
+          if (parentFilter) {
+            list = list.filter((s: any) => s.parentSessionId === parentFilter)
+          }
+          if (statusFilter) {
+            list = list.filter((s: any) => s.status === statusFilter)
+          }
+          return sendJSON(res, 200, { 
+            subagents: list.map((s: any) => ({
+              runId: s.runId,
+              label: s.label,
+              status: s.status,
+              parentSessionId: s.parentSessionId,
+              sessionKey: s.sessionKey,
+              model: s.model,
+              createdAt: s.createdAt,
+              startedAt: s.startedAt,
+              completedAt: s.completedAt,
+              durationMs: s.durationMs,
+              tokensUsed: s.tokensUsed,
+              hasResult: !!s.result || !!s.error,
+            }))
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /subagents/:runId - get specific subagent status
+      if (parts[0] === 'subagents' && parts.length === 2 && req.method === 'GET') {
+        try {
+          const tracker = daemon.subagentTracker
+          if (!tracker) return sendJSON(res, 503, { error: 'subagent tracker not initialised' })
+          const runId = parts[1]
+          const info = tracker.get(runId)
+          if (!info) return sendJSON(res, 404, { error: 'subagent not found' })
+          return sendJSON(res, 200, {
+            subagent: {
+              runId: info.runId,
+              label: info.label,
+              status: info.status,
+              task: info.task,
+              parentSessionId: info.parentSessionId,
+              sessionKey: info.sessionKey,
+              model: info.model,
+              timeoutSeconds: info.timeoutSeconds,
+              createdAt: info.createdAt,
+              startedAt: info.startedAt,
+              completedAt: info.completedAt,
+              durationMs: info.durationMs,
+              tokensUsed: info.tokensUsed,
+            }
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /subagents/:runId/result - get subagent result (only if completed/failed/timeout)
+      if (parts[0] === 'subagents' && parts.length === 3 && parts[2] === 'result' && req.method === 'GET') {
+        try {
+          const tracker = daemon.subagentTracker
+          if (!tracker) return sendJSON(res, 503, { error: 'subagent tracker not initialised' })
+          const runId = parts[1]
+          const result = tracker.getResult(runId)
+          if (!result) {
+            const info = tracker.get(runId)
+            if (!info) return sendJSON(res, 404, { error: 'subagent not found' })
+            return sendJSON(res, 202, { 
+              status: info.status, 
+              message: 'Subagent still running or result not yet available' 
+            })
+          }
+          return sendJSON(res, 200, {
+            runId,
+            result: result.result,
+            error: result.error,
+            durationMs: result.durationMs,
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /subagents/prune - manually prune old subagent entries
+      if (req.method === 'POST' && url.pathname === '/subagents/prune') {
+        try {
+          const tracker = daemon.subagentTracker
+          if (!tracker) return sendJSON(res, 503, { error: 'subagent tracker not initialised' })
+          const body = await parseBody(req)
+          const maxAgeMs = body?.maxAgeMs || 24 * 60 * 60 * 1000 // default 24h
+          const maxEntries = body?.maxEntries
+          const removed = tracker.prune(maxAgeMs, maxEntries)
+          return sendJSON(res, 200, { pruned: removed })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // ── Pi Bridge endpoints ────────────────────────────────────────────────
 
       // POST /pi/completion/:requestId/chunk
@@ -1861,6 +2047,73 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           return sendJSON(res, 500, { error: String(err) })
         }
       }
+      // POST /context/assemble — assemble context for a session (CLI integration)
+      if (req.method === 'POST' && url.pathname === '/context/assemble') {
+        try {
+          const body = await parseBody(req)
+          const { sessionId, query, include_history, memory_limit, files, extra_context, char_budget } = body || {}
+          
+          if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+          
+          const ctxObj = await assembleContext(
+            {
+              memory: daemon.intelligence?.memory,
+              sessionManager: daemon.sessions,
+              getPipeline: () => daemon.pipeline,
+              logger: daemon.logger,
+            },
+            {
+              sessionId,
+              query: query || '',
+              includeHistory: include_history !== undefined ? include_history : true,
+              memoryLimit: memory_limit || 5,
+              files: Array.isArray(files) ? files : (files ? [files] : []),
+              extra: extra_context || '',
+              workingDir: process.cwd(),
+              allowedPaths: [],
+              charBudget: char_budget || 8000,
+            }
+          )
+          
+          return sendJSON(res, 200, {
+            sessionId,
+            assembled: {
+              recentMemories: ctxObj.recentMemories,
+              availableTools: ctxObj.availableTools,
+              sessionHistory: ctxObj.sessionHistory,
+              files: ctxObj.files,
+              extraContext: ctxObj.extraContext,
+              taskGuide: ctxObj.taskGuide,
+              sessionSummary: ctxObj.sessionSummary,
+              trimmed: ctxObj.trimmed,
+              semanticHits: ctxObj.semanticHits,
+            },
+            tokensEstimate: JSON.stringify(ctxObj).length / 4,
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+      
+      // GET /context/:sessionId — get cached global context for a session
+      if (req.method === 'GET' && parts[0] === 'context' && parts.length === 2) {
+        try {
+          const sessionId = parts[1]
+          const cm = (daemon.intelligence as any)?.contextManager
+          if (!cm || typeof cm.getEffectiveContext !== 'function') {
+            return sendJSON(res, 503, { error: 'context manager not available' })
+          }
+          const result = await cm.getEffectiveContext(sessionId, { charBudget: 8000 })
+          return sendJSON(res, 200, { 
+            sessionId, 
+            globalContext: result?.globalContext,
+            merged: result?.merged?.slice(0, 1000) // Truncated for response size
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+      
       if (parts[0] === "tools" || parts[0] === "fs") {
         const toolsApi = createToolsApi(logger);
         return toolsApi.handler(req, res);
