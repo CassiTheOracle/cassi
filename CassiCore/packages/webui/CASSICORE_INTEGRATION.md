@@ -266,4 +266,4 @@ webui/
 
 **Remove (replaced):**
 - `@mariozechner/pi-agent-core` → Use Admin API
-- `@mariozechner/pi-ai` → Via CassiCore
+- `@cassicore/ai` → Via CassiCore

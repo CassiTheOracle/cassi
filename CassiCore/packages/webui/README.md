@@ -68,7 +68,7 @@ Forked from `pi-mono/packages/web-ui` with deep integration into CassiCore's arc
 
 ### 1. Install Dependencies
 ```bash
-cd /home/cassi/workspaces/cassicore/webui
+cd /home/valerie/workspaces/cassicore/webui
 npm install
 ```
 

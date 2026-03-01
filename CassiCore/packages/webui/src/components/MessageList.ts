@@ -2,7 +2,7 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type {
 	AssistantMessage as AssistantMessageType,
 	ToolResultMessage as ToolResultMessageType,
-} from "@mariozechner/pi-ai";
+} from "@cassicore/ai";
 import { html, LitElement, type TemplateResult } from "lit";
 import { property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";

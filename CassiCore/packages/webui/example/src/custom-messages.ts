@@ -1,5 +1,5 @@
 import { Alert } from "@mariozechner/mini-lit/dist/Alert.js";
-import type { Message } from "@mariozechner/pi-ai";
+import type { Message } from "@cassicore/ai";
 import type { AgentMessage, MessageRenderer } from "@mariozechner/pi-web-ui";
 import { defaultConvertToLlm, registerMessageRenderer } from "@mariozechner/pi-web-ui";
 import { html } from "lit";

@@ -1,6 +1,6 @@
 {
 	"name": "@cassicore/webui",
-	"version": "0.1.0",
+	"version": "0.1.2",
 	"description": "Web UI for CassiCore with tight integration to the daemon",
 	"type": "module",
 	"main": "dist/index.js",
