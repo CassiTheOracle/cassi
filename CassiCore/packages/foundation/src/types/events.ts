@@ -40,6 +40,8 @@ export type RuntimeEvent =
   | { type: "provider:request_aborted"; providerId: string; requestId: string; sessionId: string }
   | { type: "provider:deduplicated"; providerId: string; sessionId: string; existingRequestId: string }
   | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number }
+  | { type: "provider:error_reset"; providerId: string }
+  | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
   // Subagent lifecycle events
   | { type: "subagent:spawned"; parentSessionId: string; childSessionId: string; runId: string; label: string; timestamp: Date }
   | { type: "subagent:started"; runId: string; sessionId: string; timestamp: Date }
@@ -70,7 +72,10 @@ export type RuntimeEvent =
   | { type: "session_agent:status_changed"; agentId: string; sessionId: string; status: string; timestamp: Date }
   | { type: "session_agent:observation"; agentId: string; sessionId: string; trigger: string; timestamp: Date }
   | { type: "session_agent:action"; agentId: string; sessionId: string; actionType: string; timestamp: Date }
-  | { type: "session_agent:suggestion"; agentId: string; sessionId: string; suggestionType: string; timestamp: Date };
+  | { type: "session_agent:suggestion"; agentId: string; sessionId: string; suggestionType: string; timestamp: Date }
+  // Skill usage tracking events
+  | { type: "skill:invoked"; skillName: string; skillPath: string; sessionId: string; timestamp: Date; source?: string }
+  | { type: "skill:metrics:aggregated"; period: string; topSkills: Array<{ name: string; count: number }>; totalInvocations: number; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 

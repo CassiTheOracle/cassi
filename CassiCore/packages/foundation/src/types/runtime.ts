@@ -166,4 +166,12 @@ export interface TurnResult {
   durationMs: number;
   thinkerInjection?: string;
   toolCalls?: Array<{ name: string; durationMs: number }>
+  /** Tool execution results with detailed output information */
+  tool_outputs?: Array<{
+    tool_name: string;
+    tool_call_id: string;
+    output: string;
+    is_error: boolean;
+    timestamp: Date;
+  }>
 }

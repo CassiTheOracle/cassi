@@ -10,7 +10,7 @@ import type { RuntimeEvent } from "./events.js";
 
 export interface MemoryEntry {
   id: string;
-  type: "conversation" | "fact" | "error" | "success" | "reflection" | "insight";
+  type: "conversation" | "fact" | "error" | "success" | "reflection" | "insight" | "thinking" | "dialectic_yang" | "dialectic_yin" | "dialectic_serenity" | "event" | "tool_call" | "task";
   content: string;
   embedding?: number[];
   metadata?: Record<string, unknown>;
@@ -143,7 +143,7 @@ export interface IThinker {
 
 // ─── Optimizer ──────────────────────────────────────────────────────────────
 
-export type OptimizationAction = 
+export type OptimizationAction =
   | "summarize"       // inject summary, agent continues
   | "steer"           // send corrective prompt
   | "context-reset"   // kill + respawn with compressed context  
@@ -187,13 +187,13 @@ export interface OptimizationOutcome {
 export interface IOptimizer {
   /** Run an optimization cycle over all active sessions */
   optimize(): Promise<OptimizationDecision[]>
-  
+
   /** Get health score for a specific session */
   scoreSession(sessionKey: string): Promise<SessionHealth | null>
-  
+
   /** Get learned strategy weights (what has worked) */
   strategyWeights(): Promise<Record<OptimizationAction, number>>
-  
+
   /** Get recent optimization history */
   history(limit?: number): Promise<OptimizationOutcome[]>
 }

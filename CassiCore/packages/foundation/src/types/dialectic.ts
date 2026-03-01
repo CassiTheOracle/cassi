@@ -49,6 +49,29 @@ export interface YangContext {
    * that both Yang and Yin align on the immediate objective.
    */
   taskGuide?: string;
+  /**
+   * Subconscious-derived patterns detected in the conversation.
+   * Provided by the Subconscious module for enhanced context.
+   */
+  subconsciousPatterns?: Array<{
+    type: string;
+    confidence: number;
+    evidence: string[];
+  }>;
+  /**
+   * Subconscious-derived intent classification.
+   */
+  subconsciousIntent?: {
+    type: string;
+    confidence: number;
+  };
+  /**
+   * Subconscious-detected anomalies (repetition, confusion, stuck states).
+   */
+  subconsciousAnomalies?: Array<{
+    category: string;
+    severity: string;
+  }>;
 }
 
 export interface IYinObserver {
