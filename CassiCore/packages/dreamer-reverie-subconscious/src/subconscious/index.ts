@@ -892,6 +892,17 @@ export class Subconscious {
                 source: 'subconscious:consolidation',
               },
             });
+
+            // Archive to Archivist for comprehensive discovery
+            if (typeof (this.memory as any).archivePattern === 'function') {
+              await (this.memory as any).archivePattern(
+                type,
+                `${type} signals: ${entries.length} occurrences`,
+                learning.examples,
+                avgConfidence,
+                entries[0]?.sessionId
+              );
+            }
           }
           this.emitEvent('subconscious:learning', { learning });
         } catch (err) {
@@ -924,6 +935,25 @@ export class Subconscious {
           });
         } catch (err) {
           this.logger.debug('Subconscious: failed to store observation', { error: String(err) });
+        }
+        
+        // Archive observation to Archivist
+        if (typeof (this.memory as any).archiveEvent === 'function') {
+          try {
+            await (this.memory as any).archiveEvent(
+              'subconscious:observation',
+              `Turn observation for session ${obs.sessionId.slice(-8)}\nUser: ${obs.userMessage?.slice(0, 200) || 'unknown'}\nPatterns: ${obs.patternsDetected.join(', ') || 'none'}`,
+              {
+                sessionId: obs.sessionId,
+                patterns: obs.patternsDetected,
+                tokenCount: obs.tokens?.length || 0,
+                duration: obs.endTime ? obs.endTime - obs.startTime : 0,
+                tags: ['subconscious', 'observation', obs.sessionId.slice(-8)],
+              }
+            );
+          } catch (err) {
+            this.logger.debug('Subconscious: failed to archive observation', { error: String(err) });
+          }
         }
       }
     }
