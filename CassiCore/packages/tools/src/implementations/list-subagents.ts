@@ -38,14 +38,9 @@ export const listSubagentsDefinition: ToolDefinition = {
 
 export function makeListSubagentsHandler(
   tracker: { list(): Array<any>; getByParent(parentId: string): Array<any> } | undefined,
+  thinker?: { listSubagents?: (status?: string) => Array<any> } | undefined,
 ): ToolHandler {
   return async (input, ctx: ToolExecutionContext) => {
-    if (!tracker) {
-      return JSON.stringify({
-        error: 'Subagent tracker not available. Subagent inspection is disabled.',
-      })
-    }
-
     const { 
       status = 'all', 
       parentSessionId = ctx.sessionId,
@@ -59,14 +54,25 @@ export function makeListSubagentsHandler(
     }
 
     try {
-      // Get subagents - either by parent or all
-      let subagents = parentSessionId 
-        ? tracker.getByParent(parentSessionId)
-        : tracker.list()
-
-      // Filter by status if specified
-      if (status !== 'all') {
-        subagents = subagents.filter(s => s.status === status)
+      // First try to get subagents from Thinker's unified registry
+      let subagents: any[] = []
+      
+      if (thinker?.listSubagents) {
+        subagents = thinker.listSubagents(status === 'all' ? undefined : status as any)
+      } else if (tracker) {
+        // Fallback to legacy tracker
+        subagents = parentSessionId 
+          ? tracker.getByParent(parentSessionId)
+          : tracker.list()
+        
+        // Filter by status if specified
+        if (status !== 'all') {
+          subagents = subagents.filter(s => s.status === status)
+        }
+      } else {
+        return JSON.stringify({
+          error: 'Subagent tracker not available. Subagent inspection is disabled.',
+        })
       }
 
       // Sort by createdAt (newest first) and limit
@@ -113,10 +119,23 @@ export function makeListSubagentsHandler(
         return base
       })
 
+      // Calculate total
+      let total: number
+      if (thinker?.listSubagents) {
+        total = thinker.listSubagents().length
+      } else if (tracker) {
+        total = parentSessionId 
+          ? tracker.getByParent(parentSessionId).length 
+          : tracker.list().length
+      } else {
+        total = 0
+      }
+
       return JSON.stringify({
         count: formatted.length,
-        total: parentSessionId ? tracker.getByParent(parentSessionId).length : tracker.list().length,
+        total,
         filter: { status, parentSessionId },
+        source: thinker?.listSubagents ? 'thinker' : 'tracker',
         subagents: formatted,
       })
     } catch (err) {

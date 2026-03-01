@@ -11,7 +11,7 @@ import type {
   SimpleEventQuery,
   EventQueryResult,
 } from "../../../types/event-query.js";
-import type { Tool, ToolContext, ToolResult } from "../../../types/tools.js";
+import type { ToolDefinition, ToolHandler, ToolExecutionContext, ToolParamSchema } from "../types.js";
 import { EventHistory } from "../../event-history.js";
 import { parseSimpleQuery, getQuerySuggestions } from "../../event-query-parser.js";
 import { getPreset, getAllPresets, getCategories, executePreset } from "../../event-query-presets.js";
@@ -20,42 +20,9 @@ import { getPreset, getAllPresets, getCategories, executePreset } from "../../ev
 // Tool Definition
 // =============================================================================
 
-interface QueryEventsInput {
-  /** Query mode: complex (structured), simple (natural language), or preset (named query) */
-  mode: "complex" | "simple" | "preset";
-
-  // Complex query fields
-  since?: string;
-  until?: string;
-  types?: string[];
-  typePattern?: string;
-  where?: Record<string, unknown>;
-  aggregate?: {
-    groupBy?: string;
-    count?: boolean;
-    sum?: string;
-    avg?: string;
-    min?: string;
-    max?: string;
-  };
-  limit?: number;
-  offset?: number;
-  sort?: {
-    field: string;
-    order: "asc" | "desc";
-  };
-  format?: "full" | "summary" | "count" | "timeline" | "json";
-
-  // Simple query fields
-  query?: string;
-
-  // Preset query fields
-  preset?: string;
-}
-
-const name = "query_events";
-
-const description = `Query the event bus history for runtime events.
+export const queryEventsDefinition: ToolDefinition = {
+  name: "query_events",
+  description: `Query the event bus history for runtime events.
 
 Supports three modes:
 1. **complex**: Structured query with precise filters, aggregations, and sorting
@@ -65,329 +32,283 @@ Supports three modes:
 Examples:
 - Simple: { "mode": "simple", "query": "recent subagent failures" }
 - Complex: { "mode": "complex", "types": ["subagent:failed"], "since": "10m" }
-- Preset: { "mode": "preset", "preset": "system-health" }`;
-
-const inputSchema = {
-  type: "object",
-  required: ["mode"],
-  properties: {
-    mode: {
-      type: "string",
-      enum: ["complex", "simple", "preset"],
-      description: "Query mode: complex (structured), simple (natural language), or preset (named)",
-    },
-
-    // Complex mode fields
-    since: {
-      type: "string",
-      description: "Start time (ISO date or relative like '5m', '1h', '30s')",
-    },
-    until: {
-      type: "string",
-      description: "End time (ISO date or relative)",
-    },
-    types: {
-      type: "array",
-      items: { type: "string" },
-      description: "Filter by specific event types",
-    },
-    typePattern: {
-      type: "string",
-      description: "Wildcard pattern for event types (e.g., 'subagent:*', 'provider:*')",
-    },
-    where: {
-      type: "object",
-      description: "Field conditions using operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $contains, $regex, $exists",
-    },
-    aggregate: {
-      type: "object",
-      description: "Aggregation specification",
-      properties: {
-        groupBy: { type: "string", description: "Field to group by" },
-        count: { type: "boolean", description: "Count per group" },
-        sum: { type: "string", description: "Sum this numeric field" },
-        avg: { type: "string", description: "Average this numeric field" },
-        min: { type: "string", description: "Minimum of this field" },
-        max: { type: "string", description: "Maximum of this field" },
+- Preset: { "mode": "preset", "preset": "system-health" }`,
+  parameters: {
+    type: "object",
+    required: ["mode"],
+    properties: {
+      mode: {
+        type: "string",
+        enum: ["complex", "simple", "preset"],
+        description: "Query mode: complex (structured), simple (natural language), or preset (named)",
       },
-    },
-    limit: {
-      type: "integer",
-      default: 100,
-      minimum: 1,
-      maximum: 1000,
-      description: "Maximum results to return",
-    },
-    offset: {
-      type: "integer",
-      default: 0,
-      minimum: 0,
-      description: "Pagination offset",
-    },
-    sort: {
-      type: "object",
-      description: "Sort specification",
-      properties: {
-        field: { type: "string", default: "timestamp" },
-        order: { type: "string", enum: ["asc", "desc"], default: "desc" },
+
+      // Complex mode fields
+      since: {
+        type: "string",
+        description: "Start time (ISO date or relative like '5m', '1h', '30s')",
       },
-    },
-    format: {
-      type: "string",
-      enum: ["full", "summary", "count", "timeline", "json"],
-      default: "summary",
-      description: "Output format",
-    },
+      until: {
+        type: "string",
+        description: "End time (ISO date or relative)",
+      },
+      types: {
+        type: "array",
+        items: { type: "string" },
+        description: "Filter by specific event types",
+      },
+      typePattern: {
+        type: "string",
+        description: "Wildcard pattern for event types (e.g., 'subagent:*', 'provider:*')",
+      },
+      where: {
+        type: "object",
+        description: "Field conditions using operators: $eq, $ne, $gt, $gte, $lt, $lte, $in, $contains, $regex, $exists",
+      },
+      aggregate: {
+        type: "object",
+        description: "Aggregation specification",
+      },
+      limit: {
+        type: "integer",
+        description: "Maximum results to return",
+      },
+      offset: {
+        type: "integer",
+        description: "Pagination offset",
+      },
+      sort: {
+        type: "object",
+        description: "Sort specification",
+      },
+      format: {
+        type: "string",
+        enum: ["full", "summary", "count", "timeline", "json"],
+        description: "Output format",
+      },
 
-    // Simple mode fields
-    query: {
-      type: "string",
-      description: "Natural language query (for simple mode)",
-    },
+      // Simple mode fields
+      query: {
+        type: "string",
+        description: "Natural language query (for simple mode)",
+      },
 
-    // Preset mode fields
-    preset: {
-      type: "string",
-      description: "Name of preset query (for preset mode)",
+      // Preset mode fields
+      preset: {
+        type: "string",
+        description: "Name of preset query (for preset mode)",
+      },
     },
   },
-} as const;
+  timeoutMs: 30_000,
+};
 
 // =============================================================================
 // Tool Implementation
 // =============================================================================
 
-export class QueryEventsTool implements Tool {
-  name = name;
-  description = description;
-  inputSchema = inputSchema;
-
-  private history: EventHistory;
-
-  constructor(history: EventHistory) {
-    this.history = history;
-  }
-
-  async execute(input: QueryEventsInput, _context: ToolContext): Promise<ToolResult> {
+export function makeQueryEventsHandler(history: EventHistory): ToolHandler {
+  return async (input: Record<string, unknown>, _ctx: ToolExecutionContext): Promise<string> => {
     try {
+      const mode = input["mode"] as "complex" | "simple" | "preset";
       let result: EventQueryResult;
 
-      switch (input.mode) {
+      switch (mode) {
         case "complex":
-          result = await this.executeComplex(input);
+          result = await executeComplex(history, input);
           break;
         case "simple":
-          result = await this.executeSimple(input);
+          result = await executeSimple(history, input);
           break;
         case "preset":
-          result = await this.executePreset(input);
+          result = await executePresetMode(history, input);
           break;
         default:
-          return {
-            success: false,
-            error: `Unknown query mode: ${input.mode}. Use "complex", "simple", or "preset".`,
-          };
+          return `Error: Unknown query mode: ${mode}. Use "complex", "simple", or "preset".`;
       }
 
-      return this.formatResult(result, input.format);
+      const format = input["format"] as string | undefined;
+      return formatResult(result, format);
     } catch (err) {
-      return {
-        success: false,
-        error: `Query failed: ${err instanceof Error ? err.message : String(err)}`,
-      };
+      return `Error: Query failed: ${err instanceof Error ? err.message : String(err)}`;
     }
+  };
+}
+
+async function executeComplex(history: EventHistory, input: Record<string, unknown>): Promise<EventQueryResult> {
+  const query: ComplexEventQuery = {
+    mode: "complex",
+    since: input["since"] as string | undefined,
+    until: input["until"] as string | undefined,
+    types: input["types"] as any,
+    typePattern: input["typePattern"] as string | undefined,
+    where: input["where"] as Record<string, unknown> | undefined,
+    aggregate: input["aggregate"] as Record<string, unknown> | undefined,
+    limit: input["limit"] as number | undefined,
+    offset: input["offset"] as number | undefined,
+    sort: input["sort"] as { field: string; order: "asc" | "desc" } | undefined,
+    format: (input["format"] === "json" ? "full" : input["format"]) as "full" | "summary" | "count" | "timeline" | undefined,
+  };
+
+  return history.query(query);
+}
+
+async function executeSimple(history: EventHistory, input: Record<string, unknown>): Promise<EventQueryResult> {
+  const queryText = input["query"] as string;
+  if (!queryText) {
+    throw new Error("Simple mode requires a 'query' field with natural language");
   }
 
-  private async executeComplex(input: QueryEventsInput): Promise<EventQueryResult> {
-    const query: ComplexEventQuery = {
-      mode: "complex",
-      since: input.since,
-      until: input.until,
-      types: input.types as any,
-      typePattern: input.typePattern,
-      where: input.where,
-      aggregate: input.aggregate,
-      limit: input.limit,
-      offset: input.offset,
-      sort: input.sort,
-      format: input.format === "json" ? "full" : input.format,
-    };
+  const parsed = parseSimpleQuery({
+    query: queryText,
+    limit: input["limit"] as number | undefined,
+  });
 
-    return this.history.query(query);
+  if (!parsed.success) {
+    throw new Error(parsed.error || "Failed to parse query");
   }
 
-  private async executeSimple(input: QueryEventsInput): Promise<EventQueryResult> {
-    if (!input.query) {
-      throw new Error("Simple mode requires a 'query' field with natural language");
-    }
+  const result = history.query(parsed.query);
 
-    const parsed = parseSimpleQuery({
-      query: input.query,
-      limit: input.limit,
-    });
+  // Add translation info to result
+  return {
+    ...result,
+    query: {
+      ...result.query,
+      translation: parsed.translation,
+    },
+  };
+}
 
-    if (!parsed.success) {
-      throw new Error(parsed.error || "Failed to parse query");
-    }
-
-    const result = this.history.query(parsed.query);
-
-    // Add translation info to result
-    return {
-      ...result,
-      query: {
-        ...result.query,
-        translation: parsed.translation,
-      },
-    };
+async function executePresetMode(history: EventHistory, input: Record<string, unknown>): Promise<EventQueryResult> {
+  const presetName = input["preset"] as string;
+  if (!presetName) {
+    throw new Error("Preset mode requires a 'preset' field with preset name");
   }
 
-  private async executePreset(input: QueryEventsInput): Promise<EventQueryResult> {
-    if (!input.preset) {
-      throw new Error("Preset mode requires a 'preset' field with preset name");
-    }
-
-    const presetQuery = executePreset(input.preset);
-    if (!presetQuery) {
-      const available = getAllPresets().map((p) => `"${p.name}"`).join(", ");
-      throw new Error(`Unknown preset "${input.preset}". Available: ${available}`);
-    }
-
-    // Override with any user-provided options
-    const query: ComplexEventQuery = {
-      ...presetQuery,
-      limit: input.limit ?? presetQuery.limit,
-      offset: input.offset ?? presetQuery.offset,
-      format: input.format === "json" ? presetQuery.format : (input.format ?? presetQuery.format),
-    };
-
-    return this.history.query(query);
+  const presetQuery = executePreset(presetName);
+  if (!presetQuery) {
+    const available = getAllPresets().map((p) => `"${p.name}"`).join(", ");
+    throw new Error(`Unknown preset "${presetName}". Available: ${available}`);
   }
 
-  private formatResult(result: EventQueryResult, format?: string): ToolResult {
-    // Handle different output formats
-    switch (format) {
-      case "json":
-        return {
-          success: true,
-          result: JSON.stringify(result, null, 2),
-        };
+  // Override with any user-provided options
+  const query: ComplexEventQuery = {
+    ...presetQuery,
+    limit: (input["limit"] as number | undefined) ?? presetQuery.limit,
+    offset: (input["offset"] as number | undefined) ?? presetQuery.offset,
+    format: input["format"] === "json" ? presetQuery.format : ((input["format"] as "full" | "summary" | "count" | "timeline" | undefined) ?? presetQuery.format),
+  };
 
-      case "count":
-        return {
-          success: true,
-          result: `Total events: ${result.metadata.totalAvailable}`,
-        };
+  return history.query(query);
+}
 
-      default:
-        return {
-          success: true,
-          result: this.formatAsText(result),
-        };
-    }
-  }
+function formatResult(result: EventQueryResult, format?: string): string {
+  // Handle different output formats
+  switch (format) {
+    case "json":
+      return JSON.stringify(result, null, 2);
 
-  private formatAsText(result: EventQueryResult): string {
-    const lines: string[] = [];
+    case "count":
+      return `Total events: ${result.metadata.totalAvailable}`;
 
-    // Header
-    lines.push(`# Event Query Results`);
-    lines.push("");
-
-    // Query info
-    lines.push(`**Mode:** ${result.query.mode}`);
-    if (result.query.translation) {
-      lines.push(`**Translation:** ${result.query.translation}`);
-    }
-    lines.push("");
-
-    // Metadata
-    lines.push(`## Metadata`);
-    lines.push(`- Total available: ${result.metadata.totalAvailable}`);
-    lines.push(`- Returned: ${result.metadata.returned}`);
-    lines.push(`- Execution time: ${result.metadata.executionTimeMs.toFixed(2)}ms`);
-    lines.push(`- Time range: ${result.metadata.timeRange.from.toISOString()} to ${result.metadata.timeRange.to.toISOString()}`);
-    if (result.metadata.truncated) {
-      lines.push(`- ⚠️ Results were truncated`);
-    }
-    lines.push("");
-
-    // Results
-    if ("groups" in result.results) {
-      // Aggregation result
-      lines.push(`## Aggregation Results`);
-      lines.push("");
-      lines.push("| Group | Count | Sum | Avg | Min | Max |");
-      lines.push("|-------|-------|-----|-----|-----|-----|");
-
-      for (const group of result.results.groups) {
-        const cells = [
-          group.key,
-          group.count.toString(),
-          group.sum?.toFixed(2) ?? "-",
-          group.avg?.toFixed(2) ?? "-",
-          group.min?.toFixed(2) ?? "-",
-          group.max?.toFixed(2) ?? "-",
-        ];
-        lines.push(`| ${cells.join(" | ")} |`);
-      }
-
-      if (result.results.totals) {
-        lines.push("");
-        lines.push(`**Totals:** Count=${result.results.totals.count}${
-          result.results.totals.sum !== undefined ? `, Sum=${result.results.totals.sum.toFixed(2)}` : ""
-        }${
-          result.results.totals.avg !== undefined ? `, Avg=${result.results.totals.avg.toFixed(2)}` : ""
-        }`);
-      }
-    } else {
-      // Event list result
-      lines.push(`## Events (${result.results.length})`);
-      lines.push("");
-
-      for (const event of result.results) {
-        lines.push(`### ${event.type}`);
-        lines.push(`- **ID:** ${event.id}`);
-        lines.push(`- **Time:** ${event.timestamp.toISOString()}`);
-        if (event.metadata.sessionId) {
-          lines.push(`- **Session:** ${event.metadata.sessionId}`);
-        }
-        if (event.metadata.agentId) {
-          lines.push(`- **Agent:** ${event.metadata.agentId}`);
-        }
-        if (event.metadata.source) {
-          lines.push(`- **Source:** ${event.metadata.source}`);
-        }
-
-        // Payload summary
-        const payload = event.payload as any;
-        if (payload && typeof payload === "object") {
-          const relevantFields = Object.entries(payload)
-            .filter(([key]) => key !== "type")
-            .slice(0, 5); // Show first 5 fields
-
-          if (relevantFields.length > 0) {
-            lines.push(`- **Payload:**`);
-            for (const [key, value] of relevantFields) {
-              const valueStr = typeof value === "object" ? JSON.stringify(value) : String(value);
-              lines.push(`  - ${key}: ${valueStr.substring(0, 100)}${valueStr.length > 100 ? "..." : ""}`);
-            }
-          }
-        }
-        lines.push("");
-      }
-    }
-
-    return lines.join("\n");
+    default:
+      return formatAsText(result);
   }
 }
 
-// =============================================================================
-// Tool Factory
-// =============================================================================
+function formatAsText(result: EventQueryResult): string {
+  const lines: string[] = [];
 
-export function createQueryEventsTool(history: EventHistory): Tool {
-  return new QueryEventsTool(history);
+  // Header
+  lines.push(`# Event Query Results`);
+  lines.push("");
+
+  // Query info
+  lines.push(`**Mode:** ${result.query.mode}`);
+  if (result.query.translation) {
+    lines.push(`**Translation:** ${result.query.translation}`);
+  }
+  lines.push("");
+
+  // Metadata
+  lines.push(`## Metadata`);
+  lines.push(`- Total available: ${result.metadata.totalAvailable}`);
+  lines.push(`- Returned: ${result.metadata.returned}`);
+  lines.push(`- Execution time: ${result.metadata.executionTimeMs.toFixed(2)}ms`);
+  lines.push(`- Time range: ${result.metadata.timeRange.from.toISOString()} to ${result.metadata.timeRange.to.toISOString()}`);
+  if (result.metadata.truncated) {
+    lines.push(`- ⚠️ Results were truncated`);
+  }
+  lines.push("");
+
+  // Results
+  if ("groups" in result.results) {
+    // Aggregation result
+    lines.push(`## Aggregation Results`);
+    lines.push("");
+    lines.push(`| Group | Count | Sum | Avg | Min | Max |`);
+    lines.push(`|-------|-------|-----|-----|-----|-----|`);
+
+    for (const group of result.results.groups) {
+      const cells = [
+        group.key,
+        group.count.toString(),
+        group.sum?.toFixed(2) ?? "-",
+        group.avg?.toFixed(2) ?? "-",
+        group.min?.toFixed(2) ?? "-",
+        group.max?.toFixed(2) ?? "-",
+      ];
+      lines.push(`| ${cells.join(" | ")} |`);
+    }
+
+    if (result.results.totals) {
+      lines.push("");
+      lines.push(`**Totals:** Count=${result.results.totals.count}${
+        result.results.totals.sum !== undefined ? `, Sum=${result.results.totals.sum.toFixed(2)}` : ""
+      }${
+        result.results.totals.avg !== undefined ? `, Avg=${result.results.totals.avg.toFixed(2)}` : ""
+      }`);
+    }
+  } else {
+    // Event list result
+    lines.push(`## Events (${result.results.length})`);
+    lines.push("");
+
+    for (const event of result.results) {
+      lines.push(`### ${event.type}`);
+      lines.push(`- **ID:** ${event.id}`);
+      lines.push(`- **Time:** ${event.timestamp.toISOString()}`);
+      if (event.metadata.sessionId) {
+        lines.push(`- **Session:** ${event.metadata.sessionId}`);
+      }
+      if (event.metadata.agentId) {
+        lines.push(`- **Agent:** ${event.metadata.agentId}`);
+      }
+      if (event.metadata.source) {
+        lines.push(`- **Source:** ${event.metadata.source}`);
+      }
+
+      // Payload summary
+      const payload = event.payload as Record<string, unknown>;
+      if (payload && typeof payload === "object") {
+        const relevantFields = Object.entries(payload)
+          .filter(([key]) => key !== "type")
+          .slice(0, 5); // Show first 5 fields
+
+        if (relevantFields.length > 0) {
+          lines.push(`- **Payload:**`);
+          for (const [key, value] of relevantFields) {
+            const valueStr = typeof value === "object" ? JSON.stringify(value) : String(value);
+            lines.push(`  - ${key}: ${valueStr.substring(0, 100)}${valueStr.length > 100 ? "..." : ""}`);
+          }
+        }
+      }
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
 }
 
 // =============================================================================
@@ -408,6 +329,34 @@ export function listPresetsForTool(): string {
   }
 
   return lines.join("\n");
+}
+
+// =============================================================================
+// Backwards-compatible factory
+// =============================================================================
+
+export interface QueryEventsTool {
+  name: string;
+  description: string;
+  inputSchema: ToolParamSchema;
+  execute(input: Record<string, unknown>, context: ToolExecutionContext): Promise<{ success: boolean; result?: string; error?: string }>;
+}
+
+export function createQueryEventsTool(history: EventHistory): QueryEventsTool {
+  const handler = makeQueryEventsHandler(history);
+  return {
+    name: queryEventsDefinition.name,
+    description: queryEventsDefinition.description,
+    inputSchema: queryEventsDefinition.parameters,
+    async execute(input: Record<string, unknown>, context: ToolExecutionContext): Promise<{ success: boolean; result?: string; error?: string }> {
+      try {
+        const result = await handler(input, context);
+        return { success: true, result };
+      } catch (err) {
+        return { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+  };
 }
 
 // =============================================================================

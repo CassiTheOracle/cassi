@@ -41,9 +41,10 @@ export function makeGetSubagentResultHandler(
     get(runId: string): any | undefined
     getResult(runId: string): { result?: string; error?: string; durationMs?: number } | undefined
   } | undefined,
+  thinker?: { getSubagent?: (runId: string) => { result?: string; error?: string; status?: string } | undefined } | undefined,
 ): ToolHandler {
   return async (input, _ctx: ToolExecutionContext) => {
-    if (!tracker) {
+    if (!tracker && !thinker?.getSubagent) {
       return JSON.stringify({
         error: 'Subagent tracker not available. Subagent inspection is disabled.',
       })
@@ -70,11 +71,21 @@ export function makeGetSubagentResultHandler(
     const startTime = Date.now()
     const maxWaitMs = timeoutSeconds * 1000
 
+    // Helper to get subagent info from either Thinker or tracker
+    const getInfo = (id: string) => thinker?.getSubagent?.(id) || tracker?.get(id)
+    const getResult = (id: string) => {
+      const fromThinker = thinker?.getSubagent?.(id)
+      if (fromThinker) {
+        return { result: fromThinker.result, error: fromThinker.error }
+      }
+      return tracker?.getResult(id)
+    }
+
     try {
       // If wait=true, poll until complete or timeout
       if (wait) {
         while (true) {
-          const info = tracker.get(runId)
+          const info = getInfo(runId)
 
           if (!info) {
             return JSON.stringify({
@@ -86,15 +97,14 @@ export function makeGetSubagentResultHandler(
 
           // Check if completed, failed, or timed out
           if (info.status === 'completed' || info.status === 'failed' || info.status === 'timeout') {
-            const result = tracker.getResult(runId)
+            const result = getResult(runId)
             return JSON.stringify({
               status: info.status,
-              runId: info.runId,
+              runId: info.runId || runId,
               label: info.label,
               result: result?.result,
               error: result?.error || info.error,
-              durationMs: result?.durationMs || info.durationMs,
-              tokensUsed: info.tokensUsed,
+              durationMs: info.durationMs,
               completedAt: info.completedAt,
               waitedMs: Date.now() - startTime,
             })
@@ -108,7 +118,7 @@ export function makeGetSubagentResultHandler(
               error: `Wait timeout exceeded after ${timeoutSeconds}s`,
               subagentStatus: info.status,
               waitedMs: elapsed,
-              elapsedMs: info.startedAt ? Date.now() - new Date(info.startedAt).getTime() : undefined,
+              elapsedMs: info.createdAt ? Date.now() - info.createdAt : undefined,
             })
           }
 
@@ -118,7 +128,7 @@ export function makeGetSubagentResultHandler(
       }
 
       // Non-blocking mode: return immediately
-      const info = tracker.get(runId)
+      const info = getInfo(runId)
 
       if (!info) {
         return JSON.stringify({
@@ -129,31 +139,29 @@ export function makeGetSubagentResultHandler(
 
       // If still running, return status
       if (info.status === 'pending' || info.status === 'running') {
-        const elapsed = info.startedAt
-          ? Date.now() - new Date(info.startedAt).getTime()
-          : Date.now() - new Date(info.createdAt).getTime()
+        const elapsed = info.createdAt
+          ? Date.now() - info.createdAt
+          : 0
 
         return JSON.stringify({
           status: info.status,
-          runId: info.runId,
+          runId: info.runId || runId,
           label: info.label,
           message: `Subagent is ${info.status}. Use wait=true to block until completion, or poll again later.`,
           elapsedMs: elapsed,
-          startedAt: info.startedAt,
           createdAt: info.createdAt,
         })
       }
 
       // Return result for completed/failed/timeout
-      const result = tracker.getResult(runId)
+      const result = getResult(runId)
       return JSON.stringify({
         status: info.status,
-        runId: info.runId,
+        runId: info.runId || runId,
         label: info.label,
         result: result?.result,
         error: result?.error || info.error,
-        durationMs: result?.durationMs || info.durationMs,
-        tokensUsed: info.tokensUsed,
+        durationMs: info.durationMs,
         completedAt: info.completedAt,
       })
     } catch (err) {

@@ -22,7 +22,7 @@ export const spawnSubagentDefinition: ToolDefinition = {
       },
       providerId: {
         type: 'string',
-        description: 'Optional explicit provider id to pin the subagent to a particular provider (e.g. "pi", "kimi-coding").',
+        description: 'Optional explicit provider id to pin the subagent to a particular provider (e.g. "kimi-coding", "github-copilot").',
       },
       timeoutSeconds: {
         type: 'number',

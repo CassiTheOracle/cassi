@@ -12,7 +12,7 @@ import { readFilesDefinition, readFilesHandler } from './read-files.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { webSearchDefinition, webSearchHandler } from './web-search.js'
-import { memorySearchDefinition, makeMemorySearchHandler } from './memory-search.js'
+import { memorySearchDefinition, makeMemorySearchHandler, rememberDefinition, makeRememberHandler } from './memory-search.js'
 import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
 import { createSubagentSpawnFunction } from './spawn-subagent-impl.js'
 import { thinkDefinition, makeThinkHandler } from './think.js'
@@ -20,6 +20,10 @@ import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subage
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
+import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
+import { registerCassandraEventTools } from './cassandra-event.js'
+import { registerContextWindowTools } from './context-window-tools.js'
+import { getEventBus, getContextWindowDebugger } from '../../events/index.js'
 
 export interface CoreToolDeps {
   memory?: IMemory
@@ -49,13 +53,17 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   registry.register(readFilesDefinition, readFilesHandler)
   registry.register(writeFileDefinition, writeFileHandler)
 
+  // Desktop Vision (Linux/KDE window capture)
+  registry.register(desktopVisionDefinition, desktopVisionHandler)
+
   // Network
   registry.register(webFetchDefinition, webFetchHandler)
   registry.register(webSearchDefinition, webSearchHandler)
 
-  // Memory search (requires memory module)
+  // Memory tools (requires memory module)
   if (deps.memory) {
     registry.register(memorySearchDefinition, makeMemorySearchHandler(deps.memory))
+    registry.register(rememberDefinition, makeRememberHandler(deps.memory))
   }
 
   // list_sessions — inline (simple)
@@ -76,7 +84,11 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     }
   )
 
-  // spawn_subagent — wired to real implementation when all deps available
+  // NOTE: spawn_subagent is now unified under Thinker
+  // Direct subagent spawning is disabled - all subagent operations go through Thinker
+  // for centralized coordination and persistence.
+  // 
+  // The spawnFn is still created for Thinker's internal use:
   const spawnFn = deps.sessionManager && deps.bus && deps.logger && deps.getPipeline
     ? createSubagentSpawnFunction({
         sessionManager: deps.sessionManager,
@@ -87,29 +99,32 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
       })
     : undefined
 
-  registry.register(
-    spawnSubagentDefinition,
-    makeSpawnSubagentHandler(deps.sessionManager || ({} as ISessionManager), spawnFn)
-  )
+  // Store spawnFn on deps for Thinker to access
+  ;(deps as any).spawnSubagentFn = spawnFn
 
   // Think tool — trigger the dialectic with expanded context and return the synthesis
+  // Also provides unified subagent spawning through Thinker
   if (deps.getPipeline) {
-    registry.register(thinkDefinition, makeThinkHandler(deps))
+    // Pass spawnFn to think handler so it can delegate subagent spawning to Thinker
+    registry.register(thinkDefinition, makeThinkHandler({ ...deps, spawnSubagentFn: spawnFn }))
   }
 
-  // Subagent inspection tools (requires subagent tracker)
-  if (deps.subagentTracker) {
+  // Subagent inspection tools - now routed through Thinker when available
+  // Thinker maintains a unified registry of all subagents for persistence
+  const thinkerRef = deps.getPipeline ? (deps.getPipeline() as any)?.intelligence?.thinker : undefined
+  
+  if (deps.subagentTracker || thinkerRef) {
     registry.register(
       listSubagentsDefinition,
-      makeListSubagentsHandler(deps.subagentTracker)
+      makeListSubagentsHandler(deps.subagentTracker, thinkerRef)
     )
     registry.register(
       getSubagentStatusDefinition,
-      makeGetSubagentStatusHandler(deps.subagentTracker)
+      makeGetSubagentStatusHandler(deps.subagentTracker, thinkerRef)
     )
     registry.register(
       getSubagentResultDefinition,
-      makeGetSubagentResultHandler(deps.subagentTracker)
+      makeGetSubagentResultHandler(deps.subagentTracker, thinkerRef)
     )
   }
 
@@ -125,8 +140,29 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
       },
       async (input, ctx) => {
         const result = await queryTool.execute(input as any, ctx)
-        return result.success ? result.result : { error: result.error }
+        if (result.success) {
+          return result.result ?? 'Query completed with no results.'
+        }
+        return `Error: ${result.error ?? 'Unknown error'}`
       }
     )
+  }
+
+  // Cassandra Event Stream Tools - enables Cassandra to access real-time session state
+  try {
+    const eventBus = getEventBus()
+    registerCassandraEventTools(registry, eventBus, () => {
+      // Get current session ID from context if available
+      return (deps.sessionManager as any)?.currentSessionId
+    })
+  } catch (err) {
+    // Event bus not available, skip registration
+  }
+
+  // Context Window Debugging Tools - allows Cassandra to inspect what the model sees
+  try {
+    registerContextWindowTools(registry, () => getContextWindowDebugger())
+  } catch (err) {
+    // Context window debugger not available, skip registration
   }
 }

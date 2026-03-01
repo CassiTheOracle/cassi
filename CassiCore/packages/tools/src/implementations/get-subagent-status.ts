@@ -24,6 +24,7 @@ export const getSubagentStatusDefinition: ToolDefinition = {
 
 export function makeGetSubagentStatusHandler(
   tracker: { get(runId: string): any | undefined } | undefined,
+  thinker?: { getSubagent?: (runId: string) => any | undefined } | undefined,
 ): ToolHandler {
   return async (input, _ctx: ToolExecutionContext) => {
     if (!tracker) {
@@ -41,7 +42,8 @@ export function makeGetSubagentStatusHandler(
     }
 
     try {
-      const info = tracker.get(runId)
+      // First check Thinker's unified registry, then fallback to tracker
+      let info = thinker?.getSubagent?.(runId) || tracker?.get(runId)
 
       if (!info) {
         return JSON.stringify({
