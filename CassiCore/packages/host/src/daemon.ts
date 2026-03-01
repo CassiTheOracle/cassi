@@ -28,6 +28,80 @@ import { buildSystemPrompt } from './workspace/loader.js'
 import { HealthMonitor } from './health-monitor.js'
 import { MCPRegistry } from './mcp/registry.js'
 import { CommandDispatcher } from './commands.js'
+import { createBridge } from './bridge.js'
+import { createSkillMetricsTracker, SkillMetricsTracker } from './intelligence/skill-metrics.js'
+import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
+import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
+
+// Singleton lock file path
+const CASSICORE_PID_FILE = path.join(homedir(), '.cassicore', 'daemon.pid')
+
+/**
+ * Check if another daemon instance is already running
+ * Returns the PID of the running daemon, or null if none
+ */
+function checkExistingDaemon(): number | null {
+  try {
+    if (!fs.existsSync(CASSICORE_PID_FILE)) {
+      return null
+    }
+
+    const pidContent = fs.readFileSync(CASSICORE_PID_FILE, 'utf-8').trim()
+    const existingPid = parseInt(pidContent, 10)
+
+    if (isNaN(existingPid) || existingPid <= 0) {
+      // Stale PID file
+      fs.unlinkSync(CASSICORE_PID_FILE)
+      return null
+    }
+
+    // Check if process is actually running
+    try {
+      process.kill(existingPid, 0)
+      // Process exists and we have permission to signal it
+      return existingPid
+    } catch (err) {
+      // Process doesn't exist or no permission - stale PID file
+      if ((err as NodeJS.ErrnoException).code === 'ESRCH') {
+        fs.unlinkSync(CASSICORE_PID_FILE)
+        return null
+      }
+      // EPERM - process exists but we can't signal it (different user)
+      return existingPid
+    }
+  } catch (err) {
+    // Any other error - assume no daemon running
+    return null
+  }
+}
+
+/**
+ * Write current PID to lock file
+ */
+function writePidFile(): void {
+  try {
+    const cassicoreDir = path.dirname(CASSICORE_PID_FILE)
+    if (!fs.existsSync(cassicoreDir)) {
+      fs.mkdirSync(cassicoreDir, { recursive: true })
+    }
+    fs.writeFileSync(CASSICORE_PID_FILE, process.pid.toString(), 'utf-8')
+  } catch (err) {
+    console.error(`Warning: Could not write PID file: ${String(err)}`)
+  }
+}
+
+/**
+ * Remove PID file on shutdown
+ */
+function cleanupPidFile(): void {
+  try {
+    if (fs.existsSync(CASSICORE_PID_FILE)) {
+      fs.unlinkSync(CASSICORE_PID_FILE)
+    }
+  } catch (err) {
+    // Ignore cleanup errors
+  }
+}
 
 export class Daemon {
   public bus: IEventBus
@@ -41,6 +115,7 @@ export class Daemon {
   public healthMonitor!: HealthMonitor
   private commands!: CommandDispatcher
   public subagentTracker!: SubagentTracker
+  public skillMetricsTracker?: SkillMetricsTracker
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -63,6 +138,25 @@ export class Daemon {
   async start(): Promise<{ admin?: { tcpPort: number | null; unixPath: string }; pid: number }> {
     // 0. Load .env secrets (before anything reads env vars)
     await this._loadEnv()
+
+    // 0b. Check for existing daemon instance (singleton enforcement)
+    const existingPid = checkExistingDaemon()
+    if (existingPid !== null) {
+      const errorMsg = `Another CassiCore daemon is already running (PID: ${existingPid}). Please stop it first or use: kill ${existingPid}`
+      console.error(`\n❌ ${errorMsg}\n`)
+      this.logger.error(errorMsg)
+      process.exit(1)
+    }
+
+    // Write our PID to the lock file
+    writePidFile()
+    this.logger.info(`[daemon] PID file written: ${process.pid}`)
+
+    // Register cleanup on exit
+    process.on('exit', cleanupPidFile)
+    process.on('SIGTERM', cleanupPidFile)
+    process.on('SIGINT', cleanupPidFile)
+    process.on('uncaughtException', cleanupPidFile)
 
     // 1. Load base file config
     const baseCfg = await Config.load()
@@ -97,6 +191,13 @@ export class Daemon {
     process.on("SIGTERM", stopHandler)
     process.on("SIGINT", stopHandler)
 
+    if (process.stdin.listenerCount("error") === 0) {
+      process.stdin.on("error", (err) => {
+        if ((err as NodeJS.ErrnoException).code === "EIO") return;
+        this.logger.warn?.('[daemon] process.stdin error', { error: String(err) })
+      })
+    }
+
     // 5. Global safety: log unhandled promise rejections to avoid daemon crash on library race conditions
     process.on('unhandledRejection', (reason, _promise) => {
       try {
@@ -105,14 +206,30 @@ export class Daemon {
           if (reason && typeof reason === 'object') {
             errMsg = (reason as any).stack || (reason as any).message || String(reason)
           }
-        } catch {}
+        } catch { }
         // Treat plain timeouts as lower-severity (they are common with provider/polling cancellations)
         if (String(errMsg).toLowerCase().includes('timeout')) {
           this.logger.debug?.('[daemon] unhandledRejection (timeout)', { error: errMsg })
         } else {
           this.logger.warn?.('[daemon] unhandledRejection', { error: errMsg })
         }
-      } catch {}
+      } catch { }
+    })
+
+    // Handle unhandled child process errors to prevent daemon crashes
+    process.on('uncaughtException', (error) => {
+      if (error && (error as any).code === 'ENOENT' && (error as any).syscall?.includes('spawn')) {
+        // Shell command failed - log but don't crash
+        this.logger.error?.('[daemon] shell command failed', {
+          syscall: (error as any).syscall,
+          path: (error as any).path,
+          message: error.message
+        })
+        // Don't exit - just log the error
+        return
+      }
+      // For other uncaught exceptions, log and continue if possible
+      this.logger.error?.('[daemon] uncaughtException', { error: error.message, stack: error.stack })
     })
 
     // 5. Create PluginHost with logger
@@ -161,10 +278,28 @@ export class Daemon {
       if ((this.intelligence.aiScientist as any)?.onEventBus) {
         (this.intelligence.aiScientist as any).onEventBus(bus)
       }
-      
+
       // Start AI Scientist monitoring
       if ((this.intelligence.aiScientist as any)?.start) {
         (this.intelligence.aiScientist as any).start()
+      }
+
+      // Initialize and start Unified Intelligence Loop
+      try {
+        const { createUnifiedIntelligenceLoop } = await import('./intelligence/unified-loop.js')
+        const unifiedLoop = createUnifiedIntelligenceLoop(
+          this.logger.child('unified-loop'),
+          this.bus,
+          {
+            enabled: this.config.get<boolean>('intelligence.unifiedLoop.enabled', true),
+            backgroundIntervalMs: this.config.get<number>('intelligence.unifiedLoop.backgroundIntervalMs', 60000),
+          }
+        )
+
+        await unifiedLoop.start()
+        this.logger.info('[daemon] Unified Intelligence Loop started')
+      } catch (err) {
+        this.logger.warn('[daemon] Failed to initialize Unified Intelligence Loop', { error: String(err) })
       }
 
       // Wire Subconscious to event bus for background consolidation
@@ -185,32 +320,41 @@ export class Daemon {
         (this.intelligence.ruleEnforcer as any).onEventBus(bus)
       }
 
+      // Initialize Skill Metrics Tracker
+      try {
+        this.skillMetricsTracker = createSkillMetricsTracker(this.logger.child('skill-metrics'), bus)
+        await this.skillMetricsTracker.initialize()
+        this.logger.info('[daemon] Skill Metrics Tracker initialized')
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize Skill Metrics Tracker: ${String(err)}`)
+      }
+
       // ── Phase 3: Thinker Event Listeners ────────────────────────────────────
       // Listen for Thinker's proactive events
-      ;(bus as any).on('thinker:inject-insight', (e: any) => {
+      ; (bus as any).on('thinker:inject-insight', (e: any) => {
         this.logger.info('[daemon] Thinker injecting insight', { urgency: e.urgency })
         // Store for next turn injection via pipeline
         if (e.insight && this.pipeline) {
           // This will be picked up by the turn pipeline
-          ;(this.pipeline as any).pendingThinkerInsight = e.insight
+          ; (this.pipeline as any).pendingThinkerInsight = e.insight
         }
       })
 
-      ;(bus as any).on('thinker:early-warning', (e: any) => {
-        this.logger.warn('[daemon] Thinker early warning', { pattern: e.pattern })
-        // Trigger optimizer early intervention
-        if (this.intelligence?.optimizer) {
-          ;(this.intelligence.optimizer as any).handleEarlyWarning?.(e)
-        }
-      })
+        ; (bus as any).on('thinker:early-warning', (e: any) => {
+          this.logger.warn('[daemon] Thinker early warning', { pattern: e.pattern })
+          // Trigger optimizer early intervention
+          if (this.intelligence?.optimizer) {
+            ; (this.intelligence.optimizer as any).handleEarlyWarning?.(e)
+          }
+        })
 
-      ;(bus as any).on('thinker:self-modified', (e: any) => {
-        this.logger.info('[daemon] Thinker self-modified strategy', e.newStrategy)
-      })
+        ; (bus as any).on('thinker:self-modified', (e: any) => {
+          this.logger.info('[daemon] Thinker self-modified strategy', e.newStrategy)
+        })
 
-      ;(bus as any).on('thinker:swarm-deployed', (e: any) => {
-        this.logger.info('[daemon] Thinker deployed swarm', { agents: e.agentsDeployed, roles: e.roles })
-      })
+        ; (bus as any).on('thinker:swarm-deployed', (e: any) => {
+          this.logger.info('[daemon] Thinker deployed swarm', { agents: e.agentsDeployed, roles: e.roles })
+        })
 
       this.logger.info(`[daemon] Intelligence layer loaded — ${this.intelligence.all.length} modules active`)
     } catch (err) {
@@ -323,6 +467,8 @@ export class Daemon {
         centralized: true,
         bus: this.bus,
       })
+        // Store providers on daemon instance for admin API access
+        ; (this as any).providers = providers
     } catch (err) {
       this.logger.warn('[daemon] Providers not loaded — run Phase 3 providers build')
     }
@@ -339,10 +485,10 @@ export class Daemon {
 
     // Wire the default provider into the Thinker so it can make real calls
     if (this.intelligence?.thinker) {
-      const defaultProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'kimi'
+      const defaultProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'lmstudio'
       const thinkerProvider = providers.get(defaultProviderId) ?? providers.values().next().value
       if (thinkerProvider) {
-        ;(this.intelligence.thinker as any).setProvider(thinkerProvider)
+        ; (this.intelligence.thinker as any).setProvider(thinkerProvider)
         this.logger.info(`[daemon] Thinker provider wired: ${thinkerProvider.id}`)
       } else {
         this.logger.warn('[daemon] Thinker: no provider available — thinking cycles will be skipped')
@@ -351,10 +497,10 @@ export class Daemon {
 
     // Wire the provider into the DialecticSystem (Yang, Yin, Serenity)
     if (this.intelligence?.dialectic) {
-      const dialecticProviderId = this.config.get<string>('intelligence.dialectic.provider', '') || 'pi-bridge'
-      const dialecticProvider = providers.get(dialecticProviderId) ?? providers.get('pi-bridge') ?? providers.values().next().value
+      const dialecticProviderId = this.config.get<string>('intelligence.dialectic.provider', '') || 'lmstudio'
+      const dialecticProvider = providers.get(dialecticProviderId) ?? providers.get('lmstudio') ?? providers.values().next().value
       if (dialecticProvider) {
-        ;(this.intelligence.dialectic as any).setProvider(dialecticProvider)
+        ; (this.intelligence.dialectic as any).setProvider(dialecticProvider)
         this.logger.info(`[daemon] Dialectic provider wired: ${dialecticProvider.id}`)
 
         // Wire provider to Subconscious. Prefer a dedicated subconscious provider if configured,
@@ -378,12 +524,11 @@ export class Daemon {
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`[daemon] System prompt built (${systemPrompt.length} chars)`)
     const sessionStore = SessionStore.open(this.logger)
-    // Resolve default model: prefer intelligence config, fall back to kimi-k2-0711-preview
     const defaultProvider = this.config.get<string>('intelligence.defaultProvider', 'kimi-coding')
-    const configuredModel = this.config.get<string>('intelligence.defaultModel', '')
+    const configuredModel = this.config.get<string>('intelligence.defaultModel', 'kimi-k2p5')
     const defaultModel = configuredModel
       ? `${defaultProvider}/${configuredModel}`
-      : `${defaultProvider}/k2p5`
+      : `${defaultProvider}/kimi-k2p5`
     if (defaultModel) {
       this.logger.info(`[daemon] Default model: ${defaultModel}`)
     }
@@ -430,9 +575,9 @@ export class Daemon {
       allowedPaths,
       networkAllowlist,
       logger: this.logger,
-    })
-    // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
-    ;(this as any).toolExecutor = toolExecutor
+    }, this.bus)
+      // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
+      ; (this as any).toolExecutor = toolExecutor
     this.logger.info(`[daemon] Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
 
     // Start a local agent-runner to execute agent:task-assigned events (spawn_subagent)
@@ -475,10 +620,29 @@ export class Daemon {
       toolRegistry,
       toolExecutor,
     )
-    
+
+    // Initialize context window debugger
+    try {
+      const ctxDebugEnabled = this.config.get<boolean>('debug.contextWindow.enabled', true)
+      if (ctxDebugEnabled) {
+        const ctxDebugger = initContextWindowDebugger(this.bus as any)
+        setContextWindowDebugger(ctxDebugger)
+        // Mount the debug middleware early in the pipeline
+        this.pipeline.prependMiddleware(contextWindowDebugMiddleware)
+        this.logger.info('[daemon] Context window debugging enabled')
+      }
+    } catch (err) {
+      this.logger.warn('[daemon] Failed to initialize context window debugger', { error: String(err) })
+    }
+
     // Wire dialectic system to pipeline for parallel processing
     if (this.intelligence?.dialectic) {
       this.pipeline.setDialectic(this.intelligence.dialectic)
+    }
+
+    // Wire subconscious system to pipeline for automatic context retrieval
+    if (this.intelligence?.subconscious) {
+      this.pipeline.setSubconscious(this.intelligence.subconscious)
     }
 
     // Mount intelligence middlewares — continuity only (thinker runs fire-and-forget via onTurnEnd)
@@ -487,6 +651,8 @@ export class Daemon {
         continuity: this.intelligence.continuity as any,
 
       })
+      // Set intelligence layer reference on pipeline for tool handlers
+      this.pipeline.setIntelligence(this.intelligence)
 
       // Wire Context Manager to sessions + pipeline if available
       try {
@@ -513,22 +679,29 @@ export class Daemon {
       this.intelligence.optimizer.setSessions(this.sessions)
       this.intelligence.optimizer.setPipeline(this.pipeline)
       this.logger.info('[daemon] Optimizer wired to session manager and pipeline')
+
+      // Wire Thinker's session manager and pipeline getter for unified subagent spawning
+      if ((this.intelligence.thinker as any)?.__awaitingWiring) {
+        (this.intelligence.thinker as any).__awaitingWiring.setSessionManager(this.sessions, sessionStore)
+          ; (this.intelligence.thinker as any).__awaitingWiring.setPipelineGetter(() => this.pipeline)
+        this.logger.info('[daemon] Thinker wired to session manager and pipeline for subagent spawning')
+      }
     }
 
     // ── Health Monitor ────────────────────────────────────────────────────────
     const healthIntervalMs = this.config.get<number>('health.intervalMs', 30_000)
     this.healthMonitor = new HealthMonitor(this.bus, this.logger, {
-      intervalMs:  healthIntervalMs,
+      intervalMs: healthIntervalMs,
       historySize: 20,
-      selfHeal:    true,
+      selfHeal: true,
     })
     this.healthMonitor.wire({
       providers,
-      pluginHost:   this.pluginHost as any,
+      pluginHost: this.pluginHost as any,
       intelligence: this.intelligence as any,
-      pipeline:     this.pipeline,
-      sessions:     this.sessions as any,
-      mcp:          mcpRegistry,
+      pipeline: this.pipeline,
+      sessions: this.sessions as any,
+      mcp: mcpRegistry,
     })
 
     // 7. Subscribe to worker:message
@@ -559,10 +732,9 @@ export class Daemon {
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
-                // Stream thinking tokens only to CLI channel
-                if (tgt === 'channel:cli') {
-                  this.pluginHost.send(tgt, { sessionId: sid, content: `${payload.token as string}`, done: false })
-                }
+                // Thinking tokens are processed by subconscious but not displayed in CLI
+                // to avoid garbled output. Use SSE streaming endpoint (/chat/:id/stream)
+                // if you need to capture thinking events separately.
                 return
               } else if (payload.type === 'turn:tool_call') {
                 // Show tool usage inline — italicised name, no done flag
@@ -624,7 +796,17 @@ export class Daemon {
             attachments: payload.attachments as import('../types/runtime.js').ImageAttachment[] | undefined,
             timestamp: new Date(),
           }
-          this.logger.info(`[daemon] Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId })
+
+          // Update session model if provided (for CLI channel with model arg)
+          const modelFromPayload = (payload as any).model
+          if (modelFromPayload && pluginId === 'channel:cli') {
+            const session = this.sessions.get(inbound.sessionId)
+            if (session) {
+              session.config.model = modelFromPayload
+            }
+          }
+
+          this.logger.info(`[daemon] Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId, model: modelFromPayload })
 
           // Process the turn — streaming tokens flow via bus → worker:message above.
           // We do NOT send the final response here; the turn:end handler does that
@@ -652,9 +834,9 @@ export class Daemon {
       const { sessionId, summary } = e
       const s = this.sessions.get(sessionId)
       if (s?.channelId) {
-        this.pluginHost.send(s.channelId, { 
-          type: 'status', 
-          payload: { sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' } 
+        this.pluginHost.send(s.channelId, {
+          type: 'status',
+          payload: { sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' }
         })
       }
     })
@@ -663,8 +845,8 @@ export class Daemon {
       const { sessionId } = e
       const s = this.sessions.get(sessionId)
       if (s?.channelId && s.channelId === 'channel:telegram') {
-         // only notify Telegram for now as it's more "detached"
-         // this.pluginHost.send(s.channelId, { type: 'status', payload: { sessionId, text: 'Context synced.', type: 'sync' } })
+        // only notify Telegram for now as it's more "detached"
+        // this.pluginHost.send(s.channelId, { type: 'status', payload: { sessionId, text: 'Context synced.', type: 'sync' } })
       }
     })
 
@@ -711,6 +893,16 @@ export class Daemon {
       this.logger.warn(`AdminAPI failed to start: ${String(err)}`)
     }
 
+    // 11b. Start Bridge (OpenAI-compatible API for OpenClaw integration)
+    try {
+      const bridgeSocketPath = this.config.get<string>('bridge.socketPath', path.join(homedir(), '.cassicore', 'bridge.sock'))
+      const bridge = createBridge(providers, this.logger, { socketPath: bridgeSocketPath })
+      await bridge.start()
+      this.logger.info(`[daemon] Bridge listening on unix:${bridgeSocketPath}`)
+    } catch (err) {
+      this.logger.warn(`[daemon] Bridge failed to start: ${String(err)}`)
+    }
+
     // 12. Set running
     this.running = true
 
@@ -724,7 +916,7 @@ export class Daemon {
     const loaded = this.pluginHost.all().length
     const pid = process.pid
     this.logger.info("╔══════════════════════════════════╗")
-    this.logger.info("║   CassiCore v0.1.0 — Ready       ║")
+    this.logger.info("║   CassiCore v0.1.2 — Ready       ║")
     this.logger.info("╚══════════════════════════════════╝")
     this.logger.info(`[daemon] ${loaded} plugin(s) loaded | hot-reload active | PID: ${pid}`)
 
@@ -779,6 +971,12 @@ export class Daemon {
       this.healthMonitor?.stop()
     } catch { /* ignore */ }
 
+    // stop unified intelligence loop
+    try {
+      // Note: unified loop is a singleton per process, we just emit the shutdown event
+      this.bus.emit({ type: 'unified-loop:stop' as any })
+    } catch { /* ignore */ }
+
     // shutdown plugin host
     try {
       await this.pluginHost.shutdown()
@@ -797,7 +995,7 @@ export class Daemon {
 
     // close session store
     try {
-      ;(this.sessions as any).store?.close?.()
+      ; (this.sessions as any).store?.close?.()
     } catch { /* ignore */ }
 
     // intelligence cleanup
@@ -823,7 +1021,7 @@ export class Daemon {
     this.logger.info("Reloading config (no restart)...")
     try {
       await this.config.reload()
-      
+
       const defaultModel = this.config.get<string>('intelligence.defaultModel', 'github-copilot/gpt-5-mini')
       const thinking = this.config.get<string>('intelligence.thinking', 'high')
       this.sessions.setDefaultConfig({ model: defaultModel, thinking: thinking as any })
