@@ -18,7 +18,7 @@ interface WSConnection {
 export function createAdminApi(daemon: any, logger: ILogger) {
   let unixPath = path.join(os.homedir(), '.cassicore', 'admin.sock')
   const tcpHost = (daemon?.config?.get?.('admin.host', '127.0.0.1')) ?? '127.0.0.1'
-  const baseTcpPort = Number(daemon?.config?.get?.('admin.port', 7432)) || 7432
+  const baseTcpPort = Number(daemon?.config?.get?.('admin.port', 7433)) || 7433
   let currentTcpPort = baseTcpPort
 
   // WebSocket connections store
@@ -29,6 +29,130 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     const s = JSON.stringify(obj)
     res.writeHead(code, { 'Content-Type': 'application/json' })
     res.end(s)
+  }
+
+  // SSE connection store
+  const sseConnections = new Map<string, { res: http.ServerResponse; sessionId: string; connectedAt: number }>()
+  let sseConnectionId = 0
+
+  /**
+   * Extract first user message from session history
+   */
+  function getFirstUserMessage(history: any[]): string {
+    for (const msg of history) {
+      if (msg.role === 'user') {
+        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        return content.slice(0, 200) || '(empty message)'
+      }
+    }
+    return '(no messages)'
+  }
+
+  /**
+   * Extract last user message from session history
+   */
+  function getLastUserMessage(history: any[]): string {
+    let lastMessage = '(no messages)'
+    for (const msg of history) {
+      if (msg.role === 'user') {
+        const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+        lastMessage = content.slice(0, 200) || '(empty message)'
+      }
+    }
+    return lastMessage
+  }
+
+  /**
+   * Build state snapshot from event history
+   */
+  function buildStateSnapshot(sessionId: string, events: any[]): any {
+    const snapshot: any = {
+      sessionId,
+      connected: true,
+      lastEventTimestamp: 0,
+      turnIndex: 0,
+      isStreaming: false,
+      messageCount: 0,
+      activeTools: [],
+      activeToolCalls: [],
+      totalTokensUsed: 0,
+    }
+
+    const activeToolCalls = new Map<string, { toolCallId: string; toolName: string; startTime: number }>()
+
+    for (const event of events) {
+      snapshot.lastEventTimestamp = Math.max(snapshot.lastEventTimestamp, event.timestamp || 0)
+
+      switch (event.type) {
+        case 'session_start':
+          snapshot.sessionStartTime = event.timestamp
+          break
+        case 'agent_start':
+          snapshot.turnIndex = event.turnIndex || 0
+          snapshot.model = event.model
+          break
+        case 'streaming_start':
+          snapshot.isStreaming = true
+          break
+        case 'streaming_end':
+          snapshot.isStreaming = false
+          break
+        case 'user_message':
+        case 'assistant_message':
+          snapshot.messageCount++
+          break
+        case 'assistant_message':
+          snapshot.totalTokensUsed += (event.inputTokens || 0) + (event.outputTokens || 0)
+          break
+        case 'tool_execution_start':
+          activeToolCalls.set(event.toolCallId, {
+            toolCallId: event.toolCallId,
+            toolName: event.toolName,
+            startTime: event.timestamp,
+          })
+          break
+        case 'tool_execution_end':
+          activeToolCalls.delete(event.toolCallId)
+          break
+        case 'model_select':
+          snapshot.model = event.model
+          break
+        case 'context_usage':
+          snapshot.contextUsage = {
+            tokens: event.tokens,
+            contextWindow: event.contextWindow,
+            percent: event.percent,
+          }
+          break
+      }
+    }
+
+    snapshot.activeToolCalls = Array.from(activeToolCalls.values())
+    return snapshot
+  }
+
+  /**
+   * Send SSE event to all connections for a session
+   */
+  function broadcastSSE(sessionId: string, event: any): void {
+    const data = JSON.stringify(event)
+    const message = [
+      `id: ${event.eventId || `evt_${Date.now()}`}`,
+      `event: ${event.type}`,
+      `data: ${data}`,
+      '',
+    ].join('\n')
+
+    for (const [id, conn] of sseConnections) {
+      if (conn.sessionId === sessionId) {
+        try {
+          conn.res.write(message + '\n')
+        } catch {
+          // Connection closed
+          sseConnections.delete(id)
+        }
+      }
+    }
   }
 
   function parseBody(req: http.IncomingMessage): Promise<any> {
@@ -60,65 +184,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
-  async function handlePiBridgeWebSocket(req: http.IncomingMessage, socket: any, head: Buffer) {
-    // Accept WebSocket connection
-    const key = req.headers['sec-websocket-key']
-    if (!key) {
-      socket.destroy()
-      return
-    }
-
-    const crypto = await import('node:crypto')
-    const acceptKey = crypto.createHash('sha1')
-      .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
-      .digest('base64')
-
-    socket.write(
-      'HTTP/1.1 101 Switching Protocols\r\n' +
-      'Upgrade: websocket\r\n' +
-      'Connection: Upgrade\r\n' +
-      `Sec-WebSocket-Accept: ${acceptKey}\r\n` +
-      '\r\n'
-    )
-
-    const connId = `pi-bridge-${++wsConnectionId}`
-    const conn: WSConnection = { socket, sessionId: 'pi-bridge', subscribed: true }
-    wsConnections.set(connId, conn)
-
-    logger.info(`[admin-api] Pi Bridge WebSocket connected: ${connId}`)
-
-    // Listen for requests from the daemon to be sent to pi
-    const requestHandler = (e: any) => {
-      if (e.type === 'pi:completion:request') {
-        sendWebSocketMessage(socket, JSON.stringify(e))
-      }
-    }
-    daemon.bus.on('pi:completion:request', requestHandler)
-
-    socket.on('close', () => {
-      wsConnections.delete(connId)
-      daemon.bus.off('pi:completion:request', requestHandler)
-      logger.info(`[admin-api] Pi Bridge WebSocket disconnected: ${connId}`)
-    })
-
-    socket.on('error', (err: any) => {
-      logger.warn(`[admin-api] Pi Bridge WebSocket error: ${String(err)}`)
-      socket.destroy()
-    })
-  }
-
   /**
    * Set up WebSocket connection handling
    */
   async function handleWebSocketUpgrade(req: http.IncomingMessage, socket: any, head: Buffer) {
     const url = new URL(req.url || '', `http://${tcpHost}:${currentTcpPort}`)
     const parts = url.pathname.split('/').filter(Boolean)
-    
-    // Handle /pi-bridge WebSocket connections
-    if (parts[0] === 'pi-bridge') {
-      await handlePiBridgeWebSocket(req, socket, head)
-      return
-    }
     
     // Only handle /dialectic/:sessionId/stream WebSocket connections
     if (parts[0] !== 'dialectic' || parts.length !== 3 || parts[2] !== 'stream') {
@@ -262,7 +333,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             uptimeMs:       snapshot.uptimeMs,
             memoryMb:       snapshot.memoryMb,
             eventLoopLagMs: snapshot.eventLoopLagMs,
-            version:        daemon.config?.get?.('daemon.version', '0.1.0') ?? '0.1.0',
+            version:        daemon.config?.get?.('daemon.version', '0.1.2') ?? '0.1.2',
             checks:         snapshot.checks,
           })
         }
@@ -271,7 +342,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, 200, {
           status:  'starting',
           uptime:  process.uptime(),
-          version: daemon.config?.get?.('daemon.version', '0.1.0') ?? '0.1.0',
+          version: daemon.config?.get?.('daemon.version', '0.1.2') ?? '0.1.2',
         })
       }
 
@@ -288,6 +359,434 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         if (!monitor) return sendJSON(res, 503, { error: 'health monitor not initialised' })
         const snapshot = await monitor.runChecks()
         return sendJSON(res, snapshot.overall === 'down' ? 503 : 200, snapshot)
+      }
+
+      // ── Event Ingestion (from CLI) ─────────────────────────────────────────
+      // POST /events/ingest - Receive events from CLI extension bridge
+      if (req.method === 'POST' && url.pathname === '/events/ingest') {
+        try {
+          const body = await parseBody(req)
+          if (!body || typeof body !== 'object' || !body.sessionId || !Array.isArray(body.events)) {
+            return sendJSON(res, 400, { error: 'expected { sessionId, events: [...] }' })
+          }
+
+          // Import event bus types
+          const { getEventBus } = await import('./events/index.js')
+          const eventBus = getEventBus()
+
+          let ingested = 0
+          const errors: string[] = []
+
+          for (const event of body.events) {
+            try {
+              // Ensure required fields
+              if (!event.eventId) {
+                event.eventId = `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`
+              }
+              if (!event.timestamp) {
+                event.timestamp = Date.now()
+              }
+              if (!event.sessionId) {
+                event.sessionId = body.sessionId
+              }
+
+              eventBus.emit(event)
+              ingested++
+            } catch (err) {
+              errors.push(String(err))
+            }
+          }
+
+          return sendJSON(res, 200, { ingested, errors: errors.length > 0 ? errors : undefined })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /events/history?sessionId=xxx&since=xxx&limit=xxx
+      if (req.method === 'GET' && url.pathname === '/events/history') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          const { getEventBus } = await import('./events/index.js')
+          const eventBus = getEventBus()
+
+          const since = parseInt(url.searchParams.get('since') || '0', 10)
+          const limit = parseInt(url.searchParams.get('limit') || '100', 10)
+          const eventTypes = url.searchParams.get('eventTypes')?.split(',') || []
+
+          let events = eventBus.getEventsSince(sessionId, since)
+          if (eventTypes.length > 0) {
+            events = events.filter(e => eventTypes.includes(e.type))
+          }
+
+          const total = events.length
+          const hasMore = total > limit
+          events = events.slice(0, limit)
+
+          return sendJSON(res, 200, { events, total, hasMore })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /state?sessionId=xxx - Get current session state snapshot
+      if (req.method === 'GET' && url.pathname === '/state') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          const { getEventBus } = await import('./events/index.js')
+          const eventBus = getEventBus()
+
+          const events = eventBus.getAllEvents(sessionId)
+          const snapshot = buildStateSnapshot(sessionId, events)
+
+          return sendJSON(res, 200, snapshot)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /events/stream?sessionId=xxx - SSE endpoint for real-time events
+      if (req.method === 'GET' && url.pathname === '/events/stream') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          // Import event bus and subscribe
+          const { getEventBus } = await import('./events/index.js')
+          const eventBus = getEventBus()
+
+          // Check for lastEventId for replay
+          const lastEventId = url.searchParams.get('lastEventId')
+          let missedEvents: any[] = []
+          if (lastEventId) {
+            const match = lastEventId.match(/evt_(\d+)_/)
+            if (match) {
+              const since = parseInt(match[1], 10)
+              missedEvents = eventBus.getEventsSince(sessionId, since)
+            }
+          }
+
+          // Setup SSE headers
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+          })
+
+          const connId = `sse_${++sseConnectionId}`
+          const conn = { res, sessionId, connectedAt: Date.now() }
+          sseConnections.set(connId, conn)
+
+          // Send missed events
+          for (const event of missedEvents) {
+            const data = JSON.stringify(event)
+            res.write([
+              `id: ${event.eventId}`,
+              `event: ${event.type}`,
+              `data: ${data}`,
+              '',
+            ].join('\n') + '\n')
+          }
+
+          // Send connected event
+          const connectedEvent = {
+            type: 'sse_connected',
+            sessionId,
+            timestamp: Date.now(),
+            eventId: `evt_${Date.now()}`,
+          }
+          res.write([
+            `id: ${connectedEvent.eventId}`,
+            `event: ${connectedEvent.type}`,
+            `data: ${JSON.stringify(connectedEvent)}`,
+            '',
+          ].join('\n') + '\n')
+
+          // Subscribe to event bus
+          const unsubscribe = eventBus.onAll((event: any) => {
+            if (event.sessionId === sessionId) {
+              broadcastSSE(sessionId, event)
+            }
+          })
+
+          // Handle disconnect
+          res.on('close', () => {
+            sseConnections.delete(connId)
+            unsubscribe.unsubscribe()
+          })
+
+          return // Don't end response - keep connection open
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // ── Context Window Debugging ───────────────────────────────────────────
+
+      // GET /debug/context-window?sessionId=xxx - Get latest context window snapshot
+      if (req.method === 'GET' && url.pathname === '/debug/context-window') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          const { getContextWindowDebugger } = await import('./events/index.js')
+          const ctxDebugger = getContextWindowDebugger()
+
+          if (!ctxDebugger) {
+            return sendJSON(res, 503, { error: 'Context window debugging not enabled' })
+          }
+
+          const snapshot = ctxDebugger.getLatestSnapshot(sessionId)
+          if (!snapshot) {
+            return sendJSON(res, 404, { error: 'No context window snapshot found for this session' })
+          }
+
+          return sendJSON(res, 200, { snapshot })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /debug/context-window/history?sessionId=xxx&since=xxx - Get snapshot history
+      if (req.method === 'GET' && url.pathname === '/debug/context-window/history') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          const { getContextWindowDebugger } = await import('./events/index.js')
+          const ctxDebugger = getContextWindowDebugger()
+
+          if (!ctxDebugger) {
+            return sendJSON(res, 503, { error: 'Context window debugging not enabled' })
+          }
+
+          const since = url.searchParams.get('since') ? parseInt(url.searchParams.get('since')!, 10) : 0
+          const snapshots = since 
+            ? ctxDebugger.getSnapshotsSince(sessionId, since)
+            : ctxDebugger.getSnapshots(sessionId)
+
+          return sendJSON(res, 200, { 
+            sessionId, 
+            snapshots,
+            count: snapshots.length,
+            stats: ctxDebugger.getStats(sessionId)
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /debug/context-window/stream?sessionId=xxx - SSE stream for context window updates
+      if (req.method === 'GET' && url.pathname === '/debug/context-window/stream') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          const { getEventBus, getContextWindowDebugger } = await import('./events/index.js')
+          const eventBus = getEventBus()
+          const ctxDebugger = getContextWindowDebugger()
+
+          if (!ctxDebugger) {
+            return sendJSON(res, 503, { error: 'Context window debugging not enabled' })
+          }
+
+          // Send current snapshot first
+          const latest = ctxDebugger.getLatestSnapshot(sessionId)
+
+          // Setup SSE headers
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+          })
+
+          const connId = `ctx_sse_${++sseConnectionId}`
+          const conn = { res, sessionId, connectedAt: Date.now() }
+          sseConnections.set(connId, conn)
+
+          // Send current snapshot as initial event
+          if (latest) {
+            res.write([
+              `id: ${latest.eventId}`,
+              `event: context_window_snapshot`,
+              `data: ${JSON.stringify(latest)}`,
+              '',
+            ].join('\n') + '\n')
+          }
+
+          // Subscribe to context window events only
+          const unsubscribe = eventBus.onAll((event: any) => {
+            if (event.sessionId === sessionId && 
+                (event.type === 'context_window_snapshot' || event.type === 'context_window_diff')) {
+              const data = JSON.stringify(event)
+              try {
+                res.write([
+                  `id: ${event.eventId}`,
+                  `event: ${event.type}`,
+                  `data: ${data}`,
+                  '',
+                ].join('\n') + '\n')
+              } catch {
+                // Connection closed
+                sseConnections.delete(connId)
+                unsubscribe.unsubscribe()
+              }
+            }
+          })
+
+          // Handle disconnect
+          res.on('close', () => {
+            sseConnections.delete(connId)
+            unsubscribe.unsubscribe()
+          })
+
+          return // Keep connection open
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /debug/context-window/stats?sessionId=xxx - Get context window statistics
+      if (req.method === 'GET' && url.pathname === '/debug/context-window/stats') {
+        const sessionId = url.searchParams.get('sessionId')
+        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+
+        try {
+          const { getContextWindowDebugger } = await import('./events/index.js')
+          const ctxDebugger = getContextWindowDebugger()
+
+          if (!ctxDebugger) {
+            return sendJSON(res, 503, { error: 'Context window debugging not enabled' })
+          }
+
+          const stats = ctxDebugger.getStats(sessionId)
+          return sendJSON(res, 200, { sessionId, stats })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /debug/context-window/clear - Clear context window history for a session
+      if (req.method === 'POST' && url.pathname === '/debug/context-window/clear') {
+        try {
+          const body = await parseBody(req)
+          const sessionId = body?.sessionId
+
+          if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required in body' })
+
+          const { getContextWindowDebugger } = await import('./events/index.js')
+          const ctxDebugger = getContextWindowDebugger()
+
+          if (!ctxDebugger) {
+            return sendJSON(res, 503, { error: 'Context window debugging not enabled' })
+          }
+
+          ctxDebugger.clearSession(sessionId)
+          return sendJSON(res, 200, { ok: true, message: `Context window history cleared for ${sessionId}` })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /health/providers — detailed provider health including quota status
+      if (req.method === 'GET' && url.pathname === '/health/providers') {
+        const providerHealth: Array<{
+          id: string
+          status: 'ok' | 'degraded' | 'down'
+          models: string[]
+          accounts?: Array<{
+            profileId: string
+            status: 'ok' | 'degraded' | 'down'
+            quotaStatus?: 'healthy' | 'low' | 'exhausted'
+            tokenExpiry?: number
+            tokenExpiresIn?: number
+            error?: string
+          }>
+        }> = []
+
+        // Access providers from the daemon's provider map or intelligence layer
+        const providers = (daemon as any).providers || new Map<string, any>()
+        
+        // Helper to unwrap CentralizedProvider
+        function unwrapProvider(p: any): any {
+          return p?.wrapped || p
+        }
+        
+        for (const [id, provider] of providers) {
+          const health: any = {
+            id,
+            status: 'ok' as const,
+            models: (provider as any).models || [],
+          }
+
+          // Qwen load balancer - check each account
+          const unwrapped = unwrapProvider(provider)
+          if (id === 'qwen' && (unwrapped as any).accounts) {
+            const lb = unwrapped as any
+            health.accounts = []
+            
+            for (let i = 0; i < lb.accounts.length; i++) {
+              const acc = lb.accounts[i]
+              const stats = lb.stats?.[i]
+              const accountHealth: any = {
+                profileId: acc.profileId,
+                status: stats?.cooldownUntil && Date.now() < stats.cooldownUntil ? 'degraded' : 'ok',
+                tokenExpiry: acc.credentials?.expires,
+                tokenExpiresIn: acc.credentials?.expires ? acc.credentials.expires - Date.now() : undefined,
+              }
+
+              // Check if token is expired
+              if (acc.credentials?.expires && acc.credentials.expires < Date.now()) {
+                accountHealth.status = 'down'
+                accountHealth.error = 'Token expired'
+              }
+
+              // Try a test ping to check quota
+              try {
+                const testProvider = lb.providers?.[i]
+                if (testProvider) {
+                  const pingResult = await testProvider.ping()
+                  if (!pingResult) {
+                    accountHealth.status = 'degraded'
+                    accountHealth.quotaStatus = 'exhausted'
+                    accountHealth.error = 'Quota exceeded or service unavailable'
+                  } else {
+                    accountHealth.quotaStatus = 'healthy'
+                  }
+                }
+              } catch (err: any) {
+                const errMsg = String(err?.message || err)
+                if (errMsg.includes('quota') || errMsg.includes('429')) {
+                  accountHealth.quotaStatus = 'exhausted'
+                  accountHealth.status = 'degraded'
+                } else if (errMsg.includes('auth') || errMsg.includes('token')) {
+                  accountHealth.status = 'down'
+                }
+                accountHealth.error = errMsg
+              }
+
+              health.accounts.push(accountHealth)
+            }
+
+            // Overall status based on accounts
+            const allDown = health.accounts.every((a: any) => a.status === 'down')
+            const anyOk = health.accounts.some((a: any) => a.status === 'ok')
+            health.status = allDown ? 'down' : (anyOk ? 'ok' : 'degraded')
+          }
+
+          providerHealth.push(health)
+        }
+
+        return sendJSON(res, 200, {
+          timestamp: new Date().toISOString(),
+          providers: providerHealth,
+        })
       }
 
       if (req.method === 'GET' && parts[0] === 'config' && parts.length === 1) {
@@ -471,6 +970,60 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, 200, modules)
       }
 
+      // GET /intelligence/subconscious/debug — expose subconscious capture for a session
+      if (parts[0] === 'intelligence' && parts[1] === 'subconscious' && parts[2] === 'debug' && req.method === 'GET') {
+        const sessionId = url.searchParams.get('sessionId') || 'default'
+        try {
+          const subconscious = daemon.intelligence?.subconscious
+          const contextManager = daemon.intelligence?.contextManager
+          
+          // Get mental model if v2 enabled
+          const mentalModel = subconscious?.getMentalModel?.(sessionId)
+          
+          // Get effective context
+          let contextData: any = null
+          if (contextManager?.getEffectiveContext) {
+            try {
+              const ctx = await contextManager.getEffectiveContext(sessionId, { charBudget: 2000 })
+              contextData = {
+                assembled: {
+                  recentMemories: ctx.assembled.recentMemories?.slice(0, 5),
+                  availableTools: ctx.assembled.availableTools?.slice(0, 10),
+                  taskGuide: ctx.assembled.taskGuide,
+                  sessionSummary: ctx.assembled.sessionSummary,
+                  files: ctx.assembled.files?.map((f: any) => f.path).slice(0, 5),
+                },
+                mergedPreview: ctx.merged?.slice(0, 500),
+              }
+            } catch (e) {
+              contextData = { error: String(e) }
+            }
+          }
+          
+          // Get recent signals
+          const recentSignals = subconscious?.getRecentSignals?.(sessionId, 10) || []
+          
+          return sendJSON(res, 200, {
+            sessionId,
+            timestamp: Date.now(),
+            mentalModel: mentalModel ? {
+              sessionId: mentalModel.sessionId,
+              state: mentalModel.state,
+              lastUpdated: mentalModel.lastUpdated,
+            } : null,
+            context: contextData,
+            recentSignals: recentSignals.map((s: any) => ({
+              type: s.type,
+              confidence: s.confidence,
+              timestamp: s.timestamp,
+            })),
+            stats: subconscious?.getEnhancedSearchStats?.() || {},
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // GET/POST/DELETE => /intelligence/thinker/strategy
       if (url.pathname === '/intelligence/thinker/strategy') {
         try {
@@ -577,6 +1130,183 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // GET /intelligence/subconscious/stats — subconscious statistics
+      if (req.method === 'GET' && url.pathname === '/intelligence/subconscious/stats') {
+        try {
+          const mem = daemon.intelligence?.memory
+          let learnings: any[] = []
+          let anomalies: any[] = []
+          let avgCounts: Record<string, number> = {}
+          
+          if (mem) {
+            try { learnings = await mem.kv_get('subconscious:learnings') || [] } catch {}
+            try { anomalies = await mem.kv_get('subconscious:anomalies') || [] } catch {}
+            try { avgCounts = await mem.kv_get('subconscious:avgCounts') || {} } catch {}
+          }
+          
+          const stats = {
+            totalLearnings: learnings.length,
+            totalAnomalies: anomalies.length,
+            patternsRecognized: learnings.filter((l: any) => l.type === 'pattern').length,
+            averageConfidence: learnings.length > 0 
+              ? learnings.reduce((s: number, l: any) => s + (l.confidence || 0), 0) / learnings.length 
+              : 0,
+            lastUpdate: learnings.length > 0 
+              ? Math.max(...learnings.map((l: any) => l.timestamp || 0)) 
+              : Date.now(),
+          }
+          
+          return sendJSON(res, 200, { stats, avgCounts })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/subconscious/learnings/search — search learnings
+      if (req.method === 'POST' && url.pathname === '/intelligence/subconscious/learnings/search') {
+        try {
+          const body = await parseBody(req)
+          const query = body?.query?.toLowerCase() || ''
+          if (!query) return sendJSON(res, 400, { error: 'query required' })
+          
+          const mem = daemon.intelligence?.memory
+          let learnings: any[] = []
+          if (mem) {
+            try { learnings = await mem.kv_get('subconscious:learnings') || [] } catch {}
+          }
+          
+          const results = learnings.filter((l: any) => 
+            (l.summary && l.summary.toLowerCase().includes(query)) ||
+            (l.clusterLabel && l.clusterLabel.toLowerCase().includes(query)) ||
+            (l.type && l.type.toLowerCase().includes(query))
+          )
+          
+          return sendJSON(res, 200, { learnings: results, query, count: results.length })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/subconscious/anomalies/:id/acknowledge — acknowledge anomaly
+      if (req.method === 'POST' && parts[0] === 'intelligence' && parts[1] === 'subconscious' && parts[2] === 'anomalies' && parts[4] === 'acknowledge') {
+        try {
+          const anomalyId = parts[3]
+          if (!anomalyId) return sendJSON(res, 400, { error: 'anomaly id required' })
+          
+          const mem = daemon.intelligence?.memory
+          if (!mem) return sendJSON(res, 503, { error: 'memory not available' })
+          
+          let anomalies: any[] = await mem.kv_get('subconscious:anomalies') || []
+          const idx = anomalies.findIndex((a: any) => a.id === anomalyId || a.summary === anomalyId)
+          
+          if (idx === -1) return sendJSON(res, 404, { error: 'anomaly not found' })
+          
+          anomalies[idx] = { ...anomalies[idx], acknowledged: true, acknowledgedAt: Date.now() }
+          await mem.kv_set('subconscious:anomalies', anomalies)
+          
+          return sendJSON(res, 200, { ok: true, anomalyId })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // DELETE /intelligence/subconscious/learnings — clear learnings
+      if (req.method === 'DELETE' && url.pathname === '/intelligence/subconscious/learnings') {
+        try {
+          const mem = daemon.intelligence?.memory
+          if (mem) {
+            await mem.kv_del('subconscious:learnings')
+          }
+          // Also clear fallback file
+          const filePath = path.join(process.env.HOME || os.homedir(), '.cassicore', 'data', 'subconscious.json')
+          try {
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
+          } catch {}
+          
+          return sendJSON(res, 200, { ok: true, cleared: 'learnings' })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // DELETE /intelligence/subconscious/anomalies — clear anomalies
+      if (req.method === 'DELETE' && url.pathname === '/intelligence/subconscious/anomalies') {
+        try {
+          const mem = daemon.intelligence?.memory
+          if (mem) {
+            await mem.kv_del('subconscious:anomalies')
+          }
+          return sendJSON(res, 200, { ok: true, cleared: 'anomalies' })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/skills/metrics — skill usage metrics
+      if (req.method === 'GET' && url.pathname === '/intelligence/skills/metrics') {
+        try {
+          const tracker = daemon.skillMetricsTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'skill metrics tracker not initialized' })
+          }
+          const days = parseInt(url.searchParams.get('days') || '7', 10)
+          const summary = tracker.getMetricsSummary(days)
+          return sendJSON(res, 200, { summary })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/skills/details — detailed usage for a specific skill
+      if (req.method === 'GET' && url.pathname === '/intelligence/skills/details') {
+        try {
+          const tracker = daemon.skillMetricsTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'skill metrics tracker not initialized' })
+          }
+          const skillName = url.searchParams.get('name')
+          if (!skillName) {
+            return sendJSON(res, 400, { error: 'name query param required' })
+          }
+          const days = parseInt(url.searchParams.get('days') || '30', 10)
+          const details = tracker.getSkillDetails(skillName, days)
+          return sendJSON(res, 200, { skillName, details })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/skills/all — list all skills with usage counts
+      if (req.method === 'GET' && url.pathname === '/intelligence/skills/all') {
+        try {
+          const tracker = daemon.skillMetricsTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'skill metrics tracker not initialized' })
+          }
+          const days = parseInt(url.searchParams.get('days') || '30', 10)
+          const skills = tracker.getAllSkillsWithUsage(days)
+          return sendJSON(res, 200, { skills })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /intelligence/skills/prune — prune old invocation records
+      if (req.method === 'POST' && url.pathname === '/intelligence/skills/prune') {
+        try {
+          const tracker = daemon.skillMetricsTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'skill metrics tracker not initialized' })
+          }
+          const body = await parseBody(req)
+          const daysToKeep = body?.daysToKeep || 90
+          tracker.pruneOldInvocations(daysToKeep)
+          return sendJSON(res, 200, { message: `Pruned invocations older than ${daysToKeep} days` })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // POST /intelligence/thinker/think — manual Thinker trigger (supports context override)
       if (req.method === 'POST' && url.pathname === '/intelligence/thinker/think') {
         try {
@@ -623,6 +1353,19 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           if (!ma) return sendJSON(res, 503, { error: 'multi-agent coordinator not initialised' })
           const metrics = typeof ma.getMetrics === 'function' ? ma.getMetrics() : undefined
           return sendJSON(res, 200, { metrics: metrics ?? null })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /providers — list all loaded provider IDs
+      if (req.method === 'GET' && url.pathname === '/providers') {
+        try {
+          const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+          if (!providersMap) return sendJSON(res, 503, { error: 'providers not initialised' })
+          
+          const ids = Array.from(providersMap.keys())
+          return sendJSON(res, 200, { providers: ids })
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
@@ -1006,6 +1749,46 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           } catch (err) {
             return sendJSON(res, 500, { error: String(err) })
           }
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // POST /providers/reset — reset provider error state and/or rate limit history
+      // Body: { providerId?: string, resetErrors?: boolean, resetRateLimits?: boolean }
+      // If providerId omitted, resets all providers
+      if (req.method === 'POST' && url.pathname === '/providers/reset') {
+        try {
+          const body = await parseBody(req)
+          const providerId = typeof body?.providerId === 'string' ? body.providerId : undefined
+          const resetErrors = body?.resetErrors !== false  // default true
+          const resetRateLimits = body?.resetRateLimits === true  // default false
+
+          const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+          if (!providersMap) return sendJSON(res, 503, { error: 'providers not initialised' })
+
+          const results: Array<{ id: string; resetErrors?: boolean; resetRateLimits?: boolean; error?: string }> = []
+
+          for (const [id, prov] of providersMap) {
+            if (providerId && id !== providerId) continue
+
+            const result: typeof results[number] = { id }
+            try {
+              if (resetErrors && typeof prov.resetErrorState === 'function') {
+                prov.resetErrorState()
+                result.resetErrors = true
+              }
+              if (resetRateLimits && typeof prov.resetRateLimitHistory === 'function') {
+                prov.resetRateLimitHistory()
+                result.resetRateLimits = true
+              }
+            } catch (err) {
+              result.error = String(err)
+            }
+            results.push(result)
+          }
+
+          return sendJSON(res, 200, { ok: true, results })
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
@@ -1448,20 +2231,476 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
-      // ── Pi Bridge endpoints ────────────────────────────────────────────────
+      // ── Sessions endpoints ─────────────────────────────────────────────────
 
-      // POST /pi/completion/:requestId/chunk
-      if (parts[0] === 'pi' && parts[1] === 'completion' && parts[3] === 'chunk' && req.method === 'POST') {
-        const requestId = parts[2]
+      if (parts[0] === 'sessions') {
+        // POST /sessions/:id/turn — process a turn through the pipeline with dialectic
+        if (parts.length === 3 && parts[2] === 'turn' && req.method === 'POST' && !(req.headers.accept || '').toLowerCase().includes('text/event-stream')) {
+          const sessionId = parts[1]
+          if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+          if (!daemon.pipeline) return sendJSON(res, 503, { error: 'pipeline not ready' })
+
+          const body = await parseBody(req)
+          const content: string = body?.content
+          if (!content) return sendJSON(res, 400, { error: 'missing content' })
+
+          try {
+            const { randomUUID } = await import('node:crypto')
+            const inbound = {
+              id: randomUUID(),
+              sessionId,
+              channelId: body?.channelId || 'channel:cli',
+              senderId: body?.senderId || sessionId,
+              content,
+              timestamp: new Date(),
+            }
+
+            // Get or create session
+            const session = daemon.sessions.getOrCreateById(
+              sessionId,
+              inbound.channelId,
+              inbound.senderId,
+              {
+                model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
+                thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
+                systemPrompt: body?.systemPrompt,
+              }
+            )
+
+            // Run dialectic if enabled
+            let dialecticResult: any = null
+            const dialecticEnabled = body?.dialectic !== false && daemon.intelligence?.dialectic
+
+            if (dialecticEnabled) {
+              try {
+                const dialectic = daemon.intelligence.dialectic
+                const context = {
+                  recentMemories: [],
+                  availableTools: Object.keys(daemon.toolRegistry?.getAll?.() || {}),
+                  sessionHistory: session.history,
+                  taskGuide: body?.taskGuide || `Process user message: ${content.slice(0, 100)}...`,
+                }
+
+                dialecticResult = await dialectic.processTurn(
+                  sessionId,
+                  inbound.id,
+                  content,
+                  context,
+                  { mode: body?.dialecticMode || 'parallel' }
+                )
+              } catch (dialecticErr) {
+                logger.warn(`[admin-api] dialectic error: ${String(dialecticErr)}`)
+                // Continue without dialectic result
+              }
+            }
+
+            // Process through pipeline
+            let result: any;
+            try {
+              result = await daemon.pipeline.process(inbound)
+            } catch (pipelineErr) {
+              logger.error(`[admin-api] pipeline.process failed: ${String(pipelineErr)}`);
+              throw pipelineErr;
+            }
+
+            // Build response
+            const response: any = {
+              ok: true,
+              sessionId,
+              response: result.response,
+              model: result.model,
+              tokensUsed: result.tokensUsed,
+              durationMs: result.durationMs,
+              toolCalls: result.toolCalls,
+              tool_outputs: result.tool_outputs,
+              dialectic: dialecticResult ? {
+                signalInjected: dialecticResult.signalInjected,
+                yangBranches: dialecticResult.yang?.branches?.length || 0,
+                yinCritiques: dialecticResult.yin?.critiques?.length || 0,
+                synthesis: dialecticResult.serenity?.synthesis?.hasSignal
+                  ? {
+                      type: dialecticResult.serenity.synthesis.signal?.type,
+                      content: dialecticResult.serenity.synthesis.signal?.content,
+                      confidence: dialecticResult.serenity.synthesis.signal?.confidence,
+                    }
+                  : null,
+              } : null,
+            }
+
+            return sendJSON(res, 200, response)
+          } catch (err) {
+            logger.error(`[admin-api] turn error: ${String(err)}`)
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /sessions/:id/turn/stream — SSE streaming turn endpoint
+        if (parts.length === 4 && parts[2] === 'turn' && parts[3] === 'stream' && req.method === 'POST' && (req.headers.accept || '').toLowerCase().includes('text/event-stream')) {
+          const sessionId = parts[1]
+          if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+          if (!daemon.pipeline) {
+            logger.error('[admin-api] SSE stream rejected: pipeline not ready')
+            return sendJSON(res, 503, { error: 'pipeline not ready' })
+          }
+
+          logger.info(`[admin-api] SSE stream request START: session=${sessionId.slice(0,8)}`)
+
+          const body = await parseBody(req)
+          const content: string = body?.content
+          const model: string = body?.model || 'unknown'
+          if (!content) {
+            logger.error('[admin-api] SSE stream rejected: missing content')
+            return sendJSON(res, 400, { error: 'missing content' })
+          }
+
+          logger.info(`[admin-api] SSE stream request: session=${sessionId.slice(0,8)}, model=${model}, content_length=${content.length}`)
+
+          // Setup SSE headers
+          res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+          })
+
+          // Track if response has ended to avoid writing after close
+          let responseEnded = false;
+          let streamCompleted = false;
+
+          const sendEvent = (type: string, data: any) => {
+            if (responseEnded || !res.writable) return;
+            try {
+              const written = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
+              if (!written) {
+                // Backpressure - wait for drain
+                logger.debug(`[admin-api] SSE backpressure on ${type} event`)
+              }
+            } catch (err) {
+              // Client disconnected, stop trying to send
+              logger.debug(`[admin-api] SSE write failed, client may have disconnected: ${String(err)}`)
+              responseEnded = true;
+            }
+          }
+
+          // Socket timeout handling - prevent silent hangs
+          req.socket.setTimeout(5 * 60 * 1000); // 5 minute timeout
+          req.socket.on('timeout', () => {
+            logger.warn(`[admin-api] SSE socket timeout: session=${sessionId.slice(0,8)}`)
+            if (!streamCompleted) {
+              sendEvent('error', { error: 'Request timeout' })
+              res.end()
+            }
+          })
+
+          // Keep-alive ping every 15s to prevent connection drops during tool execution
+          const pingInterval = setInterval(() => {
+            if (!responseEnded && res.writable) {
+              try { res.write(': ping\n\n') } catch { clearInterval(pingInterval) }
+            } else {
+              clearInterval(pingInterval)
+            }
+          }, 15000)
+          try { (pingInterval as any).unref?.() } catch {}
+
+          // Cleanup on close
+          const cleanup = () => {
+            if (streamCompleted) return;
+            clearInterval(pingInterval);
+            responseEnded = true;
+            streamCompleted = true;
+            logger.info(`[admin-api] SSE stream closed: session=${sessionId.slice(0,8)}`);
+          };
+          req.on('close', cleanup);
+          res.on('close', cleanup);
+          res.on('finish', () => {
+            streamCompleted = true;
+            cleanup();
+          });
+          res.on('error', (err) => {
+            logger.error(`[admin-api] SSE stream error: ${String(err)}`);
+            streamCompleted = true;
+            cleanup();
+          });
+
+          try {
+            const { randomUUID } = await import('node:crypto')
+            const inbound = {
+              id: randomUUID(),
+              sessionId,
+              channelId: body?.channelId || 'channel:cli',
+              senderId: body?.senderId || sessionId,
+              content,
+              timestamp: new Date(),
+            }
+
+            // Get or create session
+            const session = daemon.sessions.getOrCreateById(
+              sessionId,
+              inbound.channelId,
+              inbound.senderId,
+              {
+                model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
+                thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
+                systemPrompt: body?.systemPrompt,
+              }
+            )
+
+            // Run dialectic if enabled
+            let dialecticResult: any = null
+            const dialecticEnabled = body?.dialectic !== false && daemon.intelligence?.dialectic
+
+            if (dialecticEnabled) {
+              try {
+                const dialectic = daemon.intelligence.dialectic
+                const context = {
+                  recentMemories: [],
+                  availableTools: Object.keys(daemon.toolRegistry?.getAll?.() || {}),
+                  sessionHistory: session.history,
+                  taskGuide: body?.taskGuide || `Process user message: ${content.slice(0, 100)}...`,
+                }
+
+                dialecticResult = await dialectic.processTurn(
+                  sessionId,
+                  inbound.id,
+                  content,
+                  context,
+                  { mode: body?.dialecticMode || 'parallel' }
+                )
+
+                // Emit dialectic stages separately with labels
+                if (dialecticResult.yang?.branches?.length > 0) {
+                  for (const branch of dialecticResult.yang.branches) {
+                    sendEvent('dialectic', {
+                      stage: 'yang',
+                      label: 'Thesis - Exploring possibilities',
+                      content: branch.argument || branch.content,
+                      confidence: branch.confidence,
+                    })
+                  }
+                }
+
+                if (dialecticResult.yin?.critiques?.length > 0) {
+                  for (const critique of dialecticResult.yin.critiques) {
+                    sendEvent('dialectic', {
+                      stage: 'yin',
+                      label: 'Antithesis - Critical analysis',
+                      content: critique.critique || critique.content,
+                      confidence: critique.confidence,
+                    })
+                  }
+                }
+
+                // Send dialectic synthesis if available (CassiCore's multi-agent reasoning, NOT LLM thinking)
+                if (dialecticResult.serenity?.synthesis?.hasSignal) {
+                  sendEvent('dialectic', {
+                    stage: 'serenity',
+                    label: 'Synthesis - Unified conclusion',
+                    type: dialecticResult.serenity.synthesis.signal?.type,
+                    content: dialecticResult.serenity.synthesis.signal?.content,
+                    confidence: dialecticResult.serenity.synthesis.signal?.confidence,
+                  })
+                }
+              } catch (dialecticErr) {
+                logger.warn(`[admin-api] dialectic error: ${String(dialecticErr)}`)
+              }
+            }
+
+            // Process through pipeline - the pipeline emits worker:message events for tokens/thinking
+            // We need to capture these and forward as SSE events
+            let tokenCount = 0
+            const onWorkerMessage = (ev: any) => {
+              const payload = ev?.payload
+              if (!payload || payload.sessionId !== sessionId) return
+
+              if (payload.type === 'turn:token') {
+                tokenCount++
+                sendEvent('token', { token: payload.token })
+              } else if (payload.type === 'turn:tool_call') {
+                // Forward tool_call events so CLI knows tools are being invoked
+                sendEvent('tool_call', { tool: payload.tool, input: payload.input })
+              } else if (payload.type === 'turn:tool_result') {
+                // Forward tool_result events so CLI knows tools completed
+                sendEvent('tool_result', { toolCallId: payload.toolCallId, isError: payload.isError })
+              }
+              // Note: turn:thinking events are suppressed to avoid garbled CLI output
+              // They are still processed by the subconscious system internally
+            }
+
+            daemon.bus.on('worker:message', onWorkerMessage)
+
+            logger.info(`[admin-api] Calling pipeline.process for session ${sessionId.slice(0,8)}...`)
+
+            let result: any;
+            try {
+              result = await daemon.pipeline.process(inbound)
+
+              logger.info(`[admin-api] SSE stream completed: ${tokenCount} tokens sent, response=${result?.response?.slice(0, 50)}...`)
+
+              // Send completion event with full response and tool call info
+              sendEvent('done', {
+                model: result?.model,
+                tokensUsed: result?.tokensUsed,
+                durationMs: result?.durationMs,
+                response: result?.response,
+                toolCalls: result?.toolCalls,
+                tool_outputs: result?.tool_outputs,
+                dialectic: dialecticResult ? {
+                  signalInjected: dialecticResult.signalInjected,
+                } : null,
+              })
+
+              res.end()
+              streamCompleted = true;
+            } catch (pipelineErr) {
+              logger.error(`[admin-api] pipeline processing error: ${String(pipelineErr)}`)
+
+              // Send error event if stream is still open
+              if (!streamCompleted && !responseEnded) {
+                sendEvent('error', {
+                  error: String(pipelineErr),
+                  type: 'pipeline_error'
+                })
+                res.end()
+                streamCompleted = true;
+              }
+            } finally {
+              daemon.bus.off('worker:message', onWorkerMessage)
+            }
+          } catch (err) {
+            logger.error(`[admin-api] stream turn error: ${String(err)}`)
+            if (!streamCompleted && !responseEnded) {
+              sendEvent('error', { error: String(err) })
+              res.end()
+              streamCompleted = true;
+            }
+          }
+          return
+        }
+
+        // GET /sessions/:id — get session info
+        if (parts.length === 2 && req.method === 'GET') {
+          const sessionId = parts[1]
+          const session = daemon.sessions.get(sessionId)
+          if (!session) return sendJSON(res, 404, { error: 'session not found' })
+          
+          return sendJSON(res, 200, {
+            id: session.id,
+            channelId: session.channelId,
+            senderId: session.senderId,
+            createdAt: session.createdAt,
+            lastActiveAt: session.lastActiveAt,
+            historyLength: session.history.length,
+            tokenCount: session.tokenCount,
+            config: session.config,
+          })
+        }
+
+        // GET /sessions — list active sessions
+        if (parts.length === 1 && req.method === 'GET') {
+          const sessions = Array.from(daemon.sessions['sessions']?.values?.() || [])
+            .map((s: any) => ({
+              id: s.id,
+              channelId: s.channelId,
+              senderId: s.senderId,
+              lastActiveAt: s.lastActiveAt,
+              historyLength: s.history.length,
+              firstMessage: getFirstUserMessage(s.history || []),
+              lastMessage: getLastUserMessage(s.history || []),
+            }))
+          return sendJSON(res, 200, { sessions })
+        }
+      }
+
+      // ── Commands endpoints (Legacy/Compatibility) ──────────────────────────
+
+      if (parts[0] === 'commands') {
+        // POST /commands/think
+        if (parts[1] === 'think' && req.method === 'POST') {
+          const body = await parseBody(req)
+          const thinker = daemon.intelligence?.thinker
+          if (!thinker) return sendJSON(res, 503, { error: 'thinker not available' })
+          
+          void thinker.think(body?.depth === 'deep' ? 'Think' : 'Ponder').catch(() => {})
+          return sendJSON(res, 200, { ok: true })
+        }
+
+        // POST /commands/remember
+        if (parts[1] === 'remember' && req.method === 'POST') {
+          const body = await parseBody(req)
+          const memory = daemon.intelligence?.memory
+          if (!memory) return sendJSON(res, 503, { error: 'memory not available' })
+          
+          await memory.store({
+            type: 'fact',
+            content: body?.note,
+            metadata: { tags: ['cli'] }
+          })
+          return sendJSON(res, 200, { ok: true })
+        }
+
+        // GET /commands/recall
+        if (parts[1] === 'recall' && req.method === 'GET') {
+          const query = url.searchParams.get('query') || ''
+          const limit = parseInt(url.searchParams.get('limit') || '5', 10)
+          const memory = daemon.intelligence?.memory
+          if (!memory) return sendJSON(res, 503, { error: 'memory not available' })
+          
+          const results = await memory.search(query, { limit })
+          return sendJSON(res, 200, { results: results.map((r: { entry: any, score: number }) => ({ ...r.entry, score: r.score })) })
+        }
+
+        // POST /commands/execute
+        if (parts[1] === 'execute' && req.method === 'POST') {
+          const body = await parseBody(req)
+          if (!body || !body.command || !body.sessionId) return sendJSON(res, 400, { error: 'missing command or sessionId' })
+
+          const dispatcher = new (await import('./commands.js')).CommandDispatcher(daemon.logger, daemon.sessions, daemon.bus)
+          dispatcher.setIntelligence(daemon.intelligence)
+
+          // Note: handle() returns a boolean but doesn't return the text response directly
+          // it emits it onto the bus. We'll return 202 accepted.
+          void dispatcher.handle(body.sessionId, body.channelId || 'channel:cli', body.command)
+          return sendJSON(res, 202, { ok: true, message: 'Command accepted' })
+        }
+      }
+
+      // ── Memory endpoints (unified API for CLI/TUI) ──────────────────────────
+
+      // POST /memory/store — store a memory entry
+      if (parts[0] === 'memory' && parts[1] === 'store' && req.method === 'POST') {
         const body = await parseBody(req)
-        if (!body || !body.chunk) return sendJSON(res, 400, { error: 'missing chunk' })
-        
-        daemon.bus.emit({
-          type: 'pi:completion:chunk',
-          requestId,
-          chunk: body.chunk
+        const memory = daemon.intelligence?.memory
+        if (!memory) return sendJSON(res, 503, { error: 'memory not available' })
+
+        const id = await memory.store({
+          type: body?.type || 'fact',
+          content: body?.content || body?.note || '',
+          metadata: body?.metadata || { tags: ['cli'] },
+          sessionId: body?.metadata?.sessionId || body?.sessionId,
         })
-        return sendJSON(res, 200, { ok: true })
+        return sendJSON(res, 200, { ok: true, id })
+      }
+
+      // GET /memory/search — search memories
+      if (parts[0] === 'memory' && parts[1] === 'search' && req.method === 'GET') {
+        const query = url.searchParams.get('q') || url.searchParams.get('query') || ''
+        const limit = parseInt(url.searchParams.get('limit') || '5', 10)
+        const memory = daemon.intelligence?.memory
+        if (!memory) return sendJSON(res, 503, { error: 'memory not available' })
+
+        const results = await memory.search(query, { limit })
+        return sendJSON(res, 200, results.map((r: { entry: any, score: number }) => ({ entry: r.entry, score: r.score })))
+      }
+
+      // GET /memory/recent — get recent memories
+      if (parts[0] === 'memory' && parts[1] === 'recent' && req.method === 'GET') {
+        const limit = parseInt(url.searchParams.get('limit') || '10', 10)
+        const memory = daemon.intelligence?.memory
+        if (!memory) return sendJSON(res, 503, { error: 'memory not available' })
+
+        // Search with empty query to get recent entries
+        const results = await memory.search('', { limit })
+        return sendJSON(res, 200, results.map((r: { entry: any, score: number }) => r.entry))
       }
 
       // ── Dialectic endpoints (C: Query API) ─────────────────────────────────
@@ -1642,6 +2881,19 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             sendEvent('provider:rate_limited', e)
           } catch {}
         }
+        const onProviderErrorReset = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            sendEvent('provider:error_reset', { providerId: e.providerId, timestamp: Date.now() })
+          } catch {}
+        }
+        const onProviderTimeout = (e: any) => {
+          try {
+            if (providerFilter && e.providerId !== providerFilter) return
+            if (!matchesSessionFilter(e.sessionId)) return
+            sendEvent('provider:request_timeout', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, timeoutMs: e.timeoutMs, timestamp: Date.now() })
+          } catch {}
+        }
 
         const onWorkerMessage = (ev: any) => {
           try {
@@ -1691,6 +2943,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         daemon.bus.on('provider:request_error', onProviderError)
         daemon.bus.on('provider:deduplicated', onProviderDedup)
         daemon.bus.on('provider:rate_limited', onProviderRateLimited)
+        daemon.bus.on('provider:error_reset', onProviderErrorReset)
+        daemon.bus.on('provider:request_timeout', onProviderTimeout)
         daemon.bus.on('worker:message', onWorkerMessage)
         daemon.bus.on('turn:start', onTurnStart)
         daemon.bus.on('turn:end', onTurnEnd)
@@ -1709,6 +2963,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           try { daemon.bus.off('provider:request_error', onProviderError) } catch {}
           try { daemon.bus.off('provider:deduplicated', onProviderDedup) } catch {}
           try { daemon.bus.off('provider:rate_limited', onProviderRateLimited) } catch {}
+          try { daemon.bus.off('provider:error_reset', onProviderErrorReset) } catch {}
+          try { daemon.bus.off('provider:request_timeout', onProviderTimeout) } catch {}
           try { daemon.bus.off('worker:message', onWorkerMessage) } catch {}
           try { daemon.bus.off('turn:start', onTurnStart) } catch {}
           try { daemon.bus.off('turn:end', onTurnEnd) } catch {}
@@ -2071,7 +3327,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               extra: extra_context || '',
               workingDir: process.cwd(),
               allowedPaths: [],
-              charBudget: char_budget || 8000,
+              charBudget: char_budget || 50000,
             }
           )
           
@@ -2103,7 +3359,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           if (!cm || typeof cm.getEffectiveContext !== 'function') {
             return sendJSON(res, 503, { error: 'context manager not available' })
           }
-          const result = await cm.getEffectiveContext(sessionId, { charBudget: 8000 })
+          const result = await cm.getEffectiveContext(sessionId, { charBudget: 50000 })
           return sendJSON(res, 200, { 
             sessionId, 
             globalContext: result?.globalContext,
