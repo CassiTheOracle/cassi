@@ -7,16 +7,16 @@
 
 import type { ILogger } from '../../../types/interfaces.js';
 import type { IEventBus } from '../../../types/interfaces.js';
-import type { 
-  IDialecticSystem, 
-  DialecticResult, 
+import type {
+  IDialecticSystem,
+  DialecticResult,
   ParallelDialecticResult,
   YangContext,
   DialecticStreamEvent,
   DialecticSignal,
-  DialecticMode 
+  DialecticMode
 } from '../../../types/dialectic.js';
-import type { IProvider } from '../../../types/runtime.js';
+import type { IProvider, Message } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import { YangObserver, type YangConfig } from '../yang/index.js';
 import { YinObserver, type YinConfig } from '../yin/index.js';
@@ -203,6 +203,14 @@ export class DialecticSystem implements IDialecticSystem {
     this.logger.info('DialecticSystem: custom taskGuide generator configured');
   }
 
+  // Subconscious integration: store pre-detected patterns and context
+  private subconsciousContext = new Map<string, {
+    patterns: Array<{ type: string; confidence: number; evidence: string[] }>;
+    intent?: { type: string; confidence: number };
+    anomalies: Array<{ category: string; severity: string }>;
+    lastUpdated: number;
+  }>();
+
   onEventBus(bus: IEventBus): void {
     this.eventBus = bus;
     try {
@@ -213,7 +221,146 @@ export class DialecticSystem implements IDialecticSystem {
     } catch (err) {
       // best-effort — do not fail wiring if observers don't support event bus
     }
+
+    // Wire Subconscious signals for enhanced context
+    this.setupSubconsciousListeners(bus);
+
     this.logger.info('DialecticSystem: event bus wired');
+  }
+
+  /**
+   * Listen to Subconscious signals for pattern/intent context
+   */
+  private setupSubconsciousListeners(bus: IEventBus): void {
+    // Listen for pattern signals from Subconscious
+    (bus as any).on?.('subconscious:pattern', (e: any) => {
+      try {
+        const { sessionId, pattern } = e;
+        if (!sessionId || !pattern) return;
+
+        let ctx = this.subconsciousContext.get(sessionId);
+        if (!ctx) {
+          ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
+          this.subconsciousContext.set(sessionId, ctx);
+        }
+
+        // Add or update pattern
+        const existing = ctx.patterns.find(p => p.type === pattern.pattern);
+        if (existing) {
+          existing.confidence = Math.max(existing.confidence, pattern.confidence);
+          existing.evidence.push(...pattern.evidence);
+        } else {
+          ctx.patterns.push({
+            type: pattern.pattern,
+            confidence: pattern.confidence,
+            evidence: pattern.evidence || [],
+          });
+        }
+
+        ctx.lastUpdated = Date.now();
+        this.logger.debug('DialecticSystem: received subconscious pattern', {
+          sessionId: sessionId.slice(-8),
+          pattern: pattern.pattern,
+          confidence: pattern.confidence,
+        });
+      } catch (err) {
+        this.logger.debug('DialecticSystem: failed to process subconscious:pattern', { error: String(err) });
+      }
+    });
+
+    // Listen for intent signals
+    (bus as any).on?.('subconscious:intent', (e: any) => {
+      try {
+        const { sessionId, intent } = e;
+        if (!sessionId || !intent?.to) return;
+
+        let ctx = this.subconsciousContext.get(sessionId);
+        if (!ctx) {
+          ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
+          this.subconsciousContext.set(sessionId, ctx);
+        }
+
+        ctx.intent = {
+          type: intent.to.type,
+          confidence: intent.to.confidence,
+        };
+        ctx.lastUpdated = Date.now();
+
+        this.logger.debug('DialecticSystem: received subconscious intent', {
+          sessionId: sessionId.slice(-8),
+          intent: intent.to.type,
+          confidence: intent.to.confidence,
+        });
+      } catch (err) {
+        this.logger.debug('DialecticSystem: failed to process subconscious:intent', { error: String(err) });
+      }
+    });
+
+    // Listen for anomaly signals
+    (bus as any).on?.('subconscious:anomaly', (e: any) => {
+      try {
+        const { sessionId, anomaly } = e;
+        if (!sessionId || !anomaly) return;
+
+        let ctx = this.subconsciousContext.get(sessionId);
+        if (!ctx) {
+          ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
+          this.subconsciousContext.set(sessionId, ctx);
+        }
+
+        ctx.anomalies.push({
+          category: anomaly.category,
+          severity: anomaly.severity,
+        });
+        ctx.lastUpdated = Date.now();
+
+        this.logger.debug('DialecticSystem: received subconscious anomaly', {
+          sessionId: sessionId.slice(-8),
+          category: anomaly.category,
+          severity: anomaly.severity,
+        });
+      } catch (err) {
+        this.logger.debug('DialecticSystem: failed to process subconscious:anomaly', { error: String(err) });
+      }
+    });
+
+    // Clean up on session end
+    (bus as any).on?.('subconscious:session:ended', (e: any) => {
+      try {
+        const { sessionId } = e;
+        if (sessionId) {
+          this.subconsciousContext.delete(sessionId);
+          this.logger.debug('DialecticSystem: cleaned up subconscious context', { sessionId: sessionId.slice(-8) });
+        }
+      } catch (err) {
+        this.logger.debug('DialecticSystem: failed to cleanup subconscious context', { error: String(err) });
+      }
+    });
+
+    this.logger.info('DialecticSystem: Subconscious listeners wired');
+  }
+
+  /**
+   * Get Subconscious-derived context for a session
+   */
+  getSubconsciousContext(sessionId: string): {
+    patterns: Array<{ type: string; confidence: number; evidence: string[] }>;
+    intent?: { type: string; confidence: number };
+    anomalies: Array<{ category: string; severity: string }>;
+  } | undefined {
+    const ctx = this.subconsciousContext.get(sessionId);
+    if (!ctx) return undefined;
+
+    // Only return if recent (within 5 minutes)
+    if (Date.now() - ctx.lastUpdated > 5 * 60 * 1000) {
+      return undefined;
+    }
+
+    return {
+      patterns: ctx.patterns,
+      intent: ctx.intent,
+      anomalies: ctx.anomalies,
+    };
   }
 
   subscribeToStream(sessionId: string, callback: (event: DialecticStreamEvent) => void): () => void {
@@ -322,7 +469,27 @@ export class DialecticSystem implements IDialecticSystem {
       // Allow per-turn provider/model hints (prefer serenity hint, then yang, then yin) to be used by the taskGuide summarizer.
       const preferredProviderHint = opts?.providers?.serenity ?? opts?.providers?.yang ?? opts?.providers?.yin;
       const taskGuide = await this.buildTaskGuide(dialecticSessionId, userMessage, context, relevantMemories, preferredProviderHint, { signal: opts?.signal });
-      const ctxWithGuide = { ...context, taskGuide };
+      
+      // Incorporate Subconscious context (patterns, intent, anomalies)
+      const subCtx = this.getSubconsciousContext(sessionId);
+      const ctxWithSubconscious = subCtx ? {
+        ...context,
+        subconsciousPatterns: subCtx.patterns,
+        subconsciousIntent: subCtx.intent,
+        subconsciousAnomalies: subCtx.anomalies,
+      } : context;
+      
+      const ctxWithGuide = { ...ctxWithSubconscious, taskGuide };
+
+      // Log subconscious context if present
+      if (subCtx && (subCtx.patterns.length > 0 || subCtx.anomalies.length > 0)) {
+        this.logger.info('DialecticSystem: using subconscious context', {
+          sessionId,
+          patterns: subCtx.patterns.map(p => p.type),
+          intent: subCtx.intent?.type,
+          anomalies: subCtx.anomalies.map(a => a.category),
+        });
+      }
 
       // Emit start event with the generated task guide for observability
       this.emitStreamEvent(sessionId, {
@@ -866,14 +1033,14 @@ export class DialecticSystem implements IDialecticSystem {
     if (!this.db) {
       return { totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0 };
     }
-    
+
     try {
       // Determine which column to use for serenity/synthesizer output (backwards compatible)
       const cols = (this.db.prepare("PRAGMA table_info(dialectic_turns)").all() as any[]).map((c: any) => c.name);
       const serenityCol = cols.includes('serenity_output') ? 'serenity_output' : (cols.includes('synthesizer_output') ? 'synthesizer_output' : 'serenity_output');
 
       const sql = `
-        SELECT 
+        SELECT
           COUNT(*) as total_turns,
           SUM(CASE WHEN json_extract(${serenityCol}, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
           SUM(CASE WHEN signal_injected = 1 THEN 1 ELSE 0 END) as signals_injected,
@@ -884,7 +1051,7 @@ export class DialecticSystem implements IDialecticSystem {
       `;
 
       const row = this.db.prepare(sql).get(sessionId) as any;
-      
+
       return {
         totalTurns: row?.total_turns || 0,
         signalsGenerated: row?.signals_generated || 0,
@@ -897,6 +1064,73 @@ export class DialecticSystem implements IDialecticSystem {
       return { totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0 };
     }
   }
+
+  // NOTE: quickAnalyzeSession, quickPatternAnalysis, and fullAnalysis methods
+  // temporarily disabled due to TypeScript inference issues with YangContext.
+  // These methods are for the unified intelligence loop feature.
+  /*
+  async quickAnalyzeSession(session: any): Promise<void> {
+    if (!this.config.enabled) return;
+
+    this.logger.debug(`[Dialectic] Quick analysis for session ${session.id}`);
+
+    // Run lightweight dialectic (yang only for speed)
+    try {
+      await this.processTurn(
+        session.sessionId || session.id,
+        `quick-${Date.now()}`,
+        session.content || 'Quick analysis',
+        {
+          recentMemories: [],
+          availableTools: [],
+          sessionHistory: [],
+          taskGuide: session.content || session.trigger || 'Quick analysis',
+        } as any
+      );
+    } catch (err) {
+      this.logger.warn('[Dialectic] Quick analysis error:', err);
+    }
+  }
+
+  async quickPatternAnalysis(pattern: any): Promise<void> {
+    if (!this.config.enabled) return;
+
+    this.logger.debug(`[Dialectic] Quick pattern analysis: ${pattern.type}`);
+
+    // Emit pattern as dialectic signal
+    this.eventBus?.emit({
+      type: 'dialectic:signal',
+      signalType: 'pattern_analysis',
+      content: pattern.content || pattern.type,
+      confidence: pattern.confidence || 0.5,
+      novelty: pattern.novelty || 0.5,
+      sessionId: pattern.sessionId,
+    } as any);
+  }
+
+  async fullAnalysis(options: { sessionId: string; state?: any; trigger?: string }): Promise<any> {
+    if (!this.config.enabled) return null;
+
+    this.logger.debug(`[Dialectic] Full analysis for session ${options.sessionId}`);
+
+    try {
+      return await this.processTurn(
+        options.sessionId,
+        `full-${Date.now()}`,
+        options.state?.content || 'Deep analysis',
+        {
+          recentMemories: [],
+          availableTools: [],
+          sessionHistory: options.state?.history || [],
+          taskGuide: options.trigger || 'Deep analysis',
+        } as any
+      );
+    } catch (err) {
+      this.logger.warn('[Dialectic] Full analysis error:', err);
+      return null;
+    }
+  }
+  */
 }
 
 export const createDialecticSystem = (logger: ILogger, config?: Partial<DialecticSystemConfig>): DialecticSystem =>
