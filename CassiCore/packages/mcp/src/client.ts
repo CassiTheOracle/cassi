@@ -18,7 +18,7 @@ import type { MCPServerConfig, MCPToolInfo } from './types.js'
 import type { ILogger } from '../../types/interfaces.js'
 
 const CLIENT_NAME = 'CassiCore'
-const CLIENT_VERSION = '0.1.0'
+const CLIENT_VERSION = '0.1.2'
 
 export class MCPClient {
   private client: Client
