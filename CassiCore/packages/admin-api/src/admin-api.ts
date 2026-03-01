@@ -2234,23 +2234,49 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       // ── Sessions endpoints ─────────────────────────────────────────────────
 
       if (parts[0] === 'sessions') {
-        // POST /sessions/:id/turn — process a turn through the pipeline with dialectic
+        // POST /sessions/:id/turn — process a turn (V2 or V1 pipeline)
         if (parts.length === 3 && parts[2] === 'turn' && req.method === 'POST' && !(req.headers.accept || '').toLowerCase().includes('text/event-stream')) {
           const sessionId = parts[1]
           if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
-          if (!daemon.pipeline) return sendJSON(res, 503, { error: 'pipeline not ready' })
 
           const body = await parseBody(req)
           const content: string = body?.content
           if (!content) return sendJSON(res, 400, { error: 'missing content' })
 
           try {
+            const channelId = body?.channelId || 'channel:cli'
+            const senderId = body?.senderId || sessionId
+
+            // Check if V2 is enabled
+            const useV2 = (daemon as any).useV2 && (daemon as any).v2
+
+            if (useV2) {
+              // V2 path: simplified session flow
+              logger.info(`[admin-api] Using V2 for turn`, { sessionId: sessionId.slice(0, 8) })
+              const startTime = Date.now()
+              const result = await (daemon as any).v2.processMessage(channelId, senderId, content)
+              const durationMs = Date.now() - startTime
+
+              return sendJSON(res, 200, {
+                ok: true,
+                sessionId: result.sessionId,
+                response: result.response,
+                model: 'v2', // V2 tracks model internally
+                tokensUsed: 0, // V2 tracks tokens internally
+                durationMs,
+                v2: true,
+              })
+            }
+
+            // V1 path: traditional pipeline
+            if (!daemon.pipeline) return sendJSON(res, 503, { error: 'pipeline not ready' })
+
             const { randomUUID } = await import('node:crypto')
             const inbound = {
               id: randomUUID(),
               sessionId,
-              channelId: body?.channelId || 'channel:cli',
-              senderId: body?.senderId || sessionId,
+              channelId,
+              senderId,
               content,
               timestamp: new Date(),
             }
@@ -2338,6 +2364,16 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         if (parts.length === 4 && parts[2] === 'turn' && parts[3] === 'stream' && req.method === 'POST' && (req.headers.accept || '').toLowerCase().includes('text/event-stream')) {
           const sessionId = parts[1]
           if (!sessionId) return sendJSON(res, 400, { error: 'missing sessionId' })
+
+          // Check if V2 is enabled - V2 doesn't support SSE streaming yet, so we fall back to V1
+          const useV2 = (daemon as any).useV2 && (daemon as any).v2
+          if (useV2) {
+            // V2 doesn't have SSE streaming - return error suggesting non-streaming endpoint
+            return sendJSON(res, 501, { 
+              error: 'SSE streaming not supported in V2 mode. Use POST /sessions/:id/turn without Accept: text/event-stream header'
+            })
+          }
+
           if (!daemon.pipeline) {
             logger.error('[admin-api] SSE stream rejected: pipeline not ready')
             return sendJSON(res, 503, { error: 'pipeline not ready' })
@@ -3083,12 +3119,36 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         const messages = body?.messages || [];
         const model = body?.model || "kimi-coding/k2p5";
         
-        if (!daemon.pipeline) return sendJSON(res, 503, { error: "pipeline not ready" });
-        
         try {
           const { randomUUID } = await import("node:crypto");
           const sessionId = "provider-" + randomUUID();
           const content = messages[messages.length - 1]?.content || "";
+          
+          // Check if V2 is enabled
+          const useV2 = (daemon as any).useV2 && (daemon as any).v2
+          
+          if (useV2) {
+            // V2 path: simplified flow
+            logger.info(`[admin-api] V2 chat for session ${sessionId}`);
+            const startTime = Date.now();
+            const result = await (daemon as any).v2.processMessage(
+              "channel:cli",
+              sessionId,
+              content
+            );
+            const durationMs = Date.now() - startTime;
+            
+            return sendJSON(res, 200, {
+              content: result.response,
+              model: "v2",
+              tokensUsed: 0,
+              durationMs,
+              v2: true
+            });
+          }
+          
+          // V1 path: traditional pipeline
+          if (!daemon.pipeline) return sendJSON(res, 503, { error: "pipeline not ready" });
           
           const inbound = {
             id: randomUUID(),
