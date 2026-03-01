@@ -688,6 +688,25 @@ export class Daemon {
       }
     }
 
+    // ── V2 Session Flow Integration ───────────────────────────────────────────
+    // Initialize V2 if enabled via config (features.v2sessionFlow)
+    let v2Integration: any = undefined
+    try {
+      const v2Enabled = this.config.get<boolean>('features.v2sessionFlow', false)
+      if (v2Enabled) {
+        const { initializeV2 } = await import('./daemon-v2-integration.js')
+        v2Integration = await initializeV2(this, this.config, this.logger)
+        if (v2Integration) {
+          this.logger.info('[daemon] V2 session flow initialized - handling 100% traffic')
+          // Store on daemon for admin-api access
+          ;(this as any).v2 = v2Integration
+          ;(this as any).useV2 = true
+        }
+      }
+    } catch (err) {
+      this.logger.warn('[daemon] Failed to initialize V2 session flow', { error: String(err) })
+    }
+
     // ── Health Monitor ────────────────────────────────────────────────────────
     const healthIntervalMs = this.config.get<number>('health.intervalMs', 30_000)
     this.healthMonitor = new HealthMonitor(this.bus, this.logger, {
@@ -806,14 +825,30 @@ export class Daemon {
             }
           }
 
-          this.logger.info(`[daemon] Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId, model: modelFromPayload })
+          this.logger.info(`[daemon] Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId, model: modelFromPayload, v2: !!(this as any).useV2 })
 
-          // Process the turn — streaming tokens flow via bus → worker:message above.
-          // We do NOT send the final response here; the turn:end handler does that
-          // so the stream is finalized exactly once, after all tokens have been sent.
+          // Process the turn — use V2 if enabled, otherwise fall back to V1 pipeline
           try {
-            await this.pipeline.process(inbound)
-            this.logger.info(`[daemon] Turn complete`, { sessionId: inbound.sessionId })
+            if ((this as any).useV2 && (this as any).v2) {
+              // V2 path: simplified session flow
+              const result = await (this as any).v2.processMessage(
+                inbound.channelId,
+                inbound.senderId,
+                inbound.content,
+                { attachments: inbound.attachments }
+              )
+              this.logger.info(`[daemon] V2 turn complete`, { sessionId: result.sessionId })
+              // Send final response via plugin host (V2 doesn't use bus events for completion)
+              this.pluginHost.send(pluginId, {
+                sessionId: result.sessionId,
+                content: result.response,
+                done: true,
+              })
+            } else {
+              // V1 path: traditional pipeline with streaming via bus
+              await this.pipeline.process(inbound)
+              this.logger.info(`[daemon] V1 turn complete`, { sessionId: inbound.sessionId })
+            }
           } catch (err) {
             this.logger.warn(`[daemon] pipeline error: ${String(err)}`)
             // Send error message to channel
