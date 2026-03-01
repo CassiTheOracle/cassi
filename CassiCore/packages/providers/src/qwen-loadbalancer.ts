@@ -265,6 +265,22 @@ export class QwenLoadBalancer extends BaseProvider {
           return
         }
 
+        // Check if token expired - trigger refresh for next attempt
+        if (error.message.includes('token') || error.message.includes('auth') || error.message.includes('401')) {
+          const index = this.currentIndex
+          try {
+            const account = this.accounts[index]
+            if (account) {
+              const newCreds = await QwenProvider.refreshToken(account.credentials)
+              account.credentials = newCreds
+              // Update provider with new token
+              this.providers[index] = new QwenProvider(newCreds.access, account.baseUrl, newCreds)
+            }
+          } catch (refreshErr) {
+            // Refresh failed, continue to next account
+          }
+        }
+
         lastIndex = this.currentIndex
       }
     }

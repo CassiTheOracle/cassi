@@ -34,7 +34,7 @@ processor.register({
     const path = args[0];
     if (!path) return { text: "Usage: /read <path>" };
     try {
-      const response = await fetch("http://localhost:7432/tools/read?path=" + encodeURIComponent(path));
+      const response = await fetch("http://localhost:7433/tools/read?path=" + encodeURIComponent(path));
       const result = await response.json() as { error?: string; content?: string };
       if (result.error) return { text: "❌ " + result.error };
       return { text: "📄 Contents of " + path + ":\n\n" + result.content };
@@ -54,7 +54,7 @@ processor.register({
     const content = args.slice(1).join(" ");
     if (!path) return { text: "Usage: /write <path> <content>" };
     try {
-      const response = await fetch("http://localhost:7432/tools/write", {
+      const response = await fetch("http://localhost:7433/tools/write", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, content })
@@ -77,7 +77,7 @@ processor.register({
     const cmd = args.join(" ");
     if (!cmd) return { text: "Usage: /bash <command>" };
     try {
-      const response = await fetch("http://localhost:7432/tools/bash", {
+      const response = await fetch("http://localhost:7433/tools/bash", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command: cmd, timeout: 30000 })
@@ -98,7 +98,7 @@ processor.register({
     const path = args[0];
     if (!path) return { text: "Usage: /exists <path>" };
     try {
-      const response = await fetch("http://localhost:7432/fs/exists?path=" + encodeURIComponent(path));
+      const response = await fetch("http://localhost:7433/fs/exists?path=" + encodeURIComponent(path));
       const result = await response.json() as { exists?: boolean };
       return { text: result.exists ? "✅ Exists: " + path : "❌ Not found: " + path };
     } catch {
@@ -116,7 +116,7 @@ processor.register({
     const path = args[0];
     if (!path) return { text: "Usage: /mkdir <path>" };
     try {
-      const response = await fetch("http://localhost:7432/tools/mkdir", {
+      const response = await fetch("http://localhost:7433/tools/mkdir", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path })

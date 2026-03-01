@@ -18,6 +18,9 @@ interface CliMessage {
     userId?: string;
     projectPath?: string;
     config?: Record<string, unknown>;
+    // Streaming response fields from daemon
+    content?: string;
+    done?: boolean;
   };
 }
 
@@ -124,10 +127,47 @@ class CliChannelWorker {
   }
 
   private async handleCommand(msg: CliMessage): Promise<void> {
-    const { command, args, sessionId, userId, projectPath } = msg.payload || {};
+    const { command, args, sessionId, userId, projectPath, content, done } = msg.payload || {};
 
+    // Handle streaming messages from daemon (content/done) vs command messages
     if (!command) {
+      if (content !== undefined) {
+        // Streaming message from daemon - output to stdout
+        process.stdout.write(content);
+        if (done) {
+          process.stdout.write('\n');
+        }
+        return;
+      }
       this.sendError("No command provided");
+      return;
+    }
+
+    // Check if this is a user message (not a slash command)
+    // User messages should be forwarded to the daemon for turn pipeline processing
+    if (!command.startsWith('/')) {
+      // Parse potential model argument: "message --model lmstudio/lfm2.5-1.2b"
+      let userMessage = command;
+      let model: string | undefined;
+
+      const modelIdx = command.indexOf('--model ');
+      if (modelIdx !== -1) {
+        userMessage = command.substring(0, modelIdx).trim();
+        model = command.substring(modelIdx + 8).trim().split(' ')[0];
+      }
+
+      // Forward user message to daemon for turn pipeline processing
+      this.pp.postMessage({
+        type: 'message',
+        payload: {
+          sessionId: sessionId || 'default',
+          content: userMessage,
+          userId: userId || 'cli-user',
+          projectPath,
+          timestamp: Date.now(),
+          model: model,
+        },
+      });
       return;
     }
 
@@ -217,7 +257,8 @@ class CliChannelWorker {
 
   private sendError(message: string): void {
     this.logger?.error("CLI channel error", { message });
-    this.pp.postMessage({ type: "error", payload: { message, timestamp: Date.now() } });
+    // Send error in the format expected by plugin-host: { type: "error", message }
+    this.pp.postMessage({ type: "error", message, timestamp: Date.now() } as any);
   }
 
   private sendResult(result: CommandResult): void {

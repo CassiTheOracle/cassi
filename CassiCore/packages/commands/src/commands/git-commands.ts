@@ -5,7 +5,7 @@ import { processor } from "./universal-processor.js";
 
 async function execGit(command: string, ctx: CommandContext): Promise<{ exitCode: number; output: string }> {
   try {
-    const response = await fetch("http://localhost:7432/tools/bash", {
+    const response = await fetch("http://localhost:7433/tools/bash", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -5,10 +5,10 @@ import { GitHubCopilotProvider } from './github-copilot.js'
 import { KimiCodingProvider } from './kimi-coding.js'
 import { OpenRouterProvider } from './openrouter.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
-import { PiBridgeProvider } from './pi-bridge.js'
 import { QwenProvider } from './qwen.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
+import fs from 'node:fs'
 
 export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
@@ -105,9 +105,9 @@ export function createProviders(
   // First try to load from external qwen-accounts.json, then from config
   let qwenAccounts: Array<{ profileId: string; credentials: any; baseUrl?: string }> = []
   try {
-    const qwenAccountsPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/cassi'}/.cassicore/qwen-accounts.json`
-    if (require('node:fs').existsSync(qwenAccountsPath)) {
-      const qwenAccountsConfig = JSON.parse(require('node:fs').readFileSync(qwenAccountsPath, 'utf8'))
+    const qwenAccountsPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/qwen-accounts.json`
+    if (fs.existsSync(qwenAccountsPath)) {
+      const qwenAccountsConfig = JSON.parse(fs.readFileSync(qwenAccountsPath, 'utf8'))
       qwenAccounts = qwenAccountsConfig?.providers?.qwen?.accounts || []
       if (qwenAccounts.length > 0) {
         logger.info(`[qwen] Loaded ${qwenAccounts.length} account(s) from ${qwenAccountsPath}`)
@@ -127,7 +127,7 @@ export function createProviders(
     process.env.QWEN_API_KEY ||
     process.env.DASHSCOPE_API_KEY ||
     ''
-  
+
   if (qwenAccounts.length > 1) {
     // Multi-account load balancing mode
     try {
@@ -165,12 +165,77 @@ export function createProviders(
     }
   }
 
-  // ── Pi Bridge ──────────────────────────────────────────────────────────────
-  const piBridge = new PiBridgeProvider(logger, bus || (config as any).bus, rawProviders)
-  rawProviders.set('pi-bridge', piBridge)
-  // Legacy alias: allow 'pi' prefix in model names (e.g., pi/k2p5) to map to pi-bridge
-  rawProviders.set('pi', piBridge)
-  logger.info('Provider loaded: pi-bridge (aliases: pi-bridge, pi)')
+  // ── LM Studio (Local API) ──────────────────────────────────────────────────
+  const lmstudioEnabled = config.get<boolean>('providers.lmstudio.enabled', true)
+  if (lmstudioEnabled) {
+    const lmstudioBaseUrl = config.get<string>('providers.lmstudio.baseUrl', 'http://localhost:1234/v1')
+    try {
+      const lmstudioProvider = {
+        id: 'lmstudio',
+        // Default to fast lfm2.5-1.2b model, prunedhub-gpt-oss-20b-28x as fallback
+        models: config.get<string[]>('providers.lmstudio.models', ['lfm2.5-1.2b', 'prunedhub-gpt-oss-20b-28x']),
+        countTokens: async (messages: any[]) => messages.reduce((acc, m) => acc + Math.ceil(String(m.content).length / 4), 0),
+        ping: async () => true,
+        async *complete(messages: any[], opts: any) {
+          const response = await fetch(`${lmstudioBaseUrl}/chat/completions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer lmstudio'
+            },
+            body: JSON.stringify({
+              model: opts.model || 'lfm2.5-1.2b',
+              messages: messages.map(m => ({
+                role: m.role,
+                content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
+              })),
+              stream: true
+            })
+          })
+
+          if (!response.ok) {
+            throw new Error(`LM Studio error: ${response.status} ${response.statusText}`)
+          }
+
+          const reader = response.body?.getReader()
+          if (!reader) throw new Error('No response body')
+
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            buffer += decoder.decode(value, { stream: true })
+            const lines = buffer.split('\n')
+            buffer = lines.pop() || ''
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6)
+                if (data === '[DONE]') continue
+                try {
+                  const chunk = JSON.parse(data)
+                  const content = chunk.choices?.[0]?.delta?.content || ''
+                  if (content) {
+                    yield { type: 'token' as const, text: content }
+                  }
+                } catch (e) {
+                  // Ignore parse errors
+                }
+              }
+            }
+          }
+          yield { type: 'done' as const }
+        }
+      }
+      rawProviders.set('lmstudio', lmstudioProvider as IProvider)
+      logger.info(`Provider loaded: lmstudio (${lmstudioBaseUrl})`)
+    } catch (err) {
+      logger.warn(`failed to load lmstudio provider: ${String(err)}`)
+    }
+  }
 
   if (rawProviders.size === 0) {
     logger.warn('[providers] No providers loaded — set at least one API key in config or env')
