@@ -44,6 +44,14 @@ export interface IMemory {
 
   /** Stats for /memory stats command */
   stats(): Promise<Record<string, number>>;
+
+  // Archivist methods (optional - for comprehensive archiving)
+  archiveConversation?(sessionId: string, userContent: string, assistantContent: string, thinking?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archiveDialectic?(sessionId: string, branch: 'yang' | 'yin' | 'serenity', content: string, parentId?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archiveInsight?(content: string, level: 'ponder' | 'think' | 'deep', metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archivePattern?(patternType: string, description: string, evidence: string[], confidence: number, sessionId?: string): Promise<{ id: string; analysis: any }>;
+  archiveEvent?(eventType: string, content: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archiveToolCall?(sessionId: string, toolName: string, input: unknown, output?: unknown, error?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
 }
 
 // ─── Continuity ──────────────────────────────────────────────────────────────
