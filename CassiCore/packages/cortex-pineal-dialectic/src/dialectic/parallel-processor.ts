@@ -285,6 +285,66 @@ export class ParallelDialecticProcessor {
         speedupVsSequential: this.estimateSpeedup(result),
       });
 
+      // Archive dialectic outputs to Archivist for comprehensive search
+      if (this.memory && typeof (this.memory as any).archiveDialectic === 'function') {
+        try {
+          const memory = this.memory as any;
+          // Archive Yang branches
+          for (let i = 0; i < yangResult.branches.length; i++) {
+            const branch = yangResult.branches[i];
+            await memory.archiveDialectic(
+              sessionId,
+              'yang',
+              branch.content,
+              undefined,
+              {
+                turnId,
+                branchIndex: i,
+                confidence: branch.confidence,
+                source: 'dialectic:parallel',
+                tags: ['dialectic', 'yang', `turn:${turnId}`],
+              }
+            );
+          }
+
+          // Archive Yin critiques
+          for (let i = 0; i < yinResult.selfCritiques.length; i++) {
+            const critique = yinResult.selfCritiques[i];
+            await memory.archiveDialectic(
+              sessionId,
+              'yin',
+              critique.critique,
+              undefined,
+              {
+                turnId,
+                critiqueIndex: i,
+                targetBranch: critique.yangBranchId,
+                source: 'dialectic:parallel',
+                tags: ['dialectic', 'yin', `turn:${turnId}`],
+              }
+            );
+          }
+
+          // Archive Serenity synthesis
+          await memory.archiveDialectic(
+            sessionId,
+            'serenity',
+            serenityResult.synthesis.signal?.content || `Synthesized ${serenityResult.synthesis.branchesConsidered} branches, surfaced ${serenityResult.synthesis.branchesSurfaced}`,
+            undefined,
+            {
+              turnId,
+              hasSignal: serenityResult.synthesis.hasSignal,
+              signalType: serenityResult.synthesis.signal?.type,
+              confidence: serenityResult.synthesis.signal?.confidence,
+              source: 'dialectic:parallel',
+              tags: ['dialectic', 'serenity', `turn:${turnId}`],
+            }
+          );
+        } catch (err) {
+          this.logger.warn('ParallelDialecticProcessor: failed to archive dialectic outputs', { error: String(err) });
+        }
+      }
+
       return result;
     } catch (error) {
       this.logger.error('ParallelDialecticProcessor: turn failed', {
