@@ -391,82 +391,314 @@ const INTELLIGENCE_TOOLS = [
     },
   },
 ];
-const SERENA_TOOLS = [
+// ═══════════════════════════════════════════════════════════════════════════════
+// Extended Tools — Memory, Providers, Config, Sessions, Actions, Teams
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const MEMORY_TOOLS = [
   {
-    name: 'serena__find_symbol',
-    description: 'Find code symbols (functions, classes, variables) by name using semantic understanding.',
+    name: 'cassi_memory_store',
+    description: 'Store a memory in CassiCore\'s persistent memory system. Memories persist across sessions and can be searched later.',
     inputSchema: {
       type: 'object',
       properties: {
-        symbolName: {
+        key: {
           type: 'string',
-          description: 'Name of the symbol to find',
+          description: 'A unique key/identifier for this memory',
+        },
+        content: {
+          type: 'string',
+          description: 'The content to store',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional tags for categorization',
         },
       },
-      required: ['symbolName'],
+      required: ['key', 'content'],
     },
   },
   {
-    name: 'serena__read_symbol',
-    description: 'Read detailed information about a symbol including its code and documentation.',
+    name: 'cassi_memory_search',
+    description: 'Search CassiCore\'s persistent memory using full-text search. Returns matching memories with relevance scores.',
     inputSchema: {
       type: 'object',
       properties: {
-        symbolName: {
+        query: {
           type: 'string',
-          description: 'Name of the symbol to read',
+          description: 'Search query (supports FTS5 syntax)',
+        },
+        limit: {
+          type: 'number',
+          description: 'Maximum results to return (default 10)',
         },
       },
-      required: ['symbolName'],
+      required: ['query'],
     },
   },
   {
-    name: 'serena__find_referencing_symbols',
-    description: 'Find all places where a symbol is used (references).',
+    name: 'cassi_memory_recent',
+    description: 'List the most recently stored memories.',
     inputSchema: {
       type: 'object',
       properties: {
-        symbolName: {
-          type: 'string',
-          description: 'Name of the symbol to find references for',
-        },
-      },
-      required: ['symbolName'],
-    },
-  },
-  {
-    name: 'serena__list_files',
-    description: 'List files in the codebase with optional filtering.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        path: {
-          type: 'string',
-          description: 'Directory path to list (optional)',
-        },
-        pattern: {
-          type: 'string',
-          description: 'File pattern to match (optional, e.g., "*.ts")',
+        limit: {
+          type: 'number',
+          description: 'Maximum results to return (default 10)',
         },
       },
     },
   },
+];
+
+const PROVIDER_TOOLS = [
   {
-    name: 'serena__replace_symbol_body',
-    description: 'Replace the entire body of a symbol with new code.',
+    name: 'cassi_providers',
+    description: 'List all configured LLM providers with their health status, available models, and quota information.',
     inputSchema: {
       type: 'object',
       properties: {
-        symbolName: {
-          type: 'string',
-          description: 'Name of the symbol to replace',
-        },
-        newBody: {
-          type: 'string',
-          description: 'New code body for the symbol',
+        includeHealth: {
+          type: 'boolean',
+          description: 'Include detailed health and quota data (default true)',
         },
       },
-      required: ['symbolName', 'newBody'],
+    },
+  },
+  {
+    name: 'cassi_provider_metrics',
+    description: 'Get aggregated provider performance metrics — request counts, latency, error rates, token usage per provider/model.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        providerId: {
+          type: 'string',
+          description: 'Filter by provider ID (e.g., "anthropic", "github-copilot")',
+        },
+        model: {
+          type: 'string',
+          description: 'Filter by model name',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_provider_config',
+    description: 'View or modify provider configuration. Use action "get" to read current config, "set" to update, "reset" to clear error state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['get', 'set', 'reset'],
+          description: 'Action to perform (default "get")',
+        },
+        providerId: {
+          type: 'string',
+          description: 'Provider ID (required for "set" and "reset")',
+        },
+        config: {
+          type: 'object',
+          description: 'Configuration object to set (for action "set")',
+        },
+      },
+    },
+  },
+];
+
+const CONFIG_TOOLS = [
+  {
+    name: 'cassi_config_get',
+    description: 'Read CassiCore runtime configuration. Optionally specify a key to read a single value, or omit for the full config.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'string',
+          description: 'Specific config key path (e.g., "intelligence.thinker.enabled"). Omit for full config.',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_config_set',
+    description: 'Modify CassiCore runtime configuration (hot-reloaded). Restricted to safe keys: intelligence.*, providers.*.model, providers.*.enabled, channels.*.enabled, logging.level.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'string',
+          description: 'Config key path to set',
+        },
+        value: {
+          description: 'Value to set (string, number, boolean, or object)',
+        },
+      },
+      required: ['key', 'value'],
+    },
+  },
+];
+
+const SESSION_TOOLS = [
+  {
+    name: 'cassi_sessions',
+    description: 'List all active CassiCore daemon sessions with their channel, sender, message count, and last activity.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: {
+          type: 'number',
+          description: 'Maximum sessions to return (default 20)',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_session_detail',
+    description: 'Get detailed information about a specific session, including its messages.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'Session ID to inspect',
+        },
+        includeMessages: {
+          type: 'boolean',
+          description: 'Include message history (default false)',
+        },
+        messageLimit: {
+          type: 'number',
+          description: 'Maximum messages to return (default 20)',
+        },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'cassi_session_prune',
+    description: 'Prune old, empty, or inactive sessions from the daemon.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        maxAge: {
+          type: 'string',
+          description: 'Prune sessions older than this (e.g., "24h", "7d")',
+        },
+        channel: {
+          type: 'string',
+          description: 'Only prune sessions from this channel',
+        },
+        emptyOnly: {
+          type: 'boolean',
+          description: 'Only prune sessions with zero messages (default false)',
+        },
+        all: {
+          type: 'boolean',
+          description: 'Prune all sessions (dangerous, requires confirmation)',
+        },
+      },
+    },
+  },
+];
+
+const ACTION_TOOLS = [
+  {
+    name: 'cassi_think_now',
+    description: 'Trigger a manual Thinker cycle immediately. Returns the generated insight.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'Session context for the think cycle (optional, uses most recent)',
+        },
+        prompt: {
+          type: 'string',
+          description: 'Optional prompt to focus the thinking on a specific topic',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_strategy_update',
+    description: 'View or modify the Thinker\'s adaptive strategy parameters (ponder interval, trigger sensitivity, etc.).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['get', 'set', 'reset'],
+          description: 'Action: "get" to read current strategy, "set" to modify, "reset" to restore defaults',
+        },
+        strategy: {
+          type: 'object',
+          description: 'Strategy parameters to set (for action "set"). Partial updates supported.',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_anomaly_ack',
+    description: 'Acknowledge a subconscious anomaly to dismiss it from active monitoring.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        anomalyId: {
+          type: 'string',
+          description: 'The anomaly ID to acknowledge',
+        },
+      },
+      required: ['anomalyId'],
+    },
+  },
+];
+
+const TEAM_TOOLS = [
+  {
+    name: 'cassi_team',
+    description: 'Multi-agent team orchestration — start, monitor, and control autonomous agent teams. Use the "action" parameter to select the operation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['start', 'status', 'tree', 'list', 'pause', 'resume', 'cancel', 'checkpoints', 'approve', 'reject', 'steer'],
+          description: 'Team operation to perform',
+        },
+        goal: {
+          type: 'string',
+          description: 'Goal description (for action "start")',
+        },
+        roles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Agent roles to assign (for action "start")',
+        },
+        teamId: {
+          type: 'string',
+          description: 'Team ID (required for status/tree/pause/resume/cancel/steer)',
+        },
+        checkpointId: {
+          type: 'string',
+          description: 'Checkpoint ID (required for approve/reject)',
+        },
+        feedback: {
+          type: 'string',
+          description: 'Feedback or steering instructions (for approve/reject/steer)',
+        },
+        budget: {
+          type: 'object',
+          description: 'Resource budget constraints (for action "start")',
+          properties: {
+            maxTokens: { type: 'number' },
+            maxIterations: { type: 'number' },
+            timeoutMs: { type: 'number' },
+          },
+        },
+      },
+      required: ['action'],
     },
   },
 ];
@@ -529,15 +761,335 @@ async function executeCassiCoreTool(toolName: string, args: any): Promise<any> {
   }
 }
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Extended Tool Execution (Memory, Providers, Config, Sessions, Actions, Teams)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Safe config keys that can be modified via cassi_config_set */
+const SAFE_CONFIG_KEYS = [
+  'intelligence.',
+  'providers.*.model',
+  'providers.*.enabled',
+  'channels.*.enabled',
+  'logging.level',
+];
+
+function isConfigKeySafe(key: string): boolean {
+  return SAFE_CONFIG_KEYS.some(pattern => {
+    if (pattern.endsWith('.')) return key.startsWith(pattern);
+    // Convert wildcard pattern to regex
+    const regex = new RegExp('^' + pattern.replace(/\./g, '\\.').replace(/\*/g, '[^.]+') + '$');
+    return regex.test(key);
+  });
+}
+
 /**
- * Execute Serena tool (if Serena MCP server is available)
+ * Execute extended tools (memory, providers, config, sessions, actions, teams)
+ * via CassiCore admin API using the JSON proxy pattern.
  */
-async function executeSerenaTool(toolName: string, args: any): Promise<any> {
-  log('info', 'Executing Serena tool', { tool: toolName, args });
-  
-  // Serena has its own MCP server - this is a proxy
-  // In practice, Qwen-Coder would connect directly to serena-server.js
-  throw new Error('Serena tools should be accessed directly via serena-server.js MCP');
+async function executeExtendedTool(toolName: string, args: any): Promise<any> {
+  log('info', 'Executing extended tool', { tool: toolName, args });
+
+  try {
+    switch (toolName) {
+      // ── Memory ──────────────────────────────────────────────────────────
+      case 'cassi_memory_store': {
+        const res = await fetch(`${CASSICORE_URL}/memory/store`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: args.key, content: args.content, tags: args.tags }),
+        });
+        if (!res.ok) throw new Error(`Memory store failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_search': {
+        const params = new URLSearchParams({ query: args.query });
+        if (args.limit) params.set('limit', String(args.limit));
+        const res = await fetch(`${CASSICORE_URL}/memory/search?${params}`);
+        if (!res.ok) throw new Error(`Memory search failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_recent': {
+        const params = new URLSearchParams();
+        if (args?.limit) params.set('limit', String(args.limit));
+        const qs = params.toString();
+        const res = await fetch(`${CASSICORE_URL}/memory/recent${qs ? '?' + qs : ''}`);
+        if (!res.ok) throw new Error(`Memory recent failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      // ── Providers ───────────────────────────────────────────────────────
+      case 'cassi_providers': {
+        const [providersRes, healthRes] = await Promise.all([
+          fetch(`${CASSICORE_URL}/providers`),
+          args?.includeHealth !== false ? fetch(`${CASSICORE_URL}/health/providers`) : null,
+        ]);
+        if (!providersRes.ok) throw new Error(`Providers list failed: ${await providersRes.text()}`);
+        const providers = await providersRes.json();
+        const health = healthRes?.ok ? await healthRes.json() : null;
+        return health ? { providers, health } : providers;
+      }
+
+      case 'cassi_provider_metrics': {
+        const params = new URLSearchParams();
+        if (args?.providerId) params.set('providerId', args.providerId);
+        if (args?.model) params.set('model', args.model);
+        const qs = params.toString();
+        const res = await fetch(`${CASSICORE_URL}/providers/metrics${qs ? '?' + qs : ''}`);
+        if (!res.ok) throw new Error(`Provider metrics failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_provider_config': {
+        const action = args?.action || 'get';
+        if (action === 'get') {
+          const res = await fetch(`${CASSICORE_URL}/providers/config`);
+          if (!res.ok) throw new Error(`Provider config get failed: ${await res.text()}`);
+          return await res.json();
+        } else if (action === 'set') {
+          const res = await fetch(`${CASSICORE_URL}/providers/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ providerId: args.providerId, config: args.config }),
+          });
+          if (!res.ok) throw new Error(`Provider config set failed: ${await res.text()}`);
+          return await res.json();
+        } else if (action === 'reset') {
+          const res = await fetch(`${CASSICORE_URL}/providers/reset`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ providerId: args.providerId }),
+          });
+          if (!res.ok) throw new Error(`Provider reset failed: ${await res.text()}`);
+          return await res.json();
+        }
+        throw new Error(`Unknown provider config action: ${action}`);
+      }
+
+      // ── Config ──────────────────────────────────────────────────────────
+      case 'cassi_config_get': {
+        const path = args?.key ? `/config/${encodeURIComponent(args.key)}` : '/config';
+        const res = await fetch(`${CASSICORE_URL}${path}`);
+        if (!res.ok) throw new Error(`Config get failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_config_set': {
+        if (!isConfigKeySafe(args.key)) {
+          throw new Error(
+            `Config key "${args.key}" is not in the safe-list. ` +
+            `Allowed patterns: ${SAFE_CONFIG_KEYS.join(', ')}`
+          );
+        }
+        const res = await fetch(`${CASSICORE_URL}/config/set`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: args.key, value: args.value }),
+        });
+        if (!res.ok) throw new Error(`Config set failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      // ── Sessions ────────────────────────────────────────────────────────
+      case 'cassi_sessions': {
+        const params = new URLSearchParams();
+        if (args?.limit) params.set('limit', String(args.limit));
+        const qs = params.toString();
+        const res = await fetch(`${CASSICORE_URL}/sessions${qs ? '?' + qs : ''}`);
+        if (!res.ok) throw new Error(`Sessions list failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_session_detail': {
+        const sid = encodeURIComponent(args.sessionId);
+        const sessionRes = await fetch(`${CASSICORE_URL}/sessions/${sid}`);
+        if (!sessionRes.ok) throw new Error(`Session detail failed: ${await sessionRes.text()}`);
+        const session = await sessionRes.json();
+
+        if (args.includeMessages) {
+          const params = new URLSearchParams();
+          if (args.messageLimit) params.set('limit', String(args.messageLimit));
+          const qs = params.toString();
+          const msgRes = await fetch(`${CASSICORE_URL}/sessions/${sid}/messages${qs ? '?' + qs : ''}`);
+          if (msgRes.ok) {
+            session.messages = await msgRes.json();
+          }
+        }
+        return session;
+      }
+
+      case 'cassi_session_prune': {
+        const res = await fetch(`${CASSICORE_URL}/sessions/prune`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(args || {}),
+        });
+        if (!res.ok) throw new Error(`Session prune failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      // ── Actions ─────────────────────────────────────────────────────────
+      case 'cassi_think_now': {
+        const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/think`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: args?.sessionId,
+            prompt: args?.prompt,
+          }),
+        });
+        if (!res.ok) throw new Error(`Think trigger failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_strategy_update': {
+        const action = args?.action || 'get';
+        if (action === 'get') {
+          const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/strategy`);
+          if (!res.ok) throw new Error(`Strategy get failed: ${await res.text()}`);
+          return await res.json();
+        } else if (action === 'set') {
+          const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/strategy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(args.strategy || {}),
+          });
+          if (!res.ok) throw new Error(`Strategy set failed: ${await res.text()}`);
+          return await res.json();
+        } else if (action === 'reset') {
+          const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/strategy`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reset: true }),
+          });
+          if (!res.ok) throw new Error(`Strategy reset failed: ${await res.text()}`);
+          return await res.json();
+        }
+        throw new Error(`Unknown strategy action: ${action}`);
+      }
+
+      case 'cassi_anomaly_ack': {
+        const aid = encodeURIComponent(args.anomalyId);
+        const res = await fetch(`${CASSICORE_URL}/intelligence/subconscious/anomalies/${aid}/acknowledge`, {
+          method: 'POST',
+        });
+        if (!res.ok) throw new Error(`Anomaly acknowledge failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      // ── Teams (multiplexed) ─────────────────────────────────────────────
+      case 'cassi_team': {
+        return await executeTeamAction(args);
+      }
+
+      default:
+        throw new Error(`Unknown extended tool: ${toolName}`);
+    }
+  } catch (error: any) {
+    log('error', 'Extended tool execution failed', { tool: toolName, error: error.message });
+    throw error;
+  }
+}
+
+/**
+ * Handle multiplexed team operations via the "action" parameter
+ */
+async function executeTeamAction(args: any): Promise<any> {
+  const action = args?.action;
+  if (!action) throw new Error('Team tool requires an "action" parameter');
+
+  switch (action) {
+    case 'start': {
+      const res = await fetch(`${CASSICORE_URL}/teams`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task: args.task,
+          budget: args.budget,
+        }),
+      });
+      if (!res.ok) throw new Error(`Team start failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'status': {
+      const tid = args.teamId ? `/${encodeURIComponent(args.teamId)}` : '';
+      const res = await fetch(`${CASSICORE_URL}/teams/status${tid}`);
+      if (!res.ok) throw new Error(`Team status failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'tree': {
+      if (!args.teamId) throw new Error('Team "tree" action requires teamId');
+      const res = await fetch(`${CASSICORE_URL}/teams/tree/${encodeURIComponent(args.teamId)}`);
+      if (!res.ok) throw new Error(`Team tree failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'list': {
+      const res = await fetch(`${CASSICORE_URL}/teams`);
+      if (!res.ok) throw new Error(`Team list failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'pause':
+    case 'resume':
+    case 'cancel': {
+      if (!args.teamId) throw new Error(`Team "${action}" action requires teamId`);
+      const res = await fetch(`${CASSICORE_URL}/teams/${action}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: args.teamId }),
+      });
+      if (!res.ok) throw new Error(`Team ${action} failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'checkpoints': {
+      const params = new URLSearchParams();
+      if (args.teamId) params.set('teamId', args.teamId);
+      const qs = params.toString();
+      const res = await fetch(`${CASSICORE_URL}/teams/checkpoints${qs ? '?' + qs : ''}`);
+      if (!res.ok) throw new Error(`Team checkpoints failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'approve':
+    case 'reject': {
+      if (!args.checkpointId) throw new Error(`Team "${action}" action requires checkpointId`);
+      const res = await fetch(`${CASSICORE_URL}/teams/checkpoints/${encodeURIComponent(args.checkpointId)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decision: action,
+          feedback: args.feedback,
+        }),
+      });
+      if (!res.ok) throw new Error(`Team ${action} failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'steer': {
+      if (!args.teamId) throw new Error('Team "steer" action requires teamId');
+      const res = await fetch(`${CASSICORE_URL}/teams/steer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teamId: args.teamId,
+          instructions: args.feedback,
+        }),
+      });
+      if (!res.ok) throw new Error(`Team steer failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    default:
+      throw new Error(`Unknown team action: "${action}". Valid: start, status, tree, list, pause, resume, cancel, checkpoints, approve, reject, steer`);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1580,7 +2132,7 @@ function createServer() {
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
-      tools: [...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...SERENA_TOOLS],
+      tools: [...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS],
     };
   });
 
@@ -1593,10 +2145,21 @@ function createServer() {
     try {
       let result;
       
-      if (name.startsWith('serena__')) {
-        result = await executeSerenaTool(name, args);
+      // Extended tools (memory, providers, config, sessions, actions, teams)
+      const extendedTools = new Set([
+        'cassi_memory_store', 'cassi_memory_search', 'cassi_memory_recent',
+        'cassi_providers', 'cassi_provider_metrics', 'cassi_provider_config',
+        'cassi_config_get', 'cassi_config_set',
+        'cassi_sessions', 'cassi_session_detail', 'cassi_session_prune',
+        'cassi_think_now', 'cassi_strategy_update', 'cassi_anomaly_ack',
+        'cassi_team',
+      ]);
+      
+      if (extendedTools.has(name)) {
+        // Extended tools return JSON
+        result = await executeExtendedTool(name, args);
       } else if (name.startsWith('cassi_')) {
-        // Intelligence tools return markdown directly
+        // Intelligence introspection tools return markdown directly
         const markdown = await executeIntelligenceTool(name, args);
         return {
           content: [
@@ -1733,7 +2296,7 @@ async function startHttp(port: number) {
     // Tools endpoint (REST API)
     if (url.pathname === '/tools' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify([...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...SERENA_TOOLS]));
+      res.end(JSON.stringify([...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS]));
       return;
     }
     
