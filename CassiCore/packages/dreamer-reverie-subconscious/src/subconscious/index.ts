@@ -29,6 +29,7 @@ import type { IMemory } from '../../../types/intelligence.js';
 import type { DialecticSignal } from '../../../types/dialectic.js';
 import type { IProvider, Message, CompletionChunk } from '../../../types/runtime.js';
 import type { RuntimeEvent } from '../../../types/events.js';
+import { MODEL_DEFAULTS } from '../../config/system-settings.js'
 import fs from 'fs';
 import path from 'path';
 
@@ -183,7 +184,7 @@ export class Subconscious {
       clusterSimilarityThreshold: config?.clusterSimilarityThreshold ?? 0.80,
       maxClustersPerBatch: config?.maxClustersPerBatch ?? 8,
       summarizerEnabled: config?.summarizerEnabled ?? true,
-      summarizerModel: config?.summarizerModel ?? process.env.OLLAMA_SUMMARIZER_MODEL ?? 'gpt-5-mini',
+      summarizerModel: config?.summarizerModel ?? process.env.OLLAMA_SUMMARIZER_MODEL ?? MODEL_DEFAULTS.fast.model,
       summarizerMaxTokens: config?.summarizerMaxTokens ?? 160,
       summarizerTemperature: config?.summarizerTemperature ?? 0.12,
       summarizerTimeoutMs: config?.summarizerTimeoutMs ?? 8000,
@@ -1045,6 +1046,21 @@ export class Subconscious {
 
   getEnhancedSearchStats() {
     return this.enhancedSearch.getStats();
+  }
+
+  /**
+   * Non-consuming peek at retrieved context for a session (inject.json writer).
+   * Same items as getRetrievedContext() but without marking them as used.
+   */
+  peekRetrievedContext(sessionId: string) {
+    return this.enhancedSearch.peekRetrievedContext(sessionId);
+  }
+
+  /**
+   * Return all session IDs with active search context (inject.json writer).
+   */
+  getSessionIds(): string[] {
+    return this.enhancedSearch.getSessionIds();
   }
 
   getMentalModel(sessionId: string): MentalModelImpl | undefined {

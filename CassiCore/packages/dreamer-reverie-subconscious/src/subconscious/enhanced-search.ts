@@ -14,6 +14,7 @@ import type { ILogger } from '../../../types/interfaces.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { SessionDigestStore } from '../session-digest.js';
+import { MODEL_DEFAULTS } from '../../config/system-settings.js'
 
 export interface SearchContext {
   sessionId: string;
@@ -285,7 +286,7 @@ Be concise. Only include high-confidence items.`;
     try {
       const stream = await (this.provider as any).complete(
         [{ role: 'user', content: prompt }],
-        { model: 'gpt-5-mini', stream: false, maxTokens: 200 }
+        { model: MODEL_DEFAULTS.fast.model, stream: false, maxTokens: 200 }
       );
 
       let response = '';
@@ -507,6 +508,40 @@ Be concise. Only include high-confidence items.`;
       retrievedCount: context.retrievedContext.length,
       injectedCount: context.retrievedContext.filter(i => i.used).length,
     };
+  }
+
+  /**
+   * Non-consuming peek at retrieved context — same filtering as getContextToInject()
+   * but does NOT mark items as used.  Used by the inject.json writer to snapshot
+   * current state without side effects on the real injection pipeline.
+   */
+  peekRetrievedContext(sessionId: string): RetrievedItem[] {
+    const context = this.sessionContexts.get(sessionId);
+    if (!context) return [];
+
+    const unused = context.retrievedContext
+      .filter(item => !item.used && item.relevance >= this.config.minRelevanceToInject);
+
+    const seen = new Set<string>();
+    const deduped: RetrievedItem[] = [];
+    for (const item of unused) {
+      const key = item.content.slice(0, 200);
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(item);
+      }
+    }
+
+    return deduped
+      .sort((a, b) => b.relevance - a.relevance)
+      .slice(0, this.config.maxContextToInject);
+  }
+
+  /**
+   * Return all session IDs that have active search context (for inject.json writer).
+   */
+  getSessionIds(): string[] {
+    return Array.from(this.sessionContexts.keys());
   }
 
   /**
