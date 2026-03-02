@@ -4437,8 +4437,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         : null,
       complexity,
       activeFiles: Array.from(activeFilesSet).slice(0, 20),
-      activeSkills: mmContext?.activeSkills ?? [],
+      activeSkills: (mmContext?.activeSkills ?? []).slice(0, 5),  // D3: Strip bloat — was 50+ items
       recentActions: digest?.recentActions ?? [],
+      turnCount,  // D4: Expose for reinforcement timing
       filesActive: digest?.filesActive ?? [],
       pruneAdvice,
       compactionContext: compactionParts.length > 0 ? compactionParts.join('. ') : null,
@@ -4517,12 +4518,102 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         if (focus) focusStates[sid] = focus
       }
 
+      // --- D1: Per-session optimizer health (loopScore, stuckScore, etc.) ---
+      const sessionHealth: Record<string, any> = {}
+      const optimizer = daemon.intelligence?.optimizer
+      if (optimizer?.scoreSession) {
+        for (const sid of allSessionIds) {
+          try {
+            const health = await optimizer.scoreSession(sid)
+            if (health) {
+              sessionHealth[sid] = {
+                loopScore: health.loopScore,
+                stuckScore: health.stuckScore,
+                tokenVelocity: health.tokenVelocity,
+                estimatedTokens: health.estimatedTokens,
+                interventionCount: health.interventionCount,
+                lastAction: health.lastAction ?? null,
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // --- D2: Active anomalies from subconscious ---
+      let anomalies: any[] = []
+      if (mem) {
+        try {
+          const raw = await mem.kv_get('subconscious:anomalies') as any[] | undefined
+          if (raw) {
+            anomalies = raw
+              .filter((a: any) => !a.acknowledged)
+              .slice(0, 10)
+              .map((a: any) => ({
+                id: a.id || a.summary,
+                type: a.type || 'unknown',
+                summary: a.summary || '',
+                severity: a.severity || 'low',
+                detectedAt: a.detectedAt || a.timestamp,
+                sessionId: a.sessionId || null,
+              }))
+          }
+        } catch {}
+      }
+
+      // --- D5: Proactive memory search for OpenCode sessions ---
+      // peekRetrievedContext() is empty for oc:* sessions because they don't go through
+      // CassiCore's turn pipeline. Run memory searches based on focus topic+intent instead.
+      if (mem?.search) {
+        for (const sid of allSessionIds) {
+          if (!sid.startsWith('oc:') || sessions[sid]) continue  // Only fill missing oc: sessions
+          const focus = focusStates[sid]
+          if (!focus?.topic && !focus?.intent?.description) continue
+
+          try {
+            const queries: string[] = []
+            if (focus.topic) queries.push(focus.topic)
+            if (focus.intent?.description && focus.intent.description !== focus.topic) {
+              queries.push(focus.intent.description)
+            }
+
+            const allItems: any[] = []
+            for (const q of queries.slice(0, 2)) {  // Max 2 queries per session
+              const results = await mem.search(q, { limit: 3 })
+              for (const r of results) {
+                if (r.score && r.score < 0.3) continue  // Skip low-relevance results
+                allItems.push({
+                  source: 'memory',
+                  content: typeof r.content === 'string' ? r.content.slice(0, 500) : String(r.content || '').slice(0, 500),
+                  relevance: r.score ?? 0,
+                  query: q,
+                })
+              }
+            }
+
+            if (allItems.length > 0) {
+              // Deduplicate by content prefix
+              const seen = new Set<string>()
+              const deduped = allItems.filter(item => {
+                const key = item.content.slice(0, 100)
+                if (seen.has(key)) return false
+                seen.add(key)
+                return true
+              }).slice(0, 5)  // Max 5 items per session
+
+              sessions[sid] = { items: deduped }
+            }
+          } catch {}
+        }
+      }
+
       const payload = {
         updatedAt: Date.now(),
         insight,
         learnings,
         sessions,
         focusStates,
+        sessionHealth,  // D1
+        anomalies,      // D2
       }
 
       // Atomic write: temp file → rename (prevents partial reads)
