@@ -38,6 +38,12 @@ export interface DialecticSystemConfig {
     ttlMs?: number;
     similarityThreshold?: number;
   };
+  taskGuide?: {
+    enabled?: boolean;
+    mode?: 'heuristic' | 'llm';
+    timeoutMs?: number;
+    model?: string;
+  };
 }
 
 // ============================================================================
@@ -141,6 +147,7 @@ export class DialecticSystem implements IDialecticSystem {
       serenity: config?.serenity ?? {},
       dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
       cache: { enabled: true, ttlMs: 30000, similarityThreshold: 0.85, ...config?.cache },
+      taskGuide: config?.taskGuide,
     };
 
     // Always use parallel processor
@@ -333,6 +340,35 @@ export class DialecticSystem implements IDialecticSystem {
     }
 
     try {
+      // Generate task guide if configured
+      const taskGuideConfig = this.config.taskGuide;
+      if (taskGuideConfig?.enabled && !context.taskGuide) {
+        if (taskGuideConfig.mode === 'llm' && this.provider) {
+          try {
+            const guideText = await this.generateLlmTaskGuide(userMessage, taskGuideConfig.timeoutMs ?? 3000);
+            if (guideText) {
+              context = { ...context, taskGuide: guideText };
+            }
+          } catch (err) {
+            this.logger.warn('DialecticSystem: LLM task guide generation failed, falling back to heuristic', { error: String(err) });
+            context = { ...context, taskGuide: `TASK GUIDE: Address the user's request: "${userMessage.slice(0, 160)}" using the provided context.` };
+          }
+        } else {
+          // Heuristic mode (default)
+          context = { ...context, taskGuide: `TASK GUIDE: Address the user's request: "${userMessage.slice(0, 160)}" using the provided context.` };
+        }
+      }
+
+      // Emit task guide in stream start event if generated
+      if (context.taskGuide) {
+        this.emitStreamEvent(sessionId, {
+          timestamp: Date.now(),
+          turnId,
+          stage: 'start',
+          data: { mode: 'parallel', taskGuide: context.taskGuide },
+        });
+      }
+
       // Always use parallel processor
       const result = await this.parallelProcessor.processTurn(
         sessionId,
@@ -362,6 +398,38 @@ export class DialecticSystem implements IDialecticSystem {
       this.emitStreamEvent(sessionId, { timestamp: Date.now(), turnId, stage: 'error', data: { error: String(error) } });
       throw error;
     }
+  }
+
+  /**
+   * Generate a task guide using the LLM provider.
+   * Returns the guide text or null if generation fails or times out.
+   */
+  private async generateLlmTaskGuide(userMessage: string, timeoutMs: number): Promise<string | null> {
+    if (!this.provider) return null;
+
+    const messages = [{
+      role: 'system' as const,
+      content: `You are a concise task summarizer. Given a user message, produce a brief TASK GUIDE (1-3 sentences) that helps an AI assistant understand what the user needs. Start your response with "TASK GUIDE:".`,
+    }, {
+      role: 'user' as const,
+      content: userMessage,
+    }];
+
+    let guideText = '';
+
+    const guidePromise = (async () => {
+      for await (const chunk of this.provider!.complete(messages, {} as any)) {
+        if (chunk.type === 'token' && chunk.text) {
+          guideText += chunk.text;
+        }
+        if (chunk.type === 'done') break;
+      }
+      return guideText.trim() || null;
+    })();
+
+    const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs));
+
+    return Promise.race([guidePromise, timeoutPromise]);
   }
 
   private createEmptyResult(sessionId: string, turnId: string, timestamp: number): ParallelDialecticResult {
