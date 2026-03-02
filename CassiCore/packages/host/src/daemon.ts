@@ -8,6 +8,13 @@ import path, { join } from "node:path"
 import { homedir } from "node:os"
 import { fileURLToPath } from "node:url"
 import fs from "node:fs"
+
+// Read version from package.json at module load time so it stays in sync
+const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
+const CASSICORE_VERSION: string = (() => {
+  try { return JSON.parse(fs.readFileSync(_pkgPath, 'utf8')).version ?? '0.1.5' }
+  catch { return '0.1.5' }
+})()
 import { createIntelligence } from "./intelligence/index.js"
 import type { IntelligenceLayer } from "./intelligence/index.js"
 
@@ -30,6 +37,11 @@ import { MCPRegistry } from './mcp/registry.js'
 import { CommandDispatcher } from './commands.js'
 import { createBridge } from './bridge.js'
 import { createSkillMetricsTracker, SkillMetricsTracker } from './intelligence/skill-metrics.js'
+import { createOutcomeTracker, type OutcomeTracker } from './intelligence/outcome-tracker.js'
+import { createCrossSessionCorrelator, type CrossSessionCorrelator } from './intelligence/cross-session-correlator.js'
+import { createStrategyTracker, type StrategyTracker } from './intelligence/strategy-tracker.js'
+import { createProviderProfiler, type ProviderProfiler } from './intelligence/provider-profiler.js'
+import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 
@@ -116,6 +128,11 @@ export class Daemon {
   private commands!: CommandDispatcher
   public subagentTracker!: SubagentTracker
   public skillMetricsTracker?: SkillMetricsTracker
+  public outcomeTracker?: OutcomeTracker
+  public crossSessionCorrelator?: CrossSessionCorrelator
+  public strategyTracker?: StrategyTracker
+  public providerProfiler?: ProviderProfiler
+  public adaptiveBehavior?: AdaptiveBehavior
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -142,10 +159,9 @@ export class Daemon {
     // 0b. Check for existing daemon instance (singleton enforcement)
     const existingPid = checkExistingDaemon()
     if (existingPid !== null) {
-      const errorMsg = `Another CassiCore daemon is already running (PID: ${existingPid}). Please stop it first or use: kill ${existingPid}`
-      console.error(`\n❌ ${errorMsg}\n`)
-      this.logger.error(errorMsg)
-      process.exit(1)
+      // Exit silently — OpenCode or other tools may periodically probe for the daemon,
+      // and noisy errors spam daemon.log when stdout/stderr is redirected there.
+      process.exit(0)
     }
 
     // Write our PID to the lock file
@@ -206,14 +222,14 @@ export class Daemon {
           if (reason && typeof reason === 'object') {
             errMsg = (reason as any).stack || (reason as any).message || String(reason)
           }
-        } catch { }
+        } catch (e) { /* ignore */ }
         // Treat plain timeouts as lower-severity (they are common with provider/polling cancellations)
         if (String(errMsg).toLowerCase().includes('timeout')) {
           this.logger.debug?.('[daemon] unhandledRejection (timeout)', { error: errMsg })
         } else {
           this.logger.warn?.('[daemon] unhandledRejection', { error: errMsg })
         }
-      } catch { }
+      } catch (e) { /* ignore */ }
     })
 
     // Handle unhandled child process errors to prevent daemon crashes
@@ -293,10 +309,21 @@ export class Daemon {
           {
             enabled: this.config.get<boolean>('intelligence.unifiedLoop.enabled', true),
             backgroundIntervalMs: this.config.get<number>('intelligence.unifiedLoop.backgroundIntervalMs', 60000),
+            consolidationCadence: this.config.get<number>('intelligence.unifiedLoop.consolidationCadence', 5),
+            maintenanceCadence: this.config.get<number>('intelligence.unifiedLoop.maintenanceCadence', 10),
           }
         )
 
+        // Wire module references for background coordination
+        unifiedLoop.wire({
+          subconscious: this.intelligence.subconscious as any,
+          memory: this.intelligence.memory as any,
+          optimizer: this.intelligence.optimizer as any,
+          all: this.intelligence.all,
+        })
+
         await unifiedLoop.start()
+        ;(this as any).unifiedLoop = unifiedLoop
         this.logger.info('[daemon] Unified Intelligence Loop started')
       } catch (err) {
         this.logger.warn('[daemon] Failed to initialize Unified Intelligence Loop', { error: String(err) })
@@ -327,6 +354,95 @@ export class Daemon {
         this.logger.info('[daemon] Skill Metrics Tracker initialized')
       } catch (err) {
         this.logger.warn(`[daemon] Failed to initialize Skill Metrics Tracker: ${String(err)}`)
+      }
+
+      // Initialize Outcome Tracker (Phase 1 — feedback detection + tool outcome scoring)
+      try {
+        const tracker = createOutcomeTracker(this.logger.child('outcome-tracker'), bus)
+        const memoryDb = (this.intelligence.memory as any).getDb?.()
+        if (memoryDb) {
+          tracker.initialize(memoryDb)
+          // Register as cycle hook on unified loop if available
+          const loop = (this as any).unifiedLoop
+          if (loop?.addCycleHook) {
+            loop.addCycleHook(tracker)
+            this.logger.info('[daemon] OutcomeTracker registered as unified loop cycle hook')
+          }
+          this.outcomeTracker = tracker
+          this.logger.info('[daemon] OutcomeTracker initialized')
+        } else {
+          this.logger.warn('[daemon] OutcomeTracker skipped — memory DB not available')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize OutcomeTracker: ${String(err)}`)
+      }
+
+      // Initialize Phase 2 modules (Cross-Session Intelligence)
+      const memoryDb2 = (this.intelligence.memory as any).getDb?.()
+      const loop2 = (this as any).unifiedLoop
+
+      // Phase 2.1: Cross-Session Pattern Correlator
+      try {
+        if (memoryDb2) {
+          const correlator = createCrossSessionCorrelator(this.logger.child('cross-session-correlator'))
+          correlator.initialize(memoryDb2)
+          if (loop2?.addCycleHook) {
+            loop2.addCycleHook(correlator)
+            this.logger.info('[daemon] CrossSessionCorrelator registered as unified loop cycle hook')
+          }
+          this.crossSessionCorrelator = correlator
+          this.logger.info('[daemon] CrossSessionCorrelator initialized')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize CrossSessionCorrelator: ${String(err)}`)
+      }
+
+      // Phase 2.2: Strategy Effectiveness Tracker
+      try {
+        if (memoryDb2) {
+          const stratTracker = createStrategyTracker(this.logger.child('strategy-tracker'), bus)
+          stratTracker.initialize(memoryDb2)
+          if (loop2?.addCycleHook) {
+            loop2.addCycleHook(stratTracker)
+            this.logger.info('[daemon] StrategyTracker registered as unified loop cycle hook')
+          }
+          this.strategyTracker = stratTracker
+          this.logger.info('[daemon] StrategyTracker initialized')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize StrategyTracker: ${String(err)}`)
+      }
+
+      // Phase 2.3: Provider Performance Profiler
+      try {
+        if (memoryDb2) {
+          const profiler = createProviderProfiler(this.logger.child('provider-profiler'), bus)
+          profiler.initialize(memoryDb2)
+          if (loop2?.addCycleHook) {
+            loop2.addCycleHook(profiler)
+            this.logger.info('[daemon] ProviderProfiler registered as unified loop cycle hook')
+          }
+          this.providerProfiler = profiler
+          this.logger.info('[daemon] ProviderProfiler initialized')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize ProviderProfiler: ${String(err)}`)
+      }
+
+      // Phase 3: Adaptive Behavior Engine
+      try {
+        if (memoryDb2) {
+          const adaptive = createAdaptiveBehavior(this.logger.child('adaptive-behavior'), bus)
+          adaptive.initialize(memoryDb2)
+          if (loop2?.addCycleHook) {
+            loop2.addCycleHook(adaptive)
+            this.logger.info('[daemon] AdaptiveBehavior registered as unified loop cycle hook')
+          }
+          this.adaptiveBehavior = adaptive
+          this.logger.info('[daemon] AdaptiveBehavior initialized')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize AdaptiveBehavior: ${String(err)}`)
       }
 
       // ── Phase 3: Thinker Event Listeners ────────────────────────────────────
@@ -460,6 +576,46 @@ export class Daemon {
     } else if (tgToken && !tgEnabled) {
       this.logger.info(`[daemon] Telegram channel disabled by config; skipping`)
     }
+
+    // 7d. Load OpenCode channel worker (optional — requires channels.opencode.enabled in config)
+    const ocEnabled = this.config.get<boolean>("channels.opencode.enabled", false)
+    if (ocEnabled) {
+      const ocPath = resolveWorker("../workers/channels/opencode")
+      if (!ocPath) {
+        this.logger.warn("opencode channel worker not found; skipping")
+      } else {
+        try {
+          const ocDbPath = this.config.get<string>("channels.opencode.dbPath", "")
+          const ocServerUrl = this.config.get<string>("channels.opencode.serverUrl", "")
+          const ocPollIntervalMs = this.config.get<number>("channels.opencode.pollIntervalMs", 2000)
+          const ocLookbackMs = this.config.get<number>("channels.opencode.lookbackMs", 30000)
+          const ocSessionId = this.config.get<string>("channels.opencode.sessionId", "")
+          await this.pluginHost.load({
+            id: "channel:opencode",
+            entryPoint: ocPath,
+            restartOnCrash: true,
+            maxRestarts: 5,
+            config: {
+              ...(ocDbPath ? { dbPath: ocDbPath } : {}),
+              ...(ocServerUrl ? { serverUrl: ocServerUrl } : {}),
+              pollIntervalMs: ocPollIntervalMs,
+              lookbackMs: ocLookbackMs,
+              ...(ocSessionId ? { openCodeSessionId: ocSessionId } : {}),
+            },
+          })
+          this.logger.info(`[daemon] OpenCode channel active`, {
+            dbPath: ocDbPath || '~/.local/share/opencode/opencode.db (default)',
+            pollIntervalMs: ocPollIntervalMs,
+            serverUrl: ocServerUrl || '(none)',
+          })
+        } catch (err) {
+          this.logger.warn(`failed to load opencode channel: ${String(err)}`)
+        }
+      }
+    } else {
+      this.logger.info(`[daemon] OpenCode channel disabled by config; skipping`)
+    }
+
     let providers: Map<string, IProvider> = new Map()
     try {
       const { createProviders } = await import('./providers/index.js')
@@ -903,6 +1059,26 @@ export class Daemon {
       }
     })
 
+    // ── Phase 1: Implicit Feedback Detection ───────────────────────────────
+    // Detect feedback signals in every user message. Runs on turn:start so
+    // that signals from the *previous* turn response are captured before the
+    // current turn's context is assembled.
+    this.bus.on("turn:start", (e) => {
+      if (!this.outcomeTracker) return
+      const { sessionId, message } = e as { sessionId: string; message: string }
+      if (!message) return
+      try {
+        const signals = this.outcomeTracker.detectFeedback(message, sessionId)
+        if (signals.length > 0) {
+          this.logger.debug(`[daemon] Detected ${signals.length} feedback signal(s) in ${sessionId.slice(-8)}`, {
+            types: signals.map(s => s.type),
+          })
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Feedback detection failed: ${String(err)}`)
+      }
+    })
+
     // 8. Subscribe to plugin:crashed -> warn
     this.bus.on("plugin:crashed", (e) => {
       this.logger.warn(`plugin crashed: ${(e as any).pluginId} — ${(e as any).error}`)
@@ -951,7 +1127,7 @@ export class Daemon {
     const loaded = this.pluginHost.all().length
     const pid = process.pid
     this.logger.info("╔══════════════════════════════════╗")
-    this.logger.info("║   CassiCore v0.1.2 — Ready       ║")
+    this.logger.info(`║   CassiCore v${CASSICORE_VERSION} — Ready       ║`)
     this.logger.info("╚══════════════════════════════════╝")
     this.logger.info(`[daemon] ${loaded} plugin(s) loaded | hot-reload active | PID: ${pid}`)
 
@@ -1008,9 +1184,22 @@ export class Daemon {
 
     // stop unified intelligence loop
     try {
-      // Note: unified loop is a singleton per process, we just emit the shutdown event
-      this.bus.emit({ type: 'unified-loop:stop' as any })
-    } catch { /* ignore */ }
+      if ((this as any).unifiedLoop) {
+        await (this as any).unifiedLoop.stop('daemon-shutdown')
+      }
+    } catch (err) {
+      this.logger.warn(`[daemon] Error stopping unified loop: ${String(err)}`)
+    }
+
+    // shutdown V2 session flow if active
+    try {
+      if ((this as any).useV2 && (this as any).v2) {
+        await (this as any).v2.shutdown()
+        this.logger.info('[daemon] V2 session flow shut down')
+      }
+    } catch (err) {
+      this.logger.warn(`[daemon] Error shutting down V2: ${String(err)}`)
+    }
 
     // shutdown plugin host
     try {
