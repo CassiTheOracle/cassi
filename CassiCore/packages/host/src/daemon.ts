@@ -42,6 +42,7 @@ import { createCrossSessionCorrelator, type CrossSessionCorrelator } from './int
 import { createStrategyTracker, type StrategyTracker } from './intelligence/strategy-tracker.js'
 import { createProviderProfiler, type ProviderProfiler } from './intelligence/provider-profiler.js'
 import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
+import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 
@@ -133,6 +134,7 @@ export class Daemon {
   public strategyTracker?: StrategyTracker
   public providerProfiler?: ProviderProfiler
   public adaptiveBehavior?: AdaptiveBehavior
+  public selfVerification?: SelfVerification
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -443,6 +445,22 @@ export class Daemon {
         }
       } catch (err) {
         this.logger.warn(`[daemon] Failed to initialize AdaptiveBehavior: ${String(err)}`)
+      }
+
+      // Phase 4: Self-Verification Engine
+      try {
+        if (memoryDb2) {
+          const verification = createSelfVerification(this.logger.child('self-verification'), bus)
+          verification.initialize(memoryDb2)
+          if (loop2?.addCycleHook) {
+            loop2.addCycleHook(verification)
+            this.logger.info('[daemon] SelfVerification registered as unified loop cycle hook')
+          }
+          this.selfVerification = verification
+          this.logger.info('[daemon] SelfVerification initialized')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to initialize SelfVerification: ${String(err)}`)
       }
 
       // ── Phase 3: Thinker Event Listeners ────────────────────────────────────
