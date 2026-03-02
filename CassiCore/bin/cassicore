@@ -1,0 +1,29 @@
+#!/bin/bash
+# CassiCLI Wrapper - runs compiled CLI with auto-daemon-start
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLI_DIR="$(dirname "$SCRIPT_DIR")/cli"
+CLI_JS="$CLI_DIR/dist/cli.js"
+
+# Check if we need to rebuild
+needs_rebuild() {
+    local src_file="$1"
+    local dist_file="$2"
+    if [[ ! -f "$dist_file" ]]; then
+        return 0
+    fi
+    if [[ "$src_file" -nt "$dist_file" ]]; then
+        return 0
+    fi
+    return 1
+}
+
+# Rebuild CLI if source changed
+if needs_rebuild "$CLI_DIR/src/cli.ts" "$CLI_JS" || \
+   needs_rebuild "$CLI_DIR/src/main.ts" "$CLI_JS"; then
+    echo "[cassi] Rebuilding..." >&2
+    (cd "$CLI_DIR" && npm run build --silent 2>&1) >&2
+fi
+
+# Run the CLI
+exec node "$CLI_JS" "$@"
