@@ -46,6 +46,7 @@ import { SignalGeneratorImpl, createSignalGenerator } from './signal-generator.j
 
 // Legacy v3 Components
 import { SubconsciousSearch, SearchConfig } from './enhanced-search.js';
+import { SessionDigestStore } from '../session-digest.js';
 
 // Legacy v3 Config (for backward compatibility)
 export interface SubconsciousConfig {
@@ -152,6 +153,9 @@ export class Subconscious {
   // ContextManager reference (for v2 enrichment)
   private contextManager?: any;
   private contextRefreshTimers = new Map<string, NodeJS.Timeout>();
+
+  // Cross-session awareness
+  private digestStore?: SessionDigestStore;
 
   constructor(logger: ILogger, config?: Partial<SubconsciousConfig>) {
     this.logger = logger.child?.('subconscious') ?? logger;
@@ -287,6 +291,12 @@ export class Subconscious {
     this.logger.info('Subconscious: ContextManager wired');
   }
 
+  setDigestStore(store: SessionDigestStore): void {
+    this.digestStore = store;
+    this.enhancedSearch.setDigestStore(store);
+    this.logger.info('Subconscious: SessionDigestStore wired');
+  }
+
   onEventBus(bus: IEventBus): void {
     this.eventBus = bus;
     this.logger.info('Subconscious: event bus wired');
@@ -307,8 +317,24 @@ export class Subconscious {
         const sig: DialecticSignal | undefined = e?.signal;
         if (!sig) return;
         this.handleSignal({ sessionId: e.sessionId, turnId: e.turnId, signal: sig, ts: Date.now() });
+
+        // Cross-session digest: record high-confidence dialectic decisions
+        if (this.digestStore && e.sessionId && sig.confidence >= 0.7 && sig.content) {
+          this.digestStore.upsert(e.sessionId, {
+            decisions: [sig.content.slice(0, 120)],
+          });
+        }
       } catch (err) {
         this.logger.warn('Subconscious: dialectic:signal handler error', { error: String(err) });
+      }
+    });
+
+    // Cross-session digest: record thinker learnings
+    (bus as any).on?.('thinker:insight-applied', (e: any) => {
+      if (this.digestStore && e?.sessionId && e?.insight) {
+        this.digestStore.upsert(e.sessionId, {
+          learnings: [String(e.insight).slice(0, 120)],
+        });
       }
     });
 
@@ -356,6 +382,17 @@ export class Subconscious {
 
       // Initialize enhanced search context
       this.enhancedSearch.initTurn(sessionId, `${sessionId}_${Date.now()}`, message.content);
+
+      // Cross-session digest: seed / touch this session
+      if (this.digestStore) {
+        const mm = this.mentalModels.get(sessionId);
+        this.digestStore.upsert(sessionId, {
+          topic:       mm?.state.topic         ?? 'New conversation',
+          currentTask: mm?.state.intent?.description ?? '',
+          phase:       mm?.state.phase         ?? 'initial',
+          lastActiveAt: Date.now(),
+        });
+      }
 
       // Query memory for context if enabled
       if (this.config.memoryQueryOnTurn && this.memory) {
@@ -420,6 +457,39 @@ export class Subconscious {
       // v2: Final mental model update and signal generation
       if (this.config.v2) {
         this.processTurnEndV2(sessionId, response);
+      }
+
+      // Cross-session digest: update with post-turn state
+      if (this.digestStore) {
+        const mm    = this.mentalModels.get(sessionId);
+        const tools = this.streamIngestor?.getBuffer(sessionId)?.getToolHistory() ?? [];
+
+        // Summarise tool calls as "<tool>(<target>)"
+        const recentActions = tools.slice(-5).map(tc => {
+          const inputStr = tc.input && typeof tc.input === 'object'
+            ? Object.values(tc.input as Record<string, unknown>)[0] ?? ''
+            : '';
+          const target = String(inputStr).slice(0, 40);
+          return target ? `${tc.tool}(${target})` : tc.tool;
+        });
+
+        // Extract file paths from tool calls
+        const filesActive: string[] = [];
+        for (const tc of tools) {
+          const inp = tc.input as Record<string, unknown> | null;
+          if (!inp) continue;
+          const val = inp['path'] ?? inp['filePath'] ?? inp['file'];
+          if (typeof val === 'string' && val.length > 0) filesActive.push(val);
+        }
+
+        this.digestStore.upsert(sessionId, {
+          topic:         mm?.state.topic               ?? undefined,
+          currentTask:   mm?.state.intent?.description ?? undefined,
+          phase:         mm?.state.phase               ?? undefined,
+          recentActions,
+          filesActive,
+          lastActiveAt:  Date.now(),
+        });
       }
 
       if (turn) {

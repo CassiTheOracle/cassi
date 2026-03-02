@@ -13,6 +13,7 @@
 import type { ILogger } from '../../../types/interfaces.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import type { IProvider } from '../../../types/runtime.js';
+import type { SessionDigestStore } from '../session-digest.js';
 
 export interface SearchContext {
   sessionId: string;
@@ -28,7 +29,7 @@ export interface SearchContext {
 
 export interface RetrievedItem {
   id: string;
-  source: 'memory' | 'file' | 'web' | 'learned';
+  source: 'memory' | 'file' | 'web' | 'learned' | 'cross-session';
   content: string;
   relevance: number;
   query: string;
@@ -61,6 +62,7 @@ export class SubconsciousSearch {
   private memory?: IMemory;
   private provider?: IProvider;
   private config: SearchConfig;
+  private digestStore?: SessionDigestStore;
 
   // Session-level search state
   private sessionContexts = new Map<string, SearchContext>();
@@ -93,6 +95,10 @@ export class SubconsciousSearch {
   setProvider(provider: IProvider): void {
     this.provider = provider;
     this.config.provider = provider;
+  }
+
+  setDigestStore(store: SessionDigestStore): void {
+    this.digestStore = store;
   }
 
   /**
@@ -416,6 +422,43 @@ Be concise. Only include high-confidence items.`;
 
     // TODO: File search (would need file system access)
     // TODO: Web search (would need search API)
+
+    // Cross-session search
+    if (this.digestStore) {
+      try {
+        const siblingResults = this.digestStore.searchSiblings(sessionId, query, 3);
+        for (const { digest, score } of siblingResults) {
+          // Normalise score to 0-1 range (scores typically 1-10)
+          const relevance = Math.min(score / 10, 1);
+          const summary = [
+            `[Cross-session: "${digest.topic}"]`,
+            digest.currentTask ? `Current task: ${digest.currentTask}` : '',
+            digest.filesActive.length > 0 ? `Files: ${digest.filesActive.slice(-3).join(', ')}` : '',
+            digest.decisions.length > 0  ? `Decisions: ${digest.decisions.slice(-2).join('; ')}` : '',
+            digest.learnings.length > 0  ? `Learnings: ${digest.learnings.slice(-2).join('; ')}` : '',
+          ].filter(Boolean).join('\n');
+
+          const item: RetrievedItem = {
+            id:          `xs_${digest.sessionId.slice(-6)}_${Date.now()}`,
+            source:      'cross-session',
+            content:     summary,
+            relevance,
+            query,
+            retrievedAt: Date.now(),
+            used:        false,
+          };
+          context.retrievedContext.push(item);
+          this.logger.debug('Cross-session result retrieved', {
+            query,
+            sessionId: digest.sessionId.slice(-8),
+            topic: digest.topic,
+            relevance,
+          });
+        }
+      } catch (err) {
+        this.logger.debug('Cross-session search failed', { query, error: String(err) });
+      }
+    }
 
     // Trim cache if needed
     if (context.retrievedContext.length > this.config.maxRetrievedCache) {
