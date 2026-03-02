@@ -10,7 +10,7 @@ import type { RuntimeEvent } from "./events.js";
 
 export interface MemoryEntry {
   id: string;
-  type: "conversation" | "fact" | "error" | "success" | "reflection" | "insight";
+  type: "conversation" | "fact" | "error" | "success" | "reflection" | "insight" | "thinking" | "dialectic_yang" | "dialectic_yin" | "dialectic_serenity" | "event" | "tool_call" | "task";
   content: string;
   embedding?: number[];
   metadata?: Record<string, unknown>;
@@ -44,6 +44,19 @@ export interface IMemory {
 
   /** Stats for /memory stats command */
   stats(): Promise<Record<string, number>>;
+
+  // Archivist methods (optional - for comprehensive archiving)
+  archiveConversation?(sessionId: string, userContent: string, assistantContent: string, thinking?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archiveDialectic?(sessionId: string, branch: 'yang' | 'yin' | 'serenity', content: string, parentId?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archiveInsight?(content: string, level: 'ponder' | 'think' | 'deep', metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archivePattern?(patternType: string, description: string, evidence: string[], confidence: number, sessionId?: string): Promise<{ id: string; analysis: any }>;
+  archiveEvent?(eventType: string, content: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  archiveToolCall?(sessionId: string, toolName: string, input: unknown, output?: unknown, error?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  /** Archive a markdown document and store it with LLM-generated metadata */
+  archiveDocument?(title: string, content: string, originalPath: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+
+  /** Expose the raw database handle for subsystems needing direct table access */
+  getDb?(): import('better-sqlite3').Database;
 }
 
 // ─── Continuity ──────────────────────────────────────────────────────────────
@@ -123,11 +136,12 @@ export interface IReflect {
 // ─── Thinker ─────────────────────────────────────────────────────────────────
 
 export interface ThinkerStats {
-  totalInsights: number;
-  lastSonnetAt?: Date;
-  lastOpusAt?: Date;
-  sonnetInterval: number;
-  opusInterval: number;
+  totalInsights: number;   // cumulative insights emitted
+  totalTurns: number;      // cumulative turns processed
+  lastPonderAt?: Date;
+  lastThinkAt?: Date;
+  ponderInterval: number;
+  thinkInterval: number;
   // New: cumulative number of insights emitted (distinct from totalTurns)
   insightCount?: number;
 }
@@ -137,12 +151,12 @@ export interface IThinker {
   stats(): Promise<ThinkerStats>;
 
   /** Manually trigger a thinking cycle */
-  think(depth: "sonnet" | "opus"): Promise<string>;
+  think(depth: "Ponder" | "Think", signal?: AbortSignal): Promise<string>;
 }
 
 // ─── Optimizer ──────────────────────────────────────────────────────────────
 
-export type OptimizationAction = 
+export type OptimizationAction =
   | "summarize"       // inject summary, agent continues
   | "steer"           // send corrective prompt
   | "context-reset"   // kill + respawn with compressed context  
@@ -186,13 +200,13 @@ export interface OptimizationOutcome {
 export interface IOptimizer {
   /** Run an optimization cycle over all active sessions */
   optimize(): Promise<OptimizationDecision[]>
-  
+
   /** Get health score for a specific session */
   scoreSession(sessionKey: string): Promise<SessionHealth | null>
-  
+
   /** Get learned strategy weights (what has worked) */
   strategyWeights(): Promise<Record<OptimizationAction, number>>
-  
+
   /** Get recent optimization history */
   history(limit?: number): Promise<OptimizationOutcome[]>
 }
