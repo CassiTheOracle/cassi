@@ -18,9 +18,19 @@ export const shellExecDefinition: ToolDefinition = {
 
 async function nativeShellExec(command: string, workdir: string, timeoutMs: number): Promise<string> {
   const { spawn } = await import('node:child_process');
+  const { spawnSync } = await import('node:child_process');
+
+  // Check if bash is available before spawning
+  const bashCheck = spawnSync('which', ['bash'], { encoding: 'utf-8', timeout: 5000 });
+  const shellCommand = bashCheck.status === 0 ? 'bash' : (spawnSync('which', ['sh'], { encoding: 'utf-8', timeout: 5000 }).status === 0 ? 'sh' : null);
+
+  if (!shellCommand) {
+    throw new Error('No shell available (bash/sh not found in PATH)');
+  }
+
   return new Promise((resolve) => {
     let output = '';
-    const proc = spawn('bash', ['-c', command], { cwd: workdir });
+    const proc = spawn(shellCommand, ['-c', command], { cwd: workdir });
     const timer = setTimeout(() => proc.kill(), timeoutMs);
     proc.stdout.on('data', (d: Buffer) => { output += d.toString(); });
     proc.stderr.on('data', (d: Buffer) => { output += d.toString(); });

@@ -13,12 +13,13 @@ import type { ISessionManager, Session, InboundMessage, Message } from '../../..
 import type { IEventBus, ILogger } from '../../../types/interfaces.js'
 import type { SessionStore } from '../../session-store.js'
 import type { TurnPipeline } from '../../turn-pipeline.js'
-import { randomUUID } from 'node:crypto'
+import { generateShortId, generateReadableId } from '../../utils/ids.js'
 
 export interface SpawnSubagentOptions {
   task: string
   label: string
-  model: string
+  model?: string
+  providerId?: string
   timeoutSeconds: number
   parentSessionId: string
 }
@@ -49,74 +50,110 @@ export function createSubagentSpawnFunction(ctx: SubagentSpawnContext): (opts: S
     const { task, label, model, timeoutSeconds, parentSessionId } = opts
     const { sessionManager, sessionStore, bus, logger, getPipeline } = ctx
 
-    // Generate IDs
-    const runId = randomUUID()
-    const childSessionId = `subagent:${parentSessionId}:${runId}`
+    try {
+      // Generate IDs
+      const runId = generateShortId(4)
+      const childSessionId = `sub:${parentSessionId.split(':').pop()}:${runId}`
 
-    // Get parent session to inherit config
-    const parentSession = sessionManager.get(parentSessionId)
-    if (!parentSession) {
-      throw new Error(`Parent session ${parentSessionId} not found`)
-    }
+      // Get parent session to inherit config
+      logger.info(`[spawn-subagent] Spawning subagent ${label}. Parent session: ${parentSessionId}`)
+      const parentSession = sessionManager.get(parentSessionId)
+      
+      if (!parentSession) {
+        logger.warn(`[spawn-subagent] Parent session ${parentSessionId} not found. Proceeding with default config fallback.`)
+      }
 
-    // Create child session config (inherit from parent but allow model override)
-    const childConfig = {
-      ...parentSession.config,
-      model: model || parentSession.config.model,
-    }
+      const parentConfig = parentSession?.config || {
+        model: 'github-copilot/gpt-5-mini',
+        thinking: 'high'
+      }
 
-    // Create the child session directly (bypass getOrCreate to use our specific ID)
-    const now = new Date()
-    const childSession: Session = {
-      id: childSessionId,
-      channelId: 'subagent', // Special channel for subagents
-      senderId: parentSessionId, // Use parent as sender for tracking
-      createdAt: now,
-      lastActiveAt: now,
-      history: [],
-      tokenCount: 0,
-      config: childConfig,
-    }
+      // Create child session config (inherit from parent but allow model/provider override)
+      const parentModel = parentConfig.model
+      function deriveFinalModel(optsModel?: string, parentModel?: string, providerId?: string) {
+        if (optsModel) {
+          if (optsModel.includes('/')) return optsModel
+          if (providerId) return `${providerId}/${optsModel}`
+          return optsModel
+        }
+        if (providerId) {
+          if (parentModel && parentModel.includes('/')) {
+            const modelPart = parentModel.split('/').slice(1).join('/')
+            return `${providerId}/${modelPart}`
+          }
+          return `${providerId}/${parentModel || 'gpt-5-mini'}`
+        }
+        return parentModel || 'github-copilot/gpt-5-mini'
+      }
 
-    // Store in session manager's internal map (access private field via any cast)
-    const sessionsMap = (sessionManager as any).sessions as Map<string, Session>
-    sessionsMap.set(childSessionId, childSession)
+      const finalModel = deriveFinalModel(model, parentModel, opts.providerId)
 
-    // Also update sender index
-    const senderKey = `subagent:${parentSessionId}`
-    const senderIndex = (sessionManager as any).senderIndex as Map<string, string>
-    senderIndex.set(senderKey, childSessionId)
+      const childConfig = {
+        ...parentConfig,
+        model: finalModel,
+        providerId: opts.providerId ?? parentConfig.providerId,
+        providerModel: finalModel && finalModel.includes('/') ? finalModel.split('/').slice(1).join('/') : undefined,
+      }
 
-    // Persist to disk if store available
-    if (sessionStore) {
-      sessionStore.save(childSession)
-    }
+      // Create the child session directly (bypass getOrCreate to use our specific ID)
+      const now = new Date()
+      const childSession: Session = {
+        id: childSessionId,
+        channelId: 'subagent', // Special channel for subagents
+        senderId: parentSessionId, // Use parent as sender for tracking
+        createdAt: now,
+        lastActiveAt: now,
+        history: [],
+        tokenCount: 0,
+        config: childConfig,
+      }
 
-    // Emit spawn event
-    bus.emit({
-      type: 'subagent:spawned',
-      parentSessionId,
-      childSessionId,
-      runId,
-      label,
-      timestamp: now,
-    })
+      // Store in session manager's internal map (access private field via any cast)
+      const sessionsMap = (sessionManager as any).sessions as Map<string, Session>
+      sessionsMap.set(childSessionId, childSession)
 
-    logger.info(`[spawn-subagent] Spawned ${label} (${runId}) for parent ${parentSessionId}`)
+      // Also update sender index
+      const senderKey = `subagent:${parentSessionId}`
+      const senderIndex = (sessionManager as any).senderIndex as Map<string, string>
+      senderIndex.set(senderKey, childSessionId)
 
-    // Start the subagent task asynchronously (fire-and-forget)
-    runSubagentTask({
-      runId,
-      childSessionId,
-      task,
-      label,
-      timeoutSeconds,
-      ctx,
-    })
+      // Persist to disk if store available
+      if (sessionStore) {
+        sessionStore.save(childSession)
+      }
 
-    return {
-      runId,
-      sessionKey: childSessionId,
+      // Emit spawn event
+      bus.emit({
+        type: 'subagent:spawned',
+        parentSessionId,
+        childSessionId,
+        runId,
+        label,
+        task,
+        model: finalModel,
+        timeoutSeconds,
+        timestamp: now,
+      })
+
+      logger.info(`[spawn-subagent] Successfully spawned ${label} (${runId}) for parent ${parentSessionId}`)
+
+      // Start the subagent task asynchronously (fire-and-forget)
+      runSubagentTask({
+        runId,
+        childSessionId,
+        task,
+        label,
+        timeoutSeconds,
+        ctx,
+      })
+
+      return {
+        runId,
+        sessionKey: childSessionId,
+      }
+    } catch (err) {
+      logger.error(`[spawn-subagent] CRITICAL ERROR during spawn: ${String(err)}`)
+      throw err; // Re-throw to be caught by tool handler
     }
   }
 }
@@ -163,7 +200,7 @@ async function runSubagentTask(opts: RunSubagentTaskOptions): Promise<void> {
 
     // Build the inbound message for the subagent task
     const inbound: InboundMessage = {
-      id: randomUUID(),
+      id: generateShortId(8),
       sessionId: childSessionId,
       channelId: 'subagent',
       senderId: childSessionId,
@@ -178,14 +215,19 @@ async function runSubagentTask(opts: RunSubagentTaskOptions): Promise<void> {
     ])
 
     const durationMs = Date.now() - startTime
+    const rAny: any = result as any
 
-    // Emit completion event
+    // Emit completion event with telemetry
+    const childSess = ctx.sessionManager.get(childSessionId)
+    const sessionModel = childSess?.config?.model
     bus.emit({
       type: 'subagent:completed',
       runId,
       sessionId: childSessionId,
-      result: result.response,
+      result: rAny.response,
       durationMs,
+      tokensUsed: rAny.tokensUsed ?? 0,
+      model: rAny.model ?? sessionModel ?? undefined,
       timestamp: new Date(),
     })
 

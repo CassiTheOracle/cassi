@@ -27,13 +27,18 @@ interface PerplexityResponse {
 
 export const webSearchDefinition: ToolDefinition = {
   name: 'web_search',
-  description: 'Search the web using Brave Search API (with Perplexity fallback) to find current information, news, or research topics. Returns structured results with titles, URLs, and descriptions/citations.',
+  description: 'Search the web using Brave Search API (with Perplexity fallback). Supports single "query" or multiple "queries" (array).',
   parameters: {
     type: 'object',
     properties: {
       query: {
         type: 'string',
         description: 'Search query string'
+      },
+      queries: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Multiple search queries to run in parallel'
       },
       count: {
         type: 'number',
@@ -50,14 +55,23 @@ export const webSearchDefinition: ToolDefinition = {
         description: 'Filter by recency: pd (past day), pw (past week), pm (past month), py (past year)',
         enum: ['pd', 'pw', 'pm', 'py']
       }
-    },
-    required: ['query'],
+    }
   },
   timeoutMs: 30_000,
 }
 
 export const webSearchHandler: ToolHandler = async (input, ctx: ToolExecutionContext) => {
-  const query = input['query'] as string
+  let queries: string[] = []
+  if (input['queries'] && Array.isArray(input['queries'])) {
+    queries = input['queries'] as string[]
+  } else if (input['query']) {
+    queries = [input['query'] as string]
+  }
+
+  if (queries.length === 0) {
+    return 'Error: No query or queries provided.'
+  }
+
   const count = Math.min(Math.max((input['count'] as number | undefined) ?? 5, 1), 10)
   const country = (input['country'] as string | undefined) ?? 'US'
   const freshness = input['freshness'] as string | undefined
@@ -70,43 +84,48 @@ export const webSearchHandler: ToolHandler = async (input, ctx: ToolExecutionCon
     return 'Error: No search API key configured. Please set BRAVE_API_KEY or PERPLEXITY_API_KEY environment variable.'
   }
 
-  // Try Brave Search first
-  if (braveApiKey) {
-    try {
-      const results = await searchBrave(query, count, country, freshness, braveApiKey)
-      return formatBraveResults(results, query)
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err)
-      ctx.logger.warn(`Brave Search failed: ${errorMsg}`)
+  // Run all queries in parallel
+  const results = await Promise.all(queries.map(async (query) => {
+    // Try Brave Search first
+    if (braveApiKey) {
+      try {
+        const res = await searchBrave(query, count, country, freshness, braveApiKey)
+        return formatBraveResults(res, query)
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        ctx.logger.warn(`Brave Search failed for "${query}": ${errorMsg}`)
 
-      // Fall back to Perplexity if available
-      if (perplexityApiKey) {
-        ctx.logger.info('Falling back to Perplexity API')
-        try {
-          const results = await searchPerplexity(query, count, perplexityApiKey)
-          return formatPerplexityResults(results, query)
-        } catch (pErr) {
-          const pErrorMsg = pErr instanceof Error ? pErr.message : String(pErr)
-          return `Error: Both search providers failed. Brave: ${errorMsg}. Perplexity: ${pErrorMsg}`
+        // Fall back to Perplexity if available
+        if (perplexityApiKey) {
+          ctx.logger.info(`Falling back to Perplexity API for "${query}"`)
+          try {
+            const res = await searchPerplexity(query, count, perplexityApiKey)
+            return formatPerplexityResults(res, query)
+          } catch (pErr) {
+            const pErrorMsg = pErr instanceof Error ? pErr.message : String(pErr)
+            return `Error for "${query}": Both search providers failed. Brave: ${errorMsg}. Perplexity: ${pErrorMsg}`
+          }
         }
+
+        return `Error for "${query}": Brave Search failed and no fallback available: ${errorMsg}`
       }
-
-      return `Error: Brave Search failed and no fallback available: ${errorMsg}`
     }
-  }
 
-  // Only Perplexity available
-  if (perplexityApiKey) {
-    try {
-      const results = await searchPerplexity(query, count, perplexityApiKey)
-      return formatPerplexityResults(results, query)
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err)
-      return `Error: Perplexity search failed: ${errorMsg}`
+    // Only Perplexity available
+    if (perplexityApiKey) {
+      try {
+        const res = await searchPerplexity(query, count, perplexityApiKey)
+        return formatPerplexityResults(res, query)
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        return `Error for "${query}": Perplexity search failed: ${errorMsg}`
+      }
     }
-  }
 
-  return 'Error: No search API key available.'
+    return `Error for "${query}": No search API key available.`
+  }))
+
+  return results.join('\n\n' + '='.repeat(40) + '\n\n')
 }
 
 async function searchBrave(
@@ -191,7 +210,7 @@ async function searchPerplexity(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'sonar',
+      model: 'sonar-reasoning',
       messages: [
         {
           role: 'system',
