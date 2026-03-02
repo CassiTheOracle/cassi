@@ -196,28 +196,26 @@ export class CentralizedProvider implements IProvider {
       }
     }
 
-    // ── 2. Rate limiting check (includes concurrent limit) — DISABLED ──
-    // Rate limiting disabled to prevent "Rate limited: retry after" errors
-    // const rateLimitResult = this.checkRateLimit()
-    // if (!rateLimitResult.allowed) {
-    //   this.metrics.rateLimited++
-    //   this.logger.warn(`[ratelimit] Provider ${this.id} at capacity, must wait ${rateLimitResult.retryAfterMs}ms`)
-    //   this.bus.emit({
-    //     type: 'provider:rate_limited',
-    //     providerId: this.id,
-    //     sessionId,
-    //     retryAfterMs: rateLimitResult.retryAfterMs,
-    //   } as any)
-    //   throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
-    // }
+    // ── 2. Rate limiting check (includes concurrent limit) ──
+    const rateLimitResult = this.checkRateLimit()
+    if (!rateLimitResult.allowed) {
+      this.metrics.rateLimited++
+      this.logger.warn(`[ratelimit] Provider ${this.id} at capacity, must wait ${rateLimitResult.retryAfterMs}ms`)
+      this.bus.emit({
+        type: 'provider:rate_limited',
+        providerId: this.id,
+        sessionId,
+        retryAfterMs: rateLimitResult.retryAfterMs,
+      } as any)
+      throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
+    }
 
-    // ── 3. Error cooldown check — DISABLED ──
-    // Error cooldown disabled to prevent "Provider cooling down after errors" errors
-    // const cooldownRemaining = this.checkErrorCooldown()
-    // if (cooldownRemaining > 0) {
-    //   this.logger.warn(`[cooldown] Provider ${this.id} in error cooldown for ${cooldownRemaining}ms`)
-    //   throw new Error(`Provider cooling down after errors: retry after ${cooldownRemaining}ms`)
-    // }
+    // ── 3. Error cooldown check ──
+    const cooldownRemaining = this.checkErrorCooldown()
+    if (cooldownRemaining > 0) {
+      this.logger.warn(`[cooldown] Provider ${this.id} in error cooldown for ${cooldownRemaining}ms`)
+      throw new Error(`Provider cooling down after errors: retry after ${cooldownRemaining}ms`)
+    }
 
     // ── 4. Atomically reserve slot and track the request ──
     const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -524,8 +522,20 @@ export class CentralizedProvider implements IProvider {
   }
 
   private checkRateLimit(): { allowed: boolean; retryAfterMs: number } {
-    // Rate limiting DISABLED - always allow requests
-    // This prevents "Rate limited: retry after" errors
+    // Check concurrent limit
+    if (this.inFlight.size >= this.config.maxConcurrent) {
+      return { allowed: false, retryAfterMs: this.timeUntilNextSlot() || 1000 }
+    }
+
+    // Check window-based rate limit
+    const now = Date.now()
+    const windowStart = now - this.config.windowMs
+    this.requestHistory = this.requestHistory.filter(t => t > windowStart)
+    if (this.requestHistory.length >= this.config.maxRequests) {
+      const retryAfterMs = this.timeUntilNextSlot()
+      return { allowed: false, retryAfterMs }
+    }
+
     return { allowed: true, retryAfterMs: 0 }
   }
 
@@ -546,9 +556,11 @@ export class CentralizedProvider implements IProvider {
   }
 
   private checkErrorCooldown(): number {
-    // Cooldown disabled - always return 0 to allow immediate retries
-    // This prevents the "Provider cooling down after errors" issue
-    return 0
+    if (this.consecutiveErrors === 0 || this.config.errorCooldownMs <= 0) return 0
+    // Exponential backoff: cooldown doubles with each consecutive error
+    const cooldown = this.config.errorCooldownMs * Math.pow(2, this.consecutiveErrors - 1)
+    const elapsed = Date.now() - this.lastErrorAt
+    return Math.max(0, cooldown - elapsed)
   }
 
   private calculateCurrentRate(): number {
