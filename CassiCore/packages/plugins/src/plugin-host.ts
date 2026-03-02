@@ -90,7 +90,10 @@ export class PluginHost implements IPluginHost {
         }
 
         if (m.type === "error") {
-          this.logger.error(`worker ${manifest.id} error: ${m.message}`);
+          // Handle both { type: "error", message } and { type: "error", payload: { message } }
+          // Use type narrowing to safely access properties
+          const errorMsg = 'message' in m ? m.message : ('payload' in m ? (m as any).payload?.message : 'unknown error');
+          this.logger.error(`worker ${manifest.id} error: ${errorMsg}`);
         }
       });
 
