@@ -465,6 +465,22 @@ export class Daemon {
         this.logger.warn(`[daemon] Failed to initialize SelfVerification: ${String(err)}`)
       }
 
+      // Wire introspection sources into Thinker for self-aware thinking cycles
+      // The Thinker uses these during deep think() to ground reflections in real metrics
+      try {
+        if ((this.intelligence.thinker as any)?.setIntrospectionSources) {
+          (this.intelligence.thinker as any).setIntrospectionSources({
+            outcomeTracker: this.outcomeTracker,
+            strategyTracker: this.strategyTracker,
+            crossSessionCorrelator: this.crossSessionCorrelator,
+            providerProfiler: this.providerProfiler,
+          })
+          this.logger.info('[daemon] Thinker wired with introspection sources')
+        }
+      } catch (err) {
+        this.logger.warn(`[daemon] Failed to wire Thinker introspection sources: ${String(err)}`)
+      }
+
       // ── Phase 3: Thinker Event Listeners ────────────────────────────────────
       // Listen for Thinker's proactive events
       ; (bus as any).on('thinker:inject-insight', (e: any) => {
