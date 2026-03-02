@@ -7,6 +7,7 @@ import type { DialecticStreamEvent } from '../types/dialectic.js'
 import { createToolsApi } from './tools-api.js'
 import { assembleContext } from './intelligence/context-assembler.js'
 import { listProviderConfigKeys } from './providers/centralized.js'
+import { getModelSpec } from './config/system-settings.js'
 
 // WebSocket state
 interface WSConnection {
@@ -182,6 +183,13 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     } catch (err) {
       return true
     }
+  }
+
+  /** Resolve latest active team ID when none is specified */
+  function resolveLatestTeamId(to: any): string | undefined {
+    const all = to.listAllTeams()
+    const active = all.find((t: any) => t.status === 'running' || t.status === 'paused')
+    return active?.id || all[all.length - 1]?.id
   }
 
   /**
@@ -450,9 +458,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       // GET /events/stream?sessionId=xxx - SSE endpoint for real-time events
+      // sessionId is optional: omit (or use "*") for a global all-sessions stream
       if (req.method === 'GET' && url.pathname === '/events/stream') {
-        const sessionId = url.searchParams.get('sessionId')
-        if (!sessionId) return sendJSON(res, 400, { error: 'sessionId required' })
+        const sessionId = url.searchParams.get('sessionId') || null
+        const globalStream = !sessionId || sessionId === '*'
 
         try {
           // Import event bus and subscribe
@@ -462,11 +471,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           // Check for lastEventId for replay
           const lastEventId = url.searchParams.get('lastEventId')
           let missedEvents: any[] = []
-          if (lastEventId) {
+          if (lastEventId && !globalStream) {
             const match = lastEventId.match(/evt_(\d+)_/)
             if (match) {
               const since = parseInt(match[1], 10)
-              missedEvents = eventBus.getEventsSince(sessionId, since)
+              missedEvents = eventBus.getEventsSince(sessionId!, since)
             }
           }
 
@@ -479,7 +488,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           })
 
           const connId = `sse_${++sseConnectionId}`
-          const conn = { res, sessionId, connectedAt: Date.now() }
+          // For global streams, store as '*' so broadcastSSE can filter correctly
+          const connSessionId = sessionId ?? '*'
+          const conn = { res, sessionId: connSessionId, connectedAt: Date.now() }
           sseConnections.set(connId, conn)
 
           // Send missed events
@@ -496,7 +507,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           // Send connected event
           const connectedEvent = {
             type: 'sse_connected',
-            sessionId,
+            sessionId: connSessionId,
             timestamp: Date.now(),
             eventId: `evt_${Date.now()}`,
           }
@@ -507,10 +518,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             '',
           ].join('\n') + '\n')
 
-          // Subscribe to event bus
+          // Subscribe to event bus — global stream receives all events, session stream filters by sessionId
           const unsubscribe = eventBus.onAll((event: any) => {
-            if (event.sessionId === sessionId) {
-              broadcastSSE(sessionId, event)
+            if (globalStream || event.sessionId === sessionId) {
+              broadcastSSE(connSessionId, event)
             }
           })
 
@@ -970,6 +981,48 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, 200, modules)
       }
 
+      // GET /intelligence/:module/model — get current model config for a module
+      if (parts[0] === 'intelligence' && parts[2] === 'model' && parts.length === 3 && req.method === 'GET') {
+        const moduleName = parts[1]
+        const mod = (daemon.intelligence?.all ?? []).find((m: any) => m.name === moduleName)
+        if (!mod) return sendJSON(res, 404, { error: `Module '${moduleName}' not found` })
+        if (typeof (mod as any).getModelConfig !== 'function') {
+          return sendJSON(res, 400, { error: `Module '${moduleName}' does not support model config (legacy module)` })
+        }
+        return sendJSON(res, 200, { module: moduleName, config: (mod as any).getModelConfig() })
+      }
+
+      // POST /intelligence/:module/model — update model config for a module at runtime
+      if (parts[0] === 'intelligence' && parts[2] === 'model' && parts.length === 3 && req.method === 'POST') {
+        const moduleName = parts[1]
+        const mod = (daemon.intelligence?.all ?? []).find((m: any) => m.name === moduleName)
+        if (!mod) return sendJSON(res, 404, { error: `Module '${moduleName}' not found` })
+        if (typeof (mod as any).setModelConfig !== 'function') {
+          return sendJSON(res, 400, { error: `Module '${moduleName}' does not support model config (legacy module)` })
+        }
+
+        try {
+          const body = await parseBody(req)
+          // Accept: { model?, providerId?, temperature?, maxTokens?, timeoutMs? }
+          // Also accept combined 'provider/model' in the model field
+          const overrides: Record<string, unknown> = {}
+          if (body.model !== undefined) overrides.model = body.model
+          if (body.providerId !== undefined) overrides.providerId = body.providerId
+          if (body.temperature !== undefined) overrides.temperature = body.temperature
+          if (body.maxTokens !== undefined) overrides.maxTokens = body.maxTokens
+          if (body.timeoutMs !== undefined) overrides.timeoutMs = body.timeoutMs
+
+          if (Object.keys(overrides).length === 0) {
+            return sendJSON(res, 400, { error: 'No model config fields provided. Accepts: model, providerId, temperature, maxTokens, timeoutMs' })
+          }
+
+          ;(mod as any).setModelConfig(overrides)
+          return sendJSON(res, 200, { module: moduleName, config: (mod as any).getModelConfig(), updated: Object.keys(overrides) })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // GET /intelligence/subconscious/debug — expose subconscious capture for a session
       if (parts[0] === 'intelligence' && parts[1] === 'subconscious' && parts[2] === 'debug' && req.method === 'GET') {
         const sessionId = url.searchParams.get('sessionId') || 'default'
@@ -1265,6 +1318,27 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           const stats = mem.getArchiveStats()
           const queueStats = mem.getArchiveQueueStats()
           return sendJSON(res, 200, { stats, queueStats })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // ── Context Focus (unified focus state for bridge plugin) ────────────────
+
+      // GET /intelligence/context-focus — unified focus state for a session
+      // Used by non-plugin consumers (MCP gateway, CLI, etc.) to get the same
+      // focus data that the bridge plugin reads from inject.json.
+      if (req.method === 'GET' && url.pathname === '/intelligence/context-focus') {
+        try {
+          const sessionId = url.searchParams.get('sessionId')
+          if (!sessionId) {
+            return sendJSON(res, 400, { error: 'sessionId query parameter is required' })
+          }
+          const focus = buildFocusState(sessionId)
+          if (!focus) {
+            return sendJSON(res, 200, { sessionId, focusState: null, message: 'no focus data available for this session' })
+          }
+          return sendJSON(res, 200, { sessionId, focusState: focus })
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
@@ -2661,6 +2735,336 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // ── Team Orchestration endpoints ────────────────────────────────────────
+
+      if (parts[0] === 'teams') {
+        const to = daemon.intelligence?.teamOrchestrator as any
+
+        // POST /teams — create and start a new team
+        if (parts.length === 1 && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const body = await parseBody(req)
+            if (!body?.goal) return sendJSON(res, 400, { error: 'goal is required' })
+
+            const config = {
+              goal: body.goal,
+              name: body.name || undefined,
+              budget: {
+                maxTokens: body.maxTokens || 500_000,
+                maxAgents: body.maxAgents || 5,
+                maxDepth: body.maxDepth || 4,
+                maxDurationMs: body.maxDurationMs || 60 * 60_000,
+              },
+              checkpoint: {
+                mode: body.checkpointMode || 'cassi',
+                budgetThresholdPct: body.budgetThresholdPct || 50,
+                completedGoalsInterval: body.completedGoalsInterval || 3,
+                autoApproveTimeoutMs: body.autoApproveTimeoutMs || 5 * 60_000,
+              },
+              provider: body.provider || undefined,
+              allowDestructive: body.allowDestructive || false,
+              supervisorSessionId: body.sessionId || undefined,
+            }
+
+            const team = to.createTeam(config)
+            return sendJSON(res, 201, {
+              teamId: team.id,
+              status: team.status || 'created',
+              coordinatorAgentId: team.coordinatorAgentId || null,
+            })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams — list all teams
+        if (parts.length === 1 && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teams = to.listAllTeams().map((t: any) => ({
+              id: t.id,
+              status: t.status,
+              goal: t.config?.goal,
+              startedAt: t.startedAt,
+              completedAt: t.completedAt,
+              agentCount: t.agentIds?.length || 0,
+              coordinatorAgentId: t.coordinatorAgentId,
+            }))
+            return sendJSON(res, 200, { teams })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/status?teamId=xxx — get detailed team status
+        if (parts.length === 2 && parts[1] === 'status' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teamId = url.searchParams.get('teamId') || undefined
+            // If no teamId provided, use the most recently active team
+            let resolvedTeamId = teamId
+            if (!resolvedTeamId) {
+              const all = to.listAllTeams()
+              const active = all.find((t: any) => t.status === 'running' || t.status === 'paused')
+              resolvedTeamId = active?.id || all[all.length - 1]?.id
+            }
+            if (!resolvedTeamId) return sendJSON(res, 404, { error: 'No teams found' })
+
+            const status = to.getTeamStatus(resolvedTeamId)
+            if (!status) return sendJSON(res, 404, { error: `Team ${resolvedTeamId} not found` })
+
+            return sendJSON(res, 200, status)
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/tree?teamId=xxx — get goal tree visualization
+        if (parts.length === 2 && parts[1] === 'tree' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teamId = url.searchParams.get('teamId') || undefined
+            let resolvedTeamId = teamId
+            if (!resolvedTeamId) {
+              const all = to.listAllTeams()
+              const active = all.find((t: any) => t.status === 'running' || t.status === 'paused')
+              resolvedTeamId = active?.id || all[all.length - 1]?.id
+            }
+            if (!resolvedTeamId) return sendJSON(res, 404, { error: 'No teams found' })
+
+            const goalTree = to.getGoalTree(resolvedTeamId)
+            if (!goalTree) return sendJSON(res, 404, { error: `Team ${resolvedTeamId} has no goal tree` })
+
+            return sendJSON(res, 200, {
+              teamId: resolvedTeamId,
+              tree: goalTree.renderTree(),
+              progress: goalTree.getProgressReport(),
+            })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /teams/pause — pause a team
+        if (parts.length === 2 && parts[1] === 'pause' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const body = await parseBody(req)
+            const teamId = body?.teamId || resolveLatestTeamId(to)
+            if (!teamId) return sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
+
+            to.pauseTeam(teamId)
+            return sendJSON(res, 200, { teamId, status: 'paused' })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /teams/resume — resume a paused team
+        if (parts.length === 2 && parts[1] === 'resume' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const body = await parseBody(req)
+            const teamId = body?.teamId || resolveLatestTeamId(to)
+            if (!teamId) return sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
+
+            to.resumeTeam(teamId)
+            return sendJSON(res, 200, { teamId, status: 'running' })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /teams/cancel — cancel a team
+        if (parts.length === 2 && parts[1] === 'cancel' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const body = await parseBody(req)
+            const teamId = body?.teamId || resolveLatestTeamId(to)
+            if (!teamId) return sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
+
+            await to.cancelTeam(teamId, body?.reason || 'Cancelled by user')
+            return sendJSON(res, 200, { teamId, status: 'cancelled' })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/checkpoints?teamId=xxx — list pending checkpoints
+        if (parts.length === 2 && parts[1] === 'checkpoints' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teamId = url.searchParams.get('teamId') || undefined
+            const checkpoints = to.listPendingCheckpoints(teamId)
+            return sendJSON(res, 200, { checkpoints })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /teams/checkpoints/:checkpointId — respond to a checkpoint
+        if (parts.length === 3 && parts[1] === 'checkpoints' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const checkpointId = parts[2]
+            const body = await parseBody(req)
+            if (!body?.action) return sendJSON(res, 400, { error: 'action is required (approve|reject|steer)' })
+            if (!['approve', 'reject', 'steer'].includes(body.action)) {
+              return sendJSON(res, 400, { error: 'action must be approve, reject, or steer' })
+            }
+
+            to.handleSupervisorResponse(checkpointId, {
+              action: body.action,
+              message: body.message || undefined,
+            })
+            return sendJSON(res, 200, { checkpointId, action: body.action })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/events?teamId=xxx — fetch team event log (non-streaming)
+        if (parts.length === 2 && parts[1] === 'events' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+
+            let teamId = url.searchParams.get('teamId') || ''
+            if (!teamId) teamId = resolveLatestTeamId(to) || ''
+            if (!teamId) return sendJSON(res, 404, { error: 'No active teams found' })
+
+            const team = to.getTeam(teamId)
+            if (!team) return sendJSON(res, 404, { error: `Team ${teamId} not found` })
+
+            const limitParam = url.searchParams.get('limit')
+            const limit = limitParam ? parseInt(limitParam, 10) : 50
+
+            const eventLog = to.getTeamEventLog(teamId) || []
+            const events = eventLog.slice(-limit)
+
+            return sendJSON(res, 200, { teamId, total: eventLog.length, events })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/stream?teamId=xxx — SSE endpoint for real-time team progress
+        if (parts.length === 2 && parts[1] === 'stream' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+
+            const teamId = url.searchParams.get('teamId') || ''
+            if (!teamId) return sendJSON(res, 400, { error: 'teamId query parameter is required' })
+
+            const team = to.getTeam(teamId)
+            if (!team) return sendJSON(res, 404, { error: `Team ${teamId} not found` })
+
+            // SSE headers
+            res.writeHead(200, {
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache, no-transform',
+              'Connection': 'keep-alive',
+              'X-Accel-Buffering': 'no',
+            })
+
+            const connId = `team_sse_${++sseConnectionId}`
+            sseConnections.set(connId, { res, sessionId: `team:${teamId}`, connectedAt: Date.now() })
+
+            // Helper to write an SSE event
+            const sendSSE = (eventType: string, payload: unknown) => {
+              try {
+                res.write(`event: ${eventType}\n`)
+                res.write(`data: ${JSON.stringify(payload)}\n\n`)
+              } catch { /* client disconnected */ }
+            }
+
+            // Send initial status snapshot
+            const status = to.getTeamStatus(teamId)
+            if (status) {
+              sendSSE('snapshot', {
+                teamId,
+                team: status.team,
+                goalTree: status.goalTree,
+                progress: status.progress,
+                activeAgents: status.activeAgents,
+                pendingCheckpoints: status.pendingCheckpoints,
+              })
+            }
+
+            res.write(': connected\n\n')
+
+            // Determine if an event belongs to this team
+            const isTeamEvent = (event: any): boolean => {
+              // Direct teamId match (team:* events)
+              if (event.teamId === teamId) return true
+              // Agent/autonomy events — map agentId back to team via orchestrator
+              if (event.agentId && to.agentToTeam?.get(event.agentId) === teamId) return true
+              return false
+            }
+
+            // Event types to subscribe to
+            const teamEventTypes = [
+              'team:started', 'team:completed', 'team:failed', 'team:cancelled',
+              'team:paused', 'team:resumed', 'team:budget:warning', 'team:checkpoint',
+              'agent:spawned', 'agent:completed', 'agent:error',
+              'autonomy:loop_started', 'autonomy:loop_stopped',
+              'autonomy:loop_paused', 'autonomy:loop_resumed',
+              'autonomy:iteration', 'autonomy:iteration_error',
+              'autonomy:delegation_requested', 'autonomy:blocked',
+            ]
+
+            // Subscribe to each event type on daemon.bus (old bus — no wildcard)
+            const handlers: Array<{ type: string; handler: (e: any) => void }> = []
+            for (const eventType of teamEventTypes) {
+              const handler = (e: any) => {
+                if (!isTeamEvent(e)) return
+                sendSSE(e.type || eventType, e)
+              }
+              daemon.bus.on(eventType, handler)
+              handlers.push({ type: eventType, handler })
+            }
+
+            // Keep-alive ping every 15s
+            const ping = setInterval(() => {
+              try { res.write(': ping\n\n') } catch { clearInterval(ping) }
+            }, 15_000)
+            try { (ping as any).unref?.() } catch {}
+
+            // Cleanup on disconnect
+            req.on('close', () => {
+              clearInterval(ping)
+              sseConnections.delete(connId)
+              for (const { type, handler } of handlers) {
+                try { daemon.bus.off(type, handler) } catch {}
+              }
+            })
+
+            return // Keep connection open
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/:teamId — get a specific team by ID
+        if (parts.length === 2 && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teamId = parts[1]
+            const team = to.getTeam(teamId)
+            if (!team) return sendJSON(res, 404, { error: `Team ${teamId} not found` })
+
+            const goalTree = to.getGoalTree(teamId)
+            return sendJSON(res, 200, {
+              team,
+              goalTree: goalTree?.renderTree(),
+              progress: goalTree?.getProgressReport(),
+            })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+      }
+
       // ── Sessions endpoints ─────────────────────────────────────────────────
 
       if (parts[0] === 'sessions') {
@@ -2717,7 +3121,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               inbound.channelId,
               inbound.senderId,
               {
-                model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
+                model: body?.model || daemon.config?.get?.('session.model', getModelSpec('main')),
                 thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
                 systemPrompt: body?.systemPrompt,
               }
@@ -2905,7 +3309,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               inbound.channelId,
               inbound.senderId,
               {
-                model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
+                model: body?.model || daemon.config?.get?.('session.model', getModelSpec('main')),
                 thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
                 systemPrompt: body?.systemPrompt,
               }
@@ -3043,6 +3447,41 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           return
         }
 
+        // DELETE /sessions/:id — delete a single session
+        if (parts.length === 2 && req.method === 'DELETE') {
+          const sessionId = parts[1]
+          daemon.sessions.delete(sessionId)
+          return sendJSON(res, 200, { ok: true, deleted: 1 })
+        }
+
+        // POST /sessions/prune — bulk prune with filter criteria
+        if (parts.length === 2 && parts[1] === 'prune' && req.method === 'POST') {
+          const body = await parseBody(req) as {
+            all?: boolean
+            olderThanDays?: number
+            channelId?: string
+            emptyOnly?: boolean
+          } | null
+
+          let deleted = 0
+
+          if (body?.all) {
+            deleted = daemon.sessions.pruneAll()
+          } else if (body?.channelId) {
+            deleted = daemon.sessions.pruneByChannelId(body.channelId)
+          } else if (body?.emptyOnly) {
+            deleted = daemon.sessions.pruneEmpty()
+          } else if (typeof body?.olderThanDays === 'number') {
+            deleted = daemon.sessions.pruneOlderThan(body.olderThanDays)
+          } else {
+            return sendJSON(res, 400, {
+              error: 'Provide one of: all, olderThanDays, channelId, emptyOnly',
+            })
+          }
+
+          return sendJSON(res, 200, { ok: true, deleted })
+        }
+
         // GET /sessions/:id — get session info
         if (parts.length === 2 && req.method === 'GET') {
           const sessionId = parts[1]
@@ -3061,15 +3500,17 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           })
         }
 
-        // GET /sessions — list active sessions
+        // GET /sessions — list all sessions (in-memory + disk)
         if (parts.length === 1 && req.method === 'GET') {
-          const sessions = Array.from(daemon.sessions['sessions']?.values?.() || [])
+          const sessions = daemon.sessions.list()
             .map((s: any) => ({
               id: s.id,
               channelId: s.channelId,
               senderId: s.senderId,
+              createdAt: s.createdAt,
               lastActiveAt: s.lastActiveAt,
               historyLength: s.history.length,
+              tokenCount: s.tokenCount,
               firstMessage: getFirstUserMessage(s.history || []),
               lastMessage: getLastUserMessage(s.history || []),
             }))
@@ -3547,7 +3988,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       if (parts[0] === "chat" && parts.length === 1 && req.method === "POST") {
         const body = await parseBody(req);
         const messages = body?.messages || [];
-        const model = body?.model || "kimi-coding/k2p5";
+        const model = body?.model || getModelSpec('main');
         
         try {
           const { randomUUID } = await import("node:crypto");
@@ -3871,6 +4312,227 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // inject.json — file-based IPC for the OpenCode bridge plugin
+  //
+  // The bridge plugin runs inside OpenCode's embedded Bun runtime which cannot
+  // make TCP connections to local services (Bug #5).  Instead of HTTP, we write
+  // CassiCore context to a JSON file that the bridge reads with readFileSync().
+  // ---------------------------------------------------------------------------
+
+  const cassiDir = path.join(os.homedir(), '.cassicore')
+  const injectPath = path.join(cassiDir, 'inject.json')
+  const injectTmpPath = path.join(cassiDir, '.inject.tmp.json')
+  let injectTimer: ReturnType<typeof setInterval> | null = null
+
+  /**
+   * Map MentalModel ConversationPhase → bridge-friendly mode string.
+   * The bridge plugin uses these to decide pruning aggressiveness.
+   */
+  function phaseToMode(phase: string, intentType?: string, topic?: string): 'exploration' | 'planning' | 'execution' | 'debugging' {
+    // Check for debugging signals first (intent or topic keywords)
+    if (intentType === 'debug' || intentType === 'fix' || intentType === 'troubleshoot') return 'debugging'
+    if (topic && /\b(bug|error|fix|debug|crash|fail|broken|issue)\b/i.test(topic)) return 'debugging'
+
+    switch (phase) {
+      case 'initial':
+      case 'clarifying':
+        return 'exploration'
+      case 'synthesizing':
+        return 'planning'
+      case 'executing':
+        return 'execution'
+      case 'concluding':
+        return 'planning'
+      default:
+        return 'exploration'
+    }
+  }
+
+  /**
+   * Determine pruning aggressiveness based on session characteristics.
+   */
+  function computePruneAdvice(
+    turnCount: number,
+    complexity: number,
+    mode: string,
+    focusTopics: string[],
+  ): { aggressiveness: string; staleAfterTurns: number; keepToolOutputs: string[]; focusTopics: string[] } {
+    // Tools whose outputs should never be pruned
+    const keepToolOutputs = ['skill', 'cassicore_cassi_activity']
+
+    if (turnCount < 5 || complexity < 0.2) {
+      return { aggressiveness: 'none', staleAfterTurns: 50, keepToolOutputs, focusTopics }
+    }
+    if (turnCount < 15 && complexity < 0.6) {
+      return { aggressiveness: 'light', staleAfterTurns: 20, keepToolOutputs, focusTopics }
+    }
+    if (turnCount < 30) {
+      return { aggressiveness: 'moderate', staleAfterTurns: 12, keepToolOutputs, focusTopics }
+    }
+    // Long sessions or high-complexity tasks: prune aggressively
+    return { aggressiveness: 'aggressive', staleAfterTurns: 8, keepToolOutputs, focusTopics }
+  }
+
+  /**
+   * Build a unified focusState for a single session by combining data from
+   * MentalModel, SessionDigest, and Thinker strategy.
+   */
+  function buildFocusState(sessionId: string): Record<string, any> | null {
+    const subconscious = daemon.intelligence?.subconscious
+    const digestStore = daemon.sessionDigestStore
+
+    // --- MentalModel ---
+    const mm = subconscious?.getMentalModel?.(sessionId)
+    const mmState = mm?.state
+    const mmContext = mm?.context
+
+    // --- SessionDigest ---
+    const digest = digestStore?.get?.(sessionId)
+
+    // If neither source has data, skip this session
+    if (!mmState && !digest) return null
+
+    const topic = mmState?.topic || digest?.topic || ''
+    const intentType = mmState?.intent?.type || ''
+    const phase = mmState?.phase || digest?.phase || 'initial'
+
+    const mode = phaseToMode(phase, intentType, topic)
+
+    // Merge active files from both sources (deduplicated)
+    const activeFilesSet = new Set<string>()
+    if (mmContext?.loadedFiles) {
+      for (const f of mmContext.loadedFiles) {
+        if (f?.path) activeFilesSet.add(f.path)
+      }
+    }
+    if (digest?.filesActive) {
+      for (const f of digest.filesActive) activeFilesSet.add(f)
+    }
+
+    // Focus topics for relevance matching
+    const focusTopics: string[] = []
+    if (topic) focusTopics.push(topic)
+    if (mmState?.intent?.description) focusTopics.push(mmState.intent.description)
+    if (digest?.currentTask && digest.currentTask !== topic) focusTopics.push(digest.currentTask)
+
+    const turnCount = digest?.turnCount ?? 0
+    const complexity = mmState?.complexity ?? 0.5
+
+    const pruneAdvice = computePruneAdvice(turnCount, complexity, mode, focusTopics)
+
+    // Build compaction context — a human-readable summary for the session.compacting hook
+    const compactionParts: string[] = []
+    if (topic) compactionParts.push(`Topic: ${topic}`)
+    if (digest?.currentTask) compactionParts.push(`Current task: ${digest.currentTask}`)
+    if (mode) compactionParts.push(`Mode: ${mode}`)
+    if (digest?.decisions?.length) compactionParts.push(`Key decisions: ${digest.decisions.slice(-3).join('; ')}`)
+    if (digest?.learnings?.length) compactionParts.push(`Learnings: ${digest.learnings.slice(-3).join('; ')}`)
+
+    return {
+      mode,
+      topic,
+      intent: mmState?.intent
+        ? { type: mmState.intent.type, description: mmState.intent.description, confidence: mmState.intent.confidence }
+        : null,
+      complexity,
+      activeFiles: Array.from(activeFilesSet).slice(0, 20),
+      activeSkills: mmContext?.activeSkills ?? [],
+      recentActions: digest?.recentActions ?? [],
+      filesActive: digest?.filesActive ?? [],
+      pruneAdvice,
+      compactionContext: compactionParts.length > 0 ? compactionParts.join('. ') : null,
+    }
+  }
+
+  async function writeInjectFile(): Promise<void> {
+    try {
+      const mem = daemon.intelligence?.memory
+      const subconscious = daemon.intelligence?.subconscious
+
+      // --- Thinker insight (latest from history) ---
+      let insight: string | null = null
+      if (mem) {
+        try {
+          const history = await mem.kv_get('thinker:insight-history') as any[] | undefined
+          if (history && history.length > 0) {
+            insight = history[history.length - 1]?.insight ?? null
+          }
+        } catch {}
+      }
+
+      // --- Subconscious learnings (top 10 by occurrence) ---
+      let learnings: Array<{ clusterLabel: string; summary: string; occurrences: number }> = []
+      if (mem) {
+        try {
+          const raw = await mem.kv_get('subconscious:learnings') as any[] | undefined
+          if (raw) {
+            learnings = raw
+              .sort((a: any, b: any) => (b.occurrences || 0) - (a.occurrences || 0))
+              .slice(0, 10)
+              .map((l: any) => ({
+                clusterLabel: l.clusterLabel || '',
+                summary: l.summary || '',
+                occurrences: l.occurrences || 0,
+              }))
+          }
+        } catch {}
+      }
+
+      // --- Per-session retrieved context (non-consuming peek) ---
+      const sessions: Record<string, { items: any[] }> = {}
+      if (subconscious?.getSessionIds && subconscious?.peekRetrievedContext) {
+        const sessionIds = subconscious.getSessionIds()
+        for (const sid of sessionIds) {
+          try {
+            const items = subconscious.peekRetrievedContext(sid)
+            if (items && items.length > 0) {
+              sessions[sid] = {
+                items: items.map((item: any) => ({
+                  source: item.source ?? 'memory',
+                  content: item.content ?? '',
+                  relevance: item.relevance ?? 0,
+                  query: item.query ?? '',
+                })),
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // --- Per-session focusState (unified from MentalModel + SessionDigest + Thinker) ---
+      const focusStates: Record<string, any> = {}
+
+      // Collect all known session IDs from both sources
+      const allSessionIds = new Set<string>()
+      if (subconscious?.getSessionIds) {
+        for (const sid of subconscious.getSessionIds()) allSessionIds.add(sid)
+      }
+      if (daemon.sessionDigestStore) {
+        for (const d of daemon.sessionDigestStore.all()) allSessionIds.add(d.sessionId)
+      }
+
+      for (const sid of allSessionIds) {
+        const focus = buildFocusState(sid)
+        if (focus) focusStates[sid] = focus
+      }
+
+      const payload = {
+        updatedAt: Date.now(),
+        insight,
+        learnings,
+        sessions,
+        focusStates,
+      }
+
+      // Atomic write: temp file → rename (prevents partial reads)
+      fs.writeFileSync(injectTmpPath, JSON.stringify(payload), 'utf8')
+      fs.renameSync(injectTmpPath, injectPath)
+    } catch (err) {
+      logger.debug('[admin-api] inject.json write failed', { error: String(err) })
+    }
+  }
+
   // Separate servers for Unix socket and TCP
   let unixServer: http.Server | null = null
   let tcpServer: http.Server | null = null
@@ -3929,9 +4591,19 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         logger.warn('[admin-api] failed to bind TCP admin port (no available port found)')
       }
 
+      // Start inject.json periodic writer for file-based IPC with bridge plugin
+      injectTimer = setInterval(() => { writeInjectFile().catch(() => {}) }, 5000)
+      writeInjectFile().catch(() => {})  // Write immediately on start
+      logger.info('[admin-api] inject.json writer started (5s interval)')
+
       return { tcpPort: boundPort, unixPath }
     },
     async stop() {
+      // Stop inject.json writer
+      if (injectTimer) {
+        clearInterval(injectTimer)
+        injectTimer = null
+      }
       if (unixServer) {
         await new Promise<void>((resolve) => unixServer!.close(() => resolve()))
         unixServer = null
