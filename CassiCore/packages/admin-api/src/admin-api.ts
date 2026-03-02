@@ -1242,6 +1242,436 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // ── Archivist endpoints ────────────────────────────────────────────────
+
+      // GET /intelligence/archivist/recent — recent archive entries
+      if (req.method === 'GET' && url.pathname === '/intelligence/archivist/recent') {
+        try {
+          const mem = daemon.intelligence?.memory
+          if (!mem) return sendJSON(res, 503, { error: 'memory module not initialized' })
+          const limit = parseInt(url.searchParams.get('limit') || '20', 10)
+          const entries = mem.getRecentArchiveEntries(limit)
+          return sendJSON(res, 200, { entries })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/archivist/stats — archive statistics
+      if (req.method === 'GET' && url.pathname === '/intelligence/archivist/stats') {
+        try {
+          const mem = daemon.intelligence?.memory
+          if (!mem) return sendJSON(res, 503, { error: 'memory module not initialized' })
+          const stats = mem.getArchiveStats()
+          const queueStats = mem.getArchiveQueueStats()
+          return sendJSON(res, 200, { stats, queueStats })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // ── Consolidated Activity Dashboard ─────────────────────────────────────
+
+      // GET /intelligence/activity — consolidated cognitive activity dashboard
+      if (req.method === 'GET' && url.pathname === '/intelligence/activity') {
+        try {
+          const intel = daemon.intelligence
+          if (!intel) return sendJSON(res, 503, { error: 'intelligence layer not initialized' })
+
+          // Gather module statuses
+          const modules = intel.all.map((m: any) => ({
+            name: m.name || m.constructor?.name || 'unknown',
+            priority: m.priority ?? 0,
+            status: 'active',
+          }))
+
+          // Thinker stats
+          let thinkerStats = null
+          try { thinkerStats = intel.thinker?.stats?.() ?? null } catch { /* ignore */ }
+
+          // Thinker strategy
+          let thinkerStrategy = null
+          try { thinkerStrategy = intel.memory?.kv_get('thinker:strategy') ?? null } catch { /* ignore */ }
+
+          // Memory stats
+          let memoryStats = null
+          try { memoryStats = intel.memory?.stats?.() ?? null } catch { /* ignore */ }
+
+          // Archivist stats
+          let archiveStats = null
+          try { archiveStats = intel.memory?.getArchiveStats?.() ?? null } catch { /* ignore */ }
+
+          // Reflect unresolved patterns
+          let unresolvedPatterns = null
+          try { unresolvedPatterns = intel.reflect?.unresolved?.(5) ?? null } catch { /* ignore */ }
+
+          // Optimizer — score recent sessions
+          let optimizerHealth: Record<string, any> = {}
+          try {
+            const sessions = Array.from(daemon.sessions?.['sessions']?.values?.() || [])
+            for (const s of sessions.slice(0, 5)) {
+              const score = intel.optimizer?.scoreSession?.((s as any).id)
+              if (score) optimizerHealth[(s as any).id] = score
+            }
+          } catch { /* ignore */ }
+
+          // Dialectic — try to get stats for recent sessions
+          let dialecticSummary = null
+          try {
+            const sessions = Array.from(daemon.sessions?.['sessions']?.values?.() || [])
+            if (sessions.length > 0) {
+              const recentSession = sessions.sort((a: any, b: any) => (b.lastActiveAt || 0) - (a.lastActiveAt || 0))[0] as any
+              dialecticSummary = intel.dialectic?.getStats?.(recentSession.id) ?? null
+            }
+          } catch { /* ignore */ }
+
+          // AI Scientist — recent studies
+          let recentStudies = null
+          try { recentStudies = intel.aiScientist?.getRecentStudies?.(3) ?? null } catch { /* ignore */ }
+
+          return sendJSON(res, 200, {
+            timestamp: Date.now(),
+            modules,
+            thinker: { stats: thinkerStats, strategy: thinkerStrategy },
+            memory: memoryStats,
+            archive: archiveStats,
+            reflect: { unresolvedPatterns },
+            optimizer: { sessionHealth: optimizerHealth },
+            dialectic: dialecticSummary,
+            aiScientist: { recentStudies },
+          })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // ── Tier 2: CycleHook Module Endpoints ─────────────────────────────────
+
+      // GET /intelligence/outcomes/stats — OutcomeTracker aggregate stats
+      if (req.method === 'GET' && url.pathname === '/intelligence/outcomes/stats') {
+        try {
+          const tracker = daemon.outcomeTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'outcome tracker not initialized' })
+          }
+          return sendJSON(res, 200, tracker.getStats())
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/outcomes/feedback — recent feedback signals for a session
+      if (req.method === 'GET' && url.pathname === '/intelligence/outcomes/feedback') {
+        try {
+          const tracker = daemon.outcomeTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'outcome tracker not initialized' })
+          }
+          const sessionId = url.searchParams.get('sessionId')
+          if (!sessionId) {
+            return sendJSON(res, 400, { error: 'sessionId query parameter is required' })
+          }
+          const limit = parseInt(url.searchParams.get('limit') || '10', 10)
+          const feedback = tracker.getRecentFeedback(sessionId, limit)
+          return sendJSON(res, 200, { feedback })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/outcomes/sources/:source — per-source outcome stats
+      if (req.method === 'GET' && url.pathname.startsWith('/intelligence/outcomes/sources/')) {
+        try {
+          const tracker = daemon.outcomeTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'outcome tracker not initialized' })
+          }
+          const source = url.pathname.split('/intelligence/outcomes/sources/')[1]
+          if (!source) {
+            return sendJSON(res, 400, { error: 'source parameter is required' })
+          }
+          const windowMs = parseInt(url.searchParams.get('windowMs') || String(24 * 60 * 60_000), 10)
+          const stats = tracker.getSourceStats(decodeURIComponent(source), windowMs)
+          return sendJSON(res, 200, { stats: stats || null })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/outcomes/tools/:toolName — per-tool reliability stats
+      if (req.method === 'GET' && url.pathname.startsWith('/intelligence/outcomes/tools/')) {
+        try {
+          const tracker = daemon.outcomeTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'outcome tracker not initialized' })
+          }
+          const toolName = url.pathname.split('/intelligence/outcomes/tools/')[1]
+          if (!toolName) {
+            return sendJSON(res, 400, { error: 'toolName parameter is required' })
+          }
+          const windowMs = parseInt(url.searchParams.get('windowMs') || String(24 * 60 * 60_000), 10)
+          const stats = tracker.getToolStats(decodeURIComponent(toolName), windowMs)
+          return sendJSON(res, 200, { stats: stats || null })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/profiler/stats — ProviderProfiler aggregate stats
+      if (req.method === 'GET' && url.pathname === '/intelligence/profiler/stats') {
+        try {
+          const profiler = daemon.providerProfiler
+          if (!profiler) {
+            return sendJSON(res, 503, { error: 'provider profiler not initialized' })
+          }
+          return sendJSON(res, 200, profiler.getStats())
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/profiler/aggregate — per-provider/model aggregate stats
+      if (req.method === 'GET' && url.pathname === '/intelligence/profiler/aggregate') {
+        try {
+          const profiler = daemon.providerProfiler
+          if (!profiler) {
+            return sendJSON(res, 503, { error: 'provider profiler not initialized' })
+          }
+          const opts: any = {}
+          const providerId = url.searchParams.get('providerId')
+          const model = url.searchParams.get('model')
+          const windowMs = url.searchParams.get('windowMs')
+          if (providerId) opts.providerId = providerId
+          if (model) opts.model = model
+          if (windowMs) opts.windowMs = parseInt(windowMs, 10)
+          const aggregate = profiler.getAggregateStats(opts)
+          return sendJSON(res, 200, { aggregate })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/profiler/hourly — hourly trend data
+      if (req.method === 'GET' && url.pathname === '/intelligence/profiler/hourly') {
+        try {
+          const profiler = daemon.providerProfiler
+          if (!profiler) {
+            return sendJSON(res, 503, { error: 'provider profiler not initialized' })
+          }
+          const opts: any = {}
+          const providerId = url.searchParams.get('providerId')
+          const model = url.searchParams.get('model')
+          const hours = url.searchParams.get('hours')
+          if (providerId) opts.providerId = providerId
+          if (model) opts.model = model
+          if (hours) opts.hours = parseInt(hours, 10)
+          const hourly = profiler.getHourlyStats(opts)
+          return sendJSON(res, 200, { hourly })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/strategy/stats — StrategyTracker aggregate stats
+      if (req.method === 'GET' && url.pathname === '/intelligence/strategy/stats') {
+        try {
+          const tracker = daemon.strategyTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'strategy tracker not initialized' })
+          }
+          return sendJSON(res, 200, tracker.getStats())
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/strategy/history — strategy snapshots over time
+      if (req.method === 'GET' && url.pathname === '/intelligence/strategy/history') {
+        try {
+          const tracker = daemon.strategyTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'strategy tracker not initialized' })
+          }
+          const module = url.searchParams.get('module')
+          if (!module) {
+            return sendJSON(res, 400, { error: 'module query parameter is required' })
+          }
+          const limit = parseInt(url.searchParams.get('limit') || '20', 10)
+          const history = tracker.getStrategyHistory(module, limit)
+          return sendJSON(res, 200, { history })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/strategy/best — current best strategy per module
+      if (req.method === 'GET' && url.pathname === '/intelligence/strategy/best') {
+        try {
+          const tracker = daemon.strategyTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'strategy tracker not initialized' })
+          }
+          const module = url.searchParams.get('module')
+          if (!module) {
+            return sendJSON(res, 400, { error: 'module query parameter is required' })
+          }
+          const best = tracker.getBestStrategy(module)
+          return sendJSON(res, 200, { strategy: best || null })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/strategy/dialectic-effectiveness — dialectic session effectiveness
+      if (req.method === 'GET' && url.pathname === '/intelligence/strategy/dialectic-effectiveness') {
+        try {
+          const tracker = daemon.strategyTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'strategy tracker not initialized' })
+          }
+          const limit = parseInt(url.searchParams.get('limit') || '20', 10)
+          const effectiveness = tracker.getDialecticEffectiveness(limit)
+          return sendJSON(res, 200, { effectiveness })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/correlator/stats — CrossSessionCorrelator aggregate stats
+      if (req.method === 'GET' && url.pathname === '/intelligence/correlator/stats') {
+        try {
+          const correlator = daemon.crossSessionCorrelator
+          if (!correlator) {
+            return sendJSON(res, 503, { error: 'cross-session correlator not initialized' })
+          }
+          return sendJSON(res, 200, correlator.getStats())
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/correlator/patterns — filtered cross-session patterns
+      if (req.method === 'GET' && url.pathname === '/intelligence/correlator/patterns') {
+        try {
+          const correlator = daemon.crossSessionCorrelator
+          if (!correlator) {
+            return sendJSON(res, 503, { error: 'cross-session correlator not initialized' })
+          }
+          const opts: any = {}
+          const category = url.searchParams.get('category')
+          const minConfidence = url.searchParams.get('minConfidence')
+          const limit = url.searchParams.get('limit')
+          if (category) opts.category = category
+          if (minConfidence) opts.minConfidence = parseFloat(minConfidence)
+          if (limit) opts.limit = parseInt(limit, 10)
+          const patterns = correlator.getPatterns(opts)
+          return sendJSON(res, 200, { patterns })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/correlator/patterns/:key — patterns for a specific correlation key
+      if (req.method === 'GET' && url.pathname.startsWith('/intelligence/correlator/patterns/')) {
+        try {
+          const correlator = daemon.crossSessionCorrelator
+          if (!correlator) {
+            return sendJSON(res, 503, { error: 'cross-session correlator not initialized' })
+          }
+          const key = url.pathname.split('/intelligence/correlator/patterns/')[1]
+          if (!key) {
+            return sendJSON(res, 400, { error: 'correlation key is required' })
+          }
+          const patterns = correlator.getPatternsForKey(decodeURIComponent(key))
+          return sendJSON(res, 200, { patterns })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/trace — forensic trace of a specific turn
+      if (req.method === 'GET' && url.pathname === '/intelligence/trace') {
+        try {
+          const sessionId = url.searchParams.get('sessionId')
+          if (!sessionId) {
+            return sendJSON(res, 400, { error: 'sessionId query parameter is required' })
+          }
+          const turnIndex = url.searchParams.get('turnIndex')
+          const limit = parseInt(url.searchParams.get('limit') || '5', 10)
+
+          // Gather data from multiple intelligence modules
+          const intel = daemon.intelligence
+          const trace: any = {
+            sessionId,
+            timestamp: Date.now(),
+            continuity: null,
+            dialectic: null,
+            injections: null,
+            archiveContext: null,
+            reflectPatterns: null,
+          }
+
+          // 1. Continuity — recent turns for this session
+          if (intel?.continuity) {
+            try {
+              const turns = await intel.continuity.getRecent(sessionId, limit)
+              if (turnIndex !== null && turnIndex !== undefined) {
+                const idx = parseInt(turnIndex, 10)
+                // Return the specific turn and its neighbors
+                trace.continuity = {
+                  targetIndex: idx,
+                  turns: turns.slice(Math.max(0, idx - 1), idx + 2),
+                  totalTurns: turns.length,
+                }
+              } else {
+                trace.continuity = { turns, totalTurns: turns.length }
+              }
+            } catch { /* ignore */ }
+          }
+
+          // 2. Dialectic — recent analysis for this session
+          if (intel?.dialectic?.getRecent) {
+            try {
+              trace.dialectic = intel.dialectic.getRecent(sessionId, limit)
+            } catch { /* ignore */ }
+          }
+
+          // 3. Injection ledger + archive context from conversation thread
+          if (intel?.memory) {
+            try {
+              const thread = intel.memory.getConversationWithThinking?.(sessionId, limit * 2) ?? []
+              trace.injections = thread.filter(
+                (e: any) => e.type === 'injection' || e.category === 'injection'
+              )
+              trace.archiveContext = thread.filter(
+                (e: any) => e.type !== 'injection' && e.category !== 'injection'
+              ).slice(0, limit)
+            } catch { /* ignore */ }
+          }
+
+          // 4. Reflect — unresolved patterns that may have influenced the turn
+          if (intel?.reflect?.unresolved) {
+            try {
+              trace.reflectPatterns = await intel.reflect.unresolved(5)
+            } catch { /* ignore */ }
+          }
+
+          // 5. Subconscious — mental model state at turn time
+          if (daemon.intelligence?.subconscious) {
+            try {
+              const sub = daemon.intelligence.subconscious
+              if (sub.getMentalModel) {
+                trace.mentalModel = sub.getMentalModel(sessionId)
+              }
+            } catch { /* ignore */ }
+          }
+
+          return sendJSON(res, 200, trace)
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // GET /intelligence/skills/metrics — skill usage metrics
       if (req.method === 'GET' && url.pathname === '/intelligence/skills/metrics') {
         try {
