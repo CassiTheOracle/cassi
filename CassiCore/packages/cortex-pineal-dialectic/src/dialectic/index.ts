@@ -1,50 +1,136 @@
 /**
- * DialecticSystem — Unified orchestration of Yang, Yin, and Synthesizer
- * 
- * Runs all three observers in parallel and coordinates their outputs.
- * Handles WebSocket streaming, persistence, and signal injection.
+ * DialecticSystem — Fully Parallel Yang, Yin, Serenity
+ *
+ * The dialectic trio always runs alongside the main agent in parallel.
+ * No sequential mode - maximum speed with parallel execution.
  */
 
 import type { ILogger } from '../../../types/interfaces.js';
 import type { IEventBus } from '../../../types/interfaces.js';
-import type { 
-  IDialecticSystem, 
-  DialecticResult, 
+import type {
+  IDialecticSystem,
+  DialecticResult,
+  ParallelDialecticResult,
   YangContext,
   DialecticStreamEvent,
-  DialecticSignal 
+  DialecticSignal,
 } from '../../../types/dialectic.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
-import { YangObserver, type YangConfig } from '../yang/index.js';
-import { YinObserver, type YinConfig } from '../yin/index.js';
-import { Synthesizer, type SynthesizerConfig } from '../synthesizer/index.js';
+import { ParallelDialecticProcessor } from './parallel-processor.js';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
 export interface DialecticSystemConfig {
   enabled: boolean;
-  yang?: Partial<YangConfig>;
-  yin?: Partial<YinConfig>;
-  synthesizer?: Partial<SynthesizerConfig>;
+  yang?: { enabled?: boolean; model?: string; temperature?: number; maxBranches?: number };
+  yin?: { enabled?: boolean; model?: string; temperature?: number };
+  serenity?: { enabled?: boolean; model?: string; temperature?: number };
+  parallel?: {
+    maxWaitMs?: number;
+    observerTimeoutMs?: number;
+    partialResultsOnFailure?: boolean;
+  };
   dataDir?: string;
+  cache?: {
+    enabled?: boolean;
+    ttlMs?: number;
+    similarityThreshold?: number;
+  };
 }
+
+// ============================================================================
+// Result Cache
+// ============================================================================
+
+interface CacheEntry {
+  result: ParallelDialecticResult;
+  timestamp: number;
+}
+
+class ResultCache {
+  private cache = new Map<string, CacheEntry>();
+  private readonly ttlMs: number;
+  private readonly similarityThreshold: number;
+
+  constructor(ttlMs = 30000, similarityThreshold = 0.85) {
+    this.ttlMs = ttlMs;
+    this.similarityThreshold = similarityThreshold;
+  }
+
+  get(userMessage: string): ParallelDialecticResult | undefined {
+    const normalized = this.normalize(userMessage);
+    const now = Date.now();
+
+    for (const [key, entry] of this.cache) {
+      if (now - entry.timestamp > this.ttlMs) {
+        this.cache.delete(key);
+        continue;
+      }
+      if (this.jaccardSimilarity(normalized, this.keyToSet(key)) >= this.similarityThreshold) {
+        return entry.result;
+      }
+    }
+    return undefined;
+  }
+
+  set(userMessage: string, result: ParallelDialecticResult): void {
+    this.cache.set(this.normalizeToKey(userMessage), {
+      result,
+      timestamp: Date.now(),
+    });
+  }
+
+  private normalize(text: string): Set<string> {
+    const words = text.toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter(w => w.length > 2);
+    return new Set(words);
+  }
+
+  private normalizeToKey(text: string): string {
+    return text.toLowerCase().replace(/[^\w]/g, '').slice(0, 200);
+  }
+
+  private keyToSet(key: string): Set<string> {
+    const words = key.match(/.{1,4}/g) || [];
+    return new Set(words);
+  }
+
+  private jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+    const intersection = [...a].filter(x => b.has(x)).length;
+    const union = new Set([...a, ...b]).size;
+    return union === 0 ? 0 : intersection / union;
+  }
+}
+
+// ============================================================================
+// DialecticSystem — Always Parallel
+// ============================================================================
 
 export class DialecticSystem implements IDialecticSystem {
   readonly name = 'dialectic';
-  
+
   private logger: ILogger;
   private config: DialecticSystemConfig;
   private eventBus?: IEventBus;
   private memory?: IMemory;
-  
-  private yang: YangObserver;
-  private yin: YinObserver;
-  private synthesizer: Synthesizer;
-  
+  private provider?: IProvider;
+
+  private parallelProcessor: ParallelDialecticProcessor;
   private db?: Database.Database;
   private streamCallbacks: Map<string, Set<(event: DialecticStreamEvent) => void>> = new Map();
+  private resultCache?: ResultCache;
+
+  // Subconscious context
+  private subconsciousContext = new Map<string, {
+    patterns: Array<{ type: string; confidence: number; evidence: string[] }>;
+    intent?: { type: string; confidence: number };
+    anomalies: Array<{ category: string; severity: string }>;
+    lastUpdated: number;
+  }>();
 
   constructor(logger: ILogger, config?: Partial<DialecticSystemConfig>) {
     this.logger = logger.child?.('dialectic') ?? logger;
@@ -52,18 +138,35 @@ export class DialecticSystem implements IDialecticSystem {
       enabled: config?.enabled ?? true,
       yang: config?.yang ?? {},
       yin: config?.yin ?? {},
-      synthesizer: config?.synthesizer ?? {},
+      serenity: config?.serenity ?? {},
       dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
+      cache: { enabled: true, ttlMs: 30000, similarityThreshold: 0.85, ...config?.cache },
     };
-    
-    // Initialize observers
-    this.yang = new YangObserver(this.logger, this.config.yang);
-    this.yin = new YinObserver(this.logger, this.config.yin);
-    this.synthesizer = new Synthesizer(this.logger, this.config.synthesizer);
-    
+
+    // Always use parallel processor
+    this.parallelProcessor = new ParallelDialecticProcessor(
+      this.logger,
+      {
+        maxWaitMs: this.config.parallel?.maxWaitMs ?? 8000,
+        observerTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 6000,
+        partialResultsOnFailure: this.config.parallel?.partialResultsOnFailure ?? true,
+        synchronization: 'best-effort',
+      },
+      this.config.yang ?? {},
+      this.config.yin ?? {},
+      this.config.serenity ?? {}
+    );
+
+    if (this.config.cache?.enabled) {
+      this.resultCache = new ResultCache(
+        this.config.cache.ttlMs,
+        this.config.cache.similarityThreshold
+      );
+    }
+
     if (this.config.enabled) {
       this.initPersistence();
-      this.logger.info('DialecticSystem: enabled');
+      this.logger.info('DialecticSystem: enabled (parallel mode)');
     } else {
       this.logger.info('DialecticSystem: disabled');
     }
@@ -74,13 +177,13 @@ export class DialecticSystem implements IDialecticSystem {
       if (!fs.existsSync(this.config.dataDir!)) {
         fs.mkdirSync(this.config.dataDir!, { recursive: true });
       }
-      
+
       const dbPath = path.join(this.config.dataDir!, 'dialectic.db');
       this.db = new Database(dbPath);
-      
+
       this.db.exec(`
         PRAGMA journal_mode=WAL;
-        
+
         CREATE TABLE IF NOT EXISTS dialectic_turns (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           session_id TEXT NOT NULL,
@@ -88,37 +191,96 @@ export class DialecticSystem implements IDialecticSystem {
           timestamp INTEGER NOT NULL,
           yang_output TEXT NOT NULL,
           yin_output TEXT NOT NULL,
-          synthesizer_output TEXT NOT NULL,
+          serenity_output TEXT NOT NULL,
           signal_injected BOOLEAN NOT NULL,
           total_latency_ms INTEGER NOT NULL,
           total_cost_usd REAL NOT NULL
         );
-        
+
         CREATE INDEX IF NOT EXISTS idx_dialectic_session ON dialectic_turns(session_id);
         CREATE INDEX IF NOT EXISTS idx_dialectic_timestamp ON dialectic_turns(timestamp);
       `);
-      
+
       this.logger.info('DialecticSystem: persistence initialized', { dbPath });
     } catch (error) {
-      this.logger.error('DialecticSystem: failed to initialize persistence', { error: String(error) });
+      this.logger.error('DialecticSystem: persistence init failed', { error: String(error) });
     }
   }
 
   setProvider(provider: IProvider): void {
-    this.yang.setProvider(provider);
-    this.yin.setProvider(provider);
-    this.synthesizer.setProvider(provider);
-    this.logger.info('DialecticSystem: provider wired to all observers');
+    this.provider = provider;
+    this.parallelProcessor.setProvider(provider);
+    this.logger.info('DialecticSystem: provider wired');
   }
 
   setMemory(memory: IMemory): void {
     this.memory = memory;
+    this.parallelProcessor.setMemory(memory);
     this.logger.info('DialecticSystem: memory wired');
   }
 
   onEventBus(bus: IEventBus): void {
     this.eventBus = bus;
+    this.parallelProcessor.setEventBus(bus);
+    this.setupSubconsciousListeners(bus);
     this.logger.info('DialecticSystem: event bus wired');
+  }
+
+  private setupSubconsciousListeners(bus: IEventBus): void {
+    (bus as any).on?.('subconscious:pattern', (e: any) => {
+      try {
+        const { sessionId, pattern } = e;
+        if (!sessionId || !pattern) return;
+        let ctx = this.subconsciousContext.get(sessionId);
+        if (!ctx) {
+          ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
+          this.subconsciousContext.set(sessionId, ctx);
+        }
+        const existing = ctx.patterns.find(p => p.type === pattern.pattern);
+        if (existing) {
+          existing.confidence = Math.max(existing.confidence, pattern.confidence);
+          existing.evidence.push(...pattern.evidence);
+        } else {
+          ctx.patterns.push({ type: pattern.pattern, confidence: pattern.confidence, evidence: pattern.evidence || [] });
+        }
+        ctx.lastUpdated = Date.now();
+      } catch {}
+    });
+
+    (bus as any).on?.('subconscious:intent', (e: any) => {
+      try {
+        const { sessionId, intent } = e;
+        if (!sessionId || !intent?.to) return;
+        let ctx = this.subconsciousContext.get(sessionId);
+        if (!ctx) {
+          ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
+          this.subconsciousContext.set(sessionId, ctx);
+        }
+        ctx.intent = { type: intent.to.type, confidence: intent.to.confidence };
+        ctx.lastUpdated = Date.now();
+      } catch {}
+    });
+
+    (bus as any).on?.('subconscious:anomaly', (e: any) => {
+      try {
+        const { sessionId, anomaly } = e;
+        if (!sessionId || !anomaly) return;
+        let ctx = this.subconsciousContext.get(sessionId);
+        if (!ctx) {
+          ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
+          this.subconsciousContext.set(sessionId, ctx);
+        }
+        ctx.anomalies.push({ category: anomaly.category, severity: anomaly.severity });
+        ctx.lastUpdated = Date.now();
+      } catch {}
+    });
+
+    (bus as any).on?.('subconscious:session:ended', (e: any) => {
+      try {
+        const { sessionId } = e;
+        if (sessionId) this.subconsciousContext.delete(sessionId);
+      } catch {}
+    });
   }
 
   subscribeToStream(sessionId: string, callback: (event: DialecticStreamEvent) => void): () => void {
@@ -126,296 +288,158 @@ export class DialecticSystem implements IDialecticSystem {
       this.streamCallbacks.set(sessionId, new Set());
     }
     this.streamCallbacks.get(sessionId)!.add(callback);
-    
-    // Return unsubscribe function
-    return () => {
-      this.streamCallbacks.get(sessionId)?.delete(callback);
-    };
+    return () => { this.streamCallbacks.get(sessionId)?.delete(callback); };
   }
 
   private emitStreamEvent(sessionId: string, event: DialecticStreamEvent): void {
-    const callbacks = this.streamCallbacks.get(sessionId);
-    if (callbacks) {
-      callbacks.forEach(cb => {
-        try {
-          cb(event);
-        } catch (error) {
-          this.logger.warn('DialecticSystem: stream callback error', { error: String(error) });
-        }
-      });
-    }
-    
-    // Also emit on event bus for other components
-    if (this.eventBus) {
-      (this.eventBus as any).emit?.({
-        type: 'dialectic:stream',
-        sessionId,
-        ...event,
-      });
-    }
+    this.streamCallbacks.get(sessionId)?.forEach(cb => { try { cb(event); } catch {} });
+    (this.eventBus as any)?.emit?.({ type: 'dialectic:stream', sessionId, ...event });
   }
 
   async processTurn(
     sessionId: string,
     turnId: string,
     userMessage: string,
-    context: YangContext
-  ): Promise<DialecticResult> {
+    context: YangContext,
+    opts?: {
+      providers?: { yang?: any; yin?: any; serenity?: any };
+      signal?: AbortSignal;
+    }
+  ): Promise<ParallelDialecticResult> {
     const startTime = Date.now();
-    
+
+    // Check cache first
+    if (this.resultCache) {
+      const cached = this.resultCache.get(userMessage);
+      if (cached) {
+        this.logger.info('DialecticSystem: cache hit', { sessionId, turnId });
+        return { ...cached, sessionId, turnId, timestamp: startTime };
+      }
+    }
+
     if (!this.config.enabled) {
-      return {
-        sessionId,
-        turnId,
-        timestamp: startTime,
-        yang: { branches: [], meta: { expansionTemperature: 0.9, generationTimeMs: 0, inputTokens: 0, outputTokens: 0 } },
-        yin: { critiques: [], meta: { compressionRatio: 1.0, processingTimeMs: 0, inputTokens: 0, outputTokens: 0 } },
-        synthesizer: {
-          synthesis: { hasSignal: false, branchesConsidered: 0, branchesSurfaced: 0 },
-          meta: { dialecticQuality: 0.5, processingTimeMs: 0, inputTokens: 0, outputTokens: 0 },
-        },
-        signalInjected: false,
-        totalLatencyMs: 0,
-        totalCostUsd: 0,
+      return this.createEmptyResult(sessionId, turnId, startTime);
+    }
+
+    // Merge subconscious context
+    const subCtx = this.subconsciousContext.get(sessionId);
+    if (subCtx && Date.now() - subCtx.lastUpdated < 5 * 60 * 1000) {
+      context = {
+        ...context,
+        subconsciousPatterns: subCtx.patterns,
+        subconsciousIntent: subCtx.intent,
+        subconsciousAnomalies: subCtx.anomalies,
       };
     }
 
-    // Emit start event
-    this.emitStreamEvent(sessionId, {
-      timestamp: Date.now(),
-      turnId,
-      stage: 'start',
-    });
-
     try {
-      // Fetch relevant memories if memory is available
-      let relevantMemories: string[] = [];
-      if (this.memory) {
-        try {
-          const results = await this.memory.search(userMessage, { limit: 5 });
-          relevantMemories = results.map(r => r.entry.content.slice(0, 200));
-        } catch (error) {
-          this.logger.warn('DialecticSystem: failed to fetch memories', { error: String(error) });
-        }
+      // Always use parallel processor
+      const result = await this.parallelProcessor.processTurn(
+        sessionId,
+        turnId,
+        userMessage,
+        context,
+        (event) => this.emitStreamEvent(sessionId, event),
+        { providers: opts?.providers, mode: 'parallel', signal: opts?.signal }
+      );
+
+      // Cache result
+      if (this.resultCache) {
+        this.resultCache.set(userMessage, result);
       }
 
-      // ORDER: Yang first (expansion), then Yin (refinement)
-      // This allows maximum creativity before applying constraints
-      
-      // Run Yang first - generate expansive branches
-      const yangOutput = await this.yang.observe(sessionId, userMessage, context);
-      
-      this.emitStreamEvent(sessionId, {
-        timestamp: Date.now(),
-        turnId,
-        stage: 'yang',
-        data: yangOutput,
-      });
-
-      // Run Yin (refinement) on Yang's output
-      const yinOutput = await this.yin.observe(sessionId, userMessage, yangOutput);
-      
-      this.emitStreamEvent(sessionId, {
-        timestamp: Date.now(),
-        turnId,
-        stage: 'yin',
-        data: yinOutput,
-      });
-
-      // Run Synthesizer on the dialectic (Yang → Yin)
-      const synthesizerOutput = await this.synthesizer.synthesize(
-        sessionId,
-        userMessage,
-        yangOutput,
-        yinOutput,
-        relevantMemories
-      );
-      
-      this.emitStreamEvent(sessionId, {
-        timestamp: Date.now(),
-        turnId,
-        stage: 'synthesizer',
-        data: synthesizerOutput,
-      });
-
-      // Calculate totals
-      const totalLatencyMs = Date.now() - startTime;
-      const totalCostUsd = this.calculateCost(yangOutput, yinOutput, synthesizerOutput);
-      
-      // Determine if signal should be injected
-      const signalInjected = synthesizerOutput.synthesis.hasSignal && 
-        synthesizerOutput.synthesis.signal?.urgency === 'immediate' &&
-        (synthesizerOutput.synthesis.signal?.confidence || 0) >= 0.7;
-
-      const result: DialecticResult = {
-        sessionId,
-        turnId,
-        timestamp: startTime,
-        yang: yangOutput,
-        yin: yinOutput,
-        synthesizer: synthesizerOutput,
-        signalInjected,
-        totalLatencyMs,
-        totalCostUsd,
-      };
-
-      // Persist result
+      // Persist
       await this.persistResult(result);
 
-      // Emit completion event
-      this.emitStreamEvent(sessionId, {
-        timestamp: Date.now(),
-        turnId,
-        stage: 'complete',
-      });
-
-      // If signal should be injected, emit signal event
-      if (signalInjected && synthesizerOutput.synthesis.signal) {
-        this.emitSignal(sessionId, turnId, synthesizerOutput.synthesis.signal);
+      // Emit signal if urgent
+      if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal?.urgency === 'immediate') {
+        this.emitSignal(sessionId, turnId, result.serenity.synthesis.signal);
       }
-
-      this.logger.info('DialecticSystem: turn processed (Yang → Yin → Synthesizer)', {
-        sessionId,
-        turnId,
-        critiquesCount: yinOutput.critiques.length,
-        branchesGenerated: yangOutput.branches.length,
-        signalGenerated: synthesizerOutput.synthesis.hasSignal,
-        signalInjected,
-        totalLatencyMs,
-        totalCostUsd: totalCostUsd.toFixed(6),
-      });
 
       return result;
     } catch (error) {
-      this.logger.error('DialecticSystem: turn processing failed', {
-        sessionId,
-        turnId,
-        error: String(error),
-      });
-      
-      this.emitStreamEvent(sessionId, {
-        timestamp: Date.now(),
-        turnId,
-        stage: 'error',
-        data: { error: String(error) },
-      });
-      
+      this.logger.error('DialecticSystem: turn failed', { error: String(error) });
+      this.emitStreamEvent(sessionId, { timestamp: Date.now(), turnId, stage: 'error', data: { error: String(error) } });
       throw error;
     }
   }
 
-  private calculateCost(
-    yang: DialecticResult['yang'],
-    yin: DialecticResult['yin'],
-    synthesizer: DialecticResult['synthesizer']
-  ): number {
-    // GPT-5 Mini pricing (approximate)
-    const inputCostPer1M = 0.15;  // $0.15 per 1M input tokens
-    const outputCostPer1M = 0.60; // $0.60 per 1M output tokens
-    
-    const totalInput = yang.meta.inputTokens + yin.meta.inputTokens + synthesizer.meta.inputTokens;
-    const totalOutput = yang.meta.outputTokens + yin.meta.outputTokens + synthesizer.meta.outputTokens;
-    
-    return (totalInput / 1_000_000 * inputCostPer1M) + (totalOutput / 1_000_000 * outputCostPer1M);
+  private createEmptyResult(sessionId: string, turnId: string, timestamp: number): ParallelDialecticResult {
+    return {
+      sessionId,
+      turnId,
+      timestamp,
+      yang: { branches: [], meta: { expansionTemperature: 0.9, generationTimeMs: 0, inputTokens: 0, outputTokens: 0 } },
+      yin: { baselineBranches: [], selfCritiques: [], meta: { compressionRatio: 1.0, processingTimeMs: 0, inputTokens: 0, outputTokens: 0, relativeTiming: 'concurrent' } },
+      serenity: {
+        synthesis: { hasSignal: false, branchesConsidered: 0, branchesSurfaced: 0 },
+        meta: { dialecticQuality: 0.5, processingTimeMs: 0, inputTokens: 0, outputTokens: 0 },
+      },
+      signalInjected: false,
+      totalLatencyMs: 0,
+      totalCostUsd: 0,
+      level: 0,
+      executionMode: 'parallel',
+      timing: { yangDuration: 0, yinDuration: 0, serenityDuration: 0, totalParallelTime: 0, firstCompletion: 'yang' },
+      quality: { yangYinAgreement: 0, dialecticTension: 0, synthesisConfidence: 0 },
+    };
   }
 
-  private async persistResult(result: DialecticResult): Promise<void> {
+  private async persistResult(result: ParallelDialecticResult): Promise<void> {
     if (!this.db) return;
-    
     try {
-      this.db.prepare(`
-        INSERT INTO dialectic_turns (
-          session_id, turn_id, timestamp,
-          yang_output, yin_output, synthesizer_output,
-          signal_injected, total_latency_ms, total_cost_usd
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
+      this.db.prepare(`INSERT INTO dialectic_turns
+        (session_id, turn_id, timestamp, yang_output, yin_output, serenity_output, signal_injected, total_latency_ms, total_cost_usd)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
         result.sessionId,
         result.turnId,
         result.timestamp,
         JSON.stringify(result.yang),
         JSON.stringify(result.yin),
-        JSON.stringify(result.synthesizer),
+        JSON.stringify(result.serenity),
         result.signalInjected ? 1 : 0,
         result.totalLatencyMs,
         result.totalCostUsd
       );
     } catch (error) {
-      this.logger.warn('DialecticSystem: failed to persist result', { error: String(error) });
+      this.logger.warn('DialecticSystem: persist failed', { error: String(error) });
     }
   }
 
   private emitSignal(sessionId: string, turnId: string, signal: DialecticSignal): void {
-    if (this.eventBus) {
-      (this.eventBus as any).emit?.({
-        type: 'dialectic:signal',
-        sessionId,
-        turnId,
-        signal,
-      });
-    }
-    
-    this.logger.info('DialecticSystem: signal emitted', {
-      sessionId,
-      turnId,
-      signalType: signal.type,
-      signalContent: signal.content.slice(0, 100),
-    });
+    (this.eventBus as any)?.emit?.({ type: 'dialectic:signal', sessionId, turnId, signal });
   }
-
-  // ─── Query Methods ─────────────────────────────────────────────────────────
 
   async getRecent(sessionId: string, limit = 10): Promise<DialecticResult[]> {
     if (!this.db) return [];
-    
     try {
-      const rows = this.db.prepare(`
-        SELECT * FROM dialectic_turns
-        WHERE session_id = ?
-        ORDER BY timestamp DESC
-        LIMIT ?
-      `).all(sessionId, limit) as any[];
-      
+      const rows = this.db.prepare(`SELECT * FROM dialectic_turns WHERE session_id = ? ORDER BY timestamp DESC LIMIT ?`).all(sessionId, limit) as any[];
       return rows.map(r => ({
         sessionId: r.session_id,
         turnId: r.turn_id,
         timestamp: r.timestamp,
         yang: JSON.parse(r.yang_output),
         yin: JSON.parse(r.yin_output),
-        synthesizer: JSON.parse(r.synthesizer_output),
+        serenity: JSON.parse(r.serenity_output),
         signalInjected: Boolean(r.signal_injected),
         totalLatencyMs: r.total_latency_ms,
         totalCostUsd: r.total_cost_usd,
       }));
-    } catch (error) {
-      this.logger.warn('DialecticSystem: failed to get recent', { error: String(error) });
-      return [];
-    }
+    } catch { return []; }
   }
 
-  async getStats(sessionId: string): Promise<{
-    totalTurns: number;
-    signalsGenerated: number;
-    signalsInjected: number;
-    avgLatencyMs: number;
-    totalCostUsd: number;
-  }> {
+  async getStats(sessionId: string) {
     if (!this.db) {
       return { totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0 };
     }
-    
     try {
-      const row = this.db.prepare(`
-        SELECT 
-          COUNT(*) as total_turns,
-          SUM(CASE WHEN json_extract(synthesizer_output, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
-          SUM(CASE WHEN signal_injected = 1 THEN 1 ELSE 0 END) as signals_injected,
-          AVG(total_latency_ms) as avg_latency_ms,
-          SUM(total_cost_usd) as total_cost_usd
-        FROM dialectic_turns
-        WHERE session_id = ?
-      `).get(sessionId) as any;
-      
+      const row = this.db.prepare(`SELECT
+        COUNT(*) as total_turns,
+        SUM(CASE WHEN json_extract(serenity_output, '$.synthesis.hasSignal') = 1 THEN 1 ELSE 0 END) as signals_generated,
+        SUM(CASE WHEN signal_injected = 1 THEN 1 ELSE 0 END) as signals_injected,
+        AVG(total_latency_ms) as avg_latency_ms,
+        SUM(total_cost_usd) as total_cost_usd
+        FROM dialectic_turns WHERE session_id = ?`).get(sessionId) as any;
       return {
         totalTurns: row?.total_turns || 0,
         signalsGenerated: row?.signals_generated || 0,
@@ -423,8 +447,7 @@ export class DialecticSystem implements IDialecticSystem {
         avgLatencyMs: Math.round(row?.avg_latency_ms || 0),
         totalCostUsd: row?.total_cost_usd || 0,
       };
-    } catch (error) {
-      this.logger.warn('DialecticSystem: failed to get stats', { error: String(error) });
+    } catch {
       return { totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0 };
     }
   }
