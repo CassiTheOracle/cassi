@@ -75,7 +75,16 @@ export type RuntimeEvent =
   | { type: "session_agent:suggestion"; agentId: string; sessionId: string; suggestionType: string; timestamp: Date }
   // Skill usage tracking events
   | { type: "skill:invoked"; skillName: string; skillPath: string; sessionId: string; timestamp: Date; source?: string }
-  | { type: "skill:metrics:aggregated"; period: string; topSkills: Array<{ name: string; count: number }>; totalInvocations: number; timestamp: Date };
+  | { type: "skill:metrics:aggregated"; period: string; topSkills: Array<{ name: string; count: number }>; totalInvocations: number; timestamp: Date }
+  // Unified Intelligence Loop events
+  | { type: "intelligence:heartbeat"; cycleNumber: number; uptimeMs: number; moduleStatuses: Array<{ name: string; healthy: boolean; lastActivity?: number }>; timestamp: Date }
+  | { type: "intelligence:maintenance"; task: string; detail?: string; timestamp: Date }
+  | { type: "intelligence:loop:started"; intervalMs: number; timestamp: Date }
+  | { type: "intelligence:loop:stopped"; reason: string; cyclesCompleted: number; timestamp: Date }
+  // Adaptive Behavior events (Phase 3)
+  | { type: "adaptive:adaptation-applied"; adaptationId: string; adaptationType: string; target: string; confidence: number; sourceModule: string; timestamp: Date }
+  | { type: "adaptive:adaptation-reverted"; adaptationId: string; adaptationType: string; target: string; reason: string; timestamp: Date }
+  | { type: "adaptive:cycle-complete"; adaptationsApplied: number; adaptationsReverted: number; activeCount: number; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 

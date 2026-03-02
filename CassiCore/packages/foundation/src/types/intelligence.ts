@@ -52,6 +52,11 @@ export interface IMemory {
   archivePattern?(patternType: string, description: string, evidence: string[], confidence: number, sessionId?: string): Promise<{ id: string; analysis: any }>;
   archiveEvent?(eventType: string, content: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
   archiveToolCall?(sessionId: string, toolName: string, input: unknown, output?: unknown, error?: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+  /** Archive a markdown document and store it with LLM-generated metadata */
+  archiveDocument?(title: string, content: string, originalPath: string, metadata?: Record<string, unknown>): Promise<{ id: string; analysis: any }>;
+
+  /** Expose the raw database handle for subsystems needing direct table access */
+  getDb?(): import('better-sqlite3').Database;
 }
 
 // ─── Continuity ──────────────────────────────────────────────────────────────
