@@ -168,6 +168,20 @@ export interface SerenityOutput {
   };
 }
 
+// Legacy aliases — main-branch code references these
+export type SynthesizerOutput = SerenityOutput;
+
+export interface ISynthesizer {
+  readonly name: 'synthesizer';
+  synthesize(
+    sessionId: string,
+    userMessage: string,
+    yangOutput: YangOutput,
+    yinOutput: YinOutput,
+    relevantMemories: string[]
+  ): Promise<SynthesizerOutput>;
+}
+
 export interface ISerenity {
   readonly name: 'serenity';
   // Sequential synthesis (Yang → Yin → Serenity)
