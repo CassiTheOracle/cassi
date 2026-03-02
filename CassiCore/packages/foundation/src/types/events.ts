@@ -88,7 +88,11 @@ export type RuntimeEvent =
   // Self-Verification events (Phase 4)
   | { type: "verification:verdict-recorded"; adaptationId: string; verdict: string; effectSize: number; confidence: number; timestamp: Date }
   | { type: "verification:report-generated"; reportId: number; totalVerdicts: number; successRate: number; timestamp: Date }
-  | { type: "verification:trust-updated"; sourceModule: string; oldTrust: number; newTrust: number; timestamp: Date };
+  | { type: "verification:trust-updated"; sourceModule: string; oldTrust: number; newTrust: number; timestamp: Date }
+  // Cross-session awareness events
+  | { type: "session:created"; sessionId: string; channelId: string; senderId: string; timestamp: Date }
+  | { type: "session:ended"; sessionId: string; timestamp: Date }
+  | { type: "cross-session:message"; fromSessionId: string; toSessionId: string; messageId: string; content: string; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 
