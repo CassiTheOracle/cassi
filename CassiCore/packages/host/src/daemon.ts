@@ -45,6 +45,7 @@ import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/ad
 import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
+import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
 
 // Singleton lock file path
 const CASSICORE_PID_FILE = path.join(homedir(), '.cassicore', 'daemon.pid')
@@ -135,6 +136,7 @@ export class Daemon {
   public providerProfiler?: ProviderProfiler
   public adaptiveBehavior?: AdaptiveBehavior
   public selfVerification?: SelfVerification
+  public sessionDigestStore?: SessionDigestStore
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -817,6 +819,30 @@ export class Daemon {
     // Wire subconscious system to pipeline for automatic context retrieval
     if (this.intelligence?.subconscious) {
       this.pipeline.setSubconscious(this.intelligence.subconscious)
+    }
+
+    // Wire SessionDigestStore for cross-session awareness
+    try {
+      this.sessionDigestStore = createSessionDigestStore(this.logger.child('session-digest'))
+      // Wire digest store into pipeline (injection #5) and subconscious (digest population)
+      this.pipeline.setDigestStore(this.sessionDigestStore)
+      if (this.intelligence?.subconscious) {
+        ;(this.intelligence.subconscious as any).setDigestStore?.(this.sessionDigestStore)
+      }
+      // Wire EventBus into SessionManager so it can emit session:created
+      this.sessions.setBus(this.bus)
+      // Seed digests for any sessions already in memory
+      this.bus.on('session:created' as any, (e: any) => {
+        if (e?.sessionId && this.sessionDigestStore) {
+          this.sessionDigestStore.upsert(e.sessionId, {
+            channelId: e.channelId ?? '',
+            senderId:  e.senderId  ?? '',
+          })
+        }
+      })
+      this.logger.info('[daemon] SessionDigestStore initialized and wired')
+    } catch (err) {
+      this.logger.warn(`[daemon] Failed to initialize SessionDigestStore: ${String(err)}`)
     }
 
     // Mount intelligence middlewares — continuity only (thinker runs fire-and-forget via onTurnEnd)
