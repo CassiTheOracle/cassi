@@ -4,7 +4,8 @@
  */
 
 import { BaseProvider } from './base.js'
-import type { Message, ContentBlock, CompletionOpts, CompletionChunk } from '../../types/runtime.js'
+import { signalPromise } from '../utils/abort.js'
+import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 const DEFAULT_ENDPOINT = 'https://cloudcode-pa.googleapis.com'
 const ANTIGRAVITY_SYSTEM_INSTRUCTION =
@@ -58,7 +59,7 @@ export class GoogleAntigravityProvider extends BaseProvider {
     }
   }
 
-  async *complete(messages: Message[], opts: CompletionOpts): AsyncIterable<CompletionChunk> {
+  async *complete(messages: Message[], opts: CompletionOpts, attachments?: ImageAttachment[], signal?: AbortSignal): AsyncIterable<CompletionChunk> {
     const model = opts.model || 'gemini-3-pro-high'
     const maxTokens = opts.maxTokens || 4096
     const temperature = opts.temperature ?? 0.7
@@ -98,21 +99,31 @@ export class GoogleAntigravityProvider extends BaseProvider {
       requestType: 'agent'
     }
 
-    const res = await fetch(`${this.endpoint}/v1internal:streamGenerateContent?alt=sse`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'antigravity/1.15.8 darwin/arm64',
-        'X-Goog-Api-Client': 'google-cloud-sdk vscode_cloudshelleditor/0.1',
-        'Client-Metadata': JSON.stringify({
-          ideType: 'IDE_UNSPECIFIED',
-          platform: 'PLATFORM_UNSPECIFIED',
-          pluginType: 'GEMINI',
-        }),
-      },
-      body: JSON.stringify(body),
-    })
+    let res: Response
+    try {
+      res = await fetch(`${this.endpoint}/v1internal:streamGenerateContent?alt=sse`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'antigravity/1.15.8 darwin/arm64',
+          'X-Goog-Api-Client': 'google-cloud-sdk vscode_cloudshelleditor/0.1',
+          'Client-Metadata': JSON.stringify({
+            ideType: 'IDE_UNSPECIFIED',
+            platform: 'PLATFORM_UNSPECIFIED',
+            pluginType: 'GEMINI',
+          }),
+        },
+        body: JSON.stringify(body),
+        signal,
+      })
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        yield { type: 'error', error: 'cancelled' }
+        return
+      }
+      throw err
+    }
 
     if (!res.ok) {
       const text = await res.text()
@@ -127,6 +138,7 @@ export class GoogleAntigravityProvider extends BaseProvider {
 
     try {
       while (true) {
+        if (signal?.aborted) { try { await reader.cancel() } catch {} yield { type: 'error', error: 'cancelled' }; return }
         const { done, value } = await reader.read()
         if (done) break
 
@@ -180,8 +192,17 @@ export class GoogleAntigravityProvider extends BaseProvider {
     return this.estimateTokens(messages)
   }
 
-  async ping(): Promise<boolean> {
+  async ping(signal?: AbortSignal): Promise<boolean> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 5000)
     try {
+      if (signal) {
+        if (signal.aborted) try { controller.abort() } catch {}
+        else {
+          // Wire external abort into our controller without manual listener bookkeeping
+          signalPromise(signal).then(() => { try { controller.abort() } catch {} }).catch(() => {})
+        }
+      }
       const res = await fetch(`${this.endpoint}/v1internal:loadCodeAssist`, {
         method: 'POST',
         headers: {
@@ -195,10 +216,13 @@ export class GoogleAntigravityProvider extends BaseProvider {
             pluginType: 'GEMINI',
           }
         }),
+        signal: controller.signal,
       })
       return res.ok
     } catch {
       return false
+    } finally {
+      clearTimeout(timeoutId)
     }
   }
 }

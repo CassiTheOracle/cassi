@@ -44,26 +44,36 @@ export async function tgCall<T>(method: string, body?: Record<string, unknown>, 
 }
 
 export function sanitizeMarkdown(text: string): string {
-  return text.replace(/([_*\[\]\(\)~`>#+\-=|{}.!])/g, '\\$1')
+  // If we are in MarkdownV2, we need to escape specific characters that aren't part of the markdown we want to support.
+  // Supported: *bold*, _italic_, `code`, ```codeblock```
+  // We need to escape: [ ] ( ) ~ > # + - = | { } . !
+  // But we must NOT escape the formatting chars if they are being used for formatting.
+  
+  // High-level strategy: escape everything that Telegram requires for MarkdownV2, 
+  // except for the basic markdown characters.
+  return text.replace(/([\[\]\(\)~>#+\-=|{}.!])/g, '\\$1')
+}
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 export async function sendMessage(chatId: number, text: string, parseMode?: 'MarkdownV2' | 'HTML'): Promise<number | null> {
-  const safeText = parseMode === 'HTML' ? (text || '…') : sanitizeMarkdown(text || '…')
+  // Use PLAIN text (no parse_mode) for maximum reliability.
+  // This avoids accidental codeblock or formatting errors.
   const result = await tgCall<{ message_id: number }>('sendMessage', {
     chat_id: chatId,
-    text: safeText,
-    parse_mode: parseMode || 'MarkdownV2',
+    text: text || '…',
   })
   return result?.message_id ?? null
 }
 
-export async function editMessage(chatId: number, msgId: number, text: string): Promise<boolean> {
-  const safeText = sanitizeMarkdown(text || '…')
+export async function editMessage(chatId: number, msgId: number, text: string, parseMode?: 'MarkdownV2' | 'HTML'): Promise<boolean> {
+  // Use PLAIN text (no parse_mode) for edits as well.
   const result = await tgCall('editMessageText', {
     chat_id: chatId,
     message_id: msgId,
-    text: safeText,
-    parse_mode: 'MarkdownV2',
+    text: text || '…',
   })
   return result !== null
 }
