@@ -32,6 +32,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     childIds: Set<string>
     startedAt?: number
     endedAt?: number
+    agentType?: string
+    steps?: number
+    durationMs?: number
   }
   const sessionHierarchyMap = new Map<string, SessionHierarchyEntry>()
 
@@ -45,30 +48,38 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return entry
   }
 
-  /** Process a subagent lifecycle event to update the hierarchy map. Called inline from /events/ingest. */
+  /** Process a subagent lifecycle event to update the hierarchy map. Called inline from /events/ingest.
+   *  The bridge plugin sends events with fields at top level (not nested under .data):
+   *    { type: "subagent_start", sessionId, parentSessionId, agentType, ... }
+   *    { type: "subagent_end", sessionId, parentSessionId, agentType, steps, ... }
+   */
   function processHierarchyEvent(event: any): void {
     if (event.type === 'subagent_start') {
-      const childId = event.data?.childSessionId || event.sessionId
-      const parentId = event.data?.parentSessionId || event.data?.parentId
+      // Plugin sends childId as event.sessionId, parentId as event.parentSessionId (top-level)
+      const childId = event.childSessionId || event.sessionId
+      const parentId = event.parentSessionId || event.parentId
       if (!childId || !parentId) return
 
       // Register child → parent link
       const childEntry = ensureHierarchyEntry(childId)
       childEntry.parentId = parentId
       childEntry.startedAt = event.timestamp || Date.now()
+      if (event.agentType) childEntry.agentType = event.agentType
 
       // Register parent → child link
       const parentEntry = ensureHierarchyEntry(parentId)
       parentEntry.childIds.add(childId)
 
-      logger.debug('[admin-api] Session hierarchy updated', { childId, parentId })
+      logger.debug('[admin-api] Session hierarchy updated', { childId, parentId, agentType: event.agentType })
     } else if (event.type === 'subagent_end') {
-      const childId = event.data?.childSessionId || event.sessionId
+      const childId = event.childSessionId || event.sessionId
       if (!childId) return
 
       const entry = sessionHierarchyMap.get(childId)
       if (entry) {
         entry.endedAt = event.timestamp || Date.now()
+        if (event.steps != null) entry.steps = event.steps
+        if (event.durationMs != null) entry.durationMs = event.durationMs
       }
     }
   }
@@ -2826,14 +2837,28 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         const to = daemon.intelligence?.teamOrchestrator as any
 
         // POST /teams — create and start a new team
+        // Accepts optional sessionId for context packaging (job handoff)
         if (parts.length === 1 && req.method === 'POST') {
           try {
             if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
             const body = await parseBody(req)
             if (!body?.goal) return sendJSON(res, 400, { error: 'goal is required' })
 
+            // T1-2: If sessionId provided, prepend session context to the goal
+            let enrichedGoal = body.goal
+            if (body.sessionId) {
+              try {
+                const handoffCtx = await buildHandoffContext(body.sessionId)
+                if (handoffCtx) {
+                  enrichedGoal = handoffCtx + body.goal
+                }
+              } catch (err) {
+                logger.debug('[admin-api] buildHandoffContext failed, using raw goal', { error: String(err) })
+              }
+            }
+
             const config = {
-              goal: body.goal,
+              goal: enrichedGoal,
               name: body.name || undefined,
               budget: {
                 maxTokens: body.maxTokens || 500_000,
@@ -4712,6 +4737,171 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return result
   }
 
+  /**
+   * Build a structured context package from the current session state,
+   * suitable for prepending to a team goal description during job handoff.
+   * Pulls from MentalModel, SessionDigest, and retrieved memory context.
+   */
+  async function buildHandoffContext(sessionId: string): Promise<string> {
+    const parts: string[] = []
+
+    // 1. Focus state (topic, intent, active files, mode)
+    const focus = buildFocusState(sessionId)
+    if (focus) {
+      if (focus.topic) parts.push(`**Topic:** ${focus.topic}`)
+      if (focus.intent?.description) parts.push(`**Intent:** ${focus.intent.description}`)
+      if (focus.mode) parts.push(`**Working mode:** ${focus.mode}`)
+      if (focus.activeFiles?.length > 0) {
+        parts.push(`**Active files:** ${focus.activeFiles.slice(0, 15).join(', ')}`)
+      }
+    }
+
+    // 2. Session digest — decisions, learnings, recent actions
+    const digest = daemon.sessionDigestStore?.get?.(sessionId)
+    if (digest) {
+      if (digest.currentTask) parts.push(`**Current task:** ${digest.currentTask}`)
+      if (digest.decisions?.length > 0) {
+        parts.push(`**Key decisions so far:**\n${digest.decisions.slice(-5).map((d: string) => `- ${d}`).join('\n')}`)
+      }
+      if (digest.learnings?.length > 0) {
+        parts.push(`**Learnings:**\n${digest.learnings.slice(-5).map((l: string) => `- ${l}`).join('\n')}`)
+      }
+      if (digest.filesActive?.length > 0) {
+        parts.push(`**Files being worked on:** ${digest.filesActive.slice(0, 15).join(', ')}`)
+      }
+    }
+
+    // 3. Retrieved memory context (proactive search based on topic/intent)
+    const mem = daemon.intelligence?.memory
+    if (mem?.search) {
+      try {
+        const searchTerms = [focus?.topic, focus?.intent?.description, digest?.currentTask].filter(Boolean)
+        const seen = new Set<string>()
+        const memResults: string[] = []
+        for (const term of searchTerms.slice(0, 2)) {
+          const results = await mem.search(term!, 3) as any[]
+          for (const r of results) {
+            const key = r.key || r.content?.slice(0, 50)
+            if (key && !seen.has(key)) {
+              seen.add(key)
+              const snippet = typeof r.content === 'string' ? r.content.slice(0, 200) : String(r.content).slice(0, 200)
+              memResults.push(`- ${snippet}`)
+            }
+          }
+        }
+        if (memResults.length > 0) {
+          parts.push(`**Relevant memory context:**\n${memResults.slice(0, 5).join('\n')}`)
+        }
+      } catch {}
+    }
+
+    if (parts.length === 0) return ''
+    return `## Session Context (auto-packaged from handoff)\n\n${parts.join('\n\n')}\n\n---\n\n`
+  }
+
+  /**
+   * Compute a complexity score and handoff suggestion for a session.
+   * Returns null if no suggestion is warranted.
+   */
+  function computeHandoffSuggestion(sessionId: string): {
+    suggested: boolean
+    reason: string
+    proposedGoal: string
+    estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high'
+  } | null {
+    const digest = daemon.sessionDigestStore?.get?.(sessionId)
+    const subconscious = daemon.intelligence?.subconscious
+    const mm = subconscious?.getMentalModel?.(sessionId)
+    const mmState = mm?.state
+
+    if (!digest && !mmState) return null
+
+    const turnCount = digest?.turnCount ?? 0
+    const complexity = mmState?.complexity ?? 0.5
+    const fileCount = digest?.filesActive?.length ?? 0
+    const topic = mmState?.topic || digest?.topic || ''
+    const intent = mmState?.intent?.description || digest?.currentTask || ''
+
+    // Don't suggest handoff too early — wait for enough signal
+    if (turnCount < 3) return null
+
+    // Score components
+    let score = 0
+    const reasons: string[] = []
+
+    // High complexity from subconscious model
+    if (complexity > 0.7) {
+      score += 0.3
+      reasons.push('high cognitive complexity detected')
+    }
+
+    // Many active files suggests cross-cutting work
+    if (fileCount >= 5) {
+      score += 0.2
+      reasons.push(`${fileCount} files actively involved`)
+    }
+    if (fileCount >= 10) {
+      score += 0.15
+    }
+
+    // Long-running session without completion
+    if (turnCount > 15) {
+      score += 0.15
+      reasons.push(`${turnCount} turns without completion`)
+    }
+    if (turnCount > 30) {
+      score += 0.15
+    }
+
+    // Intent keywords that suggest multi-step work
+    const handoffKeywords = /\b(implement|refactor|migrate|redesign|overhaul|rewrite|add feature|build out|set up|create.*system|across.*files|multiple.*components)\b/i
+    if (handoffKeywords.test(intent) || handoffKeywords.test(topic)) {
+      score += 0.25
+      reasons.push('task language suggests multi-step work')
+    }
+
+    // Check optimizer session health for stuck/loop signals
+    const optimizer = daemon.intelligence?.optimizer
+    if (optimizer?.scoreSession) {
+      try {
+        const health = optimizer.scoreSession(sessionId)
+        if (health?.stuckScore > 0) {
+          score += 0.3
+          reasons.push('stuck pattern detected')
+        }
+        if (health?.loopScore > 0.4) {
+          score += 0.2
+          reasons.push('potential loop detected')
+        }
+      } catch {}
+    }
+
+    // Determine complexity tier
+    let estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high' = 'low'
+    if (score >= 0.7) estimatedComplexity = 'very-high'
+    else if (score >= 0.5) estimatedComplexity = 'high'
+    else if (score >= 0.3) estimatedComplexity = 'moderate'
+
+    // Only suggest handoff above threshold
+    if (score < 0.5) return null
+
+    // Build proposed goal from session context
+    const goalParts: string[] = []
+    if (intent) goalParts.push(intent)
+    else if (topic) goalParts.push(topic)
+    else goalParts.push('Continue current task')
+    if (digest?.currentTask && digest.currentTask !== intent) {
+      goalParts.push(`(${digest.currentTask})`)
+    }
+
+    return {
+      suggested: true,
+      reason: reasons.join('; '),
+      proposedGoal: goalParts.join(' '),
+      estimatedComplexity,
+    }
+  }
+
   async function writeInjectFile(): Promise<void> {
     try {
       const mem = daemon.intelligence?.memory
@@ -4875,15 +5065,70 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       // ── B7: Serialize session hierarchy for plugin consumption ──
       const sessionHierarchy = serializeSessionHierarchy()
 
-      // ── C1: Active teams and pending checkpoints for plugin injection ──
-      let teams: { active: any[]; pendingCheckpoints: any[] } | undefined
+      // ── C1 + T1-3: Active teams, pending checkpoints, and recently completed teams ──
+      let teams: { active: any[]; pendingCheckpoints: any[]; recentlyCompleted?: any[] } | undefined
       const to = daemon.intelligence?.teamOrchestrator as any
       if (to?.listActiveTeams) {
         try {
           const activeTeams = to.listActiveTeams() as any[]
           const pendingCheckpoints = (to.listPendingCheckpoints?.() ?? []) as any[]
 
-          if (activeTeams.length > 0 || pendingCheckpoints.length > 0) {
+          // T1-3: Also include recently completed teams (last 30 min) for result delivery
+          let recentlyCompleted: any[] = []
+          if (to.listAllTeams) {
+            const allTeams = to.listAllTeams() as any[]
+            const thirtyMinAgo = Date.now() - 30 * 60_000
+            recentlyCompleted = allTeams
+              .filter((t: any) => (t.status === 'completed' || t.status === 'failed') && (t.completedAt || 0) > thirtyMinAgo)
+              .map((t: any) => {
+                // Collect completed goal summaries from the goal tree
+                let completedGoals: Array<{ title: string; summary: string }> = []
+                let filesModified: string[] = []
+                try {
+                  const status = to.getTeamStatus?.(t.id)
+                  if (status?.goals) {
+                    completedGoals = (status.goals as any[])
+                      .filter((g: any) => g.status === 'completed')
+                      .map((g: any) => ({ title: g.title || '', summary: g.result?.slice(0, 300) || '' }))
+                      .slice(0, 20)
+                  }
+                } catch {}
+
+                // Collect modified files from agent session digests
+                if (t.agentIds && daemon.sessionDigestStore) {
+                  const filesSet = new Set<string>()
+                  for (const agentId of t.agentIds) {
+                    try {
+                      // Agent sessions are stored with the agent ID as session key
+                      const agentDigest = daemon.sessionDigestStore.get(agentId)
+                      if (agentDigest?.filesActive) {
+                        for (const f of agentDigest.filesActive) filesSet.add(f)
+                      }
+                    } catch {}
+                  }
+                  filesModified = Array.from(filesSet).slice(0, 30)
+                }
+
+                return {
+                  id: t.id,
+                  name: t.config?.name ?? null,
+                  status: t.status,
+                  goal: t.config?.goal?.slice(0, 500) ?? '',
+                  finalResult: t.finalResult?.slice(0, 1000) ?? null,
+                  completedGoals,
+                  filesModified,
+                  completedAt: t.completedAt,
+                  budget: {
+                    tokensUsed: t.budget?.tokensUsed ?? 0,
+                    maxTokens: t.budget?.maxTokens ?? 0,
+                    agentsSpawned: t.budget?.agentsSpawned ?? 0,
+                  },
+                }
+              })
+              .slice(0, 5)  // Max 5 recently completed teams
+          }
+
+          if (activeTeams.length > 0 || pendingCheckpoints.length > 0 || recentlyCompleted.length > 0) {
             teams = {
               active: activeTeams.map((t: any) => {
                 // Get rich status if available (includes progress + active agents)
@@ -4939,6 +5184,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
                 budget: cp.budgetSnapshot ?? null,
                 createdAt: cp.createdAt,
               })),
+              ...(recentlyCompleted.length > 0 ? { recentlyCompleted } : {}),
             }
           }
         } catch {}
@@ -5054,6 +5300,27 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         } catch {}
       }
 
+      // ── T1-4: Handoff suggestions — per-session complexity detection ──
+      // Analyzes each active session and suggests team handoff when complexity is high.
+      let handoffSuggestions: Record<string, {
+        suggested: boolean
+        reason: string
+        proposedGoal: string
+        estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high'
+      }> | undefined
+      try {
+        const suggestions: Record<string, any> = {}
+        for (const sid of allSessionIds) {
+          // Only compute for OpenCode sessions (oc: prefix)
+          if (!sid.startsWith('oc:')) continue
+          const suggestion = computeHandoffSuggestion(sid)
+          if (suggestion) suggestions[sid] = suggestion
+        }
+        if (Object.keys(suggestions).length > 0) {
+          handoffSuggestions = suggestions
+        }
+      } catch {}
+
       const payload = {
         updatedAt: Date.now(),
         insight,
@@ -5067,6 +5334,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         ...(siblingLearnings ? { siblingLearnings } : {}),  // F7
         ...(crossSessionPatterns ? { crossSessionPatterns } : {}),  // F7
         ...(dialecticLatest ? { dialecticLatest } : {}),  // F8
+        ...(handoffSuggestions ? { handoffSuggestions } : {}),  // T1-4
       }
 
       // Atomic write: temp file → rename (prevents partial reads)
