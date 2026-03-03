@@ -568,6 +568,18 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         return sendJSON(res, snapshot.overall === 'down' ? 503 : 200, snapshot)
       }
 
+      // ── Context payload (replaces inject.json file-based IPC) ─────────────
+      // GET /context — serves the full bridge-plugin context via Unix socket
+      if (req.method === 'GET' && url.pathname === '/context') {
+        try {
+          const payload = await buildInjectPayload()
+          return sendJSON(res, 200, payload)
+        } catch (err) {
+          logger.error('[admin-api] GET /context failed', { error: String(err) })
+          return sendJSON(res, 500, { error: 'Failed to build context payload' })
+        }
+      }
+
       // ── Event Ingestion (from CLI) ─────────────────────────────────────────
       // POST /events/ingest - Receive events from CLI extension bridge
       if (req.method === 'POST' && url.pathname === '/events/ingest') {
@@ -4723,7 +4735,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   const cassiDir = path.join(os.homedir(), '.cassicore')
   const injectPath = path.join(cassiDir, 'inject.json')
   const injectTmpPath = path.join(cassiDir, '.inject.tmp.json')
-  let injectTimer: ReturnType<typeof setInterval> | null = null
 
   /**
    * Map MentalModel ConversationPhase → bridge-friendly mode string.
@@ -5031,447 +5042,459 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
-  async function writeInjectFile(): Promise<void> {
-    try {
-      const mem = daemon.intelligence?.memory
-      const subconscious = daemon.intelligence?.subconscious
+  /**
+   * Build the full context payload for the bridge plugin.
+   * This was formerly embedded in writeInjectFile() — now extracted so the
+   * GET /context endpoint can serve it on-demand via Unix socket.
+   */
+  async function buildInjectPayload(): Promise<Record<string, unknown>> {
+    const mem = daemon.intelligence?.memory
+    const subconscious = daemon.intelligence?.subconscious
 
-      // --- Thinker insight (latest from history) ---
-      let insight: string | null = null
-      if (mem) {
-        try {
-          const history = await mem.kv_get('thinker:insight-history') as any[] | undefined
-          if (history && history.length > 0) {
-            insight = history[history.length - 1]?.insight ?? null
-          }
-        } catch {}
-      }
-
-      // --- Subconscious learnings (top 10 by occurrence) ---
-      let learnings: Array<{ clusterLabel: string; summary: string; occurrences: number }> = []
-      if (mem) {
-        try {
-          const raw = await mem.kv_get('subconscious:learnings') as any[] | undefined
-          if (raw) {
-            learnings = raw
-              .sort((a: any, b: any) => (b.occurrences || 0) - (a.occurrences || 0))
-              .slice(0, 10)
-              .map((l: any) => ({
-                clusterLabel: l.clusterLabel || '',
-                summary: l.summary || '',
-                occurrences: l.occurrences || 0,
-              }))
-          }
-        } catch {}
-      }
-
-      // --- Per-session retrieved context (non-consuming peek) ---
-      const sessions: Record<string, { items: any[] }> = {}
-      if (subconscious?.getSessionIds && subconscious?.peekRetrievedContext) {
-        const sessionIds = subconscious.getSessionIds()
-        for (const sid of sessionIds) {
-          try {
-            const items = subconscious.peekRetrievedContext(sid)
-            if (items && items.length > 0) {
-              sessions[sid] = {
-                items: items.map((item: any) => ({
-                  source: item.source ?? 'memory',
-                  content: item.content ?? '',
-                  relevance: item.relevance ?? 0,
-                  query: item.query ?? '',
-                })),
-              }
-            }
-          } catch {}
-        }
-      }
-
-      // --- Per-session focusState (unified from MentalModel + SessionDigest + Thinker) ---
-      const focusStates: Record<string, any> = {}
-
-      // Collect all known session IDs from both sources
-      const allSessionIds = new Set<string>()
-      if (subconscious?.getSessionIds) {
-        for (const sid of subconscious.getSessionIds()) allSessionIds.add(sid)
-      }
-      if (daemon.sessionDigestStore) {
-        for (const d of daemon.sessionDigestStore.all()) allSessionIds.add(d.sessionId)
-      }
-
-      for (const sid of allSessionIds) {
-        const focus = buildFocusState(sid, { includeParentFocus: true })
-        if (focus) focusStates[sid] = focus
-      }
-
-      // --- D1: Per-session optimizer health (loopScore, stuckScore, etc.) ---
-      const sessionHealth: Record<string, any> = {}
-      const optimizer = daemon.intelligence?.optimizer
-      if (optimizer?.scoreSession) {
-        for (const sid of allSessionIds) {
-          try {
-            const health = await optimizer.scoreSession(sid)
-            if (health) {
-              sessionHealth[sid] = {
-                loopScore: health.loopScore,
-                stuckScore: health.stuckScore,
-                tokenVelocity: health.tokenVelocity,
-                estimatedTokens: health.estimatedTokens,
-                interventionCount: health.interventionCount,
-                lastAction: health.lastAction ?? null,
-              }
-            }
-          } catch {}
-        }
-      }
-
-      // --- D2: Active anomalies from subconscious ---
-      let anomalies: any[] = []
-      if (mem) {
-        try {
-          const raw = await mem.kv_get('subconscious:anomalies') as any[] | undefined
-          if (raw) {
-            anomalies = raw
-              .filter((a: any) => !a.acknowledged)
-              .slice(0, 10)
-              .map((a: any) => ({
-                id: a.id || a.summary,
-                type: a.type || 'unknown',
-                summary: a.summary || '',
-                severity: a.severity || 'low',
-                detectedAt: a.detectedAt || a.timestamp,
-                sessionId: a.sessionId || null,
-              }))
-          }
-        } catch {}
-      }
-
-      // --- D5: Proactive memory search for OpenCode sessions ---
-      // peekRetrievedContext() is empty for oc:* sessions because they don't go through
-      // CassiCore's turn pipeline. Run memory searches based on focus topic+intent instead.
-      if (mem?.search) {
-        for (const sid of allSessionIds) {
-          if (!sid.startsWith('oc:') || sessions[sid]) continue  // Only fill missing oc: sessions
-          const focus = focusStates[sid]
-          if (!focus?.topic && !focus?.intent?.description) continue
-
-          try {
-            const queries: string[] = []
-            if (focus.topic) queries.push(focus.topic)
-            if (focus.intent?.description && focus.intent.description !== focus.topic) {
-              queries.push(focus.intent.description)
-            }
-
-            const allItems: any[] = []
-            for (const q of queries.slice(0, 2)) {  // Max 2 queries per session
-              const results = await mem.search(q, { limit: 3 })
-              for (const r of results) {
-                if (r.score && r.score < 0.3) continue  // Skip low-relevance results
-                allItems.push({
-                  source: 'memory',
-                  content: typeof r.content === 'string' ? r.content.slice(0, 500) : String(r.content || '').slice(0, 500),
-                  relevance: r.score ?? 0,
-                  query: q,
-                })
-              }
-            }
-
-            if (allItems.length > 0) {
-              // Deduplicate by content prefix
-              const seen = new Set<string>()
-              const deduped = allItems.filter(item => {
-                const key = item.content.slice(0, 100)
-                if (seen.has(key)) return false
-                seen.add(key)
-                return true
-              }).slice(0, 5)  // Max 5 items per session
-
-              sessions[sid] = { items: deduped }
-            }
-          } catch {}
-        }
-      }
-
-      // ── B7: Serialize session hierarchy for plugin consumption ──
-      const sessionHierarchy = serializeSessionHierarchy()
-
-      // ── C1 + T1-3: Active teams, pending checkpoints, and recently completed teams ──
-      let teams: { active: any[]; pendingCheckpoints: any[]; recentlyCompleted?: any[] } | undefined
-      const to = daemon.intelligence?.teamOrchestrator as any
-      if (to?.listActiveTeams) {
-        try {
-          const activeTeams = to.listActiveTeams() as any[]
-          const pendingCheckpoints = (to.listPendingCheckpoints?.() ?? []) as any[]
-
-          // T1-3: Also include recently completed teams (last 30 min) for result delivery
-          let recentlyCompleted: any[] = []
-          if (to.listAllTeams) {
-            const allTeams = to.listAllTeams() as any[]
-            const thirtyMinAgo = Date.now() - 30 * 60_000
-            recentlyCompleted = allTeams
-              .filter((t: any) => (t.status === 'completed' || t.status === 'failed') && (t.completedAt || 0) > thirtyMinAgo)
-              .map((t: any) => {
-                // Collect completed goal summaries from the goal tree
-                let completedGoals: Array<{ title: string; summary: string }> = []
-                let filesModified: string[] = []
-                try {
-                  const status = to.getTeamStatus?.(t.id)
-                  if (status?.goals) {
-                    completedGoals = (status.goals as any[])
-                      .filter((g: any) => g.status === 'completed')
-                      .map((g: any) => ({ title: g.title || '', summary: g.result?.slice(0, 300) || '' }))
-                      .slice(0, 20)
-                  }
-                } catch {}
-
-                // Collect modified files from agent session digests
-                if (t.agentIds && daemon.sessionDigestStore) {
-                  const filesSet = new Set<string>()
-                  for (const agentId of t.agentIds) {
-                    try {
-                      // Agent sessions are stored with the agent ID as session key
-                      const agentDigest = daemon.sessionDigestStore.get(agentId)
-                      if (agentDigest?.filesActive) {
-                        for (const f of agentDigest.filesActive) filesSet.add(f)
-                      }
-                    } catch {}
-                  }
-                  filesModified = Array.from(filesSet).slice(0, 30)
-                }
-
-                return {
-                  id: t.id,
-                  name: t.config?.name ?? null,
-                  status: t.status,
-                  goal: t.config?.goal?.slice(0, 500) ?? '',
-                  finalResult: t.finalResult?.slice(0, 1000) ?? null,
-                  external: !!t.external,
-                  externalSessionId: t.externalSessionId ?? null,
-                  externalParentSessionId: t.externalParentSessionId ?? null,
-                  completedGoals,
-                  filesModified,
-                  completedAt: t.completedAt,
-                  budget: {
-                    tokensUsed: t.budget?.tokensUsed ?? 0,
-                    maxTokens: t.budget?.maxTokens ?? 0,
-                    agentsSpawned: t.budget?.agentsSpawned ?? 0,
-                  },
-                }
-              })
-              .slice(0, 5)  // Max 5 recently completed teams
-          }
-
-          if (activeTeams.length > 0 || pendingCheckpoints.length > 0 || recentlyCompleted.length > 0) {
-            teams = {
-              active: activeTeams.map((t: any) => {
-                // Get rich status if available (includes progress + active agents)
-                let progress: any = null
-                let activeAgents: any[] = []
-                let goalTreeStr: string | null = null
-                try {
-                  const status = to.getTeamStatus?.(t.id)
-                  if (status) {
-                    progress = status.progress ?? null
-                    activeAgents = (status.activeAgents ?? []).slice(0, 10)
-                    goalTreeStr = status.goalTree ?? null
-                  }
-                } catch {}
-
-                return {
-                  id: t.id,
-                  name: t.config?.name ?? null,
-                  status: t.status,
-                  goal: t.config?.goal ?? '',
-                  checkpointMode: t.config?.checkpoint?.mode ?? 'none',
-                  external: !!t.external,
-                  externalSessionId: t.externalSessionId ?? null,
-                  externalParentSessionId: t.externalParentSessionId ?? null,
-                  budget: {
-                    tokensUsed: t.budget?.tokensUsed ?? 0,
-                    maxTokens: t.budget?.maxTokens ?? 0,
-                    agentsSpawned: t.budget?.agentsSpawned ?? 0,
-                    maxAgents: t.budget?.maxAgents ?? 0,
-                    elapsedMs: t.budget?.startedAt ? Date.now() - t.budget.startedAt : 0,
-                    maxDurationMs: t.budget?.maxDurationMs ?? 0,
-                  },
-                  agentCount: t.agentIds?.length ?? 0,
-                  progress: progress ? {
-                    completed: progress.completed ?? 0,
-                    total: progress.total ?? 0,
-                    inProgress: progress.inProgress ?? 0,
-                    blocked: progress.blocked ?? 0,
-                  } : null,
-                  activeAgents: activeAgents.map((a: any) => ({
-                    agentId: a.agentId,
-                    goalTitle: a.goalTitle,
-                  })),
-                  goalTree: goalTreeStr,
-                  createdAt: t.createdAt,
-                }
-              }),
-              pendingCheckpoints: pendingCheckpoints.map((cp: any) => ({
-                id: cp.id,
-                teamId: cp.teamId,
-                trigger: cp.trigger,
-                status: cp.status,
-                progressSummary: cp.progressSummary ?? '',
-                completedGoals: cp.completedGoals ?? 0,
-                totalGoals: cp.totalGoals ?? 0,
-                budget: cp.budgetSnapshot ?? null,
-                createdAt: cp.createdAt,
-              })),
-              ...(recentlyCompleted.length > 0 ? { recentlyCompleted } : {}),
-            }
-          }
-        } catch {}
-      }
-
-      // ── F7: Sibling session learnings for cross-session knowledge ──
-      // Collects per-session learnings and decisions from SessionDigestStore
-      // so the plugin can inject discoveries from other sessions.
-      let siblingLearnings: Record<string, {
-        topic: string
-        learnings: string[]
-        decisions: string[]
-        filesActive: string[]
-        lastActiveAt: number
-        turnCount: number
-      }> | undefined
-      if (daemon.sessionDigestStore) {
-        try {
-          const allDigests = daemon.sessionDigestStore.all()
-          // Only include active sessions with learnings or decisions
-          const withContent = allDigests.filter(
-            (d: any) => d.isActive && (d.learnings.length > 0 || d.decisions.length > 0)
-          )
-          if (withContent.length > 0) {
-            siblingLearnings = {}
-            for (const d of withContent) {
-              siblingLearnings[d.sessionId] = {
-                topic: d.topic || '',
-                learnings: d.learnings.slice(-5),   // Most recent 5 per session
-                decisions: d.decisions.slice(-5),
-                filesActive: d.filesActive.slice(0, 5),
-                lastActiveAt: d.lastActiveAt,
-                turnCount: d.turnCount,
-              }
-            }
-          }
-        } catch {}
-      }
-
-      // ── F7: Cross-session patterns from correlator ──
-      // High-confidence patterns discovered across sessions.
-      let crossSessionPatterns: Array<{
-        category: string
-        description: string
-        confidence: number
-        sessionCount: number
-      }> | undefined
-      if (daemon.crossSessionCorrelator) {
-        try {
-          const patterns = daemon.crossSessionCorrelator.getPatterns({
-            minConfidence: 0.5,
-            limit: 10,
-          })
-          if (patterns.length > 0) {
-            crossSessionPatterns = patterns.map((p: any) => ({
-              category: p.category,
-              description: p.description,
-              confidence: p.confidence,
-              sessionCount: p.sessionCount,
-            }))
-          }
-        } catch {}
-      }
-
-      // ── F8: Latest dialectic signal per session ──
-      // The most recent dialectic synthesis result (signal, tension, confidence)
-      // for each active session, so the plugin can inject dialectic insights.
-      let dialecticLatest: Record<string, {
-        hasSignal: boolean
-        signal?: {
-          type: string
-          content: string
-          confidence: number
-          urgency: string
-        }
-        yangBranchCount: number
-        yinCritiqueCount: number
-        dialecticTension: number
-        synthesisConfidence: number
-        timestamp: number
-      }> | undefined
-      const dialectic = daemon.intelligence?.dialectic as any
-      if (dialectic?.getRecent) {
-        try {
-          const dialecticResults: Record<string, any> = {}
-          for (const sid of allSessionIds) {
-            const recent = await dialectic.getRecent(sid, 1) as any[]
-            if (recent.length === 0) continue
-            const r = recent[0]
-            const synthesis = r.serenity?.synthesis
-            if (!synthesis) continue
-
-            dialecticResults[sid] = {
-              hasSignal: synthesis.hasSignal ?? false,
-              ...(synthesis.hasSignal && synthesis.signal ? {
-                signal: {
-                  type: synthesis.signal.type,
-                  content: synthesis.signal.content,
-                  confidence: synthesis.signal.confidence,
-                  urgency: synthesis.signal.urgency ?? 'background',
-                },
-              } : {}),
-              yangBranchCount: r.yang?.branches?.length ?? 0,
-              yinCritiqueCount: r.yin?.baselineBranches?.length ?? r.yin?.critiques?.length ?? 0,
-              dialecticTension: r.quality?.dialecticTension ?? r.serenity?.meta?.dialecticQuality ?? 0,
-              synthesisConfidence: r.quality?.synthesisConfidence ?? 0,
-              timestamp: r.timestamp,
-            }
-          }
-          if (Object.keys(dialecticResults).length > 0) {
-            dialecticLatest = dialecticResults
-          }
-        } catch {}
-      }
-
-      // ── T1-4: Handoff suggestions — per-session complexity detection ──
-      // Analyzes each active session and suggests team handoff when complexity is high.
-      let handoffSuggestions: Record<string, {
-        suggested: boolean
-        reason: string
-        proposedGoal: string
-        estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high'
-      }> | undefined
+    // --- Thinker insight (latest from history) ---
+    let insight: string | null = null
+    if (mem) {
       try {
-        const suggestions: Record<string, any> = {}
-        for (const sid of allSessionIds) {
-          // Only compute for OpenCode sessions (oc: prefix)
-          if (!sid.startsWith('oc:')) continue
-          const suggestion = computeHandoffSuggestion(sid)
-          if (suggestion) suggestions[sid] = suggestion
-        }
-        if (Object.keys(suggestions).length > 0) {
-          handoffSuggestions = suggestions
+        const history = await mem.kv_get('thinker:insight-history') as any[] | undefined
+        if (history && history.length > 0) {
+          insight = history[history.length - 1]?.insight ?? null
         }
       } catch {}
+    }
 
-      const payload = {
-        updatedAt: Date.now(),
-        insight,
-        learnings,
-        sessions,
-        focusStates,
-        sessionHealth,  // D1
-        anomalies,      // D2
-        ...(Object.keys(sessionHierarchy).length > 0 ? { sessionHierarchy } : {}),  // B7
-        ...(teams ? { teams } : {}),  // C1
-        ...(siblingLearnings ? { siblingLearnings } : {}),  // F7
-        ...(crossSessionPatterns ? { crossSessionPatterns } : {}),  // F7
-        ...(dialecticLatest ? { dialecticLatest } : {}),  // F8
-        ...(handoffSuggestions ? { handoffSuggestions } : {}),  // T1-4
+    // --- Subconscious learnings (top 10 by occurrence) ---
+    let learnings: Array<{ clusterLabel: string; summary: string; occurrences: number }> = []
+    if (mem) {
+      try {
+        const raw = await mem.kv_get('subconscious:learnings') as any[] | undefined
+        if (raw) {
+          learnings = raw
+            .sort((a: any, b: any) => (b.occurrences || 0) - (a.occurrences || 0))
+            .slice(0, 10)
+            .map((l: any) => ({
+              clusterLabel: l.clusterLabel || '',
+              summary: l.summary || '',
+              occurrences: l.occurrences || 0,
+            }))
+        }
+      } catch {}
+    }
+
+    // --- Per-session retrieved context (non-consuming peek) ---
+    const sessions: Record<string, { items: any[] }> = {}
+    if (subconscious?.getSessionIds && subconscious?.peekRetrievedContext) {
+      const sessionIds = subconscious.getSessionIds()
+      for (const sid of sessionIds) {
+        try {
+          const items = subconscious.peekRetrievedContext(sid)
+          if (items && items.length > 0) {
+            sessions[sid] = {
+              items: items.map((item: any) => ({
+                source: item.source ?? 'memory',
+                content: item.content ?? '',
+                relevance: item.relevance ?? 0,
+                query: item.query ?? '',
+              })),
+            }
+          }
+        } catch {}
       }
+    }
 
+    // --- Per-session focusState (unified from MentalModel + SessionDigest + Thinker) ---
+    const focusStates: Record<string, any> = {}
+
+    // Collect all known session IDs from both sources
+    const allSessionIds = new Set<string>()
+    if (subconscious?.getSessionIds) {
+      for (const sid of subconscious.getSessionIds()) allSessionIds.add(sid)
+    }
+    if (daemon.sessionDigestStore) {
+      for (const d of daemon.sessionDigestStore.all()) allSessionIds.add(d.sessionId)
+    }
+
+    for (const sid of allSessionIds) {
+      const focus = buildFocusState(sid, { includeParentFocus: true })
+      if (focus) focusStates[sid] = focus
+    }
+
+    // --- D1: Per-session optimizer health (loopScore, stuckScore, etc.) ---
+    const sessionHealth: Record<string, any> = {}
+    const optimizer = daemon.intelligence?.optimizer
+    if (optimizer?.scoreSession) {
+      for (const sid of allSessionIds) {
+        try {
+          const health = await optimizer.scoreSession(sid)
+          if (health) {
+            sessionHealth[sid] = {
+              loopScore: health.loopScore,
+              stuckScore: health.stuckScore,
+              tokenVelocity: health.tokenVelocity,
+              estimatedTokens: health.estimatedTokens,
+              interventionCount: health.interventionCount,
+              lastAction: health.lastAction ?? null,
+            }
+          }
+        } catch {}
+      }
+    }
+
+    // --- D2: Active anomalies from subconscious ---
+    let anomalies: any[] = []
+    if (mem) {
+      try {
+        const raw = await mem.kv_get('subconscious:anomalies') as any[] | undefined
+        if (raw) {
+          anomalies = raw
+            .filter((a: any) => !a.acknowledged)
+            .slice(0, 10)
+            .map((a: any) => ({
+              id: a.id || a.summary,
+              type: a.type || 'unknown',
+              summary: a.summary || '',
+              severity: a.severity || 'low',
+              detectedAt: a.detectedAt || a.timestamp,
+              sessionId: a.sessionId || null,
+            }))
+        }
+      } catch {}
+    }
+
+    // --- D5: Proactive memory search for OpenCode sessions ---
+    // peekRetrievedContext() is empty for oc:* sessions because they don't go through
+    // CassiCore's turn pipeline. Run memory searches based on focus topic+intent instead.
+    if (mem?.search) {
+      for (const sid of allSessionIds) {
+        if (!sid.startsWith('oc:') || sessions[sid]) continue  // Only fill missing oc: sessions
+        const focus = focusStates[sid]
+        if (!focus?.topic && !focus?.intent?.description) continue
+
+        try {
+          const queries: string[] = []
+          if (focus.topic) queries.push(focus.topic)
+          if (focus.intent?.description && focus.intent.description !== focus.topic) {
+            queries.push(focus.intent.description)
+          }
+
+          const allItems: any[] = []
+          for (const q of queries.slice(0, 2)) {  // Max 2 queries per session
+            const results = await mem.search(q, { limit: 3 })
+            for (const r of results) {
+              if (r.score && r.score < 0.3) continue  // Skip low-relevance results
+              allItems.push({
+                source: 'memory',
+                content: typeof r.content === 'string' ? r.content.slice(0, 500) : String(r.content || '').slice(0, 500),
+                relevance: r.score ?? 0,
+                query: q,
+              })
+            }
+          }
+
+          if (allItems.length > 0) {
+            // Deduplicate by content prefix
+            const seen = new Set<string>()
+            const deduped = allItems.filter(item => {
+              const key = item.content.slice(0, 100)
+              if (seen.has(key)) return false
+              seen.add(key)
+              return true
+            }).slice(0, 5)  // Max 5 items per session
+
+            sessions[sid] = { items: deduped }
+          }
+        } catch {}
+      }
+    }
+
+    // ── B7: Serialize session hierarchy for plugin consumption ──
+    const sessionHierarchy = serializeSessionHierarchy()
+
+    // ── C1 + T1-3: Active teams, pending checkpoints, and recently completed teams ──
+    let teams: { active: any[]; pendingCheckpoints: any[]; recentlyCompleted?: any[] } | undefined
+    const to = daemon.intelligence?.teamOrchestrator as any
+    if (to?.listActiveTeams) {
+      try {
+        const activeTeams = to.listActiveTeams() as any[]
+        const pendingCheckpoints = (to.listPendingCheckpoints?.() ?? []) as any[]
+
+        // T1-3: Also include recently completed teams (last 30 min) for result delivery
+        let recentlyCompleted: any[] = []
+        if (to.listAllTeams) {
+          const allTeams = to.listAllTeams() as any[]
+          const thirtyMinAgo = Date.now() - 30 * 60_000
+          recentlyCompleted = allTeams
+            .filter((t: any) => (t.status === 'completed' || t.status === 'failed') && (t.completedAt || 0) > thirtyMinAgo)
+            .map((t: any) => {
+              // Collect completed goal summaries from the goal tree
+              let completedGoals: Array<{ title: string; summary: string }> = []
+              let filesModified: string[] = []
+              try {
+                const status = to.getTeamStatus?.(t.id)
+                if (status?.goals) {
+                  completedGoals = (status.goals as any[])
+                    .filter((g: any) => g.status === 'completed')
+                    .map((g: any) => ({ title: g.title || '', summary: g.result?.slice(0, 300) || '' }))
+                    .slice(0, 20)
+                }
+              } catch {}
+
+              // Collect modified files from agent session digests
+              if (t.agentIds && daemon.sessionDigestStore) {
+                const filesSet = new Set<string>()
+                for (const agentId of t.agentIds) {
+                  try {
+                    // Agent sessions are stored with the agent ID as session key
+                    const agentDigest = daemon.sessionDigestStore.get(agentId)
+                    if (agentDigest?.filesActive) {
+                      for (const f of agentDigest.filesActive) filesSet.add(f)
+                    }
+                  } catch {}
+                }
+                filesModified = Array.from(filesSet).slice(0, 30)
+              }
+
+              return {
+                id: t.id,
+                name: t.config?.name ?? null,
+                status: t.status,
+                goal: t.config?.goal?.slice(0, 500) ?? '',
+                finalResult: t.finalResult?.slice(0, 1000) ?? null,
+                external: !!t.external,
+                externalSessionId: t.externalSessionId ?? null,
+                externalParentSessionId: t.externalParentSessionId ?? null,
+                completedGoals,
+                filesModified,
+                completedAt: t.completedAt,
+                budget: {
+                  tokensUsed: t.budget?.tokensUsed ?? 0,
+                  maxTokens: t.budget?.maxTokens ?? 0,
+                  agentsSpawned: t.budget?.agentsSpawned ?? 0,
+                },
+              }
+            })
+            .slice(0, 5)  // Max 5 recently completed teams
+        }
+
+        if (activeTeams.length > 0 || pendingCheckpoints.length > 0 || recentlyCompleted.length > 0) {
+          teams = {
+            active: activeTeams.map((t: any) => {
+              // Get rich status if available (includes progress + active agents)
+              let progress: any = null
+              let activeAgents: any[] = []
+              let goalTreeStr: string | null = null
+              try {
+                const status = to.getTeamStatus?.(t.id)
+                if (status) {
+                  progress = status.progress ?? null
+                  activeAgents = (status.activeAgents ?? []).slice(0, 10)
+                  goalTreeStr = status.goalTree ?? null
+                }
+              } catch {}
+
+              return {
+                id: t.id,
+                name: t.config?.name ?? null,
+                status: t.status,
+                goal: t.config?.goal ?? '',
+                checkpointMode: t.config?.checkpoint?.mode ?? 'none',
+                external: !!t.external,
+                externalSessionId: t.externalSessionId ?? null,
+                externalParentSessionId: t.externalParentSessionId ?? null,
+                budget: {
+                  tokensUsed: t.budget?.tokensUsed ?? 0,
+                  maxTokens: t.budget?.maxTokens ?? 0,
+                  agentsSpawned: t.budget?.agentsSpawned ?? 0,
+                  maxAgents: t.budget?.maxAgents ?? 0,
+                  elapsedMs: t.budget?.startedAt ? Date.now() - t.budget.startedAt : 0,
+                  maxDurationMs: t.budget?.maxDurationMs ?? 0,
+                },
+                agentCount: t.agentIds?.length ?? 0,
+                progress: progress ? {
+                  completed: progress.completed ?? 0,
+                  total: progress.total ?? 0,
+                  inProgress: progress.inProgress ?? 0,
+                  blocked: progress.blocked ?? 0,
+                } : null,
+                activeAgents: activeAgents.map((a: any) => ({
+                  agentId: a.agentId,
+                  goalTitle: a.goalTitle,
+                })),
+                goalTree: goalTreeStr,
+                createdAt: t.createdAt,
+              }
+            }),
+            pendingCheckpoints: pendingCheckpoints.map((cp: any) => ({
+              id: cp.id,
+              teamId: cp.teamId,
+              trigger: cp.trigger,
+              status: cp.status,
+              progressSummary: cp.progressSummary ?? '',
+              completedGoals: cp.completedGoals ?? 0,
+              totalGoals: cp.totalGoals ?? 0,
+              budget: cp.budgetSnapshot ?? null,
+              createdAt: cp.createdAt,
+            })),
+            ...(recentlyCompleted.length > 0 ? { recentlyCompleted } : {}),
+          }
+        }
+      } catch {}
+    }
+
+    // ── F7: Sibling session learnings for cross-session knowledge ──
+    // Collects per-session learnings and decisions from SessionDigestStore
+    // so the plugin can inject discoveries from other sessions.
+    let siblingLearnings: Record<string, {
+      topic: string
+      learnings: string[]
+      decisions: string[]
+      filesActive: string[]
+      lastActiveAt: number
+      turnCount: number
+    }> | undefined
+    if (daemon.sessionDigestStore) {
+      try {
+        const allDigests = daemon.sessionDigestStore.all()
+        // Only include active sessions with learnings or decisions
+        const withContent = allDigests.filter(
+          (d: any) => d.isActive && (d.learnings.length > 0 || d.decisions.length > 0)
+        )
+        if (withContent.length > 0) {
+          siblingLearnings = {}
+          for (const d of withContent) {
+            siblingLearnings[d.sessionId] = {
+              topic: d.topic || '',
+              learnings: d.learnings.slice(-5),   // Most recent 5 per session
+              decisions: d.decisions.slice(-5),
+              filesActive: d.filesActive.slice(0, 5),
+              lastActiveAt: d.lastActiveAt,
+              turnCount: d.turnCount,
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // ── F7: Cross-session patterns from correlator ──
+    // High-confidence patterns discovered across sessions.
+    let crossSessionPatterns: Array<{
+      category: string
+      description: string
+      confidence: number
+      sessionCount: number
+    }> | undefined
+    if (daemon.crossSessionCorrelator) {
+      try {
+        const patterns = daemon.crossSessionCorrelator.getPatterns({
+          minConfidence: 0.5,
+          limit: 10,
+        })
+        if (patterns.length > 0) {
+          crossSessionPatterns = patterns.map((p: any) => ({
+            category: p.category,
+            description: p.description,
+            confidence: p.confidence,
+            sessionCount: p.sessionCount,
+          }))
+        }
+      } catch {}
+    }
+
+    // ── F8: Latest dialectic signal per session ──
+    // The most recent dialectic synthesis result (signal, tension, confidence)
+    // for each active session, so the plugin can inject dialectic insights.
+    let dialecticLatest: Record<string, {
+      hasSignal: boolean
+      signal?: {
+        type: string
+        content: string
+        confidence: number
+        urgency: string
+      }
+      yangBranchCount: number
+      yinCritiqueCount: number
+      dialecticTension: number
+      synthesisConfidence: number
+      timestamp: number
+    }> | undefined
+    const dialectic = daemon.intelligence?.dialectic as any
+    if (dialectic?.getRecent) {
+      try {
+        const dialecticResults: Record<string, any> = {}
+        for (const sid of allSessionIds) {
+          const recent = await dialectic.getRecent(sid, 1) as any[]
+          if (recent.length === 0) continue
+          const r = recent[0]
+          const synthesis = r.serenity?.synthesis
+          if (!synthesis) continue
+
+          dialecticResults[sid] = {
+            hasSignal: synthesis.hasSignal ?? false,
+            ...(synthesis.hasSignal && synthesis.signal ? {
+              signal: {
+                type: synthesis.signal.type,
+                content: synthesis.signal.content,
+                confidence: synthesis.signal.confidence,
+                urgency: synthesis.signal.urgency ?? 'background',
+              },
+            } : {}),
+            yangBranchCount: r.yang?.branches?.length ?? 0,
+            yinCritiqueCount: r.yin?.baselineBranches?.length ?? r.yin?.critiques?.length ?? 0,
+            dialecticTension: r.quality?.dialecticTension ?? r.serenity?.meta?.dialecticQuality ?? 0,
+            synthesisConfidence: r.quality?.synthesisConfidence ?? 0,
+            timestamp: r.timestamp,
+          }
+        }
+        if (Object.keys(dialecticResults).length > 0) {
+          dialecticLatest = dialecticResults
+        }
+      } catch {}
+    }
+
+    // ── T1-4: Handoff suggestions — per-session complexity detection ──
+    // Analyzes each active session and suggests team handoff when complexity is high.
+    let handoffSuggestions: Record<string, {
+      suggested: boolean
+      reason: string
+      proposedGoal: string
+      estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high'
+    }> | undefined
+    try {
+      const suggestions: Record<string, any> = {}
+      for (const sid of allSessionIds) {
+        // Only compute for OpenCode sessions (oc: prefix)
+        if (!sid.startsWith('oc:')) continue
+        const suggestion = computeHandoffSuggestion(sid)
+        if (suggestion) suggestions[sid] = suggestion
+      }
+      if (Object.keys(suggestions).length > 0) {
+        handoffSuggestions = suggestions
+      }
+    } catch {}
+
+    return {
+      updatedAt: Date.now(),
+      insight,
+      learnings,
+      sessions,
+      focusStates,
+      sessionHealth,  // D1
+      anomalies,      // D2
+      ...(Object.keys(sessionHierarchy).length > 0 ? { sessionHierarchy } : {}),  // B7
+      ...(teams ? { teams } : {}),  // C1
+      ...(siblingLearnings ? { siblingLearnings } : {}),  // F7
+      ...(crossSessionPatterns ? { crossSessionPatterns } : {}),  // F7
+      ...(dialecticLatest ? { dialecticLatest } : {}),  // F8
+      ...(handoffSuggestions ? { handoffSuggestions } : {}),  // T1-4
+    }
+  }
+
+  /**
+   * Legacy inject.json writer — kept for backward compatibility / debugging.
+   * The primary data path is now GET /context via Unix socket.
+   */
+  async function writeInjectFile(): Promise<void> {
+    try {
+      const payload = await buildInjectPayload()
       // Atomic write: temp file → rename (prevents partial reads)
       fs.writeFileSync(injectTmpPath, JSON.stringify(payload), 'utf8')
       fs.renameSync(injectTmpPath, injectPath)
@@ -5538,38 +5561,18 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         logger.warn('[admin-api] failed to bind TCP admin port (no available port found)')
       }
 
-      // Start inject.json periodic writer for file-based IPC with bridge plugin
-      injectTimer = setInterval(() => { writeInjectFile().catch(() => {}) }, 5000)
-      writeInjectFile().catch(() => {})  // Write immediately on start
-      logger.info('[admin-api] inject.json writer started (5s interval)')
-
-      // ── C2: Immediate inject.json write on team checkpoint events ──
-      // Checkpoints are time-sensitive (human approval needed), so bypass the 5s timer
-      try {
-        const { getEventBus } = await import('./events/index.js')
-        const eventBus = getEventBus()
-        if (eventBus?.onAll) {
-          eventBus.onAll((event: any) => {
-            if (event?.type === 'team:checkpoint' || event?.type === 'team:completed' ||
-                event?.type === 'team:failed' || event?.type === 'team:cancelled') {
-              logger.debug('[admin-api] team event detected, writing inject.json immediately', { type: event.type })
-              writeInjectFile().catch(() => {})
-            }
-          })
-          logger.info('[admin-api] team event listener registered for immediate inject.json writes')
-        }
-      } catch (err) {
-        logger.debug('[admin-api] failed to register team event listener', { error: String(err) })
-      }
+      // inject.json periodic writer DISABLED — replaced by GET /context via Unix socket.
+      // The bridge plugin now fetches context on-demand from admin.sock instead of
+      // polling a file. writeInjectFile() is retained for manual debugging:
+      //   curl --unix-socket ~/.cassicore/admin.sock http://localhost/context | jq .
+      // To re-enable file-based IPC temporarily, uncomment the lines below:
+      // injectTimer = setInterval(() => { writeInjectFile().catch(() => {}) }, 5000)
+      // writeInjectFile().catch(() => {})
+      logger.info('[admin-api] context available via GET /context on unix socket (inject.json writer disabled)')
 
       return { tcpPort: boundPort, unixPath }
     },
     async stop() {
-      // Stop inject.json writer
-      if (injectTimer) {
-        clearInterval(injectTimer)
-        injectTimer = null
-      }
       if (unixServer) {
         await new Promise<void>((resolve) => unixServer!.close(() => resolve()))
         unixServer = null
