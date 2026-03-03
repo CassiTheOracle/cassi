@@ -142,6 +142,8 @@ export class Daemon {
   public adaptiveBehavior?: AdaptiveBehavior
   public selfVerification?: SelfVerification
   public sessionDigestStore?: SessionDigestStore
+  public budgetTracker?: BudgetTracker
+  public modelRouter?: ModelRouter
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
 
@@ -674,9 +676,11 @@ export class Daemon {
       }
       budgetTracker = createBudgetTracker(this.logger, Object.keys(budgets).length > 0 ? budgets : undefined)
       budgetTracker.wire(this.bus)
+      this.budgetTracker = budgetTracker
       this.logger.info('[daemon] BudgetTracker initialized and wired to EventBus')
 
       modelRouter = createModelRouter(this.logger, budgetTracker)
+      this.modelRouter = modelRouter
       this.logger.info('[daemon] ModelRouter initialized')
     } catch (err) {
       this.logger.warn('[daemon] Failed to initialize BudgetTracker/ModelRouter', { error: String(err) })
