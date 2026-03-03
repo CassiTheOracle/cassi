@@ -14,6 +14,16 @@ export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
+// ── Request optimization exports ─────────────────────────────────────────────
+export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
+export type { RequestCost, CostRule } from './cost-classifier.js'
+
+export { BudgetTracker, getBudgetTracker, createBudgetTracker, DEFAULT_PROVIDER_BUDGETS } from './budget-tracker.js'
+export type { BudgetSnapshot, BudgetTier, ProviderBudgetConfig } from './budget-tracker.js'
+
+export { ModelRouter, getModelRouter, createModelRouter } from './model-router.js'
+export type { RequestPurpose, RoutingDecision } from './model-router.js'
+
 export interface CreateProvidersOptions {
   /** Enable centralized request tracking and rate limiting (default: true) */
   centralized?: boolean

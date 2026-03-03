@@ -16,7 +16,7 @@ const COPILOT_HEADERS = {
 }
 
 /** Models that use Anthropic Messages API format */
-const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6',  'claude-opus-4.6', 'claude-haiku-4.5'])
+const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5'])
 
 /**
  * Resolve the live Copilot API token from the CassiCore credentials cache.
@@ -76,7 +76,8 @@ function toAnthropicContent(
 /**
  * Convert Message[] to OpenAI format.
  * Images are injected as image_url content parts (base64 data URIs).
- * tool_result blocks → role: 'tool' messages.
+ * tool_use blocks → tool_calls array on assistant messages.
+ * tool_result blocks → role: 'tool' messages with tool_call_id.
  */
 function toOpenAIMessages(
   messages: Message[],
@@ -104,12 +105,51 @@ function toOpenAIMessages(
     }
 
     const blocks = msg.content as ContentBlock[]
-    const textBlocks = blocks.filter(b => b.type !== 'tool_result')
-    const toolResults = blocks.filter((b): b is Extract<ContentBlock, { type: 'tool_result' }> => b.type === 'tool_result')
+    const toolUseBlocks = blocks.filter(
+      (b): b is Extract<ContentBlock, { type: 'tool_use' }> => b.type === 'tool_use'
+    )
+    const toolResults = blocks.filter(
+      (b): b is Extract<ContentBlock, { type: 'tool_result' }> => b.type === 'tool_result'
+    )
+    const textBlocks = blocks.filter(b => b.type === 'text')
 
-    if (textBlocks.length > 0) {
-      const text = textBlocks
-        .map(b => (b.type === 'text' ? b.text : b.type === 'tool_use' ? `[tool_use:${b.name}]` : ''))
+    // Assistant messages with tool_use blocks → OpenAI tool_calls format
+    if (toolUseBlocks.length > 0) {
+      const textContent = textBlocks
+        .map(b => b.type === 'text' ? b.text : '')
+        .join('')
+
+      const toolCalls = toolUseBlocks.map(b => ({
+        id: b.id,
+        type: 'function',
+        function: {
+          name: b.name,
+          arguments: JSON.stringify(b.input ?? {}),
+        },
+      }))
+
+      const assistantMsg: Record<string, unknown> = {
+        role: 'assistant',
+        tool_calls: toolCalls,
+      }
+      // OpenAI allows content to be null/empty when tool_calls are present
+      if (textContent) assistantMsg.content = textContent
+      else assistantMsg.content = null
+
+      if (attachments.length > 0) {
+        const parts: Array<Record<string, unknown>> = attachments.map(att => ({
+          type: 'image_url',
+          image_url: { url: `data:${att.mediaType};base64,${att.data}` },
+        }))
+        if (textContent) parts.push({ type: 'text', text: textContent })
+        assistantMsg.content = parts
+      }
+
+      out.push(assistantMsg)
+    } else if (textBlocks.length > 0 && toolResults.length === 0) {
+      // Pure text message (no tool blocks)
+      const textContent = textBlocks
+        .map(b => b.type === 'text' ? b.text : '')
         .join('')
 
       if (attachments.length > 0) {
@@ -117,13 +157,14 @@ function toOpenAIMessages(
           type: 'image_url',
           image_url: { url: `data:${att.mediaType};base64,${att.data}` },
         }))
-        if (text) parts.push({ type: 'text', text })
+        if (textContent) parts.push({ type: 'text', text: textContent })
         out.push({ role: msg.role, content: parts })
       } else {
-        out.push({ role: msg.role, content: text })
+        out.push({ role: msg.role, content: textContent })
       }
     }
 
+    // tool_result blocks → OpenAI role: 'tool' messages with tool_call_id
     for (const r of toolResults) {
       out.push({ role: 'tool', tool_call_id: r.tool_use_id, content: r.content })
     }

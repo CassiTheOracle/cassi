@@ -1,6 +1,7 @@
 import type { IProvider, Message, CompletionOpts, CompletionChunk, TurnResult } from '../../types/runtime.js'
 import type { ILogger, IEventBus, IConfig } from '../../types/interfaces.js'
 import { signalPromise } from '../utils/abort.js'
+import type { BudgetTracker } from './budget-tracker.js'
 
 /**
  * Request tracking entry for a single in-flight or completed request.
@@ -134,6 +135,9 @@ export class CentralizedProvider implements IProvider {
     rateLimited: 0,
   }
 
+  // Budget tracker — records metered requests for quota management
+  private budgetTracker: BudgetTracker | undefined
+
   constructor(
     wrapped: IProvider,
     logger: ILogger,
@@ -153,6 +157,14 @@ export class CentralizedProvider implements IProvider {
       errorCooldownMs: 500,
     }
     this.config = { ...defaults, ...rateLimits }
+  }
+
+  /**
+   * Set the budget tracker for recording metered requests.
+   * Allows deferred wiring after provider construction.
+   */
+  setBudgetTracker(tracker: BudgetTracker): void {
+    this.budgetTracker = tracker
   }
 
   /**
@@ -350,6 +362,12 @@ export class CentralizedProvider implements IProvider {
         durationMs: duration,
         error: entry.error,
       } as any)
+
+      // Record against budget tracker if wired (only counts metered models)
+      if (this.budgetTracker && !entry.error) {
+        const model = opts.model || 'unknown'
+        this.budgetTracker.recordRequest(`${this.id}/${model}`)
+      }
     }
   }
 
@@ -557,8 +575,12 @@ export class CentralizedProvider implements IProvider {
 
   private checkErrorCooldown(): number {
     if (this.consecutiveErrors === 0 || this.config.errorCooldownMs <= 0) return 0
-    // Exponential backoff: cooldown doubles with each consecutive error
-    const cooldown = this.config.errorCooldownMs * Math.pow(2, this.consecutiveErrors - 1)
+    // Exponential backoff: cooldown doubles with each consecutive error, capped at 5 minutes
+    const MAX_COOLDOWN_MS = 300_000
+    const cooldown = Math.min(
+      this.config.errorCooldownMs * Math.pow(2, this.consecutiveErrors - 1),
+      MAX_COOLDOWN_MS
+    )
     const elapsed = Date.now() - this.lastErrorAt
     return Math.max(0, cooldown - elapsed)
   }
@@ -579,10 +601,13 @@ export function wrapProvidersWithCentralized(
   logger: ILogger,
   bus: IEventBus,
   _config?: IConfig,
+  budgetTracker?: BudgetTracker,
 ): Map<string, CentralizedProvider> {
   const wrapped = new Map<string, CentralizedProvider>()
   for (const [id, provider] of providers) {
-    wrapped.set(id, new CentralizedProvider(provider, logger, bus))
+    const cp = new CentralizedProvider(provider, logger, bus)
+    if (budgetTracker) cp.setBudgetTracker(budgetTracker)
+    wrapped.set(id, cp)
   }
   logger.info(`[providers] ${wrapped.size} providers wrapped with per-provider rate limiting (no global limits)`)
   return wrapped
