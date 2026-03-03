@@ -198,7 +198,7 @@ export class StreamIngestorImpl implements IStreamIngestor {
       if (pendingCall) {
         buffer.addToolResult(pendingCall.id, result)
       } else {
-        this.logger.warn('No pending tool call found for result', { sessionId: sessionId.slice(-8), tool })
+        this.logger.debug('No pending tool call found for result', { sessionId: sessionId.slice(-8), tool })
       }
     }
 
