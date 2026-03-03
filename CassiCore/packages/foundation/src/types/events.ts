@@ -41,8 +41,11 @@ export type RuntimeEvent =
   | { type: "provider:deduplicated"; providerId: string; sessionId: string; existingRequestId: string }
   | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number }
   | { type: "provider:error_reset"; providerId: string }
-  | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
-  // Subagent lifecycle events
+   | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
+   // Budget events
+   | { type: "budget:warning"; providerId: string; tier: "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number; monthlyLimit: number }
+   | { type: "budget:tier_changed"; providerId: string; previousTier: "normal" | "cautious" | "frugal" | "critical"; newTier: "normal" | "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number }
+   // Subagent lifecycle events
   | { type: "subagent:spawned"; parentSessionId: string; childSessionId: string; runId: string; label: string; timestamp: Date }
   | { type: "subagent:started"; runId: string; sessionId: string; timestamp: Date }
   | { type: "subagent:completed"; runId: string; sessionId: string; result: string; durationMs: number; timestamp: Date }
