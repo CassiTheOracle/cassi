@@ -703,9 +703,211 @@ const TEAM_TOOLS = [
   },
 ];
 
+// ── C3: Agent-level team coordination tools ──────────────────────────────────
+// These tools are designed for agents running inside a team context (Phase 3 Hybrid Executor).
+// They expose the same capabilities as the 8 internal team-coordinator tools but via MCP.
+const TEAM_AGENT_TOOLS = [
+  {
+    name: 'cassi_team_agent_status',
+    description: 'Get the current status of the team including goal tree, progress, active agents, and budget usage. Use this to understand what has been accomplished and what remains.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        teamId: { type: 'string', description: 'The team ID to check status for' },
+      },
+      required: ['teamId'],
+    },
+  },
+  {
+    name: 'cassi_team_agent_message',
+    description: 'Send a message to another agent in the team via the mailbox system. Use for coordination, sharing intermediate results, or requesting help.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        toAgentId: { type: 'string', description: 'ID of the agent to send the message to' },
+        message: { type: 'string', description: 'The message content' },
+        agentId: { type: 'string', description: 'Your agent ID (sender)' },
+      },
+      required: ['toAgentId', 'message'],
+    },
+  },
+  {
+    name: 'cassi_team_agent_result',
+    description: 'Get the result from a completed agent. Use to retrieve another agent\'s output after they finish their task.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'ID of the agent whose result to retrieve' },
+      },
+      required: ['agentId'],
+    },
+  },
+  {
+    name: 'cassi_team_agent_list',
+    description: 'List all agents in a team with their goals, status, and roles.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        teamId: { type: 'string', description: 'The team ID to list agents for' },
+      },
+      required: ['teamId'],
+    },
+  },
+  {
+    name: 'cassi_team_agent_update_plan',
+    description: 'Update the team plan by adding new sub-goals or modifying existing ones. Use when you need to break down work further or adjust the plan.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        teamId: { type: 'string', description: 'The team ID' },
+        addGoals: {
+          type: 'array',
+          description: 'New sub-goals to add',
+          items: {
+            type: 'object',
+            properties: {
+              title: { type: 'string' },
+              description: { type: 'string' },
+              parentGoalId: { type: 'string' },
+              roleHint: { type: 'string' },
+            },
+            required: ['title', 'parentGoalId'],
+          },
+        },
+        updateGoals: {
+          type: 'array',
+          description: 'Existing goals to update',
+          items: {
+            type: 'object',
+            properties: {
+              goalId: { type: 'string' },
+              status: { type: 'string', enum: ['pending', 'in_progress', 'completed', 'failed', 'blocked'] },
+            },
+            required: ['goalId'],
+          },
+        },
+      },
+      required: ['teamId'],
+    },
+  },
+  {
+    name: 'cassi_team_agent_complete_goal',
+    description: 'Signal completion (or failure) of a team goal. Call this when you have finished working on your assigned goal.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        teamId: { type: 'string', description: 'The team ID' },
+        goalId: { type: 'string', description: 'The goal ID being completed' },
+        summary: { type: 'string', description: 'Summary of what was accomplished' },
+        result: { type: 'string', description: 'Detailed result output' },
+        success: { type: 'boolean', description: 'Whether the goal succeeded (default: true)' },
+        error: { type: 'string', description: 'Error message if failed' },
+      },
+      required: ['teamId', 'goalId', 'summary'],
+    },
+  },
+  {
+    name: 'cassi_team_agent_goal_tree',
+    description: 'Get the full goal tree for a team, showing all goals, their hierarchy, statuses, and progress.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        teamId: { type: 'string', description: 'The team ID' },
+      },
+      required: ['teamId'],
+    },
+  },
+];
+
 /**
- * Execute a tool via CassiCore daemon
+ * Execute an agent-level team coordination tool via CassiCore admin API (C3)
  */
+async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
+  log('info', 'Executing team agent tool', { tool: toolName, args });
+
+  try {
+    switch (toolName) {
+      case 'cassi_team_agent_status': {
+        if (!args.teamId) throw new Error('teamId is required');
+        const res = await fetch(`${CASSICORE_URL}/teams/status?teamId=${encodeURIComponent(args.teamId)}`);
+        if (!res.ok) throw new Error(`Team status failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_team_agent_message': {
+        const res = await fetch(`${CASSICORE_URL}/teams/agent/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toAgentId: args.toAgentId,
+            message: args.message,
+            agentId: args.agentId,
+          }),
+        });
+        if (!res.ok) throw new Error(`Send message failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_team_agent_result': {
+        if (!args.agentId) throw new Error('agentId is required');
+        const res = await fetch(`${CASSICORE_URL}/teams/agent/result?agentId=${encodeURIComponent(args.agentId)}`);
+        if (!res.ok) throw new Error(`Get agent result failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_team_agent_list': {
+        if (!args.teamId) throw new Error('teamId is required');
+        const res = await fetch(`${CASSICORE_URL}/teams/agent/list?teamId=${encodeURIComponent(args.teamId)}`);
+        if (!res.ok) throw new Error(`List agents failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_team_agent_update_plan': {
+        const res = await fetch(`${CASSICORE_URL}/teams/agent/update-plan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamId: args.teamId,
+            addGoals: args.addGoals,
+            updateGoals: args.updateGoals,
+          }),
+        });
+        if (!res.ok) throw new Error(`Update plan failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_team_agent_complete_goal': {
+        const res = await fetch(`${CASSICORE_URL}/teams/agent/complete-goal`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            teamId: args.teamId,
+            goalId: args.goalId,
+            summary: args.summary,
+            result: args.result,
+            success: args.success,
+            error: args.error,
+          }),
+        });
+        if (!res.ok) throw new Error(`Complete goal failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_team_agent_goal_tree': {
+        if (!args.teamId) throw new Error('teamId is required');
+        const res = await fetch(`${CASSICORE_URL}/teams/agent/goal-tree?teamId=${encodeURIComponent(args.teamId)}`);
+        if (!res.ok) throw new Error(`Get goal tree failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      default:
+        throw new Error(`Unknown team agent tool: "${toolName}"`);
+    }
+  } catch (error: any) {
+    log('error', 'Team agent tool execution failed', { tool: toolName, error: error.message });
+    throw error;
+  }
+}
 async function executeCassiCoreTool(toolName: string, args: any): Promise<any> {
   log('info', 'Executing CassiCore tool', { tool: toolName, args });
 
@@ -1809,32 +2011,50 @@ async function formatBudget(args: any): Promise<string> {
   if (args?.model) opts.model = args.model;
   const hours = args?.hours || 24;
 
-  const [statsData, aggregateData, hourlyData] = await Promise.all([
+  const [statsData, aggregateData, hourlyData, budgetData] = await Promise.all([
     fetchIntelligence('/intelligence/profiler/stats').catch(() => null),
     fetchIntelligence('/intelligence/profiler/aggregate', opts).catch(() => null),
     fetchIntelligence('/intelligence/profiler/hourly', { ...opts, hours: String(hours) }).catch(() => null),
+    fetchIntelligence('/intelligence/budget', opts).catch(() => null),
   ]);
 
   const stats = statsData || {};
   const aggregate = aggregateData?.aggregate || [];
   const hourly = hourlyData?.hourly || [];
+  const budgetSnapshots = budgetData?.snapshots || [];
+  const budgetTiers = budgetData?.tiers || {};
 
   if (mode === 'brief') {
     const lines: string[] = ['## Budget Brief\n'];
 
-    if (!statsData) {
-      lines.push('ProviderProfiler not initialized or no data available.');
+    // Budget tracker data (monthly limits, usage, tiers)
+    if (budgetSnapshots.length > 0) {
+      for (const snap of budgetSnapshots) {
+        const tier = budgetTiers[snap.providerId] || 'unknown';
+        const pct = ((snap.percentUsed || 0) * 100).toFixed(1);
+        const exhaustion = snap.projectedExhaustionDay
+          ? `projected exhaustion: day ${snap.projectedExhaustionDay}`
+          : 'sustainable pace';
+        lines.push(`**${snap.providerId}**: ${snap.used}/${snap.monthlyLimit} requests (${pct}%), tier: **${tier}**, ${exhaustion}`);
+        lines.push(`  Burn rate: ~${snap.dailyBurnRate?.toFixed(1) || '?'} req/day, ${snap.remaining} remaining\n`);
+      }
+    }
+
+    if (!statsData && budgetSnapshots.length === 0) {
+      lines.push('No budget or profiler data available.');
       return lines.join('\n');
     }
 
-    lines.push(`**Total requests**: ${stats.totalRequestsRecorded || 0} (${stats.totalErrors || 0} errors)`);
-    lines.push(`**Inflight**: ${stats.inflightRequests || 0} | **Pending records**: ${stats.pendingRecords || 0}`);
+    if (statsData) {
+      lines.push(`**Total requests**: ${stats.totalRequestsRecorded || 0} (${stats.totalErrors || 0} errors)`);
+      lines.push(`**Inflight**: ${stats.inflightRequests || 0} | **Pending records**: ${stats.pendingRecords || 0}`);
 
-    if (aggregate.length > 0) {
-      lines.push('\n**Provider breakdown**:');
-      for (const a of aggregate.slice(0, 5)) {
-        const errPct = a.totalRequests > 0 ? ((a.errorCount / a.totalRequests) * 100).toFixed(1) : '0';
-        lines.push(`- **${a.providerId}/${a.model}**: ${a.totalRequests} req, ${a.totalTokens || 0} tokens, ${errPct}% errors, avg ${a.avgDurationMs?.toFixed(0) || '?'}ms`);
+      if (aggregate.length > 0) {
+        lines.push('\n**Provider breakdown**:');
+        for (const a of aggregate.slice(0, 5)) {
+          const errPct = a.totalRequests > 0 ? ((a.errorCount / a.totalRequests) * 100).toFixed(1) : '0';
+          lines.push(`- **${a.providerId}/${a.model}**: ${a.totalRequests} req, ${a.totalTokens || 0} tokens, ${errPct}% errors, avg ${a.avgDurationMs?.toFixed(0) || '?'}ms`);
+        }
       }
     }
 
@@ -1844,8 +2064,21 @@ async function formatBudget(args: any): Promise<string> {
   // Full mode
   const lines: string[] = ['## Budget Dashboard\n'];
 
+  // Budget tracker section
+  if (budgetSnapshots.length > 0) {
+    lines.push('### Monthly Budget\n');
+    lines.push('| Provider | Used | Limit | % Used | Tier | Burn Rate | Remaining | Exhaustion |');
+    lines.push('|----------|------|-------|--------|------|-----------|-----------|------------|');
+    for (const snap of budgetSnapshots) {
+      const tier = budgetTiers[snap.providerId] || 'unknown';
+      const pct = ((snap.percentUsed || 0) * 100).toFixed(1);
+      const exhaustion = snap.projectedExhaustionDay ? `Day ${snap.projectedExhaustionDay}` : 'Sustainable';
+      lines.push(`| ${snap.providerId} | ${snap.used} | ${snap.monthlyLimit} | ${pct}% | ${tier} | ${snap.dailyBurnRate?.toFixed(1) || '?'}/day | ${snap.remaining} | ${exhaustion} |`);
+    }
+  }
+
   // Aggregate stats
-  lines.push('### Overview\n');
+  lines.push('\n### Request Overview\n');
   lines.push('| Metric | Value |');
   lines.push('|--------|-------|');
   for (const [k, v] of Object.entries(stats)) {
@@ -2132,7 +2365,7 @@ function createServer() {
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
-      tools: [...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS],
+      tools: [...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS, ...TEAM_AGENT_TOOLS],
     };
   });
 
@@ -2154,8 +2387,17 @@ function createServer() {
         'cassi_think_now', 'cassi_strategy_update', 'cassi_anomaly_ack',
         'cassi_team',
       ]);
+
+      // C3: Agent-level team coordination tools
+      const teamAgentTools = new Set([
+        'cassi_team_agent_status', 'cassi_team_agent_message', 'cassi_team_agent_result',
+        'cassi_team_agent_list', 'cassi_team_agent_update_plan',
+        'cassi_team_agent_complete_goal', 'cassi_team_agent_goal_tree',
+      ]);
       
-      if (extendedTools.has(name)) {
+      if (teamAgentTools.has(name)) {
+        result = await executeTeamAgentTool(name, args);
+      } else if (extendedTools.has(name)) {
         // Extended tools return JSON
         result = await executeExtendedTool(name, args);
       } else if (name.startsWith('cassi_')) {
@@ -2296,7 +2538,7 @@ async function startHttp(port: number) {
     // Tools endpoint (REST API)
     if (url.pathname === '/tools' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify([...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS]));
+      res.end(JSON.stringify([...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS, ...TEAM_AGENT_TOOLS]));
       return;
     }
     
