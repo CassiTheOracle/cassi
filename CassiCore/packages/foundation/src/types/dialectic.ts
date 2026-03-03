@@ -72,6 +72,21 @@ export interface YangContext {
     category: string;
     severity: string;
   }>;
+  // ─── Autonomous agent context (populated during continuous dialectic) ───
+  /**
+   * Tool execution results from the most recent autonomous iteration.
+   * Each entry is a `"toolName: output"` summary string.
+   */
+  toolOutputs?: string[];
+  /**
+   * The agent's structured decision from the most recent iteration
+   * (e.g. `"continue"`, `"complete"`, `"blocked"`).
+   */
+  agentDecision?: string;
+  /**
+   * Current iteration number within the autonomous loop.
+   */
+  iterationNumber?: number;
 }
 
 export interface IYinObserver {
@@ -279,9 +294,10 @@ export interface IDialecticSystem {
     userMessage: string,
     context: YangContext,
     opts?: { 
-      providers?: { yang?: any; yin?: any; serenity?: any };
-      mode?: 'sequential' | 'parallel' | 'adaptive';
+      providers?: Record<string, unknown>;
       signal?: AbortSignal;
+      /** Skip the Jaccard similarity result cache (use for autonomous iterations where prompts are structurally similar) */
+      skipCache?: boolean;
     }
   ): Promise<DialecticResult | ParallelDialecticResult>;
 }
@@ -295,6 +311,91 @@ export interface DialecticStreamEvent {
   turnId: string;
   stage: DialecticStage;
   data?: YangOutput | YinOutput | YinBaselineOutput | SerenityOutput | { error: string } | { taskGuide: string } | { mode: string } | null;
+}
+
+// ─── Prompt Optimization ────────────────────────────────────────────────────
+
+export type PromptObserverRole = 'yang' | 'yin' | 'serenity';
+
+/**
+ * A single prompt variant for an observer.
+ * The `template` string contains `{{placeholder}}` tokens that are filled
+ * at runtime with dynamic context (memories, branches, tools, etc.).
+ */
+export interface PromptVariant {
+  /** Unique identifier, e.g. "yang-v1-explorative" */
+  id: string;
+  /** Which observer this variant belongs to */
+  observer: PromptObserverRole;
+  /** Human-readable description of what makes this variant different */
+  description: string;
+  /** The prompt template with {{placeholder}} tokens */
+  template: string;
+}
+
+/**
+ * Runtime scoring state for a prompt variant, persisted to disk.
+ */
+export interface PromptVariantScore {
+  /** Variant ID (matches PromptVariant.id) */
+  variantId: string;
+  /** Observer role */
+  observer: PromptObserverRole;
+  /** Exponential moving average of quality scores (0-1) */
+  score: number;
+  /** Total number of times this variant was selected */
+  uses: number;
+  /** Timestamp of last use */
+  lastUsedAt: number;
+}
+
+/**
+ * Quality feedback from a completed dialectic turn, used to update variant scores.
+ */
+export interface PromptQualityFeedback {
+  /** Which variants were selected for this turn */
+  selectedVariants: {
+    yang: string;     // variant ID
+    yin: string;      // variant ID
+    serenity: string; // variant ID
+  };
+  /** Quality metrics from ParallelDialecticResult */
+  quality: {
+    yangYinAgreement: number;
+    dialecticTension: number;
+    synthesisConfidence: number;
+    hasSignal: boolean;
+  };
+}
+
+/**
+ * Configuration for the prompt optimizer.
+ */
+export interface PromptOptimizerConfig {
+  /** Master enable/disable */
+  enabled: boolean;
+  /** Exploration rate (0-1). 0 = always pick best, 1 = always random */
+  epsilon: number;
+  /** EMA smoothing factor for score updates (0-1). Higher = more recent-weighted */
+  alpha: number;
+  /** Minimum uses before a variant's score is trusted for exploitation */
+  minUsesForExploitation: number;
+  /** Path to persist variant scores */
+  persistPath: string;
+}
+
+/**
+ * Persisted state for the prompt optimizer.
+ */
+export interface PromptOptimizerState {
+  /** Version for forward-compatible schema migrations */
+  version: number;
+  /** Variant scores keyed by variant ID */
+  scores: Record<string, PromptVariantScore>;
+  /** Total turns processed */
+  totalTurns: number;
+  /** Last updated timestamp */
+  lastUpdatedAt: number;
 }
 
 // ─── Persistence ────────────────────────────────────────────────────────────
