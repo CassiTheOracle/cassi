@@ -4944,6 +4944,116 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         } catch {}
       }
 
+      // ── F7: Sibling session learnings for cross-session knowledge ──
+      // Collects per-session learnings and decisions from SessionDigestStore
+      // so the plugin can inject discoveries from other sessions.
+      let siblingLearnings: Record<string, {
+        topic: string
+        learnings: string[]
+        decisions: string[]
+        filesActive: string[]
+        lastActiveAt: number
+        turnCount: number
+      }> | undefined
+      if (daemon.sessionDigestStore) {
+        try {
+          const allDigests = daemon.sessionDigestStore.all()
+          // Only include active sessions with learnings or decisions
+          const withContent = allDigests.filter(
+            (d: any) => d.isActive && (d.learnings.length > 0 || d.decisions.length > 0)
+          )
+          if (withContent.length > 0) {
+            siblingLearnings = {}
+            for (const d of withContent) {
+              siblingLearnings[d.sessionId] = {
+                topic: d.topic || '',
+                learnings: d.learnings.slice(-5),   // Most recent 5 per session
+                decisions: d.decisions.slice(-5),
+                filesActive: d.filesActive.slice(0, 5),
+                lastActiveAt: d.lastActiveAt,
+                turnCount: d.turnCount,
+              }
+            }
+          }
+        } catch {}
+      }
+
+      // ── F7: Cross-session patterns from correlator ──
+      // High-confidence patterns discovered across sessions.
+      let crossSessionPatterns: Array<{
+        category: string
+        description: string
+        confidence: number
+        sessionCount: number
+      }> | undefined
+      if (daemon.crossSessionCorrelator) {
+        try {
+          const patterns = daemon.crossSessionCorrelator.getPatterns({
+            minConfidence: 0.5,
+            limit: 10,
+          })
+          if (patterns.length > 0) {
+            crossSessionPatterns = patterns.map((p: any) => ({
+              category: p.category,
+              description: p.description,
+              confidence: p.confidence,
+              sessionCount: p.sessionCount,
+            }))
+          }
+        } catch {}
+      }
+
+      // ── F8: Latest dialectic signal per session ──
+      // The most recent dialectic synthesis result (signal, tension, confidence)
+      // for each active session, so the plugin can inject dialectic insights.
+      let dialecticLatest: Record<string, {
+        hasSignal: boolean
+        signal?: {
+          type: string
+          content: string
+          confidence: number
+          urgency: string
+        }
+        yangBranchCount: number
+        yinCritiqueCount: number
+        dialecticTension: number
+        synthesisConfidence: number
+        timestamp: number
+      }> | undefined
+      const dialectic = daemon.intelligence?.dialectic as any
+      if (dialectic?.getRecent) {
+        try {
+          const dialecticResults: Record<string, any> = {}
+          for (const sid of allSessionIds) {
+            const recent = await dialectic.getRecent(sid, 1) as any[]
+            if (recent.length === 0) continue
+            const r = recent[0]
+            const synthesis = r.serenity?.synthesis
+            if (!synthesis) continue
+
+            dialecticResults[sid] = {
+              hasSignal: synthesis.hasSignal ?? false,
+              ...(synthesis.hasSignal && synthesis.signal ? {
+                signal: {
+                  type: synthesis.signal.type,
+                  content: synthesis.signal.content,
+                  confidence: synthesis.signal.confidence,
+                  urgency: synthesis.signal.urgency ?? 'background',
+                },
+              } : {}),
+              yangBranchCount: r.yang?.branches?.length ?? 0,
+              yinCritiqueCount: r.yin?.baselineBranches?.length ?? r.yin?.critiques?.length ?? 0,
+              dialecticTension: r.quality?.dialecticTension ?? r.serenity?.meta?.dialecticQuality ?? 0,
+              synthesisConfidence: r.quality?.synthesisConfidence ?? 0,
+              timestamp: r.timestamp,
+            }
+          }
+          if (Object.keys(dialecticResults).length > 0) {
+            dialecticLatest = dialecticResults
+          }
+        } catch {}
+      }
+
       const payload = {
         updatedAt: Date.now(),
         insight,
@@ -4954,6 +5064,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         anomalies,      // D2
         ...(Object.keys(sessionHierarchy).length > 0 ? { sessionHierarchy } : {}),  // B7
         ...(teams ? { teams } : {}),  // C1
+        ...(siblingLearnings ? { siblingLearnings } : {}),  // F7
+        ...(crossSessionPatterns ? { crossSessionPatterns } : {}),  // F7
+        ...(dialecticLatest ? { dialecticLatest } : {}),  // F8
       }
 
       // Atomic write: temp file → rename (prevents partial reads)
