@@ -8,3 +8,4 @@ export * from "./tool-commands.js";
 // Import to register all commands
 import "./git-commands.js";
 import "./tool-commands.js";
+import "./team-commands.js";
