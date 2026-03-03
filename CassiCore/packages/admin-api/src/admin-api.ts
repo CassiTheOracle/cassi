@@ -3148,6 +3148,167 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             return sendJSON(res, 500, { error: String(err) })
           }
         }
+
+        // ── C3: Agent-level team coordination endpoints ──────────────────────
+        // These mirror the 8 internal team-coordinator tools, exposed via HTTP
+        // for use by external execution backends (OpenCode sessions acting as team agents).
+
+        // POST /teams/agent/message — send message to another agent in the team
+        if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'message' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const ds = daemon.sessionDigestStore
+            if (!ds) return sendJSON(res, 503, { error: 'SessionDigestStore not available' })
+            const body = await parseBody(req)
+            if (!body?.toAgentId || !body?.message) {
+              return sendJSON(res, 400, { error: 'toAgentId and message are required' })
+            }
+            const fromSessionId = body.fromSessionId || body.agentId ? `agent:${body.agentId}` : 'external'
+            const toSessionId = `agent:${body.toAgentId}`
+            const msgId = ds.sendMessage(toSessionId, fromSessionId, body.message)
+            return sendJSON(res, 200, { messageId: msgId, toAgentId: body.toAgentId })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/agent/result?agentId=xxx — get result from a completed agent
+        if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'result' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const agentId = url.searchParams.get('agentId')
+            if (!agentId) return sendJSON(res, 400, { error: 'agentId query parameter is required' })
+
+            for (const team of to.listAllTeams()) {
+              const goalId = team.agentGoalMap?.[agentId]
+              if (!goalId) continue
+              const goal = team.goals?.[goalId]
+              if (!goal) return sendJSON(res, 404, { error: `Goal for agent ${agentId} not found` })
+
+              return sendJSON(res, 200, {
+                agentId,
+                teamId: team.id,
+                goalTitle: goal.title,
+                status: goal.status,
+                result: goal.result ?? null,
+              })
+            }
+            return sendJSON(res, 404, { error: `Agent ${agentId} not found in any team` })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/agent/list?teamId=xxx — list all agents in a team
+        if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'list' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teamId = url.searchParams.get('teamId')
+            if (!teamId) return sendJSON(res, 400, { error: 'teamId query parameter is required' })
+            const team = to.getTeam(teamId)
+            if (!team) return sendJSON(res, 404, { error: `Team ${teamId} not found` })
+
+            const agents = (team.agentIds || []).map((aid: string) => {
+              const goalId = team.agentGoalMap?.[aid]
+              const goal = goalId ? team.goals?.[goalId] : undefined
+              return {
+                agentId: aid,
+                isCoordinator: aid === team.coordinatorAgentId,
+                goalId: goalId ?? null,
+                goalTitle: goal?.title ?? null,
+                goalStatus: goal?.status ?? 'unknown',
+                roleHint: goal?.roleHint ?? (aid === team.coordinatorAgentId ? 'team-coordinator' : null),
+              }
+            })
+            return sendJSON(res, 200, { teamId, agents })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /teams/agent/update-plan — create or modify sub-goals
+        if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'update-plan' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const body = await parseBody(req)
+            if (!body?.teamId) return sendJSON(res, 400, { error: 'teamId is required' })
+
+            const goalTree = to.getGoalTree(body.teamId)
+            if (!goalTree) return sendJSON(res, 404, { error: `Goal tree for team ${body.teamId} not found` })
+
+            const results: any[] = []
+            // Add new sub-goals
+            if (body.addGoals && Array.isArray(body.addGoals)) {
+              for (const g of body.addGoals) {
+                if (!g.title || !g.parentGoalId) continue
+                const newId = goalTree.addSubGoal(g.parentGoalId, {
+                  title: g.title,
+                  description: g.description || '',
+                  roleHint: g.roleHint || undefined,
+                })
+                results.push({ action: 'added', goalId: newId, title: g.title })
+              }
+            }
+            // Update existing goals
+            if (body.updateGoals && Array.isArray(body.updateGoals)) {
+              for (const g of body.updateGoals) {
+                if (!g.goalId) continue
+                if (g.status) goalTree.updateStatus(g.goalId, g.status, g.result || undefined)
+                results.push({ action: 'updated', goalId: g.goalId, status: g.status })
+              }
+            }
+
+            return sendJSON(res, 200, { teamId: body.teamId, results })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // POST /teams/agent/complete-goal — signal completion of a team goal
+        if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'complete-goal' && req.method === 'POST') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const body = await parseBody(req)
+            if (!body?.teamId || !body?.goalId) {
+              return sendJSON(res, 400, { error: 'teamId and goalId are required' })
+            }
+
+            const goalTree = to.getGoalTree(body.teamId)
+            if (!goalTree) return sendJSON(res, 404, { error: `Goal tree for team ${body.teamId} not found` })
+
+            goalTree.updateStatus(body.goalId, body.success === false ? 'failed' : 'completed', {
+              summary: body.summary || '',
+              output: body.result || body.summary || '',
+              tokensUsed: body.tokensUsed || 0,
+              durationMs: body.durationMs || 0,
+              error: body.error || undefined,
+            })
+
+            return sendJSON(res, 200, { teamId: body.teamId, goalId: body.goalId, status: body.success === false ? 'failed' : 'completed' })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
+
+        // GET /teams/agent/goal-tree?teamId=xxx — get the full goal tree (for agents)
+        if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'goal-tree' && req.method === 'GET') {
+          try {
+            if (!to) return sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+            const teamId = url.searchParams.get('teamId')
+            if (!teamId) return sendJSON(res, 400, { error: 'teamId query parameter is required' })
+
+            const goalTree = to.getGoalTree(teamId)
+            if (!goalTree) return sendJSON(res, 404, { error: `Goal tree for team ${teamId} not found` })
+
+            return sendJSON(res, 200, {
+              teamId,
+              tree: goalTree.renderTree(),
+              progress: goalTree.getProgressReport(),
+            })
+          } catch (err) {
+            return sendJSON(res, 500, { error: String(err) })
+          }
+        }
       }
 
       // ── Sessions endpoints ─────────────────────────────────────────────────
@@ -4714,6 +4875,75 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       // ── B7: Serialize session hierarchy for plugin consumption ──
       const sessionHierarchy = serializeSessionHierarchy()
 
+      // ── C1: Active teams and pending checkpoints for plugin injection ──
+      let teams: { active: any[]; pendingCheckpoints: any[] } | undefined
+      const to = daemon.intelligence?.teamOrchestrator as any
+      if (to?.listActiveTeams) {
+        try {
+          const activeTeams = to.listActiveTeams() as any[]
+          const pendingCheckpoints = (to.listPendingCheckpoints?.() ?? []) as any[]
+
+          if (activeTeams.length > 0 || pendingCheckpoints.length > 0) {
+            teams = {
+              active: activeTeams.map((t: any) => {
+                // Get rich status if available (includes progress + active agents)
+                let progress: any = null
+                let activeAgents: any[] = []
+                let goalTreeStr: string | null = null
+                try {
+                  const status = to.getTeamStatus?.(t.id)
+                  if (status) {
+                    progress = status.progress ?? null
+                    activeAgents = (status.activeAgents ?? []).slice(0, 10)
+                    goalTreeStr = status.goalTree ?? null
+                  }
+                } catch {}
+
+                return {
+                  id: t.id,
+                  name: t.config?.name ?? null,
+                  status: t.status,
+                  goal: t.config?.goal ?? '',
+                  checkpointMode: t.config?.checkpoint?.mode ?? 'none',
+                  budget: {
+                    tokensUsed: t.budget?.tokensUsed ?? 0,
+                    maxTokens: t.budget?.maxTokens ?? 0,
+                    agentsSpawned: t.budget?.agentsSpawned ?? 0,
+                    maxAgents: t.budget?.maxAgents ?? 0,
+                    elapsedMs: t.budget?.startedAt ? Date.now() - t.budget.startedAt : 0,
+                    maxDurationMs: t.budget?.maxDurationMs ?? 0,
+                  },
+                  agentCount: t.agentIds?.length ?? 0,
+                  progress: progress ? {
+                    completed: progress.completed ?? 0,
+                    total: progress.total ?? 0,
+                    inProgress: progress.inProgress ?? 0,
+                    blocked: progress.blocked ?? 0,
+                  } : null,
+                  activeAgents: activeAgents.map((a: any) => ({
+                    agentId: a.agentId,
+                    goalTitle: a.goalTitle,
+                  })),
+                  goalTree: goalTreeStr,
+                  createdAt: t.createdAt,
+                }
+              }),
+              pendingCheckpoints: pendingCheckpoints.map((cp: any) => ({
+                id: cp.id,
+                teamId: cp.teamId,
+                trigger: cp.trigger,
+                status: cp.status,
+                progressSummary: cp.progressSummary ?? '',
+                completedGoals: cp.completedGoals ?? 0,
+                totalGoals: cp.totalGoals ?? 0,
+                budget: cp.budgetSnapshot ?? null,
+                createdAt: cp.createdAt,
+              })),
+            }
+          }
+        } catch {}
+      }
+
       const payload = {
         updatedAt: Date.now(),
         insight,
@@ -4723,6 +4953,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         sessionHealth,  // D1
         anomalies,      // D2
         ...(Object.keys(sessionHierarchy).length > 0 ? { sessionHierarchy } : {}),  // B7
+        ...(teams ? { teams } : {}),  // C1
       }
 
       // Atomic write: temp file → rename (prevents partial reads)
@@ -4795,6 +5026,25 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       injectTimer = setInterval(() => { writeInjectFile().catch(() => {}) }, 5000)
       writeInjectFile().catch(() => {})  // Write immediately on start
       logger.info('[admin-api] inject.json writer started (5s interval)')
+
+      // ── C2: Immediate inject.json write on team checkpoint events ──
+      // Checkpoints are time-sensitive (human approval needed), so bypass the 5s timer
+      try {
+        const { getEventBus } = await import('./events/index.js')
+        const eventBus = getEventBus()
+        if (eventBus?.onAll) {
+          eventBus.onAll((event: any) => {
+            if (event?.type === 'team:checkpoint' || event?.type === 'team:completed' ||
+                event?.type === 'team:failed' || event?.type === 'team:cancelled') {
+              logger.debug('[admin-api] team event detected, writing inject.json immediately', { type: event.type })
+              writeInjectFile().catch(() => {})
+            }
+          })
+          logger.info('[admin-api] team event listener registered for immediate inject.json writes')
+        }
+      } catch (err) {
+        logger.debug('[admin-api] failed to register team event listener', { error: String(err) })
+      }
 
       return { tcpPort: boundPort, unixPath }
     },
