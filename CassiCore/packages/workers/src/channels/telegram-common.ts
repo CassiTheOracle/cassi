@@ -1,4 +1,13 @@
-// Shared Telegram helpers for workers/channels/telegram.ts
+/**
+ * Shared Telegram helpers for workers/channels/telegram.ts.
+ *
+ * Formatting is handled by the markdown pipeline (markdown/ir.ts → render.ts → format.ts)
+ * ported from OpenClaw's battle-tested implementation.
+ */
+
+import { markdownToTelegramHtml } from './markdown/format.js'
+
+export { markdownToTelegramHtml }
 
 export interface ImageAttachment {
   data: string
@@ -33,31 +42,15 @@ function apiUrl(method: string): string {
 }
 
 /**
- * Escape all MarkdownV2 special characters in a plain-text region.
- * Does NOT escape backticks (`` ` ``) here — those are handled by the
- * code-region pass in sanitizeMarkdown().
+ * Generic Telegram Bot API caller with timeout and error handling.
  */
-function escapeMarkdownV2Chars(text: string): string {
-  return text.replace(/([_*[\]()~`>#+\-=|{}.!\\])/g, '\\$1')
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
-
-// ── Public API helpers ─────────────────────────────────────────────────────────
-
-export async function tgCall<T>(
-  method: string,
-  body?: Record<string, unknown>,
-  timeoutMs = 15_000,
-): Promise<T | null> {
+async function tgCall<T>(method: string, body?: Record<string, unknown>): Promise<T | null> {
   const ac = new AbortController()
-  const timer = setTimeout(() => ac.abort(), timeoutMs)
+  const timer = setTimeout(() => ac.abort(), 15_000)
   try {
     const res = await fetch(apiUrl(method), {
-      method: body ? 'POST' : 'GET',
-      headers: body ? { 'Content-Type': 'application/json' } : {},
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: body ? JSON.stringify(body) : undefined,
       signal: ac.signal,
     })
@@ -77,167 +70,109 @@ export async function tgCall<T>(
   }
 }
 
+// ── Public API: formatting ─────────────────────────────────────────────────────
+
 /**
- * Sanitize text for Telegram's MarkdownV2 parse mode.
+ * Sanitize text for Telegram display.
  *
- * Strategy: escape all MarkdownV2 special characters in plain-text regions,
- * while preserving code spans (`` `...` ``) and code blocks (` ```...``` `)
- * verbatim — Telegram renders those without further parsing.
+ * Converts GitHub-flavored Markdown to Telegram HTML using the markdown-it
+ * based pipeline (ported from OpenClaw).
  *
- * Incomplete code spans (e.g. a lone opening backtick mid-stream) fall through
- * to plain text where the backtick is escaped, keeping the message valid.
+ * @deprecated Prefer calling markdownToTelegramHtml() directly.
  */
 export function sanitizeMarkdown(text: string): string {
-  if (!text) return ''
-
-  const parts: string[] = []
-  let i = 0
-
-  while (i < text.length) {
-    // ── Triple-backtick code block ─────────────────────────────────────────
-    if (text.startsWith('```', i)) {
-      const closeIdx = text.indexOf('```', i + 3)
-      if (closeIdx !== -1) {
-        parts.push(text.slice(i, closeIdx + 3))  // preserve verbatim
-        i = closeIdx + 3
-        continue
-      }
-    }
-
-    // ── Single-backtick code span ──────────────────────────────────────────
-    if (text[i] === '`') {
-      const closeIdx = text.indexOf('`', i + 1)
-      // Only treat as a code span if it closes on the same line
-      if (closeIdx !== -1 && !text.slice(i + 1, closeIdx).includes('\n')) {
-        parts.push(text.slice(i, closeIdx + 1))  // preserve verbatim
-        i = closeIdx + 1
-        continue
-      }
-      // No valid closing backtick — escape the lone backtick and advance
-      parts.push('\\`')
-      i++
-      continue
-    }
-
-    // ── Plain text: scan ahead to the next backtick ────────────────────────
-    const nextBacktick = text.indexOf('`', i)
-    if (nextBacktick === -1) {
-      parts.push(escapeMarkdownV2Chars(text.slice(i)))
-      break
-    } else {
-      parts.push(escapeMarkdownV2Chars(text.slice(i, nextBacktick)))
-      i = nextBacktick
-    }
-  }
-
-  return parts.join('')
+  return markdownToTelegramHtml(text)
 }
+
+// ── Public API: messaging ──────────────────────────────────────────────────────
 
 /**
  * Send a new message to a chat.
  *
- * Attempts MarkdownV2 (with sanitized text) first. If the API rejects the
- * formatted send, falls back to plain text so the message always gets through.
+ * Converts markdown to Telegram HTML by default. Falls back to plain text
+ * if the API rejects the formatted send.
  */
 export async function sendMessage(
   chatId: number,
   text: string,
-  parseMode?: 'MarkdownV2' | 'HTML',
+  _parseMode?: 'MarkdownV2' | 'HTML',
 ): Promise<number | null> {
-  if (parseMode === 'MarkdownV2') {
-    const safeText = sanitizeMarkdown(text || '…')
-    const result = await tgCall<{ message_id: number }>('sendMessage', {
-      chat_id: chatId,
-      text: safeText,
-      parse_mode: 'MarkdownV2',
-    })
-    if (result !== null) return result.message_id ?? null
-    // Formatted send failed — fall through to plain text
-    WARN(`[telegram-common] sendMessage MarkdownV2 failed for chat ${chatId}, retrying as plain text`)
-  } else if (parseMode === 'HTML') {
-    const safeText = escapeHtml(text || '…')
-    const result = await tgCall<{ message_id: number }>('sendMessage', {
-      chat_id: chatId,
-      text: safeText,
-      parse_mode: 'HTML',
-    })
-    if (result !== null) return result.message_id ?? null
-    WARN(`[telegram-common] sendMessage HTML failed for chat ${chatId}, retrying as plain text`)
-  }
-
-  // Plain text fallback (also used when parseMode is undefined)
+  // Convert markdown to HTML using the markdown-it pipeline
+  const htmlText = markdownToTelegramHtml(text || '\u2026')
   const result = await tgCall<{ message_id: number }>('sendMessage', {
     chat_id: chatId,
-    text: text || '…',
+    text: htmlText,
+    parse_mode: 'HTML',
   })
-  return result?.message_id ?? null
+  if (result !== null) return result.message_id ?? null
+
+  // HTML send failed — fall through to plain text
+  WARN(`[telegram-common] sendMessage HTML failed for chat ${chatId}, retrying as plain text`)
+
+  const plainResult = await tgCall<{ message_id: number }>('sendMessage', {
+    chat_id: chatId,
+    text: text || '\u2026',
+  })
+  return plainResult?.message_id ?? null
 }
 
 /**
- * Edit an existing message in place.
+ * Edit an existing message.
  *
- * Same MarkdownV2-with-fallback strategy as sendMessage().
+ * Converts markdown to Telegram HTML. Falls back to plain text on failure.
  */
 export async function editMessage(
   chatId: number,
-  msgId: number,
+  messageId: number,
   text: string,
-  parseMode?: 'MarkdownV2' | 'HTML',
+  _parseMode?: 'MarkdownV2' | 'HTML',
 ): Promise<boolean> {
-  if (parseMode === 'MarkdownV2') {
-    const safeText = sanitizeMarkdown(text || '…')
-    const result = await tgCall('editMessageText', {
-      chat_id: chatId,
-      message_id: msgId,
-      text: safeText,
-      parse_mode: 'MarkdownV2',
-    })
-    if (result !== null) return true
-    WARN(`[telegram-common] editMessage MarkdownV2 failed for chat ${chatId} msg ${msgId}, retrying as plain text`)
-  } else if (parseMode === 'HTML') {
-    const safeText = escapeHtml(text || '…')
-    const result = await tgCall('editMessageText', {
-      chat_id: chatId,
-      message_id: msgId,
-      text: safeText,
-      parse_mode: 'HTML',
-    })
-    if (result !== null) return true
-    WARN(`[telegram-common] editMessage HTML failed for chat ${chatId} msg ${msgId}, retrying as plain text`)
-  }
-
-  // Plain text fallback
+  const htmlText = markdownToTelegramHtml(text || '\u2026')
   const result = await tgCall('editMessageText', {
     chat_id: chatId,
-    message_id: msgId,
-    text: text || '…',
+    message_id: messageId,
+    text: htmlText,
+    parse_mode: 'HTML',
   })
-  return result !== null
+  if (result !== null) return true
+
+  // HTML edit failed — retry as plain text
+  WARN(`[telegram-common] editMessage HTML failed for chat ${chatId} msg ${messageId}, retrying as plain text`)
+
+  const plainResult = await tgCall('editMessageText', {
+    chat_id: chatId,
+    message_id: messageId,
+    text: text || '\u2026',
+  })
+  return plainResult !== null
 }
 
+/**
+ * Send a "typing..." indicator.
+ */
 export async function sendTyping(chatId: number): Promise<void> {
   await tgCall('sendChatAction', { chat_id: chatId, action: 'typing' })
 }
 
-interface FileInfoResult { file_path?: string }
+// ── Photo handling ─────────────────────────────────────────────────────────────
 
 /**
- * Download the photo with the given file_id and return it as a base64
- * ImageAttachment. Returns null on any error (logged via WARN).
+ * Download a photo from Telegram by file_id and return it as a base64 ImageAttachment.
  */
 export async function downloadPhoto(fileId: string): Promise<ImageAttachment | null> {
   try {
-    const fileInfo = await tgCall<FileInfoResult>('getFile', { file_id: fileId })
+    const fileInfo = await tgCall<{ file_path: string }>('getFile', { file_id: fileId })
     if (!fileInfo?.file_path) {
-      WARN(`[telegram-common] downloadPhoto: no file_path in getFile result for ${fileId}`)
+      WARN(`[telegram-common] downloadPhoto: no file_path for ${fileId}`)
       return null
     }
 
-    const fileUrl = `https://api.telegram.org/file/bot${TOKEN}/${fileInfo.file_path}`
-    const photoAc = new AbortController()
-    const photoTimer = setTimeout(() => photoAc.abort(), 20_000)
-    const res = await fetch(fileUrl, { signal: photoAc.signal })
-    clearTimeout(photoTimer)
+    const url = `https://api.telegram.org/file/bot${TOKEN}/${fileInfo.file_path}`
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), 30_000)
+    const res = await fetch(url, { signal: ac.signal })
+    clearTimeout(timer)
+
     if (!res.ok) {
       WARN(`[telegram-common] downloadPhoto: HTTP ${res.status} for ${fileId}`)
       return null

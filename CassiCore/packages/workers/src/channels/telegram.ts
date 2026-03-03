@@ -90,17 +90,10 @@ function getOrCreateStream(chatId: number, sessionId: string): StreamState {
   return s
 }
 
-function chooseParseModeForText(text: string): 'MarkdownV2' | 'HTML' {
-  if (!text) return 'MarkdownV2'
-  
-  // If the text already has HTML tags that we explicitly support, use HTML
-  if (text.includes('<code>') || text.includes('<pre>') || text.includes('<b>') || text.includes('<i>') || text.includes('<a href=')) {
-    return 'HTML'
-  }
-  
-  // Default to MarkdownV2 for everything else. 
-  // We will handle markdown-to-entities conversion in the common helper.
-  return 'MarkdownV2'
+function chooseParseModeForText(_text: string): 'MarkdownV2' | 'HTML' {
+  // Always use HTML — markdownToTelegramHtml() in telegram-common.ts handles
+  // the conversion from GFM to Telegram HTML.
+  return 'HTML'
 }
 
 async function flushStream(sessionId: string): Promise<void> {

@@ -1,17 +1,21 @@
 /**
  * Budget Tracker — Persistent monthly request budget for metered providers.
  *
- * Tracks request counts per provider per calendar month in SQLite. Provides
- * usage percentages, daily burn rates, and projected exhaustion dates so the
+ * Tracks request counts per provider per calendar month. Provides usage
+ * percentages, daily burn rates, and projected exhaustion dates so the
  * ModelRouter can make informed decisions about where to send requests.
  *
  * Design:
- * - Persists across daemon restarts via SQLite
+ * - Persists across daemon restarts via JSON file (~/.cassicore/budget-state.json)
  * - Automatic month rollover (compares YYYY-MM)
  * - Thread-safe (single-writer via daemon main process)
  * - Integrates with EventBus provider:request_end events
+ * - Emits budget:warning and budget:tier_changed events on tier transitions
  */
 
+import { homedir } from 'node:os'
+import { join } from 'node:path'
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import type { ILogger, IEventBus } from '../../types/interfaces.js'
 import type { RequestCost } from './cost-classifier.js'
 import { getCostClassifier } from './cost-classifier.js'
@@ -58,6 +62,10 @@ export const DEFAULT_PROVIDER_BUDGETS: Record<string, ProviderBudgetConfig> = {
   'github-copilot': { monthlyLimit: 1500 },
 }
 
+// ─── Persistence Path ────────────────────────────────────────────────────────
+
+const BUDGET_STATE_PATH = join(homedir(), '.cassicore', 'budget-state.json')
+
 // ─── Budget Tracker ──────────────────────────────────────────────────────────
 
 export class BudgetTracker {
@@ -67,7 +75,7 @@ export class BudgetTracker {
 
   /**
    * In-memory counters: providerId → { month: 'YYYY-MM', count: number, dailyCounts: Map<day, count> }
-   * Persisted to SQLite on shutdown, loaded on startup.
+   * Persisted to JSON file on shutdown, loaded on startup.
    */
   private readonly counters = new Map<string, {
     month: string
@@ -77,6 +85,9 @@ export class BudgetTracker {
     /** First recorded request timestamp this month */
     firstRequestAt: number
   }>()
+
+  /** Tracks the last-known tier per provider so we can detect transitions */
+  private readonly previousTiers = new Map<string, BudgetTier>()
 
   private bus: IEventBus | undefined
 
@@ -150,6 +161,7 @@ export class BudgetTracker {
 
     counter.count++
     counter.dailyCounts.set(day, (counter.dailyCounts.get(day) ?? 0) + 1)
+    this.checkThresholds(providerId)
   }
 
   // ── Queries ──────────────────────────────────────────────────────────────
@@ -239,7 +251,7 @@ export class BudgetTracker {
   }
 
   /**
-   * Emit budget warning events when thresholds are crossed.
+   * Emit budget events when thresholds are crossed or tier transitions occur.
    * Call this after recording a request.
    */
   private checkThresholds(providerId: string): void {
@@ -248,12 +260,35 @@ export class BudgetTracker {
     const snapshot = this.getSnapshot(providerId)
     if (!snapshot) return
 
-    const tier = this.getTier(providerId)
-    if (tier === 'cautious' || tier === 'frugal' || tier === 'critical') {
+    const newTier = this.getTier(providerId)
+    const previousTier = this.previousTiers.get(providerId) ?? 'normal'
+
+    // Detect tier transition
+    if (newTier !== previousTier) {
+      this.previousTiers.set(providerId, newTier)
       this.bus.emit({
-        type: 'budget:warning' as any,
+        type: 'budget:tier_changed',
         providerId,
-        tier,
+        previousTier,
+        newTier,
+        percentUsed: snapshot.percentUsed,
+        remaining: snapshot.remaining,
+      })
+      this.logger.warn('Budget tier changed', {
+        providerId,
+        previousTier,
+        newTier,
+        percentUsed: Math.round(snapshot.percentUsed),
+        remaining: snapshot.remaining,
+      })
+    }
+
+    // Emit warning for non-normal tiers (every request while in warning zone)
+    if (newTier === 'cautious' || newTier === 'frugal' || newTier === 'critical') {
+      this.bus.emit({
+        type: 'budget:warning',
+        providerId,
+        tier: newTier,
         percentUsed: snapshot.percentUsed,
         remaining: snapshot.remaining,
         monthlyLimit: snapshot.monthlyLimit,
@@ -300,11 +335,60 @@ export class BudgetTracker {
         dailyCounts,
         firstRequestAt: Date.now(),
       })
+
+      // Initialize previousTiers so we don't emit a false transition on first request
+      this.previousTiers.set(providerId, this.getTier(providerId))
     }
     this.logger.info('BudgetTracker state imported', {
       providers: Object.keys(state),
       currentMonth,
     })
+  }
+
+  /**
+   * Save budget state to disk (~/.cassicore/budget-state.json).
+   * Called on daemon shutdown to preserve counters across restarts.
+   */
+  async saveToDisk(): Promise<void> {
+    try {
+      const state = this.exportState()
+      if (Object.keys(state).length === 0) {
+        this.logger.debug('BudgetTracker: no state to persist')
+        return
+      }
+      const dir = join(homedir(), '.cassicore')
+      await mkdir(dir, { recursive: true })
+      await writeFile(BUDGET_STATE_PATH, JSON.stringify(state, null, 2), 'utf-8')
+      this.logger.info('BudgetTracker state saved to disk', {
+        path: BUDGET_STATE_PATH,
+        providers: Object.keys(state),
+      })
+    } catch (err) {
+      this.logger.error('Failed to save BudgetTracker state', { error: String(err) })
+    }
+  }
+
+  /**
+   * Load budget state from disk (~/.cassicore/budget-state.json).
+   * Called on daemon startup to restore counters from previous session.
+   * Stale months are automatically discarded by importState().
+   */
+  async loadFromDisk(): Promise<void> {
+    try {
+      const raw = await readFile(BUDGET_STATE_PATH, 'utf-8')
+      const state = JSON.parse(raw)
+      this.importState(state)
+      this.logger.info('BudgetTracker state loaded from disk', {
+        path: BUDGET_STATE_PATH,
+      })
+    } catch (err: unknown) {
+      // ENOENT is expected on first run — don't log as error
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        this.logger.debug('No budget state file found (first run)')
+        return
+      }
+      this.logger.warn('Failed to load BudgetTracker state from disk', { error: String(err) })
+    }
   }
 
   // ── Internal ─────────────────────────────────────────────────────────────
