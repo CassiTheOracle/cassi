@@ -26,6 +26,65 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   const wsConnections = new Map<string, WSConnection>()
   let wsConnectionId = 0
 
+  // ── B7: Session hierarchy tracking (populated via subagent_start/subagent_end events) ──
+  interface SessionHierarchyEntry {
+    parentId: string | null
+    childIds: Set<string>
+    startedAt?: number
+    endedAt?: number
+  }
+  const sessionHierarchyMap = new Map<string, SessionHierarchyEntry>()
+
+  /** Ensure a hierarchy entry exists for the given session ID. */
+  function ensureHierarchyEntry(sid: string): SessionHierarchyEntry {
+    let entry = sessionHierarchyMap.get(sid)
+    if (!entry) {
+      entry = { parentId: null, childIds: new Set() }
+      sessionHierarchyMap.set(sid, entry)
+    }
+    return entry
+  }
+
+  /** Process a subagent lifecycle event to update the hierarchy map. Called inline from /events/ingest. */
+  function processHierarchyEvent(event: any): void {
+    if (event.type === 'subagent_start') {
+      const childId = event.data?.childSessionId || event.sessionId
+      const parentId = event.data?.parentSessionId || event.data?.parentId
+      if (!childId || !parentId) return
+
+      // Register child → parent link
+      const childEntry = ensureHierarchyEntry(childId)
+      childEntry.parentId = parentId
+      childEntry.startedAt = event.timestamp || Date.now()
+
+      // Register parent → child link
+      const parentEntry = ensureHierarchyEntry(parentId)
+      parentEntry.childIds.add(childId)
+
+      logger.debug('[admin-api] Session hierarchy updated', { childId, parentId })
+    } else if (event.type === 'subagent_end') {
+      const childId = event.data?.childSessionId || event.sessionId
+      if (!childId) return
+
+      const entry = sessionHierarchyMap.get(childId)
+      if (entry) {
+        entry.endedAt = event.timestamp || Date.now()
+      }
+    }
+  }
+
+  /** Serialize the hierarchy map for inject.json. */
+  function serializeSessionHierarchy(): Record<string, { parentId?: string; childIds: string[] }> {
+    const result: Record<string, { parentId?: string; childIds: string[] }> = {}
+    for (const [sid, entry] of sessionHierarchyMap) {
+      result[sid] = {
+        ...(entry.parentId ? { parentId: entry.parentId } : {}),
+        childIds: Array.from(entry.childIds),
+      }
+    }
+    return result
+  }
+
   function sendJSON(res: http.ServerResponse, code: number, obj: unknown) {
     const s = JSON.stringify(obj)
     res.writeHead(code, { 'Content-Type': 'application/json' })
@@ -397,6 +456,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               if (!event.sessionId) {
                 event.sessionId = body.sessionId
               }
+
+              // B7: Intercept subagent lifecycle events to track session hierarchy
+              processHierarchyEvent(event)
 
               eventBus.emit(event)
               ingested++
@@ -1334,7 +1396,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           if (!sessionId) {
             return sendJSON(res, 400, { error: 'sessionId query parameter is required' })
           }
-          const focus = buildFocusState(sessionId)
+          const focus = buildFocusState(sessionId, { includeParentFocus: true })
           if (!focus) {
             return sendJSON(res, 200, { sessionId, focusState: null, message: 'no focus data available for this session' })
           }
@@ -1541,6 +1603,29 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           if (hours) opts.hours = parseInt(hours, 10)
           const hourly = profiler.getHourlyStats(opts)
           return sendJSON(res, 200, { hourly })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
+      // GET /intelligence/budget — Budget tracker snapshots (monthly limits, usage, tiers)
+      if (req.method === 'GET' && url.pathname === '/intelligence/budget') {
+        try {
+          const tracker = daemon.budgetTracker
+          if (!tracker) {
+            return sendJSON(res, 503, { error: 'budget tracker not initialized' })
+          }
+          const providerId = url.searchParams.get('providerId')
+          if (providerId) {
+            const snapshot = tracker.getSnapshot(providerId)
+            return sendJSON(res, 200, { snapshots: snapshot ? [snapshot] : [], tier: tracker.getTier(providerId) })
+          }
+          const snapshots = tracker.getAllSnapshots()
+          const tiers: Record<string, string> = {}
+          for (const snap of snapshots) {
+            tiers[snap.providerId] = tracker.getTier(snap.providerId)
+          }
+          return sendJSON(res, 200, { snapshots, tiers })
         } catch (err) {
           return sendJSON(res, 500, { error: String(err) })
         }
@@ -4378,7 +4463,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
    * Build a unified focusState for a single session by combining data from
    * MentalModel, SessionDigest, and Thinker strategy.
    */
-  function buildFocusState(sessionId: string): Record<string, any> | null {
+  function buildFocusState(sessionId: string, opts?: { includeParentFocus?: boolean }): Record<string, any> | null {
     const subconscious = daemon.intelligence?.subconscious
     const digestStore = daemon.sessionDigestStore
 
@@ -4429,7 +4514,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     if (digest?.decisions?.length) compactionParts.push(`Key decisions: ${digest.decisions.slice(-3).join('; ')}`)
     if (digest?.learnings?.length) compactionParts.push(`Learnings: ${digest.learnings.slice(-3).join('; ')}`)
 
-    return {
+    const result: Record<string, any> = {
       mode,
       topic,
       intent: mmState?.intent
@@ -4444,6 +4529,26 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       pruneAdvice,
       compactionContext: compactionParts.length > 0 ? compactionParts.join('. ') : null,
     }
+
+    // ── B8: Include parent's focus state for child sessions ──
+    if (opts?.includeParentFocus) {
+      const hierarchyEntry = sessionHierarchyMap.get(sessionId)
+      if (hierarchyEntry?.parentId) {
+        // Build parent focus WITHOUT includeParentFocus to avoid recursion
+        const parentFocus = buildFocusState(hierarchyEntry.parentId)
+        if (parentFocus) {
+          result.parentFocus = {
+            topic: parentFocus.topic,
+            mode: parentFocus.mode,
+            intent: parentFocus.intent,
+            activeFiles: parentFocus.activeFiles?.slice(0, 10),
+            turnCount: parentFocus.turnCount,
+          }
+        }
+      }
+    }
+
+    return result
   }
 
   async function writeInjectFile(): Promise<void> {
@@ -4514,7 +4619,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       for (const sid of allSessionIds) {
-        const focus = buildFocusState(sid)
+        const focus = buildFocusState(sid, { includeParentFocus: true })
         if (focus) focusStates[sid] = focus
       }
 
@@ -4606,6 +4711,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // ── B7: Serialize session hierarchy for plugin consumption ──
+      const sessionHierarchy = serializeSessionHierarchy()
+
       const payload = {
         updatedAt: Date.now(),
         insight,
@@ -4614,6 +4722,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         focusStates,
         sessionHealth,  // D1
         anomalies,      // D2
+        ...(Object.keys(sessionHierarchy).length > 0 ? { sessionHierarchy } : {}),  // B7
       }
 
       // Atomic write: temp file → rename (prevents partial reads)
