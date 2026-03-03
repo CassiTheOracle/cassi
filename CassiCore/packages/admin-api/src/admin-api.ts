@@ -38,6 +38,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   }
   const sessionHierarchyMap = new Map<string, SessionHierarchyEntry>()
 
+  // ── T2: Subagent session ID → CassiCore team ID mapping ──
+  const subagentToTeamMap = new Map<string, string>()
+
   /** Ensure a hierarchy entry exists for the given session ID. */
   function ensureHierarchyEntry(sid: string): SessionHierarchyEntry {
     let entry = sessionHierarchyMap.get(sid)
@@ -52,6 +55,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
    *  The bridge plugin sends events with fields at top level (not nested under .data):
    *    { type: "subagent_start", sessionId, parentSessionId, agentType, ... }
    *    { type: "subagent_end", sessionId, parentSessionId, agentType, steps, ... }
+   *
+   *  T2 enhancement: Also creates/completes external CassiCore teams wrapping the subagent.
+   *  New fields from plugin (T2-9):
+   *    subagent_start: { ..., taskPrompt?, taskDescription? }
+   *    subagent_end:   { ..., resultText?, resultSummary?, tokensUsed? }
    */
   function processHierarchyEvent(event: any): void {
     if (event.type === 'subagent_start') {
@@ -71,6 +79,57 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       parentEntry.childIds.add(childId)
 
       logger.debug('[admin-api] Session hierarchy updated', { childId, parentId, agentType: event.agentType })
+
+      // ── T2: Create external team wrapping this subagent ──
+      const to = daemon.intelligence?.teamOrchestrator as any
+      if (to?.createTeam) {
+        try {
+          // Build goal from task prompt/description or fallback
+          const goalText = event.taskPrompt
+            || event.taskDescription
+            || `OpenCode subagent task (${event.agentType || 'general'})`
+
+          const teamName = event.taskDescription
+            ? `Subagent: ${event.taskDescription.slice(0, 60)}`
+            : `Subagent: ${event.agentType || 'task'}`
+
+          const team = to.createTeam({
+            name: teamName,
+            goal: goalText,
+            external: true,
+            externalSessionId: childId,
+            externalParentSessionId: parentId,
+            checkpoint: { mode: 'none' },
+            budget: {
+              maxTokens: 200_000,   // Generous default for subagents
+              maxAgents: 1,         // External teams have exactly 1 agent (the subagent)
+              maxDepth: 1,
+              maxDurationMs: 30 * 60 * 1000, // 30 min
+            },
+            metadata: {
+              agentType: event.agentType,
+              source: 'opencode-subagent',
+            },
+          })
+
+          // Map subagent session → team ID for completion routing
+          subagentToTeamMap.set(childId, team.id)
+
+          logger.info('[admin-api] External team created for subagent', {
+            teamId: team.id,
+            childId,
+            parentId,
+            agentType: event.agentType,
+            goalPreview: goalText.slice(0, 100),
+          })
+        } catch (err) {
+          logger.error('[admin-api] Failed to create external team for subagent', {
+            childId,
+            parentId,
+            error: String(err),
+          })
+        }
+      }
     } else if (event.type === 'subagent_end') {
       const childId = event.childSessionId || event.sessionId
       if (!childId) return
@@ -80,6 +139,76 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         entry.endedAt = event.timestamp || Date.now()
         if (event.steps != null) entry.steps = event.steps
         if (event.durationMs != null) entry.durationMs = event.durationMs
+      }
+
+      // ── T2: Complete the external team wrapping this subagent ──
+      const teamId = subagentToTeamMap.get(childId)
+      if (teamId) {
+        const to = daemon.intelligence?.teamOrchestrator as any
+        if (to?.completeExternalTeam) {
+          try {
+            to.completeExternalTeam(teamId, {
+              summary: event.resultSummary || event.taskDescription || undefined,
+              output: event.resultText || undefined,
+              error: event.error || undefined,
+              tokensUsed: event.tokensUsed || 0,
+              durationMs: event.durationMs || (entry ? (entry.endedAt! - (entry.startedAt || 0)) : undefined),
+              success: !event.error,
+            })
+
+            logger.info('[admin-api] External team completed for subagent', {
+              teamId,
+              childId,
+              success: !event.error,
+              tokensUsed: event.tokensUsed,
+            })
+          } catch (err) {
+            logger.error('[admin-api] Failed to complete external team', {
+              teamId,
+              childId,
+              error: String(err),
+            })
+          }
+        }
+
+        // Clean up mapping (team is finalized)
+        subagentToTeamMap.delete(childId)
+      }
+    } else if (event.type === 'subagent_prompt_captured') {
+      // ── T2: Update external team's goal with the actual task prompt ──
+      // This event arrives after subagent_start, once messages.transform captures
+      // the first user message (which IS the task prompt).
+      const childId = event.sessionId
+      if (!childId) return
+
+      const teamId = subagentToTeamMap.get(childId)
+      if (teamId) {
+        const to = daemon.intelligence?.teamOrchestrator as any
+        const team = to?.teams?.get?.(teamId)
+        if (team && event.taskPrompt) {
+          // Update the team's goal with the actual task prompt
+          team.config.goal = event.taskPrompt
+          // Update root goal description in the goal tree
+          const goalTree = to.goalTrees?.get?.(teamId)
+          const rootGoal = goalTree?.get?.(team.rootGoalId)
+          if (rootGoal) {
+            rootGoal.description = event.taskPrompt
+            if (event.taskDescription) {
+              rootGoal.title = event.taskDescription
+            }
+          }
+          // Update team name if we have a better description
+          if (event.taskDescription) {
+            team.config.name = `Subagent: ${event.taskDescription.slice(0, 60)}`
+          }
+
+          logger.debug('[admin-api] External team goal enriched with task prompt', {
+            teamId,
+            childId,
+            promptLength: event.taskPrompt.length,
+            description: event.taskDescription?.slice(0, 80),
+          })
+        }
       }
     }
   }
@@ -5115,6 +5244,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
                   status: t.status,
                   goal: t.config?.goal?.slice(0, 500) ?? '',
                   finalResult: t.finalResult?.slice(0, 1000) ?? null,
+                  external: !!t.external,
+                  externalSessionId: t.externalSessionId ?? null,
+                  externalParentSessionId: t.externalParentSessionId ?? null,
                   completedGoals,
                   filesModified,
                   completedAt: t.completedAt,
@@ -5150,6 +5282,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
                   status: t.status,
                   goal: t.config?.goal ?? '',
                   checkpointMode: t.config?.checkpoint?.mode ?? 'none',
+                  external: !!t.external,
+                  externalSessionId: t.externalSessionId ?? null,
+                  externalParentSessionId: t.externalParentSessionId ?? null,
                   budget: {
                     tokensUsed: t.budget?.tokensUsed ?? 0,
                     maxTokens: t.budget?.maxTokens ?? 0,
