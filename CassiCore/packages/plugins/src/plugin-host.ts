@@ -12,7 +12,9 @@ type HostMessage =
 type WorkerMessage =
   | { type: "ready" }
   | { type: "message"; payload: unknown }
-  | { type: "error"; message: string };
+  | { type: "error"; message: string }
+  | { type: "log"; level: string; message: string }
+  | { type: "signal"; payload: Record<string, unknown> };
 
 interface InternalWorkerRecord {
   manifest: PluginManifest;
@@ -94,6 +96,17 @@ export class PluginHost implements IPluginHost {
           // Use type narrowing to safely access properties
           const errorMsg = 'message' in m ? m.message : ('payload' in m ? (m as any).payload?.message : 'unknown error');
           this.logger.error(`worker ${manifest.id} error: ${errorMsg}`);
+        }
+
+        if (m.type === "log") {
+          // Forward structured log messages from workers to the daemon bus.
+          // The daemon's worker:message handler routes these to the system logger.
+          bus.emit({ type: "worker:message", pluginId: manifest.id, payload: m });
+        }
+
+        if (m.type === "signal") {
+          // Flatten signal payload so daemon can handle: { type, sessionId, signalType, content }
+          bus.emit({ type: "worker:message", pluginId: manifest.id, payload: { type: "signal", ...m.payload } });
         }
       });
 
