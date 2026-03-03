@@ -676,6 +676,7 @@ export class Daemon {
       }
       budgetTracker = createBudgetTracker(this.logger, Object.keys(budgets).length > 0 ? budgets : undefined)
       budgetTracker.wire(this.bus)
+      await budgetTracker.loadFromDisk()
       this.budgetTracker = budgetTracker
       this.logger.info('[daemon] BudgetTracker initialized and wired to EventBus')
 
@@ -1462,6 +1463,15 @@ export class Daemon {
       }
     } catch (err) {
       this.logger.warn(`error during intelligence cleanup: ${String(err)}`)
+    }
+
+    // persist budget tracker state
+    try {
+      if (this.budgetTracker) {
+        await this.budgetTracker.saveToDisk()
+      }
+    } catch (err) {
+      this.logger.warn(`error saving budget state: ${String(err)}`)
     }
 
     this.running = false
