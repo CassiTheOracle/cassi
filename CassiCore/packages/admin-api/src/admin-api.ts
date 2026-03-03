@@ -41,6 +41,53 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   // ── T2: Subagent session ID → CassiCore team ID mapping ──
   const subagentToTeamMap = new Map<string, string>()
 
+  // ── T3: Delegation requests — CassiCore-driven subagent spawning ──────────
+  interface DelegationRequest {
+    /** Unique delegation ID */
+    id: string
+    /** Target session to delegate from (the parent session) */
+    sessionId: string
+    /** Goal/prompt for the subagent */
+    goal: string
+    /** Suggested agent type for the subagent */
+    agentType: 'code' | 'explore' | 'general' | 'researcher' | 'search'
+    /** Priority: higher = more urgent */
+    priority: 'low' | 'medium' | 'high' | 'critical'
+    /** Why CassiCore wants to delegate */
+    reason: string
+    /** Estimated complexity of the delegated task */
+    estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high'
+    /** Packaged session context for the subagent (from packageSessionContext) */
+    contextPreamble: string
+    /** When this delegation request was created */
+    createdAt: number
+    /** Request expires after this timestamp (avoid stale delegations) */
+    expiresAt: number
+  }
+
+  type DelegationStatus = 'pending' | 'acknowledged' | 'executing' | 'completed' | 'failed' | 'expired'
+
+  interface DelegationTracking {
+    request: DelegationRequest
+    status: DelegationStatus
+    /** The OpenCode session ID of the spawned subagent (set by plugin ack) */
+    spawnedSessionId?: string
+    /** The CassiCore team ID wrapping this subagent (set when T2 links it) */
+    teamId?: string
+    acknowledgedAt?: number
+    completedAt?: number
+    result?: string
+  }
+
+  /** Active delegation requests and their tracking state */
+  const delegationTracker = new Map<string, DelegationTracking>()
+
+  /** Sessions that have already had delegation computed this cycle (dedup within buildInjectPayload) */
+  let lastDelegationComputeTime = 0
+  const DELEGATION_COMPUTE_INTERVAL_MS = 5000 // Don't recompute more often than every 5 seconds
+  const DELEGATION_EXPIRY_MS = 60_000 // Requests expire after 60 seconds
+  const DELEGATION_MAX_PENDING = 3 // Max pending delegations at a time
+
   /** Ensure a hierarchy entry exists for the given session ID. */
   function ensureHierarchyEntry(sid: string): SessionHierarchyEntry {
     let entry = sessionHierarchyMap.get(sid)
@@ -115,6 +162,19 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           // Map subagent session → team ID for completion routing
           subagentToTeamMap.set(childId, team.id)
 
+          // ── T3: Reverse-link delegation tracking to team ──
+          // If this subagent was created by a T3 delegation, the ack may have
+          // arrived before the team was created. Link them now.
+          for (const tracking of delegationTracker.values()) {
+            if (tracking.spawnedSessionId === childId && !tracking.teamId) {
+              tracking.teamId = team.id
+              logger.debug('[admin-api] T3: Linked delegation to team', {
+                delegationId: tracking.request.id,
+                teamId: team.id,
+              })
+            }
+          }
+
           logger.info('[admin-api] External team created for subagent', {
             teamId: team.id,
             childId,
@@ -173,6 +233,20 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
         // Clean up mapping (team is finalized)
         subagentToTeamMap.delete(childId)
+      }
+
+      // ── T3: Complete delegation tracking for this subagent ──
+      for (const tracking of delegationTracker.values()) {
+        if (tracking.spawnedSessionId === childId && tracking.status === 'executing') {
+          tracking.status = 'completed'
+          tracking.completedAt = Date.now()
+          tracking.result = event.resultSummary || event.resultText || 'Subagent completed'
+          logger.info('[admin-api] T3: Delegation completed via subagent_end', {
+            delegationId: tracking.request.id,
+            childId,
+          })
+          break
+        }
       }
     } else if (event.type === 'subagent_prompt_captured') {
       // ── T2: Update external team's goal with the actual task prompt ──
@@ -2972,6 +3046,48 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
+      // ── T3: Delegation acknowledgment ──────────────────────────────────────
+      if (req.method === 'POST' && url.pathname === '/delegation/ack') {
+        try {
+          const body = await parseBody(req)
+          const { delegationId, spawnedSessionId, status: ackStatus, error: ackError, result: ackResult } = body as any
+
+          if (!delegationId) {
+            return sendJSON(res, 400, { error: 'Missing delegationId' })
+          }
+
+          const tracking = delegationTracker.get(delegationId)
+          if (!tracking) {
+            return sendJSON(res, 404, { error: 'Delegation not found' })
+          }
+
+          if (ackStatus === 'executing' && spawnedSessionId) {
+            tracking.status = 'executing'
+            tracking.spawnedSessionId = spawnedSessionId
+            tracking.acknowledgedAt = Date.now()
+
+            // Link to team if T2 already created one for this session
+            const teamId = subagentToTeamMap.get(spawnedSessionId)
+            if (teamId) tracking.teamId = teamId
+
+            logger.info('[admin-api] Delegation acknowledged', { delegationId, spawnedSessionId })
+          } else if (ackStatus === 'failed') {
+            tracking.status = 'failed'
+            tracking.result = ackError || 'Unknown error'
+            logger.warn('[admin-api] Delegation failed', { delegationId, error: ackError })
+          } else if (ackStatus === 'completed') {
+            tracking.status = 'completed'
+            tracking.completedAt = Date.now()
+            tracking.result = ackResult
+            logger.info('[admin-api] Delegation completed', { delegationId })
+          }
+
+          return sendJSON(res, 200, { ok: true, status: tracking.status })
+        } catch (err) {
+          return sendJSON(res, 500, { error: String(err) })
+        }
+      }
+
       // ── Team Orchestration endpoints ────────────────────────────────────────
 
       if (parts[0] === 'teams') {
@@ -5043,6 +5159,157 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   }
 
   /**
+   * T3: Compute delegation requests for a session.
+   * Unlike handoff suggestions (which are advisory), delegation requests are
+   * actionable — the plugin will auto-execute them by spawning subagents.
+   *
+   * Delegation triggers:
+   * 1. Session is stuck/looping and could benefit from a fresh perspective
+   * 2. Session complexity is very high with decomposable sub-goals
+   * 3. Thinker has generated a spawn_subagent opportunity
+   */
+  function computeDelegationRequests(sessionId: string): DelegationRequest[] {
+    const requests: DelegationRequest[] = []
+    const now = Date.now()
+
+    // Don't generate new requests if we already have pending ones for this session
+    const pendingForSession = [...delegationTracker.values()].filter(
+      t => t.request.sessionId === sessionId && (t.status === 'pending' || t.status === 'executing')
+    )
+    if (pendingForSession.length >= 2) return requests
+
+    const digest = daemon.sessionDigestStore?.get?.(sessionId)
+    const subconscious = daemon.intelligence?.subconscious
+    const mm = subconscious?.getMentalModel?.(sessionId)
+    const mmState = mm?.state
+
+    if (!digest && !mmState) return requests
+
+    const turnCount = digest?.turnCount ?? 0
+    const complexity = mmState?.complexity ?? 0.5
+    const intent = mmState?.intent?.description || digest?.currentTask || ''
+    const topic = mmState?.topic || digest?.topic || ''
+
+    // Don't delegate too early
+    if (turnCount < 5) return requests
+
+    // Check optimizer health signals
+    const optimizer = daemon.intelligence?.optimizer
+    let stuckScore = 0
+    let loopScore = 0
+    if (optimizer?.scoreSession) {
+      try {
+        const health = optimizer.scoreSession(sessionId)
+        stuckScore = health?.stuckScore ?? 0
+        loopScore = health?.loopScore ?? 0
+      } catch {}
+    }
+
+    // ── Trigger 1: Session is stuck with high loop score ──
+    // If the session is looping, delegate the current task to a fresh subagent
+    if (loopScore > 0.6 && intent) {
+      const delegationId = `del_${now}_stuck_${sessionId.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
+
+      // Don't duplicate if we already have a stuck delegation for this session
+      const alreadyHasStuck = [...delegationTracker.values()].some(
+        t => t.request.sessionId === sessionId && t.request.reason.includes('stuck/looping') && t.status !== 'completed' && t.status !== 'failed' && t.status !== 'expired'
+      )
+      if (!alreadyHasStuck) {
+        requests.push({
+          id: delegationId,
+          sessionId,
+          goal: `The parent session is stuck in a loop. Take a fresh approach to: ${intent}`,
+          agentType: 'code',
+          priority: 'high',
+          reason: `Session stuck/looping (loopScore=${loopScore.toFixed(2)}, stuckScore=${stuckScore.toFixed(2)})`,
+          estimatedComplexity: 'high',
+          contextPreamble: '', // Will be filled below
+          createdAt: now,
+          expiresAt: now + DELEGATION_EXPIRY_MS,
+        })
+      }
+    }
+
+    // ── Trigger 2: Very high complexity with decomposable work ──
+    // If complexity is extreme and there are multiple files, suggest parallel work
+    if (complexity > 0.85 && turnCount > 10) {
+      const fileCount = digest?.filesActive?.length ?? 0
+      if (fileCount >= 8) {
+        const delegationId = `del_${now}_complex_${sessionId.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
+
+        const alreadyHasComplex = [...delegationTracker.values()].some(
+          t => t.request.sessionId === sessionId && t.request.reason.includes('High complexity') && t.status !== 'completed' && t.status !== 'failed' && t.status !== 'expired'
+        )
+        if (!alreadyHasComplex) {
+          requests.push({
+            id: delegationId,
+            sessionId,
+            goal: intent || topic || 'Continue current multi-file task',
+            agentType: 'code',
+            priority: 'medium',
+            reason: `High complexity (${complexity.toFixed(2)}) with ${fileCount} active files`,
+            estimatedComplexity: 'very-high',
+            contextPreamble: '',
+            createdAt: now,
+            expiresAt: now + DELEGATION_EXPIRY_MS,
+          })
+        }
+      }
+    }
+
+    // ── Trigger 3: Thinker ponder insights requesting delegation ──
+    // Check if the Thinker has recently generated insights that recommend spawning subagents
+    const thinker = daemon.intelligence?.thinker as any
+    if (thinker?.getRecentInsights) {
+      try {
+        const insights = thinker.getRecentInsights?.(5) as any[] ?? []
+        for (const insight of insights) {
+          if (insight.trigger === 'subconscious_opportunity_subagent' && insight.timestamp > now - 30000) {
+            const delegationId = `del_${now}_thinker_${sessionId.replace(/[^a-zA-Z0-9]/g, '').slice(-8)}`
+
+            // Don't duplicate thinker delegations
+            const alreadyHasThinker = [...delegationTracker.values()].some(
+              t => t.request.sessionId === sessionId && t.request.reason.includes('Thinker') && now - t.request.createdAt < 30000
+            )
+            if (!alreadyHasThinker) {
+              requests.push({
+                id: delegationId,
+                sessionId,
+                goal: insight.insight || intent || 'Complex task requiring subagent assistance',
+                agentType: 'code',
+                priority: 'medium',
+                reason: 'Thinker recommended subagent delegation',
+                estimatedComplexity: complexity > 0.7 ? 'high' : 'moderate',
+                contextPreamble: '',
+                createdAt: now,
+                expiresAt: now + DELEGATION_EXPIRY_MS,
+              })
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // Fill in context preamble for each request
+    for (const req of requests) {
+      try {
+        // packageSessionContext is async, but we need sync here.
+        // Use a minimal sync preamble instead.
+        const parts: string[] = []
+        if (topic) parts.push(`Topic: ${topic}`)
+        if (intent) parts.push(`Current task: ${intent}`)
+        if (digest?.filesActive?.length) {
+          parts.push(`Active files: ${digest.filesActive.slice(0, 10).join(', ')}`)
+        }
+        if (digest?.currentTask) parts.push(`Task context: ${digest.currentTask}`)
+        req.contextPreamble = parts.join('\n')
+      } catch {}
+    }
+
+    return requests
+  }
+
+  /**
    * Build the full context payload for the bridge plugin.
    * This was formerly embedded in writeInjectFile() — now extracted so the
    * GET /context endpoint can serve it on-demand via Unix socket.
@@ -5471,6 +5738,58 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
     } catch {}
 
+    // ── T3: Delegation requests — auto-spawn subagents ──
+    let delegationRequests: DelegationRequest[] | undefined
+    try {
+      const now = Date.now()
+
+      // Expire old delegation requests
+      for (const [id, tracking] of delegationTracker) {
+        if (tracking.status === 'pending' && now > tracking.request.expiresAt) {
+          tracking.status = 'expired'
+          logger.debug('[admin-api] Delegation request expired', { id })
+        }
+        // Clean up old completed/expired/failed entries (older than 5 minutes)
+        if (['completed', 'failed', 'expired'].includes(tracking.status) && now - tracking.request.createdAt > 5 * 60 * 1000) {
+          delegationTracker.delete(id)
+        }
+      }
+
+      // Only compute new delegations if enough time has passed
+      if (now - lastDelegationComputeTime >= DELEGATION_COMPUTE_INTERVAL_MS) {
+        lastDelegationComputeTime = now
+
+        // Count pending delegations across all sessions
+        const totalPending = [...delegationTracker.values()].filter(t => t.status === 'pending').length
+
+        if (totalPending < DELEGATION_MAX_PENDING) {
+          for (const sid of allSessionIds) {
+            if (!sid.startsWith('oc:')) continue
+            const newRequests = computeDelegationRequests(sid)
+            for (const req of newRequests) {
+              if (totalPending + delegationTracker.size >= DELEGATION_MAX_PENDING + 5) break // Hard cap
+              delegationTracker.set(req.id, { request: req, status: 'pending' })
+              logger.info('[admin-api] New delegation request', {
+                id: req.id,
+                sessionId: req.sessionId,
+                reason: req.reason,
+                priority: req.priority,
+              })
+            }
+          }
+        }
+      }
+
+      // Collect pending requests to serve to plugin
+      const pending = [...delegationTracker.values()]
+        .filter(t => t.status === 'pending')
+        .map(t => t.request)
+
+      if (pending.length > 0) {
+        delegationRequests = pending
+      }
+    } catch {}
+
     return {
       updatedAt: Date.now(),
       insight,
@@ -5485,6 +5804,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       ...(crossSessionPatterns ? { crossSessionPatterns } : {}),  // F7
       ...(dialecticLatest ? { dialecticLatest } : {}),  // F8
       ...(handoffSuggestions ? { handoffSuggestions } : {}),  // T1-4
+      ...(delegationRequests ? { delegationRequests } : {}),  // T3
     }
   }
 
