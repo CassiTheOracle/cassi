@@ -1,5 +1,6 @@
 import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { ISessionManager } from '../../../types/runtime.js'
+import { getModelSpec } from '../../config/system-settings.js'
 
 export const spawnSubagentDefinition: ToolDefinition = {
   name: 'spawn_subagent',
@@ -18,7 +19,7 @@ export const spawnSubagentDefinition: ToolDefinition = {
       model: {
         type: 'string',
         description: 'Model to use for the subagent. Can be either provider/model or just the model name (when providerId is set).',
-        default: 'github-copilot/gpt-5-mini',
+        default: getModelSpec('agent'),
       },
       providerId: {
         type: 'string',
@@ -47,7 +48,7 @@ export function makeSpawnSubagentHandler(
   }) => Promise<{ runId: string; sessionKey: string }>,
 ): ToolHandler {
   return async (input, ctx) => {
-    const { task, label, model = 'github-copilot/gpt-5-mini', providerId, timeoutSeconds = 300 } = input as {
+    const { task, label, model = getModelSpec('agent'), providerId, timeoutSeconds = 300 } = input as {
       task: string
       label: string
       model?: string

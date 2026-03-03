@@ -61,8 +61,10 @@ async function checkDesktopAccess(): Promise<SessionCheck> {
 
     // Try to determine desktop session user
     try {
-      // Check who owns the current X session
-      const xOwner = await execCommand('stat -c "%U" /tmp/.X11-unix/X0 2>/dev/null || echo "unknown"', 3000);
+      // Derive X socket from $DISPLAY (e.g. ":1" → X1, ":0.0" → X0)
+      const displayNum = (display || ':0').replace(/^:/, '').replace(/\..*$/, '');
+      const xSocketPath = `/tmp/.X11-unix/X${displayNum}`;
+      const xOwner = await execCommand(`stat -c "%U" ${xSocketPath} 2>/dev/null || echo "unknown"`, 3000);
       if (xOwner.trim() !== 'unknown') {
         result.desktopSessionUser = xOwner.trim();
       }
@@ -160,12 +162,33 @@ async function execCommand(command: string, timeoutMs = 10000): Promise<string> 
 }
 
 /**
+ * Resolve the qdbus binary name — Qt6 ships "qdbus6", Qt5 ships "qdbus"
+ */
+let _qdbusCmd: string | null | undefined;
+async function resolveQdbus(): Promise<string | null> {
+  if (_qdbusCmd !== undefined) return _qdbusCmd;
+  for (const candidate of ['qdbus6', 'qdbus', 'qdbus-qt6', 'qdbus-qt5']) {
+    try {
+      await execCommand(`command -v ${candidate}`, 2000);
+      _qdbusCmd = candidate;
+      return _qdbusCmd;
+    } catch {
+      // try next
+    }
+  }
+  _qdbusCmd = null;
+  return null;
+}
+
+/**
  * List all windows using KWin's D-Bus interface or xdotool fallback
  */
 async function listWindowsKDE(): Promise<WindowInfo[]> {
   try {
     // Try KWin's D-Bus interface first (most reliable on KDE)
-    const cmd = `qdbus org.kde.KWin /KWin queryWindowInfo 2>/dev/null || echo "FALLBACK"`;
+    const qdbusCmd = await resolveQdbus();
+    if (!qdbusCmd) return listWindowsXdotool();
+    const cmd = `${qdbusCmd} org.kde.KWin /KWin queryWindowInfo 2>/dev/null || echo "FALLBACK"`;
     const result = await execCommand(cmd, 5000);
     
     if (result !== 'FALLBACK' && result.includes('windowId')) {
@@ -253,15 +276,18 @@ async function listWindowsXdotool(): Promise<WindowInfo[]> {
 async function getActiveWindow(): Promise<WindowInfo | null> {
   try {
     // Try KWin first
+    const qdbusCmd = await resolveQdbus();
     const result = await execCommand(
-      `qdbus org.kde.KWin /KWin activeWindow 2>/dev/null || xdotool getactivewindow 2>/dev/null`
+      qdbusCmd
+        ? `${qdbusCmd} org.kde.KWin /KWin activeWindow 2>/dev/null || xdotool getactivewindow 2>/dev/null`
+        : `xdotool getactivewindow 2>/dev/null`
     );
     
     if (!result) return null;
     
     const id = result.trim();
     const [title, app] = await Promise.all([
-      execCommand(`xdotool getwindowname ${id} 2>/dev/null || qdbus org.kde.KWin /KWin queryWindowInfo 2>/dev/null | grep caption | head -1`).catch(() => 'Unknown'),
+      execCommand(`xdotool getwindowname ${id} 2>/dev/null${qdbusCmd ? ` || ${qdbusCmd} org.kde.KWin /KWin queryWindowInfo 2>/dev/null | grep caption | head -1` : ''}`).catch(() => 'Unknown'),
       execCommand(`xdotool getwindowclassname ${id} 2>/dev/null`).catch(() => 'Unknown'),
     ]);
     

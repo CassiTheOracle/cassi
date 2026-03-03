@@ -14,6 +14,7 @@ import type { IEventBus, ILogger } from '../../../types/interfaces.js'
 import type { SessionStore } from '../../session-store.js'
 import type { TurnPipeline } from '../../turn-pipeline.js'
 import { generateShortId, generateReadableId } from '../../utils/ids.js'
+import { MODEL_DEFAULTS, getModelSpec } from '../../config/system-settings.js'
 
 export interface SpawnSubagentOptions {
   task: string
@@ -64,7 +65,7 @@ export function createSubagentSpawnFunction(ctx: SubagentSpawnContext): (opts: S
       }
 
       const parentConfig = parentSession?.config || {
-        model: 'github-copilot/gpt-5-mini',
+        model: getModelSpec('agent'),
         thinking: 'high'
       }
 
@@ -81,9 +82,9 @@ export function createSubagentSpawnFunction(ctx: SubagentSpawnContext): (opts: S
             const modelPart = parentModel.split('/').slice(1).join('/')
             return `${providerId}/${modelPart}`
           }
-          return `${providerId}/${parentModel || 'gpt-5-mini'}`
+          return `${providerId}/${parentModel || MODEL_DEFAULTS.agent.model}`
         }
-        return parentModel || 'github-copilot/gpt-5-mini'
+        return parentModel || getModelSpec('agent')
       }
 
       const finalModel = deriveFinalModel(model, parentModel, opts.providerId)
