@@ -1210,8 +1210,10 @@ async function executeTeamAction(args: any): Promise<any> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          task: args.task,
+          goal: args.goal,
+          name: args.name,
           budget: args.budget,
+          roles: args.roles,
         }),
       });
       if (!res.ok) throw new Error(`Team start failed: ${await res.text()}`);
