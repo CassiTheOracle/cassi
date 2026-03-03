@@ -63,9 +63,16 @@ interface StreamState {
 }
 const streams = new Map<string, StreamState>()
 
-// Wire token into common helper
+// Wire token and logger into common helpers
 function setTokenFromCfg() {
   tg.setToken(cfg.token)
+}
+
+function initCommonHelpers() {
+  tg.setToken(cfg.token)
+  // Route common-module warnings through the structured log channel so they
+  // appear in daemon logs rather than raw stderr.
+  tg.setLogger((msg) => log('warn', msg))
 }
 
 // ── Streaming: buffer → edit loop (uses tg common helpers) ───────────────────
@@ -116,7 +123,7 @@ function startStreamTimer(sessionId: string): void {
   if (!s || s.timer) return
   let typingCounter = 0
   s.timer = setInterval(() => {
-    flushStream(sessionId).catch(() => {})
+    flushStream(sessionId).catch((err) => log('warn', `stream flush error for ${sessionId}: ${String(err)}`))
     
     // Refresh typing indicator every ~5 seconds
     typingCounter += EDIT_INTERVAL_MS
@@ -313,7 +320,7 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
 parentPort?.on('message', (m: HostMessage) => {
   if (m.type === 'init') {
     cfg = m.config
-    setTokenFromCfg()
+    initCommonHelpers()
     if (cfg.token) pollLoop().catch((e) => log('error', `poll loop crashed: ${String(e)}`))
     parentPort?.postMessage({ type: 'ready' } satisfies WorkerMessage)
     return
@@ -322,7 +329,7 @@ parentPort?.on('message', (m: HostMessage) => {
   if (m.type === 'config:update') {
     const prevToken = cfg.token
     cfg = { ...cfg, ...m.config }
-    if (cfg.token !== prevToken) setTokenFromCfg()
+    if (cfg.token !== prevToken) tg.setToken(cfg.token)
     if (!prevToken && cfg.token) {
       pollLoop().catch((e) => log('error', `poll loop crashed: ${String(e)}`))
     }
@@ -330,17 +337,44 @@ parentPort?.on('message', (m: HostMessage) => {
   }
 
   if (m.type === 'message') {
-    const { sessionId, content, done, parse_mode } = m.payload
+    const p = m.payload as Record<string, unknown>
+
+    // PluginHost.send() always wraps payloads in { type: 'message', payload: X }.
+    // Status notifications therefore arrive here rather than via m.type === 'status'.
+    // Detect and route them before falling through to the streaming path.
+    if (p.type === 'status') {
+      const inner = (p.payload ?? p) as Record<string, unknown>
+      const statusSid  = String(inner.sessionId ?? '')
+      const statusText = String(inner.text ?? '')
+      const statusType = String(inner.type ?? '')
+      const chatId = parseChatId(statusSid)
+      if (chatId !== null) {
+        if (statusType === 'compaction' || statusType === 'summarization') {
+          tg.sendMessage(chatId, `🧠 _${statusText}_`, 'MarkdownV2')
+            .catch((err) => log('warn', `status sendMessage error: ${String(err)}`))
+        } else {
+          log('info', `Status update for ${statusSid}: ${statusText}`)
+        }
+      }
+      return
+    }
+
+    const { sessionId, content, done, parse_mode } = p as {
+      sessionId: string
+      content: string
+      done?: boolean
+      parse_mode?: 'MarkdownV2' | 'HTML'
+    }
     const chatId = parseChatId(sessionId)
     if (chatId === null) return
 
     const hasActiveStream = streams.has(sessionId)
     
-    // If it's a one-off message (not part of an active stream)
+    // Send a one-off message (not part of an active stream)
     if (done && content && !hasActiveStream) {
       const providedParse = parse_mode as 'MarkdownV2' | 'HTML' | undefined
       const finalParse = providedParse ?? chooseParseModeForText(content)
-      tg.sendMessage(chatId, content, finalParse).catch(() => {})
+      tg.sendMessage(chatId, content, finalParse).catch((err) => log('warn', `sendMessage error for ${sessionId}: ${String(err)}`))
       return
     }
 
@@ -354,7 +388,7 @@ parentPort?.on('message', (m: HostMessage) => {
     if (done) {
       // Finalizing: ensure we stop the timer first to avoid concurrent edits
       if (s.timer) { clearInterval(s.timer); s.timer = null }
-      finalizeStream(sessionId).catch(() => {})
+      finalizeStream(sessionId).catch((err) => log('warn', `stream finalize error for ${sessionId}: ${String(err)}`))
     }
     return
   }
@@ -366,7 +400,7 @@ parentPort?.on('message', (m: HostMessage) => {
     
     // Show a short notice for interesting statuses
     if (type === 'compaction' || type === 'summarization') {
-      tg.sendMessage(chatId, `🧠 _${text}_`, 'MarkdownV2').catch(() => {})
+      tg.sendMessage(chatId, `🧠 _${text}_`, 'MarkdownV2').catch((err) => log('warn', `status sendMessage error: ${String(err)}`))
     } else {
       log('info', `Status update for ${sessionId}: ${text}`)
     }
