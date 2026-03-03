@@ -9,6 +9,63 @@
  */
 
 // ============================================================================
+// Centralized Model Defaults
+// ============================================================================
+//
+// Single source of truth for default model assignments across the entire system.
+// Every component that needs a model should reference these constants rather
+// than hardcoding provider/model strings. This enables changing the default
+// model for an entire tier in one place.
+//
+// Tiers:
+//   main      — User-facing main agent (turn pipeline, sessions)
+//   reasoning — Background intelligence modules (thinker, dialectic, memory, etc.)
+//   agent     — Spawned sub-agents and team members
+//   fast      — Low-latency local operations (reflex, quick parsing)
+//
+// Format: 'provider/model' combined string, split at consumption sites.
+
+export const MODEL_DEFAULTS = {
+  /** Main agent — the user-facing conversational model */
+  main: {
+    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'kimi-coding'),
+    model: getEnvString('CASSICORE_MODEL_MAIN', 'k2p5'),
+  },
+
+  /** Background reasoning — intelligence modules (thinker, dialectic, memory, subconscious) */
+  reasoning: {
+    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'kimi-coding'),
+    model: getEnvString('CASSICORE_MODEL_REASONING', 'k2p5'),
+  },
+
+  /** Spawned agents — team members, sub-agents, coordinators */
+  agent: {
+    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'kimi-coding'),
+    model: getEnvString('CASSICORE_MODEL_AGENT', 'k2p5'),
+  },
+
+  /** Fast local — reflex, quick intent parsing, low-latency operations */
+  fast: {
+    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'lmstudio'),
+    model: getEnvString('CASSICORE_MODEL_FAST', 'lfm2.5-1.2b'),
+  },
+
+  /** Fallback — used when provider resolution fails entirely */
+  fallback: {
+    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'github-copilot'),
+    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'gpt-5-mini'),
+  },
+} as const
+
+/**
+ * Convenience: get a combined 'provider/model' string for a tier.
+ */
+export function getModelSpec(tier: keyof typeof MODEL_DEFAULTS): string {
+  const { provider, model } = MODEL_DEFAULTS[tier]
+  return `${provider}/${model}`
+}
+
+// ============================================================================
 // Context & Memory Settings
 // ============================================================================
 
@@ -116,11 +173,11 @@ export const THINKER_SETTINGS = {
   /** Fire think every M turns */
   thinkInterval: getEnvNumber('CASSICORE_THINKER_THINK_INTERVAL', 12),
 
-  /** Model for quick reflections (ponder) */
-  ponderModel: getEnvString('CASSICORE_THINKER_PONDER_MODEL', 'gpt-5-mini'),
+  /** Model for quick reflections (ponder) — defaults to reasoning tier */
+  ponderModel: getEnvString('CASSICORE_THINKER_PONDER_MODEL', MODEL_DEFAULTS.reasoning.model),
 
-  /** Model for deep synthesis (think) */
-  thinkModel: getEnvString('CASSICORE_THINKER_THINK_MODEL', 'k2p5'),
+  /** Model for deep synthesis (think) — defaults to reasoning tier */
+  thinkModel: getEnvString('CASSICORE_THINKER_THINK_MODEL', MODEL_DEFAULTS.reasoning.model),
 
   /** Enable swarm coordination */
   enableSwarm: getEnvBoolean('CASSICORE_THINKER_SWARM', true),
@@ -152,11 +209,11 @@ export const SESSION_SETTINGS = {
 // ============================================================================
 
 export const PROVIDER_SETTINGS = {
-  /** Default provider ID */
-  defaultProvider: getEnvString('CASSICORE_DEFAULT_PROVIDER', 'kimi-coding'),
+  /** Default provider ID — defaults to main tier */
+  defaultProvider: getEnvString('CASSICORE_DEFAULT_PROVIDER', MODEL_DEFAULTS.main.provider),
 
-  /** Default model */
-  defaultModel: getEnvString('CASSICORE_DEFAULT_MODEL', 'k2p5'),
+  /** Default model — defaults to main tier */
+  defaultModel: getEnvString('CASSICORE_DEFAULT_MODEL', MODEL_DEFAULTS.main.model),
 
   /** Enable request deduplication */
   enableDeduplication: getEnvBoolean('CASSICORE_PROVIDER_DEDUP', true),
@@ -166,6 +223,37 @@ export const PROVIDER_SETTINGS = {
 
   /** Cooldown duration after errors (ms) */
   errorCooldownMs: getEnvNumber('CASSICORE_PROVIDER_COOLDOWN_MS', 30_000),
+} as const;
+
+// ============================================================================
+// Request Budget Settings
+// ============================================================================
+//
+// Request-based providers (like GitHub Copilot) have monthly request limits
+// rather than token-based billing. These settings control budget tracking
+// and progressive degradation of background intelligence tasks as quota depletes.
+//
+// Some models on metered providers are exempt (e.g., gpt-5-mini on Copilot).
+// The cost classifier handles this — see core/providers/cost-classifier.ts.
+
+export const BUDGET_SETTINGS = {
+  /** Monthly request limits per provider */
+  monthlyLimits: {
+    'github-copilot': getEnvNumber('CASSICORE_BUDGET_GITHUB_COPILOT', 1500),
+  } as Record<string, number>,
+
+  /** Free offload model for background tasks (must be classified as 'free') */
+  freeOffloadModel: getEnvString('CASSICORE_FREE_OFFLOAD_MODEL', 'github-copilot/gpt-5-mini'),
+
+  /** Budget tier thresholds (percentage 0-1) */
+  tiers: {
+    /** 0-50%: all modules active with preferred models */
+    cautious: getEnvNumber('CASSICORE_BUDGET_TIER_CAUTIOUS', 50) / 100,
+    /** 50-75%: background tasks prefer free models */
+    frugal: getEnvNumber('CASSICORE_BUDGET_TIER_FRUGAL', 75) / 100,
+    /** 75-90%: non-essential background tasks disabled */
+    critical: getEnvNumber('CASSICORE_BUDGET_TIER_CRITICAL', 90) / 100,
+  },
 } as const;
 
 // ============================================================================
@@ -181,6 +269,65 @@ export const LOGGING_SETTINGS = {
 
   /** Metrics flush interval (ms) */
   metricsIntervalMs: getEnvNumber('CASSICORE_METRICS_INTERVAL_MS', 600_000),
+} as const;
+
+// ============================================================================
+// Reflex Settings (Autonomic Tool Execution)
+// ============================================================================
+
+export const REFLEX_SETTINGS = {
+  /** Enable the Reflex module */
+  enabled: getEnvBoolean('CASSICORE_REFLEX_ENABLED', true),
+
+  /** LLM provider for intent parsing — defaults to fast tier */
+  providerId: getEnvString('CASSICORE_REFLEX_PROVIDER', MODEL_DEFAULTS.fast.provider),
+
+  /** Model for intent parsing — defaults to fast tier */
+  model: getEnvString('CASSICORE_REFLEX_MODEL', MODEL_DEFAULTS.fast.model),
+
+  /** Temperature for intent parsing (lower = more deterministic) */
+  temperature: getEnvNumber('CASSICORE_REFLEX_TEMPERATURE', 0.1),
+
+  /** Max tokens for intent parsing response */
+  maxTokens: getEnvNumber('CASSICORE_REFLEX_MAX_TOKENS', 512),
+
+  /** Timeout for LLM inference (ms) */
+  inferenceTimeoutMs: getEnvNumber('CASSICORE_REFLEX_INFERENCE_TIMEOUT_MS', 5_000),
+
+  /** Cooldown between reflex triggers for the same tool (ms) */
+  toolCooldownMs: getEnvNumber('CASSICORE_REFLEX_TOOL_COOLDOWN_MS', 3_000),
+
+  /** Maximum concurrent tool executions */
+  maxConcurrentTools: getEnvNumber('CASSICORE_REFLEX_MAX_CONCURRENT', 2),
+
+  /** Maximum tool execution time (ms) — safety guard */
+  toolTimeoutMs: getEnvNumber('CASSICORE_REFLEX_TOOL_TIMEOUT_MS', 15_000),
+
+  /** Minimum confidence from LLM to trigger a tool (0-1) */
+  minConfidence: getEnvNumber('CASSICORE_REFLEX_MIN_CONFIDENCE', 0.6),
+
+  /** Allowed read-only tools (whitelist) */
+  allowedTools: getEnvString('CASSICORE_REFLEX_ALLOWED_TOOLS',
+    'gitnexus_query,gitnexus_context,gitnexus_impact,read_file,find_symbol,web_search,memory_search'
+  ).split(',').map(t => t.trim()),
+} as const;
+
+// ============================================================================
+// Prompt Optimizer Settings (Dialectic Prompt Variant Selection)
+// ============================================================================
+
+export const PROMPT_OPTIMIZER_SETTINGS = {
+  /** Enable prompt variant optimization */
+  enabled: getEnvBoolean('CASSICORE_PROMPT_OPTIMIZER_ENABLED', true),
+
+  /** Epsilon for exploration vs exploitation (0 = always exploit, 1 = always explore) */
+  epsilon: getEnvNumber('CASSICORE_PROMPT_OPTIMIZER_EPSILON', 0.2),
+
+  /** EMA smoothing factor (higher = faster adaptation, lower = more stable) */
+  alpha: getEnvNumber('CASSICORE_PROMPT_OPTIMIZER_ALPHA', 0.3),
+
+  /** Minimum uses before a variant is eligible for exploitation */
+  minUsesForExploitation: getEnvNumber('CASSICORE_PROMPT_OPTIMIZER_MIN_USES', 3),
 } as const;
 
 // ============================================================================
@@ -210,13 +357,17 @@ function getEnvBoolean(key: string, defaultValue: boolean): boolean {
 // ============================================================================
 
 export const SYSTEM_SETTINGS = {
+  models: MODEL_DEFAULTS,
   context: CONTEXT_SETTINGS,
   subconscious: SUBCONSCIOUS_SETTINGS,
   dialectic: DIALECTIC_SETTINGS,
   thinker: THINKER_SETTINGS,
   session: SESSION_SETTINGS,
   provider: PROVIDER_SETTINGS,
+  budget: BUDGET_SETTINGS,
   logging: LOGGING_SETTINGS,
+  reflex: REFLEX_SETTINGS,
+  promptOptimizer: PROMPT_OPTIMIZER_SETTINGS,
 } as const;
 
 /** 

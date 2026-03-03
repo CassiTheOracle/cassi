@@ -89,10 +89,44 @@ export type RuntimeEvent =
   | { type: "verification:verdict-recorded"; adaptationId: string; verdict: string; effectSize: number; confidence: number; timestamp: Date }
   | { type: "verification:report-generated"; reportId: number; totalVerdicts: number; successRate: number; timestamp: Date }
   | { type: "verification:trust-updated"; sourceModule: string; oldTrust: number; newTrust: number; timestamp: Date }
+  // Multi-agent lifecycle events
+  | { type: "agent:spawned"; agentId: string; role: string; parentSessionId?: string }
+  | { type: "agent:task-assigned"; agentId: string; task: string; sessionId: string }
+  | { type: "agent:completed"; agentId: string; result: string; parentSessionId?: string; tokensUsed?: number; model?: string; durationMs?: number }
+  | { type: "agent:error"; agentId: string; error: string }
+  | { type: "agent:handoff"; fromAgentId: string; toAgentId: string; fromRole: string; toRole: string }
+  | { type: "multi-agent:spawn-retry"; attempt: number; error: string; role: string }
+  | { type: "multi-agent:spawn-failed"; error: string; role: string }
+  | { type: "multi-agent:assign-retry"; attempt: number; error: string; agentId: string }
+  | { type: "multi-agent:assign-failed"; error: string; agentId: string }
+  // Autonomous loop events
+  | { type: "autonomy:loop_started"; agentId: string; sessionId: string; opts?: Record<string, unknown> }
+  | { type: "autonomy:loop_stopped"; agentId: string; reason: string; iterations: number; totalTokensUsed: number }
+  | { type: "autonomy:loop_paused"; agentId: string }
+  | { type: "autonomy:loop_resumed"; agentId: string }
+  | { type: "autonomy:iteration"; agentId: string; iteration: number; decision: string; tokensUsed: number; totalTokensUsed: number; durationMs: number; toolCalls: number }
+  | { type: "autonomy:iteration_error"; agentId: string; iteration: number; error: string }
+  | { type: "autonomy:delegation_requested"; agentId: string; delegateTo: string; delegateTask: string }
+  | { type: "autonomy:blocked"; agentId: string; reason: string }
+  // Team orchestration events
+  | { type: "team:started"; teamId: string; coordinatorAgentId?: string }
+  | { type: "team:completed"; teamId: string; finalResult?: string }
+  | { type: "team:failed"; teamId: string; error: string }
+  | { type: "team:cancelled"; teamId: string; reason: string }
+  | { type: "team:paused"; teamId: string }
+  | { type: "team:resumed"; teamId: string }
+  | { type: "team:budget:warning"; teamId: string; tokenPct: number; agentPct: number; timePct: number }
+  | { type: "team:checkpoint"; teamId: string; checkpointId: string; trigger: string; progress: string }
   // Cross-session awareness events
   | { type: "session:created"; sessionId: string; channelId: string; senderId: string; timestamp: Date }
   | { type: "session:ended"; sessionId: string; timestamp: Date }
-  | { type: "cross-session:message"; fromSessionId: string; toSessionId: string; messageId: string; content: string; timestamp: Date };
+  | { type: "cross-session:message"; fromSessionId: string; toSessionId: string; messageId: string; content: string; timestamp: Date }
+  // Reflex module events — autonomic tool execution triggered by subconscious thinking
+  | { type: "reflex:triggered"; sessionId: string; intent: string; tool: string; timestamp: Date }
+  | { type: "reflex:tool_executed"; sessionId: string; tool: string; durationMs: number; success: boolean; timestamp: Date }
+  | { type: "reflex:result_injected"; sessionId: string; tool: string; resultSummary: string; timestamp: Date }
+  | { type: "reflex:suppressed"; sessionId: string; reason: string; intent: string; timestamp: Date }
+  | { type: "reflex:error"; sessionId: string; error: string; tool?: string; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 
