@@ -48,6 +48,8 @@ import { initContextWindowDebugger, ContextWindowDebugger } from './events/conte
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
 import { AutonomousAgentLoop } from './intelligence/autonomous-loop.js'
+import { createExecutionBackend } from './intelligence/execution-backends/index.js'
+import type { ExecutionBackendType, OpenCodeBackendConfig } from '../types/execution-backend.js'
 import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
 import { BudgetTracker, createBudgetTracker } from './providers/budget-tracker.js'
 import { ModelRouter, createModelRouter } from './providers/model-router.js'
@@ -1031,6 +1033,19 @@ export class Daemon {
           autonomousLoop.setMultiAgent(this.intelligence.multiAgent as any)
           ;(this.intelligence.multiAgent as any).setAutonomousLoop(autonomousLoop)
         }
+
+        // Wire execution backend if configured (default: 'cassicore' — no change from current behavior)
+        const backendType = this.config.get<ExecutionBackendType>('intelligence.executionBackend.type', 'cassicore')
+        if (backendType !== 'cassicore') {
+          const openCodeConfig = this.config.get<OpenCodeBackendConfig>('intelligence.executionBackend.opencode', {})
+          const backend = createExecutionBackend(backendType, this.logger.child('execution-backend'), {
+            pipeline: this.pipeline,
+            openCodeConfig,
+          })
+          autonomousLoop.setBackend(backend)
+          this.logger.info(`[daemon] Execution backend set: ${backend.name}`)
+        }
+
         ;(this as any).autonomousLoop = autonomousLoop
         this.logger.info('[daemon] AutonomousAgentLoop engine initialized and wired')
       } catch (err) {
