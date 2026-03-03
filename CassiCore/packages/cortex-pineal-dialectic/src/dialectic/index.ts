@@ -1,8 +1,9 @@
 /**
- * DialecticSystem — Fully Parallel Yang, Yin, Serenity
+ * DialecticSystem — Consolidated Yang, Yin, Serenity
  *
- * The dialectic trio always runs alongside the main agent in parallel.
- * No sequential mode - maximum speed with parallel execution.
+ * The dialectic trio runs alongside the main agent using a single consolidated
+ * LLM call that produces Yang, Yin, and Serenity analyses in one request.
+ * This minimizes request count for request-based providers (e.g., GitHub Copilot).
  */
 
 import type { ILogger } from '../../../types/interfaces.js';
@@ -17,7 +18,9 @@ import type {
 } from '../../../types/dialectic.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
-import { ParallelDialecticProcessor } from './parallel-processor.js';
+import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
+import { PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
+import type { PromptOptimizerConfig } from '../../../types/dialectic.js';
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
@@ -44,6 +47,7 @@ export interface DialecticSystemConfig {
     timeoutMs?: number;
     model?: string;
   };
+  promptOptimizer?: Partial<PromptOptimizerConfig>;
 }
 
 // ============================================================================
@@ -125,7 +129,8 @@ export class DialecticSystem implements IDialecticSystem {
   private memory?: IMemory;
   private provider?: IProvider;
 
-  private parallelProcessor: ParallelDialecticProcessor;
+  private consolidatedProcessor: ConsolidatedDialecticProcessor;
+  private promptOptimizer?: PromptOptimizer;
   private db?: Database.Database;
   private streamCallbacks: Map<string, Set<(event: DialecticStreamEvent) => void>> = new Map();
   private resultCache?: ResultCache;
@@ -150,19 +155,28 @@ export class DialecticSystem implements IDialecticSystem {
       taskGuide: config?.taskGuide,
     };
 
-    // Always use parallel processor
-    this.parallelProcessor = new ParallelDialecticProcessor(
+    // Use consolidated processor (single LLM call for Yang+Yin+Serenity)
+    this.consolidatedProcessor = new ConsolidatedDialecticProcessor(
       this.logger,
       {
-        maxWaitMs: this.config.parallel?.maxWaitMs ?? 8000,
-        observerTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 6000,
-        partialResultsOnFailure: this.config.parallel?.partialResultsOnFailure ?? true,
-        synchronization: 'best-effort',
+        observerTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 30_000,
+        maxBranches: this.config.yang?.maxBranches ?? 3,
+        temperature: this.config.yang?.temperature ?? 0.7,
+        model: this.config.yang?.model ?? 'gpt-5-mini',
       },
-      this.config.yang ?? {},
-      this.config.yin ?? {},
-      this.config.serenity ?? {}
     );
+
+    // Create and wire prompt optimizer if enabled
+    const optimizerConfig = this.config.promptOptimizer;
+    if (optimizerConfig?.enabled !== false) {
+      const persistPath = optimizerConfig?.persistPath ||
+        path.join(this.config.dataDir!, 'prompt-optimizer.json');
+      this.promptOptimizer = createPromptOptimizer(this.logger, {
+        ...optimizerConfig,
+        persistPath,
+      });
+      this.consolidatedProcessor.setPromptOptimizer(this.promptOptimizer);
+    }
 
     if (this.config.cache?.enabled) {
       this.resultCache = new ResultCache(
@@ -173,6 +187,12 @@ export class DialecticSystem implements IDialecticSystem {
 
     if (this.config.enabled) {
       this.initPersistence();
+      // Initialize prompt optimizer (loads persisted scores, starts auto-save)
+      if (this.promptOptimizer) {
+        this.promptOptimizer.init().catch(err => {
+          this.logger.warn('DialecticSystem: prompt optimizer init failed', { error: String(err) });
+        });
+      }
       this.logger.info('DialecticSystem: enabled (parallel mode)');
     } else {
       this.logger.info('DialecticSystem: disabled');
@@ -216,19 +236,33 @@ export class DialecticSystem implements IDialecticSystem {
 
   setProvider(provider: IProvider): void {
     this.provider = provider;
-    this.parallelProcessor.setProvider(provider);
+    this.consolidatedProcessor.setProvider(provider);
     this.logger.info('DialecticSystem: provider wired');
   }
 
   setMemory(memory: IMemory): void {
     this.memory = memory;
-    this.parallelProcessor.setMemory(memory);
+    this.consolidatedProcessor.setMemory(memory);
     this.logger.info('DialecticSystem: memory wired');
+  }
+
+  /**
+   * Stop the dialectic system — flush optimizer state and clean up timers.
+   */
+  async stop(): Promise<void> {
+    if (this.promptOptimizer) {
+      await this.promptOptimizer.stop();
+      this.logger.info('DialecticSystem: prompt optimizer stopped');
+    }
+    if (this.db) {
+      try { this.db.close(); } catch {}
+      this.db = undefined;
+    }
   }
 
   onEventBus(bus: IEventBus): void {
     this.eventBus = bus;
-    this.parallelProcessor.setEventBus(bus);
+    this.consolidatedProcessor.setEventBus(bus);
     this.setupSubconsciousListeners(bus);
     this.logger.info('DialecticSystem: event bus wired');
   }
@@ -309,14 +343,15 @@ export class DialecticSystem implements IDialecticSystem {
     userMessage: string,
     context: YangContext,
     opts?: {
-      providers?: { yang?: any; yin?: any; serenity?: any };
+      providers?: Record<string, unknown>;
       signal?: AbortSignal;
+      skipCache?: boolean;
     }
   ): Promise<ParallelDialecticResult> {
     const startTime = Date.now();
 
-    // Check cache first
-    if (this.resultCache) {
+    // Check cache first (unless explicitly skipped for autonomous iterations)
+    if (this.resultCache && !opts?.skipCache) {
       const cached = this.resultCache.get(userMessage);
       if (cached) {
         this.logger.info('DialecticSystem: cache hit', { sessionId, turnId });
@@ -369,14 +404,14 @@ export class DialecticSystem implements IDialecticSystem {
         });
       }
 
-      // Always use parallel processor
-      const result = await this.parallelProcessor.processTurn(
+      // Use consolidated processor (single LLM call for Yang+Yin+Serenity)
+      const result = await this.consolidatedProcessor.processTurn(
         sessionId,
         turnId,
         userMessage,
         context,
-        (event) => this.emitStreamEvent(sessionId, event),
-        { providers: opts?.providers, mode: 'parallel', signal: opts?.signal }
+        (event: DialecticStreamEvent) => this.emitStreamEvent(sessionId, event),
+        { signal: opts?.signal }
       );
 
       // Cache result
