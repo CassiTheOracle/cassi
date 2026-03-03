@@ -31,6 +31,7 @@ import type { IProvider } from '../types/runtime.js'
 import { ToolRegistry } from './tools/registry.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
+import { registerTeamTools } from './tools/implementations/team-coordinator.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 import { HealthMonitor } from './health-monitor.js'
 import { MCPRegistry } from './mcp/registry.js'
@@ -46,6 +47,10 @@ import { createSelfVerification, type SelfVerification } from './intelligence/se
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
+import { AutonomousAgentLoop } from './intelligence/autonomous-loop.js'
+import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
+import { BudgetTracker, createBudgetTracker } from './providers/budget-tracker.js'
+import { ModelRouter, createModelRouter } from './providers/model-router.js'
 
 // Singleton lock file path
 const CASSICORE_PID_FILE = path.join(homedir(), '.cassicore', 'daemon.pid')
@@ -588,15 +593,20 @@ export class Daemon {
     }
 
     // 7c. Load Telegram channel worker (optional — requires channels.telegram.token in config)
+    // Config accepts both "token" and "botToken" key names for the Bot API token.
+    // Config accepts both "allowedChatIds" and "allowFrom" key names for the allowlist.
     const tgEnabled = this.config.get<boolean>("channels.telegram.enabled", false)
     const tgToken = this.config.get<string>("channels.telegram.token", "")
+                 || this.config.get<string>("channels.telegram.botToken", "")
     if (tgEnabled && tgToken) {
       const tgPath = resolveWorker("../workers/channels/telegram")
       if (!tgPath) {
         this.logger.warn("telegram worker not found; skipping")
       } else {
         try {
-          const allowedChatIds = this.config.get<number[]>("channels.telegram.allowedChatIds", [])
+          const allowedChatIds = (this.config.get<number[]>("channels.telegram.allowedChatIds", []) as number[]).length
+            ? this.config.get<number[]>("channels.telegram.allowedChatIds", [])
+            : this.config.get<number[]>("channels.telegram.allowFrom", [])
           await this.pluginHost.load({
             id: "channel:telegram",
             entryPoint: tgPath,
@@ -652,6 +662,26 @@ export class Daemon {
       this.logger.info(`[daemon] OpenCode channel disabled by config; skipping`)
     }
 
+    // ── Budget tracking & model routing ─────────────────────────────────────
+    // Must be created before providers so CentralizedProvider can record usage
+    let budgetTracker: BudgetTracker | undefined
+    let modelRouter: ModelRouter | undefined
+    try {
+      const budgetConfig = this.config.get<Record<string, { monthlyLimit: number }>>('budget.providers', {})
+      const budgets: Record<string, { monthlyLimit: number }> = {}
+      for (const [id, cfg] of Object.entries(budgetConfig)) {
+        if (cfg?.monthlyLimit) budgets[id] = { monthlyLimit: cfg.monthlyLimit }
+      }
+      budgetTracker = createBudgetTracker(this.logger, Object.keys(budgets).length > 0 ? budgets : undefined)
+      budgetTracker.wire(this.bus)
+      this.logger.info('[daemon] BudgetTracker initialized and wired to EventBus')
+
+      modelRouter = createModelRouter(this.logger, budgetTracker)
+      this.logger.info('[daemon] ModelRouter initialized')
+    } catch (err) {
+      this.logger.warn('[daemon] Failed to initialize BudgetTracker/ModelRouter', { error: String(err) })
+    }
+
     let providers: Map<string, IProvider> = new Map()
     try {
       const { createProviders } = await import('./providers/index.js')
@@ -663,6 +693,16 @@ export class Daemon {
         ; (this as any).providers = providers
     } catch (err) {
       this.logger.warn('[daemon] Providers not loaded — run Phase 3 providers build')
+    }
+
+    // Wire BudgetTracker into all CentralizedProvider instances
+    if (budgetTracker && providers.size > 0) {
+      for (const [id, p] of providers) {
+        if (typeof (p as any).setBudgetTracker === 'function') {
+          (p as any).setBudgetTracker(budgetTracker)
+        }
+      }
+      this.logger.info('[daemon] BudgetTracker wired to CentralizedProvider instances')
     }
 
     // Wire provider map into Multi-Agent Coordinator so providerId hints can be resolved
@@ -685,6 +725,14 @@ export class Daemon {
       } else {
         this.logger.warn('[daemon] Thinker: no provider available — thinking cycles will be skipped')
       }
+      // Wire config and run BaseCognitiveModule lifecycle
+      ;(this.intelligence.thinker as any).setConfig?.(this.config)
+      // Wire model router for budget-aware model selection
+      if (modelRouter && typeof (this.intelligence.thinker as any).setModelRouter === 'function') {
+        (this.intelligence.thinker as any).setModelRouter(modelRouter)
+        this.logger.info('[daemon] Thinker model router wired')
+      }
+      await (this.intelligence.thinker as any).init?.()
     }
 
     // Wire the provider into the DialecticSystem (Yang, Yin, Serenity)
@@ -712,15 +760,27 @@ export class Daemon {
       }
     }
 
+    // Wire ModelRouter into Memory/Archivist for budget-aware archival model selection
+    if (modelRouter && this.intelligence?.memory) {
+      try {
+        if (typeof (this.intelligence.memory as any).setModelRouter === 'function') {
+          (this.intelligence.memory as any).setModelRouter(modelRouter)
+          this.logger.info('[daemon] Memory/Archivist model router wired')
+        }
+      } catch (err) {
+        this.logger.warn('[daemon] Failed to wire model router to Memory/Archivist', { error: String(err) })
+      }
+    }
+
     // Create sessions and turn pipeline
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`[daemon] System prompt built (${systemPrompt.length} chars)`)
     const sessionStore = SessionStore.open(this.logger)
-    const defaultProvider = this.config.get<string>('intelligence.defaultProvider', 'kimi-coding')
-    const configuredModel = this.config.get<string>('intelligence.defaultModel', 'kimi-k2p5')
+    const defaultProvider = this.config.get<string>('intelligence.defaultProvider', MODEL_DEFAULTS.main.provider)
+    const configuredModel = this.config.get<string>('intelligence.defaultModel', MODEL_DEFAULTS.main.model)
     const defaultModel = configuredModel
       ? `${defaultProvider}/${configuredModel}`
-      : `${defaultProvider}/kimi-k2p5`
+      : getModelSpec('main')
     if (defaultModel) {
       this.logger.info(`[daemon] Default model: ${defaultModel}`)
     }
@@ -802,6 +862,54 @@ export class Daemon {
       }
     } else {
       this.logger.info('[daemon] No MCP servers configured')
+    }
+
+    // ── IntelligenceRegistry: discover, wire, and start auto-loaded modules ──
+    // This runs after all dependencies (bus, memory, providers, tools) are available.
+    try {
+      if (this.intelligence?.registry) {
+        const registry = this.intelligence.registry
+
+        // Discover modules from the compiled intelligence directory.
+        // __dirname points to the compiled output (dist/core/), so navigate to intelligence/
+        const intelligenceDir = join(path.dirname(fileURLToPath(import.meta.url)), 'intelligence')
+        await registry.discover(intelligenceDir, new Set([
+          'base', 'memory', 'continuity', 'recover', 'reflect', 'thinker',
+          'optimizer', 'dialectic', 'ai-scientist', 'multi-agent', 'rule-enforcer',
+          'subconscious', 'team-orchestrator', 'embeddings', 'yang', 'yin',
+          'synthesizer', 'serenity',
+        ]))
+
+        // Resolve the provider for registry modules (default to lmstudio for local LLM)
+        const registryProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'lmstudio'
+        const registryProvider = providers.get(registryProviderId) ?? providers.values().next().value
+
+        // Wire all dependencies into discovered modules
+        registry.wire({
+          eventBus: this.bus,
+          memory: this.intelligence.memory as any,
+          provider: registryProvider,
+          config: this.config,
+          toolRegistry,
+          toolExecutor,
+        })
+
+        // Initialize and start all discovered modules
+        await registry.initAll()
+        await registry.startAll()
+
+        // Merge auto-discovered modules into the existing all[] array
+        const registryModules = registry.getAllAsIntelligenceModules()
+        if (registryModules.length > 0) {
+          this.intelligence.all.push(...registryModules)
+          this.intelligence.all.sort((a, b) => b.priority - a.priority)
+          this.logger.info(`[daemon] Registry: ${registryModules.length} module(s) discovered and started`, {
+            modules: registryModules.map(m => `${m.name}(${m.priority})`),
+          })
+        }
+      }
+    } catch (err) {
+      this.logger.warn('[daemon] IntelligenceRegistry initialization failed — auto-discovered modules will not be available', { error: String(err) })
     }
 
     // @ts-ignore - intelligence may be undefined in edge cases
@@ -901,6 +1009,49 @@ export class Daemon {
         (this.intelligence.thinker as any).__awaitingWiring.setSessionManager(this.sessions, sessionStore)
           ; (this.intelligence.thinker as any).__awaitingWiring.setPipelineGetter(() => this.pipeline)
         this.logger.info('[daemon] Thinker wired to session manager and pipeline for subagent spawning')
+      }
+      // Start Thinker's BaseCognitiveModule lifecycle (after all deps wired)
+      await (this.intelligence.thinker as any).start?.()
+
+      // Wire AutonomousAgentLoop engine into MultiAgentCoordinator
+      try {
+        const autonomousLoop = new AutonomousAgentLoop(this.logger.child('autonomous-loop'))
+        autonomousLoop.setPipeline(this.pipeline)
+        autonomousLoop.setEventBus(this.bus)
+        if (this.intelligence.memory) autonomousLoop.setMemory(this.intelligence.memory)
+        if (this.sessionDigestStore) autonomousLoop.setDigestStore(this.sessionDigestStore)
+        autonomousLoop.setSessions(this.sessions)
+        if (this.intelligence.dialectic) autonomousLoop.setDialectic(this.intelligence.dialectic as any)
+        if (this.intelligence.multiAgent) {
+          autonomousLoop.setMultiAgent(this.intelligence.multiAgent as any)
+          ;(this.intelligence.multiAgent as any).setAutonomousLoop(autonomousLoop)
+        }
+        ;(this as any).autonomousLoop = autonomousLoop
+        this.logger.info('[daemon] AutonomousAgentLoop engine initialized and wired')
+      } catch (err) {
+        this.logger.warn('[daemon] Failed to initialize AutonomousAgentLoop', { error: String(err) })
+      }
+
+      // Wire TeamOrchestrator dependencies (needs pipeline, bus, digestStore, autonomousLoop)
+      try {
+        const to = this.intelligence.teamOrchestrator
+        if (to) {
+          to.setEventBus(this.bus)
+          to.setPipeline(this.pipeline)
+          if (this.sessionDigestStore) to.setDigestStore(this.sessionDigestStore)
+          if ((this as any).autonomousLoop) to.setAutonomousLoop((this as any).autonomousLoop)
+          this.logger.info('[daemon] TeamOrchestrator wired to pipeline, bus, digestStore, autonomousLoop')
+
+          // Register team tools now that TeamOrchestrator is available
+          registerTeamTools(toolRegistry, {
+            teamOrchestrator: to as any,
+            digestStore: this.sessionDigestStore,
+            logger: this.logger,
+          })
+          this.logger.info(`[daemon] Team tools registered: check_team_status, send_team_message, get_agent_result, list_team_agents, update_team_plan, complete_team_goal, get_team_goal_tree, approve_checkpoint`)
+        }
+      } catch (err) {
+        this.logger.warn('[daemon] Failed to wire TeamOrchestrator', { error: String(err) })
       }
     }
 
@@ -1251,6 +1402,22 @@ export class Daemon {
       this.logger.warn(`[daemon] Error stopping unified loop: ${String(err)}`)
     }
 
+    // stop auto-discovered registry modules
+    try {
+      if (this.intelligence?.registry) {
+        await this.intelligence.registry.stopAll()
+      }
+    } catch (err) {
+      this.logger.warn(`[daemon] Error stopping registry modules: ${String(err)}`)
+    }
+
+    // stop Thinker BaseCognitiveModule lifecycle
+    try {
+      await (this.intelligence?.thinker as any)?.stop?.()
+    } catch (err) {
+      this.logger.warn(`[daemon] Error stopping Thinker: ${String(err)}`)
+    }
+
     // shutdown V2 session flow if active
     try {
       if ((this as any).useV2 && (this as any).v2) {
@@ -1306,9 +1473,22 @@ export class Daemon {
     try {
       await this.config.reload()
 
-      const defaultModel = this.config.get<string>('intelligence.defaultModel', 'github-copilot/gpt-5-mini')
+      const defaultModel = this.config.get<string>('intelligence.defaultModel', getModelSpec('main'))
       const thinking = this.config.get<string>('intelligence.thinking', 'high')
       this.sessions.setDefaultConfig({ model: defaultModel, thinking: thinking as any })
+
+      // Propagate model config to BaseCognitiveModule subclasses
+      // (config:changed handlers handle this automatically for modules with wireConfigWatcher,
+      //  but explicit reload covers modules that may not have been initialized yet)
+      for (const m of this.intelligence?.all ?? []) {
+        if (typeof (m as any).reloadModelConfig === 'function') {
+          try {
+            (m as any).reloadModelConfig()
+          } catch (err) {
+            this.logger.warn(`failed to reload model config for ${m.name}: ${String(err)}`)
+          }
+        }
+      }
     } catch (err) {
       this.logger.warn(`failed to reload config: ${String(err)}`)
       return
