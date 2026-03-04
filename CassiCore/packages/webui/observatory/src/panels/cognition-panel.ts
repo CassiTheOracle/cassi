@@ -63,6 +63,20 @@ interface TurnMarker {
   timestamp: number;
 }
 
+/** A single entry stored for session replay — all data needed to recreate a card. */
+interface ReplayEntry {
+  lane: LaneId;
+  type: string;
+  label: string;
+  icon: string;
+  color: string;
+  preview: string;
+  detail: string;
+  archived: true;
+  sessionHint?: string;
+  timestamp: number;
+}
+
 type LaneEntry =
   | { kind: "card"; data: ThoughtCard }
   | { kind: "turn"; data: TurnMarker };
@@ -171,6 +185,65 @@ export class CognitionPanel extends LitElement {
       0%   { color: #93c5fd; text-shadow: 0 0 8px #3b82f680; }
       60%  { color: #e2e2f0; text-shadow: none; }
       100% { color: var(--color-text-muted, #6b6b8a); }
+    }
+
+    /* ── Replay bar ──────────────────────────────── */
+    .replay-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.3rem 0.75rem;
+      background: color-mix(in srgb, #6366f1 8%, var(--color-surface-2, #1a1a23));
+      border-bottom: 1px solid color-mix(in srgb, #6366f1 30%, var(--color-border, #2a2a3d));
+      flex-shrink: 0;
+    }
+
+    button.replay-active {
+      border-color: color-mix(in srgb, #6366f1 55%, transparent);
+      color: #818cf8;
+      background: color-mix(in srgb, #6366f1 12%, var(--color-surface-3, #24243a));
+    }
+
+    .replay-play-btn {
+      min-width: 26px;
+      text-align: center;
+    }
+
+    .replay-time {
+      font-size: 0.68rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--color-text, #e2e2f0);
+      white-space: nowrap;
+    }
+
+    .replay-time.muted {
+      color: var(--color-text-muted, #6b6b8a);
+    }
+
+    .replay-scrubber {
+      flex: 1;
+      height: 4px;
+      min-width: 80px;
+      cursor: pointer;
+      accent-color: #6366f1;
+    }
+
+    .replay-count {
+      font-size: 0.62rem;
+      color: var(--color-text-muted, #6b6b8a);
+      white-space: nowrap;
+      margin-left: auto;
+    }
+
+    .replay-loading {
+      font-size: 0.72rem;
+      color: var(--color-text-muted, #6b6b8a);
+      animation: pulse-opacity 1s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulse-opacity {
+      from { opacity: 0.4; }
+      to   { opacity: 1; }
     }
 
     /* ── Module status strip ─────────────────────── */
@@ -523,10 +596,23 @@ export class CognitionPanel extends LitElement {
   @state() private collapsedLanes: Set<LaneId> = new Set();
   @state() private turnFlash = false;
 
+  // ── Replay state ────────────────────────────────────────────────────────────
+  @state() private replayMode = false;
+  @state() private replayLoading = false;
+  @state() private replayPlaying = false;
+  /** Scrubber position — 0 to 10 000 for fine-grained range input. */
+  @state() private replayProgress = 0;
+  /** All entries loaded for replay, sorted oldest-first. */
+  @state() private replayEntries: ReplayEntry[] = [];
+  @state() private replayMinTime = 0;
+  @state() private replayMaxTime = 0;
+  @state() private replayCursorTime = 0;
+
   private unsubs: Array<() => void> = [];
   private pulseTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private laneTimers: Map<LaneId, ReturnType<typeof setTimeout>> = new Map();
   private turnFlashTimer: ReturnType<typeof setTimeout> | null = null;
+  private playTimer: ReturnType<typeof setInterval> | null = null;
   private currentTurn = 0;
   private nextId = 0;
 
@@ -542,6 +628,7 @@ export class CognitionPanel extends LitElement {
     this.pulseTimers.forEach((t) => clearTimeout(t));
     this.laneTimers.forEach((t) => clearTimeout(t));
     if (this.turnFlashTimer) clearTimeout(this.turnFlashTimer);
+    if (this.playTimer !== null) clearInterval(this.playTimer);
   }
 
   override updated(changed: Map<string, unknown>): void {
@@ -551,6 +638,12 @@ export class CognitionPanel extends LitElement {
     }
     // Reload archive when session selection changes
     if (changed.has("sessionId")) {
+      // Exit replay mode — stale data no longer applies to the new session
+      if (this.replayMode) {
+        this.stopPlayTimer();
+        this.replayMode = false;
+        this.replayEntries = [];
+      }
       this.clearAll();
       this.loadHistory().catch(() => { /* best effort */ });
     }
@@ -674,8 +767,180 @@ export class CognitionPanel extends LitElement {
     }
   }
 
+  // ─── Replay ─────────────────────────────────────────────────────────────────
 
-  // ─── SSE integration ────────────────────────────────────────────────────────
+  /**
+   * Load ALL archive entries for the current session (or global if none
+   * selected) and store them sorted by timestamp for replay.
+   */
+  private async loadReplay(): Promise<void> {
+    this.replayLoading = true;
+    try {
+      const archiveOpts = { limit: 500, ...(this.sessionId ? { sessionId: this.sessionId } : {}) };
+      const [archiveResult, learningsResult, anomaliesResult] = await Promise.allSettled([
+        getArchivedEntries(archiveOpts),
+        getSubconsciousLearnings(),
+        getSubconsciousAnomalies(),
+      ]);
+
+      const entries: ReplayEntry[] = [];
+
+      const ARCHIVE_LANE_TYPES = new Set([
+        "dialectic_yang", "dialectic_yin", "dialectic_serenity",
+        "insight", "thinking", "reflection", "pattern",
+      ]);
+      const sessionHint = (id: string | null): string | undefined =>
+        id ? `#${id.slice(-6)}` : undefined;
+
+      if (archiveResult.status === "fulfilled") {
+        for (const e of archiveResult.value) {
+          if (!ARCHIVE_LANE_TYPES.has(e.type)) continue;
+          if (this.sessionId && e.sessionId && e.sessionId !== this.sessionId) continue;
+          const card = this.archiveEntryToCard(e);
+          if (!card) continue;
+          entries.push({ ...card, archived: true, sessionHint: sessionHint(e.sessionId), timestamp: e.timestamp });
+        }
+      }
+
+      if (learningsResult.status === "fulfilled") {
+        for (const obs of learningsResult.value) {
+          entries.push({
+            lane: "subconscious", type: `observation:${obs.source}`,
+            label: obs.source === "llm" ? "LLM Observation" : "Observation",
+            icon: "👁", color: obs.source === "llm" ? "#a78bfa" : "#818cf8",
+            preview: obs.summary, detail: "", archived: true,
+            timestamp: obs.timestamp,
+          });
+        }
+      }
+
+      if (anomaliesResult.status === "fulfilled") {
+        const severityColor: Record<string, string> = { high: "#ef4444", medium: "#f87171", low: "#fb923c" };
+        for (const a of anomaliesResult.value) {
+          entries.push({
+            lane: "subconscious", type: "anomaly",
+            label: `Anomaly — ${a.severity}`,
+            icon: a.severity === "high" ? "🚨" : "⚠",
+            color: severityColor[a.severity] ?? "#fb923c",
+            preview: a.description, detail: "", archived: true,
+            timestamp: a.timestamp,
+          });
+        }
+      }
+
+      entries.sort((a, b) => a.timestamp - b.timestamp);
+      this.replayEntries = entries;
+
+      if (entries.length > 0) {
+        this.replayMinTime = entries[0].timestamp;
+        this.replayMaxTime = entries[entries.length - 1].timestamp;
+        // Start at the beginning of the session
+        this.replayCursorTime = this.replayMinTime;
+        this.replayProgress = 0;
+      }
+    } finally {
+      this.replayLoading = false;
+    }
+  }
+
+  /** Toggle replay mode on/off. */
+  private async toggleReplay(): Promise<void> {
+    if (this.replayMode) {
+      this.stopPlayTimer();
+      this.replayMode = false;
+      this.replayEntries = [];
+    } else {
+      this.replayMode = true;
+      this.replayPlaying = false;
+      await this.loadReplay();
+    }
+  }
+
+  /** Play or pause replay auto-advance. */
+  private togglePlay(): void {
+    if (this.replayPlaying) {
+      this.stopPlayTimer();
+    } else {
+      // If already at the end, restart from the beginning
+      if (this.replayCursorTime >= this.replayMaxTime) {
+        this.replayCursorTime = this.replayMinTime;
+        this.replayProgress = 0;
+      }
+      this.startPlayTimer();
+    }
+  }
+
+  /**
+   * Start auto-advancing the replay cursor.
+   * Each 100 ms tick advances the playhead by SPEED × 100 ms of session time
+   * (default 20×: 1 real second = 20 session seconds).
+   */
+  private startPlayTimer(): void {
+    this.replayPlaying = true;
+    const TICK_MS = 100;
+    const SPEED = 20;
+    this.playTimer = setInterval(() => {
+      const step = TICK_MS * SPEED;
+      this.replayCursorTime = Math.min(this.replayCursorTime + step, this.replayMaxTime);
+      const range = this.replayMaxTime - this.replayMinTime;
+      this.replayProgress = range > 0
+        ? Math.round(((this.replayCursorTime - this.replayMinTime) / range) * 10_000)
+        : 10_000;
+      if (this.replayCursorTime >= this.replayMaxTime) {
+        this.stopPlayTimer();
+      }
+    }, TICK_MS);
+  }
+
+  private stopPlayTimer(): void {
+    this.replayPlaying = false;
+    if (this.playTimer !== null) {
+      clearInterval(this.playTimer);
+      this.playTimer = null;
+    }
+  }
+
+  /** Scrubber input handler — jump the playhead to the chosen position. */
+  private onScrub(e: Event): void {
+    const val = Number((e.target as HTMLInputElement).value);
+    this.replayProgress = val;
+    const range = this.replayMaxTime - this.replayMinTime;
+    this.replayCursorTime = this.replayMinTime + (val / 10_000) * range;
+    // Pause auto-play while the user scrubs
+    if (this.replayPlaying) this.stopPlayTimer();
+  }
+
+  /**
+   * In replay mode, compute virtual lanes containing only entries up to the
+   * current cursor position.  In live mode, just return the real lanes.
+   */
+  private get activeLanes(): Record<LaneId, LaneEntry[]> {
+    if (!this.replayMode) return this.lanes;
+    const result: Record<LaneId, LaneEntry[]> = {
+      dialectic: [], thinker: [], subconscious: [], agents: [],
+    };
+    let idx = 0;
+    for (const entry of this.replayEntries) {
+      if (entry.timestamp > this.replayCursorTime) break; // sorted, early exit
+      result[entry.lane].push({
+        kind: "card",
+        data: {
+          ...entry,
+          id: `r${idx++}`,
+          expanded: false,
+        },
+      });
+    }
+    return result;
+  }
+
+  /** Format a timestamp as HH:MM:SS for the replay time display. */
+  private formatReplayTime(ts: number): string {
+    if (!ts) return "--:--:--";
+    return new Date(ts).toLocaleTimeString([], {
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+    });
+  }
 
   private attachStream(): void {
     if (!this.stream) return;
@@ -1182,20 +1447,58 @@ export class CognitionPanel extends LitElement {
   }
 
   private cardCount(lane: LaneId): number {
-    return this.lanes[lane].filter((e) => e.kind === "card").length;
+    return this.activeLanes[lane].filter((e) => e.kind === "card").length;
   }
 
   // ─── Render ─────────────────────────────────────────────────────────────────
 
   override render() {
+    const visibleCount = this.replayMode
+      ? this.replayEntries.filter((e) => e.timestamp <= this.replayCursorTime).length
+      : 0;
+
     return html`
       <div class="toolbar">
         <span class="toolbar-title">Thought Streams</span>
-        <button @click=${() => this.clearAll()}>✕ Clear</button>
-        ${this.currentTurn > 0
+        <button
+          class="${this.replayMode ? "replay-active" : ""}"
+          @click=${this.toggleReplay}
+          title="${this.replayMode ? "Exit replay mode" : "Replay archived session"}"
+        >⏮ Replay</button>
+        ${!this.replayMode
+          ? html`<button @click=${() => this.clearAll()}>✕ Clear</button>`
+          : nothing}
+        ${this.currentTurn > 0 && !this.replayMode
           ? html`<span class="turn-counter ${this.turnFlash ? "flash" : ""}">Turn ${this.currentTurn}</span>`
           : nothing}
       </div>
+
+      ${this.replayMode ? html`
+        <div class="replay-bar">
+          ${this.replayLoading
+            ? html`<span class="replay-loading">Loading archive…</span>`
+            : html`
+              <button
+                class="replay-play-btn"
+                @click=${this.togglePlay}
+                ?disabled=${this.replayEntries.length === 0}
+                title="${this.replayPlaying ? "Pause" : "Play"}"
+              >${this.replayPlaying ? "⏸" : "▶"}</button>
+              <span class="replay-time">${this.formatReplayTime(this.replayCursorTime)}</span>
+              <input
+                type="range"
+                class="replay-scrubber"
+                min="0"
+                max="10000"
+                .value=${String(this.replayProgress)}
+                @input=${this.onScrub}
+                ?disabled=${this.replayEntries.length === 0}
+              >
+              <span class="replay-time muted">${this.formatReplayTime(this.replayMaxTime)}</span>
+              <span class="replay-count">${visibleCount} / ${this.replayEntries.length} events</span>
+            `}
+        </div>
+      ` : nothing}
 
       <div class="module-strip">
         ${MODULE_STRIP.map((m) => {
@@ -1222,7 +1525,7 @@ export class CognitionPanel extends LitElement {
 
   private renderLane(id: LaneId) {
     const cfg = LANE_CONFIG[id];
-    const entries = this.lanes[id];
+    const entries = this.activeLanes[id];
     const isActive = this.laneActive.get(id) ?? false;
     const count = this.cardCount(id);
     const isCollapsed = this.collapsedLanes.has(id);
