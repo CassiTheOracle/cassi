@@ -88,13 +88,24 @@ export function getGitHubCopilotBaseUrl(token?: string, enterpriseDomain?: strin
 	return "https://api.individual.githubcopilot.com";
 }
 
-async function fetchJson(url: string, init: RequestInit): Promise<unknown> {
-	const response = await fetch(url, init);
-	if (!response.ok) {
+async function fetchJson(url: string, init: RequestInit, retries = 2): Promise<unknown> {
+	let lastError: Error | undefined;
+	for (let attempt = 0; attempt <= retries; attempt++) {
+		const response = await fetch(url, init);
+		if (response.ok) {
+			return response.json();
+		}
 		const text = await response.text();
-		throw new Error(`${response.status} ${response.statusText}: ${text}`);
+		lastError = new Error(`${response.status} ${response.statusText}: ${text}`);
+
+		// Retry on 400/500-level transient errors, but not on auth failures (401/403)
+		if (response.status === 401 || response.status === 403 || attempt === retries) {
+			throw lastError;
+		}
+		// Exponential backoff: 500ms, 1500ms
+		await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
 	}
-	return response.json();
+	throw lastError ?? new Error("fetchJson: unexpected retry exhaustion");
 }
 
 async function startDeviceFlow(domain: string): Promise<DeviceCodeResponse> {
@@ -230,13 +241,23 @@ export async function refreshGitHubCopilotToken(
 	const domain = enterpriseDomain || "github.com";
 	const urls = getUrls(domain);
 
-	const raw = await fetchJson(urls.copilotTokenUrl, {
-		headers: {
-			Accept: "application/json",
-			Authorization: `Bearer ${refreshToken}`,
-			...COPILOT_HEADERS,
-		},
-	});
+	let raw: unknown;
+	try {
+		raw = await fetchJson(urls.copilotTokenUrl, {
+			headers: {
+				Accept: "application/json",
+				Authorization: `Bearer ${refreshToken}`,
+				...COPILOT_HEADERS,
+			},
+		});
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : String(err);
+		// Surface a clear, actionable error
+		if (msg.includes("401") || msg.includes("403")) {
+			throw new Error(`Copilot token refresh failed (auth expired) — re-login required: ${msg}`);
+		}
+		throw new Error(`Copilot token refresh failed: ${msg}`);
+	}
 
 	if (!raw || typeof raw !== "object") {
 		throw new Error("Invalid Copilot token response");

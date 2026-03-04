@@ -8,6 +8,9 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 	private finalResultPromise: Promise<R>;
 	private resolveFinalResult!: (result: R) => void;
 
+	/** Maximum queued events before oldest are dropped. 0 = unlimited. */
+	private static readonly MAX_QUEUE_SIZE = 10_000;
+
 	constructor(
 		private isComplete: (event: T) => boolean,
 		private extractResult: (event: T) => R,
@@ -30,6 +33,10 @@ export class EventStream<T, R = T> implements AsyncIterable<T> {
 		if (waiter) {
 			waiter({ value: event, done: false });
 		} else {
+			// Cap queue to prevent unbounded memory growth when consumer is slower than producer
+			if (EventStream.MAX_QUEUE_SIZE > 0 && this.queue.length >= EventStream.MAX_QUEUE_SIZE) {
+				this.queue.shift(); // Drop oldest event
+			}
 			this.queue.push(event);
 		}
 	}

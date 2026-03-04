@@ -237,13 +237,36 @@ export const streamAnthropic: StreamFunction<"anthropic-messages", AnthropicOpti
 			);
 			const params = buildParams(model, context, isOAuthToken, options);
 			options?.onPayload?.(params);
-			const anthropicStream = client.messages.stream({ ...params, stream: true }, { signal: options?.signal });
-			stream.push({ type: "start", partial: output });
 
 			type Block = (ThinkingContent | TextContent | (ToolCall & { partialJson: string })) & { index: number };
-			const blocks = output.content as Block[];
 
-			for await (const event of anthropicStream) {
+			// For Copilot: retry once on transient 400 errors (proxy flakiness, token rotation).
+			// A 400 from the Copilot proxy surfaces on the first iteration, before any content
+			// events are emitted, so retrying is safe and invisible to the consumer.
+			const maxAttempts = model.provider === "github-copilot" ? 2 : 1;
+			let streamStarted = false;
+
+			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+				try {
+					if (attempt > 1) {
+						// Reset output content for retry
+						output.content = [];
+						await new Promise((r) => setTimeout(r, 1000));
+					}
+
+					const anthropicStream = client.messages.stream(
+						{ ...params, stream: true },
+						{ signal: options?.signal },
+					);
+
+					const blocks = output.content as Block[];
+
+					if (!streamStarted) {
+						stream.push({ type: "start", partial: output });
+						streamStarted = true;
+					}
+
+					for await (const event of anthropicStream) {
 				if (event.type === "message_start") {
 					// Capture initial token usage from message_start event
 					// This ensures we have input token counts even if the stream is aborted early
@@ -387,6 +410,21 @@ export const streamAnthropic: StreamFunction<"anthropic-messages", AnthropicOpti
 					calculateCost(model, output.usage);
 				}
 			}
+
+					// Stream iteration completed successfully — exit retry loop
+					break;
+				} catch (retryErr) {
+					// If content was already emitted to the consumer, don't retry (would corrupt the stream)
+					if (
+						attempt < maxAttempts &&
+						output.content.length === 0 &&
+						retryErr instanceof Anthropic.BadRequestError
+					) {
+						continue;
+					}
+					throw retryErr;
+				}
+			} // end retry loop
 
 			if (options?.signal?.aborted) {
 				throw new Error("Request was aborted");
