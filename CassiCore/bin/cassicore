@@ -1,31 +1,177 @@
 #!/usr/bin/env bash
-# bin/cassi — launches the CassiCLI (Crush fork) binary.
+# bin/cassicore — CassiCore daemon control script
 #
-# Build once with:   npm run build:cassi-cli
-# Or from cassi-cli: cd cassi-cli && go build -o ../bin/cassi-bin .
-#
-# The compiled binary is stored at bin/cassi-bin.  If it doesn't exist yet
-# this wrapper attempts to build it automatically.
+# Usage:
+#   cassicore start     Start the daemon in the background
+#   cassicore stop      Stop the running daemon
+#   cassicore restart   Stop then start the daemon
+#   cassicore status    Show daemon status
+#   cassicore logs      Tail the daemon log
+#   cassicore run       Run the daemon in the foreground (for systemd / debugging)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BINARY="$SCRIPT_DIR/cassi-bin"
-CASSI_CLI_DIR="$(dirname "$SCRIPT_DIR")/cassi-cli"
+CASSICORE_DIR="$(dirname "$SCRIPT_DIR")"
+CASSICORE_HOME="${CASSICORE_HOME:-$HOME/.cassicore}"
+PID_FILE="$CASSICORE_HOME/daemon.pid"
+LOG_FILE="$CASSICORE_HOME/daemon.log"
+ADMIN_URL="${CASSICORE_URL:-http://127.0.0.1:7433}"
+DAEMON_JS="$CASSICORE_DIR/dist/src/index.js"
 
-# Auto-build if the binary is missing.
-if [[ ! -x "$BINARY" ]]; then
-  echo "[cassi] Binary not found — building cassi-cli..." >&2
-  if [[ ! -d "$CASSI_CLI_DIR" ]]; then
-    echo "[cassi] ERROR: cassi-cli/ submodule not found at $CASSI_CLI_DIR" >&2
-    echo "[cassi]        Run: git submodule update --init cassi-cli" >&2
-    exit 1
+# ── helpers ────────────────────────────────────────────────────────────────────
+
+get_pid() {
+  [[ -f "$PID_FILE" ]] || return 1
+  local pid
+  pid="$(cat "$PID_FILE" 2>/dev/null | tr -d '[:space:]')"
+  [[ -n "$pid" ]] || return 1
+  echo "$pid"
+}
+
+is_running() {
+  local pid
+  pid="$(get_pid 2>/dev/null)" || return 1
+  kill -0 "$pid" 2>/dev/null
+}
+
+wait_for_http() {
+  local retries=30
+  while (( retries-- > 0 )); do
+    if curl -sf "$ADMIN_URL/health" -o /dev/null 2>/dev/null; then
+      return 0
+    fi
+    sleep 0.5
+  done
+  return 1
+}
+
+# ── commands ───────────────────────────────────────────────────────────────────
+
+cmd_start() {
+  if is_running; then
+    local pid; pid="$(get_pid)"
+    echo "[cassicore] Daemon already running (PID $pid)" >&2
+    return 0
   fi
-  (cd "$CASSI_CLI_DIR" && go build -o "$BINARY" .) >&2
-  echo "[cassi] Build complete." >&2
-fi
 
-# Ensure the daemon is running before launching.
-CASSICORE_URL="${CASSICORE_URL:-http://localhost:7433}"
+  if [[ ! -f "$DAEMON_JS" ]]; then
+    echo "[cassicore] Daemon not built — running build..." >&2
+    (cd "$CASSICORE_DIR" && npm run build) >&2
+  fi
 
-exec "$BINARY" "$@"
+  mkdir -p "$CASSICORE_HOME"
+  # Clean stale sockets before starting
+  rm -f "$CASSICORE_HOME/admin.sock" "$CASSICORE_HOME/bridge.sock"
+
+  echo "[cassicore] Starting daemon..." >&2
+  (
+    cd "$CASSICORE_DIR"
+    nohup node "$DAEMON_JS" >>"$LOG_FILE" 2>&1 &
+    echo $! >"$PID_FILE"
+  )
+
+  local pid; pid="$(get_pid)"
+  echo "[cassicore] Daemon started (PID $pid)" >&2
+  echo "[cassicore] Waiting for HTTP API..." >&2
+  if wait_for_http; then
+    echo "[cassicore] Ready — $ADMIN_URL" >&2
+  else
+    echo "[cassicore] Warning: daemon did not respond within 15s (check $LOG_FILE)" >&2
+  fi
+}
+
+cmd_stop() {
+  if ! is_running; then
+    echo "[cassicore] Daemon is not running" >&2
+    return 0
+  fi
+
+  local pid; pid="$(get_pid)"
+  echo "[cassicore] Stopping daemon (PID $pid)..." >&2
+  kill "$pid" 2>/dev/null || true
+
+  local retries=30
+  while (( retries-- > 0 )); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.5
+  done
+
+  if kill -0 "$pid" 2>/dev/null; then
+    echo "[cassicore] Daemon did not stop gracefully — sending SIGKILL" >&2
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+
+  rm -f "$PID_FILE"
+  echo "[cassicore] Stopped." >&2
+}
+
+cmd_restart() {
+  cmd_stop
+  sleep 1
+  cmd_start
+}
+
+cmd_status() {
+  if is_running; then
+    local pid; pid="$(get_pid)"
+    echo "[cassicore] Running (PID $pid)"
+    # Try to get version/uptime from health endpoint
+    if curl -sf "$ADMIN_URL/health" -o /tmp/cassicore-health.json 2>/dev/null; then
+      local version uptime
+      version="$(python3 -c "import json,sys; d=json.load(open('/tmp/cassicore-health.json')); print(d.get('version','?'))" 2>/dev/null || echo '?')"
+      uptime="$(python3 -c "import json,sys; d=json.load(open('/tmp/cassicore-health.json')); ms=d.get('uptimeMs',0); print(f\"{ms//3600000}h {(ms%3600000)//60000}m\" if ms else d.get('uptime','?'))" 2>/dev/null || echo '?')"
+      echo "[cassicore] Version: $version | Uptime: $uptime | API: $ADMIN_URL"
+    else
+      echo "[cassicore] API not responding at $ADMIN_URL"
+    fi
+  else
+    echo "[cassicore] Not running"
+    [[ -f "$PID_FILE" ]] && echo "[cassicore] (stale PID file: $PID_FILE)"
+    return 1
+  fi
+}
+
+cmd_logs() {
+  if [[ ! -f "$LOG_FILE" ]]; then
+    echo "[cassicore] No log file at $LOG_FILE" >&2
+    return 1
+  fi
+  tail -f "$LOG_FILE"
+}
+
+cmd_run() {
+  if [[ ! -f "$DAEMON_JS" ]]; then
+    echo "[cassicore] Daemon not built — running build..." >&2
+    (cd "$CASSICORE_DIR" && npm run build) >&2
+  fi
+  mkdir -p "$CASSICORE_HOME"
+  rm -f "$CASSICORE_HOME/admin.sock" "$CASSICORE_HOME/bridge.sock"
+  cd "$CASSICORE_DIR"
+  exec node "$DAEMON_JS"
+}
+
+usage() {
+  echo "Usage: cassicore <command>"
+  echo ""
+  echo "Commands:"
+  echo "  start     Start daemon in background"
+  echo "  stop      Stop daemon"
+  echo "  restart   Restart daemon"
+  echo "  status    Show daemon status"
+  echo "  logs      Tail daemon log (Ctrl-C to exit)"
+  echo "  run       Run daemon in foreground"
+}
+
+# ── dispatch ───────────────────────────────────────────────────────────────────
+
+CMD="${1:-}"
+case "$CMD" in
+  start)   cmd_start   ;;
+  stop)    cmd_stop    ;;
+  restart) cmd_restart ;;
+  status)  cmd_status  ;;
+  logs)    cmd_logs    ;;
+  run)     cmd_run     ;;
+  *)       usage; exit 1 ;;
+esac
