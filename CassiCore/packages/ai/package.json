@@ -1,6 +1,6 @@
 {
   "name": "@cassicore/ai",
-  "version": "0.1.2",
+  "version": "0.3.1",
   "description": "CassiCore AI provider layer - forked from pi-ai for tight integration",
   "type": "module",
   "main": "./dist/index.js",
