@@ -373,6 +373,9 @@ export class CassandraEventClient extends EventEmitter {
       maxReconnectAttempts: options.maxReconnectAttempts ?? 10,
       debug: options.debug ?? false,
     };
+    // Prevent unhandled 'error' event from crashing the process —
+    // if no external listener is attached, errors are silently absorbed.
+    this.on('error', () => {});
   }
 
   /**

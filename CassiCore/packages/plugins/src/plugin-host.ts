@@ -144,6 +144,16 @@ export class PluginHost implements IPluginHost {
     this.logger.error(`plugin ${manifest.id} crashed: ${errorMsg}`, { crashes: record.status.crashes });
     bus.emit({ type: "plugin:crashed", pluginId: manifest.id, error: errorMsg, crashCount: record.status.crashes });
 
+    // Terminate the old worker if it still exists
+    const oldWorker = record.worker;
+    if (oldWorker) {
+      record.worker = undefined;
+      oldWorker.removeAllListeners();
+      oldWorker.terminate().catch(() => {
+        // Ignore termination errors - worker may already be dead
+      });
+    }
+
     const crashes = record.status.crashes;
     if (manifest.restartOnCrash && crashes < manifest.maxRestarts) {
       const backoff = Math.min(1000 * Math.pow(2, crashes - 1), 30000);
@@ -181,27 +191,32 @@ export class PluginHost implements IPluginHost {
       this.logger.info(`plugin ${pluginId} unloaded (was not active)`);
       return;
     }
+
     const w = record.worker;
-    try {
-      w.postMessage({ type: "shutdown" } as HostMessage);
-    } catch (e) {
-      this.logger.warn(`failed to send shutdown to ${pluginId}`);
-    }
-
-    // terminate after 2s if still alive
-    const terminated = await Promise.race([
-      new Promise<void>((res) => w.once("exit", () => res())),
-      new Promise<void>((res) => setTimeout(res, 2000)),
-    ]);
+    record.worker = undefined;
 
     try {
-      await w.terminate();
-    } catch (e) {
-      // ignore
-    }
+      try {
+        w.postMessage({ type: "shutdown" } as HostMessage);
+      } catch (e) {
+        this.logger.warn(`failed to send shutdown to ${pluginId}`);
+      }
 
-    this.workers.delete(pluginId);
-    this.logger.info(`plugin ${pluginId} unloaded`);
+      // terminate after 2s if still alive
+      await Promise.race([
+        new Promise<void>((res) => w.once("exit", () => res())),
+        new Promise<void>((res) => setTimeout(res, 2000)),
+      ]);
+
+      try {
+        await w.terminate();
+      } catch (e) {
+        // ignore
+      }
+    } finally {
+      this.workers.delete(pluginId);
+      this.logger.info(`plugin ${pluginId} unloaded`);
+    }
   }
 
   /**
