@@ -28,12 +28,36 @@ import { spawn } from 'child_process';
 // Configuration
 const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
 const GATEWAY_VERSION = '1.0.0';
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000; // 30s default timeout for all fetch calls
 
 // Logger that writes to stderr (stdout reserved for MCP protocol)
 function log(level: string, message: string, data?: any) {
   const timestamp = new Date().toISOString();
   const logLine = JSON.stringify({ timestamp, level, message, data });
   console.error(logLine);
+}
+
+/**
+ * Fetch with timeout — wraps global fetch with AbortController to prevent
+ * indefinite hangs when the daemon is slow or unresponsive.
+ */
+async function fetchWithTimeout(url: string | URL, init?: RequestInit & { timeoutMs?: number }): Promise<Response> {
+  const timeoutMs = init?.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url.toString(), {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -252,7 +276,7 @@ const INTELLIGENCE_TOOLS = [
   },
   {
     name: 'cassi_subconscious',
-    description: 'View the Subconscious module — mental model, consolidated learnings, detected anomalies, signal patterns, and context search stats. Shows what Cassi has internalized about the user and conversation.',
+    description: 'Conscious Observer state — system-wide mental model (session tracking, provider health, plugin status, active drones/teams, budget tiers), observations from heuristic and LLM sweeps, and detected anomalies. Use this to understand the overall health and awareness state of the intelligence layer.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -264,6 +288,24 @@ const INTELLIGENCE_TOOLS = [
           type: 'string',
           enum: ['brief', 'full'],
           description: 'Output mode: "brief" for narrative summary (default), "full" for detailed dashboard',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_consciousness',
+    description: 'Real-time event stream and observer pipeline — what\'s flowing through the system right now. Shows event rate, top event types, recent event sequence, heuristic vs LLM observation counts, and last LLM sweep timing. Use this to understand the live pulse of the intelligence layer.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        windowSecs: {
+          type: 'number',
+          description: 'Look-back window in seconds for stream stats (default 60)',
+        },
+        mode: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description: 'Output mode: "brief" for key metrics (default), "full" for full event type breakdown and LLM observation history',
         },
       },
     },
@@ -390,6 +432,27 @@ const INTELLIGENCE_TOOLS = [
       },
     },
   },
+  {
+    name: 'cassi_snapshot',
+    description: 'Get a comprehensive snapshot of all running team agents, their goals, progress, recent messages, and current git status. Use this to monitor ongoing parallel work.',
+    inputSchema: {
+      type: 'object' as const,
+      properties: {
+        teamId: {
+          type: 'string',
+          description: 'Optional: focus on a specific team. If omitted, shows all running teams.'
+        },
+        includeMessages: {
+          type: 'boolean',
+          description: 'Whether to include recent agent messages (default: true)'
+        },
+        messageLimit: {
+          type: 'number',
+          description: 'Max recent messages per agent (default: 5)'
+        }
+      }
+    }
+  },
 ];
 // ═══════════════════════════════════════════════════════════════════════════════
 // Extended Tools — Memory, Providers, Config, Sessions, Actions, Teams
@@ -448,6 +511,220 @@ const MEMORY_TOOLS = [
           description: 'Maximum results to return (default 10)',
         },
       },
+    },
+  },
+  {
+    name: 'cassi_memory_delete',
+    description: 'Delete a memory entry by its ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Memory entry ID to delete' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'cassi_memory_kv_get',
+    description: 'Retrieve a value from the persistent key-value store.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: { type: 'string', description: 'KV store key' },
+      },
+      required: ['key'],
+    },
+  },
+  {
+    name: 'cassi_memory_kv_set',
+    description: 'Store a value in the persistent key-value store. Survives daemon restarts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: { type: 'string', description: 'KV store key' },
+        value: { description: 'Value to store (any JSON-serializable type)' },
+      },
+      required: ['key', 'value'],
+    },
+  },
+  {
+    name: 'cassi_memory_kv_del',
+    description: 'Delete a key from the persistent key-value store.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: { type: 'string', description: 'KV store key to delete' },
+      },
+      required: ['key'],
+    },
+  },
+  {
+    name: 'cassi_memory_stats',
+    description: 'Get memory system statistics — entry counts by type, archive stats, and queue depth.',
+    inputSchema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'cassi_archive_search',
+    description: 'Search the archive (conversations, insights, patterns, dialectic outputs, events) with rich filtering.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Full-text search query' },
+        limit: { type: 'number', description: 'Max results (default 20)' },
+        sortBy: { type: 'string', enum: ['relevance', 'importance', 'time'], description: 'Sort order (default relevance)' },
+        filters: {
+          type: 'object',
+          description: 'Optional filters',
+          properties: {
+            types: { type: 'array', items: { type: 'string' }, description: 'e.g. ["conversation","insight","pattern"]' },
+            sessionId: { type: 'string' },
+            minImportance: { type: 'number' },
+            maxImportance: { type: 'number' },
+            sentiment: { type: 'string' },
+            topics: { type: 'array', items: { type: 'string' } },
+            entities: { type: 'array', items: { type: 'string' } },
+            tags: { type: 'array', items: { type: 'string' } },
+            hasThinking: { type: 'boolean' },
+            startTime: { type: 'number', description: 'Unix seconds' },
+            endTime: { type: 'number', description: 'Unix seconds' },
+            source: { type: 'string' },
+          },
+        },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'cassi_archive_get',
+    description: 'Get a single archive entry by ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Archive entry ID' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'cassi_archive_related',
+    description: 'Find archive entries related to a given entry (by entity/topic overlap).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Archive entry ID to find related entries for' },
+        limit: { type: 'number', description: 'Max results (default 10)' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'cassi_archive_recent',
+    description: 'List the most recently archived entries across all types (conversations, insights, patterns, etc.).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Max results (default 10)' },
+      },
+    },
+  },
+  {
+    name: 'cassi_browse',
+    description: 'Browse the archive index — list all tags, entities, or topics with their occurrence counts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        category: {
+          type: 'string',
+          enum: ['tags', 'entities', 'topics'],
+          description: 'What to browse',
+        },
+        minCount: { type: 'number', description: 'Minimum occurrence count to include (default 1)' },
+      },
+      required: ['category'],
+    },
+  },
+  {
+    name: 'cassi_universal_search',
+    description: 'Search across both the memory store and the archive in one call.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        includeMemories: { type: 'boolean', description: 'Include memory store results (default true)' },
+        includeArchives: { type: 'boolean', description: 'Include archive results (default true)' },
+        limit: { type: 'number', description: 'Max results per source (default 10)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'cassi_session_conversation',
+    description: 'Retrieve the full archived conversation thread for a session, including thinking blocks.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID' },
+        limit: { type: 'number', description: 'Max turns to return (default 50)' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'cassi_session_export',
+    description: 'Export a complete session as structured JSON (conversation + thinking + metadata).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID to export' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'cassi_resolve_ref',
+    description: 'Resolve a compact session ref (e.g. "S0#M1.B0.P2") to its content. Refs use short labels (S0, S1, …) instead of full session IDs for token efficiency. Format: S{n}#M{msg}[.B{block}[.P{para}]]',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ref: { type: 'string', description: 'Compact session ref, e.g. "S0#M1.B0.P2"' },
+      },
+      required: ['ref'],
+    },
+  },
+  {
+    name: 'cassi_index_search',
+    description: 'Full-text search across indexed session message history. Returns matching fragments with compact refs.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        label: { type: 'string', description: 'Short session label (e.g. "S0") to restrict search' },
+        sessionId: { type: 'string', description: 'Full session ID to restrict search (alternative to label)' },
+        limit: { type: 'number', description: 'Max results (default 20)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'cassi_index_session',
+    description: 'Index a session\'s full message history for granular referencing. Returns the assigned short label. Use POST /memory/index/:sessionId on the admin API.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'Session ID to index' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'cassi_index_stats',
+    description: 'Get index stats for a session (message count, block count, paragraph count). Accepts either a short label or full session ID.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        labelOrSessionId: { type: 'string', description: 'Short label (e.g. "S0") or full session ID' },
+      },
+      required: ['labelOrSessionId'],
     },
   },
 ];
@@ -829,13 +1106,13 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
     switch (toolName) {
       case 'cassi_team_agent_status': {
         if (!args.teamId) throw new Error('teamId is required');
-        const res = await fetch(`${CASSICORE_URL}/teams/status?teamId=${encodeURIComponent(args.teamId)}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/status?teamId=${encodeURIComponent(args.teamId)}`);
         if (!res.ok) throw new Error(`Team status failed: ${await res.text()}`);
         return await res.json();
       }
 
       case 'cassi_team_agent_message': {
-        const res = await fetch(`${CASSICORE_URL}/teams/agent/message`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -850,20 +1127,20 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
 
       case 'cassi_team_agent_result': {
         if (!args.agentId) throw new Error('agentId is required');
-        const res = await fetch(`${CASSICORE_URL}/teams/agent/result?agentId=${encodeURIComponent(args.agentId)}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/result?agentId=${encodeURIComponent(args.agentId)}`);
         if (!res.ok) throw new Error(`Get agent result failed: ${await res.text()}`);
         return await res.json();
       }
 
       case 'cassi_team_agent_list': {
         if (!args.teamId) throw new Error('teamId is required');
-        const res = await fetch(`${CASSICORE_URL}/teams/agent/list?teamId=${encodeURIComponent(args.teamId)}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/list?teamId=${encodeURIComponent(args.teamId)}`);
         if (!res.ok) throw new Error(`List agents failed: ${await res.text()}`);
         return await res.json();
       }
 
       case 'cassi_team_agent_update_plan': {
-        const res = await fetch(`${CASSICORE_URL}/teams/agent/update-plan`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/update-plan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -877,7 +1154,7 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
       }
 
       case 'cassi_team_agent_complete_goal': {
-        const res = await fetch(`${CASSICORE_URL}/teams/agent/complete-goal`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/complete-goal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -895,7 +1172,7 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
 
       case 'cassi_team_agent_goal_tree': {
         if (!args.teamId) throw new Error('teamId is required');
-        const res = await fetch(`${CASSICORE_URL}/teams/agent/goal-tree?teamId=${encodeURIComponent(args.teamId)}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/goal-tree?teamId=${encodeURIComponent(args.teamId)}`);
         if (!res.ok) throw new Error(`Get goal tree failed: ${await res.text()}`);
         return await res.json();
       }
@@ -940,23 +1217,31 @@ async function executeCassiCoreTool(toolName: string, args: any): Promise<any> {
     
     if (method === 'GET') {
       const queryParams = new URLSearchParams(args).toString();
-      response = await fetch(`${url}?${queryParams}`, {
+      response = await fetchWithTimeout(`${url}?${queryParams}`, {
         method: 'GET',
+        timeoutMs: toolName === 'bash' ? 120_000 : DEFAULT_FETCH_TIMEOUT_MS, // bash gets longer timeout
       });
     } else {
-      response = await fetch(url, {
+      response = await fetchWithTimeout(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(args),
+        timeoutMs: toolName === 'bash' ? 120_000 : DEFAULT_FETCH_TIMEOUT_MS,
       });
     }
 
     if (!response.ok) {
-      const error = await response.text();
+      const error = await response.text().catch(() => '(unreadable body)');
       throw new Error(`CassiCore error: ${error}`);
     }
 
-    return await response.json();
+    // Safely parse JSON — handle non-JSON responses from error pages or proxy
+    const contentType = response.headers.get('content-type') || '';
+    if (contentType.includes('json')) {
+      return await response.json();
+    }
+    const text = await response.text();
+    return { output: text };
   } catch (error: any) {
     log('error', 'Tool execution failed', { tool: toolName, error: error.message });
     throw error;
@@ -998,7 +1283,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
     switch (toolName) {
       // ── Memory ──────────────────────────────────────────────────────────
       case 'cassi_memory_store': {
-        const res = await fetch(`${CASSICORE_URL}/memory/store`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/store`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: args.key, content: args.content, tags: args.tags }),
@@ -1010,7 +1295,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       case 'cassi_memory_search': {
         const params = new URLSearchParams({ query: args.query });
         if (args.limit) params.set('limit', String(args.limit));
-        const res = await fetch(`${CASSICORE_URL}/memory/search?${params}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/search?${params}`);
         if (!res.ok) throw new Error(`Memory search failed: ${await res.text()}`);
         return await res.json();
       }
@@ -1019,20 +1304,154 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         const params = new URLSearchParams();
         if (args?.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
-        const res = await fetch(`${CASSICORE_URL}/memory/recent${qs ? '?' + qs : ''}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/recent${qs ? '?' + qs : ''}`);
         if (!res.ok) throw new Error(`Memory recent failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_delete': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/${encodeURIComponent(args.id)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(`Memory delete failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_kv_get': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/kv/${encodeURIComponent(args.key)}`);
+        if (!res.ok) throw new Error(`KV get failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_kv_set': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/kv`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key: args.key, value: args.value }),
+        });
+        if (!res.ok) throw new Error(`KV set failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_kv_del': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/kv/${encodeURIComponent(args.key)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error(`KV delete failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_memory_stats': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/stats`);
+        if (!res.ok) throw new Error(`Memory stats failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_archive_search': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: args.query, limit: args.limit, sortBy: args.sortBy, filters: args.filters }),
+        });
+        if (!res.ok) throw new Error(`Archive search failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_archive_get': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/${encodeURIComponent(args.id)}`);
+        if (!res.ok) throw new Error(`Archive get failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_archive_related': {
+        const params = new URLSearchParams();
+        if (args.limit) params.set('limit', String(args.limit));
+        const qs = params.toString();
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/${encodeURIComponent(args.id)}/related${qs ? '?' + qs : ''}`);
+        if (!res.ok) throw new Error(`Archive related failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_archive_recent': {
+        const params = new URLSearchParams();
+        if (args?.limit) params.set('limit', String(args.limit));
+        const qs = params.toString();
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/recent${qs ? '?' + qs : ''}`);
+        if (!res.ok) throw new Error(`Archive recent failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_browse': {
+        const params = new URLSearchParams({ category: args.category });
+        if (args.minCount) params.set('minCount', String(args.minCount));
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/browse?${params}`);
+        if (!res.ok) throw new Error(`Browse failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_universal_search': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/universal-search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: args.query, includeMemories: args.includeMemories, includeArchives: args.includeArchives, limit: args.limit }),
+        });
+        if (!res.ok) throw new Error(`Universal search failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_session_conversation': {
+        const params = new URLSearchParams();
+        if (args.limit) params.set('limit', String(args.limit));
+        const qs = params.toString();
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/session/${encodeURIComponent(args.sessionId)}/conversation${qs ? '?' + qs : ''}`);
+        if (!res.ok) throw new Error(`Session conversation failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_session_export': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/session/${encodeURIComponent(args.sessionId)}/export`);
+        if (!res.ok) throw new Error(`Session export failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_resolve_ref': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/ref/${encodeURIComponent(args.ref)}`);
+        if (!res.ok) throw new Error(`Ref resolution failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_index_search': {
+        const params = new URLSearchParams();
+        params.set('q', args.query);
+        if (args.limit) params.set('limit', String(args.limit));
+        const labelOrId = args.label || args.sessionId || '';
+        if (!labelOrId) throw new Error('label or sessionId is required');
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/index/${encodeURIComponent(labelOrId)}/search?${params}`);
+        if (!res.ok) throw new Error(`Index search failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_index_session': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/index/${encodeURIComponent(args.sessionId)}`, { method: 'POST' });
+        if (!res.ok) throw new Error(`Session indexing failed: ${await res.text()}`);
+        return await res.json();
+      }
+
+      case 'cassi_index_stats': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/index/${encodeURIComponent(args.labelOrSessionId)}/stats`);
+        if (!res.ok) throw new Error(`Index stats failed: ${await res.text()}`);
         return await res.json();
       }
 
       // ── Providers ───────────────────────────────────────────────────────
       case 'cassi_providers': {
-        const [providersRes, healthRes] = await Promise.all([
-          fetch(`${CASSICORE_URL}/providers`),
-          args?.includeHealth !== false ? fetch(`${CASSICORE_URL}/health/providers`) : null,
-        ]);
-        if (!providersRes.ok) throw new Error(`Providers list failed: ${await providersRes.text()}`);
+        const providersRes = await fetchWithTimeout(`${CASSICORE_URL}/providers`);
+        if (!providersRes.ok) throw new Error(`Providers list failed: ${await providersRes.text().catch(() => 'unknown')}`);
         const providers = await providersRes.json();
-        const health = healthRes?.ok ? await healthRes.json() : null;
+        // Health endpoint is best-effort — don't fail the whole call if it 404s
+        let health = null;
+        if (args?.includeHealth !== false) {
+          try {
+            const healthRes = await fetchWithTimeout(`${CASSICORE_URL}/health/providers`);
+            if (healthRes.ok) health = await healthRes.json();
+          } catch { /* best-effort */ }
+        }
         return health ? { providers, health } : providers;
       }
 
@@ -1041,7 +1460,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         if (args?.providerId) params.set('providerId', args.providerId);
         if (args?.model) params.set('model', args.model);
         const qs = params.toString();
-        const res = await fetch(`${CASSICORE_URL}/providers/metrics${qs ? '?' + qs : ''}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/providers/metrics${qs ? '?' + qs : ''}`);
         if (!res.ok) throw new Error(`Provider metrics failed: ${await res.text()}`);
         return await res.json();
       }
@@ -1049,11 +1468,11 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       case 'cassi_provider_config': {
         const action = args?.action || 'get';
         if (action === 'get') {
-          const res = await fetch(`${CASSICORE_URL}/providers/config`);
+          const res = await fetchWithTimeout(`${CASSICORE_URL}/providers/config`);
           if (!res.ok) throw new Error(`Provider config get failed: ${await res.text()}`);
           return await res.json();
         } else if (action === 'set') {
-          const res = await fetch(`${CASSICORE_URL}/providers/config`, {
+          const res = await fetchWithTimeout(`${CASSICORE_URL}/providers/config`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ providerId: args.providerId, config: args.config }),
@@ -1061,7 +1480,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
           if (!res.ok) throw new Error(`Provider config set failed: ${await res.text()}`);
           return await res.json();
         } else if (action === 'reset') {
-          const res = await fetch(`${CASSICORE_URL}/providers/reset`, {
+          const res = await fetchWithTimeout(`${CASSICORE_URL}/providers/reset`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ providerId: args.providerId }),
@@ -1075,7 +1494,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       // ── Config ──────────────────────────────────────────────────────────
       case 'cassi_config_get': {
         const path = args?.key ? `/config/${encodeURIComponent(args.key)}` : '/config';
-        const res = await fetch(`${CASSICORE_URL}${path}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}${path}`);
         if (!res.ok) throw new Error(`Config get failed: ${await res.text()}`);
         return await res.json();
       }
@@ -1087,7 +1506,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
             `Allowed patterns: ${SAFE_CONFIG_KEYS.join(', ')}`
           );
         }
-        const res = await fetch(`${CASSICORE_URL}/config/set`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/config/set`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key: args.key, value: args.value }),
@@ -1101,14 +1520,14 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         const params = new URLSearchParams();
         if (args?.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
-        const res = await fetch(`${CASSICORE_URL}/sessions${qs ? '?' + qs : ''}`);
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/sessions${qs ? '?' + qs : ''}`);
         if (!res.ok) throw new Error(`Sessions list failed: ${await res.text()}`);
         return await res.json();
       }
 
       case 'cassi_session_detail': {
         const sid = encodeURIComponent(args.sessionId);
-        const sessionRes = await fetch(`${CASSICORE_URL}/sessions/${sid}`);
+        const sessionRes = await fetchWithTimeout(`${CASSICORE_URL}/sessions/${sid}`);
         if (!sessionRes.ok) throw new Error(`Session detail failed: ${await sessionRes.text()}`);
         const session = await sessionRes.json();
 
@@ -1116,7 +1535,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
           const params = new URLSearchParams();
           if (args.messageLimit) params.set('limit', String(args.messageLimit));
           const qs = params.toString();
-          const msgRes = await fetch(`${CASSICORE_URL}/sessions/${sid}/messages${qs ? '?' + qs : ''}`);
+          const msgRes = await fetchWithTimeout(`${CASSICORE_URL}/sessions/${sid}/messages${qs ? '?' + qs : ''}`);
           if (msgRes.ok) {
             session.messages = await msgRes.json();
           }
@@ -1125,7 +1544,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       }
 
       case 'cassi_session_prune': {
-        const res = await fetch(`${CASSICORE_URL}/sessions/prune`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/sessions/prune`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(args || {}),
@@ -1136,7 +1555,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
 
       // ── Actions ─────────────────────────────────────────────────────────
       case 'cassi_think_now': {
-        const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/think`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/thinker/think`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1151,11 +1570,11 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       case 'cassi_strategy_update': {
         const action = args?.action || 'get';
         if (action === 'get') {
-          const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/strategy`);
+          const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/thinker/strategy`);
           if (!res.ok) throw new Error(`Strategy get failed: ${await res.text()}`);
           return await res.json();
         } else if (action === 'set') {
-          const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/strategy`, {
+          const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/thinker/strategy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(args.strategy || {}),
@@ -1163,7 +1582,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
           if (!res.ok) throw new Error(`Strategy set failed: ${await res.text()}`);
           return await res.json();
         } else if (action === 'reset') {
-          const res = await fetch(`${CASSICORE_URL}/intelligence/thinker/strategy`, {
+          const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/thinker/strategy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ reset: true }),
@@ -1176,7 +1595,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
 
       case 'cassi_anomaly_ack': {
         const aid = encodeURIComponent(args.anomalyId);
-        const res = await fetch(`${CASSICORE_URL}/intelligence/subconscious/anomalies/${aid}/acknowledge`, {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/subconscious/anomalies/${aid}/acknowledge`, {
           method: 'POST',
         });
         if (!res.ok) throw new Error(`Anomaly acknowledge failed: ${await res.text()}`);
@@ -1206,7 +1625,7 @@ async function executeTeamAction(args: any): Promise<any> {
 
   switch (action) {
     case 'start': {
-      const res = await fetch(`${CASSICORE_URL}/teams`, {
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1221,21 +1640,21 @@ async function executeTeamAction(args: any): Promise<any> {
     }
 
     case 'status': {
-      const tid = args.teamId ? `/${encodeURIComponent(args.teamId)}` : '';
-      const res = await fetch(`${CASSICORE_URL}/teams/status${tid}`);
+      const qs = args.teamId ? `?teamId=${encodeURIComponent(args.teamId)}` : '';
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/status${qs}`);
       if (!res.ok) throw new Error(`Team status failed: ${await res.text()}`);
       return await res.json();
     }
 
     case 'tree': {
       if (!args.teamId) throw new Error('Team "tree" action requires teamId');
-      const res = await fetch(`${CASSICORE_URL}/teams/tree/${encodeURIComponent(args.teamId)}`);
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/tree?teamId=${encodeURIComponent(args.teamId)}`);
       if (!res.ok) throw new Error(`Team tree failed: ${await res.text()}`);
       return await res.json();
     }
 
     case 'list': {
-      const res = await fetch(`${CASSICORE_URL}/teams`);
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams`);
       if (!res.ok) throw new Error(`Team list failed: ${await res.text()}`);
       return await res.json();
     }
@@ -1244,7 +1663,7 @@ async function executeTeamAction(args: any): Promise<any> {
     case 'resume':
     case 'cancel': {
       if (!args.teamId) throw new Error(`Team "${action}" action requires teamId`);
-      const res = await fetch(`${CASSICORE_URL}/teams/${action}`, {
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/${action}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teamId: args.teamId }),
@@ -1257,7 +1676,7 @@ async function executeTeamAction(args: any): Promise<any> {
       const params = new URLSearchParams();
       if (args.teamId) params.set('teamId', args.teamId);
       const qs = params.toString();
-      const res = await fetch(`${CASSICORE_URL}/teams/checkpoints${qs ? '?' + qs : ''}`);
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/checkpoints${qs ? '?' + qs : ''}`);
       if (!res.ok) throw new Error(`Team checkpoints failed: ${await res.text()}`);
       return await res.json();
     }
@@ -1265,7 +1684,7 @@ async function executeTeamAction(args: any): Promise<any> {
     case 'approve':
     case 'reject': {
       if (!args.checkpointId) throw new Error(`Team "${action}" action requires checkpointId`);
-      const res = await fetch(`${CASSICORE_URL}/teams/checkpoints/${encodeURIComponent(args.checkpointId)}`, {
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/checkpoints/${encodeURIComponent(args.checkpointId)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1279,7 +1698,7 @@ async function executeTeamAction(args: any): Promise<any> {
 
     case 'steer': {
       if (!args.teamId) throw new Error('Team "steer" action requires teamId');
-      const res = await fetch(`${CASSICORE_URL}/teams/steer`, {
+      const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/steer`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1301,7 +1720,8 @@ async function executeTeamAction(args: any): Promise<any> {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Helper to fetch JSON from an admin API endpoint
+ * Helper to fetch JSON from an admin API endpoint.
+ * Uses timeout to prevent indefinite hangs and validates Content-Type.
  */
 async function fetchIntelligence(path: string, params?: Record<string, string>): Promise<any> {
   const url = new URL(path, CASSICORE_URL);
@@ -1310,10 +1730,15 @@ async function fetchIntelligence(path: string, params?: Record<string, string>):
       if (v !== undefined && v !== null) url.searchParams.set(k, v);
     }
   }
-  const response = await fetch(url.toString());
+  const response = await fetchWithTimeout(url.toString());
   if (!response.ok) {
-    const text = await response.text();
+    const text = await response.text().catch(() => '(unreadable body)');
     throw new Error(`Admin API error (${response.status}): ${text}`);
+  }
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('json')) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Expected JSON from ${path}, got ${contentType}: ${text.slice(0, 200)}`);
   }
   return response.json();
 }
@@ -1381,6 +1806,23 @@ async function formatActivity(args: any): Promise<string> {
     const healthKeys = Object.keys(data.optimizer?.sessionHealth || {});
     if (healthKeys.length > 0) {
       lines.push(`**Optimizer**: tracking ${healthKeys.length} session(s)`);
+    }
+
+    // Consciousness / Subconscious
+    const subconData = await fetchIntelligence('/intelligence/subconscious/stats').catch(() => null);
+    const subconSnap = await fetchIntelligence('/intelligence/subconscious/debug').catch(() => null);
+    if (subconData?.stats || subconSnap?.snapshot) {
+      const stats = subconData?.stats ?? {};
+      const snap = subconSnap?.snapshot ?? {};
+      const health = snap.systemHealth ?? 'unknown';
+      const badge = ({ healthy: '●', degraded: '◐', critical: '○' } as Record<string, string>)[health] ?? '?';
+      const rate = typeof stats?.eventRate === 'number' ? ` | ${stats.eventRate.toFixed(1)} events/min` : '';
+      const activeAnoms = stats?.activeAnomalies ?? 0;
+      const anomNote = activeAnoms > 0 ? ` | **${activeAnoms} anomaly(ies)**` : '';
+      const drones = snap?.activeDrones ?? 0;
+      const teams = snap?.activeTeams ?? 0;
+      const workNote = (drones > 0 || teams > 0) ? ` | ${drones} drones, ${teams} teams` : '';
+      lines.push(`**Consciousness**: ${badge} ${health}${rate}${anomNote}${workNote}`);
     }
 
     // AI Scientist
@@ -1476,6 +1918,40 @@ async function formatActivity(args: any): Promise<string> {
     }
   }
 
+  // Consciousness section (full mode)
+  const subconStats = await fetchIntelligence('/intelligence/subconscious/stats').catch(() => null);
+  const subconDebug = await fetchIntelligence('/intelligence/subconscious/debug').catch(() => null);
+  if (subconStats?.stats || subconDebug?.snapshot) {
+    const stats = subconStats?.stats ?? {};
+    const snap = subconDebug?.snapshot ?? {};
+    lines.push('\n### Consciousness Observer\n');
+    const health = snap.systemHealth ?? 'unknown';
+    const badge = { healthy: '●', degraded: '◐', critical: '○' }[health] ?? '?';
+    lines.push(`**System Health**: ${badge} ${health}`);
+    if (stats.totalEvents != null) lines.push(`- **Total events seen**: ${stats.totalEvents}`);
+    if (stats.eventRate != null) lines.push(`- **Event rate**: ${typeof stats.eventRate === 'number' ? stats.eventRate.toFixed(1) : stats.eventRate}/min`);
+    if (stats.totalObservations != null) lines.push(`- **Observations**: ${stats.totalObservations}`);
+    if (stats.activeAnomalies != null) lines.push(`- **Active anomalies**: ${stats.activeAnomalies}`);
+    if (snap.activeDrones != null) lines.push(`- **Active drones**: ${snap.activeDrones}`);
+    if (snap.activeTeams != null) lines.push(`- **Active teams**: ${snap.activeTeams}`);
+    // Provider health
+    const providerHealth: Record<string, string> = snap.providerHealth ?? {};
+    const badProviders = Object.entries(providerHealth).filter(([, s]) => s !== 'healthy');
+    if (badProviders.length > 0) {
+      lines.push(`- **Provider issues**: ${badProviders.map(([id, s]) => `${id}:${s}`).join(', ')}`);
+    }
+    // Anomalies
+    const anomData = await fetchIntelligence('/intelligence/subconscious/anomalies').catch(() => null);
+    const anomalies: any[] = anomData?.anomalies ?? [];
+    const unacked = anomalies.filter((a: any) => !a.acknowledged);
+    if (unacked.length > 0) {
+      lines.push(`\n**Unacknowledged anomalies** (${unacked.length}):`);
+      for (const a of unacked.slice(0, 5)) {
+        lines.push(`  - [${a.severity}] ${(a.description ?? '').slice(0, 80)}`);
+      }
+    }
+  }
+
   return lines.join('\n');
 }
 
@@ -1510,8 +1986,8 @@ async function formatDialectic(args: any): Promise<string> {
     if (recent.length > 0) {
       lines.push('\n**Recent Analysis**:');
       for (const turn of recent) {
-        const yang = turn.yang_output || turn.yangOutput;
-        const synth = turn.synthesizer_output || turn.synthesizerOutput;
+        const yang = turn.yang || turn.yang_output || turn.yangOutput;
+        const synth = turn.serenity || turn.synthesizer_output || turn.synthesizerOutput;
         const injected = turn.signal_injected ?? turn.signalInjected;
         const yangSummary = typeof yang === 'string' ? yang.slice(0, 80) : (yang?.observation || yang?.summary || JSON.stringify(yang)).slice(0, 80);
         lines.push(`- ${injected ? '[INJECTED]' : '[observed]'} ${yangSummary}${yangSummary.length >= 80 ? '...' : ''}`);
@@ -1540,9 +2016,9 @@ async function formatDialectic(args: any): Promise<string> {
     lines.push(`\n### Recent Turns (${turns.length})\n`);
     for (let i = 0; i < turns.length; i++) {
       const turn = turns[i];
-      const yang = turn.yang_output || turn.yangOutput;
-      const yin = turn.yin_output || turn.yinOutput;
-      const synth = turn.synthesizer_output || turn.synthesizerOutput;
+      const yang = turn.yang || turn.yang_output || turn.yangOutput;
+      const yin = turn.yin || turn.yin_output || turn.yinOutput;
+      const synth = turn.serenity || turn.synthesizer_output || turn.synthesizerOutput;
       const injected = turn.signal_injected ?? turn.signalInjected;
       const latency = turn.total_latency_ms ?? turn.totalLatencyMs;
 
@@ -1673,44 +2149,247 @@ async function formatSubconscious(args: any): Promise<string> {
   const params: Record<string, string> = {};
   if (sessionId) params.sessionId = sessionId;
 
-  const [debugData, learningsData, statsData, anomaliesData] = await Promise.all([
+  const [debugData, statsData, anomaliesData] = await Promise.all([
     fetchIntelligence('/intelligence/subconscious/debug', params).catch(() => null),
-    fetchIntelligence('/intelligence/subconscious/learnings').catch(() => null),
     fetchIntelligence('/intelligence/subconscious/stats').catch(() => null),
     fetchIntelligence('/intelligence/subconscious/anomalies').catch(() => null),
   ]);
 
-  const debug = debugData;
-  const learnings = learningsData?.learnings || learningsData;
-  const stats = statsData?.stats || statsData;
-  const anomalies = anomaliesData?.anomalies || anomaliesData;
+  const snap: Record<string, any> = debugData?.snapshot ?? {};
+  const stats = statsData?.stats ?? statsData ?? {};
+  const anomalies: any[] = anomaliesData?.anomalies ?? anomaliesData ?? [];
+  const observations: any[] = debugData?.recentObservations ?? [];
+
+  // ─── Helper: health badge ───────────────────────────────────────────────────
+  const healthBadge = (h: string) => ({
+    healthy: '● healthy',
+    degraded: '◐ degraded',
+    critical: '○ critical',
+  }[h] ?? `? ${h}`);
+
+  const providerBadge = (s: string) => ({
+    healthy: '✓', degraded: '~', error: '✗', rate_limited: '⏸',
+  }[s] ?? s);
 
   if (mode === 'brief') {
-    const lines: string[] = ['## Subconscious Brief\n'];
+    const lines: string[] = ['## Conscious Observer Brief\n'];
 
-    if (stats) {
-      lines.push(`**${stats.totalLearnings || 0}** learnings | **${stats.totalAnomalies || 0}** anomalies | **${stats.totalPatterns || 0}** patterns | avg confidence: **${(stats.avgConfidence || 0).toFixed(2)}**`);
+    // System health + counts
+    const health = snap.systemHealth ?? 'unknown';
+    const sessionCount = snap.sessionCount ?? 0;
+    const drones = snap.activeDrones ?? 0;
+    const teams = snap.activeTeams ?? 0;
+    const totalObs = stats.totalObservations ?? 0;
+    const totalAnoms = stats.totalAnomalies ?? 0;
+    const eventRate = typeof stats.eventRate === 'number' ? stats.eventRate.toFixed(1) : (stats.eventRate ?? '?');
+    lines.push(`**System**: ${healthBadge(health)} | sessions: ${sessionCount} | events/min: ${eventRate}`);
+    if (drones > 0 || teams > 0) {
+      lines.push(`**Active**: ${drones} drone(s), ${teams} team(s)`);
+    }
+    lines.push(`**Observations**: ${totalObs} total | **Anomalies**: ${totalAnoms} total`);
+
+    // Provider health issues
+    const providerHealth: Record<string, string> = snap.providerHealth ?? {};
+    const badProviders = Object.entries(providerHealth).filter(([, s]) => s !== 'healthy');
+    if (badProviders.length > 0) {
+      lines.push(`\n**Provider Issues**: ${badProviders.map(([id, s]) => `${id}: ${s}`).join(', ')}`);
     }
 
-    // Mental model summary from debug
-    if (debug?.mentalModel) {
-      const model = debug.mentalModel;
-      lines.push(`\n**Mental Model**: phase=${model.conversationPhase || 'unknown'}, intent=${model.userIntent || 'unknown'}, complexity=${model.complexity || 'unknown'}`);
+    // Plugin crashes
+    const pluginStatus: Record<string, string> = snap.pluginStatus ?? {};
+    const crashedPlugins = Object.entries(pluginStatus).filter(([, s]) => s === 'crashed');
+    if (crashedPlugins.length > 0) {
+      lines.push(`**Plugin Crashes**: ${crashedPlugins.map(([id]) => id).join(', ')}`);
     }
 
-    // Recent signals
-    if (debug?.recentSignals?.length) {
-      lines.push(`\n**Recent Signals** (${debug.recentSignals.length}):`);
-      for (const sig of debug.recentSignals.slice(0, 3)) {
-        lines.push(`- [${sig.type || 'signal'}] ${(sig.description || sig.content || JSON.stringify(sig)).slice(0, 100)}`);
+    // Budget warnings
+    const budgetTiers: Record<string, string> = snap.budgetTiers ?? {};
+    const urgentBudget = Object.entries(budgetTiers).filter(([, t]) => t === 'critical' || t === 'frugal');
+    if (urgentBudget.length > 0) {
+      lines.push(`**Budget Warnings**: ${urgentBudget.map(([id, t]) => `${id}: ${t}`).join(', ')}`);
+    }
+
+    // Recent patterns
+    const patterns: string[] = (snap.recentPatterns ?? []).slice(0, 3);
+    if (patterns.length > 0) {
+      lines.push(`\n**Recent Patterns**: ${patterns.join(' · ')}`);
+    }
+
+    // Recent observations
+    if (observations.length > 0) {
+      lines.push(`\n**Recent Observations** (${observations.length}):`);
+      for (const obs of observations.slice(0, 3)) {
+        const src = obs.type ?? obs.source ?? 'observation';
+        const conf = obs.confidence != null ? ` (${Math.round(obs.confidence * 100)}%)` : '';
+        lines.push(`- [${src}${conf}] ${(obs.summary ?? obs.description ?? '').slice(0, 100)}`);
       }
     }
 
-    // Anomalies summary
-    if (Array.isArray(anomalies) && anomalies.length > 0) {
-      const unacked = anomalies.filter((a: any) => !a.acknowledged);
-      if (unacked.length > 0) {
-        lines.push(`\n**${unacked.length} unacknowledged anomalies** detected`);
+    // Unacknowledged anomalies
+    const unacked = anomalies.filter((a: any) => !a.acknowledged);
+    if (unacked.length > 0) {
+      lines.push(`\n**${unacked.length} unacknowledged anomaly(ies)**:`);
+      for (const a of unacked.slice(0, 3)) {
+        lines.push(`- [${a.severity ?? '?'}] ${(a.description ?? '').slice(0, 80)}`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  // ─── Full mode ─────────────────────────────────────────────────────────────
+  const lines: string[] = [`## Conscious Observer Dashboard${sessionId ? ` (session: ${sessionId.slice(0, 12)}...)` : ''}\n`];
+
+  // System health overview
+  const health = snap.systemHealth ?? 'unknown';
+  lines.push(`**System Health**: ${healthBadge(health)}\n`);
+
+  // Stats summary
+  if (Object.keys(stats).length > 0) {
+    lines.push('### Statistics\n');
+    const totalEvents = stats.totalEvents ?? '?';
+    const activeSessions = stats.activeSessions ?? snap.sessionCount ?? '?';
+    const eventRate = typeof stats.eventRate === 'number' ? stats.eventRate.toFixed(1) : (stats.eventRate ?? '?');
+    const totalObs = stats.totalObservations ?? 0;
+    const activeAnoms = stats.activeAnomalies ?? anomalies.filter((a: any) => !a.acknowledged).length;
+    const avgConf = typeof stats.averageConfidence === 'number' ? stats.averageConfidence.toFixed(3) : '?';
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| Total events seen | ${totalEvents} |`);
+    lines.push(`| Active sessions | ${activeSessions} |`);
+    lines.push(`| Events/min | ${eventRate} |`);
+    lines.push(`| Total observations | ${totalObs} |`);
+    lines.push(`| Active anomalies | ${activeAnoms} |`);
+    lines.push(`| Avg observation confidence | ${avgConf} |`);
+    if (snap.activeDrones != null || snap.activeTeams != null) {
+      lines.push(`| Active drones | ${snap.activeDrones ?? 0} |`);
+      lines.push(`| Active teams | ${snap.activeTeams ?? 0} |`);
+    }
+  }
+
+  // Provider health table
+  const providerHealth: Record<string, string> = snap.providerHealth ?? {};
+  if (Object.keys(providerHealth).length > 0) {
+    lines.push('\n### Provider Health\n');
+    lines.push('| Provider | Status |');
+    lines.push('|----------|--------|');
+    for (const [id, status] of Object.entries(providerHealth)) {
+      lines.push(`| ${id} | ${providerBadge(status)} ${status} |`);
+    }
+  }
+
+  // Plugin status table
+  const pluginStatus: Record<string, string> = snap.pluginStatus ?? {};
+  if (Object.keys(pluginStatus).length > 0) {
+    lines.push('\n### Plugin Status\n');
+    lines.push('| Plugin | Status |');
+    lines.push('|--------|--------|');
+    for (const [id, status] of Object.entries(pluginStatus)) {
+      lines.push(`| ${id} | ${status} |`);
+    }
+  }
+
+  // Budget tiers table
+  const budgetTiers: Record<string, string> = snap.budgetTiers ?? {};
+  if (Object.keys(budgetTiers).length > 0) {
+    lines.push('\n### Budget Tiers\n');
+    lines.push('| Provider | Tier |');
+    lines.push('|----------|------|');
+    for (const [id, tier] of Object.entries(budgetTiers)) {
+      lines.push(`| ${id} | ${tier} |`);
+    }
+  }
+
+  // Top event types from stats
+  if (Array.isArray(stats.topEventTypes) && stats.topEventTypes.length > 0) {
+    lines.push('\n### Top Event Types\n');
+    lines.push('| Type | Count |');
+    lines.push('|------|-------|');
+    for (const { type, count } of stats.topEventTypes) {
+      lines.push(`| ${type} | ${count} |`);
+    }
+  }
+
+  // Recent observations
+  if (observations.length > 0) {
+    lines.push(`\n### Recent Observations (${observations.length})\n`);
+    for (const obs of observations) {
+      const src = obs.type ?? obs.source ?? 'observation';
+      const conf = obs.confidence != null ? ` (${Math.round(obs.confidence * 100)}%)` : '';
+      const patterns = Array.isArray(obs.patterns) && obs.patterns.length > 0
+        ? `\n  Patterns: ${obs.patterns.slice(0, 3).join(', ')}`
+        : '';
+      lines.push(`- **[${src}${conf}]** ${obs.summary ?? obs.description ?? ''}${patterns}`);
+    }
+  }
+
+  // Anomalies table
+  if (anomalies.length > 0) {
+    lines.push(`\n### Anomalies (${anomalies.length})\n`);
+    lines.push('| ID | Severity | Description | Acked |');
+    lines.push('|----|----------|-------------|-------|');
+    for (const a of anomalies) {
+      const desc = (a.description ?? a.summary ?? '').slice(0, 60);
+      lines.push(`| ${(a.id ?? '?').slice(0, 8)} | ${a.severity ?? '?'} | ${desc} | ${a.acknowledged ? 'Yes' : 'No'} |`);
+    }
+  }
+
+  // Context injection preview
+  if (debugData?.context) {
+    lines.push('\n### Context Manager (preview)\n');
+    lines.push('```json');
+    lines.push(JSON.stringify(debugData.context, null, 2).slice(0, 2000));
+    lines.push('```');
+  }
+
+  return lines.join('\n');
+}
+
+
+/**
+ * Format cassi_consciousness output — live event stream + observer pipeline
+ */
+async function formatConsciousness(args: any): Promise<string> {
+  const mode = args?.mode || 'brief';
+  const windowSecs = args?.windowSecs ?? 60;
+
+  const data = await fetchIntelligence('/intelligence/subconscious/stream', {
+    windowSecs: String(windowSecs),
+  }).catch(() => null);
+
+  if (!data?.stream) {
+    return '## Consciousness Stream\n\nUnable to reach daemon or subconscious not initialised.';
+  }
+
+  const s = data.stream;
+  const ratePerMin = typeof s.eventsPerSecond === 'number'
+    ? (s.eventsPerSecond * 60).toFixed(1)
+    : '?';
+  const lastSweepAgo = s.lastLLMSweepAgo != null
+    ? `${Math.round(s.lastLLMSweepAgo / 1000)}s ago`
+    : s.lastLLMSweepAt > 0 ? 'known' : 'never';
+
+  if (mode === 'brief') {
+    const lines: string[] = ['## Consciousness Stream (brief)\n'];
+    lines.push(`**Window**: last ${windowSecs}s | **Events**: ${s.totalEvents} | **Rate**: ${ratePerMin}/min`);
+    lines.push(`**Active sessions**: ${s.activeSessions} | **Heuristic obs**: ${s.heuristicObservationCount} | **LLM obs**: ${s.llmObservationCount}`);
+    lines.push(`**Last LLM sweep**: ${lastSweepAgo}`);
+
+    if (Array.isArray(s.topEventTypes) && s.topEventTypes.length > 0) {
+      const top5 = s.topEventTypes.slice(0, 5).map((t: any) => `${t.type}(${t.count})`).join(', ');
+      lines.push(`\n**Top types**: ${top5}`);
+    }
+
+    if (Array.isArray(s.recentSequence) && s.recentSequence.length > 0) {
+      lines.push(`\n**Recent sequence**: \`${s.recentSequence.slice(-8).join(' → ')}\``);
+    }
+
+    const recentLLM: any[] = s.recentLLMObservations ?? [];
+    if (recentLLM.length > 0) {
+      lines.push(`\n**Latest LLM sweep** (confidence: ${Math.round((recentLLM[0].confidence ?? 0) * 100)}%):`);
+      lines.push(`> ${(recentLLM[0].summary ?? '').slice(0, 150)}`);
+      if (recentLLM[0].concerns?.length > 0) {
+        lines.push(`> Concerns: ${recentLLM[0].concerns.slice(0, 2).join('; ')}`);
       }
     }
 
@@ -1718,68 +2397,42 @@ async function formatSubconscious(args: any): Promise<string> {
   }
 
   // Full mode
-  const lines: string[] = [`## Subconscious Dashboard${sessionId ? ` (session: ${sessionId.slice(0, 12)}...)` : ''}\n`];
+  const lines: string[] = [`## Consciousness Stream (full) — last ${windowSecs}s\n`];
+  lines.push(`| Metric | Value |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Total events | ${s.totalEvents} |`);
+  lines.push(`| Events/min | ${ratePerMin} |`);
+  lines.push(`| Active sessions | ${s.activeSessions} |`);
+  lines.push(`| Heuristic observations | ${s.heuristicObservationCount} |`);
+  lines.push(`| LLM observations | ${s.llmObservationCount} |`);
+  lines.push(`| Last LLM sweep | ${lastSweepAgo} |`);
 
-  // Stats
-  if (stats) {
-    lines.push('### Statistics\n');
-    for (const [k, v] of Object.entries(stats)) {
-      lines.push(`- **${k}**: ${typeof v === 'number' ? (Number.isInteger(v) ? v : (v as number).toFixed(3)) : v}`);
+  if (Array.isArray(s.topEventTypes) && s.topEventTypes.length > 0) {
+    lines.push('\n### Event Type Distribution\n');
+    lines.push('| Type | Count |');
+    lines.push('|------|-------|');
+    for (const { type, count } of s.topEventTypes) {
+      lines.push(`| ${type} | ${count} |`);
     }
   }
 
-  // Mental Model
-  if (debug?.mentalModel) {
-    lines.push('\n### Mental Model\n');
-    lines.push('```json');
-    lines.push(JSON.stringify(debug.mentalModel, null, 2));
+  if (Array.isArray(s.recentSequence) && s.recentSequence.length > 0) {
+    lines.push('\n### Recent Event Sequence\n');
+    lines.push('```');
+    lines.push(s.recentSequence.join(' → '));
     lines.push('```');
   }
 
-  // Context
-  if (debug?.context) {
-    lines.push('\n### Current Context\n');
-    lines.push('```json');
-    lines.push(JSON.stringify(debug.context, null, 2));
-    lines.push('```');
-  }
-
-  // Recent Signals
-  if (debug?.recentSignals?.length) {
-    lines.push(`\n### Recent Signals (${debug.recentSignals.length})\n`);
-    for (const sig of debug.recentSignals) {
-      lines.push(`- **[${sig.type || 'signal'}]** ${sig.description || sig.content || JSON.stringify(sig)}`);
-    }
-  }
-
-  // Learnings
-  if (Array.isArray(learnings) && learnings.length > 0) {
-    lines.push(`\n### Consolidated Learnings (${learnings.length})\n`);
-    for (const learning of learnings.slice(0, 20)) {
-      if (typeof learning === 'string') {
-        lines.push(`- ${learning}`);
-      } else {
-        lines.push(`- **${learning.category || 'general'}**: ${learning.content || learning.description || JSON.stringify(learning)}`);
-      }
-    }
-  }
-
-  // Anomalies
-  if (Array.isArray(anomalies) && anomalies.length > 0) {
-    lines.push(`\n### Anomalies (${anomalies.length})\n`);
-    lines.push('| ID | Type | Description | Acknowledged |');
-    lines.push('|----|------|-------------|-------------|');
-    for (const a of anomalies) {
-      lines.push(`| ${(a.id || '?').slice(0, 8)} | ${a.type || '?'} | ${(a.description || '').slice(0, 60)} | ${a.acknowledged ? 'Yes' : 'No'} |`);
-    }
-  }
-
-  // Enhanced Search Stats (if present in debug)
-  if (debug?.searchStats || debug?.stats) {
-    lines.push('\n### Search Stats\n');
-    const ss = debug.searchStats || debug.stats;
-    for (const [k, v] of Object.entries(ss)) {
-      lines.push(`- **${k}**: ${v}`);
+  const recentLLM: any[] = s.recentLLMObservations ?? [];
+  if (recentLLM.length > 0) {
+    lines.push(`\n### LLM Sweep History (last ${recentLLM.length})\n`);
+    for (const obs of recentLLM) {
+      const ago = obs.timestamp ? `${Math.round((Date.now() - obs.timestamp) / 1000)}s ago` : '';
+      lines.push(`#### Sweep ${ago} (${obs.eventCount} events, confidence: ${Math.round((obs.confidence ?? 0) * 100)}%)\n`);
+      lines.push(`**Summary**: ${obs.summary ?? ''}`);
+      if (obs.patterns?.length > 0) lines.push(`**Patterns**: ${obs.patterns.join(', ')}`);
+      if (obs.concerns?.length > 0) lines.push(`**Concerns**: ${obs.concerns.join('; ')}`);
+      if (obs.opportunities?.length > 0) lines.push(`**Opportunities**: ${obs.opportunities.join('; ')}`);
     }
   }
 
@@ -2317,6 +2970,170 @@ async function formatBlindspots(args: any): Promise<string> {
 }
 
 /**
+ * Format cassi_snapshot output — comprehensive team agent snapshot
+ */
+async function formatSnapshot(args: any): Promise<string> {
+  const teamId = args?.teamId;
+  const includeMessages = args?.includeMessages !== false;
+  const messageLimit = args?.messageLimit || 5;
+
+  const lines: string[] = ['# CassiCore Agent Snapshot\n'];
+  lines.push(`*Generated: ${new Date().toISOString()}*\n`);
+
+  try {
+    // Get teams data
+    const teamsData = await fetchIntelligence('/teams');
+    let teams = teamsData?.teams || [];
+
+    // Filter to specific team if requested
+    if (teamId) {
+      teams = teams.filter((t: any) => t.id === teamId);
+      if (teams.length === 0) {
+        return `# CassiCore Agent Snapshot\n\n**Error**: Team "${teamId}" not found.`;
+      }
+    }
+
+    // Filter to running/paused teams only (show active work)
+    const activeTeams = teams.filter((t: any) => t.status === 'running' || t.status === 'paused');
+    const displayTeams = activeTeams.length > 0 ? activeTeams : teams;
+
+    if (displayTeams.length === 0) {
+      lines.push('## No Active Teams\n');
+      lines.push('No teams are currently running. Use `cassi_team` with action "list" to see all teams.');
+    } else {
+      lines.push(`## Active Teams (${displayTeams.length})\n`);
+
+      // Process each team
+      for (const team of displayTeams) {
+        const tid = team.id;
+        
+        // Get detailed team status
+        const statusRes = await fetchWithTimeout(`${CASSICORE_URL}/teams/status?teamId=${encodeURIComponent(tid)}`);
+        const statusData = statusRes.ok ? await statusRes.json() : null;
+        
+        // Get agents list
+        const agentsRes = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/list?teamId=${encodeURIComponent(tid)}`);
+        const agentsData = agentsRes.ok ? await agentsRes.json() : null;
+        
+        // Get checkpoints
+        const checkpointsRes = await fetchWithTimeout(`${CASSICORE_URL}/teams/checkpoints?teamId=${encodeURIComponent(tid)}`);
+        const checkpointsData = checkpointsRes.ok ? await checkpointsRes.json() : null;
+
+        // Team header
+        lines.push(`### Team: ${tid}`);
+        lines.push(`**Goal:** ${team.goal || 'No goal set'}`);
+        
+        const progress = statusData?.progress;
+        if (progress) {
+          lines.push(`**Progress:** ${progress.completed || 0}/${progress.total || 0} goals (${progress.percentage || 0}%)`);
+        }
+        
+        lines.push(`**Status:** ${team.status} | **Agents:** ${team.agentCount || 0} | **Started:** ${team.startedAt ? new Date(team.startedAt).toLocaleString() : 'N/A'}`);
+        
+        if (statusData?.team?.budget) {
+          const b = statusData.team.budget;
+          lines.push(`**Budget:** ${b.tokensUsed?.toLocaleString() || 0} tokens used${b.maxTokens ? ` / ${b.maxTokens.toLocaleString()} max` : ''}`);
+        }
+        lines.push('');
+
+        // Agents section
+        const agents = agentsData?.agents || [];
+        if (agents.length > 0) {
+          lines.push('#### Agents\n');
+          
+          for (const agent of agents) {
+            const role = agent.isCoordinator ? 'coordinator' : (agent.roleHint || 'agent');
+            const statusEmoji = agent.goalStatus === 'completed' ? '✓' : 
+                               agent.goalStatus === 'in_progress' ? '▶' : 
+                               agent.goalStatus === 'failed' ? '✗' : '○';
+            
+            lines.push(`- **${agent.agentId}** (${role}): ${agent.goalTitle || 'No goal'} ${statusEmoji}`);
+            
+            // Get recent messages if requested
+            if (includeMessages) {
+              try {
+                const sessionRes = await fetchWithTimeout(`${CASSICORE_URL}/sessions?limit=50`);
+                if (sessionRes.ok) {
+                  const sessionsData = await sessionRes.json();
+                  const agentSession = sessionsData?.sessions?.find((s: any) => 
+                    s.id?.includes(agent.agentId) || s.agentId === agent.agentId
+                  );
+                  
+                  if (agentSession?.id) {
+                    const msgRes = await fetchWithTimeout(`${CASSICORE_URL}/sessions/${encodeURIComponent(agentSession.id)}/messages?limit=${messageLimit}`);
+                    if (msgRes.ok) {
+                      const msgData = await msgRes.json();
+                      const recentMsgs = msgData?.messages?.slice(-messageLimit) || [];
+                      
+                      if (recentMsgs.length > 0) {
+                        const lastMsg = recentMsgs[recentMsgs.length - 1];
+                        const preview = (lastMsg.content || lastMsg.text || '').slice(0, 100);
+                        if (preview) {
+                          lines.push(`  > Last: "${preview}${preview.length >= 100 ? '...' : ''}"`);
+                        }
+                      }
+                    }
+                  }
+                }
+              } catch (msgErr) {
+                // Silently skip message fetching errors
+              }
+            }
+          }
+          lines.push('');
+        }
+
+        // Checkpoints section
+        const checkpoints = checkpointsData?.checkpoints || [];
+        if (checkpoints.length > 0) {
+          lines.push('#### Pending Checkpoints\n');
+          for (const cp of checkpoints) {
+            lines.push(`- **${cp.checkpointId}**: ${cp.description || 'No description'} (${cp.status})`);
+          }
+          lines.push('');
+        }
+
+        lines.push('---\n');
+      }
+    }
+
+    // Git status section
+    lines.push('## Git Status\n');
+    try {
+      const { execSync } = await import('child_process');
+      const cwd = process.cwd();
+      
+      // Get short status
+      const statusOutput = execSync('git status --short', { cwd, encoding: 'utf-8', timeout: 5000 });
+      // Get diff stat
+      const diffStatOutput = execSync('git diff --stat', { cwd, encoding: 'utf-8', timeout: 5000 });
+      
+      if (statusOutput.trim()) {
+        lines.push('```');
+        lines.push(statusOutput.trim());
+        lines.push('```\n');
+        
+        if (diffStatOutput.trim()) {
+          lines.push('**Changes:**');
+          lines.push('```');
+          lines.push(diffStatOutput.trim());
+          lines.push('```');
+        }
+      } else {
+        lines.push('*Working directory clean*');
+      }
+    } catch (gitErr: any) {
+      lines.push(`*Git status unavailable: ${gitErr.message || 'Unknown error'}*`);
+    }
+
+    return lines.join('\n');
+  } catch (error: any) {
+    log('error', 'Snapshot failed', { error: error.message });
+    return `## Error\n\nFailed to generate snapshot: ${error.message}\n\nMake sure the CassiCore daemon is running.`;
+  }
+}
+
+/**
  * Execute an intelligence tool — routes to the appropriate formatter
  */
 async function executeIntelligenceTool(toolName: string, args: any): Promise<string> {
@@ -2327,11 +3144,13 @@ async function executeIntelligenceTool(toolName: string, args: any): Promise<str
     cassi_dialectic: formatDialectic,
     cassi_thinker: formatThinker,
     cassi_subconscious: formatSubconscious,
+    cassi_consciousness: formatConsciousness,
     cassi_trace: formatTrace,
     cassi_effectiveness: formatEffectiveness,
     cassi_budget: formatBudget,
     cassi_evolution: formatEvolution,
     cassi_blindspots: formatBlindspots,
+    cassi_snapshot: formatSnapshot,
   };
 
   const formatter = formatters[toolName];
@@ -2383,6 +3202,12 @@ function createServer() {
       // Extended tools (memory, providers, config, sessions, actions, teams)
       const extendedTools = new Set([
         'cassi_memory_store', 'cassi_memory_search', 'cassi_memory_recent',
+        'cassi_memory_delete', 'cassi_memory_kv_get', 'cassi_memory_kv_set', 'cassi_memory_kv_del',
+        'cassi_memory_stats',
+        'cassi_archive_search', 'cassi_archive_get', 'cassi_archive_related', 'cassi_archive_recent',
+        'cassi_browse',
+        'cassi_universal_search', 'cassi_session_conversation', 'cassi_session_export',
+        'cassi_resolve_ref', 'cassi_index_search', 'cassi_index_session', 'cassi_index_stats',
         'cassi_providers', 'cassi_provider_metrics', 'cassi_provider_config',
         'cassi_config_get', 'cassi_config_set',
         'cassi_sessions', 'cassi_session_detail', 'cassi_session_prune',
@@ -2459,7 +3284,7 @@ function createServer() {
     
     if (uri === 'cassicore://health') {
       try {
-        const response = await fetch(`${CASSICORE_URL}/health`);
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/health`);
         const health = await response.json();
         return {
           contents: [
@@ -2518,7 +3343,7 @@ async function startHttp(port: number) {
     // Health endpoint
     if (url.pathname === '/health') {
       try {
-        const cassiHealth = await fetch(`${CASSICORE_URL}/health`);
+        const cassiHealth = await fetchWithTimeout(`${CASSICORE_URL}/health`);
         const cassiStatus = await cassiHealth.json();
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -2582,7 +3407,7 @@ async function main() {
   
   // Validate CassiCore connection
   try {
-    const healthCheck = await fetch(`${CASSICORE_URL}/health`);
+    const healthCheck = await fetchWithTimeout(`${CASSICORE_URL}/health`);
     if (!healthCheck.ok) {
       throw new Error('CassiCore health check failed');
     }
