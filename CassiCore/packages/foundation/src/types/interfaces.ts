@@ -22,6 +22,9 @@ export interface IEventBus {
 
   /** Number of listeners currently registered */
   listenerCount(type: EventType): number;
+
+  /** Subscribe to ALL events regardless of type. Returns an unsubscribe function. */
+  onAll(handler: (event: RuntimeEvent) => void): Unsubscribe;
 }
 
 // ─── Logger ──────────────────────────────────────────────────────────────────

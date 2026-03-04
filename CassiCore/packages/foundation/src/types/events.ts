@@ -129,7 +129,67 @@ export type RuntimeEvent =
   | { type: "reflex:tool_executed"; sessionId: string; tool: string; durationMs: number; success: boolean; timestamp: Date }
   | { type: "reflex:result_injected"; sessionId: string; tool: string; resultSummary: string; timestamp: Date }
   | { type: "reflex:suppressed"; sessionId: string; reason: string; intent: string; timestamp: Date }
-  | { type: "reflex:error"; sessionId: string; error: string; tool?: string; timestamp: Date };
+  | { type: "reflex:error"; sessionId: string; error: string; tool?: string; timestamp: Date }
+  // Drone swarm events — lightweight parallel agent execution
+  | { type: "drone:spawned"; droneId: string; swarmId: string; role: string; parentSessionId: string; timestamp: Date }
+  | { type: "drone:completed"; droneId: string; swarmId: string; role: string; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "drone:failed"; droneId: string; swarmId: string; role: string; error: string; retryCount: number; timestamp: Date }
+  | { type: "drone:cancelled"; droneId: string; swarmId: string; reason: string; timestamp: Date }
+  | { type: "drone:timed_out"; droneId: string; swarmId: string; timeoutMs: number; timestamp: Date }
+  | { type: "drone:swarm:started"; swarmId: string; mission: string; droneCount: number; parentSessionId: string; timestamp: Date }
+  | { type: "drone:swarm:completed"; swarmId: string; mission: string; successCount: number; failCount: number; totalTokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "drone:swarm:failed"; swarmId: string; mission: string; error: string; timestamp: Date }
+  | { type: "drone:prediction"; swarmId: string; branchCount: number; topBranch: string; topProbability: number; tokensUsed: number; timestamp: Date }
+  | { type: "drone:speculative:matched"; swarmId: string; droneId: string; branchId: string; probability: number; timestamp: Date }
+  | { type: "drone:speculative:discarded"; swarmId: string; droneIds: string[]; reason: string; timestamp: Date }
+  // Consciousness events — emitted by the Subconscious conscious observer
+  | {
+      type: "consciousness:observation";
+      sessionId?: string;
+      observation: {
+        id: string;
+        summary: string;
+        patterns: string[];
+        confidence: number;
+        source: "heuristic" | "llm";
+        relatedEventTypes: string[];
+      };
+      timestamp: Date;
+    }
+  | {
+      type: "consciousness:anomaly";
+      sessionId?: string;
+      anomaly: {
+        id: string;
+        description: string;
+        severity: "low" | "medium" | "high";
+        eventTypes: string[];
+        suggestedAction?: string;
+      };
+      timestamp: Date;
+    }
+  | {
+      type: "consciousness:insight";
+      insight: string;
+      relatedEvents: string[];
+      confidence: number;
+      timestamp: Date;
+    }
+  | {
+      type: "consciousness:state";
+      model: {
+        activeSessions: number;
+        systemHealth: "healthy" | "degraded" | "critical";
+        providerStatus: Record<string, string>;
+        pluginStatus: Record<string, string>;
+        budgetTiers: Record<string, string>;
+        activeDrones: number;
+        activeTeams: number;
+        recentPatterns: string[];
+        observationCount: number;
+      };
+      timestamp: Date;
+    };
 
 export type EventType = RuntimeEvent["type"];
 

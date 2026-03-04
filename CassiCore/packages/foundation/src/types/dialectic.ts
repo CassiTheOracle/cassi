@@ -100,13 +100,14 @@ export interface IYinObserver {
 
 // ─── Yin Observer ───────────────────────────────────────────────────────────
 
-export type YinAction = 'surface' | 'ignore' | 'refine';
+export type YinAction = 'surface' | 'compress' | 'discard';
 
 export interface YinCritique {
   yangBranchId: string;
+  /** Derived from action: true when action is 'surface' or 'compress', false when 'discard' */
   valid: boolean;
-  essence?: string;        // compressed version if valid
-  critique: string;        // why valid or why invalid
+  essence?: string;        // compressed version if action is surface or compress
+  critique: string;        // reasoning for the verdict
   relevance: number;       // 0-1
   action: YinAction;
 }

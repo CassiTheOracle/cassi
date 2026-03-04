@@ -5,6 +5,8 @@
  */
 
 import type { RuntimeEvent } from "./events.js";
+import type { SessionRef, IndexEntry, IndexSearchResult, IndexStats } from "./session-ref.js";
+import type { Message } from "./runtime.js";
 
 // ─── Memory ─────────────────────────────────────────────────────────────────
 
@@ -42,6 +44,9 @@ export interface IMemory {
   kv_set(key: string, value: unknown): Promise<void>;
   kv_del(key: string): Promise<void>;
 
+  /** Delete a memory entry by ID */
+  delete?(id: string): Promise<boolean>;
+
   /** Stats for /memory stats command */
   stats(): Promise<Record<string, number>>;
 
@@ -57,6 +62,22 @@ export interface IMemory {
 
   /** Expose the raw database handle for subsystems needing direct table access */
   getDb?(): import('better-sqlite3').Database;
+
+  // Session index methods (optional — for hierarchical message indexing)
+  /** Index a full session history. Returns the short label assigned to it. */
+  indexSession?(sessionId: string, history: Message[]): string;
+  /** Incrementally index new messages from `fromMsgIdx` onwards. */
+  indexIncremental?(sessionId: string, history: Message[], fromMsgIdx: number): string;
+  /** Resolve a compact session ref (e.g. "S0#M1.B0.P2") to its content. */
+  resolveRef?(ref: string): IndexEntry[];
+  /** Full-text search across session indices. */
+  searchIndex?(query: string, opts?: { label?: string; sessionId?: string; limit?: number }): IndexSearchResult[];
+  /** Get index stats for a session (by label or session ID). */
+  indexStats?(labelOrSessionId: string): IndexStats | undefined;
+  /** Get or create a short label for a session ID. */
+  getSessionLabel?(sessionId: string): string;
+  /** Resolve a label back to the full session ID. */
+  getSessionIdFromLabel?(label: string): string | undefined;
 }
 
 // ─── Continuity ──────────────────────────────────────────────────────────────

@@ -50,6 +50,20 @@ export interface IExecutionBackend {
    * OpenCode backend checks HTTP connectivity; CassiCore backend checks pipeline.
    */
   isAvailable(): Promise<boolean>
+
+  /**
+   * Update the execution context for an active agent session.
+   * Called by ContextManager when fresh context is assembled (memory, files, etc.).
+   * OpenCode backend sends context as a system message update; CassiCore backend
+   * stores it for injection on the next pipeline turn.
+   *
+   * @param agentId - Unique agent identifier
+   * @param context - Fresh assembled context from ContextManager
+   */
+  updateContext?(
+    agentId: string,
+    context: { systemPrompt?: string; recentMemories?: string[]; files?: string[] },
+  ): Promise<void>
 }
 
 // ── Supporting Types ──────────────────────────────────────────────────────────

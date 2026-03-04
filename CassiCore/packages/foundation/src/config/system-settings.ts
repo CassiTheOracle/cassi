@@ -331,6 +331,70 @@ export const PROMPT_OPTIMIZER_SETTINGS = {
 } as const;
 
 // ============================================================================
+// Drone Swarm Settings
+// ============================================================================
+
+export const DRONE_SETTINGS = {
+  /** Enable drone swarm functionality */
+  enabled: getEnvBoolean('CASSICORE_DRONE_ENABLED', true),
+
+  /** Default max concurrent drones per swarm */
+  defaultMaxConcurrent: getEnvNumber('CASSICORE_DRONE_MAX_CONCURRENT', 10),
+
+  /** Absolute max drones per swarm (hard cap) */
+  absoluteMaxDrones: getEnvNumber('CASSICORE_DRONE_ABSOLUTE_MAX', 50),
+
+  /** Default drone timeout in ms */
+  defaultTimeoutMs: getEnvNumber('CASSICORE_DRONE_TIMEOUT_MS', 30_000),
+
+  /** Default swarm global timeout in ms */
+  defaultGlobalTimeoutMs: getEnvNumber('CASSICORE_DRONE_GLOBAL_TIMEOUT_MS', 300_000),
+
+  /** Default token budget per drone */
+  defaultDroneTokenBudget: getEnvNumber('CASSICORE_DRONE_TOKEN_BUDGET', 25_000),
+
+  /** Default token budget per swarm */
+  defaultSwarmTokenBudget: getEnvNumber('CASSICORE_SWARM_TOKEN_BUDGET', 500_000),
+
+  /** Number of retries per drone */
+  defaultMaxRetries: getEnvNumber('CASSICORE_DRONE_MAX_RETRIES', 1),
+
+  /** Enable scout drones for context prefetching */
+  enableScouts: getEnvBoolean('CASSICORE_DRONE_ENABLE_SCOUTS', true),
+
+  /** Enable speculative execution for sequential tasks */
+  enableSpeculation: getEnvBoolean('CASSICORE_DRONE_ENABLE_SPECULATION', true),
+
+  /** Max speculative branches (predicted outcomes to pursue) */
+  maxSpeculativeBranches: getEnvNumber('CASSICORE_DRONE_SPEC_BRANCHES', 2),
+
+  /** Minimum probability threshold for speculative branches */
+  minSpeculativeProbability: getEnvNumber('CASSICORE_DRONE_MIN_SPEC_PROB', 30) / 100,
+
+  /** Model tier for predictor drones (default: 'agent' = Kimi K2.5) */
+  predictorModelTier: getEnvString('CASSICORE_DRONE_PREDICTOR_TIER', 'agent') as 'main' | 'reasoning' | 'agent' | 'fast',
+
+  /** Model tier for scout drones (default: 'agent' = Kimi K2.5) */
+  scoutModelTier: getEnvString('CASSICORE_DRONE_SCOUT_TIER', 'agent') as 'main' | 'reasoning' | 'agent' | 'fast',
+
+  /** Model tier for worker drones (default: 'agent') */
+  workerModelTier: getEnvString('CASSICORE_DRONE_WORKER_TIER', 'agent') as 'main' | 'reasoning' | 'agent' | 'fast',
+
+  /** Aggregation strategy: 'concatenate' | 'first_wins' | 'synthesis' | 'vote' | 'best' */
+  defaultAggregationStrategy: getEnvString('CASSICORE_DRONE_AGGREGATION', 'concatenate') as
+    'concatenate' | 'first_wins' | 'synthesis' | 'vote' | 'best',
+
+  /** Enable result caching for identical drone tasks */
+  enableResultCache: getEnvBoolean('CASSICORE_DRONE_CACHE', true),
+
+  /** Cache TTL in ms */
+  resultCacheTtlMs: getEnvNumber('CASSICORE_DRONE_CACHE_TTL_MS', 300_000),
+
+  /** Minimum viable drone budget (tokens below this skip retries) */
+  minViableBudget: getEnvNumber('CASSICORE_DRONE_MIN_BUDGET', 50_000),
+} as const;
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -368,6 +432,7 @@ export const SYSTEM_SETTINGS = {
   logging: LOGGING_SETTINGS,
   reflex: REFLEX_SETTINGS,
   promptOptimizer: PROMPT_OPTIMIZER_SETTINGS,
+  drone: DRONE_SETTINGS,
 } as const;
 
 /** 
