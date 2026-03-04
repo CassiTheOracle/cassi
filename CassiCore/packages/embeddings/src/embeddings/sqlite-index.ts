@@ -23,6 +23,7 @@ export class SqliteVectorIndex {
       const dir = path.dirname(dbPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       this.db = new Database(dbPath);
+      this.db.pragma('busy_timeout = 5000');
       this.db.exec(`
         PRAGMA journal_mode=WAL;
         CREATE TABLE IF NOT EXISTS ${this.table} (
