@@ -420,20 +420,24 @@ Set hasSignal=false if no meaningful insight emerges.`)
       }))
       .filter((b: YinBaselineBranch) => b.content.length > 0)
 
-    const validActions = ['keep', 'compress', 'discard', 'flag']
+    const validActions: import('../../../types/dialectic.js').YinAction[] = ['surface', 'compress', 'discard']
     const yangBranches = yangRaw?.branches || []
     const selfCritiques: YinCritique[] = (raw.critiques || [])
       .map((c: any) => {
         const branchIdx = Number(c.yangBranchIndex) || 0
+        // Support legacy 'keep'→'surface', 'flag'→'compress', old 'refine'→'compress', 'ignore'→'discard'
+        const legacyMap: Record<string, import('../../../types/dialectic.js').YinAction> = { keep: 'surface', flag: 'compress', refine: 'compress', ignore: 'discard' }
+        const rawAction = legacyMap[c.action] ?? c.action
+        const action = (validActions.includes(rawAction) ? rawAction : 'surface') as import('../../../types/dialectic.js').YinAction
         return {
           yangBranchId: yangBranches[branchIdx]
             ? `consolidated-yang-${branchIdx}`
             : `consolidated-yang-0`,
-          valid: c.valid !== false,
+          valid: action !== 'discard',
           essence: c.essence,
           critique: String(c.critique || ''),
           relevance: Math.max(0, Math.min(1, Number(c.relevance) || 0.5)),
-          action: validActions.includes(c.action) ? c.action : 'keep',
+          action,
         }
       })
       .filter((c: YinCritique) => c.critique.length > 0)
@@ -457,7 +461,7 @@ Set hasSignal=false if no meaningful insight emerges.`)
     const validSignalTypes: SignalType[] = ['edge_case', 'alternative', 'assumption', 'connection', 'contradiction', 'convergence', 'tension', 'gap']
     const validUrgency: Urgency[] = ['immediate', 'background']
 
-    const hasSignal = raw.hasSignal === true && raw.signal?.content
+    const hasSignal = raw.hasSignal === true && !!raw.signal?.content
     const signal = hasSignal ? {
       type: (validSignalTypes.includes(raw.signal.type) ? raw.signal.type : 'convergence') as SignalType,
       content: String(raw.signal.content || ''),

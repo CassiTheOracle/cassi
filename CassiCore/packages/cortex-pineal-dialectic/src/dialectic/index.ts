@@ -25,6 +25,11 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 
+// Re-export Yang, Yin, Serenity and their types from consolidated modules
+export { YangObserver, type YangConfig, createYangObserver } from './yang.js';
+export { YinObserver, type YinConfig, createYinObserver } from './yin.js';
+export { Serenity, type SerenityConfig, createSerenity } from './serenity.js';
+
 export interface DialecticSystemConfig {
   enabled: boolean;
   yang?: { enabled?: boolean; model?: string; temperature?: number; maxBranches?: number };
@@ -207,6 +212,7 @@ export class DialecticSystem implements IDialecticSystem {
 
       const dbPath = path.join(this.config.dataDir!, 'dialectic.db');
       this.db = new Database(dbPath);
+      this.db.pragma('busy_timeout = 5000');
 
       this.db.exec(`
         PRAGMA journal_mode=WAL;

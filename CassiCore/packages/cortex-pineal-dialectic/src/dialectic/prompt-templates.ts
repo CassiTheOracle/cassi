@@ -50,11 +50,10 @@ export const YIN_CRITIQUE_SCHEMA = `{
   "critiques": [
     {
       "yangBranchId": "yang-1",
-      "valid": true,
-      "essence": "Core insight in 1 sentence",
+      "essence": "Core insight in 1 sentence (required when action is surface or compress)",
       "critique": "Reasoning for verdict",
       "relevance": 0.0-1.0,
-      "action": "surface|refine|ignore"
+      "action": "surface|compress|discard"
     }
   ]
 }`;
@@ -75,7 +74,7 @@ export const SERENITY_SCHEMA = `{
   "hasSignal": true,
   "signal": {
     "type": "edge_case|alternative|assumption|connection|contradiction|convergence|tension|gap",
-    "content": "The key insight in 1-2 sentences",
+    "content": "What the AI should do differently or consider — 1-2 sentences of guidance, not a user description",
     "confidence": 0.0-1.0,
     "urgency": "immediate|background"
   },
@@ -103,15 +102,14 @@ Generate {{maxBranches}} observations. For each, pick ONE analytical lens:
 - cross_domain: What structural parallel from another domain applies?
 - what_if: What changes if a key constraint is removed/inverted?
 
-QUALITY GATE: Skip anything the user obviously already knows. Only surface what they'd miss.
+QUALITY GATE: Would this observation change how the AI responds? If not, skip it.
 
-Each observation: 2-4 sentences. Assign confidence (how likely relevant) and noveltyScore (how non-obvious) as 0.0-1.0.
+Ensure each branch uses a different lens. Each observation: 2-4 sentences. Assign confidence (how likely relevant) and noveltyScore (how non-obvious) as 0.0-1.0.
 
 OUTPUT (JSON):
 ${YANG_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const YANG_VARIANT_DIVERGENT: PromptVariant = {
@@ -137,8 +135,7 @@ Each observation: 2-4 sentences. Use type from [alternative_interpretation, edge
 OUTPUT (JSON):
 ${YANG_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const YANG_VARIANT_SOCRATIC: PromptVariant = {
@@ -164,8 +161,7 @@ Each observation: 2-4 sentences. Use type from [alternative_interpretation, edge
 OUTPUT (JSON):
 ${YANG_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 // ─── Yin Critique Variants (Sequential Mode) ───────────────────────────────
@@ -194,8 +190,7 @@ Provide exactly {{branchCount}} critiques in order.
 OUTPUT (JSON):
 ${YIN_CRITIQUE_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const YIN_VARIANT_STEELMAN: PromptVariant = {
@@ -221,8 +216,7 @@ Provide exactly {{branchCount}} critiques in order.
 OUTPUT (JSON):
 ${YIN_CRITIQUE_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const YIN_VARIANT_PRAGMATIC: PromptVariant = {
@@ -251,8 +245,7 @@ Provide exactly {{branchCount}} critiques in order.
 OUTPUT (JSON):
 ${YIN_CRITIQUE_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 // ─── Yin Baseline Variants (Parallel Mode) ──────────────────────────────────
@@ -280,8 +273,7 @@ Each analysis: 2-4 sentences. Assign confidence and relevanceScore as 0.0-1.0.
 OUTPUT (JSON):
 ${YIN_BASELINE_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const YIN_BASELINE_VARIANT_FORENSIC: PromptVariant = {
@@ -308,8 +300,7 @@ Each finding: 2-4 sentences. Assign confidence and relevanceScore as 0.0-1.0.
 OUTPUT (JSON):
 ${YIN_BASELINE_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const YIN_BASELINE_VARIANT_PREMORTEM: PromptVariant = {
@@ -336,8 +327,7 @@ Each finding: 2-4 sentences. Assign confidence and relevanceScore as 0.0-1.0.
 OUTPUT (JSON):
 ${YIN_BASELINE_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 // ─── Serenity Variants (Dual Synthesis) ─────────────────────────────────────
@@ -368,11 +358,12 @@ A signal that merely RESTATES the user's message is worthless. Only surface what
 
 If no genuine insight exists, set hasSignal: false.
 
+IMPORTANT: Frame the signal content as guidance for the AI assistant — what should it do differently or consider? Do NOT describe the user. Write as: "Consider X because Y" or "Watch for Z" or "The approach may need to account for W".
+
 OUTPUT (JSON):
 ${SERENITY_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const SERENITY_VARIANT_DIALECTICAL: PromptVariant = {
@@ -400,11 +391,12 @@ Signal criteria:
 
 Only surface what would change how the main agent responds.
 
+IMPORTANT: Frame the signal content as guidance for the AI assistant — what should it do differently or consider? Do NOT describe the user. Write as: "Consider X because Y" or "Watch for Z" or "The approach may need to account for W".
+
 OUTPUT (JSON):
 ${SERENITY_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 export const SERENITY_VARIANT_SIGNAL_HUNTER: PromptVariant = {
@@ -432,11 +424,12 @@ Thresholds (generous): novelty > {{noveltyThreshold}} OR relevance > {{relevance
 
 Only suppress if clearly wrong, already obvious, or actively misleading.
 
+IMPORTANT: Frame the signal content as guidance for the AI assistant — what should it do differently or consider? Do NOT describe the user. Write as: "Consider X because Y" or "Watch for Z" or "The approach may need to account for W".
+
 OUTPUT (JSON):
 ${SERENITY_SCHEMA}
 
-${JSON_INSTRUCTION}
-[session:{{sessionId}}]`,
+${JSON_INSTRUCTION}`,
 };
 
 // ─── Exports ────────────────────────────────────────────────────────────────

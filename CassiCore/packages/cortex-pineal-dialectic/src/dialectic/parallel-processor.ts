@@ -27,9 +27,9 @@ import type {
 import type { IProvider } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import type { PromptOptimizer } from './prompt-optimizer.js';
-import { YangObserver, type YangConfig } from '../yang/index.js';
-import { YinObserver, type YinConfig } from '../yin/index.js';
-import { Serenity, type SerenityConfig } from '../serenity/index.js';
+import { YangObserver, type YangConfig } from './yang.js';
+import { YinObserver, type YinConfig } from './yin.js';
+import { Serenity, type SerenityConfig } from './serenity.js';
 
 export interface ParallelDialecticOptions {
   providers?: {
