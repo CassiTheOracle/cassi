@@ -287,9 +287,11 @@ export interface SubconsciousAnomaly {
 /** Fetch recent Archivist entries (insights, dialectic, patterns, etc.). */
 export async function getArchivedEntries(opts: {
   limit?: number;
+  sessionId?: string;
 } = {}): Promise<ArchiveEntry[]> {
   const params = new URLSearchParams();
   if (opts.limit) params.set("limit", String(opts.limit));
+  if (opts.sessionId) params.set("sessionId", opts.sessionId);
   const qs = params.toString();
   const r = await request<{ entries: ArchiveEntry[] }>(
     `/intelligence/archivist/recent${qs ? `?${qs}` : ""}`

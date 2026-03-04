@@ -26,6 +26,26 @@ const TABS: Array<{ id: Tab; label: string; icon: string; key: string }> = [
 const TAB_STORAGE_KEY = "observatory:activeTab";
 const SESSION_STORAGE_KEY = "observatory:selectedSession";
 
+/** Convert a ISO date string to a short relative label (e.g. "3m ago"). */
+function relativeTime(isoDate: string): string {
+  const secs = Math.floor((Date.now() - new Date(isoDate).getTime()) / 1000);
+  if (secs < 60) return "now";
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`;
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`;
+  return `${Math.floor(secs / 86400)}d ago`;
+}
+
+/** Build a human-readable label for a session option. */
+function sessionLabel(s: Session): string {
+  const msg = s.firstMessage?.trim().replace(/\s+/g, " ");
+  const age = relativeTime(s.lastActiveAt);
+  if (msg) {
+    const text = msg.length > 42 ? msg.slice(0, 42) + "…" : msg;
+    return `${text} (${s.channelId}, ${age})`;
+  }
+  return `${s.channelId}:${s.id.slice(0, 8)}… (${age})`;
+}
+
 @customElement("observatory-app")
 export class ObservatoryApp extends LitElement {
   static override styles = css`
@@ -138,7 +158,7 @@ export class ObservatoryApp extends LitElement {
       padding: 0.2rem 0.4rem;
       border-radius: 4px;
       cursor: pointer;
-      max-width: 200px;
+      max-width: 320px;
     }
 
     main {
@@ -266,7 +286,11 @@ export class ObservatoryApp extends LitElement {
 
   private async refreshSessions(): Promise<void> {
     try {
-      this.sessions = await listSessions();
+      const all = await listSessions();
+      // Most recently active first so the top of the list is always current
+      this.sessions = all.sort(
+        (a, b) => new Date(b.lastActiveAt).getTime() - new Date(a.lastActiveAt).getTime()
+      );
       if (this.sessions.length > 0 && !this.selectedSessionId) {
         this.selectedSessionId = this.sessions[0].id;
       }
@@ -337,7 +361,7 @@ export class ObservatoryApp extends LitElement {
               >
                 <option value="">All sessions</option>
                 ${this.sessions.map(
-                  (s) => html`<option value=${s.id}>${s.id.slice(0, 8)}… (${s.channelId})</option>`
+                  (s) => html`<option value=${s.id}>${sessionLabel(s)}</option>`
                 )}
               </select>
             `
