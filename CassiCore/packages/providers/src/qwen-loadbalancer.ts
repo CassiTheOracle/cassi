@@ -7,13 +7,13 @@
  * - Provide failover on errors
  */
 
-import { QwenProvider, OAuthCredentials } from './qwen.js'
+import { QwenProvider, QwenOAuthCredentials } from '@cassicore/ai'
 import { BaseProvider } from './base.js'
 import type { Message, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 export interface QwenAccount {
   profileId: string
-  credentials: OAuthCredentials
+  credentials: QwenOAuthCredentials
   baseUrl?: string
 }
 
@@ -361,7 +361,7 @@ export class QwenLoadBalancer extends BaseProvider {
  * Create load balancer from auth profiles
  */
 export function createQwenLoadBalancer(
-  profiles: Array<{ profileId: string; credentials: OAuthCredentials; baseUrl?: string }>,
+  profiles: Array<{ profileId: string; credentials: QwenOAuthCredentials; baseUrl?: string }>,
   options?: Partial<LoadBalancerConfig>,
 ): QwenLoadBalancer {
   return new QwenLoadBalancer({

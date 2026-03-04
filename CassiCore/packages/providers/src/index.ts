@@ -2,17 +2,24 @@ import type { IConfig, ILogger } from '../../types/interfaces.js'
 import type { IEventBus } from '../../types/interfaces.js'
 import type { IProvider } from '../../types/runtime.js'
 import { GitHubCopilotProvider } from './github-copilot.js'
-import { KimiCodingProvider } from './kimi-coding.js'
-import { OpenRouterProvider } from './openrouter.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
-import { QwenProvider } from './qwen.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
 import fs from 'node:fs'
 
+// Import canonical provider implementations from @cassicore/ai
+import {
+  KimiCodingProvider,
+  OpenRouterProvider,
+  QwenProvider,
+} from '@cassicore/ai'
+
 export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
+
+// Re-export canonical providers from @cassicore/ai
+export { KimiCodingProvider, OpenRouterProvider, QwenProvider } from '@cassicore/ai'
 
 // ── Request optimization exports ─────────────────────────────────────────────
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'

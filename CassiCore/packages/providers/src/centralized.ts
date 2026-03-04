@@ -269,30 +269,31 @@ export class CentralizedProvider implements IProvider {
     // Merge provided signal with our timeout controller
     const requestedTimeoutMs = (opts as any)?.timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
     const controller = new AbortController()
-    const timeoutHandle = setTimeout(() => {
-      try {
-        entry.error = `timeout after ${requestedTimeoutMs}ms`
-        entry.aborted = true
-        this.metrics.totalErrors++
-        this.consecutiveErrors++
-        this.lastErrorAt = Date.now()
-        this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs } as any)
-        this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
-      } catch (err) { /* best-effort */ }
-      try { controller.abort() } catch (err) { /* best-effort */ }
-    }, requestedTimeoutMs)
-
-    // If caller provided a signal, wire it to our controller so caller aborts propagate
-    if (signal) {
-      if (signal.aborted) {
-        try { controller.abort() } catch { }
-      } else {
-        // Use shared helper to avoid manual listener bookkeeping
-        signalPromise(signal).then(() => { try { controller.abort() } catch { } }).catch(() => { })
-      }
-    }
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
     try {
+      timeoutHandle = setTimeout(() => {
+        try {
+          entry.error = `timeout after ${requestedTimeoutMs}ms`
+          entry.aborted = true
+          this.metrics.totalErrors++
+          this.consecutiveErrors++
+          this.lastErrorAt = Date.now()
+          this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs } as any)
+          this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
+        } catch (err) { /* best-effort */ }
+        try { controller.abort() } catch (err) { /* best-effort */ }
+      }, requestedTimeoutMs)
+
+      // If caller provided a signal, wire it to our controller so caller aborts propagate
+      if (signal) {
+        if (signal.aborted) {
+          try { controller.abort() } catch { }
+        } else {
+          // Use shared helper to avoid manual listener bookkeeping
+          signalPromise(signal).then(() => { try { controller.abort() } catch { } }).catch(() => { })
+        }
+      }
       // Use 'as any' to pass attachments (not in IProvider interface but supported by implementations)
       const stream = (this.wrapped as any).complete(messages, opts, attachments, controller.signal)
       for await (const chunk of stream) {
@@ -339,7 +340,7 @@ export class CentralizedProvider implements IProvider {
       throw err
     } finally {
       // ── 6. Cleanup tracking ──
-      clearTimeout(timeoutHandle)
+      if (timeoutHandle) clearTimeout(timeoutHandle)
       // No external listener removal required when using signalPromise
 
       entry.completedAt = Date.now()
@@ -534,9 +535,9 @@ export class CentralizedProvider implements IProvider {
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i)
       hash = ((hash << 5) - hash) + char
-      hash = hash & hash // Convert to 32bit integer
+      hash = hash | 0 // Force 32-bit signed integer
     }
-    return Math.abs(hash).toString(36)
+    return (hash >>> 0).toString(36) // Unsigned to avoid negative values
   }
 
   private checkRateLimit(): { allowed: boolean; retryAfterMs: number } {

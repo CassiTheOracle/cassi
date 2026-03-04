@@ -80,6 +80,11 @@ function requestListener(req: IncomingMessage, res: ServerResponse) {
 
     // keep-alive ping every 15s
     const t = setInterval(() => {
+      if (res.destroyed || res.writableEnded) {
+        clearInterval(t);
+        keepAliveTimers.delete(sessionId);
+        return;
+      }
       try {
         res.write(': ping\n\n');
       } catch (e) {

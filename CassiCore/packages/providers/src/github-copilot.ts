@@ -1,9 +1,9 @@
 import { BaseProvider } from './base.js'
 import { signalPromise } from '../utils/abort.js'
 import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 
 const BASE_URL = 'https://api.individual.githubcopilot.com'
 
@@ -18,13 +18,64 @@ const COPILOT_HEADERS = {
 /** Models that use Anthropic Messages API format */
 const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5'])
 
+const CREDENTIALS_CACHE_PATH = join(homedir(), '.cassicore', 'credentials', 'github-copilot.token.json')
+
+/**
+ * Exchange an OAuth token for a Copilot API session token via
+ * https://api.github.com/copilot_internal/v2/token
+ *
+ * The session token is cached to disk so it survives daemon restarts
+ * and is refreshed when it expires.
+ */
+async function exchangeOAuthForCopilotToken(oauthToken: string): Promise<string> {
+  // Check disk cache first
+  try {
+    const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { token: string; expiresAt: number }
+    if (cache.token && cache.expiresAt > Date.now() + 60_000) {
+      return cache.token
+    }
+  } catch { /* fall through */ }
+
+  // Exchange OAuth token for Copilot session token
+  const res = await fetch('https://api.github.com/copilot_internal/v2/token', {
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${oauthToken}`,
+      'User-Agent': 'GitHubCopilotChat/0.35.0',
+      'Editor-Version': 'vscode/1.107.0',
+      'Editor-Plugin-Version': 'copilot-chat/0.35.0',
+      'Copilot-Integration-Id': 'vscode-chat',
+    },
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Copilot token exchange failed (${res.status}): ${text}`)
+  }
+
+  const data = await res.json() as { token: string; expires_at: number }
+  if (!data.token || !data.expires_at) {
+    throw new Error('Invalid Copilot token response')
+  }
+
+  const expiresAt = data.expires_at * 1000 - 5 * 60 * 1000 // 5min buffer
+
+  // Cache to disk
+  try {
+    mkdirSync(dirname(CREDENTIALS_CACHE_PATH), { recursive: true })
+    writeFileSync(CREDENTIALS_CACHE_PATH, JSON.stringify({ token: data.token, expiresAt }))
+  } catch { /* non-fatal */ }
+
+  return data.token
+}
+
 /**
  * Resolve the live Copilot API token from the CassiCore credentials cache.
+ * Synchronous fallback — used when the async exchange hasn't happened yet.
  */
 function resolveCopilotApiToken(oauthToken: string): string {
   try {
-    const cachePath = join(homedir(), '.cassicore', 'credentials', 'github-copilot.token.json')
-    const cache = JSON.parse(readFileSync(cachePath, 'utf8')) as { token: string; expiresAt: number }
+    const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { token: string; expiresAt: number }
     if (cache.token && cache.expiresAt > Date.now() + 60_000) {
       return cache.token
     }
@@ -186,8 +237,29 @@ export class GitHubCopilotProvider extends BaseProvider {
   private cachedToken: string | null = null
   private tokenExpiresAt = 0
   private readonly TOKEN_REFRESH_BUFFER_MS = 60000  // Refresh 60s before expiry
+  private tokenExchangePromise: Promise<void> | null = null
 
-  constructor(private oauthToken: string) { super() }
+  constructor(private oauthToken: string) {
+    super()
+    // Kick off async token exchange immediately — subsequent calls wait on this
+    this.tokenExchangePromise = this.refreshCopilotToken().catch(() => {})
+  }
+
+  /** Exchange OAuth token for a Copilot session token (async, cached to disk) */
+  private async refreshCopilotToken(): Promise<void> {
+    try {
+      const token = await exchangeOAuthForCopilotToken(this.oauthToken)
+      this.cachedToken = token
+      try {
+        const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { expiresAt: number }
+        this.tokenExpiresAt = cache.expiresAt
+      } catch {
+        this.tokenExpiresAt = Date.now() + 25 * 60 * 1000
+      }
+    } catch {
+      // Fall back to synchronous resolution
+    }
+  }
 
   private get token(): string {
     // Use cached token if still valid (with buffer)
@@ -239,6 +311,15 @@ export class GitHubCopilotProvider extends BaseProvider {
     attachments?: ImageAttachment[],
     signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
+    // Ensure the initial token exchange has completed before first request
+    if (this.tokenExchangePromise) {
+      await this.tokenExchangePromise
+      this.tokenExchangePromise = null
+    }
+    // Re-exchange if token is near expiry
+    if (this.tokenExpiresAt > 0 && this.tokenExpiresAt < Date.now() + this.TOKEN_REFRESH_BUFFER_MS) {
+      await this.refreshCopilotToken()
+    }
     const model = opts.model || this.models[0]
     if (ANTHROPIC_MODELS.has(model)) {
       yield* this.completeAnthropic(messages, opts, model, attachments, signal)
