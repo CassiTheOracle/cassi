@@ -5,20 +5,22 @@ import { getHealth, listSessions, buildEventStreamUrl } from "./api/observatory-
 import { EventStreamManager } from "./api/event-stream.js";
 import "./panels/event-stream-panel.js";
 import "./panels/topology-panel.js";
-import "./panels/intelligence-panel.js";
+import "./panels/cognition-panel.js";
 import "./panels/sessions-panel.js";
 import "./panels/providers-panel.js";
+import "./panels/memory-panel.js";
 import "./components/split-pane.js";
 import "./components/event-log.js";
 
-type Tab = "events" | "topology" | "intelligence" | "providers" | "sessions";
+type Tab = "events" | "topology" | "cognition" | "providers" | "sessions" | "memory";
 
 const TABS: Array<{ id: Tab; label: string; icon: string; key: string }> = [
   { id: "events",       label: "Event Stream", icon: "⚡", key: "1" },
   { id: "topology",     label: "Topology",     icon: "🕸", key: "2" },
-  { id: "intelligence", label: "Intelligence", icon: "🧠", key: "3" },
+  { id: "cognition",   label: "Cognition",   icon: "🌊", key: "3" },
   { id: "providers",    label: "Providers",    icon: "🔌", key: "4" },
   { id: "sessions",     label: "Sessions",     icon: "🗂", key: "5" },
+  { id: "memory",       label: "Memory",       icon: "🧠", key: "6" },
 ];
 
 const TAB_STORAGE_KEY = "observatory:activeTab";
@@ -365,11 +367,11 @@ export class ObservatoryApp extends LitElement {
           </split-pane>
         </div>
 
-        <div class="panel ${this.activeTab === "intelligence" ? "active" : ""}">
-          <intelligence-panel
+        <div class="panel ${this.activeTab === "cognition" ? "active" : ""}">
+          <cognition-panel
             .stream=${this.stream}
             .sessionId=${this.selectedSessionId}
-          ></intelligence-panel>
+          ></cognition-panel>
         </div>
 
         <div class="panel ${this.activeTab === "providers" ? "active" : ""}">
@@ -378,6 +380,10 @@ export class ObservatoryApp extends LitElement {
 
         <div class="panel ${this.activeTab === "sessions" ? "active" : ""}">
           <sessions-panel></sessions-panel>
+        </div>
+
+        <div class="panel ${this.activeTab === "memory" ? "active" : ""}">
+          <memory-panel .stream=${this.stream}></memory-panel>
         </div>
       </main>
     `;

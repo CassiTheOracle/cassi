@@ -236,6 +236,83 @@ export async function getEventHistory(opts: {
   return r.events ?? [];
 }
 
+// ==================== Archive ====================
+
+/** A single entry from the Archivist (memory.db). */
+export interface ArchiveEntry {
+  id: string;
+  /** dialectic_yang | dialectic_yin | dialectic_serenity | insight | thinking | reflection | pattern | conversation | event | summary */
+  type: string;
+  content: string;
+  thinking: string | null;
+  metadata: Record<string, unknown>;
+  sessionId: string | null;
+  parentId: string | null;
+  source: string;
+  timestamp: number;
+  analysis?: {
+    summary?: string;
+    keyPoints?: string[];
+    sentiment?: string;
+    importance?: number;
+    topics?: string[];
+    entities?: string[];
+    relatedConcepts?: string[];
+    suggestedTags?: string[];
+  };
+}
+
+/** A persisted subconscious observation. */
+export interface SubconsciousLearning {
+  id: string;
+  summary: string;
+  source: "heuristic" | "llm";
+  patterns?: string[];
+  relatedEventTypes?: string[];
+  confidence?: number;
+  timestamp: number;
+}
+
+/** A persisted subconscious anomaly. */
+export interface SubconsciousAnomaly {
+  id: string;
+  description: string;
+  severity: "low" | "medium" | "high";
+  eventTypes?: string[];
+  suggestedAction?: string;
+  acknowledged: boolean;
+  timestamp: number;
+}
+
+/** Fetch recent Archivist entries (insights, dialectic, patterns, etc.). */
+export async function getArchivedEntries(opts: {
+  limit?: number;
+} = {}): Promise<ArchiveEntry[]> {
+  const params = new URLSearchParams();
+  if (opts.limit) params.set("limit", String(opts.limit));
+  const qs = params.toString();
+  const r = await request<{ entries: ArchiveEntry[] }>(
+    `/intelligence/archivist/recent${qs ? `?${qs}` : ""}`
+  );
+  return r.entries ?? [];
+}
+
+/** Fetch persisted subconscious observations. */
+export async function getSubconsciousLearnings(): Promise<SubconsciousLearning[]> {
+  const r = await request<{ learnings: SubconsciousLearning[] }>(
+    "/intelligence/subconscious/learnings"
+  );
+  return r.learnings ?? [];
+}
+
+/** Fetch persisted subconscious anomalies. */
+export async function getSubconsciousAnomalies(): Promise<SubconsciousAnomaly[]> {
+  const r = await request<{ anomalies: SubconsciousAnomaly[] }>(
+    "/intelligence/subconscious/anomalies"
+  );
+  return r.anomalies ?? [];
+}
+
 /** Build the EventSource URL for the runtime event stream (used by EventStreamManager). */
 export function buildEventStreamUrl(sessionId?: string): string {
   const params = new URLSearchParams();
@@ -464,6 +541,84 @@ export async function getSubconsciousStats(): Promise<Record<string, unknown>> {
 
 export async function getArchivistStats(): Promise<Record<string, unknown>> {
   return request("/intelligence/archivist/stats");
+}
+
+// ==================== Archive / Memory =============================================
+
+export type ArchiveEntryType = 'conversation' | 'insight' | 'pattern' | 'dialectic' | 'event' | 'session' | string;
+export type ArchiveSentiment = 'positive' | 'neutral' | 'negative' | string;
+
+export interface ArchiveSearchOptions {
+  filters?: {
+    types?: string[];
+    sessionId?: string;
+    minImportance?: number;
+    maxImportance?: number;
+    sentiment?: string;
+    topics?: string[];
+    entities?: string[];
+    tags?: string[];
+    hasThinking?: boolean;
+    startTime?: number;
+    endTime?: number;
+    source?: string;
+  };
+  limit?: number;
+  sortBy?: 'relevance' | 'importance' | 'time';
+}
+
+export interface ArchiveSearchResult {
+  entry: ArchiveEntry;
+  score?: number;
+  snippet?: string;
+}
+
+/** POST /memory/archives/search */
+export async function searchArchives(
+  query: string,
+  opts: ArchiveSearchOptions = {}
+): Promise<{ results: ArchiveSearchResult[]; total: number; query: string }> {
+  const res = await fetch(`${API_BASE}/memory/archives/search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query, ...opts }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+/** GET /memory/archives/recent?limit=N&type=X */
+export async function getRecentArchives(
+  type?: string,
+  limit = 50
+): Promise<ArchiveEntry[]> {
+  const params = new URLSearchParams({ limit: String(limit) });
+  if (type) params.set('type', type);
+  const data = await request<ArchiveEntry[] | { entries: ArchiveEntry[] }>(
+    `/memory/archives/recent?${params}`
+  );
+  return Array.isArray(data) ? data : (data as any).entries ?? [];
+}
+
+/** GET /memory/archives/:id */
+export async function getArchiveById(id: string): Promise<ArchiveEntry> {
+  return request<ArchiveEntry>(`/memory/archives/${encodeURIComponent(id)}`);
+}
+
+/** GET /memory/archives/:id/related?limit=N */
+export async function getRelatedArchives(id: string, limit = 10): Promise<ArchiveEntry[]> {
+  const data = await request<ArchiveEntry[] | { entries: ArchiveEntry[] }>(
+    `/memory/archives/${encodeURIComponent(id)}/related?limit=${limit}`
+  );
+  return Array.isArray(data) ? data : (data as any).entries ?? [];
+}
+
+/** GET /memory/archives/browse?category=tags|entities|topics&minCount=N */
+export async function browseArchive(
+  category: 'tags' | 'entities' | 'topics',
+  minCount = 1
+): Promise<{ category: string; items: { name: string; count: number }[] }> {
+  return request(`/memory/archives/browse?category=${category}&minCount=${minCount}`);
 }
 
 export async function getMultiAgentMetrics(): Promise<Record<string, unknown>> {
