@@ -21,7 +21,6 @@ import type { IntelligenceLayer } from "./intelligence/index.js"
 import { createOrchestrationBus } from './orchestration-bus.js'
 import { createSessionBridge } from './session-bridge.js'
 import { createAdminApi } from './admin-api.js'
-import { createAgentRunner } from './intelligence/agent-runner.js'
 import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 
 import { createSessionManager } from './session-manager.js'
@@ -32,6 +31,7 @@ import { ToolRegistry } from './tools/registry.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { registerTeamTools } from './tools/implementations/team-coordinator.js'
+import { registerDroneTools } from './tools/implementations/drone-swarm.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 import { HealthMonitor } from './health-monitor.js'
 import { MCPRegistry } from './mcp/registry.js'
@@ -49,6 +49,7 @@ import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-p
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
 import { AutonomousAgentLoop } from './intelligence/autonomous-loop.js'
 import { createExecutionBackend } from './intelligence/execution-backends/index.js'
+import { IntelligentContextWindow } from './intelligence/context-window/index.js'
 import type { ExecutionBackendType, OpenCodeBackendConfig } from '../types/execution-backend.js'
 import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
 import { BudgetTracker, createBudgetTracker } from './providers/budget-tracker.js'
@@ -183,9 +184,8 @@ export class Daemon {
 
     // Register cleanup on exit
     process.on('exit', cleanupPidFile)
-    process.on('SIGTERM', cleanupPidFile)
-    process.on('SIGINT', cleanupPidFile)
-    process.on('uncaughtException', cleanupPidFile)
+    process.on('SIGTERM', () => { cleanupPidFile(); process.exit(0) })
+    process.on('SIGINT', () => { cleanupPidFile(); process.exit(0) })
 
     // 1. Load base file config
     const baseCfg = await Config.load()
@@ -358,6 +358,12 @@ export class Daemon {
       // Wire Rule Enforcer to event bus
       if ((this.intelligence.ruleEnforcer as any)?.onEventBus) {
         (this.intelligence.ruleEnforcer as any).onEventBus(bus)
+      }
+
+      // Wire Drone Swarm Controller to event bus
+      if (this.intelligence.droneSwarm?.setEventBus) {
+        this.intelligence.droneSwarm.setEventBus(bus)
+        this.logger.info('[daemon] DroneSwarm event bus wired')
       }
 
       // Initialize Skill Metrics Tracker
@@ -742,10 +748,22 @@ export class Daemon {
       await (this.intelligence.thinker as any).init?.()
     }
 
+    // Wire the provider into the Drone Swarm Controller
+    if (this.intelligence?.droneSwarm) {
+      const droneProviderId = this.config.get<string>('intelligence.droneSwarm.provider', '') || 'kimi-coding'
+      const droneProvider = providers.get(droneProviderId) ?? providers.values().next().value
+      if (droneProvider) {
+        this.intelligence.droneSwarm.setProvider(droneProvider)
+        this.logger.info(`[daemon] DroneSwarm provider wired: ${droneProvider.id}`)
+      } else {
+        this.logger.warn('[daemon] DroneSwarm: no provider available — drone swarms will be unavailable')
+      }
+    }
+
     // Wire the provider into the DialecticSystem (Yang, Yin, Serenity)
     if (this.intelligence?.dialectic) {
-      const dialecticProviderId = this.config.get<string>('intelligence.dialectic.provider', '') || 'lmstudio'
-      const dialecticProvider = providers.get(dialecticProviderId) ?? providers.get('lmstudio') ?? providers.values().next().value
+      const dialecticProviderId = this.config.get<string>('intelligence.dialectic.provider', '') || 'github-copilot'
+      const dialecticProvider = providers.get(dialecticProviderId) ?? providers.get('github-copilot') ?? providers.values().next().value
       if (dialecticProvider) {
         ; (this.intelligence.dialectic as any).setProvider(dialecticProvider)
         this.logger.info(`[daemon] Dialectic provider wired: ${dialecticProvider.id}`)
@@ -829,8 +847,11 @@ export class Daemon {
       '/tmp/cassicore',
     ])
     const networkAllowlist = this.config.get<string[]>('tools.networkAllowlist', ['*'])
+    // Bug 10 fix: Use process.cwd() instead of hardcoded ~/workspaces
+    // This ensures tools run in the actual project directory
+    const projectRoot = process.cwd()
     const toolExecutor = new ToolExecutor(toolRegistry, {
-      workingDir: join(homedir(), 'workspaces'),
+      workingDir: projectRoot,
       allowedPaths,
       networkAllowlist,
       logger: this.logger,
@@ -838,16 +859,6 @@ export class Daemon {
       // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
       ; (this as any).toolExecutor = toolExecutor
     this.logger.info(`[daemon] Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
-
-    // Start a local agent-runner to execute agent:task-assigned events (spawn_subagent)
-    try {
-      const agentRunner = createAgentRunner(this.logger.child('agent-runner'), this.bus, this.intelligence?.multiAgent as any, toolRegistry, this.sessions);
-      (this as any).agentRunner = agentRunner;
-      agentRunner.start();
-      this.logger.info('[daemon] agent-runner started');
-    } catch (err) {
-      this.logger.warn('[daemon] failed to start agent-runner', { error: String(err) });
-    }
 
     // Initialize MCP registry and connect configured servers
     let mcpRegistry: MCPRegistry | undefined
@@ -952,6 +963,20 @@ export class Daemon {
       this.pipeline.setSubconscious(this.intelligence.subconscious)
     }
 
+    // Wire intelligent context window (scores + selects history by recency + FTS relevance)
+    try {
+      const archivist = (this.intelligence?.memory as any)?.archivist
+      if (archivist?.sessionIndexer) {
+        const icw = new IntelligentContextWindow(archivist.sessionIndexer, this.logger)
+        this.pipeline.setContextWindow(icw.asMiddleware())
+        this.logger.info('[daemon] IntelligentContextWindow wired')
+      }
+    } catch (err) {
+      this.logger.warn('[daemon] IntelligentContextWindow wiring failed, using default trim', {
+        error: String(err),
+      })
+    }
+
     // Wire SessionDigestStore for cross-session awareness
     try {
       this.sessionDigestStore = createSessionDigestStore(this.logger.child('session-digest'))
@@ -974,6 +999,22 @@ export class Daemon {
       this.logger.info('[daemon] SessionDigestStore initialized and wired')
     } catch (err) {
       this.logger.warn(`[daemon] Failed to initialize SessionDigestStore: ${String(err)}`)
+    }
+
+    // Wire InjectionAggregator for unified turn pipeline context injection
+    try {
+      if (this.intelligence?.injectionAggregator) {
+        this.intelligence.injectionAggregator.setDependencies({
+          pipeline: this.pipeline,
+          dialectic: this.intelligence.dialectic as any,
+          subconscious: this.intelligence.subconscious,
+          digestStore: this.sessionDigestStore!,
+        })
+        this.pipeline.setInjectionAggregator(this.intelligence.injectionAggregator)
+        this.logger.info('[daemon] InjectionAggregator wired to pipeline')
+      }
+    } catch (err) {
+      this.logger.warn(`[daemon] Failed to wire InjectionAggregator: ${String(err)}`)
     }
 
     // Mount intelligence middlewares — continuity only (thinker runs fire-and-forget via onTurnEnd)
@@ -1017,6 +1058,11 @@ export class Daemon {
           ; (this.intelligence.thinker as any).__awaitingWiring.setPipelineGetter(() => this.pipeline)
         this.logger.info('[daemon] Thinker wired to session manager and pipeline for subagent spawning')
       }
+      // Wire drone swarm into Thinker for scout/speculative pre-fetching
+      if (this.intelligence.droneSwarm && typeof (this.intelligence.thinker as any).setDroneSwarm === 'function') {
+        (this.intelligence.thinker as any).setDroneSwarm(this.intelligence.droneSwarm)
+        this.logger.info('[daemon] Thinker wired to drone swarm controller')
+      }
       // Start Thinker's BaseCognitiveModule lifecycle (after all deps wired)
       await (this.intelligence.thinker as any).start?.()
 
@@ -1036,14 +1082,22 @@ export class Daemon {
 
         // Wire execution backend if configured (default: 'cassicore' — no change from current behavior)
         const backendType = this.config.get<ExecutionBackendType>('intelligence.executionBackend.type', 'cassicore')
+        let executionBackend: ReturnType<typeof createExecutionBackend> | undefined = undefined
         if (backendType !== 'cassicore') {
           const openCodeConfig = this.config.get<OpenCodeBackendConfig>('intelligence.executionBackend.opencode', {})
-          const backend = createExecutionBackend(backendType, this.logger.child('execution-backend'), {
+          executionBackend = createExecutionBackend(backendType, this.logger.child('execution-backend'), {
             pipeline: this.pipeline,
             openCodeConfig,
           })
-          autonomousLoop.setBackend(backend)
-          this.logger.info(`[daemon] Execution backend set: ${backend.name}`)
+          autonomousLoop.setBackend(executionBackend)
+          this.logger.info(`[daemon] Execution backend set: ${executionBackend.name}`)
+
+          // Wire execution backend to ContextManager for ongoing context push updates
+          if ((this.intelligence as any).contextManager &&
+              typeof (this.intelligence as any).contextManager.setExecutionBackend === 'function') {
+            (this.intelligence as any).contextManager.setExecutionBackend(executionBackend)
+            this.logger.info('[daemon] ContextManager wired to execution backend for push updates')
+          }
         }
 
         ;(this as any).autonomousLoop = autonomousLoop
@@ -1060,7 +1114,8 @@ export class Daemon {
           to.setPipeline(this.pipeline)
           if (this.sessionDigestStore) to.setDigestStore(this.sessionDigestStore)
           if ((this as any).autonomousLoop) to.setAutonomousLoop((this as any).autonomousLoop)
-          this.logger.info('[daemon] TeamOrchestrator wired to pipeline, bus, digestStore, autonomousLoop')
+          if (this.intelligence.droneSwarm) to.setDroneSwarm(this.intelligence.droneSwarm)
+          this.logger.info('[daemon] TeamOrchestrator wired to pipeline, bus, digestStore, autonomousLoop, droneSwarm')
 
           // Register team tools now that TeamOrchestrator is available
           registerTeamTools(toolRegistry, {
@@ -1073,13 +1128,36 @@ export class Daemon {
       } catch (err) {
         this.logger.warn('[daemon] Failed to wire TeamOrchestrator', { error: String(err) })
       }
+
+      // Register drone swarm tools (if DroneSwarmController is available)
+      try {
+        if (this.intelligence.droneSwarm) {
+          registerDroneTools(toolRegistry, {
+            droneSwarm: this.intelligence.droneSwarm,
+            logger: this.logger,
+          })
+          this.logger.info('[daemon] Drone tools registered: drone_swarm, drone_scout, drone_cancel')
+        }
+      } catch (err) {
+        this.logger.warn('[daemon] Failed to register drone tools', { error: String(err) })
+      }
     }
 
     // ── V2 Session Flow Integration ───────────────────────────────────────────
-    // Initialize V2 if enabled via config (features.v2sessionFlow)
+    // V2 is now the DEFAULT session flow (features.v2sessionFlow defaults to true)
+    // Set features.v2sessionFlow to false to use legacy V1
+    //
+    // TODO: Phase 4 Cleanup - Remove V1 legacy code:
+    //   - Delete core/daemon-v2-integration.ts (V2-to-V1 shim no longer needed)
+    //   - Remove SessionManagerAdapter (core/v2/adapter/SessionManagerAdapter.ts)
+    //   - Simplify daemon.ts by removing V1/V2 branching (lines ~1270-1290)
+    //   - Remove TurnPipeline dependency when V1 is fully retired
+    //   - Clean up unused V1 session-manager.ts when all channels migrated
+    //
+    // Note: V1 cleanup was deferred to minimize risk - V2 is now default and stable.
     let v2Integration: any = undefined
     try {
-      const v2Enabled = this.config.get<boolean>('features.v2sessionFlow', false)
+      const v2Enabled = this.config.get<boolean>('features.v2sessionFlow', true)
       if (v2Enabled) {
         const { initializeV2 } = await import('./daemon-v2-integration.js')
         v2Integration = await initializeV2(this, this.config, this.logger)

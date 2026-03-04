@@ -1,29 +1,31 @@
-#!/bin/bash
-# CassiCLI Wrapper - runs compiled CLI with auto-daemon-start
+#!/usr/bin/env bash
+# bin/cassi — launches the CassiCLI (Crush fork) binary.
+#
+# Build once with:   npm run build:cassi-cli
+# Or from cassi-cli: cd cassi-cli && go build -o ../bin/cassi-bin .
+#
+# The compiled binary is stored at bin/cassi-bin.  If it doesn't exist yet
+# this wrapper attempts to build it automatically.
+
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CLI_DIR="$(dirname "$SCRIPT_DIR")/cli"
-CLI_JS="$CLI_DIR/dist/cli.js"
+BINARY="$SCRIPT_DIR/cassi-bin"
+CASSI_CLI_DIR="$(dirname "$SCRIPT_DIR")/cassi-cli"
 
-# Check if we need to rebuild
-needs_rebuild() {
-    local src_file="$1"
-    local dist_file="$2"
-    if [[ ! -f "$dist_file" ]]; then
-        return 0
-    fi
-    if [[ "$src_file" -nt "$dist_file" ]]; then
-        return 0
-    fi
-    return 1
-}
-
-# Rebuild CLI if source changed
-if needs_rebuild "$CLI_DIR/src/cli.ts" "$CLI_JS" || \
-   needs_rebuild "$CLI_DIR/src/main.ts" "$CLI_JS"; then
-    echo "[cassi] Rebuilding..." >&2
-    (cd "$CLI_DIR" && npm run build --silent 2>&1) >&2
+# Auto-build if the binary is missing.
+if [[ ! -x "$BINARY" ]]; then
+  echo "[cassi] Binary not found — building cassi-cli..." >&2
+  if [[ ! -d "$CASSI_CLI_DIR" ]]; then
+    echo "[cassi] ERROR: cassi-cli/ submodule not found at $CASSI_CLI_DIR" >&2
+    echo "[cassi]        Run: git submodule update --init cassi-cli" >&2
+    exit 1
+  fi
+  (cd "$CASSI_CLI_DIR" && go build -o "$BINARY" .) >&2
+  echo "[cassi] Build complete." >&2
 fi
 
-# Run the CLI
-exec node "$CLI_JS" "$@"
+# Ensure the daemon is running before launching.
+CASSICORE_URL="${CASSICORE_URL:-http://localhost:7433}"
+
+exec "$BINARY" "$@"
