@@ -31,7 +31,7 @@ export async function handleHealthRoutes(
         uptimeMs: snapshot.uptimeMs,
         memoryMb: snapshot.memoryMb,
         eventLoopLagMs: snapshot.eventLoopLagMs,
-        version: daemon.config?.get?.('daemon.version', '0.1.2') ?? '0.1.2',
+        version: daemon.config?.get?.('daemon.version', '0.3.1') ?? '0.3.1',
         checks: snapshot.checks,
       })
       return true
@@ -40,7 +40,7 @@ export async function handleHealthRoutes(
     sendJSON(res, 200, {
       status: 'starting',
       uptime: process.uptime(),
-      version: daemon.config?.get?.('daemon.version', '0.1.2') ?? '0.1.2',
+      version: daemon.config?.get?.('daemon.version', '0.3.1') ?? '0.3.1',
     })
     return true
   }
@@ -97,7 +97,7 @@ export async function handleHealthRoutes(
 
     sendJSON(res, 200, {
       name: 'CassiCore',
-      version: daemon.config?.get?.('daemon.version', '0.1.3') ?? '0.1.3',
+      version: daemon.config?.get?.('daemon.version', '0.3.1') ?? '0.3.1',
       pid: process.pid,
       uptimeMs: Math.floor(process.uptime() * 1000),
       // API surface available for the Crush fork
