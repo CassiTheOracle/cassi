@@ -12,8 +12,8 @@ import fs from "node:fs"
 // Read version from package.json at module load time so it stays in sync
 const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
 const CASSICORE_VERSION: string = (() => {
-  try { return JSON.parse(fs.readFileSync(_pkgPath, 'utf8')).version ?? '0.1.5' }
-  catch { return '0.1.5' }
+  try { return JSON.parse(fs.readFileSync(_pkgPath, 'utf8')).version ?? '0.3.1' }
+  catch { return '0.3.1' }
 })()
 import { createIntelligence } from "./intelligence/index.js"
 import type { IntelligenceLayer } from "./intelligence/index.js"
