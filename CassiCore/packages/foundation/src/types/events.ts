@@ -69,6 +69,10 @@ export type RuntimeEvent =
   | { type: "session:compacted"; sessionId: string; summary: string }
   | { type: "context-manager:sync"; sessionId: string; payload: any }
   | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number }
+  | { type: "dialectic:started"; dialecticId: string }
+  | { type: "dialectic:stopped"; dialecticId: string; reason: string }
+  | { type: "dialectic:iteration"; dialecticId: string; iteration: number; summary: { yang?: number; yin?: number; hasSignal?: boolean } }
+  | { type: "dialectic:error"; dialecticId: string; error: string }
   // Session Agent events
   | { type: "session_agent:created"; agentId: string; sessionId: string; agentType: string; timestamp: Date }
   | { type: "session_agent:shutdown"; agentId: string; sessionId: string; timestamp: Date }
@@ -102,6 +106,7 @@ export type RuntimeEvent =
   | { type: "multi-agent:spawn-failed"; error: string; role: string }
   | { type: "multi-agent:assign-retry"; attempt: number; error: string; agentId: string }
   | { type: "multi-agent:assign-failed"; error: string; agentId: string }
+  | { type: "multi-agent:metrics"; metrics: Record<string, number> }
   // Autonomous loop events
   | { type: "autonomy:loop_started"; agentId: string; sessionId: string; opts?: Record<string, unknown> }
   | { type: "autonomy:loop_stopped"; agentId: string; reason: string; iterations: number; totalTokensUsed: number }
@@ -142,6 +147,10 @@ export type RuntimeEvent =
   | { type: "drone:prediction"; swarmId: string; branchCount: number; topBranch: string; topProbability: number; tokensUsed: number; timestamp: Date }
   | { type: "drone:speculative:matched"; swarmId: string; droneId: string; branchId: string; probability: number; timestamp: Date }
   | { type: "drone:speculative:discarded"; swarmId: string; droneIds: string[]; reason: string; timestamp: Date }
+  | { type: "drone:swarm:cognitive-summary"; swarmId: string; parentSessionId: string; totalSignals: number; signalsByKind: Record<string, number>; resonanceCount: number; timestamp: Date }
+  | { type: "drone:autonomous-probe:triggered"; source: "thinker" | "subconscious" | "dialectic"; reason: string; priority: "low" | "medium" | "high"; probeCount: number; timestamp: Date }
+  | { type: "drone:autonomous-probe:completed"; source: "thinker" | "subconscious" | "dialectic"; success: boolean; signalCount: number; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "drone:cache-hit"; droneId: string; swarmId: string; cacheKey: string; timestamp: Date }
   // Consciousness events — emitted by the Subconscious conscious observer
   | {
       type: "consciousness:observation";
@@ -175,7 +184,7 @@ export type RuntimeEvent =
       confidence: number;
       timestamp: Date;
     }
-  | {
+   | {
       type: "consciousness:state";
       model: {
         activeSessions: number;
@@ -189,7 +198,146 @@ export type RuntimeEvent =
         observationCount: number;
       };
       timestamp: Date;
-    };
+    }
+  // ── SelfHealingAgent events ─────────────────────────────────────────────
+  | { type: "intelligence:processor-error"; processorName: string; error: string; timestamp: number }
+  | { type: "self-healer:error-detected";   id: string; processorName: string; error: string; attempt: number }
+  | { type: "self-healer:repair-proposed";  id: string; filePath: string; patch: string }
+  | { type: "self-healer:repair-applied";   id: string; filePath: string }
+  | { type: "self-healer:repair-validated"; id: string; filePath: string }
+  | { type: "self-healer:repair-failed";    id: string; error: string }
+  | { type: "self-healer:skipped";          id: string; reason: string }
+  | { type: "self-healer:rebuild-started";  id: string }
+  | { type: "self-healer:rebuild-succeeded"; id: string }
+  | { type: "self-healer:rebuild-failed";   id: string; error: string }
+  | { type: "self-healer:restart-requested"; id: string; reason: string }
+  // ── AI Scientist events ─────────────────────────────────────────────────────
+  | { type: "ai-scientist:study-complete"; studyId: string; track: string; summary: string }
+  | { type: "ai-scientist:breakthrough"; track: string; title: string; metric: string; deltaPercent: number; effectSize: number; pValue: number }
+  // ── Thinker quality signals ─────────────────────────────────────────────────
+   | { type: "thinker:feedback"; sessionId: string; helpful: boolean; insightContent?: string }
+   | { type: "thinker:ponder-skipped"; sessionId: string; reason: string }
+   | { type: "thinker:strategy-updated"; strategy: Record<string, unknown> }
+   | { type: "thinker:repair-request"; id: string; prompt: string }
+   | { type: "thinker:repair-response"; id: string; text: string; error?: string }
+   | { type: "thinker:inject-insight"; sessionId: string; insight: string; level: string }
+   | { type: "thinker:early-warning"; sessionId: string; warning: string }
+   | { type: "thinker:self-modified"; module: string; change: Record<string, unknown> }
+   | { type: "thinker:swarm-deployed"; sessionId: string; swarmId: string; mission: string }
+  // ── Thought Observer events ────────────────────────────────────────────────
+    | {
+        type: "thinking:signal-extracted";
+        sessionId: string;
+        signals: Array<{ kind: string; text: string; confidence: number }>;
+        source: "realtime" | "post-turn" | "manual";
+        thinkingCharsProcessed: number;
+        timestamp: Date;
+      }
+  // ── Dialectic extra signals ─────────────────────────────────────────────────
+  | { type: "dialectic:no-signal"; sessionId: string; reason: string }
+  | { type: "dialectic:convergence"; sessionId: string; converged: boolean }
+  // ── Subconscious anomaly (short-form) ───────────────────────────────────────
+  | { type: "subconscious:anomaly"; anomalyId: string; description: string; severity: "low" | "medium" | "high" }
+  // ── AI Engineer lifecycle events ────────────────────────────────────────────
+  | { type: "ai-engineer:upgrade-proposed"; trialId: string; targetId: string; moduleId: string; rationale: string; validationScore: number }
+  | { type: "ai-engineer:upgrade-applied";  trialId: string; targetId: string; moduleId: string; deltaPercent: Record<string, number>; reason: string }
+  | { type: "ai-engineer:upgrade-reverted"; trialId: string; targetId: string; moduleId: string; outcome: string; deltaPercent: Record<string, number>; reason: string }
+  | { type: "ai-engineer:upgrade-skipped";  targetId?: string; reason: string }
+  | { type: "ai-engineer:prompt-updated";   targetId: string; moduleId: string }
+  // ── Consequence Estimator events ──────────────────────────────────────────
+  | {
+      type: "consequence:estimated";
+      sessionId: string;
+      toolName: string;
+      riskLevel: "negligible" | "low" | "moderate" | "high" | "critical";
+      riskScore: number;
+      reversibility: "fully" | "partially" | "irreversible";
+      dimensions: { dataLoss: number; systemStability: number; externalImpact: number; resourceCost: number; privacyRisk: number };
+      estimatorType: "heuristic" | "llm" | "combined";
+      timestamp: Date;
+    }
+  | { type: "consequence:estimation-failed"; sessionId: string; toolName: string; error: string; timestamp: Date }
+  // ── Trust Ledger events ───────────────────────────────────────────────────
+  | {
+      type: "trust:score-updated";
+      domain: string;
+      oldScore: number;
+      newScore: number;
+      delta: number;
+      reason: string;
+      evidence: string;
+      timestamp: Date;
+    }
+  | { type: "trust:domain-created"; domain: string; initialScore: number; timestamp: Date }
+  | { type: "trust:decay-applied"; domain: string; oldScore: number; newScore: number; decayFactor: number; timestamp: Date }
+  | {
+      type: "trust:outcome-recorded";
+      domain: string;
+      action: string;
+      success: boolean;
+      consequenceAccuracy: number;
+      timestamp: Date;
+    }
+  // ── Permission Oracle events ──────────────────────────────────────────────
+  | {
+      type: "permission:decision";
+      sessionId: string;
+      toolName: string;
+      decision: "allow" | "deny" | "escalate";
+      riskScore: number;
+      trustScore: number;
+      threshold: number;
+      reason: string;
+      timestamp: Date;
+    }
+  | { type: "permission:escalated"; sessionId: string; toolName: string; reason: string; riskLevel: string; timestamp: Date }
+  | { type: "permission:human-response"; sessionId: string; toolName: string; approved: boolean; responder?: string; responseTimeMs: number; timestamp: Date }
+  | {
+      type: "permission:override";
+      sessionId: string;
+      toolName: string;
+      originalDecision: "allow" | "deny" | "escalate";
+      overriddenTo: "allow" | "deny";
+      reason: string;
+      timestamp: Date;
+    }
+  // ── Autonomy Governance events (graduated autonomy lifecycle) ─────────────
+  | {
+      type: "autonomy:trust-gate";
+      sessionId: string;
+      action: string;
+      gateResult: "passed" | "blocked" | "escalated";
+      trustScore: number;
+      requiredThreshold: number;
+      riskScore: number;
+      timestamp: Date;
+    }
+  | {
+      type: "autonomy:level-changed";
+      previousLevel: "supervised" | "guided" | "autonomous" | "trusted";
+      newLevel: "supervised" | "guided" | "autonomous" | "trusted";
+      reason: string;
+      overallTrust: number;
+      timestamp: Date;
+    }
+  // ── Scout events (pre-turn search agent) ──────────────────────────────────
+  | { type: "scout:started"; sessionId: string; message: string; timestamp: Date }
+  | { type: "scout:tool_call"; sessionId: string; tool: string; input: Record<string, unknown>; timestamp: Date }
+  | { type: "scout:tool_result"; sessionId: string; tool: string; resultLength: number; isError: boolean; durationMs: number; timestamp: Date }
+  | { type: "scout:completed"; sessionId: string; contextLength: number; toolCalls: number; durationMs: number; roundsUsed: number; status: string; timestamp: Date }
+  | { type: "scout:skipped"; sessionId: string; reason: string; timestamp: Date }
+  | { type: "scout:error"; sessionId: string; error: string; timestamp: Date }
+  // ── Self-improvement loop events ──────────────────────────────────────────
+  | { type: "improvement:proposal-queued"; proposalId: string; trigger: string; source: string; confidence: number; timestamp: Date }
+  | { type: "improvement:gate-started"; proposalId: string; mode: string; timestamp: Date }
+  | { type: "improvement:gate-passed"; proposalId: string; improvements: string[]; timestamp: Date }
+  | { type: "improvement:gate-failed"; proposalId: string; regressions: string[]; timestamp: Date }
+  | { type: "improvement:applying"; proposalId: string; adaptation: string; config: Record<string, unknown>; timestamp: Date }
+  | { type: "improvement:reverting"; proposalId: string; adaptation: string; timestamp: Date }
+  | { type: "improvement:reverted"; proposalId: string; reason: string; timestamp: Date }
+  | { type: "improvement:confirmed"; proposalId: string; improvements: string[]; timestamp: Date }
+  | { type: "improvement:thrashing-detected"; adaptationType: string; revertRate: number; total: number; timestamp: Date }
+  | { type: "improvement:meta-learning"; adjustments: string[]; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 
