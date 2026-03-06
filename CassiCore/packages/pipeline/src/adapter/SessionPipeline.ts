@@ -21,6 +21,7 @@ import {
   type TurnMetadata,
   type StreamEventCallback
 } from '../index.js';
+import { getModelSpec } from '../../config/system-settings.js';
 
 import type { IMemory } from '../../../types/intelligence.js';
 import type { IConfig, ILogger, IEventBus } from '../../../types/interfaces.js';
@@ -103,7 +104,7 @@ export class SessionPipeline {
       store: this.store,
       defaultModel: this.options.config.get(
         'intelligence.defaultModel',
-        'lmstudio/lfm2.5-1.2b'
+        getModelSpec('fast')
       ),
       defaultSystemPrompt: this.loadSystemPrompt(),
       logger: this.logger.child('session-manager')
