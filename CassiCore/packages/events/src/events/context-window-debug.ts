@@ -243,7 +243,7 @@ export class ContextWindowDebugger {
 
     // Truncate very long content for privacy/performance
     if (processed.content.length > 10000) {
-      processed.content = processed.content.slice(0, 10000) + '\n... [truncated]';
+      processed.content = `${processed.content.slice(0, 10000)  }\n... [truncated]`;
       processed.wasTruncated = true;
     }
 

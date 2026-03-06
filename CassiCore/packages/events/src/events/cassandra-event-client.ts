@@ -7,7 +7,7 @@
  * - Provide reactive access to session state
  *
  * Usage:
- *   const client = new CassandraEventClient({ baseUrl: 'http://localhost:7432' });
+ *   const client = new CassandraEventClient({ baseUrl: 'http://localhost:7433' });
  *   await client.connect('session-xxx');
  *
  *   // Access current state
@@ -21,6 +21,7 @@
  */
 
 import { EventEmitter } from 'node:events';
+
 import type {
   CassiCoreEvent,
   SessionStartEvent,
@@ -323,8 +324,8 @@ class StateManager {
   }
 
   private handleError(event: ErrorEvent): void {
-    // Error occurred
-    console.error(`[CassandraEventClient] Session error: ${event.error}`);
+    // Error occurred - this is logged via the client's error event emission
+    // The console.error has been removed in favor of event-based error reporting
   }
 
   getEventHistory(eventTypes?: EventType[]): CassiCoreEvent[] {

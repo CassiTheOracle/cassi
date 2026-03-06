@@ -16,9 +16,10 @@
  */
 
 import { MCPClient } from './client.js'
+
 import type { MCPServerConfig, MCPServerStatus, MCPConnectionState } from './types.js'
-import type { ToolRegistry } from '../tools/registry.js'
 import type { ILogger } from '../../types/interfaces.js'
+import type { ToolRegistry } from '../tools/registry.js'
 import type { ToolDefinition, ToolParamSchema } from '../tools/types.js'
 
 interface ServerEntry {
@@ -42,17 +43,17 @@ export class MCPRegistry {
   /** Connect all configured servers and register their tools */
   async start(configs: MCPServerConfig[]): Promise<void> {
     if (configs.length === 0) {
-      this.logger.info('[mcp] No MCP servers configured — skipping')
+      this.logger.info('No MCP servers configured — skipping')
       return
     }
 
-    this.logger.info(`[mcp] Starting ${configs.length} MCP server(s)`)
+    this.logger.info(`Starting ${configs.length} MCP server(s)`)
 
     await Promise.allSettled(configs.map(cfg => this.startServer(cfg)))
 
     const ready   = [...this.servers.values()].filter(e => e.state === 'ready' || e.state === 'degraded').length
     const crashed = [...this.servers.values()].filter(e => e.state === 'crashed').length
-    this.logger.info(`[mcp] Startup complete — ${ready} ready, ${crashed} failed`)
+    this.logger.info(`Startup complete — ${ready} ready, ${crashed} failed`)
   }
 
   /** Gracefully disconnect all servers */
@@ -62,7 +63,7 @@ export class MCPRegistry {
       await entry.client.disconnect().catch(() => {})
       entry.state = 'stopped'
     }
-    this.logger.info('[mcp] All MCP servers stopped')
+    this.logger.info('All MCP servers stopped')
   }
 
   /** Status snapshot for the health monitor */

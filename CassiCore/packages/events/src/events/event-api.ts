@@ -8,8 +8,8 @@
  * - GET /state - Get current session state snapshot
  */
 
-import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { CassiCoreEvent, CassiCoreEventBus } from './event-bus.js';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 
 // ============================================================================
 // Types
@@ -156,7 +156,7 @@ export class SSEConnectionManager {
     ].join('\n');
 
     try {
-      connection.response.write(message + '\n');
+      connection.response.write(`${message  }\n`);
       connection.lastEventId = event.eventId;
     } catch (err) {
       // Connection likely closed
@@ -301,12 +301,12 @@ export class EventAPI {
         // Send missed events
         for (const event of missedEvents) {
           const data = JSON.stringify(event);
-          res.write([
+          res.write(`${[
             `id: ${event.eventId}`,
             `event: ${event.type}`,
             `data: ${data}`,
             '',
-          ].join('\n') + '\n');
+          ].join('\n')  }\n`);
         }
       }
     }

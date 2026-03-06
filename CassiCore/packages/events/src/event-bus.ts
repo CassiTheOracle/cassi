@@ -1,5 +1,9 @@
+import { rootLogger } from './logger.js';
+
 import type { EventType, EventOf, Unsubscribe, RuntimeEvent } from "../types/events.js";
-import type { IEventBus } from "../types/interfaces.js";
+import type { IEventBus, ILogger } from "../types/interfaces.js";
+
+const logger: ILogger = rootLogger.child('event-bus');
 
 /**
  * EventBus — simple typed event bus implementation.
@@ -34,7 +38,7 @@ export class EventBus implements IEventBus {
           // Type assertion: stored handlers follow the (e: EventOf<T>) => void shape
           (h as (e: T) => void)(event);
         } catch (err) {
-          console.error(`[EventBus] Error in handler for event ${event.type}:`, err);
+          logger.error('Error in handler', { eventType: event.type, error: String(err) });
         }
       }
     }
@@ -46,7 +50,7 @@ export class EventBus implements IEventBus {
         try {
           h(event);
         } catch (err) {
-          console.error(`[EventBus] Error in global handler for event ${event.type}:`, err);
+          logger.error('Error in global handler', { eventType: event.type, error: String(err) });
         }
       }
     }
@@ -84,6 +88,8 @@ export class EventBus implements IEventBus {
 
   /**
    * Remove a specific handler by reference.
+   * @param type - Event type to unsubscribe from
+   * @param handler - The handler function to remove (must be the same reference passed to on())
    */
   off<T extends EventType>(type: T, handler: (e: EventOf<T>) => void): void {
     const set = this.listeners.get(type);
@@ -96,6 +102,8 @@ export class EventBus implements IEventBus {
 
   /**
    * Number of listeners currently registered for a type.
+   * @param type - Event type to count listeners for
+   * @returns The number of registered listeners for the given event type
    */
   listenerCount(type: EventType): number {
     const set = this.listeners.get(type);

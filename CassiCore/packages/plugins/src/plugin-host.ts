@@ -1,7 +1,8 @@
 import { Worker } from "node:worker_threads";
+
 import { bus } from "../core/event-bus.js";
-import type { IPluginHost, PluginManifest, PluginStatus } from "../types/interfaces.js";
-import type { ILogger } from "../types/interfaces.js";
+
+import type { IPluginHost, PluginManifest, PluginStatus , ILogger } from "../types/interfaces.js";
 
 type HostMessage =
   | { type: "init"; config: Record<string, unknown> }
