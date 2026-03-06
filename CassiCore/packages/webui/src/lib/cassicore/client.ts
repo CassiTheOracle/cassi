@@ -1,11 +1,11 @@
 /**
  * CassiCore Admin API client for Next.js BFF routes.
  *
- * Communicates with the CassiCore daemon over HTTP (port 7432 by default).
+ * Communicates with the CassiCore daemon over HTTP (port 7433 by default).
  * The CASSICORE_API_URL env var overrides the base URL.
  */
 
-export const CASSICORE_URL = process.env.CASSICORE_API_URL ?? 'http://localhost:7432'
+export const CASSICORE_URL = process.env.CASSICORE_API_URL ?? 'http://localhost:7433'
 
 /** Fetch wrapper that throws on non-OK responses. */
 export async function cassiFetch(

@@ -6,7 +6,7 @@ CassiCore's web interface, based on [agno-agi/agent-ui](https://github.com/agno-
 
 - **Next.js 15** (App Router) — UI and Backend-for-Frontend (BFF)
 - **Tailwind CSS + shadcn/ui** — styling
-- **CassiCore Admin API** — daemon connection (HTTP on port 7432)
+- **CassiCore Admin API** — daemon connection (HTTP on port 7433)
 
 ## How it works
 
@@ -15,13 +15,13 @@ Agno's API contract to CassiCore's Admin API:
 
 | Agno route | BFF → CassiCore |
 |---|---|
-| `GET /health` | `GET :7432/health` (pass-through) |
+| `GET /health` | `GET :7433/health` (pass-through) |
 | `GET /agents` | Synthesized from daemon config |
-| `GET /sessions` | `GET :7432/sessions` |
-| `GET /sessions/:id/runs` | `GET :7432/sessions/:id/messages` |
-| `DELETE /sessions/:id` | `DELETE :7432/sessions/:id` |
-| `POST /agents/:id/runs` | `POST :7432/sessions/:id/turn/stream` + SSE translation |
-| `GET /cassicore/dialectic/:id` | `GET :7432/dialectic/:id/history` |
+| `GET /sessions` | `GET :7433/sessions` |
+| `GET /sessions/:id/runs` | `GET :7433/sessions/:id/messages` |
+| `DELETE /sessions/:id` | `DELETE :7433/sessions/:id` |
+| `POST /agents/:id/runs` | `POST :7433/sessions/:id/turn/stream` + SSE translation |
+| `GET /cassicore/dialectic/:id` | `GET :7433/dialectic/:id/history` |
 
 ### SSE event translation
 
@@ -48,7 +48,7 @@ npm run dev       # → http://localhost:3000
 Copy `.env.example` to `.env.local`:
 
 ```env
-CASSICORE_API_URL=http://localhost:7432     # daemon Admin API
+CASSICORE_API_URL=http://localhost:7433     # daemon Admin API
 NEXT_PUBLIC_DEFAULT_ENDPOINT=http://localhost:3000  # BFF (this app)
 ```
 
