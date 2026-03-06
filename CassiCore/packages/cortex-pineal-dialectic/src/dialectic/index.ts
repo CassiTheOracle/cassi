@@ -6,8 +6,14 @@
  * This minimizes request count for request-based providers (e.g., GitHub Copilot).
  */
 
-import type { ILogger } from '../../../types/interfaces.js';
-import type { IEventBus } from '../../../types/interfaces.js';
+import fs from 'fs';
+import path from 'path';
+
+import Database from 'better-sqlite3';
+
+import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
+import { type PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
+
 import type {
   IDialecticSystem,
   DialecticResult,
@@ -15,15 +21,14 @@ import type {
   YangContext,
   DialecticStreamEvent,
   DialecticSignal,
-} from '../../../types/dialectic.js';
-import type { IProvider } from '../../../types/runtime.js';
+ PromptOptimizerConfig } from '../../../types/dialectic.js';
 import type { IMemory } from '../../../types/intelligence.js';
-import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
-import { PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
-import type { PromptOptimizerConfig } from '../../../types/dialectic.js';
-import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import type { ILogger , IEventBus } from '../../../types/interfaces.js';
+import type { IProvider } from '../../../types/runtime.js';
+
+
+
+
 
 // Re-export Yang, Yin, Serenity and their types from consolidated modules
 export { YangObserver, type YangConfig, createYangObserver } from './yang.js';
@@ -428,8 +433,9 @@ export class DialecticSystem implements IDialecticSystem {
       // Persist
       await this.persistResult(result);
 
-      // Emit signal if urgent
-      if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal?.urgency === 'immediate') {
+      // Emit signal for pipeline injection — inject on every turn that produced a signal,
+      // not just 'immediate' urgency. The dialectic should enrich almost every response.
+      if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal) {
         this.emitSignal(sessionId, turnId, result.serenity.synthesis.signal);
       }
 

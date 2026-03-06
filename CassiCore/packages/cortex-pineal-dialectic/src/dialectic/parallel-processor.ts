@@ -8,8 +8,11 @@
  * Expected speedup: ~1.7x (350ms vs 600ms typical)
  */
 
-import type { ILogger } from '../../../types/interfaces.js';
-import type { IEventBus } from '../../../types/interfaces.js';
+import { Serenity, type SerenityConfig } from './serenity.js';
+import { YangObserver, type YangConfig } from './yang.js';
+import { YinObserver, type YinConfig } from './yin.js';
+
+import type { PromptOptimizer } from './prompt-optimizer.js';
 import type { 
   YangOutput, 
   YinOutput, 
@@ -24,12 +27,10 @@ import type {
   ParallelDialecticResult,
   ParallelConfig
 } from '../../../types/dialectic.js';
-import type { IProvider } from '../../../types/runtime.js';
 import type { IMemory } from '../../../types/intelligence.js';
-import type { PromptOptimizer } from './prompt-optimizer.js';
-import { YangObserver, type YangConfig } from './yang.js';
-import { YinObserver, type YinConfig } from './yin.js';
-import { Serenity, type SerenityConfig } from './serenity.js';
+import type { ILogger , IEventBus } from '../../../types/interfaces.js';
+import type { IProvider } from '../../../types/runtime.js';
+
 
 export interface ParallelDialecticOptions {
   providers?: {

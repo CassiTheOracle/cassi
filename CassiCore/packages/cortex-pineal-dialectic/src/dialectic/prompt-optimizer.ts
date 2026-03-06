@@ -10,7 +10,15 @@
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import type { ILogger } from '../../../types/interfaces.js';
+
+import {
+  YANG_VARIANTS,
+  YIN_CRITIQUE_VARIANTS,
+  YIN_BASELINE_VARIANTS,
+  SERENITY_VARIANTS,
+  ALL_VARIANTS,
+} from './prompt-templates.js';
+
 import type {
   PromptVariant,
   PromptVariantScore,
@@ -19,13 +27,7 @@ import type {
   PromptOptimizerState,
   PromptObserverRole,
 } from '../../../types/dialectic.js';
-import {
-  YANG_VARIANTS,
-  YIN_CRITIQUE_VARIANTS,
-  YIN_BASELINE_VARIANTS,
-  SERENITY_VARIANTS,
-  ALL_VARIANTS,
-} from './prompt-templates.js';
+import type { ILogger } from '../../../types/interfaces.js';
 
 // ─── Default Config ─────────────────────────────────────────────────────────
 

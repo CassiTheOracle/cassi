@@ -17,7 +17,7 @@
  * Request savings: 3-7 requests → 1 request per turn.
  */
 
-import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { PromptOptimizer } from './prompt-optimizer.js'
 import type {
   YangOutput,
   YangBranch,
@@ -31,9 +31,9 @@ import type {
   SignalType,
   Urgency,
 } from '../../../types/dialectic.js'
-import type { IProvider } from '../../../types/runtime.js'
 import type { IMemory } from '../../../types/intelligence.js'
-import type { PromptOptimizer } from './prompt-optimizer.js'
+import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { IProvider } from '../../../types/runtime.js'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -147,9 +147,11 @@ export class ConsolidatedDialecticProcessor {
       // ── Build result ─────────────────────────────────────────────────────
       const totalLatencyMs = Date.now() - startTime
 
+      // Signal injection: inject whenever the dialectic has something meaningful to say.
+      // Previously gated on urgency === 'immediate' && confidence >= 0.6, which was too restrictive.
+      // The dialectic should contribute to almost every turn.
       const signalInjected = parsed.serenity.synthesis.hasSignal &&
-        parsed.serenity.synthesis.signal?.urgency === 'immediate' &&
-        (parsed.serenity.synthesis.signal?.confidence || 0) >= 0.6
+        (parsed.serenity.synthesis.signal?.confidence || 0) >= 0.3
 
       const result: ParallelDialecticResult = {
         sessionId,
@@ -332,8 +334,9 @@ Produce ALL THREE sections below. Output ONLY valid JSON — no markdown fences,
 
 Generate ${this.config.maxBranches} Yang branches with diverse types.
 Generate 1-2 Yin baselines and critiques for each Yang branch.
-Serenity should synthesize the tension between Yang and Yin into an actionable signal.
-Set hasSignal=false if no meaningful insight emerges.`)
+Serenity MUST synthesize the tension between Yang and Yin into an actionable signal.
+ALWAYS set hasSignal=true and produce a meaningful signal — the dialectic exists to enrich every response.
+Only set hasSignal=false if the input is truly empty or nonsensical.`)
 
     return parts.join('\n\n')
   }
@@ -345,24 +348,78 @@ Set hasSignal=false if no meaningful insight emerges.`)
     yin: YinBaselineOutput
     serenity: SerenityOutput
   } {
-    try {
-      // Try to extract JSON from the response
-      const jsonStr = this.extractJson(text)
-      const raw = JSON.parse(jsonStr)
+    const jsonStr = this.extractJson(text)
 
+    // Try raw parse first (fast path)
+    try {
+      const raw = JSON.parse(jsonStr)
+      return {
+        yang: this.parseYang(raw.yang),
+        yin: this.parseYin(raw.yin, raw.yang),
+        serenity: this.parseSerenity(raw.serenity),
+      }
+    } catch {
+      // Fall through to repair
+    }
+
+    // Attempt repair — LLMs produce bare words, trailing commas, single quotes, etc.
+    try {
+      const repaired = this.repairJson(jsonStr)
+      const raw = JSON.parse(repaired)
+      this.logger.debug('ConsolidatedDialecticProcessor: JSON repaired successfully')
       return {
         yang: this.parseYang(raw.yang),
         yin: this.parseYin(raw.yin, raw.yang),
         serenity: this.parseSerenity(raw.serenity),
       }
     } catch (err) {
-      this.logger.warn('ConsolidatedDialecticProcessor: parse failed, returning defaults', { error: String(err) })
+      this.logger.warn('ConsolidatedDialecticProcessor: parse failed after repair, returning defaults', { error: String(err) })
       return {
         yang: this.emptyYang(),
         yin: this.emptyYin(),
         serenity: this.emptySerenity(),
       }
     }
+  }
+
+  /**
+   * Best-effort repair of common LLM JSON malformations:
+   * - Bare words as values  ("valid": partially -> "valid": "partially")
+   * - Trailing commas        ({"a": 1,} -> {"a": 1})
+   * - Single-quoted strings  ('foo' -> "foo")
+   * - Unquoted keys          ({foo: 1} -> {"foo": 1})
+   * - JavaScript line and block comments
+   * - NaN / Infinity         (NaN -> null)
+   */
+  private repairJson(text: string): string {
+    let s = text
+
+    // Strip JS-style comments (// and /* */)
+    s = s.replace(/\/\/[^\n]*/g, '')
+    s = s.replace(/\/\*[\s\S]*?\*\//g, '')
+
+    // Replace bare-word values (the specific class of bug from the error log).
+    // Matches `: <bare_word>` where bare_word is not true/false/null/number/string/object/array.
+    // Negative lookahead skips valid JSON values; captures the bare word and wraps in quotes.
+    s = s.replace(
+      /:\s*(?!true\b|false\b|null\b|"|\[|\{|-?\d)([a-zA-Z_]\w*(?:[- ]\w+)*)/g,
+      ': "$1"',
+    )
+
+    // Unquoted keys: {foo: → {"foo":
+    s = s.replace(/([{,]\s*)([a-zA-Z_]\w*)\s*:/g, '$1"$2":')
+
+    // Single-quoted strings → double-quoted (simple cases only)
+    s = s.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"')
+
+    // Trailing commas before } or ]
+    s = s.replace(/,\s*([}\]])/g, '$1')
+
+    // NaN / Infinity → null
+    s = s.replace(/:\s*NaN\b/g, ': null')
+    s = s.replace(/:\s*-?Infinity\b/g, ': null')
+
+    return s
   }
 
   private extractJson(text: string): string {
