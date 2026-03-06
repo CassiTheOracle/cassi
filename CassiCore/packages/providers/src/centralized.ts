@@ -1,7 +1,13 @@
-import type { IProvider, Message, CompletionOpts, CompletionChunk, TurnResult } from '../../types/runtime.js'
-import type { ILogger, IEventBus, IConfig } from '../../types/interfaces.js'
+import { rootLogger } from '../logger.js'
 import { signalPromise } from '../utils/abort.js'
+
 import type { BudgetTracker } from './budget-tracker.js'
+import type { ILogger, IEventBus, IConfig } from '../../types/interfaces.js'
+import type { IProvider, Message, CompletionOpts, CompletionChunk, TurnResult } from '../../types/runtime.js'
+
+
+
+const logger: ILogger = rootLogger.child('providers')
 
 /**
  * Request tracking entry for a single in-flight or completed request.
@@ -64,10 +70,10 @@ const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
  */
 // Global limits removed - each provider has its own independent rate limits
 // Default 20 minute timeout for LLM requests, can be overridden via env
-let DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '1200000', 10)
+const DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '1200000', 10)
 
-// Log timeout configuration on startup
-console.log(`[providers] Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 1000}s`)
+// Log timeout configuration on startup (debug — fires on every module load in workers)
+logger.debug(`Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 1000}s`)
 
 // Exports for admin APIs to query provider-specific defaults
 export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_RATE_LIMITS
@@ -187,25 +193,23 @@ export class CentralizedProvider implements IProvider {
     const sessionId = this.extractSessionId(messages) ?? 'unknown'
 
     // ── 0. Deduplication: prevent simultaneous requests from same session unless explicitly allowed ──
-    const dedupeDisabled = (opts as any)?.allowConcurrent === true || (opts as any)?.dedupe === false
+    const dedupeDisabled = opts.allowConcurrent === true || opts.dedupe === false
     if (!dedupeDisabled) {
       const existing = this.inFlight.get(sessionId)
       if (existing) {
         this.metrics.deduplicated++
         this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
-        this.bus.emit({
-          type: 'provider:deduplicated',
-          providerId: this.id,
-          sessionId,
-          existingRequestId: existing.id,
-        } as any)
+      this.bus.emit({
+        type: 'provider:deduplicated',
+        providerId: this.id,
+        sessionId,
+        existingRequestId: existing.id,
+      })
         throw new Error(`Request already in progress for session ${sessionId.slice(-8)}`)
       }
     } else {
       // Dedupe intentionally disabled for this call
-      if (typeof (this.logger as any).debug === 'function') {
-        try { (this.logger as any).debug(`[dedup] allowConcurrent set — skipping dedup for session ${sessionId.slice(-8)}`) } catch { }
-      }
+      try { this.logger.debug(`[dedup] allowConcurrent set — skipping dedup for session ${sessionId.slice(-8)}`) } catch { }
     }
 
     // ── 2. Rate limiting check (includes concurrent limit) ──
@@ -218,7 +222,7 @@ export class CentralizedProvider implements IProvider {
         providerId: this.id,
         sessionId,
         retryAfterMs: rateLimitResult.retryAfterMs,
-      } as any)
+      })
       throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
     }
 
@@ -231,7 +235,7 @@ export class CentralizedProvider implements IProvider {
 
     // ── 4. Atomically reserve slot and track the request ──
     const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-    const rawModel = (opts as any)?.model || this.models[0]
+    const rawModel = opts.model || this.models[0]
     const entry: RequestEntry = {
       id: requestId,
       sessionId,
@@ -261,13 +265,13 @@ export class CentralizedProvider implements IProvider {
       sessionId,
       model: rawModel,
       messageCount: messages.length,
-    } as any)
+    })
 
     // ── 5. Execute with error handling and per-request timeout ──
     let completed = false
 
     // Merge provided signal with our timeout controller
-    const requestedTimeoutMs = (opts as any)?.timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
+    const requestedTimeoutMs = (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
     const controller = new AbortController()
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
@@ -279,7 +283,7 @@ export class CentralizedProvider implements IProvider {
           this.metrics.totalErrors++
           this.consecutiveErrors++
           this.lastErrorAt = Date.now()
-          this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs } as any)
+          this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs })
           this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
         } catch (err) { /* best-effort */ }
         try { controller.abort() } catch (err) { /* best-effort */ }
@@ -318,7 +322,7 @@ export class CentralizedProvider implements IProvider {
 
     } catch (err) {
       // If controller aborted due to timeout, prefer our entry.error message
-      if ((err as any)?.name === 'AbortError' && entry.error && entry.error.startsWith('timeout')) {
+      if (err instanceof Error && err.name === 'AbortError' && entry.error && entry.error.startsWith('timeout')) {
         // keep entry.error
       } else {
         entry.error = err instanceof Error ? err.message : String(err)
@@ -335,7 +339,7 @@ export class CentralizedProvider implements IProvider {
         sessionId,
         error: entry.error,
         consecutiveErrors: this.consecutiveErrors,
-      } as any)
+      })
 
       throw err
     } finally {
@@ -362,7 +366,7 @@ export class CentralizedProvider implements IProvider {
         tokensUsed: entry.tokensUsed,
         durationMs: duration,
         error: entry.error,
-      } as any)
+      })
 
       // Record against budget tracker if wired (only counts metered models)
       if (this.budgetTracker && !entry.error) {
@@ -376,9 +380,9 @@ export class CentralizedProvider implements IProvider {
     return this.wrapped.countTokens(messages)
   }
 
-  async ping(signal?: AbortSignal): Promise<boolean> {
+  async ping(_signal?: AbortSignal): Promise<boolean> {
     // Don't rate-limit pings — they're lightweight health checks
-    return (this.wrapped.ping as any)?.(signal) ?? this.wrapped.ping()
+    return this.wrapped.ping()
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -398,8 +402,9 @@ export class CentralizedProvider implements IProvider {
    * Pass-through for load balancer stats (if wrapped provider supports it)
    */
   getStats(): unknown {
-    if (typeof (this.wrapped as any).getStats === 'function') {
-      return (this.wrapped as any).getStats()
+    const wrapped = this.wrapped as unknown as { getStats?: () => unknown }
+    if (typeof wrapped.getStats === 'function') {
+      return wrapped.getStats()
     }
     return null
   }
@@ -408,8 +413,9 @@ export class CentralizedProvider implements IProvider {
    * Get active count for load balancer compatibility
    */
   getActiveCount(): number {
-    if (typeof (this.wrapped as any).getActiveCount === 'function') {
-      return (this.wrapped as any).getActiveCount()
+    const wrapped = this.wrapped as unknown as { getActiveCount?: () => number }
+    if (typeof wrapped.getActiveCount === 'function') {
+      return wrapped.getActiveCount()
     }
     return 1
   }
@@ -423,11 +429,11 @@ export class CentralizedProvider implements IProvider {
     this.consecutiveErrors = 0
     this.lastErrorAt = 0
     if (hadErrors) {
-      this.logger.info('[reset] Error state cleared')
+      this.logger.info('Error state cleared')
       this.bus.emit({
         type: 'provider:error_reset',
         providerId: this.id,
-      } as any)
+      })
     }
   }
 
@@ -436,7 +442,7 @@ export class CentralizedProvider implements IProvider {
    */
   resetRateLimitHistory(): void {
     this.requestHistory = []
-    this.logger.info('[reset] Rate limit history cleared')
+    this.logger.info('Rate limit history cleared')
   }
 
   /**
@@ -453,7 +459,7 @@ export class CentralizedProvider implements IProvider {
       deduplicated: 0,
       rateLimited: 0,
     }
-    this.logger.info('[reset] All state cleared')
+    this.logger.info('All state cleared')
   }
 
   getInFlight(): ReadonlyArray<RequestEntry> {
@@ -474,7 +480,7 @@ export class CentralizedProvider implements IProvider {
         providerId: this.id,
         requestId: entry.id,
         sessionId,
-      } as any)
+      })
       return true
     }
     return false
@@ -610,6 +616,6 @@ export function wrapProvidersWithCentralized(
     if (budgetTracker) cp.setBudgetTracker(budgetTracker)
     wrapped.set(id, cp)
   }
-  logger.info(`[providers] ${wrapped.size} providers wrapped with per-provider rate limiting (no global limits)`)
+  logger.info(`${wrapped.size} providers wrapped with per-provider rate limiting (no global limits)`)
   return wrapped
 }

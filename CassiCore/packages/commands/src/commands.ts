@@ -8,11 +8,13 @@
  * across all channels (Telegram, Chat, TUI, API, Web, CLI)
  */
 
+import { processor, type CommandContext as UniversalContext } from '../commands/universal-processor.js';
+
+import { bus } from './event-bus.js';
+
 import type { ILogger, IEventBus } from '../types/interfaces.js';
 import type { ISessionManager } from '../types/runtime.js';
 import type { IntelligenceLayer } from './intelligence/index.js';
-import { bus } from './event-bus.js';
-import { processor, type CommandContext as UniversalContext } from '../commands/universal-processor.js';
 import '../commands/git-commands.js';
 import '../commands/tool-commands.js';
 
@@ -95,8 +97,8 @@ export class CommandDispatcher {
         }
         
         if (result.actions && result.actions.length > 0) {
-          const actionText = '\n\n*Quick Actions:*\n' + 
-            result.actions.map(a => `• ${a.label}: \`${a.command}\``).join('\n');
+          const actionText = `\n\n*Quick Actions:*\n${  
+            result.actions.map(a => `• ${a.label}: \`${a.command}\``).join('\n')}`;
           this.sendDirectResponse(sessionId, channelId, actionText);
         }
         

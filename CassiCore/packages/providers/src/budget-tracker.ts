@@ -13,12 +13,15 @@
  * - Emits budget:warning and budget:tier_changed events on tier transitions
  */
 
+import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
-import { readFile, writeFile, mkdir } from 'node:fs/promises'
-import type { ILogger, IEventBus } from '../../types/interfaces.js'
-import type { RequestCost } from './cost-classifier.js'
+
 import { getCostClassifier } from './cost-classifier.js'
+
+import type { RequestCost } from './cost-classifier.js'
+import type { ILogger, IEventBus } from '../../types/interfaces.js'
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

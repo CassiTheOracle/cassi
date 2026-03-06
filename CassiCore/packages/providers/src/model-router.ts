@@ -10,10 +10,12 @@
  * are progressively offloaded to free models as budget depletes.
  */
 
-import type { ILogger } from '../../types/interfaces.js'
 import { getModelSpec, MODEL_DEFAULTS } from '../config/system-settings.js'
-import { getCostClassifier, type RequestCost } from './cost-classifier.js'
+
 import { type BudgetTracker, type BudgetTier } from './budget-tracker.js'
+import { getCostClassifier, type RequestCost } from './cost-classifier.js'
+
+import type { ILogger } from '../../types/interfaces.js'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 

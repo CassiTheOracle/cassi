@@ -187,6 +187,14 @@ function collectJson(req: IncomingMessage): Promise<any> {
   });
 }
 
+/** Clear all keep-alive timers */
+function clearAllKeepAliveTimers(): void {
+  for (const timer of keepAliveTimers.values()) {
+    clearInterval(timer);
+  }
+  keepAliveTimers.clear();
+}
+
 // Handle messages from parent
 parentPort?.on('message', (m: HostMessage) => {
   try {
@@ -231,8 +239,10 @@ parentPort?.on('message', (m: HostMessage) => {
       for (const [sid, res] of clients.entries()) {
         try {
           res.end();
-        } catch (e) { }
+        } catch (e) { /* ignore — connection may already be closed */ }
       }
+      // Clear all remaining keep-alive timers
+      clearAllKeepAliveTimers();
       server.close(() => process.exit(0));
     }
   } catch (err) {
@@ -253,8 +263,10 @@ server.on('error', (err: any) => {
 
 // graceful close on process signals
 process.on('SIGINT', () => {
+  clearAllKeepAliveTimers();
   server.close(() => process.exit(0));
 });
 process.on('SIGTERM', () => {
+  clearAllKeepAliveTimers();
   server.close(() => process.exit(0));
 });

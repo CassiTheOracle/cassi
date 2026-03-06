@@ -1,18 +1,21 @@
-import type { IConfig, ILogger } from '../../types/interfaces.js'
-import type { IEventBus } from '../../types/interfaces.js'
-import type { IProvider } from '../../types/runtime.js'
-import { GitHubCopilotProvider } from './github-copilot.js'
-import { GoogleAntigravityProvider } from './google-antigravity.js'
-import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
-import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
 import fs from 'node:fs'
 
-// Import canonical provider implementations from @cassicore/ai
 import {
   KimiCodingProvider,
   OpenRouterProvider,
   QwenProvider,
 } from '@cassicore/ai'
+
+import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
+import { GitHubCopilotProvider } from './github-copilot.js'
+import { GoogleAntigravityProvider } from './google-antigravity.js'
+import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
+
+import type { IConfig, ILogger , IEventBus } from '../../types/interfaces.js'
+import type { IProvider } from '../../types/runtime.js'
+
+
+// Import canonical provider implementations from @cassicore/ai
 
 export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
@@ -255,16 +258,23 @@ export function createProviders(
   }
 
   if (rawProviders.size === 0) {
-    logger.warn('[providers] No providers loaded — set at least one API key in config or env')
+    logger.warn('No providers loaded — set at least one API key in config or env')
     return rawProviders
   }
 
-  // ── Wrap with centralized request management ───────────────────────────────
-  if (centralized && bus) {
-    const wrapped = wrapProvidersWithCentralized(rawProviders, logger, bus, config)
-    logger.info(`[providers] Centralized request management enabled for ${wrapped.size} provider(s)`)
-    return wrapped as Map<string, IProvider>
-  }
+  // ── Centralized request management ──────────────────────────────────────────
+  // Disabled: CentralizedProvider wrapping adds complexity (dedup, rate limiting,
+  // error cooldown) that interferes with provider-specific behaviors like Kimi's
+  // reasoning_content requirements. The raw providers handle their own retries
+  // and error handling well enough. Revisit when provider-neutral wrapping is
+  // more mature.
+  //
+  // if (centralized && bus) {
+  //   const wrapped = wrapProvidersWithCentralized(rawProviders, logger, bus, config)
+  //   logger.info(`Centralized request management enabled for ${wrapped.size} provider(s)`)
+  //   return wrapped as Map<string, IProvider>
+  // }
 
+  logger.info(`${rawProviders.size} provider(s) loaded (direct mode)`)
   return rawProviders
 }

@@ -7,8 +7,10 @@
  * - Provide failover on errors
  */
 
-import { QwenProvider, QwenOAuthCredentials } from '@cassicore/ai'
+import { QwenProvider, type QwenOAuthCredentials } from '@cassicore/ai'
+
 import { BaseProvider } from './base.js'
+
 import type { Message, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 export interface QwenAccount {

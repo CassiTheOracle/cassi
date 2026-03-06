@@ -3,8 +3,10 @@
  * Uses the Cloud Code Assist API (Internal Google API)
  */
 
-import { BaseProvider } from './base.js'
 import { signalPromise } from '../utils/abort.js'
+
+import { BaseProvider } from './base.js'
+
 import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 const DEFAULT_ENDPOINT = 'https://cloudcode-pa.googleapis.com'

@@ -1,9 +1,12 @@
-import { BaseProvider } from './base.js'
-import { signalPromise } from '../utils/abort.js'
-import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join, dirname } from 'node:path'
+
+import { signalPromise } from '../utils/abort.js'
+
+import { BaseProvider } from './base.js'
+
+import type { Message, ContentBlock, CompletionOpts, CompletionChunk, ImageAttachment } from '../../types/runtime.js'
 
 const BASE_URL = 'https://api.individual.githubcopilot.com'
 
