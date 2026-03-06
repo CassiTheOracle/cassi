@@ -192,8 +192,8 @@ export function createProviders(
     try {
       const lmstudioProvider = {
         id: 'lmstudio',
-        // Default to fast lfm2.5-1.2b model, prunedhub-gpt-oss-20b-28x as fallback
-        models: config.get<string[]>('providers.lmstudio.models', ['lfm2.5-1.2b', 'prunedhub-gpt-oss-20b-28x']),
+        // Default LM Studio model list favors the current local fallback first
+        models: config.get<string[]>('providers.lmstudio.models', ['prunedhub-gpt-oss-20b-28x']),
         countTokens: async (messages: any[]) => messages.reduce((acc, m) => acc + Math.ceil(String(m.content).length / 4), 0),
         ping: async () => true,
         async *complete(messages: any[], opts: any) {
@@ -204,7 +204,7 @@ export function createProviders(
               'Authorization': 'Bearer lmstudio'
             },
             body: JSON.stringify({
-              model: opts.model || 'lfm2.5-1.2b',
+              model: opts.model || 'prunedhub-gpt-oss-20b-28x',
               messages: messages.map(m => ({
                 role: m.role,
                 content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)

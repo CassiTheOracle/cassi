@@ -146,7 +146,7 @@ class CliChannelWorker {
     // Check if this is a user message (not a slash command)
     // User messages should be forwarded to the daemon for turn pipeline processing
     if (!command.startsWith('/')) {
-      // Parse potential model argument: "message --model lmstudio/lfm2.5-1.2b"
+      // Parse potential model argument: "message --model github-copilot/gpt-5-mini"
       let userMessage = command;
       let model: string | undefined;
 
