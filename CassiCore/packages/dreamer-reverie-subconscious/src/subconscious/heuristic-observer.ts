@@ -11,22 +11,56 @@
  * - Drone swarm / team failures
  * - Autonomy agent blocks
  * - Config hot-reload events
+ * - Silent intelligence modules (heartbeat monitor)
+ * - Tool/agent registration bursts (coalesced into a single observation)
  *
  * All detections respect a per-signal-type cooldown to avoid flooding.
  */
 
-import type { ILogger } from "../../../types/interfaces.js";
-import type { RuntimeEvent } from "../../../types/events.js";
-import type { Observation, Anomaly } from "./types.js";
 import { v4 as uuidv4 } from "uuid";
+
+import type { Observation, Anomaly } from "./types.js";
+import type { RuntimeEvent } from "../../../types/events.js";
+import type { ILogger } from "../../../types/interfaces.js";
+
 
 interface ErrorBurstTracker {
   errors: number[];    // timestamps
   lastAlerted: number;
 }
 
+// ─── Heartbeat config ──────────────────────────────────────────────────────
+// Modules to monitor, their expected event-type prefix, and the max silence
+// window before an anomaly is raised.  Only modules that should emit events
+// when the system is active are listed here — passive/on-demand modules are
+// intentionally excluded (e.g. self-healer, multi-agent).
+const HEARTBEAT_MODULES: ReadonlyArray<{
+  name: string
+  prefix: string
+  silenceThresholdMs: number
+}> = [
+  { name: 'thinker',    prefix: 'thinker:',    silenceThresholdMs: 30 * 60_000 },
+  { name: 'dialectic',  prefix: 'dialectic:',  silenceThresholdMs: 20 * 60_000 },
+  { name: 'optimizer',  prefix: 'optimizer:',  silenceThresholdMs: 30 * 60_000 },
+  { name: 'reflect',    prefix: 'reflect:',    silenceThresholdMs: 30 * 60_000 },
+]
+
+// Warm-up: don't fire heartbeat anomalies until the system has been running
+// long enough for modules to emit at least one event.
+const HEARTBEAT_WARMUP_MS  = 15 * 60_000  // 15 min
+// Re-check interval: minimum time between consecutive heartbeat sweeps.
+const HEARTBEAT_COOLDOWN_MS = 10 * 60_000  // 10 min
+
+// ─── Tool registration burst config ───────────────────────────────────────
+// Many tools are registered in rapid succession at startup (MCP servers,
+// built-ins). Rather than letting this appear as noisy individual signals,
+// we coalesce them into a single summary observation.
+const TOOL_BURST_WINDOW_MS = 5_000   // group registrations within 5s
+const TOOL_BURST_THRESHOLD = 3       // more than N in the window → summarise
+
 export class HeuristicObserver {
   private readonly logger: ILogger;
+  private readonly startedAt = Date.now();
 
   // Provider error tracking
   private readonly providerErrors = new Map<string, ErrorBurstTracker>();
@@ -37,6 +71,20 @@ export class HeuristicObserver {
 
   // Per-signal-type cooldown (signal key → last-emitted timestamp)
   private readonly signalCooldowns = new Map<string, number>();
+
+  // Turn activity tracking — generates periodic observations about session health
+  private turnTimestamps: number[] = [];
+  private readonly turnActivityWindowMs = 300_000;   // 5min window
+  private readonly turnActivityCheckInterval = 10;    // check every N turns
+  private turnsSinceLastCheck = 0;
+
+  // Heartbeat tracking — last time each monitored module emitted any event
+  private readonly moduleLastSeen = new Map<string, number>();
+
+  // Tool registration burst tracking
+  private toolRegistrationTimestamps: number[] = [];
+  private toolRegistrationTimer?: ReturnType<typeof setTimeout>;
+  private toolRegistrationNames: string[] = [];
 
   // Pending buffers drained by the Subconscious on each turn
   private pendingObservations: Observation[] = [];
@@ -61,9 +109,48 @@ export class HeuristicObserver {
    */
   observe(event: RuntimeEvent): void {
     try {
+      this.updateModuleHeartbeat(event.type);
       this.dispatch(event);
     } catch (err) {
       this.logger.warn("HeuristicObserver.observe error", { type: event.type, error: String(err) });
+    }
+  }
+
+  /**
+   * Periodic heartbeat sweep — call every ~10 minutes from the Subconscious
+   * lifecycle timer. Generates anomalies for modules that have been silent
+   * longer than their configured threshold.
+   *
+   * Only fires after the initial warm-up period to avoid false positives at
+   * startup before modules have had a chance to emit their first event.
+   */
+  checkHeartbeats(now = Date.now()): void {
+    if (now - this.startedAt < HEARTBEAT_WARMUP_MS) return
+
+    const cooldownKey = "heartbeat:sweep"
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < HEARTBEAT_COOLDOWN_MS) return
+    this.signalCooldowns.set(cooldownKey, now)
+
+    for (const mod of HEARTBEAT_MODULES) {
+      const lastSeen = this.moduleLastSeen.get(mod.name)
+      const silenceMs = now - (lastSeen ?? this.startedAt)
+
+      if (silenceMs > mod.silenceThresholdMs) {
+        const silenceMin = Math.round(silenceMs / 60_000)
+        const cooldownKey2 = `heartbeat:${mod.name}`
+        // Allow re-alerting every 30 minutes per module
+        if (now - (this.signalCooldowns.get(cooldownKey2) ?? 0) < 30 * 60_000) continue
+        this.signalCooldowns.set(cooldownKey2, now)
+
+        this.pushAnomaly({
+          id: uuidv4(),
+          description: `Module '${mod.name}' has been silent for ${silenceMin} min — no '${mod.prefix}*' events observed`,
+          severity: "low",
+          eventTypes: [`${mod.prefix}*`],
+          suggestedAction: `Verify that the ${mod.name} module is running and connected to the event bus`,
+          timestamp: now,
+        })
+      }
     }
   }
 
@@ -95,6 +182,12 @@ export class HeuristicObserver {
         break;
       case "autonomy:blocked":
         this.onAutonomyBlocked(event as RuntimeEvent & { type: "autonomy:blocked"; agentId?: string; reason?: string });
+        break;
+      case "turn:end":
+        this.onTurnEnd(event);
+        break;
+      case "tool:registered":
+        this.onToolRegistered(event as RuntimeEvent & { type: "tool:registered"; name: string; server?: string });
         break;
     }
   }
@@ -252,6 +345,53 @@ export class HeuristicObserver {
     });
   }
 
+  /**
+   * Track turn activity — generates periodic observations about session throughput,
+   * giving the subconscious a baseline awareness of activity patterns.
+   */
+  private onTurnEnd(event: RuntimeEvent): void {
+    const now = Date.now();
+    this.turnTimestamps.push(now);
+    // Trim to window
+    this.turnTimestamps = this.turnTimestamps.filter((t) => t >= now - this.turnActivityWindowMs);
+    this.turnsSinceLastCheck += 1;
+
+    if (this.turnsSinceLastCheck < this.turnActivityCheckInterval) return;
+    this.turnsSinceLastCheck = 0;
+
+    const cooldownKey = "turn:activity";
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) <= this.signalCooldownMs * 5) return;
+    this.signalCooldowns.set(cooldownKey, now);
+
+    const turnsInWindow = this.turnTimestamps.length;
+    const windowMinutes = this.turnActivityWindowMs / 60_000;
+    const rate = turnsInWindow / windowMinutes;
+
+    const patterns: string[] = ["turn_activity"];
+    let confidence = 0.6;
+
+    // Detect unusual activity patterns
+    if (rate > 20) {
+      patterns.push("high_turn_rate");
+      confidence = 0.85;
+    } else if (rate < 0.5 && turnsInWindow > 0) {
+      patterns.push("low_turn_rate");
+      confidence = 0.7;
+    }
+
+    const sessionId = (event as any).sessionId;
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Session activity: ${turnsInWindow} turns in last ${windowMinutes}min (${rate.toFixed(1)}/min)${sessionId ? ` [${sessionId.slice(-8)}]` : ""}`,
+      patterns,
+      confidence,
+      source: "heuristic",
+      relatedEventTypes: ["turn:end"],
+      timestamp: now,
+      sessionId,
+    });
+  }
+
   // ─── Buffer Management ────────────────────────────────────────────────────
 
   private pushObservation(obs: Observation): void {
@@ -278,6 +418,55 @@ export class HeuristicObserver {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  /**
+   * Update the last-seen timestamp for any monitored module whose event prefix
+   * matches the given event type. Called for every observed event.
+   */
+  private updateModuleHeartbeat(eventType: string): void {
+    for (const mod of HEARTBEAT_MODULES) {
+      if (eventType.startsWith(mod.prefix)) {
+        this.moduleLastSeen.set(mod.name, Date.now())
+        break
+      }
+    }
+  }
+
+  /**
+   * Coalesce rapid tool:registered events (startup burst) into a single
+   * informational observation. Individual registrations are not surfaced
+   * as anomalies; only the summary is emitted after the burst window closes.
+   */
+  private onToolRegistered(event: RuntimeEvent & { type: "tool:registered"; name: string; server?: string }): void {
+    const now = Date.now()
+    this.toolRegistrationTimestamps.push(now)
+    this.toolRegistrationNames.push(event.name)
+
+    // Clear any pending flush timer and reschedule
+    if (this.toolRegistrationTimer) {
+      clearTimeout(this.toolRegistrationTimer)
+    }
+
+    this.toolRegistrationTimer = setTimeout(() => {
+      this.toolRegistrationTimer = undefined
+      const count = this.toolRegistrationTimestamps.length
+      const names = this.toolRegistrationNames.splice(0)
+      this.toolRegistrationTimestamps = []
+
+      if (count < TOOL_BURST_THRESHOLD) return  // too few to report
+
+      const servers = [...new Set(names.map(n => n.includes('__') ? n.split('__')[0] : 'built-in'))]
+      this.pushObservation({
+        id: uuidv4(),
+        summary: `${count} tool(s) registered at startup from: ${servers.join(', ')}`,
+        patterns: ["tool_registration_burst"],
+        confidence: 1.0,
+        source: "heuristic",
+        relatedEventTypes: ["tool:registered"],
+        timestamp: now,
+      })
+    }, TOOL_BURST_WINDOW_MS)
+  }
 
   private getOrCreate(map: Map<string, ErrorBurstTracker>, key: string): ErrorBurstTracker {
     let tracker = map.get(key);
