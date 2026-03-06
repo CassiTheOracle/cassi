@@ -125,7 +125,7 @@ export const webSearchHandler: ToolHandler = async (input, ctx: ToolExecutionCon
     return `Error for "${query}": No search API key available.`
   }))
 
-  return results.join('\n\n' + '='.repeat(40) + '\n\n')
+  return results.join(`\n\n${  '='.repeat(40)  }\n\n`)
 }
 
 async function searchBrave(

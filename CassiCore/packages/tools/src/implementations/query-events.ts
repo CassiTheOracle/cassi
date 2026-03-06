@@ -5,6 +5,10 @@
  * Supports both complex structured queries and simple natural language queries.
  */
 
+import { type EventHistory } from "../../event-history.js";
+import { parseSimpleQuery, getQuerySuggestions } from "../../event-query-parser.js";
+import { getPreset, getAllPresets, getCategories, executePreset } from "../../event-query-presets.js";
+
 import type {
   EventQuery,
   ComplexEventQuery,
@@ -12,9 +16,6 @@ import type {
   EventQueryResult,
 } from "../../../types/event-query.js";
 import type { ToolDefinition, ToolHandler, ToolExecutionContext, ToolParamSchema } from "../types.js";
-import { EventHistory } from "../../event-history.js";
-import { parseSimpleQuery, getQuerySuggestions } from "../../event-query-parser.js";
-import { getPreset, getAllPresets, getCategories, executePreset } from "../../event-query-presets.js";
 
 // =============================================================================
 // Tool Definition

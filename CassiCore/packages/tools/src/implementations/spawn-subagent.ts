@@ -1,6 +1,7 @@
-import type { ToolDefinition, ToolHandler } from '../types.js'
-import type { ISessionManager } from '../../../types/runtime.js'
 import { getModelSpec } from '../../config/system-settings.js'
+
+import type { ISessionManager } from '../../../types/runtime.js'
+import type { ToolDefinition, ToolHandler } from '../types.js'
 
 export const spawnSubagentDefinition: ToolDefinition = {
   name: 'spawn_subagent',

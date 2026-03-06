@@ -6,10 +6,11 @@
  */
 
 import { spawn } from 'node:child_process';
-import { promisify } from 'node:util';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
+
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js';
 
 const execAsync = promisify(spawn);
@@ -450,7 +451,7 @@ export const desktopVisionHandler: ToolHandler = async (input, ctx) => {
         
         const lines = visibleWindows.map(w => {
           const indicator = w.isActive ? '🟢' : '⚪';
-          const title = w.title.length > 50 ? w.title.slice(0, 47) + '...' : w.title;
+          const title = w.title.length > 50 ? `${w.title.slice(0, 47)  }...` : w.title;
           return `${indicator} [${w.id}] ${title} (${w.app})`;
         });
         

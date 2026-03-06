@@ -322,7 +322,7 @@ function decodeEntity(html: string, pos: number): { char: string; advance: numbe
 
 function truncateText(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text
-  return text.slice(0, maxChars) + `\n[content truncated at ${maxChars} chars]`
+  return `${text.slice(0, maxChars)  }\n[content truncated at ${maxChars} chars]`
 }
 
 // ============================================================================

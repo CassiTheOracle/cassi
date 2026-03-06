@@ -1,5 +1,10 @@
-import type { ToolDefinition, ToolHandler } from './types.js'
 import { bus } from '../event-bus.js'
+import { rootLogger } from '../logger.js'
+
+import type { ToolDefinition, ToolHandler } from './types.js'
+import type { ILogger } from '../../types/interfaces.js'
+
+const logger: ILogger = rootLogger.child('tool-registry')
 
 type Entry = { definition: ToolDefinition; handler: ToolHandler }
 
@@ -25,8 +30,7 @@ export class ToolRegistry {
       }
     } catch (err) {
       // Best-effort: do not fail registration if event emission fails
-      // eslint-disable-next-line no-console
-      console.warn('[ToolRegistry] failed to emit tool:registered event', String(err))
+      logger.warn('failed to emit tool:registered event', { error: String(err) })
     }
   }
 

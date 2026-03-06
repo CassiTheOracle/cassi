@@ -9,12 +9,14 @@
  * - Returns runId and sessionKey
  */
 
-import type { ISessionManager, Session, InboundMessage, Message } from '../../../types/runtime.js'
+import { MODEL_DEFAULTS, getModelSpec } from '../../config/system-settings.js'
+import { generateShortId, generateReadableId } from '../../utils/ids.js'
+
 import type { IEventBus, ILogger } from '../../../types/interfaces.js'
+import type { ISessionManager, Session, InboundMessage, Message } from '../../../types/runtime.js'
 import type { SessionStore } from '../../session-store.js'
 import type { TurnPipeline } from '../../turn-pipeline.js'
-import { generateShortId, generateReadableId } from '../../utils/ids.js'
-import { MODEL_DEFAULTS, getModelSpec } from '../../config/system-settings.js'
+
 
 export interface SpawnSubagentOptions {
   task: string

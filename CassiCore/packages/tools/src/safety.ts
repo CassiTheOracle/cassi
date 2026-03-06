@@ -1,3 +1,9 @@
+import { rootLogger } from '../logger.js'
+
+import type { ILogger } from '../../types/interfaces.js'
+
+const logger: ILogger = rootLogger.child('tool-safety')
+
 /**
  * Tool Safety & Validation System
  * 
@@ -300,7 +306,7 @@ export async function executeToolSafe<T>(
     
     // Add warnings to result if any
     if (outputValidation.warnings.length > 0) {
-      console.warn(`[${toolName}] Warnings:`, outputValidation.warnings);
+      logger.warn(`[${toolName}] Warnings`, { warnings: outputValidation.warnings });
     }
   }
   

@@ -8,8 +8,8 @@
  * - Efficient pagination
  */
 
-import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { ContextWindowDebugger, ContextWindowSnapshot } from '../../events/context-window-debug.js'
+import type { ToolDefinition, ToolHandler } from '../types.js'
 
 // ============================================================================
 // Constants
@@ -129,7 +129,7 @@ function projectSnapshot(
       messages: snapshot.messages.map(m => ({
         ...m,
         content: m.content?.length > maxContentLength
-          ? m.content.slice(0, maxContentLength) + '\n... [truncated]'
+          ? `${m.content.slice(0, maxContentLength)  }\n... [truncated]`
           : m.content,
       })),
     }

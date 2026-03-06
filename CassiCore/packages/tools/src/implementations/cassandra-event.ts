@@ -9,8 +9,8 @@
  * - Response compression for large JSON
  */
 
-import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { CassiCoreEventBus } from '../../events/event-bus.js'
+import type { ToolDefinition, ToolHandler } from '../types.js'
 
 // ============================================================================
 // Constants

@@ -1,17 +1,46 @@
-import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
-import type { ToolRegistry } from './registry.js'
-import type { IEventBus } from '../../types/interfaces.js'
+import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
+
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
+
+import type { ToolRegistry } from './registry.js'
+import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
+import type { IEventBus } from '../../types/interfaces.js'
+import type { PermissionOracle } from '../intelligence/permission-oracle/index.js'
+import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
+
 
 const MAX_CONCURRENT = 20
 const ENABLE_SAFETY_GUARDS = true  // Can be disabled for debugging
 
 export class ToolExecutor {
+  private permissionOracle?: PermissionOracle
+  private trustLedger?: TrustLedger
+
   constructor(
     private registry: ToolRegistry,
     private defaultContext: Omit<ToolExecutionContext, 'sessionId'>,
     private eventBus?: IEventBus,
   ) {}
+
+  /**
+   * Wire the Permission Oracle for graduated autonomy gating.
+   * When set, every tool call is assessed for risk before execution.
+   * If the oracle returns 'deny', the tool call is blocked.
+   * If the oracle returns 'escalate', the tool call is paused pending human approval.
+   * If the oracle returns 'allow', the tool call proceeds normally.
+   */
+  setPermissionOracle(oracle: PermissionOracle): void {
+    this.permissionOracle = oracle
+  }
+
+  /**
+   * Wire the Trust Ledger for outcome feedback.
+   * After every tool execution, the outcome (success/failure) is fed back
+   * into the Trust Ledger to update domain trust scores.
+   */
+  setTrustLedger(ledger: TrustLedger): void {
+    this.trustLedger = ledger
+  }
 
   async execute(call: ToolCall, sessionId: string): Promise<ToolResult> {
     // Prefer serena (MCP) implementations for core file operations when available.
@@ -79,6 +108,48 @@ export class ToolExecutor {
     // Track skill invocations when reading SKILL.md files
     this.trackSkillInvocation(call, sessionId)
 
+    // ── PERMISSION GATE ──────────────────────────────────────────────────
+    // If a Permission Oracle is wired, assess risk before execution.
+    // This is the core of graduated autonomy: low-risk actions auto-proceed,
+    // high-risk actions require human approval.
+    if (this.permissionOracle) {
+      const verdict = this.permissionOracle.judge(call.name, call.input, sessionId)
+
+      if (verdict.decision === 'deny') {
+        return {
+          toolCallId: call.id,
+          content: `Permission denied: ${verdict.reasoning}` +
+            ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
+          isError: true,
+        }
+      }
+
+      if (verdict.decision === 'escalate') {
+        // Block execution until human approves or timeout fires.
+        // The Permission Oracle's requestApproval() returns a Promise that
+        // resolves when the admin API receives an approve/reject, or when
+        // the configured timeout expires (fallback to escalation default).
+        this.emitSafetyEvent(sessionId, call.name, 'permission_escalated', [
+          verdict.reasoning,
+          `risk=${verdict.riskAssessment.riskScore.toFixed(2)}`,
+          `trust=${verdict.trustScore.score.toFixed(2)}`,
+          `threshold=${verdict.effectiveThreshold.toFixed(2)}`,
+        ])
+
+        const approved = await this.permissionOracle.requestApproval(verdict)
+
+        if (!approved) {
+          return {
+            toolCallId: call.id,
+            content: `Permission denied (human rejected or timed out): ${verdict.reasoning}` +
+              ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
+            isError: true,
+          }
+        }
+        // Human approved — proceed with execution
+      }
+    }
+
     try {
       // SAFETY: Execute with timeout and error containment
       if (ENABLE_SAFETY_GUARDS) {
@@ -91,6 +162,8 @@ export class ToolExecutor {
 
         if (!safeResult.success) {
           this.emitSafetyEvent(sessionId, call.name, safeResult.errorType || 'execution', [safeResult.error || 'Unknown error'])
+          // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
+          this.recordToolOutcome(call.name, false, sessionId, `Tool failed: ${safeResult.errorType || 'execution'}`)
           return {
             toolCallId: call.id,
             content: `Tool failed: ${safeResult.error || 'Unknown error'} (${safeResult.errorType || 'execution'})`,
@@ -102,6 +175,8 @@ export class ToolExecutor {
         const outputValidation = validateToolOutput(call.name, safeResult.data)
         if (!outputValidation.valid) {
           this.emitSafetyEvent(sessionId, call.name, 'output_validation_failed', outputValidation.errors)
+          // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
+          this.recordToolOutcome(call.name, false, sessionId, `Output validation failed`)
           return {
             toolCallId: call.id,
             content: `Output validation failed: ${outputValidation.errors.join(', ')}`,
@@ -109,6 +184,8 @@ export class ToolExecutor {
           }
         }
 
+        // ── OUTCOME FEEDBACK: success ──────────────────────────────────
+        this.recordToolOutcome(call.name, true, sessionId, `Executed successfully`)
         return { toolCallId: call.id, content: String(safeResult.data), isError: false }
       } else {
         // Legacy execution (safety disabled)
@@ -121,11 +198,52 @@ export class ToolExecutor {
             )
           ),
         ])
+        // ── OUTCOME FEEDBACK: success (legacy path) ───────────────────
+        this.recordToolOutcome(call.name, true, sessionId, `Executed successfully (legacy)`)
         return { toolCallId: call.id, content: result, isError: false }
       }
     } catch (err) {
       this.emitSafetyEvent(sessionId, call.name, 'execution', [String(err)])
+      // ── OUTCOME FEEDBACK: failure (exception) ─────────────────────
+      this.recordToolOutcome(call.name, false, sessionId, `Exception: ${String(err).slice(0, 200)}`)
       return { toolCallId: call.id, content: String(err), isError: true }
+    }
+  }
+
+  /**
+   * Record a tool execution outcome in the Trust Ledger.
+   *
+   * This is the learning feedback loop: every tool call's success/failure
+   * is recorded as evidence in the relevant trust domain. Over time, this
+   * causes trust scores to converge toward the agent's true success rate
+   * for each category of action.
+   *
+   * @param toolName - The tool that was executed
+   * @param success - Whether execution succeeded
+   * @param sessionId - Session context
+   * @param description - Brief description of the outcome
+   */
+  private recordToolOutcome(
+    toolName: string,
+    success: boolean,
+    sessionId: string,
+    description: string,
+  ): void {
+    if (!this.trustLedger) return
+
+    try {
+      const domain = resolveToolDomain(toolName)
+      this.trustLedger.recordEvidence({
+        domain,
+        success,
+        weight: 1.0,
+        source: 'tool-executor',
+        description: `${toolName}: ${description}`,
+        sessionId,
+        timestamp: Date.now(),
+      })
+    } catch {
+      // Non-fatal: don't let trust recording break tool execution
     }
   }
 

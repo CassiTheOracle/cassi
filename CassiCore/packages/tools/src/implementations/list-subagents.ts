@@ -108,7 +108,7 @@ export function makeListSubagentsHandler(
         // Add result preview for completed
         if (s.status === 'completed') {
           base.hasResult = !!s.result
-          base.resultPreview = s.result ? s.result.substring(0, 100) + '...' : undefined
+          base.resultPreview = s.result ? `${s.result.substring(0, 100)  }...` : undefined
         }
 
         // Add error preview for failed

@@ -1,29 +1,50 @@
-import type { ToolRegistry } from '../registry.js'
+import { getEventBus, getContextWindowDebugger } from '../../events/index.js'
+
+import { registerCassandraEventTools } from './cassandra-event.js'
+import {
+  reflectDefinition, makeReflectHandler,
+  cognitiveRememberDefinition, makeCognitiveRememberHandler,
+  probeDefinition, makeProbeHandler,
+  type CognitiveToolDeps, type ProbeDeps,
+} from './cognitive-tools.js'
+import {
+  autofixDefinition, makeAutofixHandler,
+  type AutofixDeps,
+} from './autofix-tool.js'
+import {
+  signalPeerDefinition, makeSignalPeerHandler,
+  checkPeersDefinition, makeCheckPeersHandler,
+  broadcastDefinition, makeBroadcastHandler,
+  sharedNoteDefinition, makeSharedNoteHandler,
+  linkBrainDefinition, makeLinkBrainHandler,
+  type PeerToolDeps,
+} from './peer-coordination-tools.js'
+import { registerContextWindowTools } from './context-window-tools.js'
+import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
+import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
+import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
+import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
+import { memorySearchDefinition, makeMemorySearchHandler, rememberDefinition, makeRememberHandler } from './memory-search.js'
+import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
+import { readFileDefinition, readFileHandler } from './read-file.js'
+import { readFilesDefinition, readFilesHandler } from './read-files.js'
+import { shellExecDefinition, shellExecHandler } from './shell-exec.js'
+import { createSubagentSpawnFunction } from './spawn-subagent-impl.js'
+import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
+import { thinkDefinition, makeThinkHandler } from './think.js'
+import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
+import { webSearchDefinition, webSearchHandler } from './web-search.js'
+import { writeFileDefinition, writeFileHandler } from './write-file.js'
+
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ISessionManager } from '../../../types/runtime.js'
+import type { ToolRegistry } from '../registry.js'
 import type { TurnPipeline } from '../../turn-pipeline.js'
 import type { IEventBus, ILogger } from '../../../types/interfaces.js'
 import type { SessionStore } from '../../session-store.js'
 import type { EventHistory } from '../../event-history.js'
 
-import { shellExecDefinition, shellExecHandler } from './shell-exec.js'
-import { readFileDefinition, readFileHandler } from './read-file.js'
-import { readFilesDefinition, readFilesHandler } from './read-files.js'
-import { writeFileDefinition, writeFileHandler } from './write-file.js'
-import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
-import { webSearchDefinition, webSearchHandler } from './web-search.js'
-import { memorySearchDefinition, makeMemorySearchHandler, rememberDefinition, makeRememberHandler } from './memory-search.js'
-import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
-import { createSubagentSpawnFunction } from './spawn-subagent-impl.js'
-import { thinkDefinition, makeThinkHandler } from './think.js'
-import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
-import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
-import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
-import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
-import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
-import { registerCassandraEventTools } from './cassandra-event.js'
-import { registerContextWindowTools } from './context-window-tools.js'
-import { getEventBus, getContextWindowDebugger } from '../../events/index.js'
+
 
 export interface CoreToolDeps {
   memory?: IMemory
@@ -42,6 +63,14 @@ export interface CoreToolDeps {
   }
   /** Event history store for query_events tool */
   eventHistory?: EventHistory
+  /** Dependencies for cognitive tools (_reflect, _remember) */
+  cognitiveToolDeps?: CognitiveToolDeps
+  /** Dependencies for probe tool (_probe) — extends cognitive deps with drone swarm */
+  probeDeps?: ProbeDeps
+  /** Dependencies for autofix tool (_autofix) — full autonomous fix pipeline */
+  autofixDeps?: AutofixDeps
+  /** Dependencies for peer coordination tools (_signal_peer, _check_peers, etc.) */
+  peerToolDeps?: PeerToolDeps
 }
 
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
@@ -146,6 +175,40 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
         return `Error: ${result.error ?? 'Unknown error'}`
       }
     )
+  }
+
+  // Cognitive tools — _reflect + _remember
+  // These exploit the free tool loop in request-based billing providers.
+  // They execute locally (instant) and route signals to the intelligence layer.
+  if (deps.cognitiveToolDeps) {
+    registry.register(reflectDefinition, makeReflectHandler(deps.cognitiveToolDeps))
+    registry.register(cognitiveRememberDefinition, makeCognitiveRememberHandler(deps.cognitiveToolDeps))
+  }
+
+  // Cognitive probe tool — _probe
+  // Dispatches targeted drone swarms to investigate cognitive signals.
+  // Maps signal kinds to investigation strategies, spawns free scout drones,
+  // and returns aggregated findings + resonance patterns.
+  if (deps.probeDeps) {
+    registry.register(probeDefinition, makeProbeHandler(deps.probeDeps))
+  }
+
+  // Autofix tool — _autofix
+  // Full autonomous bug fix pipeline: investigate → generate patch → validate → apply → journal.
+  // Composes drone swarm (free), tsc validation, test runner, and improvement journal.
+  if (deps.autofixDeps) {
+    registry.register(autofixDefinition, makeAutofixHandler(deps.autofixDeps))
+  }
+
+  // Peer coordination tools — _signal_peer, _check_peers, _broadcast, _shared_note, _link_brain
+  // Enable conscious inter-session coordination: messaging, peer discovery, shared scratchpad,
+  // and CognitiveBridge linking for subconscious signal sharing between sessions.
+  if (deps.peerToolDeps) {
+    registry.register(signalPeerDefinition, makeSignalPeerHandler(deps.peerToolDeps))
+    registry.register(checkPeersDefinition, makeCheckPeersHandler(deps.peerToolDeps))
+    registry.register(broadcastDefinition, makeBroadcastHandler(deps.peerToolDeps))
+    registry.register(sharedNoteDefinition, makeSharedNoteHandler(deps.peerToolDeps))
+    registry.register(linkBrainDefinition, makeLinkBrainHandler(deps.peerToolDeps))
   }
 
   // Cassandra Event Stream Tools - enables Cassandra to access real-time session state

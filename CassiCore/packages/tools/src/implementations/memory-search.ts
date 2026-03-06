@@ -1,5 +1,5 @@
-import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { IMemory, MemoryEntry, SearchResult } from '../../../types/intelligence.js'
+import type { ToolDefinition, ToolHandler } from '../types.js'
 
 export const memorySearchDefinition: ToolDefinition = {
   name: 'memory_search',
@@ -83,8 +83,8 @@ export function makeMemorySearchHandler(memory: IMemory): ToolHandler {
         if (allResults.length === 0) {
           return `No memories found matching "${query}".`
         }
-        return `No strong matches found for "${query}" (threshold: ${threshold}).\n\nClosest results:\n\n` +
-          allResults.slice(0, 3).map((r, i) => formatMemoryResult(r, i)).join('\n\n')
+        return `No strong matches found for "${query}" (threshold: ${threshold}).\n\nClosest results:\n\n${ 
+          allResults.slice(0, 3).map((r, i) => formatMemoryResult(r, i)).join('\n\n')}`
       }
 
       // Format results

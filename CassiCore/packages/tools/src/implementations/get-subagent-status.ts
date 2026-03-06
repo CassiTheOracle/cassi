@@ -43,7 +43,7 @@ export function makeGetSubagentStatusHandler(
 
     try {
       // First check Thinker's unified registry, then fallback to tracker
-      let info = thinker?.getSubagent?.(runId) || tracker?.get(runId)
+      const info = thinker?.getSubagent?.(runId) || tracker?.get(runId)
 
       if (!info) {
         return JSON.stringify({

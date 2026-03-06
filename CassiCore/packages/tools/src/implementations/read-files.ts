@@ -1,5 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
 export const readFilesDefinition: ToolDefinition = {
