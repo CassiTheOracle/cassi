@@ -15,9 +15,8 @@
  * - Admin API / MCP gateway — surfaces awareness to tooling
  */
 
-import type { ILogger } from "../../../types/interfaces.js";
-import type { IMemory } from "../../../types/intelligence.js";
-import type { RuntimeEvent } from "../../../types/events.js";
+import { v4 as uuidv4 } from "uuid";
+
 import type {
   SessionState,
   SystemModelSnapshot,
@@ -25,7 +24,10 @@ import type {
   Anomaly,
   LLMObservation,
 } from "./types.js";
-import { v4 as uuidv4 } from "uuid";
+import type { RuntimeEvent } from "../../../types/events.js";
+import type { IMemory } from "../../../types/intelligence.js";
+import type { ILogger } from "../../../types/interfaces.js";
+
 
 type ProviderHealthStatus = "healthy" | "degraded" | "error" | "rate_limited";
 type PluginHealthStatus = "healthy" | "crashed" | "stopped";
@@ -497,6 +499,55 @@ export class SystemModel {
   cleanupSession(sessionId: string): void {
     this.sessions.delete(sessionId);
     this.contextCache.delete(sessionId);
+  }
+
+  /**
+   * Reconcile the model against the live session manager state.
+   *
+   * Called once on daemon startup after the intelligence layer is connected to
+   * the event bus. Fills in sessions (and optionally drones) that were created
+   * before the Subconscious was wired and therefore never triggered a
+   * `session:created` / `drone:spawned` event visible to the model.
+   *
+   * Only upserts — never removes existing model state so in-flight activity
+   * observed from events is not disturbed.
+   */
+  reconcile(opts: {
+    sessions?: Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>
+    droneIds?: string[]
+  }): void {
+    let sessionsSynced = 0
+    for (const s of opts.sessions ?? []) {
+      if (!this.sessions.has(s.sessionId)) {
+        this.sessions.set(s.sessionId, {
+          sessionId:      s.sessionId,
+          startedAt:      s.startedAt,
+          lastActivityAt: s.lastActivityAt ?? s.startedAt,
+          turnCount:      s.turnCount ?? 0,
+          tokenCount:     0,
+          phase:          'active',
+          recentToolCalls: [],
+        })
+        sessionsSynced++
+      }
+    }
+
+    let dronesSynced = 0
+    for (const did of opts.droneIds ?? []) {
+      if (!this.activeDrones.has(did)) {
+        this.activeDrones.add(did)
+        dronesSynced++
+      }
+    }
+
+    if (sessionsSynced > 0 || dronesSynced > 0) {
+      this.invalidateContextCacheAll()
+      this.logger.info('SystemModel reconciled with live runtime state', {
+        sessionsSynced, dronesSynced,
+        totalSessions: this.sessions.size,
+        totalDrones:   this.activeDrones.size,
+      })
+    }
   }
 
   // ─── Persistence ──────────────────────────────────────────────────────────

@@ -99,7 +99,7 @@ export interface LLMObservation {
 
 export interface LLMObserverConfig {
   enabled: boolean;
-  /** How often to run a sweep (ms, default: 30_000) */
+  /** How often to run a sweep (ms, default: 120_000) */
   intervalMs: number;
   /** How far back to look per sweep (ms, default: 60_000) */
   windowMs: number;
@@ -158,7 +158,7 @@ export const DEFAULT_SUBCONSCIOUS_CONFIG: Required<SubconsciousConfig> = {
   eventBufferSize: 10_000,
   llmObserver: {
     enabled: true,
-    intervalMs: 30_000,
+    intervalMs: 120_000,
     windowMs: 60_000,
     maxRetries: 2,
   },

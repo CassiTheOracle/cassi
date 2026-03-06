@@ -12,9 +12,9 @@
  * - Produces StreamSummary snapshots for LLM consumption
  */
 
-import type { IEventBus, ILogger } from "../../../types/interfaces.js";
-import type { RuntimeEvent, EventType, Unsubscribe } from "../../../types/events.js";
 import type { EventStreamConfig, EventStreamEntry, StreamSummary } from "./types.js";
+import type { RuntimeEvent, EventType, Unsubscribe } from "../../../types/events.js";
+import type { IEventBus, ILogger } from "../../../types/interfaces.js";
 
 export class EventStream {
   private readonly logger: ILogger;

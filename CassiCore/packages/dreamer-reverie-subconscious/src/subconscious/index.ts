@@ -29,21 +29,22 @@
  * Phase 3 consumer migration can proceed incrementally.
  */
 
-import type { ILogger, IEventBus } from "../../../types/interfaces.js";
-import type { IMemory } from "../../../types/intelligence.js";
-import type { IProvider } from "../../../types/runtime.js";
-import type { SessionDigestStore } from "../session-digest.js";
+import { EventStream } from "./event-stream.js";
+import { HeuristicObserver } from "./heuristic-observer.js";
+import { LLMObserver } from "./llm-observer.js";
+import { SystemModel } from "./system-model.js";
+import { DEFAULT_SUBCONSCIOUS_CONFIG } from "./types.js";
+
 import type {
   SubconsciousConfig,
   Observation,
   Anomaly,
   SystemModelSnapshot,
 } from "./types.js";
-import { DEFAULT_SUBCONSCIOUS_CONFIG } from "./types.js";
-import { EventStream } from "./event-stream.js";
-import { HeuristicObserver } from "./heuristic-observer.js";
-import { LLMObserver } from "./llm-observer.js";
-import { SystemModel } from "./system-model.js";
+import type { IMemory } from "../../../types/intelligence.js";
+import type { ILogger, IEventBus } from "../../../types/interfaces.js";
+import type { IProvider } from "../../../types/runtime.js";
+import type { SessionDigestStore } from "../session-digest.js";
 
 export { SubconsciousConfig } from "./types.js";
 
@@ -70,6 +71,10 @@ export class Subconscious {
   private drainTimer?: NodeJS.Timeout;
   /** Persistence timer */
   private persistTimer?: NodeJS.Timeout;
+  /** Heartbeat monitor timer — detects silent intelligence modules */
+  private heartbeatTimer?: NodeJS.Timeout;
+  /** Unsubscribe function for the bus.onAll listener */
+  private unsubAll?: () => void;
 
   constructor(logger: ILogger, config?: Partial<SubconsciousConfig>) {
     this.logger = logger.child?.("subconscious") ?? logger;
@@ -139,7 +144,7 @@ export class Subconscious {
 
     // Also wire the HeuristicObserver to see every event directly
     // (so it can run synchronously without going through the ring buffer)
-    bus.onAll((event) => {
+    this.unsubAll = bus.onAll((event) => {
       this.heuristicObserver.observe(event);
       this.systemModel.update(event);
 
@@ -169,6 +174,15 @@ export class Subconscious {
     }, this.config.persistenceIntervalMs);
     try { (this.persistTimer as NodeJS.Timeout & { unref?: () => void }).unref?.(); } catch {}
 
+    // Periodic heartbeat sweep — detects intelligence modules that have gone silent.
+    // Runs every 10 minutes (after an initial 15-minute warm-up enforced inside
+    // HeuristicObserver.checkHeartbeats itself).
+    this.heartbeatTimer = setInterval(() => {
+      this.heuristicObserver.checkHeartbeats();
+      this.drainHeuristicBuffers();
+    }, 10 * 60_000);
+    try { (this.heartbeatTimer as NodeJS.Timeout & { unref?: () => void }).unref?.(); } catch {}
+
     this.logger.info("Subconscious: started", {
       llmObserverEnabled: this.config.llmObserver.enabled,
       persistenceIntervalMs: this.config.persistenceIntervalMs,
@@ -177,6 +191,10 @@ export class Subconscious {
 
   stop(): void {
     this.llmObserver.stop();
+    if (this.unsubAll) {
+      this.unsubAll();
+      this.unsubAll = undefined;
+    }
     if (this.persistTimer) {
       clearInterval(this.persistTimer);
       this.persistTimer = undefined;
@@ -184,6 +202,10 @@ export class Subconscious {
     if (this.drainTimer) {
       clearInterval(this.drainTimer);
       this.drainTimer = undefined;
+    }
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
     }
     this.eventStream.disconnect();
     this.logger.info("Subconscious: stopped");
@@ -246,6 +268,18 @@ export class Subconscious {
    */
   getSessionIds(): string[] {
     return this.systemModel.getSessionIds();
+  }
+
+  /**
+   * Reconcile the SystemModel with live runtime state gathered after startup.
+   * Fills in sessions/drones that were created before the Subconscious was
+   * connected to the event bus and therefore never appeared via events.
+   */
+  reconcile(opts: {
+    sessions?: Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>
+    droneIds?: string[]
+  }): void {
+    this.systemModel.reconcile(opts)
   }
 
   /**

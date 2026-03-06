@@ -15,14 +15,18 @@
  * - Gracefully degrades when no provider is available (skips sweep)
  */
 
-import type { ILogger } from "../../../types/interfaces.js";
-import type { IProvider, Message } from "../../../types/runtime.js";
-import type { IMemory } from "../../../types/intelligence.js";
+import { v4 as uuidv4 } from "uuid";
+
+import { MODEL_DEFAULTS } from "../../config/system-settings.js";
+
 import type { EventStream } from "./event-stream.js";
 import type { SystemModel } from "./system-model.js";
 import type { LLMObservation, LLMObserverConfig, StreamSummary } from "./types.js";
-import { MODEL_DEFAULTS } from "../../config/system-settings.js";
-import { v4 as uuidv4 } from "uuid";
+import type { IMemory } from "../../../types/intelligence.js";
+import type { ILogger } from "../../../types/interfaces.js";
+import type { IProvider, Message } from "../../../types/runtime.js";
+
+
 
 export class LLMObserver {
   private readonly logger: ILogger;
@@ -34,6 +38,10 @@ export class LLMObserver {
   private timer?: NodeJS.Timeout;
   private lastSweepAt = 0;
   private sweepInProgress = false;
+  /** Event count at last completed sweep — used to skip no-op sweeps */
+  private lastSweepEventCount = 0;
+  /** Stream reference from last sweep — skip optimization only applies to the same stream */
+  private lastSweepStream?: EventStream;
 
   private readonly observationHistory: LLMObservation[] = [];
   private static readonly MAX_HISTORY = 50;
@@ -70,8 +78,14 @@ export class LLMObserver {
     }
     this.stop();
     this.timer = setInterval(() => {
-      // Fire-and-forget: sweep errors are handled internally
-      void this.sweep(stream, systemModel);
+      // Fire-and-forget: sweep errors are handled internally.
+      // Feed successful observations back into the system model so they
+      // appear as observations/anomalies in the Subconscious stats.
+      void this.sweep(stream, systemModel).then((obs) => {
+        if (obs) {
+          systemModel.addLLMObservation(obs);
+        }
+      });
     }, this.config.intervalMs);
     this.logger.debug("LLMObserver started", { intervalMs: this.config.intervalMs });
   }
@@ -102,6 +116,16 @@ export class LLMObserver {
     const summary = stream.summarize(this.config.windowMs);
     if (summary.totalEvents === 0) {
       return null; // Nothing to observe
+    }
+
+    // Skip sweep if the event stream hasn't changed since last sweep.
+    // This prevents redundant LLM calls and disk writes when the system is
+    // generating only internal housekeeping events (heartbeats, budget warnings).
+    // Only applies when watching the same stream (normal daemon loop).
+    const currentTotal = stream.totalCount;
+    if (stream === this.lastSweepStream && currentTotal === this.lastSweepEventCount && this.lastSweepAt > 0) {
+      this.logger.debug("LLMObserver: no new events since last sweep, skipping");
+      return null;
     }
 
     this.sweepInProgress = true;
@@ -187,6 +211,8 @@ export class LLMObserver {
         confidence: observation.confidence,
       });
 
+      this.lastSweepEventCount = stream.totalCount;
+      this.lastSweepStream = stream;
       return observation;
     } catch (err) {
       this.logger.warn("LLMObserver sweep failed", { error: String(err) });
