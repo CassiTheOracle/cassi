@@ -453,6 +453,42 @@ const INTELLIGENCE_TOOLS = [
       }
     }
   },
+  {
+    name: 'cassi_trust',
+    description: 'View trust scores across all domains — "How much has the agent earned?" Shows per-domain Bayesian trust scores, autonomy level, evidence counts, and strongest/weakest domains. Trust is earned through demonstrated competence and degrades over time.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        domain: {
+          type: 'string',
+          description: 'Specific trust domain to inspect (e.g., "file-read", "shell-execution"). If omitted, shows all domains.',
+        },
+        mode: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description: 'Output mode: "brief" for narrative summary (default), "full" for detailed per-domain breakdown',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_consequences',
+    description: 'View consequence estimation and permission decision state — "What risks am I assessing?" Shows recent risk assessments, permission decisions (allow/deny/escalate), pending human approvals, and the current trust-adjusted thresholds.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        mode: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description: 'Output mode: "brief" for narrative summary (default), "full" for detailed decision log',
+        },
+        limit: {
+          type: 'number',
+          description: 'Number of recent decisions to show (default 10)',
+        },
+      },
+    },
+  },
 ];
 // ═══════════════════════════════════════════════════════════════════════════════
 // Extended Tools — Memory, Providers, Config, Sessions, Actions, Teams
@@ -1095,6 +1131,260 @@ const TEAM_AGENT_TOOLS = [
     },
   },
 ];
+
+// ── Verification Tools ───────────────────────────────────────────────────────
+// Self-testing tools that let agents verify workflows against the live daemon.
+const VERIFICATION_TOOLS = [
+  {
+    name: 'cassi_verify_run',
+    description: 'Run a verification scenario against the live daemon. Creates an isolated test session, executes multi-step workflows, verifies assertions, and returns structured pass/fail results. Use this to validate system behavior after making changes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        scenario: {
+          type: 'string',
+          description: 'Scenario name to run (e.g., "multi-turn-context", "thinker-injection", "provider-failure", "tool-execution")',
+        },
+        options: {
+          type: 'object',
+          description: 'Optional execution settings',
+          properties: {
+            timeout: { type: 'number', description: 'Max duration in ms (default: 60000)' },
+          },
+        },
+      },
+      required: ['scenario'],
+    },
+  },
+  {
+    name: 'cassi_verify_snapshot',
+    description: 'Capture a labeled state snapshot of the current daemon state for later comparison. Captures session state, module status, trust scores, and event counts. Use before and after making changes to see what changed.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        label: {
+          type: 'string',
+          description: 'Name for this snapshot (e.g., "before-refactor", "after-fix")',
+        },
+        sessionId: {
+          type: 'string',
+          description: 'Optional: specific session to snapshot',
+        },
+      },
+      required: ['label'],
+    },
+  },
+  {
+    name: 'cassi_verify_diff',
+    description: 'Compare two labeled snapshots and report differences. Shows which state paths changed, were added, or were removed. Use "current" as the after label to compare against live state.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        before: {
+          type: 'string',
+          description: 'Label of the "before" snapshot',
+        },
+        after: {
+          type: 'string',
+          description: 'Label of the "after" snapshot, or "current" for live state',
+        },
+        sessionId: {
+          type: 'string',
+          description: 'Session ID for "current" snapshot (optional)',
+        },
+      },
+      required: ['before', 'after'],
+    },
+  },
+  {
+    name: 'cassi_verify_events',
+    description: 'Query event history with filtering. Returns events emitted within a time window, optionally filtered by type and session. Use to verify event flows after making changes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: {
+          type: 'string',
+          description: 'Session ID to filter events for',
+        },
+        since: {
+          type: 'string',
+          description: 'Time filter: ISO timestamp, Unix ms, or relative like "5m" or "1h"',
+        },
+        types: {
+          type: 'string',
+          description: 'Comma-separated event type filter (e.g., "turn:start,turn:end")',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max events to return (default: 200)',
+        },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'cassi_verify_scenarios',
+    description: 'List all available verification scenarios with their descriptions and step counts.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+];
+
+/**
+ * Execute a verification tool via CassiCore admin API
+ */
+async function executeVerificationTool(toolName: string, args: any): Promise<any> {
+  log('info', 'Executing verification tool', { tool: toolName });
+
+  try {
+    switch (toolName) {
+      case 'cassi_verify_run': {
+        if (!args.scenario) throw new Error('scenario is required');
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/run`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scenario: args.scenario, options: args.options }),
+        });
+        return await res.json();
+      }
+
+      case 'cassi_verify_snapshot': {
+        if (!args.label) throw new Error('label is required');
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/snapshot`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ label: args.label, sessionId: args.sessionId }),
+        });
+        return await res.json();
+      }
+
+      case 'cassi_verify_diff': {
+        if (!args.before || !args.after) throw new Error('before and after labels are required');
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/diff`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ before: args.before, after: args.after, sessionId: args.sessionId }),
+        });
+        return await res.json();
+      }
+
+      case 'cassi_verify_events': {
+        if (!args.sessionId) throw new Error('sessionId is required');
+        const params = new URLSearchParams({ sessionId: args.sessionId });
+        if (args.since) params.set('since', args.since);
+        if (args.types) params.set('types', args.types);
+        if (args.limit) params.set('limit', String(args.limit));
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/events?${params}`);
+        return await res.json();
+      }
+
+      case 'cassi_verify_scenarios': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/scenarios`);
+        return await res.json();
+      }
+
+      default:
+        throw new Error(`Unknown verification tool: ${toolName}`);
+    }
+  } catch (error: any) {
+    return { error: error.message ?? String(error) };
+  }
+}
+
+// ── Improvement Loop Tools ──────────────────────────────────────────────────
+
+const IMPROVEMENT_TOOLS = [
+  {
+    name: 'cassi_improvement_status',
+    description: 'Get the current status of the self-improvement loop: orchestrator state, queue depth, gate mode, metrics, and journal statistics.',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'cassi_improvement_journal',
+    description: 'Query the improvement journal — persistent log of all improvement attempts with verdicts, regressions, and learnings.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        trigger: {
+          type: 'string',
+          description: 'Filter by trigger source: adaptive, ai-engineer, ai-scientist, anomaly, correlator, manual',
+        },
+        verdict: {
+          type: 'string',
+          description: 'Filter by verdict: confirmed, reverted, inconclusive',
+        },
+        limit: {
+          type: 'number',
+          description: 'Max entries to return (default: 50)',
+        },
+      },
+    },
+  },
+  {
+    name: 'cassi_improvement_trigger',
+    description: 'Manually trigger an improvement cycle or submit a manual proposal for verification-gated processing.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        proposal: {
+          type: 'object',
+          description: 'Optional: submit a manual improvement proposal. Include hypothesis, adaptation type, config, and confidence.',
+          properties: {
+            hypothesis: { type: 'string', description: 'What the proposed change should improve' },
+            adaptation: { type: 'string', description: 'Type: strategy_swap, provider_preference, parameter_tune, behavior_nudge' },
+            config: { type: 'object', description: 'Parameters for the adaptation' },
+            confidence: { type: 'number', description: 'Confidence level 0-1 (default: 0.8)' },
+          },
+        },
+      },
+    },
+  },
+];
+
+/**
+ * Execute an improvement loop tool via CassiCore admin API
+ */
+async function executeImprovementTool(toolName: string, args: any): Promise<any> {
+  log('info', 'Executing improvement tool', { tool: toolName });
+
+  try {
+    switch (toolName) {
+      case 'cassi_improvement_status': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/improvement/status`);
+        return await res.json();
+      }
+
+      case 'cassi_improvement_journal': {
+        const params = new URLSearchParams();
+        if (args.trigger) params.set('trigger', args.trigger);
+        if (args.verdict) params.set('verdict', args.verdict);
+        if (args.limit) params.set('limit', String(args.limit));
+        const url = `${CASSICORE_URL}/improvement/journal${params.toString() ? '?' + params.toString() : ''}`;
+        const res = await fetchWithTimeout(url);
+        return await res.json();
+      }
+
+      case 'cassi_improvement_trigger': {
+        const res = await fetchWithTimeout(`${CASSICORE_URL}/improvement/trigger`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(args.proposal ? { proposal: args.proposal } : {}),
+        });
+        return await res.json();
+      }
+
+      default:
+        throw new Error(`Unknown improvement tool: ${toolName}`);
+    }
+  } catch (error: any) {
+    return { error: error.message ?? String(error) };
+  }
+}
 
 /**
  * Execute an agent-level team coordination tool via CassiCore admin API (C3)
@@ -3134,6 +3424,125 @@ async function formatSnapshot(args: any): Promise<string> {
 }
 
 /**
+ * Format cassi_trust output — per-domain Bayesian trust scores
+ */
+async function formatTrust(args: any): Promise<string> {
+  const mode = args?.mode || 'brief';
+  const domain = args?.domain;
+
+  if (domain) {
+    // Single domain view
+    const data = await fetchIntelligence(`/trust/${domain}`).catch(() => null);
+    if (!data) {
+      return `## Trust: ${domain}\n\nDomain not found. Use cassi_trust without a domain to see all domains.`;
+    }
+    const lines: string[] = [`## Trust: ${domain}\n`];
+    lines.push(`| Metric | Value |`);
+    lines.push(`|--------|-------|`);
+    lines.push(`| **Score** | ${(data.score || 0.5).toFixed(3)} |`);
+    lines.push(`| Alpha (successes) | ${(data.alpha || 1).toFixed(1)} |`);
+    lines.push(`| Beta (failures) | ${(data.beta || 1).toFixed(1)} |`);
+    lines.push(`| Confidence | ${(data.confidence || 0).toFixed(2)} |`);
+    lines.push(`| Evidence count | ${data.evidenceCount || 0} |`);
+    lines.push(`| Last updated | ${data.lastUpdatedAt ? new Date(data.lastUpdatedAt).toLocaleString() : 'never'} |`);
+    return lines.join('\n');
+  }
+
+  // All domains view
+  const data = await fetchIntelligence('/trust').catch(() => null);
+  if (!data) {
+    return '## Trust Summary\n\nTrust Ledger not available. Make sure the CassiCore daemon is running.';
+  }
+
+  const lines: string[] = ['## Trust Summary\n'];
+  lines.push(`**Overall trust**: ${(data.overallScore || 0.5).toFixed(3)}`);
+  lines.push(`**Autonomy level**: ${data.autonomyLevel || 'unknown'}`);
+  lines.push(`**Total evidence**: ${data.totalEvidence || 0}`);
+
+  if (data.strongestDomain) {
+    lines.push(`**Strongest domain**: ${data.strongestDomain.domain} (${(data.strongestDomain.score || 0).toFixed(3)})`);
+  }
+  if (data.weakestDomain) {
+    lines.push(`**Weakest domain**: ${data.weakestDomain.domain} (${(data.weakestDomain.score || 0).toFixed(3)})`);
+  }
+
+  if (mode === 'full' && data.domains) {
+    lines.push('\n### Per-Domain Trust Scores\n');
+    lines.push('| Domain | Score | Alpha | Beta | Evidence | Confidence |');
+    lines.push('|--------|-------|-------|------|----------|------------|');
+    const domains = Object.entries(data.domains).sort((a: any, b: any) => (b[1]?.score || 0) - (a[1]?.score || 0));
+    for (const [name, d] of domains) {
+      const dd = d as any;
+      lines.push(`| ${name} | ${(dd.score || 0.5).toFixed(3)} | ${(dd.alpha || 1).toFixed(1)} | ${(dd.beta || 1).toFixed(1)} | ${dd.evidenceCount || 0} | ${(dd.confidence || 0).toFixed(2)} |`);
+    }
+  }
+
+  if (data.stats) {
+    lines.push('\n### Ledger Stats\n');
+    lines.push(`- Domains tracked: ${data.stats.domainCount || 0}`);
+    lines.push(`- Total evidence ingested: ${data.stats.totalEvidence || 0}`);
+    lines.push(`- Total decays applied: ${data.stats.totalDecays || 0}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Format cassi_consequences output — risk assessment and permission decisions
+ */
+async function formatConsequences(args: any): Promise<string> {
+  const mode = args?.mode || 'brief';
+  const limit = args?.limit || 10;
+
+  const [statsData, permStatsData, logData, pendingData] = await Promise.all([
+    fetchIntelligence('/consequences/stats').catch(() => null),
+    fetchIntelligence('/permissions/stats').catch(() => null),
+    fetchIntelligence(`/permissions/log?limit=${limit}`).catch(() => null),
+    fetchIntelligence('/permissions/pending').catch(() => null),
+  ]);
+
+  const lines: string[] = ['## Consequences & Permissions\n'];
+
+  // Pending approvals (urgent — show first)
+  const pendingCount = pendingData?.count || 0;
+  if (pendingCount > 0) {
+    lines.push(`**PENDING APPROVALS: ${pendingCount}** — human decision required\n`);
+    for (const p of (pendingData?.pending || [])) {
+      const age = ((Date.now() - p.createdAt) / 1000).toFixed(0);
+      lines.push(`- **${p.toolName}** [${p.riskLevel}] risk=${(p.riskScore || 0).toFixed(2)}, trust=${(p.trustScore || 0).toFixed(2)} — ${p.reasoning} (${age}s ago, ID: ${p.id})`);
+    }
+    lines.push('');
+  }
+
+  // Consequence Estimator stats
+  if (statsData) {
+    lines.push(`**Risk assessments**: ${statsData.assessments || 0} (${statsData.failures || 0} failures, ${((statsData.failureRate || 0) * 100).toFixed(1)}% failure rate)`);
+  }
+
+  // Permission Oracle stats
+  if (permStatsData) {
+    const ps = permStatsData;
+    lines.push(`**Permission decisions**: ${ps.totalDecisions || 0} — ${ps.allowCount || 0} allowed, ${ps.escalateCount || 0} escalated, ${ps.denyCount || 0} denied`);
+    lines.push(`**Allow rate**: ${((ps.allowRate || 0) * 100).toFixed(1)}% | **Escalate rate**: ${((ps.escalateRate || 0) * 100).toFixed(1)}%`);
+    if (ps.totalApprovals || ps.totalRejections || ps.totalTimeouts) {
+      lines.push(`**Human responses**: ${ps.totalApprovals || 0} approved, ${ps.totalRejections || 0} rejected, ${ps.totalTimeouts || 0} timed out`);
+    }
+  }
+
+  // Recent decision log
+  if (mode === 'full' && logData?.decisions?.length > 0) {
+    lines.push('\n### Recent Permission Decisions\n');
+    lines.push('| Tool | Decision | Risk | Trust | Level | Reasoning |');
+    lines.push('|------|----------|------|-------|-------|-----------|');
+    for (const d of logData.decisions) {
+      lines.push(`| ${d.toolName} | ${d.decision} | ${(d.riskScore || 0).toFixed(2)} (${d.riskLevel}) | ${(d.trustScore || 0).toFixed(2)} | ${d.autonomyLevel} | ${(d.reasoning || '').slice(0, 80)} |`);
+    }
+  }
+
+  return lines.join('\n');
+}
+
+/**
  * Execute an intelligence tool — routes to the appropriate formatter
  */
 async function executeIntelligenceTool(toolName: string, args: any): Promise<string> {
@@ -3151,6 +3560,8 @@ async function executeIntelligenceTool(toolName: string, args: any): Promise<str
     cassi_evolution: formatEvolution,
     cassi_blindspots: formatBlindspots,
     cassi_snapshot: formatSnapshot,
+    cassi_trust: formatTrust,
+    cassi_consequences: formatConsequences,
   };
 
   const formatter = formatters[toolName];
@@ -3186,7 +3597,7 @@ function createServer() {
   // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
-      tools: [...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS, ...TEAM_AGENT_TOOLS],
+      tools: [...CASSICORE_TOOLS, ...INTELLIGENCE_TOOLS, ...MEMORY_TOOLS, ...PROVIDER_TOOLS, ...CONFIG_TOOLS, ...SESSION_TOOLS, ...ACTION_TOOLS, ...TEAM_TOOLS, ...TEAM_AGENT_TOOLS, ...VERIFICATION_TOOLS, ...IMPROVEMENT_TOOLS],
     };
   });
 
@@ -3221,8 +3632,23 @@ function createServer() {
         'cassi_team_agent_list', 'cassi_team_agent_update_plan',
         'cassi_team_agent_complete_goal', 'cassi_team_agent_goal_tree',
       ]);
+
+      // Verification / self-test tools
+      const verificationTools = new Set([
+        'cassi_verify_run', 'cassi_verify_snapshot', 'cassi_verify_diff',
+        'cassi_verify_events', 'cassi_verify_scenarios',
+      ]);
+
+      // Improvement loop tools
+      const improvementTools = new Set([
+        'cassi_improvement_status', 'cassi_improvement_journal', 'cassi_improvement_trigger',
+      ]);
       
-      if (teamAgentTools.has(name)) {
+      if (verificationTools.has(name)) {
+        result = await executeVerificationTool(name, args);
+      } else if (improvementTools.has(name)) {
+        result = await executeImprovementTool(name, args);
+      } else if (teamAgentTools.has(name)) {
         result = await executeTeamAgentTool(name, args);
       } else if (extendedTools.has(name)) {
         // Extended tools return JSON
