@@ -46,8 +46,8 @@ export const MODEL_DEFAULTS = {
 
   /** Fast local — reflex, quick intent parsing, low-latency operations */
   fast: {
-    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'lmstudio'),
-    model: getEnvString('CASSICORE_MODEL_FAST', 'lfm2.5-1.2b'),
+    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'github-copilot'),
+    model: getEnvString('CASSICORE_MODEL_FAST', 'gpt-5-mini'),
   },
 
   /** Fallback — used when provider resolution fails entirely */

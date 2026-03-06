@@ -42,7 +42,7 @@ import type { ToolRegistry } from '../../tools/registry.js'
 export interface ModuleModelConfig {
   /** Provider ID (e.g., 'lmstudio', 'kimi-coding', 'github-copilot') */
   providerId: string
-  /** Model name (e.g., 'lfm2.5-1.2b', 'k2p5') */
+  /** Model name (e.g., 'gpt-5-mini', 'k2p5') */
   model: string
   /** Temperature for inference (0-2) */
   temperature: number
@@ -507,7 +507,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       let applied = false
 
       if (configModel !== undefined) {
-        // Handle 'provider/model' combined format (e.g., 'lmstudio/lfm2.5-1.2b')
+        // Handle 'provider/model' combined format (e.g., 'github-copilot/gpt-5-mini')
         if (configModel.includes('/')) {
           const [provider, model] = configModel.split('/', 2)
           this.modelConfig.providerId = provider
