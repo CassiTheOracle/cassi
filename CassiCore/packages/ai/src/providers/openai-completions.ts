@@ -631,6 +631,12 @@ export function convertMessages(
 				if (reasoningDetails.length > 0) {
 					(assistantMsg as any).reasoning_details = reasoningDetails;
 				}
+				// Kimi (and other OpenAI-format reasoning models) require reasoning_content
+				// on all assistant messages when reasoning mode is active — including
+				// tool_call messages that have no thinking tokens. An empty string satisfies the API.
+				if (model.reasoning && compat.thinkingFormat === "openai") {
+					(assistantMsg as any).reasoning_content = "";
+				}
 			}
 			// Skip assistant messages that have no content and no tool calls.
 			// Mistral explicitly requires "either content or tool_calls, but not none".

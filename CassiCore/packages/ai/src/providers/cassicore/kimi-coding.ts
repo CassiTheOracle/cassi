@@ -116,14 +116,19 @@ function toOpenAIMessages(
 
     if (typeof msg.content === "string") {
       if (attachments.length === 0) {
-        out.push({ role: msg.role, content: msg.content });
+        // Kimi requires reasoning_content on all assistant messages when reasoning is active
+        if (msg.role === "assistant") {
+          out.push({ role: "assistant", content: msg.content, reasoning_content: "" });
+        } else {
+          out.push({ role: msg.role, content: msg.content });
+        }
       } else {
         const parts: Array<Record<string, unknown>> = attachments.map(att => ({
           type: "image_url",
           image_url: { url: `data:${att.mediaType};base64,${att.data}` },
         }));
         if (msg.content) parts.push({ type: "text", text: msg.content });
-        out.push({ role: msg.role, content: parts });
+        out.push({ role: msg.role, content: parts, ...(msg.role === "assistant" ? { reasoning_content: "" } : {}) });
       }
       continue;
     }
@@ -155,11 +160,13 @@ function toOpenAIMessages(
 
       const assistantMsg: Record<string, unknown> = {
         role: "assistant",
+        content: textContent || "",
         tool_calls: toolCalls,
+        // Kimi K2.5 requires reasoning_content on all assistant messages when
+        // reasoning mode is enabled — even on tool_call messages that have no
+        // thinking tokens.
+        reasoning_content: " ",
       };
-      // OpenAI allows content to be null/empty when tool_calls are present
-      if (textContent) assistantMsg.content = textContent;
-      else assistantMsg.content = null;
 
       if (attachments.length > 0) {
         const parts: Array<Record<string, unknown>> = attachments.map(att => ({
@@ -183,7 +190,10 @@ function toOpenAIMessages(
           image_url: { url: `data:${att.mediaType};base64,${att.data}` },
         }));
         if (textContent) parts.push({ type: "text", text: textContent });
-        out.push({ role: msg.role, content: parts });
+        out.push({ role: msg.role, content: parts, reasoning_content: msg.role === "assistant" ? "" : undefined });
+      } else if (msg.role === "assistant") {
+        // Kimi requires reasoning_content on all assistant messages when reasoning is active
+        out.push({ role: "assistant", content: textContent, reasoning_content: "" });
       } else {
         out.push({ role: msg.role, content: textContent });
       }
@@ -357,10 +367,21 @@ export class KimiCodingProvider {
       openaiMessages.unshift({ role: "system", content: opts.systemPrompt });
     }
 
+    // Kimi K2.5 requires reasoning_content on ALL assistant messages when
+    // reasoning mode is active. Ensure it's present even on messages that
+    // were constructed by the pipeline or intelligence modules.
+    // NOTE: Empty string "" is rejected — must be at least a non-empty string.
+    for (const m of openaiMessages) {
+      if ((m as any).role === "assistant" && !(m as any).reasoning_content) {
+        (m as any).reasoning_content = " ";
+      }
+    }
+
     const body: Record<string, unknown> = {
       model,
       messages: openaiMessages,
       stream: true,
+      stream_options: { include_usage: true },
       max_tokens: opts.maxTokens ?? 8192,
       temperature: opts.temperature ?? 0.6,
     };
@@ -412,6 +433,9 @@ export class KimiCodingProvider {
     // Track if we received any meaningful content from the stream
     let receivedAnyChunks = false;
 
+    // Accumulate token usage from the final streaming usage chunk
+    let totalTokensUsed = 0;
+
     // For proper SSE parsing we accumulate 'data:' lines that belong to a single event.
     // SSE events are separated by a blank line. Multiple 'data:' lines within the same event
     // should be concatenated with '\n'. We collect those lines here and process on event boundary.
@@ -453,7 +477,7 @@ export class KimiCodingProvider {
                   };
                 }
                 toolCallAccum.clear();
-                yield { type: "done", model };
+                yield { type: "done", model, tokensUsed: totalTokensUsed };
                 return;
               }
 
@@ -464,6 +488,12 @@ export class KimiCodingProvider {
                 const out: CompletionChunk[] = [];
 
                 for (const evt of parsedObjs) {
+                  // Check for final usage chunk (choices is empty, usage is present)
+                  const usage = evt["usage"] as Record<string, unknown> | undefined;
+                  if (usage && typeof usage["total_tokens"] === "number") {
+                    totalTokensUsed = usage["total_tokens"];
+                  }
+
                   const choices = evt["choices"] as Array<Record<string, unknown>> | undefined;
                   if (!choices?.length) continue;
 
@@ -526,7 +556,7 @@ export class KimiCodingProvider {
               };
             }
             toolCallAccum.clear();
-            yield { type: "done", model };
+            yield { type: "done", model, tokensUsed: totalTokensUsed };
             return;
           }
 
@@ -553,7 +583,7 @@ export class KimiCodingProvider {
               };
             }
             toolCallAccum.clear();
-            yield { type: "done", model };
+            yield { type: "done", model, tokensUsed: totalTokensUsed };
             return;
           }
 
@@ -562,6 +592,12 @@ export class KimiCodingProvider {
 
           if (parsedObjs && parsedObjs.length > 0) {
             for (const evt of parsedObjs) {
+              // Extract usage from final usage chunk (empty choices, has usage field)
+              const usage = evt["usage"] as Record<string, unknown> | undefined;
+              if (usage && typeof usage["total_tokens"] === "number") {
+                totalTokensUsed = usage["total_tokens"];
+              }
+
               const choices = evt["choices"] as Array<Record<string, unknown>> | undefined;
 
               if (choices && Array.isArray(choices) && choices.length > 0) {
@@ -599,6 +635,7 @@ export class KimiCodingProvider {
               }
             }
           }
+
         } catch (parseErr) {
           // Silently skip malformed/incomplete accumulated events
         }
@@ -620,7 +657,7 @@ export class KimiCodingProvider {
                 };
               }
               toolCallAccum.clear();
-              yield { type: "done", model };
+              yield { type: "done", model, tokensUsed: totalTokensUsed };
               return;
             }
 
@@ -629,6 +666,12 @@ export class KimiCodingProvider {
 
             if (parsedObjs && parsedObjs.length > 0) {
               for (const evt of parsedObjs) {
+                // Extract usage from final usage chunk (empty choices, has usage field)
+                const usage = evt["usage"] as Record<string, unknown> | undefined;
+                if (usage && typeof usage["total_tokens"] === "number") {
+                  totalTokensUsed = usage["total_tokens"];
+                }
+
                 const choices = evt["choices"] as Array<Record<string, unknown>> | undefined;
 
                 if (choices && Array.isArray(choices) && choices.length > 0) {
@@ -697,7 +740,7 @@ export class KimiCodingProvider {
     }
 
     if (streamClosedNormally && toolCallAccum.size === 0) {
-      yield { type: "done", model };
+      yield { type: "done", model, tokensUsed: totalTokensUsed };
     }
   }
 
