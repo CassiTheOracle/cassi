@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface DebugRoutesDeps {
   daemon: any
@@ -118,12 +118,12 @@ export async function handleDebugRoutes(
       sseConnections.set(connId, conn)
 
       if (latest) {
-        res.write([
+        res.write(`${[
           `id: ${latest.eventId}`,
           `event: context_window_snapshot`,
           `data: ${JSON.stringify(latest)}`,
           '',
-        ].join('\n') + '\n')
+        ].join('\n')  }\n`)
       }
 
       const unsubscribe = eventBus.onAll((event: any) => {
@@ -131,12 +131,12 @@ export async function handleDebugRoutes(
             (event.type === 'context_window_snapshot' || event.type === 'context_window_diff')) {
           const data = JSON.stringify(event)
           try {
-            res.write([
+            res.write(`${[
               `id: ${event.eventId}`,
               `event: ${event.type}`,
               `data: ${data}`,
               '',
-            ].join('\n') + '\n')
+            ].join('\n')  }\n`)
           } catch {
             sseConnections.delete(connId)
             unsubscribe.unsubscribe()

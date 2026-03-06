@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface CycleHooksRoutesDeps {
   daemon: any

@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface TeamsRoutesDeps {
   daemon: any
@@ -47,7 +47,7 @@ export async function handleTeamsRoutes(
             enrichedGoal = handoffCtx + body.goal
           }
         } catch (err) {
-          logger.debug('[admin-api] buildHandoffContext failed, using raw goal', { error: String(err) })
+          logger.debug('buildHandoffContext failed, using raw goal', { error: String(err) })
         }
       }
 

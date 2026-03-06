@@ -1,8 +1,9 @@
-import type http from 'node:http'
 import fs from 'node:fs'
-import path from 'node:path'
 import os from 'node:os'
+import path from 'node:path'
+
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface IntelligenceRoutesDeps {
   daemon: any
@@ -456,7 +457,7 @@ export async function handleIntelligenceRoutes(
         return true
       }
 
-      let anomalies: any[] = await mem.kv_get('subconscious:anomalies') || []
+      const anomalies: any[] = await mem.kv_get('subconscious:anomalies') || []
       const idx = anomalies.findIndex((a: any) => a.id === anomalyId || a.summary === anomalyId)
 
       if (idx === -1) {
@@ -593,7 +594,7 @@ export async function handleIntelligenceRoutes(
       let unresolvedPatterns = null
       try { unresolvedPatterns = intel.reflect?.unresolved?.(5) ?? null } catch {}
 
-      let optimizerHealth: Record<string, any> = {}
+      const optimizerHealth: Record<string, any> = {}
       try {
         const sessions = Array.from(daemon.sessions?.['sessions']?.values?.() || [])
         for (const s of sessions.slice(0, 5)) {
@@ -612,7 +613,16 @@ export async function handleIntelligenceRoutes(
       } catch {}
 
       let recentStudies = null
-      try { recentStudies = intel.aiScientist?.getRecentStudies?.(3) ?? null } catch {}
+      let scientistSummary = null
+      try {
+        recentStudies = intel.aiScientist?.getRecentStudies?.(3) ?? null
+        scientistSummary = (intel.aiScientist as any)?.getResearchSummary?.() ?? null
+      } catch {}
+
+      let engineerSummary = null
+      try {
+        engineerSummary = (intel.aiEngineer as any)?.getEngineerSummary?.() ?? null
+      } catch {}
 
       sendJSON(res, 200, {
         timestamp: Date.now(),
@@ -623,7 +633,8 @@ export async function handleIntelligenceRoutes(
         reflect: { unresolvedPatterns },
         optimizer: { sessionHealth: optimizerHealth },
         dialectic: dialecticSummary,
-        aiScientist: { recentStudies },
+        aiScientist: { recentStudies, ...(scientistSummary ?? {}) },
+        aiEngineer: engineerSummary,
       })
       return true
     } catch (err) {
@@ -696,6 +707,78 @@ export async function handleIntelligenceRoutes(
       sendJSON(res, 500, { error: String(err) })
       return true
     }
+  }
+
+  // ── SelfHealingAgent endpoints ──────────────────────────────────────────
+
+   // GET /intelligence/self-healer/status
+   if (method === 'GET' && pathname === '/intelligence/self-healer/status') {
+     const selfHealer = daemon.intelligence?.selfHealer
+     if (!selfHealer) {
+       sendJSON(res, 404, { error: 'SelfHealingAgent not loaded' })
+       return true
+     }
+     try {
+       const stats = (selfHealer as any).getStats?.()
+       sendJSON(res, 200, stats ?? { error: 'getStats not available' })
+     } catch (err) {
+       sendJSON(res, 500, { error: String(err) })
+     }
+     return true
+   }
+
+   // PATCH /intelligence/self-healer/config  — runtime toggle for autoApply / autoRestart
+   if (method === 'PATCH' && pathname === '/intelligence/self-healer/config') {
+     const selfHealer = daemon.intelligence?.selfHealer
+     if (!selfHealer) {
+       sendJSON(res, 404, { error: 'SelfHealingAgent not loaded' })
+       return true
+     }
+     try {
+       const body = await parseBody(req)
+       const updated: Record<string, boolean> = {}
+       if (typeof body?.autoApply === 'boolean') {
+         ;(selfHealer as any).setAutoApply(body.autoApply)
+         updated.autoApply = body.autoApply
+       }
+       if (typeof body?.autoRestart === 'boolean') {
+         ;(selfHealer as any).setAutoRestart(body.autoRestart)
+         updated.autoRestart = body.autoRestart
+       }
+       if (Object.keys(updated).length === 0) {
+         sendJSON(res, 400, { error: 'Provide autoApply and/or autoRestart (boolean)' })
+         return true
+       }
+       sendJSON(res, 200, { updated })
+     } catch (err) {
+       sendJSON(res, 500, { error: String(err) })
+     }
+     return true
+   }
+
+   // POST /intelligence/self-healer/trigger
+  if (method === 'POST' && pathname === '/intelligence/self-healer/trigger') {
+    const selfHealer = daemon.intelligence?.selfHealer
+    if (!selfHealer) {
+      sendJSON(res, 404, { error: 'SelfHealingAgent not loaded' })
+      return true
+    }
+    try {
+      const body = await parseBody(req)
+      const processorName = body?.processorName ?? body?.moduleName ?? 'manual'
+      const errorMsg = body?.error ?? ''
+      if (!errorMsg) {
+        sendJSON(res, 400, { error: 'body.error is required' })
+        return true
+      }
+      // Concat stack trace so the self-healer can parse file:line references directly
+      const rawError = body?.stack ? `${errorMsg}\n${body.stack}` : errorMsg
+      const id = await (selfHealer as any).triggerRepair(processorName, rawError)
+      sendJSON(res, 202, { accepted: true, id })
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+    }
+    return true
   }
 
   return false

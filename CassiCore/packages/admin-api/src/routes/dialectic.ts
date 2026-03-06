@@ -1,6 +1,7 @@
-import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
 import { assembleContext } from '../intelligence/context-assembler.js'
+
+import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface DialecticRoutesDeps {
   daemon: any

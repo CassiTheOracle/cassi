@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface MemoryRoutesDeps {
   daemon: any
@@ -48,7 +48,7 @@ export async function handleMemoryRoutes(
       return true
     }
     const body = await parseBody(req)
-    const results = memory.searchArchives(body?.query ?? '', {
+    const results = await memory.searchArchives(body?.query ?? '', {
       filters: body?.filters,
       limit: body?.limit ?? 20,
       sortBy: body?.sortBy,
@@ -292,10 +292,19 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'store' && method === 'POST') {
     const body = await parseBody(req)
     if (!memory) return noMemory()
+    // Merge user-supplied tags + key from top-level fields (MCP gateway sends them
+    // as top-level, not nested under metadata). Preserve any existing metadata fields
+    // but never silently discard caller-specified tags.
+    const userTags: string[] = body?.tags || body?.metadata?.tags || ['cli']
+    const metadata: Record<string, unknown> = {
+      ...(body?.metadata || {}),
+      tags: userTags,
+      ...(body?.key ? { key: body.key } : {}),
+    }
     const id = await memory.store({
       type: body?.type || 'fact',
       content: body?.content || body?.note || '',
-      metadata: body?.metadata || { tags: ['cli'] },
+      metadata,
       sessionId: body?.metadata?.sessionId || body?.sessionId,
     })
     sendJSON(res, 200, { ok: true, id })
@@ -316,8 +325,8 @@ export async function handleMemoryRoutes(
   if (parts[1] === 'recent' && method === 'GET') {
     const limit = parseInt(url.searchParams.get('limit') || '10', 10)
     if (!memory) return noMemory()
-    const results = await memory.search('', { limit })
-    sendJSON(res, 200, results.map((r: { entry: any, score: number }) => r.entry))
+    const entries = await memory.getRecent(limit)
+    sendJSON(res, 200, entries)
     return true
   }
 

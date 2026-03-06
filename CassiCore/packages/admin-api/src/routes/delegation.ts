@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface DelegationRoutesDeps {
   daemon: any
@@ -44,16 +44,16 @@ export async function handleDelegationRoutes(
         const teamId = subagentToTeamMap.get(spawnedSessionId)
         if (teamId) tracking.teamId = teamId
 
-        logger.info('[admin-api] Delegation acknowledged', { delegationId, spawnedSessionId })
+        logger.info('Delegation acknowledged', { delegationId, spawnedSessionId })
       } else if (ackStatus === 'failed') {
         tracking.status = 'failed'
         tracking.result = ackError || 'Unknown error'
-        logger.warn('[admin-api] Delegation failed', { delegationId, error: ackError })
+        logger.warn('Delegation failed', { delegationId, error: ackError })
       } else if (ackStatus === 'completed') {
         tracking.status = 'completed'
         tracking.completedAt = Date.now()
         tracking.result = ackResult
-        logger.info('[admin-api] Delegation completed', { delegationId })
+        logger.info('Delegation completed', { delegationId })
       }
 
       sendJSON(res, 200, { ok: true, status: tracking.status })

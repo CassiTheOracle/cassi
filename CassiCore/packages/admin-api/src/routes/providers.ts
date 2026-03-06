@@ -1,6 +1,7 @@
-import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
 import { listProviderConfigKeys } from '../providers/centralized.js'
+
+import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface ProvidersRoutesDeps {
   daemon: any
@@ -52,7 +53,7 @@ export async function handleProvidersRoutes(
       let globalConfig: any = null
       for (const [id, prov] of providersMap) {
         let metrics = null
-        try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch {}
+        try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch (err) { deps.logger.debug('Failed to get provider metrics', { providerId: id, error: String(err) }); }
         providerMetrics.push({ id, metrics })
         if (!globalConfig && metrics?.globalConfig) globalConfig = metrics.globalConfig
       }
@@ -194,8 +195,8 @@ export async function handleProvidersRoutes(
         }
       }
 
-      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
+      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       sendJSON(res, 200, { ok: true, updated })
       return true
@@ -234,11 +235,11 @@ export async function handleProvidersRoutes(
         try {
           layered.clearOverride(k)
           removed.push(k)
-        } catch (err) {}
+        } catch (err) { deps.logger.debug('Failed to clear config override', { key: k, error: String(err) }); }
       }
 
-      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
+      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       sendJSON(res, 200, { ok: true, removed })
       return true
@@ -269,7 +270,7 @@ export async function handleProvidersRoutes(
             const newVal = isObject(existing) && isObject(v) ? mergeDeep(existing, v) : v
             layered.setOverride(k, newVal, { reason: u.reason || 'admin' })
             updated.push(k)
-          } catch (err) {}
+          } catch (err) { deps.logger.debug('Failed to set config override', { key: k, error: String(err) }); }
         }
       } else if (typeof body.key === 'string' && Object.prototype.hasOwnProperty.call(body, 'value')) {
         const k = String(body.key)
@@ -288,8 +289,8 @@ export async function handleProvidersRoutes(
         return true
       }
 
-      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
+      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       sendJSON(res, 200, { ok: true, updated })
       return true
@@ -337,7 +338,7 @@ export async function handleProvidersRoutes(
             const newVal = isObject(existing) && isObject(u.value) ? mergeDeep(existing, u.value) : u.value
             layered.setOverride(k, newVal, { reason: u.reason || 'admin' })
             updated.push(k)
-          } catch (err) {}
+          } catch (err) { deps.logger.debug('Failed to set config override', { key: k, error: String(err) }); }
         }
       } else {
         for (const friendly of Object.keys(mapping)) {
@@ -357,8 +358,8 @@ export async function handleProvidersRoutes(
         }
       }
 
-      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch {}
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch {}
+      try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
+      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
       if (!providersMap) {
@@ -370,7 +371,7 @@ export async function handleProvidersRoutes(
       let globalConfig: any = null
       for (const [id, prov] of providersMap) {
         let metrics = null
-        try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch {}
+        try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch (err) { deps.logger.debug('Failed to get provider metrics', { providerId: id, error: String(err) }); }
         providerMetrics.push({ id, metrics })
         if (!globalConfig && metrics?.globalConfig) globalConfig = metrics.globalConfig
       }

@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 /**
  * Maps CassiCore model IDs to their Catwalk equivalents so that the Crush fork
@@ -110,11 +110,11 @@ export async function handleModelsRoutes(
                   meta.maxTokens = info.maxTokens ?? meta.maxTokens
                 }
               }
-            } catch (err) {}
+            } catch (err) { deps.logger.debug('Failed to describe model', { providerId: provId, model: modelName, error: String(err) }); }
 
             models.push(meta)
           }
-        } catch {}
+        } catch (err) { deps.logger.debug('Failed to get models from provider', { providerId: provId, error: String(err) }); }
       }
 
       if (models.length === 0) {

@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface EventsRoutesDeps {
   daemon: any
@@ -159,12 +159,12 @@ export async function handleEventsRoutes(
 
       for (const event of missedEvents) {
         const data = JSON.stringify(event)
-        res.write([
+        res.write(`${[
           `id: ${event.eventId}`,
           `event: ${event.type}`,
           `data: ${data}`,
           '',
-        ].join('\n') + '\n')
+        ].join('\n')  }\n`)
       }
 
       const connectedEvent = {
@@ -173,25 +173,25 @@ export async function handleEventsRoutes(
         timestamp: Date.now(),
         eventId: `evt_${Date.now()}`,
       }
-      res.write([
+      res.write(`${[
         `id: ${connectedEvent.eventId}`,
         `event: ${connectedEvent.type}`,
         `data: ${JSON.stringify(connectedEvent)}`,
         '',
-      ].join('\n') + '\n')
+      ].join('\n')  }\n`)
 
       const unsubscribe = eventBus.onAll((event: any) => {
         if (globalStream || event.sessionId === sessionId) {
           const data = JSON.stringify(event)
-          const message = [
+          const message = `${[
             `id: ${event.eventId || `evt_${Date.now()}`}`,
             `event: ${event.type}`,
             `data: ${data}`,
             '',
-          ].join('\n') + '\n'
+          ].join('\n')  }\n`
 
           try {
-            conn.res.write(message + '\n')
+            conn.res.write(`${message  }\n`)
           } catch {
             sseConnections.delete(connId)
           }
@@ -207,18 +207,20 @@ export async function handleEventsRoutes(
         // autonomy: prefix covers confirmation_requested/approved/rejected — required by
         // external CLI clients (e.g. the Crush fork) to show approval dialogs
         'autonomy:', 'memory:',
+        // scout: pre-turn search agent visibility
+        'scout:',
       ]
 
       const forwardCognitive = (enriched: Record<string, unknown>): void => {
         const data = JSON.stringify(enriched)
-        const message = [
+        const message = `${[
           `id: ${enriched.eventId}`,
           `event: ${enriched.type}`,
           `data: ${data}`,
           '',
-        ].join('\n') + '\n'
+        ].join('\n')  }\n`
         try {
-          conn.res.write(message + '\n')
+          conn.res.write(`${message  }\n`)
         } catch {
           sseConnections.delete(connId)
         }

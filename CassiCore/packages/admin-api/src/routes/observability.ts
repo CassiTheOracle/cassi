@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface ObservabilityRoutesDeps {
   daemon: any
@@ -36,7 +36,7 @@ export async function handleObservabilityRoutes(
         const name = String(eventName).replace(/[:]/g, '.')
         res.write(`event: ${name}\n`)
         res.write(`data: ${JSON.stringify(payload)}\n\n`)
-      } catch (err) {}
+      } catch (err) { /* SSE write failures are expected when clients disconnect — safe to ignore */ }
     }
 
     const matchesSessionFilter = (evSessionId: any) => {
@@ -56,48 +56,48 @@ export async function handleObservabilityRoutes(
         if (providerFilter && e.providerId !== providerFilter) return
         if (!matchesSessionFilter(e.sessionId)) return
         sendEvent('provider:request_start', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, model: e.model, messageCount: e.messageCount, timestamp: Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onProviderEnd = (e: any) => {
       try {
         if (providerFilter && e.providerId !== providerFilter) return
         if (!matchesSessionFilter(e.sessionId)) return
         sendEvent('provider:request_end', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, tokensUsed: e.tokensUsed, durationMs: e.durationMs, error: e.error || null, timestamp: Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onProviderError = (e: any) => {
       try {
         if (providerFilter && e.providerId !== providerFilter) return
         if (!matchesSessionFilter(e.sessionId)) return
         sendEvent('provider:request_error', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, error: e.error, consecutiveErrors: e.consecutiveErrors, timestamp: Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onProviderDedup = (e: any) => {
       try {
         if (providerFilter && e.providerId !== providerFilter) return
         if (!matchesSessionFilter(e.sessionId)) return
         sendEvent('provider:deduplicated', e)
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onProviderRateLimited = (e: any) => {
       try {
         if (providerFilter && e.providerId !== providerFilter) return
         if (!matchesSessionFilter(e.sessionId)) return
         sendEvent('provider:rate_limited', e)
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onProviderErrorReset = (e: any) => {
       try {
         if (providerFilter && e.providerId !== providerFilter) return
         sendEvent('provider:error_reset', { providerId: e.providerId, timestamp: Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onProviderTimeout = (e: any) => {
       try {
         if (providerFilter && e.providerId !== providerFilter) return
         if (!matchesSessionFilter(e.sessionId)) return
         sendEvent('provider:request_timeout', { providerId: e.providerId, requestId: e.requestId, sessionId: e.sessionId, timeoutMs: e.timeoutMs, timestamp: Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
 
     const onWorkerMessage = (ev: any) => {
@@ -120,26 +120,26 @@ export async function handleObservabilityRoutes(
         } else if (payload?.type === 'turn:error') {
           sendEvent('turn.error', { sessionId: sid, error: payload.error, timestamp: Date.now() })
         }
-      } catch (err) {}
+      } catch (err) { /* SSE write failures are expected when clients disconnect — safe to ignore */ }
     }
 
     const onTurnStart = (e: any) => {
       try {
         if (sessionFilter && String(e.sessionId) !== sessionFilter) return
         sendEvent('turn.start', { sessionId: e.sessionId, message: e.message, timestamp: e.timestamp || Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onTurnEnd = (e: any) => {
       try {
         if (sessionFilter && String(e.sessionId) !== sessionFilter) return
         sendEvent('turn.end', { sessionId: e.sessionId, response: e.response, durationMs: e.durationMs, timestamp: Date.now() })
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
     const onDialecticStream = (e: any) => {
       try {
         if (sessionFilter && String(e.sessionId) !== sessionFilter) return
         sendEvent('dialectic.stream', e)
-      } catch {}
+      } catch { /* individual event failures should not crash the SSE stream */ }
     }
 
     daemon.bus.on('provider:request_start', onProviderStart)
@@ -157,21 +157,21 @@ export async function handleObservabilityRoutes(
     const ping = setInterval(() => {
       try { res.write(': ping\n\n') } catch { clearInterval(ping) }
     }, 15_000)
-    try { (ping as any).unref?.() } catch {}
+    try { (ping as any).unref?.() } catch { /* unref not available on all platforms — safe to ignore */ }
 
     req.on('close', () => {
       clearInterval(ping)
-      try { daemon.bus.off('provider:request_start', onProviderStart) } catch {}
-      try { daemon.bus.off('provider:request_end', onProviderEnd) } catch {}
-      try { daemon.bus.off('provider:request_error', onProviderError) } catch {}
-      try { daemon.bus.off('provider:deduplicated', onProviderDedup) } catch {}
-      try { daemon.bus.off('provider:rate_limited', onProviderRateLimited) } catch {}
-      try { daemon.bus.off('provider:error_reset', onProviderErrorReset) } catch {}
-      try { daemon.bus.off('provider:request_timeout', onProviderTimeout) } catch {}
-      try { daemon.bus.off('worker:message', onWorkerMessage) } catch {}
-      try { daemon.bus.off('turn:start', onTurnStart) } catch {}
-      try { daemon.bus.off('turn:end', onTurnEnd) } catch {}
-      try { daemon.bus.off('dialectic:stream', onDialecticStream) } catch {}
+      try { daemon.bus.off('provider:request_start', onProviderStart) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('provider:request_end', onProviderEnd) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('provider:request_error', onProviderError) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('provider:deduplicated', onProviderDedup) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('provider:rate_limited', onProviderRateLimited) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('provider:error_reset', onProviderErrorReset) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('provider:request_timeout', onProviderTimeout) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('worker:message', onWorkerMessage) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('turn:start', onTurnStart) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('turn:end', onTurnEnd) } catch { /* handler may not be registered */ }
+      try { daemon.bus.off('dialectic:stream', onDialecticStream) } catch { /* handler may not be registered */ }
     })
 
     return true
