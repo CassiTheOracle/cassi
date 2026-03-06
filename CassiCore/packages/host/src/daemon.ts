@@ -1003,7 +1003,7 @@ export class Daemon {
       init?(): Promise<void>
     }
     if (this.intelligence?.thinker) {
-      const defaultProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'lmstudio'
+      const defaultProviderId = this.config.get<string>('intelligence.defaultProvider', '') || MODEL_DEFAULTS.fast.provider
       const thinkerProvider = providers.get(defaultProviderId) ?? providers.values().next().value
       const thinker = this.intelligence.thinker as ThinkerWithProvider
       if (thinkerProvider) {
@@ -1252,8 +1252,8 @@ export class Daemon {
           'self-healer',
         ]))
 
-        // Resolve the provider for registry modules (default to lmstudio for local LLM)
-        const registryProviderId = this.config.get<string>('intelligence.defaultProvider', '') || 'lmstudio'
+        // Resolve the provider for registry modules (default to the configured fast-tier provider)
+        const registryProviderId = this.config.get<string>('intelligence.defaultProvider', '') || MODEL_DEFAULTS.fast.provider
         const registryProvider = providers.get(registryProviderId) ?? providers.values().next().value
 
         // Wire all dependencies into discovered modules
