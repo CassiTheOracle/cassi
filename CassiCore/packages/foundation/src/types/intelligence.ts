@@ -4,9 +4,8 @@
  * They have full access to EventBus, Logger, and each other via dependency injection.
  */
 
-import type { RuntimeEvent } from "./events.js";
-import type { SessionRef, IndexEntry, IndexSearchResult, IndexStats } from "./session-ref.js";
 import type { Message } from "./runtime.js";
+import type { IndexEntry, IndexSearchResult, IndexStats } from "./session-ref.js";
 
 // ─── Memory ─────────────────────────────────────────────────────────────────
 

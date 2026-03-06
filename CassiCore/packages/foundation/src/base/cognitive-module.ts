@@ -26,13 +26,14 @@
  * ```
  */
 
-import type { ILogger, IEventBus, IntelligenceModule, IConfig } from '../../../types/interfaces.js'
+import { MODEL_DEFAULTS } from '../../config/system-settings.js'
+
 import type { RuntimeEvent } from '../../../types/events.js'
 import type { IMemory } from '../../../types/intelligence.js'
+import type { ILogger, IEventBus, IntelligenceModule, IConfig } from '../../../types/interfaces.js'
 import type { IProvider, Message, CompletionOpts, CompletionChunk } from '../../../types/runtime.js'
-import type { ToolRegistry } from '../../tools/registry.js'
 import type { ToolExecutor } from '../../tools/executor.js'
-import { MODEL_DEFAULTS } from '../../config/system-settings.js'
+import type { ToolRegistry } from '../../tools/registry.js'
 
 // ============================================================================
 // Model Configuration for LLM-powered modules

@@ -72,7 +72,14 @@ export function getModelSpec(tier: keyof typeof MODEL_DEFAULTS): string {
 export const CONTEXT_SETTINGS = {
   /** Maximum tokens for context window (affects all context assembly) */
   maxTokens: getEnvNumber('CASSICORE_CONTEXT_MAX_TOKENS', 20_000),
-  // TODO Immediately: create a separate setting for the main agent
+
+  /**
+   * Separate token budget for the main agent's context window.
+   * Cognitive modules use `maxTokens`; the main agent turn prompt uses this.
+   * Defaults to the same value as maxTokens so existing behaviour is preserved.
+   */
+  mainAgentMaxTokens: getEnvNumber('CASSICORE_MAIN_AGENT_MAX_TOKENS',
+    getEnvNumber('CASSICORE_CONTEXT_MAX_TOKENS', 20_000)),
 
   /** Character budget for context assembly (roughly 3-4 chars per token) */
   charBudget: getEnvNumber('CASSICORE_CONTEXT_CHAR_BUDGET', 60_000),
@@ -104,8 +111,8 @@ export const CONTEXT_SETTINGS = {
 // ============================================================================
 
 export const SUBCONSCIOUS_SETTINGS = {
-  /** Enable v2 real-time stream processing */
-  v2Enabled: getEnvBoolean('CASSICORE_SUBCONSCIOUS_V2', true),
+  /** Enable real-time stream processing */
+  streamProcessingEnabled: getEnvBoolean('CASSICORE_SUBCONSCIOUS_STREAM', true),
 
   /** Token buffer max size (tokens) */
   bufferMaxTokens: getEnvNumber('CASSICORE_SUBCONSCIOUS_BUFFER_MAX', 16384),
@@ -371,14 +378,14 @@ export const DRONE_SETTINGS = {
   /** Minimum probability threshold for speculative branches */
   minSpeculativeProbability: getEnvNumber('CASSICORE_DRONE_MIN_SPEC_PROB', 30) / 100,
 
-  /** Model tier for predictor drones (default: 'agent' = Kimi K2.5) */
-  predictorModelTier: getEnvString('CASSICORE_DRONE_PREDICTOR_TIER', 'agent') as 'main' | 'reasoning' | 'agent' | 'fast',
+  /** Model tier for predictor drones (default: 'fallback' = gpt-5-mini via github-copilot, free) */
+  predictorModelTier: getEnvString('CASSICORE_DRONE_PREDICTOR_TIER', 'fallback') as 'main' | 'reasoning' | 'agent' | 'fast' | 'fallback',
 
-  /** Model tier for scout drones (default: 'agent' = Kimi K2.5) */
-  scoutModelTier: getEnvString('CASSICORE_DRONE_SCOUT_TIER', 'agent') as 'main' | 'reasoning' | 'agent' | 'fast',
+  /** Model tier for scout drones (default: 'fallback' = gpt-5-mini via github-copilot, free) */
+  scoutModelTier: getEnvString('CASSICORE_DRONE_SCOUT_TIER', 'fallback') as 'main' | 'reasoning' | 'agent' | 'fast' | 'fallback',
 
-  /** Model tier for worker drones (default: 'agent') */
-  workerModelTier: getEnvString('CASSICORE_DRONE_WORKER_TIER', 'agent') as 'main' | 'reasoning' | 'agent' | 'fast',
+  /** Model tier for worker drones (default: 'fallback' = gpt-5-mini via github-copilot, free) */
+  workerModelTier: getEnvString('CASSICORE_DRONE_WORKER_TIER', 'fallback') as 'main' | 'reasoning' | 'agent' | 'fast' | 'fallback',
 
   /** Aggregation strategy: 'concatenate' | 'first_wins' | 'synthesis' | 'vote' | 'best' */
   defaultAggregationStrategy: getEnvString('CASSICORE_DRONE_AGGREGATION', 'concatenate') as
@@ -392,6 +399,54 @@ export const DRONE_SETTINGS = {
 
   /** Minimum viable drone budget (tokens below this skip retries) */
   minViableBudget: getEnvNumber('CASSICORE_DRONE_MIN_BUDGET', 50_000),
+} as const;
+
+// ============================================================================
+// Scout Settings (Pre-Turn Search Agent)
+// ============================================================================
+
+export const SCOUT_SETTINGS = {
+  /** Enable the Scout module */
+  enabled: getEnvBoolean('CASSICORE_SCOUT_ENABLED', true),
+
+  /** LLM provider — defaults to free offload model (github-copilot) */
+  providerId: getEnvString('CASSICORE_SCOUT_PROVIDER', MODEL_DEFAULTS.fallback.provider),
+
+  /** Model — defaults to free offload model (gpt-5-mini) */
+  model: getEnvString('CASSICORE_SCOUT_MODEL', MODEL_DEFAULTS.fallback.model),
+
+  /** Temperature for scout inference (lower = more targeted) */
+  temperature: getEnvNumber('CASSICORE_SCOUT_TEMPERATURE', 20) / 100,
+
+  /** Max output tokens per scout inference call */
+  maxTokens: getEnvNumber('CASSICORE_SCOUT_MAX_TOKENS', 4096),
+
+  /** Max tool call rounds per turn */
+  maxToolRounds: getEnvNumber('CASSICORE_SCOUT_MAX_TOOL_ROUNDS', 3),
+
+  /** Wall time limit for the entire scout phase (ms) */
+  timeoutMs: getEnvNumber('CASSICORE_SCOUT_TIMEOUT_MS', 15_000),
+
+  /** Max characters of context to inject into the main model's turn */
+  maxContextChars: getEnvNumber('CASSICORE_SCOUT_MAX_CONTEXT_CHARS', 8_000),
+
+  /** Number of recent conversation messages shown to the scout */
+  historyTailSize: getEnvNumber('CASSICORE_SCOUT_HISTORY_TAIL', 3),
+
+  /** Enable skip heuristic (avoid scouting on trivial messages) */
+  skipHeuristic: getEnvBoolean('CASSICORE_SCOUT_SKIP_HEURISTIC', true),
+
+  /** Timeout per individual tool execution (ms) */
+  toolTimeoutMs: getEnvNumber('CASSICORE_SCOUT_TOOL_TIMEOUT_MS', 10_000),
+
+  /** Minimum result length to inject (chars) — skip injection for empty results */
+  minResultLength: getEnvNumber('CASSICORE_SCOUT_MIN_RESULT_LENGTH', 50),
+
+  /** Cache max entries (avoid redundant scouting for similar messages) */
+  cacheMaxSize: getEnvNumber('CASSICORE_SCOUT_CACHE_MAX_SIZE', 50),
+
+  /** Cache TTL (ms) */
+  cacheTtlMs: getEnvNumber('CASSICORE_SCOUT_CACHE_TTL_MS', 120_000),
 } as const;
 
 // ============================================================================
@@ -433,6 +488,7 @@ export const SYSTEM_SETTINGS = {
   reflex: REFLEX_SETTINGS,
   promptOptimizer: PROMPT_OPTIMIZER_SETTINGS,
   drone: DRONE_SETTINGS,
+  scout: SCOUT_SETTINGS,
 } as const;
 
 /** 

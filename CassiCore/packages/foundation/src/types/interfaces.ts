@@ -3,7 +3,7 @@
  * All implementations must satisfy these shapes exactly.
  */
 
-import type { EventType, EventOf, Unsubscribe, RuntimeEvent, LogLevel } from "./events.js";
+import type { EventType, EventOf, Unsubscribe, RuntimeEvent } from "./events.js";
 
 // CassiCore interface types
 
@@ -112,4 +112,16 @@ export interface IntelligenceModule {
 
   /** Called for every runtime event (optional — implement for side effects) */
   onEvent?(event: RuntimeEvent): Promise<void>;
+
+  /** Wire module to the event bus (called during daemon startup). */
+  onEventBus?(bus: IEventBus): void;
+
+  /** Start background processing (timers, subscriptions). */
+  start?(): void;
+
+  /** Stop background processing and release resources. */
+  stop?(): void;
+
+  /** Inject a repair-capable LLM provider for self-healing purposes. */
+  setRepairProvider?(fn: (prompt: string) => Promise<string>): void;
 }

@@ -53,6 +53,10 @@ export interface CompletionOpts {
    */
   allowConcurrent?: boolean;
   dedupe?: boolean;
+  /**
+   * AbortSignal for cancellation support. Passed to provider for early termination.
+   */
+  signal?: AbortSignal;
 }
 
 export interface CompletionChunk {
