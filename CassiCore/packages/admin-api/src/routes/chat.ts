@@ -1,6 +1,7 @@
-import type http from 'node:http'
-import type { ILogger } from '../../types/interfaces.js'
 import { getModelSpec } from '../config/system-settings.js'
+
+import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface ChatRoutesDeps {
   daemon: any
@@ -108,7 +109,7 @@ export async function handleChatRoutes(
       void daemon.pipeline.process(inbound).then((result: any) => {
         daemon.bus.emit({ type: 'turn:end', sessionId: inbound.sessionId, response: result.response, durationMs: result.durationMs })
       }).catch((err: any) => {
-        daemon.logger?.error?.(`[admin-api] pipeline error: ${String(err)}`)
+        daemon.logger?.error?.(`pipeline error: ${String(err)}`)
       })
 
       sendJSON(res, 200, { ok: true, sessionId })
@@ -154,15 +155,15 @@ export async function handleChatRoutes(
 
     try {
       const { randomUUID } = await import('node:crypto')
-      const sessionId = 'provider-' + randomUUID()
+      const sessionId = `provider-${  randomUUID()}`
       const content = messages[messages.length - 1]?.content || ''
 
-      const useV2 = (daemon as any).useV2 && (daemon as any).v2
+      const useSessionPipeline = !!(daemon as any).sessionPipeline
 
-      if (useV2) {
-        logger.info(`[admin-api] V2 chat for session ${sessionId}`)
+      if (useSessionPipeline) {
+        logger.info(`Chat for session ${sessionId}`)
         const startTime = Date.now()
-        const result = await (daemon as any).v2.processMessage(
+        const result = await (daemon as any).sessionPipeline.processMessage(
           'channel:cli',
           sessionId,
           content
@@ -171,10 +172,9 @@ export async function handleChatRoutes(
 
         sendJSON(res, 200, {
           content: result.response,
-          model: 'v2',
-          tokensUsed: 0,
+          model: result.model ?? 'unknown',
+          tokensUsed: result.tokensUsed ?? 0,
           durationMs,
-          v2: true
         })
         return true
       }
@@ -193,7 +193,7 @@ export async function handleChatRoutes(
         timestamp: new Date(),
       }
 
-      logger.info(`[admin-api] Processing provider chat for session ${sessionId}`)
+      logger.info(`Processing provider chat for session ${sessionId}`)
 
       let responseContent = ''
       let responseModel = model

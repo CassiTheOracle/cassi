@@ -1,38 +1,43 @@
-import http from 'node:http'
 import fs from 'node:fs'
-import path from 'node:path'
+import http from 'node:http'
 import os from 'node:os'
-import type { ILogger } from '../types/interfaces.js'
-import type { DialecticStreamEvent } from '../types/dialectic.js'
-import { createToolsApi } from './tools-api.js'
-import { assembleContext } from './intelligence/context-assembler.js'
-import { getModelSpec } from './config/system-settings.js'
+import path from 'node:path'
+
 
 // Route modules
-import { handleHealthRoutes } from './admin-api/health.js'
-import { handleConfigRoutes } from './admin-api/config.js'
 import { handleChannelsRoutes } from './admin-api/channels.js'
-import { handleIntelligenceRoutes } from './admin-api/intelligence.js'
-import { handleProvidersRoutes } from './admin-api/providers.js'
-import { handleSessionsRoutes } from './admin-api/sessions.js'
-import { handleMemoryRoutes } from './admin-api/memory.js'
-import { handleDialecticRoutes } from './admin-api/dialectic.js'
 import { handleChatRoutes } from './admin-api/chat.js'
-import { handleModelsRoutes } from './admin-api/models.js'
-import { handleMcpRoutes } from './admin-api/mcp.js'
-import { handleToolsRoutes } from './admin-api/tools.js'
+import { handleConfigRoutes } from './admin-api/config.js'
 import { handleContextRoutes } from './admin-api/context.js'
-import { handleEventsRoutes } from './admin-api/events.js'
-import { handleSubagentsRoutes } from './admin-api/subagents.js'
-import { handleMultiAgentRoutes } from './admin-api/multi-agent.js'
-import { handleTeamsRoutes } from './admin-api/teams.js'
-import { handleDialecticControlRoutes } from './admin-api/dialectic-control.js'
-import { handleDelegationRoutes } from './admin-api/delegation.js'
 import { handleCycleHooksRoutes } from './admin-api/cycle-hooks.js'
 import { handleObservabilityRoutes } from './admin-api/observability.js'
 import { handleOrchestrationRoutes } from './admin-api/orchestration.js'
 import { handlePluginsRoutes } from './admin-api/plugins.js'
 import { handleDebugRoutes } from './admin-api/debug.js'
+import { handleDelegationRoutes } from './admin-api/delegation.js'
+import { handleDialecticControlRoutes } from './admin-api/dialectic-control.js'
+import { handleDialecticRoutes } from './admin-api/dialectic.js'
+import { handleEventsRoutes } from './admin-api/events.js'
+import { handleHealthRoutes } from './admin-api/health.js'
+import { handleIntelligenceRoutes } from './admin-api/intelligence.js'
+import { handleMcpRoutes } from './admin-api/mcp.js'
+import { handleMemoryRoutes } from './admin-api/memory.js'
+import { handleModelsRoutes } from './admin-api/models.js'
+import { handleMultiAgentRoutes } from './admin-api/multi-agent.js'
+import { handlePermissionsRoutes } from './admin-api/permissions.js'
+import { handleProvidersRoutes } from './admin-api/providers.js'
+import { handleSessionsRoutes } from './admin-api/sessions.js'
+import { handleSubagentsRoutes } from './admin-api/subagents.js'
+import { handleTeamsRoutes } from './admin-api/teams.js'
+import { handleToolsRoutes } from './admin-api/tools.js'
+import { handleVerificationRoutes } from './admin-api/verification.js'
+import { handleImprovementRoutes } from './admin-api/improvement.js'
+import { getModelSpec } from './config/system-settings.js'
+import { assembleContext } from './intelligence/context-assembler.js'
+import { createToolsApi } from './tools-api.js'
+
+import type { DialecticStreamEvent } from '../types/dialectic.js'
+import type { ILogger } from '../types/interfaces.js'
 
 // WebSocket state
 interface WSConnection {
@@ -79,7 +84,7 @@ interface SessionHierarchyEntry {
 }
 
 export function createAdminApi(daemon: any, logger: ILogger) {
-  let unixPath = path.join(os.homedir(), '.cassicore', 'admin.sock')
+  const unixPath = path.join(os.homedir(), '.cassicore', 'admin.sock')
   const tcpHost = (daemon?.config?.get?.('admin.host', '127.0.0.1')) ?? '127.0.0.1'
   const baseTcpPort = Number(daemon?.config?.get?.('admin.port', 7433)) || 7433
   let currentTcpPort = baseTcpPort
@@ -281,7 +286,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       if (m.importance > bestMsg.importance) bestMsg = m
     }
     const representative = bestMsg.content.length > 200
-      ? bestMsg.content.slice(0, 200) + '...'
+      ? `${bestMsg.content.slice(0, 200)  }...`
       : bestMsg.content
     const topicStr = ep.topic ? ` [${ep.topic}]` : ''
     return `Episode (${ep.messages.length} msgs, importance ${(ep.importance * 100).toFixed(0)}%)${topicStr}: ${representative}`
@@ -366,7 +371,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
   // SSE connections
   const sseConnections = new Map<string, { res: http.ServerResponse; sessionId: string; connectedAt: number }>()
-  let sseConnectionId = { value: 0 }
+  const sseConnectionId = { value: 0 }
 
   /** Ensure a hierarchy entry exists for the given session ID. */
   function ensureHierarchyEntry(sid: string): SessionHierarchyEntry {
@@ -393,7 +398,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       const parentEntry = ensureHierarchyEntry(parentId)
       parentEntry.childIds.add(childId)
 
-      logger.debug('[admin-api] Session hierarchy updated', { childId, parentId, agentType: event.agentType })
+      logger.debug('Session hierarchy updated', { childId, parentId, agentType: event.agentType })
 
       const to = daemon.intelligence?.teamOrchestrator as any
       if (to?.createTeam) {
@@ -430,14 +435,14 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           for (const tracking of delegationTracker.values()) {
             if (tracking.spawnedSessionId === childId && !tracking.teamId) {
               tracking.teamId = team.id
-              logger.debug('[admin-api] T3: Linked delegation to team', {
+              logger.debug('T3: Linked delegation to team', {
                 delegationId: tracking.request.id,
                 teamId: team.id,
               })
             }
           }
 
-          logger.info('[admin-api] External team created for subagent', {
+          logger.info('External team created for subagent', {
             teamId: team.id,
             childId,
             parentId,
@@ -445,7 +450,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             goalPreview: goalText.slice(0, 100),
           })
         } catch (err) {
-          logger.error('[admin-api] Failed to create external team for subagent', {
+          logger.error('Failed to create external team for subagent', {
             childId,
             parentId,
             error: String(err),
@@ -477,14 +482,14 @@ export function createAdminApi(daemon: any, logger: ILogger) {
               success: !event.error,
             })
 
-            logger.info('[admin-api] External team completed for subagent', {
+            logger.info('External team completed for subagent', {
               teamId,
               childId,
               success: !event.error,
               tokensUsed: event.tokensUsed,
             })
           } catch (err) {
-            logger.error('[admin-api] Failed to complete external team', {
+            logger.error('Failed to complete external team', {
               teamId,
               childId,
               error: String(err),
@@ -500,7 +505,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           tracking.status = 'completed'
           tracking.completedAt = Date.now()
           tracking.result = event.resultSummary || event.resultText || 'Subagent completed'
-          logger.info('[admin-api] T3: Delegation completed via subagent_end', {
+          logger.info('T3: Delegation completed via subagent_end', {
             delegationId: tracking.request.id,
             childId,
           })
@@ -529,7 +534,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             team.config.name = `Subagent: ${event.taskDescription.slice(0, 60)}`
           }
 
-          logger.debug('[admin-api] External team goal enriched with task prompt', {
+          logger.debug('External team goal enriched with task prompt', {
             teamId,
             childId,
             promptLength: event.taskPrompt.length,
@@ -621,10 +626,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           snapshot.isStreaming = false
           break
         case 'user_message':
-        case 'assistant_message':
           snapshot.messageCount++
           break
         case 'assistant_message':
+          snapshot.messageCount++
           snapshot.totalTokensUsed += (event.inputTokens || 0) + (event.outputTokens || 0)
           break
         case 'tool_execution_start':
@@ -669,7 +674,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     for (const [id, conn] of sseConnections) {
       if (conn.sessionId === sessionId) {
         try {
-          conn.res.write(message + '\n')
+          conn.res.write(`${message  }\n`)
         } catch {
           sseConnections.delete(id)
         }
@@ -751,7 +756,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
     const crypto = await import('node:crypto')
     const acceptKey = crypto.createHash('sha1')
-      .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+      .update(`${key  }258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
       .digest('base64')
 
     socket.write(
@@ -766,7 +771,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     const conn: WSConnection = { socket, sessionId, subscribed: true }
     wsConnections.set(connId, conn)
 
-    logger.info(`[admin-api] WebSocket connected for dialectic stream: ${sessionId}`)
+    logger.info(`WebSocket connected for dialectic stream: ${sessionId}`)
 
     const unsubscribe = daemon.intelligence?.dialectic?.subscribeToStream?.(sessionId, (event: DialecticStreamEvent) => {
       if (!conn.subscribed || socket.destroyed) return
@@ -774,7 +779,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         const message = JSON.stringify(event)
         sendWebSocketMessage(socket, message)
       } catch (err) {
-        logger.warn(`[admin-api] WebSocket send error: ${String(err)}`)
+        logger.warn(`WebSocket send error: ${String(err)}`)
       }
     })
 
@@ -782,11 +787,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       conn.subscribed = false
       wsConnections.delete(connId)
       unsubscribe?.()
-      logger.info(`[admin-api] WebSocket disconnected: ${sessionId}`)
+      logger.info(`WebSocket disconnected: ${sessionId}`)
     })
 
     socket.on('error', (err: any) => {
-      logger.warn(`[admin-api] WebSocket error: ${String(err)}`)
+      logger.warn(`WebSocket error: ${String(err)}`)
       socket.destroy()
     })
   }
@@ -1484,7 +1489,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         for (const { msg, i } of indexed) {
           const maxLen = msg.importance >= 0.5 ? 600 : msg.importance >= 0.3 ? 300 : 120
           const snippet = msg.content.length > maxLen
-            ? msg.content.slice(0, maxLen) + '...'
+            ? `${msg.content.slice(0, maxLen)  }...`
             : msg.content
           const cost = snippet.length + 15
           if (charCount + cost > PREV_CTX_CHAR_BUDGET && selected.size > 0) break
@@ -1505,7 +1510,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           const prefix = msg.role === 'user' ? 'User' : 'Assistant'
           const maxLen = msg.importance >= 0.5 ? 600 : msg.importance >= 0.3 ? 300 : 120
           const snippet = msg.content.length > maxLen
-            ? msg.content.slice(0, maxLen) + '...'
+            ? `${msg.content.slice(0, maxLen)  }...`
             : msg.content
           const tag = msg.importance >= 0.5 ? ' [important]' : ''
           lines.push(`${prefix}${tag}: ${snippet}`)
@@ -1812,7 +1817,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       for (const [id, tracking] of delegationTracker) {
         if (tracking.status === 'pending' && now > tracking.request.expiresAt) {
           tracking.status = 'expired'
-          logger.debug('[admin-api] Delegation request expired', { id })
+          logger.debug('Delegation request expired', { id })
         }
         if (['completed', 'failed', 'expired'].includes(tracking.status) && now - tracking.request.createdAt > 5 * 60 * 1000) {
           delegationTracker.delete(id)
@@ -1831,7 +1836,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             for (const req of newRequests) {
               if (totalPending + delegationTracker.size >= DELEGATION_MAX_PENDING + 5) break
               delegationTracker.set(req.id, { request: req, status: 'pending' })
-              logger.info('[admin-api] New delegation request', {
+              logger.info('New delegation request', {
                 id: req.id,
                 sessionId: req.sessionId,
                 reason: req.reason,
@@ -1893,7 +1898,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           sendJSON(res, 200, payload)
           return
         } catch (err) {
-          logger.error('[admin-api] GET /context failed', { error: String(err) })
+          logger.error('GET /context failed', { error: String(err) })
           sendJSON(res, 500, { error: 'Failed to build context payload' })
           return
         }
@@ -1946,6 +1951,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleMcpRoutes({ daemon, logger, sendJSON }, req, res, method, pathname),
         () => handleToolsRoutes({ daemon, logger, sendJSON, parseBody, pathname }, req, res, method),
         () => handleContextRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
+        () => handlePermissionsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
+        () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
+        () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
       ]
 
       for (const routeHandler of routeHandlers) {
@@ -1980,11 +1988,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
       unixServer = http.createServer(handler)
       unixServer.on('upgrade', (req, socket, head) => { void handleWebSocketUpgrade(req, socket, head) })
-      unixServer.on('error', (e) => logger.warn(`[admin-api] unix server error: ${String(e)}`))
+      unixServer.on('error', (e) => logger.warn(`unix server error: ${String(e)}`))
       await new Promise<void>((resolve, reject) => {
         unixServer!.listen(unixPath, () => {
           try { fs.chmodSync(unixPath, 0o660) } catch {}
-          logger.info(`[admin-api] listening on unix:${unixPath}`)
+          logger.info(`listening on unix:${unixPath}`)
           resolve()
         })
         unixServer!.on('error', reject)
@@ -2004,11 +2012,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
           tcpServer = s
           boundPort = tryPort
           currentTcpPort = tryPort
-          logger.info(`[admin-api] listening on http://${tcpHost}:${tryPort}`)
+          logger.info(`listening on http://${tcpHost}:${tryPort}`)
           break
         } catch (err: any) {
           if (err && err.code === 'EADDRINUSE') {
-            logger.warn(`[admin-api] port ${tryPort} in use; trying ${tryPort + 1}`)
+            logger.warn(`port ${tryPort} in use; trying ${tryPort + 1}`)
             try { s.close?.(); } catch {}
             continue
           }
@@ -2018,10 +2026,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       if (!boundPort) {
-        logger.warn('[admin-api] failed to bind TCP admin port (no available port found)')
+        logger.warn('failed to bind TCP admin port (no available port found)')
       }
 
-      logger.info('[admin-api] context available via GET /context on unix socket')
+      logger.info('context available via GET /context on unix socket')
 
       return { tcpPort: boundPort, unixPath }
     },
@@ -2035,7 +2043,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         tcpServer = null
       }
       try { if (fs.existsSync(unixPath)) fs.unlinkSync(unixPath) } catch {}
-      logger.info('[admin-api] stopped')
+      logger.info('stopped')
     }
   }
 }

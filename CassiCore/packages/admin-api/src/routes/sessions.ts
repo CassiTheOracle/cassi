@@ -1,5 +1,5 @@
-import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
+import type http from 'node:http'
 
 export interface SessionsRoutesDeps {
   daemon: any
@@ -43,22 +43,19 @@ export async function handleSessionsRoutes(
       const channelId = body?.channelId || 'channel:cli'
       const senderId = body?.senderId || sessionId
 
-      const useV2 = (daemon as any).useV2 && (daemon as any).v2
-
-      if (useV2) {
-        logger.info(`[admin-api] Using V2 for turn`, { sessionId: sessionId.slice(0, 8) })
+      if ((daemon as any).sessionPipeline) {
+        logger.info(`Processing turn`, { sessionId: sessionId.slice(0, 8) })
         const startTime = Date.now()
-        const result = await (daemon as any).v2.processMessage(channelId, senderId, content)
+        const result = await (daemon as any).sessionPipeline.processMessage(channelId, senderId, content)
         const durationMs = Date.now() - startTime
 
         sendJSON(res, 200, {
           ok: true,
           sessionId: result.sessionId,
           response: result.response,
-          model: 'v2',
-          tokensUsed: 0,
+          model: result.model ?? 'unknown',
+          tokensUsed: result.tokensUsed ?? 0,
           durationMs,
-          v2: true,
         })
         return true
       }
@@ -78,15 +75,19 @@ export async function handleSessionsRoutes(
         timestamp: new Date(),
       }
 
+      // Build session config — only include fields that are explicitly provided
+      // so undefined values don't override SessionManager defaults (e.g. systemPrompt)
+      const sessionCfg: Record<string, unknown> = {
+        model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
+        thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
+      }
+      if (body?.systemPrompt) sessionCfg.systemPrompt = body.systemPrompt
+
       const session = daemon.sessions.getOrCreateById(
         sessionId,
         inbound.channelId,
         inbound.senderId,
-        {
-          model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
-          thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
-          systemPrompt: body?.systemPrompt,
-        }
+        sessionCfg as any,
       )
 
       let dialecticResult: any = null
@@ -110,7 +111,7 @@ export async function handleSessionsRoutes(
             { mode: body?.dialecticMode || 'parallel' }
           )
         } catch (dialecticErr) {
-          logger.warn(`[admin-api] dialectic error: ${String(dialecticErr)}`)
+          logger.warn(`dialectic error: ${String(dialecticErr)}`)
         }
       }
 
@@ -118,7 +119,7 @@ export async function handleSessionsRoutes(
       try {
         result = await daemon.pipeline.process(inbound)
       } catch (pipelineErr) {
-        logger.error(`[admin-api] pipeline.process failed: ${String(pipelineErr)}`)
+        logger.error(`pipeline.process failed: ${String(pipelineErr)}`)
         throw pipelineErr
       }
 
@@ -148,7 +149,7 @@ export async function handleSessionsRoutes(
       sendJSON(res, 200, response)
       return true
     } catch (err) {
-      logger.error(`[admin-api] turn error: ${String(err)}`)
+      logger.error(`turn error: ${String(err)}`)
       sendJSON(res, 500, { error: String(err) })
       return true
     }
@@ -162,30 +163,31 @@ export async function handleSessionsRoutes(
       return true
     }
 
-    const useV2 = (daemon as any).useV2 && (daemon as any).v2
-    if (useV2) {
-      // V2 SSE streaming path
-      return await handleV2SseStream(daemon, logger, sendJSON, res, req, sessionId, parseBody)
+    // Session pipeline streaming path — per-token streaming supported for all channels
+    const earlyBody = await parseBody(req)
+    const hasPipeline = !!(daemon as any).sessionPipeline
+    if (hasPipeline) {
+      return await handleSseStream(daemon, logger, sendJSON, res, req, sessionId, async () => earlyBody)
     }
 
     if (!daemon.pipeline) {
-      logger.error('[admin-api] SSE stream rejected: pipeline not ready')
+      logger.error('SSE stream rejected: pipeline not ready')
       sendJSON(res, 503, { error: 'pipeline not ready' })
       return true
     }
 
-    logger.info(`[admin-api] SSE stream request START: session=${sessionId.slice(0,8)}`)
+    logger.info(`SSE stream request START: session=${sessionId.slice(0,8)}`)
 
-    const body = await parseBody(req)
+    const body = earlyBody
     const content: string = body?.content
     const model: string = body?.model || 'unknown'
     if (!content) {
-      logger.error('[admin-api] SSE stream rejected: missing content')
+      logger.error('SSE stream rejected: missing content')
       sendJSON(res, 400, { error: 'missing content' })
       return true
     }
 
-    logger.info(`[admin-api] SSE stream request: session=${sessionId.slice(0,8)}, model=${model}, content_length=${content.length}`)
+    logger.info(`SSE stream request: session=${sessionId.slice(0,8)}, model=${model}, content_length=${content.length}`)
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -202,17 +204,17 @@ export async function handleSessionsRoutes(
       try {
         const written = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
         if (!written) {
-          logger.debug(`[admin-api] SSE backpressure on ${type} event`)
+          logger.debug(`SSE backpressure on ${type} event`)
         }
       } catch (err) {
-        logger.debug(`[admin-api] SSE write failed, client may have disconnected: ${String(err)}`)
+        logger.debug(`SSE write failed, client may have disconnected: ${String(err)}`)
         responseEnded = true
       }
     }
 
     req.socket.setTimeout(5 * 60 * 1000)
     req.socket.on('timeout', () => {
-      logger.warn(`[admin-api] SSE socket timeout: session=${sessionId.slice(0,8)}`)
+      logger.warn(`SSE socket timeout: session=${sessionId.slice(0,8)}`)
       if (!streamCompleted) {
         sendEvent('error', { error: 'Request timeout' })
         res.end()
@@ -233,7 +235,7 @@ export async function handleSessionsRoutes(
       clearInterval(pingInterval)
       responseEnded = true
       streamCompleted = true
-      logger.info(`[admin-api] SSE stream closed: session=${sessionId.slice(0,8)}`)
+      logger.info(`SSE stream closed: session=${sessionId.slice(0,8)}`)
     }
     req.on('close', cleanup)
     res.on('close', cleanup)
@@ -242,7 +244,7 @@ export async function handleSessionsRoutes(
       cleanup()
     })
     res.on('error', (err) => {
-      logger.error(`[admin-api] SSE stream error: ${String(err)}`)
+      logger.error(`SSE stream error: ${String(err)}`)
       streamCompleted = true
       cleanup()
     })
@@ -258,15 +260,19 @@ export async function handleSessionsRoutes(
         timestamp: new Date(),
       }
 
+      // Build session config — only include fields that are explicitly provided
+      // so undefined values don't override SessionManager defaults (e.g. systemPrompt)
+      const sessionCfg: Record<string, unknown> = {
+        model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
+        thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
+      }
+      if (body?.systemPrompt) sessionCfg.systemPrompt = body.systemPrompt
+
       const session = daemon.sessions.getOrCreateById(
         sessionId,
         inbound.channelId,
         inbound.senderId,
-        {
-          model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
-          thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
-          systemPrompt: body?.systemPrompt,
-        }
+        sessionCfg as any,
       )
 
       let dialecticResult: any = null
@@ -322,7 +328,7 @@ export async function handleSessionsRoutes(
             })
           }
         } catch (dialecticErr) {
-          logger.warn(`[admin-api] dialectic error: ${String(dialecticErr)}`)
+          logger.warn(`dialectic error: ${String(dialecticErr)}`)
         }
       }
 
@@ -335,20 +341,37 @@ export async function handleSessionsRoutes(
           tokenCount++
           sendEvent('token', { token: payload.token })
         } else if (payload.type === 'turn:tool_call') {
-          sendEvent('tool_call', { tool: payload.tool, input: payload.input })
+          sendEvent('tool_call', { toolCallId: payload.toolCallId, tool: payload.tool, input: payload.input })
         } else if (payload.type === 'turn:tool_result') {
-          sendEvent('tool_result', { toolCallId: payload.toolCallId, isError: payload.isError })
+          sendEvent('tool_result', { toolCallId: payload.toolCallId, isError: payload.isError, content: payload.content })
         }
       }
 
       daemon.bus.on('worker:message', onWorkerMessage)
 
-      logger.info(`[admin-api] Calling pipeline.process for session ${sessionId.slice(0,8)}...`)
+      // STREAMING FIX: Also attach a direct callback to the inbound message
+      // so the pipeline can push events without going through the event bus.
+      // This works around an issue where bus.emit() inside the session-lock
+      // .then() chain doesn't always reach the listener in time.
+      ;(inbound as any).onStreamEvent = (type: string, data: any) => {
+        if (type === 'token') {
+          tokenCount++
+          sendEvent('token', data)
+        } else if (type === 'thinking') {
+          sendEvent('thinking', data)
+        } else if (type === 'tool_call') {
+          sendEvent('tool_call', data)
+        } else if (type === 'tool_result') {
+          sendEvent('tool_result', data)
+        }
+      }
+
+      logger.info(`Calling pipeline.process for session ${sessionId.slice(0,8)}...`)
 
       try {
         const result = await daemon.pipeline.process(inbound)
 
-        logger.info(`[admin-api] SSE stream completed: ${tokenCount} tokens sent, response=${result?.response?.slice(0, 50)}...`)
+        logger.info(`SSE stream completed: ${tokenCount} tokens sent, response=${result?.response?.slice(0, 50)}...`)
 
         sendEvent('done', {
           model: result?.model,
@@ -365,7 +388,7 @@ export async function handleSessionsRoutes(
         res.end()
         streamCompleted = true
       } catch (pipelineErr) {
-        logger.error(`[admin-api] pipeline processing error: ${String(pipelineErr)}`)
+        logger.error(`pipeline processing error: ${String(pipelineErr)}`)
 
         if (!streamCompleted && !responseEnded) {
           sendEvent('error', {
@@ -379,7 +402,7 @@ export async function handleSessionsRoutes(
         daemon.bus.off('worker:message', onWorkerMessage)
       }
     } catch (err) {
-      logger.error(`[admin-api] stream turn error: ${String(err)}`)
+      logger.error(`stream turn error: ${String(err)}`)
       if (!streamCompleted && !responseEnded) {
         sendEvent('error', { error: String(err) })
         res.end()
@@ -424,6 +447,25 @@ export async function handleSessionsRoutes(
     }
 
     sendJSON(res, 200, { ok: true, deleted })
+    return true
+  }
+
+  // GET /sessions/:id/messages — returns paginated message history
+  // Used by webui BFF to populate Agno-compatible session runs.
+  if (parts.length === 3 && parts[2] === 'messages' && method === 'GET') {
+    const sessionId = parts[1]
+    const session = daemon.sessions.get(sessionId)
+    if (!session) {
+      sendJSON(res, 404, { error: 'session not found' })
+      return true
+    }
+    const url = new URL(req.url ?? '/', `http://localhost`)
+    const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '100', 10), 500)
+    const history: Array<{ role: string; content: unknown }> = session.history ?? []
+    const messages = history
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .slice(-limit)
+    sendJSON(res, 200, { messages, total: history.length })
     return true
   }
 
@@ -479,6 +521,79 @@ export async function handleSessionsRoutes(
     return true
   }
 
+  // POST /sessions/:id/think
+  // Injects external agent thinking/reasoning into the cognitive pipeline.
+  // This is the manual fallback for agents that don't use OpenCode (whose
+  // reasoning is captured automatically via DB polling).
+  //
+  // The thinking text is:
+  //   1. Emitted as a turn:thinking event on the event bus
+  //   2. Processed by ThoughtObserver → extractSignals()
+  //   3. Routed via CognitiveBridge to linked sessions
+  //   4. Returned immediately with extracted signals
+  //
+  // This runs within the free tool loop — the external agent calls this
+  // alongside its normal tools at zero additional cost.
+  if (parts.length === 3 && parts[2] === 'think' && method === 'POST') {
+    const sessionId = parts[1]
+    if (!sessionId) {
+      sendJSON(res, 400, { error: 'missing sessionId' })
+      return true
+    }
+
+    const body = await parseBody(req)
+    const text: string = body?.text
+    if (!text || typeof text !== 'string' || text.trim().length < 10) {
+      sendJSON(res, 400, { error: 'missing or too short text (min 10 chars)' })
+      return true
+    }
+
+    const projectPath: string | undefined = body?.projectPath
+
+    try {
+      // Emit thinking chunk on the event bus — ThoughtObserver will pick it up
+      if (daemon.bus) {
+        daemon.bus.emit({
+          type: 'worker:message',
+          pluginId: `session:${sessionId}`,
+          payload: {
+            type: 'turn:thinking',
+            sessionId,
+            token: text.trim(),
+          },
+        } as any)
+      }
+
+      // Extract signals synchronously for immediate return
+      const thoughtObserver = daemon.intelligence?.thoughtObserver
+      const signals = thoughtObserver?.extractSignalsFromText?.(text.trim()) ?? []
+      await thoughtObserver?.storeSignals?.(sessionId, signals)
+
+      logger.info(`Think stream injected`, {
+        sessionId: sessionId.slice(0, 12),
+        textLength: text.length,
+        signalsExtracted: signals.length,
+        kinds: signals.map((s: any) => s.kind).join(', ') || '(none)',
+      })
+
+      sendJSON(res, 200, {
+        ok: true,
+        sessionId,
+        signalsExtracted: signals.length,
+        signals: signals.map((s: any) => ({
+          kind: s.kind,
+          text: s.text,
+          confidence: s.confidence,
+        })),
+      })
+      return true
+    } catch (err) {
+      logger.error('Think stream failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /sessions/:id/command
   // Routes a slash command string (e.g. "/think about X") through CassiCore's
   // universal command processor. This is the HTTP entry point for external CLI
@@ -523,7 +638,7 @@ export async function handleSessionsRoutes(
       sendJSON(res, 200, { ok: true, text: result.text, actions: result.actions ?? null })
       return true
     } catch (err) {
-      logger.error(`[admin-api] command error: ${String(err)}`, { sessionId, command })
+      logger.error(`command error: ${String(err)}`, { sessionId, command })
       sendJSON(res, 500, { error: String(err) })
       return true
     }
@@ -533,9 +648,9 @@ export async function handleSessionsRoutes(
 }
 
 /**
- * Handle SSE streaming for V2 session flow
+ * Handle SSE streaming for session pipeline
  */
-async function handleV2SseStream(
+async function handleSseStream(
   daemon: any,
   logger: ILogger,
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void,
@@ -544,18 +659,18 @@ async function handleV2SseStream(
   sessionId: string,
   parseBody: (req: http.IncomingMessage) => Promise<any>
 ): Promise<boolean> {
-  logger.info(`[admin-api] V2 SSE stream request START: session=${sessionId.slice(0, 8)}`)
+  logger.info(`SSE stream request START: session=${sessionId.slice(0, 8)}`)
 
   const body = await parseBody(req)
   const content: string = body?.content
   const model: string = body?.model || 'unknown'
   if (!content) {
-    logger.error('[admin-api] V2 SSE stream rejected: missing content')
+    logger.error('SSE stream rejected: missing content')
     sendJSON(res, 400, { error: 'missing content' })
     return true
   }
 
-  logger.info(`[admin-api] V2 SSE stream request: session=${sessionId.slice(0, 8)}, model=${model}, content_length=${content.length}`)
+  logger.info(`SSE stream request: session=${sessionId.slice(0, 8)}, model=${model}, content_length=${content.length}`)
 
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
@@ -572,17 +687,17 @@ async function handleV2SseStream(
     try {
       const written = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
       if (!written) {
-        logger.debug(`[admin-api] V2 SSE backpressure on ${type} event`)
+        logger.debug(`SSE backpressure on ${type} event`)
       }
     } catch (err) {
-      logger.debug(`[admin-api] V2 SSE write failed, client may have disconnected: ${String(err)}`)
+      logger.debug(`SSE write failed, client may have disconnected: ${String(err)}`)
       responseEnded = true
     }
   }
 
   req.socket.setTimeout(5 * 60 * 1000)
   req.socket.on('timeout', () => {
-    logger.warn(`[admin-api] V2 SSE socket timeout: session=${sessionId.slice(0, 8)}`)
+    logger.warn(`SSE socket timeout: session=${sessionId.slice(0, 8)}`)
     if (!streamCompleted) {
       sendEvent('error', { error: 'Request timeout' })
       res.end()
@@ -603,7 +718,7 @@ async function handleV2SseStream(
     clearInterval(pingInterval)
     responseEnded = true
     streamCompleted = true
-    logger.info(`[admin-api] V2 SSE stream closed: session=${sessionId.slice(0, 8)}`)
+    logger.info(`SSE stream closed: session=${sessionId.slice(0, 8)}`)
   }
   req.on('close', cleanup)
   res.on('close', cleanup)
@@ -612,7 +727,7 @@ async function handleV2SseStream(
     cleanup()
   })
   res.on('error', (err) => {
-    logger.error(`[admin-api] V2 SSE stream error: ${String(err)}`)
+    logger.error(`SSE stream error: ${String(err)}`)
     streamCompleted = true
     cleanup()
   })
@@ -635,44 +750,44 @@ async function handleV2SseStream(
         tokenCount++
         finalResponse += String(payload.token || '')
         sendEvent('token', { token: payload.token })
+      } else if (payload.type === 'turn:thinking') {
+        sendEvent('thinking', { token: payload.token })
       } else if (payload.type === 'turn:done') {
         tokensUsed = Number(payload.tokensUsed || 0)
         durationMs = Number(payload.durationMs || 0)
       } else if (payload.type === 'turn:tool_call') {
-        sendEvent('tool_call', { tool: payload.tool, input: payload.input })
+        sendEvent('tool_call', { toolCallId: payload.toolCallId, tool: payload.tool, input: payload.input })
       } else if (payload.type === 'turn:tool_result') {
-        sendEvent('tool_result', { toolCallId: payload.toolCallId, isError: payload.isError })
+        sendEvent('tool_result', { toolCallId: payload.toolCallId, isError: payload.isError, content: payload.content })
       }
     }
 
     daemon.bus.on('worker:message', onWorkerMessage)
 
     try {
-      // Call V2 processMessage with streaming enabled
-      const result = await daemon.v2.processMessage(channelId, senderId, content, {
+      const result = await daemon.sessionPipeline.processMessage(channelId, senderId, content, {
         attachments: body?.attachments,
         stream: true
       })
 
-      logger.info(`[admin-api] V2 SSE stream completed: ${tokenCount} tokens, response=${result?.response?.slice(0, 50)}...`)
+      logger.info(`SSE stream completed: ${tokenCount} tokens, response=${result?.response?.slice(0, 50)}...`)
 
       sendEvent('done', {
-        model: 'v2',
+        model: result.model ?? model,
         tokensUsed: tokensUsed || result.tokensUsed || 0,
         durationMs: durationMs || result.durationMs || 0,
         response: result.response,
-        v2: true
       })
 
       res.end()
       streamCompleted = true
     } catch (processErr) {
-      logger.error(`[admin-api] V2 processMessage error: ${String(processErr)}`)
+      logger.error(`processMessage error: ${String(processErr)}`)
 
       if (!streamCompleted && !responseEnded) {
         sendEvent('error', {
           error: String(processErr),
-          type: 'v2_processing_error'
+          type: 'processing_error'
         })
         res.end()
         streamCompleted = true
@@ -681,7 +796,7 @@ async function handleV2SseStream(
       daemon.bus.off('worker:message', onWorkerMessage)
     }
   } catch (err) {
-    logger.error(`[admin-api] V2 stream turn error: ${String(err)}`)
+    logger.error(`Stream turn error: ${String(err)}`)
     if (!streamCompleted && !responseEnded) {
       sendEvent('error', { error: String(err) })
       res.end()
