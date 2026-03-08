@@ -1,5 +1,5 @@
 // Team Commands for Universal Processor
-// User-facing /team command for managing autonomous team sessions.
+// User-facing /team command for managing autonomous triad-team sessions.
 
 import type { CommandContext, CommandResult } from "./universal-processor.js";
 import { processor } from "./universal-processor.js";
@@ -10,7 +10,7 @@ processor.register({
   name: "/team",
   aliases: ["/t"],
   category: "intelligence",
-  description: "Manage autonomous teams — start, status, stream, pause, resume, cancel, list, tree, checkpoint",
+  description: "Manage autonomous triad teams — start, status, stream, pause, resume, cancel, list, tree, checkpoint",
   handler: async (args, ctx): Promise<CommandResult> => {
     const subcmd = (args[0] || "help").toLowerCase();
     const rest = args.slice(1);
@@ -59,16 +59,20 @@ processor.register({
       case "log":
         return handleTeamStream(rest, ctx);
 
+      case "bench":
+      case "benchmark":
+        return handleTeamBenchmark(rest, ctx);
+
       case "help":
       default:
         return {
           text: [
-            "Team Management Commands:",
+            "Triad Team Management Commands:",
             "",
-            "  /team start <goal>          Start a new team with the given goal",
-            "  /team status [team_id]      Show team status and progress",
+            "  /team start <goal>          Start a new triad team with the given goal",
+            "  /team status [team_id]      Show team status and cell progress",
             "  /team list                  List all teams",
-            "  /team tree [team_id]        Show goal tree visualization",
+            "  /team tree [team_id]        Show cell hierarchy tree",
             "  /team pause [team_id]       Pause a running team",
             "  /team resume [team_id]      Resume a paused team",
             "  /team cancel [team_id]      Cancel a team",
@@ -76,16 +80,17 @@ processor.register({
             "  /team approve <cp_id> [msg] Approve a checkpoint",
             "  /team reject <cp_id> [msg]  Reject a checkpoint",
             "  /team steer <cp_id> <msg>   Steer a checkpoint with instructions",
-            "  /team stream [team_id]      Show live event stream (recent events + SSE URL)",
+             "  /team stream [team_id]      Show live event stream (recent events + SSE URL)",
+             "  /team bench <goal>          Run a benchmark: start team, monitor, run tests, report",
             "",
             "Options for /team start:",
-            "  --budget <tokens>           Max token budget (default: 5000000)",
-            "  --agents <max>              Max concurrent agents (default: 50)",
-            "  --depth <max>               Max goal tree depth (default: 8)",
-            "  --timeout <minutes>         Max duration in minutes (default: 480)",
-            "  --checkpoint none|cassi     Checkpoint mode (default: cassi)",
-            "  --provider <id>             Provider for team agents",
-            "  --destructive               Allow destructive file operations",
+            "  --budget <tokens>           Max token budget (default: 2000000)",
+            "  --cells <max>               Max cells (default: 20)",
+            "  --depth <max>               Max hierarchy depth (default: 3)",
+            "  --timeout <minutes>         Max duration in minutes (default: 240)",
+            "  --checkpoint none|cassi|human  Checkpoint mode (default: cassi)",
+            "  --provider <id>             Provider for team cells",
+            "  --model <model>             Model for team cells",
             "",
             "Aliases: /t",
           ].join("\n"),
@@ -104,14 +109,7 @@ async function handleTeamStart(args: string[], ctx: CommandContext): Promise<Com
   for (let i = 0; i < args.length; i++) {
     if (args[i].startsWith("--") && i + 1 < args.length) {
       const flag = args[i].slice(2);
-      // --destructive is a boolean flag (no value)
-      if (flag === "destructive") {
-        flags[flag] = "true";
-      } else {
-        flags[flag] = args[++i];
-      }
-    } else if (args[i] === "--destructive") {
-      flags["destructive"] = "true";
+      flags[flag] = args[++i];
     } else {
       goalParts.push(args[i]);
     }
@@ -127,14 +125,15 @@ async function handleTeamStart(args: string[], ctx: CommandContext): Promise<Com
     sessionId: ctx.sessionId,
   };
 
-  // Map flags to config
+  // Map flags to triad-team config
   if (flags.budget) body.maxTokens = parseInt(flags.budget, 10);
-  if (flags.agents) body.maxAgents = parseInt(flags.agents, 10);
+  if (flags.cells) body.maxCells = parseInt(flags.cells, 10);
+  if (flags.agents) body.maxCells = parseInt(flags.agents, 10); // backward compat alias
   if (flags.depth) body.maxDepth = parseInt(flags.depth, 10);
   if (flags.timeout) body.maxDurationMs = parseInt(flags.timeout, 10) * 60_000;
   if (flags.checkpoint) body.checkpointMode = flags.checkpoint;
   if (flags.provider) body.provider = flags.provider;
-  if (flags.destructive) body.allowDestructive = true;
+  if (flags.model) body.model = flags.model;
 
   try {
     const response = await fetch(`${ADMIN_BASE}/teams`, {
@@ -142,18 +141,18 @@ async function handleTeamStart(args: string[], ctx: CommandContext): Promise<Com
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const result = await response.json() as { error?: string; teamId?: string; status?: string; coordinatorAgentId?: string };
+    const result = await response.json() as { error?: string; teamId?: string; status?: string };
 
     if (result.error) return { text: `Failed to start team: ${result.error}` };
 
     return {
       text: [
-        `Team started: ${result.teamId}`,
+        `Triad team started: ${result.teamId}`,
         `Status: ${result.status}`,
-        `Coordinator: ${result.coordinatorAgentId || "(pending)"}`,
         `Goal: ${goal}`,
         "",
         `Use "/team status ${result.teamId}" to monitor progress.`,
+        `Use "/team tree ${result.teamId}" to see cell hierarchy.`,
       ].join("\n"),
     };
   } catch (err) {
@@ -189,9 +188,9 @@ async function handleTeamList(ctx: CommandContext): Promise<CommandResult> {
 
     const lines = [`Teams (${teams.length}):`];
     for (const t of teams) {
-      const elapsed = t.startedAt ? Math.round((Date.now() - (t.startedAt as number)) / 60000) : 0;
+      const elapsed = t.createdAt ? Math.round((Date.now() - (t.createdAt as number)) / 60000) : 0;
       lines.push(
-        `  ${t.id} | ${t.status} | ${elapsed}min | goal: "${(t.goal as string || "").slice(0, 60)}${(t.goal as string || "").length > 60 ? "..." : ""}"`
+        `  ${t.id} | ${t.status} | ${t.cellCount || 0} cells | ${elapsed}min | ${t.name || "(unnamed)"}`
       );
     }
 
@@ -214,14 +213,14 @@ async function handleTeamTree(args: string[], ctx: CommandContext): Promise<Comm
     const lines: string[] = [];
     if (result.progress) {
       const p = result.progress;
-      lines.push(`Progress: ${p.completed}/${p.total} (${p.completionPct}%) | In Progress: ${p.inProgress} | Failed: ${p.failed} | Blocked: ${p.blocked}`);
+      lines.push(`Progress: ${p.completed}/${p.total} cells (${p.completionPct}%) | In Progress: ${p.inProgress} | Failed: ${p.failed} | Blocked: ${p.blocked}`);
       lines.push("");
     }
-    lines.push(result.tree || "(no goal tree)");
+    lines.push(result.tree || "(no cell tree)");
 
     return { text: lines.join("\n") };
   } catch (err) {
-    return { text: `Failed to get goal tree: ${String(err)}` };
+    return { text: `Failed to get cell tree: ${String(err)}` };
   }
 }
 
@@ -267,7 +266,7 @@ async function handleTeamCheckpoints(args: string[], ctx: CommandContext): Promi
       lines.push(`  ${cp.id} | trigger: ${cp.trigger} | progress: ${cp.progressSummary}`);
       if (cp.budgetSnapshot) {
         const b = cp.budgetSnapshot as Record<string, unknown>;
-        lines.push(`    tokens: ${b.tokensUsed}/${b.maxTokens} | agents: ${b.agentsSpawned}/${b.maxAgents}`);
+        lines.push(`    tokens: ${b.tokensUsed}/${b.maxTokens} | cells: ${b.cellsSpawned}/${b.maxCells}`);
       }
     }
     lines.push("");
@@ -318,12 +317,13 @@ async function handleTeamStream(args: string[], ctx: CommandContext): Promise<Co
 
   try {
     // Fetch recent events
-    const eventsResp = await fetch(`${ADMIN_BASE}/teams/events${query}&limit=30`);
+    const separator = query ? "&" : "?";
+    const eventsResp = await fetch(`${ADMIN_BASE}/teams/events${query}${separator}limit=30`);
     const eventsResult = await eventsResp.json() as {
       error?: string;
       teamId?: string;
       total?: number;
-      events?: Array<{ type: string; timestamp: number; data?: Record<string, unknown> }>;
+      events?: Array<{ type: string; timestamp: number; message?: string; entityId?: string; data?: Record<string, unknown> }>;
     };
 
     if (eventsResult.error) return { text: `Error: ${eventsResult.error}` };
@@ -339,18 +339,16 @@ async function handleTeamStream(args: string[], ctx: CommandContext): Promise<Co
     const lines: string[] = [];
 
     // Header
-    lines.push(`Team Event Stream: ${resolvedTeamId}`);
+    lines.push(`Triad Team Event Stream: ${resolvedTeamId}`);
     lines.push("─".repeat(60));
 
     // Current status summary
     if (!statusResult.error) {
-      const team = statusResult.team as Record<string, unknown> | undefined;
-      const progress = statusResult.progress as Record<string, unknown> | undefined;
-      if (team) {
-        lines.push(`Status: ${team.status} | Agents: ${(statusResult.activeAgents as unknown[])?.length || 0} active`);
-      }
-      if (progress) {
-        lines.push(`Progress: ${progress.completed}/${progress.total} goals (${progress.completionPct}%)`);
+      lines.push(`Status: ${statusResult.status || "unknown"}`);
+      const cells = statusResult.cells as Record<string, unknown> | undefined;
+      if (cells) {
+        const cellCount = Object.keys(cells).length;
+        lines.push(`Cells: ${cellCount}`);
       }
       lines.push("");
     }
@@ -366,8 +364,8 @@ async function handleTeamStream(args: string[], ctx: CommandContext): Promise<Co
       for (const event of events) {
         const ts = event.timestamp ? new Date(event.timestamp).toLocaleTimeString() : "??:??";
         const icon = getEventIcon(event.type);
-        const detail = formatEventDetail(event);
-        lines.push(`  ${ts} ${icon} ${event.type}${detail ? ` — ${detail}` : ""}`);
+        const detail = event.message || "";
+        lines.push(`  ${ts} ${icon} ${detail}`);
       }
     }
 
@@ -385,107 +383,234 @@ async function handleTeamStream(args: string[], ctx: CommandContext): Promise<Co
 
 function getEventIcon(type: string): string {
   const icons: Record<string, string> = {
-    "team:started": "[START]",
-    "team:completed": "[DONE]",
-    "team:failed": "[FAIL]",
-    "team:cancelled": "[CANCEL]",
-    "team:paused": "[PAUSE]",
-    "team:resumed": "[RESUME]",
-    "team:budget:warning": "[BUDGET]",
-    "team:checkpoint": "[CHECK]",
-    "agent:spawned": "[+AGENT]",
-    "agent:completed": "[AGENT OK]",
-    "agent:error": "[AGENT ERR]",
-    "autonomy:iteration": "[ITER]",
-    "autonomy:loop_started": "[LOOP]",
-    "autonomy:loop_stopped": "[STOP]",
-    "autonomy:delegation_requested": "[DELEG]",
-    "autonomy:blocked": "[BLOCK]",
+    "triad-team:created": "[CREATE]",
+    "triad-team:started": "[START]",
+    "triad-team:planning": "[PLAN]",
+    "triad-team:plan-complete": "[PLAN OK]",
+    "triad-team:cell-spawned": "[+CELL]",
+    "triad-team:cell-phase": "[PHASE]",
+    "triad-team:cell-completed": "[CELL OK]",
+    "triad-team:cell-failed": "[CELL FAIL]",
+    "triad-team:cell-degraded": "[DEGRADE]",
+    "triad-team:synthesis": "[SYNTH]",
+    "triad-team:completed": "[DONE]",
+    "triad-team:failed": "[FAIL]",
+    "triad-team:cancelled": "[CANCEL]",
+    "triad-team:paused": "[PAUSE]",
+    "triad-team:resumed": "[RESUME]",
+    "triad-team:checkpoint": "[CHECK]",
+    "triad-team:checkpoint:approved": "[APPROVED]",
+    "triad-team:checkpoint:rejected": "[REJECTED]",
+    "triad-team:budget-warning": "[BUDGET]",
   };
   return icons[type] || `[${type.split(":").pop()?.toUpperCase() || "?"}]`;
-}
-
-function formatEventDetail(event: { type: string; data?: Record<string, unknown>; [key: string]: unknown }): string {
-  const d = event.data || event;
-  switch (event.type) {
-    case "agent:spawned":
-      return d.role ? `role=${d.role}` : "";
-    case "agent:completed":
-      return d.agentId ? `${d.agentId}` : "";
-    case "agent:error":
-      return d.error ? String(d.error).slice(0, 80) : "";
-    case "autonomy:iteration":
-      return d.iteration ? `#${d.iteration}` + (d.tokensUsed ? ` (${d.tokensUsed} tokens)` : "") : "";
-    case "team:budget:warning":
-      return d.percentUsed ? `${d.percentUsed}% used` : "";
-    case "team:checkpoint":
-      return d.trigger ? `trigger=${d.trigger}` : "";
-    case "autonomy:delegation_requested":
-      return d.delegateTask ? String(d.delegateTask).slice(0, 60) : "";
-    case "autonomy:blocked":
-      return d.reason ? String(d.reason).slice(0, 60) : "";
-    default:
-      return "";
-  }
 }
 
 // ── Formatting Helpers ─────────────────────────────────────────────────────
 
 function formatTeamStatus(data: Record<string, unknown>): string {
-  const team = data.team as Record<string, unknown> | undefined;
-  if (!team) return JSON.stringify(data, null, 2);
-
-  const config = team.config as Record<string, unknown> | undefined;
-  const budget = team.budget as Record<string, unknown> | undefined;
-  const elapsed = team.startedAt ? Math.round((Date.now() - (team.startedAt as number)) / 60000) : 0;
+  const config = data.config as Record<string, unknown> | undefined;
+  const budget = data.budget as Record<string, unknown> | undefined;
+  const elapsed = data.startedAt ? Math.round((Date.now() - (data.startedAt as number)) / 60000) : 0;
+  const cells = data.cells as Record<string, unknown> | undefined;
+  const cellCount = cells ? Object.keys(cells).length : 0;
 
   const lines = [
-    `Team: ${config?.name || team.id}`,
-    `Status: ${team.status}`,
+    `Team: ${config?.name || data.id || "(unknown)"}`,
+    `Status: ${data.status}`,
     `Goal: ${config?.goal || "(unknown)"}`,
     `Elapsed: ${elapsed}min`,
+    `Cells: ${cellCount}`,
   ];
 
   if (budget) {
-    const tokenPct = Math.round(((budget.tokensUsed as number) / (budget.maxTokens as number)) * 100);
+    const tokensUsed = budget.tokensUsed as number || 0;
+    const maxTokens = budget.maxTokens as number || 1;
+    const tokenPct = Math.round((tokensUsed / maxTokens) * 100);
     lines.push("");
     lines.push("Budget:");
-    lines.push(`  Tokens: ${(budget.tokensUsed as number).toLocaleString()}/${(budget.maxTokens as number).toLocaleString()} (${tokenPct}%)`);
-    lines.push(`  Agents: ${budget.agentsSpawned}/${budget.maxAgents}`);
-    lines.push(`  Cost: $${(budget.estimatedCostUsd as number || 0).toFixed(4)}`);
+    lines.push(`  Tokens: ${tokensUsed.toLocaleString()}/${maxTokens.toLocaleString()} (${tokenPct}%)`);
+    lines.push(`  Cells: ${budget.cellsSpawned || 0}/${budget.maxCells || "unlimited"}`);
+    lines.push(`  Depth: max ${budget.maxDepth || "?"}`);
   }
 
-  if (data.goalTree) {
+  if (data.finalResult) {
     lines.push("");
-    lines.push("Goal Tree:");
-    lines.push(data.goalTree as string);
-  }
-
-  const progress = data.progress as Record<string, unknown> | undefined;
-  if (progress) {
-    lines.push("");
-    lines.push(`Progress: ${progress.completed}/${progress.total} goals (${progress.completionPct}%)`);
-    if ((progress.failed as number) > 0) lines.push(`  Failed: ${progress.failed}`);
-    if ((progress.blocked as number) > 0) lines.push(`  Blocked: ${progress.blocked}`);
-  }
-
-  const agents = data.activeAgents as Array<Record<string, unknown>> | undefined;
-  if (agents && agents.length > 0) {
-    lines.push("");
-    lines.push(`Active Agents (${agents.length}):`);
-    for (const a of agents) {
-      lines.push(`  ${a.agentId}: "${a.goalTitle}"`);
-    }
-  }
-
-  const checkpoints = data.pendingCheckpoints as Array<Record<string, unknown>> | undefined;
-  if (checkpoints && checkpoints.length > 0) {
-    lines.push("");
-    lines.push(`Pending Checkpoints (${checkpoints.length}):`);
-    for (const cp of checkpoints) {
-      lines.push(`  ${cp.id} (${cp.trigger}): ${cp.progressSummary}`);
-    }
+    lines.push("Result:");
+    lines.push(`  ${(data.finalResult as string).slice(0, 500)}`);
   }
 
   return lines.join("\n");
+}
+
+// ── Benchmark ────────────────────────────────────────────────────────────────
+
+async function handleTeamBenchmark(args: string[], ctx: CommandContext): Promise<CommandResult> {
+  // Parse flags from args
+  const flags = parseFlags(args);
+  const goal = flags.positional.join(" ");
+
+  if (!goal) {
+    return {
+      text: [
+        "Usage: /team bench <goal> [options]",
+        "",
+        "Options:",
+        "  --provider <id>       Provider ID (default: github-copilot)",
+        "  --model <model>       Model name (default: gpt-5-mini)",
+        "  --budget <tokens>     Max token budget (default: 300000)",
+        "  --depth <max>         Max hierarchy depth (default: 1)",
+        "  --cells <max>         Max cells (default: 3)",
+        "  --test <path>         Test path to verify (e.g., tests/my.test.ts)",
+        "  --cleanup             Delete generated files after benchmark",
+        "",
+        "Example:",
+        '  /team bench "Write a deepMerge utility in tests/bench-merge.ts with tests" --test tests/bench-merge.test.ts --cleanup',
+      ].join("\n"),
+    };
+  }
+
+  const provider = flags.get("provider") || "github-copilot";
+  const model = flags.get("model") || "gpt-5-mini";
+  const budget = parseInt(flags.get("budget") || "300000");
+  const depth = parseInt(flags.get("depth") || "1");
+  const cells = parseInt(flags.get("cells") || "3");
+  const testPath = flags.get("test") || flags.get("tests");
+  const cleanup = flags.has("cleanup");
+
+  const requestBody: Record<string, unknown> = {
+    goal,
+    name: "Benchmark",
+    provider: { providerId: provider, model },
+    budget: { maxTokens: budget, maxCells: cells, maxDepth: depth, maxDurationMs: 600000, maxToolIterationsPerMember: 50 },
+  };
+
+  if (testPath) {
+    requestBody.testPaths = [testPath];
+  }
+  if (cleanup) {
+    requestBody.cleanup = true;
+  }
+
+  try {
+    // Use SSE stream to get live updates
+    const res = await fetch(`${ADMIN_BASE}/teams/benchmark`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      return { text: `Benchmark failed: ${err}` };
+    }
+
+    // Parse SSE stream
+    const reader = res.body?.getReader();
+    if (!reader) {
+      return { text: "No response stream" };
+    }
+
+    const lines: string[] = [];
+    lines.push(`Benchmark started — goal: ${goal.slice(0, 80)}...`);
+    lines.push(`Provider: ${provider}/${model} | Budget: ${budget.toLocaleString()} tokens | Depth: ${depth}`);
+    lines.push("");
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let finalReport: Record<string, unknown> | null = null;
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          const eventMatch = part.match(/^event: (.+)$/m);
+          const dataMatch = part.match(/^data: (.+)$/m);
+          if (!eventMatch || !dataMatch) continue;
+
+          const eventType = eventMatch[1];
+          let data: any;
+          try { data = JSON.parse(dataMatch[1]); } catch { continue; }
+
+          switch (eventType) {
+            case "benchmark:team-created":
+              lines.push(`Team created: ${data.teamId}`);
+              break;
+            case "team-event":
+              if (data.type === "triad-team:cell-phase") {
+                lines.push(`  Phase: ${data.data?.phase || data.phase || "?"}`);
+              } else if (data.type === "triad-team:completed" || data.type === "triad-team:failed") {
+                lines.push(`  ${data.type.replace("triad-team:", "")}`);
+              }
+              break;
+            case "benchmark:team-complete":
+              lines.push("");
+              lines.push(`Team ${data.status} in ${(data.duration / 1000).toFixed(1)}s — ${data.tokens?.toLocaleString()} tokens, ${data.cells} cells`);
+              break;
+            case "benchmark:test-result":
+              lines.push("");
+              lines.push(`Tests: ${data.passed} passed, ${data.failed} failed`);
+              if (data.failed > 0) {
+                lines.push(data.output?.slice(0, 500) || "");
+              }
+              break;
+            case "benchmark:cleanup":
+              lines.push(`Cleaned up: ${data.files?.join(", ")}`);
+              break;
+            case "benchmark:complete":
+              finalReport = data;
+              lines.push("");
+              lines.push("─── Final Report ───");
+              lines.push(`Status: ${data.status}`);
+              lines.push(`Duration: ${(data.duration / 1000).toFixed(1)}s`);
+              lines.push(`Tokens: ${data.tokens?.toLocaleString()}`);
+              lines.push(`Cells: ${data.cells}`);
+              lines.push(`Phases: ${data.phases?.join(" → ") || "?"}`);
+              if (data.testResults) {
+                lines.push(`Tests: ${data.testResults.passed} passed, ${data.testResults.failed} failed`);
+              }
+              break;
+          }
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+
+    return { text: lines.join("\n") };
+  } catch (err) {
+    return { text: `Benchmark error: ${String(err)}` };
+  }
+}
+
+/** Parse --flag value pairs and collect positional arguments */
+function parseFlags(args: string[]): { positional: string[]; get(key: string): string | undefined; has(key: string): boolean } {
+  const flags = new Map<string, string>();
+  const positional: string[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].startsWith("--")) {
+      const key = args[i].slice(2);
+      if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
+        flags.set(key, args[i + 1]);
+        i++;
+      } else {
+        flags.set(key, "true");
+      }
+    } else {
+      positional.push(args[i]);
+    }
+  }
+
+  return {
+    positional,
+    get: (key: string) => flags.get(key),
+    has: (key: string) => flags.has(key),
+  };
 }

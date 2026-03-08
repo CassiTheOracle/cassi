@@ -1,4 +1,4 @@
-import { rootLogger } from '../logger.js'
+import { rootLogger, writeThoughtRequestLog, writeThoughtResultLog } from '../logger.js'
 import { signalPromise } from '../utils/abort.js'
 
 import type { BudgetTracker } from './budget-tracker.js'
@@ -258,17 +258,45 @@ export class CentralizedProvider implements IProvider {
     entry.model = reportedModel
 
     this.logger.info(`[request] ${requestId.slice(-12)} session=${sessionId.slice(-8)} model=${reportedModel}`)
+    writeThoughtRequestLog({
+      requestId,
+      provider: this.id,
+      model: reportedModel,
+      sessionId,
+      messages,
+      systemPrompt: opts.systemPrompt,
+      toolCount: opts.tools?.length ?? 0,
+      attachmentCount: Array.isArray(attachments) ? attachments.length : 0,
+      timeoutMs: (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS,
+    })
     this.bus.emit({
       type: 'provider:request_start',
       providerId: this.id,
       requestId,
       sessionId,
+      source: opts?.source ?? 'unknown',
+      trigger: opts?.trigger,
       model: rawModel,
       messageCount: messages.length,
+      timestamp: new Date(),
+    })
+    this.bus.emit({
+      type: 'provider:request_prompt',
+      providerId: this.id,
+      requestId,
+      sessionId,
+      source: opts?.source ?? 'unknown',
+      messages: messages.map(m => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      })),
+      systemPrompt: opts.systemPrompt,
+      timestamp: new Date(),
     })
 
     // ── 5. Execute with error handling and per-request timeout ──
     let completed = false
+    let inputTokens = 0
 
     // Merge provided signal with our timeout controller
     const requestedTimeoutMs = (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
@@ -276,6 +304,13 @@ export class CentralizedProvider implements IProvider {
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
     try {
+      try {
+        inputTokens = await this.wrapped.countTokens(messages)
+      } catch {
+        // Best-effort estimate only; streaming providers may still report more
+        // accurate structured usage that should override this fallback upstream.
+      }
+
       timeoutHandle = setTimeout(() => {
         try {
           entry.error = `timeout after ${requestedTimeoutMs}ms`
@@ -285,6 +320,13 @@ export class CentralizedProvider implements IProvider {
           this.lastErrorAt = Date.now()
           this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs })
           this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
+          writeThoughtResultLog('● THOUGHT  timeout', {
+            requestId,
+            provider: this.id,
+            model: reportedModel,
+            sessionId,
+            timeoutMs: requestedTimeoutMs,
+          })
         } catch (err) { /* best-effort */ }
         try { controller.abort() } catch (err) { /* best-effort */ }
       }, requestedTimeoutMs)
@@ -332,13 +374,25 @@ export class CentralizedProvider implements IProvider {
       this.lastErrorAt = Date.now()
 
       this.logger.error(`[error] ${requestId.slice(-12)}: ${entry.error}`)
+      writeThoughtResultLog('● THOUGHT  error', {
+        requestId,
+        provider: this.id,
+        model: reportedModel,
+        sessionId,
+        error: entry.error,
+      })
       this.bus.emit({
         type: 'provider:request_error',
         providerId: this.id,
         requestId,
         sessionId,
+        source: opts?.source ?? 'unknown',
+        trigger: opts?.trigger,
+        model: rawModel,
         error: entry.error,
         consecutiveErrors: this.consecutiveErrors,
+        durationMs: Date.now() - entry.startedAt,
+        timestamp: new Date(),
       })
 
       throw err
@@ -357,15 +411,29 @@ export class CentralizedProvider implements IProvider {
         `[complete] ${requestId.slice(-12)} ${completed ? 'OK' : 'ERR'} ` +
         `tokens=${entry.tokensUsed} duration=${duration}ms`
       )
+      writeThoughtResultLog('▸ THOUGHT  complete', {
+        requestId,
+        provider: this.id,
+        model: reportedModel,
+        sessionId,
+        status: completed && !entry.error ? 'ok' : 'error',
+        tokensUsed: entry.tokensUsed,
+        durationMs: duration,
+        error: entry.error,
+      })
 
       this.bus.emit({
         type: 'provider:request_end',
         providerId: this.id,
         requestId,
         sessionId,
-        tokensUsed: entry.tokensUsed,
+        source: opts?.source ?? 'unknown',
+        trigger: opts?.trigger,
+        model: rawModel,
+        tokensUsed: { input: inputTokens, output: entry.tokensUsed, thinking: 0 },
         durationMs: duration,
         error: entry.error,
+        timestamp: new Date(),
       })
 
       // Record against budget tracker if wired (only counts metered models)

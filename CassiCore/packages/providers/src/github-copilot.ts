@@ -405,7 +405,8 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     const decoder = new TextDecoder()
     let buf = ''
-    let totalTokens = 0
+    let inputTokens = 0
+    let outputTokens = 0
     let currentTool: { id: string; name: string; inputJson: string } | null = null
 
     // STREAM STALL DETECTION: Track last chunk received time
@@ -470,11 +471,16 @@ export class GitHubCopilotProvider extends BaseProvider {
                 }
                 currentTool = null
               }
+            } else if (evtType === 'message_start') {
+              // Anthropic format: message_start contains input token count
+              const message = evt['message'] as Record<string, unknown>
+              const usage = message?.['usage'] as Record<string, unknown>
+              if (usage?.['input_tokens']) inputTokens = usage['input_tokens'] as number
             } else if (evtType === 'message_delta') {
               const usage = evt['usage'] as Record<string, unknown>
-              if (usage?.['output_tokens']) totalTokens = usage['output_tokens'] as number
+              if (usage?.['output_tokens']) outputTokens = usage['output_tokens'] as number
             } else if (evtType === 'message_stop') {
-              yield { type: 'done', tokensUsed: totalTokens, model }
+              yield { type: 'done', tokensUsed: inputTokens + outputTokens, model }
             }
           } catch { /* skip malformed events */ }
         }
@@ -503,6 +509,7 @@ export class GitHubCopilotProvider extends BaseProvider {
       model,
       messages: toOpenAIMessages(messages, attachmentMap),
       stream: true,
+      stream_options: { include_usage: true },
       max_tokens: opts.maxTokens ?? 4096,
     }
     if (opts.tools?.length) {
@@ -545,6 +552,7 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     const decoder = new TextDecoder()
     let buf = ''
+    let totalTokens = 0
     const toolCallAccum: Map<number, { id: string; name: string; argsJson: string }> = new Map()
 
     // STREAM STALL DETECTION: Track last chunk received time
@@ -576,11 +584,18 @@ export class GitHubCopilotProvider extends BaseProvider {
               yield { type: 'tool_use', toolCall: { id: tc.id, name: tc.name, input: parsed } }
             }
             toolCallAccum.clear()
-            yield { type: 'done', model }
+            yield { type: 'done', tokensUsed: totalTokens, model }
             continue
           }
           try {
             const evt = JSON.parse(data) as Record<string, unknown>
+
+            // OpenAI includes usage on the final chunk when stream_options.include_usage is true
+            const usage = evt['usage'] as Record<string, unknown> | undefined
+            if (usage) {
+              totalTokens = (usage['total_tokens'] as number) || 0
+            }
+
             const choices = evt['choices'] as Array<Record<string, unknown>>
             const delta = choices?.[0]?.['delta'] as Record<string, unknown>
             if (!delta) continue

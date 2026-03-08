@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto';
 type HostMessage =
   | { type: 'init'; config: { port?: number } }
   | { type: 'config:update'; config: Record<string, unknown> }
-  | { type: 'message'; payload: { sessionId: string; content: string } }
+  | { type: 'message'; payload: { sessionId: string; content: string; done?: boolean } }
   | { type: 'shutdown' };
 
 type WorkerMessage =
@@ -18,6 +18,9 @@ const clients = new Map<string, ServerResponse>();
 let serverPort = 3000;
 let server = createServer(requestListener);
 let keepAliveTimers = new Map<string, NodeJS.Timeout>();
+const responseBuffers = new Map<string, string>();
+const browserToDaemonSession = new Map<string, string>();
+const daemonToBrowserSession = new Map<string, string>();
 
 function requestListener(req: IncomingMessage, res: ServerResponse) {
   const url = req.url || '/';
@@ -39,6 +42,8 @@ function requestListener(req: IncomingMessage, res: ServerResponse) {
         }
 
         // Send to host
+        browserToDaemonSession.set(sessionId, sessionId);
+        daemonToBrowserSession.set(sessionId, sessionId);
         const msg: WorkerMessage = { type: 'message', payload: { sessionId, content } };
         parentPort?.postMessage(msg);
 
@@ -149,18 +154,25 @@ function serveHtml(res: ServerResponse) {
   document.getElementById('sessionId').textContent = sessionId;
 
   const messagesEl = document.getElementById('messages');
-  function appendToken(text){ const span = document.createElement('div'); span.className='token'; span.textContent = text; messagesEl.appendChild(span); messagesEl.scrollTop = messagesEl.scrollHeight; }
+  const assistantEls = new Map();
+  function ensureAssistant(sessionKey){
+    let el = assistantEls.get(sessionKey);
+    if(!el){ el = document.createElement('div'); el.className='token'; assistantEls.set(sessionKey, el); messagesEl.appendChild(el); }
+    return el;
+  }
+  function appendUser(text){ const span = document.createElement('div'); span.className='token'; span.textContent = text; messagesEl.appendChild(span); messagesEl.scrollTop = messagesEl.scrollHeight; }
+  function setAssistant(text){ const el = ensureAssistant(sessionId); el.textContent = text; messagesEl.scrollTop = messagesEl.scrollHeight; }
 
   // SSE
   const es = new EventSource('/stream/' + sessionId);
-  es.onmessage = function(e){ try{ const parsed = JSON.parse(e.data); if(parsed && parsed.content) appendToken(parsed.content); }catch(err){ appendToken(e.data); } };
+  es.onmessage = function(e){ try{ const parsed = JSON.parse(e.data); if(parsed && typeof parsed.content === 'string'){ setAssistant(parsed.content); } }catch(err){ setAssistant(String(e.data||'')); } };
   es.onerror = function(){ console.warn('SSE error'); }
 
   document.getElementById('send').addEventListener('click', send);
   document.getElementById('clear').addEventListener('click', ()=>{ messagesEl.innerHTML=''; });
   document.getElementById('input').addEventListener('keydown', function(e){ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ send(); } });
 
-  function send(){ const ta = document.getElementById('input'); const content = ta.value.trim(); if(!content) return; ta.value=''; appendToken('> ' + content); fetch('/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ sessionId: sessionId, content })}).then(r=>r.json()).then(()=>{}).catch(console.error);
+  function send(){ const ta = document.getElementById('input'); const content = ta.value.trim(); if(!content) return; ta.value=''; appendUser('> ' + content); assistantEls.delete(sessionId); fetch('/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ sessionId: sessionId, content })}).then(r=>r.json()).then(()=>{}).catch(console.error);
   }
 })();
 </script>
@@ -224,13 +236,26 @@ parentPort?.on('message', (m: HostMessage) => {
 
     if (m.type === 'message') {
       const payload = m.payload;
-      const sse = clients.get(payload.sessionId);
+      const browserSessionId = daemonToBrowserSession.get(payload.sessionId) ?? payload.sessionId;
+      if (!daemonToBrowserSession.has(payload.sessionId) && clients.has(payload.sessionId)) {
+        daemonToBrowserSession.set(payload.sessionId, payload.sessionId);
+        browserToDaemonSession.set(payload.sessionId, payload.sessionId);
+      }
+      const sse = clients.get(browserSessionId);
+      const existing = responseBuffers.get(browserSessionId) ?? '';
+      if (typeof payload.content === 'string' && payload.content) {
+        responseBuffers.set(browserSessionId, existing + payload.content);
+      }
       if (sse && !sse.destroyed) {
         try {
-          sse.write('data: ' + JSON.stringify({ content: payload.content }) + '\n\n');
+          const full = responseBuffers.get(browserSessionId) ?? existing;
+          sse.write('data: ' + JSON.stringify({ content: full, done: Boolean(payload.done) }) + '\n\n');
         } catch (e) {
           // ignore write errors
         }
+      }
+      if (payload.done) {
+        responseBuffers.delete(browserSessionId);
       }
     }
 

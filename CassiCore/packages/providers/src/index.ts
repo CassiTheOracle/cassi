@@ -80,9 +80,7 @@ export function createProviders(
     try {
       const kimiProv = new KimiCodingProvider(kimiCodingKey)
       rawProviders.set('kimi-coding', kimiProv)
-      // Legacy alias: some configs refer to 'kimi'
-      rawProviders.set('kimi', kimiProv)
-      logger.info('Provider loaded: kimi-coding (aliases: kimi-coding, kimi)')
+      logger.info('Provider loaded: kimi-coding')
     } catch (err) {
       logger.warn(`failed to load kimi-coding provider: ${String(err)}`)
     }
@@ -274,6 +272,100 @@ export function createProviders(
   //   logger.info(`Centralized request management enabled for ${wrapped.size} provider(s)`)
   //   return wrapped as Map<string, IProvider>
   // }
+
+  // ── Lightweight observability tap ────────────────────────────────────────────
+  // Without full CentralizedProvider wrapping, we still want provider:request_start
+  // and provider:request_end events on the bus so `cassicore llm events` and the
+  // admin API /events/stream can surface LLM activity. We wrap each provider's
+  // complete() with a thin async generator shim — no dedup, no rate-limiting,
+  // just timing and token counting.
+  if (bus) {
+    for (const [providerId, provider] of rawProviders) {
+      const originalComplete = provider.complete.bind(provider)
+      provider.complete = async function* tapComplete(
+        messages: import('../../types/runtime.js').Message[],
+        opts: import('../../types/runtime.js').CompletionOpts,
+      ) {
+        const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        const sessionId = (opts as any)?.sessionId ?? 'unknown'
+        const source = opts?.source ?? 'unknown'
+        const trigger = opts?.trigger ?? undefined
+        const model = opts?.model ?? (provider as any).model ?? '?'
+        const startMs = Date.now()
+        let tokensIn = 0
+        let tokensOut = 0
+        let thinkingTokens = 0
+        let errored = false
+
+        bus.emit({ type: 'provider:request_start', providerId, requestId, sessionId, source, model, messageCount: messages.length, timestamp: new Date() })
+        bus.emit({
+          type: 'provider:request_prompt',
+          providerId,
+          requestId,
+          sessionId,
+          source,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+          })),
+          systemPrompt: opts?.systemPrompt,
+          timestamp: new Date(),
+        })
+
+        try {
+          try {
+            tokensIn = await provider.countTokens(messages)
+          } catch {
+            // Best-effort estimate only; providers that report structured usage
+            // will override this fallback later.
+          }
+
+          for await (const chunk of originalComplete(messages, opts)) {
+            if (chunk.type === 'token') {
+              tokensOut += (chunk.text?.length ?? 0)
+              if (chunk.text) bus.emit({ type: 'provider:request_chunk', providerId, requestId, sessionId, source, trigger, model, chunkType: 'token', text: chunk.text, timestamp: new Date() })
+            } else if (chunk.type === 'thinking') {
+              thinkingTokens += (chunk.text?.length ?? 0)
+              if (chunk.text) bus.emit({ type: 'provider:request_chunk', providerId, requestId, sessionId, source, trigger, model, chunkType: 'thinking', text: chunk.text, timestamp: new Date() })
+            } else if (chunk.type === 'tool_use' && chunk.toolCall) {
+              bus.emit({ type: 'provider:request_chunk', providerId, requestId, sessionId, source, trigger, model, chunkType: 'tool_use', toolCall: chunk.toolCall, timestamp: new Date() })
+            } else if (chunk.type === 'done' && (chunk as any).tokensUsed != null) {
+              const t = (chunk as any).tokensUsed
+              if (typeof t === 'number') {
+                // Provider reported a single total (e.g. output_tokens only)
+                tokensOut = t || tokensOut
+              } else if (typeof t === 'object') {
+                tokensIn = t.input ?? tokensIn
+                tokensOut = t.output ?? tokensOut
+                if (t.thinking != null) thinkingTokens = t.thinking
+              }
+            }
+            yield chunk
+          }
+        } catch (err) {
+          errored = true
+          bus.emit({ type: 'provider:request_error', providerId, requestId, sessionId, source, trigger, model, error: String(err), durationMs: Date.now() - startMs, timestamp: new Date() })
+          throw err
+        } finally {
+          if (!errored) {
+              bus.emit({
+                type: 'provider:request_end',
+                providerId,
+                requestId,
+                sessionId,
+                source,
+                trigger,
+                model,
+                tokensUsed: { input: tokensIn, output: tokensOut, thinking: thinkingTokens },
+                durationMs: Date.now() - startMs,
+                timestamp: new Date(),
+              })
+          }
+        }
+      } as any
+    }
+    logger.info(`Observability tap installed on ${rawProviders.size} provider(s)`)
+  }
 
   logger.info(`${rawProviders.size} provider(s) loaded (direct mode)`)
   return rawProviders
