@@ -77,6 +77,7 @@ export class TurnHandler {
     onStreamEvent?: StreamEventCallback
   ): Promise<TurnResult> {
     const startTime = Date.now();
+    const [providerId = 'unknown'] = session.model.split('/');
     
     try {
       // 1. Build messages
@@ -101,6 +102,8 @@ export class TurnHandler {
       
       this.logger.info('Turn processed', {
         sessionId: session.id,
+        provider: providerId,
+        model: session.model,
         durationMs,
         tokensUsed: loopResult.tokensUsed,
         toolRounds: loopResult.roundsUsed,
@@ -123,6 +126,8 @@ export class TurnHandler {
       
       this.logger.error('Turn processing failed', {
         sessionId: session.id,
+        provider: providerId,
+        model: session.model,
         durationMs,
         error: String(error)
       });

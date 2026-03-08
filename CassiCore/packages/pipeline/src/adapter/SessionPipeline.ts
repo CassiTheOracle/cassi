@@ -21,7 +21,7 @@ import {
   type TurnMetadata,
   type StreamEventCallback
 } from '../index.js';
-import { getModelSpec } from '../../config/system-settings.js';
+import { getModelSpec, MODEL_DEFAULTS } from '../../config/system-settings.js';
 
 import type { IMemory } from '../../../types/intelligence.js';
 import type { IConfig, ILogger, IEventBus } from '../../../types/interfaces.js';
@@ -100,12 +100,21 @@ export class SessionPipeline {
     await this.store.initialize();
     
     // 2. Create session manager
+    const defaultProvider = this.options.config.get(
+      'intelligence.defaultProvider',
+      MODEL_DEFAULTS.main.provider,
+    );
+    const configuredDefaultModel = this.options.config.get(
+      'intelligence.defaultModel',
+      MODEL_DEFAULTS.main.model,
+    );
+    const defaultModel = configuredDefaultModel.includes('/')
+      ? configuredDefaultModel
+      : `${defaultProvider}/${configuredDefaultModel}`;
+
     this.sessionManager = new SessionManager({
       store: this.store,
-      defaultModel: this.options.config.get(
-        'intelligence.defaultModel',
-        getModelSpec('fast')
-      ),
+      defaultModel,
       defaultSystemPrompt: this.loadSystemPrompt(),
       logger: this.logger.child('session-manager')
     });
@@ -150,14 +159,21 @@ export class SessionPipeline {
       attachments?: Array<{ mediaType: string; data: string }>;
       signal?: AbortSignal;
       stream?: boolean; // Enable SSE streaming events
+      model?: string;   // Override model for this turn
     }
-  ): Promise<{ response: string; sessionId: string }> {
+  ): Promise<{ response: string; sessionId: string; model?: string; tokensUsed?: number; durationMs?: number }> {
     if (!this.initialized) {
       throw new Error('Session pipeline not initialized');
     }
 
     // 1. Get or create session
     const session = await this.sessionManager!.getOrCreate(channelId, senderId);
+    const startedAt = Date.now();
+
+    // Override session model if provided
+    if (options?.model && options.model !== 'unknown') {
+      session.model = options.model;
+    }
 
     // 2. Create request
     const request: TurnRequest = {
@@ -222,50 +238,82 @@ export class SessionPipeline {
           }
         : undefined;
 
-    // 3. Process turn with real-time streaming
-    const result = await this.turnHandler!.process(session, request, onStreamEvent);
-
-    // Emit done event (bookend) if streaming
-    if (options?.stream && this.eventBus) {
+    if (this.eventBus) {
       this.eventBus.emit({
-        type: 'worker:message' as any,
-        pluginId: `session:${session.id}`,
-        payload: {
-          type: 'turn:done',
-          sessionId: session.id,
-          model: result.model,
-          tokensUsed: result.tokensUsed,
-          durationMs: result.durationMs,
-          timestamp: Date.now()
-        }
+        type: 'turn:start' as any,
+        sessionId: session.id,
+        message: content,
+        timestamp: new Date()
       } as any);
     }
 
-    // 4. Update session
-    await this.sessionManager!.addTurn(
-      session.id,
-      content,
-      result.response,
-      {
-        tokensUsed: result.tokensUsed,
-        toolCalls: result.toolCalls
+    try {
+      // 3. Process turn with real-time streaming
+      const result = await this.turnHandler!.process(session, request, onStreamEvent);
+
+      // Emit done event (bookend) if streaming
+      if (options?.stream && this.eventBus) {
+        this.eventBus.emit({
+          type: 'worker:message' as any,
+          pluginId: `session:${session.id}`,
+          payload: {
+            type: 'turn:done',
+            sessionId: session.id,
+            model: result.model,
+            tokensUsed: result.tokensUsed,
+            durationMs: result.durationMs,
+            timestamp: Date.now()
+          }
+        } as any);
       }
-    );
 
-    // 5. Trigger background intelligence
-    this.intelligenceLayer!.process(session.id, {
-      userMessage: content,
-      assistantResponse: result.response,
-      toolCalls: result.toolCalls,
-      sessionHistory: session.messages,
-      availableTools: [],  // Would need to get from tool executor
-      timestamp: Date.now()
-    });
+      // 4. Update session
+      await this.sessionManager!.addTurn(
+        session.id,
+        content,
+        result.response,
+        {
+          tokensUsed: result.tokensUsed,
+          toolCalls: result.toolCalls
+        }
+      );
 
-    return {
-      response: result.response,
-      sessionId: session.id
-    };
+      if (this.eventBus) {
+        this.eventBus.emit({
+          type: 'turn:end' as any,
+          sessionId: session.id,
+          response: result.response,
+          durationMs: result.durationMs,
+          timestamp: new Date()
+        } as any);
+      }
+
+      // 5. Trigger background intelligence
+      this.intelligenceLayer!.process(session.id, {
+        userMessage: content,
+        assistantResponse: result.response,
+        toolCalls: result.toolCalls,
+        sessionHistory: session.messages,
+        availableTools: [],  // Would need to get from tool executor
+        timestamp: Date.now()
+      });
+
+      return {
+        response: result.response,
+        sessionId: session.id
+      };
+    } catch (err) {
+      if (this.eventBus) {
+        this.eventBus.emit({
+          type: 'turn:end' as any,
+          sessionId: session.id,
+          response: `Error processing request: ${String(err)}`,
+          durationMs: Date.now() - startedAt,
+          timestamp: new Date()
+        } as any);
+      }
+      throw err;
+    }
   }
   
   /**
@@ -273,6 +321,13 @@ export class SessionPipeline {
    */
   getSessionManager(): SessionManager | undefined {
     return this.sessionManager;
+  }
+
+  /**
+   * Get intelligence layer for direct turn processing (e.g. captured external turns).
+   */
+  getIntelligenceLayer(): IntelligenceLayer | undefined {
+    return this.intelligenceLayer;
   }
   
   /**

@@ -205,7 +205,8 @@ export class ToolLoop {
       })),
       {
         model: model.split('/')[1] ?? model,
-        stream: true
+        stream: true,
+        source: 'session-pipeline',
       }
     );
     

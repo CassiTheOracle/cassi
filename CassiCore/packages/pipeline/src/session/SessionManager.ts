@@ -88,7 +88,9 @@ export class SessionManager {
     this.logger.info('New session created', { 
       sessionId, 
       channelId, 
-      senderId 
+      senderId,
+      provider: session.model.split('/')[0] ?? 'unknown',
+      model: session.model,
     });
     
     return session;

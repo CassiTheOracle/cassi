@@ -1,5 +1,10 @@
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+
 import type { LogLevel } from "../types/events.js";
 import type { ILogger } from "../types/interfaces.js";
+import type { Message } from '../types/runtime.js';
 
 // ─── ANSI escape codes ───────────────────────────────────────────────────────
 
@@ -59,6 +64,79 @@ function timeStamp(date = new Date()): string {
   const ss = String(date.getSeconds()).padStart(2, "0");
   const ms = String(date.getMilliseconds()).padStart(3, "0");
   return `${hh}:${mm}:${ss}.${ms}`;
+}
+
+const THOUGHT_LOG_DIR = join(homedir(), '.cassi');
+const THOUGHT_LOG_PATH = join(THOUGHT_LOG_DIR, 'thought.log');
+
+function appendThoughtLine(line: string): void {
+  try {
+    mkdirSync(THOUGHT_LOG_DIR, { recursive: true });
+    appendFileSync(THOUGHT_LOG_PATH, `${line}\n`, 'utf8');
+  } catch {
+    // best effort only
+  }
+}
+
+export function writeThoughtLog(event: string, meta?: Record<string, unknown>): void {
+  const time = timeStamp();
+  const metaStr = meta && Object.keys(meta).length > 0 ? `  ${formatMeta(meta)}` : '';
+  appendThoughtLine(`${time} ${event}${metaStr}`);
+}
+
+function stringifyContent(value: Message['content']): string {
+  if (typeof value === 'string') return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return '[unserializable content]';
+  }
+}
+
+function indentBlock(text: string, prefix: string = '    '): string {
+  return text
+    .split('\n')
+    .map((line) => `${prefix}${line}`)
+    .join('\n');
+}
+
+export function writeThoughtRequestLog(args: {
+  provider: string;
+  model: string;
+  sessionId: string;
+  requestId: string;
+  messages: Message[];
+  systemPrompt?: string;
+  toolCount?: number;
+  attachmentCount?: number;
+  timeoutMs?: number;
+}): void {
+  const { provider, model, sessionId, requestId, messages, systemPrompt, toolCount, attachmentCount, timeoutMs } = args;
+  const time = timeStamp();
+
+  const header = `${time} ▸ THOUGHT  provider=${provider}  model=${model}  sessionId=${sessionId}  requestId=${requestId}`;
+  const meta = `${time} · META     messageCount=${messages.length}  toolCount=${toolCount ?? 0}  attachmentCount=${attachmentCount ?? 0}  timeoutMs=${timeoutMs ?? 0}`;
+
+  const blocks: string[] = [header, meta];
+
+  if (systemPrompt) {
+    blocks.push(`${time} · SYSTEM`);
+    blocks.push(indentBlock(systemPrompt));
+  }
+
+  messages.forEach((message, index) => {
+    blocks.push(`${time} · MESSAGE  index=${index}  role=${message.role}${message.name ? `  name=${message.name}` : ''}`);
+    blocks.push(indentBlock(stringifyContent(message.content)));
+  });
+
+  blocks.push(`${time} · END`);
+  appendThoughtLine(blocks.join('\n'));
+}
+
+export function writeThoughtResultLog(event: string, meta?: Record<string, unknown>): void {
+  const time = timeStamp();
+  const metaStr = meta && Object.keys(meta).length > 0 ? `  ${formatMeta(meta)}` : '';
+  appendThoughtLine(`${time} ${event}${metaStr}`);
 }
 
 // ─── Metadata formatter ──────────────────────────────────────────────────────
