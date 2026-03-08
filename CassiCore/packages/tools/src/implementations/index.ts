@@ -35,6 +35,7 @@ import { thinkDefinition, makeThinkHandler } from './think.js'
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { webSearchDefinition, webSearchHandler } from './web-search.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
+import { runTestsDefinition, runTestsHandler } from './run-tests.js'
 
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ISessionManager } from '../../../types/runtime.js'
@@ -88,6 +89,9 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   // Network
   registry.register(webFetchDefinition, webFetchHandler)
   registry.register(webSearchDefinition, webSearchHandler)
+
+  // Test runner (narrow-scope — vitest only, safe for critic use)
+  registry.register(runTestsDefinition, runTestsHandler)
 
   // Memory tools (requires memory module)
   if (deps.memory) {

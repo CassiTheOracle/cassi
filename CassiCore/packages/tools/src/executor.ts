@@ -1,4 +1,5 @@
 import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
+import { TTLCache } from '../utils/ttl-cache.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
 
@@ -12,9 +13,32 @@ import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
 const MAX_CONCURRENT = 20
 const ENABLE_SAFETY_GUARDS = true  // Can be disabled for debugging
 
+/** Short-lived cache key for permission decisions: "toolName:sha(input)" */
+function permissionCacheKey(toolName: string, input: Record<string, unknown>): string {
+  // Deterministic but fast — stable JSON stringification is overkill here;
+  // collisions just cause an extra judge() call, which is the status quo.
+  let hash = 0
+  const str = JSON.stringify(input)
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0
+  }
+  return `${toolName}:${hash}`
+}
+
 export class ToolExecutor {
   private permissionOracle?: PermissionOracle
   private trustLedger?: TrustLedger
+
+  /**
+   * Short-term permission decision cache.
+   * Identical (tool, input) pairs within 5 seconds reuse the prior verdict,
+   * avoiding redundant risk assessment and event emission for repetitive
+   * tool calls (e.g. reading 10 files in a loop).
+   */
+  private permissionCache = new TTLCache<string, { decision: string; reasoning: string }>({
+    maxSize: 200,
+    ttlMs: 5_000,
+  })
 
   constructor(
     private registry: ToolRegistry,
@@ -43,6 +67,7 @@ export class ToolExecutor {
   }
 
   async execute(call: ToolCall, sessionId: string): Promise<ToolResult> {
+    const executeStartMs = Date.now()
     // Prefer serena (MCP) implementations for core file operations when available.
     // Strategy:
     // 1. Try exact tool name (as registered)
@@ -86,6 +111,7 @@ export class ToolExecutor {
     }
 
     if (!entry) {
+      this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
       return { toolCallId: call.id, content: `Unknown tool: ${call.name}`, isError: true }
     }
 
@@ -97,6 +123,7 @@ export class ToolExecutor {
       const inputValidation = validateToolInput(call.name, call.input)
       if (!inputValidation.valid) {
         this.emitSafetyEvent(sessionId, call.name, 'input_validation_failed', inputValidation.errors)
+        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
           content: `Safety check failed: ${inputValidation.errors.join(', ')}`,
@@ -112,41 +139,72 @@ export class ToolExecutor {
     // If a Permission Oracle is wired, assess risk before execution.
     // This is the core of graduated autonomy: low-risk actions auto-proceed,
     // high-risk actions require human approval.
+    //
+    // A short-lived TTL cache deduplicates identical (tool, input) pairs
+    // within a 5-second window to avoid redundant risk assessment, event
+    // emission, and trust pipeline processing for repetitive tool calls.
     if (this.permissionOracle) {
-      const verdict = this.permissionOracle.judge(call.name, call.input, sessionId)
+      const cacheKey = permissionCacheKey(call.name, call.input)
+      const cached = this.permissionCache.get(cacheKey)
 
-      if (verdict.decision === 'deny') {
+      if (cached?.decision === 'deny') {
+        // Replay cached denial without re-running the full pipeline
+        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
-          content: `Permission denied: ${verdict.reasoning}` +
-            ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
+          content: `Permission denied (cached): ${cached.reasoning}`,
           isError: true,
         }
       }
 
-      if (verdict.decision === 'escalate') {
-        // Block execution until human approves or timeout fires.
-        // The Permission Oracle's requestApproval() returns a Promise that
-        // resolves when the admin API receives an approve/reject, or when
-        // the configured timeout expires (fallback to escalation default).
-        this.emitSafetyEvent(sessionId, call.name, 'permission_escalated', [
-          verdict.reasoning,
-          `risk=${verdict.riskAssessment.riskScore.toFixed(2)}`,
-          `trust=${verdict.trustScore.score.toFixed(2)}`,
-          `threshold=${verdict.effectiveThreshold.toFixed(2)}`,
-        ])
+      // Only run full judge() if no cached 'allow' exists
+      if (!cached || cached.decision !== 'allow') {
+        const verdict = this.permissionOracle.judge(call.name, call.input, sessionId)
 
-        const approved = await this.permissionOracle.requestApproval(verdict)
+        // Cache the decision for subsequent identical calls
+        this.permissionCache.set(cacheKey, {
+          decision: verdict.decision,
+          reasoning: verdict.reasoning,
+        })
 
-        if (!approved) {
+        if (verdict.decision === 'deny') {
+          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
-            content: `Permission denied (human rejected or timed out): ${verdict.reasoning}` +
+            content: `Permission denied: ${verdict.reasoning}` +
               ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
             isError: true,
           }
         }
-        // Human approved — proceed with execution
+
+        if (verdict.decision === 'escalate') {
+          // Escalate decisions are never cached — human must decide each time
+          this.permissionCache.delete(cacheKey)
+
+          // Block execution until human approves or timeout fires.
+          // The Permission Oracle's requestApproval() returns a Promise that
+          // resolves when the admin API receives an approve/reject, or when
+          // the configured timeout expires (fallback to escalation default).
+          this.emitSafetyEvent(sessionId, call.name, 'permission_escalated', [
+            verdict.reasoning,
+            `risk=${verdict.riskAssessment.riskScore.toFixed(2)}`,
+            `trust=${verdict.trustScore.score.toFixed(2)}`,
+            `threshold=${verdict.effectiveThreshold.toFixed(2)}`,
+          ])
+
+          const approved = await this.permissionOracle.requestApproval(verdict)
+
+          if (!approved) {
+            this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+            return {
+              toolCallId: call.id,
+              content: `Permission denied (human rejected or timed out): ${verdict.reasoning}` +
+                ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
+              isError: true,
+            }
+          }
+          // Human approved — proceed with execution
+        }
       }
     }
 
@@ -164,6 +222,7 @@ export class ToolExecutor {
           this.emitSafetyEvent(sessionId, call.name, safeResult.errorType || 'execution', [safeResult.error || 'Unknown error'])
           // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
           this.recordToolOutcome(call.name, false, sessionId, `Tool failed: ${safeResult.errorType || 'execution'}`)
+          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
             content: `Tool failed: ${safeResult.error || 'Unknown error'} (${safeResult.errorType || 'execution'})`,
@@ -177,6 +236,7 @@ export class ToolExecutor {
           this.emitSafetyEvent(sessionId, call.name, 'output_validation_failed', outputValidation.errors)
           // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
           this.recordToolOutcome(call.name, false, sessionId, `Output validation failed`)
+          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
             content: `Output validation failed: ${outputValidation.errors.join(', ')}`,
@@ -186,6 +246,7 @@ export class ToolExecutor {
 
         // ── OUTCOME FEEDBACK: success ──────────────────────────────────
         this.recordToolOutcome(call.name, true, sessionId, `Executed successfully`)
+        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, false)
         return { toolCallId: call.id, content: String(safeResult.data), isError: false }
       } else {
         // Legacy execution (safety disabled)
@@ -200,12 +261,14 @@ export class ToolExecutor {
         ])
         // ── OUTCOME FEEDBACK: success (legacy path) ───────────────────
         this.recordToolOutcome(call.name, true, sessionId, `Executed successfully (legacy)`)
+        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, false)
         return { toolCallId: call.id, content: result, isError: false }
       }
     } catch (err) {
       this.emitSafetyEvent(sessionId, call.name, 'execution', [String(err)])
       // ── OUTCOME FEEDBACK: failure (exception) ─────────────────────
       this.recordToolOutcome(call.name, false, sessionId, `Exception: ${String(err).slice(0, 200)}`)
+      this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
       return { toolCallId: call.id, content: String(err), isError: true }
     }
   }
@@ -264,6 +327,28 @@ export class ToolExecutor {
       toolName,
       eventType,
       details,
+      timestamp: new Date(),
+    })
+  }
+
+  /**
+   * Emit tool:executed event for observability.
+   * Consumed by the Thinker module to trigger insight cycles based on tool activity.
+   */
+  private emitToolExecuted(
+    sessionId: string,
+    toolName: string,
+    durationMs: number,
+    isError: boolean,
+  ): void {
+    if (!this.eventBus) return
+
+    this.eventBus.emit({
+      type: 'tool:executed',
+      sessionId,
+      toolName,
+      durationMs,
+      isError,
       timestamp: new Date(),
     })
   }
