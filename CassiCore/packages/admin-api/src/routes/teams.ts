@@ -1,5 +1,7 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
+import type { TriadTeamOrchestrator } from '../intelligence/triad-team/index.js'
+import type { TriadTeamSession, TriadTeamEventType } from '../../types/triad-team.js'
 
 export interface TeamsRoutesDeps {
   daemon: any
@@ -14,23 +16,62 @@ export interface TeamsRoutesDeps {
   buildHandoffContext?: (sessionId: string) => Promise<string>
 }
 
+/**
+ * Resolve the triad-team orchestrator from the daemon.
+ * Falls back to legacy teamOrchestrator if triadTeam is not available.
+ */
+function getOrchestrator(daemon: any): TriadTeamOrchestrator | undefined {
+  return daemon.intelligence?.triadTeam as TriadTeamOrchestrator | undefined
+}
+
+/**
+ * Resolve a team ID, defaulting to the most recent active or last team.
+ */
+function resolveTeamId(tt: TriadTeamOrchestrator, teamId?: string): string | undefined {
+  if (teamId) return teamId
+  const teams = tt.listTeams()
+  const active = teams.find(t => t.status === 'running' || t.status === 'paused' || t.status === 'planning')
+  return active?.id ?? teams[teams.length - 1]?.id
+}
+
+/**
+ * Serialize a TriadTeamSession for JSON transport.
+ * Maps are not JSON-serializable, so we convert them.
+ */
+function serializeSession(session: TriadTeamSession): Record<string, unknown> {
+  return {
+    id: session.id,
+    status: session.status,
+    config: session.config,
+    budget: session.budget,
+    rootCellId: session.rootCellId,
+    cells: Object.fromEntries(session.cells),
+    cellGoalMap: Object.fromEntries(session.cellGoalMap),
+    createdAt: session.createdAt,
+    startedAt: session.startedAt,
+    completedAt: session.completedAt,
+    finalResult: session.finalResult,
+    eventLog: session.eventLog,
+  }
+}
+
 export async function handleTeamsRoutes(
   deps: TeamsRoutesDeps,
   req: http.IncomingMessage,
   res: http.ServerResponse,
   method: string
 ): Promise<boolean> {
-  const { daemon, logger, sendJSON, parseBody, url, parts, sseConnections, sseConnectionId, resolveLatestTeamId, buildHandoffContext } = deps
+  const { daemon, logger, sendJSON, parseBody, url, parts, sseConnections, sseConnectionId, buildHandoffContext } = deps
 
   if (parts[0] !== 'teams') return false
 
-  const to = daemon.intelligence?.teamOrchestrator as any
+  const tt = getOrchestrator(daemon)
 
   // POST /teams
   if (parts.length === 1 && method === 'POST') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const body = await parseBody(req)
@@ -51,34 +92,78 @@ export async function handleTeamsRoutes(
         }
       }
 
-      const config = {
-        goal: enrichedGoal,
-        name: body.name || undefined,
-        budget: {
-          maxTokens: body.maxTokens || 500_000,
-          maxAgents: body.maxAgents || 5,
-          maxDepth: body.maxDepth || 4,
-          maxDurationMs: body.maxDurationMs || 60 * 60_000,
-        },
-        checkpoint: {
-          mode: body.checkpointMode || 'cassi',
-          budgetThresholdPct: body.budgetThresholdPct || 50,
-          completedGoalsInterval: body.completedGoalsInterval || 3,
-          autoApproveTimeoutMs: body.autoApproveTimeoutMs || 5 * 60_000,
-        },
-        provider: body.provider || undefined,
-        defaultProvider: body.provider
-          ? { providerId: body.provider, model: body.model || undefined }
-          : undefined,
-        allowDestructive: body.allowDestructive || false,
-        supervisorSessionId: body.sessionId || undefined,
+      // Handle both nested provider object and flat provider/model fields
+      let providerConfig: { providerId?: string; model?: string; temperature?: number; maxTokens?: number; thinking?: 'none' | 'low' | 'medium' | 'high' } | undefined
+      if (body.provider && typeof body.provider === 'object') {
+        // Nested: { provider: { providerId: "...", model: "..." } }
+        providerConfig = {
+          providerId: body.provider.providerId,
+          model: body.provider.model || body.model || undefined,
+          temperature: body.provider.temperature ?? body.temperature,
+          maxTokens: body.provider.maxTokens ?? body.maxTokens,
+          thinking: body.provider.thinking ?? body.thinking,
+        }
+      } else if (body.provider && typeof body.provider === 'string') {
+        // Flat: { provider: "github-copilot", model: "gpt-5-mini" }
+        providerConfig = {
+          providerId: body.provider,
+          model: body.model || undefined,
+          temperature: body.temperature,
+          maxTokens: body.maxTokens,
+          thinking: body.thinking,
+        }
       }
 
-      const team = to.createTeam(config)
+      // Also handle budget from nested body.budget or flat fields
+      const budgetConfig = body.budget && typeof body.budget === 'object'
+        ? {
+            maxTokens: body.budget.maxTokens || body.maxTokens || 2_000_000,
+            maxCells: body.budget.maxCells || body.maxCells || body.maxAgents || 20,
+            maxDepth: body.budget.maxDepth || body.maxDepth || 3,
+            maxDurationMs: body.budget.maxDurationMs || body.maxDurationMs || 4 * 60 * 60_000,
+            maxToolIterationsPerMember: body.budget.maxToolIterationsPerMember || body.maxToolIterationsPerMember || 50,
+          }
+        : {
+            maxTokens: body.maxTokens || 2_000_000,
+            maxCells: body.maxCells || body.maxAgents || 20,
+            maxDepth: body.maxDepth || 3,
+            maxDurationMs: body.maxDurationMs || 4 * 60 * 60_000,
+            maxToolIterationsPerMember: body.maxToolIterationsPerMember || 50,
+          }
+
+      // Handle checkpoint from nested or flat
+      const checkpointConfig = body.checkpoint && typeof body.checkpoint === 'object'
+        ? {
+            mode: body.checkpoint.mode || 'none',
+            supervisorSessionId: body.checkpoint.supervisorSessionId || body.sessionId || undefined,
+            autoApproveTimeoutMs: body.checkpoint.autoApproveTimeoutMs || 5 * 60_000,
+            budgetThresholds: body.checkpoint.budgetThresholds || [0.5, 0.75, 0.9],
+            completedGoalsInterval: body.checkpoint.completedGoalsInterval,
+          }
+        : body.checkpointMode ? {
+            mode: body.checkpointMode === 'cassi' ? 'cassi' : body.checkpointMode === 'human' ? 'human' : 'none',
+            supervisorSessionId: body.sessionId || undefined,
+            autoApproveTimeoutMs: body.autoApproveTimeoutMs || 5 * 60_000,
+            budgetThresholds: body.budgetThresholds || [0.5, 0.75, 0.9],
+            completedGoalsInterval: body.completedGoalsInterval,
+          } : undefined
+
+      const teamId = await tt.createTeam({
+        goal: enrichedGoal,
+        name: body.name || undefined,
+        provider: providerConfig,
+        budget: budgetConfig,
+        checkpoint: checkpointConfig,
+        maxDepth: budgetConfig.maxDepth,
+        maxCells: budgetConfig.maxCells,
+        maxDurationMs: body.maxDurationMs || 4 * 60 * 60_000,
+        maxToolIterationsPerMember: body.maxToolIterationsPerMember || 50,
+        metadata: { sessionId: body.sessionId },
+      })
+
       sendJSON(res, 201, {
-        teamId: team.id,
-        status: team.status || 'created',
-        coordinatorAgentId: team.coordinatorAgentId || null,
+        teamId,
+        status: 'initializing',
       })
       return true
     } catch (err) {
@@ -90,18 +175,17 @@ export async function handleTeamsRoutes(
   // GET /teams
   if (parts.length === 1 && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const teams = to.listAllTeams().map((t: any) => ({
+      const teams = tt.listTeams().map(t => ({
         id: t.id,
         status: t.status,
-        goal: t.config?.goal,
-        startedAt: t.startedAt,
-        completedAt: t.completedAt,
-        agentCount: t.agentIds?.length || 0,
-        coordinatorAgentId: t.coordinatorAgentId,
+        name: t.name,
+        cellCount: t.cellCount,
+        tokensUsed: t.tokensUsed,
+        createdAt: t.createdAt,
       }))
       sendJSON(res, 200, { teams })
       return true
@@ -114,29 +198,24 @@ export async function handleTeamsRoutes(
   // GET /teams/status
   if (parts.length === 2 && parts[1] === 'status' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const teamId = url.searchParams.get('teamId') || undefined
-      let resolvedTeamId = teamId
-      if (!resolvedTeamId) {
-        const all = to.listAllTeams()
-        const active = all.find((t: any) => t.status === 'running' || t.status === 'paused')
-        resolvedTeamId = active?.id || all[all.length - 1]?.id
-      }
+      const resolvedTeamId = resolveTeamId(tt, teamId ?? undefined)
       if (!resolvedTeamId) {
         sendJSON(res, 404, { error: 'No teams found' })
         return true
       }
 
-      const status = to.getTeamStatus(resolvedTeamId)
-      if (!status) {
+      const session = tt.getTeamStatus(resolvedTeamId)
+      if (!session) {
         sendJSON(res, 404, { error: `Team ${resolvedTeamId} not found` })
         return true
       }
 
-      sendJSON(res, 200, status)
+      sendJSON(res, 200, serializeSession(session))
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -147,32 +226,31 @@ export async function handleTeamsRoutes(
   // GET /teams/tree
   if (parts.length === 2 && parts[1] === 'tree' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const teamId = url.searchParams.get('teamId') || undefined
-      let resolvedTeamId = teamId
-      if (!resolvedTeamId) {
-        const all = to.listAllTeams()
-        const active = all.find((t: any) => t.status === 'running' || t.status === 'paused')
-        resolvedTeamId = active?.id || all[all.length - 1]?.id
-      }
+      const resolvedTeamId = resolveTeamId(tt, teamId ?? undefined)
       if (!resolvedTeamId) {
         sendJSON(res, 404, { error: 'No teams found' })
         return true
       }
 
-      const goalTree = to.getGoalTree(resolvedTeamId)
-      if (!goalTree) {
-        sendJSON(res, 404, { error: `Team ${resolvedTeamId} has no goal tree` })
+      const session = tt.getTeamStatus(resolvedTeamId)
+      if (!session) {
+        sendJSON(res, 404, { error: `Team ${resolvedTeamId} not found` })
         return true
       }
 
+      // Build a tree visualization from cell hierarchy
+      const tree = buildCellTree(session)
+      const progress = buildCellProgress(session)
+
       sendJSON(res, 200, {
         teamId: resolvedTeamId,
-        tree: goalTree.renderTree(),
-        progress: goalTree.getProgressReport(),
+        tree,
+        progress,
       })
       return true
     } catch (err) {
@@ -184,18 +262,18 @@ export async function handleTeamsRoutes(
   // POST /teams/pause
   if (parts.length === 2 && parts[1] === 'pause' && method === 'POST') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const body = await parseBody(req)
-      const teamId = body?.teamId || resolveLatestTeamId(to)
+      const teamId = body?.teamId || resolveTeamId(tt)
       if (!teamId) {
         sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
         return true
       }
 
-      to.pauseTeam(teamId)
+      await tt.pauseTeam(teamId)
       sendJSON(res, 200, { teamId, status: 'paused' })
       return true
     } catch (err) {
@@ -207,18 +285,18 @@ export async function handleTeamsRoutes(
   // POST /teams/resume
   if (parts.length === 2 && parts[1] === 'resume' && method === 'POST') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const body = await parseBody(req)
-      const teamId = body?.teamId || resolveLatestTeamId(to)
+      const teamId = body?.teamId || resolveTeamId(tt)
       if (!teamId) {
         sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
         return true
       }
 
-      to.resumeTeam(teamId)
+      await tt.resumeTeam(teamId)
       sendJSON(res, 200, { teamId, status: 'running' })
       return true
     } catch (err) {
@@ -230,18 +308,18 @@ export async function handleTeamsRoutes(
   // POST /teams/cancel
   if (parts.length === 2 && parts[1] === 'cancel' && method === 'POST') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const body = await parseBody(req)
-      const teamId = body?.teamId || resolveLatestTeamId(to)
+      const teamId = body?.teamId || resolveTeamId(tt)
       if (!teamId) {
         sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
         return true
       }
 
-      await to.cancelTeam(teamId, body?.reason || 'Cancelled by user')
+      await tt.cancelTeam(teamId)
       sendJSON(res, 200, { teamId, status: 'cancelled' })
       return true
     } catch (err) {
@@ -253,12 +331,12 @@ export async function handleTeamsRoutes(
   // GET /teams/checkpoints
   if (parts.length === 2 && parts[1] === 'checkpoints' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const teamId = url.searchParams.get('teamId') || undefined
-      const checkpoints = to.listPendingCheckpoints(teamId)
+      const checkpoints = tt.getPendingCheckpoints(teamId)
       sendJSON(res, 200, { checkpoints })
       return true
     } catch (err) {
@@ -270,8 +348,8 @@ export async function handleTeamsRoutes(
   // POST /teams/checkpoints/:checkpointId
   if (parts.length === 3 && parts[1] === 'checkpoints' && method === 'POST') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const checkpointId = parts[2]
@@ -285,10 +363,7 @@ export async function handleTeamsRoutes(
         return true
       }
 
-      to.handleSupervisorResponse(checkpointId, {
-        action: body.action,
-        message: body.message || undefined,
-      })
+      await tt.respondToCheckpoint(checkpointId, body.action, body.message || undefined)
       sendJSON(res, 200, { checkpointId, action: body.action })
       return true
     } catch (err) {
@@ -300,20 +375,20 @@ export async function handleTeamsRoutes(
   // GET /teams/events
   if (parts.length === 2 && parts[1] === 'events' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
 
       let teamId = url.searchParams.get('teamId') || ''
-      if (!teamId) teamId = resolveLatestTeamId(to) || ''
+      if (!teamId) teamId = resolveTeamId(tt) || ''
       if (!teamId) {
         sendJSON(res, 404, { error: 'No active teams found' })
         return true
       }
 
-      const team = to.getTeam(teamId)
-      if (!team) {
+      const session = tt.getTeamStatus(teamId)
+      if (!session) {
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
@@ -321,7 +396,7 @@ export async function handleTeamsRoutes(
       const limitParam = url.searchParams.get('limit')
       const limit = limitParam ? parseInt(limitParam, 10) : 50
 
-      const eventLog = to.getTeamEventLog(teamId) || []
+      const eventLog = session.eventLog || []
       const events = eventLog.slice(-limit)
 
       sendJSON(res, 200, { teamId, total: eventLog.length, events })
@@ -335,8 +410,8 @@ export async function handleTeamsRoutes(
   // GET /teams/stream
   if (parts.length === 2 && parts[1] === 'stream' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
 
@@ -346,8 +421,8 @@ export async function handleTeamsRoutes(
         return true
       }
 
-      const team = to.getTeam(teamId)
-      if (!team) {
+      const session = tt.getTeamStatus(teamId)
+      if (!session) {
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
@@ -366,43 +441,28 @@ export async function handleTeamsRoutes(
         try {
           res.write(`event: ${eventType}\n`)
           res.write(`data: ${JSON.stringify(payload)}\n\n`)
-        } catch {}
+        } catch { /* SSE write failure */ }
       }
 
-      const status = to.getTeamStatus(teamId)
-      if (status) {
-        sendSSE('snapshot', {
-          teamId,
-          team: status.team,
-          goalTree: status.goalTree,
-          progress: status.progress,
-          activeAgents: status.activeAgents,
-          pendingCheckpoints: status.pendingCheckpoints,
-        })
-      }
-
+      // Send initial snapshot
+      sendSSE('snapshot', serializeSession(session))
       res.write(': connected\n\n')
 
-      const isTeamEvent = (event: any): boolean => {
-        if (event.teamId === teamId) return true
-        if (event.agentId && to.agentToTeam?.get(event.agentId) === teamId) return true
-        return false
-      }
-
-      const teamEventTypes = [
-        'team:started', 'team:completed', 'team:failed', 'team:cancelled',
-        'team:paused', 'team:resumed', 'team:budget:warning', 'team:checkpoint',
-        'agent:spawned', 'agent:completed', 'agent:error',
-        'autonomy:loop_started', 'autonomy:loop_stopped',
-        'autonomy:loop_paused', 'autonomy:loop_resumed',
-        'autonomy:iteration', 'autonomy:iteration_error',
-        'autonomy:delegation_requested', 'autonomy:blocked',
+      // Subscribe to triad-team events
+      const triadEventTypes: TriadTeamEventType[] = [
+        'triad-team:created', 'triad-team:started', 'triad-team:planning',
+        'triad-team:plan-complete', 'triad-team:cell-spawned', 'triad-team:cell-phase',
+        'triad-team:cell-completed', 'triad-team:cell-failed', 'triad-team:cell-degraded',
+        'triad-team:synthesis', 'triad-team:completed', 'triad-team:failed',
+        'triad-team:cancelled', 'triad-team:paused', 'triad-team:resumed',
+        'triad-team:checkpoint', 'triad-team:checkpoint:approved',
+        'triad-team:checkpoint:rejected', 'triad-team:budget-warning',
       ]
 
       const handlers: Array<{ type: string; handler: (e: any) => void }> = []
-      for (const eventType of teamEventTypes) {
+      for (const eventType of triadEventTypes) {
         const handler = (e: any) => {
-          if (!isTeamEvent(e)) return
+          if (e.teamId !== teamId) return
           sendSSE(e.type || eventType, e)
         }
         daemon.bus.on(eventType, handler)
@@ -412,13 +472,13 @@ export async function handleTeamsRoutes(
       const ping = setInterval(() => {
         try { res.write(': ping\n\n') } catch { clearInterval(ping) }
       }, 15_000)
-      try { (ping as any).unref?.() } catch {}
+      try { (ping as any).unref?.() } catch { /* unref not available */ }
 
       req.on('close', () => {
         clearInterval(ping)
         sseConnections.delete(connId)
         for (const { type, handler } of handlers) {
-          try { daemon.bus.off(type, handler) } catch {}
+          try { daemon.bus.off(type, handler) } catch { /* cleanup failure */ }
         }
       })
 
@@ -432,23 +492,18 @@ export async function handleTeamsRoutes(
   // GET /teams/:teamId
   if (parts.length === 2 && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const teamId = parts[1]
-      const team = to.getTeam(teamId)
-      if (!team) {
+      const session = tt.getTeamStatus(teamId)
+      if (!session) {
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
 
-      const goalTree = to.getGoalTree(teamId)
-      sendJSON(res, 200, {
-        team,
-        goalTree: goalTree?.renderTree(),
-        progress: goalTree?.getProgressReport(),
-      })
+      sendJSON(res, 200, serializeSession(session))
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -456,78 +511,258 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // POST /teams/agent/message
-  if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'message' && method === 'POST') {
+  // ── POST /teams/benchmark — Automated benchmark run with test verification ──
+  if (parts.length === 2 && parts[1] === 'benchmark' && method === 'POST') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const ds = daemon.sessionDigestStore
-      if (!ds) {
-        sendJSON(res, 503, { error: 'SessionDigestStore not available' })
-        return true
-      }
+
       const body = await parseBody(req)
-      if (!body?.toAgentId || !body?.message) {
-        sendJSON(res, 400, { error: 'toAgentId and message are required' })
+      if (!body?.goal) {
+        sendJSON(res, 400, { error: 'body.goal is required' })
         return true
       }
-      const fromSessionId = body.fromSessionId || body.agentId ? `agent:${body.agentId}` : 'external'
-      const toSessionId = `agent:${body.toAgentId}`
-      const msgId = ds.sendMessage(toSessionId, fromSessionId, body.message)
-      sendJSON(res, 200, { messageId: msgId, toAgentId: body.toAgentId })
+
+      // SSE response for long-running benchmark
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      })
+
+      let ended = false
+      const sendSSE = (eventType: string, payload: unknown) => {
+        if (ended || !res.writable) return
+        try {
+          res.write(`event: ${eventType}\ndata: ${JSON.stringify(payload)}\n\n`)
+        } catch { ended = true }
+      }
+
+      req.on('close', () => { ended = true })
+
+      // Parse config — same logic as POST /teams
+      let providerConfig: { providerId?: string; model?: string; temperature?: number; maxTokens?: number; thinking?: 'none' | 'low' | 'medium' | 'high' } | undefined
+      if (body.provider && typeof body.provider === 'object') {
+        providerConfig = {
+          providerId: body.provider.providerId,
+          model: body.provider.model || body.model || undefined,
+        }
+      } else if (body.provider && typeof body.provider === 'string') {
+        providerConfig = { providerId: body.provider, model: body.model || undefined }
+      }
+
+      const budgetConfig = body.budget && typeof body.budget === 'object'
+        ? { ...body.budget }
+        : { maxTokens: body.maxTokens || 300_000, maxCells: 3, maxDepth: body.maxDepth || 1, maxDurationMs: 600_000, maxToolIterationsPerMember: 50 }
+
+      sendSSE('benchmark:start', { goal: body.goal, provider: providerConfig })
+
+      const benchStart = Date.now()
+
+      // Create and start team
+      const teamId = await tt.createTeam({
+        goal: body.goal,
+        name: body.name || 'Benchmark',
+        provider: providerConfig,
+        budget: budgetConfig,
+        checkpoint: { mode: 'none' as const },
+        maxDepth: budgetConfig.maxDepth || 1,
+        maxCells: budgetConfig.maxCells || 3,
+      })
+
+      sendSSE('benchmark:team-created', { teamId })
+
+      // Subscribe to team events and forward them
+      const triadEventTypes = [
+        'triad-team:started', 'triad-team:planning', 'triad-team:plan-complete',
+        'triad-team:cell-spawned', 'triad-team:cell-phase', 'triad-team:cell-completed',
+        'triad-team:cell-failed', 'triad-team:completed', 'triad-team:failed',
+        'triad-team:cancelled',
+      ]
+      const handlers: Array<{ type: string; handler: (e: any) => void }> = []
+      for (const eventType of triadEventTypes) {
+        const handler = (e: any) => {
+          if (e.teamId === teamId) {
+            sendSSE('team-event', { type: eventType, ...e })
+          }
+        }
+        daemon.bus.on(eventType as any, handler)
+        handlers.push({ type: eventType, handler })
+      }
+
+      // Wait for team completion
+      const teamResult = await new Promise<any>((resolve) => {
+        const checkInterval = setInterval(() => {
+          const status = tt.getTeamStatus(teamId)
+          if (!status) {
+            clearInterval(checkInterval)
+            resolve({ status: 'error', error: 'Team not found' })
+            return
+          }
+          if (status.status === 'completed' || status.status === 'failed' || status.status === 'cancelled') {
+            clearInterval(checkInterval)
+            resolve(serializeSession(status))
+          }
+        }, 2000)
+
+        // Timeout safety
+        setTimeout(() => {
+          clearInterval(checkInterval)
+          const status = tt.getTeamStatus(teamId)
+          resolve(status ? serializeSession(status) : { status: 'timeout' })
+        }, (budgetConfig.maxDurationMs || 600_000) + 30_000)
+      })
+
+      // Unsubscribe from events
+      for (const { type, handler } of handlers) {
+        daemon.bus.off(type as any, handler)
+      }
+
+      const teamDuration = Date.now() - benchStart
+
+      sendSSE('benchmark:team-complete', {
+        teamId,
+        status: teamResult.status,
+        duration: teamDuration,
+        tokens: teamResult.budget?.tokensUsed || 0,
+        cells: teamResult.budget?.cellsSpawned || 0,
+        result: teamResult.finalResult?.slice(0, 500),
+      })
+
+      // Run tests if test paths specified
+      let testResults: any = null
+      const testPaths: string[] = body.testPaths || body.testPath ? [body.testPaths || body.testPath].flat() : []
+
+      if (testPaths.length > 0) {
+        sendSSE('benchmark:testing', { testPaths })
+
+        const { spawn } = await import('node:child_process')
+        for (const testPath of testPaths) {
+          try {
+            const testOutput = await new Promise<string>((resolve) => {
+              let output = ''
+              const proc = spawn('npx', ['vitest', 'run', testPath, '--reporter=verbose', '--no-color'], {
+                cwd: process.cwd(),
+                env: { ...process.env, FORCE_COLOR: '0' },
+              })
+              const timer = setTimeout(() => { proc.kill(); resolve(output + '\n(timeout)') }, 60_000)
+              proc.stdout.on('data', (d: Buffer) => { output += d.toString() })
+              proc.stderr.on('data', (d: Buffer) => { output += d.toString() })
+              proc.on('close', () => { clearTimeout(timer); resolve(output) })
+            })
+
+            // Parse test output
+            const passMatch = testOutput.match(/(\d+)\s+passed/)
+            const failMatch = testOutput.match(/(\d+)\s+failed/)
+            testResults = {
+              testPath,
+              passed: passMatch ? parseInt(passMatch[1]) : 0,
+              failed: failMatch ? parseInt(failMatch[1]) : 0,
+              output: testOutput.slice(0, 3000),
+            }
+
+            sendSSE('benchmark:test-result', testResults)
+          } catch (err) {
+            sendSSE('benchmark:test-error', { testPath, error: String(err) })
+          }
+        }
+      }
+
+      // Cleanup generated files if requested
+      const generatedFiles: string[] = []
+      if (body.cleanup) {
+        const fs = await import('node:fs/promises')
+        const path = await import('node:path')
+        for (const testPath of testPaths) {
+          // Find matching files using simple file existence checks
+          // Handle both exact paths and basic glob patterns
+          try {
+            if (testPath.includes('*')) {
+              // For glob patterns, list directory and match
+              const dir = path.dirname(testPath)
+              const pattern = path.basename(testPath).replace(/\*/g, '.*').replace(/\?/g, '.')
+              const regex = new RegExp(`^${pattern}$`)
+              const dirPath = path.join(process.cwd(), dir)
+              const entries = await fs.readdir(dirPath).catch(() => [] as string[])
+              for (const entry of entries) {
+                if (regex.test(entry)) {
+                  const relPath = path.join(dir, entry)
+                  generatedFiles.push(relPath)
+                  const implPath = relPath.replace('.test.ts', '.ts')
+                  try { await fs.access(path.join(process.cwd(), implPath)); generatedFiles.push(implPath) } catch { }
+                }
+              }
+            } else {
+              // Exact path
+              try { await fs.access(path.join(process.cwd(), testPath)); generatedFiles.push(testPath) } catch { }
+              const implPath = testPath.replace('.test.ts', '.ts')
+              try { await fs.access(path.join(process.cwd(), implPath)); generatedFiles.push(implPath) } catch { }
+            }
+          } catch { /* glob/list failed */ }
+        }
+
+        for (const file of generatedFiles) {
+          try {
+            await fs.unlink(path.join(process.cwd(), file))
+          } catch { /* file already gone */ }
+        }
+
+        if (generatedFiles.length > 0) {
+          sendSSE('benchmark:cleanup', { files: generatedFiles })
+        }
+      }
+
+      // Final benchmark report
+      const report = {
+        teamId,
+        status: teamResult.status,
+        duration: teamDuration,
+        tokens: teamResult.budget?.tokensUsed || 0,
+        cells: teamResult.budget?.cellsSpawned || 0,
+        phases: (teamResult.eventLog || [])
+          .filter((e: any) => e.type === 'triad-team:cell-phase')
+          .map((e: any) => e.data?.phase),
+        testResults,
+        generatedFiles,
+        result: teamResult.finalResult?.slice(0, 1000),
+      }
+
+      sendSSE('benchmark:complete', report)
+
+      if (!ended) {
+        res.end()
+      }
       return true
     } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
+      if (!res.headersSent) {
+        sendJSON(res, 500, { error: String(err) })
+      }
       return true
     }
+  }
+
+  // ── Legacy agent-based endpoints (stubs for backward compatibility) ────
+
+  // POST /teams/agent/message
+  if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'message' && method === 'POST') {
+    sendJSON(res, 410, { error: 'Agent messaging is not supported in triad-team mode. Cells coordinate via shared workspace.' })
+    return true
   }
 
   // GET /teams/agent/result
   if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'result' && method === 'GET') {
-    try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
-        return true
-      }
-      const agentId = url.searchParams.get('agentId')
-      if (!agentId) {
-        sendJSON(res, 400, { error: 'agentId query parameter is required' })
-        return true
-      }
-
-      for (const team of to.listAllTeams()) {
-        const goalId = team.agentGoalMap?.[agentId]
-        if (!goalId) continue
-        const goal = team.goals?.[goalId]
-        if (!goal) {
-          sendJSON(res, 404, { error: `Goal for agent ${agentId} not found` })
-          return true
-        }
-
-        sendJSON(res, 200, {
-          agentId,
-          teamId: team.id,
-          goalTitle: goal.title,
-          status: goal.status,
-          result: goal.result ?? null,
-        })
-        return true
-      }
-      sendJSON(res, 404, { error: `Agent ${agentId} not found in any team` })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 410, { error: 'Agent results are not supported in triad-team mode. Use GET /teams/status or GET /teams/:teamId instead.' })
+    return true
   }
 
   // GET /teams/agent/list
   if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'list' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const teamId = url.searchParams.get('teamId')
@@ -535,25 +770,27 @@ export async function handleTeamsRoutes(
         sendJSON(res, 400, { error: 'teamId query parameter is required' })
         return true
       }
-      const team = to.getTeam(teamId)
-      if (!team) {
+      const session = tt.getTeamStatus(teamId)
+      if (!session) {
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
 
-      const agents = (team.agentIds || []).map((aid: string) => {
-        const goalId = team.agentGoalMap?.[aid]
-        const goal = goalId ? team.goals?.[goalId] : undefined
-        return {
-          agentId: aid,
-          isCoordinator: aid === team.coordinatorAgentId,
-          goalId: goalId ?? null,
-          goalTitle: goal?.title ?? null,
-          goalStatus: goal?.status ?? 'unknown',
-          roleHint: goal?.roleHint ?? (aid === team.coordinatorAgentId ? 'team-coordinator' : null),
-        }
-      })
-      sendJSON(res, 200, { teamId, agents })
+      // Return cells as the "agent" equivalent
+      const cells = [...session.cells.values()].map(c => ({
+        cellId: c.cellId,
+        goalId: c.goalId,
+        goalTitle: c.goalTitle,
+        parentCellId: c.parentCellId,
+        childCellIds: c.childCellIds,
+        depth: c.depth,
+        status: c.status,
+        phase: c.phase,
+        tokensUsed: c.tokensUsed,
+        createdAt: c.createdAt,
+        completedAt: c.completedAt,
+      }))
+      sendJSON(res, 200, { teamId, cells })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -561,93 +798,23 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // POST /teams/agent/update-plan
+  // POST /teams/agent/update-plan — not applicable in triad-team mode
   if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'update-plan' && method === 'POST') {
-    try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
-        return true
-      }
-      const body = await parseBody(req)
-      if (!body?.teamId) {
-        sendJSON(res, 400, { error: 'teamId is required' })
-        return true
-      }
-
-      const goalTree = to.getGoalTree(body.teamId)
-      if (!goalTree) {
-        sendJSON(res, 404, { error: `Goal tree for team ${body.teamId} not found` })
-        return true
-      }
-
-      const results: any[] = []
-      if (body.addGoals && Array.isArray(body.addGoals)) {
-        for (const g of body.addGoals) {
-          if (!g.title || !g.parentGoalId) continue
-          const newId = goalTree.addSubGoal(g.parentGoalId, {
-            title: g.title,
-            description: g.description || '',
-            roleHint: g.roleHint || undefined,
-          })
-          results.push({ action: 'added', goalId: newId, title: g.title })
-        }
-      }
-      if (body.updateGoals && Array.isArray(body.updateGoals)) {
-        for (const g of body.updateGoals) {
-          if (!g.goalId) continue
-          if (g.status) goalTree.updateStatus(g.goalId, g.status, g.result || undefined)
-          results.push({ action: 'updated', goalId: g.goalId, status: g.status })
-        }
-      }
-
-      sendJSON(res, 200, { teamId: body.teamId, results })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 410, { error: 'Plan updates are managed internally by triad cells. Use checkpoints for steering.' })
+    return true
   }
 
-  // POST /teams/agent/complete-goal
+  // POST /teams/agent/complete-goal — not applicable in triad-team mode
   if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'complete-goal' && method === 'POST') {
-    try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
-        return true
-      }
-      const body = await parseBody(req)
-      if (!body?.teamId || !body?.goalId) {
-        sendJSON(res, 400, { error: 'teamId and goalId are required' })
-        return true
-      }
-
-      const goalTree = to.getGoalTree(body.teamId)
-      if (!goalTree) {
-        sendJSON(res, 404, { error: `Goal tree for team ${body.teamId} not found` })
-        return true
-      }
-
-      goalTree.updateStatus(body.goalId, body.success === false ? 'failed' : 'completed', {
-        summary: body.summary || '',
-        output: body.result || body.summary || '',
-        tokensUsed: body.tokensUsed || 0,
-        durationMs: body.durationMs || 0,
-        error: body.error || undefined,
-      })
-
-      sendJSON(res, 200, { teamId: body.teamId, goalId: body.goalId, status: body.success === false ? 'failed' : 'completed' })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 410, { error: 'Goal completion is managed internally by triad cells.' })
+    return true
   }
 
-  // GET /teams/agent/goal-tree
+  // GET /teams/agent/goal-tree — redirect to /teams/tree
   if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'goal-tree' && method === 'GET') {
     try {
-      if (!to) {
-        sendJSON(res, 503, { error: 'TeamOrchestrator not available' })
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
       const teamId = url.searchParams.get('teamId')
@@ -656,16 +823,16 @@ export async function handleTeamsRoutes(
         return true
       }
 
-      const goalTree = to.getGoalTree(teamId)
-      if (!goalTree) {
-        sendJSON(res, 404, { error: `Goal tree for team ${teamId} not found` })
+      const session = tt.getTeamStatus(teamId)
+      if (!session) {
+        sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
 
       sendJSON(res, 200, {
         teamId,
-        tree: goalTree.renderTree(),
-        progress: goalTree.getProgressReport(),
+        tree: buildCellTree(session),
+        progress: buildCellProgress(session),
       })
       return true
     } catch (err) {
@@ -675,4 +842,83 @@ export async function handleTeamsRoutes(
   }
 
   return false
+}
+
+// ── Helper functions ─────────────────────────────────────────────────────────
+
+/**
+ * Build a text tree visualization from cell hierarchy.
+ */
+function buildCellTree(session: TriadTeamSession): string {
+  const lines: string[] = []
+  const rootInfo = session.cells.get(session.rootCellId)
+  if (!rootInfo) return '(no cells)'
+
+  function renderCell(cellId: string, prefix: string, isLast: boolean): void {
+    const info = session.cells.get(cellId)
+    if (!info) return
+
+    const connector = isLast ? '└── ' : '├── '
+    const statusIcon = getStatusIcon(info.status)
+    const phaseInfo = info.phase !== 'idle' ? ` [${info.phase}]` : ''
+    lines.push(`${prefix}${connector}${statusIcon} ${info.goalTitle}${phaseInfo} (${info.tokensUsed} tokens)`)
+
+    const childPrefix = prefix + (isLast ? '    ' : '│   ')
+    for (let i = 0; i < info.childCellIds.length; i++) {
+      renderCell(info.childCellIds[i], childPrefix, i === info.childCellIds.length - 1)
+    }
+  }
+
+  const statusIcon = getStatusIcon(rootInfo.status)
+  const phaseInfo = rootInfo.phase !== 'idle' ? ` [${rootInfo.phase}]` : ''
+  lines.push(`${statusIcon} ${rootInfo.goalTitle}${phaseInfo} (${rootInfo.tokensUsed} tokens)`)
+
+  for (let i = 0; i < rootInfo.childCellIds.length; i++) {
+    renderCell(rootInfo.childCellIds[i], '', i === rootInfo.childCellIds.length - 1)
+  }
+
+  return lines.join('\n')
+}
+
+/**
+ * Build a progress report from cell statuses.
+ */
+function buildCellProgress(session: TriadTeamSession): Record<string, unknown> {
+  let total = 0
+  let completed = 0
+  let failed = 0
+  let inProgress = 0
+  let blocked = 0
+
+  for (const cell of session.cells.values()) {
+    total++
+    switch (cell.status) {
+      case 'completed': completed++; break
+      case 'failed': failed++; break
+      case 'executing': case 'planning': case 'synthesizing': inProgress++; break
+      case 'waiting': blocked++; break
+    }
+  }
+
+  const completionPct = total > 0 ? Math.round((completed / total) * 100) : 0
+
+  return { total, completed, failed, inProgress, blocked, completionPct }
+}
+
+/**
+ * Get a status icon for display.
+ */
+function getStatusIcon(status: string): string {
+  switch (status) {
+    case 'completed': return '[DONE]'
+    case 'failed': return '[FAIL]'
+    case 'executing': return '[EXEC]'
+    case 'planning': return '[PLAN]'
+    case 'synthesizing': return '[SYNTH]'
+    case 'waiting': return '[WAIT]'
+    case 'initializing': return '[INIT]'
+    case 'degraded': return '[DEGR]'
+    case 'cancelled': return '[CANCEL]'
+    default: return '[?]'
+  }
 }

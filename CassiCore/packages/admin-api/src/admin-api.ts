@@ -88,6 +88,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   const tcpHost = (daemon?.config?.get?.('admin.host', '127.0.0.1')) ?? '127.0.0.1'
   const baseTcpPort = Number(daemon?.config?.get?.('admin.port', 7433)) || 7433
   let currentTcpPort = baseTcpPort
+  let unixSocketInode: number | null = null
 
   // WebSocket connections store
   const wsConnections = new Map<string, WSConnection>()
@@ -879,7 +880,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     mode: string,
     focusTopics: string[],
   ): { aggressiveness: string; staleAfterTurns: number; keepToolOutputs: string[]; focusTopics: string[] } {
-    const keepToolOutputs = ['skill', 'cassicore_cassi_activity']
+    const keepToolOutputs = ['skill', 'cassi_activity']
 
     if (turnCount < 5 || complexity < 0.2) {
       return { aggressiveness: 'none', staleAfterTurns: 50, keepToolOutputs, focusTopics }
@@ -1991,7 +1992,15 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       unixServer.on('error', (e) => logger.warn(`unix server error: ${String(e)}`))
       await new Promise<void>((resolve, reject) => {
         unixServer!.listen(unixPath, () => {
-          try { fs.chmodSync(unixPath, 0o660) } catch {}
+          try {
+            fs.chmodSync(unixPath, 0o660)
+            if (!fs.existsSync(unixPath)) {
+              throw new Error(`unix socket missing after bind: ${unixPath}`)
+            }
+            unixSocketInode = fs.statSync(unixPath).ino
+          } catch (err) {
+            logger.warn(`unix socket verification failed: ${String(err)}`)
+          }
           logger.info(`listening on unix:${unixPath}`)
           resolve()
         })
@@ -2042,7 +2051,15 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         await new Promise<void>((resolve) => tcpServer!.close(() => resolve()))
         tcpServer = null
       }
-      try { if (fs.existsSync(unixPath)) fs.unlinkSync(unixPath) } catch {}
+      try {
+        if (fs.existsSync(unixPath)) {
+          const stat = fs.statSync(unixPath)
+          if (unixSocketInode === null || stat.ino === unixSocketInode) {
+            fs.unlinkSync(unixPath)
+          }
+        }
+      } catch {}
+      unixSocketInode = null
       logger.info('stopped')
     }
   }

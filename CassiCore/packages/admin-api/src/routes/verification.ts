@@ -17,6 +17,8 @@ import { ScenarioRunner } from '../../src/testing/verification/scenario-runner.j
 import { LiveWorkflowHarness } from '../../src/testing/live/live-harness.js'
 import { StateSnapshot } from '../../src/testing/verification/state-snapshot.js'
 import { getScenario, listScenarios } from '../../src/testing/scenarios/index.js'
+import { sessionExportToScenario } from '../../src/testing/replay/session-replay-adapter.js'
+import { ReplayRunner } from '../../src/testing/replay/replay-runner.js'
 
 export interface VerificationRoutesDeps {
   daemon: any
@@ -220,6 +222,33 @@ export async function handleVerificationRoutes(
         since,
         filters: eventTypes.length > 0 ? { types: eventTypes } : undefined,
       })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // ── POST /verify/replay ───────────────────────────────────────────────────
+  if (method === 'POST' && pathname === '/verify/replay') {
+    try {
+      const body = await parseBody(req)
+      const sessionId = body?.sessionId
+      if (!sessionId || typeof sessionId !== 'string') {
+        sendJSON(res, 400, { error: 'Missing required field: sessionId (string)' })
+        return true
+      }
+
+      const exported = deps.daemon.intelligence?.memory?.exportSession?.(sessionId)
+      if (!exported) {
+        sendJSON(res, 404, { error: `Session ${sessionId} not found or not exportable` })
+        return true
+      }
+
+      const scenario = sessionExportToScenario(sessionId, exported)
+      const runner = new ReplayRunner()
+      const report = await runner.run(sessionId, scenario, body?.baseline, body?.treatment)
+      sendJSON(res, report.comparison.treatmentPassed ? 200 : 422, report)
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })

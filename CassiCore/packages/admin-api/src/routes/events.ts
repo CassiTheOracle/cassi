@@ -73,8 +73,9 @@ export async function handleEventsRoutes(
   // GET /events/history
   if (method === 'GET' && pathname === '/events/history') {
     const sessionId = url.searchParams.get('sessionId')
-    if (!sessionId) {
-      sendJSON(res, 400, { error: 'sessionId required' })
+    const all = url.searchParams.get('all') === 'true' || sessionId === '*'
+    if (!sessionId && !all) {
+      sendJSON(res, 400, { error: 'sessionId required unless all=true' })
       return true
     }
 
@@ -82,17 +83,38 @@ export async function handleEventsRoutes(
       const { getEventBus } = await import('../events/index.js')
       const eventBus = getEventBus()
 
-      const since = parseInt(url.searchParams.get('since') || '0', 10)
+      const sinceParam = url.searchParams.get('since') ?? '0'
       const limit = parseInt(url.searchParams.get('limit') || '100', 10)
+      const tail = parseInt(url.searchParams.get('tail') || '0', 10)
       const eventTypes = url.searchParams.get('eventTypes')?.split(',') || []
 
-      let events = eventBus.getEventsSince(sessionId, since)
+      let since = 0
+      if (sinceParam.endsWith('m')) {
+        since = Date.now() - parseInt(sinceParam, 10) * 60_000
+      } else if (sinceParam.endsWith('h')) {
+        since = Date.now() - parseInt(sinceParam, 10) * 3_600_000
+      } else if (sinceParam.endsWith('d')) {
+        since = Date.now() - parseInt(sinceParam, 10) * 86_400_000
+      } else if (sinceParam.includes('T') || sinceParam.includes('-')) {
+        since = new Date(sinceParam).getTime()
+      } else {
+        since = parseInt(sinceParam, 10)
+      }
+
+      let events = all
+        ? eventBus.getGlobalEventsSince(since)
+        : eventBus.getEventsSince(sessionId!, since)
       if (eventTypes.length > 0) {
         events = events.filter(e => eventTypes.includes(e.type))
       }
 
+      const totalBeforeTail = events.length
+      if (tail > 0) {
+        events = events.slice(-tail)
+      }
+
       const total = events.length
-      const hasMore = total > limit
+      const hasMore = tail > 0 ? totalBeforeTail > tail : total > limit
       events = events.slice(0, limit)
 
       sendJSON(res, 200, { events, total, hasMore })
@@ -157,9 +179,48 @@ export async function handleEventsRoutes(
       const conn = { res, sessionId: connSessionId, connectedAt: Date.now() }
       sseConnections.set(connId, conn)
 
+      // ── Backpressure state ────────────────────────────────────────────
+      // When res.write() returns false, the kernel buffer is full and we
+      // must pause writes until 'drain' fires. If a connection stays
+      // paused for >5 seconds it is considered too slow and is closed to
+      // prevent unbounded buffer growth.
+      let paused = false
+      let pausedSince = 0
+      const BACKPRESSURE_TIMEOUT_MS = 5_000
+
+      const onDrain = () => {
+        paused = false
+        pausedSince = 0
+      }
+      res.on('drain', onDrain)
+
+      /** Write an SSE frame with backpressure awareness. */
+      const sseWrite = (message: string): void => {
+        if (paused) {
+          // Check if the connection has been paused too long
+          if (pausedSince > 0 && Date.now() - pausedSince > BACKPRESSURE_TIMEOUT_MS) {
+            logger.warn('SSE connection too slow, closing', { connId })
+            sseConnections.delete(connId)
+            try { res.end() } catch { /* already gone */ }
+          }
+          // Drop this frame — client is not keeping up
+          return
+        }
+        try {
+          const ok = res.write(message)
+          if (!ok) {
+            paused = true
+            pausedSince = Date.now()
+            logger.debug('SSE backpressure engaged', { connId })
+          }
+        } catch {
+          sseConnections.delete(connId)
+        }
+      }
+
       for (const event of missedEvents) {
         const data = JSON.stringify(event)
-        res.write(`${[
+        sseWrite(`${[
           `id: ${event.eventId}`,
           `event: ${event.type}`,
           `data: ${data}`,
@@ -173,14 +234,32 @@ export async function handleEventsRoutes(
         timestamp: Date.now(),
         eventId: `evt_${Date.now()}`,
       }
-      res.write(`${[
+      sseWrite(`${[
         `id: ${connectedEvent.eventId}`,
         `event: ${connectedEvent.type}`,
         `data: ${JSON.stringify(connectedEvent)}`,
         '',
       ].join('\n')  }\n`)
 
+      // Prefixes forwarded exclusively by the daemon bus listener below.
+      // The CassiCoreEventBus listener must skip these to avoid duplicates
+      // (daemon.bus events are bridged to CassiCoreEventBus in daemon.ts).
+      const COGNITIVE_PREFIXES = [
+        'thinker:', 'dialectic:', 'consciousness:', 'subconscious:',
+        'turn:', 'agent:', 'team:', 'drone:', 'reflect:', 'optimizer:',
+        'autonomy:', 'memory:',
+        'scout:',
+        'provider:',
+        'macro-dialectic:',
+      ]
+
       const unsubscribe = eventBus.onAll((event: any) => {
+        // Skip events that will be forwarded by the daemon bus listener below —
+        // they arrive here via the daemon.bus → CassiCoreEventBus bridge and
+        // would otherwise produce duplicates on the SSE stream.
+        const type = event?.type as string | undefined
+        if (type && COGNITIVE_PREFIXES.some(p => type.startsWith(p))) return
+
         if (globalStream || event.sessionId === sessionId) {
           const data = JSON.stringify(event)
           const message = `${[
@@ -191,7 +270,7 @@ export async function handleEventsRoutes(
           ].join('\n')  }\n`
 
           try {
-            conn.res.write(`${message  }\n`)
+            sseWrite(`${message  }\n`)
           } catch {
             sseConnections.delete(connId)
           }
@@ -201,15 +280,7 @@ export async function handleEventsRoutes(
       // Bridge internal daemon bus → SSE so cognitive/intelligence events
       // (thinker, dialectic, consciousness, turn, agent, team, drone, etc.)
       // are visible on the stream alongside Cassandra events.
-      const COGNITIVE_PREFIXES = [
-        'thinker:', 'dialectic:', 'consciousness:', 'subconscious:',
-        'turn:', 'agent:', 'team:', 'drone:', 'reflect:', 'optimizer:',
-        // autonomy: prefix covers confirmation_requested/approved/rejected — required by
-        // external CLI clients (e.g. the Crush fork) to show approval dialogs
-        'autonomy:', 'memory:',
-        // scout: pre-turn search agent visibility
-        'scout:',
-      ]
+      // COGNITIVE_PREFIXES is declared above — shared between both listeners.
 
       const forwardCognitive = (enriched: Record<string, unknown>): void => {
         const data = JSON.stringify(enriched)
@@ -219,11 +290,7 @@ export async function handleEventsRoutes(
           `data: ${data}`,
           '',
         ].join('\n')  }\n`
-        try {
-          conn.res.write(`${message  }\n`)
-        } catch {
-          sseConnections.delete(connId)
-        }
+        sseWrite(`${message  }\n`)
       }
 
       const daemonBusUnsub: (() => void) | undefined =

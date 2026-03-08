@@ -115,11 +115,15 @@ export async function handleImprovementRoutes(
           id: `manual-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
           trigger: 'manual' as const,
           source: body.proposal.source ?? 'admin-api',
+          proposalClass: body.proposal.proposalClass ?? 'heuristic',
           hypothesis: body.proposal.hypothesis ?? 'Manual improvement proposal',
           adaptation: body.proposal.adaptation ?? 'parameter_tune',
           config: body.proposal.config ?? {},
+          dedupeKey: body.proposal.dedupeKey,
           riskLevel: body.proposal.riskLevel ?? 'low',
           confidence: body.proposal.confidence ?? 0.8,
+          evidence: body.proposal.evidence,
+          verificationScenarios: body.proposal.verificationScenarios,
           timestamp: Date.now(),
         }
         orchestrator.propose(proposal)

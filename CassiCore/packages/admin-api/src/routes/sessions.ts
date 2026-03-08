@@ -199,12 +199,30 @@ export async function handleSessionsRoutes(
     let responseEnded = false
     let streamCompleted = false
 
+    // ── Backpressure state ──────────────────────────────────────────────
+    let paused = false
+    let pausedSince = 0
+    const BACKPRESSURE_TIMEOUT_MS = 5_000
+
+    const onDrain = () => { paused = false; pausedSince = 0 }
+    res.on('drain', onDrain)
+
     const sendEvent = (type: string, data: any) => {
       if (responseEnded || !res.writable) return
+      if (paused) {
+        if (pausedSince > 0 && Date.now() - pausedSince > BACKPRESSURE_TIMEOUT_MS) {
+          logger.warn(`SSE session stream too slow, closing`, { sessionId: sessionId.slice(0, 8) })
+          responseEnded = true
+          try { res.end() } catch { /* already gone */ }
+        }
+        return
+      }
       try {
-        const written = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
-        if (!written) {
-          logger.debug(`SSE backpressure on ${type} event`)
+        const ok = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
+        if (!ok) {
+          paused = true
+          pausedSince = Date.now()
+          logger.debug(`SSE session backpressure on ${type} event`)
         }
       } catch (err) {
         logger.debug(`SSE write failed, client may have disconnected: ${String(err)}`)
@@ -682,12 +700,30 @@ async function handleSseStream(
   let responseEnded = false
   let streamCompleted = false
 
+  // ── Backpressure state ────────────────────────────────────────────────
+  let paused = false
+  let pausedSince = 0
+  const BACKPRESSURE_TIMEOUT_MS = 5_000
+
+  const onDrain = () => { paused = false; pausedSince = 0 }
+  res.on('drain', onDrain)
+
   const sendEvent = (type: string, data: any) => {
     if (responseEnded || !res.writable) return
+    if (paused) {
+      if (pausedSince > 0 && Date.now() - pausedSince > BACKPRESSURE_TIMEOUT_MS) {
+        logger.warn(`SSE session stream too slow, closing`, { sessionId: sessionId.slice(0, 8) })
+        responseEnded = true
+        try { res.end() } catch { /* already gone */ }
+      }
+      return
+    }
     try {
-      const written = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
-      if (!written) {
-        logger.debug(`SSE backpressure on ${type} event`)
+      const ok = res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`)
+      if (!ok) {
+        paused = true
+        pausedSince = Date.now()
+        logger.debug(`SSE session backpressure on ${type} event`)
       }
     } catch (err) {
       logger.debug(`SSE write failed, client may have disconnected: ${String(err)}`)
@@ -767,7 +803,8 @@ async function handleSseStream(
     try {
       const result = await daemon.sessionPipeline.processMessage(channelId, senderId, content, {
         attachments: body?.attachments,
-        stream: true
+        stream: true,
+        model: model !== 'unknown' ? model : undefined,
       })
 
       logger.info(`SSE stream completed: ${tokenCount} tokens, response=${result?.response?.slice(0, 50)}...`)

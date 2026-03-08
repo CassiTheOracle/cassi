@@ -214,28 +214,27 @@ export async function handleContextRoutes(
       }
 
       const indexer = (daemon.intelligence as any)?.memory?.sessionIndexer
-      if (!indexer || typeof indexer.indexMessages !== 'function') {
+      if (!indexer || typeof indexer.indexSession !== 'function') {
         sendJSON(res, 503, { error: 'SessionIndexer not available' })
         return true
       }
 
       // Index messages in OpenCode format (role + content text)
       const toIndex = Array.isArray(messages)
-        ? messages.map((m: any, i: number) => ({
+        ? messages.map((m: any) => ({
             role: m.role || 'user',
             content: typeof m.content === 'string'
               ? m.content
               : Array.isArray(m.content)
                 ? m.content.filter((p: any) => p.type === 'text').map((p: any) => p.text || '').join('\n')
                 : '',
-            msgIdx: i,
           }))
         : []
 
-      await indexer.indexMessages(sessionId, toIndex)
+      const label = indexer.indexSession(sessionId, toIndex)
       const stats = indexer.getStats(sessionId)
 
-      sendJSON(res, 200, { sessionId, indexed: toIndex.length, stats })
+      sendJSON(res, 200, { sessionId, label, indexed: toIndex.length, stats })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })

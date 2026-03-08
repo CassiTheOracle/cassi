@@ -1,4 +1,5 @@
 import type { ILogger } from '../../types/interfaces.js'
+import type { TurnTrace } from '../../types/trace.js'
 import type http from 'node:http'
 
 export interface CycleHooksRoutesDeps {
@@ -406,7 +407,53 @@ export async function handleCycleHooksRoutes(
         } catch {}
       }
 
+      try {
+        const memory = daemon.intelligence?.memory
+        const recent = memory?.searchArchives?.('trace', {
+          types: ['event'],
+          tags: ['turn-trace'],
+          sessionId,
+          limit,
+        }) ?? []
+        trace.turnTraces = recent.map((entry: { content: string; id: string }) => {
+          try {
+            return JSON.parse(entry.content) as TurnTrace
+          } catch {
+            return { id: entry.id, parseError: true }
+          }
+        })
+      } catch (err) {
+        trace.turnTracesError = String(err)
+      }
+
       sendJSON(res, 200, trace)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  if (method === 'GET' && pathname.startsWith('/intelligence/trace/')) {
+    try {
+      const traceId = pathname.split('/').pop()
+      if (!traceId) {
+        sendJSON(res, 400, { error: 'traceId required' })
+        return true
+      }
+
+      const memory = daemon.intelligence?.memory
+      const entry = memory?.getArchiveById?.(traceId)
+      if (!entry) {
+        sendJSON(res, 404, { error: `Trace ${traceId} not found` })
+        return true
+      }
+
+      try {
+        sendJSON(res, 200, JSON.parse(entry.content))
+      } catch {
+        sendJSON(res, 200, entry)
+      }
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
