@@ -136,6 +136,7 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
       maxTokens: opts?.maxTokens ?? 2000,
       temperature: this.config.temperature,
       thinking: 'none' as const,
+      source: `dialectic:${this.constructor.name.toLowerCase()}`,
     };
 
     if (opts?.allowConcurrent) callOpts.allowConcurrent = true;

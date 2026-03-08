@@ -330,6 +330,7 @@ export class ParallelDialecticProcessor {
                 branchIndex: i,
                 confidence: branch.confidence,
                 source: 'dialectic:parallel',
+                trigger: 'turn',
                 tags: ['dialectic', 'yang', `turn:${turnId}`],
               }
             );
@@ -348,6 +349,7 @@ export class ParallelDialecticProcessor {
                 critiqueIndex: i,
                 targetBranch: critique.yangBranchId,
                 source: 'dialectic:parallel',
+                trigger: 'turn',
                 tags: ['dialectic', 'yin', `turn:${turnId}`],
               }
             );
@@ -365,6 +367,7 @@ export class ParallelDialecticProcessor {
               signalType: serenityResult.synthesis.signal?.type,
               confidence: serenityResult.synthesis.signal?.confidence,
               source: 'dialectic:parallel',
+              trigger: 'turn',
               tags: ['dialectic', 'serenity', `turn:${turnId}`],
             }
           );

@@ -465,7 +465,7 @@ export class DialecticSystem implements IDialecticSystem {
     let guideText = '';
 
     const guidePromise = (async () => {
-      for await (const chunk of this.provider!.complete(messages, {} as any)) {
+      for await (const chunk of this.provider!.complete(messages, { source: 'dialectic:guide', allowConcurrent: true, dedupe: false } as any)) {
         if (chunk.type === 'token' && chunk.text) {
           guideText += chunk.text;
         }

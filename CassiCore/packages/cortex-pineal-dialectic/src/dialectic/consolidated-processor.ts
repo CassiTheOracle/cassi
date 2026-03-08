@@ -559,6 +559,8 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
       thinking: 'off',
       allowConcurrent: true,
       dedupe: false,
+      source: 'dialectic:consolidated',
+      trigger: 'turn',
     }, undefined, signal)
 
     let fullText = ''
