@@ -69,6 +69,11 @@ export class EventStream {
   // ─── Ingestion ─────────────────────────────────────────────────────────────
 
   private ingest(event: RuntimeEvent): void {
+    // Skip high-frequency chunk events — they flood the ring buffer and
+    // dominate the LLM observer summary.  request_start / request_end
+    // already capture the provider lifecycle.
+    if (event.type === 'provider:request_chunk') return
+
     const entry: EventStreamEntry = { event, receivedAt: Date.now() };
     const idx = this.writeHead;
 
@@ -202,6 +207,30 @@ export class EventStream {
     this.sessionIndex.delete(sessionId);
   }
 
+  /**
+   * Remove all session index entries whose IDs are not in the provided valid set.
+   * Prevents unbounded growth of the sessionIndex when session:ended events are
+   * missed or when sessions are pruned at the daemon level without event dispatch.
+   *
+   * @returns Number of stale session entries removed
+   */
+  pruneStaleSessions(validSessionIds: Set<string>): number {
+    let removed = 0;
+    for (const sessionId of this.sessionIndex.keys()) {
+      if (!validSessionIds.has(sessionId)) {
+        this.sessionIndex.delete(sessionId);
+        removed++;
+      }
+    }
+    if (removed > 0) {
+      this.logger.debug("EventStream pruned stale session indices", {
+        removed,
+        remaining: this.sessionIndex.size,
+      });
+    }
+    return removed;
+  }
+
   // ─── LLM Summary ──────────────────────────────────────────────────────────
 
   /**
@@ -212,6 +241,7 @@ export class EventStream {
     const recent = this.getSince(Date.now() - windowMs);
 
     const typeDist: Record<string, number> = {};
+    const sourceDist: Record<string, number> = {};
     const sequences: string[] = [];
     let prevType: string | undefined;
 
@@ -223,6 +253,13 @@ export class EventStream {
         sequences.push(t);
         prevType = t;
       }
+      // Extract source attribution from provider events
+      if (t.startsWith('provider:')) {
+        const src = (entry.event as Record<string, unknown>).source
+        if (typeof src === 'string') {
+          sourceDist[src] = (sourceDist[src] ?? 0) + 1
+        }
+      }
     }
 
     // Top 10 event types by count
@@ -231,6 +268,13 @@ export class EventStream {
       .slice(0, 10)
       .map(([type, count]) => ({ type, count }));
 
+    // Provider source breakdown (only if provider events exist)
+    const providerSources = Object.keys(sourceDist).length > 0
+      ? Object.entries(sourceDist)
+          .sort((a, b) => b[1] - a[1])
+          .map(([source, count]) => ({ source, count }))
+      : undefined
+
     return {
       windowMs,
       totalEvents: recent.length,
@@ -238,6 +282,7 @@ export class EventStream {
       topTypes,
       recentSequence: sequences.slice(-50),
       activeSessions: this.sessionIndex.size,
+      providerSources,
     };
   }
 }

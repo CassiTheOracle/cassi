@@ -63,6 +63,14 @@ export class TrustLedger extends BaseCognitiveModule {
   private totalEvidenceIngested = 0
   private totalDecaysApplied = 0
 
+  // ── Batched persistence ─────────────────────────────────────────────────
+  // Instead of hitting SQLite on every tool call, buffer dirty domains and
+  // flush periodically. This reduces DB writes from N-per-turn to 1-per-flush.
+  private dirtyDomains = new Set<TrustDomain>()
+  private flushTimer?: ReturnType<typeof setInterval>
+  private static readonly FLUSH_INTERVAL_MS = 30_000  // 30 seconds
+  private static readonly FLUSH_THRESHOLD = 50        // Flush early if this many evidence items buffered
+
   constructor(logger: ILogger) {
     super(logger)
     this.logger = logger.child('trust-ledger')
@@ -97,6 +105,11 @@ export class TrustLedger extends BaseCognitiveModule {
 
   override async start(): Promise<void> {
     await super.start()
+
+    // Start periodic flush timer for batched DB persistence
+    this.flushTimer = setInterval(() => this.flushDirtyScores(), TrustLedger.FLUSH_INTERVAL_MS)
+    this.flushTimer.unref() // Don't keep the process alive for this
+
     this.logger.info('Trust Ledger started', {
       domains: this.scores.size,
       config: {
@@ -184,8 +197,13 @@ export class TrustLedger extends BaseCognitiveModule {
     this.scores.set(domain, score)
     this.totalEvidenceIngested++
 
-    // Persist to DB
-    this.persistScore(score)
+    // Mark domain as dirty for batched persistence (replaces per-call DB write)
+    this.dirtyDomains.add(domain)
+
+    // Flush early if buffer is large (prevents stale data on high-throughput bursts)
+    if (this.dirtyDomains.size >= TrustLedger.FLUSH_THRESHOLD) {
+      this.flushDirtyScores()
+    }
 
     // Emit events
     const delta = score.score - oldScore
@@ -313,6 +331,38 @@ export class TrustLedger extends BaseCognitiveModule {
     }
   }
 
+  // ─── Batched Persistence ──────────────────────────────────────────────────
+
+  /**
+   * Flush all dirty trust scores to SQLite in one pass.
+   * Called periodically by the flush timer and on shutdown.
+   */
+  private flushDirtyScores(): void {
+    if (this.dirtyDomains.size === 0) return
+
+    const flushed = this.dirtyDomains.size
+    for (const domain of this.dirtyDomains) {
+      const score = this.scores.get(domain)
+      if (score) this.persistScore(score)
+    }
+    this.dirtyDomains.clear()
+
+    this.logger.debug('Trust scores flushed to DB', { domains: flushed })
+  }
+
+  /**
+   * Stop the flush timer and persist any remaining dirty scores.
+   * Should be called on daemon shutdown.
+   */
+  async shutdown(): Promise<void> {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer)
+      this.flushTimer = undefined
+    }
+    // Final flush to ensure no evidence is lost
+    this.flushDirtyScores()
+  }
+
   // ─── Internal ────────────────────────────────────────────────────────────
 
   /**
@@ -377,6 +427,9 @@ export class TrustLedger extends BaseCognitiveModule {
     this.totalDecaysApplied++
 
     if (Math.abs(score.score - oldScore) > 0.001) {
+      // Mark for batched persistence since decay changed the score
+      this.dirtyDomains.add(score.domain)
+
       this.emit({
         type: 'trust:decay-applied',
         domain: score.domain,

@@ -320,6 +320,16 @@ export class SystemModel {
    * Cross-session matches from the sweep are forwarded as sessionRef annotations.
    */
   addLLMObservation(llmObs: LLMObservation): void {
+    const cutoff = llmObs.timestamp - 2 * 60_000;
+    const recentLLM = this.observations
+      .filter((o) => o.source === "llm" && o.timestamp >= cutoff)
+      .slice(-3);
+    const normalizedSummary = llmObs.summary.trim().toLowerCase();
+    const duplicateLLM = recentLLM.some((o) => o.summary.trim().toLowerCase() === normalizedSummary);
+    if (duplicateLLM) {
+      return;
+    }
+
     // The sweep may have found historical context — attach the top ref so the
     // observation is citable and contextually grounded.
     const sessionRef = llmObs.crossSessionMatches?.[0]?.ref;
@@ -504,20 +514,25 @@ export class SystemModel {
   /**
    * Reconcile the model against the live session manager state.
    *
-   * Called once on daemon startup after the intelligence layer is connected to
-   * the event bus. Fills in sessions (and optionally drones) that were created
-   * before the Subconscious was wired and therefore never triggered a
-   * `session:created` / `drone:spawned` event visible to the model.
+   * Called on daemon startup and periodically by the Subconscious heartbeat
+   * timer. Performs bidirectional sync:
+   *  1. Adds sessions present in the live runtime but missing from the model
+   *  2. Removes sessions present in the model but no longer in the live runtime
    *
-   * Only upserts — never removes existing model state so in-flight activity
-   * observed from events is not disturbed.
+   * This prevents session count drift where stale sessions accumulate in the
+   * model after pruning, crashes, or missed session:ended events.
    */
   reconcile(opts: {
     sessions?: Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>
     droneIds?: string[]
   }): void {
     let sessionsSynced = 0
+    let sessionsRemoved = 0
+
+    // Pass 1: Add missing sessions (upsert)
+    const liveSessionIds = new Set<string>()
     for (const s of opts.sessions ?? []) {
+      liveSessionIds.add(s.sessionId)
       if (!this.sessions.has(s.sessionId)) {
         this.sessions.set(s.sessionId, {
           sessionId:      s.sessionId,
@@ -532,6 +547,18 @@ export class SystemModel {
       }
     }
 
+    // Pass 2: Remove stale sessions not in the live set
+    // Only prune if we were given a session list (avoids wiping on empty-list calls)
+    if (opts.sessions !== undefined) {
+      for (const modelSessionId of this.sessions.keys()) {
+        if (!liveSessionIds.has(modelSessionId)) {
+          this.sessions.delete(modelSessionId)
+          this.contextCache.delete(modelSessionId)
+          sessionsRemoved++
+        }
+      }
+    }
+
     let dronesSynced = 0
     for (const did of opts.droneIds ?? []) {
       if (!this.activeDrones.has(did)) {
@@ -540,14 +567,40 @@ export class SystemModel {
       }
     }
 
-    if (sessionsSynced > 0 || dronesSynced > 0) {
+    if (sessionsSynced > 0 || sessionsRemoved > 0 || dronesSynced > 0) {
       this.invalidateContextCacheAll()
       this.logger.info('SystemModel reconciled with live runtime state', {
-        sessionsSynced, dronesSynced,
+        sessionsSynced, sessionsRemoved, dronesSynced,
         totalSessions: this.sessions.size,
         totalDrones:   this.activeDrones.size,
       })
     }
+  }
+
+  /**
+   * Remove sessions from the model that are not in the provided set of valid IDs.
+   * Called periodically to prevent unbounded session accumulation from missed
+   * session:ended events or daemon-level pruning that bypasses event dispatch.
+   *
+   * @returns Number of stale sessions removed
+   */
+  pruneStale(validSessionIds: Set<string>): number {
+    let removed = 0
+    for (const modelSessionId of this.sessions.keys()) {
+      if (!validSessionIds.has(modelSessionId)) {
+        this.sessions.delete(modelSessionId)
+        this.contextCache.delete(modelSessionId)
+        removed++
+      }
+    }
+    if (removed > 0) {
+      this.invalidateContextCacheAll()
+      this.logger.info('SystemModel pruned stale sessions', {
+        removed,
+        remaining: this.sessions.size,
+      })
+    }
+    return removed
   }
 
   // ─── Persistence ──────────────────────────────────────────────────────────

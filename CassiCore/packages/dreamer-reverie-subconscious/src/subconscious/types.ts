@@ -67,6 +67,8 @@ export interface StreamSummary {
   topTypes: Array<{ type: string; count: number }>;
   recentSequence: string[];
   activeSessions: number;
+  /** Source attribution for provider events (e.g. 'turn-pipeline': 3, 'macro-dialectic:unity': 2) */
+  providerSources?: Array<{ source: string; count: number }>;
 }
 
 export interface EventStreamConfig {

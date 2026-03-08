@@ -65,6 +65,8 @@ export class Subconscious {
   private eventBus?: IEventBus;
   private digestStore?: SessionDigestStore;
   private memory?: IMemory;
+  /** Callback to retrieve live session IDs from the SessionManager for periodic reconciliation. */
+  private liveSessionGetter?: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>;
 
   // ─── Background Timers ─────────────────────────────────────────────────────
   /** Drains heuristic buffers and integrates into the system model every turn event */
@@ -132,6 +134,18 @@ export class Subconscious {
   }
 
   /**
+   * Provide a callback that returns the current live sessions from the
+   * SessionManager. Used by the periodic reconcile to detect and prune
+   * stale sessions without importing SessionManager directly.
+   */
+  setLiveSessionGetter(
+    getter: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>,
+  ): void {
+    this.liveSessionGetter = getter;
+    this.logger.info("Subconscious: live session getter wired");
+  }
+
+  /**
    * Connect to the EventBus — wires the EventStream to observe all events
    * and sets up the heuristic drain loop.
    */
@@ -152,7 +166,9 @@ export class Subconscious {
       this.drainHeuristicBuffers();
     });
 
-    if (this.config.enabled) this.start();
+    // Note: do NOT call this.start() here — the daemon calls startModule()
+    // separately. Calling start() from both onEventBus() and startModule()
+    // creates duplicate timers and double LLM sweeps.
   }
 
   /** Alias for backward compat with daemon wiring */
@@ -162,8 +178,12 @@ export class Subconscious {
 
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
+  private _started = false;
+
   start(): void {
     if (!this.config.enabled) return;
+    if (this._started) return;  // Guard against double initialization
+    this._started = true;
 
     // Start LLM observer periodic sweep
     this.llmObserver.start(this.eventStream, this.systemModel);
@@ -177,9 +197,13 @@ export class Subconscious {
     // Periodic heartbeat sweep — detects intelligence modules that have gone silent.
     // Runs every 10 minutes (after an initial 15-minute warm-up enforced inside
     // HeuristicObserver.checkHeartbeats itself).
+    // Also performs bidirectional session reconciliation to prune stale sessions
+    // that accumulated from missed session:ended events or daemon-level pruning.
     this.heartbeatTimer = setInterval(() => {
       this.heuristicObserver.checkHeartbeats();
       this.drainHeuristicBuffers();
+      // Periodic session reconcile — bidirectional sync with live SessionManager
+      this.periodicReconcile();
     }, 10 * 60_000);
     try { (this.heartbeatTimer as NodeJS.Timeout & { unref?: () => void }).unref?.(); } catch {}
 
@@ -435,6 +459,27 @@ export class Subconscious {
   }
 
   // ─── Internal ──────────────────────────────────────────────────────────────
+
+  /**
+   * Periodic bidirectional session reconciliation.
+   * Pulls live sessions from the getter, syncs the SystemModel and
+   * EventStream, removing stale entries and adding missing ones.
+   */
+  private periodicReconcile(): void {
+    if (!this.liveSessionGetter) return;
+    try {
+      const liveSessions = this.liveSessionGetter();
+      const liveIds = new Set(liveSessions.map((s) => s.sessionId));
+
+      // Bidirectional reconcile on SystemModel (adds missing + removes stale)
+      this.systemModel.reconcile({ sessions: liveSessions });
+
+      // Prune stale entries from EventStream session index
+      this.eventStream.pruneStaleSessions(liveIds);
+    } catch (err) {
+      this.logger.warn("Subconscious: periodic reconcile failed", { error: String(err) });
+    }
+  }
 
   private drainHeuristicBuffers(): void {
     const observations = this.heuristicObserver.drainObservations();

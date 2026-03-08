@@ -45,12 +45,15 @@ export class LLMObserver {
 
   private readonly observationHistory: LLMObservation[] = [];
   private static readonly MAX_HISTORY = 50;
+  private static readonly DUPLICATE_COOLDOWN_MS = 2 * 60_000;
+  private static readonly SUMMARY_SIMILARITY_THRESHOLD = 0.8;
+  private static readonly LIST_OVERLAP_THRESHOLD = 0.6;
 
   constructor(logger: ILogger, config?: Partial<LLMObserverConfig>) {
     this.logger = logger.child?.("llm-observer") ?? logger;
     this.config = {
       enabled: config?.enabled ?? true,
-      intervalMs: config?.intervalMs ?? 30_000,
+      intervalMs: config?.intervalMs ?? 120_000,
       windowMs: config?.windowMs ?? 60_000,
       maxRetries: config?.maxRetries ?? 2,
       model: config?.model ?? MODEL_DEFAULTS.fast.model,
@@ -174,6 +177,8 @@ export class LLMObserver {
             stream: true,
             maxTokens: 500,
             temperature: 0.3,
+            source: 'subconscious:observer',
+            trigger: 'timer',
           });
 
           if (result && Symbol.asyncIterator in Object(result)) {
@@ -199,6 +204,16 @@ export class LLMObserver {
       }
 
       const observation = this.parseResponse(rawResponse, summary, crossSessionMatches);
+      if (this.isNearDuplicate(observation)) {
+        this.logger.debug("LLMObserver: suppressed near-duplicate observation", {
+          summary: observation.summary.slice(0, 120),
+          confidence: observation.confidence,
+        });
+        this.lastSweepEventCount = stream.totalCount;
+        this.lastSweepStream = stream;
+        return null;
+      }
+
       this.observationHistory.push(observation);
       if (this.observationHistory.length > LLMObserver.MAX_HISTORY) {
         this.observationHistory.shift();
@@ -220,6 +235,60 @@ export class LLMObserver {
     } finally {
       this.sweepInProgress = false;
     }
+  }
+
+  private isNearDuplicate(observation: LLMObservation): boolean {
+    const cutoff = Date.now() - LLMObserver.DUPLICATE_COOLDOWN_MS;
+    const recent = this.observationHistory
+      .slice(-3)
+      .filter((obs) => obs.timestamp >= cutoff);
+    if (recent.length === 0) return false;
+
+    return recent.some((prior) => {
+      const summarySimilarity = this.jaccardSimilarity(prior.summary, observation.summary);
+      const patternOverlap = this.listOverlap(prior.patterns, observation.patterns);
+      const concernOverlap = this.listOverlap(prior.concerns, observation.concerns);
+      const opportunityOverlap = this.listOverlap(prior.opportunities, observation.opportunities);
+
+      return summarySimilarity >= LLMObserver.SUMMARY_SIMILARITY_THRESHOLD
+        && patternOverlap >= LLMObserver.LIST_OVERLAP_THRESHOLD
+        && concernOverlap >= LLMObserver.LIST_OVERLAP_THRESHOLD
+        && opportunityOverlap >= 0.5;
+    });
+  }
+
+  private listOverlap(a: string[], b: string[]): number {
+    if (a.length === 0 && b.length === 0) return 1;
+    if (a.length === 0 || b.length === 0) return 0;
+    const setA = new Set(a.map((item) => this.normalizeText(item)));
+    const setB = new Set(b.map((item) => this.normalizeText(item)));
+    const union = new Set([...setA, ...setB]);
+    if (union.size === 0) return 0;
+    let intersection = 0;
+    for (const item of setA) {
+      if (setB.has(item)) intersection++;
+    }
+    return intersection / union.size;
+  }
+
+  private jaccardSimilarity(a: string, b: string): number {
+    const setA = new Set(this.normalizeText(a).split(/\s+/).filter(Boolean));
+    const setB = new Set(this.normalizeText(b).split(/\s+/).filter(Boolean));
+    if (setA.size === 0 && setB.size === 0) return 1;
+    const union = new Set([...setA, ...setB]);
+    let intersection = 0;
+    for (const token of setA) {
+      if (setB.has(token)) intersection++;
+    }
+    return union.size > 0 ? intersection / union.size : 0;
+  }
+
+  private normalizeText(value: string): string {
+    return value
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   // ─── Prompt Construction ──────────────────────────────────────────────────
@@ -247,6 +316,18 @@ export class LLMObserver {
       "",
       "### Top Event Types",
       ...summary.topTypes.map((t) => `- ${t.type}: ${t.count}`),
+    ];
+
+    // Include provider source attribution when available
+    if (summary.providerSources && summary.providerSources.length > 0) {
+      lines.push(
+        "",
+        "### Provider Call Sources",
+        ...summary.providerSources.map((s) => `- ${s.source}: ${s.count} calls`),
+      );
+    }
+
+    lines.push(
       "",
       "### Recent Event Sequence",
       summary.recentSequence.slice(-30).join(" → "),
@@ -254,7 +335,7 @@ export class LLMObserver {
       "## Current System State",
       `- Sessions: ${snap.sessionCount}`,
       `- Active drones: ${snap.activeDrones}, teams: ${snap.activeTeams}`,
-    ];
+    );
 
     if (providerIssues.length > 0) {
       lines.push(`- Provider issues: ${providerIssues.join(", ")}`);
@@ -287,6 +368,27 @@ export class LLMObserver {
     }
 
     lines.push(
+      "",
+      "## System Behavior Context (avoid false positives)",
+      "- **Macro-dialectic triad**: when macro-dialectic is enabled, each user turn generates 3",
+      "  concurrent provider calls from different agents: Yang (exploration), Yin (critique), and",
+      "  Unity (synthesis/user-facing response). Check the 'Provider Call Sources' section above —",
+      "  sources like 'macro-dialectic:yang', 'macro-dialectic:yin', 'macro-dialectic:unity' are",
+      "  DISTINCT agents, not redundant calls. 3 provider:request_start events per turn is normal.",
+      "  Only flag redundancy if the SAME source makes multiple calls with identical inputs.",
+      "  Unity is the user-facing agent — high worker:message volume during its turn is normal",
+      "  response streaming, not noise.",
+      "- **Drones are ephemeral**: they spawn, execute (5-30s), and terminate. Seeing drone lifecycle",
+      "  events (spawn → swarm → completed) with activeDrones=0 is NORMAL — drones completed before",
+      "  the observation snapshot. Only flag drone concerns if spawn events lack matching completions",
+      "  or if drones persist for >60s without completing.",
+      "- **Permission/trust pipeline runs per tool call**: each tool execution triggers permission",
+      "  check → trust gate → outcome recording. High-frequency trust/permission events are expected",
+      "  during tool-heavy turns. Only flag concerns if the SAME tool+input is being re-evaluated",
+      "  redundantly within a single turn, or if trust scores show monotonic unbounded growth.",
+      "- **Session lifecycle**: sessions can be pruned from memory while remaining on disk.",
+      "  A single session:ended event per session ID per prune cycle is normal. Flag concerns only",
+      "  if the same session ID receives multiple session:ended events in rapid succession.",
       "",
       "## Respond with JSON only — no explanation, no markdown fence:",
       '{',
