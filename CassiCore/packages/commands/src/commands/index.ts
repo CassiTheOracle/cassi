@@ -9,3 +9,4 @@ export * from "./tool-commands.js";
 import "./git-commands.js";
 import "./tool-commands.js";
 import "./team-commands.js";
+import "./qwen-commands.js";
