@@ -265,10 +265,12 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
 
   /**
    * Wire this module to the EventBus for real-time events.
-   * Called by IntelligenceRegistry after setEventBus().
+   * Called by IntelligenceRegistry to inject the event bus AND wire all subscriptions.
+   * Must be used instead of setEventBus() when subscribing to turn:start / turn:end is needed.
    * Subclasses call this.subscribe() for custom event subscriptions.
    */
   onEventBus(bus: IEventBus): void {
+    if (this.eventBus === bus) return  // Already wired to this bus — don't re-subscribe
     this.eventBus = bus
     this.wireEventSubscriptions()
   }
@@ -337,6 +339,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       thinking: 'none',
       allowConcurrent: true,  // Module inference should never block main agent
       dedupe: false,          // Each module call is unique
+      source: this.name,      // Observability: which module made this call
       ...opts,
     }
 
@@ -552,6 +555,24 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
 
   private wireEventSubscriptions(): void {
     if (!this.eventBus) return
+
+    // Wire turn lifecycle events — registry-discovered modules are not wired
+    // via daemon.ts's explicit onEvent() calls, so we subscribe here directly.
+    if (this.onTurnStart) {
+      this.subscribe('turn:start' as any, (e: any) => {
+        this.onTurnStart!(e.sessionId, e.message).catch((err: unknown) => {
+          this.logger.error(`[${this.name}] Error in onTurnStart`, { error: String(err) })
+        })
+      })
+    }
+
+    if (this.onTurnEnd) {
+      this.subscribe('turn:end' as any, (e: any) => {
+        this.onTurnEnd!(e.sessionId, e.response, e.durationMs).catch((err: unknown) => {
+          this.logger.error(`[${this.name}] Error in onTurnEnd`, { error: String(err) })
+        })
+      })
+    }
 
     // Always wire thinking and signal events from subconscious
     if (this.onThinking) {

@@ -57,6 +57,18 @@ export interface CompletionOpts {
    * AbortSignal for cancellation support. Passed to provider for early termination.
    */
   signal?: AbortSignal;
+  /**
+   * Observability: which module/component initiated this request.
+   * E.g. 'turn-pipeline', 'thinker', 'subconscious', 'macro-dialectic:yang', 'dialectic'.
+   * Read by the provider observability tap and emitted in provider:request_* events.
+   */
+  source?: string;
+  /**
+   * Observability: what caused this LLM call — e.g. 'turn', 'tools', 'timer', 'thinker'.
+   * Used with `source` to display provenance chains in the LLM stream: `trigger > source`.
+   * For deeper chains the trigger itself can be a chain: `trigger: 'tools > thinker'`.
+   */
+  trigger?: string;
 }
 
 export interface CompletionChunk {

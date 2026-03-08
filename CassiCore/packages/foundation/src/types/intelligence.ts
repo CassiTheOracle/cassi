@@ -158,12 +158,16 @@ export interface IReflect {
 export interface ThinkerStats {
   totalInsights: number;   // cumulative insights emitted
   totalTurns: number;      // cumulative turns processed
+  totalToolCalls?: number; // cumulative tool calls processed
+  toolCallsUntilPonder?: number; // tool calls remaining until next ponder
   lastPonderAt?: Date;
   lastThinkAt?: Date;
   ponderInterval: number;
   thinkInterval: number;
+  ponderUnit?: 'tool-calls' | 'turns'; // what unit the intervals count
   // New: cumulative number of insights emitted (distinct from totalTurns)
   insightCount?: number;
+  recentToolActivity?: number; // count of recent tool calls in buffer
 }
 
 export interface IThinker {

@@ -105,7 +105,41 @@ export interface IPluginHost {
 
 // ─── Intelligence Module ─────────────────────────────────────────────────────
 
-export interface IntelligenceModule {
+export interface ModuleWiringSurface {
+  setEventBus?(bus: IEventBus): void;
+  setMemory?(memory: unknown): void;
+  setProvider?(provider: unknown): void;
+  setConfig?(config: IConfig): void;
+  setToolRegistry?(registry: unknown): void;
+  setToolExecutor?(executor: unknown): void;
+  setRepairProvider?(fn: (prompt: string) => Promise<string>): void;
+  setContextManager?(contextManager: unknown): void;
+  setDialectic?(dialectic: unknown): void;
+  setMultiAgent?(multiAgent: unknown): void;
+  setAutonomousLoop?(loop: unknown): void;
+  setDigestStore?(store: unknown): void;
+  setPipeline?(pipeline: unknown): void;
+  setDroneSwarm?(droneSwarm: unknown): void;
+  setModelRouter?(router: unknown): void;
+  setSessionManager?(sessionManager: unknown, sessionStore?: unknown): void;
+  setPipelineGetter?(getPipeline: () => unknown): void;
+  setIntrospectionSources?(sources: {
+    outcomeTracker?: unknown;
+    strategyTracker?: unknown;
+    crossSessionCorrelator?: unknown;
+    providerProfiler?: unknown;
+  }): void;
+  setConsequenceEstimator?(estimator: unknown): void;
+  setTrustLedger?(ledger: unknown): void;
+  setInjectionAggregator?(aggregator: unknown): void;
+}
+
+export interface ThinkerDeferredWiring {
+  setSessionManager(sessionManager: unknown, sessionStore?: unknown): void;
+  setPipelineGetter(getPipeline: () => unknown): void;
+}
+
+export interface IntelligenceModule extends Partial<ModuleWiringSurface> {
   readonly name: string;
   /** Higher priority = runs first */
   readonly priority: number;
@@ -121,7 +155,4 @@ export interface IntelligenceModule {
 
   /** Stop background processing and release resources. */
   stop?(): void;
-
-  /** Inject a repair-capable LLM provider for self-healing purposes. */
-  setRepairProvider?(fn: (prompt: string) => Promise<string>): void;
 }

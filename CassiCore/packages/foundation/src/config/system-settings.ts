@@ -450,6 +450,74 @@ export const SCOUT_SETTINGS = {
 } as const;
 
 // ============================================================================
+// Macro-Dialectic Settings (Triad: Yang + Yin + Unity)
+// ============================================================================
+
+export const MACRO_DIALECTIC_SETTINGS = {
+  /** Master enable/disable for the macro-dialectic triad */
+  enabled: getEnvBoolean('CASSICORE_MACRO_DIALECTIC_ENABLED', false),
+
+  /** Yang (expansion thinker) — defaults to GPT-5.4 */
+  yangProvider: getEnvString('CASSICORE_MACRO_DIALECTIC_YANG_PROVIDER', 'github-copilot'),
+  yangModel: getEnvString('CASSICORE_MACRO_DIALECTIC_YANG_MODEL', 'gpt-5.4'),
+  yangTemperature: getEnvNumber('CASSICORE_MACRO_DIALECTIC_YANG_TEMP', 7) / 10,  // 0.7
+  yangMaxTokens: getEnvNumber('CASSICORE_MACRO_DIALECTIC_YANG_MAX_TOKENS', 16384),
+
+  /** Yin (refinement thinker) — defaults to Claude Opus 4.6 */
+  yinProvider: getEnvString('CASSICORE_MACRO_DIALECTIC_YIN_PROVIDER', 'github-copilot'),
+  yinModel: getEnvString('CASSICORE_MACRO_DIALECTIC_YIN_MODEL', 'claude-opus-4.6'),
+  yinTemperature: getEnvNumber('CASSICORE_MACRO_DIALECTIC_YIN_TEMP', 5) / 10,  // 0.5
+  yinMaxTokens: getEnvNumber('CASSICORE_MACRO_DIALECTIC_YIN_MAX_TOKENS', 16384),
+
+  /** Unity primary (complex synthesis) — defaults to Claude Sonnet 4.6 */
+  unityPrimaryProvider: getEnvString('CASSICORE_MACRO_DIALECTIC_UNITY_PRIMARY_PROVIDER', 'github-copilot'),
+  unityPrimaryModel: getEnvString('CASSICORE_MACRO_DIALECTIC_UNITY_PRIMARY_MODEL', 'claude-sonnet-4.6'),
+  /** Unity secondary (simple execution) — defaults to GPT-5 Mini */
+  unitySecondaryProvider: getEnvString('CASSICORE_MACRO_DIALECTIC_UNITY_SECONDARY_PROVIDER', 'github-copilot'),
+  unitySecondaryModel: getEnvString('CASSICORE_MACRO_DIALECTIC_UNITY_SECONDARY_MODEL', 'gpt-5-mini'),
+  /** Complexity threshold for adaptive model selection (0-100, divided by 100) */
+  unityAdaptiveThreshold: getEnvNumber('CASSICORE_MACRO_DIALECTIC_UNITY_THRESHOLD', 50) / 100,
+  /** Unity primary max tokens (output budget for complex synthesis) */
+  unityPrimaryMaxTokens: getEnvNumber('CASSICORE_MACRO_DIALECTIC_UNITY_PRIMARY_MAX_TOKENS', 16384),
+  /** Unity secondary max tokens (output budget for simple execution) */
+  unitySecondaryMaxTokens: getEnvNumber('CASSICORE_MACRO_DIALECTIC_UNITY_SECONDARY_MAX_TOKENS', 8192),
+
+  /** Deliberation window for normal-priority tool requests (ms) */
+  deliberationWindowMs: getEnvNumber('CASSICORE_MACRO_DIALECTIC_DELIBERATION_MS', 60_000),
+  /** Max pending tool requests before Unity processes queue */
+  maxPendingRequests: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_PENDING', 20),
+  /** Reasoning chunk timeout — if a thinker goes silent for this long, assume done (ms) */
+  reasoningTimeoutMs: getEnvNumber('CASSICORE_MACRO_DIALECTIC_REASONING_TIMEOUT_MS', 120_000),
+  /** Enable micro-dialectic within each thinker session */
+  enableMicroDialectic: getEnvBoolean('CASSICORE_MACRO_DIALECTIC_MICRO_ENABLED', true),
+  /** Max tool iterations per agentic loop pass (prevents runaway loops) */
+  maxToolIterations: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_TOOL_ITERATIONS', 60),
+  /** Max Unity generation rounds */
+  maxGenerationRounds: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_GEN_ROUNDS', 30),
+  /** Thinker inference timeout per pass (ms) */
+  thinkerInferenceTimeoutMs: getEnvNumber('CASSICORE_MACRO_DIALECTIC_THINKER_TIMEOUT_MS', 300_000),
+  /** Max tool result chars to keep before truncation in agentic message history */
+  toolResultTruncationChars: getEnvNumber('CASSICORE_MACRO_DIALECTIC_TRUNCATION_CHARS', 1500),
+  /** After this many iterations, start truncating old tool results */
+  truncationStartIteration: getEnvNumber('CASSICORE_MACRO_DIALECTIC_TRUNCATION_START', 8),
+
+  /** Max conversation entries in workspace before summarization */
+  maxConversationEntries: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_CONV', 200),
+  /** Max reasoning chunks per thinker per turn */
+  maxReasoningChunksPerTurn: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_CHUNKS', 50),
+  /** Scratchpad max entries */
+  maxScratchpadEntries: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_SCRATCH', 100),
+  /** Tool log max entries (rolling) */
+  maxToolLogEntries: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_TOOL_LOG', 500),
+  /** Max operation entries before pruning */
+  maxOperationEntries: getEnvNumber('CASSICORE_MACRO_DIALECTIC_MAX_OPS', 500),
+  /** Operations to retain across turns */
+  operationRetainCount: getEnvNumber('CASSICORE_MACRO_DIALECTIC_OP_RETAIN', 30),
+  /** Scratchpad TTL in ms (default 1 hour) */
+  scratchpadTtlMs: getEnvNumber('CASSICORE_MACRO_DIALECTIC_SCRATCH_TTL_MS', 3_600_000),
+} as const;
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -489,6 +557,7 @@ export const SYSTEM_SETTINGS = {
   promptOptimizer: PROMPT_OPTIMIZER_SETTINGS,
   drone: DRONE_SETTINGS,
   scout: SCOUT_SETTINGS,
+  macroDialectic: MACRO_DIALECTIC_SETTINGS,
 } as const;
 
 /** 
