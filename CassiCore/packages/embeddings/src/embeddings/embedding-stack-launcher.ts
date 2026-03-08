@@ -10,6 +10,10 @@
  *
  * Port defaults: 18820 (embedding), 18821 (reranker).
  * Override via EMBEDDING_PORT / RERANKER_PORT env vars.
+ *
+ * NOTE: zerank-2 uses a custom Yes/No logit scoring method that is incompatible
+ * with llama.cpp's built-in --reranking mode. It must run via the Python
+ * zerank-server script using HuggingFace Transformers.
  */
 
 import { spawn, type ChildProcess } from 'child_process'
@@ -45,10 +49,18 @@ export interface EmbeddingStackLauncherConfig {
   backend?: 'hip' | 'vulkan'
   embeddingPort?: number
   rerankerPort?: number
-  /** Path to zembed-1 GGUF model. Default: ~/models/zembed-1.gguf */
+  /** Path to zembed-1 GGUF model. Default: ~/models/zembed-1.Q8_0.gguf */
   embeddingModelPath?: string
   /** Path to the reranker venv python binary. Default: ~/.venvs/reranker/bin/python */
   rerankerPython?: string
+  /** llama.cpp GPU layers. Lower this if HIP/Vulkan runs out of VRAM. Default: 99 */
+  embeddingGpuLayers?: number
+  /** llama.cpp context size for the embedding server. Default: 4096 */
+  embeddingCtxSize?: number
+  /** llama.cpp batch size for the embedding server. Default: 512 */
+  embeddingBatchSize?: number
+  /** llama.cpp micro-batch size for the embedding server. Default: 128 */
+  embeddingUbatchSize?: number
   /** Disable auto-start entirely (e.g. for tests). */
   disabled?: boolean
 }
@@ -71,10 +83,18 @@ export class EmbeddingStackLauncher {
         ?? Number(process.env.RERANKER_PORT || String(DEFAULT_RERANKER_PORT)),
       embeddingModelPath: config?.embeddingModelPath
         ?? process.env.EMBEDDING_MODEL_PATH
-        ?? join(home, 'models', 'zembed-1.gguf'),
+        ?? join(home, 'models', 'zembed-1.Q8_0.gguf'),
       rerankerPython: config?.rerankerPython
         ?? process.env.ZERANK_PYTHON
         ?? join(home, '.venvs', 'reranker', 'bin', 'python'),
+      embeddingGpuLayers: config?.embeddingGpuLayers
+        ?? Number(process.env.EMBEDDING_GPU_LAYERS || '99'),
+      embeddingCtxSize: config?.embeddingCtxSize
+        ?? Number(process.env.EMBEDDING_CTX_SIZE || '4096'),
+      embeddingBatchSize: config?.embeddingBatchSize
+        ?? Number(process.env.EMBEDDING_SERVER_BATCH_SIZE || '512'),
+      embeddingUbatchSize: config?.embeddingUbatchSize
+        ?? Number(process.env.EMBEDDING_SERVER_UBATCH_SIZE || '128'),
       disabled: config?.disabled ?? false,
     }
   }
@@ -112,10 +132,10 @@ export class EmbeddingStackLauncher {
             '--model', this.config.embeddingModelPath,
             '--port', String(embeddingPort),
             '--embeddings',
-            '--gpu-layers', '999',
-            '--ctx-size', '8192',
-            '--batch-size', '2048',
-            '--ubatch-size', '512',
+            '--gpu-layers', String(this.config.embeddingGpuLayers),
+            '--ctx-size', String(this.config.embeddingCtxSize),
+            '--batch-size', String(this.config.embeddingBatchSize),
+            '--ubatch-size', String(this.config.embeddingUbatchSize),
           ],
         }),
       })
@@ -139,7 +159,7 @@ export class EmbeddingStackLauncher {
         port: rerankerPort,
         buildArgs: () => ({
           command: this.config.rerankerPython,
-          args: [zerankScript, '--model', 'zerank-2', '--port', String(rerankerPort)],
+          args: [zerankScript, '--model', 'zerank-2', '--port', String(rerankerPort), '--quantize'],
         }),
       })
     }
