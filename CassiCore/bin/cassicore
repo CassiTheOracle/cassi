@@ -65,11 +65,16 @@ cmd_start() {
   rm -f "$CASSICORE_HOME/admin.sock" "$CASSICORE_HOME/bridge.sock"
 
   echo "[cassicore] Starting daemon..." >&2
-  (
-    cd "$CASSICORE_DIR"
-    nohup node "$DAEMON_JS" >>"$LOG_FILE" 2>&1 &
-    echo $! >"$PID_FILE"
-  )
+  # Start the daemon as a detached background process.
+  # We use setsid to create a new process group so it survives shell exit,
+  # and capture the actual node PID (not an intermediate nohup PID).
+  setsid node "$DAEMON_JS" --stay-up >>"$LOG_FILE" 2>&1 &
+  local bg_pid=$!
+  # The setsid'd process may fork — wait briefly and find the actual node PID
+  sleep 0.5
+  local real_pid
+  real_pid="$(pgrep -f "$(basename "$DAEMON_JS").*--stay-up" | head -1)" || real_pid="$bg_pid"
+  echo "$real_pid" >"$PID_FILE"
 
   local pid; pid="$(get_pid)"
   echo "[cassicore] Daemon started (PID $pid)" >&2
@@ -140,6 +145,1235 @@ cmd_logs() {
   tail -f "$LOG_FILE"
 }
 
+cmd_llm() {
+  # ── cassicore llm — LLM activity inspection suite ──────────────────────────
+  #
+  #   cassicore llm events [--json] [--filter <str>] [--since <dur>] [--source <prefix>]
+  #   cassicore llm stats                                Aggregate metrics per provider
+  #   cassicore llm active                               In-flight requests right now
+  #
+  if ! is_running; then
+    echo "[cassicore] Daemon is not running." >&2; return 1
+  fi
+
+  local subcmd="${1:-events}"
+  shift 2>/dev/null || true
+
+  case "$subcmd" in
+    events)  llm_events "$@"  ;;
+    stream)  llm_stream "$@"  ;;
+    stats)   llm_stats        ;;
+    active)  llm_active       ;;
+    *)       llm_usage; return 1 ;;
+  esac
+}
+
+llm_usage() {
+  echo "Usage: cassicore llm <subcommand>"
+  echo ""
+  echo "Subcommands:"
+  echo "  events [--json] [--filter <str>] [--since <dur>] [--source <prefix>] [--compact|--full]"
+  echo "                                    Replay recent events, then continue live"
+  echo "  stream [--json] [--provider <id>] [--source <prefix>] [--all] [--prompt] [--history <n>] [--since <dur>] [--history-only] [--full]"
+  echo "                                    Compact LLM output with optional replay history"
+  echo "  stats                              Provider metrics snapshot"
+  echo "  active                             In-flight requests"
+}
+
+# ── llm events — live SSE stream of provider:request_* events ─────────────────
+
+llm_events() {
+  local json_mode=false
+  local compact_mode=true
+  local filter=""
+  local since_value=""
+  local source_filter=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json)   json_mode=true ; shift ;;
+      --compact) compact_mode=true ; shift ;;
+      --full)   compact_mode=false ; shift ;;
+      --filter) filter="$2"    ; shift 2 ;;
+      --since)  since_value="$2" ; shift 2 ;;
+      --source) source_filter="$2" ; shift 2 ;;
+      *)        shift ;;
+    esac
+  done
+
+  local stream_url="${ADMIN_URL}/events/stream"
+  local history_url="${ADMIN_URL}/events/history?all=true&limit=100000&eventTypes=provider:request_start,provider:request_end,provider:request_error,provider:rate_limited,provider:request_timeout,provider:request_aborted,macro-dialectic:triad-ready,macro-dialectic:triad-started,macro-dialectic:yang-complete,macro-dialectic:yin-complete,macro-dialectic:unity-complete,macro-dialectic:unity-failed"
+  if [[ -n "$since_value" ]]; then
+    history_url="${history_url}&since=${since_value}"
+  fi
+
+  echo "[llm events] LLM request stream" >&2
+  if [[ -n "$since_value" ]]; then
+    echo "  Replaying: events since ${since_value}" >&2
+  fi
+  echo "" >&2
+
+  # Python inline processor — faster and more reliable than bash+jq per-line
+  {
+    if [[ -n "$since_value" ]]; then
+      curl -sf "$history_url" 2>/dev/null | python3 -u -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+for evt in d.get('events', []):
+    print('data: ' + json.dumps(evt, separators=(',', ':')))
+"
+    fi
+    curl -sN --no-buffer "$stream_url" 2>/dev/null
+  } | python3 -u -c "
+import sys, json
+
+json_mode = $( $json_mode && echo True || echo False )
+compact_mode = $( $compact_mode && echo True || echo False )
+text_filter = '${filter}'
+source_filter = '${source_filter}'
+
+# ANSI helpers
+RST  = '\033[0m'
+BOLD = '\033[1m'
+DIM  = '\033[90m'
+CYAN = '\033[36m'
+GRN  = '\033[32m'
+RED  = '\033[31m'
+YEL  = '\033[33m'
+MAG  = '\033[35m'
+
+from datetime import datetime
+import os, textwrap
+
+def fmt_ts(value):
+    try:
+        return datetime.fromtimestamp(float(value) / 1000.0).strftime('%H:%M:%S.%f')[:12]
+    except Exception:
+        return '??:??:??.???'
+
+for raw in sys.stdin:
+    raw = raw.strip()
+    if not raw.startswith('data: '):
+        continue
+    payload = raw[6:]
+    if not payload or payload == '{}':
+        continue
+    try:
+        d = json.loads(payload)
+    except json.JSONDecodeError:
+        continue
+
+    etype = d.get('type', '')
+
+    # Only show provider and macro-dialectic events
+    if not (etype.startswith('provider:') or etype.startswith('macro-dialectic:')):
+        continue
+
+    if text_filter and text_filter not in payload:
+        continue
+    source = d.get('source', '')
+    if source_filter and not str(source).startswith(source_filter):
+        continue
+
+    if json_mode:
+        print(payload, flush=True)
+        continue
+
+    prov   = d.get('providerId', '?')
+    model  = d.get('model', '?')
+    pm     = f'{prov}/{model}'
+    rid    = d.get('requestId', '')[-8:]
+    sid    = d.get('sessionId', '')[-8:]
+    dur    = d.get('durationMs', '')
+    err    = d.get('error', '')
+    tok    = d.get('tokensUsed', {})
+    t      = fmt_ts(d.get('timestamp'))
+
+    if etype == 'provider:request_start':
+        msgs = d.get('messageCount', '?')
+        print(f'{CYAN}{t}{RST}  {BOLD}-> START{RST}  {pm:<32}  {DIM}msgs={msgs}  session={sid}  req={rid}{RST}', flush=True)
+
+    elif etype == 'provider:request_end':
+        src = d.get('source', '')
+        src_tag = f' {DIM}({src}){RST}' if src else ''
+        if err and err != 'None':
+            print(f'{RED}{t}{RST}  {BOLD}x  ERROR{RST}  {pm}{src_tag}  {dur}ms  {RED}{err}{RST}', flush=True)
+        else:
+            tin  = tok.get('input', 0)  if isinstance(tok, dict) else 0
+            tout = tok.get('output', 0) if isinstance(tok, dict) else tok or 0
+            tthk = tok.get('thinking',0) if isinstance(tok, dict) else 0
+            tok_str = f'{tin}in/{tout}out'
+            if tthk: tok_str += f'/{tthk}think'
+            if compact_mode:
+                print(f'{GRN}{t}{RST}  {BOLD}<- DONE {RST}  {pm}{src_tag}  {YEL}{dur}ms{RST}  {DIM}{tok_str}{RST}', flush=True)
+            else:
+                print(f'{GRN}{t}{RST}  {BOLD}<- DONE {RST}  {pm}{src_tag}  {YEL}{dur}ms{RST}  {DIM}{tok_str}  req={rid}{RST}', flush=True)
+
+    elif etype == 'provider:request_error':
+        print(f'{RED}{t}{RST}  {BOLD}x  FAIL {RST}  {pm:<32}  {dur}ms  {RED}{err}{RST}', flush=True)
+
+    elif etype == 'provider:rate_limited':
+        print(f'{YEL}{t}{RST}  {BOLD}!! LIMIT{RST}  {pm:<32}  rate limited', flush=True)
+
+    elif etype == 'provider:request_timeout':
+        tms = d.get('timeoutMs', '?')
+        print(f'{YEL}{t}{RST}  {BOLD}~  T/OUT{RST}  {pm:<32}  after {tms}ms', flush=True)
+
+    elif etype == 'provider:request_aborted':
+        print(f'{DIM}{t}  x  ABORT  {pm:<32}  req={rid}{RST}', flush=True)
+
+    elif etype.startswith('macro-dialectic:'):
+        sub = etype.split(':', 1)[1]
+        role = d.get('role', d.get('message', ''))
+        extra = ''
+        if 'durationMs' in d: extra += f' {d[\"durationMs\"]}ms'
+        if 'reasoningChunks' in d: extra += f' chunks={d[\"reasoningChunks\"]}'
+        if 'tokensGenerated' in d: extra += f' tokens={d[\"tokensGenerated\"]}'
+        print(f'{MAG}{t}{RST}  {BOLD}@  TRIAD{RST}  {sub:<24}  {DIM}{role}{extra}{RST}', flush=True)
+"
+}
+
+# ── llm stream — real-time LLM output/thinking stream ─────────────────────────
+
+llm_stream() {
+  local json_mode=false
+  local provider_filter=""
+  local source_filter=""
+  local show_all=false
+  local show_meta=false
+  local show_prompt=false
+  local history_count="0"
+  local since_value=""
+  local history_only=false
+  local full_mode=false
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --json)     json_mode=true       ; shift ;;
+      --provider) provider_filter="$2" ; shift 2 ;;
+      --source)   source_filter="$2"   ; shift 2 ;;
+      --all)      show_all=true        ; shift ;;
+      --meta)     show_meta=true       ; shift ;;
+      --prompt)   show_prompt=true     ; shift ;;
+      --history)  history_count="$2"  ; shift 2 ;;
+      --since)    since_value="$2"    ; shift 2 ;;
+      --history-only) history_only=true ; shift ;;
+      --full)     full_mode=true       ; shift ;;
+      *)          shift ;;
+    esac
+  done
+
+  local stream_url="${ADMIN_URL}/events/stream"
+  local history_query="all=true&limit=100000&eventTypes=provider:request_start,provider:request_prompt,provider:request_chunk,provider:request_end,provider:request_error,macro-dialectic:triad-ready,macro-dialectic:triad-started,macro-dialectic:yang-complete,macro-dialectic:yin-complete,macro-dialectic:unity-stream-chunk,macro-dialectic:unity-complete,macro-dialectic:unity-failed"
+  if [[ -n "$since_value" ]]; then
+    history_query="${history_query}&since=${since_value}"
+  else
+    history_query="${history_query}&tail=${history_count}"
+  fi
+  local history_url="${ADMIN_URL}/events/history?${history_query}"
+
+  echo "[llm stream] LLM output stream" >&2
+  if [[ -n "$provider_filter" ]]; then
+    echo "  Filtering: provider=$provider_filter" >&2
+  fi
+  if [[ -n "$since_value" ]]; then
+    echo "  Replaying: events since ${since_value}" >&2
+  elif [[ "$history_count" != "0" ]]; then
+    echo "  Replaying: last ${history_count} matching events" >&2
+  fi
+  if [[ "$history_only" == true ]]; then
+    echo "  Mode: history only" >&2
+  fi
+  if [[ "$full_mode" == true ]]; then
+    echo "  View: full" >&2
+  else
+    echo "  View: compact" >&2
+  fi
+  echo "" >&2
+
+  {
+    if [[ "$history_count" != "0" || -n "$since_value" ]]; then
+      curl -sf "$history_url" 2>/dev/null | python3 -u -c "
+import sys, json
+
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    sys.exit(0)
+
+for evt in d.get('events', []):
+    print('data: ' + json.dumps(evt, separators=(',', ':')))
+"
+    fi
+
+    if [[ "$history_only" != true ]]; then
+      curl -sN --no-buffer "$stream_url" 2>/dev/null || \
+        echo 'data: {"type":"__curl_failed","code":'$?'}'
+    fi
+  } | python3 -u -c "
+import sys, json, time, os, textwrap, math
+from datetime import datetime
+from collections import defaultdict
+
+json_mode = $( $json_mode && echo True || echo False )
+provider_filter = '${provider_filter}'
+source_filter = '${source_filter}'
+show_all = $( $show_all && echo True || echo False )
+show_meta = $( $show_meta && echo True || echo False )
+show_prompt = $( $show_prompt && echo True || echo False )
+full_mode = $( $full_mode && echo True || echo False )
+
+# ANSI codes
+RST   = '\033[0m'
+BOLD  = '\033[1m'
+DIM   = '\033[38;5;245m'
+CYAN  = '\033[36m'
+GRN   = '\033[32m'
+RED   = '\033[31m'
+YEL   = '\033[33m'
+MAG   = '\033[35m'
+BLUE  = '\033[34m'
+WHITE = '\033[38;5;252m'
+ITAL  = '\033[3m'
+
+# Unicode glyphs
+U_DOT     = '\u25cf'        # filled circle
+U_DOT_BIG = '\u25c9'        # fisheye (slow)
+U_CHAIN   = '\u203a'        # single right angle quote
+U_SECT    = '\u25b8'        # right-pointing small triangle
+U_TREE_BR = '\u251c\u2500'  # tee + horizontal
+U_TREE_LT = '\u2514\u2500'  # corner + horizontal
+U_TREE_PI = '\u2502'        # vertical bar
+U_BOX_TOP = '\u250c'        # top-left corner
+U_BOX_MID = '\u251c'        # left tee
+U_BOX_BOT = '\u2514'        # bottom-left corner
+U_BOX_PI  = '\u2502'        # vertical bar
+U_BULLET  = '\u25aa'        # small filled square
+U_WARN    = '\u26a0'        # warning sign
+U_CHECK   = '\u2713'        # check mark
+U_CROSS   = '\u2717'        # ballot x
+U_MDOT    = '\u00b7'        # middle dot
+U_ELLIP   = '\u2026'        # horizontal ellipsis
+
+LANE_COLORS = [CYAN, GRN, BLUE, YEL, '\033[91m', '\033[92m', '\033[93m']
+color_idx = [0]
+
+def next_color():
+    c = LANE_COLORS[color_idx[0] % len(LANE_COLORS)]
+    color_idx[0] += 1
+    return c
+
+# ── ANSI literal resolution ──────────────────────────────────────
+
+def resolve_ansi_literals(text):
+    esc = chr(27)
+    bslash = chr(92)
+    text = text.replace(bslash + '033[', esc + '[')
+    text = text.replace(bslash + 'x1b[', esc + '[')
+    text = text.replace(bslash + 'e[', esc + '[')
+    return text
+
+# ── Formatting helpers ───────────────────────────────────────────
+
+def fmt_duration(ms):
+    if ms is None or ms == '':
+        return ''
+    ms = int(ms)
+    if ms < 1000:
+        return str(ms) + 'ms'
+    if ms < 60000:
+        v = ms / 1000.0
+        return ('{:.1f}s'.format(v)) if v < 10 else ('{:.0f}s'.format(v))
+    mins = ms // 60000
+    secs = (ms % 60000) / 1000.0
+    return '{}m {:.0f}s'.format(mins, secs)
+
+def fmt_count(n):
+    if n is None or n == 0:
+        return '0'
+    n = int(n)
+    if n < 1000:
+        return str(n)
+    if n < 10000:
+        return '{:.1f}k'.format(n / 1000.0)
+    return '{:.0f}k'.format(n / 1000.0)
+
+def now_ts():
+    return datetime.now().strftime('%H:%M:%S.%f')[:12]
+
+def fmt_ts(value):
+    try:
+        return datetime.fromtimestamp(float(value) / 1000.0).strftime('%H:%M:%S.%f')[:12]
+    except Exception:
+        return now_ts()
+
+TERM_WIDTH = max(72, min(140, int(os.environ.get('COLUMNS') or 100)))
+
+def wrap_line(text, indent='    ', width=None):
+    width = width or max(40, TERM_WIDTH - len(indent) - 2)
+    wrapped = textwrap.wrap(text, width=width, replace_whitespace=False, drop_whitespace=False)
+    return [(indent + line) for line in wrapped] or [indent]
+
+def one_line_preview(text, limit=160):
+    compact = ' '.join((text or '').strip().split())
+    if not compact:
+        return ''
+    if len(compact) <= limit:
+        return compact
+    return compact[:limit - 1] + U_ELLIP
+
+# ── Adaptive duration tracker ────────────────────────────────────
+
+class DurationTracker:
+    def __init__(self, window=50, default_p75=8000, default_p95=20000):
+        self.window = window
+        self.durations = []
+        self.default_p75 = default_p75
+        self.default_p95 = default_p95
+
+    def add(self, ms):
+        if ms is None:
+            return
+        self.durations.append(int(ms))
+        if len(self.durations) > self.window:
+            self.durations = self.durations[-self.window:]
+
+    def percentile(self, p):
+        if len(self.durations) < 5:
+            return self.default_p75 if p <= 75 else self.default_p95
+        s = sorted(self.durations)
+        idx = int(len(s) * p / 100)
+        return s[min(idx, len(s) - 1)]
+
+    @property
+    def p75(self):
+        return self.percentile(75)
+
+    @property
+    def p95(self):
+        return self.percentile(95)
+
+dur_tracker = DurationTracker()
+
+# ── Source / label helpers ───────────────────────────────────────
+
+def normalize_source_filter(value):
+    aliases = {
+        'yang': 'macro-dialectic:yang',
+        'yin': 'macro-dialectic:yin',
+        'unity': 'macro-dialectic:unity',
+        'observer': 'subconscious:observer',
+        'subconscious': 'subconscious:',
+        'dialectic': 'dialectic:',
+        'macro': 'macro-dialectic:',
+    }
+    return aliases.get(value, value)
+
+source_filter = normalize_source_filter(source_filter)
+
+def short_source(source):
+    mapping = {
+        'macro-dialectic:yang': 'yang',
+        'macro-dialectic:yin': 'yin',
+        'macro-dialectic:unity': 'unity',
+        'dialectic:yang': 'd:yang',
+        'dialectic:yin': 'd:yin',
+        'dialectic:serenity': 'd:serenity',
+        'dialectic:consolidated': 'd:consol',
+        'dialectic:parallel': 'd:parallel',
+        'dialectic:guide': 'd:guide',
+        'subconscious:observer': 'subcon',
+        'thinker:ponder': 'thinker:ponder',
+        'thinker:think': 'thinker:think',
+        'session-pipeline': 'conversation',
+        'turn-pipeline': 'conversation',
+        'ai-scientist': 'scientist',
+        'ai-engineer:prompt-evolver': 'engineer',
+        'self-healer': 'healer',
+    }
+    return mapping.get(source, source)
+
+def format_source_chain(info):
+    trigger = info.get('trigger', '') or ''
+    source = short_source(info.get('source', '') or '')
+    if trigger:
+        trigger = short_source(trigger)
+        if trigger == source:
+            return source
+        return trigger + ' ' + U_CHAIN + ' ' + source
+    return source
+
+def short_label(info):
+    prov = info.get('provider', '?')
+    if prov.startswith('github-'):
+        prov = 'gh'
+    return prov + '/' + str(info.get('model', '?'))
+
+# ── Tool argument extraction ─────────────────────────────────────
+
+TOOL_MAIN_ARG = {
+    'read_file': ['path', 'filePath', 'file_path'],
+    'write_file': ['path', 'filePath', 'file_path'],
+    'read': ['filePath', 'path'],
+    'write': ['filePath', 'path'],
+    'cassi_read': ['path'],
+    'cassi_write': ['path'],
+    'cassi_bash': ['command'],
+    'bash': ['command'],
+    'serena__list_dir': ['relative_path'],
+    'serena__find_symbol': ['name_path_pattern'],
+    'serena__search_for_pattern': ['substring_pattern'],
+    'serena__find_file': ['file_mask'],
+    'serena__get_symbols_overview': ['relative_path'],
+    'serena__replace_content': ['relative_path'],
+    'serena__replace_symbol_body': ['relative_path'],
+    'serena__rename_symbol': ['name_path'],
+    'serena__find_referencing_symbols': ['name_path'],
+    'serena__insert_after_symbol': ['relative_path'],
+    'serena__insert_before_symbol': ['relative_path'],
+    'web_fetch': ['url'],
+    'cassi_web_fetch': ['url'],
+    'gitnexus_query': ['query'],
+    'gitnexus_context': ['name'],
+    'gitnexus_impact': ['target'],
+    'gitnexus_cypher': ['query'],
+    'gitnexus_rename': ['symbol_name'],
+}
+
+FILE_PATH_TOOLS = {
+    'read_file', 'write_file', 'read', 'write', 'cassi_read', 'cassi_write',
+    'serena__list_dir', 'serena__get_symbols_overview', 'serena__replace_content',
+    'serena__replace_symbol_body', 'serena__find_file',
+    'serena__insert_after_symbol', 'serena__insert_before_symbol',
+}
+
+def extract_tool_arg(name, input_data):
+    if not isinstance(input_data, dict):
+        return None
+    keys = TOOL_MAIN_ARG.get(name)
+    if keys:
+        for key in keys:
+            val = input_data.get(key)
+            if val:
+                return str(val)
+    for v in input_data.values():
+        if isinstance(v, str) and 0 < len(v) < 200:
+            return v
+    return None
+
+def is_file_tool(name):
+    return name in FILE_PATH_TOOLS
+
+# ── File tree rendering ──────────────────────────────────────────
+
+def render_file_tree(paths, indent='      '):
+    if not paths:
+        return []
+    paths = sorted(set(p for p in paths if p))
+    if not paths:
+        return []
+    if len(paths) == 1:
+        return [indent + DIM + paths[0] + RST]
+
+    # Build tree structure
+    tree = {}
+    for path in paths:
+        parts = path.strip('/').split('/')
+        node = tree
+        for part in parts[:-1]:
+            node = node.setdefault(part + '/', {})
+        node[parts[-1]] = None
+
+    # Collapse single-child directory chains
+    def collapse(node):
+        result = {}
+        for name, children in node.items():
+            if children is None:
+                result[name] = None
+            else:
+                collapsed_children = collapse(children)
+                if len(collapsed_children) == 1:
+                    child_name, child_val = next(iter(collapsed_children.items()))
+                    result[name + child_name] = child_val
+                else:
+                    result[name] = collapsed_children
+        return result
+
+    tree = collapse(tree)
+
+    lines = []
+    def walk(node, prefix):
+        items = list(node.items())
+        for i, (name, children) in enumerate(items):
+            is_last = (i == len(items) - 1)
+            connector = U_TREE_LT + ' ' if is_last else U_TREE_BR + ' '
+            lines.append(prefix + DIM + connector + name + RST)
+            if children is not None:
+                ext = '   ' if is_last else U_TREE_PI + '  '
+                walk(children, prefix + DIM + ext + RST)
+
+    walk(tree, indent)
+    return lines
+
+# ── Dialectic JSON rendering ─────────────────────────────────────
+
+def render_dialectic(parsed, indent='    '):
+    if not isinstance(parsed, dict):
+        return None
+    has_yang = 'yang' in parsed and isinstance(parsed.get('yang'), dict)
+    has_yin = 'yin' in parsed and isinstance(parsed.get('yin'), dict)
+    has_serenity = 'serenity' in parsed and isinstance(parsed.get('serenity'), dict)
+    if not (has_yang or has_yin or has_serenity):
+        return None
+
+    lines = []
+    box = indent + DIM
+
+    # Yang section
+    yang = parsed.get('yang', {})
+    branches = yang.get('branches', [])
+    if branches:
+        lines.append(box + U_BOX_TOP + RST + ' ' + BOLD + YEL + 'Yang' + RST + '  ' + DIM + str(len(branches)) + ' branches' + RST)
+        for br in branches:
+            btype = br.get('type', '?')
+            conf = br.get('confidence', '')
+            content = str(br.get('content', '')).strip()
+            lines.append(box + U_BOX_PI + RST + ' ' + YEL + U_BULLET + RST + ' ' + BOLD + str(btype) + RST + '  ' + DIM + str(conf) + RST)
+            for wl in wrap_line(content, indent=box + U_BOX_PI + RST + '   '):
+                lines.append(DIM + wl + RST)
+
+    # Yin section
+    yin = parsed.get('yin', {})
+    baselines = yin.get('baselines', [])
+    critiques = yin.get('critiques', [])
+    if baselines or critiques:
+        parts = []
+        if baselines:
+            parts.append(str(len(baselines)) + ' baselines')
+        if critiques:
+            parts.append(str(len(critiques)) + ' critiques')
+        lines.append(box + U_BOX_MID + RST + ' ' + BOLD + CYAN + 'Yin' + RST + '  ' + DIM + (' ' + U_MDOT + ' ').join(parts) + RST)
+        for bl in baselines:
+            btype = bl.get('type', '?')
+            conf = bl.get('confidence', '')
+            content = str(bl.get('content', '')).strip()
+            lines.append(box + U_BOX_PI + RST + ' ' + CYAN + U_BULLET + RST + ' ' + BOLD + str(btype) + RST + '  ' + DIM + str(conf) + RST)
+            for wl in wrap_line(content, indent=box + U_BOX_PI + RST + '   '):
+                lines.append(DIM + wl + RST)
+        if critiques:
+            lines.append(box + U_BOX_PI + RST + ' ' + DIM + 'critiques' + RST)
+            for cr in critiques:
+                idx = cr.get('yangBranchIndex', '?')
+                action = cr.get('action', '?')
+                critique_text = str(cr.get('critique', '')).strip()
+                icon = U_CHECK if action in ('keep', 'compress') else U_CROSS
+                color = GRN if action == 'keep' else (YEL if action == 'compress' else RED)
+                preview = one_line_preview(critique_text, 80)
+                lines.append(box + U_BOX_PI + RST + '   [' + str(idx) + '] ' + color + icon + ' ' + action + RST + ' ' + DIM + preview + RST)
+
+    # Serenity section
+    serenity = parsed.get('serenity', {})
+    signal = serenity.get('signal', {})
+    if serenity.get('hasSignal') and isinstance(signal, dict) and signal:
+        sig_type = signal.get('type', '?')
+        conf = signal.get('confidence', '')
+        urgency = signal.get('urgency', '')
+        content = str(signal.get('content', '')).strip()
+        meta_parts = []
+        if conf:
+            meta_parts.append(str(conf))
+        if urgency:
+            meta_parts.append(str(urgency))
+        meta = (' ' + U_MDOT + ' ').join(meta_parts)
+        lines.append(box + U_BOX_BOT + RST + ' ' + BOLD + MAG + 'Serenity' + RST + '  ' + MAG + str(sig_type) + RST + '  ' + DIM + meta + RST)
+        for wl in wrap_line(content, indent=indent + '  '):
+            lines.append(DIM + wl + RST)
+    elif not signal:
+        lines.append(box + U_BOX_BOT + RST + ' ' + BOLD + MAG + 'Serenity' + RST + '  ' + DIM + 'no signal' + RST)
+
+    # Quality footer
+    quality = serenity.get('dialecticQuality')
+    considered = serenity.get('branchesConsidered', '')
+    surfaced = serenity.get('branchesSurfaced', '')
+    footer_parts = []
+    if quality is not None:
+        footer_parts.append('quality ' + str(quality))
+    if considered:
+        footer_parts.append(str(considered) + ' considered')
+    if surfaced:
+        footer_parts.append(str(surfaced) + ' surfaced')
+    if footer_parts:
+        lines.append(indent + '  ' + DIM + (' ' + U_MDOT + ' ').join(footer_parts) + RST)
+
+    return lines or None
+
+def dialectic_summary(parsed):
+    if not isinstance(parsed, dict):
+        return None
+    has_yang = 'yang' in parsed and isinstance(parsed.get('yang'), dict)
+    has_yin = 'yin' in parsed and isinstance(parsed.get('yin'), dict)
+    has_serenity = 'serenity' in parsed and isinstance(parsed.get('serenity'), dict)
+    if not (has_yang or has_yin or has_serenity):
+        return None
+    parts = []
+    yang = parsed.get('yang', {})
+    branches = yang.get('branches', [])
+    if branches:
+        parts.append('Yang ' + str(len(branches)) + ' branches')
+    yin = parsed.get('yin', {})
+    baselines = yin.get('baselines', [])
+    if baselines:
+        parts.append('Yin ' + str(len(baselines)) + ' baselines')
+    serenity = parsed.get('serenity', {})
+    signal = serenity.get('signal', {})
+    if isinstance(signal, dict) and signal:
+        sig_type = signal.get('type', '?')
+        conf = signal.get('confidence', '')
+        parts.append('Serenity ' + str(sig_type) + ' (' + str(conf) + ')')
+    return (' ' + U_MDOT + ' ').join(parts) if parts else None
+
+# ── Semantic JSON block (updated) ────────────────────────────────
+
+def semantic_json_block(parsed, indent='    '):
+    if not isinstance(parsed, dict):
+        return None
+
+    # Check for dialectic structure first
+    dialectic = render_dialectic(parsed, indent=indent)
+    if dialectic is not None:
+        return dialectic
+
+    known_keys = [
+        'summary', 'patterns', 'concerns', 'opportunities', 'recommendations',
+        'risks', 'actions', 'findings', 'observations', 'confidence',
+    ]
+    if not any(key in parsed for key in known_keys):
+        return None
+
+    lines = []
+
+    def add_wrapped(label, value, extra_indent='  '):
+        value_text = str(value).strip()
+        if not value_text:
+            return
+        lines.append(indent + BOLD + label + RST)
+        lines.extend(wrap_line(value_text, indent=indent + extra_indent))
+
+    def add_list(label, items):
+        if not isinstance(items, list) or not items:
+            return
+        lines.append(indent + BOLD + label + RST)
+        for item in items:
+            bullet_lines = wrap_line(str(item).strip(), indent=indent + '  ' + U_MDOT + ' ')
+            lines.extend(bullet_lines)
+
+    add_wrapped('Summary', parsed.get('summary', ''))
+    add_list('Patterns', parsed.get('patterns'))
+    add_list('Concerns', parsed.get('concerns'))
+    add_list('Opportunities', parsed.get('opportunities'))
+    add_list('Recommendations', parsed.get('recommendations'))
+    add_list('Risks', parsed.get('risks'))
+    add_list('Actions', parsed.get('actions'))
+    add_list('Findings', parsed.get('findings'))
+    add_list('Observations', parsed.get('observations'))
+
+    conf_val = parsed.get('confidence')
+    if conf_val is not None:
+        lines.append(indent + DIM + 'Confidence: ' + str(conf_val) + RST)
+
+    remaining = {
+        k: v for k, v in parsed.items()
+        if k not in {
+            'summary', 'patterns', 'concerns', 'opportunities', 'recommendations',
+            'risks', 'actions', 'findings', 'observations', 'confidence',
+        }
+    }
+    if remaining:
+        lines.append(indent + DIM + 'Other' + RST)
+        pretty = json.dumps(remaining, indent=2, ensure_ascii=False)
+        lines.extend((indent + '  ' + DIM + line + RST) for line in pretty.splitlines())
+
+    return lines or None
+
+# ── Pretty block ─────────────────────────────────────────────────
+
+def pretty_block(text, indent='    ', preview_limit=220):
+    raw = (text or '').strip()
+    if not raw:
+        return []
+
+    if not full_mode:
+        # Try compact summaries for JSON content
+        try:
+            parsed = json.loads(raw)
+            dsummary = dialectic_summary(parsed)
+            if dsummary:
+                return [indent + dsummary]
+            if isinstance(parsed, dict) and 'summary' in parsed:
+                return wrap_line(one_line_preview(str(parsed.get('summary', '')), preview_limit), indent=indent)
+        except Exception:
+            pass
+        return wrap_line(one_line_preview(raw, preview_limit), indent=indent)
+
+    try:
+        parsed = json.loads(raw)
+    except Exception:
+        parsed = None
+
+    if parsed is not None:
+        semantic = semantic_json_block(parsed, indent=indent)
+        if semantic is not None:
+            return semantic
+        pretty = json.dumps(parsed, indent=2, ensure_ascii=False)
+        return [indent + line for line in pretty.splitlines()]
+
+    lines = [line.rstrip() for line in raw.splitlines()]
+    out = []
+    for line in lines:
+        if line.strip():
+            out.extend(wrap_line(line, indent=indent))
+        else:
+            out.append(indent)
+    return out
+
+# ── Request state ────────────────────────────────────────────────
+
+active = {}
+connected = False
+event_count = 0
+first_request = [True]
+
+def ensure_req(req_id, d):
+    if req_id not in active:
+        active[req_id] = {
+            'provider': d.get('providerId', '?'),
+            'model': d.get('model', '?'),
+            'source': d.get('source', ''),
+            'trigger': d.get('trigger', ''),
+            'sessionId': d.get('sessionId', ''),
+            'color': next_color(),
+            'thinking': [],
+            'output': [],
+            'tools': [],
+            'timestamp': d.get('timestamp'),
+            'prompt': None,
+        }
+    if d.get('source') and not active[req_id].get('source'):
+        active[req_id]['source'] = d['source']
+    if d.get('trigger') and not active[req_id].get('trigger'):
+        active[req_id]['trigger'] = d['trigger']
+    if d.get('timestamp') and not active[req_id].get('timestamp'):
+        active[req_id]['timestamp'] = d['timestamp']
+    if d.get('sessionId') and not active[req_id].get('sessionId'):
+        active[req_id]['sessionId'] = d['sessionId']
+    return active[req_id]
+
+# ── Render tools section ─────────────────────────────────────────
+
+def render_tools_section(tools):
+    if not tools:
+        return
+
+    grouped = defaultdict(list)
+    for t in tools:
+        name = t.get('name', '?') if isinstance(t, dict) else str(t)
+        arg = t.get('arg') if isinstance(t, dict) else None
+        grouped[name].append(arg)
+
+    if not full_mode:
+        # Compact: one-liner with dedup and main arg
+        parts = []
+        for name, args in grouped.items():
+            valid_args = [a for a in args if a]
+            if len(args) == 1 and valid_args:
+                arg_preview = valid_args[0]
+                if len(arg_preview) > 60:
+                    arg_preview = arg_preview[:59] + U_ELLIP
+                parts.append(name + ' ' + DIM + arg_preview + RST)
+            elif len(args) > 1:
+                parts.append(name + ' ' + DIM + '\u00d7' + str(len(args)) + RST)
+            else:
+                parts.append(name)
+        sys.stdout.write('  ' + YEL + U_SECT + RST + ' ' + YEL + BOLD + 'tools' + RST + '  ' + (DIM + ', ' + RST).join(YEL + p + RST for p in parts) + '\n')
+        return
+
+    # Full mode: detailed tool display with file trees
+    sys.stdout.write('  ' + YEL + U_SECT + RST + ' ' + YEL + BOLD + 'tools' + RST + '\n')
+    for name, args in grouped.items():
+        count_str = ' (' + str(len(args)) + ')' if len(args) > 1 else ''
+        sys.stdout.write('    ' + YEL + name + RST + DIM + count_str + RST + '\n')
+
+        valid_args = [a for a in args if a]
+        if not valid_args:
+            continue
+
+        if is_file_tool(name) and len(valid_args) > 1:
+            for line in render_file_tree(valid_args, indent='      '):
+                sys.stdout.write(line + '\n')
+        else:
+            for arg in valid_args:
+                if len(arg) > 80:
+                    arg = arg[:79] + U_ELLIP
+                sys.stdout.write('      ' + DIM + arg + RST + '\n')
+
+# ── Render completed request ─────────────────────────────────────
+
+def render_req(req_id, info, end_data=None):
+    color = info.get('color', DIM)
+    lbl = short_label(info)
+    think_text = ''.join(info.get('thinking', []))
+    output_text = ''.join(info.get('output', []))
+    tools = info.get('tools', [])
+    if not think_text and not output_text and not tools and not end_data:
+        return
+
+    # Track duration for adaptive thresholds
+    dur_ms = None
+    if end_data and isinstance(end_data, dict):
+        dur_ms = end_data.get('durationMs')
+        if dur_ms is not None:
+            dur_tracker.add(dur_ms)
+
+    # Determine speed indicator
+    dot = U_DOT
+    dot_color = DIM
+    slow_tag = ''
+    if dur_ms is not None:
+        ms_int = int(dur_ms)
+        if ms_int > dur_tracker.p95:
+            dot = U_DOT_BIG
+            dot_color = RED
+            slow_tag = '  ' + RED + U_WARN + ' slow' + RST
+        elif ms_int > dur_tracker.p75:
+            dot = U_DOT_BIG
+            dot_color = YEL
+
+    # Separator between requests in full mode
+    if full_mode and not first_request[0]:
+        sys.stdout.write('\n')
+    first_request[0] = False
+
+    # Build header parts
+    source = format_source_chain(info)
+    ts_val = end_data.get('timestamp') if isinstance(end_data, dict) else info.get('timestamp')
+    when = fmt_ts(ts_val)
+
+    metrics = []
+    if end_data and isinstance(end_data, dict):
+        dur = end_data.get('durationMs')
+        tok = end_data.get('tokensUsed', {})
+        if dur:
+            dur_str = fmt_duration(dur)
+            ms_int = int(dur)
+            if ms_int > dur_tracker.p95:
+                metrics.append(RED + dur_str + RST)
+            elif ms_int > dur_tracker.p75:
+                metrics.append(YEL + dur_str + RST)
+            else:
+                metrics.append(DIM + dur_str + RST)
+        tin = tok.get('input', 0) if isinstance(tok, dict) else 0
+        tout = tok.get('output', 0) if isinstance(tok, dict) else 0
+        tthk = tok.get('thinking', 0) if isinstance(tok, dict) else 0
+        if tin:
+            metrics.append(DIM + fmt_count(tin) + ' in' + RST)
+        if tout:
+            metrics.append(DIM + fmt_count(tout) + ' out' + RST)
+        if tthk:
+            metrics.append(DIM + fmt_count(tthk) + ' think' + RST)
+    if tools:
+        tc = len(tools)
+        metrics.append(DIM + str(tc) + ' tool' + ('s' if tc != 1 else '') + RST)
+
+    # Header line
+    source_str = ('  ' + DIM + source + RST) if source else ''
+    sep = ' ' + DIM + U_MDOT + RST + ' '
+    metrics_str = ('  ' + sep.join(metrics)) if metrics else ''
+    meta_str = ''
+    if show_meta:
+        rid_short = str(req_id)[-6:] if req_id else ''
+        sid_short = str(info.get('sessionId', ''))[-6:]
+        meta_parts = []
+        if rid_short:
+            meta_parts.append('req:' + rid_short)
+        if sid_short:
+            meta_parts.append('sess:' + sid_short)
+        if meta_parts:
+            meta_str = '  ' + DIM + '[' + ' '.join(meta_parts) + ']' + RST
+
+    sys.stdout.write(dot_color + dot + RST + ' ' + DIM + when + RST + '  ' + color + BOLD + lbl + RST + source_str + metrics_str + slow_tag + meta_str + '\n')
+
+    # Prompt section
+    prompt_data = info.get('prompt')
+    if show_prompt and prompt_data:
+        sys_prompt = prompt_data.get('systemPrompt', '')
+        msgs = prompt_data.get('messages', [])
+        if sys_prompt:
+            sys.stdout.write('  ' + BLUE + U_SECT + RST + ' ' + BLUE + BOLD + 'system' + RST + '\n')
+            for line in pretty_block(sys_prompt, indent='    ', preview_limit=500 if full_mode else 160):
+                sys.stdout.write(BLUE + line + RST + '\n')
+        for msg in msgs:
+            role = msg.get('role', '?')
+            content = msg.get('content', '')
+            role_color = GRN if role == 'user' else (CYAN if role == 'assistant' else DIM)
+            sys.stdout.write('  ' + role_color + U_SECT + RST + ' ' + role_color + BOLD + role + RST + '\n')
+            limit = 2000 if full_mode else 200
+            for line in pretty_block(content, indent='    ', preview_limit=limit):
+                sys.stdout.write(role_color + line + RST + '\n')
+
+    # Thinking section
+    think_lines = pretty_block(think_text, indent='    ', preview_limit=160)
+    if think_lines:
+        sys.stdout.write('  ' + MAG + U_SECT + RST + ' ' + MAG + BOLD + 'think' + RST + '\n')
+        think_lines = [resolve_ansi_literals(line) for line in think_lines]
+        for line in think_lines:
+            sys.stdout.write(MAG + ITAL + line + RST + '\n')
+
+    # Tools section
+    render_tools_section(tools)
+
+    # Response section
+    resp_lines = pretty_block(output_text, indent='    ', preview_limit=220)
+    if resp_lines:
+        sys.stdout.write('  ' + WHITE + U_SECT + RST + ' ' + WHITE + BOLD + 'resp' + RST + '\n')
+        # Resolve literal escape code notation (\033[...m) to actual ANSI sequences
+        resp_lines = [resolve_ansi_literals(line) for line in resp_lines]
+        # Pre-colored lines (from semantic/dialectic renderers or model output) skip WHITE wrap
+        has_ansi = any('\033[' in line for line in resp_lines)
+        for line in resp_lines:
+            if has_ansi:
+                sys.stdout.write(line + '\n')
+            else:
+                sys.stdout.write(WHITE + line + RST + '\n')
+
+    sys.stdout.flush()
+
+# ── Render error ─────────────────────────────────────────────────
+
+def render_error(req_id, info, d):
+    lbl = short_label(info)
+    err = str(d.get('error', 'unknown'))[:200]
+    dur_ms = d.get('durationMs')
+    dur_str = fmt_duration(dur_ms) if dur_ms else '?'
+
+    render_req(req_id, info)
+
+    when = fmt_ts(d.get('timestamp'))
+    sys.stdout.write(RED + U_CROSS + RST + ' ' + DIM + when + RST + '  ' + RED + BOLD + lbl + RST + '  ' + DIM + dur_str + RST + '\n')
+    for line in wrap_line(err, indent='  '):
+        sys.stdout.write(RED + line + RST + '\n')
+    sys.stdout.flush()
+
+# ── Event loop ───────────────────────────────────────────────────
+
+for raw in sys.stdin:
+    raw = raw.strip()
+    if not raw.startswith('data: '):
+        continue
+    payload = raw[6:]
+    if not payload or payload == '{}':
+        continue
+    try:
+        d = json.loads(payload)
+    except json.JSONDecodeError:
+        continue
+
+    etype = d.get('type', '')
+    event_count += 1
+
+    if etype == 'sse_connected':
+        connected = True
+        sys.stderr.write('  ' + GRN + U_CHECK + ' Connected' + RST + ' \u2014 streaming LLM activity (Ctrl-C to stop)\n')
+        sys.stderr.flush()
+        continue
+
+    if etype == '__curl_failed':
+        code = d.get('code', '?')
+        sys.stderr.write('  ' + RED + U_CROSS + ' Connection failed' + RST + ' \u2014 curl exit code ' + str(code) + '\n')
+        if code == 7:
+            sys.stderr.write('  Daemon may not be running. Check: cassicore status\n')
+        sys.stderr.flush()
+        continue
+
+    if json_mode:
+        print(payload, flush=True)
+        continue
+    if provider_filter and d.get('providerId', '') != provider_filter:
+        continue
+    if source_filter and not str(d.get('source', '')).startswith(source_filter):
+        continue
+    req_id = d.get('requestId', '')
+
+    if etype == 'provider:request_start':
+        ensure_req(req_id, d)
+
+    elif etype == 'provider:request_prompt':
+        if show_prompt:
+            info = ensure_req(req_id, d)
+            info['prompt'] = {
+                'messages': d.get('messages', []),
+                'systemPrompt': d.get('systemPrompt', ''),
+            }
+
+    elif etype == 'provider:request_end':
+        info = active.pop(req_id, None)
+        if not info:
+            info = ensure_req(req_id, d)
+            active.pop(req_id, None)
+        render_req(req_id, info, d)
+
+    elif etype == 'provider:request_error':
+        info = active.pop(req_id, None)
+        if not info:
+            info = {
+                'provider': d.get('providerId', '?'),
+                'model': d.get('model', '?'),
+                'color': DIM,
+                'thinking': [],
+                'output': [],
+                'tools': [],
+                'timestamp': d.get('timestamp'),
+            }
+        render_error(req_id, info, d)
+
+    elif etype == 'provider:request_chunk':
+        info = ensure_req(req_id, d)
+        ctype = d.get('chunkType', '')
+        text = d.get('text', '')
+        if ctype == 'thinking' and text:
+            info['thinking'].append(text)
+        elif ctype == 'token' and text:
+            info['output'].append(text)
+        elif ctype == 'tool_use':
+            tc = d.get('toolCall', {})
+            name = tc.get('name', '?') if isinstance(tc, dict) else '?'
+            input_data = tc.get('input', {}) if isinstance(tc, dict) else {}
+            arg = extract_tool_arg(name, input_data)
+            info['tools'].append({'name': name, 'arg': arg})
+
+    elif show_all and etype.startswith('macro-dialectic:'):
+        sub = etype.split(':', 1)[1]
+        extras = []
+        for k in ('durationMs', 'yangChunks', 'yinChunks', 'confidence', 'tensionLevel'):
+            if k in d:
+                extras.append(k + '=' + str(d[k]))
+        if sub != 'unity-stream-chunk':
+            print(DIM + fmt_ts(d.get('timestamp')) + RST + ' ' + MAG + '@ ' + sub + RST + ' ' + DIM + ' '.join(extras) + RST, flush=True)
+
+if not connected and event_count == 0:
+    sys.stderr.write('  ' + RED + U_CROSS + ' Stream closed' + RST + ' \u2014 could not connect to daemon event stream\n')
+    sys.stderr.write('  Check: cassicore status\n')
+    sys.stderr.flush()
+elif not connected:
+    sys.stderr.write('  ' + YEL + U_WARN + ' Stream ended' + RST + ' \u2014 received ' + str(event_count) + ' events but no SSE handshake\n')
+    sys.stderr.flush()
+"
+}
+
+# ── llm stats — aggregate metrics snapshot from /providers/metrics ────────────
+
+llm_stats() {
+  echo "[llm stats] Provider metrics snapshot" >&2
+  echo "" >&2
+
+  curl -s "${ADMIN_URL}/providers/metrics" 2>/dev/null | python3 -u -c "
+import sys, json
+
+RST  = '\033[0m'
+BOLD = '\033[1m'
+DIM  = '\033[90m'
+GRN  = '\033[32m'
+YEL  = '\033[33m'
+RED  = '\033[31m'
+
+try:
+    d = json.load(sys.stdin)
+except:
+    print('Failed to fetch metrics'); sys.exit(1)
+
+providers = d.get('providers', [])
+if not providers:
+    print('No provider metrics available')
+    sys.exit(0)
+
+# Header
+print(f'{BOLD}{\"Provider\":<20} {\"Requests\":>10} {\"Errors\":>8} {\"Tokens\":>12} {\"Avg ms\":>8} {\"Rate Lim\":>10}{RST}')
+print('-' * 72)
+
+for p in providers:
+    pid = p.get('id', '?')
+    m = p.get('metrics')
+    if not m:
+        print(f'{pid:<20} {DIM}no metrics{RST}')
+        continue
+
+    reqs  = m.get('totalRequests', 0)
+    errs  = m.get('totalErrors', 0)
+    toks  = m.get('totalTokens', 0)
+    avg   = m.get('averageLatencyMs', 0)
+    rl    = m.get('rateLimited', 0)
+    dedup = m.get('deduplicated', 0)
+
+    err_color = RED if errs > 0 else DIM
+    rl_color  = YEL if rl > 0 else DIM
+
+    print(f'{pid:<20} {reqs:>10} {err_color}{errs:>8}{RST} {toks:>12} {avg:>8.0f} {rl_color}{rl:>10}{RST}')
+
+    if dedup:
+        print(f'{\"\":<20} {DIM}(deduplicated: {dedup}){RST}')
+
+print()
+global_cfg = d.get('global')
+if global_cfg:
+    print(f'{DIM}Global config: {json.dumps(global_cfg, indent=2)}{RST}')
+"
+}
+
+# ── llm active — show in-flight requests ──────────────────────────────────────
+
+llm_active() {
+  echo "[llm active] In-flight LLM requests" >&2
+  echo "" >&2
+
+  # Query each provider's in-flight state via the providers endpoint
+  curl -s "${ADMIN_URL}/providers" 2>/dev/null | python3 -u -c "
+import sys, json
+
+RST  = '\033[0m'
+BOLD = '\033[1m'
+DIM  = '\033[90m'
+CYAN = '\033[36m'
+
+try:
+    d = json.load(sys.stdin)
+except:
+    print('Failed to fetch provider info'); sys.exit(1)
+
+providers = d.get('providers', [])
+if isinstance(providers, list) and providers and isinstance(providers[0], str):
+    # Simple ID list — no in-flight data available
+    print(f'{DIM}In-flight tracking requires CentralizedProvider wrapping (currently disabled).{RST}')
+    print(f'{DIM}Use \"cassicore llm events\" for live request monitoring instead.{RST}')
+    print()
+    for pid in providers:
+        print(f'  {CYAN}{pid}{RST}  loaded')
+    sys.exit(0)
+
+# Rich provider objects with in-flight data
+for p in providers if isinstance(providers, list) else []:
+    pid = p if isinstance(p, str) else p.get('id', '?')
+    inflight = p.get('inFlight', []) if isinstance(p, dict) else []
+    if not inflight:
+        print(f'  {pid:<20} {DIM}idle{RST}')
+    else:
+        for req in inflight:
+            model = req.get('model', '?')
+            age = req.get('ageMs', '?')
+            sid = req.get('sessionId', '?')[-8:]
+            print(f'  {CYAN}{pid}{RST}/{model:<16}  {age}ms  session={sid}')
+"
+}
+
 cmd_run() {
   if [[ ! -f "$DAEMON_JS" ]]; then
     echo "[cassicore] Daemon not built — running build..." >&2
@@ -155,23 +1389,30 @@ usage() {
   echo "Usage: cassicore <command>"
   echo ""
   echo "Commands:"
-  echo "  start     Start daemon in background"
-  echo "  stop      Stop daemon"
-  echo "  restart   Restart daemon"
-  echo "  status    Show daemon status"
-  echo "  logs      Tail daemon log (Ctrl-C to exit)"
-  echo "  run       Run daemon in foreground"
+  echo "  start             Start daemon in background"
+  echo "  stop              Stop daemon"
+  echo "  restart           Restart daemon"
+  echo "  status            Show daemon status"
+  echo "  logs              Tail daemon log (Ctrl-C to exit)"
+  echo "  llm [subcmd]      LLM activity inspector"
+  echo "    events          Live request stream"
+  echo "    stream          Live LLM output (text/thinking)"
+  echo "    stats           Provider metrics snapshot"
+  echo "    active          In-flight requests"
+  echo "  run               Run daemon in foreground"
 }
 
 # ── dispatch ───────────────────────────────────────────────────────────────────
 
 CMD="${1:-}"
+shift || true
 case "$CMD" in
   start)   cmd_start   ;;
   stop)    cmd_stop    ;;
   restart) cmd_restart ;;
   status)  cmd_status  ;;
   logs)    cmd_logs    ;;
+  llm)     cmd_llm "$@" ;;
   run)     cmd_run     ;;
   *)       usage; exit 1 ;;
 esac

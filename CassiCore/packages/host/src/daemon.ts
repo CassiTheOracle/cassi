@@ -24,13 +24,11 @@ import { createStrategyTracker, type StrategyTracker } from './intelligence/stra
 import { createProviderProfiler, type ProviderProfiler } from './intelligence/provider-profiler.js'
 import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
 import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
+import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
-import { AutonomousAgentLoop } from './intelligence/autonomous-loop.js'
-import { createExecutionBackend } from './intelligence/execution-backends/index.js'
 import { IntelligentContextWindow } from './intelligence/context-window/index.js'
-import type { ExecutionBackendType, OpenCodeBackendConfig } from '../types/execution-backend.js'
 import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
 import { HealthMonitor } from './health-monitor.js'
 import { createIntelligence } from "./intelligence/index.js"
@@ -40,15 +38,12 @@ import { createOrchestrationBus } from './orchestration-bus.js'
 import { PluginHost } from "./plugin-host.js"
 import { type BudgetTracker, createBudgetTracker } from './providers/budget-tracker.js'
 import { type ModelRouter, createModelRouter } from './providers/model-router.js'
-import { ScoutModule } from './scout/index.js'
 import { createSessionBridge } from './session-bridge.js'
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
 import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 import { ToolExecutor } from './tools/executor.js'
-import { registerDroneTools } from './tools/implementations/drone-swarm.js'
 import { registerCoreTools } from './tools/implementations/index.js'
-import { registerTeamTools } from './tools/implementations/team-coordinator.js'
 import { ToolRegistry } from './tools/registry.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
@@ -396,6 +391,13 @@ export class Daemon {
         await unifiedLoop.start()
         ;this.unifiedLoop = unifiedLoop
         this.logger.info('Unified Intelligence Loop started')
+
+        // Enrich heartbeats with live request/session counts
+        if (this.sessions) {
+          const sessions = this.sessions
+          unifiedLoop.setActiveSessionsGetter(() => sessions.list().length)
+        }
+        // activeRequests getter is wired below after providers are available
       } catch (err) {
         this.logger.warn('Failed to initialize Unified Intelligence Loop', { error: String(err) })
       }
@@ -423,6 +425,28 @@ export class Daemon {
         }
       } catch (err) {
         this.logger.warn('Subconscious reconcile failed — session counts may be stale', { error: String(err) })
+      }
+
+      // Wire a session-list getter so the Subconscious can periodically reconcile
+      // sessions without importing SessionManager directly.
+      try {
+        interface SubconsciousWithGetter {
+          setLiveSessionGetter?(getter: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>): void
+        }
+        const subconsciousWithGetter = this.intelligence.subconscious as SubconsciousWithGetter | undefined
+        if (typeof subconsciousWithGetter?.setLiveSessionGetter === 'function' && this.sessions) {
+          const sessions = this.sessions
+          subconsciousWithGetter.setLiveSessionGetter(() =>
+            sessions.list().map((s) => ({
+              sessionId:      s.id,
+              startedAt:      s.createdAt instanceof Date ? s.createdAt.getTime() : Number(s.createdAt),
+              lastActivityAt: s.lastActiveAt instanceof Date ? s.lastActiveAt.getTime() : Number(s.lastActiveAt),
+              turnCount:      s.history?.length ?? 0,
+            }))
+          )
+        }
+      } catch (err) {
+        this.logger.warn('Failed to wire Subconscious live session getter', { error: String(err) })
       }
 
       // Wire Multi-Agent Coordinator to event bus
@@ -699,19 +723,14 @@ export class Daemon {
       interface ThinkerEarlyWarningEvent {
         warning: string
       }
-      interface PipelineWithPendingInsight {
-        pendingThinkerInsight?: string
-      }
       interface OptimizerWithEarlyWarning {
         handleEarlyWarning?(e: ThinkerEarlyWarningEvent): void
       }
       bus.on('thinker:inject-insight', (e) => {
         const event = e as ThinkerInjectInsightEvent
         this.logger.info('Thinker injecting insight', { urgency: event.urgency })
-        // Store for next turn injection via pipeline
-        if (event.insight && this.pipeline) {
-          // This will be picked up by the turn pipeline
-          ;(this.pipeline as unknown as PipelineWithPendingInsight).pendingThinkerInsight = event.insight
+        if (event.insight && this.intelligence?.injectionAggregator) {
+          this.intelligence.injectionAggregator.setThinkerInsight(event.insight)
         }
       })
 
@@ -738,8 +757,14 @@ export class Daemon {
       try {
         const { EmbeddingStackLauncher } = await import('./intelligence/embeddings/embedding-stack-launcher.js')
         this.embeddingStackLauncher = new EmbeddingStackLauncher(this.logger)
-        await this.embeddingStackLauncher.start()
-        this.logger.info('EmbeddingStackLauncher ready')
+        this.embeddingStackLauncher.start()
+          .then(() => {
+            this.logger.info('EmbeddingStackLauncher ready')
+          })
+          .catch((err) => {
+            this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
+          })
+        this.logger.info('EmbeddingStackLauncher starting in background')
       } catch (err) {
         this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
       }
@@ -979,6 +1004,21 @@ export class Daemon {
         }
       }
       this.logger.info('BudgetTracker wired to CentralizedProvider instances')
+    }
+
+    // Wire activeRequests getter into the unified loop for heartbeat enrichment.
+    // Counts in-flight requests across all CentralizedProvider instances.
+    if (this.unifiedLoop && providers.size > 0) {
+      interface ProviderWithMetrics { getMetrics?(): { activeRequests?: number } }
+      const providerRefs = Array.from(providers.values())
+      this.unifiedLoop.setActiveRequestsGetter(() => {
+        let total = 0
+        for (const p of providerRefs) {
+          const pm = p as ProviderWithMetrics
+          total += pm.getMetrics?.()?.activeRequests ?? 0
+        }
+        return total
+      })
     }
 
     // Wire provider map into Multi-Agent Coordinator so providerId hints can be resolved
@@ -1245,7 +1285,7 @@ export class Daemon {
         await registry.discover(intelligenceDir, new Set([
           'base', 'memory', 'continuity', 'recover', 'reflect', 'thinker',
           'optimizer', 'dialectic', 'ai-scientist', 'multi-agent', 'rule-enforcer',
-          'subconscious', 'team-orchestrator', 'embeddings', 'yang', 'yin',
+           'subconscious', 'team-orchestrator', 'triad-team', 'embeddings', 'yang', 'yin',
           'synthesizer', 'serenity',
           // self-healer is manually instantiated in createIntelligence() — skip auto-discovery
           // to prevent a duplicate instance from appearing in intelligence.all[]
@@ -1266,9 +1306,51 @@ export class Daemon {
           toolExecutor,
         })
 
+        // ── Macro-Dialectic custom wiring ──────────────────────────────────
+        // The MacroDialecticOrchestrator needs multi-provider resolution and
+        // access to the dialectic system for micro-dialectic nesting.
+        const macroDialectic = registry.get('macro-dialectic')
+        if (macroDialectic) {
+          const md = macroDialectic as any
+
+          // Provider resolver — maps providerId → IProvider for Yang/Yin/Unity
+          if (typeof md.setProviderResolver === 'function') {
+            md.setProviderResolver((providerId: string) => providers.get(providerId))
+          }
+
+          // Tool executor for Unity to execute tools on behalf of thinkers
+          if (typeof md.setToolExecutor === 'function') {
+            md.setToolExecutor(toolExecutor)
+          }
+
+          // Dialectic system for micro-dialectic nesting within thinker sessions
+          if (typeof md.setDialecticSystem === 'function') {
+            md.setDialecticSystem(this.intelligence.dialectic)
+          }
+
+          this.logger.info('Macro-dialectic custom wiring complete')
+        }
+
         // Initialize and start all discovered modules
         await registry.initAll()
         await registry.startAll()
+
+        if (this.intelligence?.droneSwarm) {
+          this.intelligence.droneSwarm.setToolRegistry?.(toolRegistry)
+          this.intelligence.droneSwarm.setToolExecutor?.(toolExecutor)
+        }
+
+        // ── Triad Team custom wiring ──────────────────────────────────────
+        // The TriadTeamOrchestrator needs multi-provider resolution, tool
+        // executor, and tool registry for its cells.
+        if (this.intelligence?.triadTeam) {
+          const tt = this.intelligence.triadTeam
+          tt.setProviderResolver((providerId: string) => providers.get(providerId))
+          tt.setToolExecutor(toolExecutor)
+          tt.setToolRegistry(toolRegistry)
+          this.wireModule(tt, this.bus)
+          this.logger.info('Triad-team orchestrator wired')
+        }
 
         // Merge auto-discovered modules into the existing all[] array
         const registryModules = registry.getAllAsIntelligenceModules()
@@ -1309,6 +1391,17 @@ export class Daemon {
     // Wire dialectic system to pipeline for parallel processing
     if (this.intelligence?.dialectic) {
       this.pipeline.setDialectic(this.intelligence.dialectic)
+    }
+
+    // Wire macro-dialectic middleware to pipeline — Unity becomes the user-facing response.
+    // When active, this middleware intercepts turns before the provider middleware,
+    // runs Yang + Yin + Unity, and streams Unity's output as the response.
+    if (this.intelligence?.registry) {
+      const md = this.intelligence.registry.get('macro-dialectic')
+      if (md && typeof (md as any).createMiddleware === 'function') {
+        this.pipeline.prependMiddleware((md as any).createMiddleware())
+        this.logger.info('Macro-dialectic middleware wired to pipeline (Unity-as-response)')
+      }
     }
 
     // Bridge daemon.bus events → CassiCoreEventBus session buffers
@@ -1373,196 +1466,18 @@ export class Daemon {
       this.logger.warn(`Failed to initialize SessionDigestStore: ${String(err)}`)
     }
 
-    // Wire InjectionAggregator for unified turn pipeline context injection
-    try {
-      if (this.intelligence?.injectionAggregator) {
-        this.intelligence.injectionAggregator.setDependencies({
-          pipeline: this.pipeline,
-          dialectic: this.intelligence.dialectic as any,
-          subconscious: this.intelligence.subconscious,
-          digestStore: this.sessionDigestStore!,
-        })
-        this.pipeline.setInjectionAggregator(this.intelligence.injectionAggregator)
-        this.logger.info('InjectionAggregator wired to pipeline')
-      }
-    } catch (err) {
-      this.logger.warn(`Failed to wire InjectionAggregator: ${String(err)}`)
-    }
-
-    // Wire ThoughtObserver to event bus for thinking stream monitoring.
-    // Zero additional LLM requests — passively observes thinking chunks and
-    // extracts cognitive signals (edge cases, assumptions, tensions, gaps).
-    try {
-      if (this.intelligence?.thoughtObserver) {
-        this.intelligence.thoughtObserver.onEventBus(this.bus)
-        this.logger.info('ThoughtObserver wired to event bus')
-      }
-    } catch (err) {
-      this.logger.warn(`Failed to wire ThoughtObserver: ${String(err)}`)
-    }
-
-    // Wire CognitiveBridge to event bus for cross-session signal routing.
-    // Auto-links sessions by shared projectPath and parent-child spawn relationships.
-    // Routes ThoughtObserver signals bidirectionally between linked sessions.
-    try {
-      if (this.intelligence?.cognitiveBridge) {
-        this.intelligence.cognitiveBridge.onEventBus(this.bus)
-        this.intelligence.cognitiveBridge.setSessionManager(this.sessions)
-        this.logger.info('CognitiveBridge wired to event bus + session manager')
-      }
-    } catch (err) {
-      this.logger.warn(`Failed to wire CognitiveBridge: ${String(err)}`)
-    }
-
-    // Mount intelligence middlewares — continuity only (thinker runs fire-and-forget via onTurnEnd)
-    if (this.intelligence) {
-      this.pipeline.mountIntelligence({
-        continuity: this.intelligence.continuity as any,
-
-      })
-      // Set intelligence layer reference on pipeline for tool handlers
-      this.pipeline.setIntelligence(this.intelligence)
-
-      // Wire Context Manager to sessions + pipeline if available
-      try {
-        if ((this.intelligence as any).contextManager) {
-          const cm = (this.intelligence as any).contextManager
-          if (typeof cm.setSessions === 'function') cm.setSessions(this.sessions)
-          if (typeof cm.setPipeline === 'function') cm.setPipeline(this.pipeline)
-          if (typeof cm.onEventBus === 'function') cm.onEventBus(this.bus)
-          // Start periodic sync if configured
-          try {
-            const enabled = this.config.get<boolean>('intelligence.contextManager.enabled', true)
-            const intervalMs = this.config.get<number>('intelligence.contextManager.syncIntervalMs', 60000)
-            if (enabled && typeof cm.start === 'function') cm.start({ intervalMs })
-            this.logger.info('ContextManager wired to session manager and pipeline')
-          } catch (err) {
-            this.logger.warn('ContextManager: failed to start sync', { error: String(err) })
-          }
-        }
-      } catch (err) {
-        this.logger.warn('failed to wire context manager', { error: String(err) })
-      }
-
-      // Wire optimizer to live session manager and pipeline — now it can actually work
-      this.intelligence.optimizer.setSessions(this.sessions)
-      this.intelligence.optimizer.setPipeline(this.pipeline)
-      this.logger.info('Optimizer wired to session manager and pipeline')
-
-      // Wire Scout module — pre-turn search agent that gathers context before main model
-      try {
-        const scoutEnabled = this.config.get<boolean>('intelligence.scout.enabled', true)
-        if (scoutEnabled) {
-          const scoutModule = new ScoutModule(this.logger.child('scout'), {
-            enabled: true,
-            providerId: this.config.get<string>('intelligence.scout.providerId', undefined),
-            model: this.config.get<string>('intelligence.scout.model', undefined),
-            maxToolRounds: this.config.get<number>('intelligence.scout.maxToolRounds', undefined),
-            timeoutMs: this.config.get<number>('intelligence.scout.timeoutMs', undefined),
-            maxContextChars: this.config.get<number>('intelligence.scout.maxContextChars', undefined),
-          })
-          scoutModule.setToolRegistry(toolRegistry)
-          scoutModule.setToolExecutor(toolExecutor)
-          scoutModule.setEventBus(this.bus)
-          await scoutModule.init()
-          scoutModule.setPipeline(this.pipeline)
-          await scoutModule.start()
-          this.logger.info('Scout module wired to pipeline, tool registry, and event bus')
-        }
-      } catch (err) {
-        this.logger.warn('Failed to wire Scout module', { error: String(err) })
-      }
-
-      // Wire Thinker's session manager and pipeline getter for unified subagent spawning
-      if ((this.intelligence.thinker as any)?.__awaitingWiring) {
-        (this.intelligence.thinker as any).__awaitingWiring.setSessionManager(this.sessions, sessionStore)
-          ; (this.intelligence.thinker as any).__awaitingWiring.setPipelineGetter(() => this.pipeline)
-        this.logger.info('Thinker wired to session manager and pipeline for subagent spawning')
-      }
-      // Wire drone swarm into Thinker for scout/speculative pre-fetching
-      if (this.intelligence.droneSwarm && typeof (this.intelligence.thinker as any).setDroneSwarm === 'function') {
-        (this.intelligence.thinker as any).setDroneSwarm(this.intelligence.droneSwarm)
-        this.logger.info('Thinker wired to drone swarm controller')
-      }
-      // Start Thinker's BaseCognitiveModule lifecycle (after all deps wired)
-      await (this.intelligence.thinker as any).start?.()
-
-      // Wire AutonomousAgentLoop engine into MultiAgentCoordinator
-      try {
-        const autonomousLoop = new AutonomousAgentLoop(this.logger.child('autonomous-loop'))
-        autonomousLoop.setPipeline(this.pipeline)
-        autonomousLoop.setEventBus(this.bus)
-        if (this.intelligence.memory) autonomousLoop.setMemory(this.intelligence.memory)
-        if (this.sessionDigestStore) autonomousLoop.setDigestStore(this.sessionDigestStore)
-        autonomousLoop.setSessions(this.sessions)
-        if (this.intelligence.dialectic) autonomousLoop.setDialectic(this.intelligence.dialectic as any)
-        if (this.intelligence.multiAgent) {
-          autonomousLoop.setMultiAgent(this.intelligence.multiAgent as any)
-          ;(this.intelligence.multiAgent as any).setAutonomousLoop(autonomousLoop)
-        }
-
-        // Wire execution backend if configured (default: 'cassicore' — no change from current behavior)
-        const backendType = this.config.get<ExecutionBackendType>('intelligence.executionBackend.type', 'cassicore')
-        let executionBackend: ReturnType<typeof createExecutionBackend> | undefined = undefined
-        if (backendType !== 'cassicore') {
-          const openCodeConfig = this.config.get<OpenCodeBackendConfig>('intelligence.executionBackend.opencode', {})
-          executionBackend = createExecutionBackend(backendType, this.logger.child('execution-backend'), {
-            pipeline: this.pipeline,
-            openCodeConfig,
-          })
-          autonomousLoop.setBackend(executionBackend)
-          this.logger.info(`Execution backend set: ${executionBackend.name}`)
-
-          // Wire execution backend to ContextManager for ongoing context push updates
-          if ((this.intelligence as any).contextManager &&
-              typeof (this.intelligence as any).contextManager.setExecutionBackend === 'function') {
-            (this.intelligence as any).contextManager.setExecutionBackend(executionBackend)
-            this.logger.info('ContextManager wired to execution backend for push updates')
-          }
-        }
-
-        ;this.autonomousLoop = autonomousLoop
-        this.logger.info('AutonomousAgentLoop engine initialized and wired')
-      } catch (err) {
-        this.logger.warn('Failed to initialize AutonomousAgentLoop', { error: String(err) })
-      }
-
-      // Wire TeamOrchestrator dependencies (needs pipeline, bus, digestStore, autonomousLoop)
-      try {
-        const to = this.intelligence.teamOrchestrator
-        if (to) {
-          to.setEventBus(this.bus)
-          to.setPipeline(this.pipeline)
-          if (this.sessionDigestStore) to.setDigestStore(this.sessionDigestStore)
-          if (this.autonomousLoop) to.setAutonomousLoop(this.autonomousLoop)
-          if (this.intelligence.droneSwarm) to.setDroneSwarm(this.intelligence.droneSwarm)
-          this.logger.info('TeamOrchestrator wired to pipeline, bus, digestStore, autonomousLoop, droneSwarm')
-
-          // Register team tools now that TeamOrchestrator is available
-          registerTeamTools(toolRegistry, {
-            teamOrchestrator: to as any,
-            digestStore: this.sessionDigestStore,
-            logger: this.logger,
-          })
-          this.logger.info(`Team tools registered: check_team_status, send_team_message, get_agent_result, list_team_agents, update_team_plan, complete_team_goal, get_team_goal_tree, approve_checkpoint`)
-        }
-      } catch (err) {
-        this.logger.warn('Failed to wire TeamOrchestrator', { error: String(err) })
-      }
-
-      // Register drone swarm tools (if DroneSwarmController is available)
-      try {
-        if (this.intelligence.droneSwarm) {
-          registerDroneTools(toolRegistry, {
-            droneSwarm: this.intelligence.droneSwarm,
-            logger: this.logger,
-          })
-          this.logger.info('Drone tools registered: drone_swarm, drone_scout, drone_cancel')
-        }
-      } catch (err) {
-        this.logger.warn('Failed to register drone tools', { error: String(err) })
-      }
-    }
+    this.autonomousLoop = await bootIntelligencePostPipeline({
+      bus: this.bus,
+      config: this.config,
+      logger: this.logger,
+      intelligence: this.intelligence,
+      pipeline: this.pipeline,
+      sessions: this.sessions,
+      sessionStore,
+      sessionDigestStore: this.sessionDigestStore,
+      toolRegistry,
+      toolExecutor,
+    })
 
      // ── Session Pipeline Integration ─────────────────────────────────────────
     try {
@@ -1608,6 +1523,7 @@ export class Daemon {
       pipeline: this.pipeline,
       sessions: this.sessions,
       mcp: mcpRegistry,
+      eventBus: this.bus,
     })
 
     // 7. Subscribe to worker:message
@@ -1734,6 +1650,101 @@ export class Daemon {
             if (handled) return;
           }
 
+          // ── COMPLETE TURN from OpenCode (no LLM call needed) ──────────────
+          // When the OpenCode channel captures a completed turn (user message +
+          // assistant response pair), we skip the SessionPipeline's LLM call
+          // and go straight to intelligence modules. OpenCode already handled
+          // the conversation — CassiCore just needs the context.
+          if (payload.type === 'response-complete') {
+            const userMessage = content || '(context)'
+            const assistantResponse = (payload.assistantResponse as string) || ''
+            const model = payload.model as string | undefined
+
+            // Ensure session exists
+            const session = this.sessions.getOrCreateById(
+              sid, pluginId, sid, { projectPath: process.cwd() } as any
+            )
+
+            this.logger.info(`Processing captured OpenCode turn`, {
+              sessionId: sid,
+              userLen: userMessage.length,
+              responseLen: assistantResponse.length,
+              model: model ?? '(unknown)',
+            })
+
+            // Emit turn:start — triggers feedback detection, thinker, etc.
+            this.bus.emit({
+              type: 'turn:start' as any,
+              sessionId: sid,
+              message: userMessage,
+              timestamp: new Date()
+            } as any)
+
+            // Add to session history (user + assistant)
+            // The pipeline's SessionManager uses SHA256-hashed IDs, so we must
+            // getOrCreate first (which generates the correct ID), then addTurn
+            // with that ID — not the raw OpenCode session ID.
+            try {
+              const sm = this.sessionPipeline?.getSessionManager()
+              if (sm) {
+                const pipelineSession = await sm.getOrCreate(pluginId, sid)
+                await sm.addTurn(pipelineSession.id, userMessage, assistantResponse, { tokensUsed: 0 })
+              }
+            } catch (err) {
+              this.logger.warn(`Failed to persist captured turn: ${String(err)}`, { sessionId: sid })
+            }
+
+            // Emit turn:end — triggers archivist, thinker end, streaming finalization
+            this.bus.emit({
+              type: 'turn:end' as any,
+              sessionId: sid,
+              response: assistantResponse,
+              durationMs: 0,
+              timestamp: new Date()
+            } as any)
+
+            // Trigger intelligence modules directly — NO LLM CALL
+            try {
+              const il = (this.sessionPipeline as any)?.getIntelligenceLayer?.()
+              if (il) {
+                // Map runtime Message[] → pipeline Message[] (add required timestamp)
+                const now = Date.now()
+                const pipelineHistory = (session.history || []).map((m, i) => ({
+                  role: m.role,
+                  content: m.content,
+                  timestamp: now - (session.history.length - i) * 1000,
+                }))
+                il.process(sid, {
+                  userMessage,
+                  assistantResponse,
+                  toolCalls: [],
+                  sessionHistory: pipelineHistory as any,
+                  availableTools: [],
+                  timestamp: now,
+                })
+              }
+            } catch (err) {
+              this.logger.warn(`Intelligence processing failed for captured turn: ${String(err)}`, { sessionId: sid })
+            }
+
+            // Auto-index the captured turn for FTS scoring
+            // This keeps the SessionIndexer fresh so /context/score returns
+            // meaningful results even between explicit /context/index calls.
+            try {
+              const indexer = (this.intelligence as any)?.memory?.sessionIndexer
+              if (indexer?.indexIncremental) {
+                const history = session.history || []
+                // Index from the second-to-last message (the new user + assistant pair)
+                const fromIdx = Math.max(0, history.length - 2)
+                indexer.indexIncremental(sid, history, fromIdx)
+              }
+            } catch (err) {
+              this.logger.debug?.(`Auto-index of captured turn failed (non-fatal): ${String(err)}`, { sessionId: sid })
+            }
+
+            return // Done — no SessionPipeline.processMessage()
+          }
+
           // SIGNAL HANDLING
           if (payload.type === 'signal') {
             this.bus.emit({
@@ -1758,6 +1769,9 @@ export class Daemon {
 
           // Update session model if provided (for CLI channel with model arg)
           const modelFromPayload = payload.model as string | undefined
+          const providerFromPayload = typeof modelFromPayload === 'string'
+            ? modelFromPayload.split('/')[0] || undefined
+            : undefined
           if (modelFromPayload && pluginId === 'channel:cli') {
             const session = this.sessions.get(inbound.sessionId)
             if (session) {
@@ -1765,7 +1779,12 @@ export class Daemon {
             }
           }
 
-          this.logger.info(`Processing inbound message`, { channel: pluginId, sessionId: inbound.sessionId, model: modelFromPayload })
+          this.logger.info(`Processing inbound message`, {
+            channel: pluginId,
+            sessionId: inbound.sessionId,
+            provider: providerFromPayload,
+            model: modelFromPayload,
+          })
 
           // Process the turn via session pipeline
           try {
@@ -1776,7 +1795,11 @@ export class Daemon {
                 inbound.content,
                 { attachments: inbound.attachments }
               )
-              this.logger.info(`Turn complete`, { sessionId: result.sessionId })
+              this.logger.info(`Turn complete`, {
+                sessionId: result.sessionId,
+                provider: providerFromPayload,
+                model: modelFromPayload,
+              })
               this.pluginHost.send(pluginId, {
                 sessionId: result.sessionId,
                 content: result.response,
@@ -1785,10 +1808,19 @@ export class Daemon {
             } else {
               // Fallback: legacy pipeline (intelligence modules still depend on this)
               await this.pipeline.process(inbound)
-              this.logger.info(`Turn complete (legacy)`, { sessionId: inbound.sessionId })
+              this.logger.info(`Turn complete (legacy)`, {
+                sessionId: inbound.sessionId,
+                provider: providerFromPayload,
+                model: modelFromPayload,
+              })
             }
           } catch (err) {
-            this.logger.warn(`pipeline error: ${String(err)}`)
+            this.logger.warn(`pipeline error: ${String(err)}`, {
+              channel: pluginId,
+              sessionId: inbound.sessionId,
+              provider: providerFromPayload,
+              model: modelFromPayload,
+            })
             // Send error message to channel
             this.pluginHost.send(pluginId, {
               sessionId: inbound.sessionId,
