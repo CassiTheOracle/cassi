@@ -225,7 +225,7 @@ const CASSICORE_TOOLS = [
  */
 const INTELLIGENCE_TOOLS = [
   {
-    name: 'cassi_activity',
+    name: 'activity',
     description: 'Dashboard of all CassiCore cognitive modules — status, recent activity, injection counts, session health. Use this for a high-level overview of what the intelligence layer is doing.',
     inputSchema: {
       type: 'object',
@@ -239,7 +239,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_dialectic',
+    name: 'dialectic',
     description: 'View the Yang/Yin/Synthesizer dialectic analysis — recent turns, signal injection history, confidence scores, and synthesis outcomes. Shows how the dialectic trio processes each conversation turn.',
     inputSchema: {
       type: 'object',
@@ -261,7 +261,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_thinker',
+    name: 'thinker',
     description: 'View the Thinker module state — adaptive strategy parameters, insight history, ponder/think stats, Phase 3 trigger activity, and self-modification events.',
     inputSchema: {
       type: 'object',
@@ -275,7 +275,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_subconscious',
+    name: 'subconscious',
     description: 'Conscious Observer state — system-wide mental model (session tracking, provider health, plugin status, active drones/teams, budget tiers), observations from heuristic and LLM sweeps, and detected anomalies. Use this to understand the overall health and awareness state of the intelligence layer.',
     inputSchema: {
       type: 'object',
@@ -293,7 +293,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_consciousness',
+    name: 'consciousness',
     description: 'Real-time event stream and observer pipeline — what\'s flowing through the system right now. Shows event rate, top event types, recent event sequence, heuristic vs LLM observation counts, and last LLM sweep timing. Use this to understand the live pulse of the intelligence layer.',
     inputSchema: {
       type: 'object',
@@ -311,7 +311,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_trace',
+    name: 'trace',
     description: 'Forensic trace of a conversation turn — reconstructs what cognitive influences (optimizer, thinker, dialectic, subconscious, session digest) shaped a specific response. Use when asking "why did Cassi say that?"',
     inputSchema: {
       type: 'object',
@@ -337,7 +337,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_effectiveness',
+    name: 'effectiveness',
     description: 'Response quality metrics from implicit feedback signals — "Am I helping?" Shows outcome tracking, feedback detection, per-source quality scores, and per-tool reliability.',
     inputSchema: {
       type: 'object',
@@ -359,7 +359,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_budget',
+    name: 'budget',
     description: 'Token economy and provider usage — "Where does my attention go?" Shows request counts, error rates, per-provider/model aggregates, and hourly trends. No dollar cost calculation.',
     inputSchema: {
       type: 'object',
@@ -385,7 +385,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_evolution',
+    name: 'evolution',
     description: 'Self-modification timeline — "Am I changing?" Shows strategy snapshots over time, best strategies per module, dialectic effectiveness scores, and parameter evolution.',
     inputSchema: {
       type: 'object',
@@ -407,7 +407,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_blindspots',
+    name: 'blindspots',
     description: 'Cross-session pattern detection — "What am I systematically missing?" Shows recurring patterns across sessions, error correlations, and unresolved reflection patterns.',
     inputSchema: {
       type: 'object',
@@ -433,7 +433,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_snapshot',
+    name: 'snapshot',
     description: 'Get a comprehensive snapshot of all running team agents, their goals, progress, recent messages, and current git status. Use this to monitor ongoing parallel work.',
     inputSchema: {
       type: 'object' as const,
@@ -454,7 +454,7 @@ const INTELLIGENCE_TOOLS = [
     }
   },
   {
-    name: 'cassi_trust',
+    name: 'trust',
     description: 'View trust scores across all domains — "How much has the agent earned?" Shows per-domain Bayesian trust scores, autonomy level, evidence counts, and strongest/weakest domains. Trust is earned through demonstrated competence and degrades over time.',
     inputSchema: {
       type: 'object',
@@ -472,7 +472,7 @@ const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_consequences',
+    name: 'consequences',
     description: 'View consequence estimation and permission decision state — "What risks am I assessing?" Shows recent risk assessments, permission decisions (allow/deny/escalate), pending human approvals, and the current trust-adjusted thresholds.',
     inputSchema: {
       type: 'object',
@@ -496,7 +496,7 @@ const INTELLIGENCE_TOOLS = [
 
 const MEMORY_TOOLS = [
   {
-    name: 'cassi_memory_store',
+    name: 'memory_store',
     description: 'Store a memory in CassiCore\'s persistent memory system. Memories persist across sessions and can be searched later.',
     inputSchema: {
       type: 'object',
@@ -519,7 +519,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_search',
+    name: 'memory_search',
     description: 'Search CassiCore\'s persistent memory using full-text search. Returns matching memories with relevance scores.',
     inputSchema: {
       type: 'object',
@@ -537,7 +537,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_recent',
+    name: 'memory_recent',
     description: 'List the most recently stored memories.',
     inputSchema: {
       type: 'object',
@@ -550,7 +550,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_delete',
+    name: 'memory_delete',
     description: 'Delete a memory entry by its ID.',
     inputSchema: {
       type: 'object',
@@ -561,7 +561,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_kv_get',
+    name: 'memory_kv_get',
     description: 'Retrieve a value from the persistent key-value store.',
     inputSchema: {
       type: 'object',
@@ -572,7 +572,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_kv_set',
+    name: 'memory_kv_set',
     description: 'Store a value in the persistent key-value store. Survives daemon restarts.',
     inputSchema: {
       type: 'object',
@@ -584,7 +584,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_kv_del',
+    name: 'memory_kv_del',
     description: 'Delete a key from the persistent key-value store.',
     inputSchema: {
       type: 'object',
@@ -595,12 +595,12 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_stats',
+    name: 'memory_stats',
     description: 'Get memory system statistics — entry counts by type, archive stats, and queue depth.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
-    name: 'cassi_archive_search',
+    name: 'archive_search',
     description: 'Search the archive (conversations, insights, patterns, dialectic outputs, events) with rich filtering.',
     inputSchema: {
       type: 'object',
@@ -631,7 +631,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_archive_get',
+    name: 'archive_get',
     description: 'Get a single archive entry by ID.',
     inputSchema: {
       type: 'object',
@@ -642,7 +642,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_archive_related',
+    name: 'archive_related',
     description: 'Find archive entries related to a given entry (by entity/topic overlap).',
     inputSchema: {
       type: 'object',
@@ -654,7 +654,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_archive_recent',
+    name: 'archive_recent',
     description: 'List the most recently archived entries across all types (conversations, insights, patterns, etc.).',
     inputSchema: {
       type: 'object',
@@ -664,7 +664,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_browse',
+    name: 'browse',
     description: 'Browse the archive index — list all tags, entities, or topics with their occurrence counts.',
     inputSchema: {
       type: 'object',
@@ -680,7 +680,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_universal_search',
+    name: 'universal_search',
     description: 'Search across both the memory store and the archive in one call.',
     inputSchema: {
       type: 'object',
@@ -694,7 +694,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_session_conversation',
+    name: 'session_conversation',
     description: 'Retrieve the full archived conversation thread for a session, including thinking blocks.',
     inputSchema: {
       type: 'object',
@@ -706,7 +706,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_session_export',
+    name: 'session_export',
     description: 'Export a complete session as structured JSON (conversation + thinking + metadata).',
     inputSchema: {
       type: 'object',
@@ -717,7 +717,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_resolve_ref',
+    name: 'resolve_ref',
     description: 'Resolve a compact session ref (e.g. "S0#M1.B0.P2") to its content. Refs use short labels (S0, S1, …) instead of full session IDs for token efficiency. Format: S{n}#M{msg}[.B{block}[.P{para}]]',
     inputSchema: {
       type: 'object',
@@ -728,7 +728,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_index_search',
+    name: 'index_search',
     description: 'Full-text search across indexed session message history. Returns matching fragments with compact refs.',
     inputSchema: {
       type: 'object',
@@ -742,7 +742,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_index_session',
+    name: 'index_session',
     description: 'Index a session\'s full message history for granular referencing. Returns the assigned short label. Use POST /memory/index/:sessionId on the admin API.',
     inputSchema: {
       type: 'object',
@@ -753,7 +753,7 @@ const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_index_stats',
+    name: 'index_stats',
     description: 'Get index stats for a session (message count, block count, paragraph count). Accepts either a short label or full session ID.',
     inputSchema: {
       type: 'object',
@@ -767,7 +767,7 @@ const MEMORY_TOOLS = [
 
 const PROVIDER_TOOLS = [
   {
-    name: 'cassi_providers',
+    name: 'providers',
     description: 'List all configured LLM providers with their health status, available models, and quota information.',
     inputSchema: {
       type: 'object',
@@ -780,7 +780,7 @@ const PROVIDER_TOOLS = [
     },
   },
   {
-    name: 'cassi_provider_metrics',
+    name: 'provider_metrics',
     description: 'Get aggregated provider performance metrics — request counts, latency, error rates, token usage per provider/model.',
     inputSchema: {
       type: 'object',
@@ -797,7 +797,7 @@ const PROVIDER_TOOLS = [
     },
   },
   {
-    name: 'cassi_provider_config',
+    name: 'provider_config',
     description: 'View or modify provider configuration. Use action "get" to read current config, "set" to update, "reset" to clear error state.',
     inputSchema: {
       type: 'object',
@@ -822,7 +822,7 @@ const PROVIDER_TOOLS = [
 
 const CONFIG_TOOLS = [
   {
-    name: 'cassi_config_get',
+    name: 'config_get',
     description: 'Read CassiCore runtime configuration. Optionally specify a key to read a single value, or omit for the full config.',
     inputSchema: {
       type: 'object',
@@ -835,7 +835,7 @@ const CONFIG_TOOLS = [
     },
   },
   {
-    name: 'cassi_config_set',
+    name: 'config_set',
     description: 'Modify CassiCore runtime configuration (hot-reloaded). Restricted to safe keys: intelligence.*, providers.*.model, providers.*.enabled, channels.*.enabled, logging.level.',
     inputSchema: {
       type: 'object',
@@ -855,7 +855,7 @@ const CONFIG_TOOLS = [
 
 const SESSION_TOOLS = [
   {
-    name: 'cassi_sessions',
+    name: 'sessions',
     description: 'List all active CassiCore daemon sessions with their channel, sender, message count, and last activity.',
     inputSchema: {
       type: 'object',
@@ -868,7 +868,7 @@ const SESSION_TOOLS = [
     },
   },
   {
-    name: 'cassi_session_detail',
+    name: 'session_detail',
     description: 'Get detailed information about a specific session, including its messages.',
     inputSchema: {
       type: 'object',
@@ -890,7 +890,7 @@ const SESSION_TOOLS = [
     },
   },
   {
-    name: 'cassi_session_prune',
+    name: 'session_prune',
     description: 'Prune old, empty, or inactive sessions from the daemon.',
     inputSchema: {
       type: 'object',
@@ -918,7 +918,7 @@ const SESSION_TOOLS = [
 
 const ACTION_TOOLS = [
   {
-    name: 'cassi_think_now',
+    name: 'think_now',
     description: 'Trigger a manual Thinker cycle immediately. Returns the generated insight.',
     inputSchema: {
       type: 'object',
@@ -935,7 +935,7 @@ const ACTION_TOOLS = [
     },
   },
   {
-    name: 'cassi_strategy_update',
+    name: 'strategy_update',
     description: 'View or modify the Thinker\'s adaptive strategy parameters (ponder interval, trigger sensitivity, etc.).',
     inputSchema: {
       type: 'object',
@@ -953,7 +953,7 @@ const ACTION_TOOLS = [
     },
   },
   {
-    name: 'cassi_anomaly_ack',
+    name: 'anomaly_ack',
     description: 'Acknowledge a subconscious anomaly to dismiss it from active monitoring.',
     inputSchema: {
       type: 'object',
@@ -970,7 +970,7 @@ const ACTION_TOOLS = [
 
 const TEAM_TOOLS = [
   {
-    name: 'cassi_team',
+    name: 'team',
     description: 'Multi-agent team orchestration — start, monitor, and control autonomous agent teams. Use the "action" parameter to select the operation.',
     inputSchema: {
       type: 'object',
@@ -1021,7 +1021,7 @@ const TEAM_TOOLS = [
 // They expose the same capabilities as the 8 internal team-coordinator tools but via MCP.
 const TEAM_AGENT_TOOLS = [
   {
-    name: 'cassi_team_agent_status',
+    name: 'team_agent_status',
     description: 'Get the current status of the team including goal tree, progress, active agents, and budget usage. Use this to understand what has been accomplished and what remains.',
     inputSchema: {
       type: 'object',
@@ -1032,7 +1032,7 @@ const TEAM_AGENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_team_agent_message',
+    name: 'team_agent_message',
     description: 'Send a message to another agent in the team via the mailbox system. Use for coordination, sharing intermediate results, or requesting help.',
     inputSchema: {
       type: 'object',
@@ -1045,7 +1045,7 @@ const TEAM_AGENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_team_agent_result',
+    name: 'team_agent_result',
     description: 'Get the result from a completed agent. Use to retrieve another agent\'s output after they finish their task.',
     inputSchema: {
       type: 'object',
@@ -1056,7 +1056,7 @@ const TEAM_AGENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_team_agent_list',
+    name: 'team_agent_list',
     description: 'List all agents in a team with their goals, status, and roles.',
     inputSchema: {
       type: 'object',
@@ -1067,7 +1067,7 @@ const TEAM_AGENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_team_agent_update_plan',
+    name: 'team_agent_update_plan',
     description: 'Update the team plan by adding new sub-goals or modifying existing ones. Use when you need to break down work further or adjust the plan.',
     inputSchema: {
       type: 'object',
@@ -1104,7 +1104,7 @@ const TEAM_AGENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_team_agent_complete_goal',
+    name: 'team_agent_complete_goal',
     description: 'Signal completion (or failure) of a team goal. Call this when you have finished working on your assigned goal.',
     inputSchema: {
       type: 'object',
@@ -1120,7 +1120,7 @@ const TEAM_AGENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_team_agent_goal_tree',
+    name: 'team_agent_goal_tree',
     description: 'Get the full goal tree for a team, showing all goals, their hierarchy, statuses, and progress.',
     inputSchema: {
       type: 'object',
@@ -1136,7 +1136,7 @@ const TEAM_AGENT_TOOLS = [
 // Self-testing tools that let agents verify workflows against the live daemon.
 const VERIFICATION_TOOLS = [
   {
-    name: 'cassi_verify_run',
+    name: 'verify_run',
     description: 'Run a verification scenario against the live daemon. Creates an isolated test session, executes multi-step workflows, verifies assertions, and returns structured pass/fail results. Use this to validate system behavior after making changes.',
     inputSchema: {
       type: 'object',
@@ -1157,7 +1157,7 @@ const VERIFICATION_TOOLS = [
     },
   },
   {
-    name: 'cassi_verify_snapshot',
+    name: 'verify_snapshot',
     description: 'Capture a labeled state snapshot of the current daemon state for later comparison. Captures session state, module status, trust scores, and event counts. Use before and after making changes to see what changed.',
     inputSchema: {
       type: 'object',
@@ -1175,7 +1175,7 @@ const VERIFICATION_TOOLS = [
     },
   },
   {
-    name: 'cassi_verify_diff',
+    name: 'verify_diff',
     description: 'Compare two labeled snapshots and report differences. Shows which state paths changed, were added, or were removed. Use "current" as the after label to compare against live state.',
     inputSchema: {
       type: 'object',
@@ -1197,7 +1197,7 @@ const VERIFICATION_TOOLS = [
     },
   },
   {
-    name: 'cassi_verify_events',
+    name: 'verify_events',
     description: 'Query event history with filtering. Returns events emitted within a time window, optionally filtered by type and session. Use to verify event flows after making changes.',
     inputSchema: {
       type: 'object',
@@ -1223,7 +1223,7 @@ const VERIFICATION_TOOLS = [
     },
   },
   {
-    name: 'cassi_verify_scenarios',
+    name: 'verify_scenarios',
     description: 'List all available verification scenarios with their descriptions and step counts.',
     inputSchema: {
       type: 'object',
@@ -1240,7 +1240,7 @@ async function executeVerificationTool(toolName: string, args: any): Promise<any
 
   try {
     switch (toolName) {
-      case 'cassi_verify_run': {
+      case 'verify_run': {
         if (!args.scenario) throw new Error('scenario is required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/run`, {
           method: 'POST',
@@ -1250,7 +1250,7 @@ async function executeVerificationTool(toolName: string, args: any): Promise<any
         return await res.json();
       }
 
-      case 'cassi_verify_snapshot': {
+      case 'verify_snapshot': {
         if (!args.label) throw new Error('label is required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/snapshot`, {
           method: 'POST',
@@ -1260,7 +1260,7 @@ async function executeVerificationTool(toolName: string, args: any): Promise<any
         return await res.json();
       }
 
-      case 'cassi_verify_diff': {
+      case 'verify_diff': {
         if (!args.before || !args.after) throw new Error('before and after labels are required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/diff`, {
           method: 'POST',
@@ -1270,7 +1270,7 @@ async function executeVerificationTool(toolName: string, args: any): Promise<any
         return await res.json();
       }
 
-      case 'cassi_verify_events': {
+      case 'verify_events': {
         if (!args.sessionId) throw new Error('sessionId is required');
         const params = new URLSearchParams({ sessionId: args.sessionId });
         if (args.since) params.set('since', args.since);
@@ -1280,7 +1280,7 @@ async function executeVerificationTool(toolName: string, args: any): Promise<any
         return await res.json();
       }
 
-      case 'cassi_verify_scenarios': {
+      case 'verify_scenarios': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/verify/scenarios`);
         return await res.json();
       }
@@ -1297,7 +1297,7 @@ async function executeVerificationTool(toolName: string, args: any): Promise<any
 
 const IMPROVEMENT_TOOLS = [
   {
-    name: 'cassi_improvement_status',
+    name: 'improvement_status',
     description: 'Get the current status of the self-improvement loop: orchestrator state, queue depth, gate mode, metrics, and journal statistics.',
     inputSchema: {
       type: 'object',
@@ -1305,7 +1305,7 @@ const IMPROVEMENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_improvement_journal',
+    name: 'improvement_journal',
     description: 'Query the improvement journal — persistent log of all improvement attempts with verdicts, regressions, and learnings.',
     inputSchema: {
       type: 'object',
@@ -1326,7 +1326,7 @@ const IMPROVEMENT_TOOLS = [
     },
   },
   {
-    name: 'cassi_improvement_trigger',
+    name: 'improvement_trigger',
     description: 'Manually trigger an improvement cycle or submit a manual proposal for verification-gated processing.',
     inputSchema: {
       type: 'object',
@@ -1354,12 +1354,12 @@ async function executeImprovementTool(toolName: string, args: any): Promise<any>
 
   try {
     switch (toolName) {
-      case 'cassi_improvement_status': {
+      case 'improvement_status': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/improvement/status`);
         return await res.json();
       }
 
-      case 'cassi_improvement_journal': {
+      case 'improvement_journal': {
         const params = new URLSearchParams();
         if (args.trigger) params.set('trigger', args.trigger);
         if (args.verdict) params.set('verdict', args.verdict);
@@ -1369,7 +1369,7 @@ async function executeImprovementTool(toolName: string, args: any): Promise<any>
         return await res.json();
       }
 
-      case 'cassi_improvement_trigger': {
+      case 'improvement_trigger': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/improvement/trigger`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1394,14 +1394,14 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
 
   try {
     switch (toolName) {
-      case 'cassi_team_agent_status': {
+      case 'team_agent_status': {
         if (!args.teamId) throw new Error('teamId is required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/status?teamId=${encodeURIComponent(args.teamId)}`);
         if (!res.ok) throw new Error(`Team status failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_team_agent_message': {
+      case 'team_agent_message': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/message`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1415,21 +1415,21 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_team_agent_result': {
+      case 'team_agent_result': {
         if (!args.agentId) throw new Error('agentId is required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/result?agentId=${encodeURIComponent(args.agentId)}`);
         if (!res.ok) throw new Error(`Get agent result failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_team_agent_list': {
+      case 'team_agent_list': {
         if (!args.teamId) throw new Error('teamId is required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/list?teamId=${encodeURIComponent(args.teamId)}`);
         if (!res.ok) throw new Error(`List agents failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_team_agent_update_plan': {
+      case 'team_agent_update_plan': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/update-plan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1443,7 +1443,7 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_team_agent_complete_goal': {
+      case 'team_agent_complete_goal': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/complete-goal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1460,7 +1460,7 @@ async function executeTeamAgentTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_team_agent_goal_tree': {
+      case 'team_agent_goal_tree': {
         if (!args.teamId) throw new Error('teamId is required');
         const res = await fetchWithTimeout(`${CASSICORE_URL}/teams/agent/goal-tree?teamId=${encodeURIComponent(args.teamId)}`);
         if (!res.ok) throw new Error(`Get goal tree failed: ${await res.text()}`);
@@ -1572,7 +1572,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
   try {
     switch (toolName) {
       // ── Memory ──────────────────────────────────────────────────────────
-      case 'cassi_memory_store': {
+      case 'memory_store': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/store`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1582,7 +1582,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_memory_search': {
+      case 'memory_search': {
         const params = new URLSearchParams({ query: args.query });
         if (args.limit) params.set('limit', String(args.limit));
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/search?${params}`);
@@ -1590,7 +1590,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_memory_recent': {
+      case 'memory_recent': {
         const params = new URLSearchParams();
         if (args?.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
@@ -1599,19 +1599,19 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_memory_delete': {
+      case 'memory_delete': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/${encodeURIComponent(args.id)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error(`Memory delete failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_memory_kv_get': {
+      case 'memory_kv_get': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/kv/${encodeURIComponent(args.key)}`);
         if (!res.ok) throw new Error(`KV get failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_memory_kv_set': {
+      case 'memory_kv_set': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/kv`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1621,19 +1621,19 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_memory_kv_del': {
+      case 'memory_kv_del': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/kv/${encodeURIComponent(args.key)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error(`KV delete failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_memory_stats': {
+      case 'memory_stats': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/stats`);
         if (!res.ok) throw new Error(`Memory stats failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_archive_search': {
+      case 'archive_search': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1643,13 +1643,13 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_archive_get': {
+      case 'archive_get': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/${encodeURIComponent(args.id)}`);
         if (!res.ok) throw new Error(`Archive get failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_archive_related': {
+      case 'archive_related': {
         const params = new URLSearchParams();
         if (args.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
@@ -1658,7 +1658,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_archive_recent': {
+      case 'archive_recent': {
         const params = new URLSearchParams();
         if (args?.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
@@ -1667,7 +1667,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_browse': {
+      case 'browse': {
         const params = new URLSearchParams({ category: args.category });
         if (args.minCount) params.set('minCount', String(args.minCount));
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/archives/browse?${params}`);
@@ -1675,7 +1675,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_universal_search': {
+      case 'universal_search': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/universal-search`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1685,7 +1685,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_session_conversation': {
+      case 'session_conversation': {
         const params = new URLSearchParams();
         if (args.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
@@ -1694,19 +1694,19 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_session_export': {
+      case 'session_export': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/session/${encodeURIComponent(args.sessionId)}/export`);
         if (!res.ok) throw new Error(`Session export failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_resolve_ref': {
+      case 'resolve_ref': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/ref/${encodeURIComponent(args.ref)}`);
         if (!res.ok) throw new Error(`Ref resolution failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_index_search': {
+      case 'index_search': {
         const params = new URLSearchParams();
         params.set('q', args.query);
         if (args.limit) params.set('limit', String(args.limit));
@@ -1717,20 +1717,20 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_index_session': {
+      case 'index_session': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/index/${encodeURIComponent(args.sessionId)}`, { method: 'POST' });
         if (!res.ok) throw new Error(`Session indexing failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_index_stats': {
+      case 'index_stats': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/memory/index/${encodeURIComponent(args.labelOrSessionId)}/stats`);
         if (!res.ok) throw new Error(`Index stats failed: ${await res.text()}`);
         return await res.json();
       }
 
       // ── Providers ───────────────────────────────────────────────────────
-      case 'cassi_providers': {
+      case 'providers': {
         const providersRes = await fetchWithTimeout(`${CASSICORE_URL}/providers`);
         if (!providersRes.ok) throw new Error(`Providers list failed: ${await providersRes.text().catch(() => 'unknown')}`);
         const providers = await providersRes.json();
@@ -1745,7 +1745,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return health ? { providers, health } : providers;
       }
 
-      case 'cassi_provider_metrics': {
+      case 'provider_metrics': {
         const params = new URLSearchParams();
         if (args?.providerId) params.set('providerId', args.providerId);
         if (args?.model) params.set('model', args.model);
@@ -1755,7 +1755,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_provider_config': {
+      case 'provider_config': {
         const action = args?.action || 'get';
         if (action === 'get') {
           const res = await fetchWithTimeout(`${CASSICORE_URL}/providers/config`);
@@ -1782,14 +1782,14 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       }
 
       // ── Config ──────────────────────────────────────────────────────────
-      case 'cassi_config_get': {
+      case 'config_get': {
         const path = args?.key ? `/config/${encodeURIComponent(args.key)}` : '/config';
         const res = await fetchWithTimeout(`${CASSICORE_URL}${path}`);
         if (!res.ok) throw new Error(`Config get failed: ${await res.text()}`);
         return await res.json();
       }
 
-      case 'cassi_config_set': {
+      case 'config_set': {
         if (!isConfigKeySafe(args.key)) {
           throw new Error(
             `Config key "${args.key}" is not in the safe-list. ` +
@@ -1806,7 +1806,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       }
 
       // ── Sessions ────────────────────────────────────────────────────────
-      case 'cassi_sessions': {
+      case 'sessions': {
         const params = new URLSearchParams();
         if (args?.limit) params.set('limit', String(args.limit));
         const qs = params.toString();
@@ -1815,7 +1815,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_session_detail': {
+      case 'session_detail': {
         const sid = encodeURIComponent(args.sessionId);
         const sessionRes = await fetchWithTimeout(`${CASSICORE_URL}/sessions/${sid}`);
         if (!sessionRes.ok) throw new Error(`Session detail failed: ${await sessionRes.text()}`);
@@ -1833,7 +1833,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return session;
       }
 
-      case 'cassi_session_prune': {
+      case 'session_prune': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/sessions/prune`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1844,7 +1844,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       }
 
       // ── Actions ─────────────────────────────────────────────────────────
-      case 'cassi_think_now': {
+      case 'think_now': {
         const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/thinker/think`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1857,7 +1857,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         return await res.json();
       }
 
-      case 'cassi_strategy_update': {
+      case 'strategy_update': {
         const action = args?.action || 'get';
         if (action === 'get') {
           const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/thinker/strategy`);
@@ -1883,7 +1883,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
         throw new Error(`Unknown strategy action: ${action}`);
       }
 
-      case 'cassi_anomaly_ack': {
+      case 'anomaly_ack': {
         const aid = encodeURIComponent(args.anomalyId);
         const res = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/subconscious/anomalies/${aid}/acknowledge`, {
           method: 'POST',
@@ -1893,7 +1893,7 @@ async function executeExtendedTool(toolName: string, args: any): Promise<any> {
       }
 
       // ── Teams (multiplexed) ─────────────────────────────────────────────
-      case 'cassi_team': {
+      case 'team': {
         return await executeTeamAction(args);
       }
 
@@ -3549,19 +3549,19 @@ async function executeIntelligenceTool(toolName: string, args: any): Promise<str
   log('info', 'Executing intelligence tool', { tool: toolName, args });
 
   const formatters: Record<string, (args: any) => Promise<string>> = {
-    cassi_activity: formatActivity,
-    cassi_dialectic: formatDialectic,
-    cassi_thinker: formatThinker,
-    cassi_subconscious: formatSubconscious,
-    cassi_consciousness: formatConsciousness,
-    cassi_trace: formatTrace,
-    cassi_effectiveness: formatEffectiveness,
-    cassi_budget: formatBudget,
-    cassi_evolution: formatEvolution,
-    cassi_blindspots: formatBlindspots,
-    cassi_snapshot: formatSnapshot,
-    cassi_trust: formatTrust,
-    cassi_consequences: formatConsequences,
+    activity: formatActivity,
+    dialectic: formatDialectic,
+    thinker: formatThinker,
+    subconscious: formatSubconscious,
+    consciousness: formatConsciousness,
+    trace: formatTrace,
+    effectiveness: formatEffectiveness,
+    budget: formatBudget,
+    evolution: formatEvolution,
+    blindspots: formatBlindspots,
+    snapshot: formatSnapshot,
+    trust: formatTrust,
+    consequences: formatConsequences,
   };
 
   const formatter = formatters[toolName];
@@ -3610,38 +3610,45 @@ function createServer() {
     try {
       let result;
       
+      // Intelligence introspection tools (return markdown)
+      const intelligenceTools = new Set([
+        'activity', 'dialectic', 'thinker', 'subconscious', 'consciousness',
+        'trace', 'effectiveness', 'budget', 'evolution', 'blindspots',
+        'snapshot', 'trust', 'consequences',
+      ]);
+
       // Extended tools (memory, providers, config, sessions, actions, teams)
       const extendedTools = new Set([
-        'cassi_memory_store', 'cassi_memory_search', 'cassi_memory_recent',
-        'cassi_memory_delete', 'cassi_memory_kv_get', 'cassi_memory_kv_set', 'cassi_memory_kv_del',
-        'cassi_memory_stats',
-        'cassi_archive_search', 'cassi_archive_get', 'cassi_archive_related', 'cassi_archive_recent',
-        'cassi_browse',
-        'cassi_universal_search', 'cassi_session_conversation', 'cassi_session_export',
-        'cassi_resolve_ref', 'cassi_index_search', 'cassi_index_session', 'cassi_index_stats',
-        'cassi_providers', 'cassi_provider_metrics', 'cassi_provider_config',
-        'cassi_config_get', 'cassi_config_set',
-        'cassi_sessions', 'cassi_session_detail', 'cassi_session_prune',
-        'cassi_think_now', 'cassi_strategy_update', 'cassi_anomaly_ack',
-        'cassi_team',
+        'memory_store', 'memory_search', 'memory_recent',
+        'memory_delete', 'memory_kv_get', 'memory_kv_set', 'memory_kv_del',
+        'memory_stats',
+        'archive_search', 'archive_get', 'archive_related', 'archive_recent',
+        'browse',
+        'universal_search', 'session_conversation', 'session_export',
+        'resolve_ref', 'index_search', 'index_session', 'index_stats',
+        'providers', 'provider_metrics', 'provider_config',
+        'config_get', 'config_set',
+        'sessions', 'session_detail', 'session_prune',
+        'think_now', 'strategy_update', 'anomaly_ack',
+        'team',
       ]);
 
       // C3: Agent-level team coordination tools
       const teamAgentTools = new Set([
-        'cassi_team_agent_status', 'cassi_team_agent_message', 'cassi_team_agent_result',
-        'cassi_team_agent_list', 'cassi_team_agent_update_plan',
-        'cassi_team_agent_complete_goal', 'cassi_team_agent_goal_tree',
+        'team_agent_status', 'team_agent_message', 'team_agent_result',
+        'team_agent_list', 'team_agent_update_plan',
+        'team_agent_complete_goal', 'team_agent_goal_tree',
       ]);
 
       // Verification / self-test tools
       const verificationTools = new Set([
-        'cassi_verify_run', 'cassi_verify_snapshot', 'cassi_verify_diff',
-        'cassi_verify_events', 'cassi_verify_scenarios',
+        'verify_run', 'verify_snapshot', 'verify_diff',
+        'verify_events', 'verify_scenarios',
       ]);
 
       // Improvement loop tools
       const improvementTools = new Set([
-        'cassi_improvement_status', 'cassi_improvement_journal', 'cassi_improvement_trigger',
+        'improvement_status', 'improvement_journal', 'improvement_trigger',
       ]);
       
       if (verificationTools.has(name)) {
@@ -3653,7 +3660,7 @@ function createServer() {
       } else if (extendedTools.has(name)) {
         // Extended tools return JSON
         result = await executeExtendedTool(name, args);
-      } else if (name.startsWith('cassi_')) {
+      } else if (intelligenceTools.has(name)) {
         // Intelligence introspection tools return markdown directly
         const markdown = await executeIntelligenceTool(name, args);
         return {
