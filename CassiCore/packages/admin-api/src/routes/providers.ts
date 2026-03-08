@@ -1,4 +1,5 @@
 import { listProviderConfigKeys } from '../providers/centralized.js'
+import { renewAccountsFile, defaultAccountsPath, type RenewResult, type AccountEntry } from '../../scripts/qwen-renew-accounts.js'
 
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
@@ -98,6 +99,51 @@ export async function handleProvidersRoutes(
       sendJSON(res, 200, { loadBalancing: false, accounts: 1 })
       return true
     } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /providers/qwen/accounts — list Qwen accounts from the accounts file
+  if (method === 'GET' && pathname === '/providers/qwen/accounts') {
+    try {
+      const fs = await import('fs/promises')
+      const file = defaultAccountsPath()
+      let accounts: AccountEntry[] = []
+      try {
+        const raw = await fs.readFile(file, 'utf-8')
+        accounts = JSON.parse(raw) as AccountEntry[]
+      } catch {
+        // No accounts file yet
+      }
+
+      sendJSON(res, 200, {
+        file,
+        count: accounts.length,
+        accounts: accounts.map(a => ({
+          profileId: a.profileId,
+          hasCredentials: !!a.credentials,
+          hasApiKey: !!a.apiKey,
+          baseUrl: a.baseUrl,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /providers/qwen/renew — bulk renew all Qwen OAuth accounts
+  if (method === 'POST' && pathname === '/providers/qwen/renew') {
+    try {
+      deps.logger.info('Starting Qwen account renewal')
+      const result: RenewResult = await renewAccountsFile()
+      deps.logger.info('Qwen account renewal complete', { renewed: result.renewed, reauthenticated: result.reauthenticated, failed: result.failed })
+      sendJSON(res, 200, { ok: true, ...result })
+      return true
+    } catch (err) {
+      deps.logger.error('Qwen account renewal failed', { error: String(err) })
       sendJSON(res, 500, { error: String(err) })
       return true
     }
