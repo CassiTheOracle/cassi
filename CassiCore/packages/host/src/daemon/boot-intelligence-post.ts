@@ -171,24 +171,30 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
   }
 
   try {
-    const to = intelligence.teamOrchestrator
-    if (to) {
-      to.setEventBus(bus)
-      to.setPipeline(pipeline)
-      if (sessionDigestStore) to.setDigestStore(sessionDigestStore)
-      if (autonomousLoop) to.setAutonomousLoop(autonomousLoop)
-      if (intelligence.droneSwarm) to.setDroneSwarm(intelligence.droneSwarm)
-      logger.info('TeamOrchestrator wired to pipeline, bus, digestStore, autonomousLoop, droneSwarm')
+    const triadTeam = intelligence.triadTeam
+    if (triadTeam) {
+      // TriadTeamOrchestrator is not registered in the IntelligenceRegistry
+      // (it's in intelligence.all but created separately), so its lifecycle
+      // methods aren't called by registry.initAll()/startAll(). Call them explicitly.
+      await triadTeam.init()
+      await triadTeam.start()
+
+      // TriadTeamOrchestrator inherits eventBus from BaseCognitiveModule via the registry.
+      // Wire optional dependencies that are only available post-boot.
+      if (sessionDigestStore) (triadTeam as any).setDigestStore?.(sessionDigestStore)
+      if (autonomousLoop) (triadTeam as any).setAutonomousLoop?.(autonomousLoop)
+      if (intelligence.droneSwarm) (triadTeam as any).setDroneSwarm?.(intelligence.droneSwarm)
+      logger.info('TriadTeamOrchestrator wired with available post-boot dependencies')
 
       registerTeamTools(toolRegistry, {
-        teamOrchestrator: to as any,
+        triadTeam,
         digestStore: sessionDigestStore,
         logger,
       })
-      logger.info('Team tools registered: check_team_status, send_team_message, get_agent_result, list_team_agents, update_team_plan, complete_team_goal, get_team_goal_tree, approve_checkpoint')
+      logger.info('Team tools registered: check_team_status, send_team_message, get_cell_result, list_team_cells, update_team_plan, complete_team_goal, get_team_cell_tree, approve_checkpoint')
     }
   } catch (err) {
-    logger.warn('Failed to wire TeamOrchestrator', { error: String(err) })
+    logger.warn('Failed to wire TriadTeamOrchestrator', { error: String(err) })
   }
 
   try {
