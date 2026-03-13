@@ -39,6 +39,16 @@ function resolveTeamId(tt: TriadTeamOrchestrator, teamId?: string): string | und
  * Maps are not JSON-serializable, so we convert them.
  */
 function serializeSession(session: TriadTeamSession): Record<string, unknown> {
+  // Compute active cells (agents) for client consumption
+  const activeCells = Array.from(session.cells.values())
+    .filter((cell) => cell.status === 'executing' || cell.status === 'planning')
+    .map((cell) => ({
+      cellId: cell.cellId,
+      goalTitle: cell.goalTitle,
+      status: cell.status,
+      phase: cell.phase,
+    }))
+
   return {
     id: session.id,
     status: session.status,
@@ -52,6 +62,7 @@ function serializeSession(session: TriadTeamSession): Record<string, unknown> {
     completedAt: session.completedAt,
     finalResult: session.finalResult,
     eventLog: session.eventLog,
+    activeAgents: activeCells,
   }
 }
 
@@ -93,15 +104,17 @@ export async function handleTeamsRoutes(
       }
 
       // Handle both nested provider object and flat provider/model fields
-      let providerConfig: { providerId?: string; model?: string; temperature?: number; maxTokens?: number; thinking?: 'none' | 'low' | 'medium' | 'high' } | undefined
+      let providerConfig: { providerId?: string; model?: string; temperature?: number; maxTokens?: number; thinking?: 'none' | 'low' | 'medium' | 'high'; freeModel?: string; freeProviderId?: string } | undefined
       if (body.provider && typeof body.provider === 'object') {
-        // Nested: { provider: { providerId: "...", model: "..." } }
+        // Nested: { provider: { providerId: "...", model: "...", freeModel: "gpt-5-mini" } }
         providerConfig = {
           providerId: body.provider.providerId,
           model: body.provider.model || body.model || undefined,
           temperature: body.provider.temperature ?? body.temperature,
           maxTokens: body.provider.maxTokens ?? body.maxTokens,
           thinking: body.provider.thinking ?? body.thinking,
+          freeModel: body.provider.freeModel ?? body.freeModel ?? undefined,
+          freeProviderId: body.provider.freeProviderId ?? body.freeProviderId ?? undefined,
         }
       } else if (body.provider && typeof body.provider === 'string') {
         // Flat: { provider: "github-copilot", model: "gpt-5-mini" }
@@ -111,20 +124,22 @@ export async function handleTeamsRoutes(
           temperature: body.temperature,
           maxTokens: body.maxTokens,
           thinking: body.thinking,
+          freeModel: body.freeModel ?? undefined,
+          freeProviderId: body.freeProviderId ?? undefined,
         }
       }
 
       // Also handle budget from nested body.budget or flat fields
       const budgetConfig = body.budget && typeof body.budget === 'object'
         ? {
-            maxTokens: body.budget.maxTokens || body.maxTokens || 2_000_000,
+            maxTokens: body.budget.maxTokens ?? body.maxTokens ?? 0,
             maxCells: body.budget.maxCells || body.maxCells || body.maxAgents || 20,
             maxDepth: body.budget.maxDepth || body.maxDepth || 3,
             maxDurationMs: body.budget.maxDurationMs || body.maxDurationMs || 4 * 60 * 60_000,
             maxToolIterationsPerMember: body.budget.maxToolIterationsPerMember || body.maxToolIterationsPerMember || 50,
           }
         : {
-            maxTokens: body.maxTokens || 2_000_000,
+            maxTokens: body.maxTokens ?? 0,
             maxCells: body.maxCells || body.maxAgents || 20,
             maxDepth: body.maxDepth || 3,
             maxDurationMs: body.maxDurationMs || 4 * 60 * 60_000,
@@ -297,7 +312,18 @@ export async function handleTeamsRoutes(
       }
 
       await tt.resumeTeam(teamId)
-      sendJSON(res, 200, { teamId, status: 'running' })
+
+      // Get the updated status to return
+      const session = tt.getTeamStatus(teamId)
+      const status = session?.status ?? 'running'
+
+      sendJSON(res, 200, {
+        teamId,
+        status,
+        message: status === 'running'
+          ? 'Team resumed — re-executing interrupted cells'
+          : 'Team resumed',
+      })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -453,9 +479,9 @@ export async function handleTeamsRoutes(
         'triad-team:created', 'triad-team:started', 'triad-team:planning',
         'triad-team:plan-complete', 'triad-team:cell-spawned', 'triad-team:cell-phase',
         'triad-team:cell-completed', 'triad-team:cell-failed', 'triad-team:cell-degraded',
-        'triad-team:synthesis', 'triad-team:completed', 'triad-team:failed',
-        'triad-team:cancelled', 'triad-team:paused', 'triad-team:resumed',
-        'triad-team:checkpoint', 'triad-team:checkpoint:approved',
+        'triad-team:cell-resumed', 'triad-team:synthesis', 'triad-team:completed',
+        'triad-team:failed', 'triad-team:cancelled', 'triad-team:paused',
+        'triad-team:resumed', 'triad-team:checkpoint', 'triad-team:checkpoint:approved',
         'triad-team:checkpoint:rejected', 'triad-team:budget-warning',
       ]
 
