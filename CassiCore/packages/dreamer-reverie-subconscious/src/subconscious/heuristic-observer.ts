@@ -42,7 +42,7 @@ const HEARTBEAT_MODULES: ReadonlyArray<{
   { name: 'thinker',    prefix: 'thinker:',    silenceThresholdMs: 30 * 60_000 },
   { name: 'dialectic',  prefix: 'dialectic:',  silenceThresholdMs: 20 * 60_000 },
   { name: 'optimizer',  prefix: 'optimizer:',  silenceThresholdMs: 30 * 60_000 },
-  { name: 'reflect',    prefix: 'reflect:',    silenceThresholdMs: 30 * 60_000 },
+  { name: 'error-learner', prefix: 'error-learner:', silenceThresholdMs: 30 * 60_000 },
 ]
 
 // Warm-up: don't fire heartbeat anomalies until the system has been running
@@ -188,6 +188,12 @@ export class HeuristicObserver {
         break;
       case "tool:registered":
         this.onToolRegistered(event as RuntimeEvent & { type: "tool:registered"; name: string; server?: string });
+        break;
+      case "job:completed":
+      case "job:failed":
+      case "job:cancelled":
+      case "job:timeout":
+        this.onJobFinished(event as any);
         break;
     }
   }
@@ -466,6 +472,44 @@ export class HeuristicObserver {
         timestamp: now,
       })
     }, TOOL_BURST_WINDOW_MS)
+  }
+
+  // ─── Background Job Events ─────────────────────────────────────────────
+
+  private onJobFinished(event: { type: string; jobId: string; label: string; exitCode?: number; duration: number; summary: string }): void {
+    const now = Date.now()
+    const cooldownKey = `job:${event.jobId}`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < 5000) return
+    this.signalCooldowns.set(cooldownKey, now)
+
+    const durationSec = (event.duration / 1000).toFixed(1)
+    const isFailure = event.type === 'job:failed' || event.type === 'job:timeout'
+    const statusLabel = event.type === 'job:completed' ? 'completed'
+      : event.type === 'job:cancelled' ? 'cancelled'
+      : event.type === 'job:timeout' ? 'timed out'
+      : 'failed'
+
+    if (isFailure) {
+      this.pushAnomaly({
+        id: uuidv4(),
+        description: `Background job "${event.label}" ${statusLabel} after ${durationSec}s (exit ${event.exitCode ?? '?'}): ${event.summary.slice(0, 200)}`,
+        severity: event.type === 'job:timeout' ? 'medium' : 'high',
+        eventTypes: [event.type],
+        suggestedAction: `Check job output for errors. Job ID: ${event.jobId}`,
+        timestamp: now,
+      })
+    }
+
+    // Always push an observation so the intelligence layer knows about job completion
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Background job "${event.label}" ${statusLabel} in ${durationSec}s${event.exitCode !== undefined ? ` (exit ${event.exitCode})` : ''}: ${event.summary.slice(0, 150)}`,
+      patterns: [`job_${statusLabel.replace(' ', '_')}`],
+      confidence: 1.0,
+      source: 'heuristic',
+      relatedEventTypes: [event.type],
+      timestamp: now,
+    })
   }
 
   private getOrCreate(map: Map<string, ErrorBurstTracker>, key: string): ErrorBurstTracker {

@@ -165,6 +165,7 @@ export class LLMObserver {
 
       let rawResponse = "";
       let attempt = 0;
+      let requestId: string | undefined;
 
       while (attempt <= this.config.maxRetries) {
         attempt++;
@@ -179,6 +180,7 @@ export class LLMObserver {
             temperature: 0.3,
             source: 'subconscious:observer',
             trigger: 'timer',
+            onMeta: (meta: { requestId: string }) => { requestId = meta.requestId },
           });
 
           if (result && Symbol.asyncIterator in Object(result)) {
@@ -204,6 +206,8 @@ export class LLMObserver {
       }
 
       const observation = this.parseResponse(rawResponse, summary, crossSessionMatches);
+      // Attach the provider request ID for end-to-end tracing
+      observation.requestId = requestId;
       if (this.isNearDuplicate(observation)) {
         this.logger.debug("LLMObserver: suppressed near-duplicate observation", {
           summary: observation.summary.slice(0, 120),

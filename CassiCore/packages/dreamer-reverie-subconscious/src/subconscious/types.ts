@@ -91,6 +91,8 @@ export interface LLMObservation {
   timestamp: number;
   windowMs: number;
   eventCount: number;
+  /** Provider request ID for end-to-end tracing in `cassicore llm stream` */
+  requestId?: string;
   /**
    * Top matching fragments from past indexed sessions, used as historical
    * context in the LLM sweep prompt. Each entry carries a compact SessionRef

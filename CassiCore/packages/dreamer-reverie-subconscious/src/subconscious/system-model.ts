@@ -293,6 +293,17 @@ export class SystemModel {
 
   /** Add a heuristic anomaly to the model. */
   addAnomaly(anomaly: Anomaly): void {
+    // Deduplication: skip if a similar anomaly already exists within the recent window.
+    // LLM sweeps generate near-identical concern text on each cycle, flooding the
+    // anomaly queue with noise. We normalize and check for prefix similarity.
+    const dedupWindowMs = 10 * 60 * 1000; // 10 minutes
+    const cutoff = Date.now() - dedupWindowMs;
+    const normalizedDesc = anomaly.description.trim().toLowerCase().slice(0, 80);
+    const isDuplicate = this.anomalies
+      .slice(-30) // check recent anomalies
+      .some((a) => a.timestamp >= cutoff && a.description.trim().toLowerCase().slice(0, 80) === normalizedDesc);
+    if (isDuplicate) return;
+
     // Annotate with the best cross-session ref if the index is available and the
     // anomaly doesn't already carry one. Synchronous — no latency impact.
     let annotated = anomaly;
