@@ -436,7 +436,7 @@ export class DialecticSystem implements IDialecticSystem {
       // Emit signal for pipeline injection — inject on every turn that produced a signal,
       // not just 'immediate' urgency. The dialectic should enrich almost every response.
       if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal) {
-        this.emitSignal(sessionId, turnId, result.serenity.synthesis.signal);
+        this.emitSignal(sessionId, turnId, result.serenity.synthesis.signal, result.requestId);
       }
 
       return result;
@@ -521,8 +521,8 @@ export class DialecticSystem implements IDialecticSystem {
     }
   }
 
-  private emitSignal(sessionId: string, turnId: string, signal: DialecticSignal): void {
-    (this.eventBus as any)?.emit?.({ type: 'dialectic:signal', sessionId, turnId, signal });
+  private emitSignal(sessionId: string, turnId: string, signal: DialecticSignal, requestId?: string): void {
+    (this.eventBus as any)?.emit?.({ type: 'dialectic:signal', sessionId, turnId, signal, requestId });
   }
 
   async getRecent(sessionId: string, limit = 10): Promise<DialecticResult[]> {

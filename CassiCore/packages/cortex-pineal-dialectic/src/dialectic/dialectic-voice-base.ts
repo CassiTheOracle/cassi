@@ -65,6 +65,13 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
   protected promptOptimizer?: PromptOptimizer;
 
   /**
+   * The requestId from the most recent callProvider() invocation.
+   * Set by the onMeta callback. Used by the dialectic module to tag
+   * outcome events (dialectic:signal) for traceability.
+   */
+  protected _lastRequestId?: string;
+
+  /**
    * Create a new dialectic voice instance
    *
    * @param logger - Root logger
@@ -130,6 +137,9 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
     const slashIdx = modelSpec.indexOf('/');
     const modelName = slashIdx >= 0 ? modelSpec.slice(slashIdx + 1) : modelSpec;
 
+    // Reset before the call — onMeta fires synchronously after requestId generation
+    this._lastRequestId = undefined;
+
     const callOpts: any = {
       model: modelName,
       stream: true as const,
@@ -137,6 +147,7 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
       temperature: this.config.temperature,
       thinking: 'none' as const,
       source: `dialectic:${this.constructor.name.toLowerCase()}`,
+      onMeta: (meta: { requestId: string }) => { this._lastRequestId = meta.requestId },
     };
 
     if (opts?.allowConcurrent) callOpts.allowConcurrent = true;

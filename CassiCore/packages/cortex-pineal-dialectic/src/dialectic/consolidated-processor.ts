@@ -112,12 +112,35 @@ export class ConsolidatedDialecticProcessor {
       return this.createEmptyResult(sessionId, turnId, startTime)
     }
 
-    // Fetch relevant memories for context enrichment
+    // Fetch relevant memories via smart recall pipeline
     let relevantMemories: string[] = []
     if (this.memory) {
       try {
-        const results = await this.memory.search(userMessage, { limit: 5 })
-        relevantMemories = results.map(r => r.entry.content.slice(0, 8000))
+        // Build conversation context from YangContext.sessionHistory
+        const conversationContext = (context.sessionHistory || []).slice(-4).map(m => ({
+          role: (m as any).role || 'user',
+          content: typeof m.content === 'string' ? m.content : Array.isArray(m.content) ? m.content.map((b: any) => b?.text || '').join(' ') : '',
+        }))
+
+        if (typeof (this.memory as any).smartRecall === 'function') {
+          const results = await (this.memory as any).smartRecall(userMessage, {
+            limit: 5,
+            minScore: 0.15,
+            types: ['conversation', 'fact', 'insight', 'reflection'],
+            sessionId: sessionId,
+            archiveLimit: 3,
+            useEmbeddingRerank: true,
+            conversationContext,
+            useLLMQueryExtraction: true,
+          })
+          relevantMemories = results.map((r: any) =>
+            `[${r.type}] (${(r.score * 100).toFixed(0)}%) ${r.entry.content.slice(0, 500)}`
+          )
+        } else {
+          // Fallback to basic search
+          const results = await this.memory.search(userMessage, { limit: 5 })
+          relevantMemories = results.map(r => r.entry.content.slice(0, 500))
+        }
       } catch (error) {
         this.logger.warn('ConsolidatedDialecticProcessor: failed to fetch memories', { error: String(error) })
       }
@@ -133,7 +156,7 @@ export class ConsolidatedDialecticProcessor {
       const slash = modelSpec.indexOf('/')
       const modelName = slash >= 0 ? modelSpec.slice(slash + 1) : modelSpec
 
-      const response = await this.callProvider(providerToUse, prompt, modelName, opts?.signal)
+      const { text: response, requestId } = await this.callProvider(providerToUse, prompt, modelName, opts?.signal)
       const callDuration = Date.now() - startTime
 
       // ── Parse the consolidated response ──────────────────────────────────
@@ -165,6 +188,7 @@ export class ConsolidatedDialecticProcessor {
         signalInjected,
         totalLatencyMs,
         totalCostUsd: 0, // Consolidated call — cost tracked at provider level
+        requestId,
         timing: {
           yangDuration: callDuration,
           yinDuration: callDuration,
@@ -550,7 +574,8 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
     prompt: string,
     model: string,
     signal?: AbortSignal,
-  ): Promise<string> {
+  ): Promise<{ text: string; requestId?: string }> {
+    let requestId: string | undefined
     const messages = [{ role: 'user' as const, content: prompt }]
     const stream = (provider as any).complete(messages, {
       model,
@@ -561,6 +586,7 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
       dedupe: false,
       source: 'dialectic:consolidated',
       trigger: 'turn',
+      onMeta: (meta: { requestId: string }) => { requestId = meta.requestId },
     }, undefined, signal)
 
     let fullText = ''
@@ -568,7 +594,7 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
       if (chunk.type === 'token') fullText += chunk.text
       else if (chunk.type === 'done') break
     }
-    return fullText
+    return { text: fullText, requestId }
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
