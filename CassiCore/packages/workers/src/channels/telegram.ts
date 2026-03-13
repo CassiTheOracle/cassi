@@ -116,7 +116,17 @@ function startStreamTimer(sessionId: string): void {
   if (!s || s.timer) return
   let typingCounter = 0
   s.timer = setInterval(() => {
-    flushStream(sessionId).catch((err) => log('warn', `stream flush error for ${sessionId}: ${String(err)}`))
+    flushStream(sessionId).catch((err) => {
+      const errorInfo: Record<string, unknown> = {
+        operation: 'stream_flush',
+        sessionId,
+        message: err instanceof Error ? err.message : String(err),
+      }
+      if (err instanceof Error && err.stack) {
+        errorInfo.stack = err.stack
+      }
+      log('warn', 'stream flush error', errorInfo)
+    })
     
     // Refresh typing indicator every ~5 seconds
     typingCounter += EDIT_INTERVAL_MS
@@ -209,7 +219,15 @@ async function pollLoop(): Promise<void> {
       // DOMException AbortError is expected when we abort — not a real error
       const isAbort = err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')
       if (!isAbort) {
-        log('warn', `tg/getUpdates error: ${String(err)} — retrying in ${backoffMs}ms`)
+        const errorInfo: Record<string, unknown> = {
+          operation: 'getUpdates',
+          message: err instanceof Error ? err.message : String(err),
+          backoffMs,
+        }
+        if (err instanceof Error && err.stack) {
+          errorInfo.stack = err.stack
+        }
+        log('warn', 'tg/getUpdates error — retrying', errorInfo)
         await sleep(backoffMs)
         backoffMs = Math.min(backoffMs * 2, BACKOFF_MAX_MS)
       }
@@ -314,7 +332,18 @@ parentPort?.on('message', (m: HostMessage) => {
   if (m.type === 'init') {
     cfg = m.config
     initCommonHelpers()
-    if (cfg.token) pollLoop().catch((e) => log('error', `poll loop crashed: ${String(e)}`))
+    if (cfg.token) {
+      pollLoop().catch((e) => {
+        const errorInfo: Record<string, unknown> = {
+          operation: 'poll_loop',
+          message: e instanceof Error ? e.message : String(e),
+        }
+        if (e instanceof Error && e.stack) {
+          errorInfo.stack = e.stack
+        }
+        log('error', 'poll loop crashed', errorInfo)
+      })
+    }
     parentPort?.postMessage({ type: 'ready' } satisfies WorkerMessage)
     return
   }
@@ -324,7 +353,16 @@ parentPort?.on('message', (m: HostMessage) => {
     cfg = { ...cfg, ...m.config }
     if (cfg.token !== prevToken) tg.setToken(cfg.token)
     if (!prevToken && cfg.token) {
-      pollLoop().catch((e) => log('error', `poll loop crashed: ${String(e)}`))
+      pollLoop().catch((e) => {
+        const errorInfo: Record<string, unknown> = {
+          operation: 'poll_loop',
+          message: e instanceof Error ? e.message : String(e),
+        }
+        if (e instanceof Error && e.stack) {
+          errorInfo.stack = e.stack
+        }
+        log('error', 'poll loop crashed', errorInfo)
+      })
     }
     return
   }
@@ -344,7 +382,18 @@ parentPort?.on('message', (m: HostMessage) => {
       if (chatId !== null) {
         if (statusType === 'compaction' || statusType === 'summarization') {
           tg.sendMessage(chatId, `🧠 _${statusText}_`, 'MarkdownV2')
-            .catch((err) => log('warn', `status sendMessage error: ${String(err)}`))
+            .catch((err) => {
+              const errorInfo: Record<string, unknown> = {
+                operation: 'status_sendMessage',
+                sessionId: statusSid,
+                statusType,
+                message: err instanceof Error ? err.message : String(err),
+              }
+              if (err instanceof Error && err.stack) {
+                errorInfo.stack = err.stack
+              }
+              log('warn', 'status sendMessage error', errorInfo)
+            })
         } else {
           log('info', `Status update for ${statusSid}: ${statusText}`)
         }
@@ -367,7 +416,17 @@ parentPort?.on('message', (m: HostMessage) => {
     if (done && content && !hasActiveStream) {
       const providedParse = parse_mode as 'MarkdownV2' | 'HTML' | undefined
       const finalParse = providedParse ?? chooseParseModeForText(content)
-      tg.sendMessage(chatId, content, finalParse).catch((err) => log('warn', `sendMessage error for ${sessionId}: ${String(err)}`))
+      tg.sendMessage(chatId, content, finalParse).catch((err) => {
+        const errorInfo: Record<string, unknown> = {
+          operation: 'sendMessage',
+          sessionId,
+          message: err instanceof Error ? err.message : String(err),
+        }
+        if (err instanceof Error && err.stack) {
+          errorInfo.stack = err.stack
+        }
+        log('warn', 'sendMessage error', errorInfo)
+      })
       return
     }
 
@@ -381,7 +440,17 @@ parentPort?.on('message', (m: HostMessage) => {
     if (done) {
       // Finalizing: ensure we stop the timer first to avoid concurrent edits
       if (s.timer) { clearInterval(s.timer); s.timer = null }
-      finalizeStream(sessionId).catch((err) => log('warn', `stream finalize error for ${sessionId}: ${String(err)}`))
+      finalizeStream(sessionId).catch((err) => {
+        const errorInfo: Record<string, unknown> = {
+          operation: 'stream_finalize',
+          sessionId,
+          message: err instanceof Error ? err.message : String(err),
+        }
+        if (err instanceof Error && err.stack) {
+          errorInfo.stack = err.stack
+        }
+        log('warn', 'stream finalize error', errorInfo)
+      })
     }
     return
   }
@@ -393,7 +462,18 @@ parentPort?.on('message', (m: HostMessage) => {
     
     // Show a short notice for interesting statuses
     if (type === 'compaction' || type === 'summarization') {
-      tg.sendMessage(chatId, `🧠 _${text}_`, 'MarkdownV2').catch((err) => log('warn', `status sendMessage error: ${String(err)}`))
+      tg.sendMessage(chatId, `🧠 _${text}_`, 'MarkdownV2').catch((err) => {
+        const errorInfo: Record<string, unknown> = {
+          operation: 'status_sendMessage',
+          sessionId,
+          statusType: type,
+          message: err instanceof Error ? err.message : String(err),
+        }
+        if (err instanceof Error && err.stack) {
+          errorInfo.stack = err.stack
+        }
+        log('warn', 'status sendMessage error', errorInfo)
+      })
     } else {
       log('info', `Status update for ${sessionId}: ${text}`)
     }
@@ -419,11 +499,15 @@ function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
 }
 
-function log(level: 'info' | 'warn' | 'error', msg: string): void {
-  parentPort?.postMessage({
+function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string, unknown>): void {
+  const logEntry: Record<string, unknown> = {
     type: 'log',
     level,
     message: `[telegram] ${msg}`,
-  })
+  }
+  if (meta) {
+    logEntry.meta = meta
+  }
+  parentPort?.postMessage(logEntry)
   process.stderr.write(`[telegram/${level}] ${msg}\n`)
 }

@@ -5,9 +5,9 @@
  * Handles communication between CLI clients and CassiCore intelligence layer.
  */
 
-import { parentPort } from "node:worker_threads";
+import { workerPort } from '../../core/worker-ipc.js'
 import type { ILogger } from "../../types/interfaces.js";
-import type { IntelligenceLayer } from "../../core/intelligence/index.js";
+import type { HostMessage, WorkerMessage, WorkerToHostMessage } from "../../types/worker-messages.js";
 
 interface CliMessage {
   type: string;
@@ -39,9 +39,11 @@ interface CommandResult {
 }
 
 class CliChannelWorker {
-  private pp = parentPort!;
+  private pp = workerPort;
   private activeSessions = new Map<string, CliContext>();
-  private intelligence?: IntelligenceLayer;
+  // Note: Intelligence modules run in the main process; workers communicate via messages.
+  // The intelligence property is kept for API compatibility but should not be used.
+  private intelligence?: unknown;
   private logger?: ILogger;
   private isReady = false;
 
@@ -99,7 +101,15 @@ class CliChannelWorker {
           this.sendError(`Unknown message type: ${msg.type}`);
       }
     } catch (err) {
-      this.sendError(`Handler error: ${String(err)}`);
+      const errorInfo: Record<string, unknown> = {
+        operation: 'message_handler',
+        message: err instanceof Error ? err.message : String(err),
+      }
+      if (err instanceof Error && err.stack) {
+        errorInfo.stack = err.stack
+      }
+      this.logger?.error('CLI handler error', errorInfo)
+      this.sendError(`Handler error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
@@ -119,11 +129,16 @@ class CliChannelWorker {
 
   private async handleIntelligenceInject(msg: CliMessage): Promise<void> {
     // Intelligence layer injected from parent process
-    this.intelligence = msg.payload as unknown as IntelligenceLayer;
-    this.logger?.info("Intelligence layer injected", {
-      modules: this.intelligence ? Object.keys(this.intelligence).filter(k => k !== "all") : [],
+    // Note: Workers should not hold references to core intelligence modules.
+    // This method is kept for backward compatibility but the intelligence
+    // should be accessed via message passing, not direct method calls.
+    this.intelligence = msg.payload as unknown;
+    this.logger?.info("Intelligence layer reference received", {
+      modules: this.intelligence && typeof this.intelligence === 'object'
+        ? Object.keys(this.intelligence).filter(k => k !== "all")
+        : [],
     });
-    this.pp.postMessage({ type: "intelligence:ready" });
+    this.pp.postMessage({ type: "intelligence:ready" } satisfies WorkerToHostMessage);
   }
 
   private async handleCommand(msg: CliMessage): Promise<void> {
@@ -186,17 +201,6 @@ class CliChannelWorker {
       this.logger?.info("New CLI session created", { sessionId: ctx.sessionId });
     }
 
-    // Pre-process with intelligence if available
-    if (this.intelligence?.thinker && command !== "think") {
-      try {
-        const intentHint = `${command} ${args?.join(" ") || ""}`;
-        // Fire-and-forget insight - don't block command execution
-        this.logger?.debug("Analyzing command intent", { hint: intentHint });
-      } catch (err) {
-        this.logger?.warn("Intent analysis failed", { error: String(err) });
-      }
-    }
-
     // Emit command for processing by command dispatcher
     this.pp.postMessage({
       type: "command",
@@ -208,24 +212,11 @@ class CliChannelWorker {
         projectPath: ctx.projectPath,
         timestamp: cmdStartTime,
       },
-    });
+    } satisfies WorkerToHostMessage);
 
-    // Store command in memory if available
-    if (this.intelligence?.memory) {
-      try {
-        await this.intelligence.memory.store({
-          type: 'conversation' as any,
-          content: `CLI: ${command} ${args?.join(" ") || ""}`,
-          metadata: {
-            sessionId: ctx.sessionId,
-            projectPath: ctx.projectPath,
-            timestamp: cmdStartTime,
-          },
-        });
-      } catch (err) {
-        this.logger?.warn("Failed to store command in memory", { error: String(err) });
-      }
-    }
+    // Note: Direct intelligence module access is not possible from workers.
+    // Intelligence runs in the main process; use message passing instead.
+    // Memory storage and thinker analysis should be handled by the daemon.
   }
 
   private async handleConfigUpdate(msg: CliMessage): Promise<void> {
@@ -267,10 +258,6 @@ class CliChannelWorker {
       payload: { ...result, timestamp: Date.now() } 
     });
   }
-}
-
-if (!parentPort) {
-  throw new Error("cli-channel must be run in worker_threads context");
 }
 
 new CliChannelWorker();

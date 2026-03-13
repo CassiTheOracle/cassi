@@ -1,17 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'http';
-import { parentPort } from 'node:worker_threads';
+import { workerPort } from '../../core/worker-ipc.js';
 import { randomUUID } from 'node:crypto';
-
-type HostMessage =
-  | { type: 'init'; config: { port?: number } }
-  | { type: 'config:update'; config: Record<string, unknown> }
-  | { type: 'message'; payload: { sessionId: string; content: string; done?: boolean } }
-  | { type: 'shutdown' };
-
-type WorkerMessage =
-  | { type: 'ready' }
-  | { type: 'message'; payload: { sessionId: string; content: string } }
-  | { type: 'error'; message: string };
+import type { HostMessage, WorkerMessage } from '../../types/worker-messages.js';
 
 // Map sessionId -> ServerResponse (SSE connection)
 const clients = new Map<string, ServerResponse>();
@@ -45,7 +35,7 @@ function requestListener(req: IncomingMessage, res: ServerResponse) {
         browserToDaemonSession.set(sessionId, sessionId);
         daemonToBrowserSession.set(sessionId, sessionId);
         const msg: WorkerMessage = { type: 'message', payload: { sessionId, content } };
-        parentPort?.postMessage(msg);
+        workerPort.postMessage(msg);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ ok: true }));
@@ -208,7 +198,8 @@ function clearAllKeepAliveTimers(): void {
 }
 
 // Handle messages from parent
-parentPort?.on('message', (m: HostMessage) => {
+workerPort.on('message', (raw) => {
+  const m = raw as HostMessage
   try {
     if (m.type === 'init') {
       if (m.config && typeof m.config.port === 'number') serverPort = m.config.port;
@@ -216,12 +207,12 @@ parentPort?.on('message', (m: HostMessage) => {
       // Start server here, after config is received
       try {
         server.listen(serverPort, () => {
-          parentPort?.postMessage({ type: 'ready' });
-          parentPort?.postMessage({ type: 'message', payload: { sessionId: 'system', content: `listening:${serverPort}` } });
+          workerPort.postMessage({ type: 'ready' });
+          workerPort.postMessage({ type: 'message', payload: { sessionId: 'system', content: `listening:${serverPort}` } });
         });
       } catch (err: any) {
         if (err.code === 'EADDRINUSE') {
-          parentPort?.postMessage({ type: 'error', message: `port ${serverPort} already in use` });
+          workerPort.postMessage({ type: 'error', message: `port ${serverPort} already in use` });
           process.exit(0);
         }
         throw err;
@@ -271,14 +262,14 @@ parentPort?.on('message', (m: HostMessage) => {
       server.close(() => process.exit(0));
     }
   } catch (err) {
-    parentPort?.postMessage({ type: 'error', message: String(err) });
+    workerPort.postMessage({ type: 'error', message: String(err) });
   }
 });
 
 // handle listen errors (e.g. port already in use) so the worker doesn't crash repeatedly
 server.on('error', (err: any) => {
   if (err.code === 'EADDRINUSE') {
-    parentPort?.postMessage({ type: 'error', message: `port ${serverPort} already in use` });
+    workerPort.postMessage({ type: 'error', message: `port ${serverPort} already in use` });
     // exit gracefully with success so plugin host won't keep restarting
     process.exit(0);
   }
