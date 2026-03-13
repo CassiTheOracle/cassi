@@ -36,7 +36,7 @@ is_running() {
 }
 
 wait_for_http() {
-  local retries=30
+  local retries=60
   while (( retries-- > 0 )); do
     if curl -sf "$ADMIN_URL/health" -o /dev/null 2>/dev/null; then
       return 0
@@ -66,14 +66,15 @@ cmd_start() {
 
   echo "[cassicore] Starting daemon..." >&2
   # Start the daemon as a detached background process.
-  # We use setsid to create a new process group so it survives shell exit,
-  # and capture the actual node PID (not an intermediate nohup PID).
-  setsid node "$DAEMON_JS" --stay-up >>"$LOG_FILE" 2>&1 &
+  # The entry point (index.js) runs a supervisor that fork()s the actual
+  # daemon as a child process with IPC heartbeat monitoring.
+  # We use setsid to create a new process group so it survives shell exit.
+  setsid node "$DAEMON_JS" >>"$LOG_FILE" 2>&1 &
   local bg_pid=$!
-  # The setsid'd process may fork — wait briefly and find the actual node PID
+  # The setsid'd process may fork — wait briefly and find the supervisor PID
   sleep 0.5
   local real_pid
-  real_pid="$(pgrep -f "$(basename "$DAEMON_JS").*--stay-up" | head -1)" || real_pid="$bg_pid"
+  real_pid="$(pgrep -f "$(basename "$DAEMON_JS")" | grep -v "$$" | head -1)" || real_pid="$bg_pid"
   echo "$real_pid" >"$PID_FILE"
 
   local pid; pid="$(get_pid)"
@@ -82,7 +83,7 @@ cmd_start() {
   if wait_for_http; then
     echo "[cassicore] Ready — $ADMIN_URL" >&2
   else
-    echo "[cassicore] Warning: daemon did not respond within 15s (check $LOG_FILE)" >&2
+    echo "[cassicore] Warning: daemon did not respond within 30s (check $LOG_FILE)" >&2
   fi
 }
 
@@ -423,6 +424,7 @@ show_all = $( $show_all && echo True || echo False )
 show_meta = $( $show_meta && echo True || echo False )
 show_prompt = $( $show_prompt && echo True || echo False )
 full_mode = $( $full_mode && echo True || echo False )
+history_only = $( $history_only && echo True || echo False )
 
 # ANSI codes
 RST   = '\033[0m'
@@ -944,6 +946,15 @@ connected = False
 event_count = 0
 first_request = [True]
 
+# ── Outcome tracking ─────────────────────────────────────────────
+# Maps requestId → list of outcome strings for tracing what an LLM call led to.
+# Two buffers: pending_outcomes for not-yet-rendered requests, rendered_ids for late arrivals.
+pending_outcomes = {}           # req_id → [outcome_line, ...]
+rendered_ids = {}               # req_id → render_timestamp (float) — recently rendered, TTL 60s
+OUTCOME_TTL = 60.0              # seconds to keep rendered IDs for late-arrival matching
+OUTCOME_ARROW = '\u2192'        # →
+OUTCOME_EMPTY = '\u25CB'        # ○
+
 def ensure_req(req_id, d):
     if req_id not in active:
         active[req_id] = {
@@ -968,6 +979,43 @@ def ensure_req(req_id, d):
     if d.get('sessionId') and not active[req_id].get('sessionId'):
         active[req_id]['sessionId'] = d['sessionId']
     return active[req_id]
+
+# ── Outcome helpers ──────────────────────────────────────────────
+
+def record_outcome(req_id, line):
+    # Record an outcome for a given requestId. If already rendered, print late.
+    import time as _time
+    if not req_id:
+        return
+    if req_id in active:
+        # Request still accumulating — buffer the outcome for render_req
+        pending_outcomes.setdefault(req_id, []).append(line)
+    elif req_id in rendered_ids:
+        # Request already rendered — print as late-arriving annotation
+        sys.stdout.write('  ' + CYAN + U_SECT + RST + ' ' + CYAN + BOLD + 'outcome' + RST + '  ' + DIM + '[late, req:' + req_id[-6:] + ']' + RST + '\n')
+        sys.stdout.write('    ' + CYAN + OUTCOME_ARROW + ' ' + line + RST + '\n')
+        sys.stdout.flush()
+    else:
+        # Unknown request — buffer anyway in case request_start arrives later
+        pending_outcomes.setdefault(req_id, []).append(line)
+
+def render_outcomes(req_id):
+    # Render buffered outcomes for a completed request.
+    import time as _time
+    outcomes = pending_outcomes.pop(req_id, [])
+    if not outcomes:
+        return
+    sys.stdout.write('  ' + CYAN + U_SECT + RST + ' ' + CYAN + BOLD + 'outcome' + RST + '\n')
+    for line in outcomes:
+        sys.stdout.write('    ' + CYAN + OUTCOME_ARROW + ' ' + line + RST + '\n')
+
+def gc_rendered_ids():
+    # Prune old entries from rendered_ids to prevent unbounded growth.
+    import time as _time
+    now = _time.time()
+    stale = [k for k, v in rendered_ids.items() if now - v > OUTCOME_TTL]
+    for k in stale:
+        del rendered_ids[k]
 
 # ── Render tools section ─────────────────────────────────────────
 
@@ -1146,6 +1194,14 @@ def render_req(req_id, info, end_data=None):
             else:
                 sys.stdout.write(WHITE + line + RST + '\n')
 
+    # Outcome section — render any buffered cognitive outcomes for this request
+    render_outcomes(req_id)
+
+    # Track this request as rendered for late-arriving outcome events
+    import time as _time
+    rendered_ids[req_id] = _time.time()
+    gc_rendered_ids()
+
     sys.stdout.flush()
 
 # ── Render error ─────────────────────────────────────────────────
@@ -1260,11 +1316,94 @@ for raw in sys.stdin:
         if sub != 'unity-stream-chunk':
             print(DIM + fmt_ts(d.get('timestamp')) + RST + ' ' + MAG + '@ ' + sub + RST + ' ' + DIM + ' '.join(extras) + RST, flush=True)
 
+    # ── Cognitive outcome events ─────────────────────────────────
+    # These fire AFTER an LLM call completes and tell us what the output led to.
+    # The requestId links them back to the provider request that produced the result.
+
+    elif etype == 'dialectic:signal':
+        rid = d.get('requestId', '')
+        sig = d.get('signal', {})
+        sig_type = sig.get('type', d.get('signalType', '?')) if isinstance(sig, dict) else d.get('signalType', '?')
+        conf = sig.get('confidence', d.get('confidence', '?')) if isinstance(sig, dict) else d.get('confidence', '?')
+        urgency = sig.get('urgency', '') if isinstance(sig, dict) else ''
+        sid_short = d.get('sessionId', '')[-8:]
+        parts = ['dialectic signal: ' + str(sig_type) + ' (conf ' + str(conf) + ')']
+        if urgency:
+            parts[0] += ' urgency=' + str(urgency)
+        if sid_short:
+            parts[0] += '  [sess:' + sid_short + ']'
+        for p in parts:
+            record_outcome(rid, p)
+
+    elif etype == 'dialectic:no-signal':
+        rid = d.get('requestId', '')
+        reason = d.get('reason', 'unknown')
+        record_outcome(rid, OUTCOME_EMPTY + ' no signal (' + str(reason)[:80] + ')')
+
+    elif etype == 'dialectic:convergence':
+        rid = d.get('requestId', '')
+        converged = d.get('converged', False)
+        record_outcome(rid, 'convergence: ' + ('yes' if converged else 'no'))
+
+    elif etype == 'thinker:inject-insight':
+        rid = d.get('requestId', '')
+        sid_short = d.get('sessionId', '')[-8:]
+        level = d.get('level', '')
+        line = 'insight injected'
+        if level:
+            line += ' (' + str(level) + ')'
+        if sid_short:
+            line += '  [sess:' + sid_short + ']'
+        record_outcome(rid, line)
+
+    elif etype == 'thinker:early-warning':
+        rid = d.get('requestId', '')
+        sid_short = d.get('sessionId', '')[-8:]
+        warning = d.get('warning', d.get('pattern', ''))
+        record_outcome(rid, 'early warning: ' + str(warning)[:100] + ('  [sess:' + sid_short + ']' if sid_short else ''))
+
+    elif etype == 'thinker:session-injection':
+        rid = d.get('requestId', '')
+        sid_short = d.get('sessionId', '')[-8:]
+        priority = d.get('priority', '')
+        record_outcome(rid, 'proactive injection (' + str(priority) + ')  [sess:' + sid_short + ']')
+
+    elif etype == 'consciousness:observation':
+        rid = d.get('requestId', '')
+        obs = d.get('observation', {})
+        summary = obs.get('summary', '')[:120] if isinstance(obs, dict) else ''
+        conf = obs.get('confidence', '?') if isinstance(obs, dict) else '?'
+        if rid:
+            record_outcome(rid, 'observation: ' + summary + ' (conf ' + str(conf) + ')')
+
+    elif etype == 'consciousness:anomaly':
+        rid = d.get('requestId', '')
+        anom = d.get('anomaly', {})
+        desc = anom.get('description', '')[:120] if isinstance(anom, dict) else ''
+        sev = anom.get('severity', '?') if isinstance(anom, dict) else '?'
+        if rid:
+            record_outcome(rid, 'anomaly detected: ' + desc + ' (severity ' + str(sev) + ')')
+
+    elif etype == 'drone:completed':
+        rid = d.get('requestId', '')
+        role = d.get('role', '?')
+        tokens = d.get('tokensUsed', '?')
+        dur = d.get('durationMs', '?')
+        if rid:
+            record_outcome(rid, 'drone completed: ' + str(role) + ' (' + str(tokens) + ' tok, ' + fmt_duration(dur) + ')')
+
+    elif etype == 'turn:start':
+        # Track turn boundaries for context — emit a subtle separator
+        tid = d.get('turnId', '')
+        sid = d.get('sessionId', '')[-8:]
+        if show_all and tid:
+            print(DIM + fmt_ts(d.get('timestamp')) + RST + ' ' + DIM + BOLD + OUTCOME_ARROW + ' turn:start' + RST + ' ' + DIM + '[sess:' + sid + ' turn:' + tid[-8:] + ']' + RST, flush=True)
+
 if not connected and event_count == 0:
     sys.stderr.write('  ' + RED + U_CROSS + ' Stream closed' + RST + ' \u2014 could not connect to daemon event stream\n')
     sys.stderr.write('  Check: cassicore status\n')
     sys.stderr.flush()
-elif not connected:
+elif not connected and not history_only:
     sys.stderr.write('  ' + YEL + U_WARN + ' Stream ended' + RST + ' \u2014 received ' + str(event_count) + ' events but no SSE handshake\n')
     sys.stderr.flush()
 "
