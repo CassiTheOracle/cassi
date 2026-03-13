@@ -8,8 +8,8 @@ import type { EventType, EventOf, Unsubscribe, RuntimeEvent } from "./events.js"
 // CassiCore interface types
 
 export interface IEventBus {
-  /** Emit a typed event to all registered listeners */
-  emit<T extends RuntimeEvent>(event: T): void;
+  /** Emit a typed event to all registered listeners. Returns a promise that resolves when all handlers complete. */
+  emit<T extends RuntimeEvent>(event: T): Promise<void>;
 
   /** Subscribe to a typed event. Returns an unsubscribe function. */
   on<T extends EventType>(type: T, handler: (e: EventOf<T>) => void): Unsubscribe;
@@ -62,10 +62,22 @@ export interface IConfig {
 
 export type PluginStatus = {
   id: string;
-  status: "starting" | "healthy" | "crashed" | "restarting" | "stopped";
+  status: "starting" | "healthy" | "crashed" | "restarting" | "stopped" | "stopping" | "degraded";
   crashes: number;
   startedAt: Date;
   lastCrashAt?: Date;
+  /** PID of the child process (when alive) */
+  pid?: number;
+  /** Whether the circuit breaker has tripped */
+  circuitOpen?: boolean;
+  /** Health probe ping interval in ms (default: 10000) */
+  healthProbeIntervalMs?: number;
+  /** Health probe timeout before declaring worker dead (default: 30000) */
+  healthProbeTimeoutMs?: number;
+  /** Circuit breaker: crash window in ms (default: 300000 = 5 min) */
+  circuitBreakerWindowMs?: number;
+  /** Circuit breaker: max crashes allowed in window (default: 5) */
+  circuitBreakerMaxCrashes?: number;
 };
 
 export interface PluginManifest {
@@ -75,6 +87,16 @@ export interface PluginManifest {
   restartOnCrash: boolean;
   maxRestarts: number;
   config?: Record<string, unknown>;
+  /** If true, daemon status degrades when this worker is down */
+  critical?: boolean;
+  /** Health probe ping interval in ms (default: 10000) */
+  healthProbeIntervalMs?: number;
+  /** Health probe timeout before declaring worker dead (default: 30000) */
+  healthProbeTimeoutMs?: number;
+  /** Circuit breaker: crash window in ms (default: 300000 = 5 min) */
+  circuitBreakerWindowMs?: number;
+  /** Circuit breaker: max crashes allowed in window (default: 5) */
+  circuitBreakerMaxCrashes?: number;
 }
 
 export interface IPluginHost {
@@ -100,11 +122,49 @@ export interface IPluginHost {
   send(pluginId: string, payload: unknown): void;
 
   /** Gracefully shut down all workers */
-  shutdown(): Promise<void>;
+  shutdown(opts?: { restart?: boolean }): Promise<void>;
 }
 
 // ─── Intelligence Module ─────────────────────────────────────────────────────
 
+/**
+ * Typed dependency bag for intelligence module wiring.
+ * Replaces the old ModuleWiringSurface pattern of individual setX() methods.
+ * All fields are optional — modules only receive the deps they need.
+ */
+export interface WiringDependencies {
+  eventBus?: IEventBus;
+  config?: IConfig;
+  memory?: unknown;
+  provider?: unknown;
+  toolRegistry?: unknown;
+  toolExecutor?: unknown;
+  pipeline?: unknown;
+  sessionManager?: unknown;
+  sessionStore?: unknown;
+  contextManager?: unknown;
+  dialectic?: unknown;
+  multiAgent?: unknown;
+  droneSwarm?: unknown;
+  modelRouter?: unknown;
+  consequenceEstimator?: unknown;
+  trustLedger?: unknown;
+  injectionAggregator?: unknown;
+  cognitiveBridge?: unknown;
+  pipelineGetter?: () => unknown;
+  repairProvider?: (prompt: string) => Promise<string>;
+  introspectionSources?: {
+    outcomeTracker?: unknown;
+    strategyTracker?: unknown;
+    crossSessionCorrelator?: unknown;
+    providerProfiler?: unknown;
+  };
+}
+
+/**
+ * @deprecated Use WiringDependencies + wire() instead.
+ * Kept for backward compatibility — will be removed in next major version.
+ */
 export interface ModuleWiringSurface {
   setEventBus?(bus: IEventBus): void;
   setMemory?(memory: unknown): void;
@@ -143,6 +203,9 @@ export interface IntelligenceModule extends Partial<ModuleWiringSurface> {
   readonly name: string;
   /** Higher priority = runs first */
   readonly priority: number;
+
+  /** Wire dependencies in one call — preferred over individual setX() methods. */
+  wire?(deps: Partial<WiringDependencies>): void;
 
   /** Called for every runtime event (optional — implement for side effects) */
   onEvent?(event: RuntimeEvent): Promise<void>;

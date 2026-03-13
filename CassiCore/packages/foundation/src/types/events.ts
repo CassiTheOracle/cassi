@@ -13,6 +13,8 @@ export type HealthStatus = "healthy" | "degraded" | "unhealthy";
 export type RuntimeEvent =
   | { type: "daemon:ready"; startedAt: Date }
   | { type: "daemon:shutdown"; reason: string }
+  | { type: "daemon:restarting"; reason: string; expectedDowntimeMs?: number }
+  | { type: "daemon:resumed"; startedAt: Date; previousShutdownReason?: string; restoredTeams?: number; restoredLoops?: number; downtimeMs?: number }
   | {
       type: "daemon:health";
       overall: HealthStatus;
@@ -22,12 +24,16 @@ export type RuntimeEvent =
       eventLoopLagMs: number;
       timestamp: Date;
     }
-  | { type: "turn:start"; sessionId: string; message: string; timestamp: Date }
+  | { type: "turn:start"; sessionId: string; turnId?: string; message: string; timestamp: Date }
   | { type: "turn:end"; sessionId: string; response: string; durationMs: number; traceId?: string }
   | { type: "plugin:loaded"; pluginId: string }
   | { type: "plugin:crashed"; pluginId: string; error: string; crashCount: number }
   | { type: "plugin:restarted"; pluginId: string; attempt: number }
-  | { type: "plugin:stopped"; pluginId: string; reason: "max-restarts" | "manual" }
+  | { type: "plugin:stopped"; pluginId: string; reason: "max-restarts" | "manual" | "circuit-breaker" }
+  | { type: "plugin:circuit-open"; pluginId: string; crashCount: number; windowMs: number }
+  | { type: "plugin:circuit-closed"; pluginId: string }
+  | { type: "plugin:health-timeout"; pluginId: string; sincePongMs: number }
+  | { type: "daemon:degraded"; pluginId: string; reason: string }
   | { type: "config:changed"; key: string; oldVal: unknown; newVal: unknown }
   | { type: "config:reloaded" }
   | { type: "config:override:set"; key: string; value: unknown; meta?: object }
@@ -55,8 +61,9 @@ export type RuntimeEvent =
   // Pi Bridge events
   | { type: "pi:completion:request"; requestId: string; messages: any[]; opts: any }
   | { type: "pi:completion:chunk"; requestId: string; chunk: any }
-  | { type: "thinker:insight-applied"; sessionId: string; insight: string }
+  | { type: "thinker:insight-applied"; sessionId: string; insight: string; requestId?: string }
   | { type: "injection:timeout"; sessionId: string; source: string; timeoutMs: number; timestamp: Date }
+  | { type: "injection:aggregated"; sessionId: string; sources: string[]; totalChars: number; partCount: number; timestamp: Date }
    // Tool registry events — emitted when tools are (re)registered into the system
   | { type: "tool:registered"; name: string; description: string; parameters?: Record<string, unknown>; server?: string }
   | { type: "tool:unregistered"; name: string; server?: string }
@@ -73,18 +80,13 @@ export type RuntimeEvent =
   // Compaction & Context events
   | { type: "session:compacted"; sessionId: string; summary: string }
   | { type: "context-manager:sync"; sessionId: string; payload: any }
-  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number }
+  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number; requestId?: string }
   | { type: "dialectic:started"; dialecticId: string }
   | { type: "dialectic:stopped"; dialecticId: string; reason: string }
   | { type: "dialectic:iteration"; dialecticId: string; iteration: number; summary: { yang?: number; yin?: number; hasSignal?: boolean } }
   | { type: "dialectic:error"; dialecticId: string; error: string }
   // Session Agent events
-  | { type: "session_agent:created"; agentId: string; sessionId: string; agentType: string; timestamp: Date }
-  | { type: "session_agent:shutdown"; agentId: string; sessionId: string; timestamp: Date }
-  | { type: "session_agent:status_changed"; agentId: string; sessionId: string; status: string; timestamp: Date }
-  | { type: "session_agent:observation"; agentId: string; sessionId: string; trigger: string; timestamp: Date }
-  | { type: "session_agent:action"; agentId: string; sessionId: string; actionType: string; timestamp: Date }
-  | { type: "session_agent:suggestion"; agentId: string; sessionId: string; suggestionType: string; timestamp: Date }
+
   // Skill usage tracking events
   | { type: "skill:invoked"; skillName: string; skillPath: string; sessionId: string; timestamp: Date; source?: string }
   | { type: "skill:metrics:aggregated"; period: string; topSkills: Array<{ name: string; count: number }>; totalInvocations: number; timestamp: Date }
@@ -135,14 +137,10 @@ export type RuntimeEvent =
   | { type: "session:ended"; sessionId: string; timestamp: Date }
   | { type: "cross-session:message"; fromSessionId: string; toSessionId: string; messageId: string; content: string; timestamp: Date }
   // Reflex module events — autonomic tool execution triggered by subconscious thinking
-  | { type: "reflex:triggered"; sessionId: string; intent: string; tool: string; timestamp: Date }
-  | { type: "reflex:tool_executed"; sessionId: string; tool: string; durationMs: number; success: boolean; timestamp: Date }
-  | { type: "reflex:result_injected"; sessionId: string; tool: string; resultSummary: string; timestamp: Date }
-  | { type: "reflex:suppressed"; sessionId: string; reason: string; intent: string; timestamp: Date }
-  | { type: "reflex:error"; sessionId: string; error: string; tool?: string; timestamp: Date }
+
   // Drone swarm events — lightweight parallel agent execution
   | { type: "drone:spawned"; droneId: string; swarmId: string; role: string; parentSessionId: string; timestamp: Date }
-  | { type: "drone:completed"; droneId: string; swarmId: string; role: string; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "drone:completed"; droneId: string; swarmId: string; role: string; tokensUsed: number; durationMs: number; requestId?: string; timestamp: Date }
   | { type: "drone:failed"; droneId: string; swarmId: string; role: string; error: string; retryCount: number; timestamp: Date }
   | { type: "drone:cancelled"; droneId: string; swarmId: string; reason: string; timestamp: Date }
   | { type: "drone:timed_out"; droneId: string; swarmId: string; timeoutMs: number; timestamp: Date }
@@ -160,6 +158,7 @@ export type RuntimeEvent =
   | {
       type: "consciousness:observation";
       sessionId?: string;
+      requestId?: string;
       observation: {
         id: string;
         summary: string;
@@ -173,6 +172,7 @@ export type RuntimeEvent =
   | {
       type: "consciousness:anomaly";
       sessionId?: string;
+      requestId?: string;
       anomaly: {
         id: string;
         description: string;
@@ -182,8 +182,9 @@ export type RuntimeEvent =
       };
       timestamp: Date;
     }
-  | {
+   | {
       type: "consciousness:insight";
+      requestId?: string;
       insight: string;
       relatedEvents: string[];
       confidence: number;
@@ -212,10 +213,18 @@ export type RuntimeEvent =
   | { type: "self-healer:repair-validated"; id: string; filePath: string }
   | { type: "self-healer:repair-failed";    id: string; error: string }
   | { type: "self-healer:skipped";          id: string; reason: string }
+  | { type: "self-healer:gave-up";          id: string; processorName: string; error: string; attempts: number }
+  | { type: "self-healer:not-applicable";   id: string; reason: string }
+  | { type: "self-healer:processor-suppressed"; processorName: string; failureCount: number }
   | { type: "self-healer:rebuild-started";  id: string }
   | { type: "self-healer:rebuild-succeeded"; id: string }
   | { type: "self-healer:rebuild-failed";   id: string; error: string }
   | { type: "self-healer:restart-requested"; id: string; reason: string }
+  | { type: "self-healer:shutdown-requested"; id: string; reason: string }
+  // ── ErrorLearner events (merged Reflect + Recover) ──────────────────────────
+  | { type: "error-learner:pattern_stored"; pattern: string; category: string; occurrences: number; timestamp: Date }
+  | { type: "error-learner:recovery_attempted"; pattern: string; strategy: string; attempt: number; maxAttempts: number; timestamp: Date }
+  | { type: "error-learner:recovery_exhausted"; pattern: string; context?: string; timestamp: Date }
   // ── AI Scientist events ─────────────────────────────────────────────────────
   | { type: "ai-scientist:study-complete"; studyId: string; track: string; summary: string }
   | { type: "ai-scientist:breakthrough"; track: string; title: string; metric: string; deltaPercent: number; effectSize: number; pValue: number }
@@ -225,8 +234,8 @@ export type RuntimeEvent =
    | { type: "thinker:strategy-updated"; strategy: Record<string, unknown> }
    | { type: "thinker:repair-request"; id: string; prompt: string }
    | { type: "thinker:repair-response"; id: string; text: string; error?: string }
-   | { type: "thinker:inject-insight"; sessionId: string; insight: string; level: string }
-   | { type: "thinker:early-warning"; sessionId: string; warning: string }
+   | { type: "thinker:inject-insight"; sessionId: string; insight: string; level: string; requestId?: string }
+   | { type: "thinker:early-warning"; sessionId: string; warning: string; requestId?: string }
    | { type: "thinker:self-modified"; module: string; change: Record<string, unknown> }
    | { type: "thinker:swarm-deployed"; sessionId: string; swarmId: string; mission: string }
   // ── Thought Observer events ────────────────────────────────────────────────
@@ -239,8 +248,8 @@ export type RuntimeEvent =
         timestamp: Date;
       }
   // ── Dialectic extra signals ─────────────────────────────────────────────────
-  | { type: "dialectic:no-signal"; sessionId: string; reason: string }
-  | { type: "dialectic:convergence"; sessionId: string; converged: boolean }
+  | { type: "dialectic:no-signal"; sessionId: string; reason: string; requestId?: string }
+  | { type: "dialectic:convergence"; sessionId: string; converged: boolean; requestId?: string }
   // ── Subconscious anomaly (short-form) ───────────────────────────────────────
   | { type: "subconscious:anomaly"; anomalyId: string; description: string; severity: "low" | "medium" | "high" }
   // ── AI Engineer lifecycle events ────────────────────────────────────────────
@@ -343,25 +352,23 @@ export type RuntimeEvent =
   | { type: "improvement:confirmed"; proposalId: string; improvements: string[]; timestamp: Date }
   | { type: "improvement:thrashing-detected"; adaptationType: string; revertRate: number; total: number; timestamp: Date }
    | { type: "improvement:meta-learning"; adjustments: string[]; timestamp: Date }
-   // ── Macro-Dialectic events (Triad: Yang + Yin + Unity) ───────────────────
-   | { type: "macro-dialectic:triad-ready"; workspaceId: string; yang: { providerId: string; model: string }; yin: { providerId: string; model: string }; unity: { providerId: string; model: string }; timestamp: Date }
-   | { type: "macro-dialectic:triad-degraded"; workspaceId: string; degradedRole: "yang" | "yin" | "unity"; reason: string; timestamp: Date }
-   | { type: "macro-dialectic:triad-stopped"; workspaceId: string; reason: string; turnsProcessed: number; timestamp: Date }
-   | { type: "macro-dialectic:turn-start"; workspaceId: string; sessionId: string; messageId: string; source: string; timestamp: Date }
-   | { type: "macro-dialectic:turn-end"; workspaceId: string; sessionId: string; durationMs: number; yangChunks: number; yinChunks: number; toolRequestsProcessed: number; timestamp: Date }
-   | { type: "macro-dialectic:reasoning-chunk"; workspaceId: string; chunkId: string; source: "yang" | "yin"; sequenceIndex: number; isFinal: boolean; timestamp: Date }
-   | { type: "macro-dialectic:tool-request"; requestId: string; requester: "yang" | "yin"; tool: string; priority: "immediate" | "normal" | "background"; tier: "read" | "write" | "destructive"; timestamp: Date }
-   | { type: "macro-dialectic:tool-request-amended"; requestId: string; amender: "yang" | "yin"; reject: boolean; timestamp: Date }
-   | { type: "macro-dialectic:tool-executed"; workspaceId: string; requestId: string; tool: string; isError: boolean; durationMs: number; timestamp: Date }
-   | { type: "macro-dialectic:tool-request-rejected"; requestId: string; tool: string; requester: "yang" | "yin"; timestamp: Date }
-   | { type: "macro-dialectic:lock-acquired"; lockId: string; resource: string; tier: "read" | "write" | "destructive"; requestId: string; timestamp: Date }
-   | { type: "macro-dialectic:lock-released"; lockId: string; resource: string; timestamp: Date }
-   | { type: "macro-dialectic:convergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; confidence: number; timestamp: Date }
-   | { type: "macro-dialectic:divergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; tensionLevel: number; timestamp: Date }
-   | { type: "macro-dialectic:unity-stream-chunk"; workspaceId: string; sessionId: string; chunkIndex: number; text: string; timestamp: Date }
-   | { type: "macro-dialectic:unity-complete"; workspaceId: string; sessionId: string; toolsExecuted: number; durationMs: number; timestamp: Date }
-   | { type: "macro-dialectic:mode-changed"; workspaceId: string; previousMode: string; newMode: string; reason: string; timestamp: Date }
-   | { type: "macro-dialectic:token-usage"; workspaceId: string; turnNumber: number; yang: number; yin: number; unity: number; total: number; timestamp: Date }
+    // ── Macro-Dialectic events (Triad: Yang + Yin + Unity) ───────────────────
+    | { type: "macro-dialectic:triad-ready"; workspaceId: string; yang: { providerId: string; model: string }; yin: { providerId: string; model: string }; unity: { providerId: string; model: string }; timestamp: Date }
+    | { type: "macro-dialectic:triad-degraded"; workspaceId: string; degradedRole: "yang" | "yin" | "unity"; reason: string; timestamp: Date }
+    | { type: "macro-dialectic:triad-stopped"; workspaceId: string; reason: string; turnsProcessed: number; timestamp: Date }
+    | { type: "macro-dialectic:turn-start"; workspaceId: string; sessionId: string; messageId: string; source: string; timestamp: Date }
+    | { type: "macro-dialectic:turn-end"; workspaceId: string; sessionId: string; durationMs: number; yangChunks: number; yinChunks: number; toolRequestsProcessed: number; timestamp: Date }
+    | { type: "macro-dialectic:reasoning-chunk"; workspaceId: string; chunkId: string; source: "yang" | "yin"; sequenceIndex: number; isFinal: boolean; timestamp: Date }
+    | { type: "macro-dialectic:tool-request"; requestId: string; requester: "yang" | "yin"; tool: string; priority: "immediate" | "normal" | "background"; tier: "read" | "write" | "destructive"; timestamp: Date }
+    | { type: "macro-dialectic:tool-request-amended"; requestId: string; amender: "yang" | "yin"; reject: boolean; timestamp: Date }
+    | { type: "macro-dialectic:tool-executed"; workspaceId: string; requestId: string; tool: string; isError: boolean; durationMs: number; timestamp: Date }
+    | { type: "macro-dialectic:tool-request-rejected"; requestId: string; tool: string; requester: "yang" | "yin"; timestamp: Date }
+    | { type: "macro-dialectic:lock-acquired"; lockId: string; resource: string; tier: "read" | "write" | "destructive"; requestId: string; timestamp: Date }
+    | { type: "macro-dialectic:lock-released"; lockId: string; resource: string; timestamp: Date }
+    | { type: "macro-dialectic:convergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; confidence: number; timestamp: Date }
+    | { type: "macro-dialectic:divergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; tensionLevel: number; timestamp: Date }
+    | { type: "macro-dialectic:unity-stream-chunk"; workspaceId: string; sessionId: string; chunkIndex: number; text: string; timestamp: Date }
+    | { type: "macro-dialectic:unity-complete"; workspaceId: string; sessionId: string; toolsExecuted: number; durationMs: number; timestamp: Date }
    // Triad Team events — hierarchical dialectic team system
    | { type: "triad-team:created"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:started"; teamId: string; entityId: string; message: string; timestamp: Date }
@@ -381,7 +388,78 @@ export type RuntimeEvent =
    | { type: "triad-team:checkpoint"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:checkpoint:approved"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:checkpoint:rejected"; teamId: string; entityId: string; message: string; timestamp: Date }
-   | { type: "triad-team:budget-warning"; teamId: string; entityId: string; message: string; timestamp: Date };
+   | { type: "triad-team:budget-warning"; teamId: string; entityId: string; message: string; timestamp: Date }
+  // ── Tool Loop Mid-Round events ────────────────────────────────────────
+  | {
+      type: "tool:round-complete";
+      sessionId: string;
+      round: number;
+      toolCalls: Array<{ name: string; id: string }>;
+      results: Array<{ toolCallId: string; isError: boolean; contentPreview: string }>;
+      timestamp: Date;
+    }
+  | {
+      type: "intelligence:mid-loop-injection";
+      sessionId: string;
+      source: string;
+      charCount: number;
+      round: number;
+      method: "text-block" | "content-append";
+      timestamp: Date;
+    }
+  | {
+      type: "user:mid-turn-message";
+      sessionId: string;
+      content: string;
+      source: string;
+      timestamp: Date;
+    }
+  // ── Background Job events ──────────────────────────────────────────
+  | { type: "job:started"; jobId: string; label: string; command: string; sessionId?: string }
+  | { type: "job:completed"; jobId: string; label: string; exitCode?: number; duration: number; summary: string; sessionId?: string }
+  | { type: "job:failed"; jobId: string; label: string; exitCode?: number; duration: number; summary: string; sessionId?: string }
+  | { type: "job:cancelled"; jobId: string; label: string; exitCode?: number; duration: number; summary: string; sessionId?: string }
+  | { type: "job:timeout"; jobId: string; label: string; duration: number; summary: string; sessionId?: string }
+  // ── Triad Team Context Management events ───────────────────────────
+  | {
+      type: "triad-team:context-validated";
+      cellId: string;
+      tokens: number;
+      budget: number;
+      utilization: number;
+      source: "tiktoken" | "provider" | "char-estimate";
+      modelId: string;
+      timestamp: Date;
+    }
+  | {
+      type: "triad-team:context-pruned";
+      cellId: string;
+      originalTokens: number;
+      prunedTokens: number;
+      budget: number;
+      sectionsDropped: string[];
+      timestamp: Date;
+    }
+  | {
+      type: "triad-team:context-trimmed";
+      cellId: string;
+      direction: "parent-down" | "child-up";
+      originalChars: number;
+      trimmedChars: number;
+      depth: number;
+      timestamp: Date;
+    }
+  | {
+      type: "triad-team:budget-warning";
+      cellId: string;
+      tokens: number;
+      budget: number;
+      utilization: number;
+      phase: string;
+      timestamp: Date;
+    }
+  // ── OpenCode Channel events ────────────────────────────────────────
+  | { type: "opencode:mode-change"; mode: "sse" | "sqlite" | "hybrid"; reason: string; timestamp: Date };
 
 export type EventType = RuntimeEvent["type"];
 

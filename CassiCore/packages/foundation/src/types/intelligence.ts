@@ -31,12 +31,72 @@ export interface SearchResult {
   score: number;
 }
 
+// ─── Smart Recall ────────────────────────────────────────────────────────────
+
+/**
+ * Options for the smart recall pipeline — general-purpose intelligent
+ * memory retrieval that replaces naive raw-query searches.
+ */
+export interface SmartRecallOpts {
+  /** Max total results to return. Default: 8 */
+  limit?: number;
+  /** Minimum relevance score to include. Default: 0.15 */
+  minScore?: number;
+  /**
+   * Filter to specific memory types. null = all types.
+   * Default: ['conversation', 'fact', 'insight', 'reflection']
+   */
+  types?: MemoryEntry["type"][] | null;
+  /** Prefer memories from this session (cross-session fallback). */
+  sessionId?: string;
+  /** Max results from archive search. Default: 3 */
+  archiveLimit?: number;
+  /** Use embedding re-scoring if available. Default: true */
+  useEmbeddingRerank?: boolean;
+  /**
+   * Recent conversation turns for context-aware query extraction.
+   * The pipeline uses these to build more focused search queries.
+   */
+  conversationContext?: Array<{ role: string; content: string }>;
+  /**
+   * Use the local LLM to generate focused search queries.
+   * Requires the local generative model (llama.cpp) to be running.
+   * Default: false
+   */
+  useLLMQueryExtraction?: boolean;
+  /** Timeout for LLM query extraction in ms. Default: 2500 */
+  llmTimeoutMs?: number;
+}
+
+export interface SmartRecallResult {
+  entry: MemoryEntry;
+  /** Combined relevance score (0-1). */
+  score: number;
+  /** Source of this result: 'memory' (FTS/semantic) or 'archive'. */
+  source: 'memory' | 'archive';
+  /** Memory type label for display. */
+  type: string;
+}
+
 export interface IMemory {
   /** Store a memory entry. Returns the generated id. */
   store(entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<string>;
 
   /** Semantic + full-text search. Returns scored results. */
   search(query: string, opts?: SearchOpts): Promise<SearchResult[]>;
+
+  /**
+   * Smart recall — general-purpose intelligent memory retrieval pipeline.
+   *
+   * Extracts focused queries from the user message + conversation context,
+   * searches both memories and archives with type/session filtering,
+   * re-scores via embeddings + cross-encoder, and returns deduplicated,
+   * score-gated results.
+   *
+   * Designed to replace naive `search(rawUserMessage)` calls across all
+   * subsystems (dialectic, thinker, context-assembler, etc.).
+   */
+  smartRecall?(query: string, opts?: SmartRecallOpts): Promise<SmartRecallResult[]>;
 
   /** Key-value store (replaces JSON state files) */
   kv_get<T>(key: string): Promise<T | undefined>;

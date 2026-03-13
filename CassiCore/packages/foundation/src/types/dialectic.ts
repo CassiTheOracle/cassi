@@ -286,6 +286,8 @@ export interface DialecticResult {
   signalInjected: boolean;
   totalLatencyMs: number;
   totalCostUsd: number;
+  /** Provider request ID for end-to-end tracing in `cassicore llm stream` */
+  requestId?: string;
 }
 
 export interface IDialecticSystem {
@@ -411,4 +413,40 @@ export interface DialecticPersistence {
     avgLatencyMs: number;
     totalCostUsd: number;
   }>;
+}
+
+// ─── Memory Retrieval Config ────────────────────────────────────────────────
+
+/**
+ * Configuration for the dialectic memory retrieval pipeline.
+ * Controls how memories are searched, filtered, and ranked before
+ * injection into the dialectic prompt.
+ */
+export interface MemoryRetrievalConfig {
+  /** Minimum relevance score to include a memory. Default: 0.15 */
+  minScore: number;
+  /** Max memories from primary FTS/semantic search. Default: 5 */
+  primaryLimit: number;
+  /** Max memories from archive search. Default: 3 */
+  archiveLimit: number;
+  /**
+   * Filter to specific memory types. null = all types.
+   * Default: ['conversation', 'fact', 'insight', 'reflection']
+   */
+  types: string[] | null;
+  /** Prefer current session memories (cross-session fallback). Default: true */
+  preferCurrentSession: boolean;
+  /** Use embedding service for re-scoring if available. Default: true */
+  useEmbeddingRerank: boolean;
+  /**
+   * LLM-powered query extraction — uses the local generative model
+   * (Qwen3.5-0.8B via llama.cpp) to generate focused search queries
+   * instead of using the raw user message.
+   */
+  llmQueryExtraction: {
+    /** Enable LLM-powered query extraction. Default: false */
+    enabled: boolean;
+    /** Request timeout in ms. Default: 2500 */
+    timeoutMs: number;
+  };
 }

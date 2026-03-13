@@ -69,6 +69,19 @@ export interface CompletionOpts {
    * For deeper chains the trigger itself can be a chain: `trigger: 'tools > thinker'`.
    */
   trigger?: string;
+  /**
+   * Observability callback: invoked once with provider metadata (including requestId)
+   * immediately after the provider assigns a request ID. Enables callers to correlate
+   * their outcome events with the exact provider request that produced the output.
+   *
+   * Usage in cognitive modules:
+   * ```ts
+   * let requestId: string | undefined
+   * await this.infer(prompt, { onMeta: (m) => { requestId = m.requestId } })
+   * this.bus.emit({ type: 'thinker:insight', ..., requestId })
+   * ```
+   */
+  onMeta?: (meta: { requestId: string }) => void;
 }
 
 export interface CompletionChunk {
