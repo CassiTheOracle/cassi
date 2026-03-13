@@ -60,24 +60,58 @@ const References: FC<ReferenceProps> = ({ references }) => (
 )
 
 const AgentMessageWrapper = ({ message }: MessageWrapperProps) => {
+  // Separate Serenity/Synthesis steps from Yang/Yin steps
+  // Yang and Yin now live in the side columns; only show non-dialectic + Serenity inline
+  const allSteps = message.extra_data?.reasoning_steps ?? []
+  const serenitySteps = allSteps.filter(s => {
+    const action = (s.action ?? '').toLowerCase()
+    return action === 'serenity' || action === 'synthesis' || action === 'synth'
+  })
+  const otherSteps = allSteps.filter(s => {
+    const action = (s.action ?? '').toLowerCase()
+    return action !== 'yang' && action !== 'yin' && action !== 'serenity' && action !== 'synthesis' && action !== 'synth'
+  })
+
   return (
     <div className="flex flex-col gap-y-9">
-      {message.extra_data?.reasoning_steps &&
-        message.extra_data.reasoning_steps.length > 0 && (
-          <div className="flex items-start gap-4">
-            <Tooltip
-              delayDuration={0}
-              content={<p className="text-accent">Dialectic Reasoning</p>}
-              side="top"
-            >
-              <Icon type="reasoning" size="sm" />
-            </Tooltip>
-            <div className="flex flex-col gap-3">
-              <p className="text-xs uppercase text-purple-400">Dialectic</p>
-              <Reasonings reasoning={message.extra_data.reasoning_steps} />
-            </div>
+      {/* Serenity synthesis — displayed as a prominent inline block */}
+      {serenitySteps.length > 0 && (
+        <div className="rounded-lg border border-purple-500/20 bg-purple-500/5 px-4 py-3">
+          <div className="mb-2 flex items-center gap-2">
+            <div className="size-2 rounded-full bg-purple-400" />
+            <span className="text-[10px] font-medium uppercase text-purple-400">Synthesis</span>
+            {serenitySteps[0]?.confidence !== undefined && (
+              <span className="font-dmmono text-[9px] text-purple-400/60">
+                {Math.round(serenitySteps[0].confidence * 100)}% confidence
+              </span>
+            )}
           </div>
-        )}
+          {serenitySteps.map((step, idx) => (
+            <div key={`serenity-${idx}`} className="text-xs leading-relaxed text-primary/80">
+              {step.title && <p className="mb-1 font-medium text-purple-300">{step.title}</p>}
+              <p className="whitespace-pre-wrap">{step.result || step.reasoning || ''}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Other reasoning steps (non-yang/yin, non-serenity — e.g. think steps) */}
+      {otherSteps.length > 0 && (
+        <div className="flex items-start gap-4">
+          <Tooltip
+            delayDuration={0}
+            content={<p className="text-accent">Reasoning</p>}
+            side="top"
+          >
+            <Icon type="reasoning" size="sm" />
+          </Tooltip>
+          <div className="flex flex-col gap-3">
+            <p className="text-xs uppercase text-amber-400">Reasoning</p>
+            <Reasonings reasoning={otherSteps} />
+          </div>
+        </div>
+      )}
+
       {message.extra_data?.references &&
         message.extra_data.references.length > 0 && (
           <div className="flex items-start gap-4">

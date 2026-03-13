@@ -16,7 +16,6 @@ const CATEGORY_COLORS: Record<string, string> = {
   tool: "#06b6d4",
   plugin: "#a3e635",
   session: "#64748b",
-  reflex: "#e11d48",
   daemon: "#94a3b8",
   config: "#7dd3fc",
   worker: "#c084fc",

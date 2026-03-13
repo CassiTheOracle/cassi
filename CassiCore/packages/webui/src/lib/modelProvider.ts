@@ -11,7 +11,6 @@ const PROVIDER_ICON_MAP: Record<string, IconType> = {
   fireworks: 'fireworks',
   deepseek: 'deepseek',
   cohere: 'cohere',
-  ollama: 'ollama',
   xai: 'xai'
 }
 

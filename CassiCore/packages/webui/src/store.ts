@@ -66,6 +66,12 @@ interface Store {
   setSelectedThinking: (level: 'none' | 'low' | 'medium' | 'high') => void
   intelPanelOpen: boolean
   setIntelPanelOpen: (open: boolean) => void
+  yinCollapsed: boolean
+  setYinCollapsed: (collapsed: boolean) => void
+  yangCollapsed: boolean
+  setYangCollapsed: (collapsed: boolean) => void
+  dialecticVisible: boolean
+  setDialecticVisible: (visible: boolean) => void
 }
 
 export const useStore = create<Store>()(
@@ -134,7 +140,13 @@ export const useStore = create<Store>()(
       setSelectedThinking: (level) =>
         set(() => ({ selectedThinking: level })),
       intelPanelOpen: false,
-      setIntelPanelOpen: (open: boolean) => set(() => ({ intelPanelOpen: open }))
+      setIntelPanelOpen: (open: boolean) => set(() => ({ intelPanelOpen: open })),
+      yinCollapsed: true,
+      setYinCollapsed: (collapsed: boolean) => set(() => ({ yinCollapsed: collapsed })),
+      yangCollapsed: true,
+      setYangCollapsed: (collapsed: boolean) => set(() => ({ yangCollapsed: collapsed })),
+      dialecticVisible: true,
+      setDialecticVisible: (visible: boolean) => set(() => ({ dialecticVisible: visible }))
     }),
     {
       name: 'endpoint-storage',

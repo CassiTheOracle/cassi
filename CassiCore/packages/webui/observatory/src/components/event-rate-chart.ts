@@ -19,7 +19,6 @@ const CATEGORY_MAP: Record<string, string> = {
   "tool": "#06b6d4",
   "plugin": "#a3e635",
   "session": "#64748b",
-  "reflex": "#e11d48",
   "other": "#4b5563",
 };
 

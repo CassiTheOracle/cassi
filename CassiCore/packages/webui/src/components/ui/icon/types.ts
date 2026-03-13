@@ -10,7 +10,6 @@ export type IconType =
   | 'fireworks'
   | 'deepseek'
   | 'cohere'
-  | 'ollama'
   | 'xai'
   | 'agno'
   | 'user'
