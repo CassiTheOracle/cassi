@@ -21,26 +21,51 @@ export async function handleHealthRoutes(
     const monitor = daemon.healthMonitor
     const snapshot = monitor?.latest?.()
 
+    // Check plugin health for degradation
+    const pluginStatuses = daemon.pluginHost?.all?.() ?? []
+    const criticalDown = pluginStatuses.some(
+      (p: any) => p.circuitOpen && daemon.pluginHost?.status?.(p.id)
+    )
+    // Detect if any critical plugin is stopped or has circuit open
+    const degradedPlugins = pluginStatuses.filter((p: any) =>
+      (p.status === 'stopped' || p.status === 'crashed' || p.circuitOpen) &&
+      p.id // Any stopped plugin indicates potential degradation
+    )
+
+    const pluginHealth = {
+      total: pluginStatuses.length,
+      healthy: pluginStatuses.filter((p: any) => p.status === 'healthy').length,
+      crashed: pluginStatuses.filter((p: any) => p.status === 'crashed').length,
+      stopped: pluginStatuses.filter((p: any) => p.status === 'stopped').length,
+      circuitOpen: pluginStatuses.filter((p: any) => p.circuitOpen).length,
+      degraded: degradedPlugins.map((p: any) => p.id),
+    }
+
     if (snapshot) {
-      const httpCode = snapshot.overall === 'ok' ? 200
-        : snapshot.overall === 'degraded' ? 200
+      // Override status to degraded if critical plugins are down
+      const overall = degradedPlugins.length > 0 ? 'degraded' : snapshot.overall
+      // Degraded means reduced functionality - clients should treat as unavailable (503)
+      const httpCode = overall === 'ok' ? 200
+        : overall === 'degraded' ? 503
         : 503
       sendJSON(res, httpCode, {
-        status: snapshot.overall,
+        status: overall,
         timestamp: snapshot.timestamp,
         uptimeMs: snapshot.uptimeMs,
         memoryMb: snapshot.memoryMb,
         eventLoopLagMs: snapshot.eventLoopLagMs,
         version: daemon.config?.get?.('daemon.version', '0.3.1') ?? '0.3.1',
         checks: snapshot.checks,
+        plugins: pluginHealth,
       })
       return true
     }
 
     sendJSON(res, 200, {
-      status: 'starting',
+      status: degradedPlugins.length > 0 ? 'degraded' : 'starting',
       uptime: process.uptime(),
       version: daemon.config?.get?.('daemon.version', '0.3.1') ?? '0.3.1',
+      plugins: pluginHealth,
     })
     return true
   }
@@ -203,6 +228,26 @@ export async function handleHealthRoutes(
     sendJSON(res, 200, {
       timestamp: new Date().toISOString(),
       providers: providerHealth,
+    })
+    return true
+  }
+
+  // POST /restart — trigger a partial daemon restart
+  if (method === 'POST' && pathname === '/restart') {
+    const reason = (req as any).body?.reason ?? 'admin-api'
+
+    // Start the restart asynchronously — we send the response before teardown
+    sendJSON(res, 202, {
+      status: 'restarting',
+      reason,
+      message: 'Daemon restart initiated. Subscribe to SSE /events/stream to monitor.',
+    })
+
+    // Allow the response to flush before tearing down subsystems
+    setImmediate(() => {
+      daemon.restart(reason).catch((err: unknown) => {
+        deps.logger.error(`Restart failed: ${String(err)}`)
+      })
     })
     return true
   }

@@ -37,7 +37,9 @@ export async function handleOrchestrationRoutes(
   // POST /orchestration/register
   if (method === 'POST' && parts[1] === 'register') {
     const body = await parseBody(req)
-    daemon.bus.emit({ type: 'orchestration:register', payload: body })
+    // TODO: re-enable when orchestration module has consumers
+    // daemon.bus.emit({ type: 'orchestration:register', payload: body })
+    void body
     sendJSON(res, 200, { ok: true })
     return true
   }
@@ -46,7 +48,9 @@ export async function handleOrchestrationRoutes(
   if (method === 'POST' && parts.length === 3 && parts[2] === 'update') {
     const id = parts[1]
     const body = await parseBody(req)
-    daemon.bus.emit({ type: 'orchestration:update', id, payload: body })
+    // TODO: re-enable when orchestration module has consumers
+    // daemon.bus.emit({ type: 'orchestration:update', id, payload: body })
+    void id; void body
     sendJSON(res, 200, { ok: true })
     return true
   }
@@ -55,7 +59,9 @@ export async function handleOrchestrationRoutes(
   if (method === 'POST' && parts.length === 3 && parts[2] === 'complete') {
     const id = parts[1]
     const body = await parseBody(req)
-    daemon.bus.emit({ type: 'orchestration:complete', id, result: body })
+    // TODO: re-enable when orchestration module has consumers
+    // daemon.bus.emit({ type: 'orchestration:complete', id, result: body })
+    void id; void body
     sendJSON(res, 200, { ok: true })
     return true
   }

@@ -139,14 +139,14 @@ export async function handleDebugRoutes(
             ].join('\n')  }\n`)
           } catch {
             sseConnections.delete(connId)
-            unsubscribe.unsubscribe()
+            unsubscribe()
           }
         }
       })
 
       res.on('close', () => {
         sseConnections.delete(connId)
-        unsubscribe.unsubscribe()
+        unsubscribe()
       })
 
       return true

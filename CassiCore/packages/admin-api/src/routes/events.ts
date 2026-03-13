@@ -241,9 +241,8 @@ export async function handleEventsRoutes(
         '',
       ].join('\n')  }\n`)
 
-      // Prefixes forwarded exclusively by the daemon bus listener below.
-      // The CassiCoreEventBus listener must skip these to avoid duplicates
-      // (daemon.bus events are bridged to CassiCoreEventBus in daemon.ts).
+      // Cognitive events are forwarded exclusively by the daemon bus listener below.
+      // This listener must skip them to avoid duplicates on the SSE stream.
       const COGNITIVE_PREFIXES = [
         'thinker:', 'dialectic:', 'consciousness:', 'subconscious:',
         'turn:', 'agent:', 'team:', 'drone:', 'reflect:', 'optimizer:',
@@ -251,12 +250,11 @@ export async function handleEventsRoutes(
         'scout:',
         'provider:',
         'macro-dialectic:',
+        'daemon:',  // daemon:restarting, daemon:resumed — restart lifecycle
       ]
 
       const unsubscribe = eventBus.onAll((event: any) => {
-        // Skip events that will be forwarded by the daemon bus listener below —
-        // they arrive here via the daemon.bus → CassiCoreEventBus bridge and
-        // would otherwise produce duplicates on the SSE stream.
+        // Skip cognitive events — handled by the daemon bus listener below.
         const type = event?.type as string | undefined
         if (type && COGNITIVE_PREFIXES.some(p => type.startsWith(p))) return
 
@@ -336,7 +334,7 @@ export async function handleEventsRoutes(
 
       res.on('close', () => {
         sseConnections.delete(connId)
-        unsubscribe.unsubscribe()
+        unsubscribe()
         daemonBusUnsub?.()
       })
 

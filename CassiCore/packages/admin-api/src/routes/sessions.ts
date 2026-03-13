@@ -1,5 +1,6 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
+import { createHash } from 'node:crypto'
 
 export interface SessionsRoutesDeps {
   daemon: any
@@ -539,6 +540,70 @@ export async function handleSessionsRoutes(
     return true
   }
 
+  // POST /sessions (create a new session)
+  // Creates a session with optional custom name/title and a permanent flag.
+  // Returns the session ID for the client to use in subsequent requests.
+  //
+  // Body:
+  //   name?:      string  — custom session title (default: "Untitled")
+  //   channelId?: string  — channel identifier (default: "channel:webui")
+  //   senderId?:  string  — sender identifier (default: "webui-user")
+  //   permanent?: boolean — marks the session as non-ephemeral (to-be-implemented)
+  //   config?:    object  — optional session config overrides
+  //
+  // Response:
+  //   { ok, sessionId, name, channelId, senderId, permanent, createdAt }
+  if (parts.length === 1 && method === 'POST') {
+    const body = await parseBody(req)
+    const { randomUUID } = await import('node:crypto')
+
+    const name: string = body?.name ?? 'Untitled'
+    const channelId: string = body?.channelId ?? 'channel:webui'
+    const senderId: string = body?.senderId ?? 'webui-user'
+    const permanent: boolean = body?.permanent ?? false
+    const configOverrides: Record<string, unknown> = body?.config ?? {}
+
+    // Generate a stable session ID: use provided ID or create a new one
+    const sessionId: string = body?.sessionId ?? `webui-${randomUUID()}`
+
+    try {
+      const session = daemon.sessions.getOrCreateById(
+        sessionId,
+        channelId,
+        senderId,
+        { ...configOverrides, title: name, permanent } as any
+      )
+
+      // Store the title in session config for later retrieval
+      if (session.config) {
+        ;(session.config as any).title = name
+        ;(session.config as any).permanent = permanent
+      }
+
+      logger.info(`Session created via API: ${sessionId.slice(0, 12)}`, {
+        name,
+        channelId,
+        senderId,
+        permanent,
+      })
+
+      sendJSON(res, 201, {
+        ok: true,
+        sessionId: session.id,
+        name,
+        channelId,
+        senderId,
+        permanent,
+        createdAt: session.createdAt,
+      })
+      return true
+    } catch (err) {
+      logger.error(`session create error: ${String(err)}`)
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /sessions/:id/think
   // Injects external agent thinking/reasoning into the cognitive pipeline.
   // This is the manual fallback for agents that don't use OpenCode (whose
@@ -612,10 +677,60 @@ export async function handleSessionsRoutes(
     }
   }
 
+  // POST /sessions/:id/inject
+  // Queues content for mid-loop injection into the active tool loop.
+  // The content will appear as a <system-reminder> in the next tool result.
+  // This is the HTTP entry point for any client (cassi-tui, web UI, external
+  // agents) to send mid-turn messages or steering instructions.
+  if (parts.length === 3 && parts[2] === 'inject' && method === 'POST') {
+    const sessionId = parts[1]
+    if (!sessionId) {
+      sendJSON(res, 400, { error: 'missing sessionId' })
+      return true
+    }
+
+    const body = await parseBody(req)
+    const content: string = body?.content
+    if (!content || typeof content !== 'string') {
+      sendJSON(res, 400, { error: 'content is required (string)' })
+      return true
+    }
+
+    const source: string = body?.source || 'api'
+
+    try {
+      daemon.bus.emit({
+        type: 'user:mid-turn-message',
+        sessionId,
+        content,
+        source,
+        timestamp: new Date(),
+      })
+
+      logger.info(`Mid-loop injection queued via API`, {
+        sessionId: sessionId.slice(0, 12),
+        source,
+        chars: content.length,
+      })
+
+      sendJSON(res, 200, {
+        ok: true,
+        sessionId,
+        queued: true,
+        charCount: content.length,
+      })
+      return true
+    } catch (err) {
+      logger.error('Mid-loop injection failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /sessions/:id/command
   // Routes a slash command string (e.g. "/think about X") through CassiCore's
   // universal command processor. This is the HTTP entry point for external CLI
-  // clients (e.g. the Crush fork) that cannot send worker-thread messages directly.
+  // clients (e.g. the web UI, CassiTUI) that cannot send worker-thread messages directly.
   if (parts.length === 3 && parts[2] === 'command' && method === 'POST') {
     const sessionId = parts[1]
     if (!sessionId) {
@@ -631,23 +746,31 @@ export async function handleSessionsRoutes(
     }
 
     try {
-      const commandProcessor = (daemon as any).commandProcessor
-      if (!commandProcessor || typeof commandProcessor.process !== 'function') {
+      // Import processor directly — CommandDispatcher.handle() sends via EventBus
+      // which doesn't return the result. We need the return value for HTTP.
+      const { processor } = await import('../../commands/universal-processor.js')
+      if (!processor || typeof processor.process !== 'function') {
         sendJSON(res, 503, { error: 'command processor not available' })
         return true
       }
 
       const session = daemon.sessions.get(sessionId)
+      const intelligence = daemon.intelligence ?? (daemon as any).intelligence
       const ctx = {
         channel: 'api' as const,
-        userId: session?.senderId ?? sessionId,
+        userId: session?.senderId ?? 'webui-user',
         sessionId,
         projectPath: (session?.config as any)?.projectPath ?? undefined,
-        permissions: ['*'],
-        intelligence: daemon.intelligence ?? undefined,
+        permissions: ['read', 'write', 'admin', 'intelligence', '*'],
+        intelligence: intelligence ? {
+          memory: intelligence.memory,
+          thinker: intelligence.thinker,
+          dialectic: intelligence.dialectic,
+          contextManager: intelligence.contextManager,
+        } : undefined,
       }
 
-      const result = await commandProcessor.process(command, ctx)
+      const result = await processor.process(command, ctx)
       if (!result) {
         sendJSON(res, 404, { error: 'unknown command', command })
         return true
@@ -772,6 +895,14 @@ async function handleSseStream(
     const channelId = body?.channelId || 'channel:cli'
     const senderId = body?.senderId || sessionId
 
+    // The session pipeline generates internal IDs as a deterministic hash of
+    // channelId:senderId. We need this to filter streaming events correctly,
+    // since the URL sessionId parameter may differ from the internal ID.
+    const internalSessionId = createHash('sha256')
+      .update(`${channelId}:${senderId}`)
+      .digest('hex')
+      .slice(0, 16)
+
     // Set up event listener BEFORE calling processMessage to avoid race conditions
     let tokenCount = 0
     let finalResponse = ''
@@ -780,7 +911,7 @@ async function handleSseStream(
 
     const onWorkerMessage = (ev: any) => {
       const payload = ev?.payload
-      if (!payload || payload.sessionId !== sessionId) return
+      if (!payload || payload.sessionId !== internalSessionId) return
 
       if (payload.type === 'turn:token') {
         tokenCount++

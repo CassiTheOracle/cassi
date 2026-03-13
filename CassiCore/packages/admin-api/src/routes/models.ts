@@ -13,16 +13,13 @@ const CATWALK_ID_MAP: Record<string, string> = {
   // GitHub Copilot models routed through CassiCore
   'github-copilot/gpt-4o': 'openai:gpt-4o',
   'github-copilot/gpt-4o-mini': 'openai:gpt-4o-mini',
-  'github-copilot/gpt-4.5': 'openai:gpt-4.5',
-  'github-copilot/o1': 'openai:o1',
-  'github-copilot/o3-mini': 'openai:o3-mini',
-  'github-copilot/o3': 'openai:o3',
-  'github-copilot/claude-3-5-sonnet': 'anthropic:claude-3-5-sonnet-20241022',
-  'github-copilot/claude-3-7-sonnet': 'anthropic:claude-3-7-sonnet-20250219',
-  'github-copilot/claude-sonnet-4': 'anthropic:claude-sonnet-4-5',
-  'github-copilot/claude-opus-4': 'anthropic:claude-opus-4-5',
-  'github-copilot/gemini-2.0-flash': 'google:gemini-2.0-flash',
-  'github-copilot/gemini-2.5-pro': 'google:gemini-2.5-pro-preview',
+  'github-copilot/gpt-5-mini': 'openai:gpt-5-mini',
+  'github-copilot/claude-sonnet-4.6': 'anthropic:claude-sonnet-4-6',
+  'github-copilot/claude-sonnet-4.5': 'anthropic:claude-sonnet-4-5',
+  'github-copilot/claude-opus-4.6': 'anthropic:claude-opus-4-6',
+  'github-copilot/claude-haiku-4.5': 'anthropic:claude-haiku-4-5',
+  'github-copilot/gemini-3-flash-preview': 'google:gemini-3-flash-preview',
+  'github-copilot/gemini-3-pro-preview': 'google:gemini-3-pro-preview',
 }
 
 export interface ModelsRoutesDeps {
@@ -43,7 +40,7 @@ export async function handleModelsRoutes(
   // GET /models
   if (method === 'GET' && pathname === '/models') {
     try {
-      const providerMap = (daemon.pipeline as any)?.providers ?? new Map()
+      const providerMap = (daemon.pipeline as any)?.providers ?? new Map(); deps.logger.info("DEBUG: providerMap size", { size: providerMap.size, keys: Array.from(providerMap.keys()) });
       const models: any[] = []
 
       for (const [provId, prov] of providerMap.entries()) {
@@ -67,6 +64,23 @@ export async function handleModelsRoutes(
               input = ['text', 'image']
               contextWindow = 262144
               maxTokens = 32768
+            } else if (String(provId).toLowerCase().includes('alibaba')) {
+              // Alibaba Coding Plan models
+              api = 'openai-completions'
+              if (modelName === 'qwen3.5-plus' || modelName.includes('qwen3.5-plus')) {
+                contextWindow = 1048576 // 1M context
+                maxTokens = 65536
+                reasoning = true
+                input = ['text', 'image']
+              } else if (modelName === 'qwen3-max-2026-01-23' || modelName.includes('qwen3-max')) {
+                contextWindow = 262144
+                maxTokens = 65536
+                reasoning = true
+              } else if (modelName.includes('qwen3-coder')) {
+                contextWindow = 262144
+                maxTokens = 131072
+                reasoning = false
+              }
             } else if (String(provId).toLowerCase().includes('copilot') || String(provId).toLowerCase().includes('github')) {
               api = 'openai-completions'
               reasoning = false
