@@ -5,6 +5,8 @@
  * essential for CassiCore functionality.
  */
 
+export * from "./openai-compatible-base.js";
+export * from "./alibaba-coding.js";
 export * from "./kimi-coding.js";
 export * from "./qwen.js";
 export * from "./openrouter.js";

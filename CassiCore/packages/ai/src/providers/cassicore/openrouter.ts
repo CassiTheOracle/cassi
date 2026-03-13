@@ -72,11 +72,11 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
     reasoning: true,
     input: ["text", "image"],
     cost: { input: 5, output: 15, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
-    maxTokens: 16384,
+    contextWindow: 256000,
+    maxTokens: 64000,
     compat: {
-      supportsDeveloperRole: true,
-      supportsReasoningEffort: true,
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: false,
     },
   },
   {
@@ -85,14 +85,14 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
     api: "openai-completions",
     provider: "openrouter" as KnownProvider,
     baseUrl: OPENROUTER_BASE_URL,
-    reasoning: true,
+    reasoning: false,
     input: ["text", "image"],
     cost: { input: 0.5, output: 1.5, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
-    maxTokens: 16384,
+    contextWindow: 256000,
+    maxTokens: 64000,
     compat: {
-      supportsDeveloperRole: true,
-      supportsReasoningEffort: true,
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: false,
     },
   },
   {
@@ -105,7 +105,7 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
     input: ["text", "image"],
     cost: { input: 1.25, output: 10, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 1000000,
-    maxTokens: 65536,
+    maxTokens: 64000,
     compat: {
       supportsDeveloperRole: false,
       supportsReasoningEffort: false,
@@ -119,9 +119,9 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
     baseUrl: OPENROUTER_BASE_URL,
     reasoning: false,
     input: ["text", "image"],
-    cost: { input: 0.2, output: 0.6, cacheRead: 0, cacheWrite: 0 },
+    cost: { input: 0.2, output: 0.8, cacheRead: 0, cacheWrite: 0 },
     contextWindow: 256000,
-    maxTokens: 8192,
+    maxTokens: 64000,
     compat: {
       supportsDeveloperRole: false,
       supportsReasoningEffort: false,
@@ -129,7 +129,7 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
   },
   {
     id: "deepseek/deepseek-chat-v3",
-    name: "DeepSeek V3 (via OpenRouter)",
+    name: "DeepSeek Chat V3 (via OpenRouter)",
     api: "openai-completions",
     provider: "openrouter" as KnownProvider,
     baseUrl: OPENROUTER_BASE_URL,
@@ -152,8 +152,8 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
     reasoning: true,
     input: ["text", "image"],
     cost: { input: 3, output: 15, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
-    maxTokens: 32768,
+    contextWindow: 100000,
+    maxTokens: 64000,
     compat: {
       supportsDeveloperRole: false,
       supportsReasoningEffort: false,
@@ -164,77 +164,89 @@ export const openrouterModels: Array<Model<"openai-completions">> = [
 /**
  * Get OpenRouter model by ID
  */
-export function getOpenRouterModel(
-  modelId: OpenRouterModel
-): Model<"openai-completions"> | undefined {
-  return openrouterModels.find((m) => m.id === modelId);
+export function getOpenRouterModel(modelId: OpenRouterModel): Model<"openai-completions"> | undefined {
+  return openrouterModels.find(m => m.id === modelId);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // Runtime Provider Implementation
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import type { 
-  Message, 
-  ContentBlock, 
-  CompletionOpts, 
-  CompletionChunk, 
-  ImageAttachment 
+import type {
+  Message,
+  CompletionOpts,
+  CompletionChunk,
+  ImageAttachment,
 } from "../../cassicore-types/index.js";
+import { OpenAICompatibleBase } from "./openai-compatible-base.js";
 
-const DEFAULT_BASE_URL = "https://openrouter.ai/api/v1";
+const BASE_URL = "https://openrouter.ai/api/v1";
 
-/** OpenRouter provider implementation */
-export class OpenRouterProvider {
+/** Accumulator state for tool calls during streaming */
+interface ToolCallAccumulator {
+  id: string;
+  name: string;
+  argsJson: string;
+}
+
+/**
+ * OpenRouter provider — OpenAI-compatible Chat Completions API
+ * Base URL: https://openrouter.ai/api/v1
+ * Supports 100+ models with unified routing
+ * Requires HTTP-Referer and X-Title headers
+ */
+export class OpenRouterProvider extends OpenAICompatibleBase {
   readonly id = "openrouter";
-  readonly models = [
-    "google/gemini-2.5-pro-preview-03-25",
-    "google/gemini-2.5-flash-preview",
-    "anthropic/claude-sonnet-4",
-    "anthropic/claude-opus-4",
-    "openai/gpt-5",
-    "openai/gpt-5-mini",
-    "qwen/qwen3-235b-a22b:free",
-  ];
+  readonly models: string[] = openrouterModels.map(m => m.id);
 
-  private apiKey: string;
-  private baseUrl: string;
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly routing?: OpenRouterRouting;
 
-  constructor(apiKey: string, baseUrl?: string) {
-    this.apiKey = apiKey;
-    this.baseUrl = baseUrl || DEFAULT_BASE_URL;
+  constructor(apiKey?: string, baseUrlOrRouting?: string | OpenRouterRouting) {
+    super();
+    this.apiKey = apiKey || process.env.OPENROUTER_API_KEY || "";
+    if (!this.apiKey) {
+      throw new Error(
+        "OpenRouterProvider: no API key — set OPENROUTER_API_KEY or pass key to constructor",
+      );
+    }
+    
+    // Handle both string baseUrl (legacy) and OpenRouterRouting object
+    if (typeof baseUrlOrRouting === "string") {
+      this.baseUrl = baseUrlOrRouting || BASE_URL;
+      this.routing = undefined;
+    } else {
+      this.baseUrl = BASE_URL;
+      this.routing = baseUrlOrRouting;
+    }
   }
 
-  async *complete(
-    messages: Message[],
+  protected getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  protected getHeaders(): Record<string, string> {
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.apiKey}`,
+      "HTTP-Referer": "https://cassicore.dev",
+      "X-Title": "CassiCore",
+    };
+  }
+
+  protected buildRequestBody(
+    model: string,
+    messages: Array<Record<string, unknown>>,
     opts: CompletionOpts,
-    attachments?: ImageAttachment[],
-    signal?: AbortSignal,
-  ): AsyncIterable<CompletionChunk> {
-    const model = opts.model || "google/gemini-2.5-pro-preview-03-25";
-    const maxTokens = opts.maxTokens || 4096;
-    const temperature = opts.temperature ?? 0.7;
-
-    // Build attachment map: last user message → attachments
-    const attachmentMap = new Map<number, ImageAttachment[]>();
-    if (attachments?.length) {
-      const lastUserIdx = messages.map(m => m.role).lastIndexOf("user");
-      if (lastUserIdx >= 0) attachmentMap.set(lastUserIdx, attachments);
-    }
-
-    const openaiMessages = toOpenAIMessages(messages, attachmentMap);
-    
-    // Inject system prompt if provided and not already in messages
-    if (opts.systemPrompt && !messages.find(m => m.role === "system")) {
-      openaiMessages.unshift({ role: "system", content: opts.systemPrompt });
-    }
-
+  ): Record<string, unknown> {
     const body: Record<string, unknown> = {
       model,
-      messages: openaiMessages,
+      messages,
       stream: true,
-      max_tokens: maxTokens,
-      temperature,
+      stream_options: { include_usage: true },
+      max_tokens: opts.maxTokens ?? 4096,
+      temperature: opts.temperature ?? 0.7,
     };
 
     if (opts.tools?.length) {
@@ -249,243 +261,158 @@ export class OpenRouterProvider {
       body.tool_choice = "auto";
     }
 
-    let res: Response;
-    try {
-      res = await fetch(`${this.baseUrl}/chat/completions`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${this.apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://cassicore.local",
-          "X-Title": "CassiCore",
-        },
-        body: JSON.stringify(body),
-        signal,
-      });
-    } catch (err) {
-      if (err instanceof Error && err.name === "AbortError") {
-        // Best-effort: yield cancellation as error chunk
-        yield { type: "error", error: "cancelled" };
-        return;
+    if (this.routing) {
+      body.provider = { order: this.routing.order };
+    }
+
+    return body;
+  }
+
+  /**
+   * Override convertMessages to handle OpenRouter-specific tool_result mapping
+   */
+  protected convertMessages(
+    messages: Message[],
+    attachmentsByIndex?: Map<number, ImageAttachment[]>,
+  ): Array<Record<string, unknown>> {
+    const out: Array<Record<string, unknown>> = [];
+
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i];
+      const attachments = attachmentsByIndex?.get(i) ?? [];
+
+      if (msg.role === "system") {
+        out.push({
+          role: "system",
+          content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
+        });
+        continue;
       }
-      throw err;
-    }
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`OpenRouter error ${res.status}: ${text}`);
-    }
+      if (typeof msg.content === "string") {
+        if (attachments.length === 0) {
+          out.push({ role: msg.role, content: msg.content });
+        } else {
+          const parts: Array<Record<string, unknown>> = attachments.map(att => ({
+            type: "image_url",
+            image_url: { url: `data:${att.mediaType};base64,${att.data}` },
+          }));
+          if (msg.content) parts.push({ type: "text", text: msg.content });
+          out.push({ role: msg.role, content: parts });
+        }
+        continue;
+      }
 
-    const reader = res.body?.getReader();
-    if (!reader) throw new Error("No response body");
+      // ContentBlock[]
+      const blocks = msg.content;
 
-    const decoder = new TextDecoder();
-    let buffer = "";
-    const toolCallAccum = new Map<number, { id: string; name: string; argsJson: string }>();
-
-    try {
-      while (true) {
-        if (signal?.aborted) { try { await reader.cancel(); } catch {} yield { type: "error", error: "cancelled" }; return; }
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed === "data: [DONE]") continue;
-          if (!trimmed.startsWith("data: ")) continue;
-
-          try {
-            const json = JSON.parse(trimmed.slice(6));
-            const delta = json.choices?.[0]?.delta;
-            if (!delta) continue;
-
-            const text = delta.content || delta.text || "";
-            const reasoning = delta.reasoning_content || delta.reasoning || "";
-
-            if (text) {
-              yield { type: "token", text };
-            }
-            if (reasoning) {
-              yield { type: "thinking", text: reasoning };
-            }
-
-            if (Array.isArray(delta.tool_calls)) {
-              for (const tc of delta.tool_calls) {
-                const idx = tc.index as number;
-                const fn = tc.function as Record<string, unknown> | undefined;
-
-                if (!toolCallAccum.has(idx)) {
-                  toolCallAccum.set(idx, {
-                    id: (tc.id as string) ?? `call_${idx}`,
-                    name: (fn?.name as string) ?? "",
-                    argsJson: "",
-                  });
-                }
-                const acc = toolCallAccum.get(idx)!;
-                if (tc.id) acc.id = tc.id;
-                if (fn?.name) acc.name = fn.name as string;
-                if (fn?.arguments) acc.argsJson += fn.arguments as string;
-              }
-            }
-          } catch (e) {
-            // Ignore parse errors on individual lines
+      // Check if this is a tool execution role mapping
+      const isToolResult = blocks.some(b => b.type === "tool_result");
+      if (isToolResult) {
+        for (const b of blocks) {
+          if (b.type === "tool_result") {
+            const tr = b as { tool_use_id: string; content: string };
+            out.push({
+              role: "tool",
+              tool_call_id: tr.tool_use_id,
+              content: tr.content ?? "null"
+            });
           }
         }
+        continue;
       }
 
-      // Flush remaining tool calls
-      if (toolCallAccum.size > 0) {
-        for (const tc of toolCallAccum.values()) {
-          let parsed: Record<string, unknown> = {};
-          try { parsed = JSON.parse(tc.argsJson); } catch { /* empty args */ }
-          yield {
-            type: "tool_use",
-            toolCall: { id: tc.id, name: tc.name, input: parsed },
-          };
-        }
-        toolCallAccum.clear();
-      }
-    } finally {
-      reader.releaseLock();
-    }
+      const toolUses = blocks.filter(b => b.type === "tool_use") as Array<{ type: string; id: string; name: string; input?: Record<string, unknown> }>;
+      const others = blocks.filter(b => b.type !== "tool_use" && b.type !== "tool_result") as Array<{ type: string; text?: string }>;
 
-    yield { type: "done", model };
-  }
+      if (toolUses.length > 0) {
+        const textContent = others
+          .map(b => (b.type === "text" ? b.text ?? "" : ""))
+          .filter(Boolean)
+          .join("");
 
-  async countTokens(messages: Message[]): Promise<number> {
-    // Estimate tokens: ~4 chars per token
-    return Math.ceil(messages.reduce((s, m) => {
-      const textLen = typeof m.content === "string"
-        ? m.content.length
-        : m.content.reduce((cs, b) => cs + ("text" in b ? b.text.length : 50), 0);
-      return s + textLen;
-    }, 0) / 4);
-  }
-
-  async ping(signal?: AbortSignal): Promise<boolean> {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    try {
-      if (signal) {
-        if (signal.aborted) try { controller.abort(); } catch {}
-        else {
-          signal.addEventListener("abort", () => { try { controller.abort(); } catch {} });
-        }
-      }
-      const res = await fetch(`${this.baseUrl}/models`, {
-        headers: { "Authorization": `Bearer ${this.apiKey}` },
-        signal: controller.signal,
-      });
-      return res.ok;
-    } catch {
-      return false;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-}
-
-/** Convert messages to OpenAI format */
-function toOpenAIMessages(
-  messages: Message[],
-  attachmentsByIndex?: Map<number, ImageAttachment[]>,
-): Array<Record<string, unknown>> {
-  const out: Array<Record<string, unknown>> = [];
-
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i];
-    const attachments = attachmentsByIndex?.get(i) ?? [];
-
-    if (msg.role === "system") {
-      out.push({
-        role: "system",
-        content: typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content),
-      });
-      continue;
-    }
-
-    if (typeof msg.content === "string") {
-      if (attachments.length === 0) {
-        out.push({ role: msg.role, content: msg.content });
-      } else {
-        const parts: Array<Record<string, unknown>> = attachments.map(att => ({
-          type: "image_url",
-          image_url: { url: `data:${att.mediaType};base64,${att.data}` },
+        const toolCalls = toolUses.map(b => ({
+          id: b.id,
+          type: "function",
+          function: {
+            name: b.name,
+            arguments: JSON.stringify(b.input ?? {}),
+          },
         }));
-        if (msg.content) parts.push({ type: "text", text: msg.content });
-        out.push({ role: msg.role, content: parts });
-      }
-      continue;
-    }
 
-    // ContentBlock[]
-    const blocks = msg.content as ContentBlock[];
-    
-    // Check if this is a tool execution role mapping
-    const isToolResult = blocks.some(b => b.type === "tool_result");
-    if (isToolResult) {
-      const parts = blocks.map(b => {
-        if (b.type === "tool_result") {
-          return {
-            tool_call_id: b.tool_use_id,
-            role: "tool",
-            name: (b as any).name || "tool",
-            content: b.content || "null"
-          };
+        out.push({
+          role: "assistant",
+          content: textContent || "",
+          tool_calls: toolCalls,
+        });
+      } else if (others.length > 0) {
+        const textContent = others
+          .map(b => (b.type === "text" ? b.text ?? "" : ""))
+          .filter(Boolean)
+          .join("");
+
+        if (attachments.length > 0) {
+          const parts: Array<Record<string, unknown>> = attachments.map(att => ({
+            type: "image_url",
+            image_url: { url: `data:${att.mediaType};base64,${att.data}` },
+          }));
+          if (textContent) parts.push({ type: "text", text: textContent });
+          out.push({ role: msg.role, content: parts });
+        } else {
+          out.push({ role: msg.role, content: textContent });
         }
-        return null;
-      }).filter(Boolean);
-      
-      out.push(...parts as any[]);
-      continue;
-    }
-
-    const toolUses = blocks.filter((b): b is Extract<ContentBlock, { type: "tool_use" }> => b.type === "tool_use");
-    const others = blocks.filter(b => b.type !== "tool_use" && b.type !== "tool_result");
-
-    const roleMsg: Record<string, unknown> = { role: msg.role };
-    
-    if (others.length > 0) {
-      const textContent = others.map(b => b.type === "text" ? b.text : "").join("");
-      
-      if (attachments.length > 0) {
-        const parts: Array<Record<string, unknown>> = attachments.map(att => ({
-          type: "image_url",
-          image_url: { url: `data:${att.mediaType};base64,${att.data}` },
-        }));
-        if (textContent) parts.push({ type: "text", text: textContent });
-        roleMsg.content = parts;
-      } else {
-        roleMsg.content = textContent;
       }
-    } else {
-      roleMsg.content = "";
     }
 
-    if (toolUses.length > 0) {
-      roleMsg.tool_calls = toolUses.map(t => ({
-        id: t.id,
-        type: "function",
-        function: {
-          name: t.name,
-          arguments: JSON.stringify(t.input)
-        }
-      }));
-    }
-    
-    out.push(roleMsg);
+    return out.filter(m => {
+      if (m.role === "tool") return true;
+      if (m.tool_calls) return true;
+      const content = m.content;
+      if (typeof content === "string") return content.length > 0;
+      if (Array.isArray(content)) return content.length > 0;
+      return true;
+    });
   }
 
-  return out.filter(m => {
-    if (m.role === "tool") return true;
-    if (m.tool_calls) return true;
-    const content = m.content;
-    if (typeof content === "string") return content.length > 0;
-    if (Array.isArray(content)) return content.length > 0;
-    return true;
-  });
+  protected *parseStreamDelta(
+    delta: Record<string, unknown>,
+    accumulators: {
+      toolCallAccum: Map<number, ToolCallAccumulator>;
+      receivedAnyChunks: boolean;
+    },
+  ): Generator<CompletionChunk, void, unknown> {
+    if (typeof delta["content"] === "string" && delta["content"]) {
+      yield { type: "token", text: delta["content"] };
+    }
+    if (typeof delta["reasoning_content"] === "string" && delta["reasoning_content"]) {
+      yield { type: "thinking", text: delta["reasoning_content"] };
+    }
+
+    if (Array.isArray(delta["tool_calls"])) {
+      const tcs = delta["tool_calls"] as Array<Record<string, unknown>>;
+      for (const tc of tcs) {
+        const index = typeof tc["index"] === "number" ? tc["index"] : 0;
+        const function_ = tc["function"] as Record<string, unknown> | undefined;
+        const id = (tc["id"] as string) || "";
+        const name = (function_?.["name"] as string) || "";
+        const arguments_ = (function_?.["arguments"] as string) || "";
+
+        const existing = accumulators.toolCallAccum.get(index);
+        if (existing) {
+          existing.argsJson += arguments_;
+        } else {
+          accumulators.toolCallAccum.set(index, { id, name, argsJson: arguments_ });
+        }
+      }
+    }
+  }
+
+  async *complete(
+    messages: Message[],
+    opts: CompletionOpts,
+    attachments?: ImageAttachment[],
+    signal?: AbortSignal,
+  ): AsyncIterable<CompletionChunk> {
+    yield* this.streamChatCompletion(opts.model || this.models[0], messages, opts, attachments, signal);
+  }
 }
