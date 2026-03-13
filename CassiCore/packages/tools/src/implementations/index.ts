@@ -36,6 +36,9 @@ import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { webSearchDefinition, webSearchHandler } from './web-search.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
 import { runTestsDefinition, runTestsHandler } from './run-tests.js'
+import { runBackgroundDefinition, makeRunBackgroundHandler } from './run-background.js'
+import { checkJobDefinition, makeCheckJobHandler } from './check-job.js'
+import { waitJobDefinition, makeWaitJobHandler } from './wait-job.js'
 
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ISessionManager } from '../../../types/runtime.js'
@@ -72,6 +75,8 @@ export interface CoreToolDeps {
   autofixDeps?: AutofixDeps
   /** Dependencies for peer coordination tools (_signal_peer, _check_peers, etc.) */
   peerToolDeps?: PeerToolDeps
+  /** Lazy getter for the background job manager */
+  getJobManager?: () => import('../../jobs/job-manager.js').JobManager | undefined
 }
 
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
@@ -92,6 +97,13 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // Test runner (narrow-scope — vitest only, safe for critic use)
   registry.register(runTestsDefinition, runTestsHandler)
+
+  // Background job tools (requires JobManager from daemon)
+  if (deps.getJobManager) {
+    registry.register(runBackgroundDefinition, makeRunBackgroundHandler(deps.getJobManager))
+    registry.register(checkJobDefinition, makeCheckJobHandler(deps.getJobManager))
+    registry.register(waitJobDefinition, makeWaitJobHandler(deps.getJobManager))
+  }
 
   // Memory tools (requires memory module)
   if (deps.memory) {

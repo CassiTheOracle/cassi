@@ -9,7 +9,7 @@
  * - Response compression for large JSON
  */
 
-import type { CassiCoreEventBus } from '../../events/event-bus.js'
+import type { EventBus } from '../../event-bus.js'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
 // ============================================================================
@@ -331,7 +331,7 @@ export const cassandraInvalidateCacheDef: ToolDefinition = {
 // ============================================================================
 
 export function makeCassandraGetStateHandler(
-  eventBus: CassiCoreEventBus
+  eventBus: EventBus
 ): ToolHandler {
   return async (input, ctx) => {
     const sessionId = input['sessionId'] as string
@@ -361,7 +361,7 @@ export function makeCassandraGetStateHandler(
 }
 
 export function makeCassandraGetHistoryHandler(
-  eventBus: CassiCoreEventBus
+  eventBus: EventBus
 ): ToolHandler {
   return async (input, ctx) => {
     const sessionId = input['sessionId'] as string
@@ -402,7 +402,7 @@ export function makeCassandraGetHistoryHandler(
 }
 
 export function makeCassandraSubscribeHandler(
-  eventBus: CassiCoreEventBus
+  eventBus: EventBus
 ): ToolHandler {
   return async (input, _ctx) => {
     const sessionId = input['sessionId'] as string
@@ -438,7 +438,7 @@ export function makeCassandraInvalidateCacheHandler(): ToolHandler {
 
 export function registerCassandraEventTools(
   registry: any,
-  eventBus: CassiCoreEventBus,
+  eventBus: EventBus,
   _getSessionId: () => string | undefined
 ): void {
   registry.register(cassandraGetStateDef, makeCassandraGetStateHandler(eventBus))
