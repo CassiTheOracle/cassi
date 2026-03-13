@@ -21,7 +21,10 @@ const COPILOT_HEADERS = {
 /** Models that use Anthropic Messages API format */
 const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5'])
 
-const CREDENTIALS_CACHE_PATH = join(homedir(), '.cassicore', 'credentials', 'github-copilot.token.json')
+function credentialsCachePath(profileId?: string) {
+  if (profileId) return join(homedir(), '.cassicore', 'credentials', `github-copilot.token.${profileId}.json`)
+  return join(homedir(), '.cassicore', 'credentials', 'github-copilot.token.json')
+}
 
 /**
  * Exchange an OAuth token for a Copilot API session token via
@@ -30,7 +33,8 @@ const CREDENTIALS_CACHE_PATH = join(homedir(), '.cassicore', 'credentials', 'git
  * The session token is cached to disk so it survives daemon restarts
  * and is refreshed when it expires.
  */
-async function exchangeOAuthForCopilotToken(oauthToken: string): Promise<string> {
+async function exchangeOAuthForCopilotToken(oauthToken: string, profileId?: string): Promise<string> {
+  const CREDENTIALS_CACHE_PATH = credentialsCachePath(profileId)
   // Check disk cache first
   try {
     const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { token: string; expiresAt: number }
@@ -76,7 +80,8 @@ async function exchangeOAuthForCopilotToken(oauthToken: string): Promise<string>
  * Resolve the live Copilot API token from the CassiCore credentials cache.
  * Synchronous fallback — used when the async exchange hasn't happened yet.
  */
-function resolveCopilotApiToken(oauthToken: string): string {
+function resolveCopilotApiToken(oauthToken: string, profileId?: string): string {
+  const CREDENTIALS_CACHE_PATH = credentialsCachePath(profileId)
   try {
     const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { token: string; expiresAt: number }
     if (cache.token && cache.expiresAt > Date.now() + 60_000) {
@@ -229,7 +234,7 @@ function toOpenAIMessages(
 
 export class GitHubCopilotProvider extends BaseProvider {
   readonly id = 'github-copilot'
-  readonly models = ['gemini-3-flash-preview', 'gemini-3-pro-preview', 'claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5', 'gpt-5-mini']
+  readonly models = ['gpt-4o', 'gpt-4o-mini', 'gemini-3-flash-preview', 'gemini-3-pro-preview', 'claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5', 'gpt-5-mini']
 
   // Caching for ping() — prevents health-check spam
   private lastPingTime = 0
@@ -242,7 +247,7 @@ export class GitHubCopilotProvider extends BaseProvider {
   private readonly TOKEN_REFRESH_BUFFER_MS = 60000  // Refresh 60s before expiry
   private tokenExchangePromise: Promise<void> | null = null
 
-  constructor(private oauthToken: string) {
+  constructor(private oauthToken: string, private profileId?: string) {
     super()
     // Kick off async token exchange immediately — subsequent calls wait on this
     this.tokenExchangePromise = this.refreshCopilotToken().catch(() => {})
@@ -251,10 +256,10 @@ export class GitHubCopilotProvider extends BaseProvider {
   /** Exchange OAuth token for a Copilot session token (async, cached to disk) */
   private async refreshCopilotToken(): Promise<void> {
     try {
-      const token = await exchangeOAuthForCopilotToken(this.oauthToken)
+      const token = await exchangeOAuthForCopilotToken(this.oauthToken, this.profileId)
       this.cachedToken = token
       try {
-        const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { expiresAt: number }
+        const cache = JSON.parse(readFileSync(credentialsCachePath(this.profileId), 'utf8')) as { expiresAt: number }
         this.tokenExpiresAt = cache.expiresAt
       } catch {
         this.tokenExpiresAt = Date.now() + 25 * 60 * 1000
@@ -270,12 +275,12 @@ export class GitHubCopilotProvider extends BaseProvider {
       return this.cachedToken
     }
 
-    const resolved = resolveCopilotApiToken(this.oauthToken)
+    const resolved = resolveCopilotApiToken(this.oauthToken, this.profileId)
     this.cachedToken = resolved
 
     // Try to parse expiry from the token cache file
     try {
-      const cachePath = join(homedir(), '.cassicore', 'credentials', 'github-copilot.token.json')
+      const cachePath = credentialsCachePath(this.profileId)
       const cache = JSON.parse(readFileSync(cachePath, 'utf8')) as { expiresAt: number }
       this.tokenExpiresAt = cache.expiresAt
     } catch {

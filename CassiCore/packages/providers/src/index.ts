@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 
 import {
+  AlibabaCodingProvider,
   KimiCodingProvider,
   OpenRouterProvider,
   QwenProvider,
@@ -8,6 +9,7 @@ import {
 
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
 import { GitHubCopilotProvider } from './github-copilot.js'
+import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
 
@@ -22,7 +24,7 @@ export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
 // Re-export canonical providers from @cassicore/ai
-export { KimiCodingProvider, OpenRouterProvider, QwenProvider } from '@cassicore/ai'
+export { AlibabaCodingProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider } from '@cassicore/ai'
 
 // ── Request optimization exports ─────────────────────────────────────────────
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
@@ -64,7 +66,29 @@ export function createProviders(
     process.env.GITHUB_TOKEN ||
     process.env.COPILOT_TOKEN ||
     ''
-  if (copilotToken) {
+
+  // Attempt to load multi-account file
+  let copilotAccounts: GitHubCopilotAccount[] = []
+  try {
+    const path = process.env.GITHUB_COPILOT_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/github-copilot-accounts.json`
+    if (fs.existsSync(path)) {
+      const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
+      copilotAccounts = cfg?.providers?.['github-copilot']?.accounts || []
+      if (copilotAccounts.length > 0) logger.info(`[github-copilot] Loaded ${copilotAccounts.length} account(s) from ${path}`)
+    }
+  } catch (err) {
+    logger.warn(`[github-copilot] Failed to load accounts file: ${String(err)}`)
+  }
+
+  if (copilotAccounts.length > 1) {
+    try {
+      const lb = new GitHubCopilotLoadBalancer({ accounts: copilotAccounts, strategy: 'round-robin', cooldownMs: config.get('providers.githubCopilot.cooldownMs', 60000), maxRetries: config.get('providers.githubCopilot.maxRetries', 2) })
+      rawProviders.set('github-copilot', lb)
+      logger.info(`Provider loaded: github-copilot (load-balanced across ${copilotAccounts.length} accounts)`)
+    } catch (err) {
+      logger.warn(`failed to load github-copilot load balancer: ${String(err)}`)
+    }
+  } else if (copilotToken) {
     rawProviders.set('github-copilot', new GitHubCopilotProvider(copilotToken))
     logger.info('Provider loaded: github-copilot')
   }
@@ -86,6 +110,21 @@ export function createProviders(
     }
   }
 
+  // ── Alibaba Coding Plan ─────────────────────────────────────────────────────
+  const alibabaCodingKey =
+    config.get<string>('providers.alibabaCoding.apiKey', '') ||
+    process.env.ALIBABA_CODING_API_KEY ||
+    ''
+  if (alibabaCodingKey) {
+    try {
+      const alibabaProv = new AlibabaCodingProvider(alibabaCodingKey)
+      rawProviders.set('alibaba-coding', alibabaProv)
+      logger.info('Provider loaded: alibaba-coding')
+    } catch (err) {
+      logger.warn(`failed to load alibaba-coding provider: ${String(err)}`)
+    }
+  }
+
   // ── Google Antigravity ─────────────────────────────────────────────────────
   const antigravityKey =
     config.get<string>('providers.googleAntigravity.authKey', '') ||
@@ -100,273 +139,61 @@ export function createProviders(
     }
   }
 
+  // ── Qwen ───────────────────────────────────────────────────────────────────
+  const qwenAccounts: QwenAccount[] = []
+  try {
+    const qwenPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/qwen-accounts.json`
+    if (fs.existsSync(qwenPath)) {
+      const cfg = JSON.parse(fs.readFileSync(qwenPath, 'utf8'))
+      qwenAccounts.push(...(cfg?.accounts || []))
+      if (qwenAccounts.length > 0) logger.info(`[qwen] Loaded ${qwenAccounts.length} account(s)`)
+    }
+  } catch (err) {
+    logger.warn(`[qwen] Failed to load accounts file: ${String(err)}`)
+  }
+
+  if (qwenAccounts.length > 1) {
+    try {
+      const lb = createQwenLoadBalancer(qwenAccounts)
+      rawProviders.set('qwen', lb)
+      logger.info(`Provider loaded: qwen (load-balanced across ${qwenAccounts.length} accounts)`)
+    } catch (err) {
+      logger.warn(`failed to load qwen load balancer: ${String(err)}`)
+    }
+  } else if (qwenAccounts.length === 1) {
+    try {
+      const acc = qwenAccounts[0]
+      const provider = new QwenProvider(
+        acc.credentials?.access || '',
+        acc.baseUrl,
+        acc.credentials,
+      )
+      rawProviders.set('qwen', provider)
+      logger.info('Provider loaded: qwen')
+    } catch (err) {
+      logger.warn(`failed to load qwen provider: ${String(err)}`)
+    }
+  }
+
   // ── OpenRouter ─────────────────────────────────────────────────────────────
-  const openrouterKey =
+  const openRouterKey =
     config.get<string>('providers.openrouter.apiKey', '') ||
-    config.get<string>('providers.openRouter.apiKey', '') ||
     process.env.OPENROUTER_API_KEY ||
     ''
-  if (openrouterKey) {
-    const openrouterBaseUrl =
-      config.get<string>('providers.openrouter.baseUrl', '') ||
-      'https://openrouter.ai/api/v1'
+  if (openRouterKey) {
     try {
-      rawProviders.set('openrouter', new OpenRouterProvider(openrouterKey, openrouterBaseUrl))
+      const orProvider = new OpenRouterProvider(openRouterKey)
+      rawProviders.set('openrouter', orProvider)
       logger.info('Provider loaded: openrouter')
     } catch (err) {
       logger.warn(`failed to load openrouter provider: ${String(err)}`)
     }
   }
 
-  // ── Qwen (Alibaba Qwen models) ─────────────────────────────────────────────
-  // Support multi-account load balancing
-  // First try to load from external qwen-accounts.json, then from config
-  let qwenAccounts: Array<{ profileId: string; credentials: any; baseUrl?: string }> = []
-  try {
-    const qwenAccountsPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/qwen-accounts.json`
-    if (fs.existsSync(qwenAccountsPath)) {
-      const qwenAccountsConfig = JSON.parse(fs.readFileSync(qwenAccountsPath, 'utf8'))
-      qwenAccounts = qwenAccountsConfig?.providers?.qwen?.accounts || []
-      if (qwenAccounts.length > 0) {
-        logger.info(`[qwen] Loaded ${qwenAccounts.length} account(s) from ${qwenAccountsPath}`)
-      }
-    }
-  } catch (err) {
-    logger.warn(`[qwen] Failed to load qwen-accounts.json: ${String(err)}`)
+  // ── Return with optional centralization ────────────────────────────────────
+  if (centralized && bus) {
+    return wrapProvidersWithCentralized(rawProviders, logger, bus)
   }
 
-  // Fallback to config if no accounts file
-  if (qwenAccounts.length === 0) {
-    qwenAccounts = config.get<Array<{ profileId: string; credentials: any; baseUrl?: string }>>('providers.qwen.accounts', [])
-  }
-
-  const qwenKey =
-    config.get<string>('providers.qwen.apiKey', '') ||
-    process.env.QWEN_API_KEY ||
-    process.env.DASHSCOPE_API_KEY ||
-    ''
-
-  if (qwenAccounts.length > 1) {
-    // Multi-account load balancing mode
-    try {
-      const accounts: QwenAccount[] = qwenAccounts.map(acc => ({
-        profileId: acc.profileId,
-        credentials: acc.credentials,
-        baseUrl: acc.baseUrl,
-      }))
-      const loadBalancer = new QwenLoadBalancer({
-        accounts,
-        strategy: 'round-robin',
-        cooldownMs: config.get('providers.qwen.cooldownMs', 60000),
-        maxRetries: config.get('providers.qwen.maxRetries', 2),
-      })
-      rawProviders.set('qwen', loadBalancer)
-      // Alias for compatibility
-      rawProviders.set('qwen-cli', loadBalancer)
-      logger.info(`Provider loaded: qwen (load-balanced across ${accounts.length} accounts)`)
-    } catch (err) {
-      logger.warn(`failed to load qwen load balancer: ${String(err)}`)
-    }
-  } else if (qwenKey) {
-    // Single account mode (legacy)
-    const qwenBaseUrl =
-      config.get<string>('providers.qwen.baseUrl', '') ||
-      process.env.QWEN_BASE_URL ||
-      'https://dashscope.aliyuncs.com/compatible-mode/v1'
-    try {
-      rawProviders.set('qwen', new QwenProvider(qwenKey, qwenBaseUrl))
-      // Alias for qwen-cli compatibility
-      rawProviders.set('qwen-cli', new QwenProvider(qwenKey, qwenBaseUrl))
-      logger.info('Provider loaded: qwen (aliases: qwen, qwen-cli)')
-    } catch (err) {
-      logger.warn(`failed to load qwen provider: ${String(err)}`)
-    }
-  }
-
-  // ── LM Studio (Local API) ──────────────────────────────────────────────────
-  const lmstudioEnabled = config.get<boolean>('providers.lmstudio.enabled', true)
-  if (lmstudioEnabled) {
-    const lmstudioBaseUrl = config.get<string>('providers.lmstudio.baseUrl', 'http://localhost:1234/v1')
-    try {
-      const lmstudioProvider = {
-        id: 'lmstudio',
-        // Default LM Studio model list favors the current local fallback first
-        models: config.get<string[]>('providers.lmstudio.models', ['prunedhub-gpt-oss-20b-28x']),
-        countTokens: async (messages: any[]) => messages.reduce((acc, m) => acc + Math.ceil(String(m.content).length / 4), 0),
-        ping: async () => true,
-        async *complete(messages: any[], opts: any) {
-          const response = await fetch(`${lmstudioBaseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer lmstudio'
-            },
-            body: JSON.stringify({
-              model: opts.model || 'prunedhub-gpt-oss-20b-28x',
-              messages: messages.map(m => ({
-                role: m.role,
-                content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content)
-              })),
-              stream: true
-            })
-          })
-
-          if (!response.ok) {
-            throw new Error(`LM Studio error: ${response.status} ${response.statusText}`)
-          }
-
-          const reader = response.body?.getReader()
-          if (!reader) throw new Error('No response body')
-
-          const decoder = new TextDecoder()
-          let buffer = ''
-
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            buffer += decoder.decode(value, { stream: true })
-            const lines = buffer.split('\n')
-            buffer = lines.pop() || ''
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6)
-                if (data === '[DONE]') continue
-                try {
-                  const chunk = JSON.parse(data)
-                  const content = chunk.choices?.[0]?.delta?.content || ''
-                  if (content) {
-                    yield { type: 'token' as const, text: content }
-                  }
-                } catch (e) {
-                  // Ignore parse errors
-                }
-              }
-            }
-          }
-          yield { type: 'done' as const }
-        }
-      }
-      rawProviders.set('lmstudio', lmstudioProvider as IProvider)
-      logger.info(`Provider loaded: lmstudio (${lmstudioBaseUrl})`)
-    } catch (err) {
-      logger.warn(`failed to load lmstudio provider: ${String(err)}`)
-    }
-  }
-
-  if (rawProviders.size === 0) {
-    logger.warn('No providers loaded — set at least one API key in config or env')
-    return rawProviders
-  }
-
-  // ── Centralized request management ──────────────────────────────────────────
-  // Disabled: CentralizedProvider wrapping adds complexity (dedup, rate limiting,
-  // error cooldown) that interferes with provider-specific behaviors like Kimi's
-  // reasoning_content requirements. The raw providers handle their own retries
-  // and error handling well enough. Revisit when provider-neutral wrapping is
-  // more mature.
-  //
-  // if (centralized && bus) {
-  //   const wrapped = wrapProvidersWithCentralized(rawProviders, logger, bus, config)
-  //   logger.info(`Centralized request management enabled for ${wrapped.size} provider(s)`)
-  //   return wrapped as Map<string, IProvider>
-  // }
-
-  // ── Lightweight observability tap ────────────────────────────────────────────
-  // Without full CentralizedProvider wrapping, we still want provider:request_start
-  // and provider:request_end events on the bus so `cassicore llm events` and the
-  // admin API /events/stream can surface LLM activity. We wrap each provider's
-  // complete() with a thin async generator shim — no dedup, no rate-limiting,
-  // just timing and token counting.
-  if (bus) {
-    for (const [providerId, provider] of rawProviders) {
-      const originalComplete = provider.complete.bind(provider)
-      provider.complete = async function* tapComplete(
-        messages: import('../../types/runtime.js').Message[],
-        opts: import('../../types/runtime.js').CompletionOpts,
-      ) {
-        const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-        const sessionId = (opts as any)?.sessionId ?? 'unknown'
-        const source = opts?.source ?? 'unknown'
-        const trigger = opts?.trigger ?? undefined
-        const model = opts?.model ?? (provider as any).model ?? '?'
-        const startMs = Date.now()
-        let tokensIn = 0
-        let tokensOut = 0
-        let thinkingTokens = 0
-        let errored = false
-
-        bus.emit({ type: 'provider:request_start', providerId, requestId, sessionId, source, model, messageCount: messages.length, timestamp: new Date() })
-        bus.emit({
-          type: 'provider:request_prompt',
-          providerId,
-          requestId,
-          sessionId,
-          source,
-          messages: messages.map(m => ({
-            role: m.role,
-            content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-          })),
-          systemPrompt: opts?.systemPrompt,
-          timestamp: new Date(),
-        })
-
-        try {
-          try {
-            tokensIn = await provider.countTokens(messages)
-          } catch {
-            // Best-effort estimate only; providers that report structured usage
-            // will override this fallback later.
-          }
-
-          for await (const chunk of originalComplete(messages, opts)) {
-            if (chunk.type === 'token') {
-              tokensOut += (chunk.text?.length ?? 0)
-              if (chunk.text) bus.emit({ type: 'provider:request_chunk', providerId, requestId, sessionId, source, trigger, model, chunkType: 'token', text: chunk.text, timestamp: new Date() })
-            } else if (chunk.type === 'thinking') {
-              thinkingTokens += (chunk.text?.length ?? 0)
-              if (chunk.text) bus.emit({ type: 'provider:request_chunk', providerId, requestId, sessionId, source, trigger, model, chunkType: 'thinking', text: chunk.text, timestamp: new Date() })
-            } else if (chunk.type === 'tool_use' && chunk.toolCall) {
-              bus.emit({ type: 'provider:request_chunk', providerId, requestId, sessionId, source, trigger, model, chunkType: 'tool_use', toolCall: chunk.toolCall, timestamp: new Date() })
-            } else if (chunk.type === 'done' && (chunk as any).tokensUsed != null) {
-              const t = (chunk as any).tokensUsed
-              if (typeof t === 'number') {
-                // Provider reported a single total (e.g. output_tokens only)
-                tokensOut = t || tokensOut
-              } else if (typeof t === 'object') {
-                tokensIn = t.input ?? tokensIn
-                tokensOut = t.output ?? tokensOut
-                if (t.thinking != null) thinkingTokens = t.thinking
-              }
-            }
-            yield chunk
-          }
-        } catch (err) {
-          errored = true
-          bus.emit({ type: 'provider:request_error', providerId, requestId, sessionId, source, trigger, model, error: String(err), durationMs: Date.now() - startMs, timestamp: new Date() })
-          throw err
-        } finally {
-          if (!errored) {
-              bus.emit({
-                type: 'provider:request_end',
-                providerId,
-                requestId,
-                sessionId,
-                source,
-                trigger,
-                model,
-                tokensUsed: { input: tokensIn, output: tokensOut, thinking: thinkingTokens },
-                durationMs: Date.now() - startMs,
-                timestamp: new Date(),
-              })
-          }
-        }
-      } as any
-    }
-    logger.info(`Observability tap installed on ${rawProviders.size} provider(s)`)
-  }
-
-  logger.info(`${rawProviders.size} provider(s) loaded (direct mode)`)
   return rawProviders
 }
