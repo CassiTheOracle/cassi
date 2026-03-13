@@ -21,30 +21,30 @@
 //   main      — User-facing main agent (turn pipeline, sessions)
 //   reasoning — Background intelligence modules (thinker, dialectic, memory, etc.)
 //   agent     — Spawned sub-agents and team members
-//   fast      — Low-latency local operations (reflex, quick parsing)
+//   fast      — Low-latency local operations (quick parsing)
 //
 // Format: 'provider/model' combined string, split at consumption sites.
 
 export const MODEL_DEFAULTS = {
   /** Main agent — the user-facing conversational model */
   main: {
-    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'kimi-coding'),
-    model: getEnvString('CASSICORE_MODEL_MAIN', 'k2p5'),
+    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'github-copilot'),
+    model: getEnvString('CASSICORE_MODEL_MAIN', 'gpt-4o'),
   },
 
   /** Background reasoning — intelligence modules (thinker, dialectic, memory, subconscious) */
   reasoning: {
-    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'kimi-coding'),
-    model: getEnvString('CASSICORE_MODEL_REASONING', 'k2p5'),
+    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'github-copilot'),
+    model: getEnvString('CASSICORE_MODEL_REASONING', 'gpt-4o'),
   },
 
   /** Spawned agents — team members, sub-agents, coordinators */
   agent: {
-    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'kimi-coding'),
-    model: getEnvString('CASSICORE_MODEL_AGENT', 'k2p5'),
+    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'github-copilot'),
+    model: getEnvString('CASSICORE_MODEL_AGENT', 'gpt-4o'),
   },
 
-  /** Fast local — reflex, quick intent parsing, low-latency operations */
+  /** Fast — quick intent parsing, low-latency operations */
   fast: {
     provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'github-copilot'),
     model: getEnvString('CASSICORE_MODEL_FAST', 'gpt-5-mini'),
@@ -279,47 +279,6 @@ export const LOGGING_SETTINGS = {
 } as const;
 
 // ============================================================================
-// Reflex Settings (Autonomic Tool Execution)
-// ============================================================================
-
-export const REFLEX_SETTINGS = {
-  /** Enable the Reflex module */
-  enabled: getEnvBoolean('CASSICORE_REFLEX_ENABLED', true),
-
-  /** LLM provider for intent parsing — defaults to fast tier */
-  providerId: getEnvString('CASSICORE_REFLEX_PROVIDER', MODEL_DEFAULTS.fast.provider),
-
-  /** Model for intent parsing — defaults to fast tier */
-  model: getEnvString('CASSICORE_REFLEX_MODEL', MODEL_DEFAULTS.fast.model),
-
-  /** Temperature for intent parsing (lower = more deterministic) */
-  temperature: getEnvNumber('CASSICORE_REFLEX_TEMPERATURE', 0.1),
-
-  /** Max tokens for intent parsing response */
-  maxTokens: getEnvNumber('CASSICORE_REFLEX_MAX_TOKENS', 512),
-
-  /** Timeout for LLM inference (ms) */
-  inferenceTimeoutMs: getEnvNumber('CASSICORE_REFLEX_INFERENCE_TIMEOUT_MS', 5_000),
-
-  /** Cooldown between reflex triggers for the same tool (ms) */
-  toolCooldownMs: getEnvNumber('CASSICORE_REFLEX_TOOL_COOLDOWN_MS', 3_000),
-
-  /** Maximum concurrent tool executions */
-  maxConcurrentTools: getEnvNumber('CASSICORE_REFLEX_MAX_CONCURRENT', 2),
-
-  /** Maximum tool execution time (ms) — safety guard */
-  toolTimeoutMs: getEnvNumber('CASSICORE_REFLEX_TOOL_TIMEOUT_MS', 15_000),
-
-  /** Minimum confidence from LLM to trigger a tool (0-1) */
-  minConfidence: getEnvNumber('CASSICORE_REFLEX_MIN_CONFIDENCE', 0.6),
-
-  /** Allowed read-only tools (whitelist) */
-  allowedTools: getEnvString('CASSICORE_REFLEX_ALLOWED_TOOLS',
-    'gitnexus_query,gitnexus_context,gitnexus_impact,read_file,find_symbol,web_search,memory_search'
-  ).split(',').map(t => t.trim()),
-} as const;
-
-// ============================================================================
 // Prompt Optimizer Settings (Dialectic Prompt Variant Selection)
 // ============================================================================
 
@@ -518,6 +477,42 @@ export const MACRO_DIALECTIC_SETTINGS = {
 } as const;
 
 // ============================================================================
+// Triad Team Settings
+// ============================================================================
+
+export const TRIAD_TEAM_SETTINGS = {
+  // ── Context Management ─────────────────────────────────────────────────
+
+  /** Enable pre-flight context validation for triad cells */
+  contextValidationEnabled: getEnvBoolean('CASSICORE_TRIAD_CONTEXT_VALIDATION', true),
+
+  /** Safety margin: use this fraction of the model's context window (leaves room for response) */
+  contextSafetyMargin: getEnvNumber('CASSICORE_TRIAD_CONTEXT_SAFETY_MARGIN', 80) / 100,
+
+  /** Default character budget when model capabilities can't be determined */
+  defaultCharBudget: getEnvNumber('CASSICORE_TRIAD_CONTEXT_BUDGET', 48_000),
+
+  // ── Depth-Aware Parent Context Limits ──────────────────────────────────
+
+  /** Max chars for parent context at depth 1 (direct children of root) */
+  depth1ParentContextMaxChars: getEnvNumber('CASSICORE_TRIAD_DEPTH1_PARENT_MAX', 12_000),
+
+  /** Max chars for parent context at depth 2 */
+  depth2ParentContextMaxChars: getEnvNumber('CASSICORE_TRIAD_DEPTH2_PARENT_MAX', 8_000),
+
+  /** Max chars for parent context at depth 3+ */
+  depth3ParentContextMaxChars: getEnvNumber('CASSICORE_TRIAD_DEPTH3_PARENT_MAX', 4_000),
+
+  // ── Observability ──────────────────────────────────────────────────────
+
+  /** Emit context events on every phase (verbose) or only on warnings (quiet) */
+  contextEventMode: getEnvString('CASSICORE_TRIAD_CONTEXT_EVENT_MODE', 'verbose') as 'verbose' | 'warnings-only',
+
+  /** Context utilization threshold that triggers a budget-warning event (0-1) */
+  budgetWarningThreshold: getEnvNumber('CASSICORE_TRIAD_BUDGET_WARNING_THRESHOLD', 85) / 100,
+} as const;
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -553,11 +548,11 @@ export const SYSTEM_SETTINGS = {
   provider: PROVIDER_SETTINGS,
   budget: BUDGET_SETTINGS,
   logging: LOGGING_SETTINGS,
-  reflex: REFLEX_SETTINGS,
   promptOptimizer: PROMPT_OPTIMIZER_SETTINGS,
   drone: DRONE_SETTINGS,
   scout: SCOUT_SETTINGS,
   macroDialectic: MACRO_DIALECTIC_SETTINGS,
+  triadTeam: TRIAD_TEAM_SETTINGS,
 } as const;
 
 /** 

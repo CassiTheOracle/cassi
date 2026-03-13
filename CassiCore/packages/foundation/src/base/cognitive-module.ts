@@ -14,51 +14,38 @@
  *
  * @example
  * ```typescript
- * export class ReflexModule extends BaseCognitiveModule {
- *   readonly name = 'reflex'
+ * export class GuardianModule extends BaseCognitiveModule {
+ *   readonly name = 'guardian'
  *   readonly priority = 45
  *
- *   async onThinking(sessionId: string, thinking: string): Promise<void> {
- *     const toolCall = await this.infer(parsePrompt(thinking), ThinkingSchema)
- *     if (toolCall) await this.executeTool(toolCall)
+ *   async onTurnEnd(sessionId: string, response: string): Promise<void> {
+ *     const assessment = await this.infer(analyzePrompt(response), AssessmentSchema)
+ *     if (assessment.risk > 0.8) this.inject(sessionId, 'warning', assessment.reason)
  *   }
  * }
  * ```
  */
 
-import { MODEL_DEFAULTS } from '../../config/system-settings.js'
+import {
+  resolveModelConfigFromJson,
+  wireModelConfigWatcher,
+  applyModelConfigOverrides,
+  DEFAULT_MODULE_MODEL_CONFIG,
+} from './model-config.js'
+import type { ModuleModelConfig } from './model-config.js'
+import { infer as inferHelper, inferJSON as inferJSONHelper } from './inference.js'
+import type { InferenceMetrics } from './inference.js'
 
 import type { RuntimeEvent } from '../../../types/events.js'
 import type { IMemory } from '../../../types/intelligence.js'
-import type { ILogger, IEventBus, IntelligenceModule, IConfig } from '../../../types/interfaces.js'
-import type { IProvider, Message, CompletionOpts, CompletionChunk } from '../../../types/runtime.js'
+import type { ILogger, IEventBus, IntelligenceModule, IConfig, WiringDependencies } from '../../../types/interfaces.js'
+import type { IProvider, Message, CompletionOpts } from '../../../types/runtime.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 
-// ============================================================================
-// Model Configuration for LLM-powered modules
-// ============================================================================
-
-export interface ModuleModelConfig {
-  /** Provider ID (e.g., 'lmstudio', 'kimi-coding', 'github-copilot') */
-  providerId: string
-  /** Model name (e.g., 'gpt-5-mini', 'k2p5') */
-  model: string
-  /** Temperature for inference (0-2) */
-  temperature: number
-  /** Max tokens for response */
-  maxTokens: number
-  /** Timeout for inference calls (ms) */
-  timeoutMs: number
-}
-
-export const DEFAULT_MODULE_MODEL_CONFIG: ModuleModelConfig = {
-  providerId: MODEL_DEFAULTS.fast.provider,
-  model: MODEL_DEFAULTS.fast.model,
-  temperature: 0.3,
-  maxTokens: 1024,
-  timeoutMs: 10_000,
-}
+// Re-export types for backward compatibility
+export type { ModuleModelConfig } from './model-config.js'
+export { DEFAULT_MODULE_MODEL_CONFIG } from './model-config.js'
 
 // ============================================================================
 // Module Lifecycle
@@ -79,7 +66,7 @@ export interface CognitiveModuleMetrics {
 // ============================================================================
 
 export abstract class BaseCognitiveModule implements IntelligenceModule {
-  /** Unique module identifier (e.g., 'reflex', 'guardian') */
+  /** Unique module identifier (e.g., 'guardian', 'error-learner') */
   abstract readonly name: string
 
   /** Priority in execution order — higher = runs first */
@@ -102,12 +89,18 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     eventsProcessed: 0,
     lastActivityAt: 0,
   }
+  private _inferenceMetrics: InferenceMetrics = { calls: 0, errors: 0, totalMs: 0 }
   private _unsubscribers: Array<() => void> = []
+
+  /**
+   * The requestId from the most recent provider call made via infer()/inferJSON().
+   * Set by the onMeta callback before infer() resolves. Modules can include this
+   * in their outcome events to enable end-to-end tracing in `cassicore llm stream`.
+   */
+  protected _lastRequestId?: string
 
   constructor(logger: ILogger, modelConfig?: Partial<ModuleModelConfig>) {
     this.logger = logger
-    // Store the constructor-provided config (env-var layer or explicit overrides).
-    // config.json values are merged later in init() once setConfig() has been called.
     this.modelConfig = { ...DEFAULT_MODULE_MODEL_CONFIG, ...modelConfig }
   }
 
@@ -115,22 +108,21 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   // Lifecycle — called by IntelligenceRegistry
   // ==========================================================================
 
-  /**
-   * Initialize the module. Override for custom init logic (call super.init()).
-   *
-   * IMPORTANT: This is where config.json model settings are resolved. The
-   * registry calls setConfig(iconfig) during wire(), which happens before init().
-   * So by the time init() runs, this.config is available for reading config.json.
-   *
-   * Precedence (highest wins):
-   *   1. config.json — `intelligence.<moduleName>.model`, `.provider`, `.temperature`, `.maxTokens`, `.timeoutMs`
-   *   2. Constructor `modelConfig` parameter (e.g., from REFLEX_SETTINGS env vars)
-   *   3. DEFAULT_MODULE_MODEL_CONFIG hardcoded fallback
-   */
   async init(): Promise<void> {
     this._status = 'initializing'
-    this.resolveModelConfigFromJson()
-    this.wireConfigWatcher()
+
+    // Resolve config.json model settings
+    if (this.config) {
+      resolveModelConfigFromJson(this.config, this.name, this.modelConfig)
+
+      // Watch for live config changes
+      const unsubs = wireModelConfigWatcher(this.config, this.name, () => {
+        this.logger.debug(`[${this.name}] Config key changed — reloading model config`)
+        this.reloadModelConfig()
+      })
+      this._unsubscribers.push(...unsubs)
+    }
+
     this.logger.info(`[${this.name}] Initializing (priority=${this.priority})`, {
       model: this.modelConfig.model,
       provider: this.modelConfig.providerId,
@@ -138,13 +130,11 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     })
   }
 
-  /** Start the module after all dependencies are wired. Override for background work. */
   async start(): Promise<void> {
     this._status = 'running'
     this.logger.info(`[${this.name}] Started`)
   }
 
-  /** Stop the module. Cleans up subscriptions. Override for custom teardown. */
   async stop(): Promise<void> {
     this._status = 'stopped'
     for (const unsub of this._unsubscribers) {
@@ -155,84 +145,69 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   }
 
   get status(): ModuleStatus { return this._status }
-  get metrics(): Readonly<CognitiveModuleMetrics> { return this._metrics }
+  get metrics(): Readonly<CognitiveModuleMetrics> {
+    // Sync inference metrics into the module-level metrics
+    this._metrics.inferenceCalls = this._inferenceMetrics.calls
+    this._metrics.inferenceErrors = this._inferenceMetrics.errors
+    this._metrics.totalInferenceMs = this._inferenceMetrics.totalMs
+    return this._metrics
+  }
 
   // ==========================================================================
-  // Dependency Injection — called by IntelligenceRegistry
+  // Dependency Injection
   // ==========================================================================
 
-  setEventBus(bus: IEventBus): void {
-    this.eventBus = bus
-  }
+  setEventBus(bus: IEventBus): void { this.eventBus = bus }
+  setMemory(memory: IMemory): void { this.memory = memory }
+  setProvider(provider: IProvider): void { this.provider = provider }
+  setConfig(config: IConfig): void { this.config = config }
+  setToolRegistry(registry: ToolRegistry): void { this.toolRegistry = registry }
+  setToolExecutor(executor: ToolExecutor): void { this.toolExecutor = executor }
 
-  setMemory(memory: IMemory): void {
-    this.memory = memory
-  }
-
-  setProvider(provider: IProvider): void {
-    this.provider = provider
-  }
-
-  setConfig(config: IConfig): void {
-    this.config = config
+  /**
+   * Wire multiple dependencies in one call.
+   * Preferred over individual setX() methods.
+   */
+  wire(deps: Partial<WiringDependencies>): void {
+    if (deps.eventBus) this.setEventBus(deps.eventBus)
+    if (deps.memory) this.setMemory(deps.memory as IMemory)
+    if (deps.provider) this.setProvider(deps.provider as IProvider)
+    if (deps.config) this.setConfig(deps.config)
+    if (deps.toolRegistry) this.setToolRegistry(deps.toolRegistry as ToolRegistry)
+    if (deps.toolExecutor) this.setToolExecutor(deps.toolExecutor as ToolExecutor)
   }
 
   /**
    * Update the model configuration at runtime.
-   * Accepts partial overrides — unspecified fields retain their current values.
-   * Supports the combined 'provider/model' format in the `model` field.
+   * Supports combined 'provider/model' format.
    */
   setModelConfig(overrides: Partial<ModuleModelConfig>): void {
-    const prev = { ...this.modelConfig }
-
-    // Handle combined 'provider/model' format
-    if (overrides.model && overrides.model.includes('/') && !overrides.providerId) {
-      const [provider, model] = overrides.model.split('/', 2)
-      overrides = { ...overrides, providerId: provider, model }
-    }
-
-    Object.assign(this.modelConfig, overrides)
-
+    const prev = { provider: this.modelConfig.providerId, model: this.modelConfig.model }
+    applyModelConfigOverrides(this.modelConfig, overrides)
     this.logger.info(`[${this.name}] Model config updated`, {
-      prev: { provider: prev.providerId, model: prev.model },
+      prev,
       now: { provider: this.modelConfig.providerId, model: this.modelConfig.model },
     })
   }
 
-  /**
-   * Re-read model configuration from config.json and apply it.
-   * Called on config:changed events or explicit admin API requests.
-   */
   reloadModelConfig(): void {
-    this.resolveModelConfigFromJson()
-    this.logger.info(`[${this.name}] Model config reloaded from config.json`, {
+    if (this.config) {
+      resolveModelConfigFromJson(this.config, this.name, this.modelConfig)
+    }
+    this.logger.info(`[${this.name}] Model config reloaded`, {
       provider: this.modelConfig.providerId,
       model: this.modelConfig.model,
     })
   }
 
-  /** Get current model configuration (read-only snapshot). */
   getModelConfig(): Readonly<ModuleModelConfig> {
     return { ...this.modelConfig }
-  }
-
-  setToolRegistry(registry: ToolRegistry): void {
-    this.toolRegistry = registry
-  }
-
-  setToolExecutor(executor: ToolExecutor): void {
-    this.toolExecutor = executor
   }
 
   // ==========================================================================
   // Event Handling — subclasses override the hooks they need
   // ==========================================================================
 
-  /**
-   * Called by the EventBus for every RuntimeEvent.
-   * Routes to specific hooks (onTurnStart, onTurnEnd, etc.)
-   * Subclasses can override for custom routing.
-   */
   async onEvent(event: RuntimeEvent): Promise<void> {
     this._metrics.eventsProcessed++
     this._metrics.lastActivityAt = Date.now()
@@ -251,8 +226,19 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
         case 'daemon:shutdown':
           await this.onDaemonShutdown?.(event.reason)
           break
+        case 'daemon:restarting':
+          await this.onDaemonRestarting?.(event.reason)
+          break
         case 'plugin:crashed':
           await this.onPluginCrashed?.(event.pluginId, event.error)
+          break
+        case 'tool:round-complete':
+          await this.onToolRound?.(
+            (event as any).sessionId,
+            (event as any).round,
+            (event as any).toolCalls,
+            (event as any).results,
+          )
           break
       }
     } catch (err) {
@@ -263,62 +249,37 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     }
   }
 
-  /**
-   * Wire this module to the EventBus for real-time events.
-   * Called by IntelligenceRegistry to inject the event bus AND wire all subscriptions.
-   * Must be used instead of setEventBus() when subscribing to turn:start / turn:end is needed.
-   * Subclasses call this.subscribe() for custom event subscriptions.
-   */
   onEventBus(bus: IEventBus): void {
-    if (this.eventBus === bus) return  // Already wired to this bus — don't re-subscribe
+    if (this.eventBus === bus) return
     this.eventBus = bus
     this.wireEventSubscriptions()
   }
 
   // ── Optional event hooks for subclasses ──────────────────────────────────
 
-  /** Called on turn:start */
   protected onTurnStart?(sessionId: string, message: string): Promise<void>
-
-  /** Called on turn:end */
   protected onTurnEnd?(sessionId: string, response: string, durationMs: number): Promise<void>
-
-  /** Called on daemon:ready */
   protected onDaemonReady?(): Promise<void>
-
-  /** Called on daemon:shutdown */
   protected onDaemonShutdown?(reason: string): Promise<void>
-
-  /** Called on plugin:crashed */
+  protected onDaemonRestarting?(reason: string): Promise<void>
   protected onPluginCrashed?(pluginId: string, error: string): Promise<void>
-
-  /**
-   * Called when the Subconscious emits thinking tokens from the main agent's stream.
-   * This is the primary hook for modules that react to the agent's reasoning.
-   */
   protected onThinking?(sessionId: string, thinking: string): Promise<void>
-
-  /**
-   * Called when the Subconscious emits a signal (pattern, intent, anomaly, etc.)
-   */
   protected onSignal?(sessionId: string, signal: unknown): Promise<void>
-
-  /**
-   * Called during wireEventSubscriptions so subclasses can add custom subscriptions.
-   * Use this.subscribe() to register event handlers.
-   */
+  protected onToolRound?(
+    sessionId: string,
+    round: number,
+    toolCalls: Array<{ name: string; id: string }>,
+    results: Array<{ toolCallId: string; isError: boolean; contentPreview: string }>,
+  ): Promise<void>
   protected registerSubscriptions?(): void
 
   // ==========================================================================
-  // LLM Inference — simplified interface for module authors
+  // LLM Inference — delegates to standalone inference helpers
   // ==========================================================================
 
   /**
    * Run LLM inference using this module's configured provider/model.
    * Returns the raw text response. For structured output, use inferJSON().
-   *
-   * @param prompt - The prompt to send (system + user messages)
-   * @param opts - Optional overrides for model, temperature, etc.
    */
   protected async infer(
     prompt: string | Message[],
@@ -328,84 +289,38 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       throw new Error(`[${this.name}] No provider configured — cannot infer`)
     }
 
-    const messages: Message[] = typeof prompt === 'string'
-      ? [{ role: 'user', content: prompt }]
-      : prompt
-
-    const completionOpts: CompletionOpts = {
-      model: this.modelConfig.model,
-      temperature: this.modelConfig.temperature,
-      maxTokens: this.modelConfig.maxTokens,
-      thinking: 'none',
-      allowConcurrent: true,  // Module inference should never block main agent
-      dedupe: false,          // Each module call is unique
-      source: this.name,      // Observability: which module made this call
+    this._lastRequestId = undefined
+    return inferHelper(this.provider, this.modelConfig, prompt, {
+      source: this.name,
+      onMeta: (meta) => { this._lastRequestId = meta.requestId },
       ...opts,
-    }
-
-    const startMs = Date.now()
-    this._metrics.inferenceCalls++
-
-    try {
-      let result = ''
-      const stream = this.provider.complete(messages, completionOpts)
-      for await (const chunk of stream) {
-        if (chunk.type === 'token' && chunk.text) {
-          result += chunk.text
-        }
-      }
-      this._metrics.totalInferenceMs += Date.now() - startMs
-      return result
-    } catch (err) {
-      this._metrics.inferenceErrors++
-      this._metrics.totalInferenceMs += Date.now() - startMs
-      this.logger.error(`[${this.name}] Inference failed`, { error: String(err) })
-      throw err
-    }
+    }, this._inferenceMetrics)
   }
 
   /**
    * Run LLM inference and parse the response as JSON.
    * Wraps the prompt with instructions to return valid JSON.
-   *
-   * @param prompt - The prompt to send
-   * @param opts - Optional overrides
-   * @returns Parsed JSON object, or null if parsing fails
    */
   protected async inferJSON<T = unknown>(
     prompt: string | Message[],
     opts?: Partial<CompletionOpts>,
   ): Promise<T | null> {
-    const messages: Message[] = typeof prompt === 'string'
-      ? [
-          { role: 'system', content: 'You are a JSON-only responder. Return ONLY valid JSON, no markdown, no explanation.' },
-          { role: 'user', content: prompt },
-        ]
-      : prompt
-
-    const raw = await this.infer(messages, opts)
-
-    try {
-      // Extract JSON from possible markdown code block
-      const jsonMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, raw]
-      const jsonStr = (jsonMatch[1] || raw).trim()
-      return JSON.parse(jsonStr) as T
-    } catch (err) {
-      this.logger.warn(`[${this.name}] Failed to parse JSON from inference`, {
-        rawLength: raw.length,
-        error: String(err),
-      })
-      return null
+    if (!this.provider) {
+      throw new Error(`[${this.name}] No provider configured — cannot infer`)
     }
+
+    this._lastRequestId = undefined
+    return inferJSONHelper<T>(this.provider, this.modelConfig, prompt, this.logger, {
+      source: this.name,
+      onMeta: (meta) => { this._lastRequestId = meta.requestId },
+      ...opts,
+    }, this._inferenceMetrics)
   }
 
   // ==========================================================================
-  // Context Injection — push results back into the system
+  // Context Injection
   // ==========================================================================
 
-  /**
-   * Store a memory entry via the Memory module.
-   */
   protected async storeMemory(
     type: string,
     content: string,
@@ -416,7 +331,6 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       this.logger.warn(`[${this.name}] No memory module — cannot store`)
       return undefined
     }
-
     return this.memory.store({
       type: type as any,
       content,
@@ -425,9 +339,6 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     })
   }
 
-  /**
-   * Emit a typed event on the EventBus.
-   */
   protected emit(event: RuntimeEvent): void {
     if (!this.eventBus) {
       this.logger.warn(`[${this.name}] No event bus — cannot emit`)
@@ -440,9 +351,6 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   // Subscription Helpers
   // ==========================================================================
 
-  /**
-   * Subscribe to an event type on the EventBus. Auto-cleaned on stop().
-   */
   protected subscribe<T extends RuntimeEvent['type']>(
     type: T,
     handler: (event: Extract<RuntimeEvent, { type: T }>) => void,
@@ -451,7 +359,6 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       this.logger.warn(`[${this.name}] No event bus — cannot subscribe to ${type}`)
       return
     }
-
     const unsub = this.eventBus.on(type as any, handler as any)
     this._unsubscribers.push(unsub)
   }
@@ -460,104 +367,9 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   // Private Wiring
   // ==========================================================================
 
-  /**
-   * Wire config.json watcher for live model config changes.
-   *
-   * Listens for changes to any `intelligence.<moduleName>.*` key.
-   * On change, re-resolves the full model config from config.json so that
-   * partial edits (e.g., changing only the model) are correctly merged.
-   */
-  private wireConfigWatcher(): void {
-    if (!this.config) return
-
-    const prefix = `intelligence.${this.name}`
-    const keys = [`${prefix}.model`, `${prefix}.provider`, `${prefix}.temperature`, `${prefix}.maxTokens`, `${prefix}.timeoutMs`]
-
-    for (const key of keys) {
-      const unsub = this.config.onChanged(key, () => {
-        this.logger.debug(`[${this.name}] Config key changed: ${key}`)
-        this.reloadModelConfig()
-      })
-      this._unsubscribers.push(unsub)
-    }
-  }
-
-  /**
-   * Resolve model configuration from config.json.
-   *
-   * Reads `intelligence.<moduleName>.model`, `.provider`, `.temperature`,
-   * `.maxTokens`, and `.timeoutMs` from config.json. Values found in config.json
-   * override whatever was set by the constructor (env vars / defaults).
-   *
-   * This makes ~/.cassicore/config.json the single pane of glass for model selection:
-   *   config.json → env vars / REFLEX_SETTINGS → DEFAULT_MODULE_MODEL_CONFIG
-   *
-   * Called during init() — setConfig() has already been called by the registry.
-   */
-  private resolveModelConfigFromJson(): void {
-    if (!this.config) return
-
-    const prefix = `intelligence.${this.name}`
-
-    try {
-      // Read model — supports both 'provider/model' combined format and separate fields
-      const configModel = this.config.get<string | undefined>(`${prefix}.model`, undefined)
-      const configProvider = this.config.get<string | undefined>(`${prefix}.provider`, undefined)
-      const configTemperature = this.config.get<number | undefined>(`${prefix}.temperature`, undefined)
-      const configMaxTokens = this.config.get<number | undefined>(`${prefix}.maxTokens`, undefined)
-      const configTimeoutMs = this.config.get<number | undefined>(`${prefix}.timeoutMs`, undefined)
-
-      let applied = false
-
-      if (configModel !== undefined) {
-        // Handle 'provider/model' combined format (e.g., 'github-copilot/gpt-5-mini')
-        if (configModel.includes('/')) {
-          const [provider, model] = configModel.split('/', 2)
-          this.modelConfig.providerId = provider
-          this.modelConfig.model = model
-        } else {
-          this.modelConfig.model = configModel
-        }
-        applied = true
-      }
-
-      if (configProvider !== undefined) {
-        this.modelConfig.providerId = configProvider
-        applied = true
-      }
-
-      if (configTemperature !== undefined && typeof configTemperature === 'number') {
-        this.modelConfig.temperature = configTemperature
-        applied = true
-      }
-
-      if (configMaxTokens !== undefined && typeof configMaxTokens === 'number') {
-        this.modelConfig.maxTokens = configMaxTokens
-        applied = true
-      }
-
-      if (configTimeoutMs !== undefined && typeof configTimeoutMs === 'number') {
-        this.modelConfig.timeoutMs = configTimeoutMs
-        applied = true
-      }
-
-      if (applied) {
-        this.logger.debug(`[${this.name}] Model config resolved from config.json`, {
-          model: this.modelConfig.model,
-          provider: this.modelConfig.providerId,
-          temperature: this.modelConfig.temperature,
-        })
-      }
-    } catch (err) {
-      this.logger.debug(`[${this.name}] No config.json overrides (${String(err)})`)
-    }
-  }
-
   private wireEventSubscriptions(): void {
     if (!this.eventBus) return
 
-    // Wire turn lifecycle events — registry-discovered modules are not wired
-    // via daemon.ts's explicit onEvent() calls, so we subscribe here directly.
     if (this.onTurnStart) {
       this.subscribe('turn:start' as any, (e: any) => {
         this.onTurnStart!(e.sessionId, e.message).catch((err: unknown) => {
@@ -574,7 +386,6 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       })
     }
 
-    // Always wire thinking and signal events from subconscious
     if (this.onThinking) {
       this.subscribe('subconscious:thinking' as any, (e: any) => {
         this.onThinking!(e.sessionId, e.thinking).catch(err => {
@@ -591,7 +402,14 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       })
     }
 
-    // Let subclasses add their own subscriptions
+    if (this.onToolRound) {
+      this.subscribe('tool:round-complete' as any, (e: any) => {
+        this.onToolRound!(e.sessionId, e.round, e.toolCalls, e.results).catch(err => {
+          this.logger.error(`[${this.name}] Error in onToolRound`, { error: String(err) })
+        })
+      })
+    }
+
     this.registerSubscriptions?.()
   }
 }
