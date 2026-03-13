@@ -5,20 +5,28 @@
  * Enables deep integration between CLI, daemon, and Cassandra.
  */
 
-// Event Bus
-export {
-  CassiCoreEventBus,
-  getEventBus,
-  resetEventBus,
-  createEventBus,
-} from './event-bus.js';
+// Event Bus — re-exported from core for convenience
+import { bus } from '../event-bus.js';
+export type { EventBus } from '../event-bus.js';
 
+/**
+ * Get the shared EventBus singleton.
+ * This is the same instance as `bus` in core/event-bus.ts.
+ */
+export function getEventBus() { return bus; }
+
+/**
+ * Clear all event history from the shared bus.
+ */
+export function resetEventBus(): void {
+  bus.clear();
+}
+
+// Event Types (CLI ↔ daemon protocol types)
 export type {
   BaseEvent,
   CassiCoreEvent,
-  EventHandler,
-  EventSubscription,
-  SessionEventBuffer,
+  CassiCoreEventHandler,
   SessionStartEvent,
   SessionShutdownEvent,
   AgentStartEvent,
@@ -39,7 +47,7 @@ export type {
   CompactionStartEvent,
   CompactionEndEvent,
   ErrorEvent,
-} from './event-bus.js';
+} from './event-types.js';
 
 // Event API
 export {

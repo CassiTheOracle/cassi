@@ -58,13 +58,15 @@ export class TurnHandler {
         toolTimeoutMs: options.toolTimeoutMs ?? 60000,
         streamTimeoutMs: 120000
       },
-      options.logger.child('tool-loop')
+      options.logger.child('tool-loop'),
+      options.toolSchemas
     );
     
     this.logger.info('TurnHandler initialized', {
       providerCount: options.providers.size,
       maxToolRounds: options.maxToolRounds ?? 8,
-      contextWindowTokens: options.contextWindowTokens ?? 200000
+      contextWindowTokens: options.contextWindowTokens ?? 200000,
+      toolCount: options.toolSchemas?.length ?? 0
     });
   }
   

@@ -220,6 +220,8 @@ export interface TurnHandlerOptions {
   maxToolRounds?: number;
   contextWindowTokens?: number;
   toolTimeoutMs?: number;
+  /** Tool schemas to pass to LLM providers (Anthropic format) */
+  toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
 }
 
 /**

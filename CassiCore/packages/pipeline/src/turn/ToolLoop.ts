@@ -4,7 +4,7 @@
  * Explicit tool execution loop with retry and timeout handling
  */
 
-import type { IProvider, CompletionChunk } from '../../../types/runtime.js';
+import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock } from '../../../types/runtime.js';
 import type {
   Message,
   ToolCall,
@@ -43,15 +43,18 @@ export class ToolLoop {
   private options: ToolLoopOptions;
   private toolExecutor: IToolExecutor;
   private logger: ILogger;
+  private toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
   
   constructor(
     toolExecutor: IToolExecutor,
     options: ToolLoopOptions,
-    logger: ILogger
+    logger: ILogger,
+    toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
   ) {
     this.toolExecutor = toolExecutor;
     this.options = options;
     this.logger = logger;
+    this.toolSchemas = toolSchemas;
   }
   
   /** Get/set max tool loop rounds */
@@ -198,15 +201,12 @@ export class ToolLoop {
     let tokensUsed = 0;
     
     const stream = provider.complete(
-      messages.map(m => ({
-        role: m.role,
-        content: m.content,
-        name: undefined
-      })),
+      this.toProviderMessages(messages),
       {
         model: model.split('/')[1] ?? model,
         stream: true,
         source: 'session-pipeline',
+        tools: this.toolSchemas,
       }
     );
     
@@ -320,6 +320,52 @@ export class ToolLoop {
     }
   }
   
+  /**
+   * Convert internal messages to provider Message format.
+   * Tool call/result messages need ContentBlock[] content rather than plain strings.
+   */
+  private toProviderMessages(messages: Message[]): ProviderMessage[] {
+    return messages.map(m => {
+      // Assistant message with tool calls → use ContentBlock[] format
+      if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+        const blocks: ContentBlock[] = [];
+        if (m.content) {
+          if (typeof m.content === 'string') {
+            blocks.push({ type: 'text', text: m.content });
+          } else {
+            blocks.push(...m.content);
+          }
+        }
+        for (const tc of m.toolCalls) {
+          blocks.push({
+            type: 'tool_use',
+            id: tc.id,
+            name: tc.name,
+            input: tc.input as Record<string, unknown>
+          });
+        }
+        return { role: m.role, content: blocks };
+      }
+
+      // User message with tool results → use ContentBlock[] format
+      if (m.role === 'user' && m.toolResults && m.toolResults.length > 0) {
+        const blocks: ContentBlock[] = m.toolResults.map(tr => ({
+          type: 'tool_result' as const,
+          tool_use_id: tr.toolCallId,
+          content: tr.content,
+          is_error: tr.isError
+        }));
+        return { role: m.role, content: blocks };
+      }
+
+      // Normal text message
+      return {
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : m.content
+      };
+    });
+  }
+
   /**
    * Promise with timeout wrapper
    */

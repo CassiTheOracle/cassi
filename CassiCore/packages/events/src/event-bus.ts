@@ -5,40 +5,141 @@ import type { IEventBus, ILogger } from "../types/interfaces.js";
 
 const logger: ILogger = rootLogger.child('event-bus');
 
+// ============================================================================
+// Ring Buffer — O(1) add, bounded memory, insertion-order retrieval
+// ============================================================================
+
+class RingBuffer<T> {
+  private items: T[] = [];
+  private startIndex = 0;
+
+  constructor(public readonly maxSize: number = 10000) {}
+
+  add(item: T): void {
+    if (this.items.length < this.maxSize) {
+      this.items.push(item);
+    } else {
+      this.items[this.startIndex] = item;
+      this.startIndex = (this.startIndex + 1) % this.maxSize;
+    }
+  }
+
+  /** All items in insertion order */
+  getAll(): T[] {
+    if (this.startIndex === 0) return [...this.items];
+    return [
+      ...this.items.slice(this.startIndex),
+      ...this.items.slice(0, this.startIndex),
+    ];
+  }
+
+  /** Last N items in insertion order */
+  getRecent(count: number): T[] {
+    const all = this.getAll();
+    return all.slice(-count);
+  }
+
+  /** Items matching a predicate, in insertion order */
+  filter(predicate: (item: T) => boolean): T[] {
+    return this.getAll().filter(predicate);
+  }
+
+  get size(): number {
+    return this.items.length;
+  }
+
+  clear(): void {
+    this.items = [];
+    this.startIndex = 0;
+  }
+}
+
+// ============================================================================
+// Event History Configuration
+// ============================================================================
+
+export interface EventHistoryOptions {
+  /** Max events per session ring buffer (default: 10000) */
+  sessionMaxSize?: number;
+  /** Max events in global ring buffer (default: 10000) */
+  globalMaxSize?: number;
+}
+
+// ============================================================================
+// EventBus — typed event bus with session history tracking
+// ============================================================================
+
 /**
- * EventBus — simple typed event bus implementation.
+ * EventBus — typed event bus with built-in session history.
  *
  * Internals:
  * - Uses a Map<EventType, Set<handler>> to store listeners. Sets prevent
  *   duplicate handler registrations and make removal by reference straightforward.
  * - A separate Set of global listeners supports the onAll() universal tap,
  *   which is used by the Subconscious EventStream to observe all system events.
+ * - Session history is tracked via per-session RingBuffers; events with a
+ *   `sessionId` field are auto-stored on emit(). A global RingBuffer captures
+ *   all events regardless.
  */
 export class EventBus implements IEventBus {
   private listeners: Map<EventType, Set<(...args: unknown[]) => void>>;
   private globalListeners: Set<(event: RuntimeEvent) => void>;
 
-  constructor() {
+  // Session history tracking
+  private sessionHistory: Map<string, RingBuffer<RuntimeEvent>>;
+  private globalHistory: RingBuffer<RuntimeEvent>;
+  private sessionMaxSize: number;
+
+  constructor(options: EventHistoryOptions = {}) {
     this.listeners = new Map();
     this.globalListeners = new Set();
+    this.sessionHistory = new Map();
+    this.sessionMaxSize = options.sessionMaxSize ?? 10000;
+    this.globalHistory = new RingBuffer(options.globalMaxSize ?? 10000);
   }
+
+  // ── Core Event Bus ───────────────────────────────────────────────────────
 
   /**
    * Emit a typed event to all registered listeners for that event type,
    * then notify all global (onAll) listeners.
-   * Handlers are invoked synchronously in registration order (Set iteration order).
+   * Events with a `sessionId` field are automatically stored in history.
+   * 
+   * This method properly awaits async handlers while maintaining backward
+   * compatibility with sync handlers. Errors from handlers are caught and
+   * logged with full stack traces preserved.
    */
-  emit<T extends RuntimeEvent>(event: T): void {
+  async emit<T extends RuntimeEvent>(event: T): Promise<void> {
+    // Store in history
+    this.globalHistory.add(event);
+    const sessionId = (event as Record<string, unknown>).sessionId as string | undefined;
+    if (sessionId) {
+      let buffer = this.sessionHistory.get(sessionId);
+      if (!buffer) {
+        buffer = new RingBuffer(this.sessionMaxSize);
+        this.sessionHistory.set(sessionId, buffer);
+      }
+      buffer.add(event);
+    }
+
+    // Notify typed listeners — snapshot to avoid issues if handlers modify the set
     const set = this.listeners.get(event.type as EventType);
     if (set) {
-      // Snapshot handlers to avoid issues if handlers modify the set during iteration.
       const handlers = Array.from(set);
       for (const h of handlers) {
         try {
-          // Type assertion: stored handlers follow the (e: EventOf<T>) => void shape
-          (h as (e: T) => void)(event);
+          // Use Promise.resolve() to handle both sync and async handlers transparently
+          await Promise.resolve(h(event));
         } catch (err) {
-          logger.error('Error in handler', { eventType: event.type, error: String(err) });
+          // Preserve stack traces by checking if err is an Error instance
+          const errorInfo: Record<string, unknown> = {
+            eventType: event.type,
+            message: err instanceof Error ? err.message : String(err),
+          };
+          if (err instanceof Error && err.stack) {
+            errorInfo.stack = err.stack;
+          }
+          logger.error('Error in handler', errorInfo);
         }
       }
     }
@@ -48,9 +149,18 @@ export class EventBus implements IEventBus {
       const globals = Array.from(this.globalListeners);
       for (const h of globals) {
         try {
-          h(event);
+          // Use Promise.resolve() to handle both sync and async handlers transparently
+          await Promise.resolve(h(event));
         } catch (err) {
-          logger.error('Error in global handler', { eventType: event.type, error: String(err) });
+          // Preserve stack traces by checking if err is an Error instance
+          const errorInfo: Record<string, unknown> = {
+            eventType: event.type,
+            message: err instanceof Error ? err.message : String(err),
+          };
+          if (err instanceof Error && err.stack) {
+            errorInfo.stack = err.stack;
+          }
+          logger.error('Error in global handler', errorInfo);
         }
       }
     }
@@ -74,11 +184,13 @@ export class EventBus implements IEventBus {
 
   /**
    * Subscribe once — auto-unsubscribes after first fire.
+   * Note: This wrapper is synchronous for backward compatibility.
+   * The handler itself can be async and will be awaited by emit().
    */
   once<T extends EventType>(type: T, handler: (e: EventOf<T>) => void): void {
-    const wrapped = (e: EventOf<T>) => {
+    const wrapped = async (e: EventOf<T>) => {
       try {
-        handler(e);
+        await Promise.resolve(handler(e));
       } finally {
         this.off(type, wrapped as (e: EventOf<T>) => void);
       }
@@ -120,6 +232,75 @@ export class EventBus implements IEventBus {
     return () => {
       this.globalListeners.delete(handler);
     };
+  }
+
+  // ── Session History API ──────────────────────────────────────────────────
+
+  /**
+   * Get all events for a session, in chronological order.
+   */
+  getAllEvents(sessionId: string): RuntimeEvent[] {
+    return this.sessionHistory.get(sessionId)?.getAll() ?? [];
+  }
+
+  /**
+   * Get session events since a timestamp (inclusive).
+   */
+  getEventsSince(sessionId: string, timestamp: number): RuntimeEvent[] {
+    return this.sessionHistory.get(sessionId)
+      ?.filter(e => ((e as Record<string, unknown>).timestamp as number) >= timestamp) ?? [];
+  }
+
+  /**
+   * Get the N most recent session events.
+   */
+  getRecentEvents(sessionId: string, count: number): RuntimeEvent[] {
+    return this.sessionHistory.get(sessionId)?.getRecent(count) ?? [];
+  }
+
+  /**
+   * Get all global events in chronological order.
+   */
+  getAllGlobalEvents(): RuntimeEvent[] {
+    return this.globalHistory.getAll();
+  }
+
+  /**
+   * Get global events since a timestamp (inclusive).
+   */
+  getGlobalEventsSince(timestamp: number): RuntimeEvent[] {
+    return this.globalHistory.filter(
+      e => ((e as Record<string, unknown>).timestamp as number) >= timestamp
+    );
+  }
+
+  /**
+   * Get the N most recent global events.
+   */
+  getRecentGlobalEvents(count: number): RuntimeEvent[] {
+    return this.globalHistory.getRecent(count);
+  }
+
+  /**
+   * Number of events stored for a session.
+   */
+  getSessionEventCount(sessionId: string): number {
+    return this.sessionHistory.get(sessionId)?.size ?? 0;
+  }
+
+  /**
+   * Clear history for a single session.
+   */
+  clearSession(sessionId: string): void {
+    this.sessionHistory.delete(sessionId);
+  }
+
+  /**
+   * Clear all history (session + global).
+   */
+  clear(): void {
+    this.sessionHistory.clear();
+    this.globalHistory.clear();
   }
 }
 

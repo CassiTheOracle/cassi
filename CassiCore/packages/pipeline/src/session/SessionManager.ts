@@ -145,20 +145,50 @@ export class SessionManager {
       content: userContent,
       timestamp: now
     };
+    session.messages.push(userMessage);
     
-    // Add assistant message
+    // If tools were used, store the full tool conversation
+    if (metadata?.toolCalls && metadata.toolCalls.length > 0) {
+      // Group tool calls by round — each round has an assistant message with tool calls
+      // followed by a user message with the corresponding tool results
+      const toolCalls = metadata.toolCalls;
+      
+      // For multi-round tool use, we need to reconstruct the conversation.
+      // Since we only get the flat list, store as a single round:
+      // assistant (with tool_calls) → user (with tool_results)
+      const assistantToolMessage: Message = {
+        role: 'assistant',
+        content: '',  // Tool-calling turns typically have empty text content
+        timestamp: now,
+        toolCalls: toolCalls.map(t => ({
+          id: t.toolCallId,
+          name: t.toolName,
+          input: {}
+        }))
+      };
+      session.messages.push(assistantToolMessage);
+      
+      const toolResultMessage: Message = {
+        role: 'user',
+        content: '',
+        timestamp: now,
+        toolResults: toolCalls.map(t => ({
+          toolCallId: t.toolCallId,
+          content: t.content ?? '',
+          isError: t.isError ?? false
+        }))
+      };
+      session.messages.push(toolResultMessage);
+    }
+    
+    // Add final assistant response
     const assistantMessage: Message = {
       role: 'assistant',
       content: assistantResponse,
-      timestamp: now,
-      toolCalls: metadata?.toolCalls?.map(t => ({
-        id: t.toolCallId,
-        name: t.toolName,
-        input: {}  // We don't store the full input
-      }))
+      timestamp: now
     };
+    session.messages.push(assistantMessage);
     
-    session.messages.push(userMessage, assistantMessage);
     session.turnCount++;
     session.lastActiveAt = now;
     
@@ -169,7 +199,8 @@ export class SessionManager {
     this.logger.debug('Turn added to session', {
       sessionId,
       turnCount: session.turnCount,
-      tokensUsed: metadata?.tokensUsed
+      tokensUsed: metadata?.tokensUsed,
+      toolCalls: metadata?.toolCalls?.length ?? 0
     });
     
     return session;

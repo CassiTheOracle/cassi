@@ -48,6 +48,8 @@ export interface SessionPipelineOptions {
     execute: (name: string, input: unknown, context: unknown) => Promise<{ content: string; isError: boolean }>;
     isAvailable: (name: string) => boolean;
   };
+  /** Tool registry for passing tool schemas to LLM providers */
+  toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
   intelligence: {
     memory: IMemory;
     dialectic: DialecticSystem;
@@ -126,7 +128,8 @@ export class SessionPipeline {
       logger: this.logger.child('turn-handler'),
       maxToolRounds: this.options.config.get('pipeline.maxToolRounds', 8),
       contextWindowTokens: this.options.config.get('pipeline.contextWindowTokens', 200000),
-      toolTimeoutMs: this.options.config.get('pipeline.toolTimeoutMs', 60000)
+      toolTimeoutMs: this.options.config.get('pipeline.toolTimeoutMs', 60000),
+      toolSchemas: this.options.toolSchemas
     });
     
     // 4. Create intelligence layer
@@ -300,7 +303,10 @@ export class SessionPipeline {
 
       return {
         response: result.response,
-        sessionId: session.id
+        sessionId: session.id,
+        model: session.model,
+        tokensUsed: result.tokensUsed,
+        durationMs: result.durationMs,
       };
     } catch (err) {
       if (this.eventBus) {

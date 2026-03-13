@@ -40,7 +40,7 @@ import type {
   CompactionStartEvent,
   CompactionEndEvent,
   ErrorEvent,
-} from './event-bus.js';
+} from './event-types.js';
 
 // ============================================================================
 // Types

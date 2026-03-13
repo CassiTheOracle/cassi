@@ -5,7 +5,7 @@
  * Useful for debugging what the model actually sees vs what we think it sees.
  */
 
-import type { CassiCoreEventBus } from './event-bus.js';
+import type { EventBus } from '../event-bus.js';
 
 export interface ContextWindowSnapshot {
   type: 'context_window_snapshot';
@@ -51,7 +51,7 @@ export interface ContextWindowDiff {
 }
 
 export class ContextWindowDebugger {
-  private eventBus: CassiCoreEventBus;
+  private eventBus: EventBus;
   private enabled: boolean;
   private captureSystemPrompt: boolean;
   private captureFullContent: boolean;
@@ -60,7 +60,7 @@ export class ContextWindowDebugger {
   private lastHash = new Map<string, string>();
 
   constructor(
-    eventBus: CassiCoreEventBus,
+    eventBus: EventBus,
     options: {
       enabled?: boolean;
       captureSystemPrompt?: boolean;
@@ -335,7 +335,7 @@ export class ContextWindowDebugger {
 // Singleton instance
 let globalDebugger: ContextWindowDebugger | null = null;
 
-export function initContextWindowDebugger(eventBus: CassiCoreEventBus): ContextWindowDebugger {
+export function initContextWindowDebugger(eventBus: EventBus): ContextWindowDebugger {
   if (!globalDebugger) {
     globalDebugger = new ContextWindowDebugger(eventBus);
   }
