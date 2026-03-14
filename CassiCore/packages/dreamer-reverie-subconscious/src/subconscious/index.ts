@@ -77,6 +77,8 @@ export class Subconscious {
   private heartbeatTimer?: NodeJS.Timeout;
   /** Unsubscribe function for the bus.onAll listener */
   private unsubAll?: () => void;
+  /** Re-entrancy guard — prevents drainHeuristicBuffers → emit → onAll → drain cascade */
+  private draining = false;
 
   constructor(logger: ILogger, config?: Partial<SubconsciousConfig>) {
     this.logger = logger.child?.("subconscious") ?? logger;
@@ -152,6 +154,12 @@ export class Subconscious {
   onEventBus(bus: IEventBus): void {
     this.eventBus = bus;
     this.logger.info("Subconscious: event bus wired");
+
+    // Skip heavy event processing when disabled — prevents event cascade
+    if (!this.config.enabled) {
+      this.logger.info("Subconscious: skipping onAll subscription (disabled)");
+      return;
+    }
 
     // Connect EventStream to observe all events
     this.eventStream.connect(bus);
@@ -482,6 +490,10 @@ export class Subconscious {
   }
 
   private drainHeuristicBuffers(): void {
+    // Re-entrancy guard: emitEvent() inside this method can trigger onAll → drain again
+    if (this.draining) return;
+    this.draining = true;
+    try {
     const observations = this.heuristicObserver.drainObservations();
     const anomalies = this.heuristicObserver.drainAnomalies();
 
@@ -528,6 +540,9 @@ export class Subconscious {
           evidence: anomaly.suggestedAction,
         },
       });
+    }
+     } finally {
+      this.draining = false;
     }
   }
 
