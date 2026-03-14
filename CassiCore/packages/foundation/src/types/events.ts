@@ -374,11 +374,12 @@ export type RuntimeEvent =
    | { type: "triad-team:started"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:planning"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:plan-complete"; teamId: string; entityId: string; message: string; timestamp: Date }
-   | { type: "triad-team:cell-spawned"; teamId: string; entityId: string; message: string; timestamp: Date }
-   | { type: "triad-team:cell-phase"; teamId: string; entityId: string; message: string; phase: string; timestamp: Date }
-   | { type: "triad-team:cell-completed"; teamId: string; entityId: string; message: string; timestamp: Date }
-   | { type: "triad-team:cell-failed"; teamId: string; entityId: string; message: string; timestamp: Date }
-   | { type: "triad-team:cell-degraded"; teamId: string; entityId: string; message: string; timestamp: Date }
+    | { type: "triad-team:cell-spawned"; teamId: string; entityId: string; message: string; timestamp: Date }
+    | { type: "triad-team:cell-phase"; teamId: string; entityId: string; message: string; phase: string; timestamp: Date }
+    | { type: "triad-team:cell-completed"; teamId: string; entityId: string; message: string; timestamp: Date }
+    | { type: "triad-team:cell-failed"; teamId: string; entityId: string; message: string; timestamp: Date }
+    | { type: "triad-team:cell-degraded"; teamId: string; entityId: string; message: string; timestamp: Date }
+    | { type: "triad-team:cell-completed-without-action"; teamId: string; entityId: string; data: { cellId: string; goalTitle: string; toolCallCount: number; warning: string }; timestamp: Date }
    | { type: "triad-team:synthesis"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:completed"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:failed"; teamId: string; entityId: string; message: string; timestamp: Date }
