@@ -427,14 +427,19 @@ export class GitHubCopilotProvider extends BaseProvider {
           return
         }
 
-        // Check for stall before reading
-        if (Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS) {
+        // Race the read against a timeout — reader.read() can hang forever
+        const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
+          setTimeout(() => resolve({ done: true, value: undefined }), CHUNK_TIMEOUT_MS)
+        })
+        const readResult = await Promise.race([reader.read(), timeoutPromise])
+
+        if (readResult.done && !readResult.value && Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS - 1000) {
           reader.releaseLock()
-          yield { type: 'error', error: 'stream stalled - no data received for 30s' }
+          yield { type: 'error', error: `stream stalled - no data received for ${CHUNK_TIMEOUT_MS / 1000}s` }
           return
         }
 
-        const { done, value } = await reader.read()
+        const { done, value } = readResult
         if (done) break
         lastChunkTime = Date.now()  // Reset stall timer on data
         buf += decoder.decode(value, { stream: true })
@@ -566,14 +571,21 @@ export class GitHubCopilotProvider extends BaseProvider {
 
     try {
       while (true) {
-        // Check for stall before reading
-        if (Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS) {
+        // Race the read against a timeout — reader.read() can hang forever
+        // if the server stops sending data mid-stream
+        const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
+          setTimeout(() => resolve({ done: true, value: undefined }), CHUNK_TIMEOUT_MS)
+        })
+        const readResult = await Promise.race([reader.read(), timeoutPromise])
+
+        if (readResult.done && !readResult.value && Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS - 1000) {
+          // Timeout won the race — stream stalled
           reader.releaseLock()
-          yield { type: 'error', error: 'stream stalled - no data received for 30s' }
+          yield { type: 'error', error: `stream stalled - no data received for ${CHUNK_TIMEOUT_MS / 1000}s` }
           return
         }
 
-        const { done, value } = await reader.read()
+        const { done, value } = readResult
         if (done) break
         lastChunkTime = Date.now()  // Reset stall timer on data
         buf += decoder.decode(value, { stream: true })
