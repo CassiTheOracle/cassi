@@ -150,7 +150,7 @@ export class Daemon {
     /** Background embedding pre-computation worker. */
    public bgEmbeddingWorker?: import('./intelligence/embeddings/background-worker.js').BackgroundEmbeddingWorker
    /** Embedding stack launcher (auto-starts llama.cpp + zerank servers). */
-   public embeddingStackLauncher?: import('./intelligence/embeddings/embedding-stack-launcher.js').EmbeddingStackLauncher
+    public embeddingStackLauncher?: import('./intelligence/embeddings/inference-stack-launcher.js').InferenceStackLauncher
   /** Loaded provider map — available after daemon start(). */
   public providers: Map<string, IProvider> = new Map()
   /** Background intelligence loop — available after daemon start(). */
@@ -762,7 +762,7 @@ export class Daemon {
           .then(() => {
             this.logger.info('EmbeddingStackLauncher ready')
           })
-          .catch((err) => {
+          .catch((err: unknown) => {
             this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
           })
         this.logger.info('EmbeddingStackLauncher starting in background')
@@ -1412,18 +1412,27 @@ export class Daemon {
 
     // Bridge daemon.bus events → CassiCoreEventBus session buffers
     // so /events/history and verification tools can query pipeline events.
+    // NOTE: The CassiCoreEventBus IS the same singleton as this.bus (core/event-bus.ts).
+    // A previous bridge here re-emitted every event from onAll → cassiCoreBus.emit()
+    // which caused infinite recursion (stack overflow). No bridge is needed since
+    // they are the same instance.
     try {
       const { getEventBus: getCassiCoreEventBus } = await import('./events/index.js')
       const cassiCoreBus = getCassiCoreEventBus()
-      this.bus.onAll((event: any) => {
-        if (event?.type && event?.sessionId) {
-          cassiCoreBus.emit({
-            ...event,
-            timestamp: event.timestamp instanceof Date ? event.timestamp.getTime() : (event.timestamp ?? Date.now()),
-          })
-        }
-      })
-      this.logger.info('Event bridge: daemon.bus → CassiCoreEventBus wired')
+      if (cassiCoreBus === bus) {
+        this.logger.info('Event bridge: skipped — CassiCoreEventBus is the same singleton as daemon.bus')
+      } else {
+        // Only bridge if they are genuinely different instances
+        this.bus.onAll((event: any) => {
+          if (event?.type && event?.sessionId) {
+            cassiCoreBus.emit({
+              ...event,
+              timestamp: event.timestamp instanceof Date ? event.timestamp.getTime() : (event.timestamp ?? Date.now()),
+            })
+          }
+        })
+        this.logger.info('Event bridge: daemon.bus → CassiCoreEventBus wired')
+      }
     } catch (err) {
       this.logger.warn('Failed to wire event bridge', { error: String(err) })
     }
