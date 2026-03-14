@@ -45,6 +45,7 @@ import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { ToolRegistry } from './tools/registry.js'
+import { ToolReliabilityTracker } from './tools/reliability.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 
@@ -1244,6 +1245,11 @@ export class Daemon {
       toolExecutor.setTrustLedger(this.intelligence.trustLedger)
       this.logger.info('Trust Ledger wired to ToolExecutor — outcome learning active')
     }
+
+    // Wire Tool Reliability Tracker for circuit breaker pattern
+    const reliabilityTracker = new ToolReliabilityTracker(this.logger)
+    toolExecutor.setReliabilityTracker(reliabilityTracker)
+    this.logger.info('Tool Reliability Tracker wired to ToolExecutor — circuit breaker active')
 
     this.logger.info(`Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
 
