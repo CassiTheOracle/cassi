@@ -1,13 +1,16 @@
 import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
 import { TTLCache } from '../utils/ttl-cache.js'
+import { presentForLLM } from './presentation.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
 
 import type { ToolRegistry } from './registry.js'
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
-import type { IEventBus } from '../../types/interfaces.js'
+import type { IEventBus, ILogger } from '../../types/interfaces.js'
 import type { PermissionOracle } from '../intelligence/permission-oracle/index.js'
 import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
+import { ToolReliabilityTracker } from './reliability.js'
+import type { ToolCallOrchestrator } from '../intelligence/triad-team/tool-orchestrator.js'
 
 
 const MAX_CONCURRENT = 20
@@ -28,6 +31,9 @@ function permissionCacheKey(toolName: string, input: Record<string, unknown>): s
 export class ToolExecutor {
   private permissionOracle?: PermissionOracle
   private trustLedger?: TrustLedger
+  private reliabilityTracker?: ToolReliabilityTracker
+  private orchestrator?: ToolCallOrchestrator
+  private logger: ILogger
 
   /**
    * Short-term permission decision cache.
@@ -44,7 +50,9 @@ export class ToolExecutor {
     private registry: ToolRegistry,
     private defaultContext: Omit<ToolExecutionContext, 'sessionId'>,
     private eventBus?: IEventBus,
-  ) {}
+  ) {
+    this.logger = defaultContext.logger.child('tool-executor')
+  }
 
   /**
    * Wire the Permission Oracle for graduated autonomy gating.
@@ -66,7 +74,57 @@ export class ToolExecutor {
     this.trustLedger = ledger
   }
 
-  async execute(call: ToolCall, sessionId: string): Promise<ToolResult> {
+  /**
+   * Wire the Tool Reliability Tracker for circuit breaker pattern.
+   * When set, tool executions are monitored for failures and circuits open
+   * after repeated failures. Failed tools can route to fallback tools.
+   */
+  setReliabilityTracker(tracker: ToolReliabilityTracker): void {
+    this.reliabilityTracker = tracker
+  }
+
+  /**
+   * Wire a Tool Call Orchestrator for cross-cell batching and caching.
+   * When set, tool executions route through the orchestrator for
+   * result caching, deduplication, and parallelism optimization.
+   */
+  setOrchestrator(orchestrator: ToolCallOrchestrator): void {
+    this.orchestrator = orchestrator
+  }
+
+  /** Get the active orchestrator (if any) for direct batch calls */
+  getOrchestrator(): ToolCallOrchestrator | undefined {
+    return this.orchestrator
+  }
+
+  /**
+   * Execute a single tool call.
+   *
+   * @param call - The tool call to execute
+   * @param sessionId - Session context for permission/trust tracking
+   * @param opts - Optional overrides for this invocation
+   * @param opts.workingDir - Override the default working directory (used for worktree isolation)
+   */
+  async execute(
+    call: ToolCall,
+    sessionId: string,
+    opts?: { workingDir?: string },
+  ): Promise<ToolResult> {
+    // ── ORCHESTRATOR INTERCEPT ──────────────────────────────────────────
+    // If an orchestrator is wired, route through it for caching, dedup,
+    // and parallel execution. The orchestrator calls back to this.execute()
+    // via the delegate, but with the orchestrator temporarily disabled
+    // to avoid infinite recursion.
+    if (this.orchestrator && call.name !== 'batch_tools') {
+      const orch = this.orchestrator
+      this.orchestrator = undefined // Prevent recursion
+      try {
+        return await orch.execute(call, sessionId, this.execute.bind(this), opts)
+      } finally {
+        this.orchestrator = orch
+      }
+    }
+
     const executeStartMs = Date.now()
     // Prefer serena (MCP) implementations for core file operations when available.
     // Strategy:
@@ -115,15 +173,56 @@ export class ToolExecutor {
       return { toolCallId: call.id, content: `Unknown tool: ${call.name}`, isError: true }
     }
 
-    const timeout = entry.definition.timeoutMs ?? 30_000
-    const ctx: ToolExecutionContext = { ...this.defaultContext, sessionId }
+    // ── CIRCUIT BREAKER CHECK ────────────────────────────────────────────
+    // If a Reliability Tracker is wired, check if the tool's circuit is open.
+    // If open, attempt fallback routing or return an error.
+    let actualToolName = call.name
+    let actualEntry = entry
+    if (this.reliabilityTracker) {
+      if (!this.reliabilityTracker.canExecute(call.name)) {
+        // Circuit is open — check for fallback
+        const fallbackTool = entry.definition.fallbackTool
+        if (fallbackTool) {
+          const fallbackEntry = this.registry.get(fallbackTool)
+          if (fallbackEntry) {
+            this.logger.info(`Circuit OPEN for tool '${call.name}' — routing to fallback '${fallbackTool}'`, {
+              originalTool: call.name,
+              fallbackTool,
+            })
+            actualToolName = fallbackTool
+            actualEntry = fallbackEntry
+          } else {
+            this.logger.warn(`Circuit OPEN for tool '${call.name}' — fallback '${fallbackTool}' not found`, {
+              originalTool: call.name,
+              fallbackTool,
+            })
+          }
+        }
+        if (actualToolName === call.name) {
+          // No fallback available or fallback not found
+          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+          return {
+            toolCallId: call.id,
+            content: `[circuit-open] Tool '${call.name}' is temporarily unavailable due to repeated failures. Try again later.`,
+            isError: true,
+          }
+        }
+      }
+    }
+
+    const timeout = actualEntry.definition.timeoutMs ?? 30_000
+    const ctx: ToolExecutionContext = {
+      ...this.defaultContext,
+      sessionId,
+      ...(opts?.workingDir ? { workingDir: opts.workingDir } : {}),
+    }
 
     // SAFETY: Pre-call input validation
     if (ENABLE_SAFETY_GUARDS) {
-      const inputValidation = validateToolInput(call.name, call.input)
+      const inputValidation = validateToolInput(actualToolName, call.input)
       if (!inputValidation.valid) {
-        this.emitSafetyEvent(sessionId, call.name, 'input_validation_failed', inputValidation.errors)
-        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+        this.emitSafetyEvent(sessionId, actualToolName, 'input_validation_failed', inputValidation.errors)
+        this.emitToolExecuted(sessionId, actualToolName, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
           content: `Safety check failed: ${inputValidation.errors.join(', ')}`,
@@ -133,7 +232,7 @@ export class ToolExecutor {
     }
 
     // Track skill invocations when reading SKILL.md files
-    this.trackSkillInvocation(call, sessionId)
+    this.trackSkillInvocation({ ...call, name: actualToolName }, sessionId)
 
     // ── PERMISSION GATE ──────────────────────────────────────────────────
     // If a Permission Oracle is wired, assess risk before execution.
@@ -212,17 +311,21 @@ export class ToolExecutor {
       // SAFETY: Execute with timeout and error containment
       if (ENABLE_SAFETY_GUARDS) {
         const safeResult = await executeToolSafe(
-          call.name,
-          () => entry!.handler(call.input, ctx),
+          actualToolName,
+          () => actualEntry!.handler(call.input, ctx),
           call.input,
           timeout
         )
 
+        const durationMs = Date.now() - executeStartMs
+
         if (!safeResult.success) {
-          this.emitSafetyEvent(sessionId, call.name, safeResult.errorType || 'execution', [safeResult.error || 'Unknown error'])
+          this.emitSafetyEvent(sessionId, actualToolName, safeResult.errorType || 'execution', [safeResult.error || 'Unknown error'])
           // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
-          this.recordToolOutcome(call.name, false, sessionId, `Tool failed: ${safeResult.errorType || 'execution'}`)
-          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+          this.recordToolOutcome(actualToolName, false, sessionId, `Tool failed: ${safeResult.errorType || 'execution'}`)
+          // ── RELIABILITY TRACKING: failure ─────────────────────────────
+          this.recordReliabilityOutcome(actualToolName, durationMs, false)
+          this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
           return {
             toolCallId: call.id,
             content: `Tool failed: ${safeResult.error || 'Unknown error'} (${safeResult.errorType || 'execution'})`,
@@ -231,12 +334,14 @@ export class ToolExecutor {
         }
 
         // SAFETY: Post-call output validation
-        const outputValidation = validateToolOutput(call.name, safeResult.data)
+        const outputValidation = validateToolOutput(actualToolName, safeResult.data)
         if (!outputValidation.valid) {
-          this.emitSafetyEvent(sessionId, call.name, 'output_validation_failed', outputValidation.errors)
+          this.emitSafetyEvent(sessionId, actualToolName, 'output_validation_failed', outputValidation.errors)
           // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
-          this.recordToolOutcome(call.name, false, sessionId, `Output validation failed`)
-          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+          this.recordToolOutcome(actualToolName, false, sessionId, `Output validation failed`)
+          // ── RELIABILITY TRACKING: failure ─────────────────────────────
+          this.recordReliabilityOutcome(actualToolName, durationMs, false)
+          this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
           return {
             toolCallId: call.id,
             content: `Output validation failed: ${outputValidation.errors.join(', ')}`,
@@ -245,30 +350,58 @@ export class ToolExecutor {
         }
 
         // ── OUTCOME FEEDBACK: success ──────────────────────────────────
-        this.recordToolOutcome(call.name, true, sessionId, `Executed successfully`)
-        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, false)
-        return { toolCallId: call.id, content: String(safeResult.data), isError: false }
+        this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully`)
+        // ── RELIABILITY TRACKING: success ───────────────────────────────
+        this.recordReliabilityOutcome(actualToolName, durationMs, true)
+        this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
+        
+        // Apply presentation formatting
+        const presented = this.applyPresentation(String(safeResult.data), actualToolName, durationMs)
+        return {
+          toolCallId: call.id,
+          content: presented.content,
+          isError: false,
+          rawContent: presented.rawContent,
+          exitCode: presented.exitCode,
+          durationMs,
+        }
       } else {
         // Legacy execution (safety disabled)
         const result = await Promise.race([
-          entry.handler(call.input, ctx),
+          actualEntry.handler(call.input, ctx),
           new Promise<never>((_, reject) =>
             setTimeout(
-              () => reject(new Error(`Tool '${call.name}' timed out after ${timeout}ms`)),
+              () => reject(new Error(`Tool '${actualToolName}' timed out after ${timeout}ms`)),
               timeout,
             )
           ),
         ])
+        const durationMs = Date.now() - executeStartMs
         // ── OUTCOME FEEDBACK: success (legacy path) ───────────────────
-        this.recordToolOutcome(call.name, true, sessionId, `Executed successfully (legacy)`)
-        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, false)
-        return { toolCallId: call.id, content: result, isError: false }
+        this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully (legacy)`)
+        // ── RELIABILITY TRACKING: success (legacy) ────────────────────
+        this.recordReliabilityOutcome(actualToolName, durationMs, true)
+        this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
+        
+        // Apply presentation formatting
+        const presented = this.applyPresentation(result, actualToolName, durationMs)
+        return {
+          toolCallId: call.id,
+          content: presented.content,
+          isError: false,
+          rawContent: presented.rawContent,
+          exitCode: presented.exitCode,
+          durationMs,
+        }
       }
     } catch (err) {
-      this.emitSafetyEvent(sessionId, call.name, 'execution', [String(err)])
+      const durationMs = Date.now() - executeStartMs
+      this.emitSafetyEvent(sessionId, actualToolName, 'execution', [String(err)])
       // ── OUTCOME FEEDBACK: failure (exception) ─────────────────────
-      this.recordToolOutcome(call.name, false, sessionId, `Exception: ${String(err).slice(0, 200)}`)
-      this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+      this.recordToolOutcome(actualToolName, false, sessionId, `Exception: ${String(err).slice(0, 200)}`)
+      // ── RELIABILITY TRACKING: failure ───────────────────────────────
+      this.recordReliabilityOutcome(actualToolName, durationMs, false)
+      this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
       return { toolCallId: call.id, content: String(err), isError: true }
     }
   }
@@ -307,6 +440,34 @@ export class ToolExecutor {
       })
     } catch {
       // Non-fatal: don't let trust recording break tool execution
+    }
+  }
+
+  /**
+   * Record a tool execution outcome in the Reliability Tracker.
+   *
+   * This feeds the circuit breaker pattern: consecutive failures open the circuit,
+   * while successes close it. Duration metrics are tracked for performance monitoring.
+   *
+   * @param toolName - The tool that was executed
+   * @param durationMs - Execution duration in milliseconds
+   * @param success - Whether execution succeeded
+   */
+  private recordReliabilityOutcome(
+    toolName: string,
+    durationMs: number,
+    success: boolean,
+  ): void {
+    if (!this.reliabilityTracker) return
+
+    try {
+      if (success) {
+        this.reliabilityTracker.recordSuccess(toolName, durationMs)
+      } else {
+        this.reliabilityTracker.recordFailure(toolName, durationMs)
+      }
+    } catch {
+      // Non-fatal: don't let reliability tracking break tool execution
     }
   }
 
@@ -402,6 +563,55 @@ export class ToolExecutor {
       timestamp: new Date(),
       source,
     })
+  }
+
+  /**
+   * Apply presentation formatting to tool output.
+   * For shell_exec, parses structured JSON result to extract metadata.
+   */
+  private applyPresentation(
+    rawOutput: string,
+    toolName: string,
+    durationMs: number,
+  ): { content: string; rawContent: string; exitCode?: number; stderr?: string } {
+    let exitCode: number | undefined
+    let stderr: string | undefined
+    let contentToPresent = rawOutput
+
+    // Parse structured shell_exec result
+    if (toolName === 'shell_exec' || toolName === 'shell-exec') {
+      try {
+        const parsed = JSON.parse(rawOutput) as {
+          stdout: string
+          stderr: string
+          exitCode: number
+          durationMs: number
+        }
+        
+        if (parsed.stdout !== undefined && parsed.exitCode !== undefined) {
+          exitCode = parsed.exitCode
+          stderr = parsed.stderr
+          contentToPresent = parsed.stdout
+        }
+      } catch {
+        // Not structured JSON, use raw output as-is
+        this.defaultContext.logger.debug('Shell output not structured, using raw', { toolName })
+      }
+    }
+
+    const presented = presentForLLM(contentToPresent, {
+      toolName,
+      exitCode,
+      durationMs,
+      stderr,
+    })
+
+    return {
+      content: presented,
+      rawContent: rawOutput,
+      exitCode,
+      stderr,
+    }
   }
 
   /** Execute up to MAX_CONCURRENT tool calls concurrently */

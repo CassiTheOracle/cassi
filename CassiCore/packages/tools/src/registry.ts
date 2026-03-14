@@ -1,7 +1,7 @@
 import { bus } from '../event-bus.js'
 import { rootLogger } from '../logger.js'
 
-import type { ToolDefinition, ToolHandler } from './types.js'
+import type { ToolDefinition, ToolHandler, ToolCategory } from './types.js'
 import type { ILogger } from '../../types/interfaces.js'
 
 const logger: ILogger = rootLogger.child('tool-registry')
@@ -64,5 +64,20 @@ export class ToolRegistry {
         parameters: e.definition.parameters as unknown as Record<string, unknown>,
       },
     }))
+  }
+
+  /** Get tools by category */
+  getByCategory(category: ToolCategory): ToolDefinition[] {
+    return [...this.tools.values()]
+      .filter(e => (e.definition.category ?? 'core') === category)
+      .map(e => e.definition)
+  }
+
+  /** Get tools matching multiple categories */
+  getByCategories(categories: ToolCategory[]): ToolDefinition[] {
+    const categorySet = new Set(categories)
+    return [...this.tools.values()]
+      .filter(e => categorySet.has(e.definition.category ?? 'core'))
+      .map(e => e.definition)
   }
 }

@@ -6,10 +6,13 @@ export interface ToolParamSchema {
     description?: string;
     enum?: string[];
     default?: unknown;
-    items?: { type: string };
+    items?: { type: string; enum?: string[] };
   }>;
   required?: string[];
 }
+
+/** Tool category for progressive discovery */
+export type ToolCategory = 'core' | 'cognitive' | 'debug' | 'coordination' | 'extended'
 
 export interface ToolDefinition {
   name: string;
@@ -17,6 +20,10 @@ export interface ToolDefinition {
   parameters: ToolParamSchema;
   /** Max execution time in ms. Default 30_000. */
   timeoutMs?: number;
+  /** Tool category for progressive discovery. Default: 'core' */
+  category?: ToolCategory;
+  /** Fallback tool name to use when this tool's circuit breaker is open */
+  fallbackTool?: string;
 }
 
 /** A single tool call parsed from the provider stream */
@@ -30,6 +37,12 @@ export interface ToolResult {
   toolCallId: string;
   content: string;
   isError: boolean;
+  /** Raw output before presentation formatting */
+  rawContent?: string;
+  /** Tool exit code (for shell tools) */
+  exitCode?: number;
+  /** Execution duration in ms */
+  durationMs?: number;
 }
 
 export type ToolHandler = (

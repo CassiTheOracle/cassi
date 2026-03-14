@@ -1,12 +1,10 @@
 /**
- * Optimized Cassandra Event Stream Tools
+ * Consolidated Cassandra Event Stream Tools (Phase 2)
  *
- * Improvements:
- * - State caching with incremental updates
- * - Lazy evaluation and memoization
- * - Efficient filtering without array copies
- * - Streaming support for large histories
- * - Response compression for large JSON
+ * Merges cassandra_get_state + cassandra_get_history into unified query interface.
+ * Eliminates cassandra_subscribe and cassandra_invalidate_cache (documented alternatives).
+ *
+ * Preserves all caching behavior (StateCache with TTLs) from original implementation.
  */
 
 import type { EventBus } from '../../event-bus.js'
@@ -18,10 +16,9 @@ import type { ToolDefinition, ToolHandler } from '../types.js'
 
 const STATE_CACHE_TTL_MS = 1000  // 1 second state cache
 const MAX_EVENTS_RETURN = 1000   // Max events to return in one call
-const COMPRESS_THRESHOLD = 50000 // Compress responses > 50KB
 
 // ============================================================================
-// State Cache with Incremental Updates
+// State Cache with Incremental Updates (preserved from original)
 // ============================================================================
 
 interface CachedState {
@@ -43,13 +40,11 @@ class StateCache {
     const cached = this.cache.get(sessionId)
     if (!cached) return undefined
 
-    // Check TTL
     if (Date.now() - cached.computedAt > this.ttlMs) {
       this.cache.delete(sessionId)
       return undefined
     }
 
-    // Check if events changed (simple count check, could use hash)
     if (cached.eventCount !== currentEventCount) {
       return undefined
     }
@@ -80,7 +75,7 @@ class StateCache {
 const globalStateCache = new StateCache()
 
 // ============================================================================
-// Optimized State Builder with Incremental Updates
+// Optimized State Builder (preserved from original)
 // ============================================================================
 
 interface StateBuilder {
@@ -153,7 +148,6 @@ function processEventBatch(builder: StateBuilder, events: any[]): void {
     }
   }
 
-  // Update active tool calls array
   builder.snapshot.activeToolCalls = Array.from(builder.activeToolCalls.values())
 }
 
@@ -162,7 +156,6 @@ function buildStateSnapshotOptimized(
   events: any[],
   useCache: boolean = true
 ): any {
-  // Try cache first
   if (useCache) {
     const cached = globalStateCache.get(sessionId, events.length)
     if (cached) {
@@ -170,7 +163,6 @@ function buildStateSnapshotOptimized(
     }
   }
 
-  // Build state incrementally
   const builder = createStateBuilder()
   processEventBatch(builder, events)
 
@@ -179,7 +171,6 @@ function buildStateSnapshotOptimized(
     ...builder.snapshot,
   }
 
-  // Cache the result
   if (useCache) {
     globalStateCache.set(sessionId, {
       snapshot,
@@ -193,7 +184,7 @@ function buildStateSnapshotOptimized(
 }
 
 // ============================================================================
-// Efficient Event Filtering (Lazy Iterator)
+// Efficient Event Filtering (preserved from original)
 // ============================================================================
 
 function* filterEventsLazy(
@@ -207,16 +198,13 @@ function* filterEventsLazy(
   const { since, eventTypes, limit = MAX_EVENTS_RETURN } = options
   let count = 0
 
-  // Iterate backwards for recency
   for (let i = events.length - 1; i >= 0 && count < limit; i--) {
     const event = events[i]
 
-    // Time filter
     if (since !== undefined && event.timestamp < since) {
       continue
     }
 
-    // Type filter
     if (eventTypes && eventTypes.length > 0 && !eventTypes.includes(event.type)) {
       continue
     }
@@ -241,7 +229,6 @@ function filterEventsEfficient(
     result.push(event)
   }
 
-  // Reverse to maintain chronological order
   result.reverse()
 
   return {
@@ -252,90 +239,51 @@ function filterEventsEfficient(
 }
 
 // ============================================================================
-// JSON Serialization Optimization
+// Consolidated Tool Definition
 // ============================================================================
 
-function serializeOptimized(data: any, compact: boolean = false): string {
-  if (compact) {
-    return JSON.stringify(data)
-  }
-  // Use indentation but limit depth for large objects
-  return JSON.stringify(data, null, 2)
-}
-
-// ============================================================================
-// Tool Definitions
-// ============================================================================
-
-export const cassandraGetStateDef: ToolDefinition = {
-  name: 'cassandra_get_state',
-  description: 'Get current session state snapshot from event stream (cached, optimized)',
+export const cassandraQueryEventsDef: ToolDefinition = {
+  name: 'cassandra_query_events',
+  description:
+    'Query session event stream with unified interface. Use mode parameter to choose output:\n' +
+    '- state: Get current session state snapshot (cached, optimized)\n' +
+    '- history: Get event history with efficient filtering\n\n' +
+    'Replaces cassandra_get_state and cassandra_get_history. ' +
+    'For streaming, use HTTP endpoints directly (documented).',
   parameters: {
     type: 'object',
     properties: {
-      sessionId: { type: 'string', description: 'Session ID to get state for' },
-      noCache: { type: 'boolean', description: 'Bypass cache and recalculate (default: false)' },
-      compact: { type: 'boolean', description: 'Return compact JSON (default: false)' },
+      sessionId: { type: 'string', description: 'Session ID to query' },
+      mode: {
+        type: 'string',
+        description: 'Query mode',
+        enum: ['state', 'history'],
+        default: 'state',
+      },
+      // Options for 'state' mode
+      noCache: { type: 'boolean', description: 'Bypass cache (for state mode)', default: false },
+      // Options for 'history' mode
+      since: { type: 'number', description: 'Timestamp to get events since (for history mode)' },
+      limit: { type: 'number', description: 'Maximum events to return (for history mode, max 1000)', default: 100 },
+      eventTypes: { type: 'array', items: { type: 'string' }, description: 'Filter by event types (for history mode)' },
+      // Common
+      compact: { type: 'boolean', description: 'Return compact JSON', default: false },
     },
     required: ['sessionId'],
   },
   timeoutMs: 5_000,
 }
 
-export const cassandraGetHistoryDef: ToolDefinition = {
-  name: 'cassandra_get_history',
-  description: 'Get event history for a session (efficient filtering, lazy evaluation)',
-  parameters: {
-    type: 'object',
-    properties: {
-      sessionId: { type: 'string', description: 'Session ID' },
-      since: { type: 'number', description: 'Timestamp to get events since' },
-      limit: { type: 'number', description: 'Maximum events to return (max 1000)', default: 100 },
-      eventTypes: { type: 'array', items: { type: 'string' }, description: 'Filter by event types' },
-      compact: { type: 'boolean', description: 'Return compact JSON (default: false)' },
-    },
-    required: ['sessionId'],
-  },
-  timeoutMs: 5_000,
-}
-
-export const cassandraSubscribeDef: ToolDefinition = {
-  name: 'cassandra_subscribe',
-  description: 'Subscribe to streaming events for a session (returns SSE URL)',
-  parameters: {
-    type: 'object',
-    properties: {
-      sessionId: { type: 'string', description: 'Session ID' },
-      baseUrl: { type: 'string', description: 'Daemon base URL', default: 'http://localhost:7433' },
-    },
-    required: ['sessionId'],
-  },
-  timeoutMs: 5_000,
-}
-
-export const cassandraInvalidateCacheDef: ToolDefinition = {
-  name: 'cassandra_invalidate_cache',
-  description: 'Invalidate cached state for a session (admin/debug tool)',
-  parameters: {
-    type: 'object',
-    properties: {
-      sessionId: { type: 'string', description: 'Session ID to invalidate (omit for all)' },
-    },
-    required: [],
-  },
-  timeoutMs: 1_000,
-}
-
 // ============================================================================
-// Handler Factories
+// Consolidated Handler
 // ============================================================================
 
-export function makeCassandraGetStateHandler(
+export function makeCassandraQueryEventsHandler(
   eventBus: EventBus
 ): ToolHandler {
   return async (input, ctx) => {
     const sessionId = input['sessionId'] as string
-    const noCache = (input['noCache'] as boolean) ?? false
+    const mode = (input['mode'] as string) ?? 'state'
     const compact = (input['compact'] as boolean) ?? false
 
     const startTime = Date.now()
@@ -345,90 +293,50 @@ export function makeCassandraGetStateHandler(
       return JSON.stringify({ sessionId, error: 'No events found for session' })
     }
 
-    const snapshot = buildStateSnapshotOptimized(sessionId, events, !noCache)
-    const result = serializeOptimized(snapshot, compact)
+    let result: any
 
-    ctx.logger.debug?.('[cassandra_get_state]', {
-      sessionId,
-      events: events.length,
-      cached: !noCache && globalStateCache.get(sessionId, events.length) !== undefined,
-      duration: `${Date.now() - startTime}ms`,
-      size: result.length,
-    })
+    if (mode === 'state') {
+      const noCache = (input['noCache'] as boolean) ?? false
+      const snapshot = buildStateSnapshotOptimized(sessionId, events, !noCache)
+      result = snapshot
 
-    return result
-  }
-}
+      ctx.logger.debug?.('[cassandra_query_events.state]', {
+        sessionId,
+        events: events.length,
+        cached: !noCache && globalStateCache.get(sessionId, events.length) !== undefined,
+        duration: `${Date.now() - startTime}ms`,
+      })
+    } else if (mode === 'history') {
+      const since = input['since'] as number | undefined
+      const limit = (input['limit'] as number) ?? 100
+      const eventTypes = input['eventTypes'] as string[] | undefined
 
-export function makeCassandraGetHistoryHandler(
-  eventBus: EventBus
-): ToolHandler {
-  return async (input, ctx) => {
-    const sessionId = input['sessionId'] as string
-    const since = input['since'] as number | undefined
-    const limit = (input['limit'] as number) ?? 100
-    const eventTypes = input['eventTypes'] as string[] | undefined
-    const compact = (input['compact'] as boolean) ?? false
+      const { events: filteredEvents, total, truncated } = filterEventsEfficient(events, {
+        since,
+        eventTypes,
+        limit,
+      })
 
-    const startTime = Date.now()
-    const allEvents = eventBus.getAllEvents(sessionId)
+      result = {
+        sessionId,
+        events: filteredEvents,
+        total,
+        truncated,
+        returned: filteredEvents.length,
+      }
 
-    if (allEvents.length === 0) {
-      return JSON.stringify({ sessionId, events: [], total: 0 })
+      ctx.logger.debug?.('[cassandra_query_events.history]', {
+        sessionId,
+        total,
+        returned: filteredEvents.length,
+        filtered: !!eventTypes,
+        duration: `${Date.now() - startTime}ms`,
+      })
+    } else {
+      return JSON.stringify({ error: `Unknown mode "${mode}". Use "state" or "history".` })
     }
 
-    // Use efficient filtering
-    const { events, total, truncated } = filterEventsEfficient(allEvents, {
-      since,
-      eventTypes,
-      limit,
-    })
-
-    const result = serializeOptimized(
-      { sessionId, events, total, truncated, returned: events.length },
-      compact
-    )
-
-    ctx.logger.debug?.('[cassandra_get_history]', {
-      sessionId,
-      total,
-      returned: events.length,
-      filtered: !!eventTypes,
-      duration: `${Date.now() - startTime}ms`,
-    })
-
-    return result
-  }
-}
-
-export function makeCassandraSubscribeHandler(
-  eventBus: EventBus
-): ToolHandler {
-  return async (input, _ctx) => {
-    const sessionId = input['sessionId'] as string
-    const baseUrl = (input['baseUrl'] as string) ?? 'http://localhost:7433'
-
-    return serializeOptimized({
-      sseUrl: `${baseUrl}/events/stream?sessionId=${encodeURIComponent(sessionId)}`,
-      historyUrl: `${baseUrl}/events/history?sessionId=${encodeURIComponent(sessionId)}`,
-      stateUrl: `${baseUrl}/state?sessionId=${encodeURIComponent(sessionId)}`,
-    })
-  }
-}
-
-export function makeCassandraInvalidateCacheHandler(): ToolHandler {
-  return async (input, ctx) => {
-    const sessionId = input['sessionId'] as string | undefined
-
-    globalStateCache.invalidate(sessionId)
-
-    ctx.logger.info?.('[cassandra_invalidate_cache]', { sessionId: sessionId || 'all' })
-
-    return JSON.stringify({
-      invalidated: true,
-      sessionId: sessionId || 'all',
-      cacheStats: globalStateCache.stats(),
-    })
+    return JSON.stringify(result, null, compact ? undefined : 2)
   }
 }
 
@@ -441,10 +349,7 @@ export function registerCassandraEventTools(
   eventBus: EventBus,
   _getSessionId: () => string | undefined
 ): void {
-  registry.register(cassandraGetStateDef, makeCassandraGetStateHandler(eventBus))
-  registry.register(cassandraGetHistoryDef, makeCassandraGetHistoryHandler(eventBus))
-  registry.register(cassandraSubscribeDef, makeCassandraSubscribeHandler(eventBus))
-  registry.register(cassandraInvalidateCacheDef, makeCassandraInvalidateCacheHandler())
+  registry.register(cassandraQueryEventsDef, makeCassandraQueryEventsHandler(eventBus))
 }
 
 // Export cache for inspection

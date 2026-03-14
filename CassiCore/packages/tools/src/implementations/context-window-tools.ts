@@ -1,11 +1,10 @@
 /**
- * Optimized Context Window Debugging Tools
+ * Consolidated Context Window Debugging Tools (Phase 2)
  *
- * Improvements:
- * - Lazy snapshot loading with field projection
- * - Summary caching to avoid recomputing
- * - Streaming for large context windows
- * - Efficient pagination
+ * Merges cassandra_get_context_window + cassandra_get_context_history + cassandra_get_context_stats
+ * into unified inspection interface. Eliminates cassandra_tail_context_window (documented alternative).
+ *
+ * Preserves all caching behavior (SummaryCache with TTLs) from original implementation.
  */
 
 import type { ContextWindowDebugger, ContextWindowSnapshot } from '../../events/context-window-debug.js'
@@ -19,7 +18,7 @@ const SUMMARY_CACHE_TTL_MS = 2000  // 2 seconds
 const MAX_SNAPSHOTS_DEFAULT = 50
 
 // ============================================================================
-// Summary Cache
+// Summary Cache (preserved from original)
 // ============================================================================
 
 interface SummaryCacheEntry {
@@ -70,7 +69,7 @@ class SummaryCache {
 const globalSummaryCache = new SummaryCache()
 
 // ============================================================================
-// Optimized Snapshot Processing
+// Optimized Snapshot Processing (preserved from original)
 // ============================================================================
 
 interface SnapshotSummary {
@@ -114,7 +113,7 @@ function* lazySnapshotSummaries(
 }
 
 // ============================================================================
-// Field Projection for Messages
+// Field Projection for Messages (preserved from original)
 // ============================================================================
 
 function projectSnapshot(
@@ -123,19 +122,17 @@ function projectSnapshot(
   maxContentLength: number = 10000
 ): any {
   if (includeFullContent) {
-    // Still truncate extremely long content
     return {
       ...snapshot,
       messages: snapshot.messages.map(m => ({
         ...m,
         content: m.content?.length > maxContentLength
-          ? `${m.content.slice(0, maxContentLength)  }\n... [truncated]`
+          ? `${m.content.slice(0, maxContentLength)}\n... [truncated]`
           : m.content,
       })),
     }
   }
 
-  // Return summary only
   return {
     type: snapshot.type,
     sessionId: snapshot.sessionId,
@@ -163,18 +160,36 @@ function projectSnapshot(
 }
 
 // ============================================================================
-// Tool Definitions
+// Consolidated Tool Definition
 // ============================================================================
 
-export const cassandraGetContextWindowDef: ToolDefinition = {
-  name: 'cassandra_get_context_window',
-  description: 'Get the latest context window snapshot with field projection support',
+export const cassandraContextInspectDef: ToolDefinition = {
+  name: 'cassandra_context_inspect',
+  description:
+    'Unified context window inspection tool. Use action parameter to choose operation:\n' +
+    '- snapshot: Get latest context window snapshot with field projection\n' +
+    '- history: Get history of context window snapshots (cached summaries)\n' +
+    '- stats: Get statistics about context window usage\n\n' +
+    'Replaces cassandra_get_context_window, cassandra_get_context_history, and cassandra_get_context_stats. ' +
+    'For streaming, use HTTP endpoints directly (documented).',
   parameters: {
     type: 'object',
     properties: {
-      sessionId: { type: 'string', description: 'Session ID to get context window for' },
-      includeFullContent: { type: 'boolean', description: 'Include full message content (may be large)', default: true },
-      maxContentLength: { type: 'number', description: 'Max content length per message (default 10000)', default: 10000 },
+      sessionId: { type: 'string', description: 'Session ID to inspect' },
+      action: {
+        type: 'string',
+        description: 'Inspection action',
+        enum: ['snapshot', 'history', 'stats'],
+        default: 'snapshot',
+      },
+      // Options for 'snapshot' action
+      includeFullContent: { type: 'boolean', description: 'Include full message content (for snapshot)', default: true },
+      maxContentLength: { type: 'number', description: 'Max content length per message (for snapshot)', default: 10000 },
+      // Options for 'history' action
+      since: { type: 'number', description: 'Timestamp to get snapshots since (for history)' },
+      limit: { type: 'number', description: 'Maximum snapshots to return (for history)', default: 10 },
+      noCache: { type: 'boolean', description: 'Bypass summary cache (for history)', default: false },
+      // Common
       compact: { type: 'boolean', description: 'Return compact JSON', default: false },
     },
     required: ['sessionId'],
@@ -182,62 +197,16 @@ export const cassandraGetContextWindowDef: ToolDefinition = {
   timeoutMs: 5_000,
 }
 
-export const cassandraGetContextHistoryDef: ToolDefinition = {
-  name: 'cassandra_get_context_history',
-  description: 'Get history of context window snapshots (cached summaries)',
-  parameters: {
-    type: 'object',
-    properties: {
-      sessionId: { type: 'string', description: 'Session ID' },
-      since: { type: 'number', description: 'Timestamp to get snapshots since' },
-      limit: { type: 'number', description: 'Maximum snapshots to return', default: 10 },
-      noCache: { type: 'boolean', description: 'Bypass summary cache', default: false },
-      compact: { type: 'boolean', description: 'Return compact JSON', default: false },
-    },
-    required: ['sessionId'],
-  },
-  timeoutMs: 5_000,
-}
-
-export const cassandraGetContextStatsDef: ToolDefinition = {
-  name: 'cassandra_get_context_stats',
-  description: 'Get statistics about context window usage for a session',
-  parameters: {
-    type: 'object',
-    properties: {
-      sessionId: { type: 'string', description: 'Session ID' },
-      compact: { type: 'boolean', description: 'Return compact JSON', default: false },
-    },
-    required: ['sessionId'],
-  },
-  timeoutMs: 5_000,
-}
-
-export const cassandraTailContextWindowDef: ToolDefinition = {
-  name: 'cassandra_tail_context_window',
-  description: 'Get SSE URL to tail context window updates in real-time',
-  parameters: {
-    type: 'object',
-    properties: {
-      sessionId: { type: 'string', description: 'Session ID to tail' },
-      baseUrl: { type: 'string', description: 'Daemon base URL', default: 'http://localhost:7433' },
-    },
-    required: ['sessionId'],
-  },
-  timeoutMs: 5_000,
-}
-
 // ============================================================================
-// Handler Factories
+// Consolidated Handler
 // ============================================================================
 
-export function makeCassandraGetContextWindowHandler(
+export function makeCassandraContextInspectHandler(
   getDebugger: () => ContextWindowDebugger | null
 ): ToolHandler {
   return async (input, ctx) => {
     const sessionId = input['sessionId'] as string
-    const includeFullContent = (input['includeFullContent'] as boolean) ?? true
-    const maxContentLength = (input['maxContentLength'] as number) ?? 10000
+    const action = (input['action'] as string) ?? 'snapshot'
     const compact = (input['compact'] as boolean) ?? false
 
     const startTime = Date.now()
@@ -249,147 +218,91 @@ export function makeCassandraGetContextWindowHandler(
       })
     }
 
-    const snapshot = ctxDebugger.getLatestSnapshot(sessionId)
-    if (!snapshot) {
-      return JSON.stringify({
-        sessionId,
-        error: 'No context window snapshot found. Has any turn been processed yet?',
-      })
-    }
+    let result: any
 
-    // Apply field projection
-    const result = projectSnapshot(snapshot, includeFullContent, maxContentLength)
+    if (action === 'snapshot') {
+      const includeFullContent = (input['includeFullContent'] as boolean) ?? true
+      const maxContentLength = (input['maxContentLength'] as number) ?? 10000
 
-    ctx.logger.debug?.('[cassandra_get_context_window]', {
-      sessionId,
-      includeFullContent,
-      messageCount: snapshot.messages.length,
-      duration: `${Date.now() - startTime}ms`,
-    })
-
-    return JSON.stringify(result, null, compact ? undefined : 2)
-  }
-}
-
-export function makeCassandraGetContextHistoryHandler(
-  getDebugger: () => ContextWindowDebugger | null
-): ToolHandler {
-  return async (input, ctx) => {
-    const sessionId = input['sessionId'] as string
-    const since = input['since'] as number | undefined
-    const limit = Math.min((input['limit'] as number) ?? 10, MAX_SNAPSHOTS_DEFAULT)
-    const noCache = (input['noCache'] as boolean) ?? false
-    const compact = (input['compact'] as boolean) ?? false
-
-    const startTime = Date.now()
-    const ctxDebugger = getDebugger()
-
-    if (!ctxDebugger) {
-      return JSON.stringify({ error: 'Context window debugging is not enabled on the daemon.' })
-    }
-
-    const allSnapshots = since
-      ? ctxDebugger.getSnapshotsSince(sessionId, since)
-      : ctxDebugger.getSnapshots(sessionId)
-
-    if (allSnapshots.length === 0) {
-      return JSON.stringify({ sessionId, snapshots: [], totalSnapshots: 0 })
-    }
-
-    // Check cache
-    const latest = allSnapshots[allSnapshots.length - 1]
-    let summaries: SnapshotSummary[]
-    let fromCache = false
-
-    if (!noCache && !since) {
-      const cached = globalSummaryCache.get(sessionId, allSnapshots.length, latest.timestamp)
-      if (cached) {
-        summaries = cached.summaries.slice(-limit)
-        fromCache = true
-      } else {
-        // Compute and cache
-        summaries = Array.from(lazySnapshotSummaries(allSnapshots, limit))
-        globalSummaryCache.set(sessionId, {
-          summaries,
-          snapshotCount: allSnapshots.length,
-          lastSnapshotTimestamp: latest.timestamp,
-          computedAt: Date.now(),
+      const snapshot = ctxDebugger.getLatestSnapshot(sessionId)
+      if (!snapshot) {
+        return JSON.stringify({
+          sessionId,
+          error: 'No context window snapshot found. Has any turn been processed yet?',
         })
       }
+
+      result = projectSnapshot(snapshot, includeFullContent, maxContentLength)
+
+      ctx.logger.debug?.('[cassandra_context_inspect.snapshot]', {
+        sessionId,
+        includeFullContent,
+        messageCount: snapshot.messages.length,
+        duration: `${Date.now() - startTime}ms`,
+      })
+    } else if (action === 'history') {
+      const since = input['since'] as number | undefined
+      const limit = Math.min((input['limit'] as number) ?? 10, MAX_SNAPSHOTS_DEFAULT)
+      const noCache = (input['noCache'] as boolean) ?? false
+
+      const allSnapshots = since
+        ? ctxDebugger.getSnapshotsSince(sessionId, since)
+        : ctxDebugger.getSnapshots(sessionId)
+
+      if (allSnapshots.length === 0) {
+        result = { sessionId, snapshots: [], totalSnapshots: 0 }
+      } else {
+        const latest = allSnapshots[allSnapshots.length - 1]
+        let summaries: SnapshotSummary[]
+        let fromCache = false
+
+        if (!noCache && !since) {
+          const cached = globalSummaryCache.get(sessionId, allSnapshots.length, latest.timestamp)
+          if (cached) {
+            summaries = cached.summaries.slice(-limit)
+            fromCache = true
+          } else {
+            summaries = Array.from(lazySnapshotSummaries(allSnapshots, limit))
+            globalSummaryCache.set(sessionId, {
+              summaries,
+              snapshotCount: allSnapshots.length,
+              lastSnapshotTimestamp: latest.timestamp,
+              computedAt: Date.now(),
+            })
+          }
+        } else {
+          summaries = Array.from(lazySnapshotSummaries(allSnapshots, limit))
+        }
+
+        result = {
+          sessionId,
+          snapshots: summaries,
+          totalSnapshots: allSnapshots.length,
+          returned: summaries.length,
+          fromCache,
+        }
+
+        ctx.logger.debug?.('[cassandra_context_inspect.history]', {
+          sessionId,
+          totalSnapshots: allSnapshots.length,
+          returned: summaries.length,
+          fromCache,
+          duration: `${Date.now() - startTime}ms`,
+        })
+      }
+    } else if (action === 'stats') {
+      const stats = ctxDebugger.getStats(sessionId)
+      result = { sessionId, stats }
+
+      ctx.logger.debug?.('[cassandra_context_inspect.stats]', {
+        sessionId,
+        duration: `${Date.now() - startTime}ms`,
+      })
     } else {
-      // No cache for filtered queries
-      summaries = Array.from(lazySnapshotSummaries(allSnapshots, limit))
+      return JSON.stringify({ error: `Unknown action "${action}". Use "snapshot", "history", or "stats".` })
     }
 
-    ctx.logger.debug?.('[cassandra_get_context_history]', {
-      sessionId,
-      totalSnapshots: allSnapshots.length,
-      returned: summaries.length,
-      fromCache,
-      duration: `${Date.now() - startTime}ms`,
-    })
-
-    return JSON.stringify({
-      sessionId,
-      snapshots: summaries,
-      totalSnapshots: allSnapshots.length,
-      returned: summaries.length,
-      fromCache,
-    }, null, compact ? undefined : 2)
-  }
-}
-
-export function makeCassandraGetContextStatsHandler(
-  getDebugger: () => ContextWindowDebugger | null
-): ToolHandler {
-  return async (input, ctx) => {
-    const sessionId = input['sessionId'] as string
-    const compact = (input['compact'] as boolean) ?? false
-
-    const startTime = Date.now()
-    const ctxDebugger = getDebugger()
-
-    if (!ctxDebugger) {
-      return JSON.stringify({ error: 'Context window debugging is not enabled on the daemon.' })
-    }
-
-    const stats = ctxDebugger.getStats(sessionId)
-
-    ctx.logger.debug?.('[cassandra_get_context_stats]', {
-      sessionId,
-      duration: `${Date.now() - startTime}ms`,
-    })
-
-    return JSON.stringify({ sessionId, stats }, null, compact ? undefined : 2)
-  }
-}
-
-export function makeCassandraTailContextWindowHandler(
-  getDebugger: () => ContextWindowDebugger | null
-): ToolHandler {
-  return async (input, _ctx) => {
-    const sessionId = input['sessionId'] as string
-    const baseUrl = (input['baseUrl'] as string) ?? 'http://localhost:7433'
-
-    const ctxDebugger = getDebugger()
-    if (!ctxDebugger) {
-      return JSON.stringify({ error: 'Context window debugging is not enabled on the daemon.' })
-    }
-
-    const latest = ctxDebugger.getLatestSnapshot(sessionId)
-
-    return JSON.stringify({
-      sessionId,
-      streamUrl: `${baseUrl}/debug/context-window/stream?sessionId=${encodeURIComponent(sessionId)}`,
-      currentSnapshot: latest ? {
-        timestamp: latest.timestamp,
-        turnIndex: latest.turnIndex,
-        model: latest.model,
-        messageCount: latest.messageCount,
-        estimatedTokens: latest.estimatedTokens,
-      } : null,
-      usage: `curl -N "${baseUrl}/debug/context-window/stream?sessionId=${sessionId}"`,
-    }, null, 2)
+    return JSON.stringify(result, null, compact ? undefined : 2)
   }
 }
 
@@ -401,10 +314,7 @@ export function registerContextWindowTools(
   registry: any,
   getDebugger: () => ContextWindowDebugger | null
 ): void {
-  registry.register(cassandraGetContextWindowDef, makeCassandraGetContextWindowHandler(getDebugger))
-  registry.register(cassandraGetContextHistoryDef, makeCassandraGetContextHistoryHandler(getDebugger))
-  registry.register(cassandraGetContextStatsDef, makeCassandraGetContextStatsHandler(getDebugger))
-  registry.register(cassandraTailContextWindowDef, makeCassandraTailContextWindowHandler(getDebugger))
+  registry.register(cassandraContextInspectDef, makeCassandraContextInspectHandler(getDebugger))
 }
 
 // Export cache for inspection

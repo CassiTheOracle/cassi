@@ -44,6 +44,7 @@ export const reflectDefinition: ToolDefinition = {
     required: [],
   },
   timeoutMs: 5_000,
+  category: 'cognitive',
 }
 
 export const cognitiveRememberDefinition: ToolDefinition = {
@@ -66,6 +67,7 @@ export const cognitiveRememberDefinition: ToolDefinition = {
     required: ['observations'],
   },
   timeoutMs: 5_000,
+  category: 'cognitive',
 }
 
 // ── Signal Formatting ────────────────────────────────────────────────────────
@@ -342,6 +344,7 @@ export const probeDefinition: ToolDefinition = {
     required: ['signal_kind', 'signal_text'],
   },
   timeoutMs: 60_000,  // Drone swarm can take a while
+  category: 'cognitive',
 }
 
 /**

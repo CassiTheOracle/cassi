@@ -238,6 +238,7 @@ export const readFileDefinition: ToolDefinition = {
     required: ['path'],
   },
   timeoutMs: 10_000,
+  category: 'core',
 }
 
 // ============================================================================

@@ -58,6 +58,7 @@ export const webSearchDefinition: ToolDefinition = {
     }
   },
   timeoutMs: 30_000,
+  category: 'core',
 }
 
 export const webSearchHandler: ToolHandler = async (input, ctx: ToolExecutionContext) => {

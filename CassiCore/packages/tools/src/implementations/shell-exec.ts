@@ -17,6 +17,13 @@ export const shellExecDefinition: ToolDefinition = {
   timeoutMs: 120_000,
 };
 
+interface ShellExecResult {
+  stdout: string
+  stderr: string
+  exitCode: number
+  durationMs: number
+}
+
 async function nativeShellExec(command: string, workdir: string, timeoutMs: number): Promise<string> {
   const { spawn } = await import('node:child_process');
   const { spawnSync } = await import('node:child_process');
@@ -29,13 +36,43 @@ async function nativeShellExec(command: string, workdir: string, timeoutMs: numb
     throw new Error('No shell available (bash/sh not found in PATH)');
   }
 
-  return new Promise((resolve) => {
-    let output = '';
+  const startTime = Date.now();
+  
+  return new Promise((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
+    let exitCode = 0;
+    
     const proc = spawn(shellCommand, ['-c', command], { cwd: workdir });
-    const timer = setTimeout(() => proc.kill(), timeoutMs);
-    proc.stdout.on('data', (d: Buffer) => { output += d.toString(); });
-    proc.stderr.on('data', (d: Buffer) => { output += d.toString(); });
-    proc.on('close', () => { clearTimeout(timer); resolve(output || '(no output)'); });
+    const timer = setTimeout(() => {
+      proc.kill();
+      exitCode = 124; // timeout exit code
+      stderr += '\n[Process killed: timeout exceeded]';
+    }, timeoutMs);
+    
+    proc.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+    proc.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+    
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      exitCode = code ?? 1;
+      const durationMs = Date.now() - startTime;
+      
+      const result: ShellExecResult = {
+        stdout: stdout || '(no output)',
+        stderr,
+        exitCode,
+        durationMs,
+      };
+      
+      // Return structured JSON that executor can parse
+      resolve(JSON.stringify(result));
+    });
+    
+    proc.on('error', (err) => {
+      clearTimeout(timer);
+      reject(new Error(`Spawn failed: ${err.message}`));
+    });
   });
 }
 

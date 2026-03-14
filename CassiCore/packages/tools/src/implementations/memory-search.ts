@@ -28,6 +28,7 @@ export const memorySearchDefinition: ToolDefinition = {
     required: ['query'],
   },
   timeoutMs: 10_000,
+  category: 'cognitive',
 }
 
 interface MemorySearchInput {
@@ -119,6 +120,7 @@ export const rememberDefinition: ToolDefinition = {
     required: ['note'],
   },
   timeoutMs: 5_000,
+  category: 'cognitive',
 }
 
 export function makeRememberHandler(memory: IMemory): ToolHandler {

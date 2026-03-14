@@ -7,18 +7,16 @@ import {
   probeDefinition, makeProbeHandler,
   type CognitiveToolDeps, type ProbeDeps,
 } from './cognitive-tools.js'
+import { listToolsDefinition, listToolsHandler } from './list-tools.js'
 import {
   autofixDefinition, makeAutofixHandler,
   type AutofixDeps,
 } from './autofix-tool.js'
 import {
-  signalPeerDefinition, makeSignalPeerHandler,
+  coordinateDefinition, makeCoordinateHandler,
   checkPeersDefinition, makeCheckPeersHandler,
-  broadcastDefinition, makeBroadcastHandler,
-  sharedNoteDefinition, makeSharedNoteHandler,
-  linkBrainDefinition, makeLinkBrainHandler,
   type PeerToolDeps,
-} from './peer-coordination-tools.js'
+} from './peer-coordination.js'
 import { registerContextWindowTools } from './context-window-tools.js'
 import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
@@ -39,6 +37,22 @@ import { runTestsDefinition, runTestsHandler } from './run-tests.js'
 import { runBackgroundDefinition, makeRunBackgroundHandler } from './run-background.js'
 import { checkJobDefinition, makeCheckJobHandler } from './check-job.js'
 import { waitJobDefinition, makeWaitJobHandler } from './wait-job.js'
+import {
+  teamDashboardDefinition, makeTeamDashboardHandler,
+  type TeamDashboardDeps,
+} from './team-dashboard.js'
+import {
+  systemHealthDefinition, makeSystemHealthHandler,
+  type SystemHealthDeps,
+} from './system-health.js'
+import {
+  debugSessionDefinition, makeDebugSessionHandler,
+  type DebugSessionDeps,
+} from './debug-session.js'
+import {
+  universalSearchDefinition, makeUniversalSearchHandler,
+  type UniversalSearchDeps,
+} from './universal-search.js'
 
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ISessionManager } from '../../../types/runtime.js'
@@ -73,7 +87,7 @@ export interface CoreToolDeps {
   probeDeps?: ProbeDeps
   /** Dependencies for autofix tool (_autofix) — full autonomous fix pipeline */
   autofixDeps?: AutofixDeps
-  /** Dependencies for peer coordination tools (_signal_peer, _check_peers, etc.) */
+  /** Dependencies for peer coordination tools (_coordinate, _check_peers) */
   peerToolDeps?: PeerToolDeps
   /** Lazy getter for the background job manager */
   getJobManager?: () => import('../../jobs/job-manager.js').JobManager | undefined
@@ -107,7 +121,11 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // Memory tools (requires memory module)
   if (deps.memory) {
-    registry.register(memorySearchDefinition, makeMemorySearchHandler(deps.memory))
+    // memory_search is DEPRECATED - use universal_search instead
+    registry.register(
+      memorySearchDefinition, 
+      makeMemorySearchHandler(deps.memory)
+    )
     registry.register(rememberDefinition, makeRememberHandler(deps.memory))
   }
 
@@ -118,6 +136,7 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
       description: 'List all active CassiCore sessions with their IDs and last activity.',
       parameters: { type: 'object', properties: {}, required: [] },
       timeoutMs: 5_000,
+      category: 'debug',
     },
     async (_input, ctx) => {
       if (!deps.sessionManager) return 'Session manager not available.'
@@ -128,6 +147,10 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
       ).join('\n')
     }
   )
+
+  // list_tools — meta-discovery tool for progressive tool discovery
+  // Note: This tool needs the registry injected into its context at execution time
+  registry.register(listToolsDefinition, listToolsHandler)
 
   // NOTE: spawn_subagent is now unified under Thinker
   // Direct subagent spawning is disabled - all subagent operations go through Thinker
@@ -216,18 +239,17 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     registry.register(autofixDefinition, makeAutofixHandler(deps.autofixDeps))
   }
 
-  // Peer coordination tools — _signal_peer, _check_peers, _broadcast, _shared_note, _link_brain
-  // Enable conscious inter-session coordination: messaging, peer discovery, shared scratchpad,
-  // and CognitiveBridge linking for subconscious signal sharing between sessions.
+  // Peer coordination tools — CONSOLIDATED (Phase 1)
+  // _coordinate: Unified tool for signal, broadcast, shared_note, link_brain actions
+  // _check_peers: Kept separate (discovery vs action)
   if (deps.peerToolDeps) {
-    registry.register(signalPeerDefinition, makeSignalPeerHandler(deps.peerToolDeps))
+    registry.register(coordinateDefinition, makeCoordinateHandler(deps.peerToolDeps))
     registry.register(checkPeersDefinition, makeCheckPeersHandler(deps.peerToolDeps))
-    registry.register(broadcastDefinition, makeBroadcastHandler(deps.peerToolDeps))
-    registry.register(sharedNoteDefinition, makeSharedNoteHandler(deps.peerToolDeps))
-    registry.register(linkBrainDefinition, makeLinkBrainHandler(deps.peerToolDeps))
   }
 
-  // Cassandra Event Stream Tools - enables Cassandra to access real-time session state
+  // Cassandra Event Stream Tools - CONSOLIDATED (Phase 2)
+  // cassandra_query_events: Unified query interface (mode: state|history)
+  // Eliminates: cassandra_subscribe, cassandra_invalidate_cache (documented alternatives)
   try {
     const eventBus = getEventBus()
     registerCassandraEventTools(registry, eventBus, () => {
@@ -238,7 +260,55 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     // Event bus not available, skip registration
   }
 
-  // Context Window Debugging Tools - allows Cassandra to inspect what the model sees
+  // Composite Tools - Aggregated views across multiple data sources
+  // These tools aggregate data from multiple sources into unified responses
+  
+  // Get daemon reference for composite tools
+  const daemon = (deps as any).daemon
+
+  // team_dashboard: Unified team status, goal tree, budget, and events
+  const triadTeam = daemon?.intelligence?.triadTeam
+  if (triadTeam || deps.sessionManager) {
+    const teamDashboardDeps: TeamDashboardDeps = {
+      getTriadTeam: () => triadTeam,
+      getEventBus: () => deps.bus,
+    }
+    registry.register(teamDashboardDefinition, makeTeamDashboardHandler(teamDashboardDeps))
+  }
+
+  // system_health: Comprehensive system status with providers, sessions, teams, and memory
+  const systemHealthDeps: SystemHealthDeps = {
+    daemon: daemon,
+    sessionManager: deps.sessionManager,
+    memory: deps.memory,
+  }
+  registry.register(systemHealthDefinition, makeSystemHealthHandler(systemHealthDeps))
+
+  // debug_session: Deep session debugging with context, turns, and cognitive state
+  if (deps.sessionManager || deps.memory) {
+    const debugSessionDeps: DebugSessionDeps = {
+      sessionManager: deps.sessionManager,
+      memory: deps.memory,
+      getEventBus: () => deps.bus,
+      getContextWindowDebugger: () => getContextWindowDebugger(),
+    }
+    registry.register(debugSessionDefinition, makeDebugSessionHandler(debugSessionDeps))
+  }
+
+  // universal_search: Unified memory and archive search with deduplication
+  if (deps.memory) {
+    // Archive is optional - tool handles gracefully if not available
+    const archive = daemon?.archive
+    const universalSearchDeps: UniversalSearchDeps = {
+      memory: deps.memory,
+      archive: archive || undefined,
+    }
+    registry.register(universalSearchDefinition, makeUniversalSearchHandler(universalSearchDeps))
+  }
+
+  // Context Window Debugging Tools - CONSOLIDATED (Phase 2)
+  // cassandra_context_inspect: Unified inspection (action: snapshot|history|stats)
+  // Eliminates: cassandra_tail_context_window (documented alternative)
   try {
     registerContextWindowTools(registry, () => getContextWindowDebugger())
   } catch (err) {

@@ -162,6 +162,7 @@ export const writeFileDefinition: ToolDefinition = {
     required: ['path', 'content'],
   },
   timeoutMs: 10_000,
+  category: 'core',
 }
 
 // ============================================================================
