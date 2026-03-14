@@ -24,6 +24,7 @@ export interface SearchOpts {
   type?: MemoryEntry["type"];
   minScore?: number;
   sessionId?: string;
+  cognitiveClass?: 'episodic' | 'semantic' | 'procedural';
 }
 
 export interface SearchResult {
