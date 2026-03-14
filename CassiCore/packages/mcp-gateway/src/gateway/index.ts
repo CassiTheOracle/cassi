@@ -67,6 +67,22 @@ export {
   getActionTools,
 } from './team-tools.js';
 
+// Composite Tools (NEW - Phase 2)
+export {
+  COMPOSITE_TOOLS,
+  COMPOSITE_TOOL_NAMES,
+  executeCompositeTool,
+  getCompositeTools,
+} from './composite-tools.js';
+
+// Admin API Tools (NEW - Phase 3)
+export {
+  ADMIN_API_TOOLS,
+  ADMIN_API_TOOL_NAMES,
+  executeAdminApiTool,
+  getAdminApiTools,
+} from './admin-api-tools.js';
+
 // Dialectic Tools
 export {
   DIALECTIC_TOOLS,
@@ -82,3 +98,12 @@ export {
   executeIntelligenceTool,
   getIntelligenceTools,
 } from './intelligence-tools.js';
+
+// Resources Module (NEW - MCP Resources Design)
+export {
+  readResource,
+  getStaticResources,
+  getResourceTemplates,
+  invalidateResourceCache,
+  parseResourceUri,
+} from './resources.js';
