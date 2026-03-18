@@ -38,6 +38,7 @@ import type { InferenceMetrics } from './inference.js'
 
 import type { RuntimeEvent } from '../../../types/events.js'
 import type { IMemory } from '../../../types/intelligence.js'
+import type { IModelDirective } from '../../../types/model-routing.js'
 import type { ILogger, IEventBus, IntelligenceModule, IConfig, WiringDependencies } from '../../../types/interfaces.js'
 import type { IProvider, Message, CompletionOpts } from '../../../types/runtime.js'
 import type { ToolExecutor } from '../../tools/executor.js'
@@ -80,6 +81,8 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   protected toolRegistry?: ToolRegistry
   protected toolExecutor?: ToolExecutor
   protected modelConfig: ModuleModelConfig
+  protected modelDirective?: IModelDirective
+  protected providerResolver?: (providerId: string) => IProvider | undefined
 
   private _status: ModuleStatus = 'created'
   private _metrics: CognitiveModuleMetrics = {
@@ -163,6 +166,23 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   setConfig(config: IConfig): void { this.config = config }
   setToolRegistry(registry: ToolRegistry): void { this.toolRegistry = registry }
   setToolExecutor(executor: ToolExecutor): void { this.toolExecutor = executor }
+
+  /**
+   * Wire the ModelDirective for centralized model selection.
+   * When set, infer()/inferJSON() calls consult the directive to resolve
+   * the provider+model for this module's slot (using `this.name` as the slot).
+   * Only `default` and `job` scopes are meaningful for background modules.
+   */
+  setModelDirective(directive: IModelDirective): void { this.modelDirective = directive }
+
+  /**
+   * Wire a provider resolver function for directive-driven provider switching.
+   * Allows infer() to look up a different provider instance when the directive
+   * resolves to a provider other than the one wired via setProvider().
+   */
+  setProviderResolver(resolver: (providerId: string) => IProvider | undefined): void {
+    this.providerResolver = resolver
+  }
 
   /**
    * Wire multiple dependencies in one call.
@@ -279,6 +299,8 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
 
   /**
    * Run LLM inference using this module's configured provider/model.
+   * If a ModelDirective is wired, consults it for a slot-specific override
+   * (using `this.name` as the slot name in the dotted hierarchy).
    * Returns the raw text response. For structured output, use inferJSON().
    */
   protected async infer(
@@ -289,8 +311,11 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       throw new Error(`[${this.name}] No provider configured — cannot infer`)
     }
 
+    // Resolve directive override if available
+    const { provider: effectiveProvider, modelConfig: effectiveModelConfig } = this.resolveEffectiveModel()
+
     this._lastRequestId = undefined
-    return inferHelper(this.provider, this.modelConfig, prompt, {
+    return inferHelper(effectiveProvider, effectiveModelConfig, prompt, {
       source: this.name,
       onMeta: (meta) => { this._lastRequestId = meta.requestId },
       ...opts,
@@ -309,12 +334,42 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       throw new Error(`[${this.name}] No provider configured — cannot infer`)
     }
 
+    // Resolve directive override if available
+    const { provider: effectiveProvider, modelConfig: effectiveModelConfig } = this.resolveEffectiveModel()
+
     this._lastRequestId = undefined
-    return inferJSONHelper<T>(this.provider, this.modelConfig, prompt, this.logger, {
+    return inferJSONHelper<T>(effectiveProvider, effectiveModelConfig, prompt, this.logger, {
       source: this.name,
       onMeta: (meta) => { this._lastRequestId = meta.requestId },
       ...opts,
     }, this._inferenceMetrics)
+  }
+
+  /**
+   * Resolve the effective provider and model config for an inference call.
+   * Checks the ModelDirective for a slot-specific override (using this.name),
+   * falling back to the module's configured provider/model.
+   */
+  private resolveEffectiveModel(): { provider: IProvider; modelConfig: ModuleModelConfig } {
+    if (this.modelDirective) {
+      // Resolve without consuming 'next' scope (background modules shouldn't consume one-shot overrides).
+      // We pass undefined for jobId since background modules aren't scoped to a specific job.
+      const override = this.modelDirective.resolve(undefined, this.name)
+
+      // Check if the directive returned something different from the hardcoded fallback
+      if (override.provider !== this.modelConfig.providerId || override.model !== this.modelConfig.model) {
+        // Try to resolve the provider instance
+        const resolvedProvider = this.providerResolver?.(override.provider) ?? this.provider
+        if (resolvedProvider) {
+          return {
+            provider: resolvedProvider,
+            modelConfig: { ...this.modelConfig, providerId: override.provider, model: override.model },
+          }
+        }
+      }
+    }
+
+    return { provider: this.provider!, modelConfig: this.modelConfig }
   }
 
   // ==========================================================================
