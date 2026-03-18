@@ -564,6 +564,31 @@ export interface FluxCellResult {
   artifacts: ArtifactEntry[]
   /** Timestamp of completion */
   completedAt: number
+  /** Error message if failed */
+  error?: string
+  /** Deliverable verification result */
+  verification?: DeliverableVerification
+}
+
+/**
+ * Result of post-execution deliverable verification.
+ * Checks whether the cell's actual work matches the goal's expectations.
+ */
+export interface DeliverableVerification {
+  /** Whether verification passed */
+  passed: boolean
+  /** Human-readable reason for pass/fail */
+  reason: string
+  /** File paths mentioned in the goal */
+  filesExpected: string[]
+  /** File paths actually modified (from git diff) */
+  filesModified: string[]
+  /** Percentage of expected files that were modified */
+  coveragePercent: number
+  /** Total tool calls executed across all nodes */
+  totalToolCalls: number
+  /** Whether any write/edit tools were called */
+  hadWriteOperations: boolean
 }
 
 /**
