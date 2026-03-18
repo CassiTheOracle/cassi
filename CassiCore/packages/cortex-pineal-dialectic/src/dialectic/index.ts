@@ -146,6 +146,15 @@ export class DialecticSystem implements IDialecticSystem {
   private resultCache?: ResultCache;
 
   // Subconscious context
+  /** Max patterns per session to prevent unbounded growth */
+  private static readonly MAX_PATTERNS_PER_SESSION = 50;
+  /** Max anomalies per session */
+  private static readonly MAX_ANOMALIES_PER_SESSION = 50;
+  /** Max evidence items per pattern */
+  private static readonly MAX_EVIDENCE_PER_PATTERN = 20;
+  /** TTL for stale session context (2 hours — safety net if session:ended never fires) */
+  private static readonly SUBCONSCIOUS_TTL_MS = 2 * 60 * 60 * 1000;
+
   private subconsciousContext = new Map<string, {
     patterns: Array<{ type: string; confidence: number; evidence: string[] }>;
     intent?: { type: string; confidence: number };
@@ -172,7 +181,7 @@ export class DialecticSystem implements IDialecticSystem {
         observerTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 30_000,
         maxBranches: this.config.yang?.maxBranches ?? 3,
         temperature: this.config.yang?.temperature ?? 0.7,
-        model: this.config.yang?.model ?? 'gpt-5-mini',
+        model: this.config.yang?.model ?? 'gpt-4o',
       },
     );
 
@@ -291,9 +300,15 @@ export class DialecticSystem implements IDialecticSystem {
         const existing = ctx.patterns.find(p => p.type === pattern.pattern);
         if (existing) {
           existing.confidence = Math.max(existing.confidence, pattern.confidence);
-          existing.evidence.push(...pattern.evidence);
-        } else {
-          ctx.patterns.push({ type: pattern.pattern, confidence: pattern.confidence, evidence: pattern.evidence || [] });
+          // Cap evidence per pattern to prevent unbounded growth
+          const newEvidence = pattern.evidence || [];
+          for (const ev of newEvidence) {
+            if (existing.evidence.length >= DialecticSystem.MAX_EVIDENCE_PER_PATTERN) break;
+            existing.evidence.push(ev);
+          }
+        } else if (ctx.patterns.length < DialecticSystem.MAX_PATTERNS_PER_SESSION) {
+          const evidence = (pattern.evidence || []).slice(0, DialecticSystem.MAX_EVIDENCE_PER_PATTERN);
+          ctx.patterns.push({ type: pattern.pattern, confidence: pattern.confidence, evidence });
         }
         ctx.lastUpdated = Date.now();
       } catch {}
@@ -322,12 +337,23 @@ export class DialecticSystem implements IDialecticSystem {
           ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
           this.subconsciousContext.set(sessionId, ctx);
         }
-        ctx.anomalies.push({ category: anomaly.category, severity: anomaly.severity });
+        // Cap anomalies per session
+        if (ctx.anomalies.length < DialecticSystem.MAX_ANOMALIES_PER_SESSION) {
+          ctx.anomalies.push({ category: anomaly.category, severity: anomaly.severity });
+        }
         ctx.lastUpdated = Date.now();
       } catch {}
     });
 
     (bus as any).on?.('subconscious:session:ended', (e: any) => {
+      try {
+        const { sessionId } = e;
+        if (sessionId) this.subconsciousContext.delete(sessionId);
+      } catch {}
+    });
+
+    // Also listen to standard session:ended for cleanup (safety net)
+    (bus as any).on?.('session:ended', (e: any) => {
       try {
         const { sessionId } = e;
         if (sessionId) this.subconsciousContext.delete(sessionId);
@@ -360,6 +386,16 @@ export class DialecticSystem implements IDialecticSystem {
     }
   ): Promise<ParallelDialecticResult> {
     const startTime = Date.now();
+
+    // TTL-prune stale session context (safety net if session:ended never fires)
+    if (this.subconsciousContext.size > 0) {
+      const ttlCutoff = Date.now() - DialecticSystem.SUBCONSCIOUS_TTL_MS;
+      for (const [sid, ctx] of this.subconsciousContext) {
+        if (ctx.lastUpdated < ttlCutoff) {
+          this.subconsciousContext.delete(sid);
+        }
+      }
+    }
 
     // Check cache first (unless explicitly skipped for autonomous iterations)
     if (this.resultCache && !opts?.skipCache) {

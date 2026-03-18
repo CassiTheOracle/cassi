@@ -64,7 +64,7 @@ const DEFAULT_CONFIG: ConsolidatedConfig = {
   maxBranches: 3,
   minConfidence: 0.3,
   temperature: 0.7,
-  model: 'gpt-5-mini',
+  model: 'gpt-4o',
 }
 
 // ─── Processor ───────────────────────────────────────────────────────────────
