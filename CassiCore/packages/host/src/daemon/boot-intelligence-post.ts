@@ -4,7 +4,7 @@ import { ScoutModule } from '../scout/index.js'
 import { registerDroneTools } from '../tools/implementations/drone-swarm.js'
 import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
 
-import type { IEventBus, IConfig, ILogger } from '../../types/interfaces.js'
+import type { IEventBus, IConfig, ILogger, IPluginHost } from '../../types/interfaces.js'
 import type { IntelligenceLayer } from '../intelligence/index.js'
 import type { TurnPipeline } from '../turn-pipeline.js'
 import type { ToolExecutor } from '../tools/executor.js'
@@ -26,6 +26,7 @@ export interface IntelligencePostBootDeps {
   autonomousLoop?: AutonomousAgentLoop
   toolRegistry: ToolRegistry
   toolExecutor: ToolExecutor
+  pluginHost?: IPluginHost
 }
 
 export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDeps): Promise<AutonomousAgentLoop | undefined> {
@@ -70,6 +71,24 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.info('CognitiveBridge wired to event bus + session manager')
   } catch (err) {
     logger.warn(`Failed to wire CognitiveBridge: ${String(err)}`)
+  }
+
+  // Wire Heart Module
+  try {
+    const heart = intelligence.heart as any
+    if (heart) {
+      heart.wire({
+        pipeline,
+        sessionManager: sessions,
+        pluginHost: (deps as any).pluginHost,
+        workspaceRoot: process.cwd(),
+      })
+      await heart.init()
+      await heart.start()
+      logger.info('Heart module wired and started')
+    }
+  } catch (err) {
+    logger.warn(`Failed to wire Heart module: ${String(err)}`)
   }
 
   pipeline.mountIntelligence({ continuity: intelligence.continuity as any })

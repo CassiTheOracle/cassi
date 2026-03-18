@@ -37,6 +37,7 @@ import { MCPRegistry } from './mcp/registry.js'
 import { createOrchestrationBus } from './orchestration-bus.js'
 import { PluginHost } from "./plugin-host.js"
 import { type BudgetTracker, createBudgetTracker } from './providers/budget-tracker.js'
+import { ModelDirective } from './model-routing/index.js'
 import { type ModelRouter, createModelRouter } from './providers/model-router.js'
 import { createSessionBridge } from './session-bridge.js'
 import { createSessionManager } from './session-manager.js'
@@ -163,6 +164,7 @@ export class Daemon {
   public sessionPipeline?: import('./pipeline/adapter/SessionPipeline.js').SessionPipeline
   public budgetTracker?: BudgetTracker
   public modelRouter?: ModelRouter
+  public modelDirective?: ModelDirective
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
   // expose orchestration bus for external use
@@ -303,8 +305,16 @@ export class Daemon {
         // Don't exit - just log the error
         return
       }
-      // For other uncaught exceptions, log and continue if possible
-      this.logger.error?.('uncaughtException', { error: error.message, stack: error.stack })
+      // For non-spawn uncaught exceptions, log and schedule graceful shutdown.
+      // Continuing after an uncaught exception leaves the process in an
+      // undefined state (e.g., HTTP server dead, event loop corrupted).
+      // A scheduled exit gives in-flight operations a brief window to complete.
+      this.logger.error?.('uncaughtException — scheduling shutdown', { error: error.message, stack: error.stack })
+      this.bus.emit({ type: 'daemon:shutdown', reason: 'uncaughtException' })
+      setTimeout(() => {
+        this.logger.error?.('Exiting after uncaughtException')
+        process.exit(1)
+      }, 5000).unref()
     })
 
     // 5. Create PluginHost with logger
@@ -315,7 +325,7 @@ export class Daemon {
 
     // Initialize intelligence layer before loading plugins
     try {
-      this.intelligence = createIntelligence(this.logger, this.config)
+      this.intelligence = createIntelligence(this.logger, this.config, this.bus)
 
       // Wire modules to event bus
       const bus = this.bus
@@ -1007,6 +1017,29 @@ export class Daemon {
       this.logger.info('BudgetTracker wired to CentralizedProvider instances')
     }
 
+    // ── ModelDirective (scope-based model selection) ──────────────────────────
+    try {
+      const providerKeys = providers
+      this.modelDirective = new ModelDirective({
+        config: this.config,
+        eventBus: this.bus,
+        logger: this.logger,
+        availableProviders: () => Array.from(providerKeys.keys()),
+        persistDefault: (cfg) => {
+          try {
+            const layered = this.config as any
+            if (typeof layered.setOverride === 'function') {
+              layered.setOverride('intelligence.modelDirective.default.provider', cfg.provider, { reason: 'model-directive' })
+              layered.setOverride('intelligence.modelDirective.default.model', cfg.model, { reason: 'model-directive' })
+            }
+          } catch { /* non-critical */ }
+        },
+      })
+      this.logger.info('ModelDirective initialized')
+    } catch (err) {
+      this.logger.warn('Failed to initialize ModelDirective', { error: String(err) })
+    }
+
     // Wire activeRequests getter into the unified loop for heartbeat enrichment.
     // Counts in-flight requests across all CentralizedProvider instances.
     if (this.unifiedLoop && providers.size > 0) {
@@ -1132,6 +1165,52 @@ export class Daemon {
         }
       } catch (err) {
         this.logger.warn('Failed to wire model router to Memory/Archivist', { error: String(err) })
+      }
+    }
+
+    // Wire Lumen with a dedicated ModelPool
+    // Lumen runs 3 concurrent postures (Yang/Yin/Executive) and needs its own pool
+    // to avoid contention with Teams or other subsystems.
+    if (this.intelligence?.lumen && providers.size > 0) {
+      try {
+        // Use ModelDirective for provider/model selection when available,
+        // falling back to config for backward compatibility
+        const directive = this.modelDirective
+        const defaultRouting = directive
+          ? directive.resolve()
+          : {
+              provider: this.config.get<string>('intelligence.lumen.provider', 'alibaba-coding'),
+              model: this.config.get<string>('intelligence.lumen.model', 'kimi-k2.5'),
+            }
+        const lumenBlockedProviders = this.config.get<string[]>('intelligence.lumen.blockedProviders', ['github-copilot', 'github-copilot-lb'])
+
+        const makeLumenChain = (slot: string) => ({
+          slotName: slot,
+          chain: [{ role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 }],
+          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+        })
+
+        const { ModelPool } = await import('./model-pool/index.js')
+        const lumenModelPool = new ModelPool({
+          logger: this.logger.child('lumen-pool'),
+          eventBus: this.bus,
+          fallbackChains: [makeLumenChain('yang'), makeLumenChain('yin'), makeLumenChain('executive')],
+          budgetScopes: [],
+          defaultTimeoutMs: this.config.get<number>('intelligence.lumen.timeoutMs', 600000),
+          auditEnabled: false,
+          blockedProviders: lumenBlockedProviders,
+        })
+        lumenModelPool.setProviders(providers)
+        this.intelligence.lumen.setModelPool(lumenModelPool)
+
+        // Wire ModelDirective so Lumen can resolve job-scoped overrides at runtime
+        if (directive && typeof (this.intelligence.lumen as any).setModelDirective === 'function') {
+          (this.intelligence.lumen as any).setModelDirective(directive)
+        }
+
+        this.logger.info('Lumen ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model, blockedProviders: lumenBlockedProviders })
+      } catch (err) {
+        this.logger.warn('Failed to wire Lumen ModelPool — Lumen will not be available via API', { error: String(err) })
       }
     }
 
@@ -1337,6 +1416,21 @@ export class Daemon {
           this.logger.info('Macro-dialectic custom wiring complete')
         }
 
+        // ── Wire ModelDirective to all registered intelligence modules ────────
+        // This gives every BaseCognitiveModule access to centralized model routing.
+        if (this.modelDirective) {
+          const resolveProvider = (id: string) => providers.get(id)
+          for (const mod of registry.getAll()) {
+            if (typeof (mod as any)?.setModelDirective === 'function') {
+              (mod as any).setModelDirective(this.modelDirective)
+            }
+            if (typeof (mod as any)?.setProviderResolver === 'function') {
+              (mod as any).setProviderResolver(resolveProvider)
+            }
+          }
+          this.logger.info('ModelDirective wired to intelligence modules')
+        }
+
         // Initialize and start all discovered modules
         await registry.initAll()
         await registry.startAll()
@@ -1355,7 +1449,91 @@ export class Daemon {
           tt.setToolExecutor(toolExecutor)
           tt.setToolRegistry(toolRegistry)
           this.wireModule(tt, this.bus)
+          // Wire Lumen into triad-team for dialectic-enhanced cells
+          if (this.intelligence.lumen) {
+            tt.setLumen(this.intelligence.lumen)
+          }
           this.logger.info('Triad-team orchestrator wired')
+        }
+
+        // ── FluxTeam custom wiring ──────────────────────────────────────
+        // FluxTeamOrchestrator needs event bus, Lumen, and a data directory
+        // for its outcome ledger.
+        if (this.intelligence?.fluxTeam) {
+          const ft = this.intelligence.fluxTeam
+          ft.setEventBus(this.bus)
+          if (this.intelligence.lumen) {
+            ft.setLumen(this.intelligence.lumen)
+          }
+          // Wire ModelDirective for job-scoped model selection
+          if (this.modelDirective) {
+            ft.setModelDirective(this.modelDirective)
+          }
+          // Set data directory for outcome ledger
+          const dataDir = String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data'))
+          ft.setDataDir(dataDir)
+
+          // Integration 1: Wire OutcomeLedger → ImprovementOrchestrator
+          // Allows the ledger to submit improvement proposals when topology
+          // failure patterns are detected (>40% failure rate over 10+ runs).
+          if (this.intelligence.improvementOrchestrator) {
+            try {
+              const ledger = (ft as any).outcomeLedger
+              if (ledger && 'setImprovementOrchestrator' in ledger) {
+                ledger.setImprovementOrchestrator(this.intelligence.improvementOrchestrator)
+                this.logger.info('FluxTeam outcome ledger wired to ImprovementOrchestrator')
+              }
+            } catch (err) {
+              this.logger.warn('Failed to wire outcome ledger to ImprovementOrchestrator', { error: String(err) })
+            }
+          }
+
+          // Integration 4: Wire GenomeRegistry → AIEngineer evolution
+          // Registers genome directives as evolvable UpgradeTargets so the
+          // AIEngineer can trial and evolve genome prompts based on performance.
+          if (this.intelligence.aiEngineer) {
+            try {
+              const catalog = (this.intelligence.aiEngineer as any).catalog
+              if (catalog && 'registerGenomeUpgradeTargets' in ft) {
+                ft.registerGenomeUpgradeTargets(catalog)
+                this.logger.info('FluxTeam genome upgrade targets registered in AIEngineer catalog')
+              }
+            } catch (err) {
+              this.logger.warn('Failed to register genome upgrade targets', { error: String(err) })
+            }
+          }
+
+          // Integration 5: Wire Memory → FluxTeam for cross-team learning
+          // Persists blackboard findings to memory after execution and queries
+          // memory for relevant past patterns when creating new teams.
+          if (this.intelligence.memory) {
+            ft.setMemory(this.intelligence.memory)
+            this.logger.info('FluxTeam memory wired for cross-team pattern persistence')
+          }
+
+          this.wireModule(ft, this.bus)
+          this.logger.info('FluxTeam orchestrator wired')
+        }
+
+        // ── Lumen tool wiring ─────────────────────────────────────────────
+        // Lumen postures (Yang/Yin/Executive) use read-only tools for investigation.
+        if (this.intelligence?.lumen) {
+          this.intelligence.lumen.setToolRegistry(toolRegistry)
+          this.intelligence.lumen.setToolExecutor(toolExecutor)
+
+          // Wire LumenStore for full session persistence
+          try {
+            const { LumenStore } = await import('./intelligence/lumen/lumen-store.js')
+            const lumenStore = LumenStore.open(this.logger.child('lumen-store'))
+            this.intelligence.lumen.setStore(lumenStore)
+            this.logger.info('LumenStore wired (SQLite persistence)')
+          } catch (err) {
+            this.logger.warn('LumenStore failed to initialize — running without persistence', {
+              error: String(err),
+            })
+          }
+
+          this.logger.info('Lumen tool access wired')
         }
 
         // Merge auto-discovered modules into the existing all[] array
@@ -1370,6 +1548,24 @@ export class Daemon {
       }
     } catch (err) {
       this.logger.warn('IntelligenceRegistry initialization failed — auto-discovered modules will not be available', { error: String(err) })
+    }
+
+    // ── Copilot SDK Provider initialization ───────────────────────────────────
+    // Initialize after tools are ready (tools are bridged to SDK format).
+    // If successful, the SDK provider handles interactive turns (proper billing),
+    // and the HTTP provider is restricted to background tasks + unlimited models.
+    try {
+      const { initCopilotSdkProvider } = await import('./providers/index.js')
+      const sdkManager = await initCopilotSdkProvider(
+        providers, this.config, this.logger, this.bus,
+        toolRegistry, toolExecutor,
+      )
+      if (sdkManager) {
+        // Store reference for shutdown
+        ;(this as unknown as Record<string, unknown>).__copilotSdkManager = sdkManager
+      }
+    } catch (err) {
+      this.logger.warn('Copilot SDK provider init skipped', { error: String(err) })
     }
 
     this.pipeline = new TurnPipeline(
@@ -1467,6 +1663,8 @@ export class Daemon {
       }
       // Wire EventBus into SessionManager so it can emit session:created
       this.sessions.setBus(this.bus)
+      // Auto-clear event bus session history when sessions end (prevents memory leak)
+      this.bus.wireSessionCleanup?.()
       // Seed digests for any sessions already in memory
       this.bus.on('session:created' as any, (e: any) => {
         if (e?.sessionId && this.sessionDigestStore) {
@@ -1492,6 +1690,7 @@ export class Daemon {
       sessionDigestStore: this.sessionDigestStore,
       toolRegistry,
       toolExecutor,
+      pluginHost: this.pluginHost,
     })
 
      // ── Session Pipeline Integration ─────────────────────────────────────────
@@ -1944,11 +2143,15 @@ export class Daemon {
     // ── Phase 6: Services ────────────────────────────────────────────────────
     this.logger.info('── Phase 6: Services ──────────────────────────────────')
 
-    let adminInfo: { tcpPort: number | null; unixPath: string } | undefined = undefined
+    let adminInfo: { tcpPort: number | null; unixPath: string; tcpServer?: unknown; unixServer?: unknown } | undefined = undefined
     try {
       const adminApi = createAdminApi(this, this.logger)
       adminInfo = await adminApi.start()
       this.logger.info(`AdminAPI listening on unix:${adminInfo?.unixPath} + http:${adminInfo?.tcpPort}`)
+      // Wire HTTP server to health monitor for zombie detection
+      if (adminInfo?.tcpServer && this.healthMonitor) {
+        this.healthMonitor.wire({ httpServer: adminInfo.tcpServer as { listening: boolean } })
+      }
     } catch (err) {
       this.logger.warn(`AdminAPI failed to start: ${String(err)}`)
     }
@@ -2038,11 +2241,28 @@ export class Daemon {
 
   /**
    * Stop the daemon gracefully.
+   * Each async shutdown step is time-bounded to prevent hangs.
    * @returns Promise that resolves after shutdown
    */
   async stop(): Promise<void> {
     if (!this.running) return
     this.logger.info("Shutting down gracefully...")
+
+    const SHUTDOWN_STEP_TIMEOUT_MS = 30_000 // 30s per step
+
+    /** Wrap an async shutdown step with a timeout to prevent hangs */
+    const timedStep = async (label: string, fn: () => Promise<void> | void): Promise<void> => {
+      try {
+        await Promise.race([
+          Promise.resolve(fn()),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Shutdown step "${label}" timed out after ${SHUTDOWN_STEP_TIMEOUT_MS}ms`)), SHUTDOWN_STEP_TIMEOUT_MS)
+          ),
+        ])
+      } catch (err) {
+        this.logger.warn(`Shutdown step "${label}" failed: ${String(err)}`)
+      }
+    }
 
     // emit shutdown — triggers optimizer loop stop
     this.bus.emit({ type: "daemon:shutdown", reason: "signal" })
@@ -2062,51 +2282,55 @@ export class Daemon {
       this.embeddingStackLauncher?.stop()
     } catch { /* ignore */ }
 
+    // stop Copilot SDK (kills CLI server process, destroys sessions)
+    await timedStep('copilot-sdk', async () => {
+      const sdkManager = (this as unknown as Record<string, unknown>).__copilotSdkManager as
+        { stop(): Promise<void> } | undefined
+      if (sdkManager) {
+        // Destroy all SDK sessions first
+        const sdkProvider = (this.pipeline as unknown as { providers?: Map<string, unknown> })
+          ?.providers?.get?.('copilot-sdk') as { destroyAllSessions(): Promise<void> } | undefined
+        await sdkProvider?.destroyAllSessions?.()
+        await sdkManager.stop()
+        this.logger.info('Copilot SDK stopped')
+      }
+    })
+
     // stop unified intelligence loop
-    try {
+    await timedStep('unified-loop', async () => {
       if (this.unifiedLoop) {
         await this.unifiedLoop.stop('daemon-shutdown')
       }
-    } catch (err) {
-      this.logger.warn(`Error stopping unified loop: ${String(err)}`)
-    }
+    })
 
     // stop auto-discovered registry modules
-    try {
+    await timedStep('registry-modules', async () => {
       if (this.intelligence?.registry) {
         await this.intelligence.registry.stopAll()
       }
-    } catch (err) {
-      this.logger.warn(`Error stopping registry modules: ${String(err)}`)
-    }
+    })
 
     // stop Thinker BaseCognitiveModule lifecycle
-    interface ThinkerWithStop {
-      stop?(): Promise<void> | void
-    }
-    try {
+    await timedStep('thinker', async () => {
+      interface ThinkerWithStop {
+        stop?(): Promise<void> | void
+      }
       const thinker = this.intelligence?.thinker as ThinkerWithStop | undefined
       await thinker?.stop?.()
-    } catch (err) {
-      this.logger.warn(`Error stopping Thinker: ${String(err)}`)
-    }
+    })
 
     // shutdown session pipeline if active
-    try {
+    await timedStep('session-pipeline', async () => {
       if (this.sessionPipeline) {
         await this.sessionPipeline.shutdown()
         this.logger.info('Session pipeline shut down')
       }
-    } catch (err) {
-        this.logger.warn(`Error shutting down session pipeline: ${String(err)}`)
-    }
+    })
 
     // shutdown plugin host
-    try {
+    await timedStep('plugin-host', async () => {
       await this.pluginHost.shutdown()
-    } catch (err) {
-      this.logger.warn(`error shutting down plugins: ${String(err)}`)
-    }
+    })
 
     // attempt to stop config watcher if possible
     interface ConfigWithWatcher {
@@ -2134,28 +2358,24 @@ export class Daemon {
     } catch { /* ignore */ }
 
     // intelligence cleanup
-    interface ModuleWithCleanup {
-      cleanup?(): Promise<void> | void
-    }
-    try {
+    await timedStep('intelligence-cleanup', async () => {
+      interface ModuleWithCleanup {
+        cleanup?(): Promise<void> | void
+      }
       for (const m of this.intelligence.all) {
         const mod = m as ModuleWithCleanup
         if (typeof mod.cleanup === "function") {
           await mod.cleanup()
         }
       }
-    } catch (err) {
-      this.logger.warn(`error during intelligence cleanup: ${String(err)}`)
-    }
+    })
 
     // persist budget tracker state
-    try {
+    await timedStep('budget-save', async () => {
       if (this.budgetTracker) {
         await this.budgetTracker.saveToDisk()
       }
-    } catch (err) {
-      this.logger.warn(`error saving budget state: ${String(err)}`)
-    }
+    })
 
     this.running = false
     this.logger.info("Goodbye.")
