@@ -60,6 +60,16 @@ export class GitHubCopilotLoadBalancer extends BaseProvider {
     }))
   }
 
+  /**
+   * Set all underlying providers to background-only mode.
+   * Called when the Copilot SDK provider handles interactive turns.
+   */
+  setBackgroundOnly(enabled: boolean): void {
+    for (const provider of this.providers) {
+      provider.setBackgroundOnly(enabled)
+    }
+  }
+
   private isOnCooldown(index: number): boolean {
     const stat = this.stats[index]
     if (!stat.cooldownUntil) return false

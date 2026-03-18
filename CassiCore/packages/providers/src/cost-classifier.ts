@@ -39,8 +39,18 @@ export interface CostRule {
  * First match wins. Override via runtime config 'providers.costRules'.
  */
 export const DEFAULT_COST_RULES: CostRule[] = [
-  // Free models on metered providers
-  { pattern: 'github-copilot/gpt-5-mini', cost: 'free' },
+  // Free models on metered providers (unlimited — no premium request cost)
+  { pattern: 'github-copilot/gpt-5-mini',  cost: 'free' },
+  { pattern: 'github-copilot/gpt-4o',      cost: 'free' },
+  { pattern: 'github-copilot/gpt-4.1',     cost: 'free' },
+  { pattern: 'github-copilot/gpt-4.1-mini', cost: 'free' },
+
+  // Copilot SDK — metered but tool loops count as single premium request
+  { pattern: 'copilot-sdk/gpt-5-mini',     cost: 'free' },
+  { pattern: 'copilot-sdk/gpt-4o',         cost: 'free' },
+  { pattern: 'copilot-sdk/gpt-4.1',        cost: 'free' },
+  { pattern: 'copilot-sdk/gpt-4.1-mini',   cost: 'free' },
+  { pattern: 'copilot-sdk/*',              cost: 'metered' },
 
   // Local providers — no network cost
   { pattern: 'lmstudio/*',  cost: 'local' },

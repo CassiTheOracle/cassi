@@ -236,6 +236,21 @@ export class GitHubCopilotProvider extends BaseProvider {
   readonly id = 'github-copilot'
   readonly models = ['gpt-4o', 'gpt-4o-mini', 'gemini-3-flash-preview', 'gemini-3-pro-preview', 'claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5', 'gpt-5-mini']
 
+  /**
+   * When the Copilot SDK provider handles interactive turns, the direct HTTP
+   * provider is restricted to background tasks (subconscious, thinker,
+   * dialectic, archivist, heartbeats) using only unlimited models.
+   */
+  static readonly BACKGROUND_ONLY_MODELS = new Set([
+    'gpt-4o',
+    'gpt-4.1',
+    'gpt-4.1-mini',
+    'gpt-5-mini',
+  ])
+
+  /** When true, only BACKGROUND_ONLY_MODELS are allowed (SDK handles interactive turns) */
+  private backgroundOnly = false
+
   // Caching for ping() — prevents health-check spam
   private lastPingTime = 0
   private lastPingResult = false
@@ -251,6 +266,18 @@ export class GitHubCopilotProvider extends BaseProvider {
     super()
     // Kick off async token exchange immediately — subsequent calls wait on this
     this.tokenExchangePromise = this.refreshCopilotToken().catch(() => {})
+  }
+
+  /**
+   * Enable background-only mode — restricts this provider to unlimited models.
+   * Called when the Copilot SDK provider is available for interactive turns.
+   */
+  setBackgroundOnly(enabled: boolean): void {
+    this.backgroundOnly = enabled
+  }
+
+  isBackgroundOnly(): boolean {
+    return this.backgroundOnly
   }
 
   /** Exchange OAuth token for a Copilot session token (async, cached to disk) */
@@ -329,6 +356,16 @@ export class GitHubCopilotProvider extends BaseProvider {
       await this.refreshCopilotToken()
     }
     const model = opts.model || this.models[0]
+
+    // When in background-only mode, reject premium models.
+    // Interactive turns should use the copilot-sdk provider instead.
+    if (this.backgroundOnly && !GitHubCopilotProvider.BACKGROUND_ONLY_MODELS.has(model)) {
+      throw new Error(
+        `Model '${model}' not allowed on github-copilot HTTP provider in background-only mode. ` +
+        `Use copilot-sdk provider for interactive turns, or use one of: ${[...GitHubCopilotProvider.BACKGROUND_ONLY_MODELS].join(', ')}`
+      )
+    }
+
     if (ANTHROPIC_MODELS.has(model)) {
       yield* this.completeAnthropic(messages, opts, model, attachments, signal)
     } else {
@@ -412,6 +449,8 @@ export class GitHubCopilotProvider extends BaseProvider {
     let buf = ''
     let inputTokens = 0
     let outputTokens = 0
+    let cacheReadTokens = 0
+    let cacheWriteTokens = 0
     let currentTool: { id: string; name: string; inputJson: string } | null = null
 
     // STREAM STALL DETECTION: Track last chunk received time
@@ -482,15 +521,27 @@ export class GitHubCopilotProvider extends BaseProvider {
                 currentTool = null
               }
             } else if (evtType === 'message_start') {
-              // Anthropic format: message_start contains input token count
+              // Anthropic format: message_start contains input token count and cache info
               const message = evt['message'] as Record<string, unknown>
               const usage = message?.['usage'] as Record<string, unknown>
               if (usage?.['input_tokens']) inputTokens = usage['input_tokens'] as number
+              if (usage?.['cache_read_input_tokens']) cacheReadTokens = usage['cache_read_input_tokens'] as number
+              if (usage?.['cache_creation_input_tokens']) cacheWriteTokens = usage['cache_creation_input_tokens'] as number
             } else if (evtType === 'message_delta') {
               const usage = evt['usage'] as Record<string, unknown>
               if (usage?.['output_tokens']) outputTokens = usage['output_tokens'] as number
             } else if (evtType === 'message_stop') {
-              yield { type: 'done', tokensUsed: inputTokens + outputTokens, model }
+              yield {
+                type: 'done',
+                tokensUsed: inputTokens + outputTokens,
+                tokenBreakdown: {
+                  input: inputTokens,
+                  output: outputTokens,
+                  cacheRead: cacheReadTokens,
+                  cacheWrite: cacheWriteTokens,
+                },
+                model,
+              }
             }
           } catch { /* skip malformed events */ }
         }
@@ -563,6 +614,9 @@ export class GitHubCopilotProvider extends BaseProvider {
     const decoder = new TextDecoder()
     let buf = ''
     let totalTokens = 0
+    let oaiPromptTokens = 0
+    let oaiCompletionTokens = 0
+    let oaiCachedTokens = 0
     const toolCallAccum: Map<number, { id: string; name: string; argsJson: string }> = new Map()
 
     // STREAM STALL DETECTION: Track last chunk received time
@@ -601,7 +655,17 @@ export class GitHubCopilotProvider extends BaseProvider {
               yield { type: 'tool_use', toolCall: { id: tc.id, name: tc.name, input: parsed } }
             }
             toolCallAccum.clear()
-            yield { type: 'done', tokensUsed: totalTokens, model }
+            yield {
+              type: 'done',
+              tokensUsed: totalTokens,
+              tokenBreakdown: {
+                input: oaiPromptTokens,
+                output: oaiCompletionTokens,
+                cacheRead: oaiCachedTokens,
+                cacheWrite: 0,
+              },
+              model,
+            }
             continue
           }
           try {
@@ -611,6 +675,10 @@ export class GitHubCopilotProvider extends BaseProvider {
             const usage = evt['usage'] as Record<string, unknown> | undefined
             if (usage) {
               totalTokens = (usage['total_tokens'] as number) || 0
+              oaiPromptTokens = (usage['prompt_tokens'] as number) || 0
+              oaiCompletionTokens = (usage['completion_tokens'] as number) || 0
+              const details = usage['prompt_tokens_details'] as Record<string, unknown> | undefined
+              oaiCachedTokens = (details?.['cached_tokens'] as number) || 0
             }
 
             const choices = evt['choices'] as Array<Record<string, unknown>>

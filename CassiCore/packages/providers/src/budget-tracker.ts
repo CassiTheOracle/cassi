@@ -63,6 +63,9 @@ export const BUDGET_TIER_THRESHOLDS = {
 
 export const DEFAULT_PROVIDER_BUDGETS: Record<string, ProviderBudgetConfig> = {
   'github-copilot': { monthlyLimit: 1500 },
+  // SDK shares the same Copilot premium request quota.
+  // With the SDK, full tool loops count as 1 request instead of N.
+  'copilot-sdk':    { monthlyLimit: 1500 },
 }
 
 // ─── Persistence Path ────────────────────────────────────────────────────────
@@ -236,14 +239,10 @@ export class BudgetTracker {
 
   /**
    * Check if a specific provider/model request should be allowed.
-   * Returns true if the request is free/local OR within budget.
+   * Always returns true — budget is tracking only, never denies requests.
    */
-  canAfford(providerModel: string): boolean {
-    const cost = this.classifier.classify(providerModel)
-    if (cost === 'free' || cost === 'local') return true
-
-    const providerId = providerModel.split('/')[0]
-    return this.getRemaining(providerId) > 0
+  canAfford(_providerModel: string): boolean {
+    return true
   }
 
   /**

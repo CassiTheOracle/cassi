@@ -12,9 +12,14 @@ import { GitHubCopilotProvider } from './github-copilot.js'
 import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
+import { CopilotSdkManager } from './copilot-sdk/client-manager.js'
+import { CopilotSdkProvider } from './copilot-sdk/provider.js'
+import { bridgeToolsToSdk } from './copilot-sdk/tool-bridge.js'
 
 import type { IConfig, ILogger , IEventBus } from '../../types/interfaces.js'
 import type { IProvider } from '../../types/runtime.js'
+import type { ToolRegistry } from '../tools/registry.js'
+import type { ToolExecutor } from '../tools/executor.js'
 
 
 // Import canonical provider implementations from @cassicore/ai
@@ -196,4 +201,103 @@ export function createProviders(
   }
 
   return rawProviders
+}
+
+// ── Copilot SDK Provider Initialization ──────────────────────────────────────
+
+export { CopilotSdkManager, CopilotSdkProvider, bridgeToolsToSdk }
+export type { CopilotSdkManagerOptions } from './copilot-sdk/client-manager.js'
+
+/**
+ * Initialize the Copilot SDK provider (async — requires starting the CLI process).
+ *
+ * Call this AFTER createProviders(). If the SDK initializes successfully:
+ * 1. The `copilot-sdk` provider is added to the providers map
+ * 2. The `github-copilot` HTTP provider is set to background-only mode
+ *
+ * If initialization fails (CLI not installed, auth issues, etc.), a warning is
+ * logged and the existing providers continue unchanged.
+ */
+export async function initCopilotSdkProvider(
+  providers: Map<string, IProvider>,
+  config: IConfig,
+  logger: ILogger,
+  bus: IEventBus,
+  toolRegistry?: ToolRegistry,
+  toolExecutor?: ToolExecutor,
+): Promise<CopilotSdkManager | null> {
+  const sdkEnabled = config.get<boolean>('providers.copilotSdk.enabled', true)
+  if (!sdkEnabled) {
+    logger.info('[copilot-sdk] Disabled by config (providers.copilotSdk.enabled = false)')
+    return null
+  }
+
+  const sdkLogger = logger.child('copilot-sdk-init')
+
+  try {
+    // User-configured CLI path override (empty = use SDK's bundled @github/copilot)
+    const cliPathOverride = config.get<string>('providers.copilotSdk.cliPath', '')
+
+    // Get auth token (reuse from github-copilot provider config)
+    const githubToken =
+      config.get<string>('providers.copilotSdk.githubToken', '') ||
+      config.get<string>('providers.githubCopilot.token', '') ||
+      process.env.GITHUB_TOKEN ||
+      process.env.COPILOT_TOKEN ||
+      ''
+
+    // Create and start the SDK manager.
+    // When cliPath is undefined, CopilotClient uses its bundled CLI
+    // from @github/copilot (resolved via getBundledCliPath() internally).
+    const manager = new CopilotSdkManager(logger, {
+      githubToken: githubToken || undefined,
+      cliPath: cliPathOverride || undefined,
+      cwd: process.cwd(),
+      logLevel: config.get<'none' | 'error' | 'warning' | 'info'>('providers.copilotSdk.logLevel', 'warning'),
+      autoRestart: true,
+    })
+
+    await manager.start()
+
+    // Bridge CassiCore tools to SDK format (with cassi_do enrichment)
+    const sdkTools = toolRegistry && toolExecutor
+      ? bridgeToolsToSdk(toolRegistry, toolExecutor, bus, logger)
+      : []
+
+    // Create the SDK provider
+    const sdkProvider = new CopilotSdkProvider({
+      manager,
+      tools: sdkTools,
+      bus,
+      logger,
+      defaultModel: config.get<string>('providers.copilotSdk.model', 'gpt-4o'),
+      workingDirectory: process.cwd(),
+    })
+
+    await sdkProvider.initModels()
+
+    // Register the SDK provider
+    providers.set('copilot-sdk', sdkProvider)
+    sdkLogger.info(`copilot-sdk provider ready (${sdkProvider.models.length} models, ${sdkTools.length} tools)`)
+
+    // Set the HTTP provider to background-only mode
+    const httpProvider = providers.get('github-copilot')
+    if (httpProvider) {
+      // Unwrap CentralizedProvider if needed
+      const raw = (httpProvider as unknown as { inner?: IProvider }).inner ?? httpProvider
+      if (raw instanceof GitHubCopilotProvider) {
+        raw.setBackgroundOnly(true)
+        sdkLogger.info('github-copilot HTTP provider set to background-only mode')
+      } else if (raw && typeof (raw as GitHubCopilotLoadBalancer).setBackgroundOnly === 'function') {
+        ;(raw as GitHubCopilotLoadBalancer).setBackgroundOnly(true)
+        sdkLogger.info('github-copilot load balancer set to background-only mode')
+      }
+    }
+
+    return manager
+  } catch (err) {
+    sdkLogger.error(`Failed to initialize Copilot SDK provider: ${String(err)}`)
+    sdkLogger.info('Falling back to github-copilot HTTP provider for all requests')
+    return null
+  }
 }
