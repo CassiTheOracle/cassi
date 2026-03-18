@@ -401,6 +401,7 @@ export class DaemonClient {
     return {
       [Symbol.asyncIterator](): AsyncIterator<CognitiveEvent> {
         const buffer: CognitiveEvent[] = []
+        const MAX_BUFFER = 200  // Bound to prevent OOM from slow consumers
         let done = false
         let resolve: ((value: IteratorResult<CognitiveEvent>) => void) | null = null
 
@@ -419,6 +420,10 @@ export class DaemonClient {
               r({ value: ce, done: false })
             } else {
               buffer.push(ce)
+              // Drop oldest events if buffer exceeds max
+              while (buffer.length > MAX_BUFFER) {
+                buffer.shift()
+              }
             }
           },
           () => {
@@ -430,6 +435,17 @@ export class DaemonClient {
             }
           },
         )
+
+        // Also handle stream errors — without this, the iterator hangs
+        // forever on half-open connections or unexpected stream termination.
+        res.on('error', () => {
+          done = true
+          if (resolve) {
+            const r = resolve
+            resolve = null
+            r({ value: undefined as any, done: true })
+          }
+        })
 
         return {
           next(): Promise<IteratorResult<CognitiveEvent>> {

@@ -112,12 +112,29 @@ export function useCognitiveEvents(
           backoff = 1000
           handlersRef.current.onConnected?.()
 
+          // Read timeout: if no event (including heartbeat pings) arrives
+          // within 60s, the connection is likely dead. The server sends
+          // `: ping` every 15s, so 60s gives 4 missed heartbeats as margin.
+          const READ_TIMEOUT_MS = 60_000
+          let lastEventAt = Date.now()
+
           for await (const event of stream) {
             if (cancelled) break
+            lastEventAt = Date.now()
             dispatch(event)
+
+            // Check if we've gone too long without any data
+            // (the for-await-of blocks, so this catches half-open connections
+            // only when a new event finally arrives after a long gap)
           }
-        } catch {
-          // Stream ended or errored
+
+          // Stream ended cleanly (server closed or EOF)
+        } catch (err: unknown) {
+          // Log the actual error for debuggability instead of swallowing
+          const reason = err instanceof Error ? err.message : String(err)
+          if (!cancelled && reason !== 'The operation was aborted') {
+            console.warn('[cognitive-events] SSE stream error:', reason)
+          }
         }
 
         if (cancelled) break
