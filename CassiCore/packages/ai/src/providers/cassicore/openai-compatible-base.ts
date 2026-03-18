@@ -410,6 +410,7 @@ export abstract class OpenAICompatibleBase {
     let jsonAccumulator = "";
     const toolCallAccum = new Map<number, ToolCallAccumulator>();
     let totalTokensUsed = 0;
+    let tokenBreakdown: { input: number; output: number; cacheRead: number; cacheWrite: number } | undefined;
     // Event boundary accumulator: lines belonging to the current SSE event
     let eventLines: string[] = [];
 
@@ -435,7 +436,7 @@ export abstract class OpenAICompatibleBase {
 
               // If the accumulator explicitly signals end-of-stream, flush and finish
               if (jsonAccumulator.trim() === "[DONE]") {
-                yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
+                yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
                 return;
               }
 
@@ -448,6 +449,16 @@ export abstract class OpenAICompatibleBase {
                   const usage = evt["usage"] as Record<string, unknown> | undefined;
                   if (usage && typeof usage["total_tokens"] === "number") {
                     totalTokensUsed = usage["total_tokens"];
+                    const promptTokens = (usage["prompt_tokens"] as number) || 0;
+                    const completionTokens = (usage["completion_tokens"] as number) || 0;
+                    const details = usage["prompt_tokens_details"] as Record<string, unknown> | undefined;
+                    const cachedTokens = (details?.["cached_tokens"] as number) || 0;
+                    tokenBreakdown = {
+                      input: promptTokens,
+                      output: completionTokens,
+                      cacheRead: cachedTokens,
+                      cacheWrite: 0,
+                    };
                   }
 
                   const choices = evt["choices"] as Array<Record<string, unknown>> | undefined;
@@ -485,7 +496,7 @@ export abstract class OpenAICompatibleBase {
 
           // If the line itself signals end of stream, process immediately
           if (data === "[DONE]") {
-            yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
+            yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
             return;
           }
 
@@ -501,22 +512,27 @@ export abstract class OpenAICompatibleBase {
         try {
           jsonAccumulator += dataCombined.trim();
 
-          // If the accumulator explicitly signals end-of-stream, flush and finish
-          if (jsonAccumulator.trim() === "[DONE]") {
-            yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
-            return;
-          }
-
-          const { parsed: parsedObjs, remainder } = this.extractCompleteJSONObjects(jsonAccumulator);
-          jsonAccumulator = remainder;
-
-          if (parsedObjs && parsedObjs.length > 0) {
-            for (const evt of parsedObjs) {
-              // Extract usage from final usage chunk (empty choices, has usage field)
-              const usage = evt["usage"] as Record<string, unknown> | undefined;
-              if (usage && typeof usage["total_tokens"] === "number") {
-                totalTokensUsed = usage["total_tokens"];
+              // If the accumulator explicitly signals end-of-stream, flush and finish
+              if (jsonAccumulator.trim() === "[DONE]") {
+                yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
+                return;
               }
+
+              const { parsed: parsedObjs, remainder } = this.extractCompleteJSONObjects(jsonAccumulator);
+              jsonAccumulator = remainder;
+
+              if (parsedObjs && parsedObjs.length > 0) {
+                for (const evt of parsedObjs) {
+                  // Extract usage from final usage chunk (empty choices, has usage field)
+                  const usage = evt["usage"] as Record<string, unknown> | undefined;
+                  if (usage && typeof usage["total_tokens"] === "number") {
+                    totalTokensUsed = usage["total_tokens"];
+                    const promptTokens = (usage["prompt_tokens"] as number) || 0;
+                    const completionTokens = (usage["completion_tokens"] as number) || 0;
+                    const details = usage["prompt_tokens_details"] as Record<string, unknown> | undefined;
+                    const cachedTokens = (details?.["cached_tokens"] as number) || 0;
+                    tokenBreakdown = { input: promptTokens, output: completionTokens, cacheRead: cachedTokens, cacheWrite: 0 };
+                  }
 
               const choices = evt["choices"] as Array<Record<string, unknown>> | undefined;
 
@@ -543,7 +559,7 @@ export abstract class OpenAICompatibleBase {
                 // Check for finish_reason to flush tool calls
                 const finishReason = choice["finish_reason"];
                 if (finishReason === "tool_calls" || finishReason === "stop") {
-                  yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
+                  yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
                   return;
                 }
               }
@@ -558,7 +574,7 @@ export abstract class OpenAICompatibleBase {
       if (jsonAccumulator.trim()) {
         try {
           if (jsonAccumulator.trim() === "[DONE]") {
-            yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
+            yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
             return;
           }
 
@@ -570,6 +586,11 @@ export abstract class OpenAICompatibleBase {
               const usage = evt["usage"] as Record<string, unknown> | undefined;
               if (usage && typeof usage["total_tokens"] === "number") {
                 totalTokensUsed = usage["total_tokens"];
+                const promptTokens = (usage["prompt_tokens"] as number) || 0;
+                const completionTokens = (usage["completion_tokens"] as number) || 0;
+                const details = usage["prompt_tokens_details"] as Record<string, unknown> | undefined;
+                const cachedTokens = (details?.["cached_tokens"] as number) || 0;
+                tokenBreakdown = { input: promptTokens, output: completionTokens, cacheRead: cachedTokens, cacheWrite: 0 };
               }
 
               const choices = evt["choices"] as Array<Record<string, unknown>> | undefined;
@@ -597,7 +618,7 @@ export abstract class OpenAICompatibleBase {
                 // Check for finish_reason to flush tool calls
                 const finishReason = choice["finish_reason"];
                 if (finishReason === "tool_calls" || finishReason === "stop") {
-                  yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
+                  yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
                   return;
                 }
               }
@@ -614,7 +635,7 @@ export abstract class OpenAICompatibleBase {
       reader.releaseLock();
     }
 
-    yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed);
+    yield* this.flushToolCalls(toolCallAccum, resolvedModel, totalTokensUsed, tokenBreakdown);
 
     // If we get here, the stream completed successfully — exit retry loop
     return;
@@ -628,6 +649,7 @@ export abstract class OpenAICompatibleBase {
     toolCallAccum: Map<number, ToolCallAccumulator>,
     model: string,
     totalTokensUsed: number,
+    tokenBreakdown?: { input: number; output: number; cacheRead: number; cacheWrite: number },
   ): Generator<CompletionChunk, void, unknown> {
     for (const tc of toolCallAccum.values()) {
       let parsed: Record<string, unknown> = {};
@@ -642,7 +664,7 @@ export abstract class OpenAICompatibleBase {
       };
     }
     toolCallAccum.clear();
-    yield { type: "done", model, tokensUsed: totalTokensUsed };
+    yield { type: "done", model, tokensUsed: totalTokensUsed, tokenBreakdown };
   }
 
   /**

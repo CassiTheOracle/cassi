@@ -328,6 +328,12 @@ function* toCassiCoreChunks(event: AssistantMessageEvent): Generator<CassiCoreCh
       yield { 
         type: 'done',
         tokensUsed: event.message.usage.totalTokens,
+        tokenBreakdown: {
+          input: event.message.usage.input ?? 0,
+          output: event.message.usage.output ?? 0,
+          cacheRead: event.message.usage.cacheRead ?? 0,
+          cacheWrite: event.message.usage.cacheWrite ?? 0,
+        },
         model: event.message.model
       };
       break;

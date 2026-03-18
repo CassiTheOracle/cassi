@@ -13116,7 +13116,7 @@ export const MODELS = {
 			maxTokens: 8192,
 		} satisfies Model<"openai-completions">,
 		"liquid/lfm2.5-1.2b": {
-			id: "lfm2.5-1.2b",
+			id: "liquid/lfm2.5-1.2b",
 			name: "Liquid LFM 2.5 1.2B",
 			api: "openai-completions",
 			provider: "lmstudio",

@@ -27,14 +27,11 @@ const OPENAI_BASE_URL = "https://coding-intl.dashscope.aliyuncs.com/v1";
 const ALIBABA_CODING_OPENAI_MODELS = [
   "qwen3.5-plus",
   "qwen3-max-2026-01-23",
-  "qwen3-coder-next",
-  "qwen3-coder-plus",
 ] as const;
 
 /** Models available through the Anthropic-compatible endpoint (handled by anthropic-messages API handler) */
 const ALIBABA_CODING_ANTHROPIC_MODELS = [
   "glm-5",
-  "glm-4.7",
   "kimi-k2.5",
   "MiniMax-M2.5",
 ] as const;
@@ -183,7 +180,7 @@ export class AlibabaCodingProvider extends OpenAICompatibleBase {
     signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
     yield* this.streamChatCompletion(
-      opts.model || "qwen3-coder-plus",
+      opts.model || "qwen3.5-plus",
       messages,
       opts,
       attachments,
