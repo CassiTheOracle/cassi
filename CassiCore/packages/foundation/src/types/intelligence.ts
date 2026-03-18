@@ -295,3 +295,12 @@ export interface IOptimizer {
   /** Get recent optimization history */
   history(limit?: number): Promise<OptimizationOutcome[]>
 }
+
+// ─── Dreamer ─────────────────────────────────────────────────────────────────
+
+/**
+ * Configuration for the Dreamer cognitive module.
+ * Also available from core/intelligence/dreamer/types.ts (DreamerConfig).
+ * This re-export here gives callers a single import path via types/intelligence.ts.
+ */
+export type { DreamerConfig } from '../core/intelligence/dreamer/types.js'

@@ -85,6 +85,14 @@ export type RuntimeEvent =
   | { type: "dialectic:stopped"; dialecticId: string; reason: string }
   | { type: "dialectic:iteration"; dialecticId: string; iteration: number; summary: { yang?: number; yin?: number; hasSignal?: boolean } }
   | { type: "dialectic:error"; dialecticId: string; error: string }
+  // Lumen three-model concurrent system events
+  | { type: "lumen:started"; sessionId?: string; goal: string; timestamp: Date }
+  | { type: "lumen:yang-complete"; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "lumen:yin-complete"; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "lumen:synthesis-complete"; sessionId?: string; recommendation: "proceed" | "reconsider" | "abort"; confidence: number; tokensUsed: { yang: number; yin: number; executive: number }; durationMs: number; timestamp: Date }
+  | { type: "lumen:posture:start"; posture: "yang" | "yin" | "executive"; sessionId?: string; timestamp: Date }
+  | { type: "lumen:posture:complete"; posture: "yang" | "yin" | "executive"; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
+  | { type: "lumen:posture:error"; posture: "yang" | "yin" | "executive"; sessionId?: string; error: string; timestamp: Date }
   // Session Agent events
 
   // Skill usage tracking events
@@ -95,6 +103,10 @@ export type RuntimeEvent =
   | { type: "intelligence:maintenance"; task: string; detail?: string; timestamp: Date }
   | { type: "intelligence:loop:started"; intervalMs: number; timestamp: Date }
   | { type: "intelligence:loop:stopped"; reason: string; cyclesCompleted: number; timestamp: Date }
+  // Heart Module events
+  | { type: "heart:beat"; cycleNumber: number; isOk: boolean; durationMs: number; tokensUsed: { input: number; output: number }; timestamp: Date }
+  | { type: "heart:delivered"; cycleNumber: number; target: string; contentLength: number; timestamp: Date }
+  | { type: "heart:skipped"; cycleNumber: number; reason: string; timestamp: Date }
   // Adaptive Behavior events (Phase 3)
   | { type: "adaptive:adaptation-applied"; adaptationId: string; adaptationType: string; target: string; confidence: number; sourceModule: string; timestamp: Date }
   | { type: "adaptive:adaptation-reverted"; adaptationId: string; adaptationType: string; target: string; reason: string; timestamp: Date }
@@ -131,8 +143,10 @@ export type RuntimeEvent =
   | { type: "team:paused"; teamId: string }
   | { type: "team:resumed"; teamId: string }
   | { type: "team:budget:warning"; teamId: string; tokenPct: number; agentPct: number; timePct: number }
-  | { type: "team:checkpoint"; teamId: string; checkpointId: string; trigger: string; progress: string }
-  // Cross-session awareness events
+   | { type: "team:checkpoint"; teamId: string; checkpointId: string; trigger: string; progress: string }
+   // FluxTeam node-level execution signals
+   | { type: "flux:node:completed"; teamId: string; cellId: string; nodeId: string; genomeId: string; success: boolean; confidence: number; tokensUsed: number; durationMs: number; toolCallCount: number }
+   // Cross-session awareness events
   | { type: "session:created"; sessionId: string; channelId: string; senderId: string; timestamp: Date }
   | { type: "session:ended"; sessionId: string; timestamp: Date }
   | { type: "cross-session:message"; fromSessionId: string; toSessionId: string; messageId: string; content: string; timestamp: Date }
@@ -369,6 +383,11 @@ export type RuntimeEvent =
     | { type: "macro-dialectic:divergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; tensionLevel: number; timestamp: Date }
     | { type: "macro-dialectic:unity-stream-chunk"; workspaceId: string; sessionId: string; chunkIndex: number; text: string; timestamp: Date }
     | { type: "macro-dialectic:unity-complete"; workspaceId: string; sessionId: string; toolsExecuted: number; durationMs: number; timestamp: Date }
+  // ── Lumen events (Three-Model Concurrent Specialist) ────────────────────────
+  | { type: "lumen:started"; lumenId: string; goal: string; sessionId?: string; timestamp: Date }
+  | { type: "lumen:yang-complete"; lumenId: string; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "lumen:yin-complete"; lumenId: string; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
+  | { type: "lumen:synthesis-complete"; lumenId: string; sessionId?: string; confidence: number; recommendation: 'proceed' | 'reconsider' | 'abort'; tokensUsed: { yang: number; yin: number; executive: number }; durationMs: number; timestamp: Date }
    // Triad Team events — hierarchical dialectic team system
    | { type: "triad-team:created"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:started"; teamId: string; entityId: string; message: string; timestamp: Date }
@@ -460,7 +479,120 @@ export type RuntimeEvent =
       timestamp: Date;
     }
   // ── OpenCode Channel events ────────────────────────────────────────
-  | { type: "opencode:mode-change"; mode: "sse" | "sqlite" | "hybrid"; reason: string; timestamp: Date };
+  | { type: "opencode:mode-change"; mode: "sse" | "sqlite" | "hybrid"; reason: string; timestamp: Date }
+
+  // ── ModelPool events ────────────────────────────────────────────────
+  | {
+      type: "model:acquired";
+      slotName: string;
+      provider: string;
+      model: string;
+      sessionId: string;
+      timestamp: Date;
+    }
+  | {
+      type: "model:released";
+      slotName: string;
+      provider: string;
+      model: string;
+      tokensUsed: number;
+      sessionId: string;
+      timestamp: Date;
+    }
+  | {
+      type: "budget:warning";
+      scopeId: string;
+      tier: "cautious" | "frugal" | "critical";
+      percentUsed: number;
+      projectedExhaustion?: Date;
+      threshold: number;
+      timestamp: Date;
+    }
+  | {
+      type: "budget:tier_changed";
+      scopeId: string;
+      previousTier: "normal" | "cautious" | "frugal" | "critical";
+      newTier: "normal" | "cautious" | "frugal" | "critical";
+      percentUsed: number;
+      timestamp: Date;
+    }
+  | {
+      type: "budget:exhausted";
+      scopeId: string;
+      percentUsed: number;
+      billingModel: string;
+      resetAt?: Date;
+      timestamp: Date;
+    }
+  | {
+      type: "fallback:triggered";
+      slotName: string;
+      fromProvider: string | null;
+      fromModel: string | null;
+      toProvider: string | null;
+      toModel: string | null;
+      reason: string;
+      consecutiveFailures?: number;
+      chainExhausted?: boolean;
+      timestamp: Date;
+    }
+  | {
+      type: "circuit:stateChange";
+      provider: string;
+      model: string;
+      state: "closed" | "open" | "half-open";
+      previousState: "closed" | "open" | "half-open";
+      timestamp: Date;
+    }
+  | {
+      type: "rate_limit:detected";
+      provider: string;
+      model: string;
+      retryAfterMs?: number;
+      timestamp: Date;
+    }
+  // ── Triad-Team cell-level turn events ──
+  | {
+      type: "cell:turn:start";
+      teamId: string;
+      cellId: string;
+      cellRole: string;
+      phase: string;
+      turnIndex: number;
+      iterationIndex: number;
+      timestamp: Date;
+    }
+  | {
+      type: "cell:turn:end";
+      teamId: string;
+      cellId: string;
+      cellRole: string;
+      phase: string;
+      traceId: string;
+      turnIndex: number;
+      durationMs: number;
+      tokensUsed: number | { input: number; output: number; thinking: number };
+      toolCallCount: number;
+      signalCount: number;
+      snapshotCount: number;
+      timestamp: Date;
+      error?: string;
+    }
+  | {
+      type: "cell:thinking:signal-extracted";
+      teamId: string;
+      cellId: string;
+      cellRole: string;
+      signals: Array<{ kind: string; text: string; confidence: number }>;
+      thinkingCharsProcessed: number;
+      timestamp: Date;
+    }
+  // Lumen concurrent orchestration events
+  | { type: "lumen:start"; sessionId?: string; goal: string; timestamp: Date }
+  | { type: "lumen:posture:start"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; timestamp: Date }
+  | { type: "lumen:posture:complete"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
+  | { type: "lumen:posture:error"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; error: string; timestamp: Date }
+  | { type: "lumen:complete"; sessionId?: string; recommendation: 'proceed' | 'reconsider' | 'abort'; confidence: number; durationMs: number; timestamp: Date }
 
 export type EventType = RuntimeEvent["type"];
 

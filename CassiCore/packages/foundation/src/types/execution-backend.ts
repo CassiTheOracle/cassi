@@ -91,16 +91,53 @@ export interface AgentSessionOpts {
 export type ExecutionBackendType = 'cassicore' | 'opencode' | 'auto'
 
 export interface OpenCodeBackendConfig {
-  /** Base URL for OpenCode HTTP API (default: auto-discover or http://localhost:4096) */
+  /** 
+   * Base URL for OpenCode HTTP API.
+   * If not set, auto-discovers from server.json or defaults to http://localhost:4096.
+   * 
+   * INTERNAL USE ONLY - NOT forwarded to OpenCode.
+   */
   url?: string
-  /** Path to server.json for port discovery (default: ~/.opencode/server.json) */
+  
+  /** 
+   * Path to server.json for port discovery.
+   * Default: ~/.opencode/server.json (written by OpenCode fork U9).
+   * 
+   * INTERNAL USE ONLY - NOT forwarded to OpenCode.
+   */
   serverJsonPath?: string
-  /** Default agent type for team agents (default: 'build') */
+  
+  /** 
+   * Default agent type for team agents.
+   * Default: 'build'. Used when creating sessions if opts.openCodeAgent is not set.
+   * 
+   * INTERNAL USE ONLY - NOT forwarded to OpenCode.
+   */
   defaultAgent?: string
-  /** Default model override (if not set, uses OpenCode's configured model) */
+  
+  /** 
+   * Default model override for message execution.
+   * Format: { providerID: string; modelID: string }
+   * 
+   * Used as fallback when no per-session provider override is set.
+   * Per-session overrides from AgentSessionOpts.provider take precedence.
+   * If not set, OpenCode uses its own configured model.
+   */
   defaultModel?: { providerID: string; modelID: string }
-  /** Request timeout in ms (default: 300000 = 5 minutes) */
+  
+  /** 
+   * Request timeout in milliseconds.
+   * Default: 300000 (5 minutes).
+   * 
+   * INTERNAL USE ONLY - NOT forwarded to OpenCode.
+   */
   requestTimeoutMs?: number
-  /** Whether to forward CassiCore session hierarchy events (default: true) */
+  
+  /** 
+   * Whether to forward CassiCore session hierarchy events.
+   * Default: true. Controls internal session tracking behavior.
+   * 
+   * INTERNAL USE ONLY - NOT forwarded to OpenCode.
+   */
   forwardHierarchyEvents?: boolean
 }

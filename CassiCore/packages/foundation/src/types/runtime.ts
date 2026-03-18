@@ -88,6 +88,13 @@ export interface CompletionChunk {
   type: 'token' | 'thinking' | 'done' | 'error' | 'tool_use';
   text?: string;
   tokensUsed?: number;
+  /** Token usage breakdown (available on 'done' chunks) */
+  tokenBreakdown?: {
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
   model?: string;
   error?: string;
   /** Present when type === 'tool_use' */

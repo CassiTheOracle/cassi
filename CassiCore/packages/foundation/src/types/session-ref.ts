@@ -46,6 +46,13 @@ export interface IndexSearchResult {
   entry: IndexEntry
   /** FTS rank score (lower = more relevant). */
   rank: number
+  /**
+   * Character offset of the first match within entry.content.
+   * Derived from SQLite FTS5 highlight() — used for centered display windowing
+   * so long tool_result / text blocks show the relevant portion rather than
+   * the start of the content.
+   */
+  matchOffset?: number
 }
 
 /** Stats for a session's index. */

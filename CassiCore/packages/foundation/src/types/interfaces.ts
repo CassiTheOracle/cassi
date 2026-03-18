@@ -25,6 +25,15 @@ export interface IEventBus {
 
   /** Subscribe to ALL events regardless of type. Returns an unsubscribe function. */
   onAll(handler: (event: RuntimeEvent) => void): Unsubscribe;
+
+  /** Clear retained history for a single session (prevents memory leak). */
+  clearSession?(sessionId: string): void;
+
+  /** Number of sessions with active history buffers. */
+  sessionHistoryCount?: number;
+
+  /** Subscribe to session:ended and auto-clear session history buffers. */
+  wireSessionCleanup?(): void;
 }
 
 // ─── Logger ──────────────────────────────────────────────────────────────────
