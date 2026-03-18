@@ -1,57 +1,1018 @@
+#!/usr/bin/env node
 /**
- * MCP Gateway Server
+ * CassiCore MCP Gateway Server
  *
- * Adds SSE Streaming Integration with Debugging.
+ * Exposes CassiCore's tools and capabilities via the Model Context Protocol (MCP).
+ * This allows external AI systems (like Qwen-Coder) to use CassiCore's tool ecosystem.
+ *
+ * Supports:
+ * - stdio transport (for direct IDE integration)
+ * - HTTP/SSE transport (for remote connections)
+ *
+ * Usage:
+ *   node mcp/cassicore-gateway.ts                    # stdio mode (default)
+ *   node mcp/cassicore-gateway.ts --http --port 3000 # HTTP mode
  */
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+  ProgressNotificationSchema,
+  LoggingMessageNotificationSchema,
+} from '@modelcontextprotocol/sdk/types.js';
 import http from 'http';
-import { EventBus } from './event-bus.js'; // Importing EventBus for streaming
-import { SSEConnectionManager } from './sse-connection-manager.js'; // SSE Connection Utilities
+import fs from 'node:fs';
+import path from 'node:path';
 
+// Import domain modules
+import {
+  GATEWAY_VERSION,
+  createLogger,
+  fetchWithTimeout,
+  formatError,
+  formatJsonResponse,
+  formatTextResponse,
+  // Tool modules
+  getCoreTools,
+  getIntelligenceTools,
+  getDialecticTools,
+  getMemoryTools,
+  getConfigAdminTools,
+  getSessionTools,
+  getActionTools,
+  getTeamTools,
+  getTeamAgentTools,
+  getCompositeTools,
+  getAdminApiTools,
+  // Execution functions
+  executeCassiCoreTool,
+  executeIntelligenceTool,
+  executeDialecticTool,
+  executeMemoryTool,
+  executeConfigAdminTool,
+  executeSessionTool,
+  executeActionTool,
+  executeTeamTool,
+  executeTeamAgentTool,
+  executeCompositeTool,
+  executeAdminApiTool,
+  // Tool name sets
+  INTELLIGENCE_TOOL_NAMES,
+  DIALECTIC_TOOL_NAMES,
+  MEMORY_TOOL_NAMES,
+  CONFIG_ADMIN_TOOL_NAMES,
+  SESSION_TOOL_NAMES,
+  ACTION_TOOL_NAMES,
+  TEAM_TOOL_NAMES,
+  TEAM_AGENT_TOOL_NAMES,
+  COMPOSITE_TOOL_NAMES,
+  ADMIN_API_TOOL_NAMES,
+  // Lumen
+  getLumenTools,
+  executeLumenTool,
+  LUMEN_TOOL_NAMES,
+  // Model Directive
+  getModelDirectiveTools,
+  executeModelDirectiveTool,
+  MODEL_DIRECTIVE_TOOL_NAMES,
+  // Do tool (meta-wrapper) + Enrich tool (context-only)
+  getDoTools,
+  executeDoTool,
+  executeEnrichTool,
+  DO_TOOL_NAMES,
+  ENRICH_TOOL_NAMES,
+} from './gateway/index.js';
+
+// Configuration
 const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
-const logger = console; // Simplified logging for demonstration
+
+// Logger
+const logger = createLogger();
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Security Configuration
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * HTTP Server with SSE Protocol support.
+ * Load authentication token from config file or environment
  */
-async function startHttpServer() {
-  const eventBus = new EventBus(); // SSE Bus Initialization
-  const sseManager = new SSEConnectionManager(eventBus); // Connection Manager Setup
+function getAuthToken(): string | null {
+  // Check environment variable first
+  if (process.env.CASSICORE_MCP_TOKEN) {
+    return process.env.CASSICORE_MCP_TOKEN;
+  }
 
-  const server = http.createServer(async (req, res) => {
-    if (req.url === '/sse/stream' && req.method === 'GET') {
-      logger.info('Establishing SSE connection...');
-      sseManager.establishConnection(req, res); // Delegate to SSE Manager
+  // Check config file
+  try {
+    const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cassicore', 'config.json');
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      return config.mcp?.token || null;
+    }
+  } catch {
+    // Config not found or invalid
+  }
 
-      // Emit a test event to verify the system
-      setTimeout(() => {
-        eventBus.emit('test-stream', { data: 'Test message' });
-        logger.info('Test event emitted to SSE connection');
-      }, 1000);
+  return null;
+}
+
+const AUTH_TOKEN = getAuthToken();
+
+/**
+ * Validate authentication token from request
+ */
+function validateAuth(req: http.IncomingMessage): boolean {
+  if (!AUTH_TOKEN) {
+    // No token configured - allow all (local-only mode)
+    return true;
+  }
+
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || Array.isArray(authHeader)) {
+    return false;
+  }
+
+  return authHeader === `Bearer ${AUTH_TOKEN}`;
+}
+
+/**
+ * Validate Content-Type header for POST/PUT requests
+ */
+function validateContentType(req: http.IncomingMessage, expectedType: string = 'application/json'): boolean {
+  const contentType = req.headers['content-type'];
+  if (!contentType) {
+    return false;
+  }
+  
+  // Allow charset specification
+  return contentType.toLowerCase().startsWith(expectedType);
+}
+
+/**
+ * Read request body with size limit
+ */
+function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1024): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    let totalSize = 0;
+
+    req.on('data', chunk => {
+      totalSize += chunk.length;
+      if (totalSize > maxSize) {
+        req.destroy();
+        reject(new Error(`Request body exceeds ${maxSize} byte limit`));
+        return;
+      }
+      body += chunk;
+    });
+
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Tool Registry
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Get all available tools from all domains
+ */
+function getAllTools() {
+  return [
+    ...getCoreTools(),
+    ...getIntelligenceTools(),
+    ...getDialecticTools(),
+    ...getMemoryTools(),
+    ...getConfigAdminTools(),
+    ...getSessionTools(),
+    ...getActionTools(),
+    ...getTeamTools(),
+    ...getTeamAgentTools(),
+    ...getCompositeTools(),
+    ...getAdminApiTools(),
+    ...getLumenTools(),
+    ...getModelDirectiveTools(),
+    ...getDoTools(),
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Tool Execution Router
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Route a tool call to the appropriate domain handler
+ */
+async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
+  logger.info('Tool call received', { tool: name, args });
+
+  try {
+    // Intelligence introspection tools (return markdown)
+    if (INTELLIGENCE_TOOL_NAMES.has(name)) {
+      const markdown = await executeIntelligenceTool(CASSICORE_URL, name, args, logger);
+      return formatTextResponse(markdown);
+    }
+
+    // Dialectic tools (return markdown)
+    if (DIALECTIC_TOOL_NAMES.has(name)) {
+      const markdown = await executeDialecticTool(CASSICORE_URL, name, args, logger);
+      return formatTextResponse(markdown);
+    }
+
+    // Core tools (return JSON)
+    if (getCoreTools().some(t => t.name === name)) {
+      const result = await executeCassiCoreTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Memory tools (return JSON)
+    if (MEMORY_TOOL_NAMES.has(name)) {
+      const result = await executeMemoryTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Config/Admin tools (return JSON)
+    if (CONFIG_ADMIN_TOOL_NAMES.has(name)) {
+      const result = await executeConfigAdminTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Session tools (return JSON)
+    if (SESSION_TOOL_NAMES.has(name)) {
+      const result = await executeSessionTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Action tools (return JSON)
+    if (ACTION_TOOL_NAMES.has(name)) {
+      const result = await executeActionTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Team tools (return JSON)
+    if (TEAM_TOOL_NAMES.has(name)) {
+      const result = await executeTeamTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Team agent tools (return JSON)
+    if (TEAM_AGENT_TOOL_NAMES.has(name)) {
+      const result = await executeTeamAgentTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Composite tools (return JSON) — pass heartbeat callback for long-running tools
+    if (COMPOSITE_TOOL_NAMES.has(name)) {
+      const result = await executeCompositeTool(CASSICORE_URL, name, args, logger, heartbeat);
+      return formatJsonResponse(result);
+    }
+
+    // Admin API tools (return JSON)
+    if (ADMIN_API_TOOL_NAMES.has(name)) {
+      const result = await executeAdminApiTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // Lumen tools (return JSON) — pass heartbeat for long-running analysis
+    if (LUMEN_TOOL_NAMES.has(name)) {
+      const result = await executeLumenTool(CASSICORE_URL, name, args, logger, heartbeat);
+      return formatJsonResponse(result);
+    }
+
+    // Model Directive tools (return JSON)
+    if (MODEL_DIRECTIVE_TOOL_NAMES.has(name)) {
+      const result = await executeModelDirectiveTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // do tool — meta-wrapper with parallel context enrichment
+    if (DO_TOOL_NAMES.has(name)) {
+      return await executeDoTool(
+        CASSICORE_URL,
+        args,
+        logger,
+        (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)
+      );
+    }
+
+    // enrich tool — context-only enrichment (no delegated tool call)
+    if (ENRICH_TOOL_NAMES.has(name)) {
+      return await executeEnrichTool(CASSICORE_URL, args, logger);
+    }
+
+    // Unknown tool
+    throw new Error(`Unknown tool: ${name}`);
+  } catch (error: any) {
+    logger.error('Tool execution failed', { tool: name, error: String(error) });
+    return formatError(error);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Resource Subscription Manager
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Active resource subscriptions: URI -> Set of subscriber IDs
+ */
+const resourceSubscriptions = new Map<string, Set<string>>();
+
+/**
+ * Subscribe a client to a resource URI
+ */
+function subscribeToResource(uri: string, subscriberId: string): void {
+  if (!resourceSubscriptions.has(uri)) {
+    resourceSubscriptions.set(uri, new Set());
+  }
+  resourceSubscriptions.get(uri)!.add(subscriberId);
+  logger.info('Resource subscription added', { uri, subscriberId, totalSubscribers: resourceSubscriptions.get(uri)!.size });
+}
+
+/**
+ * Unsubscribe a client from a resource URI
+ */
+function unsubscribeFromResource(uri: string, subscriberId: string): void {
+  const subscribers = resourceSubscriptions.get(uri);
+  if (subscribers) {
+    subscribers.delete(subscriberId);
+    if (subscribers.size === 0) {
+      resourceSubscriptions.delete(uri);
+    }
+    logger.info('Resource subscription removed', { uri, subscriberId, remainingSubscribers: subscribers.size });
+  }
+}
+
+/**
+ * Notify all subscribers of a resource update
+ */
+async function notifyResourceUpdate(server: Server, uri: string): Promise<void> {
+  const subscribers = resourceSubscriptions.get(uri);
+  if (subscribers && subscribers.size > 0) {
+    logger.info('Notifying resource update', { uri, subscriberCount: subscribers.size });
+    // Note: In stdio mode, notifications are queued and sent when possible
+    // The SDK handles the actual delivery
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MCP Server
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Create MCP Server with full capabilities
+ */
+function createServer() {
+  const server = new Server(
+    {
+      name: 'cassicore-gateway',
+      version: GATEWAY_VERSION,
+    },
+    {
+      capabilities: {
+        tools: {
+          listChanged: true,
+        },
+        resources: {
+          subscribe: true,
+          listChanged: true,
+        },
+        prompts: {
+          listChanged: true,
+        },
+        logging: {},
+      },
+    }
+  );
+
+  // List available tools
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+      tools: getAllTools(),
+    };
+  });
+
+  // Handle tool calls with progress notification support
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args, _meta } = request.params;
+    const progressToken = _meta?.progressToken;
+    
+    // Send progress notifications for long-running operations
+    if (progressToken) {
+      server.notification({
+        method: 'notifications/progress',
+        params: {
+          progressToken,
+          progress: 0,
+          total: 100,
+          message: `Starting ${name}...`,
+        },
+      });
+    }
+
+    try {
+      // Create heartbeat callback for long-running tools (sends MCP progress notifications
+      // to prevent the MCP client from timing out during blocking operations like team_watch)
+      const heartbeat = progressToken ? () => {
+        server.notification({
+          method: 'notifications/progress',
+          params: {
+            progressToken,
+            progress: 50,
+            total: 100,
+            message: `${name} waiting for events...`,
+          },
+        })
+      } : undefined
+
+      const result = await routeToolCall(name, args, progressToken, heartbeat);
+      
+      // Send completion progress
+      if (progressToken) {
+        server.notification({
+          method: 'notifications/progress',
+          params: {
+            progressToken,
+            progress: 100,
+            total: 100,
+            message: `${name} completed`,
+          },
+        });
+      }
+      
+      return result;
+    } catch (error: any) {
+      if (progressToken) {
+        server.notification({
+          method: 'notifications/progress',
+          params: {
+            progressToken,
+            progress: 100,
+            total: 100,
+            message: `${name} failed: ${error.message}`,
+          },
+        });
+      }
+      throw error;
+    }
+  });
+
+  // List static resources
+  server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    return {
+      resources: [
+        {
+          uri: 'cassicore://health',
+          name: 'CassiCore Health Status',
+          mimeType: 'application/json',
+          description: 'Current health and status of CassiCore daemon',
+        },
+        {
+          uri: 'cassicore://config',
+          name: 'CassiCore Configuration',
+          mimeType: 'application/json',
+          description: 'Current CassiCore configuration (safe keys only)',
+        },
+        {
+          uri: 'cassicore://intelligence/activity',
+          name: 'Intelligence Activity Log',
+          mimeType: 'application/json',
+          description: 'Recent intelligence and analysis activity',
+        },
+      ],
+    };
+  });
+
+  // List resource templates (dynamic URIs)
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
+    return {
+      resourceTemplates: [
+        {
+          uriTemplate: 'cassicore://teams/{id}',
+          name: 'Team Status',
+          mimeType: 'application/json',
+          description: 'Status and progress of a specific team by ID',
+        },
+        {
+          uriTemplate: 'cassicore://sessions/{id}/context',
+          name: 'Session Context Window',
+          mimeType: 'application/json',
+          description: 'Context window snapshot for a specific session',
+        },
+        {
+          uriTemplate: 'cassicore://sessions/{id}/turns',
+          name: 'Session Turn History',
+          mimeType: 'application/json',
+          description: 'Turn history for a specific session',
+        },
+        {
+          uriTemplate: 'cassicore://memory/{query}',
+          name: 'Memory Search',
+          mimeType: 'application/json',
+          description: 'Search CassiCore memory by query',
+        },
+      ],
+    };
+  });
+
+  // Read resources
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+
+    try {
+      let content: any;
+      let mimeType = 'application/json';
+
+      if (uri === 'cassicore://health') {
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/health`);
+        content = await response.json();
+      } else if (uri === 'cassicore://config') {
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/config`);
+        content = await response.json();
+      } else if (uri === 'cassicore://intelligence/activity') {
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/intelligence/activity`);
+        content = await response.json();
+      } else if (uri.startsWith('cassicore://teams/')) {
+        const teamId = uri.replace('cassicore://teams/', '');
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/teams/${teamId}/status`);
+        content = await response.json();
+      } else if (uri.startsWith('cassicore://sessions/') && uri.includes('/context')) {
+        const sessionId = uri.replace('cassicore://sessions/', '').replace('/context', '');
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/sessions/${sessionId}/context`);
+        content = await response.json();
+      } else if (uri.startsWith('cassicore://sessions/') && uri.includes('/turns')) {
+        const sessionId = uri.replace('cassicore://sessions/', '').replace('/turns', '');
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/sessions/${sessionId}/turns`);
+        content = await response.json();
+      } else if (uri.startsWith('cassicore://memory/')) {
+        const query = decodeURIComponent(uri.replace('cassicore://memory/', ''));
+        const response = await fetchWithTimeout(`${CASSICORE_URL}/memory/search?query=${encodeURIComponent(query)}`);
+        content = await response.json();
+      } else {
+        throw new Error(`Unknown resource: ${uri}`);
+      }
+
+      return {
+        contents: [
+          {
+            uri,
+            mimeType,
+            text: typeof content === 'string' ? content : JSON.stringify(content, null, 2),
+          },
+        ],
+      };
+    } catch (error: any) {
+      return {
+        contents: [
+          {
+            uri,
+            mimeType: 'application/json',
+            text: JSON.stringify({ status: 'error', error: error.message }),
+          },
+        ],
+      };
+    }
+  });
+
+  // Handle resource subscriptions
+  server.setRequestHandler(SubscribeRequestSchema, async (request) => {
+    const { uri } = request.params;
+    const subscriberId = `${request.params._meta?.progressToken || 'unknown'}-${Date.now()}`;
+    
+    // Validate URI is subscribable
+    const subscribablePatterns = [
+      /^cassicore:\/\/teams\/.+$/,
+      /^cassicore:\/\/sessions\/.+\/context$/,
+      /^cassicore:\/\/sessions\/.+\/turns$/,
+      /^cassicore:\/\/health$/,
+      /^cassicore:\/\/intelligence\/activity$/,
+    ];
+    
+    const isSubscribable = subscribablePatterns.some(pattern => pattern.test(uri));
+    if (!isSubscribable) {
+      throw new Error(`Resource ${uri} does not support subscriptions`);
+    }
+
+    subscribeToResource(uri, subscriberId);
+    
+    logger.info('Client subscribed to resource', { uri, subscriberId });
+    
+    return {};
+  });
+
+  // Handle resource unsubscriptions
+  server.setRequestHandler(UnsubscribeRequestSchema, async (request) => {
+    const { uri } = request.params;
+    const subscriberId = `${request.params._meta?.progressToken || 'unknown'}-${Date.now()}`;
+    
+    unsubscribeFromResource(uri, subscriberId);
+    
+    logger.info('Client unsubscribed from resource', { uri, subscriberId });
+    
+    return {};
+  });
+
+  // List prompts (workflow templates)
+  server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    return {
+      prompts: [
+        {
+          name: 'inspect-team',
+          title: 'Inspect Team Status',
+          description: 'Generate a comprehensive inspection report for a running team',
+          arguments: [
+            { name: 'teamId', description: 'The team ID to inspect', required: true },
+            { name: 'includeTree', description: 'Include cell hierarchy tree', required: false },
+            { name: 'includeBudget', description: 'Include budget usage', required: false },
+          ],
+        },
+        {
+          name: 'debug-session',
+          title: 'Debug Session',
+          description: 'Generate debugging context for a specific session',
+          arguments: [
+            { name: 'sessionId', description: 'The session ID to debug', required: true },
+            { name: 'includeContext', description: 'Include context window', required: false },
+            { name: 'includeHistory', description: 'Include event history', required: false },
+          ],
+        },
+        {
+          name: 'review-memory',
+          title: 'Review Memory',
+          description: 'Search and review CassiCore memory for a topic',
+          arguments: [
+            { name: 'query', description: 'Search query for memory', required: true },
+            { name: 'limit', description: 'Maximum results to return', required: false },
+            { name: 'type', description: 'Filter by memory type (conversation, fact, insight, etc.)', required: false },
+          ],
+        },
+        {
+          name: 'analyze-error',
+          title: 'Analyze Error Pattern',
+          description: 'Analyze recurring errors and suggest fixes',
+          arguments: [
+            { name: 'errorPattern', description: 'Error message or pattern to analyze', required: true },
+            { name: 'includeFixes', description: 'Include suggested fixes', required: false },
+          ],
+        },
+      ],
+    };
+  });
+
+  // Get prompt template
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    switch (name) {
+      case 'inspect-team': {
+        const teamId = args?.teamId;
+        const includeTree = args?.includeTree === 'true';
+        const includeBudget = args?.includeBudget === 'true';
+
+        if (!teamId) {
+          throw new Error('inspect-team prompt requires teamId argument');
+        }
+
+        let messages = [{
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `Inspect team ${teamId}. Provide a comprehensive status report including:`,
+          },
+        }];
+
+        if (includeTree) {
+          messages.push({
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: '- Include the full cell hierarchy tree with status of each cell',
+            },
+          });
+        }
+
+        if (includeBudget) {
+          messages.push({
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: '- Include current budget usage and remaining allocation',
+            },
+          });
+        }
+
+        messages.push({
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: 'Format the response as a structured report with clear sections.',
+          },
+        });
+
+        return { messages };
+      }
+
+      case 'debug-session': {
+        const sessionId = args?.sessionId;
+        const includeContext = args?.includeContext === 'true';
+        const includeHistory = args?.includeHistory === 'true';
+
+        if (!sessionId) {
+          throw new Error('debug-session prompt requires sessionId argument');
+        }
+
+        let messages = [{
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `Debug session ${sessionId}. Analyze the session state and identify any issues:`,
+          },
+        }];
+
+        if (includeContext) {
+          messages.push({
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: '- Include current context window state and token usage',
+            },
+          });
+        }
+
+        if (includeHistory) {
+          messages.push({
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: '- Include recent event history to trace the execution flow',
+            },
+          });
+        }
+
+        messages.push({
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: 'Identify any errors, bottlenecks, or unexpected behavior.',
+          },
+        });
+
+        return { messages };
+      }
+
+      case 'review-memory': {
+        const query = args?.query;
+        const limit = args?.limit || '5';
+        const type = args?.type;
+
+        if (!query) {
+          throw new Error('review-memory prompt requires query argument');
+        }
+
+        let messages = [{
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `Search CassiCore memory for: "${query}"`,
+          },
+        }];
+
+        messages.push({
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `Return up to ${limit} results`,
+          },
+        });
+
+        if (type) {
+          messages.push({
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: `Filter results to type: ${type}`,
+            },
+          });
+        }
+
+        messages.push({
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: 'Summarize the key insights and patterns found in the memory results.',
+          },
+        });
+
+        return { messages };
+      }
+
+      case 'analyze-error': {
+        const errorPattern = args?.errorPattern;
+        const includeFixes = args?.includeFixes === 'true';
+
+        if (!errorPattern) {
+          throw new Error('analyze-error prompt requires errorPattern argument');
+        }
+
+        let messages = [{
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: `Analyze the following error pattern: "${errorPattern}"`,
+          },
+        }];
+
+        messages.push({
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: '1. Identify the root cause of this error',
+          },
+        });
+
+        messages.push({
+          role: 'user' as const,
+          content: {
+            type: 'text' as const,
+            text: '2. Determine if this is a recurring pattern in the codebase',
+          },
+        });
+
+        if (includeFixes) {
+          messages.push({
+            role: 'user' as const,
+            content: {
+              type: 'text' as const,
+              text: '3. Suggest specific code fixes or architectural changes to prevent this error',
+            },
+          });
+        }
+
+        return { messages };
+      }
+
+      default:
+        throw new Error(`Unknown prompt: ${name}`);
+    }
+  });
+
+  return server;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Transports
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Start with stdio transport (default for MCP)
+ */
+async function startStdio() {
+  logger.info('Starting CassiCore MCP Gateway (stdio mode)', { url: CASSICORE_URL });
+
+  const server = createServer();
+  const transport = new StdioServerTransport();
+
+  await server.connect(transport);
+
+  logger.info('CassiCore MCP Gateway connected and ready');
+}
+
+/**
+ * Start with HTTP/SSE transport (for remote connections)
+ */
+async function startHttp(port: number) {
+  logger.info('Starting CassiCore MCP Gateway (HTTP mode)', { port, url: CASSICORE_URL });
+
+  const server = createServer();
+
+  // Create HTTP server for SSE transport
+  const httpServer = http.createServer(async (req, res) => {
+    const url = new URL(req.url || '/', `http://localhost:${port}`);
+
+    // Health endpoint (no auth required)
+    if (url.pathname === '/health') {
+      try {
+        const cassiHealth = await fetchWithTimeout(`${CASSICORE_URL}/health`);
+        const cassiStatus = await cassiHealth.json();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'ok',
+          gateway: 'cassicore-mcp-gateway',
+          version: GATEWAY_VERSION,
+          cassicore: cassiStatus,
+        }));
+      } catch (error: any) {
+        res.writeHead(503, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'error',
+          error: error.message,
+        }));
+      }
       return;
     }
 
-    res.statusCode = 404;
-    res.end('Not Found');
+    // Tools endpoint (GET - no auth required for listing)
+    if (url.pathname === '/tools' && req.method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(getAllTools()));
+      return;
+    }
+
+    // Execute endpoint (POST - REQUIRES AUTH)
+    if (url.pathname === '/tools/execute' && req.method === 'POST') {
+      // Validate authentication
+      if (!validateAuth(req)) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unauthorized - valid Bearer token required' }));
+        return;
+      }
+
+      // Validate Content-Type
+      if (!validateContentType(req)) {
+        res.writeHead(415, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Unsupported Media Type - application/json required' }));
+        return;
+      }
+
+      let body = '';
+      try {
+        body = await readBodyWithLimit(req, 1024 * 1024); // 1MB limit
+        const { tool, args } = JSON.parse(body);
+
+        // Basic input validation
+        if (!tool || typeof tool !== 'string') {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid request - tool name (string) required' }));
+          return;
+        }
+
+        const result = await executeCassiCoreTool(CASSICORE_URL, tool, args || {}, logger);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (error: any) {
+        const statusCode = error.message.includes('exceeds') ? 413 : 
+                          error.message.includes('Unexpected token') ? 400 : 500;
+        res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: error.message }));
+      }
+      return;
+    }
+
+    res.writeHead(404);
+    res.end('Not found');
   });
 
-  // Start Listening on Port 3000
-  const port = 3000;
-  server.listen(port, () => {
-    console.log(`HTTP/SSE Server is running at http://localhost:${port}`);
+  httpServer.listen(port, () => {
+    logger.info(`HTTP server listening on port ${port}`);
   });
-
-  logger.info('SSE Server Initialized');
 }
 
-// Start Gateway in HTTP/SSE Mode
-if (process.argv.includes('--http')) {
-  startHttpServer();
-} else {
-  // Default stdio Mode
-  const stdioTransport = new StdioServerTransport({ logger });
-  const server = new Server(stdioTransport, { logger });
-  server.loadToolDefinitions(getAllTools()); // Loaded tools from registry
-  server.start();
+// ═══════════════════════════════════════════════════════════════════════════════
+// Main Entry Point
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Main entry point
+ */
+async function main() {
+  const args = process.argv.slice(2);
+  const httpMode = args.includes('--http');
+  const portArg = args.find(arg => arg.startsWith('--port='));
+  const port = portArg ? parseInt(portArg.split('=')[1], 10) : 3000;
+
+  // Validate CassiCore connection
+  try {
+    const healthCheck = await fetchWithTimeout(`${CASSICORE_URL}/health`);
+    if (!healthCheck.ok) {
+      throw new Error('CassiCore health check failed');
+    }
+    logger.info('CassiCore daemon connection verified');
+  } catch (error: any) {
+    logger.error('Failed to connect to CassiCore daemon', {
+      url: CASSICORE_URL,
+      error: String(error),
+    });
+    logger.warn('Make sure CassiCore is running: cassicore daemon');
+    // Continue anyway - connection might succeed later
+  }
+
+  if (httpMode) {
+    await startHttp(port);
+  } else {
+    await startStdio();
+  }
 }
+
+main().catch((error) => {
+  logger.error('Gateway failed to start', { error: String(error) });
+  process.exit(1);
+});

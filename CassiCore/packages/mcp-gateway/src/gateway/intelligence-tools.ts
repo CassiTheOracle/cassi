@@ -1386,18 +1386,30 @@ async function formatSnapshot(baseUrl: string, args: any): Promise<string> {
       const { execSync } = await import('child_process');
       const cwd = process.cwd();
 
+      const GIT_MAX_LINES = 40;
       const statusOutput = execSync('git status --short', { cwd, encoding: 'utf-8', timeout: 5000 });
       const diffStatOutput = execSync('git diff --stat', { cwd, encoding: 'utf-8', timeout: 5000 });
 
       if (statusOutput.trim()) {
+        const statusLines = statusOutput.trim().split('\n');
+        const statusTruncated = statusLines.length > GIT_MAX_LINES;
+        const statusSlice = statusTruncated ? statusLines.slice(0, GIT_MAX_LINES) : statusLines;
         lines.push('```');
-        lines.push(statusOutput.trim());
+        lines.push(statusSlice.join('\n'));
+        if (statusTruncated) lines.push(`... and ${statusLines.length - GIT_MAX_LINES} more files (truncated)`);
         lines.push('```\n');
 
         if (diffStatOutput.trim()) {
+          const diffLines = diffStatOutput.trim().split('\n');
+          const diffTruncated = diffLines.length > GIT_MAX_LINES + 1; // +1 for summary line
+          // Keep the summary line (last line) if truncating
+          const diffSlice = diffTruncated
+            ? [...diffLines.slice(0, GIT_MAX_LINES), diffLines[diffLines.length - 1]]
+            : diffLines;
           lines.push('**Changes:**');
           lines.push('```');
-          lines.push(diffStatOutput.trim());
+          lines.push(diffSlice.join('\n'));
+          if (diffTruncated) lines.push(`... ${diffLines.length - GIT_MAX_LINES - 1} files omitted`);
           lines.push('```');
         }
       } else {

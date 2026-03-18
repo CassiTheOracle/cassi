@@ -51,7 +51,21 @@ export {
   getConfigAdminTools,
 } from './config-admin-tools.js';
 
-// Team Tools
+// Flux Tools (NEW - Unified Team Orchestration)
+// NOTE: These exports come BEFORE legacy team-tools to establish flux-tools as canonical
+export {
+  FLUX_TOOLS,
+  FLUX_TOOL_NAMES,
+  executeFluxTeamTool,
+  executeFluxRun,
+  executeFluxInspect,
+  executeFluxWatch,
+  type CheckpointPolicy,
+  type FluxRunConfig,
+} from './flux-tools.js';
+
+// Team Tools — DEPRECATED (Phase 1)
+// ⚠️ Deprecated in favor of flux-tools.js. Legacy wrappers log warnings and delegate to flux_*.
 export {
   TEAM_TOOLS,
   TEAM_AGENT_TOOLS,
@@ -67,7 +81,8 @@ export {
   getActionTools,
 } from './team-tools.js';
 
-// Composite Tools (NEW - Phase 2)
+// Composite Tools — DEPRECATED for team tools (Phase 1)
+// ⚠️ cassi_team_inspect and cassi_team_watch deprecated in favor of flux_inspect and flux_watch.
 export {
   COMPOSITE_TOOLS,
   COMPOSITE_TOOL_NAMES,
@@ -98,6 +113,42 @@ export {
   executeIntelligenceTool,
   getIntelligenceTools,
 } from './intelligence-tools.js';
+
+// Lumen Tools
+export {
+  LUMEN_TOOLS,
+  LUMEN_TOOL_NAMES,
+  executeLumenTool,
+  getLumenTools,
+} from './lumen-tools.js';
+
+// Model Directive Tools
+export {
+  MODEL_DIRECTIVE_TOOLS,
+  MODEL_DIRECTIVE_TOOL_NAMES,
+  executeModelDirectiveTool,
+  getModelDirectiveTools,
+} from './model-directive-tools.js';
+
+// Do Tool (meta-wrapper with context enrichment) + Enrich Tool (context-only)
+export {
+  DO_TOOLS,
+  DO_TOOL_NAMES,
+  ENRICH_TOOLS,
+  ENRICH_TOOL_NAMES,
+  executeDoTool,
+  executeEnrichTool,
+  getDoTools,
+  normalizeToolName,
+} from './do-tool.js';
+export type { ToolRouter } from './do-tool.js';
+
+// Context Enrichment (shared module)
+export {
+  fetchAndFormatContext,
+  type ContextLimits,
+  type ContextEnrichmentResult,
+} from './context-enrichment.js';
 
 // Resources Module (NEW - MCP Resources Design)
 export {
