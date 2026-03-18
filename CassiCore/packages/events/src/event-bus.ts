@@ -85,6 +85,10 @@ export class EventBus implements IEventBus {
   private listeners: Map<EventType, Set<(...args: unknown[]) => void>>;
   private globalListeners: Set<(event: RuntimeEvent) => void>;
 
+  // Handler failure tracking — auto-remove after MAX_HANDLER_FAILURES consecutive errors
+  private handlerFailures: WeakMap<Function, number> = new WeakMap();
+  private static readonly MAX_HANDLER_FAILURES = 5;
+
   // Session history tracking
   private sessionHistory: Map<string, RingBuffer<RuntimeEvent>>;
   private globalHistory: RingBuffer<RuntimeEvent>;
@@ -130,16 +134,30 @@ export class EventBus implements IEventBus {
         try {
           // Use Promise.resolve() to handle both sync and async handlers transparently
           await Promise.resolve(h(event));
+          // Reset failure count on success
+          this.handlerFailures.delete(h);
         } catch (err) {
+          // Track consecutive failures
+          const failures = (this.handlerFailures.get(h) ?? 0) + 1;
+          this.handlerFailures.set(h, failures);
+
           // Preserve stack traces by checking if err is an Error instance
           const errorInfo: Record<string, unknown> = {
             eventType: event.type,
             message: err instanceof Error ? err.message : String(err),
+            consecutiveFailures: failures,
           };
           if (err instanceof Error && err.stack) {
             errorInfo.stack = err.stack;
           }
-          logger.error('Error in handler', errorInfo);
+
+          if (failures >= EventBus.MAX_HANDLER_FAILURES) {
+            set.delete(h);
+            this.handlerFailures.delete(h);
+            logger.error('Handler auto-removed after repeated failures', errorInfo);
+          } else {
+            logger.error('Error in handler', errorInfo);
+          }
         }
       }
     }
@@ -151,16 +169,30 @@ export class EventBus implements IEventBus {
         try {
           // Use Promise.resolve() to handle both sync and async handlers transparently
           await Promise.resolve(h(event));
+          // Reset failure count on success
+          this.handlerFailures.delete(h);
         } catch (err) {
+          // Track consecutive failures
+          const failures = (this.handlerFailures.get(h) ?? 0) + 1;
+          this.handlerFailures.set(h, failures);
+
           // Preserve stack traces by checking if err is an Error instance
           const errorInfo: Record<string, unknown> = {
             eventType: event.type,
             message: err instanceof Error ? err.message : String(err),
+            consecutiveFailures: failures,
           };
           if (err instanceof Error && err.stack) {
             errorInfo.stack = err.stack;
           }
-          logger.error('Error in global handler', errorInfo);
+
+          if (failures >= EventBus.MAX_HANDLER_FAILURES) {
+            this.globalListeners.delete(h);
+            this.handlerFailures.delete(h);
+            logger.error('Global handler auto-removed after repeated failures', errorInfo);
+          } else {
+            logger.error('Error in global handler', errorInfo);
+          }
         }
       }
     }
@@ -293,6 +325,30 @@ export class EventBus implements IEventBus {
    */
   clearSession(sessionId: string): void {
     this.sessionHistory.delete(sessionId);
+  }
+
+  /**
+   * Number of sessions with active history buffers.
+   * Useful for monitoring memory growth.
+   */
+  get sessionHistoryCount(): number {
+    return this.sessionHistory.size;
+  }
+
+  /**
+   * Subscribe to session:ended events and auto-clean session history.
+   * Call this after the EventBus is wired to the SessionManager to prevent
+   * unbounded memory growth from retained session history buffers.
+   */
+  wireSessionCleanup(): void {
+    this.on('session:ended' as EventType, (event: unknown) => {
+      const sessionId = (event as Record<string, unknown>).sessionId as string | undefined;
+      if (sessionId) {
+        this.clearSession(sessionId);
+        logger.debug('Auto-cleared session history', { sessionId: sessionId.slice(0, 8) });
+      }
+    });
+    logger.info('Session history auto-cleanup wired');
   }
 
   /**
