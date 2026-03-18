@@ -2,6 +2,9 @@ import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 import type { TriadTeamOrchestrator } from '../intelligence/triad-team/index.js'
 import type { TriadTeamSession, TriadTeamEventType } from '../../types/triad-team.js'
+import { assembleTimeline, aggregateMetrics, replayCellContext } from './team-timeline.js'
+import type { TeamStore } from '../intelligence/triad-team/team-store.js'
+import type { FluxTeamOrchestrator } from '../intelligence/flux-team/flux-team-orchestrator.js'
 
 export interface TeamsRoutesDeps {
   daemon: any
@@ -14,6 +17,8 @@ export interface TeamsRoutesDeps {
   sseConnectionId: { value: number }
   resolveLatestTeamId: (to: any) => string | undefined
   buildHandoffContext?: (sessionId: string) => Promise<string>
+  teamStore?: TeamStore
+  contextSnapshotStore?: any
 }
 
 /**
@@ -22,6 +27,13 @@ export interface TeamsRoutesDeps {
  */
 function getOrchestrator(daemon: any): TriadTeamOrchestrator | undefined {
   return daemon.intelligence?.triadTeam as TriadTeamOrchestrator | undefined
+}
+
+/**
+ * Resolve the flux-team orchestrator from the daemon.
+ */
+function getFluxOrchestrator(daemon: any): FluxTeamOrchestrator | undefined {
+  return daemon.intelligence?.fluxTeam as FluxTeamOrchestrator | undefined
 }
 
 /**
@@ -81,13 +93,48 @@ export async function handleTeamsRoutes(
   // POST /teams
   if (parts.length === 1 && method === 'POST') {
     try {
-      if (!tt) {
-        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
-        return true
-      }
       const body = await parseBody(req)
       if (!body?.goal) {
         sendJSON(res, 400, { error: 'goal is required' })
+        return true
+      }
+
+      // Check if FluxTeam should handle this request
+      const fluxOrchestrator = getFluxOrchestrator(daemon)
+      const useFlux = body.useFluxTeam !== false && fluxOrchestrator
+
+      if (useFlux) {
+        try {
+          // Note: provider/model are no longer accepted here.
+          // Use the model_directive tool to set routing before creating a team.
+          const teamId = await fluxOrchestrator.createTeam({
+            goal: body.goal,
+            context: body.context,
+            topology: body.topology,
+            budget: body.budget,
+            checkpoint: !!body.checkpoint,
+          })
+          
+          // Wait briefly for async execution to start
+          await new Promise(r => setTimeout(r, 100))
+          
+          const team = fluxOrchestrator.getTeam(teamId)
+          sendJSON(res, 200, {
+            teamId,
+            status: team?.status ?? 'created',
+            engine: 'flux',
+            taskSignature: team?.taskSignature,
+            routingRecommendation: team?.routingRecommendation,
+          })
+          return true
+        } catch (err) {
+          logger.error('FluxTeam creation failed, falling back to TriadTeam', { error: String(err) })
+          // Fall through to TriadTeam
+        }
+      }
+
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
 
@@ -104,29 +151,45 @@ export async function handleTeamsRoutes(
       }
 
       // Handle both nested provider object and flat provider/model fields
-      let providerConfig: { providerId?: string; model?: string; temperature?: number; maxTokens?: number; thinking?: 'none' | 'low' | 'medium' | 'high'; freeModel?: string; freeProviderId?: string } | undefined
+      let providerConfig: { providerId?: string; model?: string; temperature?: number; maxTokens?: number; thinking?: 'none' | 'low' | 'medium' | 'high'; secondaryModel?: string; secondaryProviderId?: string } | undefined
       if (body.provider && typeof body.provider === 'object') {
-        // Nested: { provider: { providerId: "...", model: "...", freeModel: "gpt-5-mini" } }
+        // Nested: { provider: { providerId: "...", model: "...", secondaryModel: "gpt-5-mini" } }
         providerConfig = {
           providerId: body.provider.providerId,
           model: body.provider.model || body.model || undefined,
           temperature: body.provider.temperature ?? body.temperature,
           maxTokens: body.provider.maxTokens ?? body.maxTokens,
           thinking: body.provider.thinking ?? body.thinking,
-          freeModel: body.provider.freeModel ?? body.freeModel ?? undefined,
-          freeProviderId: body.provider.freeProviderId ?? body.freeProviderId ?? undefined,
+          secondaryModel: body.provider.secondaryModel ?? body.provider.freeModel ?? body.secondaryModel ?? body.freeModel ?? undefined,
+          secondaryProviderId: body.provider.secondaryProviderId ?? body.provider.freeProviderId ?? body.secondaryProviderId ?? body.freeProviderId ?? undefined,
         }
       } else if (body.provider && typeof body.provider === 'string') {
-        // Flat: { provider: "github-copilot", model: "gpt-5-mini" }
+        // Flat: { provider: "alibaba-coding", model: "qwen3.5-plus" } (github-copilot is blocked for Teams)
         providerConfig = {
           providerId: body.provider,
           model: body.model || undefined,
           temperature: body.temperature,
           maxTokens: body.maxTokens,
           thinking: body.thinking,
-          freeModel: body.freeModel ?? undefined,
-          freeProviderId: body.freeProviderId ?? undefined,
+          secondaryModel: body.secondaryModel ?? body.freeModel ?? undefined,
+          secondaryProviderId: body.secondaryProviderId ?? body.freeProviderId ?? undefined,
         }
+      }
+
+      // ── Provider guard (legacy TriadTeam path only) ──
+      // Note: For FluxTeam, model selection is now handled by the ModelDirective
+      // system. Use the model_directive tool to set routing before creating teams.
+      // The BLOCKED_TEAM_PROVIDERS guard only applies to the legacy TriadTeam path.
+      const BLOCKED_TEAM_PROVIDERS = ['github-copilot', 'github-copilot-lb']
+      if (providerConfig?.providerId && BLOCKED_TEAM_PROVIDERS.includes(providerConfig.providerId)) {
+        logger.warn(`Blocked github-copilot as team provider — falling back to default`, { requestedProvider: providerConfig.providerId })
+        providerConfig.providerId = undefined
+        providerConfig.model = undefined
+      }
+      if (providerConfig?.secondaryProviderId && BLOCKED_TEAM_PROVIDERS.includes(providerConfig.secondaryProviderId)) {
+        logger.warn(`Blocked github-copilot as secondary team provider — falling back to default`, { requestedProvider: providerConfig.secondaryProviderId })
+        providerConfig.secondaryProviderId = undefined
+        providerConfig.secondaryModel = undefined
       }
 
       // Also handle budget from nested body.budget or flat fields
@@ -173,6 +236,7 @@ export async function handleTeamsRoutes(
         maxCells: budgetConfig.maxCells,
         maxDurationMs: body.maxDurationMs || 4 * 60 * 60_000,
         maxToolIterationsPerMember: body.maxToolIterationsPerMember || 50,
+        useLumen: body.useLumen || false,
         metadata: { sessionId: body.sessionId },
       })
 
@@ -190,18 +254,45 @@ export async function handleTeamsRoutes(
   // GET /teams
   if (parts.length === 1 && method === 'GET') {
     try {
-      if (!tt) {
-        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
-        return true
+      const teams: Array<Record<string, unknown>> = []
+      
+      // Add TriadTeam teams
+      if (tt) {
+        const triadTeams = tt.listTeams().map(t => ({
+          id: t.id,
+          status: t.status,
+          name: t.name,
+          cellCount: t.cellCount,
+          tokensUsed: t.tokensUsed,
+          createdAt: t.createdAt,
+          engine: 'triad',
+        }))
+        teams.push(...triadTeams)
       }
-      const teams = tt.listTeams().map(t => ({
-        id: t.id,
-        status: t.status,
-        name: t.name,
-        cellCount: t.cellCount,
-        tokensUsed: t.tokensUsed,
-        createdAt: t.createdAt,
-      }))
+      
+      // Add FluxTeam teams
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch) {
+        const fluxTeams = fluxOrch.listTeams().map(ft => {
+          // Sum token usage across all cells
+          let tokensUsed = 0
+          for (const cell of ft.cells.values()) {
+            tokensUsed += cell.tokensUsed ?? 0
+          }
+          return {
+            id: ft.id,
+            status: ft.status,
+            name: ft.config.goal.slice(0, 50),
+            cellCount: ft.cells.size,
+            tokensUsed,
+            createdAt: ft.createdAt,
+            engine: 'flux',
+            ...(ft.lastError ? { lastError: ft.lastError } : {}),
+          }
+        })
+        teams.push(...fluxTeams)
+      }
+      
       sendJSON(res, 200, { teams })
       return true
     } catch (err) {
@@ -213,11 +304,23 @@ export async function handleTeamsRoutes(
   // GET /teams/status
   if (parts.length === 2 && parts[1] === 'status' && method === 'GET') {
     try {
+      const teamId = url.searchParams.get('teamId') || undefined
+      
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch && teamId) {
+        const fluxTeam = fluxOrch.getTeam(teamId)
+        if (fluxTeam) {
+          const liveStatus = fluxOrch.getTeamLiveStatus(teamId)
+          sendJSON(res, 200, { ...liveStatus, engine: 'flux' })
+          return true
+        }
+      }
+      
       if (!tt) {
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const teamId = url.searchParams.get('teamId') || undefined
       const resolvedTeamId = resolveTeamId(tt, teamId ?? undefined)
       if (!resolvedTeamId) {
         sendJSON(res, 404, { error: 'No teams found' })
@@ -231,6 +334,29 @@ export async function handleTeamsRoutes(
       }
 
       sendJSON(res, 200, serializeSession(session))
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /teams/live — Live cell status snapshots (what each cell is actually doing)
+  if (parts.length === 2 && parts[1] === 'live' && method === 'GET') {
+    try {
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
+        return true
+      }
+      const teamId = url.searchParams.get('teamId') || undefined
+      const resolvedTeamId = resolveTeamId(tt, teamId ?? undefined)
+      if (!resolvedTeamId) {
+        sendJSON(res, 404, { error: 'No teams found' })
+        return true
+      }
+
+      const liveStatuses = tt.getCellLiveStatuses(resolvedTeamId)
+      sendJSON(res, 200, { teamId: resolvedTeamId, cells: liveStatuses })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -277,19 +403,32 @@ export async function handleTeamsRoutes(
   // POST /teams/pause
   if (parts.length === 2 && parts[1] === 'pause' && method === 'POST') {
     try {
+      const body = await parseBody(req)
+      const teamId = body?.teamId
+      
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch && teamId) {
+        const fluxTeam = fluxOrch.getTeam(teamId)
+        if (fluxTeam) {
+          await fluxOrch.pauseTeam(teamId)
+          sendJSON(res, 200, { teamId, status: 'paused', engine: 'flux' })
+          return true
+        }
+      }
+      
       if (!tt) {
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const body = await parseBody(req)
-      const teamId = body?.teamId || resolveTeamId(tt)
-      if (!teamId) {
+      const resolvedTeamId = teamId || resolveTeamId(tt)
+      if (!resolvedTeamId) {
         sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
         return true
       }
 
-      await tt.pauseTeam(teamId)
-      sendJSON(res, 200, { teamId, status: 'paused' })
+      await tt.pauseTeam(resolvedTeamId)
+      sendJSON(res, 200, { teamId: resolvedTeamId, status: 'paused' })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -300,25 +439,44 @@ export async function handleTeamsRoutes(
   // POST /teams/resume
   if (parts.length === 2 && parts[1] === 'resume' && method === 'POST') {
     try {
+      const body = await parseBody(req)
+      const teamId = body?.teamId
+      
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch && teamId) {
+        const fluxTeam = fluxOrch.getTeam(teamId)
+        if (fluxTeam) {
+          await fluxOrch.resumeTeam(teamId)
+          const updatedTeam = fluxOrch.getTeam(teamId)
+          sendJSON(res, 200, {
+            teamId,
+            status: updatedTeam?.status ?? 'running',
+            engine: 'flux',
+            message: 'Team resumed',
+          })
+          return true
+        }
+      }
+      
       if (!tt) {
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const body = await parseBody(req)
-      const teamId = body?.teamId || resolveTeamId(tt)
-      if (!teamId) {
+      const resolvedTeamId = teamId || resolveTeamId(tt)
+      if (!resolvedTeamId) {
         sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
         return true
       }
 
-      await tt.resumeTeam(teamId)
+      await tt.resumeTeam(resolvedTeamId)
 
       // Get the updated status to return
-      const session = tt.getTeamStatus(teamId)
+      const session = tt.getTeamStatus(resolvedTeamId)
       const status = session?.status ?? 'running'
 
       sendJSON(res, 200, {
-        teamId,
+        teamId: resolvedTeamId,
         status,
         message: status === 'running'
           ? 'Team resumed — re-executing interrupted cells'
@@ -334,19 +492,60 @@ export async function handleTeamsRoutes(
   // POST /teams/cancel
   if (parts.length === 2 && parts[1] === 'cancel' && method === 'POST') {
     try {
+      const body = await parseBody(req)
+      const teamId = body?.teamId
+      
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch && teamId) {
+        const fluxTeam = fluxOrch.getTeam(teamId)
+        if (fluxTeam) {
+          await fluxOrch.cancelTeam(teamId)
+          sendJSON(res, 200, { teamId, status: 'cancelled', engine: 'flux' })
+          return true
+        }
+      }
+      
       if (!tt) {
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const body = await parseBody(req)
-      const teamId = body?.teamId || resolveTeamId(tt)
-      if (!teamId) {
+      const resolvedTeamId = teamId || resolveTeamId(tt)
+      if (!resolvedTeamId) {
         sendJSON(res, 400, { error: 'teamId is required (or no active teams found)' })
         return true
       }
 
-      await tt.cancelTeam(teamId)
-      sendJSON(res, 200, { teamId, status: 'cancelled' })
+      await tt.cancelTeam(resolvedTeamId)
+      sendJSON(res, 200, { teamId: resolvedTeamId, status: 'cancelled' })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /teams/steer — team-level steering with auto-resolve
+  // POST /teams/:teamId/steer — team-level steering with explicit teamId
+  if (((parts.length === 2 && parts[1] === 'steer') || (parts.length === 3 && parts[2] === 'steer')) && method === 'POST') {
+    try {
+      if (!tt) {
+        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
+        return true
+      }
+      const rawTeamId = parts.length === 3 ? parts[1] : undefined
+      const teamId = resolveTeamId(tt, rawTeamId)
+      if (!teamId) {
+        sendJSON(res, 404, { error: rawTeamId ? `Team not found: ${rawTeamId}` : 'No active teams found' })
+        return true
+      }
+      const body = await parseBody(req)
+      if (!body?.feedback) {
+        sendJSON(res, 400, { error: 'feedback is required' })
+        return true
+      }
+      await tt.steerTeam(teamId, body.feedback)
+      sendJSON(res, 200, { teamId, steered: true })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -401,12 +600,27 @@ export async function handleTeamsRoutes(
   // GET /teams/events
   if (parts.length === 2 && parts[1] === 'events' && method === 'GET') {
     try {
+      let teamId = url.searchParams.get('teamId') || ''
+
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch && teamId) {
+        const fluxTeam = fluxOrch.getTeam(teamId)
+        if (fluxTeam) {
+          const limitParam = url.searchParams.get('limit')
+          const limit = limitParam ? parseInt(limitParam, 10) : 50
+          const eventLog = fluxTeam.eventLog || []
+          const events = eventLog.slice(-limit)
+          sendJSON(res, 200, { teamId, total: eventLog.length, events, engine: 'flux' })
+          return true
+        }
+      }
+
       if (!tt) {
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
 
-      let teamId = url.searchParams.get('teamId') || ''
       if (!teamId) teamId = resolveTeamId(tt) || ''
       if (!teamId) {
         sendJSON(res, 404, { error: 'No active teams found' })
@@ -518,11 +732,31 @@ export async function handleTeamsRoutes(
   // GET /teams/:teamId
   if (parts.length === 2 && method === 'GET') {
     try {
+      const teamId = parts[1]
+
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch) {
+        const liveStatus = fluxOrch.getTeamLiveStatus(teamId)
+        if (liveStatus) {
+          // Include all cells (including failed) with their error info
+          const cells: Record<string, unknown> = {}
+          for (const [id, cell] of Object.entries(liveStatus.cells)) {
+            cells[id] = {
+              ...cell,
+              // Ensure error is always surfaced even for failed cells
+              error: (cell as any).error ?? undefined,
+            }
+          }
+          sendJSON(res, 200, { ...liveStatus, cells, engine: 'flux' })
+          return true
+        }
+      }
+
       if (!tt) {
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const teamId = parts[1]
       const session = tt.getTeamStatus(teamId)
       if (!session) {
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
@@ -578,6 +812,14 @@ export async function handleTeamsRoutes(
         }
       } else if (body.provider && typeof body.provider === 'string') {
         providerConfig = { providerId: body.provider, model: body.model || undefined }
+      }
+
+      // ── Provider guard: reject github-copilot for benchmarks too ──
+      const BLOCKED_BENCH_PROVIDERS = ['github-copilot', 'github-copilot-lb']
+      if (providerConfig?.providerId && BLOCKED_BENCH_PROVIDERS.includes(providerConfig.providerId)) {
+        logger.warn(`Blocked github-copilot as benchmark provider — falling back to default`, { requestedProvider: providerConfig.providerId })
+        providerConfig.providerId = undefined
+        providerConfig.model = undefined
       }
 
       const budgetConfig = body.budget && typeof body.budget === 'object'
@@ -860,6 +1102,90 @@ export async function handleTeamsRoutes(
         tree: buildCellTree(session),
         progress: buildCellProgress(session),
       })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /teams/:teamId/timeline
+  if (parts.length === 3 && parts[1] === 'timeline' && method === 'GET') {
+    try {
+      const { teamStore } = deps
+      if (!teamStore) {
+        sendJSON(res, 503, { error: 'TeamStore not available' })
+        return true
+      }
+
+      const teamId = parts[2]
+      const fromParam = url.searchParams.get('from')
+      const toParam = url.searchParams.get('to')
+      const cellId = url.searchParams.get('cellId') || undefined
+      const cellRole = url.searchParams.get('cellRole') as 'proposer' | 'critic' | 'executor' | undefined
+      const type = url.searchParams.get('type') || undefined
+      const limitParam = url.searchParams.get('limit')
+
+      const timeline = assembleTimeline(teamStore, {
+        teamId,
+        from: fromParam ? parseInt(fromParam, 10) : undefined,
+        to: toParam ? parseInt(toParam, 10) : undefined,
+        cellId,
+        cellRole,
+        type,
+        limit: limitParam ? parseInt(limitParam, 10) : 200,
+      })
+
+      sendJSON(res, 200, { teamId, timeline })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /teams/:teamId/metrics
+  if (parts.length === 3 && parts[1] === 'metrics' && method === 'GET') {
+    try {
+      const { teamStore } = deps
+      if (!teamStore) {
+        sendJSON(res, 503, { error: 'TeamStore not available' })
+        return true
+      }
+
+      const teamId = parts[2]
+      const cellId = url.searchParams.get('cellId') || undefined
+
+      const metrics = aggregateMetrics(teamStore, teamId, cellId)
+      sendJSON(res, 200, { teamId, metrics })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /teams/:teamId/context-replay/:cellId
+  if (parts.length === 4 && parts[1] === 'context-replay' && method === 'GET') {
+    try {
+      const { teamStore, contextSnapshotStore } = deps
+      if (!teamStore || !contextSnapshotStore) {
+        sendJSON(res, 503, { error: 'TeamStore or ContextSnapshotStore not available' })
+        return true
+      }
+
+      const teamId = parts[2]
+      const cellId = parts[3]
+      const turnIndexParam = url.searchParams.get('turnIndex')
+      const turnIndex = turnIndexParam ? parseInt(turnIndexParam, 10) : undefined
+
+      const replay = await replayCellContext(teamStore, contextSnapshotStore, teamId, cellId, turnIndex)
+      if (!replay) {
+        sendJSON(res, 404, { error: `No context replay found for cell ${cellId}` })
+        return true
+      }
+
+      sendJSON(res, 200, { teamId, cellId, replay })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })

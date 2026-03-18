@@ -32,6 +32,9 @@ import { handleTeamsRoutes } from './admin-api/teams.js'
 import { handleToolsRoutes } from './admin-api/tools.js'
 import { handleVerificationRoutes } from './admin-api/verification.js'
 import { handleImprovementRoutes } from './admin-api/improvement.js'
+import { handleLumenRoutes } from './admin-api/lumen.js'
+import { handleDreamerRoutes } from './admin-api/dreamer.js'
+import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
 import { createToolsApi } from './tools-api.js'
@@ -736,6 +739,16 @@ export function createAdminApi(daemon: any, logger: ILogger) {
    */
   async function handleWebSocketUpgrade(req: http.IncomingMessage, socket: any, head: Buffer) {
     const url = new URL(req.url || '', `http://${tcpHost}:${currentTcpPort}`)
+    
+    // Route /ws paths to the new WebSocket handler
+    if (url.pathname.startsWith('/ws')) {
+      // The new handler will take over - don't destroy the socket here
+      // The createWebSocketHandler already registered its own upgrade listener
+      // This should not be reached if the handler is properly set up
+      logger.debug('WebSocket upgrade for /ws path - should be handled by createWebSocketHandler', { path: url.pathname })
+      return
+    }
+    
     const parts = url.pathname.split('/').filter(Boolean)
 
     if (parts[0] !== 'dialectic' || parts.length !== 3 || parts[2] !== 'stream') {
@@ -1954,7 +1967,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleContextRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
         () => handlePermissionsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
-        () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
+         () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
+         () => handleLumenRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleDreamerRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
+         () => handleModelDirectiveRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),
       ]
 
       for (const routeHandler of routeHandlers) {
@@ -1990,6 +2006,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       unixServer = http.createServer(handler)
       unixServer.on('upgrade', (req, socket, head) => { void handleWebSocketUpgrade(req, socket, head) })
       unixServer.on('error', (e) => logger.warn(`unix server error: ${String(e)}`))
+      unixServer.on('clientError', (_err, socket) => {
+        if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
+      })
       await new Promise<void>((resolve, reject) => {
         unixServer!.listen(unixPath, () => {
           try {
@@ -2012,11 +2031,18 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         const tryPort = baseTcpPort + i
         const s = http.createServer(handler)
         s.on('upgrade', (req, socket, head) => { void handleWebSocketUpgrade(req, socket, head) })
+        s.on('clientError', (_err, socket) => {
+          if (socket.writable) socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
+        })
 
         try {
           await new Promise<void>((resolve, reject) => {
             s.listen(tryPort, tcpHost, () => resolve())
             s.once('error', (err) => reject(err))
+          })
+          // Add persistent runtime error handler after successful bind
+          s.on('error', (err) => {
+            logger.error(`TCP server runtime error on port ${tryPort}: ${String(err)}`)
           })
           tcpServer = s
           boundPort = tryPort
@@ -2038,9 +2064,12 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         logger.warn('failed to bind TCP admin port (no available port found)')
       }
 
+      // Initialize WebSocket handler for /ws endpoint
+      // TODO: WebSocket support pending implementation (Lumen design complete, see /tmp/lumen-ws-design.json)
+
       logger.info('context available via GET /context on unix socket')
 
-      return { tcpPort: boundPort, unixPath }
+      return { tcpPort: boundPort, unixPath, tcpServer, unixServer }
     },
     async stop() {
       if (unixServer) {
@@ -2060,6 +2089,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       } catch {}
       unixSocketInode = null
+      
       logger.info('stopped')
     }
   }

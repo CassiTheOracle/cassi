@@ -201,6 +201,19 @@ export async function handleMemoryRoutes(
     return true
   }
 
+  // GET /memory/index/search?q=...&limit=N  — global cross-session FTS search
+  if (parts[1] === 'index' && parts[2] === 'search' && !parts[3] && method === 'GET') {
+    if (!memory) return noMemory()
+    if (!memory.searchIndex) {
+      sendJSON(res, 501, { error: 'session index not available' })
+      return true
+    }
+    const q = url.searchParams.get('q') ?? url.searchParams.get('query') ?? ''
+    const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+    sendJSON(res, 200, memory.searchIndex(q, { limit }))
+    return true
+  }
+
   // GET /memory/index/:labelOrSessionId/search?q=...&limit=20
   if (parts[1] === 'index' && parts[3] === 'search' && method === 'GET') {
     if (!memory) return noMemory()

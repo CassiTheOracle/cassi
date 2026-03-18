@@ -179,44 +179,81 @@ export async function handleEventsRoutes(
       const conn = { res, sessionId: connSessionId, connectedAt: Date.now() }
       sseConnections.set(connId, conn)
 
-      // ── Backpressure state ────────────────────────────────────────────
-      // When res.write() returns false, the kernel buffer is full and we
-      // must pause writes until 'drain' fires. If a connection stays
-      // paused for >5 seconds it is considered too slow and is closed to
-      // prevent unbounded buffer growth.
-      let paused = false
-      let pausedSince = 0
-      const BACKPRESSURE_TIMEOUT_MS = 5_000
+      // ── Per-connection monotonic event ID ─────────────────────────────
+      // Hybrid format: evt_{timestamp}_{pid}_{seq} — survives process
+      // restarts (different PID) and avoids Date.now() collisions at
+      // high throughput (unique seq per connection).
+      let eventSeq = 0
+      const pid = process.pid
+      const nextEventId = () => `evt_${Date.now()}_${pid}_${++eventSeq}`
 
-      const onDrain = () => {
-        paused = false
-        pausedSince = 0
-      }
-      res.on('drain', onDrain)
+      // ── Bounded write queue with serialization ─────────────────────
+      // Instead of dropping frames on backpressure, we queue them and
+      // flush in order. A sequential promise chain ensures no two
+      // res.write() calls interleave (even from concurrent listeners).
+      // The queue is bounded (MAX_QUEUED_FRAMES) with drop-oldest to
+      // prevent OOM from persistently slow clients.
+      const MAX_QUEUED_FRAMES = 500
+      const writeQueue: string[] = []
+      let flushing = false
+      let connectionClosed = false
 
-      /** Write an SSE frame with backpressure awareness. */
-      const sseWrite = (message: string): void => {
-        if (paused) {
-          // Check if the connection has been paused too long
-          if (pausedSince > 0 && Date.now() - pausedSince > BACKPRESSURE_TIMEOUT_MS) {
-            logger.warn('SSE connection too slow, closing', { connId })
-            sseConnections.delete(connId)
-            try { res.end() } catch { /* already gone */ }
+      const flushQueue = (): void => {
+        if (flushing || connectionClosed) return
+        flushing = true
+        try {
+          while (writeQueue.length > 0 && !connectionClosed) {
+            const frame = writeQueue.shift()!
+            try {
+              const ok = res.write(frame)
+              if (!ok) {
+                // Kernel buffer full — wait for drain before continuing
+                res.once('drain', () => {
+                  flushing = false
+                  flushQueue()
+                })
+                return // Exit without clearing flushing — drain handler will resume
+              }
+            } catch {
+              // Connection gone — clean up
+              connectionClosed = true
+              sseConnections.delete(connId)
+              return
+            }
           }
-          // Drop this frame — client is not keeping up
+        } finally {
+          if (connectionClosed || writeQueue.length === 0) {
+            flushing = false
+          }
+        }
+      }
+
+      /** Enqueue an SSE frame with bounded queue (drop-oldest on overflow). */
+      const sseWrite = (message: string): void => {
+        if (connectionClosed) return
+        writeQueue.push(message)
+
+        // Drop oldest frames if queue exceeds max — prevents OOM from slow clients
+        while (writeQueue.length > MAX_QUEUED_FRAMES) {
+          const dropped = writeQueue.shift()
+          logger.debug('SSE frame dropped (queue full)', { connId, queueSize: writeQueue.length })
+        }
+
+        flushQueue()
+      }
+
+      // ── Heartbeat / keepalive ──────────────────────────────────────
+      // SSE comment lines (starting with ':') are ignored by parsers
+      // but keep the TCP connection alive through NAT/firewalls and
+      // allow the client to detect dead connections via read timeout.
+      const HEARTBEAT_INTERVAL_MS = 15_000
+      const heartbeatTimer = setInterval(() => {
+        if (connectionClosed) {
+          clearInterval(heartbeatTimer)
           return
         }
-        try {
-          const ok = res.write(message)
-          if (!ok) {
-            paused = true
-            pausedSince = Date.now()
-            logger.debug('SSE backpressure engaged', { connId })
-          }
-        } catch {
-          sseConnections.delete(connId)
-        }
-      }
+        sseWrite(`: ping ${Date.now()}\n\n`)
+      }, HEARTBEAT_INTERVAL_MS)
 
       for (const event of missedEvents) {
         const data = JSON.stringify(event)
@@ -232,7 +269,7 @@ export async function handleEventsRoutes(
         type: 'sse_connected',
         sessionId: connSessionId,
         timestamp: Date.now(),
-        eventId: `evt_${Date.now()}`,
+        eventId: nextEventId(),
       }
       sseWrite(`${[
         `id: ${connectedEvent.eventId}`,
@@ -261,7 +298,7 @@ export async function handleEventsRoutes(
         if (globalStream || event.sessionId === sessionId) {
           const data = JSON.stringify(event)
           const message = `${[
-            `id: ${event.eventId || `evt_${Date.now()}`}`,
+            `id: ${event.eventId || nextEventId()}`,
             `event: ${event.type}`,
             `data: ${data}`,
             '',
@@ -306,7 +343,7 @@ export async function handleEventsRoutes(
                 ...payload,
                 sessionId: event.sessionId ?? connSessionId,
                 timestamp: event.timestamp ?? Date.now(),
-                eventId: `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                eventId: nextEventId(),
               }
               if (globalStream || enriched.sessionId === sessionId || event.sessionId == null) {
                 forwardCognitive(enriched)
@@ -322,7 +359,7 @@ export async function handleEventsRoutes(
             ...event,
             sessionId: event.sessionId ?? connSessionId,
             timestamp: event.timestamp ?? Date.now(),
-            eventId: event.eventId ?? `evt_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+            eventId: event.eventId ?? nextEventId(),
           }
 
           // Session filter: global stream gets everything; per-session streams
@@ -333,9 +370,12 @@ export async function handleEventsRoutes(
         })
 
       res.on('close', () => {
+        connectionClosed = true
+        clearInterval(heartbeatTimer)
         sseConnections.delete(connId)
         unsubscribe()
         daemonBusUnsub?.()
+        writeQueue.length = 0 // Release queued frames
       })
 
       return true
