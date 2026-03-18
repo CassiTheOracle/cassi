@@ -38,12 +38,63 @@ is_running() {
 wait_for_http() {
   local retries=60
   while (( retries-- > 0 )); do
-    if curl -sf "$ADMIN_URL/health" -o /dev/null 2>/dev/null; then
+    # Accept any HTTP response (200 OK or 503 degraded) as "daemon is up"
+    local code
+    code="$(curl -s -o /dev/null -w '%{http_code}' "$ADMIN_URL/health" 2>/dev/null)" || code="000"
+    if [[ "$code" =~ ^[2345] ]]; then
       return 0
     fi
     sleep 0.5
   done
   return 1
+}
+
+# Kill any orphaned cassi:super or cassi:daemon processes not tracked by our PID file.
+# This handles the case where a supervisor died ungracefully (SIGKILL, OOM) and its
+# daemon child became an orphan still holding port 7433.
+kill_orphans() {
+  local tracked_pid="${1:-}"
+  local killed=0
+
+  for pname in "cassi:super" "cassi:daemon"; do
+    local pids
+    pids="$(pgrep -x "$pname" 2>/dev/null)" || continue
+    for pid in $pids; do
+      [[ "$pid" == "$tracked_pid" ]] && continue
+      echo "[cassicore] Killing orphaned $pname process (PID $pid)" >&2
+      kill "$pid" 2>/dev/null || true
+      killed=1
+    done
+  done
+
+  if (( killed )); then
+    # Give orphans time to exit
+    local retries=10
+    while (( retries-- > 0 )); do
+      local any_alive=0
+      for pname in "cassi:super" "cassi:daemon"; do
+        local pids
+        pids="$(pgrep -x "$pname" 2>/dev/null)" || continue
+        for pid in $pids; do
+          [[ "$pid" == "$tracked_pid" ]] && continue
+          any_alive=1
+        done
+      done
+      (( any_alive )) || break
+      sleep 0.5
+    done
+
+    # Force-kill any stragglers
+    for pname in "cassi:super" "cassi:daemon"; do
+      local pids
+      pids="$(pgrep -x "$pname" 2>/dev/null)" || continue
+      for pid in $pids; do
+        [[ "$pid" == "$tracked_pid" ]] && continue
+        echo "[cassicore] Force-killing orphaned $pname (PID $pid)" >&2
+        kill -9 "$pid" 2>/dev/null || true
+      done
+    done
+  fi
 }
 
 # ── commands ───────────────────────────────────────────────────────────────────
@@ -64,11 +115,17 @@ cmd_start() {
   # Clean stale sockets before starting
   rm -f "$CASSICORE_HOME/admin.sock" "$CASSICORE_HOME/bridge.sock"
 
+  # Kill any orphaned cassi:super / cassi:daemon processes from prior runs
+  # that might still be holding port 7433
+  kill_orphans ""
+
   echo "[cassicore] Starting daemon..." >&2
   # Start the daemon as a detached background process.
   # The entry point (index.js) runs a supervisor that fork()s the actual
   # daemon as a child process with IPC heartbeat monitoring.
   # We use setsid to create a new process group so it survives shell exit.
+  # Set heap limit — prevents OOM crashes from runaway Lumen/team sessions
+  export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=6144"
   setsid node "$DAEMON_JS" >>"$LOG_FILE" 2>&1 &
   local bg_pid=$!
   # The setsid'd process may fork — wait briefly and find the supervisor PID
@@ -90,6 +147,9 @@ cmd_start() {
 cmd_stop() {
   if ! is_running; then
     echo "[cassicore] Daemon is not running" >&2
+    # Still check for orphans — supervisor may have died but daemon child lives on
+    kill_orphans ""
+    rm -f "$PID_FILE"
     return 0
   fi
 
@@ -108,6 +168,9 @@ cmd_stop() {
     kill -9 "$pid" 2>/dev/null || true
   fi
 
+  # Kill any orphaned cassi:super / cassi:daemon processes from prior runs
+  kill_orphans ""
+
   rm -f "$PID_FILE"
   echo "[cassicore] Stopped." >&2
 }
@@ -122,8 +185,16 @@ cmd_status() {
   if is_running; then
     local pid; pid="$(get_pid)"
     echo "[cassicore] Running (PID $pid)"
-    # Try to get version/uptime from health endpoint
-    if curl -sf "$ADMIN_URL/health" -o /tmp/cassicore-health.json 2>/dev/null; then
+
+    # Show the daemon child PID too, for full process hierarchy visibility
+    local daemon_pid
+    daemon_pid="$(pgrep -x 'cassi:daemon' 2>/dev/null | head -1)"
+    if [[ -n "$daemon_pid" ]]; then
+      echo "[cassicore] Daemon child PID: $daemon_pid"
+    fi
+
+    # Try to get version/uptime from health endpoint (accept any HTTP response)
+    if curl -s "$ADMIN_URL/health" -o /tmp/cassicore-health.json 2>/dev/null && [[ -s /tmp/cassicore-health.json ]]; then
       local version uptime
       version="$(python3 -c "import json,sys; d=json.load(open('/tmp/cassicore-health.json')); print(d.get('version','?'))" 2>/dev/null || echo '?')"
       uptime="$(python3 -c "import json,sys; d=json.load(open('/tmp/cassicore-health.json')); ms=d.get('uptimeMs',0); print(f\"{ms//3600000}h {(ms%3600000)//60000}m\" if ms else d.get('uptime','?'))" 2>/dev/null || echo '?')"
@@ -562,8 +633,12 @@ dur_tracker = DurationTracker()
 
 def normalize_source_filter(value):
     aliases = {
-        'yang': 'macro-dialectic:yang',
-        'yin': 'macro-dialectic:yin',
+        'yang': 'lumen:yang',
+        'yin': 'lumen:yin',
+        'executive': 'lumen:executive',
+        'lumen': 'lumen:',
+        'macro-yang': 'macro-dialectic:yang',
+        'macro-yin': 'macro-dialectic:yin',
         'unity': 'macro-dialectic:unity',
         'observer': 'subconscious:observer',
         'subconscious': 'subconscious:',
@@ -576,9 +651,12 @@ source_filter = normalize_source_filter(source_filter)
 
 def short_source(source):
     mapping = {
-        'macro-dialectic:yang': 'yang',
-        'macro-dialectic:yin': 'yin',
-        'macro-dialectic:unity': 'unity',
+        'lumen:yang': 'yang',
+        'lumen:yin': 'yin',
+        'lumen:executive': 'exec',
+        'macro-dialectic:yang': 'm:yang',
+        'macro-dialectic:yin': 'm:yin',
+        'macro-dialectic:unity': 'm:unity',
         'dialectic:yang': 'd:yang',
         'dialectic:yin': 'd:yin',
         'dialectic:serenity': 'd:serenity',
@@ -596,9 +674,94 @@ def short_source(source):
     }
     return mapping.get(source, source)
 
+# ── Lumen / FluxTeam context extraction ──────────────────────────
+
+# Posture colors: Yang=yellow (assertive), Yin=cyan (cautious), Executive=magenta
+POSTURE_COLORS = {
+    'yang': YEL,
+    'yin': CYAN,
+    'executive': MAG,
+    'exec': MAG,
+}
+
+POSTURE_ICONS = {
+    'yang': '\u2607',    # lightning
+    'yin': '\u2756',     # diamond
+    'executive': '\u2605', # star
+    'exec': '\u2605',
+}
+
+def extract_lumen_context(info):
+    # Extract Lumen posture and FluxTeam info from source and sessionId.
+    # Returns dict with posture, team_id, lumen_session
+    ctx = {'posture': None, 'team_id': None, 'lumen_session': None}
+    source = info.get('source', '') or ''
+    session_id = info.get('sessionId', '') or ''
+
+    # Extract posture from source field (set by LumenAgentSession)
+    if source.startswith('lumen:'):
+        ctx['posture'] = source.split(':')[1]
+
+    # Fallback: extract posture from sessionId pattern
+    # e.g. sess_lumen-1773796674025-yin
+    if not ctx['posture'] and 'lumen-' in session_id:
+        for p in ('yang', 'yin', 'executive'):
+            if session_id.endswith('-' + p):
+                ctx['posture'] = p
+                break
+
+    # Extract lumen session base id
+    if 'lumen-' in session_id:
+        # sess_lumen-1773796674025-yin -> lumen-1773796674025
+        parts = session_id.replace('sess_', '').rsplit('-', 1)
+        if len(parts) == 2 and parts[1] in ('yang', 'yin', 'executive'):
+            ctx['lumen_session'] = parts[0]
+        else:
+            ctx['lumen_session'] = session_id.replace('sess_', '')
+
+    return ctx
+
+# ── Session cost tracking ────────────────────────────────────────
+
+session_totals = {}  # lumen_session_id -> {input: N, output: N, thinking: N, requests: N}
+
+def track_session_tokens(info, end_data):
+    # Track running token totals per lumen session.
+    lctx = extract_lumen_context(info)
+    sid = lctx.get('lumen_session')
+    if not sid or not end_data or not isinstance(end_data, dict):
+        return
+    tok = end_data.get('tokensUsed', {})
+    if not isinstance(tok, dict):
+        return
+    if sid not in session_totals:
+        session_totals[sid] = {'input': 0, 'output': 0, 'thinking': 0, 'requests': 0}
+    session_totals[sid]['input'] += tok.get('input', 0)
+    session_totals[sid]['output'] += tok.get('output', 0)
+    session_totals[sid]['thinking'] += tok.get('thinking', 0)
+    session_totals[sid]['requests'] += 1
+
+def format_session_totals(lumen_session):
+    # Format running session totals as a compact string.
+    if not lumen_session or lumen_session not in session_totals:
+        return ''
+    t = session_totals[lumen_session]
+    total = t['input'] + t['output'] + t['thinking']
+    if total == 0:
+        return ''
+    return DIM + '[' + fmt_count(total) + '/' + str(t['requests']) + 'r]' + RST
+
 def format_source_chain(info):
     trigger = info.get('trigger', '') or ''
-    source = short_source(info.get('source', '') or '')
+    source = info.get('source', '') or ''
+
+    # Resolve source — try the source field first, then sessionId fallback
+    if not source or source == 'unknown':
+        lctx = extract_lumen_context(info)
+        if lctx['posture']:
+            source = 'lumen:' + lctx['posture']
+
+    source = short_source(source)
     if trigger:
         trigger = short_source(trigger)
         if trigger == source:
@@ -636,6 +799,21 @@ TOOL_MAIN_ARG = {
     'serena__insert_before_symbol': ['relative_path'],
     'web_fetch': ['url'],
     'cassi_web_fetch': ['url'],
+    # Plan tools
+    'plan_submit_step': ['title'],
+    'plan_view': [],
+    'plan_approve_step': ['step_id'],
+    'plan_reject_step': ['step_id'],
+    'plan_update_step': ['step_id'],
+    'plan_finalize': ['status'],
+    # Dialectic tools
+    'share_finding': ['content'],
+    'challenge': ['finding_id'],
+    'concede': ['challenge_id'],
+    'signal_conclusion': ['conclusion'],
+    'inject_context': ['content'],
+    'inject_steering': ['instruction'],
+    'review_dialectic_log': [],
     'gitnexus_query': ['query'],
     'gitnexus_context': ['name'],
     'gitnexus_impact': ['target'],
@@ -1104,8 +1282,12 @@ def render_req(req_id, info, end_data=None):
 
     # Build header parts
     source = format_source_chain(info)
+    lctx = extract_lumen_context(info)
     ts_val = end_data.get('timestamp') if isinstance(end_data, dict) else info.get('timestamp')
     when = fmt_ts(ts_val)
+
+    # Track session tokens for running totals
+    track_session_tokens(info, end_data)
 
     metrics = []
     if end_data and isinstance(end_data, dict):
@@ -1133,6 +1315,22 @@ def render_req(req_id, info, end_data=None):
         tc = len(tools)
         metrics.append(DIM + str(tc) + ' tool' + ('s' if tc != 1 else '') + RST)
 
+    # Posture badge for Lumen sessions
+    posture_badge = ''
+    if lctx['posture']:
+        p = lctx['posture']
+        p_short = 'exec' if p == 'executive' else p
+        p_color = POSTURE_COLORS.get(p_short, DIM)
+        p_icon = POSTURE_ICONS.get(p_short, '')
+        posture_badge = '  ' + p_color + BOLD + p_icon + ' ' + p_short + RST
+
+    # Session running totals (compact)
+    session_totals_str = ''
+    if lctx.get('lumen_session'):
+        st = format_session_totals(lctx['lumen_session'])
+        if st:
+            session_totals_str = '  ' + st
+
     # Header line
     source_str = ('  ' + DIM + source + RST) if source else ''
     sep = ' ' + DIM + U_MDOT + RST + ' '
@@ -1149,7 +1347,7 @@ def render_req(req_id, info, end_data=None):
         if meta_parts:
             meta_str = '  ' + DIM + '[' + ' '.join(meta_parts) + ']' + RST
 
-    sys.stdout.write(dot_color + dot + RST + ' ' + DIM + when + RST + '  ' + color + BOLD + lbl + RST + source_str + metrics_str + slow_tag + meta_str + '\n')
+    sys.stdout.write(dot_color + dot + RST + ' ' + DIM + when + RST + '  ' + color + BOLD + lbl + RST + posture_badge + source_str + metrics_str + slow_tag + session_totals_str + meta_str + '\n')
 
     # Prompt section
     prompt_data = info.get('prompt')
@@ -1256,12 +1454,36 @@ for raw in sys.stdin:
         continue
     if provider_filter and d.get('providerId', '') != provider_filter:
         continue
-    if source_filter and not str(d.get('source', '')).startswith(source_filter):
-        continue
+    if source_filter:
+        event_source = str(d.get('source', '') or '')
+        # Infer source from sessionId for Lumen sessions with missing source
+        if (not event_source or event_source == 'unknown') and 'lumen-' in str(d.get('sessionId', '')):
+            for p in ('yang', 'yin', 'executive'):
+                if str(d.get('sessionId', '')).endswith('-' + p):
+                    event_source = 'lumen:' + p
+                    break
+        if not event_source.startswith(source_filter):
+            continue
     req_id = d.get('requestId', '')
 
     if etype == 'provider:request_start':
         ensure_req(req_id, d)
+        # Show in-flight indicator only for live events (after SSE handshake)
+        if connected:
+            lctx = extract_lumen_context(d)
+            lbl = short_label(d)
+            source_tag = format_source_chain(d)
+            posture_tag = ''
+            if lctx['posture']:
+                p = lctx['posture']
+                p_short = 'exec' if p == 'executive' else p
+                p_color = POSTURE_COLORS.get(p_short, DIM)
+                p_icon = POSTURE_ICONS.get(p_short, '')
+                posture_tag = ' ' + p_color + p_icon + ' ' + p_short + RST
+            source_display = (' ' + DIM + source_tag + RST) if source_tag else ''
+            # Write with \r so next render_req overwrites this line
+            sys.stdout.write('\033[2K' + DIM + U_DOT + ' ' + fmt_ts(d.get('timestamp')) + '  ' + RST + lbl + posture_tag + source_display + DIM + '  \u2026streaming' + RST + '\r')
+            sys.stdout.flush()
 
     elif etype == 'provider:request_prompt':
         if show_prompt:
@@ -1276,6 +1498,9 @@ for raw in sys.stdin:
         if not info:
             info = ensure_req(req_id, d)
             active.pop(req_id, None)
+        # Clear any in-flight indicator on this line
+        if connected:
+            sys.stdout.write('\033[2K\r')
         render_req(req_id, info, d)
 
     elif etype == 'provider:request_error':
@@ -1521,6 +1746,7 @@ cmd_run() {
   mkdir -p "$CASSICORE_HOME"
   rm -f "$CASSICORE_HOME/admin.sock" "$CASSICORE_HOME/bridge.sock"
   cd "$CASSICORE_DIR"
+  export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-old-space-size=6144"
   exec node "$DAEMON_JS"
 }
 
