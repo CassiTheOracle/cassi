@@ -372,6 +372,8 @@ export interface BlackboardState {
   parentContext: string
   /** Structured plan (optional — present when planning is active) */
   plan?: Plan
+  /** Incremental report (optional — present when report is used) */
+  report?: Report
   createdAt: number
   lastActivityAt: number
 }
@@ -568,6 +570,8 @@ export interface FluxCellResult {
   error?: string
   /** Deliverable verification result */
   verification?: DeliverableVerification
+  /** Incremental report produced by the dialectic session (if any) */
+  report?: Report
 }
 
 /**
@@ -777,4 +781,111 @@ export interface TopologyFallbackChain {
 /** Default fallback chain: ring → adaptive → dyad → solo */
 export const DEFAULT_FALLBACK_CHAIN: TopologyFallbackChain = {
   chain: ['ring', 'adaptive', 'dyad', 'solo'],
+}
+
+// ============================================================================
+// Incremental Report System
+// ============================================================================
+
+/**
+ * Section types for the incremental report.
+ * Each type represents a different kind of curated insight.
+ */
+export type ReportSectionType =
+  | 'finding'          // Key discovery with evidence
+  | 'concern'          // Risk, tradeoff, or negative consequence
+  | 'recommendation'   // Suggested course of action
+  | 'evidence'         // Supporting data (file references, test results)
+  | 'open-question'    // Something needing further investigation
+  | 'decision'         // Resolution of a tension or tradeoff
+  | 'note'             // Context, historical reference, moderation observation
+
+/**
+ * Section lifecycle status.
+ * Auto-drafted sections start as 'draft', manual additions as 'active'.
+ */
+export type ReportSectionStatus = 'draft' | 'active' | 'superseded'
+
+/**
+ * A single section of the incremental report.
+ * Sections are the atomic units of curated insight.
+ */
+export interface ReportSection {
+  /** Unique section identifier */
+  id: string
+  /** Type of insight */
+  type: ReportSectionType
+  /** Lifecycle status */
+  status: ReportSectionStatus
+  /** Section title */
+  title: string
+  /** Section content (curated insight text) */
+  content: string
+  /** Author posture name (yang/yin/executive) */
+  author: string
+  /** Author confidence in this insight (0-1) */
+  confidence?: number
+  /** File paths, memory keys, or other evidence references */
+  references?: string[]
+  /** Thread ID grouping related sections across postures */
+  threadId?: string
+  /** Section ID this responds to */
+  respondsTo?: string
+  /** Section ID this challenges */
+  challenges?: string
+  /** Section ID this supports */
+  supports?: string
+  /** Section ID this revision supersedes */
+  supersedes?: string
+  /** True if a newer revision exists */
+  superseded?: boolean
+  /** Sensitivity classification for blackboard sync */
+  sensitivity?: 'public' | 'internal' | 'secret'
+  /** Creation timestamp */
+  createdAt: number
+  /** Last update timestamp */
+  updatedAt: number
+}
+
+/**
+ * The incremental report — a curated document built collaboratively
+ * by all three postures during a Lumen session.
+ */
+export interface Report {
+  /** Unique report identifier */
+  id: string
+  /** Goal the report is for */
+  goal: string
+  /** All sections (including superseded ones for audit trail) */
+  sections: ReportSection[]
+  /** Template name if a task-specific template was used */
+  template?: string
+  /** Creation timestamp */
+  createdAt: number
+  /** Last update timestamp */
+  updatedAt: number
+}
+
+/**
+ * Quality metrics for a report, calculated on demand.
+ */
+export interface ReportQualityMetrics {
+  /** Total sections (all statuses) */
+  totalSections: number
+  /** Sections with status 'active' */
+  activeSections: number
+  /** Sections with status 'draft' */
+  draftSections: number
+  /** Count by section type */
+  byType: Partial<Record<ReportSectionType, number>>
+  /** Count by author */
+  byAuthor: Record<string, number>
+  /** Average confidence across active sections */
+  avgConfidence: number
+  /** Number of distinct threads */
+  threadCount: number
+  /** Concerns without a linked decision or resolution */
+  unresolvedConcerns: number
+  /** Coverage score (0-1): type diversity relative to ideal distribution */
+  coverageScore: number
 }
