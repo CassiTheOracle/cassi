@@ -113,6 +113,7 @@ export class PluginHost implements IPluginHost {
       this.logger.info(`spawning worker process for ${manifest.id}`, { entry: manifest.entryPoint })
 
       const child = fork(manifest.entryPoint, [], {
+        execArgv: ['--max-old-space-size=256'],
         stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
         env: {
           ...process.env,
@@ -198,85 +199,47 @@ export class PluginHost implements IPluginHost {
         // instead of waiting for the full ready timeout to expire.
         if (!ready) {
           ready = true  // prevent timeout from also rejecting
-          clearTimeout(readyTimeout)
-          record.spawning = false
-          reject(new Error(`worker crashed: ${err instanceof Error ? err.message : String(err)}`))
+          reject(err)
+          return
         }
       })
 
       child.on('exit', (code, signal) => {
-        this.stopHealthProbe(record)
+        const reason = code !== null ? `code ${code}` : `signal ${signal}`
+        this.logger.warn(`worker ${manifest.id} exited (${reason})`)
 
-        if (code !== 0 && code !== null) {
-          this.handleCrash(record, `exit code ${code}${signal ? ` (signal ${signal})` : ''}`)
-        } else if (signal) {
-          // Killed by signal (e.g. SIGKILL from us)
-          if (!record.status.status.startsWith('stop')) {
-            this.handleCrash(record, `killed by signal ${signal}`)
-          }
-        } else {
-          // Graceful exit (code 0)
-          record.status.status = 'stopped'
-          this.logger.info(`worker ${manifest.id} exited gracefully`)
-          bus.emit({ type: 'plugin:stopped', pluginId: manifest.id, reason: 'manual' })
-        }
-
-        // Fast-fail: if the worker exited before signaling ready, reject
-        // immediately rather than waiting for the full timeout.
-        if (!ready) {
-          ready = true  // prevent timeout from also rejecting
-          clearTimeout(readyTimeout)
-          const reason = code !== 0
-            ? `exit code ${code}${signal ? ` (signal ${signal})` : ''}`
-            : signal ? `killed by ${signal}` : 'exited before ready'
-          record.spawning = false
-          reject(new Error(reason))
+        // Only handle as a crash if the worker was healthy (not during intentional restart)
+        if (record.status.status === 'healthy' && !record.restarting) {
+          this.handleCrash(record, `exited with ${reason}`)
         }
       })
-
-      // Send init message to start the worker
-      try {
-        child.send(initMsg)
-      } catch (err) {
-        clearTimeout(readyTimeout)
-        record.spawning = false
-        reject(err)
-      }
     })
   }
 
-  // ── Health Probes ─────────────────────────────────────────────────────
+  // ── Health Probes ─────────────────────────────────────────────────────────
 
   private startHealthProbe(record: InternalWorkerRecord): void {
-    const intervalMs = record.manifest.healthProbeIntervalMs ?? 10_000
-    const timeoutMs = record.manifest.healthProbeTimeoutMs ?? 30_000
-
-    record.lastPongTime = Date.now()
+    if (record.healthTimer) {
+      clearInterval(record.healthTimer)
+    }
 
     record.healthTimer = setInterval(() => {
-      if (!record.child || record.child.killed) return
-
-      // Check for missed pongs
-      const sincePong = Date.now() - record.lastPongTime
-      if (sincePong > timeoutMs) {
-        this.logger.error(
-          `plugin ${record.manifest.id} health probe timeout (${sincePong}ms since last pong) — killing`
-        )
-        this.stopHealthProbe(record)
-        record.child.kill('SIGKILL')
+      if (!record.child || !record.child.connected) {
+        this.logger.warn(`health probe: worker ${record.manifest.id} not connected`)
         return
       }
 
       // Send ping
-      try {
-        record.child.send({ type: 'health:ping', ts: Date.now() } as HostMessage)
-      } catch {
-        // IPC channel closed — worker is exiting
-      }
-    }, intervalMs)
+      const pingMsg: HostMessage = { type: 'health:ping', ts: Date.now() }
+      record.child.send(pingMsg)
 
-    // Don't prevent the daemon from exiting
-    record.healthTimer.unref()
+      // Check for timeout (no pong within 10 seconds)
+      const lastPongAgo = Date.now() - record.lastPongTime
+      if (record.lastPongTime > 0 && lastPongAgo > 10_000) {
+        this.logger.warn(`health probe: worker ${record.manifest.id} unresponsive (${Math.round(lastPongAgo / 1000)}s)`)
+        // Optionally trigger restart here if needed
+      }
+    }, 5_000)
   }
 
   private stopHealthProbe(record: InternalWorkerRecord): void {
@@ -286,182 +249,190 @@ export class PluginHost implements IPluginHost {
     }
   }
 
-  // ── Crash Handling & Circuit Breaker ──────────────────────────────────
+  // ── Crash Handling & Circuit Breaker ─────────────────────────────────────
 
-  private handleCrash(record: InternalWorkerRecord, errorMsg: string): void {
-    // Guard against double handleCrash() execution
+  private handleCrash(record: InternalWorkerRecord, reason: string): void {
+    // Guard against concurrent crash handling
     if (record.handlingCrash) {
       return
     }
     record.handlingCrash = true
 
-    const { manifest } = record
+    const now = Date.now()
+    record.status.crashes = (record.status.crashes ?? 0) + 1
+    record.crashTimestamps.push(now)
 
-    // Stop health probes for crashed worker
-    this.stopHealthProbe(record)
+    // Keep only crashes from the last 5 minutes
+    record.crashTimestamps = record.crashTimestamps.filter((ts) => now - ts < 5 * 60 * 1000)
 
-    record.status.crashes += 1
-    record.status.lastCrashAt = new Date()
-    record.status.status = 'crashed'
-    record.child = undefined
-
-    this.logger.error(`plugin ${manifest.id} crashed: ${errorMsg}`, { crashes: record.status.crashes })
-    bus.emit({
-      type: 'plugin:crashed',
-      pluginId: manifest.id,
-      error: errorMsg,
-      crashCount: record.status.crashes,
+    this.logger.error(`plugin ${record.manifest.id} crashed: ${reason}`, {
+      crashes: record.status.crashes,
+      recentCrashes: record.crashTimestamps.length,
     })
 
-    // Record crash timestamp for circuit breaker
-    const now = Date.now()
-    record.crashTimestamps.push(now)
-    const windowMs = manifest.circuitBreakerWindowMs ?? 300_000 // 5 min default
-    const maxInWindow = manifest.circuitBreakerMaxCrashes ?? 5
-    record.crashTimestamps = record.crashTimestamps.filter(t => t >= now - windowMs)
-
-    // Check circuit breaker
-    if (record.crashTimestamps.length >= maxInWindow) {
+    // Circuit breaker: open if 3+ crashes in 5 minutes
+    if (record.crashTimestamps.length >= 3) {
       record.circuitOpen = true
-      this.logger.error(
-        `Circuit breaker OPEN for ${manifest.id} — ` +
-        `${record.crashTimestamps.length} crashes in ${Math.round(windowMs / 1000)}s. Stopping restarts.`
-      )
-      record.status.status = 'stopped'
+      this.logger.error(`circuit breaker OPEN for ${record.manifest.id}`)
+      record.status.status = 'crashed'
       record.handlingCrash = false
-      bus.emit({
-        type: 'plugin:circuit-open',
-        pluginId: manifest.id,
-        crashCount: record.crashTimestamps.length,
-        windowMs,
-      })
-      bus.emit({ type: 'plugin:stopped', pluginId: manifest.id, reason: 'circuit-breaker' })
       return
     }
 
-    // Attempt restart with exponential backoff
-    const crashes = record.status.crashes
-    if (manifest.restartOnCrash && crashes < manifest.maxRestarts) {
-      const backoff = Math.min(1000 * Math.pow(2, crashes - 1), 30_000)
-      this.logger.info(`scheduling restart for ${manifest.id} in ${backoff}ms`)
-      
-      // Clear any existing restart timer before scheduling a new one
-      if (record.restartTimer) {
-        clearTimeout(record.restartTimer)
-        record.restartTimer = undefined
+    // Schedule restart with exponential backoff
+    const delay = Math.min(1000 * Math.pow(2, record.crashTimestamps.length - 1), 30_000)
+    this.logger.info(`scheduling restart in ${delay}ms`)
+
+    record.restartTimer = setTimeout(() => {
+      if (record.circuitOpen) {
+        this.logger.warn(`restart cancelled: circuit breaker open`)
+        record.handlingCrash = false
+        return
       }
-      
-      record.status.status = 'restarting'
+
+      this.logger.info(`restarting worker ${record.manifest.id}`)
+      record.status.status = 'starting'
       record.restarting = true
-      record.restartTimer = setTimeout(() => {
-        this.logger.info(`restarting plugin ${manifest.id} (attempt ${crashes + 1})`)
-        record.restarting = false
-        this.spawnWorker(record)
-          .then(() => {
-            bus.emit({ type: 'plugin:restarted', pluginId: manifest.id, attempt: crashes + 1 })
-          })
-          .catch((err) => {
-            const errorInfo: Record<string, unknown> = {
-            operation: 'plugin_restart',
-            message: err instanceof Error ? err.message : String(err),
-            pluginId: manifest.id,
+
+      // Clean up old child process references
+      if (record.child) {
+        record.child.removeAllListeners()
+        record.child = undefined
+      }
+
+      this.spawnWorker(record)
+        .then(() => {
+          record.restarting = false
+          record.handlingCrash = false
+        })
+        .catch((err) => {
+          this.logger.error(`restart failed: ${err.message}`)
+          record.restarting = false
+          record.handlingCrash = false
+          // Re-trigger crash handling if restart spawn fails
+          if (!record.circuitOpen) {
+            this.handleCrash(record, 'restart failed: ' + err.message)
           }
-          if (err instanceof Error && err.stack) {
-            errorInfo.stack = err.stack
-          }
-          this.logger.error(`failed to restart ${manifest.id}`, errorInfo)
-            // Ensure status is consistent after failed restart
-            if (record.status.status === 'restarting') {
-              record.status.status = 'crashed'
-            }
-          })
-          .finally(() => {
-            record.handlingCrash = false
-          })
-      }, backoff)
-    } else {
-      this.logger.warn(`plugin ${manifest.id} reached max restarts or not configured to restart`)
-      record.status.status = 'stopped'
-      record.handlingCrash = false
-      bus.emit({ type: 'plugin:stopped', pluginId: manifest.id, reason: 'max-restarts' })
-    }
+        })
+    }, delay)
+
+    record.handlingCrash = false
   }
 
-  // ── Unload (graceful shutdown) ────────────────────────────────────────
+  // ── Message Passing ───────────────────────────────────────────────────────
 
-  /**
-   * Gracefully unload a plugin worker.
-   * Sends shutdown message, waits for graceful exit, then escalates to SIGTERM/SIGKILL.
-   * @param pluginId Worker plugin to unload
-   * @param opts.restart If true, tells the worker this is a restart (not permanent shutdown)
-   */
-  async unload(pluginId: string, opts?: { restart?: boolean }): Promise<void> {
+  sendMessage(pluginId: string, payload: unknown): void {
     const record = this.workers.get(pluginId)
-    if (!record) return
+    if (!record || !record.child || !record.child.connected) {
+      this.logger.warn(`cannot send message to ${pluginId}: not connected`)
+      return
+    }
 
+    const msg: HostMessage = { type: 'message', payload }
+    record.child.send(msg)
+  }
+
+  updateConfig(pluginId: string, config: Record<string, unknown>): void {
+    const record = this.workers.get(pluginId)
+    if (!record || !record.child || !record.child.connected) {
+      this.logger.warn(`cannot update config for ${pluginId}: not connected`)
+      return
+    }
+
+    const msg: HostMessage = { type: 'config:update', config }
+    record.child.send(msg)
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+  async unload(pluginId: string): Promise<void> {
+    const record = this.workers.get(pluginId)
+    if (!record) {
+      this.logger.warn(`plugin ${pluginId} not loaded`)
+      return
+    }
+
+    this.logger.info(`unloading plugin ${pluginId}`)
+
+    // Stop health probes
+    this.stopHealthProbe(record)
+
+    // Cancel any pending restart
     if (record.restartTimer) {
       clearTimeout(record.restartTimer)
       record.restartTimer = undefined
     }
 
-    this.stopHealthProbe(record)
+    // Send shutdown message
+    if (record.child && record.child.connected) {
+      const shutdownMsg: HostMessage = { type: 'shutdown' }
+      record.child.send(shutdownMsg)
 
-    if (!record.child) {
-      this.workers.delete(pluginId)
-      this.logger.info(`plugin ${pluginId} unloaded (was not active)`)
-      return
+      // Give worker 5 seconds to shut down gracefully
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          this.logger.warn(`worker ${pluginId} did not shut down gracefully, killing`)
+          resolve()
+        }, 5_000)
+
+        record.child!.once('exit', () => {
+          clearTimeout(timeout)
+          resolve()
+        })
+      })
+
+      // Force kill if still running
+      if (record.child && record.child.pid) {
+        try {
+          process.kill(record.child.pid, 'SIGKILL')
+        } catch (err) {
+          // Already dead
+        }
+      }
     }
 
-    const child = record.child
-    record.child = undefined
-    record.status.status = 'stopping'
-
-    // Step 1: Send shutdown message over IPC (with optional restart hint)
-    try {
-      child.send({ type: 'shutdown', restart: opts?.restart } as HostMessage)
-    } catch {
-      this.logger.warn(`failed to send shutdown to ${pluginId}`)
-    }
-
-    // Step 2: Wait for graceful exit (5s)
-    const exited = await Promise.race([
-      new Promise<boolean>(res => child.once('exit', () => res(true))),
-      new Promise<boolean>(res => setTimeout(() => res(false), 5000)),
-    ])
-
-    // Step 3: SIGTERM if still alive
-    if (!exited && !child.killed) {
-      this.logger.warn(`plugin ${pluginId} did not exit gracefully — sending SIGTERM`)
-      child.kill('SIGTERM')
-
-      await Promise.race([
-        new Promise<void>(res => child.once('exit', () => res())),
-        new Promise<void>(res => setTimeout(res, 3000)),
-      ])
-    }
-
-    // Step 4: SIGKILL as last resort
-    if (!child.killed) {
-      this.logger.warn(`plugin ${pluginId} still alive — sending SIGKILL`)
-      try { child.kill('SIGKILL') } catch { /* already dead */ }
-    }
-
+    // Clean up
+    record.child?.removeAllListeners()
     this.workers.delete(pluginId)
-    this.logger.info(`plugin ${pluginId} unloaded`)
+
+    bus.emit({ type: 'plugin:stopped', pluginId, reason: 'manual' })
   }
 
-  // ── Restart ───────────────────────────────────────────────────────────
+  async shutdown(): Promise<void> {
+    this.logger.info('shutting down plugin host...')
+
+    const unloadPromises = Array.from(this.workers.keys()).map((id) => this.unload(id))
+    await Promise.all(unloadPromises)
+
+    this.logger.info('plugin host shut down complete')
+  }
+
+  getPluginStatus(pluginId: string): PluginStatus | undefined {
+    return this.workers.get(pluginId)?.status
+  }
+
+  getAllPluginStatuses(): PluginStatus[] {
+    return Array.from(this.workers.values()).map((r) => r.status)
+  }
+
+  // IPluginHost interface aliases (kept for backward compatibility)
+  /** @see getPluginStatus */
+  status(pluginId: string): PluginStatus | undefined { return this.getPluginStatus(pluginId) }
+  /** @see getAllPluginStatuses */
+  all(): PluginStatus[] { return this.getAllPluginStatuses() }
+  /** @see sendMessage */
+  send(pluginId: string, payload: unknown): void { this.sendMessage(pluginId, payload) }
 
   /**
    * Restart a specific plugin
    */
   async restart(pluginId: string): Promise<void> {
     const record = this.workers.get(pluginId)
-    if (!record) throw new Error('unknown plugin')
+    if (!record) throw new Error(`unknown plugin: ${pluginId}`)
 
     await this.unload(pluginId)
 
-    // Reset status
+    // Reset state
     record.status = {
       id: pluginId,
       status: 'starting',
@@ -477,77 +448,5 @@ export class PluginHost implements IPluginHost {
 
     await this.spawnWorker(record)
     bus.emit({ type: 'plugin:restarted', pluginId, attempt: 1 })
-  }
-
-  // ── Queries ───────────────────────────────────────────────────────────
-
-  /** Get status for a specific plugin */
-  status(pluginId: string) {
-    const r = this.workers.get(pluginId)
-    return r?.status
-  }
-
-  /** Get status for all loaded plugins */
-  all() {
-    return Array.from(this.workers.values()).map(r => r.status)
-  }
-
-  /**
-   * Push a config update to a worker without restarting it
-   */
-  updateConfig(pluginId: string, config: Record<string, unknown>): void {
-    const record = this.workers.get(pluginId)
-    if (!record?.child || record.child.killed) {
-      this.logger.warn(`cannot update config for ${pluginId}: worker not active`)
-      return
-    }
-
-    try {
-      record.child.send({ type: 'config:update', config } as HostMessage)
-    } catch (e) {
-      const errorInfo: Record<string, unknown> = {
-      operation: 'config_update',
-      message: e instanceof Error ? e.message : String(e),
-      pluginId,
-    }
-    if (e instanceof Error && e.stack) {
-      errorInfo.stack = e.stack
-    }
-    this.logger.error(`failed to send config update to ${pluginId}`, errorInfo)
-    }
-  }
-
-  /**
-   * Send a message to a specific plugin worker
-   */
-  send(pluginId: string, payload: unknown): void {
-    const record = this.workers.get(pluginId)
-    if (!record?.child || record.child.killed) {
-      this.logger.warn(`cannot send to ${pluginId}: worker not active`)
-      return
-    }
-
-    try {
-      record.child.send({ type: 'message', payload } as HostMessage)
-    } catch (e) {
-      const errorInfo: Record<string, unknown> = {
-      operation: 'send_message',
-      message: e instanceof Error ? e.message : String(e),
-      pluginId,
-    }
-    if (e instanceof Error && e.stack) {
-      errorInfo.stack = e.stack
-    }
-    this.logger.error(`failed to send message to ${pluginId}`, errorInfo)
-    }
-  }
-
-  /**
-   * Gracefully shut down all workers.
-   * @param opts.restart If true, workers are told this is a restart
-   */
-  async shutdown(opts?: { restart?: boolean }): Promise<void> {
-    const ids = Array.from(this.workers.keys())
-    await Promise.all(ids.map(id => this.unload(id, opts)))
   }
 }
