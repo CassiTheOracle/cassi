@@ -24,6 +24,8 @@ export interface ToolDefinition {
   category?: ToolCategory;
   /** Fallback tool name to use when this tool's circuit breaker is open */
   fallbackTool?: string;
+  /** Whether this tool is read-only (safe for parallel execution). Default: false */
+  readOnly?: boolean;
 }
 
 /** A single tool call parsed from the provider stream */

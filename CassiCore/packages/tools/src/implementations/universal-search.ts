@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { IMemory } from '../../../types/intelligence.js'
 
@@ -123,8 +124,7 @@ interface UniversalSearchResponse {
 }
 
 function computeContentHash(content: string): string {
-  const crypto = require('node:crypto')
-  return crypto.createHash('sha256').update(content).digest('hex').slice(0, 16)
+  return createHash('sha256').update(content).digest('hex').slice(0, 16)
 }
 
 function deduplicateResults(results: SearchResult[]): SearchResult[] {

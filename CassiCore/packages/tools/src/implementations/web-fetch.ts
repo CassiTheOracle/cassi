@@ -342,6 +342,7 @@ export const webFetchDefinition: ToolDefinition = {
     required: ['url'],
   },
   timeoutMs: 30_000,
+  readOnly: true,
   category: 'core',
 }
 

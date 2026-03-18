@@ -80,4 +80,10 @@ export class ToolRegistry {
       .filter(e => categorySet.has(e.definition.category ?? 'core'))
       .map(e => e.definition)
   }
+
+  /** Get tool definition by name */
+  getDefinition(name: string): ToolDefinition | undefined {
+    const entry = this.tools.get(name)
+    return entry?.definition
+  }
 }

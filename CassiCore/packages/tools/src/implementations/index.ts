@@ -136,6 +136,7 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
       description: 'List all active CassiCore sessions with their IDs and last activity.',
       parameters: { type: 'object', properties: {}, required: [] },
       timeoutMs: 5_000,
+      readOnly: true,
       category: 'debug',
     },
     async (_input, ctx) => {

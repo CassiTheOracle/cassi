@@ -58,6 +58,7 @@ export const webSearchDefinition: ToolDefinition = {
     }
   },
   timeoutMs: 30_000,
+  readOnly: true,
   category: 'core',
 }
 

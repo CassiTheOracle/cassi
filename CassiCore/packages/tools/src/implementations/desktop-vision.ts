@@ -415,6 +415,7 @@ Examples:
     required: ['action'],
   },
   timeoutMs: 30_000,
+  readOnly: true,
 };
 
 // Tool handler

@@ -34,6 +34,7 @@ export const runTestsDefinition: ToolDefinition = {
     required: ['testPath'],
   },
   timeoutMs: 130_000,
+  readOnly: true,
 }
 
 export interface TestRunResult {
@@ -73,18 +74,35 @@ export const runTestsHandler: ToolHandler = async (input, ctx) => {
 
   const workdir = ctx.workingDir
   const { spawn } = await import('node:child_process')
+  const { existsSync, statSync } = await import('node:fs')
+  const { resolve } = await import('node:path')
 
   try {
+    // Resolve and validate the test path to provide better diagnostics
+    const resolvedPath = resolve(workdir, testPath)
+    let effectiveTestPath = testPath
+
+    // If testPath is a directory, vitest won't match it as a filename filter.
+    // Convert to a path that vitest can use for file matching.
+    if (existsSync(resolvedPath) && statSync(resolvedPath).isDirectory()) {
+      // vitest uses the argument as a filename filter regex, not a glob.
+      // Pass the directory path as-is — vitest will match any test file
+      // whose path contains this string.
+      effectiveTestPath = testPath.replace(/\/+$/, '')
+    }
+
     const result = await new Promise<{ stdout: string; stderr: string; exitCode: number }>((resolve) => {
       let stdout = ''
       let stderr = ''
 
-      // Run vitest with JSON reporter for structured output
-      const proc = spawn(
-        'npx',
-        ['vitest', 'run', testPath, '--reporter=json', '--no-color'],
-        { cwd: workdir, env: { ...process.env, FORCE_COLOR: '0' } },
-      )
+      // Run vitest with JSON reporter for structured output.
+      // Use shell: true so glob patterns like tests/**/*.test.ts are expanded.
+      const cmd = `npx vitest run ${JSON.stringify(effectiveTestPath)} --reporter=json --no-color`
+      const proc = spawn(cmd, [], {
+        cwd: workdir,
+        env: { ...process.env, FORCE_COLOR: '0' },
+        shell: true,
+      })
 
       const timer = setTimeout(() => {
         proc.kill('SIGTERM')
@@ -105,6 +123,15 @@ export const runTestsHandler: ToolHandler = async (input, ctx) => {
 
     // Try to parse vitest JSON output
     const parsed = parseVitestJson(result.stdout, result.stderr, result.exitCode)
+
+    // Add diagnostic info when 0 tests are found
+    if (parsed.total === 0) {
+      parsed.rawOutput = (parsed.rawOutput || '') +
+        `\n\nDiagnostic: 0 tests matched for path "${effectiveTestPath}" in ${workdir}. ` +
+        `Ensure the path matches a test file (e.g., "tests/my-feature.test.ts") ` +
+        `or a directory containing tests (e.g., "tests/flux-team").`
+    }
+
     return JSON.stringify(parsed, null, 2)
   } catch (err) {
     return JSON.stringify({
