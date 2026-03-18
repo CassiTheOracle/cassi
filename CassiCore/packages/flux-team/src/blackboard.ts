@@ -29,6 +29,7 @@ import type {
   FluxCellResult,
   Plan,
   PlanStep,
+  Report,
 } from '../../../types/flux-team.js'
 
 // ============================================================================
@@ -78,6 +79,9 @@ export class Blackboard {
   // Structured plan
   private plan: Plan | null
 
+  // Incremental report
+  private report: Report | null
+
   // Metadata
   private readonly createdAt: number
   private lastActivityAt: number
@@ -102,6 +106,7 @@ export class Blackboard {
     this.childResults = new Map()
     this.parentContext = ''
     this.plan = null
+    this.report = null
 
     this.createdAt = Date.now()
     this.lastActivityAt = Date.now()
@@ -650,6 +655,28 @@ export class Blackboard {
     return lines.join('\n')
   }
 
+  // ─── Report ───────────────────────────────────────────────────────────────
+
+  /**
+   * Store the incremental report from a Lumen session.
+   *
+   * @param report - The report produced by Yang/Yin/Executive collaboration
+   */
+  setReport(report: Report): void {
+    this.report = report
+    this.touch()
+    this.logger.debug('Report stored', { reportId: report.id, sections: report.sections.length })
+  }
+
+  /**
+   * Get the current incremental report.
+   *
+   * @returns The report or null if none has been set
+   */
+  getReport(): Report | null {
+    return this.report
+  }
+
   // ─── Context Assembly ─────────────────────────────────────────────────────
 
   /**
@@ -790,6 +817,7 @@ export class Blackboard {
       childResults: Object.fromEntries(this.childResults.entries()),
       parentContext: this.parentContext,
       plan: this.plan ?? undefined,
+      report: this.report ?? undefined,
       createdAt: this.createdAt,
       lastActivityAt: this.lastActivityAt,
     }
@@ -852,6 +880,9 @@ export class Blackboard {
 
     // Restore plan
     this.plan = snapshot.plan ?? null
+
+    // Restore report
+    this.report = snapshot.report ?? null
 
     // Update activity timestamp
     this.lastActivityAt = Date.now()
