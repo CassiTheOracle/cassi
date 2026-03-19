@@ -61,6 +61,40 @@ interface EventHandler { onEvent?: (e: unknown) => void | Promise<void> }
 // Singleton lock file path
 const CASSICORE_PID_FILE = path.join(homedir(), '.cassicore', 'daemon.pid')
 
+export interface DaemonBootPhaseMetric {
+  name: string
+  startedAt: number
+  endedAt: number
+  sinceBootMs: number
+  durationMs: number
+  meta?: Record<string, unknown>
+}
+
+export interface DaemonBootServiceMetric {
+  name: string
+  startedAt: number
+  readyAt: number
+  sinceBootMs: number
+  durationMs: number
+  meta?: Record<string, unknown>
+}
+
+export interface DaemonBootSnapshot {
+  sequence: number
+  pid: number
+  startedAt: number
+  readyAt: number
+  durationMs: number
+  timeToAdminReadyMs: number | null
+  phases: DaemonBootPhaseMetric[]
+  services: DaemonBootServiceMetric[]
+}
+
+function roundDurationMs(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  return Math.max(0, Math.round(value))
+}
+
 /**
  * Check if another daemon instance is already running
  * Returns the PID of the running daemon, or null if none
@@ -169,6 +203,10 @@ export class Daemon {
   public contextWindow?: IntelligentContextWindow
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
+  private bootSequence = 0
+  private latestBootSnapshot: DaemonBootSnapshot | null = null
+  private bootHistory: DaemonBootSnapshot[] = []
+  private deferredStartupTimer: NodeJS.Timeout | null = null
 
   constructor(busInstance: IEventBus = bus, logger: ILogger = rootLogger) {
     this.bus = busInstance
@@ -196,11 +234,120 @@ export class Daemon {
     (mod as IntelligenceModule).start?.()
   }
 
+  getBootMetrics(): DaemonBootSnapshot | null {
+    return this.latestBootSnapshot
+  }
+
+  getBootMetricsHistory(limit = 10): DaemonBootSnapshot[] {
+    const normalizedLimit = Math.max(1, Math.floor(limit))
+    return this.bootHistory.slice(-normalizedLimit)
+  }
+
+  private recordBootMetrics(snapshot: DaemonBootSnapshot): void {
+    this.bootSequence = snapshot.sequence
+    this.latestBootSnapshot = snapshot
+    this.bootHistory.push(snapshot)
+    if (this.bootHistory.length > 10) {
+      this.bootHistory.splice(0, this.bootHistory.length - 10)
+    }
+  }
+
+  private scheduleDeferredStartup(): void {
+    if (this.deferredStartupTimer) return
+    this.deferredStartupTimer = setTimeout(() => {
+      this.deferredStartupTimer = null
+      void this.startDeferredStartup()
+    }, 0)
+    this.deferredStartupTimer.unref?.()
+  }
+
+  private async startDeferredStartup(): Promise<void> {
+    const deferredStart = performance.now()
+
+    try {
+      const { EmbeddingStackLauncher } = await import('./intelligence/embeddings/embedding-stack-launcher.js')
+      this.embeddingStackLauncher = new EmbeddingStackLauncher(this.logger)
+      this.embeddingStackLauncher.start()
+        .then(() => {
+          this.logger.info('EmbeddingStackLauncher ready')
+        })
+        .catch((err: unknown) => {
+          this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
+        })
+      this.logger.info('EmbeddingStackLauncher starting after readiness')
+    } catch (err) {
+      this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
+    }
+
+    const backgroundEmbeddingEnabled = this.config.get<boolean>('intelligence.backgroundEmbedding.enabled', false)
+    if (backgroundEmbeddingEnabled) {
+      try {
+        const { getBackgroundEmbeddingWorker } = await import('./intelligence/embeddings/background-worker.js')
+        this.bgEmbeddingWorker = getBackgroundEmbeddingWorker(this.logger)
+        this.bgEmbeddingWorker.start()
+        this.logger.info('BackgroundEmbeddingWorker started after readiness')
+      } catch (err) {
+        this.logger.warn(`Failed to start BackgroundEmbeddingWorker: ${String(err)}`)
+      }
+    } else {
+      this.logger.info('BackgroundEmbeddingWorker disabled by config')
+    }
+
+    this.logger.info('Deferred startup completed', {
+      durationMs: roundDurationMs(performance.now() - deferredStart),
+      backgroundEmbeddingEnabled,
+    })
+  }
+
   /**
    * Start the daemon: load config, start plugin host, wire signals and workers.
    */
   async start(): Promise<{ admin?: { tcpPort: number | null; unixPath: string }; pid: number }> {
     const bootStart = performance.now()
+    const bootStartedAt = Date.now()
+    const bootPhases: DaemonBootPhaseMetric[] = []
+    const bootServices: DaemonBootServiceMetric[] = []
+    let phaseStartPerf = bootStart
+    let phaseStartedAt = bootStartedAt
+    let adminReadyPerf: number | null = null
+
+    const completePhase = (
+      name: string,
+      meta?: Record<string, unknown>,
+      endedAt = Date.now(),
+      endedPerf = performance.now(),
+    ): void => {
+      bootPhases.push({
+        name,
+        startedAt: phaseStartedAt,
+        endedAt,
+        sinceBootMs: roundDurationMs(phaseStartPerf - bootStart),
+        durationMs: roundDurationMs(endedPerf - phaseStartPerf),
+        ...(meta ? { meta } : {}),
+      })
+      phaseStartedAt = endedAt
+      phaseStartPerf = endedPerf
+    }
+
+    const recordService = (
+      name: string,
+      serviceStartedAt: number,
+      serviceStartedPerf: number,
+      meta?: Record<string, unknown>,
+      readyAt = Date.now(),
+      readyPerf = performance.now(),
+    ): DaemonBootServiceMetric => {
+      const metric: DaemonBootServiceMetric = {
+        name,
+        startedAt: serviceStartedAt,
+        readyAt,
+        sinceBootMs: roundDurationMs(serviceStartedPerf - bootStart),
+        durationMs: roundDurationMs(readyPerf - serviceStartedPerf),
+        ...(meta ? { meta } : {}),
+      }
+      bootServices.push(metric)
+      return metric
+    }
 
     // 0. Load .env secrets (before anything reads env vars)
     await this._loadEnv()
@@ -315,6 +462,13 @@ export class Daemon {
         this.logger.error?.('Exiting after uncaughtException')
         process.exit(1)
       }, 5000).unref()
+    })
+
+    completePhase('configuration', {
+      logLevel: this.config.get<string>('logging.level', 'info'),
+      thinking: this.config.get<string>('intelligence.thinking', 'high'),
+      defaultProvider: this.config.get<string>('intelligence.defaultProvider', '(default)'),
+      defaultModel: this.config.get<string>('intelligence.defaultModel', '(default)'),
     })
 
     // 5. Create PluginHost with logger
@@ -762,36 +916,6 @@ export class Daemon {
         this.logger.info('Thinker deployed swarm', { swarmId: e.swarmId, mission: e.mission })
       })
 
-      // ── Embedding Stack Auto-Start ───────────────────────────────────────
-      // Launches llama.cpp embedding server + zerank reranker as child
-      // processes so they're available when the daemon needs them.
-      try {
-        const { EmbeddingStackLauncher } = await import('./intelligence/embeddings/embedding-stack-launcher.js')
-        this.embeddingStackLauncher = new EmbeddingStackLauncher(this.logger)
-        this.embeddingStackLauncher.start()
-          .then(() => {
-            this.logger.info('EmbeddingStackLauncher ready')
-          })
-          .catch((err: unknown) => {
-            this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
-          })
-        this.logger.info('EmbeddingStackLauncher starting in background')
-      } catch (err) {
-        this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
-      }
-
-      // ── Background Embedding Worker ──────────────────────────────────────
-      // Pre-computes embeddings for archived content in the background.
-      // Uses SqliteVectorIndex as persistent store for rapid retrieval.
-      try {
-        const { getBackgroundEmbeddingWorker } = await import('./intelligence/embeddings/background-worker.js')
-        this.bgEmbeddingWorker = getBackgroundEmbeddingWorker(this.logger)
-        this.bgEmbeddingWorker.start()
-        this.logger.info('BackgroundEmbeddingWorker started')
-      } catch (err) {
-        this.logger.warn(`Failed to start BackgroundEmbeddingWorker: ${String(err)}`)
-      }
-
       this.logger.info(`Intelligence layer loaded`, { modules: this.intelligence.all.length })
       // Summarize cycle hooks attached to unified loop
       if (this.unifiedLoop) {
@@ -810,6 +934,10 @@ export class Daemon {
       this.logger.warn(`failed to initialize intelligence layer: ${String(err)}`)
     }
 
+    completePhase('intelligence', {
+      modules: this.intelligence?.all.length ?? 0,
+    })
+
     // Helper to resolve worker path (handles both .js and .ts)
     const __dirname = path.dirname(fileURLToPath(import.meta.url))
     const resolveWorker = (relPath: string): string | null => {
@@ -822,24 +950,28 @@ export class Daemon {
 
     // 6. Load the echo-channel worker (phase 1)
     // ── Phase 3: Channels ────────────────────────────────────────────────────
+    // Channel workers are non-critical for API readiness. Launch them all in
+    // parallel so a 5s ready-timeout on one doesn't serially block the others
+    // (previously 5 channels × 5s = 25s of dead wait).
     this.logger.info('── Phase 3: Channels ──────────────────────────────────')
+
+    const channelPromises: Array<{ id: string; promise: Promise<void> }> = []
 
     const echoPath = resolveWorker("../workers/echo-channel")
 
     if (!echoPath) {
       this.logger.warn("echo-channel worker not found; continuing without it")
     } else {
-      try {
-        await this.pluginHost.load({
+      channelPromises.push({
+        id: 'echo-channel',
+        promise: this.pluginHost.load({
           id: "echo-channel",
           entryPoint: echoPath,
           restartOnCrash: true,
           maxRestarts: 5,
           config: {},
-        })
-      } catch (err) {
-        this.logger.warn(`failed to load echo-channel: ${String(err)}`)
-      }
+        }),
+      })
     }
 
     // 7. Load webchat channel worker (Phase 3)
@@ -847,24 +979,24 @@ export class Daemon {
     if (!webchatPath) {
       this.logger.warn("webchat worker not found; skipping")
     } else {
-      try {
-        const enabled = this.config.get<boolean>("channels.webchat.enabled", false)
-        this.logger.info(`webchat.enabled -> ${enabled}`)
-        if (!enabled) {
-          this.logger.info('webchat channel disabled by config; skipping')
-        } else {
-          const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
-          await this.pluginHost.load({
+      const enabled = this.config.get<boolean>("channels.webchat.enabled", false)
+      this.logger.info(`webchat.enabled -> ${enabled}`)
+      if (!enabled) {
+        this.logger.info('webchat channel disabled by config; skipping')
+      } else {
+        const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
+        channelPromises.push({
+          id: 'webchat',
+          promise: this.pluginHost.load({
             id: "channel:webchat",
             entryPoint: webchatPath,
             restartOnCrash: true,
             maxRestarts: 5,
             config: { port: webchatPort },
-          });
-          this.logger.info(`Webchat channel listening on port ${webchatPort}`);
-        }
-      } catch (err) {
-        this.logger.warn(`failed to load webchat: ${String(err)}`);
+          }).then(() => {
+            this.logger.info(`Webchat channel listening on port ${webchatPort}`)
+          }),
+        })
       }
     }
 
@@ -873,18 +1005,18 @@ export class Daemon {
     if (!cliPath) {
       this.logger.warn("cli worker not found; skipping")
     } else {
-      try {
-        await this.pluginHost.load({
+      channelPromises.push({
+        id: 'cli',
+        promise: this.pluginHost.load({
           id: "channel:cli",
           entryPoint: cliPath,
           restartOnCrash: true,
           maxRestarts: 5,
           config: {},
-        })
-        this.logger.info(`CLI channel active`)
-      } catch (err) {
-        this.logger.warn(`failed to load cli channel: ${String(err)}`)
-      }
+        }).then(() => {
+          this.logger.info(`CLI channel active`)
+        }),
+      })
     }
 
     // 7c. Load Telegram channel worker (optional — requires channels.telegram.token in config)
@@ -898,21 +1030,21 @@ export class Daemon {
       if (!tgPath) {
         this.logger.warn("telegram worker not found; skipping")
       } else {
-        try {
-          const allowedChatIds = (this.config.get<number[]>("channels.telegram.allowedChatIds", []) as number[]).length
-            ? this.config.get<number[]>("channels.telegram.allowedChatIds", [])
-            : this.config.get<number[]>("channels.telegram.allowFrom", [])
-          await this.pluginHost.load({
+        const allowedChatIds = (this.config.get<number[]>("channels.telegram.allowedChatIds", []) as number[]).length
+          ? this.config.get<number[]>("channels.telegram.allowedChatIds", [])
+          : this.config.get<number[]>("channels.telegram.allowFrom", [])
+        channelPromises.push({
+          id: 'telegram',
+          promise: this.pluginHost.load({
             id: "channel:telegram",
             entryPoint: tgPath,
             restartOnCrash: true,
             maxRestarts: 5,
             config: { token: tgToken, allowedChatIds },
-          })
-          this.logger.info(`Telegram channel active`)
-        } catch (err) {
-          this.logger.warn(`failed to load telegram: ${String(err)}`)
-        }
+          }).then(() => {
+            this.logger.info(`Telegram channel active`)
+          }),
+        })
       }
     } else if (tgToken && !tgEnabled) {
       this.logger.info(`Telegram channel disabled by config; skipping`)
@@ -925,13 +1057,14 @@ export class Daemon {
       if (!ocPath) {
         this.logger.warn("opencode channel worker not found; skipping")
       } else {
-        try {
-          const ocDbPath = this.config.get<string>("channels.opencode.dbPath", "")
-          const ocServerUrl = this.config.get<string>("channels.opencode.serverUrl", "")
-          const ocPollIntervalMs = this.config.get<number>("channels.opencode.pollIntervalMs", 2000)
-          const ocLookbackMs = this.config.get<number>("channels.opencode.lookbackMs", 30000)
-          const ocSessionId = this.config.get<string>("channels.opencode.sessionId", "")
-          await this.pluginHost.load({
+        const ocDbPath = this.config.get<string>("channels.opencode.dbPath", "")
+        const ocServerUrl = this.config.get<string>("channels.opencode.serverUrl", "")
+        const ocPollIntervalMs = this.config.get<number>("channels.opencode.pollIntervalMs", 2000)
+        const ocLookbackMs = this.config.get<number>("channels.opencode.lookbackMs", 30000)
+        const ocSessionId = this.config.get<string>("channels.opencode.sessionId", "")
+        channelPromises.push({
+          id: 'opencode',
+          promise: this.pluginHost.load({
             id: "channel:opencode",
             entryPoint: ocPath,
             restartOnCrash: true,
@@ -943,19 +1076,34 @@ export class Daemon {
               lookbackMs: ocLookbackMs,
               ...(ocSessionId ? { openCodeSessionId: ocSessionId } : {}),
             },
-          })
-          this.logger.info(`OpenCode channel active`, {
-            dbPath: ocDbPath || '~/.local/share/opencode/opencode.db (default)',
-            pollIntervalMs: ocPollIntervalMs,
-            serverUrl: ocServerUrl || '(none)',
-          })
-        } catch (err) {
-          this.logger.warn(`failed to load opencode channel: ${String(err)}`)
-        }
+          }).then(() => {
+            this.logger.info(`OpenCode channel active`, {
+              dbPath: ocDbPath || '~/.local/share/opencode/opencode.db (default)',
+              pollIntervalMs: ocPollIntervalMs,
+              serverUrl: ocServerUrl || '(none)',
+            })
+          }),
+        })
       }
     } else {
       this.logger.info(`OpenCode channel disabled by config; skipping`)
     }
+
+    // Await all channel loads in parallel — individual failures don't block others
+    if (channelPromises.length > 0) {
+      const results = await Promise.allSettled(channelPromises.map((c) => c.promise))
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i]
+        const channel = channelPromises[i]
+        if (result.status === 'rejected') {
+          this.logger.warn(`failed to load ${channel.id}: ${String(result.reason)}`)
+        }
+      }
+    }
+
+    completePhase('channels', {
+      plugins: this.pluginHost.all().length,
+    })
 
     // ── Budget tracking & model routing ─────────────────────────────────────
     // ── Phase 4: Providers & Wiring ──────────────────────────────────────────
@@ -1000,7 +1148,7 @@ export class Daemon {
         this.logger.info(`${providers.size} provider(s) ready: ${providerSummary}`)
       }
     } catch (err) {
-      this.logger.warn('Providers not loaded — run Phase 3 providers build')
+      this.logger.warn('Providers not loaded', { error: String(err) })
     }
 
     // Wire BudgetTracker into all CentralizedProvider instances
@@ -1025,12 +1173,23 @@ export class Daemon {
         eventBus: this.bus,
         logger: this.logger,
         availableProviders: () => Array.from(providerKeys.keys()),
-        persistDefault: (cfg) => {
+        persistDefault: async (cfg, slot) => {
           try {
             const layered = this.config as any
             if (typeof layered.setOverride === 'function') {
-              layered.setOverride('intelligence.modelDirective.default.provider', cfg.provider, { reason: 'model-directive' })
-              layered.setOverride('intelligence.modelDirective.default.model', cfg.model, { reason: 'model-directive' })
+              const prefix = slot
+                ? `intelligence.modelDirective.slots.${slot}`
+                : 'intelligence.modelDirective.default'
+              if (cfg.provider && cfg.model) {
+                await layered.setOverride(`${prefix}.provider`, cfg.provider, { reason: 'model-directive' })
+                await layered.setOverride(`${prefix}.model`, cfg.model, { reason: 'model-directive' })
+              } else if (typeof layered.clearOverride === 'function') {
+                await layered.clearOverride(`${prefix}.provider`)
+                await layered.clearOverride(`${prefix}.model`)
+              }
+              if (typeof layered.persistOverrides === 'function') {
+                await layered.persistOverrides()
+              }
             }
           } catch { /* non-critical */ }
         },
@@ -1214,6 +1373,55 @@ export class Daemon {
       }
     }
 
+    // Wire Dyad with a dedicated ModelPool
+    // Dyad runs 3 concurrent roles (Yang/Yin/Apex) and needs its own pool
+    // to avoid contention with Lumen, Teams, or other subsystems.
+    if (this.intelligence?.dyad && providers.size > 0) {
+      try {
+        const directive = this.modelDirective
+        const defaultRouting = directive
+          ? directive.resolve()
+          : {
+              provider: this.config.get<string>('intelligence.dyad.provider', 'alibaba-coding'),
+              model: this.config.get<string>('intelligence.dyad.model', 'kimi-k2.5'),
+            }
+        const dyadBlockedProviders = this.config.get<string[]>('intelligence.dyad.blockedProviders', ['github-copilot', 'github-copilot-lb'])
+
+        const { ModelPool: DyadModelPool } = await import('./model-pool/index.js')
+        const makeDyadChain = (slot: string) => ({
+          slotName: slot,
+          chain: [{ role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 }],
+          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+        })
+        const dyadModelPool = new DyadModelPool({
+          logger: this.logger.child('dyad-pool'),
+          eventBus: this.bus,
+          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex')],
+          budgetScopes: [],
+          defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
+          auditEnabled: false,
+          blockedProviders: dyadBlockedProviders,
+        })
+        dyadModelPool.setProviders(providers)
+        this.intelligence.dyad.setModelPool(dyadModelPool)
+
+        // Wire ModelDirective so Dyad can resolve job-scoped overrides at runtime
+        if (directive && typeof (this.intelligence.dyad as any).setModelDirective === 'function') {
+          (this.intelligence.dyad as any).setModelDirective(directive)
+        }
+
+        this.logger.info('Dyad ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model, blockedProviders: dyadBlockedProviders })
+      } catch (err) {
+        this.logger.warn('Failed to wire Dyad ModelPool — Dyad will not be available via API', { error: String(err) })
+      }
+    }
+
+    completePhase('providers-routing', {
+      providers: providers.size,
+      budgetTracker: !!budgetTracker,
+      modelRouter: !!modelRouter,
+    })
+
     // Create sessions and turn pipeline
     // ── Phase 5: Pipeline & Tools ────────────────────────────────────────────
     this.logger.info('── Phase 5: Pipeline & Tools ───────────────────────────')
@@ -1239,6 +1447,11 @@ export class Daemon {
 
     // Build command dispatcher
     this.commands = new CommandDispatcher(this.logger, this.sessions, this.bus);
+    this.commands.setIntelligence(this.intelligence)
+    if (this.modelDirective) {
+      this.commands.setModelDirective(this.modelDirective)
+    }
+    this.logger.info('Command dispatcher wired to intelligence layer')
 
     // Initialize subagent tracker FIRST (needed for tool registration)
     try {
@@ -1298,7 +1511,8 @@ export class Daemon {
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
       join(homedir(), '.cassicore'),
-      '/tmp/cassicore',
+      join(homedir(), '.cassi'),
+      '/tmp',
     ])
     const networkAllowlist = this.config.get<string[]>('tools.networkAllowlist', ['*'])
     // Bug 10 fix: Use process.cwd() instead of hardcoded ~/workspaces
@@ -1536,6 +1750,26 @@ export class Daemon {
           this.logger.info('Lumen tool access wired')
         }
 
+        // Wire Dyad tools and store
+        if (this.intelligence?.dyad) {
+          this.intelligence.dyad.setToolRegistry(toolRegistry)
+          this.intelligence.dyad.setToolExecutor(toolExecutor)
+
+          // Wire DyadStore for full session persistence
+          try {
+            const { DyadStore } = await import('./intelligence/dyad/dyad-store.js')
+            const dyadStore = DyadStore.open(this.logger.child('dyad-store'))
+            this.intelligence.dyad.setStore(dyadStore)
+            this.logger.info('DyadStore wired (SQLite persistence)')
+          } catch (err) {
+            this.logger.warn('DyadStore failed to initialize — running without persistence', {
+              error: String(err),
+            })
+          }
+
+          this.logger.info('Dyad tool access wired')
+        }
+
         // Merge auto-discovered modules into the existing all[] array
         const registryModules = registry.getAllAsIntelligenceModules()
         if (registryModules.length > 0) {
@@ -1653,6 +1887,12 @@ export class Daemon {
       })
     }
 
+    completePhase('pipeline-tools', {
+      tools: toolRegistry.list().length,
+      mcpServers: mcpConfigs.length,
+      contextWindow: !!this.contextWindow,
+    })
+
     // Wire SessionDigestStore for cross-session awareness
     try {
       this.sessionDigestStore = createSessionDigestStore(this.logger.child('session-digest'))
@@ -1702,11 +1942,16 @@ export class Daemon {
         providers,
         toolExecutor: {
           execute: async (name: string, input: unknown, context: unknown) => {
-            const result = await (this as any).toolExecutor.execute(name, input, context)
+            // Bridge IToolExecutor (name, input, context) → ToolExecutor (ToolCall, sessionId, opts)
+            const ctx = context as { toolCallId?: string; sessionId?: string } | undefined
+            const toolCall = { id: ctx?.toolCallId || 'unknown', name, input }
+            const sessionId = ctx?.sessionId || 'unknown'
+            const result = await (this as any).toolExecutor.execute(toolCall, sessionId)
             return { content: result.content, isError: result.isError }
           },
           isAvailable: (name: string) => (this as any).toolExecutor.isAvailable(name)
         },
+        toolSchemas: () => toolRegistry.toAnthropicSchema(),
         intelligence: {
           memory: (this as any).intelligence?.memory,
           dialectic: (this as any).intelligence?.dialectic,
@@ -1764,13 +2009,22 @@ export class Daemon {
             const s = this.sessions.get(sid)
             if (s && s.channelId) {
               const tgt = s.channelId
+              // Use the sender ID (e.g. tg:123456) so channel workers can route
+              // the response to the correct chat/user. Falls back to session ID
+              // if senderId is not set (e.g. CLI sessions).
+              const routeId = s.senderId || sid
               if (payload.type === 'turn:direct_message' && payload.content) {
                 // Command dispatcher response — send once and done
-                this.pluginHost.send(tgt, { sessionId: sid, content: payload.content as string, done: true })
+                this.pluginHost.send(tgt, {
+                  sessionId: routeId,
+                  content: payload.content as string,
+                  parse_mode: payload.parse_mode as string | undefined,
+                  done: true,
+                })
                 return
               } else if (payload.type === 'turn:token' && payload.token) {
                 // Stream token to channel — done=false keeps stream open
-                this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
+                this.pluginHost.send(tgt, { sessionId: routeId, content: payload.token as string, done: false })
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
                 // Thinking tokens are processed by subconscious but not displayed in CLI
@@ -1780,10 +2034,10 @@ export class Daemon {
               } else if (payload.type === 'turn:tool_call') {
                 // Show tool usage inline — italicised name, no done flag
                 const toolName = (payload.tool as string) || 'tool'
-                this.pluginHost.send(tgt, { sessionId: sid, content: `\n_[${toolName}]_`, done: false })
+                this.pluginHost.send(tgt, { sessionId: routeId, content: `\n_[${toolName}]_`, done: false })
                 return
               } else if (payload.type === 'turn:error') {
-                this.pluginHost.send(tgt, { sessionId: sid, content: `❌ ${payload.error as string}`, done: true })
+                this.pluginHost.send(tgt, { sessionId: routeId, content: `❌ ${payload.error as string}`, done: true })
                 return
               }
             }
@@ -1857,6 +2111,14 @@ export class Daemon {
         if (pluginId?.startsWith("channel:") && payload?.sessionId && (payload?.content || payload?.attachments) && payload?.sessionId !== "system") {
           const sid = payload.sessionId as string;
           const content = payload.content as string;
+
+          // Ensure a runtime session exists BEFORE command handling.
+          // Without this, command responses can't be routed back because
+          // the event bus bridge (session:* listener) needs the session
+          // to look up channelId and senderId for routing.
+          this.sessions.getOrCreateById(
+            sid, pluginId, sid, { projectPath: process.cwd() } as any
+          )
 
           // INTERCEPT COMMANDS FIRST
           if (content && content.startsWith('/')) {
@@ -1981,42 +2243,115 @@ export class Daemon {
             timestamp: new Date(),
           }
 
-          // Update session model if provided (for CLI channel with model arg)
-          const modelFromPayload = payload.model as string | undefined
-          const providerFromPayload = typeof modelFromPayload === 'string'
-            ? modelFromPayload.split('/')[0] || undefined
+          // Resolve effective model for this turn:
+          //   1. Payload model (from CLI channel with model arg)
+          //   2. Model-directive (global routing — set via /model or cassi_model_directive)
+          //   3. Undefined — let SessionPipeline use session defaults
+          let effectiveModel = payload.model as string | undefined
+          if (!effectiveModel && this.modelDirective) {
+            try {
+              const resolved = this.modelDirective.resolve()
+              effectiveModel = `${resolved.provider}/${resolved.model}`
+            } catch { /* non-critical — let pipeline defaults handle it */ }
+          }
+          const providerFromModel = typeof effectiveModel === 'string'
+            ? effectiveModel.split('/')[0] || undefined
             : undefined
-          if (modelFromPayload && pluginId === 'channel:cli') {
+          // Update runtime session model for any channel (not just CLI)
+          if (effectiveModel) {
             const session = this.sessions.get(inbound.sessionId)
             if (session) {
-              session.config.model = modelFromPayload
+              session.config.model = effectiveModel
             }
           }
 
           this.logger.info(`Processing inbound message`, {
             channel: pluginId,
             sessionId: inbound.sessionId,
-            provider: providerFromPayload,
-            model: modelFromPayload,
+            provider: providerFromModel,
+            model: effectiveModel,
           })
 
           // Process the turn via session pipeline
           try {
             if (this.sessionPipeline) {
+              // ── Register runtime session for tracking ──
+              // The pipeline uses SHA256-hashed session IDs internally, but the
+              // daemon's runtime sessions use the raw senderId (e.g. tg:123456).
+              // We register a runtime session BEFORE the call so that:
+              //   1. turn:end routing works for streaming finalization
+              //   2. Session tracking (sessions.get) can find this session
+              //   3. Status messages (context-manager:sync) can be routed
+              const runtimeSession = this.sessions.getOrCreateById(
+                inbound.senderId, pluginId, inbound.senderId,
+                { projectPath: process.cwd() } as any
+              )
+
+              // ── Direct streaming callback ──
+              // Routes tokens directly to the channel worker, bypassing the
+              // event bus session routing (which can't resolve the pipeline's
+              // internal session IDs to runtime sessions). This gives all
+              // channels — Telegram, CLI, etc. — real-time token streaming.
+              //
+              // Matches StreamEventCallback signature from pipeline/session/types.ts:
+              //   (type: 'token'|'thinking'|'tool_call'|'tool_result', data: { token?, toolCall?, toolResult? })
+              const onStreamEvent = (type: string, data: { token?: string; toolCall?: { name?: string; id?: string }; toolResult?: { toolName?: string } }) => {
+                switch (type) {
+                  case 'token':
+                    if (data.token) {
+                      this.pluginHost.send(pluginId, {
+                        sessionId: inbound.senderId,
+                        content: data.token,
+                        done: false,
+                      })
+                    }
+                    break
+                  case 'thinking':
+                    // Thinking tokens are internal cognitive processing —
+                    // don't forward to channels
+                    break
+                  case 'tool_call': {
+                    const toolName = data.toolCall?.name || 'tool'
+                    this.pluginHost.send(pluginId, {
+                      sessionId: inbound.senderId,
+                      content: `\n_[${toolName}]_`,
+                      type: 'tool_call',
+                      done: false,
+                    })
+                    break
+                  }
+                  case 'tool_result':
+                    // Tool results are processed internally; the LLM will
+                    // incorporate them into its next response token stream
+                    break
+                }
+              }
+
               const result = await this.sessionPipeline.processMessage(
                 inbound.channelId,
                 inbound.senderId,
                 inbound.content,
-                { attachments: inbound.attachments }
+                {
+                  attachments: inbound.attachments,
+                  stream: true,
+                  onStreamEvent,
+                  model: effectiveModel,
+                }
               )
+
               this.logger.info(`Turn complete`, {
                 sessionId: result.sessionId,
-                provider: providerFromPayload,
-                model: modelFromPayload,
+                model: result.model ?? effectiveModel ?? '(default)',
+                tokensUsed: result.tokensUsed,
+                durationMs: result.durationMs,
+                provider: providerFromModel,
               })
+
+              // Send streaming finalization — empty content with done=true
+              // tells the channel worker to flush its buffer and close the stream
               this.pluginHost.send(pluginId, {
-                sessionId: result.sessionId,
-                content: result.response,
+                sessionId: inbound.senderId,
+                content: '',
                 done: true,
               })
             } else {
@@ -2024,20 +2359,20 @@ export class Daemon {
               await this.pipeline.process(inbound)
               this.logger.info(`Turn complete (legacy)`, {
                 sessionId: inbound.sessionId,
-                provider: providerFromPayload,
-                model: modelFromPayload,
+                provider: providerFromModel,
+                model: effectiveModel,
               })
             }
           } catch (err) {
             this.logger.warn(`pipeline error: ${String(err)}`, {
               channel: pluginId,
               sessionId: inbound.sessionId,
-              provider: providerFromPayload,
-              model: modelFromPayload,
+              provider: providerFromModel,
+              model: effectiveModel,
             })
-            // Send error message to channel
+            // Send error message to channel using original sender ID
             this.pluginHost.send(pluginId, {
-              sessionId: inbound.sessionId,
+              sessionId: inbound.senderId,
               content: `⚠️ Something went wrong — please try again.`,
               done: true,
             })
@@ -2059,7 +2394,7 @@ export class Daemon {
       if (s?.channelId) {
         this.pluginHost.send(s.channelId, {
           type: 'status',
-          payload: { sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' }
+          payload: { sessionId: s.senderId || sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' }
         })
       }
     })
@@ -2087,7 +2422,7 @@ export class Daemon {
       try {
         const s = this.sessions.get(sid)
         if (s?.channelId) {
-          this.pluginHost.send(s.channelId, { sessionId: sid, content: '', done: true })
+          this.pluginHost.send(s.channelId, { sessionId: s.senderId || sid, content: '', done: true })
         }
       } catch (err) {
         this.logger.warn(`failed to finalize stream for ${sid}: ${String(err)}`)
@@ -2139,43 +2474,122 @@ export class Daemon {
       this.logger.info("Config reloaded — no restart needed")
     })
 
+    completePhase('runtime-wiring', {
+      sessionPipeline: !!this.sessionPipeline,
+      healthMonitor: !!this.healthMonitor,
+      autonomousLoop: !!this.autonomousLoop,
+    })
+
     // 11. Start AdminAPI
     // ── Phase 6: Services ────────────────────────────────────────────────────
     this.logger.info('── Phase 6: Services ──────────────────────────────────')
 
     let adminInfo: { tcpPort: number | null; unixPath: string; tcpServer?: unknown; unixServer?: unknown } | undefined = undefined
+    const adminApiStartedAt = Date.now()
+    const adminApiStartPerf = performance.now()
     try {
       const adminApi = createAdminApi(this, this.logger)
       adminInfo = await adminApi.start()
+      const adminApiReadyAt = Date.now()
+      const adminApiReadyPerf = performance.now()
+      adminReadyPerf = adminApiReadyPerf
+      recordService(
+        'admin-api',
+        adminApiStartedAt,
+        adminApiStartPerf,
+        {
+          status: 'ready',
+          tcpPort: adminInfo?.tcpPort,
+          unixPath: adminInfo?.unixPath,
+        },
+        adminApiReadyAt,
+        adminApiReadyPerf,
+      )
       this.logger.info(`AdminAPI listening on unix:${adminInfo?.unixPath} + http:${adminInfo?.tcpPort}`)
       // Wire HTTP server to health monitor for zombie detection
       if (adminInfo?.tcpServer && this.healthMonitor) {
         this.healthMonitor.wire({ httpServer: adminInfo.tcpServer as { listening: boolean } })
       }
     } catch (err) {
+      recordService('admin-api', adminApiStartedAt, adminApiStartPerf, {
+        status: 'failed',
+        error: String(err),
+      })
       this.logger.warn(`AdminAPI failed to start: ${String(err)}`)
     }
 
     // 11b. Start Bridge (OpenAI-compatible API for OpenClaw integration)
+    let bridgeStarted = false
+    const bridgeServiceStartedAt = Date.now()
+    const bridgeServiceStartPerf = performance.now()
     try {
       const bridgeSocketPath = this.config.get<string>('bridge.socketPath', path.join(homedir(), '.cassicore', 'bridge.sock'))
       const bridge = createBridge(providers, this.logger, { socketPath: bridgeSocketPath })
       await bridge.start()
+      bridgeStarted = true
+      recordService('bridge', bridgeServiceStartedAt, bridgeServiceStartPerf, {
+        status: 'ready',
+        socketPath: bridgeSocketPath,
+      })
       this.logger.info(`Bridge listening on unix:${bridgeSocketPath}`)
     } catch (err) {
+      recordService('bridge', bridgeServiceStartedAt, bridgeServiceStartPerf, {
+        status: 'failed',
+        error: String(err),
+      })
       this.logger.warn(`Bridge failed to start: ${String(err)}`)
     }
 
     // 12. Set running
     this.running = true
 
+    const readyAt = Date.now()
+    const readyPerf = performance.now()
+    completePhase('services', {
+      adminApiStarted: !!adminInfo,
+      bridgeStarted,
+    }, readyAt, readyPerf)
+
+    const bootSnapshot: DaemonBootSnapshot = {
+      sequence: this.bootSequence + 1,
+      pid: process.pid,
+      startedAt: bootStartedAt,
+      readyAt,
+      durationMs: roundDurationMs(readyPerf - bootStart),
+      timeToAdminReadyMs: adminReadyPerf === null ? null : roundDurationMs(adminReadyPerf - bootStart),
+      phases: bootPhases,
+      services: bootServices,
+    }
+    this.recordBootMetrics(bootSnapshot)
+
     // 13. Emit daemon:ready — triggers optimizer loop start
-    this.bus.emit({ type: "daemon:ready", startedAt: new Date() })
+    void this.bus.emit({
+      type: 'daemon:boot_complete',
+      startedAt: new Date(bootSnapshot.startedAt),
+      readyAt: new Date(bootSnapshot.readyAt),
+      durationMs: bootSnapshot.durationMs,
+      timeToAdminReadyMs: bootSnapshot.timeToAdminReadyMs,
+      phases: bootSnapshot.phases.map((phase) => ({
+        name: phase.name,
+        durationMs: phase.durationMs,
+        sinceBootMs: phase.sinceBootMs,
+      })),
+      services: bootSnapshot.services.map((service) => ({
+        name: service.name,
+        durationMs: service.durationMs,
+        sinceBootMs: service.sinceBootMs,
+      })),
+    })
+    void this.bus.emit({ type: "daemon:ready", startedAt: new Date(readyAt) })
 
     // 14. Start health monitor (after daemon:ready so all subsystems are wired)
     this.healthMonitor.start()
 
-    // 15. Log startup banner with boot timing
+    // 15. Start optional non-critical services after readiness so they do not
+    // block the admin/API critical path.
+    this.scheduleDeferredStartup()
+
+    // 16. Log startup banner with boot timing
     const loaded = this.pluginHost.all().length
     const pid = process.pid
     const bootMs = Math.round(performance.now() - bootStart)
@@ -2203,6 +2617,11 @@ export class Daemon {
     this.logger.info(
       `PID ${pid} | ${providerCount} providers | ${moduleCount} cognitive modules | ${toolCount} tools | ${loaded} plugins | ${channelList.length > 0 ? channelList.join(', ') : 'no channels'} | hot-reload active`
     )
+    this.logger.info('Boot phases recorded', {
+      totalMs: bootSnapshot.durationMs,
+      timeToAdminReadyMs: bootSnapshot.timeToAdminReadyMs,
+      phases: bootSnapshot.phases.map((phase) => `${phase.name}:${phase.durationMs}ms`),
+    })
 
     // Return runtime info (useful for CLI agents)
     return { admin: adminInfo, pid }
@@ -2266,6 +2685,11 @@ export class Daemon {
 
     // emit shutdown — triggers optimizer loop stop
     this.bus.emit({ type: "daemon:shutdown", reason: "signal" })
+
+    if (this.deferredStartupTimer) {
+      clearTimeout(this.deferredStartupTimer)
+      this.deferredStartupTimer = null
+    }
 
     // stop health monitor
     try {

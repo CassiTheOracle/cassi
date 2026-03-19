@@ -1750,6 +1750,31 @@ cmd_run() {
   exec node "$DAEMON_JS"
 }
 
+cmd_watch() {
+  # ── cassicore watch — Real-time LLM call streaming viewer ──────────────────────
+  #
+  # Launches the CassiWatch interactive terminal UI for viewing all LLM calls
+  # flowing through CassiCore with filtering and detailed statistics.
+  #
+  if ! is_running; then
+    echo "[cassicore] Daemon is not running." >&2; return 1
+  fi
+
+  # Build cassi-watch if not already built
+  local watch_js="$CASSICORE_DIR/cassi-watch/dist/index.js"
+  if [[ ! -f "$watch_js" ]]; then
+    echo "[cassicore] Building cassi-watch..." >&2
+    (cd "$CASSICORE_DIR/cassi-watch" && npm run build) >&2
+    if [[ ! -f "$watch_js" ]]; then
+      echo "[cassicore] Failed to build cassi-watch" >&2; return 1
+    fi
+  fi
+
+  # Set daemon URL and launch the watch UI
+  export CASSICORE_ADMIN_URL="${CASSICORE_URL:-http://127.0.0.1:7433}"
+  exec node "$watch_js"
+}
+
 usage() {
   echo "Usage: cassicore <command>"
   echo ""
@@ -1764,6 +1789,7 @@ usage() {
   echo "    stream          Live LLM output (text/thinking)"
   echo "    stats           Provider metrics snapshot"
   echo "    active          In-flight requests"
+  echo "  watch             Real-time LLM call viewer (interactive)"
   echo "  run               Run daemon in foreground"
 }
 
@@ -1778,6 +1804,7 @@ case "$CMD" in
   status)  cmd_status  ;;
   logs)    cmd_logs    ;;
   llm)     cmd_llm "$@" ;;
+  watch)   cmd_watch   ;;
   run)     cmd_run     ;;
   *)       usage; exit 1 ;;
 esac
