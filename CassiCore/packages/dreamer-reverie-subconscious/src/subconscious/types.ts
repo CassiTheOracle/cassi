@@ -136,6 +136,12 @@ export interface SystemModelSnapshot {
   recentPatterns: string[];
   observationCount: number;
   systemHealth: "healthy" | "degraded" | "critical";
+  /** Current trust scores by domain (from Trust Ledger events) */
+  trustScores?: Record<string, number>;
+  /** Tools that have been escalated for permission, with escalation counts */
+  permissionEscalations?: Record<string, number>;
+  /** Tools that have been denied permission, with denial counts */
+  permissionDenials?: Record<string, number>;
 }
 
 // ─── Subconscious Config ──────────────────────────────────────────────────────

@@ -22,7 +22,6 @@
  * Emits events:
  * - consciousness:observation — heuristic or LLM observation produced
  * - consciousness:anomaly     — anomaly detected and added to model
- * - consciousness:state       — system model snapshot on interval
  *
  * Backward compatibility:
  * The public API maintains shims for all 19 consumer call sites so that
@@ -194,7 +193,19 @@ export class Subconscious {
     this._started = true;
 
     // Start LLM observer periodic sweep
-    this.llmObserver.start(this.eventStream, this.systemModel);
+    this.llmObserver.start(this.eventStream, this.systemModel, (obs) => {
+      // When the sweep finds cross-session correlations, emit them as an event
+      // so other modules can consume the historical context signal.
+      if (obs.crossSessionMatches && obs.crossSessionMatches.length > 0) {
+        const query = obs.patterns.slice(0, 3).join(" ");
+        this.emitEvent("consciousness:cross-session-correlation", {
+          refs: obs.crossSessionMatches.map((m) => m.ref),
+          query,
+          topScore: obs.crossSessionMatches[0].score,
+          timestamp: new Date(obs.timestamp),
+        });
+      }
+    });
 
     // Periodic persistence
     this.persistTimer = setInterval(() => {

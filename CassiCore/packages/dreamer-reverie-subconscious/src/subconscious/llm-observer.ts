@@ -74,7 +74,7 @@ export class LLMObserver {
     this.memory = memory;
   }
 
-  start(stream: EventStream, systemModel: SystemModel): void {
+  start(stream: EventStream, systemModel: SystemModel, onSweep?: (obs: LLMObservation) => void): void {
     if (!this.config.enabled) {
       this.logger.debug("LLMObserver disabled — skipping start");
       return;
@@ -87,6 +87,7 @@ export class LLMObserver {
       void this.sweep(stream, systemModel).then((obs) => {
         if (obs) {
           systemModel.addLLMObservation(obs);
+          onSweep?.(obs);
         }
       });
     }, this.config.intervalMs);

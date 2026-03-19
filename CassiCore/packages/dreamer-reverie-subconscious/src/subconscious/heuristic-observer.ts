@@ -195,6 +195,50 @@ export class HeuristicObserver {
       case "job:timeout":
         this.onJobFinished(event as any);
         break;
+
+      // ── Trust Ledger ──────────────────────────────────────────────────────
+      case "trust:score-updated":
+        this.onTrustScoreUpdated(event as RuntimeEvent & { type: "trust:score-updated"; domain: string; oldScore: number; newScore: number; delta: number; reason: string });
+        break;
+      case "trust:decay-applied":
+        this.onTrustDecayApplied(event as RuntimeEvent & { type: "trust:decay-applied"; domain: string; oldScore: number; newScore: number; decayFactor: number });
+        break;
+      case "trust:outcome-recorded":
+        this.onTrustOutcomeRecorded(event as RuntimeEvent & { type: "trust:outcome-recorded"; domain: string; action: string; success: boolean; consequenceAccuracy: number });
+        break;
+
+      // ── Permission Oracle ─────────────────────────────────────────────────
+      case "permission:escalated":
+        this.onPermissionEscalated(event as RuntimeEvent & { type: "permission:escalated"; sessionId: string; toolName: string; reason: string; riskLevel: string });
+        break;
+      case "permission:decision":
+        this.onPermissionDecision(event as RuntimeEvent & { type: "permission:decision"; sessionId: string; toolName: string; decision: string; riskScore: number });
+        break;
+
+      // ── Thinker signals ───────────────────────────────────────────────────
+      case "thinker:insight-applied":
+      case "thinker:inject-insight":
+        this.onThinkerInsight(event as RuntimeEvent & { type: string; insight: string; sessionId?: string });
+        break;
+      case "thinker:early-warning":
+        this.onThinkerEarlyWarning(event as RuntimeEvent & { type: "thinker:early-warning"; warning: string; sessionId?: string });
+        break;
+
+      // ── Dialectic signals ─────────────────────────────────────────────────
+      case "dialectic:signal":
+        this.onDialecticSignal(event as RuntimeEvent & { type: "dialectic:signal"; signalType: string; content: string; confidence: number; sessionId?: string });
+        break;
+      case "dialectic:convergence":
+        this.onDialecticConvergence(event as RuntimeEvent & { type: "dialectic:convergence"; converged: boolean; sessionId?: string });
+        break;
+
+      // ── Intelligence heartbeat ────────────────────────────────────────────
+      // Augment internal heartbeat tracking with direct module health status
+      // from the intelligence loop. This is a richer signal than inferring
+      // activity from event prefixes alone.
+      case "intelligence:heartbeat":
+        this.onIntelligenceHeartbeat(event as RuntimeEvent & { type: "intelligence:heartbeat"; moduleStatuses: Array<{ name: string; healthy: boolean; lastActivity?: number }> });
+        break;
     }
   }
 
@@ -512,8 +556,228 @@ export class HeuristicObserver {
     })
   }
 
-  private getOrCreate(map: Map<string, ErrorBurstTracker>, key: string): ErrorBurstTracker {
-    let tracker = map.get(key);
+  // ─── Trust Ledger Handlers ─────────────────────────────────────────────────
+
+  private onTrustScoreUpdated(event: RuntimeEvent & { type: "trust:score-updated"; domain: string; oldScore: number; newScore: number; delta: number; reason: string }): void {
+    const now = Date.now()
+    const drop = event.oldScore - event.newScore
+    // Significant drop (>0.15) warrants an anomaly; smaller changes get an observation
+    if (drop >= 0.15) {
+      const cooldownKey = `trust:drop:${event.domain}`
+      if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < this.signalCooldownMs) return
+      this.signalCooldowns.set(cooldownKey, now)
+      this.pushAnomaly({
+        id: uuidv4(),
+        description: `Trust score for '${event.domain}' dropped significantly: ${event.oldScore.toFixed(2)} → ${event.newScore.toFixed(2)} (Δ${event.delta.toFixed(2)}). Reason: ${event.reason}`,
+        severity: drop >= 0.3 ? "high" : "medium",
+        eventTypes: ["trust:score-updated"],
+        suggestedAction: `Investigate recent actions in domain '${event.domain}' that may have caused trust erosion`,
+        timestamp: now,
+      })
+    } else if (Math.abs(event.delta) >= 0.05) {
+      const cooldownKey = `trust:change:${event.domain}`
+      if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < this.signalCooldownMs * 2) return
+      this.signalCooldowns.set(cooldownKey, now)
+      const direction = event.delta >= 0 ? "improved" : "declined"
+      this.pushObservation({
+        id: uuidv4(),
+        summary: `Trust score for '${event.domain}' ${direction}: ${event.oldScore.toFixed(2)} → ${event.newScore.toFixed(2)}. ${event.reason}`,
+        patterns: [event.delta >= 0 ? "trust_improvement" : "trust_decline"],
+        confidence: 0.9,
+        source: "heuristic",
+        relatedEventTypes: ["trust:score-updated"],
+        timestamp: now,
+      })
+    }
+  }
+
+  private onTrustDecayApplied(event: RuntimeEvent & { type: "trust:decay-applied"; domain: string; oldScore: number; newScore: number; decayFactor: number }): void {
+    // Only surface decay if it results in a meaningful drop — routine decay is noise
+    const drop = event.oldScore - event.newScore
+    if (drop < 0.1) return
+    const now = Date.now()
+    const cooldownKey = `trust:decay:${event.domain}`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < 10 * 60_000) return
+    this.signalCooldowns.set(cooldownKey, now)
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Trust decay applied to '${event.domain}': ${event.oldScore.toFixed(2)} → ${event.newScore.toFixed(2)} (factor ${event.decayFactor.toFixed(3)})`,
+      patterns: ["trust_decay"],
+      confidence: 1.0,
+      source: "heuristic",
+      relatedEventTypes: ["trust:decay-applied"],
+      timestamp: now,
+    })
+  }
+
+  private onTrustOutcomeRecorded(event: RuntimeEvent & { type: "trust:outcome-recorded"; domain: string; action: string; success: boolean; consequenceAccuracy: number }): void {
+    // Only surface notable outcomes: failures or poor consequence accuracy
+    if (event.success && event.consequenceAccuracy >= 0.7) return
+    const now = Date.now()
+    const cooldownKey = `trust:outcome:${event.domain}`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < this.signalCooldownMs) return
+    this.signalCooldowns.set(cooldownKey, now)
+    const issue = !event.success
+      ? `action failed`
+      : `consequence prediction accuracy low (${(event.consequenceAccuracy * 100).toFixed(0)}%)`
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Trust outcome in '${event.domain}': ${issue} — action: ${event.action.slice(0, 80)}`,
+      patterns: ["trust_outcome_issue"],
+      confidence: 0.85,
+      source: "heuristic",
+      relatedEventTypes: ["trust:outcome-recorded"],
+      timestamp: now,
+    })
+  }
+
+  // ─── Permission Oracle Handlers ────────────────────────────────────────────
+
+  private onPermissionEscalated(event: RuntimeEvent & { type: "permission:escalated"; sessionId: string; toolName: string; reason: string; riskLevel: string }): void {
+    const now = Date.now()
+    const cooldownKey = `permission:escalated:${event.toolName}`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < this.signalCooldownMs) return
+    this.signalCooldowns.set(cooldownKey, now)
+    this.pushAnomaly({
+      id: uuidv4(),
+      description: `Permission escalated for '${event.toolName}' [risk: ${event.riskLevel}]: ${event.reason}`,
+      severity: event.riskLevel === "critical" || event.riskLevel === "high" ? "high" : "medium",
+      eventTypes: ["permission:escalated"],
+      suggestedAction: `Review tool '${event.toolName}' permission policy and risk profile`,
+      timestamp: now,
+    })
+  }
+
+  private onPermissionDecision(event: RuntimeEvent & { type: "permission:decision"; sessionId: string; toolName: string; decision: string; riskScore: number }): void {
+    // Only observe denials and high-risk allows — routine allows are noise
+    if (event.decision === "allow" && event.riskScore < 0.7) return
+    const now = Date.now()
+    const cooldownKey = `permission:decision:${event.toolName}:${event.decision}`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < this.signalCooldownMs) return
+    this.signalCooldowns.set(cooldownKey, now)
+    const label = event.decision === "deny"
+      ? `denied (risk ${event.riskScore.toFixed(2)})`
+      : `allowed at elevated risk (${event.riskScore.toFixed(2)})`
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Permission ${label} for '${event.toolName}'`,
+      patterns: [event.decision === "deny" ? "permission_denied" : "high_risk_permission_allowed"],
+      confidence: 0.95,
+      source: "heuristic",
+      relatedEventTypes: ["permission:decision"],
+      timestamp: now,
+      sessionId: event.sessionId,
+    })
+  }
+
+  // ─── Thinker Signal Handlers ───────────────────────────────────────────────
+
+  private onThinkerInsight(event: RuntimeEvent & { type: string; insight: string; sessionId?: string }): void {
+    // Surface Thinker insights as observations so the Subconscious knows what
+    // the Thinker decided — closes the one-way gap (was: Subconscious→Thinker only)
+    const now = Date.now()
+    const cooldownKey = `thinker:insight`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < 30_000) return
+    this.signalCooldowns.set(cooldownKey, now)
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Thinker insight applied: ${event.insight.slice(0, 200)}`,
+      patterns: ["thinker_insight"],
+      confidence: 0.9,
+      source: "heuristic",
+      relatedEventTypes: [event.type],
+      timestamp: now,
+      sessionId: event.sessionId,
+    })
+  }
+
+  private onThinkerEarlyWarning(event: RuntimeEvent & { type: "thinker:early-warning"; warning: string; sessionId?: string }): void {
+    const now = Date.now()
+    // Early warnings are important — surface immediately as anomalies
+    this.pushAnomaly({
+      id: uuidv4(),
+      description: `Thinker early warning: ${event.warning.slice(0, 300)}`,
+      severity: "medium",
+      eventTypes: ["thinker:early-warning"],
+      suggestedAction: "Review Thinker warning and consider preemptive action",
+      timestamp: now,
+    })
+  }
+
+  // ─── Dialectic Signal Handlers ─────────────────────────────────────────────
+
+  private onDialecticSignal(event: RuntimeEvent & { type: "dialectic:signal"; signalType: string; content: string; confidence: number; sessionId?: string }): void {
+    // High-confidence dialectic signals are meaningful cognitive outputs — track them
+    if (event.confidence < 0.6) return
+    const now = Date.now()
+    const cooldownKey = `dialectic:signal:${event.signalType}`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < 20_000) return
+    this.signalCooldowns.set(cooldownKey, now)
+    this.pushObservation({
+      id: uuidv4(),
+      summary: `Dialectic signal [${event.signalType}, confidence ${(event.confidence * 100).toFixed(0)}%]: ${event.content.slice(0, 200)}`,
+      patterns: ["dialectic_signal", `dialectic_${event.signalType}`],
+      confidence: event.confidence,
+      source: "heuristic",
+      relatedEventTypes: ["dialectic:signal"],
+      timestamp: now,
+      sessionId: event.sessionId,
+    })
+  }
+
+  private onDialecticConvergence(event: RuntimeEvent & { type: "dialectic:convergence"; converged: boolean; sessionId?: string }): void {
+    // Only note convergence, not divergence — divergence is the normal state
+    if (!event.converged) return
+    const now = Date.now()
+    const cooldownKey = `dialectic:convergence`
+    if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < 15_000) return
+    this.signalCooldowns.set(cooldownKey, now)
+    this.pushObservation({
+      id: uuidv4(),
+      summary: "Dialectic converged — Yang/Yin reached agreement",
+      patterns: ["dialectic_convergence"],
+      confidence: 0.85,
+      source: "heuristic",
+      relatedEventTypes: ["dialectic:convergence"],
+      timestamp: now,
+      sessionId: event.sessionId,
+    })
+  }
+
+  // ─── Intelligence Heartbeat Handler ───────────────────────────────────────
+
+  private onIntelligenceHeartbeat(event: RuntimeEvent & { type: "intelligence:heartbeat"; moduleStatuses: Array<{ name: string; healthy: boolean; lastActivity?: number }> }): void {
+    const now = Date.now()
+    // Sync module last-seen timestamps from the heartbeat's authoritative data.
+    // This augments the prefix-based tracking in updateModuleHeartbeat() — the
+    // intelligence loop has direct visibility that we don't.
+    for (const status of event.moduleStatuses) {
+      const lastActivity = status.lastActivity ?? (status.healthy ? now : undefined)
+      if (lastActivity !== undefined) {
+        const current = this.moduleLastSeen.get(status.name)
+        if (current === undefined || lastActivity > current) {
+          this.moduleLastSeen.set(status.name, lastActivity)
+        }
+      }
+
+      // Unhealthy module that checkHeartbeats() wouldn't catch (e.g. not in HEARTBEAT_MODULES)
+      if (!status.healthy) {
+        const cooldownKey = `heartbeat:unhealthy:${status.name}`
+        if (now - (this.signalCooldowns.get(cooldownKey) ?? 0) < 5 * 60_000) continue
+        this.signalCooldowns.set(cooldownKey, now)
+        this.pushAnomaly({
+          id: uuidv4(),
+          description: `Intelligence heartbeat reports module '${status.name}' as unhealthy`,
+          severity: "medium",
+          eventTypes: ["intelligence:heartbeat"],
+          suggestedAction: `Check module '${status.name}' status and logs`,
+          timestamp: now,
+        })
+      }
+    }
+  }
+
+  private getOrCreate(map: Map<string, ErrorBurstTracker>, key: string): ErrorBurstTracker {    let tracker = map.get(key);
     if (!tracker) {
       tracker = { errors: [], lastAlerted: 0 };
       map.set(key, tracker);

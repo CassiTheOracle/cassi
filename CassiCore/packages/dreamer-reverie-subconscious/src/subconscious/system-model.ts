@@ -48,6 +48,14 @@ export class SystemModel {
   private readonly activeDrones = new Set<string>();
   private readonly activeTeams = new Set<string>();
 
+  // ─── Trust Tracking ───────────────────────────────────────────────────────
+  /** Current trust scores by domain */
+  private readonly trustScores = new Map<string, number>();
+  /** Number of permission escalations (tool → count) */
+  private readonly permissionEscalations = new Map<string, number>();
+  /** Number of permission denials (tool → count) */
+  private readonly permissionDenials = new Map<string, number>();
+
   // ─── Observation History ──────────────────────────────────────────────────
   private observations: Observation[] = [];
   private anomalies: Anomaly[] = [];
@@ -267,6 +275,43 @@ export class SystemModel {
         if (tid) this.activeTeams.delete(tid);
         break;
       }
+
+      // ── Trust Ledger ──────────────────────────────────────────────────────
+      case "trust:score-updated":
+      case "trust:domain-created": {
+        const domain = e.domain as string;
+        const score = (e.newScore ?? e.initialScore) as number;
+        if (domain && typeof score === "number") {
+          this.trustScores.set(domain, score);
+        }
+        break;
+      }
+      case "trust:decay-applied": {
+        const domain = e.domain as string;
+        const score = e.newScore as number;
+        if (domain && typeof score === "number") {
+          this.trustScores.set(domain, score);
+        }
+        break;
+      }
+
+      // ── Permission Oracle ─────────────────────────────────────────────────
+      case "permission:escalated": {
+        const tool = e.toolName as string;
+        if (tool) {
+          this.permissionEscalations.set(tool, (this.permissionEscalations.get(tool) ?? 0) + 1);
+          this.invalidateContextCacheAll();
+        }
+        break;
+      }
+      case "permission:decision": {
+        const tool = e.toolName as string;
+        const decision = e.decision as string;
+        if (tool && decision === "deny") {
+          this.permissionDenials.set(tool, (this.permissionDenials.get(tool) ?? 0) + 1);
+        }
+        break;
+      }
     }
   }
 
@@ -415,6 +460,30 @@ export class SystemModel {
       parts.push(`[Observations] ${recentAnomalies.map((a) => a.description).join("; ")}`);
     }
 
+    // Trust domains below threshold
+    const lowTrustDomains = Array.from(this.trustScores.entries())
+      .filter(([, score]) => score < 0.4)
+      .map(([domain, score]) => `${domain}(${score.toFixed(2)})`);
+    if (lowTrustDomains.length > 0) {
+      parts.push(`[Trust] Low-trust domains: ${lowTrustDomains.join(", ")}`);
+    }
+
+    // Permission escalations/denials
+    if (this.permissionEscalations.size > 0) {
+      const top = Array.from(this.permissionEscalations.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([tool, n]) => `${tool}(×${n})`);
+      parts.push(`[Permissions] Escalated tools: ${top.join(", ")}`);
+    }
+    if (this.permissionDenials.size > 0) {
+      const top = Array.from(this.permissionDenials.entries())
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 3)
+        .map(([tool, n]) => `${tool}(×${n})`);
+      parts.push(`[Permissions] Denied tools: ${top.join(", ")}`);
+    }
+
     // Latest LLM awareness summary
     const latestLLM = this.observations
       .filter((o) => o.source === "llm")
@@ -481,6 +550,9 @@ export class SystemModel {
       recentPatterns: [...new Set(recentPatterns)],
       observationCount: this.observations.length,
       systemHealth,
+      trustScores: this.trustScores.size > 0 ? Object.fromEntries(this.trustScores) : undefined,
+      permissionEscalations: this.permissionEscalations.size > 0 ? Object.fromEntries(this.permissionEscalations) : undefined,
+      permissionDenials: this.permissionDenials.size > 0 ? Object.fromEntries(this.permissionDenials) : undefined,
     };
   }
 
