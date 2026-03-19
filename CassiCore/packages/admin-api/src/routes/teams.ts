@@ -108,6 +108,7 @@ export async function handleTeamsRoutes(
           // Note: provider/model are no longer accepted here.
           // Use the model_directive tool to set routing before creating a team.
           const teamId = await fluxOrchestrator.createTeam({
+            teamId: body.teamId,
             goal: body.goal,
             context: body.context,
             topology: body.topology,

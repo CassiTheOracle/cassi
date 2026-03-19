@@ -16,6 +16,7 @@ export interface ModelDirectiveRoutesDeps {
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
   parseBody: (req: http.IncomingMessage) => Promise<any>
+  persistRuntimeOverrides?: () => Promise<void>
 }
 
 export async function handleModelDirectiveRoutes(
@@ -25,7 +26,7 @@ export async function handleModelDirectiveRoutes(
   method: string,
   pathname: string,
 ): Promise<boolean> {
-  const { daemon, sendJSON, parseBody } = deps
+  const { daemon, sendJSON, parseBody, persistRuntimeOverrides } = deps
 
   const directive = daemon.modelDirective
   if (!directive) {
@@ -39,8 +40,10 @@ export async function handleModelDirectiveRoutes(
   // GET /model-directive — current routing state
   if (method === 'GET' && pathname === '/model-directive') {
     try {
-      const state = directive.getState()
-      sendJSON(res, 200, state)
+      const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
+      const jobId = url.searchParams.get('jobId') ?? undefined
+      const state = directive.getState(jobId)
+      sendJSON(res, 200, { jobId, ...state })
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
     }
@@ -91,6 +94,9 @@ export async function handleModelDirectiveRoutes(
       }
 
       directive.set(scope, { provider: resolvedProvider, model: resolvedModel }, jobId, slot)
+      if (scope === 'default' && persistRuntimeOverrides) {
+        await persistRuntimeOverrides()
+      }
       const state = directive.getState(jobId)
       sendJSON(res, 200, {
         ok: true,
@@ -124,6 +130,9 @@ export async function handleModelDirectiveRoutes(
       }
 
       directive.clear(scope, jobId, slot)
+      if (scope === 'default' && persistRuntimeOverrides) {
+        await persistRuntimeOverrides()
+      }
       const state = directive.getState(jobId)
       sendJSON(res, 200, { ok: true, scope, jobId, slot, state })
     } catch (err) {

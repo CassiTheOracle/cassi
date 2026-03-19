@@ -33,8 +33,10 @@ import { handleToolsRoutes } from './admin-api/tools.js'
 import { handleVerificationRoutes } from './admin-api/verification.js'
 import { handleImprovementRoutes } from './admin-api/improvement.js'
 import { handleLumenRoutes } from './admin-api/lumen.js'
+import { handleDyadRoutes } from './admin-api/dyad.js'
 import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
+import { handleBlackboardRoutes } from './admin-api/blackboard.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
 import { createToolsApi } from './tools-api.js'
@@ -1969,8 +1971,21 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleLumenRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleDyadRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleDreamerRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
-         () => handleModelDirectiveRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),
+         () => handleModelDirectiveRoutes({
+           daemon,
+           logger,
+           sendJSON,
+           parseBody,
+           persistRuntimeOverrides: async () => {
+             const layered = daemon.config as any
+             if (typeof layered?.persistOverrides === 'function') {
+               await layered.persistOverrides()
+             }
+           },
+         }, req, res, method, pathname),
+         () => handleBlackboardRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
       ]
 
       for (const routeHandler of routeHandlers) {

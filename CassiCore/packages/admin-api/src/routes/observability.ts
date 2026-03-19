@@ -17,6 +17,32 @@ export async function handleObservabilityRoutes(
 ): Promise<boolean> {
   const { daemon, sendJSON, url, pathname } = deps
 
+  // GET /observability/boot
+  if (method === 'GET' && pathname === '/observability/boot') {
+    const limitRaw = Number(url.searchParams.get('limit') ?? '10')
+    const limit = Number.isFinite(limitRaw)
+      ? Math.min(Math.max(Math.floor(limitRaw), 1), 50)
+      : 10
+    const current = typeof daemon.getBootMetrics === 'function'
+      ? daemon.getBootMetrics()
+      : null
+    const history = typeof daemon.getBootMetricsHistory === 'function'
+      ? daemon.getBootMetricsHistory(limit)
+      : current ? [current] : []
+    const uptimeMs = Math.round(process.uptime() * 1000)
+
+    sendJSON(res, 200, {
+      current,
+      history,
+      process: {
+        pid: process.pid,
+        uptimeMs,
+        startedAt: Date.now() - uptimeMs,
+      },
+    })
+    return true
+  }
+
   // GET /observability/prompts/stream
   if (method === 'GET' && pathname === '/observability/prompts/stream') {
     const sessionFilter = url.searchParams.get('session') || null
