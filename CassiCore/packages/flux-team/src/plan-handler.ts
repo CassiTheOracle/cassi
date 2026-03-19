@@ -35,6 +35,11 @@ const EXECUTIVE_ONLY_TOOLS = new Set([
   'plan_finalize',
 ])
 
+/**
+ * @deprecated Use Blackboard + handleBlackboardToolCall() from blackboard-tools.ts instead.
+ * PlanHandler is kept for backward compatibility with older FluxTeam configurations.
+ * Will be removed in a future cleanup pass.
+ */
 export class PlanHandler {
   private readonly blackboard: Blackboard
   private readonly logger: ILogger

@@ -49,6 +49,19 @@ export type { ConditionContext } from './conditions.js'
 
 // ── Blackboard ───────────────────────────────────────────────────────────────
 export { Blackboard } from './blackboard.js'
+export {
+  handleBlackboardToolCall,
+  isBlackboardMetaTool,
+  getBlackboardToolSchemas,
+  getPlanToolSchemas,
+  isPlanMetaTool,
+  BLACKBOARD_TOOL_NAMES,
+  PLAN_META_TOOL_NAMES,
+  REPORT_TOOL_NAMES,
+  REPORT_TOOLS,
+  ALL_POSTURES_PLAN_TOOLS,
+  EXECUTIVE_PLAN_TOOLS,
+} from './blackboard-tools.js'
 
 // ── Genome System ────────────────────────────────────────────────────────────
 export { GENOME_TEMPLATES, createGenome } from './genome.js'
@@ -62,3 +75,7 @@ export type { FluxRoutingResult } from './skill-router.js'
 // ── Outcome Ledger ───────────────────────────────────────────────────────────
 export { OutcomeLedger } from './outcome-ledger.js'
 export type { OutcomeLedgerStats } from './outcome-ledger.js'
+
+// ── Global Blackboard Registry ────────────────────────────────────────────────
+export { GlobalBlackboardRegistry } from './global-blackboard-registry.js'
+export type { GlobalBlackboardEntry } from './global-blackboard-registry.js'
