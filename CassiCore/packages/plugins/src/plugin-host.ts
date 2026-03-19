@@ -50,6 +50,7 @@ interface InternalWorkerRecord {
   // Circuit breaker state
   crashTimestamps: number[]
   circuitOpen: boolean
+  totalLifetimeRestarts: number  // Global restart count (never resets)
 
   // Race condition guards
   handlingCrash: boolean
@@ -89,6 +90,7 @@ export class PluginHost implements IPluginHost {
       lastPongTime: 0,
       crashTimestamps: [],
       circuitOpen: false,
+      totalLifetimeRestarts: 0,
       handlingCrash: false,
       restarting: false,
       spawning: false,
@@ -126,12 +128,17 @@ export class PluginHost implements IPluginHost {
 
       const initMsg: HostMessage = { type: 'init', config: manifest.config ?? {} }
 
+      // Send init message so the worker knows it's time to start.
+      // Workers wait for this before sending 'ready' back.
+      child.send(initMsg)
+
       let ready = false
       const readyTimeout = setTimeout(() => {
         if (!ready) {
-          this.logger.error(`plugin ${manifest.id} failed to become ready in time`)
+          ready = true
+          this.logger.error(`plugin ${manifest.id} failed to become ready in time (5000ms)`)
           record.spawning = false
-          reject(new Error('ready timeout'))
+          reject(new Error(`Timed out waiting for worker "${manifest.id}" to be ready (5000ms)`))
         }
       }, 5_000)
 
@@ -178,6 +185,14 @@ export class PluginHost implements IPluginHost {
         if (m.type === 'error') {
           const errorMsg = 'message' in m ? m.message : 'unknown error'
           this.logger.error(`worker ${manifest.id} error: ${errorMsg}`)
+          // Fast-fail: if the worker sends an error before ready, reject immediately
+          if (!ready) {
+            ready = true  // prevent timeout from also rejecting
+            clearTimeout(readyTimeout)
+            record.spawning = false
+            reject(new Error(`Worker "${manifest.id}" reported error: ${errorMsg}`))
+            return
+          }
         }
 
         if (m.type === 'log') {
@@ -207,6 +222,16 @@ export class PluginHost implements IPluginHost {
       child.on('exit', (code, signal) => {
         const reason = code !== null ? `code ${code}` : `signal ${signal}`
         this.logger.warn(`worker ${manifest.id} exited (${reason})`)
+
+        // Fast-fail: if the worker exits before signaling ready, reject immediately
+        // instead of waiting for the full ready timeout to expire.
+        if (!ready) {
+          ready = true  // prevent timeout from also rejecting
+          clearTimeout(readyTimeout)
+          record.spawning = false
+          reject(new Error(`Worker "${manifest.id}" exited unexpectedly with ${reason}`))
+          return
+        }
 
         // Only handle as a crash if the worker was healthy (not during intentional restart)
         if (record.status.status === 'healthy' && !record.restarting) {
@@ -251,6 +276,9 @@ export class PluginHost implements IPluginHost {
 
   // ── Crash Handling & Circuit Breaker ─────────────────────────────────────
 
+  /** Maximum total restarts across the entire daemon lifetime per worker */
+  private static readonly MAX_LIFETIME_RESTARTS = 20
+
   private handleCrash(record: InternalWorkerRecord, reason: string): void {
     // Guard against concurrent crash handling
     if (record.handlingCrash) {
@@ -261,21 +289,57 @@ export class PluginHost implements IPluginHost {
     const now = Date.now()
     record.status.crashes = (record.status.crashes ?? 0) + 1
     record.crashTimestamps.push(now)
+    record.totalLifetimeRestarts++
 
     // Keep only crashes from the last 5 minutes
-    record.crashTimestamps = record.crashTimestamps.filter((ts) => now - ts < 5 * 60 * 1000)
+    const windowMs = record.manifest.circuitBreakerWindowMs ?? 5 * 60 * 1000
+    record.crashTimestamps = record.crashTimestamps.filter((ts) => now - ts < windowMs)
 
     this.logger.error(`plugin ${record.manifest.id} crashed: ${reason}`, {
       crashes: record.status.crashes,
       recentCrashes: record.crashTimestamps.length,
+      totalLifetimeRestarts: record.totalLifetimeRestarts,
     })
 
-    // Circuit breaker: open if 3+ crashes in 5 minutes
-    if (record.crashTimestamps.length >= 3) {
+    // Emit plugin:crashed on every crash
+    bus.emit({
+      type: 'plugin:crashed',
+      pluginId: record.manifest.id,
+      error: reason,
+      crashCount: record.status.crashes,
+    })
+
+    // Check manifest maxRestarts limit (0 = no restarts allowed)
+    const maxRestarts = record.manifest.maxRestarts ?? Infinity
+    if (!record.manifest.restartOnCrash || record.status.crashes > maxRestarts) {
+      record.status.status = 'stopped'
+      record.handlingCrash = false
+      bus.emit({ type: 'plugin:stopped', pluginId: record.manifest.id, reason: 'max-restarts' })
+      return
+    }
+
+    // Global lifetime restart limit: stop restarting workers that keep dying
+    if (record.totalLifetimeRestarts >= PluginHost.MAX_LIFETIME_RESTARTS) {
+      record.circuitOpen = true
+      this.logger.error(
+        `circuit breaker OPEN for ${record.manifest.id}: exceeded lifetime restart limit (${record.totalLifetimeRestarts}/${PluginHost.MAX_LIFETIME_RESTARTS})`,
+      )
+      record.status.status = 'crashed'
+      record.handlingCrash = false
+      bus.emit({ type: 'plugin:circuit-open', pluginId: record.manifest.id, crashCount: record.totalLifetimeRestarts, windowMs: 0 })
+      bus.emit({ type: 'plugin:stopped', pluginId: record.manifest.id, reason: 'circuit-breaker' })
+      return
+    }
+
+    // Circuit breaker: open if too many crashes within window
+    const maxCrashes = record.manifest.circuitBreakerMaxCrashes ?? 3
+    if (record.crashTimestamps.length >= maxCrashes) {
       record.circuitOpen = true
       this.logger.error(`circuit breaker OPEN for ${record.manifest.id}`)
       record.status.status = 'crashed'
       record.handlingCrash = false
+      bus.emit({ type: 'plugin:circuit-open', pluginId: record.manifest.id, crashCount: record.crashTimestamps.length, windowMs })
+      bus.emit({ type: 'plugin:stopped', pluginId: record.manifest.id, reason: 'circuit-breaker' })
       return
     }
 
@@ -283,16 +347,20 @@ export class PluginHost implements IPluginHost {
     const delay = Math.min(1000 * Math.pow(2, record.crashTimestamps.length - 1), 30_000)
     this.logger.info(`scheduling restart in ${delay}ms`)
 
+    // Set status eagerly so callers can observe restart state
+    record.status.status = 'restarting'
+    record.restarting = true
+
     record.restartTimer = setTimeout(() => {
       if (record.circuitOpen) {
         this.logger.warn(`restart cancelled: circuit breaker open`)
+        record.restarting = false
         record.handlingCrash = false
         return
       }
 
       this.logger.info(`restarting worker ${record.manifest.id}`)
       record.status.status = 'starting'
-      record.restarting = true
 
       // Clean up old child process references
       if (record.child) {
@@ -316,7 +384,7 @@ export class PluginHost implements IPluginHost {
         })
     }, delay)
 
-    record.handlingCrash = false
+    // handlingCrash stays true until restart completes (prevents double-crash counting)
   }
 
   // ── Message Passing ───────────────────────────────────────────────────────

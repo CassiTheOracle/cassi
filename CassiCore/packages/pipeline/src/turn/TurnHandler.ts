@@ -51,6 +51,12 @@ export class TurnHandler {
       logger: options.logger.child('context-window')
     });
     
+    // Resolve tool schemas: accept either a static array or a getter function
+    const rawSchemas = options.toolSchemas;
+    const toolSchemasGetter: (() => Array<{ name: string; description: string; input_schema: Record<string, unknown> }> | undefined) = typeof rawSchemas === 'function'
+      ? rawSchemas
+      : () => rawSchemas;
+    
     this.toolLoop = new ToolLoop(
       options.toolExecutor,
       {
@@ -59,14 +65,16 @@ export class TurnHandler {
         streamTimeoutMs: 120000
       },
       options.logger.child('tool-loop'),
-      options.toolSchemas
+      toolSchemasGetter
     );
     
+    // Resolve current count for init log
+    const currentSchemas = toolSchemasGetter();
     this.logger.info('TurnHandler initialized', {
       providerCount: options.providers.size,
       maxToolRounds: options.maxToolRounds ?? 8,
       contextWindowTokens: options.contextWindowTokens ?? 200000,
-      toolCount: options.toolSchemas?.length ?? 0
+      toolCount: currentSchemas?.length ?? 0
     });
   }
   
@@ -87,6 +95,7 @@ export class TurnHandler {
       
       // 2. Apply context window
       const trimmed = this.contextWindow.trim(messages);
+      const contextTokens = this.contextWindow.estimateTokens(trimmed);
       
       // 3. Resolve provider
       const provider = this.resolveProvider(session.model);
@@ -96,6 +105,7 @@ export class TurnHandler {
         provider,
         trimmed,
         session.model,
+        request.attachments,
         request.signal,
         onStreamEvent
       );
@@ -107,6 +117,9 @@ export class TurnHandler {
         provider: providerId,
         model: session.model,
         durationMs,
+        contextTokens: contextTokens >= 1000
+          ? `${(contextTokens / 1000).toFixed(1)}k`
+          : String(contextTokens),
         tokensUsed: loopResult.tokensUsed,
         toolRounds: loopResult.roundsUsed,
         toolCount: loopResult.toolExecutions.length

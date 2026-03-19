@@ -220,8 +220,9 @@ export interface TurnHandlerOptions {
   maxToolRounds?: number;
   contextWindowTokens?: number;
   toolTimeoutMs?: number;
-  /** Tool schemas to pass to LLM providers (Anthropic format) */
-  toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
+  /** Tool schemas to pass to LLM providers (Anthropic format).
+   *  Accepts a getter function for live registry updates, or a static array. */
+  toolSchemas?: (() => Array<{ name: string; description: string; input_schema: Record<string, unknown> }>) | Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
 }
 
 /**

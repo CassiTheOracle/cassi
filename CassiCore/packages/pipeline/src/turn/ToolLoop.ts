@@ -4,7 +4,7 @@
  * Explicit tool execution loop with retry and timeout handling
  */
 
-import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock } from '../../../types/runtime.js';
+import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock, ImageAttachment } from '../../../types/runtime.js';
 import type {
   Message,
   ToolCall,
@@ -43,18 +43,21 @@ export class ToolLoop {
   private options: ToolLoopOptions;
   private toolExecutor: IToolExecutor;
   private logger: ILogger;
-  private toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>;
+  private toolSchemasGetter: () => Array<{ name: string; description: string; input_schema: Record<string, unknown> }> | undefined;
   
   constructor(
     toolExecutor: IToolExecutor,
     options: ToolLoopOptions,
     logger: ILogger,
-    toolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
+    toolSchemas?: (() => Array<{ name: string; description: string; input_schema: Record<string, unknown> }> | undefined) | Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
   ) {
     this.toolExecutor = toolExecutor;
     this.options = options;
     this.logger = logger;
-    this.toolSchemas = toolSchemas;
+    // Accept either a getter function or a static array
+    this.toolSchemasGetter = typeof toolSchemas === 'function'
+      ? toolSchemas
+      : () => toolSchemas;
   }
   
   /** Get/set max tool loop rounds */
@@ -68,6 +71,7 @@ export class ToolLoop {
     provider: IProvider,
     messages: Message[],
     model: string,
+    attachments?: ImageAttachment[],
     signal?: AbortSignal,
     onStreamEvent?: StreamEventCallback
   ): Promise<ToolLoopResult> {
@@ -89,6 +93,7 @@ export class ToolLoop {
         provider,
         messages,
         model,
+        attachments,
         signal,
         onStreamEvent
       );
@@ -175,11 +180,12 @@ export class ToolLoop {
     provider: IProvider,
     messages: Message[],
     model: string,
+    attachments?: ImageAttachment[],
     signal?: AbortSignal,
     onStreamEvent?: StreamEventCallback
   ): Promise<StreamResult> {
     return this.withTimeout(
-      this.doStream(provider, messages, model, signal, onStreamEvent),
+      this.doStream(provider, messages, model, attachments, signal, onStreamEvent),
       this.options.streamTimeoutMs,
       'Provider stream timeout'
     );
@@ -192,6 +198,7 @@ export class ToolLoop {
     provider: IProvider,
     messages: Message[],
     model: string,
+    attachments?: ImageAttachment[],
     signal?: AbortSignal,
     onStreamEvent?: StreamEventCallback
   ): Promise<StreamResult> {
@@ -206,8 +213,10 @@ export class ToolLoop {
         model: model.split('/')[1] ?? model,
         stream: true,
         source: 'session-pipeline',
-        tools: this.toolSchemas,
-      }
+        tools: this.toolSchemasGetter(),
+      },
+      attachments,
+      signal,
     );
     
     for await (const chunk of stream) {
