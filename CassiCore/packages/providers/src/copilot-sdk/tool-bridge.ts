@@ -1,9 +1,10 @@
 /**
  * SDK Tool Bridge — converts CassiCore tools to SDK Tool[] format,
- * routing all execution through the cassi_do enrichment pipeline.
+ * routing all execution through the cassi_do augmentation pipeline.
  *
- * Every tool result the LLM sees includes relevant context from
- * memory, archive, and session history — no explicit injection needed.
+ * Every tool result the LLM sees includes a status bar, optional live
+ * system state card, and (in analyze/guide modes) execution metadata.
+ * Memory/archive context is NOT fetched here — that's cassi_enrich's job.
  */
 import type { Tool as SdkTool, ToolInvocation } from '@github/copilot-sdk'
 
@@ -11,8 +12,9 @@ import type { ToolRegistry } from '../../tools/registry.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolDefinition } from '../../tools/types.js'
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import { augmentDoResult, type DoMode } from '../../../mcp/gateway/do-augmentation.js'
 
-/** Admin API base URL for context fetching (memory/archive/index search) */
+/** Admin API base URL for state-card fetching */
 const DEFAULT_ADMIN_URL = 'http://127.0.0.1:7433'
 
 /**
@@ -84,8 +86,8 @@ function createSdkTool(
           input: args,
         })
 
-        // Execute through cassi_do enrichment pipeline
-        const enrichedResult = await executeWithEnrichment(
+        // Execute with cassi_do augmentation (status bar + optional state card)
+        const enrichedResult = await executeWithAugmentation(
           def.name,
           args as Record<string, unknown>,
           toolExecutor,
@@ -136,12 +138,17 @@ function createSdkTool(
 }
 
 /**
- * Execute a tool with cassi_do-style context enrichment.
+ * Execute a tool with cassi_do-style augmentation.
  *
- * Fetches memory/archive/index context in parallel with tool execution,
- * then prepends the context to the tool result.
+ * Wraps the tool result with:
+ *   - Status bar (always): tool · latency · time · size · status
+ *   - State card (observe/analyze/guide): rotating live system snapshot
+ *   - Exec block (analyze/guide): tool class, output stats
+ *   - Guide suggestions (guide): next-step tools when IDs detected
+ *
+ * Memory/archive context is NOT fetched here — that's cassi_enrich's job.
  */
-async function executeWithEnrichment(
+async function executeWithAugmentation(
   toolName: string,
   args: Record<string, unknown>,
   toolExecutor: ToolExecutor,
@@ -149,123 +156,25 @@ async function executeWithEnrichment(
   adminBaseUrl: string,
   logger: ILogger,
 ): Promise<string> {
-  // Derive context query from tool name + first meaningful input field
-  const contextQuery = deriveContextQuery(toolName, args)
+  const start = Date.now()
 
-  // Execute tool + fetch context in parallel
-  const [toolResult, contextBlock] = await Promise.all([
-    // Tool execution via CassiCore's ToolExecutor (preserves permissions, trust, etc.)
-    toolExecutor.execute(
-      { id: `sdk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name: toolName, input: args },
-      sessionId,
-    ),
-    // Context enrichment (memory + archive + session index)
-    fetchContextBlock(adminBaseUrl, contextQuery, logger).catch(err => {
-      logger.debug(`Context fetch failed (non-fatal): ${String(err)}`)
-      return '' // Graceful degradation — tool result still returned
-    }),
-  ])
+  // Execute tool through CassiCore's executor (preserves permissions, trust, safety)
+  const toolResult = await toolExecutor.execute(
+    { id: `sdk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name: toolName, input: args },
+    sessionId,
+  )
 
-  // Assemble enriched result
-  const parts: string[] = []
-  if (contextBlock) {
-    parts.push(contextBlock)
-    parts.push('---')
-  }
-  parts.push(`## Tool Result: \`${toolName}\``)
-  if (toolResult.isError) {
-    parts.push(`**Error:** ${toolResult.content}`)
-  } else {
-    parts.push(toolResult.content)
-  }
+  const durationMs = Date.now() - start
 
-  return parts.join('\n')
-}
+  // Augment with cassi_do execution layer (default: observe mode, auto state view)
+  const augmented = await augmentDoResult({
+    toolName,
+    result: { text: toolResult.content, isError: toolResult.isError },
+    durationMs,
+    mode: 'observe' as DoMode,
+    stateView: 'auto',
+    baseUrl: adminBaseUrl,
+  })
 
-/**
- * Derive context search query from tool name and input arguments.
- * Matches the logic in mcp/gateway/do-tool.ts deriveContextQuery().
- */
-function deriveContextQuery(toolName: string, args: Record<string, unknown>): string {
-  const priorityFields = ['query', 'goal', 'command', 'message', 'content', 'path', 'target', 'prompt', 'text']
-  for (const field of priorityFields) {
-    const val = args[field]
-    if (typeof val === 'string' && val.trim()) {
-      return `${toolName} ${val.trim().slice(0, 200)}`
-    }
-  }
-  return toolName
-}
-
-/**
- * Fetch context from memory, archive, and session index via the admin API.
- * Returns a formatted markdown block, or empty string if no results.
- */
-async function fetchContextBlock(
-  baseUrl: string,
-  query: string,
-  _logger: ILogger,
-  memoryLimit = 3,
-  archiveLimit = 3,
-  indexLimit = 5,
-): Promise<string> {
-  const sections: string[] = []
-
-  // Fetch all three sources in parallel
-  const [memories, archives, indexResults] = await Promise.all([
-    memoryLimit > 0 ? fetchJson(`${baseUrl}/memory/search?query=${encodeURIComponent(query)}&limit=${memoryLimit}`) : [],
-    archiveLimit > 0 ? fetchJson(`${baseUrl}/memory/archives/search`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, limit: archiveLimit }),
-    }) : [],
-    indexLimit > 0 ? fetchJson(`${baseUrl}/memory/index/search?query=${encodeURIComponent(query)}&limit=${indexLimit}`) : [],
-  ])
-
-  if (memories.length > 0) {
-    sections.push(`### From Memory (${memories.length} results)`)
-    for (const m of memories) {
-      const mem = m as Record<string, unknown>
-      sections.push(`- ${String(mem.key ?? mem.id ?? 'memory')}: ${String(mem.content ?? '').slice(0, 300)}`)
-    }
-  }
-
-  if (archives.length > 0) {
-    sections.push(`### From Archive (${archives.length} results)`)
-    for (const a of archives) {
-      const arc = a as Record<string, unknown>
-      sections.push(`- [${String(arc.type ?? 'entry')}] ${String(arc.content ?? arc.summary ?? '').slice(0, 300)}`)
-    }
-  }
-
-  if (indexResults.length > 0) {
-    sections.push(`### From Session History (${indexResults.length} results)`)
-    for (const r of indexResults) {
-      const idx = r as Record<string, unknown>
-      sections.push(`- ${String(idx.text ?? idx.content ?? '').slice(0, 200)}`)
-    }
-  }
-
-  if (sections.length === 0) return ''
-
-  return `## Cassi Context\n> Auto-enriched for: \`${query.slice(0, 80)}\`\n\n${sections.join('\n')}`
-}
-
-/** Fetch JSON from admin API with timeout. */
-async function fetchJson(url: string, init?: RequestInit): Promise<unknown[]> {
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
-    const res = await fetch(url, { ...init, signal: controller.signal })
-    clearTimeout(timeout)
-    if (!res.ok) return []
-    const data = await res.json() as unknown
-    // Handle various response shapes
-    if (Array.isArray(data)) return data
-    if (data && typeof data === 'object' && 'results' in data) return (data as { results: unknown[] }).results ?? []
-    if (data && typeof data === 'object' && 'entries' in data) return (data as { entries: unknown[] }).entries ?? []
-    return []
-  } catch {
-    return []
-  }
+  return augmented.text
 }

@@ -12,9 +12,11 @@ import { GitHubCopilotProvider } from './github-copilot.js'
 import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
-import { CopilotSdkManager } from './copilot-sdk/client-manager.js'
-import { CopilotSdkProvider } from './copilot-sdk/provider.js'
-import { bridgeToolsToSdk } from './copilot-sdk/tool-bridge.js'
+
+// Copilot SDK imports are loaded lazily inside initCopilotSdkProvider() to
+// prevent a broken transitive dependency (@github/copilot-sdk -> vscode-jsonrpc)
+// from crashing the entire provider module and killing ALL provider loading.
+// See: initCopilotSdkProvider() below for the dynamic imports.
 
 import type { IConfig, ILogger , IEventBus } from '../../types/interfaces.js'
 import type { IProvider } from '../../types/runtime.js'
@@ -205,8 +207,22 @@ export function createProviders(
 
 // ── Copilot SDK Provider Initialization ──────────────────────────────────────
 
-export { CopilotSdkManager, CopilotSdkProvider, bridgeToolsToSdk }
+// Re-export types only (safe — does not trigger module loading)
 export type { CopilotSdkManagerOptions } from './copilot-sdk/client-manager.js'
+export type { CopilotSdkProviderOptions } from './copilot-sdk/provider.js'
+
+/**
+ * Lazily load the Copilot SDK modules.
+ * Isolated here so a broken transitive dependency does not crash other providers.
+ */
+async function loadCopilotSdkModules() {
+  const [{ CopilotSdkManager }, { CopilotSdkProvider }, { bridgeToolsToSdk }] = await Promise.all([
+    import('./copilot-sdk/client-manager.js'),
+    import('./copilot-sdk/provider.js'),
+    import('./copilot-sdk/tool-bridge.js'),
+  ])
+  return { CopilotSdkManager, CopilotSdkProvider, bridgeToolsToSdk }
+}
 
 /**
  * Initialize the Copilot SDK provider (async — requires starting the CLI process).
@@ -225,7 +241,7 @@ export async function initCopilotSdkProvider(
   bus: IEventBus,
   toolRegistry?: ToolRegistry,
   toolExecutor?: ToolExecutor,
-): Promise<CopilotSdkManager | null> {
+): Promise</* CopilotSdkManager */ unknown | null> {
   const sdkEnabled = config.get<boolean>('providers.copilotSdk.enabled', true)
   if (!sdkEnabled) {
     logger.info('[copilot-sdk] Disabled by config (providers.copilotSdk.enabled = false)')
@@ -235,6 +251,8 @@ export async function initCopilotSdkProvider(
   const sdkLogger = logger.child('copilot-sdk-init')
 
   try {
+    const { CopilotSdkManager, CopilotSdkProvider, bridgeToolsToSdk } = await loadCopilotSdkModules()
+
     // User-configured CLI path override (empty = use SDK's bundled @github/copilot)
     const cliPathOverride = config.get<string>('providers.copilotSdk.cliPath', '')
 

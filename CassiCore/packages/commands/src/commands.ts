@@ -15,6 +15,7 @@ import { bus } from './event-bus.js';
 import type { ILogger, IEventBus } from '../types/interfaces.js';
 import type { ISessionManager } from '../types/runtime.js';
 import type { IntelligenceLayer } from './intelligence/index.js';
+import type { ModelDirective } from './model-routing/index.js';
 import '../commands/git-commands.js';
 import '../commands/tool-commands.js';
 
@@ -26,6 +27,7 @@ export interface CommandContext {
 
 export class CommandDispatcher {
   private intelligence?: IntelligenceLayer;
+  private modelDirective?: ModelDirective;
 
   constructor(
     private logger: ILogger,
@@ -41,6 +43,14 @@ export class CommandDispatcher {
   setIntelligence(intelligence: IntelligenceLayer): void {
     this.intelligence = intelligence;
     this.logger.info('CommandDispatcher: Intelligence layer connected');
+  }
+
+  /**
+   * Set the model directive so command status reflects the real routing layer.
+   */
+  setModelDirective(modelDirective: ModelDirective): void {
+    this.modelDirective = modelDirective;
+    this.logger.info('CommandDispatcher: Model directive connected');
   }
 
   /**
@@ -65,8 +75,9 @@ export class CommandDispatcher {
       }
 
       // Build unified command context with intelligence access
+      const channel = this.normalizeChannel(channelId);
       const ctx: UniversalContext = {
-        channel: 'telegram',
+        channel,
         userId: (session as any).userId || session.senderId || 'unknown',
         sessionId,
         projectPath: (session as any).projectPath,
@@ -149,10 +160,7 @@ export class CommandDispatcher {
     const mins = uptimeMinutes % 60;
     const uptimeStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 
-    const modelFull = session.config.model || 'unknown';
-    const modelParts = modelFull.split('/');
-    const provider = modelParts[0] || 'unknown';
-    const modelName = modelParts.slice(1).join('/') || modelFull;
+    const modelInfo = this.getEffectiveModel(session.config.model);
 
     const maxTokens = session.config.maxContextTokens || 100000;
     const usedTokens = session.history?.reduce((acc: number, m: any) => {
@@ -169,8 +177,8 @@ export class CommandDispatcher {
 └─ Architecture: Dialectic/Yin-Yang v2
 
 <i>Active Mind</i>
-├─ Provider: ${provider}
-├─ Model: <code>${modelName}</code>
+├─ Provider: ${modelInfo.provider}
+├─ Model: <code>${modelInfo.model}</code>
 ├─ Thinking: ${session.config.thinking || 'high'}
 └─ Context: ~${Math.round(usedTokens/1000)}k / ${Math.round(maxTokens/1000)}k (${contextPercent}%)
 
@@ -185,7 +193,7 @@ export class CommandDispatcher {
 
 <i>Commands</i>
 ├─ /status — Show this view
-├─ /models — Switch AI model
+├─ /model — Show or change AI model
 ├─ /thinking — Adjust reasoning depth
 ├─ /new — Fresh session
 └─ /help — All commands
@@ -197,27 +205,14 @@ export class CommandDispatcher {
   }
 
   private async handleModels(sessionId: string, channelId: string, args: string[]): Promise<boolean> {
-    if (args.length > 0) {
-      const newModel = args[0];
-      const session = this.sessions.get(sessionId);
-      if (session) {
-        session.config.model = newModel;
-        this.sendDirectResponse(sessionId, channelId, `✅ Model updated to: \`${newModel}\``);
-        return true;
-      }
-    }
-
-    const list = [
-      `📊 *Available Models*`,
-      `━━━━━━━━━━━━━━━`,
-      `• \`qwen-portal/coder-model\` (Primary)`,
-      `• \`kimi-coding/k2p5\` (Fallback)`,
-      `• \`github-copilot/gpt-5-mini\` (Memory/Dialectic)`,
+    const modelInfo = this.getEffectiveModel(this.sessions.get(sessionId)?.config.model);
+    const lines = [
+      `Current effective model: \`${modelInfo.full}\``,
       ``,
-      `💡 _Use \`/models <name>\` to switch_`
-    ].join('\n');
-
-    this.sendDirectResponse(sessionId, channelId, list);
+      `Use \`/model\` to inspect routing or \`/model <provider>/<model>\` to change it.`,
+      `\`/models\` is kept as a compatibility alias.`,
+    ];
+    this.sendDirectResponse(sessionId, channelId, lines.join('\n'));
     return true;
   }
 
@@ -255,17 +250,19 @@ export class CommandDispatcher {
       } as any);
     }
     
+    const modelInfo = this.getEffectiveModel(session?.config.model);
+
     const welcomeHtml = `<b>🌙 New Session Started</b>
 
 <i>Previous context cleared. Starting fresh!</i>
 
 <b>Active Configuration:</b>
-├─ Primary: qwen-portal/coder-model
-├─ Fallback: kimi-coding/k2p5
-├─ Memory: github-copilot/gpt-5-mini
-└─ Dialectic: Yang → Yin → Serenity
+├─ Model: <code>${modelInfo.full}</code>
+├─ Thinking: ${session?.config.thinking || 'high'}
+├─ Channel: <code>${channelId.replace(/^channel:/, '')}</code>
+└─ Dialectic: Yin-Yang v2
 
-<i>Commands: /status /models /thinking /help</i>`;
+<i>Commands: /status /model /thinking /help</i>`;
 
     this.sendDirectResponseHtml(sessionId, channelId, welcomeHtml);
     return true;
@@ -281,7 +278,8 @@ export class CommandDispatcher {
       `*Legacy Commands:*`,
       `• \`/new\` - Start a fresh session`,
       `• \`/status\` - System & session details`,
-      `• \`/models\` - List or switch AI models`,
+      `• \`/model\` - Show or change AI model`,
+      `• \`/models\` - Alias for \`/model\``,
       `• \`/thinking\` - Adjust reasoning depth`,
       ``,
       universalHelp,
@@ -317,5 +315,43 @@ export class CommandDispatcher {
         parse_mode: 'HTML'
       }
     } as any);
+  }
+
+  private getEffectiveModel(sessionModel?: string): { provider: string; model: string; full: string } {
+    if (this.modelDirective) {
+      try {
+        const resolved = this.modelDirective.resolve();
+        return {
+          provider: resolved.provider,
+          model: resolved.model,
+          full: `${resolved.provider}/${resolved.model}`,
+        };
+      } catch {
+        // Fall through to session config if directive resolution fails.
+      }
+    }
+
+    const full = sessionModel || 'unknown';
+    const parts = full.split('/');
+    return {
+      provider: parts[0] || 'unknown',
+      model: parts.slice(1).join('/') || full,
+      full,
+    };
+  }
+
+  private normalizeChannel(channelId: string): UniversalContext['channel'] {
+    const raw = channelId.replace(/^channel:/, '');
+    switch (raw) {
+      case 'telegram':
+      case 'chat':
+      case 'tui':
+      case 'api':
+      case 'web':
+      case 'cli':
+        return raw;
+      default:
+        return 'api';
+    }
   }
 }

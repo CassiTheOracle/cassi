@@ -1,136 +1,149 @@
 /**
  * Telegram channel worker for CassiCore.
  *
- * Uses long-polling (getUpdates) - no webhook/SSL needed.
- * Session ID = 'tg:' + chatId (stable per conversation).
+ * TRANSPORT ONLY — all intelligence, tools, model resolution, and streaming
+ * are handled by the daemon's SessionPipeline via the channel message handler.
  *
- * Streaming: buffers tokens, edits the "typing..." message live every ~400ms.
- * Falls back to single send if edit fails.
+ * Responsibilities:
+ *  - Poll Telegram API for updates (long-polling with exponential backoff)
+ *  - Download photo attachments
+ *  - Forward messages to daemon via workerPort
+ *  - Buffer streaming tokens and edit messages (Telegram rate limit: ~1 edit/sec)
+ *  - Send typing indicators
+ *  - Handle /start locally
  *
- * Images: detects photo messages, downloads the largest available size via
- * the Bot API, base64-encodes them, and attaches to the inbound payload.
- *
- * FIXES:
- *   - getUpdates fetch timeout is now POLL_TIMEOUT_SEC + 10s (35s) - previously
- *     15s, which meant the fetch always aborted before Telegram responded.
- *   - Exponential backoff (2s → 4s → 8s → cap 30s) on getUpdates errors so
- *     we don't hammer the API after a transient failure.
- *   - Separate AbortController per poll so a slow response doesn't leak into
- *     the next cycle.
+ * Everything else — commands, model selection, tool execution, system prompt,
+ * memory retrieval, intelligence context — is the daemon's job.
  */
 
-import { parentPort } from 'node:worker_threads'
+import { workerPort } from '../../core/worker-ipc.js'
 import * as tg from './telegram-common.js'
 
-const POLL_TIMEOUT_SEC   = 25           // Telegram server-side long-poll timeout
-const FETCH_TIMEOUT_MS   = (POLL_TIMEOUT_SEC + 10) * 1_000  // must exceed server timeout
-const EDIT_INTERVAL_MS   = 1000         // Optimized: 1s to respect Telegram's rate limits for edits
-const BACKOFF_BASE_MS    = 2_000
-const BACKOFF_MAX_MS     = 30_000
+// ── Constants ─────────────────────────────────────────────────────────────────
 
-type HostMessage =
-  | { type: 'init';          config: TelegramConfig }
-  | { type: 'config:update'; config: Partial<TelegramConfig> }
-  | { type: 'message';       payload: { sessionId: string; content: string; done?: boolean; parse_mode?: 'MarkdownV2' | 'HTML' } }
-  | { type: 'status';        payload: { sessionId: string; text: string; type?: string } }
-  | { type: 'shutdown' }
+const POLL_TIMEOUT_SEC = 25
+const FETCH_TIMEOUT_MS = (POLL_TIMEOUT_SEC + 10) * 1_000
+const EDIT_INTERVAL_MS = 1000
+const TYPING_INTERVAL_MS = 4000
+const BACKOFF_BASE_MS = 2_000
+const BACKOFF_MAX_MS = 30_000
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface TelegramConfig {
   token: string
   allowedChatIds?: number[]
 }
 
+/** Messages FROM the daemon */
+type HostMessage =
+  | { type: 'init'; config: TelegramConfig }
+  | { type: 'config:update'; config: Partial<TelegramConfig> }
+  | { type: 'message'; payload: Record<string, unknown> }
+  | { type: 'status'; payload: StatusPayload }
+  | { type: 'shutdown' }
+
+interface StatusPayload {
+  sessionId: string
+  text: string
+  type?: string
+}
+
+/** Messages TO the daemon */
 type WorkerMessage =
   | { type: 'ready' }
   | { type: 'message'; payload: { sessionId: string; content: string; attachments?: tg.ImageAttachment[] } }
-  | { type: 'signal';  payload: { sessionId: string; signalType: string; content: string } }
-  | { type: 'error';   message: string }
-  | { type: 'log';     level: 'info' | 'warn' | 'error'; message: string }
+  | { type: 'error'; message: string }
+  | { type: 'log'; level: 'info' | 'warn' | 'error'; message: string }
 
-// ── state ─────────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
 let cfg: TelegramConfig = { token: '' }
 let offset = 0
 let polling = false
 let shutdownRequested = false
 
-// Per-session streaming buffer: sessionId → { chatId, msgId, buffer, timer }
+/** Per-session streaming state: accumulates tokens, edits message every 1s. */
 interface StreamState {
   chatId: number
-  msgId:  number | null
+  msgId: number | null
   buffer: string
-  timer:  ReturnType<typeof setInterval> | null
+  lastFlushed: string
+  timer: ReturnType<typeof setInterval> | null
+  /** Serializes flush operations to prevent concurrent sendMessage/editMessage calls.
+   *  Without this, a timer-initiated flush and a finalize flush can both see msgId===null
+   *  and both call sendMessage, creating duplicate messages. */
+  flushChain: Promise<void>
 }
 const streams = new Map<string, StreamState>()
 
-// Wire token and logger into common helpers
-function setTokenFromCfg() {
-  tg.setToken(cfg.token)
+// ── Logging ───────────────────────────────────────────────────────────────────
+
+function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string, unknown>): void {
+  const entry: Record<string, unknown> = { type: 'log', level, message: `[telegram] ${msg}` }
+  if (meta) entry.meta = meta
+  workerPort.postMessage(entry as unknown as WorkerMessage)
 }
 
-function initCommonHelpers() {
-  tg.setToken(cfg.token)
-  // Route common-module warnings through the structured log channel so they
-  // appear in daemon logs rather than raw stderr.
-  tg.setLogger((msg) => log('warn', msg))
-}
-
-// ── Streaming: buffer → edit loop (uses tg common helpers) ───────────────────
+// ── Session IDs ───────────────────────────────────────────────────────────────
 
 function sessionIdFor(chatId: number): string {
   return `tg:${chatId}`
 }
 
+function parseChatId(sessionId: string): number | null {
+  if (!sessionId.startsWith('tg:')) return null
+  const n = Number(sessionId.slice(3))
+  return Number.isFinite(n) ? n : null
+}
+
+// ── Streaming: buffer → edit loop ─────────────────────────────────────────────
+
 function getOrCreateStream(chatId: number, sessionId: string): StreamState {
   let s = streams.get(sessionId)
   if (!s) {
-    s = { chatId, msgId: null, buffer: '', timer: null }
+    s = { chatId, msgId: null, buffer: '', lastFlushed: '', timer: null, flushChain: Promise.resolve() }
     streams.set(sessionId, s)
   }
   return s
 }
 
-function chooseParseModeForText(_text: string): 'MarkdownV2' | 'HTML' {
-  // Always use HTML — markdownToTelegramHtml() in telegram-common.ts handles
-  // the conversion from GFM to Telegram HTML.
-  return 'HTML'
-}
+/** Internal flush — must only be called via enqueueFlush to prevent concurrent execution. */
+async function doFlush(s: StreamState): Promise<void> {
+  if (!s.buffer) return
 
-async function flushStream(sessionId: string): Promise<void> {
-  const s = streams.get(sessionId)
-  if (!s || !s.buffer) return
-
-  const text = s.buffer
-  const parseMode = chooseParseModeForText(text)
+  // Skip edit if buffer hasn't changed since last flush (avoids Telegram "not modified" errors)
+  if (s.msgId !== null && s.buffer === s.lastFlushed) return
 
   if (s.msgId === null) {
-    const msgId = await tg.sendMessage(s.chatId, text, parseMode)
-    s.msgId = msgId
+    s.msgId = await tg.sendMessage(s.chatId, s.buffer)
   } else {
-    await tg.editMessage(s.chatId, s.msgId as number, text, parseMode)
+    await tg.editMessage(s.chatId, s.msgId, s.buffer)
   }
+  s.lastFlushed = s.buffer
+}
+
+/** Enqueue a flush operation on the stream's serial chain.
+ *  This ensures only one sendMessage/editMessage is in-flight at a time,
+ *  preventing the race where two concurrent flushes both see msgId===null
+ *  and create duplicate messages. */
+function enqueueFlush(sessionId: string): void {
+  const s = streams.get(sessionId)
+  if (!s) return
+  s.flushChain = s.flushChain.then(() => doFlush(s)).catch((err) => {
+    log('warn', 'stream flush error', { sessionId, error: String(err) })
+  })
 }
 
 function startStreamTimer(sessionId: string): void {
   const s = streams.get(sessionId)
   if (!s || s.timer) return
+
   let typingCounter = 0
   s.timer = setInterval(() => {
-    flushStream(sessionId).catch((err) => {
-      const errorInfo: Record<string, unknown> = {
-        operation: 'stream_flush',
-        sessionId,
-        message: err instanceof Error ? err.message : String(err),
-      }
-      if (err instanceof Error && err.stack) {
-        errorInfo.stack = err.stack
-      }
-      log('warn', 'stream flush error', errorInfo)
-    })
-    
-    // Refresh typing indicator every ~5 seconds
+    enqueueFlush(sessionId)
     typingCounter += EDIT_INTERVAL_MS
-    if (typingCounter >= 4000) {
+    if (typingCounter >= TYPING_INTERVAL_MS) {
       tg.sendTyping(s.chatId).catch(() => {})
       typingCounter = 0
     }
@@ -142,22 +155,13 @@ async function finalizeStream(sessionId: string): Promise<void> {
   if (!s) return
 
   if (s.timer) { clearInterval(s.timer); s.timer = null }
-  
-  // Only flush if there is still something in the buffer
-  if (s.buffer) {
-    await flushStream(sessionId)
-  }
+  // Enqueue one final flush, then wait for the entire chain to complete
+  enqueueFlush(sessionId)
+  await s.flushChain
   streams.delete(sessionId)
 }
 
 // ── Long-polling loop ─────────────────────────────────────────────────────────
-
-interface TgPhotoSize {
-  file_id:    string
-  file_size?: number
-  width:      number
-  height:     number
-}
 
 interface TgUpdate {
   update_id: number
@@ -167,7 +171,7 @@ interface TgUpdate {
     from?: { id: number; username?: string; first_name?: string }
     text?: string
     caption?: string
-    photo?: TgPhotoSize[]
+    photo?: Array<{ file_id: string; width: number; height: number }>
     date: number
   }
 }
@@ -175,339 +179,215 @@ interface TgUpdate {
 async function pollLoop(): Promise<void> {
   if (polling) return
   polling = true
-  log('info', `Telegram long-poll started (timeout=${POLL_TIMEOUT_SEC}s, fetch timeout=${FETCH_TIMEOUT_MS}ms)`)
+  log('info', `Long-poll started (timeout=${POLL_TIMEOUT_SEC}s)`)
 
   let backoffMs = BACKOFF_BASE_MS
 
   while (!shutdownRequested) {
     if (!cfg.token) { await sleep(2000); continue }
 
-    // Use a dedicated AbortController so each poll cycle is independent
     const controller = new AbortController()
-    const fetchTimer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
-    let updates: TgUpdate[] | null = null
     try {
       const res = await fetch(`https://api.telegram.org/bot${cfg.token}/getUpdates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          offset,
-          timeout: POLL_TIMEOUT_SEC,
-          allowed_updates: ['message'],
-        }),
+        body: JSON.stringify({ offset, timeout: POLL_TIMEOUT_SEC, allowed_updates: ['message'] }),
         signal: controller.signal,
       })
-      clearTimeout(fetchTimer)
+      clearTimeout(timer)
 
       const json = await res.json() as { ok: boolean; result: TgUpdate[]; description?: string }
       if (!json.ok) {
-        const desc = String(json.description ?? '')
-        if (desc.includes('Conflict: terminated by other getUpdates request')) {
-          log('info', `tg/getUpdates conflict: ${desc} — backing off`)
+        const desc = json.description ?? '?'
+        // Conflict means another instance is polling — back off
+        if (desc.includes('Conflict')) {
+          log('info', `getUpdates conflict — backing off`)
         } else {
-          log('warn', `tg/getUpdates not ok: ${desc}`)
+          log('warn', `getUpdates not ok: ${desc}`)
         }
         await sleep(backoffMs)
         backoffMs = Math.min(backoffMs * 2, BACKOFF_MAX_MS)
         continue
       }
-      updates = json.result
-      backoffMs = BACKOFF_BASE_MS  // reset backoff on success
+
+      backoffMs = BACKOFF_BASE_MS
+      for (const upd of json.result) {
+        offset = upd.update_id + 1
+        if (upd.message) await handleIncoming(upd.message)
+      }
     } catch (err) {
-      clearTimeout(fetchTimer)
-      // DOMException AbortError is expected when we abort — not a real error
+      clearTimeout(timer)
       const isAbort = err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')
       if (!isAbort) {
-        const errorInfo: Record<string, unknown> = {
-          operation: 'getUpdates',
-          message: err instanceof Error ? err.message : String(err),
-          backoffMs,
-        }
-        if (err instanceof Error && err.stack) {
-          errorInfo.stack = err.stack
-        }
-        log('warn', 'tg/getUpdates error — retrying', errorInfo)
+        log('warn', 'getUpdates error', { error: String(err), backoffMs })
         await sleep(backoffMs)
         backoffMs = Math.min(backoffMs * 2, BACKOFF_MAX_MS)
-      }
-      continue
-    }
-
-    if (!updates) continue
-
-    for (const upd of updates) {
-      offset = upd.update_id + 1
-      if (upd.message) {
-        await handleIncoming(upd.message)
       }
     }
   }
 
   polling = false
-  log('info', 'Telegram poll loop stopped.')
+  log('info', 'Poll loop stopped')
 }
 
+// ── Inbound message handling ──────────────────────────────────────────────────
+
 async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<void> {
-  const chatId  = msg.chat.id
-  const text    = (msg.text ?? msg.caption ?? '').trim()
+  const chatId = msg.chat.id
+  const text = (msg.text ?? msg.caption ?? '').trim()
   const hasPhoto = Array.isArray(msg.photo) && msg.photo.length > 0
 
-  if (cfg.allowedChatIds?.length && !cfg.allowedChatIds.includes(chatId)) {
-    log('warn', `Ignoring message from non-allowed chatId ${chatId}`)
+  // Access control
+  if (cfg.allowedChatIds?.length && !cfg.allowedChatIds.includes(chatId)) return
+
+  // Handle /start locally — no daemon round-trip needed
+  if (text === '/start' || text.startsWith('/start ')) {
+    await tg.sendMessage(chatId, 'CassiCore is listening.')
     return
   }
 
-  if (text.startsWith('/start')) {
-    await tg.sendMessage(chatId, '👋 CassiCore is listening.')
-    return
-  }
-
+  // Skip empty messages (no text and no photo)
   if (!text && !hasPhoto) return
 
   const sessionId = sessionIdFor(chatId)
 
-  // ── COMMAND BYPASS: Send commands directly without streaming overhead ─────
-  if (text.startsWith('/')) {
-    parentPort?.postMessage({
-      type: 'message',
-      payload: { sessionId, content: text }
-    } satisfies WorkerMessage)
-    return
+  // For non-command messages, show typing and prepare stream buffer
+  if (!text.startsWith('/')) {
+    await tg.sendTyping(chatId)
+    getOrCreateStream(chatId, sessionId)
+    startStreamTimer(sessionId)
   }
 
-  // ── SIGNAL DETECTION: Recognize feedback/directives ──────────────────────
-  let isSignal = false
-  let signalType = ''
-  
-  if (text.startsWith('!')) {
-    isSignal = true
-    const spaceIdx = text.indexOf(' ')
-    signalType = spaceIdx > 0 ? text.slice(1, spaceIdx) : text.slice(1)
-    if (!signalType) signalType = 'feedback'
-  } else if (text.toLowerCase().includes('fix this') || text.toLowerCase().includes('don\'t do that') || text.toLowerCase().includes('stop')) {
-    isSignal = true
-    signalType = 'feedback'
-  } else if (text.toLowerCase().startsWith('instruction:') || text.toLowerCase().startsWith('directive:')) {
-    isSignal = true
-    signalType = 'instruction'
-  }
-
-  if (isSignal) {
-    log('info', `Detected signal in Telegram: ${signalType}`)
-    parentPort?.postMessage({
-      type: 'signal',
-      payload: { sessionId, signalType, content: text }
-    } satisfies WorkerMessage)
-    // continue to process as message too
-  }
-
-  // ── NORMAL MESSAGE: Set up streaming for LLM responses ────────────────────
-  await tg.sendTyping(chatId)
-  getOrCreateStream(chatId, sessionId)
-  startStreamTimer(sessionId)
-
+  // Download photo attachment if present
   let attachments: tg.ImageAttachment[] | undefined
   if (hasPhoto && msg.photo) {
     const largest = msg.photo[msg.photo.length - 1]
     const att = await tg.downloadPhoto(largest.file_id)
-    if (att) {
-      attachments = [att]
-      log('info', `Downloaded photo for session ${sessionId} (${att.data.length} b64 chars)`)
-    }
+    if (att) attachments = [att]
   }
 
+  // Forward to daemon — commands, model, tools, intelligence all handled there
   const payload: { sessionId: string; content: string; attachments?: tg.ImageAttachment[] } = {
     sessionId,
     content: text || '(image)',
   }
   if (attachments) payload.attachments = attachments
-
-  parentPort?.postMessage({ type: 'message', payload } satisfies WorkerMessage)
+  workerPort.postMessage({ type: 'message', payload } satisfies WorkerMessage)
 }
 
 // ── Handle messages from daemon ───────────────────────────────────────────────
 
-parentPort?.on('message', (m: HostMessage) => {
-  if (m.type === 'init') {
-    cfg = m.config
-    initCommonHelpers()
-    if (cfg.token) {
-      pollLoop().catch((e) => {
-        const errorInfo: Record<string, unknown> = {
-          operation: 'poll_loop',
-          message: e instanceof Error ? e.message : String(e),
-        }
-        if (e instanceof Error && e.stack) {
-          errorInfo.stack = e.stack
-        }
-        log('error', 'poll loop crashed', errorInfo)
-      })
-    }
-    parentPort?.postMessage({ type: 'ready' } satisfies WorkerMessage)
-    return
-  }
+workerPort.on('message', (raw) => {
+  const m = raw as HostMessage
 
-  if (m.type === 'config:update') {
-    const prevToken = cfg.token
-    cfg = { ...cfg, ...m.config }
-    if (cfg.token !== prevToken) tg.setToken(cfg.token)
-    if (!prevToken && cfg.token) {
-      pollLoop().catch((e) => {
-        const errorInfo: Record<string, unknown> = {
-          operation: 'poll_loop',
-          message: e instanceof Error ? e.message : String(e),
-        }
-        if (e instanceof Error && e.stack) {
-          errorInfo.stack = e.stack
-        }
-        log('error', 'poll loop crashed', errorInfo)
-      })
-    }
-    return
-  }
-
-  if (m.type === 'message') {
-    const p = m.payload as Record<string, unknown>
-
-    // PluginHost.send() always wraps payloads in { type: 'message', payload: X }.
-    // Status notifications therefore arrive here rather than via m.type === 'status'.
-    // Detect and route them before falling through to the streaming path.
-    if (p.type === 'status') {
-      const inner = (p.payload ?? p) as Record<string, unknown>
-      const statusSid  = String(inner.sessionId ?? '')
-      const statusText = String(inner.text ?? '')
-      const statusType = String(inner.type ?? '')
-      const chatId = parseChatId(statusSid)
-      if (chatId !== null) {
-        if (statusType === 'compaction' || statusType === 'summarization') {
-          tg.sendMessage(chatId, `🧠 _${statusText}_`, 'MarkdownV2')
-            .catch((err) => {
-              const errorInfo: Record<string, unknown> = {
-                operation: 'status_sendMessage',
-                sessionId: statusSid,
-                statusType,
-                message: err instanceof Error ? err.message : String(err),
-              }
-              if (err instanceof Error && err.stack) {
-                errorInfo.stack = err.stack
-              }
-              log('warn', 'status sendMessage error', errorInfo)
-            })
-        } else {
-          log('info', `Status update for ${statusSid}: ${statusText}`)
-        }
+  switch (m.type) {
+    case 'init':
+      cfg = m.config
+      tg.setToken(cfg.token)
+      tg.setLogger((msg) => log('warn', msg))
+      if (cfg.token) {
+        pollLoop().catch((e) => log('error', 'poll loop crashed', { error: String(e) }))
       }
-      return
+      workerPort.postMessage({ type: 'ready' } satisfies WorkerMessage)
+      break
+
+    case 'config:update': {
+      const prevToken = cfg.token
+      cfg = { ...cfg, ...m.config }
+      if (cfg.token !== prevToken) tg.setToken(cfg.token)
+      if (!prevToken && cfg.token) {
+        pollLoop().catch((e) => log('error', 'poll loop crashed', { error: String(e) }))
+      }
+      break
     }
 
-    const { sessionId, content, done, parse_mode } = p as {
-      sessionId: string
-      content: string
-      done?: boolean
-      parse_mode?: 'MarkdownV2' | 'HTML'
-    }
-    const chatId = parseChatId(sessionId)
-    if (chatId === null) return
+    case 'message':
+      handleDaemonMessage(m.payload)
+      break
 
-    const hasActiveStream = streams.has(sessionId)
-    
-    // Send a one-off message (not part of an active stream)
-    if (done && content && !hasActiveStream) {
-      const providedParse = parse_mode as 'MarkdownV2' | 'HTML' | undefined
-      const finalParse = providedParse ?? chooseParseModeForText(content)
-      tg.sendMessage(chatId, content, finalParse).catch((err) => {
-        const errorInfo: Record<string, unknown> = {
-          operation: 'sendMessage',
-          sessionId,
-          message: err instanceof Error ? err.message : String(err),
-        }
-        if (err instanceof Error && err.stack) {
-          errorInfo.stack = err.stack
-        }
-        log('warn', 'sendMessage error', errorInfo)
-      })
-      return
-    }
+    case 'status':
+      handleStatusMessage(m.payload)
+      break
 
-    // Append to existing stream or create new one
-    const s = getOrCreateStream(chatId, sessionId)
-    if (content) {
-      s.buffer += content
-      startStreamTimer(sessionId)
-    }
-
-    if (done) {
-      // Finalizing: ensure we stop the timer first to avoid concurrent edits
-      if (s.timer) { clearInterval(s.timer); s.timer = null }
-      finalizeStream(sessionId).catch((err) => {
-        const errorInfo: Record<string, unknown> = {
-          operation: 'stream_finalize',
-          sessionId,
-          message: err instanceof Error ? err.message : String(err),
-        }
-        if (err instanceof Error && err.stack) {
-          errorInfo.stack = err.stack
-        }
-        log('warn', 'stream finalize error', errorInfo)
-      })
-    }
-    return
-  }
-
-  if (m.type === 'status') {
-    const { sessionId, text, type } = m.payload
-    const chatId = parseChatId(sessionId)
-    if (chatId === null) return
-    
-    // Show a short notice for interesting statuses
-    if (type === 'compaction' || type === 'summarization') {
-      tg.sendMessage(chatId, `🧠 _${text}_`, 'MarkdownV2').catch((err) => {
-        const errorInfo: Record<string, unknown> = {
-          operation: 'status_sendMessage',
-          sessionId,
-          statusType: type,
-          message: err instanceof Error ? err.message : String(err),
-        }
-        if (err instanceof Error && err.stack) {
-          errorInfo.stack = err.stack
-        }
-        log('warn', 'status sendMessage error', errorInfo)
-      })
-    } else {
-      log('info', `Status update for ${sessionId}: ${text}`)
-    }
-    return
-  }
-
-  if (m.type === 'shutdown') {
-    shutdownRequested = true
-    const pending = [...streams.keys()].map(sid => finalizeStream(sid))
-    Promise.allSettled(pending).finally(() => process.exit(0))
+    case 'shutdown':
+      shutdownRequested = true
+      Promise.allSettled([...streams.keys()].map(finalizeStream))
+        .finally(() => process.exit(0))
+      break
   }
 })
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Daemon message routing ────────────────────────────────────────────────────
 
-function parseChatId(sessionId: string): number | null {
-  if (!sessionId.startsWith('tg:')) return null
-  const n = Number(sessionId.slice(3))
-  return Number.isFinite(n) ? n : null
+function handleDaemonMessage(p: Record<string, unknown>): void {
+  // PluginHost wraps all payloads in { type: 'message', payload: X }.
+  // Status notifications arrive here instead of via 'status' type.
+  if (p.type === 'status') {
+    const inner = (p.payload ?? p) as StatusPayload
+    handleStatusMessage(inner)
+    return
+  }
+
+  const sessionId = p.sessionId as string | undefined
+  const content = p.content as string | undefined
+  const parseMode = p.parse_mode as 'MarkdownV2' | 'HTML' | undefined
+  const done = p.done as boolean | undefined
+  const msgType = p.type as string | undefined
+
+  if (!sessionId) return
+  const chatId = parseChatId(sessionId)
+  if (chatId === null) return
+
+  // Tool call notifications: show typing indicator instead of adding to buffer
+  if (msgType === 'tool_call') {
+    tg.sendTyping(chatId).catch(() => {})
+    return
+  }
+
+  const hasActiveStream = streams.has(sessionId)
+
+  // Guard: ignore spurious done signals with no content and no active stream
+  // (e.g., from duplicate turn:end events)
+  if (done && !content && !hasActiveStream) return
+
+  // One-off message (not part of an active stream)
+  if (done && content && !hasActiveStream) {
+    tg.sendMessage(chatId, content, parseMode).catch((err) => {
+      log('warn', 'sendMessage error', { sessionId, error: String(err) })
+    })
+    return
+  }
+
+  // Append to stream buffer
+  const s = getOrCreateStream(chatId, sessionId)
+  if (content) {
+    s.buffer += content
+    startStreamTimer(sessionId)
+  }
+
+  // Finalize stream
+  if (done) {
+    if (s.timer) { clearInterval(s.timer); s.timer = null }
+    finalizeStream(sessionId).catch((err) => {
+      log('warn', 'stream finalize error', { sessionId, error: String(err) })
+    })
+  }
 }
+
+function handleStatusMessage(p: StatusPayload): void {
+  const chatId = parseChatId(p.sessionId)
+  if (chatId === null) return
+
+  // Show cognitive status updates (compaction, summarization)
+  if (p.type === 'compaction' || p.type === 'summarization') {
+    tg.sendMessage(chatId, p.text).catch(() => {})
+  }
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
-}
-
-function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string, unknown>): void {
-  const logEntry: Record<string, unknown> = {
-    type: 'log',
-    level,
-    message: `[telegram] ${msg}`,
-  }
-  if (meta) {
-    logEntry.meta = meta
-  }
-  parentPort?.postMessage(logEntry)
-  process.stderr.write(`[telegram/${level}] ${msg}\n`)
 }

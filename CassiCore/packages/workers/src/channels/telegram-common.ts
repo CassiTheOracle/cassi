@@ -57,7 +57,11 @@ async function tgCall<T>(method: string, body?: Record<string, unknown>): Promis
     clearTimeout(timer)
     const json = await res.json() as { ok: boolean; result: T; description?: string }
     if (!json.ok) {
-      WARN(`[telegram-common] tg/${method} not ok: ${json.description ?? '?'} `)
+      // "message is not modified" is a harmless no-op (edit with identical content) — don't warn
+      const desc = json.description ?? '?'
+      if (!desc.includes('not modified')) {
+        WARN(`[telegram-common] tg/${method} not ok: ${desc} `)
+      }
       return null
     }
     return json.result
@@ -87,6 +91,46 @@ export function sanitizeMarkdown(text: string): string {
 // ── Public API: messaging ──────────────────────────────────────────────────────
 
 /**
+ * Call editMessageText with tri-state return: 'ok' | 'not_modified' | 'error'.
+ * This lets callers skip the plain-text retry on harmless "not modified" results.
+ */
+async function tgEditMessageText(
+  chatId: number,
+  messageId: number,
+  text: string,
+  parseMode?: string,
+): Promise<'ok' | 'not_modified' | 'error'> {
+  const ac = new AbortController()
+  const timer = setTimeout(() => ac.abort(), 15_000)
+  try {
+    const body: Record<string, unknown> = {
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+    }
+    if (parseMode) body.parse_mode = parseMode
+
+    const res = await fetch(apiUrl('editMessageText'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ac.signal,
+    })
+    clearTimeout(timer)
+    const json = await res.json() as { ok: boolean; description?: string }
+    if (json.ok) return 'ok'
+    if (json.description?.includes('not modified')) return 'not_modified'
+    WARN(`[telegram-common] tg/editMessageText not ok: ${json.description ?? '?'} `)
+    return 'error'
+  } catch (err) {
+    clearTimeout(timer)
+    if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) return 'error'
+    WARN(`[telegram-common] tg/editMessageText error: ${String(err)}`)
+    return 'error'
+  }
+}
+
+/**
  * Send a new message to a chat.
  *
  * Converts markdown to Telegram HTML by default. Falls back to plain text
@@ -95,10 +139,11 @@ export function sanitizeMarkdown(text: string): string {
 export async function sendMessage(
   chatId: number,
   text: string,
-  _parseMode?: 'MarkdownV2' | 'HTML',
+  parseMode?: 'MarkdownV2' | 'HTML',
 ): Promise<number | null> {
-  // Convert markdown to HTML using the markdown-it pipeline
-  const htmlText = markdownToTelegramHtml(text || '\u2026')
+  const htmlText = parseMode === 'HTML'
+    ? (text || '\u2026')
+    : markdownToTelegramHtml(text || '\u2026')
   const result = await tgCall<{ message_id: number }>('sendMessage', {
     chat_id: chatId,
     text: htmlText,
@@ -120,31 +165,25 @@ export async function sendMessage(
  * Edit an existing message.
  *
  * Converts markdown to Telegram HTML. Falls back to plain text on failure.
+ * Returns true if the edit succeeded or if the message was already identical (not modified).
  */
 export async function editMessage(
   chatId: number,
   messageId: number,
   text: string,
-  _parseMode?: 'MarkdownV2' | 'HTML',
+  parseMode?: 'MarkdownV2' | 'HTML',
 ): Promise<boolean> {
-  const htmlText = markdownToTelegramHtml(text || '\u2026')
-  const result = await tgCall('editMessageText', {
-    chat_id: chatId,
-    message_id: messageId,
-    text: htmlText,
-    parse_mode: 'HTML',
-  })
-  if (result !== null) return true
+  const htmlText = parseMode === 'HTML'
+    ? (text || '\u2026')
+    : markdownToTelegramHtml(text || '\u2026')
+  const result = await tgEditMessageText(chatId, messageId, htmlText, 'HTML')
+  if (result === 'ok' || result === 'not_modified') return true
 
   // HTML edit failed — retry as plain text
   WARN(`[telegram-common] editMessage HTML failed for chat ${chatId} msg ${messageId}, retrying as plain text`)
 
-  const plainResult = await tgCall('editMessageText', {
-    chat_id: chatId,
-    message_id: messageId,
-    text: text || '\u2026',
-  })
-  return plainResult !== null
+  const plainResult = await tgEditMessageText(chatId, messageId, text || '\u2026')
+  return plainResult === 'ok' || plainResult === 'not_modified'
 }
 
 /**
