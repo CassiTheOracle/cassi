@@ -1,17 +1,23 @@
 #!/usr/bin/env node
 /**
- * do-tool.ts — `cassi_do` meta-wrapper tool + `cassi_enrich` context tool
+ * do-tool.ts — `cassi_do` execution-layer tool + `cassi_enrich` context tool
  *
- * `cassi_do`:     Executes any registered gateway tool and wraps its result with
- *                 enriched context from CassiCore (memories, archive, session history).
+ * `cassi_do`:     Executes any registered gateway tool and wraps its result
+ *                 with a status bar, optional rotating live system state card,
+ *                 execution metadata, and (in guide mode) next-step suggestions.
  *
- * `cassi_enrich`: Returns context enrichment only (no delegated tool call).
- *                 Designed to be called with the user's message at the start of
- *                 every turn so the agent has full cognitive context.
+ *                 Modes: raw | observe (default) | analyze | guide
+ *                 State views: auto (cycles) | health | activity | cognitive
  *
- * Both tools share context-fetching logic via context-enrichment.ts.
+ * `cassi_enrich`: Standalone context retrieval — memories, archive, session
+ *                 history. Call at the start of every turn with the user's
+ *                 message. This is the ONLY tool that searches memory.
+ *
+ * Augmentation logic lives in do-augmentation.ts (shared with SDK bridge).
+ * Memory/archive context logic lives in context-enrichment.ts (enrich only).
  */
 
+import { augmentDoResult, fetchStateCard, type DoMode, type StateView } from './do-augmentation.js';
 import { fetchAndFormatContext, type ContextLimits } from './context-enrichment.js';
 import type { ILogger } from '../../types/interfaces.js';
 
@@ -37,16 +43,30 @@ export type ToolRouter = (
 export const DO_TOOLS = [
   {
     name: 'do',
-    description: `Call any registered tool and receive its result wrapped with enriched context from CassiCore — relevant memories and past conversations retrieved automatically in parallel.
+    description: `Call any registered tool and receive its result wrapped with live system context.
 
-Use this when you want tool output that is automatically grounded in Cassi's memory. For example:
-  - do("bash", { command: "git log" })           → git output + remembered git workflow patterns
-  - do("read", { path: "core/session.ts" })       → file content + remembered context about that file
-  - do("cassi_memory_search", { query: "auth" })  → memory results + related archive conversations
+Every cassi_do result includes:
+  1. Status bar  — always: tool · latency · time · output-size · status · mode
+  2. State card  — observe/analyze/guide: rotating live system snapshot (health | activity | cognitive)
+  3. Exec block  — analyze/guide: tool class, output size, latency breakdown
+  4. Guide block — guide mode only: next-step tool suggestions when orchestration IDs are detected
+  5. Tool output — the raw result of the delegated tool call
 
-The tool parameter accepts both the raw registered name ("bash") and the prefixed form you see in the tool list ("cassi_bash") — one cassi_ prefix is stripped automatically.
+Modes (mode param, default "observe"):
+  raw     — status bar + raw output only
+  observe — status bar + state card + output
+  analyze — observe + execution metadata
+  guide   — analyze + next-step suggestions for orchestration/job/session IDs in the result
 
-Context is fetched in parallel with the delegated tool call, so latency equals max(tool_time, context_time) rather than their sum. Set memory_limit=0, archive_limit=0, or index_limit=0 to skip any source.`,
+State views (state_view param, default "auto"):
+  auto      — cycles through health → activity → cognitive on successive calls
+  health    — provider status, active sessions, anomaly count
+  activity  — intelligence module pulse, thinker ponder count, archive stats
+  cognitive — thinker insight count, last insight, strategy/confidence
+
+Use cassi_enrich separately to surface memories and past context — cassi_do does not search memory.
+
+The tool parameter accepts both the raw registered name ("bash") and the prefixed form ("cassi_bash") — one cassi_ prefix is stripped automatically.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -59,23 +79,17 @@ Context is fetched in parallel with the delegated tool call, so latency equals m
           type: 'object',
           description: 'Input arguments for the delegated tool.',
         },
-        context_query: {
+        mode: {
           type: 'string',
+          enum: ['raw', 'observe', 'analyze', 'guide'],
           description:
-            'Override the auto-derived query used to search memories and archive. If omitted, derived from the tool name and the first meaningful input field (command, query, goal, path, message, etc.).',
+            'Augmentation mode (default: "observe"). raw=status bar only; observe=+state card; analyze=+exec metadata; guide=+next-step suggestions.',
         },
-        memory_limit: {
-          type: 'number',
-          description: 'Max memory results to include (default: 5, 0 = skip memory context).',
-        },
-        archive_limit: {
-          type: 'number',
-          description: 'Max archive results to include (default: 5, 0 = skip archive context).',
-        },
-        index_limit: {
-          type: 'number',
+        state_view: {
+          type: 'string',
+          enum: ['auto', 'health', 'activity', 'cognitive'],
           description:
-            'Max session history results to include (default: 10, 0 = skip). Returns paragraph-level and block-level excerpts from indexed past sessions, centered on the matched text.',
+            'Which live state lens to show (default: "auto"). auto cycles through all three on successive calls.',
         },
       },
       required: ['tool', 'input'],
@@ -90,7 +104,7 @@ export const ENRICH_TOOLS = [
 
 MANDATORY: Call this at the start of EVERY user turn with the user's message as the query. This surfaces past decisions, stored knowledge, user preferences, and conversation history that are critical for informed responses.
 
-The same context enrichment that cassi_do applies to tool results, but standalone. Returns a formatted markdown block with results from three sources:
+Returns a formatted markdown block with results from three sources:
   - Memory store (stored facts, preferences, insights)
   - Archive (past conversations, tool calls, patterns, dialectic outputs)
   - Session history (indexed past session excerpts with paragraph-level granularity)
@@ -133,7 +147,7 @@ export function getDoTools(): Array<{
   return [...DO_TOOLS, ...ENRICH_TOOLS];
 }
 
-// ─── Query Derivation ─────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
  * Strip one leading "cassi_" prefix so callers can pass either the registered
@@ -141,38 +155,6 @@ export function getDoTools(): Array<{
  */
 export function normalizeToolName(name: string): string {
   return name.startsWith('cassi_') ? name.slice('cassi_'.length) : name;
-}
-
-/**
- * Derive a context query from the tool name and its input arguments.
- * Checks priority fields in order; uses the first non-empty string value.
- */
-function deriveContextQuery(rawToolName: string, input: unknown): string {
-  const baseName = normalizeToolName(rawToolName);
-  const parts: string[] = [baseName];
-
-  if (input && typeof input === 'object') {
-    const PRIORITY_FIELDS = [
-      'query',
-      'goal',
-      'command',
-      'message',
-      'content',
-      'path',
-      'target',
-      'prompt',
-      'text',
-    ];
-    for (const field of PRIORITY_FIELDS) {
-      const val = (input as Record<string, unknown>)[field];
-      if (typeof val === 'string' && val.trim().length > 0) {
-        parts.push(val.trim().slice(0, 150));
-        break;
-      }
-    }
-  }
-
-  return parts.join(' ');
 }
 
 // ─── Enrich Executor ──────────────────────────────────────────────────────────
@@ -244,13 +226,9 @@ export async function executeDoTool(
   const a = args as any;
 
   const rawToolName: string = a?.tool ?? '';
-  const toolInput: unknown = a?.input ?? {};
-  const contextQuery: string = a?.context_query ?? deriveContextQuery(rawToolName, toolInput);
-  const limits: ContextLimits = {
-    memoryLimit: a?.memory_limit ?? 5,
-    archiveLimit: a?.archive_limit ?? 5,
-    indexLimit: a?.index_limit ?? 10,
-  };
+  const toolInput: unknown  = a?.input ?? {};
+  const mode: DoMode        = a?.mode       ?? 'observe';
+  const stateView: StateView= a?.state_view ?? 'auto';
 
   // Strip one cassi_ prefix so callers can use the name as shown in OpenCode
   const resolvedToolName = normalizeToolName(rawToolName);
@@ -271,72 +249,41 @@ export async function executeDoTool(
     };
   }
 
-  logger.info('executeDoTool', {
-    tool: resolvedToolName,
-    contextQuery,
-    ...limits,
+  logger.info('executeDoTool', { tool: resolvedToolName, mode, stateView });
+
+  // ── Parallel execution: tool + (for non-raw modes) state card prefetch ────
+  // Starting the state card fetch alongside the tool call means its latency
+  // is hidden by the tool's own execution time in most cases.
+  const stateCardPromise = mode !== 'raw'
+    ? fetchStateCard(baseUrl, stateView).catch(() => ({ card: '', resolvedView: stateView }))
+    : Promise.resolve({ card: '', resolvedView: stateView });
+
+  const start = Date.now();
+  const [toolResult, prefetchedState] = await Promise.all([
+    routeTool(resolvedToolName, toolInput),
+    stateCardPromise,
+  ]);
+  const durationMs = Date.now() - start;
+
+  const isToolError = toolResult?.isError === true;
+  const resultText  =
+    toolResult?.content
+      ?.map((c: { type: string; text: string }) => c.text)
+      .join('\n') ?? '';
+
+  // Augment — pass prefetched state so augmentDoResult skips a second fetch
+  const augmented = await augmentDoResult({
+    toolName: resolvedToolName,
+    result: { text: resultText, isError: isToolError },
+    durationMs,
+    mode,
+    stateView,
+    baseUrl,
+    prefetchedState: mode !== 'raw' ? prefetchedState : undefined,
   });
 
-  // ── Parallel execution: delegated tool + context enrichment ───────────────
-  const [toolSettled, contextSettled] = await Promise.allSettled([
-    routeTool(resolvedToolName, toolInput),
-    fetchAndFormatContext(baseUrl, contextQuery, limits),
-  ]);
-
-  const contextResult =
-    contextSettled.status === 'fulfilled' ? contextSettled.value : null;
-
-  // ── Assemble markdown envelope ────────────────────────────────────────────
-  const lines: string[] = [];
-
-  if (contextResult?.hasContext) {
-    lines.push(contextResult.markdown);
-    lines.push('---');
-    lines.push('');
-  }
-
-  lines.push(`## Tool Result: \`${resolvedToolName}\``);
-  lines.push('');
-
-  const isToolError =
-    toolSettled.status === 'rejected' ||
-    (toolSettled.status === 'fulfilled' && toolSettled.value?.isError === true);
-
-  if (toolSettled.status === 'rejected') {
-    lines.push(`**Error:** ${String(toolSettled.reason)}`);
-  } else {
-    const resultText =
-      toolSettled.value.content
-        ?.map((c: { type: string; text: string }) => c.text)
-        .join('\n') ?? '';
-    lines.push(resultText);
-  }
-
-  // ── Guard: cap total output to avoid downstream truncation ───────────────
-  // OpenCode silently truncates tool results at ~51200 bytes; we cap earlier
-  // and emit a clear diagnostic rather than silently losing content.
-  const MAX_OUTPUT_BYTES = 40_000;
-  const combined = lines.join('\n');
-  const outputBytes = Buffer.byteLength(combined, 'utf8');
-
-  if (outputBytes > MAX_OUTPUT_BYTES) {
-    const truncated = combined.slice(0, MAX_OUTPUT_BYTES);
-    const overflowKB = Math.round((outputBytes - MAX_OUTPUT_BYTES) / 1024);
-    const warning = [
-      '',
-      '---',
-      `⚠️ **cassi_do output capped at ${MAX_OUTPUT_BYTES / 1000}KB** (${overflowKB}KB omitted).`,
-      `To read the full result, call \`${resolvedToolName}\` directly without \`cassi_do\`,`,
-      `or set \`memory_limit=0 archive_limit=0 index_limit=0\` to reduce context overhead.`,
-    ].join('\n');
-    return {
-      content: [{ type: 'text', text: truncated + warning }],
-      ...(isToolError ? { isError: true as const } : {}),
-    };
-  }
-
   return {
-    content: [{ type: 'text', text: combined }],
-    ...(isToolError ? { isError: true as const } : {}),
+    content: [{ type: 'text', text: augmented.text }],
+    ...(augmented.isError ? { isError: true as const } : {}),
   };
 }

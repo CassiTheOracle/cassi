@@ -17,6 +17,9 @@ export {
   formatTextResponse,
   SAFE_CONFIG_KEYS,
   isConfigKeySafe,
+  watchViaSSE,
+  type CollectedEvent,
+  type WatchViaSSEOptions,
 } from './helpers.js';
 
 // Core Tools
@@ -51,8 +54,7 @@ export {
   getConfigAdminTools,
 } from './config-admin-tools.js';
 
-// Flux Tools (NEW - Unified Team Orchestration)
-// NOTE: These exports come BEFORE legacy team-tools to establish flux-tools as canonical
+// Flux Tools — Unified Team Orchestration (replaces deprecated cassi_team_* tools)
 export {
   FLUX_TOOLS,
   FLUX_TOOL_NAMES,
@@ -60,35 +62,10 @@ export {
   executeFluxRun,
   executeFluxInspect,
   executeFluxWatch,
+  getFluxTools,
   type CheckpointPolicy,
   type FluxRunConfig,
 } from './flux-tools.js';
-
-// Team Tools — DEPRECATED (Phase 1)
-// ⚠️ Deprecated in favor of flux-tools.js. Legacy wrappers log warnings and delegate to flux_*.
-export {
-  TEAM_TOOLS,
-  TEAM_AGENT_TOOLS,
-  ACTION_TOOLS,
-  TEAM_TOOL_NAMES,
-  TEAM_AGENT_TOOL_NAMES,
-  ACTION_TOOL_NAMES,
-  executeTeamTool,
-  executeTeamAgentTool,
-  executeActionTool,
-  getTeamTools,
-  getTeamAgentTools,
-  getActionTools,
-} from './team-tools.js';
-
-// Composite Tools — DEPRECATED for team tools (Phase 1)
-// ⚠️ cassi_team_inspect and cassi_team_watch deprecated in favor of flux_inspect and flux_watch.
-export {
-  COMPOSITE_TOOLS,
-  COMPOSITE_TOOL_NAMES,
-  executeCompositeTool,
-  getCompositeTools,
-} from './composite-tools.js';
 
 // Admin API Tools (NEW - Phase 3)
 export {
@@ -115,6 +92,12 @@ export {
 } from './intelligence-tools.js';
 
 // Lumen Tools
+export {
+  DYAD_TOOLS,
+  DYAD_TOOL_NAMES,
+  executeDyadTool,
+  getDyadTools,
+} from './dyad-tools.js';
 export {
   LUMEN_TOOLS,
   LUMEN_TOOL_NAMES,
@@ -158,3 +141,11 @@ export {
   invalidateResourceCache,
   parseResourceUri,
 } from './resources.js';
+
+// Blackboard Tools (Global boards + session snapshots)
+export {
+  BLACKBOARD_TOOLS,
+  BLACKBOARD_TOOL_NAMES,
+  getBlackboardMcpTools,
+  executeBlackboardTool,
+} from './blackboard-tools.js';

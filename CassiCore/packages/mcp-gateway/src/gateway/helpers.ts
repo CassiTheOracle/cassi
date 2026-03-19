@@ -147,6 +147,235 @@ export function formatTextResponse(text: string): { content: Array<{ type: 'text
   };
 }
 
+// ─── Shared SSE Watch Utility ─────────────────────────────────────────────────
+
+/**
+ * A normalized event collected by watchViaSSE.
+ */
+export interface CollectedEvent {
+  type: string
+  message: string
+  timestamp: string
+}
+
+/**
+ * Options for the shared SSE watch utility used by lumen_watch, dyad_watch, and flux_watch.
+ */
+export interface WatchViaSSEOptions {
+  /** SSE endpoint to stream from */
+  sseUrl: string
+  /**
+   * Fallback poll URL — if SSE unavailable, GET this URL every pollIntervalMs.
+   * The response must include an `events` array.
+   */
+  pollUrl?: string
+  /** Polling interval in ms (default: 15000) */
+  pollIntervalMs?: number
+  /** Max seconds to wait before resolving with reason='timeout' (10–600) */
+  timeoutSecs: number
+  /** If true, only return on significant events; if false return on any event (default: true) */
+  interestingOnly: boolean
+  /** MCP heartbeat — called every 15s to keep the MCP client connection alive */
+  heartbeat?: () => void
+  /** Logger instance */
+  logger: ILogger
+  /**
+   * Predicate — is this event significant enough to trigger an early return?
+   * @param eventType  Normalized event type string
+   * @param parsed     Parsed JSON payload from the `data:` line (or null)
+   */
+  isSignificant: (eventType: string, parsed: any) => boolean
+  /**
+   * Extract a human-readable message from an SSE event for the report.
+   */
+  getEventMessage: (eventType: string, parsed: any) => string
+  /**
+   * Build the final MCP response once watching ends.
+   * @param reason   Why we stopped: 'timeout', 'stream-ended', 'event:<type>', etc.
+   * @param events   All events collected during the watch
+   */
+  buildSnapshot: (
+    reason: string,
+    events: CollectedEvent[],
+  ) => Promise<{ content: Array<{ type: 'text'; text: string }> }>
+}
+
+/**
+ * Shared SSE watch utility for lumen_watch, dyad_watch, and flux_watch.
+ *
+ * Connects to an SSE stream and resolves when:
+ *   - A significant event fires (interestingOnly=true, default)
+ *   - Any event fires (interestingOnly=false)
+ *   - The timeout is reached
+ *   - The SSE connection closes unexpectedly
+ *
+ * Falls back to polling `pollUrl` every 15s (configurable) when SSE is unavailable.
+ * Sends heartbeats every 15s to prevent MCP client timeout.
+ *
+ * Handles both standard SSE format (`event: type\ndata: json\n\n`)
+ * and simplified format (`data: json\n\n` where `json.type` is the event type).
+ */
+export function watchViaSSE(
+  opts: WatchViaSSEOptions,
+): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
+  const {
+    sseUrl,
+    pollUrl,
+    pollIntervalMs = 15_000,
+    timeoutSecs,
+    interestingOnly,
+    heartbeat,
+    logger,
+    isSignificant,
+    getEventMessage,
+    buildSnapshot,
+  } = opts
+
+  const collectedEvents: CollectedEvent[] = []
+  let resolved = false
+  const controller = new AbortController()
+
+  return new Promise(async (resolve) => {
+    let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+    let timeoutTimer: ReturnType<typeof setTimeout> | null = null
+    let pollTimer: ReturnType<typeof setInterval> | null = null
+
+    function cleanup() {
+      if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null }
+      if (timeoutTimer) { clearTimeout(timeoutTimer); timeoutTimer = null }
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
+      controller.abort()
+    }
+
+    async function finish(reason: string) {
+      cleanup()
+      try {
+        resolve(await buildSnapshot(reason, collectedEvents))
+      } catch (err) {
+        resolve({ content: [{ type: 'text', text: `Watch ended (${reason}). Snapshot failed: ${err}` }] })
+      }
+    }
+
+    // Heartbeat — prevents MCP client from declaring a timeout during long waits
+    if (heartbeat) {
+      heartbeatTimer = setInterval(() => { if (!resolved) heartbeat() }, 15_000)
+    }
+
+    // Hard timeout — resolves the watch if nothing significant happens in time
+    timeoutTimer = setTimeout(() => {
+      if (resolved) return
+      resolved = true
+      finish('timeout')
+    }, timeoutSecs * 1000)
+
+    // Process one complete SSE event (called once per blank-line separator in the stream)
+    function onEvent(eventType: string, dataStr: string) {
+      if (!eventType || eventType === 'ping' || eventType === 'heartbeat') return
+      let parsed: any = null
+      try { parsed = JSON.parse(dataStr) } catch { return }
+
+      const message = getEventMessage(eventType, parsed)
+      const timestamp = String(parsed?.timestamp ?? new Date().toISOString())
+      collectedEvents.push({ type: eventType, message, timestamp })
+
+      if (!resolved) {
+        if (isSignificant(eventType, parsed) || !interestingOnly) {
+          resolved = true
+          finish(`event:${eventType}`)
+        }
+      }
+    }
+
+    // ── Connect to SSE stream ────────────────────────────────────────────────
+    let res: Response | null = null
+    try {
+      res = await fetch(sseUrl, {
+        signal: controller.signal,
+        headers: { Accept: 'text/event-stream' },
+      })
+    } catch (err: any) {
+      if (err?.name !== 'AbortError') {
+        logger.warn('watchViaSSE: SSE connect failed', { sseUrl, error: String(err) })
+      }
+    }
+
+    if (!res || !res.ok || !res.body) {
+      if (res && !res.ok) {
+        logger.warn('watchViaSSE: SSE unavailable, falling back to poll', { sseUrl, status: res.status })
+      }
+      // ── Poll fallback ──────────────────────────────────────────────────────
+      if (!pollUrl) return   // No fallback configured; wait for timeout
+      const seen = new Set<string>()
+      pollTimer = setInterval(async () => {
+        if (resolved) { clearInterval(pollTimer!); pollTimer = null; return }
+        try {
+          const resp = await fetchWithTimeout(pollUrl, { timeoutMs: 10_000 })
+          if (!resp.ok) return
+          const data = await resp.json()
+          const events = (data as any)?.events ?? []
+          for (const evt of events) {
+            if (!evt.type) continue
+            const key = `${evt.type}|${evt.message ?? ''}|${evt.timestamp ?? ''}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            onEvent(evt.type, JSON.stringify(evt))
+            if (resolved) return
+          }
+        } catch { /* ignore transient poll errors */ }
+      }, pollIntervalMs)
+      return
+    }
+
+    // ── SSE read loop ────────────────────────────────────────────────────────
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    const readLoop = async () => {
+      try {
+        let curEventType = ''
+        let curData = ''
+        while (!resolved) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+          for (const line of lines) {
+            if (line.startsWith('event: ')) {
+              curEventType = line.slice(7).trim()
+            } else if (line.startsWith('data: ')) {
+              curData = line.slice(6)
+            } else if (line === '') {
+              // Blank line = end of SSE event block
+              if (curData) {
+                let eventType = curEventType
+                // If no explicit 'event:' header, fall back to json.type
+                if (!eventType) {
+                  try { eventType = JSON.parse(curData)?.type ?? '' } catch {}
+                }
+                if (eventType) onEvent(eventType, curData)
+              }
+              curEventType = ''
+              curData = ''
+            }
+          }
+        }
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          logger.warn('watchViaSSE: SSE read error', { error: String(err) })
+        }
+      }
+      if (!resolved) {
+        resolved = true
+        finish('stream-ended')
+      }
+    }
+
+    readLoop()
+  })
+}
+
 /** Safe config keys that can be modified via cassi_config_set */
 export const SAFE_CONFIG_KEYS = [
   'intelligence.',

@@ -46,7 +46,7 @@
  * @module flux-tools
  */
 
-import { fetchWithTimeout } from './helpers.js';
+import { fetchWithTimeout, watchViaSSE } from './helpers.js';
 import type { ILogger } from '../../types/interfaces.js';
 
 /**
@@ -116,7 +116,7 @@ export const FLUX_TOOLS = [
       properties: {
         action: {
           type: 'string',
-          enum: ['start', 'status', 'tree', 'list', 'pause', 'resume', 'cancel', 'checkpoints', 'approve', 'reject', 'steer'],
+          enum: ['start', 'status', 'tree', 'list', 'pause', 'resume', 'cancel', 'checkpoints', 'approve', 'reject', 'steer', 'change_model'],
           description: 'Team operation to perform',
         },
         goal: {
@@ -134,7 +134,7 @@ export const FLUX_TOOLS = [
         },
         teamId: {
           type: 'string',
-          description: 'Team ID (required for status/tree/pause/resume/cancel)',
+          description: 'Team ID (required for status/tree/pause/resume/cancel/change_model)',
         },
         checkpointId: {
           type: 'string',
@@ -154,13 +154,22 @@ export const FLUX_TOOLS = [
             maxCells: { type: 'number' },
           },
         },
+        tier: {
+          type: 'string',
+          enum: ['fast', 'swift', 'standard', 'balanced', 'premium', 'background'],
+          description: 'Named model tier (for action "change_model"). Alternative to provider+model.',
+        },
+        slot: {
+          type: 'string',
+          description: 'Target a specific posture slot (for action "change_model"). Examples: "lumen.yang", "lumen.yin", "lumen.executive". Omit to change all postures.',
+        },
         provider: {
           type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing before creating teams. This parameter is ignored.',
+          description: 'Provider ID for action "change_model" (use with model). DEPRECATED for action "start" — use model_directive tool instead.',
         },
         model: {
           type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing before creating teams. This parameter is ignored.',
+          description: 'Model name for action "change_model" (use with provider). DEPRECATED for action "start" — use model_directive tool instead.',
         },
         secondaryModel: {
           type: 'string',
@@ -563,8 +572,41 @@ export async function executeFluxTeamTool(
       return await res.json();
     }
 
+    case 'change_model': {
+      if (!args.teamId) throw new Error('Team "change_model" action requires teamId');
+      if (!args.tier && !(args.provider && args.model)) {
+        throw new Error('Team "change_model" requires either "tier" or both "provider" and "model"');
+      }
+
+      // Delegate to the model-directive API with scope=job, using the teamId as the jobId.
+      // The running Lumen session will pick up the change on its next inference request.
+      const body: Record<string, unknown> = {
+        scope: 'job',
+        jobId: args.teamId,
+      };
+      if (args.tier) body.tier = args.tier;
+      if (args.provider) body.provider = args.provider;
+      if (args.model) body.model = args.model;
+      if (args.slot) body.slot = args.slot;
+
+      const res = await fetchWithTimeout(`${baseUrl}/model-directive/set`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`Team change_model failed: ${await res.text()}`);
+      const result = await res.json();
+      return {
+        ...result,
+        message: `Model routing updated for team ${args.teamId}. ` +
+          `New model: ${result.provider}/${result.model}` +
+          (args.slot ? ` (slot: ${args.slot})` : ' (all postures)') +
+          '. Takes effect on the next inference request.',
+      };
+    }
+
     default:
-      throw new Error(`Unknown flux_team action: "${action}". Valid: start, status, tree, list, pause, resume, cancel, checkpoints, approve, reject, steer`);
+      throw new Error(`Unknown flux_team action: "${action}". Valid: start, status, tree, list, pause, resume, cancel, checkpoints, approve, reject, steer, change_model`);
   }
 }
 
@@ -1009,246 +1051,124 @@ export async function executeFluxInspect(
 }
 
 /**
- * Execute flux_watch via SSE stream.
- * Blocks until significant event or timeout, returns status snapshot.
+ * Execute flux_watch via shared SSE utility.
+ * Blocks until a significant team event fires or the timeout is reached.
+ * Returns an MCP-format response directly: { content: [{ type: 'text', text: '...' }] }
  */
 export async function executeFluxWatch(
   baseUrl: string,
   args: any,
   logger: ILogger,
   heartbeat?: () => void
-): Promise<any> {
+): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const teamId = args?.teamId;
   if (!teamId) throw new Error('teamId is required');
 
   const timeoutSecs = Math.min(Math.max(args?.timeoutSecs ?? 300, 10), 600);
   const interestingOnly = args?.interestingOnly !== false;
 
-  const collectedEvents: Array<{ type: string; message: string; timestamp: string }> = [];
-  let resolved = false;
+  return watchViaSSE({
+    sseUrl: `${baseUrl}/teams/stream?teamId=${encodeURIComponent(teamId)}`,
+    pollUrl: `${baseUrl}/teams/events?teamId=${encodeURIComponent(teamId)}&limit=10`,
+    timeoutSecs,
+    interestingOnly,
+    heartbeat,
+    logger,
+    isSignificant: (type) => SIGNIFICANT_EVENT_TYPES.has(type),
+    getEventMessage: (type, parsed) => {
+      const msg = parsed?.message ?? parsed?.data?.message;
+      if (msg) return msg;
+      if (parsed?.phase) return `Cell phase: ${parsed.phase}`;
+      if (parsed?.status) return `Status: ${parsed.status}`;
+      if (parsed?.cellId) return `Cell: ${parsed.cellId.slice(0, 12)}`;
+      return type;
+    },
+    buildSnapshot: async (reason, events) => {
+      // Fetch fresh status snapshot
+      const statusRes = await fetchWithTimeout(
+        `${baseUrl}/teams/${encodeURIComponent(teamId)}`,
+        { timeoutMs: 10_000 },
+      );
+      let status: any = null;
+      if (statusRes.ok) status = await statusRes.json();
 
-  return new Promise(async (resolve) => {
-    // Send periodic heartbeats to prevent MCP client timeout
-    const heartbeatTimer = heartbeat ? setInterval(() => {
-      if (!resolved) heartbeat();
-    }, 15_000) : null;
+      const cells = status?.cells ?? {};
+      const cellList = Object.values(cells) as any[];
+      const completedCount = cellList.filter((c: any) => c.status === 'completed').length;
+      const failedCount = cellList.filter((c: any) => c.status === 'failed').length;
+      const runningCount = cellList.filter((c: any) =>
+        c.status === 'executing' || c.status === 'planning' || c.status === 'synthesizing'
+      ).length;
+      const waitingCount = cellList.filter((c: any) =>
+        c.status === 'waiting' || c.status === 'initializing'
+      ).length;
 
-    const timer = setTimeout(() => {
-      if (resolved) return;
-      resolved = true;
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
-      finishWithSnapshot('timeout');
-    }, timeoutSecs * 1000);
+      const lines: string[] = [];
+      lines.push(`## Team ${teamId} — ${status?.status ?? 'unknown'}`);
+      lines.push(`**Reason returned:** ${reason}`);
+      lines.push(
+        `**Progress:** ${completedCount}/${cellList.length} cells completed` +
+        (failedCount > 0 ? `, ${failedCount} failed` : '') +
+        (runningCount > 0 ? `, ${runningCount} running` : '') +
+        (waitingCount > 0 ? `, ${waitingCount} waiting` : ''),
+      );
 
-    async function finishWithSnapshot(reason: string) {
-      clearTimeout(timer);
-      if (heartbeatTimer) clearInterval(heartbeatTimer);
+      // Fetch live cell data for token breakdowns
+      let liveCells: any[] = [];
       try {
-        // Fetch a fresh status snapshot
-        const statusRes = await fetchWithTimeout(`${baseUrl}/teams/${encodeURIComponent(teamId)}`, { timeoutMs: 10000 });
-        let status: any = null;
-        if (statusRes.ok) {
-          status = await statusRes.json();
+        const liveRes = await fetchWithTimeout(
+          `${baseUrl}/teams/live?teamId=${encodeURIComponent(teamId)}`,
+          { timeoutMs: 5_000 },
+        );
+        if (liveRes.ok) {
+          const liveData = await liveRes.json();
+          liveCells = liveData?.cells ?? [];
         }
+      } catch { /* live data is optional */ }
 
-        const cells = status?.cells ?? {};
-        const cellList = Object.values(cells) as any[];
-        const completedCount = cellList.filter((c: any) => c.status === 'completed').length;
-        const failedCount = cellList.filter((c: any) => c.status === 'failed').length;
-        const runningCount = cellList.filter((c: any) =>
-          c.status === 'executing' || c.status === 'planning' || c.status === 'synthesizing'
-        ).length;
-        const waitingCount = cellList.filter((c: any) =>
-          c.status === 'waiting' || c.status === 'initializing'
-        ).length;
+      const liveTokenTotal = liveCells.reduce((sum: number, c: any) => sum + (c.tokens?.used ?? 0), 0);
+      const teamTokens = liveTokenTotal || (status?.budget?.tokensUsed ?? 0);
 
-        // Build report
-        const lines: string[] = [];
-        lines.push(`## Team ${teamId} — ${status?.status ?? 'unknown'}`);
-        lines.push(`**Reason returned:** ${reason}`);
-        lines.push(`**Progress:** ${completedCount}/${cellList.length} cells completed` +
-          (failedCount > 0 ? `, ${failedCount} failed` : '') +
-          (runningCount > 0 ? `, ${runningCount} running` : '') +
-          (waitingCount > 0 ? `, ${waitingCount} waiting` : ''));
+      lines.push(`**Tokens:** ${teamTokens.toLocaleString()}`);
+      lines.push(`**Cells spawned:** ${status?.budget?.cellsSpawned ?? 0}`);
 
-        // Fetch live cell data
-        let liveCells: any[] = [];
-        try {
-          const liveRes = await fetchWithTimeout(
-            `${baseUrl}/teams/live?teamId=${encodeURIComponent(teamId)}`,
-            { timeoutMs: 5000 },
-          );
-          if (liveRes.ok) {
-            const liveData = await liveRes.json();
-            liveCells = liveData?.cells ?? [];
-          }
-        } catch { /* live data is optional */ }
-
-        const liveTokenTotal = liveCells.reduce((sum: number, c: any) => sum + (c.tokens?.used ?? 0), 0);
-        const teamTokens = liveTokenTotal || (status?.budget?.tokensUsed ?? 0);
-
-        lines.push(`**Tokens:** ${teamTokens.toLocaleString()}`);
-        lines.push(`**Cells spawned:** ${status?.budget?.cellsSpawned ?? 0}`);
-
-        if (status?.finalResult) {
-          lines.push(`\n**Final Result:** ${status.finalResult.slice(0, 500)}${status.finalResult.length > 500 ? '...' : ''}`);
-        }
-
-        lines.push(`\n### Cell Status`);
-        for (const cell of cellList.sort((a: any, b: any) => a.depth - b.depth)) {
-          const icon = cell.status === 'completed' ? '✓' : cell.status === 'failed' ? '✗' :
-            ['executing', 'planning', 'synthesizing'].includes(cell.status) ? '▶' : '⏳';
-          const liveCell = liveCells.find((lc: any) => lc.cellId === cell.cellId);
-          const cellTokens = liveCell?.tokens?.used ?? cell.tokensUsed ?? 0;
-          const bd = liveCell?.tokens?.breakdown;
-          const tokenStr = bd && (bd.input || bd.output)
-            ? `${cellTokens.toLocaleString()} (in:${bd.input.toLocaleString()} out:${bd.output.toLocaleString()}${bd.cacheRead ? ` cached:${bd.cacheRead.toLocaleString()}` : ''})`
-            : cellTokens.toLocaleString();
-          lines.push(`${icon} d${cell.depth} **${cell.status}** (${cell.phase}) tokens=${tokenStr} — ${cell.goalTitle?.slice(0, 60)}`);
-          if (cell.error) lines.push(`  Error: ${cell.error.slice(0, 100)}`);
-          if (cell.summary) lines.push(`  Summary: ${cell.summary.slice(0, 100)}`);
-        }
-
-        if (collectedEvents.length > 0) {
-          lines.push(`\n### Events Since Last Check (${collectedEvents.length})`);
-          for (const evt of collectedEvents.slice(-20)) {
-            if (!evt.type?.trim() && !evt.message?.trim()) continue;
-            lines.push(`- **${evt.type}**: ${evt.message}`);
-          }
-        }
-
-        resolve({
-          content: [{ type: 'text', text: lines.join('\n') }],
-        });
-      } catch (err) {
-        resolve({
-          content: [{ type: 'text', text: `Team watch ended (${reason}) but failed to fetch snapshot: ${err}` }],
-          isError: true,
-        });
-      }
-    }
-
-    // Connect to SSE stream
-    try {
-      const sseUrl = `${baseUrl}/teams/stream?teamId=${encodeURIComponent(teamId)}`;
-      logger.info('Connecting to team SSE stream', { sseUrl, timeoutSecs });
-
-      const controller = new AbortController();
-
-      const res = await fetch(sseUrl, {
-        signal: controller.signal,
-        headers: { Accept: 'text/event-stream' },
-      }).catch(err => {
-        logger.warn('SSE stream not available, falling back to poll', { error: String(err) });
-        return null;
-      });
-
-      if (!res || !res.ok || !res.body) {
-        // Fallback: poll every 15s
-        logger.info('Using poll fallback for team watch');
-        const pollInterval = setInterval(async () => {
-          if (resolved) { clearInterval(pollInterval); return; }
-          try {
-            const eventsRes = await fetchWithTimeout(
-              `${baseUrl}/teams/events?teamId=${encodeURIComponent(teamId)}&limit=10`,
-              { timeoutMs: 10000 }
-            );
-            if (!eventsRes.ok) return;
-            const data = await eventsRes.json();
-            const events = data?.events ?? [];
-            for (const evt of events) {
-              if (!evt.type) continue;
-              const isDuplicate = collectedEvents.some(e =>
-                e.type === evt.type && e.message === evt.message && e.timestamp === evt.timestamp
-              );
-              if (isDuplicate) continue;
-              collectedEvents.push({
-                type: evt.type,
-                message: evt.message ?? '',
-                timestamp: evt.timestamp ?? new Date().toISOString(),
-              });
-              const isSignificant = SIGNIFICANT_EVENT_TYPES.has(evt.type);
-              if (!resolved && (isSignificant || !interestingOnly)) {
-                resolved = true;
-                clearInterval(pollInterval);
-                finishWithSnapshot(`event: ${evt.type}`);
-                return;
-              }
-            }
-          } catch { /* ignore poll errors */ }
-        }, 15000);
-        return;
+      if (status?.finalResult) {
+        const fr = status.finalResult;
+        lines.push(`\n**Final Result:** ${fr.slice(0, 500)}${fr.length > 500 ? '...' : ''}`);
       }
 
-      // Process SSE stream
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      const readLoop = async () => {
-        try {
-          while (!resolved) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-
-            const lines = buffer.split('\n');
-            buffer = lines.pop() ?? '';
-
-            for (const line of lines) {
-              if (!line.startsWith('data: ')) continue;
-              const jsonStr = line.slice(6).trim();
-              if (!jsonStr || jsonStr === '[DONE]') continue;
-
-              try {
-                const event = JSON.parse(jsonStr);
-                const eventType = event.type ?? '';
-
-                if (!eventType) continue;
-
-                const eventMessage = (event.message
-                  ?? event.data?.message
-                  ?? (event.phase ? `Cell phase: ${event.phase}` : ''))
-                  || (event.status ? `Status: ${event.status}` : '')
-                  || (event.cellId ? `Cell: ${event.cellId.slice(0, 12)}` : '')
-                  || eventType;
-
-                collectedEvents.push({
-                  type: eventType,
-                  message: eventMessage,
-                  timestamp: event.timestamp ?? new Date().toISOString(),
-                });
-
-                const isSignificant = SIGNIFICANT_EVENT_TYPES.has(eventType);
-                if (!resolved && (isSignificant || !interestingOnly)) {
-                  resolved = true;
-                  controller.abort();
-                  finishWithSnapshot(`event: ${eventType}`);
-                  return;
-                }
-              } catch {
-                // skip unparseable events
-              }
-            }
-          }
-        } catch (err: any) {
-          if (err?.name === 'AbortError') return;
-          logger.warn('SSE read error', { error: String(err) });
-        }
-
-        if (!resolved) {
-          resolved = true;
-          finishWithSnapshot('stream_ended');
-        }
-      };
-
-      readLoop();
-    } catch (err) {
-      if (!resolved) {
-        resolved = true;
-        finishWithSnapshot(`error: ${err}`);
+      lines.push(`\n### Cell Status`);
+      for (const cell of cellList.sort((a: any, b: any) => a.depth - b.depth)) {
+        const icon = cell.status === 'completed' ? '✓' :
+          cell.status === 'failed' ? '✗' :
+          ['executing', 'planning', 'synthesizing'].includes(cell.status) ? '▶' : '⏳';
+        const liveCell = liveCells.find((lc: any) => lc.cellId === cell.cellId);
+        const cellTokens = liveCell?.tokens?.used ?? cell.tokensUsed ?? 0;
+        const bd = liveCell?.tokens?.breakdown;
+        const tokenStr = bd && (bd.input || bd.output)
+          ? `${cellTokens.toLocaleString()} (in:${bd.input.toLocaleString()} out:${bd.output.toLocaleString()}${bd.cacheRead ? ` cached:${bd.cacheRead.toLocaleString()}` : ''})`
+          : cellTokens.toLocaleString();
+        lines.push(`${icon} d${cell.depth} **${cell.status}** (${cell.phase}) tokens=${tokenStr} — ${cell.goalTitle?.slice(0, 60)}`);
+        if (cell.error) lines.push(`  Error: ${cell.error.slice(0, 100)}`);
+        if (cell.summary) lines.push(`  Summary: ${cell.summary.slice(0, 100)}`);
       }
-    }
+
+      if (events.length > 0) {
+        lines.push(`\n### Events Since Last Check (${events.length})`);
+        for (const evt of events.slice(-20)) {
+          if (!evt.type?.trim() && !evt.message?.trim()) continue;
+          lines.push(`- **${evt.type}**: ${evt.message}`);
+        }
+      }
+
+      return { content: [{ type: 'text', text: lines.join('\n') }] };
+    },
   });
+}
+
+/**
+ * Return the registered FLUX_TOOLS array for MCP gateway registration.
+ */
+export function getFluxTools(): Array<{ name: string; description: string; inputSchema: any }> {
+  return [...FLUX_TOOLS];
 }

@@ -48,11 +48,8 @@ import {
   getMemoryTools,
   getConfigAdminTools,
   getSessionTools,
-  getActionTools,
-  getTeamTools,
-  getTeamAgentTools,
-  getCompositeTools,
   getAdminApiTools,
+  getFluxTools,
   // Execution functions
   executeCassiCoreTool,
   executeIntelligenceTool,
@@ -60,36 +57,40 @@ import {
   executeMemoryTool,
   executeConfigAdminTool,
   executeSessionTool,
-  executeActionTool,
-  executeTeamTool,
-  executeTeamAgentTool,
-  executeCompositeTool,
   executeAdminApiTool,
+  executeFluxTeamTool,
+  executeFluxRun,
+  executeFluxInspect,
+  executeFluxWatch,
   // Tool name sets
   INTELLIGENCE_TOOL_NAMES,
   DIALECTIC_TOOL_NAMES,
   MEMORY_TOOL_NAMES,
   CONFIG_ADMIN_TOOL_NAMES,
   SESSION_TOOL_NAMES,
-  ACTION_TOOL_NAMES,
-  TEAM_TOOL_NAMES,
-  TEAM_AGENT_TOOL_NAMES,
-  COMPOSITE_TOOL_NAMES,
   ADMIN_API_TOOL_NAMES,
-  // Lumen
+  FLUX_TOOL_NAMES,
+  // Dyad / Lumen
+  getDyadTools,
   getLumenTools,
+  executeDyadTool,
   executeLumenTool,
+  DYAD_TOOL_NAMES,
   LUMEN_TOOL_NAMES,
   // Model Directive
   getModelDirectiveTools,
   executeModelDirectiveTool,
   MODEL_DIRECTIVE_TOOL_NAMES,
   // Do tool (meta-wrapper) + Enrich tool (context-only)
-  getDoTools,
-  executeDoTool,
-  executeEnrichTool,
-  DO_TOOL_NAMES,
-  ENRICH_TOOL_NAMES,
+   getDoTools,
+   executeDoTool,
+   executeEnrichTool,
+   DO_TOOL_NAMES,
+   ENRICH_TOOL_NAMES,
+   // Blackboard tools
+   getBlackboardMcpTools,
+   executeBlackboardTool,
+   BLACKBOARD_TOOL_NAMES,
 } from './gateway/index.js';
 
 // Configuration
@@ -195,14 +196,13 @@ function getAllTools() {
     ...getMemoryTools(),
     ...getConfigAdminTools(),
     ...getSessionTools(),
-    ...getActionTools(),
-    ...getTeamTools(),
-    ...getTeamAgentTools(),
-    ...getCompositeTools(),
+    ...getFluxTools(),
     ...getAdminApiTools(),
+    ...getDyadTools(),
     ...getLumenTools(),
     ...getModelDirectiveTools(),
     ...getDoTools(),
+    ...getBlackboardMcpTools(),
   ];
 }
 
@@ -253,27 +253,21 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       return formatJsonResponse(result);
     }
 
-    // Action tools (return JSON)
-    if (ACTION_TOOL_NAMES.has(name)) {
-      const result = await executeActionTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Team tools (return JSON)
-    if (TEAM_TOOL_NAMES.has(name)) {
-      const result = await executeTeamTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Team agent tools (return JSON)
-    if (TEAM_AGENT_TOOL_NAMES.has(name)) {
-      const result = await executeTeamAgentTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Composite tools (return JSON) — pass heartbeat callback for long-running tools
-    if (COMPOSITE_TOOL_NAMES.has(name)) {
-      const result = await executeCompositeTool(CASSICORE_URL, name, args, logger, heartbeat);
+    // Flux tools — unified team orchestration (watch returns MCP format directly)
+    if (FLUX_TOOL_NAMES.has(name)) {
+      if (name === 'flux_watch') {
+        return await executeFluxWatch(CASSICORE_URL, args, logger, heartbeat);
+      }
+      if (name === 'flux_run') {
+        const result = await executeFluxRun(CASSICORE_URL, args, logger, heartbeat);
+        return formatJsonResponse(result);
+      }
+      if (name === 'flux_inspect') {
+        const result = await executeFluxInspect(CASSICORE_URL, args, logger);
+        return formatJsonResponse(result);
+      }
+      // flux_team (start, pause, resume, cancel, approve, reject, steer, …)
+      const result = await executeFluxTeamTool(CASSICORE_URL, args, logger);
       return formatJsonResponse(result);
     }
 
@@ -283,9 +277,17 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       return formatJsonResponse(result);
     }
 
-    // Lumen tools (return JSON) — pass heartbeat for long-running analysis
+    // Dyad tools — dyad_watch returns MCP format directly; others return JSON
+    if (DYAD_TOOL_NAMES.has(name)) {
+      const result = await executeDyadTool(CASSICORE_URL, name, args, logger, heartbeat);
+      if (name === 'dyad_watch') return result;
+      return formatJsonResponse(result);
+    }
+
+    // Lumen tools — lumen_watch returns MCP format directly; others return JSON
     if (LUMEN_TOOL_NAMES.has(name)) {
       const result = await executeLumenTool(CASSICORE_URL, name, args, logger, heartbeat);
+      if (name === 'lumen_watch') return result;
       return formatJsonResponse(result);
     }
 
@@ -308,6 +310,12 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
     // enrich tool — context-only enrichment (no delegated tool call)
     if (ENRICH_TOOL_NAMES.has(name)) {
       return await executeEnrichTool(CASSICORE_URL, args, logger);
+    }
+
+    // Blackboard tools (global boards + session snapshots)
+    if (BLACKBOARD_TOOL_NAMES.has(name)) {
+      const result = await executeBlackboardTool(name, args, CASSICORE_URL, logger);
+      return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
     }
 
     // Unknown tool
