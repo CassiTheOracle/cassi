@@ -643,6 +643,8 @@ export interface FluxTeamBudget {
  * FluxTeam configuration for creating a new team.
  */
 export interface FluxTeamConfig {
+  /** Optional team identifier for pre-scoped routing and shell UX */
+  teamId?: string
   /** Goal description */
   goal: string
   /** Additional context */

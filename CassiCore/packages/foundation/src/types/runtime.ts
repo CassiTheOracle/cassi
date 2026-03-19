@@ -112,7 +112,12 @@ export interface IProvider {
   readonly models: string[];
 
   /** Stream a completion. Yields chunks until done. */
-  complete(messages: Message[], opts: CompletionOpts): AsyncIterable<CompletionChunk>;
+  complete(
+    messages: Message[],
+    opts: CompletionOpts,
+    attachments?: ImageAttachment[],
+    signal?: AbortSignal,
+  ): AsyncIterable<CompletionChunk>;
 
   /** Count tokens for a message array (approximate) */
   countTokens(messages: Message[]): Promise<number>;
@@ -179,6 +184,7 @@ export interface Session {
 
 export interface ISessionManager {
   getOrCreate(channelId: string, senderId: string, config?: Partial<SessionConfig>): Session;
+  getOrCreateById(stableId: string, channelId: string, senderId: string, config?: Partial<SessionConfig>): Session;
   get(sessionId: string): Session | undefined;
   addTurn(sessionId: string, message: Message): void;
   clear(sessionId: string): void;

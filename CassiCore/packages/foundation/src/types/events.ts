@@ -12,6 +12,15 @@ export type HealthStatus = "healthy" | "degraded" | "unhealthy";
 
 export type RuntimeEvent =
   | { type: "daemon:ready"; startedAt: Date }
+  | {
+      type: "daemon:boot_complete";
+      startedAt: Date;
+      readyAt: Date;
+      durationMs: number;
+      timeToAdminReadyMs: number | null;
+      phases: Array<{ name: string; durationMs: number; sinceBootMs: number }>;
+      services: Array<{ name: string; durationMs: number; sinceBootMs: number }>;
+    }
   | { type: "daemon:shutdown"; reason: string }
   | { type: "daemon:restarting"; reason: string; expectedDowntimeMs?: number }
   | { type: "daemon:resumed"; startedAt: Date; previousShutdownReason?: string; restoredTeams?: number; restoredLoops?: number; downtimeMs?: number }
@@ -205,18 +214,13 @@ export type RuntimeEvent =
       timestamp: Date;
     }
    | {
-      type: "consciousness:state";
-      model: {
-        activeSessions: number;
-        systemHealth: "healthy" | "degraded" | "critical";
-        providerStatus: Record<string, string>;
-        pluginStatus: Record<string, string>;
-        budgetTiers: Record<string, string>;
-        activeDrones: number;
-        activeTeams: number;
-        recentPatterns: string[];
-        observationCount: number;
-      };
+      type: "consciousness:cross-session-correlation";
+      /** Matched historical session references (compact refs) */
+      refs: string[];
+      /** Query used for correlation search */
+      query: string;
+      /** Top match score (0-1) */
+      topScore: number;
       timestamp: Date;
     }
   // ── SelfHealingAgent events ─────────────────────────────────────────────
