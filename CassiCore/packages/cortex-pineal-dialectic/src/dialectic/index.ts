@@ -348,7 +348,10 @@ export class DialecticSystem implements IDialecticSystem {
     (bus as any).on?.('subconscious:session:ended', (e: any) => {
       try {
         const { sessionId } = e;
-        if (sessionId) this.subconsciousContext.delete(sessionId);
+        if (sessionId) {
+          this.subconsciousContext.delete(sessionId);
+          this.streamCallbacks.delete(sessionId);  // Prevent memory leak
+        }
       } catch {}
     });
 
@@ -356,7 +359,10 @@ export class DialecticSystem implements IDialecticSystem {
     (bus as any).on?.('session:ended', (e: any) => {
       try {
         const { sessionId } = e;
-        if (sessionId) this.subconsciousContext.delete(sessionId);
+        if (sessionId) {
+          this.subconsciousContext.delete(sessionId);
+          this.streamCallbacks.delete(sessionId);  // Prevent memory leak
+        }
       } catch {}
     });
   }
@@ -366,7 +372,14 @@ export class DialecticSystem implements IDialecticSystem {
       this.streamCallbacks.set(sessionId, new Set());
     }
     this.streamCallbacks.get(sessionId)!.add(callback);
-    return () => { this.streamCallbacks.get(sessionId)?.delete(callback); };
+    return () => {
+      const set = this.streamCallbacks.get(sessionId);
+      if (set) {
+        set.delete(callback);
+        // Remove empty Sets to prevent Map entry leak
+        if (set.size === 0) this.streamCallbacks.delete(sessionId);
+      }
+    };
   }
 
   private emitStreamEvent(sessionId: string, event: DialecticStreamEvent): void {
