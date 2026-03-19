@@ -328,7 +328,7 @@ async function captureActiveWindow(): Promise<ScreenshotResult | null> {
   try {
     // Try spectacle (KDE's screenshot tool) first
     try {
-      await execCommand(`spectacle --activewindow --nonotify --output ${tmpPath} 2>/dev/null`, 10000);
+      await execCommand(`spectacle --background --activewindow --nonotify --output ${tmpPath} 2>/dev/null`, 10000);
     } catch {
       // Fallback to gnome-screenshot or import (ImageMagick)
       try {

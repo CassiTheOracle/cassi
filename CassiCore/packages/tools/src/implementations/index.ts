@@ -29,7 +29,6 @@ import { readFilesDefinition, readFilesHandler } from './read-files.js'
 import { shellExecDefinition, shellExecHandler } from './shell-exec.js'
 import { createSubagentSpawnFunction } from './spawn-subagent-impl.js'
 import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
-import { thinkDefinition, makeThinkHandler } from './think.js'
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { webSearchDefinition, webSearchHandler } from './web-search.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
@@ -170,13 +169,6 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // Store spawnFn on deps for Thinker to access
   ;(deps as any).spawnSubagentFn = spawnFn
-
-  // Think tool — trigger the dialectic with expanded context and return the synthesis
-  // Also provides unified subagent spawning through Thinker
-  if (deps.getPipeline) {
-    // Pass spawnFn to think handler so it can delegate subagent spawning to Thinker
-    registry.register(thinkDefinition, makeThinkHandler({ ...deps, spawnSubagentFn: spawnFn }))
-  }
 
   // Subagent inspection tools - now routed through Thinker when available
   // Thinker maintains a unified registry of all subagents for persistence

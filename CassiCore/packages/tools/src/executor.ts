@@ -75,6 +75,13 @@ export class ToolExecutor {
   }
 
   /**
+   * Check if a tool is registered and available for execution.
+   */
+  isAvailable(name: string): boolean {
+    return this.registry.get(name) !== undefined
+  }
+
+  /**
    * Wire the Tool Reliability Tracker for circuit breaker pattern.
    * When set, tool executions are monitored for failures and circuits open
    * after repeated failures. Failed tools can route to fallback tools.
@@ -614,13 +621,31 @@ export class ToolExecutor {
     }
   }
 
-  /** Execute up to MAX_CONCURRENT tool calls concurrently */
+  /** Execute up to MAX_CONCURRENT tool calls concurrently with error isolation */
   async executeAll(calls: ToolCall[], sessionId: string): Promise<ToolResult[]> {
     const results: ToolResult[] = []
     for (let i = 0; i < calls.length; i += MAX_CONCURRENT) {
       const batch = calls.slice(i, i + MAX_CONCURRENT)
-      const batchResults = await Promise.all(batch.map(c => this.execute(c, sessionId)))
-      results.push(...batchResults)
+      const settled = await Promise.allSettled(batch.map(c => this.execute(c, sessionId)))
+      for (let j = 0; j < settled.length; j++) {
+        const outcome = settled[j]
+        if (outcome.status === 'fulfilled') {
+          results.push(outcome.value)
+        } else {
+          // Convert unexpected rejection to error ToolResult so other calls aren't lost
+          const call = batch[j]
+          this.logger.error('Tool execute() rejected unexpectedly', {
+            toolName: call.name,
+            error: String(outcome.reason),
+            sessionId,
+          })
+          results.push({
+            toolCallId: call.id,
+            content: `Tool execution failed: ${String(outcome.reason)}`,
+            isError: true,
+          })
+        }
+      }
     }
     return results
   }
