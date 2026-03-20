@@ -45,7 +45,7 @@ import type { ILogger, IEventBus } from "../../../types/interfaces.js";
 import type { IProvider } from "../../../types/runtime.js";
 import type { SessionDigestStore } from "../session-digest.js";
 
-export { SubconsciousConfig } from "./types.js";
+export type { SubconsciousConfig } from "./types.js";
 
 export class Subconscious {
   readonly name = "subconscious" as const;
@@ -54,20 +54,17 @@ export class Subconscious {
   private readonly logger: ILogger;
   private readonly config: Required<SubconsciousConfig>;
 
-  // ─── Core Components ───────────────────────────────────────────────────────
   private readonly eventStream: EventStream;
   private readonly heuristicObserver: HeuristicObserver;
   private readonly llmObserver: LLMObserver;
   private readonly systemModel: SystemModel;
 
-  // ─── Dependencies ──────────────────────────────────────────────────────────
   private eventBus?: IEventBus;
   private digestStore?: SessionDigestStore;
   private memory?: IMemory;
   /** Callback to retrieve live session IDs from the SessionManager for periodic reconciliation. */
   private liveSessionGetter?: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>;
 
-  // ─── Background Timers ─────────────────────────────────────────────────────
   /** Drains heuristic buffers and integrates into the system model every turn event */
   private drainTimer?: NodeJS.Timeout;
   /** Persistence timer */
@@ -112,7 +109,6 @@ export class Subconscious {
     }
   }
 
-  // ─── Dependency Wiring ─────────────────────────────────────────────────────
 
   setMemory(memory: IMemory): void {
     this.memory = memory;
@@ -173,7 +169,7 @@ export class Subconscious {
       this.drainHeuristicBuffers();
     });
 
-    // Note: do NOT call this.start() here — the daemon calls startModule()
+    // WHY: do NOT call this.start() here — the daemon calls startModule()
     // separately. Calling start() from both onEventBus() and startModule()
     // creates duplicate timers and double LLM sweeps.
   }
@@ -183,7 +179,6 @@ export class Subconscious {
     this.onEventBus(bus);
   }
 
-  // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
   private _started = false;
 
@@ -260,7 +255,6 @@ export class Subconscious {
     this.logger.info("Subconscious: cleanup complete");
   }
 
-  // ─── Core Intelligence Hook ────────────────────────────────────────────────
 
   /**
    * Build context injection for a turn pipeline call.
@@ -276,7 +270,6 @@ export class Subconscious {
     return this.systemModel.getContextInjection(sessionId);
   }
 
-  // ─── Public Queries ────────────────────────────────────────────────────────
 
   /**
    * Snapshot of the full system model — for admin API, MCP gateway, and CLI.
@@ -411,7 +404,6 @@ export class Subconscious {
     this.logger.debug("Subconscious: session cleaned up", { sessionId });
   }
 
-  // ─── Backward Compatibility Shims ─────────────────────────────────────────
   // These shims allow existing consumers to continue working without changes
   // during Phase 3 migration. They will be removed once all consumers are updated.
 
@@ -477,7 +469,6 @@ export class Subconscious {
     // Not used in the new architecture
   }
 
-  // ─── Internal ──────────────────────────────────────────────────────────────
 
   /**
    * Periodic bidirectional session reconciliation.
@@ -512,7 +503,6 @@ export class Subconscious {
       this.systemModel.addObservation(obs);
       this.emitEvent("consciousness:observation", { observation: obs });
 
-      // ── Backward-compat bridge ──────────────────────────────────────────
       // Emit legacy subconscious:learning so Thinker / AI Scientist continue
       // to receive structured observations without needing changes to their
       // event subscriptions in this migration phase.
@@ -538,7 +528,6 @@ export class Subconscious {
       this.systemModel.addAnomaly(anomaly);
       this.emitEvent("consciousness:anomaly", { anomaly });
 
-      // ── Backward-compat bridge ──────────────────────────────────────────
       // Emit legacy subconscious:anomaly so Thinker / Dialectic / AI Scientist
       // keep receiving anomaly notifications during Phase 3 migration.
       this.emitEvent("subconscious:anomaly", {
@@ -566,6 +555,12 @@ export class Subconscious {
     }
   }
 }
+
+/**
+ * @dep callers: subconscious-memory-integration.test.ts (tests/subconscious-memory-integration.test.ts), subconscious.test.ts (tests/subconscious.test.ts), createIntelligence (core/intelligence/index.ts), run (scripts/smoke-subconscious.ts)
+ * @dep module: Intelligence
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
 
 export const createSubconscious = (logger: ILogger, config?: Partial<SubconsciousConfig>): Subconscious =>
   new Subconscious(logger, config);

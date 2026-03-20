@@ -29,7 +29,6 @@ interface ErrorBurstTracker {
   lastAlerted: number;
 }
 
-// ─── Heartbeat config ──────────────────────────────────────────────────────
 // Modules to monitor, their expected event-type prefix, and the max silence
 // window before an anomaly is raised.  Only modules that should emit events
 // when the system is active are listed here — passive/on-demand modules are
@@ -51,7 +50,6 @@ const HEARTBEAT_WARMUP_MS  = 15 * 60_000  // 15 min
 // Re-check interval: minimum time between consecutive heartbeat sweeps.
 const HEARTBEAT_COOLDOWN_MS = 10 * 60_000  // 10 min
 
-// ─── Tool registration burst config ───────────────────────────────────────
 // Many tools are registered in rapid succession at startup (MCP servers,
 // built-ins). Rather than letting this appear as noisy individual signals,
 // we coalesce them into a single summary observation.
@@ -90,7 +88,6 @@ export class HeuristicObserver {
   private pendingObservations: Observation[] = [];
   private pendingAnomalies: Anomaly[] = [];
 
-  // ─── Config ─────────────────────────────────────────────────────────────────
   private readonly errorBurstWindowMs = 30_000;    // 30s window for burst detection
   private readonly errorBurstThreshold = 3;         // N errors in window = burst
   private readonly crashCycleWindowMs = 120_000;   // 2min window for crash cycles
@@ -101,7 +98,6 @@ export class HeuristicObserver {
     this.logger = logger.child?.("heuristic-observer") ?? logger;
   }
 
-  // ─── Main Entry Point ──────────────────────────────────────────────────────
 
   /**
    * Process a single event. Called synchronously for every event ingested
@@ -196,7 +192,6 @@ export class HeuristicObserver {
         this.onJobFinished(event as any);
         break;
 
-      // ── Trust Ledger ──────────────────────────────────────────────────────
       case "trust:score-updated":
         this.onTrustScoreUpdated(event as RuntimeEvent & { type: "trust:score-updated"; domain: string; oldScore: number; newScore: number; delta: number; reason: string });
         break;
@@ -207,7 +202,6 @@ export class HeuristicObserver {
         this.onTrustOutcomeRecorded(event as RuntimeEvent & { type: "trust:outcome-recorded"; domain: string; action: string; success: boolean; consequenceAccuracy: number });
         break;
 
-      // ── Permission Oracle ─────────────────────────────────────────────────
       case "permission:escalated":
         this.onPermissionEscalated(event as RuntimeEvent & { type: "permission:escalated"; sessionId: string; toolName: string; reason: string; riskLevel: string });
         break;
@@ -215,7 +209,6 @@ export class HeuristicObserver {
         this.onPermissionDecision(event as RuntimeEvent & { type: "permission:decision"; sessionId: string; toolName: string; decision: string; riskScore: number });
         break;
 
-      // ── Thinker signals ───────────────────────────────────────────────────
       case "thinker:insight-applied":
       case "thinker:inject-insight":
         this.onThinkerInsight(event as RuntimeEvent & { type: string; insight: string; sessionId?: string });
@@ -224,7 +217,6 @@ export class HeuristicObserver {
         this.onThinkerEarlyWarning(event as RuntimeEvent & { type: "thinker:early-warning"; warning: string; sessionId?: string });
         break;
 
-      // ── Dialectic signals ─────────────────────────────────────────────────
       case "dialectic:signal":
         this.onDialecticSignal(event as RuntimeEvent & { type: "dialectic:signal"; signalType: string; content: string; confidence: number; sessionId?: string });
         break;
@@ -232,7 +224,6 @@ export class HeuristicObserver {
         this.onDialecticConvergence(event as RuntimeEvent & { type: "dialectic:convergence"; converged: boolean; sessionId?: string });
         break;
 
-      // ── Intelligence heartbeat ────────────────────────────────────────────
       // Augment internal heartbeat tracking with direct module health status
       // from the intelligence loop. This is a richer signal than inferring
       // activity from event prefixes alone.
@@ -242,7 +233,6 @@ export class HeuristicObserver {
     }
   }
 
-  // ─── Pattern Handlers ──────────────────────────────────────────────────────
 
   private onProviderError(event: RuntimeEvent & { type: "provider:request_error"; providerId: string; consecutiveErrors?: number }): void {
     const tracker = this.getOrCreate(this.providerErrors, event.providerId);
@@ -442,7 +432,6 @@ export class HeuristicObserver {
     });
   }
 
-  // ─── Buffer Management ────────────────────────────────────────────────────
 
   private pushObservation(obs: Observation): void {
     this.pendingObservations.push(obs);
@@ -467,7 +456,6 @@ export class HeuristicObserver {
     return anomalies;
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   /**
    * Update the last-seen timestamp for any monitored module whose event prefix
@@ -518,7 +506,6 @@ export class HeuristicObserver {
     }, TOOL_BURST_WINDOW_MS)
   }
 
-  // ─── Background Job Events ─────────────────────────────────────────────
 
   private onJobFinished(event: { type: string; jobId: string; label: string; exitCode?: number; duration: number; summary: string }): void {
     const now = Date.now()
@@ -556,7 +543,6 @@ export class HeuristicObserver {
     })
   }
 
-  // ─── Trust Ledger Handlers ─────────────────────────────────────────────────
 
   private onTrustScoreUpdated(event: RuntimeEvent & { type: "trust:score-updated"; domain: string; oldScore: number; newScore: number; delta: number; reason: string }): void {
     const now = Date.now()
@@ -631,7 +617,6 @@ export class HeuristicObserver {
     })
   }
 
-  // ─── Permission Oracle Handlers ────────────────────────────────────────────
 
   private onPermissionEscalated(event: RuntimeEvent & { type: "permission:escalated"; sessionId: string; toolName: string; reason: string; riskLevel: string }): void {
     const now = Date.now()
@@ -670,7 +655,6 @@ export class HeuristicObserver {
     })
   }
 
-  // ─── Thinker Signal Handlers ───────────────────────────────────────────────
 
   private onThinkerInsight(event: RuntimeEvent & { type: string; insight: string; sessionId?: string }): void {
     // Surface Thinker insights as observations so the Subconscious knows what
@@ -704,7 +688,6 @@ export class HeuristicObserver {
     })
   }
 
-  // ─── Dialectic Signal Handlers ─────────────────────────────────────────────
 
   private onDialecticSignal(event: RuntimeEvent & { type: "dialectic:signal"; signalType: string; content: string; confidence: number; sessionId?: string }): void {
     // High-confidence dialectic signals are meaningful cognitive outputs — track them
@@ -744,7 +727,6 @@ export class HeuristicObserver {
     })
   }
 
-  // ─── Intelligence Heartbeat Handler ───────────────────────────────────────
 
   private onIntelligenceHeartbeat(event: RuntimeEvent & { type: "intelligence:heartbeat"; moduleStatuses: Array<{ name: string; healthy: boolean; lastActivity?: number }> }): void {
     const now = Date.now()

@@ -10,9 +10,16 @@
 import type { ArchiveEntry } from '../memory/archivist.js'
 import type { DreamInsight } from './types.js'
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Render archive entries into a compact context block for prompts. */
+/**
+ * @dep callers: buildFreeAssociationPrompt (core/intelligence/dreamer/dream-prompt.ts)
+ * @dep calls: toISOString
+ * @dep flows: RunCycle → RenderEntries (4/4)
+ * @dep module: Dreamer
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function renderEntries(entries: ArchiveEntry[]): string {
   return entries
     .map((e, i) => {
@@ -23,11 +30,15 @@ function renderEntries(entries: ArchiveEntry[]): string {
     .join('\n\n')
 }
 
-// ─── Phase 1: Free Association ────────────────────────────────────────────────
 
 /**
  * Build the free-association prompt.
  * This is deliberately open-ended to surface unexpected connections.
+ * @dep callers: dreamer.test.ts (tests/dreamer.test.ts), freeAssociate (core/intelligence/dreamer/dream-engine.ts)
+ * @dep calls: renderEntries
+ * @dep flows: RunCycle → RenderEntries (3/4)
+ * @dep module: Dreamer
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function buildFreeAssociationPrompt(entries: ArchiveEntry[]): string {
   const rendered = renderEntries(entries)
@@ -53,11 +64,14 @@ Write freely and associatively. Explore without constraints. Aim for genuine ins
 Your response will be used to distill concrete insights in the next phase, so depth and specificity matter more than breadth.`
 }
 
-// ─── Phase 2: Crystallization ────────────────────────────────────────────────
 
 /**
  * Build the crystallization prompt.
  * Takes free-association output and distills it into concrete JSON insights.
+ * @dep callers: dreamer.test.ts (tests/dreamer.test.ts), crystallize (core/intelligence/dreamer/dream-engine.ts)
+ * @dep flows: RunCycle → BuildCrystallizationPrompt (3/3)
+ * @dep module: Dreamer
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function buildCrystallizationPrompt(
   freeAssociation: string,
@@ -101,11 +115,14 @@ Example format:
 ]`
 }
 
-// ─── Phase 3: Garden Clustering ──────────────────────────────────────────────
 
 /**
  * Build the garden prompt.
  * Identifies clusters of episodic memories that can be distilled and retired.
+ * @dep callers: dreamer.test.ts (tests/dreamer.test.ts), garden (core/intelligence/dreamer/dream-engine.ts)
+ * @dep calls: toISOString
+ * @dep module: Memory
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function buildGardenPrompt(
   episodics: Array<{ id: string; content: string; createdAt: number }>,

@@ -47,7 +47,6 @@ export class EventStream {
     this.buffer = new Array<EventStreamEntry | undefined>(this.config.maxBufferSize).fill(undefined);
   }
 
-  // ─── Lifecycle ──────────────────────────────────────────────────────────────
 
   /**
    * Connect to an EventBus via onAll(). After this call the stream
@@ -66,7 +65,6 @@ export class EventStream {
     this.logger.debug("EventStream disconnected");
   }
 
-  // ─── Ingestion ─────────────────────────────────────────────────────────────
 
   private ingest(event: RuntimeEvent): void {
     // Skip high-frequency chunk events — they flood the ring buffer and
@@ -107,7 +105,6 @@ export class EventStream {
     }
   }
 
-  // ─── Queries ───────────────────────────────────────────────────────────────
 
   /**
    * Get all buffered events in chronological order (oldest → newest).
@@ -160,7 +157,6 @@ export class EventStream {
       .sort((a, b) => a.receivedAt - b.receivedAt);
   }
 
-  // ─── Stats ─────────────────────────────────────────────────────────────────
 
   /**
    * Observed events per second over the last `windowSecs` seconds.
@@ -200,7 +196,6 @@ export class EventStream {
     return Array.from(this.sessionIndex.keys());
   }
 
-  // ─── Session Cleanup ───────────────────────────────────────────────────────
 
   /** Remove session from the index when it ends (frees memory). */
   cleanupSession(sessionId: string): void {
@@ -231,7 +226,6 @@ export class EventStream {
     return removed;
   }
 
-  // ─── LLM Summary ──────────────────────────────────────────────────────────
 
   /**
    * Summarize the event stream over the last `windowMs` milliseconds.

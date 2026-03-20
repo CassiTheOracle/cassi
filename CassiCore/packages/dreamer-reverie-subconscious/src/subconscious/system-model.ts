@@ -36,19 +36,15 @@ export class SystemModel {
   private readonly logger: ILogger;
   private memory?: IMemory;
 
-  // ─── Session Registry ─────────────────────────────────────────────────────
   private readonly sessions = new Map<string, SessionState>();
 
-  // ─── System Health ────────────────────────────────────────────────────────
   private readonly providerHealth = new Map<string, ProviderHealthStatus>();
   private readonly pluginStatus = new Map<string, PluginHealthStatus>();
   private readonly budgetTiers = new Map<string, string>();
 
-  // ─── Agent Tracking ───────────────────────────────────────────────────────
   private readonly activeDrones = new Set<string>();
   private readonly activeTeams = new Set<string>();
 
-  // ─── Trust Tracking ───────────────────────────────────────────────────────
   /** Current trust scores by domain */
   private readonly trustScores = new Map<string, number>();
   /** Number of permission escalations (tool → count) */
@@ -56,13 +52,11 @@ export class SystemModel {
   /** Number of permission denials (tool → count) */
   private readonly permissionDenials = new Map<string, number>();
 
-  // ─── Observation History ──────────────────────────────────────────────────
   private observations: Observation[] = [];
   private anomalies: Anomaly[] = [];
   private static readonly MAX_OBSERVATIONS = 200;
   private static readonly MAX_ANOMALIES = 100;
 
-  // ─── Context Injection Cache ──────────────────────────────────────────────
   // Keyed by sessionId (or "__global" for session-less callers)
   private readonly contextCache = new Map<string, string>();
 
@@ -70,13 +64,11 @@ export class SystemModel {
     this.logger = logger.child?.("system-model") ?? logger;
   }
 
-  // ─── Dependencies ──────────────────────────────────────────────────────────
 
   setMemory(memory: IMemory): void {
     this.memory = memory;
   }
 
-  // ─── Event Handler ────────────────────────────────────────────────────────
 
   /**
    * Process a runtime event to update the system model.
@@ -96,7 +88,6 @@ export class SystemModel {
     const e = event as Record<string, unknown>;
 
     switch (t) {
-      // ── Sessions ──────────────────────────────────────────────────────────
       case "session:created": {
         const sessionId = e.sessionId as string;
         if (sessionId) {
@@ -163,7 +154,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Providers ─────────────────────────────────────────────────────────
       case "provider:request_start": {
         const pid = e.providerId as string;
         if (pid && this.providerHealth.get(pid) !== "rate_limited") {
@@ -211,7 +201,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Plugins ───────────────────────────────────────────────────────────
       case "plugin:loaded": {
         const pid = e.pluginId as string;
         if (pid) this.pluginStatus.set(pid, "healthy");
@@ -236,7 +225,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Budget ────────────────────────────────────────────────────────────
       case "budget:tier_changed": {
         const pid = e.providerId as string;
         const newTier = e.newTier as string;
@@ -247,7 +235,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Drones ────────────────────────────────────────────────────────────
       case "drone:spawned": {
         const did = e.droneId as string;
         if (did) this.activeDrones.add(did);
@@ -262,7 +249,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Teams ─────────────────────────────────────────────────────────────
       case "team:started": {
         const tid = e.teamId as string;
         if (tid) this.activeTeams.add(tid);
@@ -276,7 +262,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Trust Ledger ──────────────────────────────────────────────────────
       case "trust:score-updated":
       case "trust:domain-created": {
         const domain = e.domain as string;
@@ -295,7 +280,6 @@ export class SystemModel {
         break;
       }
 
-      // ── Permission Oracle ─────────────────────────────────────────────────
       case "permission:escalated": {
         const tool = e.toolName as string;
         if (tool) {
@@ -315,7 +299,6 @@ export class SystemModel {
     }
   }
 
-  // ─── Observation Integration ──────────────────────────────────────────────
 
   /** Add a heuristic observation to the model. */
   addObservation(obs: Observation): void {
@@ -415,7 +398,6 @@ export class SystemModel {
     }
   }
 
-  // ─── Context Injection ────────────────────────────────────────────────────
 
   /**
    * Build a context injection string for a session.
@@ -492,7 +474,6 @@ export class SystemModel {
       parts.push(`[Awareness] ${latestLLM.summary}`);
     }
 
-    // ── Cross-session historical context ──────────────────────────────────
     // When there is something noteworthy (anomalies or provider issues), search
     // the session index for similar historical moments and include the top refs.
     // This is synchronous and best-effort — silently skipped if unavailable.
@@ -516,7 +497,6 @@ export class SystemModel {
     return result || undefined;
   }
 
-  // ─── Anomaly Management ───────────────────────────────────────────────────
 
   /** Acknowledge (dismiss) an anomaly by ID. Returns true if found. */
   acknowledgeAnomaly(anomalyId: string): boolean {
@@ -529,7 +509,6 @@ export class SystemModel {
     return false;
   }
 
-  // ─── Queries ──────────────────────────────────────────────────────────────
 
   snapshot(): SystemModelSnapshot {
     const recentPatterns = this.observations
@@ -587,7 +566,6 @@ export class SystemModel {
     return this.anomalies.filter((a) => !a.acknowledged);
   }
 
-  // ─── Session Cleanup ──────────────────────────────────────────────────────
 
   cleanupSession(sessionId: string): void {
     this.sessions.delete(sessionId);
@@ -686,7 +664,6 @@ export class SystemModel {
     return removed
   }
 
-  // ─── Persistence ──────────────────────────────────────────────────────────
 
   /** Persist state to the memory KV store for cross-restart continuity. */
   async persist(): Promise<void> {
@@ -722,7 +699,6 @@ export class SystemModel {
     }
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private invalidateContextCacheAll(): void {
     this.contextCache.clear();

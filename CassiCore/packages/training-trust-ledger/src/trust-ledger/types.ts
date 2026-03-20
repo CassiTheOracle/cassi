@@ -20,7 +20,6 @@
  * drops it significantly. This is exactly the behavior we want.
  */
 
-// ─── Trust Domains ───────────────────────────────────────────────────────────
 
 /**
  * Pre-defined trust domains corresponding to categories of actions.
@@ -41,7 +40,6 @@ export type CanonicalDomain =
 /** Trust domain can be canonical or a custom string */
 export type TrustDomain = CanonicalDomain | string
 
-// ─── Trust Score ─────────────────────────────────────────────────────────────
 
 /**
  * A trust score for a single domain.
@@ -68,7 +66,6 @@ export interface TrustScore {
   lastDecayAt: number
 }
 
-// ─── Trust Evidence ──────────────────────────────────────────────────────────
 
 /**
  * A piece of evidence that updates a trust score.
@@ -94,7 +91,6 @@ export interface TrustEvidence {
   timestamp: number
 }
 
-// ─── Trust Configuration ─────────────────────────────────────────────────────
 
 /**
  * Configuration for the Trust Ledger.
@@ -126,7 +122,6 @@ export const DEFAULT_TRUST_LEDGER_CONFIG: TrustLedgerConfig = {
   consequenceAccuracyWeight: 0.5,
 }
 
-// ─── Autonomy Levels ─────────────────────────────────────────────────────────
 
 /**
  * Graduated autonomy levels based on overall trust.
@@ -139,6 +134,12 @@ export const DEFAULT_TRUST_LEDGER_CONFIG: TrustLedgerConfig = {
  */
 export type AutonomyLevel = 'supervised' | 'guided' | 'autonomous' | 'trusted'
 
+/**
+ * @dep callers: trust-ledger.test.ts (tests/trust-ledger.test.ts), getSummary (core/intelligence/trust-ledger/index.ts), judge (core/intelligence/permission-oracle/index.ts)
+ * @dep module: Trust-ledger
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function trustToAutonomyLevel(score: number): AutonomyLevel {
   if (score < 0.3) return 'supervised'
   if (score < 0.6) return 'guided'
@@ -146,7 +147,6 @@ export function trustToAutonomyLevel(score: number): AutonomyLevel {
   return 'trusted'
 }
 
-// ─── Overall Trust Summary ───────────────────────────────────────────────────
 
 /**
  * Aggregated trust summary across all domains.
@@ -166,9 +166,14 @@ export interface TrustSummary {
   weakestDomain?: { domain: TrustDomain; score: number }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Compute the posterior mean of a Beta distribution */
+/**
+ * @dep callers: trust-ledger.test.ts (tests/trust-ledger.test.ts), maybeApplyDecay (core/intelligence/trust-ledger/index.ts), createDomain (core/intelligence/trust-ledger/index.ts), recordEvidence (core/intelligence/trust-ledger/index.ts)
+ * @dep module: Trust-ledger
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 export function betaMean(alpha: number, beta: number): number {
   return alpha / (alpha + beta)
 }
@@ -180,6 +185,12 @@ export function betaVariance(alpha: number, beta: number): number {
 }
 
 /** Compute confidence as 1 - normalized variance (higher = more confident) */
+/**
+ * @dep callers: trust-ledger.test.ts (tests/trust-ledger.test.ts), maybeApplyDecay (core/intelligence/trust-ledger/index.ts), createDomain (core/intelligence/trust-ledger/index.ts), recordEvidence (core/intelligence/trust-ledger/index.ts)
+ * @dep module: Trust-ledger
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 export function betaConfidence(alpha: number, beta: number): number {
   // Confidence based on total evidence: more evidence → higher confidence
   // At prior (alpha=1, beta=1): total=2, confidence=0

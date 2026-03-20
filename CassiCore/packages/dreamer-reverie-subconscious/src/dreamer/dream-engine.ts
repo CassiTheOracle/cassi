@@ -15,12 +15,10 @@ import {
 } from './dream-prompt.js'
 import type { DreamInsight, DreamRecord, DreamerConfig } from './types.js'
 
-// ─── Type aliases for injected inference functions ────────────────────────────
 
 export type InferFn = (prompt: string) => Promise<string>
 export type InferJSONFn = <T>(prompt: string) => Promise<T | null>
 
-// ─── Raw JSON shapes expected from the LLM ───────────────────────────────────
 
 interface RawInsight {
   content?: unknown
@@ -35,7 +33,6 @@ interface RawCluster {
   reasoning?: unknown
 }
 
-// ─── DreamCycleEngine ────────────────────────────────────────────────────────
 
 export class DreamCycleEngine {
   constructor(
@@ -55,7 +52,6 @@ export class DreamCycleEngine {
 
     this.logger.info('[DreamEngine] Starting dream cycle', { dreamId })
 
-    // ── Phase 1: Archive sampling ──────────────────────────────────────────
     const entries = this.memory.sampleForDream({
       sampleSize: config.archiveSampleSize,
       recentWindowHours: config.recentWindowHours,
@@ -69,13 +65,10 @@ export class DreamCycleEngine {
 
     this.logger.debug('[DreamEngine] Sampled archive entries', { count: entries.length })
 
-    // ── Phase 2: Free association ──────────────────────────────────────────
     const freeAssociation = await this.freeAssociate(entries)
 
-    // ── Phase 3: Crystallization ───────────────────────────────────────────
     const insights = await this.crystallize(freeAssociation, entries, config.maxInsightsPerDream)
 
-    // ── Phase 4: Store insights in memory ─────────────────────────────────
     const insightMemoryIds: string[] = []
     for (const insight of insights) {
       try {
@@ -98,7 +91,6 @@ export class DreamCycleEngine {
       }
     }
 
-    // ── Phase 5: Gardening — retire distilled episodics ───────────────────
     const episodicsRetired: string[] = []
     if (config.enableGardening && insights.length > 0) {
       try {
@@ -108,7 +100,6 @@ export class DreamCycleEngine {
       }
     }
 
-    // ── Phase 6: Conceptual linking ───────────────────────────────────────
     let linksCreated = 0
     if (config.enableLinking) {
       try {
@@ -118,7 +109,6 @@ export class DreamCycleEngine {
       }
     }
 
-    // ── Phase 7: Mark archive entries as dreamed ──────────────────────────
     this.memory.markArchiveEntriesDreamed(entries.map(e => e.id))
 
     const completedAt = Date.now()
@@ -147,7 +137,6 @@ export class DreamCycleEngine {
     return record
   }
 
-  // ─── Phase implementations ─────────────────────────────────────────────────
 
   /**
    * Phase 2: Free association — asks LLM to find connections across sampled entries.
@@ -261,7 +250,6 @@ export class DreamCycleEngine {
     return created
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
 
   private emptyRecord(id: string, startedAt: number, entries: ArchiveEntry[]): DreamRecord {
     const completedAt = Date.now()

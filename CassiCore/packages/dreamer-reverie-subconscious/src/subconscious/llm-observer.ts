@@ -25,6 +25,7 @@ import type { LLMObservation, LLMObserverConfig, StreamSummary } from "./types.j
 import type { IMemory } from "../../../types/intelligence.js";
 import type { ILogger } from "../../../types/interfaces.js";
 import type { IProvider, Message } from "../../../types/runtime.js";
+import type { ModuleSessionRegistry } from "../module-session-registry.js";
 
 
 
@@ -34,6 +35,7 @@ export class LLMObserver {
   private provider?: IProvider;
   /** Session indexer memory — used to fetch cross-session historical context */
   private memory?: IMemory;
+  private moduleRegistry?: ModuleSessionRegistry;
 
   private timer?: NodeJS.Timeout;
   private lastSweepAt = 0;
@@ -60,10 +62,15 @@ export class LLMObserver {
     };
   }
 
-  // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
   setProvider(provider: IProvider): void {
     this.provider = provider;
+  }
+
+  /** Wire the module session registry for persistent debug sessions. */
+  setModuleRegistry(registry: ModuleSessionRegistry): void {
+    this.moduleRegistry = registry;
+    registry.getOrCreate('subconscious.observer');
   }
 
   /**
@@ -101,7 +108,6 @@ export class LLMObserver {
     }
   }
 
-  // ─── Sweep ─────────────────────────────────────────────────────────────────
 
   /**
    * Run one observer sweep. Returns the LLMObservation or null if skipped/failed.
@@ -136,7 +142,6 @@ export class LLMObserver {
     this.lastSweepAt = Date.now();
 
     try {
-      // ── Cross-session historical context ──────────────────────────────────
       // Build a query from the most active event types and search the session
       // index for similar moments in past sessions. The top matches are
       // threaded into the LLM prompt so the observer can reference history.
@@ -181,6 +186,7 @@ export class LLMObserver {
             temperature: 0.3,
             source: 'subconscious:observer',
             trigger: 'timer',
+            sessionId: this.moduleRegistry?.getSessionId('subconscious.observer'),
             onMeta: (meta: { requestId: string }) => { requestId = meta.requestId },
           });
 
@@ -209,6 +215,13 @@ export class LLMObserver {
       const observation = this.parseResponse(rawResponse, summary, crossSessionMatches);
       // Attach the provider request ID for end-to-end tracing
       observation.requestId = requestId;
+
+      // Record to persistent module session for Telegram debugging
+      if (rawResponse && this.moduleRegistry) {
+        this.moduleRegistry.appendTurn('subconscious.observer', 'user', `[sweep] ${prompt.slice(0, 200)}…`)
+        this.moduleRegistry.appendTurn('subconscious.observer', 'assistant', rawResponse)
+      }
+
       if (this.isNearDuplicate(observation)) {
         this.logger.debug("LLMObserver: suppressed near-duplicate observation", {
           summary: observation.summary.slice(0, 120),
@@ -296,7 +309,6 @@ export class LLMObserver {
       .trim();
   }
 
-  // ─── Prompt Construction ──────────────────────────────────────────────────
 
   private buildPrompt(
     summary: StreamSummary,
@@ -358,7 +370,6 @@ export class LLMObserver {
       lines.push(`- Recent patterns: ${snap.recentPatterns.slice(-5).join(", ")}`);
     }
 
-    // ── Historical context from session index ─────────────────────────────
     // Include the top cross-session matches so the LLM can reference prior
     // similar situations and avoid treating recurring patterns as new.
     if (crossSessionMatches.length > 0) {
@@ -408,7 +419,6 @@ export class LLMObserver {
     return lines.join("\n");
   }
 
-  // ─── Response Parsing ─────────────────────────────────────────────────────
 
   private parseResponse(
     raw: string,
@@ -465,7 +475,6 @@ export class LLMObserver {
     };
   }
 
-  // ─── Query ────────────────────────────────────────────────────────────────
 
   /** Most recent N LLM observations (newest last). */
   getRecentObservations(count = 10): LLMObservation[] {

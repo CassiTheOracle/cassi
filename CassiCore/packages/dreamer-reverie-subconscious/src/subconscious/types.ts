@@ -8,7 +8,6 @@
  * - System-wide mental model (SystemModel)
  */
 
-// ─── Core Observation Types ───────────────────────────────────────────────────
 
 /** Source of an observation — heuristic (real-time rule) or llm (periodic sweep) */
 export type ObservationSource = "heuristic" | "llm";
@@ -53,7 +52,6 @@ export interface Anomaly {
   sessionRef?: string;
 }
 
-// ─── EventStream Types ────────────────────────────────────────────────────────
 
 export interface EventStreamEntry {
   event: import("../../../types/events.js").RuntimeEvent;
@@ -78,7 +76,6 @@ export interface EventStreamConfig {
   sessionBufferSize: number;
 }
 
-// ─── LLM Observer Types ───────────────────────────────────────────────────────
 
 export interface LLMObservation {
   id: string;
@@ -112,7 +109,6 @@ export interface LLMObserverConfig {
   model?: string;
 }
 
-// ─── System Model Types ───────────────────────────────────────────────────────
 
 export interface SessionState {
   sessionId: string;
@@ -144,7 +140,6 @@ export interface SystemModelSnapshot {
   permissionDenials?: Record<string, number>;
 }
 
-// ─── Subconscious Config ──────────────────────────────────────────────────────
 
 export interface SubconsciousConfig {
   /** Enable the subconscious module (default: true) */
@@ -174,7 +169,6 @@ export const DEFAULT_SUBCONSCIOUS_CONFIG: Required<SubconsciousConfig> = {
   },
 };
 
-// ─── Legacy compat (used by session-digest.ts and other consumers) ────────────
 
 /** Conversation phase — kept for SessionDigest compat */
 export type ConversationPhase =

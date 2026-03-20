@@ -19,14 +19,12 @@ import { DEFAULT_DREAMER_CONFIG } from './types.js'
 
 import type { ILogger } from '../../../types/interfaces.js'
 
-// ─── DreamerState ─────────────────────────────────────────────────────────────
 
 export type DreamerState =
   | 'idle'          // waiting for idle threshold
   | 'dreaming'      // dream cycle in progress
   | 'stopped'       // module stopped
 
-// ─── DreamerModule ────────────────────────────────────────────────────────────
 
 export class DreamerModule extends BaseCognitiveModule {
   readonly name = 'dreamer'
@@ -60,7 +58,6 @@ export class DreamerModule extends BaseCognitiveModule {
     if (config) this.dreamerConfig = { ...DEFAULT_DREAMER_CONFIG, ...config }
   }
 
-  // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   override async start(): Promise<void> {
     await super.start()
@@ -84,7 +81,6 @@ export class DreamerModule extends BaseCognitiveModule {
     await super.stop()
   }
 
-  // ─── Wiring ───────────────────────────────────────────────────────────────
 
   /**
    * Wire in the full MemoryModule (not just IMemory) for dream-specific methods.
@@ -109,7 +105,6 @@ export class DreamerModule extends BaseCognitiveModule {
     aggregator.register(source)
   }
 
-  // ─── Turn tracking (idle detection) ──────────────────────────────────────
 
   protected override async onTurnEnd(
     _sessionId: string,
@@ -119,7 +114,6 @@ export class DreamerModule extends BaseCognitiveModule {
     this.lastTurnAt = Date.now()
   }
 
-  // ─── Idle check loop ──────────────────────────────────────────────────────
 
   private startIdleCheckLoop(): void {
     this.checkTimer = setInterval(
@@ -158,7 +152,6 @@ export class DreamerModule extends BaseCognitiveModule {
     await this.runDreamCycle()
   }
 
-  // ─── Dream cycle ──────────────────────────────────────────────────────────
 
   /**
    * Trigger a dream cycle immediately.
@@ -235,7 +228,6 @@ export class DreamerModule extends BaseCognitiveModule {
     }
   }
 
-  // ─── Context injection ────────────────────────────────────────────────────
 
   /** Returns the latest dream insight text if within the injection window. */
   private getContextInjection(): string | null {
@@ -249,7 +241,6 @@ export class DreamerModule extends BaseCognitiveModule {
     return `[Dream Insight] ${this.latestInsightText}`
   }
 
-  // ─── Status / History ─────────────────────────────────────────────────────
 
   /** Get current module state for the admin API. */
   getStatus(): {
@@ -285,7 +276,6 @@ export class DreamerModule extends BaseCognitiveModule {
     this.logger.info('[Dreamer] Config updated', updates as Record<string, unknown>)
   }
 
-  // ─── Private helpers ──────────────────────────────────────────────────────
 
   private buildDreamSummary(record: DreamRecord): string {
     const date = new Date(record.startedAt).toISOString()
@@ -301,7 +291,12 @@ export class DreamerModule extends BaseCognitiveModule {
   }
 }
 
-// ─── Factory ──────────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: dreamer.test.ts (tests/dreamer.test.ts), createIntelligence (core/intelligence/index.ts)
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function createDreamer(logger: ILogger, config?: Partial<DreamerConfig>): DreamerModule {
   return new DreamerModule(logger, config)

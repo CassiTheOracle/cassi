@@ -5,7 +5,6 @@
  * novel cross-session insights and maintain a curated active memory garden.
  */
 
-// ─── Configuration ───────────────────────────────────────────────────────────
 
 export interface DreamerConfig {
   /** Whether the dreamer is active. Default: true */
@@ -51,7 +50,6 @@ export const DEFAULT_DREAMER_CONFIG: DreamerConfig = {
   injectContextWindowHours: 4,
 }
 
-// ─── Dream Artifacts ─────────────────────────────────────────────────────────
 
 /** A single insight distilled during a dream cycle. */
 export interface DreamInsight {
@@ -106,7 +104,6 @@ export interface DreamRecord {
 /** Serialized form stored in the archive entry metadata. */
 export type DreamRecordMeta = Omit<DreamRecord, 'id'>
 
-// ─── Dream Engine Inputs ─────────────────────────────────────────────────────
 
 export interface DreamSampleOpts {
   sampleSize: number

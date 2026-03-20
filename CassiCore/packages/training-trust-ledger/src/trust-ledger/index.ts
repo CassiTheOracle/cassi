@@ -47,7 +47,6 @@ import type Database from 'better-sqlite3'
 
 
 
-// ─── Module Implementation ───────────────────────────────────────────────────
 
 export class TrustLedger extends BaseCognitiveModule {
   readonly name = 'trust-ledger'
@@ -63,7 +62,6 @@ export class TrustLedger extends BaseCognitiveModule {
   private totalEvidenceIngested = 0
   private totalDecaysApplied = 0
 
-  // ── Batched persistence ─────────────────────────────────────────────────
   // Instead of hitting SQLite on every tool call, buffer dirty domains and
   // flush periodically. This reduces DB writes from N-per-turn to 1-per-flush.
   private dirtyDomains = new Set<TrustDomain>()
@@ -76,7 +74,6 @@ export class TrustLedger extends BaseCognitiveModule {
     this.logger = logger.child('trust-ledger')
   }
 
-  // ─── Lifecycle ───────────────────────────────────────────────────────────
 
   override async init(): Promise<void> {
     await super.init()
@@ -154,7 +151,6 @@ export class TrustLedger extends BaseCognitiveModule {
     })
   }
 
-  // ─── Public API ──────────────────────────────────────────────────────────
 
   /**
    * Record a piece of evidence that updates a domain's trust score.
@@ -331,7 +327,6 @@ export class TrustLedger extends BaseCognitiveModule {
     }
   }
 
-  // ─── Batched Persistence ──────────────────────────────────────────────────
 
   /**
    * Flush all dirty trust scores to SQLite in one pass.
@@ -363,7 +358,6 @@ export class TrustLedger extends BaseCognitiveModule {
     this.flushDirtyScores()
   }
 
-  // ─── Internal ────────────────────────────────────────────────────────────
 
   /**
    * Create a new trust domain with uninformative prior.
@@ -456,7 +450,6 @@ export class TrustLedger extends BaseCognitiveModule {
     return mapping[moduleName] ?? 'agent-management'
   }
 
-  // ─── Database Persistence ────────────────────────────────────────────────
 
   private initSchema(): void {
     if (!this.db) return
@@ -542,11 +535,9 @@ export class TrustLedger extends BaseCognitiveModule {
 
 }
 
-// ─── Module Export (for auto-discovery by IntelligenceRegistry) ──────────────
 
 export const MODULE_CLASS = TrustLedger
 
-// ─── Factory (for legacy createIntelligence pattern) ─────────────────────────
 
 export function createTrustLedger(logger: ILogger): TrustLedger {
   return new TrustLedger(logger)
