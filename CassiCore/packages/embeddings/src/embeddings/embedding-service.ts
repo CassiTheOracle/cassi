@@ -12,7 +12,6 @@ import { join, dirname } from 'path'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getInferenceStackLauncher, MANAGED_EMBEDDING } from './inference-stack-launcher.js'
 
-// ── Configuration (env vars with sensible defaults) ──────────────────────────
 const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://localhost:18820'
 const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'zembed-1'
 const EMB_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || '5000')
@@ -49,20 +48,17 @@ export class EmbeddingService {
   private timeoutMs: number
   private batchSize: number
 
-  // ── LRU cache ──
   private cache = new Map<string, number[]>()
   private cacheOrder: string[] = []  // oldest → newest
   private cacheByteSize = 0
   private maxEntries: number
   private maxBytes: number
 
-  // ── Persistence ──
   private persistPath: string
   private persistTimer: ReturnType<typeof setTimeout> | null = null
   private dirty = false
   private noPersist: boolean
 
-  // ── Circuit breaker ──
   private cb = { failures: 0, openUntil: 0 }
 
   constructor(logger: ILogger, config?: EmbeddingServiceConfig) {
@@ -86,7 +82,6 @@ export class EmbeddingService {
     })
   }
 
-  // ── Public API ───────────────────────────────────────────────────────────────
 
   /** Embed a single text. Returns null if server unavailable. */
   async embed(text: string, mode: EmbeddingMode = 'document'): Promise<number[] | null> {
@@ -185,7 +180,6 @@ export class EmbeddingService {
     this.persistCache()
   }
 
-  // ── HTTP layer ───────────────────────────────────────────────────────────────
 
   /**
    * Wrap text in zembed-1's chat template for asymmetric embedding.
@@ -292,7 +286,6 @@ export class EmbeddingService {
     return out
   }
 
-  // ── Cache management ─────────────────────────────────────────────────────────
 
   private cacheKey(text: string, mode: EmbeddingMode): string {
     return createHash('sha256').update(`${this.modelTag}:${mode}:${text}`).digest('hex')
@@ -334,7 +327,6 @@ export class EmbeddingService {
     }
   }
 
-  // ── File persistence ─────────────────────────────────────────────────────────
 
   private loadCache(): void {
     if (this.noPersist) return
@@ -382,10 +374,16 @@ export class EmbeddingService {
   }
 }
 
-// ── Singleton ────────────────────────────────────────────────────────────────
 let _instance: EmbeddingService | null = null
 
 /** Get the shared EmbeddingService singleton (auto-initializes on first call). */
+/**
+ * @dep callers: scoreForOpenCode (core/intelligence/context-window/index.ts), build (core/intelligence/context-window/index.ts), searchHistory (core/intelligence/continuity/index.ts), similarityScore (core/intelligence/drone-swarm/index.ts), constructor (core/intelligence/embeddings/background-worker.ts) [+4]
+ * @dep flows: ProcessTurn → GetEmbeddingService (4/4)
+ * @dep module: Memory
+ * @dep risk: HIGH | 9 callers, 1 flow, 1 module
+ */
+
 export function getEmbeddingService(logger?: ILogger): EmbeddingService {
   if (!_instance) {
     const fallbackLogger: ILogger = {

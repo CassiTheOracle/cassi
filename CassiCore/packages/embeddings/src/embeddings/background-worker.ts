@@ -29,7 +29,6 @@ import type { ILogger } from '../../../types/interfaces.js'
 
 
 
-// ── Configuration ──────────────────────────────────────────────────────────
 
 const TICK_INTERVAL_MS = Number(process.env.EMB_BG_INTERVAL_MS || '300000')  // 5 min
 const BATCH_SIZE = Number(process.env.EMB_BG_BATCH_SIZE || '32')
@@ -84,9 +83,7 @@ export class BackgroundEmbeddingWorker {
     this.openMemoryDb(dataDir)
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // LIFECYCLE
-  // ═══════════════════════════════════════════════════════════════════════════
 
   /** Start the background worker. */
   start(): void {
@@ -128,9 +125,7 @@ export class BackgroundEmbeddingWorker {
     return this.tick()
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // TICK — main processing loop
-  // ═══════════════════════════════════════════════════════════════════════════
 
   private async tick(): Promise<{ embedded: number; errors: number }> {
     if (this.ticking || !this.running) return { embedded: 0, errors: 0 }
@@ -183,9 +178,7 @@ export class BackgroundEmbeddingWorker {
     return { embedded: totalEmbedded, errors: totalErrors }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // ARCHIVE EMBEDDING
-  // ═══════════════════════════════════════════════════════════════════════════
 
   private async embedArchiveEntries(): Promise<{ embedded: number; errors: number }> {
     if (!this.archiveDb) return { embedded: 0, errors: 0 }
@@ -257,9 +250,7 @@ export class BackgroundEmbeddingWorker {
     return { embedded, errors }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // MEMORY EMBEDDING
-  // ═══════════════════════════════════════════════════════════════════════════
 
   private async embedMemoryEntries(limit: number): Promise<{ embedded: number; errors: number }> {
     if (!this.memoryDb) return { embedded: 0, errors: 0 }
@@ -330,9 +321,7 @@ export class BackgroundEmbeddingWorker {
     return { embedded, errors }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // DATABASE CONNECTIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   private openArchiveDb(dataDir: string): void {
     const dbPath = path.join(dataDir, 'archives.db')
@@ -367,7 +356,6 @@ export class BackgroundEmbeddingWorker {
   }
 }
 
-// ── Singleton ──────────────────────────────────────────────────────────────
 
 let _instance: BackgroundEmbeddingWorker | null = null
 

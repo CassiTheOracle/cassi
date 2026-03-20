@@ -19,7 +19,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import { getInferenceStackLauncher, MANAGED_RERANKER } from './inference-stack-launcher.js'
 
-// ── Configuration ──────────────────────────────────────────────────────────
 const RERANKER_SERVER_URL = process.env.RERANKER_SERVER_URL || 'http://localhost:18821'
 // zerank-2 with GGUF on GPU: typically <50ms/doc; 30s covers worst-case batches.
 // Override with RERANKER_TIMEOUT_MS.
@@ -132,10 +131,15 @@ export class RerankerService {
   }
 }
 
-// ── Singleton ────────────────────────────────────────────────────────────────
 let _instance: RerankerService | null = null
 
 /** Get the shared RerankerService singleton. */
+/**
+ * @dep callers: scoreForOpenCode (core/intelligence/context-window/index.ts), build (core/intelligence/context-window/index.ts), search (core/intelligence/memory/archive-reader.ts), smartRecall (core/intelligence/memory/index.ts), search (core/intelligence/memory/index.ts) [+1]
+ * @dep module: Memory
+ * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
+ */
+
 export function getRerankerService(logger?: ILogger): RerankerService {
   if (!_instance) {
     const fallbackLogger: ILogger = {

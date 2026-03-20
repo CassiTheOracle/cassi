@@ -14,7 +14,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import { getInferenceStackLauncher, MANAGED_GENERATIVE } from './inference-stack-launcher.js'
 
-// ── Configuration ───────────────────────────────────────────────────────────
 const DEFAULT_SERVER_URL = 'http://127.0.0.1:18822'
 const DEFAULT_TIMEOUT_MS = 5000
 const DEFAULT_MAX_TOKENS = 512
@@ -27,7 +26,6 @@ const CB_COOLDOWN_MS = 30_000
 // Health check cache — avoid flooding /health
 const HEALTH_CACHE_TTL_MS = 10_000
 
-// ── Types ───────────────────────────────────────────────────────────────────
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -58,7 +56,6 @@ export interface LocalLLMServiceConfig {
   temperature?: number
 }
 
-// ── Service ─────────────────────────────────────────────────────────────────
 
 export class LocalLLMService {
   private logger: ILogger
@@ -201,7 +198,6 @@ export class LocalLLMService {
     return this.generate(messages, opts)
   }
 
-  // ── Internal ────────────────────────────────────────────────────────────
 
   private recordFailure(): void {
     this.cbFailures++
@@ -237,10 +233,16 @@ export class LocalLLMService {
   }
 }
 
-// ── Singleton ────────────────────────────────────────────────────────────────
 let _instance: LocalLLMService | null = null
 
 /** Get the shared LocalLLMService singleton. */
+/**
+ * @dep callers: extractQueriesViaLLM (core/intelligence/memory/index.ts), assembleContext (core/intelligence/context-assembler.ts)
+ * @dep flows: ProcessTurn → GetLocalLLMService (4/4)
+ * @dep module: Memory
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
+ */
+
 export function getLocalLLMService(logger?: ILogger): LocalLLMService {
   if (!_instance) {
     const fallbackLogger: ILogger = {

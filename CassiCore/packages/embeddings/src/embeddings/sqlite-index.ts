@@ -75,9 +75,7 @@ export class SqliteVectorIndex {
     return !!this.db
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // WRITE OPERATIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   /** Insert or replace a single vector. */
   addVector(id: string, vector: number[], meta?: any): void {
@@ -137,9 +135,7 @@ export class SqliteVectorIndex {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // READ OPERATIONS
-  // ═══════════════════════════════════════════════════════════════════════════
 
   /** Check whether a vector with the given ID exists. O(1). */
   hasVector(id: string): boolean {
@@ -254,9 +250,7 @@ export class SqliteVectorIndex {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // INTERNAL
-  // ═══════════════════════════════════════════════════════════════════════════
 
   /** Cosine similarity between two vectors. Public for use by callers. */
   cosineSimilarity(a: number[] | null, b: number[] | null): number {
@@ -289,11 +283,17 @@ export class SqliteVectorIndex {
   }
 }
 
-// ── Singleton ──────────────────────────────────────────────────────────────
 
 let _instance: SqliteVectorIndex | null = null
 
 /** Get the shared SqliteVectorIndex singleton. */
+/**
+ * @dep callers: constructor (core/intelligence/embeddings/background-worker.ts), search (core/intelligence/memory/archive-reader.ts), search (core/intelligence/memory/index.ts)
+ * @dep flows: ProcessTurn → GetVectorIndex (4/4)
+ * @dep module: Embeddings
+ * @dep risk: LOW | 3 callers, 1 flow, 1 module
+ */
+
 export function getVectorIndex(logger?: ILogger): SqliteVectorIndex {
   if (!_instance) {
     const fallbackLogger: ILogger = {

@@ -20,12 +20,12 @@
  * Port defaults: 18820 (embedding), 18821 (reranker), 18822 (generative).
  * Override via EMBEDDING_PORT / RERANKER_PORT / GENERATIVE_PORT env vars.
  *
- * NOTE: The reranker uses llama-cpp-python for raw logit access. Qwen3-Reranker-0.6B
+ * HOW: The reranker uses llama-cpp-python for raw logit access. Qwen3-Reranker-0.6B
  * uses softmax([no_logit, yes_logit])[1] scoring with an instruction-aware prompt
  * template. The older zerank-2 model uses sigmoid(Yes_logit/5.0) scoring.
  */
 
-import { spawn, type ChildProcess } from 'child_process'
+import { spawn, execFile, type ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
@@ -33,7 +33,6 @@ import { homedir } from 'os'
 
 import type { ILogger } from '../../../types/interfaces.js'
 
-// ── Defaults ────────────────────────────────────────────────────────────────
 export const DEFAULT_EMBEDDING_PORT = 18820
 export const DEFAULT_RERANKER_PORT = 18821
 export const DEFAULT_GENERATIVE_PORT = 18822
@@ -49,6 +48,8 @@ const HEALTH_POLL_INTERVAL_MS = 1_000
 const HEALTH_TIMEOUT_MS = 180_000  // 3 min max wait (zerank-2 on CPU is slow)
 const IDLE_CHECK_INTERVAL_MS = 60_000  // Check for idle processes every 60s
 const DEFAULT_IDLE_TIMEOUT_MS = 600_000  // 10 minutes
+const DEFAULT_GPU_GUARD_INTERVAL_MS = 60_000  // Re-check GPU contention every 60s
+const GPU_CHECK_TIMEOUT_MS = 5_000  // Timeout for rocm-smi / nvidia-smi calls
 
 interface ManagedProcess {
   name: string
@@ -101,7 +102,6 @@ export interface InferenceStackLauncherConfig {
   embeddingUbatchSize?: number
   /** Disable auto-start entirely (e.g. for tests). */
   disabled?: boolean
-  // ── Generative model (local LLM for query extraction, summarization, etc.) ──
   /** Port for the local generative model server. Default: 18822 */
   generativePort?: number
    /** Path to generative GGUF model. Default: ~/models/smartrecall-0.8B-Q8_0.gguf */
@@ -123,6 +123,18 @@ export interface InferenceStackLauncherConfig {
    * Set to 0 to disable idle unloading. Default: 600000 (10 min).
    */
   idleTimeoutMs?: number
+  /**
+   * Enable automatic GPU contention detection. Default: true.
+   * When enabled, inference processes will not start if another application
+   * is using the GPU (e.g. a game), and will auto-start when the GPU is free.
+   * Uses rocm-smi (AMD) or nvidia-smi (NVIDIA) to detect external GPU consumers.
+   */
+  gpuGuardEnabled?: boolean
+  /**
+   * How often (ms) to re-check GPU availability when inference is deferred
+   * or to detect new external GPU consumers. Default: 60000 (1 min).
+   */
+  gpuGuardIntervalMs?: number
 }
 
 /** @deprecated Use InferenceStackLauncherConfig instead */
@@ -134,6 +146,14 @@ export class InferenceStackLauncher {
   private stopped = false
   private config: Required<InferenceStackLauncherConfig>
   private idleCheckTimer: ReturnType<typeof setInterval> | null = null
+  /** True if start() was skipped/deferred because the GPU was busy. */
+  private gpuDeferred = false
+  /** Periodic timer for GPU contention re-checks. */
+  private gpuGuardTimer: ReturnType<typeof setInterval> | null = null
+  /** Which GPU monitoring tool is available on this system. */
+  private gpuTool: 'rocm-smi' | 'nvidia-smi' | null = null
+  /** True when the GPU guard has unloaded inference due to external GPU usage. */
+  private gpuGuardUnloaded = false
 
   constructor(logger: ILogger, config?: InferenceStackLauncherConfig) {
     this.logger = logger.child?.('inference-stack') ?? logger
@@ -175,7 +195,6 @@ export class InferenceStackLauncher {
       embeddingUbatchSize: config?.embeddingUbatchSize
         ?? Number(process.env.EMBEDDING_SERVER_UBATCH_SIZE || '128'),
       disabled: config?.disabled ?? false,
-      // ── Generative model defaults ──
       generativePort: config?.generativePort
         ?? Number(process.env.GENERATIVE_PORT || String(DEFAULT_GENERATIVE_PORT)),
       generativeModelPath: config?.generativeModelPath
@@ -192,7 +211,122 @@ export class InferenceStackLauncher {
       generativeDisabled: config?.generativeDisabled ?? false,
       idleTimeoutMs: config?.idleTimeoutMs
         ?? Number(process.env.INFERENCE_IDLE_TIMEOUT_MS || String(DEFAULT_IDLE_TIMEOUT_MS)),
+      gpuGuardEnabled: config?.gpuGuardEnabled ?? true,
+      gpuGuardIntervalMs: config?.gpuGuardIntervalMs
+        ?? Number(process.env.INFERENCE_GPU_GUARD_INTERVAL_MS || String(DEFAULT_GPU_GUARD_INTERVAL_MS)),
     }
+
+    // Detect available GPU monitoring tool once at construction time
+    this.gpuTool = InferenceStackLauncher.detectGpuTool()
+    if (this.config.gpuGuardEnabled && !this.gpuTool) {
+      this.logger.warn('GPU guard: no monitoring tool found (rocm-smi/nvidia-smi) — GPU contention detection disabled')
+    }
+  }
+
+  /**
+   * Detect which GPU monitoring tool is available on this system.
+   * Checked once at construction — the result is cached.
+   */
+  private static detectGpuTool(): 'rocm-smi' | 'nvidia-smi' | null {
+    if (existsSync('/opt/rocm/bin/rocm-smi')) return 'rocm-smi'
+    // Check common nvidia-smi paths
+    for (const p of ['/usr/bin/nvidia-smi', '/usr/local/bin/nvidia-smi']) {
+      if (existsSync(p)) return 'nvidia-smi'
+    }
+    return null
+  }
+
+  /**
+   * Check whether another (non-CassiCore) application is using the GPU.
+   * Shells out to rocm-smi or nvidia-smi, parses the result, and filters
+   * out our own managed process PIDs. Fail-open: returns false (not busy)
+   * if the tool is unavailable, times out, or produces unparseable output.
+   */
+  private async isGpuBusy(): Promise<boolean> {
+    if (!this.gpuTool) return false
+
+    const ownPids = new Set(
+      this.managed
+        .filter(m => m.proc?.pid != null)
+        .map(m => m.proc!.pid!),
+    )
+
+    try {
+      if (this.gpuTool === 'rocm-smi') {
+        return await this.checkRocmSmi(ownPids)
+      } else {
+        return await this.checkNvidiaSmi(ownPids)
+      }
+    } catch (err) {
+      this.logger.debug(`GPU guard: check failed (${String(err)}) — assuming GPU is free`)
+      return false
+    }
+  }
+
+  /** Parse rocm-smi --json --showpids output. */
+  private checkRocmSmi(ownPids: Set<number>): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => resolve(false), GPU_CHECK_TIMEOUT_MS)
+      execFile('/opt/rocm/bin/rocm-smi', ['--json', '--showpids'], (err, stdout) => {
+        clearTimeout(timer)
+        if (err) { resolve(false); return }
+        try {
+          // Format: {"system": {"PID12345": "llama-server, 1, 1752080384, 0, unknown", ...}}
+          const data = JSON.parse(stdout) as Record<string, Record<string, string>>
+          const system = data.system ?? data
+          for (const key of Object.keys(system)) {
+            const pidMatch = key.match(/PID(\d+)/)
+            if (!pidMatch) continue
+            const pid = Number(pidMatch[1])
+            if (ownPids.has(pid)) continue // our own process
+
+            // Check VRAM usage: format "name, gpuIdx, vramBytes, sdmaBytes, cuOccupancy"
+            const parts = system[key].split(',').map(s => s.trim())
+            const vramBytes = Number(parts[2] ?? '0')
+            if (vramBytes > 0) {
+              this.logger.debug(`GPU guard: external process PID ${pid} (${parts[0]}) using ${Math.round(vramBytes / 1048576)}MB VRAM`)
+              resolve(true)
+              return
+            }
+          }
+          resolve(false)
+        } catch {
+          resolve(false)
+        }
+      })
+    })
+  }
+
+  /** Parse nvidia-smi --query-compute-apps output. */
+  private checkNvidiaSmi(ownPids: Set<number>): Promise<boolean> {
+    return new Promise<boolean>((resolve) => {
+      const timer = setTimeout(() => resolve(false), GPU_CHECK_TIMEOUT_MS)
+      execFile('nvidia-smi', [
+        '--query-compute-apps=pid,name,used_memory',
+        '--format=csv,noheader,nounits',
+      ], (err, stdout) => {
+        clearTimeout(timer)
+        if (err) { resolve(false); return }
+        try {
+          // Format: "12345, process_name, 1024" (one line per process, memory in MiB)
+          for (const line of stdout.trim().split('\n')) {
+            if (!line.trim()) continue
+            const parts = line.split(',').map(s => s.trim())
+            const pid = Number(parts[0])
+            if (ownPids.has(pid)) continue
+            const usedMiB = Number(parts[2] ?? '0')
+            if (usedMiB > 0) {
+              this.logger.debug(`GPU guard: external process PID ${pid} (${parts[1]}) using ${usedMiB}MiB VRAM`)
+              resolve(true)
+              return
+            }
+          }
+          resolve(false)
+        } catch {
+          resolve(false)
+        }
+      })
+    })
   }
 
   /**
@@ -203,6 +337,14 @@ export class InferenceStackLauncher {
   async start(): Promise<void> {
     if (this.config.disabled) {
       this.logger.info('Inference stack auto-start disabled')
+      return
+    }
+
+    // GPU contention guard: defer startup if another application is using the GPU
+    if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+      this.logger.info('GPU in use by another application — deferring inference stack startup')
+      this.gpuDeferred = true
+      this.startGpuGuardLoop()
       return
     }
 
@@ -217,7 +359,6 @@ export class InferenceStackLauncher {
       this.logger.warn(`llama-server not found at ${llamaServer} — llama.cpp servers will be skipped`)
     }
 
-    // ── Embedding server (llama.cpp) ──
     if (!llamaServerExists) {
       // Already warned above
     } else if (!existsSync(this.config.embeddingModelPath)) {
@@ -243,7 +384,6 @@ export class InferenceStackLauncher {
       })
     }
 
-    // ── Reranker server (zerank-server with GGUF via llama-cpp-python) ──
     const __dirname = dirname(fileURLToPath(import.meta.url))
     const projectRoot = join(__dirname, '..', '..', '..', '..')
     const zerankScript = join(projectRoot, 'bin', 'zerank-server')
@@ -275,7 +415,6 @@ export class InferenceStackLauncher {
       })
     }
 
-    // ── Generative model server (llama.cpp) ──
     if (this.config.generativeDisabled) {
       this.logger.info('Generative model auto-start disabled')
     } else if (!llamaServerExists) {
@@ -307,6 +446,11 @@ export class InferenceStackLauncher {
 
     // Start the idle-unload timer
     this.startIdleChecker()
+
+    // Start GPU guard loop to detect external GPU consumers appearing later
+    if (this.config.gpuGuardEnabled && this.gpuTool) {
+      this.startGpuGuardLoop()
+    }
   }
 
   /** Kill all managed child processes and stop idle monitoring. */
@@ -316,6 +460,10 @@ export class InferenceStackLauncher {
       clearInterval(this.idleCheckTimer)
       this.idleCheckTimer = null
     }
+    if (this.gpuGuardTimer) {
+      clearInterval(this.gpuGuardTimer)
+      this.gpuGuardTimer = null
+    }
     for (const m of this.managed) {
       m.dead = true
       this.killProc(m)
@@ -323,7 +471,6 @@ export class InferenceStackLauncher {
     this.managed = []
   }
 
-  // ── Public: demand loading / activity tracking ────────────────────────────
 
   /**
    * Ensure a managed process is running. If it was idle-unloaded, re-spawn
@@ -349,6 +496,12 @@ export class InferenceStackLauncher {
       return true
     }
 
+    // GPU contention guard: don't demand-restart if another app is using the GPU
+    if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+      this.logger.debug(`GPU guard: GPU busy — skipping demand restart for ${name}`)
+      return false
+    }
+
     this.logger.info(`Reloading ${m.name} on demand`)
     m.startingPromise = this.demandRestart(m)
     try {
@@ -368,7 +521,6 @@ export class InferenceStackLauncher {
     if (m) m.lastActivity = Date.now()
   }
 
-  // ── Internal ──────────────────────────────────────────────────────────────
 
   private spawnManaged(opts: {
     name: string
@@ -517,7 +669,6 @@ export class InferenceStackLauncher {
     this.logger.warn(`${m.name} did not become healthy within ${HEALTH_TIMEOUT_MS / 1000}s`)
   }
 
-  // ── Idle unloading ──────────────────────────────────────────────────────
 
   /** Start periodic idle checker. Processes idle longer than idleTimeoutMs are killed. */
   private startIdleChecker(): void {
@@ -548,12 +699,73 @@ export class InferenceStackLauncher {
       }
     }
   }
+
+
+  /**
+   * Start periodic GPU contention re-check loop.
+   *
+   * - When GPU becomes free and inference was deferred → start all processes.
+   * - When GPU becomes busy and inference is running → unload all processes.
+   *
+   * Idempotent: safe to call multiple times (only one timer runs at a time).
+   */
+  private startGpuGuardLoop(): void {
+    if (this.gpuGuardTimer) return  // already running
+    const intervalMs = this.config.gpuGuardIntervalMs
+    this.logger.info(`GPU guard loop started: checking every ${Math.round(intervalMs / 1000)}s`)
+
+    this.gpuGuardTimer = setInterval(() => void this.gpuGuardTick(), intervalMs)
+    this.gpuGuardTimer.unref?.()
+  }
+
+  /**
+   * Single tick of the GPU guard loop. Detects transitions between
+   * "GPU free" and "GPU busy" and starts/stops inference accordingly.
+   */
+  private async gpuGuardTick(): Promise<void> {
+    if (this.stopped || this.config.disabled) return
+
+    const busy = await this.isGpuBusy()
+
+    if (busy && !this.gpuGuardUnloaded && !this.gpuDeferred) {
+      // GPU became busy while inference is running → unload to free VRAM
+      const running = this.managed.filter(
+        m => !m.dead && !m.unloaded && m.proc && m.proc.exitCode === null,
+      )
+      if (running.length > 0) {
+        this.logger.info(
+          `GPU guard: external GPU usage detected — unloading ${running.length} inference process(es) to free VRAM`,
+        )
+        for (const m of running) {
+          m.unloaded = true
+          this.killProc(m)
+        }
+        this.gpuGuardUnloaded = true
+      }
+    } else if (!busy && (this.gpuDeferred || this.gpuGuardUnloaded)) {
+      // GPU became free → start or restart inference
+      if (this.gpuDeferred) {
+        this.logger.info('GPU guard: GPU is now free — starting deferred inference stack')
+        this.gpuDeferred = false
+        this.gpuGuardUnloaded = false
+        await this.start()
+      } else if (this.gpuGuardUnloaded) {
+        this.logger.info('GPU guard: GPU is now free — reloading inference processes')
+        this.gpuGuardUnloaded = false
+        for (const m of this.managed) {
+          if (m.unloaded && !m.dead) {
+            m.startingPromise = this.demandRestart(m)
+            try { await m.startingPromise } finally { m.startingPromise = null }
+          }
+        }
+      }
+    }
+  }
 }
 
 /** @deprecated Use InferenceStackLauncher instead */
 export const EmbeddingStackLauncher = InferenceStackLauncher
 
-// ── Singleton ────────────────────────────────────────────────────────────────
 let _launcherInstance: InferenceStackLauncher | null = null
 
 /** Register the launcher singleton (called by the daemon at startup). */
@@ -562,6 +774,13 @@ export function setInferenceStackLauncher(launcher: InferenceStackLauncher): voi
 }
 
 /** Get the launcher singleton. Returns null if the daemon hasn't started it. */
+/**
+ * @dep callers: fetchBatch (core/intelligence/embeddings/embedding-service.ts), generate (core/intelligence/embeddings/local-llm-service.ts), rerank (core/intelligence/embeddings/reranker-service.ts)
+ * @dep flows: SmartRecall → GetInferenceStackLauncher (5/5)
+ * @dep module: Embeddings
+ * @dep risk: LOW | 3 callers, 1 flow, 1 module
+ */
+
 export function getInferenceStackLauncher(): InferenceStackLauncher | null {
   return _launcherInstance
 }
