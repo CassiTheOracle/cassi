@@ -12,7 +12,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const MEMORY_TOOLS = [
   {
-    name: 'cassi_memory_store',
+    name: 'memory_store',
     description: "Store a memory in CassiCore's persistent memory system. Memories persist across sessions and can be searched later.",
     inputSchema: {
       type: 'object',
@@ -35,7 +35,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_search',
+    name: 'memory_search',
     description: "Search CassiCore's persistent memory using full-text search. Returns matching memories with relevance scores.",
     inputSchema: {
       type: 'object',
@@ -53,7 +53,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_recent',
+    name: 'memory_recent',
     description: 'List the most recently stored memories.',
     inputSchema: {
       type: 'object',
@@ -66,7 +66,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_delete',
+    name: 'memory_delete',
     description: 'Delete a memory entry by its ID.',
     inputSchema: {
       type: 'object',
@@ -77,7 +77,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_kv_get',
+    name: 'memory_kv_get',
     description: 'Retrieve a value from the persistent key-value store.',
     inputSchema: {
       type: 'object',
@@ -88,7 +88,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_kv_set',
+    name: 'memory_kv_set',
     description: 'Store a value in the persistent key-value store. Survives daemon restarts.',
     inputSchema: {
       type: 'object',
@@ -100,7 +100,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_kv_del',
+    name: 'memory_kv_del',
     description: 'Delete a key from the persistent key-value store.',
     inputSchema: {
       type: 'object',
@@ -111,12 +111,12 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_memory_stats',
+    name: 'memory_stats',
     description: 'Get memory system statistics — entry counts by type, archive stats, and queue depth.',
     inputSchema: { type: 'object', properties: {} },
   },
   {
-    name: 'cassi_archive_search',
+    name: 'archive_search',
     description: 'Search the archive (conversations, insights, patterns, dialectic outputs, events) with rich filtering.',
     inputSchema: {
       type: 'object',
@@ -147,7 +147,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_archive_get',
+    name: 'archive_get',
     description: 'Get a single archive entry by ID.',
     inputSchema: {
       type: 'object',
@@ -158,7 +158,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_archive_related',
+    name: 'archive_related',
     description: 'Find archive entries related to a given entry (by entity/topic overlap).',
     inputSchema: {
       type: 'object',
@@ -170,7 +170,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_archive_recent',
+    name: 'archive_recent',
     description: 'List the most recently archived entries across all types (conversations, insights, patterns, etc.).',
     inputSchema: {
       type: 'object',
@@ -180,7 +180,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_browse',
+    name: 'browse',
     description: 'Browse the archive index — list all tags, entities, or topics with their occurrence counts.',
     inputSchema: {
       type: 'object',
@@ -196,7 +196,7 @@ export const MEMORY_TOOLS = [
     },
   },
   {
-    name: 'cassi_universal_search',
+    name: 'universal_search',
     description: 'Search across both the memory store and the archive in one call.',
     inputSchema: {
       type: 'object',
@@ -228,7 +228,7 @@ export async function executeMemoryTool(
   logger.info('Executing memory tool', { tool: toolName, args });
 
   switch (toolName) {
-    case 'cassi_memory_store': {
+    case 'memory_store': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/store`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -238,7 +238,7 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_memory_search': {
+    case 'memory_search': {
       const params = new URLSearchParams({ query: args.query });
       if (args.limit) params.set('limit', String(args.limit));
       const res = await fetchWithTimeout(`${baseUrl}/memory/search?${params}`);
@@ -246,7 +246,7 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_memory_recent': {
+    case 'memory_recent': {
       const params = new URLSearchParams();
       if (args?.limit) params.set('limit', String(args.limit));
       const qs = params.toString();
@@ -255,19 +255,19 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_memory_delete': {
+    case 'memory_delete': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/${encodeURIComponent(args.id)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Memory delete failed: ${await res.text()}`);
       return await res.json();
     }
 
-    case 'cassi_memory_kv_get': {
+    case 'memory_kv_get': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/kv/${encodeURIComponent(args.key)}`);
       if (!res.ok) throw new Error(`KV get failed: ${await res.text()}`);
       return await res.json();
     }
 
-    case 'cassi_memory_kv_set': {
+    case 'memory_kv_set': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/kv`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -277,19 +277,19 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_memory_kv_del': {
+    case 'memory_kv_del': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/kv/${encodeURIComponent(args.key)}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`KV delete failed: ${await res.text()}`);
       return await res.json();
     }
 
-    case 'cassi_memory_stats': {
+    case 'memory_stats': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/stats`);
       if (!res.ok) throw new Error(`Memory stats failed: ${await res.text()}`);
       return await res.json();
     }
 
-    case 'cassi_archive_search': {
+    case 'archive_search': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/archives/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -299,13 +299,13 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_archive_get': {
+    case 'archive_get': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/archives/${encodeURIComponent(args.id)}`);
       if (!res.ok) throw new Error(`Archive get failed: ${await res.text()}`);
       return await res.json();
     }
 
-    case 'cassi_archive_related': {
+    case 'archive_related': {
       const params = new URLSearchParams();
       if (args.limit) params.set('limit', String(args.limit));
       const qs = params.toString();
@@ -314,7 +314,7 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_archive_recent': {
+    case 'archive_recent': {
       const params = new URLSearchParams();
       if (args?.limit) params.set('limit', String(args.limit));
       const qs = params.toString();
@@ -323,7 +323,7 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_browse': {
+    case 'browse': {
       const params = new URLSearchParams({ category: args.category });
       if (args.minCount) params.set('minCount', String(args.minCount));
       const res = await fetchWithTimeout(`${baseUrl}/memory/archives/browse?${params}`);
@@ -331,7 +331,7 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
-    case 'cassi_universal_search': {
+    case 'universal_search': {
       const res = await fetchWithTimeout(`${baseUrl}/memory/universal-search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -348,6 +348,10 @@ export async function executeMemoryTool(
 
 /**
  * Get all memory tool definitions
+ * @dep callers: getAllTools (mcp/cassicore-gateway.ts)
+ * @dep flows: CreateHierarchyBridge → GetMemoryTools (4/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function getMemoryTools(): Array<{
   name: string;

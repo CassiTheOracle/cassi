@@ -21,7 +21,6 @@ import { augmentDoResult, fetchStateCard, type DoMode, type StateView } from './
 import { fetchAndFormatContext, type ContextLimits } from './context-enrichment.js';
 import type { ILogger } from '../../types/interfaces.js';
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 /** MCP tool response shape (matches what routeToolCall returns) */
 type McpToolResponse = {
@@ -38,7 +37,6 @@ export type ToolRouter = (
   args: unknown
 ) => Promise<McpToolResponse>;
 
-// ─── Tool Definitions ─────────────────────────────────────────────────────────
 
 export const DO_TOOLS = [
   {
@@ -66,14 +64,14 @@ State views (state_view param, default "auto"):
 
 Use cassi_enrich separately to surface memories and past context — cassi_do does not search memory.
 
-The tool parameter accepts both the raw registered name ("bash") and the prefixed form ("cassi_bash") — one cassi_ prefix is stripped automatically.`,
+The tool parameter accepts both the raw registered name ("bash") and the legacy prefixed form ("cassi_bash") — one leading cassi_ prefix is stripped automatically for compatibility.`,
     inputSchema: {
       type: 'object',
       properties: {
         tool: {
           type: 'string',
           description:
-            'Registered tool name to call (e.g. "bash", "cassi_bash", "cassi_memory_search"). One leading cassi_ prefix is stripped automatically.',
+            'Registered tool name to call (e.g. "bash", "read", "memory_search"). One leading cassi_ prefix is stripped automatically for compatibility.',
         },
         input: {
           type: 'object',
@@ -104,12 +102,22 @@ export const ENRICH_TOOLS = [
 
 MANDATORY: Call this at the start of EVERY user turn with the user's message as the query. This surfaces past decisions, stored knowledge, user preferences, and conversation history that are critical for informed responses.
 
-Returns a formatted markdown block with results from three sources:
-  - Memory store (stored facts, preferences, insights)
-  - Archive (past conversations, tool calls, patterns, dialectic outputs)
-  - Session history (indexed past session excerpts with paragraph-level granularity)
+The query is processed through a Query Intelligence pipeline before searching:
+  - Entity extraction  — session refs (S0#M1), tool names, file paths, providers
+  - Dynamic expansion  — related tags/entities/topics from archive metadata (cached)
+  - Multi-variant search — 6–9 parallel searches using exact, entity, and expanded variants
+  - Cross-source merge — results ranked by relevance × 0.7 + recency × 0.2 + diversity × 0.1
+  - Empty recovery     — fallback searches + suggested related terms when nothing matches
 
-If no relevant context is found, returns a brief "no context" message.`,
+Returns a formatted markdown block with:
+  1. Top Relevant (cross-source) — best 5 results merged and ranked across all sources
+  2. From Memory               — stored facts, preferences, insights
+  3. From Archive              — past conversations, tool calls, patterns, dialectic outputs
+  4. From Session History      — indexed past session excerpts with paragraph-level granularity
+
+If no direct matches are found, returns broadened results + suggested search terms instead.
+
+If no relevant context is found at all, returns a brief "no context" message.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -147,7 +155,6 @@ export function getDoTools(): Array<{
   return [...DO_TOOLS, ...ENRICH_TOOLS];
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
  * Strip one leading "cassi_" prefix so callers can pass either the registered
@@ -157,7 +164,6 @@ export function normalizeToolName(name: string): string {
   return name.startsWith('cassi_') ? name.slice('cassi_'.length) : name;
 }
 
-// ─── Enrich Executor ──────────────────────────────────────────────────────────
 
 /**
  * Execute the `enrich` tool — context-only enrichment (no delegated tool call).
@@ -206,7 +212,6 @@ export async function executeEnrichTool(
   };
 }
 
-// ─── Do Executor ──────────────────────────────────────────────────────────────
 
 /**
  * Execute the `do` meta-wrapper tool.
@@ -251,7 +256,6 @@ export async function executeDoTool(
 
   logger.info('executeDoTool', { tool: resolvedToolName, mode, stateView });
 
-  // ── Parallel execution: tool + (for non-raw modes) state card prefetch ────
   // Starting the state card fetch alongside the tool call means its latency
   // is hidden by the tool's own execution time in most cases.
   const stateCardPromise = mode !== 'raw'

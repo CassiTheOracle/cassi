@@ -12,7 +12,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const DIALECTIC_TOOLS = [
   {
-    name: 'cassi_dialectic',
+    name: 'dialectic',
     description: "View the Yang/Yin/Synthesizer dialectic analysis — recent turns, signal injection history, confidence scores, and synthesis outcomes. Shows how the dialectic trio processes each conversation turn.",
     inputSchema: {
       type: 'object',
@@ -161,7 +161,7 @@ export async function executeDialecticTool(
 
   try {
     switch (toolName) {
-      case 'cassi_dialectic':
+      case 'dialectic':
         return await formatDialectic(baseUrl, args);
       default:
         throw new Error(`Unknown dialectic tool: ${toolName}`);
@@ -174,6 +174,10 @@ export async function executeDialecticTool(
 
 /**
  * Get all dialectic tool definitions
+ * @dep callers: getAllTools (mcp/cassicore-gateway.ts)
+ * @dep flows: CreateHierarchyBridge → GetDialecticTools (4/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function getDialecticTools(): Array<{
   name: string;

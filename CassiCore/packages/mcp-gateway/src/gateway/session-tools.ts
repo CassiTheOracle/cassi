@@ -72,7 +72,7 @@ export const SESSION_TOOLS = [
     },
   },
   {
-    name: 'cassi_session_conversation',
+    name: 'session_conversation',
     description: 'Retrieve the full archived conversation thread for a session, including thinking blocks.',
     inputSchema: {
       type: 'object',
@@ -197,7 +197,7 @@ export async function executeSessionTool(
       return await res.json();
     }
 
-    case 'cassi_session_conversation': {
+    case 'session_conversation': {
       const params = new URLSearchParams();
       if (args.limit) params.set('limit', String(args.limit));
       const qs = params.toString();

@@ -12,7 +12,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const INTELLIGENCE_TOOLS = [
   {
-    name: 'cassi_activity',
+    name: 'activity',
     description: 'Dashboard of all CassiCore cognitive modules — status, recent activity, injection counts, session health. Use this for a high-level overview of what the intelligence layer is doing.',
     inputSchema: {
       type: 'object',
@@ -26,7 +26,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_thinker',
+    name: 'thinker',
     description: 'View the Thinker module state — adaptive strategy parameters, insight history, ponder/think stats, Phase 3 trigger activity, and self-modification events.',
     inputSchema: {
       type: 'object',
@@ -40,7 +40,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_subconscious',
+    name: 'subconscious',
     description: 'Conscious Observer state — system-wide mental model (session tracking, provider health, plugin status, active drones/teams, budget tiers), observations from heuristic and LLM sweeps, and detected anomalies. Use this to understand the overall health and awareness state of the intelligence layer.',
     inputSchema: {
       type: 'object',
@@ -58,7 +58,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_consciousness',
+    name: 'consciousness',
     description: "Real-time event stream and observer pipeline — what's flowing through the system right now. Shows event rate, top event types, recent event sequence, heuristic vs LLM observation counts, and last LLM sweep timing. Use this to understand the live pulse of the intelligence layer.",
     inputSchema: {
       type: 'object',
@@ -76,7 +76,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_trace',
+    name: 'trace',
     description: 'Forensic trace of a conversation turn — reconstructs what cognitive influences (optimizer, thinker, dialectic, subconscious, session digest) shaped a specific response. Use when asking "why did Cassi say that?"',
     inputSchema: {
       type: 'object',
@@ -102,7 +102,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_effectiveness',
+    name: 'effectiveness',
     description: 'Response quality metrics from implicit feedback signals — "Am I helping?" Shows outcome tracking, feedback detection, per-source quality scores, and per-tool reliability.',
     inputSchema: {
       type: 'object',
@@ -124,7 +124,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_budget',
+    name: 'budget',
     description: 'Token economy and provider usage — "Where does my attention go?" Shows request counts, error rates, per-provider/model aggregates, and hourly trends. No dollar cost calculation.',
     inputSchema: {
       type: 'object',
@@ -150,7 +150,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_evolution',
+    name: 'evolution',
     description: 'Self-modification timeline — "Am I changing?" Shows strategy snapshots over time, best strategies per module, dialectic effectiveness scores, and parameter evolution.',
     inputSchema: {
       type: 'object',
@@ -172,7 +172,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_blindspots',
+    name: 'blindspots',
     description: 'Cross-session pattern detection — "What am I systematically missing?" Shows recurring patterns across sessions, error correlations, and unresolved reflection patterns.',
     inputSchema: {
       type: 'object',
@@ -198,7 +198,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_snapshot',
+    name: 'snapshot',
     description: 'Get a comprehensive snapshot of all running team agents, their goals, progress, recent messages, and current git status. Use this to monitor ongoing parallel work.',
     inputSchema: {
       type: 'object' as const,
@@ -219,7 +219,7 @@ export const INTELLIGENCE_TOOLS = [
     }
   },
   {
-    name: 'cassi_trust',
+    name: 'trust',
     description: 'View trust scores across all domains — "How much has the agent earned?" Shows per-domain Bayesian trust scores, autonomy level, evidence counts, and strongest/weakest domains. Trust is earned through demonstrated competence and degrades over time.',
     inputSchema: {
       type: 'object',
@@ -237,7 +237,7 @@ export const INTELLIGENCE_TOOLS = [
     },
   },
   {
-    name: 'cassi_consequences',
+    name: 'consequences',
     description: 'View consequence estimation and permission decision state — "What risks am I assessing?" Shows recent risk assessments, permission decisions (allow/deny/escalate), pending human approvals, and the current trust-adjusted thresholds.',
     inputSchema: {
       type: 'object',
@@ -261,9 +261,7 @@ export const INTELLIGENCE_TOOLS = [
  */
 export const INTELLIGENCE_TOOL_NAMES = new Set(INTELLIGENCE_TOOLS.map(t => t.name));
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Formatters
-// ═══════════════════════════════════════════════════════════════════════════════
 
 async function formatActivity(baseUrl: string, args: any): Promise<string> {
   const mode = args?.mode || 'brief';
@@ -1532,12 +1530,14 @@ async function formatConsequences(baseUrl: string, args: any): Promise<string> {
   return lines.join('\n');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Execute Intelligence Tool
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Execute an intelligence tool — routes to the appropriate formatter
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep flows: CreateHierarchyBridge → ExecuteIntelligenceTool (4/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export async function executeIntelligenceTool(
   baseUrl: string,
@@ -1548,18 +1548,18 @@ export async function executeIntelligenceTool(
   logger.info('Executing intelligence tool', { tool: toolName, args });
 
   const formatters: Record<string, (baseUrl: string, args: any) => Promise<string>> = {
-    cassi_activity: formatActivity,
-    cassi_thinker: formatThinker,
-    cassi_subconscious: formatSubconscious,
-    cassi_consciousness: formatConsciousness,
-    cassi_trace: formatTrace,
-    cassi_effectiveness: formatEffectiveness,
-    cassi_budget: formatBudget,
-    cassi_evolution: formatEvolution,
-    cassi_blindspots: formatBlindspots,
-    cassi_snapshot: formatSnapshot,
-    cassi_trust: formatTrust,
-    cassi_consequences: formatConsequences,
+    activity: formatActivity,
+    thinker: formatThinker,
+    subconscious: formatSubconscious,
+    consciousness: formatConsciousness,
+    trace: formatTrace,
+    effectiveness: formatEffectiveness,
+    budget: formatBudget,
+    evolution: formatEvolution,
+    blindspots: formatBlindspots,
+    snapshot: formatSnapshot,
+    trust: formatTrust,
+    consequences: formatConsequences,
   };
 
   const formatter = formatters[toolName];
@@ -1577,6 +1577,10 @@ export async function executeIntelligenceTool(
 
 /**
  * Get all intelligence tool definitions
+ * @dep callers: getAllTools (mcp/cassicore-gateway.ts)
+ * @dep flows: CreateHierarchyBridge → GetIntelligenceTools (4/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function getIntelligenceTools(): Array<{
   name: string;
