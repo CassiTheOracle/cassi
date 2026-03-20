@@ -58,9 +58,7 @@ export interface IntelligenceLayerOptions {
   concurrency?: number;
 }
 
-// ============================================================================
 // Processor Factory — replaces per-module classes with concise function calls
-// ============================================================================
 
 /**
  * Create an IntelligenceProcessor with built-in error handling and event emission.
@@ -96,9 +94,7 @@ function createProcessor(
   }
 }
 
-// ============================================================================
 // IntelligenceLayer
-// ============================================================================
 
 export class IntelligenceLayer {
   private sessionManager: SessionManager;
@@ -271,6 +267,13 @@ export function createIntelligenceLayer(
   const logger = options.logger ?? createNoopLogger();
   return new IntelligenceLayer({ ...options, logger });
 }
+
+/**
+ * @dep callers: createNoopLogger (core/pipeline/intelligence/IntelligenceLayer.ts), createIntelligenceLayer (core/pipeline/intelligence/IntelligenceLayer.ts)
+ * @dep calls: createNoopLogger
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function createNoopLogger(): ILogger {
   return {

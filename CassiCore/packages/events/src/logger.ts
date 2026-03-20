@@ -6,7 +6,6 @@ import type { LogLevel } from "../types/events.js";
 import type { ILogger } from "../types/interfaces.js";
 import type { Message } from '../types/runtime.js';
 
-// ─── ANSI escape codes ───────────────────────────────────────────────────────
 
 const RESET = "\u001b[0m";
 const BOLD = "\u001b[1m";
@@ -19,7 +18,6 @@ const RED = "\u001b[31m";
 const RED_BOLD = "\u001b[1;31m";
 const MAGENTA = "\u001b[35m";
 
-// ─── Level config ────────────────────────────────────────────────────────────
 
 const LEVEL_PRIORITY: Record<LogLevel, number> = {
   debug: 10,
@@ -52,11 +50,13 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
   error: "ERROR",
 };
 
-// ─── Timestamp ───────────────────────────────────────────────────────────────
 
 /**
  * Format a Date as HH:MM:SS.mmm using local time and zero-padding.
  * Millisecond precision is essential for a long-running daemon.
+ * @dep callers: writeConsole (core/logger.ts), writeThoughtResultLog (core/logger.ts), writeThoughtRequestLog (core/logger.ts), writeThoughtLog (core/logger.ts)
+ * @dep module: Cluster_307
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 function timeStamp(date = new Date()): string {
   const hh = String(date.getHours()).padStart(2, "0");
@@ -68,6 +68,12 @@ function timeStamp(date = new Date()): string {
 
 const THOUGHT_LOG_DIR = join(homedir(), '.cassi');
 const THOUGHT_LOG_PATH = join(THOUGHT_LOG_DIR, 'thought.log');
+
+/**
+ * @dep callers: writeThoughtResultLog (core/logger.ts), writeThoughtRequestLog (core/logger.ts), writeThoughtLog (core/logger.ts)
+ * @dep module: Cluster_307
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 function appendThoughtLine(line: string): void {
   try {
@@ -139,7 +145,6 @@ export function writeThoughtResultLog(event: string, meta?: Record<string, unkno
   appendThoughtLine(`${time} ${event}${metaStr}`);
 }
 
-// ─── Metadata formatter ──────────────────────────────────────────────────────
 
 /** Maximum character length for a single metadata value before truncation. */
 const META_VALUE_MAX = 120;
@@ -151,6 +156,10 @@ const META_VALUE_MAX = 120;
  * - Numbers/booleans: raw
  * - Objects/arrays: JSON (truncated if long)
  * - Undefined/null: skipped
+ * @dep callers: writeConsole (core/logger.ts), writeThoughtResultLog (core/logger.ts), writeThoughtLog (core/logger.ts)
+ * @dep calls: formatValue
+ * @dep module: Cluster_307
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 function formatMeta(meta: Record<string, unknown>): string {
   const parts: string[] = [];
@@ -183,7 +192,6 @@ function formatValue(val: unknown): string {
   }
 }
 
-// ─── Logger ──────────────────────────────────────────────────────────────────
 
 /**
  * Logger implementation used across CassiCore.

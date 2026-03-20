@@ -176,9 +176,7 @@ export class BackgroundProcessor {
     return cleared;
   }
   
-  // ============================================================================
   // Private Methods
-  // ============================================================================
   
   private async processQueue(): Promise<void> {
     // Check capacity

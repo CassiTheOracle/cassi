@@ -42,9 +42,7 @@ import type {
   ErrorEvent,
 } from './event-types.js';
 
-// ============================================================================
 // Types
-// ============================================================================
 
 export interface CassandraEventClientOptions {
   baseUrl: string;
@@ -105,9 +103,7 @@ export type EventType = CassiCoreEvent['type'];
 
 export type EventHandler<T extends CassiCoreEvent> = (event: T) => void | Promise<void>;
 
-// ============================================================================
 // State Manager
-// ============================================================================
 
 class StateManager {
   state: CassandraState;
@@ -354,9 +350,7 @@ class StateManager {
   }
 }
 
-// ============================================================================
 // Event Stream Client
-// ============================================================================
 
 export class CassandraEventClient extends EventEmitter {
   private options: Required<CassandraEventClientOptions>;
@@ -608,9 +602,7 @@ export class CassandraEventClient extends EventEmitter {
   }
 }
 
-// ============================================================================
 // Factory
-// ============================================================================
 
 export function createEventClient(options: CassandraEventClientOptions): CassandraEventClient {
   return new CassandraEventClient(options);

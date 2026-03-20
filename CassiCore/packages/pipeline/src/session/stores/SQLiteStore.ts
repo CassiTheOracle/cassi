@@ -241,9 +241,7 @@ export class SQLiteSessionStore implements ISessionStore {
     }
   }
   
-  // ============================================================================
   // Private Methods
-  // ============================================================================
   
   private ensureInitialized(): void {
     if (!this.db) {

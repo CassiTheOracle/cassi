@@ -5,9 +5,7 @@ import type { IEventBus, ILogger } from "../types/interfaces.js";
 
 const logger: ILogger = rootLogger.child('event-bus');
 
-// ============================================================================
 // Ring Buffer — O(1) add, bounded memory, insertion-order retrieval
-// ============================================================================
 
 class RingBuffer<T> {
   private items: T[] = [];
@@ -54,9 +52,7 @@ class RingBuffer<T> {
   }
 }
 
-// ============================================================================
 // Event History Configuration
-// ============================================================================
 
 export interface EventHistoryOptions {
   /** Max events per session ring buffer (default: 10000) */
@@ -65,9 +61,7 @@ export interface EventHistoryOptions {
   globalMaxSize?: number;
 }
 
-// ============================================================================
 // EventBus — typed event bus with session history tracking
-// ============================================================================
 
 /**
  * EventBus — typed event bus with built-in session history.
@@ -102,7 +96,6 @@ export class EventBus implements IEventBus {
     this.globalHistory = new RingBuffer(options.globalMaxSize ?? 10000);
   }
 
-  // ── Core Event Bus ───────────────────────────────────────────────────────
 
   /**
    * Emit a typed event to all registered listeners for that event type,
@@ -266,7 +259,6 @@ export class EventBus implements IEventBus {
     };
   }
 
-  // ── Session History API ──────────────────────────────────────────────────
 
   /**
    * Get all events for a session, in chronological order.

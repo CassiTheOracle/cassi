@@ -78,7 +78,6 @@ export class MCPRegistry {
     }))
   }
 
-  // ── Private ────────────────────────────────────────────────────────────────
 
   private async startServer(config: MCPServerConfig): Promise<void> {
     const client = new MCPClient(config, this.logger)

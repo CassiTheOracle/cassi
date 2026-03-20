@@ -320,9 +320,7 @@ export class SessionManager {
     };
   }
   
-  // ============================================================================
   // Private Methods
-  // ============================================================================
   
   private generateId(channelId: string, senderId: string): string {
     // Deterministic ID based on channel + sender

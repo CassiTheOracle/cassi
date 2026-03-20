@@ -6,9 +6,7 @@
 
 import type { ImageAttachment, ContentBlock, IProvider } from '../../../types/runtime.js';
 
-// ============================================================================
 // Core Session Types
-// ============================================================================
 
 /**
  * Simplified session state - flattened from complex Session interface
@@ -82,9 +80,7 @@ export interface IntelligenceContext {
   updatedAt?: number;
 }
 
-// ============================================================================
 // Streaming Types
-// ============================================================================
 
 /**
  * Event types emitted during per-token streaming
@@ -104,9 +100,7 @@ export type StreamEventCallback = (
   }
 ) => void;
 
-// ============================================================================
 // Request/Response Types
-// ============================================================================
 
 /**
  * Incoming turn request
@@ -144,9 +138,7 @@ export interface ToolExecution {
   durationMs: number;
 }
 
-// ============================================================================
 // Store Types
-// ============================================================================
 
 /**
  * Filter options for listing sessions
@@ -170,9 +162,7 @@ export interface TurnMetadata {
   durationMs?: number;
 }
 
-// ============================================================================
 // Intelligence Types
-// ============================================================================
 
 /**
  * Data passed to intelligence processors
@@ -195,9 +185,7 @@ export interface ProcessorResult {
   data: unknown;
 }
 
-// ============================================================================
 // Utility Types
-// ============================================================================
 
 /**
  * Options for SessionManager
@@ -253,9 +241,7 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-// ============================================================================
 // Store Interface
-// ============================================================================
 
 /**
  * Session store interface - unified persistence layer
@@ -297,9 +283,7 @@ export interface ISessionStore {
   clear?(): Promise<void>;
 }
 
-// ============================================================================
 // Error Types
-// ============================================================================
 
 /**
  * Base error for session system

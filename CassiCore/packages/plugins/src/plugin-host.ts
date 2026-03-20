@@ -16,7 +16,6 @@ import { bus } from '../core/event-bus.js'
 
 import type { IPluginHost, PluginManifest, PluginStatus, ILogger } from '../types/interfaces.js'
 
-// ── IPC Protocol ────────────────────────────────────────────────────────────
 
 /** Messages sent from daemon to worker */
 type HostMessage =
@@ -33,9 +32,11 @@ type WorkerMessage =
   | { type: 'error'; message: string }
   | { type: 'log'; level: string; message: string }
   | { type: 'signal'; payload: Record<string, unknown> }
+  | { type: 'reasoning'; payload: Record<string, unknown> }
+  | { type: 'tool_update'; payload: Record<string, unknown> }
+  | { type: 'inject'; payload: Record<string, unknown> }
   | { type: 'health:pong'; ts: number; metrics?: { memoryMb: number } }
 
-// ── Internal Record ─────────────────────────────────────────────────────────
 
 interface InternalWorkerRecord {
   manifest: PluginManifest
@@ -58,7 +59,6 @@ interface InternalWorkerRecord {
   spawning: boolean
 }
 
-// ── PluginHost ──────────────────────────────────────────────────────────────
 
 /**
  * PluginHost manages the lifecycle of plugin workers (one child process per plugin).
@@ -100,7 +100,6 @@ export class PluginHost implements IPluginHost {
     await this.spawnWorker(record)
   }
 
-  // ── Spawn ───────────────────────────────────────────────────────────────
 
   private spawnWorker(record: InternalWorkerRecord): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -203,6 +202,13 @@ export class PluginHost implements IPluginHost {
           bus.emit({ type: 'worker:message', pluginId: manifest.id, payload: { type: 'signal', ...m.payload } })
         }
 
+        // Forward structured channel events (reasoning, tool_update, inject)
+        // These are emitted by channel workers (e.g., OpenCode) and need to
+        // reach the daemon's worker:message handler with { type, ...payload }.
+        if (m.type === 'reasoning' || m.type === 'tool_update' || m.type === 'inject') {
+          bus.emit({ type: 'worker:message', pluginId: manifest.id, payload: { type: m.type, ...m.payload } })
+        }
+
         if (m.type === 'health:pong') {
           record.lastPongTime = Date.now()
         }
@@ -241,7 +247,6 @@ export class PluginHost implements IPluginHost {
     })
   }
 
-  // ── Health Probes ─────────────────────────────────────────────────────────
 
   private startHealthProbe(record: InternalWorkerRecord): void {
     if (record.healthTimer) {
@@ -274,7 +279,6 @@ export class PluginHost implements IPluginHost {
     }
   }
 
-  // ── Crash Handling & Circuit Breaker ─────────────────────────────────────
 
   /** Maximum total restarts across the entire daemon lifetime per worker */
   private static readonly MAX_LIFETIME_RESTARTS = 20
@@ -387,7 +391,6 @@ export class PluginHost implements IPluginHost {
     // handlingCrash stays true until restart completes (prevents double-crash counting)
   }
 
-  // ── Message Passing ───────────────────────────────────────────────────────
 
   sendMessage(pluginId: string, payload: unknown): void {
     const record = this.workers.get(pluginId)
@@ -411,7 +414,6 @@ export class PluginHost implements IPluginHost {
     record.child.send(msg)
   }
 
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   async unload(pluginId: string): Promise<void> {
     const record = this.workers.get(pluginId)

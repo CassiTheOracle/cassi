@@ -73,7 +73,8 @@ export class ToolLoop {
     model: string,
     attachments?: ImageAttachment[],
     signal?: AbortSignal,
-    onStreamEvent?: StreamEventCallback
+    onStreamEvent?: StreamEventCallback,
+    sessionId?: string,
   ): Promise<ToolLoopResult> {
     const executions: ToolExecution[] = [];
     let round = 0;
@@ -95,7 +96,8 @@ export class ToolLoop {
         model,
         attachments,
         signal,
-        onStreamEvent
+        onStreamEvent,
+        sessionId,
       );
       
       totalTokens += streamResult.tokensUsed;
@@ -182,10 +184,11 @@ export class ToolLoop {
     model: string,
     attachments?: ImageAttachment[],
     signal?: AbortSignal,
-    onStreamEvent?: StreamEventCallback
+    onStreamEvent?: StreamEventCallback,
+    sessionId?: string,
   ): Promise<StreamResult> {
     return this.withTimeout(
-      this.doStream(provider, messages, model, attachments, signal, onStreamEvent),
+      this.doStream(provider, messages, model, attachments, signal, onStreamEvent, sessionId),
       this.options.streamTimeoutMs,
       'Provider stream timeout'
     );
@@ -200,7 +203,8 @@ export class ToolLoop {
     model: string,
     attachments?: ImageAttachment[],
     signal?: AbortSignal,
-    onStreamEvent?: StreamEventCallback
+    onStreamEvent?: StreamEventCallback,
+    sessionId?: string,
   ): Promise<StreamResult> {
     const chunks: string[] = [];
     const thinkingBlocks: string[] = [];
@@ -214,6 +218,7 @@ export class ToolLoop {
         stream: true,
         source: 'session-pipeline',
         tools: this.toolSchemasGetter(),
+        sessionId,
       },
       attachments,
       signal,

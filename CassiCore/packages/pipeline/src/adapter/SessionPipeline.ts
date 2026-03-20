@@ -218,7 +218,6 @@ export class SessionPipeline {
       signal: options?.signal
     };
 
-    // ── Pre-turn intelligence gathering ───────────────────────────────────────
     // Retrieve relevant memories and intelligence context BEFORE the LLM call
     // so that the MessageBuilder includes them in the prompt.
     try {
@@ -413,9 +412,7 @@ export class SessionPipeline {
     this.initialized = false;
   }
   
-  // ============================================================================
   // Private Methods
-  // ============================================================================
 
   /**
    * Gather intelligence context BEFORE the LLM call so that the MessageBuilder

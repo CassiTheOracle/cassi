@@ -13,9 +13,7 @@ import type { EventBus } from '../event-bus.js';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { DEFAULT_RESOURCE_LIMITS } from '../config/resource-limits.js';
 
-// ============================================================================
 // Types
-// ============================================================================
 
 export interface IngestRequest {
   sessionId: string;
@@ -78,9 +76,7 @@ export interface StateSnapshot {
   totalTokensUsed: number;
 }
 
-// ============================================================================
 // SSE Connection Management with Resource Limits
-// ============================================================================
 
 interface SSEConnection {
   id: string;
@@ -372,9 +368,7 @@ export class SSEConnectionManager {
   }
 }
 
-// ============================================================================
 // HTTP Handlers
-// ============================================================================
 
 export class EventAPI {
   private sseManager: SSEConnectionManager;

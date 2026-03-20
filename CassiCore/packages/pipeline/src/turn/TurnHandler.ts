@@ -107,7 +107,8 @@ export class TurnHandler {
         session.model,
         request.attachments,
         request.signal,
-        onStreamEvent
+        onStreamEvent,
+        session.id,
       );
       
       const durationMs = Date.now() - startTime;
@@ -220,9 +221,7 @@ export class TurnHandler {
     };
   }
   
-  // ============================================================================
   // Private Methods
-  // ============================================================================
   
   private resolveProvider(modelSpec: string): IProvider {
     const parts = modelSpec.split('/');

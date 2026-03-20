@@ -6,9 +6,7 @@
  * the CassiCLI and the CassiCore daemon via HTTP/SSE.
  */
 
-// ============================================================================
 // Base Event
-// ============================================================================
 
 export interface BaseEvent {
   type: string;
@@ -17,9 +15,7 @@ export interface BaseEvent {
   eventId: string;
 }
 
-// ============================================================================
 // Session Lifecycle
-// ============================================================================
 
 export interface SessionStartEvent extends BaseEvent {
   type: 'session_start';
@@ -31,9 +27,7 @@ export interface SessionShutdownEvent extends BaseEvent {
   durationMs: number;
 }
 
-// ============================================================================
 // Agent Loop
-// ============================================================================
 
 export interface AgentStartEvent extends BaseEvent {
   type: 'agent_start';
@@ -58,9 +52,7 @@ export interface TurnEndEvent extends BaseEvent {
   turnIndex: number;
 }
 
-// ============================================================================
 // Streaming
-// ============================================================================
 
 export interface StreamingStartEvent extends BaseEvent {
   type: 'streaming_start';
@@ -77,9 +69,7 @@ export interface StreamingEndEvent extends BaseEvent {
   fullMessageLength: number;
 }
 
-// ============================================================================
 // Messages
-// ============================================================================
 
 export interface UserMessageEvent extends BaseEvent {
   type: 'user_message';
@@ -97,9 +87,7 @@ export interface AssistantMessageEvent extends BaseEvent {
   cacheWriteTokens?: number;
 }
 
-// ============================================================================
 // Tools
-// ============================================================================
 
 export interface ToolExecutionStartEvent extends BaseEvent {
   type: 'tool_execution_start';
@@ -124,9 +112,7 @@ export interface ToolExecutionEndEvent extends BaseEvent {
   durationMs: number;
 }
 
-// ============================================================================
 // Model
-// ============================================================================
 
 export interface ModelSelectEvent extends BaseEvent {
   type: 'model_select';
@@ -135,9 +121,7 @@ export interface ModelSelectEvent extends BaseEvent {
   source: 'user' | 'cycle' | 'restore';
 }
 
-// ============================================================================
 // System
-// ============================================================================
 
 export interface SystemPromptUpdateEvent extends BaseEvent {
   type: 'system_prompt_update';
@@ -152,9 +136,7 @@ export interface ContextUsageEvent extends BaseEvent {
   percent: number;
 }
 
-// ============================================================================
 // Compaction
-// ============================================================================
 
 export interface CompactionStartEvent extends BaseEvent {
   type: 'compaction_start';
@@ -167,9 +149,7 @@ export interface CompactionEndEvent extends BaseEvent {
   entriesRemoved: number;
 }
 
-// ============================================================================
 // Errors
-// ============================================================================
 
 export interface ErrorEvent extends BaseEvent {
   type: 'error';
@@ -178,9 +158,7 @@ export interface ErrorEvent extends BaseEvent {
   recoverable: boolean;
 }
 
-// ============================================================================
 // Union Type
-// ============================================================================
 
 export type CassiCoreEvent =
   | SessionStartEvent

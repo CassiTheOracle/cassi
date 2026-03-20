@@ -342,6 +342,12 @@ export function initContextWindowDebugger(eventBus: EventBus): ContextWindowDebu
   return globalDebugger;
 }
 
+/**
+ * @dep callers: makeDebugSessionHandler (core/tools/implementations/debug-session.ts), registerCoreTools (core/tools/implementations/index.ts), handleDebugRoutes (core/admin-api/debug.ts)
+ * @dep module: Implementations
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function getContextWindowDebugger(): ContextWindowDebugger | null {
   return globalDebugger;
 }

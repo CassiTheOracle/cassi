@@ -167,9 +167,7 @@ export class ContextWindow {
     };
   }
   
-  // ============================================================================
   // Private Methods
-  // ============================================================================
   
   private estimateChars(messages: Message[]): number {
     return messages.reduce((sum, msg) => {
