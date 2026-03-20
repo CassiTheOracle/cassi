@@ -25,11 +25,13 @@ import { MessageFormatter } from './message-formatter.js'
 import { MessageTracker } from './message-tracker.js'
 import { SteeringHandler, type SteeringCommand } from './steering-handler.js'
 import { GeneralChatHandler } from './general-chat-handler.js'
+import { ModuleChatHandler } from './module-chat-handler.js'
 import { RateLimiter, type QueuedMessage } from './rate-limiter.js'
 import { InteractiveToolSession, splitForTelegram } from '../../tools/interactive-tool-session.js'
 import type { ToolDefinition } from '../../tools/interactive-tool-session.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { RuntimeEvent } from '../../../types/events.js'
+import type { ModuleSessionRegistry } from '../module-session-registry.js'
 
 // Config Types
 
@@ -129,6 +131,7 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
   private tracker!: MessageTracker
   private steering!: SteeringHandler
   private generalChat!: GeneralChatHandler
+  private moduleChat!: ModuleChatHandler
   private rateLimiter!: RateLimiter
   private activeToolSessions = new Map<number, InteractiveToolSession>()
 
@@ -218,10 +221,25 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       { adminApiUrl: this.adminApiUrl },
     )
 
+    this.moduleChat = new ModuleChatHandler(
+      this.client,
+      this.feedConfig.telegram.chatId,
+      this.logger,
+      { adminApiUrl: this.adminApiUrl },
+    )
+    this.moduleChat.setTopicManager(this.topicManager)
+
     // Wire steering command handler
     this.steering.onCommand = (cmd) => this.handleSteeringCommand(cmd)
 
     this.logger.info('[cognitive-feed] Initialized')
+  }
+
+  override setModuleRegistry(registry: ModuleSessionRegistry): void {
+    super.setModuleRegistry(registry)
+    if (this.moduleChat) {
+      this.moduleChat.setRegistry(registry)
+    }
   }
 
   override async start(): Promise<void> {
