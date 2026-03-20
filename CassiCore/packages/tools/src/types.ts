@@ -26,6 +26,14 @@ export interface ToolDefinition {
   fallbackTool?: string;
   /** Whether this tool is read-only (safe for parallel execution). Default: false */
   readOnly?: boolean;
+  /** Whether this tool should be shown to agents/clients. Default: true */
+  visibleToAgent?: boolean;
+  /** Backend/provider that implements this tool (e.g. cassi, serena, gitnexus, scip). */
+  backend?: string;
+  /** Semantic capability group for routing and discovery (e.g. workspace.read, code.find_symbol). */
+  capability?: string;
+  /** Preferred alias names that should resolve to this tool. */
+  aliases?: string[];
 }
 
 /** A single tool call parsed from the provider stream */
@@ -58,4 +66,5 @@ export interface ToolExecutionContext {
   allowedPaths: string[];      // filesystem sandbox roots (resolved)
   networkAllowlist: string[];  // allowed URL domains; ['*'] = unrestricted
   logger: import('../../types/interfaces.js').ILogger;
+  registry?: import('./registry.js').ToolRegistry;
 }

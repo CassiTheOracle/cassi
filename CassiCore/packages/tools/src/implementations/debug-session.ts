@@ -150,6 +150,13 @@ interface SessionDebugResponse {
   error?: string
 }
 
+/**
+ * @dep callers: buildCognitiveState (core/tools/implementations/debug-session.ts), makeDebugSessionHandler (core/tools/implementations/debug-session.ts), toISOString (core/tools/implementations/debug-session.ts)
+ * @dep calls: toISOString
+ * @dep module: Implementations
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 function toISOString(date: any): string {
   if (!date) return new Date().toISOString()
   return typeof date === 'number' ? new Date(date).toISOString() : date.toISOString()
@@ -299,7 +306,7 @@ export function makeDebugSessionHandler(deps: DebugSessionDeps): ToolHandler {
       try {
         const eventBus = deps.getEventBus()
         if (eventBus) {
-          // Note: This is a simplified approach - in production you'd query event history
+          // WHY: This is a simplified approach - in production you'd query event history
           const eventLimit = Math.min(params.eventLimit ?? 50, 200)
           response.events = [] // Events would come from event history store
         }

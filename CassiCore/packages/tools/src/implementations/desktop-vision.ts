@@ -130,6 +130,10 @@ interface ScreenshotResult {
 
 /**
  * Check if a window title/app should be blocked for privacy
+ * @dep callers: desktopVisionHandler (core/tools/implementations/desktop-vision.ts), captureActiveWindow (core/tools/implementations/desktop-vision.ts)
+ * @dep calls: test
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function isBlocked(title: string, app: string): boolean {
   const combined = `${title} ${app}`.toLowerCase();
@@ -138,6 +142,11 @@ function isBlocked(title: string, app: string): boolean {
 
 /**
  * Execute a shell command and return stdout
+ * @dep callers: extractText (core/tools/implementations/desktop-vision.ts), focusWindow (core/tools/implementations/desktop-vision.ts), captureActiveWindow (core/tools/implementations/desktop-vision.ts), getActiveWindow (core/tools/implementations/desktop-vision.ts), listWindowsXdotool (core/tools/implementations/desktop-vision.ts) [+3]
+ * @dep calls: on, trim
+ * @dep flows: DesktopVisionHandler → EstimateChars (4/6)
+ * @dep module: Implementations
+ * @dep risk: HIGH | 8 callers, 1 flow, 1 module
  */
 async function execCommand(command: string, timeoutMs = 10000): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -166,6 +175,14 @@ async function execCommand(command: string, timeoutMs = 10000): Promise<string> 
  * Resolve the qdbus binary name — Qt6 ships "qdbus6", Qt5 ships "qdbus"
  */
 let _qdbusCmd: string | null | undefined;
+/**
+ * @dep callers: getActiveWindow (core/tools/implementations/desktop-vision.ts), listWindowsKDE (core/tools/implementations/desktop-vision.ts)
+ * @dep calls: execCommand
+ * @dep flows: DesktopVisionHandler → EstimateChars (3/6)
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
+ */
+
 async function resolveQdbus(): Promise<string | null> {
   if (_qdbusCmd !== undefined) return _qdbusCmd;
   for (const candidate of ['qdbus6', 'qdbus', 'qdbus-qt6', 'qdbus-qt5']) {
@@ -183,6 +200,11 @@ async function resolveQdbus(): Promise<string | null> {
 
 /**
  * List all windows using KWin's D-Bus interface or xdotool fallback
+ * @dep callers: desktopVisionHandler (core/tools/implementations/desktop-vision.ts)
+ * @dep calls: execCommand, resolveQdbus, parseKWinWindowInfo, listWindowsXdotool
+ * @dep flows: DesktopVisionHandler → EstimateChars (2/6)
+ * @dep module: Implementations
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 async function listWindowsKDE(): Promise<WindowInfo[]> {
   try {
@@ -273,6 +295,10 @@ async function listWindowsXdotool(): Promise<WindowInfo[]> {
 
 /**
  * Get the currently active window
+ * @dep callers: desktopVisionHandler (core/tools/implementations/desktop-vision.ts), captureActiveWindow (core/tools/implementations/desktop-vision.ts)
+ * @dep calls: all, trim, execCommand, resolveQdbus
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function getActiveWindow(): Promise<WindowInfo | null> {
   try {

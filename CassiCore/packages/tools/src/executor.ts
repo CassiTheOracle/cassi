@@ -117,7 +117,6 @@ export class ToolExecutor {
     sessionId: string,
     opts?: { workingDir?: string },
   ): Promise<ToolResult> {
-    // ── ORCHESTRATOR INTERCEPT ──────────────────────────────────────────
     // If an orchestrator is wired, route through it for caching, dedup,
     // and parallel execution. The orchestrator calls back to this.execute()
     // via the delegate, but with the orchestrator temporarily disabled
@@ -180,7 +179,6 @@ export class ToolExecutor {
       return { toolCallId: call.id, content: `Unknown tool: ${call.name}`, isError: true }
     }
 
-    // ── CIRCUIT BREAKER CHECK ────────────────────────────────────────────
     // If a Reliability Tracker is wired, check if the tool's circuit is open.
     // If open, attempt fallback routing or return an error.
     let actualToolName = call.name
@@ -241,7 +239,6 @@ export class ToolExecutor {
     // Track skill invocations when reading SKILL.md files
     this.trackSkillInvocation({ ...call, name: actualToolName }, sessionId)
 
-    // ── PERMISSION GATE ──────────────────────────────────────────────────
     // If a Permission Oracle is wired, assess risk before execution.
     // This is the core of graduated autonomy: low-risk actions auto-proceed,
     // high-risk actions require human approval.
@@ -328,9 +325,7 @@ export class ToolExecutor {
 
         if (!safeResult.success) {
           this.emitSafetyEvent(sessionId, actualToolName, safeResult.errorType || 'execution', [safeResult.error || 'Unknown error'])
-          // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
           this.recordToolOutcome(actualToolName, false, sessionId, `Tool failed: ${safeResult.errorType || 'execution'}`)
-          // ── RELIABILITY TRACKING: failure ─────────────────────────────
           this.recordReliabilityOutcome(actualToolName, durationMs, false)
           this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
           return {
@@ -344,9 +339,7 @@ export class ToolExecutor {
         const outputValidation = validateToolOutput(actualToolName, safeResult.data)
         if (!outputValidation.valid) {
           this.emitSafetyEvent(sessionId, actualToolName, 'output_validation_failed', outputValidation.errors)
-          // ── OUTCOME FEEDBACK: failure ──────────────────────────────────
           this.recordToolOutcome(actualToolName, false, sessionId, `Output validation failed`)
-          // ── RELIABILITY TRACKING: failure ─────────────────────────────
           this.recordReliabilityOutcome(actualToolName, durationMs, false)
           this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
           return {
@@ -356,9 +349,7 @@ export class ToolExecutor {
           }
         }
 
-        // ── OUTCOME FEEDBACK: success ──────────────────────────────────
         this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully`)
-        // ── RELIABILITY TRACKING: success ───────────────────────────────
         this.recordReliabilityOutcome(actualToolName, durationMs, true)
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
         
@@ -384,9 +375,7 @@ export class ToolExecutor {
           ),
         ])
         const durationMs = Date.now() - executeStartMs
-        // ── OUTCOME FEEDBACK: success (legacy path) ───────────────────
         this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully (legacy)`)
-        // ── RELIABILITY TRACKING: success (legacy) ────────────────────
         this.recordReliabilityOutcome(actualToolName, durationMs, true)
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
         
@@ -404,9 +393,7 @@ export class ToolExecutor {
     } catch (err) {
       const durationMs = Date.now() - executeStartMs
       this.emitSafetyEvent(sessionId, actualToolName, 'execution', [String(err)])
-      // ── OUTCOME FEEDBACK: failure (exception) ─────────────────────
       this.recordToolOutcome(actualToolName, false, sessionId, `Exception: ${String(err).slice(0, 200)}`)
-      // ── RELIABILITY TRACKING: failure ───────────────────────────────
       this.recordReliabilityOutcome(actualToolName, durationMs, false)
       this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
       return { toolCallId: call.id, content: String(err), isError: true }

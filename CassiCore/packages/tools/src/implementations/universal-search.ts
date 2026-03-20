@@ -123,6 +123,12 @@ interface UniversalSearchResponse {
   error?: string
 }
 
+/**
+ * @dep callers: formatArchiveResult (core/tools/implementations/universal-search.ts), formatMemoryResult (core/tools/implementations/universal-search.ts), deduplicateResults (core/tools/implementations/universal-search.ts)
+ * @dep module: Implementations
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 function computeContentHash(content: string): string {
   return createHash('sha256').update(content).digest('hex').slice(0, 16)
 }

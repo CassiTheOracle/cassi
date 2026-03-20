@@ -10,16 +10,12 @@
 import type { EventBus } from '../../event-bus.js'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 const STATE_CACHE_TTL_MS = 1000  // 1 second state cache
 const MAX_EVENTS_RETURN = 1000   // Max events to return in one call
 
-// ============================================================================
 // State Cache with Incremental Updates (preserved from original)
-// ============================================================================
 
 interface CachedState {
   snapshot: any
@@ -74,9 +70,7 @@ class StateCache {
 
 const globalStateCache = new StateCache()
 
-// ============================================================================
 // Optimized State Builder (preserved from original)
-// ============================================================================
 
 interface StateBuilder {
   snapshot: any
@@ -183,9 +177,7 @@ function buildStateSnapshotOptimized(
   return snapshot
 }
 
-// ============================================================================
 // Efficient Event Filtering (preserved from original)
-// ============================================================================
 
 function* filterEventsLazy(
   events: any[],
@@ -238,9 +230,7 @@ function filterEventsEfficient(
   }
 }
 
-// ============================================================================
 // Consolidated Tool Definition
-// ============================================================================
 
 export const cassandraQueryEventsDef: ToolDefinition = {
   name: 'cassandra_query_events',
@@ -274,9 +264,7 @@ export const cassandraQueryEventsDef: ToolDefinition = {
   timeoutMs: 5_000,
 }
 
-// ============================================================================
 // Consolidated Handler
-// ============================================================================
 
 export function makeCassandraQueryEventsHandler(
   eventBus: EventBus
@@ -340,9 +328,7 @@ export function makeCassandraQueryEventsHandler(
   }
 }
 
-// ============================================================================
 // Registration Function
-// ============================================================================
 
 export function registerCassandraEventTools(
   registry: any,

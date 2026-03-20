@@ -8,6 +8,20 @@ const logger: ILogger = rootLogger.child('tool-registry')
 
 type Entry = { definition: ToolDefinition; handler: ToolHandler }
 
+export interface ToolListOptions {
+  includeHidden?: boolean
+}
+
+/**
+ * @dep callers: getByCategories (core/tools/registry.ts), getByCategory (core/tools/registry.ts), list (core/tools/registry.ts)
+ * @dep module: Tools
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
+function isVisibleToAgent(definition: ToolDefinition): boolean {
+  return definition.visibleToAgent !== false
+}
+
 export class ToolRegistry {
   private tools = new Map<string, Entry>()
 
@@ -38,12 +52,24 @@ export class ToolRegistry {
     return this.tools.get(name)
   }
 
-  list(): ToolDefinition[] {
-    return [...this.tools.values()].map(e => e.definition)
+  list(options: ToolListOptions = {}): ToolDefinition[] {
+    const includeHidden = options.includeHidden ?? false
+    return [...this.tools.values()]
+      .map(e => e.definition)
+      .filter(definition => includeHidden || isVisibleToAgent(definition))
   }
 
   /** Anthropic tool format for API requests */
-  toAnthropicSchema(): Array<{ name: string; description: string; input_schema: Record<string, unknown> }> {
+  toAnthropicSchema(options: ToolListOptions = {}): Array<{ name: string; description: string; input_schema: Record<string, unknown> }> {
+    return this.list(options).map(e => ({
+      name: e.name,
+      description: e.description,
+      input_schema: e.parameters as unknown as Record<string, unknown>,
+    }))
+  }
+
+  /** Anthropic tool format for API requests, including hidden/internal tools. */
+  toAnthropicSchemaAll(): Array<{ name: string; description: string; input_schema: Record<string, unknown> }> {
     return [...this.tools.values()].map(e => ({
       name: e.definition.name,
       description: e.definition.description,
@@ -52,7 +78,22 @@ export class ToolRegistry {
   }
 
   /** OpenAI function format for API requests */
-  toOpenAISchema(): Array<{
+  toOpenAISchema(options: ToolListOptions = {}): Array<{
+    type: 'function';
+    function: { name: string; description: string; parameters: Record<string, unknown> };
+  }> {
+    return this.list(options).map(e => ({
+      type: 'function' as const,
+      function: {
+        name: e.name,
+        description: e.description,
+        parameters: e.parameters as unknown as Record<string, unknown>,
+      },
+    }))
+  }
+
+  /** OpenAI function format for API requests, including hidden/internal tools. */
+  toOpenAISchemaAll(): Array<{
     type: 'function';
     function: { name: string; description: string; parameters: Record<string, unknown> };
   }> {
@@ -67,17 +108,21 @@ export class ToolRegistry {
   }
 
   /** Get tools by category */
-  getByCategory(category: ToolCategory): ToolDefinition[] {
+  getByCategory(category: ToolCategory, options: ToolListOptions = {}): ToolDefinition[] {
+    const includeHidden = options.includeHidden ?? false
     return [...this.tools.values()]
       .filter(e => (e.definition.category ?? 'core') === category)
+      .filter(e => includeHidden || isVisibleToAgent(e.definition))
       .map(e => e.definition)
   }
 
   /** Get tools matching multiple categories */
-  getByCategories(categories: ToolCategory[]): ToolDefinition[] {
+  getByCategories(categories: ToolCategory[], options: ToolListOptions = {}): ToolDefinition[] {
+    const includeHidden = options.includeHidden ?? false
     const categorySet = new Set(categories)
     return [...this.tools.values()]
       .filter(e => categorySet.has(e.definition.category ?? 'core'))
+      .filter(e => includeHidden || isVisibleToAgent(e.definition))
       .map(e => e.definition)
   }
 

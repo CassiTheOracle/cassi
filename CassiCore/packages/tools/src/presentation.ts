@@ -101,6 +101,10 @@ function formatSize(bytes: number): string {
  * @param rawOutput - The raw string output from the tool handler
  * @param opts - Presentation options including tool metadata
  * @returns Formatted output string suitable for LLM consumption
+ * @dep callers: tool-presentation.test.ts (tests/tool-presentation.test.ts), applyPresentation (core/tools/executor.ts)
+ * @dep calls: isBinaryContent, generateTempFilename, countLines, formatSize
+ * @dep module: Tools
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function presentForLLM(rawOutput: string, opts: PresentationOptions): string {
   const parts: string[] = []

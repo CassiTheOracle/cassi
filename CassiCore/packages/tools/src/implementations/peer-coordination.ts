@@ -22,7 +22,6 @@ import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { CognitiveBridge } from '../../intelligence/cognitive-bridge.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
-// ── Tool Definitions ─────────────────────────────────────────────────────────
 
 export const coordinateDefinition: ToolDefinition = {
   name: '_coordinate',
@@ -91,7 +90,6 @@ export const checkPeersDefinition: ToolDefinition = {
   timeoutMs: 5_000,
 }
 
-// ── Shared Types ─────────────────────────────────────────────────────────────
 
 interface ScratchpadNote {
   sessionId: string
@@ -106,7 +104,6 @@ const MAX_SCRATCHPAD_NOTES = 30
 const MAX_MESSAGE_LENGTH = 500
 const MAX_NOTE_LENGTH = 300
 
-// ── Handler Dependencies ─────────────────────────────────────────────────────
 
 export interface PeerToolDeps {
   /** SessionDigestStore — for mailbox messaging and sibling discovery */
@@ -136,7 +133,13 @@ export interface PeerToolDeps {
   logger: ILogger
 }
 
-// ── Time Formatting ──────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: makeCheckPeersHandler (core/tools/implementations/peer-coordination.ts), handleSharedNote (core/tools/implementations/peer-coordination.ts)
+ * @dep calls: now
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function timeAgo(ms: number): string {
   const seconds = Math.floor((Date.now() - ms) / 1000)
@@ -146,7 +149,13 @@ function timeAgo(ms: number): string {
   return `${Math.floor(seconds / 3600)}h ago`
 }
 
-// ── Handler Factories ────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts), registerPeerCoordinationTools (core/tools/implementations/peer-coordination.ts)
+ * @dep calls: child, trim, handleSignal, handleBroadcast, handleSharedNote [+1]
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function makeCoordinateHandler(deps: PeerToolDeps): ToolHandler {
   const log = deps.logger.child?.('_coordinate') ?? deps.logger
@@ -170,7 +179,6 @@ export function makeCoordinateHandler(deps: PeerToolDeps): ToolHandler {
   }
 }
 
-// ── Action Handlers ──────────────────────────────────────────────────────────
 
 async function handleSignal(
   input: any,
@@ -398,6 +406,13 @@ async function handleLinkBrain(
   )
 }
 
+/**
+ * @dep callers: peer-coordination-tools.test.ts (tests/peer-coordination-tools.test.ts), registerCoreTools (core/tools/implementations/index.ts), registerPeerCoordinationTools (core/tools/implementations/peer-coordination.ts)
+ * @dep calls: kv_get, getSiblings, readMailbox, get, child [+3]
+ * @dep module: Implementations
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function makeCheckPeersHandler(deps: PeerToolDeps): ToolHandler {
   const log = deps.logger.child?.('_check_peers') ?? deps.logger
 
@@ -471,7 +486,6 @@ export function makeCheckPeersHandler(deps: PeerToolDeps): ToolHandler {
   }
 }
 
-// ── Registration Function ────────────────────────────────────────────────────
 
 export function registerPeerCoordinationTools(
   registry: any,

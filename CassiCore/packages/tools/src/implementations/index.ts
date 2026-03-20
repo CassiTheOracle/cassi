@@ -92,6 +92,14 @@ export interface CoreToolDeps {
   getJobManager?: () => import('../../jobs/job-manager.js').JobManager | undefined
 }
 
+/**
+ * @dep callers: start (core/daemon.ts)
+ * @dep calls: getEventBus, execute, register, getContextWindowDebugger, makeWaitJobHandler [+22]
+ * @dep flows: RegisterCoreTools → EstimateChars (1/4), RegisterCoreTools → FormatMemoryResult (1/3)
+ * @dep module: Implementations
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
+
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
   // Shell execution
   registry.register(shellExecDefinition, shellExecHandler)
@@ -149,10 +157,10 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   )
 
   // list_tools — meta-discovery tool for progressive tool discovery
-  // Note: This tool needs the registry injected into its context at execution time
+  // WHY: This tool needs the registry injected into its context at execution time
   registry.register(listToolsDefinition, listToolsHandler)
 
-  // NOTE: spawn_subagent is now unified under Thinker
+  // WHY: spawn_subagent is now unified under Thinker
   // Direct subagent spawning is disabled - all subagent operations go through Thinker
   // for centralized coordination and persistence.
   // 

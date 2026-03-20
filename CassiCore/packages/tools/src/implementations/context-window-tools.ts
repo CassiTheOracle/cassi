@@ -10,16 +10,12 @@
 import type { ContextWindowDebugger, ContextWindowSnapshot } from '../../events/context-window-debug.js'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 const SUMMARY_CACHE_TTL_MS = 2000  // 2 seconds
 const MAX_SNAPSHOTS_DEFAULT = 50
 
-// ============================================================================
 // Summary Cache (preserved from original)
-// ============================================================================
 
 interface SummaryCacheEntry {
   summaries: any[]
@@ -68,9 +64,7 @@ class SummaryCache {
 
 const globalSummaryCache = new SummaryCache()
 
-// ============================================================================
 // Optimized Snapshot Processing (preserved from original)
-// ============================================================================
 
 interface SnapshotSummary {
   timestamp: number
@@ -112,9 +106,7 @@ function* lazySnapshotSummaries(
   }
 }
 
-// ============================================================================
 // Field Projection for Messages (preserved from original)
-// ============================================================================
 
 function projectSnapshot(
   snapshot: ContextWindowSnapshot,
@@ -159,9 +151,7 @@ function projectSnapshot(
   }
 }
 
-// ============================================================================
 // Consolidated Tool Definition
-// ============================================================================
 
 export const cassandraContextInspectDef: ToolDefinition = {
   name: 'cassandra_context_inspect',
@@ -197,9 +187,7 @@ export const cassandraContextInspectDef: ToolDefinition = {
   timeoutMs: 5_000,
 }
 
-// ============================================================================
 // Consolidated Handler
-// ============================================================================
 
 export function makeCassandraContextInspectHandler(
   getDebugger: () => ContextWindowDebugger | null
@@ -306,9 +294,7 @@ export function makeCassandraContextInspectHandler(
   }
 }
 
-// ============================================================================
 // Registration Function
-// ============================================================================
 
 export function registerContextWindowTools(
   registry: any,

@@ -15,9 +15,7 @@ import { resolve } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 const MAX_BYTES = 1024 * 1024  // 1MB max
 const MAX_LINES_BUFFER = 10_000  // Max lines to buffer in memory
@@ -25,9 +23,7 @@ const CACHE_MAX_SIZE = 50  // Max cached files
 const CACHE_MAX_BYTES = 512 * 1024  // Max 512KB per cached file
 const CACHE_TTL_MS = 30_000  // Cache TTL
 
-// ============================================================================
 // LRU Cache Implementation
-// ============================================================================
 
 interface CacheEntry {
   content: string
@@ -91,13 +87,15 @@ class FileCache {
 // Global cache instance
 const globalCache = new FileCache()
 
-// ============================================================================
 // Optimized File Reading
-// ============================================================================
 
 /**
  * Read file with offset/limit efficiently
  * Uses async I/O and avoids loading entire file when possible
+ * @dep callers: readFilesBatch (core/tools/implementations/read-file.ts), readFileHandler (core/tools/implementations/read-file.ts)
+ * @dep calls: get, now, extractLines
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function readFileOptimized(
   filePath: string,
@@ -221,9 +219,7 @@ function extractLinesScan(
   return result
 }
 
-// ============================================================================
 // Tool Definition
-// ============================================================================
 
 export const readFileDefinition: ToolDefinition = {
   name: 'read_file',
@@ -242,9 +238,7 @@ export const readFileDefinition: ToolDefinition = {
   category: 'core',
 }
 
-// ============================================================================
 // Tool Handler
-// ============================================================================
 
 export const readFileHandler: ToolHandler = async (
   input: Record<string, unknown>,
@@ -290,9 +284,7 @@ export const readFileHandler: ToolHandler = async (
   }
 }
 
-// ============================================================================
 // Additional Optimized Batch Reader
-// ============================================================================
 
 export interface ReadFileOptions {
   path: string

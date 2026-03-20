@@ -12,18 +12,14 @@
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 const DEFAULT_MAX_CHARS = 50_000
 const CACHE_MAX_SIZE = 100  // Max cached responses
 const CACHE_TTL_MS = 5 * 60 * 1000  // 5 minutes default TTL
 const MAX_RESPONSE_SIZE = 10 * 1024 * 1024  // 10MB max
 
-// ============================================================================
 // Cache Implementation
-// ============================================================================
 
 interface CacheEntry {
   url: string
@@ -87,9 +83,7 @@ class WebCache {
 
 const globalCache = new WebCache()
 
-// ============================================================================
 // Optimized Fetch with Caching
-// ============================================================================
 
 interface FetchOptions {
   url: string
@@ -183,9 +177,7 @@ async function fetchOptimized(
   }
 }
 
-// ============================================================================
 // Optimized HTML Stripping (Single-Pass)
-// ============================================================================
 
 /**
  * Optimized HTML to text conversion
@@ -325,9 +317,7 @@ function truncateText(text: string, maxChars: number): string {
   return `${text.slice(0, maxChars)  }\n[content truncated at ${maxChars} chars]`
 }
 
-// ============================================================================
 // Tool Definition
-// ============================================================================
 
 export const webFetchDefinition: ToolDefinition = {
   name: 'web_fetch',
@@ -346,9 +336,7 @@ export const webFetchDefinition: ToolDefinition = {
   category: 'core',
 }
 
-// ============================================================================
 // Tool Handler
-// ============================================================================
 
 export const webFetchHandler: ToolHandler = async (
   input: Record<string, unknown>,

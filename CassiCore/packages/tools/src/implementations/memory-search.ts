@@ -38,6 +38,13 @@ interface MemorySearchInput {
   threshold?: number
 }
 
+/**
+ * @dep callers: makeMemorySearchHandler (core/tools/implementations/memory-search.ts)
+ * @dep flows: RegisterCoreTools → FormatMemoryResult (3/3)
+ * @dep module: Memory
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function formatMemoryResult(result: SearchResult, index: number): string {
   const entry = result.entry
   const score = result.score
@@ -52,6 +59,14 @@ function formatMemoryResult(result: SearchResult, index: number): string {
   output += `\n    ${entry.content.slice(0, 500)}${entry.content.length > 500 ? '...' : ''}`
   return output
 }
+
+/**
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: search, trim, formatMemoryResult
+ * @dep flows: RegisterCoreTools → EstimateChars (2/4), RegisterCoreTools → FormatMemoryResult (2/3)
+ * @dep module: Memory
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
 
 export function makeMemorySearchHandler(memory: IMemory): ToolHandler {
   return async (input, context) => {

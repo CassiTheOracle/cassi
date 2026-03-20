@@ -17,17 +17,13 @@ import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 const MAX_SYNC_SIZE = 1024 * 1024  // 1MB - sync writes below this
 const STREAM_THRESHOLD = 10 * 1024 * 1024  // 10MB - stream writes above this
 const ATOMIC_WRITE = true  // Use atomic writes (temp file + rename)
 
-// ============================================================================
 // Directory Cache
-// ============================================================================
 
 class DirectoryCache {
   private cache = new Set<string>()
@@ -63,9 +59,7 @@ class DirectoryCache {
 
 const globalDirCache = new DirectoryCache()
 
-// ============================================================================
 // Optimized Write Operations
-// ============================================================================
 
 interface WriteOptions {
   path: string
@@ -78,6 +72,10 @@ interface WriteOptions {
  * - Small files: direct async write
  * - Large files: streaming write
  * - Atomic option: temp file + rename
+ * @dep callers: writeFilesBatch (core/tools/implementations/write-file.ts), writeFileHandler (core/tools/implementations/write-file.ts)
+ * @dep calls: ensure, now, writeStreaming
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function writeFileOptimized(
   options: WriteOptions,
@@ -145,9 +143,7 @@ async function writeStreaming(
   }
 }
 
-// ============================================================================
 // Tool Definition
-// ============================================================================
 
 export const writeFileDefinition: ToolDefinition = {
   name: 'write_file',
@@ -165,9 +161,7 @@ export const writeFileDefinition: ToolDefinition = {
   category: 'core',
 }
 
-// ============================================================================
 // Tool Handler
-// ============================================================================
 
 export const writeFileHandler: ToolHandler = async (
   input: Record<string, unknown>,
@@ -206,9 +200,7 @@ export const writeFileHandler: ToolHandler = async (
   }
 }
 
-// ============================================================================
 // Batch Write Support
-// ============================================================================
 
 export interface WriteFileOptions {
   path: string

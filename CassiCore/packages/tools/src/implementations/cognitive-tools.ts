@@ -25,7 +25,6 @@ import type { InjectionAggregator } from '../../intelligence/injection-aggregato
 import type { CognitiveBridge, ResonancePattern } from '../../intelligence/cognitive-bridge.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
-// ── Tool Definitions ─────────────────────────────────────────────────────────
 
 export const reflectDefinition: ToolDefinition = {
   name: '_reflect',
@@ -70,7 +69,6 @@ export const cognitiveRememberDefinition: ToolDefinition = {
   category: 'cognitive',
 }
 
-// ── Signal Formatting ────────────────────────────────────────────────────────
 
 const SIGNAL_PREFIX: Record<string, string> = {
   edge_case:   'EDGE CASE',
@@ -107,7 +105,6 @@ function formatSignalGroup(signals: CognitiveSignal[]): string {
   return parts.join('\n')
 }
 
-// ── Handler Dependencies ─────────────────────────────────────────────────────
 
 export interface CognitiveToolDeps {
   thoughtObserver?: ThoughtObserver
@@ -122,7 +119,13 @@ export interface CognitiveToolDeps {
   logger: ILogger
 }
 
-// ── Handler Factories ────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: autofix-tool.test.ts (tests/autofix-tool.test.ts), cognitive-drones.test.ts (tests/cognitive-drones.test.ts), cognitive-tools.test.ts (tests/cognitive-tools.test.ts), registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: getContextInjection, child, has, trim, peekSignals [+4]
+ * @dep module: Drone-swarm
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
 
 export function makeReflectHandler(deps: CognitiveToolDeps): ToolHandler {
   const log = deps.logger.child?.('_reflect') ?? deps.logger
@@ -250,6 +253,13 @@ export function makeReflectHandler(deps: CognitiveToolDeps): ToolHandler {
   }
 }
 
+/**
+ * @dep callers: cognitive-tools.test.ts (tests/cognitive-tools.test.ts), registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: queueDialecticSignal, child, has, trim
+ * @dep module: Tests
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function makeCognitiveRememberHandler(deps: CognitiveToolDeps): ToolHandler {
   const log = deps.logger.child?.('_remember') ?? deps.logger
 
@@ -306,9 +316,7 @@ export function makeCognitiveRememberHandler(deps: CognitiveToolDeps): ToolHandl
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // _probe — Dispatch targeted drone swarms to investigate cognitive signals
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export const probeDefinition: ToolDefinition = {
   name: '_probe',
@@ -350,6 +358,9 @@ export const probeDefinition: ToolDefinition = {
 /**
  * Maps a signal kind to investigation strategies (prompts for scout drones).
  * Each strategy gives a different investigative angle on the same signal.
+ * @dep callers: makeProbeHandler (core/tools/implementations/cognitive-tools.ts), generateDeepProbeStrategies (core/tools/implementations/cognitive-tools.ts)
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function generateProbeStrategies(
   signalKind: string,
@@ -420,6 +431,13 @@ export interface ProbeDeps extends CognitiveToolDeps {
     ): Promise<any>
   }
 }
+
+/**
+ * @dep callers: cognitive-drones.test.ts (tests/cognitive-drones.test.ts), registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: scout, child, trim, generateProbeStrategies, generateDeepProbeStrategies
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function makeProbeHandler(deps: ProbeDeps): ToolHandler {
   const log = deps.logger.child?.('_probe') ?? deps.logger

@@ -105,6 +105,9 @@ const TOOL_VALIDATION_RULES: Record<string, {
 
 /**
  * Validate tool input parameters
+ * @dep callers: execute (core/tools/executor.ts), executeToolSafe (core/tools/safety.ts)
+ * @dep module: Tools
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function validateToolInput(
   toolName: string,
@@ -181,6 +184,9 @@ export function validateToolInput(
 
 /**
  * Validate tool output
+ * @dep callers: execute (core/tools/executor.ts), executeToolSafe (core/tools/safety.ts)
+ * @dep module: Tools
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function validateToolOutput(
   toolName: string,
@@ -269,6 +275,10 @@ export async function executeWithTimeout<T>(
 
 /**
  * Safe tool execution wrapper
+ * @dep callers: execute (core/tools/executor.ts), createSafeToolExecutor (core/tools/safety.ts)
+ * @dep calls: validateToolInput, validateToolOutput, executeWithTimeout
+ * @dep module: Tools
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function executeToolSafe<T>(
   toolName: string,

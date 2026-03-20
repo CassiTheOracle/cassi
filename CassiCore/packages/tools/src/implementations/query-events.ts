@@ -17,9 +17,7 @@ import type {
 } from "../../../types/event-query.js";
 import type { ToolDefinition, ToolHandler, ToolExecutionContext, ToolParamSchema } from "../types.js";
 
-// =============================================================================
 // Tool Definition
-// =============================================================================
 
 export const queryEventsDefinition: ToolDefinition = {
   name: "query_events",
@@ -104,9 +102,7 @@ Examples:
   timeoutMs: 30_000,
 };
 
-// =============================================================================
 // Tool Implementation
-// =============================================================================
 
 export function makeQueryEventsHandler(history: EventHistory): ToolHandler {
   return async (input: Record<string, unknown>, _ctx: ToolExecutionContext): Promise<string> => {
@@ -312,9 +308,7 @@ function formatAsText(result: EventQueryResult): string {
   return lines.join("\n");
 }
 
-// =============================================================================
 // Helper: List Presets
-// =============================================================================
 
 export function listPresetsForTool(): string {
   const categories = getCategories();
@@ -332,9 +326,7 @@ export function listPresetsForTool(): string {
   return lines.join("\n");
 }
 
-// =============================================================================
 // Backwards-compatible factory
-// =============================================================================
 
 export interface QueryEventsTool {
   name: string;
@@ -360,9 +352,7 @@ export function createQueryEventsTool(history: EventHistory): QueryEventsTool {
   };
 }
 
-// =============================================================================
 // Helper: Get Suggestions
-// =============================================================================
 
 export function getSuggestionsForTool(context?: { sessionId?: string; agentId?: string }): string {
   const suggestions = getQuerySuggestions(context);
