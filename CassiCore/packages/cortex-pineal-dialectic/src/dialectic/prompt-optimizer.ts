@@ -29,7 +29,6 @@ import type {
 } from '../../../types/dialectic.js';
 import type { ILogger } from '../../../types/interfaces.js';
 
-// ─── Default Config ─────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG: PromptOptimizerConfig = {
   enabled: true,
@@ -41,7 +40,6 @@ const DEFAULT_CONFIG: PromptOptimizerConfig = {
 
 const STATE_VERSION = 1;
 
-// ─── PromptOptimizer ────────────────────────────────────────────────────────
 
 export class PromptOptimizer {
   private readonly logger: ILogger;
@@ -79,7 +77,6 @@ export class PromptOptimizer {
     }
   }
 
-  // ─── Lifecycle ──────────────────────────────────────────────────────────
 
   /**
    * Load persisted scores from disk and start auto-save timer.
@@ -120,7 +117,6 @@ export class PromptOptimizer {
     }
   }
 
-  // ─── Selection ──────────────────────────────────────────────────────────
 
   /**
    * Select a Yang prompt variant (for observe() single-call mode).
@@ -208,7 +204,6 @@ export class PromptOptimizer {
     return best;
   }
 
-  // ─── Feedback ───────────────────────────────────────────────────────────
 
   /**
    * Record quality feedback from a completed dialectic turn.
@@ -275,7 +270,6 @@ export class PromptOptimizer {
     entry.lastUsedAt = Date.now();
   }
 
-  // ─── Metrics ────────────────────────────────────────────────────────────
 
   /**
    * Get all variant scores for a given observer role.
@@ -311,7 +305,6 @@ export class PromptOptimizer {
     };
   }
 
-  // ─── Variant Management ─────────────────────────────────────────────────
 
   /**
    * Register a custom variant (e.g., from config or LLM-generated mutations).
@@ -344,7 +337,6 @@ export class PromptOptimizer {
     return this.config.enabled;
   }
 
-  // ─── Persistence ────────────────────────────────────────────────────────
 
   /**
    * Load persisted state from disk. Merges with built-in variants
@@ -416,17 +408,25 @@ export class PromptOptimizer {
   }
 }
 
-// ─── Template Utility ───────────────────────────────────────────────────────
 
 /**
  * Replace `{{key}}` placeholders in a template with values from the vars map.
  * Unknown placeholders are replaced with empty string.
+ * @dep callers: prompt-optimizer.test.ts (tests/prompt-optimizer.test.ts), buildDualPrompt (core/intelligence/dialectic/serenity.ts), buildPrompt (core/intelligence/dialectic/yang.ts), buildBaselinePrompt (core/intelligence/dialectic/yin.ts), buildPrompt (core/intelligence/dialectic/yin.ts)
+ * @dep flows: ProcessTurn → FillTemplate (5/5)
+ * @dep module: Dialectic
+ * @dep risk: MEDIUM | 5 callers, 1 flow, 1 module
  */
 export function fillTemplate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
 }
 
-// ─── Factory ────────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: prompt-optimizer.test.ts (tests/prompt-optimizer.test.ts), constructor (core/intelligence/dialectic/index.ts)
+ * @dep module: Dialectic
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export const createPromptOptimizer = (
   logger: ILogger,

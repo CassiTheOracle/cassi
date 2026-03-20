@@ -165,7 +165,6 @@ export class ParallelDialecticProcessor {
         data: { mode: 'parallel' },
       });
 
-      // ─── PHASE 1: PARALLEL YANG + YIN ────────────────────────────────────
       
       // Yang: Generate expansive branches (standard mode)
       const yangPromise = this.executeYang(dialecticSessionId, userMessage, context, opts);
@@ -195,7 +194,6 @@ export class ParallelDialecticProcessor {
         data: yinResult,
       });
 
-      // ─── PHASE 2: DUAL SYNTHESIS ─────────────────────────────────────────
       
       // Prepare dual synthesis input
       const serenityInput: DualSynthesisInput = {
@@ -242,7 +240,6 @@ export class ParallelDialecticProcessor {
         data: serenityResult,
       });
 
-      // ─── BUILD RESULT ────────────────────────────────────────────────────
       
       const totalLatencyMs = Date.now() - startTime;
       const totalCostUsd = this.calculateCost(yangResult, yinResult, serenityResult);
@@ -278,7 +275,6 @@ export class ParallelDialecticProcessor {
         },
       };
 
-      // ─── PROMPT OPTIMIZER FEEDBACK ───────────────────────────────────────
       if (this.promptOptimizer?.enabled) {
         this.promptOptimizer.recordFeedback({
           quality: {

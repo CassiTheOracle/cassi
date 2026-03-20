@@ -25,6 +25,7 @@ import type {
 import type { IMemory } from '../../../types/intelligence.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
 import type { IProvider } from '../../../types/runtime.js';
+import type { ModuleSessionRegistry } from '../module-session-registry.js';
 
 
 
@@ -60,9 +61,7 @@ export interface DialecticSystemConfig {
   promptOptimizer?: Partial<PromptOptimizerConfig>;
 }
 
-// ============================================================================
 // Result Cache
-// ============================================================================
 
 interface CacheEntry {
   result: ParallelDialecticResult;
@@ -126,9 +125,7 @@ class ResultCache {
   }
 }
 
-// ============================================================================
 // DialecticSystem — Always Parallel
-// ============================================================================
 
 export class DialecticSystem implements IDialecticSystem {
   readonly name = 'dialectic';
@@ -138,6 +135,7 @@ export class DialecticSystem implements IDialecticSystem {
   private eventBus?: IEventBus;
   private memory?: IMemory;
   private provider?: IProvider;
+  private moduleRegistry?: ModuleSessionRegistry;
 
   private consolidatedProcessor: ConsolidatedDialecticProcessor;
   private promptOptimizer?: PromptOptimizer;
@@ -258,6 +256,22 @@ export class DialecticSystem implements IDialecticSystem {
     this.provider = provider;
     this.consolidatedProcessor.setProvider(provider);
     this.logger.info('DialecticSystem: provider wired');
+  }
+
+  /** Wire the module session registry for persistent debug sessions. */
+  setModuleRegistry(registry: ModuleSessionRegistry): void {
+    this.moduleRegistry = registry;
+    this.consolidatedProcessor.setModuleRegistry(registry);
+    // Wire into voice instances if they expose the method
+    for (const key of ['yang', 'yin', 'serenity'] as const) {
+      const voice = (this as any)[key];
+      if (voice && typeof voice.setModuleRegistry === 'function') {
+        voice.setModuleRegistry(registry);
+      }
+    }
+    registry.getOrCreate('dialectic');
+    registry.getOrCreate('dialectic.guide');
+    this.logger.info('DialecticSystem: module registry wired');
   }
 
   setMemory(memory: IMemory): void {
@@ -514,7 +528,13 @@ export class DialecticSystem implements IDialecticSystem {
     let guideText = '';
 
     const guidePromise = (async () => {
-      for await (const chunk of this.provider!.complete(messages, { source: 'dialectic:guide', allowConcurrent: true, dedupe: false } as any)) {
+      for await (const chunk of this.provider!.complete(messages, {
+        source: 'dialectic:guide',
+        allowConcurrent: true,
+        dedupe: false,
+        // Bind to persistent module debug session for Telegram observability
+        sessionId: this.moduleRegistry?.getSessionId('dialectic.guide'),
+      } as any)) {
         if (chunk.type === 'token' && chunk.text) {
           guideText += chunk.text;
         }
@@ -616,6 +636,12 @@ export class DialecticSystem implements IDialecticSystem {
     }
   }
 }
+
+/**
+ * @dep callers: dialectic-deduction.test.ts (tests/dialectic-deduction.test.ts), dialectic-task-guide.test.ts (tests/dialectic-task-guide.test.ts), createIntelligence (core/intelligence/index.ts), runMockLoop (scripts/simulate-dialectic-multi.js), runMock (scripts/simulate-dialectic.js) [+1]
+ * @dep module: Dialectic
+ * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
+ */
 
 export const createDialecticSystem = (logger: ILogger, config?: Partial<DialecticSystemConfig>): DialecticSystem =>
   new DialecticSystem(logger, config);

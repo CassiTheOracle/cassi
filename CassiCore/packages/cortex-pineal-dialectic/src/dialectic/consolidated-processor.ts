@@ -34,8 +34,8 @@ import type {
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { IProvider } from '../../../types/runtime.js'
+import type { ModuleSessionRegistry } from '../module-session-registry.js'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface ConsolidatedConfig {
   /** Observer timeout in ms (for the single consolidated call) */
@@ -57,7 +57,6 @@ export interface ConsolidatedOptions {
   signal?: AbortSignal
 }
 
-// ─── Default Config ──────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIG: ConsolidatedConfig = {
   observerTimeoutMs: 30_000,
@@ -67,7 +66,6 @@ const DEFAULT_CONFIG: ConsolidatedConfig = {
   model: 'gpt-4o',
 }
 
-// ─── Processor ───────────────────────────────────────────────────────────────
 
 export class ConsolidatedDialecticProcessor {
   private logger: ILogger
@@ -76,20 +74,25 @@ export class ConsolidatedDialecticProcessor {
   private eventBus: IEventBus | undefined
   private memory: IMemory | undefined
   private promptOptimizer: PromptOptimizer | undefined
+  private moduleRegistry: ModuleSessionRegistry | undefined
 
   constructor(logger: ILogger, config?: Partial<ConsolidatedConfig>) {
     this.logger = logger
     this.config = { ...DEFAULT_CONFIG, ...config }
   }
 
-  // ── Wiring ─────────────────────────────────────────────────────────────
 
   setProvider(provider: IProvider): void { this.provider = provider }
   setEventBus(bus: IEventBus): void { this.eventBus = bus }
   setMemory(memory: IMemory): void { this.memory = memory }
   setPromptOptimizer(optimizer: PromptOptimizer): void { this.promptOptimizer = optimizer }
 
-  // ── Main Entry Point ───────────────────────────────────────────────────
+  /** Wire the module session registry for persistent debug sessions. */
+  setModuleRegistry(registry: ModuleSessionRegistry): void {
+    this.moduleRegistry = registry
+    registry.getOrCreate('dialectic')
+  }
+
 
   async processTurn(
     sessionId: string,
@@ -150,7 +153,6 @@ export class ConsolidatedDialecticProcessor {
     emitStreamEvent({ timestamp: Date.now(), turnId, stage: 'start', data: { mode: 'consolidated' } })
 
     try {
-      // ── Build and send the consolidated prompt ───────────────────────────
       const prompt = this.buildConsolidatedPrompt(userMessage, context, relevantMemories)
       const modelSpec = this.resolveModel(opts)
       const slash = modelSpec.indexOf('/')
@@ -159,7 +161,6 @@ export class ConsolidatedDialecticProcessor {
       const { text: response, requestId } = await this.callProvider(providerToUse, prompt, modelName, opts?.signal)
       const callDuration = Date.now() - startTime
 
-      // ── Parse the consolidated response ──────────────────────────────────
       const parsed = this.parseConsolidatedResponse(response)
 
       // Emit stage events
@@ -167,7 +168,6 @@ export class ConsolidatedDialecticProcessor {
       emitStreamEvent({ timestamp: Date.now(), turnId, stage: 'yin', data: parsed.yin })
       emitStreamEvent({ timestamp: Date.now(), turnId, stage: 'serenity', data: parsed.serenity })
 
-      // ── Build result ─────────────────────────────────────────────────────
       const totalLatencyMs = Date.now() - startTime
 
       // Signal injection: inject whenever the dialectic has something meaningful to say.
@@ -203,7 +203,6 @@ export class ConsolidatedDialecticProcessor {
         },
       }
 
-      // ── Archive to memory ────────────────────────────────────────────────
       if (this.memory && typeof (this.memory as any).archiveDialectic === 'function') {
         try {
           const mem = this.memory as any
@@ -235,7 +234,6 @@ export class ConsolidatedDialecticProcessor {
         }
       }
 
-      // ── Prompt optimizer feedback ────────────────────────────────────────
       if (this.promptOptimizer?.enabled) {
         this.promptOptimizer.recordFeedback({
           quality: {
@@ -272,7 +270,6 @@ export class ConsolidatedDialecticProcessor {
     }
   }
 
-  // ── Prompt Building ──────────────────────────────────────────────────────
 
   private buildConsolidatedPrompt(
     userMessage: string,
@@ -365,7 +362,6 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
     return parts.join('\n\n')
   }
 
-  // ── Response Parsing ─────────────────────────────────────────────────────
 
   private parseConsolidatedResponse(text: string): {
     yang: YangOutput
@@ -567,7 +563,6 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
     }
   }
 
-  // ── Provider Call ────────────────────────────────────────────────────────
 
   private async callProvider(
     provider: IProvider,
@@ -587,6 +582,8 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
       source: 'dialectic:consolidated',
       trigger: 'turn',
       onMeta: (meta: { requestId: string }) => { requestId = meta.requestId },
+      // Bind to persistent module debug session for Telegram observability
+      sessionId: this.moduleRegistry?.getSessionId('dialectic'),
     }, undefined, signal)
 
     let fullText = ''
@@ -597,7 +594,6 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
     return { text: fullText, requestId }
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
 
   private resolveProvider(opts?: ConsolidatedOptions): IProvider | undefined {
     if (opts?.providers?.consolidated) {
@@ -670,7 +666,6 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
   }
 }
 
-// ─── Factory ─────────────────────────────────────────────────────────────────
 
 export function createConsolidatedDialecticProcessor(
   logger: ILogger,

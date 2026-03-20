@@ -29,7 +29,6 @@
 
 import type { PromptVariant } from '../../../types/dialectic.js';
 
-// ─── Shared JSON Schema References ─────────────────────────────────────────
 // Defined once for consistency. Each variant references the same schema
 // with different framing instructions. Exported for use in inline fallbacks
 // and repair prompts in observer files.
@@ -84,7 +83,6 @@ export const SERENITY_SCHEMA = `{
 
 export const JSON_INSTRUCTION = 'Return ONLY valid JSON. No markdown fences, no explanation, no extra text.';
 
-// ─── Yang Variants ──────────────────────────────────────────────────────────
 
 export const YANG_VARIANT_STRUCTURED: PromptVariant = {
   id: 'yang-v1-analytical',
@@ -164,7 +162,6 @@ ${YANG_SCHEMA}
 ${JSON_INSTRUCTION}`,
 };
 
-// ─── Yin Critique Variants (Sequential Mode) ───────────────────────────────
 
 export const YIN_VARIANT_STRUCTURED: PromptVariant = {
   id: 'yin-v1-validation',
@@ -248,7 +245,6 @@ ${YIN_CRITIQUE_SCHEMA}
 ${JSON_INSTRUCTION}`,
 };
 
-// ─── Yin Baseline Variants (Parallel Mode) ──────────────────────────────────
 
 export const YIN_BASELINE_VARIANT_STRUCTURED: PromptVariant = {
   id: 'yin-baseline-v1-constraints',
@@ -330,7 +326,6 @@ ${YIN_BASELINE_SCHEMA}
 ${JSON_INSTRUCTION}`,
 };
 
-// ─── Serenity Variants (Dual Synthesis) ─────────────────────────────────────
 
 export const SERENITY_VARIANT_STRUCTURED: PromptVariant = {
   id: 'serenity-v1-synthesis',
@@ -432,7 +427,6 @@ ${SERENITY_SCHEMA}
 ${JSON_INSTRUCTION}`,
 };
 
-// ─── Exports ────────────────────────────────────────────────────────────────
 
 /** All Yang prompt variants */
 export const YANG_VARIANTS: PromptVariant[] = [

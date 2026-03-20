@@ -8,6 +8,7 @@
 import type { PromptOptimizer } from './prompt-optimizer.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
 import type { IProvider } from '../../../types/runtime.js';
+import type { ModuleSessionRegistry } from '../module-session-registry.js';
 
 /**
  * Base configuration shared by all dialectic voices
@@ -64,6 +65,9 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
   /** Prompt optimizer for variant selection */
   protected promptOptimizer?: PromptOptimizer;
 
+  /** Module session registry for persistent debug sessions */
+  protected moduleRegistry?: ModuleSessionRegistry;
+
   /**
    * The requestId from the most recent callProvider() invocation.
    * Set by the onMeta callback. Used by the dialectic module to tag
@@ -98,6 +102,12 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
   setProvider(provider: IProvider): void {
     this.provider = provider;
     this.logger.info(`${this.constructor.name}: provider wired`);
+  }
+
+  /** Wire the module session registry for persistent debug sessions. */
+  setModuleRegistry(registry: ModuleSessionRegistry): void {
+    this.moduleRegistry = registry;
+    registry.getOrCreate('dialectic');
   }
 
   /**
@@ -148,6 +158,8 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
       thinking: 'none' as const,
       source: `dialectic:${this.constructor.name.toLowerCase()}`,
       onMeta: (meta: { requestId: string }) => { this._lastRequestId = meta.requestId },
+      // Bind to persistent module debug session for Telegram observability
+      sessionId: this.moduleRegistry?.getSessionId('dialectic'),
     };
 
     if (opts?.allowConcurrent) callOpts.allowConcurrent = true;
