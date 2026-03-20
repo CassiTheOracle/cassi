@@ -49,7 +49,6 @@ export class PlanHandler {
     this.logger = logger.child('plan-handler')
   }
 
-  // ─── Public API ─────────────────────────────────────────────────────────
 
   /**
    * Handle a plan tool call from a Lumen agent.
@@ -96,7 +95,6 @@ export class PlanHandler {
     }
   }
 
-  // ─── Static Helpers ─────────────────────────────────────────────────────
 
   /**
    * Check if a tool name is a plan meta-tool.
@@ -112,7 +110,6 @@ export class PlanHandler {
     return PLAN_META_TOOL_NAMES
   }
 
-  // ─── Tool Implementations ──────────────────────────────────────────────
 
   /**
    * Submit a new step to the plan.
@@ -306,7 +303,6 @@ export class PlanHandler {
     })
   }
 
-  // ─── Formatting ─────────────────────────────────────────────────────────
 
   /**
    * Get the next step order number (max existing + 1).

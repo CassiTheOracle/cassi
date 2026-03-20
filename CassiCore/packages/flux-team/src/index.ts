@@ -17,25 +17,21 @@
  * @module flux-team
  */
 
-// ── Orchestrator ─────────────────────────────────────────────────────────────
 export {
   FluxTeamOrchestrator,
   createFluxTeamOrchestrator,
 } from './flux-team-orchestrator.js'
 export type { FluxTeamOrchestratorConfig } from './flux-team-orchestrator.js'
 
-// ── FluxCell ─────────────────────────────────────────────────────────────────
 export { FluxCell, createFluxCell } from './flux-cell.js'
 export type { FluxCellConfig } from './flux-cell.js'
 
-// ── Topology Engine ──────────────────────────────────────────────────────────
 export { TopologyEngine, createTopologyEngine } from './topology-engine.js'
 export type {
   TopologyExecutionOptions,
   TopologyExecutionResult,
 } from './topology-engine.js'
 
-// ── Topology Templates ───────────────────────────────────────────────────────
 export {
   TOPOLOGY_TEMPLATES,
   getTopology,
@@ -43,11 +39,9 @@ export {
   validateTopology,
 } from './topology.js'
 
-// ── Conditions ───────────────────────────────────────────────────────────────
 export { ConditionEvaluator, createConditionEvaluator } from './conditions.js'
 export type { ConditionContext } from './conditions.js'
 
-// ── Blackboard ───────────────────────────────────────────────────────────────
 export { Blackboard } from './blackboard.js'
 export {
   handleBlackboardToolCall,
@@ -63,19 +57,15 @@ export {
   EXECUTIVE_PLAN_TOOLS,
 } from './blackboard-tools.js'
 
-// ── Genome System ────────────────────────────────────────────────────────────
 export { GENOME_TEMPLATES, createGenome } from './genome.js'
 export { GenomeRegistry } from './genome-registry.js'
 
-// ── Task Analysis + Routing ──────────────────────────────────────────────────
 export { TaskAnalyzer } from './task-analyzer.js'
 export { SkillRouter } from './skill-router.js'
 export type { FluxRoutingResult } from './skill-router.js'
 
-// ── Outcome Ledger ───────────────────────────────────────────────────────────
 export { OutcomeLedger } from './outcome-ledger.js'
 export type { OutcomeLedgerStats } from './outcome-ledger.js'
 
-// ── Global Blackboard Registry ────────────────────────────────────────────────
 export { GlobalBlackboardRegistry } from './global-blackboard-registry.js'
 export type { GlobalBlackboardEntry } from './global-blackboard-registry.js'

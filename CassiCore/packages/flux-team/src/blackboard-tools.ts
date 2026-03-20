@@ -33,9 +33,7 @@ import type { Blackboard } from './blackboard.js'
 
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 
-// ============================================================================
 // Channel Tools
-// ============================================================================
 
 const BB_POST_TOOL: ToolSchema = {
   name: 'bb_post',
@@ -125,9 +123,7 @@ const BB_READ_ALL_TOOL: ToolSchema = {
   },
 }
 
-// ============================================================================
 // Scratchpad Tools
-// ============================================================================
 
 const BB_SCRATCH_SET_TOOL: ToolSchema = {
   name: 'bb_scratch_set',
@@ -182,9 +178,7 @@ const BB_SCRATCH_LIST_TOOL: ToolSchema = {
   },
 }
 
-// ============================================================================
 // Artifact Tracking Tools
-// ============================================================================
 
 const BB_TRACK_ARTIFACT_TOOL: ToolSchema = {
   name: 'bb_track_artifact',
@@ -235,9 +229,7 @@ const BB_GET_ARTIFACTS_TOOL: ToolSchema = {
   },
 }
 
-// ============================================================================
 // Tool Log Tool
-// ============================================================================
 
 const BB_TOOL_LOG_TOOL: ToolSchema = {
   name: 'bb_tool_log',
@@ -261,9 +253,7 @@ const BB_TOOL_LOG_TOOL: ToolSchema = {
   },
 }
 
-// ============================================================================
 // Report Tools (re-exported with same names for drop-in replacement)
-// ============================================================================
 
 export const REPORT_ADD_SECTION_TOOL: ToolSchema = {
   name: 'report_add_section',
@@ -424,9 +414,7 @@ export const REPORT_METRICS_TOOL: ToolSchema = {
   },
 }
 
-// ============================================================================
 // Plan Tools (re-exported with same names for drop-in replacement)
-// ============================================================================
 
 export const PLAN_SUBMIT_STEP_TOOL: ToolSchema = {
   name: 'plan_submit_step',
@@ -583,9 +571,7 @@ export const PLAN_FINALIZE_TOOL: ToolSchema = {
   },
 }
 
-// ============================================================================
 // Tool Name Sets
-// ============================================================================
 
 /** All channel tool names */
 const CHANNEL_TOOL_NAMES = new Set(['bb_post', 'bb_read', 'bb_read_all'])
@@ -640,14 +626,17 @@ export const BLACKBOARD_TOOL_NAMES = new Set([
 
 /**
  * Check if a tool name is a Blackboard meta-tool.
+ * @dep callers: processToolCalls (core/intelligence/dyad/dyad-agent-session.ts), processToolCalls (core/intelligence/lumen/lumen-agent-session.ts), buildToolSchemas (core/intelligence/lumen/lumen-agent-session.ts)
+ * @dep calls: has
+ * @dep flows: Run → IsBlackboardMetaTool (3/3)
+ * @dep module: Lumen
+ * @dep risk: LOW | 3 callers, 1 flow, 1 module
  */
 export function isBlackboardMetaTool(name: string): boolean {
   return BLACKBOARD_TOOL_NAMES.has(name)
 }
 
-// ============================================================================
 // Tool Schema Sets
-// ============================================================================
 
 /** Channel + scratchpad + artifact + tool-log tools — available to all postures/roles */
 const BOARD_TOOLS_ALL: ToolSchema[] = [
@@ -691,6 +680,9 @@ export const EXECUTIVE_PLAN_TOOLS: ToolSchema[] = [
  *
  * @param posture - The posture or role name (e.g. 'yang', 'yin', 'executive', 'apex')
  * @returns Array of tool schemas for that posture
+ * @dep callers: buildToolSchemas (core/intelligence/dyad/dyad-agent-session.ts), buildToolSchemas (core/intelligence/lumen/lumen-agent-session.ts)
+ * @dep module: Dyad
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function getBlackboardToolSchemas(posture: string): ToolSchema[] {
   const isGated = posture === 'executive' || posture === 'apex'
@@ -731,9 +723,7 @@ export function isPlanMetaTool(name: string): boolean {
   return ALL_PLAN_TOOL_NAMES.has(name)
 }
 
-// ============================================================================
 // Routing — handleBlackboardToolCall
-// ============================================================================
 
 /**
  * Route a Blackboard tool call to the appropriate Blackboard method.
@@ -747,6 +737,11 @@ export function isPlanMetaTool(name: string): boolean {
  * @param input - Parsed tool input from the LLM
  * @param posture - Calling posture/role (e.g. 'yang', 'yin', 'executive', 'apex')
  * @returns String result to return to the LLM
+ * @dep callers: processToolCalls (core/intelligence/dyad/dyad-agent-session.ts), processToolCalls (core/intelligence/lumen/lumen-agent-session.ts)
+ * @dep calls: has, handleBbPost, handleBbRead, handleBbReadAll, handleScratchSet [+17]
+ * @dep flows: HandleBlackboardToolCall → Now (1/4), HandleBlackboardToolCall → PriorityNum (1/3), HandleBlackboardToolCall → GetArtifacts (1/3)
+ * @dep module: Flux-team
+ * @dep risk: MEDIUM | 2 callers, 3 flows, 1 module
  */
 export function handleBlackboardToolCall(
   blackboard: Blackboard,
@@ -755,31 +750,25 @@ export function handleBlackboardToolCall(
   posture: string,
 ): string {
   try {
-    // ─── Plan gating ─────────────────────────────────────────────────────
     if (GATED_PLAN_TOOL_NAMES.has(name) && posture !== 'executive' && posture !== 'apex') {
       return JSON.stringify({
         error: `Tool '${name}' is restricted to the Executive (Lumen) or Apex (Dyad) role. You (${posture}) can use plan_submit_step and plan_view.`,
       })
     }
 
-    // ─── Channel tools ────────────────────────────────────────────────────
     if (name === 'bb_post') return handleBbPost(blackboard, input, posture)
     if (name === 'bb_read') return handleBbRead(blackboard, input)
     if (name === 'bb_read_all') return handleBbReadAll(blackboard, input)
 
-    // ─── Scratchpad tools ─────────────────────────────────────────────────
     if (name === 'bb_scratch_set') return handleScratchSet(blackboard, input, posture)
     if (name === 'bb_scratch_get') return handleScratchGet(blackboard, input)
     if (name === 'bb_scratch_list') return handleScratchList(blackboard)
 
-    // ─── Artifact tools ───────────────────────────────────────────────────
     if (name === 'bb_track_artifact') return handleTrackArtifact(blackboard, input, posture)
     if (name === 'bb_get_artifacts') return handleGetArtifacts(blackboard, input)
 
-    // ─── Tool log ─────────────────────────────────────────────────────────
     if (name === 'bb_tool_log') return handleToolLog(blackboard, input)
 
-    // ─── Report tools ─────────────────────────────────────────────────────
     if (name === 'report_add_section') return handleReportAddSection(blackboard, input, posture)
     if (name === 'report_view') return handleReportView(blackboard, input)
     if (name === 'report_revise_section') return handleReportReviseSection(blackboard, input)
@@ -787,7 +776,6 @@ export function handleBlackboardToolCall(
     if (name === 'report_discard') return handleReportDiscard(blackboard, input)
     if (name === 'report_metrics') return handleReportMetrics(blackboard)
 
-    // ─── Plan tools ───────────────────────────────────────────────────────
     if (name === 'plan_submit_step') return handlePlanSubmitStep(blackboard, input, posture)
     if (name === 'plan_view') return handlePlanView(blackboard)
     if (name === 'plan_approve_step') return handlePlanApproveStep(blackboard, input)
@@ -801,19 +789,32 @@ export function handleBlackboardToolCall(
   }
 }
 
-// ============================================================================
 // Channel Implementations
-// ============================================================================
 
 type ChannelName = 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests'
 const VALID_CHANNELS = new Set<ChannelName>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
 
 /** Map priority string to numeric priority for Blackboard.post() */
+/**
+ * @dep callers: handleBbPost (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep flows: HandleBlackboardToolCall → PriorityNum (3/3)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function priorityNum(p: unknown): number {
   if (p === 'high') return 2
   if (p === 'low') return 0
   return 1 // 'medium' is default
 }
+
+/**
+ * @dep callers: handleBlackboardToolCall (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep calls: has, post, priorityNum
+ * @dep flows: HandleBlackboardToolCall → PriorityNum (2/3)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function handleBbPost(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
   const channel = String(input.channel ?? '') as ChannelName
@@ -865,6 +866,14 @@ function handleBbRead(blackboard: Blackboard, input: Record<string, unknown>): s
   return `## ${channel} (${entries.length} entries)\n${lines.join('\n\n')}`
 }
 
+/**
+ * @dep callers: handleBlackboardToolCall (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep calls: getAllScratchpad, getArtifacts
+ * @dep flows: HandleBlackboardToolCall → Now (2/4), HandleBlackboardToolCall → GetArtifacts (2/3)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
+
 function handleBbReadAll(blackboard: Blackboard, input: Record<string, unknown>): string {
   const limitPerChannel = typeof input.limit_per_channel === 'number' ? input.limit_per_channel : 10
   const channels: ChannelName[] = ['findings', 'concerns', 'decisions', 'artifacts', 'requests']
@@ -896,9 +905,7 @@ function handleBbReadAll(blackboard: Blackboard, input: Record<string, unknown>)
   return parts.join('\n')
 }
 
-// ============================================================================
 // Scratchpad Implementations
-// ============================================================================
 
 function handleScratchSet(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
   const key = String(input.key ?? '')
@@ -924,9 +931,7 @@ function handleScratchList(blackboard: Blackboard): string {
   return `## Scratchpad (${keys.length} active keys)\n${keys.map(k => `  - ${k}`).join('\n')}`
 }
 
-// ============================================================================
 // Artifact Implementations
-// ============================================================================
 
 function handleTrackArtifact(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
   const path = String(input.path ?? '')
@@ -969,9 +974,7 @@ function handleGetArtifacts(blackboard: Blackboard, input: Record<string, unknow
   return `## Artifacts (${artifacts.length})\n${lines.join('\n')}`
 }
 
-// ============================================================================
 // Tool Log Implementation
-// ============================================================================
 
 function handleToolLog(blackboard: Blackboard, input: Record<string, unknown>): string {
   const limit = typeof input.limit === 'number' ? input.limit : 20
@@ -990,9 +993,7 @@ function handleToolLog(blackboard: Blackboard, input: Record<string, unknown>): 
   return `## Tool Log (${records.length} records)\n${lines.join('\n')}`
 }
 
-// ============================================================================
 // Report Implementations
-// ============================================================================
 
 function handleReportAddSection(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
   const type = String(input.type ?? 'note') as import('../../../types/flux-team.js').ReportSectionType
@@ -1089,9 +1090,7 @@ function handleReportMetrics(blackboard: Blackboard): string {
   ].join('\n')
 }
 
-// ============================================================================
 // Plan Implementations
-// ============================================================================
 
 function handlePlanSubmitStep(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
   const title = String(input.title ?? '')
@@ -1179,9 +1178,13 @@ function handlePlanFinalize(blackboard: Blackboard, input: Record<string, unknow
   return JSON.stringify({ success: true, plan: formatPlan(plan), message: `Plan finalized as '${status}'.` })
 }
 
-// ============================================================================
 // Plan Formatting Helpers
-// ============================================================================
+
+/**
+ * @dep callers: handlePlanUpdateStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanRejectStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanApproveStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanSubmitStep (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep module: Flux-team
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
 
 function formatStep(step: import('../../../types/flux-team.js').PlanStep): Record<string, unknown> {
   return {
@@ -1198,6 +1201,12 @@ function formatStep(step: import('../../../types/flux-team.js').PlanStep): Recor
     rejectionReason: step.rejectionReason,
   }
 }
+
+/**
+ * @dep callers: handlePlanFinalize (core/intelligence/flux-team/blackboard-tools.ts), handlePlanView (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function formatPlan(plan: import('../../../types/flux-team.js').Plan): Record<string, unknown> {
   const sortedSteps = [...plan.steps].sort((a, b) => a.order - b.order)

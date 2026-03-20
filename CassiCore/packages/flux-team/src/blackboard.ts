@@ -36,9 +36,7 @@ import type {
   ReportQualityMetrics,
 } from '../../../types/flux-team.js'
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 const CHANNEL_LIMIT = 200 // Max entries per channel
 const TOOL_LOG_LIMIT = 500 // Max tool records
@@ -52,9 +50,7 @@ const CHANNELS: BlackboardChannel[] = [
   'requests',
 ]
 
-// ============================================================================
 // Blackboard
-// ============================================================================
 
 export class Blackboard {
   private readonly logger: ILogger
@@ -119,7 +115,6 @@ export class Blackboard {
     this.logger.debug('Blackboard created', { cellId })
   }
 
-  // ─── Channel Operations ───────────────────────────────────────────────────
 
   /**
    * Post an entry to a channel.
@@ -213,7 +208,6 @@ export class Blackboard {
     return allEntries
   }
 
-  // ─── Reactive Subscriptions ───────────────────────────────────────────────
 
   /**
    * Subscribe to a channel with optional tag filtering.
@@ -279,7 +273,6 @@ export class Blackboard {
     }
   }
 
-  // ─── Scratchpad ───────────────────────────────────────────────────────────
 
   /**
    * Set a scratchpad entry with TTL.
@@ -349,7 +342,6 @@ export class Blackboard {
     return result
   }
 
-  // ─── Tool Log ─────────────────────────────────────────────────────────────
 
   /**
    * Add a tool execution record.
@@ -392,7 +384,6 @@ export class Blackboard {
     return [...this.toolLog]
   }
 
-  // ─── Artifact Tracking ────────────────────────────────────────────────────
 
   /**
    * Track a file artifact.
@@ -425,7 +416,6 @@ export class Blackboard {
     return Array.from(this.artifacts.values())
   }
 
-  // ─── Child Results / Parent Context ───────────────────────────────────────
 
   /**
    * Store a child cell result.
@@ -470,7 +460,6 @@ export class Blackboard {
     return this.parentContext
   }
 
-  // ─── Plan ─────────────────────────────────────────────────────────────────
 
   /**
    * Initialize a new plan for this blackboard.
@@ -660,7 +649,6 @@ export class Blackboard {
     return lines.join('\n')
   }
 
-  // ─── Report ───────────────────────────────────────────────────────────────
 
   /**
    * Store the incremental report from a Lumen session.
@@ -976,7 +964,6 @@ export class Blackboard {
     return parts.join('\n')
   }
 
-  // ─── Context Assembly ─────────────────────────────────────────────────────
 
   /**
    * Assemble context for a Lumen session.
@@ -1091,7 +1078,6 @@ export class Blackboard {
     return lines.join('\n')
   }
 
-  // ─── Snapshot / Restore ───────────────────────────────────────────────────
 
   /**
    * Get a full snapshot of the blackboard state.
@@ -1206,7 +1192,6 @@ export class Blackboard {
     })
   }
 
-  // ─── Internal ─────────────────────────────────────────────────────────────
 
   /**
    * Update last activity timestamp.

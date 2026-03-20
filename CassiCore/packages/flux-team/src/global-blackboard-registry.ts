@@ -20,7 +20,6 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { BlackboardState } from '../../../types/flux-team.js'
 import { Blackboard } from './blackboard.js'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface GlobalBlackboardEntry {
   name: string
@@ -30,7 +29,6 @@ export interface GlobalBlackboardEntry {
   persist: boolean
 }
 
-// ─── Registry ─────────────────────────────────────────────────────────────────
 
 export class GlobalBlackboardRegistry {
   private readonly boards = new Map<string, GlobalBlackboardEntry>()
@@ -42,7 +40,6 @@ export class GlobalBlackboardRegistry {
     this.persistDir = persistDir ?? path.join(homedir(), '.cassicore', 'blackboards')
   }
 
-  // ─── Public API ─────────────────────────────────────────────────────────────
 
   /**
    * Get an existing Blackboard by name, or create a new one.
@@ -218,7 +215,6 @@ export class GlobalBlackboardRegistry {
     }
   }
 
-  // ─── Internal ──────────────────────────────────────────────────────────────
 
   private boardPath(name: string): string {
     // Sanitize name to a safe filename (replace / and : with -)
