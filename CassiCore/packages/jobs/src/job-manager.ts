@@ -283,7 +283,6 @@ export class JobManager {
     }
   }
 
-  // ─── Private ───────────────────────────────────────────────────────────
 
   private finishJob(job: Job, status: JobStatus): void {
     if (job.timer) {

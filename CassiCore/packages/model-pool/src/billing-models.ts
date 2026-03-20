@@ -17,9 +17,7 @@ import { BillingModel } from './types.js'
 import type { BudgetScope, BudgetUsage } from './types.js'
 import type { ILogger } from '../../types/interfaces.js'
 
-// ============================================================================
 // Request Counter Interface
-// ============================================================================
 
 /**
  * Snapshot of usage for a provider+model combination.
@@ -73,9 +71,7 @@ export interface RequestCounter {
   ): boolean
 }
 
-// ============================================================================
 // GitHub Copilot Request Counter (Request-Based Monthly Quota)
-// ============================================================================
 
 /**
  * Request counter for GitHub Copilot billing model.
@@ -197,9 +193,7 @@ export class CopilotRequestCounter implements RequestCounter {
   }
 }
 
-// ============================================================================
 // Token-Based Request Counter (Pay-Per-Use)
-// ============================================================================
 
 /**
  * Request counter for token-based billing models.
@@ -301,9 +295,7 @@ export class TokenRequestCounter implements RequestCounter {
   }
 }
 
-// ============================================================================
 // Alibaba Coding Request Counter (Request-Based Monthly Quota)
-// ============================================================================
 
 /**
  * Request counter for Alibaba Coding billing model.
@@ -397,9 +389,7 @@ export class AlibabaRequestCounter implements RequestCounter {
   }
 }
 
-// ============================================================================
 // Billing Model Classification
-// ============================================================================
 
 /**
  * Determine the billing model for a provider+model combination.

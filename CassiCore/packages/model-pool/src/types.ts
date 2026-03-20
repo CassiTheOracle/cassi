@@ -10,9 +10,7 @@
 import type { CompletionOpts, CompletionChunk, TurnResult, Message } from '../../types/runtime.js'
 import type { ILogger, IEventBus } from '../../types/interfaces.js'
 
-// ============================================================================
 // Model Capabilities (aligned with existing ModelCapabilitiesFetcher)
-// ============================================================================
 
 /**
  * Model capabilities - extends existing pattern with cost tier information.
@@ -33,9 +31,7 @@ export interface ModelCapabilities {
   costTier: 'free' | 'low' | 'medium' | 'high'
 }
 
-// ============================================================================
 // Model Slot Configuration
-// ============================================================================
 
 /**
  * Configuration for a single model slot in the pool.
@@ -74,9 +70,7 @@ export interface FallbackChain {
   >
 }
 
-// ============================================================================
 // Billing Models
-// ============================================================================
 
 /**
  * Billing model classification for provider+model combinations.
@@ -93,9 +87,7 @@ export enum BillingModel {
   LOCAL = 'local',
 }
 
-// ============================================================================
 // Budget Scopes (hierarchical limits for ModelPool)
-// ============================================================================
 
 /**
  * Budget limits for a scope.
@@ -173,9 +165,7 @@ export interface BudgetWarning {
   threshold: number
 }
 
-// ============================================================================
 // Model Handle (lightweight model reference with lifecycle)
-// ============================================================================
 
 /**
  * Options for completing a request with a model.
@@ -210,9 +200,7 @@ export interface ModelHandle {
   [Symbol.dispose](): void
 }
 
-// ============================================================================
 // Circuit Breaker State (for PoolEvent integration)
-// ============================================================================
 
 /**
  * Circuit breaker state.
@@ -220,9 +208,7 @@ export interface ModelHandle {
  */
 export type CircuitState = 'closed' | 'open' | 'half-open'
 
-// ============================================================================
 // Pool Events (discriminated union for IEventBus)
-// ============================================================================
 
 /**
  * ModelPool events for observability and audit trail.
@@ -296,9 +282,7 @@ export type PoolEvent =
       timestamp: Date
     }
 
-// ============================================================================
 // Pool Configuration
-// ============================================================================
 
 /**
  * Configuration for the ModelPool.

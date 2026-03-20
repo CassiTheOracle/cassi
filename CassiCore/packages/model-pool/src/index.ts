@@ -125,7 +125,6 @@ export class ModelPool {
 
     this.logger.debug('Acquiring model', { slotName, template, sessionId, override: override ? `${override.provider}/${override.model}` : undefined })
 
-    // ── Override path: bypass fallback chain entirely ────────────────────────
     if (override) {
       const providerInstance = this.providers.get(override.provider)
       if (!providerInstance) {
@@ -173,7 +172,6 @@ export class ModelPool {
       return handle
     }
 
-    // ── Standard path: use fallback chain ────────────────────────────────────
 
     // Try models in the fallback chain until we find a working one
     let slotConfig = this.fallbackManager.getNextAvailable(slotName)

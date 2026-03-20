@@ -19,9 +19,7 @@ import type { ILogger } from '../../types/interfaces.js'
 import type { BillingModel } from './types.js'
 import { getCostTier, getBillingModel } from './billing-models.js'
 
-// ============================================================================
 // Extended Capabilities (adds billing information)
-// ============================================================================
 
 /**
  * Extended model capabilities with billing information.
@@ -40,9 +38,7 @@ export interface ExtendedModelCapabilities extends ModelCapabilities {
   cacheHit: boolean
 }
 
-// ============================================================================
 // Pre-warm Configuration
-// ============================================================================
 
 /**
  * Configuration for pre-warming the capability cache.
@@ -56,9 +52,7 @@ export interface PreWarmConfig {
   providerInstance?: IProvider
 }
 
-// ============================================================================
 // Capability Cache
-// ============================================================================
 
 /**
  * TTL + LRU cache for model capabilities.
@@ -185,7 +179,6 @@ export class CapabilityCache {
     }
   }
 
-  // ─── Private Methods ─────────────────────────────────────────────────────
 
   private set(key: string, capabilities: ExtendedModelCapabilities): void {
     this.cache.set(key, capabilities)
@@ -217,9 +210,7 @@ export class CapabilityCache {
   }
 }
 
-// ============================================================================
 // Multi-Provider Capability Aggregator
-// ============================================================================
 
 /**
  * Aggregates capabilities across multiple providers for comparison.

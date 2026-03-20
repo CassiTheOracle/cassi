@@ -200,9 +200,7 @@ export class BudgetManager {
     this.logger.info('BudgetManager disposed')
   }
 
-  // ============================================================================
   // Private Methods
-  // ============================================================================
 
   private getScopeChain(scope: BudgetScope): BudgetScope[] {
     const chain: BudgetScope[] = []
