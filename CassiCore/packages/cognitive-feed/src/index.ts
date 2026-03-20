@@ -520,10 +520,17 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
 
               const hasActiveToolSession = !!msg.from && this.activeToolSessions.get(msg.from.id)?.isActive
 
+              const isModuleTopic = !isGeneralChat && this.moduleChat?.isModuleTopic(msg.message_thread_id)
+
               if (isFromOurGroup && isGeneralChat && !isSlashCommand && msg.text && !hasActiveToolSession) {
                 // General chat plain text → full session bridge
                 this.generalChat.handleMessage(msg).catch(err => {
                   this.logger.warn('[cognitive-feed] General chat handler error', { error: String(err) })
+                })
+              } else if (isFromOurGroup && isModuleTopic && !isSlashCommand && msg.text && !hasActiveToolSession) {
+                // Module topic plain text → module persistent session bridge
+                this.moduleChat.handleMessage(msg).catch(err => {
+                  this.logger.warn('[cognitive-feed] Module chat handler error', { error: String(err) })
                 })
               } else {
                 // Topic messages, slash commands → steering handler
