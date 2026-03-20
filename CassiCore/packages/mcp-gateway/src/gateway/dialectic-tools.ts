@@ -41,7 +41,7 @@ export const DIALECTIC_TOOLS = [
 export const DIALECTIC_TOOL_NAMES = new Set(DIALECTIC_TOOLS.map(t => t.name));
 
 /**
- * Format cassi_dialectic output
+ * Format dialectic output
  */
 async function formatDialectic(baseUrl: string, args: any): Promise<string> {
   const mode = args?.mode || 'brief';
