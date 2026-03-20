@@ -3,6 +3,8 @@
  * Every module communicates exclusively through these types.
  */
 
+import type { FluxTeamEvent } from './flux-team.js'
+
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
 // Health status enum
@@ -48,6 +50,8 @@ export type RuntimeEvent =
   | { type: "config:override:set"; key: string; value: unknown; meta?: object }
   | { type: "config:override:cleared"; key: string }
   | { type: "worker:message"; pluginId: string; payload: unknown }
+  // Channel tool events — forwarded from external agents (e.g., OpenCode)
+  | { type: "channel:tool_update"; sessionId: string; toolName: string; status: string; partData?: Record<string, unknown>; timestamp: Date }
   // Centralized provider events
    | { type: "provider:request_start"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; messageCount: number; timestamp: Date }
    | { type: "provider:request_prompt"; providerId: string; requestId: string; sessionId: string; source: string; messages: Array<{ role: string; content: string }>; systemPrompt?: string; timestamp: Date }
@@ -155,6 +159,8 @@ export type RuntimeEvent =
    | { type: "team:checkpoint"; teamId: string; checkpointId: string; trigger: string; progress: string }
    // FluxTeam node-level execution signals
    | { type: "flux:node:completed"; teamId: string; cellId: string; nodeId: string; genomeId: string; success: boolean; confidence: number; tokensUsed: number; durationMs: number; toolCallCount: number }
+   // FluxTeam lifecycle events (all FluxTeamEventType variants wrapped in a single envelope)
+   | { type: "flux:event"; event: FluxTeamEvent }
    // Cross-session awareness events
   | { type: "session:created"; sessionId: string; channelId: string; senderId: string; timestamp: Date }
   | { type: "session:ended"; sessionId: string; timestamp: Date }
@@ -223,7 +229,6 @@ export type RuntimeEvent =
       topScore: number;
       timestamp: Date;
     }
-  // ── SelfHealingAgent events ─────────────────────────────────────────────
   | { type: "intelligence:processor-error"; processorName: string; error: string; timestamp: number }
   | { type: "self-healer:error-detected";   id: string; processorName: string; error: string; attempt: number }
   | { type: "self-healer:repair-proposed";  id: string; filePath: string; patch: string }
@@ -239,14 +244,11 @@ export type RuntimeEvent =
   | { type: "self-healer:rebuild-failed";   id: string; error: string }
   | { type: "self-healer:restart-requested"; id: string; reason: string }
   | { type: "self-healer:shutdown-requested"; id: string; reason: string }
-  // ── ErrorLearner events (merged Reflect + Recover) ──────────────────────────
   | { type: "error-learner:pattern_stored"; pattern: string; category: string; occurrences: number; timestamp: Date }
   | { type: "error-learner:recovery_attempted"; pattern: string; strategy: string; attempt: number; maxAttempts: number; timestamp: Date }
   | { type: "error-learner:recovery_exhausted"; pattern: string; context?: string; timestamp: Date }
-  // ── AI Scientist events ─────────────────────────────────────────────────────
   | { type: "ai-scientist:study-complete"; studyId: string; track: string; summary: string }
   | { type: "ai-scientist:breakthrough"; track: string; title: string; metric: string; deltaPercent: number; effectSize: number; pValue: number }
-  // ── Thinker quality signals ─────────────────────────────────────────────────
    | { type: "thinker:feedback"; sessionId: string; helpful: boolean; insightContent?: string }
    | { type: "thinker:ponder-skipped"; sessionId: string; reason: string }
    | { type: "thinker:strategy-updated"; strategy: Record<string, unknown> }
@@ -256,7 +258,6 @@ export type RuntimeEvent =
    | { type: "thinker:early-warning"; sessionId: string; warning: string; requestId?: string }
    | { type: "thinker:self-modified"; module: string; change: Record<string, unknown> }
    | { type: "thinker:swarm-deployed"; sessionId: string; swarmId: string; mission: string }
-  // ── Thought Observer events ────────────────────────────────────────────────
     | {
         type: "thinking:signal-extracted";
         sessionId: string;
@@ -265,18 +266,14 @@ export type RuntimeEvent =
         thinkingCharsProcessed: number;
         timestamp: Date;
       }
-  // ── Dialectic extra signals ─────────────────────────────────────────────────
   | { type: "dialectic:no-signal"; sessionId: string; reason: string; requestId?: string }
   | { type: "dialectic:convergence"; sessionId: string; converged: boolean; requestId?: string }
-  // ── Subconscious anomaly (short-form) ───────────────────────────────────────
   | { type: "subconscious:anomaly"; anomalyId: string; description: string; severity: "low" | "medium" | "high" }
-  // ── AI Engineer lifecycle events ────────────────────────────────────────────
   | { type: "ai-engineer:upgrade-proposed"; trialId: string; targetId: string; moduleId: string; rationale: string; validationScore: number }
   | { type: "ai-engineer:upgrade-applied";  trialId: string; targetId: string; moduleId: string; deltaPercent: Record<string, number>; reason: string }
   | { type: "ai-engineer:upgrade-reverted"; trialId: string; targetId: string; moduleId: string; outcome: string; deltaPercent: Record<string, number>; reason: string }
   | { type: "ai-engineer:upgrade-skipped";  targetId?: string; reason: string }
   | { type: "ai-engineer:prompt-updated";   targetId: string; moduleId: string }
-  // ── Consequence Estimator events ──────────────────────────────────────────
   | {
       type: "consequence:estimated";
       sessionId: string;
@@ -289,7 +286,6 @@ export type RuntimeEvent =
       timestamp: Date;
     }
   | { type: "consequence:estimation-failed"; sessionId: string; toolName: string; error: string; timestamp: Date }
-  // ── Trust Ledger events ───────────────────────────────────────────────────
   | {
       type: "trust:score-updated";
       domain: string;
@@ -310,7 +306,6 @@ export type RuntimeEvent =
       consequenceAccuracy: number;
       timestamp: Date;
     }
-  // ── Permission Oracle events ──────────────────────────────────────────────
   | {
       type: "permission:decision";
       sessionId: string;
@@ -333,7 +328,6 @@ export type RuntimeEvent =
       reason: string;
       timestamp: Date;
     }
-  // ── Autonomy Governance events (graduated autonomy lifecycle) ─────────────
   | {
       type: "autonomy:trust-gate";
       sessionId: string;
@@ -352,14 +346,12 @@ export type RuntimeEvent =
       overallTrust: number;
       timestamp: Date;
     }
-  // ── Scout events (pre-turn search agent) ──────────────────────────────────
   | { type: "scout:started"; sessionId: string; message: string; timestamp: Date }
   | { type: "scout:tool_call"; sessionId: string; tool: string; input: Record<string, unknown>; timestamp: Date }
   | { type: "scout:tool_result"; sessionId: string; tool: string; resultLength: number; isError: boolean; durationMs: number; timestamp: Date }
   | { type: "scout:completed"; sessionId: string; contextLength: number; toolCalls: number; durationMs: number; roundsUsed: number; status: string; timestamp: Date }
   | { type: "scout:skipped"; sessionId: string; reason: string; timestamp: Date }
   | { type: "scout:error"; sessionId: string; error: string; timestamp: Date }
-  // ── Self-improvement loop events ──────────────────────────────────────────
   | { type: "improvement:proposal-queued"; proposalId: string; trigger: string; source: string; confidence: number; timestamp: Date }
   | { type: "improvement:gate-started"; proposalId: string; mode: string; timestamp: Date }
   | { type: "improvement:gate-passed"; proposalId: string; improvements: string[]; timestamp: Date }
@@ -370,7 +362,6 @@ export type RuntimeEvent =
   | { type: "improvement:confirmed"; proposalId: string; improvements: string[]; timestamp: Date }
   | { type: "improvement:thrashing-detected"; adaptationType: string; revertRate: number; total: number; timestamp: Date }
    | { type: "improvement:meta-learning"; adjustments: string[]; timestamp: Date }
-    // ── Macro-Dialectic events (Triad: Yang + Yin + Unity) ───────────────────
     | { type: "macro-dialectic:triad-ready"; workspaceId: string; yang: { providerId: string; model: string }; yin: { providerId: string; model: string }; unity: { providerId: string; model: string }; timestamp: Date }
     | { type: "macro-dialectic:triad-degraded"; workspaceId: string; degradedRole: "yang" | "yin" | "unity"; reason: string; timestamp: Date }
     | { type: "macro-dialectic:triad-stopped"; workspaceId: string; reason: string; turnsProcessed: number; timestamp: Date }
@@ -387,7 +378,6 @@ export type RuntimeEvent =
     | { type: "macro-dialectic:divergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; tensionLevel: number; timestamp: Date }
     | { type: "macro-dialectic:unity-stream-chunk"; workspaceId: string; sessionId: string; chunkIndex: number; text: string; timestamp: Date }
     | { type: "macro-dialectic:unity-complete"; workspaceId: string; sessionId: string; toolsExecuted: number; durationMs: number; timestamp: Date }
-  // ── Lumen events (Three-Model Concurrent Specialist) ────────────────────────
   | { type: "lumen:started"; lumenId: string; goal: string; sessionId?: string; timestamp: Date }
   | { type: "lumen:yang-complete"; lumenId: string; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
   | { type: "lumen:yin-complete"; lumenId: string; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
@@ -413,7 +403,6 @@ export type RuntimeEvent =
    | { type: "triad-team:checkpoint:approved"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:checkpoint:rejected"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:budget-warning"; teamId: string; entityId: string; message: string; timestamp: Date }
-  // ── Tool Loop Mid-Round events ────────────────────────────────────────
   | {
       type: "tool:round-complete";
       sessionId: string;
@@ -438,13 +427,11 @@ export type RuntimeEvent =
       source: string;
       timestamp: Date;
     }
-  // ── Background Job events ──────────────────────────────────────────
   | { type: "job:started"; jobId: string; label: string; command: string; sessionId?: string }
   | { type: "job:completed"; jobId: string; label: string; exitCode?: number; duration: number; summary: string; sessionId?: string }
   | { type: "job:failed"; jobId: string; label: string; exitCode?: number; duration: number; summary: string; sessionId?: string }
   | { type: "job:cancelled"; jobId: string; label: string; exitCode?: number; duration: number; summary: string; sessionId?: string }
   | { type: "job:timeout"; jobId: string; label: string; duration: number; summary: string; sessionId?: string }
-  // ── Triad Team Context Management events ───────────────────────────
   | {
       type: "triad-team:context-validated";
       cellId: string;
@@ -482,10 +469,8 @@ export type RuntimeEvent =
       phase: string;
       timestamp: Date;
     }
-  // ── OpenCode Channel events ────────────────────────────────────────
   | { type: "opencode:mode-change"; mode: "sse" | "sqlite" | "hybrid"; reason: string; timestamp: Date }
 
-  // ── ModelPool events ────────────────────────────────────────────────
   | {
       type: "model:acquired";
       slotName: string;
@@ -555,7 +540,6 @@ export type RuntimeEvent =
       retryAfterMs?: number;
       timestamp: Date;
     }
-  // ── Triad-Team cell-level turn events ──
   | {
       type: "cell:turn:start";
       teamId: string;
@@ -597,6 +581,14 @@ export type RuntimeEvent =
   | { type: "lumen:posture:complete"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
   | { type: "lumen:posture:error"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; error: string; timestamp: Date }
   | { type: "lumen:complete"; sessionId?: string; recommendation: 'proceed' | 'reconsider' | 'abort'; confidence: number; durationMs: number; timestamp: Date }
+
+  // Cognitive feed steering events (from Telegram observation group)
+  | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
+  | { type: "cognitive-feed:steering:pause"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
+  | { type: "cognitive-feed:steering:resume"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
+  | { type: "cognitive-feed:steering:cancel"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
+  | { type: "cognitive-feed:steering:approve"; teamId?: string; feedback?: string; fromUserId: number; timestamp: number }
+  | { type: "cognitive-feed:steering:reject"; teamId?: string; feedback?: string; fromUserId: number; timestamp: number }
 
 export type EventType = RuntimeEvent["type"];
 

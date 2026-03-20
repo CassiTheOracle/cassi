@@ -7,9 +7,7 @@
 
 import type { EventType, RuntimeEvent } from "./events.js";
 
-// =============================================================================
 // Time Specifications
-// =============================================================================
 
 /** Relative time string like "5m", "1h", "30s", "2d" */
 export type RelativeTime = `${number}${"s" | "m" | "h" | "d"}`;
@@ -17,9 +15,7 @@ export type RelativeTime = `${number}${"s" | "m" | "h" | "d"}`;
 /** Absolute or relative time */
 export type TimeSpec = Date | RelativeTime | string;
 
-// =============================================================================
 // Query Conditions (MongoDB-like operators)
-// =============================================================================
 
 export interface QueryOperators<T = any> {
   /** Equal */
@@ -54,9 +50,7 @@ export type WhereClause = {
   [fieldPath: string]: QueryCondition;
 };
 
-// =============================================================================
 // Aggregation
-// =============================================================================
 
 export interface AggregationSpec {
   /** Group results by this field path */
@@ -73,9 +67,7 @@ export interface AggregationSpec {
   max?: string;
 }
 
-// =============================================================================
 // Sorting
-// =============================================================================
 
 export interface SortSpec {
   /** Field to sort by */
@@ -84,9 +76,7 @@ export interface SortSpec {
   order: "asc" | "desc";
 }
 
-// =============================================================================
 // Complex Query (Structured)
-// =============================================================================
 
 export interface ComplexEventQuery {
   mode: "complex";
@@ -122,9 +112,7 @@ export interface ComplexEventQuery {
   format?: "full" | "summary" | "count" | "timeline" | "json";
 }
 
-// =============================================================================
 // Simple Query (Natural Language)
-// =============================================================================
 
 export interface SimpleEventQuery {
   mode: "simple";
@@ -136,15 +124,11 @@ export interface SimpleEventQuery {
   limit?: number;
 }
 
-// =============================================================================
 // Union Type
-// =============================================================================
 
 export type EventQuery = ComplexEventQuery | SimpleEventQuery;
 
-// =============================================================================
 // Event History Store Types
-// =============================================================================
 
 export interface EventHistoryConfig {
   /** Maximum events to keep in buffer (default: 10000) */
@@ -194,9 +178,7 @@ export interface StoredEvent {
   metadata: EventMetadata;
 }
 
-// =============================================================================
 // Query Results
-// =============================================================================
 
 export interface QueryMetadata {
   /** Total matching events in history */
@@ -267,9 +249,7 @@ export interface EventQueryResult {
   results: StoredEvent[] | AggregationResult;
 }
 
-// =============================================================================
 // Preset Queries
-// =============================================================================
 
 export interface QueryPreset {
   /** Preset name */
@@ -285,9 +265,7 @@ export interface QueryPreset {
   query: ComplexEventQuery;
 }
 
-// =============================================================================
 // Event History Interface
-// =============================================================================
 
 export interface IEventHistory {
   /** Capture an event to history */

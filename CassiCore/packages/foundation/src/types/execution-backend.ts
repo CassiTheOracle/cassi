@@ -12,7 +12,6 @@
 
 import type { TurnResult, InboundMessage } from './runtime.js'
 
-// ── Backend Interface ─────────────────────────────────────────────────────────
 
 export interface IExecutionBackend {
   /** Human-readable backend name (for logging) */
@@ -66,7 +65,6 @@ export interface IExecutionBackend {
   ): Promise<void>
 }
 
-// ── Supporting Types ──────────────────────────────────────────────────────────
 
 export interface AgentSessionOpts {
   /** Task description for the agent */
@@ -86,7 +84,6 @@ export interface AgentSessionOpts {
   parentSessionId?: string
 }
 
-// ── Config Types ──────────────────────────────────────────────────────────────
 
 export type ExecutionBackendType = 'cassicore' | 'opencode' | 'auto'
 

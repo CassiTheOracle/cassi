@@ -23,6 +23,10 @@ export interface InferenceOptions extends Partial<CompletionOpts> {
 /**
  * Run LLM inference using a given provider and model config.
  * Returns the raw text response.
+ * @dep callers: runDreamCycle (core/intelligence/dreamer/index.ts), inferJSON (core/intelligence/base/inference.ts)
+ * @dep calls: complete, now
+ * @dep module: Dreamer
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function infer(
   provider: IProvider,

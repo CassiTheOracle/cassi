@@ -2,19 +2,21 @@
  * FluxTeam Type Definitions
  *
  * Next-generation dynamic multi-agent team architecture. Replaces TriadTeam's
- * rigid Proposer→Critic→Executor pipeline with Lumen-centric execution,
+ * rigid Proposer→Critic→Executor pipeline with execution-mode-aware agents,
  * graph-based topologies, and learning-driven routing.
  *
+ * Execution modes:
+ *   - lumen: Three-agent dialectic (Yang/Yin/Executive) — for read-only and research tasks
+ *   - dyad:  Three-agent refinement pipeline (Yang/Yin/Apex) — for action and write tasks
+ *
  * Core concepts:
- *   - AgentGenome: Configurable agent blueprint with Lumen posture directives
+ *   - AgentGenome: Configurable agent blueprint with per-mode posture directives
  *   - Topology: Graph-based execution plan with conditional transitions
  *   - Blackboard: Enhanced shared workspace with channels and reactive subscriptions
  *   - OutcomeLedger: Learning store that records genome+topology performance
  */
 
-// ============================================================================
 // Agent Genomes
-// ============================================================================
 
 /**
  * Behavioral trait spectrum for an agent genome.
@@ -32,6 +34,7 @@ export interface AgentTraits {
 /**
  * Lumen session configuration for a genome.
  * Controls how Yang/Yin/Executive behave when this genome is instantiated.
+ * Used for read-only and research tasks.
  */
 export interface GenomeLumenConfig {
   /** Directive for Yang posture (assertive/exploratory) */
@@ -49,17 +52,31 @@ export interface GenomeLumenConfig {
 }
 
 /**
- * Solo agent configuration for trivial tasks (no dialectic).
+ * Dyad pipeline configuration for a genome.
+ * Controls how Yang/Yin/Apex behave when this genome is instantiated.
+ * Used for action and write tasks.
  */
-export interface GenomeSoloConfig {
-  /** System prompt for the solo agent */
-  systemPrompt: string
-  /** Max tool iterations (default: 50) */
-  maxIterations: number
+export interface GenomeDyadConfig {
+  /** Task type hint for the Dyad pipeline */
+  taskType: 'implementation' | 'refactor' | 'analysis' | 'auto'
+  /** Directive for Yang posture (worker — implements the change) — embedded in goal context */
+  yangDirective: string
+  /** Directive for Yin posture (refiner — reviews and improves) — embedded in goal context */
+  yinDirective: string
+  /** Directive for Apex posture (overseer — quality and coherence) — embedded in goal context */
+  apexDirective: string
+  /** Per-node timeout in ms (default: 1_800_000 = 30 min) */
+  timeoutMs: number
 }
 
-/** Execution mode for a genome */
-export type GenomeMode = 'lumen' | 'solo'
+/** Execution mode for a genome.
+ *
+ * - lumen: Three-agent dialectic (Yang/Yin/Executive). Best for read-only,
+ *          research, analysis, planning, and security audits.
+ * - dyad:  Three-agent refinement pipeline (Yang/Yin/Apex). Best for
+ *          implementation, refactoring, integration, and write tasks.
+ */
+export type GenomeMode = 'lumen' | 'dyad'
 
 /** Tool access level for an agent */
 export type ToolAccessLevel = 'read' | 'read-test' | 'full'
@@ -101,15 +118,15 @@ export interface AgentGenome {
   /** Built-in archetype this genome is based on (if any) */
   archetype?: GenomeArchetype
 
-  /** Execution mode: lumen (dialectic) or solo (single agent) */
+  /** Execution mode: lumen (dialectic for research) or dyad (pipeline for write tasks) */
   mode: GenomeMode
   /** Behavioral traits (shape prompt generation) */
   traits: AgentTraits
 
   /** Lumen dialectic configuration (required when mode='lumen') */
   lumen?: GenomeLumenConfig
-  /** Solo agent configuration (required when mode='solo') */
-  solo?: GenomeSoloConfig
+  /** Dyad pipeline configuration (required when mode='dyad') */
+  dyad?: GenomeDyadConfig
 
   /** Domain proficiency scores (0-1): e.g., { typescript: 0.9, security: 0.7 } */
   skills: Record<string, number>
@@ -121,9 +138,7 @@ export interface AgentGenome {
   costTier: CostTier
 }
 
-// ============================================================================
 // Execution Topologies
-// ============================================================================
 
 /** Node activation mode */
 export type NodeActivation =
@@ -132,7 +147,7 @@ export type NodeActivation =
 
 /**
  * A node in the execution topology graph.
- * Each node represents an agent (Lumen session or solo) to execute.
+ * Each node represents an agent (Lumen dialectic session or Dyad pipeline) to execute.
  */
 export interface TopologyNode {
   /** Unique node identifier within the topology */
@@ -198,9 +213,7 @@ export interface Topology {
   entryNodeId: string
 }
 
-// ============================================================================
 // Plan
-// ============================================================================
 
 /** Status of a plan step */
 export type PlanStepStatus =
@@ -279,9 +292,7 @@ export interface Plan {
   summary?: string
 }
 
-// ============================================================================
 // Blackboard
-// ============================================================================
 
 /** Structured communication channels on the Blackboard */
 export type BlackboardChannel =
@@ -388,9 +399,7 @@ export interface BlackboardSubscription {
   callback: (entry: BlackboardEntry) => void
 }
 
-// ============================================================================
 // Task Analysis
-// ============================================================================
 
 /** Task complexity levels */
 export type TaskComplexity = 'trivial' | 'medium' | 'complex' | 'critical'
@@ -422,9 +431,7 @@ export interface TaskSignature {
   toolsNeeded: ToolAccessLevel
 }
 
-// ============================================================================
 // Outcome Ledger
-// ============================================================================
 
 /**
  * Outcome record for a completed FluxCell execution.
@@ -458,7 +465,7 @@ export interface NodeOutcome {
   nodeId: string
   genomeId: string
   success: boolean
-  /** Lumen confidence (from synthesis) or 1.0 for solo nodes */
+  /** Lumen confidence (from synthesis) or Dyad quality score (qualityScore/100) */
   confidence: number
   tokensUsed: number
   durationMs: number
@@ -478,9 +485,7 @@ export interface RoutingRecommendation {
   evidence: number
 }
 
-// ============================================================================
 // FluxCell
-// ============================================================================
 
 /** FluxCell execution status */
 export type FluxCellStatus =
@@ -605,10 +610,18 @@ export interface FluxNodeResult {
   success: boolean
   /** Output/synthesis from this node */
   output: string
-  /** Lumen recommendation if mode='lumen' */
-  lumenRecommendation?: 'proceed' | 'reconsider' | 'abort'
-  /** Lumen confidence if mode='lumen' */
-  lumenConfidence?: number
+  /**
+   * Recommendation from the executing orchestrator.
+   * - lumen nodes: derived from Executive synthesis
+   * - dyad nodes: derived from Apex quality assessment
+   */
+  recommendation?: 'proceed' | 'reconsider' | 'abort'
+  /**
+   * Confidence from the executing orchestrator (0–1).
+   * - lumen nodes: dialectic confidence from Executive
+   * - dyad nodes: qualityScore / 100 from Apex
+   */
+  confidence?: number
   /** Tokens consumed */
   tokensUsed: number
   /** Duration in ms */
@@ -619,9 +632,7 @@ export interface FluxNodeResult {
   error?: string
 }
 
-// ============================================================================
 // FluxTeam Configuration
-// ============================================================================
 
 /**
  * Budget constraints for a FluxTeam.
@@ -649,6 +660,8 @@ export interface FluxTeamConfig {
   goal: string
   /** Additional context */
   context?: string
+  /** Parent session ID for Phase Zero context distillation */
+  parentSessionId?: string
 
   /**
    * @deprecated Use the model_directive tool to set routing before creating teams.
@@ -767,9 +780,7 @@ export type FluxTeamEventType =
   | 'blackboard:entry'
   | 'outcome:recorded'
 
-// ============================================================================
 // Topology Degradation
-// ============================================================================
 
 /**
  * Fallback chain for topology degradation.
@@ -785,9 +796,7 @@ export const DEFAULT_FALLBACK_CHAIN: TopologyFallbackChain = {
   chain: ['ring', 'adaptive', 'dyad', 'solo'],
 }
 
-// ============================================================================
 // Incremental Report System
-// ============================================================================
 
 /**
  * Section types for the incremental report.

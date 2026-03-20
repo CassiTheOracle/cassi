@@ -8,9 +8,7 @@
  * CASSICORE_ prefix (e.g., CASSICORE_CONTEXT_MAX_TOKENS=20000)
  */
 
-// ============================================================================
 // Centralized Model Defaults
-// ============================================================================
 //
 // Single source of truth for default model assignments across the entire system.
 // Every component that needs a model should reference these constants rather
@@ -59,15 +57,17 @@ export const MODEL_DEFAULTS = {
 
 /**
  * Convenience: get a combined 'provider/model' string for a tier.
+ * @dep callers: spawn-subagent.ts (core/tools/implementations/spawn-subagent.ts), intelligence-registry.test.ts (tests/intelligence-registry.test.ts), executeResume (core/intelligence/triad-team/index.ts), executeDecomposition (core/intelligence/triad-team/index.ts), createTeam (core/intelligence/triad-team/index.ts) [+19]
+ * @dep flows: ExecuteWithGroupBarrier → GetModelSpec (5/5)
+ * @dep module: Error-learner
+ * @dep risk: CRITICAL | 24 callers, 1 flow, 1 module
  */
 export function getModelSpec(tier: keyof typeof MODEL_DEFAULTS): string {
   const { provider, model } = MODEL_DEFAULTS[tier]
   return `${provider}/${model}`
 }
 
-// ============================================================================
 // Context & Memory Settings
-// ============================================================================
 
 export const CONTEXT_SETTINGS = {
   /** Maximum tokens for context window (affects all context assembly) */
@@ -106,9 +106,7 @@ export const CONTEXT_SETTINGS = {
   maxFileContentChars: getEnvNumber('CASSICORE_MAX_FILE_CONTENT_CHARS', 50_000),
 } as const;
 
-// ============================================================================
 // Subconscious Settings
-// ============================================================================
 
 export const SUBCONSCIOUS_SETTINGS = {
   /** Enable real-time stream processing */
@@ -139,9 +137,7 @@ export const SUBCONSCIOUS_SETTINGS = {
   consolidationIntervalMs: getEnvNumber('CASSICORE_SUBCONSCIOUS_CONSOLIDATION_MS', 30_000),
 } as const;
 
-// ============================================================================
 // Dialectic Settings
-// ============================================================================
 
 export const DIALECTIC_SETTINGS = {
   /** Execution mode: 'sequential' | 'parallel' | 'adaptive' */
@@ -166,9 +162,7 @@ export const DIALECTIC_SETTINGS = {
   subconsciousContextTtlMs: getEnvNumber('CASSICORE_DIALECTIC_SUBCONSCIOUS_TTL_MS', 5 * 60 * 1000),
 } as const;
 
-// ============================================================================
 // Thinker Settings
-// ============================================================================
 
 export const THINKER_SETTINGS = {
   /** Enable Thinker module */
@@ -193,9 +187,7 @@ export const THINKER_SETTINGS = {
   enableAdaptation: getEnvBoolean('CASSICORE_THINKER_ADAPTATION', true),
 } as const;
 
-// ============================================================================
 // Session & Pipeline Settings
-// ============================================================================
 
 export const SESSION_SETTINGS = {
   /** Default max context tokens per session */
@@ -211,9 +203,7 @@ export const SESSION_SETTINGS = {
   compactionThreshold: getEnvNumber('CASSICORE_COMPACTION_THRESHOLD', 100),
 } as const;
 
-// ============================================================================
 // Provider Settings
-// ============================================================================
 
 export const PROVIDER_SETTINGS = {
   /** Default provider ID — defaults to main tier */
@@ -232,9 +222,7 @@ export const PROVIDER_SETTINGS = {
   errorCooldownMs: getEnvNumber('CASSICORE_PROVIDER_COOLDOWN_MS', 30_000),
 } as const;
 
-// ============================================================================
 // Request Budget Settings
-// ============================================================================
 //
 // Request-based providers (like GitHub Copilot) have monthly request limits
 // rather than token-based billing. These settings control budget tracking
@@ -263,9 +251,7 @@ export const BUDGET_SETTINGS = {
   },
 } as const;
 
-// ============================================================================
 // Logging & Monitoring Settings
-// ============================================================================
 
 export const LOGGING_SETTINGS = {
   /** Default log level */
@@ -278,9 +264,7 @@ export const LOGGING_SETTINGS = {
   metricsIntervalMs: getEnvNumber('CASSICORE_METRICS_INTERVAL_MS', 600_000),
 } as const;
 
-// ============================================================================
 // Prompt Optimizer Settings (Dialectic Prompt Variant Selection)
-// ============================================================================
 
 export const PROMPT_OPTIMIZER_SETTINGS = {
   /** Enable prompt variant optimization */
@@ -296,9 +280,7 @@ export const PROMPT_OPTIMIZER_SETTINGS = {
   minUsesForExploitation: getEnvNumber('CASSICORE_PROMPT_OPTIMIZER_MIN_USES', 3),
 } as const;
 
-// ============================================================================
 // Drone Swarm Settings
-// ============================================================================
 
 export const DRONE_SETTINGS = {
   /** Enable drone swarm functionality */
@@ -360,9 +342,7 @@ export const DRONE_SETTINGS = {
   minViableBudget: getEnvNumber('CASSICORE_DRONE_MIN_BUDGET', 50_000),
 } as const;
 
-// ============================================================================
 // Scout Settings (Pre-Turn Search Agent)
-// ============================================================================
 
 export const SCOUT_SETTINGS = {
   /** Enable the Scout module */
@@ -408,14 +388,10 @@ export const SCOUT_SETTINGS = {
   cacheTtlMs: getEnvNumber('CASSICORE_SCOUT_CACHE_TTL_MS', 120_000),
 } as const;
 
-// ============================================================================
 // Macro-Dialectic Settings (Triad: Yang + Yin + Unity)
-// ============================================================================
 // Triad Team Settings
-// ============================================================================
 
 export const TRIAD_TEAM_SETTINGS = {
-  // ── Context Management ─────────────────────────────────────────────────
 
   /** Enable pre-flight context validation for triad cells */
   contextValidationEnabled: getEnvBoolean('CASSICORE_TRIAD_CONTEXT_VALIDATION', true),
@@ -426,7 +402,6 @@ export const TRIAD_TEAM_SETTINGS = {
   /** Default character budget when model capabilities can't be determined */
   defaultCharBudget: getEnvNumber('CASSICORE_TRIAD_CONTEXT_BUDGET', 48_000),
 
-  // ── Depth-Aware Parent Context Limits ──────────────────────────────────
 
   /** Max chars for parent context at depth 1 (direct children of root) */
   depth1ParentContextMaxChars: getEnvNumber('CASSICORE_TRIAD_DEPTH1_PARENT_MAX', 12_000),
@@ -437,7 +412,6 @@ export const TRIAD_TEAM_SETTINGS = {
   /** Max chars for parent context at depth 3+ */
   depth3ParentContextMaxChars: getEnvNumber('CASSICORE_TRIAD_DEPTH3_PARENT_MAX', 4_000),
 
-  // ── Observability ──────────────────────────────────────────────────────
 
   /** Emit context events on every phase (verbose) or only on warnings (quiet) */
   contextEventMode: getEnvString('CASSICORE_TRIAD_CONTEXT_EVENT_MODE', 'verbose') as 'verbose' | 'warnings-only',
@@ -446,9 +420,7 @@ export const TRIAD_TEAM_SETTINGS = {
   budgetWarningThreshold: getEnvNumber('CASSICORE_TRIAD_BUDGET_WARNING_THRESHOLD', 85) / 100,
 } as const;
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 function getEnvString(key: string, defaultValue: string): string {
   const value = process.env[key];
@@ -468,9 +440,7 @@ function getEnvBoolean(key: string, defaultValue: boolean): boolean {
   return value.toLowerCase() === 'true' || value === '1';
 }
 
-// ============================================================================
 // Export All Settings
-// ============================================================================
 
 export const SYSTEM_SETTINGS = {
   models: MODEL_DEFAULTS,

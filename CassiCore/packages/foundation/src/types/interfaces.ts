@@ -36,7 +36,6 @@ export interface IEventBus {
   wireSessionCleanup?(): void;
 }
 
-// ─── Logger ──────────────────────────────────────────────────────────────────
 
 export interface ILogger {
   debug(msg: string, meta?: Record<string, unknown>): void;
@@ -48,7 +47,6 @@ export interface ILogger {
   child(component: string): ILogger;
 }
 
-// ─── Config ──────────────────────────────────────────────────────────────────
 
 export interface IConfig {
   /** Get a config value by dot-path key (e.g. "daemon.logLevel") */
@@ -67,7 +65,6 @@ export interface IConfig {
   onChanged(key: string, cb: (newVal: unknown, oldVal: unknown) => void): Unsubscribe;
 }
 
-// ─── PluginHost ───────────────────────────────────────────────────────────────
 
 export type PluginStatus = {
   id: string;
@@ -134,7 +131,6 @@ export interface IPluginHost {
   shutdown(opts?: { restart?: boolean }): Promise<void>;
 }
 
-// ─── Intelligence Module ─────────────────────────────────────────────────────
 
 /**
  * Typed dependency bag for intelligence module wiring.

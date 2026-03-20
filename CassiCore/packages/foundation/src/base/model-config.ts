@@ -11,9 +11,7 @@ import { MODEL_DEFAULTS } from '../../config/system-settings.js'
 
 import type { IConfig, ILogger } from '../../../types/interfaces.js'
 
-// ============================================================================
 // Model Configuration Types
-// ============================================================================
 
 export interface ModuleModelConfig {
   /** Provider ID (e.g., 'lmstudio', 'kimi-coding', 'github-copilot') */
@@ -36,9 +34,7 @@ export const DEFAULT_MODULE_MODEL_CONFIG: ModuleModelConfig = {
   timeoutMs: 10_000,
 }
 
-// ============================================================================
 // Model Config Resolution (pure function — no side effects)
-// ============================================================================
 
 /**
  * Resolve model configuration from config.json for a named module.
@@ -51,6 +47,10 @@ export const DEFAULT_MODULE_MODEL_CONFIG: ModuleModelConfig = {
  * @param moduleName - The intelligence module name (e.g., 'thinker')
  * @param baseConfig - Existing config to merge into (mutated in place)
  * @returns Whether any config.json values were applied
+ * @dep callers: reloadModelConfig (core/intelligence/base/cognitive-module.ts), init (core/intelligence/base/cognitive-module.ts)
+ * @dep calls: get
+ * @dep module: Base
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function resolveModelConfigFromJson(
   config: IConfig,
@@ -129,6 +129,10 @@ export function wireModelConfigWatcher(
 /**
  * Apply partial model config overrides.
  * Supports combined 'provider/model' format in the model field.
+ * @dep callers: setModelConfig (core/intelligence/base/cognitive-module.ts)
+ * @dep flows: HandleIntelligenceRoutes → ApplyModelConfigOverrides (3/3)
+ * @dep module: Subconscious
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function applyModelConfigOverrides(
   baseConfig: ModuleModelConfig,

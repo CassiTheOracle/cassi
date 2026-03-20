@@ -2,14 +2,12 @@
  * Phase 3+ types: Providers, Channels, Sessions, Turn pipeline, Tool execution
  */
 
-// ─── Content Blocks (for tool-use conversation turns) ────────────────────────
 
 export type ContentBlock =
   | { type: 'text'; text: string }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
   | { type: 'tool_result'; tool_use_id: string; content: string; is_error?: boolean }
 
-// ─── Image Attachments ────────────────────────────────────────────────────────
 
 export type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
 
@@ -21,7 +19,6 @@ export interface ImageAttachment {
   label?: string
 }
 
-// ─── Messages ────────────────────────────────────────────────────────────────
 
 export interface Message {
   role: 'user' | 'assistant' | 'system';
@@ -82,6 +79,12 @@ export interface CompletionOpts {
    * ```
    */
   onMeta?: (meta: { requestId: string }) => void;
+  /**
+   * Observability: the session ID associated with this provider call.
+   * Used by prompt logging to associate provider calls with sessions.
+   * Nullable — background intelligence calls (thinker, subconscious) may not have one.
+   */
+  sessionId?: string;
 }
 
 export interface CompletionChunk {
@@ -105,7 +108,6 @@ export interface CompletionChunk {
   }
 }
 
-// ─── Provider ────────────────────────────────────────────────────────────────
 
 export interface IProvider {
   readonly id: string;
@@ -126,7 +128,6 @@ export interface IProvider {
   ping(): Promise<boolean>;
 }
 
-// ─── Channel ─────────────────────────────────────────────────────────────────
 
 export interface InboundMessage {
   id: string;
@@ -158,7 +159,6 @@ export interface IChannel {
   stop(): Promise<void>;
 }
 
-// ─── Session ─────────────────────────────────────────────────────────────────
 
 export interface SessionConfig {
   model: string;
@@ -169,6 +169,11 @@ export interface SessionConfig {
   systemPrompt?: string;
   thinking?: ThinkingLevel;
   maxContextTokens?: number;
+  /**
+   * When true, this session is never pruned by idle-time expiry or LRU eviction.
+   * Used for persistent module sessions that must survive across daemon restarts.
+   */
+  permanent?: boolean;
 }
 
 export interface Session {
@@ -192,7 +197,6 @@ export interface ISessionManager {
   list(): Session[];
 }
 
-// ─── Turn pipeline ────────────────────────────────────────────────────────────
 
 export interface TurnContext {
   session: Session;

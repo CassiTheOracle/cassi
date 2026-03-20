@@ -12,7 +12,6 @@
  * - ModelRouter: "Given budget, should I degrade or skip?" (cost awareness)
  */
 
-// ── Core types ──────────────────────────────────────────────────────────────
 
 /** A resolved provider + model pair */
 export interface ModelConfig {
@@ -21,7 +20,7 @@ export interface ModelConfig {
 }
 
 /** Routing scope determines lifetime and priority of an override */
-export type RoutingScope = 'next' | 'job' | 'default'
+export type RoutingScope = 'next' | 'next-job' | 'job' | 'default'
 
 /**
  * Named tiers ranked by capability/cost.
@@ -37,7 +36,6 @@ export type RoutingScope = 'next' | 'job' | 'default'
  */
 export type RoutingTier = 'fast' | 'swift' | 'standard' | 'balanced' | 'premium' | 'background'
 
-// ── Tool input/output ───────────────────────────────────────────────────────
 
 /** Input schema for the model_directive MCP tool */
 export interface ModelDirectiveInput {
@@ -72,9 +70,11 @@ export interface ModelDirectiveState {
   /** The effective routing after resolution */
   effective: ModelConfig
   /** What set the effective routing (includes slot qualifier if applicable) */
-  source: 'next' | 'next:slot' | 'job:slot' | 'job' | 'default:slot' | 'default' | 'hardcoded'
+  source: 'next' | 'next:slot' | 'next-job' | 'next-job:slot' | 'job:slot' | 'job' | 'default:slot' | 'default' | 'hardcoded'
   /** Current next-call override, if any */
   next: ModelConfig | null
+  /** Pending next-job overrides (accumulated per-slot, consumed when next job starts) */
+  nextJob: Record<string, ModelConfig> | null
   /** Job override for the specified jobId, if any */
   job: ModelConfig | null
   /** Persistent default from config */
@@ -83,13 +83,13 @@ export interface ModelDirectiveState {
   activeJobs: Record<string, ModelConfig>
 }
 
-// ── Directive interface ─────────────────────────────────────────────────────
 
 /** Interface for the central model directive */
 export interface IModelDirective {
   /**
    * Set routing at a given scope.
    * For scope="next", consumed after the next LLM operation.
+   * For scope="next-job", accumulated per-slot and consumed when the next job starts.
    * For scope="job", scoped to a team/lumen session ID.
    * For scope="default", persisted in daemon config.
    *
@@ -115,6 +115,13 @@ export interface IModelDirective {
 
   /** Remove all job-scoped overrides for a job (called when a team completes/cancels) */
   clearJob(jobId: string): void
+
+  /**
+   * Consume next-job overrides by transferring them to job-scoped overrides.
+   * Called by Lumen/Dyad/Team at job startup so the models are available from iteration 1.
+   * Returns the number of entries transferred.
+   */
+  consumeNextJob(jobId: string): number
 
   /** Resolve a named tier to a ModelConfig */
   resolveTier(tier: RoutingTier): ModelConfig

@@ -4,7 +4,6 @@
 
 import type { Message } from "./runtime.js";
 
-// ─── Execution Modes ────────────────────────────────────────────────────────
 
 export type DialecticMode = 'sequential' | 'parallel' | 'adaptive';
 
@@ -14,7 +13,6 @@ export interface AdaptiveConfig {
   historyWindowSize: number;    // Turns to look back for quality metrics
 }
 
-// ─── Yang Observer ──────────────────────────────────────────────────────────
 
 export interface YangBranch {
   id: string;
@@ -72,7 +70,6 @@ export interface YangContext {
     category: string;
     severity: string;
   }>;
-  // ─── Autonomous agent context (populated during continuous dialectic) ───
   /**
    * Tool execution results from the most recent autonomous iteration.
    * Each entry is a `"toolName: output"` summary string.
@@ -98,7 +95,6 @@ export interface IYinObserver {
   observe(sessionId: string, userMessage: string, yangOutput: YangOutput, context?: YangContext, opts?: { model?: string; provider?: import('./runtime.js').IProvider }): Promise<YinOutput>;
 }
 
-// ─── Yin Observer ───────────────────────────────────────────────────────────
 
 export type YinAction = 'surface' | 'compress' | 'discard';
 
@@ -154,7 +150,6 @@ export interface YinBaselineOutput {
   };
 }
 
-// ─── Serenity ───────────────────────────────────────────────────────────
 
 export type SignalType = 'edge_case' | 'alternative' | 'assumption' | 'connection' | 'contradiction' | 'convergence' | 'tension' | 'gap';
 export type Urgency = 'immediate' | 'background';
@@ -272,9 +267,8 @@ export interface ParallelDialecticResult extends DialecticResult {
   };
 }
 
-// ─── Unified Dialectic System ───────────────────────────────────────────────
 // ORDER: Yang (expansion) → Yin (refinement) → Serenity (mediation)
-// Note: In parallel mode, Yang + Yin run concurrently
+// HOW: In parallel mode, Yang + Yin run concurrently
 
 export interface DialecticResult {
   sessionId: string;
@@ -305,7 +299,6 @@ export interface IDialecticSystem {
   ): Promise<DialecticResult | ParallelDialecticResult>;
 }
 
-// ─── WebSocket Stream Events ────────────────────────────────────────────────
 
 export type DialecticStage = 'start' | 'yang' | 'yin' | 'serenity' | 'complete' | 'error';
 
@@ -316,7 +309,6 @@ export interface DialecticStreamEvent {
   data?: YangOutput | YinOutput | YinBaselineOutput | SerenityOutput | { error: string } | { taskGuide: string } | { mode: string } | null;
 }
 
-// ─── Prompt Optimization ────────────────────────────────────────────────────
 
 export type PromptObserverRole = 'yang' | 'yin' | 'serenity';
 
@@ -401,7 +393,6 @@ export interface PromptOptimizerState {
   lastUpdatedAt: number;
 }
 
-// ─── Persistence ────────────────────────────────────────────────────────────
 
 export interface DialecticPersistence {
   save(result: DialecticResult): Promise<void>;
@@ -415,7 +406,6 @@ export interface DialecticPersistence {
   }>;
 }
 
-// ─── Memory Retrieval Config ────────────────────────────────────────────────
 
 /**
  * Configuration for the dialectic memory retrieval pipeline.

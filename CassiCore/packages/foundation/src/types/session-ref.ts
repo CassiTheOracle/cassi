@@ -13,7 +13,6 @@
  *   S1#M3.B0.P2     → session 1, message 3, block 0, paragraph 2
  */
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 /** Parsed compact reference — uses the short label, NOT the session ID. */
 export interface SessionRef {
@@ -64,7 +63,6 @@ export interface IndexStats {
   paragraphCount: number
 }
 
-// ─── Ref Format ──────────────────────────────────────────────────────────────
 
 /**
  * Regex for the compact ref format:

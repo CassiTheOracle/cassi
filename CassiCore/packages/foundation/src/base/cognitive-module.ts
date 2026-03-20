@@ -43,14 +43,13 @@ import type { ILogger, IEventBus, IntelligenceModule, IConfig, WiringDependencie
 import type { IProvider, Message, CompletionOpts } from '../../../types/runtime.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
+import type { ModuleSessionRegistry } from '../module-session-registry.js'
 
 // Re-export types for backward compatibility
 export type { ModuleModelConfig } from './model-config.js'
 export { DEFAULT_MODULE_MODEL_CONFIG } from './model-config.js'
 
-// ============================================================================
 // Module Lifecycle
-// ============================================================================
 
 export type ModuleStatus = 'created' | 'initializing' | 'running' | 'stopped' | 'error'
 
@@ -62,9 +61,7 @@ export interface CognitiveModuleMetrics {
   lastActivityAt: number
 }
 
-// ============================================================================
 // BaseCognitiveModule
-// ============================================================================
 
 export abstract class BaseCognitiveModule implements IntelligenceModule {
   /** Unique module identifier (e.g., 'guardian', 'error-learner') */
@@ -83,6 +80,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   protected modelConfig: ModuleModelConfig
   protected modelDirective?: IModelDirective
   protected providerResolver?: (providerId: string) => IProvider | undefined
+  protected moduleRegistry?: ModuleSessionRegistry
 
   private _status: ModuleStatus = 'created'
   private _metrics: CognitiveModuleMetrics = {
@@ -107,9 +105,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     this.modelConfig = { ...DEFAULT_MODULE_MODEL_CONFIG, ...modelConfig }
   }
 
-  // ==========================================================================
   // Lifecycle — called by IntelligenceRegistry
-  // ==========================================================================
 
   async init(): Promise<void> {
     this._status = 'initializing'
@@ -156,9 +152,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     return this._metrics
   }
 
-  // ==========================================================================
   // Dependency Injection
-  // ==========================================================================
 
   setEventBus(bus: IEventBus): void { this.eventBus = bus }
   setMemory(memory: IMemory): void { this.memory = memory }
@@ -166,6 +160,16 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   setConfig(config: IConfig): void { this.config = config }
   setToolRegistry(registry: ToolRegistry): void { this.toolRegistry = registry }
   setToolExecutor(executor: ToolExecutor): void { this.toolExecutor = executor }
+
+  /**
+   * Wire the module session registry so this module records its LLM turns
+   * to a persistent debug session (accessible via Telegram topics).
+   */
+  setModuleRegistry(registry: ModuleSessionRegistry): void {
+    this.moduleRegistry = registry
+    // Ensure the session is created/loaded from disk immediately
+    registry.getOrCreate(this.name)
+  }
 
   /**
    * Wire the ModelDirective for centralized model selection.
@@ -224,9 +228,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     return { ...this.modelConfig }
   }
 
-  // ==========================================================================
   // Event Handling — subclasses override the hooks they need
-  // ==========================================================================
 
   async onEvent(event: RuntimeEvent): Promise<void> {
     this._metrics.eventsProcessed++
@@ -275,7 +277,6 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     this.wireEventSubscriptions()
   }
 
-  // ── Optional event hooks for subclasses ──────────────────────────────────
 
   protected onTurnStart?(sessionId: string, message: string): Promise<void>
   protected onTurnEnd?(sessionId: string, response: string, durationMs: number): Promise<void>
@@ -293,9 +294,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   ): Promise<void>
   protected registerSubscriptions?(): void
 
-  // ==========================================================================
   // LLM Inference — delegates to standalone inference helpers
-  // ==========================================================================
 
   /**
    * Run LLM inference using this module's configured provider/model.
@@ -318,6 +317,8 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     return inferHelper(effectiveProvider, effectiveModelConfig, prompt, {
       source: this.name,
       onMeta: (meta) => { this._lastRequestId = meta.requestId },
+      // Bind to persistent module debug session when registry is wired
+      sessionId: this.moduleRegistry?.getSessionId(this.name),
       ...opts,
     }, this._inferenceMetrics)
   }
@@ -341,6 +342,8 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     return inferJSONHelper<T>(effectiveProvider, effectiveModelConfig, prompt, this.logger, {
       source: this.name,
       onMeta: (meta) => { this._lastRequestId = meta.requestId },
+      // Bind to persistent module debug session when registry is wired
+      sessionId: this.moduleRegistry?.getSessionId(this.name),
       ...opts,
     }, this._inferenceMetrics)
   }
@@ -372,9 +375,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     return { provider: this.provider!, modelConfig: this.modelConfig }
   }
 
-  // ==========================================================================
   // Context Injection
-  // ==========================================================================
 
   protected async storeMemory(
     type: string,
@@ -402,9 +403,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     this.eventBus.emit(event)
   }
 
-  // ==========================================================================
   // Subscription Helpers
-  // ==========================================================================
 
   protected subscribe<T extends RuntimeEvent['type']>(
     type: T,
@@ -418,9 +417,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     this._unsubscribers.push(unsub)
   }
 
-  // ==========================================================================
   // Private Wiring
-  // ==========================================================================
 
   private wireEventSubscriptions(): void {
     if (!this.eventBus) return

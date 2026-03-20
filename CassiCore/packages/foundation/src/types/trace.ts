@@ -1,4 +1,3 @@
-// ── Injection Tracking ─────────────────────────────────────────────────────
 
 export interface TraceInjectionPart {
   source: string
@@ -23,7 +22,6 @@ export interface TraceDroppedInjection {
   timestamp?: number
 }
 
-// ── Tool Call Tracking ─────────────────────────────────────────────────────
 
 export interface TraceToolCall {
   name: string
@@ -35,7 +33,6 @@ export interface TraceToolCall {
   riskScore?: number
 }
 
-// ── Cognitive Signal Tracking ──────────────────────────────────────────────
 
 export interface TraceCognitiveSignal {
   source: string
@@ -44,7 +41,6 @@ export interface TraceCognitiveSignal {
   text: string
 }
 
-// ── Context Mutation Tracking ──────────────────────────────────────────────
 
 /** Records a destructive mutation to the context window (truncation, pruning, trimming) */
 export interface TraceContextMutation {
@@ -58,7 +54,6 @@ export interface TraceContextMutation {
   timestamp?: number
 }
 
-// ── Team Context ───────────────────────────────────────────────────────────
 
 /** Links a TurnTrace to its team cell — the join key for unified timelines */
 export interface TraceTeamContext {
@@ -70,7 +65,6 @@ export interface TraceTeamContext {
   phase: string
 }
 
-// ── Thinking Summary ───────────────────────────────────────────────────────
 
 export interface TraceThinkingSummary {
   /** Total characters of thinking output */
@@ -81,7 +75,6 @@ export interface TraceThinkingSummary {
   truncated: boolean
 }
 
-// ── TurnTrace (enhanced) ───────────────────────────────────────────────────
 
 export interface TurnTrace {
   id: string

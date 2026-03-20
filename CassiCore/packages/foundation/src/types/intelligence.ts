@@ -7,7 +7,6 @@
 import type { Message } from "./runtime.js";
 import type { IndexEntry, IndexSearchResult, IndexStats } from "./session-ref.js";
 
-// ─── Memory ─────────────────────────────────────────────────────────────────
 
 export interface MemoryEntry {
   id: string;
@@ -32,7 +31,6 @@ export interface SearchResult {
   score: number;
 }
 
-// ─── Smart Recall ────────────────────────────────────────────────────────────
 
 /**
  * Options for the smart recall pipeline — general-purpose intelligent
@@ -140,7 +138,6 @@ export interface IMemory {
   getSessionIdFromLabel?(label: string): string | undefined;
 }
 
-// ─── Continuity ──────────────────────────────────────────────────────────────
 
 export interface ConversationTurn {
   id: string;
@@ -166,7 +163,6 @@ export interface IContinuity {
   prune(retentionDays?: number): Promise<number>;
 }
 
-// ─── Recover ─────────────────────────────────────────────────────────────────
 
 export type RecoveryStrategy = "retry" | "retry-with-backoff" | "fallback-model" | "skip";
 
@@ -188,7 +184,6 @@ export interface IRecover {
   recordSuccess(errorPattern: string, strategy: RecoveryStrategy): Promise<void>;
 }
 
-// ─── Reflect ─────────────────────────────────────────────────────────────────
 
 export interface ReflectionPattern {
   id: string;
@@ -214,7 +209,6 @@ export interface IReflect {
   unresolved(limit?: number): Promise<ReflectionPattern[]>;
 }
 
-// ─── Thinker ─────────────────────────────────────────────────────────────────
 
 export interface ThinkerStats {
   totalInsights: number;   // cumulative insights emitted
@@ -239,7 +233,6 @@ export interface IThinker {
   think(depth: "Ponder" | "Think", signal?: AbortSignal): Promise<string>;
 }
 
-// ─── Optimizer ──────────────────────────────────────────────────────────────
 
 export type OptimizationAction =
   | "summarize"       // inject summary, agent continues
@@ -296,7 +289,6 @@ export interface IOptimizer {
   history(limit?: number): Promise<OptimizationOutcome[]>
 }
 
-// ─── Dreamer ─────────────────────────────────────────────────────────────────
 
 /**
  * Configuration for the Dreamer cognitive module.

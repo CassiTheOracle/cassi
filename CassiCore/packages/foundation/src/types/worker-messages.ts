@@ -5,7 +5,6 @@
  * in each worker implementation.
  */
 
-// ─── Host to Worker Messages ─────────────────────────────────────────────────
 
 /** Base interface for all messages from host (daemon) to worker */
 export interface HostToWorkerMessage {
@@ -62,7 +61,6 @@ export type HostMessage =
   | HostStatusMessage
   | HostShutdownMessage
 
-// ─── Worker to Host Messages ─────────────────────────────────────────────────
 
 /** Base interface for all messages from worker to host (daemon) */
 export interface WorkerToHostMessage {
@@ -136,16 +134,28 @@ export interface WorkerInjectMessage extends WorkerToHostMessage {
   }
 }
 
+/** Tool usage event from external agent (e.g., OpenCode) */
+export interface WorkerToolUpdateMessage extends WorkerToHostMessage {
+  type: 'tool_update'
+  payload: {
+    sessionId: string
+    toolName: string
+    status: string
+    /** Full part data from the external agent's event stream */
+    partData?: Record<string, unknown>
+  }
+}
+
 export type WorkerMessage =
   | WorkerReadyMessage
   | WorkerUserMessage
   | WorkerReasoningMessage
   | WorkerSignalMessage
   | WorkerInjectMessage
+  | WorkerToolUpdateMessage
   | WorkerErrorMessage
   | WorkerLogMessage
 
-// ─── Legacy Aliases (for backward compatibility during migration) ──────────────
 
 /** @deprecated Use HostToWorkerMessage */
 export type HostToWorker = HostToWorkerMessage
