@@ -28,6 +28,10 @@ export interface RenewResult {
 
 /**
  * Read accounts file from canonical location
+ * @dep callers: handleProvidersRoutes (core/admin-api/providers.ts), renewAccountsFile (scripts/qwen-renew-accounts.ts)
+ * @dep flows: HandleProvidersRoutes → DefaultAccountsPath (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function defaultAccountsPath(): string {
   return path.join(os.homedir(), '.cassicore', 'qwen-accounts.json')
@@ -35,6 +39,11 @@ export function defaultAccountsPath(): string {
 
 /**
  * Renew all accounts in the provided file. Returns summary and writes updated file.
+ * @dep callers: qwen-account-renewal.test.ts (tests/qwen-account-renewal.test.ts), handleProvidersRoutes (core/admin-api/providers.ts)
+ * @dep calls: pollForToken, refreshToken, startDeviceFlow, now, defaultAccountsPath
+ * @dep flows: HandleProvidersRoutes → DefaultAccountsPath (2/3), HandleProvidersRoutes → Now (2/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 2 flows, 1 module
  */
 export async function renewAccountsFile(accountsFile?: string): Promise<RenewResult> {
   const file = accountsFile || defaultAccountsPath()

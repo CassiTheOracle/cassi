@@ -49,6 +49,7 @@ import { ToolRegistry } from './tools/registry.js'
 import { ToolReliabilityTracker } from './tools/reliability.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
+import { executeTurn, getPreferredTurnEngine } from './admin-api/turn-routing.js'
 
 
 import type { IEventBus, ILogger, IConfig, IPluginHost, IntelligenceModule } from "../types/interfaces.js"
@@ -89,6 +90,12 @@ export interface DaemonBootSnapshot {
   phases: DaemonBootPhaseMetric[]
   services: DaemonBootServiceMetric[]
 }
+
+/**
+ * @dep callers: start (core/daemon.ts), startDeferredStartup (core/daemon.ts), recordService (core/daemon.ts), completePhase (core/daemon.ts)
+ * @dep module: Intelligence
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
 
 function roundDurationMs(value: number): number {
   if (!Number.isFinite(value)) return 0
@@ -188,6 +195,9 @@ export class Daemon {
     public embeddingStackLauncher?: import('./intelligence/embeddings/inference-stack-launcher.js').InferenceStackLauncher
   /** Loaded provider map — available after daemon start(). */
   public providers: Map<string, IProvider> = new Map()
+  /** Prompt log store — persistent SQLite storage of every prompt sent to providers. */
+  public promptLogStore?: import('./prompt-log-store.js').PromptLogStore
+  public contextDistiller?: import('./intelligence/context-distiller.js').ContextDistiller
   /** Background intelligence loop — available after daemon start(). */
   public unifiedLoop?: import('./intelligence/unified-loop.js').UnifiedIntelligenceLoop
   /** Tool executor — available after daemon start(). */
@@ -199,6 +209,10 @@ export class Daemon {
   public budgetTracker?: BudgetTracker
   public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
+  /** Lumen ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
+  private lumenModelPool?: import('./model-pool/index.js').ModelPool
+  /** Dyad ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
+  private dyadModelPool?: import('./model-pool/index.js').ModelPool
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
   // expose orchestration bus for external use
@@ -207,6 +221,8 @@ export class Daemon {
   private latestBootSnapshot: DaemonBootSnapshot | null = null
   private bootHistory: DaemonBootSnapshot[] = []
   private deferredStartupTimer: NodeJS.Timeout | null = null
+  /** Tracks whether the inference stack (llama.cpp servers) is currently running. */
+  private inferenceStackEnabled = false
 
   constructor(busInstance: IEventBus = bus, logger: ILogger = rootLogger) {
     this.bus = busInstance
@@ -261,12 +277,22 @@ export class Daemon {
     this.deferredStartupTimer.unref?.()
   }
 
-  private async startDeferredStartup(): Promise<void> {
-    const deferredStart = performance.now()
-
+  /**
+   * Start (or restart) the local inference stack — llama.cpp embedding server,
+   * reranker, and generative model. Idempotent: safe to call when already running.
+   *
+   * Controlled by `intelligence.inferenceStack.enabled` (default: true).
+   * Set to `false` via `cassi_config_set` to free GPU VRAM (e.g. when gaming).
+   */
+  private async startInferenceStackLauncher(): Promise<void> {
     try {
       const { EmbeddingStackLauncher } = await import('./intelligence/embeddings/embedding-stack-launcher.js')
-      this.embeddingStackLauncher = new EmbeddingStackLauncher(this.logger)
+      const gpuGuardEnabled = this.config.get<boolean>('intelligence.inferenceStack.gpuGuard', true)
+      const gpuGuardIntervalMs = this.config.get<number>('intelligence.inferenceStack.gpuGuardIntervalMs', 60_000)
+      this.embeddingStackLauncher = new EmbeddingStackLauncher(this.logger, {
+        gpuGuardEnabled,
+        gpuGuardIntervalMs,
+      })
       this.embeddingStackLauncher.start()
         .then(() => {
           this.logger.info('EmbeddingStackLauncher ready')
@@ -274,9 +300,21 @@ export class Daemon {
         .catch((err: unknown) => {
           this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
         })
-      this.logger.info('EmbeddingStackLauncher starting after readiness')
+      this.inferenceStackEnabled = true
+      this.logger.info('EmbeddingStackLauncher starting')
     } catch (err) {
       this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
+    }
+  }
+
+  private async startDeferredStartup(): Promise<void> {
+    const deferredStart = performance.now()
+
+    const inferenceStackEnabled = this.config.get<boolean>('intelligence.inferenceStack.enabled', true)
+    if (inferenceStackEnabled) {
+      await this.startInferenceStackLauncher()
+    } else {
+      this.logger.info('InferenceStack disabled by config (intelligence.inferenceStack.enabled=false)')
     }
 
     const backgroundEmbeddingEnabled = this.config.get<boolean>('intelligence.backgroundEmbedding.enabled', false)
@@ -295,6 +333,7 @@ export class Daemon {
 
     this.logger.info('Deferred startup completed', {
       durationMs: roundDurationMs(performance.now() - deferredStart),
+      inferenceStackEnabled,
       backgroundEmbeddingEnabled,
     })
   }
@@ -369,7 +408,6 @@ export class Daemon {
     process.on('SIGTERM', () => { cleanupPidFile(); process.exit(0) })
     process.on('SIGINT', () => { cleanupPidFile(); process.exit(0) })
 
-    // ── Phase 1: Configuration ──────────────────────────────────────────────
     this.logger.info('── Phase 1: Configuration ──────────────────────────────')
 
     // 1. Load base file config
@@ -474,7 +512,6 @@ export class Daemon {
     // 5. Create PluginHost with logger
     this.pluginHost = new PluginHost(this.logger)
 
-    // ── Phase 2: Intelligence Layer ──────────────────────────────────────────
     this.logger.info('── Phase 2: Intelligence Layer ────────────────────────')
 
     // Initialize intelligence layer before loading plugins
@@ -879,7 +916,6 @@ export class Daemon {
         this.logger.warn(`Failed to wire Thinker introspection sources: ${String(err)}`)
       }
 
-      // ── Phase 3: Thinker Event Listeners ────────────────────────────────────
       // Listen for Thinker's proactive events
       interface ThinkerInjectInsightEvent {
         urgency?: number
@@ -949,29 +985,24 @@ export class Daemon {
     }
 
     // 6. Load the echo-channel worker (phase 1)
-    // ── Phase 3: Channels ────────────────────────────────────────────────────
-    // Channel workers are non-critical for API readiness. Launch them all in
-    // parallel so a 5s ready-timeout on one doesn't serially block the others
-    // (previously 5 channels × 5s = 25s of dead wait).
     this.logger.info('── Phase 3: Channels ──────────────────────────────────')
-
-    const channelPromises: Array<{ id: string; promise: Promise<void> }> = []
 
     const echoPath = resolveWorker("../workers/echo-channel")
 
     if (!echoPath) {
       this.logger.warn("echo-channel worker not found; continuing without it")
     } else {
-      channelPromises.push({
-        id: 'echo-channel',
-        promise: this.pluginHost.load({
+      try {
+        await this.pluginHost.load({
           id: "echo-channel",
           entryPoint: echoPath,
           restartOnCrash: true,
           maxRestarts: 5,
           config: {},
-        }),
-      })
+        })
+      } catch (err) {
+        this.logger.warn(`failed to load echo-channel: ${String(err)}`)
+      }
     }
 
     // 7. Load webchat channel worker (Phase 3)
@@ -979,24 +1010,24 @@ export class Daemon {
     if (!webchatPath) {
       this.logger.warn("webchat worker not found; skipping")
     } else {
-      const enabled = this.config.get<boolean>("channels.webchat.enabled", false)
-      this.logger.info(`webchat.enabled -> ${enabled}`)
-      if (!enabled) {
-        this.logger.info('webchat channel disabled by config; skipping')
-      } else {
-        const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
-        channelPromises.push({
-          id: 'webchat',
-          promise: this.pluginHost.load({
+      try {
+        const enabled = this.config.get<boolean>("channels.webchat.enabled", false)
+        this.logger.info(`webchat.enabled -> ${enabled}`)
+        if (!enabled) {
+          this.logger.info('webchat channel disabled by config; skipping')
+        } else {
+          const webchatPort = this.config.get<number>("channels.webchat.port", 3000)
+          await this.pluginHost.load({
             id: "channel:webchat",
             entryPoint: webchatPath,
             restartOnCrash: true,
             maxRestarts: 5,
             config: { port: webchatPort },
-          }).then(() => {
-            this.logger.info(`Webchat channel listening on port ${webchatPort}`)
-          }),
-        })
+          });
+          this.logger.info(`Webchat channel listening on port ${webchatPort}`);
+        }
+      } catch (err) {
+        this.logger.warn(`failed to load webchat: ${String(err)}`);
       }
     }
 
@@ -1005,18 +1036,18 @@ export class Daemon {
     if (!cliPath) {
       this.logger.warn("cli worker not found; skipping")
     } else {
-      channelPromises.push({
-        id: 'cli',
-        promise: this.pluginHost.load({
+      try {
+        await this.pluginHost.load({
           id: "channel:cli",
           entryPoint: cliPath,
           restartOnCrash: true,
           maxRestarts: 5,
           config: {},
-        }).then(() => {
-          this.logger.info(`CLI channel active`)
-        }),
-      })
+        })
+        this.logger.info(`CLI channel active`)
+      } catch (err) {
+        this.logger.warn(`failed to load cli channel: ${String(err)}`)
+      }
     }
 
     // 7c. Load Telegram channel worker (optional — requires channels.telegram.token in config)
@@ -1030,21 +1061,21 @@ export class Daemon {
       if (!tgPath) {
         this.logger.warn("telegram worker not found; skipping")
       } else {
-        const allowedChatIds = (this.config.get<number[]>("channels.telegram.allowedChatIds", []) as number[]).length
-          ? this.config.get<number[]>("channels.telegram.allowedChatIds", [])
-          : this.config.get<number[]>("channels.telegram.allowFrom", [])
-        channelPromises.push({
-          id: 'telegram',
-          promise: this.pluginHost.load({
+        try {
+          const allowedChatIds = (this.config.get<number[]>("channels.telegram.allowedChatIds", []) as number[]).length
+            ? this.config.get<number[]>("channels.telegram.allowedChatIds", [])
+            : this.config.get<number[]>("channels.telegram.allowFrom", [])
+          await this.pluginHost.load({
             id: "channel:telegram",
             entryPoint: tgPath,
             restartOnCrash: true,
             maxRestarts: 5,
             config: { token: tgToken, allowedChatIds },
-          }).then(() => {
-            this.logger.info(`Telegram channel active`)
-          }),
-        })
+          })
+          this.logger.info(`Telegram channel active`)
+        } catch (err) {
+          this.logger.warn(`failed to load telegram: ${String(err)}`)
+        }
       }
     } else if (tgToken && !tgEnabled) {
       this.logger.info(`Telegram channel disabled by config; skipping`)
@@ -1057,14 +1088,13 @@ export class Daemon {
       if (!ocPath) {
         this.logger.warn("opencode channel worker not found; skipping")
       } else {
-        const ocDbPath = this.config.get<string>("channels.opencode.dbPath", "")
-        const ocServerUrl = this.config.get<string>("channels.opencode.serverUrl", "")
-        const ocPollIntervalMs = this.config.get<number>("channels.opencode.pollIntervalMs", 2000)
-        const ocLookbackMs = this.config.get<number>("channels.opencode.lookbackMs", 30000)
-        const ocSessionId = this.config.get<string>("channels.opencode.sessionId", "")
-        channelPromises.push({
-          id: 'opencode',
-          promise: this.pluginHost.load({
+        try {
+          const ocDbPath = this.config.get<string>("channels.opencode.dbPath", "")
+          const ocServerUrl = this.config.get<string>("channels.opencode.serverUrl", "")
+          const ocPollIntervalMs = this.config.get<number>("channels.opencode.pollIntervalMs", 2000)
+          const ocLookbackMs = this.config.get<number>("channels.opencode.lookbackMs", 30000)
+          const ocSessionId = this.config.get<string>("channels.opencode.sessionId", "")
+          await this.pluginHost.load({
             id: "channel:opencode",
             entryPoint: ocPath,
             restartOnCrash: true,
@@ -1076,37 +1106,24 @@ export class Daemon {
               lookbackMs: ocLookbackMs,
               ...(ocSessionId ? { openCodeSessionId: ocSessionId } : {}),
             },
-          }).then(() => {
-            this.logger.info(`OpenCode channel active`, {
-              dbPath: ocDbPath || '~/.local/share/opencode/opencode.db (default)',
-              pollIntervalMs: ocPollIntervalMs,
-              serverUrl: ocServerUrl || '(none)',
-            })
-          }),
-        })
+          })
+          this.logger.info(`OpenCode channel active`, {
+            dbPath: ocDbPath || '~/.local/share/opencode/opencode.db (default)',
+            pollIntervalMs: ocPollIntervalMs,
+            serverUrl: ocServerUrl || '(none)',
+          })
+        } catch (err) {
+          this.logger.warn(`failed to load opencode channel: ${String(err)}`)
+        }
       }
     } else {
       this.logger.info(`OpenCode channel disabled by config; skipping`)
-    }
-
-    // Await all channel loads in parallel — individual failures don't block others
-    if (channelPromises.length > 0) {
-      const results = await Promise.allSettled(channelPromises.map((c) => c.promise))
-      for (let i = 0; i < results.length; i++) {
-        const result = results[i]
-        const channel = channelPromises[i]
-        if (result.status === 'rejected') {
-          this.logger.warn(`failed to load ${channel.id}: ${String(result.reason)}`)
-        }
-      }
     }
 
     completePhase('channels', {
       plugins: this.pluginHost.all().length,
     })
 
-    // ── Budget tracking & model routing ─────────────────────────────────────
-    // ── Phase 4: Providers & Wiring ──────────────────────────────────────────
     this.logger.info('── Phase 4: Providers & Wiring ────────────────────────')
 
     // Must be created before providers so CentralizedProvider can record usage
@@ -1148,7 +1165,7 @@ export class Daemon {
         this.logger.info(`${providers.size} provider(s) ready: ${providerSummary}`)
       }
     } catch (err) {
-      this.logger.warn('Providers not loaded', { error: String(err) })
+      this.logger.warn('Providers not loaded — run Phase 3 providers build')
     }
 
     // Wire BudgetTracker into all CentralizedProvider instances
@@ -1165,7 +1182,6 @@ export class Daemon {
       this.logger.info('BudgetTracker wired to CentralizedProvider instances')
     }
 
-    // ── ModelDirective (scope-based model selection) ──────────────────────────
     try {
       const providerKeys = providers
       this.modelDirective = new ModelDirective({
@@ -1173,23 +1189,12 @@ export class Daemon {
         eventBus: this.bus,
         logger: this.logger,
         availableProviders: () => Array.from(providerKeys.keys()),
-        persistDefault: async (cfg, slot) => {
+        persistDefault: (cfg) => {
           try {
             const layered = this.config as any
             if (typeof layered.setOverride === 'function') {
-              const prefix = slot
-                ? `intelligence.modelDirective.slots.${slot}`
-                : 'intelligence.modelDirective.default'
-              if (cfg.provider && cfg.model) {
-                await layered.setOverride(`${prefix}.provider`, cfg.provider, { reason: 'model-directive' })
-                await layered.setOverride(`${prefix}.model`, cfg.model, { reason: 'model-directive' })
-              } else if (typeof layered.clearOverride === 'function') {
-                await layered.clearOverride(`${prefix}.provider`)
-                await layered.clearOverride(`${prefix}.model`)
-              }
-              if (typeof layered.persistOverrides === 'function') {
-                await layered.persistOverrides()
-              }
+              layered.setOverride('intelligence.modelDirective.default.provider', cfg.provider, { reason: 'model-directive' })
+              layered.setOverride('intelligence.modelDirective.default.model', cfg.model, { reason: 'model-directive' })
             }
           } catch { /* non-critical */ }
         },
@@ -1212,6 +1217,31 @@ export class Daemon {
         }
         return total
       })
+    }
+
+    try {
+      const { PromptLogStore } = await import('./prompt-log-store.js')
+      const { withPromptLogging } = await import('./prompt-log-provider.js')
+      const promptLogDbPath = join(
+        String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data')),
+        'prompt-log.db',
+      )
+      const promptLogStore = new PromptLogStore(promptLogDbPath, this.logger)
+      this.promptLogStore = promptLogStore
+
+      for (const [id, provider] of providers) {
+        providers.set(id, withPromptLogging(provider, promptLogStore, id))
+      }
+
+      // Daily cleanup of old entries
+      const cleanupInterval = setInterval(() => {
+        try { promptLogStore.cleanup() } catch {}
+      }, 24 * 60 * 60 * 1000)
+      cleanupInterval.unref()
+
+      this.logger.info('Prompt logging enabled — all provider calls will be captured')
+    } catch (err) {
+      this.logger.warn('Failed to initialize prompt log store', { error: String(err) })
     }
 
     // Wire provider map into Multi-Agent Coordinator so providerId hints can be resolved
@@ -1361,6 +1391,7 @@ export class Daemon {
         })
         lumenModelPool.setProviders(providers)
         this.intelligence.lumen.setModelPool(lumenModelPool)
+        this.lumenModelPool = lumenModelPool
 
         // Wire ModelDirective so Lumen can resolve job-scoped overrides at runtime
         if (directive && typeof (this.intelligence.lumen as any).setModelDirective === 'function') {
@@ -1404,6 +1435,7 @@ export class Daemon {
         })
         dyadModelPool.setProviders(providers)
         this.intelligence.dyad.setModelPool(dyadModelPool)
+        this.dyadModelPool = dyadModelPool
 
         // Wire ModelDirective so Dyad can resolve job-scoped overrides at runtime
         if (directive && typeof (this.intelligence.dyad as any).setModelDirective === 'function') {
@@ -1416,6 +1448,56 @@ export class Daemon {
       }
     }
 
+    // Create shared ContextDistiller — Phase Zero context injection for teams/lumen/dyad.
+    // Must be created after providers and ModelPools are wired.
+    if (this.intelligence && providers.size > 0) {
+      try {
+        const { ContextDistiller } = await import('./intelligence/context-distiller.js')
+        const contextDistiller = new ContextDistiller(this.logger)
+
+        // Wire ModelPool — use Lumen pool (or Dyad pool if Lumen unavailable)
+        const distillerPool = this.lumenModelPool ?? this.dyadModelPool
+        if (distillerPool) {
+          contextDistiller.setModelPool(distillerPool)
+        }
+
+        // Wire ModelDirective for routing overrides
+        if (this.modelDirective) {
+          contextDistiller.setModelDirective(this.modelDirective)
+        }
+
+        // Wire PromptLogStore for parent conversation access
+        if (this.promptLogStore) {
+          contextDistiller.setPromptLogStore(this.promptLogStore)
+        }
+
+        // Wire Memory for enrichment search
+        if (this.intelligence.memory) {
+          contextDistiller.setMemory(this.intelligence.memory)
+        }
+
+        // Wire EventBus for parent session auto-detection via tool-call fingerprinting.
+        // Cast needed because IEventBus doesn't expose getGlobalEventsSince(),
+        // but the concrete EventBus (which the daemon always creates) does.
+        if (typeof (this.bus as any).getGlobalEventsSince === 'function') {
+          contextDistiller.setEventBus(this.bus as any)
+        }
+
+        // Store for wiring into orchestrators during pipeline-tools phase
+        this.contextDistiller = contextDistiller
+        this.logger.info('ContextDistiller (Phase Zero) created', {
+          hasModelPool: !!distillerPool,
+          hasPromptLog: !!this.promptLogStore,
+          hasMemory: !!this.intelligence.memory,
+          hasEventBus: true,
+        })
+      } catch (err) {
+        this.logger.warn('Failed to create ContextDistiller — teams will start without Phase Zero context', {
+          error: String(err),
+        })
+      }
+    }
+
     completePhase('providers-routing', {
       providers: providers.size,
       budgetTracker: !!budgetTracker,
@@ -1423,7 +1505,6 @@ export class Daemon {
     })
 
     // Create sessions and turn pipeline
-    // ── Phase 5: Pipeline & Tools ────────────────────────────────────────────
     this.logger.info('── Phase 5: Pipeline & Tools ───────────────────────────')
 
     const systemPrompt = buildSystemPrompt(this.logger)
@@ -1447,11 +1528,6 @@ export class Daemon {
 
     // Build command dispatcher
     this.commands = new CommandDispatcher(this.logger, this.sessions, this.bus);
-    this.commands.setIntelligence(this.intelligence)
-    if (this.modelDirective) {
-      this.commands.setModelDirective(this.modelDirective)
-    }
-    this.logger.info('Command dispatcher wired to intelligence layer')
 
     // Initialize subagent tracker FIRST (needed for tool registration)
     try {
@@ -1572,7 +1648,6 @@ export class Daemon {
       this.logger.info('No MCP servers configured')
     }
 
-    // ── IntelligenceRegistry: discover, wire, and start auto-loaded modules ──
     // This runs after all dependencies (bus, memory, providers, tools) are available.
     try {
       if (this.intelligence?.registry) {
@@ -1589,6 +1664,17 @@ export class Daemon {
           // self-healer is manually instantiated in createIntelligence() — skip auto-discovery
           // to prevent a duplicate instance from appearing in intelligence.all[]
           'self-healer',
+          // These modules extend BaseCognitiveModule but are manually created in
+          // createIntelligence() and wired with extra dependencies (pipeline,
+          // sessionManager, pluginHost, etc.) in bootIntelligencePostPipeline().
+          // Auto-discovery would create a second instance lacking those dependencies.
+          'heart',
+          'dreamer',
+          'smart-rules',
+          'reflex',
+          'consequence-estimator',
+          'trust-ledger',
+          'permission-oracle',
         ]))
 
         // Resolve the provider for registry modules (default to the configured fast-tier provider)
@@ -1605,7 +1691,6 @@ export class Daemon {
           toolExecutor,
         })
 
-        // ── Macro-Dialectic custom wiring ──────────────────────────────────
         // The MacroDialecticOrchestrator needs multi-provider resolution and
         // access to the dialectic system for micro-dialectic nesting.
         const macroDialectic = registry.get('macro-dialectic')
@@ -1630,7 +1715,6 @@ export class Daemon {
           this.logger.info('Macro-dialectic custom wiring complete')
         }
 
-        // ── Wire ModelDirective to all registered intelligence modules ────────
         // This gives every BaseCognitiveModule access to centralized model routing.
         if (this.modelDirective) {
           const resolveProvider = (id: string) => providers.get(id)
@@ -1654,7 +1738,6 @@ export class Daemon {
           this.intelligence.droneSwarm.setToolExecutor?.(toolExecutor)
         }
 
-        // ── Triad Team custom wiring ──────────────────────────────────────
         // The TriadTeamOrchestrator needs multi-provider resolution, tool
         // executor, and tool registry for its cells.
         if (this.intelligence?.triadTeam) {
@@ -1670,14 +1753,16 @@ export class Daemon {
           this.logger.info('Triad-team orchestrator wired')
         }
 
-        // ── FluxTeam custom wiring ──────────────────────────────────────
-        // FluxTeamOrchestrator needs event bus, Lumen, and a data directory
-        // for its outcome ledger.
+        // FluxTeamOrchestrator needs event bus, Lumen (research/read-only genomes),
+        // Dyad (action/write genomes), and a data directory for its outcome ledger.
         if (this.intelligence?.fluxTeam) {
           const ft = this.intelligence.fluxTeam
           ft.setEventBus(this.bus)
           if (this.intelligence.lumen) {
             ft.setLumen(this.intelligence.lumen)
+          }
+          if (this.intelligence.dyad) {
+            ft.setDyad(this.intelligence.dyad)
           }
           // Wire ModelDirective for job-scoped model selection
           if (this.modelDirective) {
@@ -1725,11 +1810,16 @@ export class Daemon {
             this.logger.info('FluxTeam memory wired for cross-team pattern persistence')
           }
 
+          // Wire ContextDistiller for Phase Zero context injection
+          if (this.contextDistiller) {
+            ft.setContextDistiller(this.contextDistiller)
+            this.logger.info('FluxTeam ContextDistiller wired for Phase Zero')
+          }
+
           this.wireModule(ft, this.bus)
           this.logger.info('FluxTeam orchestrator wired')
         }
 
-        // ── Lumen tool wiring ─────────────────────────────────────────────
         // Lumen postures (Yang/Yin/Executive) use read-only tools for investigation.
         if (this.intelligence?.lumen) {
           this.intelligence.lumen.setToolRegistry(toolRegistry)
@@ -1748,6 +1838,12 @@ export class Daemon {
           }
 
           this.logger.info('Lumen tool access wired')
+
+          // Wire ContextDistiller for Phase Zero context injection
+          if (this.contextDistiller) {
+            this.intelligence.lumen.setContextDistiller(this.contextDistiller)
+            this.logger.info('Lumen ContextDistiller wired for Phase Zero')
+          }
         }
 
         // Wire Dyad tools and store
@@ -1768,6 +1864,45 @@ export class Daemon {
           }
 
           this.logger.info('Dyad tool access wired')
+
+          // Wire ContextDistiller for Phase Zero context injection
+          if (this.contextDistiller) {
+            this.intelligence.dyad.setContextDistiller(this.contextDistiller)
+            this.logger.info('Dyad ContextDistiller wired for Phase Zero')
+          }
+        }
+
+        // Wire Training Warehouse tagger adapter.
+        // Uses the background tier (gpt-4o) for batch tagging operations since
+        // it is unlimited and tagging is non-interactive background work.
+        if (this.intelligence?.training) {
+          try {
+            const taggerProviderId = 'github-copilot'
+            const taggerModel = 'gpt-4o'
+            const taggerProvider = providers.get(taggerProviderId) ?? providers.values().next().value
+            if (taggerProvider) {
+              this.intelligence.tagger = {
+                model: taggerModel,
+                provider: taggerProviderId,
+                complete: async (system: string, user: string) => {
+                  const messages = [
+                    { role: 'system' as const, content: system },
+                    { role: 'user' as const, content: user },
+                  ]
+                  let text = ''
+                  let tokensUsed = 0
+                  for await (const chunk of taggerProvider.complete(messages, { model: taggerModel, stream: true })) {
+                    if (chunk.type === 'token' && chunk.text) text += chunk.text
+                    if (chunk.type === 'done' && chunk.tokensUsed) tokensUsed = chunk.tokensUsed
+                  }
+                  return { text, tokensUsed }
+                },
+              }
+              this.logger.info('Training tagger adapter wired', { provider: taggerProviderId, model: taggerModel })
+            }
+          } catch (err) {
+            this.logger.warn('Failed to wire training tagger adapter', { error: String(err) })
+          }
         }
 
         // Merge auto-discovered modules into the existing all[] array
@@ -1784,7 +1919,6 @@ export class Daemon {
       this.logger.warn('IntelligenceRegistry initialization failed — auto-discovered modules will not be available', { error: String(err) })
     }
 
-    // ── Copilot SDK Provider initialization ───────────────────────────────────
     // Initialize after tools are ready (tools are bridged to SDK format).
     // If successful, the SDK provider handles interactive turns (proper billing),
     // and the HTTP provider is restricted to background tasks + unlimited models.
@@ -1797,6 +1931,18 @@ export class Daemon {
       if (sdkManager) {
         // Store reference for shutdown
         ;(this as unknown as Record<string, unknown>).__copilotSdkManager = sdkManager
+
+        // Re-wire ModelPools so copilot-sdk is available for Lumen/Dyad slot routing.
+        // The pools were created before the SDK loaded; setProviders() again picks up
+        // the freshly-added 'copilot-sdk' entry in the providers map.
+        if (this.lumenModelPool) {
+          this.lumenModelPool.setProviders(providers)
+          this.logger.info('Lumen ModelPool re-wired after copilot-sdk init')
+        }
+        if (this.dyadModelPool) {
+          this.dyadModelPool.setProviders(providers)
+          this.logger.info('Dyad ModelPool re-wired after copilot-sdk init')
+        }
       }
     } catch (err) {
       this.logger.warn('Copilot SDK provider init skipped', { error: String(err) })
@@ -1842,7 +1988,7 @@ export class Daemon {
 
     // Bridge daemon.bus events → CassiCoreEventBus session buffers
     // so /events/history and verification tools can query pipeline events.
-    // NOTE: The CassiCoreEventBus IS the same singleton as this.bus (core/event-bus.ts).
+    // WHY: The CassiCoreEventBus IS the same singleton as this.bus (core/event-bus.ts).
     // A previous bridge here re-emitted every event from onAll → cassiCoreBus.emit()
     // which caused infinite recursion (stack overflow). No bridge is needed since
     // they are the same instance.
@@ -1933,7 +2079,6 @@ export class Daemon {
       pluginHost: this.pluginHost,
     })
 
-     // ── Session Pipeline Integration ─────────────────────────────────────────
     try {
       const { SessionPipeline } = await import('./pipeline/adapter/SessionPipeline.js')
       const v2Options = {
@@ -1942,16 +2087,11 @@ export class Daemon {
         providers,
         toolExecutor: {
           execute: async (name: string, input: unknown, context: unknown) => {
-            // Bridge IToolExecutor (name, input, context) → ToolExecutor (ToolCall, sessionId, opts)
-            const ctx = context as { toolCallId?: string; sessionId?: string } | undefined
-            const toolCall = { id: ctx?.toolCallId || 'unknown', name, input }
-            const sessionId = ctx?.sessionId || 'unknown'
-            const result = await (this as any).toolExecutor.execute(toolCall, sessionId)
+            const result = await (this as any).toolExecutor.execute(name, input, context)
             return { content: result.content, isError: result.isError }
           },
           isAvailable: (name: string) => (this as any).toolExecutor.isAvailable(name)
         },
-        toolSchemas: () => toolRegistry.toAnthropicSchema(),
         intelligence: {
           memory: (this as any).intelligence?.memory,
           dialectic: (this as any).intelligence?.dialectic,
@@ -1968,7 +2108,6 @@ export class Daemon {
       this.logger.warn('Failed to initialize session pipeline', { error: String(err) })
     }
 
-    // ── Health Monitor ────────────────────────────────────────────────────────
     const healthIntervalMs = this.config.get<number>('health.intervalMs', 30_000)
     this.healthMonitor = new HealthMonitor(this.bus, this.logger, {
       intervalMs: healthIntervalMs,
@@ -1999,7 +2138,6 @@ export class Daemon {
         const pluginId = event.pluginId
         const payload = event.payload
 
-        // ── Session-scoped events from the turn pipeline ──────────────────────
         // pluginId is "session:<sessionId>" for events emitted by the pipeline.
         // Route streaming tokens and status events to the channel worker that
         // owns the session.
@@ -2009,22 +2147,13 @@ export class Daemon {
             const s = this.sessions.get(sid)
             if (s && s.channelId) {
               const tgt = s.channelId
-              // Use the sender ID (e.g. tg:123456) so channel workers can route
-              // the response to the correct chat/user. Falls back to session ID
-              // if senderId is not set (e.g. CLI sessions).
-              const routeId = s.senderId || sid
               if (payload.type === 'turn:direct_message' && payload.content) {
                 // Command dispatcher response — send once and done
-                this.pluginHost.send(tgt, {
-                  sessionId: routeId,
-                  content: payload.content as string,
-                  parse_mode: payload.parse_mode as string | undefined,
-                  done: true,
-                })
+                this.pluginHost.send(tgt, { sessionId: sid, content: payload.content as string, done: true })
                 return
               } else if (payload.type === 'turn:token' && payload.token) {
                 // Stream token to channel — done=false keeps stream open
-                this.pluginHost.send(tgt, { sessionId: routeId, content: payload.token as string, done: false })
+                this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
                 // Thinking tokens are processed by subconscious but not displayed in CLI
@@ -2034,10 +2163,10 @@ export class Daemon {
               } else if (payload.type === 'turn:tool_call') {
                 // Show tool usage inline — italicised name, no done flag
                 const toolName = (payload.tool as string) || 'tool'
-                this.pluginHost.send(tgt, { sessionId: routeId, content: `\n_[${toolName}]_`, done: false })
+                this.pluginHost.send(tgt, { sessionId: sid, content: `\n_[${toolName}]_`, done: false })
                 return
               } else if (payload.type === 'turn:error') {
-                this.pluginHost.send(tgt, { sessionId: routeId, content: `❌ ${payload.error as string}`, done: true })
+                this.pluginHost.send(tgt, { sessionId: sid, content: `❌ ${payload.error as string}`, done: true })
                 return
               }
             }
@@ -2046,7 +2175,6 @@ export class Daemon {
           }
         }
 
-        // ── Worker log messages ───────────────────────────────────────────────
         if (payload?.type === 'log') {
           const level = (payload.level as string) || 'info'
           const msg = (payload.message as string) || ''
@@ -2056,7 +2184,6 @@ export class Daemon {
           return
         }
 
-        // ── Reasoning/thinking capture from external agents ──────────────────
         // The OpenCode channel worker polls reasoning blocks from the LLM's
         // thinking stream (stored in OpenCode's SQLite DB) and forwards them
         // here as { type: 'reasoning', payload: { sessionId, text } }.
@@ -2104,7 +2231,33 @@ export class Daemon {
           return
         }
 
-        // ── Inbound messages from channel workers ─────────────────────────────
+        // OpenCode channel worker forwards tool usage events from the external
+        // agent's SSE stream. We emit these as channel:tool_update events so
+        // they land in EventHistory and can be used for parent session
+        // auto-detection in Phase Zero (context distiller).
+        if (payload?.type === 'tool_update' && payload?.sessionId && payload?.toolName) {
+          const sid = payload.sessionId as string
+          const toolName = payload.toolName as string
+          const status = (payload.status as string) ?? 'unknown'
+          const partData = payload.partData as Record<string, unknown> | undefined
+
+          this.bus.emit({
+            type: 'channel:tool_update',
+            sessionId: sid,
+            toolName,
+            status,
+            partData,
+            timestamp: new Date(),
+          })
+
+          this.logger.debug('Channel tool event captured', {
+            sessionId: sid.slice(0, 12),
+            toolName,
+            status,
+          })
+          return
+        }
+
         // Channel workers send { sessionId, content } when a user message arrives.
         // The pipeline processes it; streaming tokens are handled above via bus
         // events. The final done=true is sent below via the turn:end subscription.
@@ -2112,21 +2265,12 @@ export class Daemon {
           const sid = payload.sessionId as string;
           const content = payload.content as string;
 
-          // Ensure a runtime session exists BEFORE command handling.
-          // Without this, command responses can't be routed back because
-          // the event bus bridge (session:* listener) needs the session
-          // to look up channelId and senderId for routing.
-          this.sessions.getOrCreateById(
-            sid, pluginId, sid, { projectPath: process.cwd() } as any
-          )
-
           // INTERCEPT COMMANDS FIRST
           if (content && content.startsWith('/')) {
             const handled = await this.commands.handle(sid, pluginId, content);
             if (handled) return;
           }
 
-          // ── COMPLETE TURN from OpenCode (no LLM call needed) ──────────────
           // When the OpenCode channel captures a completed turn (user message +
           // assistant response pair), we skip the SessionPipeline's LLM call
           // and go straight to intelligence modules. OpenCode already handled
@@ -2243,136 +2387,69 @@ export class Daemon {
             timestamp: new Date(),
           }
 
-          // Resolve effective model for this turn:
-          //   1. Payload model (from CLI channel with model arg)
-          //   2. Model-directive (global routing — set via /model or cassi_model_directive)
-          //   3. Undefined — let SessionPipeline use session defaults
-          let effectiveModel = payload.model as string | undefined
-          if (!effectiveModel && this.modelDirective) {
-            try {
-              const resolved = this.modelDirective.resolve()
-              effectiveModel = `${resolved.provider}/${resolved.model}`
-            } catch { /* non-critical — let pipeline defaults handle it */ }
-          }
-          const providerFromModel = typeof effectiveModel === 'string'
-            ? effectiveModel.split('/')[0] || undefined
+          // Update session model if provided (for CLI channel with model arg)
+          const modelFromPayload = payload.model as string | undefined
+          const providerFromPayload = typeof modelFromPayload === 'string'
+            ? modelFromPayload.split('/')[0] || undefined
             : undefined
-          // Update runtime session model for any channel (not just CLI)
-          if (effectiveModel) {
+          if (modelFromPayload && pluginId === 'channel:cli') {
             const session = this.sessions.get(inbound.sessionId)
             if (session) {
-              session.config.model = effectiveModel
+              session.config.model = modelFromPayload
             }
           }
 
           this.logger.info(`Processing inbound message`, {
             channel: pluginId,
             sessionId: inbound.sessionId,
-            provider: providerFromModel,
-            model: effectiveModel,
+            provider: providerFromPayload,
+            model: modelFromPayload,
           })
 
-          // Process the turn via session pipeline
+          // Process the turn via the canonical turn router.
           try {
-            if (this.sessionPipeline) {
-              // ── Register runtime session for tracking ──
-              // The pipeline uses SHA256-hashed session IDs internally, but the
-              // daemon's runtime sessions use the raw senderId (e.g. tg:123456).
-              // We register a runtime session BEFORE the call so that:
-              //   1. turn:end routing works for streaming finalization
-              //   2. Session tracking (sessions.get) can find this session
-              //   3. Status messages (context-manager:sync) can be routed
-              const runtimeSession = this.sessions.getOrCreateById(
-                inbound.senderId, pluginId, inbound.senderId,
-                { projectPath: process.cwd() } as any
-              )
+            if (getPreferredTurnEngine(this as any)) {
+              const result = await executeTurn(this as any, {
+                requestedSessionId: inbound.sessionId,
+                channelId: inbound.channelId,
+                senderId: inbound.senderId,
+                content: inbound.content,
+                attachments: inbound.attachments,
+              })
 
-              // ── Direct streaming callback ──
-              // Routes tokens directly to the channel worker, bypassing the
-              // event bus session routing (which can't resolve the pipeline's
-              // internal session IDs to runtime sessions). This gives all
-              // channels — Telegram, CLI, etc. — real-time token streaming.
-              //
-              // Matches StreamEventCallback signature from pipeline/session/types.ts:
-              //   (type: 'token'|'thinking'|'tool_call'|'tool_result', data: { token?, toolCall?, toolResult? })
-              const onStreamEvent = (type: string, data: { token?: string; toolCall?: { name?: string; id?: string }; toolResult?: { toolName?: string } }) => {
-                switch (type) {
-                  case 'token':
-                    if (data.token) {
-                      this.pluginHost.send(pluginId, {
-                        sessionId: inbound.senderId,
-                        content: data.token,
-                        done: false,
-                      })
-                    }
-                    break
-                  case 'thinking':
-                    // Thinking tokens are internal cognitive processing —
-                    // don't forward to channels
-                    break
-                  case 'tool_call': {
-                    const toolName = data.toolCall?.name || 'tool'
-                    this.pluginHost.send(pluginId, {
-                      sessionId: inbound.senderId,
-                      content: `\n_[${toolName}]_`,
-                      type: 'tool_call',
-                      done: false,
-                    })
-                    break
-                  }
-                  case 'tool_result':
-                    // Tool results are processed internally; the LLM will
-                    // incorporate them into its next response token stream
-                    break
-                }
+              if (result.engine === 'session-pipeline') {
+                this.logger.info(`Turn complete`, {
+                  sessionId: result.sessionId,
+                  provider: providerFromPayload,
+                  model: modelFromPayload,
+                  engine: result.engine,
+                })
+                this.pluginHost.send(pluginId, {
+                  sessionId: result.sessionId,
+                  content: result.response,
+                  done: true,
+                })
+              } else {
+                this.logger.info(`Turn complete (legacy)`, {
+                  sessionId: inbound.sessionId,
+                  provider: providerFromPayload,
+                  model: modelFromPayload,
+                  engine: result.engine,
+                })
               }
-
-              const result = await this.sessionPipeline.processMessage(
-                inbound.channelId,
-                inbound.senderId,
-                inbound.content,
-                {
-                  attachments: inbound.attachments,
-                  stream: true,
-                  onStreamEvent,
-                  model: effectiveModel,
-                }
-              )
-
-              this.logger.info(`Turn complete`, {
-                sessionId: result.sessionId,
-                model: result.model ?? effectiveModel ?? '(default)',
-                tokensUsed: result.tokensUsed,
-                durationMs: result.durationMs,
-                provider: providerFromModel,
-              })
-
-              // Send streaming finalization — empty content with done=true
-              // tells the channel worker to flush its buffer and close the stream
-              this.pluginHost.send(pluginId, {
-                sessionId: inbound.senderId,
-                content: '',
-                done: true,
-              })
             } else {
-              // Fallback: legacy pipeline (intelligence modules still depend on this)
-              await this.pipeline.process(inbound)
-              this.logger.info(`Turn complete (legacy)`, {
-                sessionId: inbound.sessionId,
-                provider: providerFromModel,
-                model: effectiveModel,
-              })
+              throw new Error('pipeline not ready')
             }
           } catch (err) {
             this.logger.warn(`pipeline error: ${String(err)}`, {
               channel: pluginId,
               sessionId: inbound.sessionId,
-              provider: providerFromModel,
-              model: effectiveModel,
+              provider: providerFromPayload,
+              model: modelFromPayload,
             })
-            // Send error message to channel using original sender ID
+            // Send error message to channel
             this.pluginHost.send(pluginId, {
-              sessionId: inbound.senderId,
+              sessionId: inbound.sessionId,
               content: `⚠️ Something went wrong — please try again.`,
               done: true,
             })
@@ -2383,7 +2460,6 @@ export class Daemon {
       }
     })
 
-    // ── Status message routing ────────────────────────────────────────────────
     interface SessionCompactedEvent {
       sessionId: string
       summary: string
@@ -2394,7 +2470,7 @@ export class Daemon {
       if (s?.channelId) {
         this.pluginHost.send(s.channelId, {
           type: 'status',
-          payload: { sessionId: s.senderId || sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' }
+          payload: { sessionId, text: 'Context compacted to focus on recent goals.', type: 'compaction' }
         })
       }
     })
@@ -2407,11 +2483,9 @@ export class Daemon {
       const s = this.sessions.get(sessionId)
       if (s?.channelId && s.channelId === 'channel:telegram') {
         // only notify Telegram for now as it's more "detached"
-        // this.pluginHost.send(s.channelId, { type: 'status', payload: { sessionId, text: 'Context synced.', type: 'sync' } })
       }
     })
 
-    // ── Streaming finalization ────────────────────────────────────────────────
     // turn:end fires after the pipeline is done. At this point all streaming
     // tokens have already been forwarded to the channel worker. We send done=true
     // with an empty content string to close the stream — Telegram will do a final
@@ -2422,14 +2496,13 @@ export class Daemon {
       try {
         const s = this.sessions.get(sid)
         if (s?.channelId) {
-          this.pluginHost.send(s.channelId, { sessionId: s.senderId || sid, content: '', done: true })
+          this.pluginHost.send(s.channelId, { sessionId: sid, content: '', done: true })
         }
       } catch (err) {
         this.logger.warn(`failed to finalize stream for ${sid}: ${String(err)}`)
       }
     })
 
-    // ── Phase 1: Implicit Feedback Detection ───────────────────────────────
     // Detect feedback signals in every user message. Runs on turn:start so
     // that signals from the *previous* turn response are captured before the
     // current turn's context is assembled.
@@ -2481,7 +2554,6 @@ export class Daemon {
     })
 
     // 11. Start AdminAPI
-    // ── Phase 6: Services ────────────────────────────────────────────────────
     this.logger.info('── Phase 6: Services ──────────────────────────────────')
 
     let adminInfo: { tcpPort: number | null; unixPath: string; tcpServer?: unknown; unixServer?: unknown } | undefined = undefined
@@ -2781,6 +2853,16 @@ export class Daemon {
       sessions?.store?.close?.()
     } catch { /* ignore */ }
 
+    // Close training warehouse SQLite database
+
+    // Close prompt log store
+    try {
+      this.promptLogStore?.close()
+    } catch { /* ignore */ }
+    try {
+      this.intelligence?.training?.close()
+    } catch { /* ignore */ }
+
     // intelligence cleanup
     await timedStep('intelligence-cleanup', async () => {
       interface ModuleWithCleanup {
@@ -2837,6 +2919,22 @@ export class Daemon {
     } catch (err) {
       this.logger.warn(`failed to reload config: ${String(err)}`)
       return
+    }
+
+    // Hot-toggle inference stack (llama.cpp GPU processes) based on config change.
+    // Set intelligence.inferenceStack.enabled=false to free GPU VRAM (e.g. when gaming).
+    const inferenceStackEnabled = this.config.get<boolean>('intelligence.inferenceStack.enabled', true)
+    if (this.inferenceStackEnabled && !inferenceStackEnabled) {
+      this.logger.info('InferenceStack disabled via config — stopping local inference processes to free GPU')
+      try {
+        this.embeddingStackLauncher?.stop()
+      } catch (err) {
+        this.logger.warn(`Failed to stop embedding stack: ${String(err)}`)
+      }
+      this.inferenceStackEnabled = false
+    } else if (!this.inferenceStackEnabled && inferenceStackEnabled) {
+      this.logger.info('InferenceStack enabled via config — starting local inference processes')
+      await this.startInferenceStackLauncher()
     }
 
     const all = this.pluginHost.all()

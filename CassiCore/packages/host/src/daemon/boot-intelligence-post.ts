@@ -3,6 +3,8 @@ import { createExecutionBackend } from '../intelligence/execution-backends/index
 import { ScoutModule } from '../scout/index.js'
 import { registerDroneTools } from '../tools/implementations/drone-swarm.js'
 import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
+import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
+import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
 
 import type { IEventBus, IConfig, ILogger, IPluginHost } from '../../types/interfaces.js'
 import type { IntelligenceLayer } from '../intelligence/index.js'
@@ -144,6 +146,78 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     intelligence.thinker.__awaitingWiring.setSessionManager(sessions, sessionStore)
     intelligence.thinker.__awaitingWiring.setPipelineGetter(() => pipeline)
     logger.info('Thinker wired to session manager and pipeline for subagent spawning')
+  }
+
+  // ── Module Session Registry ────────────────────────────────────────────────
+  // Create stable persistent sessions for every LLM-calling module.
+  // These power Telegram topic debugging and smart history compaction.
+  try {
+    const moduleRegistry = new ModuleSessionRegistry(sessions, logger)
+    const compactor = new ModuleSessionCompactor(sessions, logger)
+    moduleRegistry.setCompactor(compactor)
+
+    // Wire registry into every LLM-calling module
+    const thinkerWiring = intelligence.thinker.__awaitingWiring ?? intelligence.thinker
+    if (typeof (thinkerWiring as any).setModuleRegistry === 'function') {
+      ;(thinkerWiring as any).setModuleRegistry(moduleRegistry)
+    }
+    if (intelligence.subconscious) {
+      const obs = (intelligence.subconscious as any).llmObserver ?? intelligence.subconscious
+      if (typeof (obs as any).setModuleRegistry === 'function') {
+        ;(obs as any).setModuleRegistry(moduleRegistry)
+      } else if (typeof (intelligence.subconscious as any).setModuleRegistry === 'function') {
+        ;(intelligence.subconscious as any).setModuleRegistry(moduleRegistry)
+      }
+    }
+    if (typeof (intelligence.dialectic as any).setModuleRegistry === 'function') {
+      ;(intelligence.dialectic as any).setModuleRegistry(moduleRegistry)
+    }
+    if (typeof (intelligence.dreamer as any).setModuleRegistry === 'function') {
+      ;(intelligence.dreamer as any).setModuleRegistry(moduleRegistry)
+    }
+    // Memory sub-modules
+    const mem = intelligence.memory as any
+    if (mem) {
+      if (typeof mem.archiveAnalyzer?.setModuleRegistry === 'function') {
+        mem.archiveAnalyzer.setModuleRegistry(moduleRegistry)
+      }
+      if (typeof mem.continuousSearchManager?.setModuleRegistry === 'function') {
+        mem.continuousSearchManager.setModuleRegistry(moduleRegistry)
+      }
+    }
+    // Scout (wired during scout creation above — wire here if ScoutModule exposes it)
+    // (ScoutEngine exposes setModuleRegistry, but ScoutModule wraps it — wire the engine)
+    if (typeof (intelligence as any).scout?.setModuleRegistry === 'function') {
+      ;(intelligence as any).scout.setModuleRegistry(moduleRegistry)
+    }
+    // Context Distiller
+    if (typeof (deps as any).contextDistiller?.setModuleRegistry === 'function') {
+      ;(deps as any).contextDistiller.setModuleRegistry(moduleRegistry)
+    }
+    // Orchestrators
+    if (typeof intelligence.lumen.setModuleRegistry === 'function') {
+      intelligence.lumen.setModuleRegistry(moduleRegistry)
+    }
+    if (typeof intelligence.dyad.setModuleRegistry === 'function') {
+      intelligence.dyad.setModuleRegistry(moduleRegistry)
+    }
+    if (typeof (intelligence as any).droneSwarm?.setModuleRegistry === 'function') {
+      ;(intelligence as any).droneSwarm.setModuleRegistry(moduleRegistry)
+    }
+    // Triad team member sessions are created dynamically — wire registry via fleet coordinator
+    if (typeof (intelligence as any).triadTeam?.setModuleRegistry === 'function') {
+      ;(intelligence as any).triadTeam.setModuleRegistry(moduleRegistry)
+    }
+
+    // Pre-warm all sessions from disk
+    await moduleRegistry.warmAll()
+
+    // Store on intelligence layer for cognitive feed and admin API access
+    ;(intelligence as any).moduleRegistry = moduleRegistry
+
+    logger.info('ModuleSessionRegistry initialized and wired to all modules')
+  } catch (err) {
+    logger.warn('Failed to initialize ModuleSessionRegistry', { error: String(err) })
   }
 
   if (intelligence.droneSwarm && typeof intelligence.thinker.setDroneSwarm === 'function') {
