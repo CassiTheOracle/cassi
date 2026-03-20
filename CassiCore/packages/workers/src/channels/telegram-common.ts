@@ -15,7 +15,11 @@ export interface ImageAttachment {
   label?: string
 }
 
-// ── Module-level state ─────────────────────────────────────────────────────────
+export interface BotCommand {
+  command: string
+  description: string
+}
+
 
 let TOKEN = ''
 
@@ -23,6 +27,12 @@ let TOKEN = ''
 let WARN: (msg: string) => void = (msg) => process.stderr.write(`${msg}\n`)
 
 /** Set the active Bot API token. */
+/**
+ * @dep callers: telegram.ts (workers/channels/telegram.ts), telegram.test.ts (tests/telegram.test.ts)
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function setToken(token: string) {
   TOKEN = token || ''
 }
@@ -30,12 +40,20 @@ export function setToken(token: string) {
 /**
  * Provide a structured logger callback so warnings from this module are
  * forwarded through parentPort rather than written to raw stderr.
+ * @dep callers: telegram.ts (workers/channels/telegram.ts), telegram.test.ts (tests/telegram.test.ts)
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function setLogger(warnFn: (msg: string) => void) {
   WARN = warnFn
 }
 
-// ── Internal helpers ───────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: tgEditMessageText (workers/channels/telegram-common.ts), tgCall (workers/channels/telegram-common.ts)
+ * @dep module: Channels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function apiUrl(method: string): string {
   return `https://api.telegram.org/bot${TOKEN}/${method}`
@@ -74,7 +92,6 @@ async function tgCall<T>(method: string, body?: Record<string, unknown>): Promis
   }
 }
 
-// ── Public API: formatting ─────────────────────────────────────────────────────
 
 /**
  * Sanitize text for Telegram display.
@@ -88,7 +105,6 @@ export function sanitizeMarkdown(text: string): string {
   return markdownToTelegramHtml(text)
 }
 
-// ── Public API: messaging ──────────────────────────────────────────────────────
 
 /**
  * Call editMessageText with tri-state return: 'ok' | 'not_modified' | 'error'.
@@ -166,6 +182,10 @@ export async function sendMessage(
  *
  * Converts markdown to Telegram HTML. Falls back to plain text on failure.
  * Returns true if the edit succeeded or if the message was already identical (not modified).
+ * @dep callers: telegram.test.ts (tests/telegram.test.ts), doFlush (core/intelligence/cognitive-feed/general-chat-handler.ts), sendMessage (core/intelligence/cognitive-feed/index.ts), doFlush (workers/channels/telegram.ts)
+ * @dep calls: WARN, tgEditMessageText, markdownToTelegramHtml
+ * @dep module: Channels
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 export async function editMessage(
   chatId: number,
@@ -188,15 +208,26 @@ export async function editMessage(
 
 /**
  * Send a "typing..." indicator.
+ * @dep callers: telegram.test.ts (tests/telegram.test.ts), startStreamTimer (core/intelligence/cognitive-feed/general-chat-handler.ts), handleSSEEvent (core/intelligence/cognitive-feed/general-chat-handler.ts), handleMessage (core/intelligence/cognitive-feed/general-chat-handler.ts), handleDaemonMessage (workers/channels/telegram.ts) [+2]
+ * @dep calls: tgCall
+ * @dep module: Channels
+ * @dep risk: HIGH | 7 callers, 0 flows, 1 module
  */
 export async function sendTyping(chatId: number): Promise<void> {
   await tgCall('sendChatAction', { chat_id: chatId, action: 'typing' })
 }
 
-// ── Photo handling ─────────────────────────────────────────────────────────────
+export async function setMyCommands(commands: BotCommand[]): Promise<void> {
+  await tgCall('setMyCommands', { commands })
+}
+
 
 /**
  * Download a photo from Telegram by file_id and return it as a base64 ImageAttachment.
+ * @dep callers: telegram.test.ts (tests/telegram.test.ts), handleIncoming (workers/channels/telegram.ts)
+ * @dep calls: WARN
+ * @dep module: Channels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function downloadPhoto(fileId: string): Promise<ImageAttachment | null> {
   try {

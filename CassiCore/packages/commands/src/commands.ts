@@ -9,6 +9,8 @@
  */
 
 import { processor, type CommandContext as UniversalContext } from '../commands/universal-processor.js';
+import { activeSessions } from '../commands/cassi-commands.js';
+import { splitForTelegram, type ExecutionResult } from './tools/interactive-tool-session.js';
 
 import { bus } from './event-bus.js';
 
@@ -18,6 +20,8 @@ import type { IntelligenceLayer } from './intelligence/index.js';
 import type { ModelDirective } from './model-routing/index.js';
 import '../commands/git-commands.js';
 import '../commands/tool-commands.js';
+import '../commands/cassi-commands.js';
+import '../commands/cassicore-commands.js';
 
 export interface CommandContext {
   sessionId: string;
@@ -58,6 +62,42 @@ export class CommandDispatcher {
    * Returns true if handled, false otherwise.
    */
   async handle(sessionId: string, channelId: string, text: string): Promise<boolean> {
+    const activeSession = activeSessions.get(sessionId);
+    if (activeSession?.isActive) {
+      if (text === '/skip') {
+        const result = await activeSession.skip();
+        if ('prompt' in result) {
+          this.sendDirectResponse(sessionId, channelId, result.prompt);
+        } else {
+          activeSessions.delete(sessionId);
+          this.sendDirectResponseChunks(sessionId, channelId, this.formatToolOutput(result));
+        }
+        return true;
+      }
+      if (text === '/confirm') {
+        const result = await activeSession.confirm();
+        activeSessions.delete(sessionId);
+        this.sendDirectResponseChunks(sessionId, channelId, this.formatToolOutput(result));
+        return true;
+      }
+      if (text === '/cancel' || text.startsWith('/cancel ')) {
+        const message = activeSession.cancel();
+        activeSessions.delete(sessionId);
+        this.sendDirectResponse(sessionId, channelId, message);
+        return true;
+      }
+      if (!text.startsWith('/')) {
+        const result = await activeSession.receiveInput(text);
+        if ('prompt' in result) {
+          this.sendDirectResponse(sessionId, channelId, result.prompt);
+        } else {
+          activeSessions.delete(sessionId);
+          this.sendDirectResponseChunks(sessionId, channelId, this.formatToolOutput(result));
+        }
+        return true;
+      }
+    }
+
     if (!text.startsWith('/')) return false;
 
     const parts = text.trim().split(/\s+/);
@@ -315,6 +355,16 @@ export class CommandDispatcher {
         parse_mode: 'HTML'
       }
     } as any);
+  }
+
+  private sendDirectResponseChunks(sessionId: string, channelId: string, content: string): void {
+    for (const chunk of splitForTelegram(content)) {
+      this.sendDirectResponse(sessionId, channelId, chunk);
+    }
+  }
+
+  private formatToolOutput(result: ExecutionResult): string {
+    return result.isError ? `❌ Error:\n${result.result}` : result.result;
   }
 
   private getEffectiveModel(sessionModel?: string): { provider: string; model: string; full: string } {

@@ -19,7 +19,6 @@
 import { workerPort } from '../../core/worker-ipc.js'
 import * as tg from './telegram-common.js'
 
-// ── Constants ─────────────────────────────────────────────────────────────────
 
 const POLL_TIMEOUT_SEC = 25
 const FETCH_TIMEOUT_MS = (POLL_TIMEOUT_SEC + 10) * 1_000
@@ -28,7 +27,29 @@ const TYPING_INTERVAL_MS = 4000
 const BACKOFF_BASE_MS = 2_000
 const BACKOFF_MAX_MS = 30_000
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+const TELEGRAM_COMMANDS: tg.BotCommand[] = [
+  { command: 'cassi', description: 'MCP tools: list, invoke, or run agents' },
+  { command: 'cassicore', description: 'Daemon CLI (boot/model/provider)' },
+  { command: 'help', description: 'Show available commands' },
+  { command: 'start', description: 'Initialize the bot' },
+  { command: 'bash', description: 'Execute a shell command' },
+  { command: 'read', description: 'Read a file' },
+  { command: 'model', description: 'Show or change model' },
+  { command: 'think', description: 'Trigger thinker cycle' },
+  { command: 'recall', description: 'Search memory' },
+  { command: 'remember', description: 'Store a note' },
+  { command: 'git', description: 'Git operations' },
+  { command: 'session', description: 'Session info' },
+  { command: 'cancel', description: 'Cancel current operation' },
+  { command: 'skip', description: 'Skip optional parameter' },
+  { command: 'confirm', description: 'Confirm tool execution' },
+]
+
+async function registerBotCommands(): Promise<void> {
+  if (!cfg.token) return
+  await tg.setMyCommands(TELEGRAM_COMMANDS)
+}
+
 
 interface TelegramConfig {
   token: string
@@ -56,7 +77,6 @@ type WorkerMessage =
   | { type: 'error'; message: string }
   | { type: 'log'; level: 'info' | 'warn' | 'error'; message: string }
 
-// ── State ─────────────────────────────────────────────────────────────────────
 
 let cfg: TelegramConfig = { token: '' }
 let offset = 0
@@ -77,7 +97,6 @@ interface StreamState {
 }
 const streams = new Map<string, StreamState>()
 
-// ── Logging ───────────────────────────────────────────────────────────────────
 
 function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string, unknown>): void {
   const entry: Record<string, unknown> = { type: 'log', level, message: `[telegram] ${msg}` }
@@ -85,11 +104,16 @@ function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string
   workerPort.postMessage(entry as unknown as WorkerMessage)
 }
 
-// ── Session IDs ───────────────────────────────────────────────────────────────
 
 function sessionIdFor(chatId: number): string {
   return `tg:${chatId}`
 }
+
+/**
+ * @dep callers: handleStatusMessage (workers/channels/telegram.ts), handleDaemonMessage (workers/channels/telegram.ts)
+ * @dep module: Channels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function parseChatId(sessionId: string): number | null {
   if (!sessionId.startsWith('tg:')) return null
@@ -97,7 +121,13 @@ function parseChatId(sessionId: string): number | null {
   return Number.isFinite(n) ? n : null
 }
 
-// ── Streaming: buffer → edit loop ─────────────────────────────────────────────
+
+/**
+ * @dep callers: handleDaemonMessage (workers/channels/telegram.ts), handleIncoming (workers/channels/telegram.ts)
+ * @dep calls: get
+ * @dep module: Channels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function getOrCreateStream(chatId: number, sessionId: string): StreamState {
   let s = streams.get(sessionId)
@@ -127,6 +157,13 @@ async function doFlush(s: StreamState): Promise<void> {
  *  This ensures only one sendMessage/editMessage is in-flight at a time,
  *  preventing the race where two concurrent flushes both see msgId===null
  *  and create duplicate messages. */
+/**
+ * @dep callers: finalizeStream (workers/channels/telegram.ts), startStreamTimer (workers/channels/telegram.ts)
+ * @dep calls: get, doFlush
+ * @dep module: Branching-conversation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function enqueueFlush(sessionId: string): void {
   const s = streams.get(sessionId)
   if (!s) return
@@ -134,6 +171,13 @@ function enqueueFlush(sessionId: string): void {
     log('warn', 'stream flush error', { sessionId, error: String(err) })
   })
 }
+
+/**
+ * @dep callers: handleDaemonMessage (workers/channels/telegram.ts), handleIncoming (workers/channels/telegram.ts)
+ * @dep calls: get, enqueueFlush, sendTyping
+ * @dep module: Channels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function startStreamTimer(sessionId: string): void {
   const s = streams.get(sessionId)
@@ -161,7 +205,6 @@ async function finalizeStream(sessionId: string): Promise<void> {
   streams.delete(sessionId)
 }
 
-// ── Long-polling loop ─────────────────────────────────────────────────────────
 
 interface TgUpdate {
   update_id: number
@@ -232,7 +275,6 @@ async function pollLoop(): Promise<void> {
   log('info', 'Poll loop stopped')
 }
 
-// ── Inbound message handling ──────────────────────────────────────────────────
 
 async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<void> {
   const chatId = msg.chat.id
@@ -277,7 +319,6 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
   workerPort.postMessage({ type: 'message', payload } satisfies WorkerMessage)
 }
 
-// ── Handle messages from daemon ───────────────────────────────────────────────
 
 workerPort.on('message', (raw) => {
   const m = raw as HostMessage
@@ -288,6 +329,7 @@ workerPort.on('message', (raw) => {
       tg.setToken(cfg.token)
       tg.setLogger((msg) => log('warn', msg))
       if (cfg.token) {
+        registerBotCommands().catch((e) => log('warn', 'setMyCommands failed', { error: String(e) }))
         pollLoop().catch((e) => log('error', 'poll loop crashed', { error: String(e) }))
       }
       workerPort.postMessage({ type: 'ready' } satisfies WorkerMessage)
@@ -298,6 +340,7 @@ workerPort.on('message', (raw) => {
       cfg = { ...cfg, ...m.config }
       if (cfg.token !== prevToken) tg.setToken(cfg.token)
       if (!prevToken && cfg.token) {
+        registerBotCommands().catch((e) => log('warn', 'setMyCommands failed', { error: String(e) }))
         pollLoop().catch((e) => log('error', 'poll loop crashed', { error: String(e) }))
       }
       break
@@ -319,7 +362,6 @@ workerPort.on('message', (raw) => {
   }
 })
 
-// ── Daemon message routing ────────────────────────────────────────────────────
 
 function handleDaemonMessage(p: Record<string, unknown>): void {
   // PluginHost wraps all payloads in { type: 'message', payload: X }.
@@ -376,6 +418,13 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
   }
 }
 
+/**
+ * @dep callers: telegram.ts (workers/channels/telegram.ts), handleDaemonMessage (workers/channels/telegram.ts)
+ * @dep calls: sendMessage, parseChatId
+ * @dep module: Channels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function handleStatusMessage(p: StatusPayload): void {
   const chatId = parseChatId(p.sessionId)
   if (chatId === null) return
@@ -386,7 +435,6 @@ function handleStatusMessage(p: StatusPayload): void {
   }
 }
 
-// ── Utilities ─────────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms))
