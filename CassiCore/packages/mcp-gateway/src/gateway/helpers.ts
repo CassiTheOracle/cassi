@@ -32,6 +32,9 @@ function log(level: string, message: string, data?: any) {
 /**
  * Fetch with timeout — wraps global fetch with AbortController to prevent
  * indefinite hangs when the daemon is slow or unresponsive.
+ * @dep callers: executeAdminApiTool (mcp/gateway/admin-api-tools.ts), executeBlackboardTool (mcp/gateway/blackboard-tools.ts), executeConfigAdminTool (mcp/gateway/config-admin-tools.ts), fetchSessionIndex (mcp/gateway/context-enrichment.ts), fetchArchive (mcp/gateway/context-enrichment.ts) [+46]
+ * @dep module: Gateway
+ * @dep risk: CRITICAL | 51 callers, 0 flows, 1 module
  */
 export async function fetchWithTimeout(
   url: string | URL,
@@ -58,6 +61,10 @@ export async function fetchWithTimeout(
 /**
  * Helper to fetch JSON from an admin API endpoint.
  * Uses timeout to prevent indefinite hangs and validates Content-Type.
+ * @dep callers: formatDialectic (mcp/gateway/dialectic-tools.ts), fetchCognitiveCard (mcp/gateway/do-augmentation.ts), fetchActivityCard (mcp/gateway/do-augmentation.ts), fetchHealthCard (mcp/gateway/do-augmentation.ts), resolveSessionId (mcp/gateway/helpers.ts) [+12]
+ * @dep calls: get, fetchWithTimeout
+ * @dep module: Gateway
+ * @dep risk: CRITICAL | 17 callers, 0 flows, 1 module
  */
 export async function fetchIntelligence(
   baseUrl: string,
@@ -85,6 +92,10 @@ export async function fetchIntelligence(
 
 /**
  * Resolve the most recent active session ID
+ * @dep callers: formatDialectic (mcp/gateway/dialectic-tools.ts), formatEffectiveness (mcp/gateway/intelligence-tools.ts), formatTrace (mcp/gateway/intelligence-tools.ts), formatSubconscious (mcp/gateway/intelligence-tools.ts)
+ * @dep calls: fetchIntelligence
+ * @dep module: Gateway
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 export async function resolveSessionId(
   baseUrl: string,
@@ -135,6 +146,10 @@ export function formatJsonResponse(data: any): { content: Array<{ type: 'text'; 
 
 /**
  * Format success response with markdown text
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep flows: CreateHierarchyBridge → FormatTextResponse (4/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function formatTextResponse(text: string): { content: Array<{ type: 'text'; text: string }> } {
   return {
@@ -147,7 +162,6 @@ export function formatTextResponse(text: string): { content: Array<{ type: 'text
   };
 }
 
-// ─── Shared SSE Watch Utility ─────────────────────────────────────────────────
 
 /**
  * A normalized event collected by watchViaSSE.
@@ -214,6 +228,10 @@ export interface WatchViaSSEOptions {
  *
  * Handles both standard SSE format (`event: type\ndata: json\n\n`)
  * and simplified format (`data: json\n\n` where `json.type` is the event type).
+ * @dep callers: executeDyadTool (mcp/gateway/dyad-tools.ts), executeFluxWatch (mcp/gateway/flux-tools.ts), executeLumenWatch (mcp/gateway/lumen-tools.ts)
+ * @dep calls: has, heartbeat, add, fetchWithTimeout, finish [+2]
+ * @dep module: Gateway
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function watchViaSSE(
   opts: WatchViaSSEOptions,
@@ -286,7 +304,6 @@ export function watchViaSSE(
       }
     }
 
-    // ── Connect to SSE stream ────────────────────────────────────────────────
     let res: Response | null = null
     try {
       res = await fetch(sseUrl, {
@@ -303,7 +320,6 @@ export function watchViaSSE(
       if (res && !res.ok) {
         logger.warn('watchViaSSE: SSE unavailable, falling back to poll', { sseUrl, status: res.status })
       }
-      // ── Poll fallback ──────────────────────────────────────────────────────
       if (!pollUrl) return   // No fallback configured; wait for timeout
       const seen = new Set<string>()
       pollTimer = setInterval(async () => {
@@ -326,7 +342,6 @@ export function watchViaSSE(
       return
     }
 
-    // ── SSE read loop ────────────────────────────────────────────────────────
     const reader = res.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''

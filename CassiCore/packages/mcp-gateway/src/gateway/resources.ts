@@ -16,9 +16,7 @@
 import type { ILogger } from '../../types/interfaces.js';
 import { fetchWithTimeout, GATEWAY_VERSION } from './helpers.js';
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Standard metadata for all resource responses
@@ -169,9 +167,7 @@ interface IntelligenceActivity {
   }>;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Caching Configuration
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * TTL configuration per resource type (in seconds)
@@ -268,12 +264,15 @@ class ResourceCache {
 // Global cache instance
 const resourceCache = new ResourceCache(100);
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Resource Fetchers
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Fetch team state with caching
+ * @dep callers: readResource (mcp/gateway/resources.ts)
+ * @dep calls: get, fetchWithTimeout, toISOString
+ * @dep flows: ReadResource → Now (2/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 async function fetchTeamState(
   cassicoreUrl: string,
@@ -467,6 +466,10 @@ async function fetchConfig(
 
 /**
  * Fetch enhanced health with caching
+ * @dep callers: statusCommand (src/cli/commands/boot.ts), readResource (mcp/gateway/resources.ts)
+ * @dep calls: get, fetchWithTimeout, toISOString
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function fetchHealth(
   cassicoreUrl: string,
@@ -502,7 +505,7 @@ async function fetchHealth(
   };
 
   // Add provider status from health data
-  // Note: HealthMonitor only checks provider presence, not latency
+  // WHY: HealthMonitor only checks provider presence, not latency
   if (healthData.providers) {
     const providersMeta = healthData.checks?.find((c: any) => c.name === 'providers')?.meta;
     if (providersMeta) {
@@ -585,9 +588,7 @@ async function fetchIntelligenceActivity(
   return resourceResponse;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Main Resource Handler
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Parse resource URI and extract type and parameters
@@ -636,6 +637,10 @@ export function parseResourceUri(uri: string): {
 
 /**
  * Read a resource and return MCP-compliant response
+ * @dep calls: fetchTeamState, fetchSessionContext, fetchConfig, fetchHealth, fetchIntelligenceActivity [+3]
+ * @dep flows: ReadResource → Now (1/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 0 callers, 1 flow, 1 module
  */
 export async function readResource(
   uri: string,

@@ -102,6 +102,8 @@ export interface FluxRunConfig {
   checkpointTimeoutSecs?: number;
   /** Maximum total runtime in seconds (default: 3600 = 1 hour) */
   maxRuntimeSecs?: number;
+  /** Parent session ID for Phase Zero context distillation */
+  parentSessionId?: string;
 }
 
 /**
@@ -161,7 +163,7 @@ export const FLUX_TOOLS = [
         },
         slot: {
           type: 'string',
-          description: 'Target a specific posture slot (for action "change_model"). Examples: "lumen.yang", "lumen.yin", "lumen.executive". Omit to change all postures.',
+          description: 'Target a specific posture slot (for action "change_model"). Examples: "lumen.yang", "lumen.yin", "lumen.executive", "dyad.yang", "dyad.yin", "dyad.apex". Omit to change all postures.',
         },
         provider: {
           type: 'string',
@@ -186,6 +188,10 @@ export const FLUX_TOOLS = [
         useFluxTeam: {
           type: 'boolean',
           description: 'Use FluxTeam engine (default: true). Set false to use legacy TriadTeam.',
+        },
+        parentSessionId: {
+          type: 'string',
+          description: 'Parent session ID for Phase Zero context distillation. When provided, the team will be briefed with context from the parent conversation.',
         },
       },
       required: ['action'],
@@ -252,6 +258,10 @@ export const FLUX_TOOLS = [
         maxRuntimeSecs: {
           type: 'number',
           description: 'Maximum total runtime in seconds (default: 3600)',
+        },
+        parentSessionId: {
+          type: 'string',
+          description: 'Parent session ID for Phase Zero context distillation. When provided, the team will be briefed with context from the parent conversation.',
         },
       },
       required: ['goal'],
@@ -358,6 +368,10 @@ function formatTokens(tokens: any): string {
 /**
  * Format live cell statuses into a concise, readable structure.
  * Focuses on what's actually happening — active members, recent tool calls, timing.
+ * @dep callers: executeFluxInspect (mcp/gateway/flux-tools.ts), buildFluxRunReport (mcp/gateway/flux-tools.ts)
+ * @dep calls: formatTokens
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function formatLiveCells(cells: any[]): any[] {
   return cells.map((cell: any) => {
@@ -446,6 +460,10 @@ function generateInspectionSummary(status: any, tree: any, events: any): string 
 /**
  * Execute flux_team operations via the "action" parameter.
  * This is the canonical team CRUD router — all other team tools delegate here.
+ * @dep callers: executeFluxRun (mcp/gateway/flux-tools.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep calls: fetchWithTimeout
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function executeFluxTeamTool(
   baseUrl: string,
@@ -480,6 +498,7 @@ export async function executeFluxTeamTool(
           provider: providerPayload,
           useLumen: args.useLumen,
           useFluxTeam: args.useFluxTeam !== false, // Default to true
+          parentSessionId: args.parentSessionId,
         }),
       });
       if (!res.ok) throw new Error(`Team start failed: ${await res.text()}`);
@@ -648,6 +667,7 @@ export async function executeFluxRun(
     provider,
     useLumen,
     useFluxTeam,
+    parentSessionId,
     checkpointPolicy = 'auto-approve',
     checkpointTimeoutSecs = 300,
     maxRuntimeSecs = 3600,
@@ -675,6 +695,7 @@ export async function executeFluxRun(
     secondaryProviderId: provider?.secondaryProviderId,
     useLumen,
     useFluxTeam,
+    parentSessionId,
   };
 
   const startResult = await executeFluxTeamTool(baseUrl, startArgs, logger);

@@ -4,6 +4,7 @@
  * Provides a single `model_directive` tool that controls which provider+model
  * is used for LLM operations (Lumen, Teams, etc.) with layered scopes:
  *   - next: one-shot, consumed after the next operation
+ *   - next-job: accumulated per-slot, consumed when the next Lumen/Dyad/Team job starts
  *   - job: scoped to a team/lumen session ID
  *   - default: persisted across restarts
  *
@@ -21,6 +22,7 @@ export const MODEL_DIRECTIVE_TOOLS = [
 
 Instead of specifying provider/model on each tool call, use this tool to set the model routing at a scope level:
 - scope="next": one-shot override, consumed after the next LLM operation
+- scope="next-job": accumulated per-slot, automatically consumed when the next Lumen/Dyad/Team starts. Set models BEFORE launching the job — no race condition, correct from iteration 1.
 - scope="job": scoped to a specific team or Lumen session ID
 - scope="default": persisted as the new default across restarts
 
@@ -46,8 +48,8 @@ Use action="clear" to remove an override at a scope.`,
         },
         scope: {
           type: 'string',
-          enum: ['next', 'job', 'default'],
-          description: 'Override scope: "next" (one-shot), "job" (team/lumen session), "default" (persistent)',
+          enum: ['next', 'next-job', 'job', 'default'],
+          description: 'Override scope: "next" (one-shot), "next-job" (pre-seed models for next Lumen/Dyad/Team — consumed at job start), "job" (team/lumen session), "default" (persistent)',
         },
         tier: {
           type: 'string',
@@ -68,7 +70,7 @@ Use action="clear" to remove an override at a scope.`,
         },
         slot: {
           type: 'string',
-          description: 'Dotted-hierarchy slot for per-component granularity. Examples: "lumen.yang", "lumen.yin", "lumen.executive", "dialectic.yang", "thinker", "subconscious". When set, the override only applies to that specific slot.',
+          description: 'Dotted-hierarchy slot for per-component granularity. Examples: "lumen.yang", "lumen.yin", "lumen.executive", "dyad.yang", "dyad.yin", "dyad.apex", "dialectic.yang", "thinker", "subconscious". When set, the override only applies to that specific slot.',
         },
       },
     },

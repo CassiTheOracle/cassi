@@ -33,6 +33,9 @@ function log(level: string, message: string, data?: any) {
 
 /**
  * Index the codebase using scip-typescript
+ * @dep callers: scip-server.ts (mcp/scip-server.ts), querySymbol (mcp/scip-server.ts)
+ * @dep module: Mcp
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function indexCodebase(repoPath: string): Promise<string> {
   log('info', 'Indexing codebase with SCIP', { repoPath });

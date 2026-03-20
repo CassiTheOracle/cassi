@@ -91,6 +91,10 @@ import {
    getBlackboardMcpTools,
    executeBlackboardTool,
    BLACKBOARD_TOOL_NAMES,
+   // Training Warehouse tools
+   getTrainingTools,
+   executeTrainingTool,
+   TRAINING_TOOL_NAMES,
 } from './gateway/index.js';
 
 // Configuration
@@ -99,9 +103,7 @@ const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
 // Logger
 const logger = createLogger();
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Security Configuration
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Load authentication token from config file or environment
@@ -133,8 +135,8 @@ const AUTH_TOKEN = getAuthToken();
  */
 function validateAuth(req: http.IncomingMessage): boolean {
   if (!AUTH_TOKEN) {
-    // No token configured - allow all (local-only mode)
-    return true;
+    logger.error('HTTP gateway request rejected: CASSICORE_MCP_TOKEN is not configured');
+    return false;
   }
 
   const authHeader = req.headers['authorization'];
@@ -145,9 +147,6 @@ function validateAuth(req: http.IncomingMessage): boolean {
   return authHeader === `Bearer ${AUTH_TOKEN}`;
 }
 
-/**
- * Validate Content-Type header for POST/PUT requests
- */
 function validateContentType(req: http.IncomingMessage, expectedType: string = 'application/json'): boolean {
   const contentType = req.headers['content-type'];
   if (!contentType) {
@@ -158,9 +157,6 @@ function validateContentType(req: http.IncomingMessage, expectedType: string = '
   return contentType.toLowerCase().startsWith(expectedType);
 }
 
-/**
- * Read request body with size limit
- */
 function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1024): Promise<string> {
   return new Promise((resolve, reject) => {
     let body = '';
@@ -181,13 +177,16 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Tool Registry
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Get all available tools from all domains
+ * @dep callers: startHttp (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
+ * @dep calls: getTrainingTools, getCoreTools, getSessionTools, getModelDirectiveTools, getMemoryTools [+9]
+ * @dep flows: CreateHierarchyBridge → GetCoreTools (3/4), CreateHierarchyBridge → GetIntelligenceTools (3/4), CreateHierarchyBridge → GetDialecticTools (3/4) [+1]
+ * @dep module: Gateway
+ * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
  */
+
 function getAllTools() {
   return [
     ...getCoreTools(),
@@ -203,15 +202,22 @@ function getAllTools() {
     ...getModelDirectiveTools(),
     ...getDoTools(),
     ...getBlackboardMcpTools(),
+    ...getTrainingTools(),
   ];
+
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+
+
 // Tool Execution Router
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Route a tool call to the appropriate domain handler
+ * @dep callers: createServer (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep calls: has, routeToolCall, executeTrainingTool, executeCassiCoreTool, getCoreTools [+19]
+ * @dep flows: CreateHierarchyBridge → ExecuteIntelligenceTool (3/4), CreateHierarchyBridge → FormatTextResponse (3/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 2 flows, 1 module
  */
 async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
   logger.info('Tool call received', { tool: name, args });
@@ -318,17 +324,24 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
     }
 
+    // Training Warehouse tools (return JSON)
+    if (TRAINING_TOOL_NAMES.has(name)) {
+      const result = await executeTrainingTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
     // Unknown tool
     throw new Error(`Unknown tool: ${name}`);
   } catch (error: any) {
+
     logger.error('Tool execution failed', { tool: name, error: String(error) });
     return formatError(error);
+
+
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Resource Subscription Manager
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Active resource subscriptions: URI -> Set of subscriber IDs
@@ -337,6 +350,11 @@ const resourceSubscriptions = new Map<string, Set<string>>();
 
 /**
  * Subscribe a client to a resource URI
+ * @dep callers: createServer (mcp/cassicore-gateway.ts)
+ * @dep calls: get, has, add
+ * @dep flows: CreateHierarchyBridge → SubscribeToResource (3/3)
+ * @dep module: Mcp
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 function subscribeToResource(uri: string, subscriberId: string): void {
   if (!resourceSubscriptions.has(uri)) {
@@ -346,16 +364,16 @@ function subscribeToResource(uri: string, subscriberId: string): void {
   logger.info('Resource subscription added', { uri, subscriberId, totalSubscribers: resourceSubscriptions.get(uri)!.size });
 }
 
-/**
- * Unsubscribe a client from a resource URI
- */
 function unsubscribeFromResource(uri: string, subscriberId: string): void {
   const subscribers = resourceSubscriptions.get(uri);
   if (subscribers) {
     subscribers.delete(subscriberId);
     if (subscribers.size === 0) {
+
       resourceSubscriptions.delete(uri);
     }
+
+
     logger.info('Resource subscription removed', { uri, subscriberId, remainingSubscribers: subscribers.size });
   }
 }
@@ -367,17 +385,20 @@ async function notifyResourceUpdate(server: Server, uri: string): Promise<void> 
   const subscribers = resourceSubscriptions.get(uri);
   if (subscribers && subscribers.size > 0) {
     logger.info('Notifying resource update', { uri, subscriberCount: subscribers.size });
-    // Note: In stdio mode, notifications are queued and sent when possible
+    // HOW: In stdio mode, notifications are queued and sent when possible
     // The SDK handles the actual delivery
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // MCP Server
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Create MCP Server with full capabilities
+ * @dep callers: webchat.ts (workers/channels/webchat.ts), bridge.js (tool-proxy/bridge.js), start (cluster/src/ccipc.js), startControllerSocket (cluster/src/controller.js), startLegacySocket (cluster/src/controller.js) [+12]
+ * @dep calls: now, test, getAllTools, routeToolCall, subscribeToResource [+2]
+ * @dep flows: CreateHierarchyBridge → GetCoreTools (2/4), CreateHierarchyBridge → GetIntelligenceTools (2/4), CreateHierarchyBridge → GetDialecticTools (2/4) [+4]
+ * @dep module: Mcp
+ * @dep risk: CRITICAL | 17 callers, 7 flows, 1 module
  */
 function createServer() {
   const server = new Server(
@@ -876,9 +897,7 @@ function createServer() {
   return server;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Transports
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Start with stdio transport (default for MCP)
@@ -898,6 +917,10 @@ async function startStdio() {
  * Start with HTTP/SSE transport (for remote connections)
  */
 async function startHttp(port: number) {
+  if (!AUTH_TOKEN) {
+    throw new Error('CASSICORE_MCP_TOKEN is required in HTTP mode');
+  }
+
   logger.info('Starting CassiCore MCP Gateway (HTTP mode)', { port, url: CASSICORE_URL });
 
   const server = createServer();
@@ -984,9 +1007,7 @@ async function startHttp(port: number) {
   });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Main Entry Point
-// ═══════════════════════════════════════════════════════════════════════════════
 
 /**
  * Main entry point

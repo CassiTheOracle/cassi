@@ -149,3 +149,11 @@ export {
   getBlackboardMcpTools,
   executeBlackboardTool,
 } from './blackboard-tools.js';
+
+// Training Warehouse Tools
+export {
+  TRAINING_TOOLS,
+  TRAINING_TOOL_NAMES,
+  executeTrainingTool,
+  getTrainingTools,
+} from './training-tools.js';

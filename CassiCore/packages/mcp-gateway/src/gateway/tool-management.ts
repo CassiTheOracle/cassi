@@ -171,6 +171,10 @@ export const CORE_TOOLS = [
 
 /**
  * Execute a core CassiCore tool
+ * @dep callers: startHttp (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep calls: get, fetchWithTimeout
+ * @dep module: Mcp
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function executeCassiCoreTool(
   baseUrl: string,
@@ -249,6 +253,10 @@ export function isCoreTool(toolName: string): boolean {
 
 /**
  * Get all core tool definitions
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), getAllTools (mcp/cassicore-gateway.ts)
+ * @dep flows: CreateHierarchyBridge → GetCoreTools (4/4)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function getCoreTools(): Array<{
   name: string;

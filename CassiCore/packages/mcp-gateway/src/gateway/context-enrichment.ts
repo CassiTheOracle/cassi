@@ -2,14 +2,33 @@
 /**
  * context-enrichment.ts — Shared context-fetching and formatting module
  *
- * Extracts the context enrichment logic used by `cassi_do` (and now `cassi_enrich`)
- * into a reusable module. Fetches memories, archive entries, and session index
- * results in parallel, then formats them into a markdown context block.
+ * Used exclusively by `cassi_enrich`. The enrichment pipeline now runs queries
+ * through the Query Intelligence layer (query-intelligence.ts) before searching:
+ *
+ *   1. Normalize + extract entities   — synchronous
+ *   2. Fetch archive metadata          — cached, fast
+ *   3. Build query variants            — exact + entity + expanded
+ *   4. Multi-variant parallel search   — 6–9 searches, deduplicated
+ *   5. Cross-source merge + rank       — adaptive weights, diversity bonus
+ *   6. Top Relevant section            — best 5 across all sources
+ *   7. Per-source full lists           — memory / archive / session history
+ *   8. Empty recovery                  — fallback searches + term suggestions
  */
 
 import { fetchWithTimeout } from './helpers.js';
+import {
+  normalizeQuery,
+  extractEntities,
+  extractKeyTerms,
+  getArchiveMetadata,
+  buildQueryVariants,
+  searchMultiVariant,
+  mergeAndRank,
+  recoverFromEmpty,
+  formatTopRelevantEntry,
+  type RankedSearchResult,
+} from './query-intelligence.js';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
 
 /** Timeout for each individual context fetch (memory, archive, index). */
 export const CONTEXT_FETCH_TIMEOUT_MS = 5_000;
@@ -20,7 +39,6 @@ export const CONTEXT_FETCH_TIMEOUT_MS = 5_000;
  */
 export const MAX_INDEX_DISPLAY_CHARS = 800;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Limits for each context source. */
 export interface ContextLimits {
@@ -43,7 +61,6 @@ export interface ContextEnrichmentResult {
   };
 }
 
-// ─── Context Fetchers ─────────────────────────────────────────────────────────
 
 export async function fetchMemory(
   baseUrl: string,
@@ -89,7 +106,6 @@ export async function fetchSessionIndex(
   return Array.isArray(data) ? data : [];
 }
 
-// ─── Windowing Helper ─────────────────────────────────────────────────────────
 
 /**
  * Extract a display window from content, centered on the FTS match offset.
@@ -122,7 +138,6 @@ export function centeredWindow(
   return prefix + content.slice(start, end) + suffix;
 }
 
-// ─── Content Truncation ───────────────────────────────────────────────────────
 
 /**
  * Maximum characters for memory/archive entry content.
@@ -140,6 +155,9 @@ export const MAX_ENTRY_DISPLAY_CHARS = 800;
  * If content fits within maxChars, it is returned unchanged.
  * Otherwise, the first ~40% and last ~40% are kept, with a brief omission marker
  * in between showing how much was skipped.
+ * @dep callers: formatArchiveEntry (mcp/gateway/context-enrichment.ts), formatMemoryEntry (mcp/gateway/context-enrichment.ts)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function smartTruncate(content: string, maxChars: number = MAX_ENTRY_DISPLAY_CHARS): string {
   if (content.length <= maxChars) return content;
@@ -164,7 +182,12 @@ export function smartTruncate(content: string, maxChars: number = MAX_ENTRY_DISP
   return `${head}\n\n[...${omitted} chars omitted...]\n\n${tail}`;
 }
 
-// ─── Formatters ───────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: formatIndexEntry (mcp/gateway/context-enrichment.ts), formatArchiveEntry (mcp/gateway/context-enrichment.ts), formatMemoryEntry (mcp/gateway/context-enrichment.ts)
+ * @dep module: Gateway
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 export function formatDate(ts: number | string | Date | undefined): string {
   if (!ts) return '';
@@ -371,87 +394,150 @@ export function formatIndexEntry(raw: unknown, index: number): string {
   return lines.join('\n');
 }
 
-// ─── Main Context Assembly ────────────────────────────────────────────────────
 
 /**
- * Fetch context from all three sources (memory, archive, session index) in
- * parallel and format into a markdown context block.
+ * Fetch context from all sources through the Query Intelligence pipeline and
+ * format into a markdown block for `cassi_enrich`.
  *
- * This is the shared core used by both `cassi_do` and `cassi_enrich`.
+ * Pipeline:
+ *   normalize → extract entities → cache metadata → build variants →
+ *   multi-variant search (parallel) → merge+rank → Top Relevant + per-source sections
+ *   → empty recovery if no results
  *
  * @param baseUrl   CassiCore admin API base URL
- * @param query     The search query (user message, tool context, etc.)
+ * @param query     The search query (user message, topic, etc.)
  * @param limits    Per-source result limits
- * @returns Formatted markdown block and metadata
+ * @dep callers: executeEnrichTool (mcp/gateway/do-tool.ts)
+ * @dep calls: normalizeQuery, extractKeyTerms, extractEntities, getArchiveMetadata, buildQueryVariants [+7]
+ * @dep flows: FetchAndFormatContext → EstimateChars (1/4), FetchAndFormatContext → Now (1/3), FetchAndFormatContext → FetchBrowse (1/3)
+ * @dep module: Gateway
+ * @dep risk: MEDIUM | 1 caller, 3 flows, 1 module
  */
 export async function fetchAndFormatContext(
   baseUrl: string,
   query: string,
-  limits: ContextLimits
+  limits: ContextLimits,
 ): Promise<ContextEnrichmentResult> {
   const { memoryLimit, archiveLimit, indexLimit } = limits;
 
-  const [memoriesSettled, archiveSettled, indexSettled] = await Promise.allSettled([
-    memoryLimit > 0 ? fetchMemory(baseUrl, query, memoryLimit) : Promise.resolve([]),
-    archiveLimit > 0 ? fetchArchive(baseUrl, query, archiveLimit) : Promise.resolve([]),
-    indexLimit > 0 ? fetchSessionIndex(baseUrl, query, indexLimit) : Promise.resolve([]),
+  const normalized = normalizeQuery(query);
+  const entities   = extractEntities(normalized);
+  const keyTerms   = extractKeyTerms(normalized);
+
+  const metadata = await getArchiveMetadata(baseUrl).catch(() => null);
+
+  const variants = buildQueryVariants(normalized, entities, metadata);
+
+  const [memSettled, arcSettled, idxSettled] = await Promise.allSettled([
+    memoryLimit  > 0 ? searchMultiVariant('memory',  baseUrl, variants, memoryLimit)  : Promise.resolve([]),
+    archiveLimit > 0 ? searchMultiVariant('archive', baseUrl, variants, archiveLimit) : Promise.resolve([]),
+    indexLimit   > 0 ? searchMultiVariant('index',   baseUrl, variants, indexLimit)   : Promise.resolve([]),
   ]);
 
-  const memories: unknown[] =
-    memoriesSettled.status === 'fulfilled' ? memoriesSettled.value : [];
-  const archiveEntries: unknown[] =
-    archiveSettled.status === 'fulfilled' ? archiveSettled.value : [];
-  const indexEntries: unknown[] =
-    indexSettled.status === 'fulfilled' ? indexSettled.value : [];
+  const memoriesAll:  RankedSearchResult[] = memSettled.status  === 'fulfilled' ? memSettled.value  : [];
+  const archivesAll:  RankedSearchResult[] = arcSettled.status  === 'fulfilled' ? arcSettled.value  : [];
+  const indexAll:     RankedSearchResult[] = idxSettled.status  === 'fulfilled' ? idxSettled.value  : [];
 
-  const hasMemories = memories.length > 0;
-  const hasArchive = archiveEntries.length > 0;
-  const hasIndex = indexEntries.length > 0;
-  const hasContext = hasMemories || hasArchive || hasIndex;
+  const hasResults = memoriesAll.length > 0 || archivesAll.length > 0 || indexAll.length > 0;
 
-  if (!hasContext) {
+  if (!hasResults) {
+    const fallback = await recoverFromEmpty(baseUrl, normalized, keyTerms, metadata);
+
+    if (fallback.results.length === 0 && fallback.suggestedTerms.length === 0) {
+      return { markdown: '', hasContext: false, counts: { memory: 0, archive: 0, index: 0 } };
+    }
+
+    // Format fallback output
+    const lines: string[] = [];
+    lines.push('## Cassi Context');
+    lines.push(`> No exact matches found for: \`${query}\``);
+    lines.push('');
+
+    if (fallback.results.length > 0) {
+      const label = fallback.usedBroad ? 'Broadly Related' : 'Recent Context';
+      lines.push(`### ${label} (${fallback.results.length} result${fallback.results.length === 1 ? '' : 's'})`);
+      lines.push('');
+      for (const [i, r] of fallback.results.entries()) {
+        // Route to the appropriate formatter based on entry shape
+        const entry = (r as any)?.entry ?? r;
+        if (entry?.type && ['conversation','tool_call','insight','pattern','event','reflection'].includes(entry.type)) {
+          lines.push(formatArchiveEntry(r, i));
+        } else {
+          lines.push(formatMemoryEntry(r, i));
+        }
+        lines.push('');
+      }
+    }
+
+    if (fallback.suggestedTerms.length > 0) {
+      lines.push('### Suggested Searches');
+      lines.push('');
+      lines.push(`Try: ${fallback.suggestedTerms.map(t => `\`${t}\``).join(', ')}`);
+      lines.push('');
+    }
+
+    const metaNote = metadata
+      ? `*Search auto-expanded from ${metadata.tags.length} tags, ${metadata.entities.length} entities, ${metadata.topics.length} topics.*`
+      : '*Could not load archive metadata for suggestions.*';
+    lines.push(metaNote);
+
     return {
-      markdown: '',
-      hasContext: false,
-      counts: { memory: 0, archive: 0, index: 0 },
+      markdown: lines.join('\n'),
+      hasContext: true,
+      counts: { memory: 0, archive: fallback.results.length, index: 0 },
     };
   }
 
-  const lines: string[] = [];
+  const allResults: RankedSearchResult[] = [...memoriesAll, ...archivesAll, ...indexAll];
+  const topRelevant = mergeAndRank(allResults, normalized, 5);
 
+  // Apply final limits (deduped multi-variant results are already bounded,
+  // but we clip to the requested limits for per-source sections).
+  const memories       = memoriesAll.slice(0, memoryLimit);
+  const archiveEntries = archivesAll.slice(0, archiveLimit);
+  const indexEntries   = indexAll.slice(0, indexLimit);
+
+  const lines: string[] = [];
   lines.push('## Cassi Context');
   lines.push(`> Auto-enriched for: \`${query}\``);
   lines.push('');
 
-  if (hasMemories) {
-    lines.push(
-      `### From Memory (${memories.length} result${memories.length === 1 ? '' : 's'})`
-    );
+  // Top Relevant — cross-source merged section
+  if (topRelevant.length > 0) {
+    lines.push('### Top Relevant (cross-source)');
+    lines.push('');
+    for (const [i, r] of topRelevant.entries()) {
+      lines.push(formatTopRelevantEntry(r, i));
+      lines.push('');
+    }
+    lines.push('---');
+    lines.push('');
+  }
+
+  // Per-source full lists
+  if (memories.length > 0) {
+    lines.push(`### From Memory (${memories.length} result${memories.length === 1 ? '' : 's'})`);
     lines.push('');
     for (const [i, m] of memories.entries()) {
-      lines.push(formatMemoryEntry(m, i));
+      lines.push(formatMemoryEntry(m.raw, i));
       lines.push('');
     }
   }
 
-  if (hasArchive) {
-    lines.push(
-      `### From Archive (${archiveEntries.length} result${archiveEntries.length === 1 ? '' : 's'})`
-    );
+  if (archiveEntries.length > 0) {
+    lines.push(`### From Archive (${archiveEntries.length} result${archiveEntries.length === 1 ? '' : 's'})`);
     lines.push('');
     for (const [i, e] of archiveEntries.entries()) {
-      lines.push(formatArchiveEntry(e, i));
+      lines.push(formatArchiveEntry(e.raw, i));
       lines.push('');
     }
   }
 
-  if (hasIndex) {
-    lines.push(
-      `### From Session History (${indexEntries.length} result${indexEntries.length === 1 ? '' : 's'})`
-    );
+  if (indexEntries.length > 0) {
+    lines.push(`### From Session History (${indexEntries.length} result${indexEntries.length === 1 ? '' : 's'})`);
     lines.push('');
     for (const [i, e] of indexEntries.entries()) {
-      lines.push(formatIndexEntry(e, i));
+      lines.push(formatIndexEntry(e.raw, i));
       lines.push('');
     }
   }
@@ -460,9 +546,9 @@ export async function fetchAndFormatContext(
     markdown: lines.join('\n'),
     hasContext: true,
     counts: {
-      memory: memories.length,
+      memory:  memories.length,
       archive: archiveEntries.length,
-      index: indexEntries.length,
+      index:   indexEntries.length,
     },
   };
 }
