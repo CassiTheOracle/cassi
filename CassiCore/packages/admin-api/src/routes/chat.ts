@@ -1,4 +1,5 @@
 import { getModelSpec } from '../config/system-settings.js'
+import { cancelTurn, executeTurn, getPreferredTurnEngine, resolveStreamSessionId } from './turn-routing.js'
 
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
@@ -30,6 +31,10 @@ export async function handleChatRoutes(
       return true
     }
 
+    const channelId = 'channel:cli'
+    const senderId = sessionId
+    const streamSessionId = resolveStreamSessionId(daemon, sessionId, channelId, senderId)
+
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
@@ -39,7 +44,7 @@ export async function handleChatRoutes(
     res.write(': connected\n\n')
 
     const busHandler = (e: any) => {
-      if (e.pluginId !== `session:${sessionId}`) return
+      if (e.pluginId !== `session:${streamSessionId}`) return
       const payload = e.payload as Record<string, unknown>
       if (payload?.type === 'turn:token') {
         try {
@@ -83,7 +88,8 @@ export async function handleChatRoutes(
       return true
     }
 
-    if (!daemon.pipeline) {
+    const engine = getPreferredTurnEngine(daemon)
+    if (!engine) {
       sendJSON(res, 503, { error: 'pipeline not ready' })
       return true
     }
@@ -96,23 +102,18 @@ export async function handleChatRoutes(
     }
 
     try {
-      const { randomUUID } = await import('node:crypto')
-      const inbound = {
-        id: randomUUID(),
-        sessionId,
+      void executeTurn(daemon, {
+        requestedSessionId: sessionId,
         channelId: 'channel:cli',
         senderId: sessionId,
         content,
-        timestamp: new Date(),
-      }
-
-      void daemon.pipeline.process(inbound).then((result: any) => {
-        daemon.bus.emit({ type: 'turn:end', sessionId: inbound.sessionId, response: result.response, durationMs: result.durationMs })
+      }).then((result) => {
+        daemon.bus.emit({ type: 'turn:end', sessionId: result.sessionId, response: result.response, durationMs: result.durationMs ?? 0 })
       }).catch((err: any) => {
         daemon.logger?.error?.(`pipeline error: ${String(err)}`)
       })
 
-      sendJSON(res, 200, { ok: true, sessionId })
+      sendJSON(res, 200, { ok: true, sessionId, engine })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -127,18 +128,33 @@ export async function handleChatRoutes(
       sendJSON(res, 400, { error: 'missing sessionId' })
       return true
     }
-    if (!daemon.pipeline) {
+    const engine = getPreferredTurnEngine(daemon)
+    if (!engine) {
       sendJSON(res, 503, { error: 'pipeline not ready' })
       return true
     }
+
     try {
-      const ok = typeof (daemon.pipeline as any).requestCancel === 'function'
-        ? (daemon.pipeline as any).requestCancel(sessionId)
-        : false
-      if (ok) {
-        sendJSON(res, 200, { ok: true, cancelled: true })
+      const cancellation = cancelTurn(daemon, sessionId)
+      if (!cancellation.supported) {
+        const statusCode = cancellation.engine === 'session-pipeline' ? 409 : 503
+        sendJSON(res, statusCode, {
+          ok: false,
+          cancelled: false,
+          engine: cancellation.engine,
+          error: cancellation.active
+            ? 'active turn is running on the session pipeline and cannot be cancelled yet'
+            : 'turn cancellation is not supported by the active engine',
+        })
+      } else if (cancellation.cancelled) {
+        sendJSON(res, 200, { ok: true, cancelled: true, engine: cancellation.engine })
       } else {
-        sendJSON(res, 404, { ok: false, error: 'no active turn or not cancellable' })
+        sendJSON(res, 404, {
+          ok: false,
+          cancelled: false,
+          engine: cancellation.engine,
+          error: 'no active turn or not cancellable',
+        })
       }
       return true
     } catch (err) {
@@ -158,74 +174,28 @@ export async function handleChatRoutes(
       const sessionId = `provider-${  randomUUID()}`
       const content = messages[messages.length - 1]?.content || ''
 
-      const useSessionPipeline = !!(daemon as any).sessionPipeline
-
-      if (useSessionPipeline) {
-        logger.info(`Chat for session ${sessionId}`)
-        const startTime = Date.now()
-        const result = await (daemon as any).sessionPipeline.processMessage(
-          'channel:cli',
-          sessionId,
-          content
-        )
-        const durationMs = Date.now() - startTime
-
-        sendJSON(res, 200, {
-          content: result.response,
-          model: result.model ?? 'unknown',
-          tokensUsed: result.tokensUsed ?? 0,
-          durationMs,
-        })
-        return true
-      }
-
-      if (!daemon.pipeline) {
+      if (!getPreferredTurnEngine(daemon)) {
         sendJSON(res, 503, { error: 'pipeline not ready' })
         return true
       }
 
-      const inbound = {
-        id: randomUUID(),
-        sessionId,
+      logger.info(`Processing provider chat for session ${sessionId}`)
+      const result = await executeTurn(daemon, {
+        requestedSessionId: sessionId,
         channelId: 'channel:cli',
         senderId: sessionId,
         content,
-        timestamp: new Date(),
-      }
-
-      logger.info(`Processing provider chat for session ${sessionId}`)
-
-      let responseContent = ''
-      let responseModel = model
-      let tokensUsed = 0
-      let durationMs = 0
-
-      const busHandler = (e: any) => {
-        if (e.pluginId !== `session:${sessionId}`) return
-        const payload = e.payload as Record<string, unknown>
-        if (payload?.type === 'turn:token') {
-          responseContent += String(payload.token || '')
-        } else if (payload?.type === 'turn:done') {
-          responseModel = String(payload.model || model)
-          tokensUsed = Number(payload.tokensUsed || 0)
-          durationMs = Number(payload.durationMs || 0)
-        }
-      }
-
-      daemon.bus.on('worker:message', busHandler)
-
-      try {
-        await daemon.pipeline.process(inbound)
-        await new Promise(resolve => setTimeout(resolve, 500))
-      } finally {
-        daemon.bus.off('worker:message', busHandler)
-      }
+        model,
+      })
 
       sendJSON(res, 200, {
-        content: responseContent,
-        model: responseModel,
-        tokensUsed,
-        durationMs
+        sessionId: result.sessionId,
+        requestedSessionId: sessionId,
+        engine: result.engine,
+        content: result.response,
+        model: result.model ?? model,
+        tokensUsed: result.tokensUsed ?? 0,
+        durationMs: result.durationMs ?? 0,
       })
       return true
     } catch (err) {

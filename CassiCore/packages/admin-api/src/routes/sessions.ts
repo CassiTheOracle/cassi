@@ -1,6 +1,7 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
-import { createHash } from 'node:crypto'
+
+import { executeTurn, resolveStreamSessionId } from './turn-routing.js'
 
 export interface SessionsRoutesDeps {
   daemon: any
@@ -47,12 +48,21 @@ export async function handleSessionsRoutes(
       if ((daemon as any).sessionPipeline) {
         logger.info(`Processing turn`, { sessionId: sessionId.slice(0, 8) })
         const startTime = Date.now()
-        const result = await (daemon as any).sessionPipeline.processMessage(channelId, senderId, content)
+        const result = await executeTurn(daemon, {
+          requestedSessionId: sessionId,
+          channelId,
+          senderId,
+          content,
+          attachments: body?.attachments,
+          model: body?.model,
+        })
         const durationMs = Date.now() - startTime
 
         sendJSON(res, 200, {
           ok: true,
           sessionId: result.sessionId,
+          requestedSessionId: sessionId,
+          engine: result.engine,
           response: result.response,
           model: result.model ?? 'unknown',
           tokensUsed: result.tokensUsed ?? 0,
@@ -126,7 +136,9 @@ export async function handleSessionsRoutes(
 
       const response: any = {
         ok: true,
+        engine: 'legacy-pipeline',
         sessionId,
+        requestedSessionId: sessionId,
         response: result.response,
         model: result.model,
         tokensUsed: result.tokensUsed,
@@ -898,10 +910,7 @@ async function handleSseStream(
     // The session pipeline generates internal IDs as a deterministic hash of
     // channelId:senderId. We need this to filter streaming events correctly,
     // since the URL sessionId parameter may differ from the internal ID.
-    const internalSessionId = createHash('sha256')
-      .update(`${channelId}:${senderId}`)
-      .digest('hex')
-      .slice(0, 16)
+    const internalSessionId = resolveStreamSessionId(daemon, sessionId, channelId, senderId)
 
     // Set up event listener BEFORE calling processMessage to avoid race conditions
     let tokenCount = 0
@@ -932,15 +941,22 @@ async function handleSseStream(
     daemon.bus.on('worker:message', onWorkerMessage)
 
     try {
-      const result = await daemon.sessionPipeline.processMessage(channelId, senderId, content, {
+      const result = await executeTurn(daemon, {
+        requestedSessionId: sessionId,
+        channelId,
+        senderId,
+        content,
         attachments: body?.attachments,
         stream: true,
-        model: model !== 'unknown' ? model : undefined,
+        model,
       })
 
       logger.info(`SSE stream completed: ${tokenCount} tokens, response=${result?.response?.slice(0, 50)}...`)
 
       sendEvent('done', {
+        engine: result.engine,
+        requestedSessionId: sessionId,
+        sessionId: result.sessionId,
         model: result.model ?? model,
         tokensUsed: tokensUsed || result.tokensUsed || 0,
         durationMs: durationMs || result.durationMs || 0,
