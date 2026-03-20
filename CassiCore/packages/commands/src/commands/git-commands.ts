@@ -3,6 +3,12 @@
 import type { CommandContext, CommandResult } from "./universal-processor.js";
 import { processor } from "./universal-processor.js";
 
+/**
+ * @dep callers: gitPull (commands/git-commands.ts), gitPush (commands/git-commands.ts), gitLog (commands/git-commands.ts), gitReview (commands/git-commands.ts), gitPullRequest (commands/git-commands.ts) [+6]
+ * @dep module: Commands
+ * @dep risk: CRITICAL | 11 callers, 0 flows, 1 module
+ */
+
 async function execGit(command: string, ctx: CommandContext): Promise<{ exitCode: number; output: string }> {
   try {
     const response = await fetch("http://localhost:7433/tools/bash", {

@@ -99,7 +99,6 @@ processor.register({
   },
 });
 
-// ── Subcommand Handlers ────────────────────────────────────────────────────
 
 async function handleTeamStart(args: string[], ctx: CommandContext): Promise<CommandResult> {
   // Parse flags from args
@@ -406,7 +405,6 @@ function getEventIcon(type: string): string {
   return icons[type] || `[${type.split(":").pop()?.toUpperCase() || "?"}]`;
 }
 
-// ── Formatting Helpers ─────────────────────────────────────────────────────
 
 function formatTeamStatus(data: Record<string, unknown>): string {
   const config = data.config as Record<string, unknown> | undefined;
@@ -443,7 +441,6 @@ function formatTeamStatus(data: Record<string, unknown>): string {
   return lines.join("\n");
 }
 
-// ── Benchmark ────────────────────────────────────────────────────────────────
 
 async function handleTeamBenchmark(args: string[], ctx: CommandContext): Promise<CommandResult> {
   // Parse flags from args

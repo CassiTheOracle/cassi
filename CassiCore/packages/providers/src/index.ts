@@ -12,11 +12,10 @@ import { GitHubCopilotProvider } from './github-copilot.js'
 import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
-
-// Copilot SDK imports are loaded lazily inside initCopilotSdkProvider() to
-// prevent a broken transitive dependency (@github/copilot-sdk -> vscode-jsonrpc)
-// from crashing the entire provider module and killing ALL provider loading.
-// See: initCopilotSdkProvider() below for the dynamic imports.
+// Copilot SDK imports are lazy (dynamic) — their transitive dependency
+// on @github/copilot-sdk → vscode-jsonrpc/node crashes the entire module
+// if the package isn't installed or has ESM resolution issues.
+// See initCopilotSdkProvider() below for dynamic imports.
 
 import type { IConfig, ILogger , IEventBus } from '../../types/interfaces.js'
 import type { IProvider } from '../../types/runtime.js'
@@ -33,7 +32,6 @@ export type { QwenAccount }
 // Re-export canonical providers from @cassicore/ai
 export { AlibabaCodingProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider } from '@cassicore/ai'
 
-// ── Request optimization exports ─────────────────────────────────────────────
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
 export type { RequestCost, CostRule } from './cost-classifier.js'
 
@@ -67,7 +65,6 @@ export function createProviders(
   const { centralized = true, bus } = options
   const rawProviders = new Map<string, IProvider>()
 
-  // ── GitHub Copilot ─────────────────────────────────────────────────────────
   const copilotToken =
     config.get<string>('providers.githubCopilot.token', '') ||
     process.env.GITHUB_TOKEN ||
@@ -100,7 +97,6 @@ export function createProviders(
     logger.info('Provider loaded: github-copilot')
   }
 
-  // ── Kimi Coding (kimi-code / k2.5) ─────────────────────────────────────────
   const kimiCodingKey =
     config.get<string>('providers.kimiCoding.apiKey', '') ||
     config.get<string>('providers.kimi-coding.apiKey', '') ||
@@ -117,7 +113,6 @@ export function createProviders(
     }
   }
 
-  // ── Alibaba Coding Plan ─────────────────────────────────────────────────────
   const alibabaCodingKey =
     config.get<string>('providers.alibabaCoding.apiKey', '') ||
     process.env.ALIBABA_CODING_API_KEY ||
@@ -132,7 +127,6 @@ export function createProviders(
     }
   }
 
-  // ── Google Antigravity ─────────────────────────────────────────────────────
   const antigravityKey =
     config.get<string>('providers.googleAntigravity.authKey', '') ||
     process.env.GOOGLE_ANTIGRAVITY_KEY ||
@@ -146,7 +140,6 @@ export function createProviders(
     }
   }
 
-  // ── Qwen ───────────────────────────────────────────────────────────────────
   const qwenAccounts: QwenAccount[] = []
   try {
     const qwenPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/qwen-accounts.json`
@@ -182,7 +175,6 @@ export function createProviders(
     }
   }
 
-  // ── OpenRouter ─────────────────────────────────────────────────────────────
   const openRouterKey =
     config.get<string>('providers.openrouter.apiKey', '') ||
     process.env.OPENROUTER_API_KEY ||
@@ -197,32 +189,16 @@ export function createProviders(
     }
   }
 
-  // ── Return with optional centralization ────────────────────────────────────
   if (centralized && bus) {
-    return wrapProvidersWithCentralized(rawProviders, logger, bus)
+    return wrapProvidersWithCentralized(rawProviders, logger, bus, config)
   }
 
   return rawProviders
 }
 
-// ── Copilot SDK Provider Initialization ──────────────────────────────────────
 
-// Re-export types only (safe — does not trigger module loading)
+// Re-exports are async-only — consumers must dynamic-import from copilot-sdk/ directly
 export type { CopilotSdkManagerOptions } from './copilot-sdk/client-manager.js'
-export type { CopilotSdkProviderOptions } from './copilot-sdk/provider.js'
-
-/**
- * Lazily load the Copilot SDK modules.
- * Isolated here so a broken transitive dependency does not crash other providers.
- */
-async function loadCopilotSdkModules() {
-  const [{ CopilotSdkManager }, { CopilotSdkProvider }, { bridgeToolsToSdk }] = await Promise.all([
-    import('./copilot-sdk/client-manager.js'),
-    import('./copilot-sdk/provider.js'),
-    import('./copilot-sdk/tool-bridge.js'),
-  ])
-  return { CopilotSdkManager, CopilotSdkProvider, bridgeToolsToSdk }
-}
 
 /**
  * Initialize the Copilot SDK provider (async — requires starting the CLI process).
@@ -251,7 +227,10 @@ export async function initCopilotSdkProvider(
   const sdkLogger = logger.child('copilot-sdk-init')
 
   try {
-    const { CopilotSdkManager, CopilotSdkProvider, bridgeToolsToSdk } = await loadCopilotSdkModules()
+    // Dynamic import — avoids crashing the module if @github/copilot-sdk has ESM issues
+    const { CopilotSdkManager } = await import('./copilot-sdk/client-manager.js')
+    const { CopilotSdkProvider } = await import('./copilot-sdk/provider.js')
+    const { bridgeToolsToSdk } = await import('./copilot-sdk/tool-bridge.js')
 
     // User-configured CLI path override (empty = use SDK's bundled @github/copilot)
     const cliPathOverride = config.get<string>('providers.copilotSdk.cliPath', '')

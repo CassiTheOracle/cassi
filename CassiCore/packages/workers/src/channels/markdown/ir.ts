@@ -9,7 +9,6 @@
 
 import MarkdownIt from 'markdown-it'
 
-// ── Types ────────────────────────────────────────────────────────────────────
 
 export type MarkdownTableMode = 'off' | 'bullets' | 'code'
 
@@ -109,7 +108,6 @@ export type MarkdownParseOptions = {
   tableMode?: MarkdownTableMode
 }
 
-// ── markdown-it setup ────────────────────────────────────────────────────────
 
 function createMarkdownIt(options: MarkdownParseOptions): MarkdownIt {
   const md = new MarkdownIt({
@@ -130,7 +128,6 @@ function createMarkdownIt(options: MarkdownParseOptions): MarkdownIt {
   return md
 }
 
-// ── Token helpers ────────────────────────────────────────────────────────────
 
 function getAttr(token: MarkdownToken, name: string): string | null {
   if (token.attrGet) {
@@ -150,7 +147,6 @@ function createTextToken(base: MarkdownToken, content: string): MarkdownToken {
   return { ...base, type: 'text', content, children: undefined }
 }
 
-// ── Spoiler injection ────────────────────────────────────────────────────────
 
 function applySpoilerTokens(tokens: MarkdownToken[]): void {
   for (const token of tokens) {
@@ -199,7 +195,6 @@ function injectSpoilersIntoInline(tokens: MarkdownToken[]): MarkdownToken[] {
   return result
 }
 
-// ── Render target helpers ────────────────────────────────────────────────────
 
 function initRenderTarget(): RenderTarget {
   return {
@@ -210,6 +205,12 @@ function initRenderTarget(): RenderTarget {
     linkStack: [],
   }
 }
+
+/**
+ * @dep callers: renderTokens (workers/channels/markdown/ir.ts), handleLinkClose (workers/channels/markdown/ir.ts), renderCodeBlock (workers/channels/markdown/ir.ts), renderInlineCode (workers/channels/markdown/ir.ts), closeStyle (workers/channels/markdown/ir.ts) [+2]
+ * @dep module: Markdown
+ * @dep risk: HIGH | 7 callers, 0 flows, 1 module
+ */
 
 function resolveRenderTarget(state: RenderState): RenderTarget {
   return state.table?.currentCell ?? state
@@ -265,7 +266,6 @@ function appendListPrefix(state: RenderState) {
   state.text += `${indent}${prefix}`
 }
 
-// ── Inline code / code blocks ────────────────────────────────────────────────
 
 function renderInlineCode(state: RenderState, content: string) {
   if (!content) {
@@ -291,7 +291,6 @@ function renderCodeBlock(state: RenderState, content: string) {
   }
 }
 
-// ── Link handling ────────────────────────────────────────────────────────────
 
 function handleLinkClose(state: RenderState) {
   const target = resolveRenderTarget(state)
@@ -312,7 +311,6 @@ function handleLinkClose(state: RenderState) {
   target.links.push({ start, end, href })
 }
 
-// ── Table handling ───────────────────────────────────────────────────────────
 
 function initTableState(): TableState {
   return {
@@ -536,7 +534,13 @@ function renderTableAsCode(state: RenderState) {
   }
 }
 
-// ── Token rendering ──────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: markdownToIRWithMeta (workers/channels/markdown/ir.ts), renderTokens (workers/channels/markdown/ir.ts)
+ * @dep calls: getAttr, initRenderTarget, resolveRenderTarget, appendText, openStyle [+11]
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
   for (const token of tokens) {
@@ -733,7 +737,12 @@ function renderTokens(tokens: MarkdownToken[], state: RenderState): void {
   }
 }
 
-// ── Post-processing helpers ──────────────────────────────────────────────────
+
+/**
+ * @dep callers: markdownToIRWithMeta (workers/channels/markdown/ir.ts), finishTableCell (workers/channels/markdown/ir.ts)
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function closeRemainingStyles(target: RenderTarget) {
   for (let i = target.openStyles.length - 1; i >= 0; i -= 1) {
@@ -773,6 +782,12 @@ function clampLinkSpans(spans: MarkdownLinkSpan[], maxLength: number): MarkdownL
   }
   return clamped
 }
+
+/**
+ * @dep callers: markdownToIRWithMeta (workers/channels/markdown/ir.ts), sliceStyleSpans (workers/channels/markdown/ir.ts)
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function mergeStyleSpans(spans: MarkdownStyleSpan[]): MarkdownStyleSpan[] {
   const sorted = [...spans].sort((a, b) => {
@@ -845,7 +860,13 @@ function sliceLinkSpans(spans: MarkdownLinkSpan[], start: number, end: number): 
   return sliced
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: markdownToTelegramChunks (workers/channels/markdown/format.ts), markdownToTelegramHtml (workers/channels/markdown/format.ts)
+ * @dep calls: markdownToIRWithMeta
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function markdownToIR(markdown: string, options: MarkdownParseOptions = {}): MarkdownIR {
   return markdownToIRWithMeta(markdown, options).ir
@@ -907,7 +928,6 @@ export function markdownToIRWithMeta(
   }
 }
 
-// ── Text chunking (inlined from OpenClaw's auto-reply/chunk.ts) ──────────────
 
 /**
  * Split text into chunks of at most `limit` characters, preferring to break

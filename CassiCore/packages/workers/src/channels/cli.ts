@@ -41,7 +41,7 @@ interface CommandResult {
 class CliChannelWorker {
   private pp = workerPort;
   private activeSessions = new Map<string, CliContext>();
-  // Note: Intelligence modules run in the main process; workers communicate via messages.
+  // WHY: Intelligence modules run in the main process; workers communicate via messages.
   // The intelligence property is kept for API compatibility but should not be used.
   private intelligence?: unknown;
   private logger?: ILogger;
@@ -129,7 +129,7 @@ class CliChannelWorker {
 
   private async handleIntelligenceInject(msg: CliMessage): Promise<void> {
     // Intelligence layer injected from parent process
-    // Note: Workers should not hold references to core intelligence modules.
+    // WHY: Workers should not hold references to core intelligence modules.
     // This method is kept for backward compatibility but the intelligence
     // should be accessed via message passing, not direct method calls.
     this.intelligence = msg.payload as unknown;
@@ -214,7 +214,7 @@ class CliChannelWorker {
       },
     } satisfies WorkerToHostMessage);
 
-    // Note: Direct intelligence module access is not possible from workers.
+    // WHY: Direct intelligence module access is not possible from workers.
     // Intelligence runs in the main process; use message passing instead.
     // Memory storage and thinker analysis should be handled by the daemon.
   }

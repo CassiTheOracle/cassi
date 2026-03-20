@@ -23,7 +23,6 @@ import type { RequestCost } from './cost-classifier.js'
 import type { ILogger, IEventBus } from '../../types/interfaces.js'
 
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface ProviderBudgetConfig {
   /** Monthly request limit (e.g., 1500 for github-copilot) */
@@ -59,7 +58,6 @@ export const BUDGET_TIER_THRESHOLDS = {
   critical: 1.00,
 } as const
 
-// ─── Default Budgets ─────────────────────────────────────────────────────────
 
 export const DEFAULT_PROVIDER_BUDGETS: Record<string, ProviderBudgetConfig> = {
   'github-copilot': { monthlyLimit: 1500 },
@@ -68,11 +66,9 @@ export const DEFAULT_PROVIDER_BUDGETS: Record<string, ProviderBudgetConfig> = {
   'copilot-sdk':    { monthlyLimit: 1500 },
 }
 
-// ─── Persistence Path ────────────────────────────────────────────────────────
 
 const BUDGET_STATE_PATH = join(homedir(), '.cassicore', 'budget-state.json')
 
-// ─── Budget Tracker ──────────────────────────────────────────────────────────
 
 export class BudgetTracker {
   private readonly logger: ILogger
@@ -105,7 +101,6 @@ export class BudgetTracker {
     this.budgets = budgets ?? DEFAULT_PROVIDER_BUDGETS
   }
 
-  // ── EventBus Integration ─────────────────────────────────────────────────
 
   /**
    * Wire up to the EventBus to automatically track provider requests.
@@ -133,7 +128,6 @@ export class BudgetTracker {
     this.logger.info('BudgetTracker wired to EventBus')
   }
 
-  // ── Recording ────────────────────────────────────────────────────────────
 
   /**
    * Record a metered request for a specific provider/model combination.
@@ -170,7 +164,6 @@ export class BudgetTracker {
     this.checkThresholds(providerId)
   }
 
-  // ── Queries ──────────────────────────────────────────────────────────────
 
   /**
    * Get the current budget snapshot for a provider.
@@ -298,7 +291,6 @@ export class BudgetTracker {
     }
   }
 
-  // ── Persistence ──────────────────────────────────────────────────────────
 
   /**
    * Export current state for persistence (e.g., to SQLite or JSON).
@@ -393,7 +385,6 @@ export class BudgetTracker {
     }
   }
 
-  // ── Internal ─────────────────────────────────────────────────────────────
 
   private calculateDailyBurnRate(providerId: string): number {
     const month = getCurrentMonth()
@@ -409,14 +400,18 @@ export class BudgetTracker {
   }
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: calculateDailyBurnRate (core/providers/budget-tracker.ts), importState (core/providers/budget-tracker.ts), getSnapshot (core/providers/budget-tracker.ts), recordProviderRequest (core/providers/budget-tracker.ts)
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
 
 function getCurrentMonth(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-// ─── Singleton ───────────────────────────────────────────────────────────────
 
 let _defaultTracker: BudgetTracker | undefined
 
@@ -427,6 +422,12 @@ export function getBudgetTracker(logger?: ILogger): BudgetTracker {
   }
   return _defaultTracker
 }
+
+/**
+ * @dep callers: budget-tracker.test.ts (tests/budget-tracker.test.ts), start (core/daemon.ts), makeTracker (tests/budget-tracker.test.ts)
+ * @dep module: Intelligence
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 export function createBudgetTracker(
   logger: ILogger,

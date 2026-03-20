@@ -10,7 +10,6 @@
  * background intelligence tasks to minimize premium request burn.
  */
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
  * How a model is billed:
@@ -32,7 +31,6 @@ export interface CostRule {
   cost: RequestCost
 }
 
-// ─── Default Rules ───────────────────────────────────────────────────────────
 
 /**
  * Default cost rules — ordered from most specific to least specific.
@@ -68,7 +66,6 @@ export const DEFAULT_COST_RULES: CostRule[] = [
   { pattern: '*',   cost: 'metered' },
 ]
 
-// ─── Classifier ──────────────────────────────────────────────────────────────
 
 export class CostClassifier {
   private readonly rules: CostRule[]
@@ -114,7 +111,6 @@ export class CostClassifier {
     return this.rules
   }
 
-  // ── Internal ─────────────────────────────────────────────────────────────
 
   private match(providerModel: string): RequestCost {
     for (const rule of this.rules) {
@@ -126,7 +122,6 @@ export class CostClassifier {
   }
 }
 
-// ─── Pattern Matching ────────────────────────────────────────────────────────
 
 /**
  * Simple glob match supporting '*' as wildcard segment.
@@ -158,13 +153,15 @@ function matchPattern(pattern: string, value: string): boolean {
   return true
 }
 
-// ─── Singleton ───────────────────────────────────────────────────────────────
 
 let _defaultClassifier: CostClassifier | undefined
 
 /**
  * Get or create the default cost classifier singleton.
  * Override rules by passing custom rules on first call.
+ * @dep callers: budget-tracker.ts (core/providers/budget-tracker.ts), model-router.ts (core/providers/model-router.ts)
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function getCostClassifier(rules?: CostRule[]): CostClassifier {
   if (!_defaultClassifier || rules) {

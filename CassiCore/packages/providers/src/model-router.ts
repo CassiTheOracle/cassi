@@ -17,7 +17,6 @@ import { getCostClassifier, type RequestCost } from './cost-classifier.js'
 
 import type { ILogger } from '../../types/interfaces.js'
 
-// ─── Types ───────────────────────────────────────────────────────────────────
 
 /**
  * The purpose of an LLM request, used to determine routing priority.
@@ -51,7 +50,6 @@ export interface RoutingDecision {
   skip: boolean
 }
 
-// ─── Configuration ───────────────────────────────────────────────────────────
 
 /**
  * The free model to use for offloading background tasks.
@@ -102,7 +100,6 @@ const ROUTING_TABLE: Record<RequestPurpose, Record<BudgetTier, RouteAction>> = {
   },
 }
 
-// ─── Model Router ────────────────────────────────────────────────────────────
 
 export class ModelRouter {
   private readonly logger: ILogger
@@ -225,7 +222,6 @@ export class ModelRouter {
   }
 }
 
-// ─── Singleton ───────────────────────────────────────────────────────────────
 
 let _defaultRouter: ModelRouter | undefined
 

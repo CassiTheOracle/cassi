@@ -21,6 +21,12 @@ const COPILOT_HEADERS = {
 /** Models that use Anthropic Messages API format */
 const ANTHROPIC_MODELS = new Set(['claude-sonnet-4.6', 'claude-sonnet-4.5', 'claude-opus-4.6', 'claude-haiku-4.5'])
 
+/**
+ * @dep callers: token (core/providers/github-copilot.ts), refreshCopilotToken (core/providers/github-copilot.ts), resolveCopilotApiToken (core/providers/github-copilot.ts), exchangeOAuthForCopilotToken (core/providers/github-copilot.ts)
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 function credentialsCachePath(profileId?: string) {
   if (profileId) return join(homedir(), '.cassicore', 'credentials', `github-copilot.token.${profileId}.json`)
   return join(homedir(), '.cassicore', 'credentials', 'github-copilot.token.json')
@@ -91,7 +97,6 @@ function resolveCopilotApiToken(oauthToken: string, profileId?: string): string 
   return oauthToken
 }
 
-// ── Message format helpers ────────────────────────────────────────────────────
 
 /**
  * Convert Message.content + optional image attachments to Anthropic API format.

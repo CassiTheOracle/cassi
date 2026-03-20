@@ -73,9 +73,7 @@ export class CopilotSdkProvider extends BaseProvider {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // SDK Turn Execution (used by SDK middleware)
-  // ─────────────────────────────────────────────────────────────────────────
 
   /**
    * Execute a full turn via the SDK, including all tool loop iterations.
@@ -146,9 +144,7 @@ export class CopilotSdkProvider extends BaseProvider {
     }
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Session Management
-  // ─────────────────────────────────────────────────────────────────────────
 
   /**
    * Get or create an SDK session for a CassiCore session.
@@ -198,6 +194,41 @@ export class CopilotSdkProvider extends BaseProvider {
   }
 
   /**
+   * Create a new SDK session with a custom tool list.
+   * Used by complete() which merges CassiCore tools + caller meta-tools.
+   */
+  private async createSessionWithTools(
+    sessionId: string,
+    systemMessage: string,
+    model: string,
+    tools: SdkTool[],
+  ): Promise<CopilotSession> {
+    const client = this.manager.getClient()
+    const session = await client.createSession({
+      sessionId: `cassi_${sessionId}`,
+      clientName: 'CassiCore',
+      model,
+      tools,
+      systemMessage: {
+        mode: 'replace',
+        content: systemMessage,
+      },
+      onPermissionRequest: approveAll,
+      workingDirectory: this.workingDirectory,
+      streaming: true,
+      infiniteSessions: {
+        enabled: true,
+        backgroundCompactionThreshold: 0.80,
+        bufferExhaustionThreshold: 0.95,
+      },
+      availableTools: tools.map(t => t.name),
+    })
+
+    this.sessions.set(sessionId, session)
+    return session
+  }
+
+  /**
    * Destroy an SDK session (called when CassiCore session ends).
    */
   async destroySession(sessionId: string): Promise<void> {
@@ -221,13 +252,19 @@ export class CopilotSdkProvider extends BaseProvider {
     this.logger.info(`Destroyed ${ids.length} SDK session(s)`)
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // IProvider interface (fallback — not the primary usage path)
-  // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Streaming completion — used as fallback when the SDK middleware isn't active.
-   * NOTE: This goes through the SDK as well but doesn't capture tool loop semantics.
+   * Streaming completion — IProvider interface for Lumen/Dyad agent sessions.
+   *
+   * Architecture:
+   *   - CassiCore tools (read, write, bash, etc.) are handled by the SDK's
+   *     agentic loop via tool-bridge.ts. The SDK executes them and re-prompts.
+   *   - Caller meta-tools (signal_conclusion, share_finding, etc.) are registered
+   *     with relay handlers that push tool_use chunks into the stream. The SDK
+   *     gets an acknowledgment; the caller handles the actual tool logic.
+   *   - Text is streamed via assistant.message_delta events.
+   *   - sendAndWait() handles completion detection (session.idle).
    */
   async *complete(
     messages: Message[],
@@ -235,45 +272,234 @@ export class CopilotSdkProvider extends BaseProvider {
     _attachments?: ImageAttachment[],
     _signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
-    // Extract user message (last user message)
-    const lastUser = [...messages].reverse().find(m => m.role === 'user')
-    const prompt = typeof lastUser?.content === 'string'
-      ? lastUser.content
-      : JSON.stringify(lastUser?.content ?? '')
+    const model = opts.model || this.defaultModel
+    const sessionId = `sdk_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const log = this.logger.child('sdk-complete')
 
-    // Extract system prompt
+    // Build system prompt and user prompt
     const systemPrompt = opts.systemPrompt
       || messages.find(m => m.role === 'system')?.content as string
       || ''
+    const prompt = this.formatMessagesAsPrompt(messages)
 
-    const model = opts.model || this.defaultModel
-    const sessionId = `fallback_${Date.now()}`
+    const chunks: CompletionChunk[] = []
+    let done = false
+    let error: string | null = null
+    let resolveWait: (() => void) | null = null
+    let streamedTokens = 0
+    let eventCount = 0
+    let usageInput = 0
+    let usageOutput = 0
 
     try {
-      const session = await this.getOrCreateSession(sessionId, systemPrompt, model)
+      // Build meta-tool SDK definitions from opts.tools.
+      // These are caller-managed tools (Lumen/Dyad meta-tools like signal_conclusion).
+      // Their handlers push tool_use chunks and return acknowledgments to the SDK.
+      const metaTools = this.buildMetaToolDefinitions(opts.tools || [], chunks, () => resolveWait?.(), log, sessionId)
 
-      // Collect response via events
-      let responseText = ''
-      const unsubscribe = session.on('assistant.message_delta', (event) => {
-        responseText += event.data.deltaContent
+      // Create session with BOTH CassiCore tools (from tool-bridge) and meta-tools
+      const allTools = [...this.sdkTools, ...metaTools]
+      const session = await this.createSessionWithTools(sessionId, systemPrompt, model, allTools)
+      log.info('SDK session ready', {
+        model, sessionId,
+        promptLength: prompt.length,
+        cassiTools: this.sdkTools.length,
+        metaTools: metaTools.length,
+        totalTools: allTools.length,
       })
 
-      const response = await session.sendAndWait({ prompt }, SDK_TURN_TIMEOUT_MS)
-      unsubscribe()
+      // 1. Subscribe streaming handler BEFORE sendAndWait
+      const unsubscribe = session.on((event: SessionEvent) => {
+        const t = event.type
+        eventCount++
 
-      if (response?.data.content) {
-        responseText = response.data.content
+        // Stream text deltas — feeds the caller's inactivity watchdog
+        if (t === 'assistant.message_delta') {
+          const delta = (event as any).data?.deltaContent ?? ''
+          if (delta) {
+            streamedTokens += delta.length
+            chunks.push({ type: 'token', text: delta })
+            resolveWait?.()
+          }
+        }
+
+        // Usage info — capture for done chunk
+        else if (t === 'assistant.usage') {
+          const d = (event as any).data
+          usageInput += d?.inputTokens ?? 0
+          usageOutput += d?.outputTokens ?? 0
+          log.debug('SDK usage', { sessionId, inputTokens: d?.inputTokens, outputTokens: d?.outputTokens })
+        }
+
+        // Log session errors at INFO, everything else at DEBUG
+        else if (t === 'session.error') {
+          const dataSummary = (event as any).data
+            ? JSON.stringify((event as any).data).slice(0, 300)
+            : 'none'
+          log.info('SDK session error', { type: t, sessionId, data: dataSummary })
+        } else {
+          log.debug('SDK event', { type: t, n: eventCount, sessionId })
+        }
+      })
+
+      // 2. Use sendAndWait() in background for reliable completion detection
+      log.info('Starting sendAndWait', { sessionId, promptLength: prompt.length })
+      let sendAndWaitResult: { content?: string } | undefined
+
+      session.sendAndWait(
+        { prompt },
+        SDK_TURN_TIMEOUT_MS,
+      ).then((response: any) => {
+        const content = response?.data?.content
+        sendAndWaitResult = { content }
+        log.info('sendAndWait resolved', {
+          sessionId,
+          hasContent: !!content,
+          contentLength: content?.length ?? 0,
+          streamedTokens,
+          eventCount,
+        })
+        done = true
+        resolveWait?.()
+      }).catch((err: unknown) => {
+        log.error('sendAndWait rejected', { error: String(err), sessionId, streamedTokens, eventCount })
+        error = String(err)
+        done = true
+        resolveWait?.()
+      })
+
+      // Safety deadline
+      const HARD_DEADLINE_MS = SDK_TURN_TIMEOUT_MS + 30_000
+      const deadline = Date.now() + HARD_DEADLINE_MS
+
+      // 3. Yield chunks as they arrive
+      while (!done) {
+        if (chunks.length > 0) {
+          yield chunks.shift()!
+        } else if (Date.now() > deadline) {
+          log.error('Hard deadline exceeded', { sessionId, streamedTokens, eventCount })
+          error = 'SDK completion hard deadline exceeded'
+          break
+        } else {
+          await new Promise<void>(resolve => {
+            resolveWait = resolve
+            setTimeout(resolve, 10_000)
+          })
+        }
       }
 
-      // Yield as single token chunk
-      yield { type: 'token', text: responseText }
-      yield { type: 'done' }
+      // 4. Drain remaining chunks
+      while (chunks.length > 0) {
+        yield chunks.shift()!
+      }
 
-      // Clean up fallback session
+      // 5. Fallback: if streaming produced nothing, yield sendAndWait content
+      if (sendAndWaitResult?.content && streamedTokens === 0) {
+        log.info('Using sendAndWait content as fallback', { sessionId, contentLength: sendAndWaitResult.content.length })
+        yield { type: 'token', text: sendAndWaitResult.content }
+      }
+
+      unsubscribe()
+
+      const totalTokens = usageInput + usageOutput
+      log.info('SDK completion done', {
+        sessionId, streamedTokens, eventCount,
+        tokensUsed: totalTokens, usageInput, usageOutput,
+        hadError: !!error,
+      })
+
+      if (error) {
+        yield { type: 'error' as const, error }
+      } else {
+        yield {
+          type: 'done' as const,
+          tokensUsed: totalTokens || undefined,
+          tokenBreakdown: totalTokens ? {
+            input: usageInput,
+            output: usageOutput,
+            cacheRead: 0,
+            cacheWrite: 0,
+          } : undefined,
+          model,
+        }
+      }
+
       await this.destroySession(sessionId)
     } catch (err) {
-      yield { type: 'error', error: String(err) }
+      log.error('SDK complete() exception', { error: String(err), sessionId })
+      yield { type: 'error' as const, error: String(err) }
     }
+  }
+
+  /**
+   * Build SDK tool definitions for caller-provided meta-tools (e.g. Lumen/Dyad tools).
+   *
+   * These handlers DON'T execute the tool — they push a tool_use chunk into the
+   * streaming queue and return an acknowledgment to the SDK. The actual tool
+   * logic is handled by the caller (Lumen's handleMetaTool, etc.) after it
+   * sees the tool_use chunk in the completion stream.
+   *
+   * This allows the SDK's agentic loop to continue (it gets a result) while
+   * the caller still sees and processes the tool call.
+   */
+  private buildMetaToolDefinitions(
+    callerTools: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>,
+    chunkQueue: CompletionChunk[],
+    wakeGenerator: () => void,
+    log: ILogger,
+    sessionId: string,
+  ): SdkTool[] {
+    // Skip tools that are already in the CassiCore tool-bridge (avoid duplicates)
+    const bridgedNames = new Set(this.sdkTools.map(t => t.name))
+
+    return callerTools
+      .filter(t => !bridgedNames.has(t.name))
+      .map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.input_schema,
+        // Override any CLI built-in with the same name (e.g. signal_conclusion)
+        overridesBuiltInTool: true,
+        handler: async (args: unknown) => {
+          const toolCallId = `tc_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`
+          log.debug('Meta-tool called via SDK', { tool: tool.name, sessionId, toolCallId })
+
+          // Push tool_use chunk — the caller will see and process it
+          chunkQueue.push({
+            type: 'tool_use',
+            toolCall: {
+              id: toolCallId,
+              name: tool.name,
+              input: (args ?? {}) as Record<string, unknown>,
+            },
+          })
+          wakeGenerator()
+
+          // Return acknowledgment to the SDK so it can continue the loop
+          return {
+            textResultForLlm: `Tool "${tool.name}" acknowledged. The system will process this action.`,
+            resultType: 'success' as const,
+          }
+        },
+      }))
+  }
+
+  /**
+   * Format a Message[] array into a single prompt string.
+   * The SDK session API is turn-based, so we concatenate multi-turn
+   * history with role markers for context.
+   */
+  private formatMessagesAsPrompt(messages: Message[]): string {
+    const parts: string[] = []
+    for (const msg of messages) {
+      if (msg.role === 'system') continue
+      const content = typeof msg.content === 'string'
+        ? msg.content
+        : JSON.stringify(msg.content)
+      if (!content.trim()) continue
+      parts.push(`[${msg.role}]\n${content}`)
+    }
+    return parts.join('\n\n')
   }
 
   async countTokens(messages: Message[]): Promise<number> {

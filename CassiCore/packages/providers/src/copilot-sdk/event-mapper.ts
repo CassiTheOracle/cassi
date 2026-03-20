@@ -26,6 +26,14 @@ export interface SdkTurnState {
   startedAt: number
 }
 
+/**
+ * @dep callers: executeSdkTurn (core/providers/copilot-sdk/provider.ts)
+ * @dep calls: now
+ * @dep flows: ExecuteSdkTurn → Now (2/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 export function createTurnState(sessionId: string): SdkTurnState {
   return {
     sessionId,
@@ -40,6 +48,14 @@ export function createTurnState(sessionId: string): SdkTurnState {
 }
 
 /** Emit a worker:message event (the CassiCore convention for turn-level events). */
+/**
+ * @dep callers: mapSdkEvent (core/providers/copilot-sdk/event-mapper.ts)
+ * @dep calls: emit
+ * @dep flows: ExecuteSdkTurn → EmitWorkerMessage (3/3)
+ * @dep module: Tests
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function emitWorkerMessage(bus: IEventBus, sessionId: string, payload: Record<string, unknown>): void {
   bus.emit({
     type: 'worker:message',
@@ -53,6 +69,11 @@ function emitWorkerMessage(bus: IEventBus, sessionId: string, payload: Record<st
  * Updates the accumulated turn state as events arrive.
  *
  * @returns true if this event signals the turn is complete (session.idle)
+ * @dep callers: executeSdkTurn (core/providers/copilot-sdk/provider.ts)
+ * @dep calls: emit, now, emitWorkerMessage
+ * @dep flows: ExecuteSdkTurn → EmitWorkerMessage (2/3)
+ * @dep module: Tests
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function mapSdkEvent(
   event: SessionEvent,
@@ -61,7 +82,6 @@ export function mapSdkEvent(
   onStreamCallback?: (text: string) => void,
 ): boolean {
   switch (event.type) {
-    // ── Streaming text ──────────────────────────────────────────────────
     case 'assistant.message_delta': {
       const delta = event.data.deltaContent
       state.text += delta
@@ -74,7 +94,6 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Final message (non-streaming or after all deltas) ───────────────
     case 'assistant.message': {
       // If text wasn't accumulated via deltas, use the final content
       if (!state.text && event.data.content) {
@@ -83,7 +102,6 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Reasoning/thinking ──────────────────────────────────────────────
     case 'assistant.reasoning_delta': {
       state.thinkingText += event.data.deltaContent
       emitWorkerMessage(bus, state.sessionId, {
@@ -101,14 +119,12 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Tool execution start ────────────────────────────────────────────
     case 'tool.execution_start': {
       // CassiCore event already emitted by tool-bridge handler
       // This is informational for tracking
       return false
     }
 
-    // ── Tool execution complete ─────────────────────────────────────────
     case 'tool.execution_complete': {
       const data = event.data
       state.toolOutputs.push({
@@ -121,7 +137,6 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Usage / billing info ────────────────────────────────────────────
     case 'assistant.usage': {
       const usage = event.data
       state.tokensUsed += (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0)
@@ -145,7 +160,6 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Turn lifecycle ──────────────────────────────────────────────────
     case 'assistant.turn_start': {
       return false
     }
@@ -154,12 +168,10 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Session idle — signals turn completion ──────────────────────────
     case 'session.idle': {
       return true // Turn complete
     }
 
-    // ── Errors ──────────────────────────────────────────────────────────
     case 'session.error': {
       bus.emit({
         type: 'provider:request_error' as never,
@@ -176,7 +188,6 @@ export function mapSdkEvent(
       return false
     }
 
-    // ── Context management events (informational) ───────────────────────
     case 'session.truncation':
     case 'session.compaction_start':
     case 'session.compaction_complete':

@@ -161,9 +161,7 @@ export class UniversalCommandProcessor {
 
 export const processor = new UniversalCommandProcessor();
 
-// ═══════════════════════════════════════════════════════════════════════════
 // INTELLIGENCE COMMANDS - Direct access to CassiCore cognitive layer
-// ═══════════════════════════════════════════════════════════════════════════
 
 processor.register({
   name: "/think",

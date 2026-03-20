@@ -39,27 +39,29 @@ interface RateLimitConfig {
 }
 
 /**
- * Default rate limits — DISABLED (set to extremely high values to prevent any limiting).
+ * Default rate limits.
+ * These are intentionally conservative enough to prevent runaway loops,
+ * while still being overrideable through config per provider.
  */
 const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
   'github-copilot': {
-    maxRequests: 999999,
-    windowMs: 1000,
-    maxConcurrent: 9999,
-    errorCooldownMs: 0,
+    maxRequests: 180,
+    windowMs: 60_000,
+    maxConcurrent: 12,
+    errorCooldownMs: 5_000,
   },
   'kimi-coding': {
-    maxRequests: 999999,
-    windowMs: 1000,
-    maxConcurrent: 9999,
-    errorCooldownMs: 0,
+    maxRequests: 180,
+    windowMs: 60_000,
+    maxConcurrent: 12,
+    errorCooldownMs: 5_000,
   },
   // Default for any other provider
   'default': {
-    maxRequests: 999999,
-    windowMs: 1000,
-    maxConcurrent: 9999,
-    errorCooldownMs: 0,
+    maxRequests: 120,
+    windowMs: 60_000,
+    maxConcurrent: 8,
+    errorCooldownMs: 5_000,
   }
 }
 
@@ -79,6 +81,17 @@ logger.debug(`Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 10
 export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_RATE_LIMITS
 export const GLOBAL_PROVIDER_DEFAULTS = {
   timeoutMs: DEFAULT_PER_REQUEST_TIMEOUT_MS,
+}
+
+function getConfiguredRateLimits(config: IConfig | undefined, providerId: string): Partial<RateLimitConfig> {
+  if (!config) return {}
+
+  return {
+    maxRequests: config.get<number>(`providers.${providerId}.maxRequests`, config.get<number>('providers.default.maxRequests', DEFAULT_RATE_LIMITS.default.maxRequests)),
+    windowMs: config.get<number>(`providers.${providerId}.windowMs`, config.get<number>('providers.default.windowMs', DEFAULT_RATE_LIMITS.default.windowMs)),
+    maxConcurrent: config.get<number>(`providers.${providerId}.maxConcurrent`, config.get<number>('providers.default.maxConcurrent', DEFAULT_RATE_LIMITS.default.maxConcurrent)),
+    errorCooldownMs: config.get<number>(`providers.${providerId}.errorCooldownMs`, config.get<number>('providers.default.errorCooldownMs', DEFAULT_RATE_LIMITS.default.errorCooldownMs)),
+  }
 }
 
 export function listProviderConfigKeys() {
@@ -157,10 +170,10 @@ export class CentralizedProvider implements IProvider {
     this.bus = bus
 
     const defaults = DEFAULT_RATE_LIMITS[wrapped.id] ?? {
-      maxRequests: 6000,
-      windowMs: 900_000,
-      maxConcurrent: 100,
-      errorCooldownMs: 500,
+      maxRequests: DEFAULT_RATE_LIMITS.default.maxRequests,
+      windowMs: DEFAULT_RATE_LIMITS.default.windowMs,
+      maxConcurrent: DEFAULT_RATE_LIMITS.default.maxConcurrent,
+      errorCooldownMs: DEFAULT_RATE_LIMITS.default.errorCooldownMs,
     }
     this.config = { ...defaults, ...rateLimits }
   }
@@ -192,27 +205,34 @@ export class CentralizedProvider implements IProvider {
     // Derive session ID from the last user message or use a fallback
     const sessionId = this.extractSessionId(messages) ?? 'unknown'
 
-    // ── 0. Deduplication: prevent simultaneous requests from same session unless explicitly allowed ──
     const dedupeDisabled = opts.allowConcurrent === true || opts.dedupe === false
     if (!dedupeDisabled) {
       const existing = this.inFlight.get(sessionId)
       if (existing) {
-        this.metrics.deduplicated++
-        this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
+        // If the existing request was already aborted (e.g., timed out),
+        // clean up the stale entry and allow the new request to proceed.
+        // This prevents dedup from permanently blocking a session when the
+        // abort signal didn't propagate cleanly through the async iterator.
+        if (existing.aborted) {
+          this.logger.info(`[dedup] Clearing stale aborted request ${existing.id.slice(-8)} for session ${sessionId.slice(-8)}`)
+          this.inFlight.delete(sessionId)
+        } else {
+          this.metrics.deduplicated++
+          this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
       this.bus.emit({
         type: 'provider:deduplicated',
         providerId: this.id,
         sessionId,
         existingRequestId: existing.id,
       })
-        throw new Error(`Request already in progress for session ${sessionId.slice(-8)}`)
+          throw new Error(`Request already in progress for session ${sessionId.slice(-8)}`)
+        }
       }
     } else {
       // Dedupe intentionally disabled for this call
       try { this.logger.debug(`[dedup] allowConcurrent set — skipping dedup for session ${sessionId.slice(-8)}`) } catch { }
     }
 
-    // ── 2. Rate limiting check (includes concurrent limit) ──
     const rateLimitResult = this.checkRateLimit()
     if (!rateLimitResult.allowed) {
       this.metrics.rateLimited++
@@ -226,14 +246,12 @@ export class CentralizedProvider implements IProvider {
       throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
     }
 
-    // ── 3. Error cooldown check ──
     const cooldownRemaining = this.checkErrorCooldown()
     if (cooldownRemaining > 0) {
       this.logger.warn(`[cooldown] Provider ${this.id} in error cooldown for ${cooldownRemaining}ms`)
       throw new Error(`Provider cooling down after errors: retry after ${cooldownRemaining}ms`)
     }
 
-    // ── 4. Atomically reserve slot and track the request ──
     const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const rawModel = opts.model || this.models[0]
     const entry: RequestEntry = {
@@ -294,7 +312,6 @@ export class CentralizedProvider implements IProvider {
       timestamp: new Date(),
     })
 
-    // ── 5. Execute with error handling and per-request timeout ──
     let completed = false
     let inputTokens = 0
 
@@ -397,7 +414,6 @@ export class CentralizedProvider implements IProvider {
 
       throw err
     } finally {
-      // ── 6. Cleanup tracking ──
       if (timeoutHandle) clearTimeout(timeoutHandle)
       // No external listener removal required when using signalPromise
 
@@ -453,9 +469,7 @@ export class CentralizedProvider implements IProvider {
     return this.wrapped.ping()
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Public metrics API
-  // ─────────────────────────────────────────────────────────────────────────
 
   getMetrics() {
     return {
@@ -463,6 +477,7 @@ export class CentralizedProvider implements IProvider {
       inFlightCount: this.inFlight.size,
       consecutiveErrors: this.consecutiveErrors,
       currentRate: this.calculateCurrentRate(),
+      globalConfig: { ...this.config },
     }
   }
 
@@ -554,9 +569,7 @@ export class CentralizedProvider implements IProvider {
     return false
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
   // Private helpers
-  // ─────────────────────────────────────────────────────────────────────────
 
   private extractSessionId(messages: Message[]): string | undefined {
     // 1) Prefer system message marker if present (legacy behavior)
@@ -670,20 +683,27 @@ export class CentralizedProvider implements IProvider {
 /**
  * Wrap all providers in a map with CentralizedProvider.
  * Each provider has its own independent rate limits.
+ * @dep callers: centralized-provider.test.ts (tests/centralized-provider.test.ts), createProviders (core/providers/index.ts)
+ * @dep calls: setBudgetTracker, getConfiguredRateLimits
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function wrapProvidersWithCentralized(
   providers: Map<string, IProvider>,
   logger: ILogger,
   bus: IEventBus,
-  _config?: IConfig,
+  config?: IConfig,
   budgetTracker?: BudgetTracker,
 ): Map<string, CentralizedProvider> {
   const wrapped = new Map<string, CentralizedProvider>()
   for (const [id, provider] of providers) {
-    const cp = new CentralizedProvider(provider, logger, bus)
+    const cp = new CentralizedProvider(provider, logger, bus, getConfiguredRateLimits(config, id))
     if (budgetTracker) cp.setBudgetTracker(budgetTracker)
     wrapped.set(id, cp)
   }
-  logger.info(`${wrapped.size} providers wrapped with per-provider rate limiting (no global limits)`)
+  logger.info('Providers wrapped with centralized rate limiting', {
+    providerCount: wrapped.size,
+    defaults: DEFAULT_RATE_LIMITS,
+  })
   return wrapped
 }

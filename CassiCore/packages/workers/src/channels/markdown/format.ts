@@ -20,6 +20,12 @@ export type TelegramFormattedChunk = {
   text: string
 }
 
+/**
+ * @dep callers: wrapFileReferencesInHtml (workers/channels/markdown/format.ts), wrapSegmentFileRefs (workers/channels/markdown/format.ts), wrapStandaloneFileRef (workers/channels/markdown/format.ts), escapeHtmlAttr (workers/channels/markdown/format.ts)
+ * @dep module: Markdown
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
@@ -46,6 +52,13 @@ const FILE_EXTENSIONS_WITH_TLD = new Set([
 ])
 
 /** Detects when markdown-it linkify auto-generated a link from a bare filename */
+/**
+ * @dep callers: wrapFileReferencesInHtml (workers/channels/markdown/format.ts), buildTelegramLink (workers/channels/markdown/format.ts)
+ * @dep calls: has
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function isAutoLinkedFileRef(href: string, label: string): boolean {
   const stripped = href.replace(/^https?:\/\//i, '')
   if (stripped !== label) {
@@ -92,6 +105,13 @@ function buildTelegramLink(link: MarkdownLinkSpan, text: string) {
   }
 }
 
+/**
+ * @dep callers: markdownToTelegramChunks (workers/channels/markdown/format.ts), markdownToTelegramHtml (workers/channels/markdown/format.ts)
+ * @dep calls: renderMarkdownWithMarkers
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function renderTelegramHtml(ir: MarkdownIR): string {
   return renderMarkdownWithMarkers(ir, {
     styleMarkers: {
@@ -108,7 +128,6 @@ function renderTelegramHtml(ir: MarkdownIR): string {
   })
 }
 
-// ── File reference wrapping ──────────────────────────────────────────────────
 
 function escapeRegex(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -150,6 +169,13 @@ function wrapSegmentFileRefs(
     prefix === '>' ? match : `${prefix}<code>${escapeHtml(tld)}</code>`,
   )
 }
+
+/**
+ * @dep callers: markdownToTelegramChunks (workers/channels/markdown/format.ts), markdownToTelegramHtml (workers/channels/markdown/format.ts)
+ * @dep calls: exec, escapeHtml, isAutoLinkedFileRef, wrapSegmentFileRefs
+ * @dep module: Markdown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function wrapFileReferencesInHtml(html: string): string {
   // De-linkify auto-generated anchors where href="http://<label>"
@@ -198,11 +224,14 @@ export function wrapFileReferencesInHtml(html: string): string {
   return result
 }
 
-// ── Public API ───────────────────────────────────────────────────────────────
 
 /**
  * Convert GFM markdown to Telegram-compatible HTML.
  * This is the main entry point for formatting messages.
+ * @dep callers: telegram.test.ts (tests/telegram.test.ts), editMessage (workers/channels/telegram-common.ts), sendMessage (workers/channels/telegram-common.ts), sanitizeMarkdown (workers/channels/telegram-common.ts)
+ * @dep calls: markdownToIR, renderTelegramHtml, wrapFileReferencesInHtml
+ * @dep module: Markdown
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 export function markdownToTelegramHtml(
   markdown: string,
