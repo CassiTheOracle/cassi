@@ -15,7 +15,6 @@ import {
 
 cytoscape.use(dagre);
 
-// ─── Style constants ──────────────────────────────────────────────────────────
 const NODE_COLOR: Record<string, string> = {
   daemon: "#6366f1",
   session: "#3b82f6",
@@ -36,7 +35,6 @@ const STATUS_COLOR: Record<string, string> = {
   error: "#ef4444",
 };
 
-// ─── Cytoscape stylesheet ─────────────────────────────────────────────────────
 const CY_STYLE: NonNullable<cytoscape.CytoscapeOptions["style"]> = [
   {
     selector: "node",
@@ -169,7 +167,6 @@ const CY_STYLE: NonNullable<cytoscape.CytoscapeOptions["style"]> = [
   },
 ];
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface GraphNode extends ElementDefinition {
   data: {
@@ -190,7 +187,6 @@ interface GraphEdge extends ElementDefinition {
   };
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 @customElement("topology-panel")
 export class TopologyPanel extends LitElement {
@@ -365,7 +361,6 @@ export class TopologyPanel extends LitElement {
     this.cy?.destroy();
   }
 
-  // ─── Cytoscape init ──────────────────────────────────────────────────────────
 
   private initCytoscape(): void {
     const el = this.shadowRoot?.getElementById("cy");
@@ -412,7 +407,6 @@ export class TopologyPanel extends LitElement {
     });
   }
 
-  // ─── Data loading ────────────────────────────────────────────────────────────
 
   private async loadData(): Promise<void> {
     this.loading = true;
@@ -525,7 +519,6 @@ export class TopologyPanel extends LitElement {
     this.updateStats();
   }
 
-  // ─── Layout ──────────────────────────────────────────────────────────────────
 
   private runLayout(animate = true): void {
     if (!this.cy) return;
@@ -556,7 +549,6 @@ export class TopologyPanel extends LitElement {
     this.edgeCount = this.cy.edges().length;
   }
 
-  // ─── SSE integration ─────────────────────────────────────────────────────────
 
   private attachStream(): void {
     if (!this.stream) return;
@@ -706,7 +698,6 @@ export class TopologyPanel extends LitElement {
     this.unsubs = [];
   }
 
-  // ─── Graph mutation helpers ───────────────────────────────────────────────────
 
   private addNode(node: GraphNode): void {
     if (!this.cy) return;
@@ -746,7 +737,6 @@ export class TopologyPanel extends LitElement {
     node.data("status", status);
   }
 
-  // ─── Actions ─────────────────────────────────────────────────────────────────
 
   private fitGraph(): void {
     this.cy?.fit(undefined, 40);
@@ -760,7 +750,6 @@ export class TopologyPanel extends LitElement {
     this.runLayout(true);
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────────
 
   override render() {
     return html`

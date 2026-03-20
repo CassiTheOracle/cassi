@@ -13,7 +13,7 @@ function processChunk(
   onChunk(chunk)
 }
 
-// TODO: Make new format the default and phase out legacy format
+// HOW: Make new format the default and phase out legacy format
 
 /**
  * Detects if the incoming data is in the legacy format (direct RunResponseContent)

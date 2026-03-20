@@ -32,9 +32,21 @@ interface Bucket {
   counts: Record<string, number>;
 }
 
+/**
+ * @dep callers: updateChart (webui/observatory/src/components/event-rate-chart.ts), attachStream (webui/observatory/src/components/event-rate-chart.ts)
+ * @dep module: Components
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function makeBucket(ts: number): Bucket {
   return { ts, counts: {} };
 }
+
+/**
+ * @dep callers: updateChart (webui/observatory/src/components/event-rate-chart.ts), attachStream (webui/observatory/src/components/event-rate-chart.ts)
+ * @dep module: Components
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function bucketKey(ts: number): number {
   return Math.floor(ts / (BUCKET_SECS * 1000)) * (BUCKET_SECS * 1000);

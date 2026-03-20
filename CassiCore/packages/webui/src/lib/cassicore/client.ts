@@ -8,6 +8,12 @@
 export const CASSICORE_URL = process.env.CASSICORE_API_URL ?? 'http://localhost:7433'
 
 /** Fetch wrapper that throws on non-OK responses. */
+/**
+ * @dep callers: POST (webui/src/app/api/cassicore/sessions/[sessionId]/command/route.ts), POST (webui/src/app/api/cassicore/system-prompt/sections/[label]/route.ts), POST (webui/src/app/api/agents/[agentId]/runs/route.ts), GET (webui/src/app/api/cassicore/context/injections/route.ts), GET (webui/src/app/api/cassicore/dialectic/[sessionId]/route.ts) [+14]
+ * @dep module: Cassicore
+ * @dep risk: CRITICAL | 19 callers, 0 flows, 1 module
+ */
+
 export async function cassiFetch(
   path: string,
   init?: RequestInit

@@ -7,6 +7,13 @@ import { AgentDetails, TeamDetails, type ChatMessage } from '@/types/os'
 import { getAgentsAPI, getStatusAPI, getTeamsAPI } from '@/api/os'
 import { useQueryState } from 'nuqs'
 
+/**
+ * @dep callers: useAIChatStreamHandler (webui/src/hooks/useAIStreamHandler.tsx), SessionItem (webui/src/components/chat/Sidebar/Sessions/SessionItem.tsx), EntitySelector (webui/src/components/chat/Sidebar/EntitySelector.tsx), ModeSelector (webui/src/components/chat/Sidebar/ModeSelector.tsx), NewChatButton (webui/src/components/chat/Sidebar/NewChatButton.tsx) [+2]
+ * @dep calls: getState, getStatus, setTeamId, getAgentsAPI, getStatusAPI [+1]
+ * @dep module: Api
+ * @dep risk: HIGH | 7 callers, 0 flows, 1 module
+ */
+
 const useChatActions = () => {
   const { chatInputRef } = useStore()
   const selectedEndpoint = useStore((state) => state.selectedEndpoint)

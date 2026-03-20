@@ -30,6 +30,13 @@ export interface UseModelsReturn {
   refresh: () => Promise<void>
 }
 
+/**
+ * @dep callers: useModels (cassi-tui/src/hooks/use-models.ts), mergeModelsWithHealth (cassi-tui/src/hooks/use-models.ts)
+ * @dep flows: AppInner → ParseModelId (4/4)
+ * @dep module: Hooks
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
+ */
+
 function parseModelId(id: string): { providerId: string; shortName: string } {
   const parts = id.split('/')
   if (parts.length >= 2) {
@@ -37,6 +44,14 @@ function parseModelId(id: string): { providerId: string; shortName: string } {
   }
   return { providerId: 'unknown', shortName: id }
 }
+
+/**
+ * @dep callers: useModels (cassi-tui/src/hooks/use-models.ts)
+ * @dep calls: get, parseModelId
+ * @dep flows: AppInner → ParseModelId (3/4)
+ * @dep module: Hooks
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function mergeModelsWithHealth(
   models: DaemonModel[],
@@ -63,6 +78,14 @@ function mergeModelsWithHealth(
     }
   })
 }
+
+/**
+ * @dep callers: AppInner (cassi-tui/src/App.tsx)
+ * @dep calls: providerHealth, models, all, refresh, parseModelId [+2]
+ * @dep flows: AppInner → ParseModelId (2/4), AppInner → ProviderHealth (2/3)
+ * @dep module: Hooks
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
 
 export function useModels(): UseModelsReturn {
   const client = useDaemon()

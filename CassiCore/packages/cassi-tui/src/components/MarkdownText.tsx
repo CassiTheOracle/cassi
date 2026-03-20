@@ -26,7 +26,6 @@ interface Props {
   width?: number
 }
 
-// ── ANSI escape helpers ─────────────────────────────────────────────────────
 
 const BOLD_ON = '\x1b[1m'
 const BOLD_OFF = '\x1b[22m'
@@ -52,7 +51,6 @@ function fixInlineFormatting(text: string): string {
     .replace(/\[([^\]\n]+)\]\([^)\n]+\)/g, `${BLUE}$1${RESET}`)
 }
 
-// ── Marked instance cache ───────────────────────────────────────────────────
 
 function createMarked(width: number): Marked {
   const md = new Marked()
@@ -77,7 +75,6 @@ function getMarked(width: number): Marked {
   return md
 }
 
-// ── Component ───────────────────────────────────────────────────────────────
 
 /**
  * Render markdown content as styled terminal text.

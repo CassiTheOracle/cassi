@@ -27,7 +27,6 @@ function countWords(text: string): number {
   return text.split(/\s+/).filter(Boolean).length
 }
 
-// ── Types ───────────────────────────────────────────────────────────────────
 
 export interface CurrentTurn {
   text: string
@@ -38,7 +37,6 @@ export interface CurrentTurn {
   error: string | null
 }
 
-// ── MessageBlock — renders a single completed message ───────────────────────
 
 interface MessageBlockProps {
   message: DisplayMessage
@@ -112,7 +110,6 @@ export function MessageBlock({
   )
 }
 
-// ── LiveTurn — renders the current streaming turn ───────────────────────────
 
 interface LiveTurnProps {
   turn: CurrentTurn
@@ -172,7 +169,6 @@ export function LiveTurn({ turn }: LiveTurnProps): React.ReactElement | null {
   )
 }
 
-// ── ConversationPanel — combined view (legacy) ──────────────────────────────
 
 interface Props {
   messages: DisplayMessage[]

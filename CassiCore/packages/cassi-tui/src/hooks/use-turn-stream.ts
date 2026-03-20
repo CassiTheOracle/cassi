@@ -175,7 +175,6 @@ export function useTurnStream(): UseTurnStreamReturn {
   return { ...state, sendTurn, cancel, reset }
 }
 
-// ── Event processing ────────────────────────────────────────────────────────
 
 interface Accumulators {
   text: string

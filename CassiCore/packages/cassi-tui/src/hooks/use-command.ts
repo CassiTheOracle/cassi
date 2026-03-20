@@ -7,7 +7,6 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDaemon } from './use-daemon.js'
 import type { DisplayMessage, CommandAction } from '../types/index.js'
 
-// ── Local command definitions ───────────────────────────────────────────────
 
 const LOCAL_COMMANDS = new Map<string, string>([
   ['/exit', 'Exit the TUI'],
@@ -99,7 +98,6 @@ export function useCommand(
       const args = parts.slice(1)
       const cb = callbacksRef.current
 
-      // ── Local commands ──────────────────────────────────────────────
       switch (cmd) {
         case '/exit':
         case '/quit':
@@ -206,7 +204,6 @@ export function useCommand(
           }
       }
 
-      // ── Remote daemon commands ────────────────────────────────────────
       try {
         const resp = await client.command(sessionId, input)
 

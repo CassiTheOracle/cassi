@@ -5,7 +5,6 @@
  * and SSE event streams. Single source of truth — no Go struct duplication.
  */
 
-// ── Models ──────────────────────────────────────────────────────────────────
 
 export interface DaemonModel {
   id: string
@@ -44,7 +43,6 @@ export interface ModelInfo {
   providerStatus: 'ok' | 'degraded' | 'down'
 }
 
-// ── Sessions ────────────────────────────────────────────────────────────────
 
 export interface DaemonSession {
   id: string
@@ -70,7 +68,6 @@ export type ContentBlock =
   | { type: 'text'; text: string }
   | { content: string | ContentBlock[] }
 
-// ── Turn stream SSE events ──────────────────────────────────────────────────
 
 export type TurnEventType =
   | 'token'
@@ -128,7 +125,6 @@ export interface TurnEvent {
   data: unknown
 }
 
-// ── Cognitive SSE events (/events/stream) ───────────────────────────────────
 
 export interface CognitiveEvent {
   type: string
@@ -222,7 +218,6 @@ export interface DaemonResumedPayload {
   restoredLoops: number
 }
 
-// ── Teams ───────────────────────────────────────────────────────────────────
 
 export interface DaemonTeam {
   id: string
@@ -248,7 +243,6 @@ export interface DaemonTeamStatus {
   pendingCheckpoints: DaemonTeamCheckpoint[]
 }
 
-// ── Image attachments ───────────────────────────────────────────────────────
 
 export interface DaemonImageAttachment {
   data: string // base64
@@ -256,7 +250,6 @@ export interface DaemonImageAttachment {
   label?: string
 }
 
-// ── Commands ────────────────────────────────────────────────────────────────
 
 export interface CommandAction {
   label: string
@@ -269,7 +262,6 @@ export interface CommandResponse {
   actions?: CommandAction[] | null
 }
 
-// ── Display messages (TUI conversation history) ─────────────────────────────
 
 export interface DisplayMessage {
   id: string
@@ -297,7 +289,6 @@ export interface DisplayMessage {
   actions?: CommandAction[]
 }
 
-// ── Daemon info ─────────────────────────────────────────────────────────────
 
 export interface DaemonInfo {
   version: string

@@ -320,7 +320,6 @@ export class SessionsPanel extends LitElement {
     this.loadSessions();
   }
 
-  // ── Data ──────────────────────────────────────────────────────────────────────
 
   private async loadSessions(): Promise<void> {
     this.loading = true;
@@ -339,7 +338,6 @@ export class SessionsPanel extends LitElement {
     }
   }
 
-  // ── Selection ─────────────────────────────────────────────────────────────────
 
   private toggleSelect(id: string): void {
     const next = new Set(this.selected);
@@ -356,7 +354,6 @@ export class SessionsPanel extends LitElement {
     this.selected = new Set();
   }
 
-  // ── Delete selected ───────────────────────────────────────────────────────────
 
   private async deleteSelected(): Promise<void> {
     if (this.selected.size === 0 || this.busy) return;
@@ -385,7 +382,6 @@ export class SessionsPanel extends LitElement {
     }
   }
 
-  // ── Prune ─────────────────────────────────────────────────────────────────────
 
   private async runPrune(): Promise<void> {
     if (this.busy) return;
@@ -431,7 +427,6 @@ export class SessionsPanel extends LitElement {
     }
   }
 
-  // ── Toast ─────────────────────────────────────────────────────────────────────
 
   private showToast(msg: string, ok: boolean): void {
     if (this.toastTimer) clearTimeout(this.toastTimer);
@@ -442,7 +437,6 @@ export class SessionsPanel extends LitElement {
     }, 3500);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────────
 
   override render() {
     const allSelected =

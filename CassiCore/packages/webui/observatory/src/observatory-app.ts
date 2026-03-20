@@ -233,7 +233,7 @@ export class ObservatoryApp extends LitElement {
     if (savedTab && TABS.some((t) => t.id === savedTab)) {
       this.activeTab = savedTab;
     }
-    // NOTE: We intentionally do NOT restore selectedSessionId from localStorage here.
+    // WHY: We intentionally do NOT restore selectedSessionId from localStorage here.
     // The daemon may have restarted since the last visit, making any stored session ID
     // stale. The stream always starts on the global (unfiltered) endpoint. The user
     // can pick a session from the dropdown after sessions are loaded, which will then

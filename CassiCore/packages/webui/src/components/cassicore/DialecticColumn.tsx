@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import Icon from '@/components/ui/icon'
 
-// ── Types ────────────────────────────────────────────────────────────────────
 
 interface DialecticEntry {
   id: string
@@ -23,7 +22,6 @@ interface DialecticColumnProps {
   onToggle: () => void
 }
 
-// ── Voice theme config ───────────────────────────────────────────────────────
 
 const VOICE_THEMES = {
   yin: {
@@ -50,7 +48,6 @@ const VOICE_THEMES = {
   },
 }
 
-// ── Entry component ──────────────────────────────────────────────────────────
 
 const DialecticEntryCard = ({ entry, theme }: { entry: DialecticEntry; theme: typeof VOICE_THEMES[keyof typeof VOICE_THEMES] }) => {
   const [expanded, setExpanded] = useState(false)
@@ -94,7 +91,6 @@ const DialecticEntryCard = ({ entry, theme }: { entry: DialecticEntry; theme: ty
   )
 }
 
-// ── Main Column ──────────────────────────────────────────────────────────────
 
 export default function DialecticColumn({ voice, collapsed, onToggle }: DialecticColumnProps) {
   const { selectedEndpoint, isEndpointActive } = useStore()

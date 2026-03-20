@@ -294,6 +294,13 @@ export class WatchClient extends EventEmitter {
   }
 }
 
+/**
+ * @dep callers: tryHttp (cassi-watch/src/client/watch-client.ts), trySocket (cassi-watch/src/client/watch-client.ts)
+ * @dep calls: on
+ * @dep module: Client
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function readJSON<T>(
   res: http.IncomingMessage,
   resolve: (value: T) => void,

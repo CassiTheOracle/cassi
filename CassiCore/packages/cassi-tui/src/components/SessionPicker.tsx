@@ -155,7 +155,6 @@ export function SessionPicker({
   )
 }
 
-// ── Session item row ────────────────────────────────────────────────────────
 
 function SessionItem({
   item,
@@ -208,7 +207,6 @@ function SessionItem({
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function truncate(s: string, max: number): string {
   if (!s) return ''

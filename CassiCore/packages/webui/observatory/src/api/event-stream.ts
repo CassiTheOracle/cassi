@@ -85,7 +85,6 @@ export class EventStreamManager {
     return this.state;
   }
 
-  // ---- private ----
 
   private openConnection(): void {
     this.setState(this.retryCount === 0 ? "connecting" : "reconnecting");

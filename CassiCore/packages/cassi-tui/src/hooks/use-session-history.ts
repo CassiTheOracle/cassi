@@ -18,6 +18,11 @@ function makeHistoryId(): string {
 /**
  * Extract plain text from a SessionMessage content field.
  * Content can be a string, or an array of content blocks from the provider.
+ * @dep callers: toDisplayMessage (cassi-tui/src/hooks/use-session-history.ts), extractText (cassi-tui/src/hooks/use-session-history.ts)
+ * @dep calls: extractText
+ * @dep flows: AppInner → ExtractText (4/4)
+ * @dep module: Hooks
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 function extractText(content: string | ContentBlock[]): string {
   if (typeof content === 'string') return content
@@ -39,6 +44,10 @@ function extractText(content: string | ContentBlock[]): string {
 /**
  * Extract tool_use blocks from an assistant message's content array.
  * Provider messages use { type: 'tool_use', id, name, input } blocks.
+ * @dep callers: toDisplayMessage (cassi-tui/src/hooks/use-session-history.ts)
+ * @dep flows: AppInner → ExtractToolCalls (4/4)
+ * @dep module: Hooks
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 function extractToolCalls(content: string | ContentBlock[]): DisplayMessage['toolCalls'] {
   if (typeof content === 'string') return undefined
@@ -63,6 +72,10 @@ function extractToolCalls(content: string | ContentBlock[]): DisplayMessage['too
 /**
  * Extract tool_result blocks from a message's content array.
  * These typically appear in user-role messages that follow an assistant tool_use.
+ * @dep callers: toDisplayMessage (cassi-tui/src/hooks/use-session-history.ts)
+ * @dep flows: AppInner → ExtractToolResults (4/4)
+ * @dep module: Hooks
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 function extractToolResults(content: string | ContentBlock[]): DisplayMessage['toolResults'] {
   if (typeof content === 'string') return undefined
@@ -105,6 +118,11 @@ function extractThinking(content: string | ContentBlock[]): string | undefined {
 /**
  * Convert a raw SessionMessage from the daemon into a DisplayMessage.
  * Handles both simple string content and complex content block arrays.
+ * @dep callers: useSessionHistory (cassi-tui/src/hooks/use-session-history.ts)
+ * @dep calls: trim, now, makeHistoryId, extractText, extractToolCalls [+2]
+ * @dep flows: AppInner → EstimateChars (3/5), AppInner → ExtractText (3/4), AppInner → ExtractToolCalls (3/4) [+1]
+ * @dep module: Hooks
+ * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
  */
 function toDisplayMessage(msg: SessionMessage, index: number): DisplayMessage | null {
   const role = msg.role
@@ -146,6 +164,14 @@ export interface UseSessionHistoryReturn {
   /** Manually reload history for the current session. */
   reload: () => Promise<void>
 }
+
+/**
+ * @dep callers: AppInner (cassi-tui/src/App.tsx)
+ * @dep calls: sessionMessages, load, toDisplayMessage, useDaemon
+ * @dep flows: AppInner → EstimateChars (2/5), AppInner → ExtractText (2/4), AppInner → ExtractToolCalls (2/4) [+3]
+ * @dep module: Providers
+ * @dep risk: HIGH | 1 caller, 6 flows, 1 module
+ */
 
 export function useSessionHistory(sessionId: string): UseSessionHistoryReturn {
   const client = useDaemon()

@@ -18,6 +18,10 @@ import { randomUUID } from 'crypto'
  *   dialectic   → ReasoningStep (Yang/Yin/Synthesis → title/action/result)
  *   done        → RunCompleted
  *   error       → RunError
+ * @dep calls: get, registerSession, cassiFetch, now, errorStream
+ * @dep flows: POST → GetRegistry (1/3), POST → Now (1/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 0 callers, 2 flows, 1 module
  */
 export async function POST(
   req: NextRequest,
@@ -25,14 +29,12 @@ export async function POST(
 ) {
   await params // agentId is always 'cassi' — ignored
 
-  // ── Parse agent-ui's FormData request ──────────────────────────────────────
   const form = await req.formData()
   const message = (form.get('message') as string | null) ?? ''
   const incomingSessionId = (form.get('session_id') as string | null) ?? ''
   const model = (form.get('model') as string | null) ?? undefined
   const thinking = (form.get('thinking') as string | null) ?? undefined
 
-  // ── Resolve or create a CassiCore session ──────────────────────────────────
   const sessionId = incomingSessionId || `webui-${randomUUID()}`
   const nowMs = Date.now()
   const now = () => Math.floor(nowMs / 1000)
@@ -46,7 +48,6 @@ export async function POST(
     messageCount: 1,
   })
 
-  // ── Build request body for CassiCore daemon ────────────────────────────────
   const turnBody: Record<string, unknown> = {
     content: message,
     senderId: 'webui-user',
@@ -55,7 +56,6 @@ export async function POST(
   if (model) turnBody.model = model
   if (thinking) turnBody.thinking = thinking
 
-  // ── Stream from CassiCore ──────────────────────────────────────────────────
   let cassiRes: Response
   try {
     cassiRes = await cassiFetch(`/sessions/${sessionId}/turn/stream`, {
@@ -74,7 +74,6 @@ export async function POST(
     return errorStream('CassiCore returned no response body')
   }
 
-  // ── Translate SSE stream and pipe to client ────────────────────────────────
   const encoder = new TextEncoder()
 
   const stream = new ReadableStream({
@@ -345,6 +344,14 @@ export async function POST(
 }
 
 /** Helper: emit a RunError response and close the stream immediately. */
+/**
+ * @dep callers: POST (webui/src/app/api/agents/[agentId]/runs/route.ts)
+ * @dep calls: now
+ * @dep flows: POST → Now (2/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function errorStream(message: string) {
   const body = JSON.stringify({
     event: 'RunError',

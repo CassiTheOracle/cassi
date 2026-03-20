@@ -68,7 +68,6 @@ export function InputBar({
   const lineCount = lines.length
 
   useInput((value, key) => {
-    // ── Ctrl+C — escalating cancel ────────────────────────────────────
     if (key.ctrl && value === 'c') {
       // Reset the escalation timer on each press
       if (ctrlCTimerRef.current) clearTimeout(ctrlCTimerRef.current)
@@ -101,38 +100,32 @@ export function InputBar({
     // Any other key resets the Ctrl+C escalation counter
     ctrlCCountRef.current = 0
 
-    // ── Ctrl+L — clear screen ─────────────────────────────────────────
     if (key.ctrl && value === 'l') {
       onClear?.()
       return
     }
 
-    // ── Alt+Enter or Ctrl+J — insert newline ──────────────────────────
     if ((key.meta && key.return) || (key.ctrl && value === 'j')) {
       setInput((s) => s + '\n')
       resetTab()
       return
     }
 
-    // ── Tab completion ────────────────────────────────────────────────
     if (key.tab && input.startsWith('/') && !isStreaming && !isMultiLine) {
       handleTab()
       return
     }
 
-    // ── Up arrow — command history ────────────────────────────────────
     if (key.upArrow && commandHistory.length > 0 && !isMultiLine) {
       handleHistoryUp()
       return
     }
 
-    // ── Down arrow — command history ─────────────────────────────────
     if (key.downArrow && !isMultiLine) {
       handleHistoryDown()
       return
     }
 
-    // ── Enter — submit ──────────────────────────────────────────────
     if (key.return && !key.meta) {
       const trimmed = input.trim()
       if (trimmed && !isStreaming) {
@@ -144,14 +137,12 @@ export function InputBar({
       return
     }
 
-    // ── Backspace ───────────────────────────────────────────────────
     if (key.backspace || key.delete) {
       setInput((s) => s.slice(0, -1))
       resetTab()
       return
     }
 
-    // ── Escape — clear input ────────────────────────────────────────
     if (key.escape) {
       setInput('')
       resetTab()
@@ -159,28 +150,24 @@ export function InputBar({
       return
     }
 
-    // ── Ctrl+U — clear line ──────────────────────────────────────────
     if (key.ctrl && value === 'u') {
       setInput('')
       resetTab()
       return
     }
 
-    // ── Ctrl+W — delete last word ────────────────────────────────────
     if (key.ctrl && value === 'w') {
       setInput((s) => s.replace(/\S+\s*$/, ''))
       resetTab()
       return
     }
 
-    // ── Regular character input ─────────────────────────────────────
     if (value && !key.ctrl && !key.meta) {
       setInput((s) => s + value)
       resetTab()
     }
   })
 
-  // ── Tab completion logic ──────────────────────────────────────────────
 
   function handleTab(): void {
     const resolver = getCompletions ?? defaultGetCompletions(completions)
@@ -208,7 +195,6 @@ export function InputBar({
     tabBaseRef.current = ''
   }
 
-  // ── History navigation ────────────────────────────────────────────────
 
   function handleHistoryUp(): void {
     if (historyIndexRef.current === -1) {
@@ -244,7 +230,6 @@ export function InputBar({
     savedInputRef.current = ''
   }
 
-  // ── Render ────────────────────────────────────────────────────────────
 
   // For multi-line input, show only the last MAX_VISIBLE_LINES lines
   const visibleLines = isMultiLine
@@ -326,7 +311,6 @@ export function InputBar({
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function getGhost(
   input: string,

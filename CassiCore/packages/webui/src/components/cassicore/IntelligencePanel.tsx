@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import Icon from '@/components/ui/icon'
 
-// ── Types ────────────────────────────────────────────────────────────────────
 
 interface LiveEvent {
   id: string
@@ -38,7 +37,6 @@ interface SubconsciousStats {
 
 type Tab = 'modules' | 'thinker' | 'subconscious' | 'events'
 
-// ── Module display metadata ──────────────────────────────────────────────────
 
 const MODULE_META: Record<string, { label: string; desc: string; color: string }> = {
   'memory':                { label: 'Memory',              desc: 'persistent',        color: 'bg-pink-400' },
@@ -61,7 +59,6 @@ const MODULE_META: Record<string, { label: string; desc: string; color: string }
   'self-healer':           { label: 'Self Healer',         desc: 'repairs',           color: 'bg-rose-400' },
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
 
 const EventItem = ({ event }: { event: LiveEvent }) => {
   const typeColors: Record<string, string> = {
@@ -116,7 +113,6 @@ const StatRow = ({ label, value, mono = false }: { label: string; value: string 
   </div>
 )
 
-// ── Main component ───────────────────────────────────────────────────────────
 
 export default function IntelligencePanel() {
   const { selectedEndpoint, isEndpointActive, intelligenceActivity, intelPanelOpen, setIntelPanelOpen } = useStore()

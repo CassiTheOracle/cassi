@@ -7,7 +7,6 @@
  * Types re-use or extend those from admin-client.ts.
  */
 
-// ==================== Shared types (mirrored from admin-client.ts) ====================
 
 export interface HealthStatus {
   status: "ok" | "degraded" | "error";
@@ -66,7 +65,6 @@ export interface Provider {
   defaultModel: string;
 }
 
-// ==================== Observatory-specific types ====================
 
 export interface ProviderMetrics {
   providerId: string;
@@ -149,9 +147,14 @@ export interface DaemonStatus {
   providers: string[];
 }
 
-// ==================== Client ====================
 
 const API_BASE = "/api";
+
+/**
+ * @dep callers: getMultiAgentStats (webui/observatory/src/api/observatory-client.ts), getMultiAgentMetrics (webui/observatory/src/api/observatory-client.ts), browseArchive (webui/observatory/src/api/observatory-client.ts), getArchiveById (webui/observatory/src/api/observatory-client.ts), getArchivistStats (webui/observatory/src/api/observatory-client.ts) [+7]
+ * @dep module: Api
+ * @dep risk: CRITICAL | 12 callers, 0 flows, 1 module
+ */
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -165,7 +168,6 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// ==================== Health & Status ====================
 
 export async function getHealth(): Promise<HealthStatus> {
   return request<HealthStatus>("/health");
@@ -179,7 +181,6 @@ export async function getProviderHealth(): Promise<Record<string, unknown>> {
   return request("/health/providers");
 }
 
-// ==================== Sessions ====================
 
 export async function listSessions(): Promise<Session[]> {
   const r = await request<{ sessions: Session[] }>("/sessions");
@@ -216,7 +217,6 @@ export async function getMessages(sessionId: string, limit = 50): Promise<Messag
   return r.messages;
 }
 
-// ==================== Events ====================
 
 export async function getEventHistory(opts: {
   sessionId?: string;
@@ -236,7 +236,6 @@ export async function getEventHistory(opts: {
   return r.events ?? [];
 }
 
-// ==================== Archive ====================
 
 /** A single entry from the Archivist (memory.db). */
 export interface ArchiveEntry {
@@ -285,6 +284,12 @@ export interface SubconsciousAnomaly {
 }
 
 /** Fetch recent Archivist entries (insights, dialectic, patterns, etc.). */
+/**
+ * @dep callers: loadReplay (webui/observatory/src/panels/cognition-panel.ts), loadHistory (webui/observatory/src/panels/cognition-panel.ts)
+ * @dep module: Panels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export async function getArchivedEntries(opts: {
   limit?: number;
   sessionId?: string;
@@ -300,6 +305,12 @@ export async function getArchivedEntries(opts: {
 }
 
 /** Fetch persisted subconscious observations. */
+/**
+ * @dep callers: loadReplay (webui/observatory/src/panels/cognition-panel.ts), loadHistory (webui/observatory/src/panels/cognition-panel.ts)
+ * @dep module: Panels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export async function getSubconsciousLearnings(): Promise<SubconsciousLearning[]> {
   const r = await request<{ learnings: SubconsciousLearning[] }>(
     "/intelligence/subconscious/learnings"
@@ -308,6 +319,12 @@ export async function getSubconsciousLearnings(): Promise<SubconsciousLearning[]
 }
 
 /** Fetch persisted subconscious anomalies. */
+/**
+ * @dep callers: loadReplay (webui/observatory/src/panels/cognition-panel.ts), loadHistory (webui/observatory/src/panels/cognition-panel.ts)
+ * @dep module: Panels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export async function getSubconsciousAnomalies(): Promise<SubconsciousAnomaly[]> {
   const r = await request<{ anomalies: SubconsciousAnomaly[] }>(
     "/intelligence/subconscious/anomalies"
@@ -323,7 +340,6 @@ export function buildEventStreamUrl(sessionId?: string): string {
   return `${API_BASE}/events/stream${qs ? `?${qs}` : ""}`;
 }
 
-// ==================== Subagents ====================
 
 export async function listSubagents(parentSessionId?: string): Promise<Subagent[]> {
   const url = parentSessionId
@@ -333,7 +349,6 @@ export async function listSubagents(parentSessionId?: string): Promise<Subagent[
   return r.subagents ?? [];
 }
 
-// ==================== Providers ====================
 
 /**
  * List available providers.
@@ -341,6 +356,9 @@ export async function listSubagents(parentSessionId?: string): Promise<Subagent[
  * Server returns: { providers: string[] } (just IDs).
  * We synthesize Provider objects with minimal info since the server
  * only provides IDs at this endpoint.
+ * @dep callers: fetchAll (webui/observatory/src/panels/providers-panel.ts), loadData (webui/observatory/src/panels/topology-panel.ts), makeSystemHealthHandler (core/tools/implementations/system-health.ts)
+ * @dep module: Implementations
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export async function listProviders(): Promise<Provider[]> {
   const r = await request<{ providers: string[] | Provider[] }>("/providers");
@@ -365,6 +383,9 @@ export async function listProviders(): Promise<Provider[]> {
  *
  * Server returns: { global, providers: [{ id, metrics }] }
  * We flatten into ProviderMetrics[] with providerId set from the wrapper.
+ * @dep callers: mcp-gateway.test.ts (tests/mcp-gateway.test.ts), attachStream (webui/observatory/src/panels/intelligence-panel.ts), loadData (webui/observatory/src/panels/intelligence-panel.ts), fetchAll (webui/observatory/src/panels/providers-panel.ts), handleProvidersRoutes (core/admin-api/providers.ts)
+ * @dep module: Panels
+ * @dep risk: MEDIUM | 5 callers, 0 flows, 1 module
  */
 export async function getProviderMetrics(): Promise<ProviderMetrics[]> {
   const r = await request<{
@@ -398,7 +419,12 @@ export async function getProviderMetrics(): Promise<ProviderMetrics[]> {
     });
 }
 
-// ==================== Debug / Context Window ====================
+
+/**
+ * @dep callers: fetchAndSubscribe (webui/observatory/src/components/context-window-chart.ts), handleContextRoutes (core/admin-api/context.ts)
+ * @dep module: Components
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export async function getContextWindow(sessionId: string): Promise<ContextWindowSnapshot> {
   const r = await request<{ snapshot: ContextWindowSnapshot }>(
@@ -411,7 +437,6 @@ export function buildContextWindowStreamUrl(sessionId: string): string {
   return `${API_BASE}/debug/context-window/stream?sessionId=${encodeURIComponent(sessionId)}`;
 }
 
-// ==================== Intelligence ====================
 
 /**
  * Fetch intelligence activity dashboard and synthesize an activity feed.
@@ -545,7 +570,6 @@ export async function getArchivistStats(): Promise<Record<string, unknown>> {
   return request("/intelligence/archivist/stats");
 }
 
-// ==================== Archive / Memory =============================================
 
 export type ArchiveEntryType = 'conversation' | 'insight' | 'pattern' | 'dialectic' | 'event' | 'session' | string;
 export type ArchiveSentiment = 'positive' | 'neutral' | 'negative' | string;

@@ -55,6 +55,12 @@ const TYPE_COLORS: Record<string, string> = {
   thinking: "var(--c-indigo, #818cf8)",
 };
 
+/**
+ * @dep callers: renderDetail (webui/observatory/src/panels/memory-panel.ts), renderCard (webui/observatory/src/panels/memory-panel.ts)
+ * @dep module: Panels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function typeColor(type: string): string {
   return TYPE_COLORS[type] ?? TYPE_COLORS["event"];
 }
@@ -67,6 +73,13 @@ function typeGroup(type: string): FilterType {
   if (type === "pattern" || type === "summary") return "pattern";
   return "event";
 }
+
+/**
+ * @dep callers: renderDetail (webui/observatory/src/panels/memory-panel.ts), renderCard (webui/observatory/src/panels/memory-panel.ts)
+ * @dep calls: now
+ * @dep module: Panels
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function relativeTime(ts: number): string {
   // ts may be unix seconds or milliseconds — normalise
@@ -609,7 +622,6 @@ export class MemoryPanel extends LitElement {
     }
   }
 
-  // ── Render helpers ────────────────────────────────────────────────────────
 
   private renderCard(e: ArchiveEntry): unknown {
     const color = typeColor(e.type);

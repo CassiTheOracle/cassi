@@ -119,7 +119,6 @@ export function ToolCallBlock({
   )
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
 
 function StatusIcon({ status }: { status: string }): React.ReactElement {
   if (status === 'running') {
@@ -215,7 +214,6 @@ function ExpandedResult({
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusColor(status: string): string {
   switch (status) {

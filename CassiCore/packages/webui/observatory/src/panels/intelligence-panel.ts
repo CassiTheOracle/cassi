@@ -38,7 +38,6 @@ import {
 import "../components/provider-metrics-chart.js";
 import "../components/context-window-chart.js";
 
-// ─── Known intelligence modules ───────────────────────────────────────────────
 
 interface ModuleInfo {
   key: string;
@@ -71,7 +70,6 @@ interface ModuleState {
   stats?: Record<string, unknown>;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 @customElement("intelligence-panel")
 export class IntelligencePanel extends LitElement {
@@ -309,7 +307,6 @@ export class IntelligencePanel extends LitElement {
     }
   }
 
-  // ─── Init ─────────────────────────────────────────────────────────────────
 
   private initModuleStates(): void {
     for (const mod of MODULES) {
@@ -318,7 +315,6 @@ export class IntelligencePanel extends LitElement {
     this.moduleStates = new Map(this.moduleStates); // trigger reactivity
   }
 
-  // ─── Data loading ────────────────────────────────────────────────────────
 
   private async loadData(): Promise<void> {
     const [activities, providerMetrics, thinkerStats, subconsciousStats, archivistStats] =
@@ -400,7 +396,6 @@ export class IntelligencePanel extends LitElement {
     );
   }
 
-  // ─── SSE integration ──────────────────────────────────────────────────────
 
   private attachStream(): void {
     if (!this.stream) return;
@@ -462,7 +457,6 @@ export class IntelligencePanel extends LitElement {
     this.unsubs = [];
   }
 
-  // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private formatTime(ts?: number): string {
     if (!ts) return "—";
@@ -500,7 +494,6 @@ export class IntelligencePanel extends LitElement {
     return "no recent activity";
   }
 
-  // ─── Render ──────────────────────────────────────────────────────────────
 
   override render() {
     return html`

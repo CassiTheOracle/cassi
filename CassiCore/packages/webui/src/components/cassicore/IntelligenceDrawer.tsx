@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useStore } from '@/store'
 import Icon from '@/components/ui/icon'
 
-// ── Types ────────────────────────────────────────────────────────────────────
 
 interface LiveEvent {
   id: string
@@ -51,7 +50,6 @@ interface InjectionPart {
 
 type Tab = 'modules' | 'thinker' | 'subconscious' | 'events' | 'prompt' | 'context'
 
-// ── Module display metadata ──────────────────────────────────────────────────
 
 const MODULE_META: Record<string, { label: string; desc: string; color: string }> = {
   'memory':                { label: 'Memory',              desc: 'persistent',        color: 'bg-pink-400' },
@@ -74,7 +72,6 @@ const MODULE_META: Record<string, { label: string; desc: string; color: string }
   'self-healer':           { label: 'Self Healer',         desc: 'repairs',             color: 'bg-rose-400' },
 }
 
-// ── Source colors for injection visualization ────────────────────────────────
 
 const SOURCE_COLORS: Record<string, string> = {
   optimizer: 'bg-teal-400',
@@ -96,7 +93,6 @@ const SOURCE_CAPS: Record<string, number> = {
 
 const TOTAL_INJECTION_CAP = 16000
 
-// ── Sub-components ───────────────────────────────────────────────────────────
 
 const EventItem = ({ event }: { event: LiveEvent }) => {
   const typeColors: Record<string, string> = {
@@ -143,7 +139,6 @@ const EventItem = ({ event }: { event: LiveEvent }) => {
   )
 }
 
-// ── Prompt Section Editor ────────────────────────────────────────────────────
 
 const PromptSectionCard = ({ section, onSave }: { section: PersonaSection; onSave: (label: string, content: string) => void }) => {
   const [expanded, setExpanded] = useState(false)
@@ -234,7 +229,6 @@ const PromptSectionCard = ({ section, onSave }: { section: PersonaSection; onSav
   )
 }
 
-// ── Injection Source Card ────────────────────────────────────────────────────
 
 const InjectionSourceCard = ({ part }: { part: InjectionPart }) => {
   const [expanded, setExpanded] = useState(false)
@@ -268,7 +262,6 @@ const InjectionSourceCard = ({ part }: { part: InjectionPart }) => {
   )
 }
 
-// ── Main Drawer ──────────────────────────────────────────────────────────────
 
 const DEFAULT_HEIGHT = 320
 const MIN_HEIGHT = 200

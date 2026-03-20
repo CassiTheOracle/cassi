@@ -167,7 +167,6 @@ export function ModelSelector({
   )
 }
 
-// ── Provider group ──────────────────────────────────────────────────────────
 
 function ProviderGroup({
   providerId,
@@ -221,7 +220,6 @@ function ProviderGroup({
   )
 }
 
-// ── Model row ───────────────────────────────────────────────────────────────
 
 function ModelRow({
   model,
@@ -267,7 +265,6 @@ function ModelRow({
   )
 }
 
-// ── Preview footer ──────────────────────────────────────────────────────────
 
 function ModelPreview({ model }: { model: ModelInfo }): React.ReactElement {
   return (
@@ -279,7 +276,6 @@ function ModelPreview({ model }: { model: ModelInfo }): React.ReactElement {
   )
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatContextWindow(tokens: number): string {
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(0)}M`

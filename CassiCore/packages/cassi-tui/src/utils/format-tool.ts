@@ -16,6 +16,12 @@ function tryParse(input: string): Record<string, unknown> | null {
 }
 
 /** Truncate a string with ellipsis. */
+/**
+ * @dep callers: format-tool.ts (cassi-tui/src/utils/format-tool.ts), ExpandedResult (cassi-tui/src/components/ToolCallBlock.tsx), ToolCallBlock (cassi-tui/src/components/ToolCallBlock.tsx), formatToolSummary (cassi-tui/src/utils/format-tool.ts), LiveTurn (cassi-tui/src/components/ConversationPanel.tsx) [+1]
+ * @dep module: Components
+ * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
+ */
+
 function trunc(s: string, max: number): string {
   if (s.length <= max) return s
   return s.slice(0, max - 1) + '\u2026'
@@ -29,7 +35,6 @@ function unquote(s: string): string {
   return s
 }
 
-// ── Tool-specific extractors ────────────────────────────────────────────────
 
 type Extractor = (input: Record<string, unknown>) => string
 
@@ -135,7 +140,6 @@ const extractors: Record<string, Extractor> = {
   },
 }
 
-// ── Public API ──────────────────────────────────────────────────────────────
 
 /**
  * Produce a concise summary string for a tool call.
@@ -214,7 +218,6 @@ export function formatToolOutput(content: string, maxLines = 10): { preview: str
   }
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Shorten a file path by showing only last 2-3 segments. */
 function shortenPath(fullPath: string): string {
@@ -228,6 +231,12 @@ function shortenPath(fullPath: string): string {
 }
 
 /** Human-readable byte size. */
+/**
+ * @dep callers: format-tool.ts (cassi-tui/src/utils/format-tool.ts), MetaBadges (cassi-tui/src/components/ToolCallBlock.tsx)
+ * @dep module: Components
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function byteSize(s: string): string {
   const bytes = Buffer.byteLength(s, 'utf-8')
   if (bytes < 1024) return `${bytes}B`

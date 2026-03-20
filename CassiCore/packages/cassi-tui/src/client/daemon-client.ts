@@ -28,7 +28,6 @@ const DEFAULT_DAEMON_URL = 'http://localhost:7433'
 const DEFAULT_SOCKET_PATH = path.join(os.homedir(), '.cassicore', 'admin.sock')
 const CONNECT_TIMEOUT_MS = 5_000
 
-// ── Transport helpers ───────────────────────────────────────────────────────
 
 interface RequestOptions {
   method: string
@@ -73,6 +72,12 @@ function makeRequest(
   })
 }
 
+/**
+ * @dep callers: ping (cassi-tui/src/client/daemon-client.ts), postJSON (cassi-tui/src/client/daemon-client.ts), getJSON (cassi-tui/src/client/daemon-client.ts)
+ * @dep module: Client
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 async function readJSON<T>(res: http.IncomingMessage): Promise<T> {
   const chunks: Buffer[] = []
   for await (const chunk of res) {
@@ -81,7 +86,6 @@ async function readJSON<T>(res: http.IncomingMessage): Promise<T> {
   return JSON.parse(Buffer.concat(chunks).toString('utf-8'))
 }
 
-// ── SSE parser ──────────────────────────────────────────────────────────────
 
 function parseSSEStream(
   res: http.IncomingMessage,
@@ -145,7 +149,6 @@ function parseSSEStream(
   })
 }
 
-// ── Client ──────────────────────────────────────────────────────────────────
 
 export class DaemonClient {
   private socketPath: string | undefined
@@ -167,7 +170,6 @@ export class DaemonClient {
     return this.baseURL
   }
 
-  // ── Low-level request with socket→HTTP fallback ─────────────────────────
 
   private async request(opts: RequestOptions): Promise<http.IncomingMessage> {
     if (this.preferSocket && this.socketPath) {
@@ -207,7 +209,6 @@ export class DaemonClient {
     return readJSON<T>(res)
   }
 
-  // ── Public API ──────────────────────────────────────────────────────────
 
   /** Check daemon reachability. Returns the /cassicore/info payload. */
   async ping(): Promise<DaemonInfo> {
@@ -299,7 +300,6 @@ export class DaemonClient {
     return `tui_${ts}_${rand}`
   }
 
-  // ── Turn streaming (SSE) ────────────────────────────────────────────────
 
   /**
    * Stream a turn from the daemon. Returns an async iterable of TurnEvents.
@@ -376,7 +376,6 @@ export class DaemonClient {
     }
   }
 
-  // ── Cognitive event stream (SSE) ────────────────────────────────────────
 
   /**
    * Subscribe to the cognitive event stream. Returns an async iterable.
@@ -464,7 +463,6 @@ export class DaemonClient {
     }
   }
 
-  // ── Teams ─────────────────────────────────────────────────────────────
 
   async teams(): Promise<DaemonTeam[]> {
     const resp = await this.getJSON<{ teams: DaemonTeam[] }>('/teams')
@@ -502,7 +500,6 @@ export class DaemonClient {
     })
   }
 
-  // ── Autonomy confirmations ─────────────────────────────────────────────
 
   async approveConfirmation(id: string): Promise<void> {
     await this.request({
@@ -518,7 +515,6 @@ export class DaemonClient {
     })
   }
 
-  // ── Session injection (mid-turn messages) ──────────────────────────────
 
   async inject(sessionId: string, content: string, source = 'tui'): Promise<void> {
     await this.postJSON(`/sessions/${sessionId}/inject`, { content, source })

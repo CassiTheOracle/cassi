@@ -126,13 +126,11 @@ function makeDemoMessages(): DisplayMessage[] {
   ]
 }
 
-// ── AppInner — main application logic ─────────────────────────────────────
 
 function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): React.ReactElement {
   const { exit } = useApp()
   const { rows } = useTerminalSize()
 
-  // ── Core state ──────────────────────────────────────────────────────────
   const [sessionId, setSessionId] = useState(initialSessionId)
   const [model, setModel] = useState<string | null>(initialModel ?? null)
   const [connected, setConnected] = useState(false)
@@ -144,7 +142,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     demo ? makeDemoMessages() : [],
   )
 
-  // ── Session history loading ─────────────────────────────────────────────
   const history = useSessionHistory(sessionId)
 
   // Merge loaded history into completedMessages (once, on load)
@@ -157,19 +154,15 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     historyMergedRef.current = sessionId
   }, [history.loading, history.messages, sessionId, demo])
 
-  // ── Model selector state ────────────────────────────────────────────────
   const [selectorOpen, setSelectorOpen] = useState(false)
   const models = useModels()
 
-  // ── Session picker state ────────────────────────────────────────────────
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false)
   const [sessionList, setSessionList] = useState<DaemonSession[]>([])
   const [sessionListLoading, setSessionListLoading] = useState(false)
 
-  // ── Help overlay state ──────────────────────────────────────────────────
   const [helpOpen, setHelpOpen] = useState(false)
 
-  // ── Global overlay dismissal ─────────────────────────────────────────────
   // This must live at the App level (always mounted) because useInput in
   // conditionally-rendered overlays can fail to receive events due to Ink's
   // stdin listener lifecycle when the component tree changes.
@@ -185,22 +178,17 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     }
   })
 
-  // ── Thinker state ───────────────────────────────────────────────────────
   const [thinkerActive, setThinkerActive] = useState(false)
   const [thinkerLevel, setThinkerLevel] = useState('')
   const [thinkerTrigger, setThinkerTrigger] = useState('')
   const [lastInsight, setLastInsight] = useState<string | null>(null)
 
-  // ── Dialectic state ─────────────────────────────────────────────────────
   const [dialecticSignal, setDialecticSignal] = useState<DialecticSignalPayload | null>(null)
 
-  // ── Autonomy confirmation state ─────────────────────────────────────────
   const [pendingConfirmation, setPendingConfirmation] = useState<AutonomyConfirmationPayload | null>(null)
 
-  // ── Turn streaming ──────────────────────────────────────────────────────
   const turn = useTurnStream()
 
-  // ── Slash commands ──────────────────────────────────────────────────────
   const cmd = useCommand(sessionId, {
     onClear: useCallback(() => {
       setCompletedMessages([])
@@ -254,7 +242,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     currentModel: model,
   })
 
-  // ── Turn completion: snapshot streaming turn into completed messages ─────
   const wasStreamingRef = useRef(false)
 
   if (wasStreamingRef.current && !turn.isStreaming && turn.text) {
@@ -275,7 +262,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     turn.reset()
   }
 
-  // ── Cognitive event subscription ────────────────────────────────────────
   useCognitiveEvents(sessionId, {
     onConnected: useCallback(() => setConnected(true), []),
     onDisconnected: useCallback(() => setConnected(false), []),
@@ -298,7 +284,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     }, []),
   })
 
-  // ── Handlers ────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(
     async (text: string) => {
       // Slash command
@@ -401,7 +386,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     [client],
   )
 
-  // ── Build the current turn object for LiveTurn ──────────────────────────
   const currentTurn = turn.isStreaming
     ? {
         text: turn.text,
@@ -413,7 +397,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
       }
     : null
 
-  // ── Model selector overlay ──────────────────────────────────────────────
   if (selectorOpen) {
     return (
       <Box flexDirection="column" height={rows} paddingX={1}>
@@ -439,7 +422,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     )
   }
 
-  // ── Session picker overlay ──────────────────────────────────────────────
   if (sessionPickerOpen) {
     return (
       <Box flexDirection="column" height={rows} paddingX={1}>
@@ -467,7 +449,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     )
   }
 
-  // ── Help overlay ────────────────────────────────────────────────────────
   if (helpOpen) {
     return (
       <Box flexDirection="column" height={rows} paddingX={1}>
@@ -488,7 +469,6 @@ function AppInner({ client, initialSessionId, initialModel, demo }: AppProps): R
     )
   }
 
-  // ── Main layout ─────────────────────────────────────────────────────────
   // Full-screen layout: StatusBar at top, conversation in the middle (auto-scrolling),
   // and InputBar pinned at the bottom. Messages are pushed to the bottom of the
   // conversation area via justifyContent="flex-end", so the most recent messages

@@ -36,7 +36,6 @@ import {
   type SubconsciousAnomaly,
 } from "../api/observatory-client.js";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type LaneId = "dialectic" | "thinker" | "subconscious" | "agents";
 
@@ -81,7 +80,6 @@ type LaneEntry =
   | { kind: "card"; data: ThoughtCard }
   | { kind: "turn"; data: TurnMarker };
 
-// ─── Config ───────────────────────────────────────────────────────────────────
 
 const LANE_CONFIG: Record<LaneId, { label: string; icon: string; color: string }> = {
   dialectic:    { label: "Dialectic",    icon: "☯",  color: "#f472b6" },
@@ -122,7 +120,6 @@ const COLLAPSED_LANE_PX = 36;
 
 const LANE_IDS: LaneId[] = ["dialectic", "thinker", "subconscious", "agents"];
 
-// ─── Component ────────────────────────────────────────────────────────────────
 
 @customElement("cognition-panel")
 export class CognitionPanel extends LitElement {
@@ -596,7 +593,6 @@ export class CognitionPanel extends LitElement {
   @state() private collapsedLanes: Set<LaneId> = new Set();
   @state() private turnFlash = false;
 
-  // ── Replay state ────────────────────────────────────────────────────────────
   @state() private replayMode = false;
   @state() private replayLoading = false;
   @state() private replayPlaying = false;
@@ -649,7 +645,6 @@ export class CognitionPanel extends LitElement {
     }
   }
 
-  // ─── Init ──────────────────────────────────────────────────────────────────
 
   private initModuleStates(): void {
     for (const m of MODULE_STRIP) {
@@ -658,7 +653,6 @@ export class CognitionPanel extends LitElement {
     this.moduleStates = new Map(this.moduleStates);
   }
 
-  // ─── History seeding ────────────────────────────────────────────────────────
 
   /**
    * Fetch recent event history and seed lanes so the panel isn't empty
@@ -685,7 +679,6 @@ export class CognitionPanel extends LitElement {
     const sessionHint = (id: string | null): string | undefined =>
       id ? `#${id.slice(-6)}` : undefined;
 
-    // ── Archivist entries → Dialectic + Thinker lanes ──────────────────────────
     if (archiveResult.status === "fulfilled") {
       const entries = archiveResult.value
         .filter((e) => {
@@ -701,7 +694,6 @@ export class CognitionPanel extends LitElement {
       }
     }
 
-    // ── Subconscious learnings → Subconscious lane ─────────────────────────────
     if (learningsResult.status === "fulfilled") {
       const sorted = [...learningsResult.value].sort((a, b) => a.timestamp - b.timestamp);
       for (const obs of sorted) {
@@ -718,7 +710,6 @@ export class CognitionPanel extends LitElement {
       }
     }
 
-    // ── Subconscious anomalies → Subconscious lane ─────────────────────────────
     if (anomaliesResult.status === "fulfilled") {
       const sorted = [...anomaliesResult.value].sort((a, b) => a.timestamp - b.timestamp);
       for (const anomaly of sorted) {
@@ -767,7 +758,6 @@ export class CognitionPanel extends LitElement {
     }
   }
 
-  // ─── Replay ─────────────────────────────────────────────────────────────────
 
   /**
    * Load ALL archive entries for the current session (or global if none
@@ -976,7 +966,6 @@ export class CognitionPanel extends LitElement {
     this.unsubs = [];
   }
 
-  // ─── Event routing ──────────────────────────────────────────────────────────
 
   /**
    * Map a raw event type + payload to a lane and card definition.
@@ -987,7 +976,6 @@ export class CognitionPanel extends LitElement {
     data: Record<string, unknown>
   ): (Omit<ThoughtCard, "id" | "expanded" | "timestamp"> & { lane: LaneId }) | null {
 
-    // ── Dialectic ──────────────────────────────────────────────────────────────
 
     if (type === "dialectic:signal") {
       // { signal: { type: SignalType, content: string, confidence, sourceBranches, urgency } }
@@ -1057,7 +1045,6 @@ export class CognitionPanel extends LitElement {
       return null;
     }
 
-    // ── Thinker ────────────────────────────────────────────────────────────────
 
     // thinker:insight is unwrapped from worker:message by the bridge
     if (["thinker:insight", "thinker:inject-insight", "thinker:session-injection"].includes(type)) {
@@ -1142,7 +1129,6 @@ export class CognitionPanel extends LitElement {
       };
     }
 
-    // ── Subconscious ───────────────────────────────────────────────────────────
 
     if (type === "consciousness:observation") {
       // Observation: { id, summary, patterns, confidence, source, relatedEventTypes }
@@ -1196,7 +1182,6 @@ export class CognitionPanel extends LitElement {
       };
     }
 
-    // ── Agents ─────────────────────────────────────────────────────────────────
 
     if (type === "team:started") {
       const goal = String(data.goal ?? data.description ?? data.task ?? "");
@@ -1322,7 +1307,6 @@ export class CognitionPanel extends LitElement {
     return map[prefix] ?? null;
   }
 
-  // ─── State mutations ────────────────────────────────────────────────────────
 
   /** Push a synchronized turn marker into ALL 4 lanes and flash the toolbar. */
   private pushTurnMarker(timestamp: number): void {
@@ -1431,7 +1415,6 @@ export class CognitionPanel extends LitElement {
     ).join(" ");
   }
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
 
   private formatTime(ts: number): string {
     const d = Math.floor((Date.now() - ts) / 1000);
@@ -1450,7 +1433,6 @@ export class CognitionPanel extends LitElement {
     return this.activeLanes[lane].filter((e) => e.kind === "card").length;
   }
 
-  // ─── Render ─────────────────────────────────────────────────────────────────
 
   override render() {
     const visibleCount = this.replayMode

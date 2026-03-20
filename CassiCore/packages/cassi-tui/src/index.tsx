@@ -16,7 +16,6 @@ import { render } from 'ink'
 import { DaemonClient } from './client/index.js'
 import { App } from './App.js'
 
-// ── Argument parsing (minimal, no dep) ──────────────────────────────────────
 
 function parseArgs(argv: string[]): Record<string, string> {
   const args: Record<string, string> = {}
@@ -31,7 +30,6 @@ function parseArgs(argv: string[]): Record<string, string> {
   return args
 }
 
-// ── Main ────────────────────────────────────────────────────────────────────
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
