@@ -49,6 +49,9 @@ function resolveTeamId(tt: TriadTeamOrchestrator, teamId?: string): string | und
 /**
  * Serialize a TriadTeamSession for JSON transport.
  * Maps are not JSON-serializable, so we convert them.
+ * @dep callers: manager.test.ts (core/intelligence/branching-conversation/manager.test.ts), handleTeamsRoutes (core/admin-api/teams.ts)
+ * @dep module: Admin-api
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function serializeSession(session: TriadTeamSession): Record<string, unknown> {
   // Compute active cells (agents) for client consumption
@@ -78,6 +81,14 @@ function serializeSession(session: TriadTeamSession): Record<string, unknown> {
   }
 }
 
+/**
+ * @dep callers: handler (core/admin-api.ts)
+ * @dep calls: getTeam, getTeamLiveStatus, end, on, off [+28]
+ * @dep flows: HandleTeamsRoutes → EstimateChars (1/7), HandleTeamsRoutes → GetMentalModel (1/4), HandleTeamsRoutes → ExtractTopics (1/4) [+1]
+ * @dep module: Admin-api
+ * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
+ */
+
 export async function handleTeamsRoutes(
   deps: TeamsRoutesDeps,
   req: http.IncomingMessage,
@@ -101,16 +112,18 @@ export async function handleTeamsRoutes(
 
       // Check if FluxTeam should handle this request
       const fluxOrchestrator = getFluxOrchestrator(daemon)
+      const strictFlux = body?.engine === 'flux' || body?.strictFlux === true
       const useFlux = body.useFluxTeam !== false && fluxOrchestrator
 
       if (useFlux) {
         try {
-          // Note: provider/model are no longer accepted here.
+          // WHY: provider/model are no longer accepted here.
           // Use the model_directive tool to set routing before creating a team.
           const teamId = await fluxOrchestrator.createTeam({
             teamId: body.teamId,
             goal: body.goal,
             context: body.context,
+            parentSessionId: body.parentSessionId,
             topology: body.topology,
             budget: body.budget,
             checkpoint: !!body.checkpoint,
@@ -129,7 +142,11 @@ export async function handleTeamsRoutes(
           })
           return true
         } catch (err) {
-          logger.error('FluxTeam creation failed, falling back to TriadTeam', { error: String(err) })
+          logger.error('FluxTeam creation failed', { error: String(err), strictFlux })
+          if (strictFlux) {
+            sendJSON(res, 503, { error: String(err), engine: 'flux' })
+            return true
+          }
           // Fall through to TriadTeam
         }
       }
@@ -177,8 +194,7 @@ export async function handleTeamsRoutes(
         }
       }
 
-      // ── Provider guard (legacy TriadTeam path only) ──
-      // Note: For FluxTeam, model selection is now handled by the ModelDirective
+      // WHY: For FluxTeam, model selection is now handled by the ModelDirective
       // system. Use the model_directive tool to set routing before creating teams.
       // The BLOCKED_TEAM_PROVIDERS guard only applies to the legacy TriadTeam path.
       const BLOCKED_TEAM_PROVIDERS = ['github-copilot', 'github-copilot-lb']
@@ -651,19 +667,30 @@ export async function handleTeamsRoutes(
   // GET /teams/stream
   if (parts.length === 2 && parts[1] === 'stream' && method === 'GET') {
     try {
-      if (!tt) {
-        sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
-        return true
-      }
-
       const teamId = url.searchParams.get('teamId') || ''
       if (!teamId) {
         sendJSON(res, 400, { error: 'teamId query parameter is required' })
         return true
       }
 
-      const session = tt.getTeamStatus(teamId)
-      if (!session) {
+      // Check Flux first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      const fluxSession = fluxOrch?.getTeam(teamId)
+
+      if (!fluxSession && !tt) {
+        sendJSON(res, 503, { error: 'No team orchestrator available' })
+        return true
+      }
+
+      if (!fluxSession && tt) {
+        const session = tt.getTeamStatus(teamId)
+        if (!session) {
+          sendJSON(res, 404, { error: `Team ${teamId} not found` })
+          return true
+        }
+      }
+
+      if (!fluxSession && !tt?.getTeamStatus(teamId)) {
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
@@ -685,29 +712,49 @@ export async function handleTeamsRoutes(
         } catch { /* SSE write failure */ }
       }
 
-      // Send initial snapshot
-      sendSSE('snapshot', serializeSession(session))
-      res.write(': connected\n\n')
-
-      // Subscribe to triad-team events
-      const triadEventTypes: TriadTeamEventType[] = [
-        'triad-team:created', 'triad-team:started', 'triad-team:planning',
-        'triad-team:plan-complete', 'triad-team:cell-spawned', 'triad-team:cell-phase',
-        'triad-team:cell-completed', 'triad-team:cell-failed', 'triad-team:cell-degraded',
-        'triad-team:cell-resumed', 'triad-team:synthesis', 'triad-team:completed',
-        'triad-team:failed', 'triad-team:cancelled', 'triad-team:paused',
-        'triad-team:resumed', 'triad-team:checkpoint', 'triad-team:checkpoint:approved',
-        'triad-team:checkpoint:rejected', 'triad-team:budget-warning',
-      ]
-
       const handlers: Array<{ type: string; handler: (e: any) => void }> = []
-      for (const eventType of triadEventTypes) {
-        const handler = (e: any) => {
-          if (e.teamId !== teamId) return
-          sendSSE(e.type || eventType, e)
+
+      if (fluxSession && fluxOrch) {
+        // Send initial snapshot from live status or session data
+        const liveStatus = fluxOrch.getTeamLiveStatus(teamId)
+        if (liveStatus) {
+          sendSSE('snapshot', { ...liveStatus, engine: 'flux' })
+        } else {
+          sendSSE('snapshot', { ...fluxSession, engine: 'flux' })
         }
-        daemon.bus.on(eventType, handler)
-        handlers.push({ type: eventType, handler })
+        res.write(': connected\n\n')
+
+        // Subscribe to flux:event on the bus; filter by teamId
+        const fluxHandler = (e: any) => {
+          const fluxEv = e?.event ?? e
+          if (fluxEv?.teamId !== teamId) return
+          sendSSE(fluxEv.type || 'flux:event', fluxEv)
+        }
+        daemon.bus.on('flux:event' as any, fluxHandler)
+        handlers.push({ type: 'flux:event', handler: fluxHandler })
+      } else if (tt) {
+        const session = tt.getTeamStatus(teamId)!
+        sendSSE('snapshot', serializeSession(session))
+        res.write(': connected\n\n')
+
+        const triadEventTypes: TriadTeamEventType[] = [
+          'triad-team:created', 'triad-team:started', 'triad-team:planning',
+          'triad-team:plan-complete', 'triad-team:cell-spawned', 'triad-team:cell-phase',
+          'triad-team:cell-completed', 'triad-team:cell-failed', 'triad-team:cell-degraded',
+          'triad-team:cell-resumed', 'triad-team:synthesis', 'triad-team:completed',
+          'triad-team:failed', 'triad-team:cancelled', 'triad-team:paused',
+          'triad-team:resumed', 'triad-team:checkpoint', 'triad-team:checkpoint:approved',
+          'triad-team:checkpoint:rejected', 'triad-team:budget-warning',
+        ]
+
+        for (const eventType of triadEventTypes) {
+          const handler = (e: any) => {
+            if (e.teamId !== teamId) return
+            sendSSE(e.type || eventType, e)
+          }
+          daemon.bus.on(eventType, handler)
+          handlers.push({ type: eventType, handler })
+        }
       }
 
       const ping = setInterval(() => {
@@ -719,7 +766,7 @@ export async function handleTeamsRoutes(
         clearInterval(ping)
         sseConnections.delete(connId)
         for (const { type, handler } of handlers) {
-          try { daemon.bus.off(type, handler) } catch { /* cleanup failure */ }
+          try { daemon.bus.off(type as any, handler) } catch { /* cleanup failure */ }
         }
       })
 
@@ -772,7 +819,6 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // ── POST /teams/benchmark — Automated benchmark run with test verification ──
   if (parts.length === 2 && parts[1] === 'benchmark' && method === 'POST') {
     try {
       if (!tt) {
@@ -815,7 +861,6 @@ export async function handleTeamsRoutes(
         providerConfig = { providerId: body.provider, model: body.model || undefined }
       }
 
-      // ── Provider guard: reject github-copilot for benchmarks too ──
       const BLOCKED_BENCH_PROVIDERS = ['github-copilot', 'github-copilot-lb']
       if (providerConfig?.providerId && BLOCKED_BENCH_PROVIDERS.includes(providerConfig.providerId)) {
         logger.warn(`Blocked github-copilot as benchmark provider — falling back to default`, { requestedProvider: providerConfig.providerId })
@@ -1013,7 +1058,6 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // ── Legacy agent-based endpoints (stubs for backward compatibility) ────
 
   // POST /teams/agent/message
   if (parts.length === 3 && parts[1] === 'agent' && parts[2] === 'message' && method === 'POST') {
@@ -1197,7 +1241,6 @@ export async function handleTeamsRoutes(
   return false
 }
 
-// ── Helper functions ─────────────────────────────────────────────────────────
 
 /**
  * Build a text tree visualization from cell hierarchy.
@@ -1260,6 +1303,9 @@ function buildCellProgress(session: TriadTeamSession): Record<string, unknown> {
 
 /**
  * Get a status icon for display.
+ * @dep callers: renderCell (core/admin-api/teams.ts), buildCellTree (core/admin-api/teams.ts)
+ * @dep module: Branching-conversation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function getStatusIcon(status: string): string {
   switch (status) {

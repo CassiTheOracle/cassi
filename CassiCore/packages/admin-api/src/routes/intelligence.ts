@@ -14,6 +14,14 @@ export interface IntelligenceRoutesDeps {
   parts: string[]
 }
 
+/**
+ * @dep callers: handler (core/admin-api.ts)
+ * @dep calls: acknowledgeAnomaly, getRecentObservations, getAnomalies, getEventStreamStats, getObserverStats [+31]
+ * @dep flows: HandleIntelligenceRoutes → Kv_get (1/4), HandleIntelligenceRoutes → KeyForSession (1/4), HandleIntelligenceRoutes → CognitiveKeyForSession (1/4) [+2]
+ * @dep module: Subconscious
+ * @dep risk: HIGH | 1 caller, 5 flows, 1 module
+ */
+
 export async function handleIntelligenceRoutes(
   deps: IntelligenceRoutesDeps,
   req: http.IncomingMessage,
@@ -709,7 +717,6 @@ export async function handleIntelligenceRoutes(
     }
   }
 
-  // ── SelfHealingAgent endpoints ──────────────────────────────────────────
 
    // GET /intelligence/self-healer/status
    if (method === 'GET' && pathname === '/intelligence/self-healer/status') {

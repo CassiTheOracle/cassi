@@ -4,14 +4,24 @@ import { renewAccountsFile, defaultAccountsPath, type RenewResult, type AccountE
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
+import type { AdminRuntimeFacade } from './runtime.js'
+
 export interface ProvidersRoutesDeps {
-  daemon: any
+  runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
   parseBody: (req: http.IncomingMessage) => Promise<any>
   isObject: (v: unknown) => v is Record<string, unknown>
   mergeDeep: (target: any, src: any) => any
 }
+
+/**
+ * @dep callers: handler (core/admin-api.ts)
+ * @dep calls: call, get, getConfig, getStats, getActiveCount [+16]
+ * @dep flows: HandleProvidersRoutes → DefaultAccountsPath (1/3), HandleProvidersRoutes → Now (1/3), HandleProvidersRoutes → Call (1/3) [+1]
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
+ */
 
 export async function handleProvidersRoutes(
   deps: ProvidersRoutesDeps,
@@ -20,13 +30,13 @@ export async function handleProvidersRoutes(
   method: string,
   pathname: string
 ): Promise<boolean> {
-  const { daemon, sendJSON, parseBody, isObject, mergeDeep } = deps
-  const layered = daemon.config as any
+  const { runtime, sendJSON, parseBody, isObject, mergeDeep } = deps
+  const layered = runtime.getConfig() as any
 
   // GET /providers
   if (method === 'GET' && pathname === '/providers') {
     try {
-      const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+      const providersMap = runtime.getProviders()
       if (!providersMap) {
         sendJSON(res, 503, { error: 'providers not initialised' })
         return true
@@ -44,22 +54,13 @@ export async function handleProvidersRoutes(
   // GET /providers/metrics
   if (method === 'GET' && pathname === '/providers/metrics') {
     try {
-      const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
-      if (!providersMap) {
+      const metrics = runtime.getProviderMetrics()
+      if (metrics.providers.length === 0) {
         sendJSON(res, 503, { error: 'providers not initialised' })
         return true
       }
 
-      const providerMetrics: Array<{ id: string; metrics: any }> = []
-      let globalConfig: any = null
-      for (const [id, prov] of providersMap) {
-        let metrics = null
-        try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch (err) { deps.logger.debug('Failed to get provider metrics', { providerId: id, error: String(err) }); }
-        providerMetrics.push({ id, metrics })
-        if (!globalConfig && metrics?.globalConfig) globalConfig = metrics.globalConfig
-      }
-
-      sendJSON(res, 200, { global: globalConfig ?? null, providers: providerMetrics })
+      sendJSON(res, 200, metrics)
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -70,7 +71,7 @@ export async function handleProvidersRoutes(
   // GET /providers/qwen/stats
   if (method === 'GET' && pathname === '/providers/qwen/stats') {
     try {
-      const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+      const providersMap = runtime.getProviders()
       if (!providersMap) {
         sendJSON(res, 503, { error: 'providers not initialised' })
         return true
@@ -168,7 +169,7 @@ export async function handleProvidersRoutes(
         try {
           configView[k] = getWithSource(k)
         } catch (err) {
-          configView[k] = { value: daemon.config.get(k, undefined), source: undefined }
+          configView[k] = { value: runtime.getConfig()?.get(k, undefined), source: undefined }
         }
       }
 
@@ -242,7 +243,7 @@ export async function handleProvidersRoutes(
       }
 
       try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
+      try { await runtime.reloadConfig() } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       sendJSON(res, 200, { ok: true, updated })
       return true
@@ -285,7 +286,7 @@ export async function handleProvidersRoutes(
       }
 
       try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
+      try { await runtime.reloadConfig() } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       sendJSON(res, 200, { ok: true, removed })
       return true
@@ -336,7 +337,7 @@ export async function handleProvidersRoutes(
       }
 
       try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
+      try { await runtime.reloadConfig() } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
       sendJSON(res, 200, { ok: true, updated })
       return true
@@ -405,24 +406,15 @@ export async function handleProvidersRoutes(
       }
 
       try { if (typeof layered?.persistOverrides === 'function') await layered.persistOverrides() } catch (err) { deps.logger.warn('Failed to persist config overrides', { error: String(err) }); }
-      try { if (typeof daemon.reload === 'function') await daemon.reload(); else daemon.bus.emit({ type: 'config:reloaded' }) } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
+      try { await runtime.reloadConfig() } catch (err) { deps.logger.warn('Failed to reload daemon config', { error: String(err) }); }
 
-      const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
-      if (!providersMap) {
+      const metrics = runtime.getProviderMetrics()
+      if (metrics.providers.length === 0) {
         sendJSON(res, 503, { error: 'providers not initialised' })
         return true
       }
 
-      const providerMetrics: Array<{ id: string; metrics: any }> = []
-      let globalConfig: any = null
-      for (const [id, prov] of providersMap) {
-        let metrics = null
-        try { metrics = typeof prov.getMetrics === 'function' ? prov.getMetrics() : null } catch (err) { deps.logger.debug('Failed to get provider metrics', { providerId: id, error: String(err) }); }
-        providerMetrics.push({ id, metrics })
-        if (!globalConfig && metrics?.globalConfig) globalConfig = metrics.globalConfig
-      }
-
-      sendJSON(res, 200, { ok: true, updated, metrics: { global: globalConfig ?? null, providers: providerMetrics } })
+      sendJSON(res, 200, { ok: true, updated, metrics })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -438,7 +430,7 @@ export async function handleProvidersRoutes(
       const resetErrors = body?.resetErrors !== false
       const resetRateLimits = body?.resetRateLimits === true
 
-      const providersMap: Map<string, any> | undefined = (daemon.pipeline && (daemon.pipeline as any).providers) || (daemon.providers as any) || undefined
+      const providersMap = runtime.getProviders()
       if (!providersMap) {
         sendJSON(res, 503, { error: 'providers not initialised' })
         return true

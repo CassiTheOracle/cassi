@@ -41,7 +41,6 @@ async function getRegistry(daemon: any, logger: ILogger): Promise<GlobalBlackboa
   }
 }
 
-// ─── Route Handler ────────────────────────────────────────────────────────────
 
 export async function handleBlackboardRoutes(
   deps: BlackboardDeps,
@@ -53,7 +52,6 @@ export async function handleBlackboardRoutes(
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
   const parts = url.pathname.replace(/^\//, '').split('/')
 
-  // ─── /blackboard/global/* ─────────────────────────────────────────────────
 
   if (parts[0] === 'blackboard' && parts[1] === 'global') {
     const registry = await getRegistry(daemon, logger)
@@ -146,7 +144,6 @@ export async function handleBlackboardRoutes(
     }
   }
 
-  // ─── /lumen/:sessionId/blackboard ─────────────────────────────────────────
 
   if (parts[0] === 'lumen' && parts[1] && parts[2] === 'blackboard') {
     if (method !== 'GET') return false
@@ -178,7 +175,6 @@ export async function handleBlackboardRoutes(
     }
   }
 
-  // ─── /dyad/:sessionId/blackboard ──────────────────────────────────────────
 
   if (parts[0] === 'dyad' && parts[1] && parts[2] === 'blackboard') {
     if (method !== 'GET') return false

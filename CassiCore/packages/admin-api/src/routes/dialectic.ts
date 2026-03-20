@@ -3,8 +3,10 @@ import { assembleContext } from '../intelligence/context-assembler.js'
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
+import type { AdminRuntimeFacade } from './runtime.js'
+
 export interface DialecticRoutesDeps {
-  daemon: any
+  runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
   parseBody: (req: http.IncomingMessage) => Promise<any>
@@ -18,7 +20,7 @@ export async function handleDialecticRoutes(
   res: http.ServerResponse,
   method: string
 ): Promise<boolean> {
-  const { daemon, sendJSON, parseBody, url, parts } = deps
+  const { runtime, sendJSON, parseBody, url, parts } = deps
 
   if (parts[0] !== 'dialectic') return false
 
@@ -27,7 +29,7 @@ export async function handleDialecticRoutes(
     const sessionId = parts[1]
     const limit = parseInt(url.searchParams.get('limit') || '10', 10)
     try {
-      const history = await daemon.intelligence?.dialectic?.getRecent?.(sessionId, limit) ?? []
+      const history = await runtime.getIntelligence()?.dialectic?.getRecent?.(sessionId, limit) ?? []
       sendJSON(res, 200, { sessionId, history })
       return true
     } catch (err) {
@@ -40,7 +42,7 @@ export async function handleDialecticRoutes(
   if (parts.length === 3 && parts[2] === 'stats' && method === 'GET') {
     const sessionId = parts[1]
     try {
-      const stats = await daemon.intelligence?.dialectic?.getStats?.(sessionId) ?? {
+      const stats = await runtime.getIntelligence()?.dialectic?.getStats?.(sessionId) ?? {
         totalTurns: 0, signalsGenerated: 0, signalsInjected: 0, avgLatencyMs: 0, totalCostUsd: 0
       }
       sendJSON(res, 200, { sessionId, stats })
@@ -60,10 +62,10 @@ export async function handleDialecticRoutes(
 
       const ctxObj = await assembleContext(
         {
-          memory: daemon.intelligence?.memory,
-          sessionManager: daemon.sessions,
-          getPipeline: () => daemon.pipeline,
-          logger: daemon.logger,
+          memory: runtime.getIntelligence()?.memory,
+          sessionManager: runtime.getLegacySessionStore(),
+          getPipeline: () => runtime.getPipeline(),
+          logger: runtime.logger,
         },
         {
           sessionId,
@@ -78,7 +80,7 @@ export async function handleDialecticRoutes(
       )
 
       const turnId = `admin-think-${Date.now()}`
-      const dialectic = daemon.intelligence?.dialectic
+      const dialectic = runtime.getIntelligence()?.dialectic
       if (!dialectic) {
         sendJSON(res, 503, { error: 'dialectic not available' })
         return true
@@ -86,7 +88,7 @@ export async function handleDialecticRoutes(
 
       const promise = dialectic.processTurn(sessionId || `admin-session-${Date.now()}`, turnId, query || '', ctxObj)
       if (wait === false) {
-        promise.catch((e: any) => daemon.logger?.warn?.('admin: background dialectic failed', { error: String(e) }))
+        promise.catch((e: any) => runtime.logger?.warn?.('admin: background dialectic failed', { error: String(e) }))
         sendJSON(res, 200, { ok: true, message: 'Dialectic triggered (async)' })
         return true
       }

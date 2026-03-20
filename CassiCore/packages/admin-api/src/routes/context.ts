@@ -1,10 +1,12 @@
 import { assembleContext } from '../intelligence/context-assembler.js'
 
+import type { AdminRuntimeFacade } from './runtime.js'
+
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
 export interface ContextRoutesDeps {
-  daemon: any
+  runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
   parseBody: (req: http.IncomingMessage) => Promise<any>
@@ -18,7 +20,7 @@ export async function handleContextRoutes(
   method: string,
   pathname: string
 ): Promise<boolean> {
-  const { daemon, sendJSON, parseBody, parts } = deps
+  const { runtime, sendJSON, parseBody, parts } = deps
 
   // GET /context
   if (method === 'GET' && pathname === '/context') {
@@ -45,10 +47,10 @@ export async function handleContextRoutes(
 
       const ctxObj = await assembleContext(
         {
-          memory: daemon.intelligence?.memory,
-          sessionManager: daemon.sessions,
-          getPipeline: () => daemon.pipeline,
-          logger: daemon.logger,
+          memory: runtime.getIntelligence()?.memory,
+          sessionManager: runtime.getLegacySessionStore(),
+          getPipeline: () => runtime.getPipeline(),
+          logger: runtime.logger,
         },
         {
           sessionId,
@@ -89,7 +91,7 @@ export async function handleContextRoutes(
   if (method === 'GET' && parts[0] === 'context' && parts.length === 2) {
     try {
       const sessionId = parts[1]
-      const cm = (daemon.intelligence as any)?.contextManager
+      const cm = runtime.getIntelligence()?.contextManager as any
       if (!cm || typeof cm.getEffectiveContext !== 'function') {
         sendJSON(res, 503, { error: 'context manager not available' })
         return true
@@ -118,7 +120,7 @@ export async function handleContextRoutes(
         return true
       }
 
-      const contextWindow = (daemon as any).contextWindow
+      const contextWindow = runtime.getContextWindow()
       if (!contextWindow || typeof contextWindow.buildForOpenCode !== 'function') {
         sendJSON(res, 503, { error: 'IntelligentContextWindow not available' })
         return true
@@ -154,7 +156,7 @@ export async function handleContextRoutes(
         return true
       }
 
-      const contextWindow = (daemon as any).contextWindow
+      const contextWindow = runtime.getContextWindow()
       if (!contextWindow || typeof contextWindow.scoreForOpenCode !== 'function') {
         sendJSON(res, 503, { error: 'IntelligentContextWindow not available (scoreForOpenCode)' })
         return true
@@ -187,7 +189,7 @@ export async function handleContextRoutes(
   if (method === 'GET' && parts[0] === 'context' && parts[1] === 'inject' && parts.length === 3) {
     try {
       const sessionId = parts[2]
-      const aggregator = (daemon.intelligence as any)?.injectionAggregator
+      const aggregator = runtime.getIntelligence()?.injectionAggregator as any
       if (!aggregator || typeof aggregator.aggregateForExternal !== 'function') {
         sendJSON(res, 503, { error: 'InjectionAggregator not available' })
         return true
@@ -213,7 +215,7 @@ export async function handleContextRoutes(
         return true
       }
 
-      const indexer = (daemon.intelligence as any)?.memory?.sessionIndexer
+      const indexer = runtime.getIntelligence()?.memory?.sessionIndexer as any
       if (!indexer || typeof indexer.indexSession !== 'function') {
         sendJSON(res, 503, { error: 'SessionIndexer not available' })
         return true
@@ -246,7 +248,7 @@ export async function handleContextRoutes(
   if (method === 'GET' && parts[0] === 'context' && parts[1] === 'assess' && parts.length === 3) {
     try {
       const sessionId = parts[2]
-      const optimizer = (daemon.intelligence as any)?.optimizer
+      const optimizer = runtime.getIntelligence()?.optimizer as any
       
       // Default recommendation: let scored selection handle it
       let decision = 'select' as 'select' | 'summarize' | 'reset'

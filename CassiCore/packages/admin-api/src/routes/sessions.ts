@@ -1,10 +1,10 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
-import { executeTurn, resolveStreamSessionId } from './turn-routing.js'
+import type { AdminRuntimeFacade } from './runtime.js'
 
 export interface SessionsRoutesDeps {
-  daemon: any
+  runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
   parseBody: (req: http.IncomingMessage) => Promise<any>
@@ -14,6 +14,14 @@ export interface SessionsRoutesDeps {
   currentTcpPort: number
 }
 
+/**
+ * @dep callers: admin-turn-routing.test.ts (tests/admin-turn-routing.test.ts), handler (core/admin-api.ts)
+ * @dep calls: end, on, emit, off, get [+20]
+ * @dep flows: HandleSessionsRoutes → Now (1/4), HandleSessionsRoutes → End (1/4), HandleSessionsRoutes → ResolveSessionPipelineSessionId (1/4) [+2]
+ * @dep module: Admin-api
+ * @dep risk: HIGH | 2 callers, 5 flows, 1 module
+ */
+
 export async function handleSessionsRoutes(
   deps: SessionsRoutesDeps,
   req: http.IncomingMessage,
@@ -22,7 +30,7 @@ export async function handleSessionsRoutes(
   pathname: string,
   parts: string[]
 ): Promise<boolean> {
-  const { daemon, logger, sendJSON, parseBody, getFirstUserMessage, getLastUserMessage } = deps
+  const { runtime, logger, sendJSON, parseBody, getFirstUserMessage, getLastUserMessage } = deps
 
   if (parts[0] !== 'sessions') return false
 
@@ -45,10 +53,10 @@ export async function handleSessionsRoutes(
       const channelId = body?.channelId || 'channel:cli'
       const senderId = body?.senderId || sessionId
 
-      if ((daemon as any).sessionPipeline) {
+      if (runtime.preferredTurnEngine() === 'session-pipeline') {
         logger.info(`Processing turn`, { sessionId: sessionId.slice(0, 8) })
         const startTime = Date.now()
-        const result = await executeTurn(daemon, {
+        const result = await runtime.executeTurn({
           requestedSessionId: sessionId,
           channelId,
           senderId,
@@ -71,7 +79,7 @@ export async function handleSessionsRoutes(
         return true
       }
 
-      if (!daemon.pipeline) {
+      if (!runtime.getPipeline()) {
         sendJSON(res, 503, { error: 'pipeline not ready' })
         return true
       }
@@ -88,39 +96,28 @@ export async function handleSessionsRoutes(
 
       // Build session config — only include fields that are explicitly provided
       // so undefined values don't override SessionManager defaults (e.g. systemPrompt)
-      const sessionCfg: Record<string, unknown> = {
-        model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
-        thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
-      }
-      if (body?.systemPrompt) sessionCfg.systemPrompt = body.systemPrompt
-
-      const session = daemon.sessions.getOrCreateById(
+      const session = runtime.getLegacySession({
         sessionId,
-        inbound.channelId,
-        inbound.senderId,
-        sessionCfg as any,
-      )
+        channelId: inbound.channelId,
+        senderId: inbound.senderId,
+        model: body?.model,
+        thinking: body?.thinking,
+        systemPrompt: body?.systemPrompt,
+      })
 
       let dialecticResult: any = null
-      const dialecticEnabled = body?.dialectic !== false && daemon.intelligence?.dialectic
+      const dialecticEnabled = body?.dialectic !== false && runtime.getIntelligence()?.dialectic
 
       if (dialecticEnabled) {
         try {
-          const dialectic = daemon.intelligence.dialectic
-          const context = {
-            recentMemories: [],
-            availableTools: Object.keys(daemon.toolRegistry?.getAll?.() || {}),
-            sessionHistory: session.history,
-            taskGuide: body?.taskGuide || `Process user message: ${content.slice(0, 100)}...`,
-          }
-
-          dialecticResult = await dialectic.processTurn(
+          dialecticResult = await runtime.runLegacyDialectic({
             sessionId,
-            inbound.id,
+            turnId: inbound.id,
             content,
-            context,
-            { mode: body?.dialecticMode || 'parallel' }
-          )
+            sessionHistory: session.history,
+            taskGuide: body?.taskGuide,
+            dialecticMode: body?.dialecticMode,
+          })
         } catch (dialecticErr) {
           logger.warn(`dialectic error: ${String(dialecticErr)}`)
         }
@@ -128,7 +125,7 @@ export async function handleSessionsRoutes(
 
       let result: any
       try {
-        result = await daemon.pipeline.process(inbound)
+        result = await runtime.getPipeline().process(inbound)
       } catch (pipelineErr) {
         logger.error(`pipeline.process failed: ${String(pipelineErr)}`)
         throw pipelineErr
@@ -178,12 +175,11 @@ export async function handleSessionsRoutes(
 
     // Session pipeline streaming path — per-token streaming supported for all channels
     const earlyBody = await parseBody(req)
-    const hasPipeline = !!(daemon as any).sessionPipeline
-    if (hasPipeline) {
-      return await handleSseStream(daemon, logger, sendJSON, res, req, sessionId, async () => earlyBody)
+    if (runtime.preferredTurnEngine() === 'session-pipeline') {
+      return await handleSseStream(runtime, logger, sendJSON, res, req, sessionId, async () => earlyBody)
     }
 
-    if (!daemon.pipeline) {
+    if (!runtime.getPipeline()) {
       logger.error('SSE stream rejected: pipeline not ready')
       sendJSON(res, 503, { error: 'pipeline not ready' })
       return true
@@ -212,7 +208,6 @@ export async function handleSessionsRoutes(
     let responseEnded = false
     let streamCompleted = false
 
-    // ── Backpressure state ──────────────────────────────────────────────
     let paused = false
     let pausedSince = 0
     const BACKPRESSURE_TIMEOUT_MS = 5_000
@@ -293,39 +288,28 @@ export async function handleSessionsRoutes(
 
       // Build session config — only include fields that are explicitly provided
       // so undefined values don't override SessionManager defaults (e.g. systemPrompt)
-      const sessionCfg: Record<string, unknown> = {
-        model: body?.model || daemon.config?.get?.('session.model', 'kimi-coding/k2p5'),
-        thinking: body?.thinking || daemon.config?.get?.('session.thinking', 'high'),
-      }
-      if (body?.systemPrompt) sessionCfg.systemPrompt = body.systemPrompt
-
-      const session = daemon.sessions.getOrCreateById(
+      const session = runtime.getLegacySession({
         sessionId,
-        inbound.channelId,
-        inbound.senderId,
-        sessionCfg as any,
-      )
+        channelId: inbound.channelId,
+        senderId: inbound.senderId,
+        model: body?.model,
+        thinking: body?.thinking,
+        systemPrompt: body?.systemPrompt,
+      })
 
       let dialecticResult: any = null
-      const dialecticEnabled = body?.dialectic !== false && daemon.intelligence?.dialectic
+      const dialecticEnabled = body?.dialectic !== false && runtime.getIntelligence()?.dialectic
 
       if (dialecticEnabled) {
         try {
-          const dialectic = daemon.intelligence.dialectic
-          const context = {
-            recentMemories: [],
-            availableTools: Object.keys(daemon.toolRegistry?.getAll?.() || {}),
-            sessionHistory: session.history,
-            taskGuide: body?.taskGuide || `Process user message: ${content.slice(0, 100)}...`,
-          }
-
-          dialecticResult = await dialectic.processTurn(
+          dialecticResult = await runtime.runLegacyDialectic({
             sessionId,
-            inbound.id,
+            turnId: inbound.id,
             content,
-            context,
-            { mode: body?.dialecticMode || 'parallel' }
-          )
+            sessionHistory: session.history,
+            taskGuide: body?.taskGuide,
+            dialecticMode: body?.dialecticMode,
+          })
 
           if (dialecticResult.yang?.branches?.length > 0) {
             for (const branch of dialecticResult.yang.branches) {
@@ -378,7 +362,7 @@ export async function handleSessionsRoutes(
         }
       }
 
-      daemon.bus.on('worker:message', onWorkerMessage)
+      runtime.bus.on('worker:message', onWorkerMessage)
 
       // STREAMING FIX: Also attach a direct callback to the inbound message
       // so the pipeline can push events without going through the event bus.
@@ -400,7 +384,7 @@ export async function handleSessionsRoutes(
       logger.info(`Calling pipeline.process for session ${sessionId.slice(0,8)}...`)
 
       try {
-        const result = await daemon.pipeline.process(inbound)
+        const result = await runtime.getPipeline().process(inbound)
 
         logger.info(`SSE stream completed: ${tokenCount} tokens sent, response=${result?.response?.slice(0, 50)}...`)
 
@@ -430,7 +414,7 @@ export async function handleSessionsRoutes(
           streamCompleted = true
         }
       } finally {
-        daemon.bus.off('worker:message', onWorkerMessage)
+        runtime.bus.off('worker:message', onWorkerMessage)
       }
     } catch (err) {
       logger.error(`stream turn error: ${String(err)}`)
@@ -446,7 +430,7 @@ export async function handleSessionsRoutes(
   // DELETE /sessions/:id
   if (parts.length === 2 && method === 'DELETE') {
     const sessionId = parts[1]
-    daemon.sessions.delete(sessionId)
+    runtime.getLegacySessionStore().delete(sessionId)
     sendJSON(res, 200, { ok: true, deleted: 1 })
     return true
   }
@@ -463,13 +447,13 @@ export async function handleSessionsRoutes(
     let deleted = 0
 
     if (body?.all) {
-      deleted = daemon.sessions.pruneAll()
+      deleted = runtime.getLegacySessionStore().pruneAll()
     } else if (body?.channelId) {
-      deleted = daemon.sessions.pruneByChannelId(body.channelId)
+      deleted = runtime.getLegacySessionStore().pruneByChannelId(body.channelId)
     } else if (body?.emptyOnly) {
-      deleted = daemon.sessions.pruneEmpty()
+      deleted = runtime.getLegacySessionStore().pruneEmpty()
     } else if (typeof body?.olderThanDays === 'number') {
-      deleted = daemon.sessions.pruneOlderThan(body.olderThanDays)
+      deleted = runtime.getLegacySessionStore().pruneOlderThan(body.olderThanDays)
     } else {
       sendJSON(res, 400, {
         error: 'Provide one of: all, olderThanDays, channelId, emptyOnly',
@@ -485,7 +469,7 @@ export async function handleSessionsRoutes(
   // Used by webui BFF to populate Agno-compatible session runs.
   if (parts.length === 3 && parts[2] === 'messages' && method === 'GET') {
     const sessionId = parts[1]
-    const session = daemon.sessions.get(sessionId)
+    const session = runtime.getLegacySessionStore().get(sessionId)
     if (!session) {
       sendJSON(res, 404, { error: 'session not found' })
       return true
@@ -503,7 +487,7 @@ export async function handleSessionsRoutes(
   // GET /sessions/:id
   if (parts.length === 2 && method === 'GET') {
     const sessionId = parts[1]
-    const session = daemon.sessions.get(sessionId)
+    const session = runtime.getLegacySessionStore().get(sessionId)
     if (!session) {
       sendJSON(res, 404, { error: 'session not found' })
       return true
@@ -529,7 +513,7 @@ export async function handleSessionsRoutes(
     const url = new URL(req.url ?? '/', `http://localhost`)
     const projectPathFilter = url.searchParams.get('projectPath') ?? null
 
-    let sessions = daemon.sessions.list()
+    let sessions = runtime.getLegacySessionStore().list()
       .map((s: any) => ({
         id: s.id,
         channelId: s.channelId,
@@ -579,7 +563,7 @@ export async function handleSessionsRoutes(
     const sessionId: string = body?.sessionId ?? `webui-${randomUUID()}`
 
     try {
-      const session = daemon.sessions.getOrCreateById(
+      const session = runtime.getLegacySessionStore().getOrCreateById(
         sessionId,
         channelId,
         senderId,
@@ -647,8 +631,8 @@ export async function handleSessionsRoutes(
 
     try {
       // Emit thinking chunk on the event bus — ThoughtObserver will pick it up
-      if (daemon.bus) {
-        daemon.bus.emit({
+      if (runtime.bus) {
+        runtime.bus.emit({
           type: 'worker:message',
           pluginId: `session:${sessionId}`,
           payload: {
@@ -660,7 +644,7 @@ export async function handleSessionsRoutes(
       }
 
       // Extract signals synchronously for immediate return
-      const thoughtObserver = daemon.intelligence?.thoughtObserver
+      const thoughtObserver = runtime.getIntelligence()?.thoughtObserver
       const signals = thoughtObserver?.extractSignalsFromText?.(text.trim()) ?? []
       await thoughtObserver?.storeSignals?.(sessionId, signals)
 
@@ -711,7 +695,7 @@ export async function handleSessionsRoutes(
     const source: string = body?.source || 'api'
 
     try {
-      daemon.bus.emit({
+      runtime.bus.emit({
         type: 'user:mid-turn-message',
         sessionId,
         content,
@@ -766,8 +750,8 @@ export async function handleSessionsRoutes(
         return true
       }
 
-      const session = daemon.sessions.get(sessionId)
-      const intelligence = daemon.intelligence ?? (daemon as any).intelligence
+      const session = runtime.getLegacySessionStore().get(sessionId)
+      const intelligence = runtime.getIntelligence()
       const ctx = {
         channel: 'api' as const,
         userId: session?.senderId ?? 'webui-user',
@@ -802,9 +786,14 @@ export async function handleSessionsRoutes(
 
 /**
  * Handle SSE streaming for session pipeline
+ * @dep callers: handleSessionsRoutes (core/admin-api/sessions.ts)
+ * @dep calls: end, on, off, sendJSON, parseBody [+4]
+ * @dep flows: HandleSessionsRoutes → Now (2/4), HandleSessionsRoutes → End (2/4), HandleSessionsRoutes → ResolveSessionPipelineSessionId (2/4) [+1]
+ * @dep module: Admin-api
+ * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
  */
 async function handleSseStream(
-  daemon: any,
+  runtime: AdminRuntimeFacade,
   logger: ILogger,
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void,
   res: http.ServerResponse,
@@ -835,7 +824,6 @@ async function handleSseStream(
   let responseEnded = false
   let streamCompleted = false
 
-  // ── Backpressure state ────────────────────────────────────────────────
   let paused = false
   let pausedSince = 0
   const BACKPRESSURE_TIMEOUT_MS = 5_000
@@ -910,7 +898,7 @@ async function handleSseStream(
     // The session pipeline generates internal IDs as a deterministic hash of
     // channelId:senderId. We need this to filter streaming events correctly,
     // since the URL sessionId parameter may differ from the internal ID.
-    const internalSessionId = resolveStreamSessionId(daemon, sessionId, channelId, senderId)
+    const internalSessionId = runtime.resolveStreamSessionId(sessionId, channelId, senderId)
 
     // Set up event listener BEFORE calling processMessage to avoid race conditions
     let tokenCount = 0
@@ -938,10 +926,10 @@ async function handleSseStream(
       }
     }
 
-    daemon.bus.on('worker:message', onWorkerMessage)
+    runtime.bus.on('worker:message', onWorkerMessage)
 
     try {
-      const result = await executeTurn(daemon, {
+      const result = await runtime.executeTurn({
         requestedSessionId: sessionId,
         channelId,
         senderId,
@@ -977,7 +965,7 @@ async function handleSseStream(
         streamCompleted = true
       }
     } finally {
-      daemon.bus.off('worker:message', onWorkerMessage)
+      runtime.bus.off('worker:message', onWorkerMessage)
     }
   } catch (err) {
     logger.error(`Stream turn error: ${String(err)}`)

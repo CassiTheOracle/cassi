@@ -36,7 +36,6 @@ export async function handleDreamerRoutes(
   const dreamer = daemon?.intelligence?.dreamer
   const memory = daemon?.intelligence?.memory
 
-  // ── GET /dreamer/status ───────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/dreamer/status') {
     if (!dreamer) {
       sendJSON(res, 503, { error: 'Dreamer module not available' })
@@ -50,7 +49,6 @@ export async function handleDreamerRoutes(
     return true
   }
 
-  // ── GET /dreamer/history ──────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/dreamer/history') {
     if (!dreamer) {
       sendJSON(res, 503, { error: 'Dreamer module not available' })
@@ -66,7 +64,6 @@ export async function handleDreamerRoutes(
     return true
   }
 
-  // ── POST /dreamer/trigger ─────────────────────────────────────────────────
   if (method === 'POST' && pathname === '/dreamer/trigger') {
     if (!dreamer) {
       sendJSON(res, 503, { error: 'Dreamer module not available' })
@@ -93,7 +90,6 @@ export async function handleDreamerRoutes(
     return true
   }
 
-  // ── GET /dreamer/insights ─────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/dreamer/insights') {
     if (!memory) {
       sendJSON(res, 503, { error: 'Memory module not available' })
@@ -124,7 +120,6 @@ export async function handleDreamerRoutes(
     return true
   }
 
-  // ── GET /memory/deep-archive ──────────────────────────────────────────────
   if (method === 'GET' && pathname === '/memory/deep-archive') {
     if (!memory) {
       sendJSON(res, 503, { error: 'Memory module not available' })

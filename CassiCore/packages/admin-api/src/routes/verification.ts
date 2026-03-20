@@ -40,7 +40,6 @@ export async function handleVerificationRoutes(
 ): Promise<boolean> {
   const { logger, sendJSON, parseBody, url, pathname } = deps
 
-  // ── POST /verify/run ──────────────────────────────────────────────────────
   if (method === 'POST' && pathname === '/verify/run') {
     try {
       const body = await parseBody(req)
@@ -95,13 +94,11 @@ export async function handleVerificationRoutes(
     }
   }
 
-  // ── GET /verify/scenarios ─────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/verify/scenarios') {
     sendJSON(res, 200, { scenarios: listScenarios() })
     return true
   }
 
-  // ── POST /verify/snapshot ─────────────────────────────────────────────────
   if (method === 'POST' && pathname === '/verify/snapshot') {
     try {
       const body = await parseBody(req)
@@ -130,7 +127,6 @@ export async function handleVerificationRoutes(
     }
   }
 
-  // ── POST /verify/diff ─────────────────────────────────────────────────────
   if (method === 'POST' && pathname === '/verify/diff') {
     try {
       const body = await parseBody(req)
@@ -178,7 +174,6 @@ export async function handleVerificationRoutes(
     }
   }
 
-  // ── GET /verify/events ────────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/verify/events') {
     try {
       const sessionId = url.searchParams.get('sessionId')
@@ -229,7 +224,6 @@ export async function handleVerificationRoutes(
     }
   }
 
-  // ── POST /verify/replay ───────────────────────────────────────────────────
   if (method === 'POST' && pathname === '/verify/replay') {
     try {
       const body = await parseBody(req)

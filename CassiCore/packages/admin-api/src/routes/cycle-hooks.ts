@@ -11,6 +11,14 @@ export interface CycleHooksRoutesDeps {
   pathname: string
 }
 
+/**
+ * @dep callers: handler (core/admin-api.ts)
+ * @dep calls: getMentalModel, searchArchives, getArchiveById, getConversationWithThinking, unresolved [+23]
+ * @dep flows: HandleCycleHooksRoutes → Now (1/3), HandleCycleHooksRoutes → GetPercentiles (1/3)
+ * @dep module: Intelligence
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
+
 export async function handleCycleHooksRoutes(
   deps: CycleHooksRoutesDeps,
   req: http.IncomingMessage,

@@ -37,6 +37,9 @@ import { handleDyadRoutes } from './admin-api/dyad.js'
 import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { handleBlackboardRoutes } from './admin-api/blackboard.js'
+import { handleTrainingRoutes } from './admin-api/training.js'
+import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
+import { createAdminRuntimeFacade } from './admin-api/runtime.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
 import { createToolsApi } from './tools-api.js'
@@ -88,7 +91,15 @@ interface SessionHierarchyEntry {
   durationMs?: number
 }
 
+/**
+ * @dep callers: admin-model-api.test.ts (tests/admin-model-api.test.ts), admin-observability-boot.test.ts (tests/admin-observability-boot.test.ts), team-sse.test.ts (tests/team-sse.test.ts), start (core/daemon.ts)
+ * @dep calls: get, createAdminRuntimeFacade
+ * @dep module: Admin-api
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 export function createAdminApi(daemon: any, logger: ILogger) {
+  const runtime = createAdminRuntimeFacade(daemon)
   const unixPath = path.join(os.homedir(), '.cassicore', 'admin.sock')
   const tcpHost = (daemon?.config?.get?.('admin.host', '127.0.0.1')) ?? '127.0.0.1'
   const baseTcpPort = Number(daemon?.config?.get?.('admin.port', 7433)) || 7433
@@ -99,13 +110,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   const wsConnections = new Map<string, WSConnection>()
   let wsConnectionId = 0
 
-  // ── OpenCode conversation history store ──────────────────────────────────
   // Tracks ingested user/assistant messages per OpenCode session so we can
   // assemble a PREVIOUS CONTEXT block without needing the session manager.
   interface OcMessage { role: 'user' | 'assistant'; content: string; timestamp: number; importance: number }
   const ocConversationHistory = new Map<string, OcMessage[]>()
 
-  // ── Importance scoring ─────────────────────────────────────────────────
   // Fast heuristic importance scorer — no LLM call, runs synchronously.
   // Returns 0–1; higher = more important to preserve in context.
   const DECISION_PATTERNS = /\b(decided|decision|let'?s use|we'?ll go with|the fix is|solution is|approach is|plan is|agreed|choosing|switched to|changed to|replaced|we should|must|critical)\b/i
@@ -136,7 +145,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return Math.min(score, 1.0)
   }
 
-  // ── Topic extraction ───────────────────────────────────────────────────
   // Extracts focus topics from recent conversation messages using keyword
   // frequency. No LLM call — fast enough to run on every /context request.
   const STOP_WORDS = new Set([
@@ -182,7 +190,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       .map(([term]) => term)
   }
 
-  // ── File path extraction ───────────────────────────────────────────────
   // Extracts file paths mentioned in conversation for activeFiles / semantic weighting.
   const FILE_PATH_PATTERN = /(?:^|\s|['"`(])([a-zA-Z0-9_./-]+\.[a-zA-Z]{1,8})(?:\s|['"`):,]|$)/g
   const BINARY_EXTENSIONS = new Set(['png','jpg','jpeg','gif','svg','ico','woff','woff2','ttf','eot','mp3','mp4','zip','gz','tar','pdf'])
@@ -212,7 +219,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       .map(([f]) => f)
   }
 
-  // ── Episodic boundary detection ────────────────────────────────────────
   // Detects task boundaries in the conversation for PREVIOUS CONTEXT compression.
   // A boundary is signaled by:
   //  - Explicit transition phrases ("let's move on", "next task", "ok done")
@@ -860,9 +866,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return out
   }
 
-  // ---------------------------------------------------------------------------
   // Context payload helpers for GET /context endpoint
-  // ---------------------------------------------------------------------------
 
   /**
    * Map MentalModel ConversationPhase → bridge-friendly mode string.
@@ -895,7 +899,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     mode: string,
     focusTopics: string[],
   ): { aggressiveness: string; staleAfterTurns: number; keepToolOutputs: string[]; focusTopics: string[] } {
-    const keepToolOutputs = ['skill', 'cassi_activity']
+    const keepToolOutputs = ['skill', 'activity']
 
     if (turnCount < 5 || complexity < 0.2) {
       return { aggressiveness: 'none', staleAfterTurns: 50, keepToolOutputs, focusTopics }
@@ -1461,7 +1465,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
     }
 
-    // ── Inject PREVIOUS CONTEXT for OpenCode sessions ────────────────────
     // Uses episodic boundary detection + importance scoring to build a
     // compressed context block. Low-importance episodes are collapsed into
     // single-line summaries. High-importance episodes preserve individual
@@ -1786,7 +1789,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
     } catch {}
 
-    // ── Recent session recap for first-turn injection ─────────────────────
     // Includes ALL recent session digests (not just active ones) so that a
     // newly opened session can be primed with knowledge of what was worked
     // on recently.  Capped at the 10 most-recent sessions.
@@ -1891,9 +1893,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
-  // ---------------------------------------------------------------------------
   // Main request handler
-  // ---------------------------------------------------------------------------
 
   async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     if (!authOk(req)) {
@@ -1954,19 +1954,19 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleCycleHooksRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
         () => handleMultiAgentRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleDialecticControlRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method),
-        () => handleProvidersRoutes({ daemon, logger, sendJSON, parseBody, isObject, mergeDeep }, req, res, method, pathname),
+        () => handleProvidersRoutes({ runtime, logger, sendJSON, parseBody, isObject, mergeDeep }, req, res, method, pathname),
         () => handleSubagentsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleDelegationRoutes({ daemon, logger, sendJSON, parseBody, delegationTracker, subagentToTeamMap }, req, res, method, pathname),
         () => handleTeamsRoutes({ daemon, logger, sendJSON, parseBody, url, parts, sseConnections, sseConnectionId, resolveLatestTeamId, buildHandoffContext }, req, res, method),
-        () => handleSessionsRoutes({ daemon, logger, sendJSON, parseBody, getFirstUserMessage, getLastUserMessage, tcpHost, currentTcpPort }, req, res, method, pathname, parts),
+        () => handleSessionsRoutes({ runtime, logger, sendJSON, parseBody, getFirstUserMessage, getLastUserMessage, tcpHost, currentTcpPort }, req, res, method, pathname, parts),
         () => handleMemoryRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
-        () => handleDialecticRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
+        () => handleDialecticRoutes({ runtime, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleObservabilityRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
-        () => handleChatRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
-        () => handleModelsRoutes({ daemon, logger, sendJSON }, req, res, method, pathname),
+        () => handleChatRoutes({ runtime, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
+        () => handleModelsRoutes({ runtime, logger, sendJSON }, req, res, method, pathname),
         () => handleMcpRoutes({ daemon, logger, sendJSON }, req, res, method, pathname),
-        () => handleToolsRoutes({ daemon, logger, sendJSON, parseBody, pathname }, req, res, method),
-        () => handleContextRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
+        () => handleToolsRoutes({ runtime, logger, sendJSON, parseBody, pathname }, req, res, method),
+        () => handleContextRoutes({ runtime, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
         () => handlePermissionsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
@@ -1986,6 +1986,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
            },
          }, req, res, method, pathname),
          () => handleBlackboardRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleTrainingRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
+         () => handlePromptLogRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
       ]
 
       for (const routeHandler of routeHandlers) {
@@ -2080,7 +2082,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
 
       // Initialize WebSocket handler for /ws endpoint
-      // TODO: WebSocket support pending implementation (Lumen design complete, see /tmp/lumen-ws-design.json)
+      // HOW: WebSocket support pending implementation (Lumen design complete, see /tmp/lumen-ws-design.json)
 
       logger.info('context available via GET /context on unix socket')
 

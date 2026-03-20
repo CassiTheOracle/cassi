@@ -9,9 +9,22 @@ export interface ConfigRoutesDeps {
 }
 
 // Helper: shallow/object checks and deep merge for nested object merges
+/**
+ * @dep callers: handleConfigRoutes (core/admin-api/config.ts), mergeDeep (core/admin-api/config.ts)
+ * @dep module: Admin-api
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
+
+/**
+ * @dep callers: handleConfigRoutes (core/admin-api/config.ts), mergeDeep (core/admin-api/config.ts)
+ * @dep calls: isObject, mergeDeep
+ * @dep module: Admin-api
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function mergeDeep(target: any, src: any): any {
   if (!isObject(target) || !isObject(src)) return src

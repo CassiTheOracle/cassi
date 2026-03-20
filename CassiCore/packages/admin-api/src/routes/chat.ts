@@ -1,16 +1,24 @@
 import { getModelSpec } from '../config/system-settings.js'
-import { cancelTurn, executeTurn, getPreferredTurnEngine, resolveStreamSessionId } from './turn-routing.js'
+
+import type { AdminRuntimeFacade } from './runtime.js'
 
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
 export interface ChatRoutesDeps {
-  daemon: any
+  runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
   parseBody: (req: http.IncomingMessage) => Promise<any>
   parts: string[]
 }
+
+/**
+ * @dep callers: admin-turn-routing.test.ts (tests/admin-turn-routing.test.ts), handler (core/admin-api.ts)
+ * @dep calls: on, emit, off, sendJSON, parseBody [+4]
+ * @dep module: Admin-api
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export async function handleChatRoutes(
   deps: ChatRoutesDeps,
@@ -19,7 +27,7 @@ export async function handleChatRoutes(
   method: string,
   pathname: string
 ): Promise<boolean> {
-  const { daemon, logger, sendJSON, parseBody, parts } = deps
+  const { runtime, logger, sendJSON, parseBody, parts } = deps
 
   if (parts[0] !== 'chat') return false
 
@@ -33,7 +41,7 @@ export async function handleChatRoutes(
 
     const channelId = 'channel:cli'
     const senderId = sessionId
-    const streamSessionId = resolveStreamSessionId(daemon, sessionId, channelId, senderId)
+    const streamSessionId = runtime.resolveStreamSessionId(sessionId, channelId, senderId)
 
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
@@ -65,7 +73,7 @@ export async function handleChatRoutes(
       }
     }
 
-    daemon.bus.on('worker:message', busHandler)
+    runtime.bus.on('worker:message', busHandler)
 
     const ping = setInterval(() => {
       try { res.write(': ping\n\n') } catch { clearInterval(ping) }
@@ -74,7 +82,7 @@ export async function handleChatRoutes(
 
     req.on('close', () => {
       clearInterval(ping)
-      daemon.bus.off('worker:message', busHandler)
+      runtime.bus.off('worker:message', busHandler)
     })
 
     return true
@@ -88,7 +96,7 @@ export async function handleChatRoutes(
       return true
     }
 
-    const engine = getPreferredTurnEngine(daemon)
+    const engine = runtime.preferredTurnEngine()
     if (!engine) {
       sendJSON(res, 503, { error: 'pipeline not ready' })
       return true
@@ -102,15 +110,15 @@ export async function handleChatRoutes(
     }
 
     try {
-      void executeTurn(daemon, {
+      void runtime.executeTurn({
         requestedSessionId: sessionId,
         channelId: 'channel:cli',
         senderId: sessionId,
         content,
       }).then((result) => {
-        daemon.bus.emit({ type: 'turn:end', sessionId: result.sessionId, response: result.response, durationMs: result.durationMs ?? 0 })
+        runtime.bus.emit({ type: 'turn:end', sessionId: result.sessionId, response: result.response, durationMs: result.durationMs ?? 0 })
       }).catch((err: any) => {
-        daemon.logger?.error?.(`pipeline error: ${String(err)}`)
+        runtime.logger?.error?.(`pipeline error: ${String(err)}`)
       })
 
       sendJSON(res, 200, { ok: true, sessionId, engine })
@@ -128,14 +136,14 @@ export async function handleChatRoutes(
       sendJSON(res, 400, { error: 'missing sessionId' })
       return true
     }
-    const engine = getPreferredTurnEngine(daemon)
+    const engine = runtime.preferredTurnEngine()
     if (!engine) {
       sendJSON(res, 503, { error: 'pipeline not ready' })
       return true
     }
 
     try {
-      const cancellation = cancelTurn(daemon, sessionId)
+      const cancellation = runtime.cancelTurn(sessionId)
       if (!cancellation.supported) {
         const statusCode = cancellation.engine === 'session-pipeline' ? 409 : 503
         sendJSON(res, statusCode, {
@@ -174,13 +182,13 @@ export async function handleChatRoutes(
       const sessionId = `provider-${  randomUUID()}`
       const content = messages[messages.length - 1]?.content || ''
 
-      if (!getPreferredTurnEngine(daemon)) {
+      if (!runtime.preferredTurnEngine()) {
         sendJSON(res, 503, { error: 'pipeline not ready' })
         return true
       }
 
       logger.info(`Processing provider chat for session ${sessionId}`)
-      const result = await executeTurn(daemon, {
+      const result = await runtime.executeTurn({
         requestedSessionId: sessionId,
         channelId: 'channel:cli',
         senderId: sessionId,

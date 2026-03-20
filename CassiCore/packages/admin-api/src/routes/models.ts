@@ -1,6 +1,8 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
+import type { AdminRuntimeFacade } from './runtime.js'
+
 /**
  * Maps CassiCore model IDs to their Catwalk equivalents so that the Crush fork
  * can enrich CassiCore models with Catwalk metadata (display name, context
@@ -23,7 +25,7 @@ const CATWALK_ID_MAP: Record<string, string> = {
 }
 
 export interface ModelsRoutesDeps {
-  daemon: any
+  runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
 }
@@ -35,12 +37,12 @@ export async function handleModelsRoutes(
   method: string,
   pathname: string
 ): Promise<boolean> {
-  const { daemon, sendJSON } = deps
+  const { runtime, sendJSON } = deps
 
   // GET /models
   if (method === 'GET' && pathname === '/models') {
     try {
-      const providerMap = (daemon.pipeline as any)?.providers ?? new Map(); deps.logger.info("DEBUG: providerMap size", { size: providerMap.size, keys: Array.from(providerMap.keys()) });
+      const providerMap = runtime.getProviders() ?? new Map();
       const models: any[] = []
 
       for (const [provId, prov] of providerMap.entries()) {

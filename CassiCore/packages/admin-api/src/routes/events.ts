@@ -15,6 +15,14 @@ export interface EventsRoutesDeps {
   sseConnectionId: { value: number }
 }
 
+/**
+ * @dep callers: handler (core/admin-api.ts)
+ * @dep calls: on, emit, get, onAll, getEventBus [+13]
+ * @dep flows: HandleEventsRoutes → GetTotalTokens (1/9), HandleEventsRoutes → Transaction (1/8), HandleEventsRoutes → Now (1/8) [+2]
+ * @dep module: Admin-api
+ * @dep risk: HIGH | 1 caller, 5 flows, 1 module
+ */
+
 export async function handleEventsRoutes(
   deps: EventsRoutesDeps,
   req: http.IncomingMessage,
@@ -179,7 +187,6 @@ export async function handleEventsRoutes(
       const conn = { res, sessionId: connSessionId, connectedAt: Date.now() }
       sseConnections.set(connId, conn)
 
-      // ── Per-connection monotonic event ID ─────────────────────────────
       // Hybrid format: evt_{timestamp}_{pid}_{seq} — survives process
       // restarts (different PID) and avoids Date.now() collisions at
       // high throughput (unique seq per connection).
@@ -187,7 +194,6 @@ export async function handleEventsRoutes(
       const pid = process.pid
       const nextEventId = () => `evt_${Date.now()}_${pid}_${++eventSeq}`
 
-      // ── Bounded write queue with serialization ─────────────────────
       // Instead of dropping frames on backpressure, we queue them and
       // flush in order. A sequential promise chain ensures no two
       // res.write() calls interleave (even from concurrent listeners).
@@ -242,7 +248,6 @@ export async function handleEventsRoutes(
         flushQueue()
       }
 
-      // ── Heartbeat / keepalive ──────────────────────────────────────
       // SSE comment lines (starting with ':') are ignored by parsers
       // but keep the TCP connection alive through NAT/firewalls and
       // allow the client to detect dead connections via read timeout.

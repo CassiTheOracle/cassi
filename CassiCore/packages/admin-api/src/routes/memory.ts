@@ -22,13 +22,11 @@ export async function handleMemoryRoutes(
 
   const memory = daemon.intelligence?.memory
 
-  // ── Helper: 503 if memory not available ─────────────────────────────────────
   function noMemory(): true {
     sendJSON(res, 503, { error: 'memory not available' })
     return true
   }
 
-  // ══ GET /memory/stats ═══════════════════════════════════════════════════════
   if (parts[1] === 'stats' && method === 'GET') {
     if (!memory) return noMemory()
     const memStats = await memory.stats()
@@ -38,7 +36,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ Archive routes — specific before generic /:id ════════════════════════════
 
   // POST /memory/archives/search
   if (parts[1] === 'archives' && parts[2] === 'search' && method === 'POST') {
@@ -121,7 +118,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ KV store ════════════════════════════════════════════════════════════════
 
   // GET /memory/kv/:key
   if (parts[1] === 'kv' && parts[2] && method === 'GET') {
@@ -152,7 +148,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ Session-scoped archive routes ════════════════════════════════════════════
 
   // GET /memory/session/:id/conversation
   if (parts[1] === 'session' && parts[3] === 'conversation' && method === 'GET') {
@@ -178,7 +173,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ Session Index routes ══════════════════════════════════════════════════════
 
   // GET /memory/ref/:refString  — resolve a compact ref like S0#M1.B0.P2
   if (parts[1] === 'ref' && parts[2] && method === 'GET') {
@@ -266,7 +260,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ Universal search ═════════════════════════════════════════════════════════
 
   // POST /memory/universal-search
   if (parts[1] === 'universal-search' && method === 'POST') {
@@ -281,7 +274,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ Delete a memory by ID ════════════════════════════════════════════════════
 
   // DELETE /memory/:id
   if (parts[1] && !parts[2] && method === 'DELETE') {
@@ -299,7 +291,6 @@ export async function handleMemoryRoutes(
     return true
   }
 
-  // ══ Existing routes ══════════════════════════════════════════════════════════
 
   // POST /memory/store
   if (parts[1] === 'store' && method === 'POST') {

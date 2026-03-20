@@ -33,7 +33,6 @@ export async function handlePermissionsRoutes(
 ): Promise<boolean> {
   const { daemon, logger, sendJSON, parseBody, parts } = deps
 
-  // ── Permission Oracle routes ──────────────────────────────────────────
 
   // GET /permissions/pending — list pending human approval requests
   if (parts[0] === 'permissions' && parts[1] === 'pending' && method === 'GET' && parts.length === 2) {
@@ -129,7 +128,6 @@ export async function handlePermissionsRoutes(
     return true
   }
 
-  // ── Trust Ledger routes ───────────────────────────────────────────────
 
   // GET /trust — trust summary across all domains
   if (parts[0] === 'trust' && method === 'GET' && parts.length === 1) {
@@ -168,7 +166,6 @@ export async function handlePermissionsRoutes(
     return true
   }
 
-  // ── Consequence Estimator routes ──────────────────────────────────────
 
   // GET /consequences/stats — consequence estimator statistics
   if (parts[0] === 'consequences' && parts[1] === 'stats' && method === 'GET' && parts.length === 2) {
