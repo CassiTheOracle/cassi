@@ -22,9 +22,7 @@ import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { convertResponsesMessages, convertResponsesTools, processResponsesStream } from "./openai-responses-shared.js";
 import { buildBaseOptions, clampReasoning } from "./simple-options.js";
 
-// ============================================================================
 // Configuration
-// ============================================================================
 
 const DEFAULT_CODEX_BASE_URL = "https://chatgpt.com/backend-api";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth" as const;
@@ -41,9 +39,7 @@ const CODEX_RESPONSE_STATUSES = new Set<CodexResponseStatus>([
 	"in_progress",
 ]);
 
-// ============================================================================
 // Types
-// ============================================================================
 
 export interface OpenAICodexResponsesOptions extends StreamOptions {
 	reasoningEffort?: "none" | "minimal" | "low" | "medium" | "high" | "xhigh";
@@ -70,9 +66,7 @@ interface RequestBody {
 	[key: string]: unknown;
 }
 
-// ============================================================================
 // Retry Helpers
-// ============================================================================
 
 function isRetryableError(status: number, errorText: string): boolean {
 	if (status === 429 || status === 500 || status === 502 || status === 503 || status === 504) {
@@ -95,9 +89,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 	});
 }
 
-// ============================================================================
 // Main Stream Function
-// ============================================================================
 
 export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses", OpenAICodexResponsesOptions> = (
 	model: Model<"openai-codex-responses">,
@@ -270,9 +262,15 @@ export const streamSimpleOpenAICodexResponses: StreamFunction<"openai-codex-resp
 	} satisfies OpenAICodexResponsesOptions);
 };
 
-// ============================================================================
 // Request Building
-// ============================================================================
+
+/**
+ * @dep callers: streamChatCompletion (ai/src/providers/cassicore/openai-compatible-base.ts), streamOpenAICodexResponses (ai/src/providers/openai-codex-responses.ts)
+ * @dep calls: clampReasoningEffort, convertResponsesMessages, convertResponsesTools
+ * @dep flows: StreamOpenAICodexResponses → EstimateChars (2/6), StreamOpenAICodexResponses → Now (2/5), StreamOpenAICodexResponses → SanitizeSurrogates (2/4) [+3]
+ * @dep module: Providers
+ * @dep risk: HIGH | 2 callers, 6 flows, 1 module
+ */
 
 function buildRequestBody(
 	model: Model<"openai-codex-responses">,
@@ -314,6 +312,13 @@ function buildRequestBody(
 	return body;
 }
 
+/**
+ * @dep callers: buildRequestBody (ai/src/providers/openai-codex-responses.ts)
+ * @dep flows: StreamOpenAICodexResponses → ClampReasoningEffort (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function clampReasoningEffort(modelId: string, effort: string): string {
 	const id = modelId.includes("/") ? modelId.split("/").pop()! : modelId;
 	if ((id.startsWith("gpt-5.2") || id.startsWith("gpt-5.3")) && effort === "minimal") return "low";
@@ -321,6 +326,13 @@ function clampReasoningEffort(modelId: string, effort: string): string {
 	if (id === "gpt-5.1-codex-mini") return effort === "high" || effort === "xhigh" ? "high" : "medium";
 	return effort;
 }
+
+/**
+ * @dep callers: resolveCodexWebSocketUrl (ai/src/providers/openai-codex-responses.ts), streamOpenAICodexResponses (ai/src/providers/openai-codex-responses.ts)
+ * @dep calls: trim
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function resolveCodexUrl(baseUrl?: string): string {
 	const raw = baseUrl && baseUrl.trim().length > 0 ? baseUrl : DEFAULT_CODEX_BASE_URL;
@@ -337,9 +349,7 @@ function resolveCodexWebSocketUrl(baseUrl?: string): string {
 	return url.toString();
 }
 
-// ============================================================================
 // Response Processing
-// ============================================================================
 
 async function processStream(
 	response: Response,
@@ -384,9 +394,7 @@ function normalizeCodexStatus(status: unknown): CodexResponseStatus | undefined 
 	return CODEX_RESPONSE_STATUSES.has(status as CodexResponseStatus) ? (status as CodexResponseStatus) : undefined;
 }
 
-// ============================================================================
 // SSE Parsing
-// ============================================================================
 
 async function* parseSSE(response: Response): AsyncGenerator<Record<string, unknown>> {
 	if (!response.body) return;
@@ -422,9 +430,7 @@ async function* parseSSE(response: Response): AsyncGenerator<Record<string, unkn
 	}
 }
 
-// ============================================================================
 // WebSocket Parsing
-// ============================================================================
 
 const OPENAI_BETA_RESPONSES_WEBSOCKETS = "responses_websockets=2026-02-06";
 const SESSION_WEBSOCKET_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -476,6 +482,12 @@ function isWebSocketReusable(socket: WebSocketLike): boolean {
 	// If readyState is unavailable, assume the runtime keeps it open/reusable.
 	return readyState === undefined || readyState === 1;
 }
+
+/**
+ * @dep callers: acquireWebSocket (ai/src/providers/openai-codex-responses.ts), scheduleSessionWebSocketExpiry (ai/src/providers/openai-codex-responses.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function closeWebSocketSilently(socket: WebSocketLike, code = 1000, reason = "done"): void {
 	try {
@@ -787,9 +799,7 @@ async function processWebSocketStream(
 	}
 }
 
-// ============================================================================
 // Error Handling
-// ============================================================================
 
 async function parseErrorResponse(response: Response): Promise<{ message: string; friendlyMessage?: string }> {
 	const raw = await response.text();
@@ -818,9 +828,7 @@ async function parseErrorResponse(response: Response): Promise<{ message: string
 	return { message, friendlyMessage };
 }
 
-// ============================================================================
 // Auth & Headers
-// ============================================================================
 
 function extractAccountId(token: string): string {
 	try {

@@ -15,6 +15,13 @@ import type {
 
 export { getEnvApiKey } from "./env-api-keys.js";
 
+/**
+ * @dep callers: streamSimple (ai/src/stream.ts), stream (ai/src/stream.ts)
+ * @dep calls: getApiProvider
+ * @dep module: Triad-team
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function resolveApiProvider(api: Api) {
 	const provider = getApiProvider(api);
 	if (!provider) {
@@ -22,6 +29,13 @@ function resolveApiProvider(api: Api) {
 	}
 	return provider;
 }
+
+/**
+ * @dep callers: complete (ai/src/stream.ts), stream (ai/src/stream.ts)
+ * @dep calls: resolveApiProvider, stream
+ * @dep module: Triad-team
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function stream<TApi extends Api>(
 	model: Model<TApi>,
@@ -40,6 +54,13 @@ export async function complete<TApi extends Api>(
 	const s = stream(model, context, options);
 	return s.result();
 }
+
+/**
+ * @dep callers: wrapStreamSimple (ai/src/api-registry.ts), completeSimple (ai/src/stream.ts), streamSimple (ai/src/stream.ts)
+ * @dep calls: resolveApiProvider, streamSimple
+ * @dep module: Triad-team
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 export function streamSimple<TApi extends Api>(
 	model: Model<TApi>,

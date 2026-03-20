@@ -9,6 +9,13 @@ import { streamOpenAICodexResponses, streamSimpleOpenAICodexResponses } from "./
 import { streamOpenAICompletions, streamSimpleOpenAICompletions } from "./openai-completions.js";
 import { streamOpenAIResponses, streamSimpleOpenAIResponses } from "./openai-responses.js";
 
+/**
+ * @dep callers: register-builtins.ts (ai/src/providers/register-builtins.ts), resetApiProviders (ai/src/providers/register-builtins.ts)
+ * @dep calls: registerApiProvider
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function registerBuiltInApiProviders(): void {
 	registerApiProvider({
 		api: "anthropic-messages",

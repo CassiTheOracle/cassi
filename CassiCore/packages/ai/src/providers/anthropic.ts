@@ -90,6 +90,13 @@ const claudeCodeTools = [
 const ccToolLookup = new Map(claudeCodeTools.map((t) => [t.toLowerCase(), t]));
 
 // Convert tool name to CC canonical casing if it matches (case-insensitive)
+/**
+ * @dep callers: convertTools (ai/src/providers/anthropic.ts), convertMessages (ai/src/providers/anthropic.ts)
+ * @dep calls: get
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 const toClaudeCodeName = (name: string) => ccToolLookup.get(name.toLowerCase()) ?? name;
 const fromClaudeCodeName = (name: string, tools?: Tool[]) => {
 	if (tools && tools.length > 0) {
@@ -450,6 +457,9 @@ export const streamAnthropic: StreamFunction<"anthropic-messages", AnthropicOpti
 
 /**
  * Check if a model supports adaptive thinking (Opus 4.6 and Sonnet 4.6)
+ * @dep callers: buildParams (ai/src/providers/anthropic.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function supportsAdaptiveThinking(modelId: string): boolean {
 	// Opus 4.6 and Sonnet 4.6 model IDs (with or without date suffix)

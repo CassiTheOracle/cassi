@@ -315,6 +315,13 @@ export const streamSimpleGoogleVertex: StreamFunction<"google-vertex", SimpleStr
 	} satisfies GoogleVertexOptions);
 };
 
+/**
+ * @dep callers: streamGoogleVertex (ai/src/providers/google-vertex.ts)
+ * @dep flows: StreamSimpleGoogleVertex → CreateClient (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function createClient(
 	model: Model<"google-vertex">,
 	project: string,
@@ -338,6 +345,13 @@ function createClient(
 	});
 }
 
+/**
+ * @dep callers: streamGoogleVertex (ai/src/providers/google-vertex.ts)
+ * @dep flows: StreamSimpleGoogleVertex → ResolveProject (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function resolveProject(options?: GoogleVertexOptions): string {
 	const project = options?.project || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT;
 	if (!project) {
@@ -347,6 +361,13 @@ function resolveProject(options?: GoogleVertexOptions): string {
 	}
 	return project;
 }
+
+/**
+ * @dep callers: streamGoogleVertex (ai/src/providers/google-vertex.ts)
+ * @dep flows: StreamSimpleGoogleVertex → ResolveLocation (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function resolveLocation(options?: GoogleVertexOptions): string {
 	const location = options?.location || process.env.GOOGLE_CLOUD_LOCATION;
@@ -414,6 +435,12 @@ function buildParams(
 }
 
 type ClampedThinkingLevel = Exclude<PiThinkingLevel, "xhigh">;
+
+/**
+ * @dep callers: getGemini3ThinkingLevel (ai/src/providers/google-vertex.ts), streamSimpleGoogleVertex (ai/src/providers/google-vertex.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function isGemini3ProModel(model: Model<"google-generative-ai">): boolean {
 	return model.id.includes("3-pro");

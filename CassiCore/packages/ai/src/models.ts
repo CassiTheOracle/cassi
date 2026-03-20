@@ -17,6 +17,13 @@ type ModelApi<
 	TModelId extends keyof (typeof MODELS)[TProvider],
 > = (typeof MODELS)[TProvider][TModelId] extends { api: infer TApi } ? (TApi extends Api ? TApi : never) : never;
 
+/**
+ * @dep callers: ai-model-defaults.test.ts (tests/ai-model-defaults.test.ts), fromRegistry (core/intelligence/triad-team/model-capabilities.ts)
+ * @dep calls: get
+ * @dep module: Triad-team
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function getModel<TProvider extends KnownProvider, TModelId extends keyof (typeof MODELS)[TProvider]>(
 	provider: TProvider,
 	modelId: TModelId,
@@ -25,9 +32,22 @@ export function getModel<TProvider extends KnownProvider, TModelId extends keyof
 	return providerModels?.get(modelId as string) as Model<ModelApi<TProvider, TModelId>>;
 }
 
+/**
+ * @dep callers: ai-model-defaults.test.ts (tests/ai-model-defaults.test.ts), handleModelsRoutes (core/admin-api/models.ts), handleProvidersRoutes (core/admin-api/providers.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function getProviders(): KnownProvider[] {
 	return Array.from(modelRegistry.keys()) as KnownProvider[];
 }
+
+/**
+ * @dep callers: ai-model-defaults.test.ts (tests/ai-model-defaults.test.ts), enableAllGitHubCopilotModels (ai/src/utils/oauth/github-copilot.ts)
+ * @dep calls: get
+ * @dep module: Oauth
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function getModels<TProvider extends KnownProvider>(
 	provider: TProvider,
@@ -35,6 +55,12 @@ export function getModels<TProvider extends KnownProvider>(
 	const models = modelRegistry.get(provider);
 	return models ? (Array.from(models.values()) as Model<ModelApi<TProvider, keyof (typeof MODELS)[TProvider]>>[]) : [];
 }
+
+/**
+ * @dep callers: ai-model-defaults.test.ts (tests/ai-model-defaults.test.ts), streamOpenAICompletions (ai/src/providers/openai-completions.ts), processResponsesStream (ai/src/providers/openai-responses-shared.ts), handleMetadata (ai/src/providers/amazon-bedrock.ts), streamAnthropic (ai/src/providers/anthropic.ts) [+3]
+ * @dep module: Providers
+ * @dep risk: HIGH | 8 callers, 0 flows, 1 module
+ */
 
 export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage): Usage["cost"] {
 	usage.cost.input = (model.cost.input / 1000000) * usage.input;
@@ -51,6 +77,9 @@ export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage
  * Supported today:
  * - GPT-5.2 / GPT-5.3 model families
  * - Anthropic Messages API Opus 4.6 models (xhigh maps to adaptive effort "max")
+ * @dep callers: ai-model-defaults.test.ts (tests/ai-model-defaults.test.ts), streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), streamSimpleAzureOpenAIResponses (ai/src/providers/azure-openai-responses.ts), streamSimpleOpenAICodexResponses (ai/src/providers/openai-codex-responses.ts)
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 5 callers, 0 flows, 1 module
  */
 export function supportsXhigh<TApi extends Api>(model: Model<TApi>): boolean {
 	if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3")) {

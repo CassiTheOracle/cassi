@@ -2,12 +2,25 @@ import type { Message } from "../types.js";
 
 // Copilot expects X-Initiator to indicate whether the request is user-initiated
 // or agent-initiated (e.g. follow-up after assistant/tool messages).
+/**
+ * @dep callers: buildCopilotDynamicHeaders (ai/src/providers/github-copilot-headers.ts)
+ * @dep flows: StreamSimpleAnthropic → InferCopilotInitiator (4/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 export function inferCopilotInitiator(messages: Message[]): "user" | "agent" {
 	const last = messages[messages.length - 1];
 	return last && last.role !== "user" ? "agent" : "user";
 }
 
 // Copilot requires Copilot-Vision-Request header when sending images
+/**
+ * @dep callers: createClient (ai/src/providers/openai-completions.ts), createClient (ai/src/providers/openai-responses.ts), streamAnthropic (ai/src/providers/anthropic.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function hasCopilotVisionInput(messages: Message[]): boolean {
 	return messages.some((msg) => {
 		if (msg.role === "user" && Array.isArray(msg.content)) {
@@ -19,6 +32,14 @@ export function hasCopilotVisionInput(messages: Message[]): boolean {
 		return false;
 	});
 }
+
+/**
+ * @dep callers: createClient (ai/src/providers/openai-completions.ts), createClient (ai/src/providers/openai-responses.ts), streamAnthropic (ai/src/providers/anthropic.ts)
+ * @dep calls: inferCopilotInitiator
+ * @dep flows: StreamSimpleAnthropic → InferCopilotInitiator (3/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 1 flow, 1 module
+ */
 
 export function buildCopilotDynamicHeaders(params: {
 	messages: Message[];

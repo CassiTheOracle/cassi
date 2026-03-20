@@ -1,5 +1,11 @@
 import type { Api, Model, SimpleStreamOptions, StreamOptions, ThinkingBudgets, ThinkingLevel } from "../types.js";
 
+/**
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts), streamSimpleAzureOpenAIResponses (ai/src/providers/azure-openai-responses.ts) [+4]
+ * @dep module: Providers
+ * @dep risk: HIGH | 9 callers, 0 flows, 1 module
+ */
+
 export function buildBaseOptions(model: Model<Api>, options?: SimpleStreamOptions, apiKey?: string): StreamOptions {
 	return {
 		temperature: options?.temperature,
@@ -15,9 +21,22 @@ export function buildBaseOptions(model: Model<Api>, options?: SimpleStreamOption
 	};
 }
 
+/**
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), adjustMaxTokensForThinking (ai/src/providers/simple-options.ts), streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts), streamSimpleAzureOpenAIResponses (ai/src/providers/azure-openai-responses.ts) [+4]
+ * @dep module: Providers
+ * @dep risk: HIGH | 9 callers, 0 flows, 1 module
+ */
+
 export function clampReasoning(effort: ThinkingLevel | undefined): Exclude<ThinkingLevel, "xhigh"> | undefined {
 	return effort === "xhigh" ? "high" : effort;
 }
+
+/**
+ * @dep callers: streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts)
+ * @dep calls: clampReasoning
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function adjustMaxTokensForThinking(
 	baseMaxTokens: number,

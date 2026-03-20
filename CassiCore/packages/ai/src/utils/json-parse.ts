@@ -6,6 +6,10 @@ import { parse as partialParse } from "partial-json";
  *
  * @param partialJson The partial JSON string from streaming
  * @returns Parsed object or empty object if parsing fails
+ * @dep callers: finishCurrentBlock (ai/src/providers/openai-completions.ts), streamOpenAICompletions (ai/src/providers/openai-completions.ts), processResponsesStream (ai/src/providers/openai-responses-shared.ts), handleContentBlockStop (ai/src/providers/amazon-bedrock.ts), handleContentBlockDelta (ai/src/providers/amazon-bedrock.ts) [+1]
+ * @dep calls: trim
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
  */
 export function parseStreamingJson<T = any>(partialJson: string | undefined): T {
 	if (!partialJson || partialJson.trim() === "") {

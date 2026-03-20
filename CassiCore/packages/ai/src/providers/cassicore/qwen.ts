@@ -183,9 +183,7 @@ export function getQwenModel(modelId: QwenModel): Model<"openai-completions"> | 
   return qwenModels.find(m => m.id === modelId);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Runtime Provider Implementation
-// ═══════════════════════════════════════════════════════════════════════════════
 
 import type { 
   Message, 

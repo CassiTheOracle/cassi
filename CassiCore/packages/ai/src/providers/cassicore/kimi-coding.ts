@@ -72,9 +72,7 @@ export function getKimiModel(modelId: KimiModel): Model<"openai-completions"> | 
   return kimiModels.find(m => m.id === modelId);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Runtime Provider Implementation
-// ═══════════════════════════════════════════════════════════════════════════════
 
 import type { 
   Message, 

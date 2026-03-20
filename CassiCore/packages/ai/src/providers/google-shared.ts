@@ -23,6 +23,9 @@ type GoogleApiType = "google-generative-ai" | "google-gemini-cli" | "google-vert
  *   do not merge/move signatures across parts.
  *
  * See: https://ai.google.dev/gemini-api/docs/thought-signatures
+ * @dep callers: streamResponse (ai/src/providers/google-gemini-cli.ts), streamGoogleVertex (ai/src/providers/google-vertex.ts), streamGoogle (ai/src/providers/google.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function isThinkingPart(part: Pick<Part, "thought" | "thoughtSignature">): boolean {
 	return part.thought === true;
@@ -36,6 +39,9 @@ export function isThinkingPart(part: Pick<Part, "thought" | "thoughtSignature">)
  *
  * Note: this does NOT merge or move signatures across distinct response parts. It only prevents
  * a signature from being overwritten with `undefined` within the same streamed block.
+ * @dep callers: streamResponse (ai/src/providers/google-gemini-cli.ts), streamGoogleVertex (ai/src/providers/google-vertex.ts), streamGoogle (ai/src/providers/google.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function retainThoughtSignature(existing: string | undefined, incoming: string | undefined): string | undefined {
 	if (typeof incoming === "string" && incoming.length > 0) return incoming;
@@ -60,6 +66,9 @@ function resolveThoughtSignature(isSameProviderAndModel: boolean, signature: str
 
 /**
  * Models via Google APIs that require explicit tool call IDs in function calls/responses.
+ * @dep callers: normalizeToolCallId (ai/src/providers/google-shared.ts), convertMessages (ai/src/providers/google-shared.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function requiresToolCallId(modelId: string): boolean {
 	return modelId.startsWith("claude-") || modelId.startsWith("gpt-oss-");
@@ -256,6 +265,10 @@ export function convertTools(
 
 /**
  * Map tool choice string to Gemini FunctionCallingConfigMode.
+ * @dep callers: buildRequest (ai/src/providers/google-gemini-cli.ts), buildParams (ai/src/providers/google-vertex.ts), buildParams (ai/src/providers/google.ts)
+ * @dep flows: StreamSimpleGoogle → MapToolChoice (4/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 1 flow, 1 module
  */
 export function mapToolChoice(choice: string): FunctionCallingConfigMode {
 	switch (choice) {

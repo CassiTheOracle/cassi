@@ -20,6 +20,13 @@ import type { KnownProvider } from "./types.js";
 
 let cachedVertexAdcCredentialsExists: boolean | null = null;
 
+/**
+ * @dep callers: getEnvApiKey (ai/src/env-api-keys.ts)
+ * @dep flows: StreamSimpleGoogle → HasVertexAdcCredentials (4/4), StreamSimpleAnthropic → HasVertexAdcCredentials (4/4), StreamOpenAICodexResponses → HasVertexAdcCredentials (3/3)
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 1 caller, 3 flows, 1 module
+ */
+
 function hasVertexAdcCredentials(): boolean {
 	if (cachedVertexAdcCredentialsExists === null) {
 		// If node modules haven't loaded yet (async import race at startup),
@@ -52,9 +59,30 @@ function hasVertexAdcCredentials(): boolean {
  * Get API key for provider from known environment variables, e.g. OPENAI_API_KEY.
  *
  * Will not return API keys for providers that require OAuth tokens.
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), streamOpenAIResponses (ai/src/providers/openai-responses.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts) [+7]
+ * @dep calls: hasVertexAdcCredentials
+ * @dep flows: StreamSimpleGoogle → HasVertexAdcCredentials (3/4), StreamSimpleAnthropic → HasVertexAdcCredentials (3/4), StreamOpenAICodexResponses → HasVertexAdcCredentials (2/3)
+ * @dep module: Providers
+ * @dep risk: CRITICAL | 12 callers, 3 flows, 1 module
  */
 export function getEnvApiKey(provider: KnownProvider): string | undefined;
+/**
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), streamOpenAIResponses (ai/src/providers/openai-responses.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts) [+7]
+ * @dep calls: hasVertexAdcCredentials
+ * @dep flows: StreamSimpleGoogle → HasVertexAdcCredentials (3/4), StreamSimpleAnthropic → HasVertexAdcCredentials (3/4), StreamOpenAICodexResponses → HasVertexAdcCredentials (2/3)
+ * @dep module: Providers
+ * @dep risk: CRITICAL | 12 callers, 3 flows, 1 module
+ */
+
 export function getEnvApiKey(provider: string): string | undefined;
+/**
+ * @dep callers: streamSimpleOpenAICompletions (ai/src/providers/openai-completions.ts), streamOpenAICompletions (ai/src/providers/openai-completions.ts), streamSimpleOpenAIResponses (ai/src/providers/openai-responses.ts), streamOpenAIResponses (ai/src/providers/openai-responses.ts), streamSimpleAnthropic (ai/src/providers/anthropic.ts) [+7]
+ * @dep calls: hasVertexAdcCredentials
+ * @dep flows: StreamSimpleGoogle → HasVertexAdcCredentials (3/4), StreamSimpleAnthropic → HasVertexAdcCredentials (3/4), StreamOpenAICodexResponses → HasVertexAdcCredentials (2/3)
+ * @dep module: Providers
+ * @dep risk: CRITICAL | 12 callers, 3 flows, 1 module
+ */
+
 export function getEnvApiKey(provider: any): string | undefined {
 	// Fall back to environment variables
 	if (provider === "github-copilot") {

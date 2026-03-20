@@ -725,6 +725,12 @@ export function convertMessages(
 	return params;
 }
 
+/**
+ * @dep callers: buildParams (ai/src/providers/openai-completions.ts), buildRequest (ai/src/providers/google-gemini-cli.ts), buildParams (ai/src/providers/google-vertex.ts), buildParams (ai/src/providers/google.ts)
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 function convertTools(
 	tools: Tool[],
 	compat: Required<OpenAICompletionsCompat>,

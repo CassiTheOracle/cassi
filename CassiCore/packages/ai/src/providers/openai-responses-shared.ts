@@ -30,11 +30,16 @@ import { parseStreamingJson } from "../utils/json-parse.js";
 import { sanitizeSurrogates } from "../utils/sanitize-unicode.js";
 import { transformMessages } from "./transform-messages.js";
 
-// =============================================================================
 // Utilities
-// =============================================================================
 
 /** Fast deterministic hash to shorten long strings */
+/**
+ * @dep callers: convertResponsesMessages (ai/src/providers/openai-responses-shared.ts)
+ * @dep flows: StreamOpenAICodexResponses → ShortHash (4/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function shortHash(str: string): string {
 	let h1 = 0xdeadbeef;
 	let h2 = 0x41c6ce57;
@@ -64,9 +69,15 @@ export interface ConvertResponsesToolsOptions {
 	strict?: boolean | null;
 }
 
-// =============================================================================
 // Message conversion
-// =============================================================================
+
+/**
+ * @dep callers: buildParams (ai/src/providers/openai-responses.ts), buildParams (ai/src/providers/azure-openai-responses.ts), buildRequestBody (ai/src/providers/openai-codex-responses.ts)
+ * @dep calls: sanitizeSurrogates, transformMessages, shortHash
+ * @dep flows: StreamOpenAICodexResponses → EstimateChars (3/6), StreamOpenAICodexResponses → Now (3/5), StreamOpenAICodexResponses → SanitizeSurrogates (3/4) [+1]
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 3 callers, 4 flows, 1 module
+ */
 
 export function convertResponsesMessages<TApi extends Api>(
 	model: Model<TApi>,
@@ -239,9 +250,14 @@ export function convertResponsesMessages<TApi extends Api>(
 	return messages;
 }
 
-// =============================================================================
 // Tool conversion
-// =============================================================================
+
+/**
+ * @dep callers: buildParams (ai/src/providers/openai-responses.ts), buildParams (ai/src/providers/azure-openai-responses.ts), buildRequestBody (ai/src/providers/openai-codex-responses.ts)
+ * @dep flows: StreamOpenAICodexResponses → ConvertResponsesTools (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 1 flow, 1 module
+ */
 
 export function convertResponsesTools(tools: Tool[], options?: ConvertResponsesToolsOptions): OpenAITool[] {
 	const strict = options?.strict === undefined ? false : options.strict;
@@ -254,9 +270,14 @@ export function convertResponsesTools(tools: Tool[], options?: ConvertResponsesT
 	}));
 }
 
-// =============================================================================
 // Stream processing
-// =============================================================================
+
+/**
+ * @dep callers: streamOpenAIResponses (ai/src/providers/openai-responses.ts), streamAzureOpenAIResponses (ai/src/providers/azure-openai-responses.ts), processWebSocketStream (ai/src/providers/openai-codex-responses.ts), processStream (ai/src/providers/openai-codex-responses.ts)
+ * @dep calls: calculateCost, parseStreamingJson, applyServiceTierPricing, blockIndex, mapStopReason
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
 
 export async function processResponsesStream<TApi extends Api>(
 	openaiStream: AsyncIterable<ResponseStreamEvent>,
@@ -457,6 +478,12 @@ export async function processResponsesStream<TApi extends Api>(
 		}
 	}
 }
+
+/**
+ * @dep callers: processResponsesStream (ai/src/providers/openai-responses-shared.ts), streamGoogleVertex (ai/src/providers/google-vertex.ts), streamGoogle (ai/src/providers/google.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 function mapStopReason(status: OpenAI.Responses.ResponseStatus | undefined): StopReason {
 	if (!status) return "stop";

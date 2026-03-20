@@ -96,7 +96,7 @@ export function isContextOverflow(message: AssistantMessage, contextWindow?: num
 		}
 
 		// Cerebras and Mistral return 400/413 with no body for context overflow
-		// Note: 429 is rate limiting (requests/tokens per time), NOT context overflow
+		// WHY: 429 is rate limiting (requests/tokens per time), NOT context overflow
 		if (/^4(00|13)\s*(status code)?\s*\(no body\)/i.test(message.errorMessage)) {
 			return true;
 		}

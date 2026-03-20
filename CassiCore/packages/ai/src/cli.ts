@@ -8,6 +8,12 @@ import type { OAuthCredentials, OAuthProviderId } from "./utils/oauth/types.js";
 const AUTH_FILE = "auth.json";
 const PROVIDERS = getOAuthProviders();
 
+/**
+ * @dep callers: main (ai/src/cli.ts), promptFn (ai/src/cli.ts)
+ * @dep module: Cluster_588
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function prompt(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
 	return new Promise((resolve) => rl.question(question, resolve));
 }
@@ -24,6 +30,13 @@ function loadAuth(): Record<string, { type: "oauth" } & OAuthCredentials> {
 function saveAuth(auth: Record<string, { type: "oauth" } & OAuthCredentials>): void {
 	writeFileSync(AUTH_FILE, JSON.stringify(auth, null, 2), "utf-8");
 }
+
+/**
+ * @dep callers: main (ai/src/cli.ts), login (ai/src/cli.ts)
+ * @dep calls: getOAuthProvider, loadAuth, saveAuth, login, promptFn
+ * @dep module: Cluster_588
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 async function login(providerId: OAuthProviderId): Promise<void> {
 	const provider = getOAuthProvider(providerId);

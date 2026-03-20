@@ -2,7 +2,7 @@
  * Gemini CLI OAuth flow (Google Cloud Code Assist)
  * Standard Gemini models only (gemini-2.0-flash, gemini-2.5-*)
  *
- * NOTE: This module uses Node.js http.createServer for the OAuth callback.
+ * WHY: This module uses Node.js http.createServer for the OAuth callback.
  * It is only intended for CLI use, not browser environments.
  */
 
@@ -21,6 +21,12 @@ if (typeof process !== "undefined" && (process.versions?.node || process.version
 		_createServer = m.createServer;
 	});
 }
+
+/**
+ * @dep callers: google-gemini-cli.ts (ai/src/utils/oauth/google-gemini-cli.ts), establishConnection (core/events/cassandra-event-client.ts), completeOpenAI (core/providers/github-copilot.ts), completeAnthropic (core/providers/github-copilot.ts), complete (core/providers/google-antigravity.ts) [+16]
+ * @dep module: Network
+ * @dep risk: CRITICAL | 21 callers, 0 flows, 1 module
+ */
 
 const decode = (s: string) => atob(s);
 const CLIENT_ID = decode(

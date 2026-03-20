@@ -31,9 +31,7 @@ export { loginOpenAICodex, openaiCodexOAuthProvider, refreshOpenAICodexToken } f
 
 export * from "./types.js";
 
-// ============================================================================
 // Provider Registry
-// ============================================================================
 
 import { anthropicOAuthProvider } from "./anthropic.js";
 import { githubCopilotOAuthProvider } from "./github-copilot.js";
@@ -52,6 +50,10 @@ const oauthProviderRegistry = new Map<string, OAuthProviderInterface>([
 
 /**
  * Get an OAuth provider by ID
+ * @dep callers: login (ai/src/cli.ts), getOAuthApiKey (ai/src/utils/oauth/index.ts), refreshOAuthToken (ai/src/utils/oauth/index.ts)
+ * @dep calls: get
+ * @dep module: Oauth
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function getOAuthProvider(id: OAuthProviderId): OAuthProviderInterface | undefined {
 	return oauthProviderRegistry.get(id);
@@ -66,6 +68,9 @@ export function registerOAuthProvider(provider: OAuthProviderInterface): void {
 
 /**
  * Get all registered OAuth providers
+ * @dep callers: cli.ts (ai/src/cli.ts), getOAuthProviderInfoList (ai/src/utils/oauth/index.ts)
+ * @dep module: Oauth
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function getOAuthProviders(): OAuthProviderInterface[] {
 	return Array.from(oauthProviderRegistry.values());
@@ -82,9 +87,7 @@ export function getOAuthProviderInfoList(): OAuthProviderInfo[] {
 	}));
 }
 
-// ============================================================================
 // High-level API (uses provider registry)
-// ============================================================================
 
 /**
  * Refresh token for any OAuth provider.

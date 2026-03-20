@@ -168,9 +168,7 @@ export function getOpenRouterModel(modelId: OpenRouterModel): Model<"openai-comp
   return openrouterModels.find(m => m.id === modelId);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
 // Runtime Provider Implementation
-// ═══════════════════════════════════════════════════════════════════════════════
 
 import type {
   Message,

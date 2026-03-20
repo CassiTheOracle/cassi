@@ -305,6 +305,13 @@ export const streamSimpleGoogle: StreamFunction<"google-generative-ai", SimpleSt
 	} satisfies GoogleOptions);
 };
 
+/**
+ * @dep callers: streamGoogle (ai/src/providers/google.ts)
+ * @dep flows: StreamSimpleGoogle → CreateClient (3/3)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function createClient(
 	model: Model<"google-generative-ai">,
 	apiKey?: string,
@@ -324,6 +331,14 @@ function createClient(
 		httpOptions: Object.keys(httpOptions).length > 0 ? httpOptions : undefined,
 	});
 }
+
+/**
+ * @dep callers: streamGoogle (ai/src/providers/google.ts)
+ * @dep calls: convertTools, mapToolChoice, convertMessages, sanitizeSurrogates
+ * @dep flows: StreamSimpleGoogle → SanitizeSurrogates (3/4), StreamSimpleGoogle → MapToolChoice (3/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
 
 function buildParams(
 	model: Model<"google-generative-ai">,
@@ -384,6 +399,12 @@ function buildParams(
 }
 
 type ClampedThinkingLevel = Exclude<ThinkingLevel, "xhigh">;
+
+/**
+ * @dep callers: getGemini3ThinkingLevel (ai/src/providers/google.ts), streamSimpleGoogle (ai/src/providers/google.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function isGemini3ProModel(model: Model<"google-generative-ai">): boolean {
 	return model.id.includes("3-pro");

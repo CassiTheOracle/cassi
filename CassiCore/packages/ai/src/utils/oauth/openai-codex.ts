@@ -1,7 +1,7 @@
 /**
  * OpenAI Codex (ChatGPT OAuth) flow
  *
- * NOTE: This module uses Node.js crypto and http for the OAuth callback.
+ * WHY: This module uses Node.js crypto and http for the OAuth callback.
  * It is only intended for CLI use, not browser environments.
  */
 
@@ -283,6 +283,13 @@ function startLocalOAuthServer(state: string): Promise<OAuthServerInfo> {
 			});
 	});
 }
+
+/**
+ * @dep callers: refreshOpenAICodexToken (ai/src/utils/oauth/openai-codex.ts), loginOpenAICodex (ai/src/utils/oauth/openai-codex.ts)
+ * @dep calls: decodeJwt
+ * @dep module: Oauth
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function getAccountId(accessToken: string): string | null {
 	const payload = decodeJwt(accessToken);

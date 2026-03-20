@@ -17,6 +17,10 @@ function base64urlEncode(bytes: Uint8Array): string {
 /**
  * Generate PKCE code verifier and challenge.
  * Uses Web Crypto API for cross-platform compatibility.
+ * @dep callers: startDeviceFlow (ai/src/providers/cassicore/qwen.ts), loginAnthropic (ai/src/utils/oauth/anthropic.ts), loginAntigravity (ai/src/utils/oauth/google-antigravity.ts), loginGeminiCli (ai/src/utils/oauth/google-gemini-cli.ts), createAuthorizationFlow (ai/src/utils/oauth/openai-codex.ts)
+ * @dep calls: base64urlEncode
+ * @dep module: Oauth
+ * @dep risk: MEDIUM | 5 callers, 0 flows, 1 module
  */
 export async function generatePKCE(): Promise<{ verifier: string; challenge: string }> {
 	// Generate random verifier

@@ -372,6 +372,9 @@ function handleContentBlockStop(
 
 /**
  * Check if the model supports adaptive thinking (Opus 4.6 and Sonnet 4.6).
+ * @dep callers: buildAdditionalModelRequestFields (ai/src/providers/amazon-bedrock.ts), streamSimpleBedrock (ai/src/providers/amazon-bedrock.ts)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function supportsAdaptiveThinking(modelId: string): boolean {
 	return (
@@ -418,6 +421,10 @@ function resolveCacheRetention(cacheRetention?: CacheRetention): CacheRetention 
 /**
  * Check if the model supports prompt caching.
  * Supported: Claude 3.5 Haiku, Claude 3.7 Sonnet, Claude 4.x models
+ * @dep callers: convertMessages (ai/src/providers/amazon-bedrock.ts), buildSystemPrompt (ai/src/providers/amazon-bedrock.ts)
+ * @dep flows: StreamSimpleBedrock → SupportsPromptCaching (4/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 function supportsPromptCaching(model: Model<"bedrock-converse-stream">): boolean {
 	if (model.cost.cacheRead || model.cost.cacheWrite) {
@@ -445,6 +452,14 @@ function supportsThinkingSignature(model: Model<"bedrock-converse-stream">): boo
 	return id.includes("anthropic.claude") || id.includes("anthropic/claude");
 }
 
+/**
+ * @dep callers: streamBedrock (ai/src/providers/amazon-bedrock.ts)
+ * @dep calls: supportsPromptCaching, sanitizeSurrogates
+ * @dep flows: StreamSimpleBedrock → SupportsPromptCaching (3/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function buildSystemPrompt(
 	systemPrompt: string | undefined,
 	model: Model<"bedrock-converse-stream">,
@@ -468,6 +483,14 @@ function normalizeToolCallId(id: string): string {
 	const sanitized = id.replace(/[^a-zA-Z0-9_-]/g, "_");
 	return sanitized.length > 64 ? sanitized.slice(0, 64) : sanitized;
 }
+
+/**
+ * @dep callers: streamBedrock (ai/src/providers/amazon-bedrock.ts)
+ * @dep calls: trim, supportsPromptCaching, supportsThinkingSignature, createImageBlock, sanitizeSurrogates [+1]
+ * @dep flows: StreamSimpleBedrock → EstimateChars (3/6), StreamSimpleBedrock → Now (3/5), StreamSimpleBedrock → SanitizeSurrogates (3/4) [+1]
+ * @dep module: Providers
+ * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
+ */
 
 function convertMessages(
 	context: Context,
@@ -708,6 +731,13 @@ function buildAdditionalModelRequestFields(
 
 	return undefined;
 }
+
+/**
+ * @dep callers: convertMessages (ai/src/providers/amazon-bedrock.ts)
+ * @dep flows: StreamSimpleBedrock → CreateImageBlock (4/4)
+ * @dep module: Providers
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function createImageBlock(mimeType: string, data: string) {
 	let format: ImageFormat;

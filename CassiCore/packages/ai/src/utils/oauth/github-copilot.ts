@@ -40,6 +40,13 @@ type DeviceTokenErrorResponse = {
 	interval?: number;
 };
 
+/**
+ * @dep callers: modifyModels (ai/src/utils/oauth/github-copilot.ts), loginGitHubCopilot (ai/src/utils/oauth/github-copilot.ts)
+ * @dep calls: trim
+ * @dep module: Oauth
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function normalizeDomain(input: string): string | null {
 	const trimmed = input.trim();
 	if (!trimmed) return null;
@@ -50,6 +57,12 @@ export function normalizeDomain(input: string): string | null {
 		return null;
 	}
 }
+
+/**
+ * @dep callers: refreshGitHubCopilotToken (ai/src/utils/oauth/github-copilot.ts), pollForGitHubAccessToken (ai/src/utils/oauth/github-copilot.ts), startDeviceFlow (ai/src/utils/oauth/github-copilot.ts)
+ * @dep module: Oauth
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 function getUrls(domain: string): {
 	deviceCodeUrl: string;
@@ -77,6 +90,13 @@ function getBaseUrlFromToken(token: string): string | null {
 	return `https://${apiHost}`;
 }
 
+/**
+ * @dep callers: modifyModels (ai/src/utils/oauth/github-copilot.ts), enableGitHubCopilotModel (ai/src/utils/oauth/github-copilot.ts)
+ * @dep calls: getBaseUrlFromToken
+ * @dep module: Oauth
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function getGitHubCopilotBaseUrl(token?: string, enterpriseDomain?: string): string {
 	// If we have a token, extract the base URL from proxy-ep
 	if (token) {
@@ -87,6 +107,12 @@ export function getGitHubCopilotBaseUrl(token?: string, enterpriseDomain?: strin
 	if (enterpriseDomain) return `https://copilot-api.${enterpriseDomain}`;
 	return "https://api.individual.githubcopilot.com";
 }
+
+/**
+ * @dep callers: refreshGitHubCopilotToken (ai/src/utils/oauth/github-copilot.ts), pollForGitHubAccessToken (ai/src/utils/oauth/github-copilot.ts), startDeviceFlow (ai/src/utils/oauth/github-copilot.ts)
+ * @dep module: Oauth
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 async function fetchJson(url: string, init: RequestInit, retries = 2): Promise<unknown> {
 	let lastError: Error | undefined;
@@ -107,6 +133,13 @@ async function fetchJson(url: string, init: RequestInit, retries = 2): Promise<u
 	}
 	throw lastError ?? new Error("fetchJson: unexpected retry exhaustion");
 }
+
+/**
+ * @dep callers: addAccountInteractive (scripts/qwen-add-account.ts), renewAccountsFile (scripts/qwen-renew-accounts.ts), loginGitHubCopilot (ai/src/utils/oauth/github-copilot.ts)
+ * @dep calls: getUrls, fetchJson
+ * @dep module: Oauth
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 async function startDeviceFlow(domain: string): Promise<DeviceCodeResponse> {
 	const urls = getUrls(domain);
@@ -233,6 +266,10 @@ async function pollForGitHubAccessToken(
 
 /**
  * Refresh GitHub Copilot token
+ * @dep callers: refreshToken (ai/src/utils/oauth/github-copilot.ts), loginGitHubCopilot (ai/src/utils/oauth/github-copilot.ts)
+ * @dep calls: getUrls, fetchJson
+ * @dep module: Oauth
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function refreshGitHubCopilotToken(
 	refreshToken: string,

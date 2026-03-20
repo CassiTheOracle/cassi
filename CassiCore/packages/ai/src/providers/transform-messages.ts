@@ -4,6 +4,11 @@ import type { Api, AssistantMessage, Message, Model, ToolCall, ToolResultMessage
  * Normalize tool call ID for cross-provider compatibility.
  * OpenAI Responses API generates IDs that are 450+ chars with special characters like `|`.
  * Anthropic APIs require IDs matching ^[a-zA-Z0-9_-]+$ (max 64 chars).
+ * @dep callers: convertResponsesMessages (ai/src/providers/openai-responses-shared.ts), convertMessages (ai/src/providers/amazon-bedrock.ts), convertMessages (ai/src/providers/anthropic.ts), convertMessages (ai/src/providers/google-shared.ts), convertMessages (ai/src/providers/openai-completions.ts)
+ * @dep calls: get, has, trim, now, add [+1]
+ * @dep flows: StreamOpenAICodexResponses → EstimateChars (4/6), StreamSimpleBedrock → EstimateChars (4/6), StreamOpenAICodexResponses → Now (4/5) [+1]
+ * @dep module: Tests
+ * @dep risk: MEDIUM | 5 callers, 4 flows, 1 module
  */
 export function transformMessages<TApi extends Api>(
 	messages: Message[],
