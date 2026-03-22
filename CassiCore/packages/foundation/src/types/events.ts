@@ -93,7 +93,7 @@ export type RuntimeEvent =
   // Compaction & Context events
   | { type: "session:compacted"; sessionId: string; summary: string }
   | { type: "context-manager:sync"; sessionId: string; payload: any }
-  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number; requestId?: string }
+  | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number; urgency?: "immediate" | "background"; requestId?: string }
   | { type: "dialectic:started"; dialecticId: string }
   | { type: "dialectic:stopped"; dialecticId: string; reason: string }
   | { type: "dialectic:iteration"; dialecticId: string; iteration: number; summary: { yang?: number; yin?: number; hasSignal?: boolean } }
