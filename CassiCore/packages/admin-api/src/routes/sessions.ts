@@ -79,6 +79,7 @@ export async function handleSessionsRoutes(
         return true
       }
 
+      // Legacy pipeline path — only used when sessionPipeline is not available
       if (!runtime.getPipeline()) {
         sendJSON(res, 503, { error: 'pipeline not ready' })
         return true

@@ -22,6 +22,7 @@ import { handleHealthRoutes } from './admin-api/health.js'
 import { handleIntelligenceRoutes } from './admin-api/intelligence.js'
 import { handleMcpRoutes } from './admin-api/mcp.js'
 import { handleMemoryRoutes } from './admin-api/memory.js'
+import { handleModulesRoutes } from './admin-api/modules.js'
 import { handleModelsRoutes } from './admin-api/models.js'
 import { handleMultiAgentRoutes } from './admin-api/multi-agent.js'
 import { handlePermissionsRoutes } from './admin-api/permissions.js'
@@ -37,6 +38,7 @@ import { handleDyadRoutes } from './admin-api/dyad.js'
 import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { handleBlackboardRoutes } from './admin-api/blackboard.js'
+import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
 import { handleTrainingRoutes } from './admin-api/training.js'
 import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
 import { createAdminRuntimeFacade } from './admin-api/runtime.js'
@@ -1958,8 +1960,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleSubagentsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleDelegationRoutes({ daemon, logger, sendJSON, parseBody, delegationTracker, subagentToTeamMap }, req, res, method, pathname),
         () => handleTeamsRoutes({ daemon, logger, sendJSON, parseBody, url, parts, sseConnections, sseConnectionId, resolveLatestTeamId, buildHandoffContext }, req, res, method),
-        () => handleSessionsRoutes({ runtime, logger, sendJSON, parseBody, getFirstUserMessage, getLastUserMessage, tcpHost, currentTcpPort }, req, res, method, pathname, parts),
-        () => handleMemoryRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
+         () => handleSessionsRoutes({ runtime, logger, sendJSON, parseBody, getFirstUserMessage, getLastUserMessage, tcpHost, currentTcpPort }, req, res, method, pathname, parts),
+         () => handleModulesRoutes({ runtime, logger, sendJSON, parseBody }, req, res, method, pathname, parts),
+         () => handleMemoryRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleDialecticRoutes({ runtime, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleObservabilityRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
         () => handleChatRoutes({ runtime, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
@@ -1986,6 +1989,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
            },
          }, req, res, method, pathname),
          () => handleBlackboardRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleFileArtifactRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleTrainingRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handlePromptLogRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
       ]

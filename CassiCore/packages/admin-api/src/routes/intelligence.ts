@@ -4,6 +4,7 @@ import path from 'node:path'
 
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
+import { getDataDir } from '../utils/paths.js'
 
 export interface IntelligenceRoutesDeps {
   daemon: any
@@ -268,7 +269,7 @@ export async function handleIntelligenceRoutes(
           try { learnings = await mem.kv_get('subconscious:learnings') || [] } catch {}
         }
         if (!learnings.length) {
-          const filePath = path.join(process.env.HOME || os.homedir(), '.cassicore', 'data', 'subconscious.json')
+          const filePath = path.join(getDataDir(), 'subconscious.json')
           try {
             if (fs.existsSync(filePath)) learnings = JSON.parse(fs.readFileSync(filePath, 'utf8') || '[]')
           } catch { /* ignore */ }
@@ -491,7 +492,7 @@ export async function handleIntelligenceRoutes(
       if (mem) {
         await mem.kv_del('subconscious:learnings')
       }
-      const filePath = path.join(process.env.HOME || os.homedir(), '.cassicore', 'data', 'subconscious.json')
+      const filePath = path.join(getDataDir(), 'subconscious.json')
       try {
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath)
       } catch {}

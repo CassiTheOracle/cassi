@@ -28,6 +28,24 @@ interface SessionPipelineLike {
       model?: string
     },
   ): Promise<SessionPipelineResult>
+
+  /** Process a turn for an already-known session ID. */
+  processTurn(
+    sessionId: string,
+    content: string,
+    options?: {
+      channelId?: string
+      senderId?: string
+      attachments?: Attachment[]
+      signal?: AbortSignal
+      stream?: boolean
+      onStreamEvent?: StreamEventCallback
+      model?: string
+    },
+  ): Promise<SessionPipelineResult>
+
+  /** Cancel an active turn.  Returns true if a turn was aborted. */
+  requestCancel(sessionId: string): boolean
 }
 
 interface LegacyPipelineResult {
@@ -241,6 +259,14 @@ export function cancelTurn(
   const activeEngine = getActiveTurnEngine(sessionId)
 
   if (activeEngine === 'session-pipeline') {
+    if (runtime.sessionPipeline && typeof runtime.sessionPipeline.requestCancel === 'function') {
+      return {
+        engine: activeEngine,
+        supported: true,
+        cancelled: runtime.sessionPipeline.requestCancel(sessionId),
+        active: true,
+      }
+    }
     return {
       engine: activeEngine,
       supported: false,
@@ -371,18 +397,32 @@ export async function executeTurn(
   if (runtime.sessionPipeline) {
     markTurnStart(request.requestedSessionId, 'session-pipeline')
     try {
-      const result = await runtime.sessionPipeline.processMessage(
-        request.channelId,
-        request.senderId,
-        request.content,
-        {
-          attachments: request.attachments,
-          signal: request.signal,
-          stream: request.stream,
-          onStreamEvent: request.onStreamEvent,
-          model: request.model && request.model !== 'unknown' ? request.model : undefined,
-        },
-      )
+      const result = typeof runtime.sessionPipeline.processTurn === 'function'
+        ? await runtime.sessionPipeline.processTurn(
+            request.requestedSessionId,
+            request.content,
+            {
+              channelId: request.channelId,
+              senderId: request.senderId,
+              attachments: request.attachments,
+              signal: request.signal,
+              stream: request.stream,
+              onStreamEvent: request.onStreamEvent,
+              model: request.model && request.model !== 'unknown' ? request.model : undefined,
+            },
+          )
+        : await runtime.sessionPipeline.processMessage(
+            request.channelId,
+            request.senderId,
+            request.content,
+            {
+              attachments: request.attachments,
+              signal: request.signal,
+              stream: request.stream,
+              onStreamEvent: request.onStreamEvent,
+              model: request.model && request.model !== 'unknown' ? request.model : undefined,
+            },
+          )
 
       return {
         engine: 'session-pipeline',
