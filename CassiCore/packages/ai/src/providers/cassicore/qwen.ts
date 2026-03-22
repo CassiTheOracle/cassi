@@ -246,15 +246,11 @@ export class QwenProvider extends OpenAICompatibleBase {
     };
 
     if (opts.tools?.length) {
-      body.tools = opts.tools.map(t => ({
-        type: "function",
-        function: {
-          name: t.name,
-          description: t.description,
-          parameters: t.input_schema,
-        },
-      }));
-      body.tool_choice = "auto";
+      const normalized = this.normalizeToolsToOpenAI(opts.tools);
+      if (normalized.length) {
+        body.tools = normalized;
+        body.tool_choice = "auto";
+      }
     }
 
     return body;

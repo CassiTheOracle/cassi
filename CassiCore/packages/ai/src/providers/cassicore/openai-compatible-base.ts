@@ -714,4 +714,38 @@ export abstract class OpenAICompatibleBase {
       }, 0) / 4,
     );
   }
+
+  /**
+   * Normalize tool schemas to OpenAI function-call format.
+   *
+   * CompletionOpts.tools is typed as Anthropic format:
+   *   { name, description, input_schema }
+   *
+   * But some callers may pass already-wrapped OpenAI format:
+   *   { type: "function", function: { name, description, parameters } }
+   *
+   * This helper safely handles both, and filters out entries
+   * with empty or missing function names to prevent API 400 errors.
+   */
+  protected normalizeToolsToOpenAI(
+    tools: any[],
+  ): Array<{ type: 'function'; function: { name: string; description: string; parameters: Record<string, unknown> } }> {
+    return tools
+      .map((t: any) => {
+        // Already in OpenAI function-call format
+        if (t.type === 'function' && t.function) {
+          return t
+        }
+        // Anthropic format → wrap
+        return {
+          type: 'function' as const,
+          function: {
+            name: t.name,
+            description: t.description ?? '',
+            parameters: t.input_schema ?? t.parameters ?? { type: 'object', properties: {} },
+          },
+        }
+      })
+      .filter((t: any) => t.function?.name)
+  }
 }

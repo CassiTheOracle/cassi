@@ -59,7 +59,7 @@ interface ToolCallAccumulator {
  */
 export class AlibabaCodingProvider extends OpenAICompatibleBase {
   readonly id = "alibaba-coding";
-  readonly models: string[] = [...ALIBABA_CODING_OPENAI_MODELS];
+  readonly models: string[] = [...ALIBABA_CODING_ALL_MODELS];
 
   private readonly apiKey: string;
 
@@ -111,26 +111,15 @@ export class AlibabaCodingProvider extends OpenAICompatibleBase {
       body.enable_thinking = true;
     }
 
-    // Tool definitions — wrap in OpenAI function-call format
-    // Handle both Anthropic-format {name, description, input_schema} and
+    // Tool definitions — normalize to OpenAI function-call format
+    // Handles both Anthropic-format {name, description, input_schema} and
     // already-wrapped OpenAI-format {type: "function", function: {...}} tools
     if (opts.tools?.length) {
-      body.tools = opts.tools.map((t: any) => {
-        // Already in OpenAI function-call format
-        if (t.type === 'function' && t.function) {
-          return t;
-        }
-        // Anthropic format → wrap
-        return {
-          type: "function" as const,
-          function: {
-            name: t.name,
-            description: t.description,
-            parameters: t.input_schema ?? t.parameters ?? { type: 'object', properties: {} },
-          },
-        };
-      });
-      body.tool_choice = "auto";
+      const normalized = this.normalizeToolsToOpenAI(opts.tools);
+      if (normalized.length) {
+        body.tools = normalized;
+        body.tool_choice = "auto";
+      }
     }
 
     return body;
