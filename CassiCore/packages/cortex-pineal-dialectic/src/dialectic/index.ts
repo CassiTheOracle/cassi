@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 
 import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
 import { type PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
+import { getDataDir } from '../../utils/paths.js'
 
 import type {
   IDialecticSystem,
@@ -167,7 +168,7 @@ export class DialecticSystem implements IDialecticSystem {
       yang: config?.yang ?? {},
       yin: config?.yin ?? {},
       serenity: config?.serenity ?? {},
-      dataDir: config?.dataDir ?? path.join(process.env.HOME || require('os').homedir(), '.cassicore', 'data'),
+      dataDir: config?.dataDir ?? getDataDir(),
       cache: { enabled: true, ttlMs: 30000, similarityThreshold: 0.85, ...config?.cache },
       taskGuide: config?.taskGuide,
     };
