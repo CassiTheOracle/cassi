@@ -30,6 +30,15 @@ function log(level: string, message: string, data?: any) {
 }
 
 /**
+ * Extended Response type where .json() returns `any` instead of `unknown`.
+ * All MCP gateway tools use dynamic JSON from the admin API — strict typing
+ * at the HTTP boundary adds no safety but costs enormous boilerplate.
+ */
+export interface JsonResponse extends Response {
+  json(): Promise<any>
+}
+
+/**
  * Fetch with timeout — wraps global fetch with AbortController to prevent
  * indefinite hangs when the daemon is slow or unresponsive.
  * @dep callers: executeAdminApiTool (mcp/gateway/admin-api-tools.ts), executeBlackboardTool (mcp/gateway/blackboard-tools.ts), executeConfigAdminTool (mcp/gateway/config-admin-tools.ts), fetchSessionIndex (mcp/gateway/context-enrichment.ts), fetchArchive (mcp/gateway/context-enrichment.ts) [+46]
@@ -39,7 +48,7 @@ function log(level: string, message: string, data?: any) {
 export async function fetchWithTimeout(
   url: string | URL,
   init?: RequestInit & { timeoutMs?: number }
-): Promise<Response> {
+): Promise<JsonResponse> {
   const timeoutMs = init?.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

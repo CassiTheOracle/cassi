@@ -408,7 +408,7 @@ async function formatActivity(baseUrl: string, args: any): Promise<string> {
     const snap = subconDebug?.snapshot ?? {};
     lines.push('\n### Consciousness Observer\n');
     const health = snap.systemHealth ?? 'unknown';
-    const badge = { healthy: '●', degraded: '◐', critical: '○' }[health] ?? '?';
+    const badge = ({ healthy: '●', degraded: '◐', critical: '○' } as Record<string, string>)[health] ?? '?';
     lines.push(`**System Health**: ${badge} ${health}`);
     if (stats.totalEvents != null) lines.push(`- **Total events seen**: ${stats.totalEvents}`);
     if (stats.eventRate != null) lines.push(`- **Event rate**: ${typeof stats.eventRate === 'number' ? stats.eventRate.toFixed(1) : stats.eventRate}/min`);
