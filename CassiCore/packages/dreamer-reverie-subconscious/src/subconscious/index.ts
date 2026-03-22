@@ -44,6 +44,7 @@ import type { IMemory } from "../../../types/intelligence.js";
 import type { ILogger, IEventBus } from "../../../types/interfaces.js";
 import type { IProvider } from "../../../types/runtime.js";
 import type { SessionDigestStore } from "../session-digest.js";
+import type { ModuleSessionRegistry } from "../module-session-registry.js";
 
 export type { SubconsciousConfig } from "./types.js";
 
@@ -123,6 +124,10 @@ export class Subconscious {
   setProvider(provider: IProvider): void {
     this.llmObserver.setProvider(provider);
     this.logger.info("Subconscious: provider wired", { provider: provider.id });
+  }
+
+  setModuleRegistry(registry: ModuleSessionRegistry): void {
+    this.llmObserver.setModuleRegistry(registry)
   }
 
   setDigestStore(store: SessionDigestStore): void {
