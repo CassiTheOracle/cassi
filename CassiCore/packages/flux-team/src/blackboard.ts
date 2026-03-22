@@ -18,6 +18,7 @@
 
 import { randomUUID } from 'crypto'
 import type { ILogger } from '../../../types/interfaces.js'
+import type { FileArtifactStore } from '../../file-artifact-store.js'
 import type {
   BlackboardChannel,
   BlackboardEntry,
@@ -87,6 +88,9 @@ export class Blackboard {
   // Metadata
   private readonly createdAt: number
   private lastActivityAt: number
+  private fileArtifactStore?: FileArtifactStore
+  private artifactNamespace?: string
+  private autoPersistArtifacts: boolean
 
   constructor(logger: ILogger, cellId: string) {
     this.logger = logger.child('blackboard')
@@ -112,8 +116,30 @@ export class Blackboard {
 
     this.createdAt = Date.now()
     this.lastActivityAt = Date.now()
+    this.autoPersistArtifacts = true
 
     this.logger.debug('Blackboard created', { cellId })
+  }
+
+  setFileArtifactStore(store: FileArtifactStore, opts?: {
+    namespace?: string
+    autoPersist?: boolean
+  }): void {
+    this.fileArtifactStore = store
+    this.artifactNamespace = opts?.namespace
+    if (opts?.autoPersist !== undefined) this.autoPersistArtifacts = opts.autoPersist
+  }
+
+  getFileArtifactStore(): FileArtifactStore | undefined {
+    return this.fileArtifactStore
+  }
+
+  getArtifactNamespace(): string | undefined {
+    return this.artifactNamespace
+  }
+
+  getAutoPersistEnabled(): boolean {
+    return this.autoPersistArtifacts
   }
 
 

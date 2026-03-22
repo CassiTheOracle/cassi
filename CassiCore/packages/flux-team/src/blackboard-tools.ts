@@ -30,8 +30,68 @@
 
 import type { CompletionOpts } from '../../../types/runtime.js'
 import type { Blackboard } from './blackboard.js'
+import { createHash } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
 
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
+
+const MAX_PERSIST_SIZE = 5 * 1024 * 1024
+const SENSITIVE_PATTERNS = [/\.env$/i, /credentials\./i, /secret/i, /\.key$/i, /\.pem$/i, /password/i]
+
+function tryPersistArtifact(
+  blackboard: Blackboard,
+  filePath: string,
+  author: string,
+  notes?: string,
+): { uri?: string; error?: string } {
+  const store = blackboard.getFileArtifactStore()
+  const namespace = blackboard.getArtifactNamespace()
+  if (!store || !namespace) return { error: 'No artifact store or namespace configured' }
+
+  const basename = path.basename(filePath)
+  if (SENSITIVE_PATTERNS.some(p => p.test(basename))) {
+    return { error: `Sensitive file pattern detected, skipping persist: ${basename}` }
+  }
+
+  let content: Buffer
+  try {
+    const resolvedPath = path.resolve(filePath)
+    const stat = fs.statSync(resolvedPath)
+    if (stat.size > MAX_PERSIST_SIZE) {
+      return { error: `File too large for auto-persist: ${stat.size} bytes` }
+    }
+    content = fs.readFileSync(resolvedPath)
+  } catch (err) {
+    return { error: `Cannot read file for persist: ${String(err)}` }
+  }
+
+  const artifactPath = basename
+  try {
+    const existing = store.read({ namespace, path: artifactPath, admin: true })
+    const existingHash = createHash('sha256').update(existing.content).digest('hex')
+    const newHash = createHash('sha256').update(content).digest('hex')
+    if (existingHash === newHash) {
+      return { uri: `cassi://files/${namespace}/${artifactPath}@v${existing.version.versionNumber}` }
+    }
+  } catch {
+    // File does not exist yet
+  }
+
+  try {
+    const result = store.write({
+      namespace,
+      path: artifactPath,
+      content,
+      message: notes ?? `Auto-persisted by ${author}`,
+      agentId: author,
+      visibility: 'shared',
+    })
+    return { uri: `cassi://files/${result.file.namespace}/${result.file.path}@v${result.version.versionNumber}` }
+  } catch (err) {
+    return { error: `Persist failed: ${String(err)}` }
+  }
+}
 
 // Channel Tools
 
@@ -1002,32 +1062,39 @@ function handleScratchList(blackboard: Blackboard): string {
 // Artifact Implementations
 
 function handleTrackArtifact(blackboard: Blackboard, input: Record<string, unknown>, author: string): string {
-  const path = String(input.path ?? '')
+  const filePath = String(input.path ?? '')
   const opStr = String(input.operation ?? 'modified')
-  if (!path) return JSON.stringify({ error: 'path is required.' })
+  if (!filePath) return JSON.stringify({ error: 'path is required.' })
 
   const validOps = new Set(['created', 'modified', 'deleted'])
   // 'read' is accepted from LLM input but normalized to 'modified' since ArtifactEntry only supports 3 ops
   const operation = (validOps.has(opStr) ? opStr : 'modified') as 'created' | 'modified' | 'deleted'
 
-  blackboard.addArtifact({ path, operation, author })
+  blackboard.addArtifact({ path: filePath, operation, author })
 
   // If notes provided, also post to artifacts channel for visibility
   const notes = input.notes ? String(input.notes) : undefined
   if (notes) {
     blackboard.post('artifacts', {
       author,
-      content: `${operation.toUpperCase()} ${path} — ${notes}`,
+      content: `${operation.toUpperCase()} ${filePath} — ${notes}`,
       tags: [operation, 'artifact'],
       priority: 0,
     })
   }
 
+  let persistResult: { uri?: string; error?: string } | undefined
+  if ((operation === 'created' || operation === 'modified') && blackboard.getAutoPersistEnabled()) {
+    persistResult = tryPersistArtifact(blackboard, filePath, author, notes)
+  }
+
   return JSON.stringify({
     success: true,
-    path,
+    path: filePath,
     operation,
-    message: `Artifact tracked: ${operation} ${path}`,
+    message: `Artifact tracked: ${operation} ${filePath}`,
+    ...(persistResult?.uri ? { persisted: true, uri: persistResult.uri } : {}),
+    ...(persistResult?.error ? { persistWarning: persistResult.error } : {}),
   })
 }
 
