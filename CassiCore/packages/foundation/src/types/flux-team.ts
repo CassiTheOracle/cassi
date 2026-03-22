@@ -262,6 +262,17 @@ export interface PlanStep {
   createdAt: number
   /** When the step was last updated */
   updatedAt: number
+
+  // Work-claiming fields
+
+  /** Agent/posture that claimed this step for execution */
+  assignee?: string
+  /** When the step was claimed (ms since epoch) */
+  claimedAt?: number
+  /** Last heartbeat from the assignee (ms since epoch) — used for stall detection */
+  lastActivityAt?: number
+  /** Per-step stall timeout override in ms (default: 30 min from Blackboard) */
+  stallTimeoutMs?: number
 }
 
 /**
@@ -423,6 +434,10 @@ export interface TaskSignature {
   riskLevel: RiskLevel
   /** Scope estimation */
   estimatedScope: TaskScope
+  /** Estimated number of files mentioned or implied by the goal */
+  estimatedFileCount: number
+  /** File paths extracted from the goal/context text */
+  detectedFiles: string[]
   /** Whether the task needs hierarchical decomposition */
   needsDecomposition: boolean
   /** Suggested topology template */
@@ -635,6 +650,102 @@ export interface FluxNodeResult {
 // FluxTeam Configuration
 
 /**
+ * Configuration for automatic goal decomposition into sub-cells.
+ *
+ * WHY: Flux Teams failed to scale because the root cell never spawned
+ * sub-cells autonomously. The orchestrator needs to proactively decompose
+ * large goals (e.g., 253-file comment fixes) into parallel sub-cells
+ * based on TaskAnalyzer signals.
+ */
+export interface DecompositionConfig {
+  /** Enable auto-decomposition (default: true) */
+  enabled: boolean
+  /** Decompose when estimated file count exceeds this threshold (default: 10) */
+  fileThreshold: number
+  /** Maximum sub-cells to spawn (respects budget.maxCells) */
+  maxSubCells: number
+  /** Files per sub-cell batch (default: 5; 0 = auto-calculate) */
+  filesPerBatch: number
+  /** Group files by directory prefix for locality (default: true) */
+  groupByPrefix: boolean
+}
+
+/**
+ * Configuration for detecting and intervening when cells stall.
+ *
+ * WHY: In a live test, a single cell consumed 6.4M tokens over 11 minutes
+ * without writing a single file. Progress steering detects this "analysis
+ * paralysis" pattern and intervenes before budget is wasted.
+ */
+export interface ProgressSteeringConfig {
+  /** Enable progress-based steering (default: true) */
+  enabled: boolean
+  /** Token threshold without edits before intervention (default: 200_000) */
+  tokenThresholdWithoutEdits: number
+  /** Time in ms without file edits before intervention (default: 120_000) */
+  timeWithoutEditsMs: number
+  /** Maximum node iterations with zero edits before intervention (default: 3) */
+  maxIterationsWithoutProgress: number
+  /** Intervention mode when stall detected */
+  interventionMode: 'inject-guidance' | 'fail-cell' | 'escalate'
+}
+
+/**
+ * Configuration for token budget gates.
+ *
+ * WHY: Cells that consume excessive tokens relative to their output
+ * (e.g., 6.4M tokens with 0 file edits) waste resources. Token gates
+ * enforce efficiency by checking the tokens-to-edits ratio.
+ */
+export interface TokenBudgetGateConfig {
+  /** Enable token budget gates (default: true) */
+  enabled: boolean
+  /** Maximum tokens per file edit before gate triggers (default: 200_000) */
+  maxTokensPerEdit: number
+  /** Maximum tokens consumed with zero edits before gate triggers (default: 500_000) */
+  maxTokensWithoutAnyEdit: number
+}
+
+/**
+ * Sub-cell specification for decomposed goals.
+ */
+export interface SubCellSpec {
+  /** Sub-cell identifier */
+  id: string
+  /** Batch of file paths this sub-cell should process */
+  files: string[]
+  /** Derived goal description for this sub-cell */
+  goal: string
+  /** Parent cell ID */
+  parentCellId: string
+  /** Batch index (0-based) */
+  batchIndex: number
+  /** Total number of batches */
+  totalBatches: number
+}
+
+/**
+ * Progress snapshot captured during cell execution.
+ * Used by progress steering and token budget gates.
+ */
+export interface ProgressSnapshot {
+  /** Total tokens consumed so far */
+  tokensConsumed: number
+  /** Tokens consumed since the last file edit */
+  tokensSinceLastEdit: number
+  /** Time in ms since the last file edit */
+  timeSinceLastEditMs: number
+  /** Number of file edits made so far */
+  editsCount: number
+  /** Number of completed node iterations */
+  iterationsCompleted: number
+  /** Iterations since the last file edit */
+  iterationsSinceLastEdit: number
+  /** Timestamp of this snapshot */
+  timestamp: number
+}
+
+/**
  * Budget constraints for a FluxTeam.
  */
 export interface FluxTeamBudget {
@@ -648,6 +759,13 @@ export interface FluxTeamBudget {
   maxDurationMs: number
   /** Maximum tool iterations per node (default: 50) */
   maxToolIterationsPerNode: number
+
+  /** Auto-decomposition configuration */
+  decomposition?: Partial<DecompositionConfig>
+  /** Progress-based steering configuration */
+  progressSteering?: Partial<ProgressSteeringConfig>
+  /** Token budget gate configuration */
+  tokenGates?: Partial<TokenBudgetGateConfig>
 }
 
 /**
