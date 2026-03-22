@@ -306,11 +306,22 @@ export class SQLiteSessionStore implements ISessionStore {
   }
   
   private serialize(session: SessionState): string {
-    return JSON.stringify(session);
+    // Use versioned envelope for forward compatibility
+    return JSON.stringify({
+      _serializerVersion: 2,
+      _extras: {},
+      ...session,
+    });
   }
   
   private deserialize(data: string): SessionState {
-    return JSON.parse(data) as SessionState;
+    const parsed = JSON.parse(data);
+    // Strip envelope fields if present (v2+), pass through raw (v1)
+    if (parsed._serializerVersion) {
+      const { _serializerVersion, _extras, ...rest } = parsed;
+      return rest as SessionState;
+    }
+    return parsed as SessionState;
   }
 }
 

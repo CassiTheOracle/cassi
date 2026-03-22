@@ -97,6 +97,48 @@ export class SessionManager {
   }
   
   /**
+   * Get or create a session with a *pre-determined* session ID.
+   * Unlike getOrCreate(), this bypasses the hash derivation and uses the
+   * provided sessionId directly.  Useful for system sessions (e.g.
+   * 'heart:beat', 'thinker:sub:xyz') that need stable, readable IDs.
+   */
+  async getOrCreateById(
+    sessionId: string,
+    channelId: string,
+    senderId: string,
+    options?: GetOrCreateOptions
+  ): Promise<SessionState> {
+    // Check cache first
+    const cached = this.cache.get(sessionId);
+    if (cached) {
+      cached.lastActiveAt = Date.now();
+      return cached;
+    }
+
+    // Try to load from store
+    const stored = await this.store.load(sessionId);
+    if (stored) {
+      this.cache.set(sessionId, stored);
+      this.logger.debug('Session loaded from store (by id)', { sessionId });
+      return stored;
+    }
+
+    // Create new session using the caller-supplied ID
+    const session = this.createNewSession(sessionId, channelId, senderId, options);
+    await this.store.save(session);
+    this.cache.set(sessionId, session);
+
+    this.logger.info('New session created by id', {
+      sessionId,
+      channelId,
+      senderId,
+      model: session.model,
+    });
+
+    return session;
+  }
+
+  /**
    * Get session by ID
    */
   async get(sessionId: string): Promise<SessionState | null> {

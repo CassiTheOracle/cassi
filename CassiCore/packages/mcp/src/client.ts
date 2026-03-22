@@ -17,9 +17,9 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 import type { MCPServerConfig, MCPToolInfo } from './types.js'
 import type { ILogger } from '../../types/interfaces.js'
+import { CASSICORE_VERSION } from '../daemon.js'
 
 const CLIENT_NAME = 'CassiCore'
-const CLIENT_VERSION = '0.3.1'
 
 export class MCPClient {
   private client: Client
@@ -31,7 +31,7 @@ export class MCPClient {
     private config: MCPServerConfig,
     private logger: ILogger,
   ) {
-    this.client = new Client({ name: CLIENT_NAME, version: CLIENT_VERSION })
+    this.client = new Client({ name: CLIENT_NAME, version: CASSICORE_VERSION })
   }
 
   get id(): string { return this.config.id }

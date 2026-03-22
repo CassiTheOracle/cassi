@@ -1,6 +1,6 @@
 /**
  * Session Pipeline
- * 
+ *
  * Integration point for session pipeline into the Daemon
  * with feature flag support
  */
@@ -63,6 +63,24 @@ export interface SessionPipelineOptions {
   eventBus?: IEventBus;
 }
 
+// Shared options for both processMessage and processTurn
+interface TurnOptions {
+  attachments?: Array<{ mediaType: string; data: string }>;
+  signal?: AbortSignal;
+  stream?: boolean;
+  onStreamEvent?: StreamEventCallback;
+  model?: string;
+  timeoutMs?: number;
+}
+
+export interface TurnExecutionResult {
+  response: string;
+  sessionId: string;
+  model?: string;
+  tokensUsed?: number;
+  durationMs?: number;
+}
+
 /**
  * Manages session pipeline components and provides integration with existing Daemon
  */
@@ -81,12 +99,15 @@ export class SessionPipeline {
   private initialized = false;
   private systemPrompt = '';
 
+  // Active turn AbortControllers — keyed by sessionId
+  private activeControllers = new Map<string, AbortController>();
+
   constructor(options: SessionPipelineOptions) {
     this.options = options;
     this.logger = options.logger.child('session-pipeline');
     this.eventBus = options.eventBus;
   }
-  
+
   /**
    * Initialize pipeline components
    */
@@ -94,9 +115,9 @@ export class SessionPipeline {
     if (this.initialized) {
       return;
     }
-    
+
     this.logger.info('Initializing session pipeline');
-    
+
     // 1. Create store
     const dbPath = join(homedir(), '.cassicore', 'sessions.db');
     this.store = new SQLiteSessionStore({
@@ -105,7 +126,7 @@ export class SessionPipeline {
       walMode: true
     });
     await this.store.initialize();
-    
+
     // 2. Resolve default model — prefer config, but validate against available providers
     const configuredProvider = this.options.config.get(
       'intelligence.defaultProvider',
@@ -145,8 +166,8 @@ export class SessionPipeline {
       defaultSystemPrompt: this.systemPrompt,
       logger: this.logger.child('session-manager')
     });
-    
-    // 3. Create turn handler
+
+    // 4. Create turn handler
     this.turnHandler = new TurnHandler({
       providers: this.options.providers,
       toolExecutor: this.options.toolExecutor as any,
@@ -156,8 +177,8 @@ export class SessionPipeline {
       toolTimeoutMs: this.options.config.get('pipeline.toolTimeoutMs', 60000),
       toolSchemas: this.options.toolSchemas
     });
-    
-    // 4. Create intelligence layer
+
+    // 5. Create intelligence layer
     this.intelligenceLayer = new IntelligenceLayer({
       sessionManager: this.sessionManager,
       memory: this.options.intelligence.memory as any,
@@ -167,59 +188,161 @@ export class SessionPipeline {
       logger: this.logger.child('intelligence'),
       concurrency: this.options.config.get('pipeline.intelligenceConcurrency', 3)
     });
-    
+
     this.initialized = true;
-    
+
     this.logger.info('Session pipeline initialized', {
       dbPath,
       providerCount: this.options.providers.size
     });
   }
-  
+
   /**
-   * Process a message
+   * Process a message for a channel+sender pair.
+   * Session is looked up or created via the (channelId, senderId) key.
    */
   async processMessage(
     channelId: string,
     senderId: string,
     content: string,
-    options?: {
-      attachments?: Array<{ mediaType: string; data: string }>;
-      signal?: AbortSignal;
-      stream?: boolean;                    // Enable SSE streaming events
-      onStreamEvent?: StreamEventCallback; // Direct streaming callback (bypasses event bus routing)
-      model?: string;                      // Override model for this turn
-    }
-  ): Promise<{ response: string; sessionId: string; model?: string; tokensUsed?: number; durationMs?: number }> {
-    if (!this.initialized) {
-      throw new Error('Session pipeline not initialized');
+    options?: TurnOptions
+  ): Promise<TurnExecutionResult> {
+    this.assertInitialized();
+
+    const session = await this.sessionManager!.getOrCreate(channelId, senderId);
+
+    if (options?.model && options.model !== 'unknown') {
+      session.model = options.model;
     }
 
-    // 1. Get or create session
-    const session = await this.sessionManager!.getOrCreate(channelId, senderId);
+    return this._executeTurn(session, content, options);
+  }
+
+  /**
+   * Process a turn for a session identified by its ID directly.
+   * If no session exists with that ID, one is created using the optional
+   * channelId / senderId hints (defaulting to 'system' / 'system').
+   *
+   * This is the method used by HeartModule, ThinkerModule, subagent spawning,
+   * and the CassiCoreExecutionBackend — all callers that already hold a
+   * stable session ID rather than a channel+sender pair.
+   */
+  async processTurn(
+    sessionId: string,
+    content: string,
+    options?: TurnOptions & { channelId?: string; senderId?: string }
+  ): Promise<TurnExecutionResult> {
+    this.assertInitialized();
+
+    const session = await this.sessionManager!.getOrCreateById(
+      sessionId,
+      options?.channelId ?? 'system',
+      options?.senderId ?? 'system',
+      options?.model ? { model: options.model } : undefined
+    );
+
+    // Always refresh the system prompt on every turn
+    session.systemPrompt = this.systemPrompt;
+
+    if (options?.model && options.model !== 'unknown') {
+      session.model = options.model;
+    }
+
+    return this._executeTurn(session, content, options);
+  }
+
+  /**
+   * Cancel an active turn for a session.
+   * Returns true if a turn was running and was aborted.
+   */
+  requestCancel(sessionId: string): boolean {
+    const controller = this.activeControllers.get(sessionId);
+    if (controller) {
+      controller.abort();
+      this.activeControllers.delete(sessionId);
+      this.logger.info('Turn cancelled', { sessionId });
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get raw session manager
+   */
+  getSessionManager(): SessionManager | undefined {
+    return this.sessionManager;
+  }
+
+  /**
+   * Get intelligence layer for direct turn processing (e.g. captured external turns).
+   */
+  getIntelligenceLayer(): IntelligenceLayer | undefined {
+    return this.intelligenceLayer;
+  }
+
+  /**
+   * Get stats
+   */
+  getStats(): {
+    initialized: boolean;
+    intelligence: ReturnType<IntelligenceLayer['getStats']> | undefined;
+  } {
+    return {
+      initialized: this.initialized,
+      intelligence: this.intelligenceLayer?.getStats()
+    };
+  }
+
+  /**
+   * Shutdown pipeline components
+   */
+  async shutdown(): Promise<void> {
+    this.logger.info('Shutting down session pipeline');
+
+    this.intelligenceLayer?.stop();
+    await this.store?.close?.();
+
+    this.initialized = false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private Methods
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Core turn execution.  Both processMessage() and processTurn() delegate
+   * here after resolving the session object.
+   */
+  private async _executeTurn(
+    session: SessionState,
+    content: string,
+    options?: TurnOptions
+  ): Promise<TurnExecutionResult> {
     const startedAt = Date.now();
 
     // Always set the current system prompt — existing sessions loaded from
     // SQLite may have a stale or empty prompt from an earlier daemon run.
     session.systemPrompt = this.systemPrompt;
 
-    // Override session model if provided
-    if (options?.model && options.model !== 'unknown') {
-      session.model = options.model;
+    // Build an AbortController for this turn so that requestCancel() works.
+    // If the caller also passed a signal, we chain them.
+    const controller = new AbortController();
+    if (options?.signal) {
+      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
     }
+    this.activeControllers.set(session.id, controller);
 
-    // 2. Create request
+    // Create the turn request
     const request: TurnRequest = {
       sessionId: session.id,
-      channelId,
-      senderId,
+      channelId: session.channelId,
+      senderId: session.senderId,
       content,
       attachments: options?.attachments as any,
-      signal: options?.signal
+      signal: controller.signal
     };
 
     // Retrieve relevant memories and intelligence context BEFORE the LLM call
-    // so that the MessageBuilder includes them in the prompt.
     try {
       const freshContext = await this.gatherPreTurnContext(session.id, content);
       if (freshContext) {
@@ -302,7 +425,6 @@ export class SessionPipeline {
     }
 
     try {
-      // 3. Process turn with real-time streaming
       const result = await this.turnHandler!.process(session, request, onStreamEvent);
 
       // Emit done event (bookend) if streaming
@@ -321,7 +443,7 @@ export class SessionPipeline {
         } as any);
       }
 
-      // 4. Update session
+      // Update session
       await this.sessionManager!.addTurn(
         session.id,
         content,
@@ -342,7 +464,7 @@ export class SessionPipeline {
         } as any);
       }
 
-      // 5. Trigger background intelligence (post-processing: archiving, dialectic, etc.)
+      // Trigger background intelligence (post-processing)
       this.intelligenceLayer!.process(session.id, {
         userMessage: content,
         assistantResponse: result.response,
@@ -370,57 +492,16 @@ export class SessionPipeline {
         } as any);
       }
       throw err;
+    } finally {
+      // Always clean up the controller
+      this.activeControllers.delete(session.id);
     }
   }
-  
-  /**
-   * Get raw session manager
-   */
-  getSessionManager(): SessionManager | undefined {
-    return this.sessionManager;
-  }
-
-  /**
-   * Get intelligence layer for direct turn processing (e.g. captured external turns).
-   */
-  getIntelligenceLayer(): IntelligenceLayer | undefined {
-    return this.intelligenceLayer;
-  }
-  
-  /**
-   * Get stats
-   */
-  getStats(): {
-    initialized: boolean;
-    intelligence: ReturnType<IntelligenceLayer['getStats']> | undefined;
-  } {
-    return {
-      initialized: this.initialized,
-      intelligence: this.intelligenceLayer?.getStats()
-    };
-  }
-  
-  /**
-   * Shutdown pipeline components
-   */
-  async shutdown(): Promise<void> {
-    this.logger.info('Shutting down session pipeline');
-    
-    this.intelligenceLayer?.stop();
-    await this.store?.close?.();
-    
-    this.initialized = false;
-  }
-  
-  // Private Methods
 
   /**
    * Gather intelligence context BEFORE the LLM call so that the MessageBuilder
    * can include memory search results, thinker insights, and subconscious
    * observations in the prompt.
-   *
-   * This is the key piece that makes channels "first-class" — without it,
-   * the LLM only sees raw conversation history and the system prompt.
    */
   private async gatherPreTurnContext(
     sessionId: string,
@@ -436,9 +517,8 @@ export class SessionPipeline {
     const context: Partial<IntelligenceContext> = {};
     let hasContent = false;
 
-    // Run retrieval operations concurrently with a timeout
     const results = await Promise.allSettled([
-      // 1. Memory retrieval — search for relevant past context using the user's message
+      // 1. Memory retrieval
       (async () => {
         if (memory?.retrieve) {
           const memories = await memory.retrieve(userMessage, { limit: 5 });
@@ -451,7 +531,7 @@ export class SessionPipeline {
         }
       })(),
 
-      // 2. Thinker insights — background reasoning that has accumulated
+      // 2. Thinker insights
       (async () => {
         if (thinker?.getContextInjection) {
           const injection = thinker.getContextInjection(sessionId);
@@ -470,7 +550,7 @@ export class SessionPipeline {
         }
       })(),
 
-      // 3. Subconscious observations — patterns and background signals
+      // 3. Subconscious observations
       (async () => {
         if (subconscious?.getContextInjection) {
           const injection = subconscious.getContextInjection(sessionId);
@@ -482,7 +562,6 @@ export class SessionPipeline {
       })(),
     ]);
 
-    // Log any failures (non-fatal)
     for (const r of results) {
       if (r.status === 'rejected') {
         this.logger.debug('Pre-turn intelligence source failed', {
@@ -496,9 +575,6 @@ export class SessionPipeline {
   }
 
   private loadSystemPrompt(): string {
-    // Use the workspace loader which reads IDENTITY.md, SOUL.md, USER.md,
-    // MEMORY.md from ~/.cassi/ and builds the full Cassandra persona prompt.
-    // This is the same system prompt used by the legacy turn pipeline.
     try {
       const prompt = buildSystemPrompt(this.logger);
       if (prompt?.trim()) return prompt;
@@ -507,10 +583,15 @@ export class SessionPipeline {
         error: String(err),
       });
     }
-    // Fallback — should never reach here if ~/.cassi/ files exist
     return `You are Cassandra — a personal AI assistant running on CassiCore.
 Current date/time: ${new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })}
 Be helpful, accurate, and concise. You have access to tools — use them freely.`;
+  }
+
+  private assertInitialized(): void {
+    if (!this.initialized) {
+      throw new Error('Session pipeline not initialized');
+    }
   }
 }
 
