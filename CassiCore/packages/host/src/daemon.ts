@@ -1496,6 +1496,13 @@ export class Daemon {
           contextDistiller.setMemory(this.intelligence.memory)
         }
 
+        try {
+          const artifactStore = FileArtifactStore.open(this.logger)
+          contextDistiller.setFileArtifactStore(artifactStore)
+        } catch (err) {
+          this.logger.warn('Failed to wire FileArtifactStore into ContextDistiller', { error: String(err) })
+        }
+
         // Wire EventBus for parent session auto-detection via tool-call fingerprinting.
         // Cast needed because IEventBus doesn't expose getGlobalEventsSince(),
         // but the concrete EventBus (which the daemon always creates) does.
@@ -1845,6 +1852,11 @@ export class Daemon {
           if (this.contextDistiller) {
             ft.setContextDistiller(this.contextDistiller)
             this.logger.info('FluxTeam ContextDistiller wired for Phase Zero')
+          }
+
+          if (fileArtifactStore) {
+            ft.setFileArtifactStore(fileArtifactStore)
+            this.logger.info('FluxTeam FileArtifactStore wired for Blackboard persistence')
           }
 
           this.wireModule(ft, this.bus)
