@@ -150,6 +150,14 @@ export {
   executeBlackboardTool,
 } from './blackboard-tools.js';
 
+// File Artifact Tools (Agent file sharing)
+export {
+  FILE_ARTIFACT_TOOLS,
+  FILE_ARTIFACT_TOOL_NAMES,
+  getFileArtifactMcpTools,
+  executeFileArtifactTool,
+} from './file-artifact-tools.js';
+
 // Training Warehouse Tools
 export {
   TRAINING_TOOLS,

@@ -91,6 +91,10 @@ import {
    getBlackboardMcpTools,
    executeBlackboardTool,
    BLACKBOARD_TOOL_NAMES,
+   // File Artifact tools (agent file sharing)
+   getFileArtifactMcpTools,
+   executeFileArtifactTool,
+   FILE_ARTIFACT_TOOL_NAMES,
    // Training Warehouse tools
    getTrainingTools,
    executeTrainingTool,
@@ -116,7 +120,7 @@ function getAuthToken(): string | null {
 
   // Check config file
   try {
-    const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.cassicore', 'config.json');
+    const configPath = path.join(process.env.CASSICORE_HOME || process.env.HOME || process.env.USERPROFILE || '', '.cassicore', 'config.json');
     if (fs.existsSync(configPath)) {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       return config.mcp?.token || null;
@@ -202,6 +206,7 @@ function getAllTools() {
     ...getModelDirectiveTools(),
     ...getDoTools(),
     ...getBlackboardMcpTools(),
+    ...getFileArtifactMcpTools(),
     ...getTrainingTools(),
   ];
 
@@ -321,6 +326,12 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
     // Blackboard tools (global boards + session snapshots)
     if (BLACKBOARD_TOOL_NAMES.has(name)) {
       const result = await executeBlackboardTool(name, args, CASSICORE_URL, logger);
+      return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
+    }
+
+    // File Artifact tools (agent file sharing)
+    if (FILE_ARTIFACT_TOOL_NAMES.has(name)) {
+      const result = await executeFileArtifactTool(name, args, CASSICORE_URL, logger);
       return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
     }
 
