@@ -766,6 +766,51 @@ export interface FluxTeamBudget {
   progressSteering?: Partial<ProgressSteeringConfig>
   /** Token budget gate configuration */
   tokenGates?: Partial<TokenBudgetGateConfig>
+  /** Self-healing configuration */
+  selfHealing?: Partial<SelfHealingConfig>
+}
+
+/**
+ * Configuration for self-healing behavior in decomposed teams.
+ *
+ * WHY: When a sub-cell fails (token gate, timeout, error), the work it
+ * didn't complete should be retried by a new cell. Without self-healing,
+ * partial failures leave gaps in the output.
+ */
+export interface SelfHealingConfig {
+  /** Enable automatic retry of failed cells (default: true) */
+  enabled: boolean
+  /** Maximum retry attempts per failed cell (default: 2) */
+  maxRetries: number
+  /** Enable runtime decomposition requests from cells (default: true) */
+  allowRuntimeDecomposition: boolean
+  /** Maximum additional cells that can be spawned at runtime (default: 10) */
+  maxRuntimeCells: number
+}
+
+/**
+ * Structured data for a cell request posted to the blackboard 'requests' channel.
+ *
+ * HOW: Cells post these to the blackboard when they need help. The orchestrator
+ * subscribes to the 'requests' channel, validates the request against budget,
+ * and spawns new cells if appropriate. The requesting cell continues working
+ * (non-blocking).
+ */
+export type CellRequestType = 'decomposition-request' | 'retry-remaining'
+
+export interface CellRequest {
+  /** Request type */
+  type: CellRequestType
+  /** Why the cell is requesting help */
+  reason: string
+  /** File paths the requesting cell cannot handle */
+  files: string[]
+  /** The original goal context to pass to new cells */
+  goalContext?: string
+  /** Cell ID making the request */
+  requestingCellId: string
+  /** Files already completed by the requesting cell (for retry tracking) */
+  completedFiles?: string[]
 }
 
 /**
