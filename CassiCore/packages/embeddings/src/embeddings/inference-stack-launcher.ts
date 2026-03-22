@@ -281,7 +281,9 @@ export class InferenceStackLauncher {
             if (ownPids.has(pid)) continue // our own process
 
             // Check VRAM usage: format "name, gpuIdx, vramBytes, sdmaBytes, cuOccupancy"
-            const parts = system[key].split(',').map(s => s.trim())
+            const processInfo = system[key]
+            if (typeof processInfo !== 'string') continue
+            const parts = processInfo.split(',').map(s => s.trim())
             const vramBytes = Number(parts[2] ?? '0')
             if (vramBytes > 0) {
               this.logger.debug(`GPU guard: external process PID ${pid} (${parts[0]}) using ${Math.round(vramBytes / 1048576)}MB VRAM`)
@@ -340,14 +342,6 @@ export class InferenceStackLauncher {
       return
     }
 
-    // GPU contention guard: defer startup if another application is using the GPU
-    if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
-      this.logger.info('GPU in use by another application — deferring inference stack startup')
-      this.gpuDeferred = true
-      this.startGpuGuardLoop()
-      return
-    }
-
     const { embeddingPort, rerankerPort, generativePort, backend } = this.config
 
     // Resolve llama-server binary path (shared by embedding + generative)
@@ -366,6 +360,13 @@ export class InferenceStackLauncher {
     } else if (await this.isHealthy(embeddingPort)) {
       this.logger.info(`Embedding server already running on :${embeddingPort}`)
     } else {
+      // GPU contention guard: only spawn if no external GPU usage
+      if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+        this.logger.info('GPU in use by another application — deferring embedding server startup')
+        this.gpuDeferred = true
+        this.startGpuGuardLoop()
+        return
+      }
       this.spawnManaged({
         name: MANAGED_EMBEDDING,
         port: embeddingPort,
@@ -398,6 +399,13 @@ export class InferenceStackLauncher {
     } else if (await this.isHealthy(rerankerPort)) {
       this.logger.info(`Reranker server already running on :${rerankerPort}`)
     } else {
+      // GPU contention guard: only spawn if no external GPU usage
+      if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+        this.logger.info('GPU in use by another application — deferring reranker startup')
+        this.gpuDeferred = true
+        this.startGpuGuardLoop()
+        return
+      }
       this.spawnManaged({
         name: MANAGED_RERANKER,
         port: rerankerPort,
@@ -424,6 +432,13 @@ export class InferenceStackLauncher {
     } else if (await this.isHealthy(generativePort)) {
       this.logger.info(`Generative model server already running on :${generativePort}`)
     } else {
+      // GPU contention guard: only spawn if no external GPU usage
+      if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+        this.logger.info('GPU in use by another application — deferring generative model startup')
+        this.gpuDeferred = true
+        this.startGpuGuardLoop()
+        return
+      }
       this.spawnManaged({
         name: MANAGED_GENERATIVE,
         port: generativePort,
