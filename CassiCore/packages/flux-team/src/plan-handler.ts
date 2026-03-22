@@ -25,6 +25,9 @@ const PLAN_META_TOOL_NAMES = new Set([
   'plan_reject_step',
   'plan_update_step',
   'plan_finalize',
+  'plan_claim_step',
+  'plan_release_step',
+  'plan_report_progress',
 ])
 
 /** Tools restricted to Executive only */
@@ -82,6 +85,12 @@ export class PlanHandler {
           return this.updateStep(input)
         case 'plan_finalize':
           return this.finalize(input)
+        case 'plan_claim_step':
+          return this.claimStep(input, posture)
+        case 'plan_release_step':
+          return this.releaseStep(input, posture)
+        case 'plan_report_progress':
+          return this.reportProgress(input, posture)
         default:
           return JSON.stringify({ error: `Unknown plan tool: ${toolName}` })
       }
@@ -354,5 +363,46 @@ export class PlanHandler {
         blocked: plan.steps.filter(s => s.status === 'blocked').length,
       },
     }
+  }
+
+  // Work-claiming TODO methods (delegate to Blackboard)
+
+  private claimStep(input: Record<string, unknown>, posture: PlanPosture): string {
+    const stepId = String(input.step_id ?? input.stepId ?? '')
+    if (!stepId) return JSON.stringify({ error: 'step_id is required.' })
+
+    const step = this.blackboard.claimPlanStep(stepId, posture)
+    if (!step) return JSON.stringify({ error: `Cannot claim step "${stepId}" — it may not exist, not be approved, or already claimed.` })
+
+    return JSON.stringify({
+      success: true,
+      step: this.formatStep(step),
+      message: `Step "${step.title}" claimed by ${posture}.`,
+    })
+  }
+
+  private releaseStep(input: Record<string, unknown>, posture: PlanPosture): string {
+    const stepId = String(input.step_id ?? input.stepId ?? '')
+    if (!stepId) return JSON.stringify({ error: 'step_id is required.' })
+
+    const ok = this.blackboard.releasePlanStep(stepId, posture)
+    if (!ok) return JSON.stringify({ error: `Cannot release step "${stepId}" — it may not be in-progress or not assigned to you.` })
+
+    return JSON.stringify({ success: true, message: `Step released and is now available for others.` })
+  }
+
+  private reportProgress(input: Record<string, unknown>, posture: PlanPosture): string {
+    const stepId = String(input.step_id ?? input.stepId ?? '')
+    if (!stepId) return JSON.stringify({ error: 'step_id is required.' })
+
+    const progress = input.progress ? String(input.progress) : undefined
+    const step = this.blackboard.reportPlanStepProgress(stepId, posture, progress)
+    if (!step) return JSON.stringify({ error: `Cannot report progress on step "${stepId}" — it may not be in-progress or not assigned to you.` })
+
+    return JSON.stringify({
+      success: true,
+      step: this.formatStep(step),
+      message: `Progress reported.${progress ? ` Progress: ${progress}` : ''}`,
+    })
   }
 }

@@ -29,6 +29,7 @@ import type {
   FluxCellResult,
   Plan,
   PlanStep,
+  PlanStepStatus,
   Report,
   ReportSection,
   ReportSectionType,
@@ -38,7 +39,7 @@ import type {
 
 // Constants
 
-const CHANNEL_LIMIT = 200 // Max entries per channel
+const CHANNEL_LIMIT = 500 // Max entries per channel (increased for large-scale teams)
 const TOOL_LOG_LIMIT = 500 // Max tool records
 const DEFAULT_SCRATCHPAD_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
@@ -612,6 +613,199 @@ export class Blackboard {
     return this.plan
   }
 
+  // Work-claiming TODO methods
+
+  /** Default stall timeout: 30 minutes */
+  private static readonly DEFAULT_STALL_TIMEOUT_MS = 30 * 60 * 1000
+
+  /**
+   * Claim an approved plan step for execution.
+   *
+   * Only steps with status 'approved' and no current assignee can be claimed.
+   * Claiming auto-transitions the step to 'in_progress'.
+   *
+   * @param stepId - The step to claim
+   * @param assignee - Agent/posture claiming the step
+   * @param expectedStatus - Optimistic concurrency guard (default: 'approved')
+   * @returns The claimed step, or null if claim failed
+   */
+  claimPlanStep(stepId: string, assignee: string, expectedStatus: PlanStepStatus = 'approved'): PlanStep | null {
+    if (!this.plan) return null
+
+    const step = this.plan.steps.find(s => s.id === stepId)
+    if (!step) return null
+
+    // Optimistic concurrency: reject if status changed since caller last checked
+    if (step.status !== expectedStatus) {
+      this.logger.debug('Claim rejected: status mismatch', {
+        stepId, expected: expectedStatus, actual: step.status,
+      })
+      return null
+    }
+
+    // Only approved, unassigned steps can be claimed
+    if (step.status !== 'approved' || step.assignee) {
+      this.logger.debug('Claim rejected: step not available', {
+        stepId, status: step.status, assignee: step.assignee,
+      })
+      return null
+    }
+
+    const now = Date.now()
+    step.status = 'in_progress'
+    step.assignee = assignee
+    step.claimedAt = now
+    step.lastActivityAt = now
+    step.updatedAt = now
+    this.plan.updatedAt = now
+    this.touch()
+
+    this.logger.debug('Plan step claimed', {
+      planId: this.plan.id, stepId, assignee,
+    })
+
+    return step
+  }
+
+  /**
+   * Release a claimed plan step, reverting it to 'approved'.
+   *
+   * Only the current assignee (or force=true) can release a step.
+   *
+   * @param stepId - The step to release
+   * @param assignee - Agent requesting release (must match current assignee unless force)
+   * @param force - Skip assignee check (for stall recovery)
+   * @returns true if released, false otherwise
+   */
+  releasePlanStep(stepId: string, assignee: string, force = false): boolean {
+    if (!this.plan) return false
+
+    const step = this.plan.steps.find(s => s.id === stepId)
+    if (!step) return false
+    if (step.status !== 'in_progress') return false
+    if (!force && step.assignee !== assignee) return false
+
+    const now = Date.now()
+    step.status = 'approved'
+    step.assignee = undefined
+    step.claimedAt = undefined
+    step.lastActivityAt = undefined
+    step.updatedAt = now
+    this.plan.updatedAt = now
+    this.touch()
+
+    this.logger.debug('Plan step released', {
+      planId: this.plan.id, stepId, releasedBy: assignee, force,
+    })
+
+    return true
+  }
+
+  /**
+   * Report progress / heartbeat on a claimed step.
+   *
+   * Updates `lastActivityAt` to prevent stall detection from reclaiming the step.
+   *
+   * @param stepId - The step to report on
+   * @param assignee - Must match current assignee
+   * @param progress - Optional progress description
+   * @returns The updated step, or null if not found / not assigned to caller
+   */
+  reportPlanStepProgress(stepId: string, assignee: string, progress?: string): PlanStep | null {
+    if (!this.plan) return null
+
+    const step = this.plan.steps.find(s => s.id === stepId)
+    if (!step) return null
+    if (step.status !== 'in_progress' || step.assignee !== assignee) return null
+
+    const now = Date.now()
+    step.lastActivityAt = now
+    step.updatedAt = now
+    if (progress) {
+      step.outcome = progress
+    }
+    this.plan.updatedAt = now
+    this.touch()
+
+    this.logger.debug('Plan step progress reported', {
+      planId: this.plan.id, stepId, assignee,
+    })
+
+    return step
+  }
+
+  /**
+   * Get all available (claimable) plan steps.
+   *
+   * Returns approved steps with no assignee, sorted by priority then order.
+   */
+  getAvailableSteps(): PlanStep[] {
+    if (!this.plan) return []
+    return this.plan.steps
+      .filter(s => s.status === 'approved' && !s.assignee)
+      .sort((a, b) => {
+        const prio = { high: 0, medium: 1, low: 2 }
+        const pd = prio[a.priority] - prio[b.priority]
+        return pd !== 0 ? pd : a.order - b.order
+      })
+  }
+
+  /**
+   * Get claimed (in-progress) plan steps, optionally filtered by assignee.
+   *
+   * @param assignee - If provided, only return steps claimed by this agent
+   */
+  getClaimedSteps(assignee?: string): PlanStep[] {
+    if (!this.plan) return []
+    return this.plan.steps.filter(s => {
+      if (s.status !== 'in_progress' || !s.assignee) return false
+      return assignee ? s.assignee === assignee : true
+    })
+  }
+
+  /**
+   * Reclaim stalled work — release steps whose assignee hasn't reported
+   * activity within the stall timeout.
+   *
+   * @param maxAgeMs - Override default stall timeout (default: 30 min)
+   * @returns Number of steps reclaimed
+   */
+  reclaimStalledWork(maxAgeMs: number = Blackboard.DEFAULT_STALL_TIMEOUT_MS): number {
+    if (!this.plan) return 0
+
+    const now = Date.now()
+    let reclaimed = 0
+
+    for (const step of this.plan.steps) {
+      if (step.status !== 'in_progress' || !step.assignee) continue
+
+      const timeout = step.stallTimeoutMs ?? maxAgeMs
+      const lastActive = step.lastActivityAt ?? step.claimedAt ?? step.updatedAt
+      if (now - lastActive > timeout) {
+        this.logger.info('Reclaiming stalled plan step', {
+          planId: this.plan.id,
+          stepId: step.id,
+          assignee: step.assignee,
+          stalledForMs: now - lastActive,
+        })
+
+        step.status = 'approved'
+        step.assignee = undefined
+        step.claimedAt = undefined
+        step.lastActivityAt = undefined
+        step.updatedAt = now
+        reclaimed++
+      }
+    }
+
+    if (reclaimed > 0) {
+      this.plan.updatedAt = now
+      this.touch()
+    }
+
+    return reclaimed
+  }
+
   /**
    * Format the plan as a readable text string for context injection.
    *
@@ -629,6 +823,13 @@ export class Blackboard {
       lines.push(`Summary: ${this.plan.summary}`)
     }
 
+    // Work-claiming summary
+    const available = this.plan.steps.filter(s => s.status === 'approved' && !s.assignee).length
+    const claimed = this.plan.steps.filter(s => s.status === 'in_progress' && s.assignee).length
+    const completed = this.plan.steps.filter(s => s.status === 'completed').length
+    const total = this.plan.steps.length
+    lines.push(`Progress: ${completed}/${total} completed, ${claimed} in-progress, ${available} available`)
+
     // Sort steps by order
     const sortedSteps = [...this.plan.steps].sort((a, b) => a.order - b.order)
 
@@ -636,7 +837,8 @@ export class Blackboard {
     lines.push('Steps:')
     for (const step of sortedSteps) {
       const depStr = step.dependencies.length > 0 ? ` (deps: ${step.dependencies.join(', ')})` : ''
-      lines.push(`  ${step.order}. [${step.status.toUpperCase()}] ${step.title} (${step.priority})${depStr}`)
+      const assigneeStr = step.assignee ? ` [assigned: ${step.assignee}]` : ''
+      lines.push(`  ${step.order}. [${step.status.toUpperCase()}] ${step.title} (${step.priority})${depStr}${assigneeStr}`)
       lines.push(`     ${step.description}`)
       if (step.outcome) {
         lines.push(`     Outcome: ${step.outcome}`)

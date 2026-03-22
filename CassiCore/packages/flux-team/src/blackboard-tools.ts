@@ -571,6 +571,65 @@ export const PLAN_FINALIZE_TOOL: ToolSchema = {
   },
 }
 
+// Work-claiming plan tools
+
+export const PLAN_CLAIM_STEP_TOOL: ToolSchema = {
+  name: 'plan_claim_step',
+  description:
+    'Claim an approved plan step for execution. Claiming transitions the step to "in_progress" and ' +
+    'assigns you as the owner. Only approved, unassigned steps can be claimed. ' +
+    'Use plan_view first to see available steps, then claim the one you want to work on.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      step_id: {
+        type: 'string',
+        description: 'The ID of the step to claim (e.g., "step-a1b2c3d4").',
+      },
+    },
+    required: ['step_id'],
+  },
+}
+
+export const PLAN_RELEASE_STEP_TOOL: ToolSchema = {
+  name: 'plan_release_step',
+  description:
+    'Release a previously claimed plan step, making it available for others. ' +
+    'The step reverts to "approved" with no assignee. You can only release steps you have claimed.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      step_id: {
+        type: 'string',
+        description: 'The ID of the step to release.',
+      },
+    },
+    required: ['step_id'],
+  },
+}
+
+export const PLAN_REPORT_PROGRESS_TOOL: ToolSchema = {
+  name: 'plan_report_progress',
+  description:
+    'Report progress on a claimed plan step. This acts as a heartbeat — steps without recent ' +
+    'progress reports may be automatically released for other agents. ' +
+    'Optionally provide a progress description to keep others informed.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      step_id: {
+        type: 'string',
+        description: 'The ID of the step to report progress on.',
+      },
+      progress: {
+        type: 'string',
+        description: 'Description of progress made so far.',
+      },
+    },
+    required: ['step_id'],
+  },
+}
+
 // Tool Name Sets
 
 /** All channel tool names */
@@ -600,6 +659,9 @@ const ALL_PLAN_TOOL_NAMES = new Set([
   'plan_reject_step',
   'plan_update_step',
   'plan_finalize',
+  'plan_claim_step',
+  'plan_release_step',
+  'plan_report_progress',
 ])
 
 /** Plan tools restricted to Executive / Apex only */
@@ -665,6 +727,9 @@ export const REPORT_TOOLS: ToolSchema[] = [
 export const ALL_POSTURES_PLAN_TOOLS: ToolSchema[] = [
   PLAN_SUBMIT_STEP_TOOL,
   PLAN_VIEW_TOOL,
+  PLAN_CLAIM_STEP_TOOL,
+  PLAN_RELEASE_STEP_TOOL,
+  PLAN_REPORT_PROGRESS_TOOL,
 ]
 
 /** Plan tools available only to Executive (Lumen) / Apex (Dyad) */
@@ -782,6 +847,9 @@ export function handleBlackboardToolCall(
     if (name === 'plan_reject_step') return handlePlanRejectStep(blackboard, input)
     if (name === 'plan_update_step') return handlePlanUpdateStep(blackboard, input)
     if (name === 'plan_finalize') return handlePlanFinalize(blackboard, input, posture)
+    if (name === 'plan_claim_step') return handlePlanClaimStep(blackboard, input, posture)
+    if (name === 'plan_release_step') return handlePlanReleaseStep(blackboard, input, posture)
+    if (name === 'plan_report_progress') return handlePlanReportProgress(blackboard, input, posture)
 
     return JSON.stringify({ error: `Unknown Blackboard tool: ${name}` })
   } catch (err) {
@@ -1122,7 +1190,16 @@ function handlePlanSubmitStep(blackboard: Blackboard, input: Record<string, unkn
 function handlePlanView(blackboard: Blackboard): string {
   const plan = blackboard.getPlan()
   if (!plan) return JSON.stringify({ plan: null, message: 'No plan has been initialized yet.' })
-  return JSON.stringify({ plan: formatPlan(plan) })
+
+  // Run stall detection on view so agents see an up-to-date picture
+  const reclaimed = blackboard.reclaimStalledWork()
+
+  const result: Record<string, unknown> = { plan: formatPlan(plan) }
+  if (reclaimed > 0) {
+    result.notice = `${reclaimed} stalled step(s) were automatically released and are now available.`
+  }
+
+  return JSON.stringify(result)
 }
 
 function handlePlanApproveStep(blackboard: Blackboard, input: Record<string, unknown>): string {
@@ -1178,6 +1255,79 @@ function handlePlanFinalize(blackboard: Blackboard, input: Record<string, unknow
   return JSON.stringify({ success: true, plan: formatPlan(plan), message: `Plan finalized as '${status}'.` })
 }
 
+// Work-claiming plan implementations
+
+function handlePlanClaimStep(blackboard: Blackboard, input: Record<string, unknown>, posture: string): string {
+  const stepId = String(input.step_id ?? input.stepId ?? '')
+  if (!stepId) return JSON.stringify({ error: 'step_id is required.' })
+
+  const step = blackboard.claimPlanStep(stepId, posture)
+  if (!step) {
+    const plan = blackboard.getPlan()
+    const existing = plan?.steps.find(s => s.id === stepId)
+    if (!existing) return JSON.stringify({ error: `Step not found: ${stepId}` })
+    if (existing.status !== 'approved') {
+      return JSON.stringify({ error: `Step "${existing.title}" cannot be claimed — status is "${existing.status}" (must be "approved").` })
+    }
+    if (existing.assignee) {
+      return JSON.stringify({ error: `Step "${existing.title}" is already claimed by "${existing.assignee}".` })
+    }
+    return JSON.stringify({ error: `Cannot claim step "${existing.title}".` })
+  }
+
+  return JSON.stringify({
+    success: true,
+    step: formatStep(step),
+    message: `Step "${step.title}" claimed by ${posture}. You are now responsible for completing it. Use plan_report_progress to send heartbeats.`,
+  })
+}
+
+function handlePlanReleaseStep(blackboard: Blackboard, input: Record<string, unknown>, posture: string): string {
+  const stepId = String(input.step_id ?? input.stepId ?? '')
+  if (!stepId) return JSON.stringify({ error: 'step_id is required.' })
+
+  const plan = blackboard.getPlan()
+  const existing = plan?.steps.find(s => s.id === stepId)
+  if (!existing) return JSON.stringify({ error: `Step not found: ${stepId}` })
+
+  if (existing.assignee && existing.assignee !== posture) {
+    return JSON.stringify({ error: `Step "${existing.title}" is claimed by "${existing.assignee}" — only the assignee can release it.` })
+  }
+
+  const ok = blackboard.releasePlanStep(stepId, posture)
+  if (!ok) {
+    return JSON.stringify({ error: `Cannot release step "${existing.title}" — it is not in-progress or not assigned to you.` })
+  }
+
+  return JSON.stringify({
+    success: true,
+    message: `Step "${existing.title}" released and is now available for others to claim.`,
+  })
+}
+
+function handlePlanReportProgress(blackboard: Blackboard, input: Record<string, unknown>, posture: string): string {
+  const stepId = String(input.step_id ?? input.stepId ?? '')
+  if (!stepId) return JSON.stringify({ error: 'step_id is required.' })
+
+  const progress = input.progress ? String(input.progress) : undefined
+  const step = blackboard.reportPlanStepProgress(stepId, posture, progress)
+  if (!step) {
+    const plan = blackboard.getPlan()
+    const existing = plan?.steps.find(s => s.id === stepId)
+    if (!existing) return JSON.stringify({ error: `Step not found: ${stepId}` })
+    if (existing.assignee !== posture) {
+      return JSON.stringify({ error: `Step "${existing.title}" is not assigned to you (assigned to: ${existing.assignee ?? 'nobody'}).` })
+    }
+    return JSON.stringify({ error: `Cannot report progress on step "${existing.title}" — it is not in-progress.` })
+  }
+
+  return JSON.stringify({
+    success: true,
+    step: formatStep(step),
+    message: `Progress reported on "${step.title}".${progress ? ` Progress: ${progress}` : ''}`,
+  })
+}
+
 // Plan Formatting Helpers
 
 /**
@@ -1187,7 +1337,7 @@ function handlePlanFinalize(blackboard: Blackboard, input: Record<string, unknow
  */
 
 function formatStep(step: import('../../../types/flux-team.js').PlanStep): Record<string, unknown> {
-  return {
+  const result: Record<string, unknown> = {
     id: step.id,
     title: step.title,
     description: step.description,
@@ -1200,6 +1350,13 @@ function formatStep(step: import('../../../types/flux-team.js').PlanStep): Recor
     outcome: step.outcome,
     rejectionReason: step.rejectionReason,
   }
+
+  // Include work-claiming fields when present
+  if (step.assignee) result.assignee = step.assignee
+  if (step.claimedAt) result.claimedAt = step.claimedAt
+  if (step.lastActivityAt) result.lastActivityAt = step.lastActivityAt
+
+  return result
 }
 
 /**
@@ -1210,6 +1367,9 @@ function formatStep(step: import('../../../types/flux-team.js').PlanStep): Recor
 
 function formatPlan(plan: import('../../../types/flux-team.js').Plan): Record<string, unknown> {
   const sortedSteps = [...plan.steps].sort((a, b) => a.order - b.order)
+  const available = plan.steps.filter(s => s.status === 'approved' && !s.assignee).length
+  const claimed = plan.steps.filter(s => s.status === 'in_progress' && s.assignee).length
+
   return {
     id: plan.id,
     goal: plan.goal,
@@ -1225,6 +1385,10 @@ function formatPlan(plan: import('../../../types/flux-team.js').Plan): Record<st
       in_progress: plan.steps.filter(s => s.status === 'in_progress').length,
       completed: plan.steps.filter(s => s.status === 'completed').length,
       blocked: plan.steps.filter(s => s.status === 'blocked').length,
+    },
+    workQueue: {
+      available,
+      claimed,
     },
   }
 }
