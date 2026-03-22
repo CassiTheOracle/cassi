@@ -7,6 +7,7 @@ import {
   QwenProvider,
 } from '@cassicore/ai'
 
+import { getCassiCoreHome } from '../utils/paths.js'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
 import { GitHubCopilotProvider } from './github-copilot.js'
 import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
@@ -74,7 +75,7 @@ export function createProviders(
   // Attempt to load multi-account file
   let copilotAccounts: GitHubCopilotAccount[] = []
   try {
-    const path = process.env.GITHUB_COPILOT_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/github-copilot-accounts.json`
+    const path = process.env.GITHUB_COPILOT_ACCOUNTS_PATH || `${getCassiCoreHome()}/github-copilot-accounts.json`
     if (fs.existsSync(path)) {
       const cfg = JSON.parse(fs.readFileSync(path, 'utf8'))
       copilotAccounts = cfg?.providers?.['github-copilot']?.accounts || []
@@ -142,7 +143,7 @@ export function createProviders(
 
   const qwenAccounts: QwenAccount[] = []
   try {
-    const qwenPath = process.env.QWEN_ACCOUNTS_PATH || `${process.env.HOME || '/home/valerie'}/.cassicore/qwen-accounts.json`
+    const qwenPath = process.env.QWEN_ACCOUNTS_PATH || `${getCassiCoreHome()}/qwen-accounts.json`
     if (fs.existsSync(qwenPath)) {
       const cfg = JSON.parse(fs.readFileSync(qwenPath, 'utf8'))
       qwenAccounts.push(...(cfg?.accounts || []))

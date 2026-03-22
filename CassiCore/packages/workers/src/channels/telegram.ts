@@ -412,6 +412,14 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
   // Finalize stream
   if (done) {
     if (s.timer) { clearInterval(s.timer); s.timer = null }
+    // Always finalize the stream to stop typing indicator, even if buffer is empty
+    // If buffer has content, flush it; otherwise send empty message to clear typing
+    if (s.buffer) {
+      enqueueFlush(sessionId)
+    } else {
+      // Send empty message to stop typing indicator when no content was produced
+      tg.sendMessage(chatId, '').catch(() => {})
+    }
     finalizeStream(sessionId).catch((err) => {
       log('warn', 'stream finalize error', { sessionId, error: String(err) })
     })
