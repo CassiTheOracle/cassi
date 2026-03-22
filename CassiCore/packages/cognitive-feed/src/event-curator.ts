@@ -44,8 +44,10 @@ interface RouteRule {
   highlight: boolean
   /** Additional topics to mirror the event to */
   mirrorTopics?: string[]
-  /** Priority */
+  /** Static priority */
   priority?: 'high' | 'medium' | 'low'
+  /** Dynamic priority — overrides static priority when present */
+  priorityFn?: (event: RuntimeEvent) => 'high' | 'medium' | 'low'
   /** Filter function — return false to drop the event */
   filter?: (event: RuntimeEvent, config: CuratorConfig) => boolean
 }
@@ -57,16 +59,48 @@ interface RouteRule {
 const EXACT_ROUTES: Record<string, RouteRule> = {
   'lumen:synthesis-complete':  { topicKey: 'lumen', highlight: true, priority: 'high' },
   'lumen:started':             { topicKey: 'lumen', highlight: true, priority: 'medium' },
+  'lumen:complete':            { topicKey: 'lumen', highlight: true, priority: 'high' },
+  'lumen:persisted':           { topicKey: 'lumen', highlight: false },
   'lumen:yang-complete':       { topicKey: 'lumen', highlight: false },
   'lumen:yin-complete':        { topicKey: 'lumen', highlight: false },
   'lumen:posture:start':       { topicKey: 'lumen', highlight: false },
-  'lumen:posture:complete':    { topicKey: 'lumen', highlight: false },
+  'lumen:posture:concluded':   { topicKey: 'lumen', highlight: false },
   'lumen:posture:error':       { topicKey: 'lumen', highlight: true, priority: 'high' },
 
+  // Lumen dialectic flow events (real-time message flow)
+  'lumen:dialectic:finding':           { topicKey: 'lumen', highlight: false },
+  'lumen:dialectic:challenge':         { topicKey: 'lumen', highlight: false },
+  'lumen:dialectic:concession':        { topicKey: 'lumen', highlight: false },
+  'lumen:dialectic:investigation':     { topicKey: 'lumen', highlight: false },
+  'lumen:dialectic:executive-injection': { topicKey: 'lumen', highlight: true, priority: 'medium' },
+  'lumen:dialectic:executive-steering': { topicKey: 'lumen', highlight: true, priority: 'medium' },
+  'lumen:dialectic:digest':            { topicKey: 'lumen', highlight: false },
+  'lumen:posture:iteration':           { topicKey: 'lumen', highlight: false },
+  'lumen:posture:progress':            { topicKey: 'lumen', highlight: false },
+  'lumen:iteration:digest':            { topicKey: 'lumen', highlight: false },
+  'lumen:progress:digest':             { topicKey: 'lumen', highlight: false },
+
   'dyad:started':              { topicKey: 'dyad', highlight: true, priority: 'medium' },
-  'dyad:complete':             { topicKey: 'dyad', highlight: true, priority: 'medium' },
+  'dyad:complete':             { topicKey: 'dyad', highlight: true, priority: 'high' },
+  'dyad:failed':               { topicKey: 'dyad', highlight: true, priority: 'high' },
   'dyad:role:completed':       { topicKey: 'dyad', highlight: false },
   'dyad:role:failed':          { topicKey: 'dyad', highlight: true, priority: 'high' },
+
+  // Dyad work stream flow events (real-time message flow)
+  'dyad:work-unit':            { topicKey: 'dyad', highlight: false },
+  'dyad:refinement':           { topicKey: 'dyad', highlight: false },
+  'dyad:nudge':                { topicKey: 'dyad', highlight: false },
+  'dyad:research':             { topicKey: 'dyad', highlight: false },
+  'dyad:guidance':             { topicKey: 'dyad', highlight: false },
+  'dyad:quality-assessment':   { topicKey: 'dyad', highlight: true, priority: 'medium' },
+  'dyad:posture:iteration':    { topicKey: 'dyad', highlight: false },
+  'dyad:work-stream:digest':   { topicKey: 'dyad', highlight: false },
+  'dyad:iteration:digest':     { topicKey: 'dyad', highlight: false },
+
+  // Flux team direct events (real-time flow)
+  'team:started':              { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
+  'team:completed':            { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
+  'team:failed':               { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
 
   'flux:event':                { topicKey: 'fluxTeam', highlight: false },
   'flux:node:completed':       { topicKey: 'fluxTeam', highlight: false },
@@ -76,11 +110,10 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'triad-team:failed':         { topicKey: 'triadTeam', highlight: true, priority: 'high' },
   'triad-team:cancelled':      { topicKey: 'triadTeam', highlight: true, priority: 'medium' },
   'triad-team:checkpoint':     { topicKey: 'triadTeam', highlight: true, priority: 'high' },
-  'triad-team:budget-warning': { topicKey: 'triadTeam', highlight: true, priority: 'high' },
   'triad-team:cell-completed-without-action': { topicKey: 'triadTeam', highlight: true, priority: 'high' },
-  'cell:turn:start':           { topicKey: 'triadTeam', highlight: false },
-  'cell:turn:end':             { topicKey: 'triadTeam', highlight: false },
-  'cell:thinking:signal-extracted': { topicKey: 'triadTeam', highlight: false },
+  'cell:turn:start':           { topicKey: 'fluxTeam', highlight: false },
+  'cell:turn:end':             { topicKey: 'fluxTeam', highlight: false },
+  'cell:thinking:signal-extracted': { topicKey: 'fluxTeam', highlight: false },
 
   'drone:swarm:completed':     { topicKey: 'droneSwarm', highlight: true, priority: 'medium' },
   'drone:swarm:failed':        { topicKey: 'droneSwarm', highlight: true, priority: 'high' },
@@ -114,6 +147,11 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
     filter: (event, config) => {
       const e = event as any
       return (e.confidence ?? 1) >= config.minConfidence
+    },
+    /** Boost priority based on urgency field (added per Lumen analysis) */
+    priorityFn: (event) => {
+      const e = event as any
+      return e.urgency === 'immediate' ? 'high' : 'medium'
     },
   },
   'dialectic:round-complete':  { topicKey: 'dialectic', highlight: false },
@@ -155,24 +193,36 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'self-healer:repair':        { topicKey: 'system', highlight: true, priority: 'high' },
   'trust:update':              { topicKey: 'system', highlight: false },
   'permission:decision':       { topicKey: 'system', highlight: false },
-  'budget:warning':            { topicKey: 'system', highlight: true, priority: 'high' },
-  'budget:exhausted':          { topicKey: 'system', highlight: true, priority: 'high' },
+  'daemon:health':             { topicKey: 'system', highlight: false, priority: 'low' },
+  'daemon:ready':              { topicKey: 'system', highlight: true, priority: 'high' },
+  'daemon:shutdown':           { topicKey: 'system', highlight: true, priority: 'high' },
+
+  // Budget events — consolidated in dedicated topic (per Lumen analysis: single-topic rule)
+  'budget:warning':            { topicKey: 'budget', highlight: true, priority: 'high' },
+  'budget:exhausted':          { topicKey: 'budget', highlight: true, priority: 'high' },
+  'budget:tier_changed':       { topicKey: 'budget', highlight: true, priority: 'medium' },
+  'team:budget:warning':       { topicKey: 'budget', highlight: true, priority: 'high' },
+  'triad-team:budget-warning': { topicKey: 'budget', highlight: true, priority: 'high', mirrorTopics: ['triadTeam'] },
+
+  // Tool lifecycle
+  'tool:registered':           { topicKey: 'tools', highlight: false, priority: 'low' },
+  'tool:executed':             { topicKey: 'tools', highlight: false, priority: 'low' },
 
   'provider:request_start':    { topicKey: 'llmCalls', highlight: false, priority: 'low' },
   'provider:request_end':      { topicKey: 'llmCalls', highlight: false, priority: 'low' },
+  'provider:request_chunk':    { topicKey: 'llmCalls', highlight: false, priority: 'low' },
 
-  'session:created':           { topicKey: null, highlight: true, priority: 'medium' },
-  'session:ended':             { topicKey: null, highlight: true, priority: 'low' },
+  // Session lifecycle — dedicated user-facing topic
+  'session:created':           { topicKey: 'sessions', highlight: true, priority: 'medium' },
+  'session:ended':             { topicKey: 'sessions', highlight: true, priority: 'low' },
+  'turn:start':                { topicKey: 'sessions', highlight: false, priority: 'low' },
+  'turn:end':                  { topicKey: 'sessions', highlight: false, priority: 'low' },
 
   'blackboard:entry':          { topicKey: 'blackboard', highlight: false },
 
-  'team:started':              { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
-  'team:completed':            { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
-  'team:failed':               { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
   'team:cancelled':            { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
   'team:paused':               { topicKey: 'fluxTeam', highlight: false },
   'team:resumed':              { topicKey: 'fluxTeam', highlight: false },
-  'team:budget:warning':       { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
   'team:checkpoint':           { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
 }
 
@@ -185,7 +235,7 @@ const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
   { prefix: 'dyad:',           rule: { topicKey: 'dyad', highlight: false } },
   { prefix: 'flux:',           rule: { topicKey: 'fluxTeam', highlight: false } },
   { prefix: 'triad-team:',     rule: { topicKey: 'triadTeam', highlight: false } },
-  { prefix: 'cell:',           rule: { topicKey: 'triadTeam', highlight: false } },
+  { prefix: 'cell:',           rule: { topicKey: 'fluxTeam', highlight: false } },
   { prefix: 'drone:',          rule: { topicKey: 'droneSwarm', highlight: false } },
   { prefix: 'agent:',          rule: { topicKey: 'multiAgent', highlight: false } },
   { prefix: 'multi-agent:',    rule: { topicKey: 'multiAgent', highlight: false } },
@@ -200,12 +250,16 @@ const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
   { prefix: 'improvement:',    rule: { topicKey: 'adaptive', highlight: false } },
   { prefix: 'verification:',   rule: { topicKey: 'adaptive', highlight: false } },
   { prefix: 'heart:',          rule: { topicKey: 'heart', highlight: false } },
+  { prefix: 'budget:',         rule: { topicKey: 'budget', highlight: false } },
+  { prefix: 'tool:',           rule: { topicKey: 'tools', highlight: false, priority: 'low' } },
   { prefix: 'provider:',       rule: { topicKey: 'llmCalls', highlight: false, priority: 'low' } },
-  { prefix: 'budget:',         rule: { topicKey: 'system', highlight: false } },
+  { prefix: 'daemon:',         rule: { topicKey: 'system', highlight: false } },
   { prefix: 'self-healer:',    rule: { topicKey: 'system', highlight: false } },
   { prefix: 'trust:',          rule: { topicKey: 'system', highlight: false } },
   { prefix: 'permission:',     rule: { topicKey: 'system', highlight: false } },
   { prefix: 'error-learner:',  rule: { topicKey: 'system', highlight: false } },
+  { prefix: 'session:',        rule: { topicKey: 'sessions', highlight: false } },
+  { prefix: 'turn:',           rule: { topicKey: 'sessions', highlight: false, priority: 'low' } },
   { prefix: 'team:',           rule: { topicKey: 'fluxTeam', highlight: false } },
   { prefix: 'blackboard:',     rule: { topicKey: 'blackboard', highlight: false } },
 ]
@@ -257,7 +311,7 @@ export class EventCurator {
       topicKey: rule.topicKey,
       mirrorTopics: mirrorTopics.filter(t => this.config.enabledTopics[t]),
       isHighlight: rule.highlight,
-      priority: rule.priority ?? 'medium',
+      priority: rule.priorityFn ? rule.priorityFn(event) : (rule.priority ?? 'medium'),
     }
   }
 
@@ -274,10 +328,22 @@ export class EventCurator {
 
 
   private resolveRule(type: string): RouteRule | null {
-    // Exact match first
+    // Route resolution order (per Lumen analysis):
+    // 1. EXACT_ROUTES: highest priority — direct event type → topic mapping
+    //    Examples: 'budget:warning', 'team:budget:warning', 'triad-team:budget-warning'
+    //    These prevent accidental double-routing and document special cases.
+    //
+    // 2. PREFIX_ROUTES: fallback — event prefix → topic mapping
+    //    Examples: 'budget:*' → budget, 'tool:*' → tools, 'provider:*' → llmCalls
+    //    Digest events (provider:stream:digest, tool:execution:digest, etc.) route via prefix.
+    //
+    // Special case (documented exception to single-topic rule):
+    //   'triad-team:budget-warning' routes to both 'budget' (exact) AND 'triadTeam' (mirror)
+    //   Reason: TriadTeam coordinators need budget visibility alongside other team events
+    //   This is intentional and maintained for backwards compatibility.
+    
     if (EXACT_ROUTES[type]) return EXACT_ROUTES[type]
 
-    // Prefix match
     for (const { prefix, rule } of PREFIX_ROUTES) {
       if (type.startsWith(prefix)) return rule
     }

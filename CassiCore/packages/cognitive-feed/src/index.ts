@@ -18,7 +18,7 @@
  */
 
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
-import { TelegramClient } from './telegram-client.js'
+import { TelegramClient, TelegramRateLimitError } from './telegram-client.js'
 import { TopicManager, TOPIC_DEFINITIONS } from './topic-manager.js'
 import { EventCurator } from './event-curator.js'
 import { MessageFormatter } from './message-formatter.js'
@@ -27,6 +27,11 @@ import { SteeringHandler, type SteeringCommand } from './steering-handler.js'
 import { GeneralChatHandler } from './general-chat-handler.js'
 import { ModuleChatHandler } from './module-chat-handler.js'
 import { RateLimiter, type QueuedMessage } from './rate-limiter.js'
+import { EventAccumulator, type AccumulatorEvent } from './event-accumulator.js'
+import { DeliveryBatcher } from './delivery-batcher.js'
+import type { DeliveryConfig } from './delivery-types.js'
+import { DEFAULT_DELIVERY_CONFIG } from './delivery-types.js'
+import type { CuratedEvent } from './event-curator.js'
 import { InteractiveToolSession, splitForTelegram } from '../../tools/interactive-tool-session.js'
 import type { ToolDefinition } from '../../tools/interactive-tool-session.js'
 import type { ILogger } from '../../../types/interfaces.js'
@@ -62,8 +67,11 @@ export interface CognitiveFeedConfig {
     adaptive: boolean
     heart: boolean
     system: boolean
+    budget: boolean
+    tools: boolean
     llmCalls: boolean
     blackboard: boolean
+    sessions: boolean
   }
   rateLimit: {
     messagesPerSecond: number
@@ -73,6 +81,18 @@ export interface CognitiveFeedConfig {
   steering: {
     enabled: boolean
     allowedUserIds: number[]
+  }
+  delivery: {
+    loadThresholds: {
+      busyUp: number
+      busyDown: number
+      congestedUp: number
+      congestedDown: number
+      dwellTimeMs: number
+    }
+    emergencyBucketCapacity: number
+    emergencyBucketRefillRate: number
+    emergencyBucketTtlMs: number
   }
 }
 
@@ -103,8 +123,11 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
     adaptive: true,
     heart: true,
     system: true,
+    budget: true,
+    tools: true,
     llmCalls: false, // Off by default — very noisy
     blackboard: true,
+    sessions: true,
   },
   rateLimit: {
     messagesPerSecond: 20,
@@ -114,6 +137,18 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
   steering: {
     enabled: true,
     allowedUserIds: [],
+  },
+  delivery: {
+    loadThresholds: {
+      busyUp: 20,
+      busyDown: 10,
+      congestedUp: 50,
+      congestedDown: 30,
+      dwellTimeMs: 30_000,
+    },
+    emergencyBucketCapacity: 10,
+    emergencyBucketRefillRate: 0.2,
+    emergencyBucketTtlMs: 60_000,
   },
 }
 
@@ -133,6 +168,8 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
   private generalChat!: GeneralChatHandler
   private moduleChat!: ModuleChatHandler
   private rateLimiter!: RateLimiter
+  private accumulator!: EventAccumulator
+  private deliveryBatcher!: DeliveryBatcher
   private activeToolSessions = new Map<number, InteractiveToolSession>()
 
   private pollTimer: ReturnType<typeof setInterval> | null = null
@@ -211,6 +248,31 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       this.logger,
     )
 
+    // Event accumulator for batching high-volume events (dialectic messages, iterations, work units)
+    this.accumulator = new EventAccumulator({
+      logger: this.logger,
+      flushIntervalMs: 15_000,
+      maxBucketSize: 20,
+      onFlush: (events) => {
+        // Route flushed digest events through the normal pipeline
+        for (const evt of events) {
+          this.handleBusEvent(evt as any, true)
+        }
+      },
+    })
+
+    // Delivery batcher — load-aware batching layer between curator and rate limiter
+    this.deliveryBatcher = new DeliveryBatcher(
+      {
+        loadThresholds: this.feedConfig.delivery.loadThresholds,
+        emergencyBucketCapacity: this.feedConfig.delivery.emergencyBucketCapacity,
+        emergencyBucketRefillRate: this.feedConfig.delivery.emergencyBucketRefillRate,
+        emergencyBucketTtlMs: this.feedConfig.delivery.emergencyBucketTtlMs,
+      },
+      (events, mode) => this.deliverEvents(events, mode),
+      this.logger,
+    )
+
     // General chat session bridge
     const adminPort = this.config?.get<number>('daemon.port', 7433) ?? 7433
     this.adminApiUrl = `http://127.0.0.1:${adminPort}`
@@ -228,6 +290,9 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       { adminApiUrl: this.adminApiUrl },
     )
     this.moduleChat.setTopicManager(this.topicManager)
+    if (this.moduleRegistry) {
+      this.moduleChat.setRegistry(this.moduleRegistry)
+    }
 
     // Wire steering command handler
     this.steering.onCommand = (cmd) => this.handleSteeringCommand(cmd)
@@ -277,6 +342,13 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
     // Start rate limiter
     this.rateLimiter.start()
 
+    // Start event accumulator
+    this.accumulator.start()
+
+    // Start delivery batcher and connect to rate limiter observability
+    this.deliveryBatcher.setRateLimiterObservability(this.rateLimiter)
+    this.deliveryBatcher.start()
+
     // Subscribe to ALL events on the bus
     this.subscribeToEvents()
 
@@ -311,6 +383,16 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
     // Stop rate limiter (drains queue)
     if (this.rateLimiter) {
       this.rateLimiter.stop()
+    }
+
+    // Stop delivery batcher (flushes remaining batches)
+    if (this.deliveryBatcher) {
+      this.deliveryBatcher.stop()
+    }
+
+    // Stop event accumulator (flushes remaining)
+    if (this.accumulator) {
+      this.accumulator.stop()
     }
 
     // Send shutdown notification
@@ -371,9 +453,11 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
   }
 
   /**
-   * Handle a single runtime event: curate, format, and enqueue for sending.
+   * Handle a single runtime event: curate, format, and route through the delivery batcher.
+   * @param event - The runtime event
+   * @param skipAccumulator - If true, bypass the accumulator (used for flushed digest events)
    */
-  private handleBusEvent(event: RuntimeEvent): void {
+  private handleBusEvent(event: RuntimeEvent, skipAccumulator = false): void {
     if (this.isShuttingDown) return
     if (!this.feedConfig.enabled) return
 
@@ -381,19 +465,18 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
     const type = event.type as string
     if (type.startsWith('cognitive-feed:')) return
 
+    // Pass through the accumulator for rate-limiting high-volume events
+    if (!skipAccumulator && this.accumulator) {
+      const accumulated = this.accumulator.accumulate(event as unknown as AccumulatorEvent)
+      if (accumulated) return // event was batched, will be flushed later
+    }
+
     // Curate: determine routing, highlight status, priority
     const curated = this.curator.curate(event)
     if (!curated) return
 
-    // Format messages
-    const verboseText = this.formatter.formatVerbose(curated)
-    const highlightText = curated.isHighlight && this.feedConfig.highlights.enabled
-      ? this.formatter.formatHighlight(curated)
-      : null
-
     // Record event in General chat's cognitive context buffer
-    // (uses highlight text if available, otherwise verbose — stripped of HTML)
-    const contextText = highlightText ?? verboseText
+    const contextText = this.formatter.formatVerbose(curated)
     const topicDef = curated.topicKey ? this.topicManager.getDefinition(curated.topicKey) : null
     this.generalChat.recordEvent(
       contextText,
@@ -401,23 +484,41 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       topicDef?.displayName ?? 'Highlights',
     )
 
-    const chatId = this.feedConfig.telegram.chatId
-    const e = event as any
-    const baseContext = {
-      eventType: type,
-      moduleKey: curated.topicKey ?? 'system',
-      sessionId: e.sessionId as string | undefined,
-      teamId: e.teamId as string | undefined,
-      orchestrationSessionId: (e.lumenSessionId ?? e.dyadSessionId ?? e.orchestrationId) as string | undefined,
+    // Route through the delivery batcher (load-aware batching)
+    this.deliveryBatcher.accept(curated)
+  }
+
+  /**
+   * Delivery callback — called by the DeliveryBatcher when events should be sent.
+   */
+  private deliverEvents(events: CuratedEvent[], mode: 'single' | 'digest'): void {
+    if (mode === 'single') {
+      for (const curated of events) {
+        this.enqueueFromCurated(curated)
+      }
+    } else {
+      this.enqueueDigest(events)
     }
+  }
+
+  /**
+   * Enqueue a single curated event for Telegram delivery (topic + mirrors + highlight).
+   * Extracted from the former inline logic in handleBusEvent.
+   */
+  private enqueueFromCurated(curated: CuratedEvent): void {
+    const verboseText = this.formatter.formatVerbose(curated)
+    const highlightText = curated.isHighlight && this.feedConfig.highlights.enabled
+      ? this.formatter.formatHighlight(curated)
+      : null
+
+    const chatId = this.feedConfig.telegram.chatId
 
     // Send to primary topic
     if (curated.topicKey) {
       const threadId = this.topicManager.getThreadId(curated.topicKey)
       if (threadId) {
-        const id = `topic:${curated.topicKey}:${++this.msgCounter}`
         this.rateLimiter.enqueue({
-          id,
+          id: `topic:${curated.topicKey}:${++this.msgCounter}`,
           text: verboseText,
           chatId,
           threadId,
@@ -427,13 +528,12 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       }
     }
 
-    // Send to mirror topics (e.g., blackboard → parent system)
+    // Send to mirror topics
     for (const mirrorKey of curated.mirrorTopics) {
       const threadId = this.topicManager.getThreadId(mirrorKey)
       if (threadId) {
-        const id = `mirror:${mirrorKey}:${++this.msgCounter}`
         this.rateLimiter.enqueue({
-          id,
+          id: `mirror:${mirrorKey}:${++this.msgCounter}`,
           text: verboseText,
           chatId,
           threadId,
@@ -445,12 +545,63 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
 
     // Send highlight to main chat
     if (highlightText) {
-      const id = `highlight:${++this.msgCounter}`
       this.rateLimiter.enqueue({
-        id,
+        id: `highlight:${++this.msgCounter}`,
         text: highlightText,
         chatId,
         priority: curated.priority,
+        timestamp: Date.now(),
+      })
+    }
+  }
+
+  /**
+   * Enqueue a batch of curated events as digest messages.
+   * Groups by topicKey and creates per-topic digest messages.
+   */
+  private enqueueDigest(events: CuratedEvent[]): void {
+    if (events.length === 0) return
+
+    const chatId = this.feedConfig.telegram.chatId
+
+    // Group events by topicKey
+    const byTopic = new Map<string | null, CuratedEvent[]>()
+    for (const curated of events) {
+      const key = curated.topicKey
+      if (!byTopic.has(key)) byTopic.set(key, [])
+      byTopic.get(key)!.push(curated)
+    }
+
+    // Create per-topic digest messages
+    for (const [topicKey, topicEvents] of byTopic) {
+      const digestText = this.formatter.formatBatchDigest(topicEvents)
+
+      if (topicKey) {
+        const threadId = this.topicManager.getThreadId(topicKey)
+        if (threadId) {
+          this.rateLimiter.enqueue({
+            id: `digest:${topicKey}:${++this.msgCounter}`,
+            text: digestText,
+            chatId,
+            threadId,
+            priority: 'medium',
+            timestamp: Date.now(),
+          })
+        }
+      }
+    }
+
+    // Collect highlights from the batch into a separate digest
+    const highlightEvents = events.filter(
+      e => e.isHighlight && this.feedConfig.highlights.enabled,
+    )
+    if (highlightEvents.length > 0) {
+      const highlightDigest = this.formatter.formatHighlightDigest(highlightEvents)
+      this.rateLimiter.enqueue({
+        id: `highlight-digest:${++this.msgCounter}`,
+        text: highlightDigest,
+        chatId,
+        priority: 'medium',
         timestamp: Date.now(),
       })
     }
@@ -460,6 +611,9 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
   /**
    * Send a single message via the Telegram client.
    * Used as the callback for the RateLimiter.
+   *
+   * TelegramRateLimitError is intentionally NOT caught here — it must
+   * propagate to the RateLimiter so it can apply proper backoff.
    */
   private async sendMessage(msg: QueuedMessage): Promise<number | null> {
     try {
@@ -488,6 +642,9 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
 
       return messageId
     } catch (err) {
+      // Let rate-limit errors propagate to the RateLimiter for backoff
+      if (err instanceof TelegramRateLimitError) throw err
+
       this.logger.warn('[cognitive-feed] Failed to send message', {
         id: msg.id,
         error: String(err),
@@ -752,6 +909,15 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
         ...defaults.steering,
         ...(overrides.steering ?? {}),
       },
+      delivery: {
+        loadThresholds: {
+          ...defaults.delivery.loadThresholds,
+          ...((overrides.delivery as any)?.loadThresholds ?? {}),
+        },
+        emergencyBucketCapacity: (overrides.delivery as any)?.emergencyBucketCapacity ?? defaults.delivery.emergencyBucketCapacity,
+        emergencyBucketRefillRate: (overrides.delivery as any)?.emergencyBucketRefillRate ?? defaults.delivery.emergencyBucketRefillRate,
+        emergencyBucketTtlMs: (overrides.delivery as any)?.emergencyBucketTtlMs ?? defaults.delivery.emergencyBucketTtlMs,
+      },
     }
   }
 
@@ -782,15 +948,33 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
 
   private getStatusReport(): string {
     const topics = this.topicManager.getAllTopicIds()
+    const deliveryStats = this.deliveryBatcher?.getStats()
     const parts = [
       '<b>\u{1F4CA} Cognitive Feed Status</b>',
       '',
       `<b>Queue depth:</b> ${this.rateLimiter.queueDepth}`,
+      `<b>Rate limiter:</b> ${this.rateLimiter.isBackingOff ? '\u{1F534} backing off' : '\u{1F7E2} ok'} (429s: ${this.rateLimiter.recent429Count})`,
       `<b>Messages tracked:</b> ${this.tracker.size}`,
       `<b>Active topics:</b> ${topics.size}`,
-      '',
-      '<b>Topics:</b>',
     ]
+
+    if (deliveryStats) {
+      parts.push('')
+      parts.push('<b>Delivery Batcher:</b>')
+      parts.push(`  Load state: <b>${deliveryStats.loadState}</b>`)
+      parts.push(`  Events: ${deliveryStats.eventsDelivered}/${deliveryStats.eventsReceived} delivered`)
+      parts.push(`  Batches: ${deliveryStats.batchesDelivered}`)
+      parts.push(`  Emergency tokens: ${deliveryStats.emergencyTokensAvailable} avail (${deliveryStats.emergencyTokensUsed} used)`)
+      parts.push(`  Transitions: ${deliveryStats.loadTransitions}`)
+
+      const pending = Object.entries(deliveryStats.pendingByLane)
+      if (pending.length > 0) {
+        parts.push(`  Pending: ${pending.map(([k, v]) => `${k}=${v}`).join(', ')}`)
+      }
+    }
+
+    parts.push('')
+    parts.push('<b>Topics:</b>')
 
     for (const [key, threadId] of topics) {
       const def = this.topicManager.getDefinition(key)

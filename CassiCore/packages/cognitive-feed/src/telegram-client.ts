@@ -9,6 +9,22 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 
+// Errors
+
+/**
+ * Thrown when Telegram returns 429 Too Many Requests.
+ * Carries the retry-after duration so callers can back off correctly.
+ */
+export class TelegramRateLimitError extends Error {
+  readonly retryAfterSecs: number
+
+  constructor(retryAfterSecs: number) {
+    super(`Too Many Requests: retry after ${retryAfterSecs}`)
+    this.name = 'TelegramRateLimitError'
+    this.retryAfterSecs = retryAfterSecs
+  }
+}
+
 // Types
 
 export interface TelegramClientConfig {
@@ -77,6 +93,15 @@ export class TelegramClient {
       const json = (await res.json()) as ApiResponse<T>
       if (!json.ok) {
         const desc = json.description ?? '?'
+
+        // Detect Telegram 429 rate-limit and throw a typed error so
+        // callers (rate-limiter) can apply proper backoff.
+        if (res.status === 429 || desc.includes('Too Many Requests')) {
+          const match = desc.match(/retry after (\d+)/)
+          const retryAfterSecs = match ? parseInt(match[1], 10) : 30
+          throw new TelegramRateLimitError(retryAfterSecs)
+        }
+
         if (!desc.includes('not modified')) {
           this.logger.warn(`[cognitive-feed-tg] ${method} failed: ${desc}`)
         }

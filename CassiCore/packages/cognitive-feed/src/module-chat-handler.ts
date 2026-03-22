@@ -266,6 +266,7 @@ export class ModuleChatHandler {
             eventBuffer = events.pop() ?? ''
 
             for (const eventBlock of events) {
+              const eventType = eventBlock.split('\n').find(l => l.startsWith('event: '))?.slice(7).trim() ?? 'message'
               const dataLine = eventBlock.split('\n').find(l => l.startsWith('data: '))
               if (!dataLine) continue
 
@@ -273,14 +274,11 @@ export class ModuleChatHandler {
               if (json === '[DONE]') continue
 
               try {
-                const ev = JSON.parse(json) as { type?: string; text?: string; delta?: string; error?: string }
-                if (ev.type === 'token' || ev.type === 'delta') {
-                  stream.buffer += (ev.text ?? ev.delta ?? '')
-                } else if (ev.type === 'done' || ev.type === 'end') {
+                const ev = JSON.parse(json) as Record<string, unknown>
+                this.handleSSEEvent(eventType, ev, stream)
+                if (eventType === 'done' || eventType === 'end') {
                   await this.flushStream(stream, streamKey, true)
                   break
-                } else if (ev.type === 'error') {
-                  throw new Error(ev.error ?? 'Unknown error from turn API')
                 }
               } catch { /* malformed JSON — skip */ }
             }
@@ -298,6 +296,32 @@ export class ModuleChatHandler {
 
       void pump()
     })
+  }
+
+  private handleSSEEvent(type: string, data: Record<string, unknown>, stream: StreamState): void {
+    switch (type) {
+      case 'token': {
+        const token = data.token as string | undefined
+        if (token) stream.buffer += token
+        break
+      }
+      case 'thinking':
+      case 'tool_call':
+      case 'tool_result':
+        break
+      case 'done': {
+        const response = data.response
+        if (typeof response === 'string' && response) {
+          stream.buffer = response
+        }
+        break
+      }
+      case 'error': {
+        const errorMsg = typeof data.error === 'string' ? data.error : 'Unknown error'
+        stream.buffer += `\n\nError: ${errorMsg}`
+        break
+      }
+    }
   }
 
 

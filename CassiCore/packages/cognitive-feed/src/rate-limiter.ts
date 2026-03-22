@@ -11,6 +11,7 @@
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
+import { TelegramRateLimitError } from './telegram-client.js'
 
 // Types
 
@@ -34,6 +35,8 @@ export interface RateLimiterConfig {
   batchWindowMs: number
   /** Max Telegram message length before splitting (default: 3500, TG limit 4096) */
   maxMessageLength: number
+  /** Max queued messages before dropping low-priority entries (default: 500) */
+  maxQueueSize: number
 }
 
 export type SendFn = (msg: QueuedMessage) => Promise<number | null>
@@ -58,11 +61,16 @@ export class RateLimiter {
   private backoffUntil = 0
   private running = false
 
+  // Observability — allows DeliveryBatcher to monitor rate-limiter state
+  private _recent429Count = 0
+  private readonly _onBackoffCallbacks: Array<(retryAfterMs: number) => void> = []
+
   constructor(config: Partial<RateLimiterConfig>, sendFn: SendFn, logger: ILogger) {
     this.config = {
       messagesPerSecond: config.messagesPerSecond ?? 20,
       batchWindowMs: config.batchWindowMs ?? 500,
       maxMessageLength: config.maxMessageLength ?? 3500,
+      maxQueueSize: config.maxQueueSize ?? 500,
       ...config,
     }
     this.sendFn = sendFn
@@ -72,6 +80,8 @@ export class RateLimiter {
 
   /**
    * Enqueue a message for sending. Messages are prioritized and rate-limited.
+   * When the queue exceeds maxQueueSize, low-priority messages are dropped
+   * from the tail to make room.
    */
   enqueue(msg: QueuedMessage): void {
     // Split long messages
@@ -96,6 +106,13 @@ export class RateLimiter {
 
     // Sort queue by priority (stable sort keeps insertion order within same priority)
     this.queue.sort((a, b) => PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority])
+
+    // Enforce queue cap — drop lowest-priority messages from the tail
+    if (this.queue.length > this.config.maxQueueSize) {
+      const dropped = this.queue.length - this.config.maxQueueSize
+      this.queue.length = this.config.maxQueueSize
+      this.logger.warn('[rate-limiter] Queue overflow, dropped low-priority messages', { dropped })
+    }
   }
 
   /**
@@ -132,7 +149,13 @@ export class RateLimiter {
   onRateLimited(retryAfterMs?: number): void {
     this.backoffMs = retryAfterMs ?? Math.min((this.backoffMs || 1000) * 2, 30_000)
     this.backoffUntil = Date.now() + this.backoffMs
+    this._recent429Count++
     this.logger.warn('[rate-limiter] Rate limited, backing off', { backoffMs: this.backoffMs })
+
+    // Notify observers
+    for (const cb of this._onBackoffCallbacks) {
+      try { cb(this.backoffMs) } catch { /* best effort */ }
+    }
   }
 
   /**
@@ -142,6 +165,39 @@ export class RateLimiter {
     return this.queue.length
   }
 
+  /**
+   * Whether the rate limiter is currently in backoff (429 received recently).
+   */
+  get isBackingOff(): boolean {
+    return Date.now() < this.backoffUntil
+  }
+
+  /**
+   * Number of 429 responses received since construction or last resetStats().
+   */
+  get recent429Count(): number {
+    return this._recent429Count
+  }
+
+  /**
+   * Register a callback invoked whenever a 429 backoff is applied.
+   * Returns an unsubscribe function.
+   */
+  onBackoff(callback: (retryAfterMs: number) => void): () => void {
+    this._onBackoffCallbacks.push(callback)
+    return () => {
+      const idx = this._onBackoffCallbacks.indexOf(callback)
+      if (idx >= 0) this._onBackoffCallbacks.splice(idx, 1)
+    }
+  }
+
+  /**
+   * Reset observability counters.
+   */
+  resetStats(): void {
+    this._recent429Count = 0
+  }
+
 
   private async drain(): Promise<void> {
     if (this.queue.length === 0) return
@@ -149,22 +205,33 @@ export class RateLimiter {
     // Respect backoff
     if (Date.now() < this.backoffUntil) return
 
-    // Reset backoff on successful drain
-    this.backoffMs = 0
-
     const msg = this.queue.shift()
     if (!msg) return
 
     try {
-      await this.sendFn(msg)
+      const result = await this.sendFn(msg)
+
+      if (result !== null) {
+        // Success — reset backoff
+        this.backoffMs = 0
+      } else {
+        // sendFn returned null (non-rate-limit failure) — apply mild backoff
+        // to avoid hammering on persistent failures, but don't re-queue
+        this.backoffMs = Math.min(Math.max(this.backoffMs, 500) * 1.5, 5_000)
+        this.backoffUntil = Date.now() + this.backoffMs
+      }
     } catch (err) {
-      const errStr = String(err)
-      if (errStr.includes('429') || errStr.includes('Too Many Requests')) {
-        this.onRateLimited()
+      if (err instanceof TelegramRateLimitError) {
+        // Use the server-provided retry-after duration
+        this.onRateLimited(err.retryAfterSecs * 1000)
         // Re-queue the failed message at the front
         this.queue.unshift(msg)
       } else {
+        const errStr = String(err)
         this.logger.warn('[rate-limiter] Send failed', { id: msg.id, error: errStr })
+        // Apply mild backoff for unknown errors
+        this.backoffMs = Math.min(Math.max(this.backoffMs, 500) * 1.5, 5_000)
+        this.backoffUntil = Date.now() + this.backoffMs
       }
     }
   }

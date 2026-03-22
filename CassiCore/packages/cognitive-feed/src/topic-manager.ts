@@ -33,11 +33,16 @@ export const TOPIC_COLORS = {
 
 // Topic Definitions
 
+/** Audience category for topic grouping and naming conventions */
+export type TopicCategory = 'ops' | 'intel' | 'team' | 'user'
+
 export interface TopicDefinition {
   key: string
   displayName: string
   color: number
   description: string
+  /** Audience category — groups topics by intended consumer */
+  category: TopicCategory
 }
 
 /**
@@ -45,28 +50,35 @@ export interface TopicDefinition {
  * Order determines creation order in the supergroup.
  */
 export const TOPIC_DEFINITIONS: TopicDefinition[] = [
-  // Orchestration systems
-  { key: 'dyad',        displayName: 'Dyad',           color: TOPIC_COLORS.BLUE,   description: 'Yang/Yin/Apex pipeline' },
-  { key: 'lumen',       displayName: 'Lumen',          color: TOPIC_COLORS.VIOLET, description: 'Yang/Yin/Executive dialectic' },
-  { key: 'fluxTeam',    displayName: 'FluxTeam',       color: TOPIC_COLORS.GREEN,  description: 'Graph-based team execution' },
-  { key: 'triadTeam',   displayName: 'Triad Team',     color: TOPIC_COLORS.YELLOW, description: 'Proposer/Critic/Executor hierarchy' },
-  { key: 'droneSwarm',  displayName: 'Drone Swarm',    color: TOPIC_COLORS.ROSE,   description: 'Parallel agent fan-out' },
-  { key: 'multiAgent',  displayName: 'Multi-Agent',    color: TOPIC_COLORS.BLUE,   description: 'Agent spawning & coordination' },
+  // Team / orchestration systems
+  { key: 'dyad',        displayName: 'Dyad',           color: TOPIC_COLORS.BLUE,   description: 'Yang/Yin/Apex pipeline',                category: 'team' },
+  { key: 'lumen',       displayName: 'Lumen',          color: TOPIC_COLORS.VIOLET, description: 'Yang/Yin/Executive dialectic',           category: 'team' },
+  { key: 'fluxTeam',    displayName: 'FluxTeam',       color: TOPIC_COLORS.GREEN,  description: 'Graph-based team execution',             category: 'team' },
+  { key: 'triadTeam',   displayName: 'Triad Team',     color: TOPIC_COLORS.YELLOW, description: 'Proposer/Critic/Executor hierarchy',     category: 'team' },
+  { key: 'droneSwarm',  displayName: 'Drone Swarm',    color: TOPIC_COLORS.ROSE,   description: 'Parallel agent fan-out',                 category: 'team' },
+  { key: 'multiAgent',  displayName: 'Multi-Agent',    color: TOPIC_COLORS.BLUE,   description: 'Agent spawning & coordination',          category: 'team' },
 
   // Intelligence modules
-  { key: 'thinker',       displayName: 'Thinker',        color: TOPIC_COLORS.VIOLET, description: 'Autonomous background thinking' },
-  { key: 'dialectic',     displayName: 'Dialectic',      color: TOPIC_COLORS.VIOLET, description: 'Inline Yang/Yin/Serenity reasoning' },
-  { key: 'consciousness', displayName: 'Consciousness',  color: TOPIC_COLORS.RED,    description: 'Subconscious observations & anomalies' },
-  { key: 'memoryDreams',  displayName: 'Memory & Dreams', color: TOPIC_COLORS.GREEN, description: 'Memory queries, archive, dream cycles' },
-  { key: 'adaptive',      displayName: 'Adaptive',       color: TOPIC_COLORS.YELLOW, description: 'Optimizer, reflex, smart rules, improvement' },
-  { key: 'heart',         displayName: 'Heart',          color: TOPIC_COLORS.ROSE,   description: 'Heartbeat & delivery' },
-  { key: 'system',        displayName: 'System',         color: TOPIC_COLORS.RED,    description: 'Errors, self-healing, trust, permissions, budget' },
+  { key: 'thinker',       displayName: 'Thinker',        color: TOPIC_COLORS.VIOLET, description: 'Autonomous background thinking',       category: 'intel' },
+  { key: 'dialectic',     displayName: 'Dialectic',      color: TOPIC_COLORS.VIOLET, description: 'Inline Yang/Yin/Serenity reasoning',   category: 'intel' },
+  { key: 'consciousness', displayName: 'Consciousness',  color: TOPIC_COLORS.RED,    description: 'Subconscious observations & anomalies', category: 'intel' },
+  { key: 'memoryDreams',  displayName: 'Memory & Dreams', color: TOPIC_COLORS.GREEN, description: 'Memory queries, archive, dream cycles', category: 'intel' },
+  { key: 'adaptive',      displayName: 'Adaptive',       color: TOPIC_COLORS.YELLOW, description: 'Optimizer, reflex, smart rules, improvement', category: 'intel' },
+  { key: 'heart',         displayName: 'Heart',          color: TOPIC_COLORS.ROSE,   description: 'Heartbeat & delivery',                 category: 'intel' },
+
+  // Operational / system
+  { key: 'system',     displayName: 'System',         color: TOPIC_COLORS.RED,    description: 'Errors, self-healing, trust, permissions', category: 'ops' },
+  { key: 'budget',     displayName: 'Budget',         color: TOPIC_COLORS.RED,    description: 'Provider & team budget alerts',            category: 'ops' },
+  { key: 'tools',      displayName: 'Tools',          color: TOPIC_COLORS.BLUE,   description: 'Tool registration & execution lifecycle', category: 'ops' },
 
   // Raw feeds
-  { key: 'llmCalls',    displayName: 'LLM Calls',      color: TOPIC_COLORS.BLUE,   description: 'Raw provider request feed' },
+  { key: 'llmCalls',   displayName: 'LLM Calls',     color: TOPIC_COLORS.BLUE,   description: 'Raw provider request feed',               category: 'ops' },
 
   // Shared workspaces
-  { key: 'blackboard',  displayName: 'Blackboard',      color: TOPIC_COLORS.GREEN,  description: 'Global & session blackboard updates' },
+  { key: 'blackboard', displayName: 'Blackboard',     color: TOPIC_COLORS.GREEN,  description: 'Global & session blackboard updates',     category: 'ops' },
+
+  // User-facing
+  { key: 'sessions',   displayName: 'Sessions',       color: TOPIC_COLORS.YELLOW, description: 'User session lifecycle events',           category: 'user' },
 ]
 
 /** Map of topic key → definition for fast lookup */
