@@ -10,9 +10,9 @@ import { fileURLToPath } from "node:url"
 
 // Read version from package.json at module load time so it stays in sync
 const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
-const CASSICORE_VERSION: string = (() => {
-  try { return JSON.parse(fs.readFileSync(_pkgPath, 'utf8')).version ?? '0.3.1' }
-  catch { return '0.3.1' }
+export const CASSICORE_VERSION: string = (() => {
+  try { return JSON.parse(fs.readFileSync(_pkgPath, 'utf8')).version ?? 'unknown' }
+  catch { return 'unknown' }
 })()
 
 import { createAdminApi } from './admin-api.js'
@@ -42,6 +42,7 @@ import { type ModelRouter, createModelRouter } from './providers/model-router.js
 import { createSessionBridge } from './session-bridge.js'
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
+import { FileArtifactStore } from './file-artifact-store.js'
 import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
@@ -1189,12 +1190,23 @@ export class Daemon {
         eventBus: this.bus,
         logger: this.logger,
         availableProviders: () => Array.from(providerKeys.keys()),
-        persistDefault: (cfg) => {
+        getProviderModels: (providerId: string) => {
+          const provider = providers.get(providerId)
+          return provider ? provider.models : null
+        },
+        persistDefault: (cfg, slot) => {
           try {
             const layered = this.config as any
             if (typeof layered.setOverride === 'function') {
-              layered.setOverride('intelligence.modelDirective.default.provider', cfg.provider, { reason: 'model-directive' })
-              layered.setOverride('intelligence.modelDirective.default.model', cfg.model, { reason: 'model-directive' })
+              if (slot) {
+                // Slot-specific override → persist under intelligence.modelDirective.slots.<slot>
+                layered.setOverride(`intelligence.modelDirective.slots.${slot}.provider`, cfg.provider, { reason: 'model-directive' })
+                layered.setOverride(`intelligence.modelDirective.slots.${slot}.model`, cfg.model, { reason: 'model-directive' })
+              } else {
+                // Slot-less default
+                layered.setOverride('intelligence.modelDirective.default.provider', cfg.provider, { reason: 'model-directive' })
+                layered.setOverride('intelligence.modelDirective.default.model', cfg.model, { reason: 'model-directive' })
+              }
             }
           } catch { /* non-critical */ }
         },
@@ -1371,7 +1383,10 @@ export class Daemon {
               provider: this.config.get<string>('intelligence.lumen.provider', 'alibaba-coding'),
               model: this.config.get<string>('intelligence.lumen.model', 'kimi-k2.5'),
             }
-        const lumenBlockedProviders = this.config.get<string[]>('intelligence.lumen.blockedProviders', ['github-copilot', 'github-copilot-lb'])
+        const lumenBlockedProviders = this.config.get<string[]>('intelligence.lumen.blockedProviders', ['github-copilot-lb'])
+        const lumenAllowedModels = this.config.get<Record<string, string[]>>('intelligence.lumen.allowedModels', {
+          'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
+        })
 
         const makeLumenChain = (slot: string) => ({
           slotName: slot,
@@ -1388,6 +1403,7 @@ export class Daemon {
           defaultTimeoutMs: this.config.get<number>('intelligence.lumen.timeoutMs', 600000),
           auditEnabled: false,
           blockedProviders: lumenBlockedProviders,
+          allowedModels: lumenAllowedModels,
         })
         lumenModelPool.setProviders(providers)
         this.intelligence.lumen.setModelPool(lumenModelPool)
@@ -1416,7 +1432,10 @@ export class Daemon {
               provider: this.config.get<string>('intelligence.dyad.provider', 'alibaba-coding'),
               model: this.config.get<string>('intelligence.dyad.model', 'kimi-k2.5'),
             }
-        const dyadBlockedProviders = this.config.get<string[]>('intelligence.dyad.blockedProviders', ['github-copilot', 'github-copilot-lb'])
+        const dyadBlockedProviders = this.config.get<string[]>('intelligence.dyad.blockedProviders', ['github-copilot-lb'])
+        const dyadAllowedModels = this.config.get<Record<string, string[]>>('intelligence.dyad.allowedModels', {
+          'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
+        })
 
         const { ModelPool: DyadModelPool } = await import('./model-pool/index.js')
         const makeDyadChain = (slot: string) => ({
@@ -1432,6 +1451,7 @@ export class Daemon {
           defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
           auditEnabled: false,
           blockedProviders: dyadBlockedProviders,
+          allowedModels: dyadAllowedModels,
         })
         dyadModelPool.setProviders(providers)
         this.intelligence.dyad.setModelPool(dyadModelPool)
@@ -1510,6 +1530,15 @@ export class Daemon {
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`System prompt built (${systemPrompt.length} chars)`)
     const sessionStore = SessionStore.open(this.logger)
+
+    // Initialize FileArtifactStore for agent file sharing
+    let fileArtifactStore: FileArtifactStore | undefined
+    try {
+      fileArtifactStore = FileArtifactStore.open(this.logger)
+      this.logger.info('FileArtifactStore initialized for agent file sharing')
+    } catch (err) {
+      this.logger.warn('FileArtifactStore not available', { error: String(err) })
+    }
     const defaultProvider = this.config.get<string>('intelligence.defaultProvider', MODEL_DEFAULTS.main.provider)
     const configuredModel = this.config.get<string>('intelligence.defaultModel', MODEL_DEFAULTS.main.model)
     const defaultModel = configuredModel
@@ -1583,6 +1612,7 @@ export class Daemon {
         cognitiveBridge: this.intelligence.cognitiveBridge,
         logger: this.logger,
       } : undefined,
+      fileArtifactStore,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
@@ -1599,6 +1629,7 @@ export class Daemon {
       allowedPaths,
       networkAllowlist,
       logger: this.logger,
+      _fileArtifactStore: fileArtifactStore,
     }, this.bus)
       // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
       ; this.toolExecutor = toolExecutor
@@ -2071,12 +2102,19 @@ export class Daemon {
       logger: this.logger,
       intelligence: this.intelligence,
       pipeline: this.pipeline,
+      sessionPipeline: this.sessionPipeline,
       sessions: this.sessions,
       sessionStore,
       sessionDigestStore: this.sessionDigestStore,
       toolRegistry,
       toolExecutor,
       pluginHost: this.pluginHost,
+      compactionProvider:
+        providers.get('swift')
+        ?? providers.get('qwen')
+        ?? providers.get('alibaba')
+        ?? Array.from(providers.values())[0],
+      contextDistiller: this.contextDistiller,
     })
 
     try {
@@ -2104,6 +2142,16 @@ export class Daemon {
       await pipeline.initialize()
       this.sessionPipeline = pipeline
       this.logger.info('Session pipeline initialized')
+
+      if (this.autonomousLoop) {
+        const { createExecutionBackend } = await import('./intelligence/execution-backends/index.js')
+        const backend = createExecutionBackend('cassicore', this.logger.child('execution-backend'), {
+          pipeline: this.pipeline,
+          sessionPipeline: this.sessionPipeline,
+        })
+        this.autonomousLoop.setBackend(backend)
+        this.logger.info('Autonomous loop switched to session pipeline backend')
+      }
     } catch (err) {
       this.logger.warn('Failed to initialize session pipeline', { error: String(err) })
     }

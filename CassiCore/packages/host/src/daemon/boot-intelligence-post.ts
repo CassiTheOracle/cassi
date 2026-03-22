@@ -13,8 +13,10 @@ import type { ToolExecutor } from '../tools/executor.js'
 import type { ToolRegistry } from '../tools/registry.js'
 import type { SessionStore } from '../session-store.js'
 import type { SessionDigestStore } from '../intelligence/session-digest.js'
+import type { ContextDistiller } from '../intelligence/context-distiller.js'
 import type { ExecutionBackendType, OpenCodeBackendConfig } from '../../types/execution-backend.js'
 import type { SessionManager } from '../session-manager.js'
+import type { IProvider } from '../../types/runtime.js'
 
 export interface IntelligencePostBootDeps {
   bus: IEventBus
@@ -22,6 +24,13 @@ export interface IntelligencePostBootDeps {
   logger: ILogger
   intelligence: IntelligenceLayer
   pipeline: TurnPipeline
+  sessionPipeline?: {
+    processTurn(
+      sessionId: string,
+      content: string,
+      options?: Record<string, unknown>,
+    ): Promise<{ response: string; sessionId: string; model?: string; tokensUsed?: number; durationMs?: number }>
+  }
   sessions: SessionManager
   sessionStore: SessionStore
   sessionDigestStore?: SessionDigestStore
@@ -29,6 +38,8 @@ export interface IntelligencePostBootDeps {
   toolRegistry: ToolRegistry
   toolExecutor: ToolExecutor
   pluginHost?: IPluginHost
+  compactionProvider?: IProvider
+  contextDistiller?: ContextDistiller
 }
 
 export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDeps): Promise<AutonomousAgentLoop | undefined> {
@@ -43,6 +54,8 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     sessionDigestStore,
     toolRegistry,
     toolExecutor,
+    compactionProvider,
+    contextDistiller,
   } = deps
 
   try {
@@ -81,6 +94,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     if (heart) {
       heart.wire({
         pipeline,
+        sessionPipeline: deps.sessionPipeline,
         sessionManager: sessions,
         pluginHost: (deps as any).pluginHost,
         workspaceRoot: process.cwd(),
@@ -144,7 +158,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
   if (intelligence.thinker.__awaitingWiring) {
     intelligence.thinker.__awaitingWiring.setSessionManager(sessions, sessionStore)
-    intelligence.thinker.__awaitingWiring.setPipelineGetter(() => pipeline)
+    intelligence.thinker.__awaitingWiring.setPipelineGetter(() => deps.sessionPipeline ?? pipeline)
     logger.info('Thinker wired to session manager and pipeline for subagent spawning')
   }
 
@@ -155,6 +169,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     const moduleRegistry = new ModuleSessionRegistry(sessions, logger)
     const compactor = new ModuleSessionCompactor(sessions, logger)
     moduleRegistry.setCompactor(compactor)
+    if (compactionProvider) compactor.setProvider(compactionProvider)
 
     // Wire registry into every LLM-calling module
     const thinkerWiring = intelligence.thinker.__awaitingWiring ?? intelligence.thinker
@@ -191,8 +206,8 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       ;(intelligence as any).scout.setModuleRegistry(moduleRegistry)
     }
     // Context Distiller
-    if (typeof (deps as any).contextDistiller?.setModuleRegistry === 'function') {
-      ;(deps as any).contextDistiller.setModuleRegistry(moduleRegistry)
+    if (typeof contextDistiller?.setModuleRegistry === 'function') {
+      contextDistiller.setModuleRegistry(moduleRegistry)
     }
     // Orchestrators
     if (typeof intelligence.lumen.setModuleRegistry === 'function') {
@@ -245,6 +260,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       const openCodeConfig = config.get<OpenCodeBackendConfig>('intelligence.executionBackend.opencode', {})
       const executionBackend = createExecutionBackend(backendType, logger.child('execution-backend'), {
         pipeline,
+        sessionPipeline: deps.sessionPipeline,
         openCodeConfig,
       })
       autonomousLoop.setBackend(executionBackend)
