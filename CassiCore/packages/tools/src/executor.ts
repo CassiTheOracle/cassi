@@ -46,6 +46,13 @@ export class ToolExecutor {
     ttlMs: 5_000,
   })
 
+  /**
+   * Per-session context overrides. Orchestrators register session-specific
+   * context (e.g. artifactNamespace, sessionType) before running agent sessions.
+   * These are merged into the ToolExecutionContext on every execute() call.
+   */
+  private sessionContextOverrides = new Map<string, Partial<ToolExecutionContext>>()
+
   constructor(
     private registry: ToolRegistry,
     private defaultContext: Omit<ToolExecutionContext, 'sessionId'>,
@@ -88,6 +95,29 @@ export class ToolExecutor {
    */
   setReliabilityTracker(tracker: ToolReliabilityTracker): void {
     this.reliabilityTracker = tracker
+  }
+
+  /**
+   * Register session-specific context overrides for a session.
+   * Merged into ToolExecutionContext for every tool call in that session.
+   * Used by Dyad/Lumen/Flux orchestrators to inject artifact namespace, session type, etc.
+   */
+  setSessionContext(sessionId: string, overrides: Partial<ToolExecutionContext>): void {
+    this.sessionContextOverrides.set(sessionId, overrides)
+  }
+
+  /**
+   * Remove session-specific context overrides (call on session teardown).
+   */
+  clearSessionContext(sessionId: string): void {
+    this.sessionContextOverrides.delete(sessionId)
+  }
+
+  /**
+   * Check if session-specific context overrides are already registered.
+   */
+  hasSessionContext(sessionId: string): boolean {
+    return this.sessionContextOverrides.has(sessionId)
   }
 
   /**
@@ -219,6 +249,7 @@ export class ToolExecutor {
     const ctx: ToolExecutionContext = {
       ...this.defaultContext,
       sessionId,
+      ...(this.sessionContextOverrides.get(sessionId) ?? {}),
       ...(opts?.workingDir ? { workingDir: opts.workingDir } : {}),
     }
 

@@ -69,4 +69,10 @@ export interface ToolExecutionContext {
   registry?: import('./registry.js').ToolRegistry;
   /** Shared file artifact store — injected by daemon for cassi:// URI support */
   _fileArtifactStore?: import('../file-artifact-store.js').FileArtifactStore;
+  /** Auto-resolved artifact namespace for this session (e.g., 'dyad:{id}', 'team:{id}') */
+  artifactNamespace?: string;
+  /** Session type hint for smart defaults */
+  sessionType?: 'dyad' | 'lumen' | 'flux' | 'standalone';
+  /** Team ID for team-scoped file sharing */
+  teamId?: string;
 }
