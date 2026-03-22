@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { IMemory } from '../../../types/intelligence.js'
+import type { FileArtifactStore } from '../../file-artifact-store.js'
 
 export interface UniversalSearchDeps {
   memory?: IMemory
@@ -8,11 +9,12 @@ export interface UniversalSearchDeps {
     search: (query: string, options?: any) => Promise<any[]>
     getStats?: () => Promise<any>
   }
+  fileArtifactStore?: FileArtifactStore
 }
 
 export const universalSearchDefinition: ToolDefinition = {
   name: 'universal_search',
-  description: 'Unified search across memory and archive with intelligent deduplication. Searches both CassiCore memory (conversations, facts, insights) and session archive (historical turns, tool calls) returning consolidated, ranked results.',
+  description: 'Unified search across memory, archive, and file artifacts with intelligent deduplication. Searches CassiCore memory (conversations, facts, insights), session archive (historical turns, tool calls), and shared file artifacts returning consolidated, ranked results.',
   parameters: {
     type: 'object',
     properties: {
@@ -22,9 +24,9 @@ export const universalSearchDefinition: ToolDefinition = {
       },
       sources: {
         type: 'array',
-        items: { type: 'string', enum: ['memory', 'archive', 'both'] },
-        default: ['both'],
-        description: 'Which sources to search. Default is both memory and archive.'
+        items: { type: 'string', enum: ['memory', 'archive', 'artifacts', 'both', 'all'] },
+        default: ['all'],
+        description: 'Which sources to search. "both" = memory + archive (legacy), "all" = memory + archive + artifacts. Default is all.'
       },
       limit: {
         type: 'number',
@@ -74,7 +76,7 @@ export const universalSearchDefinition: ToolDefinition = {
 
 interface UniversalSearchInput {
   query: string
-  sources?: ('memory' | 'archive' | 'both')[]
+  sources?: ('memory' | 'archive' | 'artifacts' | 'both' | 'all')[]
   limit?: number
   memoryLimit?: number
   archiveLimit?: number
@@ -87,7 +89,7 @@ interface UniversalSearchInput {
 
 interface SearchResult {
   id: string
-  source: 'memory' | 'archive'
+  source: 'memory' | 'archive' | 'artifacts'
   type: string
   content: string
   score: number
@@ -108,6 +110,11 @@ interface UniversalSearchResponse {
       error?: string
     }
     archive: {
+      searched: boolean
+      resultsFound: number
+      error?: string
+    }
+    artifacts: {
       searched: boolean
       resultsFound: number
       error?: string
@@ -192,6 +199,7 @@ export function makeUniversalSearchHandler(deps: UniversalSearchDeps): ToolHandl
       sources: {
         memory: { searched: false, resultsFound: 0 },
         archive: { searched: false, resultsFound: 0 },
+        artifacts: { searched: false, resultsFound: 0 },
       },
       results: [],
       deduplication: {
@@ -216,9 +224,10 @@ export function makeUniversalSearchHandler(deps: UniversalSearchDeps): ToolHandl
     const archiveLimit = Math.min(params.archiveLimit ?? 10, 30)
 
     // Determine which sources to search
-    const sources = params.sources || ['both']
-    const searchMemory = sources.includes('memory') || sources.includes('both')
-    const searchArchive = sources.includes('archive') || sources.includes('both')
+    const sources = params.sources || ['all']
+    const searchMemory = sources.includes('memory') || sources.includes('both') || sources.includes('all')
+    const searchArchive = sources.includes('archive') || sources.includes('both') || sources.includes('all')
+    const searchArtifacts = sources.includes('artifacts') || sources.includes('all')
 
     const allResults: SearchResult[] = []
 
@@ -305,6 +314,63 @@ export function makeUniversalSearchHandler(deps: UniversalSearchDeps): ToolHandl
       response.sources.archive.error = 'Archive module not available'
     }
 
+    // Search file artifacts
+    if (searchArtifacts && deps.fileArtifactStore) {
+      try {
+        response.sources.artifacts.searched = true
+
+        // List artifacts with path prefix matching the query terms
+        const artifactResults = deps.fileArtifactStore.list({
+          pathPrefix: undefined,    // search all paths
+          includePublic: true,
+          includeShared: true,
+          sessionId: context.sessionId,
+          limit: archiveLimit,
+        })
+
+        // Filter by query relevance: match path, tags, or namespace
+        const queryLower = query.toLowerCase()
+        const queryTerms = queryLower.split(/\s+/)
+        const matchedArtifacts = artifactResults.filter(file => {
+          const searchText = [
+            file.path,
+            file.namespace,
+            ...file.tags,
+            file.mimeType ?? '',
+          ].join(' ').toLowerCase()
+          return queryTerms.some(term => searchText.includes(term))
+        })
+
+        const formattedArtifacts: SearchResult[] = matchedArtifacts.map((file, idx) => ({
+          id: file.id,
+          source: 'artifacts' as const,
+          type: 'file-artifact',
+          content: `cassi://files/${file.namespace}/${file.path} [v${file.currentVersionNumber}] (${file.visibility}, tags: ${file.tags.join(', ') || 'none'})`,
+          score: (1 - (idx / Math.max(matchedArtifacts.length, 1))) * 0.7,
+          timestamp: new Date(file.updatedAt).toISOString(),
+          sessionId: file.ownerSessionId ?? undefined,
+          metadata: {
+            namespace: file.namespace,
+            path: file.path,
+            version: file.currentVersionNumber,
+            visibility: file.visibility,
+            tags: file.tags,
+            mimeType: file.mimeType,
+            uri: `cassi://files/${file.namespace}/${file.path}`,
+          },
+          contentHash: computeContentHash(file.id),
+        }))
+
+        response.sources.artifacts.resultsFound = formattedArtifacts.length
+        allResults.push(...formattedArtifacts)
+      } catch (err) {
+        response.sources.artifacts.error = String(err)
+        context.logger.error('universal_search artifacts query failed', { error: String(err), query })
+      }
+    } else if (searchArtifacts) {
+      response.sources.artifacts.error = 'FileArtifactStore not available'
+    }
+
     // Deduplicate if enabled
     let finalResults = allResults
     if (params.deduplicate !== false) {
@@ -335,7 +401,7 @@ export function makeUniversalSearchHandler(deps: UniversalSearchDeps): ToolHandl
     finalResults = finalResults.slice(0, totalLimit)
 
     // Build final response
-    response.totalResults = response.sources.memory.resultsFound + response.sources.archive.resultsFound
+    response.totalResults = response.sources.memory.resultsFound + response.sources.archive.resultsFound + response.sources.artifacts.resultsFound
     response.resultsReturned = finalResults.length
     response.results = finalResults
     response.searchDurationMs = Date.now() - startTime

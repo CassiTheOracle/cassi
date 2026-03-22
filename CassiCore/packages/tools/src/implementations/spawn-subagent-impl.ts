@@ -13,9 +13,22 @@ import { MODEL_DEFAULTS, getModelSpec } from '../../config/system-settings.js'
 import { generateShortId, generateReadableId } from '../../utils/ids.js'
 
 import type { IEventBus, ILogger } from '../../../types/interfaces.js'
-import type { ISessionManager, Session, InboundMessage, Message } from '../../../types/runtime.js'
+import type { ISessionManager, Session, Message } from '../../../types/runtime.js'
 import type { SessionStore } from '../../session-store.js'
 import type { TurnPipeline } from '../../turn-pipeline.js'
+
+interface SessionPipelineLike {
+  processTurn(
+    sessionId: string,
+    content: string,
+    options?: {
+      channelId?: string
+      senderId?: string
+      signal?: AbortSignal
+      model?: string
+    },
+  ): Promise<{ response: string; sessionId: string; model?: string; tokensUsed?: number; durationMs?: number }>
+}
 
 
 export interface SpawnSubagentOptions {
@@ -37,8 +50,8 @@ export interface SubagentSpawnContext {
   sessionStore?: SessionStore
   bus: IEventBus
   logger: ILogger
-  /** Lazy getter for pipeline - needed because tools are registered before pipeline is created */
-  getPipeline: () => TurnPipeline
+  /** Lazy getter for active turn runner - needed because tools are registered before pipeline is created */
+  getPipeline: () => TurnPipeline | SessionPipelineLike
 }
 
 /**
@@ -201,19 +214,21 @@ async function runSubagentTask(opts: RunSubagentTaskOptions): Promise<void> {
       setTimeout(() => reject(new Error(`Subagent ${label} timed out after ${timeoutSeconds}s`)), timeoutMs)
     })
 
-    // Build the inbound message for the subagent task
-    const inbound: InboundMessage = {
-      id: generateShortId(8),
-      sessionId: childSessionId,
-      channelId: 'subagent',
-      senderId: childSessionId,
-      content: task,
-      timestamp: new Date(),
-    }
-
     // Run the turn with timeout race
     const result = await Promise.race([
-      pipeline.process(inbound),
+      typeof (pipeline as SessionPipelineLike).processTurn === 'function'
+        ? (pipeline as SessionPipelineLike).processTurn(childSessionId, task, {
+            channelId: 'subagent',
+            senderId: childSessionId,
+          })
+        : (pipeline as TurnPipeline).process({
+            id: generateShortId(8),
+            sessionId: childSessionId,
+            channelId: 'subagent',
+            senderId: childSessionId,
+            content: task,
+            timestamp: new Date(),
+          }),
       timeoutPromise,
     ])
 

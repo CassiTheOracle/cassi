@@ -26,6 +26,12 @@ export class ToolRegistry {
   private tools = new Map<string, Entry>()
 
   register(definition: ToolDefinition, handler: ToolHandler): void {
+    if (!definition.name) {
+      logger.warn('Skipping tool registration: empty or missing name', {
+        description: definition.description?.slice(0, 80),
+      })
+      return
+    }
     const existed = this.tools.has(definition.name)
     this.tools.set(definition.name, { definition, handler })
 

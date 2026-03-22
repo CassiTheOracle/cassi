@@ -7,6 +7,7 @@
  * - Atomic writes (write to temp, then rename)
  * - Directory caching to avoid redundant mkdir calls
  * - Stream-based writes for large files
+ * - cassi://files/ URI support for FileArtifactStore integration
  */
 
 import { createWriteStream } from 'node:fs'
@@ -16,6 +17,7 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
+import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
 
 // Constants
 
@@ -147,13 +149,16 @@ async function writeStreaming(
 
 export const writeFileDefinition: ToolDefinition = {
   name: 'write_file',
-  description: 'Write content to a file. Creates parent directories automatically. Uses atomic writes for data safety.',
+  description: 'Write content to a file. Creates parent directories automatically. Uses atomic writes for data safety. Also writes to cassi://files/ URIs in the shared FileArtifactStore.',
   parameters: {
     type: 'object',
     properties: {
-      path:    { type: 'string', description: 'Destination path (absolute or relative to workspace)' },
+      path:    { type: 'string', description: 'Destination path (absolute, relative to workspace, or cassi://files/{namespace}/{path})' },
       content: { type: 'string', description: 'Content to write' },
       atomic:  { type: 'boolean', description: 'Use atomic write (default: true)' },
+      message: { type: 'string', description: 'Commit message (for cassi://files/ writes only)' },
+      visibility: { type: 'string', enum: ['private', 'shared', 'public'], description: 'Access visibility (for cassi://files/ writes only, default: private)' },
+      tags:    { type: 'array', items: { type: 'string' }, description: 'Tags (for cassi://files/ writes only)' },
     },
     required: ['path', 'content'],
   },
@@ -171,6 +176,31 @@ export const writeFileHandler: ToolHandler = async (
   const rawPath = input['path'] as string
   const content = input['content'] as string
   const atomic = (input['atomic'] as boolean | undefined) ?? ATOMIC_WRITE
+
+  // ── cassi://files/ URI interception ──
+  // Routes to FileArtifactStore instead of filesystem
+  const artifactUri = parseFileArtifactUri(rawPath)
+  if (artifactUri) {
+    try {
+      const store = ctx._fileArtifactStore
+      if (!store) {
+        return `Error: FileArtifactStore not available. Cannot write cassi:// URIs.`
+      }
+      const result = store.write({
+        namespace: artifactUri.namespace,
+        path: artifactUri.path,
+        content,
+        sessionId: ctx.sessionId,
+        message: input['message'] as string | undefined,
+        visibility: input['visibility'] as 'private' | 'shared' | 'public' | undefined,
+        tags: input['tags'] as string[] | undefined,
+      })
+      const uri = `cassi://files/${result.file.namespace}/${result.file.path}@v${result.version.versionNumber}`
+      return `${result.created ? 'Created' : 'Updated'} artifact: ${uri} (${result.version.size} bytes, v${result.version.versionNumber})`
+    } catch (err) {
+      return `Error writing artifact: ${String(err)}`
+    }
+  }
   
   // Path resolution
   const absPath = rawPath.startsWith('/') ? rawPath : resolve(ctx.workingDir, rawPath)

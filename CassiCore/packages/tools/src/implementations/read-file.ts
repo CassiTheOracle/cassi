@@ -8,12 +8,14 @@
  * - Single-pass line counting
  * - LRU cache for small files
  * - No existsSync (handle error instead)
+ * - cassi://files/ URI support for FileArtifactStore integration
  */
 
 import { open, stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
+import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
 
 // Constants
 
@@ -223,11 +225,11 @@ function extractLinesScan(
 
 export const readFileDefinition: ToolDefinition = {
   name: 'read_file',
-  description: 'Read the contents of a file. Supports optional line offset and limit. (Optimized: async I/O, caching)',
+  description: 'Read the contents of a file. Supports optional line offset and limit. Also reads cassi://files/ URIs from the shared FileArtifactStore. (Optimized: async I/O, caching)',
   parameters: {
     type: 'object',
     properties: {
-      path:   { type: 'string', description: 'Path to the file (absolute or relative to workspace)' },
+      path:   { type: 'string', description: 'Path to the file (absolute, relative to workspace, or cassi://files/{namespace}/{path}[@v{version}])' },
       offset: { type: 'number', description: 'Line number to start reading from (1-indexed, optional)' },
       limit:  { type: 'number', description: 'Maximum number of lines to read (optional)' },
     },
@@ -249,6 +251,34 @@ export const readFileHandler: ToolHandler = async (
   const rawPath = input['path'] as string
   const offset = Math.max(1, (input['offset'] as number | undefined) ?? 1)
   const limit = input['limit'] as number | undefined
+
+  // ── cassi://files/ URI interception ──
+  // Routes to FileArtifactStore instead of filesystem
+  const artifactUri = parseFileArtifactUri(rawPath)
+  if (artifactUri) {
+    try {
+      const store = ctx._fileArtifactStore
+      if (!store) {
+        return `Error: FileArtifactStore not available. Cannot read cassi:// URIs.`
+      }
+      const result = store.read({
+        namespace: artifactUri.namespace,
+        path: artifactUri.path,
+        version: artifactUri.version,
+        sessionId: ctx.sessionId,
+        admin: false,
+      })
+      let content = result.content.toString('utf-8')
+      // Apply offset/limit like regular files
+      if (offset > 1 || limit !== undefined) {
+        content = extractLines(Buffer.from(content), offset, limit)
+      }
+      const versionTag = `@v${result.version.versionNumber}`
+      return `[artifact: ${artifactUri.namespace}/${artifactUri.path}${versionTag} | ${result.version.size} bytes | ${result.file.visibility}]\n\n${content}`
+    } catch (err) {
+      return `Error reading artifact: ${String(err)}`
+    }
+  }
   
   // Path resolution
   const absPath = rawPath.startsWith('/') 

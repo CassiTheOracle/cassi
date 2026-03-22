@@ -67,4 +67,6 @@ export interface ToolExecutionContext {
   networkAllowlist: string[];  // allowed URL domains; ['*'] = unrestricted
   logger: import('../../types/interfaces.js').ILogger;
   registry?: import('./registry.js').ToolRegistry;
+  /** Shared file artifact store — injected by daemon for cassi:// URI support */
+  _fileArtifactStore?: import('../file-artifact-store.js').FileArtifactStore;
 }
