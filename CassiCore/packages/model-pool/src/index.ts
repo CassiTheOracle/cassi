@@ -134,6 +134,23 @@ export class ModelPool {
         )
       }
 
+      // Check per-provider model allowlist
+      const allowlist = this.config.allowedModels?.[override.provider]
+      if (allowlist && !allowlist.includes(override.model)) {
+        throw new Error(
+          `ModelDirective override failed: model "${override.model}" is not in the allowlist for provider "${override.provider}". ` +
+          `Allowed models: ${allowlist.join(', ')}`,
+        )
+      }
+
+      // Validate model is available for this provider
+      if (providerInstance.models && providerInstance.models.length > 0 && !providerInstance.models.includes(override.model)) {
+        throw new Error(
+          `ModelDirective override failed: model "${override.model}" not available for provider "${override.provider}". ` +
+          `Available models: ${providerInstance.models.join(', ')}`,
+        )
+      }
+
       const capabilities = await this.capabilityCache.getCapabilities(
         override.provider,
         override.model,
@@ -185,6 +202,24 @@ export class ModelPool {
       const providerInstance = this.providers.get(slotConfig.provider)
       if (!providerInstance) {
         this.logger.warn('Provider not found, trying next in chain', { provider: slotConfig.provider })
+        this.fallbackManager.reportFailure(
+          slotName,
+          slotConfig.provider,
+          slotConfig.model,
+          'model_unavailable',
+        )
+        slotConfig = this.fallbackManager.getNextAvailable(slotName)
+        continue
+      }
+
+      // Check per-provider model allowlist
+      const chainAllowlist = this.config.allowedModels?.[slotConfig.provider]
+      if (chainAllowlist && !chainAllowlist.includes(slotConfig.model)) {
+        this.logger.warn('Model not in allowlist for provider, trying next in chain', {
+          provider: slotConfig.provider,
+          model: slotConfig.model,
+          allowed: chainAllowlist,
+        })
         this.fallbackManager.reportFailure(
           slotName,
           slotConfig.provider,

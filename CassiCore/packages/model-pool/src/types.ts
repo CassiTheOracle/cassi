@@ -313,6 +313,14 @@ export interface ModelPoolConfig {
    * (e.g., Teams, Lumen) where they would burn through rate limits.
    */
   blockedProviders?: string[]
+  /**
+   * Per-provider model allowlist.
+   * Maps provider ID → array of allowed model names.
+   * If a provider has an entry here, ONLY those models can be used through it.
+   * Providers without an entry are unrestricted (all models allowed).
+   * Use this to limit expensive providers to their unlimited-quota models only.
+   */
+  allowedModels?: Record<string, string[]>
 }
 
 /**
