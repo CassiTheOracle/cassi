@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync } from 'node:fs';
+import { appendFileSync, closeSync, existsSync, fstatSync, mkdirSync, openSync, renameSync, unlinkSync, writeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -49,6 +49,200 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
   warn: "WARN ",
   error: "ERROR",
 };
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// File Transport with Log Rotation
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Default log file path for the daemon. */
+const DEFAULT_LOG_FILE = join(homedir(), '.cassicore', 'daemon.log');
+
+/** Configuration for file transport rotation. */
+export interface FileTransportConfig {
+  /** Maximum file size in bytes before rotation. Default: 10MB. */
+  maxFileSize: number;
+  /** Maximum number of rotated files to keep. Default: 5. */
+  maxFiles: number;
+  /** Log file path. Default: ~/.cassicore/daemon.log. */
+  filePath: string;
+}
+
+/**
+ * File transport with size-based log rotation.
+ *
+ * Rotation behavior:
+ * - When log file exceeds maxFileSize, rotate:
+ *   - daemon.log → daemon.1.log
+ *   - daemon.1.log → daemon.2.log
+ *   - etc.
+ *   - Delete files beyond maxFiles
+ * - Uses synchronous operations to avoid race conditions during rotation
+ * - Checks size every N writes for performance (writeCounter)
+ */
+class FileTransport {
+  private fd: number | null = null;
+  private writeCounter = 0;
+  private readonly checkInterval = 100; // Check size every 100 writes
+  private currentSize = 0;
+
+  constructor(private readonly config: FileTransportConfig) {
+    this.openFile();
+  }
+
+  /**
+   * Open the log file for appending. Creates parent directories if needed.
+   */
+  private openFile(): void {
+    try {
+      const dir = join(this.config.filePath, '..');
+      mkdirSync(dir, { recursive: true });
+    } catch {
+      // Directory exists
+    }
+
+    try {
+      // Open for appending, create if doesn't exist
+      this.fd = openSync(this.config.filePath, 'a');
+      // Get current file size
+      const stats = fstatSync(this.fd);
+      this.currentSize = stats.size;
+    } catch {
+      // If we can't open the file, we'll fall back to console-only
+      this.fd = null;
+      this.currentSize = 0;
+    }
+  }
+
+  /**
+   * Write a line to the log file. Performs rotation check periodically.
+   */
+  write(line: string): void {
+    if (this.fd === null) return;
+
+    const data = line + '\n';
+    const byteLength = Buffer.byteLength(data, 'utf8');
+
+    try {
+      writeSync(this.fd, data);
+      this.currentSize += byteLength;
+      this.writeCounter++;
+
+      // Check for rotation periodically (every checkInterval writes)
+      if (this.writeCounter >= this.checkInterval) {
+        this.writeCounter = 0;
+        if (this.currentSize >= this.config.maxFileSize) {
+          this.rotate();
+        }
+      }
+    } catch {
+      // Write failed - close and null out the fd
+      try {
+        closeSync(this.fd);
+      } catch {
+        // ignore
+      }
+      this.fd = null;
+    }
+  }
+
+  /**
+   * Rotate log files. Called when current log exceeds maxFileSize.
+   *
+   * Rotation: daemon.4.log → delete, daemon.3.log → daemon.4.log, etc.
+   * Then daemon.log → daemon.1.log, create new daemon.log
+   */
+  private rotate(): void {
+    if (this.fd !== null) {
+      try {
+        closeSync(this.fd);
+      } catch {
+        // ignore
+      }
+      this.fd = null;
+    }
+
+    const basePath = this.config.filePath;
+    const maxFiles = this.config.maxFiles;
+
+    // Delete the oldest file if it exists
+    const oldestFile = `${basePath}.${maxFiles}`;
+    try {
+      if (existsSync(oldestFile)) {
+        unlinkSync(oldestFile);
+      }
+    } catch {
+      // Ignore deletion errors
+    }
+
+    // Shift files: daemon.(n-1).log → daemon.n.log
+    for (let i = maxFiles - 1; i >= 1; i--) {
+      const src = `${basePath}.${i}`;
+      const dst = `${basePath}.${i + 1}`;
+      try {
+        if (existsSync(src)) {
+          renameSync(src, dst);
+        }
+      } catch {
+        // Ignore rename errors
+      }
+    }
+
+    // Rename current log to .1
+    try {
+      if (existsSync(basePath)) {
+        renameSync(basePath, `${basePath}.1`);
+      }
+    } catch {
+      // Ignore rename errors
+    }
+
+    // Open new log file
+    this.openFile();
+  }
+
+  /**
+   * Close the file descriptor. Call on shutdown.
+   */
+  close(): void {
+    if (this.fd !== null) {
+      try {
+        closeSync(this.fd);
+      } catch {
+        // ignore
+      }
+      this.fd = null;
+    }
+  }
+}
+
+/** Global file transport instance (initialized by daemon startup). */
+let fileTransport: FileTransport | null = null;
+
+/**
+ * Initialize the file transport for log rotation.
+ * Should be called once during daemon startup.
+ */
+export function initFileTransport(config?: Partial<FileTransportConfig>): void {
+  if (fileTransport) {
+    fileTransport.close();
+  }
+  fileTransport = new FileTransport({
+    maxFileSize: config?.maxFileSize ?? 10 * 1024 * 1024, // 10MB default
+    maxFiles: config?.maxFiles ?? 5,
+    filePath: config?.filePath ?? DEFAULT_LOG_FILE,
+  });
+}
+
+/**
+ * Close the file transport. Call on daemon shutdown.
+ */
+export function closeFileTransport(): void {
+  if (fileTransport) {
+    fileTransport.close();
+    fileTransport = null;
+  }
+}
 
 
 /**
@@ -278,10 +472,9 @@ export class Logger implements ILogger {
   }
 
   /**
-   * Compose and write the log line to stdout or stderr depending on level.
-   *
-   * Format: `HH:MM:SS.mmm ▸ INFO  component  Message text  key=value`
-   * Each segment is independently colored for readability.
+   * Check if we should emit ANSI color codes.
+   * Only emit colors when writing directly to a TTY (interactive terminal).
+   * When redirected to files or pipes, emit plain text for cleaner logs.
    */
   private writeConsole(level: LogLevel, msg: string, meta?: Record<string, unknown>): void {
     const time = timeStamp();
@@ -290,22 +483,41 @@ export class Logger implements ILogger {
     const color = LEVEL_COLOR[level];
     const comp = this.component;
 
-    // Build the line with per-segment coloring:
+    // Determine if we're writing to a TTY (for color output)
+    const isTTY = level === "warn" || level === "error"
+      ? process.stderr.isTTY
+      : process.stdout.isTTY;
+
+    // Build the line with or without coloring based on TTY detection:
     // [dim timestamp] [colored symbol+level] [bold component] [message] [dim metadata]
-    let line = `${DIM}${time}${RESET} ${color}${symbol} ${label}${RESET}  ${BOLD}${WHITE}${comp}${RESET}  ${msg}`;
+    let line: string;
+    if (isTTY) {
+      line = `${DIM}${time}${RESET} ${color}${symbol} ${label}${RESET}  ${BOLD}${WHITE}${comp}${RESET}  ${msg}`;
+    } else {
+      line = `${time} ${symbol} ${label}  ${comp}  ${msg}`;
+    }
 
     if (meta && Object.keys(meta).length > 0) {
       const metaStr = formatMeta(meta);
       if (metaStr) {
-        line += `  ${DIM}${metaStr}${RESET}`;
+        line += isTTY ? `  ${DIM}${metaStr}${RESET}` : `  ${metaStr}`;
       }
     }
 
+    // Write to console (with colors if TTY)
     if (level === "warn" || level === "error") {
       console.error(line);
     } else {
       // eslint-disable-next-line no-console
       console.log(line);
+    }
+
+    // Write to file transport (plain text, no ANSI codes)
+    if (fileTransport) {
+      const plainLine = `${time} ${symbol} ${label}  ${comp}  ${msg}`;
+      const metaStr = meta && Object.keys(meta).length > 0 ? formatMeta(meta) : '';
+      const fullLine = metaStr ? `${plainLine}  ${metaStr}` : plainLine;
+      fileTransport.write(fullLine);
     }
   }
 }

@@ -146,7 +146,7 @@ export class MCPRegistry {
       if (!client.connected) {
         throw new Error(`MCP server '${serverId}' is not connected`)
       }
-      this.logger.info(`[mcp:${serverId}] Calling tool '${tool.name}'`)
+      this.logger.debug(`[mcp:${serverId}] Calling tool '${tool.name}'`)
       return client.callTool(tool.name, input)
     })
   }

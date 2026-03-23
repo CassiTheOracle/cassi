@@ -48,7 +48,22 @@ export class MCPClient {
       command: this.config.command,
       args:    this.config.args ?? [],
       env:     { ...process.env, ...(this.config.env ?? {}) } as Record<string, string>,
+      stderr:  'pipe',
     })
+
+    // Pipe subprocess stderr to debug-level logging instead of inheriting into daemon.log
+    const stderrStream = this.transport.stderr
+    if (stderrStream) {
+      let buffer = ''
+      stderrStream.on('data', (chunk: Buffer | string) => {
+        buffer += String(chunk)
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          if (line.trim()) this.logger.debug(`[mcp:${this.id}:stderr] ${line}`)
+        }
+      })
+    }
 
     // Connect with a startup timeout
     await Promise.race([

@@ -65,8 +65,21 @@ interface InternalWorkerRecord {
  */
 export class PluginHost implements IPluginHost {
   private workers: Map<string, InternalWorkerRecord> = new Map()
+  private warnCooldowns: Map<string, number> = new Map()
 
   constructor(private logger: ILogger) {}
+
+  /** Warn at most once per key per 30 seconds; subsequent calls go to DEBUG. */
+  private warnThrottled(key: string, message: string): void {
+    const now = Date.now()
+    const last = this.warnCooldowns.get(key) ?? 0
+    if (now - last > 30_000) {
+      this.logger.warn(message)
+      this.warnCooldowns.set(key, now)
+    } else {
+      this.logger.debug(message)
+    }
+  }
 
   /**
    * Load and start a plugin worker
@@ -113,8 +126,23 @@ export class PluginHost implements IPluginHost {
       const { manifest } = record
       this.logger.info(`spawning worker process for ${manifest.id}`, { entry: manifest.entryPoint })
 
+      // When the entry point is a .ts file and the parent process is running under tsx,
+      // we need to include the tsx loader flags so the child can resolve .ts → .js imports.
+      const isTsEntry = manifest.entryPoint.endsWith('.ts')
+      const parentExecArgv = process.execArgv
+      const tsxArgs: string[] = []
+      if (isTsEntry) {
+        // Extract --require and --import flags from parent (tsx sets these)
+        for (let i = 0; i < parentExecArgv.length; i++) {
+          const arg = parentExecArgv[i]
+          if ((arg === '--require' || arg === '--import') && i + 1 < parentExecArgv.length) {
+            tsxArgs.push(arg, parentExecArgv[++i])
+          }
+        }
+      }
+
       const child = fork(manifest.entryPoint, [], {
-        execArgv: ['--max-old-space-size=256'],
+        execArgv: ['--max-old-space-size=256', ...tsxArgs],
         stdio: ['pipe', 'pipe', 'pipe', 'ipc'],
         env: {
           ...process.env,
@@ -154,7 +182,7 @@ export class PluginHost implements IPluginHost {
         const lines = chunk.toString().trim()
         if (lines) {
           for (const line of lines.split('\n')) {
-            this.logger.warn(`[${manifest.id}:stderr] ${line}`)
+            this.logger.debug(`[${manifest.id}:stderr] ${line}`)
           }
         }
       })
@@ -395,7 +423,7 @@ export class PluginHost implements IPluginHost {
   sendMessage(pluginId: string, payload: unknown): void {
     const record = this.workers.get(pluginId)
     if (!record || !record.child || !record.child.connected) {
-      this.logger.warn(`cannot send message to ${pluginId}: not connected`)
+      this.warnThrottled(pluginId, `cannot send message to ${pluginId}: not connected`)
       return
     }
 
@@ -406,7 +434,7 @@ export class PluginHost implements IPluginHost {
   updateConfig(pluginId: string, config: Record<string, unknown>): void {
     const record = this.workers.get(pluginId)
     if (!record || !record.child || !record.child.connected) {
-      this.logger.warn(`cannot update config for ${pluginId}: not connected`)
+      this.warnThrottled(pluginId, `cannot update config for ${pluginId}: not connected`)
       return
     }
 
