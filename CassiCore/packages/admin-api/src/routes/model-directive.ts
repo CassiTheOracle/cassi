@@ -72,8 +72,8 @@ export async function handleModelDirectiveRoutes(
 
       const { scope, tier, provider, model, jobId, slot } = body
 
-      if (!scope || !['next', 'next-job', 'job', 'default'].includes(scope)) {
-        sendJSON(res, 400, { error: 'scope must be "next", "next-job", "job", or "default"' })
+      if (!scope || !['next', 'next-job', 'session', 'job', 'default'].includes(scope)) {
+        sendJSON(res, 400, { error: 'scope must be "next", "next-job", "session", "job", or "default"' })
         return true
       }
 
@@ -124,8 +124,8 @@ export async function handleModelDirectiveRoutes(
 
       const { scope, jobId, slot } = body
 
-      if (!scope || !['next', 'next-job', 'job', 'default'].includes(scope)) {
-        sendJSON(res, 400, { error: 'scope must be "next", "next-job", "job", or "default"' })
+      if (!scope || !['next', 'next-job', 'session', 'job', 'default'].includes(scope)) {
+        sendJSON(res, 400, { error: 'scope must be "next", "next-job", "session", "job", or "default"' })
         return true
       }
 

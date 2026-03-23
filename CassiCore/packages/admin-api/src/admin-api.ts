@@ -35,12 +35,14 @@ import { handleVerificationRoutes } from './admin-api/verification.js'
 import { handleImprovementRoutes } from './admin-api/improvement.js'
 import { handleLumenRoutes } from './admin-api/lumen.js'
 import { handleDyadRoutes } from './admin-api/dyad.js'
+import { handleHelixRoutes } from './admin-api/helix.js'
 import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { handleBlackboardRoutes } from './admin-api/blackboard.js'
 import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
 import { handleTrainingRoutes } from './admin-api/training.js'
 import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
+import { handleTimelineRoutes } from './admin-api/timeline.js'
 import { createAdminRuntimeFacade } from './admin-api/runtime.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
@@ -1975,6 +1977,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleLumenRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleDyadRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleHelixRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleDreamerRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleModelDirectiveRoutes({
            daemon,
@@ -1992,6 +1995,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleFileArtifactRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleTrainingRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handlePromptLogRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
+         () => handleTimelineRoutes({ daemon, logger, sendJSON, parseBody, url, pathname, sseConnections, sseConnectionId }, req, res, method),
       ]
 
       for (const routeHandler of routeHandlers) {

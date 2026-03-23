@@ -1,6 +1,6 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
-import { CASSICORE_VERSION } from '../daemon.js'
+import { CASSICORE_VERSION, CASSICORE_BUILD, CASSICORE_BUILD_STRING } from '../daemon.js'
 
 export interface HealthRoutesDeps {
   daemon: any
@@ -56,6 +56,11 @@ export async function handleHealthRoutes(
         memoryMb: snapshot.memoryMb,
         eventLoopLagMs: snapshot.eventLoopLagMs,
         version: CASSICORE_VERSION,
+        build: CASSICORE_BUILD_STRING,
+        buildDetails: {
+          version: CASSICORE_BUILD.version,
+          gitRef: CASSICORE_BUILD.gitRef,
+        },
         checks: snapshot.checks,
         plugins: pluginHealth,
       })
@@ -66,6 +71,11 @@ export async function handleHealthRoutes(
       status: degradedPlugins.length > 0 ? 'degraded' : 'starting',
       uptime: process.uptime(),
       version: CASSICORE_VERSION,
+      build: CASSICORE_BUILD_STRING,
+      buildDetails: {
+        version: CASSICORE_BUILD.version,
+        gitRef: CASSICORE_BUILD.gitRef,
+      },
       plugins: pluginHealth,
     })
     return true
@@ -124,6 +134,11 @@ export async function handleHealthRoutes(
     sendJSON(res, 200, {
       name: 'CassiCore',
       version: CASSICORE_VERSION,
+      build: CASSICORE_BUILD_STRING,
+      buildDetails: {
+        version: CASSICORE_BUILD.version,
+        gitRef: CASSICORE_BUILD.gitRef,
+      },
       pid: process.pid,
       uptimeMs: Math.floor(process.uptime() * 1000),
       // API surface available for the Crush fork
