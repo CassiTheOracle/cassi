@@ -16,6 +16,9 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { GlobalBlackboardRegistry } from '../intelligence/flux-team/global-blackboard-registry.js'
+import type { BlackboardChannel } from '../../types/flux-team.js'
+
+const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
 
 interface BlackboardDeps {
   daemon: any
@@ -79,9 +82,39 @@ export async function handleBlackboardRoutes(
       return sendJSON(res, 201, { name, persist, message: `Blackboard '${name}' created.` }), true
     }
 
-    // GET /blackboard/global/:name — get snapshot
+    // GET /blackboard/global/:name — get snapshot (supports ?summary=true, ?channel=X, ?limit=N)
     if (method === 'GET' && parts[2] && !parts[3]) {
       const name = decodeURIComponent(parts[2])
+      const wantSummary = url.searchParams.get('summary') === 'true'
+      const channelFilter = url.searchParams.get('channel') as BlackboardChannel | null
+      const limitParam = url.searchParams.get('limit')
+      const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+      if (channelFilter && !VALID_CHANNELS.has(channelFilter)) {
+        return sendJSON(res, 400, { error: `Invalid channel. Must be one of: ${[...VALID_CHANNELS].join(', ')}` }), true
+      }
+
+      if (channelFilter) {
+        const entries = registry.getChannelEntries(name, channelFilter, limit)
+        if (!entries) {
+          await registry.load(name)
+          const retryEntries = registry.getChannelEntries(name, channelFilter, limit)
+          if (!retryEntries) return sendJSON(res, 404, { error: `Blackboard '${name}' not found.` }), true
+          return sendJSON(res, 200, { channel: channelFilter, entries: retryEntries }), true
+        }
+        return sendJSON(res, 200, { channel: channelFilter, entries }), true
+      }
+
+      if (wantSummary) {
+        let summary = registry.getSummary(name)
+        if (!summary) {
+          await registry.load(name)
+          summary = registry.getSummary(name)
+        }
+        if (!summary) return sendJSON(res, 404, { error: `Blackboard '${name}' not found.` }), true
+        return sendJSON(res, 200, summary), true
+      }
+
       let snapshot = registry.getSnapshot(name)
       if (!snapshot) {
         await registry.load(name)
@@ -114,9 +147,8 @@ export async function handleBlackboardRoutes(
         return sendJSON(res, 400, { error: 'Missing required field: content (string)' }), true
       }
 
-      const validChannels = new Set(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
-      if (!validChannels.has(channel)) {
-        return sendJSON(res, 400, { error: `Invalid channel. Must be one of: ${[...validChannels].join(', ')}` }), true
+      if (!VALID_CHANNELS.has(channel as BlackboardChannel)) {
+        return sendJSON(res, 400, { error: `Invalid channel. Must be one of: ${[...VALID_CHANNELS].join(', ')}` }), true
       }
 
       const priorityMap: Record<string, number> = { high: 2, medium: 1, low: 0 }
@@ -148,15 +180,35 @@ export async function handleBlackboardRoutes(
   if (parts[0] === 'lumen' && parts[1] && parts[2] === 'blackboard') {
     if (method !== 'GET') return false
     const sessionId = parts[1]
+    const wantSummary = url.searchParams.get('summary') === 'true'
+    const channelFilter = url.searchParams.get('channel') as BlackboardChannel | null
+    const limitParam = url.searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+    if (channelFilter && !VALID_CHANNELS.has(channelFilter)) {
+      return sendJSON(res, 400, { error: `Invalid channel. Must be one of: ${[...VALID_CHANNELS].join(', ')}` }), true
+    }
 
     try {
       // Try in-memory active sessions first
       const lumen = daemon.intelligence?.lumen
-      if (lumen?.getActiveBlackboard) {
+
+      if (channelFilter && lumen?.getActiveChannel) {
+        const entries = lumen.getActiveChannel(sessionId, channelFilter, limit)
+        if (entries) return sendJSON(res, 200, { channel: channelFilter, entries }), true
+      }
+
+      if (wantSummary && lumen?.getActiveSummary) {
+        const summary = lumen.getActiveSummary(sessionId)
+        if (summary) return sendJSON(res, 200, summary), true
+      }
+
+      if (!channelFilter && !wantSummary && lumen?.getActiveBlackboard) {
         const snapshot = lumen.getActiveBlackboard(sessionId)
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
+      // Fallback to persisted session
       const { LumenStore } = await import('../intelligence/lumen/lumen-store.js').catch(() => ({ LumenStore: null }))
       if (LumenStore) {
         const store = (LumenStore as any).open(logger.child('lumen-store-bb'))
@@ -179,14 +231,34 @@ export async function handleBlackboardRoutes(
   if (parts[0] === 'dyad' && parts[1] && parts[2] === 'blackboard') {
     if (method !== 'GET') return false
     const sessionId = parts[1]
+    const wantSummary = url.searchParams.get('summary') === 'true'
+    const channelFilter = url.searchParams.get('channel') as BlackboardChannel | null
+    const limitParam = url.searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+    if (channelFilter && !VALID_CHANNELS.has(channelFilter)) {
+      return sendJSON(res, 400, { error: `Invalid channel. Must be one of: ${[...VALID_CHANNELS].join(', ')}` }), true
+    }
 
     try {
       const dyad = daemon.intelligence?.dyad
-      if (dyad?.getActiveBlackboard) {
+
+      if (channelFilter && dyad?.getActiveChannel) {
+        const entries = dyad.getActiveChannel(sessionId, channelFilter, limit)
+        if (entries) return sendJSON(res, 200, { channel: channelFilter, entries }), true
+      }
+
+      if (wantSummary && dyad?.getActiveSummary) {
+        const summary = dyad.getActiveSummary(sessionId)
+        if (summary) return sendJSON(res, 200, summary), true
+      }
+
+      if (!channelFilter && !wantSummary && dyad?.getActiveBlackboard) {
         const snapshot = dyad.getActiveBlackboard(sessionId)
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
+      // Fallback to persisted session
       const { DyadStore } = await import('../intelligence/dyad/dyad-store.js').catch(() => ({ DyadStore: null }))
       if (DyadStore) {
         const store = (DyadStore as any).open(logger.child('dyad-store-bb'))

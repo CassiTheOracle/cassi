@@ -19,6 +19,9 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { HelixResult } from '../intelligence/helix/types.js'
+import type { BlackboardChannel } from '../../types/flux-team.js'
+
+const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
 
 
 interface HelixJob {
@@ -43,9 +46,7 @@ interface HelixDeps {
 const helixJobs = new Map<string, HelixJob>()
 const JOB_TTL_MS = 60 * 60 * 1000 // 1 hour
 const MAX_JOBS = 50
-
-// SSE heartbeat interval for event streams
-const SSE_HEARTBEAT_MS = 15_000
+const HEARTBEAT_INTERVAL_MS = 15_000
 
 function generateJobId(): string {
   return `helix-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
@@ -130,14 +131,14 @@ export function handleHelixRoutes(
         }).catch((err: unknown) => {
           job.status = 'failed'
           job.completedAt = Date.now()
-          job.error = err instanceof Error ? (err.stack ?? err.message) : String(err)
-          logger.error('helix:project:failed', { error: err instanceof Error ? (err.stack ?? String(err)) : String(err), sessionId, jobId })
+          job.error = String(err)
+          logger.error('helix:project:failed', { error: String(err), sessionId, jobId })
         })
 
         sendJSON(res, 200, { jobId, sessionId, status: 'running' })
       } catch (err) {
-        logger.error('helix:project:request-error', { error: err instanceof Error ? (err.stack ?? String(err)) : String(err) })
-        sendJSON(res, 500, { error: err instanceof Error ? (err.stack ?? String(err)) : String(err) })
+        logger.error('helix:project:request-error', { error: String(err) })
+        sendJSON(res, 500, { error: String(err) })
       }
     })()
     return true
@@ -201,5 +202,145 @@ export function handleHelixRoutes(
       job.error = 'Cancelled by user'
     }
     sendJSON(res, 200, { cancelled, sessionId })
+    return true
+  }
 
-[output truncated: 1158 bytes]
+  // ── GET /helix/:id/progress ─────────────────────────────────────────
+  if (method === 'GET' && subRoute === 'progress') {
+    if (!helix) {
+      sendJSON(res, 503, { error: 'Helix not initialized' })
+      return true
+    }
+    const job = findHelixJob(id)
+    const sessionId = job?.sessionId ?? id
+    const progress = helix.getActiveProgress(sessionId)
+    if (!progress) {
+      sendJSON(res, 404, { error: 'Session not found or not active' })
+      return true
+    }
+    sendJSON(res, 200, progress)
+    return true
+  }
+
+  // ── GET /helix/:id/blackboard (supports ?summary=true, ?channel=X, ?limit=N)
+  if (method === 'GET' && subRoute === 'blackboard') {
+    if (!helix) {
+      sendJSON(res, 503, { error: 'Helix not initialized' })
+      return true
+    }
+    const job = findHelixJob(id)
+    const sessionId = job?.sessionId ?? id
+    const wantSummary = url.searchParams.get('summary') === 'true'
+    const channelFilter = url.searchParams.get('channel') as BlackboardChannel | null
+    const limitParam = url.searchParams.get('limit')
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined
+
+    if (channelFilter && !VALID_CHANNELS.has(channelFilter)) {
+      sendJSON(res, 400, { error: `Invalid channel. Must be one of: ${[...VALID_CHANNELS].join(', ')}` })
+      return true
+    }
+
+    if (channelFilter) {
+      const entries = helix.getActiveChannel(sessionId, channelFilter, limit)
+      if (!entries) {
+        sendJSON(res, 404, { error: 'Session not found or blackboard not active' })
+        return true
+      }
+      sendJSON(res, 200, { channel: channelFilter, entries })
+      return true
+    }
+
+    if (wantSummary) {
+      const summary = helix.getActiveSummary(sessionId)
+      if (!summary) {
+        sendJSON(res, 404, { error: 'Session not found or blackboard not active' })
+        return true
+      }
+      sendJSON(res, 200, summary)
+      return true
+    }
+
+    const bb = helix.getActiveBlackboard(sessionId)
+    if (!bb) {
+      sendJSON(res, 404, { error: 'Session not found or blackboard not active' })
+      return true
+    }
+    sendJSON(res, 200, bb)
+    return true
+  }
+
+  // ── GET /helix/:id/stream — SSE event stream ────────────────────────
+  if (method === 'GET' && subRoute === 'stream') {
+    const timeoutSecs = Math.min(parseInt(url.searchParams.get('timeout') || '300', 10), 600)
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    })
+
+    const job = findHelixJob(id)
+    if (!job) {
+      res.write(`data: ${JSON.stringify({ event: 'error', message: 'Job not found' })}\n\n`)
+      res.end()
+      return true
+    }
+
+    if (job.status !== 'running') {
+      res.write(`data: ${JSON.stringify({ event: 'helix:complete', status: job.status, result: job.result, error: job.error })}\n\n`)
+      res.end()
+      return true
+    }
+
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) res.write(': heartbeat\n\n')
+    }, HEARTBEAT_INTERVAL_MS)
+
+    const poll = setInterval(() => {
+      if (job.status !== 'running') {
+        cleanup()
+        res.write(`data: ${JSON.stringify({ event: 'helix:complete', status: job.status, result: job.result, error: job.error })}\n\n`)
+        res.end()
+      }
+    }, 2000)
+
+    const timeout = setTimeout(() => {
+      cleanup()
+      if (!res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ event: 'timeout' })}\n\n`)
+        res.end()
+      }
+    }, timeoutSecs * 1000)
+
+    function cleanup() {
+      clearInterval(heartbeat)
+      clearInterval(poll)
+      clearTimeout(timeout)
+    }
+
+    req.on('close', cleanup)
+    return true
+  }
+
+  // ── GET /helix/:id — Get job result ─────────────────────────────────
+  if (method === 'GET' && !subRoute) {
+    const job = findHelixJob(id)
+    if (!job) {
+      sendJSON(res, 404, { error: 'Job not found' })
+      return true
+    }
+    sendJSON(res, 200, {
+      id: job.id,
+      sessionId: job.sessionId,
+      status: job.status,
+      goal: job.goal,
+      startedAt: job.startedAt,
+      completedAt: job.completedAt,
+      result: job.result,
+      error: job.error,
+    })
+    return true
+  }
+
+  return false
+}
