@@ -469,19 +469,30 @@ export class TrainingStore {
       .map(s => s.trim())
       .filter(s => s.length > 0)
 
-    this.db.transaction(() => {
-      for (const sql of statements) {
-        try {
-          this.db.exec(sql + ';')
-        } catch (err) {
-          // Ignore "already exists" errors for idempotency
-          const msg = String(err)
-          if (!msg.includes('already exists')) {
-            this.logger.warn('Schema statement failed', { sql: sql.slice(0, 120), error: msg })
+    try {
+      this.db.transaction(() => {
+        for (const sql of statements) {
+          try {
+            this.db.exec(sql + ';')
+          } catch (err) {
+            // Ignore "already exists" errors for idempotency
+            const msg = String(err)
+            if (!msg.includes('already exists')) {
+              this.logger.warn('Schema statement failed', { sql: sql.slice(0, 120), error: msg })
+            }
           }
         }
+      })()
+    } catch (err) {
+      // DDL can cause implicit commits in SQLite, breaking the transaction wrapper.
+      // This is benign — each statement executed individually regardless.
+      const msg = String(err)
+      if (msg.includes('no transaction is active') || msg.includes('cannot commit')) {
+        this.logger.debug('Schema init: transaction wrapper exited (DDL implicit commits)', { error: msg })
+      } else {
+        this.logger.warn('Schema init failed', { error: msg })
       }
-    })()
+    }
   }
 
 

@@ -26,6 +26,8 @@ import type { IMemory } from "../../../types/intelligence.js";
 import type { ILogger } from "../../../types/interfaces.js";
 import type { IProvider, Message } from "../../../types/runtime.js";
 import type { ModuleSessionRegistry } from "../module-session-registry.js";
+import type { GlobalBlackboardRegistry } from "../flux-team/global-blackboard-registry.js";
+import type { BlackboardChannel } from "../../../types/flux-team.js";
 
 
 
@@ -36,6 +38,7 @@ export class LLMObserver {
   /** Session indexer memory — used to fetch cross-session historical context */
   private memory?: IMemory;
   private moduleRegistry?: ModuleSessionRegistry;
+  private globalBlackboardRegistry?: GlobalBlackboardRegistry;
 
   private timer?: NodeJS.Timeout;
   private lastSweepAt = 0;
@@ -79,6 +82,31 @@ export class LLMObserver {
    */
   setMemory(memory: IMemory): void {
     this.memory = memory;
+  }
+
+  /** Wire the GlobalBlackboardRegistry for posting to named global boards. */
+  setGlobalBlackboardRegistry(registry: GlobalBlackboardRegistry): void {
+    this.globalBlackboardRegistry = registry;
+  }
+
+  /** Post an entry to a named global board. Fire-and-forget — never throws. */
+  private postToBoard(
+    boardName: string,
+    channel: BlackboardChannel,
+    content: string,
+    opts?: { author?: string; tags?: string[]; priority?: number },
+  ): void {
+    try {
+      const board = this.globalBlackboardRegistry?.getOrCreate(boardName, { persist: true });
+      board?.post(channel, {
+        content,
+        author: opts?.author ?? 'llm-observer',
+        tags: opts?.tags ?? [],
+        priority: opts?.priority ?? 0,
+      });
+    } catch (err) {
+      this.logger.debug('LLMObserver: blackboard post failed (non-fatal)', { error: String(err), boardName, channel });
+    }
   }
 
   start(stream: EventStream, systemModel: SystemModel, onSweep?: (obs: LLMObservation) => void): void {
@@ -235,6 +263,27 @@ export class LLMObserver {
       this.observationHistory.push(observation);
       if (this.observationHistory.length > LLMObserver.MAX_HISTORY) {
         this.observationHistory.shift();
+      }
+
+      // Post observation to global blackboard for cross-session visibility
+      const sweepId = `sweep-${Date.now()}`;
+      this.postToBoard('system:subconscious', 'findings', JSON.stringify({
+        sweepId,
+        summary: observation.summary,
+        patterns: observation.patterns,
+        opportunities: observation.opportunities,
+        confidence: observation.confidence,
+        timestamp: Date.now(),
+      }), { tags: [`sweep:${sweepId}`] });
+
+      // Post concerns/anomalies separately
+      if (observation.concerns.length > 0) {
+        this.postToBoard('system:subconscious', 'concerns', JSON.stringify({
+          sweepId,
+          concerns: observation.concerns,
+          confidence: observation.confidence,
+          timestamp: Date.now(),
+        }), { tags: ['anomaly'] });
       }
 
       this.logger.debug("LLMObserver sweep complete", {

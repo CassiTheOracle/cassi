@@ -14,6 +14,7 @@
 
 import * as crypto from 'node:crypto'
 import type { ILogger } from '../../../types/interfaces.js'
+import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js'
 import { TrainingStore } from './training-store.js'
 import type {
   TaggerRequest,
@@ -115,10 +116,37 @@ export interface TaggerBatchResult {
 export class TrainingTagger {
   private readonly store: TrainingStore
   private readonly logger: ILogger
+  private globalBlackboardRegistry?: GlobalBlackboardRegistry
 
   constructor(store: TrainingStore, logger: ILogger) {
     this.store = store
     this.logger = logger.child('training-tagger')
+  }
+
+  setGlobalBlackboardRegistry(registry: GlobalBlackboardRegistry): void {
+    this.globalBlackboardRegistry = registry
+  }
+
+  /**
+   * Post an entry to a named global board. Fire-and-forget — never throws.
+   */
+  private postToBoard(
+    boardName: string,
+    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests',
+    content: string,
+    opts?: { author?: string; tags?: string[]; priority?: number },
+  ): void {
+    try {
+      const board = this.globalBlackboardRegistry?.getOrCreate(boardName, { persist: true })
+      board?.post(channel, {
+        content,
+        author: opts?.author ?? 'training-tagger',
+        tags: opts?.tags ?? [],
+        priority: opts?.priority ?? 0,
+      })
+    } catch (err) {
+      this.logger.debug('Blackboard post failed (non-fatal)', { error: String(err), boardName, channel })
+    }
   }
 
   // TAG BATCH — main entry point
