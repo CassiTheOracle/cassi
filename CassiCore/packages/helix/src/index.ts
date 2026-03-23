@@ -1,4 +1,4 @@
-/*
+/**
  * Helix — Inverted-Pyramid Agent Pattern
  *
  * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above.
@@ -18,8 +18,8 @@ import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixProjectOpts, HelixResult } from './types.js'
 import type { DyadStore } from '../dyad/dyad-store.js'
-import type { BlackboardState } from '../../../types/flux-team.js'
-import type { Blackboard } from '../flux-team/blackboard.js'
+import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
+import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from '../dyad/work-stream.js'
 import type { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
@@ -31,6 +31,8 @@ export interface HelixOrchestrator {
   cancel(sessionId: string): boolean
   getActiveSessions(): string[]
   getActiveBlackboard(sessionId: string): BlackboardState | undefined
+  getActiveSummary(sessionId: string): BlackboardSummary | undefined
+  getActiveChannel(sessionId: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | undefined
   getActiveProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
   setModelPool(modelPool: ModelPool): void
   setToolRegistry(registry: ToolRegistry): void
@@ -39,7 +41,7 @@ export interface HelixOrchestrator {
   setModelDirective(directive: IModelDirective): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
-  getHealth(): { healthy: boolean; lastRun?: Date; errorCount: number }
+  getHealth(): { healthy: boolean; lastRun?: Date; errorCount: number; activeSessionCount: number; modelPoolAvailable: boolean }
 }
 
 
@@ -79,41 +81,35 @@ export function createHelix(
       return activeBlackboards.get(sessionId)?.getSnapshot()
     },
 
+    getActiveSummary(sessionId: string): BlackboardSummary | undefined {
+      return activeBlackboards.get(sessionId)?.getSummary()
+    },
+
+    getActiveChannel(sessionId: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | undefined {
+      return activeBlackboards.get(sessionId)?.getChannelEntries(channel, limit)
+    },
+
     getActiveProgress(sessionId: string) {
       const ws = activeWorkStreams.get(sessionId)
       const dc = activeDialecticChannels.get(sessionId)
       if (!ws) return undefined
-
-      // Defensive, race-safe projection: WorkStream may be partially initialized
-      // when callers request progress. Guard against undefined fields on work
-      // units and role activity to avoid runtime crashes.
-      const safeStats = (() => {
-        try { return ws.getStats() } catch { return { workUnits: 0, workUnitsProcessed: 0, workUnitsPending: 0, workUnitsReviewed: 0, workUnitsUnreviewed: 0, refinements: 0, nudges: { low: 0, high: 0, acknowledged: 0 }, research: 0, guidance: 0 } }
-      })()
-
-      const roleActivity = (() => {
-        try { return ws.getRoleActivity() } catch { return { yang: { iterationCount: 0, toolCallCount: 0, tokensUsed: 0, lastToolName: null, lastToolTimestamp: 0, concluded: false, errored: false, errorMessage: null, recentToolCalls: [] }, yin: { iterationCount: 0, toolCallCount: 0, tokensUsed: 0, lastToolName: null, lastToolTimestamp: 0, concluded: false, errored: false, errorMessage: null, recentToolCalls: [] }, apex: { iterationCount: 0, toolCallCount: 0, tokensUsed: 0, lastToolName: null, lastToolTimestamp: 0, concluded: false, errored: false, errorMessage: null, recentToolCalls: [] } } } })()
-
-      const recentWUs = (() => {
-        try { return ws.getAllWorkUnits().slice(-5) } catch { return [] as any[] }
-      })()
-
       return {
-        markdown: (() => { try { return ws.getRichProgress() } catch { return 'No progress available' } })(),
+        markdown: ws.getRichProgress(),
         data: {
-          stats: safeStats,
+          stats: ws.getStats(),
           dialecticStats: dc?.getStats() ?? { findings: 0, challenges: 0, concessions: 0, investigationRequests: 0, executiveInjections: 0 },
           convergencePoints: dc?.buildConvergencePoints() ?? [],
-          roleActivity,
-          recentWorkUnits: recentWUs.map(wu => ({
-            id: wu?.id,
-            iteration: wu?.iteration ?? 0,
-            reasoning: wu?.reasoning ? String(wu.reasoning).slice(0, 300) : undefined,
-            filesModified: Array.isArray(wu?.filesModified) ? wu.filesModified : [],
-            processed: !!wu?.processed,
+          roleActivity: ws.getRoleActivity(),
+          recentWorkUnits: ws.getAllWorkUnits().slice(-5).map(wu => ({
+            id: wu.id,
+            iteration: wu.iteration ?? 0,
+            reasoning: wu.reasoning?.slice(0, 300) ?? '',
+            filesModified: wu.filesModified ?? [],
+            processed: wu.processed,
           })),
-          activeNudges: (() => { try { return ws.getAllNudges().filter(n => !n.acknowledged) } catch { return [] } })(),
-          unityDone: (() => { try { return ws.isYangDone() } catch { return false } })(),
+          activeNudges: ws.getAllNudges().filter(n => !n.acknowledged),
+          // Note: isYangDone() checks if the primary worker (Unity) signaled done — method name is legacy from Dyad
+          unityDone: ws.isYangDone(),
         },
       }
     },
@@ -213,7 +209,6 @@ export function createHelix(
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
 
-
         try {
           const result = await runHelixPipeline({
             goal: effectiveGoal,
@@ -272,9 +267,11 @@ export function createHelix(
 
     getHealth() {
       return {
-        healthy: errorCount === 0,
+        healthy: errorCount < 5 && !!storedModelPool,
         lastRun,
         errorCount,
+        activeSessionCount: activeSessions.size,
+        modelPoolAvailable: !!storedModelPool,
       }
     },
   }

@@ -1,4 +1,4 @@
-/*
+/**
  * Helix Pipeline — Orchestrator for the inverted-triangle agent pattern.
  *
  * Wires three concurrent postures:
@@ -22,6 +22,7 @@ import type { PlanHandler } from '../flux-team/plan-handler.js'
 import type { DyadStore } from '../dyad/dyad-store.js'
 import { Blackboard } from '../flux-team/blackboard.js'
 import { WorkStream } from '../dyad/work-stream.js'
+import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
 import { HelixAgentSession } from './helix-agent-session.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
@@ -176,12 +177,16 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     moduleDebugSessionId: opts.moduleDebugSessionId,
   }
 
+  // Create intelligent context budget coordinator for all postures
+  const contextBudgetCoordinator = new ContextBudgetCoordinator(log)
+
   const unitySession = new HelixAgentSession({
     ...commonOpts,
     role: 'unity',
     handle: opts.unityHandle,
     posture: UNITY_POSTURE,
     postureSlot: 'helix.unity',
+    contextBudgetCoordinator,
     // Unity only uses WorkStream, no dialectic channel
   })
 
@@ -192,6 +197,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: YANG_REVIEWER_POSTURE,
     postureSlot: 'helix.yang',
     dialecticChannel,
+    contextBudgetCoordinator,
   })
 
   const yinSession = new HelixAgentSession({
@@ -201,17 +207,162 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: YIN_REVIEWER_POSTURE,
     postureSlot: 'helix.yin',
     dialecticChannel,
+    contextBudgetCoordinator,
   })
 
-  // ... (pipeline orchestration omitted for brevity) ...
+  cancelFns.push(
+    () => unitySession.cancel(),
+    () => yangSession.cancel(),
+    () => yinSession.cancel(),
+  )
+
+
+  // ── Watchdog (steer-then-kill) ───────────────────────────────────────
+
+  let inactivityWarnSent = false
+  let inactivityEscalated = false
+
+  const watchdogInterval = setInterval(() => {
+    const silentMs = Date.now() - lastActivity
+
+    // Stage 3: Hard kill (6 min)
+    if (silentMs > INACTIVITY_KILL_MS) {
+      log.warn('Helix pipeline inactivity kill', { sessionId, silentMs })
+      cancelAll()
+      return
+    }
+
+    // Stage 2: High-severity nudge (4 min)
+    if (silentMs > INACTIVITY_ESCALATE_MS && !inactivityEscalated) {
+      inactivityEscalated = true
+      log.warn('Helix pipeline inactivity escalation', { sessionId, silentMs })
+      workStream.sendNudge({
+        id: `inactivity-escalation-${Date.now()}`,
+        from: 'yin', to: 'yang',
+        severity: 'high',
+        content: 'URGENT: Pipeline inactive for 4+ minutes. If stuck, try a different approach. Wrap up current work.',
+        timestamp: Date.now(),
+        acknowledged: false,
+      }, 0)
+      opts.eventBus?.emit({ type: 'helix:inactivity:escalated' as any, sessionId, silentMs } as any)
+      return
+    }
+
+    // Stage 1: Gentle nudge (2 min)
+    if (silentMs > INACTIVITY_WARN_MS && !inactivityWarnSent) {
+      inactivityWarnSent = true
+      log.info('Helix pipeline inactivity warning', { sessionId, silentMs })
+      workStream.sendNudge({
+        id: `inactivity-warn-${Date.now()}`,
+        from: 'yin', to: 'yang',
+        severity: 'low',
+        content: 'Pipeline quiet for 2+ minutes. If working, continue. If stuck, try an alternative approach.',
+        timestamp: Date.now(),
+        acknowledged: false,
+      }, 0)
+      opts.eventBus?.emit({ type: 'helix:inactivity:warned' as any, sessionId, silentMs } as any)
+      return
+    }
+
+    // Reset when activity resumes
+    if (silentMs < INACTIVITY_WARN_MS) {
+      inactivityWarnSent = false
+      inactivityEscalated = false
+    }
+  }, 15_000)
+
+
+  // ── Timeout ──────────────────────────────────────────────────────────
+
+  const timeoutHandle = setTimeout(() => {
+    log.warn('Helix pipeline timeout', { sessionId, timeoutMs })
+    cancelAll()
+  }, timeoutMs)
+
+
+  // ── Run All Three Concurrently ───────────────────────────────────────
 
   try {
-    // (run sessions, gather results)
+    const [unitySettled, yangSettled, yinSettled] = await Promise.allSettled([
+      // Unity: continuous worker loop
+      unitySession.runAsWorker(opts.goal, opts.context)
+        .catch(err => {
+          log.error('Unity failed', { error: String(err) })
+          opts.store?.appendEvent(sessionId, 'helix:role:failed', 'unity', String(err))
+          opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'unity', error: String(err) } as any)
+          return buildErrorResult(err)
+        })
+        .finally(() => {
+          opts.store?.appendEvent(sessionId, 'helix:role:completed', 'unity', 'Unity completed')
+          opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'unity' } as any)
+          onActivity()
+        }),
 
-    // Build result
+      // Yang: assertive reviewer loop
+      yangSession.runAsReviewer(opts.goal, opts.context)
+        .catch(err => {
+          log.error('Yang reviewer failed', { error: String(err) })
+          opts.store?.appendEvent(sessionId, 'helix:role:failed', 'yang', String(err))
+          opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'yang', error: String(err) } as any)
+          return buildErrorResult(err)
+        })
+        .finally(() => {
+          opts.store?.appendEvent(sessionId, 'helix:role:completed', 'yang', 'Yang completed')
+          opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'yang' } as any)
+          onActivity()
+        }),
+
+      // Yin: cautious reviewer loop
+      yinSession.runAsReviewer(opts.goal, opts.context)
+        .catch(err => {
+          log.error('Yin reviewer failed', { error: String(err) })
+          opts.store?.appendEvent(sessionId, 'helix:role:failed', 'yin', String(err))
+          opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'yin', error: String(err) } as any)
+          return buildErrorResult(err)
+        })
+        .finally(() => {
+          opts.store?.appendEvent(sessionId, 'helix:role:completed', 'yin', 'Yin completed')
+          opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'yin' } as any)
+          onActivity()
+        }),
+    ])
+
+
+    // ── Aggregate Results ────────────────────────────────────────────────
+
+    const unityResult = unitySettled.status === 'fulfilled' ? unitySettled.value : buildErrorResult(unitySettled.reason)
+    const yangResult = yangSettled.status === 'fulfilled' ? yangSettled.value : buildErrorResult(yangSettled.reason)
+    const yinResult = yinSettled.status === 'fulfilled' ? yinSettled.value : buildErrorResult(yinSettled.reason)
+
+    const pipelineStats = workStream.getStats()
+    const dialecticStats = dialecticChannel.getStats()
+    const convergencePoints = dialecticChannel.buildConvergencePoints()
+    const unresolvedChallenges = dialecticChannel.getUnresolvedChallenges('yang')
+      .concat(dialecticChannel.getUnresolvedChallenges('yin'))
+
+    const completionStatus: HelixCompletionStatus = {
+      complete: !cancelled,
+      unityStatus: unityResult.error ? 'errored' : 'completed',
+      yangStatus: yangResult.error ? 'errored' : 'completed',
+      yinStatus: yinResult.error ? 'errored' : 'completed',
+      degraded: !!(unityResult.error || yangResult.error || yinResult.error),
+    }
+
     const result: HelixResult = {
-      startTime,
-      sessionId,
+      unitySummary: unityResult.conclusion,
+      yangSummary: yangResult.conclusion,
+      yinSummary: yinResult.conclusion,
+
+      unityConclusion: unityResult.conclusion,
+      yangConclusion: yangResult.conclusion,
+      yinConclusion: yinResult.conclusion,
+
+      convergencePoints,
+      unresolvedTensions: unresolvedChallenges.map(c => ({
+        yangPosition: c.from === 'yang' ? c.counterargument : '',
+        yinPosition: c.from === 'yin' ? c.counterargument : '',
+        challengeChain: [c.id],
+      })),
 
       dialecticStats: {
         findings: dialecticStats.findings,
