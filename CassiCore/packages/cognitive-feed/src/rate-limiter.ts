@@ -60,6 +60,7 @@ export class RateLimiter {
   private backoffMs = 0
   private backoffUntil = 0
   private running = false
+  private draining = false
 
   // Observability — allows DeliveryBatcher to monitor rate-limiter state
   private _recent429Count = 0
@@ -200,13 +201,15 @@ export class RateLimiter {
 
 
   private async drain(): Promise<void> {
+    if (this.draining) return // Prevent concurrent drain — setInterval doesn't await
     if (this.queue.length === 0) return
 
     // Respect backoff
     if (Date.now() < this.backoffUntil) return
 
+    this.draining = true
     const msg = this.queue.shift()
-    if (!msg) return
+    if (!msg) { this.draining = false; return }
 
     try {
       const result = await this.sendFn(msg)
@@ -233,6 +236,8 @@ export class RateLimiter {
         this.backoffMs = Math.min(Math.max(this.backoffMs, 500) * 1.5, 5_000)
         this.backoffUntil = Date.now() + this.backoffMs
       }
+    } finally {
+      this.draining = false
     }
   }
 

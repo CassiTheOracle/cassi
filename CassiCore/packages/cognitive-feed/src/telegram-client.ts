@@ -110,6 +110,8 @@ export class TelegramClient {
       return json.result
     } catch (err) {
       clearTimeout(timer)
+      // Let rate-limit errors propagate — callers (RateLimiter) need them for backoff
+      if (err instanceof TelegramRateLimitError) throw err
       if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) {
         return null
       }
