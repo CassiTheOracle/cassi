@@ -257,7 +257,7 @@ export class SessionManager {
   ): Promise<void> {
     const session = await this.get(sessionId);
     if (!session) {
-      this.logger.warn('Cannot update context - session not found', { sessionId });
+      this.logger.debug('Cannot update context - session not found', { sessionId });
       return;
     }
     
