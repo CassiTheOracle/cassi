@@ -236,14 +236,18 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     if (silentMs > INACTIVITY_ESCALATE_MS && !inactivityEscalated) {
       inactivityEscalated = true
       log.warn('Helix pipeline inactivity escalation', { sessionId, silentMs })
-      workStream.sendNudge({
-        id: `inactivity-escalation-${Date.now()}`,
-        from: 'yin', to: 'yang',
-        severity: 'high',
-        content: 'URGENT: Pipeline inactive for 4+ minutes. If stuck, try a different approach. Wrap up current work.',
-        timestamp: Date.now(),
-        acknowledged: false,
-      }, 0)
+      try {
+        workStream.sendNudge({
+          id: `inactivity-escalation-${Date.now()}`,
+          from: 'yin', to: 'yang',
+          severity: 'high',
+          content: 'URGENT: Pipeline inactive for 4+ minutes. If stuck, try a different approach. Wrap up current work.',
+          timestamp: Date.now(),
+          acknowledged: false,
+        }, 0)
+      } catch (err) {
+        log.warn('Inactivity escalation nudge failed (cooldown)', { error: String(err) })
+      }
       opts.eventBus?.emit({ type: 'helix:inactivity:escalated' as any, sessionId, silentMs } as any)
       return
     }
