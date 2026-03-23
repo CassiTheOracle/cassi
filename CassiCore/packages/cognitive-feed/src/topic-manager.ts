@@ -77,6 +77,9 @@ export const TOPIC_DEFINITIONS: TopicDefinition[] = [
   // Shared workspaces
   { key: 'blackboard', displayName: 'Blackboard',     color: TOPIC_COLORS.GREEN,  description: 'Global & session blackboard updates',     category: 'ops' },
 
+  // Timeline
+  { key: 'timeStore',  displayName: 'TimeStore',      color: TOPIC_COLORS.BLUE,   description: 'Timeline store ingestion & retention',     category: 'ops' },
+
   // User-facing
   { key: 'sessions',   displayName: 'Sessions',       color: TOPIC_COLORS.YELLOW, description: 'User session lifecycle events',           category: 'user' },
 ]

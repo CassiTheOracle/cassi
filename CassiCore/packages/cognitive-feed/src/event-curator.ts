@@ -220,6 +220,10 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
 
   'blackboard:entry':          { topicKey: 'blackboard', highlight: false },
 
+  // Timeline store events
+  'timeline:retention':        { topicKey: 'timeStore', highlight: true, priority: 'medium' },
+  'timeline:stats':            { topicKey: 'timeStore', highlight: false, priority: 'low' },
+
   'team:cancelled':            { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
   'team:paused':               { topicKey: 'fluxTeam', highlight: false },
   'team:resumed':              { topicKey: 'fluxTeam', highlight: false },
@@ -262,6 +266,7 @@ const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
   { prefix: 'turn:',           rule: { topicKey: 'sessions', highlight: false, priority: 'low' } },
   { prefix: 'team:',           rule: { topicKey: 'fluxTeam', highlight: false } },
   { prefix: 'blackboard:',     rule: { topicKey: 'blackboard', highlight: false } },
+  { prefix: 'timeline:',       rule: { topicKey: 'timeStore', highlight: false } },
 ]
 
 // EventCurator

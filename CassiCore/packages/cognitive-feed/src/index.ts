@@ -72,6 +72,7 @@ export interface CognitiveFeedConfig {
     llmCalls: boolean
     blackboard: boolean
     sessions: boolean
+    timeStore: boolean
   }
   rateLimit: {
     messagesPerSecond: number
@@ -128,6 +129,7 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
     llmCalls: false, // Off by default — very noisy
     blackboard: true,
     sessions: true,
+    timeStore: true,
   },
   rateLimit: {
     messagesPerSecond: 20,
