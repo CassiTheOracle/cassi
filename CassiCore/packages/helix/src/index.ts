@@ -25,6 +25,92 @@ import type { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import { runHelixPipeline } from './helix-pipeline.js'
 
+function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): string {
+  const stats = ws.getStats()
+  const roleActivity = ws.getRoleActivity()
+  const unity = roleActivity.unity
+  const yang = roleActivity.yang
+  const yin = roleActivity.yin
+
+  const formatRoleStatus = (role: typeof unity) => {
+    if (role.concluded) return role.errored ? `ERRORED: ${role.errorMessage}` : 'COMPLETED'
+    return `ACTIVE (iteration ${role.iterationCount})`
+  }
+
+  const formatRecentTools = (calls: Array<{ name: string; isError: boolean }>) => {
+    if (calls.length === 0) return undefined
+    return calls.slice(-5).map(call => `\`${call.name}\`${call.isError ? ' [ERROR]' : ''}`).join(' -> ')
+  }
+
+  const lines: string[] = ['## Pipeline Status', '']
+
+  lines.push(`### Unity (Worker): ${formatRoleStatus(unity)}`)
+  lines.push(`- Iterations: ${unity.iterationCount} | Tool calls: ${unity.toolCallCount} | Tokens: ${unity.tokensUsed}`)
+  if (unity.lastToolName) {
+    const ago = Math.round((Date.now() - unity.lastToolTimestamp) / 1000)
+    lines.push(`- Last tool: \`${unity.lastToolName}\` (${ago}s ago)`)
+  }
+  const unityRecent = formatRecentTools(unity.recentToolCalls)
+  if (unityRecent) lines.push(`- Recent tools: ${unityRecent}`)
+  lines.push(`- Work units produced: ${stats.workUnits}`)
+  lines.push('')
+
+  lines.push(`### Yang (Reviewer): ${formatRoleStatus(yang)}`)
+  lines.push(`- Iterations: ${yang.iterationCount} | Tool calls: ${yang.toolCallCount} | Tokens: ${yang.tokensUsed}`)
+  if (yang.lastToolName) {
+    const ago = Math.round((Date.now() - yang.lastToolTimestamp) / 1000)
+    lines.push(`- Last tool: \`${yang.lastToolName}\` (${ago}s ago)`)
+  }
+  const yangRecent = formatRecentTools(yang.recentToolCalls)
+  if (yangRecent) lines.push(`- Recent tools: ${yangRecent}`)
+  lines.push('')
+
+  lines.push(`### Yin (Reviewer): ${formatRoleStatus(yin)}`)
+  lines.push(`- Iterations: ${yin.iterationCount} | Tool calls: ${yin.toolCallCount} | Tokens: ${yin.tokensUsed}`)
+  if (yin.lastToolName) {
+    const ago = Math.round((Date.now() - yin.lastToolTimestamp) / 1000)
+    lines.push(`- Last tool: \`${yin.lastToolName}\` (${ago}s ago)`)
+  }
+  const yinRecent = formatRecentTools(yin.recentToolCalls)
+  if (yinRecent) lines.push(`- Recent tools: ${yinRecent}`)
+  lines.push(`- Work units reviewed: ${stats.workUnitsReviewed}/${stats.workUnits}`)
+  lines.push('')
+
+  lines.push('### Work Stream')
+  lines.push(`- Work units: ${stats.workUnits} total, ${stats.workUnitsReviewed} reviewed, ${stats.workUnitsUnreviewed} unreviewed`)
+  lines.push(`- Nudges: ${stats.nudges.low} low, ${stats.nudges.high} high (${stats.nudges.acknowledged} acknowledged)`)
+  lines.push(`- Refinements: ${stats.refinements}`)
+  lines.push(`- Research injected: ${stats.research} | Guidance: ${stats.guidance}`)
+  lines.push('')
+
+  const recentWUs = ws.getAllWorkUnits().slice(-3)
+  if (recentWUs.length > 0) {
+    lines.push('### Recent Work Units')
+    for (const wu of recentWUs) {
+      lines.push(`- **${wu.id}** (iter ${wu.iteration ?? 0}): ${wu.reasoning?.slice(0, 150) ?? 'no reasoning'}`)
+    }
+    lines.push('')
+  }
+
+  const activeNudges = ws.getAllNudges().filter(n => !n.acknowledged)
+  if (activeNudges.length > 0) {
+    lines.push('### Active Nudges (unacknowledged)')
+    for (const nudge of activeNudges.slice(-5)) {
+      lines.push(`- [${nudge.severity}] ${nudge.content}`)
+    }
+    lines.push('')
+  }
+
+  const dialecticStats = dc?.getStats()
+  if (dialecticStats) {
+    lines.push('### Reviewer Dialectic')
+    lines.push(`- Findings: ${dialecticStats.findings} | Challenges: ${dialecticStats.challenges} | Concessions: ${dialecticStats.concessions}`)
+    lines.push(`- Investigation requests: ${dialecticStats.investigationRequests} | Executive injections: ${dialecticStats.executiveInjections}`)
+  }
+
+  return lines.join('\n')
+}
+
 
 export interface HelixOrchestrator {
   project(opts: HelixProjectOpts): Promise<HelixResult>
@@ -94,7 +180,7 @@ export function createHelix(
       const dc = activeDialecticChannels.get(sessionId)
       if (!ws) return undefined
       return {
-        markdown: ws.getRichProgress(),
+        markdown: buildHelixProgressMarkdown(ws, dc),
         data: {
           stats: ws.getStats(),
           dialecticStats: dc?.getStats() ?? { findings: 0, challenges: 0, concessions: 0, investigationRequests: 0, executiveInjections: 0 },

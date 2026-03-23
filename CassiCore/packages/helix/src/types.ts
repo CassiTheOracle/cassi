@@ -14,9 +14,11 @@
 
 import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
 import type { Blackboard } from '../flux-team/blackboard.js'
+import type { DyadRole } from '../dyad/types.js'
 
 
-export type HelixRole = 'unity' | 'yang' | 'yin'
+/** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers) */
+export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'>
 
 
 export interface HelixProjectOpts {

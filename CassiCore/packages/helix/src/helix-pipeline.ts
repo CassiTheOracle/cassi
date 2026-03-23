@@ -225,10 +225,13 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   const watchdogInterval = setInterval(() => {
     const silentMs = Date.now() - lastActivity
 
-    // Stage 3: Hard kill (6 min)
+    // Stage 3: Hard kill (6 min) — log once, cancel, stop the watchdog
     if (silentMs > INACTIVITY_KILL_MS) {
-      log.warn('Helix pipeline inactivity kill', { sessionId, silentMs })
-      cancelAll()
+      if (!cancelled) {
+        log.warn('Helix pipeline inactivity kill', { sessionId, silentMs })
+        cancelAll()
+      }
+      clearInterval(watchdogInterval)
       return
     }
 
@@ -239,7 +242,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       try {
         workStream.sendNudge({
           id: `inactivity-escalation-${Date.now()}`,
-          from: 'yin', to: 'yang',
+          from: 'apex', to: 'unity',
           severity: 'high',
           content: 'URGENT: Pipeline inactive for 4+ minutes. If stuck, try a different approach. Wrap up current work.',
           timestamp: Date.now(),
@@ -258,7 +261,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       log.info('Helix pipeline inactivity warning', { sessionId, silentMs })
       workStream.sendNudge({
         id: `inactivity-warn-${Date.now()}`,
-        from: 'yin', to: 'yang',
+        from: 'apex', to: 'unity',
         severity: 'low',
         content: 'Pipeline quiet for 2+ minutes. If working, continue. If stuck, try an alternative approach.',
         timestamp: Date.now(),
