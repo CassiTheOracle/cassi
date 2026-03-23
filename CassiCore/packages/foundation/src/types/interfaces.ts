@@ -156,6 +156,7 @@ export interface WiringDependencies {
   trustLedger?: unknown;
   injectionAggregator?: unknown;
   cognitiveBridge?: unknown;
+  globalBlackboardRegistry?: unknown;
   pipelineGetter?: () => unknown;
   repairProvider?: (prompt: string) => Promise<string>;
   introspectionSources?: {

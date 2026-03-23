@@ -44,6 +44,7 @@ import type { IProvider, Message, CompletionOpts } from '../../../types/runtime.
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
+import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js'
 
 // Re-export types for backward compatibility
 export type { ModuleModelConfig } from './model-config.js'
@@ -81,6 +82,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   protected modelDirective?: IModelDirective
   protected providerResolver?: (providerId: string) => IProvider | undefined
   protected moduleRegistry?: ModuleSessionRegistry
+  protected globalBlackboardRegistry?: GlobalBlackboardRegistry
 
   private _status: ModuleStatus = 'created'
   private _metrics: CognitiveModuleMetrics = {
@@ -189,6 +191,14 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   }
 
   /**
+   * Wire the GlobalBlackboardRegistry for posting to named global boards.
+   * Used by modules to publish findings, decisions, and artifacts.
+   */
+  setGlobalBlackboardRegistry(registry: GlobalBlackboardRegistry): void {
+    this.globalBlackboardRegistry = registry
+  }
+
+  /**
    * Wire multiple dependencies in one call.
    * Preferred over individual setX() methods.
    */
@@ -199,6 +209,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     if (deps.config) this.setConfig(deps.config)
     if (deps.toolRegistry) this.setToolRegistry(deps.toolRegistry as ToolRegistry)
     if (deps.toolExecutor) this.setToolExecutor(deps.toolExecutor as ToolExecutor)
+    if (deps.globalBlackboardRegistry) this.setGlobalBlackboardRegistry(deps.globalBlackboardRegistry as GlobalBlackboardRegistry)
   }
 
   /**
@@ -401,6 +412,29 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       return
     }
     this.eventBus.emit(event)
+  }
+
+  /**
+   * Post an entry to a named global board. Fire-and-forget — never throws.
+   * Modules use this to make their LLM outputs visible on the blackboard.
+   */
+  protected postToBoard(
+    boardName: string,
+    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests',
+    content: string,
+    opts?: { author?: string; tags?: string[]; priority?: number },
+  ): void {
+    try {
+      const board = this.globalBlackboardRegistry?.getOrCreate(boardName, { persist: true })
+      board?.post(channel, {
+        content,
+        author: opts?.author ?? this.name,
+        tags: opts?.tags ?? [],
+        priority: opts?.priority ?? 0,
+      })
+    } catch (err) {
+      this.logger.debug(`[${this.name}] Blackboard post failed (non-fatal)`, { error: String(err), boardName, channel })
+    }
   }
 
   // Subscription Helpers

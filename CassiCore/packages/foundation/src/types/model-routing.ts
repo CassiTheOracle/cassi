@@ -20,7 +20,7 @@ export interface ModelConfig {
 }
 
 /** Routing scope determines lifetime and priority of an override */
-export type RoutingScope = 'next' | 'next-job' | 'job' | 'default'
+export type RoutingScope = 'next' | 'next-job' | 'session' | 'job' | 'default'
 
 /**
  * Named tiers ranked by capability/cost.
@@ -70,11 +70,13 @@ export interface ModelDirectiveState {
   /** The effective routing after resolution */
   effective: ModelConfig
   /** What set the effective routing (includes slot qualifier if applicable) */
-  source: 'next' | 'next:slot' | 'next-job' | 'next-job:slot' | 'job:slot' | 'job' | 'default:slot' | 'default' | 'hardcoded'
+  source: 'next' | 'next:slot' | 'next-job' | 'next-job:slot' | 'job:slot' | 'job' | 'session:slot' | 'session' | 'default:slot' | 'default' | 'hardcoded'
   /** Current next-call override, if any */
   next: ModelConfig | null
   /** Pending next-job overrides (accumulated per-slot, consumed when next job starts) */
   nextJob: Record<string, ModelConfig> | null
+  /** Session-level overrides (apply to all jobs in the session, not consumed) */
+  session: Record<string, ModelConfig> | null
   /** Job override for the specified jobId, if any */
   job: ModelConfig | null
   /** Persistent default from config */
@@ -90,6 +92,7 @@ export interface IModelDirective {
    * Set routing at a given scope.
    * For scope="next", consumed after the next LLM operation.
    * For scope="next-job", accumulated per-slot and consumed when the next job starts.
+   * For scope="session", applies to ALL jobs started during this user session (not consumed).
    * For scope="job", scoped to a team/lumen session ID.
    * For scope="default", persisted in daemon config.
    *
@@ -100,7 +103,7 @@ export interface IModelDirective {
 
   /**
    * Resolve the effective routing.
-   * Priority: next:slot > next > job:slot > job > default:slot > default > hardcoded.
+   * Priority: next:slot > next > job:slot > job > session:slot > session > default:slot > default > hardcoded.
    *
    * @param jobId - Team or Lumen session ID for job-scoped resolution
    * @param slot - Dotted-hierarchy slot (e.g. "lumen.yang", "thinker")
@@ -115,6 +118,9 @@ export interface IModelDirective {
 
   /** Remove all job-scoped overrides for a job (called when a team completes/cancels) */
   clearJob(jobId: string): void
+
+  /** Remove all session-scoped overrides */
+  clearSession(): void
 
   /**
    * Consume next-job overrides by transferring them to job-scoped overrides.

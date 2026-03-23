@@ -592,6 +592,12 @@ export interface FluxCellResult {
   verification?: DeliverableVerification
   /** Incremental report produced by the dialectic session (if any) */
   report?: Report
+  /** Partial results captured when execution fails mid-stream (e.g., budget exhaustion) */
+  partialResults?: {
+    completedNodes: FluxNodeResult[]
+    blackboardSnapshot: BlackboardState
+    tokensConsumed: number
+  }
 }
 
 /**
