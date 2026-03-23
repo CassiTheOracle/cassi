@@ -1427,4 +1427,192 @@ export class Blackboard {
   private touch(): void {
     this.lastActivityAt = Date.now()
   }
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Summary & Filtering Methods
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get entries from a specific channel with optional limit.
+   * Used for targeted channel queries via API.
+   *
+   * @param channel - The channel to read from
+   * @param limit - Optional limit on number of entries (default: all)
+   * @returns Array of entries, newest first, sorted by priority DESC then timestamp DESC
+   */
+  getChannelEntries(channel: BlackboardChannel, limit?: number): BlackboardEntry[] {
+    return this.read(channel, limit)
+  }
+
+  /**
+   * Get a compact, human-readable summary of the blackboard state.
+   * Returns counts, latest entries (truncated), and key metrics.
+   *
+   * Used for MCP tools and API endpoints where full snapshots are too large.
+   *
+   * @returns Summary object with counts and sample entries
+   */
+  getSummary(): BlackboardSummary {
+    const channelCounts: Record<BlackboardChannel, number> = {
+      findings: this.channels.findings.length,
+      concerns: this.channels.concerns.length,
+      decisions: this.channels.decisions.length,
+      artifacts: this.channels.artifacts.length,
+      requests: this.channels.requests.length,
+    }
+
+    // Get latest 3 entries per channel with truncated content
+    const latestEntries: Record<BlackboardChannel, Array<{ id: string; author: string; content: string; timestamp: number; priority: number }>> = {
+      findings: [],
+      concerns: [],
+      decisions: [],
+      artifacts: [],
+      requests: [],
+    }
+
+    for (const channel of CHANNELS) {
+      const entries = this.read(channel, 3)
+      latestEntries[channel] = entries.map(e => ({
+        id: e.id,
+        author: e.author ?? 'unknown',
+        content: e.content.length > 200 ? e.content.slice(0, 200) + '...' : e.content,
+        timestamp: e.timestamp,
+        priority: e.priority,
+      }))
+    }
+
+    // Tool log summary
+    const toolLogCount = this.toolLog.length
+    const lastTools = this.toolLog.slice(-5).map(r => ({
+      tool: r.tool,
+      isError: r.isError,
+      durationMs: r.durationMs,
+    }))
+
+    // Scratchpad key listing
+    const scratchpadKeys = Array.from(this.scratchpad.keys()).map(key => {
+      const entry = this.scratchpad.get(key)
+      return {
+        key,
+        author: entry?.author ?? 'unknown',
+        hasValue: true,
+        sizeChars: entry?.value?.length ?? 0,
+      }
+    })
+
+    // Artifact listing (paths + operation, no content)
+    const artifactList = Array.from(this.artifacts.entries()).map(([path, entry]) => ({
+      path,
+      operation: entry.operation,
+    }))
+
+    // Plan summary
+    const planSummary = this.plan ? {
+      exists: true,
+      totalSteps: this.plan.steps.length,
+      completedSteps: this.plan.steps.filter(s => s.status === 'completed').length,
+      steps: this.plan.steps.map(s => ({
+        id: s.id,
+        title: s.title,
+        status: s.status,
+      })),
+    } : { exists: false }
+
+    // Report summary
+    const reportSummary = this.report ? {
+      exists: true,
+      totalSections: this.report.sections.length,
+      sections: this.report.sections.map(s => ({
+        id: s.id,
+        type: s.type,
+        title: s.title,
+        status: s.status,
+      })),
+    } : { exists: false }
+
+    // Child results count
+    const childResultsCount = this.childResults.size
+
+    // Estimate full snapshot size
+    const totalSizeEstimateKB = this.estimateSnapshotSizeKB()
+
+    return {
+      cellId: this.cellId,
+      createdAt: this.createdAt,
+      lastActivityAt: this.lastActivityAt,
+      channelCounts,
+      latestEntries,
+      toolLog: {
+        count: toolLogCount,
+        lastTools,
+      },
+      scratchpad: {
+        count: scratchpadKeys.length,
+        keys: scratchpadKeys,
+      },
+      artifacts: {
+        count: artifactList.length,
+        list: artifactList,
+      },
+      plan: planSummary,
+      report: reportSummary,
+      childResultsCount,
+      totalSizeEstimateKB,
+    }
+  }
+
+  /**
+   * Estimate the size of a full snapshot in kilobytes.
+   * Used to inform callers how large the full data would be.
+   */
+  private estimateSnapshotSizeKB(): number {
+    // Rough estimation based on JSON serialization
+    const snapshot = this.getSnapshot()
+    const jsonStr = JSON.stringify(snapshot)
+    return Math.ceil(jsonStr.length / 1024)
+  }
+}
+
+/**
+ * Summary type returned by Blackboard.getSummary().
+ * Compact representation for API responses.
+ */
+export interface BlackboardSummary {
+  cellId: string
+  createdAt: number
+  lastActivityAt: number
+  channelCounts: Record<BlackboardChannel, number>
+  latestEntries: Record<BlackboardChannel, Array<{
+    id: string
+    author: string
+    content: string
+    timestamp: number
+    priority: number
+  }>>
+  toolLog: {
+    count: number
+    lastTools: Array<{ tool: string; isError?: boolean; durationMs?: number }>
+  }
+  scratchpad: {
+    count: number
+    keys: Array<{ key: string; author: string; hasValue: boolean; sizeChars: number }>
+  }
+  artifacts: {
+    count: number
+    list: Array<{ path: string; operation: string }>
+  }
+  plan: {
+    exists: boolean
+    totalSteps?: number
+    completedSteps?: number
+    steps?: Array<{ id: string; title: string; status: string }>
+  }
+  report: {
+    exists: boolean
+    totalSections?: number
+    sections?: Array<{ id: string; type: string; title: string; status: string }>
+  }
+  childResultsCount: number
+  totalSizeEstimateKB: number
 }

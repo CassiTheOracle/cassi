@@ -17,7 +17,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { homedir } from 'node:os'
 import type { ILogger } from '../../../types/interfaces.js'
-import type { BlackboardState } from '../../../types/flux-team.js'
+import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
+import type { BlackboardSummary } from './blackboard.js'
 import { Blackboard } from './blackboard.js'
 
 
@@ -132,6 +133,24 @@ export class GlobalBlackboardRegistry {
     const entry = this.boards.get(name)
     if (!entry) return null
     return entry.blackboard.getSnapshot()
+  }
+
+  /**
+   * Get a compact summary of a named board.
+   */
+  getSummary(name: string): BlackboardSummary | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    return entry.blackboard.getSummary()
+  }
+
+  /**
+   * Get entries from a single channel of a named board, with optional limit.
+   */
+  getChannelEntries(name: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    return entry.blackboard.getChannelEntries(channel, limit)
   }
 
   /**
