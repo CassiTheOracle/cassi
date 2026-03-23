@@ -33,6 +33,7 @@ import type { Blackboard } from './blackboard.js'
 import { createHash } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { COMMIT_CHANGES_TOOL, handleCommitChanges } from '../shared-tools/commit-tool.js'
 
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 
@@ -744,6 +745,7 @@ export const BLACKBOARD_TOOL_NAMES = new Set([
   'bb_tool_log',
   ...REPORT_TOOL_NAMES,
   ...ALL_PLAN_TOOL_NAMES,
+  'commit_changes',
 ])
 
 /**
@@ -771,6 +773,7 @@ const BOARD_TOOLS_ALL: ToolSchema[] = [
   BB_TRACK_ARTIFACT_TOOL,
   BB_GET_ARTIFACTS_TOOL,
   BB_TOOL_LOG_TOOL,
+  COMMIT_CHANGES_TOOL,
 ]
 
 /** All report tools — available to all postures/roles */
@@ -910,6 +913,9 @@ export function handleBlackboardToolCall(
     if (name === 'plan_claim_step') return handlePlanClaimStep(blackboard, input, posture)
     if (name === 'plan_release_step') return handlePlanReleaseStep(blackboard, input, posture)
     if (name === 'plan_report_progress') return handlePlanReportProgress(blackboard, input, posture)
+
+    // Commit tool (shared)
+    if (name === 'commit_changes') return handleCommitChanges(input)
 
     return JSON.stringify({ error: `Unknown Blackboard tool: ${name}` })
   } catch (err) {
