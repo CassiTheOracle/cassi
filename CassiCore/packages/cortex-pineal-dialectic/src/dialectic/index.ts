@@ -27,6 +27,8 @@ import type { IMemory } from '../../../types/intelligence.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { ModuleSessionRegistry } from '../module-session-registry.js';
+import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js';
+import type { BlackboardChannel } from '../../../types/flux-team.js';
 
 
 
@@ -137,6 +139,7 @@ export class DialecticSystem implements IDialecticSystem {
   private memory?: IMemory;
   private provider?: IProvider;
   private moduleRegistry?: ModuleSessionRegistry;
+  private globalBlackboardRegistry?: GlobalBlackboardRegistry;
 
   private consolidatedProcessor: ConsolidatedDialecticProcessor;
   private promptOptimizer?: PromptOptimizer;
@@ -279,6 +282,32 @@ export class DialecticSystem implements IDialecticSystem {
     this.memory = memory;
     this.consolidatedProcessor.setMemory(memory);
     this.logger.info('DialecticSystem: memory wired');
+  }
+
+  /** Wire the GlobalBlackboardRegistry for posting to named global boards. */
+  setGlobalBlackboardRegistry(registry: GlobalBlackboardRegistry): void {
+    this.globalBlackboardRegistry = registry;
+    this.logger.info('DialecticSystem: global blackboard registry wired');
+  }
+
+  /** Post an entry to a named global board. Fire-and-forget — never throws. */
+  private postToBoard(
+    boardName: string,
+    channel: BlackboardChannel,
+    content: string,
+    opts?: { author?: string; tags?: string[]; priority?: number },
+  ): void {
+    try {
+      const board = this.globalBlackboardRegistry?.getOrCreate(boardName, { persist: true });
+      board?.post(channel, {
+        content,
+        author: opts?.author ?? this.name,
+        tags: opts?.tags ?? [],
+        priority: opts?.priority ?? 0,
+      });
+    } catch (err) {
+      this.logger.debug('DialecticSystem: blackboard post failed (non-fatal)', { error: String(err), boardName, channel });
+    }
   }
 
   /**
@@ -501,6 +530,31 @@ export class DialecticSystem implements IDialecticSystem {
       // not just 'immediate' urgency. The dialectic should enrich almost every response.
       if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal) {
         this.emitSignal(sessionId, turnId, result.serenity.synthesis.signal, result.requestId);
+      }
+
+      // Post synthesis to global blackboard for cross-session visibility
+      this.postToBoard('system:dialectic', 'findings', JSON.stringify({
+        sessionId,
+        turnId,
+        synthesis: result.serenity.synthesis,
+        hasSignal: result.serenity.synthesis.hasSignal,
+        timestamp: result.timestamp,
+      }), { tags: ['synthesis'] });
+
+      // Post unresolved tensions/concerns
+      if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal) {
+        const signal = result.serenity.synthesis.signal;
+        if (signal.type === 'tension' || signal.type === 'gap' || signal.type === 'edge_case') {
+          this.postToBoard('system:dialectic', 'concerns', JSON.stringify({
+            sessionId,
+            turnId,
+            signalType: signal.type,
+            content: signal.content,
+            confidence: signal.confidence,
+            urgency: signal.urgency,
+            timestamp: result.timestamp,
+          }), { tags: ['tension', signal.type] });
+        }
       }
 
       return result;
