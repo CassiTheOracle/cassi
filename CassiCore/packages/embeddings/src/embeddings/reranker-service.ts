@@ -39,7 +39,7 @@ export class RerankerService {
   private logger: ILogger
   private serverUrl: string
   private timeoutMs: number
-  private cb = { failures: 0, openUntil: 0 }
+  private cb = { failures: 0, openUntil: 0, trippedLogged: false }
 
   constructor(logger: ILogger) {
     this.logger = logger.child?.('reranker-service') ?? logger
@@ -63,7 +63,7 @@ export class RerankerService {
     const launcher = getInferenceStackLauncher()
     if (launcher) {
       const restarted = await launcher.ensureRunning(MANAGED_RERANKER)
-      if (restarted) this.cb = { failures: 0, openUntil: 0 }
+      if (restarted) this.cb = { failures: 0, openUntil: 0, trippedLogged: false }
     }
 
     // Circuit breaker check
@@ -103,6 +103,7 @@ export class RerankerService {
 
       // Reset circuit breaker on success
       this.cb.failures = 0
+      this.cb.trippedLogged = false
       if (launcher) launcher.notifyActivity(MANAGED_RERANKER)
 
       return data.results.map(r => ({
@@ -114,9 +115,12 @@ export class RerankerService {
       this.cb.failures++
       if (this.cb.failures >= CB_MAX_FAILURES) {
         this.cb.openUntil = Date.now() + CB_COOLDOWN_MS
-        this.logger.warn('RerankerService: circuit breaker TRIPPED', {
-          failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
-        })
+        if (!this.cb.trippedLogged) {
+          this.logger.warn('RerankerService: circuit breaker TRIPPED', {
+            failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
+          })
+          this.cb.trippedLogged = true
+        }
         this.cb.failures = 0
       }
       this.logger.debug('RerankerService: request failed', { error: String(err) })

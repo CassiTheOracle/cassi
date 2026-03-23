@@ -59,7 +59,7 @@ export class EmbeddingService {
   private dirty = false
   private noPersist: boolean
 
-  private cb = { failures: 0, openUntil: 0 }
+  private cb = { failures: 0, openUntil: 0, trippedLogged: false }
 
   constructor(logger: ILogger, config?: EmbeddingServiceConfig) {
     this.logger = logger.child?.('embedding-service') ?? logger
@@ -196,7 +196,7 @@ export class EmbeddingService {
     const launcher = getInferenceStackLauncher()
     if (launcher) {
       const restarted = await launcher.ensureRunning(MANAGED_EMBEDDING)
-      if (restarted) this.cb = { failures: 0, openUntil: 0 }
+      if (restarted) this.cb = { failures: 0, openUntil: 0, trippedLogged: false }
     }
 
     // Circuit breaker check
@@ -234,6 +234,7 @@ export class EmbeddingService {
 
       if (res.ok) {
         this.cb.failures = 0
+        this.cb.trippedLogged = false
         if (launcher) launcher.notifyActivity(MANAGED_EMBEDDING)
         const data = await res.json() as any
         if (Array.isArray(data?.data)) {
@@ -242,14 +243,17 @@ export class EmbeddingService {
         }
       }
       // Non-200 response — log and fall through to sequential
-      this.logger.warn('EmbeddingService: batch request returned non-OK', { status: res.status })
+      this.logger.debug('EmbeddingService: batch request returned non-OK', { status: res.status })
     } catch (err) {
       this.cb.failures++
       if (this.cb.failures >= CB_MAX_FAILURES) {
         this.cb.openUntil = Date.now() + CB_COOLDOWN_MS
-        this.logger.warn('EmbeddingService: circuit breaker TRIPPED', {
-          failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
-        })
+        if (!this.cb.trippedLogged) {
+          this.logger.warn('EmbeddingService: circuit breaker TRIPPED', {
+            failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
+          })
+          this.cb.trippedLogged = true
+        }
         this.cb.failures = 0
       }
       this.logger.debug('EmbeddingService: batch request failed', { error: String(err) })
