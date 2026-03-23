@@ -82,7 +82,6 @@ export interface FluxRunConfig {
   budget?: {
     maxTokens?: number;
     maxIterations?: number;
-    timeoutMs?: number;
     maxCells?: number;
   };
   /** @deprecated Use model_directive tool to set routing before creating teams. */
@@ -152,7 +151,6 @@ export const FLUX_TOOLS = [
           properties: {
             maxTokens: { type: 'number' },
             maxIterations: { type: 'number' },
-            timeoutMs: { type: 'number' },
             maxCells: { type: 'number' },
           },
         },
@@ -222,7 +220,6 @@ export const FLUX_TOOLS = [
           properties: {
             maxTokens: { type: 'number' },
             maxIterations: { type: 'number' },
-            timeoutMs: { type: 'number' },
             maxCells: { type: 'number' },
           },
         },

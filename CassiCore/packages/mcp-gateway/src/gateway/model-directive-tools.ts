@@ -5,6 +5,7 @@
  * is used for LLM operations (Lumen, Teams, etc.) with layered scopes:
  *   - next: one-shot, consumed after the next operation
  *   - next-job: accumulated per-slot, consumed when the next Lumen/Dyad/Team job starts
+ *   - session: applies to ALL jobs launched from this session (not consumed)
  *   - job: scoped to a team/lumen session ID
  *   - default: persisted across restarts
  *
@@ -23,6 +24,7 @@ export const MODEL_DIRECTIVE_TOOLS = [
 Instead of specifying provider/model on each tool call, use this tool to set the model routing at a scope level:
 - scope="next": one-shot override, consumed after the next LLM operation
 - scope="next-job": accumulated per-slot, automatically consumed when the next Lumen/Dyad/Team starts. Set models BEFORE launching the job — no race condition, correct from iteration 1.
+- scope="session": applies to ALL jobs launched during this session. Not consumed — set once, applies to every Lumen/Dyad/Team until cleared.
 - scope="job": scoped to a specific team or Lumen session ID
 - scope="default": persisted as the new default across restarts
 
@@ -48,8 +50,8 @@ Use action="clear" to remove an override at a scope.`,
         },
         scope: {
           type: 'string',
-          enum: ['next', 'next-job', 'job', 'default'],
-          description: 'Override scope: "next" (one-shot), "next-job" (pre-seed models for next Lumen/Dyad/Team — consumed at job start), "job" (team/lumen session), "default" (persistent)',
+          enum: ['next', 'next-job', 'session', 'job', 'default'],
+          description: 'Override scope: "next" (one-shot), "next-job" (pre-seed models for next Lumen/Dyad/Team — consumed at job start), "session" (applies to ALL jobs in this session — not consumed), "job" (team/lumen session), "default" (persistent)',
         },
         tier: {
           type: 'string',

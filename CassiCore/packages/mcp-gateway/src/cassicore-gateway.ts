@@ -70,13 +70,16 @@ import {
   SESSION_TOOL_NAMES,
   ADMIN_API_TOOL_NAMES,
   FLUX_TOOL_NAMES,
-  // Dyad / Lumen
+  // Dyad / Lumen / Helix
   getDyadTools,
   getLumenTools,
+  getHelixTools,
   executeDyadTool,
   executeLumenTool,
+  executeHelixTool,
   DYAD_TOOL_NAMES,
   LUMEN_TOOL_NAMES,
+  HELIX_TOOL_NAMES,
   // Model Directive
   getModelDirectiveTools,
   executeModelDirectiveTool,
@@ -203,6 +206,7 @@ function getAllTools() {
     ...getAdminApiTools(),
     ...getDyadTools(),
     ...getLumenTools(),
+    ...getHelixTools(),
     ...getModelDirectiveTools(),
     ...getDoTools(),
     ...getBlackboardMcpTools(),
@@ -299,6 +303,13 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
     if (LUMEN_TOOL_NAMES.has(name)) {
       const result = await executeLumenTool(CASSICORE_URL, name, args, logger, heartbeat);
       if (name === 'lumen_watch') return result;
+      return formatJsonResponse(result);
+    }
+
+    // Helix tools — helix_watch returns MCP format directly; others return JSON
+    if (HELIX_TOOL_NAMES.has(name)) {
+      const result = await executeHelixTool(CASSICORE_URL, name, args, logger, heartbeat);
+      if (name === 'helix_watch') return result;
       return formatJsonResponse(result);
     }
 

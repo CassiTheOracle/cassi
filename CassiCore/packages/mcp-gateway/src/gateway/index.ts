@@ -105,6 +105,14 @@ export {
   getLumenTools,
 } from './lumen-tools.js';
 
+// Helix Tools
+export {
+  HELIX_TOOLS,
+  HELIX_TOOL_NAMES,
+  executeHelixTool,
+  getHelixTools,
+} from './helix-tools.js';
+
 // Model Directive Tools
 export {
   MODEL_DIRECTIVE_TOOLS,
