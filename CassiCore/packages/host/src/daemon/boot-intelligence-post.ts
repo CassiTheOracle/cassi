@@ -216,6 +216,9 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     if (typeof intelligence.dyad.setModuleRegistry === 'function') {
       intelligence.dyad.setModuleRegistry(moduleRegistry)
     }
+    if (typeof intelligence.helix?.setModuleRegistry === 'function') {
+      intelligence.helix.setModuleRegistry(moduleRegistry)
+    }
     if (typeof (intelligence as any).droneSwarm?.setModuleRegistry === 'function') {
       ;(intelligence as any).droneSwarm.setModuleRegistry(moduleRegistry)
     }
