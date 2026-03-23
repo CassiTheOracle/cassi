@@ -72,7 +72,7 @@ export interface ToolExecutionContext {
   /** Auto-resolved artifact namespace for this session (e.g., 'dyad:{id}', 'team:{id}') */
   artifactNamespace?: string;
   /** Session type hint for smart defaults */
-  sessionType?: 'dyad' | 'lumen' | 'flux' | 'standalone';
+  sessionType?: 'dyad' | 'lumen' | 'flux' | 'helix' | 'standalone';
   /** Team ID for team-scoped file sharing */
   teamId?: string;
 }
