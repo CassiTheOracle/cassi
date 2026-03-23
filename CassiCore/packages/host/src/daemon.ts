@@ -2,18 +2,17 @@ import { EventBus, bus } from "./event-bus.js"
 import { Logger, rootLogger } from "./logger.js"
 import { Config } from "./config.js"
 import { createLayeredConfig } from "./runtime-config.js"
+import { getBuildIdentifier, formatBuildId, type BuildIdentifier } from "./build-id.js"
 
 import fs from "node:fs"
 import { homedir } from "node:os"
 import path, { join } from "node:path"
 import { fileURLToPath } from "node:url"
 
-// Read version from package.json at module load time so it stays in sync
-const _pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json')
-export const CASSICORE_VERSION: string = (() => {
-  try { return JSON.parse(fs.readFileSync(_pkgPath, 'utf8')).version ?? 'unknown' }
-  catch { return 'unknown' }
-})()
+const _BUILD = getBuildIdentifier()
+export const CASSICORE_VERSION: string = _BUILD.version
+export const CASSICORE_BUILD: BuildIdentifier = _BUILD
+export const CASSICORE_BUILD_STRING: string = formatBuildId(_BUILD)
 
 import { createAdminApi } from './admin-api.js'
 import { createBridge } from './bridge.js'
@@ -33,6 +32,7 @@ import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
 import { HealthMonitor } from './health-monitor.js'
 import { createIntelligence } from "./intelligence/index.js"
 import { createOutcomeTracker, type OutcomeTracker } from './intelligence/outcome-tracker.js'
+import { GlobalBlackboardRegistry } from './intelligence/flux-team/global-blackboard-registry.js'
 import { MCPRegistry } from './mcp/registry.js'
 import { createOrchestrationBus } from './orchestration-bus.js'
 import { PluginHost } from "./plugin-host.js"
@@ -198,6 +198,8 @@ export class Daemon {
   public providers: Map<string, IProvider> = new Map()
   /** Prompt log store — persistent SQLite storage of every prompt sent to providers. */
   public promptLogStore?: import('./prompt-log-store.js').PromptLogStore
+  /** Timeline store — unified chronological view of all system data. */
+  public timelineStore?: import('./timeline-store.js').TimelineStore
   public contextDistiller?: import('./intelligence/context-distiller.js').ContextDistiller
   /** Background intelligence loop — available after daemon start(). */
   public unifiedLoop?: import('./intelligence/unified-loop.js').UnifiedIntelligenceLoop
@@ -216,6 +218,8 @@ export class Daemon {
   private dyadModelPool?: import('./model-pool/index.js').ModelPool
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
+  /** Global Blackboard Registry — shared singleton for daemon-scoped modules. */
+  public globalBlackboardRegistry?: GlobalBlackboardRegistry
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
   private bootSequence = 0
@@ -228,6 +232,9 @@ export class Daemon {
   constructor(busInstance: IEventBus = bus, logger: ILogger = rootLogger) {
     this.bus = busInstance
     this.logger = logger.child('daemon')
+    if (CASSICORE_VERSION === 'unknown') {
+      this.logger.warn('Could not determine CassiCore version from package.json')
+    }
     // create orchestration bus and attach
     try {
       this.orchestration = createOrchestrationBus(this.logger.child('orchestration'))
@@ -518,6 +525,18 @@ export class Daemon {
     // Initialize intelligence layer before loading plugins
     try {
       this.intelligence = createIntelligence(this.logger, this.config, this.bus)
+
+      // Create shared GlobalBlackboardRegistry for daemon-scoped modules
+      this.globalBlackboardRegistry = new GlobalBlackboardRegistry(this.logger.child('global-blackboard-registry'))
+
+      // Wire blackboard registry to all modules that extend BaseCognitiveModule
+      if (this.globalBlackboardRegistry) {
+        for (const mod of Object.values(this.intelligence)) {
+          if (mod && typeof (mod as any).setGlobalBlackboardRegistry === 'function') {
+            (mod as any).setGlobalBlackboardRegistry(this.globalBlackboardRegistry)
+          }
+        }
+      }
 
       // Wire modules to event bus
       const bus = this.bus
@@ -1256,6 +1275,40 @@ export class Daemon {
       this.logger.warn('Failed to initialize prompt log store', { error: String(err) })
     }
 
+    // Initialize Timeline Store — unified chronological view of all system data
+    try {
+      const { TimelineStore } = await import('./timeline-store.js')
+      const timelineDbPath = join(
+        String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data')),
+        'timeline.db',
+      )
+      const timelineStore = new TimelineStore(timelineDbPath, this.logger)
+      this.timelineStore = timelineStore
+
+      // Wire event bus → timeline ingestion (onAll captures every event)
+      const unsub = bus.onAll((event) => {
+        timelineStore.ingest(event as unknown as Record<string, unknown>)
+      })
+
+      // Store the unsubscribe for cleanup (attach to store for access)
+      ;(timelineStore as any)._busUnsub = unsub
+
+      // Emit retention events to the bus (picked up by cognitive feed TimeStore topic)
+      timelineStore.onRetention = (deleted) => {
+        const stats = timelineStore.getStats()
+        bus.emit({
+          type: 'system:event' as any,
+          timestamp: new Date(),
+          sessionId: 'timeline',
+          message: `Timeline retention: deleted ${deleted} entries. Total: ${stats.totalEntries}, DB: ${(stats.dbSizeBytes / 1024 / 1024).toFixed(1)}MB`,
+        })
+      }
+
+      this.logger.info('Timeline store initialized — all events will be captured chronologically')
+    } catch (err) {
+      this.logger.warn('Failed to initialize timeline store', { error: String(err) })
+    }
+
     // Wire provider map into Multi-Agent Coordinator so providerId hints can be resolved
     interface MultiAgentWithProviders {
       setProviders?(providers: Map<string, IProvider>): void
@@ -1446,7 +1499,7 @@ export class Daemon {
         const dyadModelPool = new DyadModelPool({
           logger: this.logger.child('dyad-pool'),
           eventBus: this.bus,
-          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex')],
+          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex'), makeDyadChain('unity'), makeDyadChain('helix')],
           budgetScopes: [],
           defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
           auditEnabled: false,
@@ -1463,6 +1516,22 @@ export class Daemon {
         }
 
         this.logger.info('Dyad ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model, blockedProviders: dyadBlockedProviders })
+
+        // Wire Helix ModelPool — reuse the Dyad pool (shared fallback chains)
+        if (this.intelligence?.helix) {
+          try {
+            this.intelligence.helix.setModelPool(dyadModelPool)
+
+            // Wire ModelDirective so Helix can resolve job-scoped overrides at runtime
+            if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
+              (this.intelligence.helix as any).setModelDirective(directive)
+            }
+
+            this.logger.info('Helix ModelPool wired (shared with Dyad)', { provider: defaultRouting.provider, model: defaultRouting.model })
+          } catch (helixErr) {
+            this.logger.warn('Failed to wire Helix ModelPool — Helix will not be available', { error: String(helixErr) })
+          }
+        }
       } catch (err) {
         this.logger.warn('Failed to wire Dyad ModelPool — Dyad will not be available via API', { error: String(err) })
       }
@@ -1915,6 +1984,38 @@ export class Daemon {
           }
         }
 
+        // Wire Helix tools, store, and context distiller
+        if (this.intelligence?.helix) {
+          try {
+            this.intelligence.helix.setToolRegistry(toolRegistry)
+            this.intelligence.helix.setToolExecutor(toolExecutor)
+
+            // Wire DyadStore for Helix session persistence (shares DB with Dyad)
+            try {
+              const { DyadStore } = await import('./intelligence/dyad/dyad-store.js')
+              const helixStore = DyadStore.open(this.logger.child('helix-store'))
+              this.intelligence.helix.setStore(helixStore)
+              this.logger.info('Helix DyadStore wired (SQLite persistence)')
+            } catch (storeErr) {
+              this.logger.warn('Helix DyadStore failed to initialize — running without persistence', {
+                error: String(storeErr),
+              })
+            }
+
+            // Wire ContextDistiller for Phase Zero context injection
+            if (this.contextDistiller) {
+              this.intelligence.helix.setContextDistiller(this.contextDistiller)
+              this.logger.info('Helix ContextDistiller wired for Phase Zero')
+            }
+
+            this.logger.info('Helix tool access wired')
+          } catch (helixErr) {
+            this.logger.warn('Failed to wire Helix tools — Helix will not be available', {
+              error: String(helixErr),
+            })
+          }
+        }
+
         // Wire Training Warehouse tagger adapter.
         // Uses the background tier (gpt-4o) for batch tagging operations since
         // it is unlimited and tagging is non-interactive background work.
@@ -2063,7 +2164,8 @@ export class Daemon {
 
     // Wire intelligent context window (scores + selects history by recency + FTS relevance)
     try {
-      const archivist = (this.intelligence?.memory as any)?.archivist
+      const memory = this.intelligence?.memory
+      const archivist = memory?.getArchivist?.()
       if (archivist?.sessionIndexer) {
         const icw = new IntelligentContextWindow(archivist.sessionIndexer, this.logger)
         this.pipeline.setContextWindow(icw.asMiddleware())
@@ -2918,6 +3020,15 @@ export class Daemon {
     // Close prompt log store
     try {
       this.promptLogStore?.close()
+    } catch { /* ignore */ }
+    // Close timeline store
+    try {
+      if (this.timelineStore) {
+        // Unsubscribe from event bus
+        const unsub = (this.timelineStore as any)._busUnsub
+        if (typeof unsub === 'function') unsub()
+        this.timelineStore.close()
+      }
     } catch { /* ignore */ }
     try {
       this.intelligence?.training?.close()
