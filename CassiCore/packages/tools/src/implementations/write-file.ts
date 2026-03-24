@@ -65,6 +65,7 @@ function mirrorToArtifactStore(
       sessionId: ctx.sessionId,
       agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
       message: `write_file: ${relPath}`,
+      visibility: 'public',  // workspace mirrors are always accessible
       tags: ['workspace-mirror', ctx.sessionType ?? 'unknown'].filter(Boolean),
     })
   } catch (err) {
