@@ -9,7 +9,7 @@ import type { ILogger } from '../../types/interfaces.js'
 
 
 const SIGNIFICANT_HELIX_EVENTS = new Set([
-  'helix:complete',
+  'helix:completed',
   'helix:failed',
   'helix:posture:concluded',
   'helix:persisted',

@@ -210,3 +210,91 @@ export function isFullSnapshot(obj: unknown): boolean {
   const s = obj as Record<string, unknown>
   return 'channels' in s && typeof s.channels === 'object'
 }
+
+
+// ── Pagination Metadata Formatting ──
+
+/**
+ * Format pagination metadata as a compact footer for paginated results.
+ * Appends to the existing formatted output.
+ */
+export function formatPaginationFooter(result: {
+  total?: number
+  hasMore?: boolean
+  cursor?: string
+  pageSize?: number
+}): string {
+  const lines: string[] = []
+  if (result.total !== undefined || result.hasMore !== undefined) {
+    lines.push('')
+    lines.push('---')
+    const parts: string[] = []
+    if (result.pageSize !== undefined && result.total !== undefined) {
+      parts.push(`Showing ${result.pageSize} of ${result.total}`)
+    }
+    if (result.hasMore) {
+      parts.push('more available')
+    }
+    if (parts.length > 0) {
+      lines.push(`_${parts.join(' · ')}_`)
+    }
+    if (result.cursor) {
+      lines.push(`**Next cursor:** \`${result.cursor}\``)
+    }
+  }
+  return lines.join('\n')
+}
+
+/**
+ * Format cross-board search results as readable markdown.
+ */
+export function formatCrossBoardSearchResult(result: {
+  boards: Record<string, { items: Array<{ board: string; item: Record<string, unknown>; matchedFields?: string[] }>; total: number; hasMore: boolean; cursor?: string }>
+  totalMatches: number
+  rankedBoards: Array<{ board: string; count: number }>
+  cursor?: string
+}): string {
+  const lines: string[] = []
+
+  lines.push(`## Search Results (${result.totalMatches} total matches)`)
+  lines.push('')
+
+  if (result.rankedBoards.length === 0) {
+    lines.push('_No matches found._')
+    return lines.join('\n')
+  }
+
+  // Ranked boards summary
+  lines.push('**Matches by board:** ' + result.rankedBoards.map(b => `${b.board} (${b.count})`).join(', '))
+  lines.push('')
+
+  // Per-board results
+  for (const [boardName, boardResult] of Object.entries(result.boards)) {
+    if (!boardResult || boardResult.items.length === 0) continue
+
+    lines.push(`### ${boardName} (${boardResult.total} matches)`)
+
+    for (const item of boardResult.items) {
+      const raw = item.item as Record<string, unknown>
+      const fields = item.matchedFields?.length ? ` [matched: ${item.matchedFields.join(', ')}]` : ''
+
+      // Format based on board type
+      const label = String(raw.id ?? raw.key ?? raw.path ?? raw.tool ?? 'item').slice(0, 30)
+      const author = raw.author ? ` by ${raw.author}` : ''
+      lines.push(`- **${label}**${author}${fields}`)
+    }
+
+    if (boardResult.hasMore) {
+      lines.push(`  _... and ${boardResult.total - boardResult.items.length} more_`)
+    }
+    lines.push('')
+  }
+
+  // Composite cursor
+  if (result.cursor) {
+    lines.push('---')
+    lines.push(`**Next cursor:** \`${result.cursor}\``)
+  }
+
+  return lines.join('\n')
+}
