@@ -17,7 +17,7 @@ import type { ModelPool } from '../../model-pool/index.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixProjectOpts, HelixResult } from './types.js'
-import type { DyadStore } from '../dyad/dyad-store.js'
+import type { HelixStore } from './helix-store.js'
 import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
 import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from '../dyad/work-stream.js'
@@ -123,7 +123,7 @@ export interface HelixOrchestrator {
   setModelPool(modelPool: ModelPool): void
   setToolRegistry(registry: ToolRegistry): void
   setToolExecutor(executor: ToolExecutor): void
-  setStore(store: DyadStore): void
+  setStore(store: HelixStore): void
   setModelDirective(directive: IModelDirective): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
@@ -142,7 +142,7 @@ export function createHelix(
   let storedEventBus: IEventBus | undefined = eventBus
   let storedToolRegistry: ToolRegistry | undefined
   let storedToolExecutor: ToolExecutor | undefined
-  let storedStore: DyadStore | undefined
+  let storedStore: HelixStore | undefined
   let storedModelDirective: IModelDirective | undefined
   let storedContextDistiller: ContextDistiller | undefined
   let storedModuleDebugSessionId: string | undefined
@@ -194,8 +194,8 @@ export function createHelix(
             processed: wu.processed,
           })),
           activeNudges: ws.getAllNudges().filter(n => !n.acknowledged),
-          // Note: isYangDone() checks if the primary worker (Unity) signaled done — method name is legacy from Dyad
-          unityDone: ws.isYangDone(),
+          // isWorkerDone() checks if the primary worker (Unity) signaled done
+          unityDone: ws.isWorkerDone(),
         },
       }
     },
@@ -212,7 +212,7 @@ export function createHelix(
       storedToolExecutor = executor
     },
 
-    setStore(store: DyadStore): void {
+    setStore(store: HelixStore): void {
       storedStore = store
     },
 

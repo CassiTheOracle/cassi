@@ -19,7 +19,7 @@ import type { IModelDirective, ModelConfig } from '../../../types/model-routing.
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { PlanHandler } from '../flux-team/plan-handler.js'
-import type { DyadStore } from '../dyad/dyad-store.js'
+import type { HelixStore } from './helix-store.js'
 import { Blackboard } from '../flux-team/blackboard.js'
 import { WorkStream } from '../dyad/work-stream.js'
 import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
@@ -57,7 +57,7 @@ export interface HelixPipelineOpts {
   // Infrastructure
   toolExecutor?: ToolExecutor
   toolRegistry?: ToolRegistry
-  store?: DyadStore
+  store?: HelixStore
   eventBus?: IEventBus
   planHandler?: PlanHandler
   blackboard?: Blackboard
@@ -410,6 +410,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
     // Persist
     opts.store?.completeSession(sessionId, result as any)
+    opts.store?.saveWorkStreamMessages(sessionId, workStream.getFullLog())
     opts.store?.appendEvent(sessionId, 'helix:completed', 'session', 'Pipeline completed')
     opts.eventBus?.emit({
       type: 'team:event' as any,
