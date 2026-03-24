@@ -12,12 +12,68 @@
 
 import { createWriteStream } from 'node:fs'
 import { writeFile, mkdir, rename, unlink } from 'node:fs/promises'
-import { resolve, dirname, basename, join } from 'node:path'
+import { resolve, dirname, basename, join, relative } from 'node:path'
+import { execFile } from 'node:child_process'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
+
+// ── Git staging helper ──────────────────────────────────────────────────────
+
+/**
+ * Stage a file with `git add`. Fire-and-forget — failures are logged but
+ * never propagate to the caller.  This makes every agent file-write
+ * recoverable via `git checkout -- <file>`.
+ */
+function gitStage(absPath: string, workingDir: string, logger: ToolExecutionContext['logger']): void {
+  try {
+    execFile('git', ['add', '--', absPath], { cwd: workingDir, timeout: 5_000 }, (err) => {
+      if (err) {
+        logger.debug?.('[write_file] git-add failed (non-fatal)', { path: absPath, error: String(err) })
+      }
+    })
+  } catch {
+    // execFile itself threw — git not available, etc.  Silently ignore.
+  }
+}
+
+/**
+ * Mirror a filesystem write into the FileArtifactStore under the `workspace:`
+ * namespace.  This provides attribution (who wrote what, when) and version
+ * history for every agent file-write.  Fire-and-forget — failures are logged
+ * but never block the write.
+ */
+function mirrorToArtifactStore(
+  absPath: string,
+  content: string,
+  ctx: ToolExecutionContext,
+): void {
+  const store = ctx._fileArtifactStore
+  if (!store) return
+
+  const relPath = relative(ctx.workingDir, absPath)
+  // Skip files outside the workspace (shouldn't happen but be safe)
+  if (relPath.startsWith('..')) return
+
+  try {
+    store.write({
+      namespace: 'workspace',
+      path: relPath,
+      content,
+      sessionId: ctx.sessionId,
+      agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
+      message: `write_file: ${relPath}`,
+      tags: ['workspace-mirror', ctx.sessionType ?? 'unknown'].filter(Boolean),
+    })
+  } catch (err) {
+    ctx.logger.debug?.('[write_file] artifact-store mirror failed (non-fatal)', {
+      path: relPath,
+      error: String(err),
+    })
+  }
+}
 
 // Constants
 
@@ -223,6 +279,12 @@ export const writeFileHandler: ToolHandler = async (
       method: result.method,
       duration: `${result.durationMs}ms`
     })
+
+    // ── Post-write: attribution + recovery ──
+    // Mirror into FileArtifactStore (attribution, version history, recovery)
+    mirrorToArtifactStore(absPath, content, ctx)
+    // Stage in git (protection against accidental deletion)
+    gitStage(absPath, ctx.workingDir, ctx.logger)
     
     return `Wrote ${result.bytesWritten} bytes to ${absPath} (${result.method}, ${result.durationMs}ms)`
   } catch (err) {
@@ -287,6 +349,9 @@ export async function writeFilesBatch(
       try {
         const result = await writeFileOptimized(options, ctx)
         results.set(key, { success: true, bytesWritten: result.bytesWritten })
+        // Post-write: attribution + recovery (same as single-file path)
+        mirrorToArtifactStore(absPath, options.content, ctx)
+        gitStage(absPath, ctx.workingDir, ctx.logger)
       } catch (err) {
         results.set(key, { success: false, bytesWritten: 0, error: String(err) })
       }

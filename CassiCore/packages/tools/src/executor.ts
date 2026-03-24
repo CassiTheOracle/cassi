@@ -1,6 +1,8 @@
 import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
 import { TTLCache } from '../utils/ttl-cache.js'
 import { presentForLLM } from './presentation.js'
+import { commitSessionChanges } from './git-session-tracker.js'
+import type { SessionCommitOpts, SessionCommitResult } from './git-session-tracker.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
 
@@ -666,5 +668,34 @@ export class ToolExecutor {
       }
     }
     return results
+  }
+
+  // ── Per-Job Git Commit ─────────────────────────────────────────────────
+
+  /**
+   * Commit all workspace files written by a session as a single git commit
+   * with session attribution.  Call this when a delegated agent session
+   * (Helix, Dyad, Lumen, Flux cell) completes.
+   *
+   * Uses the FileArtifactStore's workspace namespace to discover which files
+   * this session wrote, then creates an attributed `git commit --only`.
+   */
+  async commitSession(
+    opts: Omit<SessionCommitOpts, 'workingDir'>,
+  ): Promise<SessionCommitResult> {
+    const store = this.defaultContext._fileArtifactStore
+    if (!store) {
+      return {
+        committed: false,
+        fileCount: 0,
+        files: [],
+        reason: 'FileArtifactStore not available',
+      }
+    }
+
+    return commitSessionChanges(store, {
+      ...opts,
+      workingDir: this.defaultContext.workingDir,
+    }, this.logger)
   }
 }
