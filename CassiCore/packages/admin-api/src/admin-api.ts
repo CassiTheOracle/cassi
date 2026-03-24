@@ -36,6 +36,7 @@ import { handleImprovementRoutes } from './admin-api/improvement.js'
 import { handleLumenRoutes } from './admin-api/lumen.js'
 import { handleDyadRoutes } from './admin-api/dyad.js'
 import { handleHelixRoutes } from './admin-api/helix.js'
+import { handleProactiveRoutes } from './admin-api/proactive.js'
 import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { handleBlackboardRoutes } from './admin-api/blackboard.js'
@@ -1978,6 +1979,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleLumenRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleDyadRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleHelixRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleProactiveRoutes({ proactive: daemon.intelligence?.proactiveEnricher, logger, sendJSON, parseBody }, req, res, method),
          () => handleDreamerRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleModelDirectiveRoutes({
            daemon,
