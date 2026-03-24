@@ -1990,14 +1990,14 @@ export class Daemon {
             this.intelligence.helix.setToolRegistry(toolRegistry)
             this.intelligence.helix.setToolExecutor(toolExecutor)
 
-            // Wire DyadStore for Helix session persistence (shares DB with Dyad)
+            // Wire HelixStore for Helix session persistence (dedicated helix.db)
             try {
-              const { DyadStore } = await import('./intelligence/dyad/dyad-store.js')
-              const helixStore = DyadStore.open(this.logger.child('helix-store'))
+              const { HelixStore } = await import('./intelligence/helix/helix-store.js')
+              const helixStore = HelixStore.open(this.logger.child('helix-store'))
               this.intelligence.helix.setStore(helixStore)
-              this.logger.info('Helix DyadStore wired (SQLite persistence)')
+              this.logger.info('HelixStore wired (SQLite persistence)')
             } catch (storeErr) {
-              this.logger.warn('Helix DyadStore failed to initialize — running without persistence', {
+              this.logger.warn('HelixStore failed to initialize — running without persistence', {
                 error: String(storeErr),
               })
             }
