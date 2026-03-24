@@ -2,14 +2,16 @@
  * Helix Type Definitions
  *
  * Core types for the inverted-pyramid agent pattern.
- * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above.
+ * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
+ * and an Executive moderator overseeing the dialectic.
  *
  * Communication topology:
  *   Unity <-> Reviewers: WorkStream (work units, nudges)
  *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
+ *   Executive -> All:    Steering injection, context, synthesis
  *
  * Named after the double helix trail of binary stars — Unity is the barycenter,
- * Yang and Yin are the orbiting stars.
+ * Yang and Yin are the orbiting stars, Executive is the observer ensuring coherence.
  */
 
 import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'

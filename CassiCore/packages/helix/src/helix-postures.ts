@@ -1,16 +1,19 @@
 /**
  * Helix Postures — System prompts for the inverted-pyramid agent pattern.
  *
- * Three directions:
+ * Four directions:
  *   - Unifying (unity): Primary implementer, full tool access, creates artifacts
  *   - Expansive (yang): Investigates work, advocates for strengths,
  *     debates with contractive direction via DialecticChannel
  *   - Contractive (yin): Stress-tests work, finds risks and issues,
  *     debates with expansive direction via DialecticChannel
+ *   - Executive (moderator): Observes dialectic, injects steering, forces conclusions,
+ *     synthesizes final output
  *
  * Communication:
  *   Builder <-> Reviewers: WorkStream (work units from builder, nudges from reviewers)
  *   Expansive <-> Contractive: DialecticChannel (findings, challenges, concessions)
+ *   Executive -> All: Steering injection, context, synthesis
  *
  * All prompts are composed from the global posture store (shared/posture-store.ts).
  */
@@ -66,9 +69,6 @@ export function getPosture(name: 'unity' | 'yang' | 'yin'): HelixPosture {
   return HELIX_POSTURES[name]
 }
 
-/**
- * Get all postures for concurrent execution.
- */
 export function getAllPostures(): HelixPosture[] {
   return [UNITY_POSTURE, YANG_POSTURE, YIN_POSTURE]
 }
