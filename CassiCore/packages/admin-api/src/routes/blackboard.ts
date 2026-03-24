@@ -8,6 +8,7 @@
  *   POST   /blackboard/global            — Create named global blackboard
  *   GET    /blackboard/global/:name      — Get snapshot of a named board
  *   GET    /blackboard/global/:name/search — Search across all boards on a named board
+ *   GET    /blackboard/global/:name/watch — Poll for accumulated changes on a named board
  *   POST   /blackboard/global/:name/post — Post to a channel on a named board
  *   DELETE /blackboard/global/:name      — Delete a named board
  *   GET    /lumen/:sessionId/blackboard  — Get blackboard snapshot for a Lumen session
@@ -19,7 +20,10 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { GlobalBlackboardRegistry } from '../intelligence/flux-team/global-blackboard-registry.js'
-import type { BlackboardChannel } from '../../types/flux-team.js'
+import type { BlackboardChannel, BlackboardState } from '../../types/flux-team.js'
+import type { SearchableBoard } from '../../types/blackboard-search.js'
+import { Blackboard } from '../intelligence/flux-team/blackboard.js'
+import { decodeCursor } from '../intelligence/flux-team/blackboard-search.js'
 
 const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
 
@@ -47,6 +51,33 @@ async function getRegistry(daemon: any, logger: ILogger): Promise<GlobalBlackboa
   }
 }
 
+/**
+ * Reconstruct a temporary Blackboard instance from a persisted snapshot.
+ * Used to enable search on completed sessions whose live blackboard has been released.
+ */
+function reconstructForSearch(snapshot: BlackboardState, logger: ILogger): Blackboard {
+  const bb = new Blackboard(logger.child('bb-search-ephemeral'), snapshot.cellId || 'search')
+  bb.restoreFromSnapshot(snapshot)
+  return bb
+}
+
+/**
+ * Parse common search query parameters from a URL.
+ */
+function parseSearchParams(url: URL) {
+  const pattern = url.searchParams.get('pattern') ?? ''
+  const boardsParam = url.searchParams.get('boards')
+  const boards = boardsParam ? boardsParam.split(',').map((b: string) => b.trim()) as any[] : undefined
+  const limitParam = url.searchParams.get('limit')
+  const limitPerBoard = limitParam ? parseInt(limitParam, 10) : undefined
+  const cursor = url.searchParams.get('cursor') ?? undefined
+  const author = url.searchParams.get('author') ?? undefined
+  const sinceParam = url.searchParams.get('since')
+  const since = sinceParam ? parseInt(sinceParam, 10) : undefined
+  const untilParam = url.searchParams.get('until')
+  const until = untilParam ? parseInt(untilParam, 10) : undefined
+  return { pattern, boards, limitPerBoard, cursor, author, since, until }
+}
 
 export async function handleBlackboardRoutes(
   deps: BlackboardDeps,
@@ -158,6 +189,47 @@ export async function handleBlackboardRoutes(
       return sendJSON(res, 200, result), true
     }
 
+    // GET /blackboard/global/:name/watch — poll for accumulated changes
+    if (method === 'GET' && parts[2] && parts[3] === 'watch') {
+      const name = decodeURIComponent(parts[2])
+
+      // Determine time window
+      let since: number
+      const cursorParam = url.searchParams.get('cursor')
+      const sinceParam = url.searchParams.get('since')
+      const intervalParam = url.searchParams.get('interval_seconds')
+
+      if (cursorParam) {
+        // Cursor encodes the windowEnd from the previous poll
+        const cursor = decodeCursor(cursorParam)
+        if (!cursor) {
+          return sendJSON(res, 400, { error: 'Invalid cursor' }), true
+        }
+        since = cursor.ts
+      } else if (sinceParam) {
+        since = parseInt(sinceParam, 10)
+      } else {
+        const interval = intervalParam ? parseInt(intervalParam, 10) : 60
+        since = Date.now() - (interval * 1000)
+      }
+
+      const boardsParam = url.searchParams.get('boards')
+      const boards = boardsParam
+        ? boardsParam.split(',').map((b: string) => b.trim()) as SearchableBoard[]
+        : undefined
+      const includeContent = url.searchParams.get('include_content') !== 'false'
+
+      let result = registry.watch(name, { since }, boards, includeContent)
+      if (!result) {
+        await registry.load(name)
+        result = registry.watch(name, { since }, boards, includeContent)
+      }
+      if (!result) {
+        return sendJSON(res, 404, { error: `Blackboard '${name}' not found.` }), true
+      }
+      return sendJSON(res, 200, result), true
+    }
+
     // POST /blackboard/global/:name/post — post to a channel
     if (method === 'POST' && parts[2] && parts[3] === 'post') {
       const name = decodeURIComponent(parts[2])
@@ -215,28 +287,34 @@ export async function handleBlackboardRoutes(
 
     // GET /lumen/:id/blackboard/search — search across all boards
     if (parts[3] === 'search') {
-      const pattern = url.searchParams.get('pattern') ?? ''
+      const { pattern, boards, limitPerBoard, cursor, author, since, until } = parseSearchParams(url)
       if (!pattern) {
         return sendJSON(res, 400, { error: 'Missing required query param: pattern' }), true
       }
       try {
         const lumen = daemon.intelligence?.lumen
-        if (lumen?.getActiveBlackboardInstance) {
-          const bb = lumen.getActiveBlackboardInstance(sessionId)
-          if (bb) {
-            const boardsParam = url.searchParams.get('boards')
-            const boards = boardsParam ? boardsParam.split(',').map((b: string) => b.trim()) as any[] : undefined
-            const limitParam = url.searchParams.get('limit')
-            const limitPerBoard = limitParam ? parseInt(limitParam, 10) : undefined
-            const cursor = url.searchParams.get('cursor') ?? undefined
-            const author = url.searchParams.get('author') ?? undefined
-            const sinceParam = url.searchParams.get('since')
-            const since = sinceParam ? parseInt(sinceParam, 10) : undefined
-            const result = bb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since })
+
+        // Try active in-memory blackboard first
+        const activeBb = lumen?.getActiveBlackboardInstance?.(sessionId)
+        if (activeBb) {
+          const result = activeBb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since, until })
+          return sendJSON(res, 200, result), true
+        }
+
+        // Fallback: reconstruct from persisted store for completed sessions
+        const { LumenStore } = await import('../intelligence/lumen/lumen-store.js').catch(() => ({ LumenStore: null }))
+        if (LumenStore) {
+          const store = (LumenStore as any).open(logger.child('lumen-store-search'))
+          const session = store?.getSession?.(sessionId)
+          store?.close?.()
+          if (session?.blackboard) {
+            const bb = reconstructForSearch(session.blackboard, logger)
+            const result = bb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since, until })
             return sendJSON(res, 200, result), true
           }
         }
-        return sendJSON(res, 404, { error: `No active blackboard found for Lumen session '${sessionId}'. Search is only available on active sessions.` }), true
+
+        return sendJSON(res, 404, { error: `No blackboard found for Lumen session '${sessionId}'.` }), true
       } catch (err) {
         return sendJSON(res, 500, { error: String(err) }), true
       }
@@ -296,28 +374,34 @@ export async function handleBlackboardRoutes(
 
     // GET /dyad/:id/blackboard/search — search across all boards
     if (parts[3] === 'search') {
-      const pattern = url.searchParams.get('pattern') ?? ''
+      const { pattern, boards, limitPerBoard, cursor, author, since, until } = parseSearchParams(url)
       if (!pattern) {
         return sendJSON(res, 400, { error: 'Missing required query param: pattern' }), true
       }
       try {
         const dyad = daemon.intelligence?.dyad
-        if (dyad?.getActiveBlackboardInstance) {
-          const bb = dyad.getActiveBlackboardInstance(sessionId)
-          if (bb) {
-            const boardsParam = url.searchParams.get('boards')
-            const boards = boardsParam ? boardsParam.split(',').map((b: string) => b.trim()) as any[] : undefined
-            const limitParam = url.searchParams.get('limit')
-            const limitPerBoard = limitParam ? parseInt(limitParam, 10) : undefined
-            const cursor = url.searchParams.get('cursor') ?? undefined
-            const author = url.searchParams.get('author') ?? undefined
-            const sinceParam = url.searchParams.get('since')
-            const since = sinceParam ? parseInt(sinceParam, 10) : undefined
-            const result = bb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since })
+
+        // Try active in-memory blackboard first
+        const activeBb = dyad?.getActiveBlackboardInstance?.(sessionId)
+        if (activeBb) {
+          const result = activeBb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since, until })
+          return sendJSON(res, 200, result), true
+        }
+
+        // Fallback: reconstruct from persisted store for completed sessions
+        const { DyadStore } = await import('../intelligence/dyad/dyad-store.js').catch(() => ({ DyadStore: null }))
+        if (DyadStore) {
+          const store = (DyadStore as any).open(logger.child('dyad-store-search'))
+          const session = store?.getSession?.(sessionId)
+          store?.close?.()
+          if (session?.blackboard) {
+            const bb = reconstructForSearch(session.blackboard, logger)
+            const result = bb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since, until })
             return sendJSON(res, 200, result), true
           }
         }
-        return sendJSON(res, 404, { error: `No active blackboard found for Dyad session '${sessionId}'. Search is only available on active sessions.` }), true
+
+        return sendJSON(res, 404, { error: `No blackboard found for Dyad session '${sessionId}'.` }), true
       } catch (err) {
         return sendJSON(res, 500, { error: String(err) }), true
       }

@@ -240,6 +240,64 @@ export function handleHelixRoutes(
     return true
   }
 
+  // ── GET /helix/:id/blackboard/search — Search across all boards
+  if (method === 'GET' && subRoute === 'blackboard/search') {
+    if (!helix) {
+      sendJSON(res, 503, { error: 'Helix not initialized' })
+      return true
+    }
+    const pattern = url.searchParams.get('pattern') ?? ''
+    if (!pattern) {
+      sendJSON(res, 400, { error: 'Missing required query param: pattern' })
+      return true
+    }
+    const job = findHelixJob(id)
+    const sessionId = job?.sessionId ?? id
+
+    // Try active in-memory blackboard first
+    const activeBb = helix.getActiveBlackboardInstance?.(sessionId)
+    if (activeBb) {
+      const boardsParam = url.searchParams.get('boards')
+      const boards = boardsParam ? boardsParam.split(',').map((b: string) => b.trim()) as any[] : undefined
+      const limitParam = url.searchParams.get('limit')
+      const limitPerBoard = limitParam ? parseInt(limitParam, 10) : undefined
+      const cursor = url.searchParams.get('cursor') ?? undefined
+      const author = url.searchParams.get('author') ?? undefined
+      const sinceParam = url.searchParams.get('since')
+      const since = sinceParam ? parseInt(sinceParam, 10) : undefined
+      const result = activeBb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since })
+      sendJSON(res, 200, result)
+      return true
+    }
+
+    // Fallback: reconstruct from persisted store for completed sessions
+    const persisted = loadPersistedBlackboard(daemon, sessionId)
+    if (persisted) {
+      try {
+        const { Blackboard: BB } = require('../intelligence/flux-team/blackboard.js')
+        const bb = new BB(logger.child('helix-bb-search'), sessionId)
+        bb.restoreFromSnapshot(persisted)
+        const boardsParam = url.searchParams.get('boards')
+        const boards = boardsParam ? boardsParam.split(',').map((b: string) => b.trim()) as any[] : undefined
+        const limitParam = url.searchParams.get('limit')
+        const limitPerBoard = limitParam ? parseInt(limitParam, 10) : undefined
+        const cursor = url.searchParams.get('cursor') ?? undefined
+        const author = url.searchParams.get('author') ?? undefined
+        const sinceParam = url.searchParams.get('since')
+        const since = sinceParam ? parseInt(sinceParam, 10) : undefined
+        const result = bb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since })
+        sendJSON(res, 200, result)
+        return true
+      } catch (err) {
+        sendJSON(res, 500, { error: String(err) })
+        return true
+      }
+    }
+
+    sendJSON(res, 404, { error: `No blackboard found for Helix session '${sessionId}'.` })
+    return true
+  }
+
   // ── GET /helix/:id/blackboard (supports ?summary=true, ?channel=X, ?limit=N)
   if (method === 'GET' && subRoute === 'blackboard') {
     if (!helix) {
