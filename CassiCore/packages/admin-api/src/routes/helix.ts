@@ -72,6 +72,24 @@ function findHelixJob(idOrSessionId: string): HelixJob | undefined {
   return helixJobs.get(idOrSessionId) ?? [...helixJobs.values()].find(job => job.sessionId === idOrSessionId)
 }
 
+/**
+ * Load a persisted blackboard snapshot from HelixStore for completed sessions.
+ * Returns undefined if the store is not available or session not found.
+ */
+function loadPersistedBlackboard(daemon: any, sessionId: string): unknown | undefined {
+  try {
+    // Access the HelixStore via the wired helix orchestrator's internal state
+    // The daemon doesn't expose the store directly, so we try dynamic import + open
+    const { HelixStore } = require('../intelligence/helix/helix-store.js')
+    const store = HelixStore.open(daemon.logger.child('helix-store-reader'))
+    const session = store.getSession(sessionId)
+    store.close()
+    return session?.blackboard ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 
 export function handleHelixRoutes(
   deps: HelixDeps,
@@ -243,6 +261,13 @@ export function handleHelixRoutes(
     if (channelFilter) {
       const entries = helix.getActiveChannel(sessionId, channelFilter, limit)
       if (!entries) {
+        const persisted = loadPersistedBlackboard(daemon, sessionId) as any
+        if (persisted?.channels?.[channelFilter]) {
+          const ch = persisted.channels[channelFilter]
+          const sliced = limit ? ch.slice(-limit) : ch
+          sendJSON(res, 200, { channel: channelFilter, entries: sliced })
+          return true
+        }
         sendJSON(res, 404, { error: 'Session not found or blackboard not active' })
         return true
       }
@@ -253,6 +278,12 @@ export function handleHelixRoutes(
     if (wantSummary) {
       const summary = helix.getActiveSummary(sessionId)
       if (!summary) {
+        // Fallback: try loading from persisted HelixStore for completed sessions
+        const persisted = loadPersistedBlackboard(daemon, sessionId)
+        if (persisted) {
+          sendJSON(res, 200, { sessionId, source: 'persisted', blackboard: persisted })
+          return true
+        }
         sendJSON(res, 404, { error: 'Session not found or blackboard not active' })
         return true
       }
@@ -262,6 +293,12 @@ export function handleHelixRoutes(
 
     const bb = helix.getActiveBlackboard(sessionId)
     if (!bb) {
+      // Fallback: try loading from persisted HelixStore for completed sessions
+      const persisted = loadPersistedBlackboard(daemon, sessionId)
+      if (persisted) {
+        sendJSON(res, 200, persisted)
+        return true
+      }
       sendJSON(res, 404, { error: 'Session not found or blackboard not active' })
       return true
     }
@@ -287,7 +324,7 @@ export function handleHelixRoutes(
     }
 
     if (job.status !== 'running') {
-      res.write(`data: ${JSON.stringify({ event: 'helix:complete', status: job.status, result: job.result, error: job.error })}\n\n`)
+      res.write(`data: ${JSON.stringify({ event: 'helix:completed', status: job.status, result: job.result, error: job.error })}\n\n`)
       res.end()
       return true
     }
@@ -299,7 +336,7 @@ export function handleHelixRoutes(
     const poll = setInterval(() => {
       if (job.status !== 'running') {
         cleanup()
-        res.write(`data: ${JSON.stringify({ event: 'helix:complete', status: job.status, result: job.result, error: job.error })}\n\n`)
+        res.write(`data: ${JSON.stringify({ event: 'helix:completed', status: job.status, result: job.result, error: job.error })}\n\n`)
         res.end()
       }
     }, 2000)
