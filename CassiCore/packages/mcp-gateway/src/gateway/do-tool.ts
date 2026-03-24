@@ -18,7 +18,8 @@
  */
 
 import { augmentDoResult, fetchStateCard, type DoMode, type StateView } from './do-augmentation.js';
-import { fetchAndFormatContext, type ContextLimits } from './context-enrichment.js';
+import { fetchAndFormatContext, type ContextLimits, fetchProactiveResults, formatProactiveResults } from './context-enrichment.js';
+import { resolveSessionId } from './helpers.js';
 import type { ILogger } from '../../types/interfaces.js';
 
 

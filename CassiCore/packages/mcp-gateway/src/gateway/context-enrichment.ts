@@ -552,3 +552,80 @@ export async function fetchAndFormatContext(
     },
   };
 }
+
+/**
+ * Proactive result shape returned by the admin API.
+ */
+export interface ProactiveResult {
+  intentType: string;
+  title: string;
+  content: string;
+  source: string;
+  relevance: number;
+  gatheredAt: number;
+  sessionId: string;
+}
+
+/**
+ * Fetch proactive results from the admin API endpoint.
+ * Calls GET /proactive/:sessionId/results?wait_ms=5000 (implemented by Helix 2).
+ *
+ * @param baseUrl CassiCore admin API base URL
+ * @param sessionId Session ID to fetch results for
+ * @param opts Optional: waitMs (max blocking wait), maxAgeMs (max result age)
+ * @returns Array of proactive results
+ */
+export async function fetchProactiveResults(
+  baseUrl: string,
+  sessionId: string,
+  opts?: { waitMs?: number; maxAgeMs?: number }
+): Promise<ProactiveResult[]> {
+  const params = new URLSearchParams();
+  if (opts?.waitMs !== undefined) params.set('wait_ms', String(opts.waitMs));
+  if (opts?.maxAgeMs !== undefined) params.set('max_age_ms', String(opts.maxAgeMs));
+
+  const url = `${baseUrl}/proactive/${sessionId}/results?${params.toString()}`;
+
+  try {
+    const res = await fetchWithTimeout(url, { timeoutMs: 10_000 });
+    if (!res.ok) {
+      // Endpoint may not be available yet (Helix 2 not deployed)
+      return [];
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data?.results ?? []);
+  } catch (err) {
+    // Silently fail — proactive results are optional enhancement
+    return [];
+  }
+}
+
+/**
+ * Format proactive results into markdown for inclusion in cassi_enrich output.
+ *
+ * Output format:
+ * ### Proactive Intelligence (N results from background analysis)
+ *
+ * #### 1. [code_intent] Callers of validateSession
+ * Found via GitNexus context — 4 callers across 3 files...
+ * *Source: gitnexus_context | Relevance: 92%*
+ *
+ * @param results Array of proactive results
+ * @returns Formatted markdown string
+ */
+export function formatProactiveResults(results: ProactiveResult[]): string {
+  if (results.length === 0) return '';
+
+  const lines: string[] = [];
+  lines.push(`### Proactive Intelligence (${results.length} result${results.length === 1 ? '' : 's'} from background analysis)`);
+  lines.push('');
+
+  for (const [i, result] of results.entries()) {
+    lines.push(`#### ${i + 1}. [${result.intentType}] ${result.title}`);
+    lines.push(result.content);
+    lines.push(`*Source: ${result.source} | Relevance: ${(result.relevance * 100).toFixed(0)}%*`);
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
