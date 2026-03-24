@@ -57,9 +57,9 @@ const PASSTHROUGH_TYPES = new Set([
  * for that session, then pass through themselves.
  */
 const FLUSH_TRIGGERS = new Set([
-  'lumen:complete',
+  'lumen:completed',
   'lumen:persisted',
-  'dyad:complete',
+  'dyad:completed',
   'dyad:failed',
   'team:completed',
   'team:failed',

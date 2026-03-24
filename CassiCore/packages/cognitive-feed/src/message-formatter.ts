@@ -111,7 +111,7 @@ export class MessageFormatter {
     if (type === 'lumen:started') {
       return `Analysis started: <i>${esc(truncate(e.goal ?? '', 100))}</i>`
     }
-    if (type === 'lumen:complete') {
+    if (type === 'lumen:completed') {
       const conf = e.confidence ? ` (${Math.round(e.confidence * 100)}%)` : ''
       const dur = e.durationMs ? ` in ${fmtDuration(e.durationMs)}` : ''
       return `Analysis complete${dur}: <b>${esc(e.recommendation ?? 'N/A')}</b>${conf}`
@@ -131,7 +131,7 @@ export class MessageFormatter {
     if (type === 'dyad:started') {
       return `Pipeline started: <i>${esc(truncate(e.goal ?? '', 100))}</i>`
     }
-    if (type === 'dyad:complete') {
+    if (type === 'dyad:completed') {
       const dur = e.durationMs ? ` in ${fmtDuration(e.durationMs)}` : ''
       const score = e.qualityScore ? ` (quality: ${Math.round(e.qualityScore * 100)}%)` : ''
       return `Pipeline complete${dur}${score}`
@@ -414,7 +414,7 @@ export class MessageFormatter {
       return parts.join('\n\n') || this.formatGenericVerbose(e)
     }
 
-    if (type === 'lumen:complete') {
+    if (type === 'lumen:completed') {
       if (e.goal) parts.push(`<b>Goal:</b>\n${esc(truncate(e.goal, 500))}`)
       if (e.recommendation) parts.push(`<b>Recommendation:</b> ${esc(e.recommendation)}`)
       if (e.confidence != null) parts.push(`<b>Confidence:</b> ${Math.round(e.confidence * 100)}%`)
@@ -568,7 +568,7 @@ export class MessageFormatter {
       return parts.join('\n\n') || this.formatGenericVerbose(e)
     }
 
-    if (type === 'dyad:complete') {
+    if (type === 'dyad:completed') {
       if (e.goal) parts.push(`<b>Goal:</b>\n${esc(truncate(e.goal, 500))}`)
 
       if (e.yangConclusion) {

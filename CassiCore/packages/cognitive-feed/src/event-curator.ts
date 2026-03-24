@@ -59,7 +59,7 @@ interface RouteRule {
 const EXACT_ROUTES: Record<string, RouteRule> = {
   'lumen:synthesis-complete':  { topicKey: 'lumen', highlight: true, priority: 'high' },
   'lumen:started':             { topicKey: 'lumen', highlight: true, priority: 'medium' },
-  'lumen:complete':            { topicKey: 'lumen', highlight: true, priority: 'high' },
+  'lumen:completed':            { topicKey: 'lumen', highlight: true, priority: 'high' },
   'lumen:persisted':           { topicKey: 'lumen', highlight: false },
   'lumen:yang-complete':       { topicKey: 'lumen', highlight: false },
   'lumen:yin-complete':        { topicKey: 'lumen', highlight: false },
@@ -81,7 +81,7 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'lumen:progress:digest':             { topicKey: 'lumen', highlight: false },
 
   'dyad:started':              { topicKey: 'dyad', highlight: true, priority: 'medium' },
-  'dyad:complete':             { topicKey: 'dyad', highlight: true, priority: 'high' },
+  'dyad:completed':             { topicKey: 'dyad', highlight: true, priority: 'high' },
   'dyad:failed':               { topicKey: 'dyad', highlight: true, priority: 'high' },
   'dyad:role:completed':       { topicKey: 'dyad', highlight: false },
   'dyad:role:failed':          { topicKey: 'dyad', highlight: true, priority: 'high' },
