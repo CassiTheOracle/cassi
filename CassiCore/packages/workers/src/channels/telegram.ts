@@ -26,6 +26,9 @@ const EDIT_INTERVAL_MS = 1000
 const TYPING_INTERVAL_MS = 4000
 const BACKOFF_BASE_MS = 2_000
 const BACKOFF_MAX_MS = 30_000
+const TELEGRAM_MAX_MESSAGE_LENGTH = 4096
+const RATE_LIMIT_WINDOW_MS = 1000
+const RATE_LIMIT_MAX_MESSAGES = 10
 
 const TELEGRAM_COMMANDS: tg.BotCommand[] = [
   { command: 'cassi', description: 'MCP tools: list, invoke, or run agents' },
@@ -97,6 +100,117 @@ interface StreamState {
 }
 const streams = new Map<string, StreamState>()
 
+/** Rate limiting state per chat */
+interface RateLimitState {
+  messageCount: number
+  windowStart: number
+}
+const rateLimitState = new Map<number, RateLimitState>()
+
+/**
+ * Check and enforce rate limiting for a chat.
+ * Returns true if message should be sent, false if rate limited.
+ */
+function checkRateLimit(chatId: number): boolean {
+  const now = Date.now()
+  let state = rateLimitState.get(chatId)
+  
+  if (!state || (now - state.windowStart) > RATE_LIMIT_WINDOW_MS) {
+    // New window
+    state = { messageCount: 0, windowStart: now }
+    rateLimitState.set(chatId, state)
+  }
+  
+  if (state.messageCount >= RATE_LIMIT_MAX_MESSAGES) {
+    return false
+  }
+  
+  state.messageCount++
+  return true
+}
+
+/**
+ * Split content into chunks that fit within Telegram's message length limit.
+ * Respects code block boundaries when possible.
+ */
+function chunkMessage(content: string, maxLength: number = TELEGRAM_MAX_MESSAGE_LENGTH): string[] {
+  const chunks: string[] = []
+  
+  if (content.length <= maxLength) {
+    return [content]
+  }
+  
+  let remaining = content
+  
+  while (remaining.length > maxLength) {
+    // Try to split at a code block boundary first
+    const codeBlockMatch = remaining.slice(0, maxLength).match(/```[\s\S]*?\n```/g)
+    if (codeBlockMatch && codeBlockMatch.length > 0) {
+      const lastCodeBlock = codeBlockMatch[codeBlockMatch.length - 1]
+      const lastCodeBlockEnd = remaining.indexOf(lastCodeBlock) + lastCodeBlock.length
+      if (lastCodeBlockEnd > maxLength * 0.5) {
+        chunks.push(remaining.slice(0, lastCodeBlockEnd))
+        remaining = remaining.slice(lastCodeBlockEnd)
+        continue
+      }
+    }
+    
+    // Try to split at paragraph boundary
+    let splitIndex = remaining.lastIndexOf('\n\n', maxLength)
+    if (splitIndex === -1 || splitIndex < maxLength * 0.5) {
+      // Try single newline
+      splitIndex = remaining.lastIndexOf('\n', maxLength)
+    }
+    if (splitIndex === -1 || splitIndex < maxLength * 0.5) {
+      // Hard split at maxLength
+      splitIndex = maxLength
+    }
+    
+    chunks.push(remaining.slice(0, splitIndex))
+    remaining = remaining.slice(splitIndex)
+  }
+  
+  if (remaining.length > 0) {
+    chunks.push(remaining)
+  }
+  
+  return chunks
+}
+
+/**
+ * Send a message with chunking and rate limiting.
+ * Returns array of sent message IDs.
+ */
+async function sendChunkedMessage(chatId: number, content: string, parseMode?: 'MarkdownV2' | 'HTML'): Promise<number[]> {
+  // Check rate limit
+  if (!checkRateLimit(chatId)) {
+    log('warn', 'Rate limit exceeded, queuing message', { chatId })
+    // Still send but with delay
+    await sleep(RATE_LIMIT_WINDOW_MS)
+  }
+  
+  const chunks = chunkMessage(content)
+  const messageIds: number[] = []
+  
+  for (let i = 0; i < chunks.length; i++) {
+    // Apply rate limiting between chunks
+    if (i > 0) {
+      await sleep(EDIT_INTERVAL_MS)
+      if (!checkRateLimit(chatId)) {
+        await sleep(RATE_LIMIT_WINDOW_MS - (Date.now() % RATE_LIMIT_WINDOW_MS))
+      }
+    }
+    
+    try {
+      const msgId = await tg.sendMessage(chatId, chunks[i], parseMode)
+      if (msgId) messageIds.push(msgId)
+    } catch (err) {
+      log('warn', 'sendChunkedMessage error', { chatId, chunkIndex: i, error: String(err) })
+    }
+  }
+  
+  return messageIds
+}
 
 function log(level: 'info' | 'warn' | 'error', msg: string, meta?: Record<string, unknown>): void {
   const entry: Record<string, unknown> = { type: 'log', level, message: `[telegram] ${msg}` }
@@ -362,7 +476,116 @@ workerPort.on('message', (raw) => {
   }
 })
 
+/**
+ * Verify that the chat ID is allowed for tool responses.
+ * Tool responses should only go to chats that are in the allowed list (if configured).
+ */
+function isChatIdAllowedForToolResponse(chatId: number): boolean {
+  // If no allowedChatIds configured, all chats are allowed
+  if (!cfg.allowedChatIds || cfg.allowedChatIds.length === 0) {
+    return true
+  }
+  return cfg.allowedChatIds.includes(chatId)
+}
 
+/**
+ * Handle tool_call_result events from MCP tools.
+ * Sends formatted tool results to the user.
+ */
+function handleToolCallResult(sessionId: string, payload: Record<string, unknown>): void {
+  const chatId = parseChatId(sessionId)
+  if (chatId === null) return
+  
+  // Verify chat ID is allowed for tool responses
+  if (!isChatIdAllowedForToolResponse(chatId)) {
+    log('warn', 'Tool response blocked: chat ID not in allowed list', { chatId, sessionId })
+    return
+  }
+  
+  const toolName = payload.toolName as string ?? 'unknown'
+  const result = payload.result as string ?? JSON.stringify(payload.result)
+  
+  // Format tool result
+  const content = `**Tool Result: ${toolName}**\n\`\`\`\n${result}\n\`\`\``
+  
+  sendChunkedMessage(chatId, content, 'MarkdownV2').catch((err) => {
+    log('warn', 'handleToolCallResult error', { sessionId, error: String(err) })
+  })
+}
+
+/**
+ * Handle reasoning events from the LLM.
+ * Shows the model's reasoning process to the user.
+ */
+function handleReasoning(sessionId: string, payload: Record<string, unknown>): void {
+  const chatId = parseChatId(sessionId)
+  if (chatId === null) return
+  
+  const reasoning = payload.reasoning as string ?? payload.content as string ?? ''
+  if (!reasoning) return
+  
+  // Format reasoning with visual distinction
+  const content = `🤔 *Reasoning:*\n${reasoning}`
+  
+  sendChunkedMessage(chatId, content, 'MarkdownV2').catch((err) => {
+    log('warn', 'handleReasoning error', { sessionId, error: String(err) })
+  })
+}
+
+/**
+ * Handle tool_update events (tool progress/intermediate results).
+ * Shows progress updates from long-running tools.
+ */
+function handleToolUpdate(sessionId: string, payload: Record<string, unknown>): void {
+  const chatId = parseChatId(sessionId)
+  if (chatId === null) return
+  
+  // Verify chat ID is allowed for tool responses
+  if (!isChatIdAllowedForToolResponse(chatId)) {
+    log('warn', 'Tool update blocked: chat ID not in allowed list', { chatId, sessionId })
+    return
+  }
+  
+  const toolName = payload.toolName as string ?? 'unknown'
+  const status = payload.status as string ?? 'updating'
+  const message = payload.message as string ?? ''
+  
+  // Format tool update
+  const content = `🔧 *${toolName}: ${status}*\n${message}`
+  
+  sendChunkedMessage(chatId, content, 'MarkdownV2').catch((err) => {
+    log('warn', 'handleToolUpdate error', { sessionId, error: String(err) })
+  })
+}
+
+/**
+ * Handle inject events (system messages, notifications).
+ * Injects system messages into the conversation.
+ */
+function handleInject(sessionId: string, payload: Record<string, unknown>): void {
+  const chatId = parseChatId(sessionId)
+  if (chatId === null) return
+  
+  const content = payload.content as string ?? payload.message as string ?? ''
+  const parseMode = payload.parse_mode as 'MarkdownV2' | 'HTML' | undefined
+  const priority = payload.priority as 'high' | 'normal' | 'low' ?? 'normal'
+  
+  if (!content) return
+  
+  // High priority messages bypass rate limiting
+  if (priority === 'high') {
+    rateLimitState.delete(chatId)
+  }
+  
+  sendChunkedMessage(chatId, content, parseMode).catch((err) => {
+    log('warn', 'handleInject error', { sessionId, error: String(err) })
+  })
+}
+
+/**
+ * Enhanced message handler with full event type dispatching.
+ * Supports: content/done (streaming), tool_call, tool_call_result, reasoning, tool_update, inject
+ */
 function handleDaemonMessage(p: Record<string, unknown>): void {
   // PluginHost wraps all payloads in { type: 'message', payload: X }.
   // Status notifications arrive here instead of via 'status' type.
@@ -373,20 +596,40 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
   }
 
   const sessionId = p.sessionId as string | undefined
+  const chatId = sessionId ? parseChatId(sessionId) : null
+  
+  if (!sessionId || chatId === null) return
+  
+  // Event type dispatcher for MCP tool visibility
+  const eventType = p.type as string | undefined
+  
+  switch (eventType) {
+    case 'tool_call_result':
+      handleToolCallResult(sessionId, p)
+      return
+    
+    case 'reasoning':
+      handleReasoning(sessionId, p)
+      return
+    
+    case 'tool_update':
+      handleToolUpdate(sessionId, p)
+      return
+    
+    case 'inject':
+      handleInject(sessionId, p)
+      return
+    
+    case 'tool_call':
+      // Tool call notifications: show typing indicator instead of adding to buffer
+      tg.sendTyping(chatId).catch(() => {})
+      return
+  }
+
+  // Legacy content/done handling for streaming responses
   const content = p.content as string | undefined
   const parseMode = p.parse_mode as 'MarkdownV2' | 'HTML' | undefined
   const done = p.done as boolean | undefined
-  const msgType = p.type as string | undefined
-
-  if (!sessionId) return
-  const chatId = parseChatId(sessionId)
-  if (chatId === null) return
-
-  // Tool call notifications: show typing indicator instead of adding to buffer
-  if (msgType === 'tool_call') {
-    tg.sendTyping(chatId).catch(() => {})
-    return
-  }
 
   const hasActiveStream = streams.has(sessionId)
 
@@ -396,7 +639,7 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
 
   // One-off message (not part of an active stream)
   if (done && content && !hasActiveStream) {
-    tg.sendMessage(chatId, content, parseMode).catch((err) => {
+    sendChunkedMessage(chatId, content, parseMode).catch((err) => {
       log('warn', 'sendMessage error', { sessionId, error: String(err) })
     })
     return
@@ -439,7 +682,7 @@ function handleStatusMessage(p: StatusPayload): void {
 
   // Show cognitive status updates (compaction, summarization)
   if (p.type === 'compaction' || p.type === 'summarization') {
-    tg.sendMessage(chatId, p.text).catch(() => {})
+    sendChunkedMessage(chatId, p.text).catch(() => {})
   }
 }
 
