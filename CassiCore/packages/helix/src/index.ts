@@ -117,6 +117,7 @@ export interface HelixOrchestrator {
   cancel(sessionId: string): boolean
   getActiveSessions(): string[]
   getActiveBlackboard(sessionId: string): BlackboardState | undefined
+  getActiveBlackboardInstance(sessionId: string): Blackboard | undefined
   getActiveSummary(sessionId: string): BlackboardSummary | undefined
   getActiveChannel(sessionId: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | undefined
   getActiveProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
@@ -165,6 +166,10 @@ export function createHelix(
 
     getActiveBlackboard(sessionId: string): BlackboardState | undefined {
       return activeBlackboards.get(sessionId)?.getSnapshot()
+    },
+
+    getActiveBlackboardInstance(sessionId: string): Blackboard | undefined {
+      return activeBlackboards.get(sessionId)
     },
 
     getActiveSummary(sessionId: string): BlackboardSummary | undefined {
@@ -335,6 +340,30 @@ export function createHelix(
           if (registry && opts.blackboardId) {
             await registry.save(opts.blackboardId)
           }
+
+          // ── Per-job git commit: attribute all file writes to this session ──
+          if (storedToolExecutor) {
+            try {
+              const commitResult = await storedToolExecutor.commitSession({
+                sessionId,
+                sessionType: 'helix',
+                goal: opts.goal,
+                success: result.completionStatus.unityStatus === 'completed',
+                durationMs: result.durationMs,
+                toolCalls: result.toolCallCounts?.unity,
+              })
+              if (commitResult.committed) {
+                logger.info('helix:session-committed', {
+                  sessionId,
+                  sha: commitResult.sha,
+                  fileCount: commitResult.fileCount,
+                })
+              }
+            } catch (commitErr) {
+              logger.debug('helix:session-commit-failed', { sessionId, error: String(commitErr) })
+            }
+          }
+
           return result
         } finally {
           activeSessions.delete(sessionId)
