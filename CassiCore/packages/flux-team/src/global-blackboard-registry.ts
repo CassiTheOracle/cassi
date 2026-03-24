@@ -18,6 +18,24 @@ import path from 'node:path'
 import { homedir } from 'node:os'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
+import type {
+  PaginatedResult,
+  ChannelSearchOptions,
+  ScratchpadSearchOptions,
+  ToolLogSearchOptions,
+  ArtifactSearchOptions,
+  PlanSearchOptions,
+  ReportSearchOptions,
+  CrossBoardSearchOptions,
+  CrossBoardSearchResult,
+} from '../../../types/blackboard-search.js'
+import type {
+  FluxScratchpadEntry,
+  FluxToolRecord,
+  ArtifactEntry,
+  PlanStep,
+  ReportSection,
+} from '../../../types/flux-team.js'
 import type { BlackboardSummary } from './blackboard.js'
 import { Blackboard } from './blackboard.js'
 
@@ -151,6 +169,64 @@ export class GlobalBlackboardRegistry {
     const entry = this.boards.get(name)
     if (!entry) return null
     return entry.blackboard.getChannelEntries(channel, limit)
+  }
+
+  // ── Search pass-through methods ──
+
+  /** Search channel entries on a named board. */
+  searchChannel(name: string, opts: ChannelSearchOptions = {}): PaginatedResult<BlackboardEntry> | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchChannel(opts)
+  }
+
+  /** Search scratchpad entries on a named board. */
+  searchScratchpad(name: string, opts: ScratchpadSearchOptions = {}): PaginatedResult<FluxScratchpadEntry> | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchScratchpad(opts)
+  }
+
+  /** Search tool log records on a named board. */
+  searchToolLog(name: string, opts: ToolLogSearchOptions = {}): PaginatedResult<FluxToolRecord> | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchToolLog(opts)
+  }
+
+  /** Search artifact entries on a named board. */
+  searchArtifacts(name: string, opts: ArtifactSearchOptions = {}): PaginatedResult<ArtifactEntry> | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchArtifacts(opts)
+  }
+
+  /** Search plan steps on a named board. */
+  searchPlan(name: string, opts: PlanSearchOptions = {}): PaginatedResult<PlanStep> | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchPlan(opts)
+  }
+
+  /** Search report sections on a named board. */
+  searchReport(name: string, opts: ReportSearchOptions = {}): PaginatedResult<ReportSection> | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchReport(opts)
+  }
+
+  /** Cross-board unified search on a named board. */
+  searchAll(name: string, opts: CrossBoardSearchOptions): CrossBoardSearchResult | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.searchAll(opts)
   }
 
   /**

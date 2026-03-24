@@ -37,6 +37,30 @@ import type {
   ReportSectionStatus,
   ReportQualityMetrics,
 } from '../../../types/flux-team.js'
+import type {
+  PaginatedResult,
+  ChannelSearchOptions,
+  ScratchpadSearchOptions,
+  ToolLogSearchOptions,
+  ArtifactSearchOptions,
+  PlanSearchOptions,
+  ReportSearchOptions,
+  CrossBoardSearchOptions,
+  CrossBoardSearchResult,
+  CrossBoardResultItem,
+  BoardSearchResult,
+  SearchableBoard,
+} from '../../../types/blackboard-search.js'
+import {
+  compilePattern,
+  matchesAny,
+  normalizeLimit,
+  decodeCursor,
+  paginate,
+  passesBaseFilters,
+  decodeCompositeCursor,
+  encodeCompositeCursor,
+} from './blackboard-search.js'
 
 // Constants
 
@@ -50,6 +74,15 @@ const CHANNELS: BlackboardChannel[] = [
   'decisions',
   'artifacts',
   'requests',
+]
+
+const ALL_SEARCHABLE_BOARDS: SearchableBoard[] = [
+  'channel',
+  'scratchpad',
+  'toolLog',
+  'artifact',
+  'plan',
+  'report',
 ]
 
 // Blackboard
@@ -1304,6 +1337,370 @@ export class Blackboard {
     }
 
     return lines.join('\n')
+  }
+
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Search & Pagination Methods
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Search channel entries with regex pattern matching and cursor-based pagination.
+   * Existing read() / readAll() methods are preserved for backward compatibility.
+   *
+   * Pattern matches against: content, author, tags (space-joined).
+   * Results sorted by priority DESC, timestamp DESC.
+   */
+  searchChannel(opts: ChannelSearchOptions = {}): PaginatedResult<BlackboardEntry> {
+    const limit = normalizeLimit(opts.limit)
+    const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+    const regex = opts.pattern ? compilePattern(opts.pattern) : null
+
+    // Collect entries from specified channel or all channels
+    let entries: BlackboardEntry[]
+    if (opts.channel) {
+      entries = [...this.channels[opts.channel]]
+    } else {
+      entries = CHANNELS.flatMap(ch => this.channels[ch])
+    }
+
+    // Sort: priority DESC, timestamp DESC
+    entries.sort((a, b) => {
+      const pd = b.priority - a.priority
+      return pd !== 0 ? pd : b.timestamp - a.timestamp
+    })
+
+    // Apply filters
+    entries = entries.filter(entry => {
+      if (!passesBaseFilters(opts, entry.author, entry.timestamp)) return false
+      if (opts.tags?.length && !opts.tags.every(t => entry.tags.includes(t))) return false
+      if (opts.minPriority !== undefined && entry.priority < opts.minPriority) return false
+      if (opts.maxPriority !== undefined && entry.priority > opts.maxPriority) return false
+      if (regex && matchesAny(regex, [entry.content, entry.author, entry.tags.join(' ')]).length === 0) return false
+      return true
+    })
+
+    return paginate(entries, limit, cursor, e => e.id, e => e.timestamp, e => e.priority)
+  }
+
+  /**
+   * Search scratchpad entries with regex pattern matching and cursor-based pagination.
+   * Pattern matches against: key, value.
+   * Results sorted by createdAt DESC.
+   */
+  searchScratchpad(opts: ScratchpadSearchOptions = {}): PaginatedResult<FluxScratchpadEntry> {
+    const limit = normalizeLimit(opts.limit)
+    const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+    const regex = opts.pattern ? compilePattern(opts.pattern) : null
+    const now = Date.now()
+
+    // Collect entries, optionally filtering expired
+    const entries: FluxScratchpadEntry[] = []
+    for (const [, entry] of this.scratchpad) {
+      const expired = now - entry.createdAt >= entry.ttlMs
+      if (expired && !opts.includeExpired) {
+        this.scratchpad.delete(entry.key)
+        continue
+      }
+      entries.push(entry)
+    }
+
+    // Sort: createdAt DESC
+    entries.sort((a, b) => b.createdAt - a.createdAt)
+
+    // Apply filters
+    const filtered = entries.filter(entry => {
+      if (!passesBaseFilters(opts, entry.author, entry.createdAt)) return false
+      if (regex && matchesAny(regex, [entry.key, entry.value]).length === 0) return false
+      return true
+    })
+
+    return paginate(filtered, limit, cursor, e => e.key, e => e.createdAt)
+  }
+
+  /**
+   * Search tool log records with regex pattern matching and cursor-based pagination.
+   * Pattern matches against: tool name, nodeId.
+   * Results sorted by timestamp DESC (newest first).
+   */
+  searchToolLog(opts: ToolLogSearchOptions = {}): PaginatedResult<FluxToolRecord> {
+    const limit = normalizeLimit(opts.limit)
+    const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+    const regex = opts.pattern ? compilePattern(opts.pattern) : null
+
+    // Copy and sort DESC (newest first)
+    const records = [...this.toolLog].reverse()
+
+    // Apply filters
+    const filtered = records.filter(record => {
+      if (!passesBaseFilters(opts, undefined, record.timestamp)) return false
+      if (opts.tool && record.tool !== opts.tool) return false
+      if (opts.nodeId && record.nodeId !== opts.nodeId) return false
+      if (opts.isError !== undefined && record.isError !== opts.isError) return false
+      if (regex && matchesAny(regex, [record.tool, record.nodeId]).length === 0) return false
+      return true
+    })
+
+    // FluxToolRecord has no natural ID — use tool:nodeId:timestamp as pseudo-ID
+    return paginate(
+      filtered, limit, cursor,
+      r => `${r.tool}:${r.nodeId}:${r.timestamp}`,
+      r => r.timestamp,
+    )
+  }
+
+  /**
+   * Search artifact entries with regex pattern matching and cursor-based pagination.
+   * Pattern matches against: path, author.
+   * Results sorted by timestamp DESC.
+   */
+  searchArtifacts(opts: ArtifactSearchOptions = {}): PaginatedResult<ArtifactEntry> {
+    const limit = normalizeLimit(opts.limit)
+    const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+    const regex = opts.pattern ? compilePattern(opts.pattern) : null
+
+    // Collect and sort DESC
+    const entries = Array.from(this.artifacts.values())
+    entries.sort((a, b) => b.timestamp - a.timestamp)
+
+    // Apply filters
+    const filtered = entries.filter(entry => {
+      if (!passesBaseFilters(opts, entry.author, entry.timestamp)) return false
+      if (opts.operation && entry.operation !== opts.operation) return false
+      if (regex && matchesAny(regex, [entry.path, entry.author]).length === 0) return false
+      return true
+    })
+
+    return paginate(filtered, limit, cursor, e => e.path, e => e.timestamp)
+  }
+
+  /**
+   * Search plan steps with regex pattern matching and cursor-based pagination.
+   * Pattern matches against: title, description, tags (space-joined).
+   * Results sorted by order ASC (execution order).
+   */
+  searchPlan(opts: PlanSearchOptions = {}): PaginatedResult<PlanStep> {
+    if (!this.plan) {
+      return { items: [], total: 0, hasMore: false, pageSize: 0 }
+    }
+
+    const limit = normalizeLimit(opts.limit)
+    const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+    const regex = opts.pattern ? compilePattern(opts.pattern) : null
+
+    // Sort by order ASC
+    const steps = [...this.plan.steps].sort((a, b) => a.order - b.order)
+
+    // Apply filters
+    const filtered = steps.filter(step => {
+      if (!passesBaseFilters(opts, step.author, step.createdAt)) return false
+      if (opts.status && step.status !== opts.status) return false
+      if (opts.assignee && step.assignee !== opts.assignee) return false
+      if (opts.priority && step.priority !== opts.priority) return false
+      if (regex && matchesAny(regex, [step.title, step.description, step.tags?.join(' ')]).length === 0) return false
+      return true
+    })
+
+    return paginate(filtered, limit, cursor, s => s.id, s => s.createdAt, s => s.order, true)
+  }
+
+  /**
+   * Search report sections with regex pattern matching and cursor-based pagination.
+   * Pattern matches against: title, content, author.
+   * Results sorted by createdAt DESC.
+   */
+  searchReport(opts: ReportSearchOptions = {}): PaginatedResult<ReportSection> {
+    if (!this.report) {
+      return { items: [], total: 0, hasMore: false, pageSize: 0 }
+    }
+
+    const limit = normalizeLimit(opts.limit)
+    const cursor = opts.cursor ? decodeCursor(opts.cursor) : null
+    const regex = opts.pattern ? compilePattern(opts.pattern) : null
+
+    // Sort by createdAt DESC
+    const sections = [...this.report.sections].sort((a, b) => b.createdAt - a.createdAt)
+
+    // Apply filters
+    const filtered = sections.filter(section => {
+      if (!passesBaseFilters(opts, section.author, section.createdAt)) return false
+      if (opts.type && section.type !== opts.type) return false
+      if (opts.status && section.status !== opts.status) return false
+      if (regex && matchesAny(regex, [section.title, section.content, section.author]).length === 0) return false
+      return true
+    })
+
+    return paginate(filtered, limit, cursor, s => s.id, s => s.createdAt)
+  }
+
+  /**
+   * Cross-board unified search.
+   * Searches all (or specified) boards with a single regex pattern.
+   * Returns results grouped by board type with per-board pagination.
+   */
+  searchAll(opts: CrossBoardSearchOptions): CrossBoardSearchResult {
+    const boards = opts.boards ?? ALL_SEARCHABLE_BOARDS
+    const limitPerBoard = normalizeLimit(opts.limitPerBoard)
+    const compositeCursors = opts.cursor ? decodeCompositeCursor(opts.cursor) : null
+
+    const result: CrossBoardSearchResult = {
+      boards: {},
+      totalMatches: 0,
+      rankedBoards: [],
+    }
+
+    const boardCounts: Array<{ board: SearchableBoard; count: number }> = []
+    const nextCursors: Record<string, string> = {}
+
+    for (const board of boards) {
+      const boardCursor = compositeCursors?.[board] ?? undefined
+
+      switch (board) {
+        case 'channel': {
+          const r = this.searchChannel({
+            pattern: opts.pattern,
+            limit: limitPerBoard,
+            cursor: boardCursor,
+            author: opts.author,
+            since: opts.since,
+            until: opts.until,
+          })
+          if (r.total > 0) {
+            const regex = compilePattern(opts.pattern)
+            const items: Array<CrossBoardResultItem & { board: 'channel' }> = r.items.map(item => ({
+              board: 'channel' as const,
+              channel: item.channel,
+              item,
+              matchedFields: matchesAny(regex, [item.content, item.author, item.tags.join(' ')]),
+            }))
+            result.boards.channel = { items, total: r.total, hasMore: r.hasMore, cursor: r.cursor }
+            boardCounts.push({ board: 'channel', count: r.total })
+            if (r.cursor) nextCursors.channel = r.cursor
+          }
+          break
+        }
+        case 'scratchpad': {
+          const r = this.searchScratchpad({
+            pattern: opts.pattern,
+            limit: limitPerBoard,
+            cursor: boardCursor,
+            author: opts.author,
+            since: opts.since,
+            until: opts.until,
+          })
+          if (r.total > 0) {
+            const regex = compilePattern(opts.pattern)
+            const items: Array<CrossBoardResultItem & { board: 'scratchpad' }> = r.items.map(item => ({
+              board: 'scratchpad' as const,
+              item,
+              matchedFields: matchesAny(regex, [item.key, item.value]),
+            }))
+            result.boards.scratchpad = { items, total: r.total, hasMore: r.hasMore, cursor: r.cursor }
+            boardCounts.push({ board: 'scratchpad', count: r.total })
+            if (r.cursor) nextCursors.scratchpad = r.cursor
+          }
+          break
+        }
+        case 'toolLog': {
+          const r = this.searchToolLog({
+            pattern: opts.pattern,
+            limit: limitPerBoard,
+            cursor: boardCursor,
+            since: opts.since,
+            until: opts.until,
+          })
+          if (r.total > 0) {
+            const regex = compilePattern(opts.pattern)
+            const items: Array<CrossBoardResultItem & { board: 'toolLog' }> = r.items.map(item => ({
+              board: 'toolLog' as const,
+              item,
+              matchedFields: matchesAny(regex, [item.tool, item.nodeId]),
+            }))
+            result.boards.toolLog = { items, total: r.total, hasMore: r.hasMore, cursor: r.cursor }
+            boardCounts.push({ board: 'toolLog', count: r.total })
+            if (r.cursor) nextCursors.toolLog = r.cursor
+          }
+          break
+        }
+        case 'artifact': {
+          const r = this.searchArtifacts({
+            pattern: opts.pattern,
+            limit: limitPerBoard,
+            cursor: boardCursor,
+            author: opts.author,
+            since: opts.since,
+            until: opts.until,
+          })
+          if (r.total > 0) {
+            const regex = compilePattern(opts.pattern)
+            const items: Array<CrossBoardResultItem & { board: 'artifact' }> = r.items.map(item => ({
+              board: 'artifact' as const,
+              item,
+              matchedFields: matchesAny(regex, [item.path, item.author]),
+            }))
+            result.boards.artifact = { items, total: r.total, hasMore: r.hasMore, cursor: r.cursor }
+            boardCounts.push({ board: 'artifact', count: r.total })
+            if (r.cursor) nextCursors.artifact = r.cursor
+          }
+          break
+        }
+        case 'plan': {
+          const r = this.searchPlan({
+            pattern: opts.pattern,
+            limit: limitPerBoard,
+            cursor: boardCursor,
+            author: opts.author,
+            since: opts.since,
+            until: opts.until,
+          })
+          if (r.total > 0) {
+            const regex = compilePattern(opts.pattern)
+            const items: Array<CrossBoardResultItem & { board: 'plan' }> = r.items.map(item => ({
+              board: 'plan' as const,
+              item,
+              matchedFields: matchesAny(regex, [item.title, item.description, item.tags?.join(' ')]),
+            }))
+            result.boards.plan = { items, total: r.total, hasMore: r.hasMore, cursor: r.cursor }
+            boardCounts.push({ board: 'plan', count: r.total })
+            if (r.cursor) nextCursors.plan = r.cursor
+          }
+          break
+        }
+        case 'report': {
+          const r = this.searchReport({
+            pattern: opts.pattern,
+            limit: limitPerBoard,
+            cursor: boardCursor,
+            author: opts.author,
+            since: opts.since,
+            until: opts.until,
+          })
+          if (r.total > 0) {
+            const regex = compilePattern(opts.pattern)
+            const items: Array<CrossBoardResultItem & { board: 'report' }> = r.items.map(item => ({
+              board: 'report' as const,
+              item,
+              matchedFields: matchesAny(regex, [item.title, item.content, item.author]),
+            }))
+            result.boards.report = { items, total: r.total, hasMore: r.hasMore, cursor: r.cursor }
+            boardCounts.push({ board: 'report', count: r.total })
+            if (r.cursor) nextCursors.report = r.cursor
+          }
+          break
+        }
+      }
+    }
+
+    // Compute totals and ranking
+    result.totalMatches = boardCounts.reduce((sum, b) => sum + b.count, 0)
+    result.rankedBoards = boardCounts.sort((a, b) => b.count - a.count)
+
+    // Build composite cursor if any board has more pages
+    if (Object.keys(nextCursors).length > 0) {
+      result.cursor = encodeCompositeCursor(nextCursors)
+    }
+
+    return result
   }
 
 

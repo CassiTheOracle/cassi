@@ -314,6 +314,197 @@ const BB_TOOL_LOG_TOOL: ToolSchema = {
   },
 }
 
+const BB_SEARCH_TOOL: ToolSchema = {
+  name: 'bb_search',
+  description:
+    'Search across all Blackboard boards (channels, scratchpad, tool log, artifacts, plan, report) ' +
+    'with a regex pattern. Returns results grouped by board type with per-board cursor-based pagination. ' +
+    'Use this for discovery — find where a concept, file, or author appears across the workspace.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      pattern: {
+        type: 'string',
+        description:
+          'Regex pattern to match (case-insensitive). Matches against board-specific fields: ' +
+          'channels (content, author, tags), scratchpad (key, value), tool log (tool, nodeId), ' +
+          'artifacts (path, author), plan (title, description, tags), report (title, content, author). ' +
+          'Max 200 characters.',
+      },
+      boards: {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['channel', 'scratchpad', 'toolLog', 'artifact', 'plan', 'report'],
+        },
+        description: 'Board types to search. Default: all boards.',
+      },
+      limit_per_board: {
+        type: 'number',
+        description: 'Maximum items per board. Default: 50.',
+      },
+      cursor: {
+        type: 'string',
+        description: 'Opaque cursor from a previous result for pagination. Pass back the cursor from the last response to get the next page.',
+      },
+      author: {
+        type: 'string',
+        description: 'Filter by author across all boards. Optional.',
+      },
+      since: {
+        type: 'number',
+        description: 'Only items created at or after this Unix timestamp (ms). Optional.',
+      },
+      until: {
+        type: 'number',
+        description: 'Only items created at or before this Unix timestamp (ms). Optional.',
+      },
+    },
+    required: ['pattern'],
+  },
+}
+
+const BB_SEARCH_CHANNEL_TOOL: ToolSchema = {
+  name: 'bb_search_channel',
+  description:
+    'Search channel entries with regex pattern matching and cursor-based pagination. ' +
+    'More powerful than bb_read — supports regex, author/tag/priority/date filters, and stable pagination.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      pattern: {
+        type: 'string',
+        description: 'Regex pattern to match against content, author, and tags. Case-insensitive. Max 200 chars.',
+      },
+      channel: {
+        type: 'string',
+        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests'],
+        description: 'Specific channel to search. If omitted, searches all channels.',
+      },
+      cursor: {
+        type: 'string',
+        description: 'Opaque cursor from a previous result for pagination.',
+      },
+      limit: {
+        type: 'number',
+        description: 'Maximum items per page. Default: 50.',
+      },
+      author: {
+        type: 'string',
+        description: 'Filter by author.',
+      },
+      tags: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Filter by tags (entry must have ALL specified tags).',
+      },
+      min_priority: {
+        type: 'number',
+        description: 'Minimum priority (0=low, 1=medium, 2=high).',
+      },
+      max_priority: {
+        type: 'number',
+        description: 'Maximum priority.',
+      },
+      since: {
+        type: 'number',
+        description: 'Only items created at or after this Unix timestamp (ms).',
+      },
+      until: {
+        type: 'number',
+        description: 'Only items created at or before this Unix timestamp (ms).',
+      },
+    },
+    required: [],
+  },
+}
+
+const BB_SEARCH_REPORT_TOOL: ToolSchema = {
+  name: 'bb_search_report',
+  description:
+    'Search report sections with regex pattern matching and cursor-based pagination. ' +
+    'More powerful than report_view — supports regex, type/status/author/date filters.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      pattern: {
+        type: 'string',
+        description: 'Regex pattern to match against title, content, and author. Case-insensitive.',
+      },
+      cursor: {
+        type: 'string',
+        description: 'Opaque cursor from a previous result for pagination.',
+      },
+      limit: {
+        type: 'number',
+        description: 'Maximum items per page. Default: 50.',
+      },
+      type: {
+        type: 'string',
+        enum: ['finding', 'concern', 'recommendation', 'evidence', 'open-question', 'decision', 'note'],
+        description: 'Filter by section type.',
+      },
+      status: {
+        type: 'string',
+        enum: ['draft', 'active', 'superseded'],
+        description: 'Filter by section status.',
+      },
+      author: {
+        type: 'string',
+        description: 'Filter by author.',
+      },
+      since: {
+        type: 'number',
+        description: 'Only items created at or after this Unix timestamp (ms).',
+      },
+    },
+    required: [],
+  },
+}
+
+const BB_SEARCH_PLAN_TOOL: ToolSchema = {
+  name: 'bb_search_plan',
+  description:
+    'Search plan steps with regex pattern matching and cursor-based pagination. ' +
+    'Supports status/assignee/priority/date filters.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      pattern: {
+        type: 'string',
+        description: 'Regex pattern to match against title, description, and tags. Case-insensitive.',
+      },
+      cursor: {
+        type: 'string',
+        description: 'Opaque cursor from a previous result for pagination.',
+      },
+      limit: {
+        type: 'number',
+        description: 'Maximum items per page. Default: 50.',
+      },
+      status: {
+        type: 'string',
+        enum: ['proposed', 'approved', 'in-progress', 'completed', 'rejected', 'blocked', 'deferred'],
+        description: 'Filter by step status.',
+      },
+      assignee: {
+        type: 'string',
+        description: 'Filter by assignee.',
+      },
+      priority: {
+        type: 'string',
+        enum: ['high', 'medium', 'low'],
+        description: 'Filter by step priority.',
+      },
+      since: {
+        type: 'number',
+        description: 'Only items created at or after this Unix timestamp (ms).',
+      },
+    },
+    required: [],
+  },
+}
+
 // Report Tools (re-exported with same names for drop-in replacement)
 
 export const REPORT_ADD_SECTION_TOOL: ToolSchema = {
@@ -743,6 +934,10 @@ export const BLACKBOARD_TOOL_NAMES = new Set([
   ...SCRATCHPAD_TOOL_NAMES,
   ...ARTIFACT_TOOL_NAMES,
   'bb_tool_log',
+  'bb_search',
+  'bb_search_channel',
+  'bb_search_report',
+  'bb_search_plan',
   ...REPORT_TOOL_NAMES,
   ...ALL_PLAN_TOOL_NAMES,
   'commit_changes',
@@ -773,6 +968,10 @@ const BOARD_TOOLS_ALL: ToolSchema[] = [
   BB_TRACK_ARTIFACT_TOOL,
   BB_GET_ARTIFACTS_TOOL,
   BB_TOOL_LOG_TOOL,
+  BB_SEARCH_TOOL,
+  BB_SEARCH_CHANNEL_TOOL,
+  BB_SEARCH_REPORT_TOOL,
+  BB_SEARCH_PLAN_TOOL,
   COMMIT_CHANGES_TOOL,
 ]
 
@@ -896,6 +1095,11 @@ export function handleBlackboardToolCall(
     if (name === 'bb_get_artifacts') return handleGetArtifacts(blackboard, input)
 
     if (name === 'bb_tool_log') return handleToolLog(blackboard, input)
+
+    if (name === 'bb_search') return handleBbSearch(blackboard, input)
+    if (name === 'bb_search_channel') return handleBbSearchChannel(blackboard, input)
+    if (name === 'bb_search_report') return handleBbSearchReport(blackboard, input)
+    if (name === 'bb_search_plan') return handleBbSearchPlan(blackboard, input)
 
     if (name === 'report_add_section') return handleReportAddSection(blackboard, input, posture)
     if (name === 'report_view') return handleReportView(blackboard, input)
@@ -1464,4 +1668,114 @@ function formatPlan(plan: import('../../../types/flux-team.js').Plan): Record<st
       claimed,
     },
   }
+}
+
+// ── Search Handlers ──
+
+function handleBbSearch(blackboard: Blackboard, input: Record<string, unknown>): string {
+  const pattern = String(input.pattern ?? '')
+  if (!pattern) return JSON.stringify({ error: 'pattern is required.' })
+
+  const boards = Array.isArray(input.boards)
+    ? input.boards.map(String) as import('../../../types/blackboard-search.js').SearchableBoard[]
+    : undefined
+  const limitPerBoard = typeof input.limit_per_board === 'number' ? input.limit_per_board : undefined
+  const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
+  const author = typeof input.author === 'string' ? input.author : undefined
+  const since = typeof input.since === 'number' ? input.since : undefined
+  const until = typeof input.until === 'number' ? input.until : undefined
+
+  const result = blackboard.searchAll({
+    pattern,
+    boards,
+    limitPerBoard,
+    cursor,
+    author,
+    since,
+    until,
+  })
+
+  return JSON.stringify(result)
+}
+
+function handleBbSearchChannel(blackboard: Blackboard, input: Record<string, unknown>): string {
+  const channel = typeof input.channel === 'string'
+    ? input.channel as import('../../../types/flux-team.js').BlackboardChannel
+    : undefined
+  const pattern = typeof input.pattern === 'string' ? input.pattern : undefined
+  const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
+  const limit = typeof input.limit === 'number' ? input.limit : undefined
+  const author = typeof input.author === 'string' ? input.author : undefined
+  const tags = Array.isArray(input.tags) ? input.tags.map(String) : undefined
+  const minPriority = typeof input.min_priority === 'number' ? input.min_priority : undefined
+  const maxPriority = typeof input.max_priority === 'number' ? input.max_priority : undefined
+  const since = typeof input.since === 'number' ? input.since : undefined
+  const until = typeof input.until === 'number' ? input.until : undefined
+
+  const result = blackboard.searchChannel({
+    channel,
+    pattern,
+    cursor,
+    limit,
+    author,
+    tags,
+    minPriority,
+    maxPriority,
+    since,
+    until,
+  })
+
+  return JSON.stringify(result)
+}
+
+function handleBbSearchReport(blackboard: Blackboard, input: Record<string, unknown>): string {
+  const pattern = typeof input.pattern === 'string' ? input.pattern : undefined
+  const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
+  const limit = typeof input.limit === 'number' ? input.limit : undefined
+  const type = typeof input.type === 'string'
+    ? input.type as import('../../../types/flux-team.js').ReportSectionType
+    : undefined
+  const status = typeof input.status === 'string'
+    ? input.status as import('../../../types/flux-team.js').ReportSectionStatus
+    : undefined
+  const author = typeof input.author === 'string' ? input.author : undefined
+  const since = typeof input.since === 'number' ? input.since : undefined
+
+  const result = blackboard.searchReport({
+    pattern,
+    cursor,
+    limit,
+    type,
+    status,
+    author,
+    since,
+  })
+
+  return JSON.stringify(result)
+}
+
+function handleBbSearchPlan(blackboard: Blackboard, input: Record<string, unknown>): string {
+  const pattern = typeof input.pattern === 'string' ? input.pattern : undefined
+  const cursor = typeof input.cursor === 'string' ? input.cursor : undefined
+  const limit = typeof input.limit === 'number' ? input.limit : undefined
+  const status = typeof input.status === 'string'
+    ? input.status as import('../../../types/flux-team.js').PlanStepStatus
+    : undefined
+  const assignee = typeof input.assignee === 'string' ? input.assignee : undefined
+  const priority = typeof input.priority === 'string'
+    ? input.priority as 'high' | 'medium' | 'low'
+    : undefined
+  const since = typeof input.since === 'number' ? input.since : undefined
+
+  const result = blackboard.searchPlan({
+    pattern,
+    cursor,
+    limit,
+    status,
+    assignee,
+    priority,
+    since,
+  })
+
+  return JSON.stringify(result)
 }
