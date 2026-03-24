@@ -1,18 +1,18 @@
 /**
  * Helix Postures — System prompts for the inverted-pyramid agent pattern.
  *
- * Three concurrent postures:
- *   - Unity (Worker): Primary implementer, full tool access, creates artifacts
- *   - Yang (Assertive Reviewer): Investigates Unity's work, advocates for strengths,
- *     debates with Yin via DialecticChannel
- *   - Yin (Cautious Reviewer): Stress-tests Unity's work, finds risks and issues,
- *     debates with Yang via DialecticChannel
+ * Three directions:
+ *   - Unifying (unity): Primary implementer, full tool access, creates artifacts
+ *   - Expansive (yang): Investigates work, advocates for strengths,
+ *     debates with contractive direction via DialecticChannel
+ *   - Contractive (yin): Stress-tests work, finds risks and issues,
+ *     debates with expansive direction via DialecticChannel
  *
  * Communication:
- *   Unity <-> Reviewers: WorkStream (work units from Unity, nudges from reviewers)
- *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
+ *   Builder <-> Reviewers: WorkStream (work units from builder, nudges from reviewers)
+ *   Expansive <-> Contractive: DialecticChannel (findings, challenges, concessions)
  *
- * Prompts are composed from the global posture store (shared/posture-store.ts).
+ * All prompts are composed from the global posture store (shared/posture-store.ts).
  */
 
 import type { HelixPosture } from './types.js'
