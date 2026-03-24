@@ -28,6 +28,9 @@ import type {
   ReportSearchOptions,
   CrossBoardSearchOptions,
   CrossBoardSearchResult,
+  ChangeWindow,
+  BlackboardWatchResult,
+  SearchableBoard,
 } from '../../../types/blackboard-search.js'
 import type {
   FluxScratchpadEntry,
@@ -227,6 +230,19 @@ export class GlobalBlackboardRegistry {
     if (!entry) return null
     entry.lastActivity = Date.now()
     return entry.blackboard.searchAll(opts)
+  }
+
+  /** Get accumulated changes since a timestamp on a named board. */
+  watch(
+    name: string,
+    window: ChangeWindow,
+    boards?: SearchableBoard[],
+    includeContent?: boolean,
+  ): BlackboardWatchResult | null {
+    const entry = this.boards.get(name)
+    if (!entry) return null
+    entry.lastActivity = Date.now()
+    return entry.blackboard.buildWatchResult(name, window, boards, includeContent)
   }
 
   /**

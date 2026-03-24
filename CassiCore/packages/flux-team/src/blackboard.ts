@@ -50,12 +50,17 @@ import type {
   CrossBoardResultItem,
   BoardSearchResult,
   SearchableBoard,
+  ChangeWindow,
+  BoardChanges,
+  BlackboardWatchResult,
+  WatchSummary,
 } from '../../../types/blackboard-search.js'
 import {
   compilePattern,
   matchesAny,
   normalizeLimit,
   decodeCursor,
+  encodeCursor,
   paginate,
   passesBaseFilters,
   decodeCompositeCursor,
@@ -1701,6 +1706,162 @@ export class Blackboard {
     }
 
     return result
+  }
+
+  // ─────────────────────────────────────────────────────────────────────
+  // Change Tracking (for bb_global_watch)
+  // ─────────────────────────────────────────────────────────────────────
+
+  /**
+   * Get all changes across all boards within a time window.
+   * Returns items created or updated between `since` and `until` (inclusive).
+   * Used by the `bb_global_watch` MCP tool for accumulated change polling.
+   */
+  getChangesSince(window: ChangeWindow): BoardChanges {
+    const since = window.since
+    const until = window.until ?? Date.now()
+
+    const changes: BoardChanges = {
+      channels: [],
+      scratchpad: [],
+      toolLog: [],
+      artifacts: [],
+      plan: [],
+      report: [],
+    }
+
+    // Channels — filter by timestamp
+    for (const ch of CHANNELS) {
+      for (const entry of this.channels[ch]) {
+        if (entry.timestamp >= since && entry.timestamp <= until) {
+          changes.channels.push({ channel: ch, entry })
+        }
+      }
+    }
+
+    // Scratchpad — filter by createdAt
+    const now = Date.now()
+    for (const [, entry] of this.scratchpad) {
+      const expired = now - entry.createdAt >= entry.ttlMs
+      if (expired) continue
+      if (entry.createdAt >= since && entry.createdAt <= until) {
+        changes.scratchpad.push(entry)
+      }
+    }
+
+    // Tool log — filter by timestamp
+    for (const record of this.toolLog) {
+      if (record.timestamp >= since && record.timestamp <= until) {
+        changes.toolLog.push(record)
+      }
+    }
+
+    // Artifacts — filter by timestamp
+    for (const [, entry] of this.artifacts) {
+      if (entry.timestamp >= since && entry.timestamp <= until) {
+        changes.artifacts.push(entry)
+      }
+    }
+
+    // Plan steps — filter by createdAt or updatedAt
+    if (this.plan) {
+      for (const step of this.plan.steps) {
+        if (step.createdAt >= since && step.createdAt <= until) {
+          changes.plan.push({ step, operation: 'created' })
+        } else if (step.updatedAt >= since && step.updatedAt <= until) {
+          changes.plan.push({ step, operation: 'updated' })
+        }
+      }
+    }
+
+    // Report sections — filter by createdAt or updatedAt
+    if (this.report) {
+      for (const section of this.report.sections) {
+        if (section.createdAt >= since && section.createdAt <= until) {
+          changes.report.push({ section, operation: 'created' })
+        } else if (section.updatedAt >= since && section.updatedAt <= until) {
+          if (section.status === 'superseded') {
+            changes.report.push({ section, operation: 'superseded' })
+          } else {
+            changes.report.push({ section, operation: 'updated' })
+          }
+        }
+      }
+    }
+
+    return changes
+  }
+
+  /**
+   * Build a complete watch result with summary statistics and cursor.
+   */
+  buildWatchResult(
+    boardName: string,
+    window: ChangeWindow,
+    boards?: SearchableBoard[],
+    includeContent = true,
+  ): BlackboardWatchResult {
+    const pollTime = Date.now()
+    const until = window.until ?? pollTime
+    const changes = this.getChangesSince({ since: window.since, until })
+
+    // Filter to requested boards
+    const filteredChanges: BoardChanges = {
+      channels: boards && !boards.includes('channel') ? [] : changes.channels,
+      scratchpad: boards && !boards.includes('scratchpad') ? [] : changes.scratchpad,
+      toolLog: boards && !boards.includes('toolLog') ? [] : changes.toolLog,
+      artifacts: boards && !boards.includes('artifact') ? [] : changes.artifacts,
+      plan: boards && !boards.includes('plan') ? [] : changes.plan,
+      report: boards && !boards.includes('report') ? [] : changes.report,
+    }
+
+    // Compute summary
+    const byBoard: Record<string, number> = {}
+    const byOperation: Record<string, number> = { created: 0, updated: 0, deleted: 0 }
+    let totalChanges = 0
+
+    if (filteredChanges.channels.length) { byBoard.channel = filteredChanges.channels.length; totalChanges += filteredChanges.channels.length; byOperation.created += filteredChanges.channels.length }
+    if (filteredChanges.scratchpad.length) { byBoard.scratchpad = filteredChanges.scratchpad.length; totalChanges += filteredChanges.scratchpad.length; byOperation.created += filteredChanges.scratchpad.length }
+    if (filteredChanges.toolLog.length) { byBoard.toolLog = filteredChanges.toolLog.length; totalChanges += filteredChanges.toolLog.length; byOperation.created += filteredChanges.toolLog.length }
+    if (filteredChanges.artifacts.length) { byBoard.artifact = filteredChanges.artifacts.length; totalChanges += filteredChanges.artifacts.length; byOperation.created += filteredChanges.artifacts.length }
+    if (filteredChanges.plan.length) {
+      byBoard.plan = filteredChanges.plan.length; totalChanges += filteredChanges.plan.length
+      for (const p of filteredChanges.plan) byOperation[p.operation] = (byOperation[p.operation] ?? 0) + 1
+    }
+    if (filteredChanges.report.length) {
+      byBoard.report = filteredChanges.report.length; totalChanges += filteredChanges.report.length
+      for (const r of filteredChanges.report) {
+        const op = r.operation === 'superseded' ? 'deleted' : r.operation
+        byOperation[op] = (byOperation[op] ?? 0) + 1
+      }
+    }
+
+    // Strip content if not requested
+    const outputChanges = includeContent ? filteredChanges : {
+      channels: filteredChanges.channels.map(c => ({ channel: c.channel, entry: { ...c.entry, content: '' } })),
+      scratchpad: filteredChanges.scratchpad.map(s => ({ ...s, value: '' })),
+      toolLog: filteredChanges.toolLog.map(t => ({ ...t, input: undefined, output: undefined, result: '' })),
+      artifacts: filteredChanges.artifacts,
+      plan: filteredChanges.plan.map(p => ({ step: { ...p.step, description: '' }, operation: p.operation })),
+      report: filteredChanges.report.map(r => ({ section: { ...r.section, content: '' }, operation: r.operation })),
+    }
+
+    // Build cursor encoding the window end
+    const nextCursor = encodeCursor({ ts: until, id: 'watch-poll' })
+
+    return {
+      boardName,
+      pollTime,
+      windowStart: window.since,
+      windowEnd: until,
+      nextCursor,
+      summary: {
+        totalChanges,
+        byBoard: byBoard as Record<SearchableBoard, number>,
+        byOperation: byOperation as Record<'created' | 'updated' | 'deleted', number>,
+      },
+      changes: outputChanges,
+    }
   }
 
 
