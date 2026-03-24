@@ -235,3 +235,85 @@ export interface CrossBoardSearchResult {
   /** Composite cursor encoding all per-board cursors */
   cursor?: string
 }
+
+// ── Blackboard Watch Tool Types ──
+
+/**
+ * Time window for change tracking.
+ * Used by getChangesSince() methods.
+ */
+export interface ChangeWindow {
+  /** Start timestamp (ms since epoch) */
+  since: number
+  /** End timestamp (ms since epoch). Defaults to Date.now() if not specified. */
+  until?: number
+}
+
+/**
+ * Aggregated changes from all board types within a time window.
+ */
+export interface BoardChanges {
+  /** New or updated channel entries, tagged with their channel */
+  channels: Array<{ channel: BlackboardChannel; entry: BlackboardEntry }>
+  /** Scratchpad entries created or updated in window */
+  scratchpad: Array<FluxScratchpadEntry>
+  /** Tool log records in window */
+  toolLog: Array<FluxToolRecord>
+  /** Artifact entries in window */
+  artifacts: Array<ArtifactEntry>
+  /** Plan steps created or updated in window, with operation type */
+  plan: Array<{ step: PlanStep; operation: 'created' | 'updated' }>
+  /** Report sections created, updated, or superseded in window, with operation type */
+  report: Array<{ section: ReportSection; operation: 'created' | 'updated' | 'superseded' }>
+}
+
+/**
+ * Input options for the bb_global_watch MCP tool.
+ */
+export interface BlackboardWatchOptions {
+  /** Board name to watch */
+  name: string
+  /** Accumulation window in seconds (default: 60). Used if since/cursor not provided. */
+  intervalSeconds?: number
+  /** Unix timestamp (ms) to get changes since. Overrides intervalSeconds. */
+  since?: number
+  /** Opaque cursor from previous poll. Overrides since and intervalSeconds. */
+  cursor?: string
+  /** Filter which board types to include (default: all) */
+  boards?: SearchableBoard[]
+  /** Include full entry content or metadata only (default: true) */
+  includeContent?: boolean
+}
+
+/**
+ * Summary statistics for watch result.
+ */
+export interface WatchSummary {
+  /** Total number of changes across all boards */
+  totalChanges: number
+  /** Count of changes by board type */
+  byBoard: Record<SearchableBoard, number>
+  /** Count of changes by operation type (created, updated, deleted/superseded) */
+  byOperation: Record<'created' | 'updated' | 'deleted', number>
+}
+
+/**
+ * Output shape for the bb_global_watch tool.
+ * Contains accumulated changes over the specified time window.
+ */
+export interface BlackboardWatchResult {
+  /** Board name that was watched */
+  boardName: string
+  /** Current timestamp when poll was executed */
+  pollTime: number
+  /** Start of the accumulation window (ms) */
+  windowStart: number
+  /** End of the accumulation window (ms) */
+  windowEnd: number
+  /** Opaque cursor for next poll (encodes windowEnd) */
+  nextCursor: string
+  /** Summary statistics */
+  summary: WatchSummary
+  /** Detailed changes by board type */
+  changes: BoardChanges
+}

@@ -107,3 +107,37 @@ export interface BaseAgentSessionOpts<TPosture extends BasePosture = BasePosture
   postureSlot?: string
   moduleDebugSessionId?: string
 }
+
+
+/**
+ * Agent session state for pause/resume infrastructure.
+ */
+export type AgentSessionState = 'running' | 'paused' | 'concluded' | 'cancelled' | 'errored'
+
+
+/**
+ * Serializable snapshot of an agent session's state.
+ * Used for pause/resume, debugging, and observability.
+ */
+export interface AgentSessionSnapshot {
+  state: AgentSessionState
+  iterationCount: number
+  toolCallCount: number
+  tokensUsed: number
+  messageCount: number
+  pausedAt?: number
+  resumedAt?: number
+}
+
+
+/**
+ * Interface for pausable agent sessions.
+ * Implemented by BaseAgentSession and propagated through pipeline orchestrators.
+ */
+export interface PausableSession {
+  pause(): void
+  resume(): void
+  isPaused(): boolean
+  getState(): AgentSessionState
+  getSessionSnapshot(): AgentSessionSnapshot
+}
