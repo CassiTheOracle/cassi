@@ -60,6 +60,7 @@ export type RuntimeEvent =
    | { type: "provider:request_aborted"; providerId: string; requestId: string; sessionId: string }
    | { type: "provider:deduplicated"; providerId: string; sessionId: string; existingRequestId: string }
    | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number }
+   | { type: "provider:rate_learned"; providerId: string; model: string; learnedWindows: Array<{ label: string; observedCount: number; safeCount: number }>; timestamp: Date }
    | { type: "provider:error_reset"; providerId: string }
    | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
    | { type: "provider:request_chunk"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; chunkType: "token" | "thinking" | "tool_use"; text?: string; toolCall?: { id: string; name: string; input: Record<string, unknown> }; timestamp: Date }
