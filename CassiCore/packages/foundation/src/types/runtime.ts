@@ -85,6 +85,20 @@ export interface CompletionOpts {
    * Nullable — background intelligence calls (thinker, subconscious) may not have one.
    */
   sessionId?: string;
+  /**
+   * Warm session key for the copilot-sdk provider's infinite session pattern.
+   *
+   * When set, the SDK session is kept alive across successive complete() calls
+   * by blocking a `finished()` tool handler between iterations. All iterations
+   * within the same warm session are part of a single premium request.
+   *
+   * The key identifies the logical session — e.g. `lumen:session123:yang`.
+   * Sessions with the same key reuse the same warm SDK session.
+   *
+   * When not set, the provider falls back to the standard create-and-destroy
+   * pattern (one SDK session per complete() call).
+   */
+  warmSessionKey?: string;
 }
 
 export interface CompletionChunk {

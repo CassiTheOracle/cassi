@@ -83,6 +83,7 @@ export type RuntimeEvent =
   | { type: "tool:unregistered"; name: string; server?: string }
   // Tool execution events — emitted after every tool call completes
   | { type: "tool:executed"; sessionId: string; toolName: string; durationMs: number; isError: boolean; source?: string; timestamp: Date }
+  | { type: "tool:enriched"; sessionId: string; toolName: string; durationMs: number; isError: boolean; enrichment: { insights?: Array<{ source: string; text: string; relevance: number }>; signals?: Array<{ type: string; pattern: string; count: number }>; riskScore?: number; trustScore?: number }; timestamp: Date }
   // Autonomy lifecycle events
   | { type: "autonomy:started"; agentId: string; options?: Record<string, unknown> }
   | { type: "autonomy:stopped"; agentId: string; reason?: string }
