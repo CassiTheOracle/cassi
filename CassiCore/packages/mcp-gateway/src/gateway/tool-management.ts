@@ -184,7 +184,51 @@ export async function executeCassiCoreTool(
 ): Promise<any> {
   logger.info('Executing CassiCore tool', { tool: toolName, args });
 
-  // Map tool names to CassiCore API endpoints
+  const knownTools = new Set([
+    'bash', 'read', 'write', 'edit', 'mkdir', 'delete',
+    'exists', 'web_fetch', 'web_search',
+  ]);
+  if (!knownTools.has(toolName)) {
+    throw new Error(`Unknown tool: ${toolName}`);
+  }
+
+  // Primary path: route through ToolExecutor via /tools/execute.
+  // This provides enrichment injection, permissions, trust scoring, and circuit breakers.
+  try {
+    const response = await fetchWithTimeout(`${baseUrl}/tools/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: toolName, input: args }),
+      timeoutMs: toolName === 'bash' ? 120_000 : DEFAULT_FETCH_TIMEOUT_MS,
+    });
+
+    if (response.ok) {
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('json')) {
+        const result = await response.json();
+        if (result && typeof result.content === 'string') {
+          return { output: result.content, isError: result.isError ?? false, durationMs: result.durationMs };
+        }
+        return result;
+      }
+      return { output: await response.text() };
+    }
+
+    if (response.status === 503) {
+      logger.debug('ToolExecutor unavailable, falling back to direct endpoint', { tool: toolName });
+    } else {
+      const error = await response.text().catch(() => '(unreadable body)');
+      throw new Error(`CassiCore error: ${error}`);
+    }
+  } catch (error: any) {
+    if (!String(error).includes('CassiCore error')) {
+      logger.debug('ToolExecutor path failed, falling back', { tool: toolName, error: String(error) });
+    } else {
+      throw error;
+    }
+  }
+
+  // Fallback: direct tool endpoints (no enrichment)
   const endpointMap: Record<string, string> = {
     bash: '/tools/bash',
     read: '/tools/read',
@@ -197,20 +241,13 @@ export async function executeCassiCoreTool(
     web_search: '/tools/web_search',
   };
 
-  const endpoint = endpointMap[toolName];
-  if (!endpoint) {
-    throw new Error(`Unknown tool: ${toolName}`);
-  }
-
+  const endpoint = endpointMap[toolName]!;
   const url = `${baseUrl}${endpoint}`;
-
-  // Determine HTTP method based on tool
   const readTools = ['read', 'exists'];
   const method = readTools.includes(toolName) ? 'GET' : 'POST';
 
   try {
     let response;
-
     if (method === 'GET') {
       const queryParams = new URLSearchParams(args).toString();
       response = await fetchWithTimeout(`${url}?${queryParams}`, {
@@ -231,7 +268,6 @@ export async function executeCassiCoreTool(
       throw new Error(`CassiCore error: ${error}`);
     }
 
-    // Safely parse JSON — handle non-JSON responses from error pages or proxy
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('json')) {
       return await response.json();
