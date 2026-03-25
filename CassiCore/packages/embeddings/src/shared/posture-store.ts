@@ -17,7 +17,7 @@
 
 
 export type PostureName = 'yang' | 'yin' | 'unity'
-export type AgentType = 'lumen' | 'dyad' | 'helix'
+export type AgentType = 'lumen' | 'dyad' | 'helix' | 'constellation'
 
 
 // ═══════════════════════════════════════════════════════════════════
