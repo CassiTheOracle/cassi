@@ -25,41 +25,67 @@ interface RequestEntry {
 }
 
 /**
- * Rate limit configuration per provider.
+ * Provider configuration — only concurrency and error cooldown.
+ * Rate limits are learned adaptively from 429 responses, not pre-configured.
  */
-interface RateLimitConfig {
-  /** Maximum requests per window */
-  maxRequests: number
-  /** Window size in milliseconds */
-  windowMs: number
+interface ProviderConfig {
   /** Max concurrent requests to this provider */
   maxConcurrent: number
-  /** Cooldown after errors (ms) */
+  /** Cooldown after non-rate-limit errors (ms) */
   errorCooldownMs: number
 }
 
 /**
- * Default rate limits.
- * These are intentionally conservative enough to prevent runaway loops,
- * while still being overrideable through config per provider.
+ * Timescale windows for adaptive rate limit learning.
+ * When a 429 is received, we snapshot the request count at all timescales.
+ * Each timescale learns its limit independently — providers often enforce
+ * different ceilings at different horizons (e.g., 60 RPM but 1000 RPH).
  */
-const DEFAULT_RATE_LIMITS: Record<string, RateLimitConfig> = {
+const RATE_WINDOWS = [
+  { label: '1m',  windowMs: 60_000 },
+  { label: '10m', windowMs: 600_000 },
+  { label: '1h',  windowMs: 3_600_000 },
+] as const
+
+type WindowLabel = typeof RATE_WINDOWS[number]['label']
+
+/** Safety margin: use 90% of the rate that triggered a 429 */
+const SAFETY_MARGIN = 0.90
+
+/** After this many clean windows, probe upward by 5% */
+const PROBE_UP_CLEAN_WINDOWS = 5
+const PROBE_UP_FACTOR = 1.05
+
+/** When hit again at same timescale, tighten by this factor */
+const TIGHTEN_FACTOR = 0.95
+
+/**
+ * A learned rate limit at a specific timescale for a specific model.
+ */
+interface LearnedLimit {
+  /** Requests in this window when the 429 fired */
+  observedCount: number
+  /** Safe count = floor(observedCount * SAFETY_MARGIN), tightened on repeat hits */
+  safeCount: number
+  /** When the 429 was last observed at this timescale */
+  lastHitAt: number
+  /** How many times we've been rate-limited at this timescale */
+  hitCount: number
+}
+
+/**
+ * Default provider configs — only concurrency and error cooldown.
+ */
+const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   'github-copilot': {
-    maxRequests: 180,
-    windowMs: 60_000,
     maxConcurrent: 12,
     errorCooldownMs: 5_000,
   },
   'kimi-coding': {
-    maxRequests: 180,
-    windowMs: 60_000,
     maxConcurrent: 12,
     errorCooldownMs: 5_000,
   },
-  // Default for any other provider
   'default': {
-    maxRequests: 120,
-    windowMs: 60_000,
     maxConcurrent: 8,
     errorCooldownMs: 5_000,
   }
@@ -78,19 +104,17 @@ const DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEO
 logger.debug(`Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 1000}s`)
 
 // Exports for admin APIs to query provider-specific defaults
-export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_RATE_LIMITS
+export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_PROVIDER_CONFIGS
 export const GLOBAL_PROVIDER_DEFAULTS = {
   timeoutMs: DEFAULT_PER_REQUEST_TIMEOUT_MS,
 }
 
-function getConfiguredRateLimits(config: IConfig | undefined, providerId: string): Partial<RateLimitConfig> {
+function getConfiguredProviderConfig(config: IConfig | undefined, providerId: string): Partial<ProviderConfig> {
   if (!config) return {}
 
   return {
-    maxRequests: config.get<number>(`providers.${providerId}.maxRequests`, config.get<number>('providers.default.maxRequests', DEFAULT_RATE_LIMITS.default.maxRequests)),
-    windowMs: config.get<number>(`providers.${providerId}.windowMs`, config.get<number>('providers.default.windowMs', DEFAULT_RATE_LIMITS.default.windowMs)),
-    maxConcurrent: config.get<number>(`providers.${providerId}.maxConcurrent`, config.get<number>('providers.default.maxConcurrent', DEFAULT_RATE_LIMITS.default.maxConcurrent)),
-    errorCooldownMs: config.get<number>(`providers.${providerId}.errorCooldownMs`, config.get<number>('providers.default.errorCooldownMs', DEFAULT_RATE_LIMITS.default.errorCooldownMs)),
+    maxConcurrent: config.get<number>(`providers.${providerId}.maxConcurrent`, config.get<number>('providers.default.maxConcurrent', DEFAULT_PROVIDER_CONFIGS.default.maxConcurrent)),
+    errorCooldownMs: config.get<number>(`providers.${providerId}.errorCooldownMs`, config.get<number>('providers.default.errorCooldownMs', DEFAULT_PROVIDER_CONFIGS.default.errorCooldownMs)),
   }
 }
 
@@ -100,10 +124,8 @@ export function listProviderConfigKeys() {
   }
 
   const providerSpecific: Record<string, Record<string, { default: number; description: string }>> = {}
-  for (const [provId, cfg] of Object.entries(DEFAULT_RATE_LIMITS)) {
+  for (const [provId, cfg] of Object.entries(DEFAULT_PROVIDER_CONFIGS)) {
     providerSpecific[provId] = {
-      [`providers.${provId}.maxRequests`]: { default: cfg.maxRequests, description: 'Max requests per provider per window' },
-      [`providers.${provId}.windowMs`]: { default: cfg.windowMs, description: 'Window duration for provider rate limiting (ms)' },
       [`providers.${provId}.maxConcurrent`]: { default: cfg.maxConcurrent, description: 'Max concurrent requests to this provider' },
       [`providers.${provId}.errorCooldownMs`]: { default: cfg.errorCooldownMs, description: 'Cooldown after provider errors (ms)' },
     }
@@ -133,13 +155,18 @@ export class CentralizedProvider implements IProvider {
   private wrapped: IProvider
   private logger: ILogger
   private bus: IEventBus
-  private config: RateLimitConfig
+  private config: ProviderConfig
 
   // In-flight request tracking: sessionId → RequestEntry
   private inFlight = new Map<string, RequestEntry>()
 
-  // Recent request history for rate limiting: providerId[]
-  private requestHistory: number[] = []
+  // Per-model request history: model → array of timestamps
+  // Used for both rate calculation and adaptive limit enforcement
+  private modelHistory = new Map<string, number[]>()
+
+  // Learned rate limits: `${model}:${windowLabel}` → LearnedLimit
+  // Populated when 429 errors are detected; empty means no throttling
+  private learnedLimits = new Map<string, LearnedLimit>()
 
   // Error tracking for cooldown
   private lastErrorAt = 0
@@ -161,7 +188,7 @@ export class CentralizedProvider implements IProvider {
     wrapped: IProvider,
     logger: ILogger,
     bus: IEventBus,
-    rateLimits?: Partial<RateLimitConfig>,
+    providerConfig?: Partial<ProviderConfig>,
   ) {
     this.wrapped = wrapped
     this.id = wrapped.id
@@ -169,13 +196,11 @@ export class CentralizedProvider implements IProvider {
     this.logger = logger.child(`provider:${wrapped.id}`)
     this.bus = bus
 
-    const defaults = DEFAULT_RATE_LIMITS[wrapped.id] ?? {
-      maxRequests: DEFAULT_RATE_LIMITS.default.maxRequests,
-      windowMs: DEFAULT_RATE_LIMITS.default.windowMs,
-      maxConcurrent: DEFAULT_RATE_LIMITS.default.maxConcurrent,
-      errorCooldownMs: DEFAULT_RATE_LIMITS.default.errorCooldownMs,
+    const defaults = DEFAULT_PROVIDER_CONFIGS[wrapped.id] ?? {
+      maxConcurrent: DEFAULT_PROVIDER_CONFIGS.default.maxConcurrent,
+      errorCooldownMs: DEFAULT_PROVIDER_CONFIGS.default.errorCooldownMs,
     }
-    this.config = { ...defaults, ...rateLimits }
+    this.config = { ...defaults, ...providerConfig }
   }
 
   /**
@@ -233,10 +258,10 @@ export class CentralizedProvider implements IProvider {
       try { this.logger.debug(`[dedup] allowConcurrent set — skipping dedup for session ${sessionId.slice(-8)}`) } catch { }
     }
 
-    const rateLimitResult = this.checkRateLimit()
+    const rateLimitResult = this.checkRateLimit(opts.model || this.models[0])
     if (!rateLimitResult.allowed) {
       this.metrics.rateLimited++
-      this.logger.warn(`[ratelimit] Provider ${this.id} at capacity, must wait ${rateLimitResult.retryAfterMs}ms`)
+      this.logger.warn(`[ratelimit] Provider ${this.id} model=${opts.model || this.models[0]} at learned limit (${rateLimitResult.windowLabel}), must wait ${rateLimitResult.retryAfterMs}ms`)
       this.bus.emit({
         type: 'provider:rate_limited',
         providerId: this.id,
@@ -265,7 +290,7 @@ export class CentralizedProvider implements IProvider {
     }
     // Reserve slot atomically - this must happen immediately after check
     this.inFlight.set(sessionId, entry)
-    this.recordRequest()
+    this.recordRequest(rawModel)
 
     // Normalize model reporting to include provider prefix when not already present
     let reportedModel = entry.model || ''
@@ -412,6 +437,12 @@ export class CentralizedProvider implements IProvider {
         timestamp: new Date(),
       })
 
+      // Adaptive rate limit learning: if this looks like a rate limit error,
+      // record the current request rate and learn the limit for this model
+      if (entry.error && this.isRateLimitError(entry.error)) {
+        this.onRateLimitHit(rawModel)
+      }
+
       throw err
     } finally {
       if (timeoutHandle) clearTimeout(timeoutHandle)
@@ -476,7 +507,8 @@ export class CentralizedProvider implements IProvider {
       ...this.metrics,
       inFlightCount: this.inFlight.size,
       consecutiveErrors: this.consecutiveErrors,
-      currentRate: this.calculateCurrentRate(),
+      currentRates: this.calculateCurrentRates(),
+      learnedLimits: Object.fromEntries(this.learnedLimits),
       globalConfig: { ...this.config },
     }
   }
@@ -521,11 +553,12 @@ export class CentralizedProvider implements IProvider {
   }
 
   /**
-   * Reset rate limit history (for testing or manual intervention).
+   * Reset rate limit history and learned limits (for testing or manual intervention).
    */
   resetRateLimitHistory(): void {
-    this.requestHistory = []
-    this.logger.info('Rate limit history cleared')
+    this.modelHistory.clear()
+    this.learnedLimits.clear()
+    this.logger.info('Rate limit history and learned limits cleared')
   }
 
   /**
@@ -627,38 +660,156 @@ export class CentralizedProvider implements IProvider {
     return (hash >>> 0).toString(36) // Unsigned to avoid negative values
   }
 
-  private checkRateLimit(): { allowed: boolean; retryAfterMs: number } {
-    // Check concurrent limit
+  // ——————————————————————————————————————————————————————————————
+  // Adaptive rate limiting
+  // ——————————————————————————————————————————————————————————————
+
+  /**
+   * Check all timescales for learned rate limits on this model.
+   * Returns whether the request is allowed and, if blocked, which window triggered it.
+   */
+  private checkRateLimit(model: string): { allowed: boolean; retryAfterMs: number; windowLabel?: WindowLabel } {
+    // Check concurrent limit first
     if (this.inFlight.size >= this.config.maxConcurrent) {
-      return { allowed: false, retryAfterMs: this.timeUntilNextSlot() || 1000 }
+      return { allowed: false, retryAfterMs: 10_000 }
     }
 
-    // Check window-based rate limit
+    // Check each timescale for learned limits
     const now = Date.now()
-    const windowStart = now - this.config.windowMs
-    this.requestHistory = this.requestHistory.filter(t => t > windowStart)
-    if (this.requestHistory.length >= this.config.maxRequests) {
-      const retryAfterMs = this.timeUntilNextSlot()
-      return { allowed: false, retryAfterMs }
+    const history = this.modelHistory.get(model) || []
+
+    for (const { label, windowMs } of RATE_WINDOWS) {
+      const key = `${model}:${label}`
+      const limit = this.learnedLimits.get(key)
+      if (!limit) continue
+
+      // Count requests in this window
+      const windowStart = now - windowMs
+      const count = this.countInWindow(history, windowStart)
+
+      // Probe-up: if we haven't been hit in 5× this window duration, relax slightly
+      const timeSinceHit = now - limit.lastHitAt
+      let effectiveSafeCount = limit.safeCount
+      if (timeSinceHit > PROBE_UP_CLEAN_WINDOWS * windowMs) {
+        effectiveSafeCount = Math.min(
+          Math.ceil(limit.safeCount * PROBE_UP_FACTOR),
+          limit.observedCount // Never exceed what originally triggered the 429
+        )
+      }
+
+      if (count >= effectiveSafeCount) {
+        // Estimate when the oldest relevant request will fall out of the window
+        const oldestInWindow = this.findOldestInWindow(history, windowStart)
+        const retryAfterMs = oldestInWindow
+          ? Math.max(0, (oldestInWindow + windowMs) - now) + 100
+          : 1000
+        return { allowed: false, retryAfterMs, windowLabel: label }
+      }
     }
 
     return { allowed: true, retryAfterMs: 0 }
   }
 
-  private recordRequest(): void {
-    this.requestHistory.push(Date.now())
+  /** Record a timestamp for a model request and prune old entries */
+  private recordRequest(model: string): void {
+    const now = Date.now()
+    let history = this.modelHistory.get(model)
+    if (!history) {
+      history = []
+      this.modelHistory.set(model, history)
+    }
+    history.push(now)
+
+    // Prune timestamps older than the longest window (1 hour)
+    const maxWindow = RATE_WINDOWS[RATE_WINDOWS.length - 1].windowMs
+    const cutoff = now - maxWindow
+    // Linear scan is fine for typical sizes
+    while (history.length > 0 && history[0] < cutoff) {
+      history.shift()
+    }
   }
 
-  private timeUntilNextSlot(): number {
-    if (this.requestHistory.length === 0) return 0
-    if (this.inFlight.size >= this.config.maxConcurrent) {
-      // Estimate based on average request duration (conservative 10s)
-      return 10_000
+  /**
+   * Detect rate limit errors from error strings.
+   * Covers common patterns across providers.
+   */
+  private isRateLimitError(error: string): boolean {
+    return /429|rate.?limit|rate_limit_exceeded|resource.?exhausted|quota.?exceeded|throttl/i.test(error)
+  }
+
+  /**
+   * Called when a rate limit (429) is detected for a model.
+   * Snapshots the current request count at all timescales and learns the limit.
+   */
+  private onRateLimitHit(model: string): void {
+    const now = Date.now()
+    const history = this.modelHistory.get(model) || []
+
+    const learnedWindows: Array<{ label: WindowLabel; observedCount: number; safeCount: number }> = []
+
+    for (const { label, windowMs } of RATE_WINDOWS) {
+      const key = `${model}:${label}`
+      const windowStart = now - windowMs
+      const observedCount = this.countInWindow(history, windowStart)
+
+      // Only learn if there were actually requests in this window
+      if (observedCount <= 0) continue
+
+      const newSafeCount = Math.max(1, Math.floor(observedCount * SAFETY_MARGIN))
+      const existing = this.learnedLimits.get(key)
+
+      if (existing) {
+        // Tighten: take the minimum, then apply tighten factor
+        existing.safeCount = Math.max(1, Math.min(
+          existing.safeCount,
+          Math.floor(newSafeCount * TIGHTEN_FACTOR)
+        ))
+        existing.observedCount = Math.min(existing.observedCount, observedCount)
+        existing.lastHitAt = now
+        existing.hitCount++
+      } else {
+        this.learnedLimits.set(key, {
+          observedCount,
+          safeCount: newSafeCount,
+          lastHitAt: now,
+          hitCount: 1,
+        })
+      }
+
+      learnedWindows.push({ label, observedCount, safeCount: this.learnedLimits.get(key)!.safeCount })
     }
-    // Time until oldest request falls out of window
-    const oldest = this.requestHistory[0]
-    const expiresAt = oldest + this.config.windowMs
-    return Math.max(0, expiresAt - Date.now())
+
+    if (learnedWindows.length > 0) {
+      this.logger.info(`[rate-learn] ${this.id}/${model} hit rate limit, learned limits:`, {
+        windows: learnedWindows,
+      })
+
+      this.bus.emit({
+        type: 'provider:rate_learned',
+        providerId: this.id,
+        model,
+        learnedWindows,
+        timestamp: new Date(),
+      })
+    }
+  }
+
+  /** Count timestamps in history that are >= windowStart */
+  private countInWindow(history: number[], windowStart: number): number {
+    let count = 0
+    for (let i = history.length - 1; i >= 0; i--) {
+      if (history[i] >= windowStart) count++
+      else break // history is sorted, no need to continue
+    }
+    return count
+  }
+
+  /** Find oldest timestamp in history that is >= windowStart */
+  private findOldestInWindow(history: number[], windowStart: number): number | undefined {
+    for (let i = 0; i < history.length; i++) {
+      if (history[i] >= windowStart) return history[i]
+    }
+    return undefined
   }
 
   private checkErrorCooldown(): number {
@@ -673,18 +824,29 @@ export class CentralizedProvider implements IProvider {
     return Math.max(0, cooldown - elapsed)
   }
 
-  private calculateCurrentRate(): number {
+  /**
+   * Calculate current request rates per model across all timescales.
+   */
+  private calculateCurrentRates(): Record<string, Record<string, number>> {
     const now = Date.now()
-    const windowStart = now - this.config.windowMs
-    return this.requestHistory.filter(t => t > windowStart).length
+    const rates: Record<string, Record<string, number>> = {}
+
+    for (const [model, history] of this.modelHistory) {
+      rates[model] = {}
+      for (const { label, windowMs } of RATE_WINDOWS) {
+        const windowStart = now - windowMs
+        rates[model][label] = this.countInWindow(history, windowStart)
+      }
+    }
+    return rates
   }
 }
 
 /**
  * Wrap all providers in a map with CentralizedProvider.
- * Each provider has its own independent rate limits.
+ * Each provider has its own independent adaptive rate limiting.
  * @dep callers: centralized-provider.test.ts (tests/centralized-provider.test.ts), createProviders (core/providers/index.ts)
- * @dep calls: setBudgetTracker, getConfiguredRateLimits
+ * @dep calls: setBudgetTracker, getConfiguredProviderConfig
  * @dep module: Providers
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -697,13 +859,13 @@ export function wrapProvidersWithCentralized(
 ): Map<string, CentralizedProvider> {
   const wrapped = new Map<string, CentralizedProvider>()
   for (const [id, provider] of providers) {
-    const cp = new CentralizedProvider(provider, logger, bus, getConfiguredRateLimits(config, id))
+    const cp = new CentralizedProvider(provider, logger, bus, getConfiguredProviderConfig(config, id))
     if (budgetTracker) cp.setBudgetTracker(budgetTracker)
     wrapped.set(id, cp)
   }
-  logger.info('Providers wrapped with centralized rate limiting', {
+  logger.info('Providers wrapped with adaptive rate limiting', {
     providerCount: wrapped.size,
-    defaults: DEFAULT_RATE_LIMITS,
+    defaults: DEFAULT_PROVIDER_CONFIGS,
   })
   return wrapped
 }
