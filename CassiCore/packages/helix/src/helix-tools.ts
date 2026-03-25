@@ -94,6 +94,60 @@ export {
   SIGNAL_CONCLUSION_TOOL,
 }
 
+// Research streaming tools — lets reviewers post research findings to the blackboard
+export const STREAM_RESEARCH_FINDING_TOOL: ToolSchema = {
+  name: 'stream_research_finding',
+  description:
+    'Stream a research finding to the blackboard for shared visibility. Use this when you discover something ' +
+    'during an investigation that all postures should see. This is the incremental version of share_finding ' +
+    'for research-in-progress.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      content: {
+        type: 'string',
+        description: 'The finding content — what you discovered.',
+      },
+      source: {
+        type: 'string',
+        description: 'Source reference — file path, URL, or line number.',
+      },
+      confidence: {
+        type: 'number',
+        description: 'Confidence score from 0.0 to 1.0.',
+      },
+    },
+    required: ['content'],
+  },
+}
+
+export const POST_RESEARCH_SIGNAL_TOOL: ToolSchema = {
+  name: 'post_research_signal',
+  description:
+    'Post a dialectic signal discovered during research to the concerns channel. ' +
+    'Use when your research reveals an edge case, assumption, tension, gap, or alternative. ' +
+    'This makes the signal visible to all postures via the blackboard.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      signal_type: {
+        type: 'string',
+        enum: ['edge_case', 'assumption', 'tension', 'gap', 'alternative'],
+        description: 'The type of dialectic signal.',
+      },
+      content: {
+        type: 'string',
+        description: 'The signal content — what was discovered.',
+      },
+      references: {
+        type: 'string',
+        description: 'Comma-separated references (file paths, line numbers).',
+      },
+    },
+    required: ['signal_type', 'content'],
+  },
+}
+
 // Nudge tool — adapted from Dyad but with reviewer-to-Unity semantics
 export const SEND_NUDGE_TOOL: ToolSchema = {
   name: 'send_nudge',
@@ -139,6 +193,8 @@ export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
   CHALLENGE_TOOL,
   CONCEDE_TOOL,
   REQUEST_INVESTIGATION_TOOL,
+  STREAM_RESEARCH_FINDING_TOOL,
+  POST_RESEARCH_SIGNAL_TOOL,
 ]
 
 /** Core reviewer meta-tools (dialectic + nudge + progress + conclusion) */
@@ -162,7 +218,13 @@ import {
   REPORT_TOOL_NAMES,
 } from '../lumen/report-tools.js'
 
-export { isPlanMetaTool, REPORT_TOOL_NAMES }
+import {
+  MENTOR_TOOLS,
+  MENTOR_TOOL_NAMES,
+  isMentorMetaTool,
+} from './helix-mentor-tools.js'
+
+export { isPlanMetaTool, REPORT_TOOL_NAMES, MENTOR_TOOLS, MENTOR_TOOL_NAMES, isMentorMetaTool }
 
 /** Plan tools available to all Helix postures */
 export const HELIX_PLAN_TOOLS = ALL_POSTURES_PLAN_TOOLS
@@ -194,6 +256,14 @@ export const ALL_YIN_TOOLS: ToolSchema[] = [
   ...HELIX_REPORT_TOOLS,
 ]
 
+/** All tools available to Mentor (moderator) */
+export const ALL_MENTOR_TOOLS: ToolSchema[] = [
+  ...MENTOR_TOOLS,
+  ...HELIX_PLAN_TOOLS,
+  ...HELIX_REPORT_TOOLS,
+  REVIEW_PROGRESS_TOOL,
+]
+
 
 // ─── Tool Name Sets ────────────────────────────────────────────────────────
 
@@ -205,6 +275,7 @@ export const REVIEWER_TOOL_NAMES = new Set(REVIEWER_TOOLS.map(t => t.name))
 export const ALL_HELIX_META_TOOL_NAMES = new Set([
   ...UNITY_TOOL_NAMES,
   ...REVIEWER_TOOL_NAMES,
+  ...MENTOR_TOOL_NAMES,
 ])
 
 
@@ -215,19 +286,21 @@ export const ALL_HELIX_META_TOOL_NAMES = new Set([
  * When called with just a name, checks against all meta-tool names.
  * When called with a role, checks role-specific meta-tools.
  */
-export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin'): boolean {
+export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin' | 'mentor'): boolean {
   if (!role) return ALL_HELIX_META_TOOL_NAMES.has(toolName)
   if (role === 'unity') return UNITY_TOOL_NAMES.has(toolName)
+  if (role === 'mentor') return MENTOR_TOOL_NAMES.has(toolName)
   return REVIEWER_TOOL_NAMES.has(toolName)
 }
 
 /**
  * Get tool schemas for a specific role.
  */
-export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin'): ToolSchema[] {
+export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor'): ToolSchema[] {
   switch (role) {
     case 'unity': return ALL_UNITY_TOOLS
     case 'yang': return ALL_YANG_TOOLS
     case 'yin': return ALL_YIN_TOOLS
+    case 'mentor': return ALL_MENTOR_TOOLS
   }
 }

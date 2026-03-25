@@ -29,7 +29,7 @@ import { getDataDir } from '../../utils/paths.js'
 const SCHEMA_VERSION = 1
 const DEFAULT_MAX_AGE_DAYS = 7
 
-export type HelixRole = 'unity' | 'yang' | 'yin'
+export type HelixRole = 'unity' | 'yang' | 'yin' | 'mentor'
 
 
 const SCHEMA_SQL = `

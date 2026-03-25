@@ -3,15 +3,15 @@
  *
  * Core types for the inverted-pyramid agent pattern.
  * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
- * and an Executive moderator overseeing the dialectic.
+ * and a Mentor overseeing the dialectic.
  *
  * Communication topology:
  *   Unity <-> Reviewers: WorkStream (work units, nudges)
  *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
- *   Executive -> All:    Steering injection, context, synthesis
+ *   Mentor -> All:       Steering injection, context, synthesis
  *
  * Named after the double helix trail of binary stars — Unity is the barycenter,
- * Yang and Yin are the orbiting stars, Executive is the observer ensuring coherence.
+ * Yang and Yin are the orbiting stars, Mentor is the observer ensuring coherence.
  */
 
 import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
@@ -19,8 +19,8 @@ import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from '../dyad/types.js'
 
 
-/** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers) */
-export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'>
+/** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers) + mentor (moderator) */
+export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'> | 'mentor'
 
 
 export interface HelixProjectOpts {
@@ -58,6 +58,7 @@ export interface HelixCompletionStatus {
   unityStatus: 'completed' | 'errored' | 'timeout' | 'not-started'
   yangStatus: 'completed' | 'errored' | 'timeout' | 'not-started'
   yinStatus: 'completed' | 'errored' | 'timeout' | 'not-started'
+  mentorStatus: 'completed' | 'errored' | 'timeout' | 'not-started'
   degraded: boolean
   reason?: string
 }
@@ -102,10 +103,17 @@ export interface HelixResult {
   yangSummary?: string
   /** Yin reviewer's summary */
   yinSummary?: string
+  /** Mentor's synthesis */
+  mentorSynthesis?: string
+  /** Mentor's recommendation */
+  mentorRecommendation?: 'proceed' | 'proceed-with-caution' | 'revise' | 'reject'
+  /** Mentor's confidence */
+  mentorConfidence?: number
 
   unityConclusion: string
   yangConclusion: string
   yinConclusion: string
+  mentorConclusion: string
 
   /** Points where Yang and Yin reviewers reached agreement */
   convergencePoints: ConvergencePoint[]
@@ -115,6 +123,8 @@ export interface HelixResult {
   unityKeyPoints?: string[]
   yangKeyPoints?: string[]
   yinKeyPoints?: string[]
+  mentorKeyFindings?: string[]
+  mentorRemainingRisks?: string[]
   unityConfidence?: number
   yangConfidence?: number
   yinConfidence?: number
@@ -126,9 +136,9 @@ export interface HelixResult {
   /** Files modified during the session (by Unity) */
   filesModified?: Array<{ path: string; action: string; summary: string }>
 
-  tokensUsed: { unity: number; yang: number; yin: number }
-  iterationCounts: { unity: number; yang: number; yin: number }
-  toolCallCounts: { unity: number; yang: number; yin: number }
+  tokensUsed: { unity: number; yang: number; yin: number; mentor: number }
+  iterationCounts: { unity: number; yang: number; yin: number; mentor: number }
+  toolCallCounts: { unity: number; yang: number; yin: number; mentor: number }
 
   /** Dialectic communication statistics (Yang <-> Yin reviewers) */
   dialecticStats: {

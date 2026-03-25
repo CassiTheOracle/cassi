@@ -1,14 +1,16 @@
 /**
  * Helix Pipeline — Orchestrator for the inverted-triangle agent pattern.
  *
- * Wires three concurrent postures:
+ * Wires four concurrent postures:
  *   - Unity (worker): Full tools, posts work units via WorkStream
  *   - Yang (assertive reviewer): Read-only tools, DialecticChannel + WorkStream
  *   - Yin (cautious reviewer): Read-only tools, DialecticChannel + WorkStream
+ *   - Mentor (moderator): Read-only tools, observes dialectic, steers + synthesizes
  *
  * Channels:
  *   - WorkStream: Unity ↔ reviewers (work units up, nudges down)
  *   - DialecticChannel: Yang ↔ Yin (findings, challenges, concessions)
+ *   - Blackboard: Mentor → all (steering, flags, synthesis)
  *
  * Watchdog: steer-then-kill (2min warn → 4min escalate → 6min kill)
  */
@@ -25,7 +27,7 @@ import { WorkStream } from '../dyad/work-stream.js'
 import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
 import { HelixAgentSession } from './helix-agent-session.js'
-import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
+import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
 
 
@@ -53,6 +55,7 @@ export interface HelixPipelineOpts {
   unityHandle: ModelHandle
   yangHandle: ModelHandle
   yinHandle: ModelHandle
+  mentorHandle?: ModelHandle
 
   // Infrastructure
   toolExecutor?: ToolExecutor
@@ -210,11 +213,23 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     contextBudgetCoordinator,
   })
 
+  // Mentor is optional — only created if a mentorHandle is provided
+  const mentorSession = opts.mentorHandle ? new HelixAgentSession({
+    ...commonOpts,
+    role: 'mentor',
+    handle: opts.mentorHandle,
+    posture: MENTOR_POSTURE,
+    postureSlot: 'helix.mentor',
+    dialecticChannel,
+    contextBudgetCoordinator,
+  }) : null
+
   cancelFns.push(
     () => unitySession.cancel(),
     () => yangSession.cancel(),
     () => yinSession.cancel(),
   )
+  if (mentorSession) cancelFns.push(() => mentorSession.cancel())
 
 
   // ── Watchdog (steer-then-kill) ───────────────────────────────────────
@@ -287,10 +302,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }, timeoutMs)
 
 
-  // ── Run All Three Concurrently ───────────────────────────────────────
+  // ── Run All Postures Concurrently ─────────────────────────────────────
 
   try {
-    const [unitySettled, yangSettled, yinSettled] = await Promise.allSettled([
+    const postures: Promise<HelixPostureResult>[] = [
       // Unity: continuous worker loop
       unitySession.runAsWorker(opts.goal, opts.context)
         .catch(err => {
@@ -332,14 +347,38 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
           opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'yin' } as any)
           onActivity()
         }),
-    ])
+    ]
+
+    // Mentor runs concurrently if available (uses reviewer loop with mentor tools)
+    if (mentorSession) {
+      postures.push(
+        mentorSession.runAsReviewer(opts.goal, opts.context)
+          .catch(err => {
+            log.error('Mentor failed', { error: String(err) })
+            opts.store?.appendEvent(sessionId, 'helix:role:failed', 'mentor', String(err))
+            opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'mentor', error: String(err) } as any)
+            return buildErrorResult(err)
+          })
+          .finally(() => {
+            opts.store?.appendEvent(sessionId, 'helix:role:completed', 'mentor', 'Mentor completed')
+            opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'mentor' } as any)
+            onActivity()
+          })
+      )
+    }
+
+    const settled = await Promise.allSettled(postures)
 
 
     // ── Aggregate Results ────────────────────────────────────────────────
 
-    const unityResult = unitySettled.status === 'fulfilled' ? unitySettled.value : buildErrorResult(unitySettled.reason)
-    const yangResult = yangSettled.status === 'fulfilled' ? yangSettled.value : buildErrorResult(yangSettled.reason)
-    const yinResult = yinSettled.status === 'fulfilled' ? yinSettled.value : buildErrorResult(yinSettled.reason)
+    const extract = (s: PromiseSettledResult<HelixPostureResult>) =>
+      s.status === 'fulfilled' ? s.value : buildErrorResult(s.reason)
+
+    const unityResult = extract(settled[0])
+    const yangResult = extract(settled[1])
+    const yinResult = extract(settled[2])
+    const mentorResult = settled[3] ? extract(settled[3]) : buildErrorResult('Mentor not configured')
 
     const pipelineStats = workStream.getStats()
     const dialecticStats = dialecticChannel.getStats()
@@ -352,6 +391,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       unityStatus: unityResult.error ? 'errored' : 'completed',
       yangStatus: yangResult.error ? 'errored' : 'completed',
       yinStatus: yinResult.error ? 'errored' : 'completed',
+      mentorStatus: mentorSession ? (mentorResult.error ? 'errored' : 'completed') : 'not-started',
       degraded: !!(unityResult.error || yangResult.error || yinResult.error),
     }
 
@@ -359,10 +399,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       unitySummary: unityResult.conclusion,
       yangSummary: yangResult.conclusion,
       yinSummary: yinResult.conclusion,
+      mentorSynthesis: mentorSession ? mentorResult.conclusion : undefined,
 
       unityConclusion: unityResult.conclusion,
       yangConclusion: yangResult.conclusion,
       yinConclusion: yinResult.conclusion,
+      mentorConclusion: mentorSession ? mentorResult.conclusion : '',
 
       convergencePoints,
       unresolvedTensions: unresolvedChallenges.map(c => ({
@@ -389,16 +431,19 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         unity: unityResult.tokensUsed,
         yang: yangResult.tokensUsed,
         yin: yinResult.tokensUsed,
+        mentor: mentorResult.tokensUsed,
       },
       iterationCounts: {
         unity: unityResult.iterationCount,
         yang: yangResult.iterationCount,
         yin: yinResult.iterationCount,
+        mentor: mentorResult.iterationCount,
       },
       toolCallCounts: {
         unity: unityResult.toolCallCount,
         yang: yangResult.toolCallCount,
         yin: yinResult.toolCallCount,
+        mentor: mentorResult.toolCallCount,
       },
 
       durationMs: Date.now() - startTime,
@@ -424,6 +469,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       unityTokens: result.tokensUsed.unity,
       yangTokens: result.tokensUsed.yang,
       yinTokens: result.tokensUsed.yin,
+      mentorTokens: result.tokensUsed.mentor,
       findings: result.dialecticStats.findings,
       challenges: result.dialecticStats.challenges,
       workUnits: result.pipelineStats.workUnitsProduced,
@@ -439,6 +485,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     try { opts.unityHandle.release() } catch { /* best-effort */ }
     try { opts.yangHandle.release() } catch { /* best-effort */ }
     try { opts.yinHandle.release() } catch { /* best-effort */ }
+    if (opts.mentorHandle) {
+      try { opts.mentorHandle.release() } catch { /* best-effort */ }
+    }
 
     // Clean up session context
     if (opts.toolExecutor) {

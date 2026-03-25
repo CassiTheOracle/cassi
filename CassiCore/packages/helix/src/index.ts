@@ -1,13 +1,13 @@
 /**
  * Helix — Inverted-Pyramid Agent Pattern
  *
- * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above.
- * Named after the double helix trail of binary stars — Unity is the barycenter,
- * Yang and Yin are the orbiting stars.
+ * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
+ * and a Mentor overseeing the dialectic.
  *
  * Communication topology:
  *   Unity <-> Reviewers: WorkStream (work units, nudges)
  *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
+ *   Mentor -> All:       Steering injection, context, synthesis
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
@@ -290,12 +290,23 @@ export function createHelix(
         const unityOverride = storedModelDirective?.resolve(opts.jobId, 'helix.unity')
         const yangOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yang')
         const yinOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yin')
+        const mentorOverride = storedModelDirective?.resolve(opts.jobId, 'helix.mentor')
 
         const [unityHandle, yangHandle, yinHandle] = await Promise.all([
           effectiveModelPool.acquire('unity', undefined, sessionId, unityOverride),
           effectiveModelPool.acquire('yang', undefined, sessionId, yangOverride),
           effectiveModelPool.acquire('yin', undefined, sessionId, yinOverride),
         ])
+
+        // Mentor handle is optional — only acquire if a model override is configured
+        let mentorHandle: import('../../model-pool/types.js').ModelHandle | undefined
+        if (mentorOverride) {
+          try {
+            mentorHandle = await effectiveModelPool.acquire('mentor', undefined, sessionId, mentorOverride)
+          } catch (err) {
+            logger.warn('helix:mentor:handle-acquisition-failed', { error: String(err), sessionId })
+          }
+        }
 
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
@@ -312,6 +323,7 @@ export function createHelix(
             unityHandle,
             yangHandle,
             yinHandle,
+            mentorHandle,
             toolExecutor: storedToolExecutor,
             toolRegistry: storedToolRegistry,
             store: storedStore,
@@ -412,11 +424,10 @@ export {
 } from './helix-postures.js'
 
 export {
-  UNITY_TOOLS,
-  REVIEWER_TOOLS,
   ALL_UNITY_TOOLS,
   ALL_YANG_TOOLS,
   ALL_YIN_TOOLS,
+  ALL_MENTOR_TOOLS,
   isHelixMetaTool,
   getHelixToolSchemas,
 } from './helix-tools.js'
@@ -429,4 +440,5 @@ export const HELIX_MODEL_SLOTS = {
   UNITY: 'helix.unity',
   YANG: 'helix.yang',
   YIN: 'helix.yin',
+  MENTOR: 'helix.mentor',
 } as const
