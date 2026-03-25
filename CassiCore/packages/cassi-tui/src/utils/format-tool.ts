@@ -40,6 +40,10 @@ type Extractor = (input: Record<string, unknown>) => string
 
 const extractors: Record<string, Extractor> = {
   // Shell
+  bash: (i) => {
+    const cmd = String(i.command ?? '')
+    return trunc(cmd, 55)
+  },
   shell_exec: (i) => {
     const cmd = String(i.command ?? '')
     return trunc(cmd, 55)
