@@ -46,9 +46,10 @@ function esc(text: string): string {
 }
 
 /** Truncate text to max length */
-function truncate(text: string, max: number): string {
-  if (text.length <= max) return text
-  return text.slice(0, max - 20) + '... [truncated]'
+function truncate(text: unknown, max: number): string {
+  const str = String(text ?? '')
+  if (str.length <= max) return str
+  return str.slice(0, max - 20) + '... [truncated]'
 }
 
 /** Format duration in ms to human-readable */
