@@ -37,7 +37,7 @@ Named tiers are available as shortcuts:
 - background: Unlimited background tasks (gpt-4o)
 
 Use action="get" to see current routing state.
-Use action="set" with either a tier name OR explicit provider+model.
+Use action="set" with either a tier name, explicit provider+model, or just model (provider auto-inferred).
 Use action="clear" to remove an override at a scope.`,
     inputSchema: {
       type: 'object' as const,
@@ -60,11 +60,11 @@ Use action="clear" to remove an override at a scope.`,
         },
         provider: {
           type: 'string',
-          description: 'Raw provider ID (e.g. "alibaba-coding", "copilot-sdk", "github-copilot")',
+          description: 'Raw provider ID (e.g. "alibaba-coding"). Optional when model is set — provider is auto-inferred by matching model name across available providers.',
         },
         model: {
           type: 'string',
-          description: 'Raw model name (e.g. "kimi-k2.5", "claude-opus-4.6", "gpt-4o")',
+          description: 'Raw model name (e.g. "kimi-k2.5", "glm-5", "claude-opus-4.6"). When set without provider, the provider is resolved automatically.',
         },
         jobId: {
           type: 'string',
