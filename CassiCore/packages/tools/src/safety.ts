@@ -74,7 +74,7 @@ const TOOL_VALIDATION_RULES: Record<string, {
     paramTypes: { path: 'string', content: 'string' },
     maxParamLength: 100000,
   },
-  'shell_exec': {
+  'bash': {
     requiredParams: ['command'],
     paramTypes: { command: 'string', cwd: 'string', timeout_ms: 'number' },
     maxParamLength: 10000,
@@ -161,7 +161,7 @@ export function validateToolInput(
   }
   
   // Check for dangerous patterns
-  if (toolName === 'shell_exec' && params?.command) {
+  if ((toolName === 'bash' || toolName === 'shell_exec') && params?.command) {
     const dangerousPatterns = [
       'rm -rf /',
       'rm -rf /*',

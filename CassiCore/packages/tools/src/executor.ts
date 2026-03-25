@@ -172,6 +172,16 @@ export class ToolExecutor {
 
     let entry = this.registry.get(call.name)
 
+    // MCP gateway uses short names (read, write) but CassiCore tools
+    // are registered with descriptive names. Resolve aliases first.
+    const toolAliases: Record<string, string> = {
+      read: 'read_file',
+      write: 'write_file',
+    }
+    if (!entry && toolAliases[call.name]) {
+      entry = this.registry.get(toolAliases[call.name])
+    }
+
     const preferredServers = (process.env.PREFERRED_MCP_SERVERS || 'serena').split(',').map(s => s.trim()).filter(Boolean)
 
     if (!entry) {
@@ -385,12 +395,13 @@ export class ToolExecutor {
         this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully`)
         this.recordReliabilityOutcome(actualToolName, durationMs, true)
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
+        const enrichment = this.enrichToolResult(sessionId, actualToolName, durationMs, false)
         
         // Apply presentation formatting
         const presented = this.applyPresentation(String(safeResult.data), actualToolName, durationMs)
         return {
           toolCallId: call.id,
-          content: presented.content,
+          content: enrichment ? presented.content + enrichment : presented.content,
           isError: false,
           rawContent: presented.rawContent,
           exitCode: presented.exitCode,
@@ -411,12 +422,13 @@ export class ToolExecutor {
         this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully (legacy)`)
         this.recordReliabilityOutcome(actualToolName, durationMs, true)
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
+        const enrichment = this.enrichToolResult(sessionId, actualToolName, durationMs, false)
         
         // Apply presentation formatting
         const presented = this.applyPresentation(result, actualToolName, durationMs)
         return {
           toolCallId: call.id,
-          content: presented.content,
+          content: enrichment ? presented.content + enrichment : presented.content,
           isError: false,
           rawContent: presented.rawContent,
           exitCode: presented.exitCode,
@@ -542,6 +554,59 @@ export class ToolExecutor {
   }
 
   /**
+   * Build enrichment block from intelligence layer metadata and append to tool result.
+   * Returns formatted enrichment string or null if no data available.
+   * Also emits tool:enriched event for channel worker observability.
+   */
+  private enrichToolResult(
+    sessionId: string,
+    toolName: string,
+    durationMs: number,
+    isError: boolean,
+  ): string | null {
+    let trustScore: number | undefined
+    let riskScore: number | undefined
+
+    if (this.trustLedger) {
+      try {
+        const domain = resolveToolDomain(toolName)
+        const score = this.trustLedger.getDomainScore(domain)
+        if (score) trustScore = score.score
+      } catch { /* non-fatal */ }
+    }
+
+    if (this.permissionOracle) {
+      const cacheKey = permissionCacheKey(toolName, {})
+      const cached = this.permissionCache.get(cacheKey)
+      if (cached) {
+        const riskMatch = cached.reasoning?.match(/risk[=:](\d+\.?\d*)/i)
+        if (riskMatch) riskScore = parseFloat(riskMatch[1])
+      }
+    }
+
+    if (this.eventBus) {
+      this.eventBus.emit({
+        type: 'tool:enriched' as any,
+        sessionId, toolName, durationMs, isError,
+        enrichment: { trustScore, riskScore },
+        timestamp: new Date(),
+      })
+    }
+
+    const parts: string[] = []
+    if (trustScore !== undefined) {
+      const bar = trustScore >= 0.8 ? '████' : trustScore >= 0.6 ? '███░' : trustScore >= 0.4 ? '██░░' : '█░░░'
+      parts.push(`trust ${bar} ${trustScore.toFixed(2)}`)
+    }
+    if (riskScore !== undefined) {
+      const label = riskScore < 0.3 ? 'low' : riskScore < 0.6 ? 'med' : riskScore < 0.8 ? 'high' : 'crit'
+      parts.push(`risk ${label} ${riskScore.toFixed(2)}`)
+    }
+    if (parts.length === 0) return null
+    return `\n━━ CassiCore ━ ${parts.join(' · ')} ━━`
+  }
+
+  /**
    * Track skill invocations when read tool is called on SKILL.md files
    */
   private trackSkillInvocation(call: ToolCall, sessionId: string): void {
@@ -594,7 +659,7 @@ export class ToolExecutor {
 
   /**
    * Apply presentation formatting to tool output.
-   * For shell_exec, parses structured JSON result to extract metadata.
+     * For bash/shell_exec, parses structured JSON result to extract metadata.
    */
   private applyPresentation(
     rawOutput: string,
@@ -605,8 +670,8 @@ export class ToolExecutor {
     let stderr: string | undefined
     let contentToPresent = rawOutput
 
-    // Parse structured shell_exec result
-    if (toolName === 'shell_exec' || toolName === 'shell-exec') {
+    // Parse structured shell_exec/bash result
+     if (toolName === 'bash' || toolName === 'shell_exec' || toolName === 'shell-exec') {
       try {
         const parsed = JSON.parse(rawOutput) as {
           stdout: string

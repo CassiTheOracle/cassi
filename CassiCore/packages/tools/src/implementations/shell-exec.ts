@@ -3,7 +3,7 @@ import { executeToolWithProxy } from '../../tool-proxy-middleware.js';
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js';
 
 export const shellExecDefinition: ToolDefinition = {
-  name: 'shell_exec',
+  name: 'bash',
   description: 'Execute a shell command and return output.',
   parameters: {
     type: 'object',
@@ -80,5 +80,5 @@ export const shellExecHandler: ToolHandler = async (input, ctx) => {
   const command = input['command'] as string;
   const workdir = (input['workdir'] as string) ?? ctx.workingDir;
   const timeoutMs = (input['timeout_ms'] as number) ?? 30_000;
-  return executeToolWithProxy('shell_exec', { command, cwd: workdir, timeout_ms: timeoutMs }, () => nativeShellExec(command, workdir, timeoutMs));
+  return executeToolWithProxy('bash', { command, cwd: workdir, timeout_ms: timeoutMs }, () => nativeShellExec(command, workdir, timeoutMs));
 };

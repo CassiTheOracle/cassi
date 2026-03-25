@@ -153,8 +153,8 @@ export function presentForLLM(rawOutput: string, opts: PresentationOptions): str
     parts.push(`[output truncated: ${totalLines} lines, ${formatSize(sizeBytes)}. Full output: ${tempPath}]`)
     
     // Add exploration hints for shell tools
-    if (opts.toolName === 'shell_exec' || opts.toolName === 'shell-exec') {
-      parts.push('[Explore: shell_exec "grep <pattern> /tmp/cassicore-tool-*.txt" | shell_exec "tail -n 50 /tmp/cassicore-tool-*.txt"]')
+    if (opts.toolName === 'bash' || opts.toolName === 'shell_exec' || opts.toolName === 'shell-exec') {
+      parts.push('[Explore: bash "grep <pattern> /tmp/cassicore-tool-*.txt" | bash "tail -n 50 /tmp/cassicore-tool-*.txt"]')
     }
   } else {
     // No overflow - use full content
@@ -162,7 +162,7 @@ export function presentForLLM(rawOutput: string, opts: PresentationOptions): str
   }
   
   // 3. Metadata footer for shell tools
-  if (opts.toolName === 'shell_exec' || opts.toolName === 'shell-exec') {
+  if (opts.toolName === 'bash' || opts.toolName === 'shell_exec' || opts.toolName === 'shell-exec') {
     const metaParts: string[] = []
     
     if (opts.exitCode !== undefined) {
