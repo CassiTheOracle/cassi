@@ -206,8 +206,6 @@ export async function handleProvidersRoutes(
 
       const mapping: Record<string, string> = {
         maxConcurrent: 'providers.global.maxConcurrent',
-        windowMs: 'providers.global.windowMs',
-        maxRequestsPerWindow: 'providers.global.maxRequestsPerWindow',
         timeoutMs: 'providers.global.timeoutMs',
       }
 
@@ -259,8 +257,6 @@ export async function handleProvidersRoutes(
       const body = await parseBody(req)
       const mapping: Record<string, string> = {
         maxConcurrent: 'providers.global.maxConcurrent',
-        windowMs: 'providers.global.windowMs',
-        maxRequestsPerWindow: 'providers.global.maxRequestsPerWindow',
         timeoutMs: 'providers.global.timeoutMs',
       }
 
@@ -358,8 +354,6 @@ export async function handleProvidersRoutes(
 
       const mapping: Record<string, string> = {
         maxConcurrent: 'providers.global.maxConcurrent',
-        windowMs: 'providers.global.windowMs',
-        maxRequestsPerWindow: 'providers.global.maxRequestsPerWindow',
         timeoutMs: 'providers.global.timeoutMs',
       }
 
