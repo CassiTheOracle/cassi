@@ -67,14 +67,6 @@ export {
   type FluxRunConfig,
 } from './flux-tools.js';
 
-// Admin API Tools (NEW - Phase 3)
-export {
-  ADMIN_API_TOOLS,
-  ADMIN_API_TOOL_NAMES,
-  executeAdminApiTool,
-  getAdminApiTools,
-} from './admin-api-tools.js';
-
 // Dialectic Tools
 export {
   DIALECTIC_TOOLS,
@@ -173,3 +165,74 @@ export {
   executeTrainingTool,
   getTrainingTools,
 } from './training-tools.js';
+
+// Consolidated Tools (NEW - Phase 2+)
+export {
+  AGENT_TOOL,
+  AGENT_TOOL_NAME,
+  executeAgentTool,
+  getAgentTool,
+} from './agent-tools.js';
+
+export {
+  MEMORY_CONSOLIDATED_TOOL,
+  MEMORY_CONSOLIDATED_TOOL_NAME,
+  executeMemoryConsolidatedTool,
+  getMemoryConsolidatedTool,
+} from './consolidated-memory-tools.js';
+
+export {
+  SESSION_CONSOLIDATED_TOOL,
+  SESSION_CONSOLIDATED_TOOL_NAME,
+  executeSessionConsolidatedTool,
+  getSessionConsolidatedTool,
+} from './consolidated-session-tools.js';
+
+export {
+  INTELLIGENCE_CONSOLIDATED_TOOL,
+  INTELLIGENCE_CONSOLIDATED_TOOL_NAME,
+  executeIntelligenceConsolidatedTool,
+  getIntelligenceConsolidatedTool,
+} from './consolidated-intelligence-tools.js';
+
+export {
+  FILE_CONSOLIDATED_TOOL,
+  FILE_CONSOLIDATED_TOOL_NAME,
+  executeFileConsolidatedTool,
+  getFileConsolidatedTool,
+} from './consolidated-file-tools.js';
+
+export {
+  WEB_CONSOLIDATED_TOOL,
+  WEB_CONSOLIDATED_TOOL_NAME,
+  executeWebConsolidatedTool,
+  getWebConsolidatedTool,
+} from './consolidated-web-tools.js';
+
+export {
+  CONFIG_CONSOLIDATED_TOOL,
+  CONFIG_CONSOLIDATED_TOOL_NAME,
+  executeConfigConsolidatedTool,
+  getConfigConsolidatedTool,
+} from './consolidated-config-tools.js';
+
+export {
+  MODEL_CONSOLIDATED_TOOL,
+  MODEL_CONSOLIDATED_TOOL_NAME,
+  executeModelConsolidatedTool,
+  getModelConsolidatedTool,
+} from './consolidated-model-tools.js';
+
+export {
+  BLACKBOARD_CONSOLIDATED_TOOL,
+  BLACKBOARD_CONSOLIDATED_TOOL_NAME,
+  executeBlackboardConsolidatedTool,
+  getBlackboardConsolidatedTool,
+} from './consolidated-blackboard-tools.js';
+
+export {
+  TRAINING_CONSOLIDATED_TOOL,
+  TRAINING_CONSOLIDATED_TOOL_NAME,
+  executeTrainingConsolidatedTool,
+  getTrainingConsolidatedTool,
+} from './consolidated-training-tools.js';

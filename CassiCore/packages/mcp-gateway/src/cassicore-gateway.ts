@@ -41,67 +41,47 @@ import {
   formatError,
   formatJsonResponse,
   formatTextResponse,
-  // Tool modules
+  // Core Tools (4: bash, read, write, edit - kept as-is)
   getCoreTools,
-  getIntelligenceTools,
-  getDialecticTools,
-  getMemoryTools,
-  getConfigAdminTools,
-  getSessionTools,
-  getAdminApiTools,
-  getFluxTools,
-  // Execution functions
   executeCassiCoreTool,
-  executeIntelligenceTool,
-  executeDialecticTool,
-  executeMemoryTool,
-  executeConfigAdminTool,
-  executeSessionTool,
-  executeAdminApiTool,
-  executeFluxTeamTool,
-  executeFluxRun,
-  executeFluxInspect,
-  executeFluxWatch,
-  // Tool name sets
-  INTELLIGENCE_TOOL_NAMES,
-  DIALECTIC_TOOL_NAMES,
-  MEMORY_TOOL_NAMES,
-  CONFIG_ADMIN_TOOL_NAMES,
-  SESSION_TOOL_NAMES,
-  ADMIN_API_TOOL_NAMES,
-  FLUX_TOOL_NAMES,
-  // Dyad / Lumen / Helix
-  getDyadTools,
-  getLumenTools,
-  getHelixTools,
-  executeDyadTool,
-  executeLumenTool,
-  executeHelixTool,
-  DYAD_TOOL_NAMES,
-  LUMEN_TOOL_NAMES,
-  HELIX_TOOL_NAMES,
-  // Model Directive
-  getModelDirectiveTools,
-  executeModelDirectiveTool,
-  MODEL_DIRECTIVE_TOOL_NAMES,
-  // Do tool (meta-wrapper) + Enrich tool (context-only)
-   getDoTools,
-   executeDoTool,
-   executeEnrichTool,
-   DO_TOOL_NAMES,
-   ENRICH_TOOL_NAMES,
-   // Blackboard tools
-   getBlackboardMcpTools,
-   executeBlackboardTool,
-   BLACKBOARD_TOOL_NAMES,
-   // File Artifact tools (agent file sharing)
-   getFileArtifactMcpTools,
-   executeFileArtifactTool,
-   FILE_ARTIFACT_TOOL_NAMES,
-   // Training Warehouse tools
-   getTrainingTools,
-   executeTrainingTool,
-   TRAINING_TOOL_NAMES,
+  // Meta Tools (2: do, enrich - kept as-is)
+  getDoTools,
+  executeDoTool,
+  executeEnrichTool,
+  DO_TOOL_NAMES,
+  ENRICH_TOOL_NAMES,
+  // Consolidated Tools (10 new consolidated tools)
+  getAgentTool,
+  executeAgentTool,
+  getMemoryConsolidatedTool,
+  executeMemoryConsolidatedTool,
+  getSessionConsolidatedTool,
+  executeSessionConsolidatedTool,
+  getIntelligenceConsolidatedTool,
+  executeIntelligenceConsolidatedTool,
+  getFileConsolidatedTool,
+  executeFileConsolidatedTool,
+  getWebConsolidatedTool,
+  executeWebConsolidatedTool,
+  getConfigConsolidatedTool,
+  executeConfigConsolidatedTool,
+  getModelConsolidatedTool,
+  executeModelConsolidatedTool,
+  getBlackboardConsolidatedTool,
+  executeBlackboardConsolidatedTool,
+  getTrainingConsolidatedTool,
+  executeTrainingConsolidatedTool,
+  // Tool name sets for consolidated tools
+  AGENT_TOOL_NAME,
+  MEMORY_CONSOLIDATED_TOOL_NAME,
+  SESSION_CONSOLIDATED_TOOL_NAME,
+  INTELLIGENCE_CONSOLIDATED_TOOL_NAME,
+  FILE_CONSOLIDATED_TOOL_NAME,
+  WEB_CONSOLIDATED_TOOL_NAME,
+  CONFIG_CONSOLIDATED_TOOL_NAME,
+  MODEL_CONSOLIDATED_TOOL_NAME,
+  BLACKBOARD_CONSOLIDATED_TOOL_NAME,
+  TRAINING_CONSOLIDATED_TOOL_NAME,
 } from './gateway/index.js';
 
 // Configuration
@@ -194,26 +174,36 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
  * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
  */
 
+/**
+ * Get all MCP tools - returns exactly 16 consolidated tools
+ * 4 core + 2 meta + 10 consolidated
+ */
+/**
+ * Get all MCP tools - returns exactly 16 consolidated tools
+ * 4 core (bash, read, write, edit) + 2 meta (do, enrich) + 10 consolidated
+ */
 function getAllTools() {
-  return [
-    ...getCoreTools(),
-    ...getIntelligenceTools(),
-    ...getDialecticTools(),
-    ...getMemoryTools(),
-    ...getConfigAdminTools(),
-    ...getSessionTools(),
-    ...getFluxTools(),
-    ...getAdminApiTools(),
-    ...getDyadTools(),
-    ...getLumenTools(),
-    ...getHelixTools(),
-    ...getModelDirectiveTools(),
-    ...getDoTools(),
-    ...getBlackboardMcpTools(),
-    ...getFileArtifactMcpTools(),
-    ...getTrainingTools(),
-  ];
+  const coreTools = getCoreTools();
+  // Filter to only the 4 main core tools
+  const mainCoreTools = coreTools.filter(t => ['bash', 'read', 'write', 'edit'].includes(t.name));
 
+  return [
+    // 4 Core tools (kept as-is)
+    ...mainCoreTools,
+    // 2 Meta tools (kept as-is)
+    ...getDoTools(),
+    // 10 Consolidated tools
+    getAgentTool(),
+    getMemoryConsolidatedTool(),
+    getSessionConsolidatedTool(),
+    getIntelligenceConsolidatedTool(),
+    getFileConsolidatedTool(),
+    getWebConsolidatedTool(),
+    getConfigConsolidatedTool(),
+    getModelConsolidatedTool(),
+    getBlackboardConsolidatedTool(),
+    getTrainingConsolidatedTool(),
+  ];
 }
 
 
@@ -228,98 +218,114 @@ function getAllTools() {
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 2 flows, 1 module
  */
+/**
+ * Backward-compat shim: maps old individual tool names to their consolidated equivalents.
+ * Used by cassi_do and any cached tool references from older sessions.
+ * Returns null if the name is already a current tool name.
+ */
+function resolveDeprecatedToolName(name: string, args: any): { name: string; args: any } | null {
+  // Agent tools: lumen_*, dyad_*, helix_*, flux_*
+  for (const prefix of ['lumen', 'dyad', 'helix'] as const) {
+    if (name.startsWith(`${prefix}_`)) {
+      const action = name.slice(prefix.length + 1);
+      return { name: 'agent', args: { ...args, type: prefix, action } };
+    }
+  }
+  if (name.startsWith('flux_')) {
+    const suffix = name.slice(5); // flux_team, flux_run, flux_inspect, flux_watch
+    if (suffix === 'team') return { name: 'agent', args: { ...args, type: 'flux', action: 'team', teamAction: args?.action } };
+    if (suffix === 'run') return { name: 'agent', args: { ...args, type: 'flux', action: 'run' } };
+    if (suffix === 'inspect') return { name: 'agent', args: { ...args, type: 'flux', action: 'inspect' } };
+    if (suffix === 'watch') return { name: 'agent', args: { ...args, type: 'flux', action: 'watch' } };
+  }
+
+  // Memory tools
+  for (const action of ['store', 'search', 'recent', 'delete', 'kv_get', 'kv_set', 'kv_del', 'stats'] as const) {
+    if (name === `memory_${action}`) return { name: 'memory', args: { ...args, action } };
+  }
+  for (const action of ['archive_search', 'archive_get', 'archive_related', 'archive_recent'] as const) {
+    if (name === action) return { name: 'memory', args: { ...args, action } };
+  }
+  if (name === 'browse') return { name: 'memory', args: { ...args, action: 'browse' } };
+  if (name === 'universal_search') return { name: 'memory', args: { ...args, action: 'universal_search' } };
+
+  // Session tools
+  if (name === 'sessions') return { name: 'session', args: { ...args, action: 'list' } };
+  for (const action of ['detail', 'prune', 'conversation', 'export'] as const) {
+    if (name === `session_${action}`) return { name: 'session', args: { ...args, action } };
+  }
+  if (name === 'resolve_ref') return { name: 'session', args: { ...args, action: 'resolve_ref' } };
+  if (name === 'index_session') return { name: 'session', args: { ...args, action: 'index' } };
+  if (name === 'index_search') return { name: 'session', args: { ...args, action: 'index_search' } };
+  if (name === 'index_stats') return { name: 'session', args: { ...args, action: 'index_stats' } };
+
+  // Intelligence tools
+  for (const action of ['activity', 'thinker', 'subconscious', 'consciousness', 'trace', 'effectiveness', 'budget', 'evolution', 'blindspots', 'snapshot', 'trust', 'consequences'] as const) {
+    if (name === action) return { name: 'intelligence', args: { ...args, action } };
+  }
+  if (name === 'dialectic') return { name: 'intelligence', args: { ...args, action: 'dialectic' } };
+  if (name === '_1') return { name: 'intelligence', args: { ...args, action: 'overview' } };
+
+  // File tools
+  for (const action of ['mkdir', 'delete', 'exists'] as const) {
+    if (name === action) return { name: 'file', args: { ...args, action } };
+  }
+  if (name === 'share_file') return { name: 'file', args: { ...args, action: 'share' } };
+  if (name === 'open_file') return { name: 'file', args: { ...args, action: 'open' } };
+  if (name === 'file_admin') return { name: 'file', args: { ...args, action: 'admin' } };
+  for (const suffix of ['write', 'read', 'list', 'delete', 'versions', 'share', 'stats', 'gc'] as const) {
+    if (name === `file_artifact_${suffix}`) return { name: 'file', args: { ...args, action: suffix } };
+  }
+
+  // Web tools
+  if (name === 'web_fetch') return { name: 'web', args: { ...args, action: 'fetch' } };
+  if (name === 'web_search') return { name: 'web', args: { ...args, action: 'search' } };
+
+  // Config tools
+  if (name === 'config_get') return { name: 'config', args: { ...args, action: 'get' } };
+  if (name === 'config_set') return { name: 'config', args: { ...args, action: 'set' } };
+  if (name === 'providers') return { name: 'config', args: { ...args, action: 'providers' } };
+  if (name === 'provider_metrics') return { name: 'config', args: { ...args, action: 'provider_metrics' } };
+  if (name === 'provider_config') return { name: 'config', args: { ...args, action: 'provider_config' } };
+
+  // Model tools
+  if (name === 'model_directive') return { name: 'model', args: { ...args, action: args?.action } };
+
+  // Blackboard tools
+  for (const suffix of ['list', 'create', 'delete', 'post', 'read', 'search', 'watch'] as const) {
+    if (name === `bb_global_${suffix}`) return { name: 'blackboard', args: { ...args, action: suffix } };
+  }
+
+  // Training tools
+  for (const suffix of ['stats', 'search', 'objects', 'resolve', 'labels', 'quality', 'annotations', 'ingest', 'tag', 'export'] as const) {
+    if (name === `training_${suffix}`) return { name: 'training', args: { ...args, action: suffix } };
+  }
+
+  return null; // Not a deprecated name — pass through unchanged
+}
+
+/**
+ * Route a tool call to the appropriate domain handler
+ * Consolidated routing for 16 tools: 4 core + 2 meta + 10 consolidated
+ */
 async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
   logger.info('Tool call received', { tool: name, args });
 
+  // Backward-compat: map old tool names → consolidated tool + action
+  const resolved = resolveDeprecatedToolName(name, args);
+  if (resolved) {
+    name = resolved.name;
+    args = resolved.args;
+  }
+
   try {
-    // Intelligence introspection tools (return markdown)
-    if (INTELLIGENCE_TOOL_NAMES.has(name)) {
-      const markdown = await executeIntelligenceTool(CASSICORE_URL, name, args, logger);
-      return formatTextResponse(markdown);
-    }
-
-    // Dialectic tools (return markdown)
-    if (DIALECTIC_TOOL_NAMES.has(name)) {
-      const markdown = await executeDialecticTool(CASSICORE_URL, name, args, logger);
-      return formatTextResponse(markdown);
-    }
-
-    // Core tools (return JSON)
+    // Core tools (bash, read, write, edit) - return JSON
     if (getCoreTools().some(t => t.name === name)) {
       const result = await executeCassiCoreTool(CASSICORE_URL, name, args, logger);
       return formatJsonResponse(result);
     }
 
-    // Memory tools (return JSON)
-    if (MEMORY_TOOL_NAMES.has(name)) {
-      const result = await executeMemoryTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Config/Admin tools (return JSON)
-    if (CONFIG_ADMIN_TOOL_NAMES.has(name)) {
-      const result = await executeConfigAdminTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Session tools (return JSON)
-    if (SESSION_TOOL_NAMES.has(name)) {
-      const result = await executeSessionTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Flux tools — unified team orchestration (watch returns MCP format directly)
-    if (FLUX_TOOL_NAMES.has(name)) {
-      if (name === 'flux_watch') {
-        return await executeFluxWatch(CASSICORE_URL, args, logger, heartbeat);
-      }
-      if (name === 'flux_run') {
-        const result = await executeFluxRun(CASSICORE_URL, args, logger, heartbeat);
-        return formatJsonResponse(result);
-      }
-      if (name === 'flux_inspect') {
-        const result = await executeFluxInspect(CASSICORE_URL, args, logger);
-        return formatJsonResponse(result);
-      }
-      // flux_team (start, pause, resume, cancel, approve, reject, steer, …)
-      const result = await executeFluxTeamTool(CASSICORE_URL, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Admin API tools (return JSON)
-    if (ADMIN_API_TOOL_NAMES.has(name)) {
-      const result = await executeAdminApiTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // Dyad tools — dyad_watch returns MCP format directly; others return JSON
-    if (DYAD_TOOL_NAMES.has(name)) {
-      const result = await executeDyadTool(CASSICORE_URL, name, args, logger, heartbeat);
-      if (name === 'dyad_watch') return result;
-      return formatJsonResponse(result);
-    }
-
-    // Lumen tools — lumen_watch returns MCP format directly; others return JSON
-    if (LUMEN_TOOL_NAMES.has(name)) {
-      const result = await executeLumenTool(CASSICORE_URL, name, args, logger, heartbeat);
-      if (name === 'lumen_watch') return result;
-      return formatJsonResponse(result);
-    }
-
-    // Helix tools — helix_watch returns MCP format directly; others return JSON
-    if (HELIX_TOOL_NAMES.has(name)) {
-      const result = await executeHelixTool(CASSICORE_URL, name, args, logger, heartbeat);
-      if (name === 'helix_watch') return result;
-      return formatJsonResponse(result);
-    }
-
-    // Model Directive tools (return JSON)
-    if (MODEL_DIRECTIVE_TOOL_NAMES.has(name)) {
-      const result = await executeModelDirectiveTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // do tool — meta-wrapper with parallel context enrichment
+    // do tool - meta-wrapper with parallel context enrichment
     if (DO_TOOL_NAMES.has(name)) {
       return await executeDoTool(
         CASSICORE_URL,
@@ -329,37 +335,58 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       );
     }
 
-    // enrich tool — context-only enrichment (no delegated tool call)
+    // enrich tool - context-only enrichment (no delegated tool call)
     if (ENRICH_TOOL_NAMES.has(name)) {
       return await executeEnrichTool(CASSICORE_URL, args, logger);
     }
 
-    // Blackboard tools (global boards + session snapshots)
-    if (BLACKBOARD_TOOL_NAMES.has(name)) {
-      const result = await executeBlackboardTool(name, args, CASSICORE_URL, logger);
-      return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
-    }
+    // Consolidated tools
+    switch (name) {
+      case AGENT_TOOL_NAME:
+        return await executeAgentTool(CASSICORE_URL, args, logger, heartbeat);
 
-    // File Artifact tools (agent file sharing)
-    if (FILE_ARTIFACT_TOOL_NAMES.has(name)) {
-      const result = await executeFileArtifactTool(name, args, CASSICORE_URL, logger);
-      return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
-    }
+      case MEMORY_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeMemoryConsolidatedTool(CASSICORE_URL, args, logger));
 
-    // Training Warehouse tools (return JSON)
-    if (TRAINING_TOOL_NAMES.has(name)) {
-      const result = await executeTrainingTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
+      case SESSION_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeSessionConsolidatedTool(CASSICORE_URL, args, logger));
 
-    // Unknown tool
-    throw new Error(`Unknown tool: ${name}`);
+      case INTELLIGENCE_CONSOLIDATED_TOOL_NAME: {
+        const result = await executeIntelligenceConsolidatedTool(CASSICORE_URL, args, logger);
+        // Intelligence tools return markdown
+        return formatTextResponse(result);
+      }
+
+      case FILE_CONSOLIDATED_TOOL_NAME: {
+        const result = await executeFileConsolidatedTool(CASSICORE_URL, args, logger);
+        // File artifact tools return MCP format directly
+        return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
+      }
+
+      case WEB_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger));
+
+      case CONFIG_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeConfigConsolidatedTool(CASSICORE_URL, args, logger));
+
+      case MODEL_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeModelConsolidatedTool(CASSICORE_URL, args, logger));
+
+      case BLACKBOARD_CONSOLIDATED_TOOL_NAME: {
+        const result = await executeBlackboardConsolidatedTool(CASSICORE_URL, args, logger);
+        // Blackboard tools return MCP format directly
+        return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
+      }
+
+      case TRAINING_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeTrainingConsolidatedTool(CASSICORE_URL, args, logger));
+
+      default:
+        throw new Error(`Unknown tool: ${name}`);
+    }
   } catch (error: any) {
-
     logger.error('Tool execution failed', { tool: name, error: String(error) });
     return formatError(error);
-
-
   }
 }
 
