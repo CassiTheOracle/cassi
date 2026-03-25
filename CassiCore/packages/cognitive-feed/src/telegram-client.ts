@@ -269,7 +269,13 @@ export class TelegramClient {
       clearTimeout(timer)
       const json = (await res.json()) as ApiResponse<TelegramUpdate[]>
       if (!json.ok) {
-        this.logger.warn(`[cognitive-feed-tg] getUpdates failed: ${json.description ?? '?'}`)
+        const desc = json.description ?? '?'
+        // Conflict is expected when the telegram channel worker is also polling
+        if (desc.includes('Conflict')) {
+          this.logger.debug(`[cognitive-feed-tg] getUpdates conflict — backing off`)
+        } else {
+          this.logger.warn(`[cognitive-feed-tg] getUpdates failed: ${desc}`)
+        }
         return null
       }
       return json.result

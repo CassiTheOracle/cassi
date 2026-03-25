@@ -662,11 +662,22 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
     // Use sequential long polling — each poll waits for the previous to complete
     // before starting the next one. This avoids the Telegram "Conflict" error
     // caused by overlapping getUpdates requests.
+    const CONFLICT_BASE_MS = 3_000
+    const CONFLICT_MAX_MS = 60_000
+    let conflictBackoffMs = CONFLICT_BASE_MS
+
     const pollLoop = async () => {
       while (!this.isShuttingDown) {
         try {
           const updates = await this.client.getUpdates(this.pollOffset, 25)
-          if (!updates || updates.length === 0) continue
+          if (!updates) {
+            // getUpdates returned null (Conflict or error) — back off
+            await new Promise(r => setTimeout(r, conflictBackoffMs))
+            conflictBackoffMs = Math.min(conflictBackoffMs * 2, CONFLICT_MAX_MS)
+            continue
+          }
+          conflictBackoffMs = CONFLICT_BASE_MS
+          if (updates.length === 0) continue
 
           for (const update of updates) {
             this.pollOffset = Math.max(this.pollOffset, update.update_id + 1)
