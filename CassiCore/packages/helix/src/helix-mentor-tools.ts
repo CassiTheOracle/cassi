@@ -4,9 +4,10 @@
  * The Mentor observes the Yang↔Yin dialectic, steers when stuck,
  * forces conclusions when stalled, and produces the final synthesis.
  *
- * Three tool categories:
+ * Four tool categories:
  *   - Steering: inject guidance into the dialectic
  *   - Moderation: force conclusion, flag non-compliance
+ *   - Research orchestration: dispatch deeper investigation
  *   - Synthesis: produce the final integrated summary
  */
 
@@ -97,6 +98,37 @@ export const MENTOR_FORCE_CONCLUSION_TOOL: ToolSchema = {
   },
 }
 
+export const MENTOR_DISPATCH_RESEARCH_TOOL: ToolSchema = {
+  name: 'mentor_dispatch_research',
+  description:
+    'Dispatch a focused research mission for Yang or Yin. Use when the dialectic needs '
+    + 'deeper evidence, source confirmation, or structured investigation before converging.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      query: {
+        type: 'string',
+        description: 'The concrete research mission to investigate.',
+      },
+      target: {
+        type: 'string',
+        enum: ['yang', 'yin', 'both'],
+        description: 'Which reviewer(s) should receive and use the research results.',
+      },
+      rationale: {
+        type: 'string',
+        description: 'Why this research matters to the current dialectic.',
+      },
+      priority: {
+        type: 'string',
+        enum: ['low', 'medium', 'high'],
+        description: 'Urgency of the research task.',
+      },
+    },
+    required: ['query', 'target'],
+  },
+}
+
 
 // ─── Synthesis Tools ───────────────────────────────────────────────────────
 
@@ -145,6 +177,7 @@ export const MENTOR_TOOLS: ToolSchema[] = [
   MENTOR_STEER_TOOL,
   MENTOR_FLAG_TOOL,
   MENTOR_FORCE_CONCLUSION_TOOL,
+  MENTOR_DISPATCH_RESEARCH_TOOL,
   MENTOR_SYNTHESIZE_TOOL,
 ]
 

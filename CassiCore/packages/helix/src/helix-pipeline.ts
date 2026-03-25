@@ -27,6 +27,7 @@ import { WorkStream } from '../dyad/work-stream.js'
 import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
 import { HelixAgentSession } from './helix-agent-session.js'
+import type { ResearchSpawner } from './helix-agent-session.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
 
@@ -78,6 +79,9 @@ export interface HelixPipelineOpts {
   sessionType?: 'dyad' | 'lumen' | 'flux' | 'helix' | 'standalone'
   teamId?: string
   moduleDebugSessionId?: string
+
+  /** Optional research spawner — passed to mentor for eager research execution */
+  researchSpawner?: ResearchSpawner
 }
 
 
@@ -222,6 +226,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.mentor',
     dialecticChannel,
     contextBudgetCoordinator,
+    researchSpawner: opts.researchSpawner,
   }) : null
 
   cancelFns.push(
@@ -349,10 +354,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         }),
     ]
 
-    // Mentor runs concurrently if available (uses reviewer loop with mentor tools)
+    // Mentor runs concurrently if available (dedicated moderator loop)
     if (mentorSession) {
       postures.push(
-        mentorSession.runAsReviewer(opts.goal, opts.context)
+        mentorSession.runAsMentor(opts.goal, opts.context)
           .catch(err => {
             log.error('Mentor failed', { error: String(err) })
             opts.store?.appendEvent(sessionId, 'helix:role:failed', 'mentor', String(err))

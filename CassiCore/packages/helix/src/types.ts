@@ -93,6 +93,10 @@ export interface HelixPostureResult {
   challengesMade?: number
   /** Reviewer only: concessions made */
   concessionsMade?: number
+  /** Mentor only: recommendation from synthesis (proceed/stop/revise) */
+  recommendation?: string
+  /** Mentor only: remaining risks from synthesis */
+  remainingRisks?: string[]
 }
 
 

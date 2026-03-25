@@ -23,6 +23,7 @@ import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from '../dyad/work-stream.js'
 import type { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
+import type { ResearchSpawner } from './helix-agent-session.js'
 import { runHelixPipeline } from './helix-pipeline.js'
 
 function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): string {
@@ -109,6 +110,176 @@ function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): stri
   }
 
   return lines.join('\n')
+}
+
+
+/**
+ * Build a ResearchSpawner that uses ModelPool + ToolExecutor for lightweight
+ * read-only research. Results are posted to the Blackboard via HelixResearcher.
+ *
+ * The spawner acquires a temporary model handle, runs a short agentic loop
+ * with read-only tools, then posts findings to the blackboard and releases.
+ */
+async function buildResearchSpawner(deps: {
+  modelPool: ModelPool
+  toolExecutor: ToolExecutor
+  toolRegistry?: ToolRegistry
+  logger: ILogger
+  blackboard: Blackboard
+}): Promise<ResearchSpawner> {
+  // Lazy-load to avoid circular deps
+  const { HelixResearcher } = await import('./helix-researcher.js')
+  const { READ_ONLY_TOOLS } = await import('../../tools/read-tools.js')
+
+  return async (opts) => {
+    const requestId = `research-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const droneId = `drone-${requestId}`
+    const log = deps.logger.child('research-spawner')
+
+    // Create researcher for blackboard integration
+    const researcher = new HelixResearcher({
+      sessionId: opts.sessionId,
+      blackboard: deps.blackboard,
+      query: opts.query,
+      label: opts.label,
+      requestedBy: 'yang', // Use 'yang' as proxy — HelixResearcher expects DyadRole-compatible
+      priority: opts.priority ?? 'medium',
+      context: opts.context,
+      logger: log,
+    })
+
+    // Post the research request
+    await researcher.postRequest()
+
+    // Spawn the research drone asynchronously — fire-and-forget
+    void (async () => {
+      let handle: import('../../model-pool/types.js').ModelHandle | undefined
+      try {
+        // Acquire a handle for the research drone
+        handle = await deps.modelPool.acquire('helix', undefined, opts.sessionId)
+
+        // Build tool schemas — use registry if available, else defaults
+        let tools = READ_ONLY_TOOLS
+        if (deps.toolRegistry) {
+          const registryTools = deps.toolRegistry.toAnthropicSchema()
+            .filter((tool: { name: string }) => isReadOnlyName(tool.name))
+          if (registryTools.length > 0) tools = registryTools
+        }
+
+        const systemPrompt = [
+          'You are a focused research agent for a Helix session.',
+          'Your job is to investigate the given query using your read-only tools.',
+          'Thoroughly search relevant files, patterns, and code structures.',
+          'Return a clear, structured summary of your findings.',
+          'Focus on facts: file contents, function signatures, type definitions, import chains.',
+          'Be thorough but concise. Return raw findings, not interpretations.',
+        ].join('\n')
+
+        const userPrompt = [
+          `## Research Query\n\n${opts.query}`,
+          opts.context ? `\n\n## Context\n\n${opts.context}` : '',
+        ].filter(Boolean).join('')
+
+        // Simple agentic loop using ModelHandle.stream()
+        const messages: import('../../../types/runtime.js').Message[] = [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ]
+
+        let finalText = ''
+        const maxIterations = 6
+
+        for (let iteration = 0; iteration < maxIterations; iteration++) {
+          const contentBlocks: import('../../../types/runtime.js').ContentBlock[] = []
+          const pendingToolCalls: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
+          let passText = ''
+
+          for await (const chunk of handle.stream(messages, {
+            model: handle.model,
+            maxTokens: 4096,
+            temperature: 0.2,
+            source: 'helix:research-drone',
+            tools,
+          })) {
+            if (chunk.type === 'token' && chunk.text) {
+              passText += chunk.text
+            } else if (chunk.type === 'tool_use' && chunk.toolCall) {
+              pendingToolCalls.push(chunk.toolCall)
+            }
+          }
+
+          finalText += passText
+
+          // No tool calls → we're done
+          if (pendingToolCalls.length === 0) break
+
+          // Build assistant message
+          if (passText) contentBlocks.push({ type: 'text', text: passText })
+          for (const tc of pendingToolCalls) {
+            contentBlocks.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input })
+          }
+          messages.push({ role: 'assistant', content: contentBlocks })
+
+          // Execute tool calls
+          const toolResults: import('../../../types/runtime.js').ContentBlock[] = []
+          for (const tc of pendingToolCalls) {
+            try {
+              const toolResult = await deps.toolExecutor.execute({
+                id: tc.id,
+                name: tc.name,
+                input: tc.input,
+              }, opts.sessionId)
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: tc.id,
+                content: toolResult.content,
+              })
+            } catch (err) {
+              toolResults.push({
+                type: 'tool_result',
+                tool_use_id: tc.id,
+                content: `Error: ${String(err)}`,
+                is_error: true,
+              })
+            }
+          }
+          messages.push({ role: 'user', content: toolResults })
+        }
+
+        // Post findings to the blackboard
+        if (finalText) {
+          await researcher.streamFinding(finalText)
+        }
+        await researcher.complete(finalText || 'Research completed with no textual findings.', {
+          additionalSignals: [],
+        })
+
+        log.info('Research drone completed', { requestId, label: opts.label, textLength: finalText.length })
+      } catch (err) {
+        log.warn('Research drone failed', { requestId, error: String(err), label: opts.label })
+        // Post error as a finding so the mentor knows
+        try {
+          await researcher.streamFinding(`Research failed: ${String(err)}`)
+          await researcher.complete(`Research failed: ${String(err)}`)
+        } catch { /* best effort */ }
+      } finally {
+        handle?.release()
+      }
+    })()
+
+    return { requestId, droneId }
+  }
+}
+
+/** Check if a tool name is read-only (safe for research drones) */
+function isReadOnlyName(name: string): boolean {
+  const readPrefixes = [
+    'read', 'grep', 'glob', 'find_', 'get_symbols_overview', 'search_for_pattern',
+    'list_dir', 'web_search', 'web_fetch', 'memory_search', 'memory_kv_get',
+    'gitnexus_query', 'gitnexus_context', 'gitnexus_impact', 'gitnexus_cypher',
+    'universal_search', 'archive_search',
+  ]
+  return readPrefixes.some(p => name.startsWith(p))
 }
 
 
@@ -311,6 +482,26 @@ export function createHelix(
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
 
+        // Build research spawner for mentor — deferred blackboard capture
+        let resolvedBlackboard: Blackboard | undefined = effectiveBlackboard
+        let researchSpawner: ResearchSpawner | undefined
+
+        if (mentorHandle && storedToolExecutor) {
+          // Create a lazy spawner that captures the blackboard when first invoked
+          researchSpawner = async (spawnOpts) => {
+            const bb = resolvedBlackboard ?? activeBlackboards.get(sessionId)
+            if (!bb) throw new Error('No blackboard available for research spawner')
+            const spawner = await buildResearchSpawner({
+              modelPool: effectiveModelPool,
+              toolExecutor: storedToolExecutor!,
+              toolRegistry: storedToolRegistry,
+              logger,
+              blackboard: bb,
+            })
+            return spawner(spawnOpts)
+          }
+        }
+
         try {
           const result = await runHelixPipeline({
             goal: effectiveGoal,
@@ -328,6 +519,7 @@ export function createHelix(
             toolRegistry: storedToolRegistry,
             store: storedStore,
             blackboard: effectiveBlackboard,
+            researchSpawner,
             onCancelRegistered: (cancelFn) => {
               activeSessions.set(sessionId, cancelFn)
             },
@@ -339,6 +531,7 @@ export function createHelix(
             },
             onBlackboardCreated: (blackboard) => {
               activeBlackboards.set(sessionId, blackboard)
+              resolvedBlackboard = blackboard
             },
             modelDirective: storedModelDirective,
             handleFactory,
@@ -413,6 +606,8 @@ export type {
   HelixPostureResult,
   HelixCompletionStatus,
 } from './types.js'
+
+export type { ResearchSpawner } from './helix-agent-session.js'
 
 export {
   UNITY_POSTURE,
