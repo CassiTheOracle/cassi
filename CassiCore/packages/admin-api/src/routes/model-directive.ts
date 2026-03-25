@@ -77,7 +77,7 @@ export async function handleModelDirectiveRoutes(
         return true
       }
 
-      // Resolve provider+model from either tier or raw values
+      // Resolve provider+model from tier, model+provider, or model-only (provider auto-inferred)
       let resolvedProvider: string
       let resolvedModel: string
 
@@ -85,11 +85,11 @@ export async function handleModelDirectiveRoutes(
         const tierConfig = directive.resolveTier(tier)
         resolvedProvider = tierConfig.provider
         resolvedModel = tierConfig.model
-      } else if (provider && model) {
-        resolvedProvider = provider
+      } else if (model) {
         resolvedModel = model
+        resolvedProvider = provider || directive.resolveProviderForModel(model)
       } else {
-        sendJSON(res, 400, { error: 'Provide either "tier" or both "provider" and "model"' })
+        sendJSON(res, 400, { error: 'Provide either "tier" or at least "model" (provider auto-inferred from model name)' })
         return true
       }
 
