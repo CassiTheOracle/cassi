@@ -15,7 +15,7 @@ import type { Plan, PlanStep } from '../../../types/flux-team.js'
 import type { Blackboard } from './blackboard.js'
 
 /** Posture names that can interact with the plan */
-type PlanPosture = 'yang' | 'yin' | 'executive'
+type PlanPosture = 'yang' | 'yin' | 'executive' | 'mentor'
 
 /** Set of tool names that are plan meta-tools */
 const PLAN_META_TOOL_NAMES = new Set([
