@@ -12,7 +12,7 @@
  *
  * Actions (vary by type):
  *   - Common: project, status, health, jobs, watch, cancel, sessions, messages, tool_calls, events, postures, progress, blackboard
- *   - Flux-specific: run, inspect, watch, start, status, pause, resume, cancel, steer, approve, reject, checkpoints, tree, change_model
+ *   - Flux-specific: inspect, run, team, steer, approve, reject, pause, resume, checkpoints, tree, change_model
  */
 
 import type { ILogger } from '../../types/interfaces.js';
@@ -59,10 +59,8 @@ export const AGENT_TOOL = {
           'sessions', 'messages', 'tool_calls', 'events', 'postures',
           'progress', 'blackboard',
           // Flux-specific actions
-          'inspect', 'run', 'watch',
-          // Flux team CRUD actions
-          'start', 'pause', 'resume', 'cancel', 'steer', 'approve', 'reject',
-          'checkpoints', 'tree', 'change_model',
+          'inspect', 'run', 'team', 'steer', 'approve', 'reject',
+          'pause', 'resume', 'checkpoints', 'tree', 'change_model',
         ],
         description: 'Operation to perform within the selected agent system',
       },
@@ -97,6 +95,11 @@ export const AGENT_TOOL = {
       teamId: {
         type: 'string',
         description: 'Team ID for Flux operations',
+      },
+      teamAction: {
+        type: 'string',
+        enum: ['start', 'pause', 'resume', 'cancel', 'steer', 'approve', 'reject', 'tree', 'checkpoints', 'change_model'],
+        description: 'Sub-action for flux team operations',
       },
       checkpointPolicy: {
         type: 'string',
@@ -316,21 +319,20 @@ async function executeFluxAgentTool(
       return await executeFluxInspect(baseUrl, args, logger);
     case 'watch':
       return await executeFluxWatch(baseUrl, args, logger, heartbeat);
-    // Flux team CRUD actions — route through executeFluxTeamTool
-    case 'start':
-    case 'status':
-    case 'pause':
-    case 'resume':
-    case 'cancel':
+    case 'team':
     case 'steer':
     case 'approve':
     case 'reject':
+    case 'pause':
+    case 'resume':
+    case 'cancel':
     case 'checkpoints':
     case 'tree':
     case 'change_model': {
+      // Map action to teamAction if not explicitly provided
       const teamArgs = {
         ...args,
-        action,
+        action: args.teamAction || action,
       };
       return await executeFluxTeamTool(baseUrl, teamArgs, logger);
     }
