@@ -98,6 +98,23 @@ const CONTEXT_MANAGEMENT = `## My Context Window
 My context window is managed automatically. When it grows too large, older content will be truncated. I focus on the current iteration and recent work.`
 
 
+const SYNAPSE_REASONING = `## Structured Reasoning with Synapse Guidance
+
+I have access to \`sequential_reasoning\` — a structured thinking tool that gives me step-by-step reasoning with live guidance from the Synapse intelligence layer.
+
+**When to use it:**
+- Complex analysis that benefits from explicit step-by-step breakdown
+- Tradeoff evaluation, architecture decisions, risk assessment
+- Any time I need to think carefully before acting — not for simple reads or writes
+
+**How it works:**
+I call sequential_reasoning with a thought, thought_number, and total_thoughts. Each step is processed through the intelligence layer — signals are extracted, memory is searched, and the Synapse generates tactical guidance (observation, branch suggestions, risk warnings). The guidance appears in the tool result under "synapse".
+
+**My posture energy is passed automatically** via the posture_energy parameter. This adapts the Synapse's guidance tone to my direction — expansive reasoning encourages exploration, contractive reasoning highlights risks, unifying reasoning seeks synthesis.
+
+**I should use it proactively** for my most important analytical steps — not every iteration, but when the quality of my reasoning matters most.`
+
+
 // ═══════════════════════════════════════════════════════════════════
 // Layer 2: Agent-Type Contexts
 //
@@ -272,7 +289,9 @@ After iteration 20: I should be concluding. I call signal_conclusion.
 
 I don't investigate endlessly. Diminishing returns set in quickly.
 
-${REPORT_TOOLS}`
+${REPORT_TOOLS}
+
+${SYNAPSE_REASONING}`
 
 
 // ─── Contractive Contexts ──────────────────────────────────────────
@@ -463,7 +482,9 @@ After iteration 20: I should be concluding. I call signal_conclusion.
 
 I don't investigate endlessly. Diminishing returns set in quickly.
 
-${REPORT_TOOLS}`
+${REPORT_TOOLS}
+
+${SYNAPSE_REASONING}`
 
 
 // ─── Unifying Contexts ─────────────────────────────────────────────
@@ -515,7 +536,9 @@ I should be decisive and action-oriented. I write clean, working code and test m
 
 ${FILE_STORE}
 
-${CONTEXT_MANAGEMENT}`
+${CONTEXT_MANAGEMENT}
+
+${SYNAPSE_REASONING}`
 
 
 const UNITY_LUMEN_CONTEXT = `In this session, I unify by synthesizing. The expansive and contractive directions are investigating concurrently right now, debating through a dialectic channel. I run alongside them in two phases: first I actively moderate, then I synthesize their findings into a coherent recommendation.
