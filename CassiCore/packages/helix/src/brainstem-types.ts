@@ -136,7 +136,7 @@ export function createInitialBrainstemState(): BrainstemState {
     qualityTrajectory: [],
     consecutiveExplorations: 0,
     consecutiveDrifts: 0,
-    lastGuidanceStep: 0,
+    lastGuidanceStep: -1, // -1 ensures first guidance always fires
     totalGuidanceCount: 0,
     totalPatternDetections: 0,
     currentAxonStep: 0,

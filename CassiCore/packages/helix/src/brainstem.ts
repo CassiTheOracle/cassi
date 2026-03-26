@@ -202,7 +202,7 @@ export class HelixBrainstem {
         // Wait for work or idle poll
         const hasWork = await this.waitForWorkOrTimeout()
 
-        if (this.shutdownRequested) {
+        if (this.shutdownRequested && !hasWork) {
           break
         }
 
@@ -531,6 +531,7 @@ Guidelines:
   private detectPatternsAndProduceGuidance(annotation: BrainstemAnnotation): void {
     // Check for paralysis pattern
     if (this.state.consecutiveExplorations >= this.config.paralysisThreshold) {
+      this.state.totalPatternDetections++
       const guidance: PendingGuidance = {
         text: 'Stop reading and start implementing.',
         urgency: 'critical',
@@ -545,6 +546,7 @@ Guidelines:
 
     // Check for drift pattern
     if (this.state.consecutiveDrifts >= this.config.driftThreshold) {
+      this.state.totalPatternDetections++
       const guidance: PendingGuidance = {
         text: `Refocus on the goal: ${this.deps.goal}. Current work appears to be diverging.`,
         urgency: 'high',
@@ -614,6 +616,15 @@ Guidelines:
    */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Force immediate processing of all queued work units (for testing and sync use).
+   * Bypasses the async loop polling.
+   */
+  async processNow(): Promise<void> {
+    if (!this.config.enabled) return
+    await this.processWorkUnitBatch()
   }
 }
 
