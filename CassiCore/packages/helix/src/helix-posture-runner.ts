@@ -27,6 +27,8 @@ import type { WorkUnit, FileChange, ToolCallSummary, ToolResultSummary } from '.
 import type { Posture as LumenPostureType } from '../lumen/dialectic-channel.js'
 import type { InferenceResult, ParsedToolCall } from '../../../types/cassi-agent.js'
 import type { HelixRole, HelixPosture, HelixPostureResult } from './types.js'
+import type { HelixBrainstem } from './brainstem.js'
+import type { PendingGuidance } from './brainstem-types.js'
 import { HelixResearcher } from './helix-researcher.js'
 import {
   isHelixMetaTool,
@@ -125,6 +127,10 @@ export interface HelixPostureRunnerOpts {
   researchSpawner?: ResearchSpawner
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: UnityStatusThresholds
+  /** Brainstem — cognitive organizer (replaces Mentor) */
+  brainstem?: HelixBrainstem
+  /** Callback fired when Unity posts a work unit */
+  onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
 }
 
 
@@ -134,6 +140,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly dialecticChannel?: DialecticChannel
   private readonly researchSpawner?: ResearchSpawner
   private readonly unityStatusThresholds?: UnityStatusThresholds
+  private readonly brainstem?: HelixBrainstem
+  private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
 
   // Typed store
   protected declare store?: HelixStore
@@ -186,6 +194,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.dialecticChannel = opts.dialecticChannel
     this.researchSpawner = opts.researchSpawner
     this.unityStatusThresholds = opts.unityStatusThresholds
+    this.brainstem = opts.brainstem
+    this.onWorkUnit = opts.onWorkUnit
     this.store = opts.store
   }
 
@@ -261,10 +271,13 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         const workUnit = this.captureWorkUnit(result, toolCalls, toolResults)
         this.workStream.postWorkUnit(workUnit as any)
         this.workUnitsProduced++
+        this.onWorkUnit?.(workUnit as any, this.iterationCount)
 
-        // Inject low-severity nudges into tool results
-        const enrichedResults = this.injectSynapseGuidance(
-          this.injectNudgeMessages(toolResults)
+        // Inject nudges, Brainstem guidance, and Synapse guidance into tool results
+        const enrichedResults = this.injectBrainstemGuidance(
+          this.injectSynapseGuidance(
+            this.injectNudgeMessages(toolResults)
+          )
         )
 
         // Check for high-severity nudges — inject as blocking user message
@@ -471,7 +484,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         const statusResults = this.injectUnityStatusIntoResults(enrichedResults)
 
         // Inject Synapse guidance from previous collect_thoughts calls
-        const finalResults = this.injectSynapseGuidance(statusResults)
+        const withSynapse = this.injectSynapseGuidance(statusResults)
+
+        // Inject Brainstem guidance (primary cognitive organizer)
+        const finalResults = this.injectBrainstemGuidance(withSynapse)
 
         this.messages.push({ role: 'assistant', content: result.contentBlocks })
         this.messages.push({ role: 'user', content: finalResults })
@@ -1420,6 +1436,46 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       {
         type: 'text' as const,
         text: `\n${guidance}\nRemember: use collect_thoughts for complex analysis steps.`,
+      },
+    ]
+  }
+
+  /**
+   * Inject Brainstem guidance into tool results (low/medium urgency).
+   * Escalating model: low/medium → tool result injection, high/critical → user message.
+   * One-shot: consumes the latest pending guidance from the Brainstem.
+   */
+  private injectBrainstemGuidance(toolResults: ContentBlock[]): ContentBlock[] {
+    if (!this.brainstem) return toolResults
+
+    const guidance = this.brainstem.getLatestGuidance()
+    if (!guidance) return toolResults
+
+    // Critical/high urgency: inject as blocking user message instead
+    if (guidance.urgency === 'critical' || guidance.urgency === 'high') {
+      this.logger.info('Brainstem escalating guidance to user message', {
+        urgency: guidance.urgency,
+        triggeredBy: guidance.triggeredBy,
+        text: guidance.text.slice(0, 100),
+      })
+      this.messages.push({
+        role: 'user',
+        content: `🧠 Brainstem Guidance (${guidance.urgency} — ${guidance.triggeredBy}):\n\n${guidance.text}\n\nAct on this immediately before continuing.`,
+      })
+      return toolResults // Guidance is now a separate user message
+    }
+
+    // Low/medium urgency: inject into tool results
+    this.logger.debug('Brainstem injecting guidance into tool results', {
+      urgency: guidance.urgency,
+      triggeredBy: guidance.triggeredBy,
+    })
+
+    return [
+      ...toolResults,
+      {
+        type: 'text' as const,
+        text: `\n🧠 Brainstem: ${guidance.text}\n`,
       },
     ]
   }

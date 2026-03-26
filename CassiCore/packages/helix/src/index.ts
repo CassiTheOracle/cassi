@@ -331,6 +331,7 @@ export function createHelix(
   const activeDialecticChannels = new Map<string, DialecticChannel>()
   const activeBlackboards = new Map<string, Blackboard>()
   const activeCoordinators = new Map<string, HelixCoordinator>()
+  const activeBrainstems = new Map<string, import('./brainstem.js').HelixBrainstem>()
 
   return {
     cancel(sessionId: string): boolean {
@@ -496,6 +497,31 @@ export function createHelix(
           }
         }
 
+        // Create BrainstemDeps with a model-pool-based LLM adapter
+        let brainstemDeps: import('./brainstem-types.js').BrainstemDeps | undefined
+        if (effectiveModelPool) {
+          try {
+            const brainstemHandle = await effectiveModelPool.acquire('brainstem', undefined, sessionId)
+            brainstemDeps = {
+              llm: {
+                async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
+                  const messages = [{ role: 'user' as const, content: opts.prompt }]
+                  const result = await brainstemHandle.complete(messages as any, {
+                    maxTokens: opts.maxTokens,
+                  } as any)
+                  return { content: result.response, truncated: false }
+                },
+              },
+              logger: logger.child?.('brainstem') ?? logger,
+              goal: effectiveGoal,
+              sessionId,
+            }
+            logger.info('helix:brainstem:adapter-created', { sessionId })
+          } catch (err) {
+            logger.warn('helix:brainstem:handle-acquisition-failed', { error: String(err), sessionId })
+          }
+        }
+
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
 
@@ -538,6 +564,7 @@ export function createHelix(
             blackboard: effectiveBlackboard,
             researchSpawner,
             useNativeCoordinator: true,
+            brainstemDeps,
             onCancelRegistered: (cancelFn) => {
               activeSessions.set(sessionId, cancelFn)
             },
@@ -553,6 +580,13 @@ export function createHelix(
             },
             onCoordinatorCreated: (coord) => {
               activeCoordinators.set(sessionId, coord)
+            },
+            onBrainstemCreated: (bs) => {
+              activeBrainstems.set(sessionId, bs)
+            },
+            onWorkUnit: (wu, iteration) => {
+              const bs = activeBrainstems.get(sessionId)
+              bs?.onWorkUnit(wu, iteration)
             },
             modelDirective: storedModelDirective,
             handleFactory,
@@ -598,6 +632,7 @@ export function createHelix(
           activeDialecticChannels.delete(sessionId)
           activeBlackboards.delete(sessionId)
           activeCoordinators.delete(sessionId)
+          activeBrainstems.delete(sessionId)
           unityHandle.release()
           yangHandle.release()
           yinHandle.release()

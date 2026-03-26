@@ -231,12 +231,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     onWorkUnit: opts.onWorkUnit,
   }
 
-  const contextBudgetCoordinator = new ContextBudgetCoordinator(
-    log,
-    opts.modelDirective,
-    0.75,
-    0.90,
-  )
+  const contextBudgetCoordinator = new ContextBudgetCoordinator(log)
 
   const unitySession = new HelixPostureRunner({
     ...commonOpts,
