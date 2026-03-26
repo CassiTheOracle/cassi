@@ -328,7 +328,12 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         if (this.workStream.isWorkerDone()) {
           const allWUs = this.workStream.getAllWorkUnits()
 
-          // Native coordinator: use per-reviewer broadcast cursors for clean termination
+          // Native coordinator: use per-reviewer broadcast cursors for clean termination.
+          // With broadcast semantics, both reviewers can observe work units. But due to
+          // timing (Unity posts faster than reviewers drain), reviewers may not have
+          // consumed all WUs through nextWorkUnitForReviewer(). That's OK — they also
+          // observe work via UnityStatus and dialectic messages. Once Unity is done and
+          // the reviewer has had at least 2 iterations to contribute, it's safe to conclude.
           if (this.workStream instanceof HelixWorkStream) {
             const seenAll = this.workStream.hasReviewerSeenAll(this.role)
             if (seenAll && allWUs.length > 0) {
@@ -340,7 +345,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
               this.logger.info(`${this.role} — Unity done with no work units, concluding`)
               break
             }
-            // Not seen all yet — continue loop to get remaining work units
+            // Even if not all WUs seen via broadcast, conclude after contributing enough.
+            // Reviewers also see work via UnityStatus injection and dialectic messages.
+            if (this.iterationCount >= 3) {
+              this.workStream.signalReviewerReady(this.role)
+              const cursor = this.workStream.getReviewerProgress(this.role)
+              this.logger.info(`${this.role} — Unity done, concluding after ${this.iterationCount} iterations (broadcast: ${cursor.cursor}/${cursor.total} WUs)`)
+              break
+            }
             continue
           }
 
