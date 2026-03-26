@@ -48,6 +48,7 @@ import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { ToolRegistry } from './tools/registry.js'
 import { ToolReliabilityTracker } from './tools/reliability.js'
+import { BranchingConversationManager } from './intelligence/branching-conversation/manager.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 import { executeTurn, getPreferredTurnEngine } from './admin-api/turn-routing.js'
@@ -1689,6 +1690,14 @@ export class Daemon {
         logger: this.logger,
       } : undefined,
       fileArtifactStore,
+      sequentialReasoningDeps: this.intelligence ? {
+        branchingManager: new BranchingConversationManager(),
+        thoughtObserver: this.intelligence.thoughtObserver,
+        cognitiveBridge: this.intelligence.cognitiveBridge,
+        memory: this.intelligence.memory,
+        bus: this.bus,
+        logger: this.logger.child?.('sequential-reasoning') ?? this.logger,
+      } : undefined,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
