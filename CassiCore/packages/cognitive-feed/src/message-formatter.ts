@@ -235,6 +235,17 @@ export class MessageFormatter {
       return `Synapse step ${e.step ?? '?'}${energy}: ${guidance} (${e.latencyMs ?? '?'}ms, ${e.remaining ?? '?'} left)`
     }
 
+    if (type === 'brainstem:annotation') {
+      const scoreColor = (e.score ?? 0) >= 0.7 ? '🟢' : (e.score ?? 0) >= 0.5 ? '🟡' : '🔴'
+      return `Brainstem: ${scoreColor} ${e.score ?? '?'} — ${esc(e.annotation ?? '?')} (step ${e.axonStep ?? '?'})`
+    }
+    if (type === 'brainstem:pattern') {
+      return `Brainstem detected: ${esc(e.pattern ?? '?')} (step ${e.axonStep ?? '?'})`
+    }
+    if (type === 'brainstem:guidance') {
+      return `Brainstem [${esc(e.urgency ?? '?')}]: ${esc(e.text?.slice(0, 120) ?? '')}`
+    }
+
     if (type === 'adaptive:adaptation-applied') {
       return `Applied: ${esc(e.adaptationType ?? '?')} to ${esc(e.target ?? '?')}`
     }
