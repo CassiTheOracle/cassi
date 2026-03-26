@@ -4,6 +4,7 @@
  */
 
 import type { FluxTeamEvent } from './flux-team.js'
+import type { CognitiveSignal } from '../core/intelligence/thought-observer.js'
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -583,6 +584,11 @@ export type RuntimeEvent =
   | { type: "lumen:posture:complete"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
   | { type: "lumen:posture:error"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; error: string; timestamp: Date }
   | { type: "lumen:complete"; sessionId?: string; recommendation: 'proceed' | 'reconsider' | 'abort'; confidence: number; durationMs: number; timestamp: Date }
+
+  // Sequential reasoning events
+  | { type: "reasoning:step"; sessionId: string; reasoningSessionId: string; step: number; totalSteps: number; thought: string; signals: CognitiveSignal[]; branchId: string; isRevision: boolean; timestamp: Date }
+  | { type: "reasoning:branch"; sessionId: string; reasoningSessionId: string; fromStep: number; branchId: string; timestamp: Date }
+  | { type: "reasoning:complete"; sessionId: string; reasoningSessionId: string; totalSteps: number; summary: string; timestamp: Date }
 
   // Cognitive feed steering events (from Telegram observation group)
   | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
