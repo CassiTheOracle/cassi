@@ -760,6 +760,13 @@ export class CopilotSdkProvider extends BaseProvider {
         chunks.push({ type: 'token', text: delta })
         wakeGenerator()
       }
+    } else if (t === 'assistant.reasoning_delta') {
+      // Extended thinking / reasoning tokens — stream them as 'thinking' chunks
+      const delta = (event as any).data?.deltaContent ?? ''
+      if (delta) {
+        chunks.push({ type: 'thinking', text: delta })
+        wakeGenerator()
+      }
     } else if (t === 'assistant.usage') {
       const d = (event as any).data
       onUsage(d?.inputTokens ?? 0, d?.outputTokens ?? 0)
