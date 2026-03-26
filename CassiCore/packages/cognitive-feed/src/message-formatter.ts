@@ -693,7 +693,7 @@ export class MessageFormatter {
       if (e.latencyMs != null) parts.push(`<b>Latency:</b> ${e.latencyMs}ms`)
       parts.push(`<b>Generated guidance:</b> ${e.hasGuidance ? 'yes' : 'no'}`)
       if (e.remaining != null) parts.push(`<b>Budget remaining:</b> ${e.remaining} calls`)
-      if (e.reasoningSessionId) parts.push(`<b>Session:</b> <code>${esc(String(e.reasoningSessionId).slice(0, 16))}</code>`)
+      if (e.axonSessionId) parts.push(`<b>Axon:</b> <code>${esc(String(e.axonSessionId).slice(0, 16))}</code>`)
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 
@@ -809,8 +809,8 @@ export class MessageFormatter {
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 
-    // Reasoning events
-    if (type === 'reasoning:step') {
+    // Axon events (collect_thoughts thinking steps)
+    if (type === 'axon:step') {
       parts.push(`<b>Step ${e.step ?? '?'}/${e.totalSteps ?? '?'}</b>`)
       if (e.thought) parts.push(esc(truncate(e.thought, 500)))
       if (e.isRevision) parts.push(`<i>(revision)</i>`)
@@ -818,14 +818,14 @@ export class MessageFormatter {
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 
-    if (type === 'reasoning:branch') {
+    if (type === 'axon:branch') {
       parts.push(`<b>Branch</b> from step ${e.fromStep ?? '?'}`)
       if (e.branchId) parts.push(`<b>Branch ID:</b> <code>${esc(e.branchId)}</code>`)
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 
-    if (type === 'reasoning:complete') {
-      parts.push(`<b>Reasoning complete</b> (${e.totalSteps ?? '?'} steps)`)
+    if (type === 'axon:complete') {
+      parts.push(`<b>Thinking complete</b> (${e.totalSteps ?? '?'} steps)`)
       if (e.summary) parts.push(esc(truncate(e.summary, 500)))
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
