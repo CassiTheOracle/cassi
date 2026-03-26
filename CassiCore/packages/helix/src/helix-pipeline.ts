@@ -31,6 +31,8 @@ import { HelixPostureRunner } from './helix-posture-runner.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
+import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
+import type { BrainstemDeps } from './brainstem-types.js'
 
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -75,6 +77,8 @@ export interface HelixPipelineOpts {
   onWorkStreamCreated?: (ws: WorkStream) => void
   onDialecticChannelCreated?: (dc: DialecticChannel) => void
   onCoordinatorCreated?: (coordinator: HelixCoordinator) => void
+  onBrainstemCreated?: (brainstem: HelixBrainstem) => void
+  onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
 
   // Artifact/session context
   artifactNamespace?: string
@@ -90,6 +94,9 @@ export interface HelixPipelineOpts {
 
   /** Use Helix-native coordinator with broadcast semantics instead of borrowed primitives */
   useNativeCoordinator?: boolean
+
+  /** Brainstem dependencies — if provided, Brainstem replaces Mentor */
+  brainstemDeps?: BrainstemDeps
 }
 
 
@@ -160,6 +167,20 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   opts.onDialecticChannelCreated?.(dialecticChannel)
 
 
+  // ── Create Brainstem (replaces Mentor when brainstemDeps provided) ─────
+
+  let brainstem: HelixBrainstem | undefined
+  const useBrainstem = !!opts.brainstemDeps
+  const useMentor = !useBrainstem && !!opts.mentorHandle
+
+  if (useBrainstem) {
+    brainstem = createHelixBrainstem(opts.brainstemDeps!)
+    brainstem.start()
+    opts.onBrainstemCreated?.(brainstem)
+    log.info('Brainstem started (replacing Mentor)')
+  }
+
+
   // ── Cancellation ─────────────────────────────────────────────────────
 
   let cancelled = false
@@ -198,21 +219,24 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     sessionId,
     jobId: opts.jobId,
     workStream,
+    dialecticChannel,
+    blackboard,
+    logger: log,
     toolExecutor: opts.toolExecutor,
     toolRegistry: opts.toolRegistry,
     store: opts.store,
     eventBus: opts.eventBus,
-    logger: log,
-    planHandler: opts.planHandler,
-    blackboard,
     modelDirective: opts.modelDirective,
-    handleFactory: opts.handleFactory,
-    onActivity,
-    moduleDebugSessionId: opts.moduleDebugSessionId,
+    unityStatusThresholds: opts.unityStatusThresholds,
+    onWorkUnit: opts.onWorkUnit,
   }
 
-  // Create intelligent context budget coordinator for all postures
-  const contextBudgetCoordinator = new ContextBudgetCoordinator(log)
+  const contextBudgetCoordinator = new ContextBudgetCoordinator(
+    log,
+    opts.modelDirective,
+    0.75,
+    0.90,
+  )
 
   const unitySession = new HelixPostureRunner({
     ...commonOpts,
@@ -221,7 +245,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: UNITY_POSTURE,
     postureSlot: 'helix.unity',
     contextBudgetCoordinator,
-    // Unity only uses WorkStream, no dialectic channel
   })
 
   const yangSession = new HelixPostureRunner({
@@ -232,7 +255,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yang',
     dialecticChannel,
     contextBudgetCoordinator,
-    unityStatusThresholds: opts.unityStatusThresholds,
   })
 
   const yinSession = new HelixPostureRunner({
@@ -243,14 +265,13 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yin',
     dialecticChannel,
     contextBudgetCoordinator,
-    unityStatusThresholds: opts.unityStatusThresholds,
   })
 
-  // Mentor is optional — only created if a mentorHandle is provided
-  const mentorSession = opts.mentorHandle ? new HelixPostureRunner({
+  // Mentor only created if brainstem is NOT being used and mentorHandle is provided
+  const mentorSession = useMentor ? new HelixPostureRunner({
     ...commonOpts,
     role: 'mentor',
-    handle: opts.mentorHandle,
+    handle: opts.mentorHandle!,
     posture: MENTOR_POSTURE,
     postureSlot: 'helix.mentor',
     dialecticChannel,
@@ -384,6 +405,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     ]
 
     // Mentor runs concurrently if available (dedicated moderator loop)
+    // Only if Brainstem is NOT being used
     if (mentorSession) {
       postures.push(
         mentorSession.runAsMentor(opts.goal, opts.context)
@@ -412,7 +434,8 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     const unityResult = extract(settled[0])
     const yangResult = extract(settled[1])
     const yinResult = extract(settled[2])
-    const mentorResult = settled[3] ? extract(settled[3]) : buildErrorResult('Mentor not configured')
+    // mentorResult only exists if Mentor was used (not Brainstem)
+    const mentorResult = mentorSession && settled[3] ? extract(settled[3]) : buildErrorResult('Mentor not configured')
 
     const pipelineStats = workStream.getStats()
     const dialecticStats = dialecticChannel.getStats()
@@ -426,12 +449,17 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       for (let i = 0; i < yinResult.iterationCount; i++) coordinator.recordReviewerIteration('yin')
     }
 
+    // Get Brainstem result if available
+    const brainstemResult = brainstem?.getResult()
+
     const completionStatus: HelixCompletionStatus = {
       complete: !cancelled,
       unityStatus: unityResult.error ? 'errored' : 'completed',
       yangStatus: yangResult.error ? 'errored' : 'completed',
       yinStatus: yinResult.error ? 'errored' : 'completed',
-      mentorStatus: mentorSession ? (mentorResult.error ? 'errored' : 'completed') : 'not-started',
+      mentorStatus: useBrainstem
+        ? (brainstem ? 'completed' : 'not-started')
+        : (mentorSession ? (mentorResult.error ? 'errored' : 'completed') : 'not-started'),
       degraded: !!(unityResult.error || yangResult.error || yinResult.error),
     }
 
@@ -444,7 +472,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       unityConclusion: unityResult.conclusion,
       yangConclusion: yangResult.conclusion,
       yinConclusion: yinResult.conclusion,
-      mentorConclusion: mentorSession ? mentorResult.conclusion : '',
+      mentorConclusion: useBrainstem
+        ? (brainstemResult ? `Brainstem: ${brainstemResult.annotations.length} annotations, avg score ${brainstemResult.averageScore.toFixed(2)}` : '')
+        : (mentorSession ? mentorResult.conclusion : ''),
 
       convergencePoints,
       unresolvedTensions: unresolvedChallenges.map(c => ({
@@ -471,19 +501,19 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         unity: unityResult.tokensUsed,
         yang: yangResult.tokensUsed,
         yin: yinResult.tokensUsed,
-        mentor: mentorResult.tokensUsed,
+        mentor: useBrainstem ? 0 : mentorResult.tokensUsed,
       },
       iterationCounts: {
         unity: unityResult.iterationCount,
         yang: yangResult.iterationCount,
         yin: yinResult.iterationCount,
-        mentor: mentorResult.iterationCount,
+        mentor: useBrainstem ? 0 : mentorResult.iterationCount,
       },
       toolCallCounts: {
         unity: unityResult.toolCallCount,
         yang: yangResult.toolCallCount,
         yin: yinResult.toolCallCount,
-        mentor: mentorResult.toolCallCount,
+        mentor: useBrainstem ? 0 : mentorResult.toolCallCount,
       },
 
       durationMs: Date.now() - startTime,
@@ -491,6 +521,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
       // Consolidated metrics from HelixCoordinator (if native coordinator)
       metrics: coordinator?.getMetricsSnapshot(),
+
+      // Brainstem result (replaces/supersedes mentor)
+      brainstem: brainstemResult,
 
       report: blackboard.getReport() ?? undefined,
       blackboard: blackboard.getSnapshot(),
@@ -513,6 +546,8 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       yangTokens: result.tokensUsed.yang,
       yinTokens: result.tokensUsed.yin,
       mentorTokens: result.tokensUsed.mentor,
+      brainstemAnnotations: brainstemResult?.annotations.length ?? 0,
+      brainstemAvgScore: brainstemResult?.averageScore ?? 0,
       findings: result.dialecticStats.findings,
       challenges: result.dialecticStats.challenges,
       workUnits: result.pipelineStats.workUnitsProduced,
@@ -523,6 +558,16 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   } finally {
     clearInterval(watchdogInterval)
     clearTimeout(timeoutHandle)
+
+    // Stop Brainstem if running
+    if (brainstem) {
+      try {
+        await brainstem.stop()
+        log.info('Brainstem stopped')
+      } catch (err) {
+        log.warn('Brainstem stop failed', { error: String(err) })
+      }
+    }
 
     // Release model handles
     try { opts.unityHandle.release() } catch { /* best-effort */ }

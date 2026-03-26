@@ -174,6 +174,9 @@ export interface HelixResult {
   /** Consolidated real-time metrics from HelixCoordinator */
   metrics?: import('./helix-metrics.js').HelixMetricsSnapshot
 
+  /** Brainstem cognitive organizer result (replaces/supersedes mentor) */
+  brainstem?: import('./brainstem-types.js').BrainstemResult
+
   /** Incremental report built by all postures */
   report?: import('../../../types/flux-team.js').Report
   /** Blackboard snapshot at completion */
