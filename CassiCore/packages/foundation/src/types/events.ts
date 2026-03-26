@@ -593,6 +593,11 @@ export type RuntimeEvent =
   // Synapse events
   | { type: "synapse:fired"; sessionId: string; axonSessionId: string; step: number; reason: string; latencyMs: number; hasGuidance: boolean; remaining: number; energy?: string; timestamp: Date }
 
+  // Brainstem events (cognitive organizer)
+  | { type: "brainstem:annotation"; sessionId: string; workUnitId: string; score: number; annotation: string; pattern: string; guidance?: string; axonStep: number; timestamp: Date }
+  | { type: "brainstem:pattern"; sessionId: string; pattern: string; severity: string; axonStep: number; timestamp: Date }
+  | { type: "brainstem:guidance"; sessionId: string; urgency: string; triggeredBy: string; text: string; axonStep: number; timestamp: Date }
+
   // Cognitive feed steering events (from Telegram observation group)
   | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
   | { type: "cognitive-feed:steering:pause"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
