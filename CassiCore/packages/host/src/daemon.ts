@@ -1697,6 +1697,32 @@ export class Daemon {
         memory: this.intelligence.memory,
         bus: this.bus,
         logger: this.logger.child?.('sequential-reasoning') ?? this.logger,
+        synapse: (() => {
+          try {
+            const { createSynapse } = require('./intelligence/synapse/index.js')
+            const firstProvider = this.providers.values().next().value
+            if (!firstProvider) return undefined
+            return createSynapse({
+              llm: {
+                async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
+                  const messages = [{ role: 'user' as const, content: opts.prompt }]
+                  let content = ''
+                  const controller = new AbortController()
+                  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs)
+                  try {
+                    for await (const chunk of firstProvider.complete(messages, { model: opts.modelTier, maxTokens: opts.maxTokens }, undefined, controller.signal)) {
+                      if (chunk.type === 'token' && chunk.text) content += chunk.text
+                    }
+                  } finally { clearTimeout(timeout) }
+                  return { content, truncated: false }
+                },
+              },
+              logger: (this as any).logger.child?.('synapse') ?? (this as any).logger,
+            })
+          } catch {
+            return undefined
+          }
+        })(),
       } : undefined,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
