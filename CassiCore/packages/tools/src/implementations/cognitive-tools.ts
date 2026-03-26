@@ -324,7 +324,7 @@ export const probeDefinition: ToolDefinition = {
     'Dispatch a targeted drone swarm to investigate a cognitive signal in depth. ' +
     'Maps the signal kind (edge_case, assumption, gap, tension, insight) to investigation strategies, ' +
     'spawns scout drones in parallel, and returns aggregated findings including any resonance patterns. ' +
-    'This lets you "think wider" using parallel free drones instead of sequential reasoning. ' +
+    'This lets you "think wider" using parallel free drones instead of collecting thoughts step-by-step. ' +
     'Call this when _reflect surfaces a signal that deserves deeper investigation. ' +
     'Executes within the free tool loop — all drones use gpt-5-mini on request-based billing.',
   parameters: {

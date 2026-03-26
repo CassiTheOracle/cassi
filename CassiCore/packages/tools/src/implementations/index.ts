@@ -18,9 +18,9 @@ import {
   type PeerToolDeps,
 } from './peer-coordination.js'
 import {
-  sequentialReasoningDefinition, makeSequentialReasoningHandler,
-  type SequentialReasoningDeps,
-} from './sequential-reasoning.js'
+  collectThoughtsDefinition, makeCollectThoughtsHandler,
+  type CollectThoughtsDeps,
+} from './collect-thoughts.js'
 import { registerContextWindowTools } from './context-window-tools.js'
 import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
@@ -97,8 +97,8 @@ export interface CoreToolDeps {
   getJobManager?: () => import('../../jobs/job-manager.js').JobManager | undefined
   /** Shared file artifact store for agent file sharing */
   fileArtifactStore?: FileArtifactStore
-  /** Dependencies for sequential reasoning tool */
-  sequentialReasoningDeps?: SequentialReasoningDeps
+  /** Dependencies for collect_thoughts tool */
+  collectThoughtsDeps?: CollectThoughtsDeps
 }
 
 /**
@@ -257,11 +257,11 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     registry.register(checkPeersDefinition, makeCheckPeersHandler(deps.peerToolDeps))
   }
 
-  // Sequential reasoning — structured thinking with enrichment pipeline
+  // Collect Thoughts — primary structured thinking with enrichment pipeline
   // Each step is processed through ThoughtObserver, CognitiveBridge, and memory search.
   // Supports branching (explore alternatives) and revision (reconsider earlier steps).
-  if (deps.sequentialReasoningDeps) {
-    registry.register(sequentialReasoningDefinition, makeSequentialReasoningHandler(deps.sequentialReasoningDeps))
+  if (deps.collectThoughtsDeps) {
+    registry.register(collectThoughtsDefinition, makeCollectThoughtsHandler(deps.collectThoughtsDeps))
   }
 
   // Cassandra Event Stream Tools - CONSOLIDATED (Phase 2)

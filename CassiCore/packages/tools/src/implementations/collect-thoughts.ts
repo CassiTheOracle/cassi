@@ -1,0 +1,597 @@
+/**
+ * Collect Thoughts Tool — the primary thinking tool for all agents.
+ *
+ * Each tool call is a bidirectional intelligence exchange:
+ *   1. Agent externalizes a thought step
+ *   2. CassiCore processes through ThoughtObserver, CognitiveBridge, memory
+ *   3. CassiCore responds with enriched context
+ *   4. Agent incorporates enrichment into its next step
+ *
+ * Enrichment pipeline (Stages 1-6):
+ *   Stage 1: STORE   — BranchingConversation.addTurn(); revision/branch routing
+ *   Stage 2: EXTRACT — ThoughtObserver.extractSignalsFromText()
+ *   Stage 3: PEER    — CognitiveBridge.getFusedSignals() + getResonancePatterns()
+ *   Stage 4: ROUTE   — Route signals to peers; emit axon:step event
+ *   Stage 5: MEMORY  — memory.search(thought) for related context
+ *   Stage 6: SYNAPSE — conditional LLM call for per-posture guidance
+ *
+ * Neural metaphor:
+ *   Axon    — the structured thought chain (sessions/trees managed here)
+ *   Synapse — fires guidance at junctions between thoughts
+ *   Dendrites — memory, signals, peers feeding into each step
+ */
+
+import type { ToolDefinition, ToolHandler } from '../types.js'
+import type { BranchingConversationManager } from '../../intelligence/branching-conversation/manager.js'
+import type { ThoughtObserver, CognitiveSignal } from '../../intelligence/thought-observer.js'
+import type { CognitiveBridge, ResonancePattern } from '../../intelligence/cognitive-bridge.js'
+import type { IMemory } from '../../../types/intelligence.js'
+import type { IEventBus, ILogger } from '../../../types/interfaces.js'
+import type {
+  CollectThoughtsResult,
+  CollectThoughtsConfig,
+  CollectThoughtsInput,
+  AxonSessionState,
+  SynapseGuidance,
+} from '../../../types/collect-thoughts.js'
+import { DEFAULT_COLLECT_THOUGHTS_CONFIG } from '../../../types/collect-thoughts.js'
+import { generateShortId } from '../../utils/ids.js'
+import type { Synapse } from '../../intelligence/synapse/index.js'
+
+// ─── Dependencies ─────────────────────────────────────────────────────────
+
+export interface CollectThoughtsDeps {
+  branchingManager: BranchingConversationManager
+  thoughtObserver?: ThoughtObserver
+  cognitiveBridge?: CognitiveBridge
+  memory?: IMemory
+  bus?: IEventBus
+  logger: ILogger
+  config?: Partial<CollectThoughtsConfig>
+  synapse?: Synapse
+  // Phase 3c: brainstem?: Brainstem
+}
+
+// ─── Tool Definition ──────────────────────────────────────────────────────
+
+export const collectThoughtsDefinition: ToolDefinition = {
+  name: 'collect_thoughts',
+  readOnly: true,
+  description:
+    'Collect and organize your thoughts with live intelligence guidance. Each step is ' +
+    'enriched with signal extraction, memory recall, peer activity, and Synapse guidance. ' +
+    'Use this as your primary thinking tool — before planning, deciding, evaluating, or ' +
+    'concluding. Supports branching (explore alternatives) and revision (reconsider earlier ' +
+    'steps). Your posture energy adapts the guidance tone automatically.',
+  parameters: {
+    type: 'object',
+    properties: {
+      thought: {
+        type: 'string',
+        description: 'Your current thought — what you are considering, your hypothesis, analysis, or conclusion.',
+      },
+      step: {
+        type: 'number',
+        description: 'Step number in the thought chain (1-indexed).',
+      },
+      estimated_steps: {
+        type: 'number',
+        description: 'Estimated total steps. Can be adjusted upward with needs_more_steps.',
+      },
+      continue_thinking: {
+        type: 'boolean',
+        description: 'Whether more thinking steps are needed after this one.',
+      },
+      is_revision: {
+        type: 'boolean',
+        description: 'Set to true if this step reconsiders a previous step.',
+      },
+      revises_step: {
+        type: 'number',
+        description: 'Which step number is being reconsidered (requires is_revision: true).',
+      },
+      branch_from_step: {
+        type: 'number',
+        description: 'Create a new thinking branch starting from this step number.',
+      },
+      branch_id: {
+        type: 'string',
+        description: 'Identifier for the new branch (e.g., "alternative-approach", "risk-assessment").',
+      },
+      needs_more_steps: {
+        type: 'boolean',
+        description: 'Set to true to extend the total beyond original estimate.',
+      },
+      session_id: {
+        type: 'string',
+        description: 'Resume a previous axon session by its ID.',
+      },
+      posture_energy: {
+        type: 'string',
+        enum: ['expansive', 'contractive', 'unifying', 'neutral'],
+        description: 'Posture energy for Synapse guidance adaptation. In Helix context: unity=unifying, yang=expansive, yin=contractive.',
+      },
+    },
+    required: ['thought', 'step', 'estimated_steps', 'continue_thinking'],
+  },
+  timeoutMs: 10_000,
+  category: 'cognitive',
+}
+
+// ─── Session State Map ────────────────────────────────────────────────────
+
+/** In-memory axon session state, keyed by axon session ID */
+const sessionStates = new Map<string, AxonSessionState>()
+
+// ─── Tool Result Hard Cap ─────────────────────────────────────────────────
+
+const RESULT_HARD_CAP = 2_000
+
+// ─── Handler Factory ──────────────────────────────────────────────────────
+
+export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandler {
+  const log = deps.logger.child?.('collect-thoughts') ?? deps.logger
+  const cfg: CollectThoughtsConfig = {
+    ...DEFAULT_COLLECT_THOUGHTS_CONFIG,
+    ...deps.config,
+  }
+
+  return async (rawInput, context) => {
+    const input = rawInput as unknown as CollectThoughtsInput
+
+    // Validate required fields
+    if (!input.thought || typeof input.thought !== 'string') {
+      return JSON.stringify({ error: 'thought is required and must be a string' })
+    }
+    if (typeof input.step !== 'number' || input.step < 1) {
+      return JSON.stringify({ error: 'step is required and must be >= 1' })
+    }
+    if (typeof input.estimated_steps !== 'number' || input.estimated_steps < 1) {
+      return JSON.stringify({ error: 'estimated_steps is required and must be >= 1' })
+    }
+
+    // ─── Resolve or create axon session state ─────────────────────────
+    const { state, isNew } = resolveAxonSession(
+      input,
+      context.sessionId,
+      cfg,
+      deps.branchingManager,
+      log,
+    )
+
+    // ─── Handle dynamic extension ─────────────────────────────────────
+    if (input.needs_more_steps) {
+      // Agent is signaling it needs more steps than originally estimated
+      // estimated_steps should already be the new (higher) value
+    }
+
+    // ─── Handle branching ─────────────────────────────────────────────
+    let activeBranchId = 'main'
+    if (input.branch_from_step && input.branch_id) {
+      const branchId = input.branch_id
+      const session = deps.branchingManager.getSession(state.axonSessionId)
+      if (session && !session.branches.has(branchId)) {
+        // Find the turn ID for the branch point
+        const branchPointTurnId = state.stepToTurnId.get(input.branch_from_step)
+        if (branchPointTurnId) {
+          // Switch to the branch point first, then fork
+          deps.branchingManager.switchBranch(state.axonSessionId, 'main')
+          deps.branchingManager.forkBranch(state.axonSessionId, branchId, {
+            name: branchId,
+            description: `Branch from step ${input.branch_from_step}`,
+          })
+          deps.branchingManager.switchBranch(state.axonSessionId, branchId)
+        }
+      } else if (session?.branches.has(branchId)) {
+        // Branch already exists, just switch to it
+        deps.branchingManager.switchBranch(state.axonSessionId, branchId)
+      }
+      activeBranchId = branchId
+    }
+
+    // ─── Stage 1: STORE ───────────────────────────────────────────────
+    // Record the thought as a turn in the BranchingConversation
+    const parentTurnId = input.is_revision && input.revises_step
+      ? state.stepToTurnId.get(input.revises_step)
+      : undefined
+
+    const turnId = deps.branchingManager.addTurn(
+      state.axonSessionId,
+      {
+        role: 'assistant',
+        content: `[Step ${input.step}/${input.estimated_steps}] ${input.thought}`,
+      },
+      parentTurnId,
+    )
+    state.stepToTurnId.set(input.step, turnId)
+
+    if (input.is_revision) {
+      state.revisionsCount++
+    }
+
+    // ─── Stage 2: EXTRACT ─────────────────────────────────────────────
+    // Extract cognitive signals from the thought text
+    let signals: CognitiveSignal[] = []
+    if (deps.thoughtObserver) {
+      signals = deps.thoughtObserver.extractSignalsFromText(input.thought)
+
+      // Revision delta extraction — when revising, also extract signals from
+      // the gap between original and revised thinking
+      if (input.is_revision && input.revises_step) {
+        const originalSignals = state.signalsByStep.get(input.revises_step) ?? []
+        const originalKinds = new Set(originalSignals.map(s => s.kind))
+        const newKinds = signals.filter(s => !originalKinds.has(s.kind))
+        if (newKinds.length > 0) {
+          // The delta signals are the ones in the revision that weren't in the original
+          signals = [...signals, ...newKinds.map(s => ({
+            ...s,
+            text: `[revision delta] ${s.text}`,
+            confidence: Math.min(s.confidence + 0.1, 1.0), // slight boost for revision insights
+          }))]
+        }
+      }
+    }
+    state.signalsByStep.set(input.step, signals)
+
+    // ─── Stage 3: PEER SIGNALS ────────────────────────────────────────
+    // Gather fused signals and resonance patterns from peer sessions
+    let peerSignals: CognitiveSignal[] = []
+    let resonancePatterns: ResonancePattern[] = []
+    if (deps.cognitiveBridge) {
+      const allFused = deps.cognitiveBridge.getFusedSignals(context.sessionId)
+      // Filter to recent high-confidence, cap at maxPeerSignals
+      peerSignals = allFused
+        .filter(s => s.confidence >= 0.5)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, cfg.maxPeerSignals)
+
+      resonancePatterns = deps.cognitiveBridge.getResonancePatterns(context.sessionId)
+    }
+
+    // ─── Stage 4: ROUTE & EMIT ────────────────────────────────────────
+    // Route signals to peers and emit axon:step event
+    if (deps.thoughtObserver && signals.length > 0) {
+      deps.thoughtObserver.storeSignals(context.sessionId, signals)
+    }
+    if (deps.cognitiveBridge && signals.length > 0) {
+      deps.cognitiveBridge.routeSignals(context.sessionId, signals)
+    }
+
+    // Emit axon:step event
+    if (deps.bus) {
+      deps.bus.emit({
+        type: 'axon:step',
+        sessionId: context.sessionId,
+        axonSessionId: state.axonSessionId,
+        step: input.step,
+        totalSteps: input.estimated_steps,
+        thought: input.thought.slice(0, 500), // truncate for event payload
+        signals,
+        branchId: activeBranchId,
+        isRevision: input.is_revision ?? false,
+        timestamp: new Date(),
+      })
+
+      // Emit branch event if we just created a branch
+      if (input.branch_from_step && input.branch_id) {
+        deps.bus.emit({
+          type: 'axon:branch',
+          sessionId: context.sessionId,
+          axonSessionId: state.axonSessionId,
+          fromStep: input.branch_from_step,
+          branchId: input.branch_id,
+          timestamp: new Date(),
+        })
+      }
+    }
+
+    // ─── Stage 5: MEMORY SEARCH ───────────────────────────────────────
+    // Search memory for related context
+    let relatedContext: string[] = []
+    if (deps.memory) {
+      try {
+        const results = await deps.memory.search(input.thought, {
+          limit: cfg.maxMemoryResults + cfg.maxArchiveResults,
+        })
+        relatedContext = results
+          .filter(r => r.score >= 0.3)
+          .slice(0, cfg.maxMemoryResults + cfg.maxArchiveResults)
+          .map(r => {
+            const text = r.entry?.content ?? ''
+            return text.slice(0, 200) // Cap at 200 chars per entry
+          })
+          .filter(t => t.length > 0)
+      } catch (err) {
+        log.warn('Memory search failed in thinking step', { error: String(err) })
+      }
+    }
+
+    // ─── Stage 6: SYNAPSE (Per-Posture Guidance) ────────────────────
+    // Conditional LLM call that provides meta-cognitive guidance.
+    // Fires only when gating conditions pass (budget, signal confidence, etc.)
+    let synapseGuidance: SynapseGuidance | null = null
+    let synapseFired = false
+    let synapseLatencyMs = 0
+    if (deps.synapse) {
+      const gating = deps.synapse.shouldFire(
+        input.step,
+        state.axonSessionId,
+        signals,
+        input.is_revision ?? false,
+        input.branch_from_step,
+      )
+      if (gating.shouldFire) {
+        synapseFired = true
+        const synapseStart = Date.now()
+        log.info('Synapse firing', {
+          step: input.step,
+          reason: gating.reason,
+          remaining: deps.synapse.getRemainingBudget(state.axonSessionId),
+        })
+        try {
+          // Build compressed tree summary for the Synapse context
+          const session = deps.branchingManager.getSession(state.axonSessionId)
+          const treeSummary = session
+            ? `${session.branches.size} branches, ${state.stepToTurnId.size} steps, ${state.revisionsCount} revisions`
+            : `${state.stepToTurnId.size} steps`
+
+          synapseGuidance = await deps.synapse.generateGuidance(
+            {
+              tree: treeSummary,
+              currentStep: { number: input.step, content: input.thought },
+              signals,
+              relatedMemory: relatedContext,
+              peerSignals,
+              resonance: resonancePatterns,
+              energy: input.posture_energy,
+              isRevision: input.is_revision,
+              revisesStep: input.revises_step,
+            },
+            state.axonSessionId,
+          )
+          if (synapseGuidance) {
+            state.synapseBudget = deps.synapse.getRemainingBudget(state.axonSessionId)
+          }
+          synapseLatencyMs = Date.now() - synapseStart
+          log.info('Synapse completed', {
+            step: input.step,
+            latencyMs: synapseLatencyMs,
+            hasGuidance: !!synapseGuidance,
+            remaining: deps.synapse.getRemainingBudget(state.axonSessionId),
+          })
+          // Emit synapse:fired event for observability
+          if (deps.bus) {
+            deps.bus.emit({
+              type: 'synapse:fired',
+              sessionId: context.sessionId,
+              axonSessionId: state.axonSessionId,
+              step: input.step,
+              reason: gating.reason,
+              latencyMs: synapseLatencyMs,
+              hasGuidance: !!synapseGuidance,
+              remaining: deps.synapse.getRemainingBudget(state.axonSessionId),
+              energy: input.posture_energy,
+              timestamp: new Date(),
+            })
+          }
+        } catch (err) {
+          synapseLatencyMs = Date.now() - synapseStart
+          log.warn('Synapse guidance failed', { error: String(err), step: input.step, latencyMs: synapseLatencyMs })
+        }
+      } else {
+        log.debug('Synapse gating: skip', { step: input.step, reason: gating.reason })
+      }
+    }
+
+    // ─── Emit axon:complete if done ───────────────────────────────────
+    if (!input.continue_thinking && deps.bus) {
+      deps.bus.emit({
+        type: 'axon:complete',
+        sessionId: context.sessionId,
+        axonSessionId: state.axonSessionId,
+        totalSteps: input.step,
+        summary: `Thinking complete: ${input.step} steps, ${state.revisionsCount} revisions`,
+        timestamp: new Date(),
+      })
+    }
+
+    // ─── Build tree state ─────────────────────────────────────────────
+    const session = deps.branchingManager.getSession(state.axonSessionId)
+    const branches = session ? Array.from(session.branches.keys()) : [activeBranchId]
+
+    // ─── Compute Synapse budget metadata ──────────────────────────────
+    const nextSynapseStep = computeNextSynapseEligible(
+      input.step,
+      cfg.synapseInterval,
+      state.synapseBudget,
+    )
+
+    // ─── Compose result ───────────────────────────────────────────────
+    const result: CollectThoughtsResult = {
+      step: {
+        number: input.step,
+        of: input.estimated_steps,
+        recorded: true,
+        isRevision: input.is_revision ?? false,
+        branchId: activeBranchId,
+      },
+      signals: signals.slice(0, 10), // Cap signals in result
+      relatedContext,
+      peerSignals,
+      resonance: resonancePatterns.map(r => ({
+        kind: r.kind,
+        summary: r.kind === 'resonance'
+          ? `Convergence: "${r.signalA.signal.text.slice(0, 100)}"`
+          : `Tension: "${r.signalA.signal.text.slice(0, 60)}" vs "${r.signalB.signal.text.slice(0, 60)}"`,
+        confidence: r.amplifiedConfidence,
+      })),
+      synapse: synapseGuidance,
+      constellationGuidance: null,  // Phase 3c
+      tree: {
+        totalSteps: state.stepToTurnId.size,
+        activeBranch: activeBranchId,
+        branches,
+        revisionsCount: state.revisionsCount,
+      },
+      meta: {
+        synapseCallsRemaining: state.synapseBudget,
+        nextSynapseEligible: nextSynapseStep,
+        synapseFired,
+        synapseLatencyMs,
+      },
+    }
+
+    // Stringify and enforce hard cap
+    let jsonResult = JSON.stringify(result)
+    if (jsonResult.length > RESULT_HARD_CAP) {
+      // Trim relatedContext and peerSignals first, then signals
+      const trimmed = { ...result }
+      trimmed.relatedContext = trimmed.relatedContext.slice(0, 2)
+      trimmed.peerSignals = trimmed.peerSignals.slice(0, 2)
+      trimmed.signals = trimmed.signals.slice(0, 5)
+      trimmed.resonance = trimmed.resonance.slice(0, 2)
+      jsonResult = JSON.stringify(trimmed)
+      if (jsonResult.length > RESULT_HARD_CAP) {
+        jsonResult = jsonResult.slice(0, RESULT_HARD_CAP)
+      }
+    }
+
+    log.info(`[step ${input.step}/${input.estimated_steps}]`, {
+      sessionId: context.sessionId.slice(-8),
+      axonSession: state.axonSessionId.slice(-8),
+      signals: signals.length,
+      peers: peerSignals.length,
+      memory: relatedContext.length,
+      branch: activeBranchId,
+      revision: input.is_revision ?? false,
+    })
+
+    return jsonResult
+  }
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Resolve or create the axon session state for this tool call.
+ */
+function resolveAxonSession(
+  input: CollectThoughtsInput,
+  ownerSessionId: string,
+  cfg: CollectThoughtsConfig,
+  branchingManager: BranchingConversationManager,
+  log: ILogger,
+): { state: AxonSessionState; isNew: boolean } {
+  // Resume existing session
+  if (input.session_id) {
+    const existing = sessionStates.get(input.session_id)
+    if (existing) {
+      return { state: existing, isNew: false }
+    }
+    log.warn('Requested axon session not found, creating new', {
+      requestedId: input.session_id,
+    })
+  }
+
+  // Check if we already have a session for this owner + step 1
+  // (handles the common case of a single thought chain per session)
+  if (input.step === 1) {
+    // Always create a new session for step 1
+    const axonSessionId = `axon-${generateShortId(8)}`
+
+    branchingManager.createSession(
+      axonSessionId,
+      ownerSessionId,
+      'collect-thoughts',
+      { model: 'n/a', thinking: 'none' },
+    )
+
+    const state: AxonSessionState = {
+      axonSessionId,
+      ownerSessionId,
+      stepToTurnId: new Map(),
+      revisionsCount: 0,
+      synapseBudget: cfg.maxSynapseCalls,
+      signalsByStep: new Map(),
+      createdAt: Date.now(),
+    }
+    sessionStates.set(axonSessionId, state)
+
+    log.info('Created axon session', {
+      axonSessionId: axonSessionId.slice(-8),
+      ownerSession: ownerSessionId.slice(-8),
+    })
+    return { state, isNew: true }
+  }
+
+  // For steps > 1 without an explicit session_id,
+  // find the most recent session for this owner
+  for (const [, s] of sessionStates) {
+    if (s.ownerSessionId === ownerSessionId) {
+      return { state: s, isNew: false }
+    }
+  }
+
+  // Fallback: create a new session mid-chain (shouldn't happen normally)
+  log.warn('No existing axon session found for mid-chain step, creating new', {
+    stepNumber: input.step,
+    ownerSession: ownerSessionId,
+  })
+  const axonSessionId = `axon-${generateShortId(8)}`
+  branchingManager.createSession(
+    axonSessionId,
+    ownerSessionId,
+    'collect-thoughts',
+    { model: 'n/a', thinking: 'none' },
+  )
+  const state: AxonSessionState = {
+    axonSessionId,
+    ownerSessionId,
+    stepToTurnId: new Map(),
+    revisionsCount: 0,
+    synapseBudget: cfg.maxSynapseCalls,
+    signalsByStep: new Map(),
+    createdAt: Date.now(),
+  }
+  sessionStates.set(axonSessionId, state)
+  return { state, isNew: true }
+}
+
+/**
+ * Compute when the next Synapse call is eligible.
+ */
+function computeNextSynapseEligible(
+  currentStep: number,
+  interval: number,
+  budgetRemaining: number,
+): string {
+  if (budgetRemaining <= 0) return 'budget exhausted'
+  const nextPeriodicStep = Math.ceil(currentStep / interval) * interval + interval
+  return `step ${nextPeriodicStep} or next revision/branch`
+}
+
+/**
+ * Clean up old axon sessions to prevent memory leaks.
+ * Called periodically or when sessions complete.
+ */
+export function cleanupAxonSessions(maxAgeMs: number = 30 * 60 * 1_000): number {
+  const now = Date.now()
+  let cleaned = 0
+  for (const [id, state] of sessionStates) {
+    if (now - state.createdAt > maxAgeMs) {
+      sessionStates.delete(id)
+      cleaned++
+    }
+  }
+  return cleaned
+}
+
+/** Exposed for testing */
+export function getAxonSessionState(axonSessionId: string): AxonSessionState | undefined {
+  return sessionStates.get(axonSessionId)
+}
+
+/** Exposed for testing */
+export function clearAllSessionStates(): void {
+  sessionStates.clear()
+}
