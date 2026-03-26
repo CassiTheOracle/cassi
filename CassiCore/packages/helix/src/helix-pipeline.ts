@@ -82,6 +82,9 @@ export interface HelixPipelineOpts {
 
   /** Optional research spawner — passed to mentor for eager research execution */
   researchSpawner?: ResearchSpawner
+
+  /** Configurable thresholds for UnityStatus proactive signals to reviewers */
+  unityStatusThresholds?: import('../dyad/work-stream.js').UnityStatusThresholds
 }
 
 
@@ -205,6 +208,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yang',
     dialecticChannel,
     contextBudgetCoordinator,
+    unityStatusThresholds: opts.unityStatusThresholds,
   })
 
   const yinSession = new HelixAgentSession({
@@ -215,6 +219,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yin',
     dialecticChannel,
     contextBudgetCoordinator,
+    unityStatusThresholds: opts.unityStatusThresholds,
   })
 
   // Mentor is optional — only created if a mentorHandle is provided

@@ -17,6 +17,7 @@
 import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
 import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from '../dyad/types.js'
+import type { UnityStatusThresholds } from '../dyad/work-stream.js'
 
 
 /** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers) + mentor (moderator) */
@@ -50,6 +51,12 @@ export interface HelixProjectOpts {
   sessionType?: 'dyad' | 'lumen' | 'flux' | 'helix' | 'standalone'
   /** Team ID when running inside a FluxTeam */
   teamId?: string
+  /**
+   * Configurable thresholds for UnityStatus proactive signals.
+   * When exceeded, reviewers automatically receive status updates about Unity's progress.
+   * Defaults: 10 iterations, 60 seconds, 5 repeated tool calls.
+   */
+  unityStatusThresholds?: UnityStatusThresholds
 }
 
 

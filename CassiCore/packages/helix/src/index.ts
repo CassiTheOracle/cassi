@@ -539,6 +539,7 @@ export function createHelix(
             artifactNamespace: opts.artifactNamespace,
             sessionType: opts.sessionType ?? 'helix',
             teamId: opts.teamId,
+            unityStatusThresholds: opts.unityStatusThresholds,
           })
 
           lastRun = new Date()
