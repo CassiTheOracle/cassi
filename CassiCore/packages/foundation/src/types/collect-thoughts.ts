@@ -57,6 +57,9 @@ export interface CollectThoughtsResult {
     revisionsCount: number
   }
 
+  /** Shared tree awareness: which postures have contributed and how many steps each */
+  contributors: Record<string, number>
+
   /** Budget metadata for the model to be aware of */
   meta: {
     synapseCallsRemaining: number
@@ -160,6 +163,8 @@ export interface AxonSessionState {
   signalsByStep: Map<number, CognitiveSignal[]>
   /** Created timestamp */
   createdAt: number
+  /** Shared tree awareness: which postures have contributed and how many steps each */
+  contributors: Map<string, number>
 }
 
 // ─── Tool Input ───────────────────────────────────────────────────────────
