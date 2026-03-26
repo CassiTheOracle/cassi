@@ -520,6 +520,7 @@ export function createHelix(
             store: storedStore,
             blackboard: effectiveBlackboard,
             researchSpawner,
+            useNativeCoordinator: true,
             onCancelRegistered: (cancelFn) => {
               activeSessions.set(sessionId, cancelFn)
             },
