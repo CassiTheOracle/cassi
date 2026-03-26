@@ -44,6 +44,7 @@ import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
 import { handleTrainingRoutes } from './admin-api/training.js'
 import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
 import { handleTimelineRoutes } from './admin-api/timeline.js'
+import { handleWarmProviderRoutes, shutdownWarmProvider } from './admin-api/warm-provider.js'
 import { createAdminRuntimeFacade } from './admin-api/runtime.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
@@ -1948,6 +1949,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
       // Route handlers - dispatch in order
       const routeHandlers = [
+        // OpenAI-compatible warm provider endpoint — checked first since /v1/* is a distinct prefix
+        () => handleWarmProviderRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),
         () => handleHealthRoutes({ daemon, logger, sendJSON }, req, res, method, pathname),
         () => handleConfigRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname, parts),
         () => handleChannelsRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),
