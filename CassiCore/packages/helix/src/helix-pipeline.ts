@@ -26,6 +26,7 @@ import { Blackboard } from '../flux-team/blackboard.js'
 import { WorkStream } from '../dyad/work-stream.js'
 import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
+import { HelixCoordinator, HelixWorkStream, HelixDialecticMesh } from './helix-coordinator.js'
 import { HelixPostureRunner } from './helix-posture-runner.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
@@ -85,6 +86,9 @@ export interface HelixPipelineOpts {
 
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: import('../dyad/work-stream.js').UnityStatusThresholds
+
+  /** Use Helix-native coordinator with broadcast semantics instead of borrowed primitives */
+  useNativeCoordinator?: boolean
 }
 
 
@@ -115,14 +119,32 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   // ── Create Channels ──────────────────────────────────────────────────
 
-  const workStream = new WorkStream(
-    DEFAULT_MAX_MESSAGES,
-    DEFAULT_BACKPRESSURE_THRESHOLD,
-    opts.eventBus,
-    sessionId,
-  )
+  let workStream: WorkStream
+  let dialecticChannel: DialecticChannel
+  let coordinator: HelixCoordinator | undefined
 
-  const dialecticChannel = new DialecticChannel(500, opts.eventBus, sessionId)
+  if (opts.useNativeCoordinator) {
+    // Helix-native coordinator with broadcast semantics
+    coordinator = new HelixCoordinator({
+      sessionId,
+      logger: log,
+      eventBus: opts.eventBus,
+      maxMessages: DEFAULT_MAX_MESSAGES,
+      backpressureThreshold: DEFAULT_BACKPRESSURE_THRESHOLD,
+    })
+    workStream = coordinator.workStream     // HelixWorkStream extends WorkStream
+    dialecticChannel = coordinator.dialecticMesh  // HelixDialecticMesh extends DialecticChannel
+    log.info('Using Helix-native coordinator (broadcast work units, dialectic mesh)')
+  } else {
+    // Legacy borrowed primitives
+    workStream = new WorkStream(
+      DEFAULT_MAX_MESSAGES,
+      DEFAULT_BACKPRESSURE_THRESHOLD,
+      opts.eventBus,
+      sessionId,
+    )
+    dialecticChannel = new DialecticChannel(500, opts.eventBus, sessionId)
+  }
 
   // Auto-create Blackboard if not provided
   const blackboard = opts.blackboard ?? new Blackboard(log, sessionId)

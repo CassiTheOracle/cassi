@@ -21,6 +21,7 @@ import type { Blackboard } from '../flux-team/blackboard.js'
 import { WorkStream } from '../dyad/work-stream.js'
 import type { UnityStatusThresholds } from '../dyad/work-stream.js'
 import type { DialecticChannel } from '../lumen/dialectic-channel.js'
+import { HelixWorkStream } from './helix-coordinator.js'
 import type { HelixStore } from './helix-store.js'
 import type { WorkUnit, FileChange, ToolCallSummary, ToolResultSummary } from '../dyad/types.js'
 import type { Posture as LumenPostureType } from '../lumen/dialectic-channel.js'
@@ -326,6 +327,24 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // looping forever waiting for a work unit it will never dequeue.
         if (this.workStream.isWorkerDone()) {
           const allWUs = this.workStream.getAllWorkUnits()
+
+          // Native coordinator: use per-reviewer broadcast cursors for clean termination
+          if (this.workStream instanceof HelixWorkStream) {
+            const seenAll = this.workStream.hasReviewerSeenAll(this.role)
+            if (seenAll && allWUs.length > 0) {
+              this.workStream.signalReviewerReady(this.role)
+              this.logger.info(`${this.role} — Unity done, all ${allWUs.length} work units observed via broadcast, concluding`)
+              break
+            }
+            if (allWUs.length === 0) {
+              this.logger.info(`${this.role} — Unity done with no work units, concluding`)
+              break
+            }
+            // Not seen all yet — continue loop to get remaining work units
+            continue
+          }
+
+          // Legacy fallback: check local + global reviewed sets
           const allReviewedLocally = allWUs.length > 0 && allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
           const allReviewedGlobally = allWUs.length > 0 && allWUs.every(wu =>
             this.reviewedWorkUnitIds.has(wu.id) || this.workStream.isWorkUnitReviewed(wu.id),
@@ -335,12 +354,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
             break
           }
           if (allReviewedGlobally && this.iterationCount > 1) {
-            // Another reviewer already reviewed all work units, and we've had at least
-            // one pass to contribute dialectic feedback. Safe to conclude.
             this.logger.info(`${this.role} — Unity is done, all ${allWUs.length} work units reviewed globally, concluding after ${this.iterationCount} iterations`)
             break
           }
-          // Also break if Unity finished without producing any work
           if (allWUs.length === 0) {
             this.logger.info(`${this.role} — Unity is done with no work units, concluding`)
             break
@@ -348,8 +364,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         }
 
         // Primary mode: drain next work unit
+        // Use broadcast read when HelixWorkStream is available (each reviewer
+        // sees ALL work units via per-reviewer cursors). Falls back to legacy
+        // destructive nextWorkUnit() for backward compat.
         const workUnit = await Promise.race([
-          this.workStream.nextWorkUnit(REVIEWER_WORK_UNIT_TIMEOUT_MS).catch(err => {
+          (this.workStream instanceof HelixWorkStream
+            ? this.workStream.nextWorkUnitForReviewer(this.role, REVIEWER_WORK_UNIT_TIMEOUT_MS)
+            : this.workStream.nextWorkUnit(REVIEWER_WORK_UNIT_TIMEOUT_MS)
+          ).catch(err => {
             this.logger.debug(`${this.role} — nextWorkUnit failed`, { error: String(err) })
             return null
           }),
