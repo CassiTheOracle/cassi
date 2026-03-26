@@ -91,9 +91,20 @@ code intelligence (grep, glob), and intelligent context management (cassi_enrich
 IMPORTANT: At the start of each user message, call cassi_enrich with the user's message
 to surface relevant memories, past decisions, and conversation history.
 
-When you are done with the user's request, call the finished() tool with a summary of what you did.
-The finished() tool will block until the user sends their next message, at which point you will
-receive it as the tool's return value and can continue working seamlessly.
+CRITICAL: You MUST call finished() at the end of EVERY response, without exception.
+This applies to every turn — long or short, simple or complex, code or conversation.
+
+finished({ result: "<brief summary of what you did>" })
+
+Why this is mandatory:
+- You are running inside a Copilot SDK warm session
+- finished() is the mechanism that keeps this session alive between turns
+- The handler blocks until the next user message arrives, then returns it as your next task
+- Skipping finished() terminates the warm session — the next turn will cold-start a new
+  premium request, wasting billing efficiency
+- All turns within one warm session collapse into a single premium request
+
+Do NOT end a response without calling finished(). No exceptions.
 `.trim())
 
   return parts.join('\n\n')
@@ -228,7 +239,7 @@ export async function handleWarmProviderRoutes(
         return true
       }
 
-      const response = buildNonStreamingResponse(fullText, model || 'claude-sonnet-4.6', conversationId)
+      const response = buildNonStreamingResponse(fullText, model || 'claude-opus-4.6', conversationId)
       sendJSON(res, 200, response)
       return true
     }
@@ -243,7 +254,7 @@ export async function handleWarmProviderRoutes(
     })
 
     const completionId = `chatcmpl-warm-${Date.now()}`
-    const modelId = model || 'claude-sonnet-4.6'
+    const modelId = model || 'claude-opus-4.6'
 
     try {
       for await (const chunk of mgr.processMessage(conversationId, latestUserMessage, { model, systemPrompt: systemMessage })) {
