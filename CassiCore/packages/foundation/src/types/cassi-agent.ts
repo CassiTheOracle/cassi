@@ -1,13 +1,14 @@
 /**
- * CassiAgent — Shared type definitions for Lumen and Dyad agent sessions.
+ * CassiAgent — Shared type definitions for posture runners across all agent systems.
  *
- * These interfaces define the common contract that both agent systems share,
- * enabling the BaseAgentSession abstraction layer.
+ * Postures are behavioral modes within a CassiAgent, not agents themselves.
+ * These interfaces define the common contract that all posture runners share,
+ * enabling the BasePostureRunner abstraction layer.
  *
  * Design principle: Extract shared shapes, preserve semantic differences.
- * - BasePosture captures the identical posture interface both systems use
+ * - BasePosture captures the posture configuration all systems use
  * - InferenceResult and ParsedToolCall eliminate duplicate local interfaces
- * - IAgentStore defines the minimal store contract shared by LumenStore and DyadStore
+ * - IAgentStore defines the minimal store contract shared by all agent stores
  */
 
 import type { ContentBlock } from './runtime.js'
@@ -58,7 +59,7 @@ export interface ParsedToolCall {
 
 /**
  * Minimal store interface satisfied by both LumenStore and DyadStore.
- * Used by BaseAgentSession to persist tool calls and events without
+ * Used by BasePostureRunner to persist tool calls and events without
  * coupling to either store's full interface.
  */
 export interface IAgentStore {
@@ -89,7 +90,7 @@ export interface IAgentStore {
  * Base constructor options shared by both LumenAgentSession and DyadAgentSession.
  * Each system extends this with its own channel and role-specific options.
  */
-export interface BaseAgentSessionOpts<TPosture extends BasePosture = BasePosture> {
+export interface BasePostureRunnerOpts<TPosture extends BasePosture = BasePosture> {
   posture: TPosture
   handle: import('../core/model-pool/types.js').ModelHandle
   logger: import('./interfaces.js').ILogger
@@ -112,15 +113,15 @@ export interface BaseAgentSessionOpts<TPosture extends BasePosture = BasePosture
 /**
  * Agent session state for pause/resume infrastructure.
  */
-export type AgentSessionState = 'running' | 'paused' | 'concluded' | 'cancelled' | 'errored'
+export type PostureRunnerState = 'running' | 'paused' | 'concluded' | 'cancelled' | 'errored'
 
 
 /**
  * Serializable snapshot of an agent session's state.
  * Used for pause/resume, debugging, and observability.
  */
-export interface AgentSessionSnapshot {
-  state: AgentSessionState
+export interface PostureSnapshot {
+  state: PostureRunnerState
   iterationCount: number
   toolCallCount: number
   tokensUsed: number
@@ -132,12 +133,12 @@ export interface AgentSessionSnapshot {
 
 /**
  * Interface for pausable agent sessions.
- * Implemented by BaseAgentSession and propagated through pipeline orchestrators.
+ * Implemented by BasePostureRunner and propagated through pipeline orchestrators.
  */
-export interface PausableSession {
+export interface PausablePostureRunner {
   pause(): void
   resume(): void
   isPaused(): boolean
-  getState(): AgentSessionState
-  getSessionSnapshot(): AgentSessionSnapshot
+  getState(): PostureRunnerState
+  getSessionSnapshot(): PostureSnapshot
 }
