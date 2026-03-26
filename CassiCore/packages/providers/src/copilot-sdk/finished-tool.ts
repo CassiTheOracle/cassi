@@ -139,6 +139,27 @@ export class WarmSessionState {
   }
 
   /**
+   * Signal that the SDK session ended without the agent calling finished().
+   *
+   * This happens when the model returns a text-only response (no tool calls)
+   * and sendAndWait() resolves. Without this, yieldUntilFinished() would hang
+   * for the full WARM_SESSION_TIMEOUT_MS (24h) waiting for a finished() call
+   * that will never come.
+   *
+   * Resolves finishedDeferred with a synthetic result so the generator unblocks
+   * and the agent loop can continue (typically nudging the model to use tools).
+   */
+  sessionEnded(textContent?: string): void {
+    if (this.finishedDeferred && !this.finishedDeferred.isSettled) {
+      this.finishedDeferred.resolve({
+        result: textContent ?? '(session ended without calling finished)',
+        iterationNumber: this.iterationCount,
+        timestamp: Date.now(),
+      })
+    }
+  }
+
+  /**
    * Abort the blocked finished() handler (e.g., on shutdown).
    * The handler will reject and the SDK may receive an error tool result.
    */

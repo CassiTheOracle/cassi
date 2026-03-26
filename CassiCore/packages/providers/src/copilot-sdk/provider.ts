@@ -653,12 +653,21 @@ export class CopilotSdkProvider extends BaseProvider {
             iterations: state.iterationCount,
             hasContent: !!response?.data?.content,
           })
+          // Unblock yieldUntilFinished if the model never called finished().
+          // Without this, the agent hangs for 24h waiting for a tool call
+          // that will never come (e.g., model returned text-only response).
+          state.sessionEnded(response?.data?.content)
+          // Session is dead — remove from warm pool so next iteration cold-starts
+          this.warmSessions.delete(warmKey)
         }).catch((err: unknown) => {
           log.warn('Warm sendAndWait rejected', {
             warmKey,
             error: String(err),
             iterations: state.iterationCount,
           })
+          // Also unblock on rejection to prevent hanging
+          state.sessionEnded()
+          this.warmSessions.delete(warmKey)
         })
 
         this.warmSessions.set(warmKey, warmEntry)

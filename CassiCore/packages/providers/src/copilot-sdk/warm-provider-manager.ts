@@ -89,7 +89,7 @@ export class WarmProviderManager {
     } = {},
   ): AsyncIterable<CompletionChunk> {
     const warmKey = `opencode:${conversationId}`
-    const model = opts.model || 'claude-sonnet-4.6'
+    const model = opts.model || 'claude-opus-4.6'
     const systemPrompt = opts.systemPrompt || this.defaultSystemPrompt
 
     const existing = this.sessions.get(conversationId)
