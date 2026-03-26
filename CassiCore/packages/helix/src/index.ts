@@ -25,6 +25,7 @@ import type { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import { runHelixPipeline } from './helix-pipeline.js'
+import { HelixWorkStream } from './helix-coordinator.js'
 
 function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): string {
   const stats = ws.getStats()
@@ -74,7 +75,14 @@ function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): stri
   }
   const yinRecent = formatRecentTools(yin.recentToolCalls)
   if (yinRecent) lines.push(`- Recent tools: ${yinRecent}`)
-  lines.push(`- Work units reviewed: ${stats.workUnitsReviewed}/${stats.workUnits}`)
+  // Show broadcast progress if using native coordinator, otherwise legacy counters
+  if (ws instanceof HelixWorkStream) {
+    const yangProgress = ws.getReviewerProgress('yang')
+    const yinProgress = ws.getReviewerProgress('yin')
+    lines.push(`- Broadcast: Yang ${yangProgress.cursor}/${yangProgress.total} WUs | Yin ${yinProgress.cursor}/${yinProgress.total} WUs`)
+  } else {
+    lines.push(`- Work units reviewed: ${stats.workUnitsReviewed}/${stats.workUnits}`)
+  }
   lines.push('')
 
   lines.push('### Work Stream')
@@ -372,6 +380,11 @@ export function createHelix(
           activeNudges: ws.getAllNudges().filter(n => !n.acknowledged),
           // isWorkerDone() checks if the primary worker (Unity) signaled done
           unityDone: ws.isWorkerDone(),
+          // Broadcast coordinator progress (native HelixWorkStream only)
+          broadcastProgress: ws instanceof HelixWorkStream ? {
+            yang: ws.getReviewerProgress('yang'),
+            yin: ws.getReviewerProgress('yin'),
+          } : undefined,
         },
       }
     },
