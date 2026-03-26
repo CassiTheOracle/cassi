@@ -28,6 +28,7 @@ import { initContextWindowDebugger, ContextWindowDebugger } from './events/conte
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
 import { IntelligentContextWindow } from './intelligence/context-window/index.js'
+import { createSynapse } from './intelligence/synapse/index.js'
 import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
 import { HealthMonitor } from './health-monitor.js'
 import { createIntelligence } from "./intelligence/index.js"
@@ -1690,19 +1691,13 @@ export class Daemon {
         logger: this.logger,
       } : undefined,
       fileArtifactStore,
-      sequentialReasoningDeps: this.intelligence ? {
-        branchingManager: new BranchingConversationManager(),
-        thoughtObserver: this.intelligence.thoughtObserver,
-        cognitiveBridge: this.intelligence.cognitiveBridge,
-        memory: this.intelligence.memory,
-        bus: this.bus,
-        logger: this.logger.child?.('sequential-reasoning') ?? this.logger,
-        synapse: (() => {
+      sequentialReasoningDeps: this.intelligence ? (() => {
+        const synapseLogger = this.logger.child?.('synapse') ?? this.logger
+        const firstProvider = this.providers.values().next().value
+        let synapse: ReturnType<typeof createSynapse> | undefined
+        if (firstProvider) {
           try {
-            const { createSynapse } = require('./intelligence/synapse/index.js')
-            const firstProvider = this.providers.values().next().value
-            if (!firstProvider) return undefined
-            return createSynapse({
+            synapse = createSynapse({
               llm: {
                 async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
                   const messages = [{ role: 'user' as const, content: opts.prompt }]
@@ -1717,13 +1712,23 @@ export class Daemon {
                   return { content, truncated: false }
                 },
               },
-              logger: (this as any).logger.child?.('synapse') ?? (this as any).logger,
+              logger: synapseLogger,
             })
-          } catch {
-            return undefined
+            synapseLogger.info('Synapse initialized for sequential reasoning (Phase 2)')
+          } catch (err) {
+            synapseLogger.warn('Synapse initialization failed', { error: String(err) })
           }
-        })(),
-      } : undefined,
+        }
+        return {
+          branchingManager: new BranchingConversationManager(),
+          thoughtObserver: this.intelligence!.thoughtObserver,
+          cognitiveBridge: this.intelligence!.cognitiveBridge,
+          memory: this.intelligence!.memory,
+          bus: this.bus,
+          logger: this.logger.child?.('sequential-reasoning') ?? this.logger,
+          synapse,
+        }
+      })() : undefined,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
