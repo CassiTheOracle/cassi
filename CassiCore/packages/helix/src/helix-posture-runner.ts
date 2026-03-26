@@ -147,6 +147,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private concessionsMade = 0
   private workUnitsProduced = 0
 
+  // Synapse guidance tracking — latest guidance is appended to subsequent tool outputs
+  private lastSynapseGuidance?: string
+
   // Mentor synthesis tracking — populated by mentor_synthesize handler
   private mentorSynthesis?: {
     recommendation: string
@@ -260,7 +263,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         this.workUnitsProduced++
 
         // Inject low-severity nudges into tool results
-        const enrichedResults = this.injectNudgeMessages(toolResults)
+        const enrichedResults = this.injectSynapseGuidance(
+          this.injectNudgeMessages(toolResults)
+        )
 
         // Check for high-severity nudges — inject as blocking user message
         const highNudge = this.workStream.getNextHighNudge()
@@ -463,7 +468,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         const enrichedResults = this.injectDialecticIntoResults(toolResults)
 
         // Primary UnityStatus injection — piggyback on existing tool results (zero extra LLM calls)
-        const finalResults = this.injectUnityStatusIntoResults(enrichedResults)
+        const statusResults = this.injectUnityStatusIntoResults(enrichedResults)
+
+        // Inject Synapse guidance from previous sequential_reasoning calls
+        const finalResults = this.injectSynapseGuidance(statusResults)
 
         this.messages.push({ role: 'assistant', content: result.contentBlocks })
         this.messages.push({ role: 'user', content: finalResults })
@@ -548,7 +556,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         const toolResults = await this.processToolCalls(toolCalls)
         this.onActivity?.()
 
-        const enrichedResults = this.injectDialecticIntoResults(toolResults)
+        const enrichedResults = this.injectSynapseGuidance(
+          this.injectDialecticIntoResults(toolResults)
+        )
 
         this.messages.push({ role: 'assistant', content: result.contentBlocks })
         this.messages.push({ role: 'user', content: enrichedResults })
@@ -624,9 +634,35 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       )
     }
 
+    // Inject posture_energy into sequential_reasoning calls for Synapse guidance
+    for (const tc of executableCalls) {
+      if (tc.name === 'sequential_reasoning' && !tc.input.posture_energy) {
+        const energyMap: Record<string, string> = {
+          unity: 'unifying',
+          yang: 'expansive',
+          yin: 'contractive',
+        }
+        tc.input.posture_energy = energyMap[this.role] ?? 'neutral'
+      }
+    }
+
     // Process real tools (shared helper from base)
     if (executableCalls.length > 0) {
-      results.push(...await this.executeRealTools(executableCalls))
+      const toolResults = await this.executeRealTools(executableCalls)
+
+      // Extract Synapse guidance from sequential_reasoning results and store for injection
+      for (const result of toolResults) {
+        if (result.type === 'tool_result' && typeof result.content === 'string') {
+          try {
+            const parsed = JSON.parse(result.content)
+            if (parsed.synapse?.observation || parsed.synapse?.branchSuggestion || parsed.synapse?.risk) {
+              this.lastSynapseGuidance = this.formatSynapseReminder(parsed.synapse)
+            }
+          } catch { /* not JSON, skip */ }
+        }
+      }
+
+      results.push(...toolResults)
     }
 
     // Process blocked tools (shared helper from base)
@@ -644,6 +680,18 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
 
     return results
+  }
+
+  /**
+   * Format Synapse guidance into a concise reminder for tool output injection.
+   */
+  private formatSynapseReminder(synapse: { observation?: string; branchSuggestion?: string; risk?: string }): string {
+    const parts: string[] = ['--- Synapse Guidance ---']
+    if (synapse.observation) parts.push(`Observation: ${synapse.observation}`)
+    if (synapse.branchSuggestion) parts.push(`Branch suggestion: ${synapse.branchSuggestion}`)
+    if (synapse.risk) parts.push(`Risk: ${synapse.risk}`)
+    parts.push('---')
+    return parts.join('\n')
   }
 
   /**
@@ -1353,6 +1401,25 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       {
         type: 'text' as const,
         text: `\n--- Reviewer Feedback ---\n${drained}\n---`,
+      },
+    ]
+  }
+
+  /**
+   * Inject Synapse guidance into tool results and consume it (one-shot).
+   * The guidance was captured from a previous sequential_reasoning call.
+   */
+  private injectSynapseGuidance(toolResults: ContentBlock[]): ContentBlock[] {
+    if (!this.lastSynapseGuidance) return toolResults
+
+    const guidance = this.lastSynapseGuidance
+    this.lastSynapseGuidance = undefined // Consume — don't repeat
+
+    return [
+      ...toolResults,
+      {
+        type: 'text' as const,
+        text: `\n${guidance}\nRemember: use sequential_reasoning for complex analysis steps.`,
       },
     ]
   }
