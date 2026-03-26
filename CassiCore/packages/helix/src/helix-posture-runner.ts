@@ -470,7 +470,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Primary UnityStatus injection — piggyback on existing tool results (zero extra LLM calls)
         const statusResults = this.injectUnityStatusIntoResults(enrichedResults)
 
-        // Inject Synapse guidance from previous sequential_reasoning calls
+        // Inject Synapse guidance from previous collect_thoughts calls
         const finalResults = this.injectSynapseGuidance(statusResults)
 
         this.messages.push({ role: 'assistant', content: result.contentBlocks })
@@ -634,9 +634,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       )
     }
 
-    // Inject posture_energy into sequential_reasoning calls for Synapse guidance
+    // Inject posture_energy into collect_thoughts calls for Synapse guidance
     for (const tc of executableCalls) {
-      if (tc.name === 'sequential_reasoning' && !tc.input.posture_energy) {
+      if (tc.name === 'collect_thoughts' && !tc.input.posture_energy) {
         const energyMap: Record<string, string> = {
           unity: 'unifying',
           yang: 'expansive',
@@ -650,7 +650,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     if (executableCalls.length > 0) {
       const toolResults = await this.executeRealTools(executableCalls)
 
-      // Extract Synapse guidance from sequential_reasoning results and store for injection
+      // Extract Synapse guidance from collect_thoughts results and store for injection
       for (const result of toolResults) {
         if (result.type === 'tool_result' && typeof result.content === 'string') {
           try {
@@ -1407,7 +1407,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
   /**
    * Inject Synapse guidance into tool results and consume it (one-shot).
-   * The guidance was captured from a previous sequential_reasoning call.
+   * The guidance was captured from a previous collect_thoughts call.
    */
   private injectSynapseGuidance(toolResults: ContentBlock[]): ContentBlock[] {
     if (!this.lastSynapseGuidance) return toolResults
@@ -1419,7 +1419,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       ...toolResults,
       {
         type: 'text' as const,
-        text: `\n${guidance}\nRemember: use sequential_reasoning for complex analysis steps.`,
+        text: `\n${guidance}\nRemember: use collect_thoughts for complex analysis steps.`,
       },
     ]
   }
