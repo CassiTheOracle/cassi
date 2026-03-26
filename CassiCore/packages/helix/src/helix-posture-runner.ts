@@ -318,13 +318,26 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         }
 
         // Check if Unity is done and we've reviewed everything.
-        // Note: can't use getUnreviewedWorkUnitCount() since Helix doesn't call
-        // markWorkUnitProcessed() — check posted work units vs our local reviewed set.
+        // Helix runs TWO concurrent reviewers sharing one WorkStream queue.
+        // nextWorkUnit() is destructive (shift), so only one reviewer gets each
+        // work unit from the queue. The other reviewer still reviews via dialectic
+        // messages and UnityStatus injection. Check both local reviewed set AND
+        // the WorkStream's global reviewed status to avoid the second reviewer
+        // looping forever waiting for a work unit it will never dequeue.
         if (this.workStream.isWorkerDone()) {
           const allWUs = this.workStream.getAllWorkUnits()
-          const allReviewed = allWUs.length > 0 && allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
-          if (allReviewed) {
-            this.logger.info(`${this.role} — Unity is done and all ${allWUs.length} work units reviewed, concluding`)
+          const allReviewedLocally = allWUs.length > 0 && allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
+          const allReviewedGlobally = allWUs.length > 0 && allWUs.every(wu =>
+            this.reviewedWorkUnitIds.has(wu.id) || this.workStream.isWorkUnitReviewed(wu.id),
+          )
+          if (allReviewedLocally) {
+            this.logger.info(`${this.role} — Unity is done and all ${allWUs.length} work units reviewed locally, concluding`)
+            break
+          }
+          if (allReviewedGlobally && this.iterationCount > 1) {
+            // Another reviewer already reviewed all work units, and we've had at least
+            // one pass to contribute dialectic feedback. Safe to conclude.
+            this.logger.info(`${this.role} — Unity is done, all ${allWUs.length} work units reviewed globally, concluding after ${this.iterationCount} iterations`)
             break
           }
           // Also break if Unity finished without producing any work
