@@ -590,6 +590,9 @@ export type RuntimeEvent =
   | { type: "reasoning:branch"; sessionId: string; reasoningSessionId: string; fromStep: number; branchId: string; timestamp: Date }
   | { type: "reasoning:complete"; sessionId: string; reasoningSessionId: string; totalSteps: number; summary: string; timestamp: Date }
 
+  // Synapse events
+  | { type: "synapse:fired"; sessionId: string; reasoningSessionId: string; step: number; reason: string; latencyMs: number; hasGuidance: boolean; remaining: number; energy?: string; timestamp: Date }
+
   // Cognitive feed steering events (from Telegram observation group)
   | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
   | { type: "cognitive-feed:steering:pause"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
