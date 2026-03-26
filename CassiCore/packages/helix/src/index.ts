@@ -23,7 +23,7 @@ import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from '../dyad/work-stream.js'
 import type { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
-import type { ResearchSpawner } from './helix-agent-session.js'
+import type { ResearchSpawner } from './helix-posture-runner.js'
 import { runHelixPipeline } from './helix-pipeline.js'
 
 function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): string {
@@ -608,7 +608,7 @@ export type {
   HelixCompletionStatus,
 } from './types.js'
 
-export type { ResearchSpawner } from './helix-agent-session.js'
+export type { ResearchSpawner } from './helix-posture-runner.js'
 
 export {
   UNITY_POSTURE,
@@ -628,7 +628,9 @@ export {
   getHelixToolSchemas,
 } from './helix-tools.js'
 
-export { HelixAgentSession } from './helix-agent-session.js'
+export { HelixPostureRunner } from './helix-posture-runner.js'
+/** @deprecated Use HelixPostureRunner — postures are not agents, they are behavioral modes */
+export { HelixPostureRunner as HelixAgentSession } from './helix-posture-runner.js'
 export { runHelixPipeline } from './helix-pipeline.js'
 export type { HelixPipelineOpts } from './helix-pipeline.js'
 

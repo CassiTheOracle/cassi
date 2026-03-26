@@ -26,8 +26,8 @@ import { Blackboard } from '../flux-team/blackboard.js'
 import { WorkStream } from '../dyad/work-stream.js'
 import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
-import { HelixAgentSession } from './helix-agent-session.js'
-import type { ResearchSpawner } from './helix-agent-session.js'
+import { HelixPostureRunner } from './helix-posture-runner.js'
+import type { ResearchSpawner } from './helix-posture-runner.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
 
@@ -190,7 +190,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   // Create intelligent context budget coordinator for all postures
   const contextBudgetCoordinator = new ContextBudgetCoordinator(log)
 
-  const unitySession = new HelixAgentSession({
+  const unitySession = new HelixPostureRunner({
     ...commonOpts,
     role: 'unity',
     handle: opts.unityHandle,
@@ -200,7 +200,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     // Unity only uses WorkStream, no dialectic channel
   })
 
-  const yangSession = new HelixAgentSession({
+  const yangSession = new HelixPostureRunner({
     ...commonOpts,
     role: 'yang',
     handle: opts.yangHandle,
@@ -211,7 +211,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     unityStatusThresholds: opts.unityStatusThresholds,
   })
 
-  const yinSession = new HelixAgentSession({
+  const yinSession = new HelixPostureRunner({
     ...commonOpts,
     role: 'yin',
     handle: opts.yinHandle,
@@ -223,7 +223,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   })
 
   // Mentor is optional — only created if a mentorHandle is provided
-  const mentorSession = opts.mentorHandle ? new HelixAgentSession({
+  const mentorSession = opts.mentorHandle ? new HelixPostureRunner({
     ...commonOpts,
     role: 'mentor',
     handle: opts.mentorHandle,
