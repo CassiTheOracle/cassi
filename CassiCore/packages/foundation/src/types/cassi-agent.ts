@@ -87,7 +87,7 @@ export interface IAgentStore {
 
 
 /**
- * Base constructor options shared by both LumenAgentSession and DyadAgentSession.
+ * Base constructor options shared by both LumenPostureRunner and DyadPostureRunner.
  * Each system extends this with its own channel and role-specific options.
  */
 export interface BasePostureRunnerOpts<TPosture extends BasePosture = BasePosture> {
