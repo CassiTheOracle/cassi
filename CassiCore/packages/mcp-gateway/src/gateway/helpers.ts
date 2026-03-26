@@ -9,6 +9,7 @@ import type { ILogger } from '../../types/interfaces.js';
 // Configuration
 export const GATEWAY_VERSION = '1.0.0';
 export const DEFAULT_FETCH_TIMEOUT_MS = 30_000; // 30s default timeout for all fetch calls
+const TRANSIENT_FETCH_RETRY_DELAYS_MS = [250, 750, 1500];
 
 /**
  * Create a logger that writes to stderr (stdout reserved for MCP protocol)
@@ -49,22 +50,45 @@ export async function fetchWithTimeout(
   url: string | URL,
   init?: RequestInit & { timeoutMs?: number }
 ): Promise<JsonResponse> {
+  const targetUrl = url.toString();
   const timeoutMs = init?.timeoutMs ?? DEFAULT_FETCH_TIMEOUT_MS;
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    return await fetch(url.toString(), {
-      ...init,
-      signal: controller.signal,
-    });
-  } catch (err: any) {
-    if (err?.name === 'AbortError') {
-      throw new Error(`Request to ${url} timed out after ${timeoutMs}ms`);
+
+  for (let attempt = 0; attempt <= TRANSIENT_FETCH_RETRY_DELAYS_MS.length; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      return await fetch(targetUrl, {
+        ...init,
+        signal: controller.signal,
+      });
+    } catch (err: any) {
+      const isTimeout = err?.name === 'AbortError';
+      const msg = String(err?.message ?? err ?? '');
+      const lowerMsg = msg.toLowerCase();
+      const isTransient =
+        !isTimeout && (
+          lowerMsg.includes('fetch failed') ||
+          lowerMsg.includes('econnrefused') ||
+          lowerMsg.includes('econnreset') ||
+          lowerMsg.includes('socket hang up') ||
+          lowerMsg.includes('network')
+        );
+
+      if (isTimeout) {
+        throw new Error(`Request to ${targetUrl} timed out after ${timeoutMs}ms`);
+      }
+
+      if (!isTransient || attempt >= TRANSIENT_FETCH_RETRY_DELAYS_MS.length) {
+        throw err;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, TRANSIENT_FETCH_RETRY_DELAYS_MS[attempt]));
+    } finally {
+      clearTimeout(timer);
     }
-    throw err;
-  } finally {
-    clearTimeout(timer);
   }
+
+  throw new Error(`Request to ${targetUrl} failed after retries`);
 }
 
 /**
