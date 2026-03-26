@@ -342,8 +342,15 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
     // Consolidated tools
     switch (name) {
-      case AGENT_TOOL_NAME:
-        return await executeAgentTool(CASSICORE_URL, args, logger, heartbeat);
+      case AGENT_TOOL_NAME: {
+        const agentResult = await executeAgentTool(CASSICORE_URL, args, logger, heartbeat);
+        // Agent tools return mixed formats: watch/blackboard return MCP { content: [...] },
+        // but project/status/jobs/etc return raw JSON. Wrap only when needed.
+        if (agentResult?.content && Array.isArray(agentResult.content)) {
+          return agentResult;
+        }
+        return formatJsonResponse(agentResult);
+      }
 
       case MEMORY_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeMemoryConsolidatedTool(CASSICORE_URL, args, logger));
