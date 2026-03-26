@@ -91,12 +91,12 @@ function loadPersistedBlackboard(daemon: any, sessionId: string): unknown | unde
 }
 
 
-export function handleHelixRoutes(
+export async function handleHelixRoutes(
   deps: HelixDeps,
   req: http.IncomingMessage,
   res: http.ServerResponse,
   method: string,
-): boolean {
+): Promise<boolean> {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
   const pathname = url.pathname
   const { daemon, logger, sendJSON, parseBody } = deps
@@ -108,58 +108,62 @@ export function handleHelixRoutes(
   // ── POST /helix OR POST /helix/project — Start a session ────────────
   if (method === 'POST' && (pathname === '/helix' || pathname === '/helix/project')) {
     if (!helix) {
-      sendJSON(res, 503, { error: 'Helix not initialized' })
-      return true
+      return sendJSON(res, 503, { error: 'Helix not initialized' }), true
     }
 
-    ;(async () => {
-      try {
-        pruneOldJobs()
-        const body = (await parseBody(req)) as Record<string, unknown>
-        const goal = body.goal as string
-        if (!goal) {
-          sendJSON(res, 400, { error: 'goal is required' })
-          return
-        }
-
-        const sessionId = (body.sessionId as string) || `helix-${Date.now()}`
-        const jobId = generateJobId()
-
-        const job: HelixJob = {
-          id: jobId,
-          sessionId,
-          status: 'running',
-          goal,
-          startedAt: Date.now(),
-        }
-        helixJobs.set(jobId, job)
-
-        // Fire and forget — result tracked via job
-        helix.project({
-          goal,
-          context: body.context as string | undefined,
-          parentSessionId: body.parentSessionId as string | undefined,
-          sessionId,
-          jobId,
-          taskType: body.taskType as string | undefined,
-        }).then((result: HelixResult) => {
-          job.status = 'completed'
-          job.completedAt = Date.now()
-          job.result = result
-        }).catch((err: unknown) => {
-          job.status = 'failed'
-          job.completedAt = Date.now()
-          job.error = String(err)
-          logger.error('helix:project:failed', { error: String(err), sessionId, jobId })
-        })
-
-        sendJSON(res, 200, { jobId, sessionId, status: 'running' })
-      } catch (err) {
-        logger.error('helix:project:request-error', { error: String(err) })
-        sendJSON(res, 500, { error: String(err) })
+    try {
+      pruneOldJobs()
+      const body = (await parseBody(req)) as Record<string, unknown>
+      const goal = body.goal as string
+      if (!goal) {
+        return sendJSON(res, 400, { error: 'goal is required' }), true
       }
-    })()
-    return true
+
+      const requestedJobId = typeof body.jobId === 'string' && body.jobId ? body.jobId : undefined
+      const jobId = requestedJobId ?? generateJobId()
+      if (findHelixJob(jobId)) {
+        return sendJSON(res, 409, { error: 'Job already exists', jobId }), true
+      }
+
+      const sessionId = (body.sessionId as string) || jobId
+
+      const job: HelixJob = {
+        id: jobId,
+        sessionId,
+        status: 'running',
+        goal,
+        startedAt: Date.now(),
+      }
+      helixJobs.set(jobId, job)
+
+      helix.project({
+        goal,
+        context: body.context as string | undefined,
+        parentSessionId: body.parentSessionId as string | undefined,
+        sessionId,
+        jobId,
+        taskType: body.taskType as string | undefined,
+      }).then((result: HelixResult) => {
+        job.status = 'completed'
+        job.completedAt = Date.now()
+        job.result = result
+      }).catch((err: unknown) => {
+        job.status = 'failed'
+        job.completedAt = Date.now()
+        job.error = String(err)
+        logger.error('helix:project:failed', { error: String(err), sessionId, jobId })
+      })
+
+      return sendJSON(res, 202, {
+        jobId,
+        sessionId,
+        status: 'running',
+        message: 'Helix session started. Poll GET /helix/' + jobId + ' for results.',
+      }), true
+    } catch (err) {
+      logger.error('helix:project:request-error', { error: String(err) })
+      return sendJSON(res, 500, { error: String(err) }), true
+    }
   }
 
   // ── GET /helix/health ───────────────────────────────────────────────
