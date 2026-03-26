@@ -293,7 +293,7 @@ export async function handleEventsRoutes(
         'provider:',
         'macro-dialectic:',
         'daemon:',  // daemon:restarting, daemon:resumed — restart lifecycle
-        'reasoning:',  // sequential reasoning events
+        'axon:',  // collect_thoughts axon events
       ]
 
       const unsubscribe = eventBus.onAll((event: any) => {
