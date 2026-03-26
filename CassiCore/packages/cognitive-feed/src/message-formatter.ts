@@ -229,6 +229,12 @@ export class MessageFormatter {
       return `Insight: <i>${esc(truncate(e.insight ?? '', 120))}</i>`
     }
 
+    if (type === 'synapse:fired') {
+      const energy = e.energy ? ` [${esc(e.energy)}]` : ''
+      const guidance = e.hasGuidance ? 'guided' : 'no guidance'
+      return `Synapse step ${e.step ?? '?'}${energy}: ${guidance} (${e.latencyMs ?? '?'}ms, ${e.remaining ?? '?'} left)`
+    }
+
     if (type === 'adaptive:adaptation-applied') {
       return `Applied: ${esc(e.adaptationType ?? '?')} to ${esc(e.target ?? '?')}`
     }
@@ -680,6 +686,17 @@ export class MessageFormatter {
       return parts.join('\n\n') || this.formatGenericVerbose(e)
     }
 
+    if (type === 'synapse:fired') {
+      parts.push(`<b>Synapse fired</b> at step ${e.step ?? '?'}`)
+      if (e.reason) parts.push(`<b>Trigger:</b> ${esc(e.reason)}`)
+      if (e.energy) parts.push(`<b>Posture energy:</b> ${esc(e.energy)}`)
+      if (e.latencyMs != null) parts.push(`<b>Latency:</b> ${e.latencyMs}ms`)
+      parts.push(`<b>Generated guidance:</b> ${e.hasGuidance ? 'yes' : 'no'}`)
+      if (e.remaining != null) parts.push(`<b>Budget remaining:</b> ${e.remaining} calls`)
+      if (e.reasoningSessionId) parts.push(`<b>Session:</b> <code>${esc(String(e.reasoningSessionId).slice(0, 16))}</code>`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+
     if (type.startsWith('blackboard:')) {
       if (e.boardName) parts.push(`<b>Board:</b> ${esc(e.boardName)}`)
       if (e.channel) parts.push(`<b>Channel:</b> ${esc(e.channel)}`)
@@ -779,6 +796,38 @@ export class MessageFormatter {
         return parts.join('\n') || this.formatGenericVerbose(e)
       }
       return this.formatGenericVerbose(e)
+    }
+
+    // Synapse events
+    if (type === 'synapse:fired') {
+      parts.push(`<b>Synapse fired</b> at step ${e.step ?? '?'}`)
+      if (e.reason) parts.push(`<b>Reason:</b> ${esc(e.reason)}`)
+      if (e.energy) parts.push(`<b>Energy:</b> ${esc(e.energy)}`)
+      if (e.latencyMs != null) parts.push(`<b>Latency:</b> ${e.latencyMs}ms`)
+      parts.push(`<b>Guidance:</b> ${e.hasGuidance ? 'yes' : 'no'}`)
+      if (e.remaining != null) parts.push(`<b>Budget remaining:</b> ${e.remaining}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+
+    // Reasoning events
+    if (type === 'reasoning:step') {
+      parts.push(`<b>Step ${e.step ?? '?'}/${e.totalSteps ?? '?'}</b>`)
+      if (e.thought) parts.push(esc(truncate(e.thought, 500)))
+      if (e.isRevision) parts.push(`<i>(revision)</i>`)
+      if (e.signals?.length) parts.push(`<i>Signals:</i> ${e.signals.length}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+
+    if (type === 'reasoning:branch') {
+      parts.push(`<b>Branch</b> from step ${e.fromStep ?? '?'}`)
+      if (e.branchId) parts.push(`<b>Branch ID:</b> <code>${esc(e.branchId)}</code>`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+
+    if (type === 'reasoning:complete') {
+      parts.push(`<b>Reasoning complete</b> (${e.totalSteps ?? '?'} steps)`)
+      if (e.summary) parts.push(esc(truncate(e.summary, 500)))
+      return parts.join('\n') || this.formatGenericVerbose(e)
     }
 
     return this.formatGenericVerbose(e)

@@ -247,6 +247,8 @@ const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
   { prefix: 'dialectic:',      rule: { topicKey: 'dialectic', highlight: false } },
   { prefix: 'consciousness:',  rule: { topicKey: 'consciousness', highlight: false } },
   { prefix: 'subconscious:',   rule: { topicKey: 'consciousness', highlight: false } },
+  { prefix: 'reasoning:',      rule: { topicKey: 'consciousness', highlight: false, priority: 'low' } },
+  { prefix: 'synapse:',        rule: { topicKey: 'consciousness', highlight: true, priority: 'medium' } },
   { prefix: 'dreamer:',        rule: { topicKey: 'memoryDreams', highlight: false } },
   { prefix: 'memory:',         rule: { topicKey: 'memoryDreams', highlight: false } },
   { prefix: 'archive:',        rule: { topicKey: 'memoryDreams', highlight: false } },
