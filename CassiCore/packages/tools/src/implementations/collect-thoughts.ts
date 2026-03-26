@@ -209,6 +209,12 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       state.revisionsCount++
     }
 
+    // ─── Track contributor for shared tree awareness ──────────────────
+    // Map posture_energy to contributor role name
+    const contributorRole = input.posture_energy ?? 'neutral'
+    const currentCount = state.contributors.get(contributorRole) ?? 0
+    state.contributors.set(contributorRole, currentCount + 1)
+
     // ─── Stage 2: EXTRACT ─────────────────────────────────────────────
     // Extract cognitive signals from the thought text
     let signals: CognitiveSignal[] = []
@@ -406,6 +412,12 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       state.synapseBudget,
     )
 
+    // ─── Build contributors record for result ─────────────────────────
+    const contributorsRecord: Record<string, number> = {}
+    for (const [role, count] of state.contributors) {
+      contributorsRecord[role] = count
+    }
+
     // ─── Compose result ───────────────────────────────────────────────
     const result: CollectThoughtsResult = {
       step: {
@@ -433,6 +445,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
         branches,
         revisionsCount: state.revisionsCount,
       },
+      contributors: contributorsRecord,
       meta: {
         synapseCallsRemaining: state.synapseBudget,
         nextSynapseEligible: nextSynapseStep,
@@ -464,6 +477,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       memory: relatedContext.length,
       branch: activeBranchId,
       revision: input.is_revision ?? false,
+      contributors: contributorsRecord,
     })
 
     return jsonResult
@@ -514,6 +528,7 @@ function resolveAxonSession(
       synapseBudget: cfg.maxSynapseCalls,
       signalsByStep: new Map(),
       createdAt: Date.now(),
+      contributors: new Map(),
     }
     sessionStates.set(axonSessionId, state)
 
@@ -552,6 +567,7 @@ function resolveAxonSession(
     synapseBudget: cfg.maxSynapseCalls,
     signalsByStep: new Map(),
     createdAt: Date.now(),
+    contributors: new Map(),
   }
   sessionStates.set(axonSessionId, state)
   return { state, isNew: true }
