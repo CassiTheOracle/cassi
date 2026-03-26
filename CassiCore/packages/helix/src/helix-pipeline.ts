@@ -74,6 +74,7 @@ export interface HelixPipelineOpts {
   onBlackboardCreated?: (bb: Blackboard) => void
   onWorkStreamCreated?: (ws: WorkStream) => void
   onDialecticChannelCreated?: (dc: DialecticChannel) => void
+  onCoordinatorCreated?: (coordinator: HelixCoordinator) => void
 
   // Artifact/session context
   artifactNamespace?: string
@@ -134,6 +135,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     })
     workStream = coordinator.workStream     // HelixWorkStream extends WorkStream
     dialecticChannel = coordinator.dialecticMesh  // HelixDialecticMesh extends DialecticChannel
+    opts.onCoordinatorCreated?.(coordinator)
     log.info('Using Helix-native coordinator (broadcast work units, dialectic mesh)')
   } else {
     // Legacy borrowed primitives
@@ -418,6 +420,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     const unresolvedChallenges = dialecticChannel.getUnresolvedChallenges('yang')
       .concat(dialecticChannel.getUnresolvedChallenges('yin'))
 
+    // Populate reviewer iteration counts into metrics for the snapshot
+    if (coordinator) {
+      for (let i = 0; i < yangResult.iterationCount; i++) coordinator.recordReviewerIteration('yang')
+      for (let i = 0; i < yinResult.iterationCount; i++) coordinator.recordReviewerIteration('yin')
+    }
+
     const completionStatus: HelixCompletionStatus = {
       complete: !cancelled,
       unityStatus: unityResult.error ? 'errored' : 'completed',
@@ -480,6 +488,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
       durationMs: Date.now() - startTime,
       completionStatus,
+
+      // Consolidated metrics from HelixCoordinator (if native coordinator)
+      metrics: coordinator?.getMetricsSnapshot(),
 
       report: blackboard.getReport() ?? undefined,
       blackboard: blackboard.getSnapshot(),

@@ -171,6 +171,9 @@ export interface HelixResult {
   error?: string
   completionStatus: HelixCompletionStatus
 
+  /** Consolidated real-time metrics from HelixCoordinator */
+  metrics?: import('./helix-metrics.js').HelixMetricsSnapshot
+
   /** Incremental report built by all postures */
   report?: import('../../../types/flux-team.js').Report
   /** Blackboard snapshot at completion */

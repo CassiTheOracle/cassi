@@ -25,7 +25,7 @@ import type { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import { runHelixPipeline } from './helix-pipeline.js'
-import { HelixWorkStream } from './helix-coordinator.js'
+import { HelixWorkStream, HelixCoordinator } from './helix-coordinator.js'
 
 function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): string {
   const stats = ws.getStats()
@@ -330,6 +330,7 @@ export function createHelix(
   const activeWorkStreams = new Map<string, WorkStream>()
   const activeDialecticChannels = new Map<string, DialecticChannel>()
   const activeBlackboards = new Map<string, Blackboard>()
+  const activeCoordinators = new Map<string, HelixCoordinator>()
 
   return {
     cancel(sessionId: string): boolean {
@@ -362,6 +363,7 @@ export function createHelix(
     getActiveProgress(sessionId: string) {
       const ws = activeWorkStreams.get(sessionId)
       const dc = activeDialecticChannels.get(sessionId)
+      const coord = activeCoordinators.get(sessionId)
       if (!ws) return undefined
       return {
         markdown: buildHelixProgressMarkdown(ws, dc),
@@ -385,6 +387,8 @@ export function createHelix(
             yang: ws.getReviewerProgress('yang'),
             yin: ws.getReviewerProgress('yin'),
           } : undefined,
+          // Consolidated metrics from HelixCoordinator
+          metrics: coord?.getMetricsSnapshot(),
         },
       }
     },
@@ -547,6 +551,9 @@ export function createHelix(
               activeBlackboards.set(sessionId, blackboard)
               resolvedBlackboard = blackboard
             },
+            onCoordinatorCreated: (coord) => {
+              activeCoordinators.set(sessionId, coord)
+            },
             modelDirective: storedModelDirective,
             handleFactory,
             moduleDebugSessionId: storedModuleDebugSessionId,
@@ -590,6 +597,7 @@ export function createHelix(
           activeWorkStreams.delete(sessionId)
           activeDialecticChannels.delete(sessionId)
           activeBlackboards.delete(sessionId)
+          activeCoordinators.delete(sessionId)
           unityHandle.release()
           yangHandle.release()
           yinHandle.release()

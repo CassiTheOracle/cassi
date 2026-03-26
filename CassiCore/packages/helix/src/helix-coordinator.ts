@@ -24,6 +24,9 @@ import type { HelixRole } from './types.js'
 import { WorkStream } from '../dyad/work-stream.js'
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
 import type { WorkUnit } from '../dyad/types.js'
+import type { Nudge } from '../dyad/types.js'
+import { HelixMetrics } from './helix-metrics.js'
+import type { HelixMetricsSnapshot } from './helix-metrics.js'
 
 
 // ─── Constants ─────────────────────────────────────────────────────────────
@@ -123,11 +126,22 @@ export class HelixWorkStream extends WorkStream {
     })
   }
 
+  /** Optional metrics tracker — auto-incremented on postWorkUnit */
+  private metrics?: HelixMetrics
+
+  /**
+   * Attach a HelixMetrics tracker to auto-increment on work unit events.
+   */
+  setMetrics(metrics: HelixMetrics): void {
+    this.metrics = metrics
+  }
+
   /**
    * Override postWorkUnit to also notify broadcast waiters.
    */
   postWorkUnit(workUnit: WorkUnit): void {
     super.postWorkUnit(workUnit)
+    this.metrics?.incrementWorkUnits()
 
     // Notify ALL waiting reviewers (broadcast, not single-consumer)
     for (const [_reviewerId, waiters] of this.broadcastWaiters) {
@@ -151,6 +165,14 @@ export class HelixWorkStream extends WorkStream {
       }
       waiters.length = 0
     }
+  }
+
+  /**
+   * Override postNudge to also track in metrics.
+   */
+  postNudge(nudge: Nudge, currentYangIteration: number): void {
+    super.postNudge(nudge, currentYangIteration)
+    this.metrics?.incrementNudges()
   }
 
   /**
@@ -286,11 +308,14 @@ export interface HelixCoordinatorOpts {
 export class HelixCoordinator {
   readonly workStream: HelixWorkStream
   readonly dialecticMesh: HelixDialecticMesh
+  readonly metrics: HelixMetrics
   private readonly logger: ILogger
   private readonly reviewerIds = ['yang', 'yin']
 
   constructor(opts: HelixCoordinatorOpts) {
     this.logger = opts.logger.child('helix-coordinator')
+
+    this.metrics = new HelixMetrics(this.logger)
 
     this.workStream = new HelixWorkStream({
       sessionId: opts.sessionId,
@@ -298,6 +323,7 @@ export class HelixCoordinator {
       maxMessages: opts.maxMessages,
       backpressureThreshold: opts.backpressureThreshold,
     })
+    this.workStream.setMetrics(this.metrics)
 
     this.dialecticMesh = new HelixDialecticMesh({
       sessionId: opts.sessionId,
@@ -339,5 +365,26 @@ export class HelixCoordinator {
   getUnityView(): string[] {
     const messages = this.dialecticMesh.drainForUnity()
     return messages.map((m) => `[${m.from}] ${m.type}: ${m.text ?? JSON.stringify(m)}`)
+  }
+
+  /**
+   * Get consolidated metrics snapshot for the session.
+   */
+  getMetricsSnapshot(): HelixMetricsSnapshot {
+    return this.metrics.getSnapshot()
+  }
+
+  /**
+   * Record a reviewer iteration (yang or yin).
+   */
+  recordReviewerIteration(reviewer: 'yang' | 'yin'): void {
+    this.metrics.incrementReviewerIteration(reviewer)
+  }
+
+  /**
+   * Record a nudge sent by a reviewer.
+   */
+  recordNudgeSent(): void {
+    this.metrics.incrementNudges()
   }
 }
