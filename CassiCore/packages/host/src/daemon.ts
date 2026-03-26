@@ -1691,7 +1691,7 @@ export class Daemon {
         logger: this.logger,
       } : undefined,
       fileArtifactStore,
-      sequentialReasoningDeps: this.intelligence ? (() => {
+      collectThoughtsDeps: this.intelligence ? (() => {
         const synapseLogger = this.logger.child?.('synapse') ?? this.logger
         const firstProvider = this.providers.values().next().value
         let synapse: ReturnType<typeof createSynapse> | undefined
@@ -1714,7 +1714,7 @@ export class Daemon {
               },
               logger: synapseLogger,
             })
-            synapseLogger.info('Synapse initialized for sequential reasoning (Phase 2)')
+            synapseLogger.info('Synapse initialized for collect_thoughts (Axon)')
           } catch (err) {
             synapseLogger.warn('Synapse initialization failed', { error: String(err) })
           }
@@ -1725,7 +1725,7 @@ export class Daemon {
           cognitiveBridge: this.intelligence!.cognitiveBridge,
           memory: this.intelligence!.memory,
           bus: this.bus,
-          logger: this.logger.child?.('sequential-reasoning') ?? this.logger,
+          logger: this.logger.child?.('collect-thoughts') ?? this.logger,
           synapse,
         }
       })() : undefined,
