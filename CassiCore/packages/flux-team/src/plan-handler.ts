@@ -5,7 +5,7 @@
  *   - All postures: submit steps, view plan
  *   - Executive only: approve, reject, update, finalize steps
  *
- * Plan tools are meta-tools handled inline by LumenAgentSession (same pattern
+ * Plan tools are meta-tools handled inline by LumenPostureRunner (same pattern
  * as dialectic meta-tools). They operate on the Blackboard's plan slot and
  * return JSON-formatted results.
  */

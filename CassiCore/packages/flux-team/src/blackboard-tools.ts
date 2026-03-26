@@ -945,7 +945,7 @@ export const BLACKBOARD_TOOL_NAMES = new Set([
 
 /**
  * Check if a tool name is a Blackboard meta-tool.
- * @dep callers: processToolCalls (core/intelligence/dyad/dyad-agent-session.ts), processToolCalls (core/intelligence/lumen/lumen-agent-session.ts), buildToolSchemas (core/intelligence/lumen/lumen-agent-session.ts)
+ * @dep callers: processToolCalls (core/intelligence/dyad/dyad-posture-runner.ts), processToolCalls (core/intelligence/lumen/lumen-posture-runner.ts), buildToolSchemas (core/intelligence/lumen/lumen-posture-runner.ts)
  * @dep calls: has
  * @dep flows: Run → IsBlackboardMetaTool (3/3)
  * @dep module: Lumen
@@ -1007,7 +1007,7 @@ export const EXECUTIVE_PLAN_TOOLS: ToolSchema[] = [
  *
  * @param posture - The posture or role name (e.g. 'yang', 'yin', 'executive', 'apex')
  * @returns Array of tool schemas for that posture
- * @dep callers: buildToolSchemas (core/intelligence/dyad/dyad-agent-session.ts), buildToolSchemas (core/intelligence/lumen/lumen-agent-session.ts)
+ * @dep callers: buildToolSchemas (core/intelligence/dyad/dyad-posture-runner.ts), buildToolSchemas (core/intelligence/lumen/lumen-posture-runner.ts)
  * @dep module: Dyad
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -1055,8 +1055,8 @@ export function isPlanMetaTool(name: string): boolean {
 /**
  * Route a Blackboard tool call to the appropriate Blackboard method.
  *
- * This is the single dispatch function used by both LumenAgentSession and
- * DyadAgentSession. It enforces role-based access control for plan approval
+ * This is the single dispatch function used by both LumenPostureRunner and
+ * DyadPostureRunner. It enforces role-based access control for plan approval
  * tools (restricted to 'executive' and 'apex').
  *
  * @param blackboard - The Blackboard instance for this session
@@ -1064,7 +1064,7 @@ export function isPlanMetaTool(name: string): boolean {
  * @param input - Parsed tool input from the LLM
  * @param posture - Calling posture/role (e.g. 'yang', 'yin', 'executive', 'apex')
  * @returns String result to return to the LLM
- * @dep callers: processToolCalls (core/intelligence/dyad/dyad-agent-session.ts), processToolCalls (core/intelligence/lumen/lumen-agent-session.ts)
+ * @dep callers: processToolCalls (core/intelligence/dyad/dyad-posture-runner.ts), processToolCalls (core/intelligence/lumen/lumen-posture-runner.ts)
  * @dep calls: has, handleBbPost, handleBbRead, handleBbReadAll, handleScratchSet [+17]
  * @dep flows: HandleBlackboardToolCall → Now (1/4), HandleBlackboardToolCall → PriorityNum (1/3), HandleBlackboardToolCall → GetArtifacts (1/3)
  * @dep module: Flux-team
