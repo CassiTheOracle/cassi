@@ -2940,6 +2940,12 @@ export class Daemon {
       this.embeddingStackLauncher?.stop()
     } catch { /* ignore */ }
 
+    // stop warm provider manager (destroys OpenCode warm sessions)
+    await timedStep('warm-provider', async () => {
+      const { shutdownWarmProvider } = await import('./admin-api/warm-provider.js')
+      await shutdownWarmProvider()
+    })
+
     // stop Copilot SDK (kills CLI server process, destroys sessions)
     await timedStep('copilot-sdk', async () => {
       const sdkManager = (this as unknown as Record<string, unknown>).__copilotSdkManager as
