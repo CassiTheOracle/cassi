@@ -240,6 +240,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: UNITY_POSTURE,
     postureSlot: 'helix.unity',
     contextBudgetCoordinator,
+    brainstem,
   })
 
   const yangSession = new HelixPostureRunner({
@@ -280,6 +281,32 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     () => yinSession.cancel(),
   )
   if (mentorSession) cancelFns.push(() => mentorSession.cancel())
+
+
+  // ── Brainstem Dialectic Feed ───────────────────────────────────────
+  // Drain the 'mentor' cursor from the DialecticChannel periodically,
+  // formatting messages as strings and feeding them to the Brainstem.
+  // This replaces the Mentor's direct dialecticChannel access.
+
+  let dialecticFeedInterval: ReturnType<typeof setInterval> | null = null
+
+  if (brainstem) {
+    const DIALECTIC_POLL_MS = 5_000
+
+    dialecticFeedInterval = setInterval(() => {
+      try {
+        const drained = dialecticChannel.drainForPosture('mentor')
+        if (drained && drained.length > 0) {
+          brainstem!.onDialecticUpdate([drained])
+          onActivity()
+        }
+      } catch {
+        // Dialectic drain failure is non-fatal
+      }
+    }, DIALECTIC_POLL_MS)
+
+    log.info('Brainstem dialectic feed started', { pollMs: DIALECTIC_POLL_MS })
+  }
 
 
   // ── Watchdog (steer-then-kill) ───────────────────────────────────────
@@ -553,6 +580,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   } finally {
     clearInterval(watchdogInterval)
     clearTimeout(timeoutHandle)
+    if (dialecticFeedInterval) clearInterval(dialecticFeedInterval)
 
     // Stop Brainstem if running
     if (brainstem) {

@@ -15,14 +15,16 @@
  *   Reviewers → dialectic → Brainstem → synthesis → Unity
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { WorkUnit } from '../dyad/types.js'
+import type { CorpusDirective } from '../constellation/corpus-types.js'
 import type {
   BrainstemConfig,
   BrainstemDeps,
   BrainstemState,
   BrainstemResult,
   BrainstemAnnotation,
+  BrainstemBlackboard,
   BrainstemLLM,
   PendingGuidance,
   WorkUnitAnnotation,
@@ -317,6 +319,12 @@ export class HelixBrainstem {
       // Handle pattern detection and guidance
       this.detectPatternsAndProduceGuidance(annotation)
 
+      // Emit events for observability (cognitive feed, TUI, admin API)
+      this.emitAnnotationEvent(annotation)
+
+      // Push annotation to Corpus tree (Constellation mode only)
+      this.pushToCorpusTree(annotation)
+
       // Post to blackboard if configured
       if (this.config.postToBlackboard) {
         this.postAnnotationToBlackboard(annotation)
@@ -595,20 +603,150 @@ Guidelines:
       triggeredBy: guidance.triggeredBy,
       text: guidance.text.slice(0, 100),
     })
+
+    // Emit guidance event
+    this.emitEvent('brainstem:guidance', {
+      urgency: guidance.urgency,
+      triggeredBy: guidance.triggeredBy,
+      text: guidance.text,
+      axonStep: guidance.fromStep,
+      timestamp: new Date(),
+    })
   }
 
+  // ── Event Emission ──────────────────────────────────────────────────
+
   /**
-   * Post annotation to blackboard for training data
+   * Emit brainstem:annotation event (and brainstem:pattern if non-none).
    */
-  private postAnnotationToBlackboard(annotation: BrainstemAnnotation): void {
-    // This would integrate with the blackboard system
-    // For now, just log it
-    this.logger.debug('Annotation ready for blackboard', {
+  private emitAnnotationEvent(annotation: BrainstemAnnotation): void {
+    this.emitEvent('brainstem:annotation', {
       workUnitId: annotation.workUnitId,
       score: annotation.score,
       annotation: annotation.annotation,
-      trainingNote: annotation.trainingNote,
+      pattern: annotation.pattern,
+      guidance: annotation.guidance ?? undefined,
+      axonStep: annotation.axonStep,
+      timestamp: new Date(annotation.timestamp),
     })
+
+    if (annotation.pattern !== 'none') {
+      const severity = annotation.pattern === 'paralysis' || annotation.pattern === 'stalling'
+        ? 'high'
+        : annotation.pattern === 'drift'
+          ? 'medium'
+          : 'low'
+      this.emitEvent('brainstem:pattern', {
+        pattern: annotation.pattern,
+        severity,
+        axonStep: annotation.axonStep,
+        timestamp: new Date(annotation.timestamp),
+      })
+    }
+  }
+
+  /**
+   * Emit an event on the event bus if available.
+   */
+  private emitEvent(type: string, data: Record<string, unknown>): void {
+    if (!this.deps.eventBus) return
+    try {
+      void this.deps.eventBus.emit({
+        type,
+        sessionId: this.deps.sessionId,
+        ...data,
+      } as any)
+    } catch {
+      // Ignore emit errors — observability must not crash the loop
+    }
+  }
+
+  // ── Corpus Tree Integration ──────────────────────────────────────────
+
+  /**
+   * Push annotation to the Corpus tree (Constellation mode only).
+   * Each Brainstem builds its branch of the Corpus's reasoning tree.
+   */
+  private pushToCorpusTree(annotation: BrainstemAnnotation): void {
+    if (!this.deps.corpusTree || !this.deps.helixId) return
+    try {
+      this.deps.corpusTree.pushAnnotation(this.deps.helixId, annotation)
+    } catch (err) {
+      this.logger.warn('Failed to push annotation to Corpus tree', {
+        error: String(err),
+        helixId: this.deps.helixId,
+      })
+    }
+  }
+
+  /**
+   * Receive a directive from the Corpus (Constellation-level organizer).
+   * Converts it to a PendingGuidance and queues it for Unity delivery
+   * through the normal escalation model.
+   */
+  onCorpusDirective(directive: CorpusDirective): void {
+    this.logger.info('Corpus directive received', {
+      type: directive.type,
+      urgency: directive.urgency,
+      reason: directive.reason,
+    })
+
+    this.queueGuidance({
+      urgency: directive.urgency,
+      triggeredBy: `corpus:${directive.type}` as any,
+      text: `[Corpus] ${directive.text}`,
+      fromStep: this.state.currentAxonStep,
+      timestamp: Date.now(),
+    })
+  }
+
+
+  // ── Blackboard Posting ──────────────────────────────────────────────
+
+  /**
+   * Post annotation to blackboard for cross-posture visibility and training data.
+   */
+  private postAnnotationToBlackboard(annotation: BrainstemAnnotation): void {
+    const bb = this.deps.blackboard
+    if (!bb) {
+      this.logger.debug('Annotation ready for blackboard (no blackboard wired)', {
+        workUnitId: annotation.workUnitId,
+        score: annotation.score,
+      })
+      return
+    }
+
+    try {
+      // Patterns and low scores go to 'concerns', everything else to 'findings'
+      const channel = annotation.pattern !== 'none' || annotation.score < 0.4
+        ? 'concerns' as const
+        : 'findings' as const
+
+      const scoreEmoji = annotation.score >= 0.7 ? '🟢' : annotation.score >= 0.5 ? '🟡' : '🔴'
+
+      bb.post(channel, {
+        author: 'brainstem',
+        content: `${scoreEmoji} **${annotation.annotation}** (${annotation.score.toFixed(2)}) — ${annotation.trainingNote}${annotation.synthesis ? `\n_Dialectic:_ ${annotation.synthesis}` : ''}${annotation.guidance ? `\n_Guidance:_ ${annotation.guidance}` : ''}`,
+        structured: {
+          workUnitId: annotation.workUnitId,
+          score: annotation.score,
+          annotation: annotation.annotation,
+          pattern: annotation.pattern,
+          axonStep: annotation.axonStep,
+        },
+        priority: annotation.pattern !== 'none' ? 2 : annotation.score < 0.5 ? 1 : 0,
+        tags: [
+          'brainstem',
+          annotation.annotation,
+          ...(annotation.pattern !== 'none' ? [annotation.pattern] : []),
+        ],
+      })
+    } catch (err) {
+      this.logger.warn('Failed to post annotation to blackboard', {
+        error: String(err),
+        workUnitId: annotation.workUnitId,
+      })
+    }
   }
 
   /**

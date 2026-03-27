@@ -15,9 +15,11 @@
  *   Reviewers → dialectic → Brainstem → synthesis → Unity
  */
 
-import type { ILogger } from '../../../types/interfaces.js'
+import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { WorkUnit } from '../dyad/types.js'
 import type { CognitiveSignal } from '../thought-observer.js'
+import type { ICorpusTree } from '../constellation/corpus-types.js'
+import type { CorpusDirective } from '../constellation/corpus-types.js'
 
 // ─── Configuration ────────────────────────────────────────────────────────
 
@@ -181,6 +183,32 @@ export interface BrainstemDeps {
   goal: string
   /** Session ID for event attribution */
   sessionId: string
+  /** Optional event bus for emitting brainstem events to the cognitive feed */
+  eventBus?: IEventBus
+  /** Optional blackboard for posting annotations */
+  blackboard?: BrainstemBlackboard
+  /** Corpus tree to push annotations into (only in Constellation mode) */
+  corpusTree?: ICorpusTree
+  /** This Helix's ID in the Constellation (for Corpus tree branch identification) */
+  helixId?: string
+}
+
+/**
+ * Minimal blackboard interface for Brainstem posting.
+ * Avoids importing the full Blackboard class — any object with a
+ * compatible `post()` method satisfies this contract.
+ */
+export interface BrainstemBlackboard {
+  post(
+    channel: 'findings' | 'concerns',
+    entry: {
+      author: string
+      content: string
+      structured?: Record<string, unknown>
+      priority?: number
+      tags?: string[]
+    },
+  ): unknown
 }
 
 // ─── Result (included in HelixResult) ─────────────────────────────────────

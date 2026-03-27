@@ -37,7 +37,7 @@ export const YANG_POSTURE: HelixPosture = {
   temperature: 0.7,
   slotName: 'helix.yang',
   toolAccess: 'read-only',
-  maxIterations: 100,
+  maxIterations: 500,
   systemPrompt: composeSystemPrompt('yang', 'helix'),
 }
 
@@ -47,7 +47,7 @@ export const YIN_POSTURE: HelixPosture = {
   temperature: 0.35,
   slotName: 'helix.yin',
   toolAccess: 'read-only',
-  maxIterations: 100,
+  maxIterations: 500,
   systemPrompt: composeSystemPrompt('yin', 'helix'),
 }
 
@@ -104,7 +104,7 @@ export const MENTOR_POSTURE: HelixPosture = {
   temperature: 0.5,
   slotName: 'helix.mentor',
   toolAccess: 'read-only',
-  maxIterations: 120,
+  maxIterations: 500,
   systemPrompt: MENTOR_SYSTEM_PROMPT,
 }
 

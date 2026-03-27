@@ -515,6 +515,8 @@ export function createHelix(
               logger: logger.child?.('brainstem') ?? logger,
               goal: effectiveGoal,
               sessionId,
+              eventBus: effectiveEventBus,
+              // Blackboard is resolved lazily via onBlackboardCreated callback below
             }
             logger.info('helix:brainstem:adapter-created', { sessionId })
           } catch (err) {
@@ -577,6 +579,10 @@ export function createHelix(
             onBlackboardCreated: (blackboard) => {
               activeBlackboards.set(sessionId, blackboard)
               resolvedBlackboard = blackboard
+              // Wire blackboard into brainstemDeps (created before pipeline runs)
+              if (brainstemDeps) {
+                brainstemDeps.blackboard = blackboard
+              }
             },
             onCoordinatorCreated: (coord) => {
               activeCoordinators.set(sessionId, coord)
