@@ -187,6 +187,13 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     if (!opts.brainstemDeps!.blackboard) {
       opts.brainstemDeps!.blackboard = blackboard
     }
+    // Wire dialectic channel and tool executor for edit proposal approval
+    if (!opts.brainstemDeps!.dialecticChannel) {
+      opts.brainstemDeps!.dialecticChannel = dialecticChannel
+    }
+    if (!opts.brainstemDeps!.toolExecutor && opts.toolExecutor) {
+      opts.brainstemDeps!.toolExecutor = opts.toolExecutor
+    }
     brainstem = createHelixBrainstem(opts.brainstemDeps!)
     brainstem.start()
     opts.onBrainstemCreated?.(brainstem)
@@ -243,6 +250,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     unityStatusThresholds: opts.unityStatusThresholds,
     onWorkUnit: opts.onWorkUnit,
     onActivity,
+    // Forward stream activity to Brainstem for real-time token stream visibility
+    onStreamActivity: brainstem
+      ? (event: import('./helix-posture-runner.js').StreamActivityEvent) => brainstem!.onStreamActivity(event)
+      : undefined,
   }
 
   const contextBudgetCoordinator = new ContextBudgetCoordinator(log)

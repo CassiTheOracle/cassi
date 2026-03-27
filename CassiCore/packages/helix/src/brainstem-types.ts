@@ -144,6 +144,12 @@ export interface BrainstemState {
   workUnitsProcessed: number
   /** Whether the stagnation pattern has already fired (one-shot) */
   stagnationFired: boolean
+  /** Last time we received a stream activity event */
+  lastStreamActivityAt: number
+  /** Tokens accumulated in the current step from streaming */
+  streamTokensThisStep: number
+  /** Count of long reasoning sequences without tool use */
+  longReasoningCount: number
 }
 
 export function createInitialBrainstemState(): BrainstemState {
@@ -158,6 +164,9 @@ export function createInitialBrainstemState(): BrainstemState {
     currentAxonStep: 0,
     workUnitsProcessed: 0,
     stagnationFired: false,
+    lastStreamActivityAt: 0,
+    streamTokensThisStep: 0,
+    longReasoningCount: 0,
   }
 }
 
@@ -208,6 +217,10 @@ export interface BrainstemDeps {
   helixId?: string
   /** Callback to request spawning a child Helix (only in Constellation mode) */
   onSpawnRequest?: (request: { goal: string; context?: string; template?: string }) => void
+  /** Dialectic channel for processing edit proposals from Yang/Yin */
+  dialecticChannel?: import('../../intelligence/lumen/dialectic-channel.js').DialecticChannel
+  /** Tool executor for applying approved edits */
+  toolExecutor?: import('../../tools/executor.js').ToolExecutor
 }
 
 /**

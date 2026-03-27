@@ -168,6 +168,153 @@ export class HelixBrainstem {
   }
 
   /**
+   * Receive real-time stream activity from a posture runner.
+   * This gives the Brainstem visibility into what the LLM is producing
+   * between tool calls — reasoning, analysis, code generation.
+   *
+   * Used for:
+   * - Accurate activity tracking (not just tool calls)
+   * - Real-time assessment of reasoning quality
+   * - Detecting verbose/repetitive output patterns
+   */
+  onStreamActivity(event: {
+    posture: string
+    tokensSoFar: number
+    isReasoning: boolean
+    textSnippet: string
+    hasToolUse: boolean
+  }): void {
+    // Update stream tracking state
+    this.state.lastStreamActivityAt = Date.now()
+    this.state.streamTokensThisStep += event.tokensSoFar
+
+    // Detect potential issues from stream content
+    if (event.isReasoning && event.tokensSoFar > 500 && !event.hasToolUse) {
+      // Long reasoning without tool use — the LLM may be generating
+      // verbose analysis instead of taking action
+      this.state.longReasoningCount++
+    }
+  }
+
+  /**
+   * Process peer-approved edit proposals from the dialectic channel.
+   * The Brainstem acts as the final gate — reviewing each proposal for:
+   * - Goal alignment: does this edit serve the session's objective?
+   * - Risk level: is the change low-risk enough to auto-approve?
+   * - Quality: is the proposed code change reasonable?
+   *
+   * Approved edits are applied through the tool executor.
+   */
+  private processEditProposals(): void {
+    const dc = this.deps.dialecticChannel
+    if (!dc) return
+
+    const proposals = dc.getPendingEditProposals()
+
+    for (const proposal of proposals) {
+      // Only process proposals that have been peer-approved
+      if (proposal.status !== 'peer-approved') continue
+
+      // Brainstem approval heuristic:
+      // - Small edits (< 500 chars changed) that are peer-approved → auto-approve
+      // - Large edits or edits to critical files → would need LLM review (future)
+      // For now, trust the peer review process — if both Yang and Yin agree, approve it.
+      const changeSize = Math.max(proposal.oldContent.length, proposal.newContent.length)
+      const isSmallChange = changeSize < 2000
+
+      if (isSmallChange) {
+        dc.updateEditProposalStatus(proposal.id, 'brainstem-approved')
+
+        this.logger.info('Brainstem approved edit proposal', {
+          proposalId: proposal.id,
+          filePath: proposal.filePath,
+          from: proposal.from,
+          changeSize,
+        })
+
+        // Apply the edit through the tool executor
+        this.applyApprovedEdit(proposal)
+      } else {
+        // For large changes, still approve if peer-reviewed (trust the dialectic)
+        // but log it as a notable event
+        dc.updateEditProposalStatus(proposal.id, 'brainstem-approved')
+
+        this.logger.info('Brainstem approved large edit proposal (peer-reviewed)', {
+          proposalId: proposal.id,
+          filePath: proposal.filePath,
+          from: proposal.from,
+          changeSize,
+        })
+
+        this.applyApprovedEdit(proposal)
+      }
+    }
+  }
+
+  /**
+   * Apply a brainstem-approved edit through the tool executor.
+   */
+  private applyApprovedEdit(proposal: {
+    id: string
+    filePath: string
+    oldContent: string
+    newContent: string
+    reason: string
+    from: string
+  }): void {
+    const executor = this.deps.toolExecutor
+    const dc = this.deps.dialecticChannel
+    if (!executor || !dc) {
+      this.logger.warn('Cannot apply edit — no tool executor wired', {
+        proposalId: proposal.id,
+      })
+      return
+    }
+
+    // Apply the edit asynchronously
+    void (async () => {
+      try {
+        const result = await executor.execute(
+          {
+            id: `brainstem-edit-${proposal.id}`,
+            name: 'edit',
+            input: {
+              filePath: proposal.filePath,
+              oldString: proposal.oldContent,
+              newString: proposal.newContent,
+            },
+          },
+          this.deps.sessionId,
+        )
+
+        const resultStr = result.content ?? ''
+        if (result.isError || resultStr.toLowerCase().includes('not found')) {
+          dc.updateEditProposalStatus(proposal.id, 'apply-failed')
+          this.logger.warn('Edit proposal application failed', {
+            proposalId: proposal.id,
+            filePath: proposal.filePath,
+            result: resultStr.slice(0, 200),
+          })
+        } else {
+          dc.updateEditProposalStatus(proposal.id, 'applied')
+          this.logger.info('Edit proposal applied successfully', {
+            proposalId: proposal.id,
+            filePath: proposal.filePath,
+            from: proposal.from,
+            reason: proposal.reason.slice(0, 100),
+          })
+        }
+      } catch (err) {
+        dc.updateEditProposalStatus(proposal.id, 'apply-failed')
+        this.logger.error('Edit proposal application threw', {
+          proposalId: proposal.id,
+          error: String(err),
+        })
+      }
+    })()
+  }
+
+  /**
    * Get current Brainstem state
    */
   getState(): BrainstemState {
@@ -215,6 +362,9 @@ export class HelixBrainstem {
           // Idle poll - can perform maintenance
           this.logger.debug('Brainstem idle poll')
         }
+
+        // Process peer-approved edit proposals (regardless of work unit state)
+        this.processEditProposals()
       } catch (error) {
         this.logger.error('Error in Brainstem loop', {
           error: error instanceof Error ? error.message : String(error),

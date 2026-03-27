@@ -187,6 +187,83 @@ export const REVIEW_PROGRESS_TOOL: ToolSchema = {
   },
 }
 
+
+// ─── Edit Proposal Tools (Yang/Yin) ──────────────────────────────────────
+
+/**
+ * propose_edit — Yang or Yin can propose a file edit through the dialectic.
+ * The edit must be approved by the peer posture and then the Brainstem.
+ */
+export const PROPOSE_EDIT_TOOL: ToolSchema = {
+  name: 'propose_edit',
+  description:
+    'Propose a file edit through the dialectic approval process. ' +
+    'Your proposal will be reviewed by the other reviewer, then by the Brainstem before being applied. ' +
+    'Use this when you identify a concrete change that should be made. ' +
+    'Provide the exact old content to replace and the new content.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      file_path: {
+        type: 'string',
+        description: 'The file path to edit (relative to project root).',
+      },
+      old_content: {
+        type: 'string',
+        description: 'The exact content to replace (must match exactly in the file).',
+      },
+      new_content: {
+        type: 'string',
+        description: 'The replacement content.',
+      },
+      reason: {
+        type: 'string',
+        description: 'Why this edit should be made — what problem it solves or improvement it brings.',
+      },
+    },
+    required: ['file_path', 'old_content', 'new_content', 'reason'],
+  },
+}
+
+/**
+ * review_edit_proposal — Review a pending edit proposal from the other posture.
+ */
+export const REVIEW_EDIT_PROPOSAL_TOOL: ToolSchema = {
+  name: 'review_edit_proposal',
+  description:
+    'Review a pending edit proposal from the other reviewer. ' +
+    'Approve or reject the proposed file edit with a reason. ' +
+    'If approved, the edit goes to the Brainstem for final approval before being applied.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      proposal_id: {
+        type: 'string',
+        description: 'The ID of the edit proposal to review (e.g., "ep-1").',
+      },
+      approved: {
+        type: 'boolean',
+        description: 'Whether you approve this edit.',
+      },
+      reason: {
+        type: 'string',
+        description: 'Reason for your approval or rejection.',
+      },
+      suggested_changes: {
+        type: 'string',
+        description: 'Optional: suggest modifications to the proposed edit.',
+      },
+    },
+    required: ['proposal_id', 'approved', 'reason'],
+  },
+}
+
+/** Edit proposal tools available to Yang and Yin */
+export const EDIT_PROPOSAL_TOOLS: ToolSchema[] = [
+  PROPOSE_EDIT_TOOL,
+  REVIEW_EDIT_PROPOSAL_TOOL,
+]
+
 /** All dialectic tools for reviewer debate (excluding signal_conclusion) */
 export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
   SHARE_FINDING_TOOL,
@@ -200,6 +277,7 @@ export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
 /** Core reviewer meta-tools (dialectic + nudge + progress + conclusion) */
 export const REVIEWER_TOOLS: ToolSchema[] = [
   ...REVIEWER_DIALECTIC_TOOLS,
+  ...EDIT_PROPOSAL_TOOLS,
   SEND_NUDGE_TOOL,
   REVIEW_PROGRESS_TOOL,
   SIGNAL_CONCLUSION_TOOL,
@@ -270,6 +348,8 @@ export const ALL_MENTOR_TOOLS: ToolSchema[] = [
 export const UNITY_TOOL_NAMES = new Set(UNITY_TOOLS.map(t => t.name))
 
 export const REVIEWER_TOOL_NAMES = new Set(REVIEWER_TOOLS.map(t => t.name))
+
+export const EDIT_PROPOSAL_TOOL_NAMES = new Set(EDIT_PROPOSAL_TOOLS.map(t => t.name))
 
 /** All Helix meta-tool names (for routing in agent session) */
 export const ALL_HELIX_META_TOOL_NAMES = new Set([

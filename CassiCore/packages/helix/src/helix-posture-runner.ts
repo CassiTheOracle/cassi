@@ -131,6 +131,24 @@ export interface HelixPostureRunnerOpts {
   brainstem?: HelixBrainstem
   /** Callback fired when Unity posts a work unit */
   onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
+  /** Callback fired during streaming with real-time token activity */
+  onStreamActivity?: (event: StreamActivityEvent) => void
+}
+
+/** Real-time token stream event — emitted during inference for Brainstem/Corpus visibility */
+export interface StreamActivityEvent {
+  /** Which posture is streaming */
+  posture: HelixRole
+  /** Tokens generated so far in this inference call */
+  tokensSoFar: number
+  /** Whether the LLM is currently producing text (vs tool calls) */
+  isReasoning: boolean
+  /** Last ~200 chars of text for content-aware assessment */
+  textSnippet: string
+  /** Whether tool calls have been seen in this inference */
+  hasToolUse: boolean
+  /** Timestamp */
+  timestamp: number
 }
 
 
@@ -142,6 +160,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly unityStatusThresholds?: UnityStatusThresholds
   private readonly brainstem?: HelixBrainstem
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
+  private readonly onStreamActivity?: (event: StreamActivityEvent) => void
 
   // Typed store
   protected declare store?: HelixStore
@@ -196,6 +215,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.unityStatusThresholds = opts.unityStatusThresholds
     this.brainstem = opts.brainstem
     this.onWorkUnit = opts.onWorkUnit
+    this.onStreamActivity = opts.onStreamActivity
     this.store = opts.store
   }
 
@@ -205,6 +225,28 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   protected getAgentLabel(): string { return this.role }
   protected getSourceLabel(): string { return `helix:${this.role}` }
   protected getTriggerLabel(): string { return 'helix' }
+
+  /**
+   * Stream chunk hook — forward token stream events to the Brainstem/Corpus
+   * via the onStreamActivity callback. This gives real-time visibility into
+   * what the LLM is producing, not just tool call results.
+   */
+  protected override onStreamChunk(tokensSoFar: number, textAccumulated: string, hasToolUse: boolean): void {
+    if (!this.onStreamActivity) return
+
+    const snippet = textAccumulated.length > 200
+      ? textAccumulated.slice(-200)
+      : textAccumulated
+
+    this.onStreamActivity({
+      posture: this.role,
+      tokensSoFar,
+      isReasoning: !hasToolUse && textAccumulated.length > 0,
+      textSnippet: snippet,
+      hasToolUse,
+      timestamp: Date.now(),
+    })
+  }
 
 
   // ── Unity Run Loop ──────────────────────────────────────────────────
@@ -251,6 +293,18 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         this.onActivity?.()
 
         if (!result.hasToolUse) {
+          // Capture text-only output as a "reasoning" work unit so the Brainstem
+          // can see what the LLM is thinking, not just what tools it uses.
+          const textContent = result.contentBlocks
+            .filter((b: any) => b.type === 'text')
+            .map((b: any) => b.text)
+            .join('\n')
+          if (textContent.length > 50) { // Only capture substantial text
+            const reasoningUnit = this.captureReasoningWorkUnit(textContent)
+            this.workStream.postWorkUnit(reasoningUnit as any)
+            this.onWorkUnit?.(reasoningUnit as any, this.iterationCount)
+          }
+
           if (!this.concluded) {
             this.messages.push({
               role: 'user',
@@ -761,6 +815,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       // Reviewer tools (WorkStream)
       case 'send_nudge': return this.handleSendNudge(input)
       case 'review_progress': return this.handleReviewProgress()
+      // Edit proposal tools (Yang/Yin)
+      case 'propose_edit': return this.handleProposeEdit(input)
+      case 'review_edit_proposal': return this.handleReviewEditProposal(input)
       // Conclusion — tool schema is signal_conclusion (from Lumen dialectic-tools)
       case 'signal_conclusion': return this.handleSignalConclusion(input)
       default: return `Unknown meta-tool: ${name}`
@@ -909,6 +966,89 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     return severity === 'high'
       ? `HIGH-severity nudge sent to Unity. Unity must acknowledge before continuing.`
       : `Low-severity nudge sent to Unity. Unity will see it in their next iteration.`
+  }
+
+
+  // ── Edit Proposal Handlers ──────────────────────────────────────────
+
+  /**
+   * Handle propose_edit — Yang or Yin proposes a file edit through the dialectic.
+   */
+  private handleProposeEdit(input: Record<string, unknown>): string {
+    if (!this.dialecticChannel) return 'ERROR: No dialectic channel available.'
+    if (this.role !== 'yang' && this.role !== 'yin') {
+      return 'ERROR: Only Yang and Yin can propose edits.'
+    }
+
+    const filePath = String(input.file_path ?? '')
+    const oldContent = String(input.old_content ?? '')
+    const newContent = String(input.new_content ?? '')
+    const reason = String(input.reason ?? '')
+
+    if (!filePath || !oldContent || !newContent || !reason) {
+      return 'ERROR: file_path, old_content, new_content, and reason are all required.'
+    }
+
+    const proposalId = this.dialecticChannel.postEditProposal(
+      this.role,
+      filePath,
+      oldContent,
+      newContent,
+      reason,
+    )
+
+    return `Edit proposal ${proposalId} submitted for "${filePath}". ` +
+      `The ${this.role === 'yang' ? 'Yin' : 'Yang'} reviewer must approve it, ` +
+      `then the Brainstem will make the final decision before it's applied.`
+  }
+
+  /**
+   * Handle review_edit_proposal — Peer posture reviews a proposed edit.
+   */
+  private handleReviewEditProposal(input: Record<string, unknown>): string {
+    if (!this.dialecticChannel) return 'ERROR: No dialectic channel available.'
+    if (this.role !== 'yang' && this.role !== 'yin') {
+      return 'ERROR: Only Yang and Yin can review edit proposals.'
+    }
+
+    const proposalId = String(input.proposal_id ?? '')
+    const approved = input.approved === true || input.approved === 'true'
+    const reason = String(input.reason ?? '')
+    const suggestedChanges = input.suggested_changes ? String(input.suggested_changes) : undefined
+
+    if (!proposalId || !reason) {
+      return 'ERROR: proposal_id and reason are required.'
+    }
+
+    // Find the proposal
+    const proposals = this.dialecticChannel.getPendingEditProposals()
+    const proposal = proposals.find((p) => p.id === proposalId)
+
+    if (!proposal) {
+      return `ERROR: Edit proposal ${proposalId} not found or not in a reviewable state.`
+    }
+
+    // Can't review your own proposal
+    if (proposal.from === this.role) {
+      return `ERROR: You cannot review your own edit proposal. The other reviewer must review it.`
+    }
+
+    const reviewId = this.dialecticChannel.postEditReview(
+      this.role,
+      proposalId,
+      approved,
+      reason,
+      suggestedChanges,
+    )
+
+    if (approved) {
+      return `Edit proposal ${proposalId} APPROVED (review ${reviewId}). ` +
+        `It will now go to the Brainstem for final approval. Reason: ${reason}`
+    } else {
+      return `Edit proposal ${proposalId} REJECTED (review ${reviewId}). ` +
+        `The edit will not be applied. Reason: ${reason}` +
+        (suggestedChanges ? `\nSuggested changes: ${suggestedChanges}` : '')
+    }
   }
 
   private handleRequestInvestigation(input: Record<string, unknown>): string {
@@ -1659,6 +1799,22 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       toolCalls: toolCallSummaries,
       toolResults: toolResultSummaries,
       filesModified,
+      timestamp: Date.now(),
+    }
+  }
+
+  /**
+   * Capture a "reasoning-only" work unit when the LLM produces text without tool calls.
+   * This gives the Brainstem visibility into the LLM's thinking between tool use.
+   */
+  private captureReasoningWorkUnit(text: string): WorkUnit {
+    return {
+      id: `wu-reasoning-${this.workUnitsProduced + 1}`,
+      iteration: this.iterationCount,
+      reasoning: text.slice(0, 1000),
+      toolCalls: [],
+      toolResults: [],
+      filesModified: [],
       timestamp: Date.now(),
     }
   }
