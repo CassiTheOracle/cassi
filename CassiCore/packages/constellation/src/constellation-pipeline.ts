@@ -18,6 +18,7 @@ import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixStore } from '../helix/helix-store.js'
 import type { HelixResult } from '../helix/types.js'
+import type { ConstellationStore, ProgressSnapshot } from './constellation-store.js'
 import type { BrainstemDeps } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
@@ -89,6 +90,9 @@ export interface ConstellationPipelineOpts {
   /** Helix store for session persistence */
   store?: HelixStore
 
+  /** Constellation store for archiving completed sessions */
+  constellationStore?: ConstellationStore
+
   /**
    * Factory function to acquire model handles.
    * Same pattern as helix/index.ts
@@ -155,6 +159,7 @@ export async function runConstellationPipeline(
     toolExecutor,
     toolRegistry,
     store,
+    constellationStore,
     handleFactory,
     corpusLLM,
     onNodeCreated,
@@ -177,6 +182,25 @@ export async function runConstellationPipeline(
     teamId: constellationId,
     data: { event: 'constellation:started', goal, timestamp: Date.now() },
   } as any)
+
+  // ═════════════════════════════════════════════════════════════════
+  // Create session in ConstellationStore (if provided)
+  // ═════════════════════════════════════════════════════════════════
+
+  if (constellationStore) {
+    try {
+      constellationStore.createSession(constellationId, goal, {
+        context,
+        template,
+        maxHelixes,
+        maxDepth,
+        timeoutMs,
+      })
+      log.debug('Created ConstellationStore session', { constellationId })
+    } catch (err) {
+      log.warn('Failed to create ConstellationStore session', { error: String(err) })
+    }
+  }
 
   // ═════════════════════════════════════════════════════════════════
   // Create Corpus Tree and Corpus
@@ -351,7 +375,7 @@ export async function runConstellationPipeline(
       context: helixContext,
       sessionId: helixId,
       logger,
-      timeoutMs: Math.min(timeoutMs, 300_000), // Cap individual Helix at 5 min
+      timeoutMs: Math.min(timeoutMs, 1_800_000), // Allow up to 30 min for complex coding tasks
       unityHandle: handles[0],
       yangHandle: handles[1],
       yinHandle: handles[2],
@@ -594,6 +618,42 @@ export async function runConstellationPipeline(
         timestamp: Date.now(),
       },
     } as any)
+
+    // Archive to ConstellationStore (if provided)
+    if (constellationStore) {
+      try {
+        const corpusResult = corpus.getResult()
+        const treeSnapshot = corpusTree.getSnapshot()
+        const progressSnapshot: ProgressSnapshot = {
+          markdown: `Constellation completed: ${nodes.size} nodes, ${result.totalDurationMs}ms`,
+          data: {
+            activeBranches: 0,
+            totalBranches: nodes.size,
+            completedBranches: Array.from(nodes.values()).filter(n => n.status === 'completed').length,
+            failedBranches: Array.from(nodes.values()).filter(n => n.status === 'failed').length,
+            sweepCount: corpusResult.sweepCount,
+            lastSweepAt: corpusResult.lastSweepAt,
+          },
+        }
+        constellationStore.completeSession(constellationId, {
+          tree: treeSnapshot,
+          progress: progressSnapshot,
+          branchAssessments: corpusResult.branchAssessments,
+          crossPatterns: corpusResult.crossPatterns,
+          interventions: corpusResult.interventions,
+          sweepCount: corpusResult.sweepCount,
+          helixSessionIds: Array.from(nodes.keys()),
+          totalBranches: nodes.size,
+          completedBranches: progressSnapshot.data.completedBranches,
+          failedBranches: progressSnapshot.data.failedBranches,
+          tokensUsed: result.totalTokensUsed,
+          durationMs: result.totalDurationMs,
+        })
+        log.info('Archived completed session to ConstellationStore', { constellationId })
+      } catch (err) {
+        log.warn('Failed to archive session to ConstellationStore', { error: String(err) })
+      }
+    }
   } catch (err) {
     log.error('Constellation pipeline failed', { error: String(err) })
 
@@ -620,6 +680,16 @@ export async function runConstellationPipeline(
         timestamp: Date.now(),
       },
     } as any)
+
+    // Archive failure to ConstellationStore (if provided)
+    if (constellationStore) {
+      try {
+        constellationStore.failSession(constellationId, String(err), Date.now() - startTime)
+        log.info('Archived failed session to ConstellationStore', { constellationId })
+      } catch (storeErr) {
+        log.warn('Failed to archive failure to ConstellationStore', { error: String(storeErr) })
+      }
+    }
 
     throw err
   } finally {
