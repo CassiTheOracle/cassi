@@ -211,15 +211,25 @@ export async function handleWarmProviderRoutes(
     // Determine conversation ID for warm session keying.
     // Priority: explicit conversation_id > X-Conversation-ID header > stable auto-key
     //
-    // OpenCode doesn't send custom headers, so the auto-key must be STABLE
-    // across turns. We hash the first 200 chars of the system prompt (the base
-    // instructions that don't change between turns) rather than the full prompt
-    // (which OpenCode may compact/update). If no system prompt, use a fixed key
-    // per remote address so a single OpenCode instance always gets the same session.
+    // The auto-key MUST be stable across turns. We use the remote address
+    // (+ model for session isolation) because OpenCode dynamically mutates
+    // the system prompt between turns (injecting token counts, session info,
+    // system reminders, etc.), making any hash of the system prompt unstable.
+    // A single OpenCode instance always connects from the same address, so
+    // this produces a consistent key across the entire conversation.
+    const remoteAddr = req.socket.remoteAddress || 'default'
+    const modelKey = model || 'default'
     const conversationId =
       body.conversation_id ??
       req.headers['x-conversation-id'] as string ??
-      `auto-${hashString((systemMessage ?? '').slice(0, 200) || req.socket.remoteAddress || 'default')}`
+      `auto-${hashString(remoteAddr)}-${hashString(modelKey)}`
+
+    logger.debug('warm-provider: resolved conversation ID', {
+      conversationId,
+      source: body.conversation_id ? 'explicit' : req.headers['x-conversation-id'] ? 'header' : 'auto',
+      remoteAddr: req.socket.remoteAddress,
+      model: model || 'default',
+    })
 
     if (!stream) {
       // Non-streaming: collect all chunks and return as a single response
