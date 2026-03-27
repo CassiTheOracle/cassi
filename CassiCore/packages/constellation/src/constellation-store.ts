@@ -1116,4 +1116,338 @@ export class ConstellationStore {
       completedAt: row.completed_at,
     }
   }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Cross-Helix Dialectic Persistence
+  // ═══════════════════════════════════════════════════════════════════
+
+  saveDialecticCheckpoint(
+    sessionId: string,
+    snapshot: {
+      messages: unknown[]
+      convergencePoints: unknown[]
+      tensions: unknown[]
+      participants: string[]
+      stats: Record<string, unknown>
+    }
+  ): void {
+    this.stmts.insertDialecticCheckpoint.run({
+      session_id: sessionId,
+      messages_json: JSON.stringify(snapshot.messages),
+      convergence_points_json: JSON.stringify(snapshot.convergencePoints),
+      tensions_json: JSON.stringify(snapshot.tensions),
+      participants_json: JSON.stringify(snapshot.participants),
+      stats_json: JSON.stringify(snapshot.stats),
+      checkpoint_at: Date.now(),
+    })
+    this.logger.debug('Dialectic checkpoint saved', { sessionId, messageCount: snapshot.messages.length })
+  }
+
+  getDialecticCheckpoints(sessionId: string): CrossHelixDialecticRow[] {
+    const rows = this.stmts.selectDialecticCheckpoints.all({ session_id: sessionId }) as {
+      id: number
+      session_id: string
+      messages_json: string
+      convergence_points_json: string
+      tensions_json: string
+      participants_json: string
+      stats_json: string
+      checkpoint_at: number
+    }[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      messages: JSON.parse(r.messages_json),
+      convergencePoints: JSON.parse(r.convergence_points_json),
+      tensions: JSON.parse(r.tensions_json),
+      participants: JSON.parse(r.participants_json),
+      stats: JSON.parse(r.stats_json),
+      checkpointAt: r.checkpoint_at,
+    }))
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Corpus Decision History
+  // ═══════════════════════════════════════════════════════════════════
+
+  recordCorpusDecision(
+    sessionId: string,
+    decision: {
+      decisionType: CorpusDecisionType
+      helixId?: string
+      inputData: unknown
+      outputData: unknown
+      llmAnalysis?: unknown
+      confidence?: number
+    }
+  ): void {
+    this.stmts.insertCorpusDecision.run({
+      session_id: sessionId,
+      decision_type: decision.decisionType,
+      helix_id: decision.helixId ?? null,
+      input_data_json: JSON.stringify(decision.inputData),
+      output_data_json: JSON.stringify(decision.outputData),
+      llm_analysis_json: decision.llmAnalysis ? JSON.stringify(decision.llmAnalysis) : null,
+      confidence: decision.confidence ?? null,
+      timestamp: Date.now(),
+    })
+    this.logger.debug('Corpus decision recorded', { sessionId, type: decision.decisionType })
+  }
+
+  getCorpusDecisions(sessionId: string, decisionType?: CorpusDecisionType): CorpusDecisionRow[] {
+    let query = 'SELECT * FROM corpus_decisions WHERE session_id = ?'
+    const params: (string | CorpusDecisionType)[] = [sessionId]
+    if (decisionType) {
+      query += ' AND decision_type = ?'
+      params.push(decisionType)
+    }
+    query += ' ORDER BY timestamp DESC'
+    const rows = this.db.prepare(query).all(...params) as {
+      id: number
+      session_id: string
+      decision_type: string
+      helix_id: string | null
+      input_data_json: string
+      output_data_json: string
+      llm_analysis_json: string | null
+      confidence: number | null
+      timestamp: number
+    }[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      decisionType: r.decision_type as CorpusDecisionType,
+      helixId: r.helix_id,
+      inputData: JSON.parse(r.input_data_json),
+      outputData: JSON.parse(r.output_data_json),
+      llmAnalysis: r.llm_analysis_json ? JSON.parse(r.llm_analysis_json) : null,
+      confidence: r.confidence,
+      timestamp: r.timestamp,
+    }))
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Branch Lifecycle Tracking
+  // ═══════════════════════════════════════════════════════════════════
+
+  recordBranchLifecycleEvent(
+    sessionId: string,
+    helixId: string,
+    event: {
+      eventType: BranchLifecycleEventType
+      metrics?: Record<string, unknown>
+      context?: Record<string, unknown>
+    }
+  ): void {
+    this.stmts.insertBranchLifecycleEvent.run({
+      session_id: sessionId,
+      helix_id: helixId,
+      event_type: event.eventType,
+      metrics_json: JSON.stringify(event.metrics ?? {}),
+      context_json: event.context ? JSON.stringify(event.context) : null,
+      timestamp: Date.now(),
+    })
+    this.logger.debug('Branch lifecycle event recorded', { sessionId, helixId, type: event.eventType })
+  }
+
+  getBranchLifecycleEvents(sessionId: string, helixId?: string): BranchLifecycleEventRow[] {
+    if (helixId) {
+      const rows = this.stmts.selectBranchLifecycleEvents.all({ session_id: sessionId, helix_id: helixId }) as {
+        id: number
+        session_id: string
+        helix_id: string
+        event_type: string
+        metrics_json: string
+        context_json: string | null
+        timestamp: number
+      }[]
+      return rows.map(r => ({
+        id: r.id,
+        sessionId: r.session_id,
+        helixId: r.helix_id,
+        eventType: r.event_type as BranchLifecycleEventType,
+        metrics: JSON.parse(r.metrics_json),
+        context: r.context_json ? JSON.parse(r.context_json) : null,
+        timestamp: r.timestamp,
+      }))
+    }
+    // Get all events for session
+    const rows = this.db.prepare(
+      'SELECT * FROM branch_lifecycle_events WHERE session_id = ? ORDER BY timestamp DESC'
+    ).all(sessionId) as {
+      id: number
+      session_id: string
+      helix_id: string
+      event_type: string
+      metrics_json: string
+      context_json: string | null
+      timestamp: number
+    }[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      helixId: r.helix_id,
+      eventType: r.event_type as BranchLifecycleEventType,
+      metrics: JSON.parse(r.metrics_json),
+      context: r.context_json ? JSON.parse(r.context_json) : null,
+      timestamp: r.timestamp,
+    }))
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Blackboard Archive
+  // ═══════════════════════════════════════════════════════════════════
+
+  archiveBlackboard(
+    sessionId: string,
+    helixId: string | null,
+    blackboardData: {
+      channels: {
+        findings: unknown[]
+        concerns: unknown[]
+        decisions: unknown[]
+        artifacts: unknown[]
+        requests: unknown[]
+      }
+      scratchpad?: Record<string, unknown>
+      toolLog?: unknown[]
+      artifacts?: unknown[]
+      plan?: unknown
+      report?: unknown
+    }
+  ): void {
+    this.stmts.insertBlackboardArchive.run({
+      session_id: sessionId,
+      helix_id: helixId,
+      channel_data_json: JSON.stringify(blackboardData.channels),
+      scratchpad_json: blackboardData.scratchpad ? JSON.stringify(blackboardData.scratchpad) : null,
+      tool_log_json: blackboardData.toolLog ? JSON.stringify(blackboardData.toolLog) : null,
+      artifacts_json: blackboardData.artifacts ? JSON.stringify(blackboardData.artifacts) : null,
+      plan_json: blackboardData.plan ? JSON.stringify(blackboardData.plan) : null,
+      report_json: blackboardData.report ? JSON.stringify(blackboardData.report) : null,
+      archived_at: Date.now(),
+    })
+    this.logger.debug('Blackboard archived', { sessionId, helixId, hasChannels: Object.keys(blackboardData.channels).length })
+  }
+
+  getBlackboardArchives(sessionId: string, helixId?: string): BlackboardArchiveRow[] {
+    let query = 'SELECT * FROM blackboard_archives WHERE session_id = ?'
+    const params: (string | null)[] = [sessionId]
+    if (helixId !== undefined) {
+      query += ' AND helix_id = ?'
+      params.push(helixId)
+    }
+    query += ' ORDER BY archived_at DESC'
+    const rows = this.db.prepare(query).all(...params) as {
+      id: number
+      session_id: string
+      helix_id: string | null
+      channel_data_json: string
+      scratchpad_json: string | null
+      tool_log_json: string | null
+      artifacts_json: string | null
+      plan_json: string | null
+      report_json: string | null
+      archived_at: number
+    }[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      helixId: r.helix_id,
+      channelData: JSON.parse(r.channel_data_json),
+      scratchpad: r.scratchpad_json ? JSON.parse(r.scratchpad_json) : null,
+      toolLog: r.tool_log_json ? JSON.parse(r.tool_log_json) : null,
+      artifacts: r.artifacts_json ? JSON.parse(r.artifacts_json) : null,
+      plan: r.plan_json ? JSON.parse(r.plan_json) : null,
+      report: r.report_json ? JSON.parse(r.report_json) : null,
+      archivedAt: r.archived_at,
+    }))
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Training Data Extraction
+  // ═══════════════════════════════════════════════════════════════════
+
+  extractTrainingSignal(
+    sessionId: string,
+    signal: {
+      signalType: TrainingSignalType
+      sourceHelixId?: string
+      data: Record<string, unknown>
+      qualityScore?: number
+    }
+  ): void {
+    this.stmts.insertTrainingSignal.run({
+      session_id: sessionId,
+      signal_type: signal.signalType,
+      source_helix_id: signal.sourceHelixId ?? null,
+      data_json: JSON.stringify(signal.data),
+      quality_score: signal.qualityScore ?? null,
+      extracted_at: Date.now(),
+    })
+    this.logger.debug('Training signal extracted', { sessionId, type: signal.signalType })
+  }
+
+  getTrainingSignals(sessionId: string, signalType?: TrainingSignalType): TrainingSignalRow[] {
+    let query = 'SELECT * FROM training_signals WHERE session_id = ?'
+    const params: (string | TrainingSignalType)[] = [sessionId]
+    if (signalType) {
+      query += ' AND signal_type = ?'
+      params.push(signalType)
+    }
+    query += ' ORDER BY extracted_at DESC'
+    const rows = this.db.prepare(query).all(...params) as {
+      id: number
+      session_id: string
+      signal_type: string
+      source_helix_id: string | null
+      data_json: string
+      quality_score: number | null
+      extracted_at: number
+    }[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      signalType: r.signal_type as TrainingSignalType,
+      sourceHelixId: r.source_helix_id,
+      data: JSON.parse(r.data_json),
+      qualityScore: r.quality_score,
+      extractedAt: r.extracted_at,
+    }))
+  }
+
+  // Query training signals across all sessions for warehouse export
+  getTrainingSignalsForWarehouse(minQualityScore?: number, limit = 1000): TrainingSignalRow[] {
+    let query = 'SELECT * FROM training_signals'
+    const params: number[] = []
+    if (minQualityScore !== undefined) {
+      query += ' WHERE quality_score >= ?'
+      params.push(minQualityScore)
+    }
+    query += ' ORDER BY extracted_at DESC LIMIT ?'
+    params.push(limit)
+    const rows = this.db.prepare(query).all(...params) as {
+      id: number
+      session_id: string
+      signal_type: string
+      source_helix_id: string | null
+      data_json: string
+      quality_score: number | null
+      extracted_at: number
+    }[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      signalType: r.signal_type as TrainingSignalType,
+      sourceHelixId: r.source_helix_id,
+      data: JSON.parse(r.data_json),
+      qualityScore: r.quality_score,
+      extractedAt: r.extracted_at,
+    }))
+  }
 }
