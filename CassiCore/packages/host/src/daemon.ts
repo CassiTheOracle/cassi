@@ -2691,6 +2691,18 @@ export class Daemon {
                   content: result.response,
                   done: true,
                 })
+                // When direct mode re-routed a Telegram message to a primary (CLI) session,
+                // the response above goes to the CLI channel with the CLI session ID.
+                // The Telegram worker ignores non-tg: session IDs, so we must fan the
+                // content back to Telegram using the original tg: session ID.
+                const tgSrcForContent = this.telegramDirectMode?.getTelegramSource(result.sessionId)
+                if (tgSrcForContent && pluginId !== 'channel:telegram') {
+                  this.pluginHost.send('channel:telegram', {
+                    sessionId: tgSrcForContent,
+                    content: result.response,
+                    done: true,
+                  })
+                }
               } else {
                 this.logger.info(`Turn complete (legacy)`, {
                   sessionId: inbound.sessionId,
@@ -2715,6 +2727,20 @@ export class Daemon {
               content: `⚠️ Something went wrong — please try again.`,
               done: true,
             })
+            // Fan out error to Telegram if this was a direct-mode re-routed turn
+            const tgSrcForError = this.telegramDirectMode?.getTelegramSource(inbound.sessionId)
+            if (tgSrcForError && pluginId !== 'channel:telegram') {
+              this.pluginHost.send('channel:telegram', {
+                sessionId: tgSrcForError,
+                content: `⚠️ Something went wrong — please try again.`,
+                done: true,
+              })
+              this.telegramDirectMode!.clearTurn(inbound.sessionId)
+            } else if (pluginId === 'channel:telegram' && inbound.sessionId !== sid) {
+              // Original sid is the tg: session; inbound.sessionId was re-routed
+              // but error fanout above already covers it — just clear tracking
+              this.telegramDirectMode?.clearTurn(inbound.sessionId)
+            }
           }
         }
       } catch (err) {
