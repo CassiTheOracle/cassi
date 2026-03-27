@@ -399,6 +399,8 @@ export interface CorpusDeps {
   eventBus?: IEventBus
   /** Optional blackboard for posting summaries */
   blackboard?: CorpusBlackboard
+  /** Callback to submit a spawn request to the pipeline queue */
+  onSpawnRequest?: (request: { goal: string; context?: string; template?: string; requestingHelixId: string }) => void
 }
 
 /**

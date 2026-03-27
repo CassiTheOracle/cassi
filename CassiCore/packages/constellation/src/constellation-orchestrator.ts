@@ -16,6 +16,7 @@ import type { ModelPool } from '../../model-pool/index.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixStore } from '../helix/helix-store.js'
+import type { ConstellationStore } from './constellation-store.js'
 import type { ContextDistiller } from '../context-distiller.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { CorpusLLM } from './corpus-types.js'
@@ -34,7 +35,6 @@ export interface ConstellationOrchestrator {
     postures?: FlexPosture[]
     maxHelixes?: number
     maxDepth?: number
-    timeoutMs?: number
     sessionId: string
   }): Promise<ConstellationResult>
   cancel(sessionId: string): boolean
@@ -46,6 +46,7 @@ export interface ConstellationOrchestrator {
   setToolRegistry(registry: ToolRegistry): void
   setToolExecutor(executor: ToolExecutor): void
   setStore(store: HelixStore): void
+  setConstellationStore(store: ConstellationStore): void
   setModelDirective(directive: IModelDirective): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
@@ -77,6 +78,7 @@ export function createConstellationOrchestrator(
   let toolRegistry: ToolRegistry | undefined
   let toolExecutor: ToolExecutor | undefined
   let store: HelixStore | undefined
+  let constellationStore: ConstellationStore | undefined
   let modelDirective: IModelDirective | undefined
   let contextDistiller: ContextDistiller | undefined
   let moduleRegistry: ModuleSessionRegistry | undefined
@@ -168,7 +170,6 @@ export function createConstellationOrchestrator(
         postures,
         maxHelixes,
         maxDepth,
-        timeoutMs,
         sessionId,
       } = opts
 
@@ -190,12 +191,12 @@ export function createConstellationOrchestrator(
         postures,
         maxHelixes,
         maxDepth,
-        timeoutMs,
         logger,
         eventBus,
         toolExecutor: effectiveExecutor,
         toolRegistry: effectiveRegistry,
         store,
+        constellationStore,
         handleFactory,
         corpusLLM,
 
@@ -320,6 +321,7 @@ export function createConstellationOrchestrator(
     setContextDistiller(dist) { contextDistiller = dist },
     setModuleRegistry(reg) { moduleRegistry = reg },
     setStore(s) { store = s },
+    setConstellationStore(s) { constellationStore = s },
   }
 
   return orchestrator

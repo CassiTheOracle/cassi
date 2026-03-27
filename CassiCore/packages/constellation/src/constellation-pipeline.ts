@@ -23,6 +23,8 @@ import type { BrainstemDeps } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
 import { createHelixBrainstem } from '../helix/brainstem.js'
+import { Blackboard } from '../flux-team/blackboard.js'
+import { BlackboardBridge } from './blackboard-bridge.js'
 import { Corpus } from './corpus.js'
 import { CorpusTree } from './corpus-tree.js'
 import type { CorpusLLM } from './corpus-types.js'
@@ -43,7 +45,6 @@ import { getTemplatePostures } from './templates.js'
 
 const DEFAULT_MAX_HELIXES = 16
 const DEFAULT_MAX_DEPTH = 4
-const DEFAULT_TIMEOUT_MS = 600_000 // 10 minutes
 const SPAWN_CHECK_INTERVAL_MS = 1000
 
 // ═══════════════════════════════════════════════════════════════════
@@ -153,7 +154,6 @@ export async function runConstellationPipeline(
     postures: customPostures,
     maxHelixes = DEFAULT_MAX_HELIXES,
     maxDepth = DEFAULT_MAX_DEPTH,
-    timeoutMs = DEFAULT_TIMEOUT_MS,
     logger,
     eventBus,
     toolExecutor,
@@ -173,7 +173,6 @@ export async function runConstellationPipeline(
     template,
     maxHelixes,
     maxDepth,
-    timeoutMs,
   })
 
   // Emit start event
@@ -194,7 +193,6 @@ export async function runConstellationPipeline(
         template,
         maxHelixes,
         maxDepth,
-        timeoutMs,
       })
       log.debug('Created ConstellationStore session', { constellationId })
     } catch (err) {
@@ -203,10 +201,15 @@ export async function runConstellationPipeline(
   }
 
   // ═════════════════════════════════════════════════════════════════
-  // Create Corpus Tree and Corpus
+  // Create Corpus Tree, Blackboard, and Corpus
   // ═════════════════════════════════════════════════════════════════
 
   const corpusTree = new CorpusTree(logger)
+
+  // Create constellation-level blackboard for cross-Helix communication
+  const constellationBlackboard = new Blackboard(log, constellationId)
+  constellationBlackboard.initPlan(goal)
+  constellationBlackboard.initReport(goal)
 
   const corpus = new Corpus(
     corpusTree,
@@ -216,6 +219,26 @@ export async function runConstellationPipeline(
       goal,
       constellationId,
       eventBus,
+      blackboard: constellationBlackboard,
+      onSpawnRequest: (req) => {
+        const spawnRequest: SpawnRequest = {
+          requestId: `spawn-corpus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          requestingHelixId: req.requestingHelixId,
+          requestingPosture: 'corpus',
+          targetDepth: (runningHelixes.get(req.requestingHelixId)?.depth ?? 0) + 1,
+          goal: req.goal,
+          context: req.context,
+          template: (req.template as ConstellationTemplate) ?? template,
+          status: 'pending',
+          timestamp: Date.now(),
+        }
+        spawnQueue.push(spawnRequest)
+        log.info('Spawn request queued from Corpus', {
+          requestId: spawnRequest.requestId,
+          requestingHelixId: req.requestingHelixId,
+          goal: req.goal.slice(0, 100),
+        })
+      },
     },
     {
       maxBranches: maxHelixes,
@@ -251,9 +274,9 @@ export async function runConstellationPipeline(
   const nodes = new Map<string, ConstellationNode>()
   const runningHelixes = new Map<string, RunningHelix>()
   const spawnQueue: SpawnRequest[] = []
+  const blackboardBridges = new Map<string, BlackboardBridge>()
   let rootHelixId: string | undefined
   let completed = false
-  let timeoutHandle: ReturnType<typeof setTimeout> | undefined
 
   // ═════════════════════════════════════════════════════════════════
   // Helper: Resolve Postures
@@ -358,6 +381,25 @@ export async function runConstellationPipeline(
       eventBus,
       corpusTree,
       helixId,
+      onSpawnRequest: (req) => {
+        const spawnRequest: SpawnRequest = {
+          requestId: `spawn-${helixId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          requestingHelixId: helixId,
+          requestingPosture: 'brainstem',
+          targetDepth: depth + 1,
+          goal: req.goal,
+          context: req.context,
+          template: (req.template as ConstellationTemplate) ?? template,
+          status: 'pending',
+          timestamp: Date.now(),
+        }
+        spawnQueue.push(spawnRequest)
+        log.info('Spawn request queued from Brainstem', {
+          requestId: spawnRequest.requestId,
+          helixId,
+          goal: req.goal.slice(0, 100),
+        })
+      },
     }
 
     const brainstem = createHelixBrainstem(brainstemDeps)
@@ -370,12 +412,14 @@ export async function runConstellationPipeline(
     })
 
     // Run the Helix pipeline
+    // No timeout — Constellation manages lifecycle through Corpus coordination
+    // and external cancellation, not arbitrary time limits.
     const helixPromise = runHelixPipeline({
       goal: helixGoal,
       context: helixContext,
       sessionId: helixId,
       logger,
-      timeoutMs: Math.min(timeoutMs, 1_800_000), // Allow up to 30 min for complex coding tasks
+      timeoutMs: 24 * 60 * 60 * 1000, // 24h — effectively unlimited; Corpus handles lifecycle
       unityHandle: handles[0],
       yangHandle: handles[1],
       yinHandle: handles[2],
@@ -385,6 +429,18 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
+      onBlackboardCreated: (childBlackboard) => {
+        // Wire a BlackboardBridge between the constellation blackboard and this Helix's blackboard
+        const bridge = new BlackboardBridge({
+          parent: constellationBlackboard,
+          child: childBlackboard,
+          childHelixId: helixId,
+          logger,
+        })
+        bridge.start()
+        blackboardBridges.set(helixId, bridge)
+        helixLog.debug('Blackboard bridge started', { helixId })
+      },
       onCancelRegistered: (fn) => {
         // Store the cancel function
         if (cancelFn) {
@@ -536,15 +592,9 @@ export async function runConstellationPipeline(
   // ═════════════════════════════════════════════════════════════════
 
   let result: ConstellationResult
+  let checkpointHandle: ReturnType<typeof setInterval> | undefined
 
   try {
-    // Set up timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      timeoutHandle = setTimeout(() => {
-        reject(new Error(`Constellation timeout after ${timeoutMs}ms`))
-      }, timeoutMs)
-    })
-
     // Set up external cancel mechanism
     let externalCancel: () => void = () => {}
     const cancelPromise = new Promise<never>((_, reject) => {
@@ -565,19 +615,41 @@ export async function runConstellationPipeline(
     // Start spawn request polling
     const spawnPoller = pollSpawnRequests()
 
-    // Wait for root Helix completion
+    // Start periodic progress checkpoints (every 60s)
+    const CHECKPOINT_INTERVAL_MS = 60_000
+    if (constellationStore) {
+      checkpointHandle = setInterval(() => {
+        try {
+          const nodeArr = Array.from(nodes.values())
+          constellationStore.saveCheckpoint(constellationId, {
+            tree: corpusTree.getSnapshot(),
+            progress: corpus.getProgressSnapshot(),
+            sweepCount: corpus.getResult().sweepCount,
+            totalBranches: nodeArr.length,
+            completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
+            failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
+            tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+            durationMs: Date.now() - startTime,
+          })
+        } catch (err) {
+          log.warn('Checkpoint save failed', { error: String(err) })
+        }
+      }, CHECKPOINT_INTERVAL_MS)
+    }
+
+    // Wait for root Helix completion (no timeout — Constellation runs to completion)
     // Note: We don't wait for all children — the root's completion signals
     // that the main goal is achieved. Children may still be running cleanup.
     log.info('Waiting for root Helix completion', { rootHelixId })
 
-    await Promise.race([rootHelix.promise, timeoutPromise, cancelPromise])
+    await Promise.race([rootHelix.promise, cancelPromise])
 
     // Give children a grace period to complete
     log.info('Root Helix completed, waiting for children', {
       childrenCount: runningHelixes.size - 1,
     })
 
-    const gracePeriodMs = 30_000 // 30 second grace period
+    const gracePeriodMs = 120_000 // 2 minute grace period for children to finish work
     const gracePromise = new Promise<void>((resolve) => {
       setTimeout(resolve, gracePeriodMs)
     })
@@ -600,7 +672,7 @@ export async function runConstellationPipeline(
       constellationId,
       rootHelixId: rootHelixId!,
       nodes,
-      constellationBlackboard: {} as any, // TODO: constellation-wide blackboard
+      constellationBlackboard: constellationBlackboard.getSnapshot(),
       totalTokensUsed: Array.from(nodes.values()).reduce((sum, n) => sum + n.tokensUsed, 0),
       totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
@@ -632,13 +704,23 @@ export async function runConstellationPipeline(
             completedBranches: Array.from(nodes.values()).filter(n => n.status === 'completed').length,
             failedBranches: Array.from(nodes.values()).filter(n => n.status === 'failed').length,
             sweepCount: corpusResult.sweepCount,
-            lastSweepAt: corpusResult.lastSweepAt,
+            lastSweepAt: Date.now(),
           },
         }
         constellationStore.completeSession(constellationId, {
           tree: treeSnapshot,
           progress: progressSnapshot,
-          branchAssessments: corpusResult.branchAssessments,
+          // Convert simplified branchAssessments to full BranchAssessment format
+          branchAssessments: corpusResult.branchAssessments.map(a => ({
+            helixId: a.helixId,
+            status: a.status,
+            rollingScore: a.rollingScore,
+            scoreTrajectory: [],
+            dominantPattern: a.dominantPattern as any,
+            filesModified: new Set<string>(),
+            decliningScoreStreak: 0,
+            lastActivityAt: Date.now(),
+          })),
           crossPatterns: corpusResult.crossPatterns,
           interventions: corpusResult.interventions,
           sweepCount: corpusResult.sweepCount,
@@ -662,7 +744,7 @@ export async function runConstellationPipeline(
       constellationId,
       rootHelixId: rootHelixId ?? constellationId,
       nodes,
-      constellationBlackboard: {} as any,
+      constellationBlackboard: constellationBlackboard.getSnapshot(),
       totalTokensUsed: Array.from(nodes.values()).reduce((sum, n) => sum + n.tokensUsed, 0),
       totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
@@ -695,9 +777,9 @@ export async function runConstellationPipeline(
   } finally {
     completed = true
 
-    // Clear timeout
-    if (timeoutHandle) {
-      clearTimeout(timeoutHandle)
+    // Stop checkpoint timer
+    if (checkpointHandle) {
+      clearInterval(checkpointHandle)
     }
 
     // Cancel any remaining Helixes
@@ -716,6 +798,15 @@ export async function runConstellationPipeline(
       await corpus.stop()
     } catch (err) {
       log.warn('Error stopping Corpus', { error: String(err) })
+    }
+
+    // Stop all blackboard bridges
+    for (const [id, bridge] of blackboardBridges) {
+      try {
+        bridge.stop()
+      } catch (err) {
+        log.warn('Error stopping blackboard bridge', { helixId: id, error: String(err) })
+      }
     }
 
     // Release all model handles

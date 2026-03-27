@@ -191,6 +191,41 @@ export class Corpus {
   }
 
   /**
+   * Get a progress snapshot for periodic persistence checkpoints
+   */
+  getProgressSnapshot(): { markdown: string; data: { activeBranches: number; totalBranches: number; completedBranches: number; failedBranches: number; sweepCount: number; lastSweepAt: number } } {
+    const branches = this.tree.getAllBranches()
+    const activeBranches = branches.filter((b) => b.status === 'active').length
+    const completedBranches = branches.filter((b) => b.status === 'completed').length
+    const failedBranches = branches.filter((b) => b.status === 'failed').length
+
+    const branchLines = branches.map((b) => {
+      const assessment = this.state.branchAssessments.get(b.helixId)
+      const score = assessment?.rollingScore.toFixed(2) ?? 'N/A'
+      return `- **${b.helixId}**: ${b.status} | score=${score} | steps=${b.steps.length}`
+    }).join('\n')
+
+    const markdown = [
+      `## Constellation Progress`,
+      `Sweep #${this.state.sweepCount} | ${branches.length} branches (${activeBranches} active, ${completedBranches} done, ${failedBranches} failed)`,
+      ``,
+      branchLines,
+    ].join('\n')
+
+    return {
+      markdown,
+      data: {
+        activeBranches,
+        totalBranches: branches.length,
+        completedBranches,
+        failedBranches,
+        sweepCount: this.state.sweepCount,
+        lastSweepAt: this.state.lastSweepAt,
+      },
+    }
+  }
+
+  /**
    * Main async loop
    */
   private async runLoop(): Promise<void> {
@@ -554,23 +589,44 @@ Guidelines:
   }
 
   /**
-   * Parse LLM response and apply interventions
+   * Parse LLM response and apply interventions.
+   *
+   * Uses forgiving parsing — tries the structured format first, falls back
+   * to heuristic extraction when the LLM doesn't follow the exact template.
    */
   private parseAndApplyLLMResponse(response: string): void {
-    // Parse ASSESSMENT
-    const assessmentMatch = response.match(/ASSESSMENT:\s*([^\n]+)/i)
-    const assessment = assessmentMatch?.[1]?.trim() ?? 'No assessment provided'
+    // Parse ASSESSMENT — try structured, then fall back to first sentence
+    const assessmentMatch = response.match(/ASSESSMENT:\s*(.+?)(?=\n(?:INTERVENTION|SYNTHESIS)|$)/is)
+    let assessment = assessmentMatch?.[1]?.trim() ?? ''
+    if (!assessment) {
+      // Fallback: use the first non-empty line as the assessment
+      const firstLine = response.split('\n').find((l) => l.trim().length > 0)?.trim()
+      assessment = firstLine ?? 'No assessment provided'
+      this.logger.debug('ASSESSMENT tag not found, using first line as assessment', {
+        fallbackAssessment: assessment.slice(0, 100),
+      })
+    }
 
-    // Parse INTERVENTION lines
-    const interventionRegex = /INTERVENTION\[([^\]]+)\]:\s*([^:]+):([^:]+):(.+)/gi
+    // Parse INTERVENTION lines — try multiple formats
+    // Format 1: INTERVENTION[helixId]: type:urgency:text
+    // Format 2: INTERVENTION[helixId] type urgency text (space-separated)
+    // Format 3: INTERVENTION helixId: type:urgency:text (no brackets)
+    const interventionRegex = /INTERVENTION\s*[\[(\s]([^\]\):\n]+)[\])\s]*[:\s]\s*([^:\n]+)[:\s]+([^:\n]+)[:\s]+(.+)/gi
     let match
+    let interventionCount = 0
     while ((match = interventionRegex.exec(response)) !== null) {
       const helixId = match[1].trim()
-      const type = match[2].trim() as CorpusDirectiveType
-      const urgency = match[3].trim() as GuidanceUrgency
+      const rawType = match[2].trim().toLowerCase()
+      const rawUrgency = match[3].trim().toLowerCase()
       const text = match[4].trim()
 
-      if (text.toUpperCase() !== 'NONE') {
+      if (text.toUpperCase() === 'NONE') continue
+
+      // Normalize type — accept partial matches
+      const type = this.normalizeDirectiveType(rawType)
+      const urgency = this.normalizeUrgency(rawUrgency)
+
+      if (type && urgency) {
         const directive: CorpusDirective = {
           targetHelixId: helixId,
           type,
@@ -580,15 +636,65 @@ Guidelines:
           timestamp: Date.now(),
         }
         this.sendDirective(directive)
+        interventionCount++
+      } else {
+        this.logger.debug('Skipping intervention with unrecognized type/urgency', {
+          rawType, rawUrgency, helixId,
+        })
       }
     }
 
-    // Parse SYNTHESIS
-    const synthesisMatch = response.match(/SYNTHESIS:\s*([^\n]+)/i)
-    const synthesis = synthesisMatch?.[1]?.trim()
-    if (synthesis && synthesis.toUpperCase() !== 'NONE') {
+    if (interventionCount === 0 && response.toLowerCase().includes('intervention')) {
+      this.logger.debug('Response mentions intervention but regex did not match', {
+        responseSnippet: response.slice(0, 300),
+      })
+    }
+
+    // Parse SYNTHESIS — try structured, then fall back to last paragraph
+    const synthesisMatch = response.match(/SYNTHESIS:\s*(.+?)(?=\n(?:ASSESSMENT|INTERVENTION)|$)/is)
+    let synthesis = synthesisMatch?.[1]?.trim()
+    if (!synthesis || synthesis.toUpperCase() === 'NONE') {
+      // No explicit synthesis — that's fine, not every sweep needs one
+      synthesis = undefined
+    }
+    if (synthesis) {
       this.postSynthesisToBlackboard(synthesis, assessment)
     }
+  }
+
+  /** Normalize a directive type string to a valid CorpusDirectiveType */
+  private normalizeDirectiveType(raw: string): CorpusDirectiveType | null {
+    const map: Record<string, CorpusDirectiveType> = {
+      'guidance': 'guidance',
+      'guide': 'guidance',
+      'suggest': 'guidance',
+      'redirect': 'redirect',
+      'refocus': 'redirect',
+      'change': 'redirect',
+      'throttle': 'throttle',
+      'slow': 'throttle',
+      'priority-shift': 'priority-shift',
+      'priority': 'priority-shift',
+      'prioritize': 'priority-shift',
+      'cancel': 'cancel',
+      'stop': 'cancel',
+      'abort': 'cancel',
+    }
+    return map[raw] ?? null
+  }
+
+  /** Normalize an urgency string to a valid GuidanceUrgency */
+  private normalizeUrgency(raw: string): GuidanceUrgency | null {
+    const map: Record<string, GuidanceUrgency> = {
+      'low': 'low',
+      'medium': 'medium',
+      'med': 'medium',
+      'moderate': 'medium',
+      'high': 'high',
+      'critical': 'critical',
+      'urgent': 'critical',
+    }
+    return map[raw] ?? null
   }
 
   /**
@@ -678,18 +784,49 @@ Guidelines:
         timeoutMs: this.config.timeoutMs,
       })
 
-      const decisionMatch = response.content.match(/DECISION:\s*(APPROVED|REJECTED)/i)
-      const reasonMatch = response.content.match(/REASON:\s*([^\n]+)/i)
-      const templateMatch = response.content.match(/SUGGESTED_TEMPLATE:\s*([^\n]+)/i)
-      const goalMatch = response.content.match(/SUGGESTED_GOAL:\s*([^\n]+)/i)
+      const content = response.content
 
-      const approved = decisionMatch?.[1]?.toUpperCase() === 'APPROVED'
-      const reason = reasonMatch?.[1]?.trim() ?? 'No reason provided'
+      // Parse DECISION — try structured format, then fuzzy matching
+      const decisionMatch = content.match(/DECISION:\s*(APPROVED|REJECTED)/i)
+      let approved: boolean
+      if (decisionMatch) {
+        approved = decisionMatch[1].toUpperCase() === 'APPROVED'
+      } else {
+        // Fuzzy: look for approval/rejection keywords anywhere in the response
+        const lowerContent = content.toLowerCase()
+        const hasApprove = /\bapprov(e|ed|ing)\b/.test(lowerContent)
+        const hasReject = /\breject(ed|ing)?\b|\bdeny\b|\bdenied\b/.test(lowerContent)
+        if (hasApprove && !hasReject) {
+          approved = true
+        } else {
+          // Default to rejected when ambiguous — safer than spawning unnecessarily
+          approved = false
+        }
+        this.logger.debug('DECISION tag not found in spawn evaluation, using fuzzy match', {
+          approved,
+          responseSnippet: content.slice(0, 200),
+        })
+      }
+
+      // Parse REASON — try structured, fall back to first sentence
+      const reasonMatch = content.match(/REASON:\s*(.+?)(?=\n|$)/i)
+      let reason = reasonMatch?.[1]?.trim()
+      if (!reason) {
+        // Fallback: extract first substantive sentence
+        const firstLine = content.split('\n').find((l) => l.trim().length > 10)?.trim()
+        reason = firstLine ?? 'No reason provided'
+      }
+
+      // Parse SUGGESTED_TEMPLATE
+      const templateMatch = content.match(/SUGGESTED_TEMPLATE:\s*([^\n]+)/i)
       const suggestedTemplateStr = templateMatch?.[1]?.trim()
       const suggestedTemplate: ConstellationTemplate | undefined =
         suggestedTemplateStr && suggestedTemplateStr.toUpperCase() !== 'NONE'
           ? (suggestedTemplateStr as ConstellationTemplate)
           : undefined
+
+      // Parse SUGGESTED_GOAL
+      const goalMatch = content.match(/SUGGESTED_GOAL:\s*([^\n]+)/i)
       const suggestedGoal =
         goalMatch?.[1]?.trim().toUpperCase() !== 'NONE' ? goalMatch?.[1]?.trim() : undefined
 
