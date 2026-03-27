@@ -1534,6 +1534,16 @@ export class Daemon {
             this.logger.warn('Failed to wire Helix ModelPool — Helix will not be available', { error: String(helixErr) })
           }
         }
+
+        // Wire Constellation ModelPool — reuse the Dyad pool
+        if (this.intelligence?.constellation) {
+          try {
+            this.intelligence.constellation.setModelPool(dyadModelPool)
+            this.logger.info('Constellation ModelPool wired (shared with Dyad)', { provider: defaultRouting.provider, model: defaultRouting.model })
+          } catch (constErr) {
+            this.logger.warn('Failed to wire Constellation ModelPool', { error: String(constErr) })
+          }
+        }
       } catch (err) {
         this.logger.warn('Failed to wire Dyad ModelPool — Dyad will not be available via API', { error: String(err) })
       }
@@ -2053,6 +2063,31 @@ export class Daemon {
             this.logger.warn('Failed to wire Helix tools — Helix will not be available', {
               error: String(helixErr),
             })
+          }
+        }
+
+        // Wire Constellation tools, store, and context distiller
+        if (this.intelligence?.constellation) {
+          try {
+            this.intelligence.constellation.setToolRegistry(toolRegistry)
+            this.intelligence.constellation.setToolExecutor(toolExecutor)
+
+            // Wire HelixStore for Constellation session persistence (reuses helix.db)
+            try {
+              const { HelixStore } = await import('./intelligence/helix/helix-store.js')
+              const helixStore = HelixStore.open(this.logger.child('helix-store'))
+              this.intelligence.constellation.setStore(helixStore)
+            } catch (storeErr) {
+              this.logger.warn('Constellation HelixStore failed to initialize', { error: String(storeErr) })
+            }
+
+            if (this.contextDistiller) {
+              this.intelligence.constellation.setContextDistiller(this.contextDistiller)
+            }
+
+            this.logger.info('Constellation tool access wired')
+          } catch (constErr) {
+            this.logger.warn('Failed to wire Constellation tools', { error: String(constErr) })
           }
         }
 
