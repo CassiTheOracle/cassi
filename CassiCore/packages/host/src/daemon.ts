@@ -24,7 +24,6 @@ import { createProviderProfiler, type ProviderProfiler } from './intelligence/pr
 import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
 import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
 import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
-import { TelegramDirectMode, createTelegramDirectMode } from './daemon/telegram-direct-mode.js'
 import { PrimarySessionRouter, createPrimarySessionRouter } from './daemon/primary-session-router.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
@@ -214,7 +213,6 @@ export class Daemon {
   /** Session pipeline integration */
   public sessionPipeline?: import('./pipeline/adapter/SessionPipeline.js').SessionPipeline
   public budgetTracker?: BudgetTracker
-  private telegramDirectMode?: TelegramDirectMode
   private primaryRouter?: PrimarySessionRouter
   public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
@@ -1082,12 +1080,6 @@ export class Daemon {
     const tgEnabled = this.config.get<boolean>("channels.telegram.enabled", false)
     const tgToken = this.config.get<string>("channels.telegram.token", "")
                || this.config.get<string>("channels.telegram.botToken", "")
-
-    // Initialize Telegram direct session mode (enabled/disabled via config)
-    this.telegramDirectMode = createTelegramDirectMode(this.config, this.logger)
-    if (this.telegramDirectMode?.enabled) {
-      this.logger.info('[telegram] Direct session mode enabled — Telegram messages route to primary session')
-    }
 
     // Initialize PrimarySessionRouter — routes ALL channel messages to cassi:primary
     this.primaryRouter = createPrimarySessionRouter(this.config, this.logger)
@@ -2428,13 +2420,6 @@ export class Daemon {
                 if (routerSrc) {
                   this.pluginHost.send(routerSrc.channelId, { sessionId: routerSrc.sessionId, content: payload.token as string, done: false })
                 }
-                // Legacy: fan out to Telegram if this turn was triggered via direct mode
-                else {
-                  const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
-                  if (tgSrc) {
-                    this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: payload.token as string, done: false })
-                  }
-                }
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
                 // Thinking tokens are processed by subconscious but not displayed in CLI
@@ -2565,17 +2550,6 @@ export class Daemon {
             this.logger.debug('[primary-router] Re-routing to conductor session', {
               from: sid, channel: pluginId, to: this.primaryRouter.primarySessionId,
             })
-          }
-          // Legacy: Telegram direct session mode (fallback when primaryRouter is not configured)
-          else if (pluginId === 'channel:telegram' && this.telegramDirectMode?.enabled && !payload.type) {
-            const primarySid = this.telegramDirectMode.resolveSession(this.sessions.list())
-            if (primarySid && primarySid !== sid) {
-              this.telegramDirectMode.trackTurn(primarySid, sid)
-              payload.sessionId = primarySid
-              this.logger.debug('[telegram] Direct mode: re-routing to primary session', {
-                from: sid, to: primarySid,
-              })
-            }
           }
 
           // When the OpenCode channel captures a completed turn (user message +
@@ -2745,17 +2719,6 @@ export class Daemon {
                     done: true,
                   })
                 }
-                // Legacy: fan out to Telegram via TelegramDirectMode
-                else {
-                  const tgSrcForContent = this.telegramDirectMode?.getTelegramSource(result.sessionId)
-                  if (tgSrcForContent && pluginId !== 'channel:telegram') {
-                    this.pluginHost.send('channel:telegram', {
-                      sessionId: tgSrcForContent,
-                      content: result.response,
-                      done: true,
-                    })
-                  }
-                }
               } else {
                 this.logger.info(`Turn complete (legacy)`, {
                   sessionId: inbound.sessionId,
@@ -2789,20 +2752,6 @@ export class Daemon {
                 done: true,
               })
               this.primaryRouter!.clearTurn()
-            }
-            // Legacy: fan out error to Telegram via TelegramDirectMode
-            else {
-              const tgSrcForError = this.telegramDirectMode?.getTelegramSource(inbound.sessionId)
-              if (tgSrcForError && pluginId !== 'channel:telegram') {
-                this.pluginHost.send('channel:telegram', {
-                  sessionId: tgSrcForError,
-                  content: `⚠️ Something went wrong — please try again.`,
-                  done: true,
-                })
-                this.telegramDirectMode!.clearTurn(inbound.sessionId)
-              } else if (pluginId === 'channel:telegram' && inbound.sessionId !== sid) {
-                this.telegramDirectMode?.clearTurn(inbound.sessionId)
-              }
             }
           }
         }
@@ -2854,14 +2803,6 @@ export class Daemon {
         if (routerSrcEnd) {
           this.pluginHost.send(routerSrcEnd.channelId, { sessionId: routerSrcEnd.sessionId, content: '', done: true })
           this.primaryRouter!.clearTurn()
-        }
-        // Legacy: fan out done signal to Telegram via TelegramDirectMode
-        else {
-          const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
-          if (tgSrc) {
-            this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: '', done: true })
-            this.telegramDirectMode!.clearTurn(sid)
-          }
         }
       } catch (err) {
         this.logger.warn(`failed to finalize stream for ${sid}: ${String(err)}`)
