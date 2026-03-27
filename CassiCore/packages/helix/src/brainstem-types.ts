@@ -191,6 +191,8 @@ export interface BrainstemDeps {
   corpusTree?: ICorpusTree
   /** This Helix's ID in the Constellation (for Corpus tree branch identification) */
   helixId?: string
+  /** Callback to request spawning a child Helix (only in Constellation mode) */
+  onSpawnRequest?: (request: { goal: string; context?: string; template?: string }) => void
 }
 
 /**
