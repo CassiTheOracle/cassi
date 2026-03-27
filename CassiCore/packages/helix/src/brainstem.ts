@@ -515,8 +515,16 @@ Guidelines:
     this.state.qualityTrajectory.push(annotation.score)
 
     // Update consecutive counters
+    // Score-aware paralysis: only count low-scoring explorations toward
+    // paralysis. High-scoring exploration (>= paralysisScoreThreshold)
+    // indicates productive research, not spinning wheels.
     if (annotation.annotation === 'exploration') {
-      this.state.consecutiveExplorations++
+      if (annotation.score < this.config.paralysisScoreThreshold) {
+        this.state.consecutiveExplorations++
+      }
+      // High-scoring exploration — productive research, don't count
+      // but also don't reset the counter (a run of low-score explorations
+      // interspersed with one high-score one shouldn't reset)
     } else {
       this.state.consecutiveExplorations = 0
     }
@@ -537,6 +545,29 @@ Guidelines:
    * Detect patterns and produce guidance if needed
    */
   private detectPatternsAndProduceGuidance(annotation: BrainstemAnnotation): void {
+    // Forced phase transition: after maxExplorationSteps consecutive explorations,
+    // inject a critical guidance that bypasses cooldown (treated like a Corpus directive).
+    // This is the nuclear option — only fires when all softer steering has failed.
+    if (
+      annotation.annotation === 'exploration' &&
+      this.state.consecutiveExplorations >= this.config.maxExplorationSteps
+    ) {
+      this.state.totalPatternDetections++
+      const guidance: PendingGuidance = {
+        text: `FORCED PHASE TRANSITION: You have been exploring for ${this.state.consecutiveExplorations} consecutive steps. ` +
+          `You MUST now either: (1) implement a concrete change based on what you have learned, ` +
+          `(2) write a summary of findings and conclude, or (3) identify one specific sub-task and focus on it. ` +
+          `Do NOT continue reading more files.`,
+        urgency: 'critical',
+        fromStep: this.state.currentAxonStep,
+        triggeredBy: 'corpus:forced-transition' as any, // Treated as corpus to bypass cooldown
+        timestamp: Date.now(),
+      }
+      this.queueGuidance(guidance)
+      this.state.consecutiveExplorations = 0 // Reset
+      return
+    }
+
     // Check for paralysis pattern
     if (this.state.consecutiveExplorations >= this.config.paralysisThreshold) {
       this.state.totalPatternDetections++
@@ -567,6 +598,34 @@ Guidelines:
       return
     }
 
+    // Check for stagnation pattern — many steps with persistently low scores.
+    // Unlike paralysis (which detects consecutive reads), stagnation detects
+    // a long-running branch that isn't making progress regardless of step type.
+    if (
+      this.state.currentAxonStep >= this.config.stagnationStepThreshold &&
+      this.state.qualityTrajectory.length >= this.config.stagnationStepThreshold
+    ) {
+      // Compute rolling average of the last N scores
+      const window = this.state.qualityTrajectory.slice(-this.config.stagnationStepThreshold)
+      const avgScore = window.reduce((a, b) => a + b, 0) / window.length
+
+      if (avgScore < this.config.stagnationScoreThreshold && !this.state.stagnationFired) {
+        this.state.stagnationFired = true
+        this.state.totalPatternDetections++
+        const guidance: PendingGuidance = {
+          text: `Branch has been running for ${this.state.currentAxonStep} steps with average score ${avgScore.toFixed(2)}. ` +
+            `Consider: (1) narrowing scope to the most impactful sub-task, (2) switching from exploration to implementation, ` +
+            `or (3) concluding with current findings if further progress is unlikely.`,
+          urgency: 'critical',
+          fromStep: this.state.currentAxonStep,
+          triggeredBy: 'stagnation' as any,
+          timestamp: Date.now(),
+        }
+        this.queueGuidance(guidance)
+        return
+      }
+    }
+
     // Queue guidance from annotation if present
     if (annotation.guidance) {
       const guidance: PendingGuidance = {
@@ -584,14 +643,23 @@ Guidelines:
    * Queue guidance with cooldown check
    */
   private queueGuidance(guidance: PendingGuidance): void {
-    // Check cooldown
-    const iterationsSinceLastGuidance = this.state.currentAxonStep - this.state.lastGuidanceStep
-    if (iterationsSinceLastGuidance < this.config.guidanceCooldownIterations) {
-      this.logger.debug('Guidance cooldown active, skipping', {
-        urgency: guidance.urgency,
-        cooldownRemaining: this.config.guidanceCooldownIterations - iterationsSinceLastGuidance,
-      })
-      return
+    // Check cooldown — but bypass for critical/high Corpus directives.
+    // Corpus interventions are strategic decisions that should not be silently
+    // dropped by a routine cooldown timer.
+    const isCorpusDirective = typeof guidance.triggeredBy === 'string' &&
+      guidance.triggeredBy.startsWith('corpus:')
+    const bypassCooldown = isCorpusDirective &&
+      (guidance.urgency === 'critical' || guidance.urgency === 'high')
+
+    if (!bypassCooldown) {
+      const iterationsSinceLastGuidance = this.state.currentAxonStep - this.state.lastGuidanceStep
+      if (iterationsSinceLastGuidance < this.config.guidanceCooldownIterations) {
+        this.logger.debug('Guidance cooldown active, skipping', {
+          urgency: guidance.urgency,
+          cooldownRemaining: this.config.guidanceCooldownIterations - iterationsSinceLastGuidance,
+        })
+        return
+      }
     }
 
     this.guidanceQueue.push(guidance)

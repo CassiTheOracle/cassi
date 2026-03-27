@@ -36,8 +36,16 @@ export interface BrainstemConfig {
   guidanceCooldownIterations: number
   /** Consecutive read-only iterations before detecting paralysis. Default: 3 */
   paralysisThreshold: number
+  /** Score threshold below which exploration counts toward paralysis. Default: 0.6 */
+  paralysisScoreThreshold: number
   /** Consecutive off-goal iterations before detecting drift. Default: 4 */
   driftThreshold: number
+  /** Steps before stagnation detector activates. Default: 10 */
+  stagnationStepThreshold: number
+  /** Rolling avg score below which stagnation fires. Default: 0.4 */
+  stagnationScoreThreshold: number
+  /** Max consecutive explorations before forced implementation transition. Default: 15 */
+  maxExplorationSteps: number
   /** Whether to post annotations to blackboard. Default: true */
   postToBlackboard: boolean
   /** Whether to persist to training warehouse on completion. Default: true */
@@ -53,7 +61,11 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   idlePollMs: 10_000,
   guidanceCooldownIterations: 2,
   paralysisThreshold: 3,
+  paralysisScoreThreshold: 0.6,
   driftThreshold: 4,
+  stagnationStepThreshold: 10,
+  stagnationScoreThreshold: 0.4,
+  maxExplorationSteps: 15,
   postToBlackboard: true,
   persistTrainingData: true,
   enabled: true,
@@ -130,6 +142,8 @@ export interface BrainstemState {
   currentAxonStep: number
   /** Work units processed count */
   workUnitsProcessed: number
+  /** Whether the stagnation pattern has already fired (one-shot) */
+  stagnationFired: boolean
 }
 
 export function createInitialBrainstemState(): BrainstemState {
@@ -143,6 +157,7 @@ export function createInitialBrainstemState(): BrainstemState {
     totalPatternDetections: 0,
     currentAxonStep: 0,
     workUnitsProcessed: 0,
+    stagnationFired: false,
   }
 }
 

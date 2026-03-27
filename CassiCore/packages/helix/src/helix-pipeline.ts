@@ -97,6 +97,13 @@ export interface HelixPipelineOpts {
 
   /** Brainstem dependencies — if provided, Brainstem replaces Mentor */
   brainstemDeps?: BrainstemDeps
+
+  /** Configurable inactivity thresholds (ms). Defaults: warn=120s, escalate=240s, kill=360s. */
+  inactivityThresholds?: {
+    warnMs?: number
+    escalateMs?: number
+    killMs?: number
+  }
 }
 
 
@@ -174,6 +181,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   const useMentor = !useBrainstem && !!opts.mentorHandle
 
   if (useBrainstem) {
+    // Inject the Helix blackboard into brainstemDeps so the Brainstem can
+    // post annotations to the findings/concerns channels. Without this,
+    // postToBlackboard silently no-ops when deps.blackboard is undefined.
+    if (!opts.brainstemDeps!.blackboard) {
+      opts.brainstemDeps!.blackboard = blackboard
+    }
     brainstem = createHelixBrainstem(opts.brainstemDeps!)
     brainstem.start()
     opts.onBrainstemCreated?.(brainstem)
@@ -229,6 +242,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     modelDirective: opts.modelDirective,
     unityStatusThresholds: opts.unityStatusThresholds,
     onWorkUnit: opts.onWorkUnit,
+    onActivity,
   }
 
   const contextBudgetCoordinator = new ContextBudgetCoordinator(log)
@@ -311,14 +325,18 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   // ── Watchdog (steer-then-kill) ───────────────────────────────────────
 
+  const inactivityWarnMs = opts.inactivityThresholds?.warnMs ?? INACTIVITY_WARN_MS
+  const inactivityEscalateMs = opts.inactivityThresholds?.escalateMs ?? INACTIVITY_ESCALATE_MS
+  const inactivityKillMs = opts.inactivityThresholds?.killMs ?? INACTIVITY_KILL_MS
+
   let inactivityWarnSent = false
   let inactivityEscalated = false
 
   const watchdogInterval = setInterval(() => {
     const silentMs = Date.now() - lastActivity
 
-    // Stage 3: Hard kill (6 min) — log once, cancel, stop the watchdog
-    if (silentMs > INACTIVITY_KILL_MS) {
+    // Stage 3: Hard kill — log once, cancel, stop the watchdog
+    if (silentMs > inactivityKillMs) {
       if (!cancelled) {
         log.warn('Helix pipeline inactivity kill', { sessionId, silentMs })
         cancelAll()
@@ -327,8 +345,8 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       return
     }
 
-    // Stage 2: High-severity nudge (4 min)
-    if (silentMs > INACTIVITY_ESCALATE_MS && !inactivityEscalated) {
+    // Stage 2: High-severity nudge
+    if (silentMs > inactivityEscalateMs && !inactivityEscalated) {
       inactivityEscalated = true
       log.warn('Helix pipeline inactivity escalation', { sessionId, silentMs })
       try {
@@ -347,8 +365,8 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       return
     }
 
-    // Stage 1: Gentle nudge (2 min)
-    if (silentMs > INACTIVITY_WARN_MS && !inactivityWarnSent) {
+    // Stage 1: Gentle nudge
+    if (silentMs > inactivityWarnMs && !inactivityWarnSent) {
       inactivityWarnSent = true
       log.info('Helix pipeline inactivity warning', { sessionId, silentMs })
       workStream.sendNudge({
@@ -364,7 +382,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     }
 
     // Reset when activity resumes
-    if (silentMs < INACTIVITY_WARN_MS) {
+    if (silentMs < inactivityWarnMs) {
       inactivityWarnSent = false
       inactivityEscalated = false
     }

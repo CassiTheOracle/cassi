@@ -651,14 +651,22 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
 
     // Inject posture_energy into collect_thoughts calls for Synapse guidance
+    // When running under Constellation (brainstem present), cap estimated_steps to reduce
+    // provider contention — the Brainstem already provides cognitive organization.
     for (const tc of executableCalls) {
-      if (tc.name === 'collect_thoughts' && !tc.input.posture_energy) {
-        const energyMap: Record<string, string> = {
-          unity: 'unifying',
-          yang: 'expansive',
-          yin: 'contractive',
+      if (tc.name === 'collect_thoughts') {
+        if (!tc.input.posture_energy) {
+          const energyMap: Record<string, string> = {
+            unity: 'unifying',
+            yang: 'expansive',
+            yin: 'contractive',
+          }
+          tc.input.posture_energy = energyMap[this.role] ?? 'neutral'
         }
-        tc.input.posture_energy = energyMap[this.role] ?? 'neutral'
+        // Cap thinking steps in constellation mode to prevent provider contention
+        if (this.brainstem && (tc.input as any).estimated_steps > 3) {
+          (tc.input as any).estimated_steps = 3
+        }
       }
     }
 
