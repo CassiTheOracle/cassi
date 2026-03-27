@@ -25,6 +25,7 @@ import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/ad
 import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
 import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
 import { TelegramDirectMode, createTelegramDirectMode } from './daemon/telegram-direct-mode.js'
+import { PrimarySessionRouter, createPrimarySessionRouter } from './daemon/primary-session-router.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
@@ -214,6 +215,7 @@ export class Daemon {
   public sessionPipeline?: import('./pipeline/adapter/SessionPipeline.js').SessionPipeline
   public budgetTracker?: BudgetTracker
   private telegramDirectMode?: TelegramDirectMode
+  private primaryRouter?: PrimarySessionRouter
   public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
   /** Lumen ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
@@ -1085,6 +1087,12 @@ export class Daemon {
     this.telegramDirectMode = createTelegramDirectMode(this.config, this.logger)
     if (this.telegramDirectMode?.enabled) {
       this.logger.info('[telegram] Direct session mode enabled — Telegram messages route to primary session')
+    }
+
+    // Initialize PrimarySessionRouter — routes ALL channel messages to cassi:primary
+    this.primaryRouter = createPrimarySessionRouter(this.config, this.logger)
+    if (this.primaryRouter) {
+      this.logger.info(`[primary-router] Conductor session enabled: ${this.primaryRouter.primarySessionId}`)
     }
     if (tgEnabled && tgToken) {
       const tgPath = resolveWorker("../workers/channels/telegram")
@@ -2333,12 +2341,28 @@ export class Daemon {
           thinker: (this as any).intelligence?.thinker,
           subconscious: (this as any).intelligence?.subconscious
         },
-        eventBus: this.bus
+        eventBus: this.bus,
+        injectionAggregator: (this as any).intelligence?.injectionAggregator,
       }
       const pipeline = new SessionPipeline(v2Options as any)
       await pipeline.initialize()
       this.sessionPipeline = pipeline
       this.logger.info('Session pipeline initialized')
+
+      // Phase 4: Bootstrap cassi:primary conductor session so turn:token routing works
+      if (this.primaryRouter) {
+        try {
+          this.sessions.getOrCreateById(
+            this.primaryRouter.primarySessionId,
+            'channel:system',  // home channel — responses fan out to original channels
+            this.primaryRouter.primarySessionId,
+            { projectPath: process.cwd() } as any,
+          )
+          this.logger.info(`[primary-router] Conductor session registered: ${this.primaryRouter.primarySessionId}`)
+        } catch (err) {
+          this.logger.warn(`[primary-router] Failed to register conductor session: ${String(err)}`)
+        }
+      }
 
       if (this.autonomousLoop) {
         const { createExecutionBackend } = await import('./intelligence/execution-backends/index.js')
@@ -2399,10 +2423,17 @@ export class Daemon {
               } else if (payload.type === 'turn:token' && payload.token) {
                 // Stream token to channel — done=false keeps stream open
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
-                // Fan out to Telegram if this turn was triggered via direct mode
-                const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
-                if (tgSrc) {
-                  this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: payload.token as string, done: false })
+                // Fan out streaming token to original channel if routed via primary conductor
+                const routerSrc = this.primaryRouter?.getSource()
+                if (routerSrc) {
+                  this.pluginHost.send(routerSrc.channelId, { sessionId: routerSrc.sessionId, content: payload.token as string, done: false })
+                }
+                // Legacy: fan out to Telegram if this turn was triggered via direct mode
+                else {
+                  const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
+                  if (tgSrc) {
+                    this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: payload.token as string, done: false })
+                  }
                 }
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
@@ -2521,8 +2552,22 @@ export class Daemon {
             if (handled) return;
           }
 
-          // Direct session mode: re-route Telegram messages to Cassi's primary session
-          if (pluginId === 'channel:telegram' && this.telegramDirectMode?.enabled && !payload.type) {
+          // Primary conductor session: re-route ALL channel messages to cassi:primary
+          if (
+            this.primaryRouter &&
+            !this.primaryRouter.isPrimary(sid) &&
+            pluginId?.startsWith('channel:') &&
+            pluginId !== 'channel:module' &&
+            !payload.type  // skip structured events (reasoning, tool_update, etc.)
+          ) {
+            this.primaryRouter.trackTurn(sid, pluginId)
+            payload.sessionId = this.primaryRouter.primarySessionId
+            this.logger.debug('[primary-router] Re-routing to conductor session', {
+              from: sid, channel: pluginId, to: this.primaryRouter.primarySessionId,
+            })
+          }
+          // Legacy: Telegram direct session mode (fallback when primaryRouter is not configured)
+          else if (pluginId === 'channel:telegram' && this.telegramDirectMode?.enabled && !payload.type) {
             const primarySid = this.telegramDirectMode.resolveSession(this.sessions.list())
             if (primarySid && primarySid !== sid) {
               this.telegramDirectMode.trackTurn(primarySid, sid)
@@ -2691,17 +2736,25 @@ export class Daemon {
                   content: result.response,
                   done: true,
                 })
-                // When direct mode re-routed a Telegram message to a primary (CLI) session,
-                // the response above goes to the CLI channel with the CLI session ID.
-                // The Telegram worker ignores non-tg: session IDs, so we must fan the
-                // content back to Telegram using the original tg: session ID.
-                const tgSrcForContent = this.telegramDirectMode?.getTelegramSource(result.sessionId)
-                if (tgSrcForContent && pluginId !== 'channel:telegram') {
-                  this.pluginHost.send('channel:telegram', {
-                    sessionId: tgSrcForContent,
+                // Fan response back to original channel when primary router is active
+                const routerSrcForContent = this.primaryRouter?.getSource()
+                if (routerSrcForContent) {
+                  this.pluginHost.send(routerSrcForContent.channelId, {
+                    sessionId: routerSrcForContent.sessionId,
                     content: result.response,
                     done: true,
                   })
+                }
+                // Legacy: fan out to Telegram via TelegramDirectMode
+                else {
+                  const tgSrcForContent = this.telegramDirectMode?.getTelegramSource(result.sessionId)
+                  if (tgSrcForContent && pluginId !== 'channel:telegram') {
+                    this.pluginHost.send('channel:telegram', {
+                      sessionId: tgSrcForContent,
+                      content: result.response,
+                      done: true,
+                    })
+                  }
                 }
               } else {
                 this.logger.info(`Turn complete (legacy)`, {
@@ -2727,19 +2780,29 @@ export class Daemon {
               content: `⚠️ Something went wrong — please try again.`,
               done: true,
             })
-            // Fan out error to Telegram if this was a direct-mode re-routed turn
-            const tgSrcForError = this.telegramDirectMode?.getTelegramSource(inbound.sessionId)
-            if (tgSrcForError && pluginId !== 'channel:telegram') {
-              this.pluginHost.send('channel:telegram', {
-                sessionId: tgSrcForError,
+            // Fan out error to original channel via primary router
+            const routerSrcForError = this.primaryRouter?.getSource()
+            if (routerSrcForError) {
+              this.pluginHost.send(routerSrcForError.channelId, {
+                sessionId: routerSrcForError.sessionId,
                 content: `⚠️ Something went wrong — please try again.`,
                 done: true,
               })
-              this.telegramDirectMode!.clearTurn(inbound.sessionId)
-            } else if (pluginId === 'channel:telegram' && inbound.sessionId !== sid) {
-              // Original sid is the tg: session; inbound.sessionId was re-routed
-              // but error fanout above already covers it — just clear tracking
-              this.telegramDirectMode?.clearTurn(inbound.sessionId)
+              this.primaryRouter!.clearTurn()
+            }
+            // Legacy: fan out error to Telegram via TelegramDirectMode
+            else {
+              const tgSrcForError = this.telegramDirectMode?.getTelegramSource(inbound.sessionId)
+              if (tgSrcForError && pluginId !== 'channel:telegram') {
+                this.pluginHost.send('channel:telegram', {
+                  sessionId: tgSrcForError,
+                  content: `⚠️ Something went wrong — please try again.`,
+                  done: true,
+                })
+                this.telegramDirectMode!.clearTurn(inbound.sessionId)
+              } else if (pluginId === 'channel:telegram' && inbound.sessionId !== sid) {
+                this.telegramDirectMode?.clearTurn(inbound.sessionId)
+              }
             }
           }
         }
@@ -2786,11 +2849,19 @@ export class Daemon {
         if (s?.channelId) {
           this.pluginHost.send(s.channelId, { sessionId: sid, content: '', done: true })
         }
-        // Fan out done signal to Telegram if this turn was triggered via direct mode
-        const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
-        if (tgSrc) {
-          this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: '', done: true })
-          this.telegramDirectMode!.clearTurn(sid)
+        // Fan out done signal to original channel via primary router
+        const routerSrcEnd = this.primaryRouter?.getSource()
+        if (routerSrcEnd) {
+          this.pluginHost.send(routerSrcEnd.channelId, { sessionId: routerSrcEnd.sessionId, content: '', done: true })
+          this.primaryRouter!.clearTurn()
+        }
+        // Legacy: fan out done signal to Telegram via TelegramDirectMode
+        else {
+          const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
+          if (tgSrc) {
+            this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: '', done: true })
+            this.telegramDirectMode!.clearTurn(sid)
+          }
         }
       } catch (err) {
         this.logger.warn(`failed to finalize stream for ${sid}: ${String(err)}`)
