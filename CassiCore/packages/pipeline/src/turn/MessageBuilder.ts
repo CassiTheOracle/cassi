@@ -117,6 +117,17 @@ export class MessageBuilder {
         timestamp: now
       });
     }
+
+    // InjectionAggregator injections (Corpus, SessionDigest, Optimizer, Dreamer, etc.)
+    if (context.injections?.length) {
+      for (const injection of context.injections) {
+        messages.push({
+          role: 'system',
+          content: injection,
+          timestamp: now
+        });
+      }
+    }
     
     return messages;
   }

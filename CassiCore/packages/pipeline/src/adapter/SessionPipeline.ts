@@ -61,6 +61,8 @@ export interface SessionPipelineOptions {
     subconscious: SubconsciousModule;
   };
   eventBus?: IEventBus;
+  /** Unified injection aggregator for Corpus, SessionDigest, Optimizer, Dreamer, etc. */
+  injectionAggregator?: { aggregate(sessionId: string, turnContext?: unknown): Promise<Array<{ content: string; source: string }>> };
 }
 
 // Shared options for both processMessage and processTurn
@@ -357,6 +359,30 @@ export class SessionPipeline {
         sessionId: session.id,
         error: String(err),
       });
+    }
+
+    // Apply InjectionAggregator injections (Corpus, SessionDigest, Optimizer, Dreamer, etc.)
+    if (this.options.injectionAggregator) {
+      try {
+        const turnContext = { session, userMessage: content, timestamp: Date.now() };
+        const injections = await this.options.injectionAggregator.aggregate(session.id, turnContext);
+        if (injections.length > 0) {
+          if (!session.context) {
+            session.context = { updatedAt: Date.now() };
+          }
+          session.context.injections = injections.map(i => i.content);
+          this.logger.debug('InjectionAggregator applied', {
+            sessionId: session.id,
+            sources: injections.map(i => i.source),
+            totalChars: injections.reduce((s, i) => s + i.content.length, 0),
+          });
+        }
+      } catch (err) {
+        this.logger.debug('InjectionAggregator failed (non-fatal)', {
+          sessionId: session.id,
+          error: String(err),
+        });
+      }
     }
 
     // Emit stream start event if streaming is requested

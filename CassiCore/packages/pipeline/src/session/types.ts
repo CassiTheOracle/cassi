@@ -75,6 +75,8 @@ export interface IntelligenceContext {
   dialecticInsights?: string[];
   thinkerNotes?: string[];
   subconsciousSignals?: string[];
+  /** Injections from InjectionAggregator (Corpus, SessionDigest, Optimizer, Dreamer, etc.) */
+  injections?: string[];
   
   // Timestamps for freshness
   updatedAt?: number;
