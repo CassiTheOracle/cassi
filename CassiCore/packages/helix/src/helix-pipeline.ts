@@ -211,6 +211,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     cancelled = true
     workStream.forceCancel()
     for (const fn of cancelFns) fn()
+    // Stop brainstem to prevent zombie LLM annotation calls
+    if (brainstem) {
+      brainstem.stop().catch(err =>
+        log.warn('Error stopping brainstem during cancel', { error: String(err) })
+      )
+    }
   }
 
   opts.onCancelRegistered?.(cancelAll)

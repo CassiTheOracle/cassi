@@ -30,6 +30,7 @@ import type {
   WorkUnitAnnotation,
   DetectedPattern,
   GuidanceUrgency,
+  UnityReport,
 } from './brainstem-types.js'
 import {
   DEFAULT_BRAINSTEM_CONFIG,
@@ -63,6 +64,7 @@ export class HelixBrainstem {
   private workUnitQueue: WorkUnitQueueItem[] = []
   private dialecticQueue: string[] = []
   private guidanceQueue: PendingGuidance[] = []
+  private unityReportQueue: UnityReport[] = []
 
   // Dialectic accumulation
   private recentDialectic: string[] = []
@@ -143,6 +145,28 @@ export class HelixBrainstem {
       iteration: unityIteration,
       queueLength: this.workUnitQueue.length,
     })
+  }
+
+  /**
+   * Receive a structured report from Unity (via report_to_brainstem tool).
+   * Reports are consumed during the next processWorkUnitBatch() call and
+   * included in the LLM prompt so the Brainstem can react to Unity's messages.
+   */
+  onUnityReport(report: UnityReport): void {
+    this.unityReportQueue.push(report)
+    this.logger.info('Unity report received', {
+      type: report.type,
+      message: report.message.slice(0, 200),
+      queueLength: this.unityReportQueue.length,
+    })
+  }
+
+  /**
+   * Get pending Unity reports (drains the queue).
+   */
+  drainUnityReports(): UnityReport[] {
+    const reports = this.unityReportQueue.splice(0)
+    return reports
   }
 
   /**
@@ -319,6 +343,66 @@ export class HelixBrainstem {
    */
   getState(): BrainstemState {
     return { ...this.state }
+  }
+
+  /**
+   * Get detailed inspection snapshot for the admin API.
+   * Includes queue depths, timing, and recent annotations — everything needed
+   * to understand what the Brainstem is doing right now.
+   */
+  getInspectionState(): {
+    running: boolean
+    sessionId: string
+    goal: string
+    state: BrainstemState
+    queues: {
+      workUnits: number
+      dialectic: number
+      guidance: number
+      unityReports: number
+    }
+    timing: {
+      startedAt: number
+      uptimeMs: number
+      lastAnnotationAt: number
+    }
+    recentAnnotations: Array<{
+      workUnitId: string
+      score: number
+      annotation: string
+      pattern: string
+      hasGuidance: boolean
+    }>
+    pendingGuidance: PendingGuidance[]
+  } {
+    const lastAnnotation = this.state.annotations[this.state.annotations.length - 1]
+    return {
+      running: this.running,
+      sessionId: this.deps.sessionId,
+      goal: this.deps.goal.slice(0, 500),
+      state: { ...this.state },
+      queues: {
+        workUnits: this.workUnitQueue.length,
+        dialectic: this.dialecticQueue.length,
+        guidance: this.guidanceQueue.length,
+        unityReports: this.unityReportQueue.length,
+      },
+      timing: {
+        startedAt: this.startTime,
+        uptimeMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
+        lastAnnotationAt: lastAnnotation
+          ? lastAnnotation.timestamp
+          : 0,
+      },
+      recentAnnotations: this.state.annotations.slice(-10).map(a => ({
+        workUnitId: a.workUnitId,
+        score: a.score,
+        annotation: a.annotation,
+        pattern: a.pattern,
+        hasGuidance: !!a.guidance,
+      })),
+      pendingGuidance: [...this.guidanceQueue],
+    }
   }
 
   /**
@@ -538,6 +622,14 @@ export class HelixBrainstem {
       ? `\n## Dialectic Context (last ${this.recentDialectic.length})\n${this.recentDialectic.map(m => `- ${m.slice(0, 200)}`).join('\n')}`
       : ''
 
+    // Drain pending Unity reports and include in prompt
+    const unityReports = this.drainUnityReports()
+    const unityReportsSection = unityReports.length > 0
+      ? `\n## Unity Reports (direct messages from the worker)\n${unityReports.map(r =>
+          `- [${r.type.toUpperCase()}] (iter ${r.iteration}): ${r.message.slice(0, 300)}${r.context ? ` | context: ${JSON.stringify(r.context).slice(0, 200)}` : ''}`
+        ).join('\n')}\nIMPORTANT: Unity is communicating directly. Respond to blockers with guidance, acknowledge phase changes, and answer questions in your GUIDANCE field.`
+      : ''
+
     return `I am the Brainstem — the cognitive organizer of this Helix session. I observe Unity's work, the reviewer dialectic, and the evolving thought chain. My job is to score, annotate, detect patterns, and guide.
 
 ## Session Goal
@@ -561,7 +653,7 @@ ${toolCalls || '(none)'}
 ${toolResults || '(none)'}
 
 ## Files Changed
-${filesChanged || '(none)'}${dialecticSection}${recentDialecticSection}
+${filesChanged || '(none)'}${dialecticSection}${recentDialecticSection}${unityReportsSection}
 
 ## Quality Trajectory
 Recent scores: ${this.state.qualityTrajectory.slice(-5).join(', ') || 'N/A'}
@@ -580,9 +672,11 @@ TRAINING_NOTE: <human-readable note explaining your scoring>
 
 Guidelines:
 - Score based on progress toward goal, code quality, and appropriate tool use
+- CRITICAL: If Unity is working on something UNRELATED to the Session Goal above, set ANNOTATION to "drift", PATTERN to "drift", and SCORE below 0.3. Provide guidance redirecting back to the goal.
 - annotation: exploration=reading/searching, implementation=writing code, testing=verification, revision=fixing, drift=off-goal
 - pattern: paralysis=reading without writing, drift=diverging from goal, stalling=repeating without progress, convergence=reviewers agree
 - Provide guidance only if Unity needs correction or encouragement
+- If Unity reports a blocker via report_to_brainstem, address it in GUIDANCE
 - Be concise — this runs in a tight loop`;
   }
 

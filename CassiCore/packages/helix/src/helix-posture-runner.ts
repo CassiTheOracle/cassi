@@ -79,6 +79,28 @@ function initializeOptionalTools(): Promise<void> {
 }
 
 
+// ─── Autonomous Posture Tool Blocklist ─────────────────────────────────────
+
+/**
+ * Tools that are useless or harmful to autonomous Helix postures.
+ * These cause exploration loops (Serena activation), waste iterations,
+ * or require interactive flows that autonomous agents cannot complete.
+ */
+const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
+  // Serena activation tools — require interactive onboarding flow
+  'serena_check_onboarding_performed',
+  'serena_onboarding',
+  'serena_initial_instructions',
+  'serena_open_dashboard',
+  // Playwright browser interaction — require interactive navigation
+  'playwright_browser_install',
+])
+
+function isBlockedForAutonomousPostures(name: string): boolean {
+  return BLOCKED_TOOLS_FOR_AUTONOMOUS.has(name)
+}
+
+
 // ─── Constants ─────────────────────────────────────────────────────────────
 
 const DEFAULT_SESSION_ID = 'helix-session'
@@ -799,6 +821,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       // Unity tools
       case 'acknowledge_nudge': return this.handleAcknowledgeNudge(input)
       case 'signal_done': return this.handleSignalDone(input)
+      case 'report_to_brainstem': return this.handleReportToBrainstem(input)
       // Reviewer tools (dialectic)
       case 'share_finding': return this.handleShareFinding(input)
       case 'challenge': return this.handleChallenge(input)
@@ -845,6 +868,32 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.workStream.recordRoleConclusion(this.role as any, false)
 
     return `Work complete. Conclusion recorded. Yang and Yin will do a final review pass.`
+  }
+
+  private handleReportToBrainstem(input: Record<string, unknown>): string {
+    const reportType = String(input.type ?? 'progress')
+    const message = String(input.message ?? '')
+    const context = (input.context && typeof input.context === 'object') ? input.context as Record<string, unknown> : undefined
+
+    if (!message) return 'ERROR: message is required.'
+
+    // Queue as a special work unit so the Brainstem sees it in its next processing cycle
+    if (this.brainstem) {
+      this.brainstem.onUnityReport({
+        type: reportType as 'phase_change' | 'blocker' | 'question' | 'progress' | 'completion',
+        message,
+        context,
+        timestamp: Date.now(),
+        iteration: this.iterationCount,
+      })
+    }
+
+    this.logger.info('Unity report sent to Brainstem', {
+      type: reportType,
+      message: message.slice(0, 200),
+    })
+
+    return `Report (${reportType}) sent to Brainstem. It will be processed in the next evaluation cycle.`
   }
 
   // ── Reviewer Handlers (Dialectic) ──
@@ -1539,6 +1588,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         if (isBlackboardMetaTool(schema.name)) continue
         if (isPlanMetaTool(schema.name)) continue
         if (REPORT_TOOL_NAMES.has(schema.name)) continue
+        // Filter out tools that trap autonomous postures in useless loops
+        if (isBlockedForAutonomousPostures(schema.name)) continue
 
         if (hasFullAccess || isReadOnlyTool(schema.name, this.toolRegistry) || isMemoryTool(schema.name)) {
           tools.push(schema as any)

@@ -170,6 +170,17 @@ export function createInitialBrainstemState(): BrainstemState {
   }
 }
 
+// ─── Unity Reports ───────────────────────────────────────────────────────
+
+/** A structured message from Unity to the Brainstem */
+export interface UnityReport {
+  type: 'phase_change' | 'blocker' | 'question' | 'progress' | 'completion'
+  message: string
+  context?: Record<string, unknown>
+  timestamp: number
+  iteration: number
+}
+
 // ─── Guidance Queue ───────────────────────────────────────────────────────
 
 /** A pending guidance item waiting to be injected into Unity's loop */

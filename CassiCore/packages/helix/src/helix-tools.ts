@@ -75,6 +75,39 @@ export const UNITY_TOOLS: ToolSchema[] = [
 ]
 
 
+// ─── Unity → Brainstem Messaging ───────────────────────────────────────────
+
+export const REPORT_TO_BRAINSTEM_TOOL: ToolSchema = {
+  name: 'report_to_brainstem',
+  description:
+    'Send a structured message to the Brainstem (your supervisor). Use this to:\n' +
+    '- Report phase transitions ("Starting Phase 2: SQLite store")\n' +
+    '- Flag blockers ("Cannot write file — Serena not activated")\n' +
+    '- Ask for guidance ("Should I implement X or Y?")\n' +
+    '- Report completion of subtasks ("Phase 1 complete — 350 lines written")\n' +
+    'The Brainstem reads these messages when evaluating your work and deciding guidance.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      type: {
+        type: 'string',
+        enum: ['phase_change', 'blocker', 'question', 'progress', 'completion'],
+        description: 'The type of report.',
+      },
+      message: {
+        type: 'string',
+        description: 'The content of your report — be specific about what happened or what you need.',
+      },
+      context: {
+        type: 'object',
+        description: 'Optional structured context (e.g., { phase: 2, filesWritten: 3, linesChanged: 350 }).',
+      },
+    },
+    required: ['type', 'message'],
+  },
+}
+
+
 // ─── Reviewer Tools (Yang + Yin) ───────────────────────────────────────────
 
 // Dialectic tools — reuse from Lumen (identical semantics for reviewer debate)
@@ -316,6 +349,7 @@ export const HELIX_REPORT_TOOLS = REPORT_TOOLS
 /** All tools available to Unity */
 export const ALL_UNITY_TOOLS: ToolSchema[] = [
   ...UNITY_TOOLS,
+  REPORT_TO_BRAINSTEM_TOOL,
   ...HELIX_PLAN_TOOLS,
   ...HELIX_REPORT_TOOLS,
 ]
@@ -345,7 +379,7 @@ export const ALL_MENTOR_TOOLS: ToolSchema[] = [
 
 // ─── Tool Name Sets ────────────────────────────────────────────────────────
 
-export const UNITY_TOOL_NAMES = new Set(UNITY_TOOLS.map(t => t.name))
+export const UNITY_TOOL_NAMES = new Set([...UNITY_TOOLS.map(t => t.name), REPORT_TO_BRAINSTEM_TOOL.name])
 
 export const REVIEWER_TOOL_NAMES = new Set(REVIEWER_TOOLS.map(t => t.name))
 

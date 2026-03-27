@@ -301,6 +301,8 @@ export interface HelixOrchestrator {
   getActiveChannel(sessionId: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | undefined
   getActiveProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
   setModelPool(modelPool: ModelPool): void
+  getActiveBrainstemInspection(sessionId: string): ReturnType<import('./brainstem.js').HelixBrainstem['getInspectionState']> | undefined
+  getActiveBrainstemIds(): string[]
   setToolRegistry(registry: ToolRegistry): void
   setToolExecutor(executor: ToolExecutor): void
   setStore(store: HelixStore): void
@@ -396,6 +398,23 @@ export function createHelix(
 
     setModelPool(mp: ModelPool): void {
       storedModelPool = mp
+    },
+
+    /**
+     * Get brainstem inspection state for a given Helix session.
+     * Returns detailed queue depths, timing, recent annotations, and guidance.
+     */
+    getActiveBrainstemInspection(sessionId: string) {
+      const bs = activeBrainstems.get(sessionId)
+      if (!bs) return undefined
+      return bs.getInspectionState()
+    },
+
+    /**
+     * Get all active brainstem session IDs.
+     */
+    getActiveBrainstemIds(): string[] {
+      return Array.from(activeBrainstems.keys())
     },
 
     setToolRegistry(registry: ToolRegistry): void {
