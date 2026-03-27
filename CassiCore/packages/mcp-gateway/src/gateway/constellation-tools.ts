@@ -28,7 +28,6 @@ export const CONSTELLATION_TOOLS = [
         },
         maxHelixes: { type: 'number', description: 'Maximum number of Helix nodes. Default: 16.' },
         maxDepth: { type: 'number', description: 'Maximum tree depth. Default: 4.' },
-        timeoutMs: { type: 'number', description: 'Overall timeout in ms. Default: 600000 (10 min).' },
       },
       required: ['goal'],
     },
@@ -177,11 +176,10 @@ export async function executeConstellationTool(
   try {
     switch (name) {
       case 'constellation_project': {
-        const { timeoutMs: _ignored, ...projectArgs } = args ?? {}
         const res = await fetchWithTimeout(`${adminBaseUrl}/constellation`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(projectArgs),
+          body: JSON.stringify(args ?? {}),
           timeoutMs: 5000,
         })
         return await res.json()
