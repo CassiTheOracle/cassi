@@ -31,6 +31,10 @@ import {
 } from './helix-tools.js';
 
 import {
+  executeConstellationTool,
+} from './constellation-tools.js';
+
+import {
   executeFluxTeamTool,
   executeFluxRun,
   executeFluxInspect,
@@ -42,14 +46,14 @@ import {
  */
 export const AGENT_TOOL = {
   name: 'agent',
-  description: 'Multi-agent orchestration — Lumen (analysis), Dyad (implementation), Helix (review), Flux (teams). Use type+action to select operation.',
+  description: 'Multi-agent orchestration — Lumen (analysis), Dyad (implementation), Helix (review), Flux (teams), Constellation (multi-Helix tree with Corpus). Use type+action to select operation.',
   inputSchema: {
     type: 'object',
     properties: {
       type: {
         type: 'string',
-        enum: ['lumen', 'dyad', 'helix', 'flux'],
-        description: 'Agent system type: lumen (dialectic analysis), dyad (pipeline implementation), helix (inverted-pyramid review), flux (team orchestration)',
+        enum: ['lumen', 'dyad', 'helix', 'flux', 'constellation'],
+        description: 'Agent system type: lumen (dialectic analysis), dyad (pipeline implementation), helix (inverted-pyramid review), flux (team orchestration), constellation (multi-Helix tree with Corpus organizer)',
       },
       action: {
         type: 'string',
@@ -214,6 +218,8 @@ export async function executeAgentTool(
       return await executeDyadAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     case 'helix':
       return await executeHelixAgentTool(baseUrl, action, restArgs, logger, heartbeat);
+    case 'constellation':
+      return await executeConstellationAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     case 'flux':
       return await executeFluxAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     default:
@@ -300,6 +306,32 @@ async function executeHelixAgentTool(
   }
 
   return await executeHelixTool(baseUrl, toolName, args, logger, heartbeat);
+}
+
+/**
+ * Execute Constellation-specific agent actions
+ */
+async function executeConstellationAgentTool(
+  baseUrl: string,
+  action: string,
+  args: any,
+  logger: ILogger,
+  heartbeat?: () => void
+): Promise<any> {
+  const toolName = `constellation_${action}`;
+
+  const validConstellationTools = new Set([
+    'constellation_project', 'constellation_status', 'constellation_cancel',
+    'constellation_jobs', 'constellation_sessions', 'constellation_watch',
+    'constellation_progress', 'constellation_tree', 'constellation_steer',
+    'constellation_blackboard',
+  ]);
+
+  if (!validConstellationTools.has(toolName)) {
+    throw new Error(`Unknown Constellation action: ${action}`);
+  }
+
+  return await executeConstellationTool(baseUrl, toolName, args, logger, heartbeat);
 }
 
 /**
