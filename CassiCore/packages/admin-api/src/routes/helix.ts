@@ -90,6 +90,54 @@ function loadPersistedBlackboard(daemon: any, sessionId: string): unknown | unde
   }
 }
 
+/**
+ * Load persisted progress data from HelixStore for completed sessions.
+ * Reconstructs a progress-like object from the stored session data.
+ */
+function loadPersistedProgress(daemon: any, sessionId: string): Record<string, unknown> | undefined {
+  try {
+    const { HelixStore } = require('../intelligence/helix/helix-store.js')
+    const store = HelixStore.open(daemon.logger.child('helix-store-reader'))
+    const session = store.getSession(sessionId)
+    store.close()
+
+    if (!session) return undefined
+
+    // Reconstruct progress from stored session data
+    return {
+      sessionId,
+      goal: session.goal,
+      status: session.status,
+      durationMs: session.durationMs ?? 0,
+      tokensUsed: {
+        unity: session.tokensUnity ?? 0,
+        yang: session.tokensYang ?? 0,
+        yin: session.tokensYin ?? 0,
+        total: (session.tokensUnity ?? 0) + (session.tokensYang ?? 0) + (session.tokensYin ?? 0),
+      },
+      iterationCounts: {
+        unity: session.iterationsUnity ?? 0,
+        yang: session.iterationsYang ?? 0,
+        yin: session.iterationsYin ?? 0,
+      },
+      toolCalls: {
+        unity: session.toolCallsUnity ?? 0,
+        yang: session.toolCallsYang ?? 0,
+        yin: session.toolCallsYin ?? 0,
+      },
+      dialecticStats: session.dialecticStats ?? {},
+      qualityScore: session.qualityScore,
+      convergencePoints: session.convergencePoints?.length ?? 0,
+      unresolvedTensions: session.unresolvedTensions?.length ?? 0,
+      filesModified: session.filesModified ?? [],
+      completedAt: session.completedAt,
+      source: 'archived',
+    }
+  } catch {
+    return undefined
+  }
+}
+
 
 export async function handleHelixRoutes(
   deps: HelixDeps,
@@ -227,7 +275,7 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/:id/progress ─────────────────────────────────────────
+  // ── GET /helix/:id/progress (with archive fallback) ──────────────────
   if (method === 'GET' && subRoute === 'progress') {
     if (!helix) {
       sendJSON(res, 503, { error: 'Helix not initialized' })
@@ -235,12 +283,22 @@ export async function handleHelixRoutes(
     }
     const job = findHelixJob(id)
     const sessionId = job?.sessionId ?? id
+
+    // Try live state first
     const progress = helix.getActiveProgress(sessionId)
-    if (!progress) {
-      sendJSON(res, 404, { error: 'Session not found or not active' })
+    if (progress) {
+      sendJSON(res, 200, { ...progress, source: 'live' })
       return true
     }
-    sendJSON(res, 200, progress)
+
+    // Fallback: try loading from persisted store for completed sessions
+    const persisted = loadPersistedProgress(daemon, sessionId)
+    if (persisted) {
+      sendJSON(res, 200, persisted)
+      return true
+    }
+
+    sendJSON(res, 404, { error: 'Session not found or not active' })
     return true
   }
 

@@ -18,6 +18,8 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { ConstellationResult } from '../intelligence/constellation/types.js'
+import type { CorpusTreeSnapshot } from '../intelligence/constellation/corpus-types.js'
+import type { ConstellationSessionRow, ProgressSnapshot } from '../intelligence/constellation/constellation-store.js'
 
 
 interface ConstellationJob {
@@ -69,6 +71,89 @@ function findJob(idOrSessionId: string): ConstellationJob | undefined {
 }
 
 
+// ─────────────────────────────────────────────────────────────────
+// Archive Fallback Helpers
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Load a persisted tree snapshot from ConstellationStore for completed sessions.
+ * Returns null if the store is not available or session not found.
+ */
+function loadPersistedTree(daemon: any, sessionId: string): CorpusTreeSnapshot | null {
+  try {
+    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+    const tree = store.getTree(sessionId)
+    store.close()
+    return tree
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Load a persisted progress snapshot from ConstellationStore for completed sessions.
+ * Returns null if the store is not available or session not found.
+ */
+function loadPersistedProgress(daemon: any, sessionId: string): ProgressSnapshot | null {
+  try {
+    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+    const progress = store.getProgress(sessionId)
+    store.close()
+    return progress
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Load a persisted session from ConstellationStore.
+ * Returns undefined if the store is not available or session not found.
+ */
+function loadPersistedSession(daemon: any, sessionId: string): ConstellationSessionRow | undefined {
+  try {
+    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+    const session = store.getSession(sessionId)
+    store.close()
+    return session
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * List sessions from ConstellationStore (includes archived).
+ */
+function loadPersistedSessions(daemon: any, opts?: { limit?: number; status?: string; includeArchived?: boolean }): ConstellationSessionRow[] {
+  try {
+    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+    const sessions = store.listSessions(opts)
+    store.close()
+    return sessions
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Get session history from ConstellationStore.
+ */
+function loadSessionHistory(daemon: any, opts?: { limit?: number; since?: number; until?: number; status?: string }): ConstellationSessionRow[] {
+  try {
+    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+    const history = store.getHistory(opts)
+    store.close()
+    return history
+  } catch {
+    return []
+  }
+}
+
+
 export async function handleConstellationRoutes(
   deps: ConstellationDeps,
   req: http.IncomingMessage,
@@ -90,7 +175,7 @@ export async function handleConstellationRoutes(
     pruneOldJobs()
     try {
       const body = await parseBody(req)
-      const { goal, context, template, postures, maxHelixes, maxDepth, timeoutMs } = body ?? {}
+      const { goal, context, template, postures, maxHelixes, maxDepth } = body ?? {}
 
       if (!goal) {
         sendJSON(res, 400, { error: 'goal is required' })
@@ -125,7 +210,6 @@ export async function handleConstellationRoutes(
         postures,
         maxHelixes,
         maxDepth,
-        timeoutMs,
         sessionId,
       }).then((result: ConstellationResult) => {
         job.status = 'completed'
@@ -167,17 +251,90 @@ export async function handleConstellationRoutes(
     return true
   }
 
-  // GET /constellation/sessions — List active sessions
+  // GET /constellation/sessions — List sessions (includes archived by default)
   if (method === 'GET' && parts.length === 2 && parts[1] === 'sessions') {
-    const sessions = [...constellationJobs.values()]
+    const includeArchived = url.searchParams.get('include_archived') !== 'false'
+    const limit = parseInt(url.searchParams.get('limit') || '100', 10)
+    const status = url.searchParams.get('status') || undefined
+
+    // Get active sessions from in-memory jobs
+    const activeSessions = [...constellationJobs.values()]
       .filter(j => j.status === 'running')
-      .map(j => j.sessionId)
-    sendJSON(res, 200, { sessions })
+      .map(j => ({
+        id: j.sessionId,
+        goal: j.goal,
+        status: j.status,
+        startedAt: j.startedAt,
+        source: 'live' as const,
+      }))
+
+    // Get archived sessions from store
+    let archivedSessions: Array<{
+      id: string
+      goal: string
+      status: string
+      startedAt: number
+      completedAt?: number | null
+      source: 'archived'
+    }> = []
+
+    if (includeArchived) {
+      const persisted = loadPersistedSessions(daemon, { limit, status, includeArchived: true })
+      archivedSessions = persisted
+        .filter(s => !activeSessions.some(a => a.id === s.id))  // Avoid duplicates
+        .map(s => ({
+          id: s.id,
+          goal: s.goal,
+          status: s.status,
+          startedAt: s.createdAt,
+          completedAt: s.completedAt,
+          source: 'archived' as const,
+        }))
+    }
+
+    const allSessions = [...activeSessions, ...archivedSessions].slice(0, limit)
+    sendJSON(res, 200, {
+      sessions: allSessions,
+      count: allSessions.length,
+      hasArchived: archivedSessions.length > 0,
+    })
+    return true
+  }
+
+  // GET /constellation/history — Explicit archive query endpoint
+  if (method === 'GET' && parts.length === 2 && parts[1] === 'history') {
+    const limit = parseInt(url.searchParams.get('limit') || '100', 10)
+    const since = url.searchParams.get('since')
+      ? new Date(url.searchParams.get('since')!).getTime()
+      : undefined
+    const until = url.searchParams.get('until')
+      ? new Date(url.searchParams.get('until')!).getTime()
+      : undefined
+    const status = url.searchParams.get('status') || undefined
+
+    const history = loadSessionHistory(daemon, { limit, since, until, status })
+    sendJSON(res, 200, {
+      history: history.map(s => ({
+        id: s.id,
+        goal: s.goal,
+        status: s.status,
+        template: s.template,
+        totalBranches: s.totalBranches,
+        completedBranches: s.completedBranches,
+        failedBranches: s.failedBranches,
+        tokensUsed: s.tokensUsed,
+        durationMs: s.durationMs,
+        createdAt: s.createdAt,
+        completedAt: s.completedAt,
+        error: s.error,
+      })),
+      count: history.length,
+    })
     return true
   }
 
   // Routes with an ID: /constellation/:id/...
-  if (parts.length >= 2 && parts[1] !== 'jobs' && parts[1] !== 'sessions') {
+  if (parts.length >= 2 && parts[1] !== 'jobs' && parts[1] !== 'sessions' && parts[1] !== 'history') {
     const id = parts[1]
     const subAction = parts[2]
 
@@ -224,40 +381,114 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/progress — Live progress report
+    // GET /constellation/:id/progress — Live progress report (with archive fallback)
     if (method === 'GET' && subAction === 'progress') {
       const job = findJob(id)
-      if (!job) {
-        sendJSON(res, 404, { error: 'Job not found' })
+
+      // Try live state first
+      if (job) {
+        const orchestrator = daemon.intelligence?.constellation
+        const progress = orchestrator?.getProgress?.(job.sessionId)
+
+        if (progress) {
+          sendJSON(res, 200, {
+            sessionId: job.sessionId,
+            status: job.status,
+            goal: job.goal,
+            startedAt: job.startedAt,
+            durationMs: Date.now() - job.startedAt,
+            progress,
+            source: 'live',
+          })
+          return true
+        }
+
+        // Fallback: try loading from persisted store for completed sessions
+        const persisted = loadPersistedProgress(daemon, job.sessionId)
+        if (persisted) {
+          sendJSON(res, 200, {
+            sessionId: job.sessionId,
+            status: job.status,
+            goal: job.goal,
+            startedAt: job.startedAt,
+            durationMs: job.completedAt ? job.completedAt - job.startedAt : Date.now() - job.startedAt,
+            progress: persisted,
+            source: 'archived',
+          })
+          return true
+        }
+
+        // No progress available (but job exists)
+        sendJSON(res, 200, {
+          sessionId: job.sessionId,
+          status: job.status,
+          goal: job.goal,
+          startedAt: job.startedAt,
+          durationMs: Date.now() - job.startedAt,
+          progress: null,
+          message: 'Progress not available',
+        })
         return true
       }
-      const orchestrator = daemon.intelligence?.constellation
-      const progress = orchestrator?.getProgress?.(job.sessionId)
-      sendJSON(res, 200, {
-        sessionId: job.sessionId,
-        status: job.status,
-        goal: job.goal,
-        startedAt: job.startedAt,
-        durationMs: Date.now() - job.startedAt,
-        progress: progress ?? null,
-      })
+
+      // Job not in memory — try loading directly from archive by session ID
+      const persisted = loadPersistedProgress(daemon, id)
+      if (persisted) {
+        const session = loadPersistedSession(daemon, id)
+        sendJSON(res, 200, {
+          sessionId: id,
+          status: session?.status ?? 'unknown',
+          goal: session?.goal ?? 'unknown',
+          startedAt: session?.createdAt,
+          durationMs: session?.durationMs,
+          progress: persisted,
+          source: 'archived',
+        })
+        return true
+      }
+
+      sendJSON(res, 404, { error: 'Session not found' })
       return true
     }
 
-    // GET /constellation/:id/tree — Corpus reasoning tree snapshot
+    // GET /constellation/:id/tree — Corpus reasoning tree snapshot (with archive fallback)
     if (method === 'GET' && subAction === 'tree') {
       const job = findJob(id)
-      if (!job) {
-        sendJSON(res, 404, { error: 'Job not found' })
+
+      // Try live state first
+      if (job) {
+        const orchestrator = daemon.intelligence?.constellation
+        const tree = orchestrator?.getTree?.(job.sessionId)
+
+        if (tree) {
+          sendJSON(res, 200, { sessionId: job.sessionId, tree, source: 'live' })
+          return true
+        }
+
+        // Fallback: try loading from persisted store for completed sessions
+        const persisted = loadPersistedTree(daemon, job.sessionId)
+        if (persisted) {
+          sendJSON(res, 200, { sessionId: job.sessionId, tree: persisted, source: 'archived' })
+          return true
+        }
+
+        // No tree available (but job exists)
+        sendJSON(res, 200, {
+          sessionId: job.sessionId,
+          tree: null,
+          message: 'Tree not available (session may not have been archived)',
+        })
         return true
       }
-      const orchestrator = daemon.intelligence?.constellation
-      const tree = orchestrator?.getTree?.(job.sessionId)
-      if (!tree) {
-        sendJSON(res, 200, { sessionId: job.sessionId, tree: null, message: 'Tree not available (session may have completed)' })
-      } else {
-        sendJSON(res, 200, { sessionId: job.sessionId, tree })
+
+      // Job not in memory — try loading directly from archive by session ID
+      const persisted = loadPersistedTree(daemon, id)
+      if (persisted) {
+        sendJSON(res, 200, { sessionId: id, tree: persisted, source: 'archived' })
+        return true
       }
+
+      sendJSON(res, 404, { error: 'Session not found' })
       return true
     }
 

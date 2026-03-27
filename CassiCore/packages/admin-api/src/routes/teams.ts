@@ -46,6 +46,96 @@ function resolveTeamId(tt: TriadTeamOrchestrator, teamId?: string): string | und
   return active?.id ?? teams[teams.length - 1]?.id
 }
 
+
+// ─────────────────────────────────────────────────────────────────
+// Archive Fallback Helpers (for FluxTeam)
+// ─────────────────────────────────────────────────────────────────
+
+/**
+ * Load a persisted FluxTeam session from FluxTeamStore.
+ * Returns undefined if the store is not available or session not found.
+ */
+function loadPersistedFluxTeam(daemon: any, teamId: string): any | undefined {
+  try {
+    const { FluxTeamStore } = require('../intelligence/flux-team/flux-team-store.js')
+    const store = FluxTeamStore.open(daemon.logger.child('flux-store-reader'))
+    const session = store.loadSession(teamId)
+    store.close()
+    return session ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
+/**
+ * Load persisted events from FluxTeamStore.
+ */
+function loadPersistedFluxEvents(daemon: any, teamId: string): any[] {
+  try {
+    const { FluxTeamStore } = require('../intelligence/flux-team/flux-team-store.js')
+    const store = FluxTeamStore.open(daemon.logger.child('flux-store-reader'))
+    const events = store.getEvents(teamId) ?? []
+    store.close()
+    return events
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Load persisted cells from FluxTeamStore (for tree reconstruction).
+ */
+function loadPersistedFluxCells(daemon: any, teamId: string): any[] {
+  try {
+    const { FluxTeamStore } = require('../intelligence/flux-team/flux-team-store.js')
+    const store = FluxTeamStore.open(daemon.logger.child('flux-store-reader'))
+    const cells = store.getCells(teamId) ?? []
+    store.close()
+    return cells
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Build a tree structure from FluxTeam cells (live Map).
+ */
+function buildFluxCellTree(cells: Map<string, any>, rootCellId?: string): any {
+  const nodes: any[] = []
+  for (const [cellId, cell] of cells) {
+    nodes.push({
+      id: cellId,
+      parentId: cell.parentCellId ?? null,
+      goal: cell.goal ?? cell.goalTitle,
+      status: cell.status,
+      depth: cell.depth ?? 0,
+    })
+  }
+  return {
+    rootCellId,
+    nodes,
+    totalCells: nodes.length,
+  }
+}
+
+/**
+ * Build a tree structure from persisted FluxTeam cells.
+ */
+function buildFluxCellTreeFromPersisted(cells: any[], rootCellId?: string): any {
+  const nodes = cells.map(cell => ({
+    id: cell.cellId ?? cell.id,
+    parentId: cell.parentCellId ?? null,
+    goal: cell.goal ?? cell.goalTitle,
+    status: cell.status,
+    depth: cell.depth ?? 0,
+  }))
+  return {
+    rootCellId,
+    nodes,
+    totalCells: nodes.length,
+  }
+}
+
 /**
  * Serialize a TriadTeamSession for JSON transport.
  * Maps are not JSON-serializable, so we convert them.
@@ -318,23 +408,58 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // GET /teams/status
+  // GET /teams/status (with archive fallback)
   if (parts.length === 2 && parts[1] === 'status' && method === 'GET') {
     try {
       const teamId = url.searchParams.get('teamId') || undefined
       
-      // Check FluxTeam first
+      // Check FluxTeam first (live)
       const fluxOrch = getFluxOrchestrator(daemon)
       if (fluxOrch && teamId) {
         const fluxTeam = fluxOrch.getTeam(teamId)
         if (fluxTeam) {
           const liveStatus = fluxOrch.getTeamLiveStatus(teamId)
-          sendJSON(res, 200, { ...liveStatus, engine: 'flux' })
+          sendJSON(res, 200, { ...liveStatus, engine: 'flux', source: 'live' })
+          return true
+        }
+
+        // FluxTeam not in memory — try archive fallback
+        const persisted = loadPersistedFluxTeam(daemon, teamId)
+        if (persisted) {
+          sendJSON(res, 200, {
+            id: persisted.id,
+            status: persisted.status,
+            config: persisted.config,
+            budget: persisted.budget,
+            rootCellId: persisted.rootCellId,
+            createdAt: persisted.createdAt,
+            completedAt: persisted.completedAt,
+            engine: 'flux',
+            source: 'archived',
+          })
           return true
         }
       }
       
       if (!tt) {
+        // Also try archive as last resort even without TriadTeam
+        if (teamId) {
+          const persisted = loadPersistedFluxTeam(daemon, teamId)
+          if (persisted) {
+            sendJSON(res, 200, {
+              id: persisted.id,
+              status: persisted.status,
+              config: persisted.config,
+              budget: persisted.budget,
+              rootCellId: persisted.rootCellId,
+              createdAt: persisted.createdAt,
+              completedAt: persisted.completedAt,
+              engine: 'flux',
+              source: 'archived',
+            })
+            return true
+          }
+        }
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
@@ -350,7 +475,7 @@ export async function handleTeamsRoutes(
         return true
       }
 
-      sendJSON(res, 200, serializeSession(session))
+      sendJSON(res, 200, { ...serializeSession(session), source: 'live' })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -381,14 +506,63 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // GET /teams/tree
+  // GET /teams/tree (with archive fallback)
   if (parts.length === 2 && parts[1] === 'tree' && method === 'GET') {
     try {
+      const teamId = url.searchParams.get('teamId') || undefined
+
+      // Check FluxTeam first
+      const fluxOrch = getFluxOrchestrator(daemon)
+      if (fluxOrch && teamId) {
+        const fluxTeam = fluxOrch.getTeam(teamId)
+        if (fluxTeam) {
+          // FluxTeam has its own tree structure in cells
+          const cells = fluxTeam.cells || new Map()
+          const tree = buildFluxCellTree(cells, fluxTeam.rootCellId)
+          sendJSON(res, 200, {
+            teamId,
+            tree,
+            engine: 'flux',
+            source: 'live',
+          })
+          return true
+        }
+
+        // FluxTeam not in memory — try archive fallback
+        const persistedCells = loadPersistedFluxCells(daemon, teamId)
+        const persistedSession = loadPersistedFluxTeam(daemon, teamId)
+        if (persistedCells.length > 0 || persistedSession) {
+          const tree = buildFluxCellTreeFromPersisted(persistedCells, persistedSession?.rootCellId)
+          sendJSON(res, 200, {
+            teamId,
+            tree,
+            engine: 'flux',
+            source: 'archived',
+          })
+          return true
+        }
+      }
+
       if (!tt) {
+        // Also try archive as last resort
+        if (teamId) {
+          const persistedCells = loadPersistedFluxCells(daemon, teamId)
+          const persistedSession = loadPersistedFluxTeam(daemon, teamId)
+          if (persistedCells.length > 0 || persistedSession) {
+            const tree = buildFluxCellTreeFromPersisted(persistedCells, persistedSession?.rootCellId)
+            sendJSON(res, 200, {
+              teamId,
+              tree,
+              engine: 'flux',
+              source: 'archived',
+            })
+            return true
+          }
+        }
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
-      const teamId = url.searchParams.get('teamId') || undefined
+
       const resolvedTeamId = resolveTeamId(tt, teamId ?? undefined)
       if (!resolvedTeamId) {
         sendJSON(res, 404, { error: 'No teams found' })
@@ -409,6 +583,7 @@ export async function handleTeamsRoutes(
         teamId: resolvedTeamId,
         tree,
         progress,
+        source: 'live',
       })
       return true
     } catch (err) {
@@ -614,26 +789,43 @@ export async function handleTeamsRoutes(
     }
   }
 
-  // GET /teams/events
+  // GET /teams/events (with archive fallback)
   if (parts.length === 2 && parts[1] === 'events' && method === 'GET') {
     try {
       let teamId = url.searchParams.get('teamId') || ''
+      const limitParam = url.searchParams.get('limit')
+      const limit = limitParam ? parseInt(limitParam, 10) : 50
 
-      // Check FluxTeam first
+      // Check FluxTeam first (live)
       const fluxOrch = getFluxOrchestrator(daemon)
       if (fluxOrch && teamId) {
         const fluxTeam = fluxOrch.getTeam(teamId)
         if (fluxTeam) {
-          const limitParam = url.searchParams.get('limit')
-          const limit = limitParam ? parseInt(limitParam, 10) : 50
           const eventLog = fluxTeam.eventLog || []
           const events = eventLog.slice(-limit)
-          sendJSON(res, 200, { teamId, total: eventLog.length, events, engine: 'flux' })
+          sendJSON(res, 200, { teamId, total: eventLog.length, events, engine: 'flux', source: 'live' })
+          return true
+        }
+
+        // FluxTeam not in memory — try archive fallback
+        const persistedEvents = loadPersistedFluxEvents(daemon, teamId)
+        if (persistedEvents.length > 0) {
+          const events = persistedEvents.slice(-limit)
+          sendJSON(res, 200, { teamId, total: persistedEvents.length, events, engine: 'flux', source: 'archived' })
           return true
         }
       }
 
       if (!tt) {
+        // Also try archive as last resort
+        if (teamId) {
+          const persistedEvents = loadPersistedFluxEvents(daemon, teamId)
+          if (persistedEvents.length > 0) {
+            const events = persistedEvents.slice(-limit)
+            sendJSON(res, 200, { teamId, total: persistedEvents.length, events, engine: 'flux', source: 'archived' })
+            return true
+          }
+        }
         sendJSON(res, 503, { error: 'TriadTeamOrchestrator not available' })
         return true
       }
@@ -646,17 +838,21 @@ export async function handleTeamsRoutes(
 
       const session = tt.getTeamStatus(teamId)
       if (!session) {
+        // Try archive for TriadTeam too
+        const persistedEvents = loadPersistedFluxEvents(daemon, teamId)
+        if (persistedEvents.length > 0) {
+          const events = persistedEvents.slice(-limit)
+          sendJSON(res, 200, { teamId, total: persistedEvents.length, events, source: 'archived' })
+          return true
+        }
         sendJSON(res, 404, { error: `Team ${teamId} not found` })
         return true
       }
 
-      const limitParam = url.searchParams.get('limit')
-      const limit = limitParam ? parseInt(limitParam, 10) : 50
-
       const eventLog = session.eventLog || []
       const events = eventLog.slice(-limit)
 
-      sendJSON(res, 200, { teamId, total: eventLog.length, events })
+      sendJSON(res, 200, { teamId, total: eventLog.length, events, source: 'live' })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
