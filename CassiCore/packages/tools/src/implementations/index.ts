@@ -31,6 +31,7 @@ import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
 import { readFileDefinition, readFileHandler } from './read-file.js'
 import { readFilesDefinition, readFilesHandler } from './read-files.js'
 import { shellExecDefinition, shellExecHandler } from './shell-exec.js'
+import { cassiShellDefinition, cassiShellHandler, setCassiShellDeps } from './cassi-shell.js'
 import { createSubagentSpawnFunction } from './spawn-subagent-impl.js'
 import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subagent.js'
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
@@ -112,6 +113,21 @@ export interface CoreToolDeps {
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
   // Shell execution
   registry.register(shellExecDefinition, shellExecHandler)
+
+  // Cassi unified shell — minimal context, full discovery
+  registry.register(cassiShellDefinition, cassiShellHandler)
+  if (deps.logger) {
+    setCassiShellDeps({
+      toolRegistry: registry,
+      executeToolByName: async (name, input, ctx) => {
+        const entry = registry.get(name)
+        if (!entry) throw new Error(`Tool not found: ${name}`)
+        return entry.handler(input, ctx)
+      },
+      workdir: process.cwd(),
+      logger: deps.logger,
+    })
+  }
 
   // File I/O
   registry.register(readFileDefinition, readFileHandler)
