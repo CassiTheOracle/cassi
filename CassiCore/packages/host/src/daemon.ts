@@ -2132,6 +2132,22 @@ export class Daemon {
           }
         }
 
+        // Wire CorpusLLM adapter for Constellation Brainstem + Corpus scoring.
+        // Uses alibaba-coding with kimi-k2.5 — the same provider+model used
+        // by constellation Helix postures for consistency.
+        if (this.intelligence?.setCorpusLLMProvider) {
+          try {
+            const corpusProviderId = 'alibaba-coding'
+            const corpusModel = 'kimi-k2.5'
+            const corpusProvider = providers.get(corpusProviderId) ?? providers.values().next().value
+            if (corpusProvider) {
+              this.intelligence.setCorpusLLMProvider(corpusProvider, corpusModel)
+            }
+          } catch (err) {
+            this.logger.warn('Failed to wire CorpusLLM provider', { error: String(err) })
+          }
+        }
+
         // Merge auto-discovered modules into the existing all[] array
         const registryModules = registry.getAllAsIntelligenceModules()
         if (registryModules.length > 0) {
