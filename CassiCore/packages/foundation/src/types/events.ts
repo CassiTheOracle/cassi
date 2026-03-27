@@ -598,6 +598,13 @@ export type RuntimeEvent =
   | { type: "brainstem:pattern"; sessionId: string; pattern: string; severity: string; axonStep: number; timestamp: Date }
   | { type: "brainstem:guidance"; sessionId: string; urgency: string; triggeredBy: string; text: string; axonStep: number; timestamp: Date }
 
+  // Corpus events (constellation-level organizer)
+  | { type: "corpus:sweep"; constellationId: string; branches: number; patterns: number; sweepCount: number; timestamp: Date }
+  | { type: "corpus:pattern"; constellationId: string; pattern: string; helixIds: string[]; severity: string; description: string; timestamp: Date }
+  | { type: "corpus:intervention"; constellationId: string; targetHelixId: string; directiveType: string; urgency: string; reason: string; timestamp: Date }
+  | { type: "corpus:spawn-evaluated"; constellationId: string; requestId: string; approved: boolean; reason: string; timestamp: Date }
+  | { type: "corpus:synthesis"; constellationId: string; synthesis: string; timestamp: Date }
+
   // Cognitive feed steering events (from Telegram observation group)
   | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
   | { type: "cognitive-feed:steering:pause"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
