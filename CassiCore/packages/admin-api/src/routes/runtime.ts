@@ -38,6 +38,8 @@ export interface AdminRuntimeFacade {
   getPrimarySessionStore(): any
   getIntelligence(): any
   getContextWindow(): any
+  getContextDistiller(): any
+  getLumenModelPool(): any
   getPipeline(): any
   getProviders(): Map<string, any> | undefined
   getProviderMetrics(): { global: Record<string, unknown> | null; providers: ProviderMetricsSnapshot[] }
@@ -111,6 +113,8 @@ export function createAdminRuntimeFacade(daemon: TurnRuntimeLike & { logger: ILo
 
       return { global: globalConfig, providers: providerMetrics }
     },
+    getContextDistiller: () => (daemon as any).contextDistiller,
+    getLumenModelPool: () => (daemon as any).lumenModelPool ?? (daemon as any).dyadModelPool,
     getToolRegistry: () => (daemon as any).toolRegistry ?? (daemon as any).pipeline?.toolRegistry,
     getToolExecutor: () => (daemon as any).toolExecutor,
     getConfig: () => (daemon as any).config,

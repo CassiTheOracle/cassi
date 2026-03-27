@@ -245,23 +245,234 @@ export async function handleContextRoutes(
   }
 
   // GET /context/assess/:sessionId — optimizer's recommendation for context pressure
+  // Query params: tokensUsed (number), contextLimit (number)
   if (method === 'GET' && parts[0] === 'context' && parts[1] === 'assess' && parts.length === 3) {
     try {
       const sessionId = parts[2]
       const optimizer = runtime.getIntelligence()?.optimizer as any
-      
+
+      // Parse optional token pressure hints from query string
+      const url = new URL(req.url ?? '/', 'http://localhost')
+      const tokensUsed = parseInt(url.searchParams.get('tokensUsed') ?? '0', 10)
+      const contextLimit = parseInt(url.searchParams.get('contextLimit') ?? '0', 10)
+
       // Default recommendation: let scored selection handle it
       let decision = 'select' as 'select' | 'summarize' | 'reset'
 
       if (optimizer && typeof optimizer.getSessionState === 'function') {
         const state = optimizer.getSessionState(sessionId)
-        // If optimizer has flagged this session for summarization or reset
+        // If optimizer has explicitly flagged this session
         if (state?.pendingAction === 'summarize') decision = 'summarize'
         else if (state?.pendingAction === 'context-reset') decision = 'reset'
       }
 
+      // If decision is still 'select', check token pressure.
+      // If we're at ≥85% capacity, scored selection alone can't recover — compact.
+      if (decision === 'select' && tokensUsed > 0 && contextLimit > 0) {
+        const usageRatio = tokensUsed / contextLimit
+        if (usageRatio >= 0.85) {
+          decision = 'summarize'
+        }
+      }
+
       sendJSON(res, 200, { sessionId, decision })
       return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /context/compact/:sessionId — CassiCore-powered compaction
+  //
+  // Accepts the session's conversation history (as role/text pairs) and
+  // produces a rich compaction summary using:
+  //   1. Memory search (relevant past context)
+  //   2. Cognitive signals (thinker insights, subconscious patterns)
+  //   3. LLM summarization via qwen3.5-plus (alibaba-coding, 1M context)
+  //
+  // Returns { summary: string } on success.
+  // Falls back gracefully if ModelPool, memory, or cognitive signals are unavailable.
+  if (method === 'POST' && parts[0] === 'context' && parts[1] === 'compact' && parts.length === 3) {
+    try {
+      const sessionId = parts[2]
+      const body = await parseBody(req)
+      const { messages } = body || {}
+
+      if (!sessionId) {
+        sendJSON(res, 400, { error: 'missing sessionId' })
+        return true
+      }
+
+      if (!Array.isArray(messages) || messages.length === 0) {
+        sendJSON(res, 400, { error: 'messages array is required and must not be empty' })
+        return true
+      }
+
+      const modelPool = runtime.getLumenModelPool()
+      if (!modelPool || typeof modelPool.acquire !== 'function') {
+        sendJSON(res, 503, { error: 'ModelPool not available — CassiCore compaction unavailable' })
+        return true
+      }
+
+      // ── 1. Gather cognitive signals ────────────────────────────────────
+      let cognitiveContext = ''
+      try {
+        const aggregator = runtime.getIntelligence()?.injectionAggregator as any
+        if (aggregator && typeof aggregator.aggregateForExternal === 'function') {
+          const externalParts = await aggregator.aggregateForExternal(sessionId)
+          if (Array.isArray(externalParts) && externalParts.length > 0) {
+            cognitiveContext = externalParts
+              .filter((p: any) => p.content && p.charCount > 0)
+              .map((p: any) => String(p.content))
+              .join('\n\n')
+          }
+        }
+      } catch {
+        // Cognitive signals are optional — continue without them
+      }
+
+      // ── 2. Search memory for session-relevant context ───────────────────
+      let memoryContext = ''
+      try {
+        const memory = runtime.getIntelligence()?.memory as any
+        if (memory && typeof memory.search === 'function') {
+          // Extract a query from the last user message
+          const lastUser = [...messages].reverse().find((m: any) => m.role === 'user')
+          const query = typeof lastUser?.content === 'string'
+            ? lastUser.content.slice(0, 200)
+            : (Array.isArray(lastUser?.content)
+              ? lastUser.content.filter((p: any) => p.type === 'text').map((p: any) => p.text || '').join(' ').slice(0, 200)
+              : 'session context')
+
+          const results = await memory.search(query, { limit: 6, minScore: 0.25 })
+          if (results && results.length > 0) {
+            const items = results.map((r: any) => {
+              const score = Math.round((r.score ?? 0) * 100)
+              return `- (${score}%) ${String(r.entry?.content ?? r.content ?? '').slice(0, 400)}`
+            })
+            memoryContext = `### Relevant Memory\n${items.join('\n')}`
+          }
+        }
+      } catch {
+        // Memory search is optional — continue without it
+      }
+
+      // ── 3. Build conversation text for the LLM ──────────────────────────
+      // Convert messages to text, stripping binary/media content, capped at 80K chars
+      const CONV_CHAR_LIMIT = 80_000
+      let conversationText = ''
+      for (const m of messages) {
+        const role = (m.role ?? 'user').toUpperCase()
+        let content = ''
+        if (typeof m.content === 'string') {
+          content = m.content
+        } else if (Array.isArray(m.content)) {
+          content = m.content
+            .filter((p: any) => p.type === 'text')
+            .map((p: any) => p.text || '')
+            .join('\n')
+        }
+        conversationText += `[${role}]: ${content}\n---\n`
+        if (conversationText.length >= CONV_CHAR_LIMIT) {
+          conversationText = conversationText.slice(0, CONV_CHAR_LIMIT) + '\n[... earlier context truncated ...]\n'
+          break
+        }
+      }
+
+      // ── 4. Build the compaction prompt ─────────────────────────────────
+      const contextSections: string[] = []
+      if (memoryContext) contextSections.push(memoryContext)
+      if (cognitiveContext) {
+        contextSections.push(
+          '### Cognitive Signals\n' +
+          'The following signals were active in this session. Preserve any insights relevant to the work:\n' +
+          cognitiveContext
+        )
+      }
+      const contextBlock = contextSections.length > 0
+        ? `\n\n## CassiCore Context\n${contextSections.join('\n\n')}\n\n---`
+        : ''
+
+      const systemPrompt =
+        'You are a context compaction assistant. Your job is to produce a detailed, ' +
+        'structured summary of the conversation above that will serve as the starting ' +
+        'context for the SAME agent continuing the SAME task. The summary replaces the ' +
+        'full conversation history, so it must capture everything needed to continue ' +
+        'working without loss of direction or context.\n\n' +
+        'Structure your summary using exactly this template:\n' +
+        '---\n' +
+        '## Goal\n' +
+        '[What goal(s) is the user trying to accomplish?]\n\n' +
+        '## Instructions\n' +
+        '- [Important instructions the user gave that are still relevant]\n' +
+        '- [Any plan, spec, or approach being followed]\n\n' +
+        '## Discoveries\n' +
+        '[Notable things learned during the conversation that the next agent needs to know]\n\n' +
+        '## Accomplished\n' +
+        '[What work has been completed, what is in progress, what remains]\n\n' +
+        '## Relevant Files / Directories\n' +
+        '[Structured list of files read, edited, or created that pertain to the task]\n\n' +
+        '## Decisions Made\n' +
+        '[Architectural, design, or implementation decisions made during the session]\n' +
+        '---\n\n' +
+        'Be thorough and precise. The summary will be the ONLY context the next agent has.'
+
+      const userMessage =
+        `Here is the conversation to compact:${contextBlock}\n\n` +
+        `## Conversation\n${conversationText}\n\n` +
+        `Produce the compaction summary now.`
+
+      // ── 5. Acquire model and run LLM call ──────────────────────────────
+      const COMPACTION_MODEL = 'qwen3.5-plus'
+      const COMPACTION_PROVIDER = 'alibaba-coding'
+
+      let handle: any
+      try {
+        handle = await modelPool.acquire('compaction', undefined, sessionId, {
+          provider: COMPACTION_PROVIDER,
+          model: COMPACTION_MODEL,
+        })
+      } catch (acquireErr) {
+        sendJSON(res, 503, { error: `Failed to acquire model ${COMPACTION_PROVIDER}/${COMPACTION_MODEL}: ${String(acquireErr)}` })
+        return true
+      }
+
+      try {
+        const result = await handle.complete(
+          [{ role: 'user', content: userMessage }],
+          {
+            model: COMPACTION_MODEL,
+            maxTokens: 4000,
+            temperature: 0.2,
+            thinking: 'none',
+            systemPrompt,
+            source: 'context-compaction',
+            trigger: 'compact',
+            sessionId,
+            allowConcurrent: true,
+            timeoutMs: 60_000,
+          }
+        )
+
+        const summary = (result.response ?? '').trim()
+        if (!summary) {
+          sendJSON(res, 500, { error: 'LLM returned empty summary' })
+          return true
+        }
+
+        sendJSON(res, 200, {
+          sessionId,
+          summary,
+          model: `${COMPACTION_PROVIDER}/${COMPACTION_MODEL}`,
+          tokensUsed: result.tokensUsed ?? 0,
+          hasMemory: !!memoryContext,
+          hasCognitive: !!cognitiveContext,
+        })
+        return true
+      } finally {
+        try { handle.release() } catch { /* ignore */ }
+      }
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
       return true
