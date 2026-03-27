@@ -500,6 +500,10 @@ export async function runConstellationPipeline(
         corpus.registerBrainstem(helixId, bs)
         helixLog.info('Pipeline Brainstem registered with Corpus')
 
+        // Update the RunningHelix reference so cancel can stop the brainstem
+        const rh = runningHelixes.get(helixId)
+        if (rh) rh.brainstem = bs
+
         // Register with cross-Helix dialectic so inter-branch messages can flow
         if (crossHelixDialectic) {
           crossHelixDialectic.registerBranch(helixId, bs, helixGoal)
@@ -852,13 +856,22 @@ export async function runConstellationPipeline(
       clearInterval(checkpointHandle)
     }
 
-    // Cancel any remaining Helixes
+    // Cancel any remaining Helixes and stop their Brainstems
     for (const [id, helix] of runningHelixes) {
       log.info('Cancelling Helix', { helixId: id })
       try {
         helix.cancel()
       } catch (err) {
         log.warn('Error cancelling Helix', { helixId: id, error: String(err) })
+      }
+      // Explicitly stop the Brainstem to prevent zombie LLM calls
+      if (helix.brainstem) {
+        try {
+          await helix.brainstem.stop()
+          log.info('Brainstem stopped', { helixId: id })
+        } catch (err) {
+          log.warn('Error stopping Brainstem', { helixId: id, error: String(err) })
+        }
       }
     }
 
