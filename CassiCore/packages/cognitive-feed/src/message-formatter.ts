@@ -246,6 +246,24 @@ export class MessageFormatter {
       return `Brainstem [${esc(e.urgency ?? '?')}]: ${esc(e.text?.slice(0, 120) ?? '')}`
     }
 
+    if (type === 'corpus:sweep') {
+      return `Corpus sweep #${e.sweepCount ?? '?'}: ${e.branches ?? '?'} branches, ${e.patterns ?? 0} patterns`
+    }
+    if (type === 'corpus:pattern') {
+      const severity = (e.severity ?? 'unknown').toUpperCase()
+      return `Corpus [${severity}]: ${esc(e.pattern ?? '?')} across ${(e.helixIds ?? []).join(', ')} — ${esc(e.description ?? '')}`
+    }
+    if (type === 'corpus:intervention') {
+      return `Corpus → ${esc(e.targetHelixId ?? '?')} [${esc(e.urgency ?? '?')}]: ${esc(e.directiveType ?? '?')} — ${esc(e.reason?.slice(0, 120) ?? '')}`
+    }
+    if (type === 'corpus:spawn-evaluated') {
+      const icon = e.approved ? '✅' : '❌'
+      return `Corpus spawn ${icon}: ${esc(e.requestId ?? '?')} — ${esc(e.reason?.slice(0, 120) ?? '')}`
+    }
+    if (type === 'corpus:synthesis') {
+      return `Corpus synthesis: ${esc(e.synthesis?.slice(0, 200) ?? '')}`
+    }
+
     if (type === 'adaptive:adaptation-applied') {
       return `Applied: ${esc(e.adaptationType ?? '?')} to ${esc(e.target ?? '?')}`
     }
