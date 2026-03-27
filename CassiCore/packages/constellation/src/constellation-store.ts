@@ -29,7 +29,7 @@ import type { ConstellationResult, SpawnRequest } from './types.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2  // Incremented for new tables
 const DEFAULT_MAX_AGE_DAYS = 180  // Much longer retention than Helix's 7 days
 
 
@@ -106,6 +106,85 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_const_branch_session ON constellation_branches(session_id);
   CREATE INDEX IF NOT EXISTS idx_const_branch_helix ON constellation_branches(helix_id);
   CREATE INDEX IF NOT EXISTS idx_const_events_session ON constellation_events(session_id, timestamp);
+
+  -- Cross-Helix Dialectic persistence
+  CREATE TABLE IF NOT EXISTS constellation_dialectic (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        TEXT NOT NULL,
+    messages_json     TEXT NOT NULL DEFAULT '[]',
+    convergence_points_json TEXT DEFAULT '[]',
+    tensions_json     TEXT DEFAULT '[]',
+    participants_json TEXT DEFAULT '[]',
+    stats_json        TEXT DEFAULT '{}',
+    checkpoint_at     INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_const_dialectic_session ON constellation_dialectic(session_id, checkpoint_at);
+
+  -- Corpus Decision History
+  CREATE TABLE IF NOT EXISTS corpus_decisions (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        TEXT NOT NULL,
+    decision_type     TEXT NOT NULL,  -- 'spawn_evaluation', 'intervention', 'pattern_detection', 'synthesis'
+    helix_id          TEXT,           -- optional: which branch this relates to
+    input_data_json   TEXT NOT NULL,  -- the request/context that led to this decision
+    output_data_json  TEXT NOT NULL,  -- the decision result
+    llm_analysis_json TEXT,           -- optional: LLM reasoning/chain-of-thought
+    confidence        REAL,           -- optional: confidence score
+    timestamp         INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_corpus_decisions_session ON corpus_decisions(session_id, decision_type);
+  CREATE INDEX IF NOT EXISTS idx_corpus_decisions_timestamp ON corpus_decisions(timestamp);
+
+  -- Branch Lifecycle Tracking
+  CREATE TABLE IF NOT EXISTS branch_lifecycle_events (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        TEXT NOT NULL,
+    helix_id          TEXT NOT NULL,
+    event_type        TEXT NOT NULL,  -- 'created', 'scored', 'intervention_received', 'completed', 'failed', 'pruned'
+    metrics_json      TEXT DEFAULT '{}',  -- rolling_score, health, pattern, etc.
+    context_json      TEXT,           -- additional context (files_modified, etc.)
+    timestamp         INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_branch_lifecycle_session ON branch_lifecycle_events(session_id, helix_id);
+  CREATE INDEX IF NOT EXISTS idx_branch_lifecycle_type ON branch_lifecycle_events(event_type, timestamp);
+
+  -- Blackboard Archive
+  CREATE TABLE IF NOT EXISTS blackboard_archives (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        TEXT NOT NULL,
+    helix_id          TEXT,           -- null for constellation-level blackboard
+    channel_data_json TEXT NOT NULL,  -- all channels: findings, concerns, decisions, artifacts, requests
+    scratchpad_json   TEXT,           -- scratchpad state
+    tool_log_json     TEXT,           -- tool execution log
+    artifacts_json    TEXT,           -- tracked artifacts
+    plan_json         TEXT,           -- plan steps
+    report_json       TEXT,           -- report sections
+    archived_at       INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_blackboard_session ON blackboard_archives(session_id, helix_id);
+
+  -- Training Data Extraction (high-value signals for training warehouse)
+  CREATE TABLE IF NOT EXISTS training_signals (
+    id                INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id        TEXT NOT NULL,
+    signal_type       TEXT NOT NULL,  -- 'brainstem_annotation', 'corpus_decision', 'dialectic_outcome', 'convergence', 'tension_resolved'
+    source_helix_id   TEXT,           -- which branch produced this signal
+    data_json         TEXT NOT NULL,  -- structured training data
+    quality_score     REAL,           -- calculated quality/importance
+    extracted_at      INTEGER NOT NULL,
+    FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_training_session ON training_signals(session_id, signal_type);
+  CREATE INDEX IF NOT EXISTS idx_training_quality ON training_signals(quality_score);
 `
 
 
@@ -249,6 +328,78 @@ export interface SpawnDecision {
   timestamp: number
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// New Persistence Types
+// ═══════════════════════════════════════════════════════════════════
+
+export type CorpusDecisionType = 'spawn_evaluation' | 'intervention' | 'pattern_detection' | 'synthesis' | 'health_assessment'
+
+export interface CorpusDecisionRow {
+  id: number
+  sessionId: string
+  decisionType: CorpusDecisionType
+  helixId: string | null
+  inputData: unknown
+  outputData: unknown
+  llmAnalysis: unknown | null
+  confidence: number | null
+  timestamp: number
+}
+
+export type BranchLifecycleEventType = 'created' | 'scored' | 'intervention_received' | 'completed' | 'failed' | 'pruned' | 'spawned_child'
+
+export interface BranchLifecycleEventRow {
+  id: number
+  sessionId: string
+  helixId: string
+  eventType: BranchLifecycleEventType
+  metrics: Record<string, unknown>
+  context: Record<string, unknown> | null
+  timestamp: number
+}
+
+export interface CrossHelixDialecticRow {
+  id: number
+  sessionId: string
+  messages: unknown[]
+  convergencePoints: unknown[]
+  tensions: unknown[]
+  participants: string[]
+  stats: Record<string, unknown>
+  checkpointAt: number
+}
+
+export interface BlackboardArchiveRow {
+  id: number
+  sessionId: string
+  helixId: string | null
+  channelData: {
+    findings: unknown[]
+    concerns: unknown[]
+    decisions: unknown[]
+    artifacts: unknown[]
+    requests: unknown[]
+  }
+  scratchpad: Record<string, unknown> | null
+  toolLog: unknown[] | null
+  artifacts: unknown[] | null
+  plan: unknown | null
+  report: unknown | null
+  archivedAt: number
+}
+
+export type TrainingSignalType = 'brainstem_annotation' | 'corpus_decision' | 'dialectic_outcome' | 'convergence' | 'tension_resolved' | 'intervention_effective'
+
+export interface TrainingSignalRow {
+  id: number
+  sessionId: string
+  signalType: TrainingSignalType
+  sourceHelixId: string | null
+  data: Record<string, unknown>
+  qualityScore: number | null
+  extractedAt: number
+}
+
 export interface CreateSessionOpts {
   context?: string
   template?: string
@@ -299,6 +450,17 @@ export class ConstellationStore {
     pruneOld: Database.Statement
     pruneBranches: Database.Statement
     pruneEvents: Database.Statement
+    // New persistence tables
+    insertDialecticCheckpoint: Database.Statement
+    selectDialecticCheckpoints: Database.Statement
+    insertCorpusDecision: Database.Statement
+    selectCorpusDecisions: Database.Statement
+    insertBranchLifecycleEvent: Database.Statement
+    selectBranchLifecycleEvents: Database.Statement
+    insertBlackboardArchive: Database.Statement
+    selectBlackboardArchives: Database.Statement
+    insertTrainingSignal: Database.Statement
+    selectTrainingSignals: Database.Statement
   }
 
   private constructor(dbPath: string, logger: ILogger) {
@@ -333,8 +495,103 @@ export class ConstellationStore {
       this.db.exec(SCHEMA_SQL)
       this.db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(SCHEMA_VERSION)
       this.logger.info('ConstellationStore schema initialized', { version: SCHEMA_VERSION })
+      return
     }
-    // Future migrations would go here
+
+    const versionRow = this.db.prepare('SELECT version FROM schema_version LIMIT 1').get() as { version: number } | undefined
+    const current = versionRow?.version ?? 0
+
+    if (current < SCHEMA_VERSION) {
+      this.runMigrations(current)
+      this.db.prepare('UPDATE schema_version SET version = ?').run(SCHEMA_VERSION)
+      this.logger.info('ConstellationStore schema migrated', { from: current, to: SCHEMA_VERSION })
+    }
+  }
+
+  private runMigrations(fromVersion: number): void {
+    // Migration from version 1 to 2: add new persistence tables
+    if (fromVersion < 2) {
+      this.db.exec(`
+        -- Cross-Helix Dialectic persistence
+        CREATE TABLE IF NOT EXISTS constellation_dialectic (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id        TEXT NOT NULL,
+          messages_json     TEXT NOT NULL DEFAULT '[]',
+          convergence_points_json TEXT DEFAULT '[]',
+          tensions_json     TEXT DEFAULT '[]',
+          participants_json TEXT DEFAULT '[]',
+          stats_json        TEXT DEFAULT '{}',
+          checkpoint_at     INTEGER NOT NULL,
+          FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_const_dialectic_session ON constellation_dialectic(session_id, checkpoint_at);
+
+        -- Corpus Decision History
+        CREATE TABLE IF NOT EXISTS corpus_decisions (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id        TEXT NOT NULL,
+          decision_type     TEXT NOT NULL,
+          helix_id          TEXT,
+          input_data_json   TEXT NOT NULL,
+          output_data_json  TEXT NOT NULL,
+          llm_analysis_json TEXT,
+          confidence        REAL,
+          timestamp         INTEGER NOT NULL,
+          FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_corpus_decisions_session ON corpus_decisions(session_id, decision_type);
+        CREATE INDEX IF NOT EXISTS idx_corpus_decisions_timestamp ON corpus_decisions(timestamp);
+
+        -- Branch Lifecycle Tracking
+        CREATE TABLE IF NOT EXISTS branch_lifecycle_events (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id        TEXT NOT NULL,
+          helix_id          TEXT NOT NULL,
+          event_type        TEXT NOT NULL,
+          metrics_json      TEXT DEFAULT '{}',
+          context_json      TEXT,
+          timestamp         INTEGER NOT NULL,
+          FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_branch_lifecycle_session ON branch_lifecycle_events(session_id, helix_id);
+        CREATE INDEX IF NOT EXISTS idx_branch_lifecycle_type ON branch_lifecycle_events(event_type, timestamp);
+
+        -- Blackboard Archive
+        CREATE TABLE IF NOT EXISTS blackboard_archives (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id        TEXT NOT NULL,
+          helix_id          TEXT,
+          channel_data_json TEXT NOT NULL,
+          scratchpad_json   TEXT,
+          tool_log_json     TEXT,
+          artifacts_json    TEXT,
+          plan_json         TEXT,
+          report_json       TEXT,
+          archived_at       INTEGER NOT NULL,
+          FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_blackboard_session ON blackboard_archives(session_id, helix_id);
+
+        -- Training Data Extraction
+        CREATE TABLE IF NOT EXISTS training_signals (
+          id                INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id        TEXT NOT NULL,
+          signal_type       TEXT NOT NULL,
+          source_helix_id   TEXT,
+          data_json         TEXT NOT NULL,
+          quality_score     REAL,
+          extracted_at      INTEGER NOT NULL,
+          FOREIGN KEY (session_id) REFERENCES constellation_sessions(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_training_session ON training_signals(session_id, signal_type);
+        CREATE INDEX IF NOT EXISTS idx_training_quality ON training_signals(quality_score);
+      `)
+    }
   }
 
 
@@ -461,6 +718,63 @@ export class ConstellationStore {
         pruneEvents: this.db.prepare(`
           DELETE FROM constellation_events
           WHERE session_id NOT IN (SELECT id FROM constellation_sessions)
+        `),
+        // New persistence statements
+        insertDialecticCheckpoint: this.db.prepare(`
+          INSERT INTO constellation_dialectic (
+            session_id, messages_json, convergence_points_json, tensions_json,
+            participants_json, stats_json, checkpoint_at
+          ) VALUES (
+            @session_id, @messages_json, @convergence_points_json, @tensions_json,
+            @participants_json, @stats_json, @checkpoint_at
+          )
+        `),
+        selectDialecticCheckpoints: this.db.prepare(`
+          SELECT * FROM constellation_dialectic WHERE session_id = @session_id ORDER BY checkpoint_at DESC
+        `),
+        insertCorpusDecision: this.db.prepare(`
+          INSERT INTO corpus_decisions (
+            session_id, decision_type, helix_id, input_data_json, output_data_json,
+            llm_analysis_json, confidence, timestamp
+          ) VALUES (
+            @session_id, @decision_type, @helix_id, @input_data_json, @output_data_json,
+            @llm_analysis_json, @confidence, @timestamp
+          )
+        `),
+        selectCorpusDecisions: this.db.prepare(`
+          SELECT * FROM corpus_decisions WHERE session_id = @session_id ORDER BY timestamp DESC
+        `),
+        insertBranchLifecycleEvent: this.db.prepare(`
+          INSERT INTO branch_lifecycle_events (
+            session_id, helix_id, event_type, metrics_json, context_json, timestamp
+          ) VALUES (
+            @session_id, @helix_id, @event_type, @metrics_json, @context_json, @timestamp
+          )
+        `),
+        selectBranchLifecycleEvents: this.db.prepare(`
+          SELECT * FROM branch_lifecycle_events WHERE session_id = @session_id AND helix_id = @helix_id ORDER BY timestamp DESC
+        `),
+        insertBlackboardArchive: this.db.prepare(`
+          INSERT INTO blackboard_archives (
+            session_id, helix_id, channel_data_json, scratchpad_json, tool_log_json,
+            artifacts_json, plan_json, report_json, archived_at
+          ) VALUES (
+            @session_id, @helix_id, @channel_data_json, @scratchpad_json, @tool_log_json,
+            @artifacts_json, @plan_json, @report_json, @archived_at
+          )
+        `),
+        selectBlackboardArchives: this.db.prepare(`
+          SELECT * FROM blackboard_archives WHERE session_id = @session_id ORDER BY archived_at DESC
+        `),
+        insertTrainingSignal: this.db.prepare(`
+          INSERT INTO training_signals (
+            session_id, signal_type, source_helix_id, data_json, quality_score, extracted_at
+          ) VALUES (
+            @session_id, @signal_type, @source_helix_id, @data_json, @quality_score, @extracted_at
+          )
+        `),
+        selectTrainingSignals: this.db.prepare(`
+          SELECT * FROM training_signals WHERE session_id = @session_id ORDER BY extracted_at DESC
         `),
       }
     }
