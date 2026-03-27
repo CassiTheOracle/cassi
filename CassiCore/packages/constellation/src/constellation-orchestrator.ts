@@ -203,6 +203,10 @@ export function createConstellationOrchestrator(
         onCorpusReady: (liveState) => {
           log.info('Registering constellation live state', { constellationId: sessionId })
           registry.register(liveState)
+
+          // Update the running entry so getProgress/getTree can serve it
+          const entry = running.get(sessionId)
+          if (entry) entry.liveState = liveState
         },
 
         // Wire up cancel mechanism
