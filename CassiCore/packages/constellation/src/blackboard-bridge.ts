@@ -100,9 +100,10 @@ export class BlackboardBridge {
   // De-duplication tracking (set of forwarded entry IDs)
   private readonly forwardedIds: Set<string> = new Set()
 
-  // Rate limiting state
+  // Rate limiting state (capped at 100 entries per direction to prevent unbounded growth)
   private readonly childToParentTimestamps: number[] = []
   private readonly parentToChildTimestamps: number[] = []
+  private readonly maxRateLimitEntries = 100
 
   // Statistics
   private stats: BlackboardBridgeStats = {
@@ -257,7 +258,15 @@ export class BlackboardBridge {
       return
     }
 
-    // Mark as forwarded
+    // Mark as forwarded (with size limit to prevent unbounded growth)
+    if (this.forwardedIds.size >= 1000) {
+      // Clear oldest 20% of entries when limit reached
+      const entriesToDelete = Math.floor(1000 * 0.2)
+      const entries = Array.from(this.forwardedIds).slice(0, entriesToDelete)
+      for (const id of entries) {
+        this.forwardedIds.delete(id)
+      }
+    }
     this.forwardedIds.add(entry.id)
 
     // Build forwarded content with prefix
@@ -323,7 +332,15 @@ export class BlackboardBridge {
       return
     }
 
-    // Mark as forwarded
+    // Mark as forwarded (with size limit to prevent unbounded growth)
+    if (this.forwardedIds.size >= 1000) {
+      // Clear oldest 20% of entries when limit reached
+      const entriesToDelete = Math.floor(1000 * 0.2)
+      const entries = Array.from(this.forwardedIds).slice(0, entriesToDelete)
+      for (const id of entries) {
+        this.forwardedIds.delete(id)
+      }
+    }
     this.forwardedIds.add(entry.id)
 
     // Build forwarded content with prefix
@@ -382,7 +399,15 @@ export class BlackboardBridge {
       return
     }
 
-    // Mark as forwarded
+    // Mark as forwarded (with size limit to prevent unbounded growth)
+    if (this.forwardedIds.size >= 1000) {
+      // Clear oldest 20% of entries when limit reached
+      const entriesToDelete = Math.floor(1000 * 0.2)
+      const entries = Array.from(this.forwardedIds).slice(0, entriesToDelete)
+      for (const id of entries) {
+        this.forwardedIds.delete(id)
+      }
+    }
     this.forwardedIds.add(entry.id)
 
     // Build forwarded content with prefix
@@ -426,22 +451,28 @@ export class BlackboardBridge {
    */
   private checkRateLimit(direction: 'childToParent' | 'parentToChild'): boolean {
     const now = Date.now()
-    const windowStart = now - 1000 // 1 second window
+    const windowMs = 1000 // 1 second window
     const timestamps = direction === 'childToParent'
       ? this.childToParentTimestamps
       : this.parentToChildTimestamps
 
-    // Remove timestamps outside the 1-second window
-    while (timestamps.length > 0 && timestamps[0] < windowStart) {
+    // Remove timestamps outside the window
+    const cutoff = now - windowMs
+    while (timestamps.length > 0 && timestamps[0] < cutoff) {
       timestamps.shift()
     }
 
-    // Check if we're at the limit
+    // Prevent unbounded growth - cap the array size
+    if (timestamps.length > this.maxRateLimitEntries) {
+      timestamps.splice(0, timestamps.length - this.maxRateLimitEntries)
+    }
+
+    // Check if under limit
     if (timestamps.length >= MAX_FORWARDS_PER_SECOND) {
       return false
     }
 
-    // Add current timestamp
+    // Record this forward
     timestamps.push(now)
     return true
   }

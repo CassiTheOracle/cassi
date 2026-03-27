@@ -107,6 +107,18 @@ export type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 export { BlackboardBridge, createBridge } from './blackboard-bridge.js'
 
 
+// ── Cross-Helix Dialectic ─────────────────────────────────────────────────
+
+export { CrossHelixDialectic } from './cross-helix-dialectic.js'
+export type {
+  CrossHelixMessage,
+  CrossHelixConvergencePoint,
+  CrossHelixTension,
+  CrossHelixDialecticSnapshot,
+  CrossHelixDialecticConfig,
+} from './cross-helix-dialectic.js'
+
+
 // ── Constellation Injection Source ─────────────────────────────────────────
 
 export { ConstellationRegistry, ConstellationInjectionSource } from './constellation-injection.js'

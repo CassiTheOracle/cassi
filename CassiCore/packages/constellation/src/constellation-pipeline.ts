@@ -22,11 +22,11 @@ import type { ConstellationStore, ProgressSnapshot } from './constellation-store
 import type { BrainstemDeps } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
-import { createHelixBrainstem } from '../helix/brainstem.js'
 import { Blackboard } from '../flux-team/blackboard.js'
 import { BlackboardBridge } from './blackboard-bridge.js'
 import { Corpus } from './corpus.js'
 import { CorpusTree } from './corpus-tree.js'
+import { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import type { CorpusLLM } from './corpus-types.js'
 import type {
   FlexPosture,
@@ -75,6 +75,12 @@ export interface ConstellationPipelineOpts {
 
   /** Overall timeout for the Constellation */
   timeoutMs?: number
+
+  /** Maximum total steps across all branches before forced completion. Default: 100 */
+  maxTotalSteps?: number
+
+  /** Enable cross-Helix dialectic between spawned branches. Default: true */
+  enableCrossHelixDialectic?: boolean
 
   /** Logger instance */
   logger: ILogger
@@ -211,6 +217,11 @@ export async function runConstellationPipeline(
   constellationBlackboard.initPlan(goal)
   constellationBlackboard.initReport(goal)
 
+  // Create cross-Helix dialectic for inter-branch communication
+  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false)
+    ? new CrossHelixDialectic(log)
+    : undefined
+
   const corpus = new Corpus(
     corpusTree,
     {
@@ -220,6 +231,7 @@ export async function runConstellationPipeline(
       constellationId,
       eventBus,
       blackboard: constellationBlackboard,
+      crossHelixDialectic,
       onSpawnRequest: (req) => {
         const spawnRequest: SpawnRequest = {
           requestId: `spawn-corpus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -372,7 +384,9 @@ export async function runConstellationPipeline(
       throw err
     }
 
-    // Create Brainstem with corpus tree integration
+    // Create Brainstem deps with corpus tree integration
+    // NOTE: The actual Brainstem instance is created and started inside runHelixPipeline.
+    // We capture it via the onBrainstemCreated callback for Corpus registration.
     const brainstemDeps: BrainstemDeps = {
       llm: corpusLLM,
       logger,
@@ -402,8 +416,8 @@ export async function runConstellationPipeline(
       },
     }
 
-    const brainstem = createHelixBrainstem(brainstemDeps)
-    corpus.registerBrainstem(helixId, brainstem)
+    // The actual brainstem reference — set by onBrainstemCreated when the pipeline starts it
+    let activeBrainstem: HelixBrainstem | undefined
 
     // Create cancellation mechanism
     let cancelFn: (() => void) | undefined
@@ -429,6 +443,19 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
+      // Constellation Helixes run longer tool-call chains (drone scouts, file reads, etc.)
+      // Relax inactivity thresholds: warn=5min, escalate=10min, kill=15min
+      inactivityThresholds: {
+        warnMs: 300_000,
+        escalateMs: 600_000,
+        killMs: 900_000,
+      },
+      onWorkUnit: (wu, iteration) => {
+        // Feed work units to the RUNNING brainstem (captured from onBrainstemCreated)
+        if (activeBrainstem) {
+          activeBrainstem.onWorkUnit(wu, iteration)
+        }
+      },
       onBlackboardCreated: (childBlackboard) => {
         // Wire a BlackboardBridge between the constellation blackboard and this Helix's blackboard
         const bridge = new BlackboardBridge({
@@ -440,6 +467,21 @@ export async function runConstellationPipeline(
         bridge.start()
         blackboardBridges.set(helixId, bridge)
         helixLog.debug('Blackboard bridge started', { helixId })
+
+        // Bridge blackboard findings into cross-Helix dialectic.
+        // When this branch posts a finding, forward it to other branches.
+        if (crossHelixDialectic) {
+          childBlackboard.subscribe('findings', undefined, (entry: { content: string; tags?: string[] }) => {
+            crossHelixDialectic.postFinding(helixId, entry.content, {
+              tags: entry.tags,
+            })
+          })
+          childBlackboard.subscribe('concerns', undefined, (entry: { content: string; tags?: string[] }) => {
+            crossHelixDialectic.postFinding(helixId, `[CONCERN] ${entry.content}`, {
+              tags: [...(entry.tags ?? []), 'concern'],
+            })
+          })
+        }
       },
       onCancelRegistered: (fn) => {
         // Store the cancel function
@@ -452,8 +494,16 @@ export async function runConstellationPipeline(
         }
       },
       onBrainstemCreated: (bs) => {
-        // Brainstem is already created and registered above
-        helixLog.debug('Brainstem created callback received')
+        // Capture the pipeline's brainstem (which is started and has its runLoop active)
+        // and register it with the Corpus for tree integration
+        activeBrainstem = bs
+        corpus.registerBrainstem(helixId, bs)
+        helixLog.info('Pipeline Brainstem registered with Corpus')
+
+        // Register with cross-Helix dialectic so inter-branch messages can flow
+        if (crossHelixDialectic) {
+          crossHelixDialectic.registerBranch(helixId, bs, helixGoal)
+        }
       },
     })
 
@@ -461,6 +511,8 @@ export async function runConstellationPipeline(
     const promise = Promise.race([helixPromise, cancelPromise]).finally(() => {
       // Close branch in corpus tree
       corpusTree.closeBranch(helixId, node.status === 'completed' ? 'completed' : 'failed')
+      // Unregister from cross-Helix dialectic
+      crossHelixDialectic?.unregisterBranch(helixId)
     })
 
     const runningHelix: RunningHelix = {
@@ -469,7 +521,7 @@ export async function runConstellationPipeline(
       promise,
       cancel: cancelFn || (() => {}),
       handles,
-      brainstem,
+      brainstem: activeBrainstem,
       parentId,
       depth,
     }
@@ -616,11 +668,17 @@ export async function runConstellationPipeline(
     const spawnPoller = pollSpawnRequests()
 
     // Start periodic progress checkpoints (every 60s)
+    // Also checks maxTotalSteps limit.
     const CHECKPOINT_INTERVAL_MS = 60_000
+    const maxTotalSteps = opts.maxTotalSteps ?? 100
     if (constellationStore) {
       checkpointHandle = setInterval(() => {
         try {
           const nodeArr = Array.from(nodes.values())
+          const totalSteps = corpusTree.getSnapshot().branches.reduce(
+            (sum, b) => sum + b.stepCount, 0
+          )
+
           constellationStore.saveCheckpoint(constellationId, {
             tree: corpusTree.getSnapshot(),
             progress: corpus.getProgressSnapshot(),
@@ -631,6 +689,18 @@ export async function runConstellationPipeline(
             tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
             durationMs: Date.now() - startTime,
           })
+
+          // Check max steps limit
+          if (totalSteps >= maxTotalSteps) {
+            log.warn('Max total steps reached, cancelling Constellation', {
+              totalSteps,
+              maxTotalSteps,
+              branches: nodeArr.length,
+            })
+            for (const running of runningHelixes.values()) {
+              try { running.cancel() } catch (_e) { /* best effort */ }
+            }
+          }
         } catch (err) {
           log.warn('Checkpoint save failed', { error: String(err) })
         }

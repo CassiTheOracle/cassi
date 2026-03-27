@@ -195,6 +195,9 @@ export interface BranchAssessment {
 
   /** When this branch last had activity */
   lastActivityAt: number
+
+  /** Whether an auto-spawn has already been triggered for this branch */
+  autoSpawnTriggered?: boolean
 }
 
 /** Branch health as assessed by the Corpus (distinct from CorpusBranchStatus) */
@@ -354,6 +357,8 @@ export interface CorpusConfig {
   postToBlackboard: boolean
   /** Whether the Corpus is enabled. Default: true */
   enabled: boolean
+  /** Interventions before auto-spawning a decomposition branch. Default: 5 */
+  autoSpawnInterventionThreshold: number
 }
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
@@ -369,6 +374,7 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   decliningScoreThreshold: 3,
   postToBlackboard: true,
   enabled: true,
+  autoSpawnInterventionThreshold: 5,
 }
 
 
@@ -401,6 +407,8 @@ export interface CorpusDeps {
   blackboard?: CorpusBlackboard
   /** Callback to submit a spawn request to the pipeline queue */
   onSpawnRequest?: (request: { goal: string; context?: string; template?: string; requestingHelixId: string }) => void
+  /** Optional cross-Helix dialectic for inter-branch communication */
+  crossHelixDialectic?: import('./cross-helix-dialectic.js').CrossHelixDialectic
 }
 
 /**

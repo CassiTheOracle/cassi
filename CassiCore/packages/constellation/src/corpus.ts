@@ -251,6 +251,13 @@ export class Corpus {
           await this.runLLMAnalysis(newPatterns)
         }
 
+        // Auto-spawn check: if a branch has received many interventions
+        // without improvement, decompose its goal via spawn
+        this.checkAutoSpawn()
+
+        // Mediate cross-Helix dialectic if tensions have accumulated
+        this.mediateCrossHelixDialectic()
+
         // Update sweep stats
         this.state.sweepCount++
         this.state.lastSweepAt = Date.now()
@@ -522,6 +529,105 @@ export class Corpus {
   }
 
   /**
+   * Check if any branch should be auto-spawned due to repeated intervention failure.
+   *
+   * Heuristic: if a branch has received >= autoSpawnInterventionThreshold interventions
+   * AND its rollingScore is still below the struggling threshold, the current approach
+   * (steering) has failed. Decompose the goal into a sub-Helix instead.
+   *
+   * We only auto-spawn once per branch to avoid spawn storms.
+   */
+  private checkAutoSpawn(): void {
+    if (!this.deps.onSpawnRequest) return
+
+    const minInterventions = this.config.autoSpawnInterventionThreshold ?? 5
+    const branches = this.tree.getAllBranches()
+
+    for (const branch of branches) {
+      if (branch.status !== 'active') continue
+
+      const assessment = this.state.branchAssessments.get(branch.helixId)
+      if (!assessment) continue
+
+      // Count interventions targeting this branch
+      const branchInterventions = this.state.interventions.filter(
+        (i) => i.targetHelixId === branch.helixId
+      ).length
+
+      // Only auto-spawn if: enough interventions, still struggling, hasn't already auto-spawned
+      if (
+        branchInterventions >= minInterventions &&
+        assessment.rollingScore < this.config.strugglingScoreThreshold &&
+        !assessment.autoSpawnTriggered
+      ) {
+        assessment.autoSpawnTriggered = true
+
+        const spawnGoal = `Focused sub-task: break through the stalling on "${branch.goal.slice(0, 120)}". ` +
+          `The parent branch has received ${branchInterventions} interventions without improvement ` +
+          `(rollingScore=${assessment.rollingScore.toFixed(2)}). ` +
+          `Take a different approach — prioritize concrete implementation over continued exploration.`
+
+        this.deps.onSpawnRequest({
+          requestingHelixId: branch.helixId,
+          goal: spawnGoal,
+          context: `Auto-spawn triggered: ${branchInterventions} interventions, rollingScore=${assessment.rollingScore.toFixed(2)}`,
+        })
+
+        this.logger.info('Auto-spawn triggered for struggling branch', {
+          helixId: branch.helixId,
+          interventions: branchInterventions,
+          rollingScore: assessment.rollingScore.toFixed(2),
+        })
+
+        this.emitEvent('corpus:auto-spawn', {
+          helixId: branch.helixId,
+          interventions: branchInterventions,
+          rollingScore: assessment.rollingScore,
+        })
+      }
+    }
+  }
+
+  /**
+   * Mediate cross-Helix dialectic tensions.
+   * The Corpus acts as the Executive in the cross-branch dialectic —
+   * reviewing tensions and injecting steering to resolve them.
+   */
+  private mediateCrossHelixDialectic(): void {
+    const dialectic = this.deps.crossHelixDialectic
+    if (!dialectic || !dialectic.shouldMediate()) return
+
+    const snapshot = dialectic.getSnapshot()
+    const unresolved = snapshot.unresolvedTensions.filter((t) => !t.escalatedToCorpus)
+
+    if (unresolved.length > 0) {
+      // Mediate the most recent tension
+      const tension = unresolved[0]
+      const mediationText =
+        `MEDIATING CROSS-BRANCH TENSION: ` +
+        `Branch "${tension.positionA.branchId}" asserts: "${tension.positionA.text.slice(0, 100)}". ` +
+        `Branch "${tension.positionB.branchId}" counters: "${tension.positionB.text.slice(0, 100)}". ` +
+        `Consider both perspectives and look for the synthesis — what would reconcile these positions?`
+
+      dialectic.injectCorpusMediation(mediationText, 'all')
+      tension.escalatedToCorpus = true
+
+      this.logger.info('Corpus mediated cross-branch tension', {
+        branchA: tension.positionA.branchId,
+        branchB: tension.positionB.branchId,
+      })
+    } else if (snapshot.convergencePoints.length > 0) {
+      // Reinforce convergence
+      const latest = snapshot.convergencePoints[snapshot.convergencePoints.length - 1]
+      dialectic.injectCorpusMediation(
+        `CONVERGENCE REINFORCED: Branches ${latest.participants.join(' and ')} have converged on: ` +
+        `"${latest.topic.slice(0, 120)}". Build on this agreement.`,
+        'all',
+      )
+    }
+  }
+
+  /**
    * Run LLM analysis for strategic assessment
    */
   private async runLLMAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
@@ -569,21 +675,33 @@ export class Corpus {
             .join('\n')}`
         : ''
 
+    // Include cross-Helix dialectic state if available
+    const dialecticSummary = this.deps.crossHelixDialectic?.getDialecticSummaryForCorpus() ?? ''
+    const dialecticSection = dialecticSummary
+      ? `\n${dialecticSummary}\n`
+      : ''
+
     return `I am the Corpus — the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} branches, analyzing cross-Helix patterns and making spawn/intervention decisions.
 
 ## Branch Assessments
-${branchDetails}${patternDetails}
+${branchDetails}${patternDetails}${dialecticSection}
 
 ## My Task
 Provide strategic assessment:
 
 ASSESSMENT: <brief assessment of overall constellation health>
 INTERVENTION[helixId]: <directive type:guidance|redirect|throttle|priority-shift|cancel>:<urgency:low|medium|high|critical>:<guidance text> (or NONE)
+SPAWN[parentHelixId]: <goal for new sub-Helix> (or NONE)
 SYNTHESIS: <strategic synthesis for Cassi, or NONE>
 
 Guidelines:
 - ASSESSMENT: Summarize the health of all branches and any concerning patterns
 - INTERVENTION: Only if a specific Helix needs steering. Use helixId from above.
+- SPAWN: Request a new sub-Helix when:
+  (a) A branch reveals a sub-problem that would benefit from dedicated, parallel investigation
+  (b) A branch has received 3+ interventions without meaningful improvement (avgScore still declining)
+  (c) The goal naturally decomposes into independent sub-problems that could run concurrently
+  Use the parentHelixId of the branch that surfaced the need. Each spawn should have a focused, specific goal. NONE if no spawn needed.
 - SYNTHESIS: Strategic insights for the Constellation level, or NONE if routine
 - Be concise — this runs in a tight loop`
   }
@@ -650,8 +768,39 @@ Guidelines:
       })
     }
 
+    // Parse SPAWN lines — SPAWN[parentHelixId]: <goal>
+    const spawnRegex = /SPAWN\s*[\[(\s]([^\]\):\n]+)[\])\s]*[:\s]\s*(.+)/gi
+    let spawnMatch
+    while ((spawnMatch = spawnRegex.exec(response)) !== null) {
+      const parentHelixId = spawnMatch[1].trim()
+      const spawnGoal = spawnMatch[2].trim()
+
+      if (spawnGoal.toUpperCase() === 'NONE') continue
+
+      if (this.deps.onSpawnRequest) {
+        this.deps.onSpawnRequest({
+          requestingHelixId: parentHelixId,
+          goal: spawnGoal,
+          context: assessment,
+        })
+        this.logger.info('Spawn request submitted from Corpus LLM analysis', {
+          parentHelixId,
+          goal: spawnGoal.slice(0, 100),
+        })
+        this.emitEvent('corpus:spawn-requested', {
+          parentHelixId,
+          goal: spawnGoal.slice(0, 100),
+        })
+      } else {
+        this.logger.warn('Corpus LLM requested spawn but onSpawnRequest not wired', {
+          parentHelixId,
+          goal: spawnGoal.slice(0, 100),
+        })
+      }
+    }
+
     // Parse SYNTHESIS — try structured, then fall back to last paragraph
-    const synthesisMatch = response.match(/SYNTHESIS:\s*(.+?)(?=\n(?:ASSESSMENT|INTERVENTION)|$)/is)
+    const synthesisMatch = response.match(/SYNTHESIS:\s*(.+?)(?=\n(?:ASSESSMENT|INTERVENTION|SPAWN)|$)/is)
     let synthesis = synthesisMatch?.[1]?.trim()
     if (!synthesis || synthesis.toUpperCase() === 'NONE') {
       // No explicit synthesis — that's fine, not every sweep needs one
