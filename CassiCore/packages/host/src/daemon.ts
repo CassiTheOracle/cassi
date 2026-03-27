@@ -24,6 +24,7 @@ import { createProviderProfiler, type ProviderProfiler } from './intelligence/pr
 import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
 import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
 import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
+import { TelegramDirectMode, createTelegramDirectMode } from './daemon/telegram-direct-mode.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
 import { setContextWindowDebugger, contextWindowDebugMiddleware } from './turn-pipeline.js'
 import { createSessionDigestStore, type SessionDigestStore } from './intelligence/session-digest.js'
@@ -212,6 +213,7 @@ export class Daemon {
   /** Session pipeline integration */
   public sessionPipeline?: import('./pipeline/adapter/SessionPipeline.js').SessionPipeline
   public budgetTracker?: BudgetTracker
+  private telegramDirectMode?: TelegramDirectMode
   public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
   /** Lumen ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
@@ -1077,7 +1079,13 @@ export class Daemon {
     // Config accepts both "allowedChatIds" and "allowFrom" key names for the allowlist.
     const tgEnabled = this.config.get<boolean>("channels.telegram.enabled", false)
     const tgToken = this.config.get<string>("channels.telegram.token", "")
-                 || this.config.get<string>("channels.telegram.botToken", "")
+               || this.config.get<string>("channels.telegram.botToken", "")
+
+    // Initialize Telegram direct session mode (enabled/disabled via config)
+    this.telegramDirectMode = createTelegramDirectMode(this.config, this.logger)
+    if (this.telegramDirectMode?.enabled) {
+      this.logger.info('[telegram] Direct session mode enabled — Telegram messages route to primary session')
+    }
     if (tgEnabled && tgToken) {
       const tgPath = resolveWorker("../workers/channels/telegram")
       if (!tgPath) {
@@ -2391,6 +2399,11 @@ export class Daemon {
               } else if (payload.type === 'turn:token' && payload.token) {
                 // Stream token to channel — done=false keeps stream open
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.token as string, done: false })
+                // Fan out to Telegram if this turn was triggered via direct mode
+                const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
+                if (tgSrc) {
+                  this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: payload.token as string, done: false })
+                }
                 return
               } else if (payload.type === 'turn:thinking' && payload.token) {
                 // Thinking tokens are processed by subconscious but not displayed in CLI
@@ -2506,6 +2519,18 @@ export class Daemon {
           if (content && content.startsWith('/')) {
             const handled = await this.commands.handle(sid, pluginId, content);
             if (handled) return;
+          }
+
+          // Direct session mode: re-route Telegram messages to Cassi's primary session
+          if (pluginId === 'channel:telegram' && this.telegramDirectMode?.enabled && !payload.type) {
+            const primarySid = this.telegramDirectMode.resolveSession(this.sessions.list())
+            if (primarySid && primarySid !== sid) {
+              this.telegramDirectMode.trackTurn(primarySid, sid)
+              payload.sessionId = primarySid
+              this.logger.debug('[telegram] Direct mode: re-routing to primary session', {
+                from: sid, to: primarySid,
+              })
+            }
           }
 
           // When the OpenCode channel captures a completed turn (user message +
@@ -2734,6 +2759,12 @@ export class Daemon {
         const s = this.sessions.get(sid)
         if (s?.channelId) {
           this.pluginHost.send(s.channelId, { sessionId: sid, content: '', done: true })
+        }
+        // Fan out done signal to Telegram if this turn was triggered via direct mode
+        const tgSrc = this.telegramDirectMode?.getTelegramSource(sid)
+        if (tgSrc) {
+          this.pluginHost.send('channel:telegram', { sessionId: tgSrc, content: '', done: true })
+          this.telegramDirectMode!.clearTurn(sid)
         }
       } catch (err) {
         this.logger.warn(`failed to finalize stream for ${sid}: ${String(err)}`)
