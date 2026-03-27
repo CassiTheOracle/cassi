@@ -402,6 +402,9 @@ export interface ConstellationResult {
   /** All spawn requests made during execution. */
   spawnRequests: SpawnRequest[]
 
+  /** Corpus result — cross-Helix reasoning tree and strategic analysis. */
+  corpus?: import('./corpus-types.js').CorpusResult
+
   /** Error message if the Constellation failed. */
   error?: string
 }

@@ -1,8 +1,7 @@
 /**
  * Constellation — Self-organizing, recursively composable multi-agent system.
  *
- * Phase 1 exports: types, FlexPosture system, and templates.
- * Later phases add: pipeline, orchestrator, spawning, blackboard bridges, drone integration.
+ * Exports: types, FlexPosture system, templates, Corpus tree, and Corpus organizer.
  */
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -54,3 +53,67 @@ export {
   describeTemplate,
   resolvePostures,
 } from './templates.js'
+
+
+// ── Corpus Types ───────────────────────────────────────────────────────────
+
+export type {
+  ICorpusTree,
+  CorpusBranch,
+  CorpusBranchStatus,
+  CorpusStep,
+  CorpusTreeSnapshot,
+  CorpusBranchSnapshot,
+  CorpusProcessedState,
+  BranchAssessment,
+  BranchHealthStatus,
+  CrossHelixPattern,
+  CrossHelixPatternType,
+  CorpusDirective,
+  CorpusDirectiveType,
+  SpawnDecision,
+  CorpusConfig,
+  CorpusDeps,
+  CorpusLLM,
+  CorpusBlackboard,
+  CorpusResult,
+  CorpusIntervention,
+} from './corpus-types.js'
+
+export {
+  DEFAULT_CORPUS_CONFIG,
+  createInitialProcessedState,
+} from './corpus-types.js'
+
+
+// ── Corpus Tree ────────────────────────────────────────────────────────────
+
+export { CorpusTree } from './corpus-tree.js'
+
+
+// ── Corpus Organizer ───────────────────────────────────────────────────────
+
+export { Corpus, createCorpus } from './corpus.js'
+
+
+// ── Constellation Pipeline ─────────────────────────────────────────────────
+
+export { runConstellationPipeline } from './constellation-pipeline.js'
+export type { ConstellationPipelineOpts } from './constellation-pipeline.js'
+
+
+// ── Blackboard Bridge ──────────────────────────────────────────────────────
+
+export { BlackboardBridge, createBridge } from './blackboard-bridge.js'
+
+
+// ── Constellation Injection Source ─────────────────────────────────────────
+
+export { ConstellationRegistry, ConstellationInjectionSource } from './constellation-injection.js'
+export type { ConstellationLiveState } from './constellation-injection.js'
+
+
+// ── Constellation Orchestrator ─────────────────────────────────────────────
+
+export { createConstellationOrchestrator } from './constellation-orchestrator.js'
+export type { ConstellationOrchestrator } from './constellation-orchestrator.js'

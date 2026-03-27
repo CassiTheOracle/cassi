@@ -20,31 +20,44 @@
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ICorpusTree, CorpusProcessedState, BranchAssessment, CrossHelixPattern, CorpusIntervention, SpawnDecision, CorpusResult, CorpusDirective, CorpusConfig, CorpusDeps } from './corpus-types.js'
-import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern } from '../helix/brainstem-types.js'
-import { DEFAULT_CORPUS_CONFIG, createInitialProcessedState } from './corpus-types.js'
+import type {
+  ICorpusTree,
+  CorpusConfig,
+  CorpusDeps,
+  CorpusProcessedState,
+  CorpusResult,
+  BranchAssessment,
+  BranchHealthStatus,
+  CrossHelixPattern,
+  CrossHelixPatternType,
+  CorpusDirective,
+  CorpusDirectiveType,
+  CorpusIntervention,
+  SpawnDecision,
+  CorpusBlackboard,
+  CorpusBranch,
+  CorpusStep,
+} from './corpus-types.js'
+import type { SpawnRequest, ConstellationTemplate } from './types.js'
+import {
+  DEFAULT_CORPUS_CONFIG,
+  createInitialProcessedState,
+} from './corpus-types.js'
+import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern, GuidanceUrgency } from '../helix/brainstem-types.js'
 
 /**
- * Minimal interface for Brainstem references to avoid circular imports.
- * The Corpus only needs to send directives to child Brainstems.
+ * Minimal interface for child Brainstem to avoid circular imports.
+ * The Corpus only needs to send directives to registered Brainstems.
  */
 interface MinimalBrainstem {
   onCorpusDirective?: (directive: CorpusDirective) => void
 }
 
 /**
- * Sleep helper for async delays.
- */
-function sleep(ms: number): Promise<void> {
-  return new Promise((r) => setTimeout(r, ms))
-}
-
-/**
  * Corpus — The strategic organizer of a Constellation.
  *
- * Has its own async LLM loop that reads the shared CorpusTree,
- * detects cross-branch patterns, evaluates spawn requests,
- * and sends directives to child Brainstems.
+ * Reads from the shared CorpusTree, detects cross-branch patterns,
+ * evaluates spawn requests, and sends directives to child Brainstems.
  */
 export class Corpus {
   private tree: ICorpusTree
@@ -53,8 +66,8 @@ export class Corpus {
   private state: CorpusProcessedState
   private logger: ILogger
 
-  // Child Brainstem registry
-  private childBrainstems: Map<string, MinimalBrainstem>
+  // Child Brainstems registry (helixId -> MinimalBrainstem)
+  private childBrainstems: Map<string, MinimalBrainstem> = new Map()
 
   // Async loop control
   private running = false
@@ -64,8 +77,8 @@ export class Corpus {
   // Timing
   private startTime = 0
 
-  // Steps processed since last LLM analysis
-  private stepsSinceLastAnalysis = 0
+  // Counter for LLM analysis triggering
+  private newStepsSinceLLM = 0
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -73,7 +86,6 @@ export class Corpus {
     this.config = { ...DEFAULT_CORPUS_CONFIG, ...config }
     this.state = createInitialProcessedState()
     this.logger = deps.logger.child('Corpus')
-    this.childBrainstems = new Map()
 
     this.logger.info('Corpus initialized', {
       constellationId: deps.constellationId,
@@ -82,7 +94,7 @@ export class Corpus {
   }
 
   /**
-   * Start the async Corpus loop.
+   * Start the async Corpus loop
    */
   async start(): Promise<void> {
     if (!this.config.enabled) {
@@ -105,7 +117,7 @@ export class Corpus {
   }
 
   /**
-   * Stop the Corpus loop gracefully.
+   * Stop the Corpus loop gracefully
    */
   async stop(): Promise<void> {
     if (!this.running) {
@@ -124,19 +136,18 @@ export class Corpus {
     this.logger.info('Corpus stopped', {
       durationMs: Date.now() - this.startTime,
       sweeps: this.state.sweepCount,
-      interventions: this.state.interventions.length,
     })
   }
 
   /**
-   * Check if the Corpus loop is running.
+   * Check if Corpus is running
    */
   isRunning(): boolean {
     return this.running
   }
 
   /**
-   * Register a child Brainstem to receive directives.
+   * Register a child Brainstem for directive delivery
    */
   registerBrainstem(helixId: string, brainstem: MinimalBrainstem): void {
     this.childBrainstems.set(helixId, brainstem)
@@ -144,115 +155,94 @@ export class Corpus {
   }
 
   /**
-   * Evaluate a spawn request using LLM analysis.
+   * Evaluate a spawn request via LLM
    */
-  async evaluateSpawnRequest(request: {
-    helixId: string
-    template: string
-    goal: string
-    depth: number
-    reason: string
-  }): Promise<SpawnDecision> {
-    const prompt = this.buildSpawnEvaluationPrompt(request)
-
-    try {
-      const response = await this.deps.llm.complete({
-        prompt,
-        modelTier: this.config.modelTier,
-        maxTokens: this.config.maxTokens,
-        timeoutMs: this.config.timeoutMs,
-      })
-
-      const decision = this.parseSpawnDecision(response.content, request)
-
-      this.state.spawnDecisions.push(decision)
-      this.emitEvent('corpus:spawn-evaluated', {
-        helixId: request.helixId,
-        approved: decision.approved,
-        reason: decision.reason,
-      })
-
-      return decision
-    } catch (error) {
-      this.logger.error('Failed to evaluate spawn request', {
-        error: error instanceof Error ? error.message : String(error),
-        helixId: request.helixId,
-      })
-
-      // Return rejected decision on error
-      const fallbackDecision: SpawnDecision = {
-        approved: false,
-        reason: `LLM evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
-        evaluatedAt: Date.now(),
-        request,
-      }
-      this.state.spawnDecisions.push(fallbackDecision)
-      return fallbackDecision
-    }
+  async evaluateSpawnRequest(request: SpawnRequest): Promise<SpawnDecision> {
+    const decision = await this.runSpawnEvaluation(request)
+    this.state.spawnDecisions.push(decision)
+    this.emitEvent('corpus:spawn-decision', {
+      requestId: request.requestId,
+      approved: decision.approved,
+      reason: decision.reason,
+    })
+    return decision
   }
 
   /**
-   * Get the Corpus result for final ConstellationResult.
+   * Get Corpus result for final ConstellationResult
    */
   getResult(): CorpusResult {
+    const assessments = Array.from(this.state.branchAssessments.values()).map((ba) => ({
+      helixId: ba.helixId,
+      status: ba.status,
+      rollingScore: ba.rollingScore,
+      dominantPattern: ba.dominantPattern,
+    }))
+
     return {
-      treeSnapshot: this.tree.getSnapshot(),
-      branchAssessments: this.state.branchAssessments,
-      crossPatterns: this.state.crossPatterns,
-      interventions: this.state.interventions,
-      spawnDecisions: this.state.spawnDecisions,
+      tree: this.tree.getSnapshot(),
+      branchAssessments: assessments,
+      crossPatterns: [...this.state.crossPatterns],
+      interventions: [...this.state.interventions],
+      spawnDecisions: [...this.state.spawnDecisions],
       sweepCount: this.state.sweepCount,
       durationMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
     }
   }
 
   /**
-   * Main async loop.
+   * Main async loop
    */
   private async runLoop(): Promise<void> {
     while (!this.shutdownRequested) {
       try {
+        // Count pending steps
         const pending = this.tree.pendingStepCount(this.state.cursors)
 
         if (pending === 0) {
-          await sleep(this.config.idlePollMs)
+          // Idle poll
+          await this.sleep(this.config.idlePollMs)
           continue
         }
 
-        // Process new steps from all branches
+        // Process new steps
         this.processNewSteps()
 
         // Detect cross-branch patterns
         const newPatterns = this.detectCrossPatterns()
 
-        // If enough new data or patterns found, run LLM analysis
+        // Run LLM analysis if needed
         if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
           await this.runLLMAnalysis(newPatterns)
         }
 
+        // Update sweep stats
         this.state.sweepCount++
         this.state.lastSweepAt = Date.now()
 
         // Emit sweep event
         this.emitEvent('corpus:sweep', {
           branches: this.tree.activeBranchCount(),
-          patterns: newPatterns.length,
+          patterns: this.state.crossPatterns.length,
+          sweepCount: this.state.sweepCount,
         })
       } catch (error) {
         this.logger.error('Error in Corpus loop', {
           error: error instanceof Error ? error.message : String(error),
         })
         // Continue loop despite errors
-        await sleep(this.config.idlePollMs)
+        await this.sleep(this.config.idlePollMs)
       }
     }
   }
 
   /**
-   * Process new steps from all branches.
+   * Process new steps from all branches
    */
   private processNewSteps(): void {
-    for (const branch of this.tree.getAllBranches()) {
+    const branches = this.tree.getAllBranches()
+
+    for (const branch of branches) {
       const cursor = this.state.cursors.get(branch.helixId) ?? 0
       const newSteps = branch.steps.slice(cursor)
 
@@ -263,41 +253,46 @@ export class Corpus {
       // Get or create branch assessment
       let assessment = this.state.branchAssessments.get(branch.helixId)
       if (!assessment) {
-        assessment = {
-          helixId: branch.helixId,
-          status: 'productive',
-          rollingScore: 0,
-          scoreTrajectory: [],
-          dominantPattern: 'none',
-          filesModified: new Set(),
-          decliningScoreStreak: 0,
-          lastActivityAt: Date.now(),
-        }
+        assessment = this.createInitialBranchAssessment(branch.helixId)
         this.state.branchAssessments.set(branch.helixId, assessment)
       }
 
-      // Process new steps
-      for (const step of newSteps) {
-        this.updateAssessment(assessment, step.annotation)
-      }
+      // Update assessment with new steps
+      this.updateBranchAssessment(assessment, newSteps, branch)
 
       // Advance cursor
       this.state.cursors.set(branch.helixId, cursor + newSteps.length)
-      this.stepsSinceLastAnalysis += newSteps.length
+      this.newStepsSinceLLM += newSteps.length
     }
   }
 
   /**
-   * Update a branch assessment with a new annotation.
+   * Create initial branch assessment
    */
-  private updateAssessment(
+  private createInitialBranchAssessment(helixId: string): BranchAssessment {
+    return {
+      helixId,
+      status: 'active',
+      rollingScore: 0.5,
+      scoreTrajectory: [],
+      dominantPattern: 'none',
+      filesModified: new Set(),
+      decliningScoreStreak: 0,
+      lastActivityAt: Date.now(),
+    }
+  }
+
+  /**
+   * Update branch assessment with new steps
+   */
+  private updateBranchAssessment(
     assessment: BranchAssessment,
-    annotation: BrainstemAnnotation
+    newSteps: CorpusStep[],
+    branch: CorpusBranch
   ): void {
-    // Add score to trajectory
-    assessment.scoreTrajectory.push(annotation.score)
-    if (assessment.scoreTrajectory.length > 20) {
-      assessment.scoreTrajectory.shift()
+    // Add new scores to trajectory
+    for (const step of newSteps) {
+      assessment.scoreTrajectory.push(step.annotation.score)
     }
 
     // Compute rolling score (average of last 5)
@@ -306,228 +301,196 @@ export class Corpus {
       recentScores.reduce((a, b) => a + b, 0) / recentScores.length
 
     // Track dominant pattern (most frequent in last 5)
-    const recentAnnotations = assessment.scoreTrajectory
-      .slice(-5)
-      .map((_, i) => {
-        const idx = assessment.scoreTrajectory.length - 5 + i
-        // We need to track annotations separately, but for now use the pattern
-        return annotation.annotation
-      })
-    assessment.dominantPattern = this.computeDominantPattern(recentAnnotations)
-
-    // Track files modified (use workUnitId as proxy)
-    assessment.filesModified.add(annotation.workUnitId)
-
-    // Track declining score streak
-    if (assessment.scoreTrajectory.length >= 2) {
-      const last = assessment.scoreTrajectory[assessment.scoreTrajectory.length - 1]
-      const prev = assessment.scoreTrajectory[assessment.scoreTrajectory.length - 2]
-      if (last < prev) {
-        assessment.decliningScoreStreak++
-      } else {
-        assessment.decliningScoreStreak = 0
+    const recentAnnotations = newSteps.slice(-5).map((s) => s.annotation.annotation)
+    const patternCounts = new Map<WorkUnitAnnotation | 'none', number>()
+    for (const ann of recentAnnotations) {
+      patternCounts.set(ann, (patternCounts.get(ann) ?? 0) + 1)
+    }
+    let maxCount = 0
+    let dominant: WorkUnitAnnotation | 'none' = 'none'
+    for (const [pattern, count] of patternCounts.entries()) {
+      if (count > maxCount) {
+        maxCount = count
+        dominant = pattern
       }
     }
+    assessment.dominantPattern = dominant
 
-    // Update status based on conditions
-    if (assessment.rollingScore < this.config.strugglingScoreThreshold) {
-      assessment.status = 'struggling'
-    } else if (assessment.decliningScoreStreak >= this.config.decliningScoreThreshold) {
-      assessment.status = 'struggling'
-    } else if (assessment.dominantPattern === 'drift') {
-      assessment.status = 'drifting'
-    } else {
-      assessment.status = 'productive'
+    // Track files modified (using workUnitId as proxy)
+    for (const step of newSteps) {
+      assessment.filesModified.add(step.annotation.workUnitId)
     }
 
+    // Track declining score streak
+    const trajectory = assessment.scoreTrajectory
+    let decliningStreak = 0
+    for (let i = trajectory.length - 1; i > 0; i--) {
+      if (trajectory[i] < trajectory[i - 1]) {
+        decliningStreak++
+      } else {
+        break
+      }
+    }
+    assessment.decliningScoreStreak = decliningStreak
+
+    // Update status
+    assessment.status = this.determineBranchHealthStatus(assessment, branch)
     assessment.lastActivityAt = Date.now()
   }
 
   /**
-   * Compute the dominant pattern from recent annotations.
+   * Determine branch health status based on assessment
    */
-  private computeDominantPattern(annotations: WorkUnitAnnotation[]): WorkUnitAnnotation | 'none' {
-    if (annotations.length === 0) return 'none'
+  private determineBranchHealthStatus(
+    assessment: BranchAssessment,
+    branch: CorpusBranch
+  ): BranchHealthStatus {
+    // Check branch lifecycle status first
+    if (branch.status === 'completed') return 'completed'
+    if (branch.status === 'failed') return 'failed'
+    if (branch.status === 'cancelled') return 'completed'
 
-    const counts = new Map<WorkUnitAnnotation, number>()
-    for (const ann of annotations) {
-      counts.set(ann, (counts.get(ann) ?? 0) + 1)
+    // Check for struggling
+    if (assessment.rollingScore < this.config.strugglingScoreThreshold) {
+      return 'struggling'
     }
 
-    let maxCount = 0
-    let dominant: WorkUnitAnnotation | 'none' = 'none'
-    for (const [ann, count] of counts) {
-      if (count > maxCount) {
-        maxCount = count
-        dominant = ann
-      }
+    // Check for declining streak
+    if (assessment.decliningScoreStreak >= this.config.decliningScoreThreshold) {
+      return 'struggling'
     }
 
-    return dominant
+    // Check for drift
+    if (assessment.dominantPattern === 'drift') {
+      return 'drifting'
+    }
+
+    return 'productive'
   }
 
   /**
-   * Detect cross-branch patterns.
+   * Detect cross-branch patterns
    */
   private detectCrossPatterns(): CrossHelixPattern[] {
-    const newPatterns: CrossHelixPattern[] = []
+    const patterns: CrossHelixPattern[] = []
     const assessments = Array.from(this.state.branchAssessments.values())
     const branches = this.tree.getAllBranches()
 
-    // 1. Conflict detection: Compare filesModified Sets across branches
+    // 1. Conflict: filesModified Set intersection across branches
     for (let i = 0; i < assessments.length; i++) {
       for (let j = i + 1; j < assessments.length; j++) {
         const a = assessments[i]
         const b = assessments[j]
-
-        // Check for intersection in filesModified
-        for (const file of a.filesModified) {
-          if (b.filesModified.has(file)) {
-            const pattern: CrossHelixPattern = {
-              type: 'conflict',
-              helixIds: [a.helixId, b.helixId],
-              severity: 'high',
-              detectedAt: Date.now(),
-              description: `Branches ${a.helixId} and ${b.helixId} both modified work unit ${file}`,
-              actedUpon: false,
-            }
-            if (this.isNewPattern(pattern)) {
-              newPatterns.push(pattern)
-              this.state.crossPatterns.push(pattern)
-            }
-            break
-          }
+        const intersection = new Set(
+          [...a.filesModified].filter((x) => b.filesModified.has(x))
+        )
+        if (intersection.size > 0) {
+          patterns.push({
+            type: 'conflict',
+            helixIds: [a.helixId, b.helixId],
+            severity: 'high',
+            description: `Branches ${a.helixId} and ${b.helixId} may be modifying the same work units`,
+            detectedAt: Date.now(),
+            actedUpon: false,
+          })
         }
       }
     }
 
-    // 2. Asymmetric progress: If one branch has 3+ more steps than a sibling
+    // 2. Asymmetric progress: one branch has 3+ more steps than sibling
+    const branchMap = new Map(branches.map((b) => [b.helixId, b]))
     for (const branch of branches) {
       if (!branch.parentId) continue
-
       const siblings = branches.filter(
-        (b) => b.parentId === branch.parentId && b.depth === branch.depth
+        (b) => b.parentId === branch.parentId && b.helixId !== branch.helixId
       )
-
       for (const sibling of siblings) {
-        if (sibling.helixId === branch.helixId) continue
-
-        const siblingAssessment = this.state.branchAssessments.get(sibling.helixId)
-        if (!siblingAssessment) continue
-
-        const stepDiff = branch.steps.length - sibling.steps.length
-        if (stepDiff >= 3 && siblingAssessment.rollingScore < 0.5) {
-          const pattern: CrossHelixPattern = {
-            type: 'asymmetric-progress',
-            helixIds: [branch.helixId, sibling.helixId],
-            severity: 'medium',
-            detectedAt: Date.now(),
-            description: `${branch.helixId} has ${stepDiff} more steps than struggling sibling ${sibling.helixId}`,
-            actedUpon: false,
-          }
-          if (this.isNewPattern(pattern)) {
-            newPatterns.push(pattern)
-            this.state.crossPatterns.push(pattern)
+        const diff = branch.steps.length - sibling.steps.length
+        if (diff >= 3) {
+          const siblingAssessment = this.state.branchAssessments.get(sibling.helixId)
+          if (siblingAssessment && siblingAssessment.rollingScore < 0.5) {
+            patterns.push({
+              type: 'asymmetric-progress',
+              helixIds: [branch.helixId, sibling.helixId],
+              severity: 'medium',
+              description: `${sibling.helixId} is lagging behind ${branch.helixId} with low scores`,
+              detectedAt: Date.now(),
+              actedUpon: false,
+            })
           }
         }
       }
     }
 
-    // 3. Cascade failure: If 2+ branches have status 'failed' or 'struggling'
-    // and were created within 30s of each other
-    const problematicBranches = branches.filter(
-      (b) => b.status === 'failed' || b.status === 'cancelled'
+    // 3. Cascade failure: 2+ branches 'failed'/'struggling' created within 30s
+    const strugglingBranches = branches.filter(
+      (b) => b.status === 'failed' || this.state.branchAssessments.get(b.helixId)?.status === 'struggling'
     )
-    const strugglingAssessments = assessments.filter((a) => a.status === 'struggling')
-
-    for (const assessment of strugglingAssessments) {
-      const branch = branches.find((b) => b.helixId === assessment.helixId)
-      if (branch) {
-        problematicBranches.push(branch)
+    if (strugglingBranches.length >= 2) {
+      const timestamps = strugglingBranches.map((b) => b.createdAt).sort((a, b) => a - b)
+      if (timestamps[timestamps.length - 1] - timestamps[0] < 30000) {
+        patterns.push({
+          type: 'cascade-failure',
+          helixIds: strugglingBranches.map((b) => b.helixId),
+          severity: 'critical',
+          description: `Multiple branches failing within 30 seconds: ${strugglingBranches.map((b) => b.helixId).join(', ')}`,
+          detectedAt: Date.now(),
+          actedUpon: false,
+        })
       }
     }
 
-    for (let i = 0; i < problematicBranches.length; i++) {
-      for (let j = i + 1; j < problematicBranches.length; j++) {
-        const a = problematicBranches[i]
-        const b = problematicBranches[j]
-
-        if (Math.abs(a.createdAt - b.createdAt) <= 30000) {
-          const pattern: CrossHelixPattern = {
-            type: 'cascade-failure',
-            helixIds: [a.helixId, b.helixId],
-            severity: 'critical',
-            detectedAt: Date.now(),
-            description: `Cascade failure: ${a.helixId} and ${b.helixId} failed within 30s`,
-            actedUpon: false,
-          }
-          if (this.isNewPattern(pattern)) {
-            newPatterns.push(pattern)
-            this.state.crossPatterns.push(pattern)
-          }
-        }
-      }
-    }
-
-    // 4. Convergence: If 2+ branches have same dominantPattern === 'implementation'
-    // and rollingScore > 0.7
-    const implementationBranches = assessments.filter(
+    // 4. Convergence: 2+ branches with dominantPattern 'implementation' and rollingScore > 0.7
+    const highPerformingImpls = assessments.filter(
       (a) => a.dominantPattern === 'implementation' && a.rollingScore > 0.7
     )
-
-    for (let i = 0; i < implementationBranches.length; i++) {
-      for (let j = i + 1; j < implementationBranches.length; j++) {
-        const a = implementationBranches[i]
-        const b = implementationBranches[j]
-
-        const pattern: CrossHelixPattern = {
-          type: 'convergence',
-          helixIds: [a.helixId, b.helixId],
-          severity: 'low',
-          detectedAt: Date.now(),
-          description: `${a.helixId} and ${b.helixId} both in productive implementation`,
-          actedUpon: false,
-        }
-        if (this.isNewPattern(pattern)) {
-          newPatterns.push(pattern)
-          this.state.crossPatterns.push(pattern)
-        }
-      }
+    if (highPerformingImpls.length >= 2) {
+      patterns.push({
+        type: 'convergence',
+        helixIds: highPerformingImpls.map((a) => a.helixId),
+        severity: 'low',
+        description: `Multiple branches showing strong implementation progress`,
+        detectedAt: Date.now(),
+        actedUpon: false,
+      })
     }
 
-    // Emit pattern events
-    for (const pattern of newPatterns) {
-      this.emitEvent('corpus:pattern', pattern)
+    // De-duplicate against existing patterns
+    const newPatterns: CrossHelixPattern[] = []
+    for (const pattern of patterns) {
+      const isDuplicate = this.state.crossPatterns.some(
+        (existing) =>
+          existing.type === pattern.type &&
+          existing.helixIds.length === pattern.helixIds.length &&
+          existing.helixIds.every((id) => pattern.helixIds.includes(id)) &&
+          Date.now() - existing.detectedAt < 60000 // Within 1 minute
+      )
+      if (!isDuplicate) {
+        newPatterns.push(pattern)
+        this.state.crossPatterns.push(pattern)
+        this.emitEvent('corpus:pattern', {
+          type: pattern.type,
+          helixIds: pattern.helixIds,
+          severity: pattern.severity,
+        })
+      }
     }
 
     return newPatterns
   }
 
   /**
-   * Check if a pattern is new (not already in state with same type+helixIds and actedUpon=false).
-   */
-  private isNewPattern(pattern: CrossHelixPattern): boolean {
-    return !this.state.crossPatterns.some(
-      (p) =>
-        p.type === pattern.type &&
-        p.helixIds.length === pattern.helixIds.length &&
-        p.helixIds.every((id) => pattern.helixIds.includes(id)) &&
-        !p.actedUpon
-    )
-  }
-
-  /**
-   * Check if we should run LLM analysis.
+   * Check if we should run LLM analysis
    */
   private shouldRunLLMAnalysis(): boolean {
-    return this.stepsSinceLastAnalysis >= this.config.llmAnalysisThreshold
+    return this.newStepsSinceLLM >= this.config.llmAnalysisThreshold
   }
 
   /**
-   * Run LLM analysis with detected patterns.
+   * Run LLM analysis for strategic assessment
    */
-  private async runLLMAnalysis(patterns: CrossHelixPattern[]): Promise<void> {
-    const prompt = this.buildLLMPrompt(patterns)
+  private async runLLMAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
+    const prompt = this.buildLLMPrompt(newPatterns)
 
     try {
       const response = await this.deps.llm.complete({
@@ -537,272 +500,280 @@ export class Corpus {
         timeoutMs: this.config.timeoutMs,
       })
 
-      const result = this.parseLLMResponse(response.content)
-
-      // Send directives for interventions
-      if (result.interventions) {
-        for (const intervention of result.interventions) {
-          await this.sendDirective(intervention)
-        }
-      }
-
-      // Post synthesis to blackboard
-      if (result.synthesis) {
-        this.postToBlackboard('findings', result.synthesis, 'corpus-synthesis')
-      }
-
-      // Reset steps counter
-      this.stepsSinceLastAnalysis = 0
-
-      this.logger.info('LLM analysis completed', {
-        assessment: result.assessment,
-        interventionCount: result.interventions?.length ?? 0,
-      })
+      this.parseAndApplyLLMResponse(response.content)
+      this.newStepsSinceLLM = 0
     } catch (error) {
-      this.logger.warn('LLM analysis failed', {
+      this.logger.warn('LLM analysis failed, continuing loop', {
         error: error instanceof Error ? error.message : String(error),
       })
-      // Continue loop despite LLM failure
     }
   }
 
   /**
-   * Build LLM prompt for analysis.
+   * Build first-person LLM prompt
    */
-  private buildLLMPrompt(patterns: CrossHelixPattern[]): string {
+  private buildLLMPrompt(newPatterns: CrossHelixPattern[]): string {
     const branches = this.tree.getAllBranches()
     const assessments = Array.from(this.state.branchAssessments.values())
 
-    const branchSummaries = branches
-      .map((branch) => {
-        const assessment = this.state.branchAssessments.get(branch.helixId)
-        const recentSteps = branch.steps.slice(-3)
+    const branchDetails = branches
+      .map((b) => {
+        const assessment = this.state.branchAssessments.get(b.helixId)
+        const recentSteps = b.steps.slice(-3)
         const recentAnnotations = recentSteps
-          .map((s) => `- ${s.annotation.annotation} (score: ${s.annotation.score.toFixed(2)}): ${s.annotation.trainingNote.slice(0, 100)}`)
-          .join('\n')
-
-        return `Branch: ${branch.helixId}
-  Goal: ${branch.goal}
-  Status: ${assessment?.status ?? 'unknown'}
-  Rolling Score: ${assessment?.rollingScore.toFixed(2) ?? 'N/A'}
-  Step Count: ${branch.steps.length}
-  Dominant Pattern: ${assessment?.dominantPattern ?? 'none'}
-  Recent Annotations:
-${recentAnnotations || '  (none)'}`
+          .map((s) => `[${s.annotation.annotation}:${s.annotation.score.toFixed(2)}]`)
+          .join(', ')
+        return `- ${b.helixId}: goal="${b.goal}", status=${b.status}, steps=${b.steps.length}, rollingScore=${assessment?.rollingScore.toFixed(2) ?? 'N/A'}, dominantPattern=${assessment?.dominantPattern ?? 'N/A'}, recent=[${recentAnnotations}]`
       })
-      .join('\n\n')
+      .join('\n')
 
-    const patternList = patterns
-      .map((p) => `- [${p.severity}] ${p.type}: ${p.description}`)
-      .join('\n') || 'None detected'
+    const patternDetails =
+      newPatterns.length > 0
+        ? `\n## New Cross-Branch Patterns Detected\n${newPatterns
+            .map((p) => `- ${p.type} (${p.severity}): ${p.description}`)
+            .join('\n')}`
+        : ''
 
-    return `I am the Corpus — the strategic organizer of this Constellation.
-My goal: ${this.deps.goal}
+    return `I am the Corpus — the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} branches, analyzing cross-Helix patterns and making spawn/intervention decisions.
 
-I oversee ${branches.length} Helix branches, each with its own Brainstem handling tactical work.
-My role is strategic: detect cross-branch patterns, coordinate effort, prevent waste.
+## Branch Assessments
+${branchDetails}${patternDetails}
 
-Current branches:
-${branchSummaries}
+## My Task
+Provide strategic assessment:
 
-Detected cross-branch patterns:
-${patternList}
+ASSESSMENT: <brief assessment of overall constellation health>
+INTERVENTION[helixId]: <directive type:guidance|redirect|throttle|priority-shift|cancel>:<urgency:low|medium|high|critical>:<guidance text> (or NONE)
+SYNTHESIS: <strategic synthesis for Cassi, or NONE>
 
-Based on this, I will:
-1. Assess the overall constellation health
-2. Identify any branches that need intervention
-3. Produce a strategic synthesis
-
-ASSESSMENT: <one-line overall health>
-INTERVENTION[helixId]: <urgency> <directive text>
-SYNTHESIS: <strategic summary for Cassi>`
+Guidelines:
+- ASSESSMENT: Summarize the health of all branches and any concerning patterns
+- INTERVENTION: Only if a specific Helix needs steering. Use helixId from above.
+- SYNTHESIS: Strategic insights for the Constellation level, or NONE if routine
+- Be concise — this runs in a tight loop`
   }
 
   /**
-   * Parse LLM response.
+   * Parse LLM response and apply interventions
    */
-  private parseLLMResponse(content: string): {
-    assessment: string
-    interventions: CorpusDirective[]
-    synthesis: string
-  } {
-    const assessmentMatch = content.match(/ASSESSMENT:\s*(.+)/i)
-    const synthesisMatch = content.match(/SYNTHESIS:\s*(.+)/i)
+  private parseAndApplyLLMResponse(response: string): void {
+    // Parse ASSESSMENT
+    const assessmentMatch = response.match(/ASSESSMENT:\s*([^\n]+)/i)
+    const assessment = assessmentMatch?.[1]?.trim() ?? 'No assessment provided'
 
-    const interventions: CorpusDirective[] = []
-    const interventionRegex = /INTERVENTION\[([^\]]+)\]:\s*(\w+)\s*(.+)/gi
+    // Parse INTERVENTION lines
+    const interventionRegex = /INTERVENTION\[([^\]]+)\]:\s*([^:]+):([^:]+):(.+)/gi
     let match
-    while ((match = interventionRegex.exec(content)) !== null) {
-      interventions.push({
-        targetHelixId: match[1].trim(),
-        urgency: match[2].trim() as 'low' | 'medium' | 'high' | 'critical',
-        message: match[3].trim(),
-        issuedAt: Date.now(),
-      })
+    while ((match = interventionRegex.exec(response)) !== null) {
+      const helixId = match[1].trim()
+      const type = match[2].trim() as CorpusDirectiveType
+      const urgency = match[3].trim() as GuidanceUrgency
+      const text = match[4].trim()
+
+      if (text.toUpperCase() !== 'NONE') {
+        const directive: CorpusDirective = {
+          targetHelixId: helixId,
+          type,
+          urgency,
+          reason: assessment,
+          text,
+          timestamp: Date.now(),
+        }
+        this.sendDirective(directive)
+      }
     }
 
-    return {
-      assessment: assessmentMatch?.[1]?.trim() ?? 'unknown',
-      interventions,
-      synthesis: synthesisMatch?.[1]?.trim() ?? '',
+    // Parse SYNTHESIS
+    const synthesisMatch = response.match(/SYNTHESIS:\s*([^\n]+)/i)
+    const synthesis = synthesisMatch?.[1]?.trim()
+    if (synthesis && synthesis.toUpperCase() !== 'NONE') {
+      this.postSynthesisToBlackboard(synthesis, assessment)
     }
   }
 
   /**
-   * Send a directive to a child Brainstem.
+   * Send a directive to a child Brainstem
    */
-  private async sendDirective(directive: CorpusDirective): Promise<void> {
+  private sendDirective(directive: CorpusDirective): void {
     const brainstem = this.childBrainstems.get(directive.targetHelixId)
-
     if (!brainstem) {
-      this.logger.warn('Brainstem not found for directive', {
+      this.logger.warn('Cannot send directive: Brainstem not registered', {
         helixId: directive.targetHelixId,
       })
       return
     }
 
-    if (brainstem.onCorpusDirective) {
-      try {
-        brainstem.onCorpusDirective(directive)
-      } catch (error) {
-        this.logger.warn('Failed to send directive to Brainstem', {
-          helixId: directive.targetHelixId,
-          error: error instanceof Error ? error.message : String(error),
-        })
+    if (!brainstem.onCorpusDirective) {
+      this.logger.warn('Brainstem does not support directives', {
+        helixId: directive.targetHelixId,
+      })
+      return
+    }
+
+    try {
+      brainstem.onCorpusDirective(directive)
+
+      const intervention: CorpusIntervention = {
+        ...directive,
+        acknowledged: true,
+        sweepNumber: this.state.sweepCount,
       }
+      this.state.interventions.push(intervention)
+
+      this.emitEvent('corpus:intervention', {
+        helixId: directive.targetHelixId,
+        type: directive.type,
+        urgency: directive.urgency,
+        sweepNumber: this.state.sweepCount,
+      })
+
+      this.logger.info('Directive sent to Brainstem', {
+        helixId: directive.targetHelixId,
+        type: directive.type,
+        urgency: directive.urgency,
+      })
+    } catch (error) {
+      this.logger.error('Failed to send directive', {
+        helixId: directive.targetHelixId,
+        error: error instanceof Error ? error.message : String(error),
+      })
     }
-
-    // Record intervention
-    const intervention: CorpusIntervention = {
-      targetHelixId: directive.targetHelixId,
-      directive: directive.message,
-      urgency: directive.urgency,
-      issuedAt: Date.now(),
-      sweepNumber: this.state.sweepCount,
-      acknowledged: false,
-    }
-    this.state.interventions.push(intervention)
-
-    // Post to blackboard
-    this.postToBlackboard(
-      'decisions',
-      `Intervention for ${directive.targetHelixId} [${directive.urgency}]: ${directive.message}`,
-      'corpus-intervention'
-    )
-
-    // Emit event
-    this.emitEvent('corpus:intervention', intervention)
   }
 
   /**
-   * Build spawn evaluation prompt.
+   * Run spawn evaluation via LLM
    */
-  private buildSpawnEvaluationPrompt(request: {
-    helixId: string
-    template: string
-    goal: string
-    depth: number
-    reason: string
-  }): string {
+  private async runSpawnEvaluation(request: SpawnRequest): Promise<SpawnDecision> {
     const branches = this.tree.getAllBranches()
-    const activeBranches = branches.filter((b) => b.status === 'active').length
+    const prompt = `I am the Corpus — evaluating a spawn request for this Constellation.
 
-    return `I am the Corpus — evaluating a spawn request.
+## Current Tree State
+Active branches: ${branches.length}
+Total steps: ${this.tree.totalStepCount()}
 
-Constellation goal: ${this.deps.goal}
-Current active branches: ${activeBranches}
-Maximum allowed depth: ${this.config.maxDepth}
+## Spawn Request
+Requesting Helix: ${request.requestingHelixId}
+Proposed Goal: ${request.goal}
+Proposed Template: ${request.template ?? 'standard'}
+Target Depth: ${request.targetDepth}
 
-Spawn Request:
-- Requesting Helix: ${request.helixId}
-- Template: ${request.template}
-- Proposed Goal: ${request.goal}
-- Proposed Depth: ${request.depth}
-- Reason: ${request.reason}
+## My Task
+Evaluate this spawn request and respond:
 
-Evaluate this request considering:
-1. Resource constraints (too many active branches?)
-2. Depth limits (would exceed maxDepth?)
-3. Goal alignment (does it serve the constellation goal?)
-4. Necessity (is spawning actually needed?)
+DECISION: <APPROVED|REJECTED>
+REASON: <brief reasoning>
+SUGGESTED_TEMPLATE: <template name or NONE>
+SUGGESTED_GOAL: <refined goal or NONE>
 
-Respond with:
-DECISION: APPROVED or REJECTED
-REASON: <explanation>
-SUGGESTED_TEMPLATE: <template name if different> (optional)
-SUGGESTED_GOAL: <refined goal> (optional)`
-  }
+Guidelines:
+- APPROVE if the goal is clear, non-redundant with existing branches, and resources allow
+- REJECT if too many active branches, goal is unclear, or similar work is in progress
+- Suggest refinements if the goal could be clearer`
 
-  /**
-   * Parse spawn decision from LLM response.
-   */
-  private parseSpawnDecision(
-    content: string,
-    request: {
-      helixId: string
-      template: string
-      goal: string
-      depth: number
-      reason: string
-    }
-  ): SpawnDecision {
-    const decisionMatch = content.match(/DECISION:\s*(APPROVED|REJECTED)/i)
-    const reasonMatch = content.match(/REASON:\s*(.+)/im)
-    const templateMatch = content.match(/SUGGESTED_TEMPLATE:\s*(.+)/i)
-    const goalMatch = content.match(/SUGGESTED_GOAL:\s*(.+)/i)
+    try {
+      const response = await this.deps.llm.complete({
+        prompt,
+        modelTier: this.config.modelTier,
+        maxTokens: 400,
+        timeoutMs: this.config.timeoutMs,
+      })
 
-    const approved = decisionMatch?.[1]?.toUpperCase() === 'APPROVED'
+      const decisionMatch = response.content.match(/DECISION:\s*(APPROVED|REJECTED)/i)
+      const reasonMatch = response.content.match(/REASON:\s*([^\n]+)/i)
+      const templateMatch = response.content.match(/SUGGESTED_TEMPLATE:\s*([^\n]+)/i)
+      const goalMatch = response.content.match(/SUGGESTED_GOAL:\s*([^\n]+)/i)
 
-    return {
-      approved,
-      reason: reasonMatch?.[1]?.trim() ?? 'No reason provided',
-      suggestedTemplate: templateMatch?.[1]?.trim(),
-      suggestedGoal: goalMatch?.[1]?.trim(),
-      evaluatedAt: Date.now(),
-      request,
-    }
-  }
+      const approved = decisionMatch?.[1]?.toUpperCase() === 'APPROVED'
+      const reason = reasonMatch?.[1]?.trim() ?? 'No reason provided'
+      const suggestedTemplateStr = templateMatch?.[1]?.trim()
+      const suggestedTemplate: ConstellationTemplate | undefined =
+        suggestedTemplateStr && suggestedTemplateStr.toUpperCase() !== 'NONE'
+          ? (suggestedTemplateStr as ConstellationTemplate)
+          : undefined
+      const suggestedGoal =
+        goalMatch?.[1]?.trim().toUpperCase() !== 'NONE' ? goalMatch?.[1]?.trim() : undefined
 
-  /**
-   * Emit an event to the event bus.
-   */
-  private emitEvent(type: string, data: unknown): void {
-    if (this.deps.eventBus) {
-      this.deps.eventBus
-        .emit({ type, data, timestamp: Date.now() } as any)
-        .catch((err) => {
-          this.logger.warn('Failed to emit event', { type, error: err })
-        })
-    }
-  }
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved,
+        reason,
+        suggestedTemplate,
+        suggestedGoal,
+        evaluatedAt: Date.now(),
+      }
+    } catch (error) {
+      this.logger.error('Spawn evaluation failed, defaulting to rejected', {
+        error: error instanceof Error ? error.message : String(error),
+        requestId: request.requestId,
+      })
 
-  /**
-   * Post to blackboard.
-   */
-  private postToBlackboard(
-    channel: 'findings' | 'concerns' | 'decisions',
-    content: string,
-    author: string
-  ): void {
-    if (this.deps.blackboard) {
-      try {
-        this.deps.blackboard.post(channel, {
-          author,
-          content,
-          timestamp: Date.now(),
-        })
-      } catch (error) {
-        this.logger.warn('Failed to post to blackboard', {
-          channel,
-          error: error instanceof Error ? error.message : String(error),
-        })
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved: false,
+        reason: `Evaluation failed: ${error instanceof Error ? error.message : String(error)}`,
+        evaluatedAt: Date.now(),
       }
     }
+  }
+
+  /**
+   * Post synthesis to blackboard
+   */
+  private postSynthesisToBlackboard(synthesis: string, assessment: string): void {
+    const bb = this.deps.blackboard
+    if (!bb) {
+      this.logger.debug('Synthesis ready for blackboard (no blackboard wired)')
+      return
+    }
+
+    try {
+      bb.post('decisions', {
+        author: 'corpus',
+        content: `**Corpus Synthesis** — ${assessment}\n\n${synthesis}`,
+        structured: {
+          sweepCount: this.state.sweepCount,
+          branches: this.tree.activeBranchCount(),
+        },
+        priority: 1,
+        tags: ['corpus', 'synthesis'],
+      })
+    } catch (err) {
+      this.logger.warn('Failed to post synthesis to blackboard', {
+        error: String(err),
+      })
+    }
+  }
+
+  /**
+   * Emit an event on the event bus if available
+   */
+  private emitEvent(type: string, data: Record<string, unknown>): void {
+    if (!this.deps.eventBus) return
+    try {
+      void this.deps.eventBus.emit({
+        type,
+        constellationId: this.deps.constellationId,
+        ...data,
+      } as any)
+    } catch {
+      // Ignore emit errors — observability must not crash the loop
+    }
+  }
+
+  /**
+   * Sleep helper
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms))
   }
 }
 
 /**
- * Factory function to create a Corpus instance.
+ * Factory function to create a Corpus instance
  */
 export function createCorpus(
   tree: ICorpusTree,

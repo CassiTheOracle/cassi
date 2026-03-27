@@ -13,7 +13,7 @@
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ModelHandle, ModelConfig } from '../../model-pool/types.js'
+import type { ModelHandle } from '../../model-pool/types.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixStore } from '../helix/helix-store.js'
@@ -33,6 +33,7 @@ import type {
   ConstellationResult,
   SpawnRequest,
 } from './types.js'
+import type { ConstellationLiveState } from './constellation-injection.js'
 import { getTemplatePostures } from './templates.js'
 
 // ═══════════════════════════════════════════════════════════════════
@@ -92,7 +93,7 @@ export interface ConstellationPipelineOpts {
    * Factory function to acquire model handles.
    * Same pattern as helix/index.ts
    */
-  handleFactory: (config: ModelConfig) => Promise<ModelHandle>
+  handleFactory: (config: { tier: string; purpose: string; sessionId: string }) => Promise<ModelHandle>
 
   /** Corpus LLM adapter for cross-Helix analysis */
   corpusLLM: CorpusLLM
@@ -102,6 +103,19 @@ export interface ConstellationPipelineOpts {
 
   /** Callback when a node completes */
   onNodeCompleted?: (node: ConstellationNode) => void
+
+  /**
+   * Callback fired after the Corpus starts, before the first Helix launches.
+   * Receives a ConstellationLiveState adapter that exposes tree/patterns/interventions
+   * for the injection source and admin API polling.
+   */
+  onCorpusReady?: (liveState: ConstellationLiveState) => void
+
+  /**
+   * Callback to receive a cancel function. The orchestrator calls the returned
+   * function to cancel the constellation from outside.
+   */
+  onCancelRegistered?: (cancel: () => void) => void
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -190,6 +204,23 @@ export async function runConstellationPipeline(
   log.info('Corpus started')
 
   // ═════════════════════════════════════════════════════════════════
+  // Notify orchestrator — corpus is live, tree state is available
+  // ═════════════════════════════════════════════════════════════════
+
+  if (opts.onCorpusReady) {
+    const liveState: ConstellationLiveState = {
+      constellationId,
+      goal,
+      getTreeSnapshot: () => corpusTree.getSnapshot(),
+      getCrossPatterns: () => corpus.getResult().crossPatterns,
+      getInterventions: () => corpus.getResult().interventions,
+      getBranchAssessments: () => corpus.getResult().branchAssessments,
+    }
+    opts.onCorpusReady(liveState)
+    log.debug('onCorpusReady callback invoked')
+  }
+
+  // ═════════════════════════════════════════════════════════════════
   // State Tracking
   // ═════════════════════════════════════════════════════════════════
 
@@ -237,13 +268,20 @@ export async function runConstellationPipeline(
 
     // Create node
     const node: ConstellationNode = {
-      id: helixId,
+      helixId,
+      config: {
+        goal: helixGoal,
+        context: helixContext,
+        parentId,
+        depth,
+      },
       parentId,
+      childIds: [],
       depth,
-      goal: helixGoal,
       status: 'running',
-      postures: [],
-      createdAt: Date.now(),
+      startedAt: Date.now(),
+      tokensUsed: 0,
+      postureResults: new Map(),
     }
     nodes.set(helixId, node)
     onNodeCreated?.(node)
@@ -282,7 +320,6 @@ export async function runConstellationPipeline(
     } catch (err) {
       helixLog.error('Failed to acquire model handles', { error: String(err) })
       node.status = 'failed'
-      node.error = `Failed to acquire model handles: ${err}`
       corpusTree.closeBranch(helixId, 'failed')
       onNodeCompleted?.(node)
       throw err
@@ -363,18 +400,16 @@ export async function runConstellationPipeline(
     promise
       .then((result) => {
         helixLog.info('Helix completed', {
-          status: result.status,
-          durationMs: Date.now() - node.createdAt,
+          completionStatus: result.completionStatus,
+          durationMs: Date.now() - (node.startedAt ?? Date.now()),
         })
-        node.status = result.status === 'completed' ? 'completed' : 'failed'
-        node.result = result
+        node.status = result.completionStatus.complete ? 'completed' : 'failed'
         node.completedAt = Date.now()
         onNodeCompleted?.(node)
       })
       .catch((err) => {
         helixLog.error('Helix failed', { error: String(err) })
         node.status = 'failed'
-        node.error = String(err)
         node.completedAt = Date.now()
         onNodeCompleted?.(node)
       })
@@ -486,6 +521,19 @@ export async function runConstellationPipeline(
       }, timeoutMs)
     })
 
+    // Set up external cancel mechanism
+    let externalCancel: () => void = () => {}
+    const cancelPromise = new Promise<never>((_, reject) => {
+      externalCancel = () => {
+        log.info('Constellation cancelled externally')
+        for (const running of runningHelixes.values()) {
+          try { running.cancel() } catch (_e) { /* best effort */ }
+        }
+        reject(new Error('Constellation cancelled'))
+      }
+    })
+    opts.onCancelRegistered?.(externalCancel)
+
     // Launch root Helix
     const rootHelix = await launchHelix(goal, context, undefined, 0)
     rootHelixId = rootHelix.helixId
@@ -498,7 +546,7 @@ export async function runConstellationPipeline(
     // that the main goal is achieved. Children may still be running cleanup.
     log.info('Waiting for root Helix completion', { rootHelixId })
 
-    await Promise.race([rootHelix.promise, timeoutPromise])
+    await Promise.race([rootHelix.promise, timeoutPromise, cancelPromise])
 
     // Give children a grace period to complete
     log.info('Root Helix completed, waiting for children', {
@@ -526,11 +574,13 @@ export async function runConstellationPipeline(
     // Build result
     result = {
       constellationId,
-      nodes: Array.from(nodes.values()),
-      rootNodeId: rootHelixId,
+      rootHelixId: rootHelixId!,
+      nodes,
+      constellationBlackboard: {} as any, // TODO: constellation-wide blackboard
+      totalTokensUsed: Array.from(nodes.values()).reduce((sum, n) => sum + n.tokensUsed, 0),
+      totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
-      durationMs: Date.now() - startTime,
-      completedAt: Date.now(),
+      spawnRequests: [],
     }
 
     // Emit completion event
@@ -539,7 +589,7 @@ export async function runConstellationPipeline(
       teamId: constellationId,
       data: {
         event: 'constellation:completed',
-        durationMs: result.durationMs,
+        durationMs: result.totalDurationMs,
         nodeCount: nodes.size,
         timestamp: Date.now(),
       },
@@ -550,11 +600,13 @@ export async function runConstellationPipeline(
     // Build partial result
     result = {
       constellationId,
-      nodes: Array.from(nodes.values()),
-      rootNodeId: rootHelixId,
+      rootHelixId: rootHelixId ?? constellationId,
+      nodes,
+      constellationBlackboard: {} as any,
+      totalTokensUsed: Array.from(nodes.values()).reduce((sum, n) => sum + n.tokensUsed, 0),
+      totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
-      durationMs: Date.now() - startTime,
-      completedAt: Date.now(),
+      spawnRequests: [],
       error: String(err),
     }
 

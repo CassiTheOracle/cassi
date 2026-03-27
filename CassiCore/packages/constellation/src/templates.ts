@@ -5,12 +5,17 @@
  * for common Helix patterns. They're a convenience layer — users can
  * always define custom postures directly.
  *
+ * Note: Mentor posture was removed from all templates. The Brainstem
+ * handles per-Helix tactical organization (scoring, pattern detection,
+ * guidance), and the Corpus handles Constellation-level strategic
+ * coordination (cross-Helix patterns, spawn evaluation, synthesis).
+ *
  * Available templates:
- *   - standard:       Unity + Yang + Yin + Mentor (classic Helix)
- *   - research:       Unity + Yang + Yin + Mentor + 2 Researchers
- *   - implementation: 2 Unities + Yang + Yin + Mentor (heavy build)
- *   - review:         Unity + 2 Yangs + 2 Yins + Mentor (heavy review)
- *   - minimal:        Unity + single Reviewer (lightweight, fast)
+ *   - standard:       Unity + Yang + Yin (classic Helix, 3 postures)
+ *   - research:       Unity + Yang + Yin + 2 Researchers (5 postures)
+ *   - implementation: 2 Unities + Yang + Yin (parallel build, 4 postures)
+ *   - review:         Unity + 2 Yangs + 2 Yins (heavy review, 5 postures)
+ *   - minimal:        Unity + single Reviewer (lightweight, 2 postures)
  */
 
 import type { FlexPosture, ConstellationTemplate } from './types.js'
@@ -18,7 +23,7 @@ import { createPostureSet } from './flex-posture.js'
 
 
 // ═══════════════════════════════════════════════════════════════════
-// Standard Template — Classic Helix (4 postures)
+// Standard Template — Classic Helix (3 postures)
 // ═══════════════════════════════════════════════════════════════════
 
 const STANDARD_POSTURES: FlexPosture[] = [
@@ -46,17 +51,6 @@ const STANDARD_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 100,
-  },
-  {
-    name: 'mentor',
-    instruction: 'Moderate the dialectic. Observe the debate, steer when stuck, flag issues, force conclusions when needed. Produce the final synthesis.',
-    energy: 'unity',
-    toolAccess: 'read-only+memory',
-    channels: { dialectic: true, constellationBoard: true },
-    canSpawnHelix: true,
-    canSpawnDrones: true,
-    maxIterations: 120,
-    temperature: 0.5,
   },
 ]
 
@@ -89,7 +83,7 @@ const RESEARCH_POSTURES: FlexPosture[] = [
 
 
 // ═══════════════════════════════════════════════════════════════════
-// Implementation Template — Two workers for parallel building
+// Implementation Template — Two workers for parallel building (4 postures)
 // ═══════════════════════════════════════════════════════════════════
 
 const IMPLEMENTATION_POSTURES: FlexPosture[] = [
@@ -126,22 +120,11 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 100,
   },
-  {
-    name: 'mentor',
-    instruction: 'Moderate the dialectic and coordinate the two builders. Ensure they are not conflicting, steer integration, force conclusions, produce the final synthesis.',
-    energy: 'unity',
-    toolAccess: 'read-only+memory',
-    channels: { dialectic: true, constellationBoard: true },
-    canSpawnHelix: true,
-    canSpawnDrones: true,
-    maxIterations: 120,
-    temperature: 0.5,
-  },
 ]
 
 
 // ═══════════════════════════════════════════════════════════════════
-// Review Template — Extra reviewers for quality-critical work
+// Review Template — Extra reviewers for quality-critical work (5 postures)
 // ═══════════════════════════════════════════════════════════════════
 
 const REVIEW_POSTURES: FlexPosture[] = [
@@ -186,17 +169,6 @@ const REVIEW_POSTURES: FlexPosture[] = [
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 80,
   },
-  {
-    name: 'mentor',
-    instruction: 'Moderate the four-way dialectic. With four reviewers there is more noise — your job is to identify real signal, suppress false debates, and drive toward actionable conclusions.',
-    energy: 'unity',
-    toolAccess: 'read-only+memory',
-    channels: { dialectic: true, constellationBoard: true },
-    canSpawnHelix: true,
-    canSpawnDrones: true,
-    maxIterations: 120,
-    temperature: 0.5,
-  },
 ]
 
 export function getTemplatePostures(template: ConstellationTemplate): FlexPosture[] {
@@ -224,13 +196,13 @@ export function listTemplates(): ConstellationTemplate[] {
 export function describeTemplate(template: ConstellationTemplate): string {
   switch (template) {
     case 'standard':
-      return 'Unity + Yang + Yin + Mentor — balanced build + review'
+      return 'Unity + Yang + Yin — balanced build + review (Brainstem organizes)'
     case 'research':
       return 'Standard plus two researchers — good for exploratory tasks'
     case 'implementation':
-      return 'Two builders + reviewers + mentor — parallel implementation'
+      return 'Two builders + reviewers — parallel implementation (Brainstem organizes)'
     case 'review':
-      return 'One builder + multiple reviewers + mentor — high-quality review'
+      return 'One builder + four reviewers — high-quality review (Brainstem organizes)'
     case 'minimal':
       return 'One builder + one reviewer — fast, lightweight'
   }
