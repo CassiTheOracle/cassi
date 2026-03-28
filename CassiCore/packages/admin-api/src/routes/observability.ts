@@ -203,5 +203,31 @@ export async function handleObservabilityRoutes(
     return true
   }
 
+  // GET /observability/monitoring/report
+  if (method === 'GET' && pathname === '/observability/monitoring/report') {
+    const hook = daemon.monitoringHook
+    if (!hook) {
+      sendJSON(res, 503, { error: 'MonitoringHook not initialized' })
+      return true
+    }
+
+    const status = hook.getStatus()
+    // Convert Map to plain object for JSON serialization
+    const failurePatterns: Record<string, unknown> = {}
+    if (status.failurePatterns instanceof Map) {
+      for (const [key, val] of status.failurePatterns.entries()) {
+        failurePatterns[key] = val
+      }
+    }
+
+    sendJSON(res, 200, {
+      cascadingTimeouts: status.cascadingTimeouts,
+      failurePatterns,
+      recentAlerts: status.recentAlerts,
+      generatedAt: new Date().toISOString(),
+    })
+    return true
+  }
+
   return false
 }
