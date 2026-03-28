@@ -50,7 +50,7 @@ import {
   executeEnrichTool,
   DO_TOOL_NAMES,
   ENRICH_TOOL_NAMES,
-  // Consolidated Tools (10 new consolidated tools)
+  // Consolidated Tools
   getAgentTool,
   executeAgentTool,
   getMemoryConsolidatedTool,
@@ -59,8 +59,14 @@ import {
   executeSessionConsolidatedTool,
   getIntelligenceConsolidatedTool,
   executeIntelligenceConsolidatedTool,
-  getFileConsolidatedTool,
-  executeFileConsolidatedTool,
+  getArtifactConsolidatedTool,
+  executeArtifactConsolidatedTool,
+  getCodeConsolidatedTool,
+  executeCodeConsolidatedTool,
+  getFilesystemConsolidatedTool,
+  executeFilesystemConsolidatedTool,
+  getBrowserConsolidatedTool,
+  executeBrowserConsolidatedTool,
   getWebConsolidatedTool,
   executeWebConsolidatedTool,
   getConfigConsolidatedTool,
@@ -76,7 +82,10 @@ import {
   MEMORY_CONSOLIDATED_TOOL_NAME,
   SESSION_CONSOLIDATED_TOOL_NAME,
   INTELLIGENCE_CONSOLIDATED_TOOL_NAME,
-  FILE_CONSOLIDATED_TOOL_NAME,
+  ARTIFACT_CONSOLIDATED_TOOL_NAME,
+  CODE_CONSOLIDATED_TOOL_NAME,
+  FILESYSTEM_CONSOLIDATED_TOOL_NAME,
+  BROWSER_CONSOLIDATED_TOOL_NAME,
   WEB_CONSOLIDATED_TOOL_NAME,
   CONFIG_CONSOLIDATED_TOOL_NAME,
   MODEL_CONSOLIDATED_TOOL_NAME,
@@ -179,8 +188,7 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
  * 4 core + 2 meta + 10 consolidated
  */
 /**
- * Get all MCP tools - returns exactly 16 consolidated tools
- * 4 core (bash, read, write, edit) + 2 meta (do, enrich) + 10 consolidated
+ * Get all MCP tools.
  */
 function getAllTools() {
   const coreTools = getCoreTools();
@@ -192,12 +200,15 @@ function getAllTools() {
     ...mainCoreTools,
     // 2 Meta tools (kept as-is)
     ...getDoTools(),
-    // 10 Consolidated tools
+    // Consolidated tools
     getAgentTool(),
     getMemoryConsolidatedTool(),
     getSessionConsolidatedTool(),
     getIntelligenceConsolidatedTool(),
-    getFileConsolidatedTool(),
+    getArtifactConsolidatedTool(),
+    getCodeConsolidatedTool(),
+    getFilesystemConsolidatedTool(),
+    getBrowserConsolidatedTool(),
     getWebConsolidatedTool(),
     getConfigConsolidatedTool(),
     getModelConsolidatedTool(),
@@ -301,12 +312,74 @@ function resolveDeprecatedToolName(name: string, args: any): { name: string; arg
     if (name === `training_${suffix}`) return { name: 'training', args: { ...args, action: suffix } };
   }
 
+  // External MCP tools → consolidated wrappers
+  const codeActionMap: Record<string, string> = {
+    gitnexus_query: 'query',
+    gitnexus_context: 'context',
+    gitnexus_impact: 'impact',
+    gitnexus_cypher: 'cypher',
+    gitnexus_detect_changes: 'detect_changes',
+    gitnexus_list_repos: 'list_repos',
+    gitnexus_rename: 'rename_graph',
+    serena_find_symbol: 'symbol',
+    serena_find_referencing_symbols: 'refs',
+    serena_get_symbols_overview: 'overview',
+    serena_rename_symbol: 'rename_symbol',
+    serena_replace_symbol_body: 'replace_symbol',
+    serena_insert_after_symbol: 'insert_after',
+    serena_insert_before_symbol: 'insert_before',
+  };
+  if (codeActionMap[name]) return { name: 'code', args: { ...args, action: codeActionMap[name] } };
+  if (name === 'serena_search_for_pattern') {
+    const looksCodeFocused = args?.restrict_search_to_code_files === true
+      || args?.name_path_pattern !== undefined
+      || args?.substring_pattern !== undefined
+    return { name: looksCodeFocused ? 'code' : 'file', args: { ...args, action: looksCodeFocused ? 'search_pattern' : 'search', path: args?.path ?? args?.relative_path } };
+  }
+
+  const fileActionMap: Record<string, string> = {
+    serena_read_file: 'read',
+    serena_replace_content: args?.content !== undefined ? 'write' : 'edit',
+    serena_list_dir: 'list',
+    serena_find_file: 'find',
+  };
+  if (fileActionMap[name]) {
+    return { name: 'file', args: { ...args, action: fileActionMap[name], path: args?.path ?? args?.relative_path } };
+  }
+
+  const browserActionMap: Record<string, string> = {
+    playwright_browser_navigate: 'navigate',
+    playwright_browser_snapshot: 'snapshot',
+    playwright_browser_click: 'click',
+    playwright_browser_type: 'type',
+    playwright_browser_take_screenshot: 'screenshot',
+    playwright_browser_evaluate: 'evaluate',
+    playwright_browser_tabs: 'tabs',
+    playwright_browser_wait_for: 'wait',
+    playwright_browser_press_key: 'press_key',
+    playwright_browser_fill_form: 'fill_form',
+    playwright_browser_select_option: 'select',
+    playwright_browser_hover: 'hover',
+    playwright_browser_drag: 'drag',
+    playwright_browser_close: 'close',
+    playwright_browser_navigate_back: 'back',
+    playwright_browser_resize: 'resize',
+    playwright_browser_console_messages: 'console',
+    playwright_browser_network_requests: 'network',
+    playwright_browser_handle_dialog: 'handle_dialog',
+    playwright_browser_file_upload: 'file_upload',
+    playwright_browser_run_code: 'run_code',
+    playwright_browser_install: 'install',
+  };
+  if (browserActionMap[name]) return { name: 'browser', args: { ...args, action: browserActionMap[name] } };
+
+  if (name === 'duckduckgo_fetch_content') return { name: 'web', args: { ...args, action: 'fetch_content' } };
+
   return null; // Not a deprecated name — pass through unchanged
 }
 
 /**
- * Route a tool call to the appropriate domain handler
- * Consolidated routing for 16 tools: 4 core + 2 meta + 10 consolidated
+ * Route a tool call to the appropriate domain handler.
  */
 async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
   logger.info('Tool call received', { tool: name, args });
@@ -364,14 +437,23 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
         return formatTextResponse(result);
       }
 
-      case FILE_CONSOLIDATED_TOOL_NAME: {
-        const result = await executeFileConsolidatedTool(CASSICORE_URL, args, logger);
+      case ARTIFACT_CONSOLIDATED_TOOL_NAME: {
+        const result = await executeArtifactConsolidatedTool(CASSICORE_URL, args, logger);
         // File artifact tools return MCP format directly
         return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
       }
 
+      case CODE_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeCodeConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+
+      case FILESYSTEM_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeFilesystemConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+
+      case BROWSER_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeBrowserConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+
       case WEB_CONSOLIDATED_TOOL_NAME:
-        return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger));
+        return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
 
       case CONFIG_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeConfigConsolidatedTool(CASSICORE_URL, args, logger));

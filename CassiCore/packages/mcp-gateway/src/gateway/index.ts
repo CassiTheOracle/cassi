@@ -196,10 +196,10 @@ export {
 } from './consolidated-intelligence-tools.js';
 
 export {
-  FILE_CONSOLIDATED_TOOL,
-  FILE_CONSOLIDATED_TOOL_NAME,
-  executeFileConsolidatedTool,
-  getFileConsolidatedTool,
+  ARTIFACT_CONSOLIDATED_TOOL,
+  ARTIFACT_CONSOLIDATED_TOOL_NAME,
+  executeArtifactConsolidatedTool,
+  getArtifactConsolidatedTool,
 } from './consolidated-file-tools.js';
 
 export {
@@ -236,3 +236,36 @@ export {
   executeTrainingConsolidatedTool,
   getTrainingConsolidatedTool,
 } from './consolidated-training-tools.js';
+
+// Serena Auto-Onboarding
+export {
+  SerenaAutoOnboarding,
+  createSerenaOnboarding,
+} from './serena-onboarding.js';
+export type { ToolRouter as SerenaToolRouter } from './serena-onboarding.js';
+
+// Consolidated Code Tools (GitNexus + Serena code intelligence)
+export {
+  CODE_CONSOLIDATED_TOOL,
+  CODE_CONSOLIDATED_TOOL_NAME,
+  executeCodeConsolidatedTool,
+  getCodeConsolidatedTool,
+  getCodeConsolidatedToolSchema,
+} from './consolidated-code-tools.js';
+
+// Consolidated Filesystem Tools (Serena file operations)
+export {
+  FILESYSTEM_CONSOLIDATED_TOOL,
+  FILESYSTEM_CONSOLIDATED_TOOL_NAME,
+  executeFilesystemConsolidatedTool,
+  getFilesystemConsolidatedTool,
+  getFilesystemConsolidatedToolSchema,
+} from './consolidated-filesystem-tools.js';
+
+// Consolidated Browser Tools (Playwright)
+export {
+  BROWSER_CONSOLIDATED_TOOL,
+  BROWSER_CONSOLIDATED_TOOL_NAME,
+  executeBrowserConsolidatedTool,
+  getBrowserConsolidatedTool,
+} from './consolidated-browser-tools.js';
