@@ -47,6 +47,16 @@ import {
   isMemoryTool,
   findLastIndex,
 } from '../cassi-agent/base-posture-runner.js'
+import {
+  getCodeConsolidatedToolSchema,
+  getFilesystemConsolidatedToolSchema,
+  WEB_CONSOLIDATED_TOOL,
+  BROWSER_CONSOLIDATED_TOOL,
+  executeCodeConsolidatedTool,
+  executeFilesystemConsolidatedTool,
+  executeBrowserConsolidatedTool,
+  executeWebConsolidatedTool,
+} from '../../../mcp/gateway/index.js'
 
 
 // ─── Lazy-loaded optional tools ────────────────────────────────────────────
@@ -96,8 +106,28 @@ const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
   'playwright_browser_install',
 ])
 
+const EXTERNAL_MCP_PREFIXES = ['serena_', 'gitnexus_', 'playwright_browser_', 'duckduckgo_']
+const EXTERNAL_MCP_SERVER_PREFIXES = ['serena__', 'gitnexus__', 'playwright__', 'playwright_browser__', 'duckduckgo__']
+const CONSOLIDATED_GATEWAY_TOOL_NAMES = new Set(['code', 'file', 'web', 'browser'])
+
+function toCanonicalExternalToolName(name: string): string {
+  if (!name.includes('__')) return name
+  const [serverId, toolName] = name.split('__', 2)
+  if (!toolName) return name
+  if (serverId === 'playwright' || serverId === 'playwright_browser') {
+    return `playwright_browser_${toolName}`
+  }
+  return `${serverId}_${toolName}`
+}
+
 function isBlockedForAutonomousPostures(name: string): boolean {
-  return BLOCKED_TOOLS_FOR_AUTONOMOUS.has(name)
+  return BLOCKED_TOOLS_FOR_AUTONOMOUS.has(toCanonicalExternalToolName(name))
+}
+
+function isExternalMcpTool(name: string): boolean {
+  const canonical = toCanonicalExternalToolName(name)
+  return EXTERNAL_MCP_SERVER_PREFIXES.some(prefix => name.startsWith(prefix))
+    || EXTERNAL_MCP_PREFIXES.some(prefix => canonical.startsWith(prefix))
 }
 
 
@@ -776,6 +806,116 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       if (this.role !== 'mentor') {
         const argsSummary = this.extractArgsSummary(tc.name, tc.input)
         this.workStream.recordToolCall(this.role as any, tc.name, false, argsSummary)
+      }
+    }
+
+    return results
+  }
+
+  protected override async executeRealTools(calls: ParsedToolCall[]): Promise<ContentBlock[]> {
+    const localCalls: ParsedToolCall[] = []
+    const delegatedCalls: ParsedToolCall[] = []
+
+    for (const call of calls) {
+      if (CONSOLIDATED_GATEWAY_TOOL_NAMES.has(call.name)) {
+        localCalls.push(call)
+      } else {
+        delegatedCalls.push(call)
+      }
+    }
+
+    const results: ContentBlock[] = []
+    if (localCalls.length > 0) {
+      results.push(...await this.executeConsolidatedGatewayTools(localCalls))
+    }
+    if (delegatedCalls.length > 0) {
+      results.push(...await super.executeRealTools(delegatedCalls))
+    }
+    return results
+  }
+
+  private async executeConsolidatedGatewayTools(calls: ParsedToolCall[]): Promise<ContentBlock[]> {
+    const results: ContentBlock[] = []
+    const routeTool = async (toolName: string, toolArgs: unknown) => {
+      const toolCall = {
+        id: `helix-gateway-${Math.random().toString(36).slice(2)}`,
+        name: toolName,
+        input: (toolArgs ?? {}) as Record<string, unknown>,
+      }
+      const result = await this.toolExecutor!.execute(toolCall, this.sessionId)
+      return {
+        content: [{ type: 'text' as const, text: result.content }],
+        ...(result.isError ? { isError: true as const } : {}),
+      }
+    }
+
+    const settled = await Promise.allSettled(
+      calls.map(async tc => {
+        this.toolCallCount++
+        const startMs = Date.now()
+        try {
+          let content = ''
+          let isError = false
+          if (tc.name === 'code') {
+            const result = await executeCodeConsolidatedTool(tc.input, this.logger, routeTool)
+            content = JSON.stringify(result)
+            isError = !!result?.isError
+          } else if (tc.name === 'file') {
+            const result = await executeFilesystemConsolidatedTool(tc.input, this.logger, routeTool)
+            content = JSON.stringify(result)
+            isError = !!result?.isError
+          } else if (tc.name === 'browser') {
+            const result = await executeBrowserConsolidatedTool(tc.input, this.logger, routeTool)
+            content = JSON.stringify(result)
+            isError = !!result?.isError
+          } else if (tc.name === 'web') {
+            const result = await executeWebConsolidatedTool('http://localhost:7433', tc.input, this.logger, routeTool)
+            content = JSON.stringify(result)
+            isError = !!result?.isError
+          } else {
+            throw new Error(`Unsupported consolidated gateway tool: ${tc.name}`)
+          }
+
+          const durationMs = Date.now() - startMs
+          this.store?.saveToolCall(
+            this.sessionId, this.role, tc.name, tc.id, false,
+            tc.input, this.truncateToolResult(content), isError,
+            durationMs, this.iterationCount,
+          )
+          this.blackboard?.addToolRecord({
+            tool: tc.name,
+            nodeId: this.getAgentLabel(),
+            params: tc.input,
+            result: this.truncateToolResult(content),
+            isError,
+            durationMs,
+          })
+          return { id: tc.id, content: this.truncateToolResult(content), isError }
+        } catch (err) {
+          return {
+            id: tc.id,
+            content: `Tool execution failed: ${err instanceof Error ? err.message : String(err)}`,
+            isError: true,
+          }
+        }
+      }),
+    )
+
+    for (const item of settled) {
+      if (item.status === 'fulfilled') {
+        results.push({
+          type: 'tool_result',
+          tool_use_id: item.value.id,
+          content: item.value.content,
+          is_error: item.value.isError,
+        })
+      } else {
+        results.push({
+          type: 'tool_result',
+          tool_use_id: 'unknown',
+          content: `Tool execution rejected: ${String(item.reason)}`,
+          is_error: true,
+        })
       }
     }
 
@@ -1590,10 +1730,21 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         if (REPORT_TOOL_NAMES.has(schema.name)) continue
         // Filter out tools that trap autonomous postures in useless loops
         if (isBlockedForAutonomousPostures(schema.name)) continue
+        // Hide raw external MCP tools and consolidated gateway tools; inject curated variants below
+        if (isExternalMcpTool(schema.name)) continue
+        if (CONSOLIDATED_GATEWAY_TOOL_NAMES.has(schema.name)) continue
 
         if (hasFullAccess || isReadOnlyTool(schema.name, this.toolRegistry) || isMemoryTool(schema.name)) {
           tools.push(schema as any)
         }
+      }
+
+      const readOnly = !hasFullAccess
+      tools.push(getCodeConsolidatedToolSchema(readOnly) as any)
+      tools.push(getFilesystemConsolidatedToolSchema(readOnly) as any)
+      tools.push(WEB_CONSOLIDATED_TOOL as any)
+      if (hasFullAccess) {
+        tools.push(BROWSER_CONSOLIDATED_TOOL as any)
       }
     }
 
