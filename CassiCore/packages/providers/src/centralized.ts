@@ -152,6 +152,8 @@ export class CentralizedProvider implements IProvider {
   readonly id: string
   readonly models: string[]
 
+  /** Expose the inner provider for unwrapping (e.g. to call setBackgroundOnly on GitHubCopilotProvider) */
+  readonly inner: IProvider
   private wrapped: IProvider
   private logger: ILogger
   private bus: IEventBus
@@ -191,6 +193,7 @@ export class CentralizedProvider implements IProvider {
     providerConfig?: Partial<ProviderConfig>,
   ) {
     this.wrapped = wrapped
+    this.inner = wrapped
     this.id = wrapped.id
     this.models = wrapped.models
     this.logger = logger.child(`provider:${wrapped.id}`)
