@@ -23,6 +23,7 @@ import { createStrategyTracker, type StrategyTracker } from './intelligence/stra
 import { createProviderProfiler, type ProviderProfiler } from './intelligence/provider-profiler.js'
 import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
 import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
+import { createMonitoringHook, type MonitoringHook } from './monitoring-hook.js'
 import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
 import { PrimarySessionRouter, createPrimarySessionRouter } from './daemon/primary-session-router.js'
 import { initContextWindowDebugger, ContextWindowDebugger } from './events/context-window-debug.js'
@@ -192,6 +193,8 @@ export class Daemon {
   public providerProfiler?: ProviderProfiler
   public adaptiveBehavior?: AdaptiveBehavior
    public selfVerification?: SelfVerification
+   /** Runtime self-monitoring — tool latency, context pressure, loop detection. */
+   public monitoringHook?: MonitoringHook
    public sessionDigestStore?: SessionDigestStore
     /** Background embedding pre-computation worker. */
    public bgEmbeddingWorker?: import('./intelligence/embeddings/background-worker.js').BackgroundEmbeddingWorker
@@ -880,6 +883,40 @@ export class Daemon {
         }
       } catch (err) {
         this.logger.warn(`Failed to initialize SelfVerification: ${String(err)}`)
+      }
+
+      // Phase 5b: Runtime Self-Monitoring Hook
+      try {
+        const monitor = createMonitoringHook()
+        // Subscribe to tool:executed events
+        bus.on('tool:executed', (e: any) => {
+          const callId = monitor.toolMonitor.startCall(e.toolName, e.sessionId)
+          // Immediately end since the event is post-execution
+          monitor.toolMonitor.endCall(
+            callId,
+            e.isError ? new Error('Tool execution failed') : undefined,
+            e.sessionId,
+          )
+        })
+        // Subscribe to provider:request_end for token tracking
+        bus.on('provider:request_end', (e: any) => {
+          const tokensUsed = (e.usageInput ?? 0) + (e.usageOutput ?? 0) + (e.tokensUsed ?? 0)
+          if (tokensUsed > 0) {
+            monitor.contextMonitor.checkPressure(tokensUsed, 200000, e.sessionId)
+          }
+        })
+        // Subscribe to budget tier changes
+        bus.on('budget:tier_changed', (e: any) => {
+          const tierToThreshold: Record<string, number> = { normal: 0, cautious: 0.5, frugal: 0.75, critical: 0.9 }
+          const ratio = tierToThreshold[e.newTier] ?? 0.5
+          monitor.contextMonitor.checkPressure(
+            Math.round(ratio * 200000), 200000, e.sessionId,
+          )
+        })
+        this.monitoringHook = monitor
+        this.logger.info('MonitoringHook initialized and wired to EventBus')
+      } catch (err) {
+        this.logger.warn(`Failed to initialize MonitoringHook: ${String(err)}`)
       }
 
       // Phase 5: Wire Improvement Orchestrator into adaptor modules
