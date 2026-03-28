@@ -790,10 +790,10 @@ export class Daemon {
           const loop = this.unifiedLoop
           if (loop?.addCycleHook) {
             loop.addCycleHook(tracker)
-            this.logger.info('OutcomeTracker registered as unified loop cycle hook')
+            this.logger.debug('OutcomeTracker registered as unified loop cycle hook')
           }
           this.outcomeTracker = tracker
-          this.logger.info('OutcomeTracker initialized')
+          this.logger.debug('OutcomeTracker initialized')
         } else {
           this.logger.warn('OutcomeTracker skipped — memory DB not available')
         }
@@ -812,10 +812,10 @@ export class Daemon {
           correlator.initialize(memoryDb2)
           if (loop2?.addCycleHook) {
             loop2.addCycleHook(correlator)
-            this.logger.info('CrossSessionCorrelator registered as unified loop cycle hook')
+            this.logger.debug('CrossSessionCorrelator registered as unified loop cycle hook')
           }
           this.crossSessionCorrelator = correlator
-          this.logger.info('CrossSessionCorrelator initialized')
+          this.logger.debug('CrossSessionCorrelator initialized')
         }
       } catch (err) {
         this.logger.warn(`Failed to initialize CrossSessionCorrelator: ${String(err)}`)
@@ -828,10 +828,10 @@ export class Daemon {
           stratTracker.initialize(memoryDb2)
           if (loop2?.addCycleHook) {
             loop2.addCycleHook(stratTracker)
-            this.logger.info('StrategyTracker registered as unified loop cycle hook')
+            this.logger.debug('StrategyTracker registered as unified loop cycle hook')
           }
           this.strategyTracker = stratTracker
-          this.logger.info('StrategyTracker initialized')
+          this.logger.debug('StrategyTracker initialized')
         }
       } catch (err) {
         this.logger.warn(`Failed to initialize StrategyTracker: ${String(err)}`)
@@ -844,10 +844,10 @@ export class Daemon {
           profiler.initialize(memoryDb2)
           if (loop2?.addCycleHook) {
             loop2.addCycleHook(profiler)
-            this.logger.info('ProviderProfiler registered as unified loop cycle hook')
+            this.logger.debug('ProviderProfiler registered as unified loop cycle hook')
           }
           this.providerProfiler = profiler
-          this.logger.info('ProviderProfiler initialized')
+          this.logger.debug('ProviderProfiler initialized')
         }
       } catch (err) {
         this.logger.warn(`Failed to initialize ProviderProfiler: ${String(err)}`)
@@ -860,10 +860,10 @@ export class Daemon {
           adaptive.initialize(memoryDb2)
           if (loop2?.addCycleHook) {
             loop2.addCycleHook(adaptive)
-            this.logger.info('AdaptiveBehavior registered as unified loop cycle hook')
+            this.logger.debug('AdaptiveBehavior registered as unified loop cycle hook')
           }
           this.adaptiveBehavior = adaptive
-          this.logger.info('AdaptiveBehavior initialized')
+          this.logger.debug('AdaptiveBehavior initialized')
         }
       } catch (err) {
         this.logger.warn(`Failed to initialize AdaptiveBehavior: ${String(err)}`)
@@ -876,10 +876,10 @@ export class Daemon {
           verification.initialize(memoryDb2)
           if (loop2?.addCycleHook) {
             loop2.addCycleHook(verification)
-            this.logger.info('SelfVerification registered as unified loop cycle hook')
+            this.logger.debug('SelfVerification registered as unified loop cycle hook')
           }
           this.selfVerification = verification
-          this.logger.info('SelfVerification initialized')
+          this.logger.debug('SelfVerification initialized')
         }
       } catch (err) {
         this.logger.warn(`Failed to initialize SelfVerification: ${String(err)}`)
@@ -932,7 +932,7 @@ export class Daemon {
           // Register as cycle hook
           if (loop2?.addCycleHook) {
             loop2.addCycleHook(orch)
-            this.logger.info('ImprovementOrchestrator registered as unified loop cycle hook')
+            this.logger.debug('ImprovementOrchestrator registered as unified loop cycle hook')
           }
           // Wire into AdaptiveBehavior
           if (this.adaptiveBehavior && 'setImprovementOrchestrator' in this.adaptiveBehavior) {
