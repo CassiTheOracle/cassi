@@ -454,6 +454,10 @@ export interface CorpusResult {
   spawnDecisions: SpawnDecision[]
   /** How many sweep cycles completed */
   sweepCount: number
+  /** Whether the Corpus LLM is healthy (able to make strategic decisions) */
+  llmHealthy: boolean
+  /** Number of consecutive LLM failures */
+  llmFailureCount: number
   /** How long the Corpus was active */
   durationMs: number
 }

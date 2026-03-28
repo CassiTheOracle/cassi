@@ -74,6 +74,11 @@ export class Corpus {
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
 
+  // LLM health tracking
+  private llmHealthy = true
+  private llmFailureCount = 0
+  private static readonly LLM_FAILURE_THRESHOLD = 2 // Mark unhealthy after 2 consecutive failures
+
   // Timing
   private startTime = 0
 
@@ -186,8 +191,17 @@ export class Corpus {
       interventions: [...this.state.interventions],
       spawnDecisions: [...this.state.spawnDecisions],
       sweepCount: this.state.sweepCount,
+      llmHealthy: this.llmHealthy,
+      llmFailureCount: this.llmFailureCount,
       durationMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
     }
+  }
+
+  /**
+   * Check if Corpus LLM is healthy (able to make strategic decisions)
+   */
+  isLLMHealthy(): boolean {
+    return this.llmHealthy
   }
 
   /**
@@ -643,10 +657,40 @@ export class Corpus {
 
       this.parseAndApplyLLMResponse(response.content)
       this.newStepsSinceLLM = 0
+
+      // Reset failure tracking on success
+      if (!this.llmHealthy) {
+        this.logger.info('Corpus LLM recovered after previous failures', {
+          previousFailures: this.llmFailureCount,
+        })
+      }
+      this.llmHealthy = true
+      this.llmFailureCount = 0
     } catch (error) {
-      this.logger.warn('LLM analysis failed, continuing loop', {
-        error: error instanceof Error ? error.message : String(error),
-      })
+      this.llmFailureCount++
+      const errorMsg = error instanceof Error ? error.message : String(error)
+
+      if (this.llmFailureCount >= Corpus.LLM_FAILURE_THRESHOLD && this.llmHealthy) {
+        // Mark unhealthy and emit critical event
+        this.llmHealthy = false
+        this.logger.error('Corpus LLM is unhealthy — constellation running without strategic oversight', {
+          error: errorMsg,
+          failureCount: this.llmFailureCount,
+          sweepCount: this.state.sweepCount,
+        })
+        this.emitEvent('corpus:unhealthy', {
+          reason: 'llm_failure',
+          error: errorMsg,
+          failureCount: this.llmFailureCount,
+          message: 'Corpus LLM failed repeatedly. Constellation Helix branches are running without strategic planning, intervention, or spawn decisions.',
+        })
+      } else {
+        this.logger.warn('Corpus LLM analysis failed, continuing loop', {
+          error: errorMsg,
+          failureCount: this.llmFailureCount,
+          threshold: Corpus.LLM_FAILURE_THRESHOLD,
+        })
+      }
     }
   }
 
@@ -990,6 +1034,7 @@ Guidelines:
         evaluatedAt: Date.now(),
       }
     } catch (error) {
+      this.llmFailureCount++
       this.logger.error('Spawn evaluation failed, defaulting to rejected', {
         error: error instanceof Error ? error.message : String(error),
         requestId: request.requestId,
