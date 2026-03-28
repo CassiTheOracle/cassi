@@ -2126,6 +2126,15 @@ export class Daemon {
               this.logger.warn('Constellation HelixStore failed to initialize', { error: String(storeErr) })
             }
 
+            // Wire ConstellationStore for persistent Corpus tree, branch assessments, and reports
+            try {
+              const { ConstellationStore } = await import('./intelligence/constellation/constellation-store.js')
+              const constellationStore = ConstellationStore.open(this.logger.child('constellation-store'))
+              this.intelligence.constellation.setConstellationStore(constellationStore)
+            } catch (storeErr) {
+              this.logger.warn('ConstellationStore failed to initialize', { error: String(storeErr) })
+            }
+
             if (this.contextDistiller) {
               this.intelligence.constellation.setContextDistiller(this.contextDistiller)
             }
