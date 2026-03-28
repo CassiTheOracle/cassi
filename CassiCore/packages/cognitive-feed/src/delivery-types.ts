@@ -31,7 +31,8 @@ export type LoadState = 'normal' | 'busy' | 'congested' | 'rate-limited'
  *  critical:       Errors, budget exhausted, self-healer — always delivered
  *  highlight:      Main chat highlights — batched under load but never frozen
  *  orchestration:  Lumen/Dyad/Team topic messages — frozen under congestion
- *  intelligence:   Thinker/Dialectic/Consciousness — frozen under congestion
+ *  intelligence:   Thinker/Dialectic — frozen under congestion
+ *  constellation:  Constellation & Consciousness — immediate delivery, never frozen
  *  routine:        Memory, heart, LLM calls, routine updates — frozen under congestion
  */
 export type DeliveryLane =
@@ -39,6 +40,7 @@ export type DeliveryLane =
   | 'highlight'
   | 'orchestration'
   | 'intelligence'
+  | 'constellation'
   | 'routine'
 
 // ── Batch policy ──
@@ -126,6 +128,14 @@ export const DEFAULT_POLICIES: BatchPolicy[] = [
     maxBatchSize: 20,
     freezable: true,
     coalescible: true,
+  },
+  {
+    lane: 'constellation',
+    batchWindowMs: 0,
+    loadMultipliers: { normal: 1, busy: 1, congested: 1, 'rate-limited': 1 },
+    maxBatchSize: 1,
+    freezable: false,
+    coalescible: false,
   },
   {
     lane: 'routine',

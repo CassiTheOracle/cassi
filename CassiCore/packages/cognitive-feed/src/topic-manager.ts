@@ -61,6 +61,7 @@ export const TOPIC_DEFINITIONS: TopicDefinition[] = [
   // Intelligence modules
   { key: 'thinker',       displayName: 'Thinker',        color: TOPIC_COLORS.VIOLET, description: 'Autonomous background thinking',       category: 'intel' },
   { key: 'dialectic',     displayName: 'Dialectic',      color: TOPIC_COLORS.VIOLET, description: 'Inline Yang/Yin/Serenity reasoning',   category: 'intel' },
+  { key: 'constellation', displayName: 'Constellation',  color: TOPIC_COLORS.RED,    description: 'Constellation reasoning tree & Helix activity', category: 'intel' },
   { key: 'consciousness', displayName: 'Consciousness',  color: TOPIC_COLORS.RED,    description: 'Subconscious observations & anomalies', category: 'intel' },
   { key: 'memoryDreams',  displayName: 'Memory & Dreams', color: TOPIC_COLORS.GREEN, description: 'Memory queries, archive, dream cycles', category: 'intel' },
   { key: 'adaptive',      displayName: 'Adaptive',       color: TOPIC_COLORS.YELLOW, description: 'Optimizer, reflex, smart rules, improvement', category: 'intel' },

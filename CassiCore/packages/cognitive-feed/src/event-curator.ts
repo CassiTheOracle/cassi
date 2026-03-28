@@ -157,6 +157,12 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'dialectic:round-complete':  { topicKey: 'dialectic', highlight: false },
   'dialectic:convergence':     { topicKey: 'dialectic', highlight: false },
 
+  // Constellation events - real-time visibility in dedicated topic
+  'constellation:started':   { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:completed': { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:failed':    { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:checkpoint':{ topicKey: 'constellation', highlight: true, priority: 'medium' },
+
   'consciousness:anomaly': {
     topicKey: 'consciousness',
     highlight: true,
@@ -169,9 +175,10 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
              (severityOrder[config.minSeverity] ?? 1)
     },
   },
-  'consciousness:insight':     { topicKey: 'consciousness', highlight: true, priority: 'medium' },
-  'consciousness:observation': { topicKey: 'consciousness', highlight: false },
-  'subconscious:learning':     { topicKey: 'consciousness', highlight: false },
+  'consciousness:insight':              { topicKey: 'consciousness', highlight: true, priority: 'medium' },
+  'consciousness:observation':          { topicKey: 'consciousness', highlight: true, priority: 'low' },
+  'consciousness:cross-session-correlation': { topicKey: 'consciousness', highlight: true, priority: 'medium' },
+  'subconscious:learning':              { topicKey: 'consciousness', highlight: true, priority: 'low' },
 
   'dreamer:cycle-complete':    { topicKey: 'memoryDreams', highlight: true, priority: 'medium' },
   'dreamer:insight':           { topicKey: 'memoryDreams', highlight: true, priority: 'medium' },

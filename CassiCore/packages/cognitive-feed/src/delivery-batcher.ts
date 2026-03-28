@@ -131,9 +131,12 @@ const TOPIC_TO_LANE: Record<string, DeliveryLane> = {
   droneSwarm:  'orchestration',
   multiAgent:  'orchestration',
 
-  // Intelligence systems
-  thinker:       'intelligence',
-  dialectic:     'intelligence',
+  // Constellation - dedicated lane for real-time visibility
+  constellation: 'constellation',
+
+  // Intelligence systems (consciousness moves to constellation lane via event-type routing)
+  thinker:     'intelligence',
+  dialectic:   'intelligence',
   consciousness: 'intelligence',
 
   // Routine / lower priority
@@ -341,6 +344,10 @@ export class DeliveryBatcher {
 
     // Critical events override everything
     if (CRITICAL_EVENT_TYPES.has(eventType)) return 'critical'
+
+    // Constellation and all consciousness events use dedicated lane for real-time visibility
+    if (eventType.startsWith('constellation:')) return 'constellation'
+    if (eventType.startsWith('consciousness:')) return 'constellation'
 
     // Highlights without a topic go to highlight lane (main chat)
     if (curated.isHighlight && curated.topicKey === null) return 'highlight'
