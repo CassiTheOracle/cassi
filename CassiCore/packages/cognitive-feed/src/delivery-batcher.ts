@@ -134,10 +134,10 @@ const TOPIC_TO_LANE: Record<string, DeliveryLane> = {
   // Constellation - dedicated lane for real-time visibility
   constellation: 'constellation',
 
-  // Intelligence systems (consciousness moves to constellation lane via event-type routing)
+  // Intelligence systems
   thinker:     'intelligence',
   dialectic:   'intelligence',
-  consciousness: 'intelligence',
+  consciousness: 'constellation', // Consciousness events use constellation lane for real-time delivery
 
   // Routine / lower priority
   memoryDreams: 'routine',
@@ -345,9 +345,14 @@ export class DeliveryBatcher {
     // Critical events override everything
     if (CRITICAL_EVENT_TYPES.has(eventType)) return 'critical'
 
-    // Constellation and all consciousness events use dedicated lane for real-time visibility
+    // Constellation and all consciousness-related events use dedicated lane for real-time visibility
     if (eventType.startsWith('constellation:')) return 'constellation'
     if (eventType.startsWith('consciousness:')) return 'constellation'
+    if (eventType.startsWith('subconscious:')) return 'constellation'
+    if (eventType.startsWith('axon:')) return 'constellation'
+    if (eventType.startsWith('synapse:')) return 'constellation'
+    if (eventType.startsWith('brainstem:')) return 'constellation'
+    if (eventType.startsWith('corpus:')) return 'constellation'
 
     // Highlights without a topic go to highlight lane (main chat)
     if (curated.isHighlight && curated.topicKey === null) return 'highlight'

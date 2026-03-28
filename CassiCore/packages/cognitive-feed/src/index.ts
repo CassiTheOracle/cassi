@@ -62,6 +62,7 @@ export interface CognitiveFeedConfig {
     multiAgent: boolean
     thinker: boolean
     dialectic: boolean
+    constellation: boolean
     consciousness: boolean
     memoryDreams: boolean
     adaptive: boolean
@@ -119,6 +120,7 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
     multiAgent: true,
     thinker: true,
     dialectic: true,
+    constellation: true,
     consciousness: true,
     memoryDreams: true,
     adaptive: true,
