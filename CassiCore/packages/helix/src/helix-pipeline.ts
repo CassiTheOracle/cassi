@@ -254,6 +254,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     eventBus: opts.eventBus,
     modelDirective: opts.modelDirective,
     unityStatusThresholds: opts.unityStatusThresholds,
+    planHandler: opts.planHandler,
     onWorkUnit: opts.onWorkUnit,
     onActivity,
     // Forward stream activity to Brainstem for real-time token stream visibility

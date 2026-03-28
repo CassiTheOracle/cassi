@@ -546,6 +546,23 @@ export function createHelix(
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
 
+        // Create PlanHandler so Helix postures can decompose and track work
+        let planHandler: import('../flux-team/plan-handler.js').PlanHandler | undefined
+        try {
+          const { PlanHandler } = await import('../flux-team/plan-handler.js')
+          const { Blackboard } = await import('../flux-team/blackboard.js')
+          // Use the provided blackboard, or create one eagerly so PlanHandler can bind to it.
+          // The pipeline will use this same blackboard instance (passed via opts.blackboard).
+          if (!effectiveBlackboard) {
+            effectiveBlackboard = new Blackboard(logger, sessionId)
+            effectiveBlackboard.initPlan(effectiveGoal)
+            effectiveBlackboard.initReport(effectiveGoal)
+          }
+          planHandler = new PlanHandler(effectiveBlackboard, logger)
+        } catch (err) {
+          logger.warn('helix:plan-handler:init-failed', { error: String(err), sessionId })
+        }
+
         // Build research spawner for mentor — deferred blackboard capture
         let resolvedBlackboard: Blackboard | undefined = effectiveBlackboard
         let researchSpawner: ResearchSpawner | undefined
@@ -583,6 +600,7 @@ export function createHelix(
             toolRegistry: storedToolRegistry,
             store: storedStore,
             blackboard: effectiveBlackboard,
+            planHandler,
             researchSpawner,
             useNativeCoordinator: true,
             brainstemDeps,
