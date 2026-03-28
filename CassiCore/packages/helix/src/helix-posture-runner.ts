@@ -47,6 +47,7 @@ import {
   isMemoryTool,
   findLastIndex,
 } from '../cassi-agent/base-posture-runner.js'
+import { createDriftDetector, DriftDetectionHook } from './drift-detector.js'
 import {
   getCodeConsolidatedToolSchema,
   getFilesystemConsolidatedToolSchema,
@@ -228,6 +229,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
   // Synapse guidance tracking — latest guidance is appended to subsequent tool outputs
   private lastSynapseGuidance?: string
+  // Drift detection for shell commands
+  private driftDetector: DriftDetectionHook
 
   // Mentor synthesis tracking — populated by mentor_synthesize handler
   private mentorSynthesis?: {
