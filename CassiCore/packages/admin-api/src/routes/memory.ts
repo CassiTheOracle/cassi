@@ -305,13 +305,49 @@ export async function handleMemoryRoutes(
       tags: userTags,
       ...(body?.key ? { key: body.key } : {}),
     }
-    const id = await memory.store({
+    const storeEntry: Record<string, unknown> = {
       type: body?.type || 'fact',
       content: body?.content || body?.note || '',
       metadata,
       sessionId: body?.metadata?.sessionId || body?.sessionId,
-    })
+    }
+    // Optional importance (0-10) and pinned flag
+    if (body?.importance !== undefined) storeEntry.importance = Number(body.importance)
+    if (body?.pinned !== undefined) storeEntry.pinned = Boolean(body.pinned)
+    const id = await memory.store(storeEntry as any)
     sendJSON(res, 200, { ok: true, id })
+    return true
+  }
+
+  // POST /memory/:id/pin
+  if (parts[2] === 'pin' && method === 'POST') {
+    if (!memory) return noMemory()
+    if (!memory.pin) {
+      sendJSON(res, 501, { error: 'pin not available' })
+      return true
+    }
+    const pinned = await memory.pin(parts[1])
+    if (!pinned) {
+      sendJSON(res, 404, { error: 'not_found' })
+      return true
+    }
+    sendJSON(res, 200, { ok: true, pinned: true })
+    return true
+  }
+
+  // POST /memory/:id/unpin
+  if (parts[2] === 'unpin' && method === 'POST') {
+    if (!memory) return noMemory()
+    if (!memory.unpin) {
+      sendJSON(res, 501, { error: 'unpin not available' })
+      return true
+    }
+    const unpinned = await memory.unpin(parts[1])
+    if (!unpinned) {
+      sendJSON(res, 404, { error: 'not_found' })
+      return true
+    }
+    sendJSON(res, 200, { ok: true, pinned: false })
     return true
   }
 
@@ -320,8 +356,24 @@ export async function handleMemoryRoutes(
     const query = url.searchParams.get('q') || url.searchParams.get('query') || ''
     const limit = parseInt(url.searchParams.get('limit') || '5', 10)
     if (!memory) return noMemory()
-    const results = await memory.search(query, { limit })
-    sendJSON(res, 200, results.map((r: { entry: any, score: number }) => ({ entry: r.entry, score: r.score })))
+
+    // Build search opts from query params
+    const searchOpts: Record<string, unknown> = { limit }
+    const timeAfter = url.searchParams.get('time_after')
+    const timeBefore = url.searchParams.get('time_before')
+    const minImportance = url.searchParams.get('min_importance')
+    const pinnedOnly = url.searchParams.get('pinned_only')
+    if (timeAfter) searchOpts.timeAfter = new Date(timeAfter)
+    if (timeBefore) searchOpts.timeBefore = new Date(timeBefore)
+    if (minImportance) searchOpts.minImportance = parseFloat(minImportance)
+    if (pinnedOnly === 'true') searchOpts.pinnedOnly = true
+
+    const results = await memory.search(query, searchOpts as any)
+    sendJSON(res, 200, results.map((r: { entry: any, score: number, confidence?: string }) => ({
+      entry: r.entry,
+      score: r.score,
+      confidence: r.confidence,
+    })))
     return true
   }
 
