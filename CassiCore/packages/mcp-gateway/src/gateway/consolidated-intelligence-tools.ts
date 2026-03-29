@@ -85,6 +85,15 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
         type: 'string',
         description: 'Specific trust domain to inspect (e.g., "file-read", "shell-execution")',
       },
+      // schema params
+      database: {
+        type: 'string',
+        description: 'Filter to specific database name (for schema action)',
+      },
+      table: {
+        type: 'string',
+        description: 'Filter to specific table name (for schema action)',
+      },
     },
     required: ['action'],
   },
@@ -125,6 +134,58 @@ export async function executeIntelligenceConsolidatedTool(
     return await executeIntelligenceTool(baseUrl, '_1', restArgs, logger);
   }
 
+  // Handle schema introspection (runs locally, no admin API needed)
+  if (action === 'schema') {
+    const result = introspectSchemas(logger, {
+      database: restArgs.database,
+      table: restArgs.table,
+    });
+    return {
+      output: `**CassiCore Internal Databases** (${result.databases.length} databases, ${result.totalTables} tables, ${result.totalRows.toLocaleString()} rows)\n\n` +
+        result.databases.map(db =>
+          `### ${db.name} (${(db.sizeBytes / 1024).toFixed(1)} KB)\n` +
+          `Path: \`${db.path}\`\n` +
+          db.tables.map(t =>
+            `- **${t.name}** (${t.rowCount >= 0 ? t.rowCount.toLocaleString() + ' rows' : 'n/a'}): ${t.columns.map(c => `${c.name}:${c.type}`).join(', ')}`
+          ).join('\n')
+        ).join('\n\n'),
+      ...result,
+    };
+  }
+
+  // Handle context feedback stats
+  if (action === 'context_feedback') {
+    try {
+      const tracker = new ContextFeedbackTracker(logger);
+      const stats = tracker.getStats();
+      const scores = tracker.getEffectivenessScores();
+      const recent = tracker.getRecent(restArgs.limit || 10);
+      tracker.close();
+
+      return {
+        output: `**Context Feedback Stats**\n\n` +
+          `Total records: ${stats.totalRecords} | Useful rate: ${(stats.usefulRate * 100).toFixed(1)}%\n\n` +
+          `By mode:\n` +
+          Object.entries(stats.byMode).map(([mode, data]) =>
+            `- ${mode}: ${data.count} records, ${(data.usefulRate * 100).toFixed(1)}% useful`
+          ).join('\n') +
+          `\n\nBayesian scores:\n` +
+          scores.map(s =>
+            `- ${s.mode}/${s.specificityBucket}: mean=${s.bayesMean} (n=${s.sampleCount})`
+          ).join('\n') +
+          `\n\nRecent (${recent.length}):\n` +
+          recent.slice(0, 5).map(r =>
+            `- ${r.contextMode} | specificity=${r.specificityScore} | useful=${r.wasUseful} | "${r.queryText.slice(0, 60)}"`
+          ).join('\n'),
+        stats,
+        scores,
+        recentCount: recent.length,
+      };
+    } catch (err) {
+      return { output: `Context feedback unavailable: ${String(err)}` };
+    }
+  }
+
   // Map action to legacy tool name
   const validTools = new Set([
     'activity', 'thinker', 'subconscious', 'consciousness', 'trace',
@@ -133,7 +194,7 @@ export async function executeIntelligenceConsolidatedTool(
   ]);
 
   if (!validTools.has(action)) {
-    throw new Error(`Unknown intelligence action: ${action}`);
+    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback`);
   }
 
   return await executeIntelligenceTool(baseUrl, action, restArgs, logger);
