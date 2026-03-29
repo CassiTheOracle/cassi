@@ -97,7 +97,7 @@ export interface DaemonBootSnapshot {
 }
 
 /**
- * @dep callers: start (core/daemon.ts), startDeferredStartup (core/daemon.ts), recordService (core/daemon.ts), completePhase (core/daemon.ts)
+ * @dep callers: completePhase (core/daemon.ts), recordService (core/daemon.ts), startDeferredStartup (core/daemon.ts), start (core/daemon.ts)
  * @dep module: Intelligence
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
@@ -204,6 +204,8 @@ export class Daemon {
   public providers: Map<string, IProvider> = new Map()
   /** Prompt log store — persistent SQLite storage of every prompt sent to providers. */
   public promptLogStore?: import('./prompt-log-store.js').PromptLogStore
+  /** Rate limit store — persists adaptive learned rate limits across daemon restarts. */
+  public rateLimitStore?: import('./providers/rate-limit-store.js').RateLimitStore
   /** Timeline store — unified chronological view of all system data. */
   public timelineStore?: import('./timeline-store.js').TimelineStore
   public contextDistiller?: import('./intelligence/context-distiller.js').ContextDistiller
@@ -1247,6 +1249,32 @@ export class Daemon {
         }
       }
       this.logger.info('BudgetTracker wired to CentralizedProvider instances')
+    }
+
+    // Open RateLimitStore and wire into all CentralizedProvider instances.
+    // This restores learned 429 limits from the previous run so the daemon
+    // enforces known ceilings immediately without re-hitting them on startup.
+    try {
+      const { RateLimitStore } = await import('./providers/rate-limit-store.js')
+      const dataDir = String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data'))
+      const rateLimitStore = RateLimitStore.open(this.logger, dataDir)
+      this.rateLimitStore = rateLimitStore
+      if (providers.size > 0) {
+        interface ProviderWithRateLimitStore {
+          setRateLimitStore?(store: typeof rateLimitStore): void
+        }
+        let wired = 0
+        for (const [, p] of providers) {
+          const provider = p as ProviderWithRateLimitStore
+          if (typeof provider.setRateLimitStore === 'function') {
+            provider.setRateLimitStore(rateLimitStore)
+            wired++
+          }
+        }
+        this.logger.info('RateLimitStore wired to CentralizedProvider instances', { wired })
+      }
+    } catch (err) {
+      this.logger.warn('RateLimitStore: failed to open, adaptive limits will not be persisted', { error: String(err) })
     }
 
     try {
@@ -3232,6 +3260,10 @@ export class Daemon {
     // Close prompt log store
     try {
       this.promptLogStore?.close()
+    } catch { /* ignore */ }
+    // Close rate limit store
+    try {
+      this.rateLimitStore?.close()
     } catch { /* ignore */ }
     // Close timeline store
     try {
