@@ -106,7 +106,7 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
     pollIntervalMs: 3000,
   },
   highlights: {
-    enabled: true,
+    enabled: false, // Off by default — General chat is too noisy
     minConfidence: 0.5,
     minSeverity: 'medium',
   },
@@ -125,12 +125,12 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
     memoryDreams: true,
     adaptive: true,
     heart: true,
-    system: true,
+    system: false, // Off by default — very noisy
     budget: true,
     tools: true,
     llmCalls: false, // Off by default — very noisy
     blackboard: true,
-    sessions: true,
+    sessions: false, // Off by default — very noisy
     timeStore: true,
   },
   rateLimit: {
