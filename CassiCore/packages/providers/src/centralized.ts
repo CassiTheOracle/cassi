@@ -61,6 +61,29 @@ const PROBE_UP_FACTOR = 1.05
 const TIGHTEN_FACTOR = 0.95
 
 /**
+ * Max times we'll transparently wait-and-retry within a single complete() call
+ * when a rate limit (pre-check or live 429) is encountered.
+ * After this many retries we give up and surface the error to the caller.
+ */
+const MAX_RATE_LIMIT_RETRIES = 5
+
+/**
+ * Sleep for `ms` milliseconds. Rejects early with AbortError if `signal` fires.
+ * Used by the rate-limit retry path so waits are cancellable.
+ */
+function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'))
+  if (ms <= 0) return Promise.resolve()
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(resolve, ms)
+    signal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }, { once: true })
+  })
+}
+
+/**
  * A learned rate limit at a specific timescale for a specific model.
  */
 interface LearnedLimit {
@@ -298,236 +321,280 @@ export class CentralizedProvider implements IProvider {
       try { this.logger.debug(`[dedup] allowConcurrent set — skipping dedup for session ${sessionId.slice(-8)}`) } catch { }
     }
 
-    const rateLimitResult = this.checkRateLimit(opts.model || this.models[0])
-    if (!rateLimitResult.allowed) {
-      this.metrics.rateLimited++
-      this.logger.warn(`[ratelimit] Provider ${this.id} model=${opts.model || this.models[0]} at learned limit (${rateLimitResult.windowLabel}), must wait ${rateLimitResult.retryAfterMs}ms`)
-      this.bus.emit({
-        type: 'provider:rate_limited',
-        providerId: this.id,
-        sessionId,
-        retryAfterMs: rateLimitResult.retryAfterMs,
-      })
-      throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
-    }
-
-    const cooldownRemaining = this.checkErrorCooldown()
-    if (cooldownRemaining > 0) {
-      this.logger.warn(`[cooldown] Provider ${this.id} in error cooldown for ${cooldownRemaining}ms`)
-      throw new Error(`Provider cooling down after errors: retry after ${cooldownRemaining}ms`)
-    }
-
-    const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const rawModel = opts.model || this.models[0]
-    const entry: RequestEntry = {
-      id: requestId,
-      sessionId,
-      providerId: this.id,
-      model: rawModel,
-      startedAt: Date.now(),
-      tokensUsed: 0,
-      aborted: false,
-    }
-    // Reserve slot atomically - this must happen immediately after check
-    this.inFlight.set(sessionId, entry)
-    this.recordRequest(rawModel)
 
-    // Normalize model reporting to include provider prefix when not already present
-    let reportedModel = entry.model || ''
-    try {
-      if (reportedModel && !reportedModel.includes('/')) reportedModel = `${this.id}/${reportedModel}`
-    } catch (err) { /* ignore */ }
-    // Persist the normalized model for downstream diagnostics
-    entry.model = reportedModel
+    // Retry loop — transparent to callers. Retries on:
+    //   1. Pre-check: learned limit not yet cleared (waits retryAfterMs, then re-checks)
+    //   2. Live 429: provider returns 429 before any chunks yielded (waits, then retries)
+    // After MAX_RATE_LIMIT_RETRIES retries the error is surfaced to the caller.
+    for (let attempt = 0; ; attempt++) {
 
-    this.logger.info(`[request] ${requestId.slice(-12)} session=${sessionId.slice(-8)} model=${reportedModel}`)
-    writeThoughtRequestLog({
-      requestId,
-      provider: this.id,
-      model: reportedModel,
-      sessionId,
-      messages,
-      systemPrompt: opts.systemPrompt,
-      toolCount: opts.tools?.length ?? 0,
-      attachmentCount: Array.isArray(attachments) ? attachments.length : 0,
-      timeoutMs: (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS,
-    })
-    this.bus.emit({
-      type: 'provider:request_start',
-      providerId: this.id,
-      requestId,
-      sessionId,
-      source: opts?.source ?? 'unknown',
-      trigger: opts?.trigger,
-      model: rawModel,
-      messageCount: messages.length,
-      timestamp: new Date(),
-    })
-    this.bus.emit({
-      type: 'provider:request_prompt',
-      providerId: this.id,
-      requestId,
-      sessionId,
-      source: opts?.source ?? 'unknown',
-      messages: messages.map(m => ({
-        role: m.role,
-        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
-      })),
-      systemPrompt: opts.systemPrompt,
-      timestamp: new Date(),
-    })
-
-    let completed = false
-    let inputTokens = 0
-
-    // Merge provided signal with our timeout controller
-    const requestedTimeoutMs = (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
-    const controller = new AbortController()
-    let timeoutHandle: ReturnType<typeof setTimeout> | undefined
-
-    try {
-      try {
-        inputTokens = await this.wrapped.countTokens(messages)
-      } catch {
-        // Best-effort estimate only; streaming providers may still report more
-        // accurate structured usage that should override this fallback upstream.
+      // Pre-check: have we already learned this model's rate ceiling?
+      const rateLimitResult = this.checkRateLimit(rawModel)
+      if (!rateLimitResult.allowed) {
+        this.metrics.rateLimited++
+        this.logger.warn(`[ratelimit] ${this.id}/${rawModel} at learned limit (${rateLimitResult.windowLabel}), must wait ${rateLimitResult.retryAfterMs}ms`)
+        this.bus.emit({
+          type: 'provider:rate_limited',
+          providerId: this.id,
+          sessionId,
+          retryAfterMs: rateLimitResult.retryAfterMs,
+        })
+        // Concurrent limit: our own backpressure — throw immediately, do not retry
+        // (retrying would just stack up waiting requests and defeat the concurrency cap)
+        if (rateLimitResult.reason === 'concurrent') {
+          throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
+        }
+        // Learned limit from 429 history: wait for the window to clear, then retry
+        if (attempt >= MAX_RATE_LIMIT_RETRIES) {
+          throw new Error(`Rate limited: gave up after ${attempt} retries, retry after ${rateLimitResult.retryAfterMs}ms`)
+        }
+        this.logger.info(`[ratelimit] waiting ${rateLimitResult.retryAfterMs}ms then retrying (attempt ${attempt + 1}/${MAX_RATE_LIMIT_RETRIES})`)
+        await sleepWithAbort(rateLimitResult.retryAfterMs, signal)
+        continue
       }
 
-      timeoutHandle = setTimeout(() => {
+      // Pre-check: are we still in an error cooldown?
+      // Error cooldown is a circuit breaker for non-429 failures — throw immediately.
+      const cooldownRemaining = this.checkErrorCooldown()
+      if (cooldownRemaining > 0) {
+        throw new Error(`Provider cooling down after errors: retry after ${cooldownRemaining}ms`)
+      }
+
+      // === One attempt ===
+      const requestId = `${this.id}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      const entry: RequestEntry = {
+        id: requestId,
+        sessionId,
+        providerId: this.id,
+        model: rawModel,
+        startedAt: Date.now(),
+        tokensUsed: 0,
+        aborted: false,
+      }
+      // Reserve slot atomically - this must happen immediately after check
+      this.inFlight.set(sessionId, entry)
+      this.recordRequest(rawModel)
+
+      // Normalize model reporting to include provider prefix when not already present
+      let reportedModel = entry.model || ''
+      try {
+        if (reportedModel && !reportedModel.includes('/')) reportedModel = `${this.id}/${reportedModel}`
+      } catch (err) { /* ignore */ }
+      // Persist the normalized model for downstream diagnostics
+      entry.model = reportedModel
+
+      this.logger.info(`[request] ${requestId.slice(-12)} session=${sessionId.slice(-8)} model=${reportedModel}${attempt > 0 ? ` (retry ${attempt})` : ''}`)
+      writeThoughtRequestLog({
+        requestId,
+        provider: this.id,
+        model: reportedModel,
+        sessionId,
+        messages,
+        systemPrompt: opts.systemPrompt,
+        toolCount: opts.tools?.length ?? 0,
+        attachmentCount: Array.isArray(attachments) ? attachments.length : 0,
+        timeoutMs: (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS,
+      })
+      this.bus.emit({
+        type: 'provider:request_start',
+        providerId: this.id,
+        requestId,
+        sessionId,
+        source: opts?.source ?? 'unknown',
+        trigger: opts?.trigger,
+        model: rawModel,
+        messageCount: messages.length,
+        timestamp: new Date(),
+      })
+      this.bus.emit({
+        type: 'provider:request_prompt',
+        providerId: this.id,
+        requestId,
+        sessionId,
+        source: opts?.source ?? 'unknown',
+        messages: messages.map(m => ({
+          role: m.role,
+          content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+        })),
+        systemPrompt: opts.systemPrompt,
+        timestamp: new Date(),
+      })
+
+      let completed = false
+      let inputTokens = 0
+      let chunksYielded = 0
+      let got429 = false
+
+      // Merge provided signal with our timeout controller
+      const requestedTimeoutMs = (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
+      const controller = new AbortController()
+      let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+
+      try {
         try {
-          entry.error = `timeout after ${requestedTimeoutMs}ms`
-          entry.aborted = true
+          inputTokens = await this.wrapped.countTokens(messages)
+        } catch {
+          // Best-effort estimate only; streaming providers may still report more
+          // accurate structured usage that should override this fallback upstream.
+        }
+
+        timeoutHandle = setTimeout(() => {
+          try {
+            entry.error = `timeout after ${requestedTimeoutMs}ms`
+            entry.aborted = true
+            this.metrics.totalErrors++
+            this.consecutiveErrors++
+            this.lastErrorAt = Date.now()
+            this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs })
+            this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
+            writeThoughtResultLog('● THOUGHT  timeout', {
+              requestId,
+              provider: this.id,
+              model: reportedModel,
+              sessionId,
+              error: entry.error,
+            })
+            controller.abort()
+          } catch { /* ignore errors in timeout handler */ }
+        }, requestedTimeoutMs)
+
+        // If caller provided a signal, wire it to our controller so caller aborts propagate
+        if (signal) {
+          if (signal.aborted) {
+            try { controller.abort() } catch { }
+          } else {
+            // Use shared helper to avoid manual listener bookkeeping
+            signalPromise(signal).then(() => { try { controller.abort() } catch { } }).catch(() => { })
+          }
+        }
+        // Use 'as any' to pass attachments (not in IProvider interface but supported by implementations)
+        const stream = (this.wrapped as any).complete(messages, opts, attachments, controller.signal)
+        for await (const chunk of stream) {
+          // Track tokens from chunk
+          if (chunk.tokensUsed) {
+            entry.tokensUsed = chunk.tokensUsed
+          } else if (chunk.type === 'token' && chunk.text) {
+            entry.tokensUsed += Math.ceil(chunk.text.length / 4)
+          }
+
+          chunksYielded++
+
+          // Pass through to caller
+          yield chunk
+
+          // Check if this chunk signals completion
+          if (chunk.type === 'done') {
+            completed = true
+          }
+        }
+
+        // Mark success
+        this.consecutiveErrors = 0
+
+      } catch (err) {
+        // If controller aborted due to timeout, prefer our entry.error message
+        if (err instanceof Error && err.name === 'AbortError' && entry.error && entry.error.startsWith('timeout')) {
+          // keep entry.error
+        } else {
+          entry.error = err instanceof Error ? err.message : String(err)
+        }
+
+        // Only increment error metrics if we're not retrying (avoid double-counting)
+        const isRetryable429 = entry.error && this.isRateLimitError(entry.error) && chunksYielded === 0 && attempt < MAX_RATE_LIMIT_RETRIES
+        if (!isRetryable429) {
           this.metrics.totalErrors++
           this.consecutiveErrors++
           this.lastErrorAt = Date.now()
-          this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs })
-          this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
-          writeThoughtResultLog('● THOUGHT  timeout', {
-            requestId,
-            provider: this.id,
-            model: reportedModel,
-            sessionId,
-            timeoutMs: requestedTimeoutMs,
-          })
-        } catch (err) { /* best-effort */ }
-        try { controller.abort() } catch (err) { /* best-effort */ }
-      }, requestedTimeoutMs)
-
-      // If caller provided a signal, wire it to our controller so caller aborts propagate
-      if (signal) {
-        if (signal.aborted) {
-          try { controller.abort() } catch { }
-        } else {
-          // Use shared helper to avoid manual listener bookkeeping
-          signalPromise(signal).then(() => { try { controller.abort() } catch { } }).catch(() => { })
-        }
-      }
-      // Use 'as any' to pass attachments (not in IProvider interface but supported by implementations)
-      const stream = (this.wrapped as any).complete(messages, opts, attachments, controller.signal)
-      for await (const chunk of stream) {
-        // Track tokens from chunk
-        if (chunk.tokensUsed) {
-          entry.tokensUsed = chunk.tokensUsed
-        } else if (chunk.type === 'token' && chunk.text) {
-          entry.tokensUsed += Math.ceil(chunk.text.length / 4)
         }
 
-        // Pass through to caller
-        yield chunk
+        this.logger.error(`[error] ${requestId.slice(-12)}: ${entry.error}${isRetryable429 ? ' (will retry)' : ''}`)
+        writeThoughtResultLog('● THOUGHT  error', {
+          requestId,
+          provider: this.id,
+          model: reportedModel,
+          sessionId,
+          error: entry.error,
+        })
+        this.bus.emit({
+          type: 'provider:request_error',
+          providerId: this.id,
+          requestId,
+          sessionId,
+          source: opts?.source ?? 'unknown',
+          trigger: opts?.trigger,
+          model: rawModel,
+          error: entry.error,
+          consecutiveErrors: this.consecutiveErrors,
+          durationMs: Date.now() - entry.startedAt,
+          timestamp: new Date(),
+        })
 
-        // Check if this chunk signals completion
-        if (chunk.type === 'done') {
-          completed = true
+        // Adaptive rate limit learning: if this looks like a rate limit error,
+        // record the current request rate and learn the limit for this model.
+        // Also set got429 to trigger a transparent retry if no chunks were yielded.
+        if (entry.error && this.isRateLimitError(entry.error)) {
+          this.onRateLimitHit(rawModel)
+          if (chunksYielded === 0 && attempt < MAX_RATE_LIMIT_RETRIES) {
+            got429 = true
+          }
+        }
+
+        if (!got429) throw err
+
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle)
+        // No external listener removal required when using signalPromise
+
+        entry.completedAt = Date.now()
+        this.inFlight.delete(sessionId)
+        this.metrics.totalRequests++
+        this.metrics.totalTokens += entry.tokensUsed
+
+        const duration = entry.completedAt - entry.startedAt
+        this.logger.info(
+          `[complete] ${requestId.slice(-12)} ${completed ? 'OK' : got429 ? 'RETRY' : 'ERR'} ` +
+          `tokens=${entry.tokensUsed} duration=${duration}ms`
+        )
+        writeThoughtResultLog('▸ THOUGHT  complete', {
+          requestId,
+          provider: this.id,
+          model: reportedModel,
+          sessionId,
+          status: completed && !entry.error ? 'ok' : got429 ? 'retry' : 'error',
+          tokensUsed: entry.tokensUsed,
+          durationMs: duration,
+          error: entry.error,
+        })
+
+        this.bus.emit({
+          type: 'provider:request_end',
+          providerId: this.id,
+          requestId,
+          sessionId,
+          source: opts?.source ?? 'unknown',
+          trigger: opts?.trigger,
+          model: rawModel,
+          tokensUsed: { input: inputTokens, output: entry.tokensUsed, thinking: 0 },
+          durationMs: duration,
+          error: entry.error,
+          timestamp: new Date(),
+        })
+
+        // Record against budget tracker if wired (only counts metered models)
+        if (this.budgetTracker && !entry.error) {
+          const model = opts.model || 'unknown'
+          this.budgetTracker.recordRequest(`${this.id}/${model}`)
         }
       }
 
-      // Mark success
-      this.consecutiveErrors = 0
+      if (!got429) return  // success — exit retry loop
 
-    } catch (err) {
-      // If controller aborted due to timeout, prefer our entry.error message
-      if (err instanceof Error && err.name === 'AbortError' && entry.error && entry.error.startsWith('timeout')) {
-        // keep entry.error
-      } else {
-        entry.error = err instanceof Error ? err.message : String(err)
-      }
-      this.metrics.totalErrors++
-      this.consecutiveErrors++
-      this.lastErrorAt = Date.now()
-
-      this.logger.error(`[error] ${requestId.slice(-12)}: ${entry.error}`)
-      writeThoughtResultLog('● THOUGHT  error', {
-        requestId,
-        provider: this.id,
-        model: reportedModel,
-        sessionId,
-        error: entry.error,
-      })
-      this.bus.emit({
-        type: 'provider:request_error',
-        providerId: this.id,
-        requestId,
-        sessionId,
-        source: opts?.source ?? 'unknown',
-        trigger: opts?.trigger,
-        model: rawModel,
-        error: entry.error,
-        consecutiveErrors: this.consecutiveErrors,
-        durationMs: Date.now() - entry.startedAt,
-        timestamp: new Date(),
-      })
-
-      // Adaptive rate limit learning: if this looks like a rate limit error,
-      // record the current request rate and learn the limit for this model
-      if (entry.error && this.isRateLimitError(entry.error)) {
-        this.onRateLimitHit(rawModel)
-      }
-
-      throw err
-    } finally {
-      if (timeoutHandle) clearTimeout(timeoutHandle)
-      // No external listener removal required when using signalPromise
-
-      entry.completedAt = Date.now()
-      this.inFlight.delete(sessionId)
-      this.metrics.totalRequests++
-      this.metrics.totalTokens += entry.tokensUsed
-
-      const duration = entry.completedAt - entry.startedAt
-      this.logger.info(
-        `[complete] ${requestId.slice(-12)} ${completed ? 'OK' : 'ERR'} ` +
-        `tokens=${entry.tokensUsed} duration=${duration}ms`
-      )
-      writeThoughtResultLog('▸ THOUGHT  complete', {
-        requestId,
-        provider: this.id,
-        model: reportedModel,
-        sessionId,
-        status: completed && !entry.error ? 'ok' : 'error',
-        tokensUsed: entry.tokensUsed,
-        durationMs: duration,
-        error: entry.error,
-      })
-
-      this.bus.emit({
-        type: 'provider:request_end',
-        providerId: this.id,
-        requestId,
-        sessionId,
-        source: opts?.source ?? 'unknown',
-        trigger: opts?.trigger,
-        model: rawModel,
-        tokensUsed: { input: inputTokens, output: entry.tokensUsed, thinking: 0 },
-        durationMs: duration,
-        error: entry.error,
-        timestamp: new Date(),
-      })
-
-      // Record against budget tracker if wired (only counts metered models)
-      if (this.budgetTracker && !entry.error) {
-        const model = opts.model || 'unknown'
-        this.budgetTracker.recordRequest(`${this.id}/${model}`)
-      }
+      // Live 429 retry: wait for the window to clear, then go around again
+      const retryCheck = this.checkRateLimit(rawModel)
+      const waitMs = retryCheck.retryAfterMs > 0 ? retryCheck.retryAfterMs : 5_000
+      this.logger.info(`[ratelimit] live 429, waiting ${waitMs}ms before retry ${attempt + 1}/${MAX_RATE_LIMIT_RETRIES}`)
+      await sleepWithAbort(waitMs, signal)
     }
   }
 
@@ -539,7 +606,6 @@ export class CentralizedProvider implements IProvider {
     // Don't rate-limit pings — they're lightweight health checks
     return this.wrapped.ping()
   }
-
   // Public metrics API
 
   getMetrics() {
@@ -709,10 +775,11 @@ export class CentralizedProvider implements IProvider {
    * Check all timescales for learned rate limits on this model.
    * Returns whether the request is allowed and, if blocked, which window triggered it.
    */
-  private checkRateLimit(model: string): { allowed: boolean; retryAfterMs: number; windowLabel?: WindowLabel } {
-    // Check concurrent limit first
+  private checkRateLimit(model: string): { allowed: boolean; reason?: 'concurrent' | 'learned'; retryAfterMs: number; windowLabel?: WindowLabel } {
+    // Check concurrent limit first — this is backpressure, not a provider rate limit.
+    // Throws immediately (not retried) to avoid stacking up waiting requests.
     if (this.inFlight.size >= this.config.maxConcurrent) {
-      return { allowed: false, retryAfterMs: 10_000 }
+      return { allowed: false, reason: 'concurrent', retryAfterMs: 10_000 }
     }
 
     // Check each timescale for learned limits
@@ -744,7 +811,7 @@ export class CentralizedProvider implements IProvider {
         const retryAfterMs = oldestInWindow
           ? Math.max(0, (oldestInWindow + windowMs) - now) + 100
           : 1000
-        return { allowed: false, retryAfterMs, windowLabel: label }
+        return { allowed: false, reason: 'learned', retryAfterMs, windowLabel: label }
       }
     }
 
