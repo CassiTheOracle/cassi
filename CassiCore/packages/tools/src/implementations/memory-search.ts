@@ -52,7 +52,11 @@ function formatMemoryResult(result: SearchResult, index: number): string {
   const type = entry.type
   const metadata = entry.metadata ? Object.entries(entry.metadata).map(([k, v]) => `${k}=${v}`).join(', ') : ''
 
-  let output = `[${index + 1}] ${type.toUpperCase()} (relevance: ${(score * 100).toFixed(0)}%, ${date})`
+  const importancePart = entry.importance !== undefined ? ` imp:${entry.importance.toFixed(1)}` : ''
+  const pinnedPart = entry.pinned ? ' [PINNED]' : ''
+  const confidencePart = result.confidence ? ` [${result.confidence.toUpperCase()}]` : ''
+
+  let output = `[${index + 1}] ${type.toUpperCase()} (relevance: ${(score * 100).toFixed(0)}%${importancePart}${pinnedPart}${confidencePart}, ${date})`
   if (metadata) {
     output += `\n    meta: {${metadata}}`
   }
@@ -130,6 +134,14 @@ export const rememberDefinition: ToolDefinition = {
         type: 'array',
         items: { type: 'string' },
         description: 'Optional tags to categorize this memory'
+      },
+      importance: {
+        type: 'number',
+        description: 'Importance score 0-10 (default: 5.5 for facts). Higher values surface this memory more prominently in search results.'
+      },
+      pinned: {
+        type: 'boolean',
+        description: 'If true, this memory will never decay or be archived by the Dreamer. Automatically sets importance to at least 9.0.'
       }
     },
     required: ['note'],
@@ -142,21 +154,27 @@ export function makeRememberHandler(memory: IMemory): ToolHandler {
   return async (input, context) => {
     const note = input['note'] as string
     const tags = (input['tags'] as string[] | undefined) ?? []
+    const importance = input['importance'] as number | undefined
+    const pinned = input['pinned'] as boolean | undefined
 
     if (!note?.trim()) {
       return 'Error: note parameter is required'
     }
 
     try {
-      // Use the remember method if available, otherwise fall back to store
-      const id = await (memory as any).remember?.(note, { tags, sessionId: context.sessionId }) ??
-        await memory.store({
-          type: 'fact',
-          content: note,
-          metadata: { tags, sessionId: context.sessionId },
-        })
+      const storeEntry: Omit<MemoryEntry, 'id' | 'createdAt'> & { importance?: number; pinned?: boolean } = {
+        type: 'fact',
+        content: note,
+        metadata: { tags, sessionId: context.sessionId },
+        ...(importance !== undefined ? { importance } : {}),
+        ...(pinned !== undefined ? { pinned } : {}),
+      }
 
-      return `✓ Stored memory (id: ${id})`
+      const id = await memory.store(storeEntry as any)
+
+      const pinnedNote = pinned ? ' (pinned — decay-resistant)' : ''
+      const impNote = importance !== undefined ? ` importance=${importance.toFixed(1)}` : ''
+      return `✓ Stored memory (id: ${id}${impNote}${pinnedNote})`
     } catch (err) {
       context.logger.error('remember tool failed', { error: String(err) })
       return `Error storing memory: ${String(err)}`
