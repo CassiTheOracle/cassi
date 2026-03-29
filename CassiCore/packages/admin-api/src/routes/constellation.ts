@@ -492,6 +492,20 @@ export async function handleConstellationRoutes(
       return true
     }
 
+    // GET /constellation/:id/analyze — Deep post-mortem analysis
+    if (method === 'GET' && subAction === 'analyze') {
+      const depth = (url.searchParams?.get?.('depth') ?? 'summary') as 'summary' | 'timeline' | 'full'
+      try {
+        const { analyzeConstellation } = await import('../intelligence/constellation/constellation-analyzer.js')
+        const analysis = await analyzeConstellation(id, depth)
+        sendJSON(res, 200, analysis)
+      } catch (err) {
+        logger.error('Failed to analyze constellation session', { sessionId: id, error: String(err) })
+        sendJSON(res, 500, { error: `Analysis failed: ${String(err)}` })
+      }
+      return true
+    }
+
     // GET /constellation/:id/stream — SSE event stream
     if (method === 'GET' && subAction === 'stream') {
       const job = findJob(id)
