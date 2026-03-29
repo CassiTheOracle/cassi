@@ -16,6 +16,10 @@ export interface MemoryEntry {
   metadata?: Record<string, unknown>;
   sessionId?: string;
   createdAt: Date;
+  /** Importance score 0-10. Higher = surfaces more in search. Default: 5.0 */
+  importance?: number;
+  /** If true, this memory resists temporal decay and cannot be deep-archived. Default: false */
+  pinned?: boolean;
 }
 
 export interface SearchOpts {
@@ -24,11 +28,24 @@ export interface SearchOpts {
   minScore?: number;
   sessionId?: string;
   cognitiveClass?: 'episodic' | 'semantic' | 'procedural';
+  /** Only return memories with importance >= this value. */
+  minImportance?: number;
+  /** If true, only return pinned memories. */
+  pinnedOnly?: boolean;
+  /** Only return memories created after this time (inclusive). */
+  timeAfter?: Date;
+  /** Only return memories created before this time (inclusive). */
+  timeBefore?: Date;
 }
+
+/** Structured confidence level for search results */
+export type RetrievalConfidence = 'high' | 'moderate' | 'low' | 'none';
 
 export interface SearchResult {
   entry: MemoryEntry;
   score: number;
+  /** Structured confidence derived from score thresholds */
+  confidence?: RetrievalConfidence;
 }
 
 
@@ -75,6 +92,8 @@ export interface SmartRecallResult {
   source: 'memory' | 'archive';
   /** Memory type label for display. */
   type: string;
+  /** Structured confidence derived from score thresholds */
+  confidence?: RetrievalConfidence;
 }
 
 export interface IMemory {
@@ -104,6 +123,12 @@ export interface IMemory {
 
   /** Delete a memory entry by ID */
   delete?(id: string): Promise<boolean>;
+
+  /** Pin a memory — marks it as decay-resistant with importance >= 9.0. */
+  pin?(id: string): Promise<boolean>;
+
+  /** Unpin a previously pinned memory. */
+  unpin?(id: string): Promise<boolean>;
 
   /** Stats for /memory stats command */
   stats(): Promise<Record<string, number>>;
