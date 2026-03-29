@@ -2,6 +2,7 @@ import { rootLogger, writeThoughtRequestLog, writeThoughtResultLog } from '../lo
 import { signalPromise } from '../utils/abort.js'
 
 import type { BudgetTracker } from './budget-tracker.js'
+import type { RateLimitStore } from './rate-limit-store.js'
 import type { ILogger, IEventBus, IConfig } from '../../types/interfaces.js'
 import type { IProvider, Message, CompletionOpts, CompletionChunk, TurnResult } from '../../types/runtime.js'
 
@@ -186,6 +187,9 @@ export class CentralizedProvider implements IProvider {
   // Budget tracker — records metered requests for quota management
   private budgetTracker: BudgetTracker | undefined
 
+  // Persistent store for learned rate limits — optional; in-memory is source-of-truth
+  private rateLimitStore: RateLimitStore | undefined
+
   constructor(
     wrapped: IProvider,
     logger: ILogger,
@@ -212,6 +216,39 @@ export class CentralizedProvider implements IProvider {
    */
   setBudgetTracker(tracker: BudgetTracker): void {
     this.budgetTracker = tracker
+  }
+
+  /**
+   * Attach a persistent store and immediately warm up learnedLimits from it.
+   * Call this right after construction, before the first request.
+   */
+  setRateLimitStore(store: RateLimitStore): void {
+    this.rateLimitStore = store
+    this.loadFromStore()
+  }
+
+  /**
+   * Populate learnedLimits from the persistent store.
+   * Existing in-memory entries are overwritten so the persisted values win on startup.
+   */
+  private loadFromStore(): void {
+    if (!this.rateLimitStore) return
+    const entries = this.rateLimitStore.loadForProvider(this.id)
+    if (entries.length === 0) return
+
+    for (const entry of entries) {
+      const key = `${entry.model}:${entry.windowLabel}`
+      this.learnedLimits.set(key, {
+        observedCount: entry.observedCount,
+        safeCount:     entry.safeCount,
+        lastHitAt:     entry.lastHitAt,
+        hitCount:      entry.hitCount,
+      })
+    }
+    this.logger.info('Rate limits restored from store', {
+      count: entries.length,
+      models: [...new Set(entries.map(e => e.model))],
+    })
   }
 
   /**
@@ -561,6 +598,7 @@ export class CentralizedProvider implements IProvider {
   resetRateLimitHistory(): void {
     this.modelHistory.clear()
     this.learnedLimits.clear()
+    this.rateLimitStore?.clearProvider(this.id)
     this.logger.info('Rate limit history and learned limits cleared')
   }
 
@@ -780,6 +818,21 @@ export class CentralizedProvider implements IProvider {
       }
 
       learnedWindows.push({ label, observedCount, safeCount: this.learnedLimits.get(key)!.safeCount })
+
+      // Persist the updated entry immediately
+      if (this.rateLimitStore) {
+        const stored = this.learnedLimits.get(key)!
+        this.rateLimitStore.save({
+          providerId:    this.id,
+          model,
+          windowLabel:   label,
+          observedCount: stored.observedCount,
+          safeCount:     stored.safeCount,
+          lastHitAt:     stored.lastHitAt,
+          hitCount:      stored.hitCount,
+          updatedAt:     now,
+        })
+      }
     }
 
     if (learnedWindows.length > 0) {
@@ -848,8 +901,8 @@ export class CentralizedProvider implements IProvider {
 /**
  * Wrap all providers in a map with CentralizedProvider.
  * Each provider has its own independent adaptive rate limiting.
- * @dep callers: centralized-provider.test.ts (tests/centralized-provider.test.ts), createProviders (core/providers/index.ts)
- * @dep calls: setBudgetTracker, getConfiguredProviderConfig
+ * @dep callers: createProviders (core/providers/index.ts), centralized-provider.test.ts (tests/centralized-provider.test.ts)
+ * @dep calls: getConfiguredProviderConfig, setBudgetTracker
  * @dep module: Providers
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -859,16 +912,19 @@ export function wrapProvidersWithCentralized(
   bus: IEventBus,
   config?: IConfig,
   budgetTracker?: BudgetTracker,
+  rateLimitStore?: RateLimitStore,
 ): Map<string, CentralizedProvider> {
   const wrapped = new Map<string, CentralizedProvider>()
   for (const [id, provider] of providers) {
     const cp = new CentralizedProvider(provider, logger, bus, getConfiguredProviderConfig(config, id))
     if (budgetTracker) cp.setBudgetTracker(budgetTracker)
+    if (rateLimitStore) cp.setRateLimitStore(rateLimitStore)
     wrapped.set(id, cp)
   }
   logger.info('Providers wrapped with adaptive rate limiting', {
     providerCount: wrapped.size,
     defaults: DEFAULT_PROVIDER_CONFIGS,
+    rateLimitStorePersisted: !!rateLimitStore,
   })
   return wrapped
 }
