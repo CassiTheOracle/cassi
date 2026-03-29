@@ -474,7 +474,7 @@ export class HelixBrainstem {
       this.state.wallClockHardLimitFired = true
       this.logger.warn('Brainstem hard wall-clock limit reached', { elapsedMs: elapsed, elapsedMin })
       this.guidanceQueue.push({
-        text: `SESSION TIME LIMIT REACHED (${elapsedMin} min elapsed). You MUST call signal_done immediately. Do not start any new work.`,
+        text: `I have been running for ${elapsedMin} minutes and have reached the session time limit. I need to call signal_done immediately and not start any new work.`,
         urgency: 'critical',
         fromStep: this.state.currentAxonStep,
         triggeredBy: 'none',
@@ -486,7 +486,7 @@ export class HelixBrainstem {
       this.state.wallClockBudgetFired = true
       this.logger.warn('Brainstem soft wall-clock budget reached', { elapsedMs: elapsed, elapsedMin })
       this.guidanceQueue.push({
-        text: `SESSION APPROACHING TIME LIMIT (${elapsedMin} min elapsed). Finish your current work and call signal_done soon. Do not start large new tasks.`,
+        text: `I have been running for ${elapsedMin} minutes and am approaching the session time limit. I should finish my current work and call signal_done soon. I should not start large new tasks.`,
         urgency: 'high',
         fromStep: this.state.currentAxonStep,
         triggeredBy: 'none',
@@ -586,6 +586,11 @@ export class HelixBrainstem {
       // Parse annotation
       const annotation = this.parseAnnotation(response.content, workUnit.id)
 
+      // Validate file paths in LLM-generated guidance before it enters the pipeline
+      if (annotation.guidance && this.deps.readFile) {
+        annotation.guidance = await this.validateGuidancePaths(annotation.guidance)
+      }
+
       // Update state
       this.updateState(annotation)
 
@@ -602,6 +607,10 @@ export class HelixBrainstem {
       if (this.config.postToBlackboard) {
         this.postAnnotationToBlackboard(annotation)
       }
+
+      // Score context chunks based on annotation quality
+      // Pin file-read results from high-scoring iterations, boost recent references
+      this.scoreContextChunks(annotation)
 
       this.logger.debug('Work unit processed', {
         workUnitId: workUnit.id,
@@ -664,25 +673,33 @@ export class HelixBrainstem {
     // Drain pending Unity reports and include in prompt
     const unityReports = this.drainUnityReports()
     const unityReportsSection = unityReports.length > 0
-      ? `\n## Unity Reports (direct messages from the worker)\n${unityReports.map(r =>
+      ? `\n## Internal Reports\n${unityReports.map(r =>
           `- [${r.type.toUpperCase()}] (iter ${r.iteration}): ${r.message.slice(0, 300)}${r.context ? ` | context: ${JSON.stringify(r.context).slice(0, 200)}` : ''}`
-        ).join('\n')}\nIMPORTANT: Unity is communicating directly. Respond to blockers with guidance, acknowledge phase changes, and answer questions in your GUIDANCE field.`
+        ).join('\n')}\nThese are direct reports from the execution loop. Address blockers in GUIDANCE, acknowledge phase changes, and answer questions.`
       : ''
 
-    return `I am the Brainstem — the cognitive organizer of this Helix session. I observe Unity's work, the reviewer dialectic, and the evolving thought chain. My job is to score, annotate, detect patterns, and guide.
+    // Build annotation history section — gives brainstem memory of past decisions
+    const recentAnnotations = this.state.annotations.slice(-8)
+    const annotationHistorySection = recentAnnotations.length > 0
+      ? `\n## My Previous Assessments (last ${recentAnnotations.length})\n${recentAnnotations.map(a =>
+          `- Step ${a.axonStep}: score=${a.score.toFixed(2)} [${a.annotation}] pattern=${a.pattern}${a.guidance ? ` → guidance: "${a.guidance.slice(0, 120)}"` : ''}`
+        ).join('\n')}`
+      : ''
+
+    return `I am the cognitive organizer of this session. I observe the execution loop, the reviewer dialectic, and the evolving thought chain. My role is to score, annotate, detect patterns, and provide self-guidance.
 
 ## Session Goal
 ${this.deps.goal}
 
-## Current Axon Step
-${this.state.currentAxonStep}
+## Current Step
+${this.state.currentAxonStep}${annotationHistorySection}
 
 ## Work Unit to Analyze
 - ID: ${workUnit.id}
-- Unity Iteration: ${unityIteration}
+- Iteration: ${unityIteration}
 - Timestamp: ${new Date(workUnit.timestamp).toISOString()}
 
-## Unity's Reasoning
+## Current Reasoning
 ${workUnit.reasoning.slice(0, 1000)}
 
 ## Tool Calls
@@ -699,23 +716,23 @@ Recent scores: ${this.state.qualityTrajectory.slice(-5).join(', ') || 'N/A'}
 Consecutive explorations: ${this.state.consecutiveExplorations}
 Consecutive drifts: ${this.state.consecutiveDrifts}
 
-## Your Task
+## Task
 Analyze this work unit and provide:
 
 SCORE: <number between 0 and 1>
 ANNOTATION: <exploration|implementation|testing|revision|drift>
 SYNTHESIS: <brief synthesis of reviewer dialectic, or NONE>
 PATTERN: <none|paralysis|drift|convergence|stalling>
-GUIDANCE: <specific guidance for Unity, or NONE>
-TRAINING_NOTE: <human-readable note explaining your scoring>
+GUIDANCE: <first-person self-guidance, or NONE>
+TRAINING_NOTE: <human-readable note explaining the scoring>
 
 Guidelines:
 - Score based on progress toward goal, code quality, and appropriate tool use
-- CRITICAL: If Unity is working on something UNRELATED to the Session Goal above, set ANNOTATION to "drift", PATTERN to "drift", and SCORE below 0.3. Provide guidance redirecting back to the goal.
+- CRITICAL: If the current work is UNRELATED to the Session Goal, set ANNOTATION to "drift", PATTERN to "drift", and SCORE below 0.3. Provide guidance redirecting back to the goal.
 - annotation: exploration=reading/searching, implementation=writing code, testing=verification, revision=fixing, drift=off-goal
 - pattern: paralysis=reading without writing, drift=diverging from goal, stalling=repeating without progress, convergence=reviewers agree
-- Provide guidance only if Unity needs correction or encouragement
-- If Unity reports a blocker via report_to_brainstem, address it in GUIDANCE
+- Write GUIDANCE in first person as self-directed thought (e.g., "I should shift to implementation now" not "Do X immediately")
+- If a blocker was reported, address it in GUIDANCE
 - Be concise — this runs in a tight loop`;
   }
 
@@ -837,10 +854,10 @@ Guidelines:
     ) {
       this.state.totalPatternDetections++
       const guidance: PendingGuidance = {
-        text: `FORCED PHASE TRANSITION: You have been exploring for ${this.state.consecutiveExplorations} consecutive steps. ` +
-          `You MUST now either: (1) implement a concrete change based on what you have learned, ` +
+        text: `I have been exploring for ${this.state.consecutiveExplorations} consecutive steps without producing concrete output. ` +
+          `I need to either: (1) implement a concrete change based on what I have learned, ` +
           `(2) write a summary of findings and conclude, or (3) identify one specific sub-task and focus on it. ` +
-          `Do NOT continue reading more files.`,
+          `I should stop reading more files and start acting on what I already know.`,
         urgency: 'critical',
         fromStep: this.state.currentAxonStep,
         triggeredBy: 'corpus:forced-transition' as any, // Treated as corpus to bypass cooldown
@@ -855,7 +872,7 @@ Guidelines:
     if (this.state.consecutiveExplorations >= this.config.paralysisThreshold) {
       this.state.totalPatternDetections++
       const guidance: PendingGuidance = {
-        text: 'Stop reading and start implementing.',
+        text: 'I have been reading without writing for too long. I should start implementing now.',
         urgency: 'critical',
         fromStep: this.state.currentAxonStep,
         triggeredBy: 'paralysis',
@@ -870,7 +887,7 @@ Guidelines:
     if (this.state.consecutiveDrifts >= this.config.driftThreshold) {
       this.state.totalPatternDetections++
       const guidance: PendingGuidance = {
-        text: `Refocus on the goal: ${this.deps.goal}. Current work appears to be diverging.`,
+        text: `I need to refocus on the goal: ${this.deps.goal}. My current work appears to be diverging.`,
         urgency: 'high',
         fromStep: this.state.currentAxonStep,
         triggeredBy: 'drift',
@@ -896,8 +913,8 @@ Guidelines:
         this.state.stagnationFired = true
         this.state.totalPatternDetections++
         const guidance: PendingGuidance = {
-          text: `Branch has been running for ${this.state.currentAxonStep} steps with average score ${avgScore.toFixed(2)}. ` +
-            `Consider: (1) narrowing scope to the most impactful sub-task, (2) switching from exploration to implementation, ` +
+          text: `I have been running for ${this.state.currentAxonStep} steps with average score ${avgScore.toFixed(2)}. ` +
+            `I should consider: (1) narrowing scope to the most impactful sub-task, (2) switching from exploration to implementation, ` +
             `or (3) concluding with current findings if further progress is unlikely.`,
           urgency: 'critical',
           fromStep: this.state.currentAxonStep,
@@ -920,6 +937,114 @@ Guidelines:
       }
       this.queueGuidance(guidance)
     }
+  }
+
+  /**
+   * Validate file paths mentioned in guidance text.
+   * If readFile is available, checks that referenced paths exist.
+   * Strips invalid paths from guidance to prevent agents from chasing ghosts.
+   */
+  private async validateGuidancePaths(text: string): Promise<string> {
+    if (!this.deps.readFile) return text
+
+    // Extract file-path-like strings (e.g., core/intelligence/foo.ts, ./src/bar.js)
+    const pathPattern = /(?:^|\s|['"`])((?:\.\/|\.\.\/|[a-zA-Z_][\w-]*\/)[^\s'"`,)}\]]+\.(?:ts|js|json|md))/g
+    const matches = [...text.matchAll(pathPattern)]
+    if (matches.length === 0) return text
+
+    let result = text
+    for (const match of matches) {
+      const filePath = match[1]
+      try {
+        const content = await this.deps.readFile(filePath)
+        if (content === null) {
+          // Path doesn't exist — annotate in the guidance
+          result = result.replace(filePath, `${filePath} [NOT FOUND]`)
+          this.logger.debug('Guidance referenced non-existent path', { filePath })
+        }
+      } catch {
+        // readFile failed — leave path as-is, don't block guidance
+      }
+    }
+    return result
+  }
+
+  /**
+   * Score and manage context chunks based on the annotation.
+   * High-quality file reads get pinned; drift-associated context gets de-prioritized.
+   */
+  private scoreContextChunks(annotation: BrainstemAnnotation): void {
+    const cci = this.deps.unityChunkIndex
+    if (!cci) return
+
+    const snap = cci.snapshot()
+    if (snap.totalChunks === 0) return
+
+    // Pin file-read chunks from high-scoring iterations
+    if (annotation.score >= 0.7) {
+      const hotFileChunks = snap.hotChunks.filter(c =>
+        c.tags.includes('tool-result') && c.tags.some(t => t.startsWith('file:'))
+      )
+      if (hotFileChunks.length > 0) {
+        cci.pin(hotFileChunks.map(c => c.id))
+        this.logger.debug('Pinned high-quality file reads', {
+          count: hotFileChunks.length,
+          score: annotation.score,
+        })
+      }
+    }
+
+    // Boost recently-referenced chunks on convergence
+    if (annotation.pattern === 'convergence' && snap.hotChunks.length > 0) {
+      cci.boost(snap.hotChunks.map(c => c.id), 0.2)
+    }
+  }
+
+  /**
+   * Read a file and inject its content into Unity's context as a pinned chunk.
+   * Called by brainstem when it determines a specific file is critical for the posture
+   * to see, or by Corpus via the context-inject directive.
+   *
+   * Returns the chunk ID if successful, or null if the file doesn't exist.
+   */
+  async injectFileContent(
+    filePath: string,
+    options?: { pinned?: boolean; tags?: string[] }
+  ): Promise<string | null> {
+    if (!this.deps.readFile || !this.deps.unityChunkIndex) return null
+
+    const content = await this.deps.readFile(filePath)
+    if (content === null) {
+      this.logger.debug('injectFileContent: file not found', { filePath })
+      return null
+    }
+
+    // Truncate very large files to prevent context explosion
+    const maxChars = 8000
+    const truncated = content.length > maxChars
+      ? content.slice(0, maxChars) + `\n\n…[truncated at ${maxChars} chars, full file is ${content.length} chars]`
+      : content
+
+    const chunkId = `injected-${filePath.replace(/[/\\]/g, '-')}-${Date.now()}`
+    const cci = this.deps.unityChunkIndex
+
+    // Register the content as a chunk with file-specific tags
+    cci.addSyntheticChunk({
+      id: chunkId,
+      content: `--- File: ${filePath} ---\n${truncated}\n--- End: ${filePath} ---`,
+      role: 'user',
+      tags: ['injected', `file:${filePath}`, ...(options?.tags ?? [])],
+      pinned: options?.pinned ?? true,
+    })
+
+    this.logger.info('Injected file content into context', {
+      filePath,
+      chunkId,
+      contentLength: truncated.length,
+      pinned: options?.pinned ?? true,
+    })
+
+    return chunkId
   }
 
   /**
@@ -1042,10 +1167,28 @@ Guidelines:
       reason: directive.reason,
     })
 
+    // Handle context-inject directives by reading the file and injecting it
+    if (directive.type === 'context-inject') {
+      // text contains the file path to inject
+      const filePath = directive.text.trim()
+      this.injectFileContent(filePath, { pinned: true, tags: ['corpus-injected'] })
+        .then(chunkId => {
+          if (chunkId) {
+            this.logger.info('Corpus context-inject completed', { filePath, chunkId })
+          } else {
+            this.logger.warn('Corpus context-inject failed — file not found', { filePath })
+          }
+        })
+        .catch(err => {
+          this.logger.error('Corpus context-inject error', { filePath, error: String(err) })
+        })
+      return // context-inject doesn't produce guidance text
+    }
+
     this.queueGuidance({
       urgency: directive.urgency,
       triggeredBy: `corpus:${directive.type}` as any,
-      text: `[Corpus] ${directive.text}`,
+      text: directive.text,
       fromStep: this.state.currentAxonStep,
       timestamp: Date.now(),
     })

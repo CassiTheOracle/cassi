@@ -28,6 +28,7 @@ import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordina
 import { DialecticChannel } from '../lumen/dialectic-channel.js'
 import { HelixCoordinator, HelixWorkStream, HelixDialecticMesh } from './helix-coordinator.js'
 import { HelixPostureRunner } from './helix-posture-runner.js'
+import { ContextChunkIndex } from './context-chunk-index.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
@@ -176,9 +177,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   // ── Create Brainstem (replaces Mentor when brainstemDeps provided) ─────
 
-  let brainstem: HelixBrainstem | undefined
   const useBrainstem = !!opts.brainstemDeps
   const useMentor = !useBrainstem && !!opts.mentorHandle
+  let brainstem: HelixBrainstem | undefined
+
+  // Create Unity's chunk index early so brainstem can reference it
+  const unityChunkIndex = new ContextChunkIndex(log)
 
   if (useBrainstem) {
     // Inject the Helix blackboard into brainstemDeps so the Brainstem can
@@ -193,6 +197,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     }
     if (!opts.brainstemDeps!.toolExecutor && opts.toolExecutor) {
       opts.brainstemDeps!.toolExecutor = opts.toolExecutor
+    }
+    // Wire Unity's chunk index so brainstem can pin/evict/score context
+    if (!opts.brainstemDeps!.unityChunkIndex) {
+      opts.brainstemDeps!.unityChunkIndex = unityChunkIndex
     }
     brainstem = createHelixBrainstem(opts.brainstemDeps!)
     brainstem.start()
@@ -265,6 +273,11 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   const contextBudgetCoordinator = new ContextBudgetCoordinator(log)
 
+  // Create per-posture ContextChunkIndex instances for intelligent context management
+  // unityChunkIndex is created earlier so brainstem can reference it
+  const yangChunkIndex = new ContextChunkIndex(log)
+  const yinChunkIndex = new ContextChunkIndex(log)
+
   const unitySession = new HelixPostureRunner({
     ...commonOpts,
     role: 'unity',
@@ -273,6 +286,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.unity',
     contextBudgetCoordinator,
     brainstem,
+    contextChunkIndex: unityChunkIndex,
   })
 
   const yangSession = new HelixPostureRunner({
@@ -283,6 +297,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yang',
     dialecticChannel,
     contextBudgetCoordinator,
+    contextChunkIndex: yangChunkIndex,
   })
 
   const yinSession = new HelixPostureRunner({
@@ -293,6 +308,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yin',
     dialecticChannel,
     contextBudgetCoordinator,
+    contextChunkIndex: yinChunkIndex,
   })
 
   // Mentor only created if brainstem is NOT being used and mentorHandle is provided

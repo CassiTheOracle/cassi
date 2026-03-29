@@ -244,6 +244,10 @@ export interface BrainstemDeps {
   dialecticChannel?: import('../../intelligence/lumen/dialectic-channel.js').DialecticChannel
   /** Tool executor for applying approved edits */
   toolExecutor?: import('../../tools/executor.js').ToolExecutor
+  /** Read-only file access for validating paths and grounding guidance. Returns null if file not found. */
+  readFile?: (path: string) => Promise<string | null>
+  /** ContextChunkIndex for Unity — allows brainstem to pin/evict/score context chunks */
+  unityChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
 }
 
 /**

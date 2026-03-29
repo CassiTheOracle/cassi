@@ -182,6 +182,8 @@ export interface HelixPostureRunnerOpts {
   unityStatusThresholds?: UnityStatusThresholds
   /** Brainstem — cognitive organizer (replaces Mentor) */
   brainstem?: HelixBrainstem
+  /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
+  contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Callback fired when Unity posts a work unit */
   onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */
@@ -212,6 +214,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly researchSpawner?: ResearchSpawner
   private readonly unityStatusThresholds?: UnityStatusThresholds
   private readonly brainstem?: HelixBrainstem
+  private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
 
@@ -269,6 +272,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.researchSpawner = opts.researchSpawner
     this.unityStatusThresholds = opts.unityStatusThresholds
     this.brainstem = opts.brainstem
+    this.contextChunkIndex = opts.contextChunkIndex
     this.onWorkUnit = opts.onWorkUnit
     this.onStreamActivity = opts.onStreamActivity
     this.store = opts.store
@@ -333,7 +337,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         }
 
         // Context pressure management
-        this.manageContextPressure()
+        if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
         // Stream inference
         const result = await this.streamInference(tools)
@@ -555,7 +559,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         }
 
         // Context pressure management
-        this.manageContextPressure()
+        if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
         // Stream inference — reviewer investigates and decides on findings/nudges
         const result = await this.streamInference(tools)
@@ -657,7 +661,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           break
         }
 
-        this.manageContextPressure()
+        if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
         const result = await this.streamInference(tools)
         this.tokensUsed += result.tokensUsed
@@ -667,7 +671,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           if (unityDone) {
             this.messages.push({
               role: 'user',
-              content: 'Unity appears done. If you have enough information, call mentor_synthesize now.',
+              content: 'The worker appears done. If there is enough information, call mentor_synthesize now.',
             })
           } else {
             await new Promise(resolve => setTimeout(resolve, REVIEWER_IDLE_DELAY_MS))
@@ -1107,7 +1111,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     const lines: string[] = [
       `## Pipeline Progress`,
-      `Unity status: ${unityDone ? 'DONE' : 'WORKING'}`,
+      `Worker status: ${unityDone ? 'DONE' : 'WORKING'}`,
       `Work units: ${allWUs.length} total, ${reviewed.length} reviewed, ${unreviewed.length} pending`,
       `Nudges sent: ${stats.nudges.low} low, ${stats.nudges.high} high`,
       `Refinements: ${stats.refinements}`,
@@ -1685,17 +1689,17 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
 
     if (role === 'unity') {
-      userContent += '\n\n## Instructions\n\nBegin your implementation work now. ' +
-        'Read the goal carefully, then start making progress using your tools. ' +
-        'Yang and Yin will review your work asynchronously and send nudges if needed.'
+      userContent += '\n\n## Instructions\n\nBegin implementation work now. ' +
+        'Read the goal carefully, then start making progress using the available tools. ' +
+        'Reviewers will observe the work asynchronously and provide feedback if needed.'
     } else if (role === 'mentor') {
-      userContent += '\n\n## Instructions\n\nYou are the Mentor. Watch the Yang↔Yin dialectic and Unity\'s work stream. ' +
-        'Intervene only when you can materially improve the session: steer, flag, dispatch research, force conclusion, or synthesize.'
+      userContent += '\n\n## Instructions\n\nAs the moderator, watch the dialectic and the work stream. ' +
+        'Intervene only when it can materially improve the session: steer, flag, dispatch research, force conclusion, or synthesize.'
     } else {
-      userContent += `\n\n## Instructions\n\nYou are reviewing Unity's implementation work as ${role.toUpperCase()}. ` +
-        'Unity is working right now — their work units will appear as they make progress. ' +
-        'Investigate each work unit with your read-only tools, share findings with the other reviewer, ' +
-        'and send nudges to Unity when you have actionable feedback.'
+      userContent += `\n\n## Instructions\n\nAs the ${role.toUpperCase()} reviewer, observe the implementation work stream. ` +
+        'Work units will appear as progress is made. ' +
+        'Investigate each work unit with read-only tools, share findings with the other reviewer, ' +
+        'and send nudges when there is actionable feedback.'
     }
 
     messages.push({ role: 'user', content: userContent })
@@ -1811,10 +1815,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         triggeredBy: guidance.triggeredBy,
         text: guidance.text.slice(0, 100),
       })
-      this.messages.push({
-        role: 'user',
-        content: `🧠 Brainstem Guidance (${guidance.urgency} — ${guidance.triggeredBy}):\n\n${guidance.text}\n\nAct on this immediately before continuing.`,
-      })
+    this.messages.push({
+      role: 'user',
+      content: `--- Internal Guidance (${guidance.urgency}) ---\n\n${guidance.text}\n\nAct on this before continuing.`,
+    })
       return toolResults // Guidance is now a separate user message
     }
 
@@ -1828,7 +1832,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       ...toolResults,
       {
         type: 'text' as const,
-        text: `\n🧠 Brainstem: ${guidance.text}\n`,
+        text: `\n--- Note: ${guidance.text}\n`,
       },
     ]
   }
@@ -1848,8 +1852,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.messages.push({
       role: 'user',
         content: this.role === 'mentor'
-          ? `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages as Mentor: decide whether to steer, flag, dispatch research, force conclusion, or synthesize.`
-          : `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages: challenge findings you disagree with, concede valid challenges, and share your own findings.`,
+          ? `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages: decide whether to steer, flag, dispatch research, force conclusion, or synthesize.`
+          : `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages: challenge findings where there is disagreement, concede valid challenges, and share new findings.`,
     })
 
     return true
@@ -1911,7 +1915,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       ...toolResults,
       {
         type: 'text' as const,
-        text: `\n--- Unity Status Signal ---\n${WorkStream.formatUnityStatus(status)}\n---`,
+        text: `\n--- Status Signal ---\n${WorkStream.formatUnityStatus(status)}\n---`,
       },
     ]
   }
@@ -1944,8 +1948,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     this.messages.push({
       role: 'user',
-      content: `--- Unity Status Signal (Proactive) ---\n\n${WorkStream.formatUnityStatus(status)}\n\n---\n\n` +
-        'Unity may be stuck or off-track. Review the status above and decide whether to ' +
+      content: `--- Status Signal (Proactive) ---\n\n${WorkStream.formatUnityStatus(status)}\n\n---\n\n` +
+        'The worker may be stuck or off-track. Review the status above and decide whether to ' +
         'investigate further (use request_investigation) or send a nudge (use send_nudge).',
     })
 
@@ -2029,7 +2033,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * Format a work unit for reviewer inspection.
    */
   private formatWorkUnitForReview(workUnit: WorkUnit): string {
-    let msg = `--- NEW WORK UNIT from Unity (${workUnit.id}) ---\n\n`
+    let msg = `--- New Work Unit (${workUnit.id}) ---\n\n`
     msg += `Reasoning: ${workUnit.reasoning}\n`
 
     if (workUnit.toolCalls?.length) {
@@ -2043,10 +2047,83 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       }
     }
 
-    msg += `\n---\n\nInvestigate this work unit with your read-only tools. ` +
-      `Share findings with the other reviewer, and send nudges to Unity if you have feedback.`
+    msg += `\n---\n\nInvestigate this work unit with read-only tools. ` +
+      `Share findings with the other reviewer, and send nudges if there is actionable feedback.`
 
     return msg
+  }
+
+
+  // ── Context Chunk Index Management ─────────────────────────────────
+
+  /**
+   * Manage context pressure using the ContextChunkIndex.
+   * Instead of crude truncation, this indexes messages into addressable chunks
+   * and applies intelligent eviction based on relevance scores.
+   * Pinned chunks (e.g., important file reads marked by brainstem) survive eviction.
+   */
+  private manageContextWithChunkIndex(): void {
+    const cci = this.contextChunkIndex!
+
+    // Index any new messages since last indexing
+    cci.indexMessages(this.messages)
+
+    // Check if we need to evict — based on estimated token count
+    const snap = cci.snapshot()
+    const estimatedTokens = snap.totalChars / 4 // rough char-to-token ratio
+    const maxTokens = 100_000
+
+    if (estimatedTokens > maxTokens * 0.85) {
+      // Use atRiskChunks from snapshot — these are the lowest-scoring unpinned chunks
+      const atRisk = snap.atRiskChunks
+      const evictionTarget = Math.max(1, Math.floor(atRisk.length * 0.5))
+      const toEvict = atRisk.slice(0, evictionTarget).map(c => c.id)
+
+      if (toEvict.length > 0) {
+        cci.evict(toEvict)
+        cci.applyEvictions(this.messages)
+
+        this.logger.debug('Context chunk eviction applied', {
+          role: this.role,
+          evicted: toEvict.length,
+          pinned: snap.pinnedCount,
+          remaining: snap.totalChunks - toEvict.length,
+        })
+      }
+    }
+  }
+
+  /**
+   * Pin context chunks by IDs — prevents them from being evicted.
+   * Called by brainstem when it determines certain context is critical.
+   */
+  pinContextChunks(chunkIds: string[]): void {
+    if (!this.contextChunkIndex) return
+    this.contextChunkIndex.pin(chunkIds)
+    this.logger.debug('Context chunks pinned', { role: this.role, count: chunkIds.length })
+  }
+
+  /**
+   * Unpin context chunks — allows them to be evicted again.
+   */
+  unpinContextChunks(chunkIds: string[]): void {
+    if (!this.contextChunkIndex) return
+    this.contextChunkIndex.unpin(chunkIds)
+  }
+
+  /**
+   * Boost relevance of specific chunks.
+   */
+  boostContextChunks(chunkIds: string[], delta: number): void {
+    if (!this.contextChunkIndex) return
+    this.contextChunkIndex.boost(chunkIds, delta)
+  }
+
+  /**
+   * Get a compact snapshot of the context chunk state for brainstem consumption.
+   */
+  getContextSnapshot(): import('./context-chunk-index.js').ChunkIndexSnapshot | undefined {
+    return this.contextChunkIndex?.snapshot()
   }
 
 

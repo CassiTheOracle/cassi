@@ -265,6 +265,48 @@ export class ContextChunkIndex {
   // ─── Indexing ───────────────────────────────────────────────────────────
 
   /**
+   * Add a synthetic (non-message-backed) chunk to the index.
+   * Used by brainstem/corpus to inject file content or other context
+   * directly into the posture's awareness. Synthetic chunks are rendered
+   * into messages by applyEvictions() if not evicted.
+   */
+  addSyntheticChunk(opts: {
+    id: string
+    content: string
+    role: ChunkRole
+    tags?: string[]
+    pinned?: boolean
+  }): void {
+    const chunk: ContextChunk = {
+      id: opts.id,
+      msgIdx: -1, // Synthetic — not tied to a message index
+      blockIdx: 0,
+      paraIdx: undefined,
+      role: opts.role,
+      blockType: 'text',
+      charCount: opts.content.length,
+      tags: [...(opts.tags ?? []), 'synthetic'],
+      preview: opts.content.slice(0, this.config.previewLength),
+      relevanceScore: 0.8, // Higher default — injected content is intentional
+      recencyScore: 1.0,
+      pinned: opts.pinned ?? false,
+      evicted: false,
+      lastReferencedAt: this.currentIteration,
+      createdAtIteration: this.currentIteration,
+    }
+
+    // Store the full content for rendering into messages
+    ;(chunk as any)._syntheticContent = opts.content
+
+    this.chunks.set(opts.id, chunk)
+    this.logger.debug('Added synthetic chunk', {
+      id: opts.id,
+      chars: opts.content.length,
+      pinned: chunk.pinned,
+    })
+  }
+
+  /**
    * Incrementally index messages starting from lastIndexedMsgIdx.
    * Splits text blocks into paragraphs for fine-grained addressing.
    */

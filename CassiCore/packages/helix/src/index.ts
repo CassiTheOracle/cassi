@@ -535,6 +535,15 @@ export function createHelix(
               goal: effectiveGoal,
               sessionId,
               eventBus: effectiveEventBus,
+              readFile: async (path: string) => {
+                try {
+                  const { readFile: fsRead } = await import('node:fs/promises')
+                  const { resolve } = await import('node:path')
+                  const resolved = resolve(process.cwd(), path)
+                  if (!resolved.startsWith(process.cwd())) return null
+                  return await fsRead(resolved, 'utf-8')
+                } catch { return null }
+              },
               // Blackboard is resolved lazily via onBlackboardCreated callback below
             }
             logger.info('helix:brainstem:adapter-created', { sessionId })
