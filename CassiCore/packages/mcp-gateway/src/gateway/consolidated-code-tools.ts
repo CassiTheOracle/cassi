@@ -7,6 +7,15 @@
 
 import { SerenaAutoOnboarding, type ToolRouter } from './serena-onboarding.js'
 import type { ILogger } from '../../types/interfaces.js'
+import {
+  analyzeDeadCode,
+  analyzeHotspots,
+  analyzeCochange,
+  prepareContext,
+  scoreSpecificity,
+  introspectSchemas,
+  ensureFreshIndex,
+} from '../../core/intelligence/code-analysis/index.js'
 
 // Module-level singleton for Serena onboarding
 let serenaOnboarding: SerenaAutoOnboarding | null = null
@@ -23,7 +32,7 @@ function getSerenaOnboarding(logger: ILogger): SerenaAutoOnboarding {
  */
 export const CODE_CONSOLIDATED_TOOL = {
   name: 'code',
-  description: 'Code intelligence operations — query code knowledge graph, analyze symbol context, assess impact, run Cypher queries, and perform code modifications. Use action parameter to select operation.',
+  description: 'Code intelligence operations — query code knowledge graph, analyze symbol context, assess impact, detect dead code, find hotspots, analyze cochange patterns, prepare context for tasks, score specificity, introspect database schemas, and perform code modifications. Use action parameter to select operation.',
   inputSchema: {
     type: 'object',
     properties: {
@@ -32,6 +41,7 @@ export const CODE_CONSOLIDATED_TOOL = {
         enum: [
           'query', 'context', 'impact', 'cypher', 'detect_changes', 'list_repos', 'rename_graph',
           'symbol', 'refs', 'overview', 'search_pattern', 'rename_symbol', 'replace_symbol', 'insert_after', 'insert_before',
+          'dead_code', 'hotspots', 'cochange', 'prepare_context', 'specificity', 'schema', 'reindex',
         ],
         description: 'Code operation to perform',
       },
@@ -197,6 +207,42 @@ export const CODE_CONSOLIDATED_TOOL = {
         type: 'object',
         description: 'Additional parameters for the underlying tool',
       },
+      // dead_code params
+      path: {
+        type: 'string',
+        description: 'Directory scope for dead_code, hotspots actions',
+      },
+      include_test_only: {
+        type: 'boolean',
+        description: 'Include test-only symbols (for dead_code action)',
+      },
+      // cochange params (target reuses existing 'target' field)
+      min_commits: {
+        type: 'number',
+        description: 'Minimum co-occurrences to include (for cochange action, default 3)',
+      },
+      since: {
+        type: 'string',
+        description: 'Git date filter (for cochange action, default "6 months ago")',
+      },
+      // prepare_context params
+      task: {
+        type: 'string',
+        description: 'Task description (for prepare_context action)',
+      },
+      token_budget: {
+        type: 'number',
+        description: 'Token budget for assembled context (for prepare_context action, default 8000)',
+      },
+      // schema params
+      database: {
+        type: 'string',
+        description: 'Filter to specific database (for schema action)',
+      },
+      table: {
+        type: 'string',
+        description: 'Filter to specific table (for schema action)',
+      },
     },
     required: ['action'],
   },
@@ -213,6 +259,7 @@ export const CODE_CONSOLIDATED_TOOL_NAME = 'code'
 const READ_ONLY_ACTIONS = new Set([
   'query', 'context', 'impact', 'cypher', 'detect_changes', 'list_repos',
   'symbol', 'refs', 'overview', 'search_pattern',
+  'dead_code', 'hotspots', 'cochange', 'prepare_context', 'specificity', 'schema', 'reindex',
 ])
 
 /**
@@ -254,6 +301,7 @@ export async function executeCodeConsolidatedTool(
   switch (action) {
     case 'query': {
       const { query, goal, task_context, limit, max_symbols, include_content, repo } = mergedArgs
+      await ensureFreshIndex(logger)
       return await router('gitnexus_query', {
         query,
         goal,
@@ -266,6 +314,7 @@ export async function executeCodeConsolidatedTool(
     }
     case 'context': {
       const { name, uid, file_path, include_content, repo } = mergedArgs
+      await ensureFreshIndex(logger)
       return await router('gitnexus_context', {
         name,
         uid,
@@ -276,6 +325,7 @@ export async function executeCodeConsolidatedTool(
     }
     case 'impact': {
       const { target, direction, maxDepth, minConfidence, relationTypes, includeTests, repo } = mergedArgs
+      await ensureFreshIndex(logger)
       return await router('gitnexus_impact', {
         target,
         direction,
@@ -288,17 +338,21 @@ export async function executeCodeConsolidatedTool(
     }
     case 'cypher': {
       const { query, repo } = mergedArgs
+      await ensureFreshIndex(logger)
       return await router('gitnexus_cypher', { query, repo })
     }
     case 'detect_changes': {
       const { scope, base_ref, repo } = mergedArgs
+      await ensureFreshIndex(logger)
       return await router('gitnexus_detect_changes', { scope, base_ref, repo })
     }
     case 'list_repos': {
+      await ensureFreshIndex(logger)
       return await router('gitnexus_list_repos', {})
     }
     case 'rename_graph': {
       const { symbol_name, symbol_uid, new_name, file_path, dry_run, repo } = mergedArgs
+      await ensureFreshIndex(logger)
       return await router('gitnexus_rename', {
         symbol_name,
         symbol_uid,
@@ -363,6 +417,148 @@ export async function executeCodeConsolidatedTool(
       const { name_path, relative_path, body } = mergedArgs
       return await router('serena_insert_before_symbol', { name_path, relative_path, body })
     }
+
+    // ── Code Analysis Features (Tempograph-inspired) ──────────────
+
+    case 'dead_code': {
+      const { path: scopePath, minConfidence, include_test_only, repo } = mergedArgs
+      const results = await analyzeDeadCode(router, {
+        path: scopePath,
+        minConfidence,
+        includeTestOnly: include_test_only,
+        repo,
+      }, logger)
+
+      return {
+        output: `Found ${results.length} potentially dead symbols:\n\n` +
+          results.map((r, i) =>
+            `${i + 1}. **${r.symbolName}** (${r.kind}) in \`${r.filePath}\`\n` +
+            `   ${r.lineCount} lines | Confidence: ${(r.confidence * 100).toFixed(0)}% | ${r.reason}`
+          ).join('\n\n') +
+          (results.length === 0 ? 'No dead code detected with current confidence threshold.' : ''),
+        results,
+        count: results.length,
+      }
+    }
+
+    case 'hotspots': {
+      const { path: scopePath, limit, repo } = mergedArgs
+      const results = await analyzeHotspots(router, {
+        path: scopePath,
+        limit,
+        repo,
+      }, logger)
+
+      return {
+        output: `Top ${results.length} hotspots (ranked by size × complexity × coupling):\n\n` +
+          results.map((r, i) =>
+            `${i + 1}. \`${r.filePath}\` — **score: ${r.score}**\n` +
+            `   Size: ${r.dimensions.size.toFixed(2)} (${r.raw.lineCount} lines) | ` +
+            `Complexity: ${r.dimensions.complexity.toFixed(2)} (${r.raw.symbolCount} symbols) | ` +
+            `Coupling: ${r.dimensions.coupling.toFixed(2)} (${r.raw.outgoingEdges} edges)`
+          ).join('\n\n') +
+          (results.length === 0 ? 'No hotspots found.' : ''),
+        results,
+        count: results.length,
+      }
+    }
+
+    case 'cochange': {
+      const { target, limit, min_commits, since } = mergedArgs
+      if (!target) throw new Error('Missing required parameter: target (file path)')
+
+      const results = await analyzeCochange({
+        target,
+        limit,
+        minCommits: min_commits,
+        since,
+      }, logger)
+
+      return {
+        output: `Files that frequently change with \`${target}\`:\n\n` +
+          results.map((r, i) =>
+            `${i + 1}. \`${r.filePath}\` — score: ${r.score} (${r.cochangeCount} co-changes out of ${r.fileChangeCount} total changes)`
+          ).join('\n') +
+          (results.length === 0 ? 'No cochange patterns found for this file.' : ''),
+        results,
+        count: results.length,
+      }
+    }
+
+    case 'prepare_context': {
+      const { task, token_budget, include_content, scope, repo } = mergedArgs
+      if (!task) throw new Error('Missing required parameter: task (description)')
+
+      const result = await prepareContext(router, {
+        task,
+        tokenBudget: token_budget,
+        includeContent: include_content,
+        scope,
+        repo,
+      }, logger)
+
+      return {
+        output: `**Context prepared** (~${result.estimatedTokens} tokens)\n\n` +
+          `Keywords: ${result.extractedKeywords.join(', ')}\n\n` +
+          `${result.summary}\n\n` +
+          `**Key files (${result.files.length}):**\n` +
+          result.files.map((f, i) =>
+            `${i + 1}. \`${f.filePath}\` (relevance: ${f.relevance.toFixed(2)})\n` +
+            `   ${f.reason}\n` +
+            `   Symbols: ${f.keySymbols.join(', ') || 'none'}` +
+            (f.excerpt ? `\n   \`\`\`\n${f.excerpt.slice(0, 300)}\n   \`\`\`` : '')
+          ).join('\n\n'),
+        ...result,
+      }
+    }
+
+    case 'specificity': {
+      const { task, query: queryText } = mergedArgs
+      const text = task || queryText
+      if (!text) throw new Error('Missing required parameter: task or query')
+
+      const result = scoreSpecificity(text)
+
+      return {
+        output: `**Specificity score: ${result.score}** → recommended mode: **${result.mode}**\n\n` +
+          `Signals:\n` +
+          result.signals.map(s =>
+            `  ${s.weight > 0 ? '+' : ''}${s.weight.toFixed(2)} ${s.type}: "${s.match}"`
+          ).join('\n') +
+          `\n\nInterpretation: ${
+            result.mode === 'full' ? 'Query is specific enough for full code context injection.'
+            : result.mode === 'file_only' ? 'Query is moderately specific — inject file-level context only.'
+            : 'Query is too vague for code context injection — would likely cause context pollution.'
+          }`,
+        ...result,
+      }
+    }
+
+    case 'schema': {
+      const { database, table } = mergedArgs
+      const result = introspectSchemas(logger, { database, table })
+
+      return {
+        output: `**CassiCore Internal Databases** (${result.databases.length} databases, ${result.totalTables} tables, ${result.totalRows.toLocaleString()} total rows)\n\n` +
+          result.databases.map(db =>
+            `### ${db.name} (${(db.sizeBytes / 1024).toFixed(1)} KB)\n` +
+            `Path: \`${db.path}\`\n\n` +
+            db.tables.map(t =>
+              `- **${t.name}** (${t.rowCount >= 0 ? t.rowCount.toLocaleString() + ' rows' : 'count unavailable'})\n` +
+              `  Columns: ${t.columns.map(c => `\`${c.name}\` ${c.type}${c.pk ? ' PK' : ''}${c.notnull ? ' NOT NULL' : ''}`).join(', ')}`
+            ).join('\n')
+          ).join('\n\n'),
+        ...result,
+      }
+    }
+
+    case 'reindex': {
+      await ensureFreshIndex(logger)
+      return {
+        output: 'GitNexus index rebuild triggered. The index will be refreshed with the current HEAD commit.',
+      }
+    }
+
     default:
       throw new Error(`Unknown code action: ${action}`)
   }

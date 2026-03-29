@@ -10,6 +10,8 @@
 import { executeIntelligenceTool } from './intelligence-tools.js';
 import { executeDialecticTool } from './dialectic-tools.js';
 import type { ILogger } from '../../types/interfaces.js';
+import { introspectSchemas } from '../../core/intelligence/code-analysis/index.js';
+import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/index.js';
 
 /**
  * Consolidated intelligence tool definition
@@ -26,6 +28,7 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
           'activity', 'thinker', 'subconscious', 'consciousness', 'trace',
           'effectiveness', 'budget', 'evolution', 'blindspots', 'snapshot',
           'trust', 'consequences', 'dialectic', 'overview',
+          'schema', 'context_feedback',
         ],
         description: 'Intelligence operation to perform',
       },
