@@ -27,7 +27,10 @@ import { BlackboardBridge } from './blackboard-bridge.js'
 import { Corpus } from './corpus.js'
 import { CorpusTree } from './corpus-tree.js'
 import { CrossHelixDialectic } from './cross-helix-dialectic.js'
+import { readFile as fsReadFile } from 'node:fs/promises'
+import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
+import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
 import type {
   FlexPosture,
   ConstellationTemplate,
@@ -46,6 +49,206 @@ import { getTemplatePostures } from './templates.js'
 const DEFAULT_MAX_HELIXES = 16
 const DEFAULT_MAX_DEPTH = 4
 const SPAWN_CHECK_INTERVAL_MS = 1000
+
+/**
+ * Simple complexity check for goal decomposition.
+ * Returns true if the goal is likely complex enough to benefit from decomposition.
+ */
+function isGoalComplex(goal: string): boolean {
+  // Heuristics: long goals, multiple sections, mentions multiple modules/directories
+  if (goal.length > 500) return true
+  if ((goal.match(/\n##/g) ?? []).length >= 2) return true
+  if ((goal.match(/(?:core\/|src\/|lib\/)[^\s,]+/g) ?? []).length >= 3) return true
+  if ((goal.match(/\d+\.\s/g) ?? []).length >= 3) return true // numbered list with 3+ items
+  return false
+}
+
+/**
+ * Run pre-flight goal decomposition via a planning Helix.
+ * For complex goals, spawns a short-lived full Helix that reads the codebase,
+ * validates paths, and produces a structured decomposition.
+ * For simple goals, returns a pass-through (no decomposition).
+ */
+async function runGoalDecomposition(opts: {
+  goal: string
+  context?: string
+  launchHelix: (goal: string, context: string | undefined, template: ConstellationTemplate | undefined, depth: number) => Promise<{ helixId: string; promise: Promise<HelixResult> }>
+  corpus: Corpus
+  log: ILogger
+  readFile: (path: string) => Promise<string | null>
+}): Promise<GoalDecomposition> {
+  const startTime = Date.now()
+
+  if (!isGoalComplex(opts.goal)) {
+    opts.log.info('Goal is simple, skipping decomposition')
+    return {
+      decomposed: false,
+      originalGoal: opts.goal,
+      subTasks: [{ goal: opts.goal, priority: 1 }],
+      strategy: 'parallel',
+      durationMs: Date.now() - startTime,
+    }
+  }
+
+  opts.log.info('Goal is complex, launching planning Helix for decomposition', {
+    goalLength: opts.goal.length,
+  })
+
+  const plannerGoal = `Analyze and decompose the following goal into concrete sub-tasks.
+
+## Original Goal
+${opts.goal}
+${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
+
+## Task
+1. Use read_file and list_directory tools to explore the codebase and understand the structure
+2. Identify 2-5 concrete, independent sub-tasks that together achieve the goal
+3. For each sub-task, validate that referenced file paths actually exist
+4. Write the decomposition as a signal_done call with the following format in the summary:
+
+DECOMPOSITION_START
+STRATEGY: parallel|sequential|tree
+SHARED_CONTEXT: <any context all sub-tasks need>
+
+SUBTASK: <focused goal for sub-task 1>
+FILES: <comma-separated file paths relevant to this sub-task>
+PRIORITY: <1-5, higher is more important>
+
+SUBTASK: <focused goal for sub-task 2>
+FILES: <comma-separated file paths>
+PRIORITY: <1-5>
+
+... (repeat for each sub-task)
+DECOMPOSITION_END
+
+Rules:
+- Each SUBTASK must be specific enough to execute independently
+- Validate all file paths with read_file before including them
+- Keep sub-tasks focused — prefer 2-3 well-scoped tasks over 5+ vague ones
+- If the goal is actually simple and doesn't need decomposition, output a single SUBTASK with the original goal`
+
+  try {
+    const plannerHelix = await opts.launchHelix(plannerGoal, undefined, undefined, 0)
+
+    // Wait for planning Helix with a timeout (5 minutes max for planning)
+    const timeoutPromise = new Promise<HelixResult>((_, reject) => {
+      setTimeout(() => reject(new Error('Planning Helix timed out')), 300_000)
+    })
+
+    const result = await Promise.race([plannerHelix.promise, timeoutPromise])
+
+    // Parse the decomposition from the result
+    const decomposition = parseDecompositionResult(result, opts.goal, startTime)
+    opts.log.info('Decomposition complete', {
+      decomposed: decomposition.decomposed,
+      subTasks: decomposition.subTasks.length,
+      strategy: decomposition.strategy,
+      durationMs: decomposition.durationMs,
+    })
+
+    return decomposition
+  } catch (error) {
+    opts.log.warn('Goal decomposition failed, falling back to single Helix', {
+      error: String(error),
+    })
+    return {
+      decomposed: false,
+      originalGoal: opts.goal,
+      subTasks: [{ goal: opts.goal, priority: 1 }],
+      strategy: 'parallel',
+      durationMs: Date.now() - startTime,
+    }
+  }
+}
+
+/**
+ * Parse the structured decomposition from a planning Helix result.
+ */
+function parseDecompositionResult(
+  result: HelixResult,
+  originalGoal: string,
+  startTime: number,
+): GoalDecomposition {
+  // Look for DECOMPOSITION_START...DECOMPOSITION_END in the result
+  const conclusion = result.unityConclusion ?? result.mentorSynthesis ?? ''
+  const fullText = `${conclusion}\n${result.unitySummary ?? ''}\n${result.unityKeyPoints?.join('\n') ?? ''}`
+
+  const decompMatch = fullText.match(/DECOMPOSITION_START\s*\n([\s\S]*?)DECOMPOSITION_END/)
+  if (!decompMatch) {
+    // No decomposition block found — return as single task
+    return {
+      decomposed: false,
+      originalGoal,
+      subTasks: [{ goal: originalGoal, priority: 1 }],
+      strategy: 'parallel',
+      durationMs: Date.now() - startTime,
+    }
+  }
+
+  const block = decompMatch[1]
+
+  // Parse strategy
+  const strategyMatch = block.match(/STRATEGY:\s*(parallel|sequential|tree)/i)
+  const strategy = (strategyMatch?.[1]?.toLowerCase() ?? 'parallel') as 'parallel' | 'sequential' | 'tree'
+
+  // Parse shared context
+  const sharedContextMatch = block.match(/SHARED_CONTEXT:\s*(.+?)(?=\n\nSUBTASK:|\n$)/s)
+  const sharedContext = sharedContextMatch?.[1]?.trim()
+
+  // Parse sub-tasks
+  const subTaskPattern = /SUBTASK:\s*(.+?)(?:\nFILES:\s*(.+?))?(?:\nPRIORITY:\s*(\d))?(?=\n\nSUBTASK:|\nDECOMPOSITION_END|$)/gs
+  const subTasks: GoalSubTask[] = []
+
+  let match
+  while ((match = subTaskPattern.exec(block)) !== null) {
+    const goal = match[1].trim()
+    const files = match[2]?.trim().split(',').map(f => f.trim()).filter(Boolean)
+    const priority = parseInt(match[3] ?? '1', 10) || 1
+
+    if (goal) {
+      subTasks.push({
+        goal,
+        relevantFiles: files?.length ? files : undefined,
+        priority,
+      })
+    }
+  }
+
+  if (subTasks.length === 0) {
+    return {
+      decomposed: false,
+      originalGoal,
+      subTasks: [{ goal: originalGoal, priority: 1 }],
+      strategy: 'parallel',
+      durationMs: Date.now() - startTime,
+    }
+  }
+
+  return {
+    decomposed: subTasks.length > 1,
+    originalGoal,
+    subTasks: subTasks.sort((a, b) => b.priority - a.priority),
+    strategy,
+    sharedContext: sharedContext || undefined,
+    durationMs: Date.now() - startTime,
+  }
+}
+
+/**
+ * Safe file reader for brainstem/corpus path validation.
+ * Returns file content or null if not found. Scoped to workspace root.
+ */
+async function safeReadFile(path: string, workspaceRoot: string): Promise<string | null> {
+  try {
+    const resolved = pathResolve(workspaceRoot, path)
+    // Security: ensure the resolved path is within the workspace
+    if (!resolved.startsWith(workspaceRoot)) return null
+    const content = await fsReadFile(resolved, 'utf-8')
+    return content
+  } catch {
+    return null
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════
 // Pipeline Options
@@ -232,6 +435,7 @@ export async function runConstellationPipeline(
       eventBus,
       blackboard: constellationBlackboard,
       crossHelixDialectic,
+      readFile: (path: string) => safeReadFile(path, process.cwd()),
       onSpawnRequest: (req) => {
         const spawnRequest: SpawnRequest = {
           requestId: `spawn-corpus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -395,6 +599,7 @@ export async function runConstellationPipeline(
       eventBus,
       corpusTree,
       helixId,
+      readFile: (path: string) => safeReadFile(path, process.cwd()),
       onSpawnRequest: (req) => {
         const spawnRequest: SpawnRequest = {
           requestId: `spawn-${helixId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -664,76 +869,129 @@ export async function runConstellationPipeline(
     })
     opts.onCancelRegistered?.(externalCancel)
 
-    // Launch root Helix
-    const rootHelix = await launchHelix(goal, context, undefined, 0)
-    rootHelixId = rootHelix.helixId
+    // ── Pre-flight Goal Decomposition ──────────────────────────────
+    // For complex goals, run a short planning Helix to decompose the goal
+    // into validated sub-tasks before launching execution Helixes.
+    const decomposition = await runGoalDecomposition({
+      goal,
+      context,
+      launchHelix,
+      corpus,
+      log,
+      readFile: (path: string) => safeReadFile(path, process.cwd()),
+    })
 
-    // Start spawn request polling
-    const spawnPoller = pollSpawnRequests()
+    if (decomposition.decomposed && decomposition.subTasks.length > 1) {
+      log.info('Goal decomposed into sub-tasks', {
+        subTasks: decomposition.subTasks.length,
+        strategy: decomposition.strategy,
+        durationMs: decomposition.durationMs,
+      })
 
-    // Start periodic progress checkpoints (every 60s)
-    // Also checks maxTotalSteps limit.
-    const CHECKPOINT_INTERVAL_MS = 60_000
-    const maxTotalSteps = opts.maxTotalSteps ?? 100
-    if (constellationStore) {
-      checkpointHandle = setInterval(() => {
-        try {
-          const nodeArr = Array.from(nodes.values())
-          const totalSteps = corpusTree.getSnapshot().branches.reduce(
-            (sum, b) => sum + b.stepCount, 0
-          )
+      // Launch Helixes based on decomposition
+      const helixPromises: Array<{ helixId: string; promise: Promise<HelixResult> }> = []
+      for (const subTask of decomposition.subTasks) {
+        const subContext = [
+          decomposition.sharedContext,
+          subTask.context,
+          subTask.relevantFiles?.length
+            ? `Relevant files: ${subTask.relevantFiles.join(', ')}`
+            : undefined,
+        ].filter(Boolean).join('\n\n')
 
-          constellationStore.saveCheckpoint(constellationId, {
-            tree: corpusTree.getSnapshot(),
-            progress: corpus.getProgressSnapshot(),
-            sweepCount: corpus.getResult().sweepCount,
-            totalBranches: nodeArr.length,
-            completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
-            failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
-            tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
-            durationMs: Date.now() - startTime,
-          })
+        const h = await launchHelix(subTask.goal, subContext || undefined, subTask.template, 0)
+        helixPromises.push(h)
+      }
+      rootHelixId = helixPromises[0]?.helixId ?? ''
 
-          // Check max steps limit
-          if (totalSteps >= maxTotalSteps) {
-            log.warn('Max total steps reached, cancelling Constellation', {
-              totalSteps,
-              maxTotalSteps,
-              branches: nodeArr.length,
+      // Start spawn request polling
+      const spawnPoller = pollSpawnRequests()
+
+      // Wait for all sub-task Helixes to complete
+      log.info('Waiting for decomposed sub-task Helixes', { count: helixPromises.length })
+      await Promise.race([
+        Promise.all(helixPromises.map(h => h.promise)),
+        cancelPromise,
+      ])
+
+      void spawnPoller // spawnPoller is a Promise, not a timer — it exits on its own
+    } else {
+      // Simple goal or decomposition failed — launch single root Helix (original behavior)
+      if (decomposition.decomposed) {
+        log.info('Decomposition returned single task, proceeding with single Helix')
+      }
+
+      // Launch root Helix
+      const rootHelix = await launchHelix(goal, context, undefined, 0)
+      rootHelixId = rootHelix.helixId
+
+      // Start spawn request polling
+      const spawnPoller = pollSpawnRequests()
+
+      // Start periodic progress checkpoints (every 60s)
+      // Also checks maxTotalSteps limit.
+      const CHECKPOINT_INTERVAL_MS = 60_000
+      const maxTotalSteps = opts.maxTotalSteps ?? 100
+      if (constellationStore) {
+        checkpointHandle = setInterval(() => {
+          try {
+            const nodeArr = Array.from(nodes.values())
+            const totalSteps = corpusTree.getSnapshot().branches.reduce(
+              (sum, b) => sum + b.stepCount, 0
+            )
+
+            constellationStore.saveCheckpoint(constellationId, {
+              tree: corpusTree.getSnapshot(),
+              progress: corpus.getProgressSnapshot(),
+              sweepCount: corpus.getResult().sweepCount,
+              totalBranches: nodeArr.length,
+              completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
+              failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
+              tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+              durationMs: Date.now() - startTime,
             })
-            for (const running of runningHelixes.values()) {
-              try { running.cancel() } catch (_e) { /* best effort */ }
+
+            // Check max steps limit
+            if (totalSteps >= maxTotalSteps) {
+              log.warn('Max total steps reached, cancelling Constellation', {
+                totalSteps,
+                maxTotalSteps,
+                branches: nodeArr.length,
+              })
+              for (const running of runningHelixes.values()) {
+                try { running.cancel() } catch (_e) { /* best effort */ }
+              }
             }
+          } catch (err) {
+            log.warn('Checkpoint save failed', { error: String(err) })
           }
-        } catch (err) {
-          log.warn('Checkpoint save failed', { error: String(err) })
-        }
-      }, CHECKPOINT_INTERVAL_MS)
+        }, CHECKPOINT_INTERVAL_MS)
+      }
+
+      // Wait for root Helix completion
+      log.info('Waiting for root Helix completion', { rootHelixId })
+
+      await Promise.race([rootHelix.promise, cancelPromise])
+
+      // Give children a grace period to complete
+      log.info('Root Helix completed, waiting for children', {
+        childrenCount: runningHelixes.size - 1,
+      })
+
+      const gracePeriodMs = 120_000 // 2 minute grace period for children to finish work
+      const gracePromise = new Promise<void>((resolve) => {
+        setTimeout(resolve, gracePeriodMs)
+      })
+
+      // Wait for either all children to complete or grace period
+      const childPromises = Array.from(runningHelixes.values())
+        .filter((h) => h.helixId !== rootHelixId)
+        .map((h) => h.promise)
+
+      await Promise.race([Promise.all(childPromises), gracePromise])
+
+      void spawnPoller // spawnPoller is a Promise, not a timer — it exits on its own
     }
-
-    // Wait for root Helix completion (no timeout — Constellation runs to completion)
-    // Note: We don't wait for all children — the root's completion signals
-    // that the main goal is achieved. Children may still be running cleanup.
-    log.info('Waiting for root Helix completion', { rootHelixId })
-
-    await Promise.race([rootHelix.promise, cancelPromise])
-
-    // Give children a grace period to complete
-    log.info('Root Helix completed, waiting for children', {
-      childrenCount: runningHelixes.size - 1,
-    })
-
-    const gracePeriodMs = 120_000 // 2 minute grace period for children to finish work
-    const gracePromise = new Promise<void>((resolve) => {
-      setTimeout(resolve, gracePeriodMs)
-    })
-
-    // Wait for either all children to complete or grace period
-    const childPromises = Array.from(runningHelixes.values())
-      .filter((h) => h.helixId !== rootHelixId)
-      .map((h) => h.promise)
-
-    await Promise.race([Promise.all(childPromises), gracePromise])
 
     log.info('Constellation execution complete', {
       totalNodes: nodes.size,

@@ -725,28 +725,45 @@ export class Corpus {
       ? `\n${dialecticSummary}\n`
       : ''
 
-    return `I am the Corpus — the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} branches, analyzing cross-Helix patterns and making spawn/intervention decisions.
+    // Build intervention history so Corpus remembers its past decisions
+    const recentInterventions = this.state.interventions.slice(-6)
+    const interventionHistorySection = recentInterventions.length > 0
+      ? `\n## My Previous Interventions (last ${recentInterventions.length})\n${recentInterventions.map(i =>
+          `- ${i.type} → ${i.targetHelixId} [${i.urgency}]: "${i.text.slice(0, 120)}"`
+        ).join('\n')}`
+      : ''
+
+    // Build spawn history
+    const recentSpawns = this.state.spawnDecisions.slice(-4)
+    const spawnHistorySection = recentSpawns.length > 0
+      ? `\n## My Previous Spawn Decisions (last ${recentSpawns.length})\n${recentSpawns.map(s =>
+          `- ${s.approved ? 'APPROVED' : 'REJECTED'}: "${s.goal.slice(0, 100)}" (from: ${s.requestingHelixId})`
+        ).join('\n')}`
+      : ''
+
+    return `I am the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} branches, analyzing cross-branch patterns and making spawn/intervention decisions.
 
 ## Branch Assessments
-${branchDetails}${patternDetails}${dialecticSection}
+${branchDetails}${patternDetails}${dialecticSection}${interventionHistorySection}${spawnHistorySection}
 
-## My Task
+## Task
 Provide strategic assessment:
 
 ASSESSMENT: <brief assessment of overall constellation health>
-INTERVENTION[helixId]: <directive type:guidance|redirect|throttle|priority-shift|cancel>:<urgency:low|medium|high|critical>:<guidance text> (or NONE)
-SPAWN[parentHelixId]: <goal for new sub-Helix> (or NONE)
-SYNTHESIS: <strategic synthesis for Cassi, or NONE>
+INTERVENTION[helixId]: <directive type:guidance|redirect|throttle|priority-shift|cancel>:<urgency:low|medium|high|critical>:<first-person guidance text> (or NONE)
+SPAWN[parentHelixId]: <goal for new sub-branch> (or NONE)
+SYNTHESIS: <strategic synthesis, or NONE>
 
 Guidelines:
 - ASSESSMENT: Summarize the health of all branches and any concerning patterns
-- INTERVENTION: Only if a specific Helix needs steering. Use helixId from above.
-- SPAWN: Request a new sub-Helix when:
+- INTERVENTION: Only if a specific branch needs steering. Use helixId from above. Write guidance in first person ("I should..." not "Do X").
+- SPAWN: Request a new sub-branch when:
   (a) A branch reveals a sub-problem that would benefit from dedicated, parallel investigation
   (b) A branch has received 3+ interventions without meaningful improvement (avgScore still declining)
   (c) The goal naturally decomposes into independent sub-problems that could run concurrently
   Use the parentHelixId of the branch that surfaced the need. Each spawn should have a focused, specific goal. NONE if no spawn needed.
 - SYNTHESIS: Strategic insights for the Constellation level, or NONE if routine
+- Review "My Previous Interventions" — avoid repeating the same intervention if it didn't work. Escalate instead.
 - Be concise — this runs in a tight loop`
   }
 
@@ -944,20 +961,20 @@ Guidelines:
    */
   private async runSpawnEvaluation(request: SpawnRequest): Promise<SpawnDecision> {
     const branches = this.tree.getAllBranches()
-    const prompt = `I am the Corpus — evaluating a spawn request for this Constellation.
+    const prompt = `I am evaluating a spawn request for this Constellation.
 
 ## Current Tree State
 Active branches: ${branches.length}
 Total steps: ${this.tree.totalStepCount()}
 
 ## Spawn Request
-Requesting Helix: ${request.requestingHelixId}
+Requesting branch: ${request.requestingHelixId}
 Proposed Goal: ${request.goal}
 Proposed Template: ${request.template ?? 'standard'}
 Target Depth: ${request.targetDepth}
 
-## My Task
-Evaluate this spawn request and respond:
+## Task
+Evaluate this spawn request:
 
 DECISION: <APPROVED|REJECTED>
 REASON: <brief reasoning>
@@ -1023,14 +1040,21 @@ Guidelines:
       const suggestedGoal =
         goalMatch?.[1]?.trim().toUpperCase() !== 'NONE' ? goalMatch?.[1]?.trim() : undefined
 
+      // Validate file paths in the goal before finalizing the decision
+      const finalGoal = suggestedGoal ?? request.goal
+      let validatedGoal = finalGoal
+      if (approved && this.deps.readFile) {
+        validatedGoal = await this.validateGoalPaths(finalGoal)
+      }
+
       return {
         requestId: request.requestId,
         requestingHelixId: request.requestingHelixId,
-        goal: request.goal,
+        goal: validatedGoal,
         approved,
         reason,
         suggestedTemplate,
-        suggestedGoal,
+        suggestedGoal: validatedGoal !== finalGoal ? validatedGoal : suggestedGoal,
         evaluatedAt: Date.now(),
       }
     } catch (error) {
@@ -1049,6 +1073,34 @@ Guidelines:
         evaluatedAt: Date.now(),
       }
     }
+  }
+
+  /**
+   * Validate file paths referenced in a spawn goal.
+   * Annotates non-existent paths with [NOT FOUND] so the spawned Helix
+   * doesn't waste time trying to read them.
+   */
+  private async validateGoalPaths(goal: string): Promise<string> {
+    if (!this.deps.readFile) return goal
+
+    const pathPattern = /(?:^|\s|['"`])((?:\.\/|\.\.\/|[a-zA-Z_][\w-]*\/)[^\s'"`,)}\]]+\.(?:ts|js|json|md))/g
+    const matches = [...goal.matchAll(pathPattern)]
+    if (matches.length === 0) return goal
+
+    let result = goal
+    for (const match of matches) {
+      const filePath = match[1]
+      try {
+        const content = await this.deps.readFile(filePath)
+        if (content === null) {
+          result = result.replace(filePath, `${filePath} [NOT FOUND]`)
+          this.logger.debug('Spawn goal referenced non-existent path', { filePath })
+        }
+      } catch {
+        // readFile failed — leave as-is
+      }
+    }
+    return result
   }
 
   /**

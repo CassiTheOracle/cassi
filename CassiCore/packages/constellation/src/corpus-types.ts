@@ -297,6 +297,7 @@ export type CorpusDirectiveType =
   | 'throttle'        // Slow down (resource management)
   | 'priority-shift'  // Change priority relative to siblings
   | 'cancel'          // Stop this Helix
+  | 'context-inject'  // Inject file content into posture context (text = filePath)
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -409,6 +410,8 @@ export interface CorpusDeps {
   onSpawnRequest?: (request: { goal: string; context?: string; template?: string; requestingHelixId: string }) => void
   /** Optional cross-Helix dialectic for inter-branch communication */
   crossHelixDialectic?: import('./cross-helix-dialectic.js').CrossHelixDialectic
+  /** Read-only file access for validating paths in spawn goals and interventions. Returns null if file not found. */
+  readFile?: (path: string) => Promise<string | null>
 }
 
 /**
@@ -471,4 +474,45 @@ export interface CorpusIntervention extends CorpusDirective {
   acknowledged: boolean
   /** Which sweep cycle produced this intervention */
   sweepNumber: number
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Goal Decomposition — Pre-flight planning via a planning Helix
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Result of Corpus goal decomposition.
+ * Produced by a short-lived planning Helix that analyzes the goal
+ * and breaks it into concrete sub-tasks.
+ */
+export interface GoalDecomposition {
+  /** Whether decomposition was performed (false = simple goal, passed through) */
+  decomposed: boolean
+  /** The original goal */
+  originalGoal: string
+  /** Sub-tasks to execute (each becomes a Helix) */
+  subTasks: GoalSubTask[]
+  /** Execution strategy: how sub-tasks should be scheduled */
+  strategy: 'sequential' | 'parallel' | 'tree'
+  /** Context discovered during planning that should be shared with all sub-tasks */
+  sharedContext?: string
+  /** How long decomposition took */
+  durationMs: number
+}
+
+/**
+ * A single sub-task from goal decomposition.
+ */
+export interface GoalSubTask {
+  /** Focused goal for this sub-task */
+  goal: string
+  /** Additional context specific to this sub-task */
+  context?: string
+  /** Suggested template for the Helix */
+  template?: ConstellationTemplate
+  /** Relative priority (higher = more important, default 1) */
+  priority: number
+  /** File paths that this sub-task needs to read (validated by planning Helix) */
+  relevantFiles?: string[]
 }
