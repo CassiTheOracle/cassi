@@ -447,6 +447,9 @@ export class HelixBrainstem {
           this.logger.debug('Brainstem idle poll')
         }
 
+        // Check wall-clock budget after each cycle
+        this.checkWallClockBudget()
+
         // Process peer-approved edit proposals (regardless of work unit state)
         this.processEditProposals()
       } catch (error) {
@@ -455,6 +458,42 @@ export class HelixBrainstem {
         })
         // Continue loop despite errors
       }
+    }
+  }
+
+  /**
+   * Check wall-clock budget and inject guidance if limits are reached.
+   * Fires once per threshold (one-shot) to avoid spam.
+   */
+  private checkWallClockBudget(): void {
+    if (this.startTime === 0) return
+    const elapsed = Date.now() - this.startTime
+    const elapsedMin = Math.round(elapsed / 60_000)
+
+    if (!this.state.wallClockHardLimitFired && elapsed >= this.config.wallClockHardLimitMs) {
+      this.state.wallClockHardLimitFired = true
+      this.logger.warn('Brainstem hard wall-clock limit reached', { elapsedMs: elapsed, elapsedMin })
+      this.guidanceQueue.push({
+        text: `SESSION TIME LIMIT REACHED (${elapsedMin} min elapsed). You MUST call signal_done immediately. Do not start any new work.`,
+        urgency: 'critical',
+        fromStep: this.state.currentAxonStep,
+        triggeredBy: 'none',
+        timestamp: Date.now(),
+      })
+      this.state.totalGuidanceCount++
+      this.state.totalPatternDetections++
+    } else if (!this.state.wallClockBudgetFired && elapsed >= this.config.wallClockBudgetMs) {
+      this.state.wallClockBudgetFired = true
+      this.logger.warn('Brainstem soft wall-clock budget reached', { elapsedMs: elapsed, elapsedMin })
+      this.guidanceQueue.push({
+        text: `SESSION APPROACHING TIME LIMIT (${elapsedMin} min elapsed). Finish your current work and call signal_done soon. Do not start large new tasks.`,
+        urgency: 'high',
+        fromStep: this.state.currentAxonStep,
+        triggeredBy: 'none',
+        timestamp: Date.now(),
+      })
+      this.state.totalGuidanceCount++
+      this.state.totalPatternDetections++
     }
   }
 

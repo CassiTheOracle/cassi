@@ -346,33 +346,25 @@ export const HELIX_REPORT_TOOLS = REPORT_TOOLS
 
 // ─── Aggregate Tool Sets ──────────────────────────────────────────────────
 
-/** All tools available to Unity */
+/** All tools available to Unity (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_UNITY_TOOLS: ToolSchema[] = [
   ...UNITY_TOOLS,
   REPORT_TO_BRAINSTEM_TOOL,
-  ...HELIX_PLAN_TOOLS,
-  ...HELIX_REPORT_TOOLS,
 ]
 
-/** All tools available to Yang reviewer */
+/** All tools available to Yang reviewer (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_YANG_TOOLS: ToolSchema[] = [
   ...REVIEWER_TOOLS,
-  ...HELIX_PLAN_TOOLS,
-  ...HELIX_REPORT_TOOLS,
 ]
 
-/** All tools available to Yin reviewer */
+/** All tools available to Yin reviewer (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_YIN_TOOLS: ToolSchema[] = [
   ...REVIEWER_TOOLS,
-  ...HELIX_PLAN_TOOLS,
-  ...HELIX_REPORT_TOOLS,
 ]
 
-/** All tools available to Mentor (moderator) */
+/** All tools available to Mentor (moderator) (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_MENTOR_TOOLS: ToolSchema[] = [
   ...MENTOR_TOOLS,
-  ...HELIX_PLAN_TOOLS,
-  ...HELIX_REPORT_TOOLS,
   REVIEW_PROGRESS_TOOL,
 ]
 

@@ -46,6 +46,10 @@ export interface BrainstemConfig {
   stagnationScoreThreshold: number
   /** Max consecutive explorations before forced implementation transition. Default: 15 */
   maxExplorationSteps: number
+  /** Soft wall-clock limit in ms. At this point, inject 'finish up soon' guidance. Default: 90 min */
+  wallClockBudgetMs: number
+  /** Hard wall-clock limit in ms. At this point, inject 'stop now' guidance. Default: 120 min */
+  wallClockHardLimitMs: number
   /** Whether to post annotations to blackboard. Default: true */
   postToBlackboard: boolean
   /** Whether to persist to training warehouse on completion. Default: true */
@@ -66,6 +70,8 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   stagnationStepThreshold: 10,
   stagnationScoreThreshold: 0.4,
   maxExplorationSteps: 15,
+  wallClockBudgetMs: 90 * 60 * 1000,      // 90 minutes
+  wallClockHardLimitMs: 120 * 60 * 1000,  // 120 minutes
   postToBlackboard: true,
   persistTrainingData: true,
   enabled: true,
@@ -144,6 +150,10 @@ export interface BrainstemState {
   workUnitsProcessed: number
   /** Whether the stagnation pattern has already fired (one-shot) */
   stagnationFired: boolean
+  /** Whether the soft wall-clock budget guidance has already fired (one-shot) */
+  wallClockBudgetFired: boolean
+  /** Whether the hard wall-clock limit guidance has already fired (one-shot) */
+  wallClockHardLimitFired: boolean
   /** Last time we received a stream activity event */
   lastStreamActivityAt: number
   /** Tokens accumulated in the current step from streaming */
@@ -164,6 +174,8 @@ export function createInitialBrainstemState(): BrainstemState {
     currentAxonStep: 0,
     workUnitsProcessed: 0,
     stagnationFired: false,
+    wallClockBudgetFired: false,
+    wallClockHardLimitFired: false,
     lastStreamActivityAt: 0,
     streamTokensThisStep: 0,
     longReasoningCount: 0,
