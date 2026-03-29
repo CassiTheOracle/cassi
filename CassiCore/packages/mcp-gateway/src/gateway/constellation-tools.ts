@@ -4,7 +4,7 @@
  * Exposes Constellation orchestration through the MCP tool interface.
  * Follows the same pattern as helix-tools.ts — proxies to admin API endpoints.
  *
- * Actions: project, status, cancel, jobs, sessions, watch, progress, tree, steer, blackboard
+ * Actions: project, status, cancel, jobs, sessions, watch, progress, tree, steer, blackboard, analyze
  */
 
 import type { ILogger } from '../../types/interfaces.js'
