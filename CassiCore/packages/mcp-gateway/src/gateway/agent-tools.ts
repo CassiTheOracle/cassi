@@ -324,7 +324,7 @@ async function executeConstellationAgentTool(
     'constellation_project', 'constellation_status', 'constellation_cancel',
     'constellation_jobs', 'constellation_sessions', 'constellation_watch',
     'constellation_progress', 'constellation_tree', 'constellation_steer',
-    'constellation_blackboard',
+    'constellation_blackboard', 'constellation_analyze',
   ]);
 
   if (!validConstellationTools.has(toolName)) {

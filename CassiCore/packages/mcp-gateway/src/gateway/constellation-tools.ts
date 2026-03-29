@@ -138,6 +138,25 @@ export const CONSTELLATION_TOOLS = [
       required: ['sessionId'],
     },
   },
+  {
+    name: 'constellation_analyze',
+    description: 'Deep post-mortem analysis of a completed (or failed) Constellation session. ' +
+      'Queries helix.db and constellation.db to produce a structured report covering Corpus health, ' +
+      'branch timing, phase detection, idle gaps, reviewer nudges, and known failure pattern detection. ' +
+      'Use this after a run to understand why it was slow, what Corpus did, or to diagnose provider issues.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID to analyze.' },
+        depth: {
+          type: 'string',
+          enum: ['summary', 'timeline', 'full'],
+          description: 'summary = diagnosis + stats (default). timeline = adds iteration-by-iteration timeline. full = adds raw store data.',
+        },
+      },
+      required: ['sessionId'],
+    },
+  },
 ]
 
 export const CONSTELLATION_TOOL_NAMES = new Set(CONSTELLATION_TOOLS.map(t => t.name))
@@ -299,6 +318,16 @@ export async function executeConstellationTool(
         const res = await fetchWithTimeout(
           `${adminBaseUrl}/constellation/${args.sessionId}/progress${channelParam}`,
           { timeoutMs: 10_000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_analyze': {
+        const depth = (args.depth as string | undefined) ?? 'summary'
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/analyze?depth=${depth}`,
+          { timeoutMs: 30_000 },
         )
         if (!res.ok) throw new Error(`Status ${res.status}`)
         return await res.json()
