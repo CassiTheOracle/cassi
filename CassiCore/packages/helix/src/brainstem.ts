@@ -85,6 +85,15 @@ export class HelixBrainstem {
   // Timing
   private startTime = 0
 
+  /**
+   * Live stream buffer — holds the most recent 3000 chars of the current LLM iteration.
+   * Updated on every onStreamActivity event (overwrite, not append — each event is a
+   * growing slice from the start of the current iteration).
+   * Cleared when a work unit is processed (the completed reasoning is now in the work unit).
+   * Included in heartbeat prompts so the brainstem sees what is currently being generated.
+   */
+  private liveStreamBuffer = ''
+
   // ── Shared Thought Tree: Self-Organization State ──────────────
   /** Current approach (derived from recent annotations) */
   private currentApproach: BranchApproach = 'exploration'
@@ -200,6 +209,214 @@ export class HelixBrainstem {
   }
 
   /**
+   * Notify the brainstem that Unity posted something significant to the Blackboard.
+   * Sets a flag so the next idle-poll cycle fires a heartbeat annotation.
+   * Only triggers for high-signal channels: decisions, findings, concerns.
+   */
+  onSignificantBlackboardPost(channel: string, content: string): void {
+    if (!this.config.enabled) return
+    if (!['decisions', 'findings', 'concerns'].includes(channel)) return
+    this.state.pendingBlackboardTrigger = true
+    this.logger.debug('Brainstem flagged for Blackboard-triggered heartbeat', {
+      channel,
+      contentPreview: content.slice(0, 80),
+    })
+  }
+
+  /**
+   * Check if any heartbeat triggers are pending and fire a heartbeat annotation if so.
+   * Called on every idle poll cycle.
+   */
+  private async checkHeartbeatTriggers(): Promise<void> {
+    if (!this.config.enabled) return
+
+    const lastAnnotation = this.state.annotations.at(-1)
+    const lastAnnotationTime = lastAnnotation?.timestamp ?? this.startTime ?? 0
+    const timeSinceLastMs = Date.now() - lastAnnotationTime
+
+    const timeTriggered = timeSinceLastMs >= this.config.heartbeatIntervalMs
+    const longReasoningTriggered = this.state.longReasoningCount > 0 &&
+      this.state.streamTokensThisStep >= this.config.longReasoningTokenThreshold
+    const blackboardTriggered = this.state.pendingBlackboardTrigger
+
+    if (!timeTriggered && !longReasoningTriggered && !blackboardTriggered) return
+
+    const trigger = blackboardTriggered ? 'blackboard'
+      : longReasoningTriggered ? 'long-reasoning'
+      : 'time'
+
+    this.logger.info('Brainstem heartbeat triggered', {
+      trigger,
+      timeSinceLastMs,
+      longReasoningCount: this.state.longReasoningCount,
+      blackboardTrigger: this.state.pendingBlackboardTrigger,
+    })
+
+    // Reset trigger flags
+    this.state.pendingBlackboardTrigger = false
+    this.state.streamTokensThisStep = 0
+    this.state.longReasoningCount = 0
+
+    await this.processHeartbeat(trigger)
+  }
+
+  /**
+   * Process a heartbeat annotation — a broad state reflection not tied to a specific work unit.
+   * Produces a richer annotation than a work unit step since it can see the full session state.
+   */
+  private async processHeartbeat(trigger: 'time' | 'long-reasoning' | 'blackboard'): Promise<void> {
+    this.state.currentAxonStep++
+    const heartbeatId = `heartbeat-${trigger}-${this.state.currentAxonStep}`
+
+    try {
+      const prompt = this.buildHeartbeatPrompt(trigger)
+      const response = await this.deps.llm.complete({
+        prompt,
+        modelTier: this.config.modelTier,
+        maxTokens: this.config.maxTokens,
+        timeoutMs: this.config.timeoutMs * 2, // heartbeats get more time
+      })
+
+      const annotation = this.parseAnnotation(response.content, heartbeatId)
+      this.updateState(annotation)
+      this.detectPatternsAndProduceGuidance(annotation)
+      this.publishDigest(annotation)
+      this.selfOrganize()
+
+      this.logger.info('Brainstem heartbeat processed', {
+        trigger,
+        score: annotation.score.toFixed(2),
+        hypothesis: annotation.hypothesis?.slice(0, 80),
+        discoveriesCount: annotation.discoveries.length,
+        step: this.state.currentAxonStep,
+      })
+    } catch (err) {
+      this.logger.warn('Heartbeat annotation failed', {
+        trigger,
+        error: String(err),
+        step: this.state.currentAxonStep,
+      })
+    }
+  }
+
+  /**
+   * Build a broad context prompt for a heartbeat annotation.
+   * No work unit — uses session state, cognitive model, and Blackboard.
+   */
+  private buildHeartbeatPrompt(trigger: 'time' | 'long-reasoning' | 'blackboard'): string {
+    const elapsed = this.startTime > 0 ? Math.round((Date.now() - this.startTime) / 60_000) : 0
+    const lastAnnotation = this.state.annotations.at(-1)
+    const rollingScore = this.state.qualityTrajectory.slice(-5).reduce((a, b) => a + b, 0) /
+      Math.max(1, Math.min(5, this.state.qualityTrajectory.length))
+
+    const triggerDescription = {
+      'time': `${elapsed} minutes have passed since the last annotation — periodic state check`,
+      'long-reasoning': `I have been reasoning for an extended period without tool calls — checking current state`,
+      'blackboard': `I just posted a significant update to the Blackboard — recording the current cognitive state`,
+    }[trigger]
+
+    const allAnnotations = this.state.annotations
+    const trajectorySection = allAnnotations.length > 0
+      ? `\n## Session Trajectory (${allAnnotations.length} steps)\n${allAnnotations.map(a => {
+          const parts = [`- Step ${a.axonStep}: [${a.annotation}] score=${a.score.toFixed(2)} pattern=${a.pattern}${a.guidance ? ' → guided' : ''}`]
+          if (a.hypothesis) parts.push(`  hypothesis: ${a.hypothesis}`)
+          if (a.blockers.length > 0) parts.push(`  blockers: ${a.blockers.join('; ')}`)
+          return parts.join('\n')
+        }).join('\n')}\n\n### Phase Summary\n${this.buildPhaseSummary()}`
+      : ''
+
+    const cogModel = this.state.cognitiveModel
+    const cognitiveModelSection = `\n## Running Cognitive Model\n` +
+      (cogModel.currentHypothesis ? `Current hypothesis: ${cogModel.currentHypothesis}\n` : 'No hypothesis yet.\n') +
+      (cogModel.allDiscoveries.length > 0 ? `All discoveries so far:\n${cogModel.allDiscoveries.map(d => `- ${d}`).join('\n')}\n` : '') +
+      (cogModel.allDecisions.length > 0 ? `All decisions:\n${cogModel.allDecisions.map(d => `- ${d}`).join('\n')}\n` : '') +
+      (cogModel.pendingBlockers.length > 0 ? `Active blockers:\n${cogModel.pendingBlockers.map(b => `- ${b}`).join('\n')}\n` : '') +
+      (cogModel.currentNextSteps.length > 0 ? `Planned next steps:\n${cogModel.currentNextSteps.map(s => `- ${s}`).join('\n')}\n` : '') +
+      (cogModel.recentOutputs.length > 0 ? `Recent outputs:\n${cogModel.recentOutputs.slice(-5).map(o => `- ${o}`).join('\n')}\n` : '')
+
+    const blackboardSection = this.buildBlackboardSection()
+
+    // Live stream — what is currently being generated, if anything
+    const liveStreamSection = this.liveStreamBuffer.trim()
+      ? `\n## Currently Being Generated\n(This is the in-progress LLM output for the active iteration — not yet a completed work unit)\n\n${this.liveStreamBuffer}`
+      : ''
+
+    const lastStep = lastAnnotation
+      ? `Last step [${lastAnnotation.annotation}] score=${lastAnnotation.score.toFixed(2)} pattern=${lastAnnotation.pattern}`
+      : 'No previous steps'
+
+    return `I am reflecting on the current state of this session. Trigger: ${triggerDescription}.
+
+## Session Goal
+${this.deps.goal}
+
+## Session Stats
+- Running for: ${elapsed} minutes
+- Steps taken: ${this.state.annotations.length}
+- Rolling quality (last 5): ${rollingScore.toFixed(2)}
+- Long reasoning sequences: ${this.state.longReasoningCount}
+- ${lastStep}${trajectorySection}${cognitiveModelSection}${blackboardSection}
+
+## Task
+Produce a broad reflection on the current state of this session. This is a periodic check-in, not tied to a specific tool call. Consider the full trajectory, the running cognitive model, and the Blackboard state to assess overall progress and identify what should happen next.
+
+${this.buildHeartbeatOutputFormatInstructions()}`
+  }
+
+  /**
+   * Returns the output format instructions for heartbeat annotations.
+   * Same format as buildPrompt to use the same parseAnnotation() parser.
+   */
+  private buildHeartbeatOutputFormatInstructions(): string {
+    return `Use the section headers below. Each section begins with ###FIELDNAME on its own line.
+
+###SCORES
+GOAL_ALIGNMENT: <number 0-1>
+NOVELTY: <number 0-1>
+PROGRESS: <number 0-1>
+
+###ANNOTATION
+<exploration|research|implementation|testing|revision|drift>
+
+###PATTERN
+<none|paralysis|drift|convergence|stalling>
+
+###HYPOTHESIS
+<My current working hypothesis — updated if this reflection changed my understanding.>
+
+###DISCOVERIES
+- <key thing I know now>
+(list the most important discoveries, or: none)
+
+###DECISIONS
+- <key decision I've made>
+(list key decisions, or: none)
+
+###OUTPUTS
+- <file created or modified>
+(list concrete outputs so far, or: none)
+
+###BLOCKERS
+- <current obstacle>
+(list active blockers, or: none)
+
+###NEXT_STEPS
+- <what I should do next>
+(list planned actions, or: none)
+
+###KNOWLEDGE_DELTA
+<What changed in my understanding based on this reflection>
+
+###SYNTHESIS
+<Any cross-thread insights or patterns worth noting, or: none>
+
+###GUIDANCE
+<Self-directed course correction if needed, or: none>
+
+###TRAINING_NOTE
+<Human-readable note about this heartbeat reflection>`
+  }
+  /**
    * Queue dialectic messages for synthesis
    */
   onDialecticUpdate(messages: string[]): void {
@@ -241,6 +458,16 @@ export class HelixBrainstem {
     // Update stream tracking state
     this.state.lastStreamActivityAt = Date.now()
     this.state.streamTokensThisStep += event.tokensSoFar
+
+    // Buffer the live stream content for heartbeat prompts.
+    // Each event contains a growing slice from the start of the current LLM iteration,
+    // so we overwrite (not append) to keep the most current window.
+    if (event.posture === 'unity' && event.textSnippet) {
+      this.liveStreamBuffer = event.textSnippet
+      // Also push to the shared tree so the Corpus can read it.
+      // This is a cheap O(1) field update — no recomputation.
+      this.deps.sharedTree?.updateLiveStreamSnippet(event.textSnippet)
+    }
 
     // Detect potential issues from stream content
     if (event.isReasoning && event.tokensSoFar > 500 && !event.hasToolUse) {
@@ -473,8 +700,9 @@ export class HelixBrainstem {
           // Process all queued work units
           await this.processWorkUnitBatch()
         } else {
-          // Idle poll - can perform maintenance
+          // Idle poll — check for heartbeat triggers (time-based or long-reasoning)
           this.logger.debug('Brainstem idle poll')
+          await this.checkHeartbeatTriggers()
         }
 
         // Check wall-clock budget after each cycle
@@ -565,6 +793,12 @@ export class HelixBrainstem {
     if (batch.length === 0) {
       return
     }
+
+    // A completed work unit means the LLM iteration has finished — the reasoning
+    // is now captured in workUnit.reasoning. Clear the live stream buffer so the
+    // heartbeat and Corpus don't show stale in-progress text from the previous iteration.
+    this.liveStreamBuffer = ''
+    this.deps.sharedTree?.updateLiveStreamSnippet('')
 
     // Collect dialectic messages
     const dialecticBatch: string[] = []
@@ -678,6 +912,13 @@ export class HelixBrainstem {
         goalAlignment: 0.5,
         novelty: 0.5,
         progress: 0.3,
+        discoveries: [],
+        decisions: [],
+        hypothesis: '',
+        outputs: [],
+        blockers: [],
+        nextSteps: [],
+        knowledgeDelta: '',
       }
 
       this.updateState(fallbackAnnotation)
@@ -687,17 +928,17 @@ export class HelixBrainstem {
   /**
    * Build LLM prompt for work unit analysis
    */
-  private buildPrompt(
+   private buildPrompt(
     workUnit: WorkUnit,
     unityIteration: number,
     dialecticBatch: string[]
   ): string {
     const toolCalls = workUnit.toolCalls.map(tc =>
-      `- ${tc.name}: ${JSON.stringify(tc.input).slice(0, 200)}`
+      `- ${tc.name}: ${JSON.stringify(tc.input)}`
     ).join('\n')
 
     const toolResults = workUnit.toolResults.map(tr =>
-      `- ${tr.isError ? '[ERROR]' : '[OK]'}: ${tr.content.slice(0, 200)}`
+      `- ${tr.isError ? '[ERROR]' : '[OK]'}: ${tr.content}`
     ).join('\n')
 
     const filesChanged = workUnit.filesModified.map(fm =>
@@ -705,38 +946,54 @@ export class HelixBrainstem {
     ).join('\n')
 
     const dialecticSection = dialecticBatch.length > 0
-      ? `\n## Recent Dialectic Messages\n${dialecticBatch.map(m => `- ${m.slice(0, 300)}`).join('\n')}`
+      ? `\n## Recent Dialectic Messages\n${dialecticBatch.map(m => `- ${m}`).join('\n')}`
       : ''
 
     const recentDialecticSection = this.recentDialectic.length > 0
-      ? `\n## Dialectic Context (last ${this.recentDialectic.length})\n${this.recentDialectic.map(m => `- ${m.slice(0, 200)}`).join('\n')}`
+      ? `\n## Dialectic Context (last ${this.recentDialectic.length})\n${this.recentDialectic.map(m => `- ${m}`).join('\n')}`
       : ''
 
     // Drain pending Unity reports and include in prompt
     const unityReports = this.drainUnityReports()
     const unityReportsSection = unityReports.length > 0
       ? `\n## Internal Reports\n${unityReports.map(r =>
-          `- [${r.type.toUpperCase()}] (iter ${r.iteration}): ${r.message.slice(0, 300)}${r.context ? ` | context: ${JSON.stringify(r.context).slice(0, 200)}` : ''}`
-        ).join('\n')}\nThese are direct reports from the execution loop. Address blockers in GUIDANCE, acknowledge phase changes, and answer questions.`
+          `- [${r.type.toUpperCase()}] (iter ${r.iteration}): ${r.message}${r.context ? ` | context: ${JSON.stringify(r.context)}` : ''}`
+        ).join('\n')}\nThese are direct reports from the execution loop. Address blockers in ###GUIDANCE, acknowledge phase changes, and answer questions.`
       : ''
 
-    // Build annotation history section — gives brainstem full trajectory context
-    // for intelligent phase-aware scoring. Full history lets the LLM judge whether
-    // continued reading is warranted given how much has already been read.
+    // Build annotation history section — full trajectory context
     const allAnnotations = this.state.annotations
     const trajectorySection = allAnnotations.length > 0
-      ? `\n## Full Session Trajectory (${allAnnotations.length} steps)\n${allAnnotations.map(a =>
-          `- Step ${a.axonStep}: [${a.annotation}] score=${a.score.toFixed(2)} goal=${a.goalAlignment.toFixed(2)} novelty=${a.novelty.toFixed(2)} progress=${a.progress.toFixed(2)} pattern=${a.pattern}${a.guidance ? ` → guided` : ''}`
-        ).join('\n')}\n\n### Phase Summary\n${this.buildPhaseSummary()}`
+      ? `\n## Full Session Trajectory (${allAnnotations.length} steps)\n${allAnnotations.map(a => {
+          const parts = [`- Step ${a.axonStep}: [${a.annotation}] score=${a.score.toFixed(2)} goal=${a.goalAlignment.toFixed(2)} novelty=${a.novelty.toFixed(2)} progress=${a.progress.toFixed(2)} pattern=${a.pattern}${a.guidance ? ` → guided` : ''}`]
+          if (a.hypothesis) parts.push(`  hypothesis: ${a.hypothesis}`)
+          if (a.discoveries.length > 0) parts.push(`  discoveries: ${a.discoveries.join('; ')}`)
+          if (a.blockers.length > 0) parts.push(`  blockers: ${a.blockers.join('; ')}`)
+          return parts.join('\n')
+        }).join('\n')}\n\n### Phase Summary\n${this.buildPhaseSummary()}`
       : ''
 
-    return `I am the cognitive organizer of this session. I observe the execution loop, the reviewer dialectic, and the evolving thought chain. My role is to score on multiple dimensions, annotate, detect patterns, and provide self-guidance when needed.
+    // Running cognitive model — gives context on accumulated state
+    const cogModel = this.state.cognitiveModel
+    const cognitiveModelSection = (cogModel.currentHypothesis || cogModel.allDiscoveries.length > 0 || cogModel.pendingBlockers.length > 0)
+      ? `\n## Running Cognitive Model\n` +
+        (cogModel.currentHypothesis ? `Current hypothesis: ${cogModel.currentHypothesis}\n` : '') +
+        (cogModel.allDiscoveries.length > 0 ? `All discoveries so far:\n${cogModel.allDiscoveries.map(d => `- ${d}`).join('\n')}\n` : '') +
+        (cogModel.allDecisions.length > 0 ? `All decisions so far:\n${cogModel.allDecisions.map(d => `- ${d}`).join('\n')}\n` : '') +
+        (cogModel.pendingBlockers.length > 0 ? `Active blockers:\n${cogModel.pendingBlockers.map(b => `- ${b}`).join('\n')}\n` : '') +
+        (cogModel.currentNextSteps.length > 0 ? `Planned next steps:\n${cogModel.currentNextSteps.map(s => `- ${s}`).join('\n')}\n` : '')
+      : ''
+
+    // Blackboard state section — include plan, channels, report
+    const blackboardSection = this.buildBlackboardSection()
+
+    return `I am the cognitive organizer of this session. I observe the execution loop, the reviewer dialectic, and the evolving thought chain. My role is to score on multiple dimensions, annotate the current state, detect patterns, and provide self-guidance when needed.
 
 ## Session Goal
 ${this.deps.goal}
 
 ## Current Step
-${this.state.currentAxonStep}${trajectorySection}
+${this.state.currentAxonStep}${trajectorySection}${cognitiveModelSection}${blackboardSection}
 
 ## Work Unit to Analyze
 - ID: ${workUnit.id}
@@ -744,7 +1001,7 @@ ${this.state.currentAxonStep}${trajectorySection}
 - Timestamp: ${new Date(workUnit.timestamp).toISOString()}
 
 ## Current Reasoning
-${workUnit.reasoning.slice(0, 1000)}
+${workUnit.reasoning}
 
 ## Tool Calls
 ${toolCalls || '(none)'}
@@ -756,23 +1013,61 @@ ${toolResults || '(none)'}
 ${filesChanged || '(none)'}${dialecticSection}${recentDialecticSection}${unityReportsSection}
 
 ## Task
-Analyze this work unit and provide:
+Analyze this work unit and produce a structured assessment using the section headers below. Each section begins with ###FIELDNAME on its own line.
 
+###SCORES
 GOAL_ALIGNMENT: <number 0-1>
 NOVELTY: <number 0-1>
 PROGRESS: <number 0-1>
-ANNOTATION: <exploration|research|implementation|testing|revision|drift>
-SYNTHESIS: <brief synthesis of reviewer dialectic, or NONE>
-PATTERN: <none|paralysis|drift|convergence|stalling>
-GUIDANCE: <first-person self-guidance, or NONE>
-TRAINING_NOTE: <human-readable note explaining the scoring>
+
+###ANNOTATION
+<exploration|research|implementation|testing|revision|drift>
+
+###PATTERN
+<none|paralysis|drift|convergence|stalling>
+
+###HYPOTHESIS
+<My current working hypothesis about how to achieve the goal. Update if this step changed my understanding.>
+
+###DISCOVERIES
+- <thing discovered or confirmed in this step>
+(list each discovery on its own line, or write: none)
+
+###DECISIONS
+- <decision made and the reasoning>
+(list each decision, or write: none)
+
+###OUTPUTS
+- <file created or modified: path>
+- <test run: result>
+(list each concrete output, or write: none)
+
+###BLOCKERS
+- <obstacle encountered>
+(list each blocker, or write: none)
+
+###NEXT_STEPS
+- <what I plan to do next>
+(list planned actions, or write: none)
+
+###KNOWLEDGE_DELTA
+<What changed in my understanding vs. the previous step. If nothing changed: none>
+
+###SYNTHESIS
+<Synthesis of reviewer dialectic messages, focusing on key tensions or agreements. If no new dialectic: none>
+
+###GUIDANCE
+<First-person self-guidance to course-correct if needed, e.g., "I should shift to implementation now". If no correction needed: none>
+
+###TRAINING_NOTE
+<Human-readable explanation of the scoring for training data>
 
 Dimensional scoring rules:
 - GOAL_ALIGNMENT: How relevant is this step to the Session Goal? 1.0 = directly advancing the goal. 0.0 = completely unrelated work.
 - NOVELTY: How much new information or capability did this step produce? 1.0 = entirely new insight or code. 0.0 = re-reading already-seen content or repeating prior work.
 - PROGRESS: How much closer is the branch to completion? 1.0 = major concrete advancement (files created, tests passing). 0.0 = no measurable progress toward done.
 
-Annotation labels (for classification, not scoring):
+Annotation labels:
 - exploration: reading/searching files to understand the codebase
 - research: deep investigation, cross-referencing multiple sources, hypothesis testing
 - implementation: writing code, creating/modifying files
@@ -782,18 +1077,70 @@ Annotation labels (for classification, not scoring):
 
 Pattern detection:
 - none: healthy progress — no intervention needed
-- paralysis: low novelty + low progress for multiple steps (regardless of read/write mix)
+- paralysis: low novelty + low progress for multiple steps
 - drift: low goal_alignment — work is diverging from the Session Goal
 - stalling: repeated similar actions without measurable progress
 - convergence: reviewers agree on something important
 
 Critical rules:
-- Reading files IS productive when goal_alignment and novelty are high. Do NOT penalize exploration or research that is on-goal and discovering new information.
-- Reading files is UNPRODUCTIVE when novelty is low (re-reading known content) or goal_alignment is low (reading irrelevant files).
-- The pattern field should reflect YOUR assessment. If the trajectory shows 10 steps of exploration with declining novelty, set pattern=paralysis even if this individual step looks fine.
-- Write GUIDANCE in first person as self-directed thought (e.g., "I should shift to implementation now" not "Do X immediately")
-- If a blocker was reported, address it in GUIDANCE
-- Be concise — this runs in a tight loop`;
+- Reading files IS productive when goal_alignment and novelty are high. Do NOT penalize on-goal exploration.
+- Reading files is UNPRODUCTIVE when novelty is low (re-reading known content) or goal_alignment is low.
+- The pattern field reflects the trajectory, not just this single step.
+- Write GUIDANCE in first person as self-directed thought.
+- If a blocker was reported, address it in GUIDANCE.
+- DISCOVERIES, DECISIONS, OUTPUTS, BLOCKERS, NEXT_STEPS should each be a bulleted list or the word "none".`;
+  }
+
+  /**
+   * Build the Blackboard state section for the brainstem prompt.
+   * Reads from the injected blackboard to give context on plans, decisions, and findings.
+   */
+  private buildBlackboardSection(): string {
+    const bb = this.deps.blackboard
+    if (!bb) return ''
+
+    const parts: string[] = ['\n## Blackboard State']
+
+    // Plan board
+    if (bb.getPlan) {
+      try {
+        const plan = bb.getPlan()
+        if (plan && plan.steps.length > 0) {
+          parts.push(`\n### Plan (${plan.status})\nGoal: ${plan.goal}`)
+          for (const step of plan.steps) {
+            parts.push(`- [${step.status}] (order ${step.order}) ${step.title}: ${step.description}`)
+          }
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    // Recent channel entries
+    for (const channel of ['findings', 'decisions', 'concerns'] as const) {
+      try {
+        const entries = bb.read(channel, 5)
+        if (entries.length > 0) {
+          parts.push(`\n### Recent ${channel}`)
+          for (const e of entries) {
+            parts.push(`- ${e.content}`)
+          }
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    // Report sections
+    if (bb.getReport) {
+      try {
+        const report = bb.getReport()
+        if (report && report.sections.length > 0) {
+          parts.push(`\n### Report Sections (${report.sections.length})`)
+          for (const s of report.sections.slice(-5)) {
+            parts.push(`- [${s.type}] ${s.title}: ${s.content.slice(0, 200)}`)
+          }
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    return parts.length > 1 ? parts.join('\n') : ''
   }
 
   /**
@@ -836,18 +1183,56 @@ Critical rules:
   }
 
   /**
+   * Extract content between two ###FIELDNAME headers (or to end of string).
+   * Returns trimmed content or null if the section is absent or says "none".
+   */
+  private extractSection(response: string, fieldName: string): string | null {
+    // Case-insensitive match for ###FIELDNAME
+    const pattern = new RegExp(`###${fieldName}\\s*\\n([\\s\\S]*?)(?=\\n###|$)`, 'i')
+    const match = response.match(pattern)
+    if (!match) return null
+    const content = match[1].trim()
+    if (!content || content.toLowerCase() === 'none') return null
+    return content
+  }
+
+  /**
+   * Extract a bulleted list from a ###FIELDNAME section.
+   * Returns array of trimmed strings (stripping leading "- " or "* ").
+   */
+  private extractListSection(response: string, fieldName: string): string[] {
+    const content = this.extractSection(response, fieldName)
+    if (!content) return []
+    return content
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('-') || line.startsWith('*') || line.startsWith('•'))
+      .map(line => line.replace(/^[-*•]\s*/, '').trim())
+      .filter(item => item.length > 0 && item.toLowerCase() !== 'none')
+  }
+
+  /**
    * Parse LLM response into annotation fields
    */
   private parseAnnotation(response: string, workUnitId: string): BrainstemAnnotation {
-    // Parse dimensional scores
+    // Parse dimensional scores — still flat within ###SCORES block
     const goalAlignmentMatch = response.match(/GOAL_ALIGNMENT:\s*([\d.]+)/i)
     const noveltyMatch = response.match(/NOVELTY:\s*([\d.]+)/i)
     const progressMatch = response.match(/PROGRESS:\s*([\d.]+)/i)
-    const annotationMatch = response.match(/ANNOTATION:\s*(\w+)/i)
-    const synthesisMatch = response.match(/SYNTHESIS:\s*([^\n]+)/i)
-    const patternMatch = response.match(/PATTERN:\s*(\w+)/i)
-    const guidanceMatch = response.match(/GUIDANCE:\s*([^\n]+)/i)
-    const trainingNoteMatch = response.match(/TRAINING_NOTE:\s*([^\n]+)/i)
+
+    // Parse annotation type from ###ANNOTATION section
+    const annotationSection = this.extractSection(response, 'ANNOTATION')
+    const annotationMatch = annotationSection?.match(/(\w+)/)
+
+    // Parse pattern from ###PATTERN section
+    const patternSection = this.extractSection(response, 'PATTERN')
+    const patternMatch = patternSection?.match(/(\w+)/)
+
+    // Parse guidance from ###GUIDANCE section
+    const guidanceSection = this.extractSection(response, 'GUIDANCE')
+
+    // Parse training note from ###TRAINING_NOTE section
+    const trainingNoteSection = this.extractSection(response, 'TRAINING_NOTE')
 
     // Parse dimensional scores with bounds checking
     const parseDimension = (match: RegExpMatchArray | null, fallback: number): number => {
@@ -861,7 +1246,6 @@ Critical rules:
     const progress = parseDimension(progressMatch, 0.3)
 
     // Composite score: weighted average of dimensions
-    // Progress weighted highest because it's the strongest signal of actual advancement
     const score = goalAlignment * 0.3 + novelty * 0.3 + progress * 0.4
 
     // Parse annotation type
@@ -878,15 +1262,11 @@ Critical rules:
       ? patternType
       : 'none'
 
-    // Parse synthesis
-    const synthesis = synthesisMatch?.[1]?.trim() ?? ''
-    const normalizedSynthesis = synthesis.toUpperCase() === 'NONE' ? '' : synthesis
+    // Parse synthesis from ###SYNTHESIS section
+    const synthesis = this.extractSection(response, 'SYNTHESIS') ?? ''
 
     // Parse guidance
-    const guidanceText = guidanceMatch?.[1]?.trim() ?? null
-    const guidance: string | null = guidanceText && guidanceText.toUpperCase() !== 'NONE'
-      ? guidanceText
-      : null
+    const guidance: string | null = guidanceSection ?? null
 
     // Determine urgency based on pattern and dimensional scores
     let urgency: GuidanceUrgency = 'low'
@@ -899,13 +1279,22 @@ Critical rules:
     }
 
     // Parse training note
-    const trainingNote = trainingNoteMatch?.[1]?.trim() ?? 'No training note provided'
+    const trainingNote = trainingNoteSection ?? 'No training note provided'
+
+    // Parse rich semantic fields
+    const discoveries = this.extractListSection(response, 'DISCOVERIES')
+    const decisions = this.extractListSection(response, 'DECISIONS')
+    const hypothesis = this.extractSection(response, 'HYPOTHESIS') ?? ''
+    const outputs = this.extractListSection(response, 'OUTPUTS')
+    const blockers = this.extractListSection(response, 'BLOCKERS')
+    const nextSteps = this.extractListSection(response, 'NEXT_STEPS')
+    const knowledgeDelta = this.extractSection(response, 'KNOWLEDGE_DELTA') ?? ''
 
     return {
       workUnitId,
       score,
       annotation,
-      synthesis: normalizedSynthesis,
+      synthesis,
       pattern,
       guidance,
       guidanceUrgency: urgency,
@@ -915,11 +1304,18 @@ Critical rules:
       goalAlignment,
       novelty,
       progress,
+      discoveries,
+      decisions,
+      hypothesis,
+      outputs,
+      blockers,
+      nextSteps,
+      knowledgeDelta,
     }
   }
 
   /**
-   * Update Brainstem state with new annotation
+   * Update Brainstem state with new annotation — including the running cognitive model
    */
   private updateState(annotation: BrainstemAnnotation): void {
     this.state.annotations.push(annotation)
@@ -942,6 +1338,45 @@ Critical rules:
     // Update pattern detections
     if (annotation.pattern !== 'none') {
       this.state.totalPatternDetections++
+    }
+
+    // ─── Update running cognitive model ────────────────────────────────────
+    const model = this.state.cognitiveModel
+
+    // Update hypothesis if a new one was produced (non-empty)
+    if (annotation.hypothesis) {
+      model.currentHypothesis = annotation.hypothesis
+      model.hypothesisUpdatedAtStep = annotation.axonStep
+    }
+
+    // Accumulate discoveries (deduplicate to avoid repetition)
+    for (const discovery of annotation.discoveries) {
+      if (!model.allDiscoveries.includes(discovery)) {
+        model.allDiscoveries.push(discovery)
+      }
+    }
+
+    // Accumulate decisions
+    for (const decision of annotation.decisions) {
+      if (!model.allDecisions.includes(decision)) {
+        model.allDecisions.push(decision)
+      }
+    }
+
+    // Replace blockers with latest list (they evolve as obstacles are resolved)
+    if (annotation.blockers.length > 0) {
+      model.pendingBlockers = annotation.blockers
+    }
+
+    // Add outputs to recent outputs (rolling window of last 20)
+    model.recentOutputs.push(...annotation.outputs)
+    if (model.recentOutputs.length > 20) {
+      model.recentOutputs = model.recentOutputs.slice(-20)
+    }
+
+    // Update planned next steps with latest
+    if (annotation.nextSteps.length > 0) {
+      model.currentNextSteps = annotation.nextSteps
     }
   }
 
@@ -1226,30 +1661,34 @@ Critical rules:
       // Estimate progress from score trajectory and annotation patterns
       const progress = this.estimateProgress()
 
-      // Extract key findings — high-score annotations (> 0.7) with synthesis
-      const keyFindings = this.state.annotations
-        .filter((a) => a.score > 0.7 && a.synthesis.length > 0)
-        .slice(-5)
-        .map((a) => a.synthesis.slice(0, 200))
+      // Extract key findings from cognitive model's accumulated discoveries
+      // Fall back to high-score synthesis annotations if no discoveries yet
+      const cogModel = this.state.cognitiveModel
+      const keyFindings = cogModel.allDiscoveries.length > 0
+        ? cogModel.allDiscoveries.slice(-10)
+        : this.state.annotations
+          .filter((a) => a.score > 0.7 && a.synthesis.length > 0)
+          .slice(-5)
+          .map((a) => a.synthesis)
 
-      // Extract blockers — from annotations with pathological patterns or very low scores
-      const blockers = this.state.annotations
-        .filter((a) =>
-          a.pattern !== 'none' || a.score < 0.3
-        )
-        .slice(-3)
-        .map((a) =>
-          a.pattern !== 'none'
-            ? `${a.pattern}: ${a.trainingNote.slice(0, 100)}`
-            : `Low score (${a.score.toFixed(2)}): ${a.trainingNote.slice(0, 100)}`
-        )
+      // Extract blockers from cognitive model first, fall back to annotation patterns
+      const blockers = cogModel.pendingBlockers.length > 0
+        ? cogModel.pendingBlockers
+        : this.state.annotations
+          .filter((a) => a.pattern !== 'none' || a.score < 0.3)
+          .slice(-3)
+          .map((a) =>
+            a.pattern !== 'none'
+              ? `${a.pattern}: ${a.trainingNote.slice(0, 100)}`
+              : `Low score (${a.score.toFixed(2)}): ${a.trainingNote.slice(0, 100)}`
+          )
 
       // Build current strategy description
       const currentStrategy = this.describeCurrentStrategy()
 
       const digest: BranchDigest = {
         helixId: this.deps.helixId,
-        goalSummary: this.deps.goal.slice(0, 200),
+        goalSummary: this.deps.goal,
         approach: this.currentApproach,
         progress,
         filesActive: Array.from(this.recentFilesActive),
@@ -1262,6 +1701,12 @@ Critical rules:
         lastApproachChangeReason: this.previousApproach !== this.currentApproach
           ? `Changed from ${this.previousApproach} due to annotation pattern shift`
           : undefined,
+        // Cognitive model fields
+        currentHypothesis: cogModel.currentHypothesis || undefined,
+        allDiscoveries: cogModel.allDiscoveries.length > 0 ? cogModel.allDiscoveries : undefined,
+        allDecisions: cogModel.allDecisions.length > 0 ? cogModel.allDecisions : undefined,
+        currentNextSteps: cogModel.currentNextSteps.length > 0 ? cogModel.currentNextSteps : undefined,
+        recentOutputs: cogModel.recentOutputs.length > 0 ? cogModel.recentOutputs.slice(-10) : undefined,
       }
 
       sharedTree.updateDigest(digest)
@@ -1377,9 +1822,9 @@ Critical rules:
           currentCycleAdjustments.add(key)
           this.tickAdjustment(key, {
             type: 'file-avoidance',
-            description: `Peer ${peer.helixId} is actively editing ${conflictFiles.join(', ')}. ` +
-              `I should coordinate: finish my current changes first or defer to the peer.`,
-            evidence: `Peer approach: ${peer.approach}, my approach: ${this.currentApproach}`,
+            description: `Another thread is actively editing ${conflictFiles.join(', ')}. ` +
+              `I should coordinate: finish my current changes first or defer to the other thread.`,
+            evidence: `Other approach: ${peer.approach}, my approach: ${this.currentApproach}`,
             sourceHelixId: peer.helixId,
             dampeningCount: 0,
             dampeningThreshold: 2,
@@ -1405,7 +1850,7 @@ Critical rules:
             description: `Elevated pattern "${pattern.description.slice(0, 100)}" ` +
               `achieved score ${pattern.achievedScore.toFixed(2)} with ${pattern.approach} approach. ` +
               `Consider adopting this proven strategy.`,
-            evidence: `Pattern from ${pattern.sourceHelixId}, ${pattern.supportingRetrospectives.length} supporting retrospectives`,
+            evidence: `Pattern supported by ${pattern.supportingRetrospectives.length} retrospective(s)`,
             dampeningCount: 0,
             dampeningThreshold: 2,
             firstGeneratedAt: Date.now(),
@@ -1421,9 +1866,9 @@ Critical rules:
           currentCycleAdjustments.add(key)
           this.tickAdjustment(key, {
             type: 'finding-incorporation',
-            description: `Peer ${peer.helixId} (score: ${peer.rollingScore.toFixed(2)}) has relevant findings: ` +
+            description: `Another thread (score: ${peer.rollingScore.toFixed(2)}) has relevant findings: ` +
               `${peer.keyFindings.slice(0, 2).join('; ')}`,
-            evidence: `Peer is working on: ${peer.goalSummary.slice(0, 80)}`,
+            evidence: `That thread is working on: ${peer.goalSummary.slice(0, 80)}`,
             sourceHelixId: peer.helixId,
             dampeningCount: 0,
             dampeningThreshold: 2,
@@ -1459,10 +1904,10 @@ Critical rules:
             currentCycleAdjustments.add(key)
             this.tickAdjustment(key, {
               type: 'approach-redirect',
-              description: `My rolling score is ${myAvg.toFixed(2)} while ${successfulPeers.length} peer(s) ` +
+              description: `My rolling score is ${myAvg.toFixed(2)} while ${successfulPeers.length} other thread(s) ` +
                 `succeed with "${bestApproach}" approach (avg score ${successfulPeers[0].rollingScore.toFixed(2)}). ` +
                 `I should consider switching from "${this.currentApproach}" to "${bestApproach}".`,
-              evidence: `Successful peers: ${successfulPeers.map((p) => `${p.helixId}:${p.rollingScore.toFixed(2)}`).join(', ')}`,
+              evidence: `${successfulPeers.length} thread(s) achieving scores above 0.7 with ${bestApproach} approach`,
               dampeningCount: 0,
               dampeningThreshold: 2,
               firstGeneratedAt: Date.now(),
@@ -1483,10 +1928,10 @@ Critical rules:
           currentCycleAdjustments.add(key)
           this.tickAdjustment(key, {
             type: 'goal-refinement',
-            description: `Peer ${peer.helixId} (${(peer.progress * 100).toFixed(0)}% done) has significant goal overlap. ` +
+            description: `Another thread (${(peer.progress * 100).toFixed(0)}% done) has significant goal overlap. ` +
               `Shared keywords: ${overlap.slice(0, 5).join(', ')}. ` +
               `I should narrow my focus to the non-overlapping aspects of my goal.`,
-            evidence: `Peer goal: ${peer.goalSummary.slice(0, 80)}`,
+            evidence: `Overlapping goal: ${peer.goalSummary.slice(0, 80)}`,
             sourceHelixId: peer.helixId,
             dampeningCount: 0,
             dampeningThreshold: 2,
@@ -1505,7 +1950,7 @@ Critical rules:
             type: 'tension-flag',
             description: `Shared topic "${topic.name}" has a tension: ${topic.tensionDescription ?? 'conflicting approaches'}. ` +
               `I should review this topic and either align my approach or justify my divergence.`,
-            evidence: `${topic.contributions.length} contributions from ${[...new Set(topic.contributions.map((c) => c.helixId))].join(', ')}`,
+            evidence: `${topic.contributions.length} contributions from ${topic.contributions.length} thread(s)`,
             sourceTopicId: topic.id,
             dampeningCount: 0,
             dampeningThreshold: 2,
@@ -1526,11 +1971,15 @@ Critical rules:
           if (myRelevantFindings.length > 0) {
             const key = `peer-assist:${peer.helixId}`
             currentCycleAdjustments.add(key)
+            const topFinding = myRelevantFindings[0]
+            const findingText = topFinding.discoveries.length > 0
+              ? topFinding.discoveries[0]
+              : topFinding.synthesis
             this.tickAdjustment(key, {
               type: 'peer-assist',
-              description: `Peer ${peer.helixId} is struggling (score: ${peer.rollingScore.toFixed(2)}) with blockers: ` +
+              description: `Another thread is struggling (score: ${peer.rollingScore.toFixed(2)}) with blockers: ` +
                 `${peer.blockers[0]?.slice(0, 80)}. I have potentially relevant findings to share via a topic.`,
-              evidence: `My finding: ${myRelevantFindings[0].synthesis.slice(0, 100)}`,
+              evidence: `My finding: ${findingText.slice(0, 100)}`,
               sourceHelixId: peer.helixId,
               dampeningCount: 0,
               dampeningThreshold: 2,

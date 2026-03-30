@@ -298,8 +298,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   protected override onStreamChunk(tokensSoFar: number, textAccumulated: string, hasToolUse: boolean): void {
     if (!this.onStreamActivity) return
 
-    const snippet = textAccumulated.length > 200
-      ? textAccumulated.slice(-200)
+    // Pass the most recent 3000 chars so the brainstem can buffer live stream content
+    // for heartbeat prompts. Each event is a growing slice of the current LLM iteration —
+    // receivers should overwrite (not append) their buffer on each event.
+    const snippet = textAccumulated.length > 3000
+      ? textAccumulated.slice(-3000)
       : textAccumulated
 
     this.onStreamActivity({
@@ -736,6 +739,20 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     // Process blackboard calls (shared helper from base)
     if (blackboardCalls.length > 0) {
       results.push(...this.processBlackboardCalls(blackboardCalls))
+
+      // Notify brainstem when Unity posts to high-signal channels
+      // so it can trigger a heartbeat annotation capturing the updated context
+      if (this.brainstem && this.role === 'unity') {
+        for (const tc of blackboardCalls) {
+          if (tc.name === 'bb_post') {
+            const channel = (tc.input as Record<string, unknown>)?.channel as string
+            if (channel && ['decisions', 'findings', 'concerns'].includes(channel)) {
+              const content = ((tc.input as Record<string, unknown>)?.content as string) ?? ''
+              this.brainstem.onSignificantBlackboardPost(channel, content)
+            }
+          }
+        }
+      }
     }
 
     // Process plan calls (shared helper from base)

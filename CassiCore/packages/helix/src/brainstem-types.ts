@@ -64,11 +64,15 @@ export interface BrainstemConfig {
   persistTrainingData: boolean
   /** Whether Brainstem is enabled. Default: true */
   enabled: boolean
+  /** Interval in ms between time-based heartbeat annotations when idle (default: 30_000) */
+  heartbeatIntervalMs: number
+  /** Accumulated stream-token count before triggering a long-reasoning heartbeat (default: 2000) */
+  longReasoningTokenThreshold: number
 }
 
 export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   modelTier: 'balanced',
-  maxTokens: 400,
+  maxTokens: 1500,
   timeoutMs: 8_000,
   idlePollMs: 10_000,
   guidanceCooldownIterations: 2,
@@ -83,6 +87,8 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   postToBlackboard: true,
   persistTrainingData: true,
   enabled: true,
+  heartbeatIntervalMs: 30_000,
+  longReasoningTokenThreshold: 2_000,
 }
 
 // ─── Annotation Types ─────────────────────────────────────────────────────
@@ -141,9 +147,61 @@ export interface BrainstemAnnotation {
   novelty: number
   /** How much closer is the branch to completion? 0=no measurable progress, 1=significant concrete advancement */
   progress: number
+
+  // ─── Rich Semantic Fields (populated from ###FIELDNAME blocks) ────
+  /** Things discovered or learned in this step */
+  discoveries: string[]
+  /** Decisions made in this step and their rationale */
+  decisions: string[]
+  /** Current working hypothesis about how to achieve the goal */
+  hypothesis: string
+  /** Concrete outputs produced (files written, tests run, etc.) */
+  outputs: string[]
+  /** Active blockers or obstacles encountered */
+  blockers: string[]
+  /** What's planned for the next steps */
+  nextSteps: string[]
+  /** What changed in understanding vs. the previous step */
+  knowledgeDelta: string
 }
 
-// ─── State ────────────────────────────────────────────────────────────────
+// ─── Cognitive Model ──────────────────────────────────────────────────────
+
+/**
+ * Running cognitive model maintained by the Brainstem across all steps.
+ * Accumulates discoveries, decisions, and current state throughout a session.
+ * This is what the Corpus reads when it wants to understand what a branch knows.
+ */
+export interface CognitiveModel {
+  /** Current working hypothesis about how to achieve the goal */
+  currentHypothesis: string
+  /** All discoveries made so far, newest last */
+  allDiscoveries: string[]
+  /** All decisions made so far, newest last */
+  allDecisions: string[]
+  /** Currently active blockers (resolved ones are removed) */
+  pendingBlockers: string[]
+  /** Recent concrete outputs (files written, tests run, etc.) */
+  recentOutputs: string[]
+  /** What I plan to do in the next steps (from latest annotation) */
+  currentNextSteps: string[]
+  /** Step at which the hypothesis was last updated */
+  hypothesisUpdatedAtStep: number
+}
+
+export function createInitialCognitiveModel(): CognitiveModel {
+  return {
+    currentHypothesis: '',
+    allDiscoveries: [],
+    allDecisions: [],
+    pendingBlockers: [],
+    recentOutputs: [],
+    currentNextSteps: [],
+    hypothesisUpdatedAtStep: -1,
+  }
+}
+
+
 
 /** Brainstem's internal running state */
 export interface BrainstemState {
@@ -177,6 +235,10 @@ export interface BrainstemState {
   streamTokensThisStep: number
   /** Count of long reasoning sequences without tool use */
   longReasoningCount: number
+  /** Running cognitive model — accumulated knowledge state across all steps */
+  cognitiveModel: CognitiveModel
+  /** Flag set when Unity posts a significant Blackboard entry, triggers next heartbeat */
+  pendingBlackboardTrigger: boolean
 }
 
 export function createInitialBrainstemState(): BrainstemState {
@@ -196,6 +258,8 @@ export function createInitialBrainstemState(): BrainstemState {
     lastStreamActivityAt: 0,
     streamTokensThisStep: 0,
     longReasoningCount: 0,
+    cognitiveModel: createInitialCognitiveModel(),
+    pendingBlackboardTrigger: false,
   }
 }
 
@@ -325,6 +389,13 @@ export interface SharedTreeReader {
   /** Publish or update this Helix's digest. */
   updateDigest(digest: BranchDigest): void
 
+  /**
+   * Lightweight update — sets only the liveStreamSnippet on an existing digest.
+   * Called on every Unity stream chunk. Pure in-memory, no computation.
+   * No-op if no digest exists yet.
+   */
+  updateLiveStreamSnippet(snippet: string): void
+
   /** Create a new shared topic node. Returns the topic ID. */
   createTopic(name: string, contribution: TopicContribution): string
 
@@ -339,9 +410,9 @@ export interface SharedTreeReader {
 }
 
 /**
- * Minimal blackboard interface for Brainstem posting.
- * Avoids importing the full Blackboard class — any object with a
- * compatible `post()` method satisfies this contract.
+ * Minimal blackboard interface for Brainstem posting and reading.
+ * Avoids importing the full Blackboard class — any object with compatible
+ * methods satisfies this contract.
  */
 export interface BrainstemBlackboard {
   post(
@@ -354,6 +425,21 @@ export interface BrainstemBlackboard {
       tags?: string[]
     },
   ): unknown
+  /** Read recent entries from a channel for inclusion in the brainstem prompt */
+  read(
+    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests',
+    limit?: number,
+  ): Array<{ id: string; channel: string; content: string; author: string; priority: number; tags: string[]; timestamp: number }>
+  /** Get the current plan, if any */
+  getPlan?(): {
+    goal: string
+    status: string
+    steps: Array<{ title: string; description: string; status: string; order: number }>
+  } | null
+  /** Get the current report, if any */
+  getReport?(): {
+    sections: Array<{ type: string; title: string; content: string; author?: string; status?: string }>
+  } | null
 }
 
 // ─── Result (included in HelixResult) ─────────────────────────────────────
