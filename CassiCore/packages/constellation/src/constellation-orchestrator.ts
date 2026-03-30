@@ -200,6 +200,10 @@ export function createConstellationOrchestrator(
         handleFactory,
         corpusLLM,
 
+        // Enable mini-Helix infrastructure components
+        useMiniHelixCorpus: true,
+        useMiniHelixBrainstem: true,
+
         // Wire up live state registration for the injection source
         onCorpusReady: (liveState) => {
           log.info('Registering constellation live state', { constellationId: sessionId })
