@@ -24,6 +24,7 @@ import type { CorpusTreeSnapshot } from './corpus-types.js'
 import { runConstellationPipeline } from './constellation-pipeline.js'
 import type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 import type { ConstellationResult, ConstellationTemplate, FlexPosture } from './types.js'
+import type { IMemory } from '../../../types/intelligence.js'
 import type { ConstellationRegistry, ConstellationLiveState } from './constellation-injection.js'
 
 
@@ -50,6 +51,7 @@ export interface ConstellationOrchestrator {
   setModelDirective(directive: IModelDirective): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
+  setMemory(memory: IMemory): void
 }
 
 
@@ -82,6 +84,7 @@ export function createConstellationOrchestrator(
   let modelDirective: IModelDirective | undefined
   let contextDistiller: ContextDistiller | undefined
   let moduleRegistry: ModuleSessionRegistry | undefined
+  let memory: IMemory | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -183,7 +186,7 @@ export function createConstellationOrchestrator(
       const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
         effectivePool.acquire(config.purpose, config.tier, config.sessionId)
 
-      const pipelineOpts: ConstellationPipelineOpts = {
+       const pipelineOpts: ConstellationPipelineOpts = {
         goal,
         context,
         constellationId: sessionId,
@@ -199,6 +202,7 @@ export function createConstellationOrchestrator(
         constellationStore,
         handleFactory,
         corpusLLM,
+        memory,
 
         // Enable mini-Helix infrastructure components
         useMiniHelixCorpus: true,
@@ -326,6 +330,7 @@ export function createConstellationOrchestrator(
     setModuleRegistry(reg) { moduleRegistry = reg },
     setStore(s) { store = s },
     setConstellationStore(s) { constellationStore = s },
+    setMemory(mem) { memory = mem },
   }
 
   return orchestrator

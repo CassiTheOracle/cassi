@@ -33,6 +33,8 @@ import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
 import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
+import type { IMemory, SearchResult } from '../../../types/intelligence.js'
+import { MemoryInjectionService } from './memory-injection.js'
 import type {
   FlexPosture,
   ConstellationTemplate,
@@ -77,6 +79,7 @@ async function runGoalDecomposition(opts: {
   launchHelix: (goal: string, context: string | undefined, template: ConstellationTemplate | undefined, depth: number) => Promise<{ helixId: string; promise: Promise<HelixResult> }>
   corpus: Corpus
   log: ILogger
+  memory?: IMemory
   readFile: (path: string) => Promise<string | null>
 }): Promise<GoalDecomposition> {
   const startTime = Date.now()
@@ -92,6 +95,24 @@ async function runGoalDecomposition(opts: {
     }
   }
 
+  // Query memory for relevant context before decomposition
+  let memoryContext = ''
+  if (opts.memory) {
+    try {
+      const memoryResults = await opts.memory.search(opts.goal, { limit: 5 })
+      if (memoryResults.length > 0) {
+        memoryContext = formatMemoryResultsForPlanner(memoryResults)
+        opts.log.info('Retrieved relevant memories for goal decomposition', {
+          count: memoryResults.length,
+          topScore: memoryResults[0]?.score,
+        })
+      }
+    } catch (err) {
+      opts.log.warn('Memory query failed during goal decomposition', { error: String(err) })
+      // Continue without memory context — don't block decomposition
+    }
+  }
+
   opts.log.info('Goal is complex, launching planning Helix for decomposition', {
     goalLength: opts.goal.length,
   })
@@ -100,7 +121,7 @@ async function runGoalDecomposition(opts: {
 
 ## Original Goal
 ${opts.goal}
-${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
+${memoryContext ? `\n## Relevant Past Context (from Cassi's memory)\n${memoryContext}\n` : ''}${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
 
 ## Task
 1. Use read_file and list_directory to explore the codebase — these are the ONLY tools you should use for exploration
@@ -265,6 +286,24 @@ function parseDecompositionResult(
 }
 
 /**
+ * Format memory search results for inclusion in the planner goal.
+ */
+function formatMemoryResultsForPlanner(results: SearchResult[]): string {
+  const formatted = results.map((r, i) => {
+    const entry = r.entry
+    const date = entry.createdAt.toLocaleDateString()
+    const type = entry.type
+    const content = entry.content.slice(0, 300)
+    return `[${i + 1}] ${type.toUpperCase()} (${date}, relevance: ${(r.score * 100).toFixed(0)}%)\n${content}${entry.content.length > 300 ? '...' : ''}`
+  }).join('\n\n')
+
+  return `The following relevant memories from past sessions may provide context for this task:\n\n${formatted}\n\n` +
+    `Consider this historical context when decomposing the goal. ` +
+    `If these memories contain relevant implementation details, file paths, or lessons learned, ` +
+    `incorporate them into your sub-task planning.`
+}
+
+/**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
  * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
@@ -344,6 +383,9 @@ export interface ConstellationPipelineOpts {
 
   /** Corpus LLM adapter for cross-Helix analysis */
   corpusLLM: CorpusLLM
+
+  /** Optional memory system for cross-run learning and context injection */
+  memory?: IMemory
 
   /** Callback when a node is created */
   onNodeCreated?: (node: ConstellationNode) => void
@@ -452,6 +494,13 @@ export async function runConstellationPipeline(
   } = opts
 
   const log = logger.child('constellation-pipeline')
+
+  // ── Memory Injection Service ─────────────────────────────────────
+  // Instantiate memory injection service if memory is available.
+  // Used to inject relevant past-run memories into each new Helix branch.
+  const memoryInjectionService = opts.memory
+    ? new MemoryInjectionService(opts.memory, log.child('memory-injection'))
+    : undefined
   log.info('Constellation pipeline starting', {
     constellationId,
     goal: goal.slice(0, 200),
@@ -738,15 +787,34 @@ export async function runConstellationPipeline(
       goal: helixGoal.slice(0, 100),
     })
 
+    // Inject relevant memories from past runs into the branch's initial context
+    let enrichedContext = helixContext
+    if (memoryInjectionService) {
+      try {
+        const memoryContext = await memoryInjectionService.injectForBranch(helixId, helixGoal, parentId)
+        if (memoryContext && memoryContext.memories.length > 0) {
+          const memoryBlock = memoryInjectionService.formatMemoriesForContext(memoryContext)
+          enrichedContext = helixContext ? `${helixContext}\n${memoryBlock}` : memoryBlock
+          helixLog.info('Memory context injected for branch', {
+            memories: memoryContext.memories.length,
+            searchQuery: memoryContext.searchQuery,
+          })
+        }
+      } catch (err) {
+        helixLog.warn('Memory injection failed for branch', { error: String(err) })
+        // Continue with original context — don't block launch
+      }
+    }
+
     // Register branch in corpus tree
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
 
     // Create node
     const node: ConstellationNode = {
-      helixId,
-      config: {
-        goal: helixGoal,
-        context: helixContext,
+       helixId,
+       config: {
+         goal: helixGoal,
+         context: enrichedContext,
         parentId,
         depth,
       },
@@ -856,7 +924,7 @@ export async function runConstellationPipeline(
     // and external cancellation, not arbitrary time limits.
     const helixPromise = runHelixPipeline({
       goal: helixGoal,
-      context: helixContext,
+      context: enrichedContext,
       sessionId: helixId,
       logger,
       timeoutMs: 24 * 60 * 60 * 1000, // 24h — effectively unlimited; Corpus handles lifecycle
@@ -1164,6 +1232,7 @@ export async function runConstellationPipeline(
       launchHelix,
       corpus,
       log,
+      memory: opts.memory,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
     })
 
@@ -1364,8 +1433,70 @@ export async function runConstellationPipeline(
         log.warn('Failed to archive session to ConstellationStore', { error: String(err) })
       }
     }
+
+    // ── Post-run Memory Storage (cross-run learning) ──────────────
+    if (opts.memory) {
+      try {
+        const corpusResult = corpus.getResult()
+        const completedNodes = Array.from(nodes.values()).filter(n => n.status === 'completed').length
+        const failedNodes = Array.from(nodes.values()).filter(n => n.status === 'failed').length
+
+        // Store constellation run summary for future runs to learn from
+        const runSummary = [
+          `Constellation run completed: "${goal.slice(0, 200)}"`,
+          `Branches: ${nodes.size} total, ${completedNodes} completed, ${failedNodes} failed`,
+          `Duration: ${Math.round((Date.now() - startTime) / 1000)}s`,
+          `Template: ${template}`,
+          corpusResult.reDecompositions?.length
+            ? `Re-decompositions triggered: ${corpusResult.reDecompositions.length}`
+            : null,
+          corpusResult.qualityGateResults?.length
+            ? `Quality gates: ${corpusResult.qualityGateResults.filter(r => r.result.passed).length}/${corpusResult.qualityGateResults.length} passed`
+            : null,
+        ].filter(Boolean).join('\n')
+
+        await opts.memory.store({
+          type: 'insight',
+          content: runSummary,
+          metadata: {
+            constellationId,
+            template,
+            tags: ['constellation', `template:${template}`, 'run-completed'],
+          },
+        })
+        log.info('Stored constellation run summary in memory', { constellationId })
+
+        // Archive research digests for future constellation runs
+        if (corpusResult.researchDigests?.length) {
+          for (const digest of corpusResult.researchDigests) {
+            const digestContent = [
+              `Research digest for: "${digest.goal.slice(0, 150)}"`,
+              digest.conclusion ? `Conclusion: ${digest.conclusion}` : null,
+              digest.discoveries?.length
+                ? `Key discoveries:\n${digest.discoveries.map(d => `  - ${d}`).join('\n')}`
+                : null,
+            ].filter(Boolean).join('\n\n')
+
+            await opts.memory.store({
+              type: 'insight',
+              content: digestContent,
+              metadata: {
+                constellationId,
+                sourceHelixId: digest.sourceHelixId,
+                tags: ['research-digest', 'constellation', `goal:${goal.slice(0, 50)}`],
+              },
+            })
+          }
+          log.info('Archived research digests to memory', {
+            count: corpusResult.researchDigests.length,
+          })
+        }
+      } catch (memErr) {
+        log.warn('Failed to store post-run memory', { error: String(memErr) })
+        // Non-fatal — don't let memory failures affect constellation result
+      }
+    }
   } catch (err) {
-    log.error('Constellation pipeline failed', { error: String(err) })
 
     // Build partial result
     result = {
