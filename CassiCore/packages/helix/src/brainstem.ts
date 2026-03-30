@@ -631,7 +631,11 @@ export class HelixBrainstem {
       this.emitAnnotationEvent(annotation)
 
       // Push annotation to Corpus tree (Constellation mode only)
-      this.pushToCorpusTree(annotation)
+      const tcSummaries = workUnit.toolCalls.map((tc) => ({
+        name: tc.name,
+        args: JSON.stringify(tc.input ?? {}).slice(0, 200),
+      }))
+      this.pushToCorpusTree(annotation, tcSummaries)
 
       // Shared Thought Tree: publish digest, detect topics, self-organize
       this.publishDigest(annotation)
@@ -1946,10 +1950,10 @@ Guidelines:
    * Push annotation to the Corpus tree (Constellation mode only).
    * Each Brainstem builds its branch of the Corpus's reasoning tree.
    */
-  private pushToCorpusTree(annotation: BrainstemAnnotation): void {
+  private pushToCorpusTree(annotation: BrainstemAnnotation, toolCalls?: Array<{ name: string; args: string }>): void {
     if (!this.deps.corpusTree || !this.deps.helixId) return
     try {
-      this.deps.corpusTree.pushAnnotation(this.deps.helixId, annotation)
+      this.deps.corpusTree.pushAnnotation(this.deps.helixId, annotation, toolCalls)
     } catch (err) {
       this.logger.warn('Failed to push annotation to Corpus tree', {
         error: String(err),

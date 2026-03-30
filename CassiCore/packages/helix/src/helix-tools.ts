@@ -6,7 +6,7 @@
  *   - DialecticChannel: Yang <-> Yin reviewers (findings, challenges, concessions)
  *
  * Three tool sets:
- *   - UNITY_TOOLS: acknowledge_nudge, signal_done (worker)
+ *   - UNITY_TOOLS: signal_done (worker)
  *   - REVIEWER_TOOLS: share_finding, challenge, concede, send_nudge, signal_conclusion (reviewers)
  *
  * Reuses existing tool definitions from Lumen (dialectic) and Dyad (work stream)
@@ -70,7 +70,6 @@ export const SIGNAL_DONE_TOOL: ToolSchema = {
 
 /** Core Unity meta-tools */
 export const UNITY_TOOLS: ToolSchema[] = [
-  ACKNOWLEDGE_NUDGE_TOOL,
   SIGNAL_DONE_TOOL,
 ]
 

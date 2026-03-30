@@ -313,6 +313,11 @@ function handle_read_work_stream(ctx: BrainstemToolContext): MiniHelixToolHandle
     const formatted = workUnits.map((wu: WorkUnit) => ({
       id: wu.id,
       iteration: wu.iteration,
+      toolCalls: wu.toolCalls.map((tc, i) => ({
+        name: tc.name,
+        args: JSON.stringify(tc.input ?? {}).slice(0, 200),
+        error: wu.toolResults[i]?.isError ? wu.toolResults[i].content.slice(0, 100) : undefined,
+      })),
       filesModified: wu.filesModified ?? [],
       reasoning: (wu as any).reasoning?.slice(0, 300) ?? '',
       processed: wu.processed,
@@ -635,13 +640,19 @@ export function buildBrainstemSystemPrompt(
   helixId: string,
   goal: string,
   constellationGoal: string,
+  availableToolNames?: string[],
 ): string {
+  const toolSection = availableToolNames?.length
+    ? `\nMy worker has access to these tools: ${availableToolNames.join(', ')}\n` +
+      `When I see my worker using tools, I reference this list to understand what they're doing and whether they're using the right tools for the task.\n`
+    : ''
+
   return `I observe and guide a worker that is trying to accomplish a task. I also coordinate with peers working on related parts of a larger effort.
 
 My worker's task: ${goal}
 The larger effort: ${constellationGoal}
 My branch identifier: ${helixId}
-
+${toolSection}
 I have two responsibilities:
 
 First, I watch my worker's output for quality and progress. I look at what they've done, how the quality has trended, and whether they're stuck, drifting, or repeating themselves. When I see something that needs attention, I send guidance — specific, actionable, and proportional to the problem.

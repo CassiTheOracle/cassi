@@ -105,6 +105,9 @@ export class BrainstemMiniHelix {
   // Dependencies for mini-Helix creation
   private miniHelixDeps: MiniHelixDeps
 
+  // Available tools in the worker Helix (for system prompt awareness)
+  private availableToolNames: string[]
+
   constructor(opts: {
     helixId: string
     goal: string
@@ -116,6 +119,7 @@ export class BrainstemMiniHelix {
     escalateToCorpus?: (reason: string, context: Record<string, unknown>) => void
     onInjectGuidance?: (content: string, urgency: GuidanceUrgency) => void
     config?: BrainstemMiniHelixConfig
+    availableToolNames?: string[]
   }) {
     this.helixId = opts.helixId
     this.goal = opts.goal
@@ -127,6 +131,7 @@ export class BrainstemMiniHelix {
     this.escalateToCorpus = opts.escalateToCorpus
     this.onInjectGuidance = opts.onInjectGuidance
     this.config = opts.config ?? {}
+    this.availableToolNames = opts.availableToolNames ?? []
     this.state = createInitialBrainstemState()
   }
 
@@ -154,6 +159,7 @@ export class BrainstemMiniHelix {
         this.helixId,
         this.goal,
         this.constellationGoal,
+        this.availableToolNames,
       ),
       sessionId: `brainstem-${this.helixId}`,
       constellationId: this.constellationId,

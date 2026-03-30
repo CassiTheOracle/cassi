@@ -393,19 +393,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           )
         )
 
-        // Check for high-severity nudges — inject as blocking user message
-        const highNudge = this.workStream.getNextHighNudge()
-        if (highNudge) {
-          this.messages.push({ role: 'assistant', content: result.contentBlocks })
-          this.messages.push({ role: 'user', content: enrichedResults })
-          this.messages.push({
-            role: 'user',
-            content: `⚠️ HIGH-SEVERITY REVIEW NUDGE from ${highNudge.from}:\n\n${highNudge.content}\n\n` +
-              `You MUST call acknowledge_nudge with nudge_id="${highNudge.id}" before continuing your work.`,
-          })
-          continue
-        }
-
         this.messages.push({ role: 'assistant', content: result.contentBlocks })
         this.messages.push({ role: 'user', content: enrichedResults })
       }
@@ -1765,15 +1752,27 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * Inject low-severity nudges from reviewers into Unity's tool results.
    */
   private injectNudgeMessages(toolResults: ContentBlock[]): ContentBlock[] {
-    // drainForRole returns formatted string | null
+    const parts: string[] = []
+
+    // Drain normal-priority reviewer feedback
     const drained = this.workStream.drainForRole('yang')
-    if (!drained) return toolResults
+    if (drained) parts.push(drained)
+
+    // Drain high-severity nudges inline (no separate acknowledgement loop)
+    let highNudge = this.workStream.getNextHighNudge()
+    while (highNudge) {
+      parts.push(`⚠️ HIGH-PRIORITY from ${highNudge.from}: ${highNudge.content}`)
+      this.workStream.acknowledgeNudge(highNudge.id, 'auto-acknowledged (inline injection)')
+      highNudge = this.workStream.getNextHighNudge()
+    }
+
+    if (parts.length === 0) return toolResults
 
     return [
       ...toolResults,
       {
         type: 'text' as const,
-        text: `\n--- Reviewer Feedback ---\n${drained}\n---`,
+        text: `\n--- Reviewer Feedback ---\n${parts.join('\n\n')}\n---`,
       },
     ]
   }
