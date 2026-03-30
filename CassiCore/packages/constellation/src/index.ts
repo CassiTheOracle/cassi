@@ -137,8 +137,15 @@ export {
   getCorpusToolDefinitions,
   executeCorpusTool,
   buildCorpusSystemPrompt,
+  createCorpusMiniHelixTools,
 } from './corpus-tools.js'
 export type { CorpusToolDefinition, CorpusToolContext, ToolCallResult } from './corpus-tools.js'
+
+
+// ── Corpus Mini-Helix ─────────────────────────────────────────────────────
+
+export { CorpusMiniHelix } from './corpus-mini-helix.js'
+export type { CorpusMiniHelixConfig } from './corpus-mini-helix.js'
 
 
 // ── Constellation Injection Source ─────────────────────────────────────────

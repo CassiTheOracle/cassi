@@ -21,6 +21,8 @@ import type { HelixResult } from '../helix/types.js'
 import type { ConstellationStore, ProgressSnapshot } from './constellation-store.js'
 import type { BrainstemDeps, SharedTreeReader } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
+import { BrainstemMiniHelix } from '../helix/brainstem-mini-helix.js'
+import { CorpusMiniHelix } from './corpus-mini-helix.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
 import { Blackboard } from '../flux-team/blackboard.js'
 import { BlackboardBridge } from './blackboard-bridge.js'
@@ -237,6 +239,9 @@ function parseDecompositionResult(
 /**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
+ * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function safeReadFile(path: string, workspaceRoot: string): Promise<string | null> {
   try {
@@ -330,6 +335,47 @@ export interface ConstellationPipelineOpts {
    * function to cancel the constellation from outside.
    */
   onCancelRegistered?: (cancel: () => void) => void
+
+  // ── Mini-Helix Configuration ────────────────────────────────────
+
+  /**
+   * Enable mini-Helix mode for the Corpus.
+   * When true, the Corpus runs as a self-driving mini-Helix session
+   * instead of using the legacy LLM analysis path.
+   * Default: false (opt-in until validated)
+   */
+  useMiniHelixCorpus?: boolean
+
+  /**
+   * Enable mini-Helix mode for Brainstems.
+   * When true, Brainstems run as sidecar mini-Helix sessions instead
+   * of the legacy processSingleWorkUnit loop.
+   * Default: false (opt-in until validated)
+   */
+  useMiniHelixBrainstem?: boolean
+
+  /**
+   * Corpus mini-Helix model configuration.
+   * Default model tier: 'balanced', can be overridden with modelName.
+   */
+  corpusMiniHelix?: {
+    modelTier?: string
+    modelName?: string
+    maxIterationsPerCycle?: number
+    cycleTimeoutMs?: number
+  }
+
+  /**
+   * Brainstem mini-Helix model configuration.
+   * Default model tier: 'fast', can be overridden with modelName.
+   */
+  brainstemMiniHelix?: {
+    modelTier?: string
+    modelName?: string
+    maxIterationsPerCycle?: number
+    cycleTimeoutMs?: number
+    cyclePollMs?: number
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -343,6 +389,7 @@ interface RunningHelix {
   cancel: () => void
   handles: ModelHandle[]
   brainstem?: HelixBrainstem
+  brainstemMiniHelix?: BrainstemMiniHelix
   parentId?: string
   depth: number
 }
@@ -465,6 +512,60 @@ export async function runConstellationPipeline(
   // Start Corpus
   await corpus.start()
   log.info('Corpus started')
+
+  // ═════════════════════════════════════════════════════════════════
+  // Corpus Mini-Helix (optional — self-driving analysis loop)
+  // ═════════════════════════════════════════════════════════════════
+
+  let corpusMiniHelix: CorpusMiniHelix | undefined
+
+  if (opts.useMiniHelixCorpus) {
+    corpusMiniHelix = new CorpusMiniHelix(
+      corpusTree,
+      {
+        llm: corpusLLM,
+        logger,
+        goal,
+        constellationId,
+        eventBus,
+        blackboard: constellationBlackboard,
+        crossHelixDialectic,
+        readFile: (path: string) => safeReadFile(path, process.cwd()),
+        onSpawnRequest: (req) => {
+          const spawnRequest: SpawnRequest = {
+            requestId: `spawn-corpus-mh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            requestingHelixId: req.requestingHelixId,
+            requestingPosture: 'corpus',
+            targetDepth: (runningHelixes.get(req.requestingHelixId)?.depth ?? 0) + 1,
+            goal: req.goal,
+            context: req.context,
+            template: (req.template as ConstellationTemplate) ?? template,
+            status: 'pending',
+            timestamp: Date.now(),
+          }
+          spawnQueue.push(spawnRequest)
+        },
+      },
+      {
+        logger,
+        eventBus,
+        handleFactory: async (config) => {
+          return opts.handleFactory({
+            tier: config.tier,
+            purpose: config.purpose,
+            sessionId: config.sessionId,
+          })
+        },
+      },
+      {
+        corpus: { maxBranches: maxHelixes, maxDepth },
+        miniHelix: opts.corpusMiniHelix,
+      },
+    )
+
+    await corpusMiniHelix.start()
+    log.info('Corpus mini-Helix started')
+  }
 
   // ═════════════════════════════════════════════════════════════════
   // Notify orchestrator — corpus is live, tree state is available
@@ -722,6 +823,55 @@ export async function runConstellationPipeline(
         if (crossHelixDialectic) {
           crossHelixDialectic.registerBranch(helixId, bs, helixGoal)
         }
+
+        // Optionally start a Brainstem mini-Helix sidecar
+        if (opts.useMiniHelixBrainstem) {
+          const brainstemMH = new BrainstemMiniHelix({
+            helixId,
+            goal: helixGoal,
+            constellationGoal: goal,
+            constellationId,
+            logger,
+            miniHelixDeps: {
+              logger,
+              eventBus,
+              handleFactory: (config) => opts.handleFactory({
+                tier: config.tier,
+                purpose: config.purpose,
+                sessionId: config.sessionId,
+              }),
+            },
+            sharedTree: sharedTreeReader,
+            escalateToCorpus: (reason, context) => {
+              corpus.receiveEscalation(reason, { ...context, helixId })
+            },
+            onInjectGuidance: (content, urgency) => {
+              // The mini-Helix brainstem injects guidance through the legacy brainstem's
+              // pending guidance queue — this gets consumed by Unity on the next iteration
+              const guidance: import('../helix/brainstem-types.js').PendingGuidance = {
+                text: content,
+                urgency,
+                fromStep: 0,
+                triggeredBy: 'none',
+                timestamp: Date.now(),
+              }
+              ;(bs as any).guidanceQueue?.push(guidance)
+            },
+            config: opts.brainstemMiniHelix,
+          })
+
+          // Register mini-Helix brainstem with Corpus
+          if (corpusMiniHelix) {
+            corpusMiniHelix.registerBrainstem(helixId, { onCorpusDirective: (d) => brainstemMH.onCorpusDirective(d) })
+          }
+
+          const rhForMH = runningHelixes.get(helixId)
+          if (rhForMH) rhForMH.brainstemMiniHelix = brainstemMH
+
+          brainstemMH.start().catch((err) => {
+            helixLog.error('Brainstem mini-Helix failed to start', { error: String(err) })
+          })
+        }
       },
     })
 
@@ -763,7 +913,14 @@ export async function runConstellationPipeline(
         node.completedAt = Date.now()
         onNodeCompleted?.(node)
       })
-      .finally(() => {
+      .finally(async () => {
+        // Stop Brainstem mini-Helix sidecar if it was running
+        const rh = runningHelixes.get(helixId)
+        if (rh?.brainstemMiniHelix) {
+          await rh.brainstemMiniHelix.stop().catch((err) => {
+            helixLog.warn('Error stopping Brainstem mini-Helix', { error: String(err) })
+          })
+        }
         runningHelixes.delete(helixId)
       })
 
@@ -1140,6 +1297,15 @@ export async function runConstellationPipeline(
           log.warn('Error stopping Brainstem', { helixId: id, error: String(err) })
         }
       }
+      // Stop Brainstem mini-Helix sidecar if running
+      if (helix.brainstemMiniHelix) {
+        try {
+          await helix.brainstemMiniHelix.stop()
+          log.info('Brainstem mini-Helix stopped', { helixId: id })
+        } catch (err) {
+          log.warn('Error stopping Brainstem mini-Helix', { helixId: id, error: String(err) })
+        }
+      }
     }
 
     // Stop Corpus
@@ -1148,6 +1314,16 @@ export async function runConstellationPipeline(
       await corpus.stop()
     } catch (err) {
       log.warn('Error stopping Corpus', { error: String(err) })
+    }
+
+    // Stop Corpus mini-Helix if running
+    if (corpusMiniHelix) {
+      try {
+        await corpusMiniHelix.stop()
+        log.info('Corpus mini-Helix stopped')
+      } catch (err) {
+        log.warn('Error stopping Corpus mini-Helix', { error: String(err) })
+      }
     }
 
     // Stop all blackboard bridges
