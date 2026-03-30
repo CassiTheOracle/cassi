@@ -269,3 +269,17 @@ export {
   executeBrowserConsolidatedTool,
   getBrowserConsolidatedTool,
 } from './consolidated-browser-tools.js';
+
+// Tool Alias System
+export {
+  TOOL_ALIASES,
+  CANONICAL_TOOL_NAMES,
+  resolveToolAlias,
+  stripKnownPrefix,
+  unknownToolError,
+  suggestToolName,
+  levenshteinSimilarity,
+  findBestFuzzyMatch,
+  allKnownToolNames,
+} from './tool-aliases.js';
+export type { AliasEntry, AliasTable } from './tool-aliases.js';

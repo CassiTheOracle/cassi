@@ -20,6 +20,7 @@
 import { augmentDoResult, fetchStateCard, type DoMode, type StateView } from './do-augmentation.js';
 import { fetchAndFormatContext, type ContextLimits, fetchProactiveResults, formatProactiveResults } from './context-enrichment.js';
 import { resolveSessionId } from './helpers.js';
+import { stripKnownPrefix } from './tool-aliases.js';
 import type { ILogger } from '../../types/interfaces.js';
 
 
@@ -158,11 +159,13 @@ export function getDoTools(): Array<{
 
 
 /**
- * Strip one leading "cassi_" prefix so callers can pass either the registered
- * name or the prefixed name they see in OpenCode's tool list.
+ * Strip one leading known prefix ("cassi_", "serena_", "playwright_browser_", etc.)
+ * so callers can pass either the registered name or the prefixed name they see in
+ * OpenCode's tool list.  Delegates to stripKnownPrefix() from tool-aliases.ts so
+ * the prefix list lives in one canonical place.
  */
 export function normalizeToolName(name: string): string {
-  return name.startsWith('cassi_') ? name.slice('cassi_'.length) : name;
+  return stripKnownPrefix(name) ?? name;
 }
 
 

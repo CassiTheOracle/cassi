@@ -92,6 +92,7 @@ import {
   BLACKBOARD_CONSOLIDATED_TOOL_NAME,
   TRAINING_CONSOLIDATED_TOOL_NAME,
 } from './gateway/index.js';
+import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
 
 // Configuration
 const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
@@ -229,154 +230,8 @@ function getAllTools() {
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 2 flows, 1 module
  */
-/**
- * Backward-compat shim: maps old individual tool names to their consolidated equivalents.
- * Used by cassi_do and any cached tool references from older sessions.
- * Returns null if the name is already a current tool name.
- */
-function resolveDeprecatedToolName(name: string, args: any): { name: string; args: any } | null {
-  // Agent tools: lumen_*, dyad_*, helix_*, flux_*
-  for (const prefix of ['lumen', 'dyad', 'helix'] as const) {
-    if (name.startsWith(`${prefix}_`)) {
-      const action = name.slice(prefix.length + 1);
-      return { name: 'agent', args: { ...args, type: prefix, action } };
-    }
-  }
-  if (name.startsWith('flux_')) {
-    const suffix = name.slice(5); // flux_team, flux_run, flux_inspect, flux_watch
-    if (suffix === 'team') return { name: 'agent', args: { ...args, type: 'flux', action: 'team', teamAction: args?.action } };
-    if (suffix === 'run') return { name: 'agent', args: { ...args, type: 'flux', action: 'run' } };
-    if (suffix === 'inspect') return { name: 'agent', args: { ...args, type: 'flux', action: 'inspect' } };
-    if (suffix === 'watch') return { name: 'agent', args: { ...args, type: 'flux', action: 'watch' } };
-  }
-
-  // Memory tools
-  for (const action of ['store', 'search', 'recent', 'delete', 'kv_get', 'kv_set', 'kv_del', 'stats'] as const) {
-    if (name === `memory_${action}`) return { name: 'memory', args: { ...args, action } };
-  }
-  for (const action of ['archive_search', 'archive_get', 'archive_related', 'archive_recent'] as const) {
-    if (name === action) return { name: 'memory', args: { ...args, action } };
-  }
-  if (name === 'browse') return { name: 'memory', args: { ...args, action: 'browse' } };
-  if (name === 'universal_search') return { name: 'memory', args: { ...args, action: 'universal_search' } };
-
-  // Session tools
-  if (name === 'sessions') return { name: 'session', args: { ...args, action: 'list' } };
-  for (const action of ['detail', 'prune', 'conversation', 'export'] as const) {
-    if (name === `session_${action}`) return { name: 'session', args: { ...args, action } };
-  }
-  if (name === 'resolve_ref') return { name: 'session', args: { ...args, action: 'resolve_ref' } };
-  if (name === 'index_session') return { name: 'session', args: { ...args, action: 'index' } };
-  if (name === 'index_search') return { name: 'session', args: { ...args, action: 'index_search' } };
-  if (name === 'index_stats') return { name: 'session', args: { ...args, action: 'index_stats' } };
-
-  // Intelligence tools
-  for (const action of ['activity', 'thinker', 'subconscious', 'consciousness', 'trace', 'effectiveness', 'budget', 'evolution', 'blindspots', 'snapshot', 'trust', 'consequences'] as const) {
-    if (name === action) return { name: 'intelligence', args: { ...args, action } };
-  }
-  if (name === 'dialectic') return { name: 'intelligence', args: { ...args, action: 'dialectic' } };
-  if (name === '_1') return { name: 'intelligence', args: { ...args, action: 'overview' } };
-
-  // File tools
-  for (const action of ['mkdir', 'delete', 'exists'] as const) {
-    if (name === action) return { name: 'file', args: { ...args, action } };
-  }
-  if (name === 'share_file') return { name: 'file', args: { ...args, action: 'share' } };
-  if (name === 'open_file') return { name: 'file', args: { ...args, action: 'open' } };
-  if (name === 'file_admin') return { name: 'file', args: { ...args, action: 'admin' } };
-  for (const suffix of ['write', 'read', 'list', 'delete', 'versions', 'share', 'stats', 'gc'] as const) {
-    if (name === `file_artifact_${suffix}`) return { name: 'file', args: { ...args, action: suffix } };
-  }
-
-  // Web tools
-  if (name === 'web_fetch') return { name: 'web', args: { ...args, action: 'fetch' } };
-  if (name === 'web_search') return { name: 'web', args: { ...args, action: 'search' } };
-
-  // Config tools
-  if (name === 'config_get') return { name: 'config', args: { ...args, action: 'get' } };
-  if (name === 'config_set') return { name: 'config', args: { ...args, action: 'set' } };
-  if (name === 'providers') return { name: 'config', args: { ...args, action: 'providers' } };
-  if (name === 'provider_metrics') return { name: 'config', args: { ...args, action: 'provider_metrics' } };
-  if (name === 'provider_config') return { name: 'config', args: { ...args, action: 'provider_config' } };
-
-  // Model tools
-  if (name === 'model_directive') return { name: 'model', args: { ...args, action: args?.action } };
-
-  // Blackboard tools
-  for (const suffix of ['list', 'create', 'delete', 'post', 'read', 'search', 'watch'] as const) {
-    if (name === `bb_global_${suffix}`) return { name: 'blackboard', args: { ...args, action: suffix } };
-  }
-
-  // Training tools
-  for (const suffix of ['stats', 'search', 'objects', 'resolve', 'labels', 'quality', 'annotations', 'ingest', 'tag', 'export'] as const) {
-    if (name === `training_${suffix}`) return { name: 'training', args: { ...args, action: suffix } };
-  }
-
-  // External MCP tools → consolidated wrappers
-  const codeActionMap: Record<string, string> = {
-    gitnexus_query: 'query',
-    gitnexus_context: 'context',
-    gitnexus_impact: 'impact',
-    gitnexus_cypher: 'cypher',
-    gitnexus_detect_changes: 'detect_changes',
-    gitnexus_list_repos: 'list_repos',
-    gitnexus_rename: 'rename_graph',
-    serena_find_symbol: 'symbol',
-    serena_find_referencing_symbols: 'refs',
-    serena_get_symbols_overview: 'overview',
-    serena_rename_symbol: 'rename_symbol',
-    serena_replace_symbol_body: 'replace_symbol',
-    serena_insert_after_symbol: 'insert_after',
-    serena_insert_before_symbol: 'insert_before',
-  };
-  if (codeActionMap[name]) return { name: 'code', args: { ...args, action: codeActionMap[name] } };
-  if (name === 'serena_search_for_pattern') {
-    const looksCodeFocused = args?.restrict_search_to_code_files === true
-      || args?.name_path_pattern !== undefined
-      || args?.substring_pattern !== undefined
-    return { name: looksCodeFocused ? 'code' : 'file', args: { ...args, action: looksCodeFocused ? 'search_pattern' : 'search', path: args?.path ?? args?.relative_path } };
-  }
-
-  const fileActionMap: Record<string, string> = {
-    serena_read_file: 'read',
-    serena_replace_content: args?.content !== undefined ? 'write' : 'edit',
-    serena_list_dir: 'list',
-    serena_find_file: 'find',
-  };
-  if (fileActionMap[name]) {
-    return { name: 'file', args: { ...args, action: fileActionMap[name], path: args?.path ?? args?.relative_path } };
-  }
-
-  const browserActionMap: Record<string, string> = {
-    playwright_browser_navigate: 'navigate',
-    playwright_browser_snapshot: 'snapshot',
-    playwright_browser_click: 'click',
-    playwright_browser_type: 'type',
-    playwright_browser_take_screenshot: 'screenshot',
-    playwright_browser_evaluate: 'evaluate',
-    playwright_browser_tabs: 'tabs',
-    playwright_browser_wait_for: 'wait',
-    playwright_browser_press_key: 'press_key',
-    playwright_browser_fill_form: 'fill_form',
-    playwright_browser_select_option: 'select',
-    playwright_browser_hover: 'hover',
-    playwright_browser_drag: 'drag',
-    playwright_browser_close: 'close',
-    playwright_browser_navigate_back: 'back',
-    playwright_browser_resize: 'resize',
-    playwright_browser_console_messages: 'console',
-    playwright_browser_network_requests: 'network',
-    playwright_browser_handle_dialog: 'handle_dialog',
-    playwright_browser_file_upload: 'file_upload',
-    playwright_browser_run_code: 'run_code',
-    playwright_browser_install: 'install',
-  };
-  if (browserActionMap[name]) return { name: 'browser', args: { ...args, action: browserActionMap[name] } };
-
-  if (name === 'duckduckgo_fetch_content') return { name: 'web', args: { ...args, action: 'fetch_content' } };
-
-  return null; // Not a deprecated name — pass through unchanged
-}
+// resolveDeprecatedToolName was removed — alias resolution is now handled by
+// resolveToolAlias() from mcp/gateway/tool-aliases.ts.
 
 /**
  * Route a tool call to the appropriate domain handler.
@@ -384,11 +239,12 @@ function resolveDeprecatedToolName(name: string, args: any): { name: string; arg
 async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
   logger.info('Tool call received', { tool: name, args });
 
-  // Backward-compat: map old tool names → consolidated tool + action
-  const resolved = resolveDeprecatedToolName(name, args);
+  // Resolve aliases: handles deprecated names, prefix stripping, external MCP
+  // passthrough, user shorthands, and fuzzy typo correction.
+  const resolved = resolveToolAlias(name, args);
   if (resolved) {
     name = resolved.name;
-    args = resolved.args;
+    args = resolved.args as any;
   }
 
   try {
@@ -471,7 +327,7 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
         return formatJsonResponse(await executeTrainingConsolidatedTool(CASSICORE_URL, args, logger));
 
       default:
-        throw new Error(`Unknown tool: ${name}`);
+        throw unknownToolError(name);
     }
   } catch (error: any) {
     logger.error('Tool execution failed', { tool: name, error: String(error) });
