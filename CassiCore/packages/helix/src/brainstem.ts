@@ -19,6 +19,18 @@ import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { WorkUnit } from '../dyad/types.js'
 import type { CorpusDirective } from '../constellation/corpus-types.js'
 import type {
+  BranchDigest,
+  BranchApproach,
+  TopicContribution,
+  TopicNode,
+  SelfOrgAdjustment,
+  SelfOrgAdjustmentType,
+  StrategyRetrospective,
+  RetrospectiveTrigger,
+  EffectivenessRecord,
+  ElevatedPattern,
+} from '../constellation/corpus-types.js'
+import type {
   BrainstemConfig,
   BrainstemDeps,
   BrainstemState,
@@ -72,6 +84,24 @@ export class HelixBrainstem {
 
   // Timing
   private startTime = 0
+
+  // ── Shared Thought Tree: Self-Organization State ──────────────
+  /** Current approach (derived from recent annotations) */
+  private currentApproach: BranchApproach = 'exploration'
+  /** Previous approach (for retrospective recording) */
+  private previousApproach: BranchApproach = 'exploration'
+  /** Active self-org adjustments being dampened */
+  private pendingSelfOrgAdjustments: Map<string, SelfOrgAdjustment> = new Map()
+  /** Applied self-org adjustments (for effectiveness tracking) */
+  private appliedAdjustments: Array<{
+    adjustment: SelfOrgAdjustment
+    scoreAtApplication: number
+    stepAtApplication: number
+  }> = []
+  /** Topics this Helix has created or contributed to (for deduplication) */
+  private contributedTopics: Set<string> = new Set()
+  /** Files extracted from recent annotations (for topic detection) */
+  private recentFilesActive: Set<string> = new Set()
 
   constructor(deps: BrainstemDeps, config?: Partial<BrainstemConfig>) {
     this.deps = deps
@@ -602,6 +632,11 @@ export class HelixBrainstem {
 
       // Push annotation to Corpus tree (Constellation mode only)
       this.pushToCorpusTree(annotation)
+
+      // Shared Thought Tree: publish digest, detect topics, self-organize
+      this.publishDigest(annotation)
+      this.detectAndPublishTopics()
+      this.selfOrganize()
 
       // Post to blackboard if configured
       if (this.config.postToBlackboard) {
@@ -1136,6 +1171,774 @@ Guidelines:
       // Ignore emit errors — observability must not crash the loop
     }
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Shared Thought Tree — Self-Organization
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Generate and publish a BranchDigest to the shared tree.
+   * Called after every work unit for maximum peer awareness freshness.
+   * No LLM call — purely local aggregation from existing annotation data.
+   */
+  private publishDigest(annotation: BrainstemAnnotation): void {
+    const sharedTree = this.deps.sharedTree
+    if (!sharedTree || !this.deps.helixId) return
+
+    try {
+      // Derive current approach from recent annotations
+      this.updateCurrentApproach(annotation)
+
+      // Extract files from recent annotations
+      this.extractActiveFiles(annotation)
+
+      // Compute rolling score (last 5)
+      const recentScores = this.state.qualityTrajectory.slice(-5)
+      const rollingScore = recentScores.length > 0
+        ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+        : 0.5
+
+      // Estimate progress from score trajectory and annotation patterns
+      const progress = this.estimateProgress()
+
+      // Extract key findings — high-score annotations (> 0.7) with synthesis
+      const keyFindings = this.state.annotations
+        .filter((a) => a.score > 0.7 && a.synthesis.length > 0)
+        .slice(-5)
+        .map((a) => a.synthesis.slice(0, 200))
+
+      // Extract blockers — from annotations with pathological patterns or very low scores
+      const blockers = this.state.annotations
+        .filter((a) =>
+          a.pattern !== 'none' || a.score < 0.3
+        )
+        .slice(-3)
+        .map((a) =>
+          a.pattern !== 'none'
+            ? `${a.pattern}: ${a.trainingNote.slice(0, 100)}`
+            : `Low score (${a.score.toFixed(2)}): ${a.trainingNote.slice(0, 100)}`
+        )
+
+      // Build current strategy description
+      const currentStrategy = this.describeCurrentStrategy()
+
+      const digest: BranchDigest = {
+        helixId: this.deps.helixId,
+        goalSummary: this.deps.goal.slice(0, 200),
+        approach: this.currentApproach,
+        progress,
+        filesActive: Array.from(this.recentFilesActive),
+        keyFindings,
+        blockers,
+        currentStrategy,
+        rollingScore,
+        workUnitsProcessed: this.state.workUnitsProcessed,
+        updatedAt: Date.now(),
+        lastApproachChangeReason: this.previousApproach !== this.currentApproach
+          ? `Changed from ${this.previousApproach} due to annotation pattern shift`
+          : undefined,
+      }
+
+      sharedTree.updateDigest(digest)
+    } catch (err) {
+      this.logger.warn('Failed to publish digest', {
+        error: String(err),
+        helixId: this.deps.helixId,
+      })
+    }
+  }
+
+  /**
+   * Detect cross-cutting concerns and auto-create/contribute to shared topics.
+   * Triggered when this Helix's active files overlap with a peer's files.
+   * Threshold: 1 shared file triggers topic creation.
+   */
+  private detectAndPublishTopics(): void {
+    const sharedTree = this.deps.sharedTree
+    if (!sharedTree || !this.deps.helixId) return
+
+    try {
+      const myFiles = Array.from(this.recentFilesActive)
+      if (myFiles.length === 0) return
+
+      const peerDigests = sharedTree.getPeerDigests()
+
+      for (const peer of peerDigests) {
+        // Find shared files
+        const sharedFiles = myFiles.filter((f) => peer.filesActive.includes(f))
+
+        if (sharedFiles.length >= 1) {
+          // Check if a topic already exists for these files
+          const existingTopics = sharedTree.findRelatedTopics(sharedFiles, [])
+          const alreadyCovered = existingTopics.some((t) =>
+            this.contributedTopics.has(t.id)
+          )
+
+          if (!alreadyCovered && existingTopics.length > 0) {
+            // Contribute to existing topic
+            const topic = existingTopics[0]
+            const contribution = this.buildTopicContribution(sharedFiles)
+            sharedTree.contributeTopic(topic.id, contribution)
+            this.contributedTopics.add(topic.id)
+
+            this.logger.info('Contributed to existing topic', {
+              topicId: topic.id,
+              topicName: topic.name,
+              sharedFiles,
+              peerHelixId: peer.helixId,
+            })
+          } else if (!alreadyCovered) {
+            // Create new topic
+            const topicName = this.deriveTopicName(sharedFiles)
+            const contribution = this.buildTopicContribution(sharedFiles)
+            const topicId = sharedTree.createTopic(topicName, contribution)
+            this.contributedTopics.add(topicId)
+
+            this.logger.info('Created new shared topic', {
+              topicId,
+              topicName,
+              sharedFiles,
+              peerHelixId: peer.helixId,
+            })
+          }
+        }
+      }
+    } catch (err) {
+      this.logger.warn('Failed to detect/publish topics', {
+        error: String(err),
+        helixId: this.deps.helixId,
+      })
+    }
+  }
+
+  /**
+   * Self-organize by reading the shared tree and generating adjustments.
+   * This is the core of the stigmergic coordination mechanism.
+   *
+   * Runs after every work unit (alongside digest publication).
+   * Applies a 2-cycle dampening threshold: an adjustment must be
+   * generated on 2 consecutive cycles before it takes effect.
+   *
+   * Self-organization rules (in priority order):
+   * 1. FILE CONFLICT AVOIDANCE — back off files a peer is actively editing
+   * 2. PATTERN ADOPTION — adopt proven strategies from the elevated pattern library
+   * 3. FINDING INCORPORATION — pull relevant peer findings into local context
+   * 4. APPROACH REDIRECT — change strategy based on peer success/own failure
+   * 5. GOAL REFINEMENT — narrow focus to reduce overlap with a peer
+   * 6. TENSION FLAG — flag conflicting approaches in shared topics
+   * 7. PEER ASSIST — offer findings to struggling peers via topics
+   */
+  private selfOrganize(): void {
+    const sharedTree = this.deps.sharedTree
+    if (!sharedTree || !this.deps.helixId) return
+
+    try {
+      const relevantDigests = sharedTree.getRelevantDigests()
+      const myFiles = Array.from(this.recentFilesActive)
+      const relatedTopics = sharedTree.findRelatedTopics(
+        myFiles,
+        this.extractGoalKeywords()
+      )
+      const elevatedPatterns = sharedTree.getElevatedPatterns()
+
+      // Track which adjustments we generate this cycle
+      const currentCycleAdjustments = new Set<string>()
+
+      // ── Rule 1: File Conflict Avoidance ────────────────────────
+      for (const peer of relevantDigests) {
+        const conflictFiles = myFiles.filter((f) => peer.filesActive.includes(f))
+        if (conflictFiles.length > 0) {
+          const key = `file-avoidance:${peer.helixId}:${conflictFiles.sort().join(',')}`
+          currentCycleAdjustments.add(key)
+          this.tickAdjustment(key, {
+            type: 'file-avoidance',
+            description: `Peer ${peer.helixId} is actively editing ${conflictFiles.join(', ')}. ` +
+              `I should coordinate: finish my current changes first or defer to the peer.`,
+            evidence: `Peer approach: ${peer.approach}, my approach: ${this.currentApproach}`,
+            sourceHelixId: peer.helixId,
+            dampeningCount: 0,
+            dampeningThreshold: 2,
+            firstGeneratedAt: Date.now(),
+            lastConfirmedAt: Date.now(),
+          })
+        }
+      }
+
+      // ── Rule 2: Pattern Adoption ───────────────────────────────
+      for (const pattern of elevatedPatterns) {
+        // Check if this pattern is applicable to my context
+        const fileOverlap = pattern.relevantFiles.filter((f) => myFiles.includes(f))
+        const goalOverlap = this.extractGoalKeywords().some((kw) =>
+          pattern.applicableContext.toLowerCase().includes(kw.toLowerCase())
+        )
+
+        if ((fileOverlap.length > 0 || goalOverlap) && pattern.approach !== this.currentApproach) {
+          const key = `pattern-adoption:${pattern.id}`
+          currentCycleAdjustments.add(key)
+          this.tickAdjustment(key, {
+            type: 'pattern-adoption',
+            description: `Elevated pattern "${pattern.description.slice(0, 100)}" ` +
+              `achieved score ${pattern.achievedScore.toFixed(2)} with ${pattern.approach} approach. ` +
+              `Consider adopting this proven strategy.`,
+            evidence: `Pattern from ${pattern.sourceHelixId}, ${pattern.supportingRetrospectives.length} supporting retrospectives`,
+            dampeningCount: 0,
+            dampeningThreshold: 2,
+            firstGeneratedAt: Date.now(),
+            lastConfirmedAt: Date.now(),
+          })
+        }
+      }
+
+      // ── Rule 3: Finding Incorporation ──────────────────────────
+      for (const peer of relevantDigests) {
+        if (peer.keyFindings.length > 0 && peer.rollingScore > 0.7) {
+          const key = `finding-incorporation:${peer.helixId}`
+          currentCycleAdjustments.add(key)
+          this.tickAdjustment(key, {
+            type: 'finding-incorporation',
+            description: `Peer ${peer.helixId} (score: ${peer.rollingScore.toFixed(2)}) has relevant findings: ` +
+              `${peer.keyFindings.slice(0, 2).join('; ')}`,
+            evidence: `Peer is working on: ${peer.goalSummary.slice(0, 80)}`,
+            sourceHelixId: peer.helixId,
+            dampeningCount: 0,
+            dampeningThreshold: 2,
+            firstGeneratedAt: Date.now(),
+            lastConfirmedAt: Date.now(),
+          })
+        }
+      }
+
+      // ── Rule 4: Approach Redirect ──────────────────────────────
+      // If my score is low and multiple peers succeed with a different approach
+      const myRollingScore = this.state.qualityTrajectory.slice(-5)
+      const myAvg = myRollingScore.length > 0
+        ? myRollingScore.reduce((a, b) => a + b, 0) / myRollingScore.length
+        : 0.5
+
+      if (myAvg < 0.5) {
+        const successfulPeers = relevantDigests.filter(
+          (p) => p.rollingScore > 0.7 && p.approach !== this.currentApproach
+        )
+
+        if (successfulPeers.length >= 1) {
+          // Most common successful approach among peers
+          const approachCounts = new Map<BranchApproach, number>()
+          for (const peer of successfulPeers) {
+            approachCounts.set(peer.approach, (approachCounts.get(peer.approach) ?? 0) + 1)
+          }
+          const bestApproach = Array.from(approachCounts.entries())
+            .sort((a, b) => b[1] - a[1])[0]?.[0]
+
+          if (bestApproach) {
+            const key = `approach-redirect:${bestApproach}`
+            currentCycleAdjustments.add(key)
+            this.tickAdjustment(key, {
+              type: 'approach-redirect',
+              description: `My rolling score is ${myAvg.toFixed(2)} while ${successfulPeers.length} peer(s) ` +
+                `succeed with "${bestApproach}" approach (avg score ${successfulPeers[0].rollingScore.toFixed(2)}). ` +
+                `I should consider switching from "${this.currentApproach}" to "${bestApproach}".`,
+              evidence: `Successful peers: ${successfulPeers.map((p) => `${p.helixId}:${p.rollingScore.toFixed(2)}`).join(', ')}`,
+              dampeningCount: 0,
+              dampeningThreshold: 2,
+              firstGeneratedAt: Date.now(),
+              lastConfirmedAt: Date.now(),
+            })
+          }
+        }
+      }
+
+      // ── Rule 5: Goal Refinement ────────────────────────────────
+      for (const peer of relevantDigests) {
+        const myKeywords = new Set(this.extractGoalKeywords())
+        const peerKeywords = peer.goalSummary.toLowerCase().split(/[^a-z0-9_-]+/).filter((w) => w.length > 2)
+        const overlap = peerKeywords.filter((kw) => myKeywords.has(kw))
+
+        if (overlap.length >= 3 && peer.progress > 0.5) {
+          const key = `goal-refinement:${peer.helixId}`
+          currentCycleAdjustments.add(key)
+          this.tickAdjustment(key, {
+            type: 'goal-refinement',
+            description: `Peer ${peer.helixId} (${(peer.progress * 100).toFixed(0)}% done) has significant goal overlap. ` +
+              `Shared keywords: ${overlap.slice(0, 5).join(', ')}. ` +
+              `I should narrow my focus to the non-overlapping aspects of my goal.`,
+            evidence: `Peer goal: ${peer.goalSummary.slice(0, 80)}`,
+            sourceHelixId: peer.helixId,
+            dampeningCount: 0,
+            dampeningThreshold: 2,
+            firstGeneratedAt: Date.now(),
+            lastConfirmedAt: Date.now(),
+          })
+        }
+      }
+
+      // ── Rule 6: Tension Flag ───────────────────────────────────
+      for (const topic of relatedTopics) {
+        if (topic.tensionFlag) {
+          const key = `tension-flag:${topic.id}`
+          currentCycleAdjustments.add(key)
+          this.tickAdjustment(key, {
+            type: 'tension-flag',
+            description: `Shared topic "${topic.name}" has a tension: ${topic.tensionDescription ?? 'conflicting approaches'}. ` +
+              `I should review this topic and either align my approach or justify my divergence.`,
+            evidence: `${topic.contributions.length} contributions from ${[...new Set(topic.contributions.map((c) => c.helixId))].join(', ')}`,
+            sourceTopicId: topic.id,
+            dampeningCount: 0,
+            dampeningThreshold: 2,
+            firstGeneratedAt: Date.now(),
+            lastConfirmedAt: Date.now(),
+          })
+        }
+      }
+
+      // ── Rule 7: Peer Assist ────────────────────────────────────
+      for (const peer of relevantDigests) {
+        if (peer.blockers.length > 0 && peer.rollingScore < 0.4) {
+          // I might have findings that could help
+          const myRelevantFindings = this.state.annotations
+            .filter((a) => a.score > 0.7 && a.synthesis.length > 0)
+            .slice(-3)
+
+          if (myRelevantFindings.length > 0) {
+            const key = `peer-assist:${peer.helixId}`
+            currentCycleAdjustments.add(key)
+            this.tickAdjustment(key, {
+              type: 'peer-assist',
+              description: `Peer ${peer.helixId} is struggling (score: ${peer.rollingScore.toFixed(2)}) with blockers: ` +
+                `${peer.blockers[0]?.slice(0, 80)}. I have potentially relevant findings to share via a topic.`,
+              evidence: `My finding: ${myRelevantFindings[0].synthesis.slice(0, 100)}`,
+              sourceHelixId: peer.helixId,
+              dampeningCount: 0,
+              dampeningThreshold: 2,
+              firstGeneratedAt: Date.now(),
+              lastConfirmedAt: Date.now(),
+            })
+          }
+        }
+      }
+
+      // ── Expire stale adjustments ───────────────────────────────
+      for (const [key] of this.pendingSelfOrgAdjustments) {
+        if (!currentCycleAdjustments.has(key)) {
+          // Adjustment was not regenerated this cycle — reset dampening
+          this.pendingSelfOrgAdjustments.delete(key)
+        }
+      }
+
+      // ── Apply adjustments that have met the dampening threshold ─
+      this.applyReadyAdjustments()
+
+      // ── Track effectiveness of applied adjustments ─────────────
+      this.measureEffectiveness()
+
+    } catch (err) {
+      this.logger.warn('Self-organization cycle failed', {
+        error: String(err),
+        helixId: this.deps.helixId,
+      })
+    }
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  // Self-Organization: Internal Helpers
+  // ═══════════════════════════════════════════════════════════════════
+
+  /**
+   * Tick a dampening counter for an adjustment. If the adjustment key
+   * already exists, increment its count. Otherwise create it.
+   */
+  private tickAdjustment(key: string, template: SelfOrgAdjustment): void {
+    const existing = this.pendingSelfOrgAdjustments.get(key)
+    if (existing) {
+      existing.dampeningCount++
+      existing.lastConfirmedAt = Date.now()
+    } else {
+      template.dampeningCount = 1
+      this.pendingSelfOrgAdjustments.set(key, template)
+    }
+  }
+
+  /**
+   * Apply adjustments that have met the 2-cycle dampening threshold.
+   * Each applied adjustment is converted to a PendingGuidance and
+   * queued for Unity delivery through the normal mechanism.
+   */
+  private applyReadyAdjustments(): void {
+    for (const [key, adjustment] of this.pendingSelfOrgAdjustments) {
+      if (adjustment.dampeningCount >= adjustment.dampeningThreshold) {
+        // Convert to guidance
+        const urgency = this.adjustmentToUrgency(adjustment.type)
+        const guidanceText = this.formatAdjustmentAsGuidance(adjustment)
+
+        this.queueGuidance({
+          text: guidanceText,
+          urgency,
+          triggeredBy: `self-org:${adjustment.type}` as any,
+          fromStep: this.state.currentAxonStep,
+          timestamp: Date.now(),
+        })
+
+        // Record for effectiveness tracking
+        const recentScores = this.state.qualityTrajectory.slice(-3)
+        const scoreAtApplication = recentScores.length > 0
+          ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+          : 0.5
+
+        this.appliedAdjustments.push({
+          adjustment: { ...adjustment },
+          scoreAtApplication,
+          stepAtApplication: this.state.currentAxonStep,
+        })
+
+        // Handle approach redirect: record retrospective
+        if (adjustment.type === 'approach-redirect') {
+          this.recordApproachChangeRetrospective(
+            adjustment.description,
+            'self-organization'
+          )
+        }
+
+        // Remove after applying
+        this.pendingSelfOrgAdjustments.delete(key)
+
+        this.logger.info('Self-org adjustment applied', {
+          type: adjustment.type,
+          key,
+          dampeningCount: adjustment.dampeningCount,
+          description: adjustment.description.slice(0, 100),
+        })
+      }
+    }
+  }
+
+  /**
+   * Measure effectiveness of previously applied adjustments.
+   * After 3 steps, compare the score to the score at application time.
+   */
+  private measureEffectiveness(): void {
+    const sharedTree = this.deps.sharedTree
+    if (!sharedTree) return
+
+    const stepsDelta = 3
+
+    for (let i = this.appliedAdjustments.length - 1; i >= 0; i--) {
+      const applied = this.appliedAdjustments[i]
+      const stepsElapsed = this.state.currentAxonStep - applied.stepAtApplication
+
+      if (stepsElapsed >= stepsDelta) {
+        // Measure current score
+        const recentScores = this.state.qualityTrajectory.slice(-3)
+        const scoreAfter = recentScores.length > 0
+          ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+          : 0.5
+
+        const improvement = scoreAfter - applied.scoreAtApplication
+        const record: EffectivenessRecord = {
+          adjustmentType: applied.adjustment.type,
+          helixId: this.deps.helixId!,
+          scoreBefore: applied.scoreAtApplication,
+          scoreAfter,
+          stepsDelta: stepsElapsed,
+          improvement,
+          effective: improvement > 0,
+          measuredAt: Date.now(),
+        }
+
+        sharedTree.recordEffectiveness(record)
+
+        // Also update retrospective effectiveness if applicable
+        this.updateRetrospectiveEffectiveness(
+          applied.scoreAtApplication,
+          scoreAfter,
+          stepsElapsed
+        )
+
+        // Remove from tracking
+        this.appliedAdjustments.splice(i, 1)
+      }
+    }
+  }
+
+  /**
+   * Record a strategy retrospective when the approach changes.
+   */
+  private recordApproachChangeRetrospective(
+    reason: string,
+    trigger: RetrospectiveTrigger
+  ): void {
+    const sharedTree = this.deps.sharedTree
+    if (!sharedTree || !this.deps.helixId) return
+
+    const recentScores = this.state.qualityTrajectory.slice(-3)
+    const scoreAtChange = recentScores.length > 0
+      ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+      : 0.5
+
+    const retrospective: StrategyRetrospective = {
+      helixId: this.deps.helixId,
+      fromApproach: this.previousApproach,
+      toApproach: this.currentApproach,
+      reason,
+      trigger,
+      scoreAtChange,
+      timestamp: Date.now(),
+    }
+
+    sharedTree.recordRetrospective(retrospective)
+
+    this.logger.info('Strategy retrospective recorded', {
+      from: this.previousApproach,
+      to: this.currentApproach,
+      trigger,
+      scoreAtChange: scoreAtChange.toFixed(2),
+    })
+  }
+
+  /**
+   * Update the most recent retrospective with effectiveness data.
+   */
+  private updateRetrospectiveEffectiveness(
+    scoreBefore: number,
+    scoreAfter: number,
+    stepsAfter: number
+  ): void {
+    const sharedTree = this.deps.sharedTree
+    if (!sharedTree || !this.deps.helixId) return
+
+    // Find the most recent retrospective for this Helix and update it
+    const retrospectives = sharedTree.getAllRetrospectives()
+    const myRetro = retrospectives
+      .filter((r) => r.helixId === this.deps.helixId && r.scoreAfterChange === undefined)
+      .pop()
+
+    if (myRetro) {
+      myRetro.scoreAfterChange = scoreAfter
+      myRetro.stepsAfterMeasured = stepsAfter
+      myRetro.wasEffective = scoreAfter > scoreBefore
+    }
+  }
+
+  /**
+   * Derive the current approach from the most recent annotation.
+   * Also tracks approach changes for retrospective recording.
+   */
+  private updateCurrentApproach(annotation: BrainstemAnnotation): void {
+    const newApproach = this.annotationToApproach(annotation)
+
+    if (newApproach !== this.currentApproach) {
+      this.previousApproach = this.currentApproach
+      this.currentApproach = newApproach
+    }
+  }
+
+  /**
+   * Map a WorkUnitAnnotation to a BranchApproach.
+   */
+  private annotationToApproach(annotation: BrainstemAnnotation): BranchApproach {
+    switch (annotation.annotation) {
+      case 'exploration': return 'exploration'
+      case 'research': return 'research'
+      case 'implementation': return 'implementation'
+      case 'testing': return 'testing'
+      case 'revision': return 'revision'
+      case 'drift': return 'exploration' // drift is treated as unfocused exploration
+      default: return 'exploration'
+    }
+  }
+
+  /**
+   * Extract active files from an annotation's training note.
+   * Files appear as paths in the text — we extract anything that looks
+   * like a file path (containing / and a file extension).
+   */
+  private extractActiveFiles(annotation: BrainstemAnnotation): void {
+    // Extract file paths from synthesis and training notes
+    const text = `${annotation.synthesis} ${annotation.trainingNote}`
+    const pathRegex = /(?:^|\s)([\w./-]+\.\w{1,10})(?:\s|$|[,:;)])/g
+    let match
+
+    while ((match = pathRegex.exec(text)) !== null) {
+      const path = match[1]
+      // Filter for reasonable file paths
+      if (path.includes('/') && !path.startsWith('http') && path.length < 200) {
+        this.recentFilesActive.add(path)
+      }
+    }
+
+    // Keep only the most recent ~20 files to avoid unbounded growth
+    if (this.recentFilesActive.size > 20) {
+      const files = Array.from(this.recentFilesActive)
+      this.recentFilesActive = new Set(files.slice(-20))
+    }
+  }
+
+  /**
+   * Estimate progress (0-1) based on score trajectory and annotation patterns.
+   */
+  private estimateProgress(): number {
+    if (this.state.workUnitsProcessed === 0) return 0
+
+    const scores = this.state.qualityTrajectory
+    const annotations = this.state.annotations
+
+    // Factor 1: Score trajectory — rising scores indicate progress
+    const recentAvg = scores.length >= 3
+      ? scores.slice(-3).reduce((a, b) => a + b, 0) / 3
+      : 0.3
+    const scoreFactor = Math.min(recentAvg, 1)
+
+    // Factor 2: Phase progression — exploration → implementation → testing is progress
+    const phases = annotations.map((a) => a.annotation)
+    const hasImplementation = phases.includes('implementation')
+    const hasTesting = phases.includes('testing')
+    const phaseFactor = hasTesting ? 0.8 : hasImplementation ? 0.5 : 0.2
+
+    // Factor 3: Work units done (capped at 20 — after that we're probably not making linear progress)
+    const stepFactor = Math.min(this.state.workUnitsProcessed / 20, 1)
+
+    // Weighted combination
+    return Math.min(scoreFactor * 0.4 + phaseFactor * 0.4 + stepFactor * 0.2, 1)
+  }
+
+  /**
+   * Describe the current strategy in human-readable form.
+   */
+  private describeCurrentStrategy(): string {
+    const annotations = this.state.annotations
+    if (annotations.length === 0) return 'Starting up'
+
+    const recent = annotations.slice(-3)
+    const patterns = recent.map((a) => a.annotation)
+    const avgScore = recent.reduce((sum, a) => sum + a.score, 0) / recent.length
+
+    const phaseDesc = this.currentApproach === 'exploration'
+      ? 'Exploring and gathering context'
+      : this.currentApproach === 'research'
+      ? 'Deep investigation and cross-referencing'
+      : this.currentApproach === 'implementation'
+      ? 'Actively implementing changes'
+      : this.currentApproach === 'testing'
+      ? 'Testing and verifying changes'
+      : this.currentApproach === 'debugging'
+      ? 'Debugging and fixing issues'
+      : this.currentApproach === 'revision'
+      ? 'Iterating based on feedback'
+      : this.currentApproach === 'coordinating'
+      ? 'Coordinating with peers'
+      : 'Working'
+
+    return `${phaseDesc} (score: ${avgScore.toFixed(2)}, recent: ${patterns.join('→')})`
+  }
+
+  /**
+   * Extract goal keywords for relevance matching.
+   */
+  private extractGoalKeywords(): string[] {
+    const stopWords = new Set([
+      'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+      'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+      'should', 'may', 'might', 'shall', 'can', 'need', 'must', 'ought',
+      'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from', 'as',
+      'and', 'but', 'or', 'not', 'so', 'if', 'when', 'how', 'what', 'which',
+      'this', 'that', 'these', 'those', 'it', 'they', 'we', 'you', 'my',
+    ])
+
+    return this.deps.goal
+      .toLowerCase()
+      .split(/[^a-z0-9_-]+/)
+      .filter((w) => w.length > 2 && !stopWords.has(w))
+  }
+
+  /**
+   * Build a TopicContribution from current state.
+   */
+  private buildTopicContribution(sharedFiles: string[]): TopicContribution {
+    const recentFinding = this.state.annotations
+      .filter((a) => a.score > 0.6 && a.synthesis.length > 0)
+      .pop()
+
+    return {
+      helixId: this.deps.helixId!,
+      content: recentFinding
+        ? recentFinding.synthesis.slice(0, 300)
+        : `Working on: ${this.deps.goal.slice(0, 100)}`,
+      approach: this.currentApproach,
+      files: sharedFiles,
+      score: recentFinding?.score ?? 0.5,
+      timestamp: Date.now(),
+    }
+  }
+
+  /**
+   * Derive a topic name from shared files.
+   * Uses the most specific shared directory or file name.
+   */
+  private deriveTopicName(sharedFiles: string[]): string {
+    if (sharedFiles.length === 1) {
+      // Use the filename
+      const parts = sharedFiles[0].split('/')
+      return parts[parts.length - 1].replace(/\.\w+$/, '')
+    }
+
+    // Find common directory prefix
+    const parts = sharedFiles.map((f) => f.split('/'))
+    let commonDepth = 0
+    for (let i = 0; i < Math.min(...parts.map((p) => p.length)); i++) {
+      const segment = parts[0][i]
+      if (parts.every((p) => p[i] === segment)) {
+        commonDepth = i + 1
+      } else {
+        break
+      }
+    }
+
+    if (commonDepth > 0) {
+      return parts[0].slice(0, commonDepth).join('/')
+    }
+
+    return sharedFiles.slice(0, 2).join(', ')
+  }
+
+  /**
+   * Map adjustment type to guidance urgency.
+   */
+  private adjustmentToUrgency(type: SelfOrgAdjustmentType): GuidanceUrgency {
+    switch (type) {
+      case 'file-avoidance': return 'high'
+      case 'approach-redirect': return 'high'
+      case 'tension-flag': return 'medium'
+      case 'finding-incorporation': return 'low'
+      case 'pattern-adoption': return 'medium'
+      case 'goal-refinement': return 'medium'
+      case 'peer-assist': return 'low'
+      default: return 'low'
+    }
+  }
+
+  /**
+   * Format a self-org adjustment as first-person guidance text.
+   */
+  private formatAdjustmentAsGuidance(adjustment: SelfOrgAdjustment): string {
+    switch (adjustment.type) {
+      case 'file-avoidance':
+        return `[Self-Organization] ${adjustment.description} I need to be aware of concurrent edits.`
+      case 'finding-incorporation':
+        return `[Self-Organization] ${adjustment.description} I should factor this into my work.`
+      case 'approach-redirect':
+        return `[Self-Organization] ${adjustment.description} I should seriously consider changing my approach.`
+      case 'goal-refinement':
+        return `[Self-Organization] ${adjustment.description} I should focus on what I can uniquely contribute.`
+      case 'tension-flag':
+        return `[Self-Organization] ${adjustment.description}`
+      case 'pattern-adoption':
+        return `[Self-Organization] ${adjustment.description}`
+      case 'peer-assist':
+        return `[Self-Organization] ${adjustment.description} I should share my findings via a topic contribution.`
+      default:
+        return `[Self-Organization] ${adjustment.description}`
+    }
+  }
+
 
   // ── Corpus Tree Integration ──────────────────────────────────────────
 

@@ -19,7 +19,15 @@ import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { WorkUnit } from '../dyad/types.js'
 import type { CognitiveSignal } from '../thought-observer.js'
 import type { ICorpusTree } from '../constellation/corpus-types.js'
-import type { CorpusDirective } from '../constellation/corpus-types.js'
+import type {
+  CorpusDirective,
+  BranchDigest,
+  TopicNode,
+  TopicContribution,
+  StrategyRetrospective,
+  ElevatedPattern,
+  EffectivenessRecord,
+} from '../constellation/corpus-types.js'
 
 // ─── Configuration ────────────────────────────────────────────────────────
 
@@ -82,6 +90,7 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
 /** Work unit classification produced by Brainstem scoring */
 export type WorkUnitAnnotation =
   | 'exploration'     // reading, searching, gathering context
+  | 'research'        // deep investigation, cross-referencing, hypothesis testing
   | 'implementation'  // writing code, creating files
   | 'testing'         // running tests, verification
   | 'revision'        // fixing based on feedback
@@ -248,6 +257,77 @@ export interface BrainstemDeps {
   readFile?: (path: string) => Promise<string | null>
   /** ContextChunkIndex for Unity — allows brainstem to pin/evict/score context chunks */
   unityChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
+
+  // ── Shared Thought Tree (Constellation self-organization) ──────
+
+  /**
+   * Shared tree reader — provides peer awareness without the Corpus as relay.
+   * Only present in Constellation mode. Brainstems use this to read peer
+   * digests, shared topics, elevated patterns, and to publish their own
+   * digests and topic contributions.
+   */
+  sharedTree?: SharedTreeReader
+
+  /**
+   * Callback to escalate to the Corpus when self-organization can't resolve
+   * something. Only present in Constellation mode.
+   */
+  escalateToCorpus?: (reason: string, context: Record<string, unknown>) => void
+}
+
+/**
+ * SharedTreeReader — the interface a Brainstem uses to participate in
+ * the Shared Thought Tree for stigmergic self-organization.
+ *
+ * This is the Brainstem's view of the constellation. It can:
+ * - Read peer digests and topics for awareness
+ * - Publish its own digest and topic contributions
+ * - Record retrospectives and effectiveness measurements
+ * - Access the pattern library for proven strategies
+ *
+ * No artificial token caps — with 128k context windows, full awareness
+ * of all branches is affordable within a 16k working budget.
+ */
+export interface SharedTreeReader {
+  // ── Read operations (peer awareness) ──────────────────────────
+
+  /** Get all peer digests (excludes the calling Helix's own). */
+  getPeerDigests(): BranchDigest[]
+
+  /** Get peer digests filtered by relevance to the calling Helix. */
+  getRelevantDigests(): BranchDigest[]
+
+  /** Find topics relevant to the given files and keywords. */
+  findRelatedTopics(files: string[], goalKeywords: string[]): TopicNode[]
+
+  /** Get all topics in the tree. */
+  getAllTopics(): TopicNode[]
+
+  /** Get the constellation's elevated pattern library. */
+  getElevatedPatterns(): ElevatedPattern[]
+
+  /** Get all strategy retrospectives (for learning from others). */
+  getAllRetrospectives(): StrategyRetrospective[]
+
+  /** Get effectiveness stats by adjustment type (what works?). */
+  getEffectivenessStats(): Map<string, { total: number; effective: number; avgImprovement: number }>
+
+  // ── Write operations (publish state) ──────────────────────────
+
+  /** Publish or update this Helix's digest. */
+  updateDigest(digest: BranchDigest): void
+
+  /** Create a new shared topic node. Returns the topic ID. */
+  createTopic(name: string, contribution: TopicContribution): string
+
+  /** Add a contribution to an existing topic. */
+  contributeTopic(topicId: string, contribution: TopicContribution): void
+
+  /** Record a strategy retrospective. */
+  recordRetrospective(retrospective: StrategyRetrospective): void
+
+  /** Record an effectiveness measurement. */
+  recordEffectiveness(record: EffectivenessRecord): void
 }
 
 /**
