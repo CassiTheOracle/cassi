@@ -105,9 +105,10 @@ ${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
 ## Task
 1. Use read_file and list_directory to explore the codebase — these are the ONLY tools you should use for exploration
 2. Do NOT use collect_thoughts, serena_*, or gitnexus_* tools — they are not useful for this task
-3. Identify 2-5 concrete, independent sub-tasks that together achieve the goal
+3. Identify 3-6 concrete, independent sub-tasks that together achieve the goal
 4. For each sub-task, validate that referenced file paths actually exist
-5. Call signal_done with the decomposition in the conclusion field using the format below
+5. Assign each sub-task a TEMPLATE (research, implementation, review, standard, or minimal)
+6. Call signal_done with the decomposition in the conclusion field using the format below
 
 ## Output Format (put this in signal_done's conclusion field)
 
@@ -116,22 +117,35 @@ STRATEGY: parallel|sequential|tree
 SHARED_CONTEXT: <any context all sub-tasks need>
 
 SUBTASK: <focused goal for sub-task 1>
+TEMPLATE: <research|implementation|review|standard|minimal>
 FILES: <comma-separated file paths relevant to this sub-task>
 PRIORITY: <1-5, higher is more important>
+BUDGET_STEPS: <max steps this sub-task should need, 10-40>
 
 SUBTASK: <focused goal for sub-task 2>
+TEMPLATE: <research|implementation|review|standard|minimal>
 FILES: <comma-separated file paths>
 PRIORITY: <1-5>
+BUDGET_STEPS: <max steps>
 
 ... (repeat for each sub-task)
 DECOMPOSITION_END
 
 ## Rules
+- MINIMUM 3 sub-tasks for any non-trivial goal. Prefer 4-6 well-scoped tasks.
+- SEPARATE research from implementation: if the goal requires understanding existing code before modifying it, create a dedicated "research" sub-task that runs first, and separate "implementation" sub-tasks that build on its findings.
 - Each SUBTASK must be specific enough to execute independently
 - Validate all file paths with read_file before including them
-- Keep sub-tasks focused — prefer 2-3 well-scoped tasks over 5+ vague ones
+- Assign realistic BUDGET_STEPS: research=15-25, implementation=20-40, review=10-20, minimal=5-10
 - If the goal is actually simple and doesn't need decomposition, output a single SUBTASK with the original goal
-- Call signal_done within 10 iterations — do not endlessly explore`
+- Call signal_done within 10 iterations — do not endlessly explore
+
+## Example (good decomposition)
+A goal like "Add rate limiting to the admin API" should become:
+- SUBTASK 1 (research): Analyze current admin API structure, find all endpoints, understand auth patterns
+- SUBTASK 2 (implementation): Implement rate limiter middleware with configurable limits per endpoint
+- SUBTASK 3 (implementation): Wire rate limiter into admin API routes and add config defaults
+- SUBTASK 4 (review): Run type-check and tests, verify no regressions`
 
   try {
     const plannerHelix = await opts.launchHelix(plannerGoal, undefined, 'minimal', 0)
@@ -202,20 +216,30 @@ function parseDecompositionResult(
   const sharedContext = sharedContextMatch?.[1]?.trim()
 
   // Parse sub-tasks
-  const subTaskPattern = /SUBTASK:\s*(.+?)(?:\nFILES:\s*(.+?))?(?:\nPRIORITY:\s*(\d))?(?=\n\nSUBTASK:|\nDECOMPOSITION_END|$)/gs
+  const subTaskPattern = /SUBTASK:\s*(.+?)(?:\nTEMPLATE:\s*(.+?))?(?:\nFILES:\s*(.+?))?(?:\nPRIORITY:\s*(\d))?(?:\nBUDGET_STEPS:\s*(\d+))?(?=\n\nSUBTASK:|\nDECOMPOSITION_END|$)/gs
   const subTasks: GoalSubTask[] = []
 
   let match
   while ((match = subTaskPattern.exec(block)) !== null) {
     const goal = match[1].trim()
-    const files = match[2]?.trim().split(',').map(f => f.trim()).filter(Boolean)
-    const priority = parseInt(match[3] ?? '1', 10) || 1
+    const templateStr = match[2]?.trim().toLowerCase()
+    const files = match[3]?.trim().split(',').map(f => f.trim()).filter(Boolean)
+    const priority = parseInt(match[4] ?? '1', 10) || 1
+    const budgetSteps = parseInt(match[5] ?? '0', 10) || undefined
+
+    // Validate template
+    const validTemplates = ['research', 'implementation', 'review', 'standard', 'minimal'] as const
+    const template = validTemplates.includes(templateStr as any)
+      ? (templateStr as ConstellationTemplate)
+      : undefined
 
     if (goal) {
       subTasks.push({
         goal,
+        template,
         relevantFiles: files?.length ? files : undefined,
         priority,
+        budgetSteps,
       })
     }
   }
@@ -396,6 +420,7 @@ interface RunningHelix {
   brainstemMiniHelix?: BrainstemMiniHelix
   parentId?: string
   depth: number
+  template?: ConstellationTemplate
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -505,6 +530,86 @@ export async function runConstellationPipeline(
           requestingHelixId: req.requestingHelixId,
           goal: req.goal.slice(0, 100),
         })
+      },
+
+      // ── Proactive Capability Hooks ────────────────────────────
+
+      launchHelix: async (helixGoal, helixContext, tmpl) => {
+        const rh = await launchHelix(helixGoal, helixContext, undefined, 0)
+        return rh.helixId
+      },
+
+      pauseHelix: (helixId) => {
+        const rh = runningHelixes.get(helixId)
+        if (rh?.brainstem) {
+          // Brainstem's mini-helix can be paused
+          try {
+            (rh.brainstem as any).pause?.()
+            return true
+          } catch { return false }
+        }
+        return false
+      },
+
+      resumeHelix: (helixId) => {
+        const rh = runningHelixes.get(helixId)
+        if (rh?.brainstem) {
+          try {
+            (rh.brainstem as any).resume?.()
+          } catch { /* best effort */ }
+        }
+      },
+
+      killHelix: (helixId) => {
+        const rh = runningHelixes.get(helixId)
+        if (rh?.cancel) {
+          rh.cancel()
+          log.info('Helix killed by Corpus', { helixId })
+        }
+      },
+
+      injectGuidance: (helixId, content, urgency) => {
+        const rh = runningHelixes.get(helixId)
+        if (rh?.brainstem) {
+          // Push directly to the Brainstem's guidance queue
+          try {
+            (rh.brainstem as any).pushGuidance?.({ content, urgency, source: 'corpus-direct' })
+          } catch {
+            // Fall back to corpus directive
+            (rh.brainstem as any).onCorpusDirective?.({
+              targetHelixId: helixId,
+              type: 'guidance' as any,
+              urgency,
+              reason: 'Direct injection from Corpus',
+              text: content,
+              timestamp: Date.now(),
+            })
+          }
+        }
+      },
+
+      runCommand: async (command, timeoutMs = 30_000) => {
+        const { execSync } = await import('child_process')
+        try {
+          const stdout = execSync(command, {
+            timeout: timeoutMs,
+            encoding: 'utf-8',
+            maxBuffer: 1024 * 1024,
+            cwd: process.cwd(),
+          })
+          return { exitCode: 0, stdout, stderr: '' }
+        } catch (err: any) {
+          return {
+            exitCode: err.status ?? 1,
+            stdout: err.stdout ?? '',
+            stderr: err.stderr ?? '',
+          }
+        }
+      },
+
+      getHelixTemplate: (helixId) => {
+        const rh = runningHelixes.get(helixId)
+        return rh?.template
       },
     },
     {
@@ -902,6 +1007,7 @@ export async function runConstellationPipeline(
       brainstem: activeBrainstem,
       parentId,
       depth,
+      template,
     }
 
     runningHelixes.set(helixId, runningHelix)
@@ -1239,6 +1345,9 @@ export async function runConstellationPipeline(
             escalationLevel: 0 as const,
             ignoredDirectiveStreak: 0,
             lowProgressStreak: 0,
+            discoveries: [],
+            contextInjectionsReceived: 0,
+            researchDigestBuilt: false,
           })),
           crossPatterns: corpusResult.crossPatterns,
           interventions: corpusResult.interventions,
