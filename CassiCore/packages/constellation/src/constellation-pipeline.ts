@@ -888,12 +888,10 @@ export async function runConstellationPipeline(
     })
 
     // Race between completion and cancellation
-    const promise = Promise.race([helixPromise, cancelPromise]).finally(() => {
-      // Close branch in corpus tree
-      corpusTree.closeBranch(helixId, node.status === 'completed' ? 'completed' : 'failed')
-      // Unregister from cross-Helix dialectic
-      crossHelixDialectic?.unregisterBranch(helixId)
-    })
+    // NOTE: Do NOT chain .finally() here — node.status is set in the .then()/.catch()
+    // below. Chaining .finally() on the race would execute before .then(), causing
+    // branches to always be closed as 'failed' (the initial status).
+    const promise = Promise.race([helixPromise, cancelPromise])
 
     const runningHelix: RunningHelix = {
       helixId,
@@ -926,6 +924,10 @@ export async function runConstellationPipeline(
         onNodeCompleted?.(node)
       })
       .finally(async () => {
+        // Close branch in corpus tree — node.status is now correct after .then()/.catch()
+        corpusTree.closeBranch(helixId, node.status === 'completed' ? 'completed' : 'failed')
+        // Unregister from cross-Helix dialectic
+        crossHelixDialectic?.unregisterBranch(helixId)
         // Stop Brainstem mini-Helix sidecar if it was running
         const rh = runningHelixes.get(helixId)
         if (rh?.brainstemMiniHelix) {

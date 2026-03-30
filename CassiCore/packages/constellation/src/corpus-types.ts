@@ -472,7 +472,7 @@ export interface BranchAssessment {
   /** Most frequent annotation type in recent steps */
   dominantPattern: WorkUnitAnnotation | 'none'
 
-  /** Files this Helix has modified (for conflict detection) */
+  /** File paths this Helix has modified (extracted from tool calls, for conflict detection) */
   filesModified: Set<string>
 
   /** Consecutive steps with declining scores */

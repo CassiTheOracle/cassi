@@ -396,9 +396,24 @@ export class Corpus {
     }
     assessment.dominantPattern = dominant
 
-    // Track files modified (using workUnitId as proxy)
+    // Track files modified (extract actual file paths from tool calls)
     for (const step of newSteps) {
-      assessment.filesModified.add(step.annotation.workUnitId)
+      if (step.toolCalls) {
+        for (const tc of step.toolCalls) {
+          // Match file-modifying tool operations
+          if (/write|edit|cassi_write|cassi_edit|cassi_file|write_file|replace_content|replace_symbol|insert_after|insert_before/.test(tc.name)) {
+            try {
+              const args = typeof tc.args === 'string' ? JSON.parse(tc.args) : tc.args
+              const filePath = args?.path ?? args?.filePath ?? args?.relative_path
+              if (filePath && typeof filePath === 'string') {
+                assessment.filesModified.add(filePath)
+              }
+            } catch {
+              // Args parsing failed — skip this tool call
+            }
+          }
+        }
+      }
     }
 
     // Track declining score streak
@@ -535,7 +550,8 @@ export class Corpus {
       })
     }
 
-    // De-duplicate against existing patterns
+    // De-duplicate against existing patterns (tight 15s window to avoid spam)
+    const now = Date.now()
     const newPatterns: CrossHelixPattern[] = []
     for (const pattern of patterns) {
       const isDuplicate = this.state.crossPatterns.some(
@@ -543,7 +559,7 @@ export class Corpus {
           existing.type === pattern.type &&
           existing.helixIds.length === pattern.helixIds.length &&
           existing.helixIds.every((id) => pattern.helixIds.includes(id)) &&
-          Date.now() - existing.detectedAt < 60000 // Within 1 minute
+          now - existing.detectedAt < 15000 // Within 15 seconds (was 60s — caused 31+ dupes)
       )
       if (!isDuplicate) {
         newPatterns.push(pattern)
@@ -554,6 +570,11 @@ export class Corpus {
           severity: pattern.severity,
         })
       }
+    }
+
+    // Prune old patterns to prevent unbounded growth (keep last 50)
+    if (this.state.crossPatterns.length > 50) {
+      this.state.crossPatterns = this.state.crossPatterns.slice(-50)
     }
 
     return newPatterns
