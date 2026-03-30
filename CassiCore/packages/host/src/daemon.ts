@@ -1516,9 +1516,15 @@ export class Daemon {
           'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
         })
 
+        const sdkModelForLumen = this.config.get<string>('providers.copilotSdk.defaultModel', 'claude-opus-4.6')
         const makeLumenChain = (slot: string) => ({
           slotName: slot,
-          chain: [{ role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 }],
+          chain: [
+            // Prefer copilot-sdk when available — collapses tool loops into 1 premium request.
+            // Always included; ModelPool.acquire() gracefully skips if provider not yet connected.
+            { role: slot, provider: 'copilot-sdk', model: sdkModelForLumen, priority: 20 },
+            { role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+          ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         })
 
@@ -1566,15 +1572,48 @@ export class Daemon {
         })
 
         const { ModelPool: DyadModelPool } = await import('./model-pool/index.js')
+        const sdkModelForDyad = this.config.get<string>('providers.copilotSdk.defaultModel', 'claude-opus-4.6')
         const makeDyadChain = (slot: string) => ({
           slotName: slot,
-          chain: [{ role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 }],
+          chain: [
+            // Prefer copilot-sdk when available — collapses tool loops into 1 premium request.
+            // Always included; ModelPool.acquire() gracefully skips if provider not yet connected.
+            { role: slot, provider: 'copilot-sdk', model: sdkModelForDyad, priority: 20 },
+            { role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+          ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         })
+
+        // Brainstem is a cheap analysis task (400 tokens max) — skip premium copilot-sdk
+        const brainstemChainForDyad = {
+          slotName: 'brainstem',
+          chain: [
+            { role: 'brainstem', provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+          ],
+          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+        }
+        // Mini-Helix Corpus: lightweight scoring — use affordable model
+        const miniHelixCorpusChainForDyad = {
+          slotName: 'mini-helix:corpus',
+          chain: [
+            { role: 'mini-helix:corpus', provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+          ],
+          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+        }
+        // Mini-Helix Brainstem: lightweight analysis — use fast model
+        const miniHelixBrainstemChainForDyad = {
+          slotName: 'mini-helix:brainstem',
+          chain: [
+            { role: 'mini-helix:brainstem', provider: 'github-copilot', model: 'gpt-5-mini', priority: 15 },
+            { role: 'mini-helix:brainstem', provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+          ],
+          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+        }
+
         const dyadModelPool = new DyadModelPool({
           logger: this.logger.child('dyad-pool'),
           eventBus: this.bus,
-          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex'), makeDyadChain('unity'), makeDyadChain('helix'), makeDyadChain('mini-helix:corpus'), makeDyadChain('mini-helix:brainstem')],
+          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex'), makeDyadChain('unity'), makeDyadChain('helix'), brainstemChainForDyad, miniHelixCorpusChainForDyad, miniHelixBrainstemChainForDyad],
           budgetScopes: [],
           defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
           auditEnabled: false,
@@ -2207,12 +2246,14 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Brainstem + Corpus scoring.
-        // Uses alibaba-coding with kimi-k2.5 — the same provider+model used
-        // by constellation Helix postures for consistency.
+        // Prefers github-copilot/gpt-5-mini (fast, lightweight, good for scoring tasks)
+        // with alibaba-coding/kimi-k2.5 as fallback. The CorpusLLM uses tight timeouts
+        // (8s) so a fast model is critical to avoid timeout cascades.
         if (this.intelligence?.setCorpusLLMProvider) {
           try {
-            const corpusProviderId = 'alibaba-coding'
-            const corpusModel = 'kimi-k2.5'
+            // Try github-copilot first (gpt-5-mini is fast and cheap for scoring tasks)
+            const corpusProviderId = providers.has('github-copilot') ? 'github-copilot' : 'alibaba-coding'
+            const corpusModel = providers.has('github-copilot') ? 'gpt-5-mini' : 'kimi-k2.5'
             const corpusProvider = providers.get(corpusProviderId) ?? providers.values().next().value
             if (corpusProvider) {
               this.intelligence.setCorpusLLMProvider(corpusProvider, corpusModel)
