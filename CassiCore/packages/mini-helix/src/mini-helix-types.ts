@@ -120,13 +120,13 @@ export const MINI_HELIX_DEFAULTS: Record<MiniHelixConsumer, Partial<MiniHelixCon
     maxIterationsPerCycle: 50,
     maxTokens: 2048,
     cycleTimeoutMs: 120_000,
-    modelTier: 'balanced',  // Overridden to Qwen3 Max via modelName in pipeline
+    modelTier: 'qwen',       // Qwen3 Max via alibaba-coding
   },
   brainstem: {
     maxIterationsPerCycle: 30,
     maxTokens: 1024,
     cycleTimeoutMs: 60_000,
-    modelTier: 'fast',      // Overridden to GPT-5-Mini via modelName in pipeline
+    modelTier: 'background', // GPT-5-Mini via github-copilot
   },
 }
 
