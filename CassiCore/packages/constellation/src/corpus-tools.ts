@@ -36,6 +36,7 @@ import type {
 import type { GuidanceUrgency } from '../helix/brainstem-types.js'
 import type { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import type { ILogger } from '../../../types/interfaces.js'
+import type { IMemory } from '../../../types/intelligence.js'
 
 
 // ═══════════════════════════════════════════════════════════════════

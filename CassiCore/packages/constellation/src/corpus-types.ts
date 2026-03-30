@@ -1274,3 +1274,49 @@ export interface ContextInjection {
   /** When injected */
   timestamp: number
 }
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Memory Injection Types — Branch-level Memory Continuity
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Memory context injected into a Helix branch at startup.
+ * Provides past-run continuity for new branches.
+ */
+export interface BranchMemoryContext {
+  /** Helix ID this context is for */
+  helixId?: string
+  /** Goal of the branch */
+  goal?: string
+  /** Search query used to find memories */
+  searchQuery?: string
+  /** Retrieved memory entries, ranked by relevance */
+  memories: InjectedMemory[]
+  /** Total relevant memories found (may exceed injected count) */
+  totalFound?: number
+  /** Total available memories (alias for totalFound) */
+  totalAvailable?: number
+  /** When memory injection occurred */
+  injectedAt: number
+}
+
+/**
+ * A single memory entry injected into a branch.
+ */
+export interface InjectedMemory {
+  /** Memory content */
+  content: string
+  /** Relevance score (0-1) */
+  relevance: number
+  /** Memory type/category */
+  type: string
+  /** When the memory was originally created (epoch ms) */
+  createdAt: number
+  /** Optional tags */
+  tags?: string[]
+  /** Whether this memory is pinned */
+  pinned?: boolean
+  /** Importance score */
+  importance?: number
+}
