@@ -313,6 +313,12 @@ export interface HelixOrchestrator {
 }
 
 
+/**
+ * @dep callers: createIntelligence (core/intelligence/index.ts), helix-wiring.test.ts (tests/helix-wiring.test.ts)
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function createHelix(
   logger: ILogger,
   eventBus?: IEventBus,
@@ -749,3 +755,11 @@ export const HELIX_MODEL_SLOTS = {
   YIN: 'helix.yin',
   MENTOR: 'helix.mentor',
 } as const
+
+// ── Brainstem Mini-Helix ───────────────────────────────────────────────────
+
+export { BrainstemMiniHelix } from './brainstem-mini-helix.js'
+export type { BrainstemMiniHelixConfig } from './brainstem-mini-helix.js'
+
+export { createBrainstemTools, buildBrainstemSystemPrompt } from './brainstem-tools.js'
+export type { BrainstemToolContext } from './brainstem-tools.js'
