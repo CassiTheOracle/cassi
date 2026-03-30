@@ -285,7 +285,7 @@ class ConstellationCellImpl implements ConstellationCell {
         })
       }
 
-      this.status = result.outcome === 'success' ? 'completed' : result.outcome
+      this.status = result.outcome === 'success' ? 'completed' : result.outcome === 'failure' ? 'error' : result.outcome
 
       this.deps.logger.info('constellation:cell:execute:complete', {
         cellId: this.cellId,
@@ -437,7 +437,7 @@ class ConstellationCellImpl implements ConstellationCell {
     }
 
     const child = createConstellationCell(childConfig, this.deps)
-    child.setParent(this)
+    ;(child as ConstellationCellImpl).parent = this
     this.children.set(childId, child)
 
     this.deps.onChildSpawn?.(this, child)
@@ -445,7 +445,7 @@ class ConstellationCellImpl implements ConstellationCell {
     this.deps.logger.debug('constellation:cell:child-spawned', {
       parentId: this.cellId,
       childId,
-      depth: childConfig.hierarchy.depth,
+      depth: childConfig.hierarchy!.depth,
     })
 
     return child
@@ -479,7 +479,7 @@ class ConstellationCellImpl implements ConstellationCell {
 
   receiveFromParent(): HierarchyMessage[] {
     if (!this.parent) return []
-    return this.parent.inbox.get(this.cellId) || []
+    return (this.parent as ConstellationCellImpl).inbox.get(this.cellId) || []
   }
 
   receiveFromChildren(): HierarchyMessage[] {
@@ -508,7 +508,7 @@ class ConstellationCellImpl implements ConstellationCell {
         return true // Simplified
       case 'consensus':
         // Check if agreement level meets threshold
-        return context.lastResult?.confidence >= (node.condition.threshold || 0.8)
+        return (context.lastResult?.confidence ?? 0) >= (node.condition.threshold || 0.8)
       default:
         return true
     }
@@ -668,7 +668,7 @@ export class UnifiedTopologyEngine {
 
     switch (condition.type) {
       case 'consensus':
-        return result.helixResult?.confidence >= (condition.threshold || 0.8)
+        return (result.helixResult?.confidence ?? 0) >= (condition.threshold || 0.8)
       default:
         return true
     }
