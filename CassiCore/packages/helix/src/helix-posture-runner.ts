@@ -1971,11 +1971,15 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     const filesModified: FileChange[] = []
 
     for (const tc of toolCalls) {
-      if (tc.name === 'write' || tc.name === 'edit' || tc.name === 'cassi_write' || tc.name === 'cassi_edit') {
+      if (
+        tc.name === 'write' || tc.name === 'edit' ||
+        tc.name === 'write_file' || tc.name === 'file_artifact_write' ||
+        tc.name === 'cassi_write' || tc.name === 'cassi_edit'
+      ) {
         const path = String(tc.input?.path ?? tc.input?.filePath ?? 'unknown')
         filesModified.push({
           path,
-          action: tc.name.includes('write') ? 'created' : 'modified',
+          action: (tc.name === 'edit' || tc.name === 'cassi_edit') ? 'modified' : 'created',
           summary: `${tc.name} on ${path}`,
         })
       }
