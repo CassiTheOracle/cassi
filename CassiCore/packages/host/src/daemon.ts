@@ -1574,7 +1574,7 @@ export class Daemon {
         const dyadModelPool = new DyadModelPool({
           logger: this.logger.child('dyad-pool'),
           eventBus: this.bus,
-          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex'), makeDyadChain('unity'), makeDyadChain('helix')],
+          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex'), makeDyadChain('unity'), makeDyadChain('helix'), makeDyadChain('mini-helix:corpus'), makeDyadChain('mini-helix:brainstem')],
           budgetScopes: [],
           defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
           auditEnabled: false,
