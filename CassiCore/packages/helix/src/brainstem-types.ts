@@ -115,9 +115,9 @@ export type GuidanceUrgency =
 export interface BrainstemAnnotation {
   /** Which work unit this annotates */
   workUnitId: string
-  /** Quality score (0-1) with reasoning */
+  /** Composite quality score (0-1) — weighted average of dimensional scores */
   score: number
-  /** Work unit classification */
+  /** Work unit classification (kept for logging/display/training) */
   annotation: WorkUnitAnnotation
   /** Synthesized reviewer dialectic (or empty if no new dialectic) */
   synthesis: string
@@ -133,6 +133,14 @@ export interface BrainstemAnnotation {
   axonStep: number
   /** Timestamp */
   timestamp: number
+
+  // ─── Dimensional Scores (0-1 each) ────────────────────────────────
+  /** How aligned is this work with the branch's goal? 0=completely off-target, 1=directly advancing the goal */
+  goalAlignment: number
+  /** How much new information or capability did this step produce? 0=re-reading known content, 1=entirely new insight */
+  novelty: number
+  /** How much closer is the branch to completion? 0=no measurable progress, 1=significant concrete advancement */
+  progress: number
 }
 
 // ─── State ────────────────────────────────────────────────────────────────

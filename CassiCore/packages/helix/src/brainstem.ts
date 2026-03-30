@@ -675,6 +675,9 @@ export class HelixBrainstem {
         trainingNote: `Error processing work unit: ${error instanceof Error ? error.message : String(error)}`,
         axonStep: this.state.currentAxonStep,
         timestamp: Date.now(),
+        goalAlignment: 0.5,
+        novelty: 0.5,
+        progress: 0.3,
       }
 
       this.updateState(fallbackAnnotation)
@@ -717,21 +720,23 @@ export class HelixBrainstem {
         ).join('\n')}\nThese are direct reports from the execution loop. Address blockers in GUIDANCE, acknowledge phase changes, and answer questions.`
       : ''
 
-    // Build annotation history section — gives brainstem memory of past decisions
-    const recentAnnotations = this.state.annotations.slice(-8)
-    const annotationHistorySection = recentAnnotations.length > 0
-      ? `\n## My Previous Assessments (last ${recentAnnotations.length})\n${recentAnnotations.map(a =>
-          `- Step ${a.axonStep}: score=${a.score.toFixed(2)} [${a.annotation}] pattern=${a.pattern}${a.guidance ? ` → guidance: "${a.guidance.slice(0, 120)}"` : ''}`
-        ).join('\n')}`
+    // Build annotation history section — gives brainstem full trajectory context
+    // for intelligent phase-aware scoring. Full history lets the LLM judge whether
+    // continued reading is warranted given how much has already been read.
+    const allAnnotations = this.state.annotations
+    const trajectorySection = allAnnotations.length > 0
+      ? `\n## Full Session Trajectory (${allAnnotations.length} steps)\n${allAnnotations.map(a =>
+          `- Step ${a.axonStep}: [${a.annotation}] score=${a.score.toFixed(2)} goal=${a.goalAlignment.toFixed(2)} novelty=${a.novelty.toFixed(2)} progress=${a.progress.toFixed(2)} pattern=${a.pattern}${a.guidance ? ` → guided` : ''}`
+        ).join('\n')}\n\n### Phase Summary\n${this.buildPhaseSummary()}`
       : ''
 
-    return `I am the cognitive organizer of this session. I observe the execution loop, the reviewer dialectic, and the evolving thought chain. My role is to score, annotate, detect patterns, and provide self-guidance.
+    return `I am the cognitive organizer of this session. I observe the execution loop, the reviewer dialectic, and the evolving thought chain. My role is to score on multiple dimensions, annotate, detect patterns, and provide self-guidance when needed.
 
 ## Session Goal
 ${this.deps.goal}
 
 ## Current Step
-${this.state.currentAxonStep}${annotationHistorySection}
+${this.state.currentAxonStep}${trajectorySection}
 
 ## Work Unit to Analyze
 - ID: ${workUnit.id}
@@ -750,54 +755,118 @@ ${toolResults || '(none)'}
 ## Files Changed
 ${filesChanged || '(none)'}${dialecticSection}${recentDialecticSection}${unityReportsSection}
 
-## Quality Trajectory
-Recent scores: ${this.state.qualityTrajectory.slice(-5).join(', ') || 'N/A'}
-Consecutive explorations: ${this.state.consecutiveExplorations}
-Consecutive drifts: ${this.state.consecutiveDrifts}
-
 ## Task
 Analyze this work unit and provide:
 
-SCORE: <number between 0 and 1>
-ANNOTATION: <exploration|implementation|testing|revision|drift>
+GOAL_ALIGNMENT: <number 0-1>
+NOVELTY: <number 0-1>
+PROGRESS: <number 0-1>
+ANNOTATION: <exploration|research|implementation|testing|revision|drift>
 SYNTHESIS: <brief synthesis of reviewer dialectic, or NONE>
 PATTERN: <none|paralysis|drift|convergence|stalling>
 GUIDANCE: <first-person self-guidance, or NONE>
 TRAINING_NOTE: <human-readable note explaining the scoring>
 
-Guidelines:
-- Score based on progress toward goal, code quality, and appropriate tool use
-- CRITICAL: If the current work is UNRELATED to the Session Goal, set ANNOTATION to "drift", PATTERN to "drift", and SCORE below 0.3. Provide guidance redirecting back to the goal.
-- annotation: exploration=reading/searching, implementation=writing code, testing=verification, revision=fixing, drift=off-goal
-- pattern: paralysis=reading without writing, drift=diverging from goal, stalling=repeating without progress, convergence=reviewers agree
+Dimensional scoring rules:
+- GOAL_ALIGNMENT: How relevant is this step to the Session Goal? 1.0 = directly advancing the goal. 0.0 = completely unrelated work.
+- NOVELTY: How much new information or capability did this step produce? 1.0 = entirely new insight or code. 0.0 = re-reading already-seen content or repeating prior work.
+- PROGRESS: How much closer is the branch to completion? 1.0 = major concrete advancement (files created, tests passing). 0.0 = no measurable progress toward done.
+
+Annotation labels (for classification, not scoring):
+- exploration: reading/searching files to understand the codebase
+- research: deep investigation, cross-referencing multiple sources, hypothesis testing
+- implementation: writing code, creating/modifying files
+- testing: running tests, verification, validation
+- revision: fixing based on test results or review feedback
+- drift: work that is unrelated to the Session Goal
+
+Pattern detection:
+- none: healthy progress — no intervention needed
+- paralysis: low novelty + low progress for multiple steps (regardless of read/write mix)
+- drift: low goal_alignment — work is diverging from the Session Goal
+- stalling: repeated similar actions without measurable progress
+- convergence: reviewers agree on something important
+
+Critical rules:
+- Reading files IS productive when goal_alignment and novelty are high. Do NOT penalize exploration or research that is on-goal and discovering new information.
+- Reading files is UNPRODUCTIVE when novelty is low (re-reading known content) or goal_alignment is low (reading irrelevant files).
+- The pattern field should reflect YOUR assessment. If the trajectory shows 10 steps of exploration with declining novelty, set pattern=paralysis even if this individual step looks fine.
 - Write GUIDANCE in first person as self-directed thought (e.g., "I should shift to implementation now" not "Do X immediately")
 - If a blocker was reported, address it in GUIDANCE
 - Be concise — this runs in a tight loop`;
   }
 
   /**
+   * Build a compact phase summary from the full annotation trajectory.
+   * Helps the LLM understand where the branch has spent its time.
+   */
+  private buildPhaseSummary(): string {
+    const annotations = this.state.annotations
+    if (annotations.length === 0) return 'No steps yet.'
+
+    // Count phases
+    const phaseCounts: Record<string, number> = {}
+    const phaseScores: Record<string, { goal: number[]; novelty: number[]; progress: number[] }> = {}
+    for (const a of annotations) {
+      phaseCounts[a.annotation] = (phaseCounts[a.annotation] ?? 0) + 1
+      if (!phaseScores[a.annotation]) {
+        phaseScores[a.annotation] = { goal: [], novelty: [], progress: [] }
+      }
+      phaseScores[a.annotation].goal.push(a.goalAlignment)
+      phaseScores[a.annotation].novelty.push(a.novelty)
+      phaseScores[a.annotation].progress.push(a.progress)
+    }
+
+    const avg = (arr: number[]) => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : '0.00'
+
+    const lines = Object.entries(phaseCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([phase, count]) => {
+        const s = phaseScores[phase]
+        return `- ${phase}: ${count} steps (avg goal=${avg(s.goal)} novelty=${avg(s.novelty)} progress=${avg(s.progress)})`
+      })
+
+    // Add overall trajectory direction
+    const recent5 = annotations.slice(-5)
+    const avgRecentProgress = recent5.length ? recent5.reduce((s, a) => s + a.progress, 0) / recent5.length : 0
+    const avgRecentNovelty = recent5.length ? recent5.reduce((s, a) => s + a.novelty, 0) / recent5.length : 0
+    lines.push(`- Last 5 steps: avg progress=${avgRecentProgress.toFixed(2)}, avg novelty=${avgRecentNovelty.toFixed(2)}`)
+
+    return lines.join('\n')
+  }
+
+  /**
    * Parse LLM response into annotation fields
    */
   private parseAnnotation(response: string, workUnitId: string): BrainstemAnnotation {
-    const scoreMatch = response.match(/SCORE:\s*([\d.]+)/i)
+    // Parse dimensional scores
+    const goalAlignmentMatch = response.match(/GOAL_ALIGNMENT:\s*([\d.]+)/i)
+    const noveltyMatch = response.match(/NOVELTY:\s*([\d.]+)/i)
+    const progressMatch = response.match(/PROGRESS:\s*([\d.]+)/i)
     const annotationMatch = response.match(/ANNOTATION:\s*(\w+)/i)
     const synthesisMatch = response.match(/SYNTHESIS:\s*([^\n]+)/i)
     const patternMatch = response.match(/PATTERN:\s*(\w+)/i)
     const guidanceMatch = response.match(/GUIDANCE:\s*([^\n]+)/i)
     const trainingNoteMatch = response.match(/TRAINING_NOTE:\s*([^\n]+)/i)
 
-    // Parse score with bounds checking
-    let score = 0.5
-    if (scoreMatch) {
-      const parsed = parseFloat(scoreMatch[1])
-      if (!isNaN(parsed)) {
-        score = Math.max(0, Math.min(1, parsed))
-      }
+    // Parse dimensional scores with bounds checking
+    const parseDimension = (match: RegExpMatchArray | null, fallback: number): number => {
+      if (!match) return fallback
+      const parsed = parseFloat(match[1])
+      return isNaN(parsed) ? fallback : Math.max(0, Math.min(1, parsed))
     }
+
+    const goalAlignment = parseDimension(goalAlignmentMatch, 0.5)
+    const novelty = parseDimension(noveltyMatch, 0.5)
+    const progress = parseDimension(progressMatch, 0.3)
+
+    // Composite score: weighted average of dimensions
+    // Progress weighted highest because it's the strongest signal of actual advancement
+    const score = goalAlignment * 0.3 + novelty * 0.3 + progress * 0.4
 
     // Parse annotation type
     const annotationType = annotationMatch?.[1]?.toLowerCase() as WorkUnitAnnotation
-    const validAnnotations: WorkUnitAnnotation[] = ['exploration', 'implementation', 'testing', 'revision', 'drift']
+    const validAnnotations: WorkUnitAnnotation[] = ['exploration', 'research', 'implementation', 'testing', 'revision', 'drift']
     const annotation: WorkUnitAnnotation = validAnnotations.includes(annotationType)
       ? annotationType
       : 'exploration'
@@ -819,13 +888,13 @@ Guidelines:
       ? guidanceText
       : null
 
-    // Determine urgency based on pattern and score
+    // Determine urgency based on pattern and dimensional scores
     let urgency: GuidanceUrgency = 'low'
-    if (pattern === 'paralysis' || score < 0.3) {
+    if (pattern === 'paralysis' || (goalAlignment < 0.2 && progress < 0.2)) {
       urgency = 'critical'
-    } else if (pattern === 'drift' || score < 0.5) {
+    } else if (pattern === 'drift' || goalAlignment < 0.3) {
       urgency = 'high'
-    } else if (pattern === 'stalling') {
+    } else if (pattern === 'stalling' || (novelty < 0.2 && progress < 0.2)) {
       urgency = 'medium'
     }
 
@@ -843,6 +912,9 @@ Guidelines:
       trainingNote,
       axonStep: this.state.currentAxonStep,
       timestamp: Date.now(),
+      goalAlignment,
+      novelty,
+      progress,
     }
   }
 
@@ -853,25 +925,18 @@ Guidelines:
     this.state.annotations.push(annotation)
     this.state.qualityTrajectory.push(annotation.score)
 
-    // Update consecutive counters
-    // Score-aware paralysis: only count low-scoring explorations toward
-    // paralysis. High-scoring exploration (>= paralysisScoreThreshold)
-    // indicates productive research, not spinning wheels.
-    if (annotation.annotation === 'exploration') {
-      if (annotation.score < this.config.paralysisScoreThreshold) {
-        this.state.consecutiveExplorations++
-      }
-      // High-scoring exploration — productive research, don't count
-      // but also don't reset the counter (a run of low-score explorations
-      // interspersed with one high-score one shouldn't reset)
-    } else {
-      this.state.consecutiveExplorations = 0
-    }
-
+    // Track drift for state reporting (no intervention logic — that's the LLM's job)
     if (annotation.annotation === 'drift') {
       this.state.consecutiveDrifts++
     } else {
       this.state.consecutiveDrifts = 0
+    }
+
+    // Track explorations for state reporting only
+    if (annotation.annotation === 'exploration' || annotation.annotation === 'research') {
+      this.state.consecutiveExplorations++
+    } else {
+      this.state.consecutiveExplorations = 0
     }
 
     // Update pattern detections
@@ -881,70 +946,25 @@ Guidelines:
   }
 
   /**
-   * Detect patterns and produce guidance if needed
+   * Detect patterns and produce guidance if needed.
+   *
+   * Pattern detection is now LLM-driven: the Brainstem LLM scores each work unit
+   * with dimensional scores (goalAlignment, novelty, progress) and sets the pattern
+   * field based on full trajectory awareness. We trust its judgment.
+   *
+   * The only hardcoded check remaining is stagnation: a pure score-trajectory
+   * check that fires when rolling average drops below threshold over many steps.
+   * This is a safety net for cases where the LLM itself is scoring poorly.
    */
   private detectPatternsAndProduceGuidance(annotation: BrainstemAnnotation): void {
-    // Forced phase transition: after maxExplorationSteps consecutive explorations,
-    // inject a critical guidance that bypasses cooldown (treated like a Corpus directive).
-    // This is the nuclear option — only fires when all softer steering has failed.
-    if (
-      annotation.annotation === 'exploration' &&
-      this.state.consecutiveExplorations >= this.config.maxExplorationSteps
-    ) {
-      this.state.totalPatternDetections++
-      const guidance: PendingGuidance = {
-        text: `I have been exploring for ${this.state.consecutiveExplorations} consecutive steps without producing concrete output. ` +
-          `I need to either: (1) implement a concrete change based on what I have learned, ` +
-          `(2) write a summary of findings and conclude, or (3) identify one specific sub-task and focus on it. ` +
-          `I should stop reading more files and start acting on what I already know.`,
-        urgency: 'critical',
-        fromStep: this.state.currentAxonStep,
-        triggeredBy: 'corpus:forced-transition' as any, // Treated as corpus to bypass cooldown
-        timestamp: Date.now(),
-      }
-      this.queueGuidance(guidance)
-      this.state.consecutiveExplorations = 0 // Reset
-      return
-    }
-
-    // Check for paralysis pattern
-    if (this.state.consecutiveExplorations >= this.config.paralysisThreshold) {
-      this.state.totalPatternDetections++
-      const guidance: PendingGuidance = {
-        text: 'I have been reading without writing for too long. I should start implementing now.',
-        urgency: 'critical',
-        fromStep: this.state.currentAxonStep,
-        triggeredBy: 'paralysis',
-        timestamp: Date.now(),
-      }
-      this.queueGuidance(guidance)
-      this.state.consecutiveExplorations = 0 // Reset after producing guidance
-      return
-    }
-
-    // Check for drift pattern
-    if (this.state.consecutiveDrifts >= this.config.driftThreshold) {
-      this.state.totalPatternDetections++
-      const guidance: PendingGuidance = {
-        text: `I need to refocus on the goal: ${this.deps.goal}. My current work appears to be diverging.`,
-        urgency: 'high',
-        fromStep: this.state.currentAxonStep,
-        triggeredBy: 'drift',
-        timestamp: Date.now(),
-      }
-      this.queueGuidance(guidance)
-      this.state.consecutiveDrifts = 0 // Reset after producing guidance
-      return
-    }
-
-    // Check for stagnation pattern — many steps with persistently low scores.
-    // Unlike paralysis (which detects consecutive reads), stagnation detects
-    // a long-running branch that isn't making progress regardless of step type.
+    // Stagnation check — many steps with persistently low composite scores.
+    // This is a safety net that fires regardless of what the LLM says,
+    // because if the LLM is scoring everything low for 10+ steps, something
+    // is fundamentally wrong and we need to intervene.
     if (
       this.state.currentAxonStep >= this.config.stagnationStepThreshold &&
       this.state.qualityTrajectory.length >= this.config.stagnationStepThreshold
     ) {
-      // Compute rolling average of the last N scores
       const window = this.state.qualityTrajectory.slice(-this.config.stagnationStepThreshold)
       const avgScore = window.reduce((a, b) => a + b, 0) / window.length
 
@@ -953,7 +973,7 @@ Guidelines:
         this.state.totalPatternDetections++
         const guidance: PendingGuidance = {
           text: `I have been running for ${this.state.currentAxonStep} steps with average score ${avgScore.toFixed(2)}. ` +
-            `I should consider: (1) narrowing scope to the most impactful sub-task, (2) switching from exploration to implementation, ` +
+            `I should consider: (1) narrowing scope to the most impactful sub-task, (2) switching approach entirely, ` +
             `or (3) concluding with current findings if further progress is unlikely.`,
           urgency: 'critical',
           fromStep: this.state.currentAxonStep,
@@ -965,7 +985,8 @@ Guidelines:
       }
     }
 
-    // Queue guidance from annotation if present
+    // LLM-generated guidance passthrough — the Brainstem LLM has full trajectory
+    // context and dimensional scores. If it decided guidance is needed, trust it.
     if (annotation.guidance) {
       const guidance: PendingGuidance = {
         text: annotation.guidance,
