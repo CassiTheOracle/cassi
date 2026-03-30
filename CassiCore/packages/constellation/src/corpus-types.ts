@@ -107,17 +107,45 @@ export interface ICorpusTree {
 
   /** Number of active branches. */
   activeBranchCount(): number
+
+  // ── Shared Thought Tree extensions ────────────────────────────────
+
+  /** Update a branch's digest (compact summary of its current state). */
+  updateDigest(helixId: string, digest: BranchDigest): void
+
+  /** Get all digests except the caller's own, for peer awareness. */
+  getDigestsExcluding(helixId: string): BranchDigest[]
+
+  /** Get digests filtered by relevance (file overlap, goal similarity). No artificial truncation. */
+  getRelevantDigests(helixId: string): BranchDigest[]
+
+  /** Create a new shared topic node. Returns the topic ID. */
+  createTopic(name: string, createdBy: string, contribution: TopicContribution): string
+
+  /** Add a contribution to an existing topic. */
+  contributeTopic(topicId: string, contribution: TopicContribution): void
+
+  /** Find topics relevant to a set of files and goal keywords. */
+  findRelatedTopics(files: string[], goalKeywords: string[]): TopicNode[]
+
+  /** Get all topic nodes. */
+  getAllTopics(): TopicNode[]
+
+  /** Record a strategy retrospective (why an approach changed). */
+  recordRetrospective(helixId: string, retrospective: StrategyRetrospective): void
+
+  /** Get all retrospectives across the constellation. */
+  getAllRetrospectives(): StrategyRetrospective[]
+
+  /** Elevate a successful pattern to the constellation-level pattern library. */
+  elevatePattern(pattern: ElevatedPattern): void
+
+  /** Get all elevated patterns (constellation-level knowledge). */
+  getElevatedPatterns(): ElevatedPattern[]
 }
 
 
 // ── Tree Snapshot (for Cassi / progress reporting) ────────────────
-
-export interface CorpusTreeSnapshot {
-  branches: CorpusBranchSnapshot[]
-  totalSteps: number
-  activeBranches: number
-  snapshotAt: number
-}
 
 export interface CorpusBranchSnapshot {
   helixId: string
@@ -132,11 +160,266 @@ export interface CorpusBranchSnapshot {
   averageScore: number
   createdAt: number
   closedAt?: number
+  /** Branch digest if available (Shared Thought Tree) */
+  digest?: BranchDigest
 }
 
 
 // ═══════════════════════════════════════════════════════════════════
-// Corpus Processed State — The Corpus's own organized view
+// Shared Thought Tree — Self-Organizing Constellation
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Branch Digest — A compact, Brainstem-generated summary of a Helix's
+ * current state. Published to the shared tree so peer Helixes can read
+ * each other's progress without parsing raw annotations.
+ *
+ * Brainstems auto-generate digests every N work units. No LLM call —
+ * purely local aggregation from existing annotation data.
+ *
+ * With 128k context windows, we can afford full untruncated digests
+ * for all branches. Budget target: ~16k total for tree awareness.
+ */
+export interface BranchDigest {
+  /** Which Helix produced this digest */
+  helixId: string
+  /** Truncated goal (first 200 chars) */
+  goalSummary: string
+  /** Current approach pattern */
+  approach: BranchApproach
+  /** Estimated progress (0-1) based on score trajectory and pattern shifts */
+  progress: number
+  /** Files being actively modified (from recent annotations) */
+  filesActive: string[]
+  /** Top findings from high-score annotations (score > 0.7) */
+  keyFindings: string[]
+  /** Blockers — from annotations with pattern 'stuck'/'paralysis' or low scores */
+  blockers: string[]
+  /** Strategy description — what the Helix is currently trying to do */
+  currentStrategy: string
+  /** Rolling quality score */
+  rollingScore: number
+  /** Total work units processed */
+  workUnitsProcessed: number
+  /** When this digest was last updated */
+  updatedAt: number
+  /** Why the approach last changed (if it did) — feeds self-awareness */
+  lastApproachChangeReason?: string
+}
+
+/**
+ * Approach patterns for a Helix branch.
+ * Extends WorkUnitAnnotation with higher-level strategic patterns.
+ */
+export type BranchApproach =
+  | 'exploration'      // reading, searching, gathering context
+  | 'research'         // deep investigation, cross-referencing, hypothesis testing
+  | 'implementation'   // writing code, creating files
+  | 'testing'          // running tests, verification
+  | 'debugging'        // fixing failures, tracing errors
+  | 'revision'         // iterating based on feedback
+  | 'coordinating'     // adjusting based on peer state (self-organization active)
+
+/**
+ * Shared topic node — emergent cross-cutting concerns that any Helix
+ * can read and contribute to. Topics are auto-created by Brainstems
+ * when they detect shared files, related goals, or cross-cutting insights.
+ *
+ * This is the stigmergic coordination mechanism: Helixes modify the
+ * shared environment (topics), and other Helixes react to those
+ * modifications, creating emergent order without explicit messaging.
+ */
+export interface TopicNode {
+  /** Auto-generated topic ID */
+  id: string
+  /** Human-readable topic name (e.g. "authentication middleware") */
+  name: string
+  /** Contributions from multiple Helixes */
+  contributions: TopicContribution[]
+  /** Whether contributions contain conflicting approaches */
+  tensionFlag: boolean
+  /** Description of the tension (if any) */
+  tensionDescription?: string
+  /** Files most relevant to this topic */
+  relatedFiles: string[]
+  /** When this topic was first created */
+  createdAt: number
+  /** Which Helix created it */
+  createdBy: string
+  /** When any Helix last contributed */
+  lastContributionAt: number
+}
+
+/**
+ * A single contribution to a shared topic node.
+ */
+export interface TopicContribution {
+  /** Which Helix contributed this */
+  helixId: string
+  /** The actual insight, finding, or observation */
+  content: string
+  /** Approach the contributing Helix was using */
+  approach: BranchApproach
+  /** Files related to this contribution */
+  files: string[]
+  /** Quality score of the work unit that produced this insight */
+  score: number
+  /** When this was contributed */
+  timestamp: number
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Self-Awareness — Retrospectives, Effectiveness, Pattern Library
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Strategy Retrospective — recorded when a Brainstem changes its approach.
+ * Answers "why did I change?" — builds a log of what worked and what didn't,
+ * enabling self-improvement across the constellation.
+ */
+export interface StrategyRetrospective {
+  /** Which Helix recorded this */
+  helixId: string
+  /** Previous approach */
+  fromApproach: BranchApproach
+  /** New approach */
+  toApproach: BranchApproach
+  /** Why the change was made */
+  reason: string
+  /** What triggered the change (self-org rule, corpus directive, score decline, etc.) */
+  trigger: RetrospectiveTrigger
+  /** Quality score at the time of change */
+  scoreAtChange: number
+  /** Quality score N steps after change (filled in later for effectiveness tracking) */
+  scoreAfterChange?: number
+  /** Number of steps after which scoreAfterChange was measured */
+  stepsAfterMeasured?: number
+  /** Whether this change improved things (filled in by effectiveness tracking) */
+  wasEffective?: boolean
+  /** When this retrospective was recorded */
+  timestamp: number
+}
+
+/** What triggered a strategy change */
+export type RetrospectiveTrigger =
+  | 'self-organization'  // peer state in the tree caused a redirect
+  | 'corpus-directive'   // the Corpus sent a directive
+  | 'score-decline'      // quality scores dropped
+  | 'pattern-detected'   // a pathological pattern was detected locally
+  | 'topic-tension'      // a shared topic showed conflicting approaches
+  | 'peer-convergence'   // multiple peers converged on a different approach
+  | 'goal-refinement'    // narrowed focus to avoid overlap with a peer
+  | 'manual'             // explicit user or external steering
+
+/**
+ * Elevated Pattern — a successful strategy that a completed branch
+ * demonstrated. Elevated to constellation-level knowledge so other
+ * branches (current and future) can learn from it.
+ *
+ * The pattern library is the constellation's long-term memory.
+ */
+export interface ElevatedPattern {
+  /** Auto-generated pattern ID */
+  id: string
+  /** Which Helix demonstrated this pattern */
+  sourceHelixId: string
+  /** What approach worked */
+  approach: BranchApproach
+  /** Description of the successful strategy */
+  description: string
+  /** What goal/context this pattern applies to */
+  applicableContext: string
+  /** Quality score the source branch achieved */
+  achievedScore: number
+  /** Files/modules this pattern is relevant to */
+  relevantFiles: string[]
+  /** Retrospectives that support this pattern (evidence chain) */
+  supportingRetrospectives: string[]
+  /** When this pattern was elevated */
+  elevatedAt: number
+  /** How many branches have referenced this pattern */
+  referenceCount: number
+}
+
+/**
+ * Self-organization adjustment — produced by a Brainstem's selfOrganize()
+ * method after reading the shared tree. Feeds into the guidance queue.
+ */
+export interface SelfOrgAdjustment {
+  /** What kind of adjustment */
+  type: SelfOrgAdjustmentType
+  /** Human-readable description */
+  description: string
+  /** Evidence from the tree that triggered this */
+  evidence: string
+  /** Source: which peer digest or topic triggered this */
+  sourceHelixId?: string
+  sourceTopicId?: string
+  /** Dampening counter — must reach threshold before taking effect */
+  dampeningCount: number
+  /** The threshold needed before this adjustment activates */
+  dampeningThreshold: number
+  /** When this was first generated */
+  firstGeneratedAt: number
+  /** When this was last confirmed (dampening tick) */
+  lastConfirmedAt: number
+}
+
+/** Types of self-organization adjustments */
+export type SelfOrgAdjustmentType =
+  | 'file-avoidance'       // back off files a peer is editing
+  | 'finding-incorporation' // pull a peer's finding into local context
+  | 'approach-redirect'    // change approach based on peer success
+  | 'goal-refinement'      // narrow focus to reduce overlap with peer
+  | 'tension-flag'         // flag conflicting approach for resolution
+  | 'pattern-adoption'     // adopt an elevated pattern from the library
+  | 'peer-assist'          // offer findings to a struggling peer via topic
+
+/**
+ * Effectiveness tracking entry — links a self-org adjustment to its
+ * measured outcome. This is how the constellation learns what works.
+ */
+export interface EffectivenessRecord {
+  /** Which adjustment was applied */
+  adjustmentType: SelfOrgAdjustmentType
+  /** Which Helix applied it */
+  helixId: string
+  /** Score before the adjustment */
+  scoreBefore: number
+  /** Score after the adjustment (measured N steps later) */
+  scoreAfter: number
+  /** Steps between measurement points */
+  stepsDelta: number
+  /** Net score change */
+  improvement: number
+  /** Was this considered effective? (improvement > 0) */
+  effective: boolean
+  /** When measured */
+  measuredAt: number
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Extended Tree Snapshot — includes shared thought tree state
+// ═══════════════════════════════════════════════════════════════════
+
+export interface CorpusTreeSnapshot {
+  branches: CorpusBranchSnapshot[]
+  totalSteps: number
+  activeBranches: number
+  snapshotAt: number
+  /** All branch digests (Shared Thought Tree) */
+  digests: BranchDigest[]
+  /** All shared topic nodes */
+  topics: TopicNode[]
+  /** Strategy retrospectives across the constellation */
+  retrospectives: StrategyRetrospective[]
+  /** Elevated patterns (constellation knowledge) */
+  elevatedPatterns: ElevatedPattern[]
+  /** Effectiveness records for self-organization tracking */
+  effectivenessRecords: EffectivenessRecord[]
+}
 // ═══════════════════════════════════════════════════════════════════
 
 /**
@@ -360,7 +643,43 @@ export interface CorpusConfig {
   enabled: boolean
   /** Interventions before auto-spawning a decomposition branch. Default: 5 */
   autoSpawnInterventionThreshold: number
+
+  // ── Safety-Net Cadence (Shared Thought Tree mode) ─────────
+
+  /**
+   * Corpus operating cadence. Default: 'safety-net'
+   *
+   * - 'active': Legacy mode — Corpus runs LLM analysis on every sweep
+   *   with new steps. Full directive authority exercised proactively.
+   *
+   * - 'safety-net': Self-organizing mode — Corpus runs LLM analysis
+   *   only when pathological patterns are detected or escalations arrive.
+   *   Routine coordination is handled by Brainstem self-organization
+   *   through the Shared Thought Tree.
+   */
+  cadence: CorpusCadence
+
+  /**
+   * In safety-net mode, minimum sweeps between LLM analyses even when
+   * pathology is detected. Prevents rapid-fire LLM calls. Default: 3
+   */
+  safetyNetMinSweepsBetweenAnalysis: number
+
+  /**
+   * Whether to use tool-based analysis (structured tool calls) instead
+   * of the legacy prompt/parse approach. Default: true
+   */
+  useToolBasedAnalysis: boolean
+
+  /**
+   * Maximum tool calls per Corpus analysis cycle. Prevents runaway
+   * tool loops. Default: 10
+   */
+  maxToolCallsPerCycle: number
 }
+
+/** Corpus operating cadence */
+export type CorpusCadence = 'active' | 'safety-net'
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   modelTier: 'balanced',
@@ -376,6 +695,10 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   postToBlackboard: true,
   enabled: true,
   autoSpawnInterventionThreshold: 5,
+  cadence: 'safety-net',
+  safetyNetMinSweepsBetweenAnalysis: 3,
+  useToolBasedAnalysis: true,
+  maxToolCallsPerCycle: 10,
 }
 
 

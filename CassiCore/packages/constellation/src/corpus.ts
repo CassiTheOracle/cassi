@@ -44,6 +44,12 @@ import {
   createInitialProcessedState,
 } from './corpus-types.js'
 import type { BrainstemAnnotation, WorkUnitAnnotation, DetectedPattern, GuidanceUrgency } from '../helix/brainstem-types.js'
+import {
+  executeCorpusTool,
+  buildCorpusSystemPrompt,
+  getCorpusToolDefinitions,
+} from './corpus-tools.js'
+import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 
 /**
  * Minimal interface for child Brainstem to avoid circular imports.
@@ -84,6 +90,11 @@ export class Corpus {
 
   // Counter for LLM analysis triggering
   private newStepsSinceLLM = 0
+
+  // Safety-net mode: tracks when the last LLM analysis ran
+  private lastAnalysisSweep = 0
+  // Escalation queue: reasons from Brainstems that self-org can't resolve
+  private escalationQueue: Array<{ reason: string; context: Record<string, unknown> }> = []
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -157,6 +168,19 @@ export class Corpus {
   registerBrainstem(helixId: string, brainstem: MinimalBrainstem): void {
     this.childBrainstems.set(helixId, brainstem)
     this.logger.debug('Brainstem registered', { helixId })
+  }
+
+  /**
+   * Receive an escalation from a Brainstem whose self-organization
+   * could not resolve an issue. This queues the escalation for the
+   * next Corpus analysis cycle.
+   */
+  receiveEscalation(reason: string, context: Record<string, unknown>): void {
+    this.escalationQueue.push({ reason, context })
+    this.logger.info('Escalation received from Brainstem', {
+      reason: reason.slice(0, 100),
+      queueLength: this.escalationQueue.length,
+    })
   }
 
   /**
@@ -539,7 +563,54 @@ export class Corpus {
    * Check if we should run LLM analysis
    */
   private shouldRunLLMAnalysis(): boolean {
-    return this.newStepsSinceLLM >= this.config.llmAnalysisThreshold
+    // In active mode: same as before — trigger after enough new steps
+    if (this.config.cadence === 'active') {
+      return this.newStepsSinceLLM >= this.config.llmAnalysisThreshold
+    }
+
+    // In safety-net mode: only trigger on pathological conditions
+    const sweepsSinceLast = this.state.sweepCount - this.lastAnalysisSweep
+
+    // Respect minimum sweep spacing
+    if (sweepsSinceLast < this.config.safetyNetMinSweepsBetweenAnalysis) {
+      return false
+    }
+
+    // Trigger on escalation from Brainstems
+    if (this.escalationQueue.length > 0) {
+      return true
+    }
+
+    // Trigger on cascade failure pattern (critical severity)
+    const criticalPatterns = this.state.crossPatterns.filter(
+      (p) => p.severity === 'critical' && !p.actedUpon
+    )
+    if (criticalPatterns.length > 0) {
+      return true
+    }
+
+    // Trigger on stuck branches that persist despite self-organization
+    // (branch with health 'stuck' or 'struggling' for > 5 declining score steps)
+    for (const [, assessment] of this.state.branchAssessments) {
+      if (
+        (assessment.status === 'stuck' || assessment.status === 'struggling') &&
+        assessment.decliningScoreStreak >= 5
+      ) {
+        return true
+      }
+    }
+
+    // Trigger on unresolved topic tensions that have persisted
+    const allTopics = this.tree.getAllTopics()
+    const persistentTensions = allTopics.filter(
+      (t) => t.tensionFlag && (Date.now() - t.lastContributionAt) > 30_000
+    )
+    if (persistentTensions.length > 0) {
+      return true
+    }
+
+    // In safety-net mode, don't trigger for routine step accumulation
+    return false
   }
 
   /**
@@ -645,6 +716,154 @@ export class Corpus {
    * Run LLM analysis for strategic assessment
    */
   private async runLLMAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
+    // Track when this analysis ran (for safety-net cadence)
+    this.lastAnalysisSweep = this.state.sweepCount
+
+    if (this.config.useToolBasedAnalysis) {
+      await this.runToolBasedAnalysis(newPatterns)
+    } else {
+      await this.runLegacyLLMAnalysis(newPatterns)
+    }
+  }
+
+  /**
+   * Tool-based analysis — the Corpus LLM calls structured tools
+   * instead of generating freeform text that gets regex-parsed.
+   *
+   * The LLM receives a system prompt with the constellation's state,
+   * then iterates through tool calls until it calls signal_done.
+   */
+  private async runToolBasedAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
+    const systemPrompt = buildCorpusSystemPrompt(
+      this.deps.goal,
+      this.state,
+      this.tree,
+      newPatterns
+    )
+
+    // Include escalation context if any
+    let userMessage = 'Analyze the current constellation state.'
+    if (this.escalationQueue.length > 0) {
+      userMessage += '\n\nESCALATION FROM BRAINSTEMS (self-organization could not resolve):\n'
+      for (const esc of this.escalationQueue) {
+        userMessage += `- ${esc.reason}\n`
+      }
+      this.escalationQueue = [] // Clear after including
+    }
+
+    const toolDefs = getCorpusToolDefinitions()
+
+    const ctx: CorpusToolContext = {
+      tree: this.tree,
+      state: this.state,
+      deps: this.deps,
+      config: this.config,
+      logger: this.logger,
+      crossHelixDialectic: this.deps.crossHelixDialectic as any,
+      sendDirective: (directive) => this.sendDirective(directive),
+      requestSpawn: (request) => this.deps.onSpawnRequest?.(request),
+    }
+
+    try {
+      // Build conversation with tool definitions
+      const fullPrompt =
+        `${systemPrompt}\n\n` +
+        `Available tools:\n${toolDefs.map((t) => `- ${t.name}: ${t.description}`).join('\n')}\n\n` +
+        `${userMessage}\n\n` +
+        `Call the tools you need, then call signal_done when your analysis is complete.`
+
+      // Single LLM call with tool context
+      // For now, we use the existing LLM.complete() interface but parse tool calls
+      // from the response. When the mini-Helix migration happens, this becomes
+      // a proper tool-calling loop.
+      const response = await this.deps.llm.complete({
+        prompt: fullPrompt,
+        modelTier: this.config.modelTier,
+        maxTokens: this.config.maxTokens,
+        timeoutMs: this.config.timeoutMs,
+      })
+
+      // Parse tool calls from the response
+      // The LLM should respond with JSON tool calls in a structured format
+      const toolCalls = this.parseToolCallsFromResponse(response.content)
+
+      let callCount = 0
+      for (const call of toolCalls) {
+        if (callCount >= this.config.maxToolCallsPerCycle) {
+          this.logger.warn('Max tool calls per cycle reached', {
+            max: this.config.maxToolCallsPerCycle,
+            callCount,
+          })
+          break
+        }
+
+        const result = executeCorpusTool(call.name, call.args, ctx)
+        callCount++
+
+        if (result.done) {
+          this.logger.info('Corpus analysis cycle complete', {
+            summary: result.content.slice(0, 100),
+            nextCheck: result.nextCheckRecommendation,
+            toolCallCount: callCount,
+          })
+          break
+        }
+      }
+
+      this.newStepsSinceLLM = 0
+
+      // Reset failure tracking on success
+      if (!this.llmHealthy) {
+        this.logger.info('Corpus LLM recovered after previous failures', {
+          previousFailures: this.llmFailureCount,
+        })
+      }
+      this.llmHealthy = true
+      this.llmFailureCount = 0
+    } catch (error) {
+      this.handleLLMFailure(error)
+    }
+  }
+
+  /**
+   * Parse tool calls from LLM response text.
+   * Supports JSON-formatted tool calls in the response.
+   */
+  private parseToolCallsFromResponse(content: string): Array<{ name: string; args: Record<string, unknown> }> {
+    const calls: Array<{ name: string; args: Record<string, unknown> }> = []
+
+    // Try to find JSON tool call blocks in the response
+    // Format: {"tool": "name", "args": {...}}
+    const toolCallRegex = /\{[^{}]*"tool"\s*:\s*"([^"]+)"[^{}]*"args"\s*:\s*(\{[^}]*\})[^{}]*\}/g
+    let match
+
+    while ((match = toolCallRegex.exec(content)) !== null) {
+      try {
+        const name = match[1]
+        const args = JSON.parse(match[2])
+        calls.push({ name, args })
+      } catch {
+        // Skip unparseable tool calls
+        continue
+      }
+    }
+
+    // If no structured tool calls found, try to interpret as a signal_done
+    // (backward compat with LLMs that don't structure their response)
+    if (calls.length === 0) {
+      // Fall back to legacy parsing
+      this.parseAndApplyLLMResponse(content)
+      calls.push({ name: 'signal_done', args: { summary: 'Legacy analysis cycle' } })
+    }
+
+    return calls
+  }
+
+  /**
+   * Legacy LLM analysis — the original prompt/parse approach.
+   * Kept for backward compatibility when useToolBasedAnalysis is false.
+   */
+  private async runLegacyLLMAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
     const prompt = this.buildLLMPrompt(newPatterns)
 
     try {
@@ -667,30 +886,37 @@ export class Corpus {
       this.llmHealthy = true
       this.llmFailureCount = 0
     } catch (error) {
-      this.llmFailureCount++
-      const errorMsg = error instanceof Error ? error.message : String(error)
+      this.handleLLMFailure(error)
+    }
+  }
 
-      if (this.llmFailureCount >= Corpus.LLM_FAILURE_THRESHOLD && this.llmHealthy) {
-        // Mark unhealthy and emit critical event
-        this.llmHealthy = false
-        this.logger.error('Corpus LLM is unhealthy — constellation running without strategic oversight', {
-          error: errorMsg,
-          failureCount: this.llmFailureCount,
-          sweepCount: this.state.sweepCount,
-        })
-        this.emitEvent('corpus:unhealthy', {
-          reason: 'llm_failure',
-          error: errorMsg,
-          failureCount: this.llmFailureCount,
-          message: 'Corpus LLM failed repeatedly. Constellation Helix branches are running without strategic planning, intervention, or spawn decisions.',
-        })
-      } else {
-        this.logger.warn('Corpus LLM analysis failed, continuing loop', {
-          error: errorMsg,
-          failureCount: this.llmFailureCount,
-          threshold: Corpus.LLM_FAILURE_THRESHOLD,
-        })
-      }
+  /**
+   * Common error handling for LLM failures.
+   */
+  private handleLLMFailure(error: unknown): void {
+    this.llmFailureCount++
+    const errorMsg = error instanceof Error ? error.message : String(error)
+
+    if (this.llmFailureCount >= Corpus.LLM_FAILURE_THRESHOLD && this.llmHealthy) {
+      // Mark unhealthy and emit critical event
+      this.llmHealthy = false
+      this.logger.error('Corpus LLM is unhealthy — constellation running without strategic oversight', {
+        error: errorMsg,
+        failureCount: this.llmFailureCount,
+        sweepCount: this.state.sweepCount,
+      })
+      this.emitEvent('corpus:unhealthy', {
+        reason: 'llm_failure',
+        error: errorMsg,
+        failureCount: this.llmFailureCount,
+        message: 'Corpus LLM failed repeatedly. Constellation Helix branches are running without strategic planning, intervention, or spawn decisions.',
+      })
+    } else {
+      this.logger.warn('Corpus LLM analysis failed, continuing loop', {
+        error: errorMsg,
+        failureCount: this.llmFailureCount,
+        threshold: Corpus.LLM_FAILURE_THRESHOLD,
+      })
     }
   }
 

@@ -19,7 +19,7 @@ import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixStore } from '../helix/helix-store.js'
 import type { HelixResult } from '../helix/types.js'
 import type { ConstellationStore, ProgressSnapshot } from './constellation-store.js'
-import type { BrainstemDeps } from '../helix/brainstem-types.js'
+import type { BrainstemDeps, SharedTreeReader } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
 import { Blackboard } from '../flux-team/blackboard.js'
@@ -591,6 +591,11 @@ export async function runConstellationPipeline(
     // Create Brainstem deps with corpus tree integration
     // NOTE: The actual Brainstem instance is created and started inside runHelixPipeline.
     // We capture it via the onBrainstemCreated callback for Corpus registration.
+    //
+    // The sharedTree reader provides each Brainstem with read/write access to
+    // the Shared Thought Tree for stigmergic self-organization.
+    const sharedTreeReader = createSharedTreeReaderForHelix(helixId, corpusTree)
+
     const brainstemDeps: BrainstemDeps = {
       llm: corpusLLM,
       logger,
@@ -600,6 +605,10 @@ export async function runConstellationPipeline(
       corpusTree,
       helixId,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
+      sharedTree: sharedTreeReader,
+      escalateToCorpus: (reason: string, context: Record<string, unknown>) => {
+        corpus.receiveEscalation(reason, { ...context, helixId })
+      },
       onSpawnRequest: (req) => {
         const spawnRequest: SpawnRequest = {
           requestId: `spawn-${helixId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -1166,4 +1175,40 @@ export async function runConstellationPipeline(
   }
 
   return result
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Shared Thought Tree: SharedTreeReader Factory
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Create a SharedTreeReader bound to a specific Helix.
+ * This provides the Brainstem with read/write access to the
+ * Shared Thought Tree, scoped to its own branch.
+ *
+ * All read operations exclude the caller's own data where appropriate.
+ * All write operations automatically set the helixId.
+ */
+function createSharedTreeReaderForHelix(
+  helixId: string,
+  tree: CorpusTree
+): SharedTreeReader {
+  return {
+    // ── Read operations ───────────────────────────────────────
+    getPeerDigests: () => tree.getDigestsExcluding(helixId),
+    getRelevantDigests: () => tree.getRelevantDigests(helixId),
+    findRelatedTopics: (files, goalKeywords) => tree.findRelatedTopics(files, goalKeywords),
+    getAllTopics: () => tree.getAllTopics(),
+    getElevatedPatterns: () => tree.getElevatedPatterns(),
+    getAllRetrospectives: () => tree.getAllRetrospectives(),
+    getEffectivenessStats: () => tree.getEffectivenessStats(),
+
+    // ── Write operations ──────────────────────────────────────
+    updateDigest: (digest) => tree.updateDigest(helixId, digest),
+    createTopic: (name, contribution) => tree.createTopic(name, helixId, contribution),
+    contributeTopic: (topicId, contribution) => tree.contributeTopic(topicId, contribution),
+    recordRetrospective: (retrospective) => tree.recordRetrospective(helixId, retrospective),
+    recordEffectiveness: (record) => tree.recordEffectiveness(record),
+  }
 }

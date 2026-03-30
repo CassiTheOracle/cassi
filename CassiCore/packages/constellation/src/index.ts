@@ -73,11 +73,23 @@ export type {
   CorpusDirectiveType,
   SpawnDecision,
   CorpusConfig,
+  CorpusCadence,
   CorpusDeps,
   CorpusLLM,
   CorpusBlackboard,
   CorpusResult,
   CorpusIntervention,
+  // Shared Thought Tree types
+  BranchDigest,
+  BranchApproach,
+  TopicNode,
+  TopicContribution,
+  SelfOrgAdjustment,
+  SelfOrgAdjustmentType,
+  StrategyRetrospective,
+  RetrospectiveTrigger,
+  ElevatedPattern,
+  EffectivenessRecord,
 } from './corpus-types.js'
 
 export {
@@ -117,6 +129,16 @@ export type {
   CrossHelixDialecticSnapshot,
   CrossHelixDialecticConfig,
 } from './cross-helix-dialectic.js'
+
+
+// ── Corpus Tools (Tool-based analysis) ────────────────────────────────────
+
+export {
+  getCorpusToolDefinitions,
+  executeCorpusTool,
+  buildCorpusSystemPrompt,
+} from './corpus-tools.js'
+export type { CorpusToolDefinition, CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 
 
 // ── Constellation Injection Source ─────────────────────────────────────────
