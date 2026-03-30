@@ -235,6 +235,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   // Drift detection for shell commands
   private driftDetector: DriftDetector = new DriftDetector()
 
+  // signal_done data — stored so buildPostureResult can return the actual conclusion
+  private signalDoneConclusion?: string
+  private signalDoneConfidence?: number
+  private signalDoneKeyPoints?: string[]
+
   // Mentor synthesis tracking — populated by mentor_synthesize handler
   private mentorSynthesis?: {
     recommendation: string
@@ -999,6 +1004,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     const keyPoints = Array.isArray(input.key_points) ? input.key_points.map(String) : []
 
     this.concluded = true
+    this.signalDoneConclusion = conclusion
+    this.signalDoneConfidence = confidence
+    this.signalDoneKeyPoints = keyPoints
     this.workStream.recordRoleConclusion(this.role as any, false)
 
     return `Work complete. Conclusion recorded. Yang and Yin will do a final review pass.`
@@ -2151,9 +2159,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
 
     return {
-      conclusion: this.concluded ? `${this.role} completed` : `${this.role} stopped`,
-      confidence: 0.7,
-      keyPoints: [],
+      conclusion: this.signalDoneConclusion || (this.concluded ? `${this.role} completed` : `${this.role} stopped`),
+      confidence: this.signalDoneConfidence ?? 0.7,
+      keyPoints: this.signalDoneKeyPoints ?? [],
       iterationCount: this.iterationCount,
       toolCallCount: this.toolCallCount,
       tokensUsed: this.tokensUsed,
