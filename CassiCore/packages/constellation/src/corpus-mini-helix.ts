@@ -90,6 +90,9 @@ export class CorpusMiniHelix {
   // Mini-Helix deps
   private miniHelixDeps: MiniHelixDeps
 
+  // Available tools in the worker Helixes (for system prompt awareness)
+  private availableToolNames: string[]
+
   constructor(
     tree: ICorpusTree,
     deps: CorpusDeps,
@@ -98,10 +101,12 @@ export class CorpusMiniHelix {
       corpus?: Partial<CorpusConfig>
       miniHelix?: CorpusMiniHelixConfig
     },
+    availableToolNames?: string[],
   ) {
     this.tree = tree
     this.deps = deps
     this.miniHelixDeps = miniHelixDeps
+    this.availableToolNames = availableToolNames ?? []
     this.corpusConfig = { ...DEFAULT_CORPUS_CONFIG, ...config?.corpus }
     this.miniHelixConfig = config?.miniHelix ?? {}
     this.state = createInitialProcessedState()
@@ -263,6 +268,7 @@ export class CorpusMiniHelix {
       this.state,
       this.tree,
       this.crossPatterns,
+      this.availableToolNames,
     )
   }
 

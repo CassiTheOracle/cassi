@@ -579,6 +579,7 @@ function handleReadBranch(
         pattern: s.annotation.pattern,
         synthesis: s.annotation.synthesis.slice(0, 200),
         guidance: s.annotation.guidance?.slice(0, 100),
+        toolCalls: s.toolCalls ?? [],
       })),
     }, null, 2),
   }
@@ -865,7 +866,8 @@ export function buildCorpusSystemPrompt(
   goal: string,
   state: CorpusProcessedState,
   tree: ICorpusTree,
-  crossPatterns: CrossHelixPattern[]
+  crossPatterns: CrossHelixPattern[],
+  availableToolNames?: string[],
 ): string {
   const snapshot = tree.getSnapshot()
 
@@ -890,10 +892,15 @@ export function buildCorpusSystemPrompt(
         .join('\n')
     : '  (none yet)'
 
+  const workerToolSection = availableToolNames?.length
+    ? `\nEach worker has access to these tools: ${availableToolNames.join(', ')}\n` +
+      `When analyzing branch activity, I reference this list to understand what tools they have and whether they're using appropriate ones.\n`
+    : ''
+
   return `I coordinate a group of workers that are collectively trying to accomplish: "${goal}"
 
 Each worker handles a piece of the overall effort. They mostly coordinate with each other directly — sharing what files they're touching, what strategies are working, and flagging conflicts. My role is the safety net. I step in when their self-coordination breaks down.
-
+${workerToolSection}
 I have two modes:
 - Active analysis: I read the state of all branches, look for problems, intervene if needed, then pause until something changes.
 - Triggered response: When a branch escalates a problem it can't solve, or when I detect cascading failures or persistent tensions, I wake up and analyze.

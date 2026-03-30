@@ -42,6 +42,8 @@ export interface CorpusStep {
   annotation: BrainstemAnnotation
   /** When this step was pushed to the tree */
   pushedAt: number
+  /** Tool calls from the work unit (name + truncated args) — for Corpus observability */
+  toolCalls?: Array<{ name: string; args: string }>
 }
 
 /**
@@ -82,7 +84,7 @@ export type CorpusBranchStatus =
  */
 export interface ICorpusTree {
   /** Push an annotation into a Helix's branch. Creates branch if needed. */
-  pushAnnotation(helixId: string, annotation: BrainstemAnnotation): void
+  pushAnnotation(helixId: string, annotation: BrainstemAnnotation, toolCalls?: Array<{ name: string; args: string }>): void
 
   /** Register a new branch when a Helix starts. */
   registerBranch(helixId: string, goal: string, depth: number, parentId?: string): void

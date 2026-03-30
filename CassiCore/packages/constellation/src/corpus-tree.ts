@@ -107,7 +107,7 @@ export class CorpusTree implements ICorpusTree {
    * Push an annotation into a Helix's branch.
    * Auto-registers the branch with goal='unknown' depth=0 if not registered yet (defensive).
    */
-  pushAnnotation(helixId: string, annotation: BrainstemAnnotation): void {
+  pushAnnotation(helixId: string, annotation: BrainstemAnnotation, toolCalls?: Array<{ name: string; args: string }>): void {
     let branch = this.branches.get(helixId)
 
     if (!branch) {
@@ -130,6 +130,7 @@ export class CorpusTree implements ICorpusTree {
     const step: CorpusStep = {
       annotation,
       pushedAt: Date.now(),
+      toolCalls,
     }
 
     branch.steps.push(step)

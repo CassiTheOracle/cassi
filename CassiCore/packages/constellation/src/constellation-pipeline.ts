@@ -561,6 +561,8 @@ export async function runConstellationPipeline(
         corpus: { maxBranches: maxHelixes, maxDepth },
         miniHelix: opts.corpusMiniHelix,
       },
+      // Provide available worker tool names for Corpus system prompt awareness
+      toolRegistry ? toolRegistry.list().map((t) => t.name) : [],
     )
 
     await corpusMiniHelix.start()
@@ -826,12 +828,18 @@ export async function runConstellationPipeline(
 
         // Optionally start a Brainstem mini-Helix sidecar
         if (opts.useMiniHelixBrainstem) {
+          // Collect available worker tool names so Brainstem knows what tools the worker has
+          const workerToolNames = toolRegistry
+            ? toolRegistry.list().map((t) => t.name)
+            : []
+
           const brainstemMH = new BrainstemMiniHelix({
             helixId,
             goal: helixGoal,
             constellationGoal: goal,
             constellationId,
             logger,
+            availableToolNames: workerToolNames,
             miniHelixDeps: {
               logger,
               eventBus,
