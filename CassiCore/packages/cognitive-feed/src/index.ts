@@ -776,7 +776,11 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
 
       case 'mute': {
         const topic = cmd.targetModule ?? cmd.text
-        if (topic && this.feedConfig.topics[topic as keyof typeof this.feedConfig.topics] !== undefined) {
+        // 'general' is an alias for the highlights feed (main supergroup chat)
+        if (topic === 'general' || topic === 'highlights') {
+          this.feedConfig.highlights.enabled = false
+          this.client.sendMessage(chatId, `<b>[CognitiveFeed]</b> Muted: General (highlights off)`)
+        } else if (topic && this.feedConfig.topics[topic as keyof typeof this.feedConfig.topics] !== undefined) {
           (this.feedConfig.topics as Record<string, boolean>)[topic] = false
           this.curator.updateConfig({ enabledTopics: this.feedConfig.topics as unknown as Record<string, boolean> })
           this.client.sendMessage(chatId, `<b>[CognitiveFeed]</b> Muted: ${topic}`)
@@ -786,7 +790,11 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
 
       case 'unmute': {
         const topic = cmd.targetModule ?? cmd.text
-        if (topic) {
+        // 'general' is an alias for the highlights feed (main supergroup chat)
+        if (topic === 'general' || topic === 'highlights') {
+          this.feedConfig.highlights.enabled = true
+          this.client.sendMessage(chatId, `<b>[CognitiveFeed]</b> Unmuted: General (highlights on)`)
+        } else if (topic) {
           (this.feedConfig.topics as Record<string, boolean>)[topic] = true
           this.curator.updateConfig({ enabledTopics: this.feedConfig.topics as unknown as Record<string, boolean> })
           this.client.sendMessage(chatId, `<b>[CognitiveFeed]</b> Unmuted: ${topic}`)
