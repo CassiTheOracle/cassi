@@ -37,7 +37,10 @@ import type {
   CorpusBlackboard,
   CorpusBranch,
   CorpusStep,
+  EscalationLevel,
+  EscalationThresholds,
 } from './corpus-types.js'
+import { ESCALATION_DEFAULTS } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
 import {
   DEFAULT_CORPUS_CONFIG,
@@ -206,6 +209,11 @@ export class Corpus {
       status: ba.status,
       rollingScore: ba.rollingScore,
       dominantPattern: ba.dominantPattern,
+      avgGoalAlignment: ba.avgGoalAlignment,
+      avgNovelty: ba.avgNovelty,
+      avgProgress: ba.avgProgress,
+      escalationLevel: ba.escalationLevel,
+      ignoredDirectiveStreak: ba.ignoredDirectiveStreak,
     }))
 
     return {
@@ -280,6 +288,9 @@ export class Corpus {
 
         // Process new steps
         this.processNewSteps()
+
+        // Evaluate escalation for all active branches
+        this.evaluateAllEscalations()
 
         // Detect cross-branch patterns
         const newPatterns = this.detectCrossPatterns()
@@ -359,6 +370,13 @@ export class Corpus {
       filesModified: new Set(),
       decliningScoreStreak: 0,
       lastActivityAt: Date.now(),
+      avgGoalAlignment: 0.5,
+      avgNovelty: 0.5,
+      avgProgress: 0.3,
+      directiveHistory: [],
+      escalationLevel: 0,
+      ignoredDirectiveStreak: 0,
+      lowProgressStreak: 0,
     }
   }
 
@@ -427,6 +445,30 @@ export class Corpus {
       }
     }
     assessment.decliningScoreStreak = decliningStreak
+
+    // ─── Dimensional Score Averages (rolling last 5) ───────────────
+    const recentSteps = branch.steps.slice(-5)
+    if (recentSteps.length > 0) {
+      assessment.avgGoalAlignment = recentSteps.reduce((s, st) => s + (st.annotation.goalAlignment ?? 0.5), 0) / recentSteps.length
+      assessment.avgNovelty = recentSteps.reduce((s, st) => s + (st.annotation.novelty ?? 0.5), 0) / recentSteps.length
+      assessment.avgProgress = recentSteps.reduce((s, st) => s + (st.annotation.progress ?? 0.3), 0) / recentSteps.length
+    }
+
+    // ─── Low-Progress Streak Tracking ─────────────────────────────
+    // Count consecutive steps where progress is below the escalation threshold.
+    // Uses the template's threshold, falling back to 0.12 (standard default).
+    const thresholds = this.getEscalationThresholds(branch.helixId)
+    const latestAnnotation = newSteps[newSteps.length - 1]?.annotation
+    if (latestAnnotation && (latestAnnotation.progress ?? 0.3) < thresholds.minProgressThreshold) {
+      assessment.lowProgressStreak++
+    } else {
+      assessment.lowProgressStreak = 0
+    }
+
+    // ─── Directive Behavioral Change Detection ────────────────────
+    // For each pending directive, check if the last 3 post-directive
+    // annotations show a behavioral change.
+    this.evaluatePendingDirectives(assessment, branch)
 
     // Update status
     assessment.status = this.determineBranchHealthStatus(assessment, branch)
@@ -1157,7 +1199,7 @@ Guidelines:
   /**
    * Send a directive to a child Brainstem
    */
-  private sendDirective(directive: CorpusDirective): void {
+   private sendDirective(directive: CorpusDirective): void {
     const brainstem = this.childBrainstems.get(directive.targetHelixId)
     if (!brainstem) {
       this.logger.warn('Cannot send directive: Brainstem not registered', {
@@ -1183,6 +1225,25 @@ Guidelines:
       }
       this.state.interventions.push(intervention)
 
+      // ─── Record directive for behavioral tracking ──────────────
+      const assessment = this.state.branchAssessments.get(directive.targetHelixId)
+      if (assessment) {
+        const branch = this.tree.getBranch(directive.targetHelixId)
+        const currentStep = branch ? branch.steps.length : 0
+        const latestAnnotation = branch?.steps[branch.steps.length - 1]?.annotation
+        assessment.directiveHistory.push({
+          directive,
+          sentAtStep: currentStep,
+          scoreAtSend: {
+            goalAlignment: latestAnnotation?.goalAlignment ?? 0.5,
+            novelty: latestAnnotation?.novelty ?? 0.5,
+            progress: latestAnnotation?.progress ?? 0.3,
+          },
+          postDirectiveScores: [],
+          outcome: 'pending',
+        })
+      }
+
       this.emitEvent('corpus:intervention', {
         helixId: directive.targetHelixId,
         type: directive.type,
@@ -1200,6 +1261,213 @@ Guidelines:
         helixId: directive.targetHelixId,
         error: error instanceof Error ? error.message : String(error),
       })
+    }
+  }
+
+  /**
+   * Evaluate pending directives for behavioral change.
+   *
+   * For each directive with outcome='pending', collect post-directive annotations.
+   * After 3 annotations, determine if behavior changed by comparing dimensional
+   * scores before vs after. A directive is 'effective' if at least one of:
+   *   - The dimension the directive targeted improved by >= 0.15
+   *   - The annotation type changed (e.g., exploration → implementation)
+   *   - The pattern field cleared (was drift/paralysis, now none)
+   */
+  private evaluatePendingDirectives(assessment: BranchAssessment, branch: CorpusBranch): void {
+    const pendingDirectives = assessment.directiveHistory.filter(d => d.outcome === 'pending')
+    if (pendingDirectives.length === 0) return
+
+    for (const record of pendingDirectives) {
+      // Collect post-directive annotations (steps after sentAtStep)
+      const postSteps = branch.steps.slice(record.sentAtStep)
+      for (const step of postSteps) {
+        if (record.postDirectiveScores.length >= 3) break
+        // Only add if not already recorded
+        if (record.postDirectiveScores.length < postSteps.indexOf(step) + 1) {
+          record.postDirectiveScores.push({
+            goalAlignment: step.annotation.goalAlignment ?? 0.5,
+            novelty: step.annotation.novelty ?? 0.5,
+            progress: step.annotation.progress ?? 0.3,
+            annotation: step.annotation.annotation,
+          })
+        }
+      }
+
+      // Evaluate once we have 3 post-directive scores
+      if (record.postDirectiveScores.length >= 3) {
+        const before = record.scoreAtSend
+        const after = record.postDirectiveScores
+        const avgAfter = {
+          goalAlignment: after.reduce((s, a) => s + a.goalAlignment, 0) / after.length,
+          novelty: after.reduce((s, a) => s + a.novelty, 0) / after.length,
+          progress: after.reduce((s, a) => s + a.progress, 0) / after.length,
+        }
+
+        // Check for meaningful improvement in any dimension
+        const goalImproved = avgAfter.goalAlignment - before.goalAlignment >= 0.15
+        const noveltyImproved = avgAfter.novelty - before.novelty >= 0.15
+        const progressImproved = avgAfter.progress - before.progress >= 0.15
+        // Check for annotation type change (e.g., exploration → implementation)
+        const annotationChanged = after.some(a => a.annotation !== after[0].annotation)
+
+        if (goalImproved || noveltyImproved || progressImproved || annotationChanged) {
+          record.outcome = 'effective'
+          // Reset ignored streak on effective directive
+          assessment.ignoredDirectiveStreak = 0
+          // De-escalate one level on effective directive (min 0)
+          assessment.escalationLevel = Math.max(0, assessment.escalationLevel - 1) as EscalationLevel
+        } else {
+          record.outcome = 'ignored'
+          assessment.ignoredDirectiveStreak++
+
+          this.logger.warn('Directive was ignored by branch', {
+            helixId: assessment.helixId,
+            directiveType: record.directive.type,
+            ignoredStreak: assessment.ignoredDirectiveStreak,
+            escalationLevel: assessment.escalationLevel,
+          })
+        }
+        record.evaluatedAt = Date.now()
+      }
+    }
+  }
+
+  /**
+   * Get escalation thresholds for a branch based on its template.
+   */
+  private getEscalationThresholds(helixId: string): EscalationThresholds {
+    const branch = this.tree.getBranch(helixId)
+    // Look up template from branch metadata or fall back to 'standard'
+    const templateName = (branch as any)?.template ?? 'standard'
+    return ESCALATION_DEFAULTS[templateName] ?? ESCALATION_DEFAULTS.standard
+  }
+
+  /**
+   * Evaluate whether a branch should be escalated.
+   *
+   * Combined escalation: both ignored directives and metric thresholds
+   * contribute. A branch with declining scores AND ignored directives
+   * escalates faster than one with just one signal.
+   *
+   * Levels:
+   *   0 = normal (no intervention beyond LLM-generated guidance)
+   *   1 = guidance directive sent by Corpus
+   *   2 = critical injection (high-urgency directive)
+   *   3 = kill branch (cancel + optional restart)
+   *   4 = pause constellation for strategic reassessment
+   *
+   * Returns the new escalation level if it changed, or null if no escalation.
+   */
+  evaluateEscalation(assessment: BranchAssessment): EscalationLevel | null {
+    const thresholds = this.getEscalationThresholds(assessment.helixId)
+    const currentLevel = assessment.escalationLevel
+
+    // ─── Directive-failure signal ─────────────────────────────────
+    const directiveSignal = assessment.ignoredDirectiveStreak >= thresholds.directiveFailuresForEscalation
+
+    // ─── Metric-based signal ─────────────────────────────────────
+    const metricSignal = assessment.lowProgressStreak >= thresholds.lowProgressStepsForEscalation
+      || (assessment.rollingScore < thresholds.lowScoreThreshold
+          && assessment.scoreTrajectory.length >= thresholds.lowScoreStepsForEscalation)
+
+    // ─── Combined escalation logic ───────────────────────────────
+    // Both signals → escalate by 2 levels (fast path)
+    // One signal → escalate by 1 level
+    // No signals → no change (or de-escalate if things improved)
+    let newLevel = currentLevel
+
+    if (directiveSignal && metricSignal) {
+      newLevel = Math.min(4, currentLevel + 2) as EscalationLevel
+    } else if (directiveSignal || metricSignal) {
+      newLevel = Math.min(4, currentLevel + 1) as EscalationLevel
+    }
+
+    if (newLevel !== currentLevel) {
+      assessment.escalationLevel = newLevel
+      this.logger.info('Branch escalation level changed', {
+        helixId: assessment.helixId,
+        previousLevel: currentLevel,
+        newLevel,
+        directiveSignal,
+        metricSignal,
+        ignoredStreak: assessment.ignoredDirectiveStreak,
+        lowProgressStreak: assessment.lowProgressStreak,
+      })
+      return newLevel
+    }
+
+    return null
+  }
+
+  /**
+   * Evaluate escalation for all active branches and act on level changes.
+   */
+  private evaluateAllEscalations(): void {
+    for (const [helixId, assessment] of this.state.branchAssessments) {
+      // Skip completed/failed branches
+      if (assessment.status === 'completed' || assessment.status === 'failed') continue
+
+      const newLevel = this.evaluateEscalation(assessment)
+      if (newLevel === null) continue
+
+      // Act on the escalation level
+      switch (newLevel) {
+        case 1:
+          // Level 1: Send guidance directive (soft)
+          this.sendDirective({
+            targetHelixId: helixId,
+            type: 'guidance',
+            urgency: 'medium',
+            text: `Branch ${helixId} is underperforming. Please refocus on the goal and produce concrete output.`,
+            reason: `Escalation to level 1: ignored=${assessment.ignoredDirectiveStreak} directives, lowProgress=${assessment.lowProgressStreak} steps`,
+            timestamp: Date.now(),
+            fromPattern: 'asymmetric-progress',
+          })
+          break
+
+        case 2:
+          // Level 2: Send critical redirect (hard)
+          this.sendDirective({
+            targetHelixId: helixId,
+            type: 'redirect',
+            urgency: 'critical',
+            text: `Branch ${helixId} has ignored multiple directives and metrics are declining. ` +
+              `You must change approach immediately: narrow scope, switch strategy, or conclude with current findings.`,
+            reason: `Escalation to level 2: ignored=${assessment.ignoredDirectiveStreak} directives, lowProgress=${assessment.lowProgressStreak} steps`,
+            timestamp: Date.now(),
+            fromPattern: 'cascade-failure',
+          })
+          break
+
+        case 3:
+          // Level 3: Cancel the branch
+          this.logger.warn('Escalation level 3: cancelling branch', { helixId })
+          this.sendDirective({
+            targetHelixId: helixId,
+            type: 'cancel',
+            urgency: 'critical',
+            text: `Branch ${helixId} has reached escalation level 3. Cancelling due to sustained non-response to directives and declining metrics.`,
+            reason: `Escalation to level 3: ignored=${assessment.ignoredDirectiveStreak} directives, score=${assessment.rollingScore.toFixed(2)}`,
+            timestamp: Date.now(),
+          })
+          this.emitEvent('corpus:escalation', {
+            helixId,
+            level: 3,
+            action: 'cancel',
+          })
+          break
+
+        case 4:
+          // Level 4: Pause constellation for reassessment
+          this.logger.warn('Escalation level 4: requesting constellation pause', { helixId })
+          this.emitEvent('corpus:escalation', {
+            helixId,
+            level: 4,
+            action: 'pause-constellation',
+          })
+          break
+      }
     }
   }
 

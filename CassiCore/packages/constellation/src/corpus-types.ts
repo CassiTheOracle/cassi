@@ -463,7 +463,7 @@ export interface BranchAssessment {
   /** Corpus's view of this branch's health */
   status: BranchHealthStatus
 
-  /** Rolling average of recent scores (last 5 annotations) */
+  /** Rolling average of recent composite scores (last 5 annotations) */
   rollingScore: number
 
   /** Full score trajectory for trend analysis */
@@ -483,6 +483,24 @@ export interface BranchAssessment {
 
   /** Whether an auto-spawn has already been triggered for this branch */
   autoSpawnTriggered?: boolean
+
+  // ─── Dimensional Score Averages (rolling last 5) ───────────────
+  /** Rolling average goal alignment */
+  avgGoalAlignment: number
+  /** Rolling average novelty */
+  avgNovelty: number
+  /** Rolling average progress */
+  avgProgress: number
+
+  // ─── Directive Tracking ────────────────────────────────────────
+  /** History of directives sent to this branch */
+  directiveHistory: DirectiveRecord[]
+  /** Current escalation level for this branch */
+  escalationLevel: EscalationLevel
+  /** Count of consecutive ignored directives */
+  ignoredDirectiveStreak: number
+  /** Steps with below-threshold progress (for metric-only escalation) */
+  lowProgressStreak: number
 }
 
 /** Branch health as assessed by the Corpus (distinct from CorpusBranchStatus) */
@@ -583,6 +601,93 @@ export type CorpusDirectiveType =
   | 'priority-shift'  // Change priority relative to siblings
   | 'cancel'          // Stop this Helix
   | 'context-inject'  // Inject file content into posture context (text = filePath)
+
+/**
+ * Tracks a single directive's lifecycle — from issuance through behavioral verification.
+ * The Corpus watches 3 post-directive annotations to determine if behavior changed.
+ */
+export interface DirectiveRecord {
+  /** The directive that was sent */
+  directive: CorpusDirective
+  /** Annotation step at which the directive was sent */
+  sentAtStep: number
+  /** The dimensional scores at the time the directive was sent */
+  scoreAtSend: { goalAlignment: number; novelty: number; progress: number }
+  /** Post-directive annotation snapshots (up to 3) for behavioral change detection */
+  postDirectiveScores: Array<{ goalAlignment: number; novelty: number; progress: number; annotation: string }>
+  /** Whether the directive produced a behavioral change */
+  outcome: 'pending' | 'effective' | 'ignored'
+  /** When the outcome was determined */
+  evaluatedAt?: number
+}
+
+/**
+ * Escalation level — determines the force of Corpus intervention.
+ * Level progresses based on combined directive-failure + metric signals.
+ */
+export type EscalationLevel = 0 | 1 | 2 | 3 | 4
+
+/**
+ * Template-configurable escalation thresholds.
+ * Different templates (research, implementation, etc.) tolerate different
+ * amounts of low-progress work before escalating.
+ */
+export interface EscalationThresholds {
+  /** Ignored directives before escalating to next level */
+  directiveFailuresForEscalation: number
+  /** Composite score below which a branch is 'concerning' */
+  lowScoreThreshold: number
+  /** Steps with below-threshold scores before escalating (metric-only) */
+  lowScoreStepsForEscalation: number
+  /** Minimum progress dimension score — below this for N steps triggers concern */
+  minProgressThreshold: number
+  /** Steps with below-threshold progress before escalating */
+  lowProgressStepsForEscalation: number
+}
+
+/** Default escalation thresholds per template type */
+export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
+  /** Research: very tolerant of reading without writing */
+  research: {
+    directiveFailuresForEscalation: 4,
+    lowScoreThreshold: 0.25,
+    lowScoreStepsForEscalation: 12,
+    minProgressThreshold: 0.1,
+    lowProgressStepsForEscalation: 15,
+  },
+  /** Implementation: expects output sooner */
+  implementation: {
+    directiveFailuresForEscalation: 2,
+    lowScoreThreshold: 0.3,
+    lowScoreStepsForEscalation: 8,
+    minProgressThreshold: 0.15,
+    lowProgressStepsForEscalation: 10,
+  },
+  /** Standard: balanced defaults */
+  standard: {
+    directiveFailuresForEscalation: 3,
+    lowScoreThreshold: 0.3,
+    lowScoreStepsForEscalation: 10,
+    minProgressThreshold: 0.12,
+    lowProgressStepsForEscalation: 12,
+  },
+  /** Minimal: tight expectations */
+  minimal: {
+    directiveFailuresForEscalation: 2,
+    lowScoreThreshold: 0.35,
+    lowScoreStepsForEscalation: 6,
+    minProgressThreshold: 0.2,
+    lowProgressStepsForEscalation: 8,
+  },
+  /** Review: tolerant — reviews involve lots of reading */
+  review: {
+    directiveFailuresForEscalation: 4,
+    lowScoreThreshold: 0.25,
+    lowScoreStepsForEscalation: 12,
+    minProgressThreshold: 0.1,
+    lowProgressStepsForEscalation: 15,
+  },
+}
 
 
 // ═══════════════════════════════════════════════════════════════════
@@ -773,6 +878,11 @@ export interface CorpusResult {
     status: BranchHealthStatus
     rollingScore: number
     dominantPattern: string
+    avgGoalAlignment?: number
+    avgNovelty?: number
+    avgProgress?: number
+    escalationLevel?: EscalationLevel
+    ignoredDirectiveStreak?: number
   }>
   /** Cross-Helix patterns detected during the run */
   crossPatterns: CrossHelixPattern[]
