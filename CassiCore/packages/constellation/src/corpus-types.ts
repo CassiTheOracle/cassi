@@ -118,6 +118,19 @@ export interface ICorpusTree {
   /** Get all digests except the caller's own, for peer awareness. */
   getDigestsExcluding(helixId: string): BranchDigest[]
 
+  /** Get all digests for all branches (including inactive). */
+  getAllDigests(): BranchDigest[]
+
+  /** Get the digest for a specific branch, if one exists. */
+  getDigestFor(helixId: string): BranchDigest | undefined
+
+  /**
+   * Lightweight update — sets only the liveStreamSnippet on an existing digest.
+   * Called on every Unity stream event. Pure in-memory update, no LLM work.
+   * No-op if no digest exists yet for this branch.
+   */
+  updateLiveStreamSnippet(helixId: string, snippet: string): void
+
   /** Get digests filtered by relevance (file overlap, goal similarity). No artificial truncation. */
   getRelevantDigests(helixId: string): BranchDigest[]
 
@@ -185,7 +198,7 @@ export interface CorpusBranchSnapshot {
 export interface BranchDigest {
   /** Which Helix produced this digest */
   helixId: string
-  /** Truncated goal (first 200 chars) */
+  /** Full goal for this branch */
   goalSummary: string
   /** Current approach pattern */
   approach: BranchApproach
@@ -207,6 +220,25 @@ export interface BranchDigest {
   updatedAt: number
   /** Why the approach last changed (if it did) — feeds self-awareness */
   lastApproachChangeReason?: string
+
+  // ─── Cognitive Model Fields ────────────────────────────────────────
+  /** Current working hypothesis about how to achieve the goal */
+  currentHypothesis?: string
+  /** All discoveries accumulated across all steps */
+  allDiscoveries?: string[]
+  /** All decisions made so far */
+  allDecisions?: string[]
+  /** Planned next steps from the most recent annotation */
+  currentNextSteps?: string[]
+  /** Recent concrete outputs (files created, tests run, etc.) */
+  recentOutputs?: string[]
+  /**
+   * Live stream snippet — the most recent partial LLM output being generated
+   * in the current active iteration. Updated on every stream event (not just
+   * work units), so the Corpus always sees what this thread is currently writing.
+   * Absent if the thread is idle or between iterations.
+   */
+  liveStreamSnippet?: string
 }
 
 /**

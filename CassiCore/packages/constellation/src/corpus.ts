@@ -1064,18 +1064,53 @@ export class Corpus {
    */
   private buildLLMPrompt(newPatterns: CrossHelixPattern[]): string {
     const branches = this.tree.getAllBranches()
-    const assessments = Array.from(this.state.branchAssessments.values())
 
+    // Build rich per-branch blocks using cognitive model fields from digests
     const branchDetails = branches
       .map((b) => {
         const assessment = this.state.branchAssessments.get(b.helixId)
+        const digest = this.tree.getDigestFor(b.helixId)
         const recentSteps = b.steps.slice(-3)
         const recentAnnotations = recentSteps
           .map((s) => `[${s.annotation.annotation}:${s.annotation.score.toFixed(2)}]`)
           .join(', ')
-        return `- ${b.helixId}: goal="${b.goal}", status=${b.status}, steps=${b.steps.length}, rollingScore=${assessment?.rollingScore.toFixed(2) ?? 'N/A'}, dominantPattern=${assessment?.dominantPattern ?? 'N/A'}, recent=[${recentAnnotations}]`
+
+        const lines: string[] = [
+          `### ${b.helixId} (${b.status})`,
+          `Goal: ${b.goal}`,
+          `Steps: ${b.steps.length} | Rolling score: ${assessment?.rollingScore.toFixed(2) ?? 'N/A'} | Pattern: ${assessment?.dominantPattern ?? 'none'} | Approach: ${digest?.approach ?? 'unknown'}`,
+          `Recent: ${recentAnnotations || '(none yet)'}`,
+        ]
+
+        if (digest?.currentHypothesis) {
+          lines.push(`Current hypothesis: ${digest.currentHypothesis}`)
+        }
+        if (digest?.allDiscoveries && digest.allDiscoveries.length > 0) {
+          lines.push(`Discoveries:`)
+          for (const d of digest.allDiscoveries.slice(-5)) lines.push(`  - ${d}`)
+        }
+        if (digest?.allDecisions && digest.allDecisions.length > 0) {
+          lines.push(`Decisions made:`)
+          for (const d of digest.allDecisions.slice(-3)) lines.push(`  - ${d}`)
+        }
+        if (digest?.blockers && digest.blockers.length > 0) {
+          lines.push(`Active blockers:`)
+          for (const bl of digest.blockers) lines.push(`  - ${bl}`)
+        }
+        if (digest?.currentNextSteps && digest.currentNextSteps.length > 0) {
+          lines.push(`Planned next steps:`)
+          for (const ns of digest.currentNextSteps.slice(0, 3)) lines.push(`  - ${ns}`)
+        }
+        if (digest?.recentOutputs && digest.recentOutputs.length > 0) {
+          lines.push(`Recent outputs: ${digest.recentOutputs.slice(-3).join(', ')}`)
+        }
+        if (digest?.liveStreamSnippet?.trim()) {
+          lines.push(`Currently generating:\n${digest.liveStreamSnippet}`)
+        }
+
+        return lines.join('\n')
       })
-      .join('\n')
+      .join('\n\n')
 
     const patternDetails =
       newPatterns.length > 0
@@ -1106,30 +1141,30 @@ export class Corpus {
         ).join('\n')}`
       : ''
 
-    return `I am the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} branches, analyzing cross-branch patterns and making spawn/intervention decisions.
+    return `I am the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} active threads, each thinking in parallel. I synthesize their knowledge, detect patterns, provide specific guidance, and spawn new threads when gaps emerge.
 
-## Branch Assessments
+## Active Threads
 ${branchDetails}${patternDetails}${dialecticSection}${interventionHistorySection}${spawnHistorySection}
 
 ## Task
-Provide strategic assessment:
+Provide strategic assessment using the following directives:
 
-ASSESSMENT: <brief assessment of overall constellation health>
-INTERVENTION[helixId]: <directive type:guidance|redirect|throttle|priority-shift|cancel>:<urgency:low|medium|high|critical>:<first-person guidance text> (or NONE)
-SPAWN[parentHelixId]: <goal for new sub-branch> (or NONE)
-SYNTHESIS: <strategic synthesis, or NONE>
+ASSESSMENT: <comprehensive assessment of constellation health — what has been learned collectively, what's working, what's stuck>
+INTERVENTION[threadId]: <type:guidance|redirect|throttle|priority-shift|cancel>:<urgency:low|medium|high|critical>:<first-person guidance text>
+SPAWN[parentThreadId]: <focused goal for a new thread>
+SYNTHESIS: <cross-thread insight worth injecting — something one thread knows that another would benefit from, or NONE>
 
 Guidelines:
-- ASSESSMENT: Summarize the health of all branches and any concerning patterns
-- INTERVENTION: Only if a specific branch needs steering. Use helixId from above. Write guidance in first person ("I should..." not "Do X").
-- SPAWN: Request a new sub-branch when:
-  (a) A branch reveals a sub-problem that would benefit from dedicated, parallel investigation
-  (b) A branch has received 3+ interventions without meaningful improvement (avgScore still declining)
-  (c) The goal naturally decomposes into independent sub-problems that could run concurrently
-  Use the parentHelixId of the branch that surfaced the need. Each spawn should have a focused, specific goal. NONE if no spawn needed.
-- SYNTHESIS: Strategic insights for the Constellation level, or NONE if routine
-- Review "My Previous Interventions" — avoid repeating the same intervention if it didn't work. Escalate instead.
-- Be concise — this runs in a tight loop`
+- ASSESSMENT: Synthesize what all threads have collectively learned. Reference specific discoveries and decisions from the thread details above.
+- INTERVENTION: Only when a specific thread needs steering. Use the thread ID shown in the "### threadId" heading above. Write guidance that draws on what the thread has already discovered: not "stop drifting" but "I've confirmed X and Y — I should now implement Z using the approach I identified in the decisions above". Avoid repeating an intervention that didn't work — escalate instead.
+- SPAWN: Request a new thread when:
+  (a) A thread reveals a sub-problem that would benefit from dedicated parallel work
+  (b) A thread has blockers that a fresh perspective might resolve
+  (c) A gap exists between what threads know collectively and what the goal requires
+  Use the parent thread ID that surfaced the need.
+- SYNTHESIS: If one thread has discovered something that directly helps another thread's blocker or next steps, inject that insight here. Otherwise NONE.
+- Write all guidance in first person ("I should…" not "You should…"). Every thread is the same mind thinking in parallel — guidance is self-directed thought.
+- NONE is valid for INTERVENTION, SPAWN, or SYNTHESIS if nothing is needed.`
   }
 
   /**

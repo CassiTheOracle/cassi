@@ -268,6 +268,31 @@ export class CorpusTree implements ICorpusTree {
   }
 
   /**
+   * Get all digests for all branches.
+   */
+  getAllDigests(): BranchDigest[] {
+    return Array.from(this.digests.values())
+  }
+
+  /**
+   * Get the digest for a specific branch.
+   */
+  getDigestFor(helixId: string): BranchDigest | undefined {
+    return this.digests.get(helixId)
+  }
+
+  /**
+   * Lightweight update — sets only liveStreamSnippet on an existing digest.
+   * Called on every Unity stream chunk. O(1) map lookup + field set, no recomputation.
+   * No-op if no digest exists yet for this branch.
+   */
+  updateLiveStreamSnippet(helixId: string, snippet: string): void {
+    const digest = this.digests.get(helixId)
+    if (!digest) return
+    digest.liveStreamSnippet = snippet
+  }
+
+  /**
    * Get digests filtered by relevance to the requesting branch.
    * Relevance is determined by file overlap and goal keyword similarity.
    * Returns all relevant digests — no artificial token cap.

@@ -1643,6 +1643,7 @@ function createSharedTreeReaderForHelix(
 
     // ── Write operations ──────────────────────────────────────
     updateDigest: (digest) => tree.updateDigest(helixId, digest),
+    updateLiveStreamSnippet: (snippet) => tree.updateLiveStreamSnippet(helixId, snippet),
     createTopic: (name, contribution) => tree.createTopic(name, helixId, contribution),
     contributeTopic: (topicId, contribution) => tree.contributeTopic(topicId, contribution),
     recordRetrospective: (retrospective) => tree.recordRetrospective(helixId, retrospective),
