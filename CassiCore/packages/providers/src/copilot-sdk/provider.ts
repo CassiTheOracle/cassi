@@ -665,6 +665,10 @@ export class CopilotSdkProvider extends BaseProvider {
             error: String(err),
             iterations: state.iterationCount,
           })
+          // Push error chunk so the model handle can detect the failure and
+          // trigger provider fallback on the next acquire() call.
+          chunks.push({ type: 'error' as const, error: String(err) })
+          wakeGenerator()
           // Also unblock on rejection to prevent hanging
           state.sessionEnded()
           this.warmSessions.delete(warmKey)
