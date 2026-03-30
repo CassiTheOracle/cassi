@@ -103,10 +103,13 @@ ${opts.goal}
 ${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
 
 ## Task
-1. Use read_file and list_directory tools to explore the codebase and understand the structure
-2. Identify 2-5 concrete, independent sub-tasks that together achieve the goal
-3. For each sub-task, validate that referenced file paths actually exist
-4. Write the decomposition as a signal_done call with the following format in the summary:
+1. Use read_file and list_directory to explore the codebase — these are the ONLY tools you should use for exploration
+2. Do NOT use collect_thoughts, serena_*, or gitnexus_* tools — they are not useful for this task
+3. Identify 2-5 concrete, independent sub-tasks that together achieve the goal
+4. For each sub-task, validate that referenced file paths actually exist
+5. Call signal_done with the decomposition in the conclusion field using the format below
+
+## Output Format (put this in signal_done's conclusion field)
 
 DECOMPOSITION_START
 STRATEGY: parallel|sequential|tree
@@ -123,14 +126,15 @@ PRIORITY: <1-5>
 ... (repeat for each sub-task)
 DECOMPOSITION_END
 
-Rules:
+## Rules
 - Each SUBTASK must be specific enough to execute independently
 - Validate all file paths with read_file before including them
 - Keep sub-tasks focused — prefer 2-3 well-scoped tasks over 5+ vague ones
-- If the goal is actually simple and doesn't need decomposition, output a single SUBTASK with the original goal`
+- If the goal is actually simple and doesn't need decomposition, output a single SUBTASK with the original goal
+- Call signal_done within 10 iterations — do not endlessly explore`
 
   try {
-    const plannerHelix = await opts.launchHelix(plannerGoal, undefined, undefined, 0)
+    const plannerHelix = await opts.launchHelix(plannerGoal, undefined, 'minimal', 0)
 
     // Wait for planning Helix with a timeout (5 minutes max for planning)
     const timeoutPromise = new Promise<HelixResult>((_, reject) => {
