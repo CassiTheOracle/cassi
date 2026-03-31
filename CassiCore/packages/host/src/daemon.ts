@@ -2246,6 +2246,11 @@ export class Daemon {
             try {
               const { ConstellationStore } = await import('./intelligence/constellation/constellation-store.js')
               const constellationStore = ConstellationStore.open(this.logger.child('constellation-store'))
+              // Recover any sessions left in 'running' state from a previous daemon crash
+              const recovered = constellationStore.recoverOrphanedSessions()
+              if (recovered > 0) {
+                this.logger.info('Recovered orphaned constellation sessions at startup', { count: recovered })
+              }
               this.intelligence.constellation.setConstellationStore(constellationStore)
             } catch (storeErr) {
               this.logger.warn('ConstellationStore failed to initialize', { error: String(storeErr) })
