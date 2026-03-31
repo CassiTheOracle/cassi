@@ -9,7 +9,7 @@
  *   - job: scoped to a team/lumen session ID
  *   - default: persisted across restarts
  *
- * Named tiers (fast, balanced, premium, background) are convenient aliases
+ * Named tiers (minimax, qwenPlus, glm, kimi, qwenMax, sonnet, opus, background) are convenient aliases
  * for pre-configured provider+model combos.
  */
 
@@ -29,12 +29,14 @@ Instead of specifying provider/model on each tool call, use this tool to set the
 - scope="default": persisted as the new default across restarts
 
 Named tiers are available as shortcuts:
-- fast: Quick tasks, low-latency (MiniMax-M2.5)
-- swift: Fast with decent reasoning (qwen3.5-plus)
-- standard: Solid mid-range (glm-5)
-- balanced: Primary coding, good reasoning/cost (kimi-k2.5)
-- premium: Complex reasoning, high-stakes (claude-opus-4.6)
-- background: Unlimited background tasks (gpt-4o)
+- minimax: Fastest, lightweight (MiniMax-M2.5)
+- qwenPlus: Fast with decent reasoning (qwen3.5-plus)
+- glm: Solid mid-range (glm-5)
+- kimi: Best mid-tier reasoning (kimi-k2.5)
+- qwenMax: High-capability 2nd tier (qwen3-max-2026-01-23)
+- sonnet: Strong reasoning, balanced (claude-sonnet-4.6)
+- opus: Complex reasoning, high-stakes (claude-opus-4.6)
+- background: Unlimited background tasks (gpt-5-mini)
 
 Use action="get" to see current routing state.
 Use action="set" with either a tier name, explicit provider+model, or just model (provider auto-inferred).
@@ -55,7 +57,7 @@ Use action="clear" to remove an override at a scope.`,
         },
         tier: {
           type: 'string',
-          enum: ['fast', 'swift', 'standard', 'balanced', 'premium', 'background'],
+          enum: ['minimax', 'qwenPlus', 'glm', 'kimi', 'qwenMax', 'sonnet', 'opus', 'background'],
           description: 'Named tier (alternative to raw provider+model). Use this for convenience.',
         },
         provider: {

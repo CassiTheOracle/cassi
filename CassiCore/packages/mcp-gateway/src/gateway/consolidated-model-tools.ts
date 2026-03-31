@@ -31,8 +31,8 @@ export const MODEL_CONSOLIDATED_TOOL = {
       },
       tier: {
         type: 'string',
-        enum: ['fast', 'swift', 'standard', 'balanced', 'premium', 'background'],
-        description: 'Named tier shortcut (fast, swift, standard, balanced, premium, background)',
+        enum: ['minimax', 'qwenPlus', 'glm', 'kimi', 'qwenMax', 'sonnet', 'opus', 'background'],
+        description: 'Named tier shortcut (minimax, qwenPlus, glm, kimi, qwenMax, sonnet, opus, background)',
       },
       provider: {
         type: 'string',

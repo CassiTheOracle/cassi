@@ -156,7 +156,7 @@ export const FLUX_TOOLS = [
         },
         tier: {
           type: 'string',
-          enum: ['fast', 'swift', 'standard', 'balanced', 'premium', 'background'],
+          enum: ['minimax', 'qwenPlus', 'glm', 'kimi', 'qwenMax', 'sonnet', 'opus', 'background'],
           description: 'Named model tier (for action "change_model"). Alternative to provider+model.',
         },
         slot: {
