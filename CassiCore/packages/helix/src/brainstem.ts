@@ -1685,8 +1685,23 @@ Critical rules:
               : `Low score (${a.score.toFixed(2)}): ${a.trainingNote.slice(0, 100)}`
           )
 
+      // Build currentBlockers with severity (Recommendation A)
+      const currentBlockers = cogModel.pendingBlockers.length > 0
+        ? cogModel.pendingBlockers.map((b: string, i: number) => ({
+            description: b,
+            detectedAt: Date.now(),
+            severity: i === 0 ? 'critical' : i === 1 ? 'high' : 'medium' as 'low' | 'medium' | 'high' | 'critical',
+          }))
+        : undefined
+
       // Build current strategy description
       const currentStrategy = this.describeCurrentStrategy()
+
+      // Compute confidence level (Recommendation A)
+      const confidenceLevel = this.computeConfidenceLevel(cogModel)
+
+      // Compute estimated time to completion (Recommendation A)
+      const estimatedTimeToCompletion = this.computeETA()
 
       const digest: BranchDigest = {
         helixId: this.deps.helixId,
@@ -1722,6 +1737,10 @@ Critical rules:
             evidence: a.evidence,
           }))
         })(),
+        // Real-time fields (Recommendation A)
+        currentBlockers,
+        confidenceLevel,
+        estimatedTimeToCompletion,
       }
 
       sharedTree.updateDigest(digest)
@@ -2331,6 +2350,72 @@ Critical rules:
       : 'Working'
 
     return `${phaseDesc} (score: ${avgScore.toFixed(2)}, recent: ${patterns.join('→')})`
+  }
+
+  /**
+   * Compute confidence level based on score trajectory, pattern stability, and blockers.
+   * (Recommendation A: Enhance Cross-Branch Awareness)
+   */
+  private computeConfidenceLevel(cogModel: any): { score: number; trend: 'rising' | 'stable' | 'falling'; factors: string[]; updatedAt: number } {
+    const recentScores = this.state.qualityTrajectory.slice(-5)
+    const avgScore = recentScores.length > 0
+      ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+      : 0.5
+
+    // Compute trend
+    let trend: 'rising' | 'stable' | 'falling' = 'stable'
+    if (recentScores.length >= 3) {
+      const firstHalf = recentScores.slice(0, Math.floor(recentScores.length / 2))
+      const secondHalf = recentScores.slice(Math.floor(recentScores.length / 2))
+      const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length
+      const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
+      if (secondAvg - firstAvg > 0.1) trend = 'rising'
+      else if (firstAvg - secondAvg > 0.1) trend = 'falling'
+    }
+
+    // Build factors
+    const factors: string[] = []
+    if (avgScore > 0.7) factors.push('High recent scores')
+    if (trend === 'rising') factors.push('Score trajectory improving')
+    if (this.currentApproach === this.previousApproach && this.state.currentAxonStep > 5) {
+      factors.push('Stable approach')
+    }
+    if (cogModel.pendingBlockers && cogModel.pendingBlockers.length > 0) {
+      factors.push(`Active blockers: ${cogModel.pendingBlockers.length}`)
+    }
+
+    return {
+      score: avgScore,
+      trend,
+      factors,
+      updatedAt: Date.now(),
+    }
+  }
+
+  /**
+   * Compute estimated time to completion based on progress rate and trajectory.
+   * (Recommendation A: Enhance Cross-Branch Awareness)
+   */
+  private computeETA(): { minutes: number; confidence: number; basedOnSteps: number; updatedAt: number } | undefined {
+    if (this.state.workUnitsProcessed < 3 || this.startTime <= 0) return undefined
+
+    const elapsedMinutes = (Date.now() - this.startTime) / 60_000
+    const progress = this.estimateProgress()
+
+    if (progress <= 0.05) return undefined  // Too early to estimate
+
+    const estimatedTotalMinutes = elapsedMinutes / progress
+    const remainingMinutes = estimatedTotalMinutes - elapsedMinutes
+
+    // Confidence based on how much data we have
+    const confidence = Math.min(0.3 + (this.state.workUnitsProcessed / 20) * 0.7, 0.9)
+
+    return {
+      minutes: Math.round(remainingMinutes),
+      confidence,
+      basedOnSteps: this.state.workUnitsProcessed,
+      updatedAt: Date.now(),
+    }
   }
 
   /**
