@@ -126,7 +126,7 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
     adaptive: true,
     heart: true,
     system: false, // Off by default — very noisy
-    budget: true,
+    budget: false, // Off by default — noisy and irrelevant for unlimited-use providers
     tools: true,
     llmCalls: false, // Off by default — very noisy
     blackboard: true,
