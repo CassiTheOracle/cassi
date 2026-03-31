@@ -32,7 +32,7 @@ import type {
 // ─── Configuration ────────────────────────────────────────────────────────
 
 export interface BrainstemConfig {
-  /** Model tier for Brainstem LLM loop. Default: 'balanced' */
+  /** Model tier for Brainstem LLM loop. Default: 'background' */
   modelTier: string
   /** Max tokens per Brainstem LLM call. Default: 400 */
   maxTokens: number
@@ -71,7 +71,7 @@ export interface BrainstemConfig {
 }
 
 export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
-  modelTier: 'balanced',
+  modelTier: 'background',
   maxTokens: 1500,
   timeoutMs: 8_000,
   idlePollMs: 10_000,
