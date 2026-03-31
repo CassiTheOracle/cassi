@@ -314,7 +314,8 @@ function decodeEntity(html: string, pos: number): { char: string; advance: numbe
 
 function truncateText(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text
-  return `${text.slice(0, maxChars)  }\n[content truncated at ${maxChars} chars]`
+  const omitted = text.length - maxChars
+  return `${text.slice(0, maxChars)}\n\n[web content truncated at ${maxChars.toLocaleString()} of ${text.length.toLocaleString()} chars — ${omitted.toLocaleString()} chars omitted. Use max_chars parameter to increase the limit.]`
 }
 
 // Tool Definition

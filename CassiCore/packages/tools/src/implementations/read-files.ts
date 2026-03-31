@@ -52,7 +52,7 @@ export const readFilesHandler: ToolHandler = async (input, ctx: ToolExecutionCon
     try {
       const raw = readFileSync(absPath)
       let content = raw.slice(0, MAX_BYTES_EACH).toString('utf8')
-      if (raw.length > MAX_BYTES_EACH) content += '\n[truncated]'
+      if (raw.length > MAX_BYTES_EACH) content += `\n\n[file truncated at ${MAX_BYTES_EACH.toLocaleString()} bytes — total is ${raw.length.toLocaleString()} bytes. Use read_file with offset to paginate.]`
       if (limitEach) {
         content = content.split('\n').slice(0, limitEach).join('\n')
       }

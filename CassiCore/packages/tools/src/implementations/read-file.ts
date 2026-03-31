@@ -140,7 +140,7 @@ async function readFileOptimized(
     let content = extractLines(buffer.slice(0, bytesRead), offset, limit)
     
     if (truncated) {
-      content += '\n[file truncated at 1MB]'
+      content += `\n\n[file truncated at 1MB — total file size is ${stats.size.toLocaleString()} bytes. Use offset parameter to read later sections.]`
     }
     
     // Cache if appropriate
