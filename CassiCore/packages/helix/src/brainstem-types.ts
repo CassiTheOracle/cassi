@@ -36,7 +36,7 @@ export interface BrainstemConfig {
   modelTier: string
   /** Max tokens per Brainstem LLM call. Default: 400 */
   maxTokens: number
-  /** Timeout for each Brainstem LLM call in ms. Default: 8000 */
+  /** Timeout for each Brainstem LLM call in ms. Default: 30000 */
   timeoutMs: number
   /** Idle poll interval in ms when no work units arrive. Default: 10000 */
   idlePollMs: number
@@ -73,8 +73,8 @@ export interface BrainstemConfig {
 export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   modelTier: 'background',
   maxTokens: 1500,
-  timeoutMs: 8_000,
-  idlePollMs: 10_000,
+  timeoutMs: 30_000,
+  idlePollMs: 15_000,
   guidanceCooldownIterations: 2,
   paralysisThreshold: 3,
   paralysisScoreThreshold: 0.6,
@@ -87,7 +87,7 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   postToBlackboard: true,
   persistTrainingData: true,
   enabled: true,
-  heartbeatIntervalMs: 30_000,
+  heartbeatIntervalMs: 60_000,
   longReasoningTokenThreshold: 2_000,
 }
 
