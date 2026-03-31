@@ -1573,39 +1573,50 @@ export class Daemon {
 
         const { ModelPool: DyadModelPool } = await import('./model-pool/index.js')
         const sdkModelForDyad = this.config.get<string>('providers.copilotSdk.defaultModel', 'claude-opus-4.6')
-        const makeDyadChain = (slot: string) => ({
+
+        // Resolve per-slot models via tier names (or fall back to hardcoded defaults)
+        const kimiConfig = directive ? directive.resolveTier('kimi')    : { provider: 'alibaba-coding', model: 'kimi-k2.5' }
+        const glmConfig  = directive ? directive.resolveTier('glm')     : { provider: 'alibaba-coding', model: 'glm-5' }
+        const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
+        const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.5-plus' }
+        const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'github-copilot', model: 'gpt-5-mini' }
+
+        /** Build a copilot-sdk-first chain; falls back to the given tier model */
+        const makeChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
           slotName: slot,
           chain: [
             // Prefer copilot-sdk when available — collapses tool loops into 1 premium request.
             // Always included; ModelPool.acquire() gracefully skips if provider not yet connected.
             { role: slot, provider: 'copilot-sdk', model: sdkModelForDyad, priority: 20 },
-            { role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+            { role: slot, provider: tierCfg.provider, model: tierCfg.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         })
 
-        // Brainstem is a cheap analysis task (400 tokens max) — skip premium copilot-sdk
+        // Helix posture assignments: Yin=kimi, Yang=glm, Unity=qwenMax
+        // Dyad posture assignments: Yang=glm, Yin=kimi, Apex=qwenPlus (synthesis)
+        // Helix generic slot defaults to kimi
+        // Brainstem is a cheap analysis task — skip copilot-sdk, use background (gpt-5-mini)
         const brainstemChainForDyad = {
           slotName: 'brainstem',
           chain: [
-            { role: 'brainstem', provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+            { role: 'brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
-        // Mini-Helix Corpus: lightweight scoring — use affordable model
+        // Mini-Helix Corpus: high-capability scoring/analysis — use qwenMax
         const miniHelixCorpusChainForDyad = {
           slotName: 'mini-helix:corpus',
           chain: [
-            { role: 'mini-helix:corpus', provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+            { role: 'mini-helix:corpus', provider: qwenMaxCfg.provider, model: qwenMaxCfg.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
-        // Mini-Helix Brainstem: lightweight analysis — use fast model
+        // Mini-Helix Brainstem: lightweight sidecar — use background (gpt-5-mini)
         const miniHelixBrainstemChainForDyad = {
           slotName: 'mini-helix:brainstem',
           chain: [
-            { role: 'mini-helix:brainstem', provider: 'github-copilot', model: 'gpt-5-mini', priority: 15 },
-            { role: 'mini-helix:brainstem', provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
+            { role: 'mini-helix:brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
@@ -1613,7 +1624,16 @@ export class Daemon {
         const dyadModelPool = new DyadModelPool({
           logger: this.logger.child('dyad-pool'),
           eventBus: this.bus,
-          fallbackChains: [makeDyadChain('yang'), makeDyadChain('yin'), makeDyadChain('apex'), makeDyadChain('unity'), makeDyadChain('helix'), brainstemChainForDyad, miniHelixCorpusChainForDyad, miniHelixBrainstemChainForDyad],
+          fallbackChains: [
+            makeChain('yang', glmConfig),      // Yang: assertive posture → glm
+            makeChain('yin', kimiConfig),       // Yin: receptive posture → kimi
+            makeChain('apex', qwenPlusCfg),     // Apex: synthesis → qwenPlus
+            makeChain('unity', qwenMaxCfg),     // Unity: high-capability orchestrator → qwenMax
+            makeChain('helix', kimiConfig),     // Helix generic → kimi
+            brainstemChainForDyad,
+            miniHelixCorpusChainForDyad,
+            miniHelixBrainstemChainForDyad,
+          ],
           budgetScopes: [],
           defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
           auditEnabled: false,
@@ -2246,17 +2266,15 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Brainstem + Corpus scoring.
-        // Prefers github-copilot/gpt-5-mini (fast, lightweight, good for scoring tasks)
-        // with alibaba-coding/kimi-k2.5 as fallback. The CorpusLLM uses tight timeouts
-        // (8s) so a fast model is critical to avoid timeout cascades.
+        // Uses alibaba-coding/qwen3-max for high-capability analysis and synthesis tasks.
+        // The CorpusLLM orchestrates the entire Constellation tree — it needs strong reasoning.
         if (this.intelligence?.setCorpusLLMProvider) {
           try {
-            // Try github-copilot first (gpt-5-mini is fast and cheap for scoring tasks)
-            const corpusProviderId = providers.has('github-copilot') ? 'github-copilot' : 'alibaba-coding'
-            const corpusModel = providers.has('github-copilot') ? 'gpt-5-mini' : 'kimi-k2.5'
-            const corpusProvider = providers.get(corpusProviderId) ?? providers.values().next().value
+            const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
+            const corpusProvider = providers.get(corpusCfg.provider) ?? providers.values().next().value
             if (corpusProvider) {
-              this.intelligence.setCorpusLLMProvider(corpusProvider, corpusModel)
+              this.intelligence.setCorpusLLMProvider(corpusProvider, corpusCfg.model)
+              this.logger.info('CorpusLLM provider wired', { provider: corpusCfg.provider, model: corpusCfg.model })
             }
           } catch (err) {
             this.logger.warn('Failed to wire CorpusLLM provider', { error: String(err) })
