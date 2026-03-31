@@ -2294,9 +2294,8 @@ export class Daemon {
           }
         }
 
-        // Wire CorpusLLM adapter for Constellation Brainstem + Corpus scoring.
-        // Uses alibaba-coding/qwen3-max for high-capability analysis and synthesis tasks.
-        // The CorpusLLM orchestrates the entire Constellation tree — it needs strong reasoning.
+        // Wire CorpusLLM adapter for Constellation Corpus strategic analysis.
+        // Uses alibaba-coding/qwen3-max for high-capability synthesis and cross-branch reasoning.
         if (this.intelligence?.setCorpusLLMProvider) {
           try {
             const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
@@ -2307,6 +2306,21 @@ export class Daemon {
             }
           } catch (err) {
             this.logger.warn('Failed to wire CorpusLLM provider', { error: String(err) })
+          }
+        }
+
+        // Wire BrainstemLLM adapter for Helix per-branch annotation.
+        // Uses github-copilot/gpt-5-mini — fast, reliable, separate from the Corpus model.
+        if (this.intelligence?.setBrainstemLLMProvider) {
+          try {
+            const bsCfg = { provider: 'github-copilot', model: 'gpt-5-mini' }
+            const bsProvider = providers.get(bsCfg.provider) ?? providers.values().next().value
+            if (bsProvider) {
+              this.intelligence.setBrainstemLLMProvider(bsProvider, bsCfg.model)
+              this.logger.info('BrainstemLLM provider wired', { provider: bsCfg.provider, model: bsCfg.model })
+            }
+          } catch (err) {
+            this.logger.warn('Failed to wire BrainstemLLM provider', { error: String(err) })
           }
         }
 
