@@ -59,6 +59,7 @@ interface ConstellationOrchestratorDeps {
   logger: ILogger
   eventBus: IEventBus
   corpusLLM: CorpusLLM
+  brainstemLLM?: CorpusLLM
   registry: ConstellationRegistry
 }
 
@@ -73,7 +74,7 @@ interface RunningConstellation {
 export function createConstellationOrchestrator(
   deps: ConstellationOrchestratorDeps,
 ): ConstellationOrchestrator {
-  const { logger, eventBus, corpusLLM, registry } = deps
+  const { logger, eventBus, corpusLLM, brainstemLLM, registry } = deps
   const log = logger.child('constellation-orchestrator')
 
   let modelPool: ModelPool | undefined
@@ -202,6 +203,7 @@ export function createConstellationOrchestrator(
         constellationStore,
         handleFactory,
         corpusLLM,
+        brainstemLLM,
         memory,
 
         // Enable mini-Helix infrastructure components

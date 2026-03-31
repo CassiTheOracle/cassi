@@ -650,7 +650,13 @@ export class ConstellationStore {
             status = 'failed',
             error = @error,
             duration_ms = @duration_ms,
-            completed_at = @completed_at
+            completed_at = @completed_at,
+            tree_snapshot_json = COALESCE(@tree_snapshot_json, tree_snapshot_json),
+            progress_snapshot_json = COALESCE(@progress_snapshot_json, progress_snapshot_json),
+            total_branches = COALESCE(@total_branches, total_branches),
+            completed_branches = COALESCE(@completed_branches, completed_branches),
+            failed_branches = COALESCE(@failed_branches, failed_branches),
+            tokens_used = COALESCE(@tokens_used, tokens_used)
           WHERE id = @id
         `),
 
@@ -857,12 +863,25 @@ export class ConstellationStore {
   }
 
 
-  failSession(id: string, error: string, durationMs?: number): void {
+  failSession(id: string, error: string, durationMs?: number, data?: {
+    tree?: CorpusTreeSnapshot
+    progress?: ProgressSnapshot
+    totalBranches?: number
+    completedBranches?: number
+    failedBranches?: number
+    tokensUsed?: number
+  }): void {
     this.stmts.failSession.run({
       id,
       error,
       duration_ms: durationMs ?? 0,
       completed_at: Date.now(),
+      tree_snapshot_json: data?.tree ? JSON.stringify(data.tree) : null,
+      progress_snapshot_json: data?.progress ? JSON.stringify(data.progress) : null,
+      total_branches: data?.totalBranches ?? null,
+      completed_branches: data?.completedBranches ?? null,
+      failed_branches: data?.failedBranches ?? null,
+      tokens_used: data?.tokensUsed ?? null,
     })
     this.logger.warn(`Failed Constellation session ${id}`, { error })
   }

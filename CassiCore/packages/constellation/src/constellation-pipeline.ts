@@ -384,6 +384,10 @@ export interface ConstellationPipelineOpts {
   /** Corpus LLM adapter for cross-Helix analysis */
   corpusLLM: CorpusLLM
 
+  /** Brainstem LLM adapter (separate from Corpus for independent model routing).
+   *  Falls back to corpusLLM when not provided. */
+  brainstemLLM?: CorpusLLM
+
   /** Optional memory system for cross-run learning and context injection */
   memory?: IMemory
 
@@ -489,11 +493,15 @@ export async function runConstellationPipeline(
     constellationStore,
     handleFactory,
     corpusLLM,
+    brainstemLLM: brainstemLLMOpt,
     onNodeCreated,
     onNodeCompleted,
   } = opts
 
   const log = logger.child('constellation-pipeline')
+
+  // Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
+  const brainstemLLM = brainstemLLMOpt ?? corpusLLM
 
   // ── Memory Injection Service ─────────────────────────────────────
   // Instantiate memory injection service if memory is available.
@@ -877,7 +885,7 @@ export async function runConstellationPipeline(
     const sharedTreeReader = createSharedTreeReaderForHelix(helixId, corpusTree)
 
     const brainstemDeps: BrainstemDeps = {
-      llm: corpusLLM,
+      llm: brainstemLLM,
       logger,
       goal: helixGoal,
       sessionId: helixId,
@@ -1089,6 +1097,48 @@ export async function runConstellationPipeline(
         })
         node.status = result.completionStatus.complete ? 'completed' : 'failed'
         node.completedAt = Date.now()
+
+        // Populate tokensUsed from HelixResult
+        const tu = result.tokensUsed
+        node.tokensUsed = (tu.unity ?? 0) + (tu.yang ?? 0) + (tu.yin ?? 0) + (tu.mentor ?? 0)
+
+        // Populate postureResults from HelixResult
+        const ic = result.iterationCounts ?? { unity: 0, yang: 0, yin: 0, mentor: 0 }
+        const tc = result.toolCallCounts ?? { unity: 0, yang: 0, yin: 0, mentor: 0 }
+        const nodeStart = node.startedAt ?? Date.now()
+        const dur = Date.now() - nodeStart
+
+        node.postureResults.set('unity', {
+          name: 'unity',
+          conclusion: result.unityConclusion ?? '',
+          confidence: result.unityConfidence ?? 0,
+          keyPoints: result.unityKeyPoints ?? [],
+          iterationCount: ic.unity,
+          toolCallCount: tc.unity,
+          tokensUsed: tu.unity ?? 0,
+          durationMs: dur,
+        })
+        node.postureResults.set('yang', {
+          name: 'yang',
+          conclusion: result.yangConclusion ?? '',
+          confidence: result.yangConfidence ?? 0,
+          keyPoints: result.yangKeyPoints ?? [],
+          iterationCount: ic.yang,
+          toolCallCount: tc.yang,
+          tokensUsed: tu.yang ?? 0,
+          durationMs: dur,
+        })
+        node.postureResults.set('yin', {
+          name: 'yin',
+          conclusion: result.yinConclusion ?? '',
+          confidence: result.yinConfidence ?? 0,
+          keyPoints: result.yinKeyPoints ?? [],
+          iterationCount: ic.yin,
+          toolCallCount: tc.yin,
+          tokensUsed: tu.yin ?? 0,
+          durationMs: dur,
+        })
+
         onNodeCompleted?.(node)
       })
       .catch((err) => {
@@ -1236,6 +1286,71 @@ export async function runConstellationPipeline(
       readFile: (path: string) => safeReadFile(path, process.cwd()),
     })
 
+    // ── Periodic checkpoints (shared for all execution modes) ────────
+    // Start periodic progress checkpoints (every 30s).
+    // Also enforces maxTotalSteps limit.
+    const CHECKPOINT_INTERVAL_MS = 30_000
+    const maxTotalSteps = opts.maxTotalSteps ?? 100
+    if (constellationStore) {
+      checkpointHandle = setInterval(() => {
+        try {
+          const nodeArr = Array.from(nodes.values())
+          const totalSteps = corpusTree.getSnapshot().branches.reduce(
+            (sum, b) => sum + b.stepCount, 0
+          )
+
+          constellationStore.saveCheckpoint(constellationId, {
+            tree: corpusTree.getSnapshot(),
+            progress: corpus.getProgressSnapshot(),
+            sweepCount: corpus.getResult().sweepCount,
+            totalBranches: nodeArr.length,
+            completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
+            failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
+            tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+            durationMs: Date.now() - startTime,
+          })
+          log.info('Checkpoint saved', {
+            constellationId,
+            totalSteps,
+            branches: nodeArr.length,
+          })
+
+          // Check max steps limit
+          if (totalSteps >= maxTotalSteps) {
+            log.warn('Max total steps reached, cancelling Constellation', {
+              totalSteps,
+              maxTotalSteps,
+              branches: nodeArr.length,
+            })
+            for (const running of runningHelixes.values()) {
+              try { running.cancel() } catch (_e) { /* best effort */ }
+            }
+          }
+        } catch (err) {
+          log.warn('Checkpoint save failed', { error: String(err) })
+        }
+      }, CHECKPOINT_INTERVAL_MS)
+
+      // Fire first checkpoint after 10s (don't wait for the full interval)
+      setTimeout(() => {
+        if (!checkpointHandle) return
+        try {
+          const nodeArr = Array.from(nodes.values())
+          constellationStore.saveCheckpoint(constellationId, {
+            tree: corpusTree.getSnapshot(),
+            progress: corpus.getProgressSnapshot(),
+            sweepCount: corpus.getResult().sweepCount,
+            totalBranches: nodeArr.length,
+            completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
+            failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
+            tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+            durationMs: Date.now() - startTime,
+          })
+          log.info('First checkpoint saved', { constellationId })
+        } catch (_e) { /* best-effort */ }
+      }, 10_000)
+    }
+
     if (decomposition.decomposed && decomposition.subTasks.length > 1) {
       log.info('Goal decomposed into sub-tasks', {
         subTasks: decomposition.subTasks.length,
@@ -1282,46 +1397,6 @@ export async function runConstellationPipeline(
 
       // Start spawn request polling
       const spawnPoller = pollSpawnRequests()
-
-      // Start periodic progress checkpoints (every 60s)
-      // Also checks maxTotalSteps limit.
-      const CHECKPOINT_INTERVAL_MS = 60_000
-      const maxTotalSteps = opts.maxTotalSteps ?? 100
-      if (constellationStore) {
-        checkpointHandle = setInterval(() => {
-          try {
-            const nodeArr = Array.from(nodes.values())
-            const totalSteps = corpusTree.getSnapshot().branches.reduce(
-              (sum, b) => sum + b.stepCount, 0
-            )
-
-            constellationStore.saveCheckpoint(constellationId, {
-              tree: corpusTree.getSnapshot(),
-              progress: corpus.getProgressSnapshot(),
-              sweepCount: corpus.getResult().sweepCount,
-              totalBranches: nodeArr.length,
-              completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
-              failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
-              tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
-              durationMs: Date.now() - startTime,
-            })
-
-            // Check max steps limit
-            if (totalSteps >= maxTotalSteps) {
-              log.warn('Max total steps reached, cancelling Constellation', {
-                totalSteps,
-                maxTotalSteps,
-                branches: nodeArr.length,
-              })
-              for (const running of runningHelixes.values()) {
-                try { running.cancel() } catch (_e) { /* best effort */ }
-              }
-            }
-          } catch (err) {
-            log.warn('Checkpoint save failed', { error: String(err) })
-          }
-        }, CHECKPOINT_INTERVAL_MS)
-      }
 
       // Wait for root Helix completion
       log.info('Waiting for root Helix completion', { rootHelixId })
@@ -1525,7 +1600,15 @@ export async function runConstellationPipeline(
     // Archive failure to ConstellationStore (if provided)
     if (constellationStore) {
       try {
-        constellationStore.failSession(constellationId, String(err), Date.now() - startTime)
+        const failTree = corpusTree.getSnapshot()
+        const nodeArr = Array.from(nodes.values())
+        constellationStore.failSession(constellationId, String(err), Date.now() - startTime, {
+          tree: failTree,
+          totalBranches: nodeArr.length,
+          completedBranches: nodeArr.filter(n => n.status === 'completed').length,
+          failedBranches: nodeArr.filter(n => n.status === 'failed').length,
+          tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+        })
         log.info('Archived failed session to ConstellationStore', { constellationId })
       } catch (storeErr) {
         log.warn('Failed to archive failure to ConstellationStore', { error: String(storeErr) })
@@ -1648,5 +1731,38 @@ function createSharedTreeReaderForHelix(
     contributeTopic: (topicId, contribution) => tree.contributeTopic(topicId, contribution),
     recordRetrospective: (retrospective) => tree.recordRetrospective(helixId, retrospective),
     recordEffectiveness: (record) => tree.recordEffectiveness(record),
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// Serialization Helper — Convert Maps to plain objects for JSON
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Convert a ConstellationResult to a JSON-safe plain object.
+ *
+ * `ConstellationResult.nodes` and `ConstellationNode.postureResults` are
+ * `Map<string, ...>` for runtime performance, but `JSON.stringify(map)`
+ * produces `"{}"`. This helper converts them to `Record<string, ...>`.
+ */
+export function serializeConstellationResult(result: ConstellationResult): Record<string, unknown> {
+  const serializedNodes: Record<string, unknown> = {}
+
+  if (result.nodes instanceof Map) {
+    for (const [key, node] of result.nodes) {
+      const postureResults: Record<string, unknown> = {}
+      if (node.postureResults instanceof Map) {
+        for (const [pName, pResult] of node.postureResults) {
+          postureResults[pName] = pResult
+        }
+      }
+      serializedNodes[key] = { ...node, postureResults }
+    }
+  }
+
+  return {
+    ...result,
+    nodes: serializedNodes,
   }
 }

@@ -894,8 +894,8 @@ export type CorpusCadence = 'active' | 'safety-net'
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   modelTier: 'qwenMax',
   maxTokens: 800,
-  timeoutMs: 15_000,
-  idlePollMs: 2_000,
+  timeoutMs: 90_000,
+  idlePollMs: 10_000,
   llmAnalysisThreshold: 3,
   maxBranches: 16,
   maxDepth: 4,

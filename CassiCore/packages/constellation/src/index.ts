@@ -110,7 +110,7 @@ export { Corpus, createCorpus } from './corpus.js'
 
 // ── Constellation Pipeline ─────────────────────────────────────────────────
 
-export { runConstellationPipeline } from './constellation-pipeline.js'
+export { runConstellationPipeline, serializeConstellationResult } from './constellation-pipeline.js'
 export type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 
 
