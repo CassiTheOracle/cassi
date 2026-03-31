@@ -184,7 +184,7 @@ export class CorpusMiniHelix {
       sessionId: `corpus-${this.deps.constellationId}`,
       constellationId: this.deps.constellationId,
       maxIterationsPerCycle: this.miniHelixConfig.maxIterationsPerCycle ?? 50,
-      maxTokens: 2048,
+      maxTokens: this.corpusConfig.maxTokens,
       cycleTimeoutMs: this.miniHelixConfig.cycleTimeoutMs ?? 120_000,
       modelTier: this.miniHelixConfig.modelTier ?? 'qwenMax',
       modelName: this.miniHelixConfig.modelName,

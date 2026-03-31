@@ -239,6 +239,20 @@ export interface BranchDigest {
    * Absent if the thread is idle or between iterations.
    */
   liveStreamSnippet?: string
+  /**
+   * Self-organization signals that have met the dampening threshold and are
+   * ready to fire. In 'safety-net-only' / 'tree-only' guidance modes these
+   * are NOT injected directly into Unity — the Corpus acts on them instead,
+   * using its full cross-branch context to decide whether and how to respond.
+   *
+   * Each signal carries: the rule type, a human-readable description of the
+   * condition, and the evidence string that triggered it.
+   */
+  selfOrgSignals?: Array<{
+    type: string
+    description: string
+    evidence: string
+  }>
 }
 
 /**
@@ -893,10 +907,10 @@ export type CorpusCadence = 'active' | 'safety-net'
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   modelTier: 'qwenMax',
-  maxTokens: 800,
+  maxTokens: 16_000,
   timeoutMs: 90_000,
   idlePollMs: 10_000,
-  llmAnalysisThreshold: 3,
+  llmAnalysisThreshold: 2,
   maxBranches: 16,
   maxDepth: 4,
   interventionCooldownSweeps: 3,
@@ -905,7 +919,7 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   postToBlackboard: true,
   enabled: true,
   autoSpawnInterventionThreshold: 5,
-  cadence: 'safety-net',
+  cadence: 'active',
   safetyNetMinSweepsBetweenAnalysis: 3,
   useToolBasedAnalysis: true,
   maxToolCallsPerCycle: 10,

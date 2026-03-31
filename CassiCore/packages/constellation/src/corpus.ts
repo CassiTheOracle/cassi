@@ -1104,6 +1104,12 @@ export class Corpus {
         if (digest?.recentOutputs && digest.recentOutputs.length > 0) {
           lines.push(`Recent outputs: ${digest.recentOutputs.slice(-3).join(', ')}`)
         }
+        if (digest?.selfOrgSignals && digest.selfOrgSignals.length > 0) {
+          lines.push(`Self-org signals (ready to fire — Brainstem deferred to Corpus):`)
+          for (const s of digest.selfOrgSignals) {
+            lines.push(`  - [${s.type}] ${s.description} | evidence: ${s.evidence}`)
+          }
+        }
         if (digest?.liveStreamSnippet?.trim()) {
           lines.push(`Currently generating:\n${digest.liveStreamSnippet}`)
         }
@@ -1616,7 +1622,7 @@ Guidelines:
       const response = await this.deps.llm.complete({
         prompt,
         modelTier: this.config.modelTier,
-        maxTokens: 400,
+        maxTokens: 3000,
         timeoutMs: this.config.timeoutMs,
       })
 
