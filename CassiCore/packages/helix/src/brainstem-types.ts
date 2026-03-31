@@ -31,10 +31,28 @@ import type {
 
 // ─── Configuration ────────────────────────────────────────────────────────
 
+/**
+ * Guidance operating mode for the Brainstem.
+ *
+ * - 'full': Brainstem generates and injects guidance on every work unit,
+ *   heartbeat, and self-org adjustment. Legacy mode.
+ *
+ * - 'safety-net-only': Brainstem only fires guidance for wall-clock budget
+ *   limits and stagnation (score < threshold for many steps). All other
+ *   guidance authority is delegated to the Corpus. Self-org adjustments are
+ *   published as signals on the digest instead of being injected directly.
+ *   Default mode.
+ *
+ * - 'tree-only': Brainstem produces no guidance whatsoever. Purely a
+ *   thought-tree organizer. Use only when Corpus cadence is 'active' and
+ *   stagnation recovery is handled externally.
+ */
+export type BrainstemGuidanceMode = 'full' | 'safety-net-only' | 'tree-only'
+
 export interface BrainstemConfig {
   /** Model tier for Brainstem LLM loop. Default: 'background' */
   modelTier: string
-  /** Max tokens per Brainstem LLM call. Default: 400 */
+  /** Max tokens per Brainstem LLM call. Default: 6000 */
   maxTokens: number
   /** Timeout for each Brainstem LLM call in ms. Default: 30000 */
   timeoutMs: number
@@ -64,15 +82,20 @@ export interface BrainstemConfig {
   persistTrainingData: boolean
   /** Whether Brainstem is enabled. Default: true */
   enabled: boolean
-  /** Interval in ms between time-based heartbeat annotations when idle (default: 30_000) */
+  /** Interval in ms between time-based heartbeat annotations when idle (default: 90_000) */
   heartbeatIntervalMs: number
   /** Accumulated stream-token count before triggering a long-reasoning heartbeat (default: 2000) */
   longReasoningTokenThreshold: number
+  /**
+   * Guidance operating mode. Default: 'safety-net-only'.
+   * See BrainstemGuidanceMode for full description.
+   */
+  guidanceMode: BrainstemGuidanceMode
 }
 
 export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   modelTier: 'background',
-  maxTokens: 1500,
+  maxTokens: 6_000,
   timeoutMs: 30_000,
   idlePollMs: 15_000,
   guidanceCooldownIterations: 2,
@@ -87,8 +110,9 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   postToBlackboard: true,
   persistTrainingData: true,
   enabled: true,
-  heartbeatIntervalMs: 60_000,
+  heartbeatIntervalMs: 90_000,
   longReasoningTokenThreshold: 2_000,
+  guidanceMode: 'safety-net-only',
 }
 
 // ─── Annotation Types ─────────────────────────────────────────────────────

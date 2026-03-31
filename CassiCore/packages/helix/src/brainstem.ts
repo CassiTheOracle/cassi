@@ -1420,9 +1420,11 @@ Critical rules:
       }
     }
 
-    // LLM-generated guidance passthrough — the Brainstem LLM has full trajectory
-    // context and dimensional scores. If it decided guidance is needed, trust it.
-    if (annotation.guidance) {
+    // LLM-generated guidance passthrough — only in 'full' mode.
+    // In 'safety-net-only' and 'tree-only' modes the Corpus is the sole
+    // guidance authority; the annotation is still scored and recorded for
+    // the thought tree, but no injection happens here.
+    if (annotation.guidance && this.config.guidanceMode === 'full') {
       const guidance: PendingGuidance = {
         text: annotation.guidance,
         urgency: annotation.guidanceUrgency,
@@ -1707,6 +1709,19 @@ Critical rules:
         allDecisions: cogModel.allDecisions.length > 0 ? cogModel.allDecisions : undefined,
         currentNextSteps: cogModel.currentNextSteps.length > 0 ? cogModel.currentNextSteps : undefined,
         recentOutputs: cogModel.recentOutputs.length > 0 ? cogModel.recentOutputs.slice(-10) : undefined,
+        // Self-org signals: adjustments that have met dampening and are ready to fire.
+        // In 'full' mode these will also become guidance injections (via applyReadyAdjustments);
+        // in 'safety-net-only' / 'tree-only' modes the Corpus is the sole actor on these signals.
+        selfOrgSignals: (() => {
+          const ready = Array.from(this.pendingSelfOrgAdjustments.values())
+            .filter(a => a.dampeningCount >= a.dampeningThreshold)
+          if (ready.length === 0) return undefined
+          return ready.map(a => ({
+            type: a.type,
+            description: a.description,
+            evidence: a.evidence,
+          }))
+        })(),
       }
 
       sharedTree.updateDigest(digest)
@@ -2034,25 +2049,38 @@ Critical rules:
 
   /**
    * Apply adjustments that have met the 2-cycle dampening threshold.
-   * Each applied adjustment is converted to a PendingGuidance and
-   * queued for Unity delivery through the normal mechanism.
+   *
+   * In 'full' guidance mode: each ready adjustment is converted to a
+   * PendingGuidance and queued for Unity delivery.
+   *
+   * In 'safety-net-only' / 'tree-only' modes: adjustments are NOT converted
+   * to guidance. Instead they are left in pendingSelfOrgAdjustments until
+   * consumed by publishDigest(), which surfaces them as selfOrgSignals for
+   * the Corpus to act on with its full cross-branch context.
+   *
+   * Effectiveness tracking and retrospectives always run regardless of mode.
    */
   private applyReadyAdjustments(): void {
     for (const [key, adjustment] of this.pendingSelfOrgAdjustments) {
       if (adjustment.dampeningCount >= adjustment.dampeningThreshold) {
-        // Convert to guidance
-        const urgency = this.adjustmentToUrgency(adjustment.type)
-        const guidanceText = this.formatAdjustmentAsGuidance(adjustment)
+        if (this.config.guidanceMode === 'full') {
+          // Convert to guidance and inject into Unity
+          const urgency = this.adjustmentToUrgency(adjustment.type)
+          const guidanceText = this.formatAdjustmentAsGuidance(adjustment)
 
-        this.queueGuidance({
-          text: guidanceText,
-          urgency,
-          triggeredBy: `self-org:${adjustment.type}` as any,
-          fromStep: this.state.currentAxonStep,
-          timestamp: Date.now(),
-        })
+          this.queueGuidance({
+            text: guidanceText,
+            urgency,
+            triggeredBy: `self-org:${adjustment.type}` as any,
+            fromStep: this.state.currentAxonStep,
+            timestamp: Date.now(),
+          })
+        }
+        // In safety-net-only / tree-only: adjustment stays in
+        // pendingSelfOrgAdjustments until publishDigest() reads and
+        // clears it as a selfOrgSignal for the Corpus.
 
-        // Record for effectiveness tracking
+        // Record for effectiveness tracking (always)
         const recentScores = this.state.qualityTrajectory.slice(-3)
         const scoreAtApplication = recentScores.length > 0
           ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
@@ -2079,6 +2107,7 @@ Critical rules:
           type: adjustment.type,
           key,
           dampeningCount: adjustment.dampeningCount,
+          guidanceMode: this.config.guidanceMode,
           description: adjustment.description.slice(0, 100),
         })
       }
