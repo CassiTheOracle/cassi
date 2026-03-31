@@ -84,7 +84,7 @@ class MiniHelixRunner implements MiniHelixSession {
       maxIterationsPerCycle: config.maxIterationsPerCycle ?? defaults.maxIterationsPerCycle ?? 50,
       maxTokens: config.maxTokens ?? defaults.maxTokens ?? 2048,
       cycleTimeoutMs: config.cycleTimeoutMs ?? defaults.cycleTimeoutMs ?? 120_000,
-      modelTier: config.modelTier ?? defaults.modelTier ?? 'balanced',
+      modelTier: config.modelTier ?? defaults.modelTier ?? 'qwenMax',
       consumer: config.consumer,
       systemPrompt: config.systemPrompt,
       sessionId: config.sessionId,
