@@ -46,7 +46,7 @@ interface MinimalBrainstem {
  * Configuration specific to the Corpus mini-Helix mode.
  */
 export interface CorpusMiniHelixConfig {
-  /** Model tier for the Corpus mini-Helix. Default: 'balanced' */
+  /** Model tier for the Corpus mini-Helix. Default: 'qwenMax' */
   modelTier?: string
   /** Model name override (e.g., 'qwen3-max'). Optional. */
   modelName?: string
@@ -186,7 +186,7 @@ export class CorpusMiniHelix {
       maxIterationsPerCycle: this.miniHelixConfig.maxIterationsPerCycle ?? 50,
       maxTokens: 2048,
       cycleTimeoutMs: this.miniHelixConfig.cycleTimeoutMs ?? 120_000,
-      modelTier: this.miniHelixConfig.modelTier ?? 'balanced',
+      modelTier: this.miniHelixConfig.modelTier ?? 'qwenMax',
       modelName: this.miniHelixConfig.modelName,
     }
 

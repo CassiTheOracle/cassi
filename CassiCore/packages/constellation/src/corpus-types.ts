@@ -821,7 +821,7 @@ export const DEFAULT_PROACTIVE_CONFIG: CorpusProactiveConfig = {
 // ═══════════════════════════════════════════════════════════════════
 
 export interface CorpusConfig {
-  /** Model tier for Corpus LLM loop. Default: 'balanced' */
+  /** Model tier for Corpus LLM loop. Default: 'qwenMax' */
   modelTier: string
   /** Max tokens per Corpus LLM call. Default: 800 */
   maxTokens: number
@@ -892,7 +892,7 @@ export interface CorpusConfig {
 export type CorpusCadence = 'active' | 'safety-net'
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
-  modelTier: 'balanced',
+  modelTier: 'qwenMax',
   maxTokens: 800,
   timeoutMs: 15_000,
   idlePollMs: 2_000,
