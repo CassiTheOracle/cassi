@@ -187,6 +187,7 @@ export type ConstellationNodeStatus =
   | 'pending'     // Created but not yet started
   | 'running'     // Actively running postures
   | 'completed'   // All postures finished successfully
+  | 'degraded'    // Completed but one or more postures errored
   | 'failed'      // A critical posture failed
   | 'cancelled'   // Cancelled by parent or orchestrator
 

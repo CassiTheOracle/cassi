@@ -668,6 +668,17 @@ export async function runConstellationPipeline(
         const rh = runningHelixes.get(helixId)
         return rh?.template
       },
+
+      // Persist Corpus events to ConstellationStore for audit trail
+      persistEvent: constellationStore
+        ? (type, entity, message, data) => {
+            try {
+              constellationStore.appendEvent(constellationId, type, entity, message, data)
+            } catch (err) {
+              log.warn('Corpus event persistence failed', { type, error: String(err) })
+            }
+          }
+        : undefined,
     },
     {
       maxBranches: maxHelixes,
@@ -816,6 +827,22 @@ export async function runConstellationPipeline(
 
     // Register branch in corpus tree
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
+
+    // Persist branch creation to ConstellationStore
+    if (constellationStore) {
+      try {
+        constellationStore.addBranch(constellationId, helixId, helixGoal, depth, {
+          helixSessionId: helixId,
+          parentHelixId: parentId,
+        })
+        constellationStore.recordBranchLifecycleEvent(constellationId, helixId, {
+          eventType: 'created',
+          context: { goal: helixGoal.slice(0, 200), depth, parentId },
+        })
+      } catch (err) {
+        helixLog.warn('Failed to persist branch creation', { error: String(err) })
+      }
+    }
 
     // Create node
     const node: ConstellationNode = {
@@ -1091,11 +1118,22 @@ export async function runConstellationPipeline(
     // Track completion
     promise
       .then((result) => {
+        const isDegraded = result.completionStatus.degraded
         helixLog.info('Helix completed', {
           completionStatus: result.completionStatus,
+          degraded: isDegraded,
           durationMs: Date.now() - (node.startedAt ?? Date.now()),
         })
-        node.status = result.completionStatus.complete ? 'completed' : 'failed'
+
+        if (isDegraded) {
+          helixLog.warn('Helix completed in degraded state (one or more postures errored)', {
+            unityStatus: result.completionStatus.unityStatus,
+            yangStatus: result.completionStatus.yangStatus,
+            yinStatus: result.completionStatus.yinStatus,
+          })
+        }
+
+        node.status = result.completionStatus.complete ? (isDegraded ? 'degraded' : 'completed') : 'failed'
         node.completedAt = Date.now()
 
         // Populate tokensUsed from HelixResult
@@ -1149,9 +1187,28 @@ export async function runConstellationPipeline(
       })
       .finally(async () => {
         // Close branch in corpus tree — node.status is now correct after .then()/.catch()
-        corpusTree.closeBranch(helixId, node.status === 'completed' ? 'completed' : 'failed')
+        // Corpus tree only knows 'completed' | 'failed', so degraded maps to 'completed' there
+        const branchStatus = (node.status === 'completed' || node.status === 'degraded') ? 'completed' : 'failed'
+        corpusTree.closeBranch(helixId, branchStatus)
         // Unregister from cross-Helix dialectic
         crossHelixDialectic?.unregisterBranch(helixId)
+
+        // Persist branch completion to ConstellationStore
+        if (constellationStore) {
+          try {
+            constellationStore.updateBranch(constellationId, helixId, {
+              status: branchStatus,
+              completed: true,
+            })
+            constellationStore.recordBranchLifecycleEvent(constellationId, helixId, {
+              eventType: node.status === 'degraded' ? 'degraded' : branchStatus,
+              metrics: { tokensUsed: node.tokensUsed, durationMs: node.completedAt ? node.completedAt - (node.startedAt ?? 0) : 0 },
+            })
+          } catch (err) {
+            helixLog.warn('Failed to persist branch completion', { error: String(err) })
+          }
+        }
+
         // Stop Brainstem mini-Helix sidecar if it was running
         const rh = runningHelixes.get(helixId)
         if (rh?.brainstemMiniHelix) {
@@ -1163,6 +1220,27 @@ export async function runConstellationPipeline(
       })
 
     return runningHelix
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // Helper: Notify a Helix that its spawn request was rejected
+  // ═════════════════════════════════════════════════════════════════
+
+  function notifySpawnRejection(helixId: string, reason: string): void {
+    const rh = runningHelixes.get(helixId)
+    if (!rh?.brainstem) return
+    try {
+      const guidance: import('../helix/brainstem-types.js').PendingGuidance = {
+        text: reason,
+        urgency: 'medium',
+        fromStep: 0,
+        triggeredBy: 'none',
+        timestamp: Date.now(),
+      }
+      ;(rh.brainstem as any).guidanceQueue?.push(guidance)
+    } catch {
+      // Best effort — don't crash on notification failure
+    }
   }
 
   // ═════════════════════════════════════════════════════════════════
@@ -1183,7 +1261,7 @@ export async function runConstellationPipeline(
         current: runningHelixes.size,
         max: maxHelixes,
       })
-      // TODO: Notify requester of rejection
+      notifySpawnRejection(request.requestingHelixId, `Spawn request rejected: max Helixes (${maxHelixes}) reached. Complete your current task without spawning.`)
       return
     }
 
@@ -1196,7 +1274,7 @@ export async function runConstellationPipeline(
         depth,
         maxDepth,
       })
-      // TODO: Notify requester of rejection
+      notifySpawnRejection(request.requestingHelixId, `Spawn request rejected: max depth (${maxDepth}) reached. Handle the sub-task inline instead of spawning.`)
       return
     }
 
@@ -1208,7 +1286,7 @@ export async function runConstellationPipeline(
         requestId: request.requestId,
         reason: decision.reason,
       })
-      // TODO: Notify requester of rejection
+      notifySpawnRejection(request.requestingHelixId, `Spawn request rejected by Corpus: ${decision.reason}. Continue with your current approach.`)
       return
     }
 
@@ -1265,6 +1343,33 @@ export async function runConstellationPipeline(
     const cancelPromise = new Promise<never>((_, reject) => {
       externalCancel = () => {
         log.info('Constellation cancelled externally')
+
+        // Save a final checkpoint before cancelling so we don't lose progress
+        if (constellationStore) {
+          try {
+            const nodeArr = Array.from(nodes.values())
+            constellationStore.saveCheckpoint(constellationId, {
+              tree: corpusTree.getSnapshot(),
+              progress: {
+                markdown: `Cancelled: ${nodeArr.length} nodes at cancellation time`,
+                data: {
+                  activeBranches: nodeArr.filter(n => n.status === 'running').length,
+                  totalBranches: nodeArr.length,
+                  completedBranches: nodeArr.filter(n => n.status === 'completed').length,
+                  failedBranches: nodeArr.filter(n => n.status === 'failed').length,
+                  sweepCount: corpus.getResult().sweepCount,
+                  lastSweepAt: Date.now(),
+                },
+              },
+              totalBranches: nodeArr.length,
+              tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+            })
+            log.info('Final checkpoint saved before cancellation')
+          } catch (err) {
+            log.warn('Failed to save final checkpoint on cancel', { error: String(err) })
+          }
+        }
+
         for (const running of runningHelixes.values()) {
           try { running.cancel() } catch (_e) { /* best effort */ }
         }
@@ -1272,6 +1377,16 @@ export async function runConstellationPipeline(
       }
     })
     opts.onCancelRegistered?.(externalCancel)
+
+    // Persist constellation start event
+    if (constellationStore) {
+      try {
+        constellationStore.appendEvent(constellationId, 'constellation:started', null,
+          `Constellation started with template=${template}`, { goal: goal.slice(0, 200), template })
+      } catch (err) {
+        log.warn('Failed to persist start event', { error: String(err) })
+      }
+    }
 
     // ── Pre-flight Goal Decomposition ──────────────────────────────
     // For complex goals, run a short planning Helix to decompose the goal
@@ -1425,7 +1540,8 @@ export async function runConstellationPipeline(
 
     log.info('Constellation execution complete', {
       totalNodes: nodes.size,
-      completedNodes: Array.from(nodes.values()).filter((n) => n.status === 'completed').length,
+      completedNodes: Array.from(nodes.values()).filter((n) => n.status === 'completed' || n.status === 'degraded').length,
+      degradedNodes: Array.from(nodes.values()).filter((n) => n.status === 'degraded').length,
       failedNodes: Array.from(nodes.values()).filter((n) => n.status === 'failed').length,
     })
 
@@ -1452,6 +1568,24 @@ export async function runConstellationPipeline(
         timestamp: Date.now(),
       },
     } as any)
+
+    // Persist completion event
+    if (constellationStore) {
+      try {
+        const completedCount = Array.from(nodes.values()).filter(n => n.status === 'completed').length
+        const failedCount = Array.from(nodes.values()).filter(n => n.status === 'failed').length
+        constellationStore.appendEvent(constellationId, 'constellation:completed', null,
+          `Completed: ${completedCount}/${nodes.size} branches succeeded`, {
+            durationMs: result.totalDurationMs,
+            nodeCount: nodes.size,
+            completedCount,
+            failedCount,
+            tokensUsed: result.totalTokensUsed,
+          })
+      } catch (err) {
+        log.warn('Failed to persist completion event', { error: String(err) })
+      }
+    }
 
     // Archive to ConstellationStore (if provided)
     if (constellationStore) {
@@ -1609,6 +1743,12 @@ export async function runConstellationPipeline(
           failedBranches: nodeArr.filter(n => n.status === 'failed').length,
           tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
         })
+        constellationStore.appendEvent(constellationId, 'constellation:failed', null,
+          `Failed: ${String(err).slice(0, 200)}`, {
+            error: String(err),
+            durationMs: Date.now() - startTime,
+            nodeCount: nodeArr.length,
+          })
         log.info('Archived failed session to ConstellationStore', { constellationId })
       } catch (storeErr) {
         log.warn('Failed to archive failure to ConstellationStore', { error: String(storeErr) })

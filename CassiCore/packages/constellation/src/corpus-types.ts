@@ -987,6 +987,13 @@ export interface CorpusDeps {
    * Get template for a given helix (to determine budget defaults).
    */
   getHelixTemplate?: (helixId: string) => ConstellationTemplate | undefined
+
+  /**
+   * Optional callback to persist Corpus events to the ConstellationStore.
+   * Decouples the Corpus from direct store dependency while enabling
+   * event audit trails for sweeps, patterns, interventions, and health changes.
+   */
+  persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
 }
 
 /**

@@ -1761,6 +1761,18 @@ Guidelines:
    * Emit an event on the event bus if available
    */
   private emitEvent(type: string, data: Record<string, unknown>): void {
+    // Persist to ConstellationStore (if callback provided)
+    if (this.deps.persistEvent) {
+      try {
+        const entity = (data.helixId as string) ?? (data.requestId as string) ?? null
+        const message = (data.reason as string) ?? (data.description as string) ?? type
+        this.deps.persistEvent(type, entity, message.slice(0, 500), data)
+      } catch {
+        // Persistence failures must not crash the loop
+      }
+    }
+
+    // Emit to EventBus (in-memory)
     if (!this.deps.eventBus) return
     try {
       void this.deps.eventBus.emit({

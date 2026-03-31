@@ -346,7 +346,7 @@ export interface CorpusDecisionRow {
   timestamp: number
 }
 
-export type BranchLifecycleEventType = 'created' | 'scored' | 'intervention_received' | 'completed' | 'failed' | 'pruned' | 'spawned_child'
+export type BranchLifecycleEventType = 'created' | 'scored' | 'intervention_received' | 'completed' | 'degraded' | 'failed' | 'pruned' | 'spawned_child'
 
 export interface BranchLifecycleEventRow {
   id: number
@@ -1075,6 +1075,36 @@ export class ConstellationStore {
     // Clean up orphaned branches and events
     this.stmts.pruneBranches.run()
     this.stmts.pruneEvents.run()
+    return result.changes
+  }
+
+
+  /**
+   * Recover orphaned sessions that were left in 'running' status after a daemon restart.
+   * Marks them as 'failed' with an appropriate error message and duration estimate.
+   * Should be called once at daemon startup before any new constellations are launched.
+   *
+   * Returns the number of orphaned sessions recovered.
+   */
+  recoverOrphanedSessions(): number {
+    const now = Date.now()
+    const stmt = this.db.prepare(`
+      UPDATE constellation_sessions
+      SET status = 'failed',
+          error = 'Process terminated unexpectedly (recovered at startup)',
+          completed_at = ?,
+          duration_ms = CASE
+            WHEN created_at IS NOT NULL THEN ? - created_at
+            ELSE duration_ms
+          END
+      WHERE status = 'running'
+    `)
+    const result = stmt.run(now, now)
+    if (result.changes > 0) {
+      this.logger.info('Recovered orphaned constellation sessions', {
+        count: result.changes,
+      })
+    }
     return result.changes
   }
 
