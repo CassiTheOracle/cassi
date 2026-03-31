@@ -253,6 +253,41 @@ export interface BranchDigest {
     description: string
     evidence: string
   }>
+  /**
+   * Real-time blocker updates — pushed immediately when a blocker is detected,
+   * not waiting for the next full digest cycle.
+   */
+  currentBlockers?: Array<{
+    description: string
+    detectedAt: number
+    severity: 'low' | 'medium' | 'high' | 'critical'
+    relatedFiles?: string[]
+  }>
+  /**
+   * Confidence level — updated on every annotation. Computed from:
+   * - Recent score trajectory (last 5 steps)
+   * - Pattern stability (same approach for N steps = higher confidence)
+   * - Blocker count (more blockers = lower confidence)
+   * - Progress estimate coherence
+   */
+  confidenceLevel?: {
+    score: number
+    trend: 'rising' | 'stable' | 'falling'
+    factors: string[]
+    updatedAt: number
+  }
+  /**
+   * Estimated time to completion in minutes. Based on:
+   * - Current progress rate (work units per minute × avg score)
+   * - Remaining complexity (from goal decomposition)
+   * - Historical similar branches
+   */
+  estimatedTimeToCompletion?: {
+    minutes: number
+    confidence: number
+    basedOnSteps: number
+    updatedAt: number
+  }
 }
 
 /**
@@ -445,6 +480,26 @@ export interface EffectivenessRecord {
   effective: boolean
   /** When measured */
   measuredAt: number
+  /** Time from adjustment application to measurable improvement (ms) */
+  timeToResolutionMs?: number
+  /** Quality delta beyond score — did this improve code quality, test coverage, etc.? */
+  qualityMetrics?: {
+    codeQualityDelta?: number
+    testCoverageDelta?: number
+    documentationDelta?: number
+  }
+  /** Branch satisfaction — self-reported via Unity end-of-session report */
+  branchSatisfaction?: {
+    score: number
+    comment?: string
+    wouldRecommend: boolean
+  }
+  /** Constellation-level impact — did this help other branches? */
+  constellationImpact?: {
+    helpedBranches: string[]
+    hinderedBranches: string[]
+    netImpact: 'positive' | 'neutral' | 'negative'
+  }
 }
 
 
@@ -496,6 +551,9 @@ export interface CorpusProcessedState {
 
   /** Last time the Corpus completed a sweep */
   lastSweepAt: number
+
+  /** Timestamps of recent annotations (for adaptive cadence computation) */
+  annotationTimestamps: number[]
 }
 
 /**
@@ -586,6 +644,7 @@ export function createInitialProcessedState(): CorpusProcessedState {
     spawnDecisions: [],
     sweepCount: 0,
     lastSweepAt: 0,
+    annotationTimestamps: [],
   }
 }
 
@@ -834,6 +893,41 @@ export const DEFAULT_PROACTIVE_CONFIG: CorpusProactiveConfig = {
 // Corpus Config
 // ═══════════════════════════════════════════════════════════════════
 
+/**
+ * Adaptive cadence configuration for dynamic poll interval adjustment.
+ * Corpus adjusts its poll interval based on:
+ * - Number of active branches
+ * - Rate of new annotations
+ * - Escalation queue length
+ * - LLM health (consecutive failures)
+ */
+export interface AdaptiveCadenceConfig {
+  /** Base poll interval in ms. Default: 10_000 */
+  basePollMs: number
+  /** Minimum poll interval (even under heavy load). Default: 2_000 */
+  minPollMs: number
+  /** Maximum poll interval (even when idle). Default: 30_000 */
+  maxPollMs: number
+  /** Branches at which to start reducing poll interval. Default: 4 */
+  branchThreshold: number
+  /** Annotations per second at which to reduce poll interval. Default: 0.5 */
+  annotationRateThreshold: number
+  /** Escalations at which to reduce poll interval. Default: 3 */
+  escalationThreshold: number
+  /** Consecutive LLM failures at which to increase poll interval. Default: 2 */
+  failureThreshold: number
+}
+
+export const DEFAULT_ADAPTIVE_CADENCE_CONFIG: AdaptiveCadenceConfig = {
+  basePollMs: 10_000,
+  minPollMs: 2_000,
+  maxPollMs: 30_000,
+  branchThreshold: 4,
+  annotationRateThreshold: 0.5,
+  escalationThreshold: 3,
+  failureThreshold: 2,
+}
+
 export interface CorpusConfig {
   /** Model tier for Corpus LLM loop. Default: 'qwenMax' */
   modelTier: string
@@ -900,6 +994,12 @@ export interface CorpusConfig {
    * capabilities are enabled and their thresholds.
    */
   proactive: CorpusProactiveConfig
+
+  /**
+   * Adaptive cadence configuration. Controls dynamic poll interval
+   * adjustment based on load factors. Default: DEFAULT_ADAPTIVE_CADENCE_CONFIG
+   */
+  adaptiveCadence: AdaptiveCadenceConfig
 }
 
 /** Corpus operating cadence */
@@ -924,6 +1024,7 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   useToolBasedAnalysis: true,
   maxToolCallsPerCycle: 10,
   proactive: DEFAULT_PROACTIVE_CONFIG,
+  adaptiveCadence: DEFAULT_ADAPTIVE_CADENCE_CONFIG,
 }
 
 

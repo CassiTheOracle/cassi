@@ -96,6 +96,9 @@ export class Corpus {
   private llmHealthy = true
   private llmFailureCount = 0
   private static readonly LLM_FAILURE_THRESHOLD = 2 // Mark unhealthy after 2 consecutive failures
+  
+  // Adaptive cadence tracking
+  private consecutiveFailures = 0
 
   // Timing
   private startTime = 0
@@ -321,8 +324,9 @@ export class Corpus {
         const pending = this.tree.pendingStepCount(this.state.cursors)
 
         if (pending === 0) {
-          // Idle poll
-          await this.sleep(this.config.idlePollMs)
+          // Idle poll with adaptive interval (Recommendation E)
+          const pollInterval = this.computeAdaptivePollInterval()
+          await this.sleep(pollInterval)
           continue
         }
 
@@ -390,12 +394,17 @@ export class Corpus {
           patterns: this.state.crossPatterns.length,
           sweepCount: this.state.sweepCount,
         })
+        
+        // Reset failure counter on successful sweep (Recommendation E)
+        this.consecutiveFailures = 0
       } catch (error) {
         this.logger.error('Error in Corpus loop', {
           error: error instanceof Error ? error.message : String(error),
         })
-        // Continue loop despite errors
-        await this.sleep(this.config.idlePollMs)
+        // Continue loop despite errors - use adaptive interval (Recommendation E)
+        this.consecutiveFailures++
+        const pollInterval = this.computeAdaptivePollInterval()
+        await this.sleep(pollInterval)
       }
     }
   }
@@ -427,6 +436,14 @@ export class Corpus {
       // Advance cursor
       this.state.cursors.set(branch.helixId, cursor + newSteps.length)
       this.newStepsSinceLLM += newSteps.length
+      
+      // Track annotation timestamps for adaptive cadence (Recommendation E)
+      for (const step of newSteps) {
+        this.state.annotationTimestamps.push(step.pushedAt)
+      }
+      // Keep only last 5 minutes of timestamps to avoid memory growth
+      const fiveMinutesAgo = Date.now() - 5 * 60_000
+      this.state.annotationTimestamps = this.state.annotationTimestamps.filter(t => t > fiveMinutesAgo)
     }
   }
 
@@ -750,6 +767,56 @@ export class Corpus {
 
     // In safety-net mode, don't trigger for routine step accumulation
     return false
+  }
+
+  /**
+   * Compute adaptive poll interval based on load factors.
+   * (Recommendation E: Implement Adaptive Cadence)
+   */
+  private computeAdaptivePollInterval(): number {
+    const config = this.config.adaptiveCadence
+    const branches = this.tree.getAllBranches()
+    const activeBranches = branches.filter(b => b.status === 'active').length
+
+    // Compute annotation rate (annotations per second over last minute)
+    const oneMinuteAgo = Date.now() - 60_000
+    const recentAnnotations = this.state.annotationTimestamps.filter(t => t > oneMinuteAgo)
+    const annotationRate = recentAnnotations.length / 60_000
+
+    const escalationQueueLength = this.escalationQueue.length
+
+    // Start with base
+    let pollMs = config.basePollMs
+
+    // Adjust for branch count
+    if (activeBranches > config.branchThreshold) {
+      const factor = activeBranches / config.branchThreshold
+      pollMs = Math.max(config.minPollMs, pollMs / factor)
+    }
+
+    // Adjust for annotation rate
+    if (annotationRate > config.annotationRateThreshold) {
+      const factor = annotationRate / config.annotationRateThreshold
+      pollMs = Math.max(config.minPollMs, pollMs / factor)
+    }
+
+    // Adjust for escalation queue
+    if (escalationQueueLength > config.escalationThreshold) {
+      const factor = escalationQueueLength / config.escalationThreshold
+      pollMs = Math.max(config.minPollMs, pollMs / factor)
+    }
+
+    // Adjust for LLM failures
+    if (this.consecutiveFailures > config.failureThreshold) {
+      const factor = this.consecutiveFailures / config.failureThreshold
+      pollMs = Math.min(config.maxPollMs, pollMs * factor)
+    }
+
+    // Clamp to min/max
+    return Math.max(
+      config.minPollMs,
+      Math.min(config.maxPollMs, pollMs)
+    )
   }
 
   /**
