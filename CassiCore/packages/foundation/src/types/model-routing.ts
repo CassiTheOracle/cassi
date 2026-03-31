@@ -23,19 +23,20 @@ export interface ModelConfig {
 export type RoutingScope = 'next' | 'next-job' | 'session' | 'job' | 'default'
 
 /**
- * Named tiers ranked by capability/cost.
+ * Named tiers — each tier is named after its model family.
  *
  * | Tier       | Provider       | Model                  | Character                  |
  * |------------|----------------|------------------------|----------------------------|
- * | fast       | alibaba-coding | MiniMax-M2.5           | Fastest, lightweight       |
- * | swift      | alibaba-coding | qwen3.5-plus           | Fast, decent reasoning     |
- * | standard   | alibaba-coding | glm-5                  | Solid mid-range            |
- * | balanced   | alibaba-coding | kimi-k2.5              | Best mid-tier reasoning    |
- * | qwen       | alibaba-coding | qwen3-max-2026-01-23   | High-capability, 2nd tier  |
- * | premium    | copilot-sdk    | claude-opus-4.6        | Complex, high-stakes       |
+ * | minimax    | alibaba-coding | MiniMax-M2.5           | Fastest, lightweight       |
+ * | qwenPlus   | alibaba-coding | qwen3.5-plus           | Fast, decent reasoning     |
+ * | glm        | alibaba-coding | glm-5                  | Solid mid-range            |
+ * | kimi       | alibaba-coding | kimi-k2.5              | Best mid-tier reasoning    |
+ * | qwenMax    | alibaba-coding | qwen3-max-2026-01-23   | High-capability, 2nd tier  |
+ * | sonnet     | copilot-sdk    | claude-sonnet-4.6      | Strong reasoning, balanced |
+ * | opus       | copilot-sdk    | claude-opus-4.6        | Complex, high-stakes       |
  * | background | github-copilot | gpt-5-mini             | Unlimited, every-turn      |
  */
-export type RoutingTier = 'fast' | 'swift' | 'standard' | 'balanced' | 'qwen' | 'premium' | 'background'
+export type RoutingTier = 'minimax' | 'qwenPlus' | 'glm' | 'kimi' | 'qwenMax' | 'sonnet' | 'opus' | 'background'
 
 
 /** Input schema for the model_directive MCP tool */
