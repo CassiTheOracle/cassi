@@ -238,7 +238,7 @@ export class ContextChunkIndex {
   private chunks: Map<string, ContextChunk> = new Map()
   private currentIteration: number = 0
   private lastIndexedMsgIdx: number = -1
-  private charBudget: number = 8000 // Default, updated by coordinator
+  private charBudget: number = 24_000 // Default, updated by coordinator
 
   constructor(logger: ILogger, config: Partial<ChunkIndexConfig> = {}) {
     this.logger = logger.child?.('chunk-index') ?? logger

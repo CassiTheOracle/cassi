@@ -1517,9 +1517,9 @@ Critical rules:
     }
 
     // Truncate very large files to prevent context explosion
-    const maxChars = 8000
+    const maxChars = 64_000
     const truncated = content.length > maxChars
-      ? content.slice(0, maxChars) + `\n\n…[truncated at ${maxChars} chars, full file is ${content.length} chars]`
+      ? content.slice(0, maxChars) + `\n\n[file content truncated at ${maxChars.toLocaleString()} of ${content.length.toLocaleString()} chars. Use file({ action: "read", path: "${filePath}", offset: ${maxChars} }) to read the next section.]`
       : content
 
     const chunkId = `injected-${filePath.replace(/[/\\]/g, '-')}-${Date.now()}`
