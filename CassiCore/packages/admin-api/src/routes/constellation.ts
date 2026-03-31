@@ -18,6 +18,7 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { ConstellationResult } from '../intelligence/constellation/types.js'
+import { serializeConstellationResult } from '../intelligence/constellation/constellation-pipeline.js'
 import type { CorpusTreeSnapshot } from '../intelligence/constellation/corpus-types.js'
 import type { ConstellationSessionRow, ProgressSnapshot } from '../intelligence/constellation/constellation-store.js'
 
@@ -79,14 +80,15 @@ function findJob(idOrSessionId: string): ConstellationJob | undefined {
  * Load a persisted tree snapshot from ConstellationStore for completed sessions.
  * Returns null if the store is not available or session not found.
  */
-function loadPersistedTree(daemon: any, sessionId: string): CorpusTreeSnapshot | null {
+async function loadPersistedTree(daemon: any, sessionId: string): Promise<CorpusTreeSnapshot | null> {
   try {
-    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const tree = store.getTree(sessionId)
     store.close()
     return tree
-  } catch {
+  } catch (err) {
+    daemon.logger.warn('loadPersistedTree: error', { sessionId, error: String(err) })
     return null
   }
 }
@@ -95,9 +97,9 @@ function loadPersistedTree(daemon: any, sessionId: string): CorpusTreeSnapshot |
  * Load a persisted progress snapshot from ConstellationStore for completed sessions.
  * Returns null if the store is not available or session not found.
  */
-function loadPersistedProgress(daemon: any, sessionId: string): ProgressSnapshot | null {
+async function loadPersistedProgress(daemon: any, sessionId: string): Promise<ProgressSnapshot | null> {
   try {
-    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const progress = store.getProgress(sessionId)
     store.close()
@@ -111,9 +113,9 @@ function loadPersistedProgress(daemon: any, sessionId: string): ProgressSnapshot
  * Load a persisted session from ConstellationStore.
  * Returns undefined if the store is not available or session not found.
  */
-function loadPersistedSession(daemon: any, sessionId: string): ConstellationSessionRow | undefined {
+async function loadPersistedSession(daemon: any, sessionId: string): Promise<ConstellationSessionRow | undefined> {
   try {
-    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const session = store.getSession(sessionId)
     store.close()
@@ -126,9 +128,9 @@ function loadPersistedSession(daemon: any, sessionId: string): ConstellationSess
 /**
  * List sessions from ConstellationStore (includes archived).
  */
-function loadPersistedSessions(daemon: any, opts?: { limit?: number; status?: string; includeArchived?: boolean }): ConstellationSessionRow[] {
+async function loadPersistedSessions(daemon: any, opts?: { limit?: number; status?: string; includeArchived?: boolean }): Promise<ConstellationSessionRow[]> {
   try {
-    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const sessions = store.listSessions(opts)
     store.close()
@@ -141,9 +143,9 @@ function loadPersistedSessions(daemon: any, opts?: { limit?: number; status?: st
 /**
  * Get session history from ConstellationStore.
  */
-function loadSessionHistory(daemon: any, opts?: { limit?: number; since?: number; until?: number; status?: string }): ConstellationSessionRow[] {
+async function loadSessionHistory(daemon: any, opts?: { limit?: number; since?: number; until?: number; status?: string }): Promise<ConstellationSessionRow[]> {
   try {
-    const { ConstellationStore } = require('../intelligence/constellation/constellation-store.js')
+    const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
     const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
     const history = store.getHistory(opts)
     store.close()
@@ -279,7 +281,7 @@ export async function handleConstellationRoutes(
     }> = []
 
     if (includeArchived) {
-      const persisted = loadPersistedSessions(daemon, { limit, status, includeArchived: true })
+      const persisted = await loadPersistedSessions(daemon, { limit, status, includeArchived: true })
       archivedSessions = persisted
         .filter(s => !activeSessions.some(a => a.id === s.id))  // Avoid duplicates
         .map(s => ({
@@ -312,7 +314,7 @@ export async function handleConstellationRoutes(
       : undefined
     const status = url.searchParams.get('status') || undefined
 
-    const history = loadSessionHistory(daemon, { limit, since, until, status })
+    const history = await loadSessionHistory(daemon, { limit, since, until, status })
     sendJSON(res, 200, {
       history: history.map(s => ({
         id: s.id,
@@ -404,7 +406,7 @@ export async function handleConstellationRoutes(
         }
 
         // Fallback: try loading from persisted store for completed sessions
-        const persisted = loadPersistedProgress(daemon, job.sessionId)
+        const persisted = await loadPersistedProgress(daemon, job.sessionId)
         if (persisted) {
           sendJSON(res, 200, {
             sessionId: job.sessionId,
@@ -432,9 +434,9 @@ export async function handleConstellationRoutes(
       }
 
       // Job not in memory — try loading directly from archive by session ID
-      const persisted = loadPersistedProgress(daemon, id)
+      const persisted = await loadPersistedProgress(daemon, id)
       if (persisted) {
-        const session = loadPersistedSession(daemon, id)
+        const session = await loadPersistedSession(daemon, id)
         sendJSON(res, 200, {
           sessionId: id,
           status: session?.status ?? 'unknown',
@@ -466,7 +468,7 @@ export async function handleConstellationRoutes(
         }
 
         // Fallback: try loading from persisted store for completed sessions
-        const persisted = loadPersistedTree(daemon, job.sessionId)
+        const persisted = await loadPersistedTree(daemon, job.sessionId)
         if (persisted) {
           sendJSON(res, 200, { sessionId: job.sessionId, tree: persisted, source: 'archived' })
           return true
@@ -482,7 +484,7 @@ export async function handleConstellationRoutes(
       }
 
       // Job not in memory — try loading directly from archive by session ID
-      const persisted = loadPersistedTree(daemon, id)
+      const persisted = await loadPersistedTree(daemon, id)
       if (persisted) {
         sendJSON(res, 200, { sessionId: id, tree: persisted, source: 'archived' })
         return true
@@ -566,7 +568,7 @@ export async function handleConstellationRoutes(
           startedAt: job.startedAt,
           completedAt: job.completedAt,
           durationMs: (job.completedAt ?? Date.now()) - job.startedAt,
-          result: job.result ?? undefined,
+          result: job.result ? serializeConstellationResult(job.result) : undefined,
           error: job.error ?? undefined,
         })
       }
