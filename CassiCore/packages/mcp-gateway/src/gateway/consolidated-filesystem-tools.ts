@@ -38,6 +38,10 @@ export const FILESYSTEM_CONSOLIDATED_TOOL = {
         description: 'File or directory path (for read, write, edit, list actions)',
       },
       // read params
+      offset: {
+        type: 'number',
+        description: 'Character offset to start reading from (for read action). Use to paginate through large files. Default: 0.',
+      },
       limit: {
         type: 'number',
         description: 'Maximum characters to return (for read action, maps to max_answer_chars)',
@@ -156,11 +160,30 @@ export async function executeFilesystemConsolidatedTool(
 
   switch (action) {
     case 'read': {
-      const { limit } = restArgs
-      return await router('serena_read_file', {
+      const { limit, offset } = restArgs
+      const result = await router('serena_read_file', {
         relative_path: targetPath,
-        max_answer_chars: limit,
+        max_answer_chars: (offset && limit) ? offset + limit : limit,
       })
+
+      // Apply client-side offset if requested
+      if (offset && typeof offset === 'number' && offset > 0) {
+        const text = result?.content?.[0]?.text ?? (typeof result === 'string' ? result : '')
+        const fullText = typeof text === 'string' ? text : String(text)
+        if (offset < fullText.length) {
+          const sliced = fullText.slice(offset, limit ? offset + limit : undefined)
+          const remaining = fullText.length - offset - sliced.length
+          let notice = sliced
+          if (remaining > 0) {
+            notice += `\n\n[showing chars ${offset.toLocaleString()}-${(offset + sliced.length).toLocaleString()} of ${fullText.length.toLocaleString()} total — ${remaining.toLocaleString()} chars remaining. Use offset: ${offset + sliced.length} to continue.]`
+          }
+          return { content: [{ type: 'text', text: notice }] }
+        } else {
+          return { content: [{ type: 'text', text: `[offset ${offset} is beyond file length of ${fullText.length} chars]` }] }
+        }
+      }
+
+      return result
     }
     case 'write': {
       const { content } = restArgs
