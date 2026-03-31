@@ -1651,29 +1651,58 @@ export class Daemon {
 
         this.logger.info('Dyad ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model, blockedProviders: dyadBlockedProviders })
 
-        // Wire Helix ModelPool — reuse the Dyad pool (shared fallback chains)
-        if (this.intelligence?.helix) {
+        // Wire Helix + Constellation ModelPool — separate pool WITHOUT copilot-sdk.
+        // copilot-sdk warm sessions return 400 for Helix's tool-heavy multi-posture prompts.
+        // Helix/Constellation slots route directly to their configured providers.
+        if (this.intelligence?.helix || this.intelligence?.constellation) {
           try {
-            this.intelligence.helix.setModelPool(dyadModelPool)
+            /** Build a chain without copilot-sdk — direct to tier model only */
+            const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
+              slotName: slot,
+              chain: [
+                { role: slot, provider: tierCfg.provider, model: tierCfg.model, priority: 10 },
+              ],
+              triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+            })
 
-            // Wire ModelDirective so Helix can resolve job-scoped overrides at runtime
-            if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
-              (this.intelligence.helix as any).setModelDirective(directive)
+            const helixModelPool = new DyadModelPool({
+              logger: this.logger.child('helix-pool'),
+              eventBus: this.bus,
+              fallbackChains: [
+                makeHelixChain('yang', glmConfig),
+                makeHelixChain('yin', kimiConfig),
+                makeHelixChain('apex', qwenPlusCfg),
+                makeHelixChain('unity', qwenMaxCfg),
+                makeHelixChain('helix', kimiConfig),
+                brainstemChainForDyad,
+                miniHelixCorpusChainForDyad,
+                miniHelixBrainstemChainForDyad,
+              ],
+              budgetScopes: [],
+              defaultTimeoutMs: this.config.get<number>('intelligence.helix.timeoutMs', 600000),
+              auditEnabled: false,
+              blockedProviders: dyadBlockedProviders,
+              allowedModels: dyadAllowedModels,
+            })
+            helixModelPool.setProviders(providers)
+
+            if (this.intelligence?.helix) {
+              this.intelligence.helix.setModelPool(helixModelPool)
+
+              // Wire ModelDirective so Helix can resolve job-scoped overrides at runtime
+              if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
+                (this.intelligence.helix as any).setModelDirective(directive)
+              }
+
+              this.logger.info('Helix ModelPool wired (dedicated, no copilot-sdk)', { provider: defaultRouting.provider, model: defaultRouting.model })
             }
 
-            this.logger.info('Helix ModelPool wired (shared with Dyad)', { provider: defaultRouting.provider, model: defaultRouting.model })
+            if (this.intelligence?.constellation) {
+              this.intelligence.constellation.setModelPool(helixModelPool)
+              this.logger.info('Constellation ModelPool wired (shared with Helix, no copilot-sdk)', { provider: defaultRouting.provider, model: defaultRouting.model })
+            }
           } catch (helixErr) {
-            this.logger.warn('Failed to wire Helix ModelPool — Helix will not be available', { error: String(helixErr) })
-          }
-        }
-
-        // Wire Constellation ModelPool — reuse the Dyad pool
-        if (this.intelligence?.constellation) {
-          try {
-            this.intelligence.constellation.setModelPool(dyadModelPool)
-            this.logger.info('Constellation ModelPool wired (shared with Dyad)', { provider: defaultRouting.provider, model: defaultRouting.model })
-          } catch (constErr) {
-            this.logger.warn('Failed to wire Constellation ModelPool', { error: String(constErr) })
+            this.logger.warn('Failed to wire Helix/Constellation ModelPool', { error: String(helixErr) })
           }
         }
       } catch (err) {
