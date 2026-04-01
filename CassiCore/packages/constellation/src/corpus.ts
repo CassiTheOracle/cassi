@@ -781,7 +781,7 @@ export class Corpus {
     // Compute annotation rate (annotations per second over last minute)
     const oneMinuteAgo = Date.now() - 60_000
     const recentAnnotations = this.state.annotationTimestamps.filter(t => t > oneMinuteAgo)
-    const annotationRate = recentAnnotations.length / 60_000
+    const annotationRate = recentAnnotations.length / 60  // per second (60s window)
 
     const escalationQueueLength = this.escalationQueue.length
 
@@ -1163,6 +1163,20 @@ export class Corpus {
         if (digest?.blockers && digest.blockers.length > 0) {
           lines.push(`Active blockers:`)
           for (const bl of digest.blockers) lines.push(`  - ${bl}`)
+        }
+        if (digest?.currentBlockers && digest.currentBlockers.length > 0) {
+          lines.push(`Blockers with severity:`)
+          for (const bl of digest.currentBlockers) {
+            lines.push(`  - [${bl.severity.toUpperCase()}] ${bl.description}`)
+          }
+        }
+        if (digest?.confidenceLevel) {
+          const cl = digest.confidenceLevel
+          lines.push(`Confidence: ${(cl.score * 100).toFixed(0)}% (${cl.trend})${cl.factors.length > 0 ? ` — ${cl.factors.join('; ')}` : ''}`)
+        }
+        if (digest?.estimatedTimeToCompletion) {
+          const etc = digest.estimatedTimeToCompletion
+          lines.push(`ETA: ~${etc.minutes} min (${(etc.confidence * 100).toFixed(0)}% confidence, based on ${etc.basedOnSteps} steps)`)
         }
         if (digest?.currentNextSteps && digest.currentNextSteps.length > 0) {
           lines.push(`Planned next steps:`)

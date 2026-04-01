@@ -931,7 +931,7 @@ export const DEFAULT_ADAPTIVE_CADENCE_CONFIG: AdaptiveCadenceConfig = {
 export interface CorpusConfig {
   /** Model tier for Corpus LLM loop. Default: 'qwenMax' */
   modelTier: string
-  /** Max tokens per Corpus LLM call. Default: 800 */
+  /** Max tokens per Corpus LLM call. Default: 16_000 */
   maxTokens: number
   /** Timeout for each Corpus LLM call in ms. Default: 15_000 */
   timeoutMs: number
