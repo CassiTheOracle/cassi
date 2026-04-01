@@ -2,7 +2,7 @@
  * Brainstem Types — Cognitive Organizer for Helix Sessions
  *
  * The Brainstem replaces the Mentor. It runs its own async LLM loop
- * (balanced tier) to:
+ * (background tier) to:
  *   1. Automatically maintain Unity's axon tree from work units
  *   2. Score and annotate every work unit
  *   3. Detect pathological patterns (paralysis, drift, stalling)
@@ -11,8 +11,14 @@
  *
  * Topology:
  *   Unity (top) → work units → Brainstem (middle) → reviewers (bottom)
- *   Brainstem → guidance injection → Unity
+ *   Brainstem → guidance injection → Unity  [only for safety-net triggers by default]
+ *   Brainstem → digest publication → Corpus [always; includes self-org signals]
  *   Reviewers → dialectic → Brainstem → synthesis → Unity
+ *
+ * Default guidance mode is 'safety-net-only': the Brainstem only injects
+ * guidance for wall-clock budget limits and stagnation. All other guidance
+ * authority belongs to the Corpus, which acts on BranchDigest.selfOrgSignals
+ * published here instead.
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'

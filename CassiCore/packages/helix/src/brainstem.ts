@@ -43,6 +43,7 @@ import type {
   DetectedPattern,
   GuidanceUrgency,
   UnityReport,
+  CognitiveModel,
 } from './brainstem-types.js'
 import {
   DEFAULT_BRAINSTEM_CONFIG,
@@ -1686,12 +1687,21 @@ Critical rules:
           )
 
       // Build currentBlockers with severity (Recommendation A)
+      // Severity is inferred from keywords in the blocker description rather than
+      // arbitrary array position, which has no meaningful correlation with urgency.
       const currentBlockers = cogModel.pendingBlockers.length > 0
-        ? cogModel.pendingBlockers.map((b: string, i: number) => ({
-            description: b,
-            detectedAt: Date.now(),
-            severity: i === 0 ? 'critical' : i === 1 ? 'high' : 'medium' as 'low' | 'medium' | 'high' | 'critical',
-          }))
+        ? cogModel.pendingBlockers.map((b: string) => {
+            const lower = b.toLowerCase()
+            const severity: 'low' | 'medium' | 'high' | 'critical' =
+              /\b(cannot|failed|broken|crash|missing|undefined|null|error|exception|circular)\b/.test(lower)
+                ? 'high'
+                : /\b(stuck|repeated|cycle|loop|blocked|unable)\b/.test(lower)
+                ? 'high'
+                : /\b(slow|unclear|ambiguous|unsure|investigate)\b/.test(lower)
+                ? 'low'
+                : 'medium'
+            return { description: b, detectedAt: Date.now(), severity }
+          })
         : undefined
 
       // Build current strategy description
@@ -2069,13 +2079,20 @@ Critical rules:
   /**
    * Apply adjustments that have met the 2-cycle dampening threshold.
    *
-   * In 'full' guidance mode: each ready adjustment is converted to a
+   * Execution order matters here: `publishDigest()` is called BEFORE
+   * `selfOrganize()` in each work-unit cycle. That means:
+   *   1. `publishDigest()` reads `pendingSelfOrgAdjustments` — ready signals
+   *      (dampeningCount >= threshold) are written to `BranchDigest.selfOrgSignals`.
+   *   2. THIS method runs after the digest is published, and always deletes
+   *      ready adjustments from `pendingSelfOrgAdjustments`.
+   *
+   * In 'full' guidance mode: each ready adjustment is also converted to a
    * PendingGuidance and queued for Unity delivery.
    *
-   * In 'safety-net-only' / 'tree-only' modes: adjustments are NOT converted
-   * to guidance. Instead they are left in pendingSelfOrgAdjustments until
-   * consumed by publishDigest(), which surfaces them as selfOrgSignals for
-   * the Corpus to act on with its full cross-branch context.
+   * In 'safety-net-only' / 'tree-only' modes: guidance injection is skipped.
+   * The signal was already captured in the digest (step 1) and the Corpus
+   * is the sole actor. If the underlying condition persists, the adjustment
+   * re-enters the dampening cycle and reappears in the next publish.
    *
    * Effectiveness tracking and retrospectives always run regardless of mode.
    */
@@ -2356,7 +2373,7 @@ Critical rules:
    * Compute confidence level based on score trajectory, pattern stability, and blockers.
    * (Recommendation A: Enhance Cross-Branch Awareness)
    */
-  private computeConfidenceLevel(cogModel: any): { score: number; trend: 'rising' | 'stable' | 'falling'; factors: string[]; updatedAt: number } {
+  private computeConfidenceLevel(cogModel: CognitiveModel): { score: number; trend: 'rising' | 'stable' | 'falling'; factors: string[]; updatedAt: number } {
     const recentScores = this.state.qualityTrajectory.slice(-5)
     const avgScore = recentScores.length > 0
       ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
