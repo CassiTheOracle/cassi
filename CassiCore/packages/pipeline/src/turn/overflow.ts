@@ -64,6 +64,15 @@ export function reclassifyAsOverflow(err: Error): Error {
 /* ------------------------------------------------------------------ */
 
 /**
+ * Calculate the character length of message content.
+ * Handles both string content and ContentBlock arrays.
+ */
+export function contentLength(content: string | { type: string; text?: string }[]): number {
+  if (typeof content === 'string') return content.length
+  return content.reduce((sum, block) => sum + ('text' in block ? (block.text?.length ?? 50) : 50), 0)
+}
+
+/**
  * Strip filler text that models produce before tool calls.
  * Examples: "Let me check this...", "I'll run the command now."
  * These waste tokens and add no value to the conversation.
