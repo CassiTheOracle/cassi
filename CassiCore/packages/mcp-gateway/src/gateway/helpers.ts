@@ -9,7 +9,10 @@ import type { ILogger } from '../../types/interfaces.js';
 // Configuration
 export const GATEWAY_VERSION = '1.0.0';
 export const DEFAULT_FETCH_TIMEOUT_MS = 30_000; // 30s default timeout for all fetch calls
-const TRANSIENT_FETCH_RETRY_DELAYS_MS = [250, 750, 1500];
+
+// WHY: Exponential backoff with 5 retries covers ~8s total wait — enough for
+// a daemon restart (typically 3-5s) while not blocking tool calls too long.
+const TRANSIENT_FETCH_RETRY_DELAYS_MS = [250, 500, 1_000, 2_000, 4_000];
 
 /**
  * Create a logger that writes to stderr (stdout reserved for MCP protocol)
@@ -66,29 +69,34 @@ export async function fetchWithTimeout(
       const msg = String(err?.message ?? err ?? '');
       const lowerMsg = msg.toLowerCase();
       const isTransient =
-        !isTimeout && (
-          lowerMsg.includes('fetch failed') ||
-          lowerMsg.includes('econnrefused') ||
-          lowerMsg.includes('econnreset') ||
-          lowerMsg.includes('socket hang up') ||
-          lowerMsg.includes('network')
-        );
-
-      if (isTimeout) {
-        throw new Error(`Request to ${targetUrl} timed out after ${timeoutMs}ms`);
-      }
+        isTimeout ||
+        lowerMsg.includes('fetch failed') ||
+        lowerMsg.includes('econnrefused') ||
+        lowerMsg.includes('econnreset') ||
+        lowerMsg.includes('epipe') ||
+        lowerMsg.includes('socket hang up') ||
+        lowerMsg.includes('network');
 
       if (!isTransient || attempt >= TRANSIENT_FETCH_RETRY_DELAYS_MS.length) {
+        if (isTimeout) {
+          throw new Error(`Request to ${targetUrl} timed out after ${timeoutMs}ms (attempt ${attempt + 1})`);
+        }
         throw err;
       }
 
-      await new Promise(resolve => setTimeout(resolve, TRANSIENT_FETCH_RETRY_DELAYS_MS[attempt]));
+      const delay = TRANSIENT_FETCH_RETRY_DELAYS_MS[attempt];
+      // Log retries to stderr so intermittent failures are visible in MCP logs
+      log('warn', `Transient error for ${targetUrl}, retrying in ${delay}ms (attempt ${attempt + 1}/${TRANSIENT_FETCH_RETRY_DELAYS_MS.length + 1})`, {
+        error: msg.slice(0, 200),
+        isTimeout,
+      });
+      await new Promise(resolve => setTimeout(resolve, delay));
     } finally {
       clearTimeout(timer);
     }
   }
 
-  throw new Error(`Request to ${targetUrl} failed after retries`);
+  throw new Error(`Request to ${targetUrl} failed after ${TRANSIENT_FETCH_RETRY_DELAYS_MS.length + 1} retries`);
 }
 
 /**

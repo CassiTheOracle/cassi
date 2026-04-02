@@ -909,6 +909,27 @@ async function startStdio() {
 
   await server.connect(transport);
 
+  // Periodic daemon health probe: check every 60s. When the daemon goes from
+  // unreachable to reachable (or vice versa), log it so connectivity gaps
+  // are visible in MCP logs.
+  let daemonUp = true;
+  const HEALTH_INTERVAL_MS = 60_000;
+  const healthProbe = setInterval(async () => {
+    try {
+      const resp = await fetchWithTimeout(`${CASSICORE_URL}/health`, { timeoutMs: 5_000 });
+      if (!daemonUp && resp.ok) {
+        logger.info('CassiCore daemon reconnected');
+        daemonUp = true;
+      }
+    } catch {
+      if (daemonUp) {
+        logger.warn('CassiCore daemon unreachable — tool calls will retry');
+        daemonUp = false;
+      }
+    }
+  }, HEALTH_INTERVAL_MS);
+  healthProbe.unref(); // don't keep the process alive just for the probe
+
   logger.info('CassiCore MCP Gateway connected and ready');
 }
 
@@ -1008,10 +1029,12 @@ async function main() {
   const portArg = args.find(arg => arg.startsWith('--port='));
   const port = portArg ? parseInt(portArg.split('=')[1], 10) : 3000;
 
+  // HOW: The startup health check uses a longer timeout to give the daemon
+  // time to boot if the gateway starts before or alongside it.
   try {
-    const healthCheck = await fetchWithTimeout(`${CASSICORE_URL}/health`);
+    const healthCheck = await fetchWithTimeout(`${CASSICORE_URL}/health`, { timeoutMs: 10_000 });
     if (!healthCheck.ok) {
-      throw new Error('CassiCore health check failed');
+      throw new Error(`CassiCore health check returned ${healthCheck.status}`);
     }
     logger.info('CassiCore daemon connection verified');
   } catch (error: any) {
@@ -1019,7 +1042,7 @@ async function main() {
       url: CASSICORE_URL,
       error: String(error),
     });
-    logger.warn('Make sure CassiCore is running: cassicore daemon');
+    logger.warn('Gateway will start anyway — tool calls will retry when the daemon becomes available');
   }
 
   if (httpMode) {
