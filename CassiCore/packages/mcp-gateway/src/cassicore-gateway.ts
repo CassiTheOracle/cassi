@@ -33,7 +33,6 @@ import http from 'http';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Import domain modules
 import {
   GATEWAY_VERSION,
   createLogger,
@@ -41,17 +40,14 @@ import {
   formatError,
   formatJsonResponse,
   formatTextResponse,
-  // Core Tools (4: bash, read, write, edit - kept as-is)
   getCoreTools,
   executeCassiCoreTool,
   VYBIT_TOOL,
-  // Meta Tools (2: do, enrich - kept as-is)
   getDoTools,
   executeDoTool,
   executeEnrichTool,
   DO_TOOL_NAMES,
   ENRICH_TOOL_NAMES,
-  // Consolidated Tools
   getAgentTool,
   executeAgentTool,
   getMemoryConsolidatedTool,
@@ -78,7 +74,6 @@ import {
   executeBlackboardConsolidatedTool,
   getTrainingConsolidatedTool,
   executeTrainingConsolidatedTool,
-  // Tool name sets for consolidated tools
   AGENT_TOOL_NAME,
   MEMORY_CONSOLIDATED_TOOL_NAME,
   SESSION_CONSOLIDATED_TOOL_NAME,
@@ -95,13 +90,11 @@ import {
 } from './gateway/index.js';
 import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
 
-// Configuration
 const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
 
-// Logger
 const logger = createLogger();
 
-// Prevent silent crashes from unhandled rejections or uncaught exceptions.
+// WHY: Prevent silent crashes from unhandled rejections or uncaught exceptions.
 // In Node 25+ these terminate the process by default — log and continue
 // (or exit gracefully) instead.
 
@@ -113,8 +106,6 @@ process.on('uncaughtException', (err) => {
   logger.error('Uncaught exception in MCP gateway — shutting down', { error: String(err) });
   process.exit(1);
 });
-
-// Security Configuration
 
 /**
  * Load authentication token from config file or environment
@@ -142,7 +133,8 @@ function getAuthToken(): string | null {
 const AUTH_TOKEN = getAuthToken();
 
 /**
- * Validate authentication token from request
+ * Validate authentication token from request.
+ * WHY: HTTP mode requires token-based auth to prevent unauthorized access.
  */
 function validateAuth(req: http.IncomingMessage): boolean {
   if (!AUTH_TOKEN) {
@@ -188,20 +180,6 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
   });
 }
 
-// Tool Registry
-
-/**
- * @dep callers: startHttp (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
- * @dep calls: getTrainingTools, getCoreTools, getSessionTools, getModelDirectiveTools, getMemoryTools [+9]
- * @dep flows: CreateHierarchyBridge → GetCoreTools (3/4), CreateHierarchyBridge → GetIntelligenceTools (3/4), CreateHierarchyBridge → GetDialecticTools (3/4) [+1]
- * @dep module: Gateway
- * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
- */
-
-/**
- * Get all MCP tools - returns exactly 16 consolidated tools
- * 4 core + 2 meta + 10 consolidated
- */
 /**
  * Get all MCP tools.
  * @dep callers: createServer (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts)
@@ -211,15 +189,11 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
  */
 function getAllTools() {
   const coreTools = getCoreTools();
-  // Filter to only the 4 main core tools
   const mainCoreTools = coreTools.filter(t => ['bash', 'read', 'write', 'edit', 'todo_write'].includes(t.name));
 
   return [
-    // 4 Core tools (kept as-is)
     ...mainCoreTools,
-    // 2 Meta tools (kept as-is)
     ...getDoTools(),
-    // Consolidated tools
     getAgentTool(),
     getMemoryConsolidatedTool(),
     getSessionConsolidatedTool(),
@@ -233,14 +207,9 @@ function getAllTools() {
     getModelConsolidatedTool(),
     getBlackboardConsolidatedTool(),
     getTrainingConsolidatedTool(),
-    // VyBit visual editing integration
     VYBIT_TOOL,
   ];
 }
-
-
-
-// Tool Execution Router
 
 /**
  * Route a tool call to the appropriate domain handler
@@ -250,10 +219,6 @@ function getAllTools() {
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 2 flows, 1 module
  */
-// resolveDeprecatedToolName was removed — alias resolution is now handled by
-// resolveToolAlias() from mcp/gateway/tool-aliases.ts.
-
-// Cache core tool names to avoid regenerating the list on every tool call.
 let _coreToolNameCache: Set<string> | null = null;
 function isCoreToolName(name: string): boolean {
   if (!_coreToolNameCache) {
@@ -272,7 +237,7 @@ function isCoreToolName(name: string): boolean {
 async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
   logger.info('Tool call received', { tool: name, args });
 
-  // Resolve aliases: handles deprecated names, prefix stripping, external MCP
+  // HOW: resolveToolAlias handles deprecated names, prefix stripping, external MCP
   // passthrough, user shorthands, and fuzzy typo correction.
   const resolved = resolveToolAlias(name, args);
   if (resolved) {
@@ -281,19 +246,19 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
   }
 
   try {
-    // Core tools (bash, read, write, edit) - return JSON
+    // HOW: Core tools return JSON format via formatJsonResponse
     if (isCoreToolName(name)) {
       const result = await executeCassiCoreTool(CASSICORE_URL, name, args, logger);
       return formatJsonResponse(result);
     }
 
-    // VyBit visual editing - routes through ToolExecutor like core tools
+    // HOW: VyBit routes through ToolExecutor like core tools
     if (name === 'vybit') {
       const result = await executeCassiCoreTool(CASSICORE_URL, 'vybit', args, logger);
       return formatJsonResponse(result);
     }
 
-    // do tool - meta-wrapper with parallel context enrichment
+    // HOW: do tool is a meta-wrapper with parallel context enrichment
     if (DO_TOOL_NAMES.has(name)) {
       return await executeDoTool(
         CASSICORE_URL,
@@ -303,16 +268,15 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       );
     }
 
-    // enrich tool - context-only enrichment (no delegated tool call)
+    // HOW: enrich tool performs context-only enrichment without delegated tool calls
     if (ENRICH_TOOL_NAMES.has(name)) {
       return await executeEnrichTool(CASSICORE_URL, args, logger);
     }
 
-    // Consolidated tools
     switch (name) {
       case AGENT_TOOL_NAME: {
         const agentResult = await executeAgentTool(CASSICORE_URL, args, logger, heartbeat);
-        // Agent tools return mixed formats: watch/blackboard return MCP { content: [...] },
+        // HOW: Agent tools return mixed formats: watch/blackboard return MCP { content: [...] },
         // but project/status/jobs/etc return raw JSON. Wrap only when needed.
         if (agentResult?.content && Array.isArray(agentResult.content)) {
           return agentResult;
@@ -328,13 +292,13 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case INTELLIGENCE_CONSOLIDATED_TOOL_NAME: {
         const result = await executeIntelligenceConsolidatedTool(CASSICORE_URL, args, logger);
-        // Intelligence tools return markdown
+        // HOW: Intelligence tools return markdown
         return formatTextResponse(result);
       }
 
       case ARTIFACT_CONSOLIDATED_TOOL_NAME: {
         const result = await executeArtifactConsolidatedTool(CASSICORE_URL, args, logger);
-        // File artifact tools return MCP format directly
+        // HOW: File artifact tools return MCP format directly
         return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
       }
 
@@ -358,7 +322,7 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case BLACKBOARD_CONSOLIDATED_TOOL_NAME: {
         const result = await executeBlackboardConsolidatedTool(CASSICORE_URL, args, logger);
-        // Blackboard tools return MCP format directly
+        // HOW: Blackboard tools return MCP format directly
         return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
       }
 
@@ -374,15 +338,14 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
   }
 }
 
-// Resource Subscription Manager
-
 /**
  * Active resource subscriptions: URI -> Set of subscriber IDs
  */
 const resourceSubscriptions = new Map<string, Set<string>>();
 
 /**
- * Subscribe a client to a resource URI
+ * Subscribe a client to a resource URI.
+ * WHY: Enables real-time updates for resources like team status and session context.
  * @dep callers: createServer (mcp/cassicore-gateway.ts)
  * @dep calls: get, has, add
  * @dep flows: CreateHierarchyBridge → SubscribeToResource (3/3)
@@ -412,18 +375,16 @@ function unsubscribeFromResource(uri: string, subscriberId: string): void {
 }
 
 /**
- * Notify all subscribers of a resource update
+ * Notify all subscribers of a resource update.
  */
 async function notifyResourceUpdate(server: Server, uri: string): Promise<void> {
   const subscribers = resourceSubscriptions.get(uri);
   if (subscribers && subscribers.size > 0) {
     logger.info('Notifying resource update', { uri, subscriberCount: subscribers.size });
-    // HOW: In stdio mode, notifications are queued and sent when possible
-    // The SDK handles the actual delivery
+    // HOW: In stdio mode, notifications are queued and sent when possible.
+    // The SDK handles the actual delivery.
   }
 }
-
-// MCP Server
 
 /**
  * Create MCP Server with full capabilities
@@ -455,14 +416,13 @@ function createServer() {
     }
   );
 
-  // List available tools
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
       tools: getAllTools(),
     };
   });
 
-  // Wrap all progress notifications so a broken transport never crashes
+  // WHY: Wrap all progress notifications so a broken transport never crashes
   // the request handler.
   function safeNotify(params: { progressToken: string | number; progress: number; total: number; message: string }) {
     try {
@@ -475,7 +435,6 @@ function createServer() {
     }
   }
 
-  // Handle tool calls with progress notification support
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args, _meta } = request.params;
     const progressToken = _meta?.progressToken;
@@ -486,25 +445,24 @@ function createServer() {
     }
 
     try {
-      // Create heartbeat callback for long-running tools (sends MCP progress notifications
-      // to prevent the MCP client from timing out during blocking operations like team_watch)
+      // HOW: Heartbeat sends MCP progress notifications to prevent client timeouts
+      // during blocking operations like team_watch.
       const heartbeat = progressToken ? () => {
         safeNotify({ progressToken, progress: 50, total: 100, message: `${name} waiting for events...` });
       } : undefined
 
       const result = await routeToolCall(name, args, progressToken, heartbeat);
       
-      // Send completion progress
       if (progressToken) {
         safeNotify({ progressToken, progress: 100, total: 100, message: `${name} completed` });
       }
       
       return result;
-    } catch (error: any) {
+      } catch (error: any) {
       if (progressToken) {
         safeNotify({ progressToken, progress: 100, total: 100, message: `${name} failed: ${error.message}` });
       }
-      // Return a formatted error instead of re-throwing — re-throwing can break
+      // WHY: Return a formatted error instead of re-throwing — re-throwing can break
       // the MCP connection if the error is non-serializable or the transport is
       // already in a bad state.
       logger.error('Tool call threw in handler', { tool: name, error: String(error) });
@@ -512,7 +470,6 @@ function createServer() {
     }
   });
 
-  // List static resources
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
     return {
       resources: [
@@ -538,7 +495,6 @@ function createServer() {
     };
   });
 
-  // List resource templates (dynamic URIs)
   server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => {
     return {
       resourceTemplates: [
@@ -570,7 +526,6 @@ function createServer() {
     };
   });
 
-  // Read resources
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const { uri } = request.params;
 
@@ -629,12 +584,10 @@ function createServer() {
     }
   });
 
-  // Handle resource subscriptions
   server.setRequestHandler(SubscribeRequestSchema, async (request) => {
     const { uri } = request.params;
     const subscriberId = `${request.params._meta?.progressToken || 'unknown'}-${Date.now()}`;
     
-    // Validate URI is subscribable
     const subscribablePatterns = [
       /^cassicore:\/\/teams\/.+$/,
       /^cassicore:\/\/sessions\/.+\/context$/,
@@ -655,7 +608,6 @@ function createServer() {
     return {};
   });
 
-  // Handle resource unsubscriptions
   server.setRequestHandler(UnsubscribeRequestSchema, async (request) => {
     const { uri } = request.params;
     const subscriberId = `${request.params._meta?.progressToken || 'unknown'}-${Date.now()}`;
@@ -667,7 +619,6 @@ function createServer() {
     return {};
   });
 
-  // List prompts (workflow templates)
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
     return {
       prompts: [
@@ -714,7 +665,6 @@ function createServer() {
     };
   });
 
-  // Get prompt template
   server.setRequestHandler(GetPromptRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
 
@@ -914,10 +864,8 @@ function createServer() {
   return server;
 }
 
-// Transports
-
 /**
- * Start with stdio transport (default for MCP)
+ * Start with stdio transport (default for MCP).
  */
 async function startStdio() {
   logger.info('Starting CassiCore MCP Gateway (stdio mode)', { url: CASSICORE_URL });
@@ -925,9 +873,8 @@ async function startStdio() {
   const server = createServer();
   const transport = new StdioServerTransport();
 
-  // These catch MCP-layer errors and disconnections that would otherwise
+  // WHY: Catch MCP-layer errors and disconnections that would otherwise
   // go unnoticed, leaving a zombie process.
-
   server.onerror = (error: Error) => {
     logger.error('MCP server error', { error: String(error) });
   };
@@ -937,7 +884,7 @@ async function startStdio() {
     process.exit(0);
   };
 
-  // When the MCP client (OpenCode) disconnects, stdin emits 'end'.
+  // WHY: When the MCP client (OpenCode) disconnects, stdin emits 'end'.
   // The SDK transport only listens for 'data' and 'error', so we need
   // to detect this ourselves and trigger a clean shutdown.
   process.stdin.on('end', () => {
@@ -966,7 +913,7 @@ async function startStdio() {
 }
 
 /**
- * Start with HTTP/SSE transport (for remote connections)
+ * Start with HTTP/SSE transport (for remote connections).
  */
 async function startHttp(port: number) {
   if (!AUTH_TOKEN) {
@@ -977,11 +924,9 @@ async function startHttp(port: number) {
 
   const server = createServer();
 
-  // Create HTTP server for SSE transport
   const httpServer = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://localhost:${port}`);
 
-    // Health endpoint (no auth required)
     if (url.pathname === '/health') {
       try {
         const cassiHealth = await fetchWithTimeout(`${CASSICORE_URL}/health`);
@@ -1003,23 +948,19 @@ async function startHttp(port: number) {
       return;
     }
 
-    // Tools endpoint (GET - no auth required for listing)
     if (url.pathname === '/tools' && req.method === 'GET') {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(getAllTools()));
       return;
     }
 
-    // Execute endpoint (POST - REQUIRES AUTH)
     if (url.pathname === '/tools/execute' && req.method === 'POST') {
-      // Validate authentication
       if (!validateAuth(req)) {
         res.writeHead(401, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unauthorized - valid Bearer token required' }));
         return;
       }
 
-      // Validate Content-Type
       if (!validateContentType(req)) {
         res.writeHead(415, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Unsupported Media Type - application/json required' }));
@@ -1028,10 +969,9 @@ async function startHttp(port: number) {
 
       let body = '';
       try {
-        body = await readBodyWithLimit(req, 1024 * 1024); // 1MB limit
+        body = await readBodyWithLimit(req, 1024 * 1024);
         const { tool, args } = JSON.parse(body);
 
-        // Basic input validation
         if (!tool || typeof tool !== 'string') {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'Invalid request - tool name (string) required' }));
@@ -1059,10 +999,8 @@ async function startHttp(port: number) {
   });
 }
 
-// Main Entry Point
-
 /**
- * Main entry point
+ * Main entry point.
  */
 async function main() {
   const args = process.argv.slice(2);
@@ -1070,7 +1008,6 @@ async function main() {
   const portArg = args.find(arg => arg.startsWith('--port='));
   const port = portArg ? parseInt(portArg.split('=')[1], 10) : 3000;
 
-  // Validate CassiCore connection
   try {
     const healthCheck = await fetchWithTimeout(`${CASSICORE_URL}/health`);
     if (!healthCheck.ok) {
@@ -1083,7 +1020,6 @@ async function main() {
       error: String(error),
     });
     logger.warn('Make sure CassiCore is running: cassicore daemon');
-    // Continue anyway - connection might succeed later
   }
 
   if (httpMode) {
