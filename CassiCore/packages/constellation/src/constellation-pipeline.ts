@@ -800,6 +800,36 @@ export async function runConstellationPipeline(
       }
     }
 
+    // WHY: Inject elevated patterns from peer Helixes into new branch context
+    // This enables cross-branch knowledge transfer — successful approaches from
+    // completed/struggling branches inform new branches' starting strategies.
+    try {
+      const elevatedPatterns = corpusTree.getElevatedPatterns()
+      if (elevatedPatterns.length > 0) {
+        // Filter patterns relevant to this branch's goal (keyword matching)
+        const goalKeywords = helixGoal.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+        const relevantPatterns = elevatedPatterns.filter(pattern => {
+          const patternText = `${pattern.applicableContext} ${pattern.approach}`.toLowerCase()
+          return goalKeywords.some(keyword => patternText.includes(keyword))
+        })
+
+        if (relevantPatterns.length > 0) {
+          const patternsBlock = relevantPatterns
+            .map(p => `- [${p.approach}] (score: ${p.achievedScore.toFixed(2)}): ${p.applicableContext}`)
+            .join('\n')
+          const patternsContext = `\n\n## Constellation Knowledge\nSuccessful patterns from peer sessions:\n${patternsBlock}`
+          enrichedContext = enrichedContext ? `${enrichedContext}${patternsContext}` : patternsContext
+          helixLog.info('Elevated patterns injected for branch', {
+            patterns: relevantPatterns.length,
+            totalPatterns: elevatedPatterns.length,
+          })
+        }
+      }
+    } catch (err) {
+      helixLog.warn('Elevated pattern injection failed', { error: String(err) })
+      // Continue with existing context — don't block launch
+    }
+
     // Register branch in corpus tree
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
 

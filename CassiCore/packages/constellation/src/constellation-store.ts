@@ -326,7 +326,7 @@ export interface SpawnDecision {
 
 // New Persistence Types
 
-export type CorpusDecisionType = 'spawn_evaluation' | 'intervention' | 'pattern_detection' | 'synthesis' | 'health_assessment'
+export type CorpusDecisionType = 'spawn_evaluation' | 'spawn' | 'intervention' | 'pattern_detection' | 'synthesis' | 'health_assessment'
 
 export interface CorpusDecisionRow {
   id: number
@@ -827,6 +827,33 @@ export class ConstellationStore {
       duration_ms: data.durationMs ?? 0,
     })
     this.logger.debug('Saved Constellation checkpoint', { id })
+  }
+
+  /** Save a tree-only checkpoint (simplified version for periodic persistence) */
+  saveTreeCheckpoint(id: string, tree: CorpusTreeSnapshot): void {
+    const progress: ProgressSnapshot = {
+      markdown: `Tree checkpoint: ${tree.activeBranches} active branches, ${tree.totalSteps} total steps`,
+      data: {
+        activeBranches: tree.activeBranches,
+        totalBranches: tree.branches.length,
+        completedBranches: tree.branches.filter(b => b.status === 'completed').length,
+        failedBranches: tree.branches.filter(b => b.status === 'failed').length,
+        sweepCount: 0,
+        lastSweepAt: tree.snapshotAt,
+      },
+    }
+    this.stmts.saveCheckpoint.run({
+      id,
+      tree_snapshot_json: JSON.stringify(tree),
+      progress_snapshot_json: JSON.stringify(progress),
+      sweep_count: 0,
+      total_branches: tree.branches.length,
+      completed_branches: progress.data.completedBranches,
+      failed_branches: progress.data.failedBranches,
+      tokens_used: 0,
+      duration_ms: 0,
+    })
+    this.logger.debug('Saved tree checkpoint', { id })
   }
 
 

@@ -154,6 +154,12 @@ export interface ICorpusTree {
 
   /** Get all elevated patterns (constellation-level knowledge). */
   getElevatedPatterns(): ElevatedPattern[]
+
+  /** Record an effectiveness measurement for an intervention or self-org adjustment. */
+  recordEffectiveness(record: EffectivenessRecord): void
+
+  /** Get all effectiveness records. */
+  getEffectivenessRecords(): EffectivenessRecord[]
 }
 
 
@@ -1077,6 +1083,13 @@ export interface CorpusDeps {
    * event audit trails for sweeps, patterns, interventions, and health changes.
    */
   persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
+
+  /**
+   * Optional store for persisting corpus decisions and checkpoints.
+   * Decouples Corpus from direct store dependency while enabling
+   * decision history and tree persistence.
+   */
+  store?: import('./constellation-store.js').ConstellationStore
 }
 
 /**

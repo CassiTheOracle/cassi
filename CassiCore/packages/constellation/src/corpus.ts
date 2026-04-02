@@ -48,6 +48,7 @@ import type {
   ResearchDigest,
   ParallelSplitRequest,
   ContextInjection,
+  SelfOrgAdjustmentType,
 } from './corpus-types.js'
 import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
@@ -129,6 +130,13 @@ export class Corpus {
   private branchBudgets: Map<string, BranchBudget> = new Map()
   /** Discovery counter for IDs */
   private discoveryCounter = 0
+
+  // Effectiveness tracking: baseline scores before interventions
+  private interventionBaselines = new Map<string, { score: number; type: string; timestamp: number; step: number }>()
+
+  // Periodic checkpointing
+  private lastCheckpointAt = 0
+  private static readonly CHECKPOINT_INTERVAL_MS = 60_000 // checkpoint every 60s
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -375,6 +383,17 @@ export class Corpus {
 
         // Mediate cross-Helix dialectic if tensions have accumulated
         this.mediateCrossHelixDialectic()
+
+        // WHY: Check effectiveness of recent interventions by comparing baseline vs current scores
+        this.checkInterventionEffectiveness()
+
+        // WHY: Periodic tree checkpointing for crash recovery
+        if (Date.now() - this.lastCheckpointAt > Corpus.CHECKPOINT_INTERVAL_MS) {
+          const snapshot = this.tree.getSnapshot()
+          this.deps.store?.saveTreeCheckpoint(this.deps.constellationId, snapshot)
+          this.lastCheckpointAt = Date.now()
+          this.logger.debug('Periodic tree checkpoint saved')
+        }
 
         // Update sweep stats
         this.state.sweepCount++
@@ -853,6 +872,22 @@ export class Corpus {
           context: `Auto-spawn triggered: ${branchInterventions} interventions, rollingScore=${assessment.rollingScore.toFixed(2)}`,
         })
 
+        // WHY: Record auto-spawn decision for persistence and analysis
+        this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
+          decisionType: 'spawn',
+          helixId: branch.helixId,
+          inputData: {
+            reason: 'auto-spawn',
+            interventions: branchInterventions,
+            rollingScore: assessment.rollingScore,
+            parentGoal: branch.goal,
+          },
+          outputData: {
+            childGoal: spawnGoal,
+          },
+          confidence: 0.7,
+        })
+
         this.logger.info('Auto-spawn triggered for struggling branch', {
           helixId: branch.helixId,
           interventions: branchInterventions,
@@ -1320,6 +1355,23 @@ Guidelines:
           goal: spawnGoal,
           context: assessment,
         })
+
+        // WHY: Record spawn decision for persistence and analysis
+        this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
+          decisionType: 'spawn',
+          helixId: parentHelixId,
+          inputData: {
+            reason: 'Corpus LLM analysis',
+            parentGoal: this.tree.getBranch(parentHelixId)?.goal ?? 'unknown',
+            assessment: assessment.slice(0, 500),
+          },
+          outputData: {
+            childGoal: spawnGoal,
+          },
+          llmAnalysis: response.slice(0, 1000),
+          confidence: 0.7,
+        })
+
         this.logger.info('Spawn request submitted from Corpus LLM analysis', {
           parentHelixId,
           goal: spawnGoal.slice(0, 100),
@@ -1413,10 +1465,11 @@ Guidelines:
       this.state.interventions.push(intervention)
 
       const assessment = this.state.branchAssessments.get(directive.targetHelixId)
+      const branch = this.tree.getBranch(directive.targetHelixId)
+      const currentStep = branch ? branch.steps.length : 0
+      const latestAnnotation = branch?.steps[branch.steps.length - 1]?.annotation
+
       if (assessment) {
-        const branch = this.tree.getBranch(directive.targetHelixId)
-        const currentStep = branch ? branch.steps.length : 0
-        const latestAnnotation = branch?.steps[branch.steps.length - 1]?.annotation
         assessment.directiveHistory.push({
           directive,
           sentAtStep: currentStep,
@@ -1429,6 +1482,36 @@ Guidelines:
           outcome: 'pending',
         })
       }
+
+      // WHY: Track baseline score before intervention to measure effectiveness later
+      if (assessment && branch) {
+        this.interventionBaselines.set(directive.targetHelixId, {
+          score: assessment.rollingScore,
+          type: directive.type,
+          timestamp: Date.now(),
+          step: currentStep,
+        })
+      }
+
+      // WHY: Record intervention decision for persistence and analysis
+      this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
+        decisionType: 'intervention',
+        helixId: directive.targetHelixId,
+        inputData: {
+          branchAssessment: assessment ? {
+            rollingScore: assessment.rollingScore,
+            status: assessment.status,
+            decliningScoreStreak: assessment.decliningScoreStreak,
+          } : undefined,
+          pattern: assessment?.dominantPattern,
+        },
+        outputData: {
+          directive,
+          urgency: directive.urgency,
+        },
+        llmAnalysis: undefined,
+        confidence: 0.5,
+      })
 
       this.emitEvent('corpus:intervention', {
         helixId: directive.targetHelixId,
@@ -1516,6 +1599,72 @@ Guidelines:
         }
         record.evaluatedAt = Date.now()
       }
+    }
+  }
+
+  /**
+   * Check effectiveness of recent interventions by comparing baseline scores to current.
+   * Called each sweep after annotations are processed.
+   *
+   * For each helix with a recorded baseline:
+   * - Get current rolling score from assessment
+   * - Calculate improvement
+   * - Record effectiveness in the tree
+   * - Clear the baseline (one-shot measurement)
+   */
+  private checkInterventionEffectiveness(): void {
+    for (const [helixId, baseline] of this.interventionBaselines.entries()) {
+      const assessment = this.state.branchAssessments.get(helixId)
+      const branch = this.tree.getBranch(helixId)
+      if (!assessment || !branch) {
+        this.interventionBaselines.delete(helixId)
+        continue
+      }
+
+      const currentStep = branch.steps.length
+      const stepsSinceBaseline = currentStep - baseline.step
+      if (stepsSinceBaseline < 2) {
+        // Not enough steps yet for meaningful comparison
+        continue
+      }
+
+      const improvement = assessment.rollingScore - baseline.score
+      const effective = improvement > 0.05 // 5% improvement threshold
+
+      // WHY: Map Corpus directive types to SelfOrgAdjustmentType for effectiveness tracking
+      // This allows the constellation to learn which intervention strategies work
+      const adjustmentTypeMap: Record<string, SelfOrgAdjustmentType> = {
+        'guidance': 'approach-redirect',
+        'redirect': 'approach-redirect',
+        'throttle': 'goal-refinement',
+        'priority-shift': 'goal-refinement',
+        'cancel': 'tension-flag',
+      }
+      const adjustmentType = adjustmentTypeMap[baseline.type] ?? 'approach-redirect'
+
+      // WHY: Record effectiveness to track which intervention types work
+      this.tree.recordEffectiveness({
+        helixId,
+        adjustmentType,
+        scoreBefore: baseline.score,
+        scoreAfter: assessment.rollingScore,
+        stepsDelta: stepsSinceBaseline,
+        improvement,
+        effective,
+        measuredAt: Date.now(),
+      })
+
+      this.logger.debug('Intervention effectiveness measured', {
+        helixId,
+        type: baseline.type,
+        baselineScore: baseline.score.toFixed(3),
+        currentScore: assessment.rollingScore.toFixed(3),
+        improvement: improvement.toFixed(3),
+        effective,
+      })
+
+      // One-shot measurement — clear the baseline
+      this.interventionBaselines.delete(helixId)
     }
   }
 
