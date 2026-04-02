@@ -116,8 +116,10 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   stagnationStepThreshold: 10,
   stagnationScoreThreshold: 0.4,
   maxExplorationSteps: 15,
-  wallClockBudgetMs: 90 * 60 * 1000,      // 90 minutes
-  wallClockHardLimitMs: 120 * 60 * 1000,  // 120 minutes
+  // 90 minutes soft wall-clock budget
+  wallClockBudgetMs: 90 * 60 * 1000,
+  // 120 minutes hard wall-clock limit
+  wallClockHardLimitMs: 120 * 60 * 1000,
   postToBlackboard: true,
   persistTrainingData: true,
   enabled: true,
@@ -186,8 +188,11 @@ export interface GuidanceProposal {
 }
 
 export interface GuidanceVote {
+  /** Whether the reviewer approved the guidance */
   approved: boolean
+  /** Rationale for the vote */
   reason: string
+  /** Timestamp when vote was cast */
   timestamp: number
 }
 
@@ -335,7 +340,8 @@ export function createInitialBrainstemState(): BrainstemState {
     qualityTrajectory: [],
     consecutiveExplorations: 0,
     consecutiveDrifts: 0,
-    lastGuidanceStep: -1, // -1 ensures first guidance always fires
+    // WHY: -1 ensures first guidance always fires
+    lastGuidanceStep: -1,
     totalGuidanceCount: 0,
     totalPatternDetections: 0,
     currentAxonStep: 0,

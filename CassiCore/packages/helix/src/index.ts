@@ -75,7 +75,7 @@ function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): stri
   }
   const yinRecent = formatRecentTools(yin.recentToolCalls)
   if (yinRecent) lines.push(`- Recent tools: ${yinRecent}`)
-  // Show broadcast progress if using native coordinator, otherwise legacy counters
+  // Native HelixWorkStream uses broadcast coordination; legacy uses sequential review
   if (ws instanceof HelixWorkStream) {
     const yangProgress = ws.getReviewerProgress('yang')
     const yinProgress = ws.getReviewerProgress('yin')
