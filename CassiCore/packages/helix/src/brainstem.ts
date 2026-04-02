@@ -211,6 +211,20 @@ export class HelixBrainstem {
   }
 
   /**
+   * Get the number of work units processed so far.
+   */
+  getWorkUnitsProcessed(): number {
+    return this.state.workUnitsProcessed
+  }
+
+  /**
+   * Get the reviewer activation threshold (minimum work units before a real decision).
+   */
+  getReviewerActivationThreshold(): number {
+    return this.config.reviewerActivationThreshold
+  }
+
+  /**
    * Evaluate whether the task needs active reviewers based on early work units.
    * Returns true if reviewers should be activated, false if task is simple enough to skip.
    * Decision factors: goal alignment trajectory, number of files touched, task complexity.

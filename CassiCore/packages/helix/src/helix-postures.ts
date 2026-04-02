@@ -102,7 +102,7 @@ You also have read access to:
 
 /** @deprecated Mentor path removed — use Brainstem instead. Retained for backward compat. */
 export const MENTOR_POSTURE: HelixPosture = {
-  name: 'mentor',
+  name: 'mentor' as any, // Cast for backward compat — 'mentor' removed from HelixRole
   temperature: 0.5,
   slotName: 'helix.mentor',
   toolAccess: 'read-only',

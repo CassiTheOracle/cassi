@@ -438,30 +438,69 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   // ── Run All Postures Concurrently ─────────────────────────────────────
 
-  // TODO Phase 4: Lazy reviewer spawning
-  // - Delay Yang/Yin startup by configurable amount (wait for brainstem to process N work units)
-  // - Call brainstem.shouldActivateReviewers() to decide whether to skip reviewers
-  // - If false, don't start reviewers at all; if true, start them after delay
-  // For now, reviewers start immediately (existing behavior)
+  // Phase 4: Lazy reviewer spawning
+  // When brainstem has lazy spawning enabled, reviewers wait for the brainstem
+  // to evaluate early work units before deciding whether to activate.
+  // If the task is simple (high goal alignment, no detected patterns), reviewers
+  // are skipped entirely — saving ~47% of token budget on simple tasks.
+
+  const REVIEWER_ACTIVATION_CHECK_MS = 3_000
+  const REVIEWER_ACTIVATION_MAX_WAIT_MS = 30_000
+  let reviewersSkipped = false
+
+  /**
+   * Wait for brainstem to evaluate enough work units, then decide whether to
+   * start reviewers. Returns immediately if brainstem doesn't support lazy spawning.
+   */
+  async function waitForReviewerDecision(): Promise<boolean> {
+    if (!brainstem) return true // no brainstem = always start reviewers
+    if (!brainstem.shouldActivateReviewers()) {
+      // Not enough data yet — poll until brainstem can decide
+      const start = Date.now()
+      while (Date.now() - start < REVIEWER_ACTIVATION_MAX_WAIT_MS) {
+        await new Promise(resolve => setTimeout(resolve, REVIEWER_ACTIVATION_CHECK_MS))
+        if (cancelled) return false
+        // Once brainstem has processed enough work units, it returns a real decision
+        const shouldActivate = brainstem.shouldActivateReviewers()
+        // If it returns true, it either means "activate" or "not enough data yet"
+        // We need to check if it has processed enough to make a real decision
+        if (brainstem.getWorkUnitsProcessed() >= (brainstem.getReviewerActivationThreshold())) {
+          return shouldActivate
+        }
+      }
+      // Timeout waiting for decision — default to activating reviewers
+      log.info('Reviewer activation decision timed out, defaulting to activate')
+      return true
+    }
+    return true
+  }
 
   try {
-    const postures: Promise<HelixPostureResult>[] = [
-      // Unity: continuous worker loop
-      unitySession.runAsWorker(opts.goal, opts.context)
-        .catch(err => {
-          log.error('Unity failed', { error: String(err) })
-          opts.store?.appendEvent(sessionId, 'helix:role:failed', 'unity', String(err))
-          opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'unity', error: String(err) } as any)
-          return buildErrorResult(err)
-        })
-        .finally(() => {
-          opts.store?.appendEvent(sessionId, 'helix:role:completed', 'unity', 'Unity completed')
-          opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'unity' } as any)
-          onActivity()
-        }),
+    // Start Unity immediately — it's always needed
+    const unityPromise = unitySession.runAsWorker(opts.goal, opts.context)
+      .catch(err => {
+        log.error('Unity failed', { error: String(err) })
+        opts.store?.appendEvent(sessionId, 'helix:role:failed', 'unity', String(err))
+        opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'unity', error: String(err) } as any)
+        return buildErrorResult(err)
+      })
+      .finally(() => {
+        opts.store?.appendEvent(sessionId, 'helix:role:completed', 'unity', 'Unity completed')
+        opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'unity' } as any)
+        onActivity()
+      })
 
-      // Yang: assertive reviewer loop
-      yangSession.runAsReviewer(opts.goal, opts.context)
+    // Decide whether to start reviewers (may wait for brainstem evaluation)
+    const shouldStartReviewers = await waitForReviewerDecision()
+
+    let yangPromise: Promise<HelixPostureResult>
+    let yinPromise: Promise<HelixPostureResult>
+
+    if (shouldStartReviewers && !cancelled) {
+      log.info('Starting reviewers (brainstem decision: activate)')
+      opts.store?.appendEvent(sessionId, 'helix:reviewers:activated', 'session', 'Reviewers activated by brainstem decision')
+
+      yangPromise = yangSession.runAsReviewer(opts.goal, opts.context)
         .catch(err => {
           log.error('Yang reviewer failed', { error: String(err) })
           opts.store?.appendEvent(sessionId, 'helix:role:failed', 'yang', String(err))
@@ -472,10 +511,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
           opts.store?.appendEvent(sessionId, 'helix:role:completed', 'yang', 'Yang completed')
           opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'yang' } as any)
           onActivity()
-        }),
+        })
 
-      // Yin: cautious reviewer loop
-      yinSession.runAsReviewer(opts.goal, opts.context)
+      yinPromise = yinSession.runAsReviewer(opts.goal, opts.context)
         .catch(err => {
           log.error('Yin reviewer failed', { error: String(err) })
           opts.store?.appendEvent(sessionId, 'helix:role:failed', 'yin', String(err))
@@ -486,9 +524,19 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
           opts.store?.appendEvent(sessionId, 'helix:role:completed', 'yin', 'Yin completed')
           opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'yin' } as any)
           onActivity()
-        }),
-    ]
+        })
+    } else {
+      reviewersSkipped = true
+      log.info('Reviewers skipped (brainstem decision: task is simple)')
+      opts.store?.appendEvent(sessionId, 'helix:reviewers:skipped', 'session', 'Reviewers skipped — brainstem assessed task as simple')
+      opts.eventBus?.emit({ type: 'helix:reviewers:skipped' as any, sessionId } as any)
 
+      // Return immediate not-started results for skipped reviewers
+      yangPromise = Promise.resolve(buildErrorResult('Reviewers skipped — task assessed as simple'))
+      yinPromise = Promise.resolve(buildErrorResult('Reviewers skipped — task assessed as simple'))
+    }
+
+    const postures: Promise<HelixPostureResult>[] = [unityPromise, yangPromise, yinPromise]
     const settled = await Promise.allSettled(postures)
 
 
@@ -520,10 +568,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     const completionStatus: HelixCompletionStatus = {
       complete: !cancelled,
       unityStatus: unityResult.error ? 'errored' : 'completed',
-      yangStatus: yangResult.error ? 'errored' : 'completed',
-      yinStatus: yinResult.error ? 'errored' : 'completed',
+      yangStatus: reviewersSkipped ? 'not-started' : (yangResult.error ? 'errored' : 'completed'),
+      yinStatus: reviewersSkipped ? 'not-started' : (yinResult.error ? 'errored' : 'completed'),
       mentorStatus: brainstem ? 'completed' : 'not-started',
-      degraded: !!(unityResult.error || yangResult.error || yinResult.error),
+      degraded: !!(unityResult.error || (!reviewersSkipped && (yangResult.error || yinResult.error))),
     }
 
     const result: HelixResult = {

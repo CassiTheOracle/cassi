@@ -420,24 +420,34 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
   /**
    * Run as a reviewer (Yang or Yin).
-   * Two-mode async loop:
-   *   Primary: drain work units from WorkStream, investigate, post findings/nudges
-   *   Secondary: engage in dialectic with the other reviewer when idle
+   *
+   * Active investigation mode: the reviewer independently investigates the goal
+   * using read-only tools, posts findings and challenges through the dialectic,
+   * and uses Unity's work units as investigation seeds (not as the sole trigger).
+   *
+   * Loop structure:
+   *   1. Run LLM inference — reviewer investigates independently
+   *   2. Process tool calls (read-only investigation + dialectic meta-tools)
+   *   3. Inject new work units from Unity as additional context
+   *   4. Inject dialectic messages from the other reviewer
+   *   5. Inject brainstem guidance when available
+   *   6. Continue until concluded or cancelled
    */
   async runAsReviewer(goal: string, context?: string): Promise<HelixPostureResult> {
     const startTime = Date.now()
-    this.logger.info(`${this.role} starting as reviewer`, { goal, maxIterations: this.posture.maxIterations })
+    this.logger.info(`${this.role} starting as active reviewer`, { goal, maxIterations: this.posture.maxIterations })
 
     try {
       await initializeOptionalTools()
       this.messages = this.buildInitialMessages(goal, context, this.role)
       const tools = this.buildToolSchemas(this.role)
 
-      // Brief delay to let Unity start producing work units.
-      // Don't await waitForYangDone() — that blocks until Unity FINISHES,
-      // preventing concurrent review. The loop's nextWorkUnit() call
-      // already blocks until a work unit is posted or Unity signals done.
+      // Brief delay to let Unity start producing initial work units for context.
       await new Promise(resolve => setTimeout(resolve, 2_000))
+
+      // Seed with any available work units upfront — gives the reviewer
+      // initial awareness of what Unity is working on
+      this.injectAvailableWorkUnits()
 
       while (!this.concluded && !this.cancelled) {
         this.iterationCount++
@@ -446,119 +456,49 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           break
         }
 
-        // Check if Unity is done and we've reviewed everything.
-        // Helix runs TWO concurrent reviewers sharing one WorkStream queue.
-        // nextWorkUnit() is destructive (shift), so only one reviewer gets each
-        // work unit from the queue. The other reviewer still reviews via dialectic
-        // messages and UnityStatus injection. Check both local reviewed set AND
-        // the WorkStream's global reviewed status to avoid the second reviewer
-        // looping forever waiting for a work unit it will never dequeue.
+        // Check termination: Unity done and reviewer has done meaningful work
         if (this.workStream.isWorkerDone()) {
           const allWUs = this.workStream.getAllWorkUnits()
 
-          // Native coordinator: use per-reviewer broadcast cursors for clean termination.
-          // With broadcast semantics, both reviewers can observe work units. But due to
-          // timing (Unity posts faster than reviewers drain), reviewers may not have
-          // consumed all WUs through nextWorkUnitForReviewer(). That's OK — they also
-          // observe work via UnityStatus and dialectic messages. Once Unity is done and
-          // the reviewer has had at least 2 iterations to contribute, it's safe to conclude.
           if (this.workStream instanceof HelixWorkStream) {
             const seenAll = this.workStream.hasReviewerSeenAll(this.role)
             if (seenAll && allWUs.length > 0) {
               this.workStream.signalReviewerReady(this.role)
-              this.logger.info(`${this.role} — Unity done, all ${allWUs.length} work units observed via broadcast, concluding`)
+              this.logger.info(`${this.role} — Unity done, all ${allWUs.length} work units observed, concluding`)
               break
             }
-            if (allWUs.length === 0) {
-              this.logger.info(`${this.role} — Unity done with no work units, concluding`)
-              break
-            }
-            // Even if not all WUs seen via broadcast, conclude after contributing enough.
-            // Reviewers also see work via UnityStatus injection and dialectic messages.
-            if (this.iterationCount >= 3) {
+            if (allWUs.length > 0 && this.iterationCount >= 2) {
               this.workStream.signalReviewerReady(this.role)
-              const cursor = this.workStream.getReviewerProgress(this.role)
-              this.logger.info(`${this.role} — Unity done, concluding after ${this.iterationCount} iterations (broadcast: ${cursor.cursor}/${cursor.total} WUs)`)
+              this.logger.info(`${this.role} — Unity done, ${this.iterationCount} iterations completed, concluding`)
               break
-            }
-            continue
-          }
-
-          // Legacy fallback: check local + global reviewed sets
-          const allReviewedLocally = allWUs.length > 0 && allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
-          const allReviewedGlobally = allWUs.length > 0 && allWUs.every(wu =>
-            this.reviewedWorkUnitIds.has(wu.id) || this.workStream.isWorkUnitReviewed(wu.id),
-          )
-          if (allReviewedLocally) {
-            this.logger.info(`${this.role} — Unity is done and all ${allWUs.length} work units reviewed locally, concluding`)
-            break
-          }
-          if (allReviewedGlobally && this.iterationCount > 1) {
-            this.logger.info(`${this.role} — Unity is done, all ${allWUs.length} work units reviewed globally, concluding after ${this.iterationCount} iterations`)
-            break
-          }
-          if (allWUs.length === 0) {
-            this.logger.info(`${this.role} — Unity is done with no work units, concluding`)
-            break
-          }
-        }
-
-        // Primary mode: drain next work unit
-        // Use broadcast read when HelixWorkStream is available (each reviewer
-        // sees ALL work units via per-reviewer cursors). Falls back to legacy
-        // destructive nextWorkUnit() for backward compat.
-        const workUnit = await Promise.race([
-          (this.workStream instanceof HelixWorkStream
-            ? this.workStream.nextWorkUnitForReviewer(this.role, REVIEWER_WORK_UNIT_TIMEOUT_MS)
-            : this.workStream.nextWorkUnit(REVIEWER_WORK_UNIT_TIMEOUT_MS)
-          ).catch(err => {
-            this.logger.debug(`${this.role} — nextWorkUnit failed`, { error: String(err) })
-            return null
-          }),
-          new Promise<null>(resolve => {
-            if (this.cancelled) resolve(null)
-            setTimeout(() => resolve(null), REVIEWER_WORK_UNIT_TIMEOUT_MS)
-          }),
-        ])
-
-        if (workUnit && !this.reviewedWorkUnitIds.has(workUnit.id)) {
-          // Review this work unit
-          this.reviewedWorkUnitIds.add(workUnit.id)
-          this.workStream.markWorkUnitReviewed(workUnit.id)
-
-          // Inject work unit as context for the reviewer to investigate
-          this.messages.push({
-            role: 'user',
-            content: this.formatWorkUnitForReview(workUnit),
-          })
-        } else {
-          // Secondary mode: process dialectic messages
-          if (this.dialecticChannel) {
-            const injected = this.injectDialecticMessages()
-            if (!injected) {
-              // Fallback: no work unit and no dialectic — check UnityStatus as message injection
-              const injectedStatus = this.injectUnityStatusAsMessage()
-              if (!injectedStatus) {
-                // Nothing to process — brief idle delay
-                await new Promise(resolve => setTimeout(resolve, REVIEWER_IDLE_DELAY_MS))
-                continue
-              }
-              // UnityStatus was injected as message — continue to inference so reviewer can act on it
             }
           } else {
-            // Fallback: no dialectic channel — check UnityStatus as message injection
-            const injectedStatus = this.injectUnityStatusAsMessage()
-            if (!injectedStatus) {
-              await new Promise(resolve => setTimeout(resolve, REVIEWER_IDLE_DELAY_MS))
-              continue
+            // Legacy WorkStream: check if all work units are reviewed
+            const allReviewed = allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
+            if ((allReviewed && allWUs.length > 0) || (allWUs.length === 0 && this.iterationCount > 1)) {
+              this.logger.info(`${this.role} — Unity done, all work units reviewed, concluding`)
+              break
             }
           }
         }
+
+        // ── Inject new context opportunistically (between inference calls) ──
+
+        // Inject any new work units from Unity as context enrichment
+        this.injectAvailableWorkUnits()
+
+        // Inject dialectic messages from the other reviewer
+        if (this.dialecticChannel) {
+          this.injectDialecticMessages()
+        }
+
+        // Inject UnityStatus for situational awareness
+        this.injectUnityStatusAsMessage()
 
         // Context pressure management
         if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
-        // Stream inference — reviewer investigates and decides on findings/nudges
+        // ── Active inference — reviewer investigates independently ──
         const result = await this.streamInference(tools)
         this.tokensUsed += result.tokensUsed
         // WorkStream tracks iterations for yang/yin reviewers
@@ -566,11 +506,12 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         this.onActivity?.()
 
         if (!result.hasToolUse && !this.concluded) {
-          // No tool use — nudge towards action
+          // No tool use — nudge towards active investigation
           this.messages.push({
             role: 'user',
-            content: 'You must use your tools to investigate and your meta-tools to share findings. ' +
-              'Call signal_conclusion when you have completed your review.',
+            content: this.role === 'yang'
+              ? 'You should actively investigate the goal using your tools. Look for promising approaches, validate assumptions, and post findings through the dialectic. Use signal_conclusion when your review is complete.'
+              : 'You should actively stress-test the work by reading files, checking edge cases, and looking for risks. Post challenges through the dialectic when you find issues. Use signal_conclusion when your review is complete.',
           })
           continue
         }
@@ -605,24 +546,45 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
   /**
-   * Run as the Mentor — a meta-moderator loop, not a reviewer loop.
-   *
-   * Mentor does not drain work units directly. Instead it watches:
-   * - DialecticChannel injections from Yang/Yin/Executive
-   * - Blackboard state and review_progress
-   * - Optional research dispatch results
-   *
-   * It intervenes only when there is something meaningful to steer, flag,
-   * force toward conclusion, or synthesize.
+   * Drain all available work units from the WorkStream and inject them as context.
+   * Non-blocking: returns immediately if no work units are available.
+   * Uses per-reviewer broadcast cursors (HelixWorkStream) when available.
    */
+  private injectAvailableWorkUnits(): void {
+    try {
+      const allWUs = this.workStream.getAllWorkUnits()
+      let injectedCount = 0
+
+      for (const workUnit of allWUs) {
+        if (this.reviewedWorkUnitIds.has(workUnit.id)) continue
+        this.reviewedWorkUnitIds.add(workUnit.id)
+        this.workStream.markWorkUnitReviewed(workUnit.id)
+
+        this.messages.push({
+          role: 'user',
+          content: this.formatWorkUnitForReview(workUnit),
+        })
+        injectedCount++
+      }
+
+      if (injectedCount > 0) {
+        this.logger.debug(`${this.role} — injected ${injectedCount} new work unit(s) as context`)
+      }
+    } catch {
+      // Work unit injection failure is non-fatal
+    }
+  }
+
+  /** @deprecated Mentor path removed — use Brainstem instead. Retained for backward compat. */
   async runAsMentor(goal: string, context?: string): Promise<HelixPostureResult> {
     const startTime = Date.now()
-    this.logger.info('mentor starting as moderator', { goal, maxIterations: this.posture.maxIterations })
+    this.logger.info('mentor starting as moderator (DEPRECATED)', { goal, maxIterations: this.posture.maxIterations })
 
     try {
       await initializeOptionalTools()
-      this.messages = this.buildInitialMessages(goal, context, 'mentor')
-      const tools = this.buildToolSchemas('mentor')
+      // Cast to any for backward compat — 'mentor' removed from HelixRole type
+      this.messages = this.buildInitialMessages(goal, context, 'mentor' as any)
+      const tools = this.buildToolSchemas('mentor' as any)
 
       await new Promise(resolve => setTimeout(resolve, 3_000))
 
@@ -1902,7 +1864,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * Zero extra LLM requests. Called during reviewer tool-processing path.
    */
   private injectUnityStatusIntoResults(toolResults: ContentBlock[]): ContentBlock[] {
-    if (this.role === 'unity' || this.role === 'mentor') return toolResults
+    if (this.role === 'unity') return toolResults
 
     // Rate limit: don't inject every iteration
     if (this.iterationCount - this.lastUnityStatusInjectionIteration < HelixPostureRunner.MIN_UNITY_STATUS_GAP_ITERATIONS) {
@@ -1937,7 +1899,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * Returns true if a status message was injected.
    */
   private injectUnityStatusAsMessage(): boolean {
-    if (this.role === 'unity' || this.role === 'mentor') return false
+    if (this.role === 'unity') return false
 
     // Rate limit
     if (this.iterationCount - this.lastUnityStatusInjectionIteration < HelixPostureRunner.MIN_UNITY_STATUS_GAP_ITERATIONS) {
