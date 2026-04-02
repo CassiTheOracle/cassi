@@ -8,10 +8,7 @@ import type { CognitiveSignal } from '../core/intelligence/thought-observer.js'
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
-// Health status enum
 export type HealthStatus = "healthy" | "degraded" | "unhealthy";
-
-// CassiCore event types
 
 export type RuntimeEvent =
   | { type: "daemon:ready"; startedAt: Date }
@@ -51,9 +48,9 @@ export type RuntimeEvent =
   | { type: "config:override:set"; key: string; value: unknown; meta?: object }
   | { type: "config:override:cleared"; key: string }
   | { type: "worker:message"; pluginId: string; payload: unknown }
-  // Channel tool events — forwarded from external agents (e.g., OpenCode)
+  // WHY: Forward tool execution updates from external agents (e.g., OpenCode) into CassiCore's event stream for unified tracking
   | { type: "channel:tool_update"; sessionId: string; toolName: string; status: string; partData?: Record<string, unknown>; timestamp: Date }
-  // Centralized provider events
+  // WHY: Centralized provider tracking enables unified rate limiting, budgeting, error recovery, and token accounting across all LLM providers
    | { type: "provider:request_start"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; messageCount: number; timestamp: Date }
    | { type: "provider:request_prompt"; providerId: string; requestId: string; sessionId: string; source: string; messages: Array<{ role: string; content: string }>; systemPrompt?: string; timestamp: Date }
    | { type: "provider:request_end"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; tokensUsed: { input: number; output: number; thinking: number }; durationMs: number; error?: string; timestamp: Date }
@@ -63,9 +60,12 @@ export type RuntimeEvent =
    | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number }
    | { type: "provider:rate_learned"; providerId: string; model: string; learnedWindows: Array<{ label: string; observedCount: number; safeCount: number }>; timestamp: Date }
    | { type: "provider:error_reset"; providerId: string }
-   | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
-   | { type: "provider:request_chunk"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; chunkType: "token" | "thinking" | "tool_use"; text?: string; toolCall?: { id: string; name: string; input: Record<string, unknown> }; timestamp: Date }
-   // Budget events
+  | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
+  | { type: "provider:request_chunk"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; chunkType: "token" | "thinking" | "tool_use"; text?: string; toolCall?: { id: string; name: string; input: Record<string, unknown> }; timestamp: Date }
+  // WHY: Budget tracking enables tiered spending controls (cautious/frugal/critical) to prevent runaway costs and enforce spending limits
+  | { type: "budget:warning"; providerId: string; tier: "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number; monthlyLimit: number }
+  | { type: "budget:tier_changed"; providerId: string; previousTier: "normal" | "cautious" | "frugal" | "critical"; newTier: "normal" | "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number }
+  // WHY: Subagent lifecycle tracking enables parent-child session correlation, resource accounting, and debugging of delegated work
    | { type: "budget:warning"; providerId: string; tier: "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number; monthlyLimit: number }
    | { type: "budget:tier_changed"; providerId: string; previousTier: "normal" | "cautious" | "frugal" | "critical"; newTier: "normal" | "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number }
    // Subagent lifecycle events
@@ -73,7 +73,7 @@ export type RuntimeEvent =
   | { type: "subagent:started"; runId: string; sessionId: string; timestamp: Date }
   | { type: "subagent:completed"; runId: string; sessionId: string; result: string; durationMs: number; timestamp: Date }
   | { type: "subagent:failed"; runId: string; sessionId: string; error: string; timestamp: Date }
-  // Pi Bridge events
+  // WHY: Pi Bridge events enable communication with external Pi-based AI systems for hybrid reasoning workflows
   | { type: "pi:completion:request"; requestId: string; messages: any[]; opts: any }
   | { type: "pi:completion:chunk"; requestId: string; chunk: any }
   | { type: "thinker:insight-applied"; sessionId: string; insight: string; requestId?: string }
@@ -82,18 +82,18 @@ export type RuntimeEvent =
    // Tool registry events — emitted when tools are (re)registered into the system
   | { type: "tool:registered"; name: string; description: string; parameters?: Record<string, unknown>; server?: string }
   | { type: "tool:unregistered"; name: string; server?: string }
-  // Tool execution events — emitted after every tool call completes
+  // WHY: Tool execution tracking enables performance monitoring, error analysis, and audit trails for all tool calls
   | { type: "tool:executed"; sessionId: string; toolName: string; durationMs: number; isError: boolean; source?: string; timestamp: Date }
   | { type: "tool:enriched"; sessionId: string; toolName: string; durationMs: number; isError: boolean; enrichment: { insights?: Array<{ source: string; text: string; relevance: number }>; signals?: Array<{ type: string; pattern: string; count: number }>; riskScore?: number; trustScore?: number }; timestamp: Date }
-  // Autonomy lifecycle events
+  // WHY: Autonomy lifecycle tracking enables monitoring of autonomous agents, their tool usage patterns, and overall behavior
   | { type: "autonomy:started"; agentId: string; options?: Record<string, unknown> }
   | { type: "autonomy:stopped"; agentId: string; reason?: string }
   | { type: "autonomy:tool_called"; agentId: string; tool: string; summary?: string }
-  // Autonomy confirmation lifecycle
+  // WHY: Confirmation lifecycle enables human-in-the-loop oversight for high-risk autonomous actions
   | { type: "autonomy:confirmation_requested"; id: string; agentId: string; tool: string; reason?: string }
   | { type: "autonomy:confirmation_approved"; id: string; agentId: string; tool: string; approver?: string; result?: unknown }
   | { type: "autonomy:confirmation_rejected"; id: string; agentId: string; tool: string; approver?: string; reason?: string }
-  // Compaction & Context events
+  // WHY: Session compaction and context events enable context window management and cross-session awareness
   | { type: "session:compacted"; sessionId: string; summary: string }
   | { type: "context-manager:sync"; sessionId: string; payload: any }
   | { type: "dialectic:signal"; sessionId: string; signalType: string; content: string; confidence: number; urgency?: "immediate" | "background"; requestId?: string }
@@ -101,7 +101,7 @@ export type RuntimeEvent =
   | { type: "dialectic:stopped"; dialecticId: string; reason: string }
   | { type: "dialectic:iteration"; dialecticId: string; iteration: number; summary: { yang?: number; yin?: number; hasSignal?: boolean } }
   | { type: "dialectic:error"; dialecticId: string; error: string }
-  // Lumen three-model concurrent system events
+  // WHY: Lumen three-model concurrent system enables Yang/Yin/Synthesis dialectic reasoning with parallel model execution
   | { type: "lumen:started"; sessionId?: string; goal: string; timestamp: Date }
   | { type: "lumen:yang-complete"; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
   | { type: "lumen:yin-complete"; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
@@ -109,29 +109,27 @@ export type RuntimeEvent =
   | { type: "lumen:posture:start"; posture: "yang" | "yin" | "executive"; sessionId?: string; timestamp: Date }
   | { type: "lumen:posture:complete"; posture: "yang" | "yin" | "executive"; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
   | { type: "lumen:posture:error"; posture: "yang" | "yin" | "executive"; sessionId?: string; error: string; timestamp: Date }
-  // Session Agent events
-
-  // Skill usage tracking events
+  // WHY: Skill usage tracking enables analysis of which skills are most valuable and identification of unused capabilities
   | { type: "skill:invoked"; skillName: string; skillPath: string; sessionId: string; timestamp: Date; source?: string }
   | { type: "skill:metrics:aggregated"; period: string; topSkills: Array<{ name: string; count: number }>; totalInvocations: number; timestamp: Date }
-  // Unified Intelligence Loop events
+  // WHY: Unified Intelligence Loop provides heartbeat monitoring and maintenance tracking for all intelligence modules
    | { type: "intelligence:heartbeat"; cycleNumber: number; uptimeMs: number; moduleStatuses: Array<{ name: string; healthy: boolean; lastActivity?: number }>; activeRequests?: number; activeSessions?: number; timestamp: Date }
   | { type: "intelligence:maintenance"; task: string; detail?: string; timestamp: Date }
   | { type: "intelligence:loop:started"; intervalMs: number; timestamp: Date }
   | { type: "intelligence:loop:stopped"; reason: string; cyclesCompleted: number; timestamp: Date }
-  // Heart Module events
+  // WHY: Heart Module provides periodic self-reflection beats that maintain cognitive coherence and deliver insights to the active session
   | { type: "heart:beat"; cycleNumber: number; isOk: boolean; durationMs: number; tokensUsed: { input: number; output: number }; timestamp: Date }
   | { type: "heart:delivered"; cycleNumber: number; target: string; contentLength: number; timestamp: Date }
   | { type: "heart:skipped"; cycleNumber: number; reason: string; timestamp: Date }
-  // Adaptive Behavior events (Phase 3)
+  // WHY: Adaptive Behavior (Phase 3) enables runtime behavior modification based on observed outcomes with automatic reversion on failure
   | { type: "adaptive:adaptation-applied"; adaptationId: string; adaptationType: string; target: string; confidence: number; sourceModule: string; timestamp: Date }
   | { type: "adaptive:adaptation-reverted"; adaptationId: string; adaptationType: string; target: string; reason: string; timestamp: Date }
   | { type: "adaptive:cycle-complete"; adaptationsApplied: number; adaptationsReverted: number; activeCount: number; timestamp: Date }
-  // Self-Verification events (Phase 4)
+  // WHY: Self-Verification (Phase 4) records verdicts on adaptations and generates trust reports to validate behavior changes
   | { type: "verification:verdict-recorded"; adaptationId: string; verdict: string; effectSize: number; confidence: number; timestamp: Date }
   | { type: "verification:report-generated"; reportId: number; totalVerdicts: number; successRate: number; timestamp: Date }
   | { type: "verification:trust-updated"; sourceModule: string; oldTrust: number; newTrust: number; timestamp: Date }
-  // Multi-agent lifecycle events
+  // WHY: Multi-agent lifecycle tracking enables coordination, handoffs, and error recovery across agent teams
   | { type: "agent:spawned"; agentId: string; role: string; parentSessionId?: string }
   | { type: "agent:task-assigned"; agentId: string; task: string; sessionId: string }
   | { type: "agent:completed"; agentId: string; result: string; parentSessionId?: string; tokensUsed?: number; model?: string; durationMs?: number }
@@ -142,7 +140,7 @@ export type RuntimeEvent =
   | { type: "multi-agent:assign-retry"; attempt: number; error: string; agentId: string }
   | { type: "multi-agent:assign-failed"; error: string; agentId: string }
   | { type: "multi-agent:metrics"; metrics: Record<string, number> }
-  // Autonomous loop events
+  // WHY: Autonomous loop tracking enables monitoring of iterative agent execution, delegation patterns, and blocking conditions
   | { type: "autonomy:loop_started"; agentId: string; sessionId: string; opts?: Record<string, unknown> }
   | { type: "autonomy:loop_stopped"; agentId: string; reason: string; iterations: number; totalTokensUsed: number }
   | { type: "autonomy:loop_paused"; agentId: string }
@@ -151,7 +149,7 @@ export type RuntimeEvent =
   | { type: "autonomy:iteration_error"; agentId: string; iteration: number; error: string }
   | { type: "autonomy:delegation_requested"; agentId: string; delegateTo: string; delegateTask: string }
   | { type: "autonomy:blocked"; agentId: string; reason: string }
-  // Team orchestration events
+  // WHY: Team orchestration enables coordinated multi-agent workflows with checkpoint-based approval gates
   | { type: "team:started"; teamId: string; coordinatorAgentId?: string }
   | { type: "team:completed"; teamId: string; finalResult?: string }
   | { type: "team:failed"; teamId: string; error: string }
