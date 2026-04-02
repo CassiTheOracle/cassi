@@ -193,7 +193,7 @@ export const VYBIT_TOOL = {
     'Visual browser editing via VyBit. Start a VyBit server, poll for visual changes ' +
     '(Tailwind edits, component drops, design sketches, bug reports), and implement them in code.\n\n' +
     'Actions: start, stop, status, poll, list, implement_next, mark_done, discard, ' +
-    'session, session_stop, dev_start, dev_stop, inject_overlay, browser_open',
+    'session, session_stop, dev_start, dev_stop, inject_overlay, browser_open, ingest_bugs',
   inputSchema: {
     type: 'object',
     properties: {
@@ -203,6 +203,7 @@ export const VYBIT_TOOL = {
           'session', 'session_stop',
           'start', 'stop', 'status', 'poll', 'list', 'implement_next', 'mark_done', 'discard',
           'dev_start', 'dev_stop', 'inject_overlay', 'browser_open',
+          'ingest_bugs',
         ],
         description: 'Action to perform',
       },
