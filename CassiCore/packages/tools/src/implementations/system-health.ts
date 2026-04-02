@@ -48,6 +48,7 @@ export const systemHealthDefinition: ToolDefinition = {
     required: [],
   },
   timeoutMs: 20000,
+  requiredPermission: 'read-only',
 }
 
 export function makeSystemHealthHandler(deps: SystemHealthDeps): ToolHandler {

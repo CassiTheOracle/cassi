@@ -53,7 +53,8 @@ export const debugSessionDefinition: ToolDefinition = {
     },
     required: []
   },
-  timeoutMs: 20000
+  timeoutMs: 20000,
+  requiredPermission: 'read-only',
 }
 
 interface DebugSessionInput {
@@ -151,7 +152,7 @@ interface SessionDebugResponse {
 }
 
 /**
- * @dep callers: buildCognitiveState (core/tools/implementations/debug-session.ts), makeDebugSessionHandler (core/tools/implementations/debug-session.ts), toISOString (core/tools/implementations/debug-session.ts)
+ * @dep callers: toISOString (core/tools/implementations/debug-session.ts), makeDebugSessionHandler (core/tools/implementations/debug-session.ts), buildCognitiveState (core/tools/implementations/debug-session.ts)
  * @dep calls: toISOString
  * @dep module: Implementations
  * @dep risk: LOW | 3 callers, 0 flows, 1 module

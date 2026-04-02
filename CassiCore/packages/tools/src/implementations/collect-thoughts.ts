@@ -116,6 +116,7 @@ export const collectThoughtsDefinition: ToolDefinition = {
   },
   timeoutMs: 10_000,
   category: 'cognitive',
+  requiredPermission: 'read-only',
 }
 
 // ─── Session State Map ────────────────────────────────────────────────────
@@ -128,6 +129,13 @@ const sessionStates = new Map<string, AxonSessionState>()
 const RESULT_HARD_CAP = 2_000
 
 // ─── Handler Factory ──────────────────────────────────────────────────────
+
+/**
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts), synapse-integration.test.ts (tests/synapse-integration.test.ts), collect-thoughts.test.ts (tests/collect-thoughts.test.ts)
+ * @dep calls: computeNextSynapseEligible, resolveAxonSession, switchBranch, forkBranch, getRemainingBudget [+13]
+ * @dep module: Implementations
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandler {
   const log = deps.logger.child?.('collect-thoughts') ?? deps.logger
@@ -608,6 +616,13 @@ export function getAxonSessionState(axonSessionId: string): AxonSessionState | u
 }
 
 /** Exposed for testing */
+/**
+ * @dep callers: synapse-integration.test.ts (tests/synapse-integration.test.ts), collect-thoughts.test.ts (tests/collect-thoughts.test.ts)
+ * @dep calls: clear
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function clearAllSessionStates(): void {
   sessionStates.clear()
 }

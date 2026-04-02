@@ -29,6 +29,7 @@ export const memorySearchDefinition: ToolDefinition = {
   },
   timeoutMs: 10_000,
   category: 'cognitive',
+  requiredPermission: 'read-only',
 }
 
 interface MemorySearchInput {

@@ -30,6 +30,7 @@ export const listToolsDefinition: ToolDefinition = {
   },
   timeoutMs: 5_000,
   category: 'debug',
+  requiredPermission: 'read-only',
 }
 
 export const listToolsHandler: ToolHandler = async (input, ctx) => {

@@ -68,6 +68,7 @@ export const coordinateDefinition: ToolDefinition = {
     required: ['action'],
   },
   timeoutMs: 5_000,
+  requiredPermission: 'workspace-write',
 }
 
 export const checkPeersDefinition: ToolDefinition = {
@@ -88,6 +89,7 @@ export const checkPeersDefinition: ToolDefinition = {
     required: [],
   },
   timeoutMs: 5_000,
+  requiredPermission: 'workspace-write',
 }
 
 
@@ -135,9 +137,9 @@ export interface PeerToolDeps {
 
 
 /**
- * @dep callers: makeCheckPeersHandler (core/tools/implementations/peer-coordination.ts), handleSharedNote (core/tools/implementations/peer-coordination.ts)
+ * @dep callers: handleSharedNote (core/tools/implementations/peer-coordination.ts), makeCheckPeersHandler (core/tools/implementations/peer-coordination.ts)
  * @dep calls: now
- * @dep module: Providers
+ * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
@@ -151,8 +153,8 @@ function timeAgo(ms: number): string {
 
 
 /**
- * @dep callers: registerCoreTools (core/tools/implementations/index.ts), registerPeerCoordinationTools (core/tools/implementations/peer-coordination.ts)
- * @dep calls: child, trim, handleSignal, handleBroadcast, handleSharedNote [+1]
+ * @dep callers: registerPeerCoordinationTools (core/tools/implementations/peer-coordination.ts), registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: child, handleLinkBrain, handleSharedNote, handleBroadcast, handleSignal
  * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -407,8 +409,8 @@ async function handleLinkBrain(
 }
 
 /**
- * @dep callers: peer-coordination-tools.test.ts (tests/peer-coordination-tools.test.ts), registerCoreTools (core/tools/implementations/index.ts), registerPeerCoordinationTools (core/tools/implementations/peer-coordination.ts)
- * @dep calls: kv_get, getSiblings, readMailbox, get, child [+3]
+ * @dep callers: registerPeerCoordinationTools (core/tools/implementations/peer-coordination.ts), registerCoreTools (core/tools/implementations/index.ts), peer-coordination-tools.test.ts (tests/peer-coordination-tools.test.ts)
+ * @dep calls: kv_get, child, readMailbox, getSiblings, timeAgo [+2]
  * @dep module: Implementations
  * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */

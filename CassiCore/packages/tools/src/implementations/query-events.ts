@@ -100,6 +100,7 @@ Examples:
     },
   },
   timeoutMs: 30_000,
+  requiredPermission: 'read-only',
 };
 
 // Tool Implementation

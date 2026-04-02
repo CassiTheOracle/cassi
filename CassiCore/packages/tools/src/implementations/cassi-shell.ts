@@ -36,6 +36,7 @@ export const cassiShellDefinition: ToolDefinition = {
   },
   category: 'core',
   timeoutMs: 120_000,
+  requiredPermission: 'full-access',
 }
 
 // Bash commands that pass through directly
@@ -56,6 +57,13 @@ interface CassiShellDeps {
 }
 
 let _deps: CassiShellDeps | undefined
+
+/**
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts)
+ * @dep flows: BootPipelineTools → SetCassiShellDeps (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 export function setCassiShellDeps(deps: CassiShellDeps): void {
   _deps = deps

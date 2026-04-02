@@ -28,7 +28,16 @@ export const waitJobDefinition: ToolDefinition = {
     required: ['jobId'],
   },
   timeoutMs: 310_000, // Slightly above max wait to avoid tool timeout before job timeout
+  requiredPermission: 'read-only',
 }
+
+/**
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: wait
+ * @dep flows: BootPipelineTools → MakeWaitJobHandler (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 export function makeWaitJobHandler(
   getJobManager: () => import('../../jobs/job-manager.js').JobManager | undefined

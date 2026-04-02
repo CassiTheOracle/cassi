@@ -44,6 +44,7 @@ export const reflectDefinition: ToolDefinition = {
   },
   timeoutMs: 5_000,
   category: 'cognitive',
+  requiredPermission: 'read-only',
 }
 
 export const cognitiveRememberDefinition: ToolDefinition = {
@@ -67,6 +68,7 @@ export const cognitiveRememberDefinition: ToolDefinition = {
   },
   timeoutMs: 5_000,
   category: 'cognitive',
+  requiredPermission: 'workspace-write',
 }
 
 
@@ -121,9 +123,9 @@ export interface CognitiveToolDeps {
 
 
 /**
- * @dep callers: autofix-tool.test.ts (tests/autofix-tool.test.ts), cognitive-drones.test.ts (tests/cognitive-drones.test.ts), cognitive-tools.test.ts (tests/cognitive-tools.test.ts), registerCoreTools (core/tools/implementations/index.ts)
- * @dep calls: getContextInjection, child, has, trim, peekSignals [+4]
- * @dep module: Drone-swarm
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts), cognitive-tools.test.ts (tests/cognitive-tools.test.ts), cognitive-drones.test.ts (tests/cognitive-drones.test.ts), autofix-tool.test.ts (tests/autofix-tool.test.ts)
+ * @dep calls: formatSignalGroup, getContextInjection, has, child, getResonancePatterns [+3]
+ * @dep module: Intelligence
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 
@@ -254,9 +256,9 @@ export function makeReflectHandler(deps: CognitiveToolDeps): ToolHandler {
 }
 
 /**
- * @dep callers: cognitive-tools.test.ts (tests/cognitive-tools.test.ts), registerCoreTools (core/tools/implementations/index.ts)
- * @dep calls: queueDialecticSignal, child, has, trim
- * @dep module: Tests
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts), cognitive-tools.test.ts (tests/cognitive-tools.test.ts)
+ * @dep calls: has, child, queueDialecticSignal
+ * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
@@ -353,12 +355,13 @@ export const probeDefinition: ToolDefinition = {
   },
   timeoutMs: 60_000,  // Drone swarm can take a while
   category: 'cognitive',
+  requiredPermission: 'read-only',
 }
 
 /**
  * Maps a signal kind to investigation strategies (prompts for scout drones).
  * Each strategy gives a different investigative angle on the same signal.
- * @dep callers: makeProbeHandler (core/tools/implementations/cognitive-tools.ts), generateDeepProbeStrategies (core/tools/implementations/cognitive-tools.ts)
+ * @dep callers: generateDeepProbeStrategies (core/tools/implementations/cognitive-tools.ts), makeProbeHandler (core/tools/implementations/cognitive-tools.ts)
  * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -433,8 +436,8 @@ export interface ProbeDeps extends CognitiveToolDeps {
 }
 
 /**
- * @dep callers: cognitive-drones.test.ts (tests/cognitive-drones.test.ts), registerCoreTools (core/tools/implementations/index.ts)
- * @dep calls: scout, child, trim, generateProbeStrategies, generateDeepProbeStrategies
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts), cognitive-drones.test.ts (tests/cognitive-drones.test.ts)
+ * @dep calls: generateDeepProbeStrategies, generateProbeStrategies, scout, child
  * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */

@@ -34,6 +34,7 @@ export const listSubagentsDefinition: ToolDefinition = {
       },
     },
   },
+  requiredPermission: 'read-only',
 }
 
 export function makeListSubagentsHandler(

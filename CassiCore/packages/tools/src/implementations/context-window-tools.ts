@@ -185,6 +185,7 @@ export const cassandraContextInspectDef: ToolDefinition = {
     required: ['sessionId'],
   },
   timeoutMs: 5_000,
+  requiredPermission: 'workspace-write',
 }
 
 // Consolidated Handler

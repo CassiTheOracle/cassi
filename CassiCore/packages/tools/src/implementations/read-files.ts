@@ -22,6 +22,7 @@ export const readFilesDefinition: ToolDefinition = {
   },
   timeoutMs: 15_000,
   readOnly: true,
+  requiredPermission: 'read-only',
 }
 
 const MAX_BYTES_EACH = 512 * 1024  // 512KB per file

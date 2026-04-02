@@ -35,6 +35,7 @@ export const runTestsDefinition: ToolDefinition = {
   },
   timeoutMs: 130_000,
   readOnly: true,
+  requiredPermission: 'workspace-write',
 }
 
 export interface TestRunResult {

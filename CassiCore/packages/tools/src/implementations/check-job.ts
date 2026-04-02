@@ -21,7 +21,15 @@ export const checkJobDefinition: ToolDefinition = {
     required: ['jobId'],
   },
   timeoutMs: 5_000,
+  requiredPermission: 'read-only',
 }
+
+/**
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts)
+ * @dep flows: BootPipelineTools → MakeCheckJobHandler (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 export function makeCheckJobHandler(
   getJobManager: () => import('../../jobs/job-manager.js').JobManager | undefined

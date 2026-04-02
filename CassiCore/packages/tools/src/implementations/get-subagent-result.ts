@@ -34,6 +34,7 @@ export const getSubagentResultDefinition: ToolDefinition = {
     },
     required: ['runId'],
   },
+  requiredPermission: 'read-only',
 }
 
 export function makeGetSubagentResultHandler(

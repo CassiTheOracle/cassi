@@ -37,11 +37,17 @@ export const runBackgroundDefinition: ToolDefinition = {
     required: ['command'],
   },
   timeoutMs: 5_000, // Tool itself returns immediately
+  requiredPermission: 'full-access',
 }
 
 /**
  * Factory: creates the handler with a reference to the daemon's JobManager.
  * The daemon wires this during startup.
+ * @dep callers: registerCoreTools (core/tools/implementations/index.ts)
+ * @dep calls: start
+ * @dep flows: BootPipelineTools → MakeRunBackgroundHandler (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function makeRunBackgroundHandler(
   getJobManager: () => import('../../jobs/job-manager.js').JobManager | undefined

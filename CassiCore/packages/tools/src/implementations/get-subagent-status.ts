@@ -20,6 +20,7 @@ export const getSubagentStatusDefinition: ToolDefinition = {
     },
     required: ['runId'],
   },
+  requiredPermission: 'read-only',
 }
 
 export function makeGetSubagentStatusHandler(

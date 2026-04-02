@@ -60,6 +60,7 @@ export const webSearchDefinition: ToolDefinition = {
   timeoutMs: 30_000,
   readOnly: true,
   category: 'core',
+  requiredPermission: 'read-only',
 }
 
 export const webSearchHandler: ToolHandler = async (input, ctx: ToolExecutionContext) => {

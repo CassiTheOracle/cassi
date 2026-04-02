@@ -387,6 +387,19 @@ export class ToolExecutor {
         preHookMessages = preResult.messages
         if (preResult.denied) {
           const denyMessage = preResult.messages.join('\n') || `PreToolUse hook denied tool \`${actualToolName}\``
+          // Feed hook denial into trust ledger — external governance signal
+          if (this.trustLedger) {
+            const domain = resolveToolDomain(actualToolName)
+            this.trustLedger.recordEvidence({
+              domain,
+              success: false,
+              weight: 0.5,
+              source: 'external-hook',
+              description: `PreToolUse hook denied tool '${actualToolName}'`,
+              sessionId,
+              timestamp: Date.now(),
+            })
+          }
           this.emitToolExecuted(sessionId, actualToolName, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,

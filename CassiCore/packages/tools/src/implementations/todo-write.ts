@@ -17,6 +17,7 @@
 import { join } from 'node:path'
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 
+import { bus } from '../../event-bus.js'
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 
 /* ------------------------------------------------------------------ */
@@ -124,6 +125,25 @@ export const todoWriteHandler: ToolHandler = async (
   // Persist — if all done, clear the store
   const persisted = allDone ? [] : parsed.todos
   saveTodos(storePath, persisted)
+
+  // Emit event for observability — parent sessions (Constellation, Helix)
+  // can monitor child task progress via the event bus
+  try {
+    const pending = parsed.todos.filter(t => t.status === 'pending').length
+    const inProgress = parsed.todos.filter(t => t.status === 'in_progress').length
+    const completed = parsed.todos.filter(t => t.status === 'completed').length
+    bus.emit({
+      type: 'todo:updated' as any,
+      sessionId: context.sessionId || 'default',
+      total: parsed.todos.length,
+      pending,
+      inProgress,
+      completed,
+      allDone,
+      verificationNudgeNeeded,
+      timestamp: new Date(),
+    })
+  } catch { /* non-fatal */ }
 
   const output: TodoWriteOutput = {
     oldTodos,

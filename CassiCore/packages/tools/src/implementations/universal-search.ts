@@ -71,7 +71,8 @@ export const universalSearchDefinition: ToolDefinition = {
     },
     required: ['query']
   },
-  timeoutMs: 30000
+  timeoutMs: 30000,
+  requiredPermission: 'read-only',
 }
 
 interface UniversalSearchInput {
@@ -131,9 +132,9 @@ interface UniversalSearchResponse {
 }
 
 /**
- * @dep callers: formatArchiveResult (core/tools/implementations/universal-search.ts), formatMemoryResult (core/tools/implementations/universal-search.ts), deduplicateResults (core/tools/implementations/universal-search.ts)
+ * @dep callers: deduplicateResults (core/tools/implementations/universal-search.ts), formatMemoryResult (core/tools/implementations/universal-search.ts), formatArchiveResult (core/tools/implementations/universal-search.ts), makeUniversalSearchHandler (core/tools/implementations/universal-search.ts)
  * @dep module: Implementations
- * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 
 function computeContentHash(content: string): string {
