@@ -23,6 +23,7 @@ import {
 } from './collect-thoughts.js'
 import { registerContextWindowTools } from './context-window-tools.js'
 import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
+import { vybitDefinition, vybitHandler } from './vybit.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
@@ -140,6 +141,9 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // Desktop Vision (Linux/KDE window capture)
   registry.register(desktopVisionDefinition, desktopVisionHandler)
+
+  // VyBit visual browser editing integration
+  registry.register(vybitDefinition, vybitHandler)
 
   // Network
   registry.register(webFetchDefinition, webFetchHandler)
