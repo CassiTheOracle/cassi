@@ -275,9 +275,9 @@ export async function executeDoTool(
 
   // Starting the state card fetch alongside the tool call means its latency
   // is hidden by the tool's own execution time in most cases.
-  const stateCardPromise: Promise<{ card: string; resolvedView: StateView }> = mode !== 'raw'
-    ? fetchStateCard(baseUrl, stateView).catch((): { card: string; resolvedView: StateView } => ({ card: '', resolvedView: stateView }))
-    : Promise.resolve({ card: '', resolvedView: stateView });
+  const stateCardPromise = mode !== 'raw'
+    ? fetchStateCard(baseUrl, stateView).catch(() => ({ card: '', resolvedView: stateView as string }))
+    : Promise.resolve({ card: '', resolvedView: stateView as string });
 
   const start = Date.now();
   let toolResult: McpToolResponse;
