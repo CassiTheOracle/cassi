@@ -39,7 +39,6 @@ processor.register({
   },
 })
 
-// ─── boot ────────────────────────────────────────────────────────────────────
 
 async function handleBoot(args: string[]): Promise<CommandResult> {
   const op = (args[0] || 'status').toLowerCase()
@@ -83,7 +82,6 @@ async function handleBoot(args: string[]): Promise<CommandResult> {
   return { text: `Use 'status' or 'logs'. Start/stop/restart require direct shell access.` }
 }
 
-// ─── model ───────────────────────────────────────────────────────────────────
 
 async function handleModel(args: string[]): Promise<CommandResult> {
   const op = (args[0] || 'routing').toLowerCase()
@@ -117,7 +115,6 @@ async function handleModel(args: string[]): Promise<CommandResult> {
   }
 }
 
-// ─── provider ────────────────────────────────────────────────────────────────
 
 async function handleProvider(args: string[]): Promise<CommandResult> {
   const op = (args[0] || 'list').toLowerCase()
@@ -143,7 +140,12 @@ async function handleProvider(args: string[]): Promise<CommandResult> {
   }
 }
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: handleBoot (commands/cassicore-commands.ts), executeTool (commands/cassicore-commands.ts)
+ * @dep module: Commands
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function extractText(data: unknown): string {
   if (typeof data === 'string') return data
@@ -155,6 +157,13 @@ function extractText(data: unknown): string {
   }
   return JSON.stringify(data, null, 2)
 }
+
+/**
+ * @dep callers: handleModel (commands/cassicore-commands.ts), handleProvider (commands/cassicore-commands.ts), main (agent-tools/examples/file-operations.js)
+ * @dep calls: extractText
+ * @dep module: Commands
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 async function executeTool(tool: string, input: Record<string, unknown>): Promise<CommandResult> {
   try {

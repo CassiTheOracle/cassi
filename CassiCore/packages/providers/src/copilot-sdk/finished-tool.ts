@@ -13,7 +13,6 @@
 import type { Tool as SdkTool } from '@github/copilot-sdk'
 import type { ILogger } from '../../../types/interfaces.js'
 
-// ─── Deferred Promise utility ───────────────────────────────────────
 
 export interface Deferred<T> {
   promise: Promise<T>
@@ -21,6 +20,13 @@ export interface Deferred<T> {
   reject: (err: Error) => void
   isSettled: boolean
 }
+
+/**
+ * @dep callers: prepareForIteration (core/providers/copilot-sdk/finished-tool.ts), onFinishedCalled (core/providers/copilot-sdk/finished-tool.ts)
+ * @dep flows: CompleteWithWarmSession → CreateDeferred (4/4)
+ * @dep module: Copilot-sdk
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
+ */
 
 export function createDeferred<T>(): Deferred<T> {
   let resolve!: (value: T) => void
@@ -35,7 +41,6 @@ export function createDeferred<T>(): Deferred<T> {
   return d as Deferred<T>
 }
 
-// ─── Iteration result ───────────────────────────────────────────────
 
 export interface IterationResult {
   /** The agent's reported result text */
@@ -46,7 +51,6 @@ export interface IterationResult {
   timestamp: number
 }
 
-// ─── Warm Session State ─────────────────────────────────────────────
 
 /**
  * Mutable state for a warm (kept-alive) SDK session.
@@ -174,7 +178,6 @@ export class WarmSessionState {
   }
 }
 
-// ─── finished() SDK tool builder ────────────────────────────────────
 
 /**
  * Build the `finished()` SDK tool for warm sessions.

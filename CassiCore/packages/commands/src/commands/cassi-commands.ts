@@ -42,7 +42,6 @@ const CATEGORY_EMOJIS: Record<string, string> = {
 /** Active interactive tool sessions keyed by sessionId */
 export const activeSessions = new Map<string, InteractiveToolSession>()
 
-// ─── /cassi ─────────────────────────────────────────────────────────────────
 
 processor.register({
   name: '/cassi',
@@ -77,7 +76,6 @@ processor.register({
   },
 })
 
-// ─── /skip, /confirm, /cancel ────────────────────────────────────────────────
 // These are handled by core/commands.ts when a session is active.
 // Registering them here ensures they appear in /help output.
 
@@ -126,7 +124,6 @@ processor.register({
   },
 })
 
-// ─── Tool listing ────────────────────────────────────────────────────────────
 
 async function handleList(): Promise<CommandResult> {
   const catalog = await fetchCatalog()
@@ -167,7 +164,6 @@ async function handleListCategory(cat: string, catalog: CatalogResponse): Promis
   return { text: lines.join('\n') }
 }
 
-// ─── Tool invocation ─────────────────────────────────────────────────────────
 
 async function handleToolInvoke(args: string[], ctx: CommandContext): Promise<CommandResult> {
   const toolName = args[0]
@@ -206,7 +202,6 @@ async function handleToolInvoke(args: string[], ctx: CommandContext): Promise<Co
   return { text: formatOutput(result.result, result.isError) }
 }
 
-// ─── Lumen subcommands ───────────────────────────────────────────────────────
 
 async function handleLumenCommand(args: string[], ctx: CommandContext): Promise<CommandResult> {
   const sub = (args[0] || 'help').toLowerCase()
@@ -252,7 +247,6 @@ async function handleLumenCommand(args: string[], ctx: CommandContext): Promise<
   }
 }
 
-// ─── Dyad subcommands ────────────────────────────────────────────────────────
 
 async function handleDyadCommand(args: string[], ctx: CommandContext): Promise<CommandResult> {
   const sub = (args[0] || 'help').toLowerCase()
@@ -296,7 +290,6 @@ async function handleDyadCommand(args: string[], ctx: CommandContext): Promise<C
   }
 }
 
-// ─── Team subcommands ────────────────────────────────────────────────────────
 
 async function handleTeamCommand(args: string[], ctx: CommandContext): Promise<CommandResult> {
   const sub = (args[0] || 'help').toLowerCase()
@@ -376,7 +369,6 @@ async function handleTeamCommand(args: string[], ctx: CommandContext): Promise<C
   }
 }
 
-// ─── Shared helpers ──────────────────────────────────────────────────────────
 
 interface CatalogTool {
   name: string
@@ -391,6 +383,12 @@ interface CatalogResponse {
   count: number
 }
 
+/**
+ * @dep callers: handleList (commands/cassi-commands.ts), handleToolInvoke (commands/cassi-commands.ts), cassi-commands.ts (commands/cassi-commands.ts)
+ * @dep module: Commands
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 async function fetchCatalog(): Promise<CatalogResponse | null> {
   try {
     const res = await fetch(`${ADMIN_BASE}/tools/catalog`)
@@ -400,6 +398,13 @@ async function fetchCatalog(): Promise<CatalogResponse | null> {
     return null
   }
 }
+
+/**
+ * @dep callers: handleLumenCommand (commands/cassi-commands.ts), handleDyadCommand (commands/cassi-commands.ts), main (scripts/serena-e2e-test.js), main (scripts/serena-apply.js), serenaReadFile (core/tools/serena-mcp-client.ts) [+8]
+ * @dep calls: formatOutput, extractText
+ * @dep module: Commands
+ * @dep risk: CRITICAL | 13 callers, 0 flows, 1 module
+ */
 
 async function callTool(
   name: string,
@@ -466,6 +471,13 @@ function extractText(data: unknown): string {
   if (typeof (data as any)?.text === 'string') return (data as any).text
   return JSON.stringify(data, null, 2)
 }
+
+/**
+ * @dep callers: handleToolInvoke (commands/cassi-commands.ts), callTool (commands/cassi-commands.ts), adminGet (commands/cassi-commands.ts), adminPost (commands/cassi-commands.ts), cassi-commands.ts (commands/cassi-commands.ts)
+ * @dep calls: splitForTelegram
+ * @dep module: Commands
+ * @dep risk: MEDIUM | 5 callers, 0 flows, 1 module
+ */
 
 function formatOutput(text: string, isError: boolean): string {
   const prefix = isError ? '❌ ' : ''

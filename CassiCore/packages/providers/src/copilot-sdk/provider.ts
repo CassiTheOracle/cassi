@@ -548,7 +548,6 @@ export class CopilotSdkProvider extends BaseProvider {
 
     try {
       if (isResume) {
-        // ── RESUME WARM SESSION ──
         log.info('Resuming warm session', {
           warmKey,
           iteration: warm!.state.iterationCount + 1,
@@ -591,7 +590,6 @@ export class CopilotSdkProvider extends BaseProvider {
 
         warm!.lastActivity = Date.now()
       } else {
-        // ── COLD START WARM SESSION ──
         if (warm) {
           // Stale warm session (not blocked) — destroy and recreate
           log.info('Destroying stale warm session', { warmKey })

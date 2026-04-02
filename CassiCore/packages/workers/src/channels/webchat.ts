@@ -156,7 +156,7 @@ function serveHtml(res: ServerResponse) {
   // SSE
   const es = new EventSource('/stream/' + sessionId);
   es.onmessage = function(e){ try{ const parsed = JSON.parse(e.data); if(parsed && typeof parsed.content === 'string'){ setAssistant(parsed.content); } }catch(err){ setAssistant(String(e.data||'')); } };
-  es.onerror = function(){ console.warn('SSE error'); }
+  es.onerror = function(){ console.warn('SSE error'); } // contributing:ignore - browser debug logging
 
   document.getElementById('send').addEventListener('click', send);
   document.getElementById('clear').addEventListener('click', ()=>{ messagesEl.innerHTML=''; });

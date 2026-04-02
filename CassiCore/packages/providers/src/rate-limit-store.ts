@@ -210,7 +210,6 @@ export class RateLimitStore {
   }
 
 
-  // ── Schema ────────────────────────────────────────────────────────────────
 
   private migrate(): void {
     this.db.exec(`
@@ -243,7 +242,6 @@ export class RateLimitStore {
 }
 
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function rowToEntry(row: any): PersistedLimit {
   return {
