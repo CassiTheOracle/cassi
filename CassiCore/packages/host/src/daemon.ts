@@ -2413,8 +2413,7 @@ export class Daemon {
     }
 
     // Wire macro-dialectic middleware to pipeline — Unity becomes the user-facing response.
-    // When active, this middleware intercepts turns before the provider middleware,
-    // runs Yang + Yin + Unity, and streams Unity's output as the response.
+    // HOW: intercepts turns before provider middleware, runs Yang + Yin + Unity, streams Unity's output
     if (this.intelligence?.registry) {
       const md = this.intelligence.registry.get('macro-dialectic')
       if (md && typeof (md as any).createMiddleware === 'function') {
@@ -2455,7 +2454,7 @@ export class Daemon {
       this.pipeline.setSubconscious(this.intelligence.subconscious)
     }
 
-    // Wire intelligent context window (scores + selects history by recency + FTS relevance)
+    // Wire intelligent context window — scores + selects history by recency + FTS relevance
     try {
       const memory = this.intelligence?.memory
       const archivist = memory?.getArchivist?.()
@@ -2996,10 +2995,8 @@ export class Daemon {
       }
     })
 
-    // turn:end fires after the pipeline is done. At this point all streaming
-    // tokens have already been forwarded to the channel worker. We send done=true
-    // with an empty content string to close the stream — Telegram will do a final
-    // flush/edit of the accumulated buffer.
+    // turn:end fires after pipeline completion. All streaming tokens already forwarded to channel worker.
+    // HOW: send done=true with empty content to close stream — Telegram does final flush/edit of buffer
     this.bus.on("turn:end", (e) => {
       const sid = (e as SessionEvent).sessionId
       if (!sid) return
@@ -3019,9 +3016,8 @@ export class Daemon {
       }
     })
 
-    // Detect feedback signals in every user message. Runs on turn:start so
-    // that signals from the *previous* turn response are captured before the
-    // current turn's context is assembled.
+    // Detect feedback signals in every user message.
+    // WHY: runs on turn:start to capture signals from previous turn response before current turn context assembly
     this.bus.on("turn:start", (e) => {
       if (!this.outcomeTracker) return
       const { sessionId, message } = e as { sessionId: string; message: string }
@@ -3038,7 +3034,7 @@ export class Daemon {
       }
     })
 
-    // 8. Subscribe to plugin:crashed -> warn
+    // 8. Subscribe to plugin:crashed — log worker crashes
     interface PluginCrashedEvent {
       pluginId: string
       error: string
@@ -3048,7 +3044,7 @@ export class Daemon {
       this.logger.warn(`plugin crashed: ${event.pluginId} — ${event.error}`)
     })
 
-    // 9. Subscribe to plugin:restarted -> info
+    // 9. Subscribe to plugin:restarted — track restart attempts
     interface PluginRestartedEvent {
       pluginId: string
       attempt: number
@@ -3058,7 +3054,7 @@ export class Daemon {
       this.logger.info(`plugin restarted: ${event.pluginId} (attempt ${event.attempt})`)
     })
 
-    // 10. Subscribe to config:reloaded
+    // 10. Subscribe to config:reloaded — hot-reload confirmation
     this.bus.on("config:reloaded", () => {
       this.logger.info("Config reloaded — no restart needed")
     })
@@ -3069,7 +3065,7 @@ export class Daemon {
       autonomousLoop: !!this.autonomousLoop,
     })
 
-    // 11. Start AdminAPI
+    // 11. Start AdminAPI — HTTP + Unix socket API for tool/session access
     this.logger.info('── Phase 6: Services ──────────────────────────────────')
 
     let adminInfo: { tcpPort: number | null; unixPath: string; tcpServer?: unknown; unixServer?: unknown } | undefined = undefined
@@ -3173,8 +3169,7 @@ export class Daemon {
     // 14. Start health monitor (after daemon:ready so all subsystems are wired)
     this.healthMonitor.start()
 
-    // 15. Start optional non-critical services after readiness so they do not
-    // block the admin/API critical path.
+    // 15. Start optional non-critical services after readiness — do not block admin/API critical path
     this.scheduleDeferredStartup()
 
     // 16. Log startup banner with boot timing
@@ -3257,7 +3252,7 @@ export class Daemon {
 
     const SHUTDOWN_STEP_TIMEOUT_MS = 30_000 // 30s per step
 
-    /** Wrap an async shutdown step with a timeout to prevent hangs */
+    /** WHY: timeout prevents hangs — if a subsystem won't stop, move on to avoid blocking shutdown */
     const timedStep = async (label: string, fn: () => Promise<void> | void): Promise<void> => {
       try {
         await Promise.race([
@@ -3294,13 +3289,13 @@ export class Daemon {
       this.embeddingStackLauncher?.stop()
     } catch { /* ignore */ }
 
-    // stop warm provider manager (destroys OpenCode warm sessions)
+    // stop warm provider manager — destroys OpenCode warm sessions to release resources
     await timedStep('warm-provider', async () => {
       const { shutdownWarmProvider } = await import('./admin-api/warm-provider.js')
       await shutdownWarmProvider()
     })
 
-    // stop Copilot SDK (kills CLI server process, destroys sessions)
+    // stop Copilot SDK — kills CLI server process, destroys sessions
     await timedStep('copilot-sdk', async () => {
       const sdkManager = (this as unknown as Record<string, unknown>).__copilotSdkManager as
         { stop(): Promise<void> } | undefined
@@ -3360,7 +3355,7 @@ export class Daemon {
         cfg.watcher.close()
       }
     } catch {
-      // ignore
+      // WHY: ignore — config watcher shutdown is best-effort, process exiting anyway
     }
 
     // stop session pruning and close session store
@@ -3457,7 +3452,7 @@ export class Daemon {
     }
 
     // Hot-toggle inference stack (llama.cpp GPU processes) based on config change.
-    // Set intelligence.inferenceStack.enabled=false to free GPU VRAM (e.g. when gaming).
+    // WHY: set intelligence.inferenceStack.enabled=false to free GPU VRAM (e.g. when gaming)
     const inferenceStackEnabled = this.config.get<boolean>('intelligence.inferenceStack.enabled', true)
     if (this.inferenceStackEnabled && !inferenceStackEnabled) {
       this.logger.info('InferenceStack disabled via config — stopping local inference processes to free GPU')
