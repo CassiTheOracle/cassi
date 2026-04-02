@@ -149,7 +149,7 @@ function checkExistingDaemon(): number | null {
 /**
  * Write current PID to lock file
  */
-function writePidFile(): void {
+function writePidFile(logger: ILogger): void {
   try {
     const cassicoreDir = path.dirname(CASSICORE_PID_FILE)
     if (!fs.existsSync(cassicoreDir)) {
@@ -157,7 +157,7 @@ function writePidFile(): void {
     }
     fs.writeFileSync(CASSICORE_PID_FILE, process.pid.toString(), 'utf-8')
   } catch (err) {
-    console.error(`Warning: Could not write PID file: ${String(err)}`)
+    rootLogger.warn(`Could not write PID file: ${String(err)}`)
   }
 }
 
@@ -417,7 +417,7 @@ export class Daemon {
     }
 
     // Write our PID to the lock file
-    writePidFile()
+    writePidFile(this.logger)
     this.logger.info(`PID file written: ${process.pid}`)
 
     // Register cleanup on exit
@@ -1917,6 +1917,7 @@ export class Daemon {
       networkAllowlist,
       logger: this.logger,
       _fileArtifactStore: fileArtifactStore,
+      _globalBlackboardRegistry: this.globalBlackboardRegistry,
     }, this.bus)
       // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
       ; this.toolExecutor = toolExecutor

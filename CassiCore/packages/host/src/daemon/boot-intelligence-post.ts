@@ -162,7 +162,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.info('Thinker wired to session manager and pipeline for subagent spawning')
   }
 
-  // ── Module Session Registry ────────────────────────────────────────────────
   // Create stable persistent sessions for every LLM-calling module.
   // These power Telegram topic debugging and smart history compaction.
   try {
