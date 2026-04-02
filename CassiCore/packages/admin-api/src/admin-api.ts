@@ -95,9 +95,9 @@ interface SessionHierarchyEntry {
 }
 
 /**
- * @dep callers: admin-model-api.test.ts (tests/admin-model-api.test.ts), admin-observability-boot.test.ts (tests/admin-observability-boot.test.ts), team-sse.test.ts (tests/team-sse.test.ts), start (core/daemon.ts)
- * @dep calls: get, createAdminRuntimeFacade
- * @dep module: Admin-api
+ * @dep callers: start (core/daemon.ts), team-sse.test.ts (tests/team-sse.test.ts), admin-observability-boot.test.ts (tests/admin-observability-boot.test.ts), admin-model-api.test.ts (tests/admin-model-api.test.ts)
+ * @dep calls: createAdminRuntimeFacade
+ * @dep module: Unknown
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 
@@ -1443,6 +1443,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
             sessions[sid] = { items: deduped }
           }
       } catch {}
+      }
     }
 
     // HOW: Uses episodic boundary detection + importance scoring to build a compressed context block. Low-importance episodes are collapsed into single-line summaries. High-importance episodes preserve individual messages with importance-weighted content budgets.
