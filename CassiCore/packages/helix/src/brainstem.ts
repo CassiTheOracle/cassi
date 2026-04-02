@@ -1902,15 +1902,36 @@ Critical rules:
     // Tick timeouts on each access
     this.tickProposalTimeouts()
 
+    let guidance: PendingGuidance | null = null
+
     // Prefer approved guidance over the old direct queue
     if (this.approvedGuidanceQueue.length > 0) {
-      return this.approvedGuidanceQueue.shift()!
+      guidance = this.approvedGuidanceQueue.shift()!
+    } else if (this.guidanceQueue.length > 0) {
+      // Fall through to old queue for backward compat (critical bypasses)
+      guidance = this.guidanceQueue.shift()!
     }
-    // Fall through to old queue for backward compat (critical bypasses)
-    if (this.guidanceQueue.length > 0) {
-      return this.guidanceQueue.shift()!
+
+    // WHY: Append pending requiredAction to the first guidance delivery after a
+    // Corpus directive, so the enforcement text reaches Unity even if the original
+    // directive text was already consumed or merged with other guidance
+    if (guidance && this.state.requiredAction) {
+      const actionMap: Record<string, string> = {
+        narrow_scope: 'ENFORCED: You must narrow your scope immediately. Pick ONE specific task and focus on it.',
+        switch_strategy: 'ENFORCED: Your current approach has failed. You must try a fundamentally different strategy.',
+        conclude: 'ENFORCED: You must call signal_conclusion on your next iteration.',
+        produce_output: 'ENFORCED: You must produce concrete output (write a file, run a test) before your next investigation step.',
+      }
+      const actionText = actionMap[this.state.requiredAction]
+      if (actionText) {
+        guidance = { ...guidance, text: `${guidance.text}\n\n${actionText}` }
+      }
+      // One-shot: clear after first delivery so it doesn't repeat on every pull
+      this.state.requiredAction = undefined
+      this.state.requiredActionSince = undefined
     }
-    return null
+
+    return guidance
   }
 
   private proposalStatusSummary(proposal: GuidanceProposal): string {
