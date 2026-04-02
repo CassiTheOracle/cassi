@@ -24,6 +24,7 @@ import {
 import { registerContextWindowTools } from './context-window-tools.js'
 import { desktopVisionDefinition, desktopVisionHandler } from './desktop-vision.js'
 import { vybitDefinition, vybitHandler } from './vybit.js'
+import { skillDefinition, makeSkillHandler } from './skill.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
@@ -102,6 +103,8 @@ export interface CoreToolDeps {
   fileArtifactStore?: FileArtifactStore
   /** Dependencies for collect_thoughts tool */
   collectThoughtsDeps?: CollectThoughtsDeps
+  /** Lazy getter for the skill metrics tracker */
+  getSkillTracker?: () => import('../../intelligence/skill-metrics.js').SkillMetricsTracker | null
 }
 
 /**
@@ -144,6 +147,12 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // VyBit visual browser editing integration
   registry.register(vybitDefinition, vybitHandler)
+
+  // Skill intelligence (effectiveness tracking, patterns, feed)
+  if (deps.getSkillTracker) {
+    const getTracker = deps.getSkillTracker
+    registry.register(skillDefinition, makeSkillHandler({ getTracker }))
+  }
 
   // Network
   registry.register(webFetchDefinition, webFetchHandler)

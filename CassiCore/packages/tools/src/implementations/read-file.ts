@@ -17,15 +17,11 @@ import { resolve } from 'node:path'
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
 
-// Constants
-
 const MAX_BYTES = 1024 * 1024  // 1MB max
 const MAX_LINES_BUFFER = 10_000  // Max lines to buffer in memory
 const CACHE_MAX_SIZE = 50  // Max cached files
 const CACHE_MAX_BYTES = 512 * 1024  // Max 512KB per cached file
 const CACHE_TTL_MS = 30_000  // Cache TTL
-
-// LRU Cache Implementation
 
 interface CacheEntry {
   content: string
@@ -42,23 +38,20 @@ class FileCache {
     const entry = this.cache.get(key)
     if (!entry) return undefined
     
-    // Check if stale
     if (entry.mtime !== mtime || Date.now() - entry.addedAt > CACHE_TTL_MS) {
       this.delete(key)
       return undefined
     }
     
-    // Move to front (LRU)
+    // HOW: move to end of Map for LRU ordering
     this.cache.delete(key)
     this.cache.set(key, entry)
     return entry.content
   }
 
   set(key: string, entry: CacheEntry): void {
-    // Don't cache if too large
     if (entry.size > CACHE_MAX_BYTES) return
     
-    // Evict if needed
     while (this.currentSize + entry.size > CACHE_MAX_SIZE * CACHE_MAX_BYTES && this.cache.size > 0) {
       const firstKey = this.cache.keys().next().value
       if (firstKey) this.delete(firstKey)
@@ -86,10 +79,7 @@ class FileCache {
   }
 }
 
-// Global cache instance
 const globalCache = new FileCache()
-
-// Optimized File Reading
 
 /**
  * Read file with offset/limit efficiently
@@ -106,7 +96,6 @@ async function readFileOptimized(
   maxBytes: number
 ): Promise<{ content: string; truncated: boolean; fromCache: boolean }> {
   
-  // Get file stats first
   const stats = await stat(filePath).catch(() => null)
   if (!stats) {
     throw new Error(`file not found — ${filePath}`)
@@ -115,7 +104,7 @@ async function readFileOptimized(
     throw new Error(`not a file — ${filePath}`)
   }
 
-  // Check cache for small files with no offset/limit
+  // WHY: cache only small, complete reads to avoid memory bloat
   const useCache = offset <= 1 && !limit && stats.size <= CACHE_MAX_BYTES
   if (useCache) {
     const cached = globalCache.get(filePath, stats.mtimeMs)
@@ -124,26 +113,23 @@ async function readFileOptimized(
     }
   }
 
-  // Open file handle
   const handle = await open(filePath, 'r')
   
   try {
-    // If we need specific lines, we might still need to read everything
-    // But we can do it efficiently with a single buffer
+    // WHY: line extraction requires scanning, but single buffer avoids multiple I/O calls
     const readSize = Math.min(stats.size, maxBytes)
     const buffer = Buffer.alloc(readSize)
     
     const { bytesRead } = await handle.read(buffer, 0, readSize, 0)
     const truncated = stats.size > maxBytes
     
-    // Efficient line extraction without full string split
+    // HOW: extractLines avoids split/join overhead
     let content = extractLines(buffer.slice(0, bytesRead), offset, limit)
     
     if (truncated) {
       content += `\n\n[file truncated at 1MB — total file size is ${stats.size.toLocaleString()} bytes. Use offset parameter to read later sections.]`
     }
     
-    // Cache if appropriate
     if (useCache && !truncated) {
       globalCache.set(filePath, {
         content,
@@ -225,8 +211,6 @@ function extractLinesScan(
   return result
 }
 
-// Tool Definition
-
 export const readFileDefinition: ToolDefinition = {
   name: 'read_file',
   description: 'Read the contents of a file. Supports optional line offset and limit. Also reads cassi://files/ URIs from the shared FileArtifactStore. (Optimized: async I/O, caching)',
@@ -245,19 +229,16 @@ export const readFileDefinition: ToolDefinition = {
   requiredPermission: 'read-only',
 }
 
-// Tool Handler
-
 export const readFileHandler: ToolHandler = async (
   input: Record<string, unknown>,
   ctx: ToolExecutionContext
 ): Promise<string> => {
   
-  // Input extraction
   const rawPath = input['path'] as string
   const offset = Math.max(1, (input['offset'] as number | undefined) ?? 1)
   const limit = input['limit'] as number | undefined
 
-  // Routes to FileArtifactStore instead of filesystem
+  // WHY: cassi:// URIs route to FileArtifactStore, not filesystem
   const artifactUri = parseFileArtifactUri(rawPath)
   if (artifactUri) {
     try {
@@ -273,7 +254,7 @@ export const readFileHandler: ToolHandler = async (
         admin: false,
       })
       let content = result.content.toString('utf-8')
-      // Apply offset/limit like regular files
+      // HOW: reuse extractLines for consistent offset/limit behavior
       if (offset > 1 || limit !== undefined) {
         content = extractLines(Buffer.from(content), offset, limit)
       }
@@ -284,18 +265,15 @@ export const readFileHandler: ToolHandler = async (
     }
   }
   
-  // Path resolution
   const absPath = rawPath.startsWith('/') 
     ? rawPath 
     : resolve(ctx.workingDir, rawPath)
   
-  // Security check
   const allowed = ctx.allowedPaths.some(p => absPath.startsWith(p))
   if (!allowed) {
     return `Error: access denied — ${absPath} is outside allowed paths`
   }
   
-  // Read file (async, optimized)
   try {
     const { content, truncated, fromCache } = await readFileOptimized(
       absPath,
@@ -318,8 +296,6 @@ export const readFileHandler: ToolHandler = async (
   }
 }
 
-// Additional Optimized Batch Reader
-
 export interface ReadFileOptions {
   path: string
   offset?: number
@@ -337,7 +313,6 @@ export async function readFilesBatch(
   
   const results = new Map<string, { content: string; error?: string }>()
   
-  // Filter and validate paths
   const validFiles: Array<{ key: string; absPath: string; offset: number; limit?: number }> = []
   
   for (const file of files) {
@@ -359,7 +334,7 @@ export async function readFilesBatch(
     })
   }
   
-  // Parallel read with concurrency limit
+  // HOW: limit concurrency to avoid I/O saturation
   const CONCURRENCY = 5
   for (let i = 0; i < validFiles.length; i += CONCURRENCY) {
     const batch = validFiles.slice(i, i + CONCURRENCY)
@@ -377,5 +352,4 @@ export async function readFilesBatch(
   return results
 }
 
-// Export cache for inspection/management
 export { globalCache as fileCache }
