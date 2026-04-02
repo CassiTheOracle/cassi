@@ -4,7 +4,6 @@ import os from 'node:os'
 import path from 'node:path'
 
 
-// Route modules
 import { handleChannelsRoutes } from './admin-api/channels.js'
 import { handleChatRoutes } from './admin-api/chat.js'
 import { handleConfigRoutes } from './admin-api/config.js'
@@ -54,14 +53,12 @@ import { createToolsApi } from './tools-api.js'
 import type { DialecticStreamEvent } from '../types/dialectic.js'
 import type { ILogger } from '../types/interfaces.js'
 
-// WebSocket state
 interface WSConnection {
   socket: any
   sessionId: string
   subscribed: boolean
 }
 
-// Delegation types
 interface DelegationRequest {
   id: string
   sessionId: string
@@ -87,7 +84,6 @@ interface DelegationTracking {
   result?: string
 }
 
-// Session hierarchy types
 interface SessionHierarchyEntry {
   parentId: string | null
   childIds: Set<string>
@@ -117,13 +113,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   const wsConnections = new Map<string, WSConnection>()
   let wsConnectionId = 0
 
-  // Tracks ingested user/assistant messages per OpenCode session so we can
-  // assemble a PREVIOUS CONTEXT block without needing the session manager.
+  // WHY: Tracks ingested user/assistant messages per OpenCode session to assemble a PREVIOUS CONTEXT block without needing the session manager.
   interface OcMessage { role: 'user' | 'assistant'; content: string; timestamp: number; importance: number }
   const ocConversationHistory = new Map<string, OcMessage[]>()
 
-  // Fast heuristic importance scorer — no LLM call, runs synchronously.
-  // Returns 0–1; higher = more important to preserve in context.
+  // HOW: Fast heuristic importance scorer — no LLM call, runs synchronously. Returns 0–1; higher = more important to preserve in context.
   const DECISION_PATTERNS = /\b(decided|decision|let'?s use|we'?ll go with|the fix is|solution is|approach is|plan is|agreed|choosing|switched to|changed to|replaced|we should|must|critical)\b/i
   const ERROR_PATTERNS = /\b(error|failed|failure|bug|crash|broken|exception|stack ?trace|panic|ENOENT|EADDRINUSE|TypeError|SyntaxError|ReferenceError|segfault|SIGKILL|SIGABRT|cannot|couldn'?t)\b/i
   const FILE_CHANGE_PATTERNS = /\b(created|wrote|edited|modified|deleted|renamed|moved|refactored|added file|updated file|new file)\b/i
@@ -152,8 +146,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return Math.min(score, 1.0)
   }
 
-  // Extracts focus topics from recent conversation messages using keyword
-  // frequency. No LLM call — fast enough to run on every /context request.
+  // HOW: Extracts focus topics from recent conversation messages using keyword frequency. No LLM call — fast enough to run on every /context request.
   const STOP_WORDS = new Set([
     'the','a','an','is','are','was','were','be','been','being','have','has','had',
     'do','does','did','will','would','shall','should','may','might','can','could',
@@ -197,7 +190,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       .map(([term]) => term)
   }
 
-  // Extracts file paths mentioned in conversation for activeFiles / semantic weighting.
+  // HOW: Extracts file paths mentioned in conversation for activeFiles / semantic weighting.
   const FILE_PATH_PATTERN = /(?:^|\s|['"`(])([a-zA-Z0-9_./-]+\.[a-zA-Z]{1,8})(?:\s|['"`):,]|$)/g
   const BINARY_EXTENSIONS = new Set(['png','jpg','jpeg','gif','svg','ico','woff','woff2','ttf','eot','mp3','mp4','zip','gz','tar','pdf'])
 
@@ -226,11 +219,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       .map(([f]) => f)
   }
 
-  // Detects task boundaries in the conversation for PREVIOUS CONTEXT compression.
-  // A boundary is signaled by:
-  //  - Explicit transition phrases ("let's move on", "next task", "ok done")
-  //  - Large time gaps (>5 min silence)
-  //  - File cluster switches (working on entirely different files)
+  // HOW: Detects task boundaries in the conversation for PREVIOUS CONTEXT compression. A boundary is signaled by: explicit transition phrases ("let's move on", "next task", "ok done"), large time gaps (>5 min silence), or file cluster switches (working on entirely different files).
   const TRANSITION_PHRASES = /\b(let'?s move on|next task|moving on|done with|finished|let'?s switch|on to|now let'?s|different topic|new feature|start working on)\b/i
 
   interface Episode {
@@ -377,18 +366,15 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
-  // Session hierarchy tracking
   const sessionHierarchyMap = new Map<string, SessionHierarchyEntry>()
   const subagentToTeamMap = new Map<string, string>()
 
-  // Delegation tracking
   const delegationTracker = new Map<string, DelegationTracking>()
   let lastDelegationComputeTime = 0
   const DELEGATION_COMPUTE_INTERVAL_MS = 5000
   const DELEGATION_EXPIRY_MS = 60_000
   const DELEGATION_MAX_PENDING = 3
 
-  // SSE connections
   const sseConnections = new Map<string, { res: http.ServerResponse; sessionId: string; connectedAt: number }>()
   const sseConnectionId = { value: 0 }
 
@@ -855,7 +841,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     socket.write(frame)
   }
 
-  // Helper: shallow/object checks and deep merge for nested object merges
   function isObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v)
   }
@@ -872,8 +857,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
     return out
   }
-
-  // Context payload helpers for GET /context endpoint
 
   /**
    * Map MentalModel ConversationPhase → bridge-friendly mode string.
@@ -1468,14 +1451,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
             sessions[sid] = { items: deduped }
           }
-        } catch {}
-      }
+      } catch {}
     }
 
-    // Uses episodic boundary detection + importance scoring to build a
-    // compressed context block. Low-importance episodes are collapsed into
-    // single-line summaries. High-importance episodes preserve individual
-    // messages with importance-weighted content budgets.
+    // HOW: Uses episodic boundary detection + importance scoring to build a compressed context block. Low-importance episodes are collapsed into single-line summaries. High-importance episodes preserve individual messages with importance-weighted content budgets.
     const PREV_CTX_CHAR_BUDGET = 12000
     const EPISODE_COLLAPSE_THRESHOLD = 0.35 // episodes below this avg importance get collapsed
 
@@ -1796,9 +1775,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
     } catch {}
 
-    // Includes ALL recent session digests (not just active ones) so that a
-    // newly opened session can be primed with knowledge of what was worked
-    // on recently.  Capped at the 10 most-recent sessions.
+    // WHY: Includes ALL recent session digests (not just active ones) so that a newly opened session can be primed with knowledge of what was worked on recently. Capped at the 10 most-recent sessions.
     let recentSessionRecap: Array<{
       sessionId: string
       topic: string
@@ -1900,8 +1877,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
-  // Main request handler
-
   async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
     if (!authOk(req)) {
       sendJSON(res, 401, { error: 'unauthorized' })
@@ -1914,7 +1889,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     const method = req.method || 'GET'
 
     try {
-      // GET /context (special case - uses buildInjectPayload)
+      // HOW: GET /context is a special case that uses buildInjectPayload directly
       if (method === 'GET' && pathname === '/context') {
         try {
           const payload = await buildInjectPayload()
@@ -1927,7 +1902,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
-      // GET /intelligence/context-focus (special case - uses buildFocusState)
+      // HOW: GET /intelligence/context-focus is a special case that uses buildFocusState directly
       if (method === 'GET' && pathname === '/intelligence/context-focus') {
         try {
           const sessionId = url.searchParams.get('sessionId')
@@ -1948,7 +1923,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         }
       }
 
-      // Route handlers - dispatch in order
       const routeHandlers = [
         // OpenAI-compatible warm provider endpoint — checked first since /v1/* is a distinct prefix
         () => handleWarmProviderRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method, pathname),
@@ -2010,7 +1984,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         if (handled) return
       }
 
-      // tools/fs fallback
+      // HOW: tools/fs fallback uses createToolsApi for file system operations
       if (parts[0] === 'tools' || parts[0] === 'fs') {
         const toolsApi = createToolsApi(logger)
         return toolsApi.handler(req, res)
@@ -2023,7 +1997,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
   }
 
-  // Separate servers for Unix socket and TCP
   let unixServer: http.Server | null = null
   let tcpServer: http.Server | null = null
 
@@ -2096,7 +2069,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         logger.warn('failed to bind TCP admin port (no available port found)')
       }
 
-      // Initialize WebSocket handler for /ws endpoint
       // HOW: WebSocket support pending implementation (Lumen design complete, see /tmp/lumen-ws-design.json)
 
       logger.info('context available via GET /context on unix socket')
