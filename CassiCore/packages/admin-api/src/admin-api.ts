@@ -568,9 +568,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     res.end(s)
   }
 
-  /**
-   * Extract first user message from session history
-   */
   function getFirstUserMessage(history: any[]): string {
     for (const msg of history) {
       if (msg.role === 'user') {
@@ -581,9 +578,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return '(no messages)'
   }
 
-  /**
-   * Extract last user message from session history
-   */
   function getLastUserMessage(history: any[]): string {
     let lastMessage = '(no messages)'
     for (const msg of history) {
@@ -664,9 +658,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     return snapshot
   }
 
-  /**
-   * Send SSE event to all connections for a session
-   */
   function broadcastSSE(sessionId: string, event: any): void {
     const data = JSON.stringify(event)
     const message = [
