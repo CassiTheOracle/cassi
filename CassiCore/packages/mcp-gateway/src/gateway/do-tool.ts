@@ -281,7 +281,7 @@ export async function executeDoTool(
 
   const start = Date.now();
   let toolResult: McpToolResponse;
-  let prefetchedState: { card: string; resolvedView: StateView } = { card: '', resolvedView: stateView };
+  let prefetchedState: { card: string; resolvedView: string } = { card: '', resolvedView: stateView };
   try {
     [toolResult, prefetchedState] = await Promise.all([
       routeTool(resolvedToolName, toolInput),
