@@ -1,10 +1,29 @@
 /**
  * Context Window Manager
  * 
- * Manages context window limits by trimming conversation history
+ * Manages context window limits by trimming conversation history.
+ * Uses layered compaction to produce structured summaries of older
+ * messages before falling back to hard FIFO trimming.
  */
 
 import type { Message, ILogger } from '../session/types.js';
+
+// WHY: Lazy-load compaction module to avoid hard dependency.
+// The module may not be available in all deployment contexts,
+// and we don't want the import to block ContextWindow initialization.
+let compactionModule: typeof import('../../intelligence/layered-compaction.js') | null = null
+let compactionLoadAttempted = false
+
+async function getCompactionModule() {
+  if (compactionLoadAttempted) return compactionModule
+  compactionLoadAttempted = true
+  try {
+    compactionModule = await import('../../intelligence/layered-compaction.js')
+  } catch {
+    // Compaction not available — will use FIFO trimming only
+  }
+  return compactionModule
+}
 
 export interface ContextWindowOptions {
   maxTokens?: number;
@@ -33,20 +52,28 @@ export class ContextWindow {
    * Trim messages to fit within context window
    * 
    * Strategy:
-   * 1. Always keep system messages
-   * 2. Always keep the most recent user message
-   * 3. Drop older conversation history as needed
+   * 1. Try layered compaction first (structured summary of older messages)
+   * 2. Always keep system messages
+   * 3. Always keep the most recent user message
+   * 4. Drop older conversation history as needed (FIFO safety net)
    */
   trim(messages: Message[]): Message[] {
     if (messages.length === 0) {
       return messages;
     }
     
+    // Phase 1: Try layered compaction if available
+    // This produces a structured summary of older messages while preserving
+    // recent ones verbatim. Summaries merge across compaction rounds.
+    const compacted = this.tryCompaction(messages);
+    const workingMessages = compacted ?? messages;
+    
+    // Phase 2: Hard window trim as FIFO safety net
     // Single-pass partition: separate system vs conversation messages
     const systemMessages: Message[] = [];
     const conversation: Message[] = [];
     
-    for (const m of messages) {
+    for (const m of workingMessages) {
       if (this.preserveSystem && m.role === 'system') {
         systemMessages.push(m);
       } else {
@@ -187,6 +214,42 @@ export class ContextWindow {
         return blockSum + 100; // Default for other types
       }, 0);
     }, 0);
+  }
+
+  /**
+   * Try layered compaction on the message array.
+   * Returns compacted messages, or null if compaction is unavailable/unnecessary.
+   */
+  private tryCompaction(messages: Message[]): Message[] | null {
+    if (!compactionModule) return null
+    if (messages.length < 8) return null // Not enough messages to compact
+
+    const compactionConfig = {
+      preserveRecentMessages: 6,
+      maxEstimatedTokens: Math.floor(this.maxTokens * 0.7),
+    }
+
+    // HOW: The layered compaction module uses the runtime Message type,
+    // which is structurally compatible with the pipeline Message type
+    // (both have role: 'user'|'assistant'|'system' and content: string|ContentBlock[]).
+    // We cast to any to bridge the type boundary.
+    const runtimeMessages = messages as any[]
+
+    if (!compactionModule.shouldCompact(runtimeMessages, compactionConfig)) {
+      return null
+    }
+
+    const result = compactionModule.compactMessages(runtimeMessages, compactionConfig)
+    if (result.removedMessageCount > 0) {
+      this.logger?.info('Layered compaction applied', {
+        removedMessages: result.removedMessageCount,
+        preservedMessages: result.compactedMessages.length,
+        originalMessages: messages.length,
+      })
+      return result.compactedMessages as unknown as Message[]
+    }
+
+    return null
   }
 }
 
