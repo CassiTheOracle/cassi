@@ -40,9 +40,7 @@ import type {
 import type { ILogger } from '../../../types/interfaces.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Context — Shared mutable state across tool handlers
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Mutable context shared by all brainstem tool handlers within a session.
@@ -56,7 +54,6 @@ export interface BrainstemToolContext {
   /** Logger */
   logger: ILogger
 
-  // ── Parent Helix observation ──────────────────────────────────
 
   /** Get recent work units from the parent's work stream */
   getRecentWorkUnits: () => WorkUnit[]
@@ -67,26 +64,21 @@ export interface BrainstemToolContext {
   /** Get the current quality score trajectory */
   getQualityTrajectory: () => number[]
 
-  // ── Guidance injection ────────────────────────────────────────
 
   /** Inject guidance into the parent Helix's Unity posture */
   injectGuidance: (content: string, urgency: GuidanceUrgency) => void
 
-  // ── Shared Thought Tree (optional — only in Constellation mode) ──
 
   sharedTree?: SharedTreeReader
   escalateToCorpus?: (reason: string, context: Record<string, unknown>) => void
 
-  // ── Self-organization state ───────────────────────────────────
 
   currentApproach: BranchApproach
   recentFilesActive: Set<string>
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Tool Definitions
-// ═══════════════════════════════════════════════════════════════════
 
 function def_read_work_stream(): MiniHelixToolDef {
   return {
@@ -285,9 +277,7 @@ function def_signal_done(): MiniHelixToolDef {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Tool Handlers
-// ═══════════════════════════════════════════════════════════════════
 
 function handle_read_work_stream(ctx: BrainstemToolContext): MiniHelixToolHandler {
   return (args) => {
@@ -613,12 +603,14 @@ function handle_signal_done(_ctx: BrainstemToolContext): MiniHelixToolHandler {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Public API — Create tool set for a Brainstem mini-Helix
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Create the complete Brainstem tool set (8 tools) bound to the given context.
+ * @dep callers: start (core/intelligence/helix/brainstem-mini-helix.ts), mini-helix.test.ts (tests/mini-helix.test.ts)
+ * @dep calls: handle_signal_done, handle_escalate_to_corpus, handle_self_organize, handle_detect_topics, handle_publish_digest [+11]
+ * @dep module: Helix
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function createBrainstemTools(ctx: BrainstemToolContext): MiniHelixTool[] {
   return [
@@ -635,6 +627,9 @@ export function createBrainstemTools(ctx: BrainstemToolContext): MiniHelixTool[]
 
 /**
  * Build the system prompt for the Brainstem mini-Helix.
+ * @dep callers: start (core/intelligence/helix/brainstem-mini-helix.ts), mini-helix.test.ts (tests/mini-helix.test.ts)
+ * @dep module: Helix
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function buildBrainstemSystemPrompt(
   helixId: string,

@@ -29,7 +29,6 @@ import { HelixMetrics } from './helix-metrics.js'
 import type { HelixMetricsSnapshot } from './helix-metrics.js'
 
 
-// ─── Constants ─────────────────────────────────────────────────────────────
 
 /** Default timeout for waiting on work units in broadcast mode */
 const BROADCAST_WORK_UNIT_TIMEOUT_MS = 3_000
@@ -38,7 +37,6 @@ const BROADCAST_WORK_UNIT_TIMEOUT_MS = 3_000
 const TERMINATION_CONSENSUS_TIMEOUT_MS = 30_000
 
 
-// ─── HelixWorkStream ───────────────────────────────────────────────────────
 
 /**
  * Helix-native WorkStream that uses per-reviewer broadcast instead of a
@@ -247,7 +245,6 @@ export class HelixWorkStream extends WorkStream {
 }
 
 
-// ─── HelixDialecticMesh ────────────────────────────────────────────────────
 
 /**
  * Helix-native DialecticChannel that includes Unity as a valid participant.
@@ -288,7 +285,6 @@ export class HelixDialecticMesh extends DialecticChannel {
 }
 
 
-// ─── HelixCoordinator ──────────────────────────────────────────────────────
 
 export interface HelixCoordinatorOpts {
   sessionId: string

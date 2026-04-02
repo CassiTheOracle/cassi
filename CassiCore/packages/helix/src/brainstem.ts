@@ -45,6 +45,8 @@ import type {
   UnityReport,
   CognitiveModel,
   ReviewerAction,
+  GuidanceProposal,
+  GuidanceVote,
 } from './brainstem-types.js'
 import {
   DEFAULT_BRAINSTEM_CONFIG,
@@ -80,6 +82,12 @@ export class HelixBrainstem {
   private guidanceQueue: PendingGuidance[] = []
   private unityReportQueue: UnityReport[] = []
 
+  // Guidance proposal gate — requires dual-reviewer approval before reaching Unity
+  private guidanceProposals: GuidanceProposal[] = []
+  private approvedGuidanceQueue: PendingGuidance[] = []
+  /** Max iterations before a proposal auto-approves (prevents blocking on unresponsive reviewers) */
+  private readonly proposalTimeoutIterations = 8
+
   // Dialectic accumulation
   private recentDialectic: string[] = []
   private readonly maxDialecticHistory = 10
@@ -96,7 +104,6 @@ export class HelixBrainstem {
    */
   private liveStreamBuffer = ''
 
-  // ── Shared Thought Tree: Self-Organization State ──────────────
   /** Current approach (derived from recent annotations) */
   private currentApproach: BranchApproach = 'exploration'
   /** Previous approach (for retrospective recording) */
@@ -520,11 +527,10 @@ PROGRESS: <number 0-1>
   }
 
   /**
-   * Consume the latest guidance (one-shot)
+   * Consume the latest guidance (one-shot).
+   * Now routes through the proposal gate — only approved guidance reaches Unity.
    */
-  getLatestGuidance(): PendingGuidance | null {
-    return this.guidanceQueue.shift() ?? null
-  }
+  /* getLatestGuidance is defined below in the Guidance Proposal Gate section */
 
   /**
    * Receive real-time stream activity from a posture runner.
@@ -688,6 +694,59 @@ PROGRESS: <number 0-1>
    */
   getState(): BrainstemState {
     return { ...this.state }
+  }
+
+  /**
+   * Get a reviewer-facing summary of the brainstem's cognitive model.
+   * This exposes discoveries, decisions, hypothesis, blockers, and recent
+   * annotation trends so reviewers can focus their investigation on what
+   * the brainstem has identified as important.
+   *
+   * Returns null if the brainstem hasn't processed enough to have useful context.
+   */
+  getCognitiveSummary(): string | null {
+    if (this.state.workUnitsProcessed < 2) return null
+
+    const model = this.state.cognitiveModel
+    const parts: string[] = []
+
+    if (model.currentHypothesis) {
+      parts.push(`Current hypothesis: ${model.currentHypothesis}`)
+    }
+
+    if (model.allDiscoveries.length > 0) {
+      const recent = model.allDiscoveries.slice(-5)
+      parts.push(`Recent discoveries:\n${recent.map((d: string) => `- ${d}`).join('\n')}`)
+    }
+
+    if (model.allDecisions.length > 0) {
+      const recent = model.allDecisions.slice(-3)
+      parts.push(`Decisions made:\n${recent.map((d: string) => `- ${d}`).join('\n')}`)
+    }
+
+    if (model.pendingBlockers.length > 0) {
+      parts.push(`Active blockers:\n${model.pendingBlockers.map((b: string) => `- ${b}`).join('\n')}`)
+    }
+
+    // Include recent quality trajectory for context
+    const trajectory = this.state.qualityTrajectory.slice(-5)
+    if (trajectory.length > 0) {
+      const avg = trajectory.reduce((a, b) => a + b, 0) / trajectory.length
+      const trend = trajectory.length >= 2
+        ? (trajectory[trajectory.length - 1] > trajectory[0] ? 'improving' : 'declining')
+        : 'stable'
+      parts.push(`Quality: ${avg.toFixed(2)} avg (${trend})`)
+    }
+
+    // Include any detected patterns
+    if (this.state.totalPatternDetections > 0) {
+      const lastAnnotation = this.state.annotations[this.state.annotations.length - 1]
+      if (lastAnnotation?.pattern !== 'none') {
+        parts.push(`Detected pattern: ${lastAnnotation.pattern}`)
+      }
+    }
+
+    return parts.length > 0 ? parts.join('\n\n') : null
   }
 
   /**
@@ -1441,7 +1500,6 @@ Critical rules:
       this.state.totalPatternDetections++
     }
 
-    // ─── Update running cognitive model ────────────────────────────────────
     const model = this.state.cognitiveModel
 
     // Update hypothesis if a new one was produced (non-empty)
@@ -1646,12 +1704,14 @@ Critical rules:
   }
 
   /**
-   * Queue guidance with cooldown check
+   * Queue guidance as a proposal that requires dual-reviewer approval.
+   *
+   * WHY: Direct brainstem guidance was historically too frequent and distracting
+   * for Unity. By routing through reviewers, only consensus-approved guidance
+   * reaches the builder. Critical Corpus directives bypass the gate.
    */
   private queueGuidance(guidance: PendingGuidance): void {
     // Check cooldown — but bypass for critical/high Corpus directives.
-    // Corpus interventions are strategic decisions that should not be silently
-    // dropped by a routine cooldown timer.
     const isCorpusDirective = typeof guidance.triggeredBy === 'string' &&
       guidance.triggeredBy.startsWith('corpus:')
     const bypassCooldown = isCorpusDirective &&
@@ -1668,11 +1728,38 @@ Critical rules:
       }
     }
 
-    this.guidanceQueue.push(guidance)
+    // Critical Corpus directives go directly to Unity — no reviewer gate
+    if (bypassCooldown) {
+      this.approvedGuidanceQueue.push(guidance)
+      this.state.lastGuidanceStep = this.state.currentAxonStep
+      this.state.totalGuidanceCount++
+      this.logger.info('Critical guidance bypassed reviewer gate', {
+        urgency: guidance.urgency,
+        triggeredBy: guidance.triggeredBy,
+      })
+      return
+    }
+
+    // Create a proposal for reviewer approval
+    const proposalId = `gp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    const proposal: GuidanceProposal = {
+      id: proposalId,
+      text: guidance.text,
+      urgency: guidance.urgency,
+      triggeredBy: guidance.triggeredBy as string,
+      fromStep: guidance.fromStep,
+      timestamp: Date.now(),
+      votes: { yang: null, yin: null },
+      status: 'pending',
+      iterationsSinceCreated: 0,
+    }
+
+    this.guidanceProposals.push(proposal)
     this.state.lastGuidanceStep = this.state.currentAxonStep
     this.state.totalGuidanceCount++
 
-    this.logger.info('Guidance produced', {
+    this.logger.info('Guidance proposal created (awaiting reviewer approval)', {
+      proposalId,
       urgency: guidance.urgency,
       triggeredBy: guidance.triggeredBy,
       text: guidance.text.slice(0, 100),
@@ -1688,7 +1775,138 @@ Critical rules:
     })
   }
 
-  // ── Event Emission ──────────────────────────────────────────────────
+
+  // ── Guidance Proposal Gate ──────────────────────────────────────────────
+
+  /**
+   * Get pending proposals that a reviewer hasn't voted on yet.
+   * Called by reviewers to see what brainstem guidance needs their approval.
+   */
+  getPendingProposals(reviewer: 'yang' | 'yin'): GuidanceProposal[] {
+    return this.guidanceProposals.filter(p =>
+      p.status === 'pending' && p.votes[reviewer] === null,
+    )
+  }
+
+  /**
+   * Record a reviewer's vote on a guidance proposal.
+   * When both reviewers have voted, resolves the proposal:
+   *   - Both approve -> guidance flows to Unity
+   *   - Either rejects -> guidance is dropped
+   */
+  voteOnProposal(proposalId: string, reviewer: 'yang' | 'yin', approved: boolean, reason: string): string {
+    const proposal = this.guidanceProposals.find(p => p.id === proposalId)
+    if (!proposal) return `Proposal ${proposalId} not found`
+    if (proposal.status !== 'pending') return `Proposal ${proposalId} already ${proposal.status}`
+    if (proposal.votes[reviewer] !== null) return `${reviewer} already voted on ${proposalId}`
+
+    proposal.votes[reviewer] = { approved, reason, timestamp: Date.now() }
+    this.logger.info('Guidance proposal vote recorded', {
+      proposalId,
+      reviewer,
+      approved,
+      reason: reason.slice(0, 100),
+    })
+
+    // Check if both have voted
+    this.resolveProposalIfReady(proposal)
+
+    return approved
+      ? `Vote recorded: approved. ${this.proposalStatusSummary(proposal)}`
+      : `Vote recorded: rejected. ${this.proposalStatusSummary(proposal)}`
+  }
+
+  /**
+   * Resolve a proposal if both reviewers have voted, or if it timed out.
+   */
+  private resolveProposalIfReady(proposal: GuidanceProposal): void {
+    const { yang, yin } = proposal.votes
+
+    if (yang !== null && yin !== null) {
+      // Both voted — resolve
+      if (yang.approved && yin.approved) {
+        proposal.status = 'approved'
+        this.approvedGuidanceQueue.push({
+          text: proposal.text,
+          urgency: proposal.urgency,
+          fromStep: proposal.fromStep,
+          triggeredBy: proposal.triggeredBy as any,
+          timestamp: proposal.timestamp,
+        })
+        this.logger.info('Guidance proposal APPROVED by both reviewers', {
+          proposalId: proposal.id,
+          yangReason: yang.reason.slice(0, 80),
+          yinReason: yin.reason.slice(0, 80),
+        })
+      } else {
+        proposal.status = 'rejected'
+        const rejector = !yang.approved ? 'yang' : 'yin'
+        const rejectReason = !yang.approved ? yang.reason : yin!.reason
+        this.logger.info('Guidance proposal REJECTED', {
+          proposalId: proposal.id,
+          rejectedBy: rejector,
+          reason: rejectReason.slice(0, 100),
+        })
+      }
+    }
+  }
+
+  /**
+   * Tick proposal timeouts. Called periodically from the brainstem loop.
+   * Proposals that exceed the timeout auto-approve (don't block Unity indefinitely).
+   */
+  tickProposalTimeouts(): void {
+    for (const proposal of this.guidanceProposals) {
+      if (proposal.status !== 'pending') continue
+      proposal.iterationsSinceCreated++
+
+      if (proposal.iterationsSinceCreated >= this.proposalTimeoutIterations) {
+        // Auto-approve on timeout — better to pass guidance than block forever
+        proposal.status = 'approved'
+        this.approvedGuidanceQueue.push({
+          text: proposal.text,
+          urgency: proposal.urgency,
+          fromStep: proposal.fromStep,
+          triggeredBy: proposal.triggeredBy as any,
+          timestamp: proposal.timestamp,
+        })
+        this.logger.warn('Guidance proposal auto-approved (reviewer timeout)', {
+          proposalId: proposal.id,
+          iterationsWaited: proposal.iterationsSinceCreated,
+          yangVoted: proposal.votes.yang !== null,
+          yinVoted: proposal.votes.yin !== null,
+        })
+      }
+    }
+  }
+
+  /**
+   * Get guidance that has been approved (or bypassed the gate) for Unity consumption.
+   * This replaces the old direct guidanceQueue for Unity.
+   */
+  getLatestGuidance(): PendingGuidance | null {
+    // Tick timeouts on each access
+    this.tickProposalTimeouts()
+
+    // Prefer approved guidance over the old direct queue
+    if (this.approvedGuidanceQueue.length > 0) {
+      return this.approvedGuidanceQueue.shift()!
+    }
+    // Fall through to old queue for backward compat (critical bypasses)
+    if (this.guidanceQueue.length > 0) {
+      return this.guidanceQueue.shift()!
+    }
+    return null
+  }
+
+  private proposalStatusSummary(proposal: GuidanceProposal): string {
+    const { yang, yin } = proposal.votes
+    if (proposal.status !== 'pending') return `Proposal is ${proposal.status}.`
+    if (yang && !yin) return 'Waiting for yin vote.'
+    if (!yang && yin) return 'Waiting for yang vote.'
+    return 'Waiting for both votes.'
+  }
+
 
   /**
    * Emit brainstem:annotation event (and brainstem:pattern if non-none).
@@ -1735,9 +1953,7 @@ Critical rules:
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
   // Shared Thought Tree — Self-Organization
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Generate and publish a BranchDigest to the shared tree.
@@ -1958,7 +2174,6 @@ Critical rules:
       // Track which adjustments we generate this cycle
       const currentCycleAdjustments = new Set<string>()
 
-      // ── Rule 1: File Conflict Avoidance ────────────────────────
       for (const peer of relevantDigests) {
         const conflictFiles = myFiles.filter((f) => peer.filesActive.includes(f))
         if (conflictFiles.length > 0) {
@@ -1978,7 +2193,6 @@ Critical rules:
         }
       }
 
-      // ── Rule 2: Pattern Adoption ───────────────────────────────
       for (const pattern of elevatedPatterns) {
         // Check if this pattern is applicable to my context
         const fileOverlap = pattern.relevantFiles.filter((f) => myFiles.includes(f))
@@ -2003,7 +2217,6 @@ Critical rules:
         }
       }
 
-      // ── Rule 3: Finding Incorporation ──────────────────────────
       for (const peer of relevantDigests) {
         if (peer.keyFindings.length > 0 && peer.rollingScore > 0.7) {
           const key = `finding-incorporation:${peer.helixId}`
@@ -2022,7 +2235,6 @@ Critical rules:
         }
       }
 
-      // ── Rule 4: Approach Redirect ──────────────────────────────
       // If my score is low and multiple peers succeed with a different approach
       const myRollingScore = this.state.qualityTrajectory.slice(-5)
       const myAvg = myRollingScore.length > 0
@@ -2061,7 +2273,6 @@ Critical rules:
         }
       }
 
-      // ── Rule 5: Goal Refinement ────────────────────────────────
       for (const peer of relevantDigests) {
         const myKeywords = new Set(this.extractGoalKeywords())
         const peerKeywords = peer.goalSummary.toLowerCase().split(/[^a-z0-9_-]+/).filter((w) => w.length > 2)
@@ -2085,7 +2296,6 @@ Critical rules:
         }
       }
 
-      // ── Rule 6: Tension Flag ───────────────────────────────────
       for (const topic of relatedTopics) {
         if (topic.tensionFlag) {
           const key = `tension-flag:${topic.id}`
@@ -2104,7 +2314,6 @@ Critical rules:
         }
       }
 
-      // ── Rule 7: Peer Assist ────────────────────────────────────
       for (const peer of relevantDigests) {
         if (peer.blockers.length > 0 && peer.rollingScore < 0.4) {
           // I might have findings that could help
@@ -2134,7 +2343,6 @@ Critical rules:
         }
       }
 
-      // ── Expire stale adjustments ───────────────────────────────
       for (const [key] of this.pendingSelfOrgAdjustments) {
         if (!currentCycleAdjustments.has(key)) {
           // Adjustment was not regenerated this cycle — reset dampening
@@ -2142,10 +2350,8 @@ Critical rules:
         }
       }
 
-      // ── Apply adjustments that have met the dampening threshold ─
       this.applyReadyAdjustments()
 
-      // ── Track effectiveness of applied adjustments ─────────────
       this.measureEffectiveness()
 
     } catch (err) {
@@ -2157,9 +2363,7 @@ Critical rules:
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Self-Organization: Internal Helpers
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Tick a dampening counter for an adjustment. If the adjustment key
@@ -2645,7 +2849,6 @@ Critical rules:
   }
 
 
-  // ── Corpus Tree Integration ──────────────────────────────────────────
 
   /**
    * Push annotation to the Corpus tree (Constellation mode only).
@@ -2703,7 +2906,6 @@ Critical rules:
   }
 
 
-  // ── Blackboard Posting ──────────────────────────────────────────────
 
   /**
    * Post annotation to blackboard for cross-posture visibility and training data.
@@ -2770,6 +2972,9 @@ Critical rules:
 
 /**
  * Factory function to create a HelixBrainstem instance
+ * @dep callers: runHelixPipeline (core/intelligence/helix/helix-pipeline.ts), brainstem.test.ts (tests/brainstem.test.ts)
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function createHelixBrainstem(
   deps: BrainstemDeps,

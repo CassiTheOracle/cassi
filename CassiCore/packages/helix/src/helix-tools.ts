@@ -18,7 +18,6 @@ import type { CompletionOpts } from '../../../types/runtime.js'
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 
 
-// ─── Unity Tools (Worker) ──────────────────────────────────────────────────
 
 export const ACKNOWLEDGE_NUDGE_TOOL: ToolSchema = {
   name: 'acknowledge_nudge',
@@ -74,7 +73,6 @@ export const UNITY_TOOLS: ToolSchema[] = [
 ]
 
 
-// ─── Unity → Brainstem Messaging ───────────────────────────────────────────
 
 export const REPORT_TO_BRAINSTEM_TOOL: ToolSchema = {
   name: 'report_to_brainstem',
@@ -107,7 +105,6 @@ export const REPORT_TO_BRAINSTEM_TOOL: ToolSchema = {
 }
 
 
-// ─── Reviewer Tools (Yang + Yin) ───────────────────────────────────────────
 
 // Dialectic tools — reuse from Lumen (identical semantics for reviewer debate)
 import {
@@ -220,7 +217,6 @@ export const REVIEW_PROGRESS_TOOL: ToolSchema = {
 }
 
 
-// ─── Edit Proposal Tools (Yang/Yin) ──────────────────────────────────────
 
 /**
  * propose_edit — Yang or Yin can propose a file edit through the dialectic.
@@ -296,6 +292,53 @@ export const EDIT_PROPOSAL_TOOLS: ToolSchema[] = [
   REVIEW_EDIT_PROPOSAL_TOOL,
 ]
 
+
+// ── Guidance Gate Tools ─────────────────────────────────────────────────
+
+const APPROVE_GUIDANCE_TOOL: ToolSchema = {
+  name: 'approve_guidance',
+  description: 'Approve a brainstem guidance proposal to be sent to the builder. Both reviewers must approve before guidance reaches Unity.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      proposal_id: {
+        type: 'string',
+        description: 'The ID of the guidance proposal (from brainstem context injection).',
+      },
+      reason: {
+        type: 'string',
+        description: 'Why this guidance should reach the builder. Must provide reasoning.',
+      },
+    },
+    required: ['proposal_id', 'reason'],
+  },
+}
+
+const REJECT_GUIDANCE_TOOL: ToolSchema = {
+  name: 'reject_guidance',
+  description: 'Reject a brainstem guidance proposal, preventing it from reaching the builder. Provide a reason so the brainstem can learn.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      proposal_id: {
+        type: 'string',
+        description: 'The ID of the guidance proposal to reject.',
+      },
+      reason: {
+        type: 'string',
+        description: 'Why this guidance should NOT reach the builder. What makes it unhelpful or distracting?',
+      },
+    },
+    required: ['proposal_id', 'reason'],
+  },
+}
+
+/** Guidance gate tools — reviewers approve/reject brainstem guidance before it reaches Unity */
+export const GUIDANCE_GATE_TOOLS: ToolSchema[] = [
+  APPROVE_GUIDANCE_TOOL,
+  REJECT_GUIDANCE_TOOL,
+]
+
 /** All dialectic tools for reviewer debate (excluding signal_conclusion) */
 export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
   SHARE_FINDING_TOOL,
@@ -306,17 +349,17 @@ export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
   POST_RESEARCH_SIGNAL_TOOL,
 ]
 
-/** Core reviewer meta-tools (dialectic + nudge + progress + conclusion) */
+/** Core reviewer meta-tools (dialectic + nudge + progress + conclusion + guidance gate) */
 export const REVIEWER_TOOLS: ToolSchema[] = [
   ...REVIEWER_DIALECTIC_TOOLS,
   ...EDIT_PROPOSAL_TOOLS,
   SEND_NUDGE_TOOL,
   REVIEW_PROGRESS_TOOL,
   SIGNAL_CONCLUSION_TOOL,
+  ...GUIDANCE_GATE_TOOLS,
 ]
 
 
-// ─── Plan + Report + Blackboard Tools (shared) ────────────────────────────
 
 import {
   ALL_POSTURES_PLAN_TOOLS,
@@ -343,7 +386,6 @@ export const HELIX_PLAN_TOOLS = ALL_POSTURES_PLAN_TOOLS
 export const HELIX_REPORT_TOOLS = REPORT_TOOLS
 
 
-// ─── Aggregate Tool Sets ──────────────────────────────────────────────────
 
 /** All tools available to Unity (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_UNITY_TOOLS: ToolSchema[] = [
@@ -368,7 +410,6 @@ export const ALL_MENTOR_TOOLS: ToolSchema[] = [
 ]
 
 
-// ─── Tool Name Sets ────────────────────────────────────────────────────────
 
 export const UNITY_TOOL_NAMES = new Set([...UNITY_TOOLS.map(t => t.name), REPORT_TO_BRAINSTEM_TOOL.name])
 
@@ -384,12 +425,15 @@ export const ALL_HELIX_META_TOOL_NAMES = new Set([
 ])
 
 
-// ─── Routing Helpers ──────────────────────────────────────────────────────
 
 /**
  * Check if a tool is a Helix meta-tool (handled inline, not via ToolExecutor).
  * When called with just a name, checks against all meta-tool names.
  * When called with a role, checks role-specific meta-tools.
+ * @dep callers: processToolCalls (core/intelligence/helix/helix-posture-runner.ts), buildToolSchemas (core/intelligence/helix/helix-posture-runner.ts)
+ * @dep calls: has
+ * @dep module: Helix
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin' | 'mentor'): boolean {
   if (!role) return ALL_HELIX_META_TOOL_NAMES.has(toolName)
@@ -400,6 +444,10 @@ export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin
 
 /**
  * Get tool schemas for a specific role.
+ * @dep callers: buildToolSchemas (core/intelligence/helix/helix-posture-runner.ts)
+ * @dep flows: RunAsReviewer → GetHelixToolSchemas (3/3), RunAsWorker → GetHelixToolSchemas (3/3)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
  */
 export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor'): ToolSchema[] {
   switch (role) {

@@ -10,7 +10,6 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 
-// ─── Goal Verb Whitelist ───────────────────────────────────────────────────
 
 /**
  * Whitelist of goal-aligned verbs for shell commands.
@@ -89,7 +88,6 @@ export const GOAL_VERB_WHITELIST = new Set([
   'redis-cli',
 ])
 
-// ─── Drift Patterns ────────────────────────────────────────────────────────
 
 /**
  * Patterns that indicate exploration/drift behavior.
@@ -131,7 +129,6 @@ export const DRIFT_PATTERNS = [
   /^\s*npm search\s*/i,
 ]
 
-// ─── Drift Detection State ─────────────────────────────────────────────────
 
 export interface DriftDetectionState {
   /** Count of consecutive drift-detected commands */
@@ -146,7 +143,6 @@ export interface DriftDetectionState {
   firstDriftTime?: number
 }
 
-// ─── Drift Detector ────────────────────────────────────────────────────────
 
 export interface DriftDetectorOpts {
   logger?: ILogger
@@ -320,7 +316,6 @@ The goal requires concrete implementation, not further study.
   }
 }
 
-// ─── Types ─────────────────────────────────────────────────────────────────
 
 export interface DriftAnalysisResult {
   /** Whether this command was flagged as drift */
@@ -335,7 +330,6 @@ export interface DriftAnalysisResult {
   selfCorrectionPrompt?: string
 }
 
-// ─── Hook for Helix Posture Runner ─────────────────────────────────────────
 
 export interface DriftDetectionHook {
   /** Analyze a shell command and return self-correction if needed */

@@ -16,7 +16,6 @@ import type { CompletionOpts } from '../../../types/runtime.js'
 type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 
 
-// ─── Steering Tools ────────────────────────────────────────────────────────
 
 export const MENTOR_STEER_TOOL: ToolSchema = {
   name: 'mentor_steer',
@@ -70,7 +69,6 @@ export const MENTOR_FLAG_TOOL: ToolSchema = {
 }
 
 
-// ─── Moderation Tools ──────────────────────────────────────────────────────
 
 export const MENTOR_FORCE_CONCLUSION_TOOL: ToolSchema = {
   name: 'mentor_force_conclusion',
@@ -130,7 +128,6 @@ export const MENTOR_DISPATCH_RESEARCH_TOOL: ToolSchema = {
 }
 
 
-// ─── Synthesis Tools ───────────────────────────────────────────────────────
 
 export const MENTOR_SYNTHESIZE_TOOL: ToolSchema = {
   name: 'mentor_synthesize',
@@ -170,7 +167,6 @@ export const MENTOR_SYNTHESIZE_TOOL: ToolSchema = {
 }
 
 
-// ─── Aggregate Tool Sets ───────────────────────────────────────────────────
 
 /** All Mentor meta-tools */
 export const MENTOR_TOOLS: ToolSchema[] = [

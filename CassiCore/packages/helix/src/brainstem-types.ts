@@ -35,7 +35,6 @@ import type {
   EffectivenessRecord,
 } from '../constellation/corpus-types.js'
 
-// ─── Configuration ────────────────────────────────────────────────────────
 
 /**
  * Guidance operating mode for the Brainstem.
@@ -137,7 +136,6 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   maxTokensPerFinding: 200_000,
 }
 
-// ─── Annotation Types ─────────────────────────────────────────────────────
 
 /** Work unit classification produced by Brainstem scoring */
 export type WorkUnitAnnotation =
@@ -163,6 +161,43 @@ export type GuidanceUrgency =
   | 'high'      // inject as user message (costs one LLM round-trip)
   | 'critical'  // inject as user message + mark as blocking
 
+/**
+ * A guidance proposal that requires dual-reviewer approval before reaching Unity.
+ *
+ * WHY: Brainstem guidance was historically too frequent and distracting for Unity.
+ * By routing guidance through both reviewers first, we ensure only consensus-approved
+ * guidance reaches the builder, while giving reviewers a concrete productive role.
+ */
+export interface GuidanceProposal {
+  /** Unique proposal ID */
+  id: string
+  /** Guidance text from brainstem */
+  text: string
+  /** Original urgency from brainstem */
+  urgency: GuidanceUrgency
+  /** What triggered this guidance */
+  triggeredBy: string
+  /** Brainstem axon step when generated */
+  fromStep: number
+  /** Timestamp when created */
+  timestamp: number
+  /** Reviewer votes — both must approve for guidance to reach Unity */
+  votes: {
+    yang: GuidanceVote | null
+    yin: GuidanceVote | null
+  }
+  /** Current status */
+  status: 'pending' | 'approved' | 'rejected' | 'expired'
+  /** Iteration counter for timeout — auto-approve after N iterations without vote */
+  iterationsSinceCreated: number
+}
+
+export interface GuidanceVote {
+  approved: boolean
+  reason: string
+  timestamp: number
+}
+
 /** A single scored annotation produced by the Brainstem LLM */
 export interface BrainstemAnnotation {
   /** Which work unit this annotates */
@@ -186,7 +221,6 @@ export interface BrainstemAnnotation {
   /** Timestamp */
   timestamp: number
 
-  // ─── Dimensional Scores (0-1 each) ────────────────────────────────
   /** How aligned is this work with the branch's goal? 0=completely off-target, 1=directly advancing the goal */
   goalAlignment: number
   /** How much new information or capability did this step produce? 0=re-reading known content, 1=entirely new insight */
@@ -194,7 +228,6 @@ export interface BrainstemAnnotation {
   /** How much closer is the branch to completion? 0=no measurable progress, 1=significant concrete advancement */
   progress: number
 
-  // ─── Rich Semantic Fields (populated from ###FIELDNAME blocks) ────
   /** Things discovered or learned in this step */
   discoveries: string[]
   /** Decisions made in this step and their rationale */
@@ -211,7 +244,6 @@ export interface BrainstemAnnotation {
   knowledgeDelta: string
 }
 
-// ─── Cognitive Model ──────────────────────────────────────────────────────
 
 /**
  * Running cognitive model maintained by the Brainstem across all steps.
@@ -322,7 +354,6 @@ export function createInitialBrainstemState(): BrainstemState {
   }
 }
 
-// ─── Unity Reports ───────────────────────────────────────────────────────
 
 /** A structured message from Unity to the Brainstem */
 export interface UnityReport {
@@ -333,7 +364,6 @@ export interface UnityReport {
   iteration: number
 }
 
-// ─── Guidance Queue ───────────────────────────────────────────────────────
 
 /** A pending guidance item waiting to be injected into Unity's loop */
 export interface PendingGuidance {
@@ -349,7 +379,6 @@ export interface PendingGuidance {
   timestamp: number
 }
 
-// ─── LLM Adapter ─────────────────────────────────────────────────────────
 
 /** Minimal LLM interface for Brainstem (same pattern as Synapse) */
 export interface BrainstemLLM {
@@ -361,7 +390,6 @@ export interface BrainstemLLM {
   }): Promise<{ content: string; truncated: boolean }>
 }
 
-// ─── Dependencies ─────────────────────────────────────────────────────────
 
 export interface BrainstemDeps {
   llm: BrainstemLLM
@@ -389,7 +417,6 @@ export interface BrainstemDeps {
   /** ContextChunkIndex for Unity — allows brainstem to pin/evict/score context chunks */
   unityChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
 
-  // ── Shared Thought Tree (Constellation self-organization) ──────
 
   /**
    * Shared tree reader — provides peer awareness without the Corpus as relay.
@@ -426,7 +453,6 @@ export interface BrainstemDeps {
  * of all branches is affordable within a 16k working budget.
  */
 export interface SharedTreeReader {
-  // ── Read operations (peer awareness) ──────────────────────────
 
   /** Get all peer digests (excludes the calling Helix's own). */
   getPeerDigests(): BranchDigest[]
@@ -449,7 +475,6 @@ export interface SharedTreeReader {
   /** Get effectiveness stats by adjustment type (what works?). */
   getEffectivenessStats(): Map<string, { total: number; effective: number; avgImprovement: number }>
 
-  // ── Write operations (publish state) ──────────────────────────
 
   /** Publish or update this Helix's digest. */
   updateDigest(digest: BranchDigest): void
@@ -507,7 +532,6 @@ export interface BrainstemBlackboard {
   } | null
 }
 
-// ─── Result (included in HelixResult) ─────────────────────────────────────
 
 export interface BrainstemResult {
   /** All scored annotations */

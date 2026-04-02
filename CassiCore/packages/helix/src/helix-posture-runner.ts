@@ -67,13 +67,18 @@ import {
 } from '../../../mcp/gateway/index.js'
 
 
-// ─── Lazy-loaded optional tools ────────────────────────────────────────────
 
 let isPlanMetaTool: (name: string) => boolean = () => false
 let getPlanToolSchemas: (role: any) => any[] = () => []
 let REPORT_TOOLS: any[] = []
 let REPORT_TOOL_NAMES: Set<string> = new Set()
 let _toolsInitPromise: Promise<void> | null = null
+
+/**
+ * @dep callers: runAsWorker (core/intelligence/helix/helix-posture-runner.ts), runAsReviewer (core/intelligence/helix/helix-posture-runner.ts), runAsMentor (core/intelligence/helix/helix-posture-runner.ts)
+ * @dep module: Helix
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
 
 function initializeOptionalTools(): Promise<void> {
   if (_toolsInitPromise) return _toolsInitPromise
@@ -97,7 +102,6 @@ function initializeOptionalTools(): Promise<void> {
 }
 
 
-// ─── Autonomous Posture Tool Blocklist ─────────────────────────────────────
 
 /**
  * Tools that are useless or harmful to autonomous Helix postures.
@@ -117,6 +121,12 @@ const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
 const EXTERNAL_MCP_PREFIXES = ['serena_', 'gitnexus_', 'playwright_browser_', 'duckduckgo_']
 const EXTERNAL_MCP_SERVER_PREFIXES = ['serena__', 'gitnexus__', 'playwright__', 'playwright_browser__', 'duckduckgo__']
 const CONSOLIDATED_GATEWAY_TOOL_NAMES = new Set(['code', 'file', 'web', 'browser'])
+
+/**
+ * @dep callers: isBlockedForAutonomousPostures (core/intelligence/helix/helix-posture-runner.ts), isExternalMcpTool (core/intelligence/helix/helix-posture-runner.ts)
+ * @dep module: Helix
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function toCanonicalExternalToolName(name: string): string {
   if (!name.includes('__')) return name
@@ -139,7 +149,6 @@ function isExternalMcpTool(name: string): boolean {
 }
 
 
-// ─── Constants ─────────────────────────────────────────────────────────────
 
 const DEFAULT_SESSION_ID = 'helix-session'
 const REVIEWER_WORK_UNIT_TIMEOUT_MS = 3_000
@@ -147,7 +156,6 @@ const REVIEWER_DIALECTIC_BURST_LIMIT = 3
 const REVIEWER_IDLE_DELAY_MS = 1_000
 
 
-// ─── HelixPostureRunner ────────────────────────────────────────────────────
 
 /**
  * Callback for spawning a research agent from the Mentor.
@@ -291,7 +299,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Abstract method implementations ─────────────────────────────────
 
   protected getAgentLabel(): string { return this.role }
   protected getSourceLabel(): string { return `helix:${this.role}` }
@@ -323,7 +330,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Unity Run Loop ──────────────────────────────────────────────────
 
   /**
    * Run as Unity — the worker posture.
@@ -416,7 +422,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Reviewer Run Loop (Yang/Yin) ────────────────────────────────────
 
   /**
    * Run as a reviewer (Yang or Yin).
@@ -482,7 +487,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           }
         }
 
-        // ── Inject new context opportunistically (between inference calls) ──
 
         // Inject any new work units from Unity as context enrichment
         this.injectAvailableWorkUnits()
@@ -495,10 +499,17 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Inject UnityStatus for situational awareness
         this.injectUnityStatusAsMessage()
 
+        // Inject brainstem cognitive summary and pending guidance proposals.
+        // More frequent when proposals need votes (every iteration),
+        // otherwise periodic (every 5 iterations).
+        const hasPendingProposals = this.brainstem?.getPendingProposals(this.role as 'yang' | 'yin').length ?? 0
+        if (hasPendingProposals > 0 || this.iterationCount % 5 === 0) {
+          this.injectCognitiveSummary()
+        }
+
         // Context pressure management
         if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
-        // ── Active inference — reviewer investigates independently ──
         const result = await this.streamInference(tools)
         this.tokensUsed += result.tokensUsed
         // WorkStream tracks iterations for yang/yin reviewers
@@ -573,6 +584,54 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     } catch {
       // Work unit injection failure is non-fatal
     }
+  }
+
+  /**
+   * Inject brainstem's cognitive summary and pending guidance proposals.
+   * The brainstem maintains a running model of discoveries, decisions, blockers,
+   * quality trajectory, and detected patterns. Injecting this periodically
+   * gives reviewers awareness of what the brainstem has identified.
+   *
+   * Also injects pending guidance proposals that need this reviewer's vote.
+   */
+  private injectCognitiveSummary(): void {
+    if (!this.brainstem) return
+
+    const parts: string[] = []
+
+    // Cognitive model summary
+    const summary = this.brainstem.getCognitiveSummary()
+    if (summary) {
+      parts.push(summary)
+    }
+
+    // Pending guidance proposals that need this reviewer's vote
+    const pendingProposals = this.brainstem.getPendingProposals(this.role as 'yang' | 'yin')
+    if (pendingProposals.length > 0) {
+      const proposalLines = pendingProposals.map(p =>
+        `- [${p.id}] (${p.urgency}): "${p.text.slice(0, 200)}"${p.text.length > 200 ? '...' : ''}` +
+        `\n  Other reviewer: ${p.votes.yang && this.role === 'yin' ? (p.votes.yang.approved ? 'approved' : 'rejected') : p.votes.yin && this.role === 'yang' ? (p.votes.yin.approved ? 'approved' : 'rejected') : 'not yet voted'}`,
+      )
+      parts.push(
+        `## Guidance Proposals Awaiting Your Vote\n\n` +
+        `The brainstem has proposed the following guidance for the builder. ` +
+        `Both reviewers must approve before it reaches Unity. ` +
+        `Use approve_guidance(proposal_id, reason) or reject_guidance(proposal_id, reason).\n\n` +
+        proposalLines.join('\n'),
+      )
+    }
+
+    if (parts.length === 0) return
+
+    this.messages.push({
+      role: 'user',
+      content: `--- Brainstem Context ---\n\n${parts.join('\n\n')}\n\n---`,
+    })
+
+    this.logger.debug(`${this.role} — injected brainstem context`, {
+      hasSummary: !!summary,
+      pendingProposals: pendingProposals.length,
+    })
   }
 
   /** @deprecated Mentor path removed — use Brainstem instead. Retained for backward compat. */
@@ -654,7 +713,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Tool Processing ─────────────────────────────────────────────────
 
   private async processToolCalls(toolCalls: ParsedToolCall[]): Promise<ContentBlock[]> {
     const results: ContentBlock[] = []
@@ -926,7 +984,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Meta-Tool Handlers ──────────────────────────────────────────────
 
   private handleMetaTool(name: string, input: Record<string, unknown>): string {
     switch (name) {
@@ -950,6 +1007,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       // Reviewer tools (WorkStream)
       case 'send_nudge': return this.handleSendNudge(input)
       case 'review_progress': return this.handleReviewProgress()
+      // Guidance proposal gate (Yang/Yin)
+      case 'approve_guidance': return this.handleApproveGuidance(input)
+      case 'reject_guidance': return this.handleRejectGuidance(input)
       // Edit proposal tools (Yang/Yin)
       case 'propose_edit': return this.handleProposeEdit(input)
       case 'review_edit_proposal': return this.handleReviewEditProposal(input)
@@ -959,7 +1019,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
   }
 
-  // ── Unity Handlers ──
 
   private handleAcknowledgeNudge(input: Record<string, unknown>): string {
     const nudgeId = String(input.nudge_id ?? '')
@@ -1011,7 +1070,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     return `Report (${reportType}) sent to Brainstem. It will be processed in the next evaluation cycle.`
   }
 
-  // ── Reviewer Handlers (Dialectic) ──
 
   private handleShareFinding(input: Record<string, unknown>): string {
     if (!this.dialecticChannel) return 'ERROR: No dialectic channel available.'
@@ -1068,7 +1126,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
   }
 
-  // ── Reviewer Handlers (WorkStream) ──
 
   private handleReviewProgress(): string {
     const stats = this.workStream.getStats()
@@ -1098,6 +1155,26 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
 
     return lines.join('\n')
+  }
+
+  // ── Guidance Proposal Gate Handlers ─────────────────────────────────────
+
+  private handleApproveGuidance(input: Record<string, unknown>): string {
+    if (!this.brainstem) return 'No brainstem configured — guidance proposals are not available.'
+    const proposalId = String(input.proposal_id ?? '')
+    const reason = String(input.reason ?? '')
+    if (!proposalId) return 'Error: proposal_id is required'
+    if (!reason) return 'Error: reason is required — explain why this guidance should reach the builder'
+    return this.brainstem.voteOnProposal(proposalId, this.role as 'yang' | 'yin', true, reason)
+  }
+
+  private handleRejectGuidance(input: Record<string, unknown>): string {
+    if (!this.brainstem) return 'No brainstem configured — guidance proposals are not available.'
+    const proposalId = String(input.proposal_id ?? '')
+    const reason = String(input.reason ?? '')
+    if (!proposalId) return 'Error: proposal_id is required'
+    if (!reason) return 'Error: reason is required — explain why this guidance should NOT reach the builder'
+    return this.brainstem.voteOnProposal(proposalId, this.role as 'yang' | 'yin', false, reason)
   }
 
   private handleSendNudge(input: Record<string, unknown>): string {
@@ -1133,7 +1210,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Edit Proposal Handlers ──────────────────────────────────────────
 
   /**
    * Handle propose_edit — Yang or Yin proposes a file edit through the dialectic.
@@ -1349,7 +1425,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Report Tool Delegation ──────────────────────────────────────────
 
   private handleReportTool(name: string, input: Record<string, unknown>): string {
     if (!this.blackboard) return 'Report tools require a Blackboard — not available.'
@@ -1374,7 +1449,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Mentor Tool Handlers ────────────────────────────────────────────
 
   private handleMentorSteer(input: Record<string, unknown>): string {
     if (!this.dialecticChannel) return 'ERROR: No dialectic channel available.'
@@ -1641,7 +1715,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Message Construction ────────────────────────────────────────────
 
   private buildInitialMessages(goal: string, context: string | undefined, role: HelixRole): Message[] {
     const messages: Message[] = [
@@ -1722,7 +1795,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Channel Message Injection ───────────────────────────────────────
 
   /**
    * Inject low-severity nudges from reviewers into Unity's tool results.
@@ -1851,7 +1923,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── UnityStatus Injection ─────────────────────────────────────────────
 
   /** Track last UnityStatus injection to avoid spamming reviewers */
   private lastUnityStatusInjectionIteration = 0
@@ -1928,7 +1999,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Work Unit Capture ───────────────────────────────────────────────
 
   /**
    * Capture a work unit from Unity's tool loop iteration.
@@ -2029,7 +2099,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Context Chunk Index Management ─────────────────────────────────
 
   /**
    * Manage context pressure using the ContextChunkIndex.
@@ -2102,7 +2171,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
 
-  // ── Result Building ─────────────────────────────────────────────────
 
   private buildPostureResult(startTime: number): HelixPostureResult {
     const durationMs = Date.now() - startTime

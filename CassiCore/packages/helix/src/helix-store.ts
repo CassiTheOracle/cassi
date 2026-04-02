@@ -474,7 +474,6 @@ export class HelixStore {
 }
 
 
-// ── Result-like interface for completeSession() ──────────────────────────────
 
 /** Subset of HelixResult accepted by completeSession(). */
 export interface HelixResultLike {
@@ -501,7 +500,6 @@ export interface HelixResultLike {
 }
 
 
-// ── Row types ────────────────────────────────────────────────────────────────
 
 export interface HelixSessionRow {
   id: string; goal: string; context?: string; status: string
@@ -542,7 +540,6 @@ export interface EventRow {
 }
 
 
-// ── Raw SQLite row shapes ────────────────────────────────────────────────────
 
 interface RawHelixSessionRow {
   id: string; goal: string; context: string | null; status: string

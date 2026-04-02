@@ -36,7 +36,6 @@ import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
 
 
-// ─── Constants ─────────────────────────────────────────────────────────────
 
 const DEFAULT_TIMEOUT_MS = 600_000
 const DEFAULT_MAX_MESSAGES = 5000
@@ -46,7 +45,6 @@ const INACTIVITY_ESCALATE_MS = 240_000
 const INACTIVITY_KILL_MS = 360_000
 
 
-// ─── Pipeline Options ──────────────────────────────────────────────────────
 
 export interface HelixPipelineOpts {
   goal: string
@@ -109,7 +107,13 @@ export interface HelixPipelineOpts {
 }
 
 
-// ─── Pipeline Function ─────────────────────────────────────────────────────
+
+/**
+ * @dep callers: project (core/intelligence/helix/index.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep calls: createHelixBrainstem, buildErrorResult, onActivity, cancelAll, sendNudge [+31]
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixResult> {
   const startTime = Date.now()
@@ -134,7 +138,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   opts.store?.appendEvent(sessionId, 'helix:started', 'session', 'Helix pipeline started')
 
 
-  // ── Create Channels ──────────────────────────────────────────────────
 
   let workStream: WorkStream
   let dialecticChannel: DialecticChannel
@@ -176,7 +179,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   opts.onDialecticChannelCreated?.(dialecticChannel)
 
 
-  // ── Create Brainstem (replaces Mentor when brainstemDeps provided) ─────
 
   const useBrainstem = !!opts.brainstemDeps
   let brainstem: HelixBrainstem | undefined
@@ -209,7 +211,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }
 
 
-  // ── Cancellation ─────────────────────────────────────────────────────
 
   let cancelled = false
   const cancelFns: Array<() => void> = []
@@ -230,7 +231,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   opts.onCancelRegistered?.(cancelAll)
 
 
-  // ── Session Context ──────────────────────────────────────────────────
 
   if (opts.toolExecutor && !opts.toolExecutor.hasSessionContext(sessionId)) {
     opts.toolExecutor.setSessionContext(sessionId, {
@@ -241,13 +241,11 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }
 
 
-  // ── Activity Tracking ────────────────────────────────────────────────
 
   let lastActivity = Date.now()
   const onActivity = () => { lastActivity = Date.now() }
 
 
-  // ── Create Agent Sessions ────────────────────────────────────────────
 
   const commonOpts = {
     sessionId,
@@ -297,6 +295,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yang',
     dialecticChannel,
     contextBudgetCoordinator,
+    brainstem,
     contextChunkIndex: yangChunkIndex,
   })
 
@@ -308,6 +307,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     postureSlot: 'helix.yin',
     dialecticChannel,
     contextBudgetCoordinator,
+    brainstem,
     contextChunkIndex: yinChunkIndex,
   })
 
@@ -321,7 +321,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   )
 
 
-  // ── Brainstem Dialectic Feed (Event-Driven) ─────────────────────────
   // Drain the 'mentor' cursor from the DialecticChannel when dialectic events occur.
   // Uses a small debounce to batch rapid dialectic exchanges.
   // This replaces the Mentor's direct dialecticChannel access.
@@ -362,7 +361,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }
 
 
-  // ── Watchdog (steer-then-kill) ───────────────────────────────────────
 
   const inactivityWarnMs = opts.inactivityThresholds?.warnMs ?? INACTIVITY_WARN_MS
   const inactivityEscalateMs = opts.inactivityThresholds?.escalateMs ?? INACTIVITY_ESCALATE_MS
@@ -428,7 +426,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }, 15_000)
 
 
-  // ── Timeout ──────────────────────────────────────────────────────────
 
   const timeoutHandle = setTimeout(() => {
     log.warn('Helix pipeline timeout', { sessionId, timeoutMs })
@@ -436,7 +433,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }, timeoutMs)
 
 
-  // ── Run All Postures Concurrently ─────────────────────────────────────
 
   // Phase 4: Lazy reviewer spawning
   // When brainstem has lazy spawning enabled, reviewers wait for the brainstem
@@ -540,7 +536,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     const settled = await Promise.allSettled(postures)
 
 
-    // ── Aggregate Results ────────────────────────────────────────────────
 
     const extract = (s: PromiseSettledResult<HelixPostureResult>) =>
       s.status === 'fulfilled' ? s.value : buildErrorResult(s.reason)
@@ -698,7 +693,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 }
 
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+
+/**
+ * @dep callers: runHelixPipeline (core/intelligence/helix/helix-pipeline.ts), extract (core/intelligence/helix/helix-pipeline.ts)
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 function buildErrorResult(err: unknown): HelixPostureResult {
   return {

@@ -52,7 +52,6 @@ export const YIN_POSTURE: HelixPosture = {
 }
 
 
-// ─── Mentor System Prompt (DEPRECATED) ─────────────────────────────────────
 // @deprecated Mentor path removed in favor of Brainstem. Kept for backward compat only.
 
 const MENTOR_SYSTEM_PROMPT = `You are the Mentor — the dialectic moderator of this Helix session.

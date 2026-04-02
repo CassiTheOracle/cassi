@@ -653,7 +653,6 @@ export function createHelix(
             await registry.save(opts.blackboardId)
           }
 
-          // ── Per-job git commit: attribute all file writes to this session ──
           if (storedToolExecutor) {
             try {
               const commitResult = await storedToolExecutor.commitSession({
@@ -749,7 +748,6 @@ export const HELIX_MODEL_SLOTS = {
   MENTOR: 'helix.mentor',
 } as const
 
-// ── Brainstem Mini-Helix ───────────────────────────────────────────────────
 
 export { BrainstemMiniHelix } from './brainstem-mini-helix.js'
 export type { BrainstemMiniHelixConfig } from './brainstem-mini-helix.js'

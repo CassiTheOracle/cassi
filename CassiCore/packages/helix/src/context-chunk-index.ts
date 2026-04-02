@@ -18,7 +18,6 @@ import type { Message, ContentBlock } from '../../../types/runtime.js'
 
 // classifyParagraph imported below for chunk tagging
 
-// ─── Types ────────────────────────────────────────────────────────────────
 
 /** Block types that can appear in message content */
 export type BlockType = 'text' | 'tool_use' | 'tool_result'
@@ -157,7 +156,6 @@ export const DEFAULT_CHUNK_INDEX_CONFIG: ChunkIndexConfig = {
   boostAmount: 0.2,
 }
 
-// ─── Helper Functions ─────────────────────────────────────────────────────
 
 /**
  * Heuristic classifier for non-text blocks.
@@ -191,6 +189,9 @@ function classifyBlock(block: ContentBlock): string[] {
 /**
  * Split text into paragraphs on double-newline boundaries.
  * Empty paragraphs are skipped.
+ * @dep callers: indexMessage (core/intelligence/helix/context-chunk-index.ts), indexContentBlock (core/intelligence/helix/context-chunk-index.ts), buildRemainingText (core/intelligence/helix/context-chunk-index.ts)
+ * @dep module: Helix
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 function splitParagraphs(text: string): string[] {
   return text
@@ -230,7 +231,6 @@ function parseChunkId(id: string): { msgIdx: number; blockIdx: number; paraIdx?:
   }
 }
 
-// ─── ContextChunkIndex Class ──────────────────────────────────────────────
 
 export class ContextChunkIndex {
   private logger: ILogger
@@ -245,7 +245,6 @@ export class ContextChunkIndex {
     this.config = { ...DEFAULT_CHUNK_INDEX_CONFIG, ...config }
   }
 
-  // ─── Configuration ──────────────────────────────────────────────────────
 
   /**
    * Update the character budget from ContextBudgetCoordinator.
@@ -262,7 +261,6 @@ export class ContextChunkIndex {
     return this.charBudget
   }
 
-  // ─── Indexing ───────────────────────────────────────────────────────────
 
   /**
    * Add a synthetic (non-message-backed) chunk to the index.
@@ -472,7 +470,6 @@ export class ContextChunkIndex {
     }
   }
 
-  // ─── Scoring & Decay ────────────────────────────────────────────────────
 
   /**
    * Advance to the next iteration and apply recency decay.
@@ -514,7 +511,6 @@ export class ContextChunkIndex {
     }
   }
 
-  // ─── Chunk Operations ───────────────────────────────────────────────────
 
   /**
    * Pin chunks by ID - prevents eviction.
@@ -691,7 +687,6 @@ export class ContextChunkIndex {
     return false
   }
 
-  // ─── Queries ────────────────────────────────────────────────────────────
 
   /**
    * Get a chunk by ID.
@@ -754,7 +749,6 @@ export class ContextChunkIndex {
     return Array.from(this.chunks.values()).filter(c => c.pinned && !c.evicted).length
   }
 
-  // ─── Snapshot ───────────────────────────────────────────────────────────
 
   /**
    * Create a compact snapshot for brainstem LLM consumption.
@@ -814,7 +808,6 @@ export class ContextChunkIndex {
     }
   }
 
-  // ─── Eviction Application ───────────────────────────────────────────────
 
   /**
    * Apply pending evictions to messages array.
@@ -1007,7 +1000,6 @@ export class ContextChunkIndex {
       .join('\n\n')
   }
 
-  // ─── Utilities ──────────────────────────────────────────────────────────
 
   /**
    * Clear all chunks (for testing or reset).
@@ -1048,6 +1040,5 @@ export class ContextChunkIndex {
   }
 }
 
-// ─── Re-exports ───────────────────────────────────────────────────────────
 
 export type { ContentBlock }

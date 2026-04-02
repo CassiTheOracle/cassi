@@ -43,9 +43,7 @@ import {
 import type { BrainstemToolContext } from './brainstem-tools.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Configuration
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Configuration specific to the Brainstem mini-Helix mode.
@@ -64,9 +62,7 @@ export interface BrainstemMiniHelixConfig {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Brainstem Mini-Helix
-// ═══════════════════════════════════════════════════════════════════
 
 export class BrainstemMiniHelix {
   private session: MiniHelixSession | null = null
@@ -136,7 +132,6 @@ export class BrainstemMiniHelix {
   }
 
 
-  // ─── Public API (Constellation pipeline manages these) ─────────
 
   /** Start the sidecar monitoring loop */
   async start(): Promise<void> {
@@ -262,7 +257,6 @@ export class BrainstemMiniHelix {
   }
 
 
-  // ─── Internal ──────────────────────────────────────────────────
 
   private async runMonitoringLoop(): Promise<void> {
     if (!this.session || this.shutdownRequested) return
