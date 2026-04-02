@@ -32,9 +32,7 @@ export interface SearchOpts {
   minImportance?: number;
   /** If true, only return pinned memories. */
   pinnedOnly?: boolean;
-  /** Only return memories created after this time (inclusive). */
   timeAfter?: Date;
-  /** Only return memories created before this time (inclusive). */
   timeBefore?: Date;
 }
 
@@ -146,20 +144,12 @@ export interface IMemory {
   /** Expose the raw database handle for subsystems needing direct table access */
   getDb?(): import('better-sqlite3').Database;
 
-  // Session index methods (optional — for hierarchical message indexing)
-  /** Index a full session history. Returns the short label assigned to it. */
   indexSession?(sessionId: string, history: Message[]): string;
-  /** Incrementally index new messages from `fromMsgIdx` onwards. */
   indexIncremental?(sessionId: string, history: Message[], fromMsgIdx: number): string;
-  /** Resolve a compact session ref (e.g. "S0#M1.B0.P2") to its content. */
   resolveRef?(ref: string): IndexEntry[];
-  /** Full-text search across session indices. */
   searchIndex?(query: string, opts?: { label?: string; sessionId?: string; limit?: number }): IndexSearchResult[];
-  /** Get index stats for a session (by label or session ID). */
   indexStats?(labelOrSessionId: string): IndexStats | undefined;
-  /** Get or create a short label for a session ID. */
   getSessionLabel?(sessionId: string): string;
-  /** Resolve a label back to the full session ID. */
   getSessionIdFromLabel?(label: string): string | undefined;
 }
 
@@ -175,16 +165,9 @@ export interface ConversationTurn {
 }
 
 export interface IContinuity {
-  /** Save a conversation turn */
   saveTurn(turn: Omit<ConversationTurn, "id" | "timestamp">): Promise<void>;
-
-  /** Get recent turns for a session */
   getRecent(sessionId: string, limit?: number): Promise<ConversationTurn[]>;
-
-  /** Search conversation history semantically */
   searchHistory(query: string, limit?: number): Promise<ConversationTurn[]>;
-
-  /** Prune entries older than retentionDays */
   prune(retentionDays?: number): Promise<number>;
 }
 
@@ -199,13 +182,8 @@ export interface RecoveryPattern {
 }
 
 export interface IRecover {
-  /** Register a recovery pattern */
   register(pattern: RecoveryPattern): void;
-
-  /** Attempt recovery for an error. Returns strategy used or null if no match. */
   handleError(error: Error, context: Record<string, unknown>): Promise<RecoveryStrategy | null>;
-
-  /** Record a successful recovery */
   recordSuccess(errorPattern: string, strategy: RecoveryStrategy): Promise<void>;
 }
 
@@ -221,62 +199,51 @@ export interface ReflectionPattern {
 }
 
 export interface IReflect {
-  /** Add a new error/success pattern */
   add(entry: { pattern: string; category: string; fix?: string; context?: string }): Promise<string>;
-
-  /** Search for known patterns */
   search(query: string, limit?: number): Promise<ReflectionPattern[]>;
-
-  /** Resolve a pattern (mark as fixed) */
   resolve(id: string, fix: string): Promise<void>;
-
-  /** Get unresolved patterns */
   unresolved(limit?: number): Promise<ReflectionPattern[]>;
 }
 
 
 export interface ThinkerStats {
-  totalInsights: number;   // cumulative insights emitted
-  totalTurns: number;      // cumulative turns processed
-  totalToolCalls?: number; // cumulative tool calls processed
-  toolCallsUntilPonder?: number; // tool calls remaining until next ponder
+  totalInsights: number;
+  totalTurns: number;
+  totalToolCalls?: number;
+  toolCallsUntilPonder?: number;
   lastPonderAt?: Date;
   lastThinkAt?: Date;
   ponderInterval: number;
   thinkInterval: number;
-  ponderUnit?: 'tool-calls' | 'turns'; // what unit the intervals count
-  // New: cumulative number of insights emitted (distinct from totalTurns)
+  ponderUnit?: 'tool-calls' | 'turns';
   insightCount?: number;
-  recentToolActivity?: number; // count of recent tool calls in buffer
+  recentToolActivity?: number;
 }
 
 export interface IThinker {
-  /** Get current stats */
   stats(): Promise<ThinkerStats>;
-
-  /** Manually trigger a thinking cycle */
   think(depth: "Ponder" | "Think", signal?: AbortSignal): Promise<string>;
 }
 
 
 export type OptimizationAction =
-  | "summarize"       // inject summary, agent continues
-  | "steer"           // send corrective prompt
-  | "context-reset"   // kill + respawn with compressed context  
-  | "kill"            // terminate, no respawn
-  | "none"            // healthy, no action needed
+  | "summarize"
+  | "steer"
+  | "context-reset"
+  | "kill"
+  | "none"
 
 export interface SessionHealth {
   sessionKey: string
   label?: string
   model: string
   estimatedTokens: number
-  tokenVelocity: number      // tokens added per minute
-  outputVelocity: number     // distinct output chunks per minute
-  loopScore: number          // 0-1, higher = more repeated content
-  stuckScore: number         // 0-1, higher = no meaningful progress
+  tokenVelocity: number
+  outputVelocity: number
+  loopScore: number
+  stuckScore: number
   lastProgressAt: Date
-  runtime: number            // ms since session started
+  runtime: number
   interventionCount: number
   lastAction?: OptimizationAction
 }
@@ -285,8 +252,8 @@ export interface OptimizationDecision {
   sessionKey: string
   action: OptimizationAction
   reason: string
-  confidence: number         // 0-1
-  estimatedSavings?: number  // estimated tokens saved
+  confidence: number
+  estimatedSavings?: number
 }
 
 export interface OptimizationOutcome {
@@ -301,16 +268,9 @@ export interface OptimizationOutcome {
 }
 
 export interface IOptimizer {
-  /** Run an optimization cycle over all active sessions */
   optimize(): Promise<OptimizationDecision[]>
-
-  /** Get health score for a specific session */
   scoreSession(sessionKey: string): Promise<SessionHealth | null>
-
-  /** Get learned strategy weights (what has worked) */
   strategyWeights(): Promise<Record<OptimizationAction, number>>
-
-  /** Get recent optimization history */
   history(limit?: number): Promise<OptimizationOutcome[]>
 }
 
