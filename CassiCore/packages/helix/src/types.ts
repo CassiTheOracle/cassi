@@ -3,15 +3,15 @@
  *
  * Core types for the inverted-pyramid agent pattern.
  * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
- * and a Mentor overseeing the dialectic.
+ * and a Brainstem serving as cognitive organizer.
  *
  * Communication topology:
  *   Unity <-> Reviewers: WorkStream (work units, nudges)
  *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
- *   Mentor -> All:       Steering injection, context, synthesis
+ *   Brainstem -> Unity:  Guidance injection, annotations, pattern detection
  *
  * Named after the double helix trail of binary stars — Unity is the barycenter,
- * Yang and Yin are the orbiting stars, Mentor is the observer ensuring coherence.
+ * Yang and Yin are the orbiting stars, Brainstem is the cognitive organizer.
  */
 
 import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
@@ -20,8 +20,8 @@ import type { DyadRole } from '../dyad/types.js'
 import type { UnityStatusThresholds } from '../dyad/work-stream.js'
 
 
-/** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers) + mentor (moderator) */
-export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'> | 'mentor'
+/** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers). Mentor deprecated in favor of Brainstem. */
+export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'>
 
 
 export interface HelixProjectOpts {

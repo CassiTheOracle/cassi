@@ -97,7 +97,16 @@ export interface BrainstemConfig {
    * See BrainstemGuidanceMode for full description.
    */
   guidanceMode: BrainstemGuidanceMode
+  /** Minimum work units before deciding to activate reviewers (default: 3) */
+  reviewerActivationThreshold: number
+  /** If true, brainstem can defer reviewer activation for simple tasks */
+  lazyReviewerSpawning: boolean
+  /** Max tokens a reviewer can consume without producing a finding before termination (default: 200000) */
+  maxTokensPerFinding?: number
 }
+
+/** Action to take for a reviewer based on efficiency evaluation */
+export type ReviewerAction = 'continue' | 'warn' | 'terminate'
 
 export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   modelTier: 'background',
@@ -119,6 +128,9 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   heartbeatIntervalMs: 90_000,
   longReasoningTokenThreshold: 2_000,
   guidanceMode: 'safety-net-only',
+  reviewerActivationThreshold: 3,
+  lazyReviewerSpawning: true,
+  maxTokensPerFinding: 200_000,
 }
 
 // ─── Annotation Types ─────────────────────────────────────────────────────
@@ -269,6 +281,10 @@ export interface BrainstemState {
   cognitiveModel: CognitiveModel
   /** Flag set when Unity posts a significant Blackboard entry, triggers next heartbeat */
   pendingBlackboardTrigger: boolean
+  /** Tokens consumed by each reviewer posture */
+  reviewerTokens: { yang: number, yin: number }
+  /** Findings produced by each reviewer */
+  reviewerFindings: { yang: number, yin: number }
 }
 
 export function createInitialBrainstemState(): BrainstemState {
@@ -290,6 +306,8 @@ export function createInitialBrainstemState(): BrainstemState {
     longReasoningCount: 0,
     cognitiveModel: createInitialCognitiveModel(),
     pendingBlackboardTrigger: false,
+    reviewerTokens: { yang: 0, yin: 0 },
+    reviewerFindings: { yang: 0, yin: 0 },
   }
 }
 
@@ -375,6 +393,12 @@ export interface BrainstemDeps {
    * something. Only present in Constellation mode.
    */
   escalateToCorpus?: (reason: string, context: Record<string, unknown>) => void
+
+  /**
+   * Phase 7: Callback to persist training signals to the ConstellationStore.
+   * Called when an annotation is processed.
+   */
+  persistTrainingSignal?: (annotation: BrainstemAnnotation) => Promise<void>
 }
 
 /**

@@ -44,6 +44,7 @@ import type {
   GuidanceUrgency,
   UnityReport,
   CognitiveModel,
+  ReviewerAction,
 } from './brainstem-types.js'
 import {
   DEFAULT_BRAINSTEM_CONFIG,
@@ -207,6 +208,78 @@ export class HelixBrainstem {
   drainUnityReports(): UnityReport[] {
     const reports = this.unityReportQueue.splice(0)
     return reports
+  }
+
+  /**
+   * Evaluate whether the task needs active reviewers based on early work units.
+   * Returns true if reviewers should be activated, false if task is simple enough to skip.
+   * Decision factors: goal alignment trajectory, number of files touched, task complexity.
+   */
+  shouldActivateReviewers(): boolean {
+    if (!this.config.lazyReviewerSpawning) return true
+    if (this.state.workUnitsProcessed < this.config.reviewerActivationThreshold) return true // not enough data yet
+
+    // Check quality trajectory — if consistently high goal alignment, skip reviewers
+    const recentScores = this.state.qualityTrajectory.slice(-this.config.reviewerActivationThreshold)
+    const avgScore = recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+
+    // Check for patterns that suggest complexity
+    if (this.state.totalPatternDetections > 0) return true // patterns detected = needs review
+
+    // High average score with no patterns = simple task, skip reviewers
+    return avgScore < 0.7
+  }
+
+  /**
+   * Check if a reviewer should be terminated due to poor token efficiency.
+   * Returns 'continue', 'warn', or 'terminate' for each reviewer.
+   */
+  evaluateReviewerEfficiency(): { yang: ReviewerAction, yin: ReviewerAction } {
+    const threshold = this.config.maxTokensPerFinding ?? 200_000
+    const result = { yang: 'continue' as ReviewerAction, yin: 'continue' as ReviewerAction }
+
+    for (const role of ['yang', 'yin'] as const) {
+      const tokens = this.state.reviewerTokens[role]
+      const findings = this.state.reviewerFindings[role]
+      if (tokens > threshold && findings === 0) {
+        result[role] = 'terminate'
+      } else if (tokens > threshold * 0.7 && findings === 0) {
+        result[role] = 'warn'
+      }
+    }
+    return result
+  }
+
+  /**
+   * Phase 5: Evaluate reviewer efficiency and inject guidance to terminate unproductive reviewers.
+   * Called after each work unit processing cycle.
+   */
+  private evaluateReviewerEfficiencyAndInjectGuidance(): void {
+    const efficiency = this.evaluateReviewerEfficiency()
+
+    for (const [role, action] of Object.entries(efficiency) as Array<[string, ReviewerAction]>) {
+      if (action === 'terminate') {
+        this.queueGuidance({
+          urgency: 'high',
+          triggeredBy: 'none' as DetectedPattern, // Using 'none' as fallback — reviewer-efficiency is external trigger
+          text: `REVIEWER TERMINATION NOTICE: The ${role.toUpperCase()} reviewer has consumed excessive tokens without producing findings. ` +
+            `You must conclude your review immediately and post your final conclusion. Do not continue investigating.`,
+          fromStep: this.state.currentAxonStep,
+          timestamp: Date.now(),
+        })
+        this.logger.warn('Reviewer termination guidance injected', { role, action })
+      } else if (action === 'warn') {
+        this.queueGuidance({
+          urgency: 'medium',
+          triggeredBy: 'none' as DetectedPattern,
+          text: `REVIEWER EFFICIENCY WARNING: The ${role.toUpperCase()} reviewer is consuming tokens without producing findings. ` +
+            `Consider wrapping up your investigation and posting conclusions soon.`,
+          fromStep: this.state.currentAxonStep,
+          timestamp: Date.now(),
+        })
+        this.logger.info('Reviewer efficiency warning injected', { role, action })
+      }
+    }
   }
 
   /**
@@ -872,6 +945,16 @@ PROGRESS: <number 0-1>
       }))
       this.pushToCorpusTree(annotation, tcSummaries)
 
+      // Phase 7: Persist training signal to ConstellationStore
+      if (this.deps.persistTrainingSignal) {
+        this.deps.persistTrainingSignal(annotation).catch(err => {
+          this.logger.warn('Failed to persist training signal', {
+            workUnitId: workUnit.id,
+            error: String(err),
+          })
+        })
+      }
+
       // Shared Thought Tree: publish digest, detect topics, self-organize
       this.publishDigest(annotation)
       this.detectAndPublishTopics()
@@ -885,6 +968,9 @@ PROGRESS: <number 0-1>
       // Score context chunks based on annotation quality
       // Pin file-read results from high-scoring iterations, boost recent references
       this.scoreContextChunks(annotation)
+
+      // Phase 5: Evaluate reviewer efficiency and inject guidance if needed
+      this.evaluateReviewerEfficiencyAndInjectGuidance()
 
       this.logger.debug('Work unit processed', {
         workUnitId: workUnit.id,

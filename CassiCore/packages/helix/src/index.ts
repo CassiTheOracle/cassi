@@ -2,12 +2,12 @@
  * Helix — Inverted-Pyramid Agent Pattern
  *
  * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
- * and a Mentor overseeing the dialectic.
+ * and a Brainstem serving as cognitive organizer.
  *
  * Communication topology:
  *   Unity <-> Reviewers: WorkStream (work units, nudges)
  *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
- *   Mentor -> All:       Steering injection, context, synthesis
+ *   Brainstem -> Unity:  Guidance injection, annotations, pattern detection
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
@@ -504,7 +504,7 @@ export function createHelix(
         const unityOverride = storedModelDirective?.resolve(opts.jobId, 'helix.unity')
         const yangOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yang')
         const yinOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yin')
-        const mentorOverride = storedModelDirective?.resolve(opts.jobId, 'helix.mentor')
+        // Mentor path removed — Brainstem is the cognitive organizer
 
         const [unityHandle, yangHandle, yinHandle] = await Promise.all([
           effectiveModelPool.acquire('unity', undefined, sessionId, unityOverride),
@@ -512,15 +512,8 @@ export function createHelix(
           effectiveModelPool.acquire('yin', undefined, sessionId, yinOverride),
         ])
 
-        // Mentor handle is optional — only acquire if a model override is configured
-        let mentorHandle: import('../../model-pool/types.js').ModelHandle | undefined
-        if (mentorOverride) {
-          try {
-            mentorHandle = await effectiveModelPool.acquire('mentor', undefined, sessionId, mentorOverride)
-          } catch (err) {
-            logger.warn('helix:mentor:handle-acquisition-failed', { error: String(err), sessionId })
-          }
-        }
+        // Legacy mentorHandle — no-op for backward compat
+        const mentorHandle: undefined = undefined
 
         // Create BrainstemDeps with a model-pool-based LLM adapter
         let brainstemDeps: import('./brainstem-types.js').BrainstemDeps | undefined
@@ -610,7 +603,7 @@ export function createHelix(
             unityHandle,
             yangHandle,
             yinHandle,
-            mentorHandle,
+            mentorHandle, // Legacy — ignored by pipeline (Brainstem used instead)
             toolExecutor: storedToolExecutor,
             toolRegistry: storedToolRegistry,
             store: storedStore,

@@ -8,6 +8,13 @@
  *
  * The double-helix metaphor: Unity moves forward through the problem space.
  * Yang and Yin orbit it, their dialectic interaction stabilizing the output.
+ *
+ * TODO Phase 6: Active reviewer mode
+ * - Change runAsReviewer() from "wait for work unit → investigate → wait" to active investigation
+ * - Reviewers get goal + context upfront (like Unity)
+ * - Work units from Unity serve as investigation seeds, not the primary driver
+ * - Yang actively advocates for promising approaches and posts findings
+ * - Yin actively stress-tests, searches for edge cases, and posts challenges
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
@@ -350,13 +357,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Stream inference
         const result = await this.streamInference(tools)
         this.tokensUsed += result.tokensUsed
-        // WorkStream only tracks DyadRole (yang|yin|apex|unity) — mentor is tracked via posture result
-        if (this.role !== 'mentor') {
-           // WorkStream only tracks DyadRole (yang|yin|apex|unity) — mentor tracked via posture result
-           if ((this.role as string) !== 'mentor') {
-             this.workStream.recordIteration(this.role as any, result.tokensUsed)
-           }
-        }
+        // WorkStream tracks iterations for yang/yin reviewers
+        this.workStream.recordIteration(this.role as any, result.tokensUsed)
         this.onActivity?.()
 
         if (!result.hasToolUse) {
@@ -559,13 +561,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Stream inference — reviewer investigates and decides on findings/nudges
         const result = await this.streamInference(tools)
         this.tokensUsed += result.tokensUsed
-        // WorkStream only tracks DyadRole (yang|yin|apex|unity) — mentor is tracked via posture result
-        if (this.role !== 'mentor') {
-           // WorkStream only tracks DyadRole (yang|yin|apex|unity) — mentor tracked via posture result
-           if ((this.role as string) !== 'mentor') {
-             this.workStream.recordIteration(this.role as any, result.tokensUsed)
-           }
-        }
+        // WorkStream tracks iterations for yang/yin reviewers
+        this.workStream.recordIteration(this.role as any, result.tokensUsed)
         this.onActivity?.()
 
         if (!result.hasToolUse && !this.concluded) {
@@ -818,11 +815,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     // Record to WorkStream (cast to DyadRole — WorkStream API expects DyadRole but data is string-keyed)
     for (const tc of toolCalls) {
-      // WorkStream only tracks DyadRole — skip for mentor
-      if (this.role !== 'mentor') {
-        const argsSummary = this.extractArgsSummary(tc.name, tc.input)
-        this.workStream.recordToolCall(this.role as any, tc.name, false, argsSummary)
-      }
+      const argsSummary = this.extractArgsSummary(tc.name, tc.input)
+      this.workStream.recordToolCall(this.role as any, tc.name, false, argsSummary)
     }
 
     return results
@@ -1380,9 +1374,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     const confidence = typeof input.confidence === 'number' ? input.confidence : 0.5
 
     this.concluded = true
-    if (this.role !== 'mentor') {
-      this.workStream.recordRoleConclusion(this.role as any, false)
-    }
+    this.workStream.recordRoleConclusion(this.role as any, false)
 
     this.logger.info(`${this.role} review complete`, {
       conclusion: conclusion.slice(0, 100),
@@ -1704,9 +1696,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       userContent += '\n\n## Instructions\n\nBegin implementation work now. ' +
         'Read the goal carefully, then start making progress using the available tools. ' +
         'Reviewers will observe the work asynchronously and provide feedback if needed.'
-    } else if (role === 'mentor') {
-      userContent += '\n\n## Instructions\n\nAs the moderator, watch the dialectic and the work stream. ' +
-        'Intervene only when it can materially improve the session: steer, flag, dispatch research, force conclusion, or synthesize.'
     } else {
       userContent += `\n\n## Instructions\n\nAs the ${role.toUpperCase()} reviewer, observe the implementation work stream. ` +
         'Work units will appear as progress is made. ' +
@@ -1875,9 +1864,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     this.messages.push({
       role: 'user',
-        content: this.role === 'mentor'
-          ? `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages: decide whether to steer, flag, dispatch research, force conclusion, or synthesize.`
-          : `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages: challenge findings where there is disagreement, concede valid challenges, and share new findings.`,
+      content: `--- Dialectic Channel ---\n\n${drained}\n\n---\n\nProcess these messages: challenge findings where there is disagreement, concede valid challenges, and share new findings.`,
     })
 
     return true
@@ -1896,9 +1883,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       ...toolResults,
       {
         type: 'text' as const,
-        text: this.role === 'mentor'
-          ? `\n--- Mentor Channel ---\n${drained}\n---`
-          : `\n--- Dialectic Channel ---\n${drained}\n---`,
+        text: `\n--- Dialectic Channel ---\n${drained}\n---`,
       },
     ]
   }
@@ -2160,20 +2145,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private buildPostureResult(startTime: number): HelixPostureResult {
     const durationMs = Date.now() - startTime
 
-    // Mentor: extract synthesis data into structured result
-    if (this.role === 'mentor' && this.mentorSynthesis) {
-      return {
-        conclusion: this.mentorSynthesis.synthesis.slice(0, 500) || `Mentor synthesized: ${this.mentorSynthesis.recommendation}`,
-        confidence: this.mentorSynthesis.confidence,
-        keyPoints: this.mentorSynthesis.keyFindings,
-        iterationCount: this.iterationCount,
-        toolCallCount: this.toolCallCount,
-        tokensUsed: this.tokensUsed,
-        durationMs,
-        recommendation: this.mentorSynthesis.recommendation,
-        remainingRisks: this.mentorSynthesis.remainingRisks,
-      }
-    }
+    // Mentor path removed — Brainstem is the cognitive organizer
+    // Legacy mentorSynthesis field retained for backward compat but unused
 
     return {
       conclusion: this.signalDoneConclusion || (this.concluded ? `${this.role} completed` : `${this.role} stopped`),

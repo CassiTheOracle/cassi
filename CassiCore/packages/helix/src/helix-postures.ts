@@ -1,19 +1,19 @@
 /**
  * Helix Postures — System prompts for the inverted-pyramid agent pattern.
  *
- * Four roles:
+ * Three roles:
  *   - Unifying (unity): Primary implementer, full tool access, creates artifacts
  *   - Expansive (yang): Investigates work, advocates for strengths,
  *     debates with contractive direction via DialecticChannel
  *   - Contractive (yin): Stress-tests work, finds risks and issues,
  *     debates with expansive direction via DialecticChannel
- *   - Mentor (moderator): Observes dialectic, injects steering, forces conclusions,
- *     synthesizes final output
+ *
+ * Brainstem is the cognitive organizer (replaces Mentor).
  *
  * Communication:
  *   Builder <-> Reviewers: WorkStream (work units from builder, nudges from reviewers)
  *   Expansive <-> Contractive: DialecticChannel (findings, challenges, concessions)
- *   Mentor -> All: Steering injection, context, synthesis
+ *   Brainstem -> Unity: Guidance injection, annotations, pattern detection
  *
  * All prompts are composed from the global posture store (shared/posture-store.ts).
  */
@@ -52,7 +52,8 @@ export const YIN_POSTURE: HelixPosture = {
 }
 
 
-// ─── Mentor System Prompt ──────────────────────────────────────────────────
+// ─── Mentor System Prompt (DEPRECATED) ─────────────────────────────────────
+// @deprecated Mentor path removed in favor of Brainstem. Kept for backward compat only.
 
 const MENTOR_SYSTEM_PROMPT = `You are the Mentor — the dialectic moderator of this Helix session.
 
@@ -99,6 +100,7 @@ You also have read access to:
 `
 
 
+/** @deprecated Mentor path removed — use Brainstem instead. Retained for backward compat. */
 export const MENTOR_POSTURE: HelixPosture = {
   name: 'mentor',
   temperature: 0.5,
@@ -122,11 +124,16 @@ export const YIN_REVIEWER_POSTURE = YIN_POSTURE
 
 /**
  * Get posture by name with type safety.
+ * Note: 'mentor' is deprecated — use Brainstem instead.
  */
 export function getPosture(name: 'unity' | 'yang' | 'yin' | 'mentor'): HelixPosture {
   return HELIX_POSTURES[name]
 }
 
+/**
+ * Get all active postures (Unity, Yang, Yin).
+ * Note: Mentor is deprecated — Brainstem is the cognitive organizer.
+ */
 export function getAllPostures(): HelixPosture[] {
-  return [UNITY_POSTURE, YANG_POSTURE, YIN_POSTURE, MENTOR_POSTURE]
+  return [UNITY_POSTURE, YANG_POSTURE, YIN_POSTURE]
 }

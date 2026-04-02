@@ -1,16 +1,16 @@
 /**
  * Helix Pipeline — Orchestrator for the inverted-triangle agent pattern.
  *
- * Wires four concurrent postures:
+ * Wires three concurrent postures plus Brainstem:
  *   - Unity (worker): Full tools, posts work units via WorkStream
  *   - Yang (assertive reviewer): Read-only tools, DialecticChannel + WorkStream
  *   - Yin (cautious reviewer): Read-only tools, DialecticChannel + WorkStream
- *   - Mentor (moderator): Read-only tools, observes dialectic, steers + synthesizes
+ *   - Brainstem (cognitive organizer): Replaces Mentor, scores work units, detects patterns
  *
  * Channels:
  *   - WorkStream: Unity ↔ reviewers (work units up, nudges down)
  *   - DialecticChannel: Yang ↔ Yin (findings, challenges, concessions)
- *   - Blackboard: Mentor → all (steering, flags, synthesis)
+ *   - Blackboard: Brainstem → Unity (guidance, flags, annotations)
  *
  * Watchdog: steer-then-kill (2min warn → 4min escalate → 6min kill)
  */
@@ -30,7 +30,7 @@ import { HelixCoordinator, HelixWorkStream, HelixDialecticMesh } from './helix-c
 import { HelixPostureRunner } from './helix-posture-runner.js'
 import { ContextChunkIndex } from './context-chunk-index.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
-import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE, MENTOR_POSTURE } from './helix-postures.js'
+import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
 import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
@@ -60,6 +60,7 @@ export interface HelixPipelineOpts {
   unityHandle: ModelHandle
   yangHandle: ModelHandle
   yinHandle: ModelHandle
+  /** @deprecated Mentor path removed — use brainstemDeps instead. Field retained for backward compat but ignored. */
   mentorHandle?: ModelHandle
 
   // Infrastructure
@@ -178,7 +179,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   // ── Create Brainstem (replaces Mentor when brainstemDeps provided) ─────
 
   const useBrainstem = !!opts.brainstemDeps
-  const useMentor = !useBrainstem && !!opts.mentorHandle
   let brainstem: HelixBrainstem | undefined
 
   // Create Unity's chunk index early so brainstem can reference it
@@ -311,37 +311,26 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     contextChunkIndex: yinChunkIndex,
   })
 
-  // Mentor only created if brainstem is NOT being used and mentorHandle is provided
-  const mentorSession = useMentor ? new HelixPostureRunner({
-    ...commonOpts,
-    role: 'mentor',
-    handle: opts.mentorHandle!,
-    posture: MENTOR_POSTURE,
-    postureSlot: 'helix.mentor',
-    dialecticChannel,
-    contextBudgetCoordinator,
-    researchSpawner: opts.researchSpawner,
-  }) : null
+  // Mentor path removed — Brainstem is the only cognitive organizer
+  // Legacy mentorHandle field retained for backward compat but ignored
 
   cancelFns.push(
     () => unitySession.cancel(),
     () => yangSession.cancel(),
     () => yinSession.cancel(),
   )
-  if (mentorSession) cancelFns.push(() => mentorSession.cancel())
 
 
-  // ── Brainstem Dialectic Feed ───────────────────────────────────────
-  // Drain the 'mentor' cursor from the DialecticChannel periodically,
-  // formatting messages as strings and feeding them to the Brainstem.
+  // ── Brainstem Dialectic Feed (Event-Driven) ─────────────────────────
+  // Drain the 'mentor' cursor from the DialecticChannel when dialectic events occur.
+  // Uses a small debounce to batch rapid dialectic exchanges.
   // This replaces the Mentor's direct dialecticChannel access.
 
-  let dialecticFeedInterval: ReturnType<typeof setInterval> | null = null
+  let dialecticFeedTimer: ReturnType<typeof setTimeout> | null = null
+  const DIALECTIC_FEED_DEBOUNCE_MS = 200
 
   if (brainstem) {
-    const DIALECTIC_POLL_MS = 5_000
-
-    dialecticFeedInterval = setInterval(() => {
+    const feedDialecticToBrainstem = () => {
       try {
         const drained = dialecticChannel.drainForPosture('mentor')
         if (drained && drained.length > 0) {
@@ -351,9 +340,25 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       } catch {
         // Dialectic drain failure is non-fatal
       }
-    }, DIALECTIC_POLL_MS)
+    }
 
-    log.info('Brainstem dialectic feed started', { pollMs: DIALECTIC_POLL_MS })
+    // Subscribe to dialectic events for push-based feed
+    const dialecticEventTypes = [
+      'dialectic:finding',
+      'dialectic:challenge',
+      'dialectic:concession',
+      'dialectic:investigation_request',
+    ]
+
+    for (const eventType of dialecticEventTypes) {
+      opts.eventBus?.on(eventType as any, () => {
+        // Debounce to batch rapid dialectic exchanges
+        if (dialecticFeedTimer) clearTimeout(dialecticFeedTimer)
+        dialecticFeedTimer = setTimeout(feedDialecticToBrainstem, DIALECTIC_FEED_DEBOUNCE_MS)
+      })
+    }
+
+    log.info('Brainstem dialectic feed started (event-driven, debounce=' + DIALECTIC_FEED_DEBOUNCE_MS + 'ms)')
   }
 
 
@@ -433,6 +438,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   // ── Run All Postures Concurrently ─────────────────────────────────────
 
+  // TODO Phase 4: Lazy reviewer spawning
+  // - Delay Yang/Yin startup by configurable amount (wait for brainstem to process N work units)
+  // - Call brainstem.shouldActivateReviewers() to decide whether to skip reviewers
+  // - If false, don't start reviewers at all; if true, start them after delay
+  // For now, reviewers start immediately (existing behavior)
+
   try {
     const postures: Promise<HelixPostureResult>[] = [
       // Unity: continuous worker loop
@@ -478,25 +489,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         }),
     ]
 
-    // Mentor runs concurrently if available (dedicated moderator loop)
-    // Only if Brainstem is NOT being used
-    if (mentorSession) {
-      postures.push(
-        mentorSession.runAsMentor(opts.goal, opts.context)
-          .catch(err => {
-            log.error('Mentor failed', { error: String(err) })
-            opts.store?.appendEvent(sessionId, 'helix:role:failed', 'mentor', String(err))
-            opts.eventBus?.emit({ type: 'helix:role:failed' as any, sessionId, role: 'mentor', error: String(err) } as any)
-            return buildErrorResult(err)
-          })
-          .finally(() => {
-            opts.store?.appendEvent(sessionId, 'helix:role:completed', 'mentor', 'Mentor completed')
-            opts.eventBus?.emit({ type: 'helix:role:completed' as any, sessionId, role: 'mentor' } as any)
-            onActivity()
-          })
-      )
-    }
-
     const settled = await Promise.allSettled(postures)
 
 
@@ -508,8 +500,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     const unityResult = extract(settled[0])
     const yangResult = extract(settled[1])
     const yinResult = extract(settled[2])
-    // mentorResult only exists if Mentor was used (not Brainstem)
-    const mentorResult = mentorSession && settled[3] ? extract(settled[3]) : buildErrorResult('Mentor not configured')
+    // Mentor path removed — Brainstem is the only cognitive organizer
 
     const pipelineStats = workStream.getStats()
     const dialecticStats = dialecticChannel.getStats()
@@ -531,9 +522,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       unityStatus: unityResult.error ? 'errored' : 'completed',
       yangStatus: yangResult.error ? 'errored' : 'completed',
       yinStatus: yinResult.error ? 'errored' : 'completed',
-      mentorStatus: useBrainstem
-        ? (brainstem ? 'completed' : 'not-started')
-        : (mentorSession ? (mentorResult.error ? 'errored' : 'completed') : 'not-started'),
+      mentorStatus: brainstem ? 'completed' : 'not-started',
       degraded: !!(unityResult.error || yangResult.error || yinResult.error),
     }
 
@@ -541,14 +530,14 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       unitySummary: unityResult.conclusion,
       yangSummary: yangResult.conclusion,
       yinSummary: yinResult.conclusion,
-      mentorSynthesis: mentorSession ? mentorResult.conclusion : undefined,
+      mentorSynthesis: undefined,
 
       unityConclusion: unityResult.conclusion,
       yangConclusion: yangResult.conclusion,
       yinConclusion: yinResult.conclusion,
-      mentorConclusion: useBrainstem
-        ? (brainstemResult ? `Brainstem: ${brainstemResult.annotations.length} annotations, avg score ${brainstemResult.averageScore.toFixed(2)}` : '')
-        : (mentorSession ? mentorResult.conclusion : ''),
+      mentorConclusion: brainstemResult
+        ? `Brainstem: ${brainstemResult.annotations.length} annotations, avg score ${brainstemResult.averageScore.toFixed(2)}`
+        : '',
 
       convergencePoints,
       unresolvedTensions: unresolvedChallenges.map(c => ({
@@ -575,19 +564,19 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         unity: unityResult.tokensUsed,
         yang: yangResult.tokensUsed,
         yin: yinResult.tokensUsed,
-        mentor: useBrainstem ? 0 : mentorResult.tokensUsed,
+        mentor: 0,
       },
       iterationCounts: {
         unity: unityResult.iterationCount,
         yang: yangResult.iterationCount,
         yin: yinResult.iterationCount,
-        mentor: useBrainstem ? 0 : mentorResult.iterationCount,
+        mentor: 0,
       },
       toolCallCounts: {
         unity: unityResult.toolCallCount,
         yang: yangResult.toolCallCount,
         yin: yinResult.toolCallCount,
-        mentor: useBrainstem ? 0 : mentorResult.toolCallCount,
+        mentor: 0,
       },
 
       durationMs: Date.now() - startTime,
@@ -632,7 +621,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   } finally {
     clearInterval(watchdogInterval)
     clearTimeout(timeoutHandle)
-    if (dialecticFeedInterval) clearInterval(dialecticFeedInterval)
+    if (dialecticFeedTimer) clearTimeout(dialecticFeedTimer)
 
     // Stop Brainstem if running
     if (brainstem) {
@@ -648,6 +637,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     try { opts.unityHandle.release() } catch { /* best-effort */ }
     try { opts.yangHandle.release() } catch { /* best-effort */ }
     try { opts.yinHandle.release() } catch { /* best-effort */ }
+    // Legacy mentorHandle release — no-op for backward compat (Mentor path removed)
     if (opts.mentorHandle) {
       try { opts.mentorHandle.release() } catch { /* best-effort */ }
     }
