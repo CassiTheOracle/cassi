@@ -158,17 +158,15 @@ export type RuntimeEvent =
   | { type: "team:resumed"; teamId: string }
   | { type: "team:budget:warning"; teamId: string; tokenPct: number; agentPct: number; timePct: number }
    | { type: "team:checkpoint"; teamId: string; checkpointId: string; trigger: string; progress: string }
-   // FluxTeam node-level execution signals
-   | { type: "flux:node:completed"; teamId: string; cellId: string; nodeId: string; genomeId: string; success: boolean; confidence: number; tokensUsed: number; durationMs: number; toolCallCount: number }
-   // FluxTeam lifecycle events (all FluxTeamEventType variants wrapped in a single envelope)
-   | { type: "flux:event"; event: FluxTeamEvent }
-   // Cross-session awareness events
+    // WHY: FluxTeam node-level signals provide fine-grained execution tracking for genome-based team orchestration
+    | { type: "flux:node:completed"; teamId: string; cellId: string; nodeId: string; genomeId: string; success: boolean; confidence: number; tokensUsed: number; durationMs: number; toolCallCount: number }
+    // HOW: FluxTeam lifecycle events wrap all FluxTeamEventType variants in a single envelope for unified event handling
+    | { type: "flux:event"; event: FluxTeamEvent }
+    // WHY: Cross-session awareness enables sessions to communicate and share context across concurrent executions
   | { type: "session:created"; sessionId: string; channelId: string; senderId: string; timestamp: Date }
   | { type: "session:ended"; sessionId: string; timestamp: Date }
   | { type: "cross-session:message"; fromSessionId: string; toSessionId: string; messageId: string; content: string; timestamp: Date }
-  // Reflex module events — autonomic tool execution triggered by subconscious thinking
-
-  // Drone swarm events — lightweight parallel agent execution
+  // WHY: Drone swarm enables lightweight parallel agent execution with speculative branching and cache optimization
   | { type: "drone:spawned"; droneId: string; swarmId: string; role: string; parentSessionId: string; timestamp: Date }
   | { type: "drone:completed"; droneId: string; swarmId: string; role: string; tokensUsed: number; durationMs: number; requestId?: string; timestamp: Date }
   | { type: "drone:failed"; droneId: string; swarmId: string; role: string; error: string; retryCount: number; timestamp: Date }
@@ -184,7 +182,7 @@ export type RuntimeEvent =
   | { type: "drone:autonomous-probe:triggered"; source: "thinker" | "subconscious" | "dialectic"; reason: string; priority: "low" | "medium" | "high"; probeCount: number; timestamp: Date }
   | { type: "drone:autonomous-probe:completed"; source: "thinker" | "subconscious" | "dialectic"; success: boolean; signalCount: number; tokensUsed: number; durationMs: number; timestamp: Date }
   | { type: "drone:cache-hit"; droneId: string; swarmId: string; cacheKey: string; timestamp: Date }
-  // Consciousness events — emitted by the Subconscious conscious observer
+  // WHY: Consciousness events enable meta-cognitive observation, anomaly detection, and cross-session correlation for self-aware behavior
   | {
       type: "consciousness:observation";
       sessionId?: string;
@@ -576,34 +574,34 @@ export type RuntimeEvent =
       thinkingCharsProcessed: number;
       timestamp: Date;
     }
-  // Lumen concurrent orchestration events
+  // WHY: Lumen concurrent orchestration enables parallel Yang/Yin/Executive model execution with posture-based reasoning
   | { type: "lumen:start"; sessionId?: string; goal: string; timestamp: Date }
   | { type: "lumen:posture:start"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; timestamp: Date }
   | { type: "lumen:posture:complete"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
   | { type: "lumen:posture:error"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; error: string; timestamp: Date }
   | { type: "lumen:complete"; sessionId?: string; recommendation: 'proceed' | 'reconsider' | 'abort'; confidence: number; durationMs: number; timestamp: Date }
 
-  // Axon events (collect_thoughts structured thinking)
+  // WHY: Axon provides structured thinking with explicit step tracking and branching for complex reasoning workflows
   | { type: "axon:step"; sessionId: string; axonSessionId: string; step: number; totalSteps: number; thought: string; signals: CognitiveSignal[]; branchId: string; isRevision: boolean; timestamp: Date }
   | { type: "axon:branch"; sessionId: string; axonSessionId: string; fromStep: number; branchId: string; timestamp: Date }
   | { type: "axon:complete"; sessionId: string; axonSessionId: string; totalSteps: number; summary: string; timestamp: Date }
 
-  // Synapse events
+  // WHY: Synapse fires cognitive signals when patterns are detected during Axon thinking steps
   | { type: "synapse:fired"; sessionId: string; axonSessionId: string; step: number; reason: string; latencyMs: number; hasGuidance: boolean; remaining: number; energy?: string; timestamp: Date }
 
-  // Brainstem events (cognitive organizer)
+  // WHY: Brainstem organizes cognitive patterns and provides urgency-based guidance during thinking workflows
   | { type: "brainstem:annotation"; sessionId: string; workUnitId: string; score: number; annotation: string; pattern: string; guidance?: string; axonStep: number; timestamp: Date }
   | { type: "brainstem:pattern"; sessionId: string; pattern: string; severity: string; axonStep: number; timestamp: Date }
   | { type: "brainstem:guidance"; sessionId: string; urgency: string; triggeredBy: string; text: string; axonStep: number; timestamp: Date }
 
-  // Corpus events (constellation-level organizer)
+  // WHY: Corpus provides constellation-level organization, pattern detection across Helix sessions, and intervention directives
   | { type: "corpus:sweep"; constellationId: string; branches: number; patterns: number; sweepCount: number; timestamp: Date }
   | { type: "corpus:pattern"; constellationId: string; pattern: string; helixIds: string[]; severity: string; description: string; timestamp: Date }
   | { type: "corpus:intervention"; constellationId: string; targetHelixId: string; directiveType: string; urgency: string; reason: string; timestamp: Date }
   | { type: "corpus:spawn-evaluated"; constellationId: string; requestId: string; approved: boolean; reason: string; timestamp: Date }
   | { type: "corpus:synthesis"; constellationId: string; synthesis: string; timestamp: Date }
 
-  // Cognitive feed steering events (from Telegram observation group)
+  // WHY: Cognitive feed steering enables human operators to observe and intervene in cognitive workflows via Telegram
   | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
   | { type: "cognitive-feed:steering:pause"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
   | { type: "cognitive-feed:steering:resume"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
@@ -611,7 +609,7 @@ export type RuntimeEvent =
   | { type: "cognitive-feed:steering:approve"; teamId?: string; feedback?: string; fromUserId: number; timestamp: number }
   | { type: "cognitive-feed:steering:reject"; teamId?: string; feedback?: string; fromUserId: number; timestamp: number }
 
-  // VyBit visual editing integration events
+  // WHY: VyBit integration enables visual editing workflows with commit tracking, patch implementation, and bug reporting
   | { type: "vybit:connected"; projectPath: string; port: number; timestamp: Date }
   | { type: "vybit:disconnected"; reason: string; timestamp: Date }
   | { type: "vybit:change_committed"; commitId: string; patchCount: number; kinds: string[]; timestamp: Date }
