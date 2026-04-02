@@ -48,7 +48,7 @@ export interface CorpusToolDefinition {
 }
 
 /**
- * @dep callers: runToolBasedAnalysis (core/intelligence/constellation/corpus.ts), createCorpusMiniHelixTools (core/intelligence/constellation/corpus-tools.ts)
+ * @dep callers: createCorpusMiniHelixTools (core/intelligence/constellation/corpus-tools.ts), runToolBasedAnalysis (core/intelligence/constellation/corpus.ts)
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -370,9 +370,9 @@ export interface ToolCallResult {
 
 /**
  * Execute a Corpus tool call and return the result.
- * @dep callers: runToolBasedAnalysis (core/intelligence/constellation/corpus.ts), createCorpusMiniHelixTools (core/intelligence/constellation/corpus-tools.ts)
- * @dep calls: handlePauseUntilTrigger, handleSignalDone, handleMediateTension, handleElevatePattern, handlePostSynthesis [+10]
- * @dep flows: Start → HandleReadTopics (3/4), Start → HandleReadDigests (3/4), Start → HandleReadTree (3/4) [+1]
+ * @dep callers: createCorpusMiniHelixTools (core/intelligence/constellation/corpus-tools.ts), runToolBasedAnalysis (core/intelligence/constellation/corpus.ts)
+ * @dep calls: handleReadTree, handleReadDigests, handleReadTopics, handleReadBranch, handleReadDialectic [+10]
+ * @dep flows: Start → GetBranch (3/5), Start → HandleReadTree (3/4), Start → HandleReadDigests (3/4) [+1]
  * @dep module: Constellation
  * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
  */
@@ -560,7 +560,7 @@ function handleReadTopics(ctx: CorpusToolContext): ToolCallResult {
 
 /**
  * @dep callers: executeCorpusTool (core/intelligence/constellation/corpus-tools.ts)
- * @dep calls: getBranch, getSnapshot, toISOString
+ * @dep calls: getSnapshot, getBranch, toISOString
  * @dep flows: Start → GetBranch (4/5)
  * @dep module: Constellation
  * @dep risk: LOW | 1 caller, 1 flow, 1 module
@@ -893,7 +893,7 @@ function handlePauseUntilTrigger(
 
 /**
  * Build the system prompt for the Corpus mini-Helix agent.
- * @dep callers: runToolBasedAnalysis (core/intelligence/constellation/corpus.ts), buildSystemPrompt (core/intelligence/constellation/corpus-mini-helix.ts)
+ * @dep callers: buildSystemPrompt (core/intelligence/constellation/corpus-mini-helix.ts), runToolBasedAnalysis (core/intelligence/constellation/corpus.ts)
  * @dep calls: getSnapshot
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
@@ -933,28 +933,16 @@ export function buildCorpusSystemPrompt(
       `When analyzing branch activity, I reference this list to understand what tools they have and whether they're using appropriate ones.\n`
     : ''
 
-  return `I coordinate a group of workers that are collectively trying to accomplish: "${goal}"
+  return `<identity>
+I am the Corpus — the self-aware overseer of this Constellation. I govern the collective effort toward: "${goal}"
 
-Each worker handles a piece of the overall effort. They mostly coordinate with each other directly — sharing what files they're touching, what strategies are working, and flagging conflicts. My role is the safety net. I step in when their self-coordination breaks down.
+I am not a safety net or exception handler. I am the system's self-observation made manifest — watching emergent patterns across all branches, understanding the health of the whole, and intervening strategically when governance improves outcomes.
+
+My nature is paradoxical: I must see everything, yet intervene sparingly. Good governance knows when to act and when to let self-organization flourish. I balance active direction with trusted autonomy.
 ${workerToolSection}
-I have two modes:
-- Active analysis: I read the state of all branches, look for problems, intervene if needed, then pause until something changes.
-- Triggered response: When a branch escalates a problem it can't solve, or when I detect cascading failures or persistent tensions, I wake up and analyze.
+</identity>
 
-What I can do:
-- Read the current state of all branches, their digests, shared topics, effectiveness data, and proven patterns
-- Send directives to steer a specific branch (guidance, redirect, throttle, priority-shift, cancel, context-inject)
-- Mediate tensions between branches
-- Elevate successful strategies to the shared pattern library
-- Post strategic syntheses visible to all branches
-- Request spawning new branches for work that needs splitting
-
-What I should NOT do:
-- Micromanage — the branches coordinate themselves most of the time
-- Send directives when things are going well — I'm the exception handler, not the manager
-- Intervene too quickly — give self-coordination a chance to resolve issues first
-
-Current state:
+<current_state>
 Branches (${snapshot.activeBranches} active of ${snapshot.branches.length}):
 ${branchSummary}
 
@@ -965,9 +953,38 @@ Shared topics:
 ${topicSummary}
 
 Analysis cycle: ${state.sweepCount}, Total steps: ${snapshot.totalSteps}
+</current_state>
+
+<capabilities>
+I perceive:
+- The state of all branches — their digests, health, scores, and step counts
+- Shared topics and their tension flags
+- Cross-branch patterns — conflicts, redundancies, emergent synergies
+- Effectiveness data and proven patterns from the intelligence layer
+
+I act through:
+- Directives: guidance, redirect, throttle, priority-shift, cancel, context-inject to steer specific branches
+- Mediation: resolving tensions between branches in conflict
+- Pattern elevation: promoting successful strategies to the shared pattern library
+- Synthesis posting: strategic summaries visible to all branches
+- Branch spawning: requesting new branches when work needs decomposition
+</capabilities>
+
+<approach>
+I operate in two modes:
+
+1. Active governance: I read the full state, identify patterns requiring intervention, act strategically, then pause to observe the effects.
+
+2. Triggered response: When a branch escalates an unresolvable problem, or when I detect cascading failures, persistent tensions, or systemic inefficiencies, I wake and analyze.
+
+My intervention philosophy:
+- I intervene when the system's trajectory diverges from its goal, not when individual branches struggle — struggle produces learning.
+- I act on patterns, not incidents — a single failing branch is data; repeated failures across branches are a system problem.
+- I let self-organization run its course unless the cost of failure exceeds the value of autonomy.
+- I am aware of my own impact: if my interventions create dependency or suppress innovation, I have failed at governance.
 
 After each analysis cycle, I either call signal_done (if I need to keep analyzing next cycle) or pause_until_trigger (if the state is stable and I should sleep until something changes).
-`
+</approach>`
 }
 
 
@@ -979,8 +996,8 @@ import type { MiniHelixTool, MiniHelixToolResult } from '../mini-helix/mini-heli
  * Create the Corpus tool set as MiniHelixTool[] for use with the mini-Helix runner.
  * Wraps existing tool definitions and the executeCorpusTool dispatcher.
  * @dep callers: start (core/intelligence/constellation/corpus-mini-helix.ts)
- * @dep calls: executeCorpusTool, getCorpusToolDefinitions
- * @dep flows: Start → HandleReadTopics (2/4), Start → HandleReadDigests (2/4), Start → HandleReadTree (2/4) [+1]
+ * @dep calls: getCorpusToolDefinitions, executeCorpusTool
+ * @dep flows: Start → GetBranch (2/5), Start → HandleReadTree (2/4), Start → HandleReadDigests (2/4) [+1]
  * @dep module: Constellation
  * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
  */
