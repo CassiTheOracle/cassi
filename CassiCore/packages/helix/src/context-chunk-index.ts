@@ -15,6 +15,7 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Message, ContentBlock } from '../../../types/runtime.js'
+import { estimateTokens } from '../shared/token-estimation.js'
 
 // classifyParagraph imported below for chunk tagging
 

@@ -55,6 +55,7 @@ import {
   findLastIndex,
 } from '../cassi-agent/base-posture-runner.js'
 import { DriftDetector } from './drift-detector.js'
+import { estimateTokens } from '../shared/token-estimation.js'
 import {
   getCodeConsolidatedToolSchema,
   getFilesystemConsolidatedToolSchema,
@@ -2103,6 +2104,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * Instead of crude truncation, this indexes messages into addressable chunks
    * and applies intelligent eviction based on relevance scores.
    * Pinned chunks (e.g., important file reads marked by brainstem) survive eviction.
+   *
+   * Coordination with layered compaction:
+   * - If layered compaction already ran (detected by <summary> in system message),
+   *   pin the compacted summary chunk to prevent eviction.
    */
   private manageContextWithChunkIndex(): void {
     const cci = this.contextChunkIndex!
@@ -2110,9 +2115,21 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     // Index any new messages since last indexing
     cci.indexMessages(this.messages)
 
+    // Coordination: If layered compaction already ran, pin the compacted summary
+    // to prevent it from being evicted by the chunk index
+    if (this.messages[0]?.role === 'system' &&
+        typeof this.messages[0]?.content === 'string' &&
+        this.messages[0].content.includes('<summary>')) {
+      // Pin the first chunk (system message with compacted summary)
+      const systemChunks = cci.getChunksForMessage(0)
+      if (systemChunks.length > 0) {
+        cci.pin([systemChunks[0]!.id])
+      }
+    }
+
     // Check if we need to evict — based on estimated token count
     const snap = cci.snapshot()
-    const estimatedTokens = snap.totalChars / 4 // rough char-to-token ratio
+    const estimatedTokens = estimateTokens(snap.totalChars)
     const maxTokens = 100_000
 
     if (estimatedTokens > maxTokens * 0.85) {
