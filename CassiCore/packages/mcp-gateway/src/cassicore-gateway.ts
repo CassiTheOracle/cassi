@@ -230,6 +230,63 @@ function isCoreToolName(name: string): boolean {
 }
 
 /**
+ * Route a tool call directly to the daemon's MCP tool bridge (via /tools/execute).
+ * Bypasses alias resolution and consolidated tool dispatch, sending the call
+ * straight to the daemon's ToolExecutor which handles external MCP servers
+ * (gitnexus, serena, duckduckgo, etc.).
+ *
+ * WHY: Consolidated tools that internally call external MCP tools (e.g., cassi_code
+ * calling gitnexus_query) need a router that does NOT go back through routeToolCall.
+ * Going through routeToolCall triggers alias resolution (gitnexus_query → code)
+ * which creates an infinite recursion loop.
+ */
+async function routeExternalToolCall(
+  name: string,
+  args: any,
+): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
+  // WHY: The daemon's MCP tool bridge uses double-underscore as the server/tool
+  // separator (e.g., gitnexus__query), but the consolidated tools use single
+  // underscore (gitnexus_query). Normalize to the daemon's convention.
+  const EXTERNAL_PREFIXES = ['gitnexus_', 'serena_', 'duckduckgo_'];
+  let daemonToolName = name;
+  for (const prefix of EXTERNAL_PREFIXES) {
+    if (name.startsWith(prefix) && !name.startsWith(prefix + '_')) {
+      daemonToolName = prefix + '_' + name.slice(prefix.length);
+      break;
+    }
+  }
+
+  logger.info('External tool call (daemon passthrough)', { tool: daemonToolName, originalName: name });
+  try {
+    const response = await fetchWithTimeout(`${CASSICORE_URL}/tools/execute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: daemonToolName, input: args || {} }),
+      timeoutMs: 120_000,
+    });
+    if (!response.ok) {
+      const err = await response.text().catch(() => `HTTP ${response.status}`);
+      return formatError(new Error(`Daemon returned ${response.status}: ${err}`));
+    }
+    const result = await response.json().catch(() => null);
+    if (!result) {
+      return formatError(new Error('Daemon returned non-JSON response'));
+    }
+    // Normalize the result to MCP content format
+    if (result.content && Array.isArray(result.content)) {
+      return result;
+    }
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
+      isError: result.isError,
+    };
+  } catch (err) {
+    logger.error('External tool call failed', { tool: name, error: String(err) });
+    return formatError(err);
+  }
+}
+
+/**
  * Route a tool call to the appropriate domain handler.
  * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
  * @dep calls: has, executeAgentTool, executeBlackboardConsolidatedTool, executeBrowserConsolidatedTool, executeCodeConsolidatedTool [+19]
@@ -311,7 +368,12 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       }
 
       case CODE_CONSOLIDATED_TOOL_NAME:
-        return formatJsonResponse(await executeCodeConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+        // WHY: The code tool calls router('gitnexus_*', ...) which MUST go
+        // directly to the daemon's MCP bridge. Passing routeToolCall as the
+        // router creates an infinite loop: gitnexus_query → alias → code → gitnexus_query → ...
+        return formatJsonResponse(await executeCodeConsolidatedTool(args, logger, (toolName, toolArgs) =>
+          routeExternalToolCall(toolName, toolArgs)
+        ));
 
       case FILESYSTEM_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeFilesystemConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
