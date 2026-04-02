@@ -303,10 +303,10 @@ function handle_read_work_stream(ctx: BrainstemToolContext): MiniHelixToolHandle
     const formatted = workUnits.map((wu: WorkUnit) => ({
       id: wu.id,
       iteration: wu.iteration,
-      toolCalls: wu.toolCalls.map((tc, i) => ({
+      toolCalls: (wu.toolCalls ?? []).map((tc, i) => ({
         name: tc.name,
         args: JSON.stringify(tc.input ?? {}).slice(0, 200),
-        error: wu.toolResults[i]?.isError ? wu.toolResults[i].content.slice(0, 100) : undefined,
+        error: wu.toolResults?.[i]?.isError ? wu.toolResults[i].content.slice(0, 100) : undefined,
       })),
       filesModified: wu.filesModified ?? [],
       reasoning: (wu as any).reasoning?.slice(0, 300) ?? '',
