@@ -29,8 +29,8 @@ let cachedVertexAdcCredentialsExists: boolean | null = null;
 
 function hasVertexAdcCredentials(): boolean {
 	if (cachedVertexAdcCredentialsExists === null) {
-		// If node modules haven't loaded yet (async import race at startup),
-		// return false WITHOUT caching so the next call retries once they're ready.
+		// WHY: If node modules haven't loaded yet (async import race at startup),
+		// returns false WITHOUT caching so the next call retries once they're ready.
 		// Only cache false permanently in a browser environment where fs is never available.
 		if (!_existsSync || !_homedir || !_join) {
 			const isNode = typeof process !== "undefined" && (process.versions?.node || process.versions?.bun);
