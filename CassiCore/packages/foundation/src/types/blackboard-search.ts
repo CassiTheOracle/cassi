@@ -19,7 +19,6 @@ import type {
   ReportSectionStatus,
 } from './flux-team.js'
 
-// ── Constants ──
 
 /** Maximum allowed pattern length to mitigate ReDoS */
 export const MAX_PATTERN_LENGTH = 200
@@ -30,7 +29,6 @@ export const DEFAULT_SEARCH_LIMIT = 50
 /** Maximum page size */
 export const MAX_SEARCH_LIMIT = 500
 
-// ── Cursor ──
 
 /**
  * Internal cursor structure for cursor-based pagination.
@@ -48,7 +46,6 @@ export interface SearchCursor {
   sortValue?: number
 }
 
-// ── Paginated Result ──
 
 /**
  * Generic paginated result container returned by all search methods.
@@ -66,7 +63,6 @@ export interface PaginatedResult<T> {
   pageSize: number
 }
 
-// ── Base Search Options ──
 
 /**
  * Common search options shared by all board-specific search methods.
@@ -86,7 +82,6 @@ export interface BaseSearchOptions {
   until?: number
 }
 
-// ── Board-Specific Search Options ──
 
 /**
  * Search options for channel entries.
@@ -158,7 +153,6 @@ export interface ReportSearchOptions extends BaseSearchOptions {
   status?: ReportSectionStatus
 }
 
-// ── Cross-Board Search ──
 
 /** Board types that can be searched */
 export type SearchableBoard =
@@ -236,7 +230,6 @@ export interface CrossBoardSearchResult {
   cursor?: string
 }
 
-// ── Blackboard Watch Tool Types ──
 
 /**
  * Time window for change tracking.

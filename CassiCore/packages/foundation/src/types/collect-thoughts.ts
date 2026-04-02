@@ -14,7 +14,6 @@
 import type { CognitiveSignal, SignalKind } from '../core/intelligence/thought-observer.js'
 import type { ResonancePattern } from '../core/intelligence/cognitive-bridge.js'
 
-// ─── Tool Result ──────────────────────────────────────────────────────────
 
 /** The enriched result returned from each collect_thoughts tool call. */
 export interface CollectThoughtsResult {
@@ -71,7 +70,6 @@ export interface CollectThoughtsResult {
   }
 }
 
-// ─── Synapse Types ────────────────────────────────────────────────────────
 
 /** Output shape from a Synapse LLM call */
 export interface SynapseGuidance {
@@ -105,7 +103,6 @@ export interface SynapseContext {
   revisesStep?: number
 }
 
-// ─── Configuration ────────────────────────────────────────────────────────
 
 /** Configuration for the collect_thoughts tool and its cognitive layers */
 export interface CollectThoughtsConfig {
@@ -145,7 +142,6 @@ export const DEFAULT_COLLECT_THOUGHTS_CONFIG: CollectThoughtsConfig = {
   synapseEnabled: true,
 }
 
-// ─── Internal Session State ───────────────────────────────────────────────
 
 /** Per-session state tracked by the tool handler between calls — the axon session */
 export interface AxonSessionState {
@@ -167,7 +163,6 @@ export interface AxonSessionState {
   contributors: Map<string, number>
 }
 
-// ─── Tool Input ───────────────────────────────────────────────────────────
 
 /** Input parameters for the collect_thoughts tool call */
 export interface CollectThoughtsInput {
