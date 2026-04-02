@@ -239,6 +239,9 @@ const ACTION_TO_PLAYWRIGHT: Record<string, string> = {
 
 /**
  * Execute the consolidated browser tool
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), executeConsolidatedGatewayTools (core/intelligence/helix/helix-posture-runner.ts)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function executeBrowserConsolidatedTool(
   args: any,
@@ -359,7 +362,9 @@ export async function executeBrowserConsolidatedTool(
 
     case 'network':
       return await router(playwrightTool, {
-        includeStatic: restArgs.includeStatic ?? false,
+        static: restArgs.includeStatic ?? false,
+        requestBody: restArgs.requestBody ?? false,
+        requestHeaders: restArgs.requestHeaders ?? false,
         filename: restArgs.filename,
       })
 
