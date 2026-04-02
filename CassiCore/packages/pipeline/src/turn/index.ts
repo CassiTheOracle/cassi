@@ -22,3 +22,11 @@ export type {
   ToolLoopResult,
   StreamResult
 } from './ToolLoop.js';
+
+// Overflow utilities
+export {
+  ContextOverflowError,
+  isOverflowError,
+  reclassifyAsOverflow,
+  stripToolFiller,
+} from './overflow.js';

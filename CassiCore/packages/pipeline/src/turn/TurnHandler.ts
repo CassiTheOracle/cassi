@@ -20,6 +20,7 @@ import type {
   ILogger,
   StreamEventCallback
 } from '../session/types.js';
+import type { IEventBus } from '../../../types/interfaces.js';
 
 /**
  * Handles turn processing end-to-end
@@ -28,15 +29,17 @@ export class TurnHandler {
   private providers: Map<string, IProvider>;
   private toolExecutor: IToolExecutor;
   private logger: ILogger;
+  private bus?: IEventBus;
   
   private messageBuilder: MessageBuilder;
   private contextWindow: ContextWindow;
   private toolLoop: ToolLoop;
   
-  constructor(options: TurnHandlerOptions) {
+  constructor(options: TurnHandlerOptions & { bus?: IEventBus }) {
     this.providers = options.providers;
     this.toolExecutor = options.toolExecutor;
     this.logger = options.logger;
+    this.bus = options.bus;
     
     // Initialize components
     this.messageBuilder = new MessageBuilder({
@@ -89,6 +92,9 @@ export class TurnHandler {
     const startTime = Date.now();
     const [providerId = 'unknown'] = session.model.split('/');
     
+    // Emit turn:start event
+    this.bus?.emit({ type: 'turn:start', sessionId: session.id, message: request.content, timestamp: new Date() } as any)
+    
     try {
       // 1. Build messages
       const messages = this.messageBuilder.build(session, request);
@@ -127,7 +133,7 @@ export class TurnHandler {
       });
       
       // 5. Format result
-      return {
+      const result: TurnResult = {
         response: loopResult.content,
         tokensUsed: loopResult.tokensUsed,
         model: session.model,
@@ -136,6 +142,11 @@ export class TurnHandler {
           ? loopResult.toolExecutions
           : undefined
       };
+
+      // Emit turn:end event
+      this.bus?.emit({ type: 'turn:end', sessionId: session.id, response: result.response, durationMs, timestamp: new Date() } as any)
+
+      return result;
       
     } catch (error) {
       const durationMs = Date.now() - startTime;
@@ -219,6 +230,19 @@ export class TurnHandler {
       providerCount: this.providers.size,
       availableTools: []  // Would need to query tool executor
     };
+  }
+
+  /**
+   * Queue content for injection on the next turn.
+   * Delegates to the MessageBuilder's injection queue.
+   */
+  injectOnNextTurn(content: string): void {
+    this.messageBuilder.injectOnNextTurn(content)
+  }
+
+  /** Hot-swap the context window (e.g., for changing token limits at runtime). */
+  setContextWindow(contextWindow: ContextWindow): void {
+    this.contextWindow = contextWindow
   }
   
   // Private Methods

@@ -1,7 +1,8 @@
 /**
  * Tool Loop
  * 
- * Explicit tool execution loop with retry and timeout handling
+ * Explicit tool execution loop with retry, timeout, overflow recovery,
+ * mid-loop context trimming, and tool filler stripping.
  */
 
 import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock, ImageAttachment } from '../../../types/runtime.js';
@@ -16,10 +17,14 @@ import type {
   StreamEventCallback
 } from '../session/types.js';
 
+import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller } from './overflow.js';
+
 export interface ToolLoopOptions {
   maxRounds: number;
   toolTimeoutMs: number;
   streamTimeoutMs: number;
+  /** Maximum chars for the tool-loop message array before mid-loop trimming. Default 120_000. */
+  midLoopMaxChars?: number;
 }
 
 export interface ToolLoopResult {
@@ -80,6 +85,7 @@ export class ToolLoop {
     let round = 0;
     let totalTokens = 0;
     let lastContent = '';
+    let overflowRetried = false;
     const lastThinkingBlocks: string[] = [];
     
     while (round < this.options.maxRounds) {
@@ -89,16 +95,32 @@ export class ToolLoop {
         messageCount: messages.length
       });
       
-      // Stream completion from provider
-      const streamResult = await this.streamWithTimeout(
-        provider,
-        messages,
-        model,
-        attachments,
-        signal,
-        onStreamEvent,
-        sessionId,
-      );
+      // Stream completion from provider, with overflow recovery
+      let streamResult: StreamResult;
+      try {
+        streamResult = await this.streamWithTimeout(
+          provider,
+          messages,
+          model,
+          attachments,
+          signal,
+          onStreamEvent,
+          sessionId,
+        );
+      } catch (err) {
+        // Reclassify generic errors that carry overflow messages
+        const classified = reclassifyAsOverflow(err as Error)
+        if (classified instanceof ContextOverflowError && !overflowRetried) {
+          overflowRetried = true
+          this.logger.warn('Context overflow detected — applying emergency trim and retrying', {
+            round, messageCount: messages.length,
+          })
+          // Emergency trim: keep system msgs + first user + last 2 tool pairs
+          this.emergencyTrim(messages)
+          continue // Retry the round
+        }
+        throw classified
+      }
       
       totalTokens += streamResult.tokensUsed;
       lastContent = streamResult.content;
@@ -143,10 +165,11 @@ export class ToolLoop {
         }
       }
       
-      // Add assistant message with tool calls
+      // Add assistant message with tool calls (strip filler text)
+      const cleanedContent = stripToolFiller(streamResult.content || '')
       messages.push({
         role: 'assistant',
-        content: streamResult.content,
+        content: cleanedContent,
         timestamp: Date.now(),
         toolCalls: streamResult.toolCalls
       });
@@ -162,6 +185,10 @@ export class ToolLoop {
           isError: r.isError
         }))
       });
+
+      // Mid-loop context trim: drop oldest tool pairs when over budget
+      const midLoopMaxChars = this.options.midLoopMaxChars ?? 120_000
+      this.midLoopTrim(messages, midLoopMaxChars)
     }
     
     // Max rounds reached
@@ -395,6 +422,102 @@ export class ToolLoop {
         timer = setTimeout(() => reject(new Error(message)), timeoutMs);
       })
     ]);
+  }
+
+  /**
+   * Emergency trim: aggressive context reduction after overflow error.
+   * Keeps system messages + first user message + last 2 tool pairs.
+   */
+  private emergencyTrim(messages: Message[]): void {
+    const systemMsgs = messages.filter(m => m.role === 'system')
+    const firstUser = messages.find(m => m.role === 'user')
+    const nonSystem = messages.filter(m => m.role !== 'system')
+
+    // Keep last 4 non-system messages (2 tool pairs: assistant+user, assistant+user)
+    const recentPairs = nonSystem.slice(-4)
+
+    const kept: Message[] = [...systemMsgs]
+    if (firstUser && !recentPairs.includes(firstUser)) {
+      kept.push(firstUser)
+    }
+    kept.push(...recentPairs)
+
+    messages.length = 0
+    messages.push(...kept)
+
+    this.logger.info('Emergency trim applied', {
+      keptMessages: messages.length,
+      keptSystem: systemMsgs.length,
+    })
+  }
+
+  /**
+   * Mid-loop context trim: drop oldest tool pairs when the message
+   * array exceeds the character budget. Keeps at least 3 recent tool pairs.
+   */
+  private midLoopTrim(messages: Message[], maxChars: number): void {
+    const chars = this.estimateChars(messages)
+    if (chars <= maxChars) return
+
+    // Count tool pairs (assistant with toolCalls + following user with toolResults)
+    let toolPairCount = 0
+    const systemEnd = messages.findIndex(m => m.role !== 'system')
+    const preserveHead = Math.max(0, systemEnd)
+
+    for (let i = preserveHead; i < messages.length; i++) {
+      const m = messages[i]
+      if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+        toolPairCount++
+      }
+    }
+
+    const KEEP_PAIRS = 3
+    if (toolPairCount <= KEEP_PAIRS) return
+
+    let pairsToRemove = toolPairCount - KEEP_PAIRS
+    const toRemove: number[] = []
+
+    for (let i = preserveHead; i < messages.length - 1 && pairsToRemove > 0; i++) {
+      const m = messages[i]
+      if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+        toRemove.push(i)
+        // The next message should be the tool results
+        if (i + 1 < messages.length - 1 && messages[i + 1].role === 'user') {
+          toRemove.push(i + 1)
+        }
+        pairsToRemove--
+
+        // Estimate new char count after removal
+        const removedChars = toRemove.reduce((s, idx) => s + this.msgChars(messages[idx]), 0)
+        if (chars - removedChars <= maxChars) break
+      }
+    }
+
+    if (toRemove.length > 0) {
+      const removeSet = new Set(toRemove)
+      const trimmed = messages.filter((_, idx) => !removeSet.has(idx))
+      messages.length = 0
+      messages.push(...trimmed)
+
+      this.logger.debug('Mid-loop context trim: dropped tool pairs', {
+        removed: toRemove.length,
+        oldChars: chars,
+        newChars: this.estimateChars(messages),
+      })
+    }
+  }
+
+  private estimateChars(messages: Message[]): number {
+    return messages.reduce((s, m) => s + this.msgChars(m), 0)
+  }
+
+  private msgChars(msg: Message): number {
+    if (typeof msg.content === 'string') return msg.content.length
+    if (!Array.isArray(msg.content)) return 50
+    return msg.content.reduce((s: number, b: any) => {
+      if (b.type === 'text') return s + (b.text?.length ?? 0)
+      return s + 100
+    }, 0)
   }
 }
 

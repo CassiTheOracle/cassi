@@ -18,15 +18,37 @@ export interface MessageBuilderOptions {
 }
 
 /**
- * Builds message arrays for provider requests
+ * Builds message arrays for provider requests.
+ * Supports an injection queue for optimizer steering, dialectic signals,
+ * cognitive feed injection, and other system-level content that should
+ * be prepended to the next turn's messages.
  */
 export class MessageBuilder {
   private logger?: ILogger;
   private includeSessionMarker: boolean;
+
+  /** Queue of system content to inject on the next build() call. */
+  private injectionQueue: string[] = [];
   
   constructor(options: MessageBuilderOptions = {}) {
     this.logger = options.logger;
     this.includeSessionMarker = options.includeSessionMarker ?? true;
+  }
+
+  /**
+   * Queue content for injection on the next turn.
+   * Used by optimizer steering, dialectic signals, cognitive feed, etc.
+   * The content is injected as a system message and consumed (cleared) after use.
+   */
+  injectOnNextTurn(content: string): void {
+    if (!content.trim()) return
+    this.injectionQueue.push(content.trim())
+    this.logger?.debug('Queued injection for next turn', { length: content.length })
+  }
+
+  /** Get the current injection queue length (for diagnostics). */
+  get pendingInjections(): number {
+    return this.injectionQueue.length
   }
   
   /**
@@ -50,6 +72,18 @@ export class MessageBuilder {
         content: systemContent,
         timestamp: now
       });
+    }
+
+    // 1b. Consume injection queue — append to system context
+    if (this.injectionQueue.length > 0) {
+      const injected = this.injectionQueue.join('\n\n')
+      this.injectionQueue = [] // Consume
+      messages.push({
+        role: 'system',
+        content: injected,
+        timestamp: now,
+      })
+      this.logger?.debug('Consumed injection queue', { length: injected.length })
     }
     
     // 2. Intelligence context (if available and fresh)
