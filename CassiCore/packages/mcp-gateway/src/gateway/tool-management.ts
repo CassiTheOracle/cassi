@@ -233,6 +233,33 @@ export const VYBIT_TOOL = {
 };
 
 /**
+ * Skill intelligence tool — effectiveness tracking and pattern detection.
+ */
+export const SKILL_INTELLIGENCE_TOOL = {
+  name: 'skill_intelligence',
+  description:
+    'Skill effectiveness tracking and intelligence. Record outcomes after using skills, ' +
+    'view stats, detect patterns, and get the effectiveness feed.\n\n' +
+    'Actions: outcome, stats, patterns, feed',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['outcome', 'stats', 'patterns', 'feed'],
+        description: 'Action to perform',
+      },
+      skillName: { type: 'string', description: 'Skill name (for outcome)' },
+      outcome: { type: 'string', enum: ['success', 'partial', 'failure'], description: 'Outcome (for outcome)' },
+      note: { type: 'string', description: 'Outcome note' },
+      taskDomain: { type: 'string', description: 'Task domain' },
+      days: { type: 'number', description: 'Lookback days (default 30)' },
+    },
+    required: ['action'],
+  },
+};
+
+/**
  * Execute a core CassiCore tool
  * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts), executeWebConsolidatedTool (mcp/gateway/consolidated-web-tools.ts), executeArtifactConsolidatedTool (mcp/gateway/consolidated-file-tools.ts)
  * @dep calls: has, fetchWithTimeout
@@ -249,7 +276,7 @@ export async function executeCassiCoreTool(
 
   const knownTools = new Set([
     'bash', 'read', 'write', 'edit', 'mkdir', 'delete',
-    'exists', 'web_fetch', 'web_search', 'todo_write', 'vybit',
+    'exists', 'web_fetch', 'web_search', 'todo_write', 'vybit', 'skill_intelligence',
   ]);
   if (!knownTools.has(toolName)) {
     throw new Error(`Unknown tool: ${toolName}`);

@@ -43,6 +43,7 @@ import {
   getCoreTools,
   executeCassiCoreTool,
   VYBIT_TOOL,
+  SKILL_INTELLIGENCE_TOOL,
   getDoTools,
   executeDoTool,
   executeEnrichTool,
@@ -208,6 +209,7 @@ function getAllTools() {
     getBlackboardConsolidatedTool(),
     getTrainingConsolidatedTool(),
     VYBIT_TOOL,
+    SKILL_INTELLIGENCE_TOOL,
   ];
 }
 
@@ -255,6 +257,12 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
     // HOW: VyBit routes through ToolExecutor like core tools
     if (name === 'vybit') {
       const result = await executeCassiCoreTool(CASSICORE_URL, 'vybit', args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // HOW: Skill intelligence routes through ToolExecutor
+    if (name === 'skill_intelligence') {
+      const result = await executeCassiCoreTool(CASSICORE_URL, 'skill_intelligence', args, logger);
       return formatJsonResponse(result);
     }
 
