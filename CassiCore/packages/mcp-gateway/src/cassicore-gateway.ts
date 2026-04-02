@@ -44,6 +44,7 @@ import {
   // Core Tools (4: bash, read, write, edit - kept as-is)
   getCoreTools,
   executeCassiCoreTool,
+  VYBIT_TOOL,
   // Meta Tools (2: do, enrich - kept as-is)
   getDoTools,
   executeDoTool,
@@ -204,11 +205,15 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
  */
 /**
  * Get all MCP tools.
+ * @dep callers: createServer (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts)
+ * @dep calls: getAgentTool, getBlackboardConsolidatedTool, getBrowserConsolidatedTool, getCodeConsolidatedTool, getConfigConsolidatedTool [+10]
+ * @dep module: Mcp
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function getAllTools() {
   const coreTools = getCoreTools();
   // Filter to only the 4 main core tools
-  const mainCoreTools = coreTools.filter(t => ['bash', 'read', 'write', 'edit'].includes(t.name));
+  const mainCoreTools = coreTools.filter(t => ['bash', 'read', 'write', 'edit', 'todo_write'].includes(t.name));
 
   return [
     // 4 Core tools (kept as-is)
@@ -229,6 +234,8 @@ function getAllTools() {
     getModelConsolidatedTool(),
     getBlackboardConsolidatedTool(),
     getTrainingConsolidatedTool(),
+    // VyBit visual editing integration
+    VYBIT_TOOL,
   ];
 }
 
@@ -258,6 +265,10 @@ function isCoreToolName(name: string): boolean {
 
 /**
  * Route a tool call to the appropriate domain handler.
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
+ * @dep calls: has, executeAgentTool, executeBlackboardConsolidatedTool, executeBrowserConsolidatedTool, executeCodeConsolidatedTool [+19]
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function routeToolCall(name: string, args: any, progressToken?: string | number, heartbeat?: () => void): Promise<{ content: Array<{ type: 'text'; text: string }>; isError?: true }> {
   logger.info('Tool call received', { tool: name, args });
@@ -274,6 +285,12 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
     // Core tools (bash, read, write, edit) - return JSON
     if (isCoreToolName(name)) {
       const result = await executeCassiCoreTool(CASSICORE_URL, name, args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // VyBit visual editing - routes through ToolExecutor like core tools
+    if (name === 'vybit') {
+      const result = await executeCassiCoreTool(CASSICORE_URL, 'vybit', args, logger);
       return formatJsonResponse(result);
     }
 
@@ -411,11 +428,10 @@ async function notifyResourceUpdate(server: Server, uri: string): Promise<void> 
 
 /**
  * Create MCP Server with full capabilities
- * @dep callers: webchat.ts (workers/channels/webchat.ts), bridge.js (tool-proxy/bridge.js), start (cluster/src/ccipc.js), startControllerSocket (cluster/src/controller.js), startLegacySocket (cluster/src/controller.js) [+12]
- * @dep calls: now, test, getAllTools, routeToolCall, subscribeToResource [+2]
- * @dep flows: CreateHierarchyBridge → GetCoreTools (2/4), CreateHierarchyBridge → GetIntelligenceTools (2/4), CreateHierarchyBridge → GetDialecticTools (2/4) [+4]
+ * @dep callers: startStdio (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts), createSessionBridge (core/session-bridge.ts), createHierarchyBridge (core/hierarchy-bridge.ts), start (core/bridge.ts) [+13]
+ * @dep calls: fetchWithTimeout, test, unsubscribeFromResource, subscribeToResource, routeToolCall [+2]
  * @dep module: Mcp
- * @dep risk: CRITICAL | 17 callers, 7 flows, 1 module
+ * @dep risk: CRITICAL | 18 callers, 0 flows, 1 module
  */
 function createServer() {
   const server = new Server(

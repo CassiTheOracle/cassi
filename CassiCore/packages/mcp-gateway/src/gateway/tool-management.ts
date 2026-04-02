@@ -167,14 +167,76 @@ export const CORE_TOOLS = [
       required: ['query'],
     },
   },
+  {
+    name: 'todo_write',
+    description: 'Update the structured task list for the current session. Track multi-step work, plan tasks, and show progress. Send the FULL todo list on every call.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        todos: {
+          type: 'array',
+          description: 'The complete updated todo list. Each item: { content: string, status: "pending"|"in_progress"|"completed", priority: "high"|"medium"|"low" }',
+        },
+      },
+      required: ['todos'],
+    },
+  },
 ];
 
 /**
+ * VyBit visual editing tool — exposed separately from core tools but
+ * routed through the same ToolExecutor pathway.
+ */
+export const VYBIT_TOOL = {
+  name: 'vybit',
+  description:
+    'Visual browser editing via VyBit. Start a VyBit server, poll for visual changes ' +
+    '(Tailwind edits, component drops, design sketches, bug reports), and implement them in code.\n\n' +
+    'Actions: start, stop, status, poll, list, implement_next, mark_done, discard, ' +
+    'session, session_stop, dev_start, dev_stop, inject_overlay, browser_open',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: [
+          'session', 'session_stop',
+          'start', 'stop', 'status', 'poll', 'list', 'implement_next', 'mark_done', 'discard',
+          'dev_start', 'dev_stop', 'inject_overlay', 'browser_open',
+        ],
+        description: 'Action to perform',
+      },
+      projectPath: {
+        type: 'string',
+        description: 'Absolute path to the target project (required for "start")',
+      },
+      port: {
+        type: 'string',
+        description: 'VyBit server port (default: 3333, used with "start")',
+      },
+      commitId: {
+        type: 'string',
+        description: 'Commit ID to mark as done (required for "mark_done")',
+      },
+      results: {
+        type: 'string',
+        description: 'JSON array of { patchId, success, error? } results (for "mark_done")',
+      },
+      filter: {
+        type: 'string',
+        description: 'Filter by status: staged, committed, implementing, implemented, error (for "list")',
+      },
+    },
+    required: ['action'],
+  },
+};
+
+/**
  * Execute a core CassiCore tool
- * @dep callers: startHttp (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
- * @dep calls: get, fetchWithTimeout
- * @dep module: Mcp
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts), executeWebConsolidatedTool (mcp/gateway/consolidated-web-tools.ts), executeArtifactConsolidatedTool (mcp/gateway/consolidated-file-tools.ts)
+ * @dep calls: has, fetchWithTimeout
+ * @dep module: Gateway
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 export async function executeCassiCoreTool(
   baseUrl: string,
@@ -186,7 +248,7 @@ export async function executeCassiCoreTool(
 
   const knownTools = new Set([
     'bash', 'read', 'write', 'edit', 'mkdir', 'delete',
-    'exists', 'web_fetch', 'web_search',
+    'exists', 'web_fetch', 'web_search', 'todo_write', 'vybit',
   ]);
   if (!knownTools.has(toolName)) {
     throw new Error(`Unknown tool: ${toolName}`);
@@ -289,10 +351,9 @@ export function isCoreTool(toolName: string): boolean {
 
 /**
  * Get all core tool definitions
- * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), getAllTools (mcp/cassicore-gateway.ts)
- * @dep flows: CreateHierarchyBridge → GetCoreTools (4/4)
- * @dep module: Gateway
- * @dep risk: LOW | 2 callers, 1 flow, 1 module
+ * @dep callers: getAllTools (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep module: Mcp
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function getCoreTools(): Array<{
   name: string;

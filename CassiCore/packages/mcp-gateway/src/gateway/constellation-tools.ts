@@ -314,7 +314,7 @@ export async function executeConstellationTool(
 
       case 'constellation_blackboard': {
         const channelParam = args.channel ? `?channel=${args.channel}` : ''
-        // TODO: Constellation-level blackboard endpoint (for now, proxy to progress which includes it)
+        // WHY: Constellation-level blackboard endpoint deferred — see contributing-todos blackboard (for now, proxy to progress which includes it)
         const res = await fetchWithTimeout(
           `${adminBaseUrl}/constellation/${args.sessionId}/progress${channelParam}`,
           { timeoutMs: 10_000 },

@@ -25,6 +25,7 @@ export {
 // Core Tools
 export {
   CORE_TOOLS,
+  VYBIT_TOOL,
   executeCassiCoreTool,
   isCoreTool,
   getCoreTools,
