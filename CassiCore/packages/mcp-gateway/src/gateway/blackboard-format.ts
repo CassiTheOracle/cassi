@@ -53,6 +53,9 @@ interface BlackboardSummaryLike {
 /**
  * Format a Blackboard summary as readable markdown.
  * Renders channels, plan, report, tools, and artifacts in a compact view.
+ * @dep callers: executeHelixTool (mcp/gateway/helix-tools.ts), executeBlackboardTool (mcp/gateway/blackboard-tools.ts)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function formatBlackboardSummary(summary: BlackboardSummaryLike): string {
   const lines: string[] = []
@@ -165,6 +168,10 @@ export function formatBlackboardSummary(summary: BlackboardSummaryLike): string 
 /**
  * Format a single channel's entries as markdown.
  * Used when ?channel=X is specified.
+ * @dep callers: executeHelixTool (mcp/gateway/helix-tools.ts), executeBlackboardTool (mcp/gateway/blackboard-tools.ts)
+ * @dep calls: toISOString
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function formatChannelEntries(
   channel: BlackboardChannel,
@@ -195,6 +202,9 @@ export function formatChannelEntries(
 /**
  * Check if an object looks like a Blackboard summary (vs a full snapshot).
  * Summaries have channelCounts, full snapshots have channels with arrays.
+ * @dep callers: executeHelixTool (mcp/gateway/helix-tools.ts), executeBlackboardTool (mcp/gateway/blackboard-tools.ts)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function isSummary(obj: unknown): obj is BlackboardSummaryLike {
   if (!obj || typeof obj !== 'object') return false
@@ -212,7 +222,6 @@ export function isFullSnapshot(obj: unknown): boolean {
 }
 
 
-// ── Pagination Metadata Formatting ──
 
 /**
  * Format pagination metadata as a compact footer for paginated results.

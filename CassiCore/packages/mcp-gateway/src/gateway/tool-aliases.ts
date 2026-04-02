@@ -25,9 +25,7 @@
  *     hint to the thrown error.
  */
 
-// ---------------------------------------------------------------------------
 // Types
-// ---------------------------------------------------------------------------
 
 /**
  * A resolved target for an alias entry.
@@ -48,9 +46,7 @@ export interface AliasEntry {
  */
 export type AliasTable = Record<string, AliasEntry>;
 
-// ---------------------------------------------------------------------------
 // Canonical tool names (the ground truth the gateway actually registers)
-// ---------------------------------------------------------------------------
 
 /** Every name the gateway handles directly — used for fuzzy matching candidates. */
 export const CANONICAL_TOOL_NAMES: readonly string[] = [
@@ -64,10 +60,8 @@ export const CANONICAL_TOOL_NAMES: readonly string[] = [
   'blackboard', 'training',
 ];
 
-// ---------------------------------------------------------------------------
 // Prefix stripping rules
 // Applied first, before the alias table lookup, to reduce table size.
-// ---------------------------------------------------------------------------
 
 /**
  * Prefixes that may be stripped from a tool name.  The stripped result is
@@ -86,6 +80,9 @@ const STRIP_PREFIXES: readonly string[] = [
 /**
  * Strip at most one known prefix from a tool name.
  * Returns `null` if no prefix matched.
+ * @dep callers: resolveToolAlias (mcp/gateway/tool-aliases.ts), normalizeToolName (mcp/gateway/do-tool.ts)
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function stripKnownPrefix(name: string): string | null {
   for (const prefix of STRIP_PREFIXES) {
@@ -96,9 +93,7 @@ export function stripKnownPrefix(name: string): string | null {
   return null;
 }
 
-// ---------------------------------------------------------------------------
 // Exact alias table
-// ---------------------------------------------------------------------------
 
 /**
  * Canonical alias table.
@@ -113,7 +108,6 @@ export function stripKnownPrefix(name: string): string | null {
  */
 export const TOOL_ALIASES: AliasTable = {
 
-  // ── Agent / orchestration ────────────────────────────────────────────────
 
   // lumen_*, dyad_*, helix_* → agent tool with type+action injected
   lumen_project:    { name: 'agent', args: { type: 'lumen',  action: 'project'    } },
@@ -158,7 +152,6 @@ export const TOOL_ALIASES: AliasTable = {
   constellation_watch:   { name: 'agent', args: { type: 'constellation', action: 'watch'   } },
   constellation_steer:   { name: 'agent', args: { type: 'constellation', action: 'steer'   } },
 
-  // ── Memory ───────────────────────────────────────────────────────────────
 
   memory_store:          { name: 'memory', args: { action: 'store'          } },
   memory_search:         { name: 'memory', args: { action: 'search'         } },
@@ -180,7 +173,6 @@ export const TOOL_ALIASES: AliasTable = {
   remember:              { name: 'memory', args: { action: 'store'  } },
   recall:                { name: 'memory', args: { action: 'search' } },
 
-  // ── Session ──────────────────────────────────────────────────────────────
 
   sessions:              { name: 'session', args: { action: 'list'         } },
   session_detail:        { name: 'session', args: { action: 'detail'       } },
@@ -192,7 +184,6 @@ export const TOOL_ALIASES: AliasTable = {
   index_search:          { name: 'session', args: { action: 'index_search' } },
   index_stats:           { name: 'session', args: { action: 'index_stats'  } },
 
-  // ── Intelligence ─────────────────────────────────────────────────────────
 
   activity:              { name: 'intelligence', args: { action: 'activity'      } },
   thinker:               { name: 'intelligence', args: { action: 'thinker'       } },
@@ -209,7 +200,6 @@ export const TOOL_ALIASES: AliasTable = {
   dialectic:             { name: 'intelligence', args: { action: 'dialectic'     } },
   intel:                 { name: 'intelligence' },
 
-  // ── Artifact / file artifact ─────────────────────────────────────────────
 
   share_file:            { name: 'artifact', args: { action: 'share'    } },
   open_file:             { name: 'artifact', args: { action: 'open'     } },
@@ -223,7 +213,6 @@ export const TOOL_ALIASES: AliasTable = {
   file_artifact_stats:   { name: 'artifact', args: { action: 'stats'    } },
   file_artifact_gc:      { name: 'artifact', args: { action: 'gc'       } },
 
-  // ── Code intelligence (GitNexus + Serena) ───────────────────────────────
 
   // GitNexus tools → code consolidated
   gitnexus_query:          { name: 'code', args: { action: 'query'          } },
@@ -250,13 +239,11 @@ export const TOOL_ALIASES: AliasTable = {
   serena_list_dir:          { name: 'file', args: { action: 'list'  } },
   serena_find_file:         { name: 'file', args: { action: 'find'  } },
 
-  // ── Filesystem (file) ────────────────────────────────────────────────────
 
   mkdir:                { name: 'file', args: { action: 'mkdir'  } },
   delete:               { name: 'file', args: { action: 'delete' } },
   exists:               { name: 'file', args: { action: 'exists' } },
 
-  // ── Browser (Playwright) ─────────────────────────────────────────────────
 
   playwright_browser_navigate:          { name: 'browser', args: { action: 'navigate'      } },
   playwright_browser_snapshot:          { name: 'browser', args: { action: 'snapshot'      } },
@@ -281,7 +268,6 @@ export const TOOL_ALIASES: AliasTable = {
   playwright_browser_run_code:          { name: 'browser', args: { action: 'run_code'      } },
   playwright_browser_install:           { name: 'browser', args: { action: 'install'       } },
 
-  // ── Web ──────────────────────────────────────────────────────────────────
 
   web_fetch:             { name: 'web', args: { action: 'fetch'        } },
   web_search:            { name: 'web', args: { action: 'search'       } },
@@ -291,7 +277,6 @@ export const TOOL_ALIASES: AliasTable = {
   fetch:                 { name: 'web', args: { action: 'fetch'        } },
   search:                { name: 'web', args: { action: 'search'       } },
 
-  // ── Config ───────────────────────────────────────────────────────────────
 
   config_get:            { name: 'config', args: { action: 'get'              } },
   config_set:            { name: 'config', args: { action: 'set'              } },
@@ -300,14 +285,12 @@ export const TOOL_ALIASES: AliasTable = {
   provider_config:       { name: 'config', args: { action: 'provider_config'  } },
   cfg:                   { name: 'config' },
 
-  // ── Model / directive ────────────────────────────────────────────────────
 
   model_directive:       { name: 'model' },
   set_model:             { name: 'model', args: { action: 'set'   } },
   get_model:             { name: 'model', args: { action: 'get'   } },
   clear_model:           { name: 'model', args: { action: 'clear' } },
 
-  // ── Blackboard ───────────────────────────────────────────────────────────
 
   bb_global_list:        { name: 'blackboard', args: { action: 'list'   } },
   bb_global_create:      { name: 'blackboard', args: { action: 'create' } },
@@ -318,7 +301,6 @@ export const TOOL_ALIASES: AliasTable = {
   bb_global_watch:       { name: 'blackboard', args: { action: 'watch'  } },
   bb:                    { name: 'blackboard' },
 
-  // ── Training ─────────────────────────────────────────────────────────────
 
   training_stats:        { name: 'training', args: { action: 'stats'       } },
   training_search:       { name: 'training', args: { action: 'search'      } },
@@ -332,9 +314,7 @@ export const TOOL_ALIASES: AliasTable = {
   training_export:       { name: 'training', args: { action: 'export'      } },
 };
 
-// ---------------------------------------------------------------------------
 // Fuzzy matching (Levenshtein distance)
-// ---------------------------------------------------------------------------
 
 const FUZZY_AUTO_RESOLVE_THRESHOLD = 0.8;
 const MAX_CHAIN_DEPTH = 3;
@@ -372,6 +352,10 @@ export function levenshteinSimilarity(a: string, b: string): number {
 /**
  * Find the best fuzzy match for `name` among `candidates`.
  * Returns `{ match, similarity }` or `null` if no candidate exceeds `minSimilarity`.
+ * @dep callers: resolveToolAlias (mcp/gateway/tool-aliases.ts), suggestToolName (mcp/gateway/tool-aliases.ts)
+ * @dep calls: levenshteinSimilarity
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function findBestFuzzyMatch(
   name: string,
@@ -388,9 +372,7 @@ export function findBestFuzzyMatch(
   return best;
 }
 
-// ---------------------------------------------------------------------------
 // Resolution pipeline
-// ---------------------------------------------------------------------------
 
 /**
  * Resolve a tool name + args through the alias pipeline.
@@ -408,6 +390,10 @@ export function findBestFuzzyMatch(
  * @param args    Current call args (will have alias patches merged in)
  * @param table   Alias table to use (defaults to TOOL_ALIASES)
  * @param canonicals  Canonical names to recognise as final targets
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), resolveToolAlias (mcp/gateway/tool-aliases.ts)
+ * @dep calls: has, resolveToolAlias, findBestFuzzyMatch, stripKnownPrefix, add
+ * @dep module: Gateway
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function resolveToolAlias(
   name: string,
@@ -469,9 +455,7 @@ export function resolveToolAlias(
   return null; // caller decides what to do
 }
 
-// ---------------------------------------------------------------------------
 // Error enrichment
-// ---------------------------------------------------------------------------
 
 /**
  * All known names: canonical tool names + every alias key.

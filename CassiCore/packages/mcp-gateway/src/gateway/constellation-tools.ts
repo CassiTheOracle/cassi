@@ -10,7 +10,6 @@
 import type { ILogger } from '../../types/interfaces.js'
 
 
-// ── Tool Definitions ──────────────────────────────────────────────
 
 export const CONSTELLATION_TOOLS = [
   {
@@ -166,7 +165,6 @@ export function getConstellationTools(): Array<{ name: string; description: stri
 }
 
 
-// ── Executor ──────────────────────────────────────────────────────
 
 async function fetchWithTimeout(
   url: string,

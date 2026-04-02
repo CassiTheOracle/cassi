@@ -101,7 +101,6 @@ const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
 // Logger
 const logger = createLogger();
 
-// ── Process-level resilience ───────────────────────────────────────────
 // Prevent silent crashes from unhandled rejections or uncaught exceptions.
 // In Node 25+ these terminate the process by default — log and continue
 // (or exit gracefully) instead.
@@ -463,7 +462,6 @@ function createServer() {
     };
   });
 
-  // ── Safe notification helper ──────────────────────────────────────────
   // Wrap all progress notifications so a broken transport never crashes
   // the request handler.
   function safeNotify(params: { progressToken: string | number; progress: number; total: number; message: string }) {
@@ -927,7 +925,6 @@ async function startStdio() {
   const server = createServer();
   const transport = new StdioServerTransport();
 
-  // ── Connection lifecycle handlers ────────────────────────────────────
   // These catch MCP-layer errors and disconnections that would otherwise
   // go unnoticed, leaving a zombie process.
 
@@ -940,7 +937,6 @@ async function startStdio() {
     process.exit(0);
   };
 
-  // ── Stdin close detection ────────────────────────────────────────────
   // When the MCP client (OpenCode) disconnects, stdin emits 'end'.
   // The SDK transport only listens for 'data' and 'error', so we need
   // to detect this ourselves and trigger a clean shutdown.
@@ -956,7 +952,6 @@ async function startStdio() {
     setTimeout(() => process.exit(0), 500);
   });
 
-  // ── Signal handlers for clean shutdown ───────────────────────────────
   for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
     process.on(signal, () => {
       logger.info(`Received ${signal} — shutting down`);

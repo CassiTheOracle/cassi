@@ -275,6 +275,10 @@ const SERENA_ACTIONS = new Set([
  * @param args - Tool arguments including action
  * @param logger - Logger instance
  * @param router - Tool router function
+ * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), executeConsolidatedGatewayTools (core/intelligence/helix/helix-posture-runner.ts)
+ * @dep calls: analyzeCochange, prepareContext, analyzeDeadCode, ensureFreshIndex, analyzeHotspots [+5]
+ * @dep module: Code-analysis
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function executeCodeConsolidatedTool(
   args: any,
@@ -418,7 +422,6 @@ export async function executeCodeConsolidatedTool(
       return await router('serena_insert_before_symbol', { name_path, relative_path, body })
     }
 
-    // ── Code Analysis Features (Tempograph-inspired) ──────────────
 
     case 'dead_code': {
       const { path: scopePath, minConfidence, include_test_only, repo } = mergedArgs
