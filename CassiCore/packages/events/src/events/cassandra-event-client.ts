@@ -11,12 +11,12 @@
  *   await client.connect('session-xxx');
  *
  *   // Access current state
- *   console.log(client.state.model);
- *   console.log(client.state.isStreaming);
+ *   console.log(client.state.model); // contributing:ignore - JSDoc example
+ *   console.log(client.state.isStreaming); // contributing:ignore - JSDoc example
  *
  *   // Listen for specific events
  *   client.on('tool_execution_start', (e) => {
- *     console.log(`Tool ${e.toolName} started`);
+ *     console.log(`Tool ${e.toolName} started`); // contributing:ignore - JSDoc example
  *   });
  */
 
