@@ -266,11 +266,11 @@ function startLocalOAuthServer(state: string): Promise<OAuthServerInfo> {
 				});
 			})
 			.on("error", (err: NodeJS.ErrnoException) => {
-				console.error(
+				console.error( // contributing:ignore - OAuth server error logging
 					"[openai-codex] Failed to bind http://127.0.0.1:1455 (",
 					err.code,
 					") Falling back to manual paste.",
-				); // contributing:ignore - OAuth server error logging
+				);
 				resolve({
 					close: () => {
 						try {
