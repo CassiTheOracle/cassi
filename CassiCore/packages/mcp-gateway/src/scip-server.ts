@@ -28,12 +28,12 @@ const REPO_ROOT = process.env.REPO_ROOT || process.cwd();
 function log(level: string, message: string, data?: any) {
   const timestamp = new Date().toISOString();
   const logLine = JSON.stringify({ timestamp, level, message, data });
-  console.error(logLine);
+  console.error(logLine); // contributing:ignore - MCP protocol requires stdout
 }
 
 /**
  * Index the codebase using scip-typescript
- * @dep callers: scip-server.ts (mcp/scip-server.ts), querySymbol (mcp/scip-server.ts)
+ * @dep callers: querySymbol (mcp/scip-server.ts), scip-server.ts (mcp/scip-server.ts)
  * @dep module: Mcp
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -134,6 +134,9 @@ async function getDependencies(filePath: string): Promise<any> {
 
 /**
  * Find all references to a symbol
+ * @dep callers: lspToolHandler (core/tools/implementations/lsp-tool.ts), scip-server.ts (mcp/scip-server.ts)
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 async function findReferences(symbolName: string): Promise<any> {
   log('info', 'Finding references', { symbolName });
