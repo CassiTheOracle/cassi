@@ -1938,6 +1938,20 @@ export class Daemon {
     toolExecutor.setReliabilityTracker(reliabilityTracker)
     this.logger.info('Tool Reliability Tracker wired to ToolExecutor — circuit breaker active')
 
+    // Wire External Shell Hooks for PreToolUse/PostToolUse interception
+    const hookConfig = this.config.get<{ preToolUse?: string[]; postToolUse?: string[]; timeoutMs?: number }>('tools.hooks', {})
+    if (hookConfig.preToolUse?.length || hookConfig.postToolUse?.length) {
+      toolExecutor.setExternalHooks({
+        preToolUse: hookConfig.preToolUse ?? [],
+        postToolUse: hookConfig.postToolUse ?? [],
+        timeoutMs: hookConfig.timeoutMs,
+      })
+      this.logger.info('External Hooks wired to ToolExecutor', {
+        preCount: hookConfig.preToolUse?.length ?? 0,
+        postCount: hookConfig.postToolUse?.length ?? 0,
+      })
+    }
+
     this.logger.info(`Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
 
     // Initialize MCP registry and connect configured servers
