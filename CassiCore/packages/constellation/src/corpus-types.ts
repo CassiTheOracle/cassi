@@ -36,11 +36,8 @@ import type { FlexPosture, ConstellationTemplate } from './types.js'
  * Each step is one BrainstemAnnotation pushed by a child Helix's Brainstem.
  */
 export interface CorpusStep {
-  /** The annotation from the child Brainstem */
   annotation: BrainstemAnnotation
-  /** When this step was pushed to the tree */
   pushedAt: number
-  /** Tool calls from the work unit (name + truncated args) — for Corpus observability */
   toolCalls?: Array<{ name: string; args: string }>
 }
 
@@ -49,25 +46,22 @@ export interface CorpusStep {
  * Brainstems push annotations into their branch as they score work units.
  */
 export interface CorpusBranch {
-  /** The Helix this branch tracks */
   helixId: string
-  /** What this Helix is working on */
   goal: string
-  /** Depth in the Constellation tree (root = 0) */
   depth: number
-  /** Parent Helix ID (undefined for root) */
   parentId?: string
-  /** Annotation steps pushed by the Helix's Brainstem */
   steps: CorpusStep[]
-  /** Branch lifecycle status */
   status: CorpusBranchStatus
-  /** When this branch was registered */
   createdAt: number
-  /** When this branch was closed (completed/cancelled/failed) */
   closedAt?: number
 }
 
-/** Branch lifecycle status */
+/**
+ * Branch lifecycle status.
+ *
+ * WHY: 'active' means the Helix is running and pushing annotations.
+ * The other three are terminal states that close the branch.
+ */
 export type CorpusBranchStatus =
   | 'active'      // Helix is running, Brainstem is pushing annotations
   | 'completed'   // Helix finished successfully
@@ -196,91 +190,42 @@ export interface CorpusBranchSnapshot {
  * for all branches. Budget target: ~16k total for tree awareness.
  */
 export interface BranchDigest {
-  /** Which Helix produced this digest */
   helixId: string
-  /** Full goal for this branch */
   goalSummary: string
-  /** Current approach pattern */
   approach: BranchApproach
-  /** Estimated progress (0-1) based on score trajectory and pattern shifts */
   progress: number
-  /** Files being actively modified (from recent annotations) */
   filesActive: string[]
-  /** Top findings from high-score annotations (score > 0.7) */
   keyFindings: string[]
-  /** Blockers — from annotations with pattern 'stuck'/'paralysis' or low scores */
   blockers: string[]
-  /** Strategy description — what the Helix is currently trying to do */
   currentStrategy: string
-  /** Rolling quality score */
   rollingScore: number
-  /** Total work units processed */
   workUnitsProcessed: number
-  /** When this digest was last updated */
   updatedAt: number
-  /** Why the approach last changed (if it did) — feeds self-awareness */
   lastApproachChangeReason?: string
 
-  /** Current working hypothesis about how to achieve the goal */
   currentHypothesis?: string
-  /** All discoveries accumulated across all steps */
   allDiscoveries?: string[]
-  /** All decisions made so far */
   allDecisions?: string[]
-  /** Planned next steps from the most recent annotation */
   currentNextSteps?: string[]
-  /** Recent concrete outputs (files created, tests run, etc.) */
   recentOutputs?: string[]
-  /**
-   * Live stream snippet — the most recent partial LLM output being generated
-   * in the current active iteration. Updated on every stream event (not just
-   * work units), so the Corpus always sees what this thread is currently writing.
-   * Absent if the thread is idle or between iterations.
-   */
   liveStreamSnippet?: string
-  /**
-   * Self-organization signals that have met the dampening threshold and are
-   * ready to fire. In 'safety-net-only' / 'tree-only' guidance modes these
-   * are NOT injected directly into Unity — the Corpus acts on them instead,
-   * using its full cross-branch context to decide whether and how to respond.
-   *
-   * Each signal carries: the rule type, a human-readable description of the
-   * condition, and the evidence string that triggered it.
-   */
   selfOrgSignals?: Array<{
     type: string
     description: string
     evidence: string
   }>
-  /**
-   * Real-time blocker updates — pushed immediately when a blocker is detected,
-   * not waiting for the next full digest cycle.
-   */
   currentBlockers?: Array<{
     description: string
     detectedAt: number
     severity: 'low' | 'medium' | 'high' | 'critical'
     relatedFiles?: string[]
   }>
-  /**
-   * Confidence level — updated on every annotation. Computed from:
-   * - Recent score trajectory (last 5 steps)
-   * - Pattern stability (same approach for N steps = higher confidence)
-   * - Blocker count (more blockers = lower confidence)
-   * - Progress estimate coherence
-   */
   confidenceLevel?: {
     score: number
     trend: 'rising' | 'stable' | 'falling'
     factors: string[]
     updatedAt: number
   }
-  /**
-   * Estimated time to completion in minutes. Based on:
-   * - Current progress rate (work units per minute × avg score)
-   * - Remaining complexity (from goal decomposition)
-   * - Historical similar branches
-   */
   estimatedTimeToCompletion?: {
     minutes: number
     confidence: number
@@ -291,16 +236,19 @@ export interface BranchDigest {
 
 /**
  * Approach patterns for a Helix branch.
- * Extends WorkUnitAnnotation with higher-level strategic patterns.
+ *
+ * WHY: These are higher-level than WorkUnitAnnotation patterns — they describe
+ * strategic mode, not just what the LLM did in one turn. The Corpus uses these
+ * to detect cross-branch patterns (redundancy, convergence, etc.).
  */
 export type BranchApproach =
-  | 'exploration'      // reading, searching, gathering context
-  | 'research'         // deep investigation, cross-referencing, hypothesis testing
-  | 'implementation'   // writing code, creating files
-  | 'testing'          // running tests, verification
-  | 'debugging'        // fixing failures, tracing errors
-  | 'revision'         // iterating based on feedback
-  | 'coordinating'     // adjusting based on peer state (self-organization active)
+  | 'exploration'
+  | 'research'
+  | 'implementation'
+  | 'testing'
+  | 'debugging'
+  | 'revision'
+  | 'coordinating'
 
 /**
  * Shared topic node — emergent cross-cutting concerns that any Helix
@@ -312,23 +260,14 @@ export type BranchApproach =
  * modifications, creating emergent order without explicit messaging.
  */
 export interface TopicNode {
-  /** Auto-generated topic ID */
   id: string
-  /** Human-readable topic name (e.g. "authentication middleware") */
   name: string
-  /** Contributions from multiple Helixes */
   contributions: TopicContribution[]
-  /** Whether contributions contain conflicting approaches */
   tensionFlag: boolean
-  /** Description of the tension (if any) */
   tensionDescription?: string
-  /** Files most relevant to this topic */
   relatedFiles: string[]
-  /** When this topic was first created */
   createdAt: number
-  /** Which Helix created it */
   createdBy: string
-  /** When any Helix last contributed */
   lastContributionAt: number
 }
 
@@ -336,17 +275,11 @@ export interface TopicNode {
  * A single contribution to a shared topic node.
  */
 export interface TopicContribution {
-  /** Which Helix contributed this */
   helixId: string
-  /** The actual insight, finding, or observation */
   content: string
-  /** Approach the contributing Helix was using */
   approach: BranchApproach
-  /** Files related to this contribution */
   files: string[]
-  /** Quality score of the work unit that produced this insight */
   score: number
-  /** When this was contributed */
   timestamp: number
 }
 
@@ -359,29 +292,25 @@ export interface TopicContribution {
  * enabling self-improvement across the constellation.
  */
 export interface StrategyRetrospective {
-  /** Which Helix recorded this */
   helixId: string
-  /** Previous approach */
   fromApproach: BranchApproach
-  /** New approach */
   toApproach: BranchApproach
-  /** Why the change was made */
   reason: string
-  /** What triggered the change (self-org rule, corpus directive, score decline, etc.) */
   trigger: RetrospectiveTrigger
-  /** Quality score at the time of change */
   scoreAtChange: number
-  /** Quality score N steps after change (filled in later for effectiveness tracking) */
   scoreAfterChange?: number
-  /** Number of steps after which scoreAfterChange was measured */
   stepsAfterMeasured?: number
-  /** Whether this change improved things (filled in by effectiveness tracking) */
   wasEffective?: boolean
-  /** When this retrospective was recorded */
   timestamp: number
 }
 
-/** What triggered a strategy change */
+/**
+ * What triggered a strategy change.
+ *
+ * WHY: These distinguish between internal triggers (score-decline, pattern-detected)
+ * and social triggers (self-organization, corpus-directive, peer-convergence).
+ * This matters for learning which coordination mechanisms work best.
+ */
 export type RetrospectiveTrigger =
   | 'self-organization'  // peer state in the tree caused a redirect
   | 'corpus-directive'   // the Corpus sent a directive
@@ -400,53 +329,46 @@ export type RetrospectiveTrigger =
  * The pattern library is the constellation's long-term memory.
  */
 export interface ElevatedPattern {
-  /** Auto-generated pattern ID */
   id: string
-  /** Which Helix demonstrated this pattern */
   sourceHelixId: string
-  /** What approach worked */
   approach: BranchApproach
-  /** Description of the successful strategy */
   description: string
-  /** What goal/context this pattern applies to */
   applicableContext: string
-  /** Quality score the source branch achieved */
   achievedScore: number
-  /** Files/modules this pattern is relevant to */
   relevantFiles: string[]
-  /** Retrospectives that support this pattern (evidence chain) */
   supportingRetrospectives: string[]
-  /** When this pattern was elevated */
   elevatedAt: number
-  /** How many branches have referenced this pattern */
   referenceCount: number
 }
 
 /**
  * Self-organization adjustment — produced by a Brainstem's selfOrganize()
  * method after reading the shared tree. Feeds into the guidance queue.
+ *
+ * HOW: Dampening prevents overreaction to transient peer state. The adjustment
+ * must be confirmed N times (across sweeps) before it fires. This implements
+ * a simple hysteresis loop.
  */
 export interface SelfOrgAdjustment {
-  /** What kind of adjustment */
   type: SelfOrgAdjustmentType
-  /** Human-readable description */
   description: string
-  /** Evidence from the tree that triggered this */
   evidence: string
-  /** Source: which peer digest or topic triggered this */
   sourceHelixId?: string
   sourceTopicId?: string
-  /** Dampening counter — must reach threshold before taking effect */
   dampeningCount: number
-  /** The threshold needed before this adjustment activates */
   dampeningThreshold: number
-  /** When this was first generated */
   firstGeneratedAt: number
-  /** When this was last confirmed (dampening tick) */
   lastConfirmedAt: number
 }
 
-/** Types of self-organization adjustments */
+/**
+ * Types of self-organization adjustments.
+ *
+ * WHY: These are the coordination primitives. file-avoidance prevents conflicts,
+ * finding-incorporation enables knowledge transfer, approach-redirect enables
+ * peer learning, goal-refinement reduces redundancy, tension-flag surfaces
+ * conflicts for Corpus resolution.
+ */
 export type SelfOrgAdjustmentType =
   | 'file-avoidance'       // back off files a peer is editing
   | 'finding-incorporation' // pull a peer's finding into local context
@@ -461,37 +383,25 @@ export type SelfOrgAdjustmentType =
  * measured outcome. This is how the constellation learns what works.
  */
 export interface EffectivenessRecord {
-  /** Which adjustment was applied */
   adjustmentType: SelfOrgAdjustmentType
-  /** Which Helix applied it */
   helixId: string
-  /** Score before the adjustment */
   scoreBefore: number
-  /** Score after the adjustment (measured N steps later) */
   scoreAfter: number
-  /** Steps between measurement points */
   stepsDelta: number
-  /** Net score change */
   improvement: number
-  /** Was this considered effective? (improvement > 0) */
   effective: boolean
-  /** When measured */
   measuredAt: number
-  /** Time from adjustment application to measurable improvement (ms) */
   timeToResolutionMs?: number
-  /** Quality delta beyond score — did this improve code quality, test coverage, etc.? */
   qualityMetrics?: {
     codeQualityDelta?: number
     testCoverageDelta?: number
     documentationDelta?: number
   }
-  /** Branch satisfaction — self-reported via Unity end-of-session report */
   branchSatisfaction?: {
     score: number
     comment?: string
     wouldRecommend: boolean
   }
-  /** Constellation-level impact — did this help other branches? */
   constellationImpact?: {
     helpedBranches: string[]
     hinderedBranches: string[]
@@ -525,28 +435,13 @@ export interface CorpusTreeSnapshot {
  * input that the Corpus organizes into its own strategic understanding.
  */
 export interface CorpusProcessedState {
-  /** Per-branch cursor — the last step index the Corpus has analyzed */
   cursors: Map<string, number>
-
-  /** Corpus's assessment of each branch */
   branchAssessments: Map<string, BranchAssessment>
-
-  /** Cross-branch patterns detected */
   crossPatterns: CrossHelixPattern[]
-
-  /** Interventions sent to child Brainstems */
   interventions: CorpusIntervention[]
-
-  /** Spawn decisions made */
   spawnDecisions: SpawnDecision[]
-
-  /** How many sweep cycles the Corpus has completed */
   sweepCount: number
-
-  /** Last time the Corpus completed a sweep */
   lastSweepAt: number
-
-  /** Timestamps of recent annotations (for adaptive cadence computation) */
   annotationTimestamps: number[]
 }
 
@@ -555,61 +450,35 @@ export interface CorpusProcessedState {
  * Updated each sweep as new annotations arrive.
  */
 export interface BranchAssessment {
-  /** Which Helix this assesses */
   helixId: string
-
-  /** Corpus's view of this branch's health */
   status: BranchHealthStatus
-
-  /** Rolling average of recent composite scores (last 5 annotations) */
   rollingScore: number
-
-  /** Full score trajectory for trend analysis */
   scoreTrajectory: number[]
-
-  /** Most frequent annotation type in recent steps */
   dominantPattern: WorkUnitAnnotation | 'none'
-
-  /** File paths this Helix has modified (extracted from tool calls, for conflict detection) */
   filesModified: Set<string>
-
-  /** Consecutive steps with declining scores */
   decliningScoreStreak: number
-
-  /** When this branch last had activity */
   lastActivityAt: number
-
-  /** Whether an auto-spawn has already been triggered for this branch */
   autoSpawnTriggered?: boolean
-
-  /** Rolling average goal alignment */
   avgGoalAlignment: number
-  /** Rolling average novelty */
   avgNovelty: number
-  /** Rolling average progress */
   avgProgress: number
-
-  /** History of directives sent to this branch */
   directiveHistory: DirectiveRecord[]
-  /** Current escalation level for this branch */
   escalationLevel: EscalationLevel
-  /** Count of consecutive ignored directives */
   ignoredDirectiveStreak: number
-  /** Steps with below-threshold progress (for metric-only escalation) */
   lowProgressStreak: number
-
-  /** Budget allocated to this branch */
   budget?: BranchBudget
-
-  /** Discoveries this branch has made (extracted from annotations) */
   discoveries: string[]
-  /** Context injections this branch has received */
   contextInjectionsReceived: number
-  /** Whether this branch's research digest has been built */
   researchDigestBuilt: boolean
 }
 
-/** Branch health as assessed by the Corpus (distinct from CorpusBranchStatus) */
+/**
+ * Branch health as assessed by the Corpus (distinct from CorpusBranchStatus).
+ *
+ * WHY: CorpusBranchStatus is lifecycle (active/completed/failed). BranchHealthStatus
+ * is the Corpus's real-time assessment of how well the branch is doing.
+ * 'struggling'/'stuck'/'drifting' trigger different intervention strategies.
+ */
 export type BranchHealthStatus =
   | 'productive'   // Healthy progress, good scores
   | 'active'       // Running but not yet assessed
@@ -647,31 +516,24 @@ export function createInitialProcessedState(): CorpusProcessedState {
  * cross-branch view.
  */
 export type CrossHelixPatternType =
-  | 'conflict'              // Two Helixes modifying the same files
-  | 'redundancy'            // Two Helixes doing similar work (similar annotations)
-  | 'divergence'            // Helixes drifting in different directions from the goal
-  | 'convergence'           // Multiple Helixes converging on the same conclusion
-  | 'asymmetric-progress'   // One Helix stuck while siblings are productive
-  | 'cascade-failure'       // Multiple Helixes failing in sequence
-  | 'resource-imbalance'    // One Helix consuming disproportionate steps/time
+  | 'conflict'
+  | 'redundancy'
+  | 'divergence'
+  | 'convergence'
+  | 'asymmetric-progress'
+  | 'cascade-failure'
+  | 'resource-imbalance'
 
 /**
  * A cross-Helix pattern detected by the Corpus.
  */
 export interface CrossHelixPattern {
-  /** What kind of cross-Helix pattern */
   type: CrossHelixPatternType
-  /** Which Helixes are involved */
   helixIds: string[]
-  /** How urgent is this */
   severity: GuidanceUrgency
-  /** Human-readable description */
   description: string
-  /** Suggested action (from algorithmic detection or LLM) */
   suggestedAction?: string
-  /** When this pattern was first detected */
   detectedAt: number
-  /** Whether the Corpus has already acted on this pattern */
   actedUpon: boolean
 }
 
@@ -686,23 +548,23 @@ export interface CrossHelixPattern {
  * (low/medium → tool results, high/critical → user message).
  */
 export interface CorpusDirective {
-  /** Which Helix to steer */
   targetHelixId: string
-  /** What kind of intervention */
   type: CorpusDirectiveType
-  /** How urgent */
   urgency: GuidanceUrgency
-  /** Why the Corpus is intervening */
   reason: string
-  /** The guidance content to deliver */
   text: string
-  /** Which cross-Helix pattern triggered this (if any) */
   fromPattern?: CrossHelixPatternType
-  /** When this directive was issued */
   timestamp: number
 }
 
-/** Types of Corpus directives to child Brainstems */
+/**
+ * Types of Corpus directives to child Brainstems.
+ *
+ * WHY: These are ordered by intrusiveness. 'guidance' is a suggestion.
+ * 'redirect' changes approach. 'throttle' manages resources. 'cancel'
+ * terminates the branch. 'context-inject' bypasses the guidance queue
+ * for critical information.
+ */
 export type CorpusDirectiveType =
   | 'guidance'        // Strategic suggestion
   | 'redirect'        // Change approach or focus
@@ -716,23 +578,20 @@ export type CorpusDirectiveType =
  * The Corpus watches 3 post-directive annotations to determine if behavior changed.
  */
 export interface DirectiveRecord {
-  /** The directive that was sent */
   directive: CorpusDirective
-  /** Annotation step at which the directive was sent */
   sentAtStep: number
-  /** The dimensional scores at the time the directive was sent */
   scoreAtSend: { goalAlignment: number; novelty: number; progress: number }
-  /** Post-directive annotation snapshots (up to 3) for behavioral change detection */
   postDirectiveScores: Array<{ goalAlignment: number; novelty: number; progress: number; annotation: string }>
-  /** Whether the directive produced a behavioral change */
   outcome: 'pending' | 'effective' | 'ignored'
-  /** When the outcome was determined */
   evaluatedAt?: number
 }
 
 /**
  * Escalation level — determines the force of Corpus intervention.
  * Level progresses based on combined directive-failure + metric signals.
+ *
+ * HOW: Level 0 = no intervention. Level 4 = cancel the branch.
+ * Each level adds more aggressive steering.
  */
 export type EscalationLevel = 0 | 1 | 2 | 3 | 4
 
@@ -742,21 +601,15 @@ export type EscalationLevel = 0 | 1 | 2 | 3 | 4
  * amounts of low-progress work before escalating.
  */
 export interface EscalationThresholds {
-  /** Ignored directives before escalating to next level */
   directiveFailuresForEscalation: number
-  /** Composite score below which a branch is 'concerning' */
   lowScoreThreshold: number
-  /** Steps with below-threshold scores before escalating (metric-only) */
   lowScoreStepsForEscalation: number
-  /** Minimum progress dimension score — below this for N steps triggers concern */
   minProgressThreshold: number
-  /** Steps with below-threshold progress before escalating */
   lowProgressStepsForEscalation: number
 }
 
 /** Default escalation thresholds per template type */
 export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
-  /** Research: very tolerant of reading without writing */
   research: {
     directiveFailuresForEscalation: 4,
     lowScoreThreshold: 0.25,
@@ -764,7 +617,6 @@ export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
     minProgressThreshold: 0.1,
     lowProgressStepsForEscalation: 15,
   },
-  /** Implementation: expects output sooner */
   implementation: {
     directiveFailuresForEscalation: 2,
     lowScoreThreshold: 0.3,
@@ -772,7 +624,6 @@ export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
     minProgressThreshold: 0.15,
     lowProgressStepsForEscalation: 10,
   },
-  /** Standard: balanced defaults */
   standard: {
     directiveFailuresForEscalation: 3,
     lowScoreThreshold: 0.3,
@@ -780,7 +631,6 @@ export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
     minProgressThreshold: 0.12,
     lowProgressStepsForEscalation: 12,
   },
-  /** Minimal: tight expectations */
   minimal: {
     directiveFailuresForEscalation: 2,
     lowScoreThreshold: 0.35,
@@ -788,7 +638,6 @@ export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
     minProgressThreshold: 0.2,
     lowProgressStepsForEscalation: 8,
   },
-  /** Review: tolerant — reviews involve lots of reading */
   review: {
     directiveFailuresForEscalation: 4,
     lowScoreThreshold: 0.25,
@@ -807,50 +656,30 @@ export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
  * considering current tree state, resource budget, and existing work.
  */
 export interface SpawnDecision {
-  /** ID of the spawn request being evaluated */
   requestId: string
-  /** Which Helix requested the spawn */
   requestingHelixId: string
-  /** What the child would work on */
   goal: string
-  /** Was it approved? */
   approved: boolean
-  /** LLM's reasoning for the decision */
   reason: string
-  /** Corpus may suggest a different template */
   suggestedTemplate?: ConstellationTemplate
-  /** Corpus may refine the goal */
   suggestedGoal?: string
-  /** When the decision was made */
   evaluatedAt: number
 }
 
 
 // Corpus Configuration
 
-// Corpus Proactive Capabilities — Config for new behaviors
-
 /** Extended Corpus config for proactive behaviors */
 export interface CorpusProactiveConfig {
-  /** Enable mid-flight re-decomposition */
   enableReDecomposition: boolean
-  /** Enable quality gates on branch completion */
   enableQualityGates: boolean
-  /** Enable cross-branch discovery routing */
   enableDiscoveryRouting: boolean
-  /** Enable parallel acceleration (score-triggered splits) */
   enableParallelAcceleration: boolean
-  /** Enable strategic context injection for struggling branches */
   enableContextInjection: boolean
-  /** Enable research digest caching and injection */
   enableResearchCaching: boolean
-  /** Enable direct injection (pause-inject-resume) for critical interventions */
   enableDirectInjection: boolean
-  /** Minimum consecutive high-score steps before considering parallel split */
   parallelSplitMinStreak: number
-  /** Minimum composite score to qualify for parallel split */
   parallelSplitMinScore: number
-  /** Steps a branch must be struggling before context injection triggers */
   contextInjectionAfterSteps: number
 }
 
@@ -869,8 +698,6 @@ export const DEFAULT_PROACTIVE_CONFIG: CorpusProactiveConfig = {
 }
 
 
-// Corpus Config
-
 /**
  * Adaptive cadence configuration for dynamic poll interval adjustment.
  * Corpus adjusts its poll interval based on:
@@ -880,19 +707,12 @@ export const DEFAULT_PROACTIVE_CONFIG: CorpusProactiveConfig = {
  * - LLM health (consecutive failures)
  */
 export interface AdaptiveCadenceConfig {
-  /** Base poll interval in ms. Default: 10_000 */
   basePollMs: number
-  /** Minimum poll interval (even under heavy load). Default: 2_000 */
   minPollMs: number
-  /** Maximum poll interval (even when idle). Default: 30_000 */
   maxPollMs: number
-  /** Branches at which to start reducing poll interval. Default: 4 */
   branchThreshold: number
-  /** Annotations per second at which to reduce poll interval. Default: 0.5 */
   annotationRateThreshold: number
-  /** Escalations at which to reduce poll interval. Default: 3 */
   escalationThreshold: number
-  /** Consecutive LLM failures at which to increase poll interval. Default: 2 */
   failureThreshold: number
 }
 
@@ -906,80 +726,42 @@ export const DEFAULT_ADAPTIVE_CADENCE_CONFIG: AdaptiveCadenceConfig = {
   failureThreshold: 2,
 }
 
+/**
+ * Corpus configuration.
+ *
+ * WHY: The cadence field controls whether the Corpus runs proactively ('active')
+ * or reactively ('safety-net'). In safety-net mode, the Brainstem's self-organization
+ * handles routine coordination; the Corpus only intervenes for pathological patterns.
+ */
 export interface CorpusConfig {
-  /** Model tier for Corpus LLM loop. Default: 'qwenMax' */
   modelTier: string
-  /** Max tokens per Corpus LLM call. Default: 16_000 */
   maxTokens: number
-  /** Timeout for each Corpus LLM call in ms. Default: 15_000 */
   timeoutMs: number
-  /** Idle poll interval in ms when no new annotations arrive. Default: 2_000 */
   idlePollMs: number
-  /** Minimum new steps before triggering an LLM analysis (saves budget). Default: 3 */
   llmAnalysisThreshold: number
-  /** Maximum branches (Helixes) in the tree. Default: 16 */
   maxBranches: number
-  /** Maximum depth in the tree. Default: 4 */
   maxDepth: number
-  /** Minimum sweeps between interventions to the same Helix. Default: 3 */
   interventionCooldownSweeps: number
-  /** Score below which a branch is flagged as struggling. Default: 0.4 */
   strugglingScoreThreshold: number
-  /** Consecutive declining-score steps before flagging. Default: 3 */
   decliningScoreThreshold: number
-  /** Whether to post summaries to the constellation blackboard. Default: true */
   postToBlackboard: boolean
-  /** Whether the Corpus is enabled. Default: true */
   enabled: boolean
-  /** Interventions before auto-spawning a decomposition branch. Default: 5 */
   autoSpawnInterventionThreshold: number
-
-
-  /**
-   * Corpus operating cadence. Default: 'safety-net'
-   *
-   * - 'active': Legacy mode — Corpus runs LLM analysis on every sweep
-   *   with new steps. Full directive authority exercised proactively.
-   *
-   * - 'safety-net': Self-organizing mode — Corpus runs LLM analysis
-   *   only when pathological patterns are detected or escalations arrive.
-   *   Routine coordination is handled by Brainstem self-organization
-   *   through the Shared Thought Tree.
-   */
   cadence: CorpusCadence
-
-  /**
-   * In safety-net mode, minimum sweeps between LLM analyses even when
-   * pathology is detected. Prevents rapid-fire LLM calls. Default: 3
-   */
   safetyNetMinSweepsBetweenAnalysis: number
-
-  /**
-   * Whether to use tool-based analysis (structured tool calls) instead
-   * of the legacy prompt/parse approach. Default: true
-   */
   useToolBasedAnalysis: boolean
-
-  /**
-   * Maximum tool calls per Corpus analysis cycle. Prevents runaway
-   * tool loops. Default: 10
-   */
   maxToolCallsPerCycle: number
-
-  /**
-   * Proactive behavior configuration. Controls which proactive
-   * capabilities are enabled and their thresholds.
-   */
   proactive: CorpusProactiveConfig
-
-  /**
-   * Adaptive cadence configuration. Controls dynamic poll interval
-   * adjustment based on load factors. Default: DEFAULT_ADAPTIVE_CADENCE_CONFIG
-   */
   adaptiveCadence: AdaptiveCadenceConfig
 }
 
-/** Corpus operating cadence */
+/**
+ * Corpus operating cadence.
+ *
+ * WHY: 'active' is the legacy proactive mode. 'safety-net' delegates routine
+ * coordination to Brainstem self-organization, reserving Corpus LLM analysis
+ * for pathological patterns and escalations.
+ */
 export type CorpusCadence = 'active' | 'safety-net'
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
@@ -1004,8 +786,6 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
   adaptiveCadence: DEFAULT_ADAPTIVE_CADENCE_CONFIG,
 }
 
-
-// Corpus Dependencies
 
 /** Minimal LLM interface for Corpus (same shape as BrainstemLLM) */
 export interface CorpusLLM {
