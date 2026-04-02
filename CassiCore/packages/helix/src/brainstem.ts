@@ -982,6 +982,23 @@ PROGRESS: <number 0-1>
     this.state.workUnitsProcessed++
     this.state.currentAxonStep++
 
+    // Enforce iteration cap set by Corpus directives — once reached, force conclusion
+    if (this.state.maxWorkUnits > 0 && this.state.workUnitsProcessed >= this.state.maxWorkUnits) {
+      this.logger.warn('Brainstem iteration cap reached — forcing conclusion', {
+        workUnitsProcessed: this.state.workUnitsProcessed,
+        maxWorkUnits: this.state.maxWorkUnits,
+      })
+      this.guidanceQueue.push({
+        text: `You have reached the maximum number of iterations set by the Corpus. You MUST call signal_conclusion immediately with whatever you have produced so far. Do not start any new work.`,
+        urgency: 'critical',
+        fromStep: this.state.currentAxonStep,
+        triggeredBy: 'none',
+        timestamp: Date.now(),
+      })
+      this.state.totalGuidanceCount++
+      return
+    }
+
     try {
       // Build prompt
       const prompt = this.buildPrompt(workUnit, unityIteration, dialecticBatch)
