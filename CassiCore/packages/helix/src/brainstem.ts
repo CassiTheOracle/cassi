@@ -1838,7 +1838,7 @@ Critical rules:
       } else {
         proposal.status = 'rejected'
         const rejector = !yang.approved ? 'yang' : 'yin'
-        const rejectReason = !yang.approved ? yang.reason : yin!.reason
+        const rejectReason = !yang.approved ? yang.reason : (yin?.reason ?? 'No reason provided')
         this.logger.info('Guidance proposal REJECTED', {
           proposalId: proposal.id,
           rejectedBy: rejector,

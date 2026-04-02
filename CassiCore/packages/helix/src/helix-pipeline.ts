@@ -456,12 +456,11 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       while (Date.now() - start < REVIEWER_ACTIVATION_MAX_WAIT_MS) {
         await new Promise(resolve => setTimeout(resolve, REVIEWER_ACTIVATION_CHECK_MS))
         if (cancelled) return false
-        // Once brainstem has processed enough work units, it returns a real decision
-        const shouldActivate = brainstem.shouldActivateReviewers()
-        // If it returns true, it either means "activate" or "not enough data yet"
-        // We need to check if it has processed enough to make a real decision
-        if (brainstem.getWorkUnitsProcessed() >= (brainstem.getReviewerActivationThreshold())) {
-          return shouldActivate
+        // Once brainstem has processed enough work units, call shouldActivateReviewers() fresh
+        const workUnits = brainstem.getWorkUnitsProcessed()
+        const threshold = brainstem.getReviewerActivationThreshold()
+        if (workUnits >= threshold) {
+          return brainstem.shouldActivateReviewers()
         }
       }
       // Timeout waiting for decision — default to activating reviewers
