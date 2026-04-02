@@ -144,29 +144,24 @@ async function buildResearchSpawner(deps: {
     const droneId = `drone-${requestId}`
     const log = deps.logger.child('research-spawner')
 
-    // Create researcher for blackboard integration
     const researcher = new HelixResearcher({
       sessionId: opts.sessionId,
       blackboard: deps.blackboard,
       query: opts.query,
       label: opts.label,
-      requestedBy: 'yang', // Use 'yang' as proxy — HelixResearcher expects DyadRole-compatible
+      requestedBy: 'yang',
       priority: opts.priority ?? 'medium',
       context: opts.context,
       logger: log,
     })
 
-    // Post the research request
     await researcher.postRequest()
 
-    // Spawn the research drone asynchronously — fire-and-forget
     void (async () => {
       let handle: import('../../model-pool/types.js').ModelHandle | undefined
       try {
-        // Acquire a handle for the research drone
         handle = await deps.modelPool.acquire('helix', undefined, opts.sessionId)
 
-        // Build tool schemas — use registry if available, else defaults
         let tools = READ_ONLY_TOOLS
         if (deps.toolRegistry) {
           const registryTools = deps.toolRegistry.toAnthropicSchema()
@@ -188,7 +183,6 @@ async function buildResearchSpawner(deps: {
           opts.context ? `\n\n## Context\n\n${opts.context}` : '',
         ].filter(Boolean).join('')
 
-        // Simple agentic loop using ModelHandle.stream()
         const messages: import('../../../types/runtime.js').Message[] = [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
@@ -218,17 +212,14 @@ async function buildResearchSpawner(deps: {
 
           finalText += passText
 
-          // No tool calls → we're done
           if (pendingToolCalls.length === 0) break
 
-          // Build assistant message
           if (passText) contentBlocks.push({ type: 'text', text: passText })
           for (const tc of pendingToolCalls) {
             contentBlocks.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input })
           }
           messages.push({ role: 'assistant', content: contentBlocks })
 
-          // Execute tool calls
           const toolResults: import('../../../types/runtime.js').ContentBlock[] = []
           for (const tc of pendingToolCalls) {
             try {
@@ -254,7 +245,6 @@ async function buildResearchSpawner(deps: {
           messages.push({ role: 'user', content: toolResults })
         }
 
-        // Post findings to the blackboard
         if (finalText) {
           await researcher.streamFinding(finalText)
         }
@@ -265,11 +255,12 @@ async function buildResearchSpawner(deps: {
         log.info('Research drone completed', { requestId, label: opts.label, textLength: finalText.length })
       } catch (err) {
         log.warn('Research drone failed', { requestId, error: String(err), label: opts.label })
-        // Post error as a finding so the mentor knows
         try {
           await researcher.streamFinding(`Research failed: ${String(err)}`)
           await researcher.complete(`Research failed: ${String(err)}`)
-        } catch { /* best effort */ }
+        } catch {
+          // best effort — finding post should not crash the drone
+        }
       } finally {
         handle?.release()
       }
@@ -279,7 +270,6 @@ async function buildResearchSpawner(deps: {
   }
 }
 
-/** Check if a tool name is read-only (safe for research drones) */
 function isReadOnlyName(name: string): boolean {
   const readPrefixes = [
     'read', 'grep', 'glob', 'find_', 'get_symbols_overview', 'search_for_pattern',
@@ -389,14 +379,11 @@ export function createHelix(
             processed: wu.processed,
           })),
           activeNudges: ws.getAllNudges().filter(n => !n.acknowledged),
-          // isWorkerDone() checks if the primary worker (Unity) signaled done
           unityDone: ws.isWorkerDone(),
-          // Broadcast coordinator progress (native HelixWorkStream only)
           broadcastProgress: ws instanceof HelixWorkStream ? {
             yang: ws.getReviewerProgress('yang'),
             yin: ws.getReviewerProgress('yin'),
           } : undefined,
-          // Consolidated metrics from HelixCoordinator
           metrics: coord?.getMetricsSnapshot(),
         },
       }
@@ -406,19 +393,12 @@ export function createHelix(
       storedModelPool = mp
     },
 
-    /**
-     * Get brainstem inspection state for a given Helix session.
-     * Returns detailed queue depths, timing, recent annotations, and guidance.
-     */
     getActiveBrainstemInspection(sessionId: string) {
       const bs = activeBrainstems.get(sessionId)
       if (!bs) return undefined
       return bs.getInspectionState()
     },
 
-    /**
-     * Get all active brainstem session IDs.
-     */
     getActiveBrainstemIds(): string[] {
       return Array.from(activeBrainstems.keys())
     },
@@ -471,7 +451,6 @@ export function createHelix(
       }
 
       try {
-        // Phase Zero: Distill context from parent conversation + memory
         let effectiveGoal = opts.goal
         let effectiveContext = opts.context
         if (storedContextDistiller) {
@@ -498,13 +477,11 @@ export function createHelix(
           }
         }
 
-        // Consume any pre-seeded next-job directives
         storedModelDirective?.consumeNextJob(sessionId)
 
         const unityOverride = storedModelDirective?.resolve(opts.jobId, 'helix.unity')
         const yangOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yang')
         const yinOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yin')
-        // Mentor path removed — Brainstem is the cognitive organizer
 
         const [unityHandle, yangHandle, yinHandle] = await Promise.all([
           effectiveModelPool.acquire('unity', undefined, sessionId, unityOverride),
@@ -512,10 +489,8 @@ export function createHelix(
           effectiveModelPool.acquire('yin', undefined, sessionId, yinOverride),
         ])
 
-        // Legacy mentorHandle — no-op for backward compat
         const mentorHandle: undefined = undefined
 
-        // Create BrainstemDeps with a model-pool-based LLM adapter
         let brainstemDeps: import('./brainstem-types.js').BrainstemDeps | undefined
         if (effectiveModelPool) {
           try {
@@ -543,7 +518,6 @@ export function createHelix(
                   return await fsRead(resolved, 'utf-8')
                 } catch { return null }
               },
-              // Blackboard is resolved lazily via onBlackboardCreated callback below
             }
             logger.info('helix:brainstem:adapter-created', { sessionId })
           } catch (err) {
@@ -554,13 +528,10 @@ export function createHelix(
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
 
-        // Create PlanHandler so Helix postures can decompose and track work
         let planHandler: import('../flux-team/plan-handler.js').PlanHandler | undefined
         try {
           const { PlanHandler } = await import('../flux-team/plan-handler.js')
           const { Blackboard } = await import('../flux-team/blackboard.js')
-          // Use the provided blackboard, or create one eagerly so PlanHandler can bind to it.
-          // The pipeline will use this same blackboard instance (passed via opts.blackboard).
           if (!effectiveBlackboard) {
             effectiveBlackboard = new Blackboard(logger, sessionId)
             effectiveBlackboard.initPlan(effectiveGoal)
@@ -571,12 +542,10 @@ export function createHelix(
           logger.warn('helix:plan-handler:init-failed', { error: String(err), sessionId })
         }
 
-        // Build research spawner for mentor — deferred blackboard capture
         let resolvedBlackboard: Blackboard | undefined = effectiveBlackboard
         let researchSpawner: ResearchSpawner | undefined
 
         if (mentorHandle && storedToolExecutor) {
-          // Create a lazy spawner that captures the blackboard when first invoked
           researchSpawner = async (spawnOpts) => {
             const bb = resolvedBlackboard ?? activeBlackboards.get(sessionId)
             if (!bb) throw new Error('No blackboard available for research spawner')
@@ -603,7 +572,7 @@ export function createHelix(
             unityHandle,
             yangHandle,
             yinHandle,
-            mentorHandle, // Legacy — ignored by pipeline (Brainstem used instead)
+            mentorHandle,
             toolExecutor: storedToolExecutor,
             toolRegistry: storedToolRegistry,
             store: storedStore,
@@ -624,7 +593,6 @@ export function createHelix(
             onBlackboardCreated: (blackboard) => {
               activeBlackboards.set(sessionId, blackboard)
               resolvedBlackboard = blackboard
-              // Wire blackboard into brainstemDeps (created before pipeline runs)
               if (brainstemDeps) {
                 brainstemDeps.blackboard = blackboard
               }

@@ -59,9 +59,9 @@ export interface BrainstemConfig {
   modelTier: string
   /** Max tokens per Brainstem LLM call. Default: 6000 */
   maxTokens: number
-  /** Timeout for each Brainstem LLM call in ms. Default: 30000 */
+  /** Timeout for each Brainstem LLM call in milliseconds. Default: 30000 */
   timeoutMs: number
-  /** Idle poll interval in ms when no work units arrive. Default: 10000 */
+  /** Idle poll interval in milliseconds when no work units arrive. Default: 10000 */
   idlePollMs: number
   /** Minimum iterations between guidance injections. Default: 2 */
   guidanceCooldownIterations: number
@@ -73,13 +73,13 @@ export interface BrainstemConfig {
   driftThreshold: number
   /** Steps before stagnation detector activates. Default: 10 */
   stagnationStepThreshold: number
-  /** Rolling avg score below which stagnation fires. Default: 0.4 */
+  /** Rolling average score below which stagnation fires. Default: 0.4 */
   stagnationScoreThreshold: number
   /** Max consecutive explorations before forced implementation transition. Default: 15 */
   maxExplorationSteps: number
-  /** Soft wall-clock limit in ms. At this point, inject 'finish up soon' guidance. Default: 90 min */
+  /** Soft wall-clock limit in milliseconds — injects 'finish up soon' guidance. Default: 90 min */
   wallClockBudgetMs: number
-  /** Hard wall-clock limit in ms. At this point, inject 'stop now' guidance. Default: 120 min */
+  /** Hard wall-clock limit in milliseconds — injects 'stop now' guidance. Default: 120 min */
   wallClockHardLimitMs: number
   /** Whether to post annotations to blackboard. Default: true */
   postToBlackboard: boolean
@@ -87,24 +87,17 @@ export interface BrainstemConfig {
   persistTrainingData: boolean
   /** Whether Brainstem is enabled. Default: true */
   enabled: boolean
-  /** Interval in ms between time-based heartbeat annotations when idle (default: 90_000) */
+  /** Interval in milliseconds between time-based heartbeat annotations when idle. Default: 90_000 */
   heartbeatIntervalMs: number
-  /** Accumulated stream-token count before triggering a long-reasoning heartbeat (default: 2000) */
+  /** Accumulated stream-token count before triggering a long-reasoning heartbeat. Default: 2000 */
   longReasoningTokenThreshold: number
-  /**
-   * Guidance operating mode. Default: 'full'.
-   *
-   * WHY: With safety-net-only, the brainstem scores every work unit
-   * but the guidance is silently discarded — making the entire LLM loop
-   * invisible to postures. Full mode ensures annotations actually reach Unity.
-   * The Corpus can still override through corpus directives.
-   */
+  /** Guidance operating mode. Default: 'full' */
   guidanceMode: BrainstemGuidanceMode
-  /** Minimum work units before deciding to activate reviewers (default: 3) */
+  /** Minimum work units before deciding to activate reviewers. Default: 3 */
   reviewerActivationThreshold: number
-  /** If true, brainstem can defer reviewer activation for simple tasks */
+  /** If true, Brainstem can defer reviewer activation for simple tasks */
   lazyReviewerSpawning: boolean
-  /** Max tokens a reviewer can consume without producing a finding before termination (default: 200000) */
+  /** Max tokens a reviewer can consume without producing a finding before termination. Default: 200000 */
   maxTokensPerFinding?: number
 }
 
@@ -165,19 +158,19 @@ export type GuidanceUrgency =
  * A guidance proposal that requires dual-reviewer approval before reaching Unity.
  *
  * WHY: Brainstem guidance was historically too frequent and distracting for Unity.
- * By routing guidance through both reviewers first, we ensure only consensus-approved
- * guidance reaches the builder, while giving reviewers a concrete productive role.
+ * Routing guidance through both reviewers ensures only consensus-approved guidance
+ * reaches the builder, while giving reviewers a concrete productive role.
  */
 export interface GuidanceProposal {
   /** Unique proposal ID */
   id: string
-  /** Guidance text from brainstem */
+  /** Guidance text from Brainstem */
   text: string
-  /** Original urgency from brainstem */
+  /** Original urgency level from Brainstem */
   urgency: GuidanceUrgency
-  /** What triggered this guidance */
+  /** What triggered this guidance — pattern name or event description */
   triggeredBy: string
-  /** Brainstem axon step when generated */
+  /** Brainstem axon step when this was generated */
   fromStep: number
   /** Timestamp when created */
   timestamp: number
@@ -186,9 +179,9 @@ export interface GuidanceProposal {
     yang: GuidanceVote | null
     yin: GuidanceVote | null
   }
-  /** Current status */
+  /** Current approval status */
   status: 'pending' | 'approved' | 'rejected' | 'expired'
-  /** Iteration counter for timeout — auto-approve after N iterations without vote */
+  /** Iteration counter for timeout — auto-approves after N iterations without vote */
   iterationsSinceCreated: number
 }
 
@@ -198,72 +191,76 @@ export interface GuidanceVote {
   timestamp: number
 }
 
-/** A single scored annotation produced by the Brainstem LLM */
+/**
+ * A single scored annotation produced by the Brainstem LLM.
+ */
 export interface BrainstemAnnotation {
-  /** Which work unit this annotates */
+  /** ID of the work unit being annotated */
   workUnitId: string
   /** Composite quality score (0-1) — weighted average of dimensional scores */
   score: number
-  /** Work unit classification (kept for logging/display/training) */
+  /** Work unit classification — used for logging, display, and training data */
   annotation: WorkUnitAnnotation
-  /** Synthesized reviewer dialectic (or empty if no new dialectic) */
+  /** Synthesized reviewer dialectic, or empty if no new dialectic emerged */
   synthesis: string
   /** Detected pathological pattern */
   pattern: DetectedPattern
-  /** Guidance for Unity (null if no guidance needed) */
+  /** Guidance for Unity, or null if no guidance needed */
   guidance: string | null
-  /** Urgency of guidance (determines injection method) */
+  /** Urgency level — determines injection method */
   guidanceUrgency: GuidanceUrgency
   /** Human-readable note for training data */
   trainingNote: string
-  /** Which axon step this maps to */
+  /** Axon step this annotation maps to */
   axonStep: number
-  /** Timestamp */
+  /** Timestamp when created */
   timestamp: number
 
-  /** How aligned is this work with the branch's goal? 0=completely off-target, 1=directly advancing the goal */
+  /** Goal alignment: 0=completely off-target, 1=directly advancing the goal */
   goalAlignment: number
-  /** How much new information or capability did this step produce? 0=re-reading known content, 1=entirely new insight */
+  /** Novelty: 0=re-reading known content, 1=entirely new insight */
   novelty: number
-  /** How much closer is the branch to completion? 0=no measurable progress, 1=significant concrete advancement */
+  /** Progress: 0=no measurable progress, 1=significant concrete advancement */
   progress: number
 
-  /** Things discovered or learned in this step */
+  /** Discoveries made in this step */
   discoveries: string[]
-  /** Decisions made in this step and their rationale */
+  /** Decisions made in this step with rationale */
   decisions: string[]
   /** Current working hypothesis about how to achieve the goal */
   hypothesis: string
-  /** Concrete outputs produced (files written, tests run, etc.) */
+  /** Concrete outputs produced — files written, tests run, etc. */
   outputs: string[]
   /** Active blockers or obstacles encountered */
   blockers: string[]
-  /** What's planned for the next steps */
+  /** Planned next steps */
   nextSteps: string[]
-  /** What changed in understanding vs. the previous step */
+  /** Knowledge delta — what changed in understanding vs. the previous step */
   knowledgeDelta: string
 }
 
 
 /**
  * Running cognitive model maintained by the Brainstem across all steps.
- * Accumulates discoveries, decisions, and current state throughout a session.
- * This is what the Corpus reads when it wants to understand what a branch knows.
+ *
+ * HOW: Accumulates discoveries, decisions, and current state throughout a session.
+ * The Corpus reads this to understand what a branch knows without replaying the
+ * entire history.
  */
 export interface CognitiveModel {
   /** Current working hypothesis about how to achieve the goal */
   currentHypothesis: string
-  /** All discoveries made so far, newest last */
+  /** All discoveries made so far, ordered newest last */
   allDiscoveries: string[]
-  /** All decisions made so far, newest last */
+  /** All decisions made so far, ordered newest last */
   allDecisions: string[]
-  /** Currently active blockers (resolved ones are removed) */
+  /** Currently active blockers — resolved ones are removed */
   pendingBlockers: string[]
-  /** Recent concrete outputs (files written, tests run, etc.) */
+  /** Recent concrete outputs — files written, tests run, etc. */
   recentOutputs: string[]
-  /** What I plan to do in the next steps (from latest annotation) */
+  /** Planned next steps from the latest annotation */
   currentNextSteps: string[]
-  /** Step at which the hypothesis was last updated */
+  /** Axon step at which the hypothesis was last updated */
   hypothesisUpdatedAtStep: number
 }
 
@@ -281,17 +278,19 @@ export function createInitialCognitiveModel(): CognitiveModel {
 
 
 
-/** Brainstem's internal running state */
+/**
+ * Brainstem's internal running state.
+ */
 export interface BrainstemState {
   /** All annotations produced this session */
   annotations: BrainstemAnnotation[]
   /** Score history for trajectory analysis */
   qualityTrajectory: number[]
-  /** Consecutive exploration-only iterations (pattern detection) */
+  /** Consecutive exploration-only iterations — used for paralysis detection */
   consecutiveExplorations: number
-  /** Consecutive drift iterations */
+  /** Consecutive drift iterations — used for drift detection */
   consecutiveDrifts: number
-  /** Last axon step that included guidance */
+  /** Last axon step that included guidance injection */
   lastGuidanceStep: number
   /** Total guidance injections this session */
   totalGuidanceCount: number
@@ -299,15 +298,15 @@ export interface BrainstemState {
   totalPatternDetections: number
   /** Current axon step counter */
   currentAxonStep: number
-  /** Work units processed count */
+  /** Total work units processed */
   workUnitsProcessed: number
-  /** Whether the stagnation pattern has already fired (one-shot) */
+  /** Whether the stagnation pattern has already fired — one-shot flag */
   stagnationFired: boolean
-  /** Whether the soft wall-clock budget guidance has already fired (one-shot) */
+  /** Whether the soft wall-clock budget guidance has already fired — one-shot flag */
   wallClockBudgetFired: boolean
-  /** Whether the hard wall-clock limit guidance has already fired (one-shot) */
+  /** Whether the hard wall-clock limit guidance has already fired — one-shot flag */
   wallClockHardLimitFired: boolean
-  /** Last time we received a stream activity event */
+  /** Timestamp of last stream activity event */
   lastStreamActivityAt: number
   /** Tokens accumulated in the current step from streaming */
   streamTokensThisStep: number
@@ -315,7 +314,7 @@ export interface BrainstemState {
   longReasoningCount: number
   /** Running cognitive model — accumulated knowledge state across all steps */
   cognitiveModel: CognitiveModel
-  /** Flag set when Unity posts a significant Blackboard entry, triggers next heartbeat */
+  /** Flag set when Unity posts a significant Blackboard entry — triggers next heartbeat */
   pendingBlackboardTrigger: boolean
   /** Tokens consumed by each reviewer posture */
   reviewerTokens: { yang: number, yin: number }
@@ -355,85 +354,106 @@ export function createInitialBrainstemState(): BrainstemState {
 }
 
 
-/** A structured message from Unity to the Brainstem */
+/**
+ * A structured message from Unity to the Brainstem.
+ */
 export interface UnityReport {
+  /** Type of report — phase_change=state transition, blocker=obstacle, question=uncertainty, progress=status update, completion=done */
   type: 'phase_change' | 'blocker' | 'question' | 'progress' | 'completion'
+  /** Human-readable message text */
   message: string
+  /** Optional structured context data */
   context?: Record<string, unknown>
+  /** Timestamp when reported */
   timestamp: number
+  /** Iteration number when reported */
   iteration: number
 }
 
 
-/** A pending guidance item waiting to be injected into Unity's loop */
+/**
+ * A pending guidance item waiting to be injected into Unity's loop.
+ */
 export interface PendingGuidance {
-  /** The guidance text to inject */
+  /** Guidance text to inject into Unity */
   text: string
-  /** Urgency determines injection method */
+  /** Urgency level — determines injection method (low=tool result, high=user message, critical=blocking) */
   urgency: GuidanceUrgency
-  /** Which axon step produced this guidance */
+  /** Axon step that produced this guidance */
   fromStep: number
-  /** Pattern that triggered this guidance (if any) */
+  /** Pathological pattern that triggered this guidance, or 'none' if routine */
   triggeredBy: DetectedPattern
-  /** Timestamp */
+  /** Timestamp when created */
   timestamp: number
 }
 
 
-/** Minimal LLM interface for Brainstem (same pattern as Synapse) */
+/**
+ * Minimal LLM interface for Brainstem — same pattern as Synapse.
+ */
 export interface BrainstemLLM {
+  /**
+   * Complete a prompt using the background tier model.
+   */
   complete(opts: {
+    /** Prompt text to complete */
     prompt: string
+    /** Model tier to use (default: 'background') */
     modelTier: string
+    /** Max tokens for response */
     maxTokens: number
+    /** Timeout in milliseconds */
     timeoutMs: number
   }): Promise<{ content: string; truncated: boolean }>
 }
 
 
 export interface BrainstemDeps {
+  /** LLM client for Brainstem completions */
   llm: BrainstemLLM
+  /** Logger instance */
   logger: ILogger
-  /** The session's goal — used for drift detection */
+  /** Session goal — used for drift detection and alignment scoring */
   goal: string
   /** Session ID for event attribution */
   sessionId: string
-  /** Optional event bus for emitting brainstem events to the cognitive feed */
+  /** Event bus for emitting brainstem events to the cognitive feed */
   eventBus?: IEventBus
-  /** Optional blackboard for posting annotations */
+  /** Blackboard for posting annotations */
   blackboard?: BrainstemBlackboard
-  /** Corpus tree to push annotations into (only in Constellation mode) */
+  /** Corpus tree to push annotations into — only present in Constellation mode */
   corpusTree?: ICorpusTree
-  /** This Helix's ID in the Constellation (for Corpus tree branch identification) */
+  /** This Helix's ID in the Constellation — for Corpus tree branch identification */
   helixId?: string
-  /** Callback to request spawning a child Helix (only in Constellation mode) */
+  /** Callback to request spawning a child Helix — only in Constellation mode */
   onSpawnRequest?: (request: { goal: string; context?: string; template?: string }) => void
-  /** Dialectic channel for processing edit proposals from Yang/Yin */
+  /** Dialectic channel for processing edit proposals from Yang/Yin reviewers */
   dialecticChannel?: import('../../intelligence/lumen/dialectic-channel.js').DialecticChannel
   /** Tool executor for applying approved edits */
   toolExecutor?: import('../../tools/executor.js').ToolExecutor
-  /** Read-only file access for validating paths and grounding guidance. Returns null if file not found. */
+  /** Read-only file access for validating paths and grounding guidance — returns null if file not found */
   readFile?: (path: string) => Promise<string | null>
   /** ContextChunkIndex for Unity — allows brainstem to pin/evict/score context chunks */
   unityChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
 
 
   /**
-   * Shared tree reader — provides peer awareness without the Corpus as relay.
-   * Only present in Constellation mode. Brainstems use this to read peer
-   * digests, shared topics, elevated patterns, and to publish their own
-   * digests and topic contributions.
+   * Shared tree reader for peer awareness in Constellation mode.
+   *
+   * HOW: Brainstems use this to read peer digests, shared topics, elevated
+   * patterns, and to publish their own digests and topic contributions —
+   * enabling stigmergic self-organization without the Corpus as relay.
    */
   sharedTree?: SharedTreeReader
 
   /**
-   * Callback to escalate to the Corpus when self-organization can't resolve
-   * something. Only present in Constellation mode.
+   * Callback to escalate to the Corpus when self-organization cannot resolve
+   * an issue. Only present in Constellation mode.
    */
   escalateToCorpus?: (reason: string, context: Record<string, unknown>) => void
 
   /**
-   * Phase 7: Callback to persist training signals to the ConstellationStore.
+   * Callback to persist training signals to the ConstellationStore.
    * Called when an annotation is processed.
    */
   persistTrainingSignal?: (annotation: BrainstemAnnotation) => Promise<void>
@@ -443,45 +463,45 @@ export interface BrainstemDeps {
  * SharedTreeReader — the interface a Brainstem uses to participate in
  * the Shared Thought Tree for stigmergic self-organization.
  *
- * This is the Brainstem's view of the constellation. It can:
- * - Read peer digests and topics for awareness
- * - Publish its own digest and topic contributions
- * - Record retrospectives and effectiveness measurements
- * - Access the pattern library for proven strategies
+ * HOW: This is the Brainstem's view of the constellation. It enables:
+ * - Reading peer digests and topics for awareness
+ * - Publishing its own digest and topic contributions
+ * - Recording retrospectives and effectiveness measurements
+ * - Accessing the pattern library for proven strategies
  *
- * No artificial token caps — with 128k context windows, full awareness
+ * WHY no artificial token caps: With 128k context windows, full awareness
  * of all branches is affordable within a 16k working budget.
  */
 export interface SharedTreeReader {
-
-  /** Get all peer digests (excludes the calling Helix's own). */
+  /** Get all peer digests — excludes the calling Helix's own digest */
   getPeerDigests(): BranchDigest[]
 
-  /** Get peer digests filtered by relevance to the calling Helix. */
+  /** Get peer digests filtered by relevance to the calling Helix */
   getRelevantDigests(): BranchDigest[]
 
-  /** Find topics relevant to the given files and keywords. */
+  /** Find topics relevant to the given files and goal keywords */
   findRelatedTopics(files: string[], goalKeywords: string[]): TopicNode[]
 
-  /** Get all topics in the tree. */
+  /** Get all topics in the tree */
   getAllTopics(): TopicNode[]
 
-  /** Get the constellation's elevated pattern library. */
+  /** Get the constellation's elevated pattern library */
   getElevatedPatterns(): ElevatedPattern[]
 
-  /** Get all strategy retrospectives (for learning from others). */
+  /** Get all strategy retrospectives for learning from other branches */
   getAllRetrospectives(): StrategyRetrospective[]
 
-  /** Get effectiveness stats by adjustment type (what works?). */
+  /** Get effectiveness stats by adjustment type — shows what works */
   getEffectivenessStats(): Map<string, { total: number; effective: number; avgImprovement: number }>
 
 
-  /** Publish or update this Helix's digest. */
+  /** Publish or update this Helix's digest */
   updateDigest(digest: BranchDigest): void
 
   /**
    * Lightweight update — sets only the liveStreamSnippet on an existing digest.
-   * Called on every Unity stream chunk. Pure in-memory, no computation.
+   *
+   * HOW: Called on every Unity stream chunk. Pure in-memory, no computation.
    * No-op if no digest exists yet.
    */
   updateLiveStreamSnippet(snippet: string): void
@@ -489,22 +509,26 @@ export interface SharedTreeReader {
   /** Create a new shared topic node. Returns the topic ID. */
   createTopic(name: string, contribution: TopicContribution): string
 
-  /** Add a contribution to an existing topic. */
+  /** Add a contribution to an existing topic */
   contributeTopic(topicId: string, contribution: TopicContribution): void
 
-  /** Record a strategy retrospective. */
+  /** Record a strategy retrospective */
   recordRetrospective(retrospective: StrategyRetrospective): void
 
-  /** Record an effectiveness measurement. */
+  /** Record an effectiveness measurement */
   recordEffectiveness(record: EffectivenessRecord): void
 }
 
 /**
  * Minimal blackboard interface for Brainstem posting and reading.
- * Avoids importing the full Blackboard class — any object with compatible
+ *
+ * HOW: Avoids importing the full Blackboard class — any object with compatible
  * methods satisfies this contract.
  */
 export interface BrainstemBlackboard {
+  /**
+   * Post an entry to a channel.
+   */
   post(
     channel: 'findings' | 'concerns',
     entry: {
@@ -515,7 +539,9 @@ export interface BrainstemBlackboard {
       tags?: string[]
     },
   ): unknown
-  /** Read recent entries from a channel for inclusion in the brainstem prompt */
+  /**
+   * Read recent entries from a channel for inclusion in the brainstem prompt.
+   */
   read(
     channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests',
     limit?: number,
@@ -534,18 +560,18 @@ export interface BrainstemBlackboard {
 
 
 export interface BrainstemResult {
-  /** All scored annotations */
+  /** All scored annotations produced by the Brainstem */
   annotations: BrainstemAnnotation[]
-  /** Quality score trajectory */
+  /** Quality score trajectory across all steps */
   qualityTrajectory: number[]
-  /** Total pattern detections */
+  /** Total number of pathological patterns detected */
   patternDetections: number
-  /** Total guidance injections */
+  /** Total number of guidance injections into Unity */
   guidanceInjections: number
-  /** Average quality score */
+  /** Average quality score across all annotations */
   averageScore: number
-  /** Axon steps created */
+  /** Number of axon steps created */
   axonSteps: number
-  /** Duration the Brainstem was active (ms) */
+  /** Duration the Brainstem was active, in milliseconds */
   durationMs: number
 }
