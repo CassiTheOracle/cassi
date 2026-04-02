@@ -111,7 +111,6 @@ export class Corpus {
   // Escalation queue: reasons from Brainstems that self-org can't resolve
   private escalationQueue: Array<{ reason: string; context: Record<string, unknown> }> = []
 
-  // ── Proactive Behavior State ──────────────────────────────────
   /** Cross-branch discovery log */
   private discoveries: Map<string, DiscoveryEntry> = new Map()
   /** Research digests from completed research branches */
@@ -333,10 +332,8 @@ export class Corpus {
         // Process new steps
         this.processNewSteps()
 
-        // ── Proactive: Budget tracking ──────────────────────────────
         this.trackBudgets()
 
-        // ── Proactive: Discovery routing ────────────────────────────
         if (this.config.proactive.enableDiscoveryRouting) {
           this.routeDiscoveries()
         }
@@ -344,27 +341,22 @@ export class Corpus {
         // Evaluate escalation for all active branches
         this.evaluateAllEscalations()
 
-        // ── Proactive: Re-decomposition evaluation ──────────────────
         if (this.config.proactive.enableReDecomposition) {
           await this.evaluateReDecomposition()
         }
 
-        // ── Proactive: Parallel acceleration ────────────────────────
         if (this.config.proactive.enableParallelAcceleration) {
           await this.evaluateParallelAcceleration()
         }
 
-        // ── Proactive: Context injection for struggling branches ────
         if (this.config.proactive.enableContextInjection) {
           await this.evaluateContextInjection()
         }
 
-        // ── Proactive: Quality gates for completed branches ─────────
         if (this.config.proactive.enableQualityGates) {
           await this.runQualityGates()
         }
 
-        // ── Proactive: Research caching for completed research branches ─
         if (this.config.proactive.enableResearchCaching) {
           this.buildResearchDigests()
         }
@@ -539,7 +531,6 @@ export class Corpus {
     }
     assessment.decliningScoreStreak = decliningStreak
 
-    // ─── Dimensional Score Averages (rolling last 5) ───────────────
     const recentSteps = branch.steps.slice(-5)
     if (recentSteps.length > 0) {
       assessment.avgGoalAlignment = recentSteps.reduce((s, st) => s + (st.annotation.goalAlignment ?? 0.5), 0) / recentSteps.length
@@ -547,7 +538,6 @@ export class Corpus {
       assessment.avgProgress = recentSteps.reduce((s, st) => s + (st.annotation.progress ?? 0.3), 0) / recentSteps.length
     }
 
-    // ─── Low-Progress Streak Tracking ─────────────────────────────
     // Count consecutive steps where progress is below the escalation threshold.
     // Uses the template's threshold, falling back to 0.12 (standard default).
     const thresholds = this.getEscalationThresholds(branch.helixId)
@@ -558,7 +548,6 @@ export class Corpus {
       assessment.lowProgressStreak = 0
     }
 
-    // ─── Directive Behavioral Change Detection ────────────────────
     // For each pending directive, check if the last 3 post-directive
     // annotations show a behavioral change.
     this.evaluatePendingDirectives(assessment, branch)
@@ -1423,7 +1412,6 @@ Guidelines:
       }
       this.state.interventions.push(intervention)
 
-      // ─── Record directive for behavioral tracking ──────────────
       const assessment = this.state.branchAssessments.get(directive.targetHelixId)
       if (assessment) {
         const branch = this.tree.getBranch(directive.targetHelixId)
@@ -1561,15 +1549,12 @@ Guidelines:
     const thresholds = this.getEscalationThresholds(assessment.helixId)
     const currentLevel = assessment.escalationLevel
 
-    // ─── Directive-failure signal ─────────────────────────────────
     const directiveSignal = assessment.ignoredDirectiveStreak >= thresholds.directiveFailuresForEscalation
 
-    // ─── Metric-based signal ─────────────────────────────────────
     const metricSignal = assessment.lowProgressStreak >= thresholds.lowProgressStepsForEscalation
       || (assessment.rollingScore < thresholds.lowScoreThreshold
           && assessment.scoreTrajectory.length >= thresholds.lowScoreStepsForEscalation)
 
-    // ─── Combined escalation logic ───────────────────────────────
     // Both signals → escalate by 2 levels (fast path)
     // One signal → escalate by 1 level
     // No signals → no change (or de-escalate if things improved)
@@ -1880,12 +1865,9 @@ Guidelines:
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // PROACTIVE BEHAVIORS — Budget, Discovery, Re-decomposition, etc.
-  // ═══════════════════════════════════════════════════════════════════
 
 
-  // ── 1. Branch Budget Tracking ─────────────────────────────────────
 
   /**
    * Initialize budget for a branch based on template or decomposer suggestion.
@@ -1985,7 +1967,6 @@ Guidelines:
   }
 
 
-  // ── 2. Discovery Routing (Push + Broadcast) ───────────────────────
 
   /**
    * Extract discoveries from new annotations and route them to relevant branches.
@@ -2076,7 +2057,6 @@ Guidelines:
   }
 
 
-  // ── 3. Mid-Flight Re-Decomposition ────────────────────────────────
 
   /**
    * Evaluate whether any active branch should be split into smaller sub-tasks.
@@ -2224,7 +2204,6 @@ Guidelines:
   }
 
 
-  // ── 4. Direct Injection (Pause-Inject-Resume) ─────────────────────
 
   /**
    * Inject a critical message directly into a Helix session, bypassing Brainstem.
@@ -2295,7 +2274,6 @@ Guidelines:
   }
 
 
-  // ── 5. Research Caching — Build digests from completed research branches ─
 
   /**
    * When a research branch completes, build a full digest of its findings
@@ -2429,7 +2407,6 @@ Guidelines:
   }
 
 
-  // ── 6. Quality Gates — Verify branch output before accepting completion ─
 
   /**
    * Run quality gates on branches that have just completed.
@@ -2584,7 +2561,6 @@ Guidelines:
   }
 
 
-  // ── 7. Parallel Acceleration — Split productive branches ──────────
 
   /**
    * When a branch shows consistently high scores, evaluate whether its
@@ -2710,7 +2686,6 @@ Guidelines:
   }
 
 
-  // ── 8. Strategic Context Injection ────────────────────────────────
 
   /**
    * When a branch is struggling (low scores for multiple steps), inject
@@ -2817,7 +2792,6 @@ Guidelines:
   }
 
 
-  // ── 9. Full Trajectory Context Builder (256k window) ──────────────
 
   /**
    * Build complete trajectory context for ALL branches.
@@ -2855,7 +2829,6 @@ Guidelines:
   }
 
 
-  // ── Helper: Extract file paths from tool call args ────────────────
 
   /**
    * Extract file paths from tool call arguments.

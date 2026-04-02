@@ -29,9 +29,7 @@ import type {
 import type { FlexPosture, ConstellationTemplate } from './types.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Tree — The shared reasoning structure
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * A single step in a Corpus branch.
@@ -110,7 +108,6 @@ export interface ICorpusTree {
   /** Number of active branches. */
   activeBranchCount(): number
 
-  // ── Shared Thought Tree extensions ────────────────────────────────
 
   /** Update a branch's digest (compact summary of its current state). */
   updateDigest(helixId: string, digest: BranchDigest): void
@@ -160,7 +157,6 @@ export interface ICorpusTree {
 }
 
 
-// ── Tree Snapshot (for Cassi / progress reporting) ────────────────
 
 export interface CorpusBranchSnapshot {
   helixId: string
@@ -180,9 +176,7 @@ export interface CorpusBranchSnapshot {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Shared Thought Tree — Self-Organizing Constellation
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Branch Digest — A compact, Brainstem-generated summary of a Helix's
@@ -221,7 +215,6 @@ export interface BranchDigest {
   /** Why the approach last changed (if it did) — feeds self-awareness */
   lastApproachChangeReason?: string
 
-  // ─── Cognitive Model Fields ────────────────────────────────────────
   /** Current working hypothesis about how to achieve the goal */
   currentHypothesis?: string
   /** All discoveries accumulated across all steps */
@@ -352,9 +345,7 @@ export interface TopicContribution {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Self-Awareness — Retrospectives, Effectiveness, Pattern Library
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Strategy Retrospective — recorded when a Brainstem changes its approach.
@@ -503,9 +494,7 @@ export interface EffectivenessRecord {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Extended Tree Snapshot — includes shared thought tree state
-// ═══════════════════════════════════════════════════════════════════
 
 export interface CorpusTreeSnapshot {
   branches: CorpusBranchSnapshot[]
@@ -523,7 +512,6 @@ export interface CorpusTreeSnapshot {
   /** Effectiveness records for self-organization tracking */
   effectivenessRecords: EffectivenessRecord[]
 }
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * The Corpus's internal processed state.
@@ -588,7 +576,6 @@ export interface BranchAssessment {
   /** Whether an auto-spawn has already been triggered for this branch */
   autoSpawnTriggered?: boolean
 
-  // ─── Dimensional Score Averages (rolling last 5) ───────────────
   /** Rolling average goal alignment */
   avgGoalAlignment: number
   /** Rolling average novelty */
@@ -596,7 +583,6 @@ export interface BranchAssessment {
   /** Rolling average progress */
   avgProgress: number
 
-  // ─── Directive Tracking ────────────────────────────────────────
   /** History of directives sent to this branch */
   directiveHistory: DirectiveRecord[]
   /** Current escalation level for this branch */
@@ -606,11 +592,9 @@ export interface BranchAssessment {
   /** Steps with below-threshold progress (for metric-only escalation) */
   lowProgressStreak: number
 
-  // ─── Branch Budget ─────────────────────────────────────────────
   /** Budget allocated to this branch */
   budget?: BranchBudget
 
-  // ─── Discovery & Context ──────────────────────────────────────
   /** Discoveries this branch has made (extracted from annotations) */
   discoveries: string[]
   /** Context injections this branch has received */
@@ -649,9 +633,7 @@ export function createInitialProcessedState(): CorpusProcessedState {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Cross-Helix Patterns — Only the Corpus can detect these
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Pattern types that emerge across multiple Helix branches.
@@ -688,9 +670,7 @@ export interface CrossHelixPattern {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Interventions — Brainstem-mediated steering
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * A directive from the Corpus to a child Helix's Brainstem.
@@ -813,9 +793,7 @@ export const ESCALATION_DEFAULTS: Record<string, EscalationThresholds> = {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Spawn Decisions — LLM-evaluated spawn gating
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * A spawn decision made by the Corpus.
@@ -842,13 +820,9 @@ export interface SpawnDecision {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Configuration
-// ═══════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Proactive Capabilities — Config for new behaviors
-// ═══════════════════════════════════════════════════════════════════
 
 /** Extended Corpus config for proactive behaviors */
 export interface CorpusProactiveConfig {
@@ -889,9 +863,7 @@ export const DEFAULT_PROACTIVE_CONFIG: CorpusProactiveConfig = {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Config
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Adaptive cadence configuration for dynamic poll interval adjustment.
@@ -956,7 +928,6 @@ export interface CorpusConfig {
   /** Interventions before auto-spawning a decomposition branch. Default: 5 */
   autoSpawnInterventionThreshold: number
 
-  // ── Safety-Net Cadence (Shared Thought Tree mode) ─────────
 
   /**
    * Corpus operating cadence. Default: 'safety-net'
@@ -1028,9 +999,7 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Dependencies
-// ═══════════════════════════════════════════════════════════════════
 
 /** Minimal LLM interface for Corpus (same shape as BrainstemLLM) */
 export interface CorpusLLM {
@@ -1062,7 +1031,6 @@ export interface CorpusDeps {
   /** Read-only file access for validating paths in spawn goals and interventions. Returns null if file not found. */
   readFile?: (path: string) => Promise<string | null>
 
-  // ── Proactive Capability Hooks ────────────────────────────────
 
   /**
    * Launch a new Helix branch from the Corpus (for re-decomposition and parallel splits).
@@ -1129,9 +1097,7 @@ export interface CorpusBlackboard {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Result — Included in ConstellationResult
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * The Corpus's final result, summarizing its reasoning across all branches.
@@ -1195,9 +1161,7 @@ export interface CorpusIntervention extends CorpusDirective {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Goal Decomposition — Pre-flight planning via a planning Helix
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Result of Corpus goal decomposition.
@@ -1238,9 +1202,7 @@ export interface GoalSubTask {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Branch Budgets — Step + time constraints per branch
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Budget allocated to a branch. Corpus tracks consumption and escalates
@@ -1271,9 +1233,7 @@ export const BRANCH_BUDGET_DEFAULTS: Record<string, { maxSteps: number; maxTimeM
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Quality Gates — Verify branch output before accepting completion
-// ═══════════════════════════════════════════════════════════════════
 
 /** Result of running quality gates on a completed branch */
 export interface QualityGateResult {
@@ -1297,9 +1257,7 @@ export interface QualityGateCheck {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Re-decomposition — Mid-flight branch splitting
-// ═══════════════════════════════════════════════════════════════════
 
 /** Request from Corpus LLM to re-decompose a branch mid-flight */
 export interface ReDecompositionRequest {
@@ -1316,9 +1274,7 @@ export interface ReDecompositionRequest {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Discovery Routing — Cross-branch knowledge sharing
-// ═══════════════════════════════════════════════════════════════════
 
 /** A discovery made by a branch that may be useful to others */
 export interface DiscoveryEntry {
@@ -1339,9 +1295,7 @@ export interface DiscoveryEntry {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Direct Injection — Pause-inject-resume for critical interventions
-// ═══════════════════════════════════════════════════════════════════
 
 /** A direct injection bypassing the Brainstem guidance queue */
 export interface DirectInjection {
@@ -1360,9 +1314,7 @@ export interface DirectInjection {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Research Digest — Cached findings from completed research branches
-// ═══════════════════════════════════════════════════════════════════
 
 /** Full digest of a completed research branch's findings */
 export interface ResearchDigest {
@@ -1392,9 +1344,7 @@ export interface ResearchDigest {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Parallel Split — Score-triggered branch acceleration
-// ═══════════════════════════════════════════════════════════════════
 
 /** Request to split a productive branch into parallel sub-branches */
 export interface ParallelSplitRequest {
@@ -1409,9 +1359,7 @@ export interface ParallelSplitRequest {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Strategic Context Injection — Help struggling branches find their way
-// ═══════════════════════════════════════════════════════════════════
 
 /** Context injection from Corpus to a struggling branch */
 export interface ContextInjection {
@@ -1430,9 +1378,7 @@ export interface ContextInjection {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Memory Injection Types — Branch-level Memory Continuity
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Memory context injected into a Helix branch at startup.

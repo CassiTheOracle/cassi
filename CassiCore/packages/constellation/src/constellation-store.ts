@@ -188,9 +188,7 @@ const SCHEMA_SQL = `
 `
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Row Types (raw from SQLite)
-// ═══════════════════════════════════════════════════════════════════
 
 interface RawSessionRow {
   id: string
@@ -246,9 +244,7 @@ interface RawEventRow {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Public Row Types (parsed)
-// ═══════════════════════════════════════════════════════════════════
 
 export type ConstellationStatus = 'running' | 'completed' | 'failed' | 'cancelled'
 export type BranchStatus = 'active' | 'completed' | 'failed' | 'pruned'
@@ -328,9 +324,7 @@ export interface SpawnDecision {
   timestamp: number
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // New Persistence Types
-// ═══════════════════════════════════════════════════════════════════
 
 export type CorpusDecisionType = 'spawn_evaluation' | 'intervention' | 'pattern_detection' | 'synthesis' | 'health_assessment'
 
@@ -425,9 +419,7 @@ export interface CompleteSessionData {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // ConstellationStore Class
-// ═══════════════════════════════════════════════════════════════════
 
 export class ConstellationStore {
   private db: InstanceType<typeof Database>
@@ -788,9 +780,7 @@ export class ConstellationStore {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────
   // Session Lifecycle
-  // ─────────────────────────────────────────────────────────────────
 
   createSession(id: string, goal: string, opts?: CreateSessionOpts): void {
     this.stmts.insertSession.run({
@@ -899,9 +889,7 @@ export class ConstellationStore {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────
   // Branch Management
-  // ─────────────────────────────────────────────────────────────────
 
   addBranch(
     sessionId: string,
@@ -954,9 +942,7 @@ export class ConstellationStore {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────
   // Event Logging
-  // ─────────────────────────────────────────────────────────────────
 
   appendEvent(sessionId: string, type: string, entity: string | null, message: string, data?: unknown): void {
     this.stmts.insertEvent.run({
@@ -970,9 +956,7 @@ export class ConstellationStore {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────
   // Queries
-  // ─────────────────────────────────────────────────────────────────
 
   getSession(id: string): ConstellationSessionRow | undefined {
     const row = this.stmts.selectSession.get(id) as RawSessionRow | undefined
@@ -1065,9 +1049,7 @@ export class ConstellationStore {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────
   // Maintenance
-  // ─────────────────────────────────────────────────────────────────
 
   prune(maxAgeDays = DEFAULT_MAX_AGE_DAYS): number {
     const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000
@@ -1115,9 +1097,7 @@ export class ConstellationStore {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────
   // Row Conversion Helpers
-  // ─────────────────────────────────────────────────────────────────
 
   private rowToSession(row: RawSessionRow): ConstellationSessionRow {
     return {
@@ -1167,9 +1147,7 @@ export class ConstellationStore {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Cross-Helix Dialectic Persistence
-  // ═══════════════════════════════════════════════════════════════════
 
   saveDialecticCheckpoint(
     sessionId: string,
@@ -1217,9 +1195,7 @@ export class ConstellationStore {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Corpus Decision History
-  // ═══════════════════════════════════════════════════════════════════
 
   recordCorpusDecision(
     sessionId: string,
@@ -1278,9 +1254,7 @@ export class ConstellationStore {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Branch Lifecycle Tracking
-  // ═══════════════════════════════════════════════════════════════════
 
   recordBranchLifecycleEvent(
     sessionId: string,
@@ -1347,9 +1321,7 @@ export class ConstellationStore {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Blackboard Archive
-  // ═══════════════════════════════════════════════════════════════════
 
   archiveBlackboard(
     sessionId: string,
@@ -1418,9 +1390,7 @@ export class ConstellationStore {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Training Data Extraction
-  // ═══════════════════════════════════════════════════════════════════
 
   extractTrainingSignal(
     sessionId: string,

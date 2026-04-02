@@ -26,9 +26,7 @@ import { getBaseIdentity } from '../shared/posture-store.js'
 import type { PostureName } from '../shared/posture-store.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Validation
-// ═══════════════════════════════════════════════════════════════════
 
 /** Validation result. */
 export interface PostureValidationResult {
@@ -48,6 +46,10 @@ const MAX_INSTRUCTION_LENGTH = 4000
 
 /**
  * Validate a single FlexPosture definition.
+ * @dep callers: validatePostureSet (core/intelligence/constellation/flex-posture.ts), createPosture (core/intelligence/constellation/flex-posture.ts)
+ * @dep calls: test
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function validatePosture(posture: FlexPosture): PostureValidationResult {
   const errors: string[] = []
@@ -156,9 +158,7 @@ export function validatePostureSet(postures: FlexPosture[]): PostureValidationRe
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Defaults
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Apply sensible defaults to a FlexPosture, filling in optional fields.
@@ -197,9 +197,7 @@ function defaultTemperature(posture: FlexPosture): number {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // System Prompt Composition
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Compose a complete system prompt for a FlexPosture.
@@ -442,9 +440,7 @@ A good result delivered on time is worth more than a perfect result that never f
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Model Slot Naming
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Generate a stable model routing slot name for a posture.
@@ -466,9 +462,7 @@ export function resolveSlotName(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Factory Helpers
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Create a FlexPosture with validation and defaults applied.
@@ -486,6 +480,10 @@ export function createPosture(partial: FlexPosture): FlexPosture {
 /**
  * Create a set of postures with validation.
  * Throws if any posture is invalid or the set has issues.
+ * @dep callers: getTemplatePostures (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/templates.ts)
+ * @dep calls: validatePostureSet
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function createPostureSet(postures: FlexPosture[]): FlexPosture[] {
   const withDefaults = postures.map(applyDefaults)

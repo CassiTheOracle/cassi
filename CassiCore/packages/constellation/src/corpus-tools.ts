@@ -39,9 +39,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { IMemory } from '../../../types/intelligence.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Tool Definitions (JSON Schema for LLM tool calling)
-// ═══════════════════════════════════════════════════════════════════
 
 export interface CorpusToolDefinition {
   name: string
@@ -49,9 +47,14 @@ export interface CorpusToolDefinition {
   parameters: Record<string, unknown>
 }
 
+/**
+ * @dep callers: runToolBasedAnalysis (core/intelligence/constellation/corpus.ts), createCorpusMiniHelixTools (core/intelligence/constellation/corpus-tools.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function getCorpusToolDefinitions(): CorpusToolDefinition[] {
   return [
-    // ── Read Tools ─────────────────────────────────────────────
     {
       name: 'read_tree',
       description:
@@ -147,7 +150,6 @@ export function getCorpusToolDefinitions(): CorpusToolDefinition[] {
       },
     },
 
-    // ── Write Tools ────────────────────────────────────────────
     {
       name: 'send_directive',
       description:
@@ -296,7 +298,6 @@ export function getCorpusToolDefinitions(): CorpusToolDefinition[] {
       },
     },
 
-    // ── Control ────────────────────────────────────────────────
     {
       name: 'signal_done',
       description:
@@ -319,7 +320,6 @@ export function getCorpusToolDefinitions(): CorpusToolDefinition[] {
       },
     },
 
-    // ── Lifecycle ──────────────────────────────────────────────
     {
       name: 'pause_until_trigger',
       description:
@@ -341,9 +341,7 @@ export function getCorpusToolDefinitions(): CorpusToolDefinition[] {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Tool Handler — Executes tool calls from the Corpus LLM
-// ═══════════════════════════════════════════════════════════════════
 
 export interface CorpusToolContext {
   tree: ICorpusTree
@@ -372,6 +370,11 @@ export interface ToolCallResult {
 
 /**
  * Execute a Corpus tool call and return the result.
+ * @dep callers: runToolBasedAnalysis (core/intelligence/constellation/corpus.ts), createCorpusMiniHelixTools (core/intelligence/constellation/corpus-tools.ts)
+ * @dep calls: handlePauseUntilTrigger, handleSignalDone, handleMediateTension, handleElevatePattern, handlePostSynthesis [+10]
+ * @dep flows: Start → HandleReadTopics (3/4), Start → HandleReadDigests (3/4), Start → HandleReadTree (3/4) [+1]
+ * @dep module: Constellation
+ * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
  */
 export function executeCorpusTool(
   toolName: string,
@@ -443,9 +446,15 @@ export function executeCorpusTool(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Tool Handlers
-// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * @dep callers: executeCorpusTool (core/intelligence/constellation/corpus-tools.ts)
+ * @dep calls: getSnapshot
+ * @dep flows: Start → HandleReadTree (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function handleReadTree(ctx: CorpusToolContext): ToolCallResult {
   const snapshot = ctx.tree.getSnapshot()
@@ -486,6 +495,14 @@ function handleReadTree(ctx: CorpusToolContext): ToolCallResult {
   }
 }
 
+/**
+ * @dep callers: executeCorpusTool (core/intelligence/constellation/corpus-tools.ts)
+ * @dep calls: getSnapshot
+ * @dep flows: Start → HandleReadDigests (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
+
 function handleReadDigests(ctx: CorpusToolContext): ToolCallResult {
   const snapshot = ctx.tree.getSnapshot()
   return {
@@ -507,6 +524,14 @@ function handleReadDigests(ctx: CorpusToolContext): ToolCallResult {
     }, null, 2),
   }
 }
+
+/**
+ * @dep callers: executeCorpusTool (core/intelligence/constellation/corpus-tools.ts)
+ * @dep calls: getAllTopics
+ * @dep flows: Start → HandleReadTopics (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function handleReadTopics(ctx: CorpusToolContext): ToolCallResult {
   const topics = ctx.tree.getAllTopics()
@@ -532,6 +557,14 @@ function handleReadTopics(ctx: CorpusToolContext): ToolCallResult {
     }, null, 2),
   }
 }
+
+/**
+ * @dep callers: executeCorpusTool (core/intelligence/constellation/corpus-tools.ts)
+ * @dep calls: getBranch, getSnapshot, toISOString
+ * @dep flows: Start → GetBranch (4/5)
+ * @dep module: Constellation
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
+ */
 
 function handleReadBranch(
   args: { helixId: string },
@@ -856,12 +889,14 @@ function handlePauseUntilTrigger(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus System Prompt Builder
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Build the system prompt for the Corpus mini-Helix agent.
+ * @dep callers: runToolBasedAnalysis (core/intelligence/constellation/corpus.ts), buildSystemPrompt (core/intelligence/constellation/corpus-mini-helix.ts)
+ * @dep calls: getSnapshot
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function buildCorpusSystemPrompt(
   goal: string,
@@ -936,15 +971,18 @@ After each analysis cycle, I either call signal_done (if I need to keep analyzin
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Mini-Helix Bridge — Convert Corpus tools to MiniHelixTool format
-// ═══════════════════════════════════════════════════════════════════
 
 import type { MiniHelixTool, MiniHelixToolResult } from '../mini-helix/mini-helix-types.js'
 
 /**
  * Create the Corpus tool set as MiniHelixTool[] for use with the mini-Helix runner.
  * Wraps existing tool definitions and the executeCorpusTool dispatcher.
+ * @dep callers: start (core/intelligence/constellation/corpus-mini-helix.ts)
+ * @dep calls: executeCorpusTool, getCorpusToolDefinitions
+ * @dep flows: Start → HandleReadTopics (2/4), Start → HandleReadDigests (2/4), Start → HandleReadTree (2/4) [+1]
+ * @dep module: Constellation
+ * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
  */
 export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixTool[] {
   const definitions = getCorpusToolDefinitions()

@@ -13,9 +13,7 @@ import type {
 } from '../../../types/flux-team.js'
 import type { BlackboardBridgeConfig } from './types.js'
 
-// ═══════════════════════════════════════════════════════════════════
 // Types
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Minimal Blackboard interface for dependency injection.
@@ -64,9 +62,7 @@ export interface BlackboardBridgeStats {
   startedAt: number
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Constants
-// ═══════════════════════════════════════════════════════════════════
 
 /** Maximum forwards per second per direction */
 const MAX_FORWARDS_PER_SECOND = 10
@@ -77,9 +73,7 @@ const MAX_PRIORITY = 3
 /** Priority threshold for escalation */
 const ESCALATION_PRIORITY_THRESHOLD = 2
 
-// ═══════════════════════════════════════════════════════════════════
 // BlackboardBridge Class
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Bridges parent and child Blackboards, forwarding relevant entries
@@ -228,9 +222,7 @@ export class BlackboardBridge {
     return { ...this.stats }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
   // Private Handlers
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Handle a finding posted by the child.
@@ -441,9 +433,7 @@ export class BlackboardBridge {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════
   // Private Helpers
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Check if rate limit allows forwarding in the given direction.
@@ -494,9 +484,7 @@ export class BlackboardBridge {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Helper Function
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Create a BlackboardBridge between a parent and child Blackboard.

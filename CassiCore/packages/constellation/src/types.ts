@@ -22,9 +22,7 @@ import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-cha
 import type { BlackboardState, Report } from '../../../types/flux-team.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // FlexPosture — The atomic unit of agency
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Tool access levels for postures.
@@ -130,9 +128,7 @@ export interface FlexPosture {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Helix Configuration
-// ═══════════════════════════════════════════════════════════════════
 
 /** Preset template names for quick Helix configuration. */
 export type ConstellationTemplate =
@@ -178,9 +174,7 @@ export interface ConstellationHelixConfig {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Constellation Node — A Helix in the tree
-// ═══════════════════════════════════════════════════════════════════
 
 /** Status of a Helix node. */
 export type ConstellationNodeStatus =
@@ -260,7 +254,6 @@ export interface ConstellationNode {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Session ID Conventions (Warm Sessions)
 //
 // Warm sessions stay alive based on their session ID. Using the same
@@ -273,7 +266,6 @@ export interface ConstellationNode {
 //   Posture:       `constellation:{id}:helix:{index}:{postureName}`
 //
 // These are stable, reusable, and human-readable.
-// ═══════════════════════════════════════════════════════════════════
 
 /** Generate a constellation-level session ID. */
 export function constellationSessionId(constellationId: string): string {
@@ -291,9 +283,7 @@ export function postureSessionId(constellationId: string, helixIndex: number, po
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Spawn Requests — Approval-gated child creation
-// ═══════════════════════════════════════════════════════════════════
 
 /** Status of a spawn request. */
 export type SpawnRequestStatus = 'pending' | 'approved' | 'rejected'
@@ -350,9 +340,7 @@ export interface SpawnRequest {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Constellation Result — Overall output
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * The result of a complete Constellation execution.
@@ -411,9 +399,7 @@ export interface ConstellationResult {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Constellation Project Options — Entry point
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Options for starting a Constellation run.
@@ -461,9 +447,7 @@ export interface ConstellationProjectOpts {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Blackboard Bridge Configuration
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Configuration for a BlackboardBridge linking a parent and child Helix.
@@ -489,9 +473,7 @@ export interface BlackboardBridgeConfig {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Event Types — For the EventBus
-// ═══════════════════════════════════════════════════════════════════
 
 /** Events emitted by the Constellation system. */
 export type ConstellationEventType =

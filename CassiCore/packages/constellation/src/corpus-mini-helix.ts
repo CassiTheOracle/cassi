@@ -114,7 +114,6 @@ export class CorpusMiniHelix {
     this.crossHelixDialectic = deps.crossHelixDialectic as CrossHelixDialectic | undefined
   }
 
-  // ─── Public API ────────────────────────────────────────────────
 
   /** Register a child Brainstem for directive delivery */
   registerBrainstem(helixId: string, brainstem: MinimalBrainstem): void {
@@ -221,7 +220,6 @@ export class CorpusMiniHelix {
   }
 
 
-  // ─── Internal ──────────────────────────────────────────────────
 
   private async runCycle(): Promise<void> {
     if (!this.session || this.shutdownRequested) return

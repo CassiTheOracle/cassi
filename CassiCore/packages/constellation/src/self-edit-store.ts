@@ -127,7 +127,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Friction signals ──────────────────────────────────────────────
 
   recordFriction(signal: FrictionSignal): void {
     this.db.prepare(`
@@ -200,7 +199,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Edit requests ─────────────────────────────────────────────────
 
   submitRequest(request: EditRequest): void {
     this.db.prepare(`
@@ -249,7 +247,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Evaluations ───────────────────────────────────────────────────
 
   recordEvaluation(evaluation: EditEvaluation): void {
     this.db.prepare(`
@@ -275,7 +272,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Applied edits ─────────────────────────────────────────────────
 
   recordAppliedEdit(edit: AppliedEdit): void {
     this.db.prepare(`
@@ -315,7 +311,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Stats ─────────────────────────────────────────────────────────
 
   getStats(): SelfEditStats {
     const frictionCount = (this.db.prepare(
@@ -376,7 +371,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Row mappers ───────────────────────────────────────────────────
 
   private rowToFriction(row: any): FrictionSignal {
     return {
@@ -438,7 +432,6 @@ export class SelfEditStore implements ISelfEditStore {
   }
 
 
-  // ── Meta helpers ──────────────────────────────────────────────────
 
   private getMetaValue(key: string): string | undefined {
     try {

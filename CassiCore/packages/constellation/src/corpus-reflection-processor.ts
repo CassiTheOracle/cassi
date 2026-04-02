@@ -51,9 +51,7 @@ import type { BrainstemAnnotation, DetectedPattern } from '../helix/brainstem-ty
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Configuration
-// ═══════════════════════════════════════════════════════════════════
 
 export interface CorpusReflectionConfig {
   /** Whether the reflection processor is enabled */
@@ -77,9 +75,7 @@ export const DEFAULT_REFLECTION_CONFIG: CorpusReflectionConfig = {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Pattern → Friction Kind Mapping
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Maps subconscious observation patterns to friction kinds.
@@ -107,9 +103,7 @@ const PATTERN_TO_FRICTION: Record<string, FrictionKind> = {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Processor
-// ═══════════════════════════════════════════════════════════════════
 
 export class CorpusReflectionProcessor {
   private readonly logger: ILogger
@@ -200,9 +194,7 @@ export class CorpusReflectionProcessor {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Event Handlers — Translate observations into friction signals
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Process a subconscious observation for friction signals.
@@ -323,9 +315,7 @@ export class CorpusReflectionProcessor {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Aggregation — Group friction into edit requests
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Periodic sweep that aggregates friction signals into edit requests.
@@ -426,7 +416,6 @@ export class CorpusReflectionProcessor {
 
     const targetFiles = [...allPaths].slice(0, 5)
 
-    // ── THE ONE RULE ──
     // Classify edit authority: does this touch files that shape how agents think?
     // If yes → cassi-only. Agents cannot modify their own prompts.
     const authority = classifyEditAuthority(editKind, targetFiles)
@@ -460,9 +449,7 @@ export class CorpusReflectionProcessor {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Public API — For Cassi to interact with
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Get pending edit requests for Cassi to evaluate.
@@ -538,9 +525,7 @@ export class CorpusReflectionProcessor {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Helpers
-  // ═══════════════════════════════════════════════════════════════════
 
   private subscribe(bus: IEventBus, eventType: string, handler: (event: any) => void): void {
     const unsub = (bus as any).on?.(eventType, handler)

@@ -24,9 +24,7 @@
  */
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Qualitative Signals — What helixes observe (not score)
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * A friction signal observed during helix execution.
@@ -133,9 +131,7 @@ export type ReflectionScope =
   | 'universal'       // Relevant everywhere
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Edit Requests — What bubbles up to the Corpus / Cassi
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * An edit request from a helix to the Corpus/Cassi.
@@ -202,9 +198,7 @@ export type EditKind =
   | 'code-update'       // Update application code
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Edit Authority Boundary — The One Rule
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * The one rule: no agent can modify the files that define how it thinks.
@@ -233,6 +227,10 @@ export type EditAuthority =
  * "Does this file change how an agent thinks and reasons?"
  *
  * If yes → cassi-only. If no → local.
+ * @dep callers: buildEditRequest (core/intelligence/constellation/corpus-reflection-processor.ts), submitEditRequest (core/intelligence/constellation/corpus-reflection-processor.ts), canApplyLocally (core/intelligence/constellation/corpus-reflection-processor.ts), self-edit.test.ts (tests/self-edit.test.ts)
+ * @dep calls: isBehaviorShapingFile
+ * @dep module: Constellation
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 export function classifyEditAuthority(editKind: EditKind, targetFiles: string[]): EditAuthority {
   // These edit kinds ALWAYS require Cassi — they're definitionally prompt-level
@@ -256,6 +254,9 @@ export function classifyEditAuthority(editKind: EditKind, targetFiles: string[])
  * These are files whose content gets injected into agent system messages,
  * posture definitions, or reasoning templates. Modifying them changes
  * HOW agents think, not just what they do.
+ * @dep callers: classifyEditAuthority (core/intelligence/constellation/self-edit-types.ts), self-edit.test.ts (tests/self-edit.test.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function isBehaviorShapingFile(filePath: string): boolean {
   const normalized = filePath.replace(/\\/g, '/')
@@ -324,9 +325,7 @@ export type EditRequestStatus =
   | 'reverted'          // Edit was made but later reverted
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Corpus Evaluation — How Cassi decides
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Cassi's evaluation of an edit request.
@@ -373,9 +372,7 @@ export interface EditEvaluation {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Edit Audit Trail — What actually happened
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Record of an edit that was actually applied.
@@ -426,9 +423,7 @@ export interface AppliedEdit {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Self-Edit Store Interface
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Persistence interface for the self-edit system.
@@ -438,7 +433,6 @@ export interface AppliedEdit {
  * experience that Cassi draws on for future decisions.
  */
 export interface ISelfEditStore {
-  // ── Friction signals ──
   /** Record a friction signal observed by a helix */
   recordFriction(signal: FrictionSignal): void
   /** Find friction signals matching a pattern across sessions */
@@ -451,7 +445,6 @@ export interface ISelfEditStore {
   /** Count distinct sessions that observed friction matching a pattern */
   countCrossSessionFriction(kind: FrictionKind, pathPattern?: string, since?: number): number
 
-  // ── Edit requests ──
   /** Submit an edit request */
   submitRequest(request: EditRequest): void
   /** Get pending requests (ordered by cross-session recurrence) */
@@ -461,13 +454,11 @@ export interface ISelfEditStore {
   /** Get request by ID */
   getRequest(requestId: string): EditRequest | undefined
 
-  // ── Evaluations ──
   /** Record an evaluation */
   recordEvaluation(evaluation: EditEvaluation): void
   /** Get evaluations for a request */
   getEvaluations(requestId: string): EditEvaluation[]
 
-  // ── Applied edits ──
   /** Record an applied edit */
   recordAppliedEdit(edit: AppliedEdit): void
   /** Get applied edits for a file (for churn detection) */
@@ -475,7 +466,6 @@ export interface ISelfEditStore {
   /** Get all applied edits in reverse chronological order */
   getRecentEdits(limit?: number): AppliedEdit[]
 
-  // ── Cross-cutting ──
   /** Get stats about the self-edit system */
   getStats(): SelfEditStats
 }

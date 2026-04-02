@@ -20,7 +20,6 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import type { CorpusDirective } from './corpus-types.js'
 
-// ─── Message Types ──────────────────────────────────────────────────────
 
 export type CrossHelixParticipant = string  // helixId
 
@@ -93,7 +92,6 @@ export interface CrossHelixDialecticSnapshot {
   totalConcessions: number
 }
 
-// ─── Configuration ──────────────────────────────────────────────────────
 
 export interface CrossHelixDialecticConfig {
   /** Max messages before oldest are evicted. Default: 200 */
@@ -113,7 +111,6 @@ export const DEFAULT_CROSS_HELIX_DIALECTIC_CONFIG: CrossHelixDialecticConfig = {
   autoDetectConvergence: true,
 }
 
-// ─── CrossHelixDialectic ────────────────────────────────────────────────
 
 export class CrossHelixDialectic {
   private messages: CrossHelixMessage[] = []
@@ -131,7 +128,6 @@ export class CrossHelixDialectic {
     this.logger = logger
   }
 
-  // ── Participant Management ──────────────────────────────────────────
 
   /**
    * Register a branch as a participant in the cross-Helix dialectic.
@@ -159,7 +155,6 @@ export class CrossHelixDialectic {
     })
   }
 
-  // ── Message Posting ─────────────────────────────────────────────────
 
   /**
    * Post a finding from one branch. This will be forwarded to all other
@@ -230,7 +225,6 @@ export class CrossHelixDialectic {
     return msg.id
   }
 
-  // ── Corpus Mediation ────────────────────────────────────────────────
 
   /**
    * Called by the Corpus during its sweep to inject mediation.
@@ -317,7 +311,6 @@ export class CrossHelixDialectic {
        this.messages.length > 0)
   }
 
-  // ── Snapshot ────────────────────────────────────────────────────────
 
   getSnapshot(): CrossHelixDialecticSnapshot {
     return {
@@ -331,7 +324,6 @@ export class CrossHelixDialectic {
     }
   }
 
-  // ── Internal ────────────────────────────────────────────────────────
 
   private createMessage(
     type: CrossHelixMessageType,

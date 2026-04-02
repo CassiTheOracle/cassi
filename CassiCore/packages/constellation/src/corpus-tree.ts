@@ -66,9 +66,7 @@ export class CorpusTree implements ICorpusTree {
     this.logger = logger.child('CorpusTree')
   }
 
-  // ═══════════════════════════════════════════════════════════════════
   // Branch Management (existing)
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Register a new branch when a Helix starts.
@@ -233,9 +231,7 @@ export class CorpusTree implements ICorpusTree {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Branch Digests — Peer Awareness
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Update a branch's digest (compact summary of its current state).
@@ -360,9 +356,7 @@ export class CorpusTree implements ICorpusTree {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Topic Nodes — Stigmergic Coordination
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Create a new shared topic node. Returns the topic ID.
@@ -475,9 +469,7 @@ export class CorpusTree implements ICorpusTree {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Self-Awareness — Retrospectives, Patterns, Effectiveness
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Record a strategy retrospective (why an approach changed).
@@ -569,9 +561,7 @@ export class CorpusTree implements ICorpusTree {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Snapshot
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Serializable snapshot of the full tree for progress reporting.
@@ -623,9 +613,7 @@ export class CorpusTree implements ICorpusTree {
   }
 
 
-  // ═══════════════════════════════════════════════════════════════════
   // Internal Helpers
-  // ═══════════════════════════════════════════════════════════════════
 
   /**
    * Extract simple keywords from a goal string for relevance matching.

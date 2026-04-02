@@ -4,7 +4,6 @@
  * Exports: types, FlexPosture system, templates, Corpus tree, and Corpus organizer.
  */
 
-// ── Types ──────────────────────────────────────────────────────────────────
 
 export type {
   FlexPosture,
@@ -30,7 +29,6 @@ export {
 } from './types.js'
 
 
-// ── FlexPosture System ─────────────────────────────────────────────────────
 
 export {
   validatePosture,
@@ -45,7 +43,6 @@ export {
 export type { PostureValidationResult } from './flex-posture.js'
 
 
-// ── Templates ──────────────────────────────────────────────────────────────
 
 export {
   getTemplatePostures,
@@ -55,7 +52,6 @@ export {
 } from './templates.js'
 
 
-// ── Corpus Types ───────────────────────────────────────────────────────────
 
 export type {
   ICorpusTree,
@@ -98,28 +94,23 @@ export {
 } from './corpus-types.js'
 
 
-// ── Corpus Tree ────────────────────────────────────────────────────────────
 
 export { CorpusTree } from './corpus-tree.js'
 
 
-// ── Corpus Organizer ───────────────────────────────────────────────────────
 
 export { Corpus, createCorpus } from './corpus.js'
 
 
-// ── Constellation Pipeline ─────────────────────────────────────────────────
 
 export { runConstellationPipeline, serializeConstellationResult } from './constellation-pipeline.js'
 export type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 
 
-// ── Blackboard Bridge ──────────────────────────────────────────────────────
 
 export { BlackboardBridge, createBridge } from './blackboard-bridge.js'
 
 
-// ── Cross-Helix Dialectic ─────────────────────────────────────────────────
 
 export { CrossHelixDialectic } from './cross-helix-dialectic.js'
 export type {
@@ -131,7 +122,6 @@ export type {
 } from './cross-helix-dialectic.js'
 
 
-// ── Corpus Tools (Tool-based analysis) ────────────────────────────────────
 
 export {
   getCorpusToolDefinitions,
@@ -142,19 +132,16 @@ export {
 export type { CorpusToolDefinition, CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 
 
-// ── Corpus Mini-Helix ─────────────────────────────────────────────────────
 
 export { CorpusMiniHelix } from './corpus-mini-helix.js'
 export type { CorpusMiniHelixConfig } from './corpus-mini-helix.js'
 
 
-// ── Constellation Injection Source ─────────────────────────────────────────
 
 export { ConstellationRegistry, ConstellationInjectionSource } from './constellation-injection.js'
 export type { ConstellationLiveState } from './constellation-injection.js'
 
 
-// ── Constellation Orchestrator ─────────────────────────────────────────────
 
 export { createConstellationOrchestrator } from './constellation-orchestrator.js'
 export type { ConstellationOrchestrator } from './constellation-orchestrator.js'

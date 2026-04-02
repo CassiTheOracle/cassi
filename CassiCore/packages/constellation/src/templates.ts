@@ -22,9 +22,7 @@ import type { FlexPosture, ConstellationTemplate } from './types.js'
 import { createPostureSet } from './flex-posture.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Standard Template — Classic Helix (3 postures)
-// ═══════════════════════════════════════════════════════════════════
 
 const STANDARD_POSTURES: FlexPosture[] = [
   {
@@ -55,9 +53,7 @@ const STANDARD_POSTURES: FlexPosture[] = [
 ]
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Research Template — Extra researchers for investigation-heavy work
-// ═══════════════════════════════════════════════════════════════════
 
 const RESEARCH_POSTURES: FlexPosture[] = [
   ...STANDARD_POSTURES,
@@ -82,9 +78,7 @@ const RESEARCH_POSTURES: FlexPosture[] = [
 ]
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Implementation Template — Two workers for parallel building (4 postures)
-// ═══════════════════════════════════════════════════════════════════
 
 const IMPLEMENTATION_POSTURES: FlexPosture[] = [
   {
@@ -123,9 +117,7 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
 ]
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Review Template — Extra reviewers for quality-critical work (5 postures)
-// ═══════════════════════════════════════════════════════════════════
 
 const REVIEW_POSTURES: FlexPosture[] = [
   {
@@ -170,6 +162,13 @@ const REVIEW_POSTURES: FlexPosture[] = [
     maxIterations: 80,
   },
 ]
+
+/**
+ * @dep callers: resolvePostures (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep calls: createPostureSet
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function getTemplatePostures(template: ConstellationTemplate): FlexPosture[] {
   switch (template) {

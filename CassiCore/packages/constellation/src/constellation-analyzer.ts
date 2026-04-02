@@ -19,9 +19,7 @@ import fs from 'node:fs'
 import { getDataDir } from '../../utils/paths.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Public Types
-// ═══════════════════════════════════════════════════════════════════
 
 export type AnalysisDepth = 'summary' | 'timeline' | 'full'
 
@@ -223,9 +221,7 @@ interface RawBlackboardArchive {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Helpers
-// ═══════════════════════════════════════════════════════════════════
 
 function openReadOnly(dbPath: string): Database.Database | null {
   try {
@@ -246,6 +242,12 @@ function formatDuration(ms: number): string {
   return `${s}s`
 }
 
+/**
+ * @dep callers: flushPhase (core/intelligence/constellation/constellation-analyzer.ts), analyzeConstellation (core/intelligence/constellation/constellation-analyzer.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('en-US', { hour12: false })
 }
@@ -260,9 +262,7 @@ function median(values: number[]): number {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Phase Detector
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Groups iterations into semantic phases based on dominant tool activity.
@@ -380,9 +380,7 @@ function detectPhases(workUnits: WorkUnitRow[], toolCalls: ToolCallRow[]): Phase
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Pattern Detector
-// ═══════════════════════════════════════════════════════════════════
 
 function detectPatterns(
   analysis: Omit<ConstellationAnalysis, 'diagnosis' | 'meta'>,
@@ -471,9 +469,7 @@ function detectPatterns(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Row Types (for SQLite queries)
-// ═══════════════════════════════════════════════════════════════════
 
 interface WorkUnitRow {
   id: number
@@ -510,9 +506,7 @@ interface HelixSessionRow {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Main Analyzer
-// ═══════════════════════════════════════════════════════════════════
 
 export async function analyzeConstellation(
   constellationSessionId: string,
@@ -526,7 +520,6 @@ export async function analyzeConstellation(
   const constDb = openReadOnly(constellationDbPath)
 
   try {
-    // ── 1. Find the Helix session ID ─────────────────────────────
     // Constellation sessions use helix session IDs like:
     //   helix-constellation-<jobId>-<suffix>
     let helixSessionId: string | null = null
@@ -557,7 +550,6 @@ export async function analyzeConstellation(
       }
     }
 
-    // ── 2. Check ConstellationStore ──────────────────────────────
     let constSession: any = null
     let constBranches: any[] = []
     let corpusDecisions: RawCorpusDecision[] = []
@@ -603,7 +595,6 @@ export async function analyzeConstellation(
       }
     }
 
-    // ── 3. Build Branch Analyses from HelixStore ─────────────────
     const branches: BranchAnalysis[] = []
 
     if (helixDb && helixSessionId) {
@@ -706,7 +697,6 @@ export async function analyzeConstellation(
       })
     }
 
-    // ── 4. Compute Corpus Health ─────────────────────────────────
     const sweepCount = constSession?.sweep_count ?? 0
     const interventionCount = corpusDecisions.filter(d => d.decision_type === 'intervention').length
     const spawnDecisionCount = corpusDecisions.filter(d => d.decision_type === 'spawn_evaluation').length
@@ -730,7 +720,6 @@ export async function analyzeConstellation(
       corpusDiagnosis = `Corpus made ${sweepCount} sweeps, ${interventionCount} interventions, ${spawnDecisionCount} spawn decisions.`
     }
 
-    // ── 5. Compute top-level timing ──────────────────────────────
     const branch = branches[0]
     const totalMinutes = branch ? Math.round(branch.durationMs / 60_000 * 10) / 10 : 0
 
@@ -743,7 +732,6 @@ export async function analyzeConstellation(
       iterationsTotal: branch?.iterationCount ?? 0,
     }
 
-    // ── 6. Provider Issues (from thought.log approximation via shell exec counts) ──
     // Since we don't have a provider error DB, we detect from nudge content
     const providerIssues: ProviderIssue[] = []
     if (branch) {
@@ -760,7 +748,6 @@ export async function analyzeConstellation(
       }
     }
 
-    // ── 7. Corpus decision summaries ─────────────────────────────
     const corpusDecisionSummaries: CorpusDecisionSummary[] = corpusDecisions.map(d => ({
       type: d.decision_type,
       helixId: d.helix_id,
@@ -769,7 +756,6 @@ export async function analyzeConstellation(
       time: formatTime(d.timestamp),
     }))
 
-    // ── 8. Assemble partial analysis for pattern detection ────────
     const sessionStartedAt = helixSession?.created_at
       ?? (branch ? branch.durationMs > 0 ? Date.now() - branch.durationMs : Date.now() : Date.now())
     const sessionCompletedAt = helixSession?.completed_at ?? null
@@ -803,7 +789,6 @@ export async function analyzeConstellation(
       timing,
     }
 
-    // ── 9. Detect patterns and generate recommendations ──────────
     const meta = {
       helixDbFound: helixDb !== null,
       constellationDbFound: constDb !== null,
@@ -823,7 +808,6 @@ export async function analyzeConstellation(
 
     const recommendations = generateRecommendations(patterns, partialAnalysis)
 
-    // ── 10. Build timeline (for 'timeline' and 'full' depth) ─────
     let timeline: TimelineEntry[] | undefined
     if ((depth === 'timeline' || depth === 'full') && branch) {
       if (helixDb && helixSessionId) {
@@ -878,7 +862,6 @@ export async function analyzeConstellation(
       }
     }
 
-    // ── 11. Assemble final analysis ───────────────────────────────
     const result: ConstellationAnalysis = {
       ...partialAnalysis,
       diagnosis: {

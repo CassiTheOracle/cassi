@@ -46,9 +46,7 @@ import type {
 import type { ConstellationLiveState } from './constellation-injection.js'
 import { getTemplatePostures } from './templates.js'
 
-// ═══════════════════════════════════════════════════════════════════
 // Constants
-// ═══════════════════════════════════════════════════════════════════
 
 const DEFAULT_MAX_HELIXES = 16
 const DEFAULT_MAX_DEPTH = 4
@@ -322,9 +320,7 @@ async function safeReadFile(path: string, workspaceRoot: string): Promise<string
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Pipeline Options
-// ═══════════════════════════════════════════════════════════════════
 
 export interface ConstellationPipelineOpts {
   /** The main goal for this Constellation */
@@ -410,7 +406,6 @@ export interface ConstellationPipelineOpts {
    */
   onCancelRegistered?: (cancel: () => void) => void
 
-  // ── Mini-Helix Configuration ────────────────────────────────────
 
   /**
    * Enable mini-Helix mode for the Corpus.
@@ -452,9 +447,7 @@ export interface ConstellationPipelineOpts {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Internal State
-// ═══════════════════════════════════════════════════════════════════
 
 interface RunningHelix {
   helixId: string
@@ -469,9 +462,7 @@ interface RunningHelix {
   template?: ConstellationTemplate
 }
 
-// ═══════════════════════════════════════════════════════════════════
 // Main Pipeline Function
-// ═══════════════════════════════════════════════════════════════════
 
 export async function runConstellationPipeline(
   opts: ConstellationPipelineOpts
@@ -503,7 +494,6 @@ export async function runConstellationPipeline(
   // Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
   const brainstemLLM = brainstemLLMOpt ?? corpusLLM
 
-  // ── Memory Injection Service ─────────────────────────────────────
   // Instantiate memory injection service if memory is available.
   // Used to inject relevant past-run memories into each new Helix branch.
   const memoryInjectionService = opts.memory
@@ -524,9 +514,7 @@ export async function runConstellationPipeline(
     data: { event: 'constellation:started', goal, timestamp: Date.now() },
   } as any)
 
-  // ═════════════════════════════════════════════════════════════════
   // Create session in ConstellationStore (if provided)
-  // ═════════════════════════════════════════════════════════════════
 
   if (constellationStore) {
     try {
@@ -542,9 +530,7 @@ export async function runConstellationPipeline(
     }
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Create Corpus Tree, Blackboard, and Corpus
-  // ═════════════════════════════════════════════════════════════════
 
   const corpusTree = new CorpusTree(logger)
 
@@ -589,7 +575,6 @@ export async function runConstellationPipeline(
         })
       },
 
-      // ── Proactive Capability Hooks ────────────────────────────
 
       launchHelix: async (helixGoal, helixContext, tmpl) => {
         const rh = await launchHelix(helixGoal, helixContext, undefined, 0)
@@ -690,9 +675,7 @@ export async function runConstellationPipeline(
   await corpus.start()
   log.info('Corpus started')
 
-  // ═════════════════════════════════════════════════════════════════
   // Corpus Mini-Helix (optional — self-driving analysis loop)
-  // ═════════════════════════════════════════════════════════════════
 
   let corpusMiniHelix: CorpusMiniHelix | undefined
 
@@ -746,9 +729,7 @@ export async function runConstellationPipeline(
     log.info('Corpus mini-Helix started')
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Notify orchestrator — corpus is live, tree state is available
-  // ═════════════════════════════════════════════════════════════════
 
   if (opts.onCorpusReady) {
     const liveState: ConstellationLiveState = {
@@ -763,9 +744,7 @@ export async function runConstellationPipeline(
     log.debug('onCorpusReady callback invoked')
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // State Tracking
-  // ═════════════════════════════════════════════════════════════════
 
   const nodes = new Map<string, ConstellationNode>()
   const runningHelixes = new Map<string, RunningHelix>()
@@ -774,9 +753,7 @@ export async function runConstellationPipeline(
   let rootHelixId: string | undefined
   let completed = false
 
-  // ═════════════════════════════════════════════════════════════════
   // Helper: Resolve Postures
-  // ═════════════════════════════════════════════════════════════════
 
   function resolvePostures(): FlexPosture[] {
     if (customPostures && customPostures.length > 0) {
@@ -787,9 +764,7 @@ export async function runConstellationPipeline(
     return getTemplatePostures(template)
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Helper: Launch Helix
-  // ═════════════════════════════════════════════════════════════════
 
   async function launchHelix(
     helixGoal: string,
@@ -1222,9 +1197,7 @@ export async function runConstellationPipeline(
     return runningHelix
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Helper: Notify a Helix that its spawn request was rejected
-  // ═════════════════════════════════════════════════════════════════
 
   function notifySpawnRejection(helixId: string, reason: string): void {
     const rh = runningHelixes.get(helixId)
@@ -1243,9 +1216,7 @@ export async function runConstellationPipeline(
     }
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Helper: Handle Spawn Request
-  // ═════════════════════════════════════════════════════════════════
 
   async function handleSpawnRequest(request: SpawnRequest): Promise<void> {
     log.info('Processing spawn request', {
@@ -1312,9 +1283,7 @@ export async function runConstellationPipeline(
     }
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Helper: Poll for Spawn Requests
-  // ═════════════════════════════════════════════════════════════════
 
   async function pollSpawnRequests(): Promise<void> {
     // WHY: spawn request polling deferred — see contributing-todos blackboard
@@ -1330,9 +1299,7 @@ export async function runConstellationPipeline(
     }
   }
 
-  // ═════════════════════════════════════════════════════════════════
   // Main Execution
-  // ═════════════════════════════════════════════════════════════════
 
   let result: ConstellationResult
   let checkpointHandle: ReturnType<typeof setInterval> | undefined
@@ -1388,7 +1355,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // ── Pre-flight Goal Decomposition ──────────────────────────────
     // For complex goals, run a short planning Helix to decompose the goal
     // into validated sub-tasks before launching execution Helixes.
     const decomposition = await runGoalDecomposition({
@@ -1401,7 +1367,6 @@ export async function runConstellationPipeline(
       readFile: (path: string) => safeReadFile(path, process.cwd()),
     })
 
-    // ── Periodic checkpoints (shared for all execution modes) ────────
     // Start periodic progress checkpoints (every 30s).
     // Also enforces maxTotalSteps limit.
     const CHECKPOINT_INTERVAL_MS = 30_000
@@ -1643,7 +1608,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // ── Post-run Memory Storage (cross-run learning) ──────────────
     if (opts.memory) {
       try {
         const corpusResult = corpus.getResult()
@@ -1838,9 +1802,7 @@ export async function runConstellationPipeline(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Shared Thought Tree: SharedTreeReader Factory
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Create a SharedTreeReader bound to a specific Helix.
@@ -1855,7 +1817,6 @@ function createSharedTreeReaderForHelix(
   tree: CorpusTree
 ): SharedTreeReader {
   return {
-    // ── Read operations ───────────────────────────────────────
     getPeerDigests: () => tree.getDigestsExcluding(helixId),
     getRelevantDigests: () => tree.getRelevantDigests(helixId),
     findRelatedTopics: (files, goalKeywords) => tree.findRelatedTopics(files, goalKeywords),
@@ -1864,7 +1825,6 @@ function createSharedTreeReaderForHelix(
     getAllRetrospectives: () => tree.getAllRetrospectives(),
     getEffectivenessStats: () => tree.getEffectivenessStats(),
 
-    // ── Write operations ──────────────────────────────────────
     updateDigest: (digest) => tree.updateDigest(helixId, digest),
     updateLiveStreamSnippet: (snippet) => tree.updateLiveStreamSnippet(helixId, snippet),
     createTopic: (name, contribution) => tree.createTopic(name, helixId, contribution),
@@ -1875,9 +1835,7 @@ function createSharedTreeReaderForHelix(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Serialization Helper — Convert Maps to plain objects for JSON
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Convert a ConstellationResult to a JSON-safe plain object.
