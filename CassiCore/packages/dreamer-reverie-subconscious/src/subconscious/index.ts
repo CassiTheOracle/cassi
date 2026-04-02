@@ -68,7 +68,6 @@ export class Subconscious {
 
   /** Drains heuristic buffers and integrates into the system model every turn event */
   private drainTimer?: NodeJS.Timeout;
-  /** Persistence timer */
   private persistTimer?: NodeJS.Timeout;
   /** Heartbeat monitor timer — detects silent intelligence modules */
   private heartbeatTimer?: NodeJS.Timeout;
@@ -86,7 +85,6 @@ export class Subconscious {
       llmObserver: {
         ...DEFAULT_SUBCONSCIOUS_CONFIG.llmObserver,
         ...(config?.llmObserver ?? {}),
-        // Propagate top-level model to llmObserver if not explicitly set
         ...((config as any)?.model && !(config?.llmObserver as any)?.model
           ? { model: (config as any).model }
           : {}),
@@ -95,7 +93,6 @@ export class Subconscious {
 
     this.priority = this.config.priority;
 
-    // Build components
     this.eventStream = new EventStream(this.logger, {
       maxBufferSize: this.config.eventBufferSize,
     });
@@ -161,7 +158,6 @@ export class Subconscious {
       return;
     }
 
-    // Connect EventStream to observe all events
     this.eventStream.connect(bus);
 
     // Also wire the HeuristicObserver to see every event directly
@@ -189,10 +185,9 @@ export class Subconscious {
 
   start(): void {
     if (!this.config.enabled) return;
-    if (this._started) return;  // Guard against double initialization
+    if (this._started) return;
     this._started = true;
 
-    // Start LLM observer periodic sweep
     this.llmObserver.start(this.eventStream, this.systemModel, (obs) => {
       // When the sweep finds cross-session correlations, emit them as an event
       // so other modules can consume the historical context signal.
@@ -207,7 +202,6 @@ export class Subconscious {
       }
     });
 
-    // Periodic persistence
     this.persistTimer = setInterval(() => {
       void this.systemModel.persist();
     }, this.config.persistenceIntervalMs);
