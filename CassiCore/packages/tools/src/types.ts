@@ -34,6 +34,18 @@ export interface ToolDefinition {
   capability?: string;
   /** Preferred alias names that should resolve to this tool. */
   aliases?: string[];
+  /**
+   * Minimum permission tier required to execute this tool.
+   * Used as a fast-path in the permission oracle:
+   * - 'read-only': safe for read operations (file reads, searches, web fetch)
+   * - 'workspace-write': modifies workspace files (edit, write, mkdir)
+   * - 'full-access': unrestricted (shell exec, system commands, network writes)
+   *
+   * When the active trust level meets or exceeds this tier, the full
+   * consequence estimation pipeline can be skipped (performance win).
+   * Default: 'full-access' (conservative — unknown tools require full assessment).
+   */
+  requiredPermission?: 'read-only' | 'workspace-write' | 'full-access';
 }
 
 /** A single tool call parsed from the provider stream */

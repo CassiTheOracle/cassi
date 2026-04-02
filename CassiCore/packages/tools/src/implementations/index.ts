@@ -37,6 +37,7 @@ import { spawnSubagentDefinition, makeSpawnSubagentHandler } from './spawn-subag
 import { webFetchDefinition, webFetchHandler } from './web-fetch.js'
 import { webSearchDefinition, webSearchHandler } from './web-search.js'
 import { writeFileDefinition, writeFileHandler } from './write-file.js'
+import { todoWriteDefinition, todoWriteHandler } from './todo-write.js'
 import { runTestsDefinition, runTestsHandler } from './run-tests.js'
 import { runBackgroundDefinition, makeRunBackgroundHandler } from './run-background.js'
 import { checkJobDefinition, makeCheckJobHandler } from './check-job.js'
@@ -103,11 +104,11 @@ export interface CoreToolDeps {
 }
 
 /**
- * @dep callers: start (core/daemon.ts)
- * @dep calls: getEventBus, execute, register, getContextWindowDebugger, makeWaitJobHandler [+22]
- * @dep flows: RegisterCoreTools → EstimateChars (1/4), RegisterCoreTools → FormatMemoryResult (1/3)
+ * @dep callers: buildTools (core/daemon/boot-pipeline-tools.ts), start (core/daemon.ts)
+ * @dep calls: makeAutofixHandler, registerCassandraEventTools, setCassiShellDeps, makeCheckJobHandler, makeProbeHandler [+24]
+ * @dep flows: BootPipelineTools → MakeWaitJobHandler (3/4), BootPipelineTools → MakeCheckJobHandler (3/4), BootPipelineTools → MakeRunBackgroundHandler (3/4) [+1]
  * @dep module: Implementations
- * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
  */
 
 export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): void {
@@ -133,6 +134,9 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   registry.register(readFileDefinition, readFileHandler)
   registry.register(readFilesDefinition, readFilesHandler)
   registry.register(writeFileDefinition, writeFileHandler)
+
+  // Task tracking
+  registry.register(todoWriteDefinition, todoWriteHandler)
 
   // Desktop Vision (Linux/KDE window capture)
   registry.register(desktopVisionDefinition, desktopVisionHandler)

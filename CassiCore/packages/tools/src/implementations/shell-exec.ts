@@ -15,6 +15,7 @@ export const shellExecDefinition: ToolDefinition = {
     required: ['command'],
   },
   timeoutMs: 120_000,
+  requiredPermission: 'full-access',
 };
 
 interface ShellExecResult {

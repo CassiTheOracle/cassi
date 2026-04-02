@@ -94,8 +94,8 @@ const globalCache = new FileCache()
 /**
  * Read file with offset/limit efficiently
  * Uses async I/O and avoids loading entire file when possible
- * @dep callers: readFilesBatch (core/tools/implementations/read-file.ts), readFileHandler (core/tools/implementations/read-file.ts)
- * @dep calls: get, now, extractLines
+ * @dep callers: readFileHandler (core/tools/implementations/read-file.ts), readFilesBatch (core/tools/implementations/read-file.ts)
+ * @dep calls: extractLines, now
  * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -162,6 +162,10 @@ async function readFileOptimized(
 /**
  * Extract lines from buffer efficiently
  * Uses single-pass scanning instead of split/join
+ * @dep callers: readFileOptimized (core/tools/implementations/read-file.ts), readFileHandler (core/tools/implementations/read-file.ts)
+ * @dep calls: extractLinesScan
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function extractLines(
   buffer: Buffer,
@@ -238,6 +242,7 @@ export const readFileDefinition: ToolDefinition = {
   timeoutMs: 10_000,
   readOnly: true,
   category: 'core',
+  requiredPermission: 'read-only',
 }
 
 // Tool Handler

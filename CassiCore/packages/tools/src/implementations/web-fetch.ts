@@ -335,6 +335,7 @@ export const webFetchDefinition: ToolDefinition = {
   timeoutMs: 30_000,
   readOnly: true,
   category: 'core',
+  requiredPermission: 'read-only',
 }
 
 // Tool Handler

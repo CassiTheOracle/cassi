@@ -26,6 +26,9 @@ import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-sto
  * Stage a file with `git add`. Fire-and-forget — failures are logged but
  * never propagate to the caller.  This makes every agent file-write
  * recoverable via `git checkout -- <file>`.
+ * @dep callers: writeFileHandler (core/tools/implementations/write-file.ts), writeFilesBatch (core/tools/implementations/write-file.ts)
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function gitStage(absPath: string, workingDir: string, logger: ToolExecutionContext['logger']): void {
   try {
@@ -44,6 +47,9 @@ function gitStage(absPath: string, workingDir: string, logger: ToolExecutionCont
  * namespace.  This provides attribution (who wrote what, when) and version
  * history for every agent file-write.  Fire-and-forget — failures are logged
  * but never block the write.
+ * @dep callers: writeFileHandler (core/tools/implementations/write-file.ts), writeFilesBatch (core/tools/implementations/write-file.ts)
+ * @dep module: Implementations
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function mirrorToArtifactStore(
   absPath: string,
@@ -131,8 +137,8 @@ interface WriteOptions {
  * - Small files: direct async write
  * - Large files: streaming write
  * - Atomic option: temp file + rename
- * @dep callers: writeFilesBatch (core/tools/implementations/write-file.ts), writeFileHandler (core/tools/implementations/write-file.ts)
- * @dep calls: ensure, now, writeStreaming
+ * @dep callers: writeFileHandler (core/tools/implementations/write-file.ts), writeFilesBatch (core/tools/implementations/write-file.ts)
+ * @dep calls: ensure, writeStreaming, now
  * @dep module: Implementations
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -221,6 +227,7 @@ export const writeFileDefinition: ToolDefinition = {
   },
   timeoutMs: 10_000,
   category: 'core',
+  requiredPermission: 'workspace-write',
 }
 
 // Tool Handler

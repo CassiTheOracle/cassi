@@ -5,6 +5,8 @@ import { commitSessionChanges } from './git-session-tracker.js'
 import type { SessionCommitOpts, SessionCommitResult } from './git-session-tracker.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
+import { ExternalHookRunner, mergeHookFeedback, EMPTY_HOOK_CONFIG } from './hooks/external-hook-runner.js'
+import type { ExternalHookConfig } from './hooks/external-hook-runner.js'
 
 import type { ToolRegistry } from './registry.js'
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
@@ -19,6 +21,12 @@ const MAX_CONCURRENT = 20
 const ENABLE_SAFETY_GUARDS = true  // Can be disabled for debugging
 
 /** Short-lived cache key for permission decisions: "toolName:sha(input)" */
+/**
+ * @dep callers: execute (core/tools/executor.ts), enrichToolResult (core/tools/executor.ts)
+ * @dep module: Tools
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function permissionCacheKey(toolName: string, input: Record<string, unknown>): string {
   // Deterministic but fast — stable JSON stringification is overkill here;
   // collisions just cause an extra judge() call, which is the status quo.
@@ -35,6 +43,7 @@ export class ToolExecutor {
   private trustLedger?: TrustLedger
   private reliabilityTracker?: ToolReliabilityTracker
   private orchestrator?: ToolCallOrchestrator
+  private hookRunner?: ExternalHookRunner
   private logger: ILogger
 
   /**
@@ -134,6 +143,15 @@ export class ToolExecutor {
   /** Get the active orchestrator (if any) for direct batch calls */
   getOrchestrator(): ToolCallOrchestrator | undefined {
     return this.orchestrator
+  }
+
+  /**
+   * Wire external shell hooks for PreToolUse/PostToolUse interception.
+   * When configured, shell commands run before and after every tool call.
+   * Exit 0 = allow, exit 2 = deny, other = warn but allow.
+   */
+  setExternalHooks(config: ExternalHookConfig): void {
+    this.hookRunner = new ExternalHookRunner(config, this.logger)
   }
 
   /**
@@ -282,6 +300,13 @@ export class ToolExecutor {
     // Track skill invocations when reading SKILL.md files
     this.trackSkillInvocation({ ...call, name: actualToolName }, sessionId)
 
+    // FAST-PATH: Skip full permission pipeline for tools that declare a
+    // requiredPermission tier of 'read-only'. These tools are provably safe
+    // (file reads, searches, web fetches) and don't need consequence estimation
+    // or trust scoring on every invocation.
+    const toolDef = actualEntry?.definition
+    const skipPermissionCheck = toolDef?.requiredPermission === 'read-only'
+
     // If a Permission Oracle is wired, assess risk before execution.
     // This is the core of graduated autonomy: low-risk actions auto-proceed,
     // high-risk actions require human approval.
@@ -289,7 +314,7 @@ export class ToolExecutor {
     // A short-lived TTL cache deduplicates identical (tool, input) pairs
     // within a 5-second window to avoid redundant risk assessment, event
     // emission, and trust pipeline processing for repetitive tool calls.
-    if (this.permissionOracle) {
+    if (this.permissionOracle && !skipPermissionCheck) {
       const cacheKey = permissionCacheKey(call.name, call.input)
       const cached = this.permissionCache.get(cacheKey)
 
@@ -355,6 +380,22 @@ export class ToolExecutor {
     }
 
     try {
+      // EXTERNAL HOOKS: Run PreToolUse hooks before execution
+      let preHookMessages: string[] = []
+      if (this.hookRunner?.hasHooks()) {
+        const preResult = await this.hookRunner.runPreToolUse(actualToolName, call.input)
+        preHookMessages = preResult.messages
+        if (preResult.denied) {
+          const denyMessage = preResult.messages.join('\n') || `PreToolUse hook denied tool \`${actualToolName}\``
+          this.emitToolExecuted(sessionId, actualToolName, Date.now() - executeStartMs, true)
+          return {
+            toolCallId: call.id,
+            content: denyMessage,
+            isError: true,
+          }
+        }
+      }
+
       // SAFETY: Execute with timeout and error containment
       if (ENABLE_SAFETY_GUARDS) {
         const safeResult = await executeToolSafe(
@@ -399,9 +440,25 @@ export class ToolExecutor {
         
         // Apply presentation formatting
         const presented = this.applyPresentation(String(safeResult.data), actualToolName, durationMs)
+
+        // EXTERNAL HOOKS: Run PostToolUse hooks and merge feedback
+        let finalContent = presented.content
+        if (this.hookRunner?.hasHooks()) {
+          const postResult = await this.hookRunner.runPostToolUse(
+            actualToolName, call.input, finalContent, false,
+          )
+          finalContent = mergeHookFeedback(
+            [...preHookMessages, ...postResult.messages],
+            finalContent,
+            postResult.denied,
+          )
+        } else if (preHookMessages.length > 0) {
+          finalContent = mergeHookFeedback(preHookMessages, finalContent, false)
+        }
+
         return {
           toolCallId: call.id,
-          content: enrichment ? presented.content + enrichment : presented.content,
+          content: enrichment ? finalContent + enrichment : finalContent,
           isError: false,
           rawContent: presented.rawContent,
           exitCode: presented.exitCode,
