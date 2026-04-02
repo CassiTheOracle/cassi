@@ -152,7 +152,7 @@ const useChatActions = () => {
       }
       return { agents, teams }
     } catch (error) {
-      console.error('Error initializing :', error)
+      console.error('Error initializing :', error) // contributing:ignore - webui client error logging
       setIsEndpointActive(false)
       setMode('agent')
       setSelectedModel('')

@@ -220,7 +220,7 @@ export default function IntelligencePanel() {
         }
       } catch (err) {
         if ((err as Error).name !== 'AbortError') {
-          console.warn('[IntelligencePanel] SSE error:', err)
+          console.warn('[IntelligencePanel] SSE error:', err) // contributing:ignore - webui client error logging
         }
       }
     })()

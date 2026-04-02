@@ -133,7 +133,7 @@ export function useCognitiveEvents(
           // Log the actual error for debuggability instead of swallowing
           const reason = err instanceof Error ? err.message : String(err)
           if (!cancelled && reason !== 'The operation was aborted') {
-            console.warn('[cognitive-events] SSE stream error:', reason)
+            console.warn('[cognitive-events] SSE stream error:', reason) // contributing:ignore - TUI client error logging
           }
         }
 

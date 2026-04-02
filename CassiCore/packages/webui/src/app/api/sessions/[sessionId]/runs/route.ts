@@ -61,7 +61,7 @@ export async function GET(
     return NextResponse.json({ data: runs })
   } catch (err) {
     // Return empty history gracefully — session may be new
-    console.error(`[webui] Failed to load session history for ${sessionId}:`, err)
+    console.error(`[webui] Failed to load session history for ${sessionId}:`, err) // contributing:ignore - webui error logging
     return NextResponse.json({ data: [] })
   }
 }
