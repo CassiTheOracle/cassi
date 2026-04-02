@@ -1,6 +1,6 @@
 import type { ChatMessage } from '@/types/os'
 
-import { AgentMessage, UserMessage } from './MessageItem'
+import { AgentMessage, UserMessage } from './MessageItem.js'
 import Tooltip from '@/components/ui/tooltip'
 import { memo, useState } from 'react'
 import {
@@ -13,7 +13,7 @@ import {
 import React, { type FC } from 'react'
 
 import Icon from '@/components/ui/icon'
-import ChatBlankState from './ChatBlankState'
+import ChatBlankState from './ChatBlankState.js'
 
 interface MessageListProps {
   messages: ChatMessage[]

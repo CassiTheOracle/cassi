@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { getSessionAPI, getAllSessionsAPI } from '@/api/os'
-import { useStore } from '../store'
+import { useStore } from '../store.js'
 import { toast } from 'sonner'
 import { ChatMessage, ToolCall, ReasoningMessage, ChatEntry } from '@/types/os'
 import { getJsonMarkdown } from '@/lib/utils'

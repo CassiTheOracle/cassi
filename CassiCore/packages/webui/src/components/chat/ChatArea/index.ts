@@ -1,3 +1,3 @@
-import ChatArea from './ChatArea'
+import ChatArea from './ChatArea.js'
 
 export { ChatArea }

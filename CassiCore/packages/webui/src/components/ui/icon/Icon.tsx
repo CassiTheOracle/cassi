@@ -2,8 +2,8 @@ import { type FC } from 'react'
 
 import { cn } from '@/lib/utils'
 
-import { ICONS } from './constants'
-import { type IconProps } from './types'
+import { ICONS } from './constants.js'
+import { type IconProps } from './types.js'
 
 const Icon: FC<IconProps> = ({
   type,

@@ -6,8 +6,8 @@ import { useQueryState } from 'nuqs'
 import { useStore } from '@/store'
 import useSessionLoader from '@/hooks/useSessionLoader'
 
-import SessionItem from './SessionItem'
-import SessionBlankState from './SessionBlankState'
+import SessionItem from './SessionItem.js'
+import SessionBlankState from './SessionBlankState.js'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 

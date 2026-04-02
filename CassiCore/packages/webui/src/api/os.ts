@@ -1,12 +1,12 @@
 import { toast } from 'sonner'
 
-import { APIRoutes } from './routes'
+import { APIRoutes } from './routes.js'
 
 import { AgentDetails, Sessions, TeamDetails } from '@/types/os'
 
 // Helper function to create headers with optional auth token
 /**
- * @dep callers: deleteTeamSessionAPI (webui/src/api/os.ts), getTeamsAPI (webui/src/api/os.ts), deleteSessionAPI (webui/src/api/os.ts), getSessionAPI (webui/src/api/os.ts), getAllSessionsAPI (webui/src/api/os.ts) [+2]
+ * @dep callers: getAgentsAPI (webui/src/api/os.ts), getStatusAPI (webui/src/api/os.ts), getAllSessionsAPI (webui/src/api/os.ts), getSessionAPI (webui/src/api/os.ts), deleteSessionAPI (webui/src/api/os.ts) [+2]
  * @dep module: Api
  * @dep risk: HIGH | 7 callers, 0 flows, 1 module
  */

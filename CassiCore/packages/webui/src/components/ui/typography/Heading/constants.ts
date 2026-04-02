@@ -1,4 +1,4 @@
-import { type HeadingSizeMap } from './types'
+import { type HeadingSizeMap } from './types.js'
 
 export const HEADING_SIZES: HeadingSizeMap = {
   1: 'text-4xl font-semibold font-inter',

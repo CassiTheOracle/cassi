@@ -1,7 +1,7 @@
 'use client'
 
-import ChatInput from './ChatInput'
-import MessageArea from './MessageArea'
+import ChatInput from './ChatInput.js'
+import MessageArea from './MessageArea.js'
 
 const ChatArea = () => {
   return (

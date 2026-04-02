@@ -1,15 +1,15 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 
-import { useStore } from '../store'
+import { useStore } from '../store.js'
 
 import { AgentDetails, TeamDetails, type ChatMessage } from '@/types/os'
 import { getAgentsAPI, getStatusAPI, getTeamsAPI } from '@/api/os'
 import { useQueryState } from 'nuqs'
 
 /**
- * @dep callers: useAIChatStreamHandler (webui/src/hooks/useAIStreamHandler.tsx), SessionItem (webui/src/components/chat/Sidebar/Sessions/SessionItem.tsx), EntitySelector (webui/src/components/chat/Sidebar/EntitySelector.tsx), ModeSelector (webui/src/components/chat/Sidebar/ModeSelector.tsx), NewChatButton (webui/src/components/chat/Sidebar/NewChatButton.tsx) [+2]
- * @dep calls: getState, getStatus, setTeamId, getAgentsAPI, getStatusAPI [+1]
+ * @dep callers: useAIChatStreamHandler (webui/src/hooks/useAIStreamHandler.tsx), Endpoint (webui/src/components/chat/Sidebar/Sidebar.tsx), Sidebar (webui/src/components/chat/Sidebar/Sidebar.tsx), NewChatButton (webui/src/components/chat/Sidebar/NewChatButton.tsx), ModeSelector (webui/src/components/chat/Sidebar/ModeSelector.tsx) [+2]
+ * @dep calls: setTeamId, getState, getStatus, getTeamsAPI, getStatusAPI [+1]
  * @dep module: Api
  * @dep risk: HIGH | 7 callers, 0 flows, 1 module
  */

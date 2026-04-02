@@ -1,4 +1,4 @@
-import { type ParagraphSizeMap } from './types'
+import { type ParagraphSizeMap } from './types.js'
 
 export const PARAGRAPH_SIZES: ParagraphSizeMap = {
   xs: 'text-xs',

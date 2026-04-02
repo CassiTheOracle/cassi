@@ -1,3 +1,3 @@
-import Videos from './Videos'
+import Videos from './Videos.js'
 
 export default Videos

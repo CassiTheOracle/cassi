@@ -6,9 +6,9 @@ import remarkGfm from 'remark-gfm'
 
 import { cn } from '@/lib/utils'
 
-import { type MarkdownRendererProps } from './types'
-import { inlineComponents } from './inlineStyles'
-import { components } from './styles'
+import { type MarkdownRendererProps } from './types.js'
+import { inlineComponents } from './inlineStyles.js'
+import { components } from './styles.js'
 
 const MarkdownRenderer: FC<MarkdownRendererProps> = ({
   children,

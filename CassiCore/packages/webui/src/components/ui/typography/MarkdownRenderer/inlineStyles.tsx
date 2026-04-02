@@ -22,9 +22,9 @@ import type {
   HeadingProps,
   ImgProps,
   ParagraphProps
-} from './types'
+} from './types.js'
 
-import { PARAGRAPH_SIZES } from '../Paragraph/constants'
+import { PARAGRAPH_SIZES } from '../Paragraph/constants.js'
 
 const filterProps = (props: object) => {
   const newProps = { ...props }

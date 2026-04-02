@@ -28,10 +28,10 @@ import type {
   TableRowProps,
   TableCellProps,
   PreparedTextProps
-} from './types'
+} from './types.js'
 
-import { HEADING_SIZES } from '../Heading/constants'
-import { PARAGRAPH_SIZES } from '../Paragraph/constants'
+import { HEADING_SIZES } from '../Heading/constants.js'
+import { PARAGRAPH_SIZES } from '../Paragraph/constants.js'
 
 const filterProps = (props: object) => {
   const newProps = { ...props }

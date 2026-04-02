@@ -2,11 +2,11 @@ import Icon from '@/components/ui/icon'
 import MarkdownRenderer from '@/components/ui/typography/MarkdownRenderer'
 import { useStore } from '@/store'
 import type { ChatMessage } from '@/types/os'
-import Videos from './Multimedia/Videos'
-import Images from './Multimedia/Images'
-import Audios from './Multimedia/Audios'
+import Videos from './Multimedia/Videos.js'
+import Images from './Multimedia/Images.js'
+import Audios from './Multimedia/Audios.js'
 import { memo } from 'react'
-import AgentThinkingLoader from './AgentThinkingLoader'
+import AgentThinkingLoader from './AgentThinkingLoader.js'
 
 interface MessageProps {
   message: ChatMessage

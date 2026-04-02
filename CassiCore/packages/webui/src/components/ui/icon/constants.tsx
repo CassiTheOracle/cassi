@@ -20,8 +20,8 @@ import {
   AgnoTag,
   ReasoningIcon,
   ReferencesIcon
-} from './custom-icons'
-import { IconTypeMap } from './types'
+} from './custom-icons.js'
+import { IconTypeMap } from './types.js'
 import {
   RefreshCw,
   Edit,
