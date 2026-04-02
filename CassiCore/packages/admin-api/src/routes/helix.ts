@@ -153,7 +153,6 @@ export async function handleHelixRoutes(
   const intelligence = daemon.intelligence
   const helix = intelligence?.helix
 
-  // ── POST /helix OR POST /helix/project — Start a session ────────────
   if (method === 'POST' && (pathname === '/helix' || pathname === '/helix/project')) {
     if (!helix) {
       return sendJSON(res, 503, { error: 'Helix not initialized' }), true
@@ -214,7 +213,6 @@ export async function handleHelixRoutes(
     }
   }
 
-  // ── GET /helix/health ───────────────────────────────────────────────
   if (method === 'GET' && pathname === '/helix/health') {
     if (!helix) {
       sendJSON(res, 503, { error: 'Helix not initialized' })
@@ -224,7 +222,6 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/jobs ─────────────────────────────────────────────────
   if (method === 'GET' && pathname === '/helix/jobs') {
     const jobs = [...helixJobs.values()]
       .sort((a, b) => b.startedAt - a.startedAt)
@@ -241,13 +238,11 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/sessions ─────────────────────────────────────────────
   if (method === 'GET' && pathname === '/helix/sessions') {
     sendJSON(res, 200, { sessions: helix?.getActiveSessions() ?? [] })
     return true
   }
 
-  // ── Routes with :id parameter ───────────────────────────────────────
   const helixRouteMatch = pathname.match(/^\/helix\/([^/]+)(?:\/(.+))?$/)
   if (!helixRouteMatch) return false
 
@@ -257,7 +252,6 @@ export async function handleHelixRoutes(
   // Skip known top-level routes
   if (['health', 'jobs', 'sessions', 'project'].includes(id)) return false
 
-  // ── POST /helix/:id/cancel ──────────────────────────────────────────
   if (method === 'POST' && subRoute === 'cancel') {
     if (!helix) {
       sendJSON(res, 503, { error: 'Helix not initialized' })
@@ -275,7 +269,6 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/:id/progress (with archive fallback) ──────────────────
   if (method === 'GET' && subRoute === 'progress') {
     if (!helix) {
       sendJSON(res, 503, { error: 'Helix not initialized' })
@@ -302,7 +295,6 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/:id/blackboard/search — Search across all boards
   if (method === 'GET' && subRoute === 'blackboard/search') {
     if (!helix) {
       sendJSON(res, 503, { error: 'Helix not initialized' })
@@ -360,7 +352,6 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/:id/blackboard (supports ?summary=true, ?channel=X, ?limit=N)
   if (method === 'GET' && subRoute === 'blackboard') {
     if (!helix) {
       sendJSON(res, 503, { error: 'Helix not initialized' })
@@ -426,7 +417,6 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/:id/stream — SSE event stream ────────────────────────
   if (method === 'GET' && subRoute === 'stream') {
     const timeoutSecs = Math.min(parseInt(url.searchParams.get('timeout') || '300', 10), 600)
 
@@ -479,7 +469,6 @@ export async function handleHelixRoutes(
     return true
   }
 
-  // ── GET /helix/:id — Get job result ─────────────────────────────────
   if (method === 'GET' && !subRoute) {
     const job = findHelixJob(id)
     if (!job) {

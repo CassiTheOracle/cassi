@@ -47,9 +47,7 @@ function resolveTeamId(tt: TriadTeamOrchestrator, teamId?: string): string | und
 }
 
 
-// ─────────────────────────────────────────────────────────────────
 // Archive Fallback Helpers (for FluxTeam)
-// ─────────────────────────────────────────────────────────────────
 
 /**
  * Load a persisted FluxTeam session from FluxTeamStore.
@@ -173,8 +171,8 @@ function serializeSession(session: TriadTeamSession): Record<string, unknown> {
 
 /**
  * @dep callers: handler (core/admin-api.ts)
- * @dep calls: getTeam, getTeamLiveStatus, end, on, off [+28]
- * @dep flows: HandleTeamsRoutes → EstimateChars (1/7), HandleTeamsRoutes → GetMentalModel (1/4), HandleTeamsRoutes → ExtractTopics (1/4) [+1]
+ * @dep calls: end, getTeamLiveStatus, getTeam, steerTeam, respondToCheckpoint [+32]
+ * @dep flows: HandleTeamsRoutes → ComputePruneAdvice (1/4), HandleTeamsRoutes → ExtractTopics (1/4), HandleTeamsRoutes → GetMentalModel (1/4) [+1]
  * @dep module: Admin-api
  * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
  */
@@ -1499,8 +1497,8 @@ function buildCellProgress(session: TriadTeamSession): Record<string, unknown> {
 
 /**
  * Get a status icon for display.
- * @dep callers: renderCell (core/admin-api/teams.ts), buildCellTree (core/admin-api/teams.ts)
- * @dep module: Branching-conversation
+ * @dep callers: buildCellTree (core/admin-api/teams.ts), renderCell (core/admin-api/teams.ts)
+ * @dep module: Admin-api
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function getStatusIcon(status: string): string {

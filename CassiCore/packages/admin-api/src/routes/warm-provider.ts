@@ -150,7 +150,6 @@ export async function handleWarmProviderRoutes(
 
   const subpath = pathname.slice(3) // Remove '/v1'
 
-  // ─── OPTIONS preflight (CORS) ──────────────────────────────
   if (method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
@@ -162,7 +161,6 @@ export async function handleWarmProviderRoutes(
     return true
   }
 
-  // ─── GET /v1/models ────────────────────────────────────────
   if (subpath === '/models' && method === 'GET') {
     const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
@@ -189,7 +187,6 @@ export async function handleWarmProviderRoutes(
     return true
   }
 
-  // ─── POST /v1/chat/completions ─────────────────────────────
   if (subpath === '/chat/completions' && method === 'POST') {
     const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
@@ -371,7 +368,6 @@ export async function handleWarmProviderRoutes(
     return true
   }
 
-  // ─── GET /v1/warm/sessions ─────────────────────────────────
   if (subpath === '/warm/sessions' && method === 'GET') {
     const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
@@ -382,7 +378,6 @@ export async function handleWarmProviderRoutes(
     return true
   }
 
-  // ─── DELETE /v1/warm/sessions/:id ──────────────────────────
   if (subpath.startsWith('/warm/sessions/') && method === 'DELETE') {
     const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {

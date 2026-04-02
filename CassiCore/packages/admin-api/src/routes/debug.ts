@@ -20,7 +20,6 @@ export async function handleDebugRoutes(
 ): Promise<boolean> {
   const { daemon, sendJSON, parseBody, url, pathname, sseConnections, sseConnectionId } = deps
 
-  // ── Deprecation: context-window routes are superseded by /prompt-log ────
   // The /debug/context-window/* routes use an in-memory store (volatile, truncated).
   // Use /prompt-log/* instead for persistent, untruncated prompt forensics.
   const isContextWindowRoute = pathname.startsWith('/debug/context-window')

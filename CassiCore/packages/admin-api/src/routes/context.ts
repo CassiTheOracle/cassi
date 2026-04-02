@@ -13,6 +13,14 @@ export interface ContextRoutesDeps {
   parts: string[]
 }
 
+/**
+ * @dep callers: handler (core/admin-api.ts)
+ * @dep calls: getSessionState, scoreForOpenCode, buildForOpenCode, indexSession, getContextWindow [+11]
+ * @dep flows: HandleContextRoutes → CognitiveKeyForSession (1/4), HandleContextRoutes → KeyForSession (1/4), HandleContextRoutes → Kv_get (1/4) [+2]
+ * @dep module: Context-window
+ * @dep risk: HIGH | 1 caller, 5 flows, 1 module
+ */
+
 export async function handleContextRoutes(
   deps: ContextRoutesDeps,
   req: http.IncomingMessage,
@@ -316,7 +324,6 @@ export async function handleContextRoutes(
         return true
       }
 
-      // ── 0. Archive full conversation for cross-session retrieval ───────────
       // Index all messages NOW, before the LLM summary replaces the history.
       // This allows cassi_enrich / FTS search to retrieve content from
       // compacted sessions even after their history is summarised away.
@@ -341,7 +348,6 @@ export async function handleContextRoutes(
         // Non-fatal — archive is best-effort; compaction proceeds regardless
       }
 
-      // ── 1. Gather cognitive signals ────────────────────────────────────
       let cognitiveContext = ''
       try {
         const aggregator = runtime.getIntelligence()?.injectionAggregator as any
@@ -358,7 +364,6 @@ export async function handleContextRoutes(
         // Cognitive signals are optional — continue without them
       }
 
-      // ── 2. Search memory for session-relevant context ───────────────────
       let memoryContext = ''
       try {
         const memory = runtime.getIntelligence()?.memory as any
@@ -384,7 +389,6 @@ export async function handleContextRoutes(
         // Memory search is optional — continue without it
       }
 
-      // ── 3. Build conversation text for the LLM ──────────────────────────
       // Iterate newest → oldest so that recent context is preserved within the
       // 80K char budget. Older turns are truncated first, not newer ones.
       // (Previous approach iterated oldest → newest and silently lost the end
@@ -415,7 +419,6 @@ export async function handleContextRoutes(
       }
       const conversationText = segments.join('')
 
-      // ── 4. Build the compaction prompt ─────────────────────────────────
       const contextSections: string[] = []
       if (memoryContext) contextSections.push(memoryContext)
       if (cognitiveContext) {
@@ -458,7 +461,6 @@ export async function handleContextRoutes(
         `## Conversation\n${conversationText}\n\n` +
         `Produce the compaction summary now.`
 
-      // ── 5. Acquire model and run LLM call ──────────────────────────────
       const COMPACTION_MODEL = 'qwen3.5-plus'
       const COMPACTION_PROVIDER = 'alibaba-coding'
 
@@ -496,7 +498,6 @@ export async function handleContextRoutes(
           return true
         }
 
-        // ── 6. Store compaction summary in memory for future sessions ──────
         // Persisting the summary lets cassi_enrich surface it in later
         // sessions, so compacted conversations are not truly forgotten.
         try {

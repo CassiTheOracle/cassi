@@ -72,9 +72,7 @@ function findJob(idOrSessionId: string): ConstellationJob | undefined {
 }
 
 
-// ─────────────────────────────────────────────────────────────────
 // Archive Fallback Helpers
-// ─────────────────────────────────────────────────────────────────
 
 /**
  * Load a persisted tree snapshot from ConstellationStore for completed sessions.
