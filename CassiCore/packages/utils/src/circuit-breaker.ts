@@ -78,7 +78,7 @@ interface CircuitStateInternal {
  * const breaker = new CircuitBreaker<string>({
  *   failureThreshold: 3,
  *   resetTimeoutMs: 30000,
- *   onStateChange: (state, prev) => console.log(`${prev} → ${state}`)
+ *   onStateChange: (state, prev) => logger.info(`State changed: ${prev} → ${state}`)
  * })
  * 
  * const result = await breaker.execute(() => apiCall())
@@ -300,7 +300,7 @@ export class CircuitBreaker<T> {
         this.config.onStateChange(newState, previousState)
       } catch (callbackError) {
         // Don't let callback errors affect circuit breaker operation
-        console.error('[CircuitBreaker] State change callback error:', callbackError)
+        logger.error('State change callback error', { error: String(callbackError) })
       }
     }
   }
