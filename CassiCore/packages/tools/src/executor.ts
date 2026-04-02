@@ -805,7 +805,6 @@ export class ToolExecutor {
     return results
   }
 
-  // ── Per-Job Git Commit ─────────────────────────────────────────────────
 
   /**
    * Commit all workspace files written by a session as a single git commit

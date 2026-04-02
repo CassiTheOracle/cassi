@@ -81,6 +81,8 @@ export interface ToolExecutionContext {
   registry?: import('./registry.js').ToolRegistry;
   /** Shared file artifact store — injected by daemon for cassi:// URI support */
   _fileArtifactStore?: import('../file-artifact-store.js').FileArtifactStore;
+  /** Global blackboard registry — injected by daemon for cross-session todo/plan sharing */
+  _globalBlackboardRegistry?: import('../intelligence/flux-team/global-blackboard-registry.js').GlobalBlackboardRegistry;
   /** Auto-resolved artifact namespace for this session (e.g., 'dyad:{id}', 'team:{id}') */
   artifactNamespace?: string;
   /** Session type hint for smart defaults */

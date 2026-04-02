@@ -164,7 +164,6 @@ export class InteractiveToolSession {
     return `Cancelled **${this.toolName}** invocation.`
   }
 
-  // ─── private ─────────────────────────────────────────────────────────────
 
   /** Advance to next param. Returns true when queue is exhausted. */
   private advance(): boolean {
@@ -259,6 +258,13 @@ export class InteractiveToolSession {
 }
 
 /** Extract text content from MCP-style tool response */
+/**
+ * @dep callers: execute (core/tools/interactive-tool-session.ts)
+ * @dep flows: Start → ExtractText (4/4), HandleCassiCommand → ExtractText (5/5)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 2 flows, 1 module
+ */
+
 export function extractText(data: unknown): string {
   if (typeof data === 'string') return data
   if (Array.isArray((data as any)?.content)) {
@@ -272,6 +278,13 @@ export function extractText(data: unknown): string {
 }
 
 /** Split long output for Telegram's 4096 char limit */
+/**
+ * @dep callers: formatOutput (commands/cassi-commands.ts), sendDirectResponseChunks (core/commands.ts), respondText (core/intelligence/cognitive-feed/index.ts), interactive-tool-session.test.ts (tests/interactive-tool-session.test.ts)
+ * @dep flows: HandleCassiCommand → SplitForTelegram (4/4)
+ * @dep module: Commands
+ * @dep risk: MEDIUM | 4 callers, 1 flow, 1 module
+ */
+
 export function splitForTelegram(text: string, maxLen = 3800): string[] {
   if (text.length <= maxLen) return [text]
   const chunks: string[] = []

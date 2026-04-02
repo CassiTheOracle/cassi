@@ -20,7 +20,6 @@ import { pipeline } from 'node:stream/promises'
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
 
-// ── Git staging helper ──────────────────────────────────────────────────────
 
 /**
  * Stage a file with `git add`. Fire-and-forget — failures are logged but
@@ -241,7 +240,6 @@ export const writeFileHandler: ToolHandler = async (
   const content = input['content'] as string
   const atomic = (input['atomic'] as boolean | undefined) ?? ATOMIC_WRITE
 
-  // ── cassi://files/ URI interception ──
   // Routes to FileArtifactStore instead of filesystem
   const artifactUri = parseFileArtifactUri(rawPath)
   if (artifactUri) {
@@ -288,7 +286,6 @@ export const writeFileHandler: ToolHandler = async (
       duration: `${result.durationMs}ms`
     })
 
-    // ── Post-write: attribution + recovery ──
     // Mirror into FileArtifactStore (attribution, version history, recovery)
     mirrorToArtifactStore(absPath, content, ctx)
     // Stage in git (protection against accidental deletion)

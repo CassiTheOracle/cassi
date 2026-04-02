@@ -38,7 +38,6 @@ import { DEFAULT_COLLECT_THOUGHTS_CONFIG } from '../../../types/collect-thoughts
 import { generateShortId } from '../../utils/ids.js'
 import type { Synapse } from '../../intelligence/synapse/index.js'
 
-// ─── Dependencies ─────────────────────────────────────────────────────────
 
 export interface CollectThoughtsDeps {
   branchingManager: BranchingConversationManager
@@ -52,7 +51,6 @@ export interface CollectThoughtsDeps {
   // Phase 3c: brainstem?: Brainstem
 }
 
-// ─── Tool Definition ──────────────────────────────────────────────────────
 
 export const collectThoughtsDefinition: ToolDefinition = {
   name: 'collect_thoughts',
@@ -119,16 +117,13 @@ export const collectThoughtsDefinition: ToolDefinition = {
   requiredPermission: 'read-only',
 }
 
-// ─── Session State Map ────────────────────────────────────────────────────
 
 /** In-memory axon session state, keyed by axon session ID */
 const sessionStates = new Map<string, AxonSessionState>()
 
-// ─── Tool Result Hard Cap ─────────────────────────────────────────────────
 
 const RESULT_HARD_CAP = 2_000
 
-// ─── Handler Factory ──────────────────────────────────────────────────────
 
 /**
  * @dep callers: registerCoreTools (core/tools/implementations/index.ts), synapse-integration.test.ts (tests/synapse-integration.test.ts), collect-thoughts.test.ts (tests/collect-thoughts.test.ts)
@@ -158,7 +153,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       return JSON.stringify({ error: 'estimated_steps is required and must be >= 1' })
     }
 
-    // ─── Resolve or create axon session state ─────────────────────────
     const { state, isNew } = resolveAxonSession(
       input,
       context.sessionId,
@@ -167,13 +161,11 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       log,
     )
 
-    // ─── Handle dynamic extension ─────────────────────────────────────
     if (input.needs_more_steps) {
       // Agent is signaling it needs more steps than originally estimated
       // estimated_steps should already be the new (higher) value
     }
 
-    // ─── Handle branching ─────────────────────────────────────────────
     let activeBranchId = 'main'
     if (input.branch_from_step && input.branch_id) {
       const branchId = input.branch_id
@@ -197,7 +189,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       activeBranchId = branchId
     }
 
-    // ─── Stage 1: STORE ───────────────────────────────────────────────
     // Record the thought as a turn in the BranchingConversation
     const parentTurnId = input.is_revision && input.revises_step
       ? state.stepToTurnId.get(input.revises_step)
@@ -217,13 +208,11 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       state.revisionsCount++
     }
 
-    // ─── Track contributor for shared tree awareness ──────────────────
     // Map posture_energy to contributor role name
     const contributorRole = input.posture_energy ?? 'neutral'
     const currentCount = state.contributors.get(contributorRole) ?? 0
     state.contributors.set(contributorRole, currentCount + 1)
 
-    // ─── Stage 2: EXTRACT ─────────────────────────────────────────────
     // Extract cognitive signals from the thought text
     let signals: CognitiveSignal[] = []
     if (deps.thoughtObserver) {
@@ -247,7 +236,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
     }
     state.signalsByStep.set(input.step, signals)
 
-    // ─── Stage 3: PEER SIGNALS ────────────────────────────────────────
     // Gather fused signals and resonance patterns from peer sessions
     let peerSignals: CognitiveSignal[] = []
     let resonancePatterns: ResonancePattern[] = []
@@ -262,7 +250,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       resonancePatterns = deps.cognitiveBridge.getResonancePatterns(context.sessionId)
     }
 
-    // ─── Stage 4: ROUTE & EMIT ────────────────────────────────────────
     // Route signals to peers and emit axon:step event
     if (deps.thoughtObserver && signals.length > 0) {
       deps.thoughtObserver.storeSignals(context.sessionId, signals)
@@ -299,7 +286,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
-    // ─── Stage 5: MEMORY SEARCH ───────────────────────────────────────
     // Search memory for related context
     let relatedContext: string[] = []
     if (deps.memory) {
@@ -320,7 +306,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
-    // ─── Stage 6: SYNAPSE (Per-Posture Guidance) ────────────────────
     // Conditional LLM call that provides meta-cognitive guidance.
     // Fires only when gating conditions pass (budget, signal confidence, etc.)
     let synapseGuidance: SynapseGuidance | null = null
@@ -397,7 +382,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
-    // ─── Emit axon:complete if done ───────────────────────────────────
     if (!input.continue_thinking && deps.bus) {
       deps.bus.emit({
         type: 'axon:complete',
@@ -409,24 +393,20 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       })
     }
 
-    // ─── Build tree state ─────────────────────────────────────────────
     const session = deps.branchingManager.getSession(state.axonSessionId)
     const branches = session ? Array.from(session.branches.keys()) : [activeBranchId]
 
-    // ─── Compute Synapse budget metadata ──────────────────────────────
     const nextSynapseStep = computeNextSynapseEligible(
       input.step,
       cfg.synapseInterval,
       state.synapseBudget,
     )
 
-    // ─── Build contributors record for result ─────────────────────────
     const contributorsRecord: Record<string, number> = {}
     for (const [role, count] of state.contributors) {
       contributorsRecord[role] = count
     }
 
-    // ─── Compose result ───────────────────────────────────────────────
     const result: CollectThoughtsResult = {
       step: {
         number: input.step,
@@ -492,7 +472,6 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
 
 /**
  * Resolve or create the axon session state for this tool call.

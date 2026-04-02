@@ -257,7 +257,6 @@ export const readFileHandler: ToolHandler = async (
   const offset = Math.max(1, (input['offset'] as number | undefined) ?? 1)
   const limit = input['limit'] as number | undefined
 
-  // ── cassi://files/ URI interception ──
   // Routes to FileArtifactStore instead of filesystem
   const artifactUri = parseFileArtifactUri(rawPath)
   if (artifactUri) {
