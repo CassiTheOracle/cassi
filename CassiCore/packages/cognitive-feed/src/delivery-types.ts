@@ -13,17 +13,14 @@
  *  - Hysteresis prevents load tier oscillation (separate up/down thresholds + dwell time)
  */
 
-// ── Delivery mode ──
 
 /** How an individual message should be delivered */
 export type DeliveryMode = 'immediate' | 'batched' | 'digest' | 'drop'
 
-// ── Load state machine ──
 
 /** System-wide load tiers — determines batching aggressiveness */
 export type LoadState = 'normal' | 'busy' | 'congested' | 'rate-limited'
 
-// ── Delivery lanes ──
 
 /**
  * Delivery lane — groups messages for per-lane freeze/batch control.
@@ -43,7 +40,6 @@ export type DeliveryLane =
   | 'constellation'
   | 'routine'
 
-// ── Batch policy ──
 
 /** Policy for a specific delivery lane */
 export interface BatchPolicy {
@@ -61,7 +57,6 @@ export interface BatchPolicy {
   coalescible: boolean
 }
 
-// ── Load thresholds ──
 
 /** Load tier transition thresholds with hysteresis */
 export interface LoadThresholds {
@@ -77,7 +72,6 @@ export interface LoadThresholds {
   dwellTimeMs: number
 }
 
-// ── Delivery config ──
 
 /** Configuration for the delivery system */
 export interface DeliveryConfig {
@@ -93,7 +87,6 @@ export interface DeliveryConfig {
   policies: BatchPolicy[]
 }
 
-// ── Defaults ──
 
 /** Default batch policies per lane */
 export const DEFAULT_POLICIES: BatchPolicy[] = [

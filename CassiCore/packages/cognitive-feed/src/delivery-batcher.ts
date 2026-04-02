@@ -29,7 +29,6 @@ import type {
 } from './delivery-types.js'
 import { DEFAULT_DELIVERY_CONFIG } from './delivery-types.js'
 
-// ── Observability interface for RateLimiter ──
 
 /**
  * Read-only view of the RateLimiter's state, consumed by the DeliveryBatcher
@@ -42,7 +41,6 @@ export interface RateLimiterObservability {
   readonly recent429Count: number
 }
 
-// ── Delivery callback ──
 
 /**
  * Called by the DeliveryBatcher when events should be sent to Telegram.
@@ -53,7 +51,6 @@ export interface RateLimiterObservability {
  */
 export type DeliverCallback = (events: CuratedEvent[], mode: 'single' | 'digest') => void
 
-// ── Emergency Token Bucket ──
 
 /**
  * Leaky token bucket for emergency bypass of frozen lanes.
@@ -113,14 +110,12 @@ class EmergencyTokenBucket {
   }
 }
 
-// ── Lane bucket ──
 
 interface LaneBucket {
   events: CuratedEvent[]
   lastFlush: number
 }
 
-// ── Topic → Lane mapping ──
 
 const TOPIC_TO_LANE: Record<string, DeliveryLane> = {
   // Orchestration systems
@@ -164,7 +159,6 @@ const CRITICAL_EVENT_TYPES = new Set([
   'agent:error',
 ])
 
-// ── Delivery stats ──
 
 export interface DeliveryStats {
   eventsReceived: number
@@ -178,7 +172,6 @@ export interface DeliveryStats {
   pendingByLane: Record<string, number>
 }
 
-// ── DeliveryBatcher ──
 
 export class DeliveryBatcher {
   private readonly config: DeliveryConfig
@@ -224,7 +217,6 @@ export class DeliveryBatcher {
     )
   }
 
-  // ── Lifecycle ──
 
   /** Connect to the RateLimiter for load-state observability. */
   setRateLimiterObservability(obs: RateLimiterObservability): void {
@@ -255,7 +247,6 @@ export class DeliveryBatcher {
     this.logger.debug('[delivery-batcher] Stopped', { ...this.getStats() })
   }
 
-  // ── Accept ──
 
   /**
    * Accept a curated event for delivery.
@@ -309,7 +300,6 @@ export class DeliveryBatcher {
     }
   }
 
-  // ── Observability ──
 
   /** Get the current load state. */
   getLoadState(): LoadState {
@@ -337,7 +327,6 @@ export class DeliveryBatcher {
     }
   }
 
-  // ── Internal: lane assignment ──
 
   private assignLane(curated: CuratedEvent): DeliveryLane {
     const eventType = (curated.event as any).type as string
@@ -368,7 +357,6 @@ export class DeliveryBatcher {
     return 'routine'
   }
 
-  // ── Internal: tick (periodic check) ──
 
   private tick(): void {
     this.updateLoadState()
@@ -396,7 +384,6 @@ export class DeliveryBatcher {
     }
   }
 
-  // ── Internal: load state machine ──
 
   /**
    * Update the load state based on RateLimiter observability.
@@ -494,7 +481,6 @@ export class DeliveryBatcher {
     }
   }
 
-  // ── Internal: flush ──
 
   private flushLane(lane: DeliveryLane): void {
     const bucket = this.lanes.get(lane)

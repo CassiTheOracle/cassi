@@ -38,6 +38,13 @@ const MODULE_LABELS: Record<string, string> = {
 // Helpers
 
 /** Escape HTML special characters for Telegram */
+/**
+ * @dep callers: formatHighlight (core/intelligence/cognitive-feed/message-formatter.ts), formatVerbose (core/intelligence/cognitive-feed/message-formatter.ts), formatHighlightBody (core/intelligence/cognitive-feed/message-formatter.ts), formatVerboseBody (core/intelligence/cognitive-feed/message-formatter.ts), formatGenericVerbose (core/intelligence/cognitive-feed/message-formatter.ts) [+2]
+ * @dep flows: Init → Esc (5/5)
+ * @dep module: Cognitive-feed
+ * @dep risk: HIGH | 7 callers, 1 flow, 1 module
+ */
+
 function esc(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -46,6 +53,13 @@ function esc(text: string): string {
 }
 
 /** Truncate text to max length */
+/**
+ * @dep callers: formatHighlightBody (core/intelligence/cognitive-feed/message-formatter.ts), formatVerboseBody (core/intelligence/cognitive-feed/message-formatter.ts), formatGenericVerbose (core/intelligence/cognitive-feed/message-formatter.ts), formatBatchDigest (core/intelligence/cognitive-feed/message-formatter.ts), formatHighlightDigest (core/intelligence/cognitive-feed/message-formatter.ts)
+ * @dep flows: Init → Truncate (5/5)
+ * @dep module: Cognitive-feed
+ * @dep risk: MEDIUM | 5 callers, 1 flow, 1 module
+ */
+
 function truncate(text: unknown, max: number): string {
   const str = String(text ?? '')
   if (str.length <= max) return str
@@ -53,6 +67,12 @@ function truncate(text: unknown, max: number): string {
 }
 
 /** Format duration in ms to human-readable */
+/**
+ * @dep callers: formatHighlightBody (core/intelligence/cognitive-feed/message-formatter.ts), formatVerboseBody (core/intelligence/cognitive-feed/message-formatter.ts)
+ * @dep module: Cognitive-feed
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 function fmtDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
@@ -60,12 +80,26 @@ function fmtDuration(ms: number): string {
 }
 
 /** Format token count */
+/**
+ * @dep callers: formatHighlightBody (core/intelligence/cognitive-feed/message-formatter.ts), formatVerboseBody (core/intelligence/cognitive-feed/message-formatter.ts)
+ * @dep flows: Init → FmtTokens (5/5)
+ * @dep module: Cognitive-feed
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
+ */
+
 function fmtTokens(tokens: number): string {
   if (tokens < 1000) return `${tokens}`
   return `${(tokens / 1000).toFixed(1)}k`
 }
 
 /** Format a timestamp as HH:MM:SS */
+/**
+ * @dep callers: formatHighlight (core/intelligence/cognitive-feed/message-formatter.ts), formatVerbose (core/intelligence/cognitive-feed/message-formatter.ts), formatBatchDigest (core/intelligence/cognitive-feed/message-formatter.ts), formatHighlightDigest (core/intelligence/cognitive-feed/message-formatter.ts)
+ * @dep flows: Init → FmtTime (4/4)
+ * @dep module: Cognitive-feed
+ * @dep risk: MEDIUM | 4 callers, 1 flow, 1 module
+ */
+
 function fmtTime(ts?: number): string {
   const d = ts ? new Date(ts) : new Date()
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -872,7 +906,6 @@ export class MessageFormatter {
     return `<pre>${esc(json)}</pre>`
   }
 
-  // ── Batch digest formatters (used by DeliveryBatcher) ──
 
   /**
    * Format multiple curated events as a batch digest for a topic thread.
