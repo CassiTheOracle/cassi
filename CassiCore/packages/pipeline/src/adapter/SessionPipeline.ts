@@ -177,7 +177,8 @@ export class SessionPipeline {
       maxToolRounds: this.options.config.get('pipeline.maxToolRounds', 8),
       contextWindowTokens: this.options.config.get('pipeline.contextWindowTokens', 200000),
       toolTimeoutMs: this.options.config.get('pipeline.toolTimeoutMs', 60000),
-      toolSchemas: this.options.toolSchemas
+      toolSchemas: this.options.toolSchemas,
+      bus: this.eventBus,
     });
 
     // 5. Create intelligence layer
@@ -280,6 +281,28 @@ export class SessionPipeline {
    */
   getIntelligenceLayer(): IntelligenceLayer | undefined {
     return this.intelligenceLayer;
+  }
+
+  /**
+   * Get the TurnHandler for direct access (e.g. injection, context window swap).
+   */
+  getTurnHandler(): TurnHandler | undefined {
+    return this.turnHandler;
+  }
+
+  /**
+   * Queue content for injection on the next turn.
+   * Delegates to TurnHandler → MessageBuilder.
+   */
+  injectOnNextTurn(content: string): void {
+    this.turnHandler?.injectOnNextTurn(content)
+  }
+
+  /**
+   * Hot-swap the context window at runtime (e.g., to change token limits).
+   */
+  setContextWindow(contextWindow: import('../turn/ContextWindow.js').ContextWindow): void {
+    this.turnHandler?.setContextWindow(contextWindow)
   }
 
   /**

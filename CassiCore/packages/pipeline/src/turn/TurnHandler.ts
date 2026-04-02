@@ -18,9 +18,39 @@ import type {
   TurnHandlerOptions,
   IToolExecutor,
   ILogger,
-  StreamEventCallback
+  StreamEventCallback,
+  Message,
 } from '../session/types.js';
 import type { IEventBus } from '../../../types/interfaces.js';
+
+/* ------------------------------------------------------------------ */
+/*  Hook types                                                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Pipeline hook points for extensibility.
+ * These replace the old middleware chain with targeted, composable callbacks.
+ */
+export interface PipelineHooks {
+  /**
+   * Called before each turn is processed.
+   * Can modify the messages array or return early with a result.
+   * Return undefined to continue normal processing.
+   */
+  onPreTurn?: (session: SessionState, messages: Message[]) => Promise<TurnResult | undefined>;
+
+  /**
+   * Called after each tool execution batch completes.
+   * Can inspect results and optionally inject additional context.
+   */
+  onPostTool?: (session: SessionState, toolNames: string[], messages: Message[]) => Promise<void>;
+
+  /**
+   * Called before the final response is returned.
+   * Can modify the response text.
+   */
+  onPreResponse?: (session: SessionState, result: TurnResult) => Promise<TurnResult>;
+}
 
 /**
  * Handles turn processing end-to-end
@@ -30,16 +60,18 @@ export class TurnHandler {
   private toolExecutor: IToolExecutor;
   private logger: ILogger;
   private bus?: IEventBus;
+  private hooks: PipelineHooks;
   
   private messageBuilder: MessageBuilder;
   private contextWindow: ContextWindow;
   private toolLoop: ToolLoop;
   
-  constructor(options: TurnHandlerOptions & { bus?: IEventBus }) {
+  constructor(options: TurnHandlerOptions & { bus?: IEventBus; hooks?: PipelineHooks }) {
     this.providers = options.providers;
     this.toolExecutor = options.toolExecutor;
     this.logger = options.logger;
     this.bus = options.bus;
+    this.hooks = options.hooks ?? {};
     
     // Initialize components
     this.messageBuilder = new MessageBuilder({
@@ -102,6 +134,12 @@ export class TurnHandler {
       // 2. Apply context window
       const trimmed = this.contextWindow.trim(messages);
       const contextTokens = this.contextWindow.estimateTokens(trimmed);
+
+      // Hook: onPreTurn — can short-circuit with an early result
+      if (this.hooks.onPreTurn) {
+        const earlyResult = await this.hooks.onPreTurn(session, trimmed)
+        if (earlyResult) return earlyResult
+      }
       
       // 3. Resolve provider
       const provider = this.resolveProvider(session.model);
@@ -143,10 +181,15 @@ export class TurnHandler {
           : undefined
       };
 
-      // Emit turn:end event
-      this.bus?.emit({ type: 'turn:end', sessionId: session.id, response: result.response, durationMs, timestamp: new Date() } as any)
+      // Hook: onPreResponse — can modify the result before returning
+      const finalResult = this.hooks.onPreResponse
+        ? await this.hooks.onPreResponse(session, result)
+        : result
 
-      return result;
+      // Emit turn:end event
+      this.bus?.emit({ type: 'turn:end', sessionId: session.id, response: finalResult.response, durationMs, timestamp: new Date() } as any)
+
+      return finalResult;
       
     } catch (error) {
       const durationMs = Date.now() - startTime;
@@ -243,6 +286,11 @@ export class TurnHandler {
   /** Hot-swap the context window (e.g., for changing token limits at runtime). */
   setContextWindow(contextWindow: ContextWindow): void {
     this.contextWindow = contextWindow
+  }
+
+  /** Set or update pipeline hooks at runtime. */
+  setHooks(hooks: PipelineHooks): void {
+    this.hooks = { ...this.hooks, ...hooks }
   }
   
   // Private Methods

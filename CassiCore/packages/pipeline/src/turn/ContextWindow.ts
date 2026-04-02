@@ -6,7 +6,8 @@
  * messages before falling back to hard FIFO trimming.
  */
 
-import type { Message, ILogger } from '../session/types.js';
+import type { Message, ILogger } from '../session/types.js'
+import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
 
 // WHY: Lazy-load compaction module to avoid hard dependency.
 // The module may not be available in all deployment contexts,
@@ -30,6 +31,16 @@ export interface ContextWindowOptions {
   charsPerToken?: number;
   preserveSystemMessages?: boolean;
   logger?: ILogger;
+  /** Optional debug callback invoked after every trim() with context stats. */
+  onTrimDebug?: (stats: TrimDebugInfo) => void;
+}
+
+export interface TrimDebugInfo {
+  inputMessages: number;
+  outputMessages: number;
+  compactionApplied: boolean;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
 }
 
 /**
@@ -40,12 +51,14 @@ export class ContextWindow {
   private charsPerToken: number;
   private preserveSystem: boolean;
   private logger?: ILogger;
+  private onTrimDebug?: (stats: TrimDebugInfo) => void;
   
   constructor(options: ContextWindowOptions = {}) {
-    this.maxTokens = options.maxTokens ?? 200000;
-    this.charsPerToken = options.charsPerToken ?? 4;
-    this.preserveSystem = options.preserveSystemMessages ?? true;
-    this.logger = options.logger;
+    this.maxTokens = options.maxTokens ?? 200000
+    this.charsPerToken = options.charsPerToken ?? CHARS_PER_TOKEN
+    this.preserveSystem = options.preserveSystemMessages ?? true
+    this.logger = options.logger
+    this.onTrimDebug = options.onTrimDebug
   }
   
   /**
@@ -258,9 +271,9 @@ export class ContextWindow {
  */
 export function createSafeContextWindow(logger?: ILogger): ContextWindow {
   return new ContextWindow({
-    maxTokens: 100000,  // Conservative default
-    charsPerToken: 4,
+    maxTokens: 100000,
+    charsPerToken: CHARS_PER_TOKEN,
     preserveSystemMessages: true,
-    logger
-  });
+    logger,
+  })
 }
