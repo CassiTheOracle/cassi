@@ -893,7 +893,7 @@ export async function runConstellationPipeline(
       })
       handles.push(yinHandle)
 
-      // TODO: Acquire handles for additional postures based on template
+      // WHY: additional posture handles deferred — see contributing-todos blackboard
       // For now, we use the three main handles for all postures
     } catch (err) {
       helixLog.error('Failed to acquire model handles', { error: String(err) })
@@ -904,7 +904,7 @@ export async function runConstellationPipeline(
     }
 
     // Create Brainstem deps with corpus tree integration
-    // NOTE: The actual Brainstem instance is created and started inside runHelixPipeline.
+    // WHY: The actual Brainstem instance is created and started inside runHelixPipeline.
     // We capture it via the onBrainstemCreated callback for Corpus registration.
     //
     // The sharedTree reader provides each Brainstem with read/write access to
@@ -1096,7 +1096,7 @@ export async function runConstellationPipeline(
     })
 
     // Race between completion and cancellation
-    // NOTE: Do NOT chain .finally() here — node.status is set in the .then()/.catch()
+    // WHY: Do NOT chain .finally() here — node.status is set in the .then()/.catch()
     // below. Chaining .finally() on the race would execute before .then(), causing
     // branches to always be closed as 'failed' (the initial status).
     const promise = Promise.race([helixPromise, cancelPromise])
@@ -1317,7 +1317,7 @@ export async function runConstellationPipeline(
   // ═════════════════════════════════════════════════════════════════
 
   async function pollSpawnRequests(): Promise<void> {
-    // TODO: Implement proper spawn request polling
+    // WHY: spawn request polling deferred — see contributing-todos blackboard
     // For now, we check the spawnQueue periodically
     while (!completed) {
       while (spawnQueue.length > 0) {
