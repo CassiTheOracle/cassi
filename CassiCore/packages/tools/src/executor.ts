@@ -10,6 +10,8 @@ import type { ExternalHookConfig } from './hooks/external-hook-runner.js'
 
 import type { ToolRegistry } from './registry.js'
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
+
+type RegistryEntry = ReturnType<ToolRegistry['get']>
 import type { IEventBus, ILogger } from '../../types/interfaces.js'
 import type { PermissionOracle } from '../intelligence/permission-oracle/index.js'
 import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
@@ -58,6 +60,18 @@ export class ToolExecutor {
   })
 
   /**
+   * Resolved tool cache to avoid repeated multi-step lookups.
+   * Tool resolution involves: direct → aliases → preferred servers → heuristics.
+   * This cache stores the final resolved entry for 30 seconds.
+   */
+  private resolvedToolCache = new TTLCache<string, RegistryEntry>({
+    maxSize: 500,
+    ttlMs: 30_000,
+  })
+
+  private static readonly TOOL_CACHE_TTL_MS = 30_000
+
+  /**
    * Per-session context overrides. Orchestrators register session-specific
    * context (e.g. artifactNamespace, sessionType) before running agent sessions.
    * These are merged into the ToolExecutionContext on every execute() call.
@@ -70,6 +84,88 @@ export class ToolExecutor {
     private eventBus?: IEventBus,
   ) {
     this.logger = defaultContext.logger.child('tool-executor')
+
+    // Clear cache when tools are registered/unregistered
+    this.eventBus?.on('tool:registered' as any, () => {
+      this.clearToolCache()
+    })
+  }
+
+  /**
+   * Resolve a tool name to its registry entry, using cache to avoid
+   * repeated 4-step lookups (main → aliases → preferred servers → heuristic).
+   */
+  private resolveToolCached(toolName: string): RegistryEntry | undefined {
+    const cached = this.resolvedToolCache.get(toolName)
+    if (cached) {
+      return cached
+    }
+
+    // Full resolution path
+    const entry = this.resolveToolFull(toolName)
+
+    if (entry) {
+      this.resolvedToolCache.set(toolName, entry)
+    }
+
+    return entry
+  }
+
+  /**
+   * Full multi-step tool resolution without caching.
+   * Called by resolveToolCached() when cache misses.
+   */
+  private resolveToolFull(toolName: string): RegistryEntry | undefined {
+    // 1. Direct lookup
+    let entry = this.registry.get(toolName)
+    if (entry) return entry
+
+    // 2. Aliases
+    const toolAliases: Record<string, string> = {
+      read: 'read_file',
+      write: 'write_file',
+    }
+    if (toolAliases[toolName]) {
+      entry = this.registry.get(toolAliases[toolName])
+      if (entry) return entry
+    }
+
+    // 3. Preferred servers
+    const preferredServers = (process.env.PREFERRED_MCP_SERVERS || 'serena').split(',').map(s => s.trim()).filter(Boolean)
+    for (const serverId of preferredServers) {
+      const alt = `${serverId}__${toolName}`
+      const e = this.registry.get(alt)
+      if (e) return e
+    }
+
+    // 4. Heuristic fallbacks for common file operations
+    const fileOps = new Set(['read_file', 'write_file', 'read', 'write', 'exists', 'mkdir', 'delete', 'bash'])
+    if (fileOps.has(toolName)) {
+      const list = this.registry.list()
+
+      // Try serena-prefixed tools first
+      const serenaMatch = list.find(d => d.name.startsWith('serena__') && (
+        (toolName.includes('read') && d.name.includes('read')) ||
+        ((toolName.includes('write') || toolName.includes('create')) && (d.name.includes('write') || d.name.includes('create') || d.name.includes('replace') || d.name.includes('insert'))) ||
+        (toolName.includes('exists') && d.name.includes('exists')) ||
+        (toolName.includes('mkdir') && d.name.includes('mkdir')) ||
+        (toolName === 'bash' && d.name.includes('shell'))
+      ))
+      if (serenaMatch) return this.registry.get(serenaMatch.name)
+
+      // Otherwise, pick any tool with suffix __<toolName>
+      const suffixMatch = list.find(d => d.name.endsWith(`__${toolName}`))
+      if (suffixMatch) return this.registry.get(suffixMatch.name)
+    }
+
+    return undefined
+  }
+
+  /**
+   * Clear the resolved tool cache. Called when tools are registered/unregistered.
+   */
+  clearToolCache(): void {
+    this.resolvedToolCache.clear()
   }
 
   /**
@@ -182,57 +278,9 @@ export class ToolExecutor {
     }
 
     const executeStartMs = Date.now()
-    // Prefer serena (MCP) implementations for core file operations when available.
-    // Strategy:
-    // 1. Try exact tool name (as registered)
-    // 2. Try preferred MCP servers (env PREFERRED_MCP_SERVERS, default 'serena') using serverId__toolName
-    // 3. For common file ops, look for any registered serena__* tool that looks like a match
 
-    let entry = this.registry.get(call.name)
-
-    // MCP gateway uses short names (read, write) but CassiCore tools
-    // are registered with descriptive names. Resolve aliases first.
-    const toolAliases: Record<string, string> = {
-      read: 'read_file',
-      write: 'write_file',
-    }
-    if (!entry && toolAliases[call.name]) {
-      entry = this.registry.get(toolAliases[call.name])
-    }
-
-    const preferredServers = (process.env.PREFERRED_MCP_SERVERS || 'serena').split(',').map(s => s.trim()).filter(Boolean)
-
-    if (!entry) {
-      for (const serverId of preferredServers) {
-        const alt = `${serverId}__${call.name}`
-        const e = this.registry.get(alt)
-        if (e) { entry = e; break }
-      }
-    }
-
-    // Heuristic fallback for common file operations
-    if (!entry) {
-      const fileOps = new Set(['read_file','write_file','read','write','exists','mkdir','delete','bash'])
-      if (fileOps.has(call.name)) {
-        const list = this.registry.list()
-
-        // Try serena-prefixed tools first
-        const serenaMatch = list.find(d => d.name.startsWith('serena__') && (
-          (call.name.includes('read') && d.name.includes('read')) ||
-          ((call.name.includes('write') || call.name.includes('create')) && (d.name.includes('write') || d.name.includes('create') || d.name.includes('replace') || d.name.includes('insert'))) ||
-          (call.name.includes('exists') && d.name.includes('exists')) ||
-          (call.name.includes('mkdir') && d.name.includes('mkdir')) ||
-          (call.name === 'bash' && d.name.includes('shell'))
-        ))
-        if (serenaMatch) entry = this.registry.get(serenaMatch.name)
-
-        // Otherwise, pick any tool with suffix __<toolName>
-        if (!entry) {
-          const suffixMatch = list.find(d => d.name.endsWith(`__${call.name}`))
-          if (suffixMatch) entry = this.registry.get(suffixMatch.name)
-        }
-      }
-    }
+    // Use cached tool resolution to avoid repeated 4-step lookups
+    const entry = this.resolveToolCached(call.name)
 
     if (!entry) {
       this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
