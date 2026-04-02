@@ -489,7 +489,6 @@ export async function runConstellationPipeline(
   // WHY: Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
   const brainstemLLM = brainstemLLMOpt ?? corpusLLM
 
-  // WHY: Instantiate memory injection service if memory is available.
   // Used to inject relevant past-run memories into each new Helix branch.
   const memoryInjectionService = opts.memory
     ? new MemoryInjectionService(opts.memory, log.child('memory-injection'))
@@ -723,7 +722,6 @@ export async function runConstellationPipeline(
     log.info('Corpus mini-Helix started')
   }
 
-  // WHY: Notify orchestrator — corpus is live, tree state is available
   if (opts.onCorpusReady) {
     const liveState: ConstellationLiveState = {
       constellationId,
@@ -774,7 +772,7 @@ export async function runConstellationPipeline(
       goal: helixGoal.slice(0, 100),
     })
 
-    // WHY: Inject relevant memories from past runs into the branch's initial context
+    // WHY: cross-run memory continuity improves branch output quality
     let enrichedContext = helixContext
     if (memoryInjectionService) {
       try {
@@ -793,7 +791,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // WHY: Inject elevated patterns from peer Helixes into new branch context
     // This enables cross-branch knowledge transfer — successful approaches from
     // completed/struggling branches inform new branches' starting strategies.
     try {
@@ -948,7 +945,6 @@ export async function runConstellationPipeline(
       cancelFn = () => reject(new Error('Helix cancelled'))
     })
 
-    // WHY: Run the Helix pipeline
     // No timeout — Constellation manages lifecycle through Corpus coordination
     // and external cancellation, not arbitrary time limits.
     const helixPromise = runHelixPipeline({
@@ -991,7 +987,6 @@ export async function runConstellationPipeline(
         blackboardBridges.set(helixId, bridge)
         helixLog.debug('Blackboard bridge started', { helixId })
 
-        // WHY: Bridge blackboard findings into cross-Helix dialectic.
         // When this branch posts a finding, forward it to other branches.
         if (crossHelixDialectic) {
           childBlackboard.subscribe('findings', undefined, (entry: { content: string; tags?: string[] }) => {
@@ -1033,7 +1028,7 @@ export async function runConstellationPipeline(
 
         // Optionally start a Brainstem mini-Helix sidecar
         if (opts.useMiniHelixBrainstem) {
-          // WHY: Collect available worker tool names so Brainstem knows what tools the worker has
+          // WHY: Brainstem needs the tool list to generate valid tool_use blocks
           const workerToolNames = toolRegistry
             ? toolRegistry.list().map((t) => t.name)
             : []
@@ -1378,7 +1373,6 @@ export async function runConstellationPipeline(
       readFile: (path: string) => safeReadFile(path, process.cwd()),
     })
 
-    // WHY: Start periodic progress checkpoints (every 30s).
     // Also enforces maxTotalSteps limit.
     const CHECKPOINT_INTERVAL_MS = 30_000
     const maxTotalSteps = opts.maxTotalSteps ?? 100

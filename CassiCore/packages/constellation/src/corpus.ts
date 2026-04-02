@@ -385,7 +385,6 @@ export class Corpus {
         // Mediate cross-Helix dialectic if tensions have accumulated
         this.mediateCrossHelixDialectic()
 
-        // WHY: Check effectiveness of recent interventions by comparing baseline vs current scores
         this.checkInterventionEffectiveness()
 
         // WHY: Periodic tree checkpointing for crash recovery
@@ -877,7 +876,6 @@ export class Corpus {
           context: `Auto-spawn triggered: ${branchInterventions} interventions, rollingScore=${assessment.rollingScore.toFixed(2)}`,
         })
 
-        // WHY: Record auto-spawn decision for persistence and analysis
         try {
           this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
             decisionType: 'spawn',
@@ -1365,7 +1363,6 @@ Guidelines:
           context: assessment,
         })
 
-        // WHY: Record spawn decision for persistence and analysis
         try {
           this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
             decisionType: 'spawn',
@@ -1496,7 +1493,6 @@ Guidelines:
         })
       }
 
-      // WHY: Track baseline score before intervention to measure effectiveness later
       if (assessment && branch) {
         this.interventionBaselines.set(directive.targetHelixId, {
           score: assessment.rollingScore,
@@ -1506,7 +1502,6 @@ Guidelines:
         })
       }
 
-      // WHY: Record intervention decision for persistence and analysis
       try {
         this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
           decisionType: 'intervention',
@@ -1659,7 +1654,6 @@ Guidelines:
       }
       const adjustmentType = adjustmentTypeMap[baseline.type] ?? 'approach-redirect'
 
-      // WHY: Record effectiveness to track which intervention types work
       this.tree.recordEffectiveness({
         helixId,
         adjustmentType,
