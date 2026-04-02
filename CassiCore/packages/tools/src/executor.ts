@@ -22,7 +22,6 @@ import type { ToolCallOrchestrator } from '../intelligence/triad-team/tool-orche
 const MAX_CONCURRENT = 20
 const ENABLE_SAFETY_GUARDS = true  // Can be disabled for debugging
 
-/** Short-lived cache key for permission decisions: "toolName:sha(input)" */
 /**
  * @dep callers: execute (core/tools/executor.ts), enrichToolResult (core/tools/executor.ts)
  * @dep module: Tools
@@ -30,8 +29,7 @@ const ENABLE_SAFETY_GUARDS = true  // Can be disabled for debugging
  */
 
 function permissionCacheKey(toolName: string, input: Record<string, unknown>): string {
-  // Deterministic but fast — stable JSON stringification is overkill here;
-  // collisions just cause an extra judge() call, which is the status quo.
+  // HOW: Bit-shift hash instead of crypto — collisions just cause an extra judge() call
   let hash = 0
   const str = JSON.stringify(input)
   for (let i = 0; i < str.length; i++) {
@@ -91,17 +89,12 @@ export class ToolExecutor {
     })
   }
 
-  /**
-   * Resolve a tool name to its registry entry, using cache to avoid
-   * repeated 4-step lookups (main → aliases → preferred servers → heuristic).
-   */
   private resolveToolCached(toolName: string): RegistryEntry | undefined {
     const cached = this.resolvedToolCache.get(toolName)
     if (cached) {
       return cached
     }
 
-    // Full resolution path
     const entry = this.resolveToolFull(toolName)
 
     if (entry) {
@@ -111,12 +104,7 @@ export class ToolExecutor {
     return entry
   }
 
-  /**
-   * Full multi-step tool resolution without caching.
-   * Called by resolveToolCached() when cache misses.
-   */
   private resolveToolFull(toolName: string): RegistryEntry | undefined {
-    // 1. Direct lookup
     let entry = this.registry.get(toolName)
     if (entry) return entry
 
@@ -161,112 +149,65 @@ export class ToolExecutor {
     return undefined
   }
 
-  /**
-   * Clear the resolved tool cache. Called when tools are registered/unregistered.
-   */
   clearToolCache(): void {
     this.resolvedToolCache.clear()
   }
 
   /**
    * Wire the Permission Oracle for graduated autonomy gating.
-   * When set, every tool call is assessed for risk before execution.
-   * If the oracle returns 'deny', the tool call is blocked.
-   * If the oracle returns 'escalate', the tool call is paused pending human approval.
-   * If the oracle returns 'allow', the tool call proceeds normally.
+   * 'deny' = blocked, 'escalate' = human approval required, 'allow' = proceed
    */
   setPermissionOracle(oracle: PermissionOracle): void {
     this.permissionOracle = oracle
   }
 
-  /**
-   * Wire the Trust Ledger for outcome feedback.
-   * After every tool execution, the outcome (success/failure) is fed back
-   * into the Trust Ledger to update domain trust scores.
-   */
   setTrustLedger(ledger: TrustLedger): void {
     this.trustLedger = ledger
   }
 
-  /**
-   * Check if a tool is registered and available for execution.
-   */
   isAvailable(name: string): boolean {
     return this.registry.get(name) !== undefined
   }
 
-  /**
-   * Wire the Tool Reliability Tracker for circuit breaker pattern.
-   * When set, tool executions are monitored for failures and circuits open
-   * after repeated failures. Failed tools can route to fallback tools.
-   */
   setReliabilityTracker(tracker: ToolReliabilityTracker): void {
     this.reliabilityTracker = tracker
   }
 
-  /**
-   * Register session-specific context overrides for a session.
-   * Merged into ToolExecutionContext for every tool call in that session.
-   * Used by Dyad/Lumen/Flux orchestrators to inject artifact namespace, session type, etc.
-   */
   setSessionContext(sessionId: string, overrides: Partial<ToolExecutionContext>): void {
     this.sessionContextOverrides.set(sessionId, overrides)
   }
 
-  /**
-   * Remove session-specific context overrides (call on session teardown).
-   */
   clearSessionContext(sessionId: string): void {
     this.sessionContextOverrides.delete(sessionId)
   }
 
-  /**
-   * Check if session-specific context overrides are already registered.
-   */
   hasSessionContext(sessionId: string): boolean {
     return this.sessionContextOverrides.has(sessionId)
   }
 
-  /**
-   * Wire a Tool Call Orchestrator for cross-cell batching and caching.
-   * When set, tool executions route through the orchestrator for
-   * result caching, deduplication, and parallelism optimization.
-   */
   setOrchestrator(orchestrator: ToolCallOrchestrator): void {
     this.orchestrator = orchestrator
   }
 
-  /** Get the active orchestrator (if any) for direct batch calls */
   getOrchestrator(): ToolCallOrchestrator | undefined {
     return this.orchestrator
   }
 
   /**
    * Wire external shell hooks for PreToolUse/PostToolUse interception.
-   * When configured, shell commands run before and after every tool call.
-   * Exit 0 = allow, exit 2 = deny, other = warn but allow.
+   * Exit codes: 0 = allow, 2 = deny, other = warn but proceed
    */
   setExternalHooks(config: ExternalHookConfig): void {
     this.hookRunner = new ExternalHookRunner(config, this.logger)
   }
 
-  /**
-   * Execute a single tool call.
-   *
-   * @param call - The tool call to execute
-   * @param sessionId - Session context for permission/trust tracking
-   * @param opts - Optional overrides for this invocation
-   * @param opts.workingDir - Override the default working directory (used for worktree isolation)
-   */
   async execute(
     call: ToolCall,
     sessionId: string,
     opts?: { workingDir?: string },
   ): Promise<ToolResult> {
-    // If an orchestrator is wired, route through it for caching, dedup,
-    // and parallel execution. The orchestrator calls back to this.execute()
-    // via the delegate, but with the orchestrator temporarily disabled
-    // to avoid infinite recursion.
+    // HOW: Temporarily clear this.orchestrator to prevent infinite recursion
+    // when orchestrator delegates back to execute()
     if (this.orchestrator && call.name !== 'batch_tools') {
       const orch = this.orchestrator
       this.orchestrator = undefined // Prevent recursion
@@ -279,7 +220,6 @@ export class ToolExecutor {
 
     const executeStartMs = Date.now()
 
-    // Use cached tool resolution to avoid repeated 4-step lookups
     const entry = this.resolveToolCached(call.name)
 
     if (!entry) {
@@ -287,13 +227,10 @@ export class ToolExecutor {
       return { toolCallId: call.id, content: `Unknown tool: ${call.name}`, isError: true }
     }
 
-    // If a Reliability Tracker is wired, check if the tool's circuit is open.
-    // If open, attempt fallback routing or return an error.
     let actualToolName = call.name
     let actualEntry = entry
     if (this.reliabilityTracker) {
       if (!this.reliabilityTracker.canExecute(call.name)) {
-        // Circuit is open — check for fallback
         const fallbackTool = entry.definition.fallbackTool
         if (fallbackTool) {
           const fallbackEntry = this.registry.get(fallbackTool)
@@ -312,7 +249,6 @@ export class ToolExecutor {
           }
         }
         if (actualToolName === call.name) {
-          // No fallback available or fallback not found
           this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
@@ -331,7 +267,6 @@ export class ToolExecutor {
       ...(opts?.workingDir ? { workingDir: opts.workingDir } : {}),
     }
 
-    // SAFETY: Pre-call input validation
     if (ENABLE_SAFETY_GUARDS) {
       const inputValidation = validateToolInput(actualToolName, call.input)
       if (!inputValidation.valid) {
@@ -345,29 +280,20 @@ export class ToolExecutor {
       }
     }
 
-    // Track skill invocations when reading SKILL.md files
     this.trackSkillInvocation({ ...call, name: actualToolName }, sessionId)
 
-    // FAST-PATH: Skip full permission pipeline for tools that declare a
-    // requiredPermission tier of 'read-only'. These tools are provably safe
-    // (file reads, searches, web fetches) and don't need consequence estimation
-    // or trust scoring on every invocation.
+    // WHY: read-only tools (file reads, searches, web fetches) skip permission checks
+    // — they're provably safe and don't need consequence estimation on every call
     const toolDef = actualEntry?.definition
     const skipPermissionCheck = toolDef?.requiredPermission === 'read-only'
 
-    // If a Permission Oracle is wired, assess risk before execution.
-    // This is the core of graduated autonomy: low-risk actions auto-proceed,
-    // high-risk actions require human approval.
-    //
-    // A short-lived TTL cache deduplicates identical (tool, input) pairs
-    // within a 5-second window to avoid redundant risk assessment, event
-    // emission, and trust pipeline processing for repetitive tool calls.
+    // WHY: 5-second cache prevents redundant risk assessment for repetitive calls
+    // (e.g., reading 10 files in a loop) — collisions just re-run judge()
     if (this.permissionOracle && !skipPermissionCheck) {
       const cacheKey = permissionCacheKey(call.name, call.input)
       const cached = this.permissionCache.get(cacheKey)
 
       if (cached?.decision === 'deny') {
-        // Replay cached denial without re-running the full pipeline
         this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
@@ -376,11 +302,9 @@ export class ToolExecutor {
         }
       }
 
-      // Only run full judge() if no cached 'allow' exists
       if (!cached || cached.decision !== 'allow') {
         const verdict = this.permissionOracle.judge(call.name, call.input, sessionId)
 
-        // Cache the decision for subsequent identical calls
         this.permissionCache.set(cacheKey, {
           decision: verdict.decision,
           reasoning: verdict.reasoning,
@@ -397,13 +321,9 @@ export class ToolExecutor {
         }
 
         if (verdict.decision === 'escalate') {
-          // Escalate decisions are never cached — human must decide each time
           this.permissionCache.delete(cacheKey)
 
-          // Block execution until human approves or timeout fires.
-          // The Permission Oracle's requestApproval() returns a Promise that
-          // resolves when the admin API receives an approve/reject, or when
-          // the configured timeout expires (fallback to escalation default).
+          // WHY: escalate never cached — human must approve each occurrence
           this.emitSafetyEvent(sessionId, call.name, 'permission_escalated', [
             verdict.reasoning,
             `risk=${verdict.riskAssessment.riskScore.toFixed(2)}`,
@@ -428,14 +348,12 @@ export class ToolExecutor {
     }
 
     try {
-      // EXTERNAL HOOKS: Run PreToolUse hooks before execution
       let preHookMessages: string[] = []
       if (this.hookRunner?.hasHooks()) {
         const preResult = await this.hookRunner.runPreToolUse(actualToolName, call.input)
         preHookMessages = preResult.messages
         if (preResult.denied) {
           const denyMessage = preResult.messages.join('\n') || `PreToolUse hook denied tool \`${actualToolName}\``
-          // Feed hook denial into trust ledger — external governance signal
           if (this.trustLedger) {
             const domain = resolveToolDomain(actualToolName)
             this.trustLedger.recordEvidence({
@@ -457,7 +375,6 @@ export class ToolExecutor {
         }
       }
 
-      // SAFETY: Execute with timeout and error containment
       if (ENABLE_SAFETY_GUARDS) {
         const safeResult = await executeToolSafe(
           actualToolName,
@@ -480,7 +397,6 @@ export class ToolExecutor {
           }
         }
 
-        // SAFETY: Post-call output validation
         const outputValidation = validateToolOutput(actualToolName, safeResult.data)
         if (!outputValidation.valid) {
           this.emitSafetyEvent(sessionId, actualToolName, 'output_validation_failed', outputValidation.errors)
