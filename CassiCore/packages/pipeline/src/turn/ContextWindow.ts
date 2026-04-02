@@ -154,6 +154,17 @@ export class ContextWindow {
       historyKept: kept.length,
       estimatedTokens: Math.ceil(used / this.charsPerToken)
     });
+
+    // Invoke debug callback if registered
+    if (this.onTrimDebug) {
+      this.onTrimDebug({
+        inputMessages: messages.length,
+        outputMessages: result.length,
+        compactionApplied: compacted !== null,
+        estimatedInputTokens: this.estimateTokens(messages),
+        estimatedOutputTokens: this.estimateTokens(result),
+      })
+    }
     
     return result;
   }

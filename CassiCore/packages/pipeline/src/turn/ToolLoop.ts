@@ -5,7 +5,7 @@
  * mid-loop context trimming, and tool filler stripping.
  */
 
-import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock, ImageAttachment } from '../../../types/runtime.js';
+import type { IProvider, CompletionChunk, Message as ProviderMessage, ContentBlock, ImageAttachment } from '../../../types/runtime.js'
 import type {
   Message,
   ToolCall,
@@ -15,9 +15,10 @@ import type {
   ToolContext,
   ILogger,
   StreamEventCallback
-} from '../session/types.js';
+} from '../session/types.js'
 
-import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller } from './overflow.js';
+import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller } from './overflow.js'
+import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
 
 export interface ToolLoopOptions {
   maxRounds: number;
@@ -259,16 +260,16 @@ export class ToolLoop {
       
       switch (chunk.type) {
         case 'token':
-          chunks.push(chunk.text ?? '');
-          tokensUsed += chunk.tokensUsed ?? Math.ceil((chunk.text?.length ?? 0) / 4);
-          onStreamEvent?.('token', { token: chunk.text ?? '' });
-          break;
-          
+          chunks.push(chunk.text ?? '')
+          tokensUsed += chunk.tokensUsed ?? Math.ceil((chunk.text?.length ?? 0) / CHARS_PER_TOKEN)
+          onStreamEvent?.('token', { token: chunk.text ?? '' })
+          break
+
         case 'thinking':
-          thinkingBlocks.push(chunk.text ?? '');
-          tokensUsed += chunk.tokensUsed ?? Math.ceil((chunk.text?.length ?? 0) / 4);
-          onStreamEvent?.('thinking', { token: chunk.text ?? '' });
-          break;
+          thinkingBlocks.push(chunk.text ?? '')
+          tokensUsed += chunk.tokensUsed ?? Math.ceil((chunk.text?.length ?? 0) / CHARS_PER_TOKEN)
+          onStreamEvent?.('thinking', { token: chunk.text ?? '' })
+          break
           
         case 'tool_use':
           if (chunk.toolCall) {

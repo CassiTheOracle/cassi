@@ -4,11 +4,12 @@
  * Main entry point for turn processing - integrates all components
  */
 
-import { TurnProcessingError, ProviderNotFoundError } from '../session/types.js';
+import { TurnProcessingError, ProviderNotFoundError } from '../session/types.js'
 
-import { ContextWindow } from './ContextWindow.js';
-import { MessageBuilder } from './MessageBuilder.js';
-import { ToolLoop, createSafeToolLoop } from './ToolLoop.js';
+import { ContextWindow } from './ContextWindow.js'
+import { MessageBuilder } from './MessageBuilder.js'
+import { ToolLoop, createSafeToolLoop } from './ToolLoop.js'
+import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
 
 import type { IProvider } from '../../../types/runtime.js';
 import type {
@@ -81,10 +82,10 @@ export class TurnHandler {
     
     this.contextWindow = new ContextWindow({
       maxTokens: options.contextWindowTokens ?? 200000,
-      charsPerToken: 4,
+      charsPerToken: CHARS_PER_TOKEN,
       preserveSystemMessages: true,
-      logger: options.logger.child('context-window')
-    });
+      logger: options.logger.child('context-window'),
+    })
     
     // Resolve tool schemas: accept either a static array or a getter function
     const rawSchemas = options.toolSchemas;

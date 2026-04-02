@@ -4,13 +4,14 @@
  * Constructs message arrays from session state and requests
  */
 
-import type { ContentBlock } from '../../../types/runtime.js';
+import type { ContentBlock } from '../../../types/runtime.js'
 import type {
   SessionState,
   TurnRequest,
   Message,
   ILogger
-} from '../session/types.js';
+} from '../session/types.js'
+import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
 
 export interface MessageBuilderOptions {
   logger?: ILogger;
@@ -232,10 +233,9 @@ export class MessageBuilder {
     return messages.reduce((sum, msg) => {
       const text = typeof msg.content === 'string'
         ? msg.content
-        : JSON.stringify(msg.content);
-      
-      // Rough estimate: 4 chars per token
-      return sum + Math.ceil(text.length / 4);
-    }, 0);
+        : JSON.stringify(msg.content)
+
+      return sum + Math.ceil(text.length / CHARS_PER_TOKEN)
+    }, 0)
   }
 }
