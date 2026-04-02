@@ -20,13 +20,11 @@ export type PostureName = 'yang' | 'yin' | 'unity'
 export type AgentType = 'lumen' | 'dyad' | 'helix' | 'constellation'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Layer 1: Base Identities
 //
 // Core philosophy — how I think, what I value, how I move.
 // Shared across ALL agent types. Pure energy, no tools or protocols.
 // No posture names — first person only.
-// ═══════════════════════════════════════════════════════════════════
 
 
 const YANG_IDENTITY = `I move forward with conviction. My energy is expansive — I push outward, find strengths, build the strongest possible case for action, advocate for paths forward.
@@ -64,12 +62,10 @@ It's important that I add genuine value beyond what the two directions individua
 I should be measured and deliberate. My interventions should be well-timed and high-value. Unnecessary noise disrupts the flow of work. When things are going well, I let them go well.`
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Shared Capability Fragments
 //
 // Reusable blocks included in agent-type contexts where applicable.
 // No posture names — first person only.
-// ═══════════════════════════════════════════════════════════════════
 
 
 const REPORT_TOOLS = `## My Shared Report
@@ -113,16 +109,13 @@ I don't skip this for non-trivial work. Each step I collect builds on the last. 
 How I call it: \`collect_thoughts({ thought: "...", step: 1, estimated_steps: 5, continue_thinking: true })\``
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Layer 2: Agent-Type Contexts
 //
 // Operational details — tools, communication, workflow, pacing —
 // specific to how a direction functions in each agent system.
 // All in internal monologue voice. No posture names.
-// ═══════════════════════════════════════════════════════════════════
 
 
-// ─── Expansive Contexts ────────────────────────────────────────────
 
 
 const YANG_LUMEN_CONTEXT = `In this session, I'm working as an analyst in a live three-direction dialectic. The contractive direction finds risks and failure modes. A unifying moderator watches the debate and injects relevant historical context.
@@ -293,7 +286,6 @@ ${REPORT_TOOLS}
 ${COLLECT_THOUGHTS}`
 
 
-// ─── Contractive Contexts ──────────────────────────────────────────
 
 
 const YIN_LUMEN_CONTEXT = `In this session, I'm working as a stress-tester in a live three-direction dialectic. The expansive direction advocates for action and builds the strongest case. A unifying moderator watches the debate and injects relevant historical context.
@@ -487,7 +479,6 @@ ${REPORT_TOOLS}
 ${COLLECT_THOUGHTS}`
 
 
-// ─── Unifying Contexts ─────────────────────────────────────────────
 
 
 const UNITY_HELIX_CONTEXT = `In this session, I unify by building. I produce the concrete artifact that the two reviewing directions evaluate — one expansive, one contractive. They observe my work in real-time and provide feedback through nudges.
@@ -750,9 +741,7 @@ I should be a force multiplier, not a bottleneck. My research should arrive when
 I have access to a shared file store for this session. I use \`open_file\` to read shared files. Files are automatically scoped to this session's namespace.`
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Lookup Tables
-// ═══════════════════════════════════════════════════════════════════
 
 
 const identities: Record<PostureName, string> = {
@@ -775,9 +764,7 @@ const contexts: Record<string, string> = {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Composition API
-// ═══════════════════════════════════════════════════════════════════
 
 
 /**
@@ -788,6 +775,9 @@ const contexts: Record<string, string> = {
  * @param appendix  - Optional extra context to append (Phase Zero briefing, etc.)
  * @returns The composed system prompt in internal monologue style
  * @throws If no context is defined for the posture x agentType combination
+ * @dep callers: postures.ts (core/intelligence/lumen/postures.ts), helix-postures.ts (core/intelligence/helix/helix-postures.ts), postures.ts (core/intelligence/dyad/postures.ts)
+ * @dep module: Unknown
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function composeSystemPrompt(
   posture: PostureName,

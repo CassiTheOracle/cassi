@@ -5,7 +5,6 @@
  * context assembly, specificity scoring, and feedback tracking.
  */
 
-// ── Dead Code ────────────────────────────────────────────────────────
 
 /** A symbol that appears to be unused (no callers, no importers). */
 export interface DeadCodeResult {
@@ -37,7 +36,6 @@ export interface DeadCodeOptions {
   repo?: string
 }
 
-// ── Hotspots ─────────────────────────────────────────────────────────
 
 /** A file ranked by composite risk score. */
 export interface HotspotResult {
@@ -69,7 +67,6 @@ export interface HotspotOptions {
   repo?: string
 }
 
-// ── Cochange ─────────────────────────────────────────────────────────
 
 /** Two files that frequently change together. */
 export interface CochangeResult {
@@ -95,7 +92,6 @@ export interface CochangeOptions {
   since?: string
 }
 
-// ── Prepare Context ──────────────────────────────────────────────────
 
 /** A key file in the prepared context. */
 export interface PreparedFile {
@@ -136,7 +132,6 @@ export interface PrepareContextOptions {
   repo?: string
 }
 
-// ── Specificity & Gating ─────────────────────────────────────────────
 
 /** Result of a specificity assessment. */
 export interface SpecificityScore {
@@ -158,7 +153,6 @@ export interface SpecificitySignal {
   match: string
 }
 
-// ── Feedback ─────────────────────────────────────────────────────────
 
 /** Record of a code-context injection and whether it helped. */
 export interface ContextFeedbackRecord {
@@ -173,7 +167,6 @@ export interface ContextFeedbackRecord {
   timestamp: number
 }
 
-// ── Schema Introspection ─────────────────────────────────────────────
 
 /** Metadata about a single SQLite table. */
 export interface TableSchema {

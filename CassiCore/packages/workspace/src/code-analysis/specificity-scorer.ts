@@ -15,7 +15,6 @@
 
 import type { SpecificityScore, SpecificitySignal } from './types.js'
 
-// ── Signal patterns ──────────────────────────────────────────────────
 
 /** File path pattern: path/to/file.ext */
 const FILE_PATH_RE = /[\w/.-]+\.(?:ts|js|tsx|jsx|py|go|rs|java|rb|css|html|json|yaml|yml|md)/g
@@ -45,7 +44,6 @@ const VAGUE_MODIFIERS = [
   /\bthe\s+codebase\b/i,
 ]
 
-// ── Weights ──────────────────────────────────────────────────────────
 
 const WEIGHTS = {
   file_path: 0.3,
@@ -56,7 +54,6 @@ const WEIGHTS = {
   vague_modifier: -0.15,
 } as const
 
-// ── Thresholds ───────────────────────────────────────────────────────
 
 const FULL_CONTEXT_THRESHOLD = 0.6
 const FILE_ONLY_THRESHOLD = 0.3
