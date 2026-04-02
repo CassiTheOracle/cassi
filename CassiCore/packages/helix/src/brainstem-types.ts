@@ -93,8 +93,12 @@ export interface BrainstemConfig {
   /** Accumulated stream-token count before triggering a long-reasoning heartbeat (default: 2000) */
   longReasoningTokenThreshold: number
   /**
-   * Guidance operating mode. Default: 'safety-net-only'.
-   * See BrainstemGuidanceMode for full description.
+   * Guidance operating mode. Default: 'full'.
+   *
+   * WHY: With safety-net-only, the brainstem scores every work unit
+   * but the guidance is silently discarded — making the entire LLM loop
+   * invisible to postures. Full mode ensures annotations actually reach Unity.
+   * The Corpus can still override through corpus directives.
    */
   guidanceMode: BrainstemGuidanceMode
   /** Minimum work units before deciding to activate reviewers (default: 3) */
@@ -127,7 +131,7 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   enabled: true,
   heartbeatIntervalMs: 90_000,
   longReasoningTokenThreshold: 2_000,
-  guidanceMode: 'safety-net-only',
+  guidanceMode: 'full',
   reviewerActivationThreshold: 3,
   lazyReviewerSpawning: true,
   maxTokensPerFinding: 200_000,
@@ -286,6 +290,13 @@ export interface BrainstemState {
   /** Findings produced by each reviewer */
   reviewerFindings: { yang: number, yin: number }
 }
+
+/**
+ * @dep callers: constructor (core/intelligence/helix/brainstem.ts), constructor (core/intelligence/helix/brainstem-mini-helix.ts)
+ * @dep calls: createInitialCognitiveModel
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function createInitialBrainstemState(): BrainstemState {
   return {
