@@ -67,20 +67,32 @@ function getOrCreateManager(daemon: any, logger: ILogger): WarmProviderManager |
 }
 
 /**
- * Build a default system prompt from AGENTS.md and daemon context.
+ * Build a default system prompt from workspace instructions and daemon context.
+ * Uses ancestor directory chain discovery to find AGENTS.md and related
+ * instruction files from the working directory up to the filesystem root.
+ * Applies per-file (4K chars) and total (12K chars) token budgeting.
  */
 function buildDefaultSystemPrompt(daemon: any): string {
   const parts: string[] = []
 
-  // Include AGENTS.md if available
+  // Discover instruction files from ancestor directory chain
   try {
-    const fs = require('node:fs')
-    const path = require('node:path')
-    const agentsMd = path.join(process.cwd(), 'AGENTS.md')
-    if (fs.existsSync(agentsMd)) {
-      parts.push(fs.readFileSync(agentsMd, 'utf-8'))
+    const { discoverAndRenderInstructions } = require('../workspace/instruction-discovery.js')
+    const result = discoverAndRenderInstructions(process.cwd())
+    if (result.rendered) {
+      parts.push(result.rendered)
     }
-  } catch { /* ignore */ }
+  } catch {
+    // Fallback: try loading AGENTS.md directly (original behavior)
+    try {
+      const fs = require('node:fs')
+      const path = require('node:path')
+      const agentsMd = path.join(process.cwd(), 'AGENTS.md')
+      if (fs.existsSync(agentsMd)) {
+        parts.push(fs.readFileSync(agentsMd, 'utf-8'))
+      }
+    } catch { /* ignore */ }
+  }
 
   // Add warm session preamble
   parts.push(`
