@@ -541,7 +541,7 @@ export interface CrossHelixPattern {
  * delivering it to Unity through its normal escalation model
  * (low/medium → tool results, high/critical → user message).
  */
-export interface CorpusDirective {
+ export interface CorpusDirective {
   targetHelixId: string
   type: CorpusDirectiveType
   urgency: GuidanceUrgency
@@ -549,6 +549,10 @@ export interface CorpusDirective {
   text: string
   fromPattern?: CrossHelixPatternType
   timestamp: number
+  /** Enforcement: maximum iterations remaining before forced conclusion */
+  maxIterationsRemaining?: number
+  /** Enforcement: required behavioral action on next iteration */
+  requiredAction?: 'narrow_scope' | 'switch_strategy' | 'conclude' | 'produce_output'
 }
 
 /**

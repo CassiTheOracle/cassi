@@ -697,7 +697,7 @@ export class Corpus {
       })
     }
 
-    // De-duplicate against existing patterns (tight 15s window to avoid spam)
+    // De-duplicate against existing patterns (5-minute window prevents spam across sweeps)
     const now = Date.now()
     const newPatterns: CrossHelixPattern[] = []
     for (const pattern of patterns) {
@@ -706,7 +706,7 @@ export class Corpus {
           existing.type === pattern.type &&
           existing.helixIds.length === pattern.helixIds.length &&
           existing.helixIds.every((id) => pattern.helixIds.includes(id)) &&
-          now - existing.detectedAt < 15000 // Within 15 seconds (was 60s — caused 31+ dupes)
+          now - existing.detectedAt < 300_000 // 5-minute window — was 15s which caused 560+ dupes
       )
       if (!isDuplicate) {
         newPatterns.push(pattern)
@@ -1474,6 +1474,21 @@ Guidelines:
       }
       this.state.interventions.push(intervention)
 
+      // WHY: Mark the source pattern as acted-upon so the Corpus doesn't
+      // re-trigger the same intervention while the directive is in flight
+      if (directive.fromPattern) {
+        for (const pattern of this.state.crossPatterns) {
+          if (
+            pattern.type === directive.fromPattern &&
+            pattern.helixIds.includes(directive.targetHelixId) &&
+            !pattern.actedUpon
+          ) {
+            pattern.actedUpon = true
+            break
+          }
+        }
+      }
+
       const assessment = this.state.branchAssessments.get(directive.targetHelixId)
       const branch = this.tree.getBranch(directive.targetHelixId)
       const currentStep = branch ? branch.steps.length : 0
@@ -1674,6 +1689,16 @@ Guidelines:
         effective,
       })
 
+      // WHY: Update the DirectiveRecord outcome so callers can inspect lifecycle state
+      // rather than finding every record permanently 'pending'
+      for (const record of assessment.directiveHistory) {
+        if (record.outcome === 'pending') {
+          record.outcome = effective ? 'effective' : 'ignored'
+          record.evaluatedAt = Date.now()
+          break // Update only the most recent pending directive
+        }
+      }
+
       // One-shot measurement — clear the baseline
       this.interventionBaselines.delete(helixId)
     }
@@ -1757,7 +1782,7 @@ Guidelines:
       // Act on the escalation level
       switch (newLevel) {
         case 1:
-          // Level 1: Send guidance directive (soft)
+          // Level 1: Send guidance directive (soft) with scope constraint
           this.sendDirective({
             targetHelixId: helixId,
             type: 'guidance',
@@ -1766,11 +1791,13 @@ Guidelines:
             reason: `Escalation to level 1: ignored=${assessment.ignoredDirectiveStreak} directives, lowProgress=${assessment.lowProgressStreak} steps`,
             timestamp: Date.now(),
             fromPattern: 'asymmetric-progress',
+            maxIterationsRemaining: 20,
+            requiredAction: 'narrow_scope',
           })
           break
 
         case 2:
-          // Level 2: Send critical redirect (hard)
+          // Level 2: Send critical redirect (hard) with output requirement
           this.sendDirective({
             targetHelixId: helixId,
             type: 'redirect',
@@ -1780,11 +1807,13 @@ Guidelines:
             reason: `Escalation to level 2: ignored=${assessment.ignoredDirectiveStreak} directives, lowProgress=${assessment.lowProgressStreak} steps`,
             timestamp: Date.now(),
             fromPattern: 'cascade-failure',
+            maxIterationsRemaining: 10,
+            requiredAction: 'produce_output',
           })
           break
 
         case 3:
-          // Level 3: Cancel the branch
+          // Level 3: Cancel the branch — force conclusion first if possible
           this.logger.warn('Escalation level 3: cancelling branch', { helixId })
           this.sendDirective({
             targetHelixId: helixId,
@@ -1793,6 +1822,8 @@ Guidelines:
             text: `Branch ${helixId} has reached escalation level 3. Cancelling due to sustained non-response to directives and declining metrics.`,
             reason: `Escalation to level 3: ignored=${assessment.ignoredDirectiveStreak} directives, score=${assessment.rollingScore.toFixed(2)}`,
             timestamp: Date.now(),
+            maxIterationsRemaining: 5,
+            requiredAction: 'conclude',
           })
           this.emitEvent('corpus:escalation', {
             helixId,
