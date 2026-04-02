@@ -111,6 +111,7 @@ export type RuntimeEvent =
   | { type: "lumen:posture:error"; posture: "yang" | "yin" | "executive"; sessionId?: string; error: string; timestamp: Date }
   // WHY: Skill usage tracking enables analysis of which skills are most valuable and identification of unused capabilities
   | { type: "skill:invoked"; skillName: string; skillPath: string; sessionId: string; timestamp: Date; source?: string }
+  | { type: "skill:outcome_recorded"; skillName: string; sessionId: string; outcome: string; timestamp: Date }
   | { type: "skill:metrics:aggregated"; period: string; topSkills: Array<{ name: string; count: number }>; totalInvocations: number; timestamp: Date }
   // WHY: Unified Intelligence Loop provides heartbeat monitoring and maintenance tracking for all intelligence modules
    | { type: "intelligence:heartbeat"; cycleNumber: number; uptimeMs: number; moduleStatuses: Array<{ name: string; healthy: boolean; lastActivity?: number }>; activeRequests?: number; activeSessions?: number; timestamp: Date }

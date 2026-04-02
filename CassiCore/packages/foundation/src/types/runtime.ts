@@ -12,17 +12,16 @@ export type ContentBlock =
 export type ImageMediaType = 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
 
 export interface ImageAttachment {
-  /** base64-encoded image bytes */
+  /** Base64-encoded image bytes */
   data: string
   mediaType: ImageMediaType
-  /** Optional human label (e.g. filename or Telegram file_id) */
+  /** Human-readable label (e.g. filename or Telegram file_id) */
   label?: string
 }
 
 
 export interface Message {
   role: 'user' | 'assistant' | 'system';
-  /** Plain text for normal turns; ContentBlock[] when tool use is involved */
   content: string | ContentBlock[];
   name?: string;
 }
@@ -43,35 +42,31 @@ export interface CompletionOpts {
     input_schema: Record<string, unknown>;
   }>
   /**
-   * Provider coordination flags understood by the centralized provider.
-   * - allowConcurrent: set true to bypass per-session dedup and allow multiple
-   *   concurrent requests for the same logical session. Use cautiously.
-   * - dedupe: set false to explicitly disable deduplication for this call.
+   * Bypass per-session dedup to allow concurrent requests for the same logical session.
+   * Use cautiously.
    */
   allowConcurrent?: boolean;
+  /** Explicitly disable deduplication for this call */
   dedupe?: boolean;
-  /**
-   * AbortSignal for cancellation support. Passed to provider for early termination.
-   */
+  /** AbortSignal for cancellation */
   signal?: AbortSignal;
   /**
-   * Observability: which module/component initiated this request.
+   * Which module/component initiated this request.
    * E.g. 'turn-pipeline', 'thinker', 'subconscious', 'macro-dialectic:yang', 'dialectic'.
-   * Read by the provider observability tap and emitted in provider:request_* events.
+   * Emitted in provider:request_* events for observability.
    */
   source?: string;
   /**
-   * Observability: what caused this LLM call — e.g. 'turn', 'tools', 'timer', 'thinker'.
-   * Used with `source` to display provenance chains in the LLM stream: `trigger > source`.
-   * For deeper chains the trigger itself can be a chain: `trigger: 'tools > thinker'`.
+   * What caused this LLM call — e.g. 'turn', 'tools', 'timer', 'thinker'.
+   * Combined with `source` for provenance: `trigger > source`.
+   * For deeper chains: `trigger: 'tools > thinker'`.
    */
   trigger?: string;
   /**
-   * Observability callback: invoked once with provider metadata (including requestId)
-   * immediately after the provider assigns a request ID. Enables callers to correlate
-   * their outcome events with the exact provider request that produced the output.
+   * Called immediately after the provider assigns a request ID.
+   * Enables correlating outcome events with the exact provider request.
    *
-   * Usage in cognitive modules:
+   * Usage:
    * ```ts
    * let requestId: string | undefined
    * await this.infer(prompt, { onMeta: (m) => { requestId = m.requestId } })
@@ -80,23 +75,16 @@ export interface CompletionOpts {
    */
   onMeta?: (meta: { requestId: string }) => void;
   /**
-   * Observability: the session ID associated with this provider call.
-   * Used by prompt logging to associate provider calls with sessions.
-   * Nullable — background intelligence calls (thinker, subconscious) may not have one.
+   * Session ID for prompt logging.
+   * Nullable — background intelligence calls may not have one.
    */
   sessionId?: string;
   /**
-   * Warm session key for the copilot-sdk provider's infinite session pattern.
-   *
-   * When set, the SDK session is kept alive across successive complete() calls
-   * by blocking a `finished()` tool handler between iterations. All iterations
-   * within the same warm session are part of a single premium request.
+   * Keeps the SDK session alive across successive complete() calls.
+   * All iterations within the same warm session are part of a single premium request.
    *
    * The key identifies the logical session — e.g. `lumen:session123:yang`.
-   * Sessions with the same key reuse the same warm SDK session.
-   *
-   * When not set, the provider falls back to the standard create-and-destroy
-   * pattern (one SDK session per complete() call).
+   * Falls back to create-and-destroy pattern when not set.
    */
   warmSessionKey?: string;
 }
@@ -127,7 +115,7 @@ export interface IProvider {
   readonly id: string;
   readonly models: string[];
 
-  /** Stream a completion. Yields chunks until done. */
+  /** Stream a completion */
   complete(
     messages: Message[],
     opts: CompletionOpts,
@@ -135,10 +123,10 @@ export interface IProvider {
     signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk>;
 
-  /** Count tokens for a message array (approximate) */
+  /** Count tokens for a message array */
   countTokens(messages: Message[]): Promise<number>;
 
-  /** Check if the provider is reachable */
+  /** Health check */
   ping(): Promise<boolean>;
 }
 
@@ -152,7 +140,7 @@ export interface InboundMessage {
   content: string;
   replyToId?: string;
   timestamp: Date;
-  /** Images attached to this message (e.g. photos sent via Telegram) */
+  /** Attached images (e.g. Telegram photos) */
   attachments?: ImageAttachment[];
   metadata?: Record<string, unknown>;
 }
@@ -176,16 +164,16 @@ export interface IChannel {
 
 export interface SessionConfig {
   model: string;
-  /** Optional explicit provider ID to pin a provider (e.g. 'pi', 'kimi-coding') */
+  /** Explicit provider ID (e.g. 'pi', 'kimi-coding') */
   providerId?: string;
-  /** Optional model name without provider prefix (e.g. 'gpt-5-mini') */
+  /** Model name without provider prefix (e.g. 'gpt-5-mini') */
   providerModel?: string;
   systemPrompt?: string;
   thinking?: ThinkingLevel;
   maxContextTokens?: number;
   /**
-   * When true, this session is never pruned by idle-time expiry or LRU eviction.
-   * Used for persistent module sessions that must survive across daemon restarts.
+   * Session is never pruned by idle-time expiry or LRU eviction.
+   * Used for persistent module sessions that survive daemon restarts.
    */
   permanent?: boolean;
 }
@@ -226,7 +214,6 @@ export interface TurnResult {
   durationMs: number;
   thinkerInjection?: string;
   toolCalls?: Array<{ name: string; durationMs: number }>
-  /** Tool execution results with detailed output information */
   tool_outputs?: Array<{
     tool_name: string;
     tool_call_id: string;
