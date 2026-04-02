@@ -67,13 +67,18 @@ export async function fetchMemory(
   query: string,
   limit: number
 ): Promise<unknown[]> {
-  const params = new URLSearchParams({ query, limit: String(limit) });
-  const res = await fetchWithTimeout(`${baseUrl}/memory/search?${params}`, {
-    timeoutMs: CONTEXT_FETCH_TIMEOUT_MS,
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return Array.isArray(data) ? data : ((data as any)?.results ?? []);
+  try {
+    const params = new URLSearchParams({ query, limit: String(limit) });
+    const res = await fetchWithTimeout(`${baseUrl}/memory/search?${params}`, {
+      timeoutMs: CONTEXT_FETCH_TIMEOUT_MS,
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    if (!data) return [];
+    return Array.isArray(data) ? data : ((data as any)?.results ?? []);
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchArchive(
@@ -81,15 +86,20 @@ export async function fetchArchive(
   query: string,
   limit: number
 ): Promise<unknown[]> {
-  const res = await fetchWithTimeout(`${baseUrl}/memory/archives/search`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query, limit, sortBy: 'relevance' }),
-    timeoutMs: CONTEXT_FETCH_TIMEOUT_MS,
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return Array.isArray(data) ? data : ((data as any)?.results ?? []);
+  try {
+    const res = await fetchWithTimeout(`${baseUrl}/memory/archives/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, limit, sortBy: 'relevance' }),
+      timeoutMs: CONTEXT_FETCH_TIMEOUT_MS,
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    if (!data) return [];
+    return Array.isArray(data) ? data : ((data as any)?.results ?? []);
+  } catch {
+    return [];
+  }
 }
 
 export async function fetchSessionIndex(
@@ -97,13 +107,18 @@ export async function fetchSessionIndex(
   query: string,
   limit: number
 ): Promise<unknown[]> {
-  const params = new URLSearchParams({ q: query, limit: String(limit) });
-  const res = await fetchWithTimeout(`${baseUrl}/memory/index/search?${params}`, {
-    timeoutMs: CONTEXT_FETCH_TIMEOUT_MS,
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return Array.isArray(data) ? data : [];
+  try {
+    const params = new URLSearchParams({ q: query, limit: String(limit) });
+    const res = await fetchWithTimeout(`${baseUrl}/memory/index/search?${params}`, {
+      timeoutMs: CONTEXT_FETCH_TIMEOUT_MS,
+    });
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => null);
+    if (!data) return [];
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
 }
 
 
@@ -441,7 +456,14 @@ export async function fetchAndFormatContext(
   const hasResults = memoriesAll.length > 0 || archivesAll.length > 0 || indexAll.length > 0;
 
   if (!hasResults) {
-    const fallback = await recoverFromEmpty(baseUrl, normalized, keyTerms, metadata);
+    // WHY: recoverFromEmpty does additional fetch calls that could fail — wrap
+    // so a fallback failure never kills the entire enrichment.
+    let fallback: { results: unknown[]; suggestedTerms: string[]; usedBroad?: boolean };
+    try {
+      fallback = await recoverFromEmpty(baseUrl, normalized, keyTerms, metadata);
+    } catch {
+      fallback = { results: [], suggestedTerms: [] };
+    }
 
     if (fallback.results.length === 0 && fallback.suggestedTerms.length === 0) {
       return { markdown: '', hasContext: false, counts: { memory: 0, archive: 0, index: 0 } };

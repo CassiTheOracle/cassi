@@ -198,7 +198,20 @@ export async function executeEnrichTool(
 
   logger.info('executeEnrichTool', { query, ...limits });
 
-  const result = await fetchAndFormatContext(baseUrl, query, limits);
+  let result;
+  try {
+    result = await fetchAndFormatContext(baseUrl, query, limits);
+  } catch (err) {
+    logger.error('Context enrichment failed', { error: String(err) });
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `## Cassi Context\n> Enrichment failed for: \`${query}\`\n\nError: ${String(err)}\n\nProceeding without historical context.`,
+        },
+      ],
+    };
+  }
 
   if (!result.hasContext) {
     return {
@@ -262,15 +275,26 @@ export async function executeDoTool(
 
   // Starting the state card fetch alongside the tool call means its latency
   // is hidden by the tool's own execution time in most cases.
-  const stateCardPromise = mode !== 'raw'
-    ? fetchStateCard(baseUrl, stateView).catch(() => ({ card: '', resolvedView: stateView }))
+  const stateCardPromise: Promise<{ card: string; resolvedView: StateView }> = mode !== 'raw'
+    ? fetchStateCard(baseUrl, stateView).catch((): { card: string; resolvedView: StateView } => ({ card: '', resolvedView: stateView }))
     : Promise.resolve({ card: '', resolvedView: stateView });
 
   const start = Date.now();
-  const [toolResult, prefetchedState] = await Promise.all([
-    routeTool(resolvedToolName, toolInput),
-    stateCardPromise,
-  ]);
+  let toolResult: McpToolResponse;
+  let prefetchedState: { card: string; resolvedView: StateView } = { card: '', resolvedView: stateView };
+  try {
+    [toolResult, prefetchedState] = await Promise.all([
+      routeTool(resolvedToolName, toolInput),
+      stateCardPromise,
+    ]);
+  } catch (err) {
+    const durationMs = Date.now() - start;
+    logger.error('cassi_do delegated tool call failed', { tool: resolvedToolName, error: String(err), durationMs });
+    return {
+      content: [{ type: 'text', text: JSON.stringify({ error: `Tool '${resolvedToolName}' failed: ${String(err)}`, durationMs }) }],
+      isError: true,
+    };
+  }
   const durationMs = Date.now() - start;
 
   const isToolError = toolResult?.isError === true;
@@ -279,16 +303,24 @@ export async function executeDoTool(
       ?.map((c: { type: string; text: string }) => c.text)
       .join('\n') ?? '';
 
-  // Augment — pass prefetched state so augmentDoResult skips a second fetch
-  const augmented = await augmentDoResult({
-    toolName: resolvedToolName,
-    result: { text: resultText, isError: isToolError },
-    durationMs,
-    mode,
-    stateView,
-    baseUrl,
-    prefetchedState: mode !== 'raw' ? prefetchedState : undefined,
-  });
+  // Augment — pass prefetched state so augmentDoResult skips a second fetch.
+  // WHY: If augmentation fails, return the raw tool result rather than losing
+  // the work the tool already did.
+  let augmented: { text: string; isError?: boolean };
+  try {
+    augmented = await augmentDoResult({
+      toolName: resolvedToolName,
+      result: { text: resultText, isError: isToolError },
+      durationMs,
+      mode,
+      stateView,
+      baseUrl,
+      prefetchedState: mode !== 'raw' ? prefetchedState : undefined,
+    });
+  } catch (err) {
+    logger.warn('cassi_do augmentation failed, returning raw result', { error: String(err) });
+    augmented = { text: resultText, isError: isToolError };
+  }
 
   return {
     content: [{ type: 'text', text: augmented.text }],
