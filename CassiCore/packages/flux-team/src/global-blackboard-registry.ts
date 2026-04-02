@@ -174,7 +174,6 @@ export class GlobalBlackboardRegistry {
     return entry.blackboard.getChannelEntries(channel, limit)
   }
 
-  // ── Search pass-through methods ──
 
   /** Search channel entries on a named board. */
   searchChannel(name: string, opts: ChannelSearchOptions = {}): PaginatedResult<BlackboardEntry> | null {

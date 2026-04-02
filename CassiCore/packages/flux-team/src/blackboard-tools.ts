@@ -945,11 +945,11 @@ export const BLACKBOARD_TOOL_NAMES = new Set([
 
 /**
  * Check if a tool name is a Blackboard meta-tool.
- * @dep callers: processToolCalls (core/intelligence/dyad/dyad-posture-runner.ts), processToolCalls (core/intelligence/lumen/lumen-posture-runner.ts), buildToolSchemas (core/intelligence/lumen/lumen-posture-runner.ts)
+ * @dep callers: buildToolSchemas (core/intelligence/lumen/lumen-posture-runner.ts), processToolCalls (core/intelligence/lumen/lumen-posture-runner.ts), processToolCalls (core/intelligence/helix/helix-posture-runner.ts), buildToolSchemas (core/intelligence/helix/helix-posture-runner.ts), processToolCalls (core/intelligence/dyad/dyad-posture-runner.ts)
  * @dep calls: has
  * @dep flows: Run → IsBlackboardMetaTool (3/3)
  * @dep module: Lumen
- * @dep risk: LOW | 3 callers, 1 flow, 1 module
+ * @dep risk: MEDIUM | 5 callers, 1 flow, 1 module
  */
 export function isBlackboardMetaTool(name: string): boolean {
   return BLACKBOARD_TOOL_NAMES.has(name)
@@ -1007,9 +1007,10 @@ export const EXECUTIVE_PLAN_TOOLS: ToolSchema[] = [
  *
  * @param posture - The posture or role name (e.g. 'yang', 'yin', 'executive', 'apex')
  * @returns Array of tool schemas for that posture
- * @dep callers: buildToolSchemas (core/intelligence/dyad/dyad-posture-runner.ts), buildToolSchemas (core/intelligence/lumen/lumen-posture-runner.ts)
- * @dep module: Dyad
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep callers: buildToolSchemas (core/intelligence/lumen/lumen-posture-runner.ts), buildToolSchemas (core/intelligence/dyad/dyad-posture-runner.ts), getBlackboardSchemas (core/intelligence/cassi-agent/base-posture-runner.ts)
+ * @dep flows: RunAsWorker → GetBlackboardToolSchemas (3/3), RunAsMentor → GetBlackboardToolSchemas (4/4), RunAsReviewer → GetBlackboardToolSchemas (4/4) [+1]
+ * @dep module: Lumen
+ * @dep risk: MEDIUM | 3 callers, 4 flows, 1 module
  */
 export function getBlackboardToolSchemas(posture: string): ToolSchema[] {
   const isGated = posture === 'executive' || posture === 'apex'
@@ -1064,11 +1065,11 @@ export function isPlanMetaTool(name: string): boolean {
  * @param input - Parsed tool input from the LLM
  * @param posture - Calling posture/role (e.g. 'yang', 'yin', 'executive', 'apex')
  * @returns String result to return to the LLM
- * @dep callers: processToolCalls (core/intelligence/dyad/dyad-posture-runner.ts), processToolCalls (core/intelligence/lumen/lumen-posture-runner.ts)
- * @dep calls: has, handleBbPost, handleBbRead, handleBbReadAll, handleScratchSet [+17]
- * @dep flows: HandleBlackboardToolCall → Now (1/4), HandleBlackboardToolCall → PriorityNum (1/3), HandleBlackboardToolCall → GetArtifacts (1/3)
+ * @dep callers: processToolCalls (core/intelligence/lumen/lumen-posture-runner.ts), processToolCalls (core/intelligence/dyad/dyad-posture-runner.ts), processBlackboardCalls (core/intelligence/cassi-agent/base-posture-runner.ts)
+ * @dep calls: handleBbSearchPlan, handleBbSearchReport, handleBbSearchChannel, handleBbSearch, handlePlanReportProgress [+25]
+ * @dep flows: ProcessToolCalls → GetArtifacts (2/4), ProcessToolCalls → GetAllScratchpad (2/4), ProcessToolCalls → PriorityNum (2/4)
  * @dep module: Flux-team
- * @dep risk: MEDIUM | 2 callers, 3 flows, 1 module
+ * @dep risk: MEDIUM | 3 callers, 3 flows, 1 module
  */
 export function handleBlackboardToolCall(
   blackboard: Blackboard,
@@ -1135,8 +1136,8 @@ const VALID_CHANNELS = new Set<ChannelName>(['findings', 'concerns', 'decisions'
 /** Map priority string to numeric priority for Blackboard.post() */
 /**
  * @dep callers: handleBbPost (core/intelligence/flux-team/blackboard-tools.ts)
- * @dep flows: HandleBlackboardToolCall → PriorityNum (3/3)
- * @dep module: Flux-team
+ * @dep flows: ProcessToolCalls → PriorityNum (4/4)
+ * @dep module: Unknown
  * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 
@@ -1148,8 +1149,8 @@ function priorityNum(p: unknown): number {
 
 /**
  * @dep callers: handleBlackboardToolCall (core/intelligence/flux-team/blackboard-tools.ts)
- * @dep calls: has, post, priorityNum
- * @dep flows: HandleBlackboardToolCall → PriorityNum (2/3)
+ * @dep calls: priorityNum, has
+ * @dep flows: ProcessToolCalls → PriorityNum (3/4)
  * @dep module: Flux-team
  * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
@@ -1206,8 +1207,8 @@ function handleBbRead(blackboard: Blackboard, input: Record<string, unknown>): s
 
 /**
  * @dep callers: handleBlackboardToolCall (core/intelligence/flux-team/blackboard-tools.ts)
- * @dep calls: getAllScratchpad, getArtifacts
- * @dep flows: HandleBlackboardToolCall → Now (2/4), HandleBlackboardToolCall → GetArtifacts (2/3)
+ * @dep calls: getArtifacts, getAllScratchpad
+ * @dep flows: ProcessToolCalls → GetArtifacts (3/4), ProcessToolCalls → GetAllScratchpad (3/4)
  * @dep module: Flux-team
  * @dep risk: LOW | 1 caller, 2 flows, 1 module
  */
@@ -1608,9 +1609,9 @@ function handlePlanReportProgress(blackboard: Blackboard, input: Record<string, 
 // Plan Formatting Helpers
 
 /**
- * @dep callers: handlePlanUpdateStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanRejectStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanApproveStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanSubmitStep (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep callers: handlePlanSubmitStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanApproveStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanRejectStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanUpdateStep (core/intelligence/flux-team/blackboard-tools.ts), handlePlanClaimStep (core/intelligence/flux-team/blackboard-tools.ts) [+1]
  * @dep module: Flux-team
- * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
  */
 
 function formatStep(step: import('../../../types/flux-team.js').PlanStep): Record<string, unknown> {
@@ -1637,7 +1638,7 @@ function formatStep(step: import('../../../types/flux-team.js').PlanStep): Recor
 }
 
 /**
- * @dep callers: handlePlanFinalize (core/intelligence/flux-team/blackboard-tools.ts), handlePlanView (core/intelligence/flux-team/blackboard-tools.ts)
+ * @dep callers: handlePlanView (core/intelligence/flux-team/blackboard-tools.ts), handlePlanFinalize (core/intelligence/flux-team/blackboard-tools.ts)
  * @dep module: Flux-team
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -1670,7 +1671,6 @@ function formatPlan(plan: import('../../../types/flux-team.js').Plan): Record<st
   }
 }
 
-// ── Search Handlers ──
 
 function handleBbSearch(blackboard: Blackboard, input: Record<string, unknown>): string {
   const pattern = String(input.pattern ?? '')

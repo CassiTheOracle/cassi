@@ -23,7 +23,6 @@ export {
   MAX_SEARCH_LIMIT,
 } from '../../../types/blackboard-search.js'
 
-// ── Cursor Encoding ──
 
 /**
  * Encode a cursor position into an opaque Base64url string.
@@ -54,6 +53,9 @@ export function decodeCursor(opaque: string): SearchCursor | null {
 
 /**
  * Encode a composite cursor that contains per-board cursors for cross-board search.
+ * @dep callers: searchAll (core/intelligence/flux-team/blackboard.ts), blackboard-search.test.ts (tests/flux-team/blackboard-search.test.ts)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function encodeCompositeCursor(
   cursors: Record<string, string>,
@@ -64,6 +66,9 @@ export function encodeCompositeCursor(
 /**
  * Decode a composite cursor back into per-board cursor strings.
  * Returns null if invalid.
+ * @dep callers: searchAll (core/intelligence/flux-team/blackboard.ts), blackboard-search.test.ts (tests/flux-team/blackboard-search.test.ts)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function decodeCompositeCursor(
   opaque: string,
@@ -78,11 +83,14 @@ export function decodeCompositeCursor(
   }
 }
 
-// ── Pattern Validation & Compilation ──
 
 /**
  * Validate a regex pattern string.
  * Returns an error message if invalid, or null if valid.
+ * @dep callers: compilePattern (core/intelligence/flux-team/blackboard-search.ts), blackboard-search.test.ts (tests/flux-team/blackboard-search.test.ts)
+ * @dep flows: SearchAll → ValidatePattern (4/4)
+ * @dep module: Flux-team
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function validatePattern(pattern: string): string | null {
   if (pattern.length > MAX_PATTERN_LENGTH) {
@@ -100,6 +108,11 @@ export function validatePattern(pattern: string): string | null {
  * Compile a pattern string into a RegExp.
  * Uses case-insensitive flag only (no 'g' flag to avoid stateful lastIndex issues).
  * Throws if the pattern is invalid or too long.
+ * @dep callers: searchChannel (core/intelligence/flux-team/blackboard.ts), searchScratchpad (core/intelligence/flux-team/blackboard.ts), searchToolLog (core/intelligence/flux-team/blackboard.ts), searchArtifacts (core/intelligence/flux-team/blackboard.ts), searchPlan (core/intelligence/flux-team/blackboard.ts) [+2]
+ * @dep calls: validatePattern
+ * @dep flows: SearchAll → ValidatePattern (3/4)
+ * @dep module: Flux-team
+ * @dep risk: HIGH | 7 callers, 1 flow, 1 module
  */
 export function compilePattern(pattern: string): RegExp {
   const error = validatePattern(pattern)
@@ -111,6 +124,11 @@ export function compilePattern(pattern: string): RegExp {
 
 /**
  * Test if any of the given fields match the compiled pattern.
+ * @dep callers: searchChannel (core/intelligence/flux-team/blackboard.ts), searchScratchpad (core/intelligence/flux-team/blackboard.ts), searchToolLog (core/intelligence/flux-team/blackboard.ts), searchArtifacts (core/intelligence/flux-team/blackboard.ts), searchPlan (core/intelligence/flux-team/blackboard.ts) [+2]
+ * @dep calls: test
+ * @dep flows: SearchAll → MatchesAny (3/3)
+ * @dep module: Flux-team
+ * @dep risk: HIGH | 7 callers, 1 flow, 1 module
  */
 export function matchesAny(regex: RegExp, fields: (string | undefined)[]): string[] {
   const matched: string[] = []
@@ -122,10 +140,13 @@ export function matchesAny(regex: RegExp, fields: (string | undefined)[]): strin
   return matched
 }
 
-// ── Pagination ──
 
 /**
  * Normalize and clamp the `limit` option.
+ * @dep callers: searchChannel (core/intelligence/flux-team/blackboard.ts), searchScratchpad (core/intelligence/flux-team/blackboard.ts), searchToolLog (core/intelligence/flux-team/blackboard.ts), searchArtifacts (core/intelligence/flux-team/blackboard.ts), searchPlan (core/intelligence/flux-team/blackboard.ts) [+2]
+ * @dep flows: SearchAll → NormalizeLimit (3/3)
+ * @dep module: Flux-team
+ * @dep risk: HIGH | 7 callers, 1 flow, 1 module
  */
 export function normalizeLimit(limit?: number): number {
   if (!limit || limit <= 0) return DEFAULT_SEARCH_LIMIT
@@ -147,6 +168,10 @@ export function normalizeLimit(limit?: number): number {
  * @param getTimestamp - Extract the timestamp from an item (for cursor encoding)
  * @param getSortValue - Extract the primary sort value (e.g. priority) for cursor encoding
  * @param ascending - If true, items are sorted ascending (lower values first). Default: false (DESC).
+ * @dep callers: searchChannel (core/intelligence/flux-team/blackboard.ts), searchScratchpad (core/intelligence/flux-team/blackboard.ts), searchToolLog (core/intelligence/flux-team/blackboard.ts), searchArtifacts (core/intelligence/flux-team/blackboard.ts), searchPlan (core/intelligence/flux-team/blackboard.ts) [+1]
+ * @dep calls: findCursorPosition, encodeCursor
+ * @dep module: Flux-team
+ * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
  */
 export function paginate<T>(
   items: T[],
@@ -239,11 +264,14 @@ function findCursorPosition<T>(
   return items.length
 }
 
-// ── Filtering Helpers ──
 
 /**
  * Apply common BaseSearchOptions filters to determine if an item passes.
  * Board-specific filters are handled by individual search methods.
+ * @dep callers: searchChannel (core/intelligence/flux-team/blackboard.ts), searchScratchpad (core/intelligence/flux-team/blackboard.ts), searchToolLog (core/intelligence/flux-team/blackboard.ts), searchArtifacts (core/intelligence/flux-team/blackboard.ts), searchPlan (core/intelligence/flux-team/blackboard.ts) [+1]
+ * @dep flows: SearchAll → PassesBaseFilters (3/3)
+ * @dep module: Flux-team
+ * @dep risk: MEDIUM | 6 callers, 1 flow, 1 module
  */
 export function passesBaseFilters(
   opts: BaseSearchOptions,

@@ -1345,9 +1345,7 @@ export class Blackboard {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────────
   // Search & Pagination Methods
-  // ─────────────────────────────────────────────────────────────────────
 
   /**
    * Search channel entries with regex pattern matching and cursor-based pagination.
@@ -1708,9 +1706,7 @@ export class Blackboard {
     return result
   }
 
-  // ─────────────────────────────────────────────────────────────────────
   // Change Tracking (for bb_global_watch)
-  // ─────────────────────────────────────────────────────────────────────
 
   /**
    * Get all changes across all boards within a time window.
@@ -1987,9 +1983,7 @@ export class Blackboard {
   }
 
 
-  // ─────────────────────────────────────────────────────────────────────
   // Summary & Filtering Methods
-  // ─────────────────────────────────────────────────────────────────────
 
   /**
    * Get entries from a specific channel with optional limit.

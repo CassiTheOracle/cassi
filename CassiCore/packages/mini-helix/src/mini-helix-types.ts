@@ -29,9 +29,7 @@ import type { ModelHandle } from '../../model-pool/types.js'
 import type { Message, ContentBlock } from '../../../types/runtime.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Tool Definition (matches provider tool schema format)
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Tool definition in Anthropic schema format — same as CompletionOpts.tools.
@@ -73,9 +71,7 @@ export interface MiniHelixTool {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Configuration
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Mini-Helix consumer type. Controls default behavior and logging.
@@ -131,9 +127,7 @@ export const MINI_HELIX_DEFAULTS: Record<MiniHelixConsumer, Partial<MiniHelixCon
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Dependencies
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Dependencies for creating a mini-Helix session.
@@ -153,9 +147,7 @@ export interface MiniHelixDeps {
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Session Interface
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Status of a mini-Helix session.

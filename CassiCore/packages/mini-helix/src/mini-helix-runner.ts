@@ -28,9 +28,7 @@ import type {
 import { MINI_HELIX_DEFAULTS } from './mini-helix-types.js'
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Factory
-// ═══════════════════════════════════════════════════════════════════
 
 /**
  * Create a mini-Helix session with the given tools and configuration.
@@ -38,6 +36,9 @@ import { MINI_HELIX_DEFAULTS } from './mini-helix-types.js'
  * @param tools - Purpose-built tool set (Corpus: ~18 tools, Brainstem: 8 tools)
  * @param config - Session configuration (merged with consumer defaults)
  * @param deps - Dependencies (logger, eventBus, handleFactory)
+ * @dep callers: start (core/intelligence/helix/brainstem-mini-helix.ts), start (core/intelligence/constellation/corpus-mini-helix.ts), mini-helix.test.ts (tests/mini-helix.test.ts)
+ * @dep module: Helix
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function createMiniHelixSession(
   tools: MiniHelixTool[],
@@ -48,9 +49,7 @@ export function createMiniHelixSession(
 }
 
 
-// ═══════════════════════════════════════════════════════════════════
 // Implementation
-// ═══════════════════════════════════════════════════════════════════
 
 class MiniHelixRunner implements MiniHelixSession {
   private tools: Map<string, MiniHelixTool>
@@ -110,7 +109,6 @@ class MiniHelixRunner implements MiniHelixSession {
   }
 
 
-  // ─── Public Interface ──────────────────────────────────────────────
 
   async run(userMessage?: string): Promise<MiniHelixResult> {
     if (this.cancelled) {
@@ -256,7 +254,6 @@ class MiniHelixRunner implements MiniHelixSession {
   }
 
 
-  // ─── Streaming Inference ───────────────────────────────────────────
 
   /**
    * Stream inference from the model, collecting ContentBlocks.
@@ -337,7 +334,6 @@ class MiniHelixRunner implements MiniHelixSession {
   }
 
 
-  // ─── Tool-Calling Loop ─────────────────────────────────────────────
 
   private async runLoop(): Promise<MiniHelixResult> {
     const deadline = Date.now() + this.config.cycleTimeoutMs
@@ -487,7 +483,6 @@ class MiniHelixRunner implements MiniHelixSession {
   }
 
 
-  // ─── Helpers ───────────────────────────────────────────────────────
 
   private buildResult(status: MiniHelixStatus): MiniHelixResult {
     return {
