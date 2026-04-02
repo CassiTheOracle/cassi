@@ -8,10 +8,13 @@
  *  - Graceful fallback messaging when GitNexus is unavailable
  */
 
-import { execSync, type ExecSyncOptions } from 'node:child_process'
+import { execSync, exec, type ExecSyncOptions } from 'node:child_process'
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { promisify } from 'node:util'
 import type { ILogger } from '../../../types/interfaces.js'
+
+const execAsync = promisify(exec)
 
 /** How many seconds between staleness checks (avoid hammering git on every call). */
 const STALENESS_CHECK_INTERVAL_MS = 60_000
@@ -138,19 +141,18 @@ export async function reindex(logger?: ILogger): Promise<boolean> {
     logger?.info('GitNexus auto-reindex starting…', { cwd: root })
 
     try {
-      const opts: ExecSyncOptions = {
+      // WHY: Using async exec instead of execSync to avoid blocking the Node.js
+      // event loop for minutes. execSync freezes the entire MCP server, making
+      // all other tool calls time out during the reindex.
+      const { stdout } = await execAsync('npx gitnexus analyze', {
         cwd: root,
         timeout: REINDEX_TIMEOUT_MS,
         encoding: 'utf-8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }
-
-      const output = execSync('npx gitnexus analyze', opts) as string
+      })
       invalidateStalenessCache()
 
-      // Verify it worked
       if (isIndexFresh(logger)) {
-        logger?.info('GitNexus auto-reindex complete', { output: output.slice(0, 200) })
+        logger?.info('GitNexus auto-reindex complete', { output: (stdout ?? '').slice(0, 200) })
         return true
       }
       logger?.warn('GitNexus reindex ran but index still appears stale')
