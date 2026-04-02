@@ -46,22 +46,11 @@ export class ToolExecutor {
   private hookRunner?: ExternalHookRunner
   private logger: ILogger
 
-  /**
-   * Short-term permission decision cache.
-   * Identical (tool, input) pairs within 5 seconds reuse the prior verdict,
-   * avoiding redundant risk assessment and event emission for repetitive
-   * tool calls (e.g. reading 10 files in a loop).
-   */
   private permissionCache = new TTLCache<string, { decision: string; reasoning: string }>({
     maxSize: 200,
     ttlMs: 5_000,
   })
 
-  /**
-   * Resolved tool cache to avoid repeated multi-step lookups.
-   * Tool resolution involves: direct → aliases → preferred servers → heuristics.
-   * This cache stores the final resolved entry for 30 seconds.
-   */
   private resolvedToolCache = new TTLCache<string, RegistryEntry>({
     maxSize: 500,
     ttlMs: 30_000,
@@ -69,11 +58,6 @@ export class ToolExecutor {
 
   private static readonly TOOL_CACHE_TTL_MS = 30_000
 
-  /**
-   * Per-session context overrides. Orchestrators register session-specific
-   * context (e.g. artifactNamespace, sessionType) before running agent sessions.
-   * These are merged into the ToolExecutionContext on every execute() call.
-   */
   private sessionContextOverrides = new Map<string, Partial<ToolExecutionContext>>()
 
   constructor(
@@ -83,7 +67,6 @@ export class ToolExecutor {
   ) {
     this.logger = defaultContext.logger.child('tool-executor')
 
-    // Clear cache when tools are registered/unregistered
     this.eventBus?.on('tool:registered' as any, () => {
       this.clearToolCache()
     })
@@ -108,7 +91,6 @@ export class ToolExecutor {
     let entry = this.registry.get(toolName)
     if (entry) return entry
 
-    // 2. Aliases
     const toolAliases: Record<string, string> = {
       read: 'read_file',
       write: 'write_file',
@@ -118,7 +100,6 @@ export class ToolExecutor {
       if (entry) return entry
     }
 
-    // 3. Preferred servers
     const preferredServers = (process.env.PREFERRED_MCP_SERVERS || 'serena').split(',').map(s => s.trim()).filter(Boolean)
     for (const serverId of preferredServers) {
       const alt = `${serverId}__${toolName}`
@@ -126,12 +107,10 @@ export class ToolExecutor {
       if (e) return e
     }
 
-    // 4. Heuristic fallbacks for common file operations
     const fileOps = new Set(['read_file', 'write_file', 'read', 'write', 'exists', 'mkdir', 'delete', 'bash'])
     if (fileOps.has(toolName)) {
       const list = this.registry.list()
 
-      // Try serena-prefixed tools first
       const serenaMatch = list.find(d => d.name.startsWith('serena__') && (
         (toolName.includes('read') && d.name.includes('read')) ||
         ((toolName.includes('write') || toolName.includes('create')) && (d.name.includes('write') || d.name.includes('create') || d.name.includes('replace') || d.name.includes('insert'))) ||
@@ -141,7 +120,6 @@ export class ToolExecutor {
       ))
       if (serenaMatch) return this.registry.get(serenaMatch.name)
 
-      // Otherwise, pick any tool with suffix __<toolName>
       const suffixMatch = list.find(d => d.name.endsWith(`__${toolName}`))
       if (suffixMatch) return this.registry.get(suffixMatch.name)
     }
@@ -415,10 +393,8 @@ export class ToolExecutor {
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
         const enrichment = this.enrichToolResult(sessionId, actualToolName, durationMs, false)
         
-        // Apply presentation formatting
         const presented = this.applyPresentation(String(safeResult.data), actualToolName, durationMs)
 
-        // EXTERNAL HOOKS: Run PostToolUse hooks and merge feedback
         let finalContent = presented.content
         if (this.hookRunner?.hasHooks()) {
           const postResult = await this.hookRunner.runPostToolUse(
@@ -442,7 +418,6 @@ export class ToolExecutor {
           durationMs,
         }
       } else {
-        // Legacy execution (safety disabled)
         const result = await Promise.race([
           actualEntry.handler(call.input, ctx),
           new Promise<never>((_, reject) =>
@@ -458,7 +433,6 @@ export class ToolExecutor {
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
         const enrichment = this.enrichToolResult(sessionId, actualToolName, durationMs, false)
         
-        // Apply presentation formatting
         const presented = this.applyPresentation(result, actualToolName, durationMs)
         return {
           toolCallId: call.id,
@@ -480,17 +454,8 @@ export class ToolExecutor {
   }
 
   /**
-   * Record a tool execution outcome in the Trust Ledger.
-   *
-   * This is the learning feedback loop: every tool call's success/failure
-   * is recorded as evidence in the relevant trust domain. Over time, this
-   * causes trust scores to converge toward the agent's true success rate
-   * for each category of action.
-   *
-   * @param toolName - The tool that was executed
-   * @param success - Whether execution succeeded
-   * @param sessionId - Session context
-   * @param description - Brief description of the outcome
+   * WHY: Records tool outcomes as evidence — trust scores converge toward
+   * actual success rates per domain over time (Bayesian learning)
    */
   private recordToolOutcome(
     toolName: string,
@@ -517,14 +482,8 @@ export class ToolExecutor {
   }
 
   /**
-   * Record a tool execution outcome in the Reliability Tracker.
-   *
-   * This feeds the circuit breaker pattern: consecutive failures open the circuit,
-   * while successes close it. Duration metrics are tracked for performance monitoring.
-   *
-   * @param toolName - The tool that was executed
-   * @param durationMs - Execution duration in milliseconds
-   * @param success - Whether execution succeeded
+   * WHY: Circuit breaker pattern — consecutive failures open the circuit,
+   * allowing fallback routing before the tool is retried
    */
   private recordReliabilityOutcome(
     toolName: string,
@@ -544,9 +503,6 @@ export class ToolExecutor {
     }
   }
 
-  /**
-   * Emit safety event for monitoring
-   */
   private emitSafetyEvent(
     sessionId: string,
     toolName: string,
@@ -566,8 +522,7 @@ export class ToolExecutor {
   }
 
   /**
-   * Emit tool:executed event for observability.
-   * Consumed by the Thinker module to trigger insight cycles based on tool activity.
+   * WHY: Thinker consumes this event to trigger insight cycles on tool activity
    */
   private emitToolExecuted(
     sessionId: string,
@@ -587,11 +542,6 @@ export class ToolExecutor {
     })
   }
 
-  /**
-   * Build enrichment block from intelligence layer metadata and append to tool result.
-   * Returns formatted enrichment string or null if no data available.
-   * Also emits tool:enriched event for channel worker observability.
-   */
   private enrichToolResult(
     sessionId: string,
     toolName: string,
@@ -640,35 +590,25 @@ export class ToolExecutor {
     return `\n━━ CassiCore ━ ${parts.join(' · ')} ━━`
   }
 
-  /**
-   * Track skill invocations when read tool is called on SKILL.md files
-   */
   private trackSkillInvocation(call: ToolCall, sessionId: string): void {
     if (!this.eventBus) return
 
-    // Check if this is a read operation
     const isReadTool = call.name === 'read' || call.name === 'read_file' ||
                        call.name.endsWith('__read') || call.name.endsWith('__read_file')
 
     if (!isReadTool) return
 
-    // Get the file path from the input
     const filePath = (call.input.path as string) || (call.input.file_path as string)
     if (!filePath) return
 
-    // Check if this is a SKILL.md file
     if (!filePath.includes('SKILL.md')) return
 
-    // Extract skill name from path
-    // Path format: .../skills/{skill-name}/SKILL.md or .../{skill-name}/SKILL.md
     const pathParts = filePath.split(/[/\\]/)
     const skillFileIndex = pathParts.indexOf('SKILL.md')
     if (skillFileIndex === -1) return
 
-    // Get the directory name containing the skill
     const skillName = skillFileIndex > 0 ? pathParts[skillFileIndex - 1] : 'unknown'
 
-    // Determine source from path
     let source = 'unknown'
     if (filePath.includes('.cassi/skills')) {
       source = 'cassi'
@@ -680,7 +620,6 @@ export class ToolExecutor {
       source = 'pi'
     }
 
-    // Emit the skill:invoked event
     this.eventBus.emit({
       type: 'skill:invoked',
       skillName,
@@ -691,10 +630,6 @@ export class ToolExecutor {
     })
   }
 
-  /**
-   * Apply presentation formatting to tool output.
-     * For bash/shell_exec, parses structured JSON result to extract metadata.
-   */
   private applyPresentation(
     rawOutput: string,
     toolName: string,
@@ -704,8 +639,7 @@ export class ToolExecutor {
     let stderr: string | undefined
     let contentToPresent = rawOutput
 
-    // Parse structured shell_exec/bash result
-     if (toolName === 'bash' || toolName === 'shell_exec' || toolName === 'shell-exec') {
+    if (toolName === 'bash' || toolName === 'shell_exec' || toolName === 'shell-exec') {
       try {
         const parsed = JSON.parse(rawOutput) as {
           stdout: string
@@ -720,7 +654,6 @@ export class ToolExecutor {
           contentToPresent = parsed.stdout
         }
       } catch {
-        // Not structured JSON, use raw output as-is
         this.defaultContext.logger.debug('Shell output not structured, using raw', { toolName })
       }
     }
@@ -751,7 +684,6 @@ export class ToolExecutor {
         if (outcome.status === 'fulfilled') {
           results.push(outcome.value)
         } else {
-          // Convert unexpected rejection to error ToolResult so other calls aren't lost
           const call = batch[j]
           this.logger.error('Tool execute() rejected unexpectedly', {
             toolName: call.name,
@@ -771,12 +703,8 @@ export class ToolExecutor {
 
 
   /**
-   * Commit all workspace files written by a session as a single git commit
-   * with session attribution.  Call this when a delegated agent session
-   * (Helix, Dyad, Lumen, Flux cell) completes.
-   *
-   * Uses the FileArtifactStore's workspace namespace to discover which files
-   * this session wrote, then creates an attributed `git commit --only`.
+   * Commit workspace files as a single git commit with session attribution.
+   * Called when a delegated agent session (Helix/Dyad/Lumen/Flux) completes.
    */
   async commitSession(
     opts: Omit<SessionCommitOpts, 'workingDir'>,
