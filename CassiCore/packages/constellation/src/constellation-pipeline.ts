@@ -57,7 +57,7 @@ const SPAWN_CHECK_INTERVAL_MS = 1000
  * Returns true if the goal is likely complex enough to benefit from decomposition.
  */
 function isGoalComplex(goal: string): boolean {
-  // Heuristics: long goals, multiple sections, mentions multiple modules/directories
+  // HOW: Heuristics: long goals, multiple sections, mentions multiple modules/directories
   if (goal.length > 500) return true
   if ((goal.match(/\n##/g) ?? []).length >= 2) return true
   if ((goal.match(/(?:core\/|src\/|lib\/)[^\s,]+/g) ?? []).length >= 3) return true
@@ -107,7 +107,7 @@ async function runGoalDecomposition(opts: {
       }
     } catch (err) {
       opts.log.warn('Memory query failed during goal decomposition', { error: String(err) })
-      // Continue without memory context — don't block decomposition
+      // WHY: Continue without memory context — don't block decomposition
     }
   }
 
@@ -311,7 +311,7 @@ function formatMemoryResultsForPlanner(results: SearchResult[]): string {
 async function safeReadFile(path: string, workspaceRoot: string): Promise<string | null> {
   try {
     const resolved = pathResolve(workspaceRoot, path)
-    // Security: ensure the resolved path is within the workspace
+    // WHY: Security: ensure the resolved path is within the workspace
     if (!resolved.startsWith(workspaceRoot)) return null
     const content = await fsReadFile(resolved, 'utf-8')
     return content
@@ -491,10 +491,10 @@ export async function runConstellationPipeline(
 
   const log = logger.child('constellation-pipeline')
 
-  // Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
+  // WHY: Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
   const brainstemLLM = brainstemLLMOpt ?? corpusLLM
 
-  // Instantiate memory injection service if memory is available.
+  // WHY: Instantiate memory injection service if memory is available.
   // Used to inject relevant past-run memories into each new Helix branch.
   const memoryInjectionService = opts.memory
     ? new MemoryInjectionService(opts.memory, log.child('memory-injection'))
@@ -671,7 +671,6 @@ export async function runConstellationPipeline(
     }
   )
 
-  // Start Corpus
   await corpus.start()
   log.info('Corpus started')
 
@@ -729,8 +728,7 @@ export async function runConstellationPipeline(
     log.info('Corpus mini-Helix started')
   }
 
-  // Notify orchestrator — corpus is live, tree state is available
-
+  // WHY: Notify orchestrator — corpus is live, tree state is available
   if (opts.onCorpusReady) {
     const liveState: ConstellationLiveState = {
       constellationId,
@@ -781,7 +779,7 @@ export async function runConstellationPipeline(
       goal: helixGoal.slice(0, 100),
     })
 
-    // Inject relevant memories from past runs into the branch's initial context
+    // WHY: Inject relevant memories from past runs into the branch's initial context
     let enrichedContext = helixContext
     if (memoryInjectionService) {
       try {
@@ -806,7 +804,7 @@ export async function runConstellationPipeline(
     try {
       const elevatedPatterns = corpusTree.getElevatedPatterns()
       if (elevatedPatterns.length > 0) {
-        // Filter patterns relevant to this branch's goal (keyword matching)
+        // HOW: Filter patterns relevant to this branch's goal (keyword matching)
         const goalKeywords = helixGoal.toLowerCase().split(/\s+/).filter(w => w.length > 3)
         const relevantPatterns = elevatedPatterns.filter(pattern => {
           const patternText = `${pattern.applicableContext} ${pattern.approach}`.toLowerCase()
@@ -830,7 +828,6 @@ export async function runConstellationPipeline(
       // Continue with existing context — don't block launch
     }
 
-    // Register branch in corpus tree
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
 
     // Persist branch creation to ConstellationStore
@@ -849,7 +846,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // Create node
     const node: ConstellationNode = {
        helixId,
        config: {
@@ -869,12 +865,11 @@ export async function runConstellationPipeline(
     nodes.set(helixId, node)
     onNodeCreated?.(node)
 
-    // Acquire model handles
     const postures = resolvePostures()
     const handles: ModelHandle[] = []
 
     try {
-      // Acquire handles for each posture that needs one
+      // HOW: Acquire handles for each posture that needs one
       // Unity, Yang, Yin always need handles
       // Additional postures may need handles based on their configuration
       const unityHandle = await handleFactory({
@@ -908,11 +903,11 @@ export async function runConstellationPipeline(
       throw err
     }
 
-    // Create Brainstem deps with corpus tree integration
+    // HOW: Create Brainstem deps with corpus tree integration
     // WHY: The actual Brainstem instance is created and started inside runHelixPipeline.
     // We capture it via the onBrainstemCreated callback for Corpus registration.
     //
-    // The sharedTree reader provides each Brainstem with read/write access to
+    // WHY: The sharedTree reader provides each Brainstem with read/write access to
     // the Shared Thought Tree for stigmergic self-organization.
     const sharedTreeReader = createSharedTreeReaderForHelix(helixId, corpusTree)
 
@@ -950,16 +945,15 @@ export async function runConstellationPipeline(
       },
     }
 
-    // The actual brainstem reference — set by onBrainstemCreated when the pipeline starts it
+    // HOW: The actual brainstem reference — set by onBrainstemCreated when the pipeline starts it
     let activeBrainstem: HelixBrainstem | undefined
 
-    // Create cancellation mechanism
     let cancelFn: (() => void) | undefined
     const cancelPromise = new Promise<never>((_, reject) => {
       cancelFn = () => reject(new Error('Helix cancelled'))
     })
 
-    // Run the Helix pipeline
+    // WHY: Run the Helix pipeline
     // No timeout — Constellation manages lifecycle through Corpus coordination
     // and external cancellation, not arbitrary time limits.
     const helixPromise = runHelixPipeline({
@@ -977,7 +971,7 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
-      // Constellation Helixes run longer tool-call chains (drone scouts, file reads, etc.)
+      // WHY: Constellation Helixes run longer tool-call chains (drone scouts, file reads, etc.)
       // Relax inactivity thresholds: warn=5min, escalate=10min, kill=15min
       inactivityThresholds: {
         warnMs: 300_000,
@@ -1002,7 +996,7 @@ export async function runConstellationPipeline(
         blackboardBridges.set(helixId, bridge)
         helixLog.debug('Blackboard bridge started', { helixId })
 
-        // Bridge blackboard findings into cross-Helix dialectic.
+        // WHY: Bridge blackboard findings into cross-Helix dialectic.
         // When this branch posts a finding, forward it to other branches.
         if (crossHelixDialectic) {
           childBlackboard.subscribe('findings', undefined, (entry: { content: string; tags?: string[] }) => {
@@ -1018,7 +1012,6 @@ export async function runConstellationPipeline(
         }
       },
       onCancelRegistered: (fn) => {
-        // Store the cancel function
         if (cancelFn) {
           const originalCancel = cancelFn
           cancelFn = () => {
@@ -1028,7 +1021,7 @@ export async function runConstellationPipeline(
         }
       },
       onBrainstemCreated: (bs) => {
-        // Capture the pipeline's brainstem (which is started and has its runLoop active)
+        // HOW: Capture the pipeline's brainstem (which is started and has its runLoop active)
         // and register it with the Corpus for tree integration
         activeBrainstem = bs
         corpus.registerBrainstem(helixId, bs)
@@ -1045,7 +1038,7 @@ export async function runConstellationPipeline(
 
         // Optionally start a Brainstem mini-Helix sidecar
         if (opts.useMiniHelixBrainstem) {
-          // Collect available worker tool names so Brainstem knows what tools the worker has
+          // WHY: Collect available worker tool names so Brainstem knows what tools the worker has
           const workerToolNames = toolRegistry
             ? toolRegistry.list().map((t) => t.name)
             : []
@@ -1085,7 +1078,6 @@ export async function runConstellationPipeline(
             config: opts.brainstemMiniHelix,
           })
 
-          // Register mini-Helix brainstem with Corpus
           if (corpusMiniHelix) {
             corpusMiniHelix.registerBrainstem(helixId, { onCorpusDirective: (d) => brainstemMH.onCorpusDirective(d) })
           }
@@ -1120,7 +1112,6 @@ export async function runConstellationPipeline(
 
     runningHelixes.set(helixId, runningHelix)
 
-    // Track completion
     promise
       .then((result) => {
         const isDegraded = result.completionStatus.degraded
@@ -1191,11 +1182,10 @@ export async function runConstellationPipeline(
         onNodeCompleted?.(node)
       })
       .finally(async () => {
-        // Close branch in corpus tree — node.status is now correct after .then()/.catch()
+        // HOW: Close branch in corpus tree — node.status is now correct after .then()/.catch()
         // Corpus tree only knows 'completed' | 'failed', so degraded maps to 'completed' there
         const branchStatus = (node.status === 'completed' || node.status === 'degraded') ? 'completed' : 'failed'
         corpusTree.closeBranch(helixId, branchStatus)
-        // Unregister from cross-Helix dialectic
         crossHelixDialectic?.unregisterBranch(helixId)
 
         // Persist branch completion to ConstellationStore
@@ -1214,7 +1204,6 @@ export async function runConstellationPipeline(
           }
         }
 
-        // Stop Brainstem mini-Helix sidecar if it was running
         const rh = runningHelixes.get(helixId)
         if (rh?.brainstemMiniHelix) {
           await rh.brainstemMiniHelix.stop().catch((err) => {
@@ -1255,7 +1244,6 @@ export async function runConstellationPipeline(
       goal: request.goal.slice(0, 100),
     })
 
-    // Check limits
     if (runningHelixes.size >= maxHelixes) {
       log.warn('Max Helixes reached, rejecting spawn request', {
         requestId: request.requestId,
@@ -1279,7 +1267,6 @@ export async function runConstellationPipeline(
       return
     }
 
-    // Evaluate via Corpus
     const decision = await corpus.evaluateSpawnRequest(request)
 
     if (!decision.approved) {
@@ -1375,7 +1362,6 @@ export async function runConstellationPipeline(
     })
     opts.onCancelRegistered?.(externalCancel)
 
-    // Persist constellation start event
     if (constellationStore) {
       try {
         constellationStore.appendEvent(constellationId, 'constellation:started', null,
@@ -1397,7 +1383,7 @@ export async function runConstellationPipeline(
       readFile: (path: string) => safeReadFile(path, process.cwd()),
     })
 
-    // Start periodic progress checkpoints (every 30s).
+    // WHY: Start periodic progress checkpoints (every 30s).
     // Also enforces maxTotalSteps limit.
     const CHECKPOINT_INTERVAL_MS = 30_000
     const maxTotalSteps = opts.maxTotalSteps ?? 100
@@ -1425,7 +1411,6 @@ export async function runConstellationPipeline(
             branches: nodeArr.length,
           })
 
-          // Check max steps limit
           if (totalSteps >= maxTotalSteps) {
             log.warn('Max total steps reached, cancelling Constellation', {
               totalSteps,
@@ -1441,7 +1426,7 @@ export async function runConstellationPipeline(
         }
       }, CHECKPOINT_INTERVAL_MS)
 
-      // Fire first checkpoint after 10s (don't wait for the full interval)
+      // HOW: Fire first checkpoint after 10s (don't wait for the full interval)
       setTimeout(() => {
         if (!checkpointHandle) return
         try {
@@ -1468,7 +1453,6 @@ export async function runConstellationPipeline(
         durationMs: decomposition.durationMs,
       })
 
-      // Launch Helixes based on decomposition
       const helixPromises: Array<{ helixId: string; promise: Promise<HelixResult> }> = []
       for (const subTask of decomposition.subTasks) {
         const subContext = [
@@ -1484,10 +1468,8 @@ export async function runConstellationPipeline(
       }
       rootHelixId = helixPromises[0]?.helixId ?? ''
 
-      // Start spawn request polling
       const spawnPoller = pollSpawnRequests()
 
-      // Wait for all sub-task Helixes to complete
       log.info('Waiting for decomposed sub-task Helixes', { count: helixPromises.length })
       await Promise.race([
         Promise.all(helixPromises.map(h => h.promise)),
@@ -1496,24 +1478,21 @@ export async function runConstellationPipeline(
 
       void spawnPoller // spawnPoller is a Promise, not a timer — it exits on its own
     } else {
-      // Simple goal or decomposition failed — launch single root Helix (original behavior)
+      // WHY: Simple goal or decomposition failed — launch single root Helix (original behavior)
       if (decomposition.decomposed) {
         log.info('Decomposition returned single task, proceeding with single Helix')
       }
 
-      // Launch root Helix
       const rootHelix = await launchHelix(goal, context, undefined, 0)
       rootHelixId = rootHelix.helixId
 
-      // Start spawn request polling
       const spawnPoller = pollSpawnRequests()
 
-      // Wait for root Helix completion
       log.info('Waiting for root Helix completion', { rootHelixId })
 
       await Promise.race([rootHelix.promise, cancelPromise])
 
-      // Give children a grace period to complete
+      // WHY: Give children a grace period to complete
       log.info('Root Helix completed, waiting for children', {
         childrenCount: runningHelixes.size - 1,
       })
@@ -1523,7 +1502,6 @@ export async function runConstellationPipeline(
         setTimeout(resolve, gracePeriodMs)
       })
 
-      // Wait for either all children to complete or grace period
       const childPromises = Array.from(runningHelixes.values())
         .filter((h) => h.helixId !== rootHelixId)
         .map((h) => h.promise)
@@ -1540,7 +1518,6 @@ export async function runConstellationPipeline(
       failedNodes: Array.from(nodes.values()).filter((n) => n.status === 'failed').length,
     })
 
-    // Build result
     result = {
       constellationId,
       rootHelixId: rootHelixId!,
@@ -1552,7 +1529,6 @@ export async function runConstellationPipeline(
       spawnRequests: [],
     }
 
-    // Emit completion event
     eventBus?.emit({
       type: 'team:event' as any,
       teamId: constellationId,
@@ -1701,7 +1677,6 @@ export async function runConstellationPipeline(
     }
   } catch (err) {
 
-    // Build partial result
     result = {
       constellationId,
       rootHelixId: rootHelixId ?? constellationId,
