@@ -162,7 +162,7 @@ function serveHtml(res: ServerResponse) {
   document.getElementById('clear').addEventListener('click', ()=>{ messagesEl.innerHTML=''; });
   document.getElementById('input').addEventListener('keydown', function(e){ if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ send(); } });
 
-  function send(){ const ta = document.getElementById('input'); const content = ta.value.trim(); if(!content) return; ta.value=''; appendUser('> ' + content); assistantEls.delete(sessionId); fetch('/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ sessionId: sessionId, content })}).then(r=>r.json()).then(()=>{}).catch(console.error);
+  function send(){ const ta = document.getElementById('input'); const content = ta.value.trim(); if(!content) return; ta.value=''; appendUser('> ' + content); assistantEls.delete(sessionId); fetch('/message',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ sessionId: sessionId, content })}).then(r=>r.json()).then(()=>{}).catch(console.error); // contributing:ignore - browser debug logging
   }
 })();
 </script>

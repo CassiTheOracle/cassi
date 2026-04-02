@@ -1,11 +1,14 @@
 import { workerPort } from '../core/worker-ipc.js'
+import { rootLogger } from '../core/logger.js'
 import type { HostToWorkerMessage } from '../types/worker-messages.js'
+
+const logger = rootLogger.child('echo-channel')
 
 workerPort.on('message', (msg: HostToWorkerMessage) => {
   if (msg.type === 'init') {
     // announce ready
     workerPort.postMessage({ type: 'ready' })
-    console.log('echo-channel ready')
+    logger.info('echo-channel ready')
     return
   }
 
