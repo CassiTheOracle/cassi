@@ -64,7 +64,7 @@ import type { IntelligenceLayer } from "./intelligence/index.js"
 // Type helper for intelligence modules with optional event handlers
 interface EventHandler { onEvent?: (e: unknown) => void | Promise<void> }
 
-// Singleton lock file path
+// WHY: singleton enforcement via PID file prevents multiple daemon instances
 const CASSICORE_PID_FILE = path.join(homedir(), '.cassicore', 'daemon.pid')
 
 export interface DaemonBootPhaseMetric {
@@ -108,8 +108,9 @@ function roundDurationMs(value: number): number {
 }
 
 /**
- * Check if another daemon instance is already running
- * Returns the PID of the running daemon, or null if none
+ * Check if another daemon instance is already running.
+ * WHY: singleton enforcement — only one daemon should run per user.
+ * Returns the PID of the running daemon, or null if none.
  */
 function checkExistingDaemon(): number | null {
   try {
@@ -121,7 +122,7 @@ function checkExistingDaemon(): number | null {
     const existingPid = parseInt(pidContent, 10)
 
     if (isNaN(existingPid) || existingPid <= 0) {
-      // Stale PID file
+      // WHY: invalid PID format — remove corrupted file
       fs.unlinkSync(CASSICORE_PID_FILE)
       return null
     }
@@ -129,25 +130,26 @@ function checkExistingDaemon(): number | null {
     // Check if process is actually running
     try {
       process.kill(existingPid, 0)
-      // Process exists and we have permission to signal it
+      // WHY: signal 0 succeeds only if process exists and we have permission
       return existingPid
     } catch (err) {
-      // Process doesn't exist or no permission - stale PID file
+      // WHY: ESRCH = process dead (stale file), EPERM = different user
       if ((err as NodeJS.ErrnoException).code === 'ESRCH') {
         fs.unlinkSync(CASSICORE_PID_FILE)
         return null
       }
-      // EPERM - process exists but we can't signal it (different user)
+      // WHY: EPERM means process exists but runs as different user — treat as running
       return existingPid
     }
   } catch (err) {
-    // Any other error - assume no daemon running
+    // WHY: defensive — file read errors, permission issues = assume safe to start
     return null
   }
 }
 
 /**
- * Write current PID to lock file
+ * Write current PID to lock file.
+ * WHY: enables singleton check on subsequent daemon start attempts.
  */
 function writePidFile(logger: ILogger): void {
   try {
@@ -162,7 +164,8 @@ function writePidFile(logger: ILogger): void {
 }
 
 /**
- * Remove PID file on shutdown
+ * Remove PID file on shutdown.
+ * WHY: prevents stale PID from blocking future daemon starts.
  */
 function cleanupPidFile(): void {
   try {
@@ -170,7 +173,7 @@ function cleanupPidFile(): void {
       fs.unlinkSync(CASSICORE_PID_FILE)
     }
   } catch (err) {
-    // Ignore cleanup errors
+    // WHY: cleanup is best-effort — failure should not block shutdown
   }
 }
 
@@ -244,10 +247,10 @@ export class Daemon {
     if (CASSICORE_VERSION === 'unknown') {
       this.logger.warn('Could not determine CassiCore version from package.json')
     }
-    // create orchestration bus and attach
+    // WHY: orchestration bus enables cross-session coordination
     try {
       this.orchestration = createOrchestrationBus(this.logger.child('orchestration'))
-      // start session bridge
+      // WHY: session bridge propagates events across orchestration boundary
       createSessionBridge(this.orchestration, this.logger.child('bridge'))
     } catch (err) {
       this.logger.warn(`failed to initialize orchestration: ${String(err)}`)
@@ -285,6 +288,8 @@ export class Daemon {
     }
   }
 
+  // WHY: defer non-critical startup (inference stack, embeddings) until after daemon readiness
+  // so admin API and critical paths are not blocked. setTimeout(0) yields to event loop.
   private scheduleDeferredStartup(): void {
     if (this.deferredStartupTimer) return
     this.deferredStartupTimer = setTimeout(() => {
@@ -411,8 +416,7 @@ export class Daemon {
     // 0b. Check for existing daemon instance (singleton enforcement)
     const existingPid = checkExistingDaemon()
     if (existingPid !== null) {
-      // Exit silently — OpenCode or other tools may periodically probe for the daemon,
-      // and noisy errors spam daemon.log when stdout/stderr is redirected there.
+      // WHY: silent exit prevents log spam from periodic daemon probes (OpenCode, etc.)
       process.exit(0)
     }
 
@@ -441,7 +445,7 @@ export class Daemon {
 
     this.config = layered
 
-    // 3. Start config watcher (file-level)
+    // 3. Start config watcher (file-level) — enables hot-reload without restart
     try {
       baseCfg.watch()
     } catch (err) {
@@ -457,12 +461,12 @@ export class Daemon {
       this.logger.info(`Config loaded`, { logLevel, thinking, defaultProvider, defaultModel })
     }
 
-    // 3. Register SIGHUP -> reload
+    // 3. Register SIGHUP -> reload (hot config reload without restart)
     process.on("SIGHUP", () => {
       void this.reload()
     })
 
-    // 4. Register SIGTERM + SIGINT -> stop
+    // 4. Register SIGTERM + SIGINT -> graceful shutdown
     const stopHandler = () => {
       void this.stop()
     }
@@ -471,6 +475,7 @@ export class Daemon {
 
     if (process.stdin.listenerCount("error") === 0) {
       process.stdin.on("error", (err) => {
+        // WHY: EIO = EOF on stdin (common when detached), ignore silently
         if ((err as NodeJS.ErrnoException).code === "EIO") return;
         this.logger.warn?.('process.stdin error', { error: String(err) })
       })
@@ -486,7 +491,7 @@ export class Daemon {
             errMsg = err.stack || err.message || String(reason)
           }
         } catch (e) { /* ignore */ }
-        // Treat plain timeouts as lower-severity (they are common with provider/polling cancellations)
+        // WHY: timeouts are expected (provider cancellations, polling) — downgrade to debug
         if (String(errMsg).toLowerCase().includes('timeout')) {
           this.logger.debug?.('unhandledRejection (timeout)', { error: errMsg })
         } else {
@@ -495,22 +500,18 @@ export class Daemon {
       } catch (e) { /* ignore */ }
     })
 
-    // Handle unhandled child process errors to prevent daemon crashes
+    // WHY: ENOENT on spawn = missing shell command — log but don't crash daemon
     process.on('uncaughtException', (error) => {
       if (error && (error as NodeJS.ErrnoException).code === 'ENOENT' && (error as NodeJS.ErrnoException).syscall?.includes('spawn')) {
-        // Shell command failed - log but don't crash
         this.logger.error?.('shell command failed', {
           syscall: (error as NodeJS.ErrnoException).syscall,
           path: (error as NodeJS.ErrnoException).path,
           message: error.message
         })
-        // Don't exit - just log the error
         return
       }
-      // For non-spawn uncaught exceptions, log and schedule graceful shutdown.
-      // Continuing after an uncaught exception leaves the process in an
-      // undefined state (e.g., HTTP server dead, event loop corrupted).
-      // A scheduled exit gives in-flight operations a brief window to complete.
+      // WHY: uncaught exceptions leave process in undefined state (dead HTTP server, corrupted event loop).
+      // Schedule graceful shutdown to allow in-flight operations to complete.
       this.logger.error?.('uncaughtException — scheduling shutdown', { error: error.message, stack: error.stack })
       this.bus.emit({ type: 'daemon:shutdown', reason: 'uncaughtException' })
       setTimeout(() => {
@@ -526,7 +527,7 @@ export class Daemon {
       defaultModel: this.config.get<string>('intelligence.defaultModel', '(default)'),
     })
 
-    // 5. Create PluginHost with logger
+    // 5. Create PluginHost — manages channel workers as isolated plugins
     this.pluginHost = new PluginHost(this.logger)
 
     this.logger.info('── Phase 2: Intelligence Layer ────────────────────────')
@@ -538,7 +539,7 @@ export class Daemon {
       // Create shared GlobalBlackboardRegistry for daemon-scoped modules
       this.globalBlackboardRegistry = new GlobalBlackboardRegistry(this.logger.child('global-blackboard-registry'))
 
-      // Wire blackboard registry to all modules that extend BaseCognitiveModule
+      // WHY: BaseCognitiveModule subclasses need blackboard registry for cross-module communication
       if (this.globalBlackboardRegistry) {
         for (const mod of Object.values(this.intelligence)) {
           if (mod && typeof (mod as any).setGlobalBlackboardRegistry === 'function') {
@@ -547,7 +548,7 @@ export class Daemon {
         }
       }
 
-      // Wire modules to event bus
+      // Wire modules to event bus — enables reactive intelligence triggers
       const bus = this.bus
       bus.on("turn:start", (e) => {
         void (this.intelligence.memory as EventHandler).onEvent?.(e)
