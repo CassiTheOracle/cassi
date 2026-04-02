@@ -333,7 +333,8 @@ export class Corpus {
         if (pending === 0) {
           // Idle poll with adaptive interval (Recommendation E)
           const pollInterval = this.computeAdaptivePollInterval()
-          await this.sleep(pollInterval)
+          await this.interruptibleSleep(pollInterval)
+          if (this.shutdownRequested) continue
           continue
         }
 
@@ -419,7 +420,7 @@ export class Corpus {
         // Continue loop despite errors - use adaptive interval (Recommendation E)
         this.consecutiveFailures++
         const pollInterval = this.computeAdaptivePollInterval()
-        await this.sleep(pollInterval)
+        await this.interruptibleSleep(pollInterval)
       }
     }
   }
@@ -797,8 +798,8 @@ export class Corpus {
 
     const escalationQueueLength = this.escalationQueue.length
 
-    // Start with base
-    let pollMs = config.basePollMs
+    // Start with idlePollMs as base (allows tests to override via config)
+    let pollMs = this.config.idlePollMs
 
     // Adjust for branch count
     if (activeBranches > config.branchThreshold) {
@@ -2027,6 +2028,18 @@ Guidelines:
    */
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Interruptible sleep — checks shutdownRequested every 50ms
+   * to allow fast shutdown even during long sleeps.
+   */
+  private async interruptibleSleep(ms: number): Promise<void> {
+    const interval = 50
+    const elapsed = 0
+    for (let i = 0; i < ms && !this.shutdownRequested; i += interval) {
+      await this.sleep(Math.min(interval, ms - i))
+    }
   }
 
 
