@@ -619,6 +619,18 @@ export type RuntimeEvent =
   | { type: "vybit:change_error"; commitId: string; patchId: string; error: string; timestamp: Date }
   | { type: "vybit:bug_report"; commitId: string; description: string; hasTimeline: boolean; hasScreenshots: boolean; timestamp: Date }
 
+  // WHY: Workflow lifecycle events enable observability, tracing, and human-in-the-loop coordination for agent workflow execution
+  | { type: "workflow:started"; runId: string; workflowId: string; input?: unknown; timestamp: Date }
+  | { type: "workflow:completed"; runId: string; workflowId: string; output?: unknown; durationMs: number; stepsExecuted: number; timestamp: Date }
+  | { type: "workflow:failed"; runId: string; workflowId: string; error: string; failedNodeId?: string; durationMs: number; timestamp: Date }
+  | { type: "workflow:cancelled"; runId: string; workflowId: string; reason: string; timestamp: Date }
+  | { type: "workflow:suspended"; runId: string; workflowId: string; reason: string; suspendedAtNodeId: string; timestamp: Date }
+  | { type: "workflow:resumed"; runId: string; workflowId: string; resumedAtNodeId: string; timestamp: Date }
+  | { type: "workflow:step:started"; runId: string; workflowId: string; nodeId: string; stepId?: string; kind: string; attempt: number; timestamp: Date }
+  | { type: "workflow:step:completed"; runId: string; workflowId: string; nodeId: string; stepId?: string; kind: string; durationMs: number; timestamp: Date }
+  | { type: "workflow:step:failed"; runId: string; workflowId: string; nodeId: string; stepId?: string; kind: string; error: string; attempt: number; willRetry: boolean; timestamp: Date }
+  | { type: "workflow:step:retrying"; runId: string; workflowId: string; nodeId: string; stepId?: string; attempt: number; delayMs: number; timestamp: Date }
+
 export type EventType = RuntimeEvent["type"];
 
 /** Extract the event shape for a given type literal */
