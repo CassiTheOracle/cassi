@@ -267,10 +267,11 @@ export async function handleContextRoutes(
       }
 
       // If decision is still 'select', check token pressure.
-      // If we're at ≥85% capacity, scored selection alone can't recover — compact.
+      // If we're at ≥75% capacity, scored selection alone can't recover — compact.
+      // (Lowered from 85% to give compaction time to run before the hard limit.)
       if (decision === 'select' && tokensUsed > 0 && contextLimit > 0) {
         const usageRatio = tokensUsed / contextLimit
-        if (usageRatio >= 0.85) {
+        if (usageRatio >= 0.75) {
           decision = 'summarize'
         }
       }
@@ -313,6 +314,31 @@ export async function handleContextRoutes(
       if (!modelPool || typeof modelPool.acquire !== 'function') {
         sendJSON(res, 503, { error: 'ModelPool not available — CassiCore compaction unavailable' })
         return true
+      }
+
+      // ── 0. Archive full conversation for cross-session retrieval ───────────
+      // Index all messages NOW, before the LLM summary replaces the history.
+      // This allows cassi_enrich / FTS search to retrieve content from
+      // compacted sessions even after their history is summarised away.
+      try {
+        const indexer = runtime.getIntelligence()?.memory?.sessionIndexer as any
+        if (indexer && typeof indexer.indexSession === 'function') {
+          const toIndex = messages
+            .map((m: any) => ({
+              role: (m.role || 'user') as string,
+              content: typeof m.content === 'string'
+                ? m.content
+                : Array.isArray(m.content)
+                  ? m.content.filter((p: any) => p.type === 'text').map((p: any) => p.text || '').join('\n')
+                  : '',
+            }))
+            .filter((m: any) => m.content.length > 0)
+          if (toIndex.length > 0) {
+            await indexer.indexSession(sessionId, toIndex)
+          }
+        }
+      } catch {
+        // Non-fatal — archive is best-effort; compaction proceeds regardless
       }
 
       // ── 1. Gather cognitive signals ────────────────────────────────────
@@ -359,10 +385,15 @@ export async function handleContextRoutes(
       }
 
       // ── 3. Build conversation text for the LLM ──────────────────────────
-      // Convert messages to text, stripping binary/media content, capped at 80K chars
+      // Iterate newest → oldest so that recent context is preserved within the
+      // 80K char budget. Older turns are truncated first, not newer ones.
+      // (Previous approach iterated oldest → newest and silently lost the end
+      //  of the conversation — the most relevant part.)
       const CONV_CHAR_LIMIT = 80_000
-      let conversationText = ''
-      for (const m of messages) {
+      const segments: string[] = []
+      let totalChars = 0
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const m = messages[i]
         const role = (m.role ?? 'user').toUpperCase()
         let content = ''
         if (typeof m.content === 'string') {
@@ -373,12 +404,16 @@ export async function handleContextRoutes(
             .map((p: any) => p.text || '')
             .join('\n')
         }
-        conversationText += `[${role}]: ${content}\n---\n`
-        if (conversationText.length >= CONV_CHAR_LIMIT) {
-          conversationText = conversationText.slice(0, CONV_CHAR_LIMIT) + '\n[... earlier context truncated ...]\n'
+        const segment = `[${role}]: ${content}\n---\n`
+        if (totalChars + segment.length > CONV_CHAR_LIMIT) {
+          // Older messages don't fit — note the truncation at the top
+          segments.unshift('[... older context truncated — recent messages preserved above ...]\n')
           break
         }
+        segments.unshift(segment)
+        totalChars += segment.length
       }
+      const conversationText = segments.join('')
 
       // ── 4. Build the compaction prompt ─────────────────────────────────
       const contextSections: string[] = []
@@ -459,6 +494,22 @@ export async function handleContextRoutes(
         if (!summary) {
           sendJSON(res, 500, { error: 'LLM returned empty summary' })
           return true
+        }
+
+        // ── 6. Store compaction summary in memory for future sessions ──────
+        // Persisting the summary lets cassi_enrich surface it in later
+        // sessions, so compacted conversations are not truly forgotten.
+        try {
+          const memory = runtime.getIntelligence()?.memory as any
+          if (memory && typeof memory.store === 'function') {
+            await memory.store({
+              content: `[Compaction summary — session ${sessionId}]\n\n${summary}`,
+              type: 'conversation',
+              tags: ['compaction', 'session', sessionId],
+            })
+          }
+        } catch {
+          // Non-fatal — memory store failure should not fail the compaction
         }
 
         sendJSON(res, 200, {
