@@ -1157,8 +1157,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     return lines.join('\n')
   }
 
-  // ── Guidance Proposal Gate Handlers ─────────────────────────────────────
-
   private handleApproveGuidance(input: Record<string, unknown>): string {
     if (!this.brainstem) return 'No brainstem configured — guidance proposals are not available.'
     const proposalId = String(input.proposal_id ?? '')

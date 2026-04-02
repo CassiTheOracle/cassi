@@ -1775,9 +1775,6 @@ Critical rules:
     })
   }
 
-
-  // ── Guidance Proposal Gate ──────────────────────────────────────────────
-
   /**
    * Get pending proposals that a reviewer hasn't voted on yet.
    * Called by reviewers to see what brainstem guidance needs their approval.

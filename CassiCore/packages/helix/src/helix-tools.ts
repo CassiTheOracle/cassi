@@ -292,9 +292,6 @@ export const EDIT_PROPOSAL_TOOLS: ToolSchema[] = [
   REVIEW_EDIT_PROPOSAL_TOOL,
 ]
 
-
-// ── Guidance Gate Tools ─────────────────────────────────────────────────
-
 const APPROVE_GUIDANCE_TOOL: ToolSchema = {
   name: 'approve_guidance',
   description: 'Approve a brainstem guidance proposal to be sent to the builder. Both reviewers must approve before guidance reaches Unity.',
