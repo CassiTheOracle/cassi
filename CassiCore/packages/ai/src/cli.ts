@@ -9,8 +9,8 @@ const AUTH_FILE = "auth.json";
 const PROVIDERS = getOAuthProviders();
 
 /**
- * @dep callers: main (ai/src/cli.ts), promptFn (ai/src/cli.ts)
- * @dep module: Cluster_588
+ * @dep callers: promptFn (ai/src/cli.ts), main (ai/src/cli.ts)
+ * @dep module: Oauth
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
@@ -32,16 +32,16 @@ function saveAuth(auth: Record<string, { type: "oauth" } & OAuthCredentials>): v
 }
 
 /**
- * @dep callers: main (ai/src/cli.ts), login (ai/src/cli.ts)
- * @dep calls: getOAuthProvider, loadAuth, saveAuth, login, promptFn
- * @dep module: Cluster_588
+ * @dep callers: login (ai/src/cli.ts), main (ai/src/cli.ts)
+ * @dep calls: getOAuthProvider, promptFn, login, saveAuth, loadAuth
+ * @dep module: Oauth
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
 async function login(providerId: OAuthProviderId): Promise<void> {
 	const provider = getOAuthProvider(providerId);
 	if (!provider) {
-		console.error(`Unknown provider: ${providerId}`);
+		console.error(`Unknown provider: ${providerId}`); // contributing:ignore - CLI error output
 		process.exit(1);
 	}
 
@@ -51,21 +51,21 @@ async function login(providerId: OAuthProviderId): Promise<void> {
 	try {
 		const credentials = await provider.login({
 			onAuth: (info) => {
-				console.log(`\nOpen this URL in your browser:\n${info.url}`);
-				if (info.instructions) console.log(info.instructions);
-				console.log();
+				console.log(`\nOpen this URL in your browser:\n${info.url}`); // contributing:ignore - CLI user output
+				if (info.instructions) console.log(info.instructions); // contributing:ignore - CLI user output
+				console.log(); // contributing:ignore - CLI formatting
 			},
 			onPrompt: async (p) => {
 				return await promptFn(`${p.message}${p.placeholder ? ` (${p.placeholder})` : ""}:`);
 			},
-			onProgress: (msg) => console.log(msg),
+			onProgress: (msg) => console.log(msg), // contributing:ignore - CLI progress output
 		});
 
 		const auth = loadAuth();
 		auth[providerId] = { type: "oauth", ...credentials };
 		saveAuth(auth);
 
-		console.log(`\nCredentials saved to ${AUTH_FILE}`);
+		console.log(`\nCredentials saved to ${AUTH_FILE}`); // contributing:ignore - CLI success message
 	} finally {
 		rl.close();
 	}
@@ -90,14 +90,14 @@ Examples:
   npx @cassicore/ai login              # interactive provider selection
   npx @cassicore/ai login anthropic    # login to specific provider
   npx @cassicore/ai list               # list providers
-`);
+`); // contributing:ignore - CLI help output
 		return;
 	}
 
 	if (command === "list") {
-		console.log("Available OAuth providers:\n");
+		console.log("Available OAuth providers:\n"); // contributing:ignore - CLI list output
 		for (const p of PROVIDERS) {
-			console.log(`  ${p.id.padEnd(20)} ${p.name}`);
+			console.log(`  ${p.id.padEnd(20)} ${p.name}`); // contributing:ignore - CLI list output
 		}
 		return;
 	}
@@ -107,40 +107,40 @@ Examples:
 
 		if (!provider) {
 			const rl = createInterface({ input: process.stdin, output: process.stdout });
-			console.log("Select a provider:\n");
+			console.log("Select a provider:\n"); // contributing:ignore - CLI prompt output
 			for (let i = 0; i < PROVIDERS.length; i++) {
-				console.log(`  ${i + 1}. ${PROVIDERS[i].name}`);
+				console.log(`  ${i + 1}. ${PROVIDERS[i].name}`); // contributing:ignore - CLI list output
 			}
-			console.log();
+			console.log(); // contributing:ignore - CLI formatting
 
 			const choice = await prompt(rl, `Enter number (1-${PROVIDERS.length}): `);
 			rl.close();
 
 			const index = parseInt(choice, 10) - 1;
 			if (index < 0 || index >= PROVIDERS.length) {
-				console.error("Invalid selection");
+				console.error("Invalid selection"); // contributing:ignore - CLI error output
 				process.exit(1);
 			}
 			provider = PROVIDERS[index].id;
 		}
 
 		if (!PROVIDERS.some((p) => p.id === provider)) {
-			console.error(`Unknown provider: ${provider}`);
-			console.error(`Use 'npx @cassicore/ai list' to see available providers`);
+			console.error(`Unknown provider: ${provider}`); // contributing:ignore - CLI error output
+			console.error(`Use 'npx @cassicore/ai list' to see available providers`); // contributing:ignore - CLI error output
 			process.exit(1);
 		}
 
-		console.log(`Logging in to ${provider}...`);
+		console.log(`Logging in to ${provider}...`); // contributing:ignore - CLI status output
 		await login(provider);
 		return;
 	}
 
-	console.error(`Unknown command: ${command}`);
-	console.error(`Use 'npx @cassicore/ai --help' for usage`);
+	console.error(`Unknown command: ${command}`); // contributing:ignore - CLI error output
+	console.error(`Use 'npx @cassicore/ai --help' for usage`); // contributing:ignore - CLI error output
 	process.exit(1);
 }
 
 main().catch((err) => {
-	console.error("Error:", err.message);
+	console.error("Error:", err.message); // contributing:ignore - CLI error output
 	process.exit(1);
 });

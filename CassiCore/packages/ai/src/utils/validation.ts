@@ -24,7 +24,7 @@ if (!isBrowserExtension) {
 		addFormats(ajv);
 	} catch (_e) {
 		// AJV initialization failed (likely CSP restriction)
-		console.warn("AJV validation disabled due to CSP restrictions");
+		console.warn("AJV validation disabled due to CSP restrictions"); // contributing:ignore - CSP restriction warning
 	}
 }
 

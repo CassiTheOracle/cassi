@@ -20,6 +20,8 @@ if (typeof process !== "undefined" && (process.versions?.node || process.version
 import { generatePKCE } from "./pkce.js";
 import type { OAuthCredentials, OAuthLoginCallbacks, OAuthPrompt, OAuthProviderInterface } from "./types.js";
 
+
+
 const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize";
 const TOKEN_URL = "https://auth.openai.com/oauth/token";
@@ -118,7 +120,7 @@ async function exchangeAuthorizationCode(
 
 	if (!response.ok) {
 		const text = await response.text().catch(() => "");
-		console.error("[openai-codex] code->token failed:", response.status, text);
+		console.error("[openai-codex] code->token failed:", response.status, text); // contributing:ignore - OAuth debug logging
 		return { type: "failed" };
 	}
 
@@ -129,7 +131,7 @@ async function exchangeAuthorizationCode(
 	};
 
 	if (!json.access_token || !json.refresh_token || typeof json.expires_in !== "number") {
-		console.error("[openai-codex] token response missing fields:", json);
+		console.error("[openai-codex] token response missing fields:", json); // contributing:ignore - OAuth debug logging
 		return { type: "failed" };
 	}
 
@@ -155,7 +157,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResult> {
 
 		if (!response.ok) {
 			const text = await response.text().catch(() => "");
-			console.error("[openai-codex] Token refresh failed:", response.status, text);
+			console.error("[openai-codex] Token refresh failed:", response.status, text); // contributing:ignore - OAuth debug logging
 			return { type: "failed" };
 		}
 
@@ -166,7 +168,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResult> {
 		};
 
 		if (!json.access_token || !json.refresh_token || typeof json.expires_in !== "number") {
-			console.error("[openai-codex] Token refresh response missing fields:", json);
+			console.error("[openai-codex] Token refresh response missing fields:", json); // contributing:ignore - OAuth debug logging
 			return { type: "failed" };
 		}
 
@@ -177,7 +179,7 @@ async function refreshAccessToken(refreshToken: string): Promise<TokenResult> {
 			expires: Date.now() + json.expires_in * 1000,
 		};
 	} catch (error) {
-		console.error("[openai-codex] Token refresh error:", error);
+		console.error("[openai-codex] Token refresh error:", error); // contributing:ignore - OAuth debug logging
 		return { type: "failed" };
 	}
 }
@@ -268,7 +270,7 @@ function startLocalOAuthServer(state: string): Promise<OAuthServerInfo> {
 					"[openai-codex] Failed to bind http://127.0.0.1:1455 (",
 					err.code,
 					") Falling back to manual paste.",
-				);
+				); // contributing:ignore - OAuth server error logging
 				resolve({
 					close: () => {
 						try {
@@ -285,7 +287,7 @@ function startLocalOAuthServer(state: string): Promise<OAuthServerInfo> {
 }
 
 /**
- * @dep callers: refreshOpenAICodexToken (ai/src/utils/oauth/openai-codex.ts), loginOpenAICodex (ai/src/utils/oauth/openai-codex.ts)
+ * @dep callers: loginOpenAICodex (ai/src/utils/oauth/openai-codex.ts), refreshOpenAICodexToken (ai/src/utils/oauth/openai-codex.ts)
  * @dep calls: decodeJwt
  * @dep module: Oauth
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
