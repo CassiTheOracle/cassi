@@ -63,10 +63,10 @@ export interface CorpusBranch {
  * The other three are terminal states that close the branch.
  */
 export type CorpusBranchStatus =
-  | 'active'      // Helix is running, Brainstem is pushing annotations
-  | 'completed'   // Helix finished successfully
-  | 'cancelled'   // Helix was cancelled (by Corpus or externally)
-  | 'failed'      // Helix failed
+  | 'active'
+  | 'completed'
+  | 'cancelled'
+  | 'failed'
 
 /**
  * Interface for the shared Corpus tree data structure.
@@ -171,7 +171,6 @@ export interface CorpusBranchSnapshot {
   averageScore: number
   createdAt: number
   closedAt?: number
-  /** Branch digest if available (Shared Thought Tree) */
   digest?: BranchDigest
 }
 
@@ -312,14 +311,14 @@ export interface StrategyRetrospective {
  * This matters for learning which coordination mechanisms work best.
  */
 export type RetrospectiveTrigger =
-  | 'self-organization'  // peer state in the tree caused a redirect
-  | 'corpus-directive'   // the Corpus sent a directive
-  | 'score-decline'      // quality scores dropped
-  | 'pattern-detected'   // a pathological pattern was detected locally
-  | 'topic-tension'      // a shared topic showed conflicting approaches
-  | 'peer-convergence'   // multiple peers converged on a different approach
-  | 'goal-refinement'    // narrowed focus to avoid overlap with a peer
-  | 'manual'             // explicit user or external steering
+  | 'self-organization'
+  | 'corpus-directive'
+  | 'score-decline'
+  | 'pattern-detected'
+  | 'topic-tension'
+  | 'peer-convergence'
+  | 'goal-refinement'
+  | 'manual'
 
 /**
  * Elevated Pattern — a successful strategy that a completed branch
@@ -370,13 +369,13 @@ export interface SelfOrgAdjustment {
  * conflicts for Corpus resolution.
  */
 export type SelfOrgAdjustmentType =
-  | 'file-avoidance'       // back off files a peer is editing
-  | 'finding-incorporation' // pull a peer's finding into local context
-  | 'approach-redirect'    // change approach based on peer success
-  | 'goal-refinement'      // narrow focus to reduce overlap with peer
-  | 'tension-flag'         // flag conflicting approach for resolution
-  | 'pattern-adoption'     // adopt an elevated pattern from the library
-  | 'peer-assist'          // offer findings to a struggling peer via topic
+  | 'file-avoidance'
+  | 'finding-incorporation'
+  | 'approach-redirect'
+  | 'goal-refinement'
+  | 'tension-flag'
+  | 'pattern-adoption'
+  | 'peer-assist'
 
 /**
  * Effectiveness tracking entry — links a self-org adjustment to its
@@ -417,15 +416,10 @@ export interface CorpusTreeSnapshot {
   totalSteps: number
   activeBranches: number
   snapshotAt: number
-  /** All branch digests (Shared Thought Tree) */
   digests: BranchDigest[]
-  /** All shared topic nodes */
   topics: TopicNode[]
-  /** Strategy retrospectives across the constellation */
   retrospectives: StrategyRetrospective[]
-  /** Elevated patterns (constellation knowledge) */
   elevatedPatterns: ElevatedPattern[]
-  /** Effectiveness records for self-organization tracking */
   effectivenessRecords: EffectivenessRecord[]
 }
 
@@ -480,13 +474,13 @@ export interface BranchAssessment {
  * 'struggling'/'stuck'/'drifting' trigger different intervention strategies.
  */
 export type BranchHealthStatus =
-  | 'productive'   // Healthy progress, good scores
-  | 'active'       // Running but not yet assessed
-  | 'struggling'   // Scores declining or patterns detected
-  | 'stuck'        // No progress for extended period
-  | 'drifting'     // Off-goal based on annotation patterns
-  | 'completed'    // Branch closed successfully
-  | 'failed'       // Branch closed with failure
+  | 'productive'
+  | 'active'
+  | 'struggling'
+  | 'stuck'
+  | 'drifting'
+  | 'completed'
+  | 'failed'
 
 /**
  * @dep callers: constructor (core/intelligence/constellation/corpus.ts), constructor (core/intelligence/constellation/corpus-mini-helix.ts)
@@ -566,12 +560,12 @@ export interface CorpusDirective {
  * for critical information.
  */
 export type CorpusDirectiveType =
-  | 'guidance'        // Strategic suggestion
-  | 'redirect'        // Change approach or focus
-  | 'throttle'        // Slow down (resource management)
-  | 'priority-shift'  // Change priority relative to siblings
-  | 'cancel'          // Stop this Helix
-  | 'context-inject'  // Inject file content into posture context (text = filePath)
+  | 'guidance'
+  | 'redirect'
+  | 'throttle'
+  | 'priority-shift'
+  | 'cancel'
+  | 'context-inject'
 
 /**
  * Tracks a single directive's lifecycle — from issuance through behavioral verification.
@@ -669,7 +663,6 @@ export interface SpawnDecision {
 
 // Corpus Configuration
 
-/** Extended Corpus config for proactive behaviors */
 export interface CorpusProactiveConfig {
   enableReDecomposition: boolean
   enableQualityGates: boolean
@@ -798,77 +791,23 @@ export interface CorpusLLM {
 }
 
 export interface CorpusDeps {
-  /** LLM adapter for the Corpus's own analysis loop */
   llm: CorpusLLM
-  /** Logger */
   logger: ILogger
-  /** The constellation's overall goal */
   goal: string
-  /** Constellation ID for event attribution */
   constellationId: string
-  /** Optional event bus for emitting corpus events */
   eventBus?: IEventBus
-  /** Optional blackboard for posting summaries */
   blackboard?: CorpusBlackboard
-  /** Callback to submit a spawn request to the pipeline queue */
   onSpawnRequest?: (request: { goal: string; context?: string; template?: string; requestingHelixId: string }) => void
-  /** Optional cross-Helix dialectic for inter-branch communication */
   crossHelixDialectic?: import('./cross-helix-dialectic.js').CrossHelixDialectic
-  /** Read-only file access for validating paths in spawn goals and interventions. Returns null if file not found. */
   readFile?: (path: string) => Promise<string | null>
-
-
-  /**
-   * Launch a new Helix branch from the Corpus (for re-decomposition and parallel splits).
-   * Returns the helixId of the launched branch.
-   */
   launchHelix?: (goal: string, context: string | undefined, template: ConstellationTemplate | undefined) => Promise<string>
-
-  /**
-   * Pause a running Helix session (for direct injection).
-   * Returns true if the session was successfully paused.
-   */
   pauseHelix?: (helixId: string) => boolean
-
-  /**
-   * Resume a paused Helix session.
-   */
   resumeHelix?: (helixId: string) => void
-
-  /**
-   * Kill a running Helix session (for re-decomposition, over-budget).
-   */
   killHelix?: (helixId: string) => void
-
-  /**
-   * Inject a system message directly into a Helix session's guidance queue.
-   * This bypasses the normal Brainstem directive flow.
-   */
   injectGuidance?: (helixId: string, content: string, urgency: import('../helix/brainstem-types.js').GuidanceUrgency) => void
-
-  /**
-   * Run a shell command (for quality gates: tsc, tests).
-   * Returns { exitCode, stdout, stderr }.
-   */
   runCommand?: (command: string, timeoutMs?: number) => Promise<{ exitCode: number; stdout: string; stderr: string }>
-
-  /**
-   * Get template for a given helix (to determine budget defaults).
-   */
   getHelixTemplate?: (helixId: string) => ConstellationTemplate | undefined
-
-  /**
-   * Optional callback to persist Corpus events to the ConstellationStore.
-   * Decouples the Corpus from direct store dependency while enabling
-   * event audit trails for sweeps, patterns, interventions, and health changes.
-   */
   persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
-
-  /**
-   * Optional store for persisting corpus decisions and checkpoints.
-   * Decouples Corpus from direct store dependency while enabling
-   * decision history and tree persistence.
-   */
   store?: import('./constellation-store.js').ConstellationStore
 }
 
@@ -896,9 +835,7 @@ export interface CorpusBlackboard {
  * The Corpus's final result, summarizing its reasoning across all branches.
  */
 export interface CorpusResult {
-  /** Full tree snapshot at completion */
   tree: CorpusTreeSnapshot
-  /** Branch assessments */
   branchAssessments: Array<{
     helixId: string
     status: BranchHealthStatus
@@ -912,33 +849,19 @@ export interface CorpusResult {
     budgetConsumedSteps?: number
     budgetMaxSteps?: number
   }>
-  /** Cross-Helix patterns detected during the run */
   crossPatterns: CrossHelixPattern[]
-  /** Interventions sent to child Brainstems */
   interventions: CorpusIntervention[]
-  /** Spawn decisions made */
   spawnDecisions: SpawnDecision[]
-  /** Re-decompositions triggered mid-flight */
   reDecompositions: ReDecompositionRequest[]
-  /** Quality gate results for completed branches */
   qualityGateResults: Array<{ helixId: string; result: QualityGateResult }>
-  /** Discoveries routed across branches */
   discoveryCount: number
-  /** Direct injections performed */
   directInjections: DirectInjection[]
-  /** Research digests built from completed research branches */
   researchDigests: ResearchDigest[]
-  /** Parallel splits triggered */
   parallelSplits: ParallelSplitRequest[]
-  /** Context injections performed */
   contextInjections: ContextInjection[]
-  /** How many sweep cycles completed */
   sweepCount: number
-  /** Whether the Corpus LLM is healthy (able to make strategic decisions) */
   llmHealthy: boolean
-  /** Number of consecutive LLM failures */
   llmFailureCount: number
-  /** How long the Corpus was active */
   durationMs: number
 }
 
@@ -947,9 +870,7 @@ export interface CorpusResult {
  * Extends CorpusDirective with outcome tracking.
  */
 export interface CorpusIntervention extends CorpusDirective {
-  /** Whether the target Brainstem acknowledged receipt */
   acknowledged: boolean
-  /** Which sweep cycle produced this intervention */
   sweepNumber: number
 }
 
@@ -962,17 +883,11 @@ export interface CorpusIntervention extends CorpusDirective {
  * and breaks it into concrete sub-tasks.
  */
 export interface GoalDecomposition {
-  /** Whether decomposition was performed (false = simple goal, passed through) */
   decomposed: boolean
-  /** The original goal */
   originalGoal: string
-  /** Sub-tasks to execute (each becomes a Helix) */
   subTasks: GoalSubTask[]
-  /** Execution strategy: how sub-tasks should be scheduled */
   strategy: 'sequential' | 'parallel' | 'tree'
-  /** Context discovered during planning that should be shared with all sub-tasks */
   sharedContext?: string
-  /** How long decomposition took */
   durationMs: number
 }
 
@@ -980,17 +895,11 @@ export interface GoalDecomposition {
  * A single sub-task from goal decomposition.
  */
 export interface GoalSubTask {
-  /** Focused goal for this sub-task */
   goal: string
-  /** Additional context specific to this sub-task */
   context?: string
-  /** Suggested template for the Helix */
   template?: ConstellationTemplate
-  /** Relative priority (higher = more important, default 1) */
   priority: number
-  /** File paths that this sub-task needs to read (validated by planning Helix) */
   relevantFiles?: string[]
-  /** Suggested step budget from decomposer (overrides template default) */
   budgetSteps?: number
 }
 
@@ -1002,17 +911,11 @@ export interface GoalSubTask {
  * when budget is consumed without proportional output.
  */
 export interface BranchBudget {
-  /** Maximum steps this branch should take */
   maxSteps: number
-  /** Maximum wall-clock time in milliseconds */
   maxTimeMs: number
-  /** Steps consumed so far */
   consumedSteps: number
-  /** Time consumed so far (set during evaluation) */
   consumedTimeMs: number
-  /** When this branch started */
   startedAt: number
-  /** Source of the budget (decomposer suggestion or template default) */
   source: 'decomposer' | 'template'
 }
 
@@ -1030,22 +933,15 @@ export const BRANCH_BUDGET_DEFAULTS: Record<string, { maxSteps: number; maxTimeM
 
 /** Result of running quality gates on a completed branch */
 export interface QualityGateResult {
-  /** Whether all gates passed */
   passed: boolean
-  /** Individual gate outcomes */
   gates: QualityGateCheck[]
-  /** Time spent running gates */
   durationMs: number
 }
 
 export interface QualityGateCheck {
-  /** Gate name */
   name: 'files_exist' | 'type_check' | 'tests' | 'placeholder_scan'
-  /** Whether this gate passed */
   passed: boolean
-  /** Human-readable details */
   details: string
-  /** Files that failed this gate */
   failedFiles?: string[]
 }
 
@@ -1054,15 +950,10 @@ export interface QualityGateCheck {
 
 /** Request from Corpus LLM to re-decompose a branch mid-flight */
 export interface ReDecompositionRequest {
-  /** Branch being split */
   sourceHelixId: string
-  /** Rationale from the LLM */
   reason: string
-  /** New sub-tasks to spawn */
   newSubTasks: GoalSubTask[]
-  /** Whether to kill the source branch (vs. redirect it to a narrower scope) */
   killSource: boolean
-  /** Narrowed goal for the source branch if not killed */
   narrowedGoal?: string
 }
 
@@ -1071,19 +962,12 @@ export interface ReDecompositionRequest {
 
 /** A discovery made by a branch that may be useful to others */
 export interface DiscoveryEntry {
-  /** ID for dedup */
   id: string
-  /** Branch that made the discovery */
   sourceHelixId: string
-  /** What was discovered (from Brainstem annotation) */
   content: string
-  /** Type of discovery */
   type: 'architecture' | 'file_location' | 'pattern' | 'constraint' | 'decision'
-  /** File paths relevant to this discovery */
   relatedFiles: string[]
-  /** When discovered */
   timestamp: number
-  /** Which branches have received this discovery */
   deliveredTo: Set<string>
 }
 
@@ -1092,17 +976,11 @@ export interface DiscoveryEntry {
 
 /** A direct injection bypassing the Brainstem guidance queue */
 export interface DirectInjection {
-  /** Target Helix session */
   targetHelixId: string
-  /** Message to inject as system context */
   message: string
-  /** Urgency level */
   urgency: 'critical' | 'high' | 'normal'
-  /** Whether the session was paused for injection */
   paused: boolean
-  /** When injection happened */
   timestamp: number
-  /** How long the session was paused (ms) */
   pauseDurationMs?: number
 }
 
@@ -1111,28 +989,19 @@ export interface DirectInjection {
 
 /** Full digest of a completed research branch's findings */
 export interface ResearchDigest {
-  /** Branch that produced this digest */
   sourceHelixId: string
-  /** Goal that was researched */
   goal: string
-  /** All annotations from the branch */
   annotations: Array<{
     step: number
     type: string
     summary: string
     scores: { goalAlignment: number; novelty: number; progress: number }
   }>
-  /** Key discoveries extracted from annotations */
   discoveries: string[]
-  /** File paths that were read/explored */
   filesExplored: string[]
-  /** File paths that were modified */
   filesModified: string[]
-  /** Architecture notes / patterns identified */
   architectureNotes: string[]
-  /** The branch's final conclusion/summary */
   conclusion: string
-  /** When this digest was created */
   createdAt: number
 }
 
@@ -1141,13 +1010,9 @@ export interface ResearchDigest {
 
 /** Request to split a productive branch into parallel sub-branches */
 export interface ParallelSplitRequest {
-  /** Branch being split */
   sourceHelixId: string
-  /** Rationale from LLM */
   reason: string
-  /** New parallel sub-tasks */
   newSubTasks: GoalSubTask[]
-  /** Narrowed goal for the original branch (continues with reduced scope) */
   continuedGoal: string
 }
 
@@ -1156,17 +1021,11 @@ export interface ParallelSplitRequest {
 
 /** Context injection from Corpus to a struggling branch */
 export interface ContextInjection {
-  /** Target branch */
   targetHelixId: string
-  /** Source of context */
   source: 'code_intelligence' | 'file_read' | 'research_digest' | 'cross_branch'
-  /** The context content injected */
   content: string
-  /** Why this context was injected */
   reason: string
-  /** Token count of injected content */
   tokenEstimate: number
-  /** When injected */
   timestamp: number
 }
 
@@ -1178,19 +1037,12 @@ export interface ContextInjection {
  * Provides past-run continuity for new branches.
  */
 export interface BranchMemoryContext {
-  /** Helix ID this context is for */
   helixId?: string
-  /** Goal of the branch */
   goal?: string
-  /** Search query used to find memories */
   searchQuery?: string
-  /** Retrieved memory entries, ranked by relevance */
   memories: InjectedMemory[]
-  /** Total relevant memories found (may exceed injected count) */
   totalFound?: number
-  /** Total available memories (alias for totalFound) */
   totalAvailable?: number
-  /** When memory injection occurred */
   injectedAt: number
 }
 
@@ -1198,18 +1050,11 @@ export interface BranchMemoryContext {
  * A single memory entry injected into a branch.
  */
 export interface InjectedMemory {
-  /** Memory content */
   content: string
-  /** Relevance score (0-1) */
   relevance: number
-  /** Memory type/category */
   type: string
-  /** When the memory was originally created (epoch ms) */
   createdAt: number
-  /** Optional tags */
   tags?: string[]
-  /** Whether this memory is pinned */
   pinned?: boolean
-  /** Importance score */
   importance?: number
 }
