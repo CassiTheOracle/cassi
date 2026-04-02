@@ -100,6 +100,20 @@ const CASSICORE_URL = process.env.CASSICORE_URL || 'http://localhost:7433';
 // Logger
 const logger = createLogger();
 
+// ── Process-level resilience ───────────────────────────────────────────
+// Prevent silent crashes from unhandled rejections or uncaught exceptions.
+// In Node 25+ these terminate the process by default — log and continue
+// (or exit gracefully) instead.
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection in MCP gateway', { error: String(reason) });
+});
+
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception in MCP gateway — shutting down', { error: String(err) });
+  process.exit(1);
+});
+
 // Security Configuration
 
 /**
@@ -233,6 +247,15 @@ function getAllTools() {
 // resolveDeprecatedToolName was removed — alias resolution is now handled by
 // resolveToolAlias() from mcp/gateway/tool-aliases.ts.
 
+// Cache core tool names to avoid regenerating the list on every tool call.
+let _coreToolNameCache: Set<string> | null = null;
+function isCoreToolName(name: string): boolean {
+  if (!_coreToolNameCache) {
+    _coreToolNameCache = new Set(getCoreTools().map(t => t.name));
+  }
+  return _coreToolNameCache.has(name);
+}
+
 /**
  * Route a tool call to the appropriate domain handler.
  */
@@ -249,7 +272,7 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
   try {
     // Core tools (bash, read, write, edit) - return JSON
-    if (getCoreTools().some(t => t.name === name)) {
+    if (isCoreToolName(name)) {
       const result = await executeCassiCoreTool(CASSICORE_URL, name, args, logger);
       return formatJsonResponse(result);
     }
@@ -424,6 +447,20 @@ function createServer() {
     };
   });
 
+  // ── Safe notification helper ──────────────────────────────────────────
+  // Wrap all progress notifications so a broken transport never crashes
+  // the request handler.
+  function safeNotify(params: { progressToken: string | number; progress: number; total: number; message: string }) {
+    try {
+      server.notification({
+        method: 'notifications/progress',
+        params,
+      });
+    } catch (err) {
+      logger.warn('Failed to send progress notification', { error: String(err) });
+    }
+  }
+
   // Handle tool calls with progress notification support
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args, _meta } = request.params;
@@ -431,61 +468,33 @@ function createServer() {
     
     // Send progress notifications for long-running operations
     if (progressToken) {
-      server.notification({
-        method: 'notifications/progress',
-        params: {
-          progressToken,
-          progress: 0,
-          total: 100,
-          message: `Starting ${name}...`,
-        },
-      });
+      safeNotify({ progressToken, progress: 0, total: 100, message: `Starting ${name}...` });
     }
 
     try {
       // Create heartbeat callback for long-running tools (sends MCP progress notifications
       // to prevent the MCP client from timing out during blocking operations like team_watch)
       const heartbeat = progressToken ? () => {
-        server.notification({
-          method: 'notifications/progress',
-          params: {
-            progressToken,
-            progress: 50,
-            total: 100,
-            message: `${name} waiting for events...`,
-          },
-        })
+        safeNotify({ progressToken, progress: 50, total: 100, message: `${name} waiting for events...` });
       } : undefined
 
       const result = await routeToolCall(name, args, progressToken, heartbeat);
       
       // Send completion progress
       if (progressToken) {
-        server.notification({
-          method: 'notifications/progress',
-          params: {
-            progressToken,
-            progress: 100,
-            total: 100,
-            message: `${name} completed`,
-          },
-        });
+        safeNotify({ progressToken, progress: 100, total: 100, message: `${name} completed` });
       }
       
       return result;
     } catch (error: any) {
       if (progressToken) {
-        server.notification({
-          method: 'notifications/progress',
-          params: {
-            progressToken,
-            progress: 100,
-            total: 100,
-            message: `${name} failed: ${error.message}`,
-          },
-        });
+        safeNotify({ progressToken, progress: 100, total: 100, message: `${name} failed: ${error.message}` });
       }
-      throw error;
+      // Return a formatted error instead of re-throwing — re-throwing can break
+      // the MCP connection if the error is non-serializable or the transport is
+      // already in a bad state.
+      logger.error('Tool call threw in handler', { tool: name, error: String(error) });
+      return formatError(error);
     }
   });
 
@@ -901,6 +910,44 @@ async function startStdio() {
 
   const server = createServer();
   const transport = new StdioServerTransport();
+
+  // ── Connection lifecycle handlers ────────────────────────────────────
+  // These catch MCP-layer errors and disconnections that would otherwise
+  // go unnoticed, leaving a zombie process.
+
+  server.onerror = (error: Error) => {
+    logger.error('MCP server error', { error: String(error) });
+  };
+
+  server.onclose = () => {
+    logger.info('MCP server closed — exiting');
+    process.exit(0);
+  };
+
+  // ── Stdin close detection ────────────────────────────────────────────
+  // When the MCP client (OpenCode) disconnects, stdin emits 'end'.
+  // The SDK transport only listens for 'data' and 'error', so we need
+  // to detect this ourselves and trigger a clean shutdown.
+  process.stdin.on('end', () => {
+    logger.info('stdin ended — client disconnected, closing');
+    server.close().catch(() => {});
+    setTimeout(() => process.exit(0), 500);
+  });
+
+  process.stdin.on('close', () => {
+    logger.info('stdin closed — exiting');
+    server.close().catch(() => {});
+    setTimeout(() => process.exit(0), 500);
+  });
+
+  // ── Signal handlers for clean shutdown ───────────────────────────────
+  for (const signal of ['SIGTERM', 'SIGINT', 'SIGHUP'] as const) {
+    process.on(signal, () => {
+      logger.info(`Received ${signal} — shutting down`);
+      server.close().catch(() => {});
+      setTimeout(() => process.exit(0), 500);
+    });
+  }
 
   await server.connect(transport);
 
