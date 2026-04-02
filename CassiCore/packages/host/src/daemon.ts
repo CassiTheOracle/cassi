@@ -565,7 +565,7 @@ export class Daemon {
         void (this.intelligence.reflect as EventHandler).onEvent?.(e)
       })
 
-      // Optimizer listens for daemon:ready (starts loop) and daemon:shutdown (stops loop)
+      // WHY: Optimizer lifecycle tied to daemon readiness — starts/stops optimization loop
       bus.on("daemon:ready", (e) => {
         void (this.intelligence.optimizer as EventHandler).onEvent?.(e)
       })
@@ -576,10 +576,10 @@ export class Daemon {
       // Wire DialecticSystem to event bus for streaming
       this.wireModule(this.intelligence.dialectic, bus)
 
-      // Wire Thinker to event bus for proactive triggers
+      // WHY: Thinker listens for turn:end to trigger proactive thinking cycles
       this.wireModule(this.intelligence.thinker, bus)
 
-      // Wire AI Scientist to event bus for metrics collection
+      // WHY: AI Scientist collects metrics for research analysis
       this.wireModule(this.intelligence.aiScientist, bus)
 
       // Start AI Scientist monitoring
@@ -634,13 +634,12 @@ export class Daemon {
         this.logger.warn('Failed to initialize Unified Intelligence Loop', { error: String(err) })
       }
 
-      // Wire Subconscious to event bus for background consolidation
+      // WHY: Subconscious listens for session events to build mental models
       this.wireModule(this.intelligence.subconscious, bus)
       this.startModule(this.intelligence.subconscious)
 
-      // Reconcile the Subconscious SystemModel with the live SessionManager state.
-      // Sessions created before the subconscious was wired never triggered a
-      // session:created event, leaving activeSessions=0 and causing telemetry drift.
+      // WHY: reconcile sessions created before Subconscious was wired — prevents telemetry drift
+      // (activeSessions=0 without this, causing metric inconsistencies)
       interface SubconsciousModule {
         reconcile?: (args: { sessions: Array<{ sessionId: string; startedAt: number; lastActivityAt: number; turnCount: number }> }) => void
       }
@@ -659,8 +658,7 @@ export class Daemon {
         this.logger.warn('Subconscious reconcile failed — session counts may be stale', { error: String(err) })
       }
 
-      // Wire a session-list getter so the Subconscious can periodically reconcile
-      // sessions without importing SessionManager directly.
+      // WHY: Subconscious needs live session list for reconciliation without circular dependency on SessionManager
       try {
         interface SubconsciousWithGetter {
           setLiveSessionGetter?(getter: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>): void
@@ -687,7 +685,7 @@ export class Daemon {
       // Wire Rule Enforcer to event bus
       this.wireModule(this.intelligence.ruleEnforcer, bus)
 
-      // Wire Drone Swarm Controller to event bus
+      // WHY: DroneSwarm needs event bus for mission coordination
        if (this.intelligence.droneSwarm?.setEventBus) {
          this.intelligence.droneSwarm.setEventBus(bus)
          this.logger.info('DroneSwarm event bus wired')
@@ -698,7 +696,7 @@ export class Daemon {
        this.wireModule(this.intelligence.selfHealer, bus)
        ;(this.intelligence.selfHealer as IntelligenceModule).setRepairProvider?.(
              async (prompt: string): Promise<string> => {
-                // Strategy 1: direct call to github-copilot (doesn't depend on Thinker health)
+                // WHY: Strategy 1 = github-copilot direct call (fallback independent of Thinker health)
                  const gcProvider = this.providers.get('github-copilot')
                 if (gcProvider) {
                   try {
@@ -716,12 +714,12 @@ export class Daemon {
                      this.logger.info('SelfHealingAgent: repair generated via github-copilot')
                      return text.trim()
                    }
-                 } catch (err) {
-                   this.logger.warn('SelfHealingAgent: github-copilot repair failed', { error: String(err) })
-                 }
-               }
-               // Strategy 2: Thinker event chain (90s timeout)
-               return new Promise((resolve) => {
+                  } catch (err) {
+                    this.logger.warn('SelfHealingAgent: github-copilot repair failed', { error: String(err) })
+                  }
+                }
+                // WHY: Strategy 2 = Thinker event chain with 90s timeout (primary repair mechanism)
+                return new Promise((resolve) => {
                  const id = `repair:${Date.now()}:${Math.random().toString(36).slice(2)}`
                  const timer = setTimeout(() => {
                    bus.off('thinker:repair-response', handler)
@@ -745,12 +743,11 @@ export class Daemon {
          await (this.intelligence.selfHealer as IntelligenceModule).start?.()
           this.logger.info('SelfHealingAgent wired and started')
 
-        // Wire Consequence Estimator + Trust Ledger + Permission Oracle
-        // These form the graduated autonomy system.
+        // WHY: ConsequenceEstimator + TrustLedger + PermissionOracle = graduated autonomy system
         try {
           this.wireModule(this.intelligence.consequenceEstimator, bus)
           this.wireModule(this.intelligence.trustLedger, bus)
-          // Give Trust Ledger access to the Memory DB for persistence
+          // WHY: Trust Ledger needs Memory DB for persisting trust scores across restarts
           const memoryDb = (this.intelligence.memory as { getDb?: () => import('better-sqlite3').Database }).getDb?.()
           interface AutonomyModule {
             setMemory?(memory: unknown): void
@@ -789,7 +786,7 @@ export class Daemon {
         const memoryDb = (this.intelligence.memory as { getDb?: () => import('better-sqlite3').Database }).getDb?.()
         if (memoryDb) {
           tracker.initialize(memoryDb)
-          // Register as cycle hook on unified loop if available
+          // WHY: cycle hook enables per-turn outcome scoring during unified loop execution
           const loop = this.unifiedLoop
           if (loop?.addCycleHook) {
             loop.addCycleHook(tracker)
