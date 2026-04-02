@@ -10,9 +10,6 @@ import type { IProvider, Message, CompletionOpts, CompletionChunk, TurnResult } 
 
 const logger: ILogger = rootLogger.child('providers')
 
-/**
- * Request tracking entry for a single in-flight or completed request.
- */
 interface RequestEntry {
   id: string
   sessionId: string
@@ -30,9 +27,7 @@ interface RequestEntry {
  * Rate limits are learned adaptively from 429 responses, not pre-configured.
  */
 interface ProviderConfig {
-  /** Max concurrent requests to this provider */
   maxConcurrent: number
-  /** Cooldown after non-rate-limit errors (ms) */
   errorCooldownMs: number
 }
 
@@ -50,25 +45,21 @@ const RATE_WINDOWS = [
 
 type WindowLabel = typeof RATE_WINDOWS[number]['label']
 
-/** Safety margin: use 90% of the rate that triggered a 429 */
+/** Use 90% of the rate that triggered a 429 */
 const SAFETY_MARGIN = 0.90
 
-/** After this many clean windows, probe upward by 5% */
+/** Probe upward by 5% after this many clean windows */
 const PROBE_UP_CLEAN_WINDOWS = 5
 const PROBE_UP_FACTOR = 1.05
 
-/** When hit again at same timescale, tighten by this factor */
+/** Tighten by this factor when hit again at same timescale */
 const TIGHTEN_FACTOR = 0.95
 
-/**
- * Max times we'll transparently wait-and-retry within a single complete() call
- * when a rate limit (pre-check or live 429) is encountered.
- * After this many retries we give up and surface the error to the caller.
- */
+/** Max transparent retries when rate limited before surfacing error to caller */
 const MAX_RATE_LIMIT_RETRIES = 5
 
 /**
- * Sleep for `ms` milliseconds. Rejects early with AbortError if `signal` fires.
+ * Sleep with abort support — rejects early with AbortError if `signal` fires.
  * Used by the rate-limit retry path so waits are cancellable.
  */
 function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
@@ -84,22 +75,15 @@ function sleepWithAbort(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 /**
- * A learned rate limit at a specific timescale for a specific model.
+ * Learned rate limit state at a specific timescale for a specific model.
  */
 interface LearnedLimit {
-  /** Requests in this window when the 429 fired */
   observedCount: number
-  /** Safe count = floor(observedCount * SAFETY_MARGIN), tightened on repeat hits */
   safeCount: number
-  /** When the 429 was last observed at this timescale */
   lastHitAt: number
-  /** How many times we've been rate-limited at this timescale */
   hitCount: number
 }
 
-/**
- * Default provider configs — only concurrency and error cooldown.
- */
 const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   'github-copilot': {
     maxConcurrent: 12,
@@ -117,17 +101,13 @@ const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
 
 
 /**
- * Global provider limiter/config — shared across all CentralizedProvider instances.
+ * Global provider config — shared across all CentralizedProvider instances.
  * Can be tuned via runtime config (preferred) or environment variables for quick experiments.
  */
-// Global limits removed - each provider has its own independent rate limits
-// Default 20 minute timeout for LLM requests, can be overridden via env
 const DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '1200000', 10)
 
-// Log timeout configuration on startup (debug — fires on every module load in workers)
 logger.debug(`Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 1000}s`)
 
-// Exports for admin APIs to query provider-specific defaults
 export const PROVIDER_RATE_LIMIT_DEFAULTS = DEFAULT_PROVIDER_CONFIGS
 export const GLOBAL_PROVIDER_DEFAULTS = {
   timeoutMs: DEFAULT_PER_REQUEST_TIMEOUT_MS,
@@ -158,18 +138,11 @@ export function listProviderConfigKeys() {
   return { globalKeys, providerSpecific }
 }
 
-// Per-provider request tracking (removed global limits - each provider has its own limits)
-
 /**
- * CentralizedProvider — wraps any IProvider with:
- *   - Request deduplication (same session can't have 2 simultaneous requests)
- *   - Per-provider rate limiting (each provider has independent limits)
- *   - Request metrics and logging
- *   - Error tracking with cooldown
- *   - Event emission for monitoring
- *   - Per-request timeout enforcement
+ * CentralizedProvider — wraps any IProvider with request deduplication, per-provider
+ * rate limiting, error tracking with cooldown, and timeout enforcement.
  *
- * This prevents the "request burn" issue where a bug or loop could cause
+ * WHY: prevents the "request burn" issue where a bug or loop could cause
  * hundreds of API calls in rapid succession.
  */
 export class CentralizedProvider implements IProvider {
@@ -274,9 +247,6 @@ export class CentralizedProvider implements IProvider {
     })
   }
 
-  /**
-   * Main completion method — wraps the provider with all protections.
-   */
   async *complete(
     messages: Message[],
     opts: CompletionOpts,
@@ -619,9 +589,6 @@ export class CentralizedProvider implements IProvider {
     }
   }
 
-  /**
-   * Pass-through for load balancer stats (if wrapped provider supports it)
-   */
   getStats(): unknown {
     const wrapped = this.wrapped as unknown as { getStats?: () => unknown }
     if (typeof wrapped.getStats === 'function') {
@@ -630,9 +597,6 @@ export class CentralizedProvider implements IProvider {
     return null
   }
 
-  /**
-   * Get active count for load balancer compatibility
-   */
   getActiveCount(): number {
     const wrapped = this.wrapped as unknown as { getActiveCount?: () => number }
     if (typeof wrapped.getActiveCount === 'function') {
@@ -658,9 +622,6 @@ export class CentralizedProvider implements IProvider {
     }
   }
 
-  /**
-   * Reset rate limit history and learned limits (for testing or manual intervention).
-   */
   resetRateLimitHistory(): void {
     this.modelHistory.clear()
     this.learnedLimits.clear()
@@ -668,10 +629,6 @@ export class CentralizedProvider implements IProvider {
     this.logger.info('Rate limit history and learned limits cleared')
   }
 
-  /**
-   * Full reset - clears all state including metrics.
-   * Use with caution - mainly for testing.
-   */
   resetAll(): void {
     this.resetErrorState()
     this.resetRateLimitHistory()
@@ -708,8 +665,6 @@ export class CentralizedProvider implements IProvider {
     }
     return false
   }
-
-  // Private helpers
 
   private extractSessionId(messages: Message[]): string | undefined {
     // 1) Prefer system message marker if present (legacy behavior)
@@ -767,13 +722,9 @@ export class CentralizedProvider implements IProvider {
     return (hash >>> 0).toString(36) // Unsigned to avoid negative values
   }
 
-  // ——————————————————————————————————————————————————————————————
-  // Adaptive rate limiting
-  // ——————————————————————————————————————————————————————————————
-
   /**
-   * Check all timescales for learned rate limits on this model.
-   * Returns whether the request is allowed and, if blocked, which window triggered it.
+   * Check learned rate limits across all timescales.
+   * Returns whether allowed and, if blocked, which window triggered it.
    */
   private checkRateLimit(model: string): { allowed: boolean; reason?: 'concurrent' | 'learned'; retryAfterMs: number; windowLabel?: WindowLabel } {
     // Check concurrent limit first — this is backpressure, not a provider rate limit.
@@ -818,7 +769,6 @@ export class CentralizedProvider implements IProvider {
     return { allowed: true, retryAfterMs: 0 }
   }
 
-  /** Record a timestamp for a model request and prune old entries */
   private recordRequest(model: string): void {
     const now = Date.now()
     let history = this.modelHistory.get(model)
@@ -917,7 +867,6 @@ export class CentralizedProvider implements IProvider {
     }
   }
 
-  /** Count timestamps in history that are >= windowStart */
   private countInWindow(history: number[], windowStart: number): number {
     let count = 0
     for (let i = history.length - 1; i >= 0; i--) {
@@ -927,7 +876,6 @@ export class CentralizedProvider implements IProvider {
     return count
   }
 
-  /** Find oldest timestamp in history that is >= windowStart */
   private findOldestInWindow(history: number[], windowStart: number): number | undefined {
     for (let i = 0; i < history.length; i++) {
       if (history[i] >= windowStart) return history[i]
@@ -947,9 +895,6 @@ export class CentralizedProvider implements IProvider {
     return Math.max(0, cooldown - elapsed)
   }
 
-  /**
-   * Calculate current request rates per model across all timescales.
-   */
   private calculateCurrentRates(): Record<string, Record<string, number>> {
     const now = Date.now()
     const rates: Record<string, Record<string, number>> = {}
@@ -966,8 +911,6 @@ export class CentralizedProvider implements IProvider {
 }
 
 /**
- * Wrap all providers in a map with CentralizedProvider.
- * Each provider has its own independent adaptive rate limiting.
  * @dep callers: createProviders (core/providers/index.ts), centralized-provider.test.ts (tests/centralized-provider.test.ts)
  * @dep calls: getConfiguredProviderConfig, setBudgetTracker
  * @dep module: Providers

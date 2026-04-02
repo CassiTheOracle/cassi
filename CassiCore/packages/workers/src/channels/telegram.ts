@@ -86,7 +86,6 @@ let offset = 0
 let polling = false
 let shutdownRequested = false
 
-/** Per-session streaming state: accumulates tokens, edits message every 1s. */
 interface StreamState {
   chatId: number
   msgId: number | null
@@ -100,23 +99,18 @@ interface StreamState {
 }
 const streams = new Map<string, StreamState>()
 
-/** Rate limiting state per chat */
 interface RateLimitState {
   messageCount: number
   windowStart: number
 }
 const rateLimitState = new Map<number, RateLimitState>()
 
-/**
- * Check and enforce rate limiting for a chat.
- * Returns true if message should be sent, false if rate limited.
- */
+/** Returns true if message should be sent, false if rate limited. */
 function checkRateLimit(chatId: number): boolean {
   const now = Date.now()
   let state = rateLimitState.get(chatId)
   
   if (!state || (now - state.windowStart) > RATE_LIMIT_WINDOW_MS) {
-    // New window
     state = { messageCount: 0, windowStart: now }
     rateLimitState.set(chatId, state)
   }
@@ -182,10 +176,8 @@ function chunkMessage(content: string, maxLength: number = TELEGRAM_MAX_MESSAGE_
  * Returns array of sent message IDs.
  */
 async function sendChunkedMessage(chatId: number, content: string, parseMode?: 'MarkdownV2' | 'HTML'): Promise<number[]> {
-  // Check rate limit
   if (!checkRateLimit(chatId)) {
     log('warn', 'Rate limit exceeded, queuing message', { chatId })
-    // Still send but with delay
     await sleep(RATE_LIMIT_WINDOW_MS)
   }
   
@@ -193,7 +185,6 @@ async function sendChunkedMessage(chatId: number, content: string, parseMode?: '
   const messageIds: number[] = []
   
   for (let i = 0; i < chunks.length; i++) {
-    // Apply rate limiting between chunks
     if (i > 0) {
       await sleep(EDIT_INTERVAL_MS)
       if (!checkRateLimit(chatId)) {
@@ -228,7 +219,6 @@ function sessionIdFor(chatId: number): string {
  * @dep module: Channels
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
-
 function parseChatId(sessionId: string): number | null {
   if (!sessionId.startsWith('tg:')) return null
   const n = Number(sessionId.slice(3))
@@ -242,7 +232,6 @@ function parseChatId(sessionId: string): number | null {
  * @dep module: Channels
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
-
 function getOrCreateStream(chatId: number, sessionId: string): StreamState {
   let s = streams.get(sessionId)
   if (!s) {
@@ -270,14 +259,12 @@ async function doFlush(s: StreamState): Promise<void> {
 /** Enqueue a flush operation on the stream's serial chain.
  *  This ensures only one sendMessage/editMessage is in-flight at a time,
  *  preventing the race where two concurrent flushes both see msgId===null
- *  and create duplicate messages. */
-/**
+ *  and create duplicate messages.
  * @dep callers: finalizeStream (workers/channels/telegram.ts), startStreamTimer (workers/channels/telegram.ts)
  * @dep calls: get, doFlush
  * @dep module: Branching-conversation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
-
 function enqueueFlush(sessionId: string): void {
   const s = streams.get(sessionId)
   if (!s) return
@@ -292,7 +279,6 @@ function enqueueFlush(sessionId: string): void {
  * @dep module: Channels
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
-
 function startStreamTimer(sessionId: string): void {
   const s = streams.get(sessionId)
   if (!s || s.timer) return
@@ -395,7 +381,6 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
   const text = (msg.text ?? msg.caption ?? '').trim()
   const hasPhoto = Array.isArray(msg.photo) && msg.photo.length > 0
 
-  // Access control
   if (cfg.allowedChatIds?.length && !cfg.allowedChatIds.includes(chatId)) return
 
   // Handle /start locally — no daemon round-trip needed
@@ -404,19 +389,16 @@ async function handleIncoming(msg: NonNullable<TgUpdate['message']>): Promise<vo
     return
   }
 
-  // Skip empty messages (no text and no photo)
   if (!text && !hasPhoto) return
 
   const sessionId = sessionIdFor(chatId)
 
-  // For non-command messages, show typing and prepare stream buffer
   if (!text.startsWith('/')) {
     await tg.sendTyping(chatId)
     getOrCreateStream(chatId, sessionId)
     startStreamTimer(sessionId)
   }
 
-  // Download photo attachment if present
   let attachments: tg.ImageAttachment[] | undefined
   if (hasPhoto && msg.photo) {
     const largest = msg.photo[msg.photo.length - 1]
@@ -476,27 +458,18 @@ workerPort.on('message', (raw) => {
   }
 })
 
-/**
- * Verify that the chat ID is allowed for tool responses.
- * Tool responses should only go to chats that are in the allowed list (if configured).
- */
 function isChatIdAllowedForToolResponse(chatId: number): boolean {
-  // If no allowedChatIds configured, all chats are allowed
   if (!cfg.allowedChatIds || cfg.allowedChatIds.length === 0) {
     return true
   }
   return cfg.allowedChatIds.includes(chatId)
 }
 
-/**
- * Handle tool_call_result events from MCP tools.
- * Sends formatted tool results to the user.
- */
+/** Sends formatted tool results to the user. */
 function handleToolCallResult(sessionId: string, payload: Record<string, unknown>): void {
   const chatId = parseChatId(sessionId)
   if (chatId === null) return
   
-  // Verify chat ID is allowed for tool responses
   if (!isChatIdAllowedForToolResponse(chatId)) {
     log('warn', 'Tool response blocked: chat ID not in allowed list', { chatId, sessionId })
     return
@@ -505,7 +478,6 @@ function handleToolCallResult(sessionId: string, payload: Record<string, unknown
   const toolName = payload.toolName as string ?? 'unknown'
   const result = payload.result as string ?? JSON.stringify(payload.result)
   
-  // Format tool result
   const content = `**Tool Result: ${toolName}**\n\`\`\`\n${result}\n\`\`\``
   
   sendChunkedMessage(chatId, content, 'MarkdownV2').catch((err) => {
@@ -513,10 +485,7 @@ function handleToolCallResult(sessionId: string, payload: Record<string, unknown
   })
 }
 
-/**
- * Handle reasoning events from the LLM.
- * Shows the model's reasoning process to the user.
- */
+/** Shows the model's reasoning process to the user. */
 function handleReasoning(sessionId: string, payload: Record<string, unknown>): void {
   const chatId = parseChatId(sessionId)
   if (chatId === null) return
@@ -524,7 +493,6 @@ function handleReasoning(sessionId: string, payload: Record<string, unknown>): v
   const reasoning = payload.reasoning as string ?? payload.content as string ?? ''
   if (!reasoning) return
   
-  // Format reasoning with visual distinction
   const content = `🤔 *Reasoning:*\n${reasoning}`
   
   sendChunkedMessage(chatId, content, 'MarkdownV2').catch((err) => {
@@ -532,15 +500,11 @@ function handleReasoning(sessionId: string, payload: Record<string, unknown>): v
   })
 }
 
-/**
- * Handle tool_update events (tool progress/intermediate results).
- * Shows progress updates from long-running tools.
- */
+/** Shows progress updates from long-running tools. */
 function handleToolUpdate(sessionId: string, payload: Record<string, unknown>): void {
   const chatId = parseChatId(sessionId)
   if (chatId === null) return
   
-  // Verify chat ID is allowed for tool responses
   if (!isChatIdAllowedForToolResponse(chatId)) {
     log('warn', 'Tool update blocked: chat ID not in allowed list', { chatId, sessionId })
     return
@@ -550,7 +514,6 @@ function handleToolUpdate(sessionId: string, payload: Record<string, unknown>): 
   const status = payload.status as string ?? 'updating'
   const message = payload.message as string ?? ''
   
-  // Format tool update
   const content = `🔧 *${toolName}: ${status}*\n${message}`
   
   sendChunkedMessage(chatId, content, 'MarkdownV2').catch((err) => {
@@ -558,10 +521,7 @@ function handleToolUpdate(sessionId: string, payload: Record<string, unknown>): 
   })
 }
 
-/**
- * Handle inject events (system messages, notifications).
- * Injects system messages into the conversation.
- */
+/** Injects system messages and notifications into the conversation. */
 function handleInject(sessionId: string, payload: Record<string, unknown>): void {
   const chatId = parseChatId(sessionId)
   if (chatId === null) return
@@ -582,10 +542,7 @@ function handleInject(sessionId: string, payload: Record<string, unknown>): void
   })
 }
 
-/**
- * Enhanced message handler with full event type dispatching.
- * Supports: content/done (streaming), tool_call, tool_call_result, reasoning, tool_update, inject
- */
+/** Supports: content/done (streaming), tool_call, tool_call_result, reasoning, tool_update, inject */
 function handleDaemonMessage(p: Record<string, unknown>): void {
   // PluginHost wraps all payloads in { type: 'message', payload: X }.
   // Status notifications arrive here instead of via 'status' type.
@@ -600,7 +557,6 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
   
   if (!sessionId || chatId === null) return
   
-  // Event type dispatcher for MCP tool visibility
   const eventType = p.type as string | undefined
   
   switch (eventType) {
@@ -621,12 +577,10 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
       return
     
     case 'tool_call':
-      // Tool call notifications: show typing indicator instead of adding to buffer
       tg.sendTyping(chatId).catch(() => {})
       return
   }
 
-  // Legacy content/done handling for streaming responses
   const content = p.content as string | undefined
   const parseMode = p.parse_mode as 'MarkdownV2' | 'HTML' | undefined
   const done = p.done as boolean | undefined
@@ -637,7 +591,6 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
   // (e.g., from duplicate turn:end events)
   if (done && !content && !hasActiveStream) return
 
-  // One-off message (not part of an active stream)
   if (done && content && !hasActiveStream) {
     sendChunkedMessage(chatId, content, parseMode).catch((err) => {
       log('warn', 'sendMessage error', { sessionId, error: String(err) })
@@ -645,14 +598,12 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
     return
   }
 
-  // Append to stream buffer
   const s = getOrCreateStream(chatId, sessionId)
   if (content) {
     s.buffer += content
     startStreamTimer(sessionId)
   }
 
-  // Finalize stream
   if (done) {
     if (s.timer) { clearInterval(s.timer); s.timer = null }
     // Always finalize the stream to stop typing indicator, even if buffer is empty
@@ -675,12 +626,10 @@ function handleDaemonMessage(p: Record<string, unknown>): void {
  * @dep module: Channels
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
-
 function handleStatusMessage(p: StatusPayload): void {
   const chatId = parseChatId(p.sessionId)
   if (chatId === null) return
 
-  // Show cognitive status updates (compaction, summarization)
   if (p.type === 'compaction' || p.type === 'summarization') {
     sendChunkedMessage(chatId, p.text).catch(() => {})
   }

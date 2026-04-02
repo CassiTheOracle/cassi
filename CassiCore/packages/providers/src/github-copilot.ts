@@ -33,15 +33,11 @@ function credentialsCachePath(profileId?: string) {
 }
 
 /**
- * Exchange an OAuth token for a Copilot API session token via
- * https://api.github.com/copilot_internal/v2/token
- *
- * The session token is cached to disk so it survives daemon restarts
- * and is refreshed when it expires.
+ * Exchange OAuth token for Copilot API session token.
+ * Token is cached to disk to survive daemon restarts and refreshed on expiry.
  */
 async function exchangeOAuthForCopilotToken(oauthToken: string, profileId?: string): Promise<string> {
   const CREDENTIALS_CACHE_PATH = credentialsCachePath(profileId)
-  // Check disk cache first
   try {
     const cache = JSON.parse(readFileSync(CREDENTIALS_CACHE_PATH, 'utf8')) as { token: string; expiresAt: number }
     if (cache.token && cache.expiresAt > Date.now() + 60_000) {
@@ -49,7 +45,6 @@ async function exchangeOAuthForCopilotToken(oauthToken: string, profileId?: stri
     }
   } catch { /* fall through */ }
 
-  // Exchange OAuth token for Copilot session token
   const res = await fetch('https://api.github.com/copilot_internal/v2/token', {
     headers: {
       Accept: 'application/json',
@@ -73,7 +68,6 @@ async function exchangeOAuthForCopilotToken(oauthToken: string, profileId?: stri
 
   const expiresAt = data.expires_at * 1000 - 5 * 60 * 1000 // 5min buffer
 
-  // Cache to disk
   try {
     mkdirSync(dirname(CREDENTIALS_CACHE_PATH), { recursive: true })
     writeFileSync(CREDENTIALS_CACHE_PATH, JSON.stringify({ token: data.token, expiresAt }))
@@ -83,8 +77,7 @@ async function exchangeOAuthForCopilotToken(oauthToken: string, profileId?: stri
 }
 
 /**
- * Resolve the live Copilot API token from the CassiCore credentials cache.
- * Synchronous fallback — used when the async exchange hasn't happened yet.
+ * Synchronous fallback for token resolution — used when the async exchange hasn't happened yet.
  */
 function resolveCopilotApiToken(oauthToken: string, profileId?: string): string {
   const CREDENTIALS_CACHE_PATH = credentialsCachePath(profileId)
@@ -259,17 +252,16 @@ export class GitHubCopilotProvider extends BaseProvider {
   // Caching for ping() — prevents health-check spam
   private lastPingTime = 0
   private lastPingResult = false
-  private readonly PING_CACHE_MS = 60000  // 60 second cache
+  private readonly PING_CACHE_MS = 60000
 
   // Caching for token — prevents file read on every request
   private cachedToken: string | null = null
   private tokenExpiresAt = 0
-  private readonly TOKEN_REFRESH_BUFFER_MS = 60000  // Refresh 60s before expiry
+  private readonly TOKEN_REFRESH_BUFFER_MS = 60000
   private tokenExchangePromise: Promise<void> | null = null
 
   constructor(private oauthToken: string, private profileId?: string) {
     super()
-    // Kick off async token exchange immediately — subsequent calls wait on this
     this.tokenExchangePromise = this.refreshCopilotToken().catch(() => {})
   }
 
@@ -285,7 +277,6 @@ export class GitHubCopilotProvider extends BaseProvider {
     return this.backgroundOnly
   }
 
-  /** Exchange OAuth token for a Copilot session token (async, cached to disk) */
   private async refreshCopilotToken(): Promise<void> {
     try {
       const token = await exchangeOAuthForCopilotToken(this.oauthToken, this.profileId)
@@ -302,7 +293,6 @@ export class GitHubCopilotProvider extends BaseProvider {
   }
 
   private get token(): string {
-    // Use cached token if still valid (with buffer)
     if (this.cachedToken && this.tokenExpiresAt > Date.now() + this.TOKEN_REFRESH_BUFFER_MS) {
       return this.cachedToken
     }
@@ -310,19 +300,17 @@ export class GitHubCopilotProvider extends BaseProvider {
     const resolved = resolveCopilotApiToken(this.oauthToken, this.profileId)
     this.cachedToken = resolved
 
-    // Try to parse expiry from the token cache file
     try {
       const cachePath = credentialsCachePath(this.profileId)
       const cache = JSON.parse(readFileSync(cachePath, 'utf8')) as { expiresAt: number }
       this.tokenExpiresAt = cache.expiresAt
     } catch {
-      this.tokenExpiresAt = Date.now() + 25 * 60 * 1000  // Default 25min
+      this.tokenExpiresAt = Date.now() + 25 * 60 * 1000
     }
 
     return resolved
   }
 
-  /** Fetch with timeout and optional external abort signal */
   private async fetchWithTimeout(
     url: string,
     options: RequestInit,
@@ -351,12 +339,10 @@ export class GitHubCopilotProvider extends BaseProvider {
     attachments?: ImageAttachment[],
     signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
-    // Ensure the initial token exchange has completed before first request
     if (this.tokenExchangePromise) {
       await this.tokenExchangePromise
       this.tokenExchangePromise = null
     }
-    // Re-exchange if token is near expiry
     if (this.tokenExpiresAt > 0 && this.tokenExpiresAt < Date.now() + this.TOKEN_REFRESH_BUFFER_MS) {
       await this.refreshCopilotToken()
     }
@@ -378,7 +364,6 @@ export class GitHubCopilotProvider extends BaseProvider {
     }
   }
 
-  /** Anthropic Messages API format (for Claude models) */
   private async *completeAnthropic(
     messages: Message[],
     opts: CompletionOpts,
@@ -393,7 +378,6 @@ export class GitHubCopilotProvider extends BaseProvider {
     )
     const filtered = messages.filter(m => m.role !== 'system')
 
-    // Attachments belong to the last user message
     const lastUserIdx = filtered.map(m => m.role).lastIndexOf('user')
 
     const body: Record<string, unknown> = {
@@ -429,7 +413,7 @@ export class GitHubCopilotProvider extends BaseProvider {
           headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
           body: JSON.stringify(body),
         },
-        60000, // 60s timeout for completions
+        60000,
         signal,
       )
     } catch (err) {
@@ -458,20 +442,17 @@ export class GitHubCopilotProvider extends BaseProvider {
     let cacheWriteTokens = 0
     let currentTool: { id: string; name: string; inputJson: string } | null = null
 
-    // STREAM STALL DETECTION: Track last chunk received time
     const CHUNK_TIMEOUT_MS = 30000  // 30s without data = stall
     let lastChunkTime = Date.now()
 
     try {
       while (true) {
-        // Check for external cancellation
         if (signal?.aborted) {
           try { await reader.cancel() } catch {}
           yield { type: 'error', error: 'cancelled' }
           return
         }
 
-        // Race the read against a timeout — reader.read() can hang forever
         const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
           setTimeout(() => resolve({ done: true, value: undefined }), CHUNK_TIMEOUT_MS)
         })
@@ -485,7 +466,7 @@ export class GitHubCopilotProvider extends BaseProvider {
 
         const { done, value } = readResult
         if (done) break
-        lastChunkTime = Date.now()  // Reset stall timer on data
+        lastChunkTime = Date.now()
         buf += decoder.decode(value, { stream: true })
         const lines = buf.split('\n')
         buf = lines.pop() ?? ''
@@ -526,7 +507,6 @@ export class GitHubCopilotProvider extends BaseProvider {
                 currentTool = null
               }
             } else if (evtType === 'message_start') {
-              // Anthropic format: message_start contains input token count and cache info
               const message = evt['message'] as Record<string, unknown>
               const usage = message?.['usage'] as Record<string, unknown>
               if (usage?.['input_tokens']) inputTokens = usage['input_tokens'] as number
@@ -556,7 +536,6 @@ export class GitHubCopilotProvider extends BaseProvider {
     }
   }
 
-  /** OpenAI Chat Completions format (for GPT models) */
   private async *completeOpenAI(
     messages: Message[],
     opts: CompletionOpts,
@@ -564,7 +543,6 @@ export class GitHubCopilotProvider extends BaseProvider {
     attachments?: ImageAttachment[],
     signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
-    // Build attachment map: last user message index → attachments
     const attachmentMap = new Map<number, ImageAttachment[]>()
     if (attachments?.length) {
       const lastUserIdx = messages.map(m => m.role).lastIndexOf('user')
@@ -580,11 +558,9 @@ export class GitHubCopilotProvider extends BaseProvider {
     }
     if (opts.tools?.length) {
       body['tools'] = opts.tools.map((t: any) => {
-        // Already in OpenAI function-call format
         if (t.type === 'function' && t.function) {
           return t
         }
-        // Anthropic format → wrap
         return {
           type: 'function' as const,
           function: {
@@ -593,7 +569,7 @@ export class GitHubCopilotProvider extends BaseProvider {
             parameters: t.input_schema ?? t.parameters ?? { type: 'object', properties: {} },
           },
         }
-      }).filter((t: any) => t.function?.name) // skip entries with empty names
+      }).filter((t: any) => t.function?.name)
       if ((body['tools'] as any[]).length) {
         body['tool_choice'] = 'auto'
       } else {
@@ -610,7 +586,7 @@ export class GitHubCopilotProvider extends BaseProvider {
           headers: { ...COPILOT_HEADERS, Authorization: `Bearer ${this.token}` },
           body: JSON.stringify(body),
         },
-        60000, // 60s timeout for completions
+        60000,
         signal,
       )
     } catch (err) {
@@ -639,21 +615,17 @@ export class GitHubCopilotProvider extends BaseProvider {
     let oaiCachedTokens = 0
     const toolCallAccum: Map<number, { id: string; name: string; argsJson: string }> = new Map()
 
-    // STREAM STALL DETECTION: Track last chunk received time
     const CHUNK_TIMEOUT_MS = 30000  // 30s without data = stall
     let lastChunkTime = Date.now()
 
     try {
       while (true) {
-        // Race the read against a timeout — reader.read() can hang forever
-        // if the server stops sending data mid-stream
         const timeoutPromise = new Promise<{ done: true; value: undefined }>((resolve) => {
           setTimeout(() => resolve({ done: true, value: undefined }), CHUNK_TIMEOUT_MS)
         })
         const readResult = await Promise.race([reader.read(), timeoutPromise])
 
         if (readResult.done && !readResult.value && Date.now() - lastChunkTime > CHUNK_TIMEOUT_MS - 1000) {
-          // Timeout won the race — stream stalled
           reader.releaseLock()
           yield { type: 'error', error: `stream stalled - no data received for ${CHUNK_TIMEOUT_MS / 1000}s` }
           return
@@ -661,7 +633,7 @@ export class GitHubCopilotProvider extends BaseProvider {
 
         const { done, value } = readResult
         if (done) break
-        lastChunkTime = Date.now()  // Reset stall timer on data
+        lastChunkTime = Date.now()
         buf += decoder.decode(value, { stream: true })
         const lines = buf.split('\n')
         buf = lines.pop() ?? ''
@@ -739,7 +711,6 @@ export class GitHubCopilotProvider extends BaseProvider {
   }
 
   async ping(signal?: AbortSignal): Promise<boolean> {
-    // CACHE: Return cached result if within TTL
     const now = Date.now()
     if (now - this.lastPingTime < this.PING_CACHE_MS) {
       return this.lastPingResult

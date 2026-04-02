@@ -13,10 +13,6 @@ import { GitHubCopilotProvider } from './github-copilot.js'
 import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
 import { QwenLoadBalancer, createQwenLoadBalancer, type QwenAccount } from './qwen-loadbalancer.js'
-// Copilot SDK imports are lazy (dynamic) — their transitive dependency
-// on @github/copilot-sdk → vscode-jsonrpc/node crashes the entire module
-// if the package isn't installed or has ESM resolution issues.
-// See initCopilotSdkProvider() below for dynamic imports.
 
 import type { IConfig, ILogger , IEventBus } from '../../types/interfaces.js'
 import type { IProvider } from '../../types/runtime.js'
@@ -24,13 +20,10 @@ import type { ToolRegistry } from '../tools/registry.js'
 import type { ToolExecutor } from '../tools/executor.js'
 
 
-// Import canonical provider implementations from @cassicore/ai
-
 export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
-// Re-export canonical providers from @cassicore/ai
 export { AlibabaCodingProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider } from '@cassicore/ai'
 
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
@@ -72,7 +65,7 @@ export function createProviders(
     process.env.COPILOT_TOKEN ||
     ''
 
-  // Attempt to load multi-account file
+  // Load multi-account configuration for load balancing
   let copilotAccounts: GitHubCopilotAccount[] = []
   try {
     const path = process.env.GITHUB_COPILOT_ACCOUNTS_PATH || `${getCassiCoreHome()}/github-copilot-accounts.json`
@@ -141,6 +134,7 @@ export function createProviders(
     }
   }
 
+  // Load Qwen multi-account configuration for load balancing
   const qwenAccounts: QwenAccount[] = []
   try {
     const qwenPath = process.env.QWEN_ACCOUNTS_PATH || `${getCassiCoreHome()}/qwen-accounts.json`
@@ -198,7 +192,6 @@ export function createProviders(
 }
 
 
-// Re-exports are async-only — consumers must dynamic-import from copilot-sdk/ directly
 export type { CopilotSdkManagerOptions } from './copilot-sdk/client-manager.js'
 
 /**
@@ -218,7 +211,7 @@ export async function initCopilotSdkProvider(
   bus: IEventBus,
   toolRegistry?: ToolRegistry,
   toolExecutor?: ToolExecutor,
-): Promise</* CopilotSdkManager */ unknown | null> {
+): Promise<unknown | null> {
   const sdkEnabled = config.get<boolean>('providers.copilotSdk.enabled', true)
   if (!sdkEnabled) {
     logger.info('[copilot-sdk] Disabled by config (providers.copilotSdk.enabled = false)')
@@ -228,15 +221,13 @@ export async function initCopilotSdkProvider(
   const sdkLogger = logger.child('copilot-sdk-init')
 
   try {
-    // Dynamic import — avoids crashing the module if @github/copilot-sdk has ESM issues
+    // Dynamic import prevents module crash if @github/copilot-sdk has ESM resolution issues
     const { CopilotSdkManager } = await import('./copilot-sdk/client-manager.js')
     const { CopilotSdkProvider } = await import('./copilot-sdk/provider.js')
     const { bridgeToolsToSdk } = await import('./copilot-sdk/tool-bridge.js')
 
-    // User-configured CLI path override (empty = use SDK's bundled @github/copilot)
     const cliPathOverride = config.get<string>('providers.copilotSdk.cliPath', '')
 
-    // Get auth token (reuse from github-copilot provider config)
     const githubToken =
       config.get<string>('providers.copilotSdk.githubToken', '') ||
       config.get<string>('providers.githubCopilot.token', '') ||
@@ -244,9 +235,7 @@ export async function initCopilotSdkProvider(
       process.env.COPILOT_TOKEN ||
       ''
 
-    // Create and start the SDK manager.
-    // When cliPath is undefined, CopilotClient uses its bundled CLI
-    // from @github/copilot (resolved via getBundledCliPath() internally).
+    // Create and start the SDK manager
     const manager = new CopilotSdkManager(logger, {
       githubToken: githubToken || undefined,
       cliPath: cliPathOverride || undefined,
@@ -257,12 +246,10 @@ export async function initCopilotSdkProvider(
 
     await manager.start()
 
-    // Bridge CassiCore tools to SDK format (with cassi_do enrichment)
     const sdkTools = toolRegistry && toolExecutor
       ? bridgeToolsToSdk(toolRegistry, toolExecutor, bus, logger)
       : []
 
-    // Create the SDK provider
     const sdkProvider = new CopilotSdkProvider({
       manager,
       tools: sdkTools,
@@ -274,14 +261,12 @@ export async function initCopilotSdkProvider(
 
     await sdkProvider.initModels()
 
-    // Register the SDK provider
     providers.set('copilot-sdk', sdkProvider)
     sdkLogger.info(`copilot-sdk provider ready (${sdkProvider.models.length} models, ${sdkTools.length} tools)`)
 
-    // Set the HTTP provider to background-only mode
+    // Set github-copilot provider to background-only when copilot-sdk is active
     const httpProvider = providers.get('github-copilot')
     if (httpProvider) {
-      // Unwrap CentralizedProvider if needed
       const raw = (httpProvider as unknown as { inner?: IProvider }).inner ?? httpProvider
       if (raw instanceof GitHubCopilotProvider) {
         raw.setBackgroundOnly(true)
