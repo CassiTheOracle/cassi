@@ -613,6 +613,15 @@ export type RuntimeEvent =
   | { type: "cognitive-feed:steering:approve"; teamId?: string; feedback?: string; fromUserId: number; timestamp: number }
   | { type: "cognitive-feed:steering:reject"; teamId?: string; feedback?: string; fromUserId: number; timestamp: number }
 
+  // VyBit visual editing integration events
+  | { type: "vybit:connected"; projectPath: string; port: number; timestamp: Date }
+  | { type: "vybit:disconnected"; reason: string; timestamp: Date }
+  | { type: "vybit:change_committed"; commitId: string; patchCount: number; kinds: string[]; timestamp: Date }
+  | { type: "vybit:change_implementing"; commitId: string; patchIds: string[]; sessionId: string; timestamp: Date }
+  | { type: "vybit:change_implemented"; commitId: string; patchIds: string[]; durationMs: number; timestamp: Date }
+  | { type: "vybit:change_error"; commitId: string; patchId: string; error: string; timestamp: Date }
+  | { type: "vybit:bug_report"; commitId: string; description: string; hasTimeline: boolean; hasScreenshots: boolean; timestamp: Date }
+
 export type EventType = RuntimeEvent["type"];
 
 /** Extract the event shape for a given type literal */
