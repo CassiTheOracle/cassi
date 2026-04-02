@@ -266,7 +266,7 @@ export class DialecticSystem implements IDialecticSystem {
   setModuleRegistry(registry: ModuleSessionRegistry): void {
     this.moduleRegistry = registry;
     this.consolidatedProcessor.setModuleRegistry(registry);
-    // Wire into voice instances if they expose the method
+    // Propagate registry to voice instances for consistent session tracking
     for (const key of ['yang', 'yin', 'serenity'] as const) {
       const voice = (this as any)[key];
       if (voice && typeof voice.setModuleRegistry === 'function') {
@@ -332,6 +332,7 @@ export class DialecticSystem implements IDialecticSystem {
   }
 
   private setupSubconsciousListeners(bus: IEventBus): void {
+    // Accumulate subconscious patterns with confidence tracking and evidence capping
     (bus as any).on?.('subconscious:pattern', (e: any) => {
       try {
         const { sessionId, pattern } = e;
@@ -344,7 +345,6 @@ export class DialecticSystem implements IDialecticSystem {
         const existing = ctx.patterns.find(p => p.type === pattern.pattern);
         if (existing) {
           existing.confidence = Math.max(existing.confidence, pattern.confidence);
-          // Cap evidence per pattern to prevent unbounded growth
           const newEvidence = pattern.evidence || [];
           for (const ev of newEvidence) {
             if (existing.evidence.length >= DialecticSystem.MAX_EVIDENCE_PER_PATTERN) break;
@@ -358,6 +358,7 @@ export class DialecticSystem implements IDialecticSystem {
       } catch {}
     });
 
+    // Track session intent direction for dialectic context enrichment
     (bus as any).on?.('subconscious:intent', (e: any) => {
       try {
         const { sessionId, intent } = e;
@@ -372,6 +373,7 @@ export class DialecticSystem implements IDialecticSystem {
       } catch {}
     });
 
+    // Accumulate anomaly signals for risk-aware dialectic analysis
     (bus as any).on?.('subconscious:anomaly', (e: any) => {
       try {
         const { sessionId, anomaly } = e;
@@ -381,7 +383,6 @@ export class DialecticSystem implements IDialecticSystem {
           ctx = { patterns: [], anomalies: [], lastUpdated: Date.now() };
           this.subconsciousContext.set(sessionId, ctx);
         }
-        // Cap anomalies per session
         if (ctx.anomalies.length < DialecticSystem.MAX_ANOMALIES_PER_SESSION) {
           ctx.anomalies.push({ category: anomaly.category, severity: anomaly.severity });
         }
@@ -389,23 +390,24 @@ export class DialecticSystem implements IDialecticSystem {
       } catch {}
     });
 
+    // Clean up on explicit session end — prevents memory leaks in long-running daemon
     (bus as any).on?.('subconscious:session:ended', (e: any) => {
       try {
         const { sessionId } = e;
         if (sessionId) {
           this.subconsciousContext.delete(sessionId);
-          this.streamCallbacks.delete(sessionId);  // Prevent memory leak
+          this.streamCallbacks.delete(sessionId);
         }
       } catch {}
     });
 
-    // Also listen to standard session:ended for cleanup (safety net)
+    // Fallback cleanup for sessions that don't emit subconscious:session:ended
     (bus as any).on?.('session:ended', (e: any) => {
       try {
         const { sessionId } = e;
         if (sessionId) {
           this.subconsciousContext.delete(sessionId);
-          this.streamCallbacks.delete(sessionId);  // Prevent memory leak
+          this.streamCallbacks.delete(sessionId);
         }
       } catch {}
     });
@@ -444,7 +446,7 @@ export class DialecticSystem implements IDialecticSystem {
   ): Promise<ParallelDialecticResult> {
     const startTime = Date.now();
 
-    // TTL-prune stale session context (safety net if session:ended never fires)
+    // Prune stale subconscious context to prevent unbounded memory growth
     if (this.subconsciousContext.size > 0) {
       const ttlCutoff = Date.now() - DialecticSystem.SUBCONSCIOUS_TTL_MS;
       for (const [sid, ctx] of this.subconsciousContext) {
@@ -454,7 +456,7 @@ export class DialecticSystem implements IDialecticSystem {
       }
     }
 
-    // Check cache first (unless explicitly skipped for autonomous iterations)
+    // Skip cache when caller needs fresh results (autonomous iterations, testing)
     if (this.resultCache && !opts?.skipCache) {
       const cached = this.resultCache.get(userMessage);
       if (cached) {
@@ -479,7 +481,7 @@ export class DialecticSystem implements IDialecticSystem {
     }
 
     try {
-      // Generate task guide if configured
+      // Generate lightweight task framing to focus dialectic analysis
       const taskGuideConfig = this.config.taskGuide;
       if (taskGuideConfig?.enabled && !context.taskGuide) {
         if (taskGuideConfig.mode === 'llm' && this.provider) {
@@ -498,7 +500,7 @@ export class DialecticSystem implements IDialecticSystem {
         }
       }
 
-      // Emit task guide in stream start event if generated
+      // Stream task guide early so UI can show intent before dialectic completes
       if (context.taskGuide) {
         this.emitStreamEvent(sessionId, {
           timestamp: Date.now(),
@@ -518,21 +520,20 @@ export class DialecticSystem implements IDialecticSystem {
         { signal: opts?.signal }
       );
 
-      // Cache result
+      // Cache result for semantic similarity matching on near-duplicate queries
       if (this.resultCache) {
         this.resultCache.set(userMessage, result);
       }
 
-      // Persist
+      // Persist to SQLite for analytics and debugging
       await this.persistResult(result);
 
-      // Emit signal for pipeline injection — inject on every turn that produced a signal,
-      // not just 'immediate' urgency. The dialectic should enrich almost every response.
+      // Inject signal on every turn that produces one — dialectic enrichment is valuable even for non-urgent signals
       if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal) {
         this.emitSignal(sessionId, turnId, result.serenity.synthesis.signal, result.requestId);
       }
 
-      // Post synthesis to global blackboard for cross-session visibility
+      // Post to global blackboard so other agents/sessions see dialectic insights
       this.postToBoard('system:dialectic', 'findings', JSON.stringify({
         sessionId,
         turnId,
@@ -541,7 +542,7 @@ export class DialecticSystem implements IDialecticSystem {
         timestamp: result.timestamp,
       }), { tags: ['synthesis'] });
 
-      // Post unresolved tensions/concerns
+      // Post high-priority signals (tensions/gaps/edge cases) to concerns channel for review
       if (result.serenity.synthesis.hasSignal && result.serenity.synthesis.signal) {
         const signal = result.serenity.synthesis.signal;
         if (signal.type === 'tension' || signal.type === 'gap' || signal.type === 'edge_case') {
@@ -693,8 +694,8 @@ export class DialecticSystem implements IDialecticSystem {
 }
 
 /**
- * @dep callers: dialectic-deduction.test.ts (tests/dialectic-deduction.test.ts), dialectic-task-guide.test.ts (tests/dialectic-task-guide.test.ts), createIntelligence (core/intelligence/index.ts), runMockLoop (scripts/simulate-dialectic-multi.js), runMock (scripts/simulate-dialectic.js) [+1]
- * @dep module: Dialectic
+ * @dep callers: main (scripts/test_persist.js), runMock (scripts/simulate-dialectic.js), runMockLoop (scripts/simulate-dialectic-multi.js), createIntelligence (core/intelligence/index.ts), dialectic-task-guide.test.ts (tests/dialectic-task-guide.test.ts) [+1]
+ * @dep module: Unknown
  * @dep risk: MEDIUM | 6 callers, 0 flows, 1 module
  */
 
