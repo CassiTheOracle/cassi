@@ -5,6 +5,7 @@ import { registerDroneTools } from '../tools/implementations/drone-swarm.js'
 import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
+import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
 
 import type { IEventBus, IConfig, ILogger, IPluginHost } from '../../types/interfaces.js'
 import type { IntelligenceLayer } from '../intelligence/index.js'
@@ -69,6 +70,13 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     })
     pipeline.setInjectionAggregator(intelligence.injectionAggregator)
     logger.info('InjectionAggregator wired to pipeline')
+
+    // Register skill effectiveness injection source
+    const skillTracker = (intelligence as any).skillMetricsTracker
+    if (skillTracker) {
+      intelligence.injectionAggregator.register(new SkillEffectivenessSource(skillTracker))
+      logger.info('Skill effectiveness injection source registered')
+    }
   } catch (err) {
     logger.warn(`Failed to wire InjectionAggregator: ${String(err)}`)
   }
