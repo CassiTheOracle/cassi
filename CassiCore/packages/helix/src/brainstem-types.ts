@@ -325,6 +325,12 @@ export interface BrainstemState {
   reviewerTokens: { yang: number, yin: number }
   /** Findings produced by each reviewer */
   reviewerFindings: { yang: number, yin: number }
+  /** Maximum work units before forced stop — 0 means no limit; can be reduced by Corpus directive */
+  maxWorkUnits: number
+  /** Required behavioral action from a Corpus directive, enforced on next iteration */
+  requiredAction?: 'narrow_scope' | 'switch_strategy' | 'conclude' | 'produce_output'
+  /** Axon step at which the required action was set — for staleness detection */
+  requiredActionSince?: number
 }
 
 /**
@@ -356,6 +362,8 @@ export function createInitialBrainstemState(): BrainstemState {
     pendingBlackboardTrigger: false,
     reviewerTokens: { yang: 0, yin: 0 },
     reviewerFindings: { yang: 0, yin: 0 },
+    // WHY: 0 means no limit; Corpus directives may cap this to enforce conclusion
+    maxWorkUnits: 0,
   }
 }
 

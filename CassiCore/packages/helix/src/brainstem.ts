@@ -2893,13 +2893,57 @@ Critical rules:
       return // context-inject doesn't produce guidance text
     }
 
+    // Apply enforcement: cap remaining iterations if directive specifies a limit
+    if (directive.maxIterationsRemaining !== undefined) {
+      const newMax = this.state.workUnitsProcessed + directive.maxIterationsRemaining
+      if (this.state.maxWorkUnits === 0 || newMax < this.state.maxWorkUnits) {
+        this.state.maxWorkUnits = newMax
+        this.logger.warn('Corpus directive capped iterations', {
+          newMax,
+          current: this.state.workUnitsProcessed,
+          directive: directive.type,
+        })
+      }
+    }
+
+    // Apply enforcement: store required action for injection into next guidance cycle
+    if (directive.requiredAction) {
+      this.state.requiredAction = directive.requiredAction
+      this.state.requiredActionSince = this.state.currentAxonStep
+    }
+
     this.queueGuidance({
       urgency: directive.urgency,
       triggeredBy: `corpus:${directive.type}` as any,
-      text: directive.text,
+      text: this.formatDirectiveWithEnforcement(directive),
       fromStep: this.state.currentAxonStep,
       timestamp: Date.now(),
     })
+  }
+
+  private formatDirectiveWithEnforcement(directive: CorpusDirective): string {
+    const parts = [directive.text]
+
+    if (directive.maxIterationsRemaining !== undefined) {
+      parts.push(
+        `\n\nENFORCED: You have ${directive.maxIterationsRemaining} iterations remaining. After that, you MUST conclude.`
+      )
+    }
+
+    if (directive.requiredAction) {
+      const actionMap: Record<string, string> = {
+        narrow_scope: 'ENFORCED: You must narrow your scope immediately. Pick ONE specific task and focus on it.',
+        switch_strategy: 'ENFORCED: Your current approach has failed. You must try a fundamentally different strategy.',
+        conclude: 'ENFORCED: You must call signal_conclusion on your next iteration.',
+        produce_output: 'ENFORCED: You must produce concrete output (write a file, run a test) before your next investigation step.',
+      }
+      const actionText = actionMap[directive.requiredAction]
+      if (actionText) {
+        parts.push(`\n\n${actionText}`)
+      }
+    }
+
+    return parts.join('')
   }
 
 
