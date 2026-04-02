@@ -1126,6 +1126,19 @@ export class ConstellationStore {
 
   // Row Conversion Helpers
 
+  /**
+   * Safe JSON parser that returns a fallback value on parse error.
+   * Used for all JSON fields in row conversion to prevent crashes on corrupted data.
+   */
+  private safeJsonParse<T>(json: string | null | undefined, fallback: T): T {
+    if (!json) return fallback
+    try {
+      return JSON.parse(json) as T
+    } catch {
+      return fallback
+    }
+  }
+
   private rowToSession(row: RawSessionRow): ConstellationSessionRow {
     return {
       id: row.id,
@@ -1133,14 +1146,14 @@ export class ConstellationStore {
       context: row.context,
       status: row.status as ConstellationStatus,
       template: row.template,
-      treeSnapshot: row.tree_snapshot_json ? JSON.parse(row.tree_snapshot_json) : null,
-      progressSnapshot: row.progress_snapshot_json ? JSON.parse(row.progress_snapshot_json) : null,
-      branchAssessments: JSON.parse(row.branch_assessments_json || '[]'),
-      spawnDecisions: JSON.parse(row.spawn_decisions_json || '[]'),
-      crossPatterns: JSON.parse(row.cross_patterns_json || '[]'),
-      interventions: JSON.parse(row.interventions_json || '[]'),
+      treeSnapshot: row.tree_snapshot_json ? this.safeJsonParse(row.tree_snapshot_json, null) : null,
+      progressSnapshot: row.progress_snapshot_json ? this.safeJsonParse(row.progress_snapshot_json, null) : null,
+      branchAssessments: this.safeJsonParse(row.branch_assessments_json, []),
+      spawnDecisions: this.safeJsonParse(row.spawn_decisions_json, []),
+      crossPatterns: this.safeJsonParse(row.cross_patterns_json, []),
+      interventions: this.safeJsonParse(row.interventions_json, []),
       sweepCount: row.sweep_count,
-      helixSessionIds: JSON.parse(row.helix_session_ids_json || '[]'),
+      helixSessionIds: this.safeJsonParse(row.helix_session_ids_json, []),
       maxHelixes: row.max_helixes,
       maxDepth: row.max_depth,
       timeoutMs: row.timeout_ms,
@@ -1167,7 +1180,7 @@ export class ConstellationStore {
       status: row.status as BranchStatus,
       health: row.health as BranchHealth | null,
       rollingScore: row.rolling_score,
-      filesModified: JSON.parse(row.files_modified_json || '[]'),
+      filesModified: this.safeJsonParse(row.files_modified_json, []),
       createdAt: row.created_at,
       completedAt: row.completed_at,
     }

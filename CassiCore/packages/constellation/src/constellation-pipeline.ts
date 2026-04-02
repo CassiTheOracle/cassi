@@ -208,13 +208,12 @@ function parseDecompositionResult(
   originalGoal: string,
   startTime: number,
 ): GoalDecomposition {
-  // Look for DECOMPOSITION_START...DECOMPOSITION_END in the result
+  // HOW: Look for DECOMPOSITION_START...DECOMPOSITION_END in the result
   const conclusion = result.unityConclusion ?? result.mentorSynthesis ?? ''
   const fullText = `${conclusion}\n${result.unitySummary ?? ''}\n${result.unityKeyPoints?.join('\n') ?? ''}`
 
   const decompMatch = fullText.match(/DECOMPOSITION_START\s*\n([\s\S]*?)DECOMPOSITION_END/)
   if (!decompMatch) {
-    // No decomposition block found — return as single task
     return {
       decomposed: false,
       originalGoal,
@@ -226,15 +225,12 @@ function parseDecompositionResult(
 
   const block = decompMatch[1]
 
-  // Parse strategy
   const strategyMatch = block.match(/STRATEGY:\s*(parallel|sequential|tree)/i)
   const strategy = (strategyMatch?.[1]?.toLowerCase() ?? 'parallel') as 'parallel' | 'sequential' | 'tree'
 
-  // Parse shared context
   const sharedContextMatch = block.match(/SHARED_CONTEXT:\s*(.+?)(?=\n\nSUBTASK:|\n$)/s)
   const sharedContext = sharedContextMatch?.[1]?.trim()
 
-  // Parse sub-tasks
   const subTaskPattern = /SUBTASK:\s*(.+?)(?:\nTEMPLATE:\s*(.+?))?(?:\nFILES:\s*(.+?))?(?:\nPRIORITY:\s*(\d))?(?:\nBUDGET_STEPS:\s*(\d+))?(?=\n\nSUBTASK:|\nDECOMPOSITION_END|$)/gs
   const subTasks: GoalSubTask[] = []
 
@@ -246,7 +242,6 @@ function parseDecompositionResult(
     const priority = parseInt(match[4] ?? '1', 10) || 1
     const budgetSteps = parseInt(match[5] ?? '0', 10) || undefined
 
-    // Validate template
     const validTemplates = ['research', 'implementation', 'review', 'standard', 'minimal'] as const
     const template = validTemplates.includes(templateStr as any)
       ? (templateStr as ConstellationTemplate)
@@ -1371,7 +1366,7 @@ export async function runConstellationPipeline(
       }
     }
 
-    // For complex goals, run a short planning Helix to decompose the goal
+    // WHY: For complex goals, run a short planning Helix to decompose the goal
     // into validated sub-tasks before launching execution Helixes.
     const decomposition = await runGoalDecomposition({
       goal,
@@ -1689,7 +1684,6 @@ export async function runConstellationPipeline(
       error: String(err),
     }
 
-    // Emit failure event
     eventBus?.emit({
       type: 'team:event' as any,
       teamId: constellationId,
@@ -1728,7 +1722,6 @@ export async function runConstellationPipeline(
   } finally {
     completed = true
 
-    // Stop checkpoint timer
     if (checkpointHandle) {
       clearInterval(checkpointHandle)
     }
@@ -1741,7 +1734,7 @@ export async function runConstellationPipeline(
       } catch (err) {
         log.warn('Error cancelling Helix', { helixId: id, error: String(err) })
       }
-      // Explicitly stop the Brainstem to prevent zombie LLM calls
+      // WHY: Explicitly stop the Brainstem to prevent zombie LLM calls
       if (helix.brainstem) {
         try {
           await helix.brainstem.stop()
@@ -1750,7 +1743,6 @@ export async function runConstellationPipeline(
           log.warn('Error stopping Brainstem', { helixId: id, error: String(err) })
         }
       }
-      // Stop Brainstem mini-Helix sidecar if running
       if (helix.brainstemMiniHelix) {
         try {
           await helix.brainstemMiniHelix.stop()
@@ -1761,7 +1753,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // Stop Corpus
     log.info('Stopping Corpus')
     try {
       await corpus.stop()
@@ -1769,7 +1760,6 @@ export async function runConstellationPipeline(
       log.warn('Error stopping Corpus', { error: String(err) })
     }
 
-    // Stop Corpus mini-Helix if running
     if (corpusMiniHelix) {
       try {
         await corpusMiniHelix.stop()
@@ -1779,7 +1769,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // Stop all blackboard bridges
     for (const [id, bridge] of blackboardBridges) {
       try {
         bridge.stop()
@@ -1788,7 +1777,6 @@ export async function runConstellationPipeline(
       }
     }
 
-    // Release all model handles
     log.info('Releasing model handles')
     for (const [id, helix] of runningHelixes) {
       for (const handle of helix.handles) {

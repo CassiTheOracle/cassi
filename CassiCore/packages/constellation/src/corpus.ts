@@ -389,10 +389,14 @@ export class Corpus {
 
         // WHY: Periodic tree checkpointing for crash recovery
         if (Date.now() - this.lastCheckpointAt > Corpus.CHECKPOINT_INTERVAL_MS) {
-          const snapshot = this.tree.getSnapshot()
-          this.deps.store?.saveTreeCheckpoint(this.deps.constellationId, snapshot)
+          try {
+            const snapshot = this.tree.getSnapshot()
+            this.deps.store?.saveTreeCheckpoint(this.deps.constellationId, snapshot)
+          } catch (err) {
+            this.logger.warn('Failed to save tree checkpoint', { error: String(err) })
+          }
+          // Still update timestamp to avoid rapid retry
           this.lastCheckpointAt = Date.now()
-          this.logger.debug('Periodic tree checkpoint saved')
         }
 
         // Update sweep stats
@@ -873,20 +877,24 @@ export class Corpus {
         })
 
         // WHY: Record auto-spawn decision for persistence and analysis
-        this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
-          decisionType: 'spawn',
-          helixId: branch.helixId,
-          inputData: {
-            reason: 'auto-spawn',
-            interventions: branchInterventions,
-            rollingScore: assessment.rollingScore,
-            parentGoal: branch.goal,
-          },
-          outputData: {
-            childGoal: spawnGoal,
-          },
-          confidence: 0.7,
-        })
+        try {
+          this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
+            decisionType: 'spawn',
+            helixId: branch.helixId,
+            inputData: {
+              reason: 'auto-spawn',
+              interventions: branchInterventions,
+              rollingScore: assessment.rollingScore,
+              parentGoal: branch.goal,
+            },
+            outputData: {
+              childGoal: spawnGoal,
+            },
+            confidence: 0.7,
+          })
+        } catch (err) {
+          this.logger.warn('Failed to record auto-spawn decision', { error: String(err) })
+        }
 
         this.logger.info('Auto-spawn triggered for struggling branch', {
           helixId: branch.helixId,
@@ -1357,20 +1365,24 @@ Guidelines:
         })
 
         // WHY: Record spawn decision for persistence and analysis
-        this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
-          decisionType: 'spawn',
-          helixId: parentHelixId,
-          inputData: {
-            reason: 'Corpus LLM analysis',
-            parentGoal: this.tree.getBranch(parentHelixId)?.goal ?? 'unknown',
-            assessment: assessment.slice(0, 500),
-          },
-          outputData: {
-            childGoal: spawnGoal,
-          },
-          llmAnalysis: response.slice(0, 1000),
-          confidence: 0.7,
-        })
+        try {
+          this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
+            decisionType: 'spawn',
+            helixId: parentHelixId,
+            inputData: {
+              reason: 'Corpus LLM analysis',
+              parentGoal: this.tree.getBranch(parentHelixId)?.goal ?? 'unknown',
+              assessment: assessment.slice(0, 500),
+            },
+            outputData: {
+              childGoal: spawnGoal,
+            },
+            llmAnalysis: response.slice(0, 1000),
+            confidence: 0.7,
+          })
+        } catch (err) {
+          this.logger.warn('Failed to record spawn decision', { error: String(err) })
+        }
 
         this.logger.info('Spawn request submitted from Corpus LLM analysis', {
           parentHelixId,
@@ -1494,24 +1506,28 @@ Guidelines:
       }
 
       // WHY: Record intervention decision for persistence and analysis
-      this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
-        decisionType: 'intervention',
-        helixId: directive.targetHelixId,
-        inputData: {
-          branchAssessment: assessment ? {
-            rollingScore: assessment.rollingScore,
-            status: assessment.status,
-            decliningScoreStreak: assessment.decliningScoreStreak,
-          } : undefined,
-          pattern: assessment?.dominantPattern,
-        },
-        outputData: {
-          directive,
-          urgency: directive.urgency,
-        },
-        llmAnalysis: undefined,
-        confidence: 0.5,
-      })
+      try {
+        this.deps.store?.recordCorpusDecision(this.deps.constellationId, {
+          decisionType: 'intervention',
+          helixId: directive.targetHelixId,
+          inputData: {
+            branchAssessment: assessment ? {
+              rollingScore: assessment.rollingScore,
+              status: assessment.status,
+              decliningScoreStreak: assessment.decliningScoreStreak,
+            } : undefined,
+            pattern: assessment?.dominantPattern,
+          },
+          outputData: {
+            directive,
+            urgency: directive.urgency,
+          },
+          llmAnalysis: undefined,
+          confidence: 0.5,
+        })
+      } catch (err) {
+        this.logger.warn('Failed to record intervention decision', { error: String(err) })
+      }
 
       this.emitEvent('corpus:intervention', {
         helixId: directive.targetHelixId,
