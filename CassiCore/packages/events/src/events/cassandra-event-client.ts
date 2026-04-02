@@ -22,6 +22,8 @@
 
 import { EventEmitter } from 'node:events';
 
+import { rootLogger } from '../logger.js';
+
 import type {
   CassiCoreEvent,
   SessionStartEvent,
@@ -597,7 +599,7 @@ export class CassandraEventClient extends EventEmitter {
 
   private log(...args: unknown[]): void {
     if (this.options.debug) {
-      console.log('[CassandraEventClient]', ...args);
+      rootLogger.debug('[CassandraEventClient]', { args });
     }
   }
 }

@@ -307,9 +307,7 @@ export class SessionPipeline {
     this.initialized = false;
   }
 
-  // ---------------------------------------------------------------------------
   // Private Methods
-  // ---------------------------------------------------------------------------
 
   /**
    * Core turn execution.  Both processMessage() and processTurn() delegate

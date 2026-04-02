@@ -51,9 +51,7 @@ const LEVEL_LABEL: Record<LogLevel, string> = {
 };
 
 
-// ─────────────────────────────────────────────────────────────────────────────
 // File Transport with Log Rotation
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** Default log file path for the daemon. */
 const DEFAULT_LOG_FILE = join(homedir(), '.cassicore', 'daemon.log');
@@ -222,6 +220,9 @@ let fileTransport: FileTransport | null = null;
 /**
  * Initialize the file transport for log rotation.
  * Should be called once during daemon startup.
+ * @dep callers: bootConfiguration (core/daemon/boot-configuration.ts), logger-rotation.test.ts (tests/logger-rotation.test.ts)
+ * @dep module: Daemon
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function initFileTransport(config?: Partial<FileTransportConfig>): void {
   if (fileTransport) {
@@ -236,6 +237,9 @@ export function initFileTransport(config?: Partial<FileTransportConfig>): void {
 
 /**
  * Close the file transport. Call on daemon shutdown.
+ * @dep callers: bootConfiguration (core/daemon/boot-configuration.ts), logger-rotation.test.ts (tests/logger-rotation.test.ts)
+ * @dep module: Daemon
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function closeFileTransport(): void {
   if (fileTransport) {
@@ -248,8 +252,8 @@ export function closeFileTransport(): void {
 /**
  * Format a Date as HH:MM:SS.mmm using local time and zero-padding.
  * Millisecond precision is essential for a long-running daemon.
- * @dep callers: writeConsole (core/logger.ts), writeThoughtResultLog (core/logger.ts), writeThoughtRequestLog (core/logger.ts), writeThoughtLog (core/logger.ts)
- * @dep module: Cluster_307
+ * @dep callers: writeThoughtLog (core/logger.ts), writeThoughtRequestLog (core/logger.ts), writeThoughtResultLog (core/logger.ts), writeConsole (core/logger.ts)
+ * @dep module: Intelligence
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 function timeStamp(date = new Date()): string {
@@ -264,8 +268,8 @@ const THOUGHT_LOG_DIR = join(homedir(), '.cassi');
 const THOUGHT_LOG_PATH = join(THOUGHT_LOG_DIR, 'thought.log');
 
 /**
- * @dep callers: writeThoughtResultLog (core/logger.ts), writeThoughtRequestLog (core/logger.ts), writeThoughtLog (core/logger.ts)
- * @dep module: Cluster_307
+ * @dep callers: writeThoughtLog (core/logger.ts), writeThoughtRequestLog (core/logger.ts), writeThoughtResultLog (core/logger.ts)
+ * @dep module: Intelligence
  * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 
@@ -300,6 +304,13 @@ function indentBlock(text: string, prefix: string = '    '): string {
     .join('\n');
 }
 
+/**
+ * @dep callers: complete (core/providers/centralized.ts), complete (core/intelligence/index.ts)
+ * @dep calls: indentBlock, stringifyContent, appendThoughtLine, timeStamp
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function writeThoughtRequestLog(args: {
   provider: string;
   model: string;
@@ -333,6 +344,13 @@ export function writeThoughtRequestLog(args: {
   appendThoughtLine(blocks.join('\n'));
 }
 
+/**
+ * @dep callers: complete (core/providers/centralized.ts), complete (core/intelligence/index.ts)
+ * @dep calls: formatMeta, appendThoughtLine, timeStamp
+ * @dep module: Intelligence
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
+
 export function writeThoughtResultLog(event: string, meta?: Record<string, unknown>): void {
   const time = timeStamp();
   const metaStr = meta && Object.keys(meta).length > 0 ? `  ${formatMeta(meta)}` : '';
@@ -350,9 +368,9 @@ const META_VALUE_MAX = 120;
  * - Numbers/booleans: raw
  * - Objects/arrays: JSON (truncated if long)
  * - Undefined/null: skipped
- * @dep callers: writeConsole (core/logger.ts), writeThoughtResultLog (core/logger.ts), writeThoughtLog (core/logger.ts)
+ * @dep callers: writeThoughtLog (core/logger.ts), writeThoughtResultLog (core/logger.ts), writeConsole (core/logger.ts)
  * @dep calls: formatValue
- * @dep module: Cluster_307
+ * @dep module: Intelligence
  * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 function formatMeta(meta: Record<string, unknown>): string {
@@ -506,10 +524,10 @@ export class Logger implements ILogger {
 
     // Write to console (with colors if TTY)
     if (level === "warn" || level === "error") {
-      console.error(line);
+      console.error(line); // contributing:ignore
     } else {
       // eslint-disable-next-line no-console
-      console.log(line);
+      console.log(line); // contributing:ignore
     }
 
     // Write to file transport (plain text, no ANSI codes)
