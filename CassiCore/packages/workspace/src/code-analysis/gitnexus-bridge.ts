@@ -8,7 +8,7 @@
  *  - Graceful fallback messaging when GitNexus is unavailable
  */
 
-import { execSync, exec, type ExecSyncOptions } from 'node:child_process'
+import { execSync, exec } from 'node:child_process'
 import { readFileSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
@@ -18,6 +18,9 @@ const execAsync = promisify(exec)
 
 /** How many seconds between staleness checks (avoid hammering git on every call). */
 const STALENESS_CHECK_INTERVAL_MS = 60_000
+
+/** How many commits behind HEAD the index can be before we consider it stale. */
+const MAX_STALE_COMMITS = 30
 
 /** Maximum time to wait for a reindex (5 minutes). */
 const REINDEX_TIMEOUT_MS = 300_000
@@ -43,6 +46,9 @@ let reindexInProgress: Promise<boolean> | null = null
 
 /**
  * Resolve the repo root (where .gitnexus/ lives).
+ * @dep callers: isIndexFresh (core/intelligence/code-analysis/gitnexus-bridge.ts), reindex (core/intelligence/code-analysis/gitnexus-bridge.ts)
+ * @dep module: Code-analysis
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function repoRoot(): string {
   try {
@@ -85,11 +91,38 @@ function kuzuExists(root: string): boolean {
 }
 
 /**
- * Determine whether the GitNexus index is fresh.
+ * Count commits between the indexed commit and HEAD.
+ * Returns -1 if the count cannot be determined.
+ */
+function commitsBehind(root: string, indexedCommit: string, head: string): number {
+  if (indexedCommit === head) return 0
+  try {
+    const count = execSync(`git rev-list --count ${indexedCommit}..${head}`, {
+      encoding: 'utf-8',
+      cwd: root,
+    }).trim()
+    return parseInt(count, 10) || -1
+  } catch {
+    return -1
+  }
+}
+
+/**
+ * Determine whether the GitNexus index is fresh enough for use.
  *
  * Fresh means:
  *  1. `.gitnexus/kuzu` directory exists
- *  2. `meta.json` exists and its `lastCommit` matches `git rev-parse HEAD`
+ *  2. `meta.json` exists
+ *  3. The indexed commit is within MAX_STALE_COMMITS of HEAD
+ *
+ * WHY: Using a commit threshold instead of exact HEAD match avoids
+ * triggering expensive reindexes after every commit during active sessions.
+ * The withAutoReindex wrapper handles the case where a query fails because
+ * the index is too far behind.
+ * @dep callers: reindex (core/intelligence/code-analysis/gitnexus-bridge.ts), ensureFreshIndex (core/intelligence/code-analysis/gitnexus-bridge.ts)
+ * @dep calls: commitsBehind, kuzuExists, currentHead, readMeta, repoRoot [+1]
+ * @dep module: Code-analysis
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function isIndexFresh(logger?: ILogger): boolean {
   const now = Date.now()
@@ -106,12 +139,26 @@ export function isIndexFresh(logger?: ILogger): boolean {
     return false
   }
 
-  cachedFresh = meta.lastCommit === head
+  if (meta.lastCommit === head) {
+    cachedFresh = true
+    lastCheckTs = now
+    return true
+  }
+
+  const behind = commitsBehind(root, meta.lastCommit, head)
+  cachedFresh = behind >= 0 && behind <= MAX_STALE_COMMITS
   lastCheckTs = now
   if (!cachedFresh) {
-    logger?.debug('GitNexus index stale', {
+    logger?.debug('GitNexus index too stale, reindex needed', {
       indexedCommit: meta.lastCommit.slice(0, 7),
       currentHead: head.slice(0, 7),
+      commitsBehind: behind,
+    })
+  } else if (behind > 0) {
+    logger?.debug('GitNexus index slightly stale but usable', {
+      indexedCommit: meta.lastCommit.slice(0, 7),
+      currentHead: head.slice(0, 7),
+      commitsBehind: behind,
     })
   }
   return cachedFresh
@@ -129,6 +176,10 @@ export function invalidateStalenessCache(): void {
  * Run `npx gitnexus analyze` to rebuild the index.
  * Returns true on success, false on failure.
  * Serialised: concurrent callers share the same promise.
+ * @dep callers: ensureFreshIndex (core/intelligence/code-analysis/gitnexus-bridge.ts), withAutoReindex (core/intelligence/code-analysis/gitnexus-bridge.ts)
+ * @dep calls: invalidateStalenessCache, isIndexFresh, repoRoot
+ * @dep module: Code-analysis
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function reindex(logger?: ILogger): Promise<boolean> {
   if (reindexInProgress) {
@@ -177,6 +228,10 @@ export async function reindex(logger?: ILogger): Promise<boolean> {
  * await ensureFreshIndex(logger)
  * const result = await router('gitnexus_query', args)
  * ```
+ * @dep callers: executeCodeConsolidatedTool (mcp/gateway/consolidated-code-tools.ts), withAutoReindex (core/intelligence/code-analysis/gitnexus-bridge.ts)
+ * @dep calls: reindex, isIndexFresh
+ * @dep module: Code-analysis
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export async function ensureFreshIndex(logger?: ILogger): Promise<boolean> {
   if (isIndexFresh(logger)) return true
