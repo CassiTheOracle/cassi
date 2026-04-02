@@ -29,7 +29,7 @@ export interface WarmProviderRoutesDeps {
 /** Lazy singleton — created on first request if the SDK provider is available */
 let manager: WarmProviderManager | null = null
 
-function getOrCreateManager(daemon: any, logger: ILogger): WarmProviderManager | null {
+async function getOrCreateManager(daemon: any, logger: ILogger): Promise<WarmProviderManager | null> {
   if (manager) return manager
 
   // Get the copilot-sdk provider from the provider map
@@ -52,7 +52,7 @@ function getOrCreateManager(daemon: any, logger: ILogger): WarmProviderManager |
   const idleTimeoutMs = daemon.config?.get?.('warmProvider.idleTimeoutMs', 8 * 60 * 60 * 1000) ?? 8 * 60 * 60 * 1000
 
   // Build a default system prompt that includes AGENTS.md context
-  const systemPrompt = buildDefaultSystemPrompt(daemon)
+  const systemPrompt = await buildDefaultSystemPrompt(daemon)
 
   manager = new WarmProviderManager({
     provider: sdkProvider,
@@ -72,12 +72,12 @@ function getOrCreateManager(daemon: any, logger: ILogger): WarmProviderManager |
  * instruction files from the working directory up to the filesystem root.
  * Applies per-file (4K chars) and total (12K chars) token budgeting.
  */
-function buildDefaultSystemPrompt(daemon: any): string {
+async function buildDefaultSystemPrompt(daemon: any): Promise<string> {
   const parts: string[] = []
 
   // Discover instruction files from ancestor directory chain
   try {
-    const { discoverAndRenderInstructions } = require('../workspace/instruction-discovery.js')
+    const { discoverAndRenderInstructions } = await import('../workspace/instruction-discovery.js')
     const result = discoverAndRenderInstructions(process.cwd())
     if (result.rendered) {
       parts.push(result.rendered)
@@ -85,11 +85,11 @@ function buildDefaultSystemPrompt(daemon: any): string {
   } catch {
     // Fallback: try loading AGENTS.md directly (original behavior)
     try {
-      const fs = require('node:fs')
-      const path = require('node:path')
-      const agentsMd = path.join(process.cwd(), 'AGENTS.md')
-      if (fs.existsSync(agentsMd)) {
-        parts.push(fs.readFileSync(agentsMd, 'utf-8'))
+      const { readFileSync, existsSync } = await import('node:fs')
+      const { join } = await import('node:path')
+      const agentsMd = join(process.cwd(), 'AGENTS.md')
+      if (existsSync(agentsMd)) {
+        parts.push(readFileSync(agentsMd, 'utf-8'))
       }
     } catch { /* ignore */ }
   }
@@ -164,7 +164,7 @@ export async function handleWarmProviderRoutes(
 
   // ─── GET /v1/models ────────────────────────────────────────
   if (subpath === '/models' && method === 'GET') {
-    const mgr = getOrCreateManager(daemon, logger)
+    const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
       sendJSON(res, 503, { error: { message: 'Warm provider not available (copilot-sdk not initialized)', type: 'server_error' } })
       return true
@@ -191,7 +191,7 @@ export async function handleWarmProviderRoutes(
 
   // ─── POST /v1/chat/completions ─────────────────────────────
   if (subpath === '/chat/completions' && method === 'POST') {
-    const mgr = getOrCreateManager(daemon, logger)
+    const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
       sendJSON(res, 503, { error: { message: 'Warm provider not available (copilot-sdk not initialized)', type: 'server_error' } })
       return true
@@ -373,7 +373,7 @@ export async function handleWarmProviderRoutes(
 
   // ─── GET /v1/warm/sessions ─────────────────────────────────
   if (subpath === '/warm/sessions' && method === 'GET') {
-    const mgr = getOrCreateManager(daemon, logger)
+    const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
       sendJSON(res, 503, { error: { message: 'Warm provider not available', type: 'server_error' } })
       return true
@@ -384,7 +384,7 @@ export async function handleWarmProviderRoutes(
 
   // ─── DELETE /v1/warm/sessions/:id ──────────────────────────
   if (subpath.startsWith('/warm/sessions/') && method === 'DELETE') {
-    const mgr = getOrCreateManager(daemon, logger)
+    const mgr = await getOrCreateManager(daemon, logger)
     if (!mgr) {
       sendJSON(res, 503, { error: { message: 'Warm provider not available', type: 'server_error' } })
       return true
