@@ -35,6 +35,20 @@ export {
   helixStep,
   helixBranch,
 } from './steps.js'
+export {
+  codeReviewPipeline,
+  researchPipeline,
+  featureImplementation,
+  scheduledCleanup,
+  eventReactorChain,
+} from './templates.js'
+export type {
+  CodeReviewPipelineOptions,
+  ResearchPipelineOptions,
+  FeatureImplementationOptions,
+  ScheduledCleanupOptions,
+  EventReactorChainOptions,
+} from './templates.js'
 export type {
   IToolExecutor,
   IConstellationOrchestrator,
