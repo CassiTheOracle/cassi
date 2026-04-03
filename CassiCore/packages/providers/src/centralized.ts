@@ -171,6 +171,13 @@ export class CentralizedProvider implements IProvider {
   private lastErrorAt = 0
   private consecutiveErrors = 0
 
+  // WHY: When all concurrent slots are full, queue callers instead of rejecting
+  // immediately. Constellation branches launch 15+ simultaneous inference calls
+  // but only 12 slots are available. Queuing with timeout lets bursts drain
+  // naturally instead of killing branches.
+  private concurrencyWaiters: Array<() => void> = []
+  private static readonly CONCURRENCY_WAIT_TIMEOUT_MS = 60_000
+
   // Metrics
   private metrics = {
     totalRequests: 0,
@@ -274,6 +281,11 @@ export class CentralizedProvider implements IProvider {
         if (existing.aborted) {
           this.logger.info(`[dedup] Clearing stale aborted request ${existing.id.slice(-8)} for session ${sessionId.slice(-8)}`)
           this.inFlight.delete(sessionId)
+          // WHY: Wake a queued caller now that a slot is free
+          if (this.concurrencyWaiters.length > 0) {
+            const waiter = this.concurrencyWaiters.shift()!
+            waiter()
+          }
         } else {
           this.metrics.deduplicated++
           this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
@@ -310,10 +322,37 @@ export class CentralizedProvider implements IProvider {
           sessionId,
           retryAfterMs: rateLimitResult.retryAfterMs,
         })
-        // Concurrent limit: our own backpressure — throw immediately, do not retry
-        // (retrying would just stack up waiting requests and defeat the concurrency cap)
+        // Concurrent limit: wait for a slot to open instead of rejecting immediately.
+        // HOW: Register a waiter that resolves when a request completes, with a timeout.
+        // This turns burst-induced concurrent rejections into short waits.
         if (rateLimitResult.reason === 'concurrent') {
-          throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms`)
+          if (attempt >= MAX_RATE_LIMIT_RETRIES) {
+            throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms (concurrent limit, ${attempt} retries exhausted)`)
+          }
+          const waitMs = Math.min(rateLimitResult.retryAfterMs, CentralizedProvider.CONCURRENCY_WAIT_TIMEOUT_MS)
+          this.logger.info(`[ratelimit] concurrent limit hit, queuing for slot (attempt ${attempt + 1}/${MAX_RATE_LIMIT_RETRIES}, timeout ${waitMs}ms)`)
+          try {
+            // HOW: Race between a slot opening and a timeout. The waiter callback
+            // is stored so we can clean it up if the timeout fires first.
+            let waiterFn: (() => void) | undefined
+            await Promise.race([
+              new Promise<void>(resolve => {
+                waiterFn = resolve
+                this.concurrencyWaiters.push(resolve)
+              }),
+              sleepWithAbort(waitMs, signal).then(() => {
+                // Timeout fired first — remove our callback from the queue to avoid leaks
+                if (waiterFn) {
+                  const idx = this.concurrencyWaiters.indexOf(waiterFn)
+                  if (idx >= 0) this.concurrencyWaiters.splice(idx, 1)
+                }
+              }),
+            ])
+          } catch {
+            // AbortError from signal — rethrow as rate limit
+            throw new Error(`Rate limited: retry after ${waitMs}ms (aborted while waiting for slot)`)
+          }
+          continue
         }
         // Learned limit from 429 history: wait for the window to clear, then retry
         if (attempt >= MAX_RATE_LIMIT_RETRIES) {
@@ -519,6 +558,13 @@ export class CentralizedProvider implements IProvider {
         entry.completedAt = Date.now()
         this.inFlight.delete(sessionId)
         this.metrics.totalRequests++
+
+        // WHY: Wake the oldest queued caller now that a slot is free.
+        // Shift (FIFO) gives fair ordering so no branch starves.
+        if (this.concurrencyWaiters.length > 0) {
+          const waiter = this.concurrencyWaiters.shift()!
+          waiter()
+        }
         this.metrics.totalTokens += entry.tokensUsed
 
         const duration = entry.completedAt - entry.startedAt
@@ -654,6 +700,11 @@ export class CentralizedProvider implements IProvider {
     if (entry) {
       entry.aborted = true
       this.inFlight.delete(sessionId)
+      // WHY: Wake a queued caller now that a slot is free
+      if (this.concurrencyWaiters.length > 0) {
+        const waiter = this.concurrencyWaiters.shift()!
+        waiter()
+      }
       this.logger.info(`[abort] Session ${sessionId.slice(-8)} request ${entry.id.slice(-8)}`)
       this.bus.emit({
         type: 'provider:request_aborted',
@@ -912,7 +963,7 @@ export class CentralizedProvider implements IProvider {
 
 /**
  * @dep callers: createProviders (core/providers/index.ts), centralized-provider.test.ts (tests/centralized-provider.test.ts)
- * @dep calls: getConfiguredProviderConfig, setBudgetTracker
+ * @dep calls: setRateLimitStore, setBudgetTracker, getConfiguredProviderConfig
  * @dep module: Providers
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
