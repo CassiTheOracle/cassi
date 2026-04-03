@@ -113,6 +113,14 @@ export interface HelixPipelineOpts {
   workingDir?: string
 
   /**
+   * Separate context for reviewer postures (Yang/Yin).
+   * @why Reviewers only need editing rules and review criteria, not full file
+   *      assignments. Splitting context saves tokens when the goal is large
+   *      (e.g., mass-edit tasks with hundreds of file assignments).
+   */
+  reviewerContext?: string
+
+  /**
    * Tool filter for this Helix session.
    * Applied on top of posture-level tool access.
    */
@@ -125,10 +133,10 @@ export interface HelixPipelineOpts {
 
 
 /**
- * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), project (core/intelligence/helix/index.ts)
- * @dep calls: on, emit, start, child, stop [+30]
+ * @dep callers: project (core/intelligence/helix/index.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep calls: now, createSession, cancel, on, emit [+32]
  * @dep flows: RunHelixPipeline → Delete (1/4)
- * @dep module: Helix
+ * @dep module: Flux-team
  * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 
@@ -515,7 +523,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       log.info('Starting reviewers (brainstem decision: activate)')
       opts.store?.appendEvent(sessionId, 'helix:reviewers:activated', 'session', 'Reviewers activated by brainstem decision')
 
-      yangPromise = yangSession.runAsReviewer(opts.goal, opts.context)
+      yangPromise = yangSession.runAsReviewer(opts.goal, opts.reviewerContext ?? opts.context)
         .catch(err => {
           log.error('Yang reviewer failed', { error: String(err) })
           opts.store?.appendEvent(sessionId, 'helix:role:failed', 'yang', String(err))
@@ -528,7 +536,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
           onActivity()
         })
 
-      yinPromise = yinSession.runAsReviewer(opts.goal, opts.context)
+      yinPromise = yinSession.runAsReviewer(opts.goal, opts.reviewerContext ?? opts.context)
         .catch(err => {
           log.error('Yin reviewer failed', { error: String(err) })
           opts.store?.appendEvent(sessionId, 'helix:role:failed', 'yin', String(err))
@@ -751,7 +759,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 /**
  * @dep callers: extract (core/intelligence/helix/helix-pipeline.ts), runHelixPipeline (core/intelligence/helix/helix-pipeline.ts)
- * @dep module: Helix
+ * @dep module: Flux-team
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
