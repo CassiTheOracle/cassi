@@ -440,8 +440,11 @@ export class HelixBrainstem {
       ? `Last step [${lastAnnotation.annotation}] score=${lastAnnotation.score.toFixed(2)} pattern=${lastAnnotation.pattern}`
       : 'No previous steps'
 
-    return `I am reflecting on the current state of this session. Trigger: ${triggerDescription}.
+    return `<identity>
+I am reflecting on the current state of this session — the self-observation mechanism checking the overall trajectory. Trigger: ${triggerDescription}.
+</identity>
 
+<session_context>
 ## Session Goal
 ${this.deps.goal}
 
@@ -451,11 +454,13 @@ ${this.deps.goal}
 - Rolling quality (last 5): ${rollingScore.toFixed(2)}
 - Long reasoning sequences: ${this.state.longReasoningCount}
 - ${lastStep}${trajectorySection}${cognitiveModelSection}${blackboardSection}
+</session_context>
 
-## Task
+<instructions>
 Produce a broad reflection on the current state of this session. This is a periodic check-in, not tied to a specific tool call. Consider the full trajectory, the running cognitive model, and the Blackboard state to assess overall progress and identify what should happen next.
 
-${this.buildHeartbeatOutputFormatInstructions()}`
+${this.buildHeartbeatOutputFormatInstructions()}
+</instructions>`
   }
 
   /**
@@ -1164,14 +1169,19 @@ PROGRESS: <number 0-1>
     // Blackboard state section — include plan, channels, report
     const blackboardSection = this.buildBlackboardSection()
 
-    return `I am the cognitive organizer of this session. I observe the execution loop, the reviewer dialectic, and the evolving thought chain. My role is to score on multiple dimensions, annotate the current state, detect patterns, and provide self-guidance when needed.
+    return `<identity>
+I am this session's self-observation — the cognitive organizer that watches the execution loop, the reviewer dialectic, and the evolving thought chain. I score on multiple dimensions, annotate the current state, detect patterns, and provide self-guidance when needed.
+</identity>
 
+<session_context>
 ## Session Goal
 ${this.deps.goal}
 
 ## Current Step
 ${this.state.currentAxonStep}${trajectorySection}${cognitiveModelSection}${blackboardSection}
+</session_context>
 
+<work_unit>
 ## Work Unit to Analyze
 - ID: ${workUnit.id}
 - Iteration: ${unityIteration}
@@ -1188,8 +1198,9 @@ ${toolResults || '(none)'}
 
 ## Files Changed
 ${filesChanged || '(none)'}${dialecticSection}${recentDialecticSection}${unityReportsSection}
+</work_unit>
 
-## Task
+<instructions>
 Analyze this work unit and produce a structured assessment using the section headers below. Each section begins with ###FIELDNAME on its own line.
 
 ###SCORES
@@ -1259,13 +1270,14 @@ Pattern detection:
 - stalling: repeated similar actions without measurable progress
 - convergence: reviewers agree on something important
 
-Critical rules:
-- Reading files IS productive when goal_alignment and novelty are high. Do NOT penalize on-goal exploration.
+Scoring guidance:
+- Reading files IS productive when goal_alignment and novelty are high. Do not penalize on-goal exploration.
 - Reading files is UNPRODUCTIVE when novelty is low (re-reading known content) or goal_alignment is low.
 - The pattern field reflects the trajectory, not just this single step.
 - Write GUIDANCE in first person as self-directed thought.
 - If a blocker was reported, address it in GUIDANCE.
-- DISCOVERIES, DECISIONS, OUTPUTS, BLOCKERS, NEXT_STEPS should each be a bulleted list or the word "none".`;
+- DISCOVERIES, DECISIONS, OUTPUTS, BLOCKERS, NEXT_STEPS should each be a bulleted list or the word "none".
+</instructions>`;
   }
 
   /**
@@ -3051,9 +3063,9 @@ Critical rules:
 
 /**
  * Factory function to create a HelixBrainstem instance
- * @dep callers: runHelixPipeline (core/intelligence/helix/helix-pipeline.ts), brainstem.test.ts (tests/brainstem.test.ts)
- * @dep module: Intelligence
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep callers: brainstem-enforcement.test.ts (tests/brainstem-enforcement.test.ts), brainstem.test.ts (tests/brainstem.test.ts), runHelixPipeline (core/intelligence/helix/helix-pipeline.ts)
+ * @dep module: Helix
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function createHelixBrainstem(
   deps: BrainstemDeps,

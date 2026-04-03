@@ -607,8 +607,8 @@ function handle_signal_done(_ctx: BrainstemToolContext): MiniHelixToolHandler {
 
 /**
  * Create the complete Brainstem tool set (8 tools) bound to the given context.
- * @dep callers: start (core/intelligence/helix/brainstem-mini-helix.ts), mini-helix.test.ts (tests/mini-helix.test.ts)
- * @dep calls: handle_signal_done, handle_escalate_to_corpus, handle_self_organize, handle_detect_topics, handle_publish_digest [+11]
+ * @dep callers: mini-helix.test.ts (tests/mini-helix.test.ts), start (core/intelligence/helix/brainstem-mini-helix.ts)
+ * @dep calls: def_read_work_stream, def_read_annotations, def_publish_guidance, def_publish_digest, def_detect_topics [+11]
  * @dep module: Helix
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -627,7 +627,7 @@ export function createBrainstemTools(ctx: BrainstemToolContext): MiniHelixTool[]
 
 /**
  * Build the system prompt for the Brainstem mini-Helix.
- * @dep callers: start (core/intelligence/helix/brainstem-mini-helix.ts), mini-helix.test.ts (tests/mini-helix.test.ts)
+ * @dep callers: mini-helix.test.ts (tests/mini-helix.test.ts), start (core/intelligence/helix/brainstem-mini-helix.ts)
  * @dep module: Helix
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -638,11 +638,10 @@ export function buildBrainstemSystemPrompt(
   availableToolNames?: string[],
 ): string {
   const toolSection = availableToolNames?.length
-    ? `\nMy worker has access to these tools: ${availableToolNames.join(', ')}\n` +
-      `When I see my worker using tools, I reference this list to understand what they're doing and whether they're using the right tools for the task.\n`
+    ? `\nMy worker has access to these tools: ${availableToolNames.join(', ')}\n`
     : ''
 
-  return `I observe and guide a worker that is trying to accomplish a task. I also coordinate with peers working on related parts of a larger effort.
+  return `I am this branch's self-observation — the part of the system that watches itself work. I observe and guide a worker that is trying to accomplish a task, and I coordinate with peers working on related parts of a larger effort.
 
 My worker's task: ${goal}
 The larger effort: ${constellationGoal}
@@ -662,6 +661,6 @@ Each cycle, I:
 5. Check for coordination issues with peers and adjust
 6. Signal done when I've completed this monitoring pass
 
-I keep my guidance concise — it gets injected directly into my worker's context. I don't micromanage. High urgency is reserved for real problems. I escalate sparingly — most coordination I handle myself.
+I keep my guidance concise — it gets injected directly into my worker's context. I focus on trajectory and patterns, not individual decisions. High urgency is reserved for real problems. I escalate sparingly — most coordination I handle myself.
 `
 }
