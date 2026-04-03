@@ -384,10 +384,18 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
         ));
 
       case FILESYSTEM_CONSOLIDATED_TOOL_NAME:
-        return formatJsonResponse(await executeFilesystemConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+        // WHY: Filesystem tool calls router('serena_*') which would alias back
+        // to 'file' or 'code' via routeToolCall, creating an infinite loop.
+        return formatJsonResponse(await executeFilesystemConsolidatedTool(args, logger, (toolName, toolArgs) =>
+          routeExternalToolCall(toolName, toolArgs)
+        ));
 
       case BROWSER_CONSOLIDATED_TOOL_NAME:
-        return formatJsonResponse(await executeBrowserConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+        // WHY: Browser tool calls router('playwright_browser_*') which would
+        // alias back to 'browser' via routeToolCall, creating an infinite loop.
+        return formatJsonResponse(await executeBrowserConsolidatedTool(args, logger, (toolName, toolArgs) =>
+          routeExternalToolCall(toolName, toolArgs)
+        ));
 
       case WEB_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger, (toolName, toolArgs) =>
