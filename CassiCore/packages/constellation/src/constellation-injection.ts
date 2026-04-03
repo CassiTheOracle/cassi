@@ -17,7 +17,7 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { InjectionSource } from '../injection-aggregator.js'
-import type { CorpusTreeSnapshot, CrossHelixPattern, CorpusIntervention, BranchAssessment, BranchHealthStatus } from './corpus-types.js'
+import type { CorpusTreeSnapshot, CrossHelixPattern, CorpusIntervention, BranchAssessment, BranchHealthStatus, ExternalCorpusState, ExternalCorpusSnapshot, CorpusDirective, CorpusDirectiveType } from './corpus-types.js'
 
 
 /** Minimal interface for a running Constellation's live state */
@@ -28,6 +28,18 @@ export interface ConstellationLiveState {
   getCrossPatterns(): CrossHelixPattern[]
   getInterventions(): CorpusIntervention[]
   getBranchAssessments(): Array<{ helixId: string; status: BranchHealthStatus; rollingScore: number; dominantPattern: string }>
+
+  // External Corpus Protocol — optional, present when Corpus is wired
+  corpus?: {
+    assume(agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string }
+    release(reason?: string): { released: boolean; error?: string }
+    isExternallyAssumed(): boolean
+    getExternalState(): ExternalCorpusState
+    getExternalSnapshot(): ExternalCorpusSnapshot
+    externalDirective(directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string }
+    externalSpawnDecide(requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string }
+    externalSynthesis(content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string }
+  }
 }
 
 

@@ -86,11 +86,17 @@ export type {
   RetrospectiveTrigger,
   ElevatedPattern,
   EffectivenessRecord,
+  // External Corpus Protocol types
+  ExternalCorpusState,
+  ExternalCorpusSnapshot,
+  PendingExternalSpawnRequest,
 } from './corpus-types.js'
 
 export {
   DEFAULT_CORPUS_CONFIG,
   createInitialProcessedState,
+  createInitialExternalCorpusState,
+  DEFAULT_EXTERNAL_CORPUS_HEARTBEAT_MS,
 } from './corpus-types.js'
 
 

@@ -20,7 +20,7 @@ import type { ConstellationStore } from './constellation-store.js'
 import type { ContextDistiller } from '../context-distiller.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { CorpusLLM } from './corpus-types.js'
-import type { CorpusTreeSnapshot } from './corpus-types.js'
+import type { CorpusTreeSnapshot, ExternalCorpusState, ExternalCorpusSnapshot, CorpusDirective, CorpusDirectiveType } from './corpus-types.js'
 import { runConstellationPipeline } from './constellation-pipeline.js'
 import type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 import type { ConstellationResult, ConstellationTemplate, FlexPosture } from './types.js'
@@ -52,6 +52,15 @@ export interface ConstellationOrchestrator {
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   setMemory(memory: IMemory): void
+
+  // External Corpus Protocol
+  assumeCorpus(sessionId: string, agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string }
+  releaseCorpus(sessionId: string, reason?: string): { released: boolean; error?: string }
+  getCorpusExternalState(sessionId: string): ExternalCorpusState | undefined
+  getCorpusSnapshot(sessionId: string): ExternalCorpusSnapshot | undefined
+  corpusDirective(sessionId: string, directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string }
+  corpusSpawnDecide(sessionId: string, requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string }
+  corpusSynthesis(sessionId: string, content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string }
 }
 
 
@@ -333,6 +342,59 @@ export function createConstellationOrchestrator(
     setStore(s) { store = s },
     setConstellationStore(s) { constellationStore = s },
     setMemory(mem) { memory = mem },
+
+    // External Corpus Protocol
+    assumeCorpus(sessionId, agentId, heartbeatTimeoutMs) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) {
+        return { assumed: false, snapshot: null, error: `Constellation "${sessionId}" not found or Corpus not ready` }
+      }
+      return entry.liveState.corpus.assume(agentId, heartbeatTimeoutMs)
+    },
+
+    releaseCorpus(sessionId, reason) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) {
+        return { released: false, error: `Constellation "${sessionId}" not found or Corpus not ready` }
+      }
+      return entry.liveState.corpus.release(reason)
+    },
+
+    getCorpusExternalState(sessionId) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) return undefined
+      return entry.liveState.corpus.getExternalState()
+    },
+
+    getCorpusSnapshot(sessionId) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) return undefined
+      return entry.liveState.corpus.getExternalSnapshot()
+    },
+
+    corpusDirective(sessionId, directive) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) {
+        return { sent: false, error: `Constellation "${sessionId}" not found or Corpus not ready` }
+      }
+      return entry.liveState.corpus.externalDirective(directive)
+    },
+
+    corpusSpawnDecide(sessionId, requestId, approved, reason, modifiedGoal) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) {
+        return { decided: false, error: `Constellation "${sessionId}" not found or Corpus not ready` }
+      }
+      return entry.liveState.corpus.externalSpawnDecide(requestId, approved, reason, modifiedGoal)
+    },
+
+    corpusSynthesis(sessionId, content, priority, tags) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) {
+        return { posted: false, error: `Constellation "${sessionId}" not found or Corpus not ready` }
+      }
+      return entry.liveState.corpus.externalSynthesis(content, priority, tags)
+    },
   }
 
   return orchestrator

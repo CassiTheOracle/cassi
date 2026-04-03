@@ -299,7 +299,7 @@ function formatMemoryResultsForPlanner(results: SearchResult[]): string {
 /**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
- * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts)
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -730,6 +730,20 @@ export async function runConstellationPipeline(
       getCrossPatterns: () => corpus.getResult().crossPatterns,
       getInterventions: () => corpus.getResult().interventions,
       getBranchAssessments: () => corpus.getResult().branchAssessments,
+
+      // External Corpus Protocol — delegate to Corpus instance
+      corpus: {
+        assume: (agentId, heartbeatTimeoutMs) => corpus.assume(agentId, heartbeatTimeoutMs),
+        release: (reason) => corpus.release(reason),
+        isExternallyAssumed: () => corpus.isExternallyAssumed(),
+        getExternalState: () => corpus.getExternalState(),
+        getExternalSnapshot: () => corpus.getExternalSnapshot(),
+        externalDirective: (directive) => corpus.externalDirective(directive),
+        externalSpawnDecide: (requestId, approved, reason, modifiedGoal) =>
+          corpus.externalSpawnDecide(requestId, approved, reason, modifiedGoal),
+        externalSynthesis: (content, priority, tags) =>
+          corpus.externalSynthesis(content, priority, tags),
+      },
     }
     opts.onCorpusReady(liveState)
     log.debug('onCorpusReady callback invoked')
@@ -774,6 +788,24 @@ export async function runConstellationPipeline(
 
     // WHY: cross-run memory continuity improves branch output quality
     let enrichedContext = helixContext
+
+    // HOW: Inject top-level project structure so agents know what directories
+    // exist without wasting tool calls on find/ls at the start of every branch.
+    try {
+      const { readdirSync } = await import('node:fs')
+      const entries = readdirSync(process.cwd(), { withFileTypes: true })
+      const listing = entries
+        .filter(e => !e.name.startsWith('.') && e.name !== 'node_modules' && e.name !== 'dist')
+        .map(e => e.isDirectory() ? `  ${e.name}/` : `  ${e.name}`)
+        .join('\n')
+      if (listing) {
+        const wsBlock = `## Workspace Structure\nProject root: ${process.cwd()}\n${listing}`
+        enrichedContext = enrichedContext ? `${enrichedContext}\n\n${wsBlock}` : wsBlock
+      }
+    } catch {
+      // best-effort — don't block launch on directory read failure
+    }
+
     if (memoryInjectionService) {
       try {
         const memoryContext = await memoryInjectionService.injectForBranch(helixId, helixGoal, parentId)

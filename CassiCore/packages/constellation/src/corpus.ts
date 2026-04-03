@@ -193,6 +193,12 @@ export class Corpus {
     this.logger.info('Corpus shutdown requested')
     this.shutdownRequested = true
 
+    // Release external Corpus if assumed
+    if (this.externalState.assumed) {
+      this.release('corpus shutting down')
+    }
+    this.stopHeartbeatMonitor()
+
     if (this.loopPromise) {
       await this.loopPromise
       this.loopPromise = null
@@ -210,6 +216,275 @@ export class Corpus {
    */
   isRunning(): boolean {
     return this.running
+  }
+
+  // --- External Corpus Protocol ---
+
+  /**
+   * Allow an external agent to assume the Corpus role.
+   * Pauses the internal LLM loop and routes all decisions through
+   * the external agent's MCP tool calls.
+   *
+   * HOW: The running loop continues processing steps and tracking state,
+   * but LLM analysis is skipped while an external agent holds the lock.
+   * Spawn requests queue up instead of auto-evaluating.
+   */
+  assume(agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string } {
+    if (this.externalState.assumed) {
+      return {
+        assumed: false,
+        snapshot: null,
+        error: `Corpus is already assumed by agent "${this.externalState.agentId}"`,
+      }
+    }
+
+    if (!this.running) {
+      return {
+        assumed: false,
+        snapshot: null,
+        error: 'Corpus is not running',
+      }
+    }
+
+    this.externalState.assumed = true
+    this.externalState.agentId = agentId
+    this.externalState.assumedAt = Date.now()
+    this.externalState.lastActionAt = Date.now()
+    if (heartbeatTimeoutMs) {
+      this.externalState.heartbeatTimeoutMs = heartbeatTimeoutMs
+    }
+
+    // Start heartbeat monitoring
+    this.startHeartbeatMonitor()
+
+    this.logger.info('External agent assumed Corpus role', {
+      agentId,
+      heartbeatTimeoutMs: this.externalState.heartbeatTimeoutMs,
+    })
+
+    this.emitEvent('corpus:external-assumed', {
+      agentId,
+      constellationId: this.deps.constellationId,
+    })
+
+    return {
+      assumed: true,
+      snapshot: this.getExternalSnapshot(),
+    }
+  }
+
+  /**
+   * Release the Corpus role back to the internal LLM loop.
+   * Can be called by the external agent or triggered by heartbeat timeout.
+   */
+  release(reason?: string): { released: boolean; error?: string } {
+    if (!this.externalState.assumed) {
+      return { released: false, error: 'No external agent holds the Corpus role' }
+    }
+
+    const agentId = this.externalState.agentId
+    const heldForMs = Date.now() - (this.externalState.assumedAt ?? Date.now())
+
+    // Stop heartbeat monitoring
+    this.stopHeartbeatMonitor()
+
+    // Clear pending spawn requests — they'll be re-evaluated by internal Corpus
+    const pendingCount = this.externalState.pendingSpawnRequests.length
+
+    // Reset external state
+    this.externalState = createInitialExternalCorpusState()
+
+    this.logger.info('External agent released Corpus role', {
+      agentId,
+      reason: reason ?? 'explicit release',
+      heldForMs,
+      pendingSpawnRequestsDropped: pendingCount,
+    })
+
+    this.emitEvent('corpus:external-released', {
+      agentId,
+      reason: reason ?? 'explicit release',
+      heldForMs,
+      constellationId: this.deps.constellationId,
+    })
+
+    return { released: true }
+  }
+
+  /**
+   * Check if an external agent currently holds the Corpus role.
+   */
+  isExternallyAssumed(): boolean {
+    return this.externalState.assumed
+  }
+
+  /**
+   * Get the external Corpus state (for status queries).
+   */
+  getExternalState(): ExternalCorpusState {
+    return { ...this.externalState, pendingSpawnRequests: [...this.externalState.pendingSpawnRequests] }
+  }
+
+  /**
+   * Get a full snapshot of the Corpus state for an external agent.
+   * This is the external agent's view of the constellation.
+   */
+  getExternalSnapshot(): ExternalCorpusSnapshot {
+    const assessments = Array.from(this.state.branchAssessments.values()).map((ba) => ({
+      helixId: ba.helixId,
+      status: ba.status,
+      rollingScore: ba.rollingScore,
+      dominantPattern: typeof ba.dominantPattern === 'string' ? ba.dominantPattern : String(ba.dominantPattern),
+      avgGoalAlignment: ba.avgGoalAlignment,
+      avgNovelty: ba.avgNovelty,
+      avgProgress: ba.avgProgress,
+      escalationLevel: ba.escalationLevel,
+      ignoredDirectiveStreak: ba.ignoredDirectiveStreak,
+      budgetConsumedSteps: ba.budget?.consumedSteps,
+      budgetMaxSteps: ba.budget?.maxSteps,
+    }))
+
+    return {
+      tree: this.tree.getSnapshot(),
+      branchAssessments: assessments,
+      crossPatterns: [...this.state.crossPatterns],
+      pendingSpawnRequests: [...this.externalState.pendingSpawnRequests],
+      recentInterventions: [...this.state.interventions.slice(-10)],
+      sweepCount: this.state.sweepCount,
+      goal: this.deps.goal,
+    }
+  }
+
+  /**
+   * External agent sends a directive to a branch.
+   * Updates heartbeat timestamp.
+   */
+  externalDirective(directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string } {
+    if (!this.externalState.assumed) {
+      return { sent: false, error: 'No external agent holds the Corpus role' }
+    }
+    this.touchHeartbeat()
+
+    this.sendDirective({
+      ...directive,
+      timestamp: Date.now(),
+    })
+
+    return { sent: true }
+  }
+
+  /**
+   * External agent decides on a pending spawn request.
+   * Updates heartbeat timestamp.
+   */
+  externalSpawnDecide(requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string } {
+    if (!this.externalState.assumed) {
+      return { decided: false, error: 'No external agent holds the Corpus role' }
+    }
+    this.touchHeartbeat()
+
+    const requestIdx = this.externalState.pendingSpawnRequests.findIndex(r => r.requestId === requestId)
+    if (requestIdx === -1) {
+      return { decided: false, error: `Spawn request "${requestId}" not found` }
+    }
+
+    const request = this.externalState.pendingSpawnRequests[requestIdx]
+    this.externalState.pendingSpawnRequests.splice(requestIdx, 1)
+
+    const decision: SpawnDecision = {
+      requestId,
+      requestingHelixId: request.requestingHelixId,
+      goal: modifiedGoal ?? request.goal,
+      approved,
+      reason,
+      evaluatedAt: Date.now(),
+    }
+    this.state.spawnDecisions.push(decision)
+
+    if (approved && this.deps.onSpawnRequest) {
+      this.deps.onSpawnRequest({
+        requestingHelixId: request.requestingHelixId,
+        goal: modifiedGoal ?? request.goal,
+        context: request.context,
+        template: request.template,
+      })
+    }
+
+    this.emitEvent('corpus:external-spawn-decision', {
+      requestId,
+      approved,
+      reason,
+      agentId: this.externalState.agentId,
+    })
+
+    return { decided: true }
+  }
+
+  /**
+   * External agent posts a synthesis visible to all branches.
+   * Updates heartbeat timestamp.
+   */
+  externalSynthesis(content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string } {
+    if (!this.externalState.assumed) {
+      return { posted: false, error: 'No external agent holds the Corpus role' }
+    }
+    this.touchHeartbeat()
+
+    this.postSynthesisToBlackboard(content, `External Corpus (${this.externalState.agentId})`)
+
+    return { posted: true }
+  }
+
+  /**
+   * Queue a spawn request for external decision (called internally when assumed).
+   */
+  private queueSpawnForExternalDecision(request: { requestId: string; requestingHelixId: string; goal: string; context?: string; template?: string; targetDepth: number }): void {
+    this.externalState.pendingSpawnRequests.push({
+      ...request,
+      queuedAt: Date.now(),
+    })
+    this.logger.info('Spawn request queued for external Corpus', {
+      requestId: request.requestId,
+      agentId: this.externalState.agentId,
+    })
+    this.emitEvent('corpus:external-spawn-queued', {
+      requestId: request.requestId,
+      agentId: this.externalState.agentId,
+    })
+  }
+
+  /** Update heartbeat timestamp */
+  private touchHeartbeat(): void {
+    this.externalState.lastActionAt = Date.now()
+  }
+
+  /** Start heartbeat monitoring interval */
+  private startHeartbeatMonitor(): void {
+    this.stopHeartbeatMonitor()
+    const checkInterval = Math.min(10_000, this.externalState.heartbeatTimeoutMs / 3)
+    this.heartbeatTimer = setInterval(() => {
+      if (!this.externalState.assumed) {
+        this.stopHeartbeatMonitor()
+        return
+      }
+      const elapsed = Date.now() - (this.externalState.lastActionAt ?? 0)
+      if (elapsed > this.externalState.heartbeatTimeoutMs) {
+        this.logger.warn('External Corpus heartbeat timeout — auto-releasing', {
+          agentId: this.externalState.agentId,
+          elapsedMs: elapsed,
+          timeoutMs: this.externalState.heartbeatTimeoutMs,
+        })
+        this.release('heartbeat timeout')
+      }
+    }, checkInterval)
+  }
+
+  /** Stop heartbeat monitoring interval */
+  private stopHeartbeatMonitor(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer)
+      this.heartbeatTimer = null
+    }
   }
 
   /**
@@ -236,9 +511,31 @@ export class Corpus {
   }
 
   /**
-   * Evaluate a spawn request via LLM
+   * Evaluate a spawn request via LLM (or queue for external agent)
    */
   async evaluateSpawnRequest(request: SpawnRequest): Promise<SpawnDecision> {
+    // WHY: When an external agent holds the Corpus role, spawn decisions
+    // are queued for the external agent rather than auto-evaluated by LLM.
+    if (this.externalState.assumed) {
+      this.queueSpawnForExternalDecision({
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        context: request.context,
+        template: request.template,
+        targetDepth: request.targetDepth,
+      })
+      // Return a "pending" decision — the external agent will decide later
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved: false,
+        reason: 'Queued for external Corpus decision',
+        evaluatedAt: Date.now(),
+      }
+    }
+
     const decision = await this.runSpawnEvaluation(request)
     this.state.spawnDecisions.push(decision)
     this.emitEvent('corpus:spawn-decision', {
@@ -381,9 +678,16 @@ export class Corpus {
         // Detect cross-branch patterns
         const newPatterns = this.detectCrossPatterns()
 
-        // Run LLM analysis if needed
+        // Run LLM analysis if needed — or fall back to rule-based directives
         if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
-          await this.runLLMAnalysis(newPatterns)
+          if (this.llmHealthy) {
+            await this.runLLMAnalysis(newPatterns)
+          } else {
+            // WHY: When the Corpus LLM is unhealthy, branches run without strategic
+            // oversight.  Rather than doing nothing, send rule-based directives for
+            // critical patterns so branches aren't completely unguided.
+            this.sendFallbackDirectives(newPatterns)
+          }
         }
 
         // Auto-spawn check: if a branch has received many interventions
@@ -739,6 +1043,12 @@ export class Corpus {
    * Check if we should run LLM analysis
    */
   private shouldRunLLMAnalysis(): boolean {
+    // WHY: When an external agent holds the Corpus role, the internal LLM
+    // should not run analysis — the external agent makes strategic decisions.
+    if (this.externalState.assumed) {
+      return false
+    }
+
     // In active mode: same as before — trigger after enough new steps
     if (this.config.cadence === 'active') {
       return this.newStepsSinceLLM >= this.config.llmAnalysisThreshold
@@ -1161,6 +1471,49 @@ export class Corpus {
         error: errorMsg,
         failureCount: this.llmFailureCount,
         threshold: Corpus.LLM_FAILURE_THRESHOLD,
+      })
+    }
+  }
+
+  /**
+   * Rule-based fallback directives when the Corpus LLM is unhealthy.
+   * Addresses critical patterns without strategic LLM analysis.
+   */
+  private sendFallbackDirectives(newPatterns: CrossHelixPattern[]): void {
+    for (const pattern of newPatterns) {
+      if (pattern.actedUpon) continue
+
+      // Only act on critical/high-severity patterns
+      if (pattern.severity !== 'critical') continue
+
+      for (const helixId of pattern.helixIds) {
+        const assessment = this.state.branchAssessments.get(helixId)
+        if (!assessment || assessment.status === 'completed' || assessment.status === 'failed') continue
+
+        const directiveText = pattern.type === 'cascade-failure'
+          ? 'Multiple branches are failing simultaneously. Narrow your scope to only the core deliverable and produce output immediately.'
+          : pattern.type === 'asymmetric-progress'
+            ? 'Other branches are significantly ahead. Focus on producing concrete output rather than more exploration.'
+            : `Critical pattern detected: ${pattern.type}. Produce concrete output now.`
+
+        this.sendDirective({
+          targetHelixId: helixId,
+          type: 'redirect',
+          urgency: 'critical',
+          reason: `Fallback directive for ${pattern.type} (LLM unhealthy)`,
+          text: directiveText,
+          fromPattern: pattern.type,
+          timestamp: Date.now(),
+          maxIterationsRemaining: 10,
+          requiredAction: 'produce_output',
+        })
+      }
+    }
+
+    if (newPatterns.length > 0) {
+      this.logger.info('Sent fallback directives (LLM unhealthy)', {
+        patternCount: newPatterns.length,
+        failureCount: this.llmFailureCount,
       })
     }
   }
