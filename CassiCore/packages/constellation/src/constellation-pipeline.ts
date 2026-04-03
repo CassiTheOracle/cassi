@@ -58,7 +58,7 @@ const SPAWN_CHECK_INTERVAL_MS = 1000
 /**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
- * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts)
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -235,10 +235,10 @@ interface RunningHelix {
 
 /**
  * @dep callers: project (core/intelligence/constellation/constellation-orchestrator.ts)
- * @dep calls: pollSpawnRequests, launchHelix, safeReadFile, fastDecompose, shouldDecompose [+31]
- * @dep flows: RunConstellationPipeline → ConvertToInjectedMemory (1/4), RunConstellationPipeline → ExtractSearchQuery (1/4), RunConstellationPipeline → ComputeCompositeScore (1/5)
+ * @dep calls: now, createSession, cancel, emit, start [+33]
+ * @dep flows: RunConstellationPipeline → SanitizeTeamId (1/5), RunConstellationPipeline → EnsureGitignore (1/5), RunConstellationPipeline → ComputeCompositeScore (1/5) [+3]
  * @dep module: Constellation
- * @dep risk: MEDIUM | 1 caller, 3 flows, 1 module
+ * @dep risk: HIGH | 1 caller, 6 flows, 1 module
  */
 
 export async function runConstellationPipeline(
@@ -796,9 +796,17 @@ export async function runConstellationPipeline(
 
     // No timeout — Constellation manages lifecycle through Corpus coordination
     // and external cancellation, not arbitrary time limits.
+    // WHY: Reviewers (Yang/Yin) don't need full file assignments or bulky context.
+    // Trim to the goal + first section of context to save reviewer token budget.
+    const REVIEWER_CONTEXT_LIMIT = 4000
+    const reviewerCtx = enrichedContext && enrichedContext.length > REVIEWER_CONTEXT_LIMIT
+      ? enrichedContext.slice(0, REVIEWER_CONTEXT_LIMIT) + '\n\n[Context trimmed for reviewer — full context available to Unity worker]'
+      : enrichedContext
+
     const helixPromise = runHelixPipeline({
       goal: helixGoal,
       context: enrichedContext,
+      reviewerContext: reviewerCtx,
       sessionId: helixId,
       logger,
       timeoutMs: 24 * 60 * 60 * 1000, // 24h — effectively unlimited; Corpus handles lifecycle
