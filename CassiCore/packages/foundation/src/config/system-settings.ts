@@ -335,8 +335,8 @@ export const DRONE_SETTINGS = {
   /** Enable result caching for identical drone tasks */
   enableResultCache: getEnvBoolean('CASSICORE_DRONE_CACHE', true),
 
-  /** Cache TTL in ms */
-  resultCacheTtlMs: getEnvNumber('CASSICORE_DRONE_CACHE_TTL_MS', 300_000),
+  /** Cache TTL in ms — 60s ensures drones re-execute for fresh context each minute */
+  resultCacheTtlMs: getEnvNumber('CASSICORE_DRONE_CACHE_TTL_MS', 60_000),
 
   /** Minimum viable drone budget (tokens below this skip retries) */
   minViableBudget: getEnvNumber('CASSICORE_DRONE_MIN_BUDGET', 50_000),
