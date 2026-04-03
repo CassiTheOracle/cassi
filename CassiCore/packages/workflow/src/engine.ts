@@ -25,6 +25,7 @@ import type {
   DoUntilNode,
   DoWhileNode,
   SubworkflowNode,
+  ListenNode,
   WorkflowRun,
   WorkflowState,
   StepTrace,
@@ -34,6 +35,7 @@ import type {
   IWorkflowStore,
 } from '../../types/workflow.js'
 import type { ILogger, IEventBus } from '../../types/interfaces.js'
+import { WorkflowEventBus } from './events.js'
 
 // SuspendSignal — thrown by ctx.suspend() to pause workflow execution
 
@@ -69,6 +71,7 @@ export class WorkflowEngine {
   private readonly defaultStepTimeoutMs: number
   private readonly store?: IWorkflowStore
   private readonly runs = new Map<string, WorkflowRun>()
+  private readonly eventBuses = new Map<string, WorkflowEventBus>()
 
   constructor(config: WorkflowEngineConfig) {
     this.logger = config.logger.child('workflow-engine')
@@ -97,6 +100,7 @@ export class WorkflowEngine {
     }
 
     this.runs.set(runId, run)
+    this.eventBuses.set(runId, new WorkflowEventBus(this.logger))
     this.persist(run)
 
     await this.eventBus.emit({
@@ -247,6 +251,9 @@ export class WorkflowEngine {
     run.suspendedAtNodeId = undefined
     run.suspendReason = undefined
     this.runs.set(runId, run)
+    if (!this.eventBuses.has(runId)) {
+      this.eventBuses.set(runId, new WorkflowEventBus(this.logger))
+    }
     this.persist(run)
 
     await this.eventBus.emit({
@@ -356,6 +363,8 @@ export class WorkflowEngine {
         return this.executeDoWhileNode(node as DoWhileNode, input, run)
       case 'subworkflow':
         return this.executeSubworkflowNode(node as SubworkflowNode, input, run)
+      case 'listen':
+        return this.executeListenNode(node as ListenNode, input, run)
       default:
         throw new Error(`Unknown node kind: ${(node as WorkflowNode).kind}`)
     }
@@ -874,10 +883,98 @@ export class WorkflowEngine {
     return this.executeNodes(node.workflow.nodes, input, run)
   }
 
+  // Listen (event-driven reactive)
+
+  private async executeListenNode(
+    node: ListenNode,
+    input: unknown,
+    run: WorkflowRun,
+  ): Promise<unknown> {
+    const trace: StepTrace = {
+      nodeId: node.id,
+      stepId: node.handler.id,
+      kind: 'listen',
+      status: 'running',
+      input,
+      attempt: 0,
+      startedAt: new Date(),
+    }
+    run.trace.push(trace)
+
+    await this.eventBus.emit({
+      type: 'workflow:step:started',
+      runId: run.runId,
+      workflowId: run.workflowId,
+      nodeId: node.id,
+      stepId: node.handler.id,
+      kind: 'listen',
+      attempt: 0,
+      timestamp: new Date(),
+    })
+
+    try {
+      const wfEventBus = this.eventBuses.get(run.runId)
+      if (!wfEventBus) {
+        throw new Error(`No workflow event bus for run "${run.runId}"`)
+      }
+
+      const timeoutMs = node.timeoutMs ?? 60_000
+
+      // Wait for an event on any of the specified channels
+      const event = await wfEventBus.waitFor(node.channels, {
+        timeoutMs,
+      })
+
+      // Execute the handler step with the event data as input
+      const ctx = this.buildContext(event.data, run, node.id)
+      const result = await node.handler.execute(ctx)
+
+      trace.status = 'completed'
+      trace.output = result
+      trace.endedAt = new Date()
+      trace.durationMs = trace.endedAt.getTime() - trace.startedAt.getTime()
+
+      await this.eventBus.emit({
+        type: 'workflow:step:completed',
+        runId: run.runId,
+        workflowId: run.workflowId,
+        nodeId: node.id,
+        stepId: node.handler.id,
+        kind: 'listen',
+        durationMs: trace.durationMs,
+        timestamp: new Date(),
+      })
+
+      return result
+    } catch (err) {
+      if (isSuspendSignal(err)) throw err
+
+      trace.status = 'failed'
+      trace.error = String(err)
+      trace.endedAt = new Date()
+      trace.durationMs = trace.endedAt.getTime() - trace.startedAt.getTime()
+
+      await this.eventBus.emit({
+        type: 'workflow:step:failed',
+        runId: run.runId,
+        workflowId: run.workflowId,
+        nodeId: node.id,
+        stepId: node.handler.id,
+        kind: 'listen',
+        error: String(err),
+        attempt: 0,
+        willRetry: false,
+        timestamp: new Date(),
+      })
+
+      throw err
+    }
+  }
+
   // Helpers
 
   private buildContext(input: unknown, run: WorkflowRun, nodeId: string): StepContext {
-    const events = new Map<string, unknown[]>()
+    const wfEventBus = this.eventBuses.get(run.runId)
 
     return {
       input,
@@ -888,9 +985,10 @@ export class WorkflowEngine {
       logger: this.logger.child(nodeId),
       eventBus: this.eventBus,
       emit: (channel: string, data: unknown) => {
-        const existing = events.get(channel) ?? []
-        existing.push(data)
-        events.set(channel, existing)
+        // WHY: Feed into the WorkflowEventBus so ListenNodes can react
+        if (wfEventBus) {
+          wfEventBus.emit(channel, data, nodeId)
+        }
       },
       suspend: (reason: string): never => {
         throw new SuspendSignal(reason, nodeId)

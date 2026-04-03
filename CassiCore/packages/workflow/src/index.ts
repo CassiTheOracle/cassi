@@ -20,6 +20,8 @@
 export { WorkflowEngine, SuspendSignal } from './engine.js'
 export { createWorkflow, createStep, WorkflowBuilder, _resetNodeCounter } from './builder.js'
 export { WorkflowStore } from './persistence.js'
+export { WorkflowEventBus } from './events.js'
+export type { WorkflowEvent, EventHandler } from './events.js'
 export {
   toolStep,
   constellationStep,
@@ -56,6 +58,7 @@ export type {
   DoUntilNode,
   DoWhileNode,
   SubworkflowNode,
+  ListenNode,
   IWorkflowRegistry,
   IWorkflowStore,
   WorkflowListener,

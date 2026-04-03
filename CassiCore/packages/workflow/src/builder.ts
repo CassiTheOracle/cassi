@@ -21,6 +21,7 @@ import type {
   ForeachNode,
   DoUntilNode,
   DoWhileNode,
+  ListenNode,
   SubworkflowNode,
   RetryPolicy,
   StepContext,
@@ -191,6 +192,48 @@ export class WorkflowBuilder {
       condition,
       maxIterations: opts?.maxIterations,
     } as DoWhileNode)
+    return this
+  }
+
+  // Event-driven reactive (Layer 3)
+
+  /**
+   * Add a reactive listener that waits for events on the specified channels.
+   * When an event is received, the handler step executes with the event data as input.
+   *
+   * The listener blocks workflow execution until an event is received (or timeout).
+   * Use this for event-driven coordination between steps.
+   *
+   * Example:
+   *   createWorkflow({ id: 'reactive' })
+   *     .then(step1)  // emits to 'data-ready' channel via ctx.emit()
+   *     .listen({
+   *       channels: ['data-ready'],
+   *       handler: createStep({ id: 'process', execute: async (ctx) => { ... } }),
+   *       timeoutMs: 30000,
+   *     })
+   *     .then(step2)
+   *     .commit()
+   */
+  listen(opts: {
+    channels: string | string[]
+    handler: WorkflowStep
+    once?: boolean
+    maxFires?: number
+    timeoutMs?: number
+  }): this {
+    const channels = Array.isArray(opts.channels) ? opts.channels : [opts.channels]
+
+    this.nodes.push({
+      id: nextNodeId('listen'),
+      kind: 'listen',
+      channels,
+      handler: opts.handler,
+      once: opts.once,
+      maxFires: opts.maxFires,
+      timeoutMs: opts.timeoutMs,
+    } as ListenNode)
+
     return this
   }
 
