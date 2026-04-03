@@ -8,6 +8,7 @@
  * Three tool sets:
  *   - UNITY_TOOLS: signal_done (worker)
  *   - REVIEWER_TOOLS: share_finding, challenge, concede, send_nudge, signal_conclusion (reviewers)
+ *   - TESTLOCK_TOOLS: seal_test_spec (Yin), verify_test_lock (Unity)
  *
  * Reuses existing tool definitions from Lumen (dialectic) and Dyad (work stream)
  * where the semantics are identical.
@@ -336,6 +337,135 @@ export const GUIDANCE_GATE_TOOLS: ToolSchema[] = [
   REJECT_GUIDANCE_TOOL,
 ]
 
+// --- TestLock Tools (Sealed Test Paradigm) ---
+
+/**
+ * seal_test_spec — Yin (stress-tester) defines and cryptographically seals a test expectation.
+ *
+ * WHY: Adapted from the Sealed Test Paradigm (STP). Once a test spec is sealed,
+ * its content hash makes it immutable — Yang cannot modify it, and Unity cannot
+ * signal_done without the sealed tests being verified as passing.
+ * This architecturally enforces test-first discipline instead of relying on
+ * prompt compliance.
+ */
+export const SEAL_TEST_SPEC_TOOL: ToolSchema = {
+  name: 'seal_test_spec',
+  description:
+    'Define and cryptographically seal a test expectation. Once sealed, this test spec becomes an immutable ' +
+    'contract — it cannot be modified by any posture. Unity must verify that all sealed test specs pass before ' +
+    'it can signal_done.\n\n' +
+    'Use this when you identify a critical behavior, edge case, or invariant that MUST be tested. ' +
+    'The test spec should describe what to test and how to verify it (test file path, test command, expected outcome).\n\n' +
+    'IMPORTANT: Only seal specs for critical invariants. Over-sealing slows the pipeline.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      spec_id: {
+        type: 'string',
+        description: 'Unique identifier for this test spec (e.g., "ts-auth-token-expiry").',
+      },
+      description: {
+        type: 'string',
+        description: 'What this test verifies — the invariant or behavior under test.',
+      },
+      test_file: {
+        type: 'string',
+        description: 'Expected test file path (e.g., "tests/auth.test.ts"). If the test exists, Unity should run it. If not, Unity must create it.',
+      },
+      test_command: {
+        type: 'string',
+        description: 'Command to run the test (e.g., "npx vitest run tests/auth.test.ts -t token-expiry").',
+      },
+      expected_outcome: {
+        type: 'string',
+        description: 'What the passing test looks like — expected output or assertion description.',
+      },
+      severity: {
+        type: 'string',
+        enum: ['critical', 'important', 'advisory'],
+        description: 'Severity: critical=blocks signal_done, important=blocks with warning, advisory=does not block.',
+      },
+    },
+    required: ['spec_id', 'description', 'test_command', 'severity'],
+  },
+}
+
+/**
+ * verify_test_lock — Unity verifies that a sealed test spec passes.
+ *
+ * HOW: Unity runs the test command and reports the result. The TestLock system
+ * compares the outcome against the sealed spec. Only passing verification
+ * clears the lock.
+ */
+export const VERIFY_TEST_LOCK_TOOL: ToolSchema = {
+  name: 'verify_test_lock',
+  description:
+    'Verify that a sealed test spec passes. Run the test and report the result. ' +
+    'All sealed test specs with severity "critical" or "important" must be verified before signal_done.\n\n' +
+    'Call this after running the test command specified in the sealed spec. ' +
+    'If the test passes, the lock is cleared. If it fails, you must fix the code and try again.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      spec_id: {
+        type: 'string',
+        description: 'The test spec ID to verify (from seal_test_spec).',
+      },
+      passed: {
+        type: 'boolean',
+        description: 'Whether the test passed.',
+      },
+      output: {
+        type: 'string',
+        description: 'Test runner output (truncated to key lines if long).',
+      },
+      notes: {
+        type: 'string',
+        description: 'Optional notes about the verification attempt.',
+      },
+    },
+    required: ['spec_id', 'passed'],
+  },
+}
+
+/**
+ * list_test_locks — Available to all postures. Shows current sealed test specs and their status.
+ */
+export const LIST_TEST_LOCKS_TOOL: ToolSchema = {
+  name: 'list_test_locks',
+  description:
+    'List all sealed test specs and their verification status. Shows which tests are sealed, ' +
+    'which have been verified as passing, and which are still pending.',
+  input_schema: {
+    type: 'object',
+    properties: {},
+  },
+}
+
+/** TestLock tools available to Yin (sealer) */
+export const YIN_TESTLOCK_TOOLS: ToolSchema[] = [
+  SEAL_TEST_SPEC_TOOL,
+  LIST_TEST_LOCKS_TOOL,
+]
+
+/** TestLock tools available to Unity (verifier) */
+export const UNITY_TESTLOCK_TOOLS: ToolSchema[] = [
+  VERIFY_TEST_LOCK_TOOL,
+  LIST_TEST_LOCKS_TOOL,
+]
+
+/** TestLock tools available to Yang (read-only view) */
+export const YANG_TESTLOCK_TOOLS: ToolSchema[] = [
+  LIST_TEST_LOCKS_TOOL,
+]
+
+/** TestLock tool names */
+export const TESTLOCK_TOOL_NAMES = new Set([
+  'seal_test_spec',
+  'verify_test_lock',
+  'list_test_locks',
+])
+
 /** All dialectic tools for reviewer debate (excluding signal_conclusion) */
 export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
   SHARE_FINDING_TOOL,
@@ -388,16 +518,19 @@ export const HELIX_REPORT_TOOLS = REPORT_TOOLS
 export const ALL_UNITY_TOOLS: ToolSchema[] = [
   ...UNITY_TOOLS,
   REPORT_TO_BRAINSTEM_TOOL,
+  ...UNITY_TESTLOCK_TOOLS,
 ]
 
 /** All tools available to Yang reviewer (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_YANG_TOOLS: ToolSchema[] = [
   ...REVIEWER_TOOLS,
+  ...YANG_TESTLOCK_TOOLS,
 ]
 
 /** All tools available to Yin reviewer (base set — plan/report tools added separately in buildToolSchemas) */
 export const ALL_YIN_TOOLS: ToolSchema[] = [
   ...REVIEWER_TOOLS,
+  ...YIN_TESTLOCK_TOOLS,
 ]
 
 /** All tools available to Mentor (moderator) (base set — plan/report tools added separately in buildToolSchemas) */
@@ -408,9 +541,9 @@ export const ALL_MENTOR_TOOLS: ToolSchema[] = [
 
 
 
-export const UNITY_TOOL_NAMES = new Set([...UNITY_TOOLS.map(t => t.name), REPORT_TO_BRAINSTEM_TOOL.name])
+export const UNITY_TOOL_NAMES = new Set([...UNITY_TOOLS.map(t => t.name), REPORT_TO_BRAINSTEM_TOOL.name, ...TESTLOCK_TOOL_NAMES])
 
-export const REVIEWER_TOOL_NAMES = new Set(REVIEWER_TOOLS.map(t => t.name))
+export const REVIEWER_TOOL_NAMES = new Set([...REVIEWER_TOOLS.map(t => t.name), ...TESTLOCK_TOOL_NAMES])
 
 export const EDIT_PROPOSAL_TOOL_NAMES = new Set(EDIT_PROPOSAL_TOOLS.map(t => t.name))
 

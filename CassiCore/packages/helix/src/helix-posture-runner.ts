@@ -42,6 +42,7 @@ import {
   getHelixToolSchemas,
   UNITY_TOOL_NAMES,
   REVIEWER_TOOL_NAMES,
+  TESTLOCK_TOOL_NAMES,
 } from './helix-tools.js'
 import {
   handleBlackboardToolCall,
@@ -55,6 +56,7 @@ import {
   findLastIndex,
 } from '../cassi-agent/base-posture-runner.js'
 import { DriftDetector } from './drift-detector.js'
+import { TestLock } from './testlock.js'
 import { estimateTokens } from '../shared/token-estimation.js'
 import {
   getCodeConsolidatedToolSchema,
@@ -250,6 +252,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private lastSynapseGuidance?: string
   // Drift detection for shell commands
   private driftDetector: DriftDetector = new DriftDetector()
+  // TestLock — sealed test paradigm for enforcing test-first discipline
+  private testLock: TestLock = new TestLock()
 
   // signal_done data — stored so buildPostureResult can return the actual conclusion
   private signalDoneConclusion?: string
@@ -1014,6 +1018,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       // Edit proposal tools (Yang/Yin)
       case 'propose_edit': return this.handleProposeEdit(input)
       case 'review_edit_proposal': return this.handleReviewEditProposal(input)
+      // TestLock tools (Sealed Test Paradigm)
+      case 'seal_test_spec': return this.handleSealTestSpec(input)
+      case 'verify_test_lock': return this.handleVerifyTestLock(input)
+      case 'list_test_locks': return this.handleListTestLocks()
       // Conclusion — tool schema is signal_conclusion (from Lumen dialectic-tools)
       case 'signal_conclusion': return this.handleSignalConclusion(input)
       default: return `Unknown meta-tool: ${name}`
@@ -1036,13 +1044,32 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     const confidence = typeof input.confidence === 'number' ? input.confidence : 0.5
     const keyPoints = Array.isArray(input.key_points) ? input.key_points.map(String) : []
 
+    // TestLock gate — check if sealed test specs are satisfied
+    const lockCheck = this.testLock.canComplete()
+    if (!lockCheck.allowed) {
+      const blockerList = lockCheck.blockers
+        .map(b => `  - ${b.specId}: ${b.description} (${b.severity}, ${b.verificationStatus})`)
+        .join('\n')
+      return (
+        `BLOCKED by TestLock — ${lockCheck.blockers.length} sealed test spec(s) have not been verified as passing.\n` +
+        `You must run the test commands and call verify_test_lock for each before signal_done.\n\n` +
+        `Blocking specs:\n${blockerList}\n\n` +
+        `Use list_test_locks for full details.`
+      )
+    }
+
     this.concluded = true
     this.signalDoneConclusion = conclusion
     this.signalDoneConfidence = confidence
     this.signalDoneKeyPoints = keyPoints
     this.workStream.recordRoleConclusion(this.role as any, false)
 
-    return `Work complete. Conclusion recorded. Yang and Yin will do a final review pass.`
+    const lockSummary = this.testLock.getSummary()
+    const lockNote = lockSummary.total > 0
+      ? ` All ${lockSummary.total} sealed test spec(s) verified.`
+      : ''
+
+    return `Work complete. Conclusion recorded.${lockNote} Yang and Yin will do a final review pass.`
   }
 
   private handleReportToBrainstem(input: Record<string, unknown>): string {
@@ -1069,6 +1096,110 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     })
 
     return `Report (${reportType}) sent to Brainstem. It will be processed in the next evaluation cycle.`
+  }
+
+
+  // --- TestLock Handlers (Sealed Test Paradigm) ---
+
+  private handleSealTestSpec(input: Record<string, unknown>): string {
+    // WHY: Only Yin (stress-tester) should seal specs.
+    // Yang could bypass test-first discipline by sealing trivial specs.
+    if (this.role !== 'yin') {
+      return 'ERROR: Only Yin (stress-tester) can seal test specs. Yang and Unity cannot seal tests — this enforces separation of concerns.'
+    }
+
+    const specId = String(input.spec_id ?? '')
+    const description = String(input.description ?? '')
+    const testCommand = String(input.test_command ?? '')
+    const severity = String(input.severity ?? 'important') as 'critical' | 'important' | 'advisory'
+
+    if (!specId || !description || !testCommand) {
+      return 'ERROR: spec_id, description, and test_command are required.'
+    }
+
+    const result = this.testLock.seal({
+      specId,
+      description,
+      testFile: input.test_file ? String(input.test_file) : undefined,
+      testCommand,
+      expectedOutcome: input.expected_outcome ? String(input.expected_outcome) : undefined,
+      severity,
+      sealedBy: this.role,
+    })
+
+    if (!result.sealed) {
+      return `ERROR: ${result.error}`
+    }
+
+    this.logger.info('Test spec sealed', {
+      specId,
+      severity,
+      hash: result.spec!.contentHash.slice(0, 16),
+      sealedBy: this.role,
+    })
+
+    return (
+      `Test spec "${specId}" sealed successfully.\n` +
+      `Hash: ${result.spec!.contentHash.slice(0, 16)}...\n` +
+      `Severity: ${severity}${severity !== 'advisory' ? ' (BLOCKS signal_done until verified)' : ' (advisory, does not block)'}\n` +
+      `Unity must run: ${testCommand}\n` +
+      `Then call verify_test_lock with the result.`
+    )
+  }
+
+  private handleVerifyTestLock(input: Record<string, unknown>): string {
+    // WHY: Only Unity (the integrator) should verify — it's the one running tests.
+    // Allowing Yin to self-verify would defeat the purpose of separation.
+    if (this.role !== 'unity') {
+      return 'ERROR: Only Unity (integrator) can verify test locks. Yin seals, Unity verifies — this enforces separation of concerns.'
+    }
+
+    const specId = String(input.spec_id ?? '')
+    const passed = input.passed === true || input.passed === 'true'
+    const output = input.output ? String(input.output) : undefined
+    const notes = input.notes ? String(input.notes) : undefined
+
+    if (!specId) {
+      return 'ERROR: spec_id is required.'
+    }
+
+    const result = this.testLock.verify(specId, {
+      passed,
+      output,
+      notes,
+      verifiedBy: this.role,
+    })
+
+    if (!result.verified) {
+      return `ERROR: ${result.error}`
+    }
+
+    const spec = result.spec!
+    const lockCheck = this.testLock.canComplete()
+
+    this.logger.info('Test lock verification', {
+      specId,
+      passed,
+      remainingBlockers: lockCheck.blockers.length,
+    })
+
+    if (passed) {
+      return (
+        `Test spec "${specId}" verified as PASSING.\n` +
+        `${lockCheck.allowed ? 'All sealed test specs satisfied — signal_done is now unblocked.' : `${lockCheck.blockers.length} blocking spec(s) remain.`}`
+      )
+    } else {
+      return (
+        `Test spec "${specId}" FAILED verification.\n` +
+        `You need to fix the code and try again.\n` +
+        `Command: ${spec.testCommand}\n` +
+        `${output ? `Output: ${output.slice(0, 500)}` : ''}`
+      )
+    }
+  }
+
+  private handleListTestLocks(): string {
+    return this.testLock.formatSummary()
   }
 
 

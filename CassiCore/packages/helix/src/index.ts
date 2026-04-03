@@ -701,6 +701,10 @@ export {
   ALL_MENTOR_TOOLS,
   isHelixMetaTool,
   getHelixToolSchemas,
+  TESTLOCK_TOOL_NAMES,
+  YIN_TESTLOCK_TOOLS,
+  UNITY_TESTLOCK_TOOLS,
+  YANG_TESTLOCK_TOOLS,
 } from './helix-tools.js'
 
 export { HelixPostureRunner } from './helix-posture-runner.js'
@@ -708,6 +712,9 @@ export { HelixPostureRunner } from './helix-posture-runner.js'
 export { HelixPostureRunner as HelixAgentSession } from './helix-posture-runner.js'
 export { runHelixPipeline } from './helix-pipeline.js'
 export type { HelixPipelineOpts } from './helix-pipeline.js'
+
+export { TestLock } from './testlock.js'
+export type { SealedTestSpec, TestLockVerification, TestLockSeverity, TestLockVerificationStatus } from './testlock.js'
 
 export const HELIX_MODEL_SLOTS = {
   UNITY: 'helix.unity',
