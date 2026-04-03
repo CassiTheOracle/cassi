@@ -51,6 +51,12 @@ import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { ToolRegistry } from './tools/registry.js'
 import { ToolReliabilityTracker } from './tools/reliability.js'
+import { WorkflowEngine } from './workflow/engine.js'
+import { WorkflowRegistry } from './workflow/registry.js'
+import { WorkflowStore } from './workflow/persistence.js'
+import { WorkflowDefinitionStore } from './workflow/definition-store.js'
+import { WorkflowScheduler } from './workflow/scheduler.js'
+import { WorkflowTriggerStore } from './workflow/trigger-store.js'
 import { BranchingConversationManager } from './intelligence/branching-conversation/manager.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
@@ -216,6 +222,12 @@ export class Daemon {
   public unifiedLoop?: import('./intelligence/unified-loop.js').UnifiedIntelligenceLoop
   /** Tool executor — available after daemon start(). */
   public toolExecutor?: ToolExecutor
+  /** Workflow engine — available after daemon start(). */
+  public workflowEngine?: WorkflowEngine
+  /** Workflow definition registry — available after daemon start(). */
+  public workflowRegistry?: WorkflowRegistry
+  /** Workflow scheduler (trigger-based automation) — available after daemon start(). */
+  public workflowScheduler?: WorkflowScheduler
   /** Autonomous agent loop — available when feature is enabled. */
   public autonomousLoop?: import('./intelligence/autonomous-loop.js').AutonomousAgentLoop
   /** Session pipeline integration */
@@ -1832,6 +1844,33 @@ export class Daemon {
 
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
+
+    // Initialize workflow system
+    let workflowStore: WorkflowStore | undefined
+    let workflowDefStore: WorkflowDefinitionStore | undefined
+    try {
+      this.workflowEngine = new WorkflowEngine({
+        logger: this.logger.child('workflow-engine'),
+        eventBus: this.bus,
+      })
+      this.workflowRegistry = new WorkflowRegistry(this.logger)
+      workflowStore = WorkflowStore.open(this.logger)
+      workflowDefStore = WorkflowDefinitionStore.open(this.logger)
+
+      const triggerStore = WorkflowTriggerStore.open(this.logger)
+      this.workflowScheduler = new WorkflowScheduler({
+        engine: this.workflowEngine,
+        getDefinition: (id) => this.workflowRegistry?.get(id),
+        logger: this.logger,
+        eventBus: this.bus,
+        store: triggerStore,
+      })
+
+      this.logger.info('Workflow system initialized (engine, registry, scheduler)')
+    } catch (err) {
+      this.logger.warn('Workflow system initialization failed', { error: String(err) })
+    }
+
     registerCoreTools(toolRegistry, {
       memory: this.intelligence?.memory,
       sessionManager: this.sessions,
@@ -1910,6 +1949,15 @@ export class Daemon {
           synapse,
         }
       })() : undefined,
+      getWorkflowEngine: () => this.workflowEngine ?? null,
+      getWorkflowDefinitions: () => {
+        if (!this.workflowRegistry) return new Map()
+        const map = new Map<string, import('../types/workflow.js').WorkflowDefinition>()
+        for (const def of this.workflowRegistry.list()) map.set(def.id, def)
+        return map
+      },
+      getWorkflowStore: () => workflowStore ?? null,
+      getWorkflowDefStore: () => workflowDefStore ?? null,
     })
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
@@ -2548,6 +2596,9 @@ export class Daemon {
           },
           isAvailable: (name: string) => (this as any).toolExecutor.isAvailable(name)
         },
+        // HOW: Pass a getter function so the LLM always sees the latest tools
+        // (tools can be registered after init by MCP, teams, etc.)
+        toolSchemas: () => toolRegistry.toAnthropicSchema(),
         intelligence: {
           memory: (this as any).intelligence?.memory,
           dialectic: (this as any).intelligence?.dialectic,
@@ -2627,8 +2678,33 @@ export class Daemon {
           try {
             const sid = payload.sessionId as string
             const s = this.sessions.get(sid)
-            if (s && s.channelId) {
-              const tgt = s.channelId
+            // HOW: Determine the target channel. For sessions created via the
+            // primary router (e.g. tg:1339199309 → cassi:primary), the session
+            // won't be found under the original ID. Fall back to the primary
+            // router's tracked source or the cassi:primary session.
+            let tgt = s?.channelId
+            let effectiveSid = sid
+            if (!tgt) {
+              const routerSrc = this.primaryRouter?.getSource()
+              if (routerSrc && routerSrc.sessionId === sid) {
+                tgt = routerSrc.channelId
+              } else {
+                // Check if the sid is a channel-specific ID (tg:*, cli:*) and look up
+                // the primary session's channel
+                const primarySession = this.sessions.get('cassi:primary')
+                if (primarySession) {
+                  tgt = primarySession.channelId
+                  // But channel:system has no worker — use the pluginId hint
+                  if (tgt === 'channel:system') {
+                    // Extract channel from the session ID prefix
+                    if (sid.startsWith('tg:')) tgt = 'channel:telegram'
+                    else if (sid.startsWith('cli:')) tgt = 'channel:cli'
+                    else if (sid.startsWith('oc:')) tgt = 'channel:opencode'
+                  }
+                }
+              }
+            }
+            if (tgt) {
               if (payload.type === 'turn:direct_message' && payload.content) {
                 // Command dispatcher response — send once and done
                 this.pluginHost.send(tgt, { sessionId: sid, content: payload.content as string, done: true })
