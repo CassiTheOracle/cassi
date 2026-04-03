@@ -31,21 +31,15 @@ const RATE_LIMIT_WINDOW_MS = 1000
 const RATE_LIMIT_MAX_MESSAGES = 10
 
 const TELEGRAM_COMMANDS: tg.BotCommand[] = [
-  { command: 'cassi', description: 'MCP tools: list, invoke, or run agents' },
-  { command: 'cassicore', description: 'Daemon CLI (boot/model/provider)' },
   { command: 'help', description: 'Show available commands' },
-  { command: 'start', description: 'Initialize the bot' },
-  { command: 'bash', description: 'Execute a shell command' },
-  { command: 'read', description: 'Read a file' },
   { command: 'model', description: 'Show or change model' },
-  { command: 'think', description: 'Trigger thinker cycle' },
+  { command: 'session', description: 'Session info' },
   { command: 'recall', description: 'Search memory' },
   { command: 'remember', description: 'Store a note' },
-  { command: 'git', description: 'Git operations' },
-  { command: 'session', description: 'Session info' },
+  { command: 'think', description: 'Trigger thinker cycle' },
+  { command: 'cassi', description: 'MCP tools and agents' },
+  { command: 'cassicore', description: 'Daemon CLI' },
   { command: 'cancel', description: 'Cancel current operation' },
-  { command: 'skip', description: 'Skip optional parameter' },
-  { command: 'confirm', description: 'Confirm tool execution' },
 ]
 
 async function registerBotCommands(): Promise<void> {

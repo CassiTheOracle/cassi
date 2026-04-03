@@ -107,11 +107,21 @@ export class CommandDispatcher {
     this.logger.info(`Handling command: /${cmd}`, { sessionId, args });
 
     try {
-      // Get session for context
-      const session = this.sessions.get(sessionId);
+      // Get session for context — if the sessionId doesn't match a real session,
+      // try the primary conductor session (used when PrimarySessionRouter is active)
+      let session = this.sessions.get(sessionId);
       if (!session) {
-        this.sendDirectResponse(sessionId, channelId, '❌ Session not found');
-        return true;
+        // HOW: Channel-specific session IDs (tg:123, cli:abc) may not exist as
+        // sessions when PrimarySessionRouter routes them to cassi:primary
+        const primarySession = this.sessions.get('cassi:primary');
+        if (primarySession) {
+          session = primarySession;
+        }
+      }
+      if (!session) {
+        // WHY: Auto-create a minimal session so commands work even before
+        // the first LLM turn creates one
+        session = this.sessions.getOrCreateById(sessionId, channelId, sessionId);
       }
 
       // Build unified command context with intelligence access
@@ -175,6 +185,9 @@ export class CommandDispatcher {
     this.logger.debug(`Command falling back to legacy handler: /${cmd}`);
     
     switch (cmd) {
+      case 'start':
+        this.sendDirectResponse(sessionId, channelId, 'Ready.');
+        return true;
       case 'status':
         return await this.handleStatus(sessionId, channelId);
       case 'models':
