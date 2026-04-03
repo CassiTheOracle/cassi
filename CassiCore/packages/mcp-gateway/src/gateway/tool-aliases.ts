@@ -80,9 +80,10 @@ const STRIP_PREFIXES: readonly string[] = [
 /**
  * Strip at most one known prefix from a tool name.
  * Returns `null` if no prefix matched.
- * @dep callers: resolveToolAlias (mcp/gateway/tool-aliases.ts), normalizeToolName (mcp/gateway/do-tool.ts)
+ * @dep callers: normalizeToolName (mcp/gateway/do-tool.ts), resolveToolAlias (mcp/gateway/tool-aliases.ts)
+ * @dep flows: Start → StripKnownPrefix (5/5)
  * @dep module: Gateway
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function stripKnownPrefix(name: string): string | null {
   for (const prefix of STRIP_PREFIXES) {
@@ -102,7 +103,7 @@ export function stripKnownPrefix(name: string): string | null {
  *           accepted in place of the real tool name.
  * Values — `{ name }` or `{ name, args }` targeting a canonical tool.
  *
- * NOTE: Entries are checked *after* prefix stripping, so you only need to
+ * HOW: Entries are checked *after* prefix stripping, so you only need to
  * list the unprefixed form here if the prefix rule already covers it.
  * Full names (with prefix) are also fine — they take precedence.
  */
@@ -352,7 +353,7 @@ export function levenshteinSimilarity(a: string, b: string): number {
 /**
  * Find the best fuzzy match for `name` among `candidates`.
  * Returns `{ match, similarity }` or `null` if no candidate exceeds `minSimilarity`.
- * @dep callers: resolveToolAlias (mcp/gateway/tool-aliases.ts), suggestToolName (mcp/gateway/tool-aliases.ts)
+ * @dep callers: suggestToolName (mcp/gateway/tool-aliases.ts), resolveToolAlias (mcp/gateway/tool-aliases.ts)
  * @dep calls: levenshteinSimilarity
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
@@ -390,10 +391,11 @@ export function findBestFuzzyMatch(
  * @param args    Current call args (will have alias patches merged in)
  * @param table   Alias table to use (defaults to TOOL_ALIASES)
  * @param canonicals  Canonical names to recognise as final targets
- * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), resolveToolAlias (mcp/gateway/tool-aliases.ts)
- * @dep calls: has, resolveToolAlias, findBestFuzzyMatch, stripKnownPrefix, add
+ * @dep callers: resolveToolAlias (mcp/gateway/tool-aliases.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep calls: add, stripKnownPrefix, findBestFuzzyMatch, resolveToolAlias, has
+ * @dep flows: Start → StripKnownPrefix (4/5)
  * @dep module: Gateway
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 export function resolveToolAlias(
   name: string,

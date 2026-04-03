@@ -60,7 +60,7 @@ import type { ILogger } from '../../types/interfaces.js';
  * 
  * - 'interactive': Pause and wait for human approval via MCP client.
  *   Best for: High-stakes changes, novel tasks, learning mode.
- *   NOTE: Requires MCP client to support pending confirmation handling.
+ *   Requires MCP client to support pending confirmation handling.
  * 
  * - 'timeout': Start in interactive mode, but auto-approve after timeoutSecs.
  *   Best for: Balancing safety with progress guarantees.
@@ -457,8 +457,8 @@ function generateInspectionSummary(status: any, tree: any, events: any): string 
 /**
  * Execute flux_team operations via the "action" parameter.
  * This is the canonical team CRUD router — all other team tools delegate here.
- * @dep callers: executeFluxRun (mcp/gateway/flux-tools.ts), routeToolCall (mcp/cassicore-gateway.ts)
- * @dep calls: fetchWithTimeout
+ * @dep callers: executeFluxAgentTool (mcp/gateway/agent-tools.ts), executeFluxRun (mcp/gateway/flux-tools.ts)
+ * @dep calls: json, fetchWithTimeout
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
