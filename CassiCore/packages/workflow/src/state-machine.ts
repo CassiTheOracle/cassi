@@ -43,6 +43,13 @@ export interface StateMachineResult {
   stateHistory: string[]
 }
 
+/** Internal result from evaluateTransitions — carries event data for event-based transitions. */
+interface TransitionMatch {
+  transition: TransitionDefinition
+  /** If the transition was event-based, the data from the event. */
+  eventData?: unknown
+}
+
 export class StateMachineExecutor {
   private readonly logger: ILogger
   private readonly eventBus: IEventBus
@@ -128,29 +135,36 @@ export class StateMachineExecutor {
         }
 
         // Evaluate transitions
-        const transition = await this.evaluateTransitions(
+        const match = await this.evaluateTransitions(
           currentState,
           currentInput,
           run.state,
+          timeoutMs > 0 ? Math.max(0, timeoutMs - (Date.now() - startTime)) : 0,
         )
 
-        if (!transition) {
+        if (!match) {
           throw new Error(
             `State machine "${node.id}": no valid transition from state "${currentState.name}" ` +
             `(deadlock — all guards failed and no fallback)`,
           )
         }
 
-        // Run transition action if present
-        if (transition.action) {
-          currentInput = await transition.action(currentInput, run.state)
+        // WHY: For event-based transitions, the transition action should receive
+        // the event data instead of the current input, enabling data flow from
+        // events through the state machine.
+        if (match.transition.action) {
+          const actionInput = match.eventData !== undefined ? match.eventData : currentInput
+          currentInput = await match.transition.action(actionInput, run.state)
+        } else if (match.eventData !== undefined) {
+          // WHY: Even without an action, event data should flow through
+          currentInput = match.eventData
         }
 
         // Move to target state
-        const targetState = stateMap.get(transition.target)
+        const targetState = stateMap.get(match.transition.target)
         if (!targetState) {
           throw new Error(
-            `State machine "${node.id}": transition targets unknown state "${transition.target}"`,
+            `State machine "${node.id}": transition targets unknown state "${match.transition.target}"`,
           )
         }
 
@@ -220,21 +234,19 @@ export class StateMachineExecutor {
     state: StateDefinition,
     input: unknown,
     workflowState: WorkflowState,
-  ): Promise<TransitionDefinition | undefined> {
-    // WHY: Event-based transitions are skipped in synchronous evaluation.
-    // They require integration with WorkflowEventBus.waitFor() which is
-    // handled at a higher level. For now, only non-event transitions are evaluated.
+    remainingTimeoutMs: number,
+  ): Promise<TransitionMatch | undefined> {
     for (const transition of state.transitions) {
       // Skip event-based transitions in synchronous evaluation
       if (transition.event) continue
 
       if (!transition.guard) {
-        return transition
+        return { transition }
       }
 
       const passes = await transition.guard(input, workflowState)
       if (passes) {
-        return transition
+        return { transition }
       }
     }
 
@@ -242,7 +254,7 @@ export class StateMachineExecutor {
     if (this.workflowEventBus) {
       const eventTransitions = state.transitions.filter((t) => t.event)
       if (eventTransitions.length > 0) {
-        return this.waitForEventTransition(eventTransitions, input, workflowState)
+        return this.waitForEventTransition(eventTransitions, input, workflowState, remainingTimeoutMs)
       }
     }
 
@@ -254,23 +266,25 @@ export class StateMachineExecutor {
     transitions: TransitionDefinition[],
     input: unknown,
     workflowState: WorkflowState,
-  ): Promise<TransitionDefinition | undefined> {
+    remainingTimeoutMs: number,
+  ): Promise<TransitionMatch | undefined> {
     if (!this.workflowEventBus) return undefined
 
     const channels = transitions
       .map((t) => t.event!)
       .filter((ch, i, arr) => arr.indexOf(ch) === i)
 
-    const event = await this.workflowEventBus.waitFor(channels, { timeoutMs: 60_000 })
+    const effectiveTimeout = remainingTimeoutMs > 0 ? remainingTimeoutMs : 60_000
+    const event = await this.workflowEventBus.waitFor(channels, { timeoutMs: effectiveTimeout })
 
     // Find the matching transition for this event
     for (const transition of transitions) {
       if (transition.event !== event.channel) continue
 
-      if (!transition.guard) return transition
+      if (!transition.guard) return { transition, eventData: event.data }
 
       const passes = await transition.guard(event.data, workflowState)
-      if (passes) return transition
+      if (passes) return { transition, eventData: event.data }
     }
 
     return undefined
