@@ -49,8 +49,11 @@ import type {
   ParallelSplitRequest,
   ContextInjection,
   SelfOrgAdjustmentType,
+  ExternalCorpusState,
+  ExternalCorpusSnapshot,
+  PendingExternalSpawnRequest,
 } from './corpus-types.js'
-import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS } from './corpus-types.js'
+import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
 import {
   DEFAULT_CORPUS_CONFIG,
@@ -138,12 +141,17 @@ export class Corpus {
   private lastCheckpointAt = 0
   private static readonly CHECKPOINT_INTERVAL_MS = 60_000 // checkpoint every 60s
 
+  // External Corpus Protocol — allow an external agent to assume the Corpus role
+  private externalState: ExternalCorpusState
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
     this.deps = deps
     this.config = { ...DEFAULT_CORPUS_CONFIG, ...config }
     this.state = createInitialProcessedState()
     this.logger = deps.logger.child('Corpus')
+    this.externalState = createInitialExternalCorpusState()
 
     this.logger.info('Corpus initialized', {
       constellationId: deps.constellationId,

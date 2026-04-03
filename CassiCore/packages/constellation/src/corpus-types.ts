@@ -1034,6 +1034,91 @@ export interface ContextInjection {
 }
 
 
+// External Corpus Protocol — Allow external agents to assume Corpus role
+
+/**
+ * State tracking for an external agent that has assumed the Corpus role.
+ * When an external agent assumes Corpus, the internal LLM loop pauses
+ * and all Corpus decisions are routed through MCP tool calls from the
+ * external agent instead.
+ *
+ * WHY: This enables any MCP-connected agent (including humans via TUI,
+ * external orchestrators, or more powerful models) to act as the strategic
+ * overseer of a Constellation, using CassiCore's infrastructure while
+ * providing their own decision-making.
+ */
+export interface ExternalCorpusState {
+  /** Whether an external agent currently holds the Corpus role */
+  assumed: boolean
+  /** Identifier of the external agent holding the lock */
+  agentId: string | null
+  /** When the assumption was granted */
+  assumedAt: number | null
+  /** Last action timestamp — used for heartbeat timeout */
+  lastActionAt: number | null
+  /** Maximum inactivity before auto-release (ms) */
+  heartbeatTimeoutMs: number
+  /** Spawn requests queued for external decision */
+  pendingSpawnRequests: PendingExternalSpawnRequest[]
+}
+
+/**
+ * A spawn request queued for external Corpus decision.
+ * When the internal Corpus is suspended, spawn requests accumulate here
+ * instead of being auto-evaluated by the LLM.
+ */
+export interface PendingExternalSpawnRequest {
+  requestId: string
+  requestingHelixId: string
+  goal: string
+  context?: string
+  template?: string
+  targetDepth: number
+  queuedAt: number
+}
+
+/**
+ * Full state snapshot for an external Corpus agent.
+ * Combines tree state, branch assessments, patterns, and pending decisions
+ * into a single response.
+ */
+export interface ExternalCorpusSnapshot {
+  tree: CorpusTreeSnapshot
+  branchAssessments: Array<{
+    helixId: string
+    status: BranchHealthStatus
+    rollingScore: number
+    dominantPattern: string
+    avgGoalAlignment?: number
+    avgNovelty?: number
+    avgProgress?: number
+    escalationLevel?: EscalationLevel
+    ignoredDirectiveStreak?: number
+    budgetConsumedSteps?: number
+    budgetMaxSteps?: number
+  }>
+  crossPatterns: CrossHelixPattern[]
+  pendingSpawnRequests: PendingExternalSpawnRequest[]
+  recentInterventions: CorpusIntervention[]
+  sweepCount: number
+  goal: string
+}
+
+/** Default heartbeat timeout: 60 seconds of inactivity triggers auto-release */
+export const DEFAULT_EXTERNAL_CORPUS_HEARTBEAT_MS = 60_000
+
+export function createInitialExternalCorpusState(): ExternalCorpusState {
+  return {
+    assumed: false,
+    agentId: null,
+    assumedAt: null,
+    lastActionAt: null,
+    heartbeatTimeoutMs: DEFAULT_EXTERNAL_CORPUS_HEARTBEAT_MS,
+    pendingSpawnRequests: [],
+  }
+}
+
+
 // Memory Injection Types — Branch-level Memory Continuity
 
 /**
