@@ -34,7 +34,6 @@ interface BlackboardDeps {
   parseBody: (req: http.IncomingMessage) => Promise<any>
 }
 
-/** Resolve the global blackboard registry from the daemon (lazy singleton). */
 let cachedRegistry: GlobalBlackboardRegistry | undefined | null = undefined
 
 async function getRegistry(daemon: any, logger: ILogger): Promise<GlobalBlackboardRegistry | undefined> {
@@ -51,19 +50,12 @@ async function getRegistry(daemon: any, logger: ILogger): Promise<GlobalBlackboa
   }
 }
 
-/**
- * Reconstruct a temporary Blackboard instance from a persisted snapshot.
- * Used to enable search on completed sessions whose live blackboard has been released.
- */
 function reconstructForSearch(snapshot: BlackboardState, logger: ILogger): Blackboard {
   const bb = new Blackboard(logger.child('bb-search-ephemeral'), snapshot.cellId || 'search')
   bb.restoreFromSnapshot(snapshot)
   return bb
 }
 
-/**
- * Parse common search query parameters from a URL.
- */
 function parseSearchParams(url: URL) {
   const pattern = url.searchParams.get('pattern') ?? ''
   const boardsParam = url.searchParams.get('boards')
@@ -89,19 +81,16 @@ export async function handleBlackboardRoutes(
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`)
   const parts = url.pathname.replace(/^\//, '').split('/')
 
-
   if (parts[0] === 'blackboard' && parts[1] === 'global') {
     const registry = await getRegistry(daemon, logger)
     if (!registry) {
       return sendJSON(res, 503, { error: 'GlobalBlackboardRegistry not available' }), true
     }
 
-    // GET /blackboard/global — list all boards
     if (method === 'GET' && !parts[2]) {
       return sendJSON(res, 200, { boards: registry.list() }), true
     }
 
-    // POST /blackboard/global — create a named board
     if (method === 'POST' && !parts[2]) {
       const body = await parseBody(req)
       const name = body?.name
@@ -116,7 +105,6 @@ export async function handleBlackboardRoutes(
       return sendJSON(res, 201, { name, persist, message: `Blackboard '${name}' created.` }), true
     }
 
-    // GET /blackboard/global/:name — get snapshot (supports ?summary=true, ?channel=X, ?limit=N)
     if (method === 'GET' && parts[2] && !parts[3]) {
       const name = decodeURIComponent(parts[2])
       const wantSummary = url.searchParams.get('summary') === 'true'
@@ -160,7 +148,6 @@ export async function handleBlackboardRoutes(
       return sendJSON(res, 200, snapshot), true
     }
 
-    // GET /blackboard/global/:name/search — search across all boards
     if (method === 'GET' && parts[2] && parts[3] === 'search') {
       const name = decodeURIComponent(parts[2])
       const pattern = url.searchParams.get('pattern') ?? ''
@@ -189,18 +176,15 @@ export async function handleBlackboardRoutes(
       return sendJSON(res, 200, result), true
     }
 
-    // GET /blackboard/global/:name/watch — poll for accumulated changes
     if (method === 'GET' && parts[2] && parts[3] === 'watch') {
       const name = decodeURIComponent(parts[2])
 
-      // Determine time window
       let since: number
       const cursorParam = url.searchParams.get('cursor')
       const sinceParam = url.searchParams.get('since')
       const intervalParam = url.searchParams.get('interval_seconds')
 
       if (cursorParam) {
-        // Cursor encodes the windowEnd from the previous poll
         const cursor = decodeCursor(cursorParam)
         if (!cursor) {
           return sendJSON(res, 400, { error: 'Invalid cursor' }), true
@@ -230,7 +214,6 @@ export async function handleBlackboardRoutes(
       return sendJSON(res, 200, result), true
     }
 
-    // POST /blackboard/global/:name/post — post to a channel
     if (method === 'POST' && parts[2] && parts[3] === 'post') {
       const name = decodeURIComponent(parts[2])
       let board = registry.get(name)
@@ -264,12 +247,10 @@ export async function handleBlackboardRoutes(
       try {
         await registry.save(name)
       } catch {
-        // Best-effort persistence; non-persisted boards or fs errors should not fail the request.
       }
       return sendJSON(res, 201, { id: entry.id, channel, message: `Posted to '${name}/${channel}'.` }), true
     }
 
-    // DELETE /blackboard/global/:name — delete a board
     if (method === 'DELETE' && parts[2] && !parts[3]) {
       const name = decodeURIComponent(parts[2])
       const deleted = registry.delete(name)
@@ -280,12 +261,10 @@ export async function handleBlackboardRoutes(
     }
   }
 
-
   if (parts[0] === 'lumen' && parts[1] && parts[2] === 'blackboard') {
     if (method !== 'GET') return false
     const sessionId = parts[1]
 
-    // GET /lumen/:id/blackboard/search — search across all boards
     if (parts[3] === 'search') {
       const { pattern, boards, limitPerBoard, cursor, author, since, until } = parseSearchParams(url)
       if (!pattern) {
@@ -294,14 +273,12 @@ export async function handleBlackboardRoutes(
       try {
         const lumen = daemon.intelligence?.lumen
 
-        // Try active in-memory blackboard first
         const activeBb = lumen?.getActiveBlackboardInstance?.(sessionId)
         if (activeBb) {
           const result = activeBb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since, until })
           return sendJSON(res, 200, result), true
         }
 
-        // Fallback: reconstruct from persisted store for completed sessions
         const { LumenStore } = await import('../intelligence/lumen/lumen-store.js').catch(() => ({ LumenStore: null }))
         if (LumenStore) {
           const store = (LumenStore as any).open(logger.child('lumen-store-search'))
@@ -330,7 +307,6 @@ export async function handleBlackboardRoutes(
     }
 
     try {
-      // Try in-memory active sessions first
       const lumen = daemon.intelligence?.lumen
 
       if (channelFilter && lumen?.getActiveChannel) {
@@ -348,7 +324,6 @@ export async function handleBlackboardRoutes(
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
-      // Fallback to persisted session
       const { LumenStore } = await import('../intelligence/lumen/lumen-store.js').catch(() => ({ LumenStore: null }))
       if (LumenStore) {
         const store = (LumenStore as any).open(logger.child('lumen-store-bb'))
@@ -367,12 +342,10 @@ export async function handleBlackboardRoutes(
     }
   }
 
-
   if (parts[0] === 'dyad' && parts[1] && parts[2] === 'blackboard') {
     if (method !== 'GET') return false
     const sessionId = parts[1]
 
-    // GET /dyad/:id/blackboard/search — search across all boards
     if (parts[3] === 'search') {
       const { pattern, boards, limitPerBoard, cursor, author, since, until } = parseSearchParams(url)
       if (!pattern) {
@@ -381,14 +354,12 @@ export async function handleBlackboardRoutes(
       try {
         const dyad = daemon.intelligence?.dyad
 
-        // Try active in-memory blackboard first
         const activeBb = dyad?.getActiveBlackboardInstance?.(sessionId)
         if (activeBb) {
           const result = activeBb.searchAll({ pattern, boards, limitPerBoard, cursor, author, since, until })
           return sendJSON(res, 200, result), true
         }
 
-        // Fallback: reconstruct from persisted store for completed sessions
         const { DyadStore } = await import('../intelligence/dyad/dyad-store.js').catch(() => ({ DyadStore: null }))
         if (DyadStore) {
           const store = (DyadStore as any).open(logger.child('dyad-store-search'))
@@ -434,7 +405,6 @@ export async function handleBlackboardRoutes(
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
-      // Fallback to persisted session
       const { DyadStore } = await import('../intelligence/dyad/dyad-store.js').catch(() => ({ DyadStore: null }))
       if (DyadStore) {
         const store = (DyadStore as any).open(logger.child('dyad-store-bb'))

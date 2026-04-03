@@ -8,23 +8,9 @@ export interface ConfigRoutesDeps {
   parseBody: (req: http.IncomingMessage) => Promise<any>
 }
 
-// Helper: shallow/object checks and deep merge for nested object merges
-/**
- * @dep callers: handleConfigRoutes (core/admin-api/config.ts), mergeDeep (core/admin-api/config.ts)
- * @dep module: Admin-api
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
- */
-
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
-
-/**
- * @dep callers: handleConfigRoutes (core/admin-api/config.ts), mergeDeep (core/admin-api/config.ts)
- * @dep calls: isObject, mergeDeep
- * @dep module: Admin-api
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
- */
 
 function mergeDeep(target: any, src: any): any {
   if (!isObject(target) || !isObject(src)) return src
@@ -50,13 +36,11 @@ export async function handleConfigRoutes(
   const { daemon, sendJSON, parseBody } = deps
   const layered = daemon.config as any
 
-  // GET /config
   if (method === 'GET' && parts[0] === 'config' && parts.length === 1) {
     sendJSON(res, 200, daemon.config.toJSON())
     return true
   }
 
-  // GET/POST/DELETE /config/:key
   if (parts[0] === 'config' && parts.length === 2) {
     const key = parts[1]
     if (method === 'GET') {
@@ -86,7 +70,6 @@ export async function handleConfigRoutes(
     }
   }
 
-  // POST /config/set
   if (method === 'POST' && pathname === '/config/set') {
     try {
       const body = await parseBody(req)

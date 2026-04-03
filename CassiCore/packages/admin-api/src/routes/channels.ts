@@ -18,14 +18,12 @@ export async function handleChannelsRoutes(
   const { daemon, sendJSON, parseBody } = deps
   const layered = daemon.config as any
 
-  // GET /channels/telegram/config
   if (method === 'GET' && pathname === '/channels/telegram/config') {
     const tgCfg = daemon.config.get('channels.telegram', {})
     sendJSON(res, 200, tgCfg)
     return true
   }
 
-  // POST /channels/telegram/config
   if (method === 'POST' && pathname === '/channels/telegram/config') {
     try {
       const body = await parseBody(req)

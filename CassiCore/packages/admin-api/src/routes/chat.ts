@@ -31,7 +31,6 @@ export async function handleChatRoutes(
 
   if (parts[0] !== 'chat') return false
 
-  // GET /chat/:sessionId/stream
   if (parts.length === 3 && parts[2] === 'stream' && method === 'GET') {
     const sessionId = parts[1]
     if (!sessionId) {
@@ -88,7 +87,6 @@ export async function handleChatRoutes(
     return true
   }
 
-  // POST /chat/:sessionId/send
   if (parts.length === 3 && parts[2] === 'send' && method === 'POST') {
     const sessionId = parts[1]
     if (!sessionId) {
@@ -129,7 +127,6 @@ export async function handleChatRoutes(
     }
   }
 
-  // POST /chat/:sessionId/cancel
   if (parts.length === 3 && parts[2] === 'cancel' && method === 'POST') {
     const sessionId = parts[1]
     if (!sessionId) {
@@ -171,7 +168,6 @@ export async function handleChatRoutes(
     }
   }
 
-  // POST /chat
   if (parts.length === 1 && method === 'POST') {
     const body = await parseBody(req)
     const messages = body?.messages || []
