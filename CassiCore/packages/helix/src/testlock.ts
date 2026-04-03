@@ -68,16 +68,44 @@ export interface TestLockVerification {
 }
 
 /**
+ * Callback interface for persisting TestLock state.
+ * The TestLock class doesn't depend on the store directly — instead, it calls
+ * these callbacks when state changes need to be persisted.
+ *
+ * WHY: This keeps TestLock testable without a database. The posture runner
+ * wires these callbacks to the HelixStore.
+ */
+export interface TestLockPersistence {
+  onSeal(spec: SealedTestSpec): void
+  onVerify(specId: string, verificationStatus: TestLockVerificationStatus, verifications: TestLockVerification[]): void
+}
+
+/**
  * TestLock store — manages sealed test specs for a single Helix session.
  *
  * Thread-safe for single-session use (not shared across sessions).
  */
 export class TestLock {
   private specs = new Map<string, SealedTestSpec>()
+  private persistence?: TestLockPersistence
 
   // WHY: Prevent DoS by Yin sealing unlimited specs that block Unity
   private static readonly MAX_TOTAL_SPECS = 20
   private static readonly MAX_CRITICAL_SPECS = 5
+
+  constructor(persistence?: TestLockPersistence) {
+    this.persistence = persistence
+  }
+
+  /**
+   * Restore sealed specs from persistent storage (e.g., after crash recovery).
+   * Called once at construction time with specs loaded from the DB.
+   */
+  restore(specs: SealedTestSpec[]): void {
+    for (const spec of specs) {
+      this.specs.set(spec.specId, spec)
+    }
+  }
 
   /**
    * Seal a test spec. Creates a content hash to make it immutable.
@@ -135,6 +163,12 @@ export class TestLock {
     }
 
     this.specs.set(opts.specId, spec)
+
+    // Persist to DB if wired
+    if (this.persistence) {
+      this.persistence.onSeal(spec)
+    }
+
     return { sealed: true, spec }
   }
 
@@ -162,6 +196,11 @@ export class TestLock {
 
     spec.verificationAttempts.push(attempt)
     spec.verificationStatus = opts.passed ? 'passed' : 'failed'
+
+    // Persist verification update to DB if wired
+    if (this.persistence) {
+      this.persistence.onVerify(specId, spec.verificationStatus, spec.verificationAttempts)
+    }
 
     return { verified: true, spec }
   }

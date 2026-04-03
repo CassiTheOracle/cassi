@@ -17,7 +17,7 @@ import type { ModelPool } from '../../model-pool/index.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixProjectOpts, HelixResult } from './types.js'
-import type { HelixStore } from './helix-store.js'
+import type { HelixStore, TestLockRow } from './helix-store.js'
 import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
 import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from '../dyad/work-stream.js'
@@ -714,7 +714,7 @@ export { runHelixPipeline } from './helix-pipeline.js'
 export type { HelixPipelineOpts } from './helix-pipeline.js'
 
 export { TestLock } from './testlock.js'
-export type { SealedTestSpec, TestLockVerification, TestLockSeverity, TestLockVerificationStatus } from './testlock.js'
+export type { SealedTestSpec, TestLockVerification, TestLockSeverity, TestLockVerificationStatus, TestLockPersistence } from './testlock.js'
 
 export const HELIX_MODEL_SLOTS = {
   UNITY: 'helix.unity',

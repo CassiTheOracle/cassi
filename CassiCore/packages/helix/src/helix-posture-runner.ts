@@ -57,6 +57,7 @@ import {
 } from '../cassi-agent/base-posture-runner.js'
 import { DriftDetector } from './drift-detector.js'
 import { TestLock } from './testlock.js'
+import type { TestLockPersistence, SealedTestSpec, TestLockVerificationStatus, TestLockVerification } from './testlock.js'
 import { estimateTokens } from '../shared/token-estimation.js'
 import {
   getCodeConsolidatedToolSchema,
@@ -253,7 +254,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   // Drift detection for shell commands
   private driftDetector: DriftDetector = new DriftDetector()
   // TestLock — sealed test paradigm for enforcing test-first discipline
-  private testLock: TestLock = new TestLock()
+  private testLock: TestLock
 
   // signal_done data — stored so buildPostureResult can return the actual conclusion
   private signalDoneConclusion?: string
@@ -301,6 +302,56 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.onWorkUnit = opts.onWorkUnit
     this.onStreamActivity = opts.onStreamActivity
     this.store = opts.store
+
+    // Wire TestLock with persistence callbacks
+    const persistence: TestLockPersistence | undefined = opts.store && opts.sessionId
+      ? {
+          onSeal: (spec) => {
+            opts.store!.saveTestLock(opts.sessionId!, {
+              specId: spec.specId,
+              description: spec.description,
+              testFile: spec.testFile,
+              testCommand: spec.testCommand,
+              expectedOutcome: spec.expectedOutcome,
+              severity: spec.severity,
+              contentHash: spec.contentHash,
+              sealedBy: spec.sealedBy,
+              sealedAt: spec.sealedAt,
+              verificationStatus: spec.verificationStatus,
+              verifications: spec.verificationAttempts,
+            })
+          },
+          onVerify: (specId, verificationStatus, verifications) => {
+            opts.store!.updateTestLockVerification(opts.sessionId!, specId, verificationStatus, verifications)
+          },
+        }
+      : undefined
+    this.testLock = new TestLock(persistence)
+
+    // Restore TestLock state from DB if available (crash recovery)
+    if (opts.store && opts.sessionId) {
+      try {
+        const savedLocks = opts.store.getTestLocks(opts.sessionId)
+        if (savedLocks.length > 0) {
+          this.testLock.restore(savedLocks.map(row => ({
+            specId: row.specId,
+            description: row.description,
+            testFile: row.testFile,
+            testCommand: row.testCommand,
+            expectedOutcome: row.expectedOutcome,
+            severity: row.severity as 'critical' | 'important' | 'advisory',
+            contentHash: row.contentHash,
+            sealedBy: row.sealedBy,
+            sealedAt: row.sealedAt,
+            verificationStatus: row.verificationStatus as 'pending' | 'passed' | 'failed',
+            verificationAttempts: row.verifications as TestLockVerification[],
+          })))
+          this.logger.info('Restored TestLock state from DB', { count: savedLocks.length })
+        }
+      } catch (err) {
+        this.logger.warn('Failed to restore TestLock state', { error: String(err) })
+      }
+    }
   }
 
 

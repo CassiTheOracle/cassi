@@ -26,7 +26,7 @@ import type { BlackboardState, Report } from '../../../types/flux-team.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 1
+const SCHEMA_VERSION = 2
 const DEFAULT_MAX_AGE_DAYS = 7
 
 export type HelixRole = 'unity' | 'yang' | 'yin' | 'mentor'
@@ -129,6 +129,26 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_helix_events_session ON helix_events(session_id, timestamp);
   CREATE INDEX IF NOT EXISTS idx_helix_sessions_status ON helix_sessions(status);
   CREATE INDEX IF NOT EXISTS idx_helix_sessions_created ON helix_sessions(created_at);
+
+  CREATE TABLE IF NOT EXISTS helix_test_locks (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id          TEXT NOT NULL,
+    spec_id             TEXT NOT NULL,
+    description         TEXT NOT NULL,
+    test_file           TEXT,
+    test_command        TEXT NOT NULL,
+    expected_outcome    TEXT,
+    severity            TEXT NOT NULL DEFAULT 'important',
+    content_hash        TEXT NOT NULL,
+    sealed_by           TEXT NOT NULL,
+    sealed_at           INTEGER NOT NULL,
+    verification_status TEXT NOT NULL DEFAULT 'pending',
+    verifications_json  TEXT DEFAULT '[]',
+    FOREIGN KEY (session_id) REFERENCES helix_sessions(id) ON DELETE CASCADE,
+    UNIQUE(session_id, spec_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_helix_test_locks_session ON helix_test_locks(session_id);
 `
 
 
@@ -151,6 +171,11 @@ export class HelixStore {
     selectToolCalls: Database.Statement
     selectEvents: Database.Statement
     pruneOld: Database.Statement
+    // TestLock statements
+    insertTestLock: Database.Statement
+    updateTestLock: Database.Statement
+    selectTestLocks: Database.Statement
+    selectTestLock: Database.Statement
   }
 
   private constructor(dbPath: string, logger: ILogger) {
@@ -191,7 +216,30 @@ export class HelixStore {
     const current = versionRow?.version ?? 0
 
     if (current < SCHEMA_VERSION) {
-      // Future migrations go here
+      // v1 → v2: Add TestLock table
+      if (current < 2) {
+        this.db.exec(`
+          CREATE TABLE IF NOT EXISTS helix_test_locks (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id          TEXT NOT NULL,
+            spec_id             TEXT NOT NULL,
+            description         TEXT NOT NULL,
+            test_file           TEXT,
+            test_command        TEXT NOT NULL,
+            expected_outcome    TEXT,
+            severity            TEXT NOT NULL DEFAULT 'important',
+            content_hash        TEXT NOT NULL,
+            sealed_by           TEXT NOT NULL,
+            sealed_at           INTEGER NOT NULL,
+            verification_status TEXT NOT NULL DEFAULT 'pending',
+            verifications_json  TEXT DEFAULT '[]',
+            FOREIGN KEY (session_id) REFERENCES helix_sessions(id) ON DELETE CASCADE,
+            UNIQUE(session_id, spec_id)
+          );
+          CREATE INDEX IF NOT EXISTS idx_helix_test_locks_session ON helix_test_locks(session_id);
+        `)
+        this.logger.info('Migrated helix.db schema v1 → v2 (added helix_test_locks)')
+      }
       this.db.prepare('UPDATE schema_version SET version = ?').run(SCHEMA_VERSION)
     }
   }
@@ -274,6 +322,21 @@ export class HelixStore {
         pruneOld: this.db.prepare(`
           DELETE FROM helix_sessions WHERE status IN ('completed', 'failed', 'timeout', 'cancelled') AND created_at < ?
         `),
+        // TestLock statements
+        insertTestLock: this.db.prepare(`
+          INSERT INTO helix_test_locks (session_id, spec_id, description, test_file, test_command, expected_outcome, severity, content_hash, sealed_by, sealed_at, verification_status, verifications_json)
+          VALUES (@session_id, @spec_id, @description, @test_file, @test_command, @expected_outcome, @severity, @content_hash, @sealed_by, @sealed_at, @verification_status, @verifications_json)
+        `),
+        updateTestLock: this.db.prepare(`
+          UPDATE helix_test_locks SET verification_status = @verification_status, verifications_json = @verifications_json
+          WHERE session_id = @session_id AND spec_id = @spec_id
+        `),
+        selectTestLocks: this.db.prepare(
+          'SELECT * FROM helix_test_locks WHERE session_id = ? ORDER BY sealed_at ASC'
+        ),
+        selectTestLock: this.db.prepare(
+          'SELECT * FROM helix_test_locks WHERE session_id = @session_id AND spec_id = @spec_id'
+        ),
       }
     }
     return this._stmts
@@ -475,6 +538,77 @@ export class HelixStore {
   }
 
 
+  // --- TestLock Persistence ---
+
+  /**
+   * Save a sealed test spec to the database.
+   */
+  saveTestLock(sessionId: string, spec: {
+    specId: string
+    description: string
+    testFile?: string
+    testCommand: string
+    expectedOutcome?: string
+    severity: string
+    contentHash: string
+    sealedBy: string
+    sealedAt: number
+    verificationStatus: string
+    verifications: unknown[]
+  }): void {
+    this.stmts.insertTestLock.run({
+      session_id: sessionId,
+      spec_id: spec.specId,
+      description: spec.description,
+      test_file: spec.testFile ?? null,
+      test_command: spec.testCommand,
+      expected_outcome: spec.expectedOutcome ?? null,
+      severity: spec.severity,
+      content_hash: spec.contentHash,
+      sealed_by: spec.sealedBy,
+      sealed_at: spec.sealedAt,
+      verification_status: spec.verificationStatus,
+      verifications_json: JSON.stringify(spec.verifications),
+    })
+    this.logger.debug('Saved test lock', { sessionId, specId: spec.specId })
+  }
+
+  /**
+   * Update a test lock's verification status.
+   */
+  updateTestLockVerification(sessionId: string, specId: string, verificationStatus: string, verifications: unknown[]): void {
+    this.stmts.updateTestLock.run({
+      session_id: sessionId,
+      spec_id: specId,
+      verification_status: verificationStatus,
+      verifications_json: JSON.stringify(verifications),
+    })
+    this.logger.debug('Updated test lock verification', { sessionId, specId, verificationStatus })
+  }
+
+  /**
+   * Load all sealed test specs for a session.
+   */
+  getTestLocks(sessionId: string): TestLockRow[] {
+    const rows = this.stmts.selectTestLocks.all(sessionId) as RawTestLockRow[]
+    return rows.map(r => ({
+      id: r.id,
+      sessionId: r.session_id,
+      specId: r.spec_id,
+      description: r.description,
+      testFile: r.test_file ?? undefined,
+      testCommand: r.test_command,
+      expectedOutcome: r.expected_outcome ?? undefined,
+      severity: r.severity,
+      contentHash: r.content_hash,
+      sealedBy: r.sealed_by,
+      sealedAt: r.sealed_at,
+      verificationStatus: r.verification_status,
+      verifications: JSON.parse(r.verifications_json),
+    }))
+  }
+
+
   prune(maxAgeDays = DEFAULT_MAX_AGE_DAYS): number {
     const cutoff = Date.now() - maxAgeDays * 86_400_000
     return this.stmts.pruneOld.run(cutoff).changes
@@ -578,6 +712,13 @@ export interface EventRow {
   message: string; dataJson?: string; timestamp: number
 }
 
+export interface TestLockRow {
+  id: number; sessionId: string; specId: string; description: string
+  testFile?: string; testCommand: string; expectedOutcome?: string
+  severity: string; contentHash: string; sealedBy: string; sealedAt: number
+  verificationStatus: string; verifications: unknown[]
+}
+
 
 
 interface RawHelixSessionRow {
@@ -616,4 +757,11 @@ interface RawToolCallRow {
 interface RawEventRow {
   id: number; session_id: string; type: string; entity: string | null
   message: string; data_json: string | null; timestamp: number
+}
+
+interface RawTestLockRow {
+  id: number; session_id: string; spec_id: string; description: string
+  test_file: string | null; test_command: string; expected_outcome: string | null
+  severity: string; content_hash: string; sealed_by: string; sealed_at: number
+  verification_status: string; verifications_json: string
 }
