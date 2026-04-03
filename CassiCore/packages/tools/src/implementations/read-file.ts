@@ -11,8 +11,8 @@
  * - cassi://files/ URI support for FileArtifactStore integration
  */
 
-import { open, stat } from 'node:fs/promises'
-import { resolve } from 'node:path'
+import { open, stat, readdir } from 'node:fs/promises'
+import { resolve, dirname, basename } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
@@ -20,6 +20,11 @@ import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-sto
 const MAX_BYTES = 1024 * 1024  // 1MB max
 const MAX_LINES_BUFFER = 10_000  // Max lines to buffer in memory
 const CACHE_MAX_SIZE = 50  // Max cached files
+
+// WHY: Agents waste 30–50% of tool calls on directory discovery (find, ls,
+// searching for non-existent files).  Appending a sibling listing to every
+// read_file result gives spatial awareness at zero extra cost.
+const DIR_CONTEXT_MAX_ENTRIES = 40
 const CACHE_MAX_BYTES = 512 * 1024  // Max 512KB per cached file
 const CACHE_TTL_MS = 30_000  // Cache TTL
 
@@ -290,9 +295,38 @@ export const readFileHandler: ToolHandler = async (
       cacheStats: globalCache.stats()
     })
     
-    return content
+    const dirContext = await buildDirContext(absPath)
+    return content + dirContext
   } catch (err) {
     return `Error reading file: ${String(err)}`
+  }
+}
+
+/**
+ * Build a compact directory listing around the file the agent just read.
+ * Shows sibling files/dirs in the same directory so the agent knows what
+ * else is available without a separate ls/find call.
+ */
+async function buildDirContext(absPath: string): Promise<string> {
+  try {
+    const dir = dirname(absPath)
+    const current = basename(absPath)
+    const entries = await readdir(dir, { withFileTypes: true })
+
+    if (entries.length === 0 || entries.length > DIR_CONTEXT_MAX_ENTRIES) {
+      return ''
+    }
+
+    const lines: string[] = []
+    for (const entry of entries) {
+      const marker = entry.name === current ? ' ← (this file)' : ''
+      const suffix = entry.isDirectory() ? '/' : ''
+      lines.push(`  ${entry.name}${suffix}${marker}`)
+    }
+
+    return `\n\n[Directory: ${dir}/]\n${lines.join('\n')}`
+  } catch {
+    return ''
   }
 }
 

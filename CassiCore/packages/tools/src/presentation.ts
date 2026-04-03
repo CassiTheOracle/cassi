@@ -35,8 +35,16 @@ export interface PresentationOptions {
 }
 
 /** Thresholds for overflow mode */
-const MAX_LINES = 200
-const MAX_SIZE_BYTES = 50 * 1024 // 50KB
+const MAX_LINES = 2000
+const MAX_SIZE_BYTES = 200 * 1024 // 200KB
+
+// WHY: File-read tools have their own size bounds (1MB/512KB) and agents request
+// them deliberately.  Truncating their output at 200 lines (the old limit) forces
+// agents into chunk-reading loops that waste 80%+ of their tool calls.
+const FILE_READ_TOOLS = new Set([
+  'read_file', 'read_files', 'file',
+  'cassi_do',  // wraps read_file calls
+])
 
 /** Temp directory for overflow files */
 const TEMP_DIR = '/tmp'
@@ -119,10 +127,13 @@ export function presentForLLM(rawOutput: string, opts: PresentationOptions): str
   }
   
   // 2. Overflow mode - handle large outputs
+  // Skip overflow for file-read tools — they already have implementation-level
+  // size bounds and agents should see the full content they requested
   const totalLines = countLines(rawOutput)
   const sizeBytes = Buffer.byteLength(rawOutput, 'utf8')
+  const isFileRead = FILE_READ_TOOLS.has(opts.toolName)
   
-  if (totalLines > MAX_LINES || sizeBytes > MAX_SIZE_BYTES) {
+  if (!isFileRead && (totalLines > MAX_LINES || sizeBytes > MAX_SIZE_BYTES)) {
     logger.debug('Output overflow detected', {
       toolName: opts.toolName,
       totalLines,
