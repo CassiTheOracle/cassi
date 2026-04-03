@@ -1,6 +1,6 @@
 /**
  * CassiCore Compatibility Layer
- * 
+ *
  * Tight integration between pi-ai and CassiCore's provider system.
  * This allows CassiCore to use pi-ai's unified provider layer directly.
  */
@@ -34,15 +34,10 @@ import { kimiModels, getKimiModel } from './providers/cassicore/kimi-coding.js';
 import { qwenModels, getQwenModel, QwenLoadBalancer } from './providers/cassicore/qwen.js';
 import { openrouterModels, getOpenRouterModel } from './providers/cassicore/openrouter.js';
 
-/**
- * Stream function type alias
- */
 type StreamFunction = (model: Model<Api>, context: Context, opts?: SimpleStreamOptions) =>
   AsyncIterable<AssistantMessageEvent>;
 
 /**
- * CassiCoreProviderAdapter
- * 
  * Implements CassiCore's IProvider interface using pi-ai's native API.
  * This is the tight integration point - no external dependencies.
  */
@@ -110,7 +105,7 @@ class CassiCoreProviderAdapter implements IProvider {
 
 /**
  * Create providers from CassiCore config
- * 
+ *
  * This is the main entry point for CassiCore integration.
  * Reads provider configuration and creates IProvider instances.
  */
@@ -163,9 +158,6 @@ export function createProviders(
   return providers;
 }
 
-/**
- * Get the appropriate stream function for an API type
- */
 function getStreamFunction(api: Api): StreamFunction {
   switch (api) {
     case 'openai-completions':
@@ -348,9 +340,6 @@ function* toCassiCoreChunks(event: AssistantMessageEvent): Generator<CassiCoreCh
   }
 }
 
-/**
- * Map CassiCore thinking level to pi-ai thinking level
- */
 function mapThinkingLevel(level?: CassiCoreThinkingLevel): ThinkingLevel | undefined {
   if (!level || level === 'none') return undefined;
   
@@ -432,5 +421,4 @@ function registerEnvProviders(providers: Map<string, IProvider>, logger: ILogger
   }
 }
 
-// Export the adapter class for external use
 export { CassiCoreProviderAdapter };

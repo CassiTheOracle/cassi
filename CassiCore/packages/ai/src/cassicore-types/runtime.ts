@@ -1,6 +1,6 @@
 /**
  * CassiCore Runtime Types (local copy for tight integration)
- * 
+ *
  * These types mirror the CassiCore runtime types to avoid cross-module imports.
  */
 
