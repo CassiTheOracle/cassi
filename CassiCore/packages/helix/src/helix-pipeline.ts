@@ -104,6 +104,22 @@ export interface HelixPipelineOpts {
     escalateMs?: number
     killMs?: number
   }
+
+  /**
+   * Working directory override for this Helix session.
+   * When set (e.g., by Constellation worktree isolation), all tool execution
+   * uses this path instead of the default project root.
+   */
+  workingDir?: string
+
+  /**
+   * Tool filter for this Helix session.
+   * Applied on top of posture-level tool access.
+   */
+  toolFilter?: {
+    allow?: string[]
+    deny?: string[]
+  }
 }
 
 
@@ -238,6 +254,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       artifactNamespace: opts.artifactNamespace ?? `helix:${sessionId}`,
       sessionType: opts.sessionType ?? 'helix',
       teamId: opts.teamId,
+      // WHY: When running in a worktree-isolated Constellation branch,
+      // all tool execution should use the worktree path instead of the main project root.
+      ...(opts.workingDir ? { workingDir: opts.workingDir } : {}),
     })
   }
 
