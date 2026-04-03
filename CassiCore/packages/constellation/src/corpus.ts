@@ -144,6 +144,7 @@ export class Corpus {
   // External Corpus Protocol — allow an external agent to assume the Corpus role
   private externalState: ExternalCorpusState
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  private stopped = false
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -192,6 +193,7 @@ export class Corpus {
 
     this.logger.info('Corpus shutdown requested')
     this.shutdownRequested = true
+    this.stopped = true
 
     // Release external Corpus if assumed
     if (this.externalState.assumed) {
@@ -243,6 +245,15 @@ export class Corpus {
         assumed: false,
         snapshot: null,
         error: 'Corpus is not running',
+      }
+    }
+
+    // Validate agentId format
+    if (!agentId || typeof agentId !== 'string' || agentId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(agentId)) {
+      return {
+        assumed: false,
+        snapshot: null,
+        error: 'agentId must be 1-128 alphanumeric characters, hyphens, or underscores',
       }
     }
 
@@ -363,11 +374,40 @@ export class Corpus {
     if (!this.externalState.assumed) {
       return { sent: false, error: 'No external agent holds the Corpus role' }
     }
+
+    // Validate directive type
+    const allowedTypes = new Set(['guidance', 'redirect', 'throttle', 'priority-shift', 'cancel', 'context-inject'])
+    if (!allowedTypes.has(directive.type)) {
+      return { sent: false, error: `Invalid directive type "${directive.type}". Allowed: ${[...allowedTypes].join(', ')}` }
+    }
+
+    // Validate directive fields
+    if (!directive.text || typeof directive.text !== 'string') {
+      return { sent: false, error: 'Directive text is required' }
+    }
+    if (directive.text.length > 10_000) {
+      return { sent: false, error: 'Directive text must be 10,000 characters or less' }
+    }
+
+    // Validate target exists
+    const branches = this.tree.getAllBranches()
+    if (!branches.some(b => b.helixId === directive.targetHelixId)) {
+      return { sent: false, error: `Target branch "${directive.targetHelixId}" not found` }
+    }
+
     this.touchHeartbeat()
 
     this.sendDirective({
       ...directive,
       timestamp: Date.now(),
+    })
+
+    this.emitEvent('corpus:external-directive', {
+      targetHelixId: directive.targetHelixId,
+      type: directive.type,
+      urgency: directive.urgency,
+      agentId: this.externalState.agentId,
+      textLength: directive.text.length,
     })
 
     return { sent: true }
@@ -428,9 +468,22 @@ export class Corpus {
     if (!this.externalState.assumed) {
       return { posted: false, error: 'No external agent holds the Corpus role' }
     }
+
+    if (!content || typeof content !== 'string') {
+      return { posted: false, error: 'Synthesis content is required' }
+    }
+    if (content.length > 10_000) {
+      return { posted: false, error: 'Synthesis content must be 10,000 characters or less' }
+    }
+
     this.touchHeartbeat()
 
     this.postSynthesisToBlackboard(content, `External Corpus (${this.externalState.agentId})`)
+
+    this.emitEvent('corpus:external-synthesis', {
+      agentId: this.externalState.agentId,
+      contentLength: content.length,
+    })
 
     return { posted: true }
   }
@@ -463,7 +516,8 @@ export class Corpus {
     this.stopHeartbeatMonitor()
     const checkInterval = Math.min(10_000, this.externalState.heartbeatTimeoutMs / 3)
     this.heartbeatTimer = setInterval(() => {
-      if (!this.externalState.assumed) {
+      // HOW: Check stopped flag to prevent post-shutdown callbacks
+      if (this.stopped || !this.externalState.assumed) {
         this.stopHeartbeatMonitor()
         return
       }
@@ -477,6 +531,10 @@ export class Corpus {
         this.release('heartbeat timeout')
       }
     }, checkInterval)
+    // WHY: unref prevents the timer from keeping the event loop alive during shutdown
+    if (typeof this.heartbeatTimer.unref === 'function') {
+      this.heartbeatTimer.unref()
+    }
   }
 
   /** Stop heartbeat monitoring interval */
