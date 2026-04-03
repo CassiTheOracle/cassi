@@ -27,6 +27,7 @@ export {
   CORE_TOOLS,
   VYBIT_TOOL,
   SKILL_INTELLIGENCE_TOOL,
+  WORKFLOW_TOOL,
   executeCassiCoreTool,
   isCoreTool,
   getCoreTools,

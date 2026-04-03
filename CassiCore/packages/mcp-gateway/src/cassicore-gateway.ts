@@ -44,6 +44,7 @@ import {
   executeCassiCoreTool,
   VYBIT_TOOL,
   SKILL_INTELLIGENCE_TOOL,
+  WORKFLOW_TOOL,
   getDoTools,
   executeDoTool,
   executeEnrichTool,
@@ -183,8 +184,8 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
 
 /**
  * Get all MCP tools.
- * @dep callers: createServer (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts)
- * @dep calls: getAgentTool, getBlackboardConsolidatedTool, getBrowserConsolidatedTool, getCodeConsolidatedTool, getConfigConsolidatedTool [+10]
+ * @dep callers: startHttp (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
+ * @dep calls: getCoreTools, getDoTools, getWebConsolidatedTool, getTrainingConsolidatedTool, getSessionConsolidatedTool [+10]
  * @dep module: Mcp
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -210,6 +211,7 @@ function getAllTools() {
     getTrainingConsolidatedTool(),
     VYBIT_TOOL,
     SKILL_INTELLIGENCE_TOOL,
+    WORKFLOW_TOOL,
   ];
 }
 
@@ -288,8 +290,8 @@ async function routeExternalToolCall(
 
 /**
  * Route a tool call to the appropriate domain handler.
- * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
- * @dep calls: has, executeAgentTool, executeBlackboardConsolidatedTool, executeBrowserConsolidatedTool, executeCodeConsolidatedTool [+19]
+ * @dep callers: createServer (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep calls: isCoreToolName, routeExternalToolCall, routeToolCall, executeCassiCoreTool, resolveToolAlias [+20]
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -320,6 +322,12 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
     // HOW: Skill intelligence routes through ToolExecutor
     if (name === 'skill_intelligence') {
       const result = await executeCassiCoreTool(CASSICORE_URL, 'skill_intelligence', args, logger);
+      return formatJsonResponse(result);
+    }
+
+    // HOW: Workflow tool routes through ToolExecutor
+    if (name === 'workflow') {
+      const result = await executeCassiCoreTool(CASSICORE_URL, 'workflow', args, logger);
       return formatJsonResponse(result);
     }
 
@@ -458,8 +466,8 @@ async function notifyResourceUpdate(server: Server, uri: string): Promise<void> 
 
 /**
  * Create MCP Server with full capabilities
- * @dep callers: startStdio (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts), createSessionBridge (core/session-bridge.ts), createHierarchyBridge (core/hierarchy-bridge.ts), start (core/bridge.ts) [+13]
- * @dep calls: fetchWithTimeout, test, unsubscribeFromResource, subscribeToResource, routeToolCall [+2]
+ * @dep callers: webchat.ts (workers/channels/webchat.ts), bridge.js (tool-proxy/bridge.js), mock-telemetry-server.ts (mock-telemetry-server.ts), startCallbackServer (ai/src/utils/oauth/google-antigravity.ts), startCallbackServer (ai/src/utils/oauth/google-gemini-cli.ts) [+13]
+ * @dep calls: now, getAllTools, routeToolCall, subscribeToResource, unsubscribeFromResource [+4]
  * @dep module: Mcp
  * @dep risk: CRITICAL | 18 callers, 0 flows, 1 module
  */

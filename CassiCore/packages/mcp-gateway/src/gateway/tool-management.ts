@@ -260,9 +260,40 @@ export const SKILL_INTELLIGENCE_TOOL = {
 };
 
 /**
+ * Workflow tool — agent-facing workflow management.
+ */
+export const WORKFLOW_TOOL = {
+  name: 'workflow',
+  description:
+    'Agent workflow system \u2014 list, run, resume, and manage multi-step workflows. ' +
+    'Chain tools, skills, Constellation projects, and Helix sessions into composable pipelines.\n\n' +
+    'Actions: list, run, status, resume, cancel, runs',
+  inputSchema: {
+    type: 'object',
+    properties: {
+      action: {
+        type: 'string',
+        enum: ['list', 'run', 'status', 'resume', 'cancel', 'runs'],
+        description: 'Action to perform',
+      },
+      workflowId: { type: 'string', description: 'Workflow definition id (for run/resume)' },
+      runId: { type: 'string', description: 'Workflow run id (for status/resume/cancel)' },
+      input: { type: 'string', description: 'JSON-encoded input data (for run/resume)' },
+      status: {
+        type: 'string',
+        enum: ['pending', 'running', 'completed', 'failed', 'suspended', 'cancelled'],
+        description: 'Filter by status (for runs)',
+      },
+      limit: { type: 'string', description: 'Max results (for runs, default: 20)' },
+    },
+    required: ['action'],
+  },
+};
+
+/**
  * Execute a core CassiCore tool
- * @dep callers: routeToolCall (mcp/cassicore-gateway.ts), startHttp (mcp/cassicore-gateway.ts), executeWebConsolidatedTool (mcp/gateway/consolidated-web-tools.ts), executeArtifactConsolidatedTool (mcp/gateway/consolidated-file-tools.ts)
- * @dep calls: has, fetchWithTimeout
+ * @dep callers: executeArtifactConsolidatedTool (mcp/gateway/consolidated-file-tools.ts), executeWebConsolidatedTool (mcp/gateway/consolidated-web-tools.ts), startHttp (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep calls: fetchWithTimeout, has
  * @dep module: Gateway
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
@@ -276,7 +307,7 @@ export async function executeCassiCoreTool(
 
   const knownTools = new Set([
     'bash', 'read', 'write', 'edit', 'mkdir', 'delete',
-    'exists', 'web_fetch', 'web_search', 'todo_write', 'vybit', 'skill_intelligence',
+    'exists', 'web_fetch', 'web_search', 'todo_write', 'vybit', 'skill_intelligence', 'workflow',
   ]);
   if (!knownTools.has(toolName)) {
     throw new Error(`Unknown tool: ${toolName}`);
@@ -379,7 +410,7 @@ export function isCoreTool(toolName: string): boolean {
 
 /**
  * Get all core tool definitions
- * @dep callers: getAllTools (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
+ * @dep callers: isCoreToolName (mcp/cassicore-gateway.ts), getAllTools (mcp/cassicore-gateway.ts)
  * @dep module: Mcp
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
