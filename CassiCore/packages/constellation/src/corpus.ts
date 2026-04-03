@@ -725,11 +725,13 @@ export class Corpus {
         // Check for stuck/struggling branches and consider re-decomposition
         await this.checkStuckBranchesForReDecomposition()
 
-        if (this.config.proactive.enableReDecomposition) {
+        // WHY: Re-decomposition and parallel acceleration require LLM calls.
+        // Skip them when the LLM is unhealthy to avoid compounding failures.
+        if (this.config.proactive.enableReDecomposition && this.llmHealthy) {
           await this.evaluateReDecomposition()
         }
 
-        if (this.config.proactive.enableParallelAcceleration) {
+        if (this.config.proactive.enableParallelAcceleration && this.llmHealthy) {
           await this.evaluateParallelAcceleration()
         }
 
@@ -757,6 +759,13 @@ export class Corpus {
             // oversight.  Rather than doing nothing, send rule-based directives for
             // critical patterns so branches aren't completely unguided.
             this.sendFallbackDirectives(newPatterns)
+
+            // WHY: Periodically probe whether the LLM has recovered. Without this,
+            // once marked unhealthy the Corpus never attempts an LLM call again and
+            // the constellation runs blind for its entire remaining lifetime.
+            if (this.state.sweepCount % 3 === 0) {
+              await this.probeLLMHealth()
+            }
           }
         }
 
@@ -1542,6 +1551,44 @@ export class Corpus {
         failureCount: this.llmFailureCount,
         threshold: Corpus.LLM_FAILURE_THRESHOLD,
       })
+    }
+  }
+
+  /**
+   * Lightweight health probe — attempt a trivial LLM call to check if the
+   * provider has recovered. If it succeeds, mark the Corpus healthy again so
+   * strategic analysis resumes. If it fails, remain unhealthy (no penalty).
+   */
+  private async probeLLMHealth(): Promise<void> {
+    if (this.llmHealthy) return
+    try {
+      this.logger.info('Probing LLM health (recovery check)', {
+        failureCount: this.llmFailureCount,
+        sweepCount: this.state.sweepCount,
+      })
+      const result = await this.deps.llm.complete({
+        prompt: 'Respond with the single word "ok".',
+        modelTier: 'background',
+        maxTokens: 10,
+        timeoutMs: 15_000,
+      })
+      // Success — mark healthy
+      this.llmHealthy = true
+      this.llmFailureCount = 0
+      this.logger.info('Corpus LLM recovered (health probe succeeded)', {
+        response: result.content.slice(0, 50),
+        sweepCount: this.state.sweepCount,
+      })
+      this.emitEvent('corpus:healthy', {
+        reason: 'health_probe_succeeded',
+        previousFailures: this.llmFailureCount,
+      })
+    } catch (err) {
+      this.logger.debug('LLM health probe failed (staying unhealthy)', {
+        error: String(err),
+        failureCount: this.llmFailureCount,
+      })
+      // DON'T increment llmFailureCount — this is a probe, not a real analysis
     }
   }
 
@@ -3650,6 +3697,9 @@ Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority":
 
 /**
  * Factory function to create a Corpus instance
+ * @dep callers: corpus-enforcement.test.ts (tests/corpus-enforcement.test.ts), corpus.test.ts (tests/corpus.test.ts)
+ * @dep module: Unknown
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function createCorpus(
   tree: ICorpusTree,

@@ -69,6 +69,10 @@ export interface FastDecomposerOpts {
 /**
  * Specificity scoring — determines whether decomposition is worth the cost.
  *
+ * HOW: Scores multiple signals (structural markers, keywords, file paths,
+ * connectors) before deciding. Avoids early-exit on length alone, which
+ * previously caused short-but-complex goals to be misclassified as 'skip'.
+ *
  * @returns 'skip' — Goal is too simple for decomposition (single file, single concept)
  * @returns 'simple' — Run decomposition without codebase context (save time)
  * @returns 'full' — Run decomposition with full codebase context
@@ -76,44 +80,88 @@ export interface FastDecomposerOpts {
 export function shouldDecompose(goal: string, context?: string): 'skip' | 'simple' | 'full' {
   const text = (goal + ' ' + (context ?? '')).trim()
   const length = text.length
-
-  // WHY: Multiple numbered items always warrant full decomposition
-  // They indicate a multi-part task that needs careful coordination
-  const numberedPattern = /\d+\.\s+\w+|\d+\)\s+\w+|^\s*-\s+\w+/gm
-  const numberedMatches = text.match(numberedPattern)
-  if (numberedMatches && numberedMatches.length >= 2) {
-    return 'full'
-  }
-
-  // WHY: These keywords indicate cross-cutting concerns that affect many files
-  // They require full codebase awareness to decompose correctly
-  const fullDecompositionKeywords = [
-    'refactor', 'across', 'all files', 'codebase', 'every', 'throughout',
-    'migrate', 'restructure', 'reorganize', 'global', 'universal',
-  ]
   const lowerText = text.toLowerCase()
-  if (fullDecompositionKeywords.some(kw => lowerText.includes(kw))) {
-    return 'full'
-  }
 
-  // WHY: Short goals with no file paths are usually single-concept tasks
-  // They don't benefit from decomposition overhead
-  const hasFilePaths = /[\w/.-]+\.\w{1,4}/.test(text)
-  const filePathMatches = text.match(/[\w/.-]+\.\w{1,4}/g) || []
-
-  if (length < 100 && !hasFilePaths) {
+  // WHY: Empty or whitespace-only goals are trivially skippable
+  if (length === 0) {
     return 'skip'
   }
 
-  // WHY: Medium-length goals with 1-2 file references are moderately complex
-  // They benefit from decomposition but don't need full codebase context
-  if (length < 300 && filePathMatches.length <= 2) {
+  // --- Signal extraction (score everything before deciding) ---
+
+  // Structural markers: numbered lists (1. / 1) ) and bullet lists (- / * )
+  const numberedPattern = /(?:^|\n)\s*\d+[.)]\s+\w+/gm
+  const numberedMatches = text.match(numberedPattern) || []
+  const bulletPattern = /(?:^|\n)\s*[-*]\s+\w+/gm
+  const bulletMatches = text.match(bulletPattern) || []
+  const listItemCount = numberedMatches.length + bulletMatches.length
+
+  // File paths (e.g. core/session-manager.ts, auth.ts)
+  const filePathMatches = text.match(/[\w/.-]+\.\w{1,4}/g) || []
+
+  // Connector words indicating multiple concepts
+  const connectors = (lowerText.match(/\b(and|including|plus|with|also|as well as)\b/g) || []).length
+
+  // Cross-cutting keywords — indicate broad scope work
+  const crossCuttingKeywords = [
+    'refactor', 'across', 'all files', 'every', 'throughout',
+    'migrate', 'restructure', 'reorganize', 'all modules',
+  ]
+  const hasCrossCuttingKeyword = crossCuttingKeywords.some(kw => lowerText.includes(kw))
+
+  // Vague keywords — indicate unfocused goals (only vague when no specificity present)
+  const vagueKeywords = ['improve', 'make it better', 'clean up', 'optimize', 'fix things']
+  const hasVagueKeyword = vagueKeywords.some(kw => lowerText.includes(kw))
+
+  // Specificity indicators — file paths, module names, function names, etc.
+  const hasSpecificity = filePathMatches.length > 0
+    || /\b(module|function|class|component|endpoint|route|handler|middleware)\b/i.test(text)
+    || hasCrossCuttingKeyword
+
+  // --- Decision logic ---
+
+  // WHY: Multiple list items always warrant full decomposition — the user
+  // explicitly enumerated separate tasks
+  if (listItemCount >= 2) {
+    return 'full'
+  }
+
+  // WHY: Vague goals with zero specificity indicators are not decomposable.
+  // But vague + specific ("improve error handling throughout the codebase")
+  // is actionable and should proceed.
+  if (hasVagueKeyword && !hasSpecificity && length < 120) {
+    return 'skip'
+  }
+
+  // WHY: Cross-cutting keywords indicate multi-file work regardless of length
+  if (hasCrossCuttingKeyword) {
+    return 'full'
+  }
+
+  // WHY: Multiple file paths or many connectors indicate multi-module work
+  if (filePathMatches.length >= 3 || connectors >= 2) {
+    return 'full'
+  }
+
+  // WHY: Goals with at least one file path or connector have enough specificity
+  // for a lightweight decomposition
+  if (filePathMatches.length >= 1 || connectors >= 1) {
     return 'simple'
   }
 
-  // WHY: Everything else is complex enough to warrant full decomposition
-  // with codebase context to ensure accurate file identification
-  return 'full'
+  // WHY: Longer goals (100+ chars) usually contain enough detail to decompose
+  if (length >= 100) {
+    return 'simple'
+  }
+
+  // WHY: Short goals (<40 chars) with no signals are trivially simple
+  if (length < 40) {
+    return 'skip'
+  }
+
+  // WHY: Medium-length goals (40-99 chars) without any structural signals
+  // are single-concept tasks — skip decomposition
+  return 'skip'
 }
 
 /**
