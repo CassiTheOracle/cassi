@@ -146,6 +146,11 @@ export class Corpus {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null
   private stopped = false
 
+  // WHY: When new branches are created, the Corpus should wake up immediately
+  // instead of sleeping for the remainder of its poll interval. Without this,
+  // branches can exhaust their step budget before the Corpus ever observes them.
+  private wakeRequested = false
+
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
     this.deps = deps
@@ -2528,15 +2533,27 @@ Guidelines:
   }
 
   /**
-   * Interruptible sleep — checks shutdownRequested every 50ms
-   * to allow fast shutdown even during long sleeps.
+   * Interruptible sleep — checks shutdownRequested and wakeRequested every 50ms
+   * to allow fast shutdown and fast response to new branches.
    */
   private async interruptibleSleep(ms: number): Promise<void> {
     const interval = 50
-    const elapsed = 0
-    for (let i = 0; i < ms && !this.shutdownRequested; i += interval) {
+    for (let i = 0; i < ms && !this.shutdownRequested && !this.wakeRequested; i += interval) {
       await this.sleep(Math.min(interval, ms - i))
     }
+    if (this.wakeRequested) {
+      this.wakeRequested = false
+      this.logger.debug('Corpus woke early due to wake request')
+    }
+  }
+
+  /**
+   * Signal the Corpus to wake up from idle sleep immediately.
+   * WHY: Called when new branches are created so the Corpus can observe and
+   * assess them without waiting for the full idle poll interval (10s default).
+   */
+  wake(): void {
+    this.wakeRequested = true
   }
 
 

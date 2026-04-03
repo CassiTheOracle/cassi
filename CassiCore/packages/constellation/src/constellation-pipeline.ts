@@ -1135,6 +1135,10 @@ export async function runConstellationPipeline(
 
     runningHelixes.set(helixId, runningHelix)
 
+    // WHY: Wake the Corpus immediately so it can observe and assess the new
+    // branch within ~50ms instead of waiting up to 10s for the next poll cycle.
+    corpus.wake()
+
     promise
       .then((result) => {
         const isDegraded = result.completionStatus.degraded
