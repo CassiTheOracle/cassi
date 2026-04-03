@@ -483,8 +483,8 @@ export type BranchHealthStatus =
   | 'failed'
 
 /**
- * @dep callers: constructor (core/intelligence/constellation/corpus.ts), constructor (core/intelligence/constellation/corpus-mini-helix.ts)
- * @dep module: Unknown
+ * @dep callers: constructor (core/intelligence/constellation/corpus-mini-helix.ts), constructor (core/intelligence/constellation/corpus.ts)
+ * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
@@ -1105,8 +1105,14 @@ export interface ExternalCorpusSnapshot {
   goal: string
 }
 
-/** Default heartbeat timeout: 60 seconds of inactivity triggers auto-release */
-export const DEFAULT_EXTERNAL_CORPUS_HEARTBEAT_MS = 60_000
+/** Default heartbeat timeout: 5 minutes of inactivity triggers auto-release */
+export const DEFAULT_EXTERNAL_CORPUS_HEARTBEAT_MS = 300_000
+
+/**
+ * @dep callers: release (core/intelligence/constellation/corpus.ts), constructor (core/intelligence/constellation/corpus.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function createInitialExternalCorpusState(): ExternalCorpusState {
   return {
