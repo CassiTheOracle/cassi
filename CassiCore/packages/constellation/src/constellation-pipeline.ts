@@ -548,6 +548,11 @@ export async function runConstellationPipeline(
   const runningHelixes = new Map<string, RunningHelix>()
   const spawnQueue: SpawnRequest[] = []
   const blackboardBridges = new Map<string, BlackboardBridge>()
+  // WHY: Track ALL brainstem mini-helixes separately because runningHelixes
+  // deletes entries when branches complete, losing the reference needed to
+  // stop the mini-helix. Without this, mini-helixes become zombies after
+  // the constellation finishes.
+  const allBrainstemMiniHelixes = new Map<string, BrainstemMiniHelix>()
   let rootHelixId: string | undefined
   let completed = false
   let tracker: DecompositionTracker | undefined
@@ -920,6 +925,7 @@ export async function runConstellationPipeline(
 
           const rhForMH = runningHelixes.get(helixId)
           if (rhForMH) rhForMH.brainstemMiniHelix = brainstemMH
+          allBrainstemMiniHelixes.set(helixId, brainstemMH)
 
           brainstemMH.start().catch((err) => {
             helixLog.error('Brainstem mini-Helix failed to start', { error: String(err) })
@@ -1721,6 +1727,20 @@ export async function runConstellationPipeline(
         }
       }
     }
+
+    // WHY: Stop ALL brainstem mini-helixes, including those from branches that
+    // already completed and were removed from runningHelixes. Without this,
+    // completed branches' mini-helixes become zombies that continue making
+    // LLM calls indefinitely after the constellation finishes.
+    for (const [mhId, mh] of allBrainstemMiniHelixes) {
+      try {
+        await mh.stop()
+        log.info('Brainstem mini-Helix stopped (sweep)', { helixId: mhId })
+      } catch (err) {
+        log.warn('Error stopping Brainstem mini-Helix (sweep)', { helixId: mhId, error: String(err) })
+      }
+    }
+    allBrainstemMiniHelixes.clear()
 
     log.info('Stopping Corpus')
     try {
