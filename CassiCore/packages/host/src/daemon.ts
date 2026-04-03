@@ -104,7 +104,7 @@ export interface DaemonBootSnapshot {
 
 /**
  * @dep callers: start (core/daemon.ts), startDeferredStartup (core/daemon.ts), recordService (core/daemon.ts), completePhase (core/daemon.ts)
- * @dep module: Intelligence
+ * @dep module: Workflow
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 
@@ -2373,10 +2373,10 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Corpus strategic analysis.
-        // Uses alibaba-coding/qwen3-max for high-capability synthesis and cross-branch reasoning.
+        // Uses alibaba-coding/qwen3.5-plus for high-capability synthesis and cross-branch reasoning.
         if (this.intelligence?.setCorpusLLMProvider) {
           try {
-            const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
+            const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenPlus') : { provider: 'alibaba-coding', model: 'qwen3.5-plus' }
             const corpusProvider = providers.get(corpusCfg.provider) ?? providers.values().next().value
             if (corpusProvider) {
               this.intelligence.setCorpusLLMProvider(corpusProvider, corpusCfg.model)
