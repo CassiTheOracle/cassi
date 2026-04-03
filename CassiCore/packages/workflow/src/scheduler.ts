@@ -24,6 +24,7 @@ import type {
   OnceTrigger,
   TriggerState,
   WorkflowDefinition,
+  IWorkflowTriggerStore,
 } from '../../types/workflow.js'
 import type { WorkflowEngine } from './engine.js'
 
@@ -32,6 +33,8 @@ export interface WorkflowSchedulerConfig {
   eventBus: IEventBus
   engine: WorkflowEngine
   getDefinition: (workflowId: string) => WorkflowDefinition | undefined
+  /** Optional persistence store. When provided, triggers and state survive restarts. */
+  store?: IWorkflowTriggerStore
 }
 
 interface ActiveTrigger {
@@ -45,6 +48,7 @@ export class WorkflowScheduler {
   private readonly eventBus: IEventBus
   private readonly engine: WorkflowEngine
   private readonly getDefinition: (workflowId: string) => WorkflowDefinition | undefined
+  private readonly store?: IWorkflowTriggerStore
 
   private readonly triggers = new Map<string, ActiveTrigger>()
   private started = false
@@ -54,6 +58,7 @@ export class WorkflowScheduler {
     this.eventBus = config.eventBus
     this.engine = config.engine
     this.getDefinition = config.getDefinition
+    this.store = config.store
   }
 
   /** Register a trigger. If the scheduler is started, activates it immediately. */
@@ -66,6 +71,9 @@ export class WorkflowScheduler {
 
     const active: ActiveTrigger = { trigger, state }
     this.triggers.set(trigger.id, active)
+
+    this.persistTrigger(trigger)
+    this.persistState(state)
 
     if (this.started && trigger.enabled) {
       this.activate(active)
@@ -86,6 +94,7 @@ export class WorkflowScheduler {
 
     this.deactivate(active)
     this.triggers.delete(triggerId)
+    this.deleteTriggerFromStore(triggerId)
     return true
   }
 
@@ -96,6 +105,9 @@ export class WorkflowScheduler {
 
     active.trigger = { ...active.trigger, enabled: true }
     active.state.status = 'active'
+
+    this.persistTrigger(active.trigger)
+    this.persistState(active.state)
 
     if (this.started) {
       this.activate(active)
@@ -111,13 +123,18 @@ export class WorkflowScheduler {
     this.deactivate(active)
     active.trigger = { ...active.trigger, enabled: false }
     active.state.status = 'paused'
+
+    this.persistTrigger(active.trigger)
+    this.persistState(active.state)
     return true
   }
 
-  /** Start the scheduler — activates all enabled triggers. */
+  /** Start the scheduler — loads persisted triggers, then activates all enabled ones. */
   start(): void {
     if (this.started) return
     this.started = true
+
+    this.loadFromStore()
 
     for (const active of this.triggers.values()) {
       if (active.trigger.enabled && active.state.status !== 'exhausted') {
@@ -271,6 +288,7 @@ export class WorkflowScheduler {
     if (trigger.maxFires && trigger.maxFires > 0 && state.fireCount >= trigger.maxFires) {
       this.deactivate(active)
       state.status = 'exhausted'
+      this.persistState(state)
       this.firing.delete(trigger.id)
       return
     }
@@ -280,6 +298,7 @@ export class WorkflowScheduler {
     if (!definition) {
       state.status = 'error'
       state.lastError = `Workflow "${trigger.workflowId}" not found in registry`
+      this.persistState(state)
       this.logger.warn('Trigger fire failed: workflow not found', {
         triggerId: trigger.id,
         workflowId: trigger.workflowId,
@@ -322,7 +341,70 @@ export class WorkflowScheduler {
       state.status = 'exhausted'
     }
 
+    this.persistState(state)
     this.firing.delete(trigger.id)
+  }
+
+  // Persistence helpers — no-ops when store is not configured
+
+  /** Load all persisted triggers and their states into memory. */
+  private loadFromStore(): void {
+    if (!this.store) return
+
+    try {
+      const triggers = this.store.listTriggers({ limit: 1000 })
+      let loaded = 0
+
+      for (const trigger of triggers) {
+        // WHY: Skip triggers that are already registered in memory.
+        // register() is called before start() in some flows, so
+        // the in-memory version takes precedence.
+        if (this.triggers.has(trigger.id)) continue
+
+        const storedState = this.store.loadState(trigger.id)
+        const state: TriggerState = storedState ?? {
+          triggerId: trigger.id,
+          fireCount: 0,
+          status: trigger.enabled ? 'active' : 'paused',
+        }
+
+        this.triggers.set(trigger.id, { trigger, state })
+        loaded++
+      }
+
+      if (loaded > 0) {
+        this.logger.info('Loaded triggers from store', { loaded, total: this.triggers.size })
+      }
+    } catch (err) {
+      this.logger.error('Failed to load triggers from store', { error: String(err) })
+    }
+  }
+
+  private persistTrigger(trigger: WorkflowTrigger): void {
+    if (!this.store) return
+    try {
+      this.store.saveTrigger(trigger)
+    } catch (err) {
+      this.logger.error('Failed to persist trigger', { triggerId: trigger.id, error: String(err) })
+    }
+  }
+
+  private persistState(state: TriggerState): void {
+    if (!this.store) return
+    try {
+      this.store.saveState(state)
+    } catch (err) {
+      this.logger.error('Failed to persist trigger state', { triggerId: state.triggerId, error: String(err) })
+    }
+  }
+
+  private deleteTriggerFromStore(triggerId: string): void {
+    if (!this.store) return
+    try {
+      this.store.deleteTrigger(triggerId)
+    } catch (err) {
+      this.logger.error('Failed to delete trigger from store', { triggerId, error: String(err) })
+    }
   }
 
   // Cron matching (lightweight — no external dependency)
