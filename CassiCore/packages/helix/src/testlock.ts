@@ -75,6 +75,10 @@ export interface TestLockVerification {
 export class TestLock {
   private specs = new Map<string, SealedTestSpec>()
 
+  // WHY: Prevent DoS by Yin sealing unlimited specs that block Unity
+  private static readonly MAX_TOTAL_SPECS = 20
+  private static readonly MAX_CRITICAL_SPECS = 5
+
   /**
    * Seal a test spec. Creates a content hash to make it immutable.
    * Returns the sealed spec or an error if already sealed.
@@ -90,6 +94,17 @@ export class TestLock {
   }): { sealed: boolean; spec?: SealedTestSpec; error?: string } {
     if (this.specs.has(opts.specId)) {
       return { sealed: false, error: `Test spec "${opts.specId}" is already sealed and cannot be modified.` }
+    }
+
+    // Enforce limits
+    if (this.specs.size >= TestLock.MAX_TOTAL_SPECS) {
+      return { sealed: false, error: `Maximum of ${TestLock.MAX_TOTAL_SPECS} sealed test specs reached. Remove advisory specs or consolidate.` }
+    }
+    if (opts.severity === 'critical') {
+      const criticalCount = [...this.specs.values()].filter(s => s.severity === 'critical').length
+      if (criticalCount >= TestLock.MAX_CRITICAL_SPECS) {
+        return { sealed: false, error: `Maximum of ${TestLock.MAX_CRITICAL_SPECS} critical test specs reached. Use 'important' for additional specs.` }
+      }
     }
 
     // WHY: The content hash covers all substantive fields. Once sealed,
