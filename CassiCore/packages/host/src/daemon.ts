@@ -97,7 +97,7 @@ export interface DaemonBootSnapshot {
 }
 
 /**
- * @dep callers: completePhase (core/daemon.ts), recordService (core/daemon.ts), startDeferredStartup (core/daemon.ts), start (core/daemon.ts)
+ * @dep callers: start (core/daemon.ts), startDeferredStartup (core/daemon.ts), recordService (core/daemon.ts), completePhase (core/daemon.ts)
  * @dep module: Intelligence
  * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
@@ -513,6 +513,18 @@ export class Daemon {
       // WHY: uncaught exceptions leave process in undefined state (dead HTTP server, corrupted event loop).
       // Schedule graceful shutdown to allow in-flight operations to complete.
       this.logger.error?.('uncaughtException — scheduling shutdown', { error: error.message, stack: error.stack })
+      
+      // HOW: Dump active session state so post-mortem can identify what was running at crash time
+      try {
+        const mem = process.memoryUsage()
+        this.logger.error?.('crash diagnostics', {
+          heapMB: Math.round(mem.heapUsed / 1024 / 1024),
+          rssMB: Math.round(mem.rss / 1024 / 1024),
+          uptimeS: Math.round(process.uptime()),
+          activeTimers: (process as any)._getActiveHandles?.()?.length ?? 'unknown',
+        })
+      } catch { /* best-effort diagnostics */ }
+      
       this.bus.emit({ type: 'daemon:shutdown', reason: 'uncaughtException' })
       setTimeout(() => {
         this.logger.error?.('Exiting after uncaughtException')
