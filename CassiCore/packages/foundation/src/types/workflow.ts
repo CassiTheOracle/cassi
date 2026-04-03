@@ -341,3 +341,57 @@ export interface IWorkflowRegistry {
   list(): WorkflowDefinition[]
   remove(workflowId: string): boolean
 }
+
+// Workflow definition storage
+
+/** Metadata for a stored workflow definition. */
+export interface StoredWorkflowDefinition {
+  /** Unique definition id (matches workflowId). */
+  id: string
+  /** Human-readable name. */
+  name: string
+  /** Semantic version string (e.g. "1.0.0"). */
+  version: string
+  /** Optional description. */
+  description?: string
+  /** Tags for categorization and discovery. */
+  tags: string[]
+  /** Serialized node graph (structure only — no function references). */
+  nodeGraph: SerializedNodeGraph
+  /** ISO timestamp of creation. */
+  createdAt: string
+  /** ISO timestamp of last update. */
+  updatedAt: string
+  /** Whether this definition is enabled. */
+  enabled: boolean
+}
+
+/** Serializable representation of a workflow's node graph (structure only). */
+export interface SerializedNodeGraph {
+  entryNodeId: string
+  /** Serializable node metadata (node IDs, kinds, connections, config). */
+  nodes: SerializedNode[]
+}
+
+/** A serialized node (structure without function references). */
+export interface SerializedNode {
+  id: string
+  kind: WorkflowNodeKind
+  /** Step IDs referenced by this node (for resolving from a step registry). */
+  stepIds: string[]
+  /** Child node IDs (for parallel, branch, etc.). */
+  children: string[]
+  /** Additional config (maxIterations, timeoutMs, channels, state names, etc.). */
+  config: Record<string, unknown>
+}
+
+/** Persistence backend for workflow definitions. */
+export interface IWorkflowDefinitionStore {
+  save(definition: StoredWorkflowDefinition): void
+  load(id: string): StoredWorkflowDefinition | undefined
+  loadVersion(id: string, version: string): StoredWorkflowDefinition | undefined
+  list(opts?: { tag?: string; enabled?: boolean; limit?: number }): StoredWorkflowDefinition[]
+  listVersions(id: string): StoredWorkflowDefinition[]
+  delete(id: string, version?: string): boolean
+  close(): void
+}
