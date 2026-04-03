@@ -93,6 +93,7 @@ export type WorkflowNodeKind =
   | 'dountil'    // loop until condition is true
   | 'dowhile'    // loop while condition is true
   | 'subworkflow' // nested workflow execution
+  | 'listen'     // event-driven reactive listener
 
 export interface WorkflowNodeBase {
   id: string
@@ -154,6 +155,20 @@ export interface SubworkflowNode extends WorkflowNodeBase {
   workflow: WorkflowDefinition
 }
 
+export interface ListenNode extends WorkflowNodeBase {
+  kind: 'listen'
+  /** Channel(s) to listen on. */
+  channels: string[]
+  /** Handler invoked when any channel fires. Receives event data as input. */
+  handler: WorkflowStep
+  /** If true, listener fires only once per channel (default: false). */
+  once?: boolean
+  /** Maximum number of times to fire across all channels (default: unlimited). */
+  maxFires?: number
+  /** Timeout waiting for events in ms (default: 60000). 0 = no timeout. */
+  timeoutMs?: number
+}
+
 export type WorkflowNode =
   | StepNode
   | ParallelNode
@@ -162,6 +177,7 @@ export type WorkflowNode =
   | DoUntilNode
   | DoWhileNode
   | SubworkflowNode
+  | ListenNode
 
 // Workflow state and execution
 
