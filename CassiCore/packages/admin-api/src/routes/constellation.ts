@@ -2,17 +2,6 @@
  * Constellation Admin API Routes
  *
  * Async job-based endpoints for Constellation multi-Helix orchestration.
- *
- * Routes:
- *   POST /constellation             — Start a Constellation (returns jobId)
- *   POST /constellation/:id/cancel  — Cancel a running Constellation
- *   GET  /constellation/:id         — Get job result (poll until complete)
- *   GET  /constellation/jobs        — List recent Constellation jobs
- *   GET  /constellation/sessions    — List active sessions
- *   GET  /constellation/:id/progress — Live progress report
- *   GET  /constellation/:id/tree    — Corpus reasoning tree snapshot
- *   POST /constellation/:id/steer   — Send steering directive through Corpus
- *   GET  /constellation/:id/stream  — SSE event stream
  */
 
 import type http from 'node:http'
@@ -72,12 +61,7 @@ function findJob(idOrSessionId: string): ConstellationJob | undefined {
 }
 
 
-// Archive Fallback Helpers
-
-/**
- * Load a persisted tree snapshot from ConstellationStore for completed sessions.
- * Returns null if the store is not available or session not found.
- */
+// WHY: Load a persisted tree snapshot from ConstellationStore for completed sessions.
 async function loadPersistedTree(daemon: any, sessionId: string): Promise<CorpusTreeSnapshot | null> {
   try {
     const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
@@ -91,10 +75,7 @@ async function loadPersistedTree(daemon: any, sessionId: string): Promise<Corpus
   }
 }
 
-/**
- * Load a persisted progress snapshot from ConstellationStore for completed sessions.
- * Returns null if the store is not available or session not found.
- */
+// WHY: Load a persisted progress snapshot from ConstellationStore for completed sessions.
 async function loadPersistedProgress(daemon: any, sessionId: string): Promise<ProgressSnapshot | null> {
   try {
     const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
@@ -107,10 +88,7 @@ async function loadPersistedProgress(daemon: any, sessionId: string): Promise<Pr
   }
 }
 
-/**
- * Load a persisted session from ConstellationStore.
- * Returns undefined if the store is not available or session not found.
- */
+// WHY: Load a persisted session from ConstellationStore.
 async function loadPersistedSession(daemon: any, sessionId: string): Promise<ConstellationSessionRow | undefined> {
   try {
     const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
@@ -123,9 +101,7 @@ async function loadPersistedSession(daemon: any, sessionId: string): Promise<Con
   }
 }
 
-/**
- * List sessions from ConstellationStore (includes archived).
- */
+// WHY: List sessions from ConstellationStore (includes archived).
 async function loadPersistedSessions(daemon: any, opts?: { limit?: number; status?: string; includeArchived?: boolean }): Promise<ConstellationSessionRow[]> {
   try {
     const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
@@ -138,9 +114,7 @@ async function loadPersistedSessions(daemon: any, opts?: { limit?: number; statu
   }
 }
 
-/**
- * Get session history from ConstellationStore.
- */
+// WHY: Get session history from ConstellationStore.
 async function loadSessionHistory(daemon: any, opts?: { limit?: number; since?: number; until?: number; status?: string }): Promise<ConstellationSessionRow[]> {
   try {
     const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
@@ -164,13 +138,10 @@ export async function handleConstellationRoutes(
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`)
   const pathname = url.pathname
 
-  // Must start with /constellation
   if (!pathname.startsWith('/constellation')) return false
 
   const parts = pathname.split('/').filter(Boolean)
-  // parts[0] = 'constellation', parts[1] = id or action, parts[2] = sub-action
 
-  // POST /constellation — Start a new Constellation
   if (method === 'POST' && parts.length === 1) {
     pruneOldJobs()
     try {
@@ -194,7 +165,6 @@ export async function handleConstellationRoutes(
       }
       constellationJobs.set(jobId, job)
 
-      // Get the constellation orchestrator from the daemon
       const constellationOrchestrator = daemon.intelligence?.constellation
       if (!constellationOrchestrator) {
         sendJSON(res, 503, { error: 'Constellation orchestrator not available' })
@@ -202,7 +172,6 @@ export async function handleConstellationRoutes(
         return true
       }
 
-      // Launch constellation (non-blocking)
       constellationOrchestrator.project({
         goal,
         context,
@@ -236,7 +205,6 @@ export async function handleConstellationRoutes(
     }
   }
 
-  // GET /constellation/jobs — List recent jobs
   if (method === 'GET' && parts.length === 2 && parts[1] === 'jobs') {
     pruneOldJobs()
     const jobs = [...constellationJobs.values()].map(j => ({
@@ -251,13 +219,11 @@ export async function handleConstellationRoutes(
     return true
   }
 
-  // GET /constellation/sessions — List sessions (includes archived by default)
   if (method === 'GET' && parts.length === 2 && parts[1] === 'sessions') {
     const includeArchived = url.searchParams.get('include_archived') !== 'false'
     const limit = parseInt(url.searchParams.get('limit') || '100', 10)
     const status = url.searchParams.get('status') || undefined
 
-    // Get active sessions from in-memory jobs
     const activeSessions = [...constellationJobs.values()]
       .filter(j => j.status === 'running')
       .map(j => ({
@@ -268,7 +234,6 @@ export async function handleConstellationRoutes(
         source: 'live' as const,
       }))
 
-    // Get archived sessions from store
     let archivedSessions: Array<{
       id: string
       goal: string
@@ -281,7 +246,7 @@ export async function handleConstellationRoutes(
     if (includeArchived) {
       const persisted = await loadPersistedSessions(daemon, { limit, status, includeArchived: true })
       archivedSessions = persisted
-        .filter(s => !activeSessions.some(a => a.id === s.id))  // Avoid duplicates
+        .filter(s => !activeSessions.some(a => a.id === s.id))
         .map(s => ({
           id: s.id,
           goal: s.goal,
@@ -301,7 +266,6 @@ export async function handleConstellationRoutes(
     return true
   }
 
-  // GET /constellation/history — Explicit archive query endpoint
   if (method === 'GET' && parts.length === 2 && parts[1] === 'history') {
     const limit = parseInt(url.searchParams.get('limit') || '100', 10)
     const since = url.searchParams.get('since')
@@ -333,12 +297,10 @@ export async function handleConstellationRoutes(
     return true
   }
 
-  // Routes with an ID: /constellation/:id/...
   if (parts.length >= 2 && parts[1] !== 'jobs' && parts[1] !== 'sessions' && parts[1] !== 'history') {
     const id = parts[1]
     const subAction = parts[2]
 
-    // POST /constellation/:id/cancel
     if (method === 'POST' && subAction === 'cancel') {
       const job = findJob(id)
       if (!job) {
@@ -356,7 +318,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // POST /constellation/:id/steer — Send steering directive through Corpus
     if (method === 'POST' && subAction === 'steer') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -381,9 +342,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // --- External Corpus Protocol ---
-
-    // POST /constellation/:id/corpus/assume — External agent takes Corpus control
     if (method === 'POST' && subAction === 'corpus' && parts[3] === 'assume') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -410,7 +368,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // POST /constellation/:id/corpus/release — Release Corpus control back to internal
     if (method === 'POST' && subAction === 'corpus' && parts[3] === 'release') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -433,7 +390,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/corpus/state — Get external Corpus state
     if (method === 'GET' && subAction === 'corpus' && parts[3] === 'state') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -450,7 +406,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/corpus/snapshot — Full Corpus snapshot for external agent
     if (method === 'GET' && subAction === 'corpus' && parts[3] === 'snapshot') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -467,7 +422,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // POST /constellation/:id/corpus/directive — Send directive as external Corpus
     if (method === 'POST' && subAction === 'corpus' && parts[3] === 'directive') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -500,7 +454,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // POST /constellation/:id/corpus/spawn-decide — Approve/reject a spawn request
     if (method === 'POST' && subAction === 'corpus' && parts[3] === 'spawn-decide') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -527,7 +480,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // POST /constellation/:id/corpus/synthesis — Post synthesis as external Corpus
     if (method === 'POST' && subAction === 'corpus' && parts[3] === 'synthesis') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
@@ -554,11 +506,9 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/progress — Live progress report (with archive fallback)
     if (method === 'GET' && subAction === 'progress') {
       const job = findJob(id)
 
-      // Try live state first
       if (job) {
         const orchestrator = daemon.intelligence?.constellation
         const progress = orchestrator?.getProgress?.(job.sessionId)
@@ -576,7 +526,6 @@ export async function handleConstellationRoutes(
           return true
         }
 
-        // Fallback: try loading from persisted store for completed sessions
         const persisted = await loadPersistedProgress(daemon, job.sessionId)
         if (persisted) {
           sendJSON(res, 200, {
@@ -591,7 +540,6 @@ export async function handleConstellationRoutes(
           return true
         }
 
-        // No progress available (but job exists)
         sendJSON(res, 200, {
           sessionId: job.sessionId,
           status: job.status,
@@ -604,7 +552,6 @@ export async function handleConstellationRoutes(
         return true
       }
 
-      // Job not in memory — try loading directly from archive by session ID
       const persisted = await loadPersistedProgress(daemon, id)
       if (persisted) {
         const session = await loadPersistedSession(daemon, id)
@@ -624,11 +571,9 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/tree — Corpus reasoning tree snapshot (with archive fallback)
     if (method === 'GET' && subAction === 'tree') {
       const job = findJob(id)
 
-      // Try live state first
       if (job) {
         const orchestrator = daemon.intelligence?.constellation
         const tree = orchestrator?.getTree?.(job.sessionId)
@@ -638,14 +583,12 @@ export async function handleConstellationRoutes(
           return true
         }
 
-        // Fallback: try loading from persisted store for completed sessions
         const persisted = await loadPersistedTree(daemon, job.sessionId)
         if (persisted) {
           sendJSON(res, 200, { sessionId: job.sessionId, tree: persisted, source: 'archived' })
           return true
         }
 
-        // No tree available (but job exists)
         sendJSON(res, 200, {
           sessionId: job.sessionId,
           tree: null,
@@ -654,7 +597,6 @@ export async function handleConstellationRoutes(
         return true
       }
 
-      // Job not in memory — try loading directly from archive by session ID
       const persisted = await loadPersistedTree(daemon, id)
       if (persisted) {
         sendJSON(res, 200, { sessionId: id, tree: persisted, source: 'archived' })
@@ -665,7 +607,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/analyze — Deep post-mortem analysis
     if (method === 'GET' && subAction === 'analyze') {
       const depth = (url.searchParams?.get?.('depth') ?? 'summary') as 'summary' | 'timeline' | 'full'
       try {
@@ -679,7 +620,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id/stream — SSE event stream
     if (method === 'GET' && subAction === 'stream') {
       const job = findJob(id)
       if (!job) {
@@ -687,7 +627,6 @@ export async function handleConstellationRoutes(
         return true
       }
 
-      // SSE headers
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -696,7 +635,6 @@ export async function handleConstellationRoutes(
       })
       res.write(`data: ${JSON.stringify({ type: 'connected', sessionId: job.sessionId })}\n\n`)
 
-      // Poll for completion
       const interval = setInterval(() => {
         if (job.status !== 'running') {
           res.write(`data: ${JSON.stringify({ type: 'completed', status: job.status })}\n\n`)
@@ -714,7 +652,6 @@ export async function handleConstellationRoutes(
       return true
     }
 
-    // GET /constellation/:id — Job status/result
     if (method === 'GET' && !subAction) {
       const job = findJob(id)
       if (!job) {
