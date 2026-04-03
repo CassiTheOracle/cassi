@@ -394,6 +394,9 @@ export interface ConstellationResult {
   /** Corpus result — cross-Helix reasoning tree and strategic analysis. */
   corpus?: import('./corpus-types.js').CorpusResult
 
+  /** Decomposition tracker snapshot — task lifecycle and accuracy tracking. */
+  decompositionTracker?: import('./decomposition-tracker.js').DecompositionSnapshot
+
   /** Error message if the Constellation failed. */
   error?: string
 }

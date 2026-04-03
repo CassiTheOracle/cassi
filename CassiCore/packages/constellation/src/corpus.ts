@@ -53,6 +53,7 @@ import type {
   ExternalCorpusSnapshot,
   PendingExternalSpawnRequest,
 } from './corpus-types.js'
+import type { DecompositionTracker } from './decomposition-tracker.js'
 import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
 import {
@@ -150,6 +151,9 @@ export class Corpus {
   // instead of sleeping for the remainder of its poll interval. Without this,
   // branches can exhaust their step budget before the Corpus ever observes them.
   private wakeRequested = false
+
+  // Incremental re-decomposition tracker
+  private decompositionTracker?: DecompositionTracker
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -716,7 +720,10 @@ export class Corpus {
         }
 
         // Evaluate escalation for all active branches
-        this.evaluateAllEscalations()
+        await this.evaluateAllEscalations()
+
+        // Check for stuck/struggling branches and consider re-decomposition
+        await this.checkStuckBranchesForReDecomposition()
 
         if (this.config.proactive.enableReDecomposition) {
           await this.evaluateReDecomposition()
@@ -2248,7 +2255,7 @@ Guidelines:
   /**
    * Evaluate escalation for all active branches and act on level changes.
    */
-  private evaluateAllEscalations(): void {
+  private async evaluateAllEscalations(): Promise<void> {
     for (const [helixId, assessment] of this.state.branchAssessments) {
       // Skip completed/failed branches
       if (assessment.status === 'completed' || assessment.status === 'failed') continue
@@ -2273,7 +2280,7 @@ Guidelines:
           })
           break
 
-        case 2:
+        case 2: {
           // Level 2: Send critical redirect (hard) with output requirement
           this.sendDirective({
             targetHelixId: helixId,
@@ -2287,7 +2294,12 @@ Guidelines:
             maxIterationsRemaining: 10,
             requiredAction: 'produce_output',
           })
+          
+          // Consider re-decomposition for branches at escalation level 2
+          // The branch may be struggling because the task is too complex
+          await this.considerReDecomposition(helixId, 'escalation level 2')
           break
+        }
 
         case 3:
           // Level 3: Cancel the branch — force conclusion first if possible
@@ -2749,6 +2761,93 @@ Guidelines:
   }
 
 
+
+  /**
+   * Consider incremental re-decomposition for a specific branch.
+   * Called when a branch is stalled or over-budget to assess if it should be split.
+   * 
+   * @param helixId - The Helix session ID to assess
+   * @param reason - Why re-decomposition is being considered
+   * @returns true if the task was split, false otherwise
+   */
+  private async considerReDecomposition(
+    helixId: string,
+    reason: string,
+  ): Promise<boolean> {
+    if (!this.decompositionTracker) return false
+    
+    const task = this.decompositionTracker.getTaskByHelixId(helixId)
+    if (!task || task.status !== 'in-progress') return false
+    
+    // Only consider re-decomposition if the branch has consumed >50% of its step budget
+    // without proportional progress
+    if (task.stepsConsumed && task.originalTask.budgetSteps) {
+      const budgetRatio = task.stepsConsumed / task.originalTask.budgetSteps
+      if (budgetRatio < 0.5) return false
+    }
+    
+    this.logger.info('Considering re-decomposition', {
+      helixId,
+      reason,
+      taskGoal: task.originalTask.goal,
+    })
+    
+    // Use the Corpus LLM to decide whether to split
+    const { content } = await this.deps.llm.complete({
+      prompt: `A branch working on this task needs assessment:
+Task: ${task.originalTask.goal}
+Reason for assessment: ${reason}
+
+Should this task be split into smaller sub-tasks? If yes, describe 2-3 sub-tasks.
+Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority": 1 }] }`,
+      modelTier: 'background',
+      maxTokens: 1000,
+      timeoutMs: 15000,
+    })
+    
+    try {
+      const decision = JSON.parse(content.replace(/```json?\n?/g, '').replace(/```/g, '').trim())
+      if (decision.split && Array.isArray(decision.tasks) && decision.tasks.length > 0) {
+        const newTaskIds = this.decompositionTracker.splitTask(task.id, decision.tasks)
+        this.logger.info('Re-decomposed task', {
+          originalTaskId: task.id,
+          newTaskIds,
+          newGoals: decision.tasks.map((t: any) => t.goal),
+        })
+        return true
+      }
+    } catch {
+      // Parse failed — skip re-decomposition
+    }
+    
+    return false
+  }
+
+  /**
+   * Check for stuck or struggling branches and consider re-decomposition.
+   * Called from the main analysis loop when branches show signs of being stuck.
+   */
+  private async checkStuckBranchesForReDecomposition(): Promise<void> {
+    for (const [helixId, assessment] of this.state.branchAssessments) {
+      // Skip completed/failed branches
+      if (assessment.status === 'completed' || assessment.status === 'failed') continue
+      
+      // Check if branch is stuck or struggling with a declining score streak
+      if (
+        (assessment.status === 'stuck' || assessment.status === 'struggling') &&
+        assessment.decliningScoreStreak >= 5
+      ) {
+        // Attempt re-decomposition for this stuck branch
+        const split = await this.considerReDecomposition(helixId, 'branch stalled')
+        if (split) {
+          this.logger.info('Re-decomposition attempted for stuck branch', {
+            helixId,
+            decliningScoreStreak: assessment.decliningScoreStreak,
+          })
+        }
+      }
+    }
+  }
 
   /**
    * Evaluate whether any active branch should be split into smaller sub-tasks.

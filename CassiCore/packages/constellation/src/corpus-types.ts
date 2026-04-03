@@ -813,6 +813,7 @@ export interface CorpusDeps {
   getHelixTemplate?: (helixId: string) => ConstellationTemplate | undefined
   persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
   store?: import('./constellation-store.js').ConstellationStore
+  decompositionTracker?: import('./decomposition-tracker.js').DecompositionTracker
 }
 
 /**

@@ -1397,6 +1397,7 @@ export async function runConstellationPipeline(
       totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
       spawnRequests: [],
+      decompositionTracker: tracker?.getSnapshot(),
     }
 
     eventBus?.emit({
@@ -1556,6 +1557,7 @@ export async function runConstellationPipeline(
       totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
       spawnRequests: [],
+      decompositionTracker: tracker?.getSnapshot(),
       error: String(err),
     }
 
