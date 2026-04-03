@@ -265,18 +265,18 @@ export const SKILL_INTELLIGENCE_TOOL = {
 export const WORKFLOW_TOOL = {
   name: 'workflow',
   description:
-    'Agent workflow system \u2014 list, run, resume, and manage multi-step workflows. ' +
+    'Agent workflow system — list, run, resume, and manage multi-step workflows. ' +
     'Chain tools, skills, Constellation projects, and Helix sessions into composable pipelines.\n\n' +
-    'Actions: list, run, status, resume, cancel, runs',
+    'Actions: list, run, status, resume, cancel, runs, save_def, load_def, list_defs, delete_def',
   inputSchema: {
     type: 'object',
     properties: {
       action: {
         type: 'string',
-        enum: ['list', 'run', 'status', 'resume', 'cancel', 'runs'],
+        enum: ['list', 'run', 'status', 'resume', 'cancel', 'runs', 'save_def', 'load_def', 'list_defs', 'delete_def'],
         description: 'Action to perform',
       },
-      workflowId: { type: 'string', description: 'Workflow definition id (for run/resume)' },
+      workflowId: { type: 'string', description: 'Workflow definition id (for run/resume/save_def/load_def/delete_def)' },
       runId: { type: 'string', description: 'Workflow run id (for status/resume/cancel)' },
       input: { type: 'string', description: 'JSON-encoded input data (for run/resume)' },
       status: {
@@ -284,7 +284,13 @@ export const WORKFLOW_TOOL = {
         enum: ['pending', 'running', 'completed', 'failed', 'suspended', 'cancelled'],
         description: 'Filter by status (for runs)',
       },
-      limit: { type: 'string', description: 'Max results (for runs, default: 20)' },
+      limit: { type: 'string', description: 'Max results (for runs/list_defs, default: 20)' },
+      name: { type: 'string', description: 'Workflow definition name (for save_def)' },
+      version: { type: 'string', description: 'Semantic version (for save_def/load_def/delete_def, e.g. "1.0.0")' },
+      description: { type: 'string', description: 'Workflow definition description (for save_def)' },
+      tags: { type: 'string', description: 'Comma-separated tags (for save_def/list_defs)' },
+      enabled: { type: 'string', description: 'Whether enabled (for save_def/list_defs, "true"/"false")' },
+      nodeGraph: { type: 'string', description: 'JSON-encoded node graph (for save_def)' },
     },
     required: ['action'],
   },
