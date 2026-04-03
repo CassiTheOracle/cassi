@@ -60,6 +60,7 @@ import {
   universalSearchDefinition, makeUniversalSearchHandler,
   type UniversalSearchDeps,
 } from './universal-search.js'
+import { workflowDefinition, makeWorkflowHandler } from './workflow.js'
 
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ISessionManager } from '../../../types/runtime.js'
@@ -105,6 +106,14 @@ export interface CoreToolDeps {
   collectThoughtsDeps?: CollectThoughtsDeps
   /** Lazy getter for the skill metrics tracker */
   getSkillTracker?: () => import('../../intelligence/skill-metrics.js').SkillMetricsTracker | null
+  /** Lazy getter for workflow engine */
+  getWorkflowEngine?: () => import('../../workflow/engine.js').WorkflowEngine | null
+  /** Lazy getter for workflow definitions map (id -> definition) */
+  getWorkflowDefinitions?: () => Map<string, import('../../../types/workflow.js').WorkflowDefinition>
+  /** Lazy getter for workflow run store (persistence) */
+  getWorkflowStore?: () => import('../../workflow/persistence.js').WorkflowStore | null
+  /** Lazy getter for workflow definition store (persistence) */
+  getWorkflowDefStore?: () => import('../../workflow/definition-store.js').WorkflowDefinitionStore | null
 }
 
 /**
@@ -355,6 +364,16 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
       fileArtifactStore: deps.fileArtifactStore,
     }
     registry.register(universalSearchDefinition, makeUniversalSearchHandler(universalSearchDeps))
+  }
+
+  // Workflow tool: list, run, resume, cancel, manage workflow definitions
+  if (deps.getWorkflowEngine) {
+    registry.register(workflowDefinition, makeWorkflowHandler({
+      getEngine: deps.getWorkflowEngine,
+      getDefinitions: deps.getWorkflowDefinitions ?? (() => new Map()),
+      getStore: deps.getWorkflowStore ?? (() => null),
+      getDefStore: deps.getWorkflowDefStore ?? (() => null),
+    }))
   }
 
   // Context Window Debugging Tools - CONSOLIDATED (Phase 2)
