@@ -390,7 +390,9 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
         return formatJsonResponse(await executeBrowserConsolidatedTool(args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
 
       case WEB_CONSOLIDATED_TOOL_NAME:
-        return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger, (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)));
+        return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger, (toolName, toolArgs) =>
+          routeExternalToolCall(toolName, toolArgs)
+        ));
 
       case CONFIG_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeConfigConsolidatedTool(CASSICORE_URL, args, logger));
