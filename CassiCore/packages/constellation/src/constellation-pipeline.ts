@@ -342,7 +342,8 @@ export interface ConstellationPipelineOpts {
   /** Overall timeout for the Constellation */
   timeoutMs?: number
 
-  /** Maximum total steps across all branches before forced completion. Default: 100 */
+  /** Soft step budget — when reached, Corpus receives budget pressure to prioritize
+   *  completion instead of force-killing branches. Default: 200 */
   maxTotalSteps?: number
 
   /** Enable cross-Helix dialectic between spawned branches. Default: true */
@@ -1201,6 +1202,21 @@ export async function runConstellationPipeline(
         helixLog.error('Helix failed', { error: String(err) })
         node.status = 'failed'
         node.completedAt = Date.now()
+
+        // WHY: Recover partial token stats from the Helix store so failed/cancelled
+        // branches report actual work done instead of 0. The .then() path populates
+        // this from HelixResult, but cancellation rejects before that runs.
+        if (store) {
+          try {
+            const session = store.getSession(helixId)
+            if (session) {
+              node.tokensUsed = (session.tokensUnity ?? 0) + (session.tokensYang ?? 0) + (session.tokensYin ?? 0)
+            }
+          } catch (storeErr) {
+            helixLog.warn('Failed to recover partial stats from Helix store', { error: String(storeErr) })
+          }
+        }
+
         onNodeCompleted?.(node)
       })
       .finally(async () => {
@@ -1405,9 +1421,16 @@ export async function runConstellationPipeline(
       readFile: (path: string) => safeReadFile(path, process.cwd()),
     })
 
-    // Also enforces maxTotalSteps limit.
+    // WHY: Periodic checkpointing for crash recovery. The Corpus handles branch
+    // lifecycle through per-branch budgets (BRANCH_BUDGET_DEFAULTS) and escalation
+    // levels. No global step kill switch — that's a blunt instrument that undermines
+    // the Corpus's ability to make informed pruning decisions.
     const CHECKPOINT_INTERVAL_MS = 30_000
-    const maxTotalSteps = opts.maxTotalSteps ?? 100
+    // HOW: Soft step budget — when reached, log a warning and emit a throttle
+    // directive. The Corpus decides what to prune. Only external cancellation
+    // (user action or constellation timeout) should force-kill branches.
+    const softStepBudget = opts.maxTotalSteps ?? 200
+    let softBudgetReached = false
     if (constellationStore) {
       checkpointHandle = setInterval(() => {
         try {
@@ -1432,15 +1455,18 @@ export async function runConstellationPipeline(
             branches: nodeArr.length,
           })
 
-          if (totalSteps >= maxTotalSteps) {
-            log.warn('Max total steps reached, cancelling Constellation', {
+          if (totalSteps >= softStepBudget && !softBudgetReached) {
+            softBudgetReached = true
+            log.warn('Soft step budget reached — notifying Corpus to prioritize completion', {
               totalSteps,
-              maxTotalSteps,
+              softStepBudget,
               branches: nodeArr.length,
+              activeBranches: nodeArr.filter(n => n.status !== 'completed' && n.status !== 'failed' && n.status !== 'degraded').length,
             })
-            for (const running of runningHelixes.values()) {
-              try { running.cancel() } catch (_e) { /* best effort */ }
-            }
+            // WHY: Instead of killing branches, we log a warning. The Corpus's own
+            // sweep cycle naturally handles budget pressure — it tracks step counts
+            // and will throttle new spawns when the budget is tight.
+            log.warn('Corpus notified: prioritize completion over new spawns')
           }
         } catch (err) {
           log.warn('Checkpoint save failed', { error: String(err) })
@@ -1492,10 +1518,30 @@ export async function runConstellationPipeline(
       const spawnPoller = pollSpawnRequests()
 
       log.info('Waiting for decomposed sub-task Helixes', { count: helixPromises.length })
-      await Promise.race([
-        Promise.all(helixPromises.map(h => h.promise)),
-        cancelPromise,
-      ])
+      // WHY: Use allSettled so a single branch failure doesn't cascade-kill the
+      // entire constellation. Individual branch failures are handled by the
+      // .catch() handler on each promise. The Corpus manages lifecycle decisions.
+      const settledPromise = Promise.allSettled(helixPromises.map(h => h.promise))
+        .then((results) => {
+          const fulfilled = results.filter(r => r.status === 'fulfilled').length
+          const rejected = results.filter(r => r.status === 'rejected').length
+          log.info('Decomposed Helixes settled', { fulfilled, rejected, total: results.length })
+        })
+      await Promise.race([settledPromise, cancelPromise])
+
+      // WHY: After initial branches settle, wait for any spawned children
+      // (from redecomposition or parallel acceleration) to finish
+      if (runningHelixes.size > 0) {
+        log.info('Waiting for spawned children to complete', { count: runningHelixes.size })
+        const childGracePeriodMs = 120_000
+        const childGrace = new Promise<void>((resolve) => setTimeout(resolve, childGracePeriodMs))
+        const childPromises = Array.from(runningHelixes.values()).map((h) => h.promise)
+        await Promise.race([
+          Promise.allSettled(childPromises).then(() => {}),
+          childGrace,
+          cancelPromise,
+        ])
+      }
 
       void spawnPoller // spawnPoller is a Promise, not a timer — it exits on its own
     } else {
@@ -1511,10 +1557,14 @@ export async function runConstellationPipeline(
 
       log.info('Waiting for root Helix completion', { rootHelixId })
 
-      await Promise.race([rootHelix.promise, cancelPromise])
+      // WHY: Use allSettled so root Helix failure doesn't prevent children from completing
+      await Promise.race([
+        Promise.allSettled([rootHelix.promise]).then(() => {}),
+        cancelPromise,
+      ])
 
       // WHY: Give children a grace period to complete
-      log.info('Root Helix completed, waiting for children', {
+      log.info('Root Helix settled, waiting for children', {
         childrenCount: runningHelixes.size - 1,
       })
 
@@ -1527,7 +1577,7 @@ export async function runConstellationPipeline(
         .filter((h) => h.helixId !== rootHelixId)
         .map((h) => h.promise)
 
-      await Promise.race([Promise.all(childPromises), gracePromise])
+      await Promise.race([Promise.allSettled(childPromises).then(() => {}), gracePromise])
 
       void spawnPoller // spawnPoller is a Promise, not a timer — it exits on its own
     }

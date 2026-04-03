@@ -1577,6 +1577,59 @@ export class Corpus {
   }
 
   /**
+   * Inject budget pressure from the constellation checkpoint timer.
+   * WHY: Instead of force-killing branches (blunt), this tells the Corpus
+   * to prioritize completion. Active branches with low scores get throttled;
+   * branches near completion continue; new spawns are suppressed.
+   */
+  injectBudgetPressure(totalSteps: number, softBudget: number): void {
+    const branches = this.tree.getAllBranches()
+    const activeBranches = branches.filter(b => b.status === 'active')
+
+    // Sort active branches by score (lowest first) — prune the weakest
+    const sorted = activeBranches
+      .map(b => ({ helixId: b.helixId, score: this.state.branchAssessments.get(b.helixId)?.rollingScore ?? 0.5 }))
+      .sort((a, b) => a.score - b.score)
+
+    // HOW: Throttle the bottom half of active branches, redirect the top half to wrap up
+    const throttleCount = Math.ceil(sorted.length / 2)
+
+    for (let i = 0; i < sorted.length; i++) {
+      const { helixId, score } = sorted[i]
+      if (i < throttleCount) {
+        this.sendDirective({
+          targetHelixId: helixId,
+          type: 'throttle',
+          urgency: 'high',
+          reason: `Step budget pressure (${totalSteps}/${softBudget}). Low-scoring branch (${score.toFixed(2)}) — wrap up immediately.`,
+          text: 'Step budget is exhausted. You are being throttled. Produce your best output NOW and finish. Do not start new work.',
+          timestamp: Date.now(),
+          maxIterationsRemaining: 3,
+          requiredAction: 'produce_output',
+        })
+      } else {
+        this.sendDirective({
+          targetHelixId: helixId,
+          type: 'priority-shift',
+          urgency: 'medium',
+          reason: `Step budget pressure (${totalSteps}/${softBudget}). Focus on completion.`,
+          text: 'The constellation is nearing its step budget. Focus on producing concrete output and finishing your current task. Avoid starting new exploration.',
+          timestamp: Date.now(),
+          maxIterationsRemaining: 10,
+        })
+      }
+    }
+
+    this.logger.warn('Budget pressure injected', {
+      totalSteps,
+      softBudget,
+      activeBranches: activeBranches.length,
+      throttled: throttleCount,
+      redirected: sorted.length - throttleCount,
+    })
+  }
+
+  /**
    * Build first-person LLM prompt
    */
   private buildLLMPrompt(newPatterns: CrossHelixPattern[]): string {
