@@ -395,3 +395,88 @@ export interface IWorkflowDefinitionStore {
   delete(id: string, version?: string): boolean
   close(): void
 }
+
+// Workflow triggers and scheduling
+
+/** Trigger types that can auto-start workflows. */
+export type TriggerKind = 'interval' | 'cron' | 'event' | 'once'
+
+/** Base trigger configuration shared by all kinds. */
+export interface TriggerBase {
+  /** Unique trigger id. */
+  id: string
+  /** Trigger kind. */
+  kind: TriggerKind
+  /** Workflow id to execute when the trigger fires. */
+  workflowId: string
+  /** Static input data passed to the workflow on each trigger fire. */
+  input?: unknown
+  /** Whether the trigger is enabled. */
+  enabled: boolean
+  /** Human-readable description. */
+  description?: string
+  /** Maximum number of times this trigger can fire (0 = unlimited). */
+  maxFires?: number
+  /** ISO timestamp of creation. */
+  createdAt: string
+  /** ISO timestamp of last update. */
+  updatedAt: string
+}
+
+/** Fires every N milliseconds. */
+export interface IntervalTrigger extends TriggerBase {
+  kind: 'interval'
+  /** Interval in milliseconds. */
+  intervalMs: number
+}
+
+/** Fires on a cron schedule (minute-level granularity). */
+export interface CronTrigger extends TriggerBase {
+  kind: 'cron'
+  /** Cron expression (5 fields: min hour dom month dow). */
+  cronExpression: string
+}
+
+/** Fires when a CassiCore event matches the specified type pattern. */
+export interface EventTrigger extends TriggerBase {
+  kind: 'event'
+  /** Event type pattern to match (exact match or glob with *). */
+  eventPattern: string
+  /** Optional filter: only fire if the event data matches this predicate. */
+  eventFilter?: (data: unknown) => boolean
+}
+
+/** Fires once at a specific time. */
+export interface OnceTrigger extends TriggerBase {
+  kind: 'once'
+  /** ISO timestamp when this trigger should fire. */
+  fireAt: string
+}
+
+export type WorkflowTrigger = IntervalTrigger | CronTrigger | EventTrigger | OnceTrigger
+
+/** Runtime state tracked for an active trigger. */
+export interface TriggerState {
+  triggerId: string
+  /** Number of times this trigger has fired. */
+  fireCount: number
+  /** ISO timestamp of last fire. */
+  lastFiredAt?: string
+  /** ISO timestamp of next scheduled fire (for interval/cron/once). */
+  nextFireAt?: string
+  /** Current status. */
+  status: 'active' | 'paused' | 'exhausted' | 'error'
+  /** Last error message if status is 'error'. */
+  lastError?: string
+}
+
+/** Persistence backend for triggers. */
+export interface IWorkflowTriggerStore {
+  saveTrigger(trigger: WorkflowTrigger): void
+  loadTrigger(id: string): WorkflowTrigger | undefined
+  listTriggers(opts?: { workflowId?: string; kind?: TriggerKind; enabled?: boolean; limit?: number }): WorkflowTrigger[]
+  deleteTrigger(id: string): boolean
+  saveState(state: TriggerState): void
+  loadState(triggerId: string): TriggerState | undefined
+  close(): void
+}
