@@ -25,6 +25,11 @@ export { WorkflowRegistry } from './registry.js'
 export { WorkflowScheduler } from './scheduler.js'
 export type { WorkflowSchedulerConfig } from './scheduler.js'
 export { WorkflowTriggerStore } from './trigger-store.js'
+export {
+  createHelixRunnerAdapter,
+  createConstellationAdapter,
+  createToolExecutorAdapter,
+} from './adapters.js'
 export { WorkflowEventBus } from './events.js'
 export type { WorkflowEvent, EventHandler } from './events.js'
 export { StateMachineExecutor } from './state-machine.js'
