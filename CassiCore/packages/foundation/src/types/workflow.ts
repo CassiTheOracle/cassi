@@ -94,6 +94,7 @@ export type WorkflowNodeKind =
   | 'dowhile'    // loop while condition is true
   | 'subworkflow' // nested workflow execution
   | 'listen'     // event-driven reactive listener
+  | 'statemachine' // graph-based state machine with cycles
 
 export interface WorkflowNodeBase {
   id: string
@@ -169,6 +170,51 @@ export interface ListenNode extends WorkflowNodeBase {
   timeoutMs?: number
 }
 
+// State machine types (Layer 2)
+
+/** Guard function: evaluates whether a transition should fire. */
+export type TransitionGuard = (input: unknown, state: WorkflowState) => boolean | Promise<boolean>
+
+/** Action function: runs side effects during a transition (before entering next state). */
+export type TransitionAction = (input: unknown, state: WorkflowState) => unknown | Promise<unknown>
+
+/** A single state within a state machine. */
+export interface StateDefinition {
+  /** Unique state name within this machine. */
+  name: string
+  /** If true, this is the initial state. Exactly one required per machine. */
+  initial?: boolean
+  /** If true, reaching this state terminates the machine. At least one required. */
+  final?: boolean
+  /** Step to execute upon entering this state. Receives previous transition output as input. */
+  onEnter?: WorkflowStep
+  /** Outgoing transitions from this state, evaluated in order. */
+  transitions: TransitionDefinition[]
+}
+
+/** A directed edge between two states. */
+export interface TransitionDefinition {
+  /** Target state name. */
+  target: string
+  /** Optional guard: transition only fires when guard returns true. */
+  guard?: TransitionGuard
+  /** Optional action: runs during the transition, output becomes the next state's input. */
+  action?: TransitionAction
+  /** Optional event channel: transition fires only when this event is received. */
+  event?: string
+}
+
+/** A state machine node embeddable in a workflow. */
+export interface StateMachineNode extends WorkflowNodeBase {
+  kind: 'statemachine'
+  /** All states in the machine. */
+  states: StateDefinition[]
+  /** Maximum total transitions before forced termination (safety cap, default: 100). */
+  maxTransitions?: number
+  /** Timeout for the entire machine execution in ms (default: 300000). 0 = no timeout. */
+  timeoutMs?: number
+}
+
 export type WorkflowNode =
   | StepNode
   | ParallelNode
@@ -178,6 +224,7 @@ export type WorkflowNode =
   | DoWhileNode
   | SubworkflowNode
   | ListenNode
+  | StateMachineNode
 
 // Workflow state and execution
 
