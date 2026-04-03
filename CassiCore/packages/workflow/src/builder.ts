@@ -23,6 +23,11 @@ import type {
   DoWhileNode,
   ListenNode,
   SubworkflowNode,
+  StateMachineNode,
+  StateDefinition,
+  TransitionDefinition,
+  TransitionGuard,
+  TransitionAction,
   RetryPolicy,
   StepContext,
 } from '../../types/workflow.js'
@@ -237,6 +242,47 @@ export class WorkflowBuilder {
     return this
   }
 
+  // State machine (Layer 2)
+
+  /**
+   * Add a state machine node that executes a graph of named states with transitions.
+   * Supports cycles, guard conditions, transition actions, and event-based transitions.
+   *
+   * Use StateMachineBuilder for a fluent definition, or pass a raw StateMachineNode config.
+   *
+   * Example:
+   *   createWorkflow({ id: 'approval' })
+   *     .stateMachine(
+   *       createStateMachine('approval-flow')
+   *         .state('draft', { initial: true, onEnter: draftStep })
+   *           .transition('review', { guard: (input) => input.ready })
+   *           .transition('cancelled')
+   *         .state('review', { onEnter: reviewStep })
+   *           .transition('approved', { guard: (input) => input.approved })
+   *           .transition('draft', { guard: (input) => input.needsRevision })
+   *         .state('approved', { final: true, onEnter: notifyStep })
+   *         .state('cancelled', { final: true })
+   *     )
+   *     .then(postProcessStep)
+   *     .commit()
+   */
+  stateMachine(
+    builder: StateMachineBuilder,
+    opts?: { maxTransitions?: number; timeoutMs?: number },
+  ): this {
+    const smNode = builder.build()
+
+    if (opts?.maxTransitions !== undefined) {
+      smNode.maxTransitions = opts.maxTransitions
+    }
+    if (opts?.timeoutMs !== undefined) {
+      smNode.timeoutMs = opts.timeoutMs
+    }
+
+    this.nodes.push(smNode)
+    return this
+  }
+
   // Compile
 
   /** Compile the builder into a frozen WorkflowDefinition. */
@@ -274,6 +320,141 @@ export class WorkflowBuilder {
       return [{ id: nextNodeId('sub'), kind: 'subworkflow', workflow: target } as SubworkflowNode]
     } else {
       return [{ id: nextNodeId('step'), kind: 'step', step: target } as StepNode]
+    }
+  }
+}
+
+// StateMachineBuilder — fluent API for defining state machines
+
+interface PendingState {
+  name: string
+  initial: boolean
+  final: boolean
+  onEnter?: WorkflowStep
+  transitions: TransitionDefinition[]
+}
+
+/** Factory function for creating a StateMachineBuilder. */
+export function createStateMachine(id: string): StateMachineBuilder {
+  return new StateMachineBuilder(id)
+}
+
+export class StateMachineBuilder {
+  private readonly machineId: string
+  private readonly pendingStates: PendingState[] = []
+  private currentState: PendingState | null = null
+
+  constructor(id: string) {
+    this.machineId = id
+  }
+
+  /**
+   * Define a state. Subsequent .transition() calls add outgoing edges from this state.
+   * Options:
+   *   initial — mark as the start state (exactly one required)
+   *   final — mark as a terminal state (at least one required)
+   *   onEnter — step to execute when entering this state
+   */
+  state(
+    name: string,
+    opts?: { initial?: boolean; final?: boolean; onEnter?: WorkflowStep },
+  ): this {
+    // Finalize the previous state
+    if (this.currentState) {
+      this.pendingStates.push(this.currentState)
+    }
+
+    this.currentState = {
+      name,
+      initial: opts?.initial ?? false,
+      final: opts?.final ?? false,
+      onEnter: opts?.onEnter,
+      transitions: [],
+    }
+
+    return this
+  }
+
+  /**
+   * Add a transition from the current state to a target state.
+   * Options:
+   *   guard — condition function (transition fires only if true)
+   *   action — side-effect function (runs during transition, output becomes next input)
+   *   event — event channel name (transition waits for this event)
+   */
+  transition(
+    target: string,
+    opts?: {
+      guard?: TransitionGuard
+      action?: TransitionAction
+      event?: string
+    },
+  ): this {
+    if (!this.currentState) {
+      throw new Error('StateMachineBuilder: call .state() before .transition()')
+    }
+
+    this.currentState.transitions.push({
+      target,
+      guard: opts?.guard,
+      action: opts?.action,
+      event: opts?.event,
+    })
+
+    return this
+  }
+
+  /** Compile the builder into a StateMachineNode. */
+  build(): StateMachineNode {
+    // Finalize the last state
+    if (this.currentState) {
+      this.pendingStates.push(this.currentState)
+      this.currentState = null
+    }
+
+    if (this.pendingStates.length === 0) {
+      throw new Error(`StateMachine "${this.machineId}": no states defined`)
+    }
+
+    const initialStates = this.pendingStates.filter((s) => s.initial)
+    if (initialStates.length === 0) {
+      throw new Error(`StateMachine "${this.machineId}": no initial state defined`)
+    }
+    if (initialStates.length > 1) {
+      throw new Error(
+        `StateMachine "${this.machineId}": multiple initial states: ${initialStates.map((s) => s.name).join(', ')}`,
+      )
+    }
+
+    const finalStates = this.pendingStates.filter((s) => s.final)
+    if (finalStates.length === 0) {
+      throw new Error(`StateMachine "${this.machineId}": no final state defined`)
+    }
+
+    // Validate all transition targets exist
+    const stateNames = new Set(this.pendingStates.map((s) => s.name))
+    for (const state of this.pendingStates) {
+      for (const t of state.transitions) {
+        if (!stateNames.has(t.target)) {
+          throw new Error(
+            `StateMachine "${this.machineId}": state "${state.name}" has transition to unknown state "${t.target}"`,
+          )
+        }
+      }
+    }
+
+    const states: StateDefinition[] = this.pendingStates.map((s) => ({
+      name: s.name,
+      initial: s.initial || undefined,
+      final: s.final || undefined,
+      onEnter: s.onEnter,
+      transitions: s.transitions,
+    }))
+
+    return {
+      id: nextNodeId('sm'),
+      kind: 'statemachine',
+      states,
     }
   }
 }

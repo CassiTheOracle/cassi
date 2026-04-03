@@ -18,10 +18,12 @@
  */
 
 export { WorkflowEngine, SuspendSignal } from './engine.js'
-export { createWorkflow, createStep, WorkflowBuilder, _resetNodeCounter } from './builder.js'
+export { createWorkflow, createStep, WorkflowBuilder, createStateMachine, StateMachineBuilder, _resetNodeCounter } from './builder.js'
 export { WorkflowStore } from './persistence.js'
 export { WorkflowEventBus } from './events.js'
 export type { WorkflowEvent, EventHandler } from './events.js'
+export { StateMachineExecutor } from './state-machine.js'
+export type { StateMachineResult, StateMachineExecutorConfig } from './state-machine.js'
 export {
   toolStep,
   constellationStep,
@@ -59,6 +61,11 @@ export type {
   DoWhileNode,
   SubworkflowNode,
   ListenNode,
+  StateMachineNode,
+  StateDefinition,
+  TransitionDefinition,
+  TransitionGuard,
+  TransitionAction,
   IWorkflowRegistry,
   IWorkflowStore,
   WorkflowListener,

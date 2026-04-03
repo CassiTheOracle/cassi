@@ -26,6 +26,7 @@ import type {
   DoWhileNode,
   SubworkflowNode,
   ListenNode,
+  StateMachineNode,
   WorkflowRun,
   WorkflowState,
   StepTrace,
@@ -36,6 +37,7 @@ import type {
 } from '../../types/workflow.js'
 import type { ILogger, IEventBus } from '../../types/interfaces.js'
 import { WorkflowEventBus } from './events.js'
+import { StateMachineExecutor } from './state-machine.js'
 
 // SuspendSignal — thrown by ctx.suspend() to pause workflow execution
 
@@ -365,6 +367,8 @@ export class WorkflowEngine {
         return this.executeSubworkflowNode(node as SubworkflowNode, input, run)
       case 'listen':
         return this.executeListenNode(node as ListenNode, input, run)
+      case 'statemachine':
+        return this.executeStateMachineNode(node as StateMachineNode, input, run)
       default:
         throw new Error(`Unknown node kind: ${(node as WorkflowNode).kind}`)
     }
@@ -969,6 +973,25 @@ export class WorkflowEngine {
 
       throw err
     }
+  }
+
+  // State machine (graph-based)
+
+  private async executeStateMachineNode(
+    node: StateMachineNode,
+    input: unknown,
+    run: WorkflowRun,
+  ): Promise<unknown> {
+    const wfEventBus = this.eventBuses.get(run.runId)
+    const executor = new StateMachineExecutor({
+      logger: this.logger,
+      eventBus: this.eventBus,
+      buildContext: (stepInput, stepRun, nodeId) => this.buildContext(stepInput, stepRun, nodeId),
+      workflowEventBus: wfEventBus,
+    })
+
+    const result = await executor.execute(node, input, run)
+    return result.output
   }
 
   // Helpers
