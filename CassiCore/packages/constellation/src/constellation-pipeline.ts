@@ -57,7 +57,7 @@ const SPAWN_CHECK_INTERVAL_MS = 1000
 /**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
- * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -220,6 +220,14 @@ interface RunningHelix {
 }
 
 // Main Pipeline Function
+
+/**
+ * @dep callers: project (core/intelligence/constellation/constellation-orchestrator.ts)
+ * @dep calls: pollSpawnRequests, launchHelix, safeReadFile, fastDecompose, shouldDecompose [+31]
+ * @dep flows: RunConstellationPipeline → ConvertToInjectedMemory (1/4), RunConstellationPipeline → ExtractSearchQuery (1/4), RunConstellationPipeline → ComputeCompositeScore (1/5)
+ * @dep module: Constellation
+ * @dep risk: MEDIUM | 1 caller, 3 flows, 1 module
+ */
 
 export async function runConstellationPipeline(
   opts: ConstellationPipelineOpts
@@ -904,9 +912,19 @@ export async function runConstellationPipeline(
     promise
       .then((result) => {
         const isDegraded = result.completionStatus.degraded
+        // WHY: A cancelled Helix that still produced output (has unity conclusion
+        // and token usage) was interrupted by redecomposition, not a hard failure.
+        // Treating these as 'degraded' instead of 'failed' gives accurate stats —
+        // the branch did useful work that successor branches can build on.
+        const wasCancelled = !result.completionStatus.complete
+        const producedOutput = !!(result.unityConclusion && result.tokensUsed &&
+          ((result.tokensUsed.unity ?? 0) + (result.tokensUsed.yang ?? 0) + (result.tokensUsed.yin ?? 0) > 0))
+        const cancelledWithOutput = wasCancelled && producedOutput
+
         helixLog.info('Helix completed', {
           completionStatus: result.completionStatus,
           degraded: isDegraded,
+          cancelledWithOutput,
           durationMs: Date.now() - (node.startedAt ?? Date.now()),
         })
 
@@ -918,7 +936,11 @@ export async function runConstellationPipeline(
           })
         }
 
-        node.status = result.completionStatus.complete ? (isDegraded ? 'degraded' : 'completed') : 'failed'
+        if (cancelledWithOutput) {
+          node.status = 'degraded'
+        } else {
+          node.status = result.completionStatus.complete ? (isDegraded ? 'degraded' : 'completed') : 'failed'
+        }
         node.completedAt = Date.now()
 
         // Track task completion (tracker is defined later in the function)
