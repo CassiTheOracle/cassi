@@ -2587,7 +2587,8 @@ export class Daemon {
     if (this.workflowRegistry && this.intelligence) {
       try {
         const { createHelixRunnerAdapter, createConstellationAdapter, createToolExecutorAdapter } = await import('./workflow/adapters.js')
-        const { codeReviewPipeline, researchPipeline, featureImplementation, scheduledCleanup } = await import('./workflow/templates.js')
+        const { codeReviewPipeline, researchPipeline, featureImplementation, scheduledCleanup, eventReactorChain } = await import('./workflow/templates.js')
+        const { helixStep, createStep } = await import('./workflow/index.js')
 
         const helixRunner = createHelixRunnerAdapter(() => this.intelligence?.helix)
         const constellationOrch = createConstellationAdapter(() => this.intelligence?.constellation)
@@ -2608,6 +2609,50 @@ export class Daemon {
           tasks: [
             { name: 'prune-sessions', tool: 'bash', args: { command: 'echo "session pruning handled by SessionManager"' } },
           ],
+        }))
+
+        this.workflowRegistry.register(eventReactorChain({
+          id: 'system-event-reactor',
+          routes: [
+            {
+              name: 'workflow-failure',
+              match: (input: unknown) => {
+                const evt = input as Record<string, unknown>
+                return evt?.type === 'workflow:run:failed' || evt?.type === 'workflow:step:failed'
+              },
+              handler: helixStep({
+                id: 'analyze-failure',
+                goal: (input: unknown) => {
+                  const evt = input as Record<string, unknown>
+                  return `Analyze this workflow failure and suggest fixes: ${JSON.stringify(evt)}`
+                },
+                runner: helixRunner,
+              }),
+            },
+            {
+              name: 'health-degraded',
+              match: (input: unknown) => {
+                const evt = input as Record<string, unknown>
+                return evt?.type === 'health:degraded' || evt?.type === 'provider:error'
+              },
+              handler: helixStep({
+                id: 'diagnose-health',
+                goal: (input: unknown) => {
+                  const evt = input as Record<string, unknown>
+                  return `Diagnose this system health issue and recommend recovery steps: ${JSON.stringify(evt)}`
+                },
+                runner: helixRunner,
+              }),
+            },
+          ],
+          fallback: createStep({
+            id: 'log-unhandled',
+            description: 'Log unhandled events',
+            execute: async (ctx) => {
+              this.logger.info('Event reactor: unhandled event', { event: ctx.input })
+              return { handled: false, event: ctx.input }
+            },
+          }),
         }))
 
         this.logger.info(`Workflow templates registered: ${this.workflowRegistry.size} definitions`)
