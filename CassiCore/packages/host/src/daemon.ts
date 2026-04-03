@@ -2583,6 +2583,39 @@ export class Daemon {
       contextDistiller: this.contextDistiller,
     })
 
+    // Register workflow templates now that intelligence modules are wired
+    if (this.workflowRegistry && this.intelligence) {
+      try {
+        const { createHelixRunnerAdapter, createConstellationAdapter, createToolExecutorAdapter } = await import('./workflow/adapters.js')
+        const { codeReviewPipeline, researchPipeline, featureImplementation, scheduledCleanup } = await import('./workflow/templates.js')
+
+        const helixRunner = createHelixRunnerAdapter(() => this.intelligence?.helix)
+        const constellationOrch = createConstellationAdapter(() => this.intelligence?.constellation)
+        const wfToolExecutor = createToolExecutorAdapter(() => this.toolExecutor)
+
+        this.workflowRegistry.register(codeReviewPipeline({ runner: helixRunner }))
+        this.workflowRegistry.register(researchPipeline({
+          runner: helixRunner,
+          angles: [
+            { name: 'code', goal: 'Investigate the codebase for relevant patterns, implementations, and architecture' },
+            { name: 'context', goal: 'Gather broader context: documentation, conventions, and related systems' },
+          ],
+        }))
+        this.workflowRegistry.register(featureImplementation({ runner: helixRunner }))
+        this.workflowRegistry.register(scheduledCleanup({
+          executor: wfToolExecutor,
+          sessionId: 'workflow:cleanup',
+          tasks: [
+            { name: 'prune-sessions', tool: 'bash', args: { command: 'echo "session pruning handled by SessionManager"' } },
+          ],
+        }))
+
+        this.logger.info(`Workflow templates registered: ${this.workflowRegistry.size} definitions`)
+      } catch (err) {
+        this.logger.warn('Failed to register workflow templates', { error: String(err) })
+      }
+    }
+
     try {
       const { SessionPipeline } = await import('./pipeline/adapter/SessionPipeline.js')
       const v2Options = {
