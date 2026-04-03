@@ -65,6 +65,10 @@ export const AGENT_TOOL = {
           // Flux-specific actions
           'inspect', 'run', 'team', 'steer', 'approve', 'reject',
           'pause', 'resume', 'checkpoints', 'tree', 'change_model',
+          // External Corpus Protocol actions (Constellation only)
+          'corpus_assume', 'corpus_release', 'corpus_snapshot',
+          'corpus_state', 'corpus_directive', 'corpus_spawn_decide',
+          'corpus_synthesis',
         ],
         description: 'Operation to perform within the selected agent system',
       },
@@ -178,6 +182,49 @@ export const AGENT_TOOL = {
       since: {
         type: 'string',
         description: 'Timestamp filter (ISO 8601)',
+      },
+      // External Corpus Protocol params (Constellation only)
+      agentId: {
+        type: 'string',
+        description: 'Agent identifier for corpus_assume (for attribution and audit)',
+      },
+      heartbeatTimeoutMs: {
+        type: 'number',
+        description: 'Inactivity timeout in ms before auto-releasing Corpus. Default: 60000',
+      },
+      targetHelixId: {
+        type: 'string',
+        description: 'Target Helix branch ID for corpus_directive',
+      },
+      directiveType: {
+        type: 'string',
+        enum: ['guidance', 'redirect', 'throttle', 'priority-shift', 'cancel', 'context-inject'],
+        description: 'Directive type for corpus_directive',
+      },
+      requestId: {
+        type: 'string',
+        description: 'Spawn request ID for corpus_spawn_decide',
+      },
+      approved: {
+        type: 'boolean',
+        description: 'Whether to approve a spawn request (for corpus_spawn_decide)',
+      },
+      reason: {
+        type: 'string',
+        description: 'Reason for spawn decision or Corpus release',
+      },
+      modifiedGoal: {
+        type: 'string',
+        description: 'Modified goal for an approved spawn (optional, for corpus_spawn_decide)',
+      },
+      content: {
+        type: 'string',
+        description: 'Content for corpus_directive or corpus_synthesis',
+      },
+      urgency: {
+        type: 'string',
+        enum: ['low', 'medium', 'high', 'critical'],
+        description: 'Urgency level for corpus_directive',
       },
     },
     required: ['type', 'action'],
@@ -325,13 +372,26 @@ async function executeConstellationAgentTool(
     'constellation_jobs', 'constellation_sessions', 'constellation_watch',
     'constellation_progress', 'constellation_tree', 'constellation_steer',
     'constellation_blackboard', 'constellation_analyze',
+    // External Corpus Protocol
+    'constellation_corpus_assume', 'constellation_corpus_release',
+    'constellation_corpus_snapshot', 'constellation_corpus_state',
+    'constellation_corpus_directive', 'constellation_corpus_spawn_decide',
+    'constellation_corpus_synthesis',
   ]);
 
   if (!validConstellationTools.has(toolName)) {
     throw new Error(`Unknown Constellation action: ${action}`);
   }
 
-  return await executeConstellationTool(baseUrl, toolName, args, logger, heartbeat);
+  // HOW: Remap agent-tool param names to constellation-tool param names
+  // for External Corpus Protocol actions
+  const remappedArgs = { ...args }
+  if (action === 'corpus_directive' && remappedArgs.directiveType) {
+    remappedArgs.type = remappedArgs.directiveType
+    delete remappedArgs.directiveType
+  }
+
+  return await executeConstellationTool(baseUrl, toolName, remappedArgs, logger, heartbeat);
 }
 
 /**

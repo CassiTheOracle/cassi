@@ -156,6 +156,106 @@ export const CONSTELLATION_TOOLS = [
       required: ['sessionId'],
     },
   },
+
+  // --- External Corpus Protocol ---
+
+  {
+    name: 'constellation_corpus_assume',
+    description: 'Assume the Corpus role for a running Constellation. Pauses the internal Corpus LLM and lets the calling agent make strategic decisions (directives, spawn approvals, synthesis) via subsequent tool calls. Only one external agent can hold the Corpus at a time. Auto-releases after heartbeat timeout (default: 60s of inactivity).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+        agentId: { type: 'string', description: 'Identifier for the assuming agent (for attribution and audit).' },
+        heartbeatTimeoutMs: { type: 'number', description: 'Inactivity timeout in ms before auto-release. Default: 60000.' },
+      },
+      required: ['sessionId', 'agentId'],
+    },
+  },
+  {
+    name: 'constellation_corpus_release',
+    description: 'Release the Corpus role back to the internal Corpus LLM. Pending spawn requests are re-evaluated by the internal Corpus.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+        reason: { type: 'string', description: 'Optional reason for releasing.' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'constellation_corpus_snapshot',
+    description: 'Get a full Corpus state snapshot: reasoning tree, branch assessments, cross-Helix patterns, pending spawn requests, and recent interventions. Use this to understand the current state before making decisions as an external Corpus.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'constellation_corpus_state',
+    description: 'Get the external Corpus protocol state (who holds the lock, heartbeat status, pending requests count).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'constellation_corpus_directive',
+    description: 'Send a directive to a branch as the external Corpus. The directive is delivered through the Brainstem-mediated intervention model, same as internal Corpus directives.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+        targetHelixId: { type: 'string', description: 'The Helix branch to direct.' },
+        type: {
+          type: 'string',
+          enum: ['guidance', 'redirect', 'throttle', 'priority-shift', 'cancel', 'context-inject'],
+          description: 'Directive type.',
+        },
+        content: { type: 'string', description: 'Directive content/message.' },
+        urgency: {
+          type: 'string',
+          enum: ['low', 'medium', 'high', 'critical'],
+          description: 'Urgency level. Default: medium.',
+        },
+      },
+      required: ['sessionId', 'targetHelixId', 'type', 'content'],
+    },
+  },
+  {
+    name: 'constellation_corpus_spawn_decide',
+    description: 'Approve or reject a pending spawn request as the external Corpus. When an external agent holds the Corpus role, spawn requests queue instead of being auto-evaluated.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+        requestId: { type: 'string', description: 'The spawn request ID to decide on.' },
+        approved: { type: 'boolean', description: 'Whether to approve the spawn.' },
+        reason: { type: 'string', description: 'Reason for the decision.' },
+        modifiedGoal: { type: 'string', description: 'Optional modified goal for the spawned branch (if approved).' },
+      },
+      required: ['sessionId', 'requestId', 'approved', 'reason'],
+    },
+  },
+  {
+    name: 'constellation_corpus_synthesis',
+    description: 'Post a synthesis message visible to all branches as the external Corpus. This appears on the Constellation blackboard under the decisions channel.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+        content: { type: 'string', description: 'Synthesis content to post.' },
+      },
+      required: ['sessionId', 'content'],
+    },
+  },
 ]
 
 export const CONSTELLATION_TOOL_NAMES = new Set(CONSTELLATION_TOOLS.map(t => t.name))
@@ -328,6 +428,104 @@ export async function executeConstellationTool(
           { timeoutMs: 30_000 },
         )
         if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      // --- External Corpus Protocol ---
+
+      case 'constellation_corpus_assume': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/assume`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              agentId: args.agentId,
+              heartbeatTimeoutMs: args.heartbeatTimeoutMs,
+            }),
+            timeoutMs: 5000,
+          },
+        )
+        return await res.json()
+      }
+
+      case 'constellation_corpus_release': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/release`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: args.reason }),
+            timeoutMs: 5000,
+          },
+        )
+        return await res.json()
+      }
+
+      case 'constellation_corpus_snapshot': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/snapshot`,
+          { timeoutMs: 10_000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_corpus_state': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/state`,
+          { timeoutMs: 5000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_corpus_directive': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/directive`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetHelixId: args.targetHelixId,
+              type: args.type,
+              content: args.content,
+              urgency: args.urgency ?? 'medium',
+            }),
+            timeoutMs: 5000,
+          },
+        )
+        return await res.json()
+      }
+
+      case 'constellation_corpus_spawn_decide': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/spawn-decide`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requestId: args.requestId,
+              approved: args.approved,
+              reason: args.reason,
+              modifiedGoal: args.modifiedGoal,
+            }),
+            timeoutMs: 5000,
+          },
+        )
+        return await res.json()
+      }
+
+      case 'constellation_corpus_synthesis': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/corpus/synthesis`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: args.content }),
+            timeoutMs: 5000,
+          },
+        )
         return await res.json()
       }
 
