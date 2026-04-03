@@ -81,6 +81,8 @@ const REF_RE = /^S(\d+)#M(\d+)(?:\.(B)(\d+)(?:\.(P)(\d+))?)?$/
 /**
  * Parse a compact session ref string into its components.
  *
+ * @param ref - The compact reference string to parse
+ * @returns The parsed SessionRef object
  * @throws {Error} if the ref format is invalid
  */
 export function parseSessionRef(ref: string): SessionRef {
@@ -111,6 +113,8 @@ export function parseSessionRef(ref: string): SessionRef {
 /**
  * Format a SessionRef into the compact string representation.
  *
+ * @param ref - The SessionRef object to format
+ * @returns The compact reference string
  * @throws {Error} if paraIdx is set without blockIdx
  */
 export function formatSessionRef(ref: SessionRef): string {
