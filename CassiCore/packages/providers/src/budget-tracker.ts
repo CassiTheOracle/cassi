@@ -154,7 +154,7 @@ export class BudgetTracker {
 
     let counter = this.counters.get(providerId)
     if (!counter || counter.month !== month) {
-      // New month — reset counter
+      // HOW: New month — reset counter with fresh daily breakdown
       counter = { month, count: 0, dailyCounts: new Map(), firstRequestAt: Date.now() }
       this.counters.set(providerId, counter)
     }
@@ -178,10 +178,10 @@ export class BudgetTracker {
     const remaining = Math.max(0, config.monthlyLimit - used)
     const percentUsed = config.monthlyLimit > 0 ? used / config.monthlyLimit : 0
 
-    // Calculate daily burn rate
+    // HOW: Calculate daily burn rate from active days only (not calendar days)
     const dailyBurnRate = this.calculateDailyBurnRate(providerId)
 
-    // Project exhaustion day
+    // HOW: Project exhaustion day based on remaining requests and daily burn rate
     let projectedExhaustionDay: number | null = null
     if (dailyBurnRate > 0) {
       const daysRemaining = remaining / dailyBurnRate
@@ -258,7 +258,7 @@ export class BudgetTracker {
     const newTier = this.getTier(providerId)
     const previousTier = this.previousTiers.get(providerId) ?? 'normal'
 
-    // Detect tier transition
+    // HOW: Detect tier transition and emit event
     if (newTier !== previousTier) {
       this.previousTiers.set(providerId, newTier)
       this.bus.emit({
@@ -278,7 +278,7 @@ export class BudgetTracker {
       })
     }
 
-    // Emit warning for non-normal tiers (every request while in warning zone)
+    // HOW: Emit warning for non-normal tiers (every request while in warning zone)
     if (newTier === 'cautious' || newTier === 'frugal' || newTier === 'critical') {
       this.bus.emit({
         type: 'budget:warning',
@@ -313,7 +313,7 @@ export class BudgetTracker {
   importState(state: Record<string, { month: string; count: number; dailyCounts?: Record<number | string, number> }>): void {
     const currentMonth = getCurrentMonth()
     for (const [providerId, data] of Object.entries(state)) {
-      // Only import if same month — stale data from previous months is irrelevant
+      // HOW: Only import if same month — stale data from previous months is irrelevant
       if (data.month !== currentMonth) continue
 
       const dailyCounts = new Map<number, number>()
@@ -330,7 +330,7 @@ export class BudgetTracker {
         firstRequestAt: Date.now(),
       })
 
-      // Initialize previousTiers so we don't emit a false transition on first request
+      // HOW: Initialize previousTiers to avoid false transition on first request
       this.previousTiers.set(providerId, this.getTier(providerId))
     }
     this.logger.info('BudgetTracker state imported', {
@@ -376,7 +376,7 @@ export class BudgetTracker {
         path: BUDGET_STATE_PATH,
       })
     } catch (err: unknown) {
-      // ENOENT is expected on first run — don't log as error
+      // HOW: ENOENT is expected on first run — don't log as error
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
         this.logger.debug('No budget state file found (first run)')
         return
@@ -394,7 +394,7 @@ export class BudgetTracker {
     const dailyCounts = Array.from(counter.dailyCounts.values())
     if (dailyCounts.length === 0) return 0
 
-    // Use the average of all days with activity
+    // HOW: Use average of active days (not calendar days) for burn rate
     const total = dailyCounts.reduce((sum, c) => sum + c, 0)
     return total / dailyCounts.length
   }
