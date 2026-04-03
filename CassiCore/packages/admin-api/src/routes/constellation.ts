@@ -381,6 +381,178 @@ export async function handleConstellationRoutes(
       return true
     }
 
+    // --- External Corpus Protocol ---
+
+    // POST /constellation/:id/corpus/assume — External agent takes Corpus control
+    if (method === 'POST' && subAction === 'corpus' && parts[3] === 'assume') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      try {
+        const body = await parseBody(req)
+        const { agentId, heartbeatTimeoutMs } = body ?? {}
+        if (!agentId) {
+          sendJSON(res, 400, { error: 'agentId is required' })
+          return true
+        }
+        const orchestrator = daemon.intelligence?.constellation
+        if (!orchestrator?.assumeCorpus) {
+          sendJSON(res, 501, { error: 'External Corpus Protocol not available' })
+          return true
+        }
+        const result = orchestrator.assumeCorpus(job.sessionId, agentId, heartbeatTimeoutMs)
+        sendJSON(res, result.assumed ? 200 : 409, result)
+      } catch (err) {
+        sendJSON(res, 500, { error: 'Failed to assume Corpus', detail: String(err) })
+      }
+      return true
+    }
+
+    // POST /constellation/:id/corpus/release — Release Corpus control back to internal
+    if (method === 'POST' && subAction === 'corpus' && parts[3] === 'release') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      try {
+        const body = await parseBody(req)
+        const { reason } = body ?? {}
+        const orchestrator = daemon.intelligence?.constellation
+        if (!orchestrator?.releaseCorpus) {
+          sendJSON(res, 501, { error: 'External Corpus Protocol not available' })
+          return true
+        }
+        const result = orchestrator.releaseCorpus(job.sessionId, reason)
+        sendJSON(res, result.released ? 200 : 409, result)
+      } catch (err) {
+        sendJSON(res, 500, { error: 'Failed to release Corpus', detail: String(err) })
+      }
+      return true
+    }
+
+    // GET /constellation/:id/corpus/state — Get external Corpus state
+    if (method === 'GET' && subAction === 'corpus' && parts[3] === 'state') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      const orchestrator = daemon.intelligence?.constellation
+      const state = orchestrator?.getCorpusExternalState?.(job.sessionId)
+      if (!state) {
+        sendJSON(res, 404, { error: 'Corpus state not available' })
+        return true
+      }
+      sendJSON(res, 200, state)
+      return true
+    }
+
+    // GET /constellation/:id/corpus/snapshot — Full Corpus snapshot for external agent
+    if (method === 'GET' && subAction === 'corpus' && parts[3] === 'snapshot') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      const orchestrator = daemon.intelligence?.constellation
+      const snapshot = orchestrator?.getCorpusSnapshot?.(job.sessionId)
+      if (!snapshot) {
+        sendJSON(res, 404, { error: 'Corpus snapshot not available' })
+        return true
+      }
+      sendJSON(res, 200, snapshot)
+      return true
+    }
+
+    // POST /constellation/:id/corpus/directive — Send directive as external Corpus
+    if (method === 'POST' && subAction === 'corpus' && parts[3] === 'directive') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      try {
+        const body = await parseBody(req)
+        const { targetHelixId, type, content, urgency } = body ?? {}
+        if (!targetHelixId || !type || !content) {
+          sendJSON(res, 400, { error: 'targetHelixId, type, and content are required' })
+          return true
+        }
+        const orchestrator = daemon.intelligence?.constellation
+        if (!orchestrator?.corpusDirective) {
+          sendJSON(res, 501, { error: 'External Corpus Protocol not available' })
+          return true
+        }
+        const result = orchestrator.corpusDirective(job.sessionId, {
+          targetHelixId,
+          type,
+          content,
+          urgency: urgency ?? 'medium',
+        })
+        sendJSON(res, result.sent ? 200 : 409, result)
+      } catch (err) {
+        sendJSON(res, 500, { error: 'Failed to send directive', detail: String(err) })
+      }
+      return true
+    }
+
+    // POST /constellation/:id/corpus/spawn-decide — Approve/reject a spawn request
+    if (method === 'POST' && subAction === 'corpus' && parts[3] === 'spawn-decide') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      try {
+        const body = await parseBody(req)
+        const { requestId, approved, reason, modifiedGoal } = body ?? {}
+        if (!requestId || approved === undefined || !reason) {
+          sendJSON(res, 400, { error: 'requestId, approved, and reason are required' })
+          return true
+        }
+        const orchestrator = daemon.intelligence?.constellation
+        if (!orchestrator?.corpusSpawnDecide) {
+          sendJSON(res, 501, { error: 'External Corpus Protocol not available' })
+          return true
+        }
+        const result = orchestrator.corpusSpawnDecide(job.sessionId, requestId, !!approved, reason, modifiedGoal)
+        sendJSON(res, result.decided ? 200 : 409, result)
+      } catch (err) {
+        sendJSON(res, 500, { error: 'Failed to decide spawn request', detail: String(err) })
+      }
+      return true
+    }
+
+    // POST /constellation/:id/corpus/synthesis — Post synthesis as external Corpus
+    if (method === 'POST' && subAction === 'corpus' && parts[3] === 'synthesis') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Running constellation not found' })
+        return true
+      }
+      try {
+        const body = await parseBody(req)
+        const { content, priority, tags } = body ?? {}
+        if (!content) {
+          sendJSON(res, 400, { error: 'content is required' })
+          return true
+        }
+        const orchestrator = daemon.intelligence?.constellation
+        if (!orchestrator?.corpusSynthesis) {
+          sendJSON(res, 501, { error: 'External Corpus Protocol not available' })
+          return true
+        }
+        const result = orchestrator.corpusSynthesis(job.sessionId, content, priority, tags)
+        sendJSON(res, result.posted ? 200 : 409, result)
+      } catch (err) {
+        sendJSON(res, 500, { error: 'Failed to post synthesis', detail: String(err) })
+      }
+      return true
+    }
+
     // GET /constellation/:id/progress — Live progress report (with archive fallback)
     if (method === 'GET' && subAction === 'progress') {
       const job = findJob(id)
