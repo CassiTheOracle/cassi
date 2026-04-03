@@ -21,10 +21,6 @@
 import { execFile } from 'node:child_process'
 import type { ILogger } from '../../../types/interfaces.js'
 
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
 export type HookEvent = 'PreToolUse' | 'PostToolUse'
 
 export interface HookRunResult {
@@ -45,10 +41,6 @@ export const EMPTY_HOOK_CONFIG: ExternalHookConfig = {
   preToolUse: [],
   postToolUse: [],
 }
-
-/* ------------------------------------------------------------------ */
-/*  Runner                                                             */
-/* ------------------------------------------------------------------ */
 
 export class ExternalHookRunner {
   private config: ExternalHookConfig
@@ -97,10 +89,6 @@ export class ExternalHookRunner {
   hasHooks(): boolean {
     return this.config.preToolUse.length > 0 || this.config.postToolUse.length > 0
   }
-
-  /* ---------------------------------------------------------------- */
-  /*  Internal                                                         */
-  /* ---------------------------------------------------------------- */
 
   private async runCommands(
     event: HookEvent,
@@ -219,10 +207,6 @@ export class ExternalHookRunner {
   }
 }
 
-/* ------------------------------------------------------------------ */
-/*  Internal types                                                     */
-/* ------------------------------------------------------------------ */
-
 type HookCommandOutcome =
   | { type: 'allow'; message?: string }
   | { type: 'deny'; message?: string }
@@ -243,15 +227,8 @@ function formatHookWarning(
   return msg
 }
 
-/* ------------------------------------------------------------------ */
-/*  Feedback merging helper                                            */
-/* ------------------------------------------------------------------ */
-
-/**
- * Merge hook feedback messages into a tool's output string.
- * Used to attach pre/post hook feedback to the tool result
- * that gets sent back to the model.
- */
+// HOW: Merges hook feedback messages into tool output by appending them
+// after the tool's original output with a labeled section header
 export function mergeHookFeedback(
   hookMessages: string[],
   toolOutput: string,
