@@ -89,15 +89,21 @@ export function shouldDecompose(goal: string, context?: string): 'skip' | 'simpl
 
   // --- Signal extraction (score everything before deciding) ---
 
-  // Structural markers: numbered lists (1. / 1) ) and bullet lists (- / * )
-  const numberedPattern = /(?:^|\n)\s*\d+[.)]\s+\w+/gm
+  // Structural markers: numbered lists (1. / 1) / (1) ) and bullet lists (- / * )
+  const numberedPattern = /(?:^|\n)\s*(?:\d+[.)]|\(\d+\))\s+\w+/gm
   const numberedMatches = text.match(numberedPattern) || []
   const bulletPattern = /(?:^|\n)\s*[-*]\s+\w+/gm
   const bulletMatches = text.match(bulletPattern) || []
   const listItemCount = numberedMatches.length + bulletMatches.length
 
+  // HOW: Inline parenthetical numbering like "(1) Add (2) Fix (3) Update" on a single line
+  const inlineParenNumbering = text.match(/\(\d+\)\s+\w+/g) || []
+  const effectiveListItemCount = Math.max(listItemCount, inlineParenNumbering.length)
+
   // File paths (e.g. core/session-manager.ts, auth.ts)
-  const filePathMatches = text.match(/[\w/.-]+\.\w{1,4}/g) || []
+  // WHY: Strip URLs first so http://foo.com/bar.json doesn't match as a file path
+  const textWithoutUrls = text.replace(/https?:\/\/[^\s]+/g, '')
+  const filePathMatches = textWithoutUrls.match(/[\w/.-]+\.\w{1,4}/g) || []
 
   // Connector words indicating multiple concepts
   const connectors = (lowerText.match(/\b(and|including|plus|with|also|as well as)\b/g) || []).length
@@ -122,14 +128,15 @@ export function shouldDecompose(goal: string, context?: string): 'skip' | 'simpl
 
   // WHY: Multiple list items always warrant full decomposition — the user
   // explicitly enumerated separate tasks
-  if (listItemCount >= 2) {
+  if (effectiveListItemCount >= 2) {
     return 'full'
   }
 
   // WHY: Vague goals with zero specificity indicators are not decomposable.
   // But vague + specific ("improve error handling throughout the codebase")
-  // is actionable and should proceed.
-  if (hasVagueKeyword && !hasSpecificity && length < 120) {
+  // is actionable and should proceed. No length cap — "improve X and optimize
+  // Y and clean up Z" at 200 chars is still vague if it has no targets.
+  if (hasVagueKeyword && !hasSpecificity) {
     return 'skip'
   }
 
