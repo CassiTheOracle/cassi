@@ -2759,6 +2759,9 @@ export class Daemon {
           }
 
           // Primary conductor session: re-route ALL channel messages to cassi:primary
+          // WHY: Capture original session ID before rewrite so the response can be
+          // sent back with the correct ID (e.g. tg:1339199309 instead of cassi:primary)
+          let originalSessionId: string | undefined
           if (
             this.primaryRouter &&
             !this.primaryRouter.isPrimary(sid) &&
@@ -2766,6 +2769,7 @@ export class Daemon {
             pluginId !== 'channel:module' &&
             !payload.type  // skip structured events (reasoning, tool_update, etc.)
           ) {
+            originalSessionId = sid
             this.primaryRouter.trackTurn(sid, pluginId)
             payload.sessionId = this.primaryRouter.primarySessionId
             this.logger.debug('[primary-router] Re-routing to conductor session', {
@@ -2926,20 +2930,17 @@ export class Daemon {
                   model: modelFromPayload,
                   engine: result.engine,
                 })
+                // HOW: When primary router is active, the response must be sent with
+                // the ORIGINAL session ID (e.g. tg:1339199309) — not the rewritten
+                // cassi:primary — so the channel worker can route it correctly.
+                // The turn:end handler may have already cleared the router source,
+                // so we use the pre-captured originalSessionId.
+                const effectiveSessionId = originalSessionId ?? result.sessionId
                 this.pluginHost.send(pluginId, {
-                  sessionId: result.sessionId,
+                  sessionId: effectiveSessionId,
                   content: result.response,
                   done: true,
                 })
-                // Fan response back to original channel when primary router is active
-                const routerSrcForContent = this.primaryRouter?.getSource()
-                if (routerSrcForContent) {
-                  this.pluginHost.send(routerSrcForContent.channelId, {
-                    sessionId: routerSrcForContent.sessionId,
-                    content: result.response,
-                    done: true,
-                  })
-                }
               } else {
                 this.logger.info(`Turn complete (legacy)`, {
                   sessionId: inbound.sessionId,
@@ -2960,20 +2961,10 @@ export class Daemon {
             })
             // Send error message to channel
             this.pluginHost.send(pluginId, {
-              sessionId: inbound.sessionId,
-              content: `⚠️ Something went wrong — please try again.`,
+              sessionId: originalSessionId ?? inbound.sessionId,
+              content: `Something went wrong. Please try again.`,
               done: true,
             })
-            // Fan out error to original channel via primary router
-            const routerSrcForError = this.primaryRouter?.getSource()
-            if (routerSrcForError) {
-              this.pluginHost.send(routerSrcForError.channelId, {
-                sessionId: routerSrcForError.sessionId,
-                content: `⚠️ Something went wrong — please try again.`,
-                done: true,
-              })
-              this.primaryRouter!.clearTurn()
-            }
           }
         }
       } catch (err) {
