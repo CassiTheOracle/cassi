@@ -324,8 +324,47 @@ export class HelixStore {
     this.logger.debug(`Completed Helix session ${id}`)
   }
 
-  failSession(id: string, error: string): void {
-    this.stmts.failSession.run({ id, status: 'failed', error, completed_at: Date.now() })
+  failSession(id: string, error: string, partialResult?: Partial<HelixResultLike>): void {
+    if (partialResult) {
+      // WHY: When a session is killed by timeout or crash, we still want to
+      // persist whatever stats were accumulated.  Without this, helix_sessions
+      // shows iterations=0 tokens=0 for killed sessions, making post-mortem
+      // analysis impossible.
+      this.stmts.updateSession.run({
+        id, status: 'failed',
+        unity_summary: partialResult.unitySummary ?? partialResult.unityConclusion ?? null,
+        yang_summary: partialResult.yangSummary ?? partialResult.yangConclusion ?? null,
+        yin_summary: partialResult.yinSummary ?? partialResult.yinConclusion ?? null,
+        unity_conclusion: partialResult.unityConclusion ?? null,
+        yang_conclusion: partialResult.yangConclusion ?? null,
+        yin_conclusion: partialResult.yinConclusion ?? null,
+        convergence_points: JSON.stringify(partialResult.convergencePoints ?? []),
+        unresolved_tensions: JSON.stringify(partialResult.unresolvedTensions ?? []),
+        dialectic_stats: JSON.stringify(partialResult.dialecticStats ?? {}),
+        quality_score: partialResult.qualityScore ?? null,
+        remaining_issues: JSON.stringify(partialResult.remainingIssues ?? []),
+        work_units_produced: partialResult.pipelineStats?.workUnitsProduced ?? 0,
+        nudges_sent: partialResult.pipelineStats?.nudgesSent ?? 0,
+        nudges_acknowledged: partialResult.pipelineStats?.nudgesAcknowledged ?? 0,
+        tokens_unity: partialResult.tokensUsed?.unity ?? 0,
+        tokens_yang: partialResult.tokensUsed?.yang ?? 0,
+        tokens_yin: partialResult.tokensUsed?.yin ?? 0,
+        iterations_unity: partialResult.iterationCounts?.unity ?? 0,
+        iterations_yang: partialResult.iterationCounts?.yang ?? 0,
+        iterations_yin: partialResult.iterationCounts?.yin ?? 0,
+        tool_calls_unity: partialResult.toolCallCounts?.unity ?? 0,
+        tool_calls_yang: partialResult.toolCallCounts?.yang ?? 0,
+        tool_calls_yin: partialResult.toolCallCounts?.yin ?? 0,
+        files_modified: JSON.stringify(partialResult.filesModified ?? []),
+        report_json: JSON.stringify(partialResult.report ?? null),
+        blackboard_snapshot: JSON.stringify(partialResult.blackboard ?? null),
+        duration_ms: partialResult.durationMs ?? null,
+        error: error,
+        completed_at: Date.now(),
+      })
+    } else {
+      this.stmts.failSession.run({ id, status: 'failed', error, completed_at: Date.now() })
+    }
     this.logger.error(`Helix session ${id} failed`, { error })
   }
 
