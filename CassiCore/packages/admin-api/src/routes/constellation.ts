@@ -489,7 +489,8 @@ export async function handleConstellationRoutes(
         const result = orchestrator.corpusDirective(job.sessionId, {
           targetHelixId,
           type,
-          content,
+          text: content,
+          reason: content,
           urgency: urgency ?? 'medium',
         })
         sendJSON(res, result.sent ? 200 : 409, result)
