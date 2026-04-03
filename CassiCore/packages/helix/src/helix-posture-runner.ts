@@ -417,7 +417,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
         // Stream inference
-        const result = await this.streamInference(tools)
+        const result = await this.streamInferenceWithRetry(tools)
         this.tokensUsed += result.tokensUsed
         // WorkStream tracks iterations for yang/yin reviewers
         this.workStream.recordIteration(this.role as any, result.tokensUsed)
@@ -566,7 +566,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Context pressure management
         if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
-        const result = await this.streamInference(tools)
+        const result = await this.streamInferenceWithRetry(tools)
         this.tokensUsed += result.tokensUsed
         // WorkStream tracks iterations for yang/yin reviewers
         this.workStream.recordIteration(this.role as any, result.tokensUsed)
@@ -732,7 +732,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
         if (this.contextChunkIndex) { this.manageContextWithChunkIndex() } else { this.manageContextPressure() }
 
-        const result = await this.streamInference(tools)
+        const result = await this.streamInferenceWithRetry(tools)
         this.tokensUsed += result.tokensUsed
         this.onActivity?.()
 
@@ -2388,6 +2388,39 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       findingsShared: this.role !== 'unity' ? this.findingsShared : undefined,
       challengesMade: this.role !== 'unity' ? this.challengesMade : undefined,
       concessionsMade: this.role !== 'unity' ? this.concessionsMade : undefined,
+    }
+  }
+
+  // WHY: The provider layer retries 429s up to 5 times, but can still exhaust its
+  // budget when multiple branches compete for the same provider. This second
+  // retry layer uses longer backoffs (10s+) to survive sustained rate limiting
+  // without immediately failing the entire posture/pipeline/branch.
+  private static readonly INFERENCE_MAX_RETRIES = 3
+  private static readonly INFERENCE_BASE_DELAY_MS = 10_000
+  private static readonly RATE_LIMIT_PATTERN = /429|rate.?limit|rate_limit_exceeded|resource.?exhausted|quota.?exceeded|throttl|retry after/i
+
+  private async streamInferenceWithRetry(tools: any[]): Promise<ReturnType<typeof this.streamInference>> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.streamInference(tools)
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err)
+        const isRateLimit = HelixPostureRunner.RATE_LIMIT_PATTERN.test(msg)
+
+        if (!isRateLimit || attempt >= HelixPostureRunner.INFERENCE_MAX_RETRIES) {
+          throw err
+        }
+
+        // HOW: Exponential backoff with jitter — 10s, 20s, 40s base + random 0-5s
+        const delayMs = HelixPostureRunner.INFERENCE_BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 5_000
+        this.logger.warn(`${this.role} inference rate-limited, retrying`, {
+          attempt: attempt + 1,
+          maxRetries: HelixPostureRunner.INFERENCE_MAX_RETRIES,
+          delayMs: Math.round(delayMs),
+          error: msg,
+        })
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
     }
   }
 
