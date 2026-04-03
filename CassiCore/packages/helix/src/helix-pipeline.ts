@@ -109,10 +109,11 @@ export interface HelixPipelineOpts {
 
 
 /**
- * @dep callers: project (core/intelligence/helix/index.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
- * @dep calls: createHelixBrainstem, buildErrorResult, onActivity, cancelAll, sendNudge [+31]
- * @dep module: Intelligence
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), project (core/intelligence/helix/index.ts)
+ * @dep calls: on, emit, start, child, stop [+30]
+ * @dep flows: RunHelixPipeline → Delete (1/4)
+ * @dep module: Helix
+ * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 
 export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixResult> {
@@ -660,6 +661,42 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     })
 
     return result
+  } catch (pipelineError) {
+    // WHY: When the pipeline throws (timeout, LLM failure, etc.), we need to
+    // persist whatever stats were accumulated.  Without this, killed sessions
+    // show iterations=0 tokens=0 in the helix_sessions table.
+    const partialStats: Record<string, unknown> = {}
+    try {
+      // HOW: The posture results may not exist (pipeline killed before allSettled),
+      // so we pull stats from workStream and brainstem instead.
+      const pipelineStats = workStream?.getStats?.()
+      partialStats.pipelineStats = {
+        workUnitsProduced: pipelineStats?.workUnits ?? 0,
+        nudgesSent: (pipelineStats?.nudges?.low ?? 0) + (pipelineStats?.nudges?.high ?? 0),
+        nudgesAcknowledged: pipelineStats?.nudges?.acknowledged ?? 0,
+      }
+      partialStats.durationMs = Date.now() - startTime
+      if (brainstem) {
+        const bsState = brainstem.getState()
+        partialStats.tokensUsed = { unity: 0, yang: 0, yin: 0 }
+        partialStats.iterationCounts = { unity: bsState.workUnitsProcessed, yang: 0, yin: 0 }
+        partialStats.toolCallCounts = { unity: 0, yang: 0, yin: 0 }
+      }
+    } catch {
+      // best-effort stats collection
+    }
+
+    opts.store?.failSession(sessionId, String(pipelineError), partialStats as any)
+    opts.store?.appendEvent(sessionId, 'helix:failed', 'session',
+      `Pipeline failed: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`)
+
+    log.error('Helix pipeline failed', {
+      sessionId,
+      error: String(pipelineError),
+      durationMs: partialStats.durationMs,
+    })
+
+    throw pipelineError
   } finally {
     clearInterval(watchdogInterval)
     clearTimeout(timeoutHandle)
@@ -694,8 +731,8 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 
 /**
- * @dep callers: runHelixPipeline (core/intelligence/helix/helix-pipeline.ts), extract (core/intelligence/helix/helix-pipeline.ts)
- * @dep module: Intelligence
+ * @dep callers: extract (core/intelligence/helix/helix-pipeline.ts), runHelixPipeline (core/intelligence/helix/helix-pipeline.ts)
+ * @dep module: Helix
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
