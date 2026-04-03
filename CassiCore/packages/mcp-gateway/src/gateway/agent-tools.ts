@@ -190,7 +190,7 @@ export const AGENT_TOOL = {
       },
       heartbeatTimeoutMs: {
         type: 'number',
-        description: 'Inactivity timeout in ms before auto-releasing Corpus. Default: 60000',
+        description: 'Inactivity timeout in ms before auto-releasing Corpus. Default: 300000',
       },
       targetHelixId: {
         type: 'string',
@@ -435,6 +435,10 @@ async function executeFluxAgentTool(
 
 /**
  * Get the consolidated agent tool definition
+ * @dep callers: getAllTools (mcp/cassicore-gateway.ts)
+ * @dep flows: Start → GetAgentTool (4/4)
+ * @dep module: Unknown
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export function getAgentTool(): typeof AGENT_TOOL {
   return AGENT_TOOL;

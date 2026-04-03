@@ -161,13 +161,13 @@ export const CONSTELLATION_TOOLS = [
 
   {
     name: 'constellation_corpus_assume',
-    description: 'Assume the Corpus role for a running Constellation. Pauses the internal Corpus LLM and lets the calling agent make strategic decisions (directives, spawn approvals, synthesis) via subsequent tool calls. Only one external agent can hold the Corpus at a time. Auto-releases after heartbeat timeout (default: 60s of inactivity).',
+    description: 'Assume the Corpus role for a running Constellation. Pauses the internal Corpus LLM and lets the calling agent make strategic decisions (directives, spawn approvals, synthesis) via subsequent tool calls. Only one external agent can hold the Corpus at a time. Auto-releases after heartbeat timeout (default: 5min of inactivity).',
     inputSchema: {
       type: 'object',
       properties: {
         sessionId: { type: 'string', description: 'The Constellation session ID.' },
         agentId: { type: 'string', description: 'Identifier for the assuming agent (for attribution and audit).' },
-        heartbeatTimeoutMs: { type: 'number', description: 'Inactivity timeout in ms before auto-release. Default: 60000.' },
+        heartbeatTimeoutMs: { type: 'number', description: 'Inactivity timeout in ms before auto-release. Default: 300000.' },
       },
       required: ['sessionId', 'agentId'],
     },
