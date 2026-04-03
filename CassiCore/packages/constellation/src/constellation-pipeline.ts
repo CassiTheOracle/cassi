@@ -45,256 +45,14 @@ import type {
 } from './types.js'
 import type { ConstellationLiveState } from './constellation-injection.js'
 import { getTemplatePostures } from './templates.js'
+import { fastDecompose, shouldDecompose } from './fast-decomposer.js'
+import { DecompositionTracker } from './decomposition-tracker.js'
 
 // Constants
 
 const DEFAULT_MAX_HELIXES = 16
 const DEFAULT_MAX_DEPTH = 4
 const SPAWN_CHECK_INTERVAL_MS = 1000
-
-/**
- * Simple complexity check for goal decomposition.
- * Returns true if the goal is likely complex enough to benefit from decomposition.
- */
-function isGoalComplex(goal: string): boolean {
-  // HOW: Heuristics: long goals, multiple sections, mentions multiple modules/directories
-  if (goal.length > 500) return true
-  if ((goal.match(/\n##/g) ?? []).length >= 2) return true
-  if ((goal.match(/(?:core\/|src\/|lib\/)[^\s,]+/g) ?? []).length >= 3) return true
-  if ((goal.match(/\d+\.\s/g) ?? []).length >= 3) return true // numbered list with 3+ items
-  return false
-}
-
-/**
- * Run pre-flight goal decomposition via a planning Helix.
- * For complex goals, spawns a short-lived full Helix that reads the codebase,
- * validates paths, and produces a structured decomposition.
- * For simple goals, returns a pass-through (no decomposition).
- */
-async function runGoalDecomposition(opts: {
-  goal: string
-  context?: string
-  launchHelix: (goal: string, context: string | undefined, template: ConstellationTemplate | undefined, depth: number) => Promise<{ helixId: string; promise: Promise<HelixResult> }>
-  corpus: Corpus
-  log: ILogger
-  memory?: IMemory
-  readFile: (path: string) => Promise<string | null>
-}): Promise<GoalDecomposition> {
-  const startTime = Date.now()
-
-  if (!isGoalComplex(opts.goal)) {
-    opts.log.info('Goal is simple, skipping decomposition')
-    return {
-      decomposed: false,
-      originalGoal: opts.goal,
-      subTasks: [{ goal: opts.goal, priority: 1 }],
-      strategy: 'parallel',
-      durationMs: Date.now() - startTime,
-    }
-  }
-
-  // Query memory for relevant context before decomposition
-  let memoryContext = ''
-  if (opts.memory) {
-    try {
-      const memoryResults = await opts.memory.search(opts.goal, { limit: 5 })
-      if (memoryResults.length > 0) {
-        memoryContext = formatMemoryResultsForPlanner(memoryResults)
-        opts.log.info('Retrieved relevant memories for goal decomposition', {
-          count: memoryResults.length,
-          topScore: memoryResults[0]?.score,
-        })
-      }
-    } catch (err) {
-      opts.log.warn('Memory query failed during goal decomposition', { error: String(err) })
-      // WHY: Continue without memory context — don't block decomposition
-    }
-  }
-
-  opts.log.info('Goal is complex, launching planning Helix for decomposition', {
-    goalLength: opts.goal.length,
-  })
-
-  const plannerGoal = `Analyze and decompose the following goal into concrete sub-tasks.
-
-## Original Goal
-${opts.goal}
-${memoryContext ? `\n## Relevant Past Context (from Cassi's memory)\n${memoryContext}\n` : ''}${opts.context ? `\n## Additional Context\n${opts.context}` : ''}
-
-## Task
-1. Use read_file and list_directory to explore the codebase — these are the ONLY tools you should use for exploration
-2. Do NOT use collect_thoughts, serena_*, or gitnexus_* tools — they are not useful for this task
-3. Identify 3-6 concrete, independent sub-tasks that together achieve the goal
-4. For each sub-task, validate that referenced file paths actually exist
-5. Assign each sub-task a TEMPLATE (research, implementation, review, standard, or minimal)
-6. Call signal_done with the decomposition in the conclusion field using the format below
-
-## Output Format (put this in signal_done's conclusion field)
-
-DECOMPOSITION_START
-STRATEGY: parallel|sequential|tree
-SHARED_CONTEXT: <any context all sub-tasks need>
-
-SUBTASK: <focused goal for sub-task 1>
-TEMPLATE: <research|implementation|review|standard|minimal>
-FILES: <comma-separated file paths relevant to this sub-task>
-PRIORITY: <1-5, higher is more important>
-BUDGET_STEPS: <max steps this sub-task should need, 10-40>
-
-SUBTASK: <focused goal for sub-task 2>
-TEMPLATE: <research|implementation|review|standard|minimal>
-FILES: <comma-separated file paths>
-PRIORITY: <1-5>
-BUDGET_STEPS: <max steps>
-
-... (repeat for each sub-task)
-DECOMPOSITION_END
-
-## Rules
-- MINIMUM 3 sub-tasks for any non-trivial goal. Prefer 4-6 well-scoped tasks.
-- SEPARATE research from implementation: if the goal requires understanding existing code before modifying it, create a dedicated "research" sub-task that runs first, and separate "implementation" sub-tasks that build on its findings.
-- Each SUBTASK must be specific enough to execute independently
-- Validate all file paths with read_file before including them
-- Assign realistic BUDGET_STEPS: research=15-25, implementation=20-40, review=10-20, minimal=5-10
-- If the goal is actually simple and doesn't need decomposition, output a single SUBTASK with the original goal
-- Call signal_done within 10 iterations — do not endlessly explore
-
-## Example (good decomposition)
-A goal like "Add rate limiting to the admin API" should become:
-- SUBTASK 1 (research): Analyze current admin API structure, find all endpoints, understand auth patterns
-- SUBTASK 2 (implementation): Implement rate limiter middleware with configurable limits per endpoint
-- SUBTASK 3 (implementation): Wire rate limiter into admin API routes and add config defaults
-- SUBTASK 4 (review): Run type-check and tests, verify no regressions`
-
-  try {
-    const plannerHelix = await opts.launchHelix(plannerGoal, undefined, 'minimal', 0)
-
-    // Wait for planning Helix with a timeout (5 minutes max for planning)
-    const timeoutPromise = new Promise<HelixResult>((_, reject) => {
-      setTimeout(() => reject(new Error('Planning Helix timed out')), 300_000)
-    })
-
-    const result = await Promise.race([plannerHelix.promise, timeoutPromise])
-
-    // Parse the decomposition from the result
-    const decomposition = parseDecompositionResult(result, opts.goal, startTime)
-    opts.log.info('Decomposition complete', {
-      decomposed: decomposition.decomposed,
-      subTasks: decomposition.subTasks.length,
-      strategy: decomposition.strategy,
-      durationMs: decomposition.durationMs,
-    })
-
-    return decomposition
-  } catch (error) {
-    opts.log.warn('Goal decomposition failed, falling back to single Helix', {
-      error: String(error),
-    })
-    return {
-      decomposed: false,
-      originalGoal: opts.goal,
-      subTasks: [{ goal: opts.goal, priority: 1 }],
-      strategy: 'parallel',
-      durationMs: Date.now() - startTime,
-    }
-  }
-}
-
-/**
- * Parse the structured decomposition from a planning Helix result.
- */
-function parseDecompositionResult(
-  result: HelixResult,
-  originalGoal: string,
-  startTime: number,
-): GoalDecomposition {
-  // HOW: Look for DECOMPOSITION_START...DECOMPOSITION_END in the result
-  const conclusion = result.unityConclusion ?? result.mentorSynthesis ?? ''
-  const fullText = `${conclusion}\n${result.unitySummary ?? ''}\n${result.unityKeyPoints?.join('\n') ?? ''}`
-
-  const decompMatch = fullText.match(/DECOMPOSITION_START\s*\n([\s\S]*?)DECOMPOSITION_END/)
-  if (!decompMatch) {
-    return {
-      decomposed: false,
-      originalGoal,
-      subTasks: [{ goal: originalGoal, priority: 1 }],
-      strategy: 'parallel',
-      durationMs: Date.now() - startTime,
-    }
-  }
-
-  const block = decompMatch[1]
-
-  const strategyMatch = block.match(/STRATEGY:\s*(parallel|sequential|tree)/i)
-  const strategy = (strategyMatch?.[1]?.toLowerCase() ?? 'parallel') as 'parallel' | 'sequential' | 'tree'
-
-  const sharedContextMatch = block.match(/SHARED_CONTEXT:\s*(.+?)(?=\n\nSUBTASK:|\n$)/s)
-  const sharedContext = sharedContextMatch?.[1]?.trim()
-
-  const subTaskPattern = /SUBTASK:\s*(.+?)(?:\nTEMPLATE:\s*(.+?))?(?:\nFILES:\s*(.+?))?(?:\nPRIORITY:\s*(\d))?(?:\nBUDGET_STEPS:\s*(\d+))?(?=\n\nSUBTASK:|\nDECOMPOSITION_END|$)/gs
-  const subTasks: GoalSubTask[] = []
-
-  let match
-  while ((match = subTaskPattern.exec(block)) !== null) {
-    const goal = match[1].trim()
-    const templateStr = match[2]?.trim().toLowerCase()
-    const files = match[3]?.trim().split(',').map(f => f.trim()).filter(Boolean)
-    const priority = parseInt(match[4] ?? '1', 10) || 1
-    const budgetSteps = parseInt(match[5] ?? '0', 10) || undefined
-
-    const validTemplates = ['research', 'implementation', 'review', 'standard', 'minimal'] as const
-    const template = validTemplates.includes(templateStr as any)
-      ? (templateStr as ConstellationTemplate)
-      : undefined
-
-    if (goal) {
-      subTasks.push({
-        goal,
-        template,
-        relevantFiles: files?.length ? files : undefined,
-        priority,
-        budgetSteps,
-      })
-    }
-  }
-
-  if (subTasks.length === 0) {
-    return {
-      decomposed: false,
-      originalGoal,
-      subTasks: [{ goal: originalGoal, priority: 1 }],
-      strategy: 'parallel',
-      durationMs: Date.now() - startTime,
-    }
-  }
-
-  return {
-    decomposed: subTasks.length > 1,
-    originalGoal,
-    subTasks: subTasks.sort((a, b) => b.priority - a.priority),
-    strategy,
-    sharedContext: sharedContext || undefined,
-    durationMs: Date.now() - startTime,
-  }
-}
-
-/**
- * Format memory search results for inclusion in the planner goal.
- */
-function formatMemoryResultsForPlanner(results: SearchResult[]): string {
-  const formatted = results.map((r, i) => {
-    const entry = r.entry
-    const date = entry.createdAt.toLocaleDateString()
-    const type = entry.type
-    const content = entry.content.slice(0, 300)
-    return `[${i + 1}] ${type.toUpperCase()} (${date}, relevance: ${(r.score * 100).toFixed(0)}%)\n${content}${entry.content.length > 300 ? '...' : ''}`
-  }).join('\n\n')
-
-  return `The following relevant memories from past sessions may provide context for this task:\n\n${formatted}\n\n` +
-    `Consider this historical context when decomposing the goal. ` +
-    `If these memories contain relevant implementation details, file paths, or lessons learned, ` +
-    `incorporate them into your sub-task planning.`
-}
 
 /**
  * Safe file reader for brainstem/corpus path validation.
@@ -382,6 +140,9 @@ export interface ConstellationPipelineOpts {
 
   /** Optional memory system for cross-run learning and context injection */
   memory?: IMemory
+
+  /** Pre-assembled codebase context from GitNexus (for fast decomposition) */
+  codebaseContext?: string
 
   /** Callback when a node is created */
   onNodeCreated?: (node: ConstellationNode) => void
@@ -758,6 +519,7 @@ export async function runConstellationPipeline(
   const blackboardBridges = new Map<string, BlackboardBridge>()
   let rootHelixId: string | undefined
   let completed = false
+  let tracker: DecompositionTracker | undefined
 
   // Helper: Resolve Postures
 
@@ -1159,6 +921,19 @@ export async function runConstellationPipeline(
         node.status = result.completionStatus.complete ? (isDegraded ? 'degraded' : 'completed') : 'failed'
         node.completedAt = Date.now()
 
+        // Track task completion (tracker is defined later in the function)
+        // It will be available when this promise resolves for decomposed tasks
+        if (typeof tracker !== 'undefined') {
+          const trackedTask = tracker.getTaskByHelixId(helixId)
+          if (trackedTask) {
+            if (node.status === 'completed' || node.status === 'degraded') {
+              tracker.completeTask(trackedTask.id, result.unityConclusion?.slice(0, 500))
+            } else {
+              tracker.failTask(trackedTask.id, 'Helix failed')
+            }
+          }
+        }
+
         // Populate tokensUsed from HelixResult
         const tu = result.tokensUsed
         node.tokensUsed = (tu.unity ?? 0) + (tu.yang ?? 0) + (tu.yin ?? 0) + (tu.mentor ?? 0)
@@ -1413,17 +1188,33 @@ export async function runConstellationPipeline(
       }
     }
 
-    // WHY: For complex goals, run a short planning Helix to decompose the goal
-    // into validated sub-tasks before launching execution Helixes.
-    const decomposition = await runGoalDecomposition({
-      goal,
-      context,
-      launchHelix,
-      corpus,
-      log,
-      memory: opts.memory,
-      readFile: (path: string) => safeReadFile(path, process.cwd()),
-    })
+    // WHY: For complex goals, use fast decomposition with direct LLM call.
+    // For simple goals, skip decomposition overhead.
+    const decompositionMode = shouldDecompose(goal, context)
+    let decomposition: GoalDecomposition
+
+    if (decompositionMode === 'skip') {
+      log.info('Goal is simple, skipping decomposition')
+      decomposition = {
+        decomposed: false,
+        originalGoal: goal,
+        subTasks: [{ goal, priority: 1 }],
+        strategy: 'parallel',
+        durationMs: 0,
+      }
+    } else {
+      decomposition = await fastDecompose({
+        goal,
+        context,
+        llm: corpusLLM,
+        log: log.child('decomposer'),
+        memory: opts.memory,
+        codebaseContext: decompositionMode === 'full' ? opts.codebaseContext : undefined,
+      })
+    }
+
+    // Create tracker for task lifecycle management
+    tracker = new DecompositionTracker(constellationId, decomposition, log.child('tracker'))
 
     // WHY: Periodic checkpointing for crash recovery. The Corpus handles branch
     // lifecycle through per-branch budgets (BRANCH_BUDGET_DEFAULTS) and escalation
@@ -1505,16 +1296,20 @@ export async function runConstellationPipeline(
       })
 
       const helixPromises: Array<{ helixId: string; promise: Promise<HelixResult> }> = []
-      for (const subTask of decomposition.subTasks) {
+      const pendingTasks = tracker.getPendingTasks()
+      
+      for (const trackedTask of pendingTasks) {
         const subContext = [
           decomposition.sharedContext,
-          subTask.context,
-          subTask.relevantFiles?.length
-            ? `Relevant files: ${subTask.relevantFiles.join(', ')}`
+          trackedTask.originalTask.context,
+          trackedTask.originalTask.relevantFiles?.length
+            ? `Relevant files: ${trackedTask.originalTask.relevantFiles.join(', ')}`
             : undefined,
         ].filter(Boolean).join('\n\n')
 
-        const h = await launchHelix(subTask.goal, subContext || undefined, subTask.template, 0)
+        const h = await launchHelix(trackedTask.originalTask.goal, subContext || undefined, trackedTask.originalTask.template, 0)
+        tracker.assignTask(trackedTask.id, h.helixId)
+        tracker.startTask(trackedTask.id)
         helixPromises.push(h)
       }
       rootHelixId = helixPromises[0]?.helixId ?? ''

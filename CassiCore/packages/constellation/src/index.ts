@@ -151,3 +151,18 @@ export type { ConstellationLiveState } from './constellation-injection.js'
 
 export { createConstellationOrchestrator } from './constellation-orchestrator.js'
 export type { ConstellationOrchestrator } from './constellation-orchestrator.js'
+
+
+
+export { DecompositionTracker } from './decomposition-tracker.js'
+export type {
+  TrackedTask,
+  TaskStatus,
+  DecompositionSnapshot,
+} from './decomposition-tracker.js'
+
+
+// Fast Decomposer — Direct LLM-based goal decomposition
+
+export { fastDecompose, shouldDecompose } from './fast-decomposer.js'
+export type { FastDecomposerOpts } from './fast-decomposer.js'
