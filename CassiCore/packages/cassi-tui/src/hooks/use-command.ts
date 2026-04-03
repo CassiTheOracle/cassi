@@ -24,7 +24,7 @@ export interface LocalCommandCallbacks {
   onClear: () => void
   onNewSession: () => void
   onSetModel: (model: string | null) => void
-  onShowSession: () => string     // returns current session ID
+  onShowSession: () => string     // WHY: Returns current session ID for /session command
   onSwitchSession: (id: string) => void
   onOpenModelSelector: () => void
   onOpenSessionPicker: () => void
@@ -90,7 +90,7 @@ export function useCommand(
       // Record in history
       setHistory((h) => {
         const next = [input, ...h.filter((x) => x !== input)]
-        return next.slice(0, 100) // Keep last 100
+        return next.slice(0, 100) // WHY: Keep last 100 unique commands
       })
 
       const parts = input.trim().split(/\s+/)
