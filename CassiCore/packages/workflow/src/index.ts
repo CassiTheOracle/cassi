@@ -46,6 +46,7 @@ export {
   featureImplementation,
   scheduledCleanup,
   eventReactorChain,
+  batchEdit,
 } from './templates.js'
 export type {
   CodeReviewPipelineOptions,
@@ -53,6 +54,7 @@ export type {
   FeatureImplementationOptions,
   ScheduledCleanupOptions,
   EventReactorChainOptions,
+  BatchEditOptions,
 } from './templates.js'
 export type {
   IToolExecutor,

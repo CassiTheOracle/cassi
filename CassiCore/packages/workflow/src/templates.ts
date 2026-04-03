@@ -15,6 +15,7 @@
  *   featureImplementation   — design -> implement -> test -> review pipeline
  *   scheduledCleanup        — foreach loop over cleanup tasks using tool steps
  *   eventReactorChain       — branch on event type, dispatch to handlers
+ *   batchEdit               — parallel batch editing with explicit file assignments
  */
 
 import type { WorkflowStep, WorkflowDefinition, StepContext } from '../../types/workflow.js'
@@ -50,6 +51,10 @@ export interface CodeReviewPipelineOptions {
  *
  * Input: string (target path or description of what to review)
  * Output: HelixResult (synthesis of all review findings)
+ * @dep callers: start (core/daemon.ts), workflow-templates.test.ts (tests/workflow-templates.test.ts)
+ * @dep calls: helixBranch, createWorkflow, parallel, commit
+ * @dep module: Workflow
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function codeReviewPipeline(opts: CodeReviewPipelineOptions): WorkflowDefinition {
   const aspects = opts.aspects ?? [
@@ -123,6 +128,10 @@ export interface ResearchPipelineOptions {
  *
  * Input: string (research question or topic)
  * Output: HelixResult (synthesized findings)
+ * @dep callers: start (core/daemon.ts), workflow-templates.test.ts (tests/workflow-templates.test.ts)
+ * @dep calls: helixBranch, createWorkflow, parallel, commit
+ * @dep module: Workflow
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function researchPipeline(opts: ResearchPipelineOptions): WorkflowDefinition {
   const angleBranches = opts.angles.map((angle) =>
@@ -176,6 +185,10 @@ export interface FeatureImplementationOptions {
  *
  * Input: string (feature description)
  * Output: HelixResult (final review or last step's result)
+ * @dep callers: start (core/daemon.ts), workflow-templates.test.ts (tests/workflow-templates.test.ts)
+ * @dep calls: helixBranch, createWorkflow, commit
+ * @dep module: Workflow
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function featureImplementation(opts: FeatureImplementationOptions): WorkflowDefinition {
   const builder = createWorkflow({
@@ -256,6 +269,10 @@ export interface ScheduledCleanupOptions {
  *
  * Input: any (passed to first task)
  * Output: result of last task
+ * @dep callers: start (core/daemon.ts), workflow-templates.test.ts (tests/workflow-templates.test.ts)
+ * @dep calls: toolStep, createWorkflow, commit
+ * @dep module: Workflow
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function scheduledCleanup(opts: ScheduledCleanupOptions): WorkflowDefinition {
   const builder = createWorkflow({
@@ -301,6 +318,10 @@ export interface EventReactorChainOptions {
  *
  * Input: event data (from trigger)
  * Output: result of matched handler
+ * @dep callers: start (core/daemon.ts), workflow-templates.test.ts (tests/workflow-templates.test.ts)
+ * @dep calls: createWorkflow, branch, commit
+ * @dep module: Workflow
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 export function eventReactorChain(opts: EventReactorChainOptions): WorkflowDefinition {
   const routes = opts.routes.map((route) => ({
@@ -321,4 +342,76 @@ export function eventReactorChain(opts: EventReactorChainOptions): WorkflowDefin
       opts.fallback,
     )
     .commit()
+}
+
+
+// Template: batchEdit
+
+export interface BatchEditOptions {
+  /** Unique workflow id (default: 'batch-edit'). */
+  id?: string
+  /** Editing rules as a prompt string (e.g., comment cleanup rules from CONTRIBUTING.md). */
+  rules: string
+  /** File batches — each batch is processed by a separate parallel Helix step. */
+  batches: Array<{ name: string; files: string[] }>
+  /** Max iterations per batch (default: 20). */
+  maxIterations?: number
+  /** Timeout per batch in ms (default: 10 minutes). */
+  batchTimeoutMs?: number
+  /** Helix runner instance. */
+  runner: IHelixRunner
+}
+
+/**
+ * Create a batch editing workflow that dispatches parallel Helix sessions,
+ * each processing a batch of files with the same editing rules.
+ *
+ * @why Constellation has high overhead for mechanical edits (exploration,
+ *      Corpus coordination, 3-posture review). This template bypasses that
+ *      by dispatching single-purpose Helix sessions in parallel, each
+ *      given an explicit file list and editing rules.
+ *
+ * Flow: parallel([batch1, batch2, ...batchN])
+ *
+ * Input: optional override rules (string)
+ * Output: array of HelixResult from all batches
+ */
+export function batchEdit(opts: BatchEditOptions): WorkflowDefinition {
+  const builder = createWorkflow({
+    id: opts.id ?? 'batch-edit',
+    description: `Parallel batch edit: ${opts.batches.length} batches`,
+  })
+
+  const batchSteps = opts.batches.map((batch) =>
+    helixStep({
+      id: `batch-${batch.name}`,
+      description: `Edit ${batch.files.length} files: ${batch.name}`,
+      goal: (input: unknown) => {
+        const rules = (typeof input === 'string' && input) ? input : opts.rules
+        return [
+          `BATCH EDIT — ${batch.name}`,
+          '',
+          '## Rules',
+          rules,
+          '',
+          '## Files to edit (process ALL of these)',
+          ...batch.files.map((f) => `- ${f}`),
+          '',
+          '## Instructions',
+          'Read each file, apply the rules, move to the next file.',
+          'Use serena_replace_content with regex mode for efficient multi-line edits.',
+          'Do NOT explore, analyze, or summarize. Just edit.',
+          'Do NOT modify @dep blocks or license headers.',
+        ].join('\n')
+      },
+      toolAccess: 'read-write',
+      maxIterations: opts.maxIterations ?? 20,
+      timeoutMs: opts.batchTimeoutMs ?? 600_000,
+      runner: opts.runner,
+    }),
+  )
+
+  builder.parallel(batchSteps)
+
+  return builder.commit()
 }
