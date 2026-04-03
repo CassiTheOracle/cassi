@@ -18,7 +18,7 @@
  *   - minimal:        Unity + single Reviewer (lightweight, 2 postures)
  */
 
-import type { FlexPosture, ConstellationTemplate } from './types.js'
+import type { FlexPosture, ConstellationTemplate, TemplateCapabilities } from './types.js'
 import { createPostureSet } from './flex-posture.js'
 
 
@@ -33,6 +33,12 @@ const STANDARD_POSTURES: FlexPosture[] = [
     channels: { workStream: 'producer', constellationBoard: true },
     canSpawnDrones: true,
     maxIterations: 500,
+    capabilities: {
+      primary: ['implementation', 'integration'],
+      secondary: ['testing'],
+      modelTier: 'kimi',
+      traits: { divergent: 0.3, convergent: 0.3, executive: 0.9 },
+    },
   },
   {
     name: 'yang',
@@ -41,6 +47,11 @@ const STANDARD_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 100,
+    capabilities: {
+      primary: ['review', 'analysis'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.7, convergent: 0.4, executive: 0.1 },
+    },
   },
   {
     name: 'yin',
@@ -49,6 +60,12 @@ const STANDARD_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 100,
+    capabilities: {
+      primary: ['review', 'analysis'],
+      secondary: ['security'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.2, convergent: 0.9, executive: 0.1 },
+    },
   },
 ]
 
@@ -65,6 +82,12 @@ const RESEARCH_POSTURES: FlexPosture[] = [
     channels: { dialectic: true, constellationBoard: true },
     canSpawnDrones: true,
     maxIterations: 80,
+    capabilities: {
+      primary: ['investigation', 'analysis'],
+      secondary: ['architecture'],
+      modelTier: 'kimi',
+      traits: { divergent: 0.9, convergent: 0.3, executive: 0.1 },
+    },
   },
   {
     name: 'researcher-beta',
@@ -74,6 +97,12 @@ const RESEARCH_POSTURES: FlexPosture[] = [
     channels: { dialectic: true, constellationBoard: true },
     canSpawnDrones: true,
     maxIterations: 80,
+    capabilities: {
+      primary: ['investigation', 'analysis'],
+      secondary: ['security', 'testing'],
+      modelTier: 'kimi',
+      traits: { divergent: 0.6, convergent: 0.8, executive: 0.1 },
+    },
   },
 ]
 
@@ -89,6 +118,12 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     channels: { workStream: 'producer', constellationBoard: true },
     canSpawnDrones: true,
     maxIterations: 500,
+    capabilities: {
+      primary: ['implementation'],
+      secondary: ['architecture', 'integration'],
+      modelTier: 'kimi',
+      traits: { divergent: 0.3, convergent: 0.2, executive: 0.9 },
+    },
   },
   {
     name: 'unity-secondary',
@@ -97,6 +132,12 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     toolAccess: 'full',
     channels: { workStream: 'producer', constellationBoard: true },
     maxIterations: 300,
+    capabilities: {
+      primary: ['testing', 'integration'],
+      secondary: ['implementation'],
+      modelTier: 'kimi',
+      traits: { divergent: 0.2, convergent: 0.4, executive: 0.8 },
+    },
   },
   {
     name: 'yang',
@@ -105,6 +146,12 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 100,
+    capabilities: {
+      primary: ['review'],
+      secondary: ['analysis'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.7, convergent: 0.4, executive: 0.1 },
+    },
   },
   {
     name: 'yin',
@@ -113,6 +160,12 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 100,
+    capabilities: {
+      primary: ['review', 'analysis'],
+      secondary: ['security'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.2, convergent: 0.9, executive: 0.1 },
+    },
   },
 ]
 
@@ -128,6 +181,12 @@ const REVIEW_POSTURES: FlexPosture[] = [
     channels: { workStream: 'producer', constellationBoard: true },
     canSpawnDrones: true,
     maxIterations: 500,
+    capabilities: {
+      primary: ['implementation'],
+      secondary: ['integration'],
+      modelTier: 'kimi',
+      traits: { divergent: 0.3, convergent: 0.2, executive: 0.9 },
+    },
   },
   {
     name: 'yang-correctness',
@@ -136,6 +195,12 @@ const REVIEW_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 80,
+    capabilities: {
+      primary: ['review'],
+      secondary: ['testing'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.5, convergent: 0.6, executive: 0.1 },
+    },
   },
   {
     name: 'yang-design',
@@ -144,6 +209,11 @@ const REVIEW_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 80,
+    capabilities: {
+      primary: ['review', 'architecture'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.6, convergent: 0.5, executive: 0.1 },
+    },
   },
   {
     name: 'yin-safety',
@@ -152,6 +222,12 @@ const REVIEW_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 80,
+    capabilities: {
+      primary: ['review', 'security'],
+      secondary: ['testing'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.3, convergent: 0.9, executive: 0.1 },
+    },
   },
   {
     name: 'yin-integration',
@@ -160,6 +236,12 @@ const REVIEW_POSTURES: FlexPosture[] = [
     toolAccess: 'read-only+memory',
     channels: { workStream: 'consumer', dialectic: true, constellationBoard: true },
     maxIterations: 80,
+    capabilities: {
+      primary: ['review', 'analysis'],
+      secondary: ['integration'],
+      modelTier: 'qwenPlus',
+      traits: { divergent: 0.3, convergent: 0.8, executive: 0.1 },
+    },
   },
 ]
 
@@ -182,8 +264,8 @@ export function getTemplatePostures(template: ConstellationTemplate): FlexPostur
       return createPostureSet(REVIEW_POSTURES)
     case 'minimal':
       return createPostureSet([
-        { name: 'unity', instruction: 'Implement the goal. You are the primary worker — create artifacts and move forward.', energy: 'unity', toolAccess: 'full', channels: { workStream: 'producer', constellationBoard: true }, maxIterations: 200 },
-        { name: 'reviewer', instruction: 'Provide short, focused review cycles — surface major issues quickly.', energy: 'yin', toolAccess: 'read-only+memory', channels: { workStream: 'consumer', dialectic: true, constellationBoard: true }, maxIterations: 80 },
+        { name: 'unity', instruction: 'Implement the goal. You are the primary worker — create artifacts and move forward.', energy: 'unity', toolAccess: 'full', channels: { workStream: 'producer', constellationBoard: true }, maxIterations: 200, capabilities: { primary: ['implementation'], modelTier: 'background', traits: { divergent: 0.1, convergent: 0.2, executive: 0.9 } } },
+        { name: 'reviewer', instruction: 'Provide short, focused review cycles — surface major issues quickly.', energy: 'yin', toolAccess: 'read-only+memory', channels: { workStream: 'consumer', dialectic: true, constellationBoard: true }, maxIterations: 80, capabilities: { primary: ['review'], modelTier: 'background', traits: { divergent: 0.2, convergent: 0.7, executive: 0.1 } } },
       ])
   }
 }
@@ -205,6 +287,85 @@ export function describeTemplate(template: ConstellationTemplate): string {
     case 'minimal':
       return 'One builder + one reviewer — fast, lightweight'
   }
+}
+
+/**
+ * Machine-readable capability profile for a template.
+ *
+ * Aggregates capability metadata from all postures in the template into
+ * a single profile the fast-decomposer and Corpus can use for template
+ * selection scoring and strategy reasoning.
+ */
+export function getTemplateCapabilities(template: ConstellationTemplate): TemplateCapabilities {
+  const postures = getTemplatePostures(template)
+  const allPrimary = new Set<string>()
+  const tierCounts = new Map<string, number>()
+
+  for (const p of postures) {
+    if (p.capabilities?.primary) {
+      for (const domain of p.capabilities.primary) allPrimary.add(domain)
+    }
+    const tier = p.capabilities?.modelTier ?? 'kimi'
+    tierCounts.set(tier, (tierCounts.get(tier) ?? 0) + 1)
+  }
+
+  let dominantTier = 'kimi'
+  let maxCount = 0
+  for (const [tier, count] of tierCounts) {
+    if (count > maxCount) { dominantTier = tier; maxCount = count }
+  }
+
+  return TEMPLATE_CAPABILITIES[template](postures.length, [...allPrimary], dominantTier as import('../../../types/model-routing.js').RoutingTier)
+}
+
+/** List capabilities for all templates. */
+export function listTemplateCapabilities(): TemplateCapabilities[] {
+  return listTemplates().map(getTemplateCapabilities)
+}
+
+type CapabilityFactory = (postureCount: number, primaryDomains: string[], dominantModelTier: import('../../../types/model-routing.js').RoutingTier) => TemplateCapabilities
+
+const TEMPLATE_CAPABILITIES: Record<ConstellationTemplate, CapabilityFactory> = {
+  standard: (postureCount, primaryDomains, dominantModelTier) => ({
+    template: 'standard',
+    description: 'Balanced build + review — general purpose',
+    postureCount,
+    primaryDomains,
+    bestFor: ['implementation', 'refactoring', 'bug-fixes', 'general'],
+    dominantModelTier,
+  }),
+  research: (postureCount, primaryDomains, dominantModelTier) => ({
+    template: 'research',
+    description: 'Deep investigation with dedicated researchers',
+    postureCount,
+    primaryDomains,
+    bestFor: ['investigation', 'architecture-analysis', 'exploration', 'root-cause-analysis'],
+    dominantModelTier,
+  }),
+  implementation: (postureCount, primaryDomains, dominantModelTier) => ({
+    template: 'implementation',
+    description: 'Parallel builders for heavy implementation',
+    postureCount,
+    primaryDomains,
+    bestFor: ['new-features', 'large-implementation', 'multi-file-changes', 'parallel-work'],
+    dominantModelTier,
+  }),
+  review: (postureCount, primaryDomains, dominantModelTier) => ({
+    template: 'review',
+    description: 'Heavy review with correctness, design, safety, and integration checks',
+    postureCount,
+    primaryDomains,
+    bestFor: ['code-review', 'security-audit', 'pre-release-review', 'quality-critical'],
+    dominantModelTier,
+  }),
+  minimal: (postureCount, primaryDomains, dominantModelTier) => ({
+    template: 'minimal',
+    description: 'Fast, lightweight — single builder + reviewer',
+    postureCount,
+    primaryDomains,
+    bestFor: ['quick-fixes', 'small-changes', 'simple-tasks', 'cost-sensitive'],
+    dominantModelTier,
+  }),
 }
 
 export function resolvePostures(opts?: { postures?: FlexPosture[]; template?: ConstellationTemplate }): FlexPosture[] {

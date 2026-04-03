@@ -20,6 +20,7 @@
 
 import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
 import type { BlackboardState, Report } from '../../../types/flux-team.js'
+import type { RoutingTier } from '../../../types/model-routing.js'
 
 
 // FlexPosture — The atomic unit of agency
@@ -125,6 +126,70 @@ export interface FlexPosture {
    * Only meaningful for postures in child Helixes.
    */
   canReadParentBoard?: boolean
+
+  /**
+   * Structured capability metadata for Corpus reasoning and template scoring.
+   *
+   * Provides machine-readable skill domains, model tier hints, and trait
+   * profiles that the Corpus and fast-decomposer use when selecting templates,
+   * evaluating branch fitness, and reasoning about spawn decisions.
+   */
+  capabilities?: PostureCapabilities
+}
+
+
+/**
+ * Capability metadata for a FlexPosture.
+ *
+ * Describes what a posture is good at in structured, machine-readable form.
+ * Used by the Corpus for template selection scoring, branch fitness evaluation,
+ * and spawn approval reasoning.
+ */
+export interface PostureCapabilities {
+  /** Primary skill domains this posture excels at. */
+  primary: string[]
+
+  /** Secondary skill domains this posture can handle. */
+  secondary?: string[]
+
+  /**
+   * Preferred model routing tier for this posture.
+   * Used as a hint when `costEffective` mode filters available tiers.
+   */
+  modelTier?: RoutingTier
+
+  /**
+   * Trait profile for scoring and reasoning (0-1 scale).
+   *
+   * - divergent: exploration, creativity, hypothesis generation
+   * - convergent: analysis, criticism, verification
+   * - executive: execution, delivery, getting things done
+   */
+  traits?: {
+    divergent?: number
+    convergent?: number
+    executive?: number
+  }
+}
+
+
+/**
+ * Aggregate capability metadata for a Constellation template.
+ *
+ * Summarizes the combined capabilities of all postures in a template,
+ * providing a machine-readable profile the fast-decomposer and Corpus
+ * use for template selection and strategy reasoning.
+ */
+export interface TemplateCapabilities {
+  template: ConstellationTemplate
+  description: string
+  postureCount: number
+  /** Combined primary skill domains across all postures in the template. */
+  primaryDomains: string[]
+  /** Task types this template is best suited for. */
+  bestFor: string[]
+  /** Dominant model tier across postures (most common tier in the template). */
+  dominantModelTier: RoutingTier
 }
 
 
@@ -466,6 +531,14 @@ export interface ConstellationProjectOpts {
 
   /** Optional job ID for tracking. */
   jobId?: string
+
+  /**
+   * Cost-effective mode. When true, the fast-decomposer and Corpus prefer
+   * cheaper model tiers for posture routing (e.g. alibaba-coding models
+   * over copilot-sdk models). Does not affect behavioral correctness —
+   * only model selection.
+   */
+  costEffective?: boolean
 }
 
 
