@@ -45,8 +45,9 @@ import type {
 } from './types.js'
 import type { ConstellationLiveState } from './constellation-injection.js'
 import { getTemplatePostures } from './templates.js'
-import { fastDecompose, shouldDecompose } from './fast-decomposer.js'
+import { fastDecompose, shouldDecompose, type DecompositionDecision } from './fast-decomposer.js'
 import { DecompositionTracker } from './decomposition-tracker.js'
+import { ConstellationWorktreeIsolation } from './worktree-isolation.js'
 
 // Constants
 
@@ -143,6 +144,17 @@ export interface ConstellationPipelineOpts {
 
   /** Pre-assembled codebase context from GitNexus (for fast decomposition) */
   codebaseContext?: string
+
+  /**
+   * Branch isolation mode.
+   * When 'worktree', each Helix branch gets its own git worktree.
+   * Changes are auto-committed and merged back on branch completion.
+   * Default: 'none' (all branches share the main working directory).
+   */
+  isolation?: 'none' | 'worktree'
+
+  /** Project root directory for worktree isolation. Default: process.cwd() */
+  projectRoot?: string
 
   /** Callback when a node is created */
   onNodeCreated?: (node: ConstellationNode) => void
@@ -255,6 +267,17 @@ export async function runConstellationPipeline(
   } = opts
 
   const log = logger.child('constellation-pipeline')
+
+  // WHY: Worktree isolation gives each branch its own working copy.
+  // Prevents file conflicts when multiple branches edit the same files.
+  const worktreeIsolation = opts.isolation === 'worktree'
+    ? new ConstellationWorktreeIsolation({
+        logger: log,
+        projectRoot: opts.projectRoot ?? process.cwd(),
+        constellationId,
+        maxWorktrees: maxHelixes,
+      })
+    : undefined
 
   // WHY: Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
   const brainstemLLM = brainstemLLMOpt ?? corpusLLM
@@ -560,17 +583,35 @@ export async function runConstellationPipeline(
     // WHY: cross-run memory continuity improves branch output quality
     let enrichedContext = helixContext
 
+    // Create worktree for branch isolation (if enabled)
+    let branchWorkingDir: string | undefined
+    if (worktreeIsolation) {
+      try {
+        branchWorkingDir = await worktreeIsolation.createBranchWorktree(helixId)
+        if (branchWorkingDir !== (opts.projectRoot ?? process.cwd())) {
+          // Add isolation notice to context
+          const notice = worktreeIsolation.getIsolationNotice(helixId)
+          if (notice) {
+            enrichedContext = enrichedContext ? `${enrichedContext}\n\n${notice}` : notice
+          }
+        }
+      } catch (err) {
+        helixLog.warn('Worktree creation failed, using shared project root', { error: String(err) })
+      }
+    }
+
     // HOW: Inject top-level project structure so agents know what directories
     // exist without wasting tool calls on find/ls at the start of every branch.
+    const effectiveRoot = branchWorkingDir ?? opts.projectRoot ?? process.cwd()
     try {
       const { readdirSync } = await import('node:fs')
-      const entries = readdirSync(process.cwd(), { withFileTypes: true })
+      const entries = readdirSync(effectiveRoot, { withFileTypes: true })
       const listing = entries
         .filter(e => !e.name.startsWith('.') && e.name !== 'node_modules' && e.name !== 'dist')
         .map(e => e.isDirectory() ? `  ${e.name}/` : `  ${e.name}`)
         .join('\n')
       if (listing) {
-        const wsBlock = `## Workspace Structure\nProject root: ${process.cwd()}\n${listing}`
+        const wsBlock = `## Workspace Structure\nProject root: ${effectiveRoot}\n${listing}`
         enrichedContext = enrichedContext ? `${enrichedContext}\n\n${wsBlock}` : wsBlock
       }
     } catch {
@@ -765,6 +806,8 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
+      // WHY: When running in a worktree, all tool execution uses the branch's working directory
+      workingDir: branchWorkingDir,
       // WHY: Constellation Helixes run longer tool-call chains (drone scouts, file reads, etc.)
       // Relax inactivity thresholds: warn=5min, escalate=10min, kill=15min
       inactivityThresholds: {
@@ -910,7 +953,7 @@ export async function runConstellationPipeline(
     corpus.wake()
 
     promise
-      .then((result) => {
+      .then(async (result) => {
         const isDegraded = result.completionStatus.degraded
         // WHY: A cancelled Helix that still produced output (has unity conclusion
         // and token usage) was interrupted by redecomposition, not a hard failure.
@@ -998,6 +1041,22 @@ export async function runConstellationPipeline(
         })
 
         onNodeCompleted?.(node)
+
+        // Merge worktree changes back to main branch (if isolated)
+        if (worktreeIsolation?.isIsolated(helixId)) {
+          const skipMerge = node.status === 'failed'
+          const mergeResult = await worktreeIsolation.completeBranch(helixId, { skipMerge })
+          if (mergeResult.hasConflicts) {
+            helixLog.warn('Worktree merge had conflicts', {
+              conflictingFiles: mergeResult.conflictingFiles,
+            })
+          } else if (mergeResult.merged && mergeResult.filesChanged > 0) {
+            helixLog.info('Worktree changes merged', {
+              filesChanged: mergeResult.filesChanged,
+              mergeCommit: mergeResult.mergeCommit,
+            })
+          }
+        }
       })
       .catch((err) => {
         helixLog.error('Helix failed', { error: String(err) })
@@ -1026,6 +1085,11 @@ export async function runConstellationPipeline(
         const branchStatus = (node.status === 'completed' || node.status === 'degraded') ? 'completed' : 'failed'
         corpusTree.closeBranch(helixId, branchStatus)
         crossHelixDialectic?.unregisterBranch(helixId)
+
+        // Cleanup worktree if not already cleaned up by the merge step
+        if (worktreeIsolation?.isIsolated(helixId)) {
+          await worktreeIsolation.completeBranch(helixId, { skipMerge: true })
+        }
 
         // Persist branch completion to ConstellationStore
         if (constellationStore) {
@@ -1212,10 +1276,16 @@ export async function runConstellationPipeline(
 
     // WHY: For complex goals, use fast decomposition with direct LLM call.
     // For simple goals, skip decomposition overhead.
-    const decompositionMode = shouldDecompose(goal, context)
+    const decision: DecompositionDecision = shouldDecompose(goal, context, true)
+    const decompositionMode = decision.mode
     let decomposition: GoalDecomposition
 
     if (decompositionMode === 'skip') {
+      if (decision.vague) {
+        log.warn('Goal appears vague — no specific targets, files, or modules detected. Consider providing more detail.', {
+          goal: goal.slice(0, 200),
+        })
+      }
       log.info('Goal is simple, skipping decomposition')
       decomposition = {
         decomposed: false,
@@ -1685,6 +1755,11 @@ export async function runConstellationPipeline(
           log.warn('Error releasing model handle', { helixId: id, error: String(err) })
         }
       }
+    }
+
+    // Cleanup all remaining worktrees (belt-and-suspenders)
+    if (worktreeIsolation) {
+      await worktreeIsolation.cleanupAll()
     }
 
     log.info('Constellation pipeline cleanup complete')

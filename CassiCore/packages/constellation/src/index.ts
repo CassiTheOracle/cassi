@@ -116,6 +116,9 @@ export type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 
 export { BlackboardBridge, createBridge } from './blackboard-bridge.js'
 
+export { ConstellationWorktreeIsolation } from './worktree-isolation.js'
+export type { ConstellationIsolation, WorktreeChanges, WorktreeMergeResult } from './worktree-isolation.js'
+
 
 
 export { CrossHelixDialectic } from './cross-helix-dialectic.js'
@@ -165,4 +168,4 @@ export type {
 // Fast Decomposer — Direct LLM-based goal decomposition
 
 export { fastDecompose, shouldDecompose } from './fast-decomposer.js'
-export type { FastDecomposerOpts } from './fast-decomposer.js'
+export type { FastDecomposerOpts, DecompositionMode, DecompositionDecision } from './fast-decomposer.js'

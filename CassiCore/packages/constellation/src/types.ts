@@ -161,6 +161,25 @@ export interface ConstellationHelixConfig {
   timeoutMs?: number
 
   /**
+   * Working directory override for this Helix.
+   * When set (e.g., by worktree isolation), all tool execution uses this
+   * directory instead of the main project root.
+   */
+  workingDir?: string
+
+  /**
+   * Tool filter for this Helix.
+   * When set, restricts the tools available to this branch beyond the
+   * posture-level restrictions.
+   */
+  toolFilter?: {
+    /** Tool names to allow (whitelist). If set, only these tools are available. */
+    allow?: string[]
+    /** Tool names to deny (blacklist). These tools are removed even if the posture allows them. */
+    deny?: string[]
+  }
+
+  /**
    * Parent Helix ID.
    * Set automatically by the spawn system — do not set manually.
    */

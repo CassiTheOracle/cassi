@@ -66,6 +66,14 @@ export interface FastDecomposerOpts {
   router?: (tool: string, args: any) => Promise<any>
 }
 
+export type DecompositionMode = 'skip' | 'simple' | 'full'
+
+export interface DecompositionDecision {
+  mode: DecompositionMode
+  /** true when 'skip' is due to vague/unfocused goal rather than simple goal */
+  vague: boolean
+}
+
 /**
  * Specificity scoring — determines whether decomposition is worth the cost.
  *
@@ -77,14 +85,19 @@ export interface FastDecomposerOpts {
  * @returns 'simple' — Run decomposition without codebase context (save time)
  * @returns 'full' — Run decomposition with full codebase context
  */
-export function shouldDecompose(goal: string, context?: string): 'skip' | 'simple' | 'full' {
+export function shouldDecompose(goal: string, context?: string): DecompositionMode
+export function shouldDecompose(goal: string, context: string | undefined, detailed: true): DecompositionDecision
+export function shouldDecompose(goal: string, context?: string, detailed?: true): DecompositionMode | DecompositionDecision {
   const text = (goal + ' ' + (context ?? '')).trim()
   const length = text.length
   const lowerText = text.toLowerCase()
 
+  const result = (mode: DecompositionMode, vague = false): DecompositionMode | DecompositionDecision =>
+    detailed ? { mode, vague } : mode
+
   // WHY: Empty or whitespace-only goals are trivially skippable
   if (length === 0) {
-    return 'skip'
+    return result('skip')
   }
 
   // --- Signal extraction (score everything before deciding) ---
@@ -129,7 +142,7 @@ export function shouldDecompose(goal: string, context?: string): 'skip' | 'simpl
   // WHY: Multiple list items always warrant full decomposition — the user
   // explicitly enumerated separate tasks
   if (effectiveListItemCount >= 2) {
-    return 'full'
+    return result('full')
   }
 
   // WHY: Vague goals with zero specificity indicators are not decomposable.
@@ -137,38 +150,38 @@ export function shouldDecompose(goal: string, context?: string): 'skip' | 'simpl
   // is actionable and should proceed. No length cap — "improve X and optimize
   // Y and clean up Z" at 200 chars is still vague if it has no targets.
   if (hasVagueKeyword && !hasSpecificity) {
-    return 'skip'
+    return result('skip', true)
   }
 
   // WHY: Cross-cutting keywords indicate multi-file work regardless of length
   if (hasCrossCuttingKeyword) {
-    return 'full'
+    return result('full')
   }
 
   // WHY: Multiple file paths or many connectors indicate multi-module work
   if (filePathMatches.length >= 3 || connectors >= 2) {
-    return 'full'
+    return result('full')
   }
 
   // WHY: Goals with at least one file path or connector have enough specificity
   // for a lightweight decomposition
   if (filePathMatches.length >= 1 || connectors >= 1) {
-    return 'simple'
+    return result('simple')
   }
 
   // WHY: Longer goals (100+ chars) usually contain enough detail to decompose
   if (length >= 100) {
-    return 'simple'
+    return result('simple')
   }
 
   // WHY: Short goals (<40 chars) with no signals are trivially simple
   if (length < 40) {
-    return 'skip'
+    return result('skip')
   }
 
   // WHY: Medium-length goals (40-99 chars) without any structural signals
   // are single-concept tasks — skip decomposition
-  return 'skip'
+  return result('skip')
 }
 
 /**
