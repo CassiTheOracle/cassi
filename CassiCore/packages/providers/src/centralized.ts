@@ -86,15 +86,15 @@ interface LearnedLimit {
 
 const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   'github-copilot': {
-    maxConcurrent: 12,
+    maxConcurrent: 24,
     errorCooldownMs: 5_000,
   },
   'kimi-coding': {
-    maxConcurrent: 12,
+    maxConcurrent: 24,
     errorCooldownMs: 5_000,
   },
   'default': {
-    maxConcurrent: 8,
+    maxConcurrent: 16,
     errorCooldownMs: 5_000,
   }
 }
@@ -962,8 +962,8 @@ export class CentralizedProvider implements IProvider {
 }
 
 /**
- * @dep callers: createProviders (core/providers/index.ts), centralized-provider.test.ts (tests/centralized-provider.test.ts)
- * @dep calls: setRateLimitStore, setBudgetTracker, getConfiguredProviderConfig
+ * @dep callers: centralized-provider.test.ts (tests/centralized-provider.test.ts), createProviders (core/providers/index.ts)
+ * @dep calls: getConfiguredProviderConfig, setBudgetTracker, setRateLimitStore
  * @dep module: Providers
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
