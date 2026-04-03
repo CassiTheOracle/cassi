@@ -22,6 +22,8 @@ export { createWorkflow, createStep, WorkflowBuilder, createStateMachine, StateM
 export { WorkflowStore } from './persistence.js'
 export { WorkflowDefinitionStore } from './definition-store.js'
 export { WorkflowRegistry } from './registry.js'
+export { WorkflowScheduler } from './scheduler.js'
+export type { WorkflowSchedulerConfig } from './scheduler.js'
 export { WorkflowEventBus } from './events.js'
 export type { WorkflowEvent, EventHandler } from './events.js'
 export { StateMachineExecutor } from './state-machine.js'
@@ -74,6 +76,14 @@ export type {
   IWorkflowDefinitionStore,
   IWorkflowRegistry,
   IWorkflowStore,
+  WorkflowTrigger,
+  IntervalTrigger,
+  CronTrigger,
+  EventTrigger,
+  OnceTrigger,
+  TriggerKind,
+  TriggerState,
+  IWorkflowTriggerStore,
   WorkflowListener,
   ISuspendSignal,
 } from '../../types/workflow.js'
