@@ -169,6 +169,17 @@ export const CONSTELLATION_TOOLS = [
       required: ['sessionId'],
     },
   },
+  {
+    name: 'constellation_resume',
+    description: 'Resume a Constellation from a checkpoint. Reads the tree snapshot, progress, and branch data from the database, recreates the pipeline with the same configuration, injects the checkpoint state into the Corpus, and respawns only the active branches. Non-serializable handles (ModelHandle, Brainstem instances) are recreated fresh for resumed branches.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID to resume.' },
+      },
+      required: ['sessionId'],
+    },
+  },
 
   // --- External Corpus Protocol ---
 
@@ -490,6 +501,19 @@ export async function executeConstellationTool(
           { timeoutMs: 30_000 },
         )
         if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_resume': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/resume`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({}),
+            timeoutMs: 5000,
+          },
+        )
         return await res.json()
       }
 
