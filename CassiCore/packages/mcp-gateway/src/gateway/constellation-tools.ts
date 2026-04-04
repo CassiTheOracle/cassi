@@ -27,6 +27,7 @@ export const CONSTELLATION_TOOLS = [
         },
         maxHelixes: { type: 'number', description: 'Maximum number of Helix nodes. Default: 16.' },
         maxDepth: { type: 'number', description: 'Maximum tree depth. Default: 4.' },
+        costEffective: { type: 'boolean', description: 'When true, posture model tiers are downgraded to cheaper alternatives. Does not affect behavior, only model selection. Default: false.' },
       },
       required: ['goal'],
     },
