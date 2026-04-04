@@ -39,6 +39,8 @@ export {
   constellationStep,
   helixStep,
   helixBranch,
+  corpusDirectiveStep,
+  corpusAssessStep,
 } from './steps.js'
 export {
   codeReviewPipeline,
@@ -66,6 +68,10 @@ export type {
   ConstellationStepOptions,
   HelixStepOptions,
   HelixBranchOptions,
+  ICorpusDirectiveSender,
+  CorpusDirectiveStepOptions,
+  ICorpusStateReader,
+  CorpusAssessStepOptions,
 } from './steps.js'
 export type {
   WorkflowStep,

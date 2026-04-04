@@ -437,3 +437,169 @@ export function helixBranch(opts: HelixBranchOptions): WorkflowStep<unknown, Hel
     },
   }
 }
+
+
+// Step: corpusDirectiveStep — Send a directive to a Helix branch through the Corpus
+
+/**
+ * Minimal interface for the Corpus directive sender.
+ *
+ * WHY: Same decoupling pattern as IHelixRunner and IToolExecutor —
+ * strategy workflows accept service interfaces rather than importing
+ * the Corpus class, keeping workflows testable with mocks.
+ */
+export interface ICorpusDirectiveSender {
+  sendDirective(directive: {
+    targetHelixId: string
+    type: string
+    urgency: string
+    reason: string
+    text: string
+    fromPattern?: string
+    maxIterationsRemaining?: number
+    requiredAction?: string
+  }): Promise<void>
+}
+
+export interface CorpusDirectiveStepOptions {
+  /** Unique step id. */
+  id: string
+  /** Description for traces. */
+  description?: string
+  /** Target Helix id — static or derived from input. */
+  targetHelixId: string | ((input: unknown) => string)
+  /** Directive type (e.g., 'redirect', 'throttle', 'context-inject'). */
+  directiveType: string
+  /** Urgency level. */
+  urgency: string
+  /** Directive text — static or derived from input. */
+  text: string | ((input: unknown) => string)
+  /** Reason for the directive. */
+  reason?: string | ((input: unknown) => string)
+  /** Source pattern type (for audit). */
+  fromPattern?: string
+  /** Max iterations to allow (for throttle directives). */
+  maxIterationsRemaining?: number
+  /** Required action (for enforcement directives). */
+  requiredAction?: 'narrow_scope' | 'switch_strategy' | 'conclude' | 'produce_output'
+  /** Retry policy. */
+  retry?: RetryPolicy
+  /** Timeout in ms (default: 30s). */
+  timeoutMs?: number
+  /** The directive sender instance. */
+  sender: ICorpusDirectiveSender
+}
+
+/**
+ * Create a step that sends a directive from the Corpus to a Helix branch.
+ *
+ * WHY: Conflict resolution and other strategies need to steer branches.
+ * This step wraps the directive-sending mechanism so it can be composed
+ * into strategy workflows alongside helix/tool steps.
+ */
+export function corpusDirectiveStep(opts: CorpusDirectiveStepOptions): WorkflowStep<unknown, void> {
+  return {
+    id: opts.id,
+    description: opts.description ?? `Directive: ${opts.directiveType} → ${typeof opts.targetHelixId === 'string' ? opts.targetHelixId : '(dynamic)'}`,
+    retry: opts.retry,
+    timeoutMs: opts.timeoutMs ?? 30_000,
+    execute: async (ctx: StepContext) => {
+      const targetHelixId = typeof opts.targetHelixId === 'function'
+        ? opts.targetHelixId(ctx.input)
+        : opts.targetHelixId
+
+      const text = typeof opts.text === 'function'
+        ? opts.text(ctx.input)
+        : opts.text
+
+      const reason = opts.reason
+        ? (typeof opts.reason === 'function' ? opts.reason(ctx.input) : opts.reason)
+        : `Strategy step: ${opts.id}`
+
+      ctx.logger.info('Sending Corpus directive', {
+        targetHelixId,
+        type: opts.directiveType,
+        urgency: opts.urgency,
+      })
+
+      await opts.sender.sendDirective({
+        targetHelixId,
+        type: opts.directiveType,
+        urgency: opts.urgency,
+        reason,
+        text,
+        fromPattern: opts.fromPattern,
+        maxIterationsRemaining: opts.maxIterationsRemaining,
+        requiredAction: opts.requiredAction,
+      })
+
+      ctx.logger.info('Directive sent', { targetHelixId, type: opts.directiveType })
+    },
+  }
+}
+
+
+// Step: corpusAssessStep — Read Corpus tree state and produce an assessment
+
+/**
+ * Minimal interface for reading Corpus state.
+ *
+ * WHY: Strategy workflows need to inspect the Corpus tree and processed
+ * state without importing the full Corpus class. This thin read interface
+ * enables mocking in tests.
+ */
+export interface ICorpusStateReader {
+  getProcessedState(): {
+    branchAssessments: Map<string, { status: string; rollingScore: number; filesModified: Set<string> }>
+    crossPatterns: Array<{ type: string; helixIds: string[]; severity: string; description: string }>
+    budgets: Map<string, { consumedSteps: number; maxSteps: number }>
+  }
+  getTree(): {
+    getBranch(helixId: string): { helixId: string; goal: string; steps: unknown[]; status: string } | undefined
+    getAllBranches(): Array<{ helixId: string; goal: string; status: string }>
+  }
+}
+
+export interface CorpusAssessStepOptions<T = unknown> {
+  /** Unique step id. */
+  id: string
+  /** Description for traces. */
+  description?: string
+  /**
+   * Assessment function — reads state and produces a typed result.
+   * The result is passed as input to the next step in the workflow.
+   */
+  assess: (reader: ICorpusStateReader, input: unknown) => Promise<T> | T
+  /** Retry policy. */
+  retry?: RetryPolicy
+  /** Timeout in ms (default: 10s). */
+  timeoutMs?: number
+  /** The state reader instance. */
+  reader: ICorpusStateReader
+}
+
+/**
+ * Create a step that reads Corpus state and produces an assessment.
+ *
+ * WHY: Strategies need to inspect the current Corpus state (branch health,
+ * patterns, budgets) before deciding on interventions. This step provides
+ * a clean read-only access point that produces typed results for downstream
+ * steps.
+ */
+export function corpusAssessStep<T = unknown>(opts: CorpusAssessStepOptions<T>): WorkflowStep<unknown, T> {
+  return {
+    id: opts.id,
+    description: opts.description ?? `Assess: ${opts.id}`,
+    retry: opts.retry,
+    timeoutMs: opts.timeoutMs ?? 10_000,
+    execute: async (ctx: StepContext) => {
+      ctx.logger.info('Running Corpus assessment', { stepId: opts.id })
+
+      const result = await opts.assess(opts.reader, ctx.input)
+
+      ctx.logger.info('Assessment complete', { stepId: opts.id })
+
+      return result
+    },
+  }
+}
