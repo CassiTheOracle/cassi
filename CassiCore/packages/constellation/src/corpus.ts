@@ -56,6 +56,7 @@ import type {
 import type { DecompositionTracker } from './decomposition-tracker.js'
 import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
+import { getTemplateCapabilities, listTemplateCapabilities } from './templates.js'
 import {
   DEFAULT_CORPUS_CONFIG,
   createInitialProcessedState,
@@ -1689,6 +1690,21 @@ export class Corpus {
   }
 
   /**
+   * Build a compact template capabilities context section for LLM prompts.
+   *
+   * HOW: Lists all available templates with their skill domains and best-for
+   * tags so the Corpus LLM can reason about template fitness when evaluating
+   * branches or spawn requests.
+   */
+  private buildTemplateCapsContext(): string {
+    const caps = listTemplateCapabilities()
+    const lines = caps.map(c =>
+      `- **${c.template}** (${c.postureCount} postures): ${c.description}. Domains: ${c.primaryDomains.join(', ')}. Best for: ${c.bestFor.join(', ')}.`
+    )
+    return `\n\n## Template Capabilities Reference\n${lines.join('\n')}`
+  }
+
+  /**
    * Build first-person LLM prompt
    */
   private buildLLMPrompt(newPatterns: CrossHelixPattern[]): string {
@@ -1790,10 +1806,13 @@ export class Corpus {
         ).join('\n')}`
       : ''
 
+    // Build template capabilities context so Corpus can reason about template fitness
+    const templateCapsSection = this.buildTemplateCapsContext()
+
     return `I am the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} active threads, each thinking in parallel. I synthesize their knowledge, detect patterns, provide specific guidance, and spawn new threads when gaps emerge.
 
 ## Active Threads
-${branchDetails}${patternDetails}${dialecticSection}${interventionHistorySection}${spawnHistorySection}
+${branchDetails}${patternDetails}${dialecticSection}${interventionHistorySection}${spawnHistorySection}${templateCapsSection}
 
 ## Task
 Provide strategic assessment using the following directives:
@@ -2386,6 +2405,13 @@ Guidelines:
    */
   private async runSpawnEvaluation(request: SpawnRequest): Promise<SpawnDecision> {
     const branches = this.tree.getAllBranches()
+
+    // Build template capabilities reference for informed template suggestions
+    const caps = listTemplateCapabilities()
+    const templateRef = caps.map(c =>
+      `- ${c.template}: ${c.description}. Best for: ${c.bestFor.join(', ')}.`
+    ).join('\n')
+
     const prompt = `I am evaluating a spawn request for this Constellation.
 
 ## Current Tree State
@@ -2398,6 +2424,9 @@ Proposed Goal: ${request.goal}
 Proposed Template: ${request.template ?? 'standard'}
 Target Depth: ${request.targetDepth}
 
+## Available Templates
+${templateRef}
+
 ## Task
 Evaluate this spawn request:
 
@@ -2409,7 +2438,8 @@ SUGGESTED_GOAL: <refined goal or NONE>
 Guidelines:
 - APPROVE if the goal is clear, non-redundant with existing branches, and resources allow
 - REJECT if too many active branches, goal is unclear, or similar work is in progress
-- Suggest refinements if the goal could be clearer`
+- Suggest refinements if the goal could be clearer
+- When suggesting a template, pick the one whose "best for" tags most closely match the goal`
 
     try {
       const response = await this.deps.llm.complete({

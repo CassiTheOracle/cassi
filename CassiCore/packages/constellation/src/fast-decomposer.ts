@@ -39,6 +39,7 @@ import type { CorpusLLM, GoalDecomposition, GoalSubTask } from './corpus-types.j
 import type { ConstellationTemplate } from './types.js'
 import type { PreparedContext, PrepareContextOptions } from '../code-analysis/types.js'
 import { prepareContext } from '../code-analysis/context-assembler.js'
+import { listTemplateCapabilities } from './templates.js'
 
 /** JSON schema the LLM must produce */
 interface DecompositionJSON {
@@ -84,9 +85,27 @@ export interface DecompositionDecision {
  * @returns 'skip' — Goal is too simple for decomposition (single file, single concept)
  * @returns 'simple' — Run decomposition without codebase context (save time)
  * @returns 'full' — Run decomposition with full codebase context
+ * @dep callers: fast-decomposer.test.ts (tests/fast-decomposer.test.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), fastDecompose (core/intelligence/constellation/fast-decomposer.ts)
+ * @dep calls: test, match, result
+ * @dep module: Constellation
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 export function shouldDecompose(goal: string, context?: string): DecompositionMode
+/**
+ * @dep callers: fast-decomposer.test.ts (tests/fast-decomposer.test.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), fastDecompose (core/intelligence/constellation/fast-decomposer.ts)
+ * @dep calls: test, match, result
+ * @dep module: Constellation
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function shouldDecompose(goal: string, context: string | undefined, detailed: true): DecompositionDecision
+/**
+ * @dep callers: fast-decomposer.test.ts (tests/fast-decomposer.test.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), fastDecompose (core/intelligence/constellation/fast-decomposer.ts)
+ * @dep calls: test, match, result
+ * @dep module: Constellation
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
+ */
+
 export function shouldDecompose(goal: string, context?: string, detailed?: true): DecompositionMode | DecompositionDecision {
   const text = (goal + ' ' + (context ?? '')).trim()
   const length = text.length
@@ -232,6 +251,21 @@ function formatCodebaseContext(prepared: PreparedContext): string {
 }
 
 /**
+ * Generate template guidance for the decomposition prompt from capability metadata.
+ *
+ * HOW: Reads the machine-readable TemplateCapabilities and formats them as
+ * concise guidance the LLM can use for template selection. This replaces
+ * the previous static template descriptions with data-driven guidance.
+ */
+function buildTemplateGuidance(): string {
+  const caps = listTemplateCapabilities()
+  return caps.map(c => {
+    const bestFor = c.bestFor.join(', ')
+    return `   - '${c.template}': ${c.description} — best for: ${bestFor} (${c.postureCount} postures)`
+  }).join('\n')
+}
+
+/**
  * Build the decomposition prompt for the LLM.
  */
 function buildDecompositionPrompt(
@@ -263,11 +297,8 @@ DECOMPOSITION RULES:
 3. Use 'parallel' strategy when tasks are independent and can run simultaneously
 4. Use 'sequential' strategy when tasks have dependencies (must run in order)
 5. Use 'tree' strategy when tasks will spawn their own sub-tasks during execution
-6. Each task must specify a template:
-   - 'implementation': for coding, refactoring, feature delivery
-   - 'research': for investigation, analysis, architectural questions
-   - 'review': for correctness review, regression checks, code review
-   - 'minimal': for lightweight single-step tasks
+6. Each task must specify a template. Available templates (scored by capability):
+${buildTemplateGuidance()}
 7. Each task should list relevant files it needs to touch (file paths)
 8. Priority: 1 = highest priority, higher numbers = lower priority
 9. Budget steps: optional estimate of how many steps the task will take
@@ -388,6 +419,10 @@ Respond ONLY with the JSON object. Do not include any explanation, markdown form
 
 /**
  * Parse JSON from LLM response, handling markdown code blocks.
+ * @dep callers: fastDecompose (core/intelligence/constellation/fast-decomposer.ts), retryWithCorrection (core/intelligence/constellation/fast-decomposer.ts)
+ * @dep calls: match
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function parseJSONFromResponse(content: string): DecompositionJSON | null {
   // Try to extract JSON from markdown code blocks first
@@ -413,6 +448,9 @@ function parseJSONFromResponse(content: string): DecompositionJSON | null {
 
 /**
  * Validate the decomposition JSON structure.
+ * @dep callers: fastDecompose (core/intelligence/constellation/fast-decomposer.ts), retryWithCorrection (core/intelligence/constellation/fast-decomposer.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function validateDecomposition(json: DecompositionJSON): { valid: boolean; error?: string } {
   // Check strategy is valid
