@@ -716,20 +716,74 @@ export async function handleConstellationRoutes(
       })
       res.write(`data: ${JSON.stringify({ type: 'connected', sessionId: job.sessionId })}\n\n`)
 
-      const interval = setInterval(() => {
+      if (job.status !== 'running') {
+        res.write(`data: ${JSON.stringify({ type: 'constellation:completed', status: job.status })}\n\n`)
+        res.end()
+        return true
+      }
+
+      const HEARTBEAT_MS = 15_000
+      const STATUS_POLL_MS = 2_000
+
+      const heartbeat = setInterval(() => {
+        if (!res.writableEnded) res.write(': heartbeat\n\n')
+      }, HEARTBEAT_MS)
+
+      const statusPoll = setInterval(() => {
         if (job.status !== 'running') {
-          res.write(`data: ${JSON.stringify({ type: 'completed', status: job.status })}\n\n`)
-          clearInterval(interval)
-          res.end()
-        } else {
-          res.write(`data: ${JSON.stringify({ type: 'heartbeat', timestamp: Date.now() })}\n\n`)
+          cleanup()
+          if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify({ type: 'constellation:completed', status: job.status })}\n\n`)
+            res.end()
+          }
         }
-      }, 5000)
+      }, STATUS_POLL_MS)
 
-      req.on('close', () => {
-        clearInterval(interval)
-      })
+      // WHY: Forward EventBus events to SSE so watchViaSSE gets real-time corpus/topology events
+      const CONSTELLATION_EVENT_TYPES = [
+        'corpus:sweep', 'corpus:pattern', 'corpus:intervention',
+        'corpus:spawn-evaluated', 'corpus:synthesis',
+        'topology:updated', 'topology:link_formed', 'topology:link_dissolved',
+        'topology:cluster_formed', 'topology:cluster_dissolved',
+      ]
+      const eventBus = daemon.eventBus
+      const eventHandlers: Array<{ type: string; handler: (evt: any) => void }> = []
 
+      if (eventBus?.on) {
+        for (const evtType of CONSTELLATION_EVENT_TYPES) {
+          const handler = (evt: any) => {
+            // WHY: Only forward events for this specific constellation session
+            if (evt.constellationId !== job.sessionId && evt.teamId !== job.sessionId) return
+            if (res.writableEnded) return
+            try {
+              res.write(`data: ${JSON.stringify({ type: evtType, ...evt, timestamp: Date.now() })}\n\n`)
+            } catch { /* ignore write errors on closed connections */ }
+          }
+          eventBus.on(evtType, handler)
+          eventHandlers.push({ type: evtType, handler })
+        }
+      }
+
+      const timeoutSecs = Math.min(parseInt(url.searchParams.get('timeout') || '600', 10), 600)
+      const timeout = setTimeout(() => {
+        cleanup()
+        if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ type: 'timeout' })}\n\n`)
+          res.end()
+        }
+      }, timeoutSecs * 1000)
+
+      function cleanup() {
+        clearInterval(heartbeat)
+        clearInterval(statusPoll)
+        clearTimeout(timeout)
+        for (const { type: evtType, handler } of eventHandlers) {
+          eventBus?.off?.(evtType, handler)
+        }
+        eventHandlers.length = 0
+      }
+
+      req.on('close', cleanup)
       return true
     }
 
