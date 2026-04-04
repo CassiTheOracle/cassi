@@ -489,7 +489,7 @@ export async function executeCodeConsolidatedTool(
     }
 
     case 'prepare_context': {
-      const { task, token_budget, include_content, scope, repo } = mergedArgs
+      const { task, token_budget, include_content, scope, repo, timeout_ms } = mergedArgs
       if (!task) throw new Error('Missing required parameter: task (description)')
 
       const result = await prepareContext(router, {
@@ -498,6 +498,7 @@ export async function executeCodeConsolidatedTool(
         includeContent: include_content,
         scope,
         repo,
+        timeoutMs: timeout_ms,
       }, logger)
 
       return {
