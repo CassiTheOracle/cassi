@@ -1898,8 +1898,13 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
 
   private buildInitialMessages(goal: string, context: string | undefined, role: HelixRole): Message[] {
+    // WHY: The [session:] marker lets CentralizedProvider.extractSessionId()
+    // give each Helix posture its own deduplication key. Without it, parallel
+    // Helix branches with similar goals hash to the same sessionId and trigger
+    // "Request already in progress" errors that kill Yin/Yang postures.
+    // This matches the pattern used by DyadPostureRunner and LumenPostureRunner.
     const messages: Message[] = [
-      { role: 'system', content: this.posture.systemPrompt },
+      { role: 'system', content: `[session:${this.sessionId}-${role}]\n\n${this.posture.systemPrompt}` },
     ]
 
     let userContent = `## Goal\n\n${goal}`

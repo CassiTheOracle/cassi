@@ -614,6 +614,27 @@ export class HelixStore {
     return this.stmts.pruneOld.run(cutoff).changes
   }
 
+  // WHY: On daemon restart, helix sessions left in 'running' state are orphans
+  // whose processes no longer exist. Without cleanup they stay in 'running'
+  // forever, confusing status queries and preventing accurate post-mortem.
+  recoverOrphanedSessions(): number {
+    const now = Date.now()
+    const stmt = this.db.prepare(`
+      UPDATE helix_sessions
+      SET status = 'failed',
+          error = 'Process terminated unexpectedly (recovered at startup)',
+          completed_at = ?
+      WHERE status = 'running'
+    `)
+    const result = stmt.run(now)
+    if (result.changes > 0) {
+      this.logger.info('Recovered orphaned helix sessions', {
+        count: result.changes,
+      })
+    }
+    return result.changes
+  }
+
   close(): void {
     this.db.close()
     this.logger.info('HelixStore closed')
