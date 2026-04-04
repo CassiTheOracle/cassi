@@ -8,6 +8,7 @@
  */
 
 import type { ILogger } from '../../types/interfaces.js'
+import { fetchWithTimeout as fetchWithTimeoutShared, watchViaSSE } from './helpers.js'
 
 
 
@@ -268,6 +269,19 @@ export const CONSTELLATION_TOOLS = [
       required: ['sessionId', 'content'],
     },
   },
+  {
+    name: 'constellation_audit_trail',
+    description: 'Get the full event audit trail for a Constellation session. Returns all corpus sweeps, pattern detections, interventions, spawn decisions, topology changes, and Helix lifecycle events in chronological order. Useful for understanding what happened during a run.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+        since: { type: 'string', description: 'ISO timestamp — only return events after this time.' },
+        limit: { type: 'number', description: 'Max events to return. Default: 100.' },
+      },
+      required: ['sessionId'],
+    },
+  },
 ]
 
 export const CONSTELLATION_TOOL_NAMES = new Set(CONSTELLATION_TOOLS.map(t => t.name))
@@ -277,20 +291,17 @@ export function getConstellationTools(): Array<{ name: string; description: stri
 }
 
 
+const fetchWithTimeout = fetchWithTimeoutShared
 
-async function fetchWithTimeout(
-  url: string,
-  opts: RequestInit & { timeoutMs?: number } = {},
-): Promise<Response> {
-  const { timeoutMs = 10_000, ...fetchOpts } = opts
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  try {
-    return await fetch(url, { ...fetchOpts, signal: controller.signal })
-  } finally {
-    clearTimeout(timer)
-  }
-}
+
+// WHY: SSE event types that indicate meaningful constellation activity (not just heartbeats)
+const SIGNIFICANT_CONSTELLATION_EVENTS = new Set([
+  'corpus:sweep', 'corpus:pattern', 'corpus:intervention',
+  'corpus:spawn-evaluated', 'corpus:synthesis',
+  'topology:cluster_formed', 'topology:cluster_dissolved',
+  'constellation:completed',
+])
+
 
 
 export async function executeConstellationTool(
@@ -394,41 +405,71 @@ export async function executeConstellationTool(
         const sessionId = args?.sessionId
         if (!sessionId) throw new Error('sessionId is required')
         const timeoutSecs = Math.min(Math.max(args?.timeoutSecs ?? 300, 10), 600)
-        const timeoutMs = timeoutSecs * 1000
-        const deadline = Date.now() + timeoutMs
 
-        // Poll-based watch (simpler than SSE for initial version)
-        while (Date.now() < deadline) {
-          heartbeat?.()
+        return await watchViaSSE({
+          sseUrl: `${adminBaseUrl}/constellation/${sessionId}/stream`,
+          pollUrl: `${adminBaseUrl}/constellation/${sessionId}`,
+          timeoutSecs,
+          interestingOnly: true,
+          heartbeat,
+          logger,
+          isSignificant: (type) => SIGNIFICANT_CONSTELLATION_EVENTS.has(type),
+          getEventMessage: (type, parsed) => {
+            if (type === 'corpus:pattern') return `Pattern: ${parsed?.pattern ?? 'detected'} (${parsed?.severity ?? '?'})`
+            if (type === 'corpus:intervention') return `Intervention → ${parsed?.targetHelixId ?? '?'}: ${parsed?.reason ?? ''}`
+            if (type === 'corpus:sweep') return `Corpus sweep #${parsed?.sweepCount ?? '?'} (${parsed?.branches ?? '?'} branches, ${parsed?.patterns ?? '?'} patterns)`
+            if (type === 'corpus:spawn-evaluated') return `Spawn ${parsed?.approved ? 'approved' : 'rejected'}: ${parsed?.reason ?? ''}`
+            if (type === 'corpus:synthesis') return `Synthesis posted`
+            if (type.startsWith('topology:')) return `${type}: ${parsed?.clusterId ?? parsed?.helixIdA ?? ''}`
+            return parsed?.message ?? type
+          },
+          buildSnapshot: async (reason, events) => {
+            const lines: string[] = []
 
-          try {
-            const res = await fetchWithTimeout(
-              `${adminBaseUrl}/constellation/${sessionId}`,
-              { timeoutMs: 10_000 },
-            )
-            if (res.ok) {
-              const data = await res.json() as any
-              if (data.status !== 'running') {
-                return data
+            let status: any = null
+            try {
+              const res = await fetchWithTimeout(`${adminBaseUrl}/constellation/${sessionId}`, { timeoutMs: 10_000 })
+              if (res.ok) status = await res.json()
+            } catch { /* status is optional */ }
+
+            let progress: any = null
+            if (!status || status.status === 'running') {
+              try {
+                const res = await fetchWithTimeout(`${adminBaseUrl}/constellation/${sessionId}/progress`, { timeoutMs: 10_000 })
+                if (res.ok) progress = await res.json()
+              } catch { /* progress is best-effort */ }
+            }
+
+            const sessionStatus = status?.status ?? progress?.status ?? 'unknown'
+            lines.push(`## Constellation ${sessionId} — ${sessionStatus}`)
+            lines.push(`**Reason returned:** ${reason}`)
+
+            if (progress?.markdown && sessionStatus === 'running') {
+              lines.push('')
+              lines.push(progress.markdown)
+            }
+
+            if (status) {
+              if (status.goal) lines.push(`**Goal:** ${String(status.goal).slice(0, 200)}`)
+              if (status.durationMs) lines.push(`**Duration:** ${(status.durationMs / 1000).toFixed(1)}s`)
+              if (status.nodeCount != null) lines.push(`**Nodes:** ${status.nodeCount}`)
+              if (status.result) {
+                const r = String(status.result)
+                lines.push(`\n**Result:** ${r.slice(0, 1000)}${r.length > 1000 ? '...' : ''}`)
+              }
+              if (status.error) lines.push(`\n**Error:** ${String(status.error).slice(0, 300)}`)
+            }
+
+            if (events.length > 0) {
+              lines.push(`\n### Events Since Last Check (${events.length})`)
+              for (const evt of events.slice(-30)) {
+                lines.push(`- **${evt.type}**: ${evt.message}`)
               }
             }
-          } catch {
-            // Ignore poll errors
-          }
 
-          await new Promise(r => setTimeout(r, 5000))
-        }
-
-        // Final check
-        try {
-          const res = await fetchWithTimeout(
-            `${adminBaseUrl}/constellation/${sessionId}`,
-            { timeoutMs: 10_000 },
-          )
-          if (res.ok) return await res.json()
-        } catch { /* ignore */ }
-
-        return { sessionId, status: 'timeout', message: `Watch timed out after ${timeoutSecs}s` }
+            return { content: [{ type: 'text', text: lines.join('\n') }] }
+          },
+        })
       }
 
       case 'constellation_blackboard': {
@@ -547,6 +588,19 @@ export async function executeConstellationTool(
             timeoutMs: 5000,
           },
         )
+        return await res.json()
+      }
+
+      case 'constellation_audit_trail': {
+        const params = new URLSearchParams()
+        if (args.since) params.set('since', args.since)
+        if (args.limit) params.set('limit', String(args.limit))
+        const qs = params.toString() ? `?${params.toString()}` : ''
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/audit-trail${qs}`,
+          { timeoutMs: 15_000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
         return await res.json()
       }
 

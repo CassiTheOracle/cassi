@@ -69,6 +69,8 @@ export const AGENT_TOOL = {
           'corpus_assume', 'corpus_release', 'corpus_snapshot',
           'corpus_state', 'corpus_directive', 'corpus_spawn_decide',
           'corpus_synthesis',
+          // Constellation analysis actions
+          'audit_trail',
         ],
         description: 'Operation to perform within the selected agent system',
       },
@@ -375,8 +377,9 @@ async function executeConstellationAgentTool(
     // External Corpus Protocol
     'constellation_corpus_assume', 'constellation_corpus_release',
     'constellation_corpus_snapshot', 'constellation_corpus_state',
-    'constellation_corpus_directive', 'constellation_corpus_spawn_decide',
+    'constellation_corpus_directive',     'constellation_corpus_spawn_decide',
     'constellation_corpus_synthesis',
+    'constellation_audit_trail',
   ]);
 
   if (!validConstellationTools.has(toolName)) {
