@@ -1810,6 +1810,23 @@ export class Daemon {
     } catch (err) {
       this.logger.warn('FileArtifactStore not available', { error: String(err) })
     }
+
+    // Initialize Constellation audit trail (bridges EventBus events to FileArtifactStore)
+    if (fileArtifactStore) {
+      try {
+        const { createConstellationAuditTrail } = await import('./intelligence/constellation/constellation-audit-trail.js')
+        const auditTrail = createConstellationAuditTrail({
+          eventBus: this.bus,
+          artifactStore: fileArtifactStore,
+          logger: this.logger,
+        })
+        auditTrail.start()
+        this.intelligence.constellationAuditTrail = auditTrail
+        this.logger.info('Constellation audit trail started')
+      } catch (err) {
+        this.logger.warn('Constellation audit trail not available', { error: String(err) })
+      }
+    }
     const defaultProvider = this.config.get<string>('intelligence.defaultProvider', MODEL_DEFAULTS.main.provider)
     const configuredModel = this.config.get<string>('intelligence.defaultModel', MODEL_DEFAULTS.main.model)
     const defaultModel = configuredModel
@@ -2331,6 +2348,11 @@ export class Daemon {
 
             if (this.contextDistiller) {
               this.intelligence.constellation.setContextDistiller(this.contextDistiller)
+            }
+
+            // Wire audit trail into Constellation orchestrator
+            if (this.intelligence.constellationAuditTrail) {
+              this.intelligence.constellation.setAuditTrail(this.intelligence.constellationAuditTrail)
             }
 
             this.logger.info('Constellation tool access wired')
