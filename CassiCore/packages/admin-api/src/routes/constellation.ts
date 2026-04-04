@@ -146,7 +146,7 @@ export async function handleConstellationRoutes(
     pruneOldJobs()
     try {
       const body = await parseBody(req)
-      const { goal, context, template, postures, maxHelixes, maxDepth } = body ?? {}
+      const { goal, context, template, postures, maxHelixes, maxDepth, costEffective } = body ?? {}
 
       if (!goal) {
         sendJSON(res, 400, { error: 'goal is required' })
@@ -180,6 +180,7 @@ export async function handleConstellationRoutes(
         maxHelixes,
         maxDepth,
         sessionId,
+        costEffective: costEffective === true,
       }).then((result: ConstellationResult) => {
         job.status = 'completed'
         job.completedAt = Date.now()
