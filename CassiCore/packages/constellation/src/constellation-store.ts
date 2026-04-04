@@ -1097,6 +1097,35 @@ export class ConstellationStore {
    */
   recoverOrphanedSessions(): number {
     const now = Date.now()
+
+    // WHY: First, identify which orphaned sessions have checkpoint data.
+    // These could theoretically be resumed in the future. For now we still
+    // mark them failed, but log the checkpoint info for post-mortem analysis.
+    const orphans = this.db.prepare(`
+      SELECT id, goal, tree_snapshot_json IS NOT NULL as has_tree,
+             progress_snapshot_json IS NOT NULL as has_progress,
+             sweep_count, total_branches, completed_branches, failed_branches
+      FROM constellation_sessions
+      WHERE status = 'running'
+    `).all() as Array<{
+      id: string; goal: string; has_tree: number; has_progress: number
+      sweep_count: number; total_branches: number; completed_branches: number; failed_branches: number
+    }>
+
+    if (orphans.length > 0) {
+      for (const orphan of orphans) {
+        this.logger.info('Recovering orphaned constellation session', {
+          id: orphan.id,
+          goal: orphan.goal.slice(0, 100),
+          hasCheckpoint: !!(orphan.has_tree && orphan.has_progress),
+          sweepCount: orphan.sweep_count,
+          totalBranches: orphan.total_branches,
+          completedBranches: orphan.completed_branches,
+          failedBranches: orphan.failed_branches,
+        })
+      }
+    }
+
     const stmt = this.db.prepare(`
       UPDATE constellation_sessions
       SET status = 'failed',
