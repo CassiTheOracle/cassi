@@ -281,7 +281,9 @@ export class ToolExecutor {
       }
 
       if (!cached || cached.decision !== 'allow') {
-        const verdict = this.permissionOracle.judge(call.name, call.input, sessionId)
+        const verdict = this.permissionOracle.judge(call.name, call.input, sessionId, {
+          sessionType: ctx.sessionType,
+        })
 
         this.permissionCache.set(cacheKey, {
           decision: verdict.decision,

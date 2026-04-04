@@ -435,6 +435,17 @@ export const writeFileHandler: ToolHandler = async (
     return `Error: ${magnitudeCheck.reason}`
   }
   
+  // Pre-write backup — snapshot existing content before overwriting
+  if (magnitudeCheck.existingContent && magnitudeCheck.oldLines > 0) {
+    backupBeforeOverwrite(
+      absPath,
+      magnitudeCheck.existingContent,
+      magnitudeCheck.oldLines,
+      magnitudeCheck.newLines,
+      ctx,
+    )
+  }
+  
   try {
     const result = await writeFileOptimized(
       { path: absPath, content, atomic },
