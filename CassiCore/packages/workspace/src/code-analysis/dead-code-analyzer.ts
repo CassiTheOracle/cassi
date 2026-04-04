@@ -15,7 +15,7 @@
 import { execSync } from 'node:child_process'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { DeadCodeResult, DeadCodeOptions } from './types.js'
-import { isIndexAvailable, ensureFreshIndexBackground } from './gitnexus-bridge.js'
+import { isIndexAvailable, ensureFreshIndexBackground, unwrapRouterResponse } from './gitnexus-bridge.js'
 
 /** Patterns that indicate a symbol is an entry point (not dead). */
 const ENTRY_POINT_PATTERNS = [
@@ -89,6 +89,9 @@ export async function analyzeDeadCode(
   ensureFreshIndexBackground(logger)
 
   // Step 1: Find all symbols with zero incoming CALLS or IMPORTS edges
+    // WHY: LadybugDB doesn't support multi-label OR (s:Function OR s:Class) or
+    // edge property filters in patterns ({type: 'CALLS'}). We run separate
+    // queries per label and use WHERE clauses for edge type filtering.
     const pathFilter = scopePath
       ? `AND s.filePath STARTS WITH "${scopePath}"`
       : ''
@@ -96,43 +99,55 @@ export async function analyzeDeadCode(
       ? ''
       : 'AND NOT s.filePath CONTAINS "test"'
 
-    const cypher = `
-      MATCH (s)
-      WHERE (s:Function OR s:Class OR s:Method)
-      ${pathFilter}
-      ${testFilter}
-      AND NOT EXISTS {
-        MATCH (caller)-[:CodeRelation {type: 'CALLS'}]->(s)
-      }
-      AND NOT EXISTS {
-        MATCH (importer)-[:CodeRelation {type: 'IMPORTS'}]->(s)
-      }
-      RETURN s.name AS name, s.filePath AS filePath, label(s) AS kind,
-             s.startLine AS startLine, s.endLine AS endLine
-      ORDER BY s.filePath
-      LIMIT 200
-    `
+    const labels = ['Function', 'Class', 'Method'] as const
+    let allSymbols: Array<{ name: string; filePath: string; kind: string; startLine: number; endLine: number }> = []
 
-    let cypherResult: any
-    try {
-      cypherResult = await router('gitnexus_cypher', { query: cypher, repo })
-    } catch (err) {
-      logger.warn('Dead code Cypher query failed, trying simpler query', { error: String(err) })
-      // Fallback: simpler query without NOT EXISTS (KuzuDB compatibility)
-      const simpleCypher = `
-        MATCH (s)
-        WHERE (s:Function OR s:Class OR s:Method)
+    for (const label of labels) {
+      const cypher = `
+        MATCH (s:${label})
+        WHERE s.name IS NOT NULL
         ${pathFilter}
         ${testFilter}
-        RETURN s.name AS name, s.filePath AS filePath, label(s) AS kind,
+        AND NOT EXISTS {
+          MATCH (caller)-[r:CodeRelation]->(s)
+          WHERE r.type = 'CALLS'
+        }
+        AND NOT EXISTS {
+          MATCH (importer)-[r2:CodeRelation]->(s)
+          WHERE r2.type = 'IMPORTS'
+        }
+        RETURN s.name AS name, s.filePath AS filePath, '${label}' AS kind,
                s.startLine AS startLine, s.endLine AS endLine
-        LIMIT 500
+        ORDER BY s.filePath
+        LIMIT 100
       `
-      cypherResult = await router('gitnexus_cypher', { query: simpleCypher, repo })
+
+      try {
+        const result = await router('gitnexus_cypher', { query: cypher, repo })
+        const unwrapped = unwrapRouterResponse(result)
+        const rows = parseCypherMarkdown(unwrapped?.markdown || unwrapped?.output || '')
+        // HOW: Also handle JSON array responses (LadybugDB returns [] for empty results)
+        if (rows.length === 0 && Array.isArray(unwrapped)) {
+          for (const row of unwrapped) {
+            if (row.name && row.filePath) {
+              allSymbols.push({
+                name: row.name,
+                filePath: row.filePath,
+                kind: row.kind || label,
+                startLine: row.startLine || 0,
+                endLine: row.endLine || 0,
+              })
+            }
+          }
+        } else {
+          allSymbols.push(...rows.map(r => ({ ...r, kind: r.kind || label })))
+        }
+      } catch (err) {
+        logger.warn(`Dead code Cypher query failed for ${label}`, { error: String(err) })
+      }
     }
 
-    // Parse markdown table result
-    const symbols = parseCypherMarkdown(cypherResult?.markdown || cypherResult?.output || '')
+    const symbols = allSymbols
 
     // Step 2: For each symbol, check if it has incoming references via context
     const results: DeadCodeResult[] = []

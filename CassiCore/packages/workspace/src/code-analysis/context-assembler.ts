@@ -7,19 +7,21 @@
  * Designed for Dyad workers, Flux cells, and other delegated agents that need
  * code context without making multiple round-trips.
  *
- * WHY: Two-tier approach instead of blocking on withAutoReindex:
- *  - Stage 1: Query GitNexus directly (stale index is fine, no blocking reindex)
- *  - Stage 2: Fall back to git-grep keyword search if GitNexus unavailable/fails
+ * WHY: Hybrid merge approach instead of blocking on withAutoReindex:
+ *  - Run GitNexus graph query and git-grep keyword search concurrently
+ *  - Merge results: files found by both sources get a relevance boost
+ *  - GitNexus contributes execution-flow context and symbol names
+ *  - Grep contributes keyword-match precision for literal terms
  *  - Background: Trigger non-blocking reindex if index is stale
- * This guarantees a useful result within the timeout even when GitNexus is
- * analyzing or the index doesn't exist yet.
+ * This guarantees relevant results within the timeout even when GitNexus
+ * returns low-relevance matches or is unavailable.
  */
 
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { PreparedContext, PreparedFile, PrepareContextOptions } from './types.js'
-import { isIndexAvailable, ensureFreshIndexBackground } from './gitnexus-bridge.js'
+import { isIndexAvailable, ensureFreshIndexBackground, safeParseJson } from './gitnexus-bridge.js'
 
 const execAsync = promisify(exec)
 
@@ -81,19 +83,20 @@ export function extractKeywords(task: string): string[] {
 const DEFAULT_PREPARE_TIMEOUT_MS = 30_000
 
 /**
- * Assemble context for a task using a two-tier search strategy.
+ * Assemble context for a task using hybrid search (GitNexus + grep merged).
  *
- * WHY: The old approach used withAutoReindex which blocks on ensureFreshIndex
- * (up to 300s for reindex + 120s for query + 300s for retry-reindex). Even
- * with a Promise.race timeout, the degraded result was just keywords with no
- * files — useless for delegation.
+ * WHY: The old two-tier approach (try GitNexus, fall back to grep) had a flaw:
+ * when GitNexus returned low-relevance semantic matches, grep never ran — even
+ * though grep would have found the actual files. The hybrid approach runs both
+ * concurrently and merges results, so keyword-precise grep results combine with
+ * GitNexus's execution-flow context for the best overall ranking.
  *
- * New approach:
- *  1. If GitNexus index exists (even stale), query it directly — no blocking
- *     reindex. A stale index is better than no index.
- *  2. If GitNexus is unavailable or the query fails/times out, fall back to
- *     git-grep keyword search which always works and is fast.
- *  3. Trigger a background reindex if the index is stale, so it's fresh next time.
+ * How it works:
+ *  1. Launch GitNexus query and git-grep concurrently (both time-budgeted)
+ *  2. Merge into a single file map — files found by both sources get a boost
+ *  3. GitNexus contributes: execution flow context, symbol names, content excerpts
+ *  4. Grep contributes: keyword match counts (high precision for literal terms)
+ *  5. Background: trigger reindex if index is stale, so it's fresh next time
  */
 export async function prepareContext(
   router: (tool: string, args: any) => Promise<any>,
@@ -111,104 +114,145 @@ export async function prepareContext(
 
   const keywords = extractKeywords(task)
   const charBudget = tokenBudget * CHARS_PER_TOKEN
-  let usedChars = 0
 
   logger.debug('Preparing context', { keywords, tokenBudget, timeoutMs })
 
+  // Trigger background reindex if needed (never blocks)
+  ensureFreshIndexBackground(logger)
+
+  // Time budgets: 70% shared (both run concurrently), leaves 30% for merge + assembly
+  const searchTimeout = Math.floor(timeoutMs * 0.7)
+
+  // --- Run both searches concurrently ---
+  type GnxItem = { filePath: string; reason: string; relevance: number; symbols: string[]; content?: string }
+  type GrepItem = { filePath: string; matchCount: number }
+
+  const gnxPromise: Promise<GnxItem[]> = isIndexAvailable()
+    ? Promise.race([
+      router('gitnexus_query', {
+        query: keywords.join(' '),
+        goal: task,
+        task_context: task,
+        include_content: includeContent,
+        limit: 8,
+        max_symbols: 6,
+        repo,
+      }).then(parseQueryResult),
+      rejectAfterMs(searchTimeout, 'GitNexus query'),
+    ]).catch(err => {
+      logger.debug('GitNexus query failed or timed out', { error: String(err) })
+      return [] as GnxItem[]
+    })
+    : Promise.resolve([] as GnxItem[])
+
+  const grepPromise: Promise<GrepItem[]> = grepFallback(keywords, scope, searchTimeout, logger)
+    .catch(err => {
+      logger.debug('Grep search failed', { error: String(err) })
+      return [] as GrepItem[]
+    })
+
+  const [gnxResults, grepResults] = await Promise.all([gnxPromise, grepPromise])
+
+  // --- Merge results into a unified file map ---
+  const merged = new Map<string, {
+    relevance: number
+    reason: string
+    symbols: string[]
+    content?: string
+    sources: ('graph' | 'grep')[]
+    grepMatches: number
+  }>()
+
+  // Add GitNexus results
+  for (const item of gnxResults) {
+    if (scope && !item.filePath.startsWith(scope)) continue
+    merged.set(item.filePath, {
+      relevance: item.relevance,
+      reason: item.reason,
+      symbols: item.symbols,
+      content: item.content,
+      sources: ['graph'],
+      grepMatches: 0,
+    })
+  }
+
+  // Merge grep results — boost files found by both
+  for (const gf of grepResults) {
+    if (scope && !gf.filePath.startsWith(scope)) continue
+
+    const grepRelevance = Math.min(1, gf.matchCount / Math.max(keywords.length, 1))
+    const existing = merged.get(gf.filePath)
+
+    if (existing) {
+      // WHY: File found by both sources — boost relevance by 20% (capped at 1.0)
+      // and combine metadata. This rewards files that are both semantically
+      // relevant (GitNexus) AND textually match the keywords (grep).
+      existing.relevance = Math.min(1, Math.max(existing.relevance, grepRelevance) * 1.2)
+      existing.sources.push('grep')
+      existing.grepMatches = gf.matchCount
+      existing.reason = `${existing.reason} + matched ${gf.matchCount} keyword(s)`
+    } else {
+      merged.set(gf.filePath, {
+        relevance: grepRelevance,
+        reason: `Matched ${gf.matchCount} keyword(s) via text search`,
+        symbols: [],
+        sources: ['grep'],
+        grepMatches: gf.matchCount,
+      })
+    }
+  }
+
+  // Sort by relevance descending, cap at 20 files
+  const ranked = [...merged.entries()]
+    .sort((a, b) => b[1].relevance - a[1].relevance)
+    .slice(0, 20)
+
+  // --- Assemble into PreparedFile[] within token budget ---
   const files: PreparedFile[] = []
-  let summary = ''
-  let source = 'none'
+  let usedChars = 0
 
-  // Allocate time budgets: 60% for GitNexus attempt, 35% for grep fallback
-  const gnxTimeout = Math.floor(timeoutMs * 0.6)
-  const grepTimeout = Math.floor(timeoutMs * 0.35)
+  for (const [filePath, entry] of ranked) {
+    const excerpt = includeContent ? entry.content?.slice(0, 500) : undefined
+    const excerptChars = excerpt?.length || 0
 
-  // --- Stage 1: Try GitNexus (non-blocking freshness) ---
-  if (isIndexAvailable()) {
-    // Trigger background reindex if stale — does NOT block
-    ensureFreshIndexBackground(logger)
-
-    try {
-      const queryResult = await Promise.race([
-        router('gitnexus_query', {
-          query: keywords.join(' '),
-          goal: task,
-          task_context: task,
-          include_content: includeContent,
-          limit: 8,
-          max_symbols: 6,
-          repo,
-        }),
-        rejectAfterMs(gnxTimeout, 'GitNexus query'),
-      ])
-
-      const parsed = parseQueryResult(queryResult)
-
-      for (const item of parsed) {
-        if (scope && !item.filePath.startsWith(scope)) continue
-
-        const excerpt = includeContent ? item.content?.slice(0, 500) : undefined
-        const excerptChars = excerpt?.length || 0
-
-        if (usedChars + excerptChars > charBudget) {
-          // Over budget — add without content
-          files.push({
-            filePath: item.filePath,
-            reason: item.reason,
-            relevance: item.relevance,
-            keySymbols: item.symbols,
-          })
-          continue
-        }
-
-        usedChars += excerptChars + item.filePath.length + 50 // overhead
-        files.push({
-          filePath: item.filePath,
-          reason: item.reason,
-          relevance: item.relevance,
-          keySymbols: item.symbols,
-          excerpt,
-        })
-      }
-
-      if (files.length > 0) source = 'GitNexus'
-    } catch (err) {
-      logger.debug('GitNexus query failed or timed out, falling back to grep', { error: String(err) })
+    if (usedChars + excerptChars > charBudget) {
+      // Over budget — add without content
+      files.push({
+        filePath,
+        reason: entry.reason,
+        relevance: entry.relevance,
+        keySymbols: entry.symbols,
+      })
+      usedChars += filePath.length + 80
+      continue
     }
-  } else {
-    logger.debug('GitNexus index not available, using grep fallback')
-    // Trigger background reindex so the index exists next time
-    ensureFreshIndexBackground(logger)
+
+    usedChars += excerptChars + filePath.length + 50
+    files.push({
+      filePath,
+      reason: entry.reason,
+      relevance: entry.relevance,
+      keySymbols: entry.symbols,
+      excerpt,
+    })
   }
 
-  // --- Stage 2: Grep fallback if GitNexus didn't produce results ---
-  if (files.length === 0) {
-    try {
-      const grepResults = await grepFallback(keywords, scope, grepTimeout, logger)
-
-      for (const gf of grepResults) {
-        if (usedChars > charBudget) break
-
-        files.push({
-          filePath: gf.filePath,
-          reason: `Matched ${gf.matchCount} keyword(s) via text search`,
-          relevance: Math.min(1, gf.matchCount / Math.max(keywords.length, 1)),
-          keySymbols: [],
-        })
-        usedChars += gf.filePath.length + 80
-      }
-
-      if (files.length > 0) source = 'text search'
-    } catch (err) {
-      logger.warn('Grep fallback also failed', { error: String(err) })
-    }
-  }
+  // Determine source label
+  const hasGraph = gnxResults.length > 0
+  const hasGrep = grepResults.length > 0
+  const source = hasGraph && hasGrep ? 'hybrid (graph + text)'
+    : hasGraph ? 'graph'
+    : hasGrep ? 'text search'
+    : 'none'
 
   // Build summary
+  let summary: string
   if (files.length > 0) {
     const topFiles = files.slice(0, 5).map(f => f.filePath.split('/').pop()).join(', ')
     const symbolList = files.flatMap(f => f.keySymbols).slice(0, 8).join(', ')
-    summary = `Key code surface for "${task.slice(0, 80)}": ${files.length} relevant files found via ${source}. Top files: ${topFiles}. Primary symbols: ${symbolList || 'none (text search only)'}.`
+    const bothCount = ranked.filter(([, e]) => e.sources.length > 1).length
+    const boostNote = bothCount > 0 ? ` (${bothCount} files boosted by both sources)` : ''
+    summary = `Key code surface for "${task.slice(0, 80)}": ${files.length} relevant files found via ${source}${boostNote}. Top files: ${topFiles}. Primary symbols: ${symbolList || 'none'}.`
   } else {
     summary = `No files found for "${task.slice(0, 80)}". Keywords extracted: ${keywords.join(', ')}`
   }
@@ -283,8 +327,25 @@ async function grepFallback(
   return results
 }
 
+// WHY: safeParseJson is now shared from gitnexus-bridge.ts — see import above.
+
 /**
  * Parse GitNexus query result into a uniform shape.
+ *
+ * WHY: GitNexus returns { processes, process_symbols, definitions }. Processes
+ * contain execution flows with ranked relevance. Definitions contain standalone
+ * types/interfaces. The result may arrive as:
+ *  - Raw JSON object (direct call)
+ *  - MCP envelope: { content: [{ type: 'text', text: '...' }] } (via router)
+ *  - Markdown string (from some MCP layers)
+ *
+ * This parser normalizes all formats into a flat file list.
+ *
+ * Known quirks handled:
+ *  - Processes are often empty for keyword-centric queries (no execution flows match)
+ *  - File-type definitions (name matches filePath basename) are noise — skip them
+ *  - process_symbols may be top-level (not nested inside each process)
+ *  - Definitions lack a relevance score — we use 0.5 instead of the old 0.4
  */
 function parseQueryResult(result: any): Array<{
   filePath: string
@@ -303,19 +364,44 @@ function parseQueryResult(result: any): Array<{
 
   if (!result) return items
 
-  // Handle structured result (processes + process_symbols)
-  const output = typeof result === 'string' ? result : (result.output || result.markdown || JSON.stringify(result))
+  // WHY: The router returns MCP-format { content: [{ type: 'text', text }] }.
+  // The text inside may itself be a JSON envelope from the daemon's tool executor:
+  //   { toolCallId, content: "<actual tool output JSON>", isError, durationMs }
+  // We need to unwrap both layers to get the actual GitNexus response.
+  let raw: any = result
+  if (raw?.content && Array.isArray(raw.content)) {
+    const textPart = raw.content.find((c: any) => c.type === 'text')
+    if (textPart?.text) {
+      try {
+        raw = JSON.parse(textPart.text)
+      } catch {
+        raw = textPart.text
+      }
+    }
+  }
+  // HOW: Second unwrap — if raw is the daemon's tool executor envelope,
+  // extract the actual content. The envelope has { toolCallId, content, isError }.
+  if (raw?.toolCallId && typeof raw.content === 'string') {
+    raw = safeParseJson(raw.content) ?? raw.content
+  }
+  // HOW: If raw.content is a string (direct daemon response without MCP wrapping)
+  if (typeof raw === 'object' && raw !== null && !raw.processes && !raw.definitions && typeof raw.content === 'string') {
+    raw = safeParseJson(raw.content) ?? raw.content
+  }
 
-  // Try to parse as JSON first
+  // Try structured JSON
   try {
-    const parsed = typeof result === 'string' ? JSON.parse(result) : result
-    if (parsed.processes) {
-      for (const proc of parsed.processes) {
-        const symbols = (proc.symbols || parsed.process_symbols || [])
-          .filter((s: any) => s.processName === proc.name || !proc.name)
-          .slice(0, 5)
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
 
-        for (const sym of symbols) {
+    // --- Process symbols (from execution flows) ---
+    if (parsed.processes && Array.isArray(parsed.processes)) {
+      const allSymbols = parsed.process_symbols || []
+      for (const proc of parsed.processes) {
+        const procSymbols = proc.symbols || allSymbols.filter(
+          (s: any) => s.processName === (proc.name || proc.heuristicLabel)
+        )
+
+        for (const sym of procSymbols.slice(0, 6)) {
           if (!sym.filePath) continue
           items.push({
             filePath: sym.filePath,
@@ -327,20 +413,33 @@ function parseQueryResult(result: any): Array<{
         }
       }
     }
-    if (parsed.definitions) {
+
+    // --- Definitions (standalone types/interfaces/classes) ---
+    if (parsed.definitions && Array.isArray(parsed.definitions)) {
       for (const def of parsed.definitions) {
+        if (!def.filePath) continue
+
+        // WHY: Skip File-type entries — they're just container nodes, not meaningful
+        // symbols. They appear as { id: "File:path/to/file.ts", name: "file.ts" }.
+        const isFileEntry = def.id?.startsWith('File:') ||
+          def.name === def.filePath.split('/').pop()
+        if (isFileEntry) continue
+
         items.push({
           filePath: def.filePath,
-          reason: `Type/interface definition`,
-          relevance: 0.4,
+          reason: `Definition: ${def.name}${def.module ? ` (${def.module})` : ''}`,
+          relevance: 0.5,
           symbols: [def.name].filter(Boolean),
           content: def.content,
         })
       }
     }
   } catch {
-    // Not JSON — parse as markdown
-    // Extract file paths from markdown output
+    // Not JSON — parse as markdown/text output
+    const output = typeof raw === 'string'
+      ? raw
+      : (raw?.output || raw?.markdown || JSON.stringify(raw))
+
     const pathMatches = output.match(/[\w/.-]+\.(?:ts|js|tsx|jsx)/g) || []
     const seen = new Set<string>()
     for (const p of pathMatches) {
@@ -355,13 +454,12 @@ function parseQueryResult(result: any): Array<{
     }
   }
 
-  // Deduplicate by filePath, keeping highest relevance
+  // Deduplicate by filePath, keeping highest relevance and merging symbols
   const byPath = new Map<string, typeof items[0]>()
   for (const item of items) {
     const existing = byPath.get(item.filePath)
     if (!existing || item.relevance > existing.relevance) {
       if (existing) {
-        // Merge symbols
         item.symbols = [...new Set([...existing.symbols, ...item.symbols])]
       }
       byPath.set(item.filePath, item)

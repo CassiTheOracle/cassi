@@ -13,7 +13,7 @@
 import { execSync } from 'node:child_process'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { HotspotResult, HotspotOptions } from './types.js'
-import { isIndexAvailable, ensureFreshIndexBackground } from './gitnexus-bridge.js'
+import { isIndexAvailable, ensureFreshIndexBackground, unwrapRouterResponse } from './gitnexus-bridge.js'
 
 /** Weight distribution for composite score. */
 const WEIGHT_SIZE = 0.3
@@ -26,22 +26,52 @@ const WEIGHT_COUPLING = 0.4
 function getFileSizes(root: string, scopePath?: string): Map<string, number> {
   const sizes = new Map<string, number>()
   try {
-    const pathArg = scopePath ? `-- "${scopePath}"` : ''
-    // Use git ls-files to get tracked files, then wc -l for line counts
+    // WHY: git ls-files pathspecs match recursively when a directory path ends
+    // with '/'. We pass the scope as a -- pathspec and combine with extension globs.
+    const exts = ['ts', 'js', 'tsx', 'jsx']
+    let lsCmd: string
+    if (scopePath) {
+      // HOW: pathspec "dir/*.ext" matches recursively in git ls-files
+      const patterns = exts.map(ext => `"${scopePath}*.${ext}"`).join(' ')
+      lsCmd = `git ls-files --cached ${patterns}`
+    } else {
+      const patterns = exts.map(ext => `"*.${ext}"`).join(' ')
+      lsCmd = `git ls-files --cached ${patterns}`
+    }
     const files = execSync(
-      `git ls-files --cached "*.ts" "*.js" "*.tsx" "*.jsx" ${pathArg}`,
+      lsCmd,
       { encoding: 'utf-8', cwd: root, timeout: 30_000 },
     ).trim().split('\n').filter(Boolean)
 
-    for (const file of files) {
+    // HOW: Batch wc -l instead of N+1 exec calls. xargs handles quoting.
+    if (files.length > 0) {
       try {
-        const count = execSync(
-          `wc -l < "${file}"`,
-          { encoding: 'utf-8', cwd: root, timeout: 5_000 },
+        const input = files.join('\n')
+        const wcOutput = execSync(
+          'xargs -d "\\n" wc -l',
+          { input, encoding: 'utf-8', cwd: root, timeout: 30_000 },
         ).trim()
-        sizes.set(file, parseInt(count, 10) || 0)
+        // wc -l output: "  123 path/to/file.ts\n  456 path/to/other.ts\n  579 total"
+        for (const line of wcOutput.split('\n')) {
+          const match = line.trim().match(/^(\d+)\s+(.+)$/)
+          if (match && match[2] !== 'total') {
+            sizes.set(match[2], parseInt(match[1], 10) || 0)
+          }
+        }
       } catch {
-        // Skip unreadable files
+        // Fallback: try one-by-one for the remainder
+        for (const file of files) {
+          if (sizes.has(file)) continue
+          try {
+            const count = execSync(
+              `wc -l < "${file}"`,
+              { encoding: 'utf-8', cwd: root, timeout: 5_000 },
+            ).trim()
+            sizes.set(file, parseInt(count, 10) || 0)
+          } catch {
+            // Skip unreadable files
+          }
+        }
       }
     }
   } catch {
@@ -93,20 +123,24 @@ export async function analyzeHotspots(
 
     // Step 2: Get symbol counts per file from GitNexus
     const symbolCounts = new Map<string, number>()
-    const pathFilter = scopePath
-      ? `WHERE f.filePath STARTS WITH "${scopePath}"`
+    const scopeFilter = scopePath
+      ? `AND f.filePath STARTS WITH "${scopePath}"`
       : ''
 
     try {
+      // WHY: LadybugDB doesn't support edge property filters in patterns
+      // ({type: 'DEFINES'}). Use WHERE clause on the relationship instead.
       const cypher = `
-        MATCH (f:File)-[:CodeRelation {type: 'DEFINES'}]->(s)
-        ${pathFilter}
+        MATCH (f:File)-[r:CodeRelation]->(s)
+        WHERE r.type = 'DEFINES'
+        ${scopeFilter}
         RETURN f.filePath AS filePath, count(s) AS symbolCount
         ORDER BY symbolCount DESC
         LIMIT 500
       `
       const result = await router('gitnexus_cypher', { query: cypher, repo })
-      const rows = parseSimpleMarkdown(result?.markdown || result?.output || '', 'filePath', 'symbolCount')
+      const unwrapped = unwrapRouterResponse(result)
+      const rows = parseSimpleMarkdown(unwrapped?.markdown || unwrapped?.output || '', 'filePath', 'symbolCount')
       for (const row of rows) {
         symbolCounts.set(row.filePath, parseInt(String(row.symbolCount), 10) || 0)
       }
@@ -126,7 +160,8 @@ export async function analyzeHotspots(
         LIMIT 500
       `
       const result = await router('gitnexus_cypher', { query: cypher, repo })
-      const rows = parseSimpleMarkdown(result?.markdown || result?.output || '', 'filePath', 'edgeCount')
+      const unwrappedResult = unwrapRouterResponse(result)
+      const rows = parseSimpleMarkdown(unwrappedResult?.markdown || unwrappedResult?.output || '', 'filePath', 'edgeCount')
       for (const row of rows) {
         const current = couplingCounts.get(row.filePath) || 0
         couplingCounts.set(row.filePath, current + (parseInt(String(row.edgeCount), 10) || 0))
@@ -141,7 +176,8 @@ export async function analyzeHotspots(
         LIMIT 500
       `
       const result2 = await router('gitnexus_cypher', { query: cypher2, repo })
-      const rows2 = parseSimpleMarkdown(result2?.markdown || result2?.output || '', 'filePath', 'edgeCount')
+      const unwrappedResult2 = unwrapRouterResponse(result2)
+      const rows2 = parseSimpleMarkdown(unwrappedResult2?.markdown || unwrappedResult2?.output || '', 'filePath', 'edgeCount')
       for (const row of rows2) {
         const current = couplingCounts.get(row.filePath) || 0
         couplingCounts.set(row.filePath, current + (parseInt(String(row.edgeCount), 10) || 0))

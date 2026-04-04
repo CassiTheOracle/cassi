@@ -83,13 +83,14 @@ function currentHead(root: string): string | null {
 }
 
 /**
- * Check whether the KuzuDB database exists (the actual graph database).
- * WHY: KuzuDB can be stored as a single file or a directory depending on
- * the version. We check for existence only, not type.
+ * Check whether the graph database exists.
+ * WHY: GitNexus v1.3.x used KuzuDB (.gitnexus/kuzu as file or directory),
+ * while v1.5.x uses LadybugDB (.gitnexus/lbug). We check for either to
+ * support both versions transparently.
  */
-function kuzuExists(root: string): boolean {
-  const kuzuPath = join(root, '.gitnexus', 'kuzu')
-  return existsSync(kuzuPath)
+function graphDbExists(root: string): boolean {
+  const gnDir = join(root, '.gitnexus')
+  return existsSync(join(gnDir, 'kuzu')) || existsSync(join(gnDir, 'lbug'))
 }
 
 /**
@@ -113,7 +114,7 @@ function commitsBehind(root: string, indexedCommit: string, head: string): numbe
  * Determine whether the GitNexus index is fresh enough for use.
  *
  * Fresh means:
- *  1. `.gitnexus/kuzu` directory exists
+ *  1. `.gitnexus/kuzu` (KuzuDB) or `.gitnexus/lbug` (LadybugDB) exists
  *  2. `meta.json` exists
  *  3. The indexed commit is within MAX_STALE_COMMITS of HEAD
  *
@@ -122,7 +123,7 @@ function commitsBehind(root: string, indexedCommit: string, head: string): numbe
  * The withAutoReindex wrapper handles the case where a query fails because
  * the index is too far behind.
  * @dep callers: reindex (core/intelligence/code-analysis/gitnexus-bridge.ts), ensureFreshIndex (core/intelligence/code-analysis/gitnexus-bridge.ts)
- * @dep calls: commitsBehind, kuzuExists, currentHead, readMeta, repoRoot [+1]
+ * @dep calls: commitsBehind, graphDbExists, currentHead, readMeta, repoRoot [+1]
  * @dep module: Code-analysis
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -134,10 +135,10 @@ export function isIndexFresh(logger?: ILogger): boolean {
   const meta = readMeta(root)
   const head = currentHead(root)
 
-  if (!meta || !head || !kuzuExists(root)) {
+  if (!meta || !head || !graphDbExists(root)) {
     cachedFresh = false
     lastCheckTs = now
-    logger?.debug('GitNexus index missing or incomplete', { hasMeta: !!meta, hasKuzu: kuzuExists(root) })
+    logger?.debug('GitNexus index missing or incomplete', { hasMeta: !!meta, hasGraphDb: graphDbExists(root) })
     return false
   }
 
@@ -249,7 +250,7 @@ export async function ensureFreshIndex(logger?: ILogger): Promise<boolean> {
  */
 export function isIndexAvailable(): boolean {
   const root = repoRoot()
-  return kuzuExists(root)
+  return graphDbExists(root)
 }
 
 /**
@@ -302,4 +303,90 @@ export async function withAutoReindex<T>(
     // Retry once
     return await fn()
   }
+}
+
+/**
+ * Safely parse JSON from a string that may have trailing non-JSON content
+ * (e.g., the daemon appends a trust bar like "━━ CassiCore ━ trust ████ 0.92 ━━").
+ *
+ * WHY: The daemon's tool executor appends metadata after the JSON response,
+ * which causes JSON.parse() to fail with "Extra data". We try three strategies:
+ *  1. Direct JSON.parse (fastest, works for clean JSON)
+ *  2. Strip after common separators (--- or ━━)
+ *  3. Find the last balanced brace/bracket
+ */
+export function safeParseJson(text: string): any | null {
+  try {
+    return JSON.parse(text)
+  } catch { /* continue */ }
+
+  const trimmed = text.trim()
+  for (const sep of ['\n---\n', '\n━━', '\n\n---']) {
+    const idx = trimmed.indexOf(sep)
+    if (idx > 0) {
+      try {
+        return JSON.parse(trimmed.slice(0, idx).trim())
+      } catch { /* continue */ }
+    }
+  }
+
+  const firstChar = trimmed[0]
+  if (firstChar === '{' || firstChar === '[') {
+    const closer = firstChar === '{' ? '}' : ']'
+    let depth = 0
+    let inString = false
+    let escape = false
+    for (let i = 0; i < trimmed.length; i++) {
+      const ch = trimmed[i]
+      if (escape) { escape = false; continue }
+      if (ch === '\\') { escape = true; continue }
+      if (ch === '"') { inString = !inString; continue }
+      if (inString) continue
+      if (ch === firstChar) depth++
+      if (ch === closer) {
+        depth--
+        if (depth === 0) {
+          try {
+            return JSON.parse(trimmed.slice(0, i + 1))
+          } catch { /* continue */ }
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+/**
+ * Unwrap a router response that may be in MCP envelope format.
+ *
+ * WHY: When calling GitNexus tools through the daemon's router, responses arrive
+ * in a multi-layered envelope:
+ *   { content: [{ type: 'text', text: '{ "toolCallId": "...", "content": "{actual JSON}\\n...trust bar" }' }] }
+ *
+ * This function peels all layers and returns the inner payload object.
+ * Falls back to the raw input if unwrapping fails.
+ */
+export function unwrapRouterResponse(raw: any): any {
+  if (!raw) return raw
+
+  // Layer 1: MCP envelope { content: [{ type: 'text', text: '...' }] }
+  if (raw.content && Array.isArray(raw.content) && raw.content[0]?.text) {
+    const parsed = safeParseJson(raw.content[0].text)
+    if (parsed) raw = parsed
+  }
+
+  // Layer 2: Daemon envelope { content: "{ ... }" | "{ ... }\n...trust bar" }
+  if (typeof raw.content === 'string') {
+    const parsed = safeParseJson(raw.content)
+    if (parsed) raw = parsed
+  }
+
+  // Layer 3: rawContent field (some daemon responses include this pre-stripped)
+  if (typeof raw.rawContent === 'string') {
+    const parsed = safeParseJson(raw.rawContent)
+    if (parsed) return parsed
+  }
+
+  return raw
 }
