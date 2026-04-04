@@ -602,6 +602,13 @@ export type RuntimeEvent =
   | { type: "corpus:spawn-evaluated"; constellationId: string; requestId: string; approved: boolean; reason: string; timestamp: Date }
   | { type: "corpus:synthesis"; constellationId: string; synthesis: string; timestamp: Date }
 
+  // WHY: Topology Graph tracks spatial relationships between Helix sessions using gravity-based clustering
+  | { type: "topology:updated"; constellationId: string; helixId: string; tickCount: number; linkCount: number; clusterCount: number; timestamp: Date }
+  | { type: "topology:link_formed"; constellationId: string; helixIdA: string; helixIdB: string; distance: number; similarity: number; timestamp: Date }
+  | { type: "topology:link_dissolved"; constellationId: string; helixIdA: string; helixIdB: string; reason: string; timestamp: Date }
+  | { type: "topology:cluster_formed"; constellationId: string; clusterId: string; members: string[]; mergeDepth: string; timestamp: Date }
+  | { type: "topology:cluster_dissolved"; constellationId: string; clusterId: string; members: string[]; lifespanMs: number; timestamp: Date }
+
   // WHY: Cognitive feed steering enables human operators to observe and intervene in cognitive workflows via Telegram
   | { type: "cognitive-feed:steering:feedback"; targetModule?: string; targetSessionId?: string; targetTeamId?: string; targetOrchestrationId?: string; text: string; fromUserId: number; fromUsername?: string; timestamp: number }
   | { type: "cognitive-feed:steering:pause"; teamId: string; fromUserId: number; fromUsername?: string; timestamp: number }
