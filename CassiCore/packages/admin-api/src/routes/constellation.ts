@@ -319,6 +319,50 @@ export async function handleConstellationRoutes(
       return true
     }
 
+    if (method === 'POST' && subAction === 'resume') {
+      try {
+        const orchestrator = daemon.intelligence?.constellation
+        if (!orchestrator?.resumeConstellation) {
+          sendJSON(res, 501, { error: 'Resume not available' })
+          return true
+        }
+
+        const jobId = generateJobId()
+        const job: ConstellationJob = {
+          id: jobId,
+          sessionId: id,
+          status: 'running',
+          goal: 'Resuming constellation',
+          startedAt: Date.now(),
+        }
+        constellationJobs.set(jobId, job)
+
+        orchestrator.resumeConstellation(id)
+          .then((result: ConstellationResult) => {
+            job.status = 'completed'
+            job.completedAt = Date.now()
+            job.result = result
+          })
+          .catch((err: Error) => {
+            job.status = 'failed'
+            job.completedAt = Date.now()
+            job.error = String(err)
+            logger.error('Constellation resume failed', { sessionId: id, error: String(err) })
+          })
+
+        sendJSON(res, 200, {
+          jobId,
+          sessionId: id,
+          status: 'running',
+          message: `Constellation resume started. Poll GET /constellation/${jobId} for results.`,
+        })
+      } catch (err) {
+        logger.error('constellation:resume:request-error', { error: String(err) })
+        sendJSON(res, 500, { error: 'Failed to resume Constellation', detail: String(err) })
+      }
+      return true
+    }
+
     if (method === 'POST' && subAction === 'steer') {
       const job = findJob(id)
       if (!job || job.status !== 'running') {
