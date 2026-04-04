@@ -2295,6 +2295,12 @@ export class Daemon {
             try {
               const { HelixStore } = await import('./intelligence/helix/helix-store.js')
               const helixStore = HelixStore.open(this.logger.child('helix-store'))
+              // WHY: Clean up helix sessions left in 'running' state from a previous daemon crash.
+              // Without this, orphaned helix sessions stay in 'running' forever.
+              const helixRecovered = helixStore.recoverOrphanedSessions()
+              if (helixRecovered > 0) {
+                this.logger.info('Recovered orphaned helix sessions at startup', { count: helixRecovered })
+              }
               this.intelligence.helix.setStore(helixStore)
               this.logger.info('HelixStore wired (SQLite persistence)')
             } catch (storeErr) {
