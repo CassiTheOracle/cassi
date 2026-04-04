@@ -260,14 +260,14 @@ export class BackgroundEmbeddingWorker {
 
     try {
       const allEntries = this.memoryDb.prepare(
-        `SELECT id, content FROM memories
+        `SELECT id, content, context_prefix FROM memories
          WHERE LENGTH(content) > 20
          ORDER BY created_at DESC
          LIMIT ?`
-      ).all(limit * 2) as Array<{ id: string; content: string }>
+      ).all(limit * 2) as Array<{ id: string; content: string; context_prefix: string | null }>
 
       // Filter out entries that already have vectors
-      const candidates: Array<{ id: string; content: string }> = []
+      const candidates: Array<{ id: string; content: string; context_prefix: string | null }> = []
       for (const row of allEntries) {
         if (candidates.length >= limit) break
         const vecId = `memory:${row.id}`
@@ -284,7 +284,11 @@ export class BackgroundEmbeddingWorker {
       for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
         if (!this.running) break
         const batch = candidates.slice(i, i + BATCH_SIZE)
-        const texts = batch.map(c => c.content.slice(0, 2000))
+        // WHY: Prepend context_prefix for Contextual Retrieval — improves embedding quality
+        const texts = batch.map(c => {
+          const prefix = c.context_prefix ? c.context_prefix + ' ' : '';
+          return (prefix + c.content).slice(0, 2000);
+        })
 
         try {
           const vectors = await this.embSvc.embedBatch(texts, 'document')
