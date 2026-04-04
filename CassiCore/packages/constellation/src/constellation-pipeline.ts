@@ -48,6 +48,9 @@ import { getTemplatePostures } from './templates.js'
 import { fastDecompose, shouldDecompose, type DecompositionDecision } from './fast-decomposer.js'
 import { DecompositionTracker } from './decomposition-tracker.js'
 import { ConstellationWorktreeIsolation } from './worktree-isolation.js'
+import { TopologyGraph } from './topology/topology-graph.js'
+import { BrainstemBridge } from './topology/brainstem-bridge.js'
+import type { EmbeddingService } from '../embeddings/embedding-service.js'
 
 // Constants
 
@@ -58,7 +61,7 @@ const SPAWN_CHECK_INTERVAL_MS = 1000
 /**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
- * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts)
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -224,6 +227,14 @@ export interface ConstellationPipelineOpts {
    * Does not affect behavioral correctness — only model selection.
    */
   costEffective?: boolean
+
+  /**
+   * Embedding service for the Topology Graph's gravity engine.
+   * When provided, topology is enabled — Helix sessions get spatial clustering,
+   * link formation, and bridged context sharing based on embedding similarity.
+   * When absent, topology is disabled and the Corpus runs without spatial awareness.
+   */
+  embeddingService?: EmbeddingService
 }
 
 // Internal State
@@ -245,10 +256,10 @@ interface RunningHelix {
 
 /**
  * @dep callers: project (core/intelligence/constellation/constellation-orchestrator.ts)
- * @dep calls: writeCompletionSummary, writeDecompositionPlan, pollSpawnRequests, launchHelix, safeReadFile [+35]
- * @dep flows: RunConstellationPipeline → ConvertToInjectedMemory (1/4), RunConstellationPipeline → ExtractSearchQuery (1/4), RunConstellationPipeline → MakeBranchSlug (1/4) [+3]
+ * @dep calls: now, createSession, cancel, pause, initPlan [+36]
+ * @dep flows: RunConstellationPipeline → Touch (1/3)
  * @dep module: Lumen
- * @dep risk: HIGH | 1 caller, 6 flows, 1 module
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 
 export async function runConstellationPipeline(
@@ -341,6 +352,57 @@ export async function runConstellationPipeline(
   const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false)
     ? new CrossHelixDialectic(log)
     : undefined
+
+  // Create TopologyGraph + BrainstemBridge (if embedding service provided)
+
+  let topologyGraph: TopologyGraph | undefined
+  let brainstemBridge: BrainstemBridge | undefined
+
+  if (opts.embeddingService) {
+    brainstemBridge = new BrainstemBridge({
+      tree: corpusTree,
+      logger,
+      injectGuidance: (helixId, content, urgency) => {
+        // Deferred — Corpus registers brainstems dynamically, so use the Corpus
+        // directive path which buffers until the brainstem is available.
+        const rh = runningHelixes.get(helixId)
+        if (rh?.brainstem) {
+          try {
+            (rh.brainstem as any).pushGuidance?.({ content, urgency, source: 'topology-bridge' })
+          } catch {
+            (rh.brainstem as any).onCorpusDirective?.({
+              targetHelixId: helixId,
+              type: 'context-inject' as any,
+              urgency,
+              reason: 'Topology bridge context injection',
+              text: content,
+              timestamp: Date.now(),
+            })
+          }
+        }
+      },
+      getBrainstemState: (helixId) => {
+        const rh = runningHelixes.get(helixId)
+        if (!rh?.brainstem) return undefined
+        const bs = rh.brainstem as any
+        return {
+          getCognitiveModel: () => bs.state?.cognitiveModel ?? { allDiscoveries: [], allDecisions: [], currentNextSteps: [], recentOutputs: [], pendingBlockers: [] },
+          getQualityTrajectory: () => bs.state?.qualityTrajectory ?? [],
+          getBlackboard: () => bs.deps?.blackboard,
+        }
+      },
+    })
+
+    topologyGraph = new TopologyGraph({
+      embeddingService: opts.embeddingService,
+      logger,
+      eventBus,
+      bridge: brainstemBridge,
+    })
+    topologyGraph.setConstellationId(constellationId)
+
+    log.info('Topology Graph initialized', { constellationId })
+  }
 
   const corpus = new Corpus(
     corpusTree,
@@ -462,6 +524,8 @@ export async function runConstellationPipeline(
             }
           }
         : undefined,
+
+      topology: topologyGraph,
     },
     {
       maxBranches: maxHelixes,
@@ -534,6 +598,9 @@ export async function runConstellationPipeline(
       getCrossPatterns: () => corpus.getResult().crossPatterns,
       getInterventions: () => corpus.getResult().interventions,
       getBranchAssessments: () => corpus.getResult().branchAssessments,
+      getTopologySnapshot: topologyGraph?.enabled
+        ? () => topologyGraph!.getSnapshot()
+        : undefined,
 
       // External Corpus Protocol — delegate to Corpus instance
       corpus: {
@@ -712,6 +779,26 @@ export async function runConstellationPipeline(
 
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
 
+    // Register with topology — initial digest so the gravity engine knows about this Helix
+    if (topologyGraph?.enabled) {
+      const initialDigest = {
+        helixId,
+        goalSummary: helixGoal,
+        approach: 'exploration' as const,
+        progress: 0,
+        filesActive: [],
+        keyFindings: [],
+        blockers: [],
+        currentStrategy: 'Starting',
+        rollingScore: 0.5,
+        workUnitsProcessed: 0,
+        updatedAt: Date.now(),
+      }
+      topologyGraph.registerHelix(helixId, initialDigest).catch((err) => {
+        helixLog.warn('Topology registration failed', { error: String(err) })
+      })
+    }
+
     // Persist branch creation to ConstellationStore
     if (constellationStore) {
       try {
@@ -793,6 +880,7 @@ export async function runConstellationPipeline(
       helixLog.error('Failed to acquire model handles', { error: String(err) })
       node.status = 'failed'
       corpusTree.closeBranch(helixId, 'failed')
+      topologyGraph?.deregisterHelix(helixId)
       onNodeCompleted?.(node)
       throw err
     }
@@ -804,6 +892,20 @@ export async function runConstellationPipeline(
     // WHY: The sharedTree reader provides each Brainstem with read/write access to
     // the Shared Thought Tree for stigmergic self-organization.
     const sharedTreeReader = createSharedTreeReaderForHelix(helixId, corpusTree)
+
+    // HOW: When topology is active, intercept digest updates to drive
+    // the gravity engine. The topology tick is async (embedding computation)
+    // but we fire-and-forget to avoid blocking the Brainstem loop.
+    if (topologyGraph?.enabled) {
+      const originalUpdateDigest = sharedTreeReader.updateDigest
+      sharedTreeReader.updateDigest = (digest) => {
+        originalUpdateDigest(digest)
+        // Fire-and-forget — topology tick runs in background
+        topologyGraph!.onDigestUpdate(helixId, digest).catch((err) => {
+          helixLog.warn('Topology digest update failed', { error: String(err) })
+        })
+      }
+    }
 
     const brainstemDeps: BrainstemDeps = {
       llm: brainstemLLM,
@@ -1151,6 +1253,7 @@ export async function runConstellationPipeline(
         // Corpus tree only knows 'completed' | 'failed', so degraded maps to 'completed' there
         const branchStatus = (node.status === 'completed' || node.status === 'degraded') ? 'completed' : 'failed'
         corpusTree.closeBranch(helixId, branchStatus)
+        topologyGraph?.deregisterHelix(helixId)
         crossHelixDialectic?.unregisterBranch(helixId)
 
         // Cleanup worktree if not already cleaned up by the merge step

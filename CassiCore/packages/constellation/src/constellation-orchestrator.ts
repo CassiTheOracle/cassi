@@ -27,6 +27,7 @@ import type { ConstellationResult, ConstellationTemplate, FlexPosture } from './
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ConstellationRegistry, ConstellationLiveState } from './constellation-injection.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
+import { getEmbeddingService } from '../embeddings/embedding-service.js'
 
 
 export interface ConstellationOrchestrator {
@@ -221,6 +222,7 @@ export function createConstellationOrchestrator(
         corpusLLM,
         brainstemLLM,
         memory,
+        embeddingService: getEmbeddingService(logger),
 
         auditTrail,
 

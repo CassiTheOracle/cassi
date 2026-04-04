@@ -1089,6 +1089,57 @@ export class Corpus {
       })
     }
 
+    // 5. Topology-enhanced pattern detection
+    // HOW: When the topology graph is active, use spatial clustering to detect
+    // redundancy (branches in the same cluster with similar approaches) and
+    // to escalate conflict severity when conflicting branches are also clustered.
+    const topology = this.deps.topology
+    if (topology?.enabled) {
+      const snapshot = topology.getSnapshot()
+
+      // 5a. Redundancy: branches in the same cluster with same approach and similar scores
+      for (const cluster of snapshot.clusters) {
+        if (cluster.members.length < 2) continue
+        const clusterAssessments = cluster.members
+          .map(id => this.state.branchAssessments.get(id))
+          .filter((a): a is BranchAssessment => !!a)
+
+        // Group by dominant approach
+        const byApproach = new Map<string, BranchAssessment[]>()
+        for (const a of clusterAssessments) {
+          const key = String(a.dominantPattern)
+          const existing = byApproach.get(key) ?? []
+          existing.push(a)
+          byApproach.set(key, existing)
+        }
+
+        for (const [approach, group] of byApproach) {
+          if (group.length >= 2 && approach !== 'none') {
+            patterns.push({
+              type: 'redundancy',
+              helixIds: group.map(a => a.helixId),
+              severity: 'medium',
+              description: `Topology cluster "${cluster.clusterId}" contains ${group.length} branches with approach "${approach}" — possible redundancy`,
+              suggestedAction: 'Consider merging or redirecting one branch to a different aspect',
+              detectedAt: Date.now(),
+              actedUpon: false,
+            })
+          }
+        }
+      }
+
+      // 5b. Escalate conflict severity when conflicting branches are in the same cluster
+      for (const pattern of patterns) {
+        if (pattern.type === 'conflict' && pattern.severity !== 'critical') {
+          const [idA, idB] = pattern.helixIds
+          if (idA && idB && topology.areInSameCluster(idA, idB)) {
+            pattern.severity = 'critical'
+            pattern.description += ' (topology confirms: branches are in same cluster — high collision risk)'
+          }
+        }
+      }
+    }
+
     // De-duplicate against existing patterns (5-minute window prevents spam across sweeps)
     const now = Date.now()
     const newPatterns: CrossHelixPattern[] = []
@@ -1809,10 +1860,28 @@ export class Corpus {
     // Build template capabilities context so Corpus can reason about template fitness
     const templateCapsSection = this.buildTemplateCapsContext()
 
+    // Build topology context so Corpus sees spatial clustering state
+    let topologySection = ''
+    const topology = this.deps.topology
+    if (topology?.enabled) {
+      const snap = topology.getSnapshot()
+      if (snap.clusters.length > 0 || snap.links.length > 0) {
+        const clusterLines = snap.clusters.map(c => {
+          const depth = c.effectiveMergeDepth
+          const stability = (c.stabilityScore * 100).toFixed(0)
+          return `- Cluster "${c.clusterId}": [${c.members.join(', ')}] depth=${depth} stability=${stability}% avgDist=${c.averageInternalDistance.toFixed(2)}`
+        })
+        const linkLines = snap.links.slice(0, 10).map(l =>
+          `- ${l.helixIdA} ↔ ${l.helixIdB}: dist=${l.distance.toFixed(2)} sim=${l.similarity.toFixed(2)} depth=${l.mergeDepth} (stable ${l.stabilityTicks} ticks)`
+        )
+        topologySection = `\n\n## Topology (Spatial Clustering)\nTick ${snap.tickCount} | ${snap.clusters.length} clusters | ${snap.links.length} links\n${clusterLines.length > 0 ? `### Clusters\n${clusterLines.join('\n')}` : ''}${linkLines.length > 0 ? `\n### Links\n${linkLines.join('\n')}` : ''}\nThreads in the same cluster share semantic context — consider coordinating their approaches or merging their findings.`
+      }
+    }
+
     return `I am the strategic organizer of this Constellation. My goal: ${this.deps.goal}. I oversee ${branches.length} active threads, each thinking in parallel. I synthesize their knowledge, detect patterns, provide specific guidance, and spawn new threads when gaps emerge.
 
 ## Active Threads
-${branchDetails}${patternDetails}${dialecticSection}${interventionHistorySection}${spawnHistorySection}${templateCapsSection}
+${branchDetails}${patternDetails}${dialecticSection}${interventionHistorySection}${spawnHistorySection}${templateCapsSection}${topologySection}
 
 ## Task
 Provide strategic assessment using the following directives:
