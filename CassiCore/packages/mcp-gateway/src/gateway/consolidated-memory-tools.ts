@@ -28,6 +28,7 @@ export const MEMORY_CONSOLIDATED_TOOL = {
           'kv_get', 'kv_set', 'kv_del', 'stats',
           'archive_search', 'archive_get', 'archive_related', 'archive_recent',
           'browse', 'universal_search',
+          'invalidate', 'supersede',
         ],
         description: 'Memory operation to perform',
       },
@@ -87,6 +88,15 @@ export const MEMORY_CONSOLIDATED_TOOL = {
         type: 'string',
         description: 'URL path to browse (for browse action)',
       },
+      // invalidate/supersede params
+      reason: {
+        type: 'string',
+        description: 'Reason for invalidation (for invalidate action)',
+      },
+      oldId: {
+        type: 'string',
+        description: 'ID of the memory to supersede (for supersede action)',
+      },
     },
     required: ['action'],
   },
@@ -115,6 +125,8 @@ const ACTION_TO_TOOL_NAME: Record<string, string> = {
   archive_recent: 'archive_recent',
   browse: 'browse',
   universal_search: 'universal_search',
+  invalidate: 'memory_invalidate',
+  supersede: 'memory_supersede',
 };
 
 /**

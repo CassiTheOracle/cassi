@@ -341,6 +341,26 @@ export async function executeMemoryTool(
       return await res.json();
     }
 
+    case 'memory_invalidate': {
+      const res = await fetchWithTimeout(`${baseUrl}/memory/${encodeURIComponent(args.id)}/invalidate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: args.reason }),
+      });
+      if (!res.ok) throw new Error(`Memory invalidate failed: ${await res.text()}`);
+      return await res.json();
+    }
+
+    case 'memory_supersede': {
+      const res = await fetchWithTimeout(`${baseUrl}/memory/${encodeURIComponent(args.oldId || args.id)}/supersede`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: args.content, metadata: args.metadata }),
+      });
+      if (!res.ok) throw new Error(`Memory supersede failed: ${await res.text()}`);
+      return await res.json();
+    }
+
     default:
       throw new Error(`Unknown memory tool: ${toolName}`);
   }
