@@ -20,6 +20,10 @@ export interface MemoryEntry {
   importance?: number;
   /** If true, this memory resists temporal decay and cannot be deep-archived. Default: false */
   pinned?: boolean;
+  /** When this fact becomes valid (epoch seconds). Defaults to createdAt. */
+  validAt?: Date;
+  /** When this fact was superseded (epoch seconds). null = still valid. */
+  invalidAt?: Date | null;
 }
 
 export interface SearchOpts {
@@ -34,6 +38,10 @@ export interface SearchOpts {
   pinnedOnly?: boolean;
   timeAfter?: Date;
   timeBefore?: Date;
+  /** If true, exclude invalidated memories from results. Default: true */
+  validOnly?: boolean;
+  /** Point-in-time query — search as of this timestamp. Default: now */
+  validAsOf?: Date;
 }
 
 /** Structured confidence level for search results */
@@ -151,6 +159,15 @@ export interface IMemory {
   indexStats?(labelOrSessionId: string): IndexStats | undefined;
   getSessionLabel?(sessionId: string): string;
   getSessionIdFromLabel?(label: string): string | undefined;
+
+  /** Invalidate a memory entry — mark it as superseded at the current time. */
+  invalidate?(id: string, reason?: string): Promise<boolean>;
+
+  /**
+   * Supersede an existing memory with a new one.
+   * Invalidates the old memory and creates a new entry linking to it via metadata.supersedes.
+   */
+  supersede?(oldId: string, newContent: string, metadata?: Record<string, unknown>): Promise<string>;
 }
 
 
