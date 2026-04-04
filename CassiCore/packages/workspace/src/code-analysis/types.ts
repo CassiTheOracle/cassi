@@ -130,6 +130,8 @@ export interface PrepareContextOptions {
   scope?: string
   /** Repo name for GitNexus multi-repo setups */
   repo?: string
+  /** Maximum time in ms before returning a degraded result (default 30000) */
+  timeoutMs?: number
 }
 
 

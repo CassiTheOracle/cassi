@@ -66,8 +66,16 @@ export function extractKeywords(task: string): string[] {
   return result.slice(0, 15) // Cap at 15 keywords
 }
 
+/** Default timeout for prepare_context (30s). */
+const DEFAULT_PREPARE_TIMEOUT_MS = 30_000
+
 /**
  * Assemble context for a task using GitNexus hybrid search.
+ *
+ * WHY: withAutoReindex can block for minutes (ensureFreshIndex up to 300s,
+ * query up to 120s, retry-reindex another 300s). Without a timeout cap,
+ * the caller hangs indefinitely. On timeout we return a degraded result
+ * with extracted keywords but no files — still useful for delegation.
  */
 export async function prepareContext(
   router: (tool: string, args: any) => Promise<any>,
@@ -80,20 +88,21 @@ export async function prepareContext(
     includeContent = true,
     scope,
     repo,
+    timeoutMs = DEFAULT_PREPARE_TIMEOUT_MS,
   } = options
 
   const keywords = extractKeywords(task)
   const charBudget = tokenBudget * CHARS_PER_TOKEN
   let usedChars = 0
 
-  logger.debug('Preparing context', { keywords, tokenBudget })
+  logger.debug('Preparing context', { keywords, tokenBudget, timeoutMs })
 
   const files: PreparedFile[] = []
   let summary = ''
 
-  // Run GitNexus query for execution flows
+  // Run GitNexus query for execution flows, with a timeout cap
   try {
-    const queryResult = await withAutoReindex(
+    const queryPromise = withAutoReindex(
       () => router('gitnexus_query', {
         query: keywords.join(' '),
         goal: task,
@@ -105,6 +114,13 @@ export async function prepareContext(
       }),
       logger,
     )
+
+    const queryResult = await Promise.race([
+      queryPromise,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error(`prepare_context timed out after ${timeoutMs}ms`)), timeoutMs)
+      ),
+    ])
 
     // Parse GitNexus query result
     const parsed = parseQueryResult(queryResult)
@@ -141,8 +157,12 @@ export async function prepareContext(
     summary = `Key code surface for "${task.slice(0, 80)}": ${files.length} relevant files found. Top files: ${topFiles}. Primary symbols: ${files.flatMap(f => f.keySymbols).slice(0, 8).join(', ')}.`
 
   } catch (err) {
-    logger.warn('GitNexus query failed during context preparation', { error: String(err) })
-    summary = `Context preparation partially failed: ${String(err)}. Keywords extracted: ${keywords.join(', ')}`
+    const errMsg = String(err)
+    const isTimeout = errMsg.includes('timed out')
+    logger.warn(isTimeout ? 'Context preparation timed out' : 'GitNexus query failed during context preparation', { error: errMsg, timeoutMs })
+    summary = isTimeout
+      ? `Context preparation timed out after ${timeoutMs}ms. Keywords extracted: ${keywords.join(', ')}`
+      : `Context preparation partially failed: ${errMsg}. Keywords extracted: ${keywords.join(', ')}`
   }
 
   return {
