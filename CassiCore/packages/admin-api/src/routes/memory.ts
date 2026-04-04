@@ -351,6 +351,40 @@ export async function handleMemoryRoutes(
     return true
   }
 
+  // POST /memory/:id/invalidate
+  if (parts[2] === 'invalidate' && method === 'POST') {
+    if (!memory) return noMemory()
+    if (!memory.invalidate) {
+      sendJSON(res, 501, { error: 'invalidate not available' })
+      return true
+    }
+    const body = await parseBody(req)
+    const ok = await memory.invalidate(parts[1], body?.reason)
+    if (!ok) {
+      sendJSON(res, 404, { error: 'not_found' })
+      return true
+    }
+    sendJSON(res, 200, { ok: true, invalidated: true })
+    return true
+  }
+
+  // POST /memory/:id/supersede
+  if (parts[2] === 'supersede' && method === 'POST') {
+    if (!memory) return noMemory()
+    if (!memory.supersede) {
+      sendJSON(res, 501, { error: 'supersede not available' })
+      return true
+    }
+    const body = await parseBody(req)
+    if (!body?.content) {
+      sendJSON(res, 400, { error: 'content is required' })
+      return true
+    }
+    const newId = await memory.supersede(parts[1], body.content, body.metadata)
+    sendJSON(res, 200, { ok: true, oldId: parts[1], newId })
+    return true
+  }
+
   // GET /memory/search
   if (parts[1] === 'search' && method === 'GET') {
     const query = url.searchParams.get('q') || url.searchParams.get('query') || ''
@@ -363,10 +397,12 @@ export async function handleMemoryRoutes(
     const timeBefore = url.searchParams.get('time_before')
     const minImportance = url.searchParams.get('min_importance')
     const pinnedOnly = url.searchParams.get('pinned_only')
+    const validOnly = url.searchParams.get('valid_only')
     if (timeAfter) searchOpts.timeAfter = new Date(timeAfter)
     if (timeBefore) searchOpts.timeBefore = new Date(timeBefore)
     if (minImportance) searchOpts.minImportance = parseFloat(minImportance)
     if (pinnedOnly === 'true') searchOpts.pinnedOnly = true
+    if (validOnly !== null) searchOpts.validOnly = validOnly !== 'false'
 
     const results = await memory.search(query, searchOpts as any)
     sendJSON(res, 200, results.map((r: { entry: any, score: number, confidence?: string }) => ({
