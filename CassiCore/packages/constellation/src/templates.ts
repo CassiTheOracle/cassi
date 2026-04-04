@@ -36,7 +36,7 @@ const STANDARD_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['implementation', 'integration'],
       secondary: ['testing'],
-      modelTier: 'kimi',
+      modelTier: 'qwenPlus',
       traits: { divergent: 0.3, convergent: 0.3, executive: 0.9 },
     },
   },
@@ -49,7 +49,7 @@ const STANDARD_POSTURES: FlexPosture[] = [
     maxIterations: 100,
     capabilities: {
       primary: ['review', 'analysis'],
-      modelTier: 'qwenPlus',
+      modelTier: 'glm',
       traits: { divergent: 0.7, convergent: 0.4, executive: 0.1 },
     },
   },
@@ -63,7 +63,7 @@ const STANDARD_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['review', 'analysis'],
       secondary: ['security'],
-      modelTier: 'qwenPlus',
+      modelTier: 'kimi',
       traits: { divergent: 0.2, convergent: 0.9, executive: 0.1 },
     },
   },
@@ -85,7 +85,7 @@ const RESEARCH_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['investigation', 'analysis'],
       secondary: ['architecture'],
-      modelTier: 'kimi',
+      modelTier: 'glm',
       traits: { divergent: 0.9, convergent: 0.3, executive: 0.1 },
     },
   },
@@ -121,7 +121,7 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['implementation'],
       secondary: ['architecture', 'integration'],
-      modelTier: 'kimi',
+      modelTier: 'qwenPlus',
       traits: { divergent: 0.3, convergent: 0.2, executive: 0.9 },
     },
   },
@@ -135,7 +135,7 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['testing', 'integration'],
       secondary: ['implementation'],
-      modelTier: 'kimi',
+      modelTier: 'qwenPlus',
       traits: { divergent: 0.2, convergent: 0.4, executive: 0.8 },
     },
   },
@@ -149,7 +149,7 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['review'],
       secondary: ['analysis'],
-      modelTier: 'qwenPlus',
+      modelTier: 'glm',
       traits: { divergent: 0.7, convergent: 0.4, executive: 0.1 },
     },
   },
@@ -163,7 +163,7 @@ const IMPLEMENTATION_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['review', 'analysis'],
       secondary: ['security'],
-      modelTier: 'qwenPlus',
+      modelTier: 'kimi',
       traits: { divergent: 0.2, convergent: 0.9, executive: 0.1 },
     },
   },
@@ -184,7 +184,7 @@ const REVIEW_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['implementation'],
       secondary: ['integration'],
-      modelTier: 'kimi',
+      modelTier: 'qwenPlus',
       traits: { divergent: 0.3, convergent: 0.2, executive: 0.9 },
     },
   },
@@ -198,7 +198,7 @@ const REVIEW_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['review'],
       secondary: ['testing'],
-      modelTier: 'qwenPlus',
+      modelTier: 'glm',
       traits: { divergent: 0.5, convergent: 0.6, executive: 0.1 },
     },
   },
@@ -211,7 +211,7 @@ const REVIEW_POSTURES: FlexPosture[] = [
     maxIterations: 80,
     capabilities: {
       primary: ['review', 'architecture'],
-      modelTier: 'qwenPlus',
+      modelTier: 'glm',
       traits: { divergent: 0.6, convergent: 0.5, executive: 0.1 },
     },
   },
@@ -225,7 +225,7 @@ const REVIEW_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['review', 'security'],
       secondary: ['testing'],
-      modelTier: 'qwenPlus',
+      modelTier: 'kimi',
       traits: { divergent: 0.3, convergent: 0.9, executive: 0.1 },
     },
   },
@@ -239,17 +239,17 @@ const REVIEW_POSTURES: FlexPosture[] = [
     capabilities: {
       primary: ['review', 'analysis'],
       secondary: ['integration'],
-      modelTier: 'qwenPlus',
+      modelTier: 'kimi',
       traits: { divergent: 0.3, convergent: 0.8, executive: 0.1 },
     },
   },
 ]
 
 /**
- * @dep callers: resolvePostures (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep callers: getTemplateCapabilities (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/constellation-pipeline.ts), constellation-template-capabilities.test.ts (tests/constellation-template-capabilities.test.ts)
  * @dep calls: createPostureSet
  * @dep module: Constellation
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
  */
 
 export function getTemplatePostures(template: ConstellationTemplate): FlexPosture[] {
@@ -269,6 +269,12 @@ export function getTemplatePostures(template: ConstellationTemplate): FlexPostur
       ])
   }
 }
+
+/**
+ * @dep callers: listTemplateCapabilities (core/intelligence/constellation/templates.ts), constellation-template-capabilities.test.ts (tests/constellation-template-capabilities.test.ts)
+ * @dep module: Constellation
+ * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ */
 
 export function listTemplates(): ConstellationTemplate[] {
   return ['standard', 'research', 'implementation', 'review', 'minimal']
@@ -319,6 +325,13 @@ export function getTemplateCapabilities(template: ConstellationTemplate): Templa
 }
 
 /** List capabilities for all templates. */
+/**
+ * @dep callers: buildTemplateGuidance (core/intelligence/constellation/fast-decomposer.ts), constellation-template-capabilities.test.ts (tests/constellation-template-capabilities.test.ts), buildTemplateCapsContext (core/intelligence/constellation/corpus.ts), runSpawnEvaluation (core/intelligence/constellation/corpus.ts)
+ * @dep calls: listTemplates
+ * @dep module: Constellation
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 export function listTemplateCapabilities(): TemplateCapabilities[] {
   return listTemplates().map(getTemplateCapabilities)
 }

@@ -58,7 +58,7 @@ const SPAWN_CHECK_INTERVAL_MS = 1000
 /**
  * Safe file reader for brainstem/corpus path validation.
  * Returns file content or null if not found. Scoped to workspace root.
- * @dep callers: launchHelix (core/intelligence/constellation/constellation-pipeline.ts), runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts)
+ * @dep callers: runConstellationPipeline (core/intelligence/constellation/constellation-pipeline.ts), launchHelix (core/intelligence/constellation/constellation-pipeline.ts)
  * @dep module: Constellation
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -245,9 +245,9 @@ interface RunningHelix {
 
 /**
  * @dep callers: project (core/intelligence/constellation/constellation-orchestrator.ts)
- * @dep calls: now, createSession, cancel, emit, start [+33]
- * @dep flows: RunConstellationPipeline → SanitizeTeamId (1/5), RunConstellationPipeline → EnsureGitignore (1/5), RunConstellationPipeline → ComputeCompositeScore (1/5) [+3]
- * @dep module: Constellation
+ * @dep calls: writeCompletionSummary, writeDecompositionPlan, pollSpawnRequests, launchHelix, safeReadFile [+35]
+ * @dep flows: RunConstellationPipeline → ConvertToInjectedMemory (1/4), RunConstellationPipeline → ExtractSearchQuery (1/4), RunConstellationPipeline → MakeBranchSlug (1/4) [+3]
+ * @dep module: Lumen
  * @dep risk: HIGH | 1 caller, 6 flows, 1 module
  */
 
@@ -597,9 +597,9 @@ export async function runConstellationPipeline(
   // 'performance' and 'balanced' are legacy fallback chain template names
   // used by the model pool — these are the actual RoutingTier equivalents.
   const ENERGY_DEFAULT_TIER: Record<string, string> = {
-    unity: 'kimi',
-    yang:  'qwenPlus',
-    yin:   'qwenPlus',
+    unity: 'qwenPlus',
+    yang:  'glm',
+    yin:   'kimi',
   }
 
   function resolveTier(posture: FlexPosture): string {
