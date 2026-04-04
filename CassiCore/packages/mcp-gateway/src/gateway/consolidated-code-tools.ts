@@ -468,7 +468,8 @@ export async function executeCodeConsolidatedTool(
     }
 
     case 'cochange': {
-      const { target, limit, min_commits, since } = mergedArgs
+      const { path: pathArg, target: targetArg, limit, min_commits, since } = mergedArgs
+      const target = targetArg || pathArg
       if (!target) throw new Error('Missing required parameter: target (file path)')
 
       const results = await analyzeCochange({
