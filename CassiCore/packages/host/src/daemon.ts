@@ -2347,12 +2347,36 @@ export class Daemon {
             try {
               const { ConstellationStore } = await import('./intelligence/constellation/constellation-store.js')
               const constellationStore = ConstellationStore.open(this.logger.child('constellation-store'))
-              // Recover any sessions left in 'running' state from a previous daemon crash
+              // Recover any sessions left in 'running' state from a previous daemon crash.
+              // Sessions with checkpoint data are marked 'interrupted' (resumable);
+              // sessions without are marked 'failed'.
               const recovered = constellationStore.recoverOrphanedSessions()
-              if (recovered > 0) {
-                this.logger.info('Recovered orphaned constellation sessions at startup', { count: recovered })
+              if (recovered.interrupted > 0 || recovered.failed > 0) {
+                this.logger.info('Recovered orphaned constellation sessions at startup', {
+                  interrupted: recovered.interrupted,
+                  failed: recovered.failed,
+                })
               }
               this.intelligence.constellation.setConstellationStore(constellationStore)
+
+              // WHY: Auto-resume interrupted constellations after all wiring is complete.
+              // This runs after setConstellationStore so the orchestrator has access to the store.
+              // Fire-and-forget: resume failures are logged but don't block boot.
+              if (recovered.interrupted > 0) {
+                const interrupted = constellationStore.listSessions({ status: 'interrupted' })
+                for (const session of interrupted) {
+                  this.logger.info('Auto-resuming interrupted constellation', {
+                    sessionId: session.id,
+                    goal: session.goal.slice(0, 100),
+                  })
+                  this.intelligence.constellation.resumeConstellation(session.id).catch((err: unknown) => {
+                    this.logger.warn('Auto-resume failed for constellation', {
+                      sessionId: session.id,
+                      error: String(err),
+                    })
+                  })
+                }
+              }
             } catch (storeErr) {
               this.logger.warn('ConstellationStore failed to initialize', { error: String(storeErr) })
             }
@@ -3458,6 +3482,24 @@ export class Daemon {
 
     // emit shutdown — triggers optimizer loop stop
     this.bus.emit({ type: "daemon:shutdown", reason: "signal" })
+
+    // WHY: Mark running constellations as 'interrupted' before other shutdown steps.
+    // This preserves their checkpoint data so they can be auto-resumed on next boot.
+    // Must happen early — before providers or stores are torn down.
+    await timedStep('constellation-interrupt', async () => {
+      try {
+        const { ConstellationStore } = await import('./intelligence/constellation/constellation-store.js')
+        const constellationStore = ConstellationStore.open(this.logger.child('constellation-store'))
+        const running = constellationStore.listSessions({ status: 'running' })
+        for (const session of running) {
+          constellationStore.interruptSession(session.id, session.durationMs ?? undefined)
+          this.logger.info('Interrupted constellation for graceful shutdown', { sessionId: session.id })
+        }
+        constellationStore.close()
+      } catch (err) {
+        this.logger.warn('Failed to interrupt constellations during shutdown', { error: String(err) })
+      }
+    })
 
     if (this.deferredStartupTimer) {
       clearTimeout(this.deferredStartupTimer)
