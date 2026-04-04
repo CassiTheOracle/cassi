@@ -1459,6 +1459,11 @@ export class Daemon {
         this.logger.warn('DroneSwarm: no provider available — drone swarms will be unavailable')
       }
 
+      // WHY: Each drone tier specifies its own providerId via MODEL_DEFAULTS (e.g. 'alibaba-coding'
+      // for the fallback tier). Without a resolver, drones send the wrong model name to the
+      // default provider, producing empty results.
+      this.intelligence.droneSwarm.setProviderResolver((providerId: string) => providers.get(providerId))
+
       // Wire cognitive modules into DroneSwarm for signal extraction from drone outputs.
       // This enables: drone output → ThoughtObserver → CognitiveBridge → parent session.
       // All processing is local — zero additional LLM requests.
