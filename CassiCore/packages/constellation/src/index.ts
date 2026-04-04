@@ -169,3 +169,20 @@ export type {
 
 export { fastDecompose, shouldDecompose } from './fast-decomposer.js'
 export type { FastDecomposerOpts, DecompositionMode, DecompositionDecision } from './fast-decomposer.js'
+
+
+// Template Capabilities — Machine-readable template metadata
+
+export { getTemplateCapabilities, listTemplateCapabilities } from './templates.js'
+export type { PostureCapabilities, TemplateCapabilities } from './types.js'
+
+
+// Audit Trail — Event-driven decision logging
+
+export { createConstellationAuditTrail } from './constellation-audit-trail.js'
+export type {
+  ConstellationAuditTrail,
+  AuditDecision,
+  AuditPlan,
+  AuditSummary,
+} from './constellation-audit-trail.js'
