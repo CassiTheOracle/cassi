@@ -105,6 +105,11 @@ Examples:
 
 // Tool Implementation
 
+/**
+ * Creates a handler for querying event history.
+ * @param history - Event history instance to query
+ * @returns Tool handler that processes event queries and returns formatted results
+ */
 export function makeQueryEventsHandler(history: EventHistory): ToolHandler {
   return async (input: Record<string, unknown>, _ctx: ToolExecutionContext): Promise<string> => {
     try {
@@ -133,6 +138,12 @@ export function makeQueryEventsHandler(history: EventHistory): ToolHandler {
   };
 }
 
+/**
+ * Executes a complex structured event query.
+ * @param history - Event history instance to query
+ * @param input - Input parameters for the query
+ * @returns Query result with events and metadata
+ */
 async function executeComplex(history: EventHistory, input: Record<string, unknown>): Promise<EventQueryResult> {
   const query: ComplexEventQuery = {
     mode: "complex",
@@ -151,6 +162,12 @@ async function executeComplex(history: EventHistory, input: Record<string, unkno
   return history.query(query);
 }
 
+/**
+ * Executes a simple natural language event query.
+ * @param history - Event history instance to query
+ * @param input - Input parameters including the natural language query
+ * @returns Query result with events and translation metadata
+ */
 async function executeSimple(history: EventHistory, input: Record<string, unknown>): Promise<EventQueryResult> {
   const queryText = input["query"] as string;
   if (!queryText) {
@@ -178,6 +195,12 @@ async function executeSimple(history: EventHistory, input: Record<string, unknow
   };
 }
 
+/**
+ * Executes a preset event query.
+ * @param history - Event history instance to query
+ * @param input - Input parameters including preset name
+ * @returns Query result from the preset configuration
+ */
 async function executePresetMode(history: EventHistory, input: Record<string, unknown>): Promise<EventQueryResult> {
   const presetName = input["preset"] as string;
   if (!presetName) {
@@ -201,6 +224,12 @@ async function executePresetMode(history: EventHistory, input: Record<string, un
   return history.query(query);
 }
 
+/**
+ * Formats query results according to the requested output format.
+ * @param result - Query result to format
+ * @param format - Output format (json, count, or default text)
+ * @returns Formatted result string
+ */
 function formatResult(result: EventQueryResult, format?: string): string {
   // Handle different output formats
   switch (format) {
@@ -215,6 +244,11 @@ function formatResult(result: EventQueryResult, format?: string): string {
   }
 }
 
+/**
+ * Formats query results as human-readable text.
+ * @param result - Query result to format
+ * @returns Formatted text output with headers, metadata, and events
+ */
 function formatAsText(result: EventQueryResult): string {
   const lines: string[] = [];
 
@@ -311,6 +345,10 @@ function formatAsText(result: EventQueryResult): string {
 
 // Helper: List Presets
 
+/**
+ * Lists all available query presets with their descriptions.
+ * @returns Formatted string listing presets by category
+ */
 export function listPresetsForTool(): string {
   const categories = getCategories();
   const lines: string[] = ["Available query presets:", ""];
@@ -336,6 +374,11 @@ export interface QueryEventsTool {
   execute(input: Record<string, unknown>, context: ToolExecutionContext): Promise<{ success: boolean; result?: string; error?: string }>;
 }
 
+/**
+ * Creates a backwards-compatible query events tool.
+ * @param history - Event history instance to query
+ * @returns Query events tool with execute method
+ */
 export function createQueryEventsTool(history: EventHistory): QueryEventsTool {
   const handler = makeQueryEventsHandler(history);
   return {
@@ -355,6 +398,11 @@ export function createQueryEventsTool(history: EventHistory): QueryEventsTool {
 
 // Helper: Get Suggestions
 
+/**
+ * Gets suggested queries based on context.
+ * @param context - Optional context including session or agent ID
+ * @returns Formatted string with suggested queries and examples
+ */
 export function getSuggestionsForTool(context?: { sessionId?: string; agentId?: string }): string {
   const suggestions = getQuerySuggestions(context);
   const lines: string[] = ["Suggested queries:", ""];

@@ -52,6 +52,23 @@ export interface ExecutionResult { result: string; isError: boolean }
 
 export type SessionResult = PromptResult | ExecutionResult
 
+/**
+ * Type guard function that checks if a SessionResult is a PromptResult.
+ * 
+ * This predicate narrows the type of SessionResult from the union type
+ * (PromptResult | ExecutionResult) to specifically PromptResult when true.
+ * 
+ * @param r - The SessionResult to check
+ * @returns true if the result is a PromptResult (has a 'prompt' property), false otherwise
+ * @example
+ * if (isPrompt(result)) {
+ *   // TypeScript now knows result is PromptResult
+ *   console.log(result.prompt)
+ * } else {
+ *   // TypeScript knows result is ExecutionResult
+ *   console.log(result.result)
+ * }
+ */
 export function isPrompt(r: SessionResult): r is PromptResult {
   return 'prompt' in r
 }
@@ -251,8 +268,28 @@ export class InteractiveToolSession {
   }
 }
 
-// HOW: Extracts text content from MCP-style tool response by checking
-// for string, content array with text blocks, or text property
+/**
+ * Extracts text content from MCP-style tool response objects.
+ * 
+ * Handles multiple response formats:
+ * - Plain string responses
+ * - Objects with a 'content' array containing text blocks
+ * - Objects with a 'text' property
+ * - Any other data (converted to JSON string)
+ * 
+ * @param data - The tool response data to extract text from
+ * @returns Extracted text content as a string, or JSON representation if no text found
+ * @example
+ * // String response
+ * extractText("Hello world") // "Hello world"
+ * 
+ * // Content array with text blocks
+ * extractText({ content: [{ type: "text", text: "First" }, { type: "text", text: "Second" }] })
+ * // "First\nSecond"
+ * 
+ * // Object with text property
+ * extractText({ text: "Result" }) // "Result"
+ */
 export function extractText(data: unknown): string {
   if (typeof data === 'string') return data
   if (Array.isArray((data as any)?.content)) {
@@ -265,8 +302,22 @@ export function extractText(data: unknown): string {
   return JSON.stringify(data, null, 2)
 }
 
-// HOW: Splits long output for Telegram's 4096 char limit by chunking text
-// and prefixing each chunk with its position
+/**
+ * Splits long text into chunks suitable for Telegram's message size limit.
+ * 
+ * Telegram has a 4096 character limit per message. This function:
+ * - Splits text into chunks of specified maximum length
+ * - Prefixes each chunk with its position (e.g., "[1/3]", "[2/3]")
+ * - Uses a default max length of 3800 to leave room for the prefix
+ * 
+ * @param text - The text to split into chunks
+ * @param maxLen - Maximum length per chunk (default: 3800)
+ * @returns Array of chunked strings with position prefixes
+ * @example
+ * const longText = "a".repeat(10000)
+ * const chunks = splitForTelegram(longText)
+ * // Returns: ["[1/3]\naaa...", "[2/3]\naaa...", "[3/3]\naaa..."]
+ */
 export function splitForTelegram(text: string, maxLen = 3800): string[] {
   if (text.length <= maxLen) return [text]
   const chunks: string[] = []
