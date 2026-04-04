@@ -608,6 +608,61 @@ export async function handleConstellationRoutes(
       return true
     }
 
+    if (method === 'GET' && subAction === 'topology') {
+      const job = findJob(id)
+      const orchestrator = daemon.intelligence?.constellation
+      const sessionId = job?.sessionId ?? id
+
+      const topology = orchestrator?.getTopology?.(sessionId)
+      if (topology) {
+        // WHY: distances is a nested Map — convert to plain object for JSON
+        const distances: Record<string, Record<string, number>> = {}
+        if (topology.distances instanceof Map) {
+          for (const [fromId, toMap] of topology.distances) {
+            distances[fromId] = {}
+            for (const [toId, dist] of toMap) {
+              distances[fromId][toId] = dist
+            }
+          }
+        }
+        sendJSON(res, 200, {
+          sessionId,
+          topology: { ...topology, distances },
+          source: 'live',
+        })
+        return true
+      }
+
+      // Fallback: check completed job result
+      if (job?.result?.topology) {
+        try {
+          const serialized = serializeConstellationResult(job.result)
+          sendJSON(res, 200, {
+            sessionId,
+            topology: serialized.topology ?? null,
+            source: 'result',
+          })
+        } catch (err) {
+          // Defensive: serializeConstellationResult is non-throwing, but guard anyway
+          logger.warn('Failed to serialize topology from job result', { sessionId, error: String(err) })
+          sendJSON(res, 200, {
+            sessionId,
+            topology: null,
+            source: 'result',
+            error: 'Serialization failed',
+          })
+        }
+        return true
+      }
+
+      sendJSON(res, 200, {
+        sessionId,
+        topology: null,
+        message: 'Topology not available (session may not be running or topology is disabled)',
+      })
+      return true
+    }
+
     if (method === 'GET' && subAction === 'audit-trail') {
       try {
         const auditTrail = daemon.intelligence?.constellationAuditTrail
@@ -694,6 +749,15 @@ export async function handleConstellationRoutes(
           durationMs: Date.now() - job.startedAt,
         })
       } else {
+        // Defensive wrapper around serialization
+        let serializedResult: Record<string, unknown> | undefined
+        try {
+          serializedResult = job.result ? serializeConstellationResult(job.result) : undefined
+        } catch (err) {
+          // Defensive: serializeConstellationResult is non-throwing, but guard anyway
+          logger.warn('Failed to serialize constellation result', { sessionId: job.sessionId, error: String(err) })
+        }
+
         sendJSON(res, 200, {
           jobId: job.id,
           sessionId: job.sessionId,
@@ -702,7 +766,7 @@ export async function handleConstellationRoutes(
           startedAt: job.startedAt,
           completedAt: job.completedAt,
           durationMs: (job.completedAt ?? Date.now()) - job.startedAt,
-          result: job.result ? serializeConstellationResult(job.result) : undefined,
+          result: serializedResult,
           error: job.error ?? undefined,
         })
       }
