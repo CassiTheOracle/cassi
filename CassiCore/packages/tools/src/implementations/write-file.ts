@@ -11,7 +11,7 @@
  */
 
 import { createWriteStream } from 'node:fs'
-import { writeFile, mkdir, rename, unlink } from 'node:fs/promises'
+import { readFile as fsReadFile, writeFile, mkdir, rename, unlink, stat } from 'node:fs/promises'
 import { resolve, dirname, basename, join, relative } from 'node:path'
 import { execFile } from 'node:child_process'
 import { Readable } from 'node:stream'
@@ -75,6 +75,153 @@ function mirrorToArtifactStore(
     })
   } catch (err) {
     ctx.logger.debug?.('[write_file] artifact-store mirror failed (non-fatal)', {
+      path: relPath,
+      error: String(err),
+    })
+  }
+}
+
+// ── EditMagnitudeGuard ──────────────────────────────────────────────
+
+interface MagnitudeThresholds {
+  // WHY: Helix agents run autonomously and have historically truncated files.
+  // Stricter thresholds for autonomous sessions prevent catastrophic data loss.
+  maxDeletionRatio: number   // 0–1, fraction of lines deleted
+  maxNetDeletion: number     // absolute count of net lines removed
+}
+
+const HELIX_THRESHOLDS: MagnitudeThresholds = {
+  maxDeletionRatio: 0.50,    // block if >50% of lines would be deleted
+  maxNetDeletion: 100,       // block if >100 net lines removed
+}
+
+const DEFAULT_THRESHOLDS: MagnitudeThresholds = {
+  maxDeletionRatio: 0.70,    // block if >70% of lines would be deleted
+  maxNetDeletion: 200,       // block if >200 net lines removed
+}
+
+// WHY: Files below this line count are too small for ratio-based detection
+// to be meaningful (e.g., a 10-line file losing 6 lines is normal editing).
+const MIN_LINES_FOR_GUARD = 30
+
+interface MagnitudeCheckResult {
+  allowed: boolean
+  reason?: string
+  oldLines: number
+  newLines: number
+  deletionRatio: number
+  netDeletion: number
+  existingContent?: string  // returned for downstream use (backup) when file exists
+}
+
+/**
+ * Check whether a write_file call would destructively reduce an existing file.
+ * Returns { allowed: true } for new files, small files, or writes within thresholds.
+ * Returns { allowed: false, reason } when the write looks destructive.
+ */
+export async function checkEditMagnitude(
+  absPath: string,
+  newContent: string,
+  ctx: ToolExecutionContext,
+): Promise<MagnitudeCheckResult> {
+  // HOW: Read the existing file; if it doesn't exist this is a create — always allowed.
+  let existingContent: string
+  try {
+    existingContent = await fsReadFile(absPath, 'utf8')
+  } catch {
+    return { allowed: true, oldLines: 0, newLines: newContent.split('\n').length, deletionRatio: 0, netDeletion: 0 }
+  }
+
+  const oldLines = existingContent.split('\n').length
+  const newLines = newContent.split('\n').length
+
+  // Small files: skip guard (ratio is unreliable for tiny files)
+  if (oldLines < MIN_LINES_FOR_GUARD) {
+    return { allowed: true, oldLines, newLines, deletionRatio: 0, netDeletion: 0, existingContent }
+  }
+
+  const netDeletion = oldLines - newLines
+  const deletionRatio = netDeletion > 0 ? netDeletion / oldLines : 0
+
+  // Pick thresholds based on session type
+  const thresholds = ctx.sessionType === 'helix'
+    ? HELIX_THRESHOLDS
+    : DEFAULT_THRESHOLDS
+
+  // Check thresholds — both must be exceeded to block
+  // WHY: A single threshold isn't enough. A 200-line file losing 60% is different
+  // from a 2000-line file losing 60%. We require BOTH ratio AND absolute count
+  // to exceed thresholds, reducing false positives for legitimate refactors.
+  if (deletionRatio > thresholds.maxDeletionRatio && netDeletion > thresholds.maxNetDeletion) {
+    const sessionLabel = ctx.sessionType === 'helix' ? 'Helix session' : 'Session'
+    return {
+      allowed: false,
+      reason: `EditMagnitudeGuard: ${sessionLabel} blocked from overwriting ${absPath} — `
+        + `would delete ${netDeletion} of ${oldLines} lines (${(deletionRatio * 100).toFixed(1)}% reduction). `
+        + `Thresholds: >${(thresholds.maxDeletionRatio * 100).toFixed(0)}% ratio AND >${thresholds.maxNetDeletion} net lines. `
+        + `Use incremental edits (edit_file / replace_content) instead of full-file rewrites.`,
+      oldLines,
+      newLines,
+      deletionRatio,
+      netDeletion,
+    }
+  }
+
+  return { allowed: true, oldLines, newLines, deletionRatio, netDeletion, existingContent }
+}
+
+// ── Pre-Write Backup ────────────────────────────────────────────────
+
+// WHY: Files above this line count are worth snapshotting before overwrite.
+// Below this threshold, git recovery is sufficient.
+const MIN_LINES_FOR_BACKUP = 50
+
+/**
+ * Snapshot the existing file content into the FileArtifactStore under the
+ * `backup:` namespace before overwriting. Fire-and-forget — failures are
+ * logged but never block the write.
+ *
+ * Only backs up when:
+ * - FileArtifactStore is available
+ * - The existing file has >= MIN_LINES_FOR_BACKUP lines
+ * - The write involves net deletion (newLines < oldLines)
+ */
+function backupBeforeOverwrite(
+  absPath: string,
+  existingContent: string,
+  oldLines: number,
+  newLines: number,
+  ctx: ToolExecutionContext,
+): void {
+  const store = ctx._fileArtifactStore
+  if (!store) return
+
+  // Only backup if the file is large enough and content is being removed
+  if (oldLines < MIN_LINES_FOR_BACKUP) return
+  if (newLines >= oldLines) return
+
+  const relPath = relative(ctx.workingDir, absPath)
+  if (relPath.startsWith('..')) return
+
+  try {
+    store.write({
+      namespace: 'backup',
+      path: relPath,
+      content: existingContent,
+      sessionId: ctx.sessionId,
+      agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
+      message: `pre-overwrite backup: ${oldLines}→${newLines} lines (${relPath})`,
+      visibility: 'public',
+      tags: ['pre-overwrite-backup', ctx.sessionType ?? 'unknown'].filter(Boolean),
+    })
+    ctx.logger.debug?.('[write_file] pre-overwrite backup stored', {
+      path: relPath,
+      oldLines,
+      newLines,
+      namespace: 'backup',
+    })
+  } catch (err) {
+    ctx.logger.debug?.('[write_file] pre-overwrite backup failed (non-fatal)', {
       path: relPath,
       error: String(err),
     })
@@ -271,6 +418,21 @@ export const writeFileHandler: ToolHandler = async (
   const allowed = ctx.allowedPaths.some(p => absPath.startsWith(p))
   if (!allowed) {
     return `Error: access denied — ${absPath} is outside allowed paths`
+  }
+  
+  // EditMagnitudeGuard — block destructive overwrites
+  const magnitudeCheck = await checkEditMagnitude(absPath, content, ctx)
+  if (!magnitudeCheck.allowed) {
+    ctx.logger.warn?.('[write_file] EditMagnitudeGuard BLOCKED write', {
+      path: absPath,
+      oldLines: magnitudeCheck.oldLines,
+      newLines: magnitudeCheck.newLines,
+      deletionRatio: magnitudeCheck.deletionRatio.toFixed(3),
+      netDeletion: magnitudeCheck.netDeletion,
+      sessionType: ctx.sessionType ?? 'unknown',
+      sessionId: ctx.sessionId,
+    })
+    return `Error: ${magnitudeCheck.reason}`
   }
   
   try {
