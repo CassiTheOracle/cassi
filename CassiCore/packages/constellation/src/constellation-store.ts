@@ -1107,12 +1107,12 @@ export class ConstellationStore {
    *
    * Returns the number of orphaned sessions recovered.
    */
-  recoverOrphanedSessions(): number {
+  recoverOrphanedSessions(): { failed: number; interrupted: number } {
     const now = Date.now()
 
     // WHY: First, identify which orphaned sessions have checkpoint data.
-    // These could theoretically be resumed in the future. For now we still
-    // mark them failed, but log the checkpoint info for post-mortem analysis.
+    // Sessions with both tree and progress snapshots can be resumed.
+    // Sessions without checkpoints are unrecoverable and marked failed.
     const orphans = this.db.prepare(`
       SELECT id, goal, tree_snapshot_json IS NOT NULL as has_tree,
              progress_snapshot_json IS NOT NULL as has_progress,
@@ -1124,38 +1124,62 @@ export class ConstellationStore {
       sweep_count: number; total_branches: number; completed_branches: number; failed_branches: number
     }>
 
-    if (orphans.length > 0) {
-      for (const orphan of orphans) {
-        this.logger.info('Recovering orphaned constellation session', {
-          id: orphan.id,
-          goal: orphan.goal.slice(0, 100),
-          hasCheckpoint: !!(orphan.has_tree && orphan.has_progress),
-          sweepCount: orphan.sweep_count,
-          totalBranches: orphan.total_branches,
-          completedBranches: orphan.completed_branches,
-          failedBranches: orphan.failed_branches,
-        })
+    if (orphans.length === 0) return { failed: 0, interrupted: 0 }
+
+    let interruptedCount = 0
+    let failedCount = 0
+
+    for (const orphan of orphans) {
+      const hasCheckpoint = !!(orphan.has_tree && orphan.has_progress)
+      this.logger.info('Recovering orphaned constellation session', {
+        id: orphan.id,
+        goal: orphan.goal.slice(0, 100),
+        hasCheckpoint,
+        sweepCount: orphan.sweep_count,
+        totalBranches: orphan.total_branches,
+        completedBranches: orphan.completed_branches,
+        failedBranches: orphan.failed_branches,
+      })
+
+      if (hasCheckpoint) {
+        // WHY: Sessions with checkpoint data are resumable — mark as 'interrupted'
+        // so the daemon boot can auto-resume them.
+        this.db.prepare(`
+          UPDATE constellation_sessions SET
+            status = 'interrupted',
+            error = 'Process terminated unexpectedly (checkpoint available for resume)',
+            completed_at = ?,
+            duration_ms = CASE
+              WHEN created_at IS NOT NULL THEN ? - created_at
+              ELSE duration_ms
+            END
+          WHERE id = ?
+        `).run(now, now, orphan.id)
+        interruptedCount++
+      } else {
+        // WHY: Sessions without checkpoint data cannot be resumed — mark as failed.
+        this.db.prepare(`
+          UPDATE constellation_sessions SET
+            status = 'failed',
+            error = 'Process terminated unexpectedly (no checkpoint data)',
+            completed_at = ?,
+            duration_ms = CASE
+              WHEN created_at IS NOT NULL THEN ? - created_at
+              ELSE duration_ms
+            END
+          WHERE id = ?
+        `).run(now, now, orphan.id)
+        failedCount++
       }
     }
 
-    const stmt = this.db.prepare(`
-      UPDATE constellation_sessions
-      SET status = 'failed',
-          error = 'Process terminated unexpectedly (recovered at startup)',
-          completed_at = ?,
-          duration_ms = CASE
-            WHEN created_at IS NOT NULL THEN ? - created_at
-            ELSE duration_ms
-          END
-      WHERE status = 'running'
-    `)
-    const result = stmt.run(now, now)
-    if (result.changes > 0) {
+    if (interruptedCount > 0 || failedCount > 0) {
       this.logger.info('Recovered orphaned constellation sessions', {
-        count: result.changes,
+        interrupted: interruptedCount,
+        failed: failedCount,
       })
     }
-    return result.changes
+    return { failed: failedCount, interrupted: interruptedCount }
   }
 
 
