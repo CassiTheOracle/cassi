@@ -216,6 +216,14 @@ export class TrainingIngest {
             let analysis: Record<string, unknown> = {}
             try { analysis = JSON.parse(row.analysis_json || '{}') } catch { /* ignore */ }
 
+            // WHY: topics, entities, and tags are stored in separate columns, not inside analysis_json
+            let topics: string[] = []
+            try { topics = JSON.parse(row.topics_json || '[]') } catch { /* ignore */ }
+            let entities: string[] = []
+            try { entities = JSON.parse(row.entities_json || '[]') } catch { /* ignore */ }
+            let tags: string[] = []
+            try { tags = JSON.parse(row.tags_json || '[]') } catch { /* ignore */ }
+
             // Create the object
             const objectId = `arc_${archiveId}`
             const refKey = sessionId ? `S:${sessionId.slice(0, 8)}#A:${archiveId.slice(0, 8)}` : `A:${archiveId.slice(0, 8)}`
@@ -313,7 +321,7 @@ export class TrainingIngest {
             }
 
             // Attach heuristic labels from existing analysis
-            this.attachArchiveLabels(objectId, entryType, metadata, analysis, result)
+            this.attachArchiveLabels(objectId, entryType, metadata, analysis, topics, entities, tags, result)
 
             // Edge: parent → child for content
             this.store.insertEdge({
@@ -507,10 +515,11 @@ export class TrainingIngest {
       const lastId = checkpoint?.last_processed_id ?? ''
       const limit = opts.batchSize ?? 100
 
+      // WHY: Lumen DB uses `sessions` (not `lumen_sessions`) with PK `id` (not `session_id`)
       const sessions = sourceDb.prepare(`
-        SELECT * FROM lumen_sessions
-        WHERE session_id > ?
-        ORDER BY session_id ASC
+        SELECT * FROM sessions
+        WHERE id > ?
+        ORDER BY id ASC
         LIMIT ?
       `).all(lastId, limit) as any[]
 
@@ -524,12 +533,12 @@ export class TrainingIngest {
       this.store.transaction(() => {
         for (const sess of sessions) {
           try {
-            const sessId = sess.session_id as string
+            const sessId = sess.id as string
             if (this.store.objectExists('lumen', sessId)) continue
 
             const objectId = `lum_${sessId}`
             const refKey = `L:${sessId.slice(0, 12)}`
-            const createdAt = sess.created_at ? new Date(sess.created_at).getTime() : now
+            const createdAt = sess.created_at || now
 
             // Create session object
             this.store.insertObject({
@@ -546,18 +555,20 @@ export class TrainingIngest {
               raw_json: JSON.stringify(sess),
             })
 
+            const totalTokens = (sess.tokens_yang || 0) + (sess.tokens_yin || 0) + (sess.tokens_executive || 0)
+
             this.store.insertSession({
               object_id: objectId,
               session_type: 'lumen',
               channel: null,
               parent_session_id: null,
               started_at: createdAt,
-              ended_at: sess.completed_at ? new Date(sess.completed_at).getTime() : null,
+              ended_at: sess.completed_at || null,
               status: sess.status || 'completed',
               turn_count: 0,
-              total_tokens: sess.total_tokens || 0,
-              model_primary: null,
-              provider_primary: null,
+              total_tokens: totalTokens,
+              model_primary: sess.model || null,
+              provider_primary: sess.provider || null,
             })
 
             // Create a reasoning trace for the dialectic
@@ -581,7 +592,7 @@ export class TrainingIngest {
               turn_id: objectId,
               reasoning_type: 'dialectic',
               depth: null,
-              synthesis: sess.recommendation || null,
+              synthesis: sess.synthesis || sess.recommendation || null,
               decision: sess.recommendation || null,
               overall_confidence: sess.confidence || null,
               step_count: 0,
@@ -596,17 +607,18 @@ export class TrainingIngest {
             })
             result.edgesCreated++
 
-            // Ingest dialectic messages as reasoning steps
+            // WHY: Lumen messages are in `dialectic_messages` (not `lumen_messages`)
+            // with `from_posture` and `msg_type` columns
             const messages = sourceDb!.prepare(`
-              SELECT * FROM lumen_messages
+              SELECT * FROM dialectic_messages
               WHERE session_id = ?
-              ORDER BY sequence ASC
+              ORDER BY id ASC
             `).all(sessId) as any[]
 
             let stepCount = 0
             for (const msg of messages) {
               const stepId = `rs_${sessId}_${stepCount}`
-              const stepType = msg.posture || msg.channel || 'step'
+              const stepType = msg.from_posture || msg.msg_type || 'step'
               const content = msg.content as string || ''
 
               this.store.insertObject({
@@ -629,7 +641,7 @@ export class TrainingIngest {
                 step_type: stepType,
                 sequence: stepCount,
                 content,
-                confidence: msg.confidence || null,
+                confidence: null,
                 tokens_used: null,
               })
 
@@ -675,14 +687,14 @@ export class TrainingIngest {
 
             result.rowsIngested++
           } catch (err) {
-            result.errors.push(`Lumen session ${sess.session_id}: ${String(err)}`)
+            result.errors.push(`Lumen session ${sess.id}: ${String(err)}`)
           }
         }
 
         this.store.setCheckpoint({
           source_db: 'lumen',
           source_table: 'sessions',
-          last_processed_id: sessions[sessions.length - 1].session_id,
+          last_processed_id: sessions[sessions.length - 1].id,
           last_processed_ts: now,
           rows_ingested: (checkpoint?.rows_ingested ?? 0) + result.rowsIngested,
           updated_at: now,
@@ -722,8 +734,8 @@ export class TrainingIngest {
 
       const sessions = sourceDb.prepare(`
         SELECT * FROM dyad_sessions
-        WHERE session_id > ?
-        ORDER BY session_id ASC
+        WHERE id > ?
+        ORDER BY id ASC
         LIMIT ?
       `).all(lastId, limit) as any[]
 
@@ -737,12 +749,12 @@ export class TrainingIngest {
       this.store.transaction(() => {
         for (const sess of sessions) {
           try {
-            const sessId = sess.session_id as string
+            const sessId = sess.id as string
             if (this.store.objectExists('dyad', sessId)) continue
 
             const objectId = `dyd_${sessId}`
             const refKey = `D:${sessId.slice(0, 12)}`
-            const createdAt = sess.created_at ? new Date(sess.created_at).getTime() : now
+            const createdAt = sess.created_at || now
 
             this.store.insertObject({
               object_id: objectId,
@@ -758,31 +770,34 @@ export class TrainingIngest {
               raw_json: JSON.stringify(sess),
             })
 
+            const totalTokens = (sess.tokens_yang || 0) + (sess.tokens_yin || 0) + (sess.tokens_apex || 0)
+
             this.store.insertSession({
               object_id: objectId,
               session_type: 'dyad',
               channel: null,
               parent_session_id: null,
               started_at: createdAt,
-              ended_at: sess.completed_at ? new Date(sess.completed_at).getTime() : null,
+              ended_at: sess.completed_at || null,
               status: sess.status || 'completed',
               turn_count: 0,
-              total_tokens: sess.total_tokens || 0,
+              total_tokens: totalTokens,
               model_primary: null,
               provider_primary: null,
             })
 
-            // Ingest work stream messages
+            // WHY: Dyad messages are in `dyad_work_stream` (not `dyad_messages`)
+            // with `msg_type` and `from_role` columns
             const messages = sourceDb!.prepare(`
-              SELECT * FROM dyad_messages
+              SELECT * FROM dyad_work_stream
               WHERE session_id = ?
-              ORDER BY sequence ASC
+              ORDER BY id ASC
             `).all(sessId) as any[]
 
             let turnSeq = 0
             for (const msg of messages) {
               const turnId = `dt_${sessId}_${turnSeq}`
-              const role = msg.role as string || 'assistant'
+              const role = msg.from_role as string || 'assistant'
               const content = msg.content as string || ''
 
               this.store.insertObject({
@@ -804,7 +819,7 @@ export class TrainingIngest {
                 session_id: objectId,
                 sequence: turnSeq,
                 role,
-                subrole: msg.posture || null,
+                subrole: msg.msg_type || null,
                 branch_id: null,
                 prev_turn_id: turnSeq > 0 ? `dt_${sessId}_${turnSeq - 1}` : null,
                 next_turn_id: null,
@@ -871,14 +886,14 @@ export class TrainingIngest {
 
             result.rowsIngested++
           } catch (err) {
-            result.errors.push(`Dyad session ${sess.session_id}: ${String(err)}`)
+            result.errors.push(`Dyad session ${sess.id}: ${String(err)}`)
           }
         }
 
         this.store.setCheckpoint({
           source_db: 'dyad',
           source_table: 'sessions',
-          last_processed_id: sessions[sessions.length - 1].session_id,
+          last_processed_id: sessions[sessions.length - 1].id,
           last_processed_ts: now,
           rows_ingested: (checkpoint?.rows_ingested ?? 0) + result.rowsIngested,
           updated_at: now,
@@ -896,8 +911,8 @@ export class TrainingIngest {
   // SESSION INDEX INGEST
 
   /**
-   * Ingest from the session indexer (memory.db → session_index, session_blocks, session_paragraphs).
-   * Maps indexed paragraphs directly to chunks with their original ref keys.
+   * Ingest from the session indexer (memory.db → session_index flat table).
+   * Maps indexed content rows directly to chunks with their original ref keys.
    */
   ingestSessionIndex(memoryDbPath: string, opts: IngestOptions = {}): IngestResult {
     const start = Date.now()
@@ -925,21 +940,21 @@ export class TrainingIngest {
         return result
       }
 
-      const checkpoint = this.store.getCheckpoint('session_index', 'paragraphs')
-      const lastId = checkpoint?.last_processed_id ?? ''
+      const checkpoint = this.store.getCheckpoint('session_index', 'session_index')
+      const lastId = checkpoint?.last_processed_id ? Number(checkpoint.last_processed_id) : 0
       const limit = opts.batchSize ?? 1000
 
-      // Read paragraphs with their session/block context
+      // WHY: The session_index table uses a flat schema with (label, msg_idx, block_idx, para_idx)
+      // instead of separate blocks/paragraphs tables. Each row is one content chunk.
       const rows = sourceDb.prepare(`
         SELECT
-          p.para_id, p.block_id, p.para_index, p.text, p.role,
-          b.block_index, b.msg_index,
-          s.session_id, s.label
-        FROM session_paragraphs p
-        JOIN session_blocks b ON b.block_id = p.block_id
-        JOIN session_index s ON s.session_id = b.session_id
-        WHERE p.para_id > ?
-        ORDER BY p.para_id ASC
+          si.id, si.label, si.msg_idx, si.role, si.block_idx,
+          si.block_type, si.para_idx, si.content, si.meta_json,
+          sl.session_id
+        FROM session_index si
+        LEFT JOIN session_labels sl ON sl.label = si.label
+        WHERE si.id > ?
+        ORDER BY si.id ASC
         LIMIT ?
       `).all(lastId, limit) as any[]
 
@@ -953,24 +968,28 @@ export class TrainingIngest {
       this.store.transaction(() => {
         for (const row of rows) {
           try {
-            const paraId = row.para_id as string | number
-            const text = row.text as string || ''
+            const rowId = row.id as number
+            const text = row.content as string || ''
             if (!text.trim()) continue
 
-            const sessionId = row.session_id as string
-            const label = row.label as string || `S${sessionId.slice(0, 4)}`
-            const blockIndex = row.block_index as number || 0
-            const msgIndex = row.msg_index as number || 0
-            const paraIndex = row.para_index as number || 0
+            const label = row.label as string
+            const sessionId = row.session_id as string | null
+            const msgIdx = row.msg_idx as number || 0
+            const blockIdx = row.block_idx as number || 0
+            const paraIdx = row.para_idx as number | null
             const role = row.role as string || null
+            const blockType = row.block_type as string || 'paragraph'
 
             // Build the original ref key
-            const origRef = `${label}#M${msgIndex}.B${blockIndex}.P${paraIndex}`
+            const origRef = paraIdx != null
+              ? `${label}#M${msgIdx}.B${blockIdx}.P${paraIdx}`
+              : `${label}#M${msgIdx}.B${blockIdx}`
 
-            const chunkId = `chk_si_${paraId}`
+            const chunkId = `chk_si_${rowId}`
 
-            // Ensure session object exists
-            const sessObjId = `si_${sessionId}`
+            // Ensure session object exists (keyed by label since session_id may be null)
+            const sessKey = sessionId || label
+            const sessObjId = `si_${sessKey}`
             if (!this.store.getObject(sessObjId)) {
               this.store.insertObject({
                 object_id: sessObjId,
@@ -980,19 +999,25 @@ export class TrainingIngest {
                 root_session_id: sessionId,
                 ref_key: label,
                 source_db: 'session_index',
-                source_id: sessionId,
+                source_id: sessKey,
                 created_at: now,
                 ingested_at: now,
                 raw_json: null,
               })
             }
 
+            // Map block_type to chunk_type
+            const chunkType = blockType === 'code' ? 'code_block'
+              : blockType === 'heading' ? 'heading'
+              : blockType === 'list' ? 'list_item'
+              : 'paragraph'
+
             this.store.insertChunk({
               chunk_id: chunkId,
               object_id: sessObjId,
-              chunk_type: 'paragraph',
+              chunk_type: chunkType,
               chunk_ref: origRef,
-              sequence: paraIndex,
+              sequence: paraIdx ?? blockIdx,
               text,
               token_estimate: estimateTokens(text),
               language: null,
@@ -1002,14 +1027,14 @@ export class TrainingIngest {
             result.chunksCreated++
             result.rowsIngested++
           } catch (err) {
-            result.errors.push(`Session paragraph ${row.para_id}: ${String(err)}`)
+            result.errors.push(`Session index row ${row.id}: ${String(err)}`)
           }
         }
 
         this.store.setCheckpoint({
           source_db: 'session_index',
-          source_table: 'paragraphs',
-          last_processed_id: String(rows[rows.length - 1].para_id),
+          source_table: 'session_index',
+          last_processed_id: String(rows[rows.length - 1].id),
           last_processed_ts: now,
           rows_ingested: (checkpoint?.rows_ingested ?? 0) + result.rowsIngested,
           updated_at: now,
@@ -1037,16 +1062,30 @@ export class TrainingIngest {
   }, opts: IngestOptions = {}): IngestResult[] {
     const results: IngestResult[] = []
 
+    // WHY: Each source is wrapped in try/catch so one failure doesn't block others
+    const safeRun = (label: string, fn: () => IngestResult): void => {
+      try {
+        results.push(fn())
+      } catch (err) {
+        this.logger.error(`Ingest source "${label}" threw unexpectedly`, { error: String(err) })
+        results.push({
+          source: label, rowsIngested: 0, chunksCreated: 0,
+          labelsAttached: 0, edgesCreated: 0, durationMs: 0,
+          errors: [`Uncaught: ${String(err)}`],
+        })
+      }
+    }
+
     if (dataDirs.memoryDbPath) {
-      results.push(this.ingestMemories(dataDirs.memoryDbPath, opts))
-      results.push(this.ingestArchives(dataDirs.memoryDbPath, opts))
-      results.push(this.ingestSessionIndex(dataDirs.memoryDbPath, opts))
+      safeRun('memory', () => this.ingestMemories(dataDirs.memoryDbPath!, opts))
+      safeRun('archive', () => this.ingestArchives(dataDirs.memoryDbPath!, opts))
+      safeRun('session_index', () => this.ingestSessionIndex(dataDirs.memoryDbPath!, opts))
     }
     if (dataDirs.lumenDbPath) {
-      results.push(this.ingestLumen(dataDirs.lumenDbPath, opts))
+      safeRun('lumen', () => this.ingestLumen(dataDirs.lumenDbPath!, opts))
     }
     if (dataDirs.dyadDbPath) {
-      results.push(this.ingestDyad(dataDirs.dyadDbPath, opts))
+      safeRun('dyad', () => this.ingestDyad(dataDirs.dyadDbPath!, opts))
     }
 
     return results
@@ -1088,6 +1127,9 @@ export class TrainingIngest {
     entryType: string,
     metadata: Record<string, unknown>,
     analysis: Record<string, unknown>,
+    topics: string[],
+    entities: string[],
+    tags: string[],
     result: IngestResult,
   ): void {
     // Type-based labels
@@ -1104,35 +1146,32 @@ export class TrainingIngest {
       result.labelsAttached++
     }
 
-    // Import existing analysis topics/entities as labels
-    if (Array.isArray(analysis.topics)) {
-      for (const topic of analysis.topics as string[]) {
-        const label = this.store.ensureLabel('topic', topic)
-        this.store.attachLabel(objectId, label, {
-          source: 'imported',
-          confidence: 0.8,
-        })
-        result.labelsAttached++
-      }
-    }
-    if (Array.isArray(analysis.entities)) {
-      for (const entity of analysis.entities as string[]) {
-        const label = this.store.ensureLabel('domain', entity)
-        this.store.attachLabel(objectId, label, {
-          source: 'imported',
-          confidence: 0.7,
-        })
-        result.labelsAttached++
-      }
+    // WHY: Topics and entities come from separate columns, not from analysis_json
+    for (const topic of topics) {
+      if (!topic) continue
+      const label = this.store.ensureLabel('topic', topic)
+      this.store.attachLabel(objectId, label, {
+        source: 'imported',
+        confidence: 0.8,
+      })
+      result.labelsAttached++
     }
 
-    // Import existing tags
-    if (Array.isArray(metadata.tags)) {
-      for (const tag of metadata.tags as string[]) {
-        const label = this.store.ensureLabel('topic', tag)
-        this.store.attachLabel(objectId, label, { source: 'imported' })
-        result.labelsAttached++
-      }
+    for (const entity of entities) {
+      if (!entity) continue
+      const label = this.store.ensureLabel('domain', entity)
+      this.store.attachLabel(objectId, label, {
+        source: 'imported',
+        confidence: 0.7,
+      })
+      result.labelsAttached++
+    }
+
+    for (const tag of tags) {
+      if (!tag) continue
+      const label = this.store.ensureLabel('topic', tag)
+      this.store.attachLabel(objectId, label, { source: 'imported' })
+      result.labelsAttached++
     }
 
     // Import importance as quality metric
