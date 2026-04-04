@@ -17,10 +17,10 @@ export interface ProvidersRoutesDeps {
 
 /**
  * @dep callers: handler (core/admin-api.ts)
- * @dep calls: call, get, getConfig, getStats, getActiveCount [+16]
- * @dep flows: HandleProvidersRoutes → DefaultAccountsPath (1/3), HandleProvidersRoutes → Now (1/3), HandleProvidersRoutes → Call (1/3) [+1]
- * @dep module: Providers
- * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
+ * @dep calls: sendJSON, defaultAccountsPath, renewAccountsFile, parseBody, setOverride [+15]
+ * @dep flows: HandleProvidersRoutes → Json (1/4)
+ * @dep module: Scripts
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 
 export async function handleProvidersRoutes(
@@ -158,7 +158,6 @@ export async function handleProvidersRoutes(
         : (k: string) => ({ value: layered?.get?.(k, undefined), source: undefined })
 
       const keys = [
-        'providers.global.maxConcurrent',
         'providers.global.windowMs',
         'providers.global.maxRequestsPerWindow',
         'providers.global.timeoutMs',
@@ -205,7 +204,6 @@ export async function handleProvidersRoutes(
       }
 
       const mapping: Record<string, string> = {
-        maxConcurrent: 'providers.global.maxConcurrent',
         timeoutMs: 'providers.global.timeoutMs',
       }
 
@@ -256,7 +254,6 @@ export async function handleProvidersRoutes(
     try {
       const body = await parseBody(req)
       const mapping: Record<string, string> = {
-        maxConcurrent: 'providers.global.maxConcurrent',
         timeoutMs: 'providers.global.timeoutMs',
       }
 
@@ -353,7 +350,6 @@ export async function handleProvidersRoutes(
       }
 
       const mapping: Record<string, string> = {
-        maxConcurrent: 'providers.global.maxConcurrent',
         timeoutMs: 'providers.global.timeoutMs',
       }
 
