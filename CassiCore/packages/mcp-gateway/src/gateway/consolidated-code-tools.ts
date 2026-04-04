@@ -15,6 +15,7 @@ import {
   scoreSpecificity,
   introspectSchemas,
   ensureFreshIndex,
+  ensureFreshIndexBackground,
 } from '../../core/intelligence/code-analysis/index.js'
 
 // Module-level singleton for Serena onboarding
@@ -305,7 +306,7 @@ export async function executeCodeConsolidatedTool(
   switch (action) {
     case 'query': {
       const { query, goal, task_context, limit, max_symbols, include_content, repo } = mergedArgs
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_query', {
         query,
         goal,
@@ -318,7 +319,7 @@ export async function executeCodeConsolidatedTool(
     }
     case 'context': {
       const { name, uid, file_path, include_content, repo } = mergedArgs
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_context', {
         name,
         uid,
@@ -329,7 +330,7 @@ export async function executeCodeConsolidatedTool(
     }
     case 'impact': {
       const { target, direction, maxDepth, minConfidence, relationTypes, includeTests, repo } = mergedArgs
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_impact', {
         target,
         direction,
@@ -342,21 +343,21 @@ export async function executeCodeConsolidatedTool(
     }
     case 'cypher': {
       const { query, repo } = mergedArgs
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_cypher', { query, repo })
     }
     case 'detect_changes': {
       const { scope, base_ref, repo } = mergedArgs
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_detect_changes', { scope, base_ref, repo })
     }
     case 'list_repos': {
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_list_repos', {})
     }
     case 'rename_graph': {
       const { symbol_name, symbol_uid, new_name, file_path, dry_run, repo } = mergedArgs
-      await ensureFreshIndex(logger)
+      ensureFreshIndexBackground(logger)
       return await router('gitnexus_rename', {
         symbol_name,
         symbol_uid,
