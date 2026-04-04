@@ -19,6 +19,26 @@ import type { ToolDefinition, ToolHandler, ToolExecutionContext, ToolParamSchema
 
 // Tool Definition
 
+/**
+ * Tool definition for querying event history.
+ * 
+ * Supports three query modes:
+ * - **complex**: Structured query with precise filters, aggregations, and sorting
+ * - **simple**: Natural language query that gets auto-translated (e.g., "recent subagent failures")
+ * - **preset**: Use a named preset query (e.g., "provider-errors", "system-health")
+ * 
+ * @example
+ * // Simple mode
+ * { "mode": "simple", "query": "recent subagent failures" }
+ * 
+ * @example
+ * // Complex mode
+ * { "mode": "complex", "types": ["subagent:failed"], "since": "10m" }
+ * 
+ * @example
+ * // Preset mode
+ * { "mode": "preset", "preset": "system-health" }
+ */
 export const queryEventsDefinition: ToolDefinition = {
   name: "query_events",
   description: `Query the event bus history for runtime events.
