@@ -23,11 +23,10 @@ interface RequestEntry {
 }
 
 /**
- * Provider configuration — only concurrency and error cooldown.
+ * Provider configuration — only error cooldown.
  * Rate limits are learned adaptively from 429 responses, not pre-configured.
  */
 interface ProviderConfig {
-  maxConcurrent: number
   errorCooldownMs: number
 }
 
@@ -86,15 +85,12 @@ interface LearnedLimit {
 
 const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   'github-copilot': {
-    maxConcurrent: 24,
     errorCooldownMs: 5_000,
   },
   'kimi-coding': {
-    maxConcurrent: 24,
     errorCooldownMs: 5_000,
   },
   'default': {
-    maxConcurrent: 16,
     errorCooldownMs: 5_000,
   }
 }
@@ -117,7 +113,6 @@ function getConfiguredProviderConfig(config: IConfig | undefined, providerId: st
   if (!config) return {}
 
   return {
-    maxConcurrent: config.get<number>(`providers.${providerId}.maxConcurrent`, config.get<number>('providers.default.maxConcurrent', DEFAULT_PROVIDER_CONFIGS.default.maxConcurrent)),
     errorCooldownMs: config.get<number>(`providers.${providerId}.errorCooldownMs`, config.get<number>('providers.default.errorCooldownMs', DEFAULT_PROVIDER_CONFIGS.default.errorCooldownMs)),
   }
 }
@@ -130,7 +125,6 @@ export function listProviderConfigKeys() {
   const providerSpecific: Record<string, Record<string, { default: number; description: string }>> = {}
   for (const [provId, cfg] of Object.entries(DEFAULT_PROVIDER_CONFIGS)) {
     providerSpecific[provId] = {
-      [`providers.${provId}.maxConcurrent`]: { default: cfg.maxConcurrent, description: 'Max concurrent requests to this provider' },
       [`providers.${provId}.errorCooldownMs`]: { default: cfg.errorCooldownMs, description: 'Cooldown after provider errors (ms)' },
     }
   }
@@ -171,13 +165,6 @@ export class CentralizedProvider implements IProvider {
   private lastErrorAt = 0
   private consecutiveErrors = 0
 
-  // WHY: When all concurrent slots are full, queue callers instead of rejecting
-  // immediately. Constellation branches launch 15+ simultaneous inference calls
-  // but only 12 slots are available. Queuing with timeout lets bursts drain
-  // naturally instead of killing branches.
-  private concurrencyWaiters: Array<() => void> = []
-  private static readonly CONCURRENCY_WAIT_TIMEOUT_MS = 60_000
-
   // Metrics
   private metrics = {
     totalRequests: 0,
@@ -207,7 +194,6 @@ export class CentralizedProvider implements IProvider {
     this.bus = bus
 
     const defaults = DEFAULT_PROVIDER_CONFIGS[wrapped.id] ?? {
-      maxConcurrent: DEFAULT_PROVIDER_CONFIGS.default.maxConcurrent,
       errorCooldownMs: DEFAULT_PROVIDER_CONFIGS.default.errorCooldownMs,
     }
     this.config = { ...defaults, ...providerConfig }
@@ -281,11 +267,6 @@ export class CentralizedProvider implements IProvider {
         if (existing.aborted) {
           this.logger.info(`[dedup] Clearing stale aborted request ${existing.id.slice(-8)} for session ${sessionId.slice(-8)}`)
           this.inFlight.delete(sessionId)
-          // WHY: Wake a queued caller now that a slot is free
-          if (this.concurrencyWaiters.length > 0) {
-            const waiter = this.concurrencyWaiters.shift()!
-            waiter()
-          }
         } else {
           this.metrics.deduplicated++
           this.logger.warn(`[dedup] Session ${sessionId.slice(-8)} already has in-flight request ${existing.id.slice(-8)}`)
@@ -322,38 +303,6 @@ export class CentralizedProvider implements IProvider {
           sessionId,
           retryAfterMs: rateLimitResult.retryAfterMs,
         })
-        // Concurrent limit: wait for a slot to open instead of rejecting immediately.
-        // HOW: Register a waiter that resolves when a request completes, with a timeout.
-        // This turns burst-induced concurrent rejections into short waits.
-        if (rateLimitResult.reason === 'concurrent') {
-          if (attempt >= MAX_RATE_LIMIT_RETRIES) {
-            throw new Error(`Rate limited: retry after ${rateLimitResult.retryAfterMs}ms (concurrent limit, ${attempt} retries exhausted)`)
-          }
-          const waitMs = Math.min(rateLimitResult.retryAfterMs, CentralizedProvider.CONCURRENCY_WAIT_TIMEOUT_MS)
-          this.logger.info(`[ratelimit] concurrent limit hit, queuing for slot (attempt ${attempt + 1}/${MAX_RATE_LIMIT_RETRIES}, timeout ${waitMs}ms)`)
-          try {
-            // HOW: Race between a slot opening and a timeout. The waiter callback
-            // is stored so we can clean it up if the timeout fires first.
-            let waiterFn: (() => void) | undefined
-            await Promise.race([
-              new Promise<void>(resolve => {
-                waiterFn = resolve
-                this.concurrencyWaiters.push(resolve)
-              }),
-              sleepWithAbort(waitMs, signal).then(() => {
-                // Timeout fired first — remove our callback from the queue to avoid leaks
-                if (waiterFn) {
-                  const idx = this.concurrencyWaiters.indexOf(waiterFn)
-                  if (idx >= 0) this.concurrencyWaiters.splice(idx, 1)
-                }
-              }),
-            ])
-          } catch {
-            // AbortError from signal — rethrow as rate limit
-            throw new Error(`Rate limited: retry after ${waitMs}ms (aborted while waiting for slot)`)
-          }
-          continue
-        }
         // Learned limit from 429 history: wait for the window to clear, then retry
         if (attempt >= MAX_RATE_LIMIT_RETRIES) {
           throw new Error(`Rate limited: gave up after ${attempt} retries, retry after ${rateLimitResult.retryAfterMs}ms`)
@@ -559,12 +508,6 @@ export class CentralizedProvider implements IProvider {
         this.inFlight.delete(sessionId)
         this.metrics.totalRequests++
 
-        // WHY: Wake the oldest queued caller now that a slot is free.
-        // Shift (FIFO) gives fair ordering so no branch starves.
-        if (this.concurrencyWaiters.length > 0) {
-          const waiter = this.concurrencyWaiters.shift()!
-          waiter()
-        }
         this.metrics.totalTokens += entry.tokensUsed
 
         const duration = entry.completedAt - entry.startedAt
@@ -700,11 +643,6 @@ export class CentralizedProvider implements IProvider {
     if (entry) {
       entry.aborted = true
       this.inFlight.delete(sessionId)
-      // WHY: Wake a queued caller now that a slot is free
-      if (this.concurrencyWaiters.length > 0) {
-        const waiter = this.concurrencyWaiters.shift()!
-        waiter()
-      }
       this.logger.info(`[abort] Session ${sessionId.slice(-8)} request ${entry.id.slice(-8)}`)
       this.bus.emit({
         type: 'provider:request_aborted',
@@ -777,13 +715,7 @@ export class CentralizedProvider implements IProvider {
    * Check learned rate limits across all timescales.
    * Returns whether allowed and, if blocked, which window triggered it.
    */
-  private checkRateLimit(model: string): { allowed: boolean; reason?: 'concurrent' | 'learned'; retryAfterMs: number; windowLabel?: WindowLabel } {
-    // Check concurrent limit first — this is backpressure, not a provider rate limit.
-    // Throws immediately (not retried) to avoid stacking up waiting requests.
-    if (this.inFlight.size >= this.config.maxConcurrent) {
-      return { allowed: false, reason: 'concurrent', retryAfterMs: 10_000 }
-    }
-
+  private checkRateLimit(model: string): { allowed: boolean; reason?: 'learned'; retryAfterMs: number; windowLabel?: WindowLabel } {
     // Check each timescale for learned limits
     const now = Date.now()
     const history = this.modelHistory.get(model) || []
