@@ -53,6 +53,12 @@ export const MODEL_DEFAULTS = {
     provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'alibaba-coding'),
     model: getEnvString('CASSICORE_MODEL_FALLBACK', 'qwen3.5-plus'),
   },
+
+  /** Background — cheap/free model for drones, scouts, and low-priority work */
+  background: {
+    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'github-copilot'),
+    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'gpt-5-mini'),
+  },
 } as const
 
 /**
@@ -319,14 +325,14 @@ export const DRONE_SETTINGS = {
   /** Minimum probability threshold for speculative branches */
   minSpeculativeProbability: getEnvNumber('CASSICORE_DRONE_MIN_SPEC_PROB', 30) / 100,
 
-  /** Model tier for predictor drones (default: 'fallback' = gpt-5-mini via github-copilot, free) */
-  predictorModelTier: getEnvString('CASSICORE_DRONE_PREDICTOR_TIER', 'fallback') as 'main' | 'reasoning' | 'agent' | 'fast' | 'fallback',
+  /** Model tier for predictor drones (default: 'background' = gpt-5-mini via github-copilot, free) */
+  predictorModelTier: getEnvString('CASSICORE_DRONE_PREDICTOR_TIER', 'background') as keyof typeof MODEL_DEFAULTS,
 
-  /** Model tier for scout drones (default: 'fallback' = gpt-5-mini via github-copilot, free) */
-  scoutModelTier: getEnvString('CASSICORE_DRONE_SCOUT_TIER', 'fallback') as 'main' | 'reasoning' | 'agent' | 'fast' | 'fallback',
+  /** Model tier for scout drones (default: 'background' = gpt-5-mini via github-copilot, free) */
+  scoutModelTier: getEnvString('CASSICORE_DRONE_SCOUT_TIER', 'background') as keyof typeof MODEL_DEFAULTS,
 
-  /** Model tier for worker drones (default: 'fallback' = gpt-5-mini via github-copilot, free) */
-  workerModelTier: getEnvString('CASSICORE_DRONE_WORKER_TIER', 'fallback') as 'main' | 'reasoning' | 'agent' | 'fast' | 'fallback',
+  /** Model tier for worker drones (default: 'background' = gpt-5-mini via github-copilot, free) */
+  workerModelTier: getEnvString('CASSICORE_DRONE_WORKER_TIER', 'background') as keyof typeof MODEL_DEFAULTS,
 
   /** Aggregation strategy: 'concatenate' | 'first_wins' | 'synthesis' | 'vote' | 'best' */
   defaultAggregationStrategy: getEnvString('CASSICORE_DRONE_AGGREGATION', 'concatenate') as
@@ -349,10 +355,10 @@ export const SCOUT_SETTINGS = {
   enabled: getEnvBoolean('CASSICORE_SCOUT_ENABLED', true),
 
   /** LLM provider — defaults to free offload model (github-copilot) */
-  providerId: getEnvString('CASSICORE_SCOUT_PROVIDER', MODEL_DEFAULTS.fallback.provider),
+  providerId: getEnvString('CASSICORE_SCOUT_PROVIDER', MODEL_DEFAULTS.background.provider),
 
   /** Model — defaults to free offload model (gpt-5-mini) */
-  model: getEnvString('CASSICORE_SCOUT_MODEL', MODEL_DEFAULTS.fallback.model),
+  model: getEnvString('CASSICORE_SCOUT_MODEL', MODEL_DEFAULTS.background.model),
 
   /** Temperature for scout inference (lower = more targeted) */
   temperature: getEnvNumber('CASSICORE_SCOUT_TEMPERATURE', 20) / 100,
