@@ -93,6 +93,17 @@ export const CONSTELLATION_TOOLS = [
     },
   },
   {
+    name: 'constellation_topology',
+    description: 'Get the live Topology Graph snapshot. Shows spatial Helix positions, gravity-based links between similar Helixes, detected clusters, and pairwise distances. Available while a Constellation is running or from completed results.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
     name: 'constellation_steer',
     description: 'Send a steering directive through the Corpus to child Helix Brainstems. The Corpus converts it to a CorpusDirective and delivers it through the Brainstem-mediated intervention model.',
     inputSchema: {
@@ -347,6 +358,15 @@ export async function executeConstellationTool(
       case 'constellation_tree': {
         const res = await fetchWithTimeout(
           `${adminBaseUrl}/constellation/${args.sessionId}/tree`,
+          { timeoutMs: 10_000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_topology': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/topology`,
           { timeoutMs: 10_000 },
         )
         if (!res.ok) throw new Error(`Status ${res.status}`)

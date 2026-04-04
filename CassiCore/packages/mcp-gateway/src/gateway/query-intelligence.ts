@@ -62,6 +62,20 @@ export interface RankedSearchResult {
   baseScore:    number;
   finalScore:   number;
   variantLabel: string;
+  /** CRAG quality assessment: 0-1 overall quality score */
+  qualityScore?: number;
+  /** CRAG action: keep high-quality results, flag ambiguous ones, discard noise */
+  cragAction?: 'correct' | 'ambiguous' | 'incorrect';
+}
+
+/** CRAG quality assessment result for the full enrichment response. */
+export interface CRAGAssessment {
+  /** Average quality across top results */
+  avgQuality: number;
+  /** Whether fallback was triggered */
+  fallbackTriggered: boolean;
+  /** Number of results per CRAG action */
+  actionCounts: { correct: number; ambiguous: number; incorrect: number };
 }
 
 /** Result from the empty-recovery path. */
@@ -468,6 +482,126 @@ export function mergeAndRank(
   return ranked
     .sort((a, b) => b.finalScore - a.finalScore)
     .slice(0, topN);
+}
+
+
+/** Threshold below which results are considered "ambiguous" by CRAG */
+const CRAG_AMBIGUOUS_THRESHOLD = 0.35;
+/** Threshold below which results are considered "incorrect" by CRAG */
+const CRAG_INCORRECT_THRESHOLD = 0.15;
+/** If more than this fraction of top results are ambiguous/incorrect, trigger fallback */
+const CRAG_FALLBACK_RATIO = 0.6;
+
+/**
+ * CRAG (Corrective RAG) quality scorer.
+ * Evaluates each result's quality using multiple signals:
+ * - finalScore from cross-source merge (relevance + recency + diversity)
+ * - Source-specific confidence (memory has hybrid scoring, archive has FTS+cos)
+ * - Content length heuristic (very short content is likely less useful)
+ * - Variant match type (exact matches are higher quality than expanded)
+ *
+ * Assigns each result a cragAction: 'correct', 'ambiguous', or 'incorrect'.
+ * Returns overall assessment with fallback recommendation.
+ */
+export function scoreCRAGQuality(
+  results: RankedSearchResult[],
+  query: string,
+): CRAGAssessment {
+  if (results.length === 0) {
+    return {
+      avgQuality: 0,
+      fallbackTriggered: true,
+      actionCounts: { correct: 0, ambiguous: 0, incorrect: 0 },
+    };
+  }
+
+  const queryTerms = new Set(
+    (query.match(/\b[a-z0-9_]{2,}\b/gi) || []).map(t => t.toLowerCase())
+  );
+
+  for (const result of results) {
+    let quality = 0;
+
+    // Signal 1: Normalized final score (0-1 range, already ranked)
+    quality += Math.min(result.finalScore, 1.0) * 0.40;
+
+    // Signal 2: Content relevance — check term overlap between query and content
+    const content = extractContent(result);
+    if (content) {
+      const contentTerms = new Set(
+        (content.match(/\b[a-z0-9_]{2,}\b/gi) || []).map((t: string) => t.toLowerCase())
+      );
+      const overlap = [...queryTerms].filter(t => contentTerms.has(t)).length;
+      const termOverlap = queryTerms.size > 0 ? overlap / queryTerms.size : 0;
+      quality += termOverlap * 0.25;
+    }
+
+    // Signal 3: Variant quality — exact matches are higher confidence
+    const variantBonus =
+      result.variantLabel === 'exact' ? 0.15 :
+      result.variantLabel === 'entity' ? 0.10 :
+      0.05; // expanded
+    quality += variantBonus;
+
+    // Signal 4: Source-specific confidence from raw result
+    const rawConfidence = extractRawConfidence(result);
+    quality += rawConfidence * 0.20;
+
+    result.qualityScore = Math.min(quality, 1.0);
+    result.cragAction =
+      quality >= CRAG_AMBIGUOUS_THRESHOLD ? 'correct' :
+      quality >= CRAG_INCORRECT_THRESHOLD ? 'ambiguous' :
+      'incorrect';
+  }
+
+  const actionCounts = {
+    correct: results.filter(r => r.cragAction === 'correct').length,
+    ambiguous: results.filter(r => r.cragAction === 'ambiguous').length,
+    incorrect: results.filter(r => r.cragAction === 'incorrect').length,
+  };
+
+  const avgQuality = results.reduce((sum, r) => sum + (r.qualityScore ?? 0), 0) / results.length;
+  const lowQualityRatio = (actionCounts.ambiguous + actionCounts.incorrect) / results.length;
+
+  return {
+    avgQuality,
+    fallbackTriggered: lowQualityRatio >= CRAG_FALLBACK_RATIO,
+    actionCounts,
+  };
+}
+
+/** Extract text content from a raw search result regardless of source type. */
+function extractContent(result: RankedSearchResult): string | null {
+  const raw = result.raw as any;
+  if (!raw) return null;
+  // Memory results
+  if (raw.entry?.content) return raw.entry.content;
+  // Archive results
+  if (raw.content) return raw.content;
+  // Index results
+  if (raw.entry?.content) return raw.entry.content;
+  return null;
+}
+
+/** Extract source-specific confidence score from raw result (0-1). */
+function extractRawConfidence(result: RankedSearchResult): number {
+  const raw = result.raw as any;
+  if (!raw) return 0;
+
+  // Memory results have a confidence field
+  if (raw.confidence) {
+    const map: Record<string, number> = { high: 1.0, moderate: 0.6, low: 0.3, none: 0 };
+    return map[raw.confidence] ?? 0;
+  }
+  // Memory/archive results have a score field
+  if (typeof raw.score === 'number') {
+    return Math.min(raw.score, 1.0);
+  }
+  // Index results have rank (lower is better)
+  if (typeof raw.rank === 'number') {
+    return Math.max(0, 1 - raw.rank / 20); // rough normalization
+  }
+  return 0.3; // default moderate confidence
 }
 
 

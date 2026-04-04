@@ -161,9 +161,16 @@ export async function executeFilesystemConsolidatedTool(
   switch (action) {
     case 'read': {
       const { limit, offset } = restArgs
+      // WHY: When offset is provided, Serena must return at least offset+limit chars
+      // so we can slice from the offset position. Without this, Serena's default
+      // max_answer_chars may be smaller than the offset, causing "beyond file length"
+      // errors that make agents unable to paginate through large files.
+      const effectiveMaxChars = (offset && typeof offset === 'number' && offset > 0)
+        ? offset + (limit ?? 30_000)
+        : limit
       const result = await router('serena_read_file', {
         relative_path: targetPath,
-        max_answer_chars: (offset && limit) ? offset + limit : limit,
+        max_answer_chars: effectiveMaxChars,
       })
 
       // Apply client-side offset if requested

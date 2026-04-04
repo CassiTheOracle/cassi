@@ -26,7 +26,9 @@ import {
   mergeAndRank,
   recoverFromEmpty,
   formatTopRelevantEntry,
+  scoreCRAGQuality,
   type RankedSearchResult,
+  type CRAGAssessment,
 } from './query-intelligence.js';
 
 
@@ -556,6 +558,23 @@ export async function fetchAndFormatContext(
   const allResults: RankedSearchResult[] = [...memoriesAll, ...archivesAll, ...indexAll];
   const topRelevant = mergeAndRank(allResults, normalized, 5);
 
+  // CRAG quality scoring — evaluate retrieval quality and trigger fallback if needed
+  const cragAssessment = scoreCRAGQuality(topRelevant, normalized);
+
+  // Filter out 'incorrect' results from the top relevant set
+  const filteredTopRelevant = topRelevant.filter(r => r.cragAction !== 'incorrect');
+
+  // If CRAG assessment triggers fallback (most results are low quality),
+  // attempt recovery with broader search terms
+  let cragFallback: { results: unknown[]; suggestedTerms: string[] } | null = null;
+  if (cragAssessment.fallbackTriggered && filteredTopRelevant.length < 2) {
+    try {
+      cragFallback = await recoverFromEmpty(baseUrl, normalized, keyTerms, metadata);
+    } catch {
+      // WHY: Fallback is best-effort — don't let it fail the entire enrichment
+    }
+  }
+
   // Apply final limits (deduped multi-variant results are already bounded,
   // but we clip to the requested limits for per-source sections).
   const memories       = memoriesAll.slice(0, memoryLimit);
@@ -568,11 +587,33 @@ export async function fetchAndFormatContext(
   lines.push('');
 
   // Top Relevant — cross-source merged section
-  if (topRelevant.length > 0) {
+  if (filteredTopRelevant.length > 0) {
     lines.push('### Top Relevant (cross-source)');
+    if (cragAssessment.avgQuality < 0.35) {
+      lines.push('_Quality: low — results may not fully match your query_');
+    }
     lines.push('');
-    for (const [i, r] of topRelevant.entries()) {
+    for (const [i, r] of filteredTopRelevant.entries()) {
       lines.push(formatTopRelevantEntry(r, i));
+      lines.push('');
+    }
+    lines.push('---');
+    lines.push('');
+  }
+
+  // CRAG fallback results (when primary results were low quality)
+  if (cragFallback && cragFallback.results.length > 0) {
+    lines.push('### Broadly Related (CRAG fallback)');
+    lines.push('');
+    for (const [i, r] of cragFallback.results.slice(0, 3).entries()) {
+      const raw = r as any;
+      const content = raw?.content || raw?.entry?.content || String(r);
+      const preview = content.length > 200 ? content.slice(0, 200) + '...' : content;
+      lines.push(`${i + 1}. ${preview}`);
+      lines.push('');
+    }
+    if (cragFallback.suggestedTerms.length > 0) {
+      lines.push(`**Suggested searches:** ${cragFallback.suggestedTerms.join(', ')}`);
       lines.push('');
     }
     lines.push('---');

@@ -370,7 +370,7 @@ async function executeConstellationAgentTool(
   const validConstellationTools = new Set([
     'constellation_project', 'constellation_status', 'constellation_cancel',
     'constellation_jobs', 'constellation_sessions', 'constellation_watch',
-    'constellation_progress', 'constellation_tree', 'constellation_steer',
+    'constellation_progress', 'constellation_tree', 'constellation_topology', 'constellation_steer',
     'constellation_blackboard', 'constellation_analyze',
     // External Corpus Protocol
     'constellation_corpus_assume', 'constellation_corpus_release',
