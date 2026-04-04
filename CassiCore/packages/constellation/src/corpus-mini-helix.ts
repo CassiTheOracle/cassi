@@ -109,7 +109,7 @@ export class CorpusMiniHelix {
     this.availableToolNames = availableToolNames ?? []
     this.corpusConfig = { ...DEFAULT_CORPUS_CONFIG, ...config?.corpus }
     this.miniHelixConfig = config?.miniHelix ?? {}
-    this.state = createInitialProcessedState()
+    this.state = createInitialProcessedState(deps.goal)
     this.logger = deps.logger.child('corpus-mini-helix')
     this.crossHelixDialectic = deps.crossHelixDialectic as CrossHelixDialectic | undefined
   }

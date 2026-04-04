@@ -27,6 +27,7 @@ import type {
   WorkUnitAnnotation,
 } from '../helix/brainstem-types.js'
 import type { FlexPosture, ConstellationTemplate } from './types.js'
+import type { WorkflowDefinition, WorkflowRun } from '../../../types/workflow.js'
 
 
 // Corpus Tree — The shared reasoning structure
@@ -428,6 +429,89 @@ export interface CorpusTreeSnapshot {
  * Built by analyzing the shared tree. Brainstem pushes are treated as raw
  * input that the Corpus organizes into its own strategic understanding.
  */
+// Dual-Ledger Planning (Magentic-One pattern)
+// WHY: Separating planning state (what to do) from execution state (what's been done)
+// enables the Corpus to reason about gaps between plans and reality, detect stalls
+// earlier, and provide more targeted directives.
+
+/** Task Ledger — what needs to be done (planning state) */
+export interface TaskLedger {
+  /** The top-level goal for this Constellation */
+  goal: string
+  /** Known facts discovered during execution */
+  facts: LedgerFact[]
+  /** Hypotheses/guesses that need verification */
+  guesses: LedgerGuess[]
+  /** Open questions that might affect the plan */
+  openQuestions: LedgerQuestion[]
+  /** Last time the task ledger was updated */
+  lastUpdatedAt: number
+}
+
+/** A discovered fact in the Task Ledger */
+export interface LedgerFact {
+  id: string
+  content: string
+  source: string       // helixId or 'corpus' or 'user'
+  discoveredAt: number
+  /** Which task/guess this fact relates to (if any) */
+  relatedTaskId?: string
+}
+
+/** A hypothesis in the Task Ledger that needs verification */
+export interface LedgerGuess {
+  id: string
+  content: string
+  source: string
+  createdAt: number
+  /** 'unverified' | 'confirmed' | 'refuted' */
+  status: 'unverified' | 'confirmed' | 'refuted'
+  verifiedAt?: number
+  verifiedBy?: string  // helixId
+}
+
+/** An open question in the Task Ledger */
+export interface LedgerQuestion {
+  id: string
+  content: string
+  source: string
+  askedAt: number
+  /** null if unanswered */
+  answer?: string
+  answeredAt?: number
+  answeredBy?: string
+}
+
+/** Progress Ledger — what has been done (execution state) */
+export interface ProgressLedger {
+  /** Completed tasks with outcomes */
+  completed: LedgerTask[]
+  /** Tasks currently being worked on */
+  inProgress: LedgerTask[]
+  /** Tasks that are blocked */
+  blocked: LedgerTask[]
+  /** Next tasks to pick up */
+  nextUp: LedgerTask[]
+  /** Last time the progress ledger was updated */
+  lastUpdatedAt: number
+}
+
+/** A task entry in the Progress Ledger */
+export interface LedgerTask {
+  id: string
+  description: string
+  /** Which branch is working on this (null if unassigned) */
+  assignedBranch?: string
+  createdAt: number
+  completedAt?: number
+  /** Brief outcome description (set on completion) */
+  outcome?: string
+  /** Reason for blockage (set when blocked) */
+  blockReason?: string
+  /** Priority: higher = more important */
+  priority: number
+}
+
 export interface CorpusProcessedState {
   cursors: Map<string, number>
   branchAssessments: Map<string, BranchAssessment>
@@ -437,6 +521,9 @@ export interface CorpusProcessedState {
   sweepCount: number
   lastSweepAt: number
   annotationTimestamps: number[]
+  /** Dual-ledger planning state (Magentic-One pattern) */
+  taskLedger: TaskLedger
+  progressLedger: ProgressLedger
 }
 
 /**
@@ -488,7 +575,8 @@ export type BranchHealthStatus =
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
-export function createInitialProcessedState(): CorpusProcessedState {
+export function createInitialProcessedState(goal?: string): CorpusProcessedState {
+  const now = Date.now()
   return {
     cursors: new Map(),
     branchAssessments: new Map(),
@@ -498,6 +586,20 @@ export function createInitialProcessedState(): CorpusProcessedState {
     sweepCount: 0,
     lastSweepAt: 0,
     annotationTimestamps: [],
+    taskLedger: {
+      goal: goal || '',
+      facts: [],
+      guesses: [],
+      openQuestions: [],
+      lastUpdatedAt: now,
+    },
+    progressLedger: {
+      completed: [],
+      inProgress: [],
+      blocked: [],
+      nextUp: [],
+      lastUpdatedAt: now,
+    },
   }
 }
 
@@ -529,6 +631,80 @@ export interface CrossHelixPattern {
   suggestedAction?: string
   detectedAt: number
   actedUpon: boolean
+}
+
+
+// Corpus Strategies — Workflow-dispatched coordination
+
+/**
+ * Context provided to a strategy when it builds its workflow.
+ *
+ * WHY: Strategies need access to the pattern that triggered them, the current
+ * Corpus state (branch assessments, budgets, discoveries), and runtime
+ * handles to send directives and spawn branches. Passing an explicit context
+ * object keeps strategies decoupled from the Corpus class itself.
+ */
+export interface StrategyContext {
+  /** The pattern that triggered this strategy. */
+  pattern: CrossHelixPattern
+  /** Current processed state (assessments, budgets, discoveries). */
+  state: CorpusProcessedState
+  /** The Corpus tree for branch/step inspection. */
+  tree: ICorpusTree
+  /** Parent Constellation session id for attribution. */
+  constellationId: string
+  /** Logger scoped to this strategy run. */
+  logger: ILogger
+}
+
+/**
+ * A registerable coordination strategy.
+ *
+ * WHY: The Corpus async loop detects cross-branch patterns (conflict,
+ * asymmetric-progress, etc.) but today acts on them with inline imperative
+ * code. CorpusStrategy extracts that logic into composable, testable
+ * workflow definitions that the workflow engine executes.
+ *
+ * The strategy decides (a) whether it matches a pattern and (b) what
+ * workflow to run in response. The Corpus dispatches the workflow and
+ * tracks its lifecycle.
+ */
+export interface CorpusStrategy {
+  /** Unique strategy identifier. */
+  id: string
+  /** Human-readable description. */
+  description: string
+  /** Which pattern types this strategy handles. */
+  patternTypes: CrossHelixPatternType[]
+  /**
+   * Evaluate whether this strategy should activate for the given pattern.
+   * Called only when patternTypes includes the pattern's type.
+   * Return true to dispatch the strategy's workflow.
+   */
+  matches(pattern: CrossHelixPattern, state: CorpusProcessedState): boolean
+  /**
+   * Build the workflow definition for this specific activation.
+   * The returned workflow is executed by the workflow engine.
+   */
+  createWorkflow(context: StrategyContext): WorkflowDefinition
+  /** Priority when multiple strategies match (higher = preferred). Default: 0. */
+  priority: number
+}
+
+/**
+ * Tracks an active strategy workflow dispatched by the Corpus.
+ */
+export interface ActiveStrategyRun {
+  /** Workflow run id from the engine. */
+  runId: string
+  /** Which strategy was dispatched. */
+  strategyId: string
+  /** The pattern that triggered the strategy. */
+  pattern: CrossHelixPattern
+  /** When the strategy was dispatched. */
+  startedAt: number
+  /** Populated when the run completes or fails. */
+  result?: WorkflowRun
 }
 
 
@@ -814,6 +990,7 @@ export interface CorpusDeps {
   persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
   store?: import('./constellation-store.js').ConstellationStore
   decompositionTracker?: import('./decomposition-tracker.js').DecompositionTracker
+  topology?: import('./topology/topology-graph.js').TopologyGraph
 }
 
 /**
@@ -868,6 +1045,9 @@ export interface CorpusResult {
   llmHealthy: boolean
   llmFailureCount: number
   durationMs: number
+  /** Dual-ledger final state (post-mortem analysis) */
+  taskLedger?: TaskLedger
+  progressLedger?: ProgressLedger
 }
 
 /**
@@ -1103,6 +1283,9 @@ export interface ExternalCorpusSnapshot {
   recentInterventions: CorpusIntervention[]
   sweepCount: number
   goal: string
+  /** Dual-ledger planning state — visible to external orchestrators */
+  taskLedger?: TaskLedger
+  progressLedger?: ProgressLedger
 }
 
 /** Default heartbeat timeout: 5 minutes of inactivity triggers auto-release */

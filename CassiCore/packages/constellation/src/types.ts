@@ -481,6 +481,9 @@ export interface ConstellationResult {
   /** Decomposition tracker snapshot — task lifecycle and accuracy tracking. */
   decompositionTracker?: import('./decomposition-tracker.js').DecompositionSnapshot
 
+  /** Topology graph snapshot — spatial Helix positions, links, and clusters. */
+  topology?: import('./topology/topology-types.js').TopologySnapshot
+
   /** Error message if the Constellation failed. */
   error?: string
 }

@@ -26,6 +26,7 @@ import type { ConstellationPipelineOpts } from './constellation-pipeline.js'
 import type { ConstellationResult, ConstellationTemplate, FlexPosture } from './types.js'
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ConstellationRegistry, ConstellationLiveState } from './constellation-injection.js'
+import type { TopologySnapshot } from './topology/topology-types.js'
 
 
 export interface ConstellationOrchestrator {
@@ -44,6 +45,7 @@ export interface ConstellationOrchestrator {
   getProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
   steer(sessionId: string, opts: { message: string; targetHelixId?: string; urgency?: string }): void
   getBranchAssessments(sessionId: string): Array<{ helixId: string; status: string; rollingScore: number; dominantPattern: string }>
+  getTopology(sessionId: string): TopologySnapshot | undefined
   setModelPool(modelPool: ModelPool): void
   setToolRegistry(registry: ToolRegistry): void
   setToolExecutor(executor: ToolExecutor): void
@@ -337,6 +339,16 @@ export function createConstellationOrchestrator(
         return entry.liveState.getBranchAssessments()
       } catch {
         return []
+      }
+    },
+
+    getTopology(sessionId) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.getTopologySnapshot) return undefined
+      try {
+        return entry.liveState.getTopologySnapshot()
+      } catch {
+        return undefined
       }
     },
 

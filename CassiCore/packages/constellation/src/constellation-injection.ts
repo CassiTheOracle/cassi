@@ -18,6 +18,7 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { InjectionSource } from '../injection-aggregator.js'
 import type { CorpusTreeSnapshot, CrossHelixPattern, CorpusIntervention, BranchAssessment, BranchHealthStatus, ExternalCorpusState, ExternalCorpusSnapshot, CorpusDirective, CorpusDirectiveType } from './corpus-types.js'
+import type { TopologySnapshot } from './topology/topology-types.js'
 
 
 /** Minimal interface for a running Constellation's live state */
@@ -28,6 +29,9 @@ export interface ConstellationLiveState {
   getCrossPatterns(): CrossHelixPattern[]
   getInterventions(): CorpusIntervention[]
   getBranchAssessments(): Array<{ helixId: string; status: BranchHealthStatus; rollingScore: number; dominantPattern: string }>
+
+  /** Live topology snapshot — positions, links, clusters. Undefined if topology is disabled. */
+  getTopologySnapshot?(): TopologySnapshot | undefined
 
   // External Corpus Protocol — optional, present when Corpus is wired
   corpus?: {
