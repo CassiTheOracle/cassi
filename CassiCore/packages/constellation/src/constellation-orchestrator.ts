@@ -37,6 +37,7 @@ export interface ConstellationOrchestrator {
     maxHelixes?: number
     maxDepth?: number
     sessionId: string
+    costEffective?: boolean
   }): Promise<ConstellationResult>
   cancel(sessionId: string): boolean
   getTree(sessionId: string): CorpusTreeSnapshot | undefined
@@ -186,6 +187,7 @@ export function createConstellationOrchestrator(
         maxHelixes,
         maxDepth,
         sessionId,
+        costEffective,
       } = opts
 
       log.info('Constellation project starting', {
@@ -206,6 +208,7 @@ export function createConstellationOrchestrator(
         postures,
         maxHelixes,
         maxDepth,
+        costEffective,
         logger,
         eventBus,
         toolExecutor: effectiveExecutor,

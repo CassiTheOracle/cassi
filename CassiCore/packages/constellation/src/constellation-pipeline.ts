@@ -217,6 +217,13 @@ export interface ConstellationPipelineOpts {
 
   /** Audit trail for writing decomposition plans and completion summaries */
   auditTrail?: import('./constellation-audit-trail.js').ConstellationAuditTrail
+
+  /**
+   * Cost-effective mode. When true, posture model tiers are downgraded
+   * to cheaper alternatives (e.g. kimi → qwenPlus, qwenPlus → minimax).
+   * Does not affect behavioral correctness — only model selection.
+   */
+  costEffective?: boolean
 }
 
 // Internal State
@@ -269,6 +276,7 @@ export async function runConstellationPipeline(
     onNodeCompleted,
   } = opts
 
+  const costEffective = opts.costEffective ?? false
   const log = logger.child('constellation-pipeline')
 
   // WHY: Worktree isolation gives each branch its own working copy.
@@ -571,6 +579,36 @@ export async function runConstellationPipeline(
     return getTemplatePostures(template)
   }
 
+  // WHY: costEffective mode downgrades each posture's model tier to a cheaper
+  // alternative. The mapping preserves relative ordering: expensive tiers drop
+  // one level, cheap tiers stay the same or go to background.
+  const COST_EFFECTIVE_TIER_MAP: Record<string, string> = {
+    opus:     'kimi',
+    sonnet:   'kimi',
+    qwenMax:  'qwenPlus',
+    kimi:     'qwenPlus',
+    glm:      'minimax',
+    qwenPlus: 'minimax',
+    minimax:  'background',
+    background: 'background',
+  }
+
+  // HOW: Default tier per energy when posture has no modelTier set.
+  // 'performance' and 'balanced' are legacy fallback chain template names
+  // used by the model pool — these are the actual RoutingTier equivalents.
+  const ENERGY_DEFAULT_TIER: Record<string, string> = {
+    unity: 'kimi',
+    yang:  'qwenPlus',
+    yin:   'qwenPlus',
+  }
+
+  function resolveTier(posture: FlexPosture): string {
+    const energyDefault = posture.energy ? ENERGY_DEFAULT_TIER[posture.energy] : undefined
+    const baseTier = posture.capabilities?.modelTier ?? energyDefault ?? 'kimi'
+    if (!costEffective) return baseTier
+    return COST_EFFECTIVE_TIER_MAP[baseTier] ?? baseTier
+  }
+
   // Helper: Launch Helix
 
   async function launchHelix(
@@ -713,29 +751,41 @@ export async function runConstellationPipeline(
     const handles: ModelHandle[] = []
 
     try {
-      // HOW: Acquire handles for each posture that needs one
-      // Unity, Yang, Yin always need handles
-      // Additional postures may need handles based on their configuration
+      // HOW: Acquire handles for each posture that needs one.
+      // Tier is derived from posture capability metadata, with cost-effective
+      // downgrading applied when the flag is set.
+      const unityPosture = postures.find(p => p.energy === 'unity') ?? postures[0]
+      const yangPosture = postures.find(p => p.energy === 'yang') ?? postures[1]
+      const yinPosture = postures.find(p => p.energy === 'yin') ?? postures[2]
+
       const unityHandle = await handleFactory({
-        tier: 'performance',
+        tier: resolveTier(unityPosture),
         purpose: 'unity',
         sessionId: helixId,
       })
       handles.push(unityHandle)
 
       const yangHandle = await handleFactory({
-        tier: 'balanced',
+        tier: resolveTier(yangPosture ?? unityPosture),
         purpose: 'yang',
         sessionId: helixId,
       })
       handles.push(yangHandle)
 
       const yinHandle = await handleFactory({
-        tier: 'balanced',
+        tier: resolveTier(yinPosture ?? unityPosture),
         purpose: 'yin',
         sessionId: helixId,
       })
       handles.push(yinHandle)
+
+      if (costEffective) {
+        helixLog.info('Cost-effective mode active', {
+          unity: resolveTier(unityPosture),
+          yang: resolveTier(yangPosture ?? unityPosture),
+          yin: resolveTier(yinPosture ?? unityPosture),
+        })
+      }
 
       // WHY: additional posture handles deferred — see contributing-todos blackboard
       // For now, we use the three main handles for all postures
