@@ -62,6 +62,13 @@ export interface ContextEnrichmentResult {
 }
 
 
+/**
+ * Fetches memory entries matching a query.
+ * @param baseUrl - CassiCore admin API base URL
+ * @param query - Search query string
+ * @param limit - Maximum number of results to return
+ * @returns Array of memory search results
+ */
 export async function fetchMemory(
   baseUrl: string,
   query: string,
@@ -81,6 +88,13 @@ export async function fetchMemory(
   }
 }
 
+/**
+ * Fetches archive entries matching a query.
+ * @param baseUrl - CassiCore admin API base URL
+ * @param query - Search query string
+ * @param limit - Maximum number of results to return
+ * @returns Array of archive search results
+ */
 export async function fetchArchive(
   baseUrl: string,
   query: string,
@@ -102,6 +116,13 @@ export async function fetchArchive(
   }
 }
 
+/**
+ * Fetches session index entries matching a query.
+ * @param baseUrl - CassiCore admin API base URL
+ * @param query - Search query string
+ * @param limit - Maximum number of results to return
+ * @returns Array of session index search results
+ */
 export async function fetchSessionIndex(
   baseUrl: string,
   query: string,
@@ -127,6 +148,10 @@ export async function fetchSessionIndex(
  * When content fits within MAX_INDEX_DISPLAY_CHARS it is returned in full.
  * Otherwise a window is sliced around the match, with leading/trailing ellipses
  * and a note indicating how much was omitted.
+ * @param content - Full content string to window
+ * @param matchOffset - Optional offset of the FTS match
+ * @param resolveRef - Reference ID for full content resolution hint
+ * @returns Windowed content string with ellipses and resolution hint
  */
 export function centeredWindow(
   content: string,
@@ -170,6 +195,9 @@ export const MAX_ENTRY_DISPLAY_CHARS = 800;
  * If content fits within maxChars, it is returned unchanged.
  * Otherwise, the first ~40% and last ~40% are kept, with a brief omission marker
  * in between showing how much was skipped.
+ * @param content - Content string to truncate
+ * @param maxChars - Maximum characters to keep (default: MAX_ENTRY_DISPLAY_CHARS)
+ * @returns Smart-truncated content string
  * @dep callers: formatArchiveEntry (mcp/gateway/context-enrichment.ts), formatMemoryEntry (mcp/gateway/context-enrichment.ts)
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
@@ -199,11 +227,13 @@ export function smartTruncate(content: string, maxChars: number = MAX_ENTRY_DISP
 
 
 /**
+ * Formats a timestamp into a human-readable string.
+ * @param ts - Timestamp value (number, string, Date, or undefined)
+ * @returns Formatted date string or empty string if invalid
  * @dep callers: formatIndexEntry (mcp/gateway/context-enrichment.ts), formatArchiveEntry (mcp/gateway/context-enrichment.ts), formatMemoryEntry (mcp/gateway/context-enrichment.ts)
  * @dep module: Gateway
  * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
-
 export function formatDate(ts: number | string | Date | undefined): string {
   if (!ts) return '';
   try {
@@ -214,6 +244,12 @@ export function formatDate(ts: number | string | Date | undefined): string {
   }
 }
 
+/**
+ * Formats a memory search result entry for display.
+ * @param raw - Raw memory search result (entry with score or raw entry)
+ * @param index - Zero-based index for numbering
+ * @returns Formatted markdown string for the memory entry
+ */
 export function formatMemoryEntry(raw: unknown, index: number): string {
   // Memory search returns { entry: MemoryEntry, score: number }
   // or sometimes raw MemoryEntry shapes — handle both.
@@ -236,6 +272,9 @@ export function formatMemoryEntry(raw: unknown, index: number): string {
  * Content is truncated via smartTruncate to keep context concise.
  * Thinking blocks are omitted — they are internal LLM reasoning
  * and not useful as context signals for a new conversation.
+ * @param raw - Raw archive search result (entry with score or raw entry)
+ * @param index - Zero-based index for numbering
+ * @returns Formatted markdown string for the archive entry
  */
 export function formatArchiveEntry(raw: unknown, index: number): string {
   // Archive search returns ArchiveSearchResult: { entry, score, matchType, highlights? }
@@ -349,6 +388,9 @@ export function formatArchiveEntry(raw: unknown, index: number): string {
  * Format a session index search result (IndexSearchResult shape).
  * Handles all three block types: text, tool_use, tool_result.
  * Long content is windowed to the FTS match region via centeredWindow().
+ * @param raw - Raw session index search result
+ * @param index - Zero-based index for numbering
+ * @returns Formatted markdown string for the index entry
  */
 export function formatIndexEntry(raw: unknown, index: number): string {
   // IndexSearchResult: { entry: IndexEntry, rank, matchOffset? }
@@ -419,14 +461,15 @@ export function formatIndexEntry(raw: unknown, index: number): string {
  *   multi-variant search (parallel) → merge+rank → Top Relevant + per-source sections
  *   → empty recovery if no results
  *
- * @param baseUrl   CassiCore admin API base URL
- * @param query     The search query (user message, topic, etc.)
- * @param limits    Per-source result limits
+ * @param baseUrl CassiCore admin API base URL
+ * @param query The search query (user message, topic, etc.)
+ * @param limits Per-source result limits
+ * @returns Context enrichment result with markdown and counts
  * @dep callers: executeEnrichTool (mcp/gateway/do-tool.ts)
  * @dep calls: normalizeQuery, extractKeyTerms, extractEntities, getArchiveMetadata, buildQueryVariants [+7]
- * @dep flows: FetchAndFormatContext → EstimateChars (1/4), FetchAndFormatContext → Now (1/3), FetchAndFormatContext → FetchBrowse (1/3)
+ * @dep flows: FetchAndFormatContext → Json (1/4)
  * @dep module: Gateway
- * @dep risk: MEDIUM | 1 caller, 3 flows, 1 module
+ * @dep risk: LOW | 1 caller, 1 flow, 1 module
  */
 export async function fetchAndFormatContext(
   baseUrl: string,
