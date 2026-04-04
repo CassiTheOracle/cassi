@@ -246,7 +246,7 @@ interface RawEventRow {
 
 // Public Row Types (parsed)
 
-export type ConstellationStatus = 'running' | 'completed' | 'failed' | 'cancelled'
+export type ConstellationStatus = 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted'
 export type BranchStatus = 'active' | 'completed' | 'failed' | 'pruned'
 export type BranchHealth = 'productive' | 'active' | 'struggling' | 'stuck' | 'drifting' | 'completed' | 'failed'
 
@@ -704,7 +704,7 @@ export class ConstellationStore {
 
         pruneOld: this.db.prepare(`
           DELETE FROM constellation_sessions
-          WHERE status IN ('completed', 'failed', 'cancelled')
+          WHERE status IN ('completed', 'failed', 'cancelled', 'interrupted')
             AND created_at < ?
         `),
 
@@ -913,6 +913,18 @@ export class ConstellationStore {
       WHERE id = ?
     `).run(durationMs ?? 0, Date.now(), id)
     this.logger.info(`Cancelled Constellation session ${id}`)
+  }
+
+
+  interruptSession(id: string, durationMs?: number): void {
+    this.db.prepare(`
+      UPDATE constellation_sessions SET
+        status = 'interrupted',
+        duration_ms = ?,
+        completed_at = ?
+      WHERE id = ?
+    `).run(durationMs ?? 0, Date.now(), id)
+    this.logger.info(`Interrupted Constellation session ${id}`)
   }
 
 
@@ -1427,7 +1439,7 @@ export class ConstellationStore {
   getBlackboardArchives(sessionId: string, helixId?: string): BlackboardArchiveRow[] {
     let query = 'SELECT * FROM blackboard_archives WHERE session_id = ?'
     const params: (string | null)[] = [sessionId]
-    if (helixId !== undefined) {
+    if (helixId) {
       query += ' AND helix_id = ?'
       params.push(helixId)
     }
@@ -1459,9 +1471,9 @@ export class ConstellationStore {
   }
 
 
-  // Training Data Extraction
+  // Training Signals
 
-  extractTrainingSignal(
+  recordTrainingSignal(
     sessionId: string,
     signal: {
       signalType: TrainingSignalType
@@ -1478,7 +1490,7 @@ export class ConstellationStore {
       quality_score: signal.qualityScore ?? null,
       extracted_at: Date.now(),
     })
-    this.logger.debug('Training signal extracted', { sessionId, type: signal.signalType })
+    this.logger.debug('Training signal recorded', { sessionId, type: signal.signalType })
   }
 
   getTrainingSignals(sessionId: string, signalType?: TrainingSignalType): TrainingSignalRow[] {
@@ -1489,36 +1501,6 @@ export class ConstellationStore {
       params.push(signalType)
     }
     query += ' ORDER BY extracted_at DESC'
-    const rows = this.db.prepare(query).all(...params) as {
-      id: number
-      session_id: string
-      signal_type: string
-      source_helix_id: string | null
-      data_json: string
-      quality_score: number | null
-      extracted_at: number
-    }[]
-    return rows.map(r => ({
-      id: r.id,
-      sessionId: r.session_id,
-      signalType: r.signal_type as TrainingSignalType,
-      sourceHelixId: r.source_helix_id,
-      data: JSON.parse(r.data_json),
-      qualityScore: r.quality_score,
-      extractedAt: r.extracted_at,
-    }))
-  }
-
-  // Query training signals across all sessions for warehouse export
-  getTrainingSignalsForWarehouse(minQualityScore?: number, limit = 1000): TrainingSignalRow[] {
-    let query = 'SELECT * FROM training_signals'
-    const params: number[] = []
-    if (minQualityScore !== undefined) {
-      query += ' WHERE quality_score >= ?'
-      params.push(minQualityScore)
-    }
-    query += ' ORDER BY extracted_at DESC LIMIT ?'
-    params.push(limit)
     const rows = this.db.prepare(query).all(...params) as {
       id: number
       session_id: string

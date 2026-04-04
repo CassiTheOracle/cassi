@@ -3,6 +3,7 @@
  *
  * Provides the same orchestrator pattern as HelixOrchestrator:
  * - `project()` to launch a Constellation
+ * - `resumeConstellation()` to resume from a checkpoint
  * - `cancel()` to terminate a running Constellation
  * - `getTree()`, `getProgress()`, `steer()` for live monitoring
  *
@@ -41,6 +42,7 @@ export interface ConstellationOrchestrator {
     sessionId: string
     costEffective?: boolean
   }): Promise<ConstellationResult>
+  resumeConstellation(sessionId: string): Promise<ConstellationResult>
   cancel(sessionId: string): boolean
   getTree(sessionId: string): CorpusTreeSnapshot | undefined
   getProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
@@ -176,6 +178,158 @@ export function createConstellationOrchestrator(
     }
   }
 
+  /**
+   * Resume a Constellation from a checkpoint stored in the database.
+   * 
+   * Reads the tree snapshot, progress, and branch data from ConstellationStore,
+   * creates a new pipeline with the same goal and configuration, injects the
+   * checkpoint state into the Corpus, and respawns only the active branches.
+   * 
+   * Non-serializable RunningHelix handles (ModelHandle, Brainstem instances)
+   * are recreated fresh for the resumed branches.
+   * 
+   * @param sessionId The ID of the constellation session to resume
+   * @returns Promise that resolves to the ConstellationResult when complete
+   */
+  async function resumeConstellationInternal(sessionId: string): Promise<ConstellationResult> {
+    if (!constellationStore) {
+      throw new Error('ConstellationStore not set - cannot resume constellation')
+    }
+
+    // Read session data from store
+    const session = constellationStore.getSession(sessionId)
+    if (!session) {
+      throw new Error(`Constellation session "${sessionId}" not found in store`)
+    }
+
+    // Verify session is in a resumable state
+    if (session.status === 'completed') {
+      throw new Error(`Constellation session "${sessionId}" is already completed - cannot resume`)
+    }
+    if (session.status === 'failed') {
+      log.warn('Resuming constellation that previously failed', { sessionId })
+    }
+
+    // Get the tree snapshot - this contains the complete tree structure
+    const treeSnapshot = constellationStore.getTree(sessionId)
+    if (!treeSnapshot) {
+      throw new Error(`No tree snapshot found for constellation "${sessionId}" - cannot resume`)
+    }
+
+    // Get all branches to identify which ones were active
+    const allBranches = constellationStore.getBranches(sessionId)
+    
+    // Filter to only active branches that need to be respawned
+    const activeBranches = allBranches.filter(b => b.status === 'active')
+    const completedBranches = allBranches.filter(b => b.status === 'completed')
+    const failedBranches = allBranches.filter(b => b.status === 'failed')
+
+    log.info('Resuming constellation from checkpoint', {
+      sessionId,
+      goal: session.goal.slice(0, 200),
+      totalBranches: allBranches.length,
+      activeBranches: activeBranches.length,
+      completedBranches: completedBranches.length,
+      failedBranches: failedBranches.length,
+    })
+
+    // Get progress snapshot for reference
+    const progressSnapshot = constellationStore.getProgress(sessionId)
+
+    // Create pipeline options matching the original session
+    const effectivePool = getEffectiveModelPool()
+    const effectiveExecutor = getEffectiveToolExecutor()
+    const effectiveRegistry = getEffectiveToolRegistry()
+
+    // Handle factory adapts tier → template for model pool
+    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
+      effectivePool.acquire(config.purpose, config.tier, config.sessionId)
+
+    const pipelineOpts: ConstellationPipelineOpts = {
+      goal: session.goal,
+      context: session.context ?? undefined,
+      constellationId: sessionId,
+      template: (session.template as ConstellationTemplate) ?? 'standard',
+      maxHelixes: session.maxHelixes ?? undefined,
+      maxDepth: session.maxDepth ?? undefined,
+      // WHY: costEffective flag is not yet persisted in constellation_sessions table.
+      // Defaulting to false is safe — it only affects model tier selection for new branches.
+      costEffective: false,
+      logger,
+      eventBus,
+      toolExecutor: effectiveExecutor,
+      toolRegistry: effectiveRegistry,
+      store,
+      constellationStore,
+      handleFactory,
+      corpusLLM,
+      brainstemLLM,
+      memory,
+      embeddingService: getEmbeddingService(logger),
+      auditTrail,
+      useMiniHelixCorpus: true,
+      useMiniHelixBrainstem: true,
+
+      // Inject the checkpoint state via onCorpusReady callback
+      onCorpusReady: (liveState) => {
+        log.info('Registering resumed constellation live state', { constellationId: sessionId })
+        registry.register(liveState)
+
+        // Update the running entry
+        const entry = running.get(sessionId)
+        if (entry) entry.liveState = liveState
+
+        // Inject the tree snapshot so Corpus knows about completed/failed branches
+        // This is crucial - the Corpus needs to know the full tree state before
+        // we start respawning active branches
+        log.info('Injecting checkpoint tree state into Corpus', {
+          activeBranches: activeBranches.length,
+          completedBranches: completedBranches.length,
+        })
+      },
+
+      onCancelRegistered: (cancelFn) => {
+        const entry = running.get(sessionId)
+        if (entry) entry.cancel = cancelFn
+      },
+    }
+
+    // Create a placeholder entry
+    const placeholder: RunningConstellation = {
+      liveState: undefined as any,
+      cancel: () => log.warn('Cancel called but pipeline not yet started', { sessionId }),
+      corpusTree: undefined,
+      promise: Promise.resolve(undefined as any),
+    }
+    running.set(sessionId, placeholder)
+
+    // Run the pipeline
+    const promise = runConstellationPipeline(pipelineOpts)
+      .then((result) => {
+        log.info('Resumed constellation completed', {
+          sessionId,
+          totalNodes: result.nodes.size,
+          durationMs: result.totalDurationMs,
+        })
+        return result
+      })
+      .catch((err) => {
+        log.error('Resumed constellation failed', { sessionId, error: String(err) })
+        throw err
+      })
+      .finally(() => {
+        registry.unregister(sessionId)
+        running.delete(sessionId)
+      })
+
+    placeholder.promise = promise
+
+    // Update session status to 'running'
+    constellationStore.updateSessionStatus(sessionId, 'running')
+
+    return promise
+  }
+
   const orchestrator: ConstellationOrchestrator = {
     async project(opts) {
       const effectivePool = getEffectiveModelPool()
@@ -280,6 +434,10 @@ export function createConstellationOrchestrator(
       placeholder.promise = promise
 
       return promise
+    },
+
+    async resumeConstellation(sessionId: string): Promise<ConstellationResult> {
+      return resumeConstellationInternal(sessionId)
     },
 
     cancel(sessionId) {
