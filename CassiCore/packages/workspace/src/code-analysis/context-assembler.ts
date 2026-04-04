@@ -6,11 +6,22 @@
  *
  * Designed for Dyad workers, Flux cells, and other delegated agents that need
  * code context without making multiple round-trips.
+ *
+ * WHY: Two-tier approach instead of blocking on withAutoReindex:
+ *  - Stage 1: Query GitNexus directly (stale index is fine, no blocking reindex)
+ *  - Stage 2: Fall back to git-grep keyword search if GitNexus unavailable/fails
+ *  - Background: Trigger non-blocking reindex if index is stale
+ * This guarantees a useful result within the timeout even when GitNexus is
+ * analyzing or the index doesn't exist yet.
  */
 
+import { exec } from 'node:child_process'
+import { promisify } from 'node:util'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { PreparedContext, PreparedFile, PrepareContextOptions } from './types.js'
-import { withAutoReindex } from './gitnexus-bridge.js'
+import { isIndexAvailable, ensureFreshIndexBackground } from './gitnexus-bridge.js'
+
+const execAsync = promisify(exec)
 
 /** Rough chars-per-token estimate (aligned with Dyad context-curator). */
 const CHARS_PER_TOKEN = 3.5
@@ -70,12 +81,19 @@ export function extractKeywords(task: string): string[] {
 const DEFAULT_PREPARE_TIMEOUT_MS = 30_000
 
 /**
- * Assemble context for a task using GitNexus hybrid search.
+ * Assemble context for a task using a two-tier search strategy.
  *
- * WHY: withAutoReindex can block for minutes (ensureFreshIndex up to 300s,
- * query up to 120s, retry-reindex another 300s). Without a timeout cap,
- * the caller hangs indefinitely. On timeout we return a degraded result
- * with extracted keywords but no files — still useful for delegation.
+ * WHY: The old approach used withAutoReindex which blocks on ensureFreshIndex
+ * (up to 300s for reindex + 120s for query + 300s for retry-reindex). Even
+ * with a Promise.race timeout, the degraded result was just keywords with no
+ * files — useless for delegation.
+ *
+ * New approach:
+ *  1. If GitNexus index exists (even stale), query it directly — no blocking
+ *     reindex. A stale index is better than no index.
+ *  2. If GitNexus is unavailable or the query fails/times out, fall back to
+ *     git-grep keyword search which always works and is fast.
+ *  3. Trigger a background reindex if the index is stale, so it's fresh next time.
  */
 export async function prepareContext(
   router: (tool: string, args: any) => Promise<any>,
@@ -99,70 +117,100 @@ export async function prepareContext(
 
   const files: PreparedFile[] = []
   let summary = ''
+  let source = 'none'
 
-  // Run GitNexus query for execution flows, with a timeout cap
-  try {
-    const queryPromise = withAutoReindex(
-      () => router('gitnexus_query', {
-        query: keywords.join(' '),
-        goal: task,
-        task_context: task,
-        include_content: includeContent,
-        limit: 8,
-        max_symbols: 6,
-        repo,
-      }),
-      logger,
-    )
+  // Allocate time budgets: 60% for GitNexus attempt, 35% for grep fallback
+  const gnxTimeout = Math.floor(timeoutMs * 0.6)
+  const grepTimeout = Math.floor(timeoutMs * 0.35)
 
-    const queryResult = await Promise.race([
-      queryPromise,
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`prepare_context timed out after ${timeoutMs}ms`)), timeoutMs)
-      ),
-    ])
+  // --- Stage 1: Try GitNexus (non-blocking freshness) ---
+  if (isIndexAvailable()) {
+    // Trigger background reindex if stale — does NOT block
+    ensureFreshIndexBackground(logger)
 
-    // Parse GitNexus query result
-    const parsed = parseQueryResult(queryResult)
+    try {
+      const queryResult = await Promise.race([
+        router('gitnexus_query', {
+          query: keywords.join(' '),
+          goal: task,
+          task_context: task,
+          include_content: includeContent,
+          limit: 8,
+          max_symbols: 6,
+          repo,
+        }),
+        rejectAfterMs(gnxTimeout, 'GitNexus query'),
+      ])
 
-    for (const item of parsed) {
-      if (scope && !item.filePath.startsWith(scope)) continue
+      const parsed = parseQueryResult(queryResult)
 
-      const excerpt = includeContent ? item.content?.slice(0, 500) : undefined
-      const excerptChars = excerpt?.length || 0
+      for (const item of parsed) {
+        if (scope && !item.filePath.startsWith(scope)) continue
 
-      if (usedChars + excerptChars > charBudget) {
-        // Over budget — add without content
+        const excerpt = includeContent ? item.content?.slice(0, 500) : undefined
+        const excerptChars = excerpt?.length || 0
+
+        if (usedChars + excerptChars > charBudget) {
+          // Over budget — add without content
+          files.push({
+            filePath: item.filePath,
+            reason: item.reason,
+            relevance: item.relevance,
+            keySymbols: item.symbols,
+          })
+          continue
+        }
+
+        usedChars += excerptChars + item.filePath.length + 50 // overhead
         files.push({
           filePath: item.filePath,
           reason: item.reason,
           relevance: item.relevance,
           keySymbols: item.symbols,
+          excerpt,
         })
-        continue
       }
 
-      usedChars += excerptChars + item.filePath.length + 50 // overhead
-      files.push({
-        filePath: item.filePath,
-        reason: item.reason,
-        relevance: item.relevance,
-        keySymbols: item.symbols,
-        excerpt,
-      })
+      if (files.length > 0) source = 'GitNexus'
+    } catch (err) {
+      logger.debug('GitNexus query failed or timed out, falling back to grep', { error: String(err) })
     }
+  } else {
+    logger.debug('GitNexus index not available, using grep fallback')
+    // Trigger background reindex so the index exists next time
+    ensureFreshIndexBackground(logger)
+  }
 
-    // Build summary from top results
+  // --- Stage 2: Grep fallback if GitNexus didn't produce results ---
+  if (files.length === 0) {
+    try {
+      const grepResults = await grepFallback(keywords, scope, grepTimeout, logger)
+
+      for (const gf of grepResults) {
+        if (usedChars > charBudget) break
+
+        files.push({
+          filePath: gf.filePath,
+          reason: `Matched ${gf.matchCount} keyword(s) via text search`,
+          relevance: Math.min(1, gf.matchCount / Math.max(keywords.length, 1)),
+          keySymbols: [],
+        })
+        usedChars += gf.filePath.length + 80
+      }
+
+      if (files.length > 0) source = 'text search'
+    } catch (err) {
+      logger.warn('Grep fallback also failed', { error: String(err) })
+    }
+  }
+
+  // Build summary
+  if (files.length > 0) {
     const topFiles = files.slice(0, 5).map(f => f.filePath.split('/').pop()).join(', ')
-    summary = `Key code surface for "${task.slice(0, 80)}": ${files.length} relevant files found. Top files: ${topFiles}. Primary symbols: ${files.flatMap(f => f.keySymbols).slice(0, 8).join(', ')}.`
-
-  } catch (err) {
-    const errMsg = String(err)
-    const isTimeout = errMsg.includes('timed out')
-    logger.warn(isTimeout ? 'Context preparation timed out' : 'GitNexus query failed during context preparation', { error: errMsg, timeoutMs })
-    summary = isTimeout
-      ? `Context preparation timed out after ${timeoutMs}ms. Keywords extracted: ${keywords.join(', ')}`
-      : `Context preparation partially failed: ${errMsg}. Keywords extracted: ${keywords.join(', ')}`
+    const symbolList = files.flatMap(f => f.keySymbols).slice(0, 8).join(', ')
+    summary = `Key code surface for "${task.slice(0, 80)}": ${files.length} relevant files found via ${source}. Top files: ${topFiles}. Primary symbols: ${symbolList || 'none (text search only)'}.`
+  } else {
+    summary = `No files found for "${task.slice(0, 80)}". Keywords extracted: ${keywords.join(', ')}`
   }
 
   return {
@@ -171,6 +219,68 @@ export async function prepareContext(
     estimatedTokens: Math.ceil(usedChars / CHARS_PER_TOKEN),
     extractedKeywords: keywords,
   }
+}
+
+/** Reject after `ms` milliseconds with a descriptive error. */
+function rejectAfterMs(ms: number, label: string): Promise<never> {
+  return new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+  )
+}
+
+/**
+ * Grep-based fallback for context assembly when GitNexus is unavailable.
+ *
+ * WHY: git-grep is universally available, respects .gitignore, and completes
+ * in <1s even on large repos. The results are less semantically rich than
+ * GitNexus (no execution flows, no symbol context) but always produce
+ * *something* useful for delegation — ranked files that mention the keywords.
+ */
+async function grepFallback(
+  keywords: string[],
+  scope: string | undefined,
+  timeoutMs: number,
+  logger: ILogger,
+): Promise<Array<{ filePath: string; matchCount: number }>> {
+  const searchKeywords = keywords.slice(0, 5)
+  const perKeywordTimeout = Math.min(3000, Math.floor(timeoutMs / Math.max(searchKeywords.length, 1)))
+  const fileMatches = new Map<string, number>()
+
+  for (const keyword of searchKeywords) {
+    if (keyword.length < 2) continue
+
+    try {
+      // Escape special regex chars for safe shell interpolation
+      const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // WHY: Using -- pathspec to restrict to code files. When scope is given,
+      // search within that directory. Otherwise search all TS/JS/TSX/JSX files.
+      const pathSpec = scope
+        ? `-- "${scope}"`
+        : '-- "*.ts" "*.tsx" "*.js" "*.jsx"'
+
+      const { stdout } = await execAsync(
+        `git grep -l -i -- "${escaped}" ${pathSpec}`,
+        { timeout: perKeywordTimeout, encoding: 'utf-8' },
+      )
+
+      for (const file of stdout.trim().split('\n').filter(Boolean)) {
+        fileMatches.set(file, (fileMatches.get(file) || 0) + 1)
+      }
+    } catch {
+      // git grep returns exit code 1 when no matches — expected
+    }
+  }
+
+  const results = [...fileMatches.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([filePath, matchCount]) => ({ filePath, matchCount }))
+
+  if (results.length > 0) {
+    logger.debug('Grep fallback found files', { count: results.length, topFile: results[0].filePath })
+  }
+
+  return results
 }
 
 /**

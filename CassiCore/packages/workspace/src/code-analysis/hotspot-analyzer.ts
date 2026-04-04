@@ -13,7 +13,7 @@
 import { execSync } from 'node:child_process'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { HotspotResult, HotspotOptions } from './types.js'
-import { withAutoReindex } from './gitnexus-bridge.js'
+import { isIndexAvailable, ensureFreshIndexBackground } from './gitnexus-bridge.js'
 
 /** Weight distribution for composite score. */
 const WEIGHT_SIZE = 0.3
@@ -76,8 +76,13 @@ export async function analyzeHotspots(
 ): Promise<HotspotResult[]> {
   const { path: scopePath, limit = 20, repo } = options
 
-  return withAutoReindex(async () => {
-    const root = process.cwd()
+  if (!isIndexAvailable()) {
+    logger.warn('GitNexus index not available for hotspot analysis')
+    return []
+  }
+  ensureFreshIndexBackground(logger)
+
+  const root = process.cwd()
 
     // Step 1: Get file sizes
     const fileSizes = getFileSizes(root, scopePath)
@@ -186,7 +191,6 @@ export async function analyzeHotspots(
     results.sort((a, b) => b.score - a.score)
 
     return results.slice(0, limit)
-  }, logger)
 }
 
 /**

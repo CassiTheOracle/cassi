@@ -15,7 +15,7 @@
 import { execSync } from 'node:child_process'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { DeadCodeResult, DeadCodeOptions } from './types.js'
-import { withAutoReindex } from './gitnexus-bridge.js'
+import { isIndexAvailable, ensureFreshIndexBackground } from './gitnexus-bridge.js'
 
 /** Patterns that indicate a symbol is an entry point (not dead). */
 const ENTRY_POINT_PATTERNS = [
@@ -82,8 +82,13 @@ export async function analyzeDeadCode(
 ): Promise<DeadCodeResult[]> {
   const { path: scopePath, minConfidence = 0.7, includeTestOnly = false, repo } = options
 
-  return withAutoReindex(async () => {
-    // Step 1: Find all symbols with zero incoming CALLS or IMPORTS edges
+  if (!isIndexAvailable()) {
+    logger.warn('GitNexus index not available for dead code analysis')
+    return []
+  }
+  ensureFreshIndexBackground(logger)
+
+  // Step 1: Find all symbols with zero incoming CALLS or IMPORTS edges
     const pathFilter = scopePath
       ? `AND s.filePath STARTS WITH "${scopePath}"`
       : ''
@@ -171,7 +176,6 @@ export async function analyzeDeadCode(
     results.sort((a, b) => b.confidence - a.confidence || b.lineCount - a.lineCount)
 
     return results
-  }, logger)
 }
 
 /**

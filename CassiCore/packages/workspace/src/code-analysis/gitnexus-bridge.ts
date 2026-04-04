@@ -9,7 +9,7 @@
  */
 
 import { execSync, exec } from 'node:child_process'
-import { readFileSync, existsSync, statSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import type { ILogger } from '../../../types/interfaces.js'
@@ -83,11 +83,13 @@ function currentHead(root: string): string | null {
 }
 
 /**
- * Check whether the KuzuDB directory exists (the actual graph database).
+ * Check whether the KuzuDB database exists (the actual graph database).
+ * WHY: KuzuDB can be stored as a single file or a directory depending on
+ * the version. We check for existence only, not type.
  */
 function kuzuExists(root: string): boolean {
-  const kuzuDir = join(root, '.gitnexus', 'kuzu')
-  return existsSync(kuzuDir) && statSync(kuzuDir).isDirectory()
+  const kuzuPath = join(root, '.gitnexus', 'kuzu')
+  return existsSync(kuzuPath)
 }
 
 /**
@@ -236,6 +238,38 @@ export async function reindex(logger?: ILogger): Promise<boolean> {
 export async function ensureFreshIndex(logger?: ILogger): Promise<boolean> {
   if (isIndexFresh(logger)) return true
   return reindex(logger)
+}
+
+/**
+ * Check whether the GitNexus index exists (kuzu DB present), regardless of freshness.
+ *
+ * WHY: For latency-sensitive callers like prepare_context, a stale index is
+ * better than no index. This check is fast (stat() only, no git ops) and
+ * lets callers decide whether to query directly vs fall back to grep.
+ */
+export function isIndexAvailable(): boolean {
+  const root = repoRoot()
+  return kuzuExists(root)
+}
+
+/**
+ * Trigger a background reindex if the index is stale. Returns immediately.
+ *
+ * WHY: Callers that can't afford to block (prepare_context) use this to
+ * improve the index for next time without paying the cost now.
+ *
+ * Returns true if a reindex was triggered, false if already fresh or in progress.
+ */
+export function ensureFreshIndexBackground(logger?: ILogger): boolean {
+  if (isIndexFresh(logger)) return false
+  if (reindexInProgress) {
+    logger?.debug('Background reindex already in progress, skipping trigger')
+    return false
+  }
+  reindex(logger).catch(err => {
+    logger?.warn('Background reindex failed', { error: String(err) })
+  })
+  return true
 }
 
 /**

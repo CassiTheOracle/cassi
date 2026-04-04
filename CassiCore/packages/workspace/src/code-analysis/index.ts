@@ -36,6 +36,8 @@ export { introspectSchemas } from './schema-introspector.js'
 export {
   isIndexFresh,
   ensureFreshIndex,
+  isIndexAvailable,
+  ensureFreshIndexBackground,
   reindex,
   withAutoReindex,
   invalidateStalenessCache,
