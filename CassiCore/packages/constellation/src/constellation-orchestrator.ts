@@ -52,6 +52,7 @@ export interface ConstellationOrchestrator {
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   setMemory(memory: IMemory): void
+  setAuditTrail(trail: import('./constellation-audit-trail.js').ConstellationAuditTrail): void
 
   // External Corpus Protocol
   assumeCorpus(sessionId: string, agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string }
@@ -95,6 +96,7 @@ export function createConstellationOrchestrator(
   let contextDistiller: ContextDistiller | undefined
   let moduleRegistry: ModuleSessionRegistry | undefined
   let memory: IMemory | undefined
+  let auditTrail: import('./constellation-audit-trail.js').ConstellationAuditTrail | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -214,6 +216,8 @@ export function createConstellationOrchestrator(
         corpusLLM,
         brainstemLLM,
         memory,
+
+        auditTrail,
 
         // Enable mini-Helix infrastructure components
         useMiniHelixCorpus: true,
@@ -342,6 +346,7 @@ export function createConstellationOrchestrator(
     setStore(s) { store = s },
     setConstellationStore(s) { constellationStore = s },
     setMemory(mem) { memory = mem },
+    setAuditTrail(trail) { auditTrail = trail },
 
     // External Corpus Protocol
     assumeCorpus(sessionId, agentId, heartbeatTimeoutMs) {
