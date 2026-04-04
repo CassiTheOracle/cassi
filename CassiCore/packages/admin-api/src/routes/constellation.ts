@@ -607,6 +607,31 @@ export async function handleConstellationRoutes(
       return true
     }
 
+    if (method === 'GET' && subAction === 'audit-trail') {
+      try {
+        const auditTrail = daemon.intelligence?.constellationAuditTrail
+        if (auditTrail) {
+          const trail = auditTrail.readTrail(id)
+          sendJSON(res, 200, { sessionId: id, ...trail, source: 'artifact-store' })
+        } else {
+          // Fallback: read events directly from ConstellationStore
+          const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+          const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+          const events = store.getEvents(id)
+          store.close()
+          if (events.length > 0) {
+            sendJSON(res, 200, { sessionId: id, events, source: 'constellation-store' })
+          } else {
+            sendJSON(res, 404, { error: 'No audit trail found for this session' })
+          }
+        }
+      } catch (err) {
+        logger.error('Failed to read audit trail', { sessionId: id, error: String(err) })
+        sendJSON(res, 500, { error: `Audit trail read failed: ${String(err)}` })
+      }
+      return true
+    }
+
     if (method === 'GET' && subAction === 'analyze') {
       const depth = (url.searchParams?.get?.('depth') ?? 'summary') as 'summary' | 'timeline' | 'full'
       try {
