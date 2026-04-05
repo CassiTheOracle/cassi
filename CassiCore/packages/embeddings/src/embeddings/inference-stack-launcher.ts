@@ -31,6 +31,7 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { homedir } from 'os'
 
+import { setGamingMode } from '../gaming-mode.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
 export const DEFAULT_EMBEDDING_PORT = 18820
@@ -364,6 +365,7 @@ export class InferenceStackLauncher {
       if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
         this.logger.info('GPU in use by another application — deferring embedding server startup')
         this.gpuDeferred = true
+        setGamingMode(true, true)
         this.startGpuGuardLoop()
         return
       }
@@ -767,8 +769,10 @@ export class InferenceStackLauncher {
         }
         this.gpuGuardUnloaded = true
       }
+      setGamingMode(true, true)
     } else if (!busy && (this.gpuDeferred || this.gpuGuardUnloaded)) {
       // GPU became free → start or restart inference
+      setGamingMode(false, true)
       if (this.gpuDeferred) {
         this.logger.info('GPU guard: GPU is now free — starting deferred inference stack')
         this.gpuDeferred = false
