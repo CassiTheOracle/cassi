@@ -200,6 +200,7 @@ export class CopilotSdkProvider extends BaseProvider {
       handler: (args: unknown) => Promise<{ textResultForLlm: string; resultType: 'success' | 'error' }>
     }>,
     onStream?: (text: string) => void,
+    timeoutMs?: number,
   ): Promise<TurnResult> {
     const log = this.logger.child('sdk-standalone')
 
@@ -236,7 +237,7 @@ export class CopilotSdkProvider extends BaseProvider {
 
       const response = await session.sendAndWait(
         { prompt },
-        SDK_TURN_TIMEOUT_MS,
+        timeoutMs ?? SDK_TURN_TIMEOUT_MS,
       )
 
       if (response?.data.content && !state.text) {
