@@ -693,13 +693,32 @@ export class TrainingStore {
   // TAXONOMY & LABELS
 
   ensureLabel(namespace: string, name: string, displayName?: string, description?: string): string {
-    const labelId = `${namespace}:${name}`.replace(/[^a-z0-9:_-]/gi, '_').toLowerCase()
+    const normalizedName = name.toLowerCase()
+
+    // WHY: Seeded labels use short IDs (e.g. 'mc_episodic') while generated IDs use
+    // 'namespace:name' format. We must look up by (namespace, name) first to avoid
+    // creating a phantom ID that doesn't match the existing row.
+    const existing = this.stmt('find_label', `
+      SELECT label_id FROM taxonomy_labels WHERE namespace = ? AND name = ? LIMIT 1
+    `).get(namespace, normalizedName) as { label_id: string } | undefined
+
+    if (existing) return existing.label_id
+
+    // WHY: taxonomy_labels.namespace has a FK to taxonomy_namespaces. LLM-suggested
+    // labels may use namespaces not in the seeded set, so we ensure the namespace
+    // exists first to avoid FK constraint failures.
+    this.stmt('ensure_ns', `
+      INSERT OR IGNORE INTO taxonomy_namespaces (namespace, description, created_at)
+      VALUES (?, ?, ?)
+    `).run(namespace, null, Date.now())
+
+    const labelId = `${namespace}:${normalizedName}`.replace(/[^a-z0-9:_-]/gi, '_')
 
     this.stmt('upsert_label', `
       INSERT OR IGNORE INTO taxonomy_labels
         (label_id, namespace, name, display_name, description)
       VALUES (?, ?, ?, ?, ?)
-    `).run(labelId, namespace, name.toLowerCase(), displayName || null, description || null)
+    `).run(labelId, namespace, normalizedName, displayName || null, description || null)
 
     return labelId
   }

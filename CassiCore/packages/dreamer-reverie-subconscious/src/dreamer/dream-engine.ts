@@ -8,6 +8,8 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { ArchiveEntry } from '../memory/archivist.js'
 import type { MemoryModule } from '../memory/index.js'
+import type { ReasoningBank } from '../reasoning-bank/index.js'
+import type { SearchResult } from '../reasoning-bank/types.js'
 import {
   buildFreeAssociationPrompt,
   buildCrystallizationPrompt,
@@ -40,6 +42,7 @@ export class DreamCycleEngine {
     private readonly inferJSONFn: InferJSONFn,
     private readonly memory: MemoryModule,
     private readonly logger: ILogger,
+    private readonly reasoningBank?: ReasoningBank,
   ) {}
 
   /**
@@ -91,6 +94,16 @@ export class DreamCycleEngine {
       }
     }
 
+    // Phase 4: Reasoning Synthesis — cross-pollinate dream insights with reasoning traces
+    let reasoningSynthesesCount = 0
+    if (this.reasoningBank && insights.length > 0) {
+      try {
+        reasoningSynthesesCount = await this.synthesizeWithReasoningBank(dreamId, insights)
+      } catch (err) {
+        this.logger.warn('[DreamEngine] Reasoning synthesis phase failed (non-fatal)', { error: String(err) })
+      }
+    }
+
     const episodicsRetired: string[] = []
     if (config.enableGardening && insights.length > 0) {
       try {
@@ -122,6 +135,7 @@ export class DreamCycleEngine {
       insightsCreated: insightMemoryIds,
       episodicsRetired,
       linksCreated,
+      reasoningSyntheses: reasoningSynthesesCount,
       rawAnalysis: freeAssociation.slice(0, 2000),
       topInsightContent: topInsight?.content,
     }
@@ -132,6 +146,7 @@ export class DreamCycleEngine {
       insightsCreated: insightMemoryIds.length,
       episodicsRetired: episodicsRetired.length,
       linksCreated,
+      reasoningSyntheses: reasoningSynthesesCount,
     })
 
     return record
@@ -178,6 +193,106 @@ export class DreamCycleEngine {
       return []
     }
   }
+
+  /**
+   * Phase 4: Reasoning Synthesis — find reasoning traces related to dream insights,
+   * synthesize cross-session meta-reasoning, and store it back into the Reasoning Bank.
+   *
+   * HOW: For each dream insight, search the Reasoning Bank for traces with overlapping
+   * goals or files. When multiple traces relate to the same insight, synthesize a
+   * meta-observation about what approach patterns tend to succeed. This creates
+   * 'dream-synthesis' traces that capture cross-session wisdom.
+   */
+  private async synthesizeWithReasoningBank(
+    dreamId: string,
+    insights: DreamInsight[],
+  ): Promise<number> {
+    if (!this.reasoningBank) return 0
+
+    // Collect relevant reasoning traces for each insight
+    const insightTraces: Array<{ insight: DreamInsight; traces: SearchResult[] }> = []
+
+    for (const insight of insights) {
+      // Search by insight topics and content keywords
+      const searchTerms = [
+        ...(insight.topics ?? []),
+        ...(insight.title ? [insight.title] : []),
+      ].filter(Boolean).join(' ')
+
+      if (!searchTerms) continue
+
+      const traces = this.reasoningBank.search({
+        query: searchTerms,
+        minQuality: 0.6,
+        successOnly: true,
+        limit: 5,
+      })
+
+      if (traces.length >= 2) {
+        insightTraces.push({ insight, traces })
+      }
+    }
+
+    if (insightTraces.length === 0) {
+      this.logger.debug('[DreamEngine] No reasoning traces found for synthesis')
+      return 0
+    }
+
+    // Synthesize meta-reasoning from traces that overlap with dream insights
+    let stored = 0
+    for (const { insight, traces } of insightTraces) {
+      const tracesSummary = traces.map(t =>
+        `[${t.trace.approach}] goal: "${t.trace.goal.slice(0, 100)}" — quality: ${t.trace.qualityScore.toFixed(2)}, ` +
+        `files: ${t.trace.relevantFiles.slice(0, 3).join(', ')}`
+      ).join('\n')
+
+      const prompt = `You are an AI analyzing patterns across multiple coding sessions.
+
+A dream insight was formed:
+"${insight.content}"
+${insight.title ? `Title: "${insight.title}"` : ''}
+${insight.topics?.length ? `Topics: ${insight.topics.join(', ')}` : ''}
+
+Related successful reasoning traces from past sessions:
+${tracesSummary}
+
+Synthesize a concise meta-observation (2-3 sentences) about what approach patterns tend to succeed for this type of work. Focus on actionable guidance that would help a future session.
+
+Return JSON: { "synthesis": "...", "approach_pattern": "...", "applicable_context": "..." }`
+
+      try {
+        const result = await this.inferJSONFn<{
+          synthesis?: string
+          approach_pattern?: string
+          applicable_context?: string
+        }>(prompt)
+
+        if (result?.synthesis && result.synthesis.length > 20) {
+          this.reasoningBank.store({
+            sourceHelixId: `dream-${dreamId}`,
+            goal: insight.title ?? insight.content.slice(0, 100),
+            approach: result.approach_pattern ?? 'dream-synthesis',
+            content: result.synthesis,
+            qualityScore: Math.min(insight.confidence + 0.1, 1.0),
+            succeeded: true,
+            relevantFiles: traces.flatMap(t => t.trace.relevantFiles).filter((v, i, a) => a.indexOf(v) === i).slice(0, 10),
+            taskType: 'general',
+          })
+          stored++
+          this.logger.debug('[DreamEngine] Stored reasoning synthesis', {
+            dreamId,
+            approach: result.approach_pattern,
+            traceCount: traces.length,
+          })
+        }
+      } catch (err) {
+        this.logger.debug('[DreamEngine] Reasoning synthesis LLM call failed', { error: String(err) })
+      }
+    }
+
+    return stored
+  }
+
 
   /**
    * Phase 5: Gardening — find episodic memory clusters safe to retire.

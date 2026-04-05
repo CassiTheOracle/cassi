@@ -37,7 +37,7 @@ export interface TaggerLLM {
 
 // PROMPT TEMPLATES
 
-const PROMPT_VERSION = 'v1.0.0'
+const PROMPT_VERSION = 'v1.1.0'
 
 const TAGGER_SYSTEM_PROMPT = `You are a training data annotator for an AI coding assistant's conversation corpus.
 Your job is to analyze each piece of content and produce structured metadata for training dataset curation.
@@ -46,6 +46,7 @@ Respond ONLY with valid JSON matching this schema:
 {
   "summary": "1-2 sentence summary of what this content is about",
   "topics": ["topic1", "topic2"],
+  "domain": "semantic-domain-name",
   "entities": ["entity1", "entity2"],
   "task_type": "coding|debugging|explaining|refactoring|reviewing|planning|research|config|testing|other|null",
   "interaction_pattern": "single_turn|multi_turn|tool_heavy|reasoning|delegation|error_recovery|null",
@@ -55,18 +56,19 @@ Respond ONLY with valid JSON matching this schema:
   "error_taxonomy": "null or specific error type if content contains an error",
   "memory_class": "episodic|semantic|procedural|null",
   "suggested_labels": [
-    {"namespace": "topic|task|domain|quality", "name": "label_name", "confidence": 0.0-1.0}
+    {"namespace": "topic|task|quality", "name": "label_name", "confidence": 0.0-1.0}
   ]
 }
 
 Guidelines:
 - topics: lowercase, specific technical terms (e.g., "typescript", "sqlite", "error-handling")
-- entities: proper nouns, tool names, file paths, function names mentioned
+- domain: the broad semantic domain — use one of these when applicable: "cassicore-runtime", "provider-management", "tool-execution", "intelligence-modules", "multi-agent-orchestration", "terminal-ui", "training-pipeline", "embedding-pipeline", "session-management", "mcp-gateway", "database-storage", "configuration", "security-auth", "testing", "devops-ci", "code-analysis", "web-development", "general-programming". For other domains, use a concise lowercase name (NEVER file paths or code symbols).
+- entities: specific proper nouns, tool names, and function/class names mentioned. Do NOT include file paths — those belong in topics if relevant.
 - training_value: "high" = novel, complete, instructive; "low" = boilerplate, trivial; "skip" = noise
 - difficulty: 0 = trivial, 0.5 = moderate, 1.0 = expert-level reasoning
 - privacy_risk: flag PII, secrets, API keys, credentials, personal info
 - memory_class: "episodic" = specific events/conversations, "semantic" = facts/knowledge, "procedural" = how-to/processes
-- suggested_labels: add domain-specific labels that don't fit the fixed fields`
+- suggested_labels: add labels that don't fit the fixed fields. Do NOT use "domain" as a namespace — use "topic", "task", "quality", "agent_role", "error_type", etc.`
 
 function buildTaggerUserPrompt(req: TaggerRequest): string {
   const lines = [
@@ -338,40 +340,50 @@ export class TrainingTagger {
 
   // INTERNALS
 
+  // WHY: When no explicit objectTypes are provided, we infer valid types from the
+  // scope so that extractContent can actually find content for the selected candidates.
+  // Without this, a scope='message' request could select reasoning_step objects that
+  // have no rows in the messages table, causing all candidates to be skipped.
+  private static readonly SCOPE_DEFAULT_TYPES: Record<string, TrainingObjectType[]> = {
+    chunk: ['message', 'reasoning_step', 'event', 'artifact', 'memory', 'insight', 'pattern'],
+    message: ['message'],
+    turn: ['turn'],
+    session: ['session'],
+  }
+
   private selectCandidates(
     scope: string,
     limit: number,
     skipTagged: boolean,
     objectTypes?: TrainingObjectType[],
   ): Array<{ object_id: string; object_type: string; subtype: string | null }> {
-    let sql: string
+    const types = objectTypes?.length
+      ? objectTypes
+      : TrainingTagger.SCOPE_DEFAULT_TYPES[scope]
 
-    if (skipTagged) {
-      sql = `
-        SELECT o.object_id, o.object_type, o.subtype
-        FROM objects o
-        WHERE 1=1
-          ${objectTypes?.length ? `AND o.object_type IN (${objectTypes.map(() => '?').join(',')})` : ''}
-          AND NOT EXISTS (
+    const typeFilter = types?.length
+      ? `AND o.object_type IN (${types.map(() => '?').join(',')})`
+      : ''
+
+    const skipFilter = skipTagged
+      ? `AND NOT EXISTS (
             SELECT 1 FROM object_labels ol
             WHERE ol.object_id = o.object_id AND ol.source = 'llm'
-          )
-        ORDER BY o.created_at DESC
-        LIMIT ?
-      `
-    } else {
-      sql = `
-        SELECT o.object_id, o.object_type, o.subtype
-        FROM objects o
-        WHERE 1=1
-          ${objectTypes?.length ? `AND o.object_type IN (${objectTypes.map(() => '?').join(',')})` : ''}
-        ORDER BY o.created_at DESC
-        LIMIT ?
-      `
-    }
+          )`
+      : ''
+
+    const sql = `
+      SELECT o.object_id, o.object_type, o.subtype
+      FROM objects o
+      WHERE 1=1
+        ${typeFilter}
+        ${skipFilter}
+      ORDER BY o.created_at DESC
+      LIMIT ?
+    `
 
     const params: unknown[] = []
-    if (objectTypes?.length) params.push(...objectTypes)
+    if (types?.length) params.push(...types)
     params.push(limit)
 
     return this.store.db.prepare(sql).all(...params) as any[]
@@ -442,6 +454,7 @@ export class TrainingTagger {
       return {
         summary: parsed.summary || '',
         topics: Array.isArray(parsed.topics) ? parsed.topics : [],
+        domain: typeof parsed.domain === 'string' ? parsed.domain : null,
         entities: Array.isArray(parsed.entities) ? parsed.entities : [],
         task_type: parsed.task_type || null,
         interaction_pattern: parsed.interaction_pattern || null,
@@ -475,9 +488,22 @@ export class TrainingTagger {
       result.labelsCreated++
     }
 
-    // Entities → labels
+    // Domain → label (semantic domain, not file paths)
+    if (response.domain) {
+      const labelId = this.store.ensureLabel('domain', response.domain)
+      this.store.attachLabel(objectId, labelId, {
+        confidence: 0.9,
+        source: 'llm',
+        runId,
+        isPrimary: true,
+      })
+      this.insertEvidence(runId, labelId, objectId, 0.9, `Domain: ${response.domain}`)
+      result.labelsCreated++
+    }
+
+    // Entities → entity namespace (proper nouns, tool names, symbols)
     for (const entity of response.entities) {
-      const labelId = this.store.ensureLabel('domain', entity)
+      const labelId = this.store.ensureLabel('entity', entity)
       this.store.attachLabel(objectId, labelId, {
         confidence: 0.75,
         source: 'llm',

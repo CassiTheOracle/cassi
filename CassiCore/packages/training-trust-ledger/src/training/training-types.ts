@@ -230,6 +230,7 @@ export type TaxonomyNamespace =
   | 'topic'
   | 'task'
   | 'domain'
+  | 'entity'
   | 'interaction_pattern'
   | 'tool'
   | 'error_type'
@@ -407,6 +408,7 @@ export interface TaggerRequest {
 export interface TaggerResponse {
   summary: string;
   topics: string[];
+  domain: string | null;              // semantic domain (e.g., "cassicore-runtime", "provider-management")
   entities: string[];
   task_type: string | null;
   interaction_pattern: string | null;

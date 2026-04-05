@@ -92,6 +92,8 @@ export interface DreamRecord {
   episodicsRetired: string[]
   /** Number of archive_links created. */
   linksCreated: number
+  /** Number of reasoning synthesis traces stored in the Reasoning Bank. */
+  reasoningSyntheses?: number
   /** The raw free-association text from Phase 2 (trimmed to 2,000 chars for storage). */
   rawAnalysis?: string
   /**

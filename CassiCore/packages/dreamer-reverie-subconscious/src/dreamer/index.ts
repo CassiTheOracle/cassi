@@ -12,6 +12,7 @@
 import { MODEL_DEFAULTS } from '../../config/system-settings.js'
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import type { MemoryModule } from '../memory/index.js'
+import type { ReasoningBank } from '../reasoning-bank/index.js'
 import type { InjectionAggregator, InjectionSource } from '../injection-aggregator.js'
 import { DreamCycleEngine } from './dream-engine.js'
 import type { DreamRecord, DreamerConfig } from './types.js'
@@ -49,6 +50,9 @@ export class DreamerModule extends BaseCognitiveModule {
 
   /** Full MemoryModule reference (extends IMemory with dream-specific methods). */
   private fullMemory?: MemoryModule
+
+  /** Reasoning Bank for cross-session reasoning synthesis. */
+  private reasoningBank?: ReasoningBank
 
   constructor(logger: ILogger, config?: Partial<DreamerConfig>) {
     super(logger, {
@@ -90,6 +94,14 @@ export class DreamerModule extends BaseCognitiveModule {
     this.fullMemory = module
     // Also set the base class IMemory reference
     this.setMemory(module)
+  }
+
+  /**
+   * Wire in the ReasoningBank for reasoning trace synthesis during dream cycles.
+   * Called by createIntelligence() after module instantiation.
+   */
+  setReasoningBank(bank: ReasoningBank): void {
+    this.reasoningBank = bank
   }
 
   /**
@@ -178,6 +190,7 @@ export class DreamerModule extends BaseCognitiveModule {
       <T>(prompt: string) => this.inferJSON<T>(prompt),
       this.fullMemory!,
       this.logger,
+      this.reasoningBank,
     )
 
     try {
