@@ -10,6 +10,10 @@
  * GET    /training/annotations     — annotation run summary
  * POST   /training/ingest          — trigger ingest from operational stores
  * POST   /training/tag             — trigger LLM tagging batch
+ * GET    /training/tagger/stats    — background tagger worker stats
+ * POST   /training/tagger/start    — start background tagger worker
+ * POST   /training/tagger/stop     — stop background tagger worker
+ * POST   /training/tagger/tick     — manually trigger one tagger tick
  * GET    /training/export          — export training examples as JSONL
  */
 
@@ -176,9 +180,51 @@ export async function handleTrainingRoutes(
       const scope = body?.scope || 'message'
       const batchSize = body?.batchSize ?? 50
       const dryRun = body?.dryRun ?? false
+      const mode = body?.mode || 'simple'
 
-      // The actual LLM must be provided by the daemon's provider system.
-      // For now, return what would be tagged without an LLM (dry run).
+      if (mode === 'sdk') {
+        // SDK mode: run tagger through the Copilot SDK tool loop
+        const sdkProvider = daemon?.providers?.get?.('copilot-sdk')
+        if (!sdkProvider) {
+          sendJSON(res, 503, { error: 'Copilot SDK provider not available for SDK tagging mode' })
+          return true
+        }
+
+        const { SdkTagger } = await import('../intelligence/training/sdk-tagger.js')
+        const sdkTagger = new SdkTagger(warehouse.store, deps.logger)
+        const sdkModel = body?.model || 'claude-sonnet-4.5'
+        sdkTagger.setProvenance(sdkModel, 'copilot-sdk')
+
+        const tools = sdkTagger.buildTools({ batchSize, scope, minContentLength: 20 })
+        const systemPrompt = sdkTagger.getSystemPrompt()
+        const userPrompt = sdkTagger.getUserPrompt({ batchSize, scope })
+
+        const sessionId = `tagger_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+
+        // executeSdkTurn handles the full tool loop
+        const turnResult = await sdkProvider.executeStandaloneTurn(
+          sessionId,
+          userPrompt,
+          systemPrompt,
+          sdkModel,
+          tools,     // tagger-specific tools only
+        )
+
+        const result = sdkTagger.getResult()
+        result.totalTokens = turnResult.tokensUsed || 0
+        result.durationMs = turnResult.durationMs || 0
+
+        sendJSON(res, 200, {
+          message: 'SDK tagging complete',
+          mode: 'sdk',
+          model: sdkModel,
+          result,
+          turnToolCalls: turnResult.toolCalls?.length ?? 0,
+        })
+        return true
+      }
+
+      // Simple mode: original streaming completion
       if (!body?.llm && !daemon?.intelligence?.tagger) {
         sendJSON(res, 200, {
           message: 'Dry run: no LLM configured for tagging',
@@ -191,9 +237,88 @@ export async function handleTrainingRoutes(
 
       const llm = daemon.intelligence.tagger
       const result = await warehouse.runTagging(llm, scope, { batchSize, dryRun })
-      sendJSON(res, 200, { message: 'Tagging complete', result })
+      sendJSON(res, 200, { message: 'Tagging complete', mode: 'simple', result })
     } catch (err) {
       sendJSON(res, 500, { error: 'Tagging failed', detail: String(err) })
+    }
+    return true
+  }
+
+  // BACKGROUND TAGGER WORKER ENDPOINTS
+
+  if (method === 'GET' && pathname === '/training/tagger/stats') {
+    const worker = daemon?.bgTaggerWorker
+    if (!worker) {
+      sendJSON(res, 200, { status: 'not_running', message: 'Background tagger worker not initialized' })
+    } else {
+      sendJSON(res, 200, { status: 'ok', stats: worker.getStats() })
+    }
+    return true
+  }
+
+  if (method === 'POST' && pathname === '/training/tagger/start') {
+    try {
+      if (daemon?.bgTaggerWorker) {
+        daemon.bgTaggerWorker.start()
+        sendJSON(res, 200, { message: 'Background tagger worker started' })
+      } else {
+        // Create and start the worker if it doesn't exist
+        const sdkProvider = daemon?.providers?.get?.('copilot-sdk')
+        if (!sdkProvider || !warehouse?.store) {
+          sendJSON(res, 503, { error: 'Missing copilot-sdk provider or training warehouse' })
+          return true
+        }
+        const { BackgroundTaggerWorker } = await import('../intelligence/training/background-tagger-worker.js')
+        daemon.bgTaggerWorker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, deps.logger)
+        daemon.bgTaggerWorker.start()
+        sendJSON(res, 200, { message: 'Background tagger worker created and started' })
+      }
+    } catch (err) {
+      sendJSON(res, 500, { error: 'Failed to start tagger worker', detail: String(err) })
+    }
+    return true
+  }
+
+  if (method === 'POST' && pathname === '/training/tagger/stop') {
+    if (daemon?.bgTaggerWorker) {
+      daemon.bgTaggerWorker.stop()
+      sendJSON(res, 200, { message: 'Background tagger worker stopped', stats: daemon.bgTaggerWorker.getStats() })
+    } else {
+      sendJSON(res, 200, { message: 'Background tagger worker not running' })
+    }
+    return true
+  }
+
+  if (method === 'POST' && pathname === '/training/tagger/tick') {
+    try {
+      const body = await parseBody(req)
+      const scope = body?.scope
+      const batchSize = body?.batchSize
+      const model = body?.model
+
+      let worker = daemon?.bgTaggerWorker
+      if (!worker) {
+        // Create a temporary worker for this one-off tick
+        const sdkProvider = daemon?.providers?.get?.('copilot-sdk')
+        if (!sdkProvider || !warehouse?.store) {
+          sendJSON(res, 503, { error: 'Missing copilot-sdk provider or training warehouse' })
+          return true
+        }
+        const { BackgroundTaggerWorker } = await import('../intelligence/training/background-tagger-worker.js')
+        worker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, deps.logger)
+        // WHY: Start temporarily so triggerTick checks pass, then stop
+        worker.start()
+        daemon.bgTaggerWorker = worker
+      }
+
+      const result = await worker.triggerTick({ scope, batchSize, model })
+      sendJSON(res, 200, {
+        message: 'Tagger tick completed',
+        result: result ?? { tagged: 0, message: 'No untagged objects or provider unavailable' },
+        stats: worker.getStats(),
+      })
+    } catch (err) {
+      sendJSON(res, 500, { error: 'Tagger tick failed', detail: String(err) })
     }
     return true
   }
