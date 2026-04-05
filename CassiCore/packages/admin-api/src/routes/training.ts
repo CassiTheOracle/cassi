@@ -306,19 +306,19 @@ export async function handleTrainingRoutes(
         }
         const { BackgroundTaggerWorker } = await import('../intelligence/training/background-tagger-worker.js')
         worker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, deps.logger)
-        // WHY: Start temporarily so triggerTick checks pass, then stop
+        // WHY: Start temporarily so triggerSession passes, then the loop will idle
         worker.start()
         daemon.bgTaggerWorker = worker
       }
 
-      const result = await worker.triggerTick({ scope, batchSize, model })
+      const result = await worker.triggerSession({ scope, batchSize, model })
       sendJSON(res, 200, {
-        message: 'Tagger tick completed',
+        message: 'Tagger session completed',
         result: result ?? { tagged: 0, message: 'No untagged objects or provider unavailable' },
         stats: worker.getStats(),
       })
     } catch (err) {
-      sendJSON(res, 500, { error: 'Tagger tick failed', detail: String(err) })
+      sendJSON(res, 500, { error: 'Tagger session failed', detail: String(err) })
     }
     return true
   }

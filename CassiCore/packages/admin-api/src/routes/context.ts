@@ -275,15 +275,10 @@ export async function handleContextRoutes(
         else if (state?.pendingAction === 'context-reset') decision = 'reset'
       }
 
-      // If decision is still 'select', check token pressure.
-      // If we're at ≥75% capacity, scored selection alone can't recover — compact.
-      // (Lowered from 85% to give compaction time to run before the hard limit.)
-      if (decision === 'select' && tokensUsed > 0 && contextLimit > 0) {
-        const usageRatio = tokensUsed / contextLimit
-        if (usageRatio >= 0.75) {
-          decision = 'summarize'
-        }
-      }
+      // WHY: No hard-capped forced summarization. PCPM handles progressive
+      // context trimming in the messages.transform hook. The assess endpoint
+      // only returns "summarize" when the optimizer explicitly flags it — not
+      // at a fixed percentage threshold.
 
       sendJSON(res, 200, { sessionId, decision })
       return true
