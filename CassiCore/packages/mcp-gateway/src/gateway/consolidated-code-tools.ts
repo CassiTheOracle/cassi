@@ -525,6 +525,10 @@ export async function executeCodeConsolidatedTool(
 
       const result = scoreSpecificity(text)
 
+      const adaptiveNote = result.adaptiveOverride
+        ? `\n\n**Adaptive override:** Bayesian model recommends **${result.mode}** (was ${result.adaptiveOverride.originalMode}, confidence: ${result.adaptiveOverride.confidence})\n${result.adaptiveOverride.reason}`
+        : ''
+
       return {
         output: `**Specificity score: ${result.score}** → recommended mode: **${result.mode}**\n\n` +
           `Signals:\n` +
@@ -535,7 +539,7 @@ export async function executeCodeConsolidatedTool(
             result.mode === 'full' ? 'Query is specific enough for full code context injection.'
             : result.mode === 'file_only' ? 'Query is moderately specific — inject file-level context only.'
             : 'Query is too vague for code context injection — would likely cause context pollution.'
-          }`,
+          }` + adaptiveNote,
         ...result,
       }
     }
