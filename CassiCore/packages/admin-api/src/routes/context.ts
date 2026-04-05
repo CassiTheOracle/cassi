@@ -416,7 +416,8 @@ export async function handleContextRoutes(
                 maxTokens: 2_000,
                 temperature: 0.2,
                 thinking: 'none',
-                systemPrompt: 'You are a concise summarizer. Follow the instruction exactly. Output only the summary, no preamble.',
+                reasoning: 'none',
+                systemPrompt: 'You are a concise summarizer. Follow the instruction exactly. Output only the summary, no preamble or reasoning.',
                 source: 'smart-compaction-cluster',
                 trigger: 'compact',
                 sessionId,
@@ -424,7 +425,9 @@ export async function handleContextRoutes(
                 timeoutMs: 30_000,
               }
             )
-            return (result.response ?? '').trim()
+            // HOW: Strip thinking/reasoning artifacts that some models embed in
+            // response text despite thinking: 'none' (e.g. Qwen's bold headers).
+            return SmartCompactionEngine.stripThinkingArtifacts((result.response ?? '').trim())
           } finally {
             try { handle.release() } catch { /* ignore */ }
           }
