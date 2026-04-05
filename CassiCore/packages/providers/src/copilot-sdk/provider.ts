@@ -182,6 +182,101 @@ export class CopilotSdkProvider extends BaseProvider {
     }
   }
 
+  /**
+   * Execute a standalone SDK turn with custom tools only (no CassiCore tool bridge).
+   * Used for specialized pipelines like the training tagger that provide their own tools.
+   *
+   * Creates a fresh session, runs the tool loop, and destroys the session.
+   */
+  async executeStandaloneTurn(
+    sessionId: string,
+    prompt: string,
+    systemMessage: string,
+    model: string,
+    customTools: Array<{
+      name: string
+      description: string
+      parameters: Record<string, unknown>
+      handler: (args: unknown) => Promise<{ textResultForLlm: string; resultType: 'success' | 'error' }>
+    }>,
+    onStream?: (text: string) => void,
+  ): Promise<TurnResult> {
+    const log = this.logger.child('sdk-standalone')
+
+    // Convert custom tool handlers to SDK Tool format
+    const sdkTools: SdkTool[] = customTools.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: tool.parameters,
+      handler: async (args: unknown) => {
+        log.info('Standalone tool called', { tool: tool.name, sessionId: sessionId.slice(-8) })
+        const result = await tool.handler(args)
+        return {
+          textResultForLlm: result.textResultForLlm,
+          resultType: result.resultType,
+        }
+      },
+    }))
+
+    const session = await this.createSessionWithTools(sessionId, systemMessage, model, sdkTools)
+    const state = createTurnState(sessionId)
+    state.model = model
+
+    const unsubscribe = session.on((event: SessionEvent) => {
+      mapSdkEvent(event, state, this.bus, onStream)
+    })
+
+    try {
+      log.info('Starting standalone SDK turn', {
+        sessionId: sessionId.slice(-8),
+        model,
+        tools: sdkTools.map(t => t.name),
+        promptLength: prompt.length,
+      })
+
+      const response = await session.sendAndWait(
+        { prompt },
+        SDK_TURN_TIMEOUT_MS,
+      )
+
+      if (response?.data.content && !state.text) {
+        state.text = response.data.content
+      }
+
+      const durationMs = Date.now() - state.startedAt
+
+      log.info('Standalone SDK turn complete', {
+        sessionId: sessionId.slice(-8),
+        durationMs,
+        tokensUsed: state.tokensUsed,
+        toolCalls: state.toolCalls.length,
+      })
+
+      return {
+        response: state.text,
+        tokensUsed: state.tokensUsed,
+        model: state.model,
+        durationMs,
+        toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
+        tool_outputs: state.toolOutputs.length > 0 ? state.toolOutputs : undefined,
+      }
+    } catch (err) {
+      const durationMs = Date.now() - state.startedAt
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      log.error('Standalone SDK turn failed', { error: errorMsg, sessionId: sessionId.slice(-8) })
+
+      return {
+        response: `Error: ${errorMsg}`,
+        tokensUsed: state.tokensUsed,
+        model: state.model,
+        durationMs,
+      }
+    } finally {
+      unsubscribe()
+      await this.destroySession(sessionId)
+    }
+  }
+
   // Session Management
 
   /**
