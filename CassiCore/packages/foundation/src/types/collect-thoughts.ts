@@ -32,6 +32,9 @@ export interface CollectThoughtsResult {
   /** Related context from memory + archive search (max 5, ≤200 chars each) */
   relatedContext: string[]
 
+  /** Past successful reasoning traces from the Reasoning Bank (max 2, ≤300 chars each) */
+  reasoningBankContext: string[]
+
   /** Signals from peer sessions via CognitiveBridge */
   peerSignals: CognitiveSignal[]
 
