@@ -86,6 +86,9 @@ export interface ConstellationAnalysis {
     blackboardArchives: RawBlackboardArchive[]
   }
 
+  /** Topology spatial dynamics — present when topology was active during the run */
+  topology?: TopologySpatialAnalysis
+
   /** Metadata */
   meta: {
     helixDbFound: boolean
@@ -177,6 +180,60 @@ export interface TimelineEntry {
   phase: string
   toolCounts: Record<string, number>
 }
+
+
+/**
+ * Topology Spatial Dynamics — post-mortem analysis of how Helix sessions
+ * moved, clustered, and interacted in the topology space during a run.
+ */
+export interface TopologySpatialAnalysis {
+  /** Whether topology was active during this run */
+  enabled: boolean
+  /** Total topology ticks (gravity updates) */
+  totalTicks: number
+  /** Final cluster count */
+  clusterCount: number
+  /** Final link count */
+  linkCount: number
+  /** Number of topology events persisted */
+  eventCount: number
+  /** Per-cluster metrics at completion */
+  clusters: ClusterMetric[]
+  /** Link formation/dissolution dynamics from events */
+  linkDynamics: {
+    formationRate: number
+    dissolutionRate: number
+    averageLifetimeTicks: number
+  }
+  /** Spatial convergence — did branches cluster over time? */
+  convergence: {
+    /** Average pairwise distance at completion (lower = more converged) */
+    averageDistance: number
+    /** Fraction of branches that ended up in a cluster */
+    clusterCoverage: number
+    /** Whether branches showed meaningful spatial convergence */
+    converged: boolean
+  }
+  /** Topology-specific patterns detected */
+  patterns: TopologyPattern[]
+}
+
+export interface ClusterMetric {
+  clusterId: string
+  memberCount: number
+  mergeDepth: string
+  averageInternalDistance: number
+  stabilityScore: number
+  ticksStable: number
+}
+
+export interface TopologyPattern {
+  name: string
+  severity: 'info' | 'warning' | 'critical'
+  description: string
+  evidence: string
+}
+
 
 // Internal raw types
 interface RawCorpusDecision {
@@ -875,6 +932,29 @@ export async function analyzeConstellation(
 
     if (timeline !== undefined) result.timeline = timeline
 
+    // Topology spatial dynamics analysis (uses persisted topology snapshots + events)
+    if (constDb && constSession) {
+      const topoAnalysis = analyzeTopology(constDb, constellationSessionId)
+      if (topoAnalysis) {
+        result.topology = topoAnalysis
+
+        // Merge topology patterns into main diagnosis patterns
+        for (const tp of topoAnalysis.patterns) {
+          if (tp.severity === 'warning' || tp.severity === 'critical') {
+            patterns.push({
+              name: `topology_${tp.name}`,
+              severity: tp.severity,
+              description: tp.description,
+              evidence: tp.evidence,
+            })
+          }
+        }
+
+        // Re-generate recommendations with topology patterns included
+        result.diagnosis.recommendations = generateRecommendations(patterns, partialAnalysis)
+      }
+    }
+
     if (depth === 'full') {
       result.constellationStore = {
         corpusDecisions,
@@ -889,6 +969,185 @@ export async function analyzeConstellation(
   } finally {
     helixDb?.close()
     constDb?.close()
+  }
+}
+
+
+/**
+ * Analyze topology spatial dynamics from persisted tree snapshot and events.
+ * WHY: Topology data was ephemeral before the persistence layer was added.
+ * Now that snapshots and events are stored, we can analyze how branches
+ * moved, clustered, and interacted after the run completes.
+ */
+function analyzeTopology(
+  constDb: InstanceType<typeof Database>,
+  constellationSessionId: string,
+): TopologySpatialAnalysis | undefined {
+  // Read tree snapshot to get final topology state
+  const sessionRow = constDb.prepare(
+    `SELECT tree_snapshot_json FROM constellation_sessions WHERE id = ?`,
+  ).get(constellationSessionId) as { tree_snapshot_json: string | null } | undefined
+
+  let topology: any = null
+  if (sessionRow?.tree_snapshot_json) {
+    try {
+      const tree = JSON.parse(sessionRow.tree_snapshot_json)
+      topology = tree.topology
+    } catch {
+      // Malformed JSON — skip
+    }
+  }
+
+  // Read topology events for dynamics analysis
+  const topologyEvents = constDb.prepare(
+    `SELECT type, entity, message, data_json, timestamp
+     FROM constellation_events
+     WHERE session_id = ? AND type LIKE 'topology:%'
+     ORDER BY timestamp`,
+  ).all(constellationSessionId) as Array<{
+    type: string
+    entity: string | null
+    message: string
+    data_json: string | null
+    timestamp: number
+  }>
+
+  // If no topology data at all, topology wasn't active
+  if (!topology && topologyEvents.length === 0) return undefined
+
+  const eventCount = topologyEvents.length
+  const updateEvents = topologyEvents.filter(e => e.type === 'topology:updated')
+
+  // Parse final snapshot data
+  const positions: any[] = topology?.positions ?? []
+  const links: any[] = topology?.links ?? []
+  const clusters: any[] = topology?.clusters ?? []
+  const distances: Record<string, Record<string, number>> = topology?.distances ?? {}
+  const tickCount = topology?.tickCount ?? 0
+
+  // Compute cluster metrics
+  const clusterMetrics: ClusterMetric[] = clusters.map((c: any) => ({
+    clusterId: c.clusterId,
+    memberCount: c.members?.length ?? 0,
+    mergeDepth: c.effectiveMergeDepth ?? 'shallow',
+    averageInternalDistance: c.averageInternalDistance ?? 0,
+    stabilityScore: c.stabilityScore ?? 0,
+    ticksStable: c.ticksStable ?? 0,
+  }))
+
+  // Compute link dynamics from events
+  const linkFormed = topologyEvents.filter(e => e.type === 'topology:link_formed').length
+  const linkDissolved = topologyEvents.filter(e => e.type === 'topology:link_dissolved').length
+  const totalTopologyTime = updateEvents.length > 1
+    ? (updateEvents[updateEvents.length - 1].timestamp - updateEvents[0].timestamp) / 1000
+    : 0
+  const formationRate = totalTopologyTime > 0 ? linkFormed / totalTopologyTime : 0
+  const dissolutionRate = totalTopologyTime > 0 ? linkDissolved / totalTopologyTime : 0
+
+  // Average link lifetime (estimated from tick count and current link count)
+  const avgLifetime = links.length > 0
+    ? links.reduce((sum: number, l: any) => sum + (l.stabilityTicks ?? 0), 0) / links.length
+    : 0
+
+  // Compute spatial convergence
+  const distanceValues: number[] = []
+  for (const outerKey of Object.keys(distances)) {
+    for (const innerKey of Object.keys(distances[outerKey])) {
+      if (outerKey !== innerKey) {
+        distanceValues.push(distances[outerKey][innerKey])
+      }
+    }
+  }
+  const averageDistance = distanceValues.length > 0
+    ? distanceValues.reduce((a, b) => a + b, 0) / distanceValues.length
+    : 0
+
+  const totalBranches = positions.length
+  const clusteredBranches = new Set(clusters.flatMap((c: any) => c.members ?? []))
+  const clusterCoverage = totalBranches > 0 ? clusteredBranches.size / totalBranches : 0
+
+  // Detect topology-specific patterns
+  const topoPatterns: TopologyPattern[] = []
+
+  // Pattern: No topology ticks
+  if (tickCount === 0 && positions.length > 0) {
+    topoPatterns.push({
+      name: 'topology_inactive',
+      severity: 'warning',
+      description: 'Topology was initialized but never ticked — no spatial coordination occurred.',
+      evidence: `${positions.length} positions registered, 0 ticks processed.`,
+    })
+  }
+
+  // Pattern: No clusters formed
+  if (tickCount > 5 && clusters.length === 0 && positions.length >= 2) {
+    topoPatterns.push({
+      name: 'no_clustering',
+      severity: 'info',
+      description: 'No clusters formed despite multiple branches — branches worked on distinct topics.',
+      evidence: `${tickCount} ticks, ${positions.length} branches, 0 clusters. Average distance: ${averageDistance.toFixed(2)}.`,
+    })
+  }
+
+  // Pattern: High link churn
+  if (linkFormed > 0 && dissolutionRate > formationRate * 0.5) {
+    topoPatterns.push({
+      name: 'link_churn',
+      severity: 'warning',
+      description: 'High link dissolution rate — branches repeatedly approached then diverged.',
+      evidence: `${linkFormed} links formed, ${linkDissolved} dissolved. Formation: ${formationRate.toFixed(3)}/s, Dissolution: ${dissolutionRate.toFixed(3)}/s.`,
+    })
+  }
+
+  // Pattern: Single mega-cluster (all branches in one cluster)
+  if (clusters.length === 1 && clusterCoverage > 0.8) {
+    topoPatterns.push({
+      name: 'mega_cluster',
+      severity: 'warning',
+      description: 'All branches converged into a single cluster — goal decomposition may be too narrow.',
+      evidence: `${clusteredBranches.size}/${totalBranches} branches in cluster "${clusters[0].clusterId}". Average distance: ${averageDistance.toFixed(2)}.`,
+    })
+  }
+
+  // Pattern: Good spatial diversity
+  if (clusters.length >= 2 && clusterCoverage > 0.6) {
+    topoPatterns.push({
+      name: 'good_spatial_diversity',
+      severity: 'info',
+      description: 'Branches formed multiple distinct clusters — goal was well-decomposed across different aspects.',
+      evidence: `${clusters.length} clusters covering ${Math.round(clusterCoverage * 100)}% of branches.`,
+    })
+  }
+
+  // Pattern: Unstable clusters (low stability score)
+  const unstableClusters = clusterMetrics.filter(c => c.stabilityScore < 0.3 && c.ticksStable < 3)
+  if (unstableClusters.length > 0) {
+    topoPatterns.push({
+      name: 'unstable_clusters',
+      severity: 'info',
+      description: 'Some clusters were unstable — branches were still in flux when the run completed.',
+      evidence: `${unstableClusters.length} cluster(s) with stability < 0.3: ${unstableClusters.map(c => c.clusterId).join(', ')}.`,
+    })
+  }
+
+  return {
+    enabled: true,
+    totalTicks: tickCount,
+    clusterCount: clusters.length,
+    linkCount: links.length,
+    eventCount,
+    clusters: clusterMetrics,
+    linkDynamics: {
+      formationRate,
+      dissolutionRate,
+      averageLifetimeTicks: avgLifetime,
+    },
+    convergence: {
+      averageDistance,
+      clusterCoverage,
+      converged: clusterCoverage > 0.5 && averageDistance < 2.0,
+    },
+    patterns: topoPatterns,
   }
 }
 
@@ -935,6 +1194,21 @@ function generateRecommendations(
       case 'reviewer_escalations':
         recs.push(
           'High-severity reviewer nudges indicate the agent went idle. Tighten idle detection or lower the escalation threshold.',
+        )
+        break
+      case 'topology_topology_inactive':
+        recs.push(
+          'Topology was initialized but never ran. Verify embedding service is available and digests are being published.',
+        )
+        break
+      case 'topology_link_churn':
+        recs.push(
+          'High link dissolution suggests branches are exploring neighboring topics then diverging. Consider using tighter link thresholds or longer stability requirements.',
+        )
+        break
+      case 'topology_mega_cluster':
+        recs.push(
+          'All branches converged into one cluster. Consider decomposing the goal into more distinct sub-tasks, or increasing repulsion strength to encourage spatial diversity.',
         )
         break
     }

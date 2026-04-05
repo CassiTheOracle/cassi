@@ -256,6 +256,54 @@ export interface TopologySnapshot {
   snapshotAt: number
 }
 
+/**
+ * JSON-serializable version of TopologySnapshot.
+ * WHY: TopologySnapshot.distances is a Map<string, Map<string, number>> which
+ * doesn't survive JSON.stringify/parse. This type replaces it with a plain object
+ * for persistence to constellation_sessions.tree_snapshot_json.
+ */
+export interface SerializableTopologySnapshot {
+  positions: HelixPosition[]
+  links: TopologyLink[]
+  clusters: TopologyCluster[]
+  /** Pairwise distances as nested plain object (replaces Map) */
+  distances: Record<string, Record<string, number>>
+  tickCount: number
+  snapshotAt: number
+}
+
+/** Convert a TopologySnapshot to a JSON-serializable form */
+export function serializeTopologySnapshot(snap: TopologySnapshot): SerializableTopologySnapshot {
+  const distances: Record<string, Record<string, number>> = {}
+  for (const [outerKey, innerMap] of snap.distances) {
+    distances[outerKey] = Object.fromEntries(innerMap)
+  }
+  return {
+    positions: snap.positions,
+    links: snap.links,
+    clusters: snap.clusters,
+    distances,
+    tickCount: snap.tickCount,
+    snapshotAt: snap.snapshotAt,
+  }
+}
+
+/** Restore a TopologySnapshot from its serialized form */
+export function deserializeTopologySnapshot(data: SerializableTopologySnapshot): TopologySnapshot {
+  const distances = new Map<string, Map<string, number>>()
+  for (const [outerKey, innerObj] of Object.entries(data.distances)) {
+    distances.set(outerKey, new Map(Object.entries(innerObj)))
+  }
+  return {
+    positions: data.positions,
+    links: data.links,
+    clusters: data.clusters,
+    distances,
+    tickCount: data.tickCount,
+    snapshotAt: data.snapshotAt,
+  }
+}
+
 
 // Defaults
 

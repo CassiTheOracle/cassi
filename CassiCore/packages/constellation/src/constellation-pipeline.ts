@@ -50,6 +50,7 @@ import { DecompositionTracker } from './decomposition-tracker.js'
 import { ConstellationWorktreeIsolation } from './worktree-isolation.js'
 import { TopologyGraph } from './topology/topology-graph.js'
 import { BrainstemBridge } from './topology/brainstem-bridge.js'
+import { serializeTopologySnapshot } from './topology/topology-types.js'
 import type { EmbeddingService } from '../embeddings/embedding-service.js'
 
 // Constants
@@ -74,6 +75,23 @@ async function safeReadFile(path: string, workspaceRoot: string): Promise<string
     return content
   } catch {
     return null
+  }
+}
+
+/**
+ * Enrich a CorpusTreeSnapshot with the current topology state.
+ * WHY: CorpusTree doesn't know about topology — it's a pipeline-level concern.
+ * We attach the serialized topology here before persisting to the store.
+ */
+function enrichTreeWithTopology(
+  tree: import('./corpus-types.js').CorpusTreeSnapshot,
+  topology: TopologyGraph | null | undefined,
+): import('./corpus-types.js').CorpusTreeSnapshot {
+  if (!topology?.enabled) return tree
+  try {
+    return { ...tree, topology: serializeTopologySnapshot(topology.getSnapshot()) }
+  } catch {
+    return tree
   }
 }
 
@@ -398,6 +416,15 @@ export async function runConstellationPipeline(
       logger,
       eventBus,
       bridge: brainstemBridge,
+      persistEvent: constellationStore
+        ? (type, entity, message, data) => {
+            try {
+              constellationStore.appendEvent(constellationId, type, entity, message, data)
+            } catch (err) {
+              log.warn('Topology event persistence failed', { type, error: String(err) })
+            }
+          }
+        : undefined,
     })
     topologyGraph.setConstellationId(constellationId)
 
@@ -1406,7 +1433,7 @@ export async function runConstellationPipeline(
           try {
             const nodeArr = Array.from(nodes.values())
             constellationStore.saveCheckpoint(constellationId, {
-              tree: corpusTree.getSnapshot(),
+              tree: enrichTreeWithTopology(corpusTree.getSnapshot(), topologyGraph),
               progress: {
                 markdown: `Cancelled: ${nodeArr.length} nodes at cancellation time`,
                 data: {
@@ -1515,7 +1542,7 @@ export async function runConstellationPipeline(
           )
 
           constellationStore.saveCheckpoint(constellationId, {
-            tree: corpusTree.getSnapshot(),
+            tree: enrichTreeWithTopology(corpusTree.getSnapshot(), topologyGraph),
             progress: corpus.getProgressSnapshot(),
             sweepCount: corpus.getResult().sweepCount,
             totalBranches: nodeArr.length,
@@ -1554,7 +1581,7 @@ export async function runConstellationPipeline(
         try {
           const nodeArr = Array.from(nodes.values())
           constellationStore.saveCheckpoint(constellationId, {
-            tree: corpusTree.getSnapshot(),
+            tree: enrichTreeWithTopology(corpusTree.getSnapshot(), topologyGraph),
             progress: corpus.getProgressSnapshot(),
             sweepCount: corpus.getResult().sweepCount,
             totalBranches: nodeArr.length,
@@ -1678,6 +1705,7 @@ export async function runConstellationPipeline(
       corpus: corpus.getResult(),
       spawnRequests: [],
       decompositionTracker: tracker?.getSnapshot(),
+      topology: topologyGraph?.enabled ? topologyGraph.getSnapshot() : undefined,
     }
 
     eventBus?.emit({
@@ -1713,7 +1741,7 @@ export async function runConstellationPipeline(
     if (constellationStore) {
       try {
         const corpusResult = corpus.getResult()
-        const treeSnapshot = corpusTree.getSnapshot()
+        const treeSnapshot = enrichTreeWithTopology(corpusTree.getSnapshot(), topologyGraph)
         const progressSnapshot: ProgressSnapshot = {
           markdown: `Constellation completed: ${nodes.size} nodes, ${result.totalDurationMs}ms`,
           data: {
@@ -1853,6 +1881,7 @@ export async function runConstellationPipeline(
       corpus: corpus.getResult(),
       spawnRequests: [],
       decompositionTracker: tracker?.getSnapshot(),
+      topology: topologyGraph?.enabled ? topologyGraph.getSnapshot() : undefined,
       error: String(err),
     }
 
@@ -1869,7 +1898,7 @@ export async function runConstellationPipeline(
     // Archive failure to ConstellationStore (if provided)
     if (constellationStore) {
       try {
-        const failTree = corpusTree.getSnapshot()
+        const failTree = enrichTreeWithTopology(corpusTree.getSnapshot(), topologyGraph)
         const nodeArr = Array.from(nodes.values())
         constellationStore.failSession(constellationId, String(err), Date.now() - startTime, {
           tree: failTree,

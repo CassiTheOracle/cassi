@@ -422,6 +422,8 @@ export interface CorpusTreeSnapshot {
   retrospectives: StrategyRetrospective[]
   elevatedPatterns: ElevatedPattern[]
   effectivenessRecords: EffectivenessRecord[]
+  /** Topology spatial state — positions, links, clusters. Present when topology is enabled. */
+  topology?: import('./topology/topology-types.js').SerializableTopologySnapshot
 }
 
 /**

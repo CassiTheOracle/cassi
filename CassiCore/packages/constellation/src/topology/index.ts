@@ -47,6 +47,7 @@ export type {
   TopologyCluster,
   TopologyGraphConfig,
   TopologySnapshot,
+  SerializableTopologySnapshot,
 } from './topology-types.js'
 
 export {
@@ -54,4 +55,6 @@ export {
   DEFAULT_GRAVITY_CONFIG,
   DEFAULT_LINK_CONFIG,
   DEFAULT_TOPOLOGY_CONFIG,
+  serializeTopologySnapshot,
+  deserializeTopologySnapshot,
 } from './topology-types.js'

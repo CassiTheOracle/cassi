@@ -770,6 +770,13 @@ export class Corpus {
           }
         }
 
+        // WHY: Topology patterns need automatic action regardless of LLM health.
+        // The LLM analysis includes patterns in its prompt but doesn't reliably
+        // issue directives for spatial patterns. Act on them directly.
+        if (newPatterns.length > 0) {
+          this.actOnTopologyPatterns(newPatterns)
+        }
+
         // Auto-spawn check: if a branch has received many interventions
         // without improvement, decompose its goal via spawn
         this.checkAutoSpawn()
@@ -1683,6 +1690,68 @@ export class Corpus {
       this.logger.info('Sent fallback directives (LLM unhealthy)', {
         patternCount: newPatterns.length,
         failureCount: this.llmFailureCount,
+      })
+    }
+  }
+
+  /**
+   * Act on topology-driven patterns automatically.
+   * WHY: Topology patterns (redundancy, cluster-escalated conflicts) require spatial
+   * awareness that the LLM prompt alone doesn't surface reliably. Rather than hoping
+   * the LLM calls send_directive for these, we issue directives directly — similar
+   * to how budget interventions work. This runs regardless of LLM health.
+   *
+   * HOW: For each un-acted topology pattern, we pick the lowest-scoring branch
+   * in the group and redirect it. This is a conservative strategy: we don't
+   * cancel branches, we nudge the weakest one to pivot.
+   */
+  private actOnTopologyPatterns(newPatterns: CrossHelixPattern[]): void {
+    const topologyPatternTypes = new Set(['redundancy'])
+    let actedCount = 0
+
+    for (const pattern of newPatterns) {
+      if (pattern.actedUpon) continue
+      if (!topologyPatternTypes.has(pattern.type)) continue
+      if (pattern.helixIds.length < 2) continue
+
+      // Find the lowest-scoring active branch in the pattern group
+      let weakest: { helixId: string; score: number } | undefined
+      for (const helixId of pattern.helixIds) {
+        const assessment = this.state.branchAssessments.get(helixId)
+        if (!assessment || assessment.status === 'completed' || assessment.status === 'failed') continue
+        const score = assessment.rollingScore
+        if (!weakest || score < weakest.score) {
+          weakest = { helixId, score }
+        }
+      }
+
+      if (!weakest) continue
+
+      // Only act if the weakest branch has a meaningfully lower score than the strongest
+      const scores = pattern.helixIds
+        .map(id => this.state.branchAssessments.get(id)?.rollingScore ?? 0.5)
+      const maxScore = Math.max(...scores)
+      if (maxScore - weakest.score < 0.15) continue
+
+      this.sendDirective({
+        targetHelixId: weakest.helixId,
+        type: 'redirect',
+        urgency: 'medium',
+        reason: `Topology ${pattern.type}: ${pattern.description}`,
+        text: pattern.type === 'redundancy'
+          ? `Another branch in your cluster is doing similar work with better results (score ${maxScore.toFixed(2)} vs yours ${weakest.score.toFixed(2)}). Pivot to a different aspect of the problem — explore an angle they haven't covered, or focus on testing/review instead of implementation.`
+          : `Topology pattern "${pattern.type}" detected. Consider adjusting your approach to reduce overlap with nearby branches.`,
+        fromPattern: pattern.type,
+        timestamp: Date.now(),
+      })
+
+      actedCount++
+    }
+
+    if (actedCount > 0) {
+      this.logger.info('Acted on topology patterns', {
+        acted: actedCount,
+        total: newPatterns.filter(p => topologyPatternTypes.has(p.type)).length,
       })
     }
   }

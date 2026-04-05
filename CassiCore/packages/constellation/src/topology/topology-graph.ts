@@ -37,6 +37,8 @@ export interface TopologyGraphDeps {
   eventBus?: IEventBus
   config?: TopologyGraphConfig
   bridge?: BrainstemBridge
+  /** Callback to persist topology events to the ConstellationStore audit trail */
+  persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
 }
 
 export class TopologyGraph {
@@ -48,6 +50,7 @@ export class TopologyGraph {
   private config: TopologyGraphConfig
   private logger: ILogger
   private eventBus?: IEventBus
+  private persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
   private activeHelixIds = new Set<string>()
   private constellationId?: string
   /** Snapshot of link states before each evaluation, for diff detection */
@@ -60,6 +63,7 @@ export class TopologyGraph {
     this.logger = deps.logger.child?.('topology-graph') ?? deps.logger
     this.eventBus = deps.eventBus
     this.bridge = deps.bridge
+    this.persistEvent = deps.persistEvent
 
     this.embeddingCache = new TopologyEmbeddingCache(deps.embeddingService, this.logger)
 
@@ -309,19 +313,41 @@ export class TopologyGraph {
   }
 
   private emitTopologyUpdate(helixId: string): void {
-    if (!this.eventBus || !this.constellationId) return
-    try {
-      void this.eventBus.emit({
-        type: 'topology:updated',
-        constellationId: this.constellationId,
-        helixId,
-        tickCount: this.gravityEngine.getTickCount(),
-        linkCount: this.linkManager.getAllLinks().length,
-        clusterCount: this.clusterTracker.getAllClusters().length,
-        timestamp: new Date(),
-      })
-    } catch (_err) {
-      // Event emission is best-effort
+    if (!this.constellationId) return
+
+    const eventData = {
+      helixId,
+      tickCount: this.gravityEngine.getTickCount(),
+      linkCount: this.linkManager.getAllLinks().length,
+      clusterCount: this.clusterTracker.getAllClusters().length,
+    }
+
+    // Emit to EventBus for live subscribers
+    if (this.eventBus) {
+      try {
+        void this.eventBus.emit({
+          type: 'topology:updated',
+          constellationId: this.constellationId,
+          ...eventData,
+          timestamp: new Date(),
+        })
+      } catch (_err) {
+        // Event emission is best-effort
+      }
+    }
+
+    // Persist to ConstellationStore for audit trail
+    if (this.persistEvent) {
+      try {
+        this.persistEvent(
+          'topology:updated',
+          helixId,
+          `Topology tick ${eventData.tickCount}: ${eventData.linkCount} links, ${eventData.clusterCount} clusters`,
+          eventData,
+        )
+      } catch (_err) {
+        // Persistence is best-effort
+      }
     }
   }
 }
