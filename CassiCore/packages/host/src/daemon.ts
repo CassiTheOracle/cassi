@@ -207,6 +207,8 @@ export class Daemon {
    public sessionDigestStore?: SessionDigestStore
     /** Background embedding pre-computation worker. */
    public bgEmbeddingWorker?: import('./intelligence/embeddings/background-worker.js').BackgroundEmbeddingWorker
+   /** Background tagger worker for autonomous LLM annotation. */
+   public bgTaggerWorker?: import('./intelligence/training/background-tagger-worker.js').BackgroundTaggerWorker
    /** Embedding stack launcher (auto-starts llama.cpp + zerank servers). */
     public embeddingStackLauncher?: import('./intelligence/embeddings/inference-stack-launcher.js').InferenceStackLauncher
   /** Loaded provider map — available after daemon start(). */
@@ -363,6 +365,26 @@ export class Daemon {
       }
     } else {
       this.logger.info('BackgroundEmbeddingWorker disabled by config')
+    }
+
+    const backgroundTaggerEnabled = this.config.get<boolean>('intelligence.backgroundTagger.enabled', false)
+    if (backgroundTaggerEnabled) {
+      try {
+        const sdkProvider = this.providers.get('copilot-sdk')
+        const warehouse = (this as any).intelligence?.training
+        if (sdkProvider && warehouse?.store) {
+          const { BackgroundTaggerWorker } = await import('./intelligence/training/background-tagger-worker.js')
+          this.bgTaggerWorker = new BackgroundTaggerWorker(warehouse.store, sdkProvider, this.logger)
+          this.bgTaggerWorker.start()
+          this.logger.info('BackgroundTaggerWorker started after readiness')
+        } else {
+          this.logger.warn('BackgroundTaggerWorker: missing copilot-sdk provider or training warehouse')
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to start BackgroundTaggerWorker: ${String(err)}`)
+      }
+    } else {
+      this.logger.info('BackgroundTaggerWorker disabled by config')
     }
 
     this.logger.info('Deferred startup completed', {
@@ -1969,6 +1991,7 @@ export class Daemon {
           bus: this.bus,
           logger: this.logger.child?.('collect-thoughts') ?? this.logger,
           synapse,
+          constellationGuidanceRegistry: this.intelligence!.constellationGuidanceRegistry,
         }
       })() : undefined,
       getWorkflowEngine: () => this.workflowEngine ?? null,
@@ -2388,6 +2411,12 @@ export class Daemon {
             // Wire audit trail into Constellation orchestrator
             if (this.intelligence.constellationAuditTrail) {
               this.intelligence.constellation.setAuditTrail(this.intelligence.constellationAuditTrail)
+            }
+
+            // Wire Reasoning Bank into Constellation orchestrator so traces
+            // are available for ingestion/retrieval during pipeline runs
+            if (this.intelligence.reasoningBank) {
+              this.intelligence.constellation.setReasoningBank(this.intelligence.reasoningBank)
             }
 
             this.logger.info('Constellation tool access wired')
@@ -3514,6 +3543,11 @@ export class Daemon {
     // stop background embedding worker
     try {
       this.bgEmbeddingWorker?.stop()
+    } catch { /* ignore */ }
+
+    // stop background tagger worker
+    try {
+      this.bgTaggerWorker?.stop()
     } catch { /* ignore */ }
 
     // stop embedding stack child processes (llama.cpp + zerank)
