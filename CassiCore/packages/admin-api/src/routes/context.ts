@@ -433,11 +433,14 @@ export async function handleContextRoutes(
         : ''
 
       const systemPrompt =
-        'You are a context compaction assistant. Your job is to produce a detailed, ' +
+        'You are a context compaction assistant. Your job is to produce a thorough, ' +
         'structured summary of the conversation above that will serve as the starting ' +
         'context for the SAME agent continuing the SAME task. The summary replaces the ' +
         'full conversation history, so it must capture everything needed to continue ' +
         'working without loss of direction or context.\n\n' +
+        'You have a generous output budget — use it. Include code snippets, exact file ' +
+        'paths with line numbers, specific error messages, and detailed decision rationale. ' +
+        'A summary that loses critical implementation details is worse than a long one.\n\n' +
         'Structure your summary using exactly this template:\n' +
         '---\n' +
         '## Goal\n' +
@@ -480,7 +483,7 @@ export async function handleContextRoutes(
           [{ role: 'user', content: userMessage }],
           {
             model: COMPACTION_MODEL,
-            maxTokens: 4000,
+            maxTokens: 16_000,
             temperature: 0.2,
             thinking: 'none',
             systemPrompt,
