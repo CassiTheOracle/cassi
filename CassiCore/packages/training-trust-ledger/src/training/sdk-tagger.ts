@@ -364,6 +364,21 @@ export class SdkTagger {
       ? `AND o.object_type IN (${types.map(() => '?').join(',')})`
       : ''
 
+    // WHY: Filter at SQL level for objects that have extractable content meeting the
+    // minimum length. Without the length check, the over-select may grab only short-
+    // content objects (e.g., memory chunks with 5-char text), causing get_batch to
+    // return empty even when countUntagged reports hundreds remaining.
+    const minLen = minContentLength
+    const contentExistsFilter = `
+      AND (
+        EXISTS (SELECT 1 FROM messages m WHERE m.object_id = o.object_id AND length(m.content_text) >= ${minLen})
+        OR EXISTS (SELECT 1 FROM chunks c WHERE c.object_id = o.object_id AND length(c.text) >= ${minLen})
+        OR EXISTS (SELECT 1 FROM reasoning_steps rs WHERE rs.object_id = o.object_id AND length(rs.content) >= ${minLen})
+        OR EXISTS (SELECT 1 FROM reasoning_traces rt WHERE rt.object_id = o.object_id AND (length(rt.synthesis) >= ${minLen} OR length(rt.decision) >= ${minLen}))
+        OR EXISTS (SELECT 1 FROM events e WHERE e.object_id = o.object_id)
+      )
+    `
+
     const sql = `
       SELECT o.object_id, o.object_type, o.subtype
       FROM objects o
@@ -373,13 +388,14 @@ export class SdkTagger {
           SELECT 1 FROM object_labels ol
           WHERE ol.object_id = o.object_id AND ol.source = 'llm'
         )
+        ${contentExistsFilter}
       ORDER BY o.created_at DESC
       LIMIT ?
     `
 
     const params: unknown[] = []
     if (types?.length) params.push(...types)
-    params.push(limit * 2) // over-select to compensate for content filtering
+    params.push(limit * 2)
 
     const candidates = this.store.db.prepare(sql).all(...params) as Array<{
       object_id: string; object_type: string; subtype: string | null
@@ -403,46 +419,74 @@ export class SdkTagger {
     return results
   }
 
+  // WHY: Content extraction is type-aware, not scope-aware. Each object type
+  // stores content in a different table. We try the type-specific source first,
+  // then fall back to chunks, then to any available source.
   private extractContent(
     candidate: { object_id: string; object_type: string },
-    scope: string,
+    _scope: string,
   ): string | null {
-    if (scope === 'chunk') {
-      const chunk = this.store.db.prepare(
-        `SELECT text FROM chunks WHERE object_id = ? OR chunk_id = ? LIMIT 1`,
-      ).get(candidate.object_id, candidate.object_id) as { text: string } | undefined
-      return chunk?.text || null
+    const { object_id, object_type } = candidate
+
+    // Type-specific extraction
+    switch (object_type) {
+      case 'message': {
+        const msg = this.store.db.prepare(
+          `SELECT content_text FROM messages WHERE object_id = ? LIMIT 1`,
+        ).get(object_id) as { content_text: string } | undefined
+        if (msg?.content_text) return msg.content_text
+        break
+      }
+      case 'reasoning_step': {
+        const step = this.store.db.prepare(
+          `SELECT content FROM reasoning_steps WHERE object_id = ? LIMIT 1`,
+        ).get(object_id) as { content: string } | undefined
+        if (step?.content) return step.content
+        break
+      }
+      case 'reasoning_trace': {
+        const trace = this.store.db.prepare(
+          `SELECT synthesis, decision FROM reasoning_traces WHERE object_id = ? LIMIT 1`,
+        ).get(object_id) as { synthesis: string | null; decision: string | null } | undefined
+        if (trace) {
+          const parts = [trace.synthesis, trace.decision].filter(Boolean)
+          if (parts.length) return parts.join('\n\n')
+        }
+        break
+      }
+      case 'event': {
+        const evt = this.store.db.prepare(
+          `SELECT event_type, event_subtype, content_json FROM events WHERE object_id = ? LIMIT 1`,
+        ).get(object_id) as { event_type: string; event_subtype: string | null; content_json: string | null } | undefined
+        if (evt) {
+          const header = `[${evt.event_type}${evt.event_subtype ? ':' + evt.event_subtype : ''}]`
+          return evt.content_json ? `${header} ${evt.content_json}` : header
+        }
+        break
+      }
+      case 'turn': {
+        const msgs = this.store.db.prepare(
+          `SELECT role, content_text FROM messages WHERE turn_id = ? ORDER BY sequence`,
+        ).all(object_id) as Array<{ role: string; content_text: string }>
+        if (msgs.length) return msgs.map(m => `[${m.role}] ${m.content_text || ''}`).join('\n\n')
+        break
+      }
+      case 'session': {
+        const turns = this.store.db.prepare(`
+          SELECT t.sequence, t.role, m.content_text
+          FROM turns t LEFT JOIN messages m ON m.turn_id = t.object_id
+          WHERE t.session_id = ? ORDER BY t.sequence, m.sequence
+        `).all(object_id) as Array<{ sequence: number; role: string; content_text: string }>
+        if (turns.length) return turns.map(t => `[Turn ${t.sequence} - ${t.role}] ${t.content_text || ''}`).join('\n\n')
+        break
+      }
+      // memory, insight, pattern, artifact — no dedicated text column
     }
 
-    if (scope === 'message') {
-      const msg = this.store.db.prepare(
-        `SELECT content_text FROM messages WHERE object_id = ? LIMIT 1`,
-      ).get(candidate.object_id) as { content_text: string } | undefined
-      return msg?.content_text || null
-    }
-
-    if (scope === 'turn') {
-      const msgs = this.store.db.prepare(
-        `SELECT role, content_text FROM messages WHERE turn_id = ? ORDER BY sequence`,
-      ).all(candidate.object_id) as Array<{ role: string; content_text: string }>
-      if (!msgs.length) return null
-      return msgs.map(m => `[${m.role}] ${m.content_text || ''}`).join('\n\n')
-    }
-
-    if (scope === 'session') {
-      const turns = this.store.db.prepare(`
-        SELECT t.sequence, t.role, m.content_text
-        FROM turns t LEFT JOIN messages m ON m.turn_id = t.object_id
-        WHERE t.session_id = ? ORDER BY t.sequence, m.sequence
-      `).all(candidate.object_id) as Array<{ sequence: number; role: string; content_text: string }>
-      if (!turns.length) return null
-      return turns.map(t => `[Turn ${t.sequence} - ${t.role}] ${t.content_text || ''}`).join('\n\n')
-    }
-
-    // Fallback: try chunks
+    // Fallback: try chunks (works for memory, insight, and any object with chunked content)
     const chunks = this.store.db.prepare(
       `SELECT text FROM chunks WHERE object_id = ? ORDER BY sequence`,
-    ).all(candidate.object_id) as Array<{ text: string }>
+    ).all(object_id) as Array<{ text: string }>
     if (chunks.length) return chunks.map(c => c.text).join('\n\n')
 
     return null
