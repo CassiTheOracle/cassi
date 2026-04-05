@@ -15,7 +15,7 @@ const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 export const CORE_TOOLS = [
   {
     name: 'bash',
-    description: 'Execute bash commands with timeout and output capture. Use for file operations, running tests, git commands, etc.',
+    description: 'Execute bash commands with timeout and output capture. Use for running tests, git commands, build commands, and system operations. For reading/writing/editing files, prefer cassi_file or the dedicated read/write/edit tools instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -37,7 +37,7 @@ export const CORE_TOOLS = [
   },
   {
     name: 'read',
-    description: 'Read a file from the filesystem. Returns content, size, and metadata.',
+    description: 'Read a file from the filesystem. Returns content, size, and metadata. Use for quick single-file reads. For advanced file operations (regex search, directory listing, pagination through large files), use cassi_file instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -51,7 +51,7 @@ export const CORE_TOOLS = [
   },
   {
     name: 'write',
-    description: 'Write content to a file. Creates parent directories if needed.',
+    description: 'Write content to a file. Creates parent directories if needed. Use for creating new files or fully overwriting existing ones. For partial text replacement within a file, use the edit tool or cassi_file with action=edit instead.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -69,7 +69,7 @@ export const CORE_TOOLS = [
   },
   {
     name: 'edit',
-    description: 'Edit a file by replacing old text with new text. Fails if old text not found.',
+    description: 'Edit a file by replacing old text with new text. Fails if old text not found. Use for targeted text replacements within a file. For regex-based replacements or multi-occurrence edits, use cassi_file with action=edit and mode=regex.',
     inputSchema: {
       type: 'object',
       properties: {

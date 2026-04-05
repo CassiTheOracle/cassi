@@ -23,7 +23,7 @@ function getSerenaOnboarding(logger: ILogger): SerenaAutoOnboarding {
  */
 export const FILESYSTEM_CONSOLIDATED_TOOL = {
   name: 'file',
-  description: 'Filesystem operations — read, write, edit, list, find, and search files. Use action parameter to select operation.',
+  description: 'Filesystem operations — read, write, edit, list, find, and search files. Use action parameter to select operation.\n\nUse this tool for direct file I/O: reading file contents (read), writing/creating files (write), replacing text in files (edit), browsing directories (list), finding files by name pattern (find), or searching file contents by regex (search). For code-level operations like symbol lookup, impact analysis, or knowledge graph queries, use cassi_code instead.\n\nCommon actions: read (get file contents with optional offset pagination), edit (find-and-replace text, supports literal or regex mode), search (regex search across files with glob filters), list (directory listing with optional recursion).',
   inputSchema: {
     type: 'object',
     properties: {

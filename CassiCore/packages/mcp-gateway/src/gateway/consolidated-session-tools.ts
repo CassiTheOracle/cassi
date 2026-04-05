@@ -15,7 +15,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const SESSION_CONSOLIDATED_TOOL = {
   name: 'session',
-  description: 'Session management — list, inspect, prune, export, and index operations. Use action parameter to select operation.',
+  description: 'Session management — list, inspect, prune, export, and index operations. Use action parameter to select operation.\n\nUse this tool when you need to inspect daemon sessions (list/detail), recover conversation history (conversation/export), or manage the session index for granular referencing (index/index_search). For routine context retrieval at turn start, prefer cassi_enrich instead.\n\nCommon actions: list (see active sessions), detail (inspect one session), index_search (full-text search across indexed sessions), prune (clean up old sessions).',
   inputSchema: {
     type: 'object',
     properties: {

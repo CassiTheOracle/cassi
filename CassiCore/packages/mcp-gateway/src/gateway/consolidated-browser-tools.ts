@@ -17,7 +17,7 @@ import type { ILogger } from '../../types/interfaces.js'
  */
 export const BROWSER_CONSOLIDATED_TOOL = {
   name: 'browser',
-  description: `Browser automation — navigate, interact, and extract data from web pages using Playwright.
+  description: `Browser automation — navigate, interact, and extract data from web pages using Playwright. Use this tool when you need interactive browser control: clicking buttons, filling forms, taking screenshots, or running JavaScript on pages. For simple URL content retrieval or web search, use cassi_web instead.
 
 IMPORTANT: Most actions require a 'ref' parameter — an element reference string (like "s1e2") obtained from a snapshot. Always call snapshot first to get refs, then use them for click/type/etc.
 

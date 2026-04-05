@@ -14,7 +14,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const MODEL_CONSOLIDATED_TOOL = {
   name: 'model',
-  description: 'Model/provider routing for LLM operations. Control which provider+model is used with layered scopes (next, next-job, session, job, default).',
+  description: 'Model/provider routing for LLM operations. Control which provider+model is used with layered scopes (next, next-job, session, job, default).\n\nUse this tool when you need to change which LLM model or provider is used for subsequent operations. Scopes layer from most specific to least: next (one-shot), next-job (per-slot), session (all jobs), job (specific team), default (persisted). Use tier shortcuts (sonnet, opus, background, etc.) for quick selection.\n\nCommon actions: set (route to a specific model/tier), get (see current routing), clear (remove routing overrides).',
   inputSchema: {
     type: 'object',
     properties: {

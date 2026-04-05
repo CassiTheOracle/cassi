@@ -17,7 +17,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const MEMORY_CONSOLIDATED_TOOL = {
   name: 'memory',
-  description: 'Memory operations — store, search, KV operations, archive access, and universal search. Use action parameter to select operation.',
+  description: 'Memory operations — store, search, KV operations, archive access, and universal search. Use action parameter to select operation.\n\nUse this tool when you need to persist facts, preferences, or insights across sessions (store), retrieve stored knowledge (search), or access the conversation archive. For turn-start context retrieval, prefer cassi_enrich instead — it searches memory, archive, AND session history in one call.\n\nCommon actions: store (save a fact/preference), search (find stored memories by query), universal_search (search both memory and archive at once), kv_set/kv_get (fast key-value cache for structured data).',
   inputSchema: {
     type: 'object',
     properties: {

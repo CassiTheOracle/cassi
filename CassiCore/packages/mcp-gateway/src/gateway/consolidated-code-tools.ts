@@ -33,7 +33,7 @@ function getSerenaOnboarding(logger: ILogger): SerenaAutoOnboarding {
  */
 export const CODE_CONSOLIDATED_TOOL = {
   name: 'code',
-  description: 'Code intelligence operations — query code knowledge graph, analyze symbol context, assess impact, detect dead code, find hotspots, analyze cochange patterns, prepare context for tasks, score specificity, introspect database schemas, and perform code modifications. Use action parameter to select operation.',
+  description: 'Code intelligence operations — query the knowledge graph, analyze symbols, assess blast radius, detect dead code, find hotspots, and perform code modifications. Use action parameter to select operation.\n\nUse this tool for code understanding (query/context), safety analysis before edits (impact), codebase health (dead_code/hotspots/cochange), context assembly for delegation (prepare_context/specificity), and symbol-level code edits (symbol/refs/replace_symbol/insert_after). For simple text search or file reads, prefer cassi_file instead. For full-text pattern search in code, use search_pattern action here or cassi_file with action=search.\n\nCommon actions: query (find code by concept), context (360-degree view of a symbol), impact (blast radius before editing), prepare_context (assemble context for delegation), search_pattern (regex search across codebase).',
   inputSchema: {
     type: 'object',
     properties: {

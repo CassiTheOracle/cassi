@@ -14,7 +14,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const CONFIG_CONSOLIDATED_TOOL = {
   name: 'config',
-  description: 'Configuration management — get/set config, list providers, view metrics. Use action parameter to select operation.',
+  description: 'Configuration management — get/set config, list providers, view metrics. Use action parameter to select operation.\n\nUse this tool when you need to read or modify CassiCore runtime configuration (get/set), check provider health and quotas (providers), view aggregated performance metrics (provider_metrics), or manage individual provider settings (provider_config). Config changes are hot-reloaded.\n\nCommon actions: get (read a config value), set (change a config value), providers (list providers with health), provider_metrics (latency and error rates per model).',
   inputSchema: {
     type: 'object',
     properties: {

@@ -18,7 +18,7 @@ import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/in
  */
 export const INTELLIGENCE_CONSOLIDATED_TOOL = {
   name: 'intelligence',
-  description: 'Intelligence layer introspection — activity, thinker, subconscious, dialectic, trust, and more. Use action parameter to select operation.',
+  description: 'Intelligence layer introspection — activity, thinker, subconscious, dialectic, trust, and more. Use action parameter to select operation.\n\nUse this tool when you need to understand what the intelligence layer is doing (activity), inspect cognitive state (thinker/subconscious), trace why a response was shaped a certain way (trace), check trust scores (trust), or introspect database schemas (schema). For context feedback after delegated work, use the context_feedback action.\n\nCommon actions: activity (high-level dashboard), schema (database introspection), trust (permission/autonomy scores), trace (forensic turn analysis), context_feedback (record whether assembled context helped).',
   inputSchema: {
     type: 'object',
     properties: {

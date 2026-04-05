@@ -14,7 +14,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const TRAINING_CONSOLIDATED_TOOL = {
   name: 'training',
-  description: 'Training warehouse operations — stats, search, objects, labels, quality, annotations, ingest, tag, export. Use action parameter to select operation.',
+  description: 'Training warehouse operations — stats, search, objects, labels, quality, annotations, ingest, tag, export. Use action parameter to select operation.\n\nUse this tool when you need to work with the training data pipeline: ingest operational data into the warehouse (ingest), search training chunks (search), apply LLM-generated labels and quality scores (tag), or export fine-tuning examples (export). This is a specialized tool for training data management, not general memory or archive access.\n\nCommon actions: stats (warehouse overview), search (full-text search over chunks), ingest (pull from operational DBs), export (generate fine-tuning examples).',
   inputSchema: {
     type: 'object',
     properties: {

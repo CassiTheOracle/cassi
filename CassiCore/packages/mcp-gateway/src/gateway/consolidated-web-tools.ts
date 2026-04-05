@@ -14,7 +14,7 @@ import type { ILogger } from '../../types/interfaces.js';
  */
 export const WEB_CONSOLIDATED_TOOL = {
   name: 'web',
-  description: 'Web operations — fetch content from URLs, search the web, or extract page text. Use action parameter to select operation.',
+  description: 'Web operations — fetch content from URLs, search the web, or extract page text. Use action parameter to select operation.\n\nUse this tool when you need to retrieve web content (fetch), search the internet for information (search), or extract readable text from a URL with pagination support (fetch_content). For browser automation with interactive elements (clicking, typing, screenshots), use cassi_browser instead.\n\nCommon actions: search (web search by query), fetch (get URL content as text), fetch_content (paginated text extraction from a URL).',
   inputSchema: {
     type: 'object',
     properties: {
