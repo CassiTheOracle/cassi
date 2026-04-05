@@ -44,6 +44,7 @@ export interface BackgroundWorkerStats {
   lastTickEmbedded: number
   archivesEmbedded: number
   memoriesEmbedded: number
+  trainingEmbedded: number
 }
 
 export class BackgroundEmbeddingWorker {
@@ -52,6 +53,7 @@ export class BackgroundEmbeddingWorker {
   private vecIdx: SqliteVectorIndex
   private archiveDb?: Database.Database
   private memoryDb?: Database.Database
+  private trainingDb?: Database.Database
 
   private timer: NodeJS.Timeout | null = null
   private running = false
@@ -68,6 +70,7 @@ export class BackgroundEmbeddingWorker {
     lastTickEmbedded: 0,
     archivesEmbedded: 0,
     memoriesEmbedded: 0,
+    trainingEmbedded: 0,
   }
 
   constructor(logger: ILogger) {
@@ -81,6 +84,7 @@ export class BackgroundEmbeddingWorker {
 
     this.openArchiveDb(dataDir)
     this.openMemoryDb(dataDir)
+    this.openTrainingDb(dataDir)
   }
 
   // LIFECYCLE
@@ -154,6 +158,14 @@ export class BackgroundEmbeddingWorker {
         this.stats.memoriesEmbedded += memoryResult.embedded
       }
 
+      // Phase 3: Embed un-embedded training objects
+      if (totalEmbedded < MAX_PER_TICK) {
+        const trainingResult = await this.embedTrainingObjects(MAX_PER_TICK - totalEmbedded)
+        totalEmbedded += trainingResult.embedded
+        totalErrors += trainingResult.errors
+        this.stats.trainingEmbedded += trainingResult.embedded
+      }
+
       // Update stats
       this.stats.totalEmbedded += totalEmbedded
       this.stats.totalErrors += totalErrors
@@ -187,20 +199,25 @@ export class BackgroundEmbeddingWorker {
     let errors = 0
 
     try {
-      // Get archive IDs that don't have vectors yet
-      const allIds = this.archiveDb.prepare(
+      // HOW: Collect IDs already in the vector index, then exclude them at the SQL level.
+      // This ensures we progress through all archives instead of stalling on the first N.
+      const existingIds = new Set(
+        this.vecIdx.listAll()
+          .filter((e: { id: string }) => e.id.startsWith('archive:'))
+          .map((e: { id: string }) => e.id.slice('archive:'.length))
+      )
+
+      // Get archive entries that don't have vectors yet
+      const allRows = this.archiveDb.prepare(
         `SELECT id, content FROM archives
          WHERE LENGTH(content) > 20
-         ORDER BY timestamp DESC
-         LIMIT ?`
-      ).all(MAX_PER_TICK * 2) as Array<{ id: string; content: string }>
+         ORDER BY timestamp DESC`
+      ).all() as Array<{ id: string; content: string }>
 
-      // Filter out entries that already have vectors
       const candidates: Array<{ id: string; content: string }> = []
-      for (const row of allIds) {
+      for (const row of allRows) {
         if (candidates.length >= MAX_PER_TICK) break
-        const vecId = `archive:${row.id}`
-        if (!this.vecIdx.hasVector(vecId)) {
+        if (!existingIds.has(row.id)) {
           candidates.push(row)
         } else {
           this.stats.totalSkipped++
@@ -259,19 +276,24 @@ export class BackgroundEmbeddingWorker {
     let errors = 0
 
     try {
+      // HOW: Collect existing vector IDs to skip, then scan the full memories table.
+      const existingIds = new Set(
+        this.vecIdx.listAll()
+          .filter((e: { id: string }) => e.id.startsWith('memory:'))
+          .map((e: { id: string }) => e.id.slice('memory:'.length))
+      )
+
       const allEntries = this.memoryDb.prepare(
         `SELECT id, content, context_prefix FROM memories
          WHERE LENGTH(content) > 20
-         ORDER BY created_at DESC
-         LIMIT ?`
-      ).all(limit * 2) as Array<{ id: string; content: string; context_prefix: string | null }>
+         ORDER BY created_at DESC`
+      ).all() as Array<{ id: string; content: string; context_prefix: string | null }>
 
       // Filter out entries that already have vectors
       const candidates: Array<{ id: string; content: string; context_prefix: string | null }> = []
       for (const row of allEntries) {
         if (candidates.length >= limit) break
-        const vecId = `memory:${row.id}`
-        if (!this.vecIdx.hasVector(vecId)) {
+        if (!existingIds.has(row.id)) {
           candidates.push(row)
         } else {
           this.stats.totalSkipped++
@@ -325,20 +347,88 @@ export class BackgroundEmbeddingWorker {
     return { embedded, errors }
   }
 
+  // TRAINING EMBEDDING
+
+  private async embedTrainingObjects(limit: number): Promise<{ embedded: number; errors: number }> {
+    if (!this.trainingDb) return { embedded: 0, errors: 0 }
+
+    let embedded = 0
+    let errors = 0
+
+    try {
+      // HOW: Find objects that don't have embeddings yet by LEFT JOINing with object_embeddings.
+      // Concatenate each object's chunk texts to form the embeddable document.
+      const candidates = this.trainingDb.prepare(`
+        SELECT o.object_id, GROUP_CONCAT(c.text, ' ') as combined_text
+        FROM objects o
+        JOIN chunks c ON c.object_id = o.object_id
+        LEFT JOIN object_embeddings oe ON oe.object_id = o.object_id
+        WHERE oe.object_id IS NULL
+        GROUP BY o.object_id
+        LIMIT ?
+      `).all(limit) as Array<{ object_id: string; combined_text: string }>
+
+      if (candidates.length === 0) return { embedded: 0, errors: 0 }
+
+      const modelId = 'local-embedding'
+
+      // Embed in batches
+      for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        if (!this.running) break
+        const batch = candidates.slice(i, i + BATCH_SIZE)
+        const texts = batch.map(c => (c.combined_text || '').slice(0, 2000))
+
+        try {
+          const vectors = await this.embSvc.embedBatch(texts, 'document')
+
+          for (let j = 0; j < batch.length; j++) {
+            const vec = vectors[j]
+            if (vec) {
+              this.trainingDb.prepare(`
+                INSERT OR REPLACE INTO object_embeddings
+                  (object_id, model_id, vector_json, dimensions, created_at)
+                VALUES (?, ?, ?, ?, ?)
+              `).run(
+                batch[j].object_id,
+                modelId,
+                JSON.stringify(vec),
+                vec.length,
+                Date.now(),
+              )
+              embedded++
+            }
+          }
+        } catch (err) {
+          errors++
+          this.logger.debug('BackgroundEmbeddingWorker: training batch failed', {
+            batchStart: i,
+            error: String(err),
+          })
+        }
+      }
+    } catch (err) {
+      this.logger.error('BackgroundEmbeddingWorker: training embedding failed', { error: String(err) })
+      errors++
+    }
+
+    return { embedded, errors }
+  }
+
   // DATABASE CONNECTIONS
 
   private openArchiveDb(dataDir: string): void {
-    const dbPath = path.join(dataDir, 'archives.db')
+    // WHY: The archives table lives in memory.db, not a separate archives.db.
+    const dbPath = path.join(dataDir, 'memory.db')
     if (!fs.existsSync(dbPath)) {
-      this.logger.debug('BackgroundEmbeddingWorker: archives.db not found, archive embedding disabled')
+      this.logger.debug('BackgroundEmbeddingWorker: memory.db not found, archive embedding disabled')
       return
     }
     try {
       this.archiveDb = new Database(dbPath, { readonly: true })
       this.archiveDb.pragma('busy_timeout = 3000')
-      this.logger.debug('BackgroundEmbeddingWorker: opened archives.db', { dbPath })
+      this.logger.debug('BackgroundEmbeddingWorker: opened memory.db for archives', { dbPath })
     } catch (err) {
-      this.logger.warn('BackgroundEmbeddingWorker: failed to open archives.db', { error: String(err) })
+      this.logger.warn('BackgroundEmbeddingWorker: failed to open memory.db for archives', { error: String(err) })
       this.archiveDb = undefined
     }
   }
@@ -356,6 +446,24 @@ export class BackgroundEmbeddingWorker {
     } catch (err) {
       this.logger.warn('BackgroundEmbeddingWorker: failed to open memory.db', { error: String(err) })
       this.memoryDb = undefined
+    }
+  }
+
+  private openTrainingDb(dataDir: string): void {
+    const dbPath = path.join(dataDir, 'training.db')
+    if (!fs.existsSync(dbPath)) {
+      this.logger.debug('BackgroundEmbeddingWorker: training.db not found, training embedding disabled')
+      return
+    }
+    try {
+      // WHY: Read-write because we insert into object_embeddings during backfill.
+      this.trainingDb = new Database(dbPath)
+      this.trainingDb.pragma('busy_timeout = 3000')
+      this.trainingDb.pragma('journal_mode = WAL')
+      this.logger.debug('BackgroundEmbeddingWorker: opened training.db', { dbPath })
+    } catch (err) {
+      this.logger.warn('BackgroundEmbeddingWorker: failed to open training.db', { error: String(err) })
+      this.trainingDb = undefined
     }
   }
 }

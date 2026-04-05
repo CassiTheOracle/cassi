@@ -139,10 +139,19 @@ export interface PrepareContextOptions {
 export interface SpecificityScore {
   /** Overall score 0–1 */
   score: number
-  /** Recommended context mode based on score */
+  /** Recommended context mode based on score (may be overridden by adaptive learning) */
   mode: 'full' | 'file_only' | 'skip'
   /** Signals that contributed to the score */
   signals: SpecificitySignal[]
+  /** Present when the Bayesian feedback tracker overrode the default mode. */
+  adaptiveOverride?: {
+    /** The mode the tracker recommended (same as `mode` above when active) */
+    originalMode: 'full' | 'file_only' | 'skip'
+    /** Confidence in the recommendation (0–1) */
+    confidence: number
+    /** Human-readable explanation */
+    reason: string
+  }
 }
 
 /** An individual signal in the specificity assessment. */

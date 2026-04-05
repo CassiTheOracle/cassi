@@ -8,12 +8,12 @@
  *  0.3–0.6 → file-level only (names + descriptions)
  *  < 0.3  → skip context injection entirely
  *
- * This prevents context pollution when queries are too vague to benefit
- * from code graph data (e.g., "improve the codebase" vs "fix the auth
- * validation in session-manager.ts:127").
+ * When a ContextFeedbackTracker is provided, Bayesian learning may override
+ * the hardcoded thresholds based on real-world feedback data.
  */
 
 import type { SpecificityScore, SpecificitySignal } from './types.js'
+import type { ContextFeedbackTracker } from './feedback-tracker.js'
 
 
 /** File path pattern: path/to/file.ext */
@@ -60,8 +60,12 @@ const FILE_ONLY_THRESHOLD = 0.3
 
 /**
  * Score the specificity of a task description.
+ *
+ * When a feedback tracker is provided and has sufficient data, the Bayesian
+ * model may override the default mode selection. The original (heuristic)
+ * mode is preserved in `adaptiveOverride.originalMode` for diagnostics.
  */
-export function scoreSpecificity(task: string): SpecificityScore {
+export function scoreSpecificity(task: string, feedbackTracker?: ContextFeedbackTracker): SpecificityScore {
   const signals: SpecificitySignal[] = []
   let score = 0
 
@@ -114,7 +118,7 @@ export function scoreSpecificity(task: string): SpecificityScore {
   // Clamp to [0, 1]
   score = Math.max(0, Math.min(1, score))
 
-  // Determine recommended mode
+  // Determine recommended mode (heuristic baseline)
   let mode: 'full' | 'file_only' | 'skip'
   if (score >= FULL_CONTEXT_THRESHOLD) {
     mode = 'full'
@@ -124,9 +128,25 @@ export function scoreSpecificity(task: string): SpecificityScore {
     mode = 'skip'
   }
 
+  // Adaptive override: if the feedback tracker has learned a better mode
+  // for this specificity range, use it instead of the hardcoded thresholds.
+  let adaptiveOverride: SpecificityScore['adaptiveOverride']
+  if (feedbackTracker) {
+    const recommendation = feedbackTracker.recommendMode(score)
+    if (recommendation && recommendation.mode !== mode) {
+      adaptiveOverride = {
+        originalMode: mode,
+        confidence: recommendation.confidence,
+        reason: recommendation.reason,
+      }
+      mode = recommendation.mode
+    }
+  }
+
   return {
     score: Math.round(score * 1000) / 1000,
     mode,
     signals,
+    adaptiveOverride,
   }
 }

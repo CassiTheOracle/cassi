@@ -255,4 +255,63 @@ export class ContextFeedbackTracker {
       // Best-effort
     }
   }
+
+  /**
+   * Recommend the best context mode for a given specificity score.
+   *
+   * HOW: For the specificity bucket (low/medium/high), compares the Bayesian
+   * mean effectiveness of each mode (full, file_only, skip). If enough data
+   * exists (MIN_SAMPLES_FOR_ADAPTIVE), returns the mode with the highest
+   * expected success rate. Otherwise returns null (caller should fall back
+   * to the hardcoded thresholds in scoreSpecificity).
+   *
+   * WHY: The hardcoded thresholds (0.6 → full, 0.3 → file_only) are initial
+   * guesses. Over time, the system learns from real feedback which modes
+   * actually help agents succeed for each specificity range. This closes the
+   * adaptive learning loop.
+   */
+  recommendMode(specificityScore: number): { mode: 'full' | 'file_only' | 'skip'; confidence: number; reason: string } | null {
+    const MIN_SAMPLES_FOR_ADAPTIVE = 5
+    const bucket = specificityScore < 0.3 ? 'low' : specificityScore < 0.6 ? 'medium' : 'high'
+
+    try {
+      const rows = this.db?.prepare(
+        'SELECT mode, alpha, beta, sample_count FROM context_mode_scores WHERE specificity_bucket = ?',
+      ).all(bucket) as any[] || []
+
+      if (rows.length === 0) return null
+
+      // Need enough total samples to be confident
+      const totalSamples = rows.reduce((sum: number, r: any) => sum + r.sample_count, 0)
+      if (totalSamples < MIN_SAMPLES_FOR_ADAPTIVE) return null
+
+      // Find the mode with the highest Bayesian mean
+      let bestMode: 'full' | 'file_only' | 'skip' = 'full'
+      let bestMean = 0
+      let bestSamples = 0
+
+      for (const r of rows) {
+        const mean = r.alpha / (r.alpha + r.beta)
+        if (mean > bestMean || (mean === bestMean && r.sample_count > bestSamples)) {
+          bestMode = r.mode as 'full' | 'file_only' | 'skip'
+          bestMean = mean
+          bestSamples = r.sample_count
+        }
+      }
+
+      // Confidence: how much better the best mode is vs the second best
+      const sortedMeans = rows.map((r: any) => r.alpha / (r.alpha + r.beta)).sort((a: number, b: number) => b - a)
+      const gap = sortedMeans.length > 1 ? sortedMeans[0] - sortedMeans[1] : 0.1
+      const confidence = Math.min(1, gap * 2 + (totalSamples / 50))
+
+      return {
+        mode: bestMode,
+        confidence: Math.round(confidence * 1000) / 1000,
+        reason: `Bayesian: ${bucket} specificity → ${bestMode} (mean=${bestMean.toFixed(3)}, n=${totalSamples})`,
+      }
+    } catch (err) {
+      this.logger.warn('Failed to recommend context mode', { error: String(err) })
+      return null
+    }
+  }
 }
