@@ -488,6 +488,16 @@ export class InferenceStackLauncher {
 
 
   /**
+   * Whether the GPU guard is currently blocking inference — either the initial
+   * start was deferred or running processes were unloaded due to external GPU usage.
+   * Callers (e.g. the background embedding worker) can check this to skip work early
+   * instead of discovering the dead server via HTTP timeout + circuit breaker.
+   */
+  get isGpuGuardBlocking(): boolean {
+    return this.gpuDeferred || this.gpuGuardUnloaded
+  }
+
+  /**
    * Ensure a managed process is running. If it was idle-unloaded, re-spawn
    * it and wait for health before returning. If already running, returns
    * immediately.

@@ -21,6 +21,7 @@ import path from 'path'
 import Database from 'better-sqlite3'
 
 import { getEmbeddingService } from './embedding-service.js'
+import { getInferenceStackLauncher } from './inference-stack-launcher.js'
 import { getVectorIndex } from './sqlite-index.js'
 
 import type { EmbeddingService } from './embedding-service.js'
@@ -135,6 +136,16 @@ export class BackgroundEmbeddingWorker {
     if (this.ticking || !this.running) return { embedded: 0, errors: 0 }
     if (!this.embSvc.available) {
       this.logger.debug('BackgroundEmbeddingWorker: embedding service unavailable, skipping tick')
+      return { embedded: 0, errors: 0 }
+    }
+
+    // WHY: Skip the tick entirely when the GPU guard has blocked inference.
+    // Without this check, the worker would query databases, build candidate
+    // lists, and attempt HTTP calls that fail against the dead server —
+    // wasting CPU and I/O every 5 minutes until the circuit breaker trips.
+    const launcher = getInferenceStackLauncher()
+    if (launcher?.isGpuGuardBlocking) {
+      this.logger.debug('BackgroundEmbeddingWorker: GPU guard active, skipping tick')
       return { embedded: 0, errors: 0 }
     }
 
