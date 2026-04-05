@@ -176,6 +176,15 @@ export const CORE_TOOLS = [
         todos: {
           type: 'array',
           description: 'The complete updated todo list. Each item: { content: string, status: "pending"|"in_progress"|"completed", priority: "high"|"medium"|"low" }',
+          items: {
+            type: 'object',
+            properties: {
+              content: { type: 'string', description: 'Brief description of the task' },
+              status: { type: 'string', enum: ['pending', 'in_progress', 'completed'], description: 'Current status of the task' },
+              priority: { type: 'string', enum: ['high', 'medium', 'low'], description: 'Priority level of the task' },
+            },
+            required: ['content', 'status', 'priority'],
+          },
         },
       },
       required: ['todos'],
