@@ -39,6 +39,18 @@ import { generateShortId } from '../../utils/ids.js'
 import type { Synapse } from '../../intelligence/synapse/index.js'
 
 
+/** Constellation-level guidance provider for thought enrichment.
+ *  Returns strategic context from the Corpus based on the current thought. */
+export interface ConstellationGuidanceProvider {
+  /** Get guidance for a specific thought step.
+   *  @param thought The current thought text
+   *  @param step The step number
+   *  @param sessionId The Helix session ID
+   *  @returns Strategic guidance text, or null if no relevant guidance exists */
+  getGuidanceForThought(thought: string, step: number, sessionId: string): string | null
+}
+
+
 export interface CollectThoughtsDeps {
   branchingManager: BranchingConversationManager
   thoughtObserver?: ThoughtObserver
@@ -48,7 +60,15 @@ export interface CollectThoughtsDeps {
   logger: ILogger
   config?: Partial<CollectThoughtsConfig>
   synapse?: Synapse
-  // Phase 3c: brainstem?: Brainstem
+  /** Reasoning Bank for injecting past successful reasoning traces */
+  reasoningBank?: import('../../intelligence/reasoning-bank/index.js').ReasoningBank
+  /** Constellation guidance provider — returns strategic context from the Corpus
+   *  for the current thought step. Set by the Constellation pipeline when running
+   *  inside a Helix branch. Returns null if no relevant guidance exists. */
+  constellationProvider?: ConstellationGuidanceProvider
+  /** Session-scoped registry of guidance providers. The Constellation pipeline
+   *  registers per-branch providers here; collect_thoughts looks up by sessionId. */
+  constellationGuidanceRegistry?: import('../../intelligence/constellation/guidance-provider.js').ConstellationGuidanceRegistry
 }
 
 
@@ -306,6 +326,26 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
+    // Stage 5b: REASONING BANK — Search past successful reasoning traces
+    // HOW: Only search on step 1 (initial context) and every 3 steps (to avoid
+    // bloating every tool result). Cap at 2 traces, 300 chars each.
+    let reasoningBankContext: string[] = []
+    if (deps.reasoningBank && (input.step === 1 || input.step % 3 === 0)) {
+      try {
+        const rbResults = deps.reasoningBank.search({
+          query: input.thought,
+          minQuality: 0.7,
+          successOnly: true,
+          limit: 2,
+        })
+        reasoningBankContext = rbResults.map(r =>
+          `[Past approach] ${r.trace.approach.slice(0, 100)}: ${r.trace.content.slice(0, 200)}`
+        )
+      } catch (err) {
+        log.warn('Reasoning bank search failed in thinking step', { error: String(err) })
+      }
+    }
+
     // Conditional LLM call that provides meta-cognitive guidance.
     // Fires only when gating conditions pass (budget, signal confidence, etc.)
     let synapseGuidance: SynapseGuidance | null = null
@@ -382,6 +422,32 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
+    // Stage 6b: CONSTELLATION GUIDANCE — Pull strategic guidance from the Corpus.
+    // HOW: The provider is resolved in priority order:
+    //   1. Direct provider on deps (backward compat / tests)
+    //   2. Registry lookup by session ID (production path — Constellation pipeline
+    //      registers a per-branch provider keyed by the Helix session ID)
+    let constellationGuidance: string | null = null
+    const guidanceProvider = deps.constellationProvider
+      ?? deps.constellationGuidanceRegistry?.get(context.sessionId)
+    if (guidanceProvider) {
+      try {
+        constellationGuidance = guidanceProvider.getGuidanceForThought(
+          input.thought,
+          input.step,
+          context.sessionId,
+        )
+        if (constellationGuidance) {
+          log.info('Constellation guidance injected', {
+            step: input.step,
+            guidanceLength: constellationGuidance.length,
+          })
+        }
+      } catch (err) {
+        log.warn('Constellation guidance failed', { error: String(err) })
+      }
+    }
+
     if (!input.continue_thinking && deps.bus) {
       deps.bus.emit({
         type: 'axon:complete',
@@ -417,6 +483,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       },
       signals: signals.slice(0, 10), // Cap signals in result
       relatedContext,
+      reasoningBankContext,
       peerSignals,
       resonance: resonancePatterns.map(r => ({
         kind: r.kind,
@@ -426,7 +493,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
         confidence: r.amplifiedConfidence,
       })),
       synapse: synapseGuidance,
-      constellationGuidance: null,  // Phase 3c
+      constellationGuidance,
       tree: {
         totalSteps: state.stepToTurnId.size,
         activeBranch: activeBranchId,
@@ -448,6 +515,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       // Trim relatedContext and peerSignals first, then signals
       const trimmed = { ...result }
       trimmed.relatedContext = trimmed.relatedContext.slice(0, 2)
+      trimmed.reasoningBankContext = trimmed.reasoningBankContext.slice(0, 1)
       trimmed.peerSignals = trimmed.peerSignals.slice(0, 2)
       trimmed.signals = trimmed.signals.slice(0, 5)
       trimmed.resonance = trimmed.resonance.slice(0, 2)
@@ -463,6 +531,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       signals: signals.length,
       peers: peerSignals.length,
       memory: relatedContext.length,
+      reasoningBank: reasoningBankContext.length,
       branch: activeBranchId,
       revision: input.is_revision ?? false,
       contributors: contributorsRecord,
