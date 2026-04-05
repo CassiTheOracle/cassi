@@ -1,4 +1,5 @@
 import { assembleContext } from '../intelligence/context-assembler.js'
+import { SmartCompactionEngine } from '../intelligence/smart-compaction.js'
 
 import type { AdminRuntimeFacade } from './runtime.js'
 
@@ -28,7 +29,7 @@ export async function handleContextRoutes(
   method: string,
   pathname: string
 ): Promise<boolean> {
-  const { runtime, sendJSON, parseBody, parts } = deps
+  const { runtime, logger, sendJSON, parseBody, parts } = deps
 
   // GET /context
   if (method === 'GET' && pathname === '/context') {
@@ -292,16 +293,18 @@ export async function handleContextRoutes(
     }
   }
 
-  // POST /context/compact/:sessionId — CassiCore-powered compaction
+  // POST /context/compact/:sessionId — Smart CassiCore-powered compaction
   //
-  // Accepts the session's conversation history (as role/text pairs) and
-  // produces a rich compaction summary using:
-  //   1. Memory search (relevant past context)
-  //   2. Cognitive signals (thinker insights, subconscious patterns)
-  //   3. LLM summarization via qwen3.5-plus (alibaba-coding, 1M context)
+  // Uses the SmartCompactionEngine to intelligently process the conversation:
+  //   1. Scores every message by importance (recency, errors, tool impact, decisions)
+  //   2. Clusters messages by topic (shared files, tools, context)
+  //   3. Keeps high-importance clusters verbatim
+  //   4. Summarizes medium-importance clusters using an LLM
+  //   5. Prunes low-importance messages (preserving key references)
+  //   6. Enriches with CassiCore cognitive signals + memory search
   //
-  // Returns { summary: string } on success.
-  // Falls back gracefully if ModelPool, memory, or cognitive signals are unavailable.
+  // Returns { summary, strategy, stats } on success.
+  // Falls back to heuristic-only mode if ModelPool is unavailable.
   if (method === 'POST' && parts[0] === 'context' && parts[1] === 'compact' && parts.length === 3) {
     try {
       const sessionId = parts[2]
@@ -318,13 +321,7 @@ export async function handleContextRoutes(
         return true
       }
 
-      const modelPool = runtime.getLumenModelPool()
-      if (!modelPool || typeof modelPool.acquire !== 'function') {
-        sendJSON(res, 503, { error: 'ModelPool not available — CassiCore compaction unavailable' })
-        return true
-      }
-
-      // Index all messages NOW, before the LLM summary replaces the history.
+      // Index all messages NOW, before compaction replaces the history.
       // This allows cassi_enrich / FTS search to retrieve content from
       // compacted sessions even after their history is summarised away.
       try {
@@ -348,6 +345,7 @@ export async function handleContextRoutes(
         // Non-fatal — archive is best-effort; compaction proceeds regardless
       }
 
+      // Gather CassiCore cognitive signals
       let cognitiveContext = ''
       try {
         const aggregator = runtime.getIntelligence()?.injectionAggregator as any
@@ -364,19 +362,20 @@ export async function handleContextRoutes(
         // Cognitive signals are optional — continue without them
       }
 
+      // Search memory for relevant past context
       let memoryContext = ''
+      let lastUserQuery = ''
       try {
         const memory = runtime.getIntelligence()?.memory as any
         if (memory && typeof memory.search === 'function') {
-          // Extract a query from the last user message
           const lastUser = [...messages].reverse().find((m: any) => m.role === 'user')
-          const query = typeof lastUser?.content === 'string'
+          lastUserQuery = typeof lastUser?.content === 'string'
             ? lastUser.content.slice(0, 200)
             : (Array.isArray(lastUser?.content)
               ? lastUser.content.filter((p: any) => p.type === 'text').map((p: any) => p.text || '').join(' ').slice(0, 200)
               : 'session context')
 
-          const results = await memory.search(query, { limit: 6, minScore: 0.25 })
+          const results = await memory.search(lastUserQuery, { limit: 6, minScore: 0.25 })
           if (results && results.length > 0) {
             const items = results.map((r: any) => {
               const score = Math.round((r.score ?? 0) * 100)
@@ -389,145 +388,101 @@ export async function handleContextRoutes(
         // Memory search is optional — continue without it
       }
 
-      // Iterate newest → oldest so that recent context is preserved within the
-      // 80K char budget. Older turns are truncated first, not newer ones.
-      // (Previous approach iterated oldest → newest and silently lost the end
-      //  of the conversation — the most relevant part.)
-      const CONV_CHAR_LIMIT = 80_000
-      const segments: string[] = []
-      let totalChars = 0
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const m = messages[i]
-        const role = (m.role ?? 'user').toUpperCase()
-        let content = ''
-        if (typeof m.content === 'string') {
-          content = m.content
-        } else if (Array.isArray(m.content)) {
-          content = m.content
-            .filter((p: any) => p.type === 'text')
-            .map((p: any) => p.text || '')
-            .join('\n')
-        }
-        const segment = `[${role}]: ${content}\n---\n`
-        if (totalChars + segment.length > CONV_CHAR_LIMIT) {
-          // Older messages don't fit — note the truncation at the top
-          segments.unshift('[... older context truncated — recent messages preserved above ...]\n')
-          break
-        }
-        segments.unshift(segment)
-        totalChars += segment.length
-      }
-      const conversationText = segments.join('')
-
-      const contextSections: string[] = []
-      if (memoryContext) contextSections.push(memoryContext)
-      if (cognitiveContext) {
-        contextSections.push(
-          '### Cognitive Signals\n' +
-          'The following signals were active in this session. Preserve any insights relevant to the work:\n' +
-          cognitiveContext
-        )
-      }
-      const contextBlock = contextSections.length > 0
-        ? `\n\n## CassiCore Context\n${contextSections.join('\n\n')}\n\n---`
-        : ''
-
-      const systemPrompt =
-        'You are a context compaction assistant. Your job is to produce a thorough, ' +
-        'structured summary of the conversation above that will serve as the starting ' +
-        'context for the SAME agent continuing the SAME task. The summary replaces the ' +
-        'full conversation history, so it must capture everything needed to continue ' +
-        'working without loss of direction or context.\n\n' +
-        'You have a generous output budget — use it. Include code snippets, exact file ' +
-        'paths with line numbers, specific error messages, and detailed decision rationale. ' +
-        'A summary that loses critical implementation details is worse than a long one.\n\n' +
-        'Structure your summary using exactly this template:\n' +
-        '---\n' +
-        '## Goal\n' +
-        '[What goal(s) is the user trying to accomplish?]\n\n' +
-        '## Instructions\n' +
-        '- [Important instructions the user gave that are still relevant]\n' +
-        '- [Any plan, spec, or approach being followed]\n\n' +
-        '## Discoveries\n' +
-        '[Notable things learned during the conversation that the next agent needs to know]\n\n' +
-        '## Accomplished\n' +
-        '[What work has been completed, what is in progress, what remains]\n\n' +
-        '## Relevant Files / Directories\n' +
-        '[Structured list of files read, edited, or created that pertain to the task]\n\n' +
-        '## Decisions Made\n' +
-        '[Architectural, design, or implementation decisions made during the session]\n' +
-        '---\n\n' +
-        'Be thorough and precise. The summary will be the ONLY context the next agent has.'
-
-      const userMessage =
-        `Here is the conversation to compact:${contextBlock}\n\n` +
-        `## Conversation\n${conversationText}\n\n` +
-        `Produce the compaction summary now.`
-
+      // Build the LLM-powered summarizer callback for medium-importance clusters
       const COMPACTION_MODEL = 'qwen3.5-plus'
       const COMPACTION_PROVIDER = 'alibaba-coding'
+      let summarizer: ((content: string, instruction: string) => Promise<string>) | undefined
+      let modelLabel = 'heuristic-only'
 
-      let handle: any
-      try {
-        handle = await modelPool.acquire('compaction', undefined, sessionId, {
-          provider: COMPACTION_PROVIDER,
-          model: COMPACTION_MODEL,
-        })
-      } catch (acquireErr) {
-        sendJSON(res, 503, { error: `Failed to acquire model ${COMPACTION_PROVIDER}/${COMPACTION_MODEL}: ${String(acquireErr)}` })
-        return true
-      }
-
-      try {
-        const result = await handle.complete(
-          [{ role: 'user', content: userMessage }],
-          {
-            model: COMPACTION_MODEL,
-            maxTokens: 16_000,
-            temperature: 0.2,
-            thinking: 'none',
-            systemPrompt,
-            source: 'context-compaction',
-            trigger: 'compact',
-            sessionId,
-            allowConcurrent: true,
-            timeoutMs: 60_000,
-          }
-        )
-
-        const summary = (result.response ?? '').trim()
-        if (!summary) {
-          sendJSON(res, 500, { error: 'LLM returned empty summary' })
-          return true
-        }
-
-        // Persisting the summary lets cassi_enrich surface it in later
-        // sessions, so compacted conversations are not truly forgotten.
-        try {
-          const memory = runtime.getIntelligence()?.memory as any
-          if (memory && typeof memory.store === 'function') {
-            await memory.store({
-              content: `[Compaction summary — session ${sessionId}]\n\n${summary}`,
-              type: 'conversation',
-              tags: ['compaction', 'session', sessionId],
+      const modelPool = runtime.getLumenModelPool()
+      if (modelPool && typeof modelPool.acquire === 'function') {
+        summarizer = async (content: string, instruction: string): Promise<string> => {
+          let handle: any
+          try {
+            handle = await modelPool.acquire('compaction', undefined, sessionId, {
+              provider: COMPACTION_PROVIDER,
+              model: COMPACTION_MODEL,
             })
+          } catch {
+            // HOW: If model acquisition fails, return empty string — the engine
+            // falls back to heuristic summarization automatically.
+            return ''
           }
-        } catch {
-          // Non-fatal — memory store failure should not fail the compaction
+          try {
+            const result = await handle.complete(
+              [{ role: 'user', content: `${instruction}\n\n---\n\n${content}` }],
+              {
+                model: COMPACTION_MODEL,
+                maxTokens: 2_000,
+                temperature: 0.2,
+                thinking: 'none',
+                systemPrompt: 'You are a concise summarizer. Follow the instruction exactly. Output only the summary, no preamble.',
+                source: 'smart-compaction-cluster',
+                trigger: 'compact',
+                sessionId,
+                allowConcurrent: true,
+                timeoutMs: 30_000,
+              }
+            )
+            return (result.response ?? '').trim()
+          } finally {
+            try { handle.release() } catch { /* ignore */ }
+          }
         }
-
-        sendJSON(res, 200, {
-          sessionId,
-          summary,
-          model: `${COMPACTION_PROVIDER}/${COMPACTION_MODEL}`,
-          tokensUsed: result.tokensUsed ?? 0,
-          hasMemory: !!memoryContext,
-          hasCognitive: !!cognitiveContext,
-        })
-        return true
-      } finally {
-        try { handle.release() } catch { /* ignore */ }
+        modelLabel = `${COMPACTION_PROVIDER}/${COMPACTION_MODEL}`
       }
+
+      // Run the SmartCompactionEngine
+      const engine = new SmartCompactionEngine(
+        {
+          outputCharBudget: 80_000,
+          preserveRecentCount: 8,
+          minMessagesForCompaction: 12,
+          summarizer,
+        },
+        logger,
+      )
+
+      const compactionResult = await engine.compact(messages, {
+        memoryContext,
+        cognitiveContext,
+        lastUserQuery,
+      })
+
+      if (!compactionResult.summary) {
+        sendJSON(res, 500, { error: 'Smart compaction produced empty summary' })
+        return true
+      }
+
+      // Persist the summary to memory so cassi_enrich surfaces it in later sessions
+      try {
+        const memory = runtime.getIntelligence()?.memory as any
+        if (memory && typeof memory.store === 'function') {
+          await memory.store({
+            content: `[Compaction summary — session ${sessionId}]\n\n${compactionResult.summary.slice(0, 8000)}`,
+            type: 'conversation',
+            tags: ['compaction', 'session', sessionId],
+          })
+        }
+      } catch {
+        // Non-fatal — memory store failure should not fail the compaction
+      }
+
+      sendJSON(res, 200, {
+        sessionId,
+        summary: compactionResult.summary,
+        model: modelLabel,
+        strategy: compactionResult.strategy,
+        stats: {
+          keptVerbatim: compactionResult.keptVerbatim,
+          summarized: compactionResult.summarized,
+          pruned: compactionResult.pruned,
+          durationMs: compactionResult.durationMs,
+        },
+        hasMemory: !!memoryContext,
+        hasCognitive: !!cognitiveContext,
+      })
+      return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
       return true
