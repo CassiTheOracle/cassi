@@ -207,6 +207,17 @@ export interface HelixPostureRunnerOpts {
   onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */
   onStreamActivity?: (event: StreamActivityEvent) => void
+  /**
+   * Tool access level override from FlexPosture config.
+   * WHY: Templates define per-posture tool access (e.g., 'read-only+memory' for reviewers),
+   * but the old code hardcoded `role === 'unity'`. This lets posture config drive access.
+   */
+  flexToolAccess?: import('../constellation/types.js').ToolAccessLevel
+  /**
+   * Tool filter (allow/deny lists) from Constellation or Helix pipeline.
+   * Applied on top of posture-level access restrictions.
+   */
+  toolFilter?: { allow?: string[]; deny?: string[] }
 }
 
 /** Real-time token stream event — emitted during inference for Brainstem/Corpus visibility */
@@ -236,6 +247,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
+  private readonly flexToolAccess?: import('../constellation/types.js').ToolAccessLevel
+  private readonly toolFilter?: { allow?: string[]; deny?: string[] }
 
   // Typed store
   protected declare store?: HelixStore
@@ -301,6 +314,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.contextChunkIndex = opts.contextChunkIndex
     this.onWorkUnit = opts.onWorkUnit
     this.onStreamActivity = opts.onStreamActivity
+    this.flexToolAccess = opts.flexToolAccess
+    this.toolFilter = opts.toolFilter
     this.store = opts.store
 
     // Wire TestLock with persistence callbacks
@@ -1950,7 +1965,13 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     // Add real tools (filtered by access level)
     if (this.toolRegistry) {
-      const hasFullAccess = role === 'unity'
+      // WHY: Use flexToolAccess from posture config when available, falling back to
+      // role-based heuristic. This lets templates define per-posture access levels
+      // (e.g., 'read-only+memory' for reviewers) instead of hardcoding role === 'unity'.
+      const accessLevel = this.flexToolAccess ?? (role === 'unity' ? 'full' : 'read-only')
+      const hasFullAccess = accessLevel === 'full'
+      const hasMemoryAccess = accessLevel === 'read-only+memory' || hasFullAccess
+
       const allSchemas = this.toolRegistry.toAnthropicSchema()
       for (const schema of allSchemas) {
         if (isHelixMetaTool(schema.name)) continue
@@ -1963,7 +1984,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         if (isExternalMcpTool(schema.name)) continue
         if (CONSOLIDATED_GATEWAY_TOOL_NAMES.has(schema.name)) continue
 
-        if (hasFullAccess || isReadOnlyTool(schema.name, this.toolRegistry) || isMemoryTool(schema.name)) {
+        // Apply toolFilter allow/deny lists (from Constellation or Helix pipeline)
+        if (this.toolFilter) {
+          if (this.toolFilter.allow && !this.toolFilter.allow.includes(schema.name)) continue
+          if (this.toolFilter.deny?.includes(schema.name)) continue
+        }
+
+        if (accessLevel === 'none') continue
+        if (hasFullAccess || isReadOnlyTool(schema.name, this.toolRegistry) || (hasMemoryAccess && isMemoryTool(schema.name))) {
           tools.push(schema as any)
         }
       }

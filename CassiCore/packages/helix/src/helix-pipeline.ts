@@ -291,6 +291,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     planHandler: opts.planHandler,
     onWorkUnit: opts.onWorkUnit,
     onActivity,
+    toolFilter: opts.toolFilter,
     // Forward stream activity to Brainstem for real-time token stream visibility
     onStreamActivity: brainstem
       ? (event: import('./helix-posture-runner.js').StreamActivityEvent) => brainstem!.onStreamActivity(event)
@@ -310,6 +311,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     handle: opts.unityHandle,
     posture: UNITY_POSTURE,
     postureSlot: 'helix.unity',
+    flexToolAccess: UNITY_POSTURE.toolAccess,
     contextBudgetCoordinator,
     brainstem,
     contextChunkIndex: unityChunkIndex,
@@ -321,6 +323,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     handle: opts.yangHandle,
     posture: YANG_REVIEWER_POSTURE,
     postureSlot: 'helix.yang',
+    flexToolAccess: YANG_REVIEWER_POSTURE.toolAccess,
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
@@ -333,6 +336,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     handle: opts.yinHandle,
     posture: YIN_REVIEWER_POSTURE,
     postureSlot: 'helix.yin',
+    flexToolAccess: YIN_REVIEWER_POSTURE.toolAccess,
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
