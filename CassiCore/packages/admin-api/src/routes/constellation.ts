@@ -699,6 +699,9 @@ export async function handleConstellationRoutes(
         return true
       }
 
+      // Fallback: for archived topology, use GET /constellation/:id/analyze
+      // which reads from the ConstellationStore and includes topology spatial analysis
+
       sendJSON(res, 200, {
         sessionId,
         topology: null,
