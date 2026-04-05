@@ -18,6 +18,7 @@
 import { v4 as uuidv4 } from "uuid";
 
 import { MODEL_DEFAULTS } from "../../config/system-settings.js";
+import { isGamingMode } from "../gaming-mode.js";
 
 import type { EventStream } from "./event-stream.js";
 import type { SystemModel } from "./system-model.js";
@@ -144,6 +145,10 @@ export class LLMObserver {
   async sweep(stream: EventStream, systemModel: SystemModel): Promise<LLMObservation | null> {
     if (!this.provider) {
       this.logger.debug("LLMObserver: no provider configured, skipping sweep");
+      return null;
+    }
+    if (isGamingMode()) {
+      this.logger.debug("LLMObserver: gaming mode active, skipping sweep");
       return null;
     }
     if (this.sweepInProgress) {

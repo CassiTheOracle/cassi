@@ -11,6 +11,7 @@
 
 import { MODEL_DEFAULTS } from '../../config/system-settings.js'
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
+import { isGamingMode } from '../gaming-mode.js'
 import type { MemoryModule } from '../memory/index.js'
 import type { ReasoningBank } from '../reasoning-bank/index.js'
 import type { InjectionAggregator, InjectionSource } from '../injection-aggregator.js'
@@ -139,6 +140,7 @@ export class DreamerModule extends BaseCognitiveModule {
   private async checkAndDream(): Promise<void> {
     if (this.state !== 'idle') return
     if (!this.dreamerConfig.enabled) return
+    if (isGamingMode()) return
 
     const idleMs = Date.now() - this.lastTurnAt
     if (idleMs < this.dreamerConfig.idleThresholdMs) {
