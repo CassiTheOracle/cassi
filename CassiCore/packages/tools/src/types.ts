@@ -1,13 +1,16 @@
+/** JSON Schema subset for tool parameter property definitions */
+export interface ToolParamProperty {
+  type: string;
+  description?: string;
+  enum?: string[];
+  default?: unknown;
+  items?: ToolParamProperty & { required?: string[]; properties?: Record<string, ToolParamProperty> };
+}
+
 /** JSON Schema subset for tool parameter definitions */
 export interface ToolParamSchema {
   type: 'object';
-  properties: Record<string, {
-    type: string;
-    description?: string;
-    enum?: string[];
-    default?: unknown;
-    items?: { type: string; enum?: string[] };
-  }>;
+  properties: Record<string, ToolParamProperty>;
   required?: string[];
 }
 

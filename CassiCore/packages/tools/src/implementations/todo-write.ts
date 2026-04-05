@@ -91,7 +91,12 @@ export const todoWriteDefinition: ToolDefinition = {
         description: 'The complete updated todo list',
         items: {
           type: 'object',
-          enum: undefined,
+          properties: {
+            content: { type: 'string', description: 'Brief description of the task' },
+            status: { type: 'string', enum: ['pending', 'in_progress', 'completed'], description: 'Current status of the task' },
+            priority: { type: 'string', enum: ['high', 'medium', 'low'], description: 'Priority level of the task' },
+          },
+          required: ['content', 'status', 'priority'],
         },
       },
     },
