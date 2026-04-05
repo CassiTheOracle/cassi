@@ -155,6 +155,9 @@ export type { ConstellationLiveState } from './constellation-injection.js'
 export { createConstellationOrchestrator } from './constellation-orchestrator.js'
 export type { ConstellationOrchestrator } from './constellation-orchestrator.js'
 
+export { createConstellationGuidanceProvider, ConstellationGuidanceRegistry } from './guidance-provider.js'
+export type { ConstellationGuidanceProviderOpts } from './guidance-provider.js'
+
 
 
 export { DecompositionTracker } from './decomposition-tracker.js'

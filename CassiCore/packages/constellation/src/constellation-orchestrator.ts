@@ -29,6 +29,7 @@ import type { IMemory } from '../../../types/intelligence.js'
 import type { ConstellationRegistry, ConstellationLiveState } from './constellation-injection.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
+import type { ConstellationGuidanceRegistry } from './guidance-provider.js'
 
 
 export interface ConstellationOrchestrator {
@@ -59,6 +60,7 @@ export interface ConstellationOrchestrator {
   setModuleRegistry(registry: ModuleSessionRegistry): void
   setMemory(memory: IMemory): void
   setAuditTrail(trail: import('./constellation-audit-trail.js').ConstellationAuditTrail): void
+  setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
 
   // External Corpus Protocol
   assumeCorpus(sessionId: string, agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string }
@@ -77,6 +79,9 @@ interface ConstellationOrchestratorDeps {
   corpusLLM: CorpusLLM
   brainstemLLM?: CorpusLLM
   registry: ConstellationRegistry
+  /** Shared guidance registry — providers registered here are looked up by
+   *  collect_thoughts to inject Corpus-derived strategic context mid-reasoning. */
+  guidanceRegistry?: ConstellationGuidanceRegistry
 }
 
 interface RunningConstellation {
@@ -90,7 +95,7 @@ interface RunningConstellation {
 export function createConstellationOrchestrator(
   deps: ConstellationOrchestratorDeps,
 ): ConstellationOrchestrator {
-  const { logger, eventBus, corpusLLM, brainstemLLM, registry } = deps
+  const { logger, eventBus, corpusLLM, brainstemLLM, registry, guidanceRegistry } = deps
   const log = logger.child('constellation-orchestrator')
 
   let modelPool: ModelPool | undefined
@@ -103,6 +108,7 @@ export function createConstellationOrchestrator(
   let moduleRegistry: ModuleSessionRegistry | undefined
   let memory: IMemory | undefined
   let auditTrail: import('./constellation-audit-trail.js').ConstellationAuditTrail | undefined
+  let reasoningBank: import('../reasoning-bank/index.js').ReasoningBank | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -267,6 +273,8 @@ export function createConstellationOrchestrator(
       memory,
       embeddingService: getEmbeddingService(logger),
       auditTrail,
+      guidanceRegistry,
+      reasoningBank,
       useMiniHelixCorpus: true,
       useMiniHelixBrainstem: true,
 
@@ -379,6 +387,8 @@ export function createConstellationOrchestrator(
         embeddingService: getEmbeddingService(logger),
 
         auditTrail,
+        guidanceRegistry,
+        reasoningBank,
 
         // Enable mini-Helix infrastructure components
         useMiniHelixCorpus: true,
@@ -522,6 +532,7 @@ export function createConstellationOrchestrator(
     setConstellationStore(s) { constellationStore = s },
     setMemory(mem) { memory = mem },
     setAuditTrail(trail) { auditTrail = trail },
+    setReasoningBank(bank) { reasoningBank = bank },
 
     // External Corpus Protocol
     assumeCorpus(sessionId, agentId, heartbeatTimeoutMs) {

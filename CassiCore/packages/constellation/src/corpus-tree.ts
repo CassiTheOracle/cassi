@@ -53,6 +53,7 @@ export class CorpusTree implements ICorpusTree {
   private topicIdCounter: number
   private patternIdCounter: number
   private logger: ILogger
+  onPatternElevated?: (pattern: ElevatedPattern) => void
 
   constructor(logger: ILogger) {
     this.branches = new Map()
@@ -505,6 +506,8 @@ export class CorpusTree implements ICorpusTree {
       approach: pattern.approach,
       achievedScore: pattern.achievedScore.toFixed(2),
     })
+    // Fire callback for persistence
+    this.onPatternElevated?.(pattern)
   }
 
   /**

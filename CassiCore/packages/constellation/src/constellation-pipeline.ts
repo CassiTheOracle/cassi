@@ -52,6 +52,8 @@ import { TopologyGraph } from './topology/topology-graph.js'
 import { BrainstemBridge } from './topology/brainstem-bridge.js'
 import { serializeTopologySnapshot } from './topology/topology-types.js'
 import type { EmbeddingService } from '../embeddings/embedding-service.js'
+import { createConstellationGuidanceProvider } from './guidance-provider.js'
+import { scoreSpecificity } from '../code-analysis/specificity-scorer.js'
 
 // Constants
 
@@ -253,6 +255,22 @@ export interface ConstellationPipelineOpts {
    * When absent, topology is disabled and the Corpus runs without spatial awareness.
    */
   embeddingService?: EmbeddingService
+
+  /** Reasoning Bank for caching and retrieving successful reasoning traces.
+   *  When provided, completed Helix sessions with sufficient quality scores
+   *  are ingested, and new branches receive relevant past reasoning. */
+  reasoningBank?: import('../reasoning-bank/index.js').ReasoningBank
+
+  /** Context feedback tracker for learning which context injections help.
+   *  When provided, each branch's context injection is recorded, and after
+   *  completion the files used are compared to files suggested. The Bayesian
+   *  model learns which specificity/mode combinations produce useful context. */
+  contextFeedback?: import('../code-analysis/feedback-tracker.js').ContextFeedbackTracker
+
+  /** Guidance registry shared with collect_thoughts. When provided, the pipeline
+   *  creates per-branch guidance providers and registers them here so that
+   *  collect_thoughts can look them up by sessionId during mid-reasoning enrichment. */
+  guidanceRegistry?: import('./guidance-provider.js').ConstellationGuidanceRegistry
 }
 
 // Internal State
@@ -360,6 +378,34 @@ export async function runConstellationPipeline(
   // Create Corpus Tree, Blackboard, and Corpus
 
   const corpusTree = new CorpusTree(logger)
+
+  // Seed the Corpus tree with historical elevated patterns from the DB
+  // WHY: onPatternElevated is set AFTER seeding to avoid re-persisting
+  // patterns that are already in the database.
+  if (constellationStore) {
+    try {
+      const historicalPatterns = constellationStore.getElevatedPatterns({ minScore: 0.6, limit: 50 })
+      for (const pattern of historicalPatterns) {
+        corpusTree.elevatePattern(pattern)
+      }
+      if (historicalPatterns.length > 0) {
+        log.info('Seeded Corpus tree with historical elevated patterns', {
+          count: historicalPatterns.length,
+        })
+      }
+    } catch (err) {
+      log.warn('Failed to load historical elevated patterns', { error: String(err) })
+    }
+
+    // Wire persistence: newly elevated patterns get saved to DB
+    corpusTree.onPatternElevated = (pattern) => {
+      try {
+        constellationStore.saveElevatedPattern(pattern, constellationId)
+      } catch (err) {
+        log.warn('Failed to persist elevated pattern', { id: pattern.id, error: String(err) })
+      }
+    }
+  }
 
   // Create constellation-level blackboard for cross-Helix communication
   const constellationBlackboard = new Blackboard(log, constellationId)
@@ -661,6 +707,9 @@ export async function runConstellationPipeline(
   let rootHelixId: string | undefined
   let completed = false
   let tracker: DecompositionTracker | undefined
+  // WHY: Maps helixId -> feedbackId so we can close the feedback loop
+  // when the branch completes and we know which files were actually used.
+  const contextFeedbackIds = new Map<string, string>()
 
   // Helper: Resolve Postures
 
@@ -709,7 +758,8 @@ export async function runConstellationPipeline(
     helixGoal: string,
     helixContext: string | undefined,
     parentId: string | undefined,
-    depth: number
+    depth: number,
+    toolFilter?: { allow?: string[]; deny?: string[] }
   ): Promise<RunningHelix> {
     const helixId = `helix-${constellationId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const helixLog = log.child(helixId)
@@ -775,6 +825,72 @@ export async function runConstellationPipeline(
       }
     }
 
+    // WHY: Inject pre-assembled codebase context so branches start with knowledge
+    // of relevant files, symbols, and execution flows — not just a goal string.
+    // This is the same context the decomposer used to plan the work.
+    if (opts.codebaseContext) {
+      const codeCtxBlock = `## Codebase Context\n${opts.codebaseContext}`
+      enrichedContext = enrichedContext ? `${enrichedContext}\n\n${codeCtxBlock}` : codeCtxBlock
+      helixLog.info('Codebase context injected for branch', {
+        contextLength: opts.codebaseContext.length,
+      })
+
+      // WHY: Record this context injection so we can track whether it helped.
+      // The feedback loop closes at node completion when filesModified is known.
+      if (opts.contextFeedback) {
+        try {
+          // HOW: Score the goal's specificity using the adaptive scorer.
+          // When enough feedback data exists, the Bayesian model may recommend
+          // a different context mode than the hardcoded thresholds.
+          const specificity = scoreSpecificity(helixGoal, opts.contextFeedback)
+
+          // HOW: Extract file paths from the codebase context string (lines like "1. path/to/file.ts")
+          const filePattern = /\d+\.\s+(\S+\.(?:ts|js|tsx|jsx|py|rs|go))/g
+          const suggestedFiles: string[] = []
+          let match: RegExpExecArray | null
+          while ((match = filePattern.exec(opts.codebaseContext)) !== null) {
+            suggestedFiles.push(match[1])
+          }
+
+          if (suggestedFiles.length > 0) {
+            const feedbackId = opts.contextFeedback.recordInjection(
+              helixId,
+              helixGoal,
+              specificity.score,
+              specificity.mode,
+              suggestedFiles,
+            )
+            contextFeedbackIds.set(helixId, feedbackId)
+
+            if (specificity.adaptiveOverride) {
+              helixLog.info('Adaptive context mode override active', {
+                originalMode: specificity.adaptiveOverride.originalMode,
+                adaptiveMode: specificity.mode,
+                confidence: specificity.adaptiveOverride.confidence,
+                reason: specificity.adaptiveOverride.reason,
+              })
+            }
+          }
+        } catch (err) {
+          helixLog.warn('Failed to record context feedback injection', { error: String(err) })
+        }
+      }
+    }
+
+    // WHY: Inject relevant past reasoning traces so branches can learn from
+    // successful approaches in previous Constellation runs.
+    if (opts.reasoningBank) {
+      try {
+        const reasoningCtx = opts.reasoningBank.retrieveForBranch(helixGoal)
+        if (reasoningCtx) {
+          enrichedContext = enrichedContext ? `${enrichedContext}\n\n${reasoningCtx}` : reasoningCtx
+          helixLog.info('Reasoning bank context injected for branch')
+        }
+      } catch (err) {
+        helixLog.warn('Reasoning bank retrieval failed', { error: String(err) })
+      }
+    }
+
     // This enables cross-branch knowledge transfer — successful approaches from
     // completed/struggling branches inform new branches' starting strategies.
     try {
@@ -805,6 +921,20 @@ export async function runConstellationPipeline(
     }
 
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
+
+    // WHY: Register a per-branch guidance provider so that collect_thoughts
+    // (called by this branch's posture runners) can query the Corpus for
+    // elevated patterns and cross-branch awareness during mid-reasoning.
+    if (opts.guidanceRegistry) {
+      const branchGuidanceProvider = createConstellationGuidanceProvider({
+        corpusTree,
+        helixId,
+        branchGoal: helixGoal,
+        logger: helixLog,
+      })
+      opts.guidanceRegistry.register(helixId, branchGuidanceProvider)
+      helixLog.debug('Guidance provider registered for branch')
+    }
 
     // Register with topology — initial digest so the gravity engine knows about this Helix
     if (topologyGraph?.enabled) {
@@ -1003,6 +1133,8 @@ export async function runConstellationPipeline(
       brainstemDeps,
       // WHY: When running in a worktree, all tool execution uses the branch's working directory
       workingDir: branchWorkingDir,
+      // WHY: Pass tool filter from Constellation config to restrict tools for this branch
+      toolFilter,
       // WHY: Constellation Helixes run longer tool-call chains (drone scouts, file reads, etc.)
       // Relax inactivity thresholds: warn=5min, escalate=10min, kill=15min
       inactivityThresholds: {
@@ -1238,6 +1370,52 @@ export async function runConstellationPipeline(
 
         onNodeCompleted?.(node)
 
+        // WHY: Ingest successful reasoning traces for future branch reuse.
+        // Only ingest when the node completed successfully and has meaningful output.
+        if (opts.reasoningBank && (node.status === 'completed' || node.status === 'degraded')) {
+          try {
+            const qualityScore = result.qualityScore
+              ?? (result.brainstem?.averageScore)
+              ?? 0.5
+            const approach = result.unityConclusion?.slice(0, 200) || 'unknown approach'
+            const content = [
+              result.unityConclusion,
+              result.convergencePoints?.map(cp => `${cp.topic}: ${cp.resolution}`).join('; '),
+            ].filter(Boolean).join('\n\n')
+
+            if (content.length > 50) {
+              opts.reasoningBank.store({
+                sourceHelixId: helixId,
+                goal: node.config.goal,
+                approach,
+                content,
+                qualityScore,
+                succeeded: node.status === 'completed',
+                relevantFiles: result.filesModified?.map(f => f.path),
+              })
+            }
+          } catch (err) {
+            helixLog.warn('Failed to ingest reasoning trace', { error: String(err) })
+          }
+        }
+
+        // WHY: Close the context feedback loop — compare files suggested by
+        // prepareContext against files actually modified by the branch.
+        // This trains the Bayesian model for future context assembly decisions.
+        const feedbackId = contextFeedbackIds.get(helixId)
+        if (feedbackId && opts.contextFeedback) {
+          try {
+            const filesUsed = result.filesModified?.map(f => f.path) ?? []
+            opts.contextFeedback.recordUsage(feedbackId, filesUsed)
+            contextFeedbackIds.delete(helixId)
+            helixLog.info('Context feedback recorded', {
+              filesUsed: filesUsed.length,
+            })
+          } catch (err) {
+            helixLog.warn('Failed to record context feedback usage', { error: String(err) })
+          }
+        }
+
         // Merge worktree changes back to main branch (if isolated)
         if (worktreeIsolation?.isIsolated(helixId)) {
           const skipMerge = node.status === 'failed'
@@ -1282,6 +1460,7 @@ export async function runConstellationPipeline(
         corpusTree.closeBranch(helixId, branchStatus)
         topologyGraph?.deregisterHelix(helixId)
         crossHelixDialectic?.unregisterBranch(helixId)
+        opts.guidanceRegistry?.unregister(helixId)
 
         // Cleanup worktree if not already cleaned up by the merge step
         if (worktreeIsolation?.isIsolated(helixId)) {

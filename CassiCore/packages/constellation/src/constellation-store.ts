@@ -24,12 +24,12 @@ import path from 'node:path'
 import Database from 'better-sqlite3'
 
 import type { ILogger } from '../../../types/interfaces.js'
-import type { CorpusTreeSnapshot, BranchAssessment, CrossHelixPattern, CorpusIntervention } from './corpus-types.js'
+import type { CorpusTreeSnapshot, BranchAssessment, CrossHelixPattern, CorpusIntervention, ElevatedPattern } from './corpus-types.js'
 import type { ConstellationResult, SpawnRequest } from './types.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 2  // Incremented for new tables
+const SCHEMA_VERSION = 3  // v3: elevated_patterns table
 const DEFAULT_MAX_AGE_DAYS = 180  // Much longer retention than Helix's 7 days
 
 
@@ -185,6 +185,25 @@ const SCHEMA_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_training_session ON training_signals(session_id, signal_type);
   CREATE INDEX IF NOT EXISTS idx_training_quality ON training_signals(quality_score);
+
+  -- Elevated Patterns Library (cross-constellation learning)
+  CREATE TABLE IF NOT EXISTS elevated_patterns (
+    id                TEXT PRIMARY KEY,
+    session_id        TEXT,
+    source_helix_id   TEXT NOT NULL,
+    approach          TEXT NOT NULL,
+    description       TEXT NOT NULL,
+    applicable_context TEXT NOT NULL,
+    achieved_score    REAL NOT NULL,
+    relevant_files_json TEXT DEFAULT '[]',
+    supporting_retros_json TEXT DEFAULT '[]',
+    reference_count   INTEGER DEFAULT 0,
+    elevated_at       INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_elevated_patterns_score ON elevated_patterns(achieved_score);
+  CREATE INDEX IF NOT EXISTS idx_elevated_patterns_approach ON elevated_patterns(approach);
+  CREATE INDEX IF NOT EXISTS idx_elevated_patterns_elevated ON elevated_patterns(elevated_at);
 `
 
 
@@ -241,6 +260,20 @@ interface RawEventRow {
   message: string
   data_json: string | null
   timestamp: number
+}
+
+interface RawElevatedPatternRow {
+  id: string
+  session_id: string | null
+  source_helix_id: string
+  approach: string
+  description: string
+  applicable_context: string
+  achieved_score: number
+  relevant_files_json: string
+  supporting_retros_json: string
+  reference_count: number
+  elevated_at: number
 }
 
 
@@ -453,6 +486,12 @@ export class ConstellationStore {
     selectBlackboardArchives: Database.Statement
     insertTrainingSignal: Database.Statement
     selectTrainingSignals: Database.Statement
+    // Elevated patterns library
+    insertElevatedPattern: Database.Statement
+    selectElevatedPatterns: Database.Statement
+    selectElevatedPatternsByApproach: Database.Statement
+    incrementPatternRefCount: Database.Statement
+    pruneElevatedPatterns: Database.Statement
   }
 
   private constructor(dbPath: string, logger: ILogger) {
@@ -582,6 +621,29 @@ export class ConstellationStore {
 
         CREATE INDEX IF NOT EXISTS idx_training_session ON training_signals(session_id, signal_type);
         CREATE INDEX IF NOT EXISTS idx_training_quality ON training_signals(quality_score);
+      `)
+    }
+
+    // Migration from version 2 to 3: elevated patterns library
+    if (fromVersion < 3) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS elevated_patterns (
+          id                TEXT PRIMARY KEY,
+          session_id        TEXT,
+          source_helix_id   TEXT NOT NULL,
+          approach          TEXT NOT NULL,
+          description       TEXT NOT NULL,
+          applicable_context TEXT NOT NULL,
+          achieved_score    REAL NOT NULL,
+          relevant_files_json TEXT DEFAULT '[]',
+          supporting_retros_json TEXT DEFAULT '[]',
+          reference_count   INTEGER DEFAULT 0,
+          elevated_at       INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_elevated_patterns_score ON elevated_patterns(achieved_score);
+        CREATE INDEX IF NOT EXISTS idx_elevated_patterns_approach ON elevated_patterns(approach);
+        CREATE INDEX IF NOT EXISTS idx_elevated_patterns_elevated ON elevated_patterns(elevated_at);
       `)
     }
   }
@@ -773,6 +835,30 @@ export class ConstellationStore {
         `),
         selectTrainingSignals: this.db.prepare(`
           SELECT * FROM training_signals WHERE session_id = @session_id ORDER BY extracted_at DESC
+        `),
+        // Elevated patterns library
+        insertElevatedPattern: this.db.prepare(`
+          INSERT OR REPLACE INTO elevated_patterns (
+            id, session_id, source_helix_id, approach, description,
+            applicable_context, achieved_score, relevant_files_json,
+            supporting_retros_json, reference_count, elevated_at
+          ) VALUES (
+            @id, @session_id, @source_helix_id, @approach, @description,
+            @applicable_context, @achieved_score, @relevant_files_json,
+            @supporting_retros_json, @reference_count, @elevated_at
+          )
+        `),
+        selectElevatedPatterns: this.db.prepare(`
+          SELECT * FROM elevated_patterns ORDER BY achieved_score DESC, elevated_at DESC
+        `),
+        selectElevatedPatternsByApproach: this.db.prepare(`
+          SELECT * FROM elevated_patterns WHERE approach = @approach ORDER BY achieved_score DESC
+        `),
+        incrementPatternRefCount: this.db.prepare(`
+          UPDATE elevated_patterns SET reference_count = reference_count + 1 WHERE id = @id
+        `),
+        pruneElevatedPatterns: this.db.prepare(`
+          DELETE FROM elevated_patterns WHERE elevated_at < ? AND reference_count = 0
         `),
       }
     }
@@ -1096,6 +1182,8 @@ export class ConstellationStore {
     // Clean up orphaned branches and events
     this.stmts.pruneBranches.run()
     this.stmts.pruneEvents.run()
+    // Prune unreferenced elevated patterns (longer retention: 2x session retention)
+    this.pruneElevatedPatterns(maxAgeDays * 2)
     return result.changes
   }
 
@@ -1183,6 +1271,79 @@ export class ConstellationStore {
   }
 
 
+  // Elevated Patterns Library
+
+  /**
+   * Persist an elevated pattern to the cross-constellation library.
+   * Uses INSERT OR REPLACE so re-elevation of the same pattern ID updates it.
+   */
+  saveElevatedPattern(pattern: ElevatedPattern, sessionId?: string): void {
+    this.stmts.insertElevatedPattern.run({
+      id: pattern.id,
+      session_id: sessionId ?? null,
+      source_helix_id: pattern.sourceHelixId,
+      approach: pattern.approach,
+      description: pattern.description,
+      applicable_context: pattern.applicableContext,
+      achieved_score: pattern.achievedScore,
+      relevant_files_json: JSON.stringify(pattern.relevantFiles),
+      supporting_retros_json: JSON.stringify(pattern.supportingRetrospectives),
+      reference_count: pattern.referenceCount,
+      elevated_at: pattern.elevatedAt,
+    })
+    this.logger.debug('Elevated pattern persisted', {
+      id: pattern.id,
+      approach: pattern.approach,
+      score: pattern.achievedScore.toFixed(2),
+    })
+  }
+
+  /**
+   * Load all elevated patterns from the library, ordered by score descending.
+   * Optionally filter by approach type and minimum score.
+   */
+  getElevatedPatterns(opts?: { approach?: string; minScore?: number; limit?: number }): ElevatedPattern[] {
+    let rows: RawElevatedPatternRow[]
+    if (opts?.approach) {
+      rows = this.stmts.selectElevatedPatternsByApproach.all({ approach: opts.approach }) as RawElevatedPatternRow[]
+    } else {
+      rows = this.stmts.selectElevatedPatterns.all() as RawElevatedPatternRow[]
+    }
+
+    let patterns = rows.map(row => this.rowToElevatedPattern(row))
+
+    if (opts?.minScore !== undefined) {
+      patterns = patterns.filter(p => p.achievedScore >= opts.minScore!)
+    }
+    if (opts?.limit !== undefined) {
+      patterns = patterns.slice(0, opts.limit)
+    }
+
+    return patterns
+  }
+
+  /**
+   * Increment the reference count when a pattern is used by a branch.
+   * Patterns with higher reference counts are kept longer during pruning.
+   */
+  incrementPatternReferenceCount(patternId: string): void {
+    this.stmts.incrementPatternRefCount.run({ id: patternId })
+  }
+
+  /**
+   * Prune old elevated patterns that have never been referenced.
+   * Referenced patterns are kept indefinitely.
+   */
+  pruneElevatedPatterns(maxAgeDays: number): number {
+    const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000
+    const result = this.stmts.pruneElevatedPatterns.run(cutoff)
+    if (result.changes > 0) {
+      this.logger.info(`Pruned ${result.changes} unreferenced elevated pattern(s)`)
+    }
+    return result.changes
+  }
+
+
   close(): void {
     this.db.close()
     this.logger.debug('ConstellationStore closed')
@@ -1248,6 +1409,21 @@ export class ConstellationStore {
       filesModified: this.safeJsonParse(row.files_modified_json, []),
       createdAt: row.created_at,
       completedAt: row.completed_at,
+    }
+  }
+
+  private rowToElevatedPattern(row: RawElevatedPatternRow): ElevatedPattern {
+    return {
+      id: row.id,
+      sourceHelixId: row.source_helix_id,
+      approach: row.approach as ElevatedPattern['approach'],
+      description: row.description,
+      applicableContext: row.applicable_context,
+      achievedScore: row.achieved_score,
+      relevantFiles: this.safeJsonParse(row.relevant_files_json, []),
+      supportingRetrospectives: this.safeJsonParse(row.supporting_retros_json, []),
+      referenceCount: row.reference_count,
+      elevatedAt: row.elevated_at,
     }
   }
 
