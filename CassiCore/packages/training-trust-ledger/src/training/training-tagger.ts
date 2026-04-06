@@ -134,7 +134,7 @@ export class TrainingTagger {
    */
   private postToBoard(
     boardName: string,
-    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests',
+    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests' | 'bugs',
     content: string,
     opts?: { author?: string; tags?: string[]; priority?: number },
   ): void {
