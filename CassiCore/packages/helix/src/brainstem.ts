@@ -310,7 +310,7 @@ export class HelixBrainstem {
    */
   onSignificantBlackboardPost(channel: string, content: string): void {
     if (!this.config.enabled) return
-    if (!['decisions', 'findings', 'concerns'].includes(channel)) return
+    if (!['decisions', 'findings', 'concerns', 'bugs'].includes(channel)) return
     this.state.pendingBlackboardTrigger = true
     this.logger.debug('Brainstem flagged for Blackboard-triggered heartbeat', {
       channel,
@@ -1304,7 +1304,7 @@ Scoring guidance:
     }
 
     // Recent channel entries
-    for (const channel of ['findings', 'decisions', 'concerns'] as const) {
+    for (const channel of ['findings', 'decisions', 'concerns', 'bugs'] as const) {
       try {
         const entries = bb.read(channel, 5)
         if (entries.length > 0) {

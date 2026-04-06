@@ -834,7 +834,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         for (const tc of blackboardCalls) {
           if (tc.name === 'bb_post') {
             const channel = (tc.input as Record<string, unknown>)?.channel as string
-            if (channel && ['decisions', 'findings', 'concerns'].includes(channel)) {
+            if (channel && ['decisions', 'findings', 'concerns', 'bugs'].includes(channel)) {
               const content = ((tc.input as Record<string, unknown>)?.content as string) ?? ''
               this.brainstem.onSignificantBlackboardPost(channel, content)
             }

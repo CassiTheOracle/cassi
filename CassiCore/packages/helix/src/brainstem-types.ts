@@ -544,7 +544,7 @@ export interface BrainstemBlackboard {
    * Post an entry to a channel.
    */
   post(
-    channel: 'findings' | 'concerns',
+    channel: 'findings' | 'concerns' | 'bugs',
     entry: {
       author: string
       content: string
@@ -557,7 +557,7 @@ export interface BrainstemBlackboard {
    * Read recent entries from a channel for inclusion in the brainstem prompt.
    */
   read(
-    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests',
+    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests' | 'bugs',
     limit?: number,
   ): Array<{ id: string; channel: string; content: string; author: string; priority: number; tags: string[]; timestamp: number }>
   /** Get the current plan, if any */
