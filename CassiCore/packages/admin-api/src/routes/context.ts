@@ -258,29 +258,12 @@ export async function handleContextRoutes(
   if (method === 'GET' && parts[0] === 'context' && parts[1] === 'assess' && parts.length === 3) {
     try {
       const sessionId = parts[2]
-      const optimizer = runtime.getIntelligence()?.optimizer as any
 
-      // Parse optional token pressure hints from query string
-      const url = new URL(req.url ?? '/', 'http://localhost')
-      const tokensUsed = parseInt(url.searchParams.get('tokensUsed') ?? '0', 10)
-      const contextLimit = parseInt(url.searchParams.get('contextLimit') ?? '0', 10)
-
-      // Default recommendation: let scored selection handle it
-      let decision = 'select' as 'select' | 'summarize' | 'reset'
-
-      if (optimizer && typeof optimizer.getSessionState === 'function') {
-        const state = optimizer.getSessionState(sessionId)
-        // If optimizer has explicitly flagged this session
-        if (state?.pendingAction === 'summarize') decision = 'summarize'
-        else if (state?.pendingAction === 'context-reset') decision = 'reset'
-      }
-
-      // WHY: No hard-capped forced summarization. PCPM handles progressive
-      // context trimming in the messages.transform hook. The assess endpoint
-      // only returns "summarize" when the optimizer explicitly flags it — not
-      // at a fixed percentage threshold.
-
-      sendJSON(res, 200, { sessionId, decision })
+      // WHY: Always return "select" — auto-compaction (LLM summarization)
+      // is disabled. Scored selection in the message transform hook handles
+      // all context pressure by dropping low-value messages. Manual /compact
+      // remains available for explicit user requests.
+      sendJSON(res, 200, { sessionId, decision: 'select' })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -384,8 +367,8 @@ export async function handleContextRoutes(
       }
 
       // Build the LLM-powered summarizer callback for medium-importance clusters
-      const COMPACTION_MODEL = 'qwen3.5-plus'
-      const COMPACTION_PROVIDER = 'alibaba-coding'
+      const COMPACTION_MODEL = 'gpt-5-mini'
+      const COMPACTION_PROVIDER = 'github-copilot'
       let summarizer: ((content: string, instruction: string) => Promise<string>) | undefined
       let modelLabel = 'heuristic-only'
 
