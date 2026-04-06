@@ -110,27 +110,7 @@ export function stripKnownPrefix(name: string): string | null {
 export const TOOL_ALIASES: AliasTable = {
 
 
-  // lumen_*, dyad_*, helix_* → agent tool with type+action injected
-  lumen_project:    { name: 'agent', args: { type: 'lumen',  action: 'project'    } },
-  lumen_status:     { name: 'agent', args: { type: 'lumen',  action: 'status'     } },
-  lumen_jobs:       { name: 'agent', args: { type: 'lumen',  action: 'jobs'       } },
-  lumen_watch:      { name: 'agent', args: { type: 'lumen',  action: 'watch'      } },
-  lumen_cancel:     { name: 'agent', args: { type: 'lumen',  action: 'cancel'     } },
-  lumen_sessions:   { name: 'agent', args: { type: 'lumen',  action: 'sessions'   } },
-  lumen_messages:   { name: 'agent', args: { type: 'lumen',  action: 'messages'   } },
-  lumen_tool_calls: { name: 'agent', args: { type: 'lumen',  action: 'tool_calls' } },
-  lumen_events:     { name: 'agent', args: { type: 'lumen',  action: 'events'     } },
-
-  dyad_project:     { name: 'agent', args: { type: 'dyad',   action: 'project'    } },
-  dyad_status:      { name: 'agent', args: { type: 'dyad',   action: 'status'     } },
-  dyad_jobs:        { name: 'agent', args: { type: 'dyad',   action: 'jobs'       } },
-  dyad_watch:       { name: 'agent', args: { type: 'dyad',   action: 'watch'      } },
-  dyad_cancel:      { name: 'agent', args: { type: 'dyad',   action: 'cancel'     } },
-  dyad_sessions:    { name: 'agent', args: { type: 'dyad',   action: 'sessions'   } },
-  dyad_messages:    { name: 'agent', args: { type: 'dyad',   action: 'messages'   } },
-  dyad_tool_calls:  { name: 'agent', args: { type: 'dyad',   action: 'tool_calls' } },
-  dyad_events:      { name: 'agent', args: { type: 'dyad',   action: 'events'     } },
-
+  // helix_* → agent tool with type+action injected (lumen/dyad consolidated into helix)
   helix_project:    { name: 'agent', args: { type: 'helix',  action: 'project'    } },
   helix_status:     { name: 'agent', args: { type: 'helix',  action: 'status'     } },
   helix_jobs:       { name: 'agent', args: { type: 'helix',  action: 'jobs'       } },

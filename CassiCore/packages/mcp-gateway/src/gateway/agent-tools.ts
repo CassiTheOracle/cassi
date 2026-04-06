@@ -262,9 +262,7 @@ export async function executeAgentTool(
 
   switch (type) {
     case 'lumen':
-      return await executeLumenAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     case 'dyad':
-      return await executeDyadAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     case 'helix':
       return await executeHelixAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     case 'constellation':
@@ -274,60 +272,6 @@ export async function executeAgentTool(
     default:
       throw new Error(`Unknown agent type: ${type}`);
   }
-}
-
-/**
- * Execute Lumen-specific agent actions
- */
-async function executeLumenAgentTool(
-  baseUrl: string,
-  action: string,
-  args: any,
-  logger: ILogger,
-  heartbeat?: () => void
-): Promise<any> {
-  const toolName = `lumen_${action}`;
-
-  // Map consolidated action to legacy tool name
-  const validLumenTools = new Set([
-    'lumen_project', 'lumen_status', 'lumen_cancel', 'lumen_health',
-    'lumen_jobs', 'lumen_watch', 'lumen_sessions', 'lumen_messages',
-    'lumen_tool_calls', 'lumen_events', 'lumen_postures', 'lumen_progress',
-    'lumen_blackboard',
-  ]);
-
-  if (!validLumenTools.has(toolName)) {
-    throw new Error(`Unknown Lumen action: ${action}`);
-  }
-
-  return await executeLumenTool(baseUrl, toolName, args, logger, heartbeat);
-}
-
-/**
- * Execute Dyad-specific agent actions
- */
-async function executeDyadAgentTool(
-  baseUrl: string,
-  action: string,
-  args: any,
-  logger: ILogger,
-  heartbeat?: () => void
-): Promise<any> {
-  const toolName = `dyad_${action}`;
-
-  // Map consolidated action to legacy tool name
-  const validDyadTools = new Set([
-    'dyad_project', 'dyad_status', 'dyad_cancel', 'dyad_health',
-    'dyad_jobs', 'dyad_watch', 'dyad_sessions', 'dyad_messages',
-    'dyad_tool_calls', 'dyad_events', 'dyad_postures', 'dyad_progress',
-    'dyad_blackboard',
-  ]);
-
-  if (!validDyadTools.has(toolName)) {
-    throw new Error(`Unknown Dyad action: ${action}`);
-  }
-
-  return await executeDyadTool(baseUrl, toolName, args, logger, heartbeat);
 }
 
 /**
