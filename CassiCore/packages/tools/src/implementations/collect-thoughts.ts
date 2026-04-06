@@ -7,18 +7,21 @@
  *   3. CassiCore responds with enriched context
  *   4. Agent incorporates enrichment into its next step
  *
- * Enrichment pipeline (Stages 1-6):
+ * Enrichment pipeline (Stages 1-4, fast path):
  *   Stage 1: STORE   — BranchingConversation.addTurn(); revision/branch routing
  *   Stage 2: EXTRACT — ThoughtObserver.extractSignalsFromText()
  *   Stage 3: PEER    — CognitiveBridge.getFusedSignals() + getResonancePatterns()
  *   Stage 4: ROUTE   — Route signals to peers; emit axon:step event
- *   Stage 5: MEMORY  — memory.search(thought) for related context
- *   Stage 6: SYNAPSE — conditional LLM call for per-posture guidance
+ *
+ * Context-dependent enrichment (replaces stages 5-6):
+ *   Constellation context → Memory search + Synapse LLM + Corpus guidance
+ *   Main agent context    → Parallel Thinker session (async LLM partner)
  *
  * Neural metaphor:
  *   Axon    — the structured thought chain (sessions/trees managed here)
  *   Synapse — fires guidance at junctions between thoughts
  *   Dendrites — memory, signals, peers feeding into each step
+ *   Thinker — parallel reasoning partner for the main agent
  */
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
@@ -37,6 +40,7 @@ import type {
 import { DEFAULT_COLLECT_THOUGHTS_CONFIG } from '../../../types/collect-thoughts.js'
 import { generateShortId } from '../../utils/ids.js'
 import type { Synapse } from '../../intelligence/synapse/index.js'
+import type { ThinkerSession } from '../../intelligence/thinker/thinker-session.js'
 
 
 /** Constellation-level guidance provider for thought enrichment.
@@ -69,6 +73,10 @@ export interface CollectThoughtsDeps {
   /** Session-scoped registry of guidance providers. The Constellation pipeline
    *  registers per-branch providers here; collect_thoughts looks up by sessionId. */
   constellationGuidanceRegistry?: import('../../intelligence/constellation/guidance-provider.js').ConstellationGuidanceRegistry
+  /** Parallel Thinker session for main-agent context. When present and no
+   *  Constellation guidance provider exists, thoughts are routed to the Thinker
+   *  instead of the synchronous memory + Synapse pipeline (stages 5-6). */
+  thinkerSession?: ThinkerSession
 }
 
 
@@ -448,6 +456,51 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
+    // Stage 7: THINKER — Parallel reasoning partner for main-agent context.
+    // When a ThinkerSession is present and we're NOT inside a Constellation branch,
+    // enqueue the current thought for async processing and collect any buffered
+    // output from previous steps. On step 1, sync-wait for the initial response
+    // to seed the first turn with Thinker context.
+    let thinkerGuidance: string | null = null
+    const isConstellationContext = !!(deps.constellationProvider
+      || deps.constellationGuidanceRegistry?.get(context.sessionId))
+    if (deps.thinkerSession && !isConstellationContext) {
+      try {
+        deps.thinkerSession.enqueueThought(input.thought, {
+          step: input.step,
+          estimatedSteps: input.estimated_steps,
+          isRevision: input.is_revision ?? false,
+          branchId: activeBranchId,
+        })
+
+        if (input.step === 1) {
+          const hasResponse = await deps.thinkerSession.waitForResponse(5000)
+          if (hasResponse) {
+            const buffered = deps.thinkerSession.drainBuffer()
+            if (buffered.length > 0) {
+              thinkerGuidance = buffered[buffered.length - 1].content
+              log.info('Thinker initial guidance received', {
+                step: input.step,
+                guidanceLength: thinkerGuidance!.length,
+              })
+            }
+          }
+        } else {
+          const buffered = deps.thinkerSession.drainBuffer()
+          if (buffered.length > 0) {
+            thinkerGuidance = buffered[buffered.length - 1].content
+            log.info('Thinker buffered guidance collected', {
+              step: input.step,
+              bufferedCount: buffered.length,
+              guidanceLength: thinkerGuidance!.length,
+            })
+          }
+        }
+      } catch (err) {
+        log.warn('Thinker guidance failed', { error: String(err), step: input.step })
+      }
+    }
+
     if (!input.continue_thinking && deps.bus) {
       deps.bus.emit({
         type: 'axon:complete',
@@ -494,6 +547,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       })),
       synapse: synapseGuidance,
       constellationGuidance,
+      thinkerGuidance,
       tree: {
         totalSteps: state.stepToTurnId.size,
         activeBranch: activeBranchId,
@@ -535,6 +589,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       branch: activeBranchId,
       revision: input.is_revision ?? false,
       contributors: contributorsRecord,
+      hasThinkerGuidance: !!thinkerGuidance,
     })
 
     return jsonResult
