@@ -21,10 +21,10 @@
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { HelixRole } from './types.js'
-import { WorkStream } from '../dyad/work-stream.js'
-import { DialecticChannel } from '../lumen/dialectic-channel.js'
-import type { WorkUnit } from '../dyad/types.js'
-import type { Nudge } from '../dyad/types.js'
+import { WorkStream } from './work-stream.js'
+import { DialecticChannel } from './dialectic-channel.js'
+import type { WorkUnit } from './work-types.js'
+import type { Nudge } from './work-types.js'
 import { HelixMetrics } from './helix-metrics.js'
 import type { HelixMetricsSnapshot } from './helix-metrics.js'
 

@@ -114,7 +114,7 @@ import {
   CONCEDE_TOOL,
   REQUEST_INVESTIGATION_TOOL,
   SIGNAL_CONCLUSION_TOOL,
-} from '../lumen/dialectic-tools.js'
+} from './dialectic-tools.js'
 
 export {
   SHARE_FINDING_TOOL,
@@ -491,12 +491,12 @@ export const REVIEWER_TOOLS: ToolSchema[] = [
 import {
   ALL_POSTURES_PLAN_TOOLS,
   isPlanMetaTool,
-} from '../lumen/plan-tools.js'
+} from './plan-tools.js'
 
 import {
   REPORT_TOOLS,
   REPORT_TOOL_NAMES,
-} from '../lumen/report-tools.js'
+} from './report-tools.js'
 
 import {
   MENTOR_TOOLS,

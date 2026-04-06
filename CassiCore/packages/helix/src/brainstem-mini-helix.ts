@@ -15,7 +15,7 @@
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { WorkUnit } from '../dyad/types.js'
+import type { WorkUnit } from './work-types.js'
 import type {
   BrainstemAnnotation,
   BrainstemConfig,

@@ -14,10 +14,10 @@
  * Yang and Yin are the orbiting stars, Brainstem is the cognitive organizer.
  */
 
-import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
+import type { ConvergencePoint, UnresolvedTension } from './dialectic-channel.js'
 import type { Blackboard } from '../flux-team/blackboard.js'
-import type { DyadRole } from '../dyad/types.js'
-import type { UnityStatusThresholds } from '../dyad/work-stream.js'
+import type { DyadRole } from './work-types.js'
+import type { UnityStatusThresholds } from './work-stream.js'
 
 
 /** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers). Mentor deprecated in favor of Brainstem. */

@@ -22,7 +22,7 @@
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { WorkUnit } from '../dyad/types.js'
+import type { WorkUnit } from './work-types.js'
 import type { CognitiveSignal } from '../thought-observer.js'
 import type { ICorpusTree } from '../constellation/corpus-types.js'
 import type {

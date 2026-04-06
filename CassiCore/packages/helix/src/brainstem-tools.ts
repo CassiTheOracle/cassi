@@ -23,7 +23,7 @@ import type {
   MiniHelixToolResult,
   MiniHelixToolHandler,
 } from '../mini-helix/mini-helix-types.js'
-import type { WorkUnit } from '../dyad/types.js'
+import type { WorkUnit } from './work-types.js'
 import type {
   BrainstemAnnotation,
   WorkUnitAnnotation,
