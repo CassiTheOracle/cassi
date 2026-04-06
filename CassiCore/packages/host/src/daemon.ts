@@ -59,6 +59,7 @@ import { WorkflowScheduler } from './workflow/scheduler.js'
 import { WorkflowTriggerStore } from './workflow/trigger-store.js'
 import { BranchingConversationManager } from './intelligence/branching-conversation/manager.js'
 import { ThinkerSession } from './intelligence/thinker/thinker-session.js'
+import { ConcreteThinkerToolProvider } from './intelligence/thinker/thinker-tool-provider.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 import { executeTurn, getPreferredTurnEngine } from './admin-api/turn-routing.js'
@@ -1879,6 +1880,14 @@ export class Daemon {
                 return undefined
               }
               const model = this.config.get<string>('intelligence.thinkerSession.model', 'claude-haiku-4.5')
+              const toolProvider = this.intelligence?.memory
+                ? new ConcreteThinkerToolProvider({
+                    workspaceRoot: process.cwd(),
+                    logger: this.logger,
+                    memory: this.intelligence.memory,
+                    blackboardRegistry: this.globalBlackboardRegistry,
+                  })
+                : undefined
               const session = new ThinkerSession({
                 logger: this.logger,
                 bus: this.bus,
@@ -1886,6 +1895,7 @@ export class Daemon {
                   const sdkProvider = this.providers.get('copilot-sdk')
                   return sdkProvider as any
                 },
+                toolProvider,
                 config: {
                   enabled: true,
                   model,
@@ -1895,7 +1905,7 @@ export class Daemon {
                 },
               })
               void session.start()
-              this.logger.info('ThinkerSession: created and started', { isRunning: session.isRunning })
+              this.logger.info('ThinkerSession: created and started', { isRunning: session.isRunning, hasTools: !!toolProvider })
               return session
             } catch (err) {
               this.logger.error('ThinkerSession: creation failed', { error: String(err) })
