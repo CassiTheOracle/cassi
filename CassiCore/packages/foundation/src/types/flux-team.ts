@@ -312,6 +312,7 @@ export type BlackboardChannel =
   | 'decisions'     // Resolutions and action items
   | 'artifacts'     // File changes and produced outputs
   | 'requests'      // Requests for additional capabilities (DRTAG trigger)
+  | 'bugs'          // Bugs noticed during work — filed for later triage
 
 /**
  * An entry posted to a Blackboard channel.
