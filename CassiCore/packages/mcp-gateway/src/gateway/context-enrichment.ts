@@ -27,6 +27,8 @@ import {
   recoverFromEmpty,
   formatTopRelevantEntry,
   scoreCRAGQuality,
+  MIN_TOP_RELEVANT_SCORE,
+  MIN_SOURCE_DISPLAY_SCORE,
   type RankedSearchResult,
   type CRAGAssessment,
 } from './query-intelligence.js';
@@ -561,8 +563,10 @@ export async function fetchAndFormatContext(
   // CRAG quality scoring — evaluate retrieval quality and trigger fallback if needed
   const cragAssessment = scoreCRAGQuality(topRelevant, normalized);
 
-  // Filter out 'incorrect' results from the top relevant set
-  const filteredTopRelevant = topRelevant.filter(r => r.cragAction !== 'incorrect');
+  // Filter out 'incorrect' results and results below the relevance floor
+  const filteredTopRelevant = topRelevant.filter(
+    r => r.cragAction !== 'incorrect' && r.finalScore >= MIN_TOP_RELEVANT_SCORE
+  );
 
   // If CRAG assessment triggers fallback (most results are low quality),
   // attempt recovery with broader search terms
@@ -575,10 +579,10 @@ export async function fetchAndFormatContext(
     }
   }
 
-  // Apply final limits (deduped multi-variant results are already bounded,
-  // but we clip to the requested limits for per-source sections).
-  const memories       = memoriesAll.slice(0, memoryLimit);
-  const archiveEntries = archivesAll.slice(0, archiveLimit);
+  // Apply final limits with relevance floor — drop results whose raw backend
+  // score is below the display threshold before slicing to requested limits.
+  const memories       = memoriesAll.filter(m => m.rawScore >= MIN_SOURCE_DISPLAY_SCORE).slice(0, memoryLimit);
+  const archiveEntries = archivesAll.filter(e => e.rawScore >= MIN_SOURCE_DISPLAY_SCORE).slice(0, archiveLimit);
   const indexEntries   = indexAll.slice(0, indexLimit);
 
   const lines: string[] = [];

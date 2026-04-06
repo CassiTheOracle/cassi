@@ -59,6 +59,8 @@ interface ArchiveMetadata {
 export interface RankedSearchResult {
   raw:          unknown;
   source:       'memory' | 'archive' | 'index';
+  /** Original score from the search backend (0–1), before variant weighting. */
+  rawScore:     number;
   baseScore:    number;
   finalScore:   number;
   variantLabel: string;
@@ -372,6 +374,7 @@ export async function searchMultiVariant(
       results.push({
         raw,
         source,
+        rawScore,
         baseScore: rawScore * variant.weight,
         finalScore: 0, // computed in mergeAndRank
         variantLabel: variant.label,
@@ -491,6 +494,21 @@ const CRAG_AMBIGUOUS_THRESHOLD = 0.35;
 const CRAG_INCORRECT_THRESHOLD = 0.15;
 /** If more than this fraction of top results are ambiguous/incorrect, trigger fallback */
 const CRAG_FALLBACK_RATIO = 0.6;
+
+/**
+ * Minimum finalScore for a result to appear in the "Top Relevant" section.
+ * Results below this threshold are noise — the user reported mid-60% results
+ * are consistently irrelevant. 0.70 filters those while keeping genuinely
+ * relevant results (typically 73%+).
+ */
+export const MIN_TOP_RELEVANT_SCORE = 0.70;
+
+/**
+ * Minimum raw backend score for a result to appear in per-source sections.
+ * Lower than MIN_TOP_RELEVANT_SCORE because per-source sections are clearly
+ * labeled and serve as a detail view. This catches only the obvious noise.
+ */
+export const MIN_SOURCE_DISPLAY_SCORE = 0.50;
 
 /**
  * CRAG (Corrective RAG) quality scorer.
