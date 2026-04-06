@@ -238,10 +238,8 @@ export class Daemon {
   private primaryRouter?: PrimarySessionRouter
   public modelRouter?: ModelRouter
   public modelDirective?: ModelDirective
-  /** Lumen ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
-  private lumenModelPool?: import('./model-pool/index.js').ModelPool
-  /** Dyad ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
-  private dyadModelPool?: import('./model-pool/index.js').ModelPool
+  /** Helix/Constellation ModelPool — stored for re-wiring after late provider init (e.g. copilot-sdk). */
+  private helixModelPool?: import('./model-pool/index.js').ModelPool
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
   /** Global Blackboard Registry — shared singleton for daemon-scoped modules. */
@@ -1546,123 +1544,52 @@ export class Daemon {
       }
     }
 
-    // Wire Lumen with a dedicated ModelPool
-    // Lumen runs 3 concurrent postures (Yang/Yin/Executive) and needs its own pool
-    // to avoid contention with Teams or other subsystems.
-    if (this.intelligence?.lumen && providers.size > 0) {
-      try {
-        // Use ModelDirective for provider/model selection when available,
-        // falling back to config for backward compatibility
-        const directive = this.modelDirective
-        const defaultRouting = directive
-          ? directive.resolve()
-          : {
-              provider: this.config.get<string>('intelligence.lumen.provider', 'alibaba-coding'),
-              model: this.config.get<string>('intelligence.lumen.model', 'kimi-k2.5'),
-            }
-        const lumenBlockedProviders = this.config.get<string[]>('intelligence.lumen.blockedProviders', ['github-copilot-lb'])
-        const lumenAllowedModels = this.config.get<Record<string, string[]>>('intelligence.lumen.allowedModels', {
-          'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
-        })
-
-        const sdkModelForLumen = this.config.get<string>('providers.copilotSdk.defaultModel', 'claude-opus-4.6')
-        const makeLumenChain = (slot: string) => ({
-          slotName: slot,
-          chain: [
-            // Prefer copilot-sdk when available — collapses tool loops into 1 premium request.
-            // Always included; ModelPool.acquire() gracefully skips if provider not yet connected.
-            { role: slot, provider: 'copilot-sdk', model: sdkModelForLumen, priority: 20 },
-            { role: slot, provider: defaultRouting.provider, model: defaultRouting.model, priority: 10 },
-          ],
-          triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-        })
-
-        const { ModelPool } = await import('./model-pool/index.js')
-        const lumenModelPool = new ModelPool({
-          logger: this.logger.child('lumen-pool'),
-          eventBus: this.bus,
-          fallbackChains: [makeLumenChain('yang'), makeLumenChain('yin'), makeLumenChain('executive')],
-          budgetScopes: [],
-          defaultTimeoutMs: this.config.get<number>('intelligence.lumen.timeoutMs', 600000),
-          auditEnabled: false,
-          blockedProviders: lumenBlockedProviders,
-          allowedModels: lumenAllowedModels,
-        })
-        lumenModelPool.setProviders(providers)
-        this.intelligence.lumen.setModelPool(lumenModelPool)
-        this.lumenModelPool = lumenModelPool
-
-        // Wire ModelDirective so Lumen can resolve job-scoped overrides at runtime
-        if (directive && typeof (this.intelligence.lumen as any).setModelDirective === 'function') {
-          (this.intelligence.lumen as any).setModelDirective(directive)
-        }
-
-        this.logger.info('Lumen ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model, blockedProviders: lumenBlockedProviders })
-      } catch (err) {
-        this.logger.warn('Failed to wire Lumen ModelPool — Lumen will not be available via API', { error: String(err) })
-      }
-    }
-
-    // Wire Dyad with a dedicated ModelPool
-    // Dyad runs 3 concurrent roles (Yang/Yin/Apex) and needs its own pool
-    // to avoid contention with Lumen, Teams, or other subsystems.
-    if (this.intelligence?.dyad && providers.size > 0) {
+    // Wire Helix + Constellation with a dedicated ModelPool.
+    // copilot-sdk warm sessions return 400 for Helix's tool-heavy multi-posture prompts,
+    // so this pool routes directly to configured providers without copilot-sdk.
+    if ((this.intelligence?.helix || this.intelligence?.constellation) && providers.size > 0) {
       try {
         const directive = this.modelDirective
         const defaultRouting = directive
           ? directive.resolve()
           : {
-              provider: this.config.get<string>('intelligence.dyad.provider', 'alibaba-coding'),
-              model: this.config.get<string>('intelligence.dyad.model', 'kimi-k2.5'),
+              provider: this.config.get<string>('intelligence.helix.provider', 'alibaba-coding'),
+              model: this.config.get<string>('intelligence.helix.model', 'kimi-k2.5'),
             }
-        const dyadBlockedProviders = this.config.get<string[]>('intelligence.dyad.blockedProviders', ['github-copilot-lb'])
-        const dyadAllowedModels = this.config.get<Record<string, string[]>>('intelligence.dyad.allowedModels', {
+        const helixBlockedProviders = this.config.get<string[]>('intelligence.helix.blockedProviders', ['github-copilot-lb'])
+        const helixAllowedModels = this.config.get<Record<string, string[]>>('intelligence.helix.allowedModels', {
           'github-copilot': ['gpt-4o', 'gpt-4.1', 'gpt-5-mini'],
         })
 
-        const { ModelPool: DyadModelPool } = await import('./model-pool/index.js')
-        const sdkModelForDyad = this.config.get<string>('providers.copilotSdk.defaultModel', 'claude-opus-4.6')
-
-        // Resolve per-slot models via tier names (or fall back to hardcoded defaults)
         const kimiConfig = directive ? directive.resolveTier('kimi')    : { provider: 'alibaba-coding', model: 'kimi-k2.5' }
         const glmConfig  = directive ? directive.resolveTier('glm')     : { provider: 'alibaba-coding', model: 'glm-5' }
         const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
         const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.5-plus' }
         const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'github-copilot', model: 'gpt-5-mini' }
 
-        /** Build a copilot-sdk-first chain; falls back to the given tier model */
-        const makeChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
+        const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
           slotName: slot,
           chain: [
-            // Prefer copilot-sdk when available — collapses tool loops into 1 premium request.
-            // Always included; ModelPool.acquire() gracefully skips if provider not yet connected.
-            { role: slot, provider: 'copilot-sdk', model: sdkModelForDyad, priority: 20 },
             { role: slot, provider: tierCfg.provider, model: tierCfg.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         })
 
-        // Helix posture assignments: Yin=kimi, Yang=glm, Unity=qwenMax
-        // Dyad posture assignments: Yang=glm, Yin=kimi, Apex=qwenPlus (synthesis)
-        // Helix generic slot defaults to kimi
-        // Brainstem is a cheap analysis task — skip copilot-sdk, use background (gpt-5-mini)
-        const brainstemChainForDyad = {
+        const brainstemChain = {
           slotName: 'brainstem',
           chain: [
             { role: 'brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
-        // Mini-Helix Corpus: high-capability scoring/analysis — use qwenMax
-        const miniHelixCorpusChainForDyad = {
+        const miniHelixCorpusChain = {
           slotName: 'mini-helix:corpus',
           chain: [
             { role: 'mini-helix:corpus', provider: qwenMaxCfg.provider, model: qwenMaxCfg.model, priority: 10 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
-        // Mini-Helix Brainstem: lightweight sidecar — use background (gpt-5-mini)
-        const miniHelixBrainstemChainForDyad = {
+        const miniHelixBrainstemChain = {
           slotName: 'mini-helix:brainstem',
           chain: [
             { role: 'mini-helix:brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
@@ -1670,104 +1597,55 @@ export class Daemon {
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
 
-        const dyadModelPool = new DyadModelPool({
-          logger: this.logger.child('dyad-pool'),
+        const { ModelPool } = await import('./model-pool/index.js')
+        const helixModelPool = new ModelPool({
+          logger: this.logger.child('helix-pool'),
           eventBus: this.bus,
           fallbackChains: [
-            makeChain('yang', glmConfig),      // Yang: assertive posture → glm
-            makeChain('yin', kimiConfig),       // Yin: receptive posture → kimi
-            makeChain('apex', qwenPlusCfg),     // Apex: synthesis → qwenPlus
-            makeChain('unity', qwenMaxCfg),     // Unity: high-capability orchestrator → qwenMax
-            makeChain('helix', kimiConfig),     // Helix generic → kimi
-            brainstemChainForDyad,
-            miniHelixCorpusChainForDyad,
-            miniHelixBrainstemChainForDyad,
+            makeHelixChain('yang', glmConfig),
+            makeHelixChain('yin', kimiConfig),
+            makeHelixChain('apex', qwenPlusCfg),
+            makeHelixChain('unity', qwenMaxCfg),
+            makeHelixChain('helix', kimiConfig),
+            brainstemChain,
+            miniHelixCorpusChain,
+            miniHelixBrainstemChain,
           ],
           budgetScopes: [],
-          defaultTimeoutMs: this.config.get<number>('intelligence.dyad.timeoutMs', 600000),
+          defaultTimeoutMs: this.config.get<number>('intelligence.helix.timeoutMs', 600000),
           auditEnabled: false,
-          blockedProviders: dyadBlockedProviders,
-          allowedModels: dyadAllowedModels,
+          blockedProviders: helixBlockedProviders,
+          allowedModels: helixAllowedModels,
         })
-        dyadModelPool.setProviders(providers)
-        this.intelligence.dyad.setModelPool(dyadModelPool)
-        this.dyadModelPool = dyadModelPool
+        helixModelPool.setProviders(providers)
+        this.helixModelPool = helixModelPool
 
-        // Wire ModelDirective so Dyad can resolve job-scoped overrides at runtime
-        if (directive && typeof (this.intelligence.dyad as any).setModelDirective === 'function') {
-          (this.intelligence.dyad as any).setModelDirective(directive)
+        if (this.intelligence?.helix) {
+          this.intelligence.helix.setModelPool(helixModelPool)
+          if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
+            (this.intelligence.helix as any).setModelDirective(directive)
+          }
+          this.logger.info('Helix ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model })
         }
 
-        this.logger.info('Dyad ModelPool wired', { provider: defaultRouting.provider, model: defaultRouting.model, blockedProviders: dyadBlockedProviders })
-
-        // Wire Helix + Constellation ModelPool — separate pool WITHOUT copilot-sdk.
-        // copilot-sdk warm sessions return 400 for Helix's tool-heavy multi-posture prompts.
-        // Helix/Constellation slots route directly to their configured providers.
-        if (this.intelligence?.helix || this.intelligence?.constellation) {
-          try {
-            /** Build a chain without copilot-sdk — direct to tier model only */
-            const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
-              slotName: slot,
-              chain: [
-                { role: slot, provider: tierCfg.provider, model: tierCfg.model, priority: 10 },
-              ],
-              triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
-            })
-
-            const helixModelPool = new DyadModelPool({
-              logger: this.logger.child('helix-pool'),
-              eventBus: this.bus,
-              fallbackChains: [
-                makeHelixChain('yang', glmConfig),
-                makeHelixChain('yin', kimiConfig),
-                makeHelixChain('apex', qwenPlusCfg),
-                makeHelixChain('unity', qwenMaxCfg),
-                makeHelixChain('helix', kimiConfig),
-                brainstemChainForDyad,
-                miniHelixCorpusChainForDyad,
-                miniHelixBrainstemChainForDyad,
-              ],
-              budgetScopes: [],
-              defaultTimeoutMs: this.config.get<number>('intelligence.helix.timeoutMs', 600000),
-              auditEnabled: false,
-              blockedProviders: dyadBlockedProviders,
-              allowedModels: dyadAllowedModels,
-            })
-            helixModelPool.setProviders(providers)
-
-            if (this.intelligence?.helix) {
-              this.intelligence.helix.setModelPool(helixModelPool)
-
-              // Wire ModelDirective so Helix can resolve job-scoped overrides at runtime
-              if (directive && typeof (this.intelligence.helix as any).setModelDirective === 'function') {
-                (this.intelligence.helix as any).setModelDirective(directive)
-              }
-
-              this.logger.info('Helix ModelPool wired (dedicated, no copilot-sdk)', { provider: defaultRouting.provider, model: defaultRouting.model })
-            }
-
-            if (this.intelligence?.constellation) {
-              this.intelligence.constellation.setModelPool(helixModelPool)
-              this.logger.info('Constellation ModelPool wired (shared with Helix, no copilot-sdk)', { provider: defaultRouting.provider, model: defaultRouting.model })
-            }
-          } catch (helixErr) {
-            this.logger.warn('Failed to wire Helix/Constellation ModelPool', { error: String(helixErr) })
-          }
+        if (this.intelligence?.constellation) {
+          this.intelligence.constellation.setModelPool(helixModelPool)
+          this.logger.info('Constellation ModelPool wired (shared with Helix)', { provider: defaultRouting.provider, model: defaultRouting.model })
         }
       } catch (err) {
-        this.logger.warn('Failed to wire Dyad ModelPool — Dyad will not be available via API', { error: String(err) })
+        this.logger.warn('Failed to wire Helix/Constellation ModelPool', { error: String(err) })
       }
     }
 
-    // Create shared ContextDistiller — Phase Zero context injection for teams/lumen/dyad.
+    // Create shared ContextDistiller — Phase Zero context injection for teams/helix.
     // Must be created after providers and ModelPools are wired.
     if (this.intelligence && providers.size > 0) {
       try {
         const { ContextDistiller } = await import('./intelligence/context-distiller.js')
         const contextDistiller = new ContextDistiller(this.logger)
 
-        // Wire ModelPool — use Lumen pool (or Dyad pool if Lumen unavailable)
-        const distillerPool = this.lumenModelPool ?? this.dyadModelPool
+        // Wire ModelPool — use Helix pool
+        const distillerPool = this.helixModelPool
         if (distillerPool) {
           contextDistiller.setModelPool(distillerPool)
         }
@@ -2098,13 +1976,9 @@ export class Daemon {
         )
         if (sdkManager) {
           ;(this as unknown as Record<string, unknown>).__copilotSdkManager = sdkManager
-          if (this.lumenModelPool) {
-            this.lumenModelPool.setProviders(providers)
-            this.logger.info('Lumen ModelPool re-wired after copilot-sdk init')
-          }
-          if (this.dyadModelPool) {
-            this.dyadModelPool.setProviders(providers)
-            this.logger.info('Dyad ModelPool re-wired after copilot-sdk init')
+          if (this.helixModelPool) {
+            this.helixModelPool.setProviders(providers)
+            this.logger.info('Helix ModelPool re-wired after copilot-sdk init')
           }
         }
       } catch (err) {
@@ -2210,24 +2084,13 @@ export class Daemon {
           tt.setToolExecutor(toolExecutor)
           tt.setToolRegistry(toolRegistry)
           this.wireModule(tt, this.bus)
-          // Wire Lumen into triad-team for dialectic-enhanced cells
-          if (this.intelligence.lumen) {
-            tt.setLumen(this.intelligence.lumen)
-          }
           this.logger.info('Triad-team orchestrator wired')
         }
 
-        // FluxTeamOrchestrator needs event bus, Lumen (research/read-only genomes),
-        // Dyad (action/write genomes), and a data directory for its outcome ledger.
+        // FluxTeamOrchestrator needs event bus and a data directory for its outcome ledger.
         if (this.intelligence?.fluxTeam) {
           const ft = this.intelligence.fluxTeam
           ft.setEventBus(this.bus)
-          if (this.intelligence.lumen) {
-            ft.setLumen(this.intelligence.lumen)
-          }
-          if (this.intelligence.dyad) {
-            ft.setDyad(this.intelligence.dyad)
-          }
           // Wire ModelDirective for job-scoped model selection
           if (this.modelDirective) {
             ft.setModelDirective(this.modelDirective)
@@ -2287,58 +2150,6 @@ export class Daemon {
 
           this.wireModule(ft, this.bus)
           this.logger.info('FluxTeam orchestrator wired')
-        }
-
-        // Lumen postures (Yang/Yin/Executive) use read-only tools for investigation.
-        if (this.intelligence?.lumen) {
-          this.intelligence.lumen.setToolRegistry(toolRegistry)
-          this.intelligence.lumen.setToolExecutor(toolExecutor)
-
-          // Wire LumenStore for full session persistence
-          try {
-            const { LumenStore } = await import('./intelligence/lumen/lumen-store.js')
-            const lumenStore = LumenStore.open(this.logger.child('lumen-store'))
-            this.intelligence.lumen.setStore(lumenStore)
-            this.logger.info('LumenStore wired (SQLite persistence)')
-          } catch (err) {
-            this.logger.warn('LumenStore failed to initialize — running without persistence', {
-              error: String(err),
-            })
-          }
-
-          this.logger.info('Lumen tool access wired')
-
-          // Wire ContextDistiller for Phase Zero context injection
-          if (this.contextDistiller) {
-            this.intelligence.lumen.setContextDistiller(this.contextDistiller)
-            this.logger.info('Lumen ContextDistiller wired for Phase Zero')
-          }
-        }
-
-        // Wire Dyad tools and store
-        if (this.intelligence?.dyad) {
-          this.intelligence.dyad.setToolRegistry(toolRegistry)
-          this.intelligence.dyad.setToolExecutor(toolExecutor)
-
-          // Wire DyadStore for full session persistence
-          try {
-            const { DyadStore } = await import('./intelligence/dyad/dyad-store.js')
-            const dyadStore = DyadStore.open(this.logger.child('dyad-store'))
-            this.intelligence.dyad.setStore(dyadStore)
-            this.logger.info('DyadStore wired (SQLite persistence)')
-          } catch (err) {
-            this.logger.warn('DyadStore failed to initialize — running without persistence', {
-              error: String(err),
-            })
-          }
-
-          this.logger.info('Dyad tool access wired')
-
-          // Wire ContextDistiller for Phase Zero context injection
-          if (this.contextDistiller) {
-            this.intelligence.dyad.setContextDistiller(this.contextDistiller)
-            this.logger.info('Dyad ContextDistiller wired for Phase Zero')
-          }
         }
 
         // Wire Helix tools, store, and context distiller

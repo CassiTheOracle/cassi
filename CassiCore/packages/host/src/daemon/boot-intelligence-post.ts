@@ -217,12 +217,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       contextDistiller.setModuleRegistry(moduleRegistry)
     }
     // Orchestrators
-    if (typeof intelligence.lumen.setModuleRegistry === 'function') {
-      intelligence.lumen.setModuleRegistry(moduleRegistry)
-    }
-    if (typeof intelligence.dyad.setModuleRegistry === 'function') {
-      intelligence.dyad.setModuleRegistry(moduleRegistry)
-    }
     if (typeof intelligence.helix?.setModuleRegistry === 'function') {
       intelligence.helix.setModuleRegistry(moduleRegistry)
     }
