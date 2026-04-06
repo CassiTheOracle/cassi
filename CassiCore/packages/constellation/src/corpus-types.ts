@@ -1001,7 +1001,7 @@ export interface CorpusDeps {
  */
 export interface CorpusBlackboard {
   post(
-    channel: 'findings' | 'concerns' | 'decisions',
+    channel: 'findings' | 'concerns' | 'decisions' | 'bugs',
     entry: {
       author: string
       content: string
