@@ -51,6 +51,10 @@ export interface CollectThoughtsResult {
   /** Strategic guidance injected by Brainstem (null until Phase 3c) */
   constellationGuidance: string | null
 
+  /** Guidance from the parallel Thinker session.
+   *  Present in main-agent context; null in Constellation Helix context. */
+  thinkerGuidance: string | null
+
   /** Current state of the axon (thought tree) */
   tree: {
     totalSteps: number
