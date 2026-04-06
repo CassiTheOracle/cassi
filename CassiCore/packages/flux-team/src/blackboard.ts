@@ -79,6 +79,7 @@ const CHANNELS: BlackboardChannel[] = [
   'decisions',
   'artifacts',
   'requests',
+  'bugs',
 ]
 
 const ALL_SEARCHABLE_BOARDS: SearchableBoard[] = [
@@ -141,6 +142,7 @@ export class Blackboard {
       decisions: [],
       artifacts: [],
       requests: [],
+      bugs: [],
     }
 
     this.subscriptions = new Map()
@@ -1877,6 +1879,7 @@ export class Blackboard {
         decisions: [...this.channels.decisions],
         artifacts: [...this.channels.artifacts],
         requests: [...this.channels.requests],
+        bugs: [...this.channels.bugs],
       },
       scratchpad: Object.fromEntries(this.scratchpad.entries()),
       toolLog: [...this.toolLog],
@@ -2012,6 +2015,7 @@ export class Blackboard {
       decisions: this.channels.decisions.length,
       artifacts: this.channels.artifacts.length,
       requests: this.channels.requests.length,
+      bugs: this.channels.bugs.length,
     }
 
     // Get latest 3 entries per channel with truncated content
@@ -2021,6 +2025,7 @@ export class Blackboard {
       decisions: [],
       artifacts: [],
       requests: [],
+      bugs: [],
     }
 
     for (const channel of CHANNELS) {

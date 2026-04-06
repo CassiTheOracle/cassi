@@ -108,13 +108,14 @@ const BB_POST_TOOL: ToolSchema = {
     properties: {
       channel: {
         type: 'string',
-        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests'],
+        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'],
         description:
           'findings: discoveries and observations | ' +
           'concerns: risks, issues, blockers | ' +
           'decisions: choices made or rationale | ' +
           'artifacts: file paths and produced outputs | ' +
-          'requests: coordination asks to other agents',
+          'requests: coordination asks to other agents | ' +
+          'bugs: bugs noticed during work for later triage',
       },
       content: {
         type: 'string',
@@ -150,7 +151,7 @@ const BB_READ_TOOL: ToolSchema = {
     properties: {
       channel: {
         type: 'string',
-        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests'],
+        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'],
         description: 'The channel to read.',
       },
       limit: {
@@ -378,7 +379,7 @@ const BB_SEARCH_CHANNEL_TOOL: ToolSchema = {
       },
       channel: {
         type: 'string',
-        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests'],
+        enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'],
         description: 'Specific channel to search. If omitted, searches all channels.',
       },
       cursor: {
@@ -1130,8 +1131,8 @@ export function handleBlackboardToolCall(
 
 // Channel Implementations
 
-type ChannelName = 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests'
-const VALID_CHANNELS = new Set<ChannelName>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
+type ChannelName = 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests' | 'bugs'
+const VALID_CHANNELS = new Set<ChannelName>(['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'])
 
 /** Map priority string to numeric priority for Blackboard.post() */
 /**
@@ -1215,7 +1216,7 @@ function handleBbRead(blackboard: Blackboard, input: Record<string, unknown>): s
 
 function handleBbReadAll(blackboard: Blackboard, input: Record<string, unknown>): string {
   const limitPerChannel = typeof input.limit_per_channel === 'number' ? input.limit_per_channel : 10
-  const channels: ChannelName[] = ['findings', 'concerns', 'decisions', 'artifacts', 'requests']
+  const channels: ChannelName[] = ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs']
   const parts: string[] = ['## Blackboard Snapshot']
 
   for (const ch of channels) {
