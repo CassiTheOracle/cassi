@@ -21,7 +21,7 @@ import type { ILogger } from '../../types/interfaces.js'
 import type { HelixResult } from '../intelligence/helix/types.js'
 import type { BlackboardChannel } from '../../types/flux-team.js'
 
-const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
+const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'])
 
 
 interface HelixJob {

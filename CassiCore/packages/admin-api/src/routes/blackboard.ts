@@ -25,7 +25,7 @@ import type { SearchableBoard } from '../../types/blackboard-search.js'
 import { Blackboard } from '../intelligence/flux-team/blackboard.js'
 import { decodeCursor } from '../intelligence/flux-team/blackboard-search.js'
 
-const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests'])
+const VALID_CHANNELS = new Set<BlackboardChannel>(['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'])
 
 interface BlackboardDeps {
   daemon: any
