@@ -2084,6 +2084,34 @@ export class Daemon {
       this.logger.info('No MCP servers configured')
     }
 
+    // Start Copilot SDK init early — runs in parallel with intelligence
+    // registry init below. They share no mutual dependency: SDK needs
+    // toolRegistry + providers (both ready), registry needs the same.
+    // The SDK spawns a CLI server + auth (network I/O), while the registry
+    // discovers/wires modules (CPU + dynamic imports). Parallelizing saves ~1.5s.
+    const copilotSdkPromise = (async () => {
+      try {
+        const { initCopilotSdkProvider } = await import('./providers/index.js')
+        const sdkManager = await initCopilotSdkProvider(
+          providers, this.config, this.logger, this.bus,
+          toolRegistry, toolExecutor,
+        )
+        if (sdkManager) {
+          ;(this as unknown as Record<string, unknown>).__copilotSdkManager = sdkManager
+          if (this.lumenModelPool) {
+            this.lumenModelPool.setProviders(providers)
+            this.logger.info('Lumen ModelPool re-wired after copilot-sdk init')
+          }
+          if (this.dyadModelPool) {
+            this.dyadModelPool.setProviders(providers)
+            this.logger.info('Dyad ModelPool re-wired after copilot-sdk init')
+          }
+        }
+      } catch (err) {
+        this.logger.warn('Copilot SDK provider init skipped', { error: String(err) })
+      }
+    })()
+
     // This runs after all dependencies (bus, memory, providers, tools) are available.
     try {
       if (this.intelligence?.registry) {
@@ -2513,34 +2541,8 @@ export class Daemon {
       this.logger.warn('IntelligenceRegistry initialization failed — auto-discovered modules will not be available', { error: String(err) })
     }
 
-    // Initialize after tools are ready (tools are bridged to SDK format).
-    // If successful, the SDK provider handles interactive turns (proper billing),
-    // and the HTTP provider is restricted to background tasks + unlimited models.
-    try {
-      const { initCopilotSdkProvider } = await import('./providers/index.js')
-      const sdkManager = await initCopilotSdkProvider(
-        providers, this.config, this.logger, this.bus,
-        toolRegistry, toolExecutor,
-      )
-      if (sdkManager) {
-        // Store reference for shutdown
-        ;(this as unknown as Record<string, unknown>).__copilotSdkManager = sdkManager
-
-        // Re-wire ModelPools so copilot-sdk is available for Lumen/Dyad slot routing.
-        // The pools were created before the SDK loaded; setProviders() again picks up
-        // the freshly-added 'copilot-sdk' entry in the providers map.
-        if (this.lumenModelPool) {
-          this.lumenModelPool.setProviders(providers)
-          this.logger.info('Lumen ModelPool re-wired after copilot-sdk init')
-        }
-        if (this.dyadModelPool) {
-          this.dyadModelPool.setProviders(providers)
-          this.logger.info('Dyad ModelPool re-wired after copilot-sdk init')
-        }
-      }
-    } catch (err) {
-      this.logger.warn('Copilot SDK provider init skipped', { error: String(err) })
-    }
+    // Wait for Copilot SDK init that was started in parallel with intelligence registry
+    await copilotSdkPromise
 
     this.pipeline = new TurnPipeline(
       providers, this.sessions, this.bus, this.logger,
