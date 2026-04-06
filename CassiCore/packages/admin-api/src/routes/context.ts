@@ -16,9 +16,9 @@ export interface ContextRoutesDeps {
 
 /**
  * @dep callers: handler (core/admin-api.ts)
- * @dep calls: getSessionState, scoreForOpenCode, buildForOpenCode, indexSession, getContextWindow [+11]
- * @dep flows: HandleContextRoutes → CognitiveKeyForSession (1/4), HandleContextRoutes → KeyForSession (1/4), HandleContextRoutes → Kv_get (1/4) [+2]
- * @dep module: Context-window
+ * @dep calls: sendJSON, parseBody, getEffectiveContext, assembleContext, complete [+11]
+ * @dep flows: HandleContextRoutes → PrepareStatements (1/6), HandleContextRoutes → ContentLength (1/5), HandleContextRoutes → Kv_get (1/4) [+2]
+ * @dep module: Intelligence
  * @dep risk: HIGH | 1 caller, 5 flows, 1 module
  */
 
@@ -463,6 +463,179 @@ export async function handleContextRoutes(
         hasMemory: !!memoryContext,
         hasCognitive: !!cognitiveContext,
       })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /context/chunks/store — batch store collapsed chunk content
+  //
+  // Called by OpenCode when the agent collapses or removes chunks.
+  // Stores full content in the KV store so it can be retrieved later
+  // via context_expand.
+  if (method === 'POST' && pathname === '/context/chunks/store') {
+    try {
+      const body = await parseBody(req)
+      const { sessionId, chunks } = body || {}
+
+      if (!sessionId || !Array.isArray(chunks)) {
+        sendJSON(res, 400, { error: 'missing sessionId or chunks array' })
+        return true
+      }
+
+      const memory = runtime.getIntelligence()?.memory as any
+      if (!memory?.kv_set) {
+        sendJSON(res, 503, { error: 'KV store not available' })
+        return true
+      }
+
+      let stored = 0
+      for (const chunk of chunks) {
+        if (!chunk.id || !chunk.content) continue
+        await memory.kv_set(`chunk:${sessionId}:${chunk.id}`, {
+          content: chunk.content,
+          role: chunk.role || 'unknown',
+          type: chunk.type || 'text',
+          toolName: chunk.toolName,
+          tokens: chunk.tokens || 0,
+          preview: chunk.preview || '',
+          storedAt: Date.now(),
+        })
+        stored++
+      }
+
+      // Store chunk manifest index for listing
+      const existingIndex = await memory.kv_get(`chunk-index:${sessionId}`) as string[] | undefined
+      const index = new Set(existingIndex || [])
+      for (const chunk of chunks) {
+        if (chunk.id) index.add(chunk.id)
+      }
+      await memory.kv_set(`chunk-index:${sessionId}`, [...index])
+
+      sendJSON(res, 200, { sessionId, stored })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /context/chunks/:sessionId/:chunkId — retrieve a single chunk's content
+  if (method === 'GET' && parts[0] === 'context' && parts[1] === 'chunks' && parts.length === 4) {
+    try {
+      const sessionId = parts[2]
+      const chunkId = parts[3]
+
+      const memory = runtime.getIntelligence()?.memory as any
+      if (!memory?.kv_get) {
+        sendJSON(res, 503, { error: 'KV store not available' })
+        return true
+      }
+
+      const data = await memory.kv_get(`chunk:${sessionId}:${chunkId}`)
+      if (!data) {
+        sendJSON(res, 404, { error: 'chunk not found' })
+        return true
+      }
+
+      sendJSON(res, 200, { sessionId, chunkId, ...data })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /context/chunks/retrieve — batch retrieve multiple chunks
+  if (method === 'POST' && pathname === '/context/chunks/retrieve') {
+    try {
+      const body = await parseBody(req)
+      const { sessionId, chunkIds } = body || {}
+
+      if (!sessionId || !Array.isArray(chunkIds)) {
+        sendJSON(res, 400, { error: 'missing sessionId or chunkIds array' })
+        return true
+      }
+
+      const memory = runtime.getIntelligence()?.memory as any
+      if (!memory?.kv_get) {
+        sendJSON(res, 503, { error: 'KV store not available' })
+        return true
+      }
+
+      const results: Array<{ id: string; content: string; role: string; type: string; toolName?: string }> = []
+      for (const id of chunkIds) {
+        const data = await memory.kv_get(`chunk:${sessionId}:${id}`) as any
+        if (data) {
+          results.push({
+            id,
+            content: data.content,
+            role: data.role,
+            type: data.type,
+            toolName: data.toolName,
+          })
+        }
+      }
+
+      sendJSON(res, 200, { sessionId, chunks: results, found: results.length, requested: chunkIds.length })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /context/chunks/:sessionId — list all stored chunks for a session
+  if (method === 'GET' && parts[0] === 'context' && parts[1] === 'chunks' && parts.length === 3) {
+    try {
+      const sessionId = parts[2]
+
+      const memory = runtime.getIntelligence()?.memory as any
+      if (!memory?.kv_get) {
+        sendJSON(res, 503, { error: 'KV store not available' })
+        return true
+      }
+
+      const index = await memory.kv_get(`chunk-index:${sessionId}`) as string[] | undefined
+      if (!index || index.length === 0) {
+        sendJSON(res, 200, { sessionId, chunks: [], count: 0 })
+        return true
+      }
+
+      sendJSON(res, 200, { sessionId, chunkIds: index, count: index.length })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // DELETE /context/chunks/:sessionId — clean up all stored chunks for a session
+  if (method === 'DELETE' && parts[0] === 'context' && parts[1] === 'chunks' && parts.length === 3) {
+    try {
+      const sessionId = parts[2]
+
+      const memory = runtime.getIntelligence()?.memory as any
+      if (!memory?.kv_get || !memory?.kv_del) {
+        sendJSON(res, 503, { error: 'KV store not available' })
+        return true
+      }
+
+      const index = await memory.kv_get(`chunk-index:${sessionId}`) as string[] | undefined
+      let deleted = 0
+      if (index) {
+        for (const id of index) {
+          try {
+            await memory.kv_del(`chunk:${sessionId}:${id}`)
+            deleted++
+          } catch { /* best-effort cleanup */ }
+        }
+        await memory.kv_del(`chunk-index:${sessionId}`)
+      }
+
+      sendJSON(res, 200, { sessionId, deleted })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
