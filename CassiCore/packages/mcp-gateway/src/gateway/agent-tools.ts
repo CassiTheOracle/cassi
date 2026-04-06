@@ -5,10 +5,9 @@
  * Merges ALL multi-agent tools into a single cassi_agent tool with type+action parameters.
  *
  * Types:
- *   - lumen: Dialectic analysis (Yang/Yin/Executive)
- *   - dyad: Pipeline implementation (Yang/Yin/Apex)
  *   - helix: Inverted-pyramid review (Unity/Yang/Yin)
  *   - flux: Team orchestration (multi-cell teams)
+ *   - constellation: Multi-Helix tree with Corpus organizer
  *
  * Actions (vary by type):
  *   - Common: project, status, health, jobs, watch, cancel, sessions, messages, tool_calls, events, postures, progress, blackboard
@@ -16,15 +15,6 @@
  */
 
 import type { ILogger } from '../../types/interfaces.js';
-
-// Import existing handlers from internal modules
-import {
-  executeLumenTool,
-} from './lumen-tools.js';
-
-import {
-  executeDyadTool,
-} from './dyad-tools.js';
 
 import {
   executeHelixTool,
@@ -46,14 +36,14 @@ import {
  */
 export const AGENT_TOOL = {
   name: 'agent',
-  description: 'Multi-agent orchestration — Lumen (analysis), Dyad (implementation), Helix (review), Flux (teams), Constellation (multi-Helix tree with Corpus). Use type+action to select operation.\n\nUse this tool when you need to delegate work to multi-agent systems. For most multi-step coding or research tasks, use type=constellation with action=project — it spawns and coordinates a tree of Helix sessions via a Corpus organizer. Use type=helix for single-session worker+reviewer tasks, type=lumen for 3-model dialectic analysis, type=dyad for pipeline implementation, and type=flux for team orchestration.\n\nCommon patterns: constellation/project (start coordinated multi-agent work), constellation/watch (block until done), constellation/steer (redirect in-progress work), helix/project (single Helix session), flux/run (autonomous team with checkpoints).',
+  description: 'Multi-agent orchestration — Helix (review), Flux (teams), Constellation (multi-Helix tree with Corpus). Use type+action to select operation.\n\nUse this tool when you need to delegate work to multi-agent systems. For most multi-step coding or research tasks, use type=constellation with action=project — it spawns and coordinates a tree of Helix sessions via a Corpus organizer. Use type=helix for single-session worker+reviewer tasks, and type=flux for team orchestration.\n\nCommon patterns: constellation/project (start coordinated multi-agent work), constellation/watch (block until done), constellation/steer (redirect in-progress work), helix/project (single Helix session), flux/run (autonomous team with checkpoints).',
   inputSchema: {
     type: 'object',
     properties: {
       type: {
         type: 'string',
-        enum: ['lumen', 'dyad', 'helix', 'flux', 'constellation'],
-        description: 'Agent system type: lumen (dialectic analysis), dyad (pipeline implementation), helix (inverted-pyramid review), flux (team orchestration), constellation (multi-Helix tree with Corpus organizer)',
+        enum: ['helix', 'flux', 'constellation'],
+        description: 'Agent system type: helix (inverted-pyramid review), flux (team orchestration), constellation (multi-Helix tree with Corpus organizer)',
       },
       action: {
         type: 'string',
@@ -74,7 +64,7 @@ export const AGENT_TOOL = {
         ],
         description: 'Operation to perform within the selected agent system',
       },
-      // Lumen/Dyad/Helix common params
+      // Helix common params
       goal: {
         type: 'string',
         description: 'Goal or task description (for project action)',
@@ -94,12 +84,6 @@ export const AGENT_TOOL = {
       parentSessionId: {
         type: 'string',
         description: 'Parent session ID for Phase Zero context distillation',
-      },
-      // Dyad-specific params
-      taskType: {
-        type: 'string',
-        enum: ['implementation', 'analysis', 'refactor', 'auto'],
-        description: 'Hint for Dyad Yin behavior',
       },
       // Flux-specific params
       teamId: {
@@ -142,7 +126,7 @@ export const AGENT_TOOL = {
       },
       useLumen: {
         type: 'boolean',
-        description: 'Include Lumen dialectic analysis in flux_run',
+        description: 'Include Lumen-style dialectic analysis in flux_run (deprecated, ignored)',
       },
       name: {
         type: 'string',
@@ -261,8 +245,6 @@ export async function executeAgentTool(
   logger.info('Executing agent tool', { type, action, args: restArgs });
 
   switch (type) {
-    case 'lumen':
-    case 'dyad':
     case 'helix':
       return await executeHelixAgentTool(baseUrl, action, restArgs, logger, heartbeat);
     case 'constellation':

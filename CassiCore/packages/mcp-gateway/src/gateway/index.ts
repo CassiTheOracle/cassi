@@ -86,20 +86,6 @@ export {
   getIntelligenceTools,
 } from './intelligence-tools.js';
 
-// Lumen Tools
-export {
-  DYAD_TOOLS,
-  DYAD_TOOL_NAMES,
-  executeDyadTool,
-  getDyadTools,
-} from './dyad-tools.js';
-export {
-  LUMEN_TOOLS,
-  LUMEN_TOOL_NAMES,
-  executeLumenTool,
-  getLumenTools,
-} from './lumen-tools.js';
-
 // Helix Tools
 export {
   HELIX_TOOLS,
