@@ -278,6 +278,99 @@ export class CopilotSdkProvider extends BaseProvider {
     }
   }
 
+  /**
+   * Execute a turn with scoped tools in a persistent session.
+   * Unlike executeStandaloneTurn, the session persists across calls.
+   * On first call, creates the session with the given tools.
+   * On subsequent calls, reuses the existing session (tools parameter ignored).
+   *
+   * Used by ThinkerSession for parallel thinking with read-only tool access.
+   */
+  async executeScopedTurn(
+    sessionId: string,
+    prompt: string,
+    systemMessage: string,
+    customTools: Array<{
+      name: string
+      description: string
+      parameters: Record<string, unknown>
+      handler: (args: unknown) => Promise<{ textResultForLlm: string; resultType: 'success' | 'error' }>
+    }>,
+    model?: string,
+  ): Promise<TurnResult> {
+    const log = this.logger.child('sdk-scoped')
+    const useModel = model || this.defaultModel
+
+    let session = this.sessions.get(sessionId)
+    if (!session) {
+      const sdkTools: SdkTool[] = customTools.map(tool => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+        handler: async (args: unknown) => {
+          log.debug('Scoped tool called', { tool: tool.name, sessionId: sessionId.slice(-8) })
+          return tool.handler(args)
+        },
+      }))
+
+      session = await this.createSessionWithTools(sessionId, systemMessage, useModel, sdkTools)
+      log.info('Created scoped session', {
+        sessionId: sessionId.slice(-8),
+        model: useModel,
+        tools: sdkTools.map(t => t.name),
+      })
+    }
+
+    const state = createTurnState(sessionId)
+    state.model = useModel
+
+    const unsubscribe = session.on((event: SessionEvent) => {
+      mapSdkEvent(event, state, this.bus)
+    })
+
+    try {
+      const response = await session.sendAndWait(
+        { prompt },
+        SDK_TURN_TIMEOUT_MS,
+      )
+
+      if (response?.data.content && !state.text) {
+        state.text = response.data.content
+      }
+
+      const durationMs = Date.now() - state.startedAt
+
+      log.info('Scoped turn complete', {
+        sessionId: sessionId.slice(-8),
+        durationMs,
+        tokensUsed: state.tokensUsed,
+        toolCalls: state.toolCalls.length,
+      })
+
+      return {
+        response: state.text,
+        tokensUsed: state.tokensUsed,
+        model: state.model,
+        durationMs,
+        toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
+        tool_outputs: state.toolOutputs.length > 0 ? state.toolOutputs : undefined,
+      }
+    } catch (err) {
+      const durationMs = Date.now() - state.startedAt
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      log.error('Scoped turn failed', { error: errorMsg, sessionId: sessionId.slice(-8) })
+
+      return {
+        response: `Error: ${errorMsg}`,
+        tokensUsed: state.tokensUsed,
+        model: state.model,
+        durationMs,
+      }
+    } finally {
+      unsubscribe()
+    }
+  }
+
   // Session Management
 
   /**
