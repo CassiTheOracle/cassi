@@ -18,7 +18,7 @@
  * the stellar metaphor (Helix = double helix of binary stars).
  */
 
-import type { ConvergencePoint, UnresolvedTension } from '../lumen/dialectic-channel.js'
+import type { ConvergencePoint, UnresolvedTension } from '../helix/dialectic-channel.js'
 import type { BlackboardState, Report } from '../../../types/flux-team.js'
 import type { RoutingTier } from '../../../types/model-routing.js'
 
