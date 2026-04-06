@@ -271,7 +271,7 @@ export async function handleBlackboardRoutes(
         return sendJSON(res, 400, { error: 'Missing required query param: pattern' }), true
       }
       try {
-        const lumen = daemon.intelligence?.lumen
+        const lumen = daemon.intelligence?.helix
 
         const activeBb = lumen?.getActiveBlackboardInstance?.(sessionId)
         if (activeBb) {
@@ -279,9 +279,9 @@ export async function handleBlackboardRoutes(
           return sendJSON(res, 200, result), true
         }
 
-        const { LumenStore } = await import('../intelligence/lumen/lumen-store.js').catch(() => ({ LumenStore: null }))
-        if (LumenStore) {
-          const store = (LumenStore as any).open(logger.child('lumen-store-search'))
+        const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+        if (HelixStore) {
+          const store = (HelixStore as any).open(logger.child('helix-store-search'))
           const session = store?.getSession?.(sessionId)
           store?.close?.()
           if (session?.blackboard) {
@@ -291,7 +291,7 @@ export async function handleBlackboardRoutes(
           }
         }
 
-        return sendJSON(res, 404, { error: `No blackboard found for Lumen session '${sessionId}'.` }), true
+        return sendJSON(res, 404, { error: `No blackboard found for session '${sessionId}'.` }), true
       } catch (err) {
         return sendJSON(res, 500, { error: String(err) }), true
       }
@@ -307,7 +307,7 @@ export async function handleBlackboardRoutes(
     }
 
     try {
-      const lumen = daemon.intelligence?.lumen
+      const lumen = daemon.intelligence?.helix
 
       if (channelFilter && lumen?.getActiveChannel) {
         const entries = lumen.getActiveChannel(sessionId, channelFilter, limit)
@@ -324,9 +324,9 @@ export async function handleBlackboardRoutes(
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
-      const { LumenStore } = await import('../intelligence/lumen/lumen-store.js').catch(() => ({ LumenStore: null }))
-      if (LumenStore) {
-        const store = (LumenStore as any).open(logger.child('lumen-store-bb'))
+      const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+      if (HelixStore) {
+        const store = (HelixStore as any).open(logger.child('helix-store-bb'))
         const session = store?.getSession?.(sessionId)
         if (session?.blackboard) {
           return sendJSON(res, 200, session.blackboard), true
@@ -334,7 +334,7 @@ export async function handleBlackboardRoutes(
       }
 
       return sendJSON(res, 404, {
-        error: `No blackboard found for Lumen session '${sessionId}'.`,
+        error: `No blackboard found for session '${sessionId}'.`,
         note: 'Blackboard snapshots are currently available for active sessions or completed sessions persisted after Blackboard snapshot support was added.',
       }), true
     } catch (err) {
@@ -352,7 +352,7 @@ export async function handleBlackboardRoutes(
         return sendJSON(res, 400, { error: 'Missing required query param: pattern' }), true
       }
       try {
-        const dyad = daemon.intelligence?.dyad
+        const dyad = daemon.intelligence?.helix
 
         const activeBb = dyad?.getActiveBlackboardInstance?.(sessionId)
         if (activeBb) {
@@ -360,9 +360,9 @@ export async function handleBlackboardRoutes(
           return sendJSON(res, 200, result), true
         }
 
-        const { DyadStore } = await import('../intelligence/dyad/dyad-store.js').catch(() => ({ DyadStore: null }))
-        if (DyadStore) {
-          const store = (DyadStore as any).open(logger.child('dyad-store-search'))
+        const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+        if (HelixStore) {
+          const store = (HelixStore as any).open(logger.child('helix-store-search'))
           const session = store?.getSession?.(sessionId)
           store?.close?.()
           if (session?.blackboard) {
@@ -372,7 +372,7 @@ export async function handleBlackboardRoutes(
           }
         }
 
-        return sendJSON(res, 404, { error: `No blackboard found for Dyad session '${sessionId}'.` }), true
+        return sendJSON(res, 404, { error: `No blackboard found for session '${sessionId}'.` }), true
       } catch (err) {
         return sendJSON(res, 500, { error: String(err) }), true
       }
@@ -388,7 +388,7 @@ export async function handleBlackboardRoutes(
     }
 
     try {
-      const dyad = daemon.intelligence?.dyad
+      const dyad = daemon.intelligence?.helix
 
       if (channelFilter && dyad?.getActiveChannel) {
         const entries = dyad.getActiveChannel(sessionId, channelFilter, limit)
@@ -405,9 +405,9 @@ export async function handleBlackboardRoutes(
         if (snapshot) return sendJSON(res, 200, snapshot), true
       }
 
-      const { DyadStore } = await import('../intelligence/dyad/dyad-store.js').catch(() => ({ DyadStore: null }))
-      if (DyadStore) {
-        const store = (DyadStore as any).open(logger.child('dyad-store-bb'))
+      const { HelixStore } = await import('../intelligence/helix/helix-store.js').catch(() => ({ HelixStore: null }))
+      if (HelixStore) {
+        const store = (HelixStore as any).open(logger.child('helix-store-bb'))
         const session = store?.getSession?.(sessionId)
         if (session?.blackboard) {
           return sendJSON(res, 200, session.blackboard), true
@@ -415,7 +415,7 @@ export async function handleBlackboardRoutes(
       }
 
       return sendJSON(res, 404, {
-        error: `No blackboard found for Dyad session '${sessionId}'.`,
+        error: `No blackboard found for session '${sessionId}'.`,
         note: 'Blackboard snapshots are currently available for active sessions or completed sessions persisted after Blackboard snapshot support was added.',
       }), true
     } catch (err) {

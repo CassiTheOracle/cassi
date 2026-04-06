@@ -1944,8 +1944,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handlePermissionsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
-         () => handleLumenRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
-         () => handleDyadRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleHelixRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleConstellationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleProactiveRoutes({ proactive: daemon.intelligence?.proactiveEnricher, logger, sendJSON, parseBody }, req, res, method),
