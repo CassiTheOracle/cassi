@@ -101,14 +101,6 @@ export type RuntimeEvent =
   | { type: "dialectic:stopped"; dialecticId: string; reason: string }
   | { type: "dialectic:iteration"; dialecticId: string; iteration: number; summary: { yang?: number; yin?: number; hasSignal?: boolean } }
   | { type: "dialectic:error"; dialecticId: string; error: string }
-  // WHY: Lumen three-model concurrent system enables Yang/Yin/Synthesis dialectic reasoning with parallel model execution
-  | { type: "lumen:started"; sessionId?: string; goal: string; timestamp: Date }
-  | { type: "lumen:yang-complete"; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
-  | { type: "lumen:yin-complete"; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
-  | { type: "lumen:synthesis-complete"; sessionId?: string; recommendation: "proceed" | "reconsider" | "abort"; confidence: number; tokensUsed: { yang: number; yin: number; executive: number }; durationMs: number; timestamp: Date }
-  | { type: "lumen:posture:start"; posture: "yang" | "yin" | "executive"; sessionId?: string; timestamp: Date }
-  | { type: "lumen:posture:complete"; posture: "yang" | "yin" | "executive"; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
-  | { type: "lumen:posture:error"; posture: "yang" | "yin" | "executive"; sessionId?: string; error: string; timestamp: Date }
   // WHY: Skill usage tracking enables analysis of which skills are most valuable and identification of unused capabilities
   | { type: "skill:invoked"; skillName: string; skillPath: string; sessionId: string; timestamp: Date; source?: string }
   | { type: "skill:outcome_recorded"; skillName: string; sessionId: string; outcome: string; timestamp: Date }
@@ -378,10 +370,6 @@ export type RuntimeEvent =
     | { type: "macro-dialectic:divergence"; workspaceId: string; sessionId: string; yangPosition: string; yinPosition: string; tensionLevel: number; timestamp: Date }
     | { type: "macro-dialectic:unity-stream-chunk"; workspaceId: string; sessionId: string; chunkIndex: number; text: string; timestamp: Date }
     | { type: "macro-dialectic:unity-complete"; workspaceId: string; sessionId: string; toolsExecuted: number; durationMs: number; timestamp: Date }
-  | { type: "lumen:started"; lumenId: string; goal: string; sessionId?: string; timestamp: Date }
-  | { type: "lumen:yang-complete"; lumenId: string; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
-  | { type: "lumen:yin-complete"; lumenId: string; sessionId?: string; tokensUsed: number; durationMs: number; timestamp: Date }
-  | { type: "lumen:synthesis-complete"; lumenId: string; sessionId?: string; confidence: number; recommendation: 'proceed' | 'reconsider' | 'abort'; tokensUsed: { yang: number; yin: number; executive: number }; durationMs: number; timestamp: Date }
    // Triad Team events — hierarchical dialectic team system
    | { type: "triad-team:created"; teamId: string; entityId: string; message: string; timestamp: Date }
    | { type: "triad-team:started"; teamId: string; entityId: string; message: string; timestamp: Date }
@@ -575,12 +563,6 @@ export type RuntimeEvent =
       thinkingCharsProcessed: number;
       timestamp: Date;
     }
-  // WHY: Lumen concurrent orchestration enables parallel Yang/Yin/Executive model execution with posture-based reasoning
-  | { type: "lumen:start"; sessionId?: string; goal: string; timestamp: Date }
-  | { type: "lumen:posture:start"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; timestamp: Date }
-  | { type: "lumen:posture:complete"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; durationMs: number; tokensUsed: number; timestamp: Date }
-  | { type: "lumen:posture:error"; posture: 'yang' | 'yin' | 'executive'; sessionId?: string; error: string; timestamp: Date }
-  | { type: "lumen:complete"; sessionId?: string; recommendation: 'proceed' | 'reconsider' | 'abort'; confidence: number; durationMs: number; timestamp: Date }
 
   // WHY: Axon provides structured thinking with explicit step tracking and branching for complex reasoning workflows
   | { type: "axon:step"; sessionId: string; axonSessionId: string; step: number; totalSteps: number; thought: string; signals: CognitiveSignal[]; branchId: string; isRevision: boolean; timestamp: Date }
