@@ -160,6 +160,10 @@ export class BackgroundEmbeddingWorker {
       totalErrors += archiveResult.errors
       this.stats.archivesEmbedded += archiveResult.embedded
 
+      // WHY: Yield to the event loop between phases so HTTP requests and
+      // timers are not starved by back-to-back synchronous SQLite reads.
+      await new Promise(resolve => setImmediate(resolve))
+
       // Phase 2: Embed un-embedded memory entries
       if (totalEmbedded < MAX_PER_TICK) {
         const memoryResult = await this.embedMemoryEntries(MAX_PER_TICK - totalEmbedded)
@@ -167,6 +171,8 @@ export class BackgroundEmbeddingWorker {
         totalErrors += memoryResult.errors
         this.stats.memoriesEmbedded += memoryResult.embedded
       }
+
+      await new Promise(resolve => setImmediate(resolve))
 
       // Phase 3: Embed un-embedded training objects
       if (totalEmbedded < MAX_PER_TICK) {
@@ -209,13 +215,21 @@ export class BackgroundEmbeddingWorker {
     let errors = 0
 
     try {
-      // HOW: Collect IDs already in the vector index, then exclude them at the SQL level.
-      // This ensures we progress through all archives instead of stalling on the first N.
-      const existingIds = new Set(
-        this.vecIdx.listAll()
-          .filter((e: { id: string }) => e.id.startsWith('archive:'))
-          .map((e: { id: string }) => e.id.slice('archive:'.length))
-      )
+      // HOW: Fast pre-check — compare source count vs embedded count.
+      // If they match, skip the expensive ID-set materialization entirely.
+      const sourceCount = (this.archiveDb.prepare(
+        'SELECT COUNT(*) as cnt FROM archives WHERE LENGTH(content) > 20'
+      ).get() as { cnt: number }).cnt
+      const embeddedCount = this.vecIdx.countByPrefix('archive:')
+
+      if (sourceCount <= embeddedCount) {
+        this.stats.totalSkipped += sourceCount
+        return { embedded: 0, errors: 0 }
+      }
+
+      // HOW: Use prefix-filtered ID lookup instead of listAll() — reads only
+      // IDs from the PRIMARY KEY index, skips the meta column and JSON parsing.
+      const existingIds = this.vecIdx.getIdsByPrefix('archive:')
 
       // Get archive entries that don't have vectors yet
       const allRows = this.archiveDb.prepare(
@@ -227,7 +241,7 @@ export class BackgroundEmbeddingWorker {
       const candidates: Array<{ id: string; content: string }> = []
       for (const row of allRows) {
         if (candidates.length >= MAX_PER_TICK) break
-        if (!existingIds.has(row.id)) {
+        if (!existingIds.has(`archive:${row.id}`)) {
           candidates.push(row)
         } else {
           this.stats.totalSkipped++
@@ -286,12 +300,19 @@ export class BackgroundEmbeddingWorker {
     let errors = 0
 
     try {
-      // HOW: Collect existing vector IDs to skip, then scan the full memories table.
-      const existingIds = new Set(
-        this.vecIdx.listAll()
-          .filter((e: { id: string }) => e.id.startsWith('memory:'))
-          .map((e: { id: string }) => e.id.slice('memory:'.length))
-      )
+      // HOW: Fast pre-check — compare source count vs embedded count.
+      const sourceCount = (this.memoryDb.prepare(
+        'SELECT COUNT(*) as cnt FROM memories WHERE LENGTH(content) > 20'
+      ).get() as { cnt: number }).cnt
+      const embeddedCount = this.vecIdx.countByPrefix('memory:')
+
+      if (sourceCount <= embeddedCount) {
+        this.stats.totalSkipped += sourceCount
+        return { embedded: 0, errors: 0 }
+      }
+
+      // HOW: Use prefix-filtered ID lookup instead of listAll().
+      const existingIds = this.vecIdx.getIdsByPrefix('memory:')
 
       const allEntries = this.memoryDb.prepare(
         `SELECT id, content, context_prefix FROM memories
@@ -303,7 +324,7 @@ export class BackgroundEmbeddingWorker {
       const candidates: Array<{ id: string; content: string; context_prefix: string | null }> = []
       for (const row of allEntries) {
         if (candidates.length >= limit) break
-        if (!existingIds.has(row.id)) {
+        if (!existingIds.has(`memory:${row.id}`)) {
           candidates.push(row)
         } else {
           this.stats.totalSkipped++

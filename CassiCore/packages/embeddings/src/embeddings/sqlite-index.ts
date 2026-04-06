@@ -217,6 +217,42 @@ export class SqliteVectorIndex {
     }
   }
 
+  /**
+   * Count vectors whose ID starts with the given prefix.
+   * Uses the PRIMARY KEY index for an efficient range scan — much cheaper
+   * than listAll() + JS filtering.
+   */
+  countByPrefix(prefix: string): number {
+    if (!this.db) return 0
+    try {
+      const row = this.db.prepare(
+        `SELECT COUNT(*) as cnt FROM ${this.table} WHERE id >= ? AND id < ?`
+      ).get(prefix, prefix.slice(0, -1) + String.fromCharCode(prefix.charCodeAt(prefix.length - 1) + 1)) as any
+      return row?.cnt ?? 0
+    } catch (err) {
+      this.logger.warn('SqliteVectorIndex: countByPrefix failed', { prefix, error: String(err) })
+      return 0
+    }
+  }
+
+  /**
+   * Get the set of IDs that start with a given prefix.
+   * Only loads the id column (no meta, no vectors) and uses the PRIMARY KEY
+   * index for a range scan. Returns a Set for O(1) lookup.
+   */
+  getIdsByPrefix(prefix: string): Set<string> {
+    if (!this.db) return new Set()
+    try {
+      const rows = this.db.prepare(
+        `SELECT id FROM ${this.table} WHERE id >= ? AND id < ?`
+      ).all(prefix, prefix.slice(0, -1) + String.fromCharCode(prefix.charCodeAt(prefix.length - 1) + 1)) as Array<{ id: string }>
+      return new Set(rows.map(r => r.id))
+    } catch (err) {
+      this.logger.warn('SqliteVectorIndex: getIdsByPrefix failed', { prefix, error: String(err) })
+      return new Set()
+    }
+  }
+
   /** Get the total number of stored vectors. O(1). */
   count(): number {
     if (!this.db) return 0
