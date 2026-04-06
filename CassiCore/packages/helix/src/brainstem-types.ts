@@ -442,7 +442,7 @@ export interface BrainstemDeps {
   /** Callback to request spawning a child Helix — only in Constellation mode */
   onSpawnRequest?: (request: { goal: string; context?: string; template?: string }) => void
   /** Dialectic channel for processing edit proposals from Yang/Yin reviewers */
-  dialecticChannel?: import('../../intelligence/lumen/dialectic-channel.js').DialecticChannel
+  dialecticChannel?: import('./dialectic-channel.js').DialecticChannel
   /** Tool executor for applying approved edits */
   toolExecutor?: import('../../tools/executor.js').ToolExecutor
   /** Read-only file access for validating paths and grounding guidance — returns null if file not found */

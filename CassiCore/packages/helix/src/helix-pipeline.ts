@@ -78,7 +78,7 @@ export interface HelixPipelineOpts {
   onDialecticChannelCreated?: (dc: DialecticChannel) => void
   onCoordinatorCreated?: (coordinator: HelixCoordinator) => void
   onBrainstemCreated?: (brainstem: HelixBrainstem) => void
-  onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
+  onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
 
   // Artifact/session context
   artifactNamespace?: string
@@ -90,7 +90,7 @@ export interface HelixPipelineOpts {
   researchSpawner?: ResearchSpawner
 
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
-  unityStatusThresholds?: import('../dyad/work-stream.js').UnityStatusThresholds
+  unityStatusThresholds?: import('./work-stream.js').UnityStatusThresholds
 
   /** Use Helix-native coordinator with broadcast semantics instead of borrowed primitives */
   useNativeCoordinator?: boolean

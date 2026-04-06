@@ -88,13 +88,13 @@ function initializeOptionalTools(): Promise<void> {
   if (_toolsInitPromise) return _toolsInitPromise
   _toolsInitPromise = (async () => {
     try {
-      const planMod = await import('../lumen/plan-tools.js')
+      const planMod = await import('./plan-tools.js')
       isPlanMetaTool = planMod.isPlanMetaTool
       getPlanToolSchemas = planMod.getPlanToolSchemas
     } catch { /* plan tools not available */ }
 
     try {
-      const reportMod = await import('../lumen/report-tools.js')
+      const reportMod = await import('./report-tools.js')
       REPORT_TOOLS = reportMod.REPORT_TOOLS ?? []
       REPORT_TOOL_NAMES = reportMod.REPORT_TOOL_NAMES ?? new Set()
     } catch { /* report tools not available */ }
@@ -204,7 +204,7 @@ export interface HelixPostureRunnerOpts {
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Callback fired when Unity posts a work unit */
-  onWorkUnit?: (wu: import('../dyad/types.js').WorkUnit, iteration: number) => void
+  onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */
   onStreamActivity?: (event: StreamActivityEvent) => void
   /**
