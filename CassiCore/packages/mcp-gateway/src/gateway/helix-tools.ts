@@ -112,7 +112,7 @@ export const HELIX_TOOLS = [
         summary: { type: 'boolean', description: 'Return compact summary instead of full snapshot (default: true).' },
         channel: {
           type: 'string',
-          enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests'],
+          enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'],
           description: 'Return only entries from this channel. Overrides summary mode.',
         },
         limit: { type: 'number', description: 'Max entries per channel (when using channel filter).' },

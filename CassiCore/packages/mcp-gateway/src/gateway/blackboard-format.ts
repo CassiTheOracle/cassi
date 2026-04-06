@@ -72,7 +72,7 @@ export function formatBlackboardSummary(summary: BlackboardSummaryLike): string 
   lines.push('')
   lines.push('### Channels')
 
-  const channelOrder: BlackboardChannel[] = ['findings', 'concerns', 'decisions', 'artifacts', 'requests']
+  const channelOrder: BlackboardChannel[] = ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs']
   const channelCounts = (summary.channelCounts ?? {}) as Record<string, number>
   const latestEntries = (summary.latestEntries ?? {}) as Record<string, Array<{ content: string }>>
 

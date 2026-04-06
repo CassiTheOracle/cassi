@@ -143,7 +143,7 @@ export const CONSTELLATION_TOOLS = [
         sessionId: { type: 'string', description: 'The Constellation session ID.' },
         channel: {
           type: 'string',
-          enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests'],
+          enum: ['findings', 'concerns', 'decisions', 'artifacts', 'requests', 'bugs'],
           description: 'Return only entries from this channel.',
         },
       },
