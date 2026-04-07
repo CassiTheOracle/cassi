@@ -107,6 +107,19 @@ export class ToolExecutor {
       if (e) return e
     }
 
+    // WHY: Models sometimes call MCP tools with single-underscore prefix (serena_list_dir)
+    // instead of the registered double-underscore form (serena__list_dir). Detect the
+    // MCP server prefix pattern and convert to the registered name.
+    for (const serverId of preferredServers) {
+      const prefix = `${serverId}_`
+      if (toolName.startsWith(prefix) && !toolName.startsWith(`${serverId}__`)) {
+        const bareName = toolName.slice(prefix.length)
+        const mcpName = `${serverId}__${bareName}`
+        const e = this.registry.get(mcpName)
+        if (e) return e
+      }
+    }
+
     const fileOps = new Set(['read_file', 'write_file', 'read', 'write', 'exists', 'mkdir', 'delete', 'bash'])
     if (fileOps.has(toolName)) {
       const list = this.registry.list()
