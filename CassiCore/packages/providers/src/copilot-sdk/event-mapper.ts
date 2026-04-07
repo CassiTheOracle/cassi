@@ -50,6 +50,8 @@ export interface SdkTurnState {
   startedAt: number
   /** Context health data captured from SDK session events during the turn */
   contextHealth?: SdkContextHealth
+  /** Internal: tracks in-flight tool calls for duration measurement */
+  _pendingToolCalls?: Map<string, { name: string; startedAt: number }>
 }
 
 /**
@@ -146,15 +148,27 @@ export function mapSdkEvent(
     }
 
     case 'tool.execution_start': {
-      // CassiCore event already emitted by tool-bridge handler
-      // This is informational for tracking
+      const data = event.data as { toolCallId?: string; toolName?: string }
+      if (data.toolCallId) {
+        state._pendingToolCalls = state._pendingToolCalls ?? new Map()
+        state._pendingToolCalls.set(data.toolCallId, {
+          name: data.toolName ?? 'unknown',
+          startedAt: Date.now(),
+        })
+      }
       return false
     }
 
     case 'tool.execution_complete': {
       const data = event.data
+      const pending = state._pendingToolCalls?.get(data.toolCallId)
+      const toolName = pending?.name ?? 'sdk-tool'
+      const durationMs = pending ? Date.now() - pending.startedAt : 0
+      state._pendingToolCalls?.delete(data.toolCallId)
+
+      state.toolCalls.push({ name: toolName, durationMs })
       state.toolOutputs.push({
-        tool_name: 'sdk-tool',
+        tool_name: toolName,
         tool_call_id: data.toolCallId,
         output: data.result?.content ?? '',
         is_error: !data.success,
