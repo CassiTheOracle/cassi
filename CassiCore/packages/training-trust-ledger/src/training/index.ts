@@ -29,6 +29,7 @@ export interface TrainingWarehouseConfig {
     memoryDbPath?: string
     lumenDbPath?: string
     dyadDbPath?: string
+    constellationDbPath?: string
   }
 }
 
@@ -80,6 +81,9 @@ export class TrainingWarehouse {
 
     const dyadPath = path.join(dataDir, 'dyad.db')
     if (fs.existsSync(dyadPath)) sources.dyadDbPath = dyadPath
+
+    const constellationPath = path.join(dataDir, 'constellation.db')
+    if (fs.existsSync(constellationPath)) sources.constellationDbPath = constellationPath
 
     return sources
   }

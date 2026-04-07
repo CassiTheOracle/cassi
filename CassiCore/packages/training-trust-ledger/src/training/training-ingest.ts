@@ -42,6 +42,13 @@ interface ParsedChunk {
 }
 
 /** Split markdown-ish text into typed chunks. */
+/**
+ * @dep callers: ingestDyad (core/intelligence/training/training-ingest.ts), ingestLumen (core/intelligence/training/training-ingest.ts), ingestMemories (core/intelligence/training/training-ingest.ts), ingestArchives (core/intelligence/training/training-ingest.ts)
+ * @dep calls: test
+ * @dep module: Training
+ * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
+ */
+
 function splitIntoChunks(text: string): ParsedChunk[] {
   if (!text || !text.trim()) return []
 
@@ -115,6 +122,12 @@ function splitIntoChunks(text: string): ParsedChunk[] {
 }
 
 /** Rough token estimate: ~4 chars per token for English. */
+/**
+ * @dep callers: ingestSessionIndex (core/intelligence/training/training-ingest.ts), ingestDyad (core/intelligence/training/training-ingest.ts), ingestLumen (core/intelligence/training/training-ingest.ts), ingestMemories (core/intelligence/training/training-ingest.ts), ingestArchives (core/intelligence/training/training-ingest.ts)
+ * @dep module: Training
+ * @dep risk: MEDIUM | 5 callers, 0 flows, 1 module
+ */
+
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4)
 }
@@ -1059,6 +1072,7 @@ export class TrainingIngest {
     memoryDbPath?: string
     lumenDbPath?: string
     dyadDbPath?: string
+    constellationDbPath?: string
   }, opts: IngestOptions = {}): IngestResult[] {
     const results: IngestResult[] = []
 
@@ -1087,8 +1101,222 @@ export class TrainingIngest {
     if (dataDirs.dyadDbPath) {
       safeRun('dyad', () => this.ingestDyad(dataDirs.dyadDbPath!, opts))
     }
+    if (dataDirs.constellationDbPath) {
+      safeRun('constellation', () => this.ingestConstellation(dataDirs.constellationDbPath!, opts))
+    }
 
     return results
+  }
+
+
+  // CONSTELLATION INGEST
+
+  /**
+   * Ingest from constellation.db — training_signals, constellation_sessions,
+   * corpus_decisions, and branch_lifecycle_events.
+   *
+   * Maps high-value Constellation signals (Locus events, cross-patterns,
+   * interventions, effectiveness measurements) into the training warehouse
+   * as events with taxonomy labels.
+   */
+  ingestConstellation(constellationDbPath: string, opts: IngestOptions = {}): IngestResult {
+    const start = Date.now()
+    const result: IngestResult = {
+      source: 'constellation', rowsIngested: 0, chunksCreated: 0,
+      labelsAttached: 0, edgesCreated: 0, durationMs: 0, errors: [],
+    }
+
+    let sourceDb: Database.Database | null = null
+    try {
+      sourceDb = new Database(constellationDbPath, { readonly: true })
+    } catch (err) {
+      result.errors.push(`Cannot open constellation DB: ${String(err)}`)
+      result.durationMs = Date.now() - start
+      return result
+    }
+
+    try {
+      // Check if training_signals table exists
+      const tableCheck = sourceDb.prepare(`
+        SELECT name FROM sqlite_master WHERE type='table' AND name='training_signals'
+      `).get()
+      if (!tableCheck) {
+        result.durationMs = Date.now() - start
+        return result
+      }
+
+      const checkpoint = this.store.getCheckpoint('constellation', 'training_signals')
+      const lastId = checkpoint?.last_processed_id ? Number(checkpoint.last_processed_id) : 0
+      const limit = opts.batchSize ?? 500
+
+      const rows = sourceDb.prepare(`
+        SELECT * FROM training_signals
+        WHERE id > ?
+        ORDER BY id ASC
+        LIMIT ?
+      `).all(lastId, limit) as any[]
+
+      if (rows.length === 0) {
+        result.durationMs = Date.now() - start
+        return result
+      }
+
+      const now = Date.now()
+
+      this.store.transaction(() => {
+        for (const row of rows) {
+          try {
+            const signalId = row.id as number
+            const sessionId = row.session_id as string
+            const signalType = row.signal_type as string
+            const sourceHelixId = row.source_helix_id as string | null
+            const dataJson = row.data_json as string
+            const qualityScore = row.quality_score as number | null
+            const extractedAt = row.extracted_at as number
+
+            const objectId = `csig_${sessionId}_${signalId}`
+            const refKey = `CS:${sessionId.slice(0, 8)}#S${signalId}`
+
+            // Skip if already ingested
+            if (this.store.objectExists('constellation', `${sessionId}:${signalId}`)) continue
+
+            // Create the event object
+            this.store.insertObject({
+              object_id: objectId,
+              object_type: 'event',
+              subtype: signalType,
+              parent_object_id: null,
+              root_session_id: sessionId,
+              ref_key: refKey,
+              source_db: 'constellation',
+              source_id: `${sessionId}:${signalId}`,
+              created_at: extractedAt,
+              ingested_at: now,
+              raw_json: dataJson,
+            })
+
+            this.store.insertEvent({
+              object_id: objectId,
+              session_id: sessionId,
+              event_type: `constellation:${signalType}`,
+              event_subtype: signalType,
+              content_json: dataJson,
+              severity: qualityScore !== null && qualityScore >= 0.8 ? 'info'
+                : qualityScore !== null && qualityScore >= 0.5 ? 'info'
+                : 'info',
+              timestamp: extractedAt,
+            })
+
+            // Chunk the data as searchable text
+            let data: Record<string, unknown> = {}
+            try { data = JSON.parse(dataJson) } catch { /* ignore */ }
+
+            const textParts: string[] = [`[${signalType}]`]
+            if (data.content) textParts.push(String(data.content))
+            if (data.description) textParts.push(String(data.description))
+            if (data.reason) textParts.push(String(data.reason))
+            if (data.text) textParts.push(String(data.text))
+            if (data.evidence) textParts.push(String(data.evidence))
+            if (data.sparkType) textParts.push(`Spark type: ${data.sparkType}`)
+            if (data.responseType) textParts.push(`Response: ${data.responseType}`)
+            if (data.type) textParts.push(`Pattern: ${data.type}`)
+
+            const searchText = textParts.join('\n')
+
+            if (searchText.length > 20) {
+              this.store.insertChunk({
+                chunk_id: `chk_csig_${signalId}`,
+                object_id: objectId,
+                chunk_type: 'paragraph',
+                chunk_ref: `${refKey}.C00`,
+                sequence: 0,
+                text: searchText,
+                token_estimate: Math.ceil(searchText.length / 4),
+                language: null,
+                role: sourceHelixId ? `helix:${sourceHelixId}` : 'corpus',
+                session_id: sessionId,
+              })
+              result.chunksCreated++
+            }
+
+            // Attach signal type as label
+            const signalLabel = this.store.ensureLabel('interaction_pattern', signalType)
+            this.store.attachLabel(objectId, signalLabel, { source: 'heuristic', isPrimary: true })
+            result.labelsAttached++
+
+            // Attach constellation label
+            const constLabel = this.store.ensureLabel('domain', 'constellation')
+            this.store.attachLabel(objectId, constLabel, { source: 'heuristic' })
+            result.labelsAttached++
+
+            // Locus-specific labels
+            if (signalType.startsWith('locus_')) {
+              const locusLabel = this.store.ensureLabel('domain', 'locus')
+              this.store.attachLabel(objectId, locusLabel, { source: 'heuristic' })
+              result.labelsAttached++
+            }
+
+            // Set quality metric from signal quality score
+            if (qualityScore !== null) {
+              this.store.setQualityMetric({
+                object_id: objectId,
+                metric: 'trainability',
+                value: qualityScore,
+                source: 'heuristic',
+                annotation_run_id: null,
+                updated_at: now,
+              })
+            }
+
+            // Edge: signal → session (if we have a session object)
+            const sessObjId = `csess_${sessionId}`
+            if (!this.store.getObject(sessObjId)) {
+              this.store.insertObject({
+                object_id: sessObjId,
+                object_type: 'session',
+                subtype: 'delegation',
+                parent_object_id: null,
+                root_session_id: sessionId,
+                ref_key: `CS:${sessionId.slice(0, 8)}`,
+                source_db: 'constellation',
+                source_id: sessionId,
+                created_at: extractedAt,
+                ingested_at: now,
+                raw_json: null,
+              })
+            }
+
+            this.store.insertEdge({
+              source_id: sessObjId,
+              target_id: objectId,
+              relation: 'parent',
+              weight: 1.0,
+              metadata_json: null,
+            })
+            result.edgesCreated++
+
+            result.rowsIngested++
+          } catch (err) {
+            result.errors.push(`Constellation signal ${row.id}: ${String(err)}`)
+          }
+        }
+
+        this.store.setCheckpoint({
+          source_db: 'constellation',
+          source_table: 'training_signals',
+          last_processed_id: String(rows[rows.length - 1].id),
+          last_processed_ts: now,
+          rows_ingested: (checkpoint?.rows_ingested ?? 0) + result.rowsIngested,
+          updated_at: now,
+        })
+      })
+    } finally {
+      sourceDb.close()
+    }
+
+    result.durationMs = Date.now() - start
+    this.logger.info('Constellation ingest complete', { ...result, errors: result.errors.length })
+    return result
   }
 
   // HELPERS
