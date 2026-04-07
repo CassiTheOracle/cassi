@@ -221,4 +221,17 @@ export interface TurnResult {
     is_error: boolean;
     timestamp: Date;
   }>
+  /** Context health snapshot from SDK session events (fill level, compaction, truncation) */
+  contextHealth?: {
+    tokenLimit: number;
+    currentTokens: number;
+    fillLevel: number;
+    messagesLength: number;
+    isCompacting: boolean;
+    compactionsDuringTurn: number;
+    truncationsDuringTurn: number;
+    tokensRecoveredByCompaction: number;
+    tokensRemovedByTruncation: number;
+    compactionSummary?: string;
+  }
 }
