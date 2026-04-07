@@ -479,9 +479,10 @@ export function createHelix(
 
         storedModelDirective?.consumeNextJob(sessionId)
 
-        const unityOverride = storedModelDirective?.resolve(opts.jobId, 'helix.unity')
-        const yangOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yang')
-        const yinOverride = storedModelDirective?.resolve(opts.jobId, 'helix.yin')
+        const postureMo = opts.modelOverride
+        const unityOverride = postureMo ?? storedModelDirective?.resolve(opts.jobId, 'helix.unity')
+        const yangOverride = postureMo ?? storedModelDirective?.resolve(opts.jobId, 'helix.yang')
+        const yinOverride = postureMo ?? storedModelDirective?.resolve(opts.jobId, 'helix.yin')
 
         const [unityHandle, yangHandle, yinHandle] = await Promise.all([
           effectiveModelPool.acquire('unity', undefined, sessionId, unityOverride),

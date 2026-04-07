@@ -57,6 +57,11 @@ export interface HelixProjectOpts {
    * Defaults: 10 iterations, 60 seconds, 5 repeated tool calls.
    */
   unityStatusThresholds?: UnityStatusThresholds
+  /**
+   * Override the model used for all postures (unity, yang, yin).
+   * When set, bypasses the ModelDirective and fallback chain.
+   */
+  modelOverride?: { provider: string; model: string }
 }
 
 
