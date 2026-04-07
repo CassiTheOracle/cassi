@@ -122,8 +122,9 @@ export async function handleMemoryRoutes(
   // GET /memory/kv/:key
   if (parts[1] === 'kv' && parts[2] && method === 'GET') {
     if (!memory) return noMemory()
-    const value = await memory.kv_get(parts[2])
-    sendJSON(res, 200, { key: parts[2], value: value ?? null })
+    const key = decodeURIComponent(parts[2])
+    const value = await memory.kv_get(key)
+    sendJSON(res, 200, { key, value: value ?? null })
     return true
   }
 
@@ -143,7 +144,7 @@ export async function handleMemoryRoutes(
   // DELETE /memory/kv/:key
   if (parts[1] === 'kv' && parts[2] && method === 'DELETE') {
     if (!memory) return noMemory()
-    await memory.kv_del(parts[2])
+    await memory.kv_del(decodeURIComponent(parts[2]))
     sendJSON(res, 200, { ok: true })
     return true
   }
