@@ -21,6 +21,7 @@
  */
 
 import type { BranchDigest, CrossHelixPattern, BranchAssessment } from '../corpus-types.js'
+import type { LocusMemoryStats } from './memory-types.js'
 
 
 // Sparks — Proposals from branches competing for workspace access
@@ -225,6 +226,8 @@ export interface LocusSnapshot {
   totalRadiances: number
   /** Kindling rate: kindlings / total sparks (selectivity measure) */
   kindlingRate: number
+  /** Memory stats: accumulated experiential learning across constellations */
+  memory?: LocusMemoryStats
   /** When this snapshot was taken */
   snapshotAt: number
 }

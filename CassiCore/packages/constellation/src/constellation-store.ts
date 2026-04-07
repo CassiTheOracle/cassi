@@ -26,10 +26,12 @@ import Database from 'better-sqlite3'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorpusTreeSnapshot, BranchAssessment, CrossHelixPattern, CorpusIntervention, ElevatedPattern } from './corpus-types.js'
 import type { ConstellationResult, SpawnRequest } from './types.js'
+import type { LocusMemoryEntry } from './locus/memory-types.js'
+import type { LocusMemoryPersistence } from './locus/constellation-memory.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 3  // v3: elevated_patterns table
+const SCHEMA_VERSION = 4  // v4: locus_memories table
 const DEFAULT_MAX_AGE_DAYS = 180  // Much longer retention than Helix's 7 days
 
 
@@ -204,6 +206,30 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_elevated_patterns_score ON elevated_patterns(achieved_score);
   CREATE INDEX IF NOT EXISTS idx_elevated_patterns_approach ON elevated_patterns(approach);
   CREATE INDEX IF NOT EXISTS idx_elevated_patterns_elevated ON elevated_patterns(elevated_at);
+
+  -- Locus Memory (persistent experiential learning across constellations)
+  CREATE TABLE IF NOT EXISTS locus_memories (
+    id                TEXT PRIMARY KEY,
+    content           TEXT NOT NULL,
+    memory_type       TEXT NOT NULL,
+    confidence        REAL NOT NULL DEFAULT 0.5,
+    luminance         REAL NOT NULL,
+    phase             TEXT NOT NULL DEFAULT 'provisional',
+    origin_session_id TEXT NOT NULL,
+    source_helix_id   TEXT NOT NULL,
+    source_goal       TEXT NOT NULL DEFAULT '',
+    relevant_files_json TEXT DEFAULT '[]',
+    confirmations     INTEGER DEFAULT 0,
+    contradictions    INTEGER DEFAULT 0,
+    recall_count      INTEGER DEFAULT 0,
+    created_at        INTEGER NOT NULL,
+    last_recalled_at  INTEGER,
+    last_updated_at   INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_locus_mem_phase ON locus_memories(phase);
+  CREATE INDEX IF NOT EXISTS idx_locus_mem_confidence ON locus_memories(confidence);
+  CREATE INDEX IF NOT EXISTS idx_locus_mem_type ON locus_memories(memory_type);
 `
 
 
@@ -415,7 +441,7 @@ export interface BlackboardArchiveRow {
   archivedAt: number
 }
 
-export type TrainingSignalType = 'brainstem_annotation' | 'corpus_decision' | 'dialectic_outcome' | 'convergence' | 'tension_resolved' | 'intervention_effective' | 'locus_kindling' | 'locus_radiance' | 'locus_response' | 'cross_pattern' | 'intervention_sent' | 'effectiveness_measured'
+export type TrainingSignalType = 'brainstem_annotation' | 'corpus_decision' | 'dialectic_outcome' | 'convergence' | 'tension_resolved' | 'intervention_effective' | 'locus_kindling' | 'locus_radiance' | 'locus_response' | 'locus_memory_feedback' | 'cross_pattern' | 'intervention_sent' | 'effectiveness_measured'
 
 export interface TrainingSignalRow {
   id: number
@@ -492,6 +518,11 @@ export class ConstellationStore {
     selectElevatedPatternsByApproach: Database.Statement
     incrementPatternRefCount: Database.Statement
     pruneElevatedPatterns: Database.Statement
+    // Locus memory
+    insertLocusMemory: Database.Statement
+    updateLocusMemory: Database.Statement
+    deleteLocusMemory: Database.Statement
+    selectActiveLocusMemories: Database.Statement
   }
 
   private constructor(dbPath: string, logger: ILogger) {
@@ -644,6 +675,34 @@ export class ConstellationStore {
         CREATE INDEX IF NOT EXISTS idx_elevated_patterns_score ON elevated_patterns(achieved_score);
         CREATE INDEX IF NOT EXISTS idx_elevated_patterns_approach ON elevated_patterns(approach);
         CREATE INDEX IF NOT EXISTS idx_elevated_patterns_elevated ON elevated_patterns(elevated_at);
+      `)
+    }
+
+    // Migration from version 3 to 4: locus memory table
+    if (fromVersion < 4) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS locus_memories (
+          id                TEXT PRIMARY KEY,
+          content           TEXT NOT NULL,
+          memory_type       TEXT NOT NULL,
+          confidence        REAL NOT NULL DEFAULT 0.5,
+          luminance         REAL NOT NULL,
+          phase             TEXT NOT NULL DEFAULT 'provisional',
+          origin_session_id TEXT NOT NULL,
+          source_helix_id   TEXT NOT NULL,
+          source_goal       TEXT NOT NULL DEFAULT '',
+          relevant_files_json TEXT DEFAULT '[]',
+          confirmations     INTEGER DEFAULT 0,
+          contradictions    INTEGER DEFAULT 0,
+          recall_count      INTEGER DEFAULT 0,
+          created_at        INTEGER NOT NULL,
+          last_recalled_at  INTEGER,
+          last_updated_at   INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_locus_mem_phase ON locus_memories(phase);
+        CREATE INDEX IF NOT EXISTS idx_locus_mem_confidence ON locus_memories(confidence);
+        CREATE INDEX IF NOT EXISTS idx_locus_mem_type ON locus_memories(memory_type);
       `)
     }
   }
@@ -859,6 +918,37 @@ export class ConstellationStore {
         `),
         pruneElevatedPatterns: this.db.prepare(`
           DELETE FROM elevated_patterns WHERE elevated_at < ? AND reference_count = 0
+        `),
+        // Locus memory
+        insertLocusMemory: this.db.prepare(`
+          INSERT INTO locus_memories (
+            id, content, memory_type, confidence, luminance, phase,
+            origin_session_id, source_helix_id, source_goal,
+            relevant_files_json, confirmations, contradictions,
+            recall_count, created_at, last_recalled_at, last_updated_at
+          ) VALUES (
+            @id, @content, @memory_type, @confidence, @luminance, @phase,
+            @origin_session_id, @source_helix_id, @source_goal,
+            @relevant_files_json, @confirmations, @contradictions,
+            @recall_count, @created_at, @last_recalled_at, @last_updated_at
+          )
+        `),
+        updateLocusMemory: this.db.prepare(`
+          UPDATE locus_memories SET
+            confidence = @confidence,
+            phase = @phase,
+            confirmations = @confirmations,
+            contradictions = @contradictions,
+            recall_count = @recall_count,
+            last_recalled_at = @last_recalled_at,
+            last_updated_at = @last_updated_at
+          WHERE id = @id
+        `),
+        deleteLocusMemory: this.db.prepare(`
+          DELETE FROM locus_memories WHERE id = ?
+        `),
+        selectActiveLocusMemories: this.db.prepare(`
+          SELECT * FROM locus_memories WHERE phase != 'invalidated' ORDER BY confidence DESC
         `),
       }
     }
@@ -1720,4 +1810,100 @@ export class ConstellationStore {
       extractedAt: r.extracted_at,
     }))
   }
+
+
+  // Locus Memory Persistence
+
+  /**
+   * Get a LocusMemoryPersistence adapter for the Locus Memory module.
+   * Decouples the memory module from the full ConstellationStore.
+   */
+  getLocusMemoryPersistence(): LocusMemoryPersistence {
+    return {
+      loadMemories: () => this.loadLocusMemories(),
+      saveMemory: (entry) => this.saveLocusMemory(entry),
+      updateMemory: (entry) => this.updateLocusMemory(entry),
+      deleteMemory: (id) => this.deleteLocusMemory(id),
+    }
+  }
+
+  private loadLocusMemories(): LocusMemoryEntry[] {
+    const rows = this.stmts.selectActiveLocusMemories.all() as RawLocusMemoryRow[]
+    return rows.map(r => ({
+      id: r.id,
+      content: r.content,
+      memoryType: r.memory_type as LocusMemoryEntry['memoryType'],
+      confidence: r.confidence,
+      luminance: r.luminance,
+      phase: r.phase as LocusMemoryEntry['phase'],
+      originSessionId: r.origin_session_id,
+      sourceHelixId: r.source_helix_id,
+      sourceGoal: r.source_goal,
+      relevantFiles: JSON.parse(r.relevant_files_json || '[]'),
+      confirmations: r.confirmations,
+      contradictions: r.contradictions,
+      recallCount: r.recall_count,
+      createdAt: r.created_at,
+      lastRecalledAt: r.last_recalled_at,
+      lastUpdatedAt: r.last_updated_at,
+    }))
+  }
+
+  private saveLocusMemory(entry: LocusMemoryEntry): void {
+    this.stmts.insertLocusMemory.run({
+      id: entry.id,
+      content: entry.content,
+      memory_type: entry.memoryType,
+      confidence: entry.confidence,
+      luminance: entry.luminance,
+      phase: entry.phase,
+      origin_session_id: entry.originSessionId,
+      source_helix_id: entry.sourceHelixId,
+      source_goal: entry.sourceGoal,
+      relevant_files_json: JSON.stringify(entry.relevantFiles),
+      confirmations: entry.confirmations,
+      contradictions: entry.contradictions,
+      recall_count: entry.recallCount,
+      created_at: entry.createdAt,
+      last_recalled_at: entry.lastRecalledAt,
+      last_updated_at: entry.lastUpdatedAt,
+    })
+  }
+
+  private updateLocusMemory(entry: LocusMemoryEntry): void {
+    this.stmts.updateLocusMemory.run({
+      id: entry.id,
+      confidence: entry.confidence,
+      phase: entry.phase,
+      confirmations: entry.confirmations,
+      contradictions: entry.contradictions,
+      recall_count: entry.recallCount,
+      last_recalled_at: entry.lastRecalledAt,
+      last_updated_at: entry.lastUpdatedAt,
+    })
+  }
+
+  private deleteLocusMemory(id: string): void {
+    this.stmts.deleteLocusMemory.run(id)
+  }
+}
+
+
+interface RawLocusMemoryRow {
+  id: string
+  content: string
+  memory_type: string
+  confidence: number
+  luminance: number
+  phase: string
+  origin_session_id: string
+  source_helix_id: string
+  source_goal: string
+  relevant_files_json: string
+  confirmations: number
+  contradictions: number
+  recall_count: number
+  created_at: number
+  last_recalled_at: number | null
+  last_updated_at: number
 }

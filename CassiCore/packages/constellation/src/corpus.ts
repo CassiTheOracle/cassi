@@ -175,7 +175,11 @@ export class Corpus {
       enabled: this.config.enabled,
     })
 
-    this.locus = new Locus({ logger: this.logger })
+    this.locus = new Locus({
+      logger: this.logger,
+      sessionId: deps.constellationId,
+      memoryPersistence: deps.store?.getLocusMemoryPersistence(),
+    })
   }
 
   /**
@@ -225,6 +229,13 @@ export class Corpus {
     }
 
     this.running = false
+
+    // Consolidate Locus memory at end of constellation run
+    const memResult = this.locus.consolidateMemory()
+    if (memResult.promoted > 0 || memResult.invalidated > 0) {
+      this.logger.info('Locus memory consolidated on shutdown', memResult)
+    }
+
     this.logger.info('Corpus stopped', {
       durationMs: Date.now() - this.startTime,
       sweeps: this.state.sweepCount,
@@ -3977,6 +3988,23 @@ Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority":
             : response.responseType === 'noted' ? 0.6
             : response.responseType === 'contradicted' ? 0.3
             : 0.1,
+        })
+      }
+
+      // Locus memory feedback (the closed loop: response → memory update)
+      for (const feedback of locusSweep.memoryFeedback) {
+        store.recordTrainingSignal(sessionId, {
+          signalType: 'locus_memory_feedback',
+          sourceHelixId: feedback.helixId,
+          data: {
+            memoryId: feedback.memoryId,
+            radianceId: feedback.radianceId,
+            feedbackType: feedback.feedbackType,
+            evidence: feedback.evidence,
+          },
+          qualityScore: feedback.feedbackType === 'confirmation' ? 1.0
+            : feedback.feedbackType === 'contradiction' ? 0.5
+            : 0.2,
         })
       }
     }

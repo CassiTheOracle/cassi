@@ -27,6 +27,8 @@ import type {
   LocusTopologyAccessor,
 } from './locus-types.js'
 import { DEFAULT_LOCUS_CONFIG } from './locus-types.js'
+import type { LocusMemory } from './constellation-memory.js'
+import type { MemoryRecall } from './memory-types.js'
 
 let eventCounter = 0
 function nextEventId(): string {
@@ -110,6 +112,7 @@ export class KindlingEngine {
     allDigests: BranchDigest[],
     topology?: LocusTopologyAccessor,
     assessments?: Map<string, BranchAssessment>,
+    memory?: LocusMemory,
   ): KindlingEvent[] {
     if (!this.config.enabled) return []
 
@@ -123,7 +126,7 @@ export class KindlingEngine {
 
     // 1. Score all sparks
     for (const spark of sparks) {
-      spark.luminance = this.scoreLuminance(spark, allDigests, topology, assessments)
+      spark.luminance = this.scoreLuminance(spark, allDigests, topology, assessments, memory)
     }
 
     // 2. Filter dim sparks
@@ -342,23 +345,41 @@ export class KindlingEngine {
    * Score a spark's luminance (composite salience).
    *
    * Components:
-   *   novelty: base type novelty + content length heuristic
+   *   novelty: base type novelty + content length heuristic + memory modulation
    *   urgency: base type urgency + blocker severity
    *   crossRelevance: topology-based — avg similarity from source to all other branches
    *   qualityDelta: branch quality trajectory (from assessment or confidence level)
+   *
+   * Memory integration (option B): when memories exist for similar content,
+   * novelty is modulated. Confirming memories reduce novelty ("we know this"),
+   * contradicting memories boost it ("this challenges what we knew").
    */
   private scoreLuminance(
     spark: Spark,
     allDigests: BranchDigest[],
     topology?: LocusTopologyAccessor,
     assessments?: Map<string, BranchAssessment>,
+    memory?: LocusMemory,
   ): LuminanceScore {
     const w = this.config.luminanceWeights
 
     // Novelty: base + content richness heuristic (longer = potentially more novel)
     const baseNovelty = BASE_NOVELTY[spark.type]
     const contentRichness = Math.min(spark.content.length / 200, 1.0) * 0.2
-    const novelty = Math.min(baseNovelty + contentRichness, 1.0)
+    let novelty = Math.min(baseNovelty + contentRichness, 1.0)
+
+    // Memory modulation: existing memories shift novelty
+    let memoryRecalls: MemoryRecall[] | undefined
+    if (memory) {
+      memoryRecalls = memory.recall(spark)
+      if (memoryRecalls.length > 0) {
+        let totalModulation = 0
+        for (const recall of memoryRecalls) {
+          totalModulation += recall.noveltyModulation
+        }
+        novelty = Math.max(0, Math.min(1.0, novelty + totalModulation))
+      }
+    }
 
     // Urgency: base type urgency
     const urgency = BASE_URGENCY[spark.type]
