@@ -42,13 +42,6 @@ interface ParsedChunk {
 }
 
 /** Split markdown-ish text into typed chunks. */
-/**
- * @dep callers: ingestDyad (core/intelligence/training/training-ingest.ts), ingestLumen (core/intelligence/training/training-ingest.ts), ingestMemories (core/intelligence/training/training-ingest.ts), ingestArchives (core/intelligence/training/training-ingest.ts)
- * @dep calls: test
- * @dep module: Training
- * @dep risk: MEDIUM | 4 callers, 0 flows, 1 module
- */
-
 function splitIntoChunks(text: string): ParsedChunk[] {
   if (!text || !text.trim()) return []
 
@@ -122,12 +115,6 @@ function splitIntoChunks(text: string): ParsedChunk[] {
 }
 
 /** Rough token estimate: ~4 chars per token for English. */
-/**
- * @dep callers: ingestSessionIndex (core/intelligence/training/training-ingest.ts), ingestDyad (core/intelligence/training/training-ingest.ts), ingestLumen (core/intelligence/training/training-ingest.ts), ingestMemories (core/intelligence/training/training-ingest.ts), ingestArchives (core/intelligence/training/training-ingest.ts)
- * @dep module: Training
- * @dep risk: MEDIUM | 5 callers, 0 flows, 1 module
- */
-
 function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4)
 }
