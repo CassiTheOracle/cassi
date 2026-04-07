@@ -231,6 +231,28 @@ export const CONSTELLATION_TOOLS = [
     },
   },
   {
+    name: 'constellation_locus_snapshot',
+    description: 'Get the Locus (Global Workspace) snapshot — attention state, focus slots, kindling/radiance history, and memory stats. Shows what the constellation is paying attention to and how experiential memory is accumulating.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID.' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
+    name: 'constellation_locus_memories',
+    description: 'Get active Locus memories — experiential knowledge accumulated across constellation sweeps. Each memory has content, confidence, phase (provisional/confirmed/consolidated), and confirmation/contradiction counts.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string', description: 'The Constellation session ID (live) or any session ID (archived from DB).' },
+      },
+      required: ['sessionId'],
+    },
+  },
+  {
     name: 'constellation_corpus_directive',
     description: 'Send a directive to a branch as the external Corpus. The directive is delivered through the Brainstem-mediated intervention model, same as internal Corpus directives.',
     inputSchema: {
@@ -561,6 +583,24 @@ export async function executeConstellationTool(
         const res = await fetchWithTimeout(
           `${adminBaseUrl}/constellation/${args.sessionId}/corpus/state`,
           { timeoutMs: 5000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_locus_snapshot': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/locus`,
+          { timeoutMs: 10_000 },
+        )
+        if (!res.ok) throw new Error(`Status ${res.status}`)
+        return await res.json()
+      }
+
+      case 'constellation_locus_memories': {
+        const res = await fetchWithTimeout(
+          `${adminBaseUrl}/constellation/${args.sessionId}/locus/memories`,
+          { timeoutMs: 10_000 },
         )
         if (!res.ok) throw new Error(`Status ${res.status}`)
         return await res.json()

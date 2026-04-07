@@ -59,6 +59,8 @@ export const AGENT_TOOL = {
           'corpus_assume', 'corpus_release', 'corpus_snapshot',
           'corpus_state', 'corpus_directive', 'corpus_spawn_decide',
           'corpus_synthesis',
+          // Locus (Global Workspace) actions (Constellation only)
+          'locus_snapshot', 'locus_memories',
           // Constellation analysis actions
           'audit_trail',
         ],
@@ -305,6 +307,7 @@ async function executeConstellationAgentTool(
     'constellation_corpus_snapshot', 'constellation_corpus_state',
     'constellation_corpus_directive',     'constellation_corpus_spawn_decide',
     'constellation_corpus_synthesis',
+    'constellation_locus_snapshot', 'constellation_locus_memories',
     'constellation_audit_trail',
   ]);
 
