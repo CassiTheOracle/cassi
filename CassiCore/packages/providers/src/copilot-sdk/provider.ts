@@ -163,6 +163,7 @@ export class CopilotSdkProvider extends BaseProvider {
         durationMs,
         toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
         tool_outputs: state.toolOutputs.length > 0 ? state.toolOutputs : undefined,
+        contextHealth: state.contextHealth,
       }
     } catch (err) {
       const durationMs = Date.now() - state.startedAt
@@ -176,6 +177,7 @@ export class CopilotSdkProvider extends BaseProvider {
         tokensUsed: state.tokensUsed,
         model: state.model,
         durationMs,
+        contextHealth: state.contextHealth,
       }
     } finally {
       unsubscribe()
@@ -260,6 +262,7 @@ export class CopilotSdkProvider extends BaseProvider {
         durationMs,
         toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
         tool_outputs: state.toolOutputs.length > 0 ? state.toolOutputs : undefined,
+        contextHealth: state.contextHealth,
       }
     } catch (err) {
       const durationMs = Date.now() - state.startedAt
@@ -271,6 +274,7 @@ export class CopilotSdkProvider extends BaseProvider {
         tokensUsed: state.tokensUsed,
         model: state.model,
         durationMs,
+        contextHealth: state.contextHealth,
       }
     } finally {
       unsubscribe()
@@ -354,6 +358,7 @@ export class CopilotSdkProvider extends BaseProvider {
         durationMs,
         toolCalls: state.toolCalls.length > 0 ? state.toolCalls : undefined,
         tool_outputs: state.toolOutputs.length > 0 ? state.toolOutputs : undefined,
+        contextHealth: state.contextHealth,
       }
     } catch (err) {
       const durationMs = Date.now() - state.startedAt
@@ -365,6 +370,7 @@ export class CopilotSdkProvider extends BaseProvider {
         tokensUsed: state.tokensUsed,
         model: state.model,
         durationMs,
+        contextHealth: state.contextHealth,
       }
     } finally {
       unsubscribe()

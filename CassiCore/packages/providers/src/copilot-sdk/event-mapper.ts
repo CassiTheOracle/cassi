@@ -8,6 +8,30 @@ import type { SessionEvent } from '@github/copilot-sdk'
 
 import type { IEventBus } from '../../../types/interfaces.js'
 
+/** Context health snapshot captured from SDK session events. */
+export interface SdkContextHealth {
+  /** Maximum token count for the model's context window */
+  tokenLimit: number
+  /** Current number of tokens in the context window */
+  currentTokens: number
+  /** Fill level as a fraction (0.0-1.0) */
+  fillLevel: number
+  /** Current number of messages in the conversation */
+  messagesLength: number
+  /** Whether background compaction is currently in progress */
+  isCompacting: boolean
+  /** Number of compaction events during this turn */
+  compactionsDuringTurn: number
+  /** Number of truncation events during this turn */
+  truncationsDuringTurn: number
+  /** Tokens recovered via compaction during this turn */
+  tokensRecoveredByCompaction: number
+  /** Tokens removed via truncation during this turn */
+  tokensRemovedByTruncation: number
+  /** LLM-generated summary from compaction (if available) */
+  compactionSummary?: string
+}
+
 /** Accumulated state for a single SDK turn. */
 export interface SdkTurnState {
   sessionId: string
@@ -24,6 +48,8 @@ export interface SdkTurnState {
   tokensUsed: number
   model: string
   startedAt: number
+  /** Context health data captured from SDK session events during the turn */
+  contextHealth?: SdkContextHealth
 }
 
 /**
@@ -188,11 +214,87 @@ export function mapSdkEvent(
       return false
     }
 
-    case 'session.truncation':
-    case 'session.compaction_start':
-    case 'session.compaction_complete':
     case 'session.usage_info': {
-      // Log but don't act — SDK handles context management internally
+      const d = (event as any).data
+      const tokenLimit = d?.tokenLimit ?? 0
+      const currentTokens = d?.currentTokens ?? 0
+      if (!state.contextHealth) {
+        state.contextHealth = {
+          tokenLimit,
+          currentTokens,
+          fillLevel: tokenLimit > 0 ? currentTokens / tokenLimit : 0,
+          messagesLength: d?.messagesLength ?? 0,
+          isCompacting: false,
+          compactionsDuringTurn: 0,
+          truncationsDuringTurn: 0,
+          tokensRecoveredByCompaction: 0,
+          tokensRemovedByTruncation: 0,
+        }
+      } else {
+        state.contextHealth.tokenLimit = tokenLimit
+        state.contextHealth.currentTokens = currentTokens
+        state.contextHealth.fillLevel = tokenLimit > 0 ? currentTokens / tokenLimit : 0
+        state.contextHealth.messagesLength = d?.messagesLength ?? 0
+      }
+      return false
+    }
+
+    case 'session.compaction_start': {
+      if (state.contextHealth) {
+        state.contextHealth.isCompacting = true
+      }
+      return false
+    }
+
+    case 'session.compaction_complete': {
+      const d = (event as any).data
+      if (state.contextHealth) {
+        state.contextHealth.isCompacting = false
+        state.contextHealth.compactionsDuringTurn++
+        const tokensRecovered = (d?.preCompactionTokens ?? 0) - (d?.postCompactionTokens ?? 0)
+        if (tokensRecovered > 0) {
+          state.contextHealth.tokensRecoveredByCompaction += tokensRecovered
+        }
+        if (d?.postCompactionTokens != null) {
+          state.contextHealth.currentTokens = d.postCompactionTokens
+          if (state.contextHealth.tokenLimit > 0) {
+            state.contextHealth.fillLevel = d.postCompactionTokens / state.contextHealth.tokenLimit
+          }
+        }
+        if (d?.summaryContent) {
+          state.contextHealth.compactionSummary = d.summaryContent
+        }
+      }
+      if (!d?.success) {
+        bus.emit({
+          type: 'provider:request_error' as never,
+          providerId: 'copilot-sdk',
+          requestId: `sdk_compaction_${Date.now()}`,
+          sessionId: state.sessionId,
+          source: 'copilot-sdk',
+          model: state.model,
+          error: `Compaction failed: ${d?.error ?? 'unknown'}`,
+          consecutiveErrors: 0,
+          durationMs: 0,
+          timestamp: new Date(),
+        } as never)
+      }
+      return false
+    }
+
+    case 'session.truncation': {
+      const d = (event as any).data
+      if (state.contextHealth) {
+        state.contextHealth.truncationsDuringTurn++
+        state.contextHealth.tokensRemovedByTruncation += d?.tokensRemovedDuringTruncation ?? 0
+        if (d?.postTruncationTokensInMessages != null) {
+          state.contextHealth.currentTokens = d.postTruncationTokensInMessages
+          if (state.contextHealth.tokenLimit > 0) {
+            state.contextHealth.fillLevel = d.postTruncationTokensInMessages / state.contextHealth.tokenLimit
+          }
+        }
+        state.contextHealth.messagesLength = d?.postTruncationMessagesLength ?? state.contextHealth.messagesLength
+      }
       return false
     }
 
