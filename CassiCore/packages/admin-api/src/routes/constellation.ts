@@ -652,6 +652,53 @@ export async function handleConstellationRoutes(
       return true
     }
 
+    if (method === 'GET' && subAction === 'locus' && parts.length === 3) {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        sendJSON(res, 404, { error: 'Locus snapshot only available for running constellations' })
+        return true
+      }
+      const orchestrator = daemon.intelligence?.constellation
+      const snapshot = orchestrator?.getLocusSnapshot?.(job.sessionId)
+      if (!snapshot) {
+        sendJSON(res, 200, { sessionId: job.sessionId, snapshot: null, enabled: false })
+        return true
+      }
+      sendJSON(res, 200, { sessionId: job.sessionId, snapshot, source: 'live' })
+      return true
+    }
+
+    if (method === 'GET' && subAction === 'locus' && parts[3] === 'memories') {
+      const job = findJob(id)
+      if (!job || job.status !== 'running') {
+        try {
+          const { ConstellationStore } = await import('../intelligence/constellation/constellation-store.js')
+          const store = ConstellationStore.open(daemon.logger.child('constellation-store-reader'))
+          const persistence = store.getLocusMemoryPersistence()
+          const memories = persistence.loadMemories()
+          store.close()
+          sendJSON(res, 200, {
+            sessionId: job?.sessionId ?? id,
+            memories,
+            count: memories.length,
+            source: 'archived',
+          })
+        } catch {
+          sendJSON(res, 200, { sessionId: job?.sessionId ?? id, memories: [], count: 0, source: 'archived' })
+        }
+        return true
+      }
+      const orchestrator = daemon.intelligence?.constellation
+      const memories = orchestrator?.getLocusMemories?.(job.sessionId)
+      sendJSON(res, 200, {
+        sessionId: job.sessionId,
+        memories: memories ?? [],
+        count: memories?.length ?? 0,
+        source: 'live',
+      })
+      return true
+    }
+
     if (method === 'GET' && subAction === 'topology') {
       const job = findJob(id)
       const orchestrator = daemon.intelligence?.constellation
