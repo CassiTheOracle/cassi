@@ -450,11 +450,8 @@ export class ConstellationWorktreeIsolation {
 
   /** Create a short, filesystem-safe slug from a helix ID */
   private makeBranchSlug(helixId: string): string {
-    // Extract the last segment of the helix ID for readability
-    const parts = helixId.split('-')
-    const suffix = parts.slice(-2).join('-')
-    // WHY: Prefix with constellation ID fragment for uniqueness across constellations
-    const consPrefix = this.constellationId.slice(-8)
-    return `c-${consPrefix}-${suffix}`
+    // With sequential IDs (helix-0, helix-1), use constellation ID + helix ID directly
+    const safeConsId = this.constellationId.replace(/[^a-z0-9-]/gi, '')
+    return `${safeConsId}-${helixId}`
   }
 }

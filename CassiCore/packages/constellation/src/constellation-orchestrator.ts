@@ -50,6 +50,8 @@ export interface ConstellationOrchestrator {
   steer(sessionId: string, opts: { message: string; targetHelixId?: string; urgency?: string }): void
   getBranchAssessments(sessionId: string): Array<{ helixId: string; status: string; rollingScore: number; dominantPattern: string }>
   getTopology(sessionId: string): TopologySnapshot | undefined
+  /** Generate a sequential constellation ID (c-1, c-2, ...) via the store counter. */
+  generateId(): string | undefined
   setModelPool(modelPool: ModelPool): void
   setToolRegistry(registry: ToolRegistry): void
   setToolExecutor(executor: ToolExecutor): void
@@ -67,8 +69,6 @@ export interface ConstellationOrchestrator {
   releaseCorpus(sessionId: string, reason?: string): { released: boolean; error?: string }
   getCorpusExternalState(sessionId: string): ExternalCorpusState | undefined
   getCorpusSnapshot(sessionId: string): ExternalCorpusSnapshot | undefined
-  getLocusSnapshot(sessionId: string): import('./locus/locus-types.js').LocusSnapshot | undefined
-  getLocusMemories(sessionId: string): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined
   corpusDirective(sessionId: string, directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string }
   corpusSpawnDecide(sessionId: string, requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string }
   corpusSynthesis(sessionId: string, content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string }
@@ -249,12 +249,9 @@ export function createConstellationOrchestrator(
     const effectiveExecutor = getEffectiveToolExecutor()
     const effectiveRegistry = getEffectiveToolRegistry()
 
-    // Handle factory adapts tier → template for model pool.
-    // Consults modelDirective so session/job/default overrides propagate to constellation slots.
-    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) => {
-      const override = modelDirective?.resolveOverride(sessionId, config.purpose)
-      return effectivePool.acquire(config.purpose, config.tier, config.sessionId, override)
-    }
+    // Handle factory adapts tier → template for model pool
+    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
+      effectivePool.acquire(config.purpose, config.tier, config.sessionId)
 
     const pipelineOpts: ConstellationPipelineOpts = {
       goal: session.goal,
@@ -366,12 +363,9 @@ export function createConstellationOrchestrator(
         template: template ?? 'standard',
       })
 
-      // Handle factory adapts tier → template for model pool.
-      // Consults modelDirective so session/job/default overrides propagate to constellation slots.
-      const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) => {
-        const override = modelDirective?.resolveOverride(sessionId, config.purpose)
-        return effectivePool.acquire(config.purpose, config.tier, config.sessionId, override)
-      }
+      // Handle factory adapts tier → template for model pool
+      const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
+        effectivePool.acquire(config.purpose, config.tier, config.sessionId)
 
        const pipelineOpts: ConstellationPipelineOpts = {
         goal,
@@ -541,6 +535,7 @@ export function createConstellationOrchestrator(
     setMemory(mem) { memory = mem },
     setAuditTrail(trail) { auditTrail = trail },
     setReasoningBank(bank) { reasoningBank = bank },
+    generateId() { return constellationStore?.generateConstellationId() },
 
     // External Corpus Protocol
     assumeCorpus(sessionId, agentId, heartbeatTimeoutMs) {
@@ -569,18 +564,6 @@ export function createConstellationOrchestrator(
       const entry = running.get(sessionId)
       if (!entry?.liveState?.corpus) return undefined
       return entry.liveState.corpus.getExternalSnapshot()
-    },
-
-    getLocusSnapshot(sessionId) {
-      const entry = running.get(sessionId)
-      if (!entry?.liveState?.corpus) return undefined
-      return entry.liveState.corpus.getLocusSnapshot()
-    },
-
-    getLocusMemories(sessionId) {
-      const entry = running.get(sessionId)
-      if (!entry?.liveState?.corpus) return undefined
-      return entry.liveState.corpus.getLocusMemories()
     },
 
     corpusDirective(sessionId, directive) {

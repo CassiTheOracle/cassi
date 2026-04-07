@@ -31,7 +31,7 @@ import type { LocusMemoryPersistence } from './locus/constellation-memory.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 4  // v4: locus_memories table
+const SCHEMA_VERSION = 5  // v5: id_counter table for sequential IDs
 const DEFAULT_MAX_AGE_DAYS = 180  // Much longer retention than Helix's 7 days
 
 
@@ -227,9 +227,16 @@ const SCHEMA_SQL = `
     last_updated_at   INTEGER NOT NULL
   );
 
-  CREATE INDEX IF NOT EXISTS idx_locus_mem_phase ON locus_memories(phase);
+   CREATE INDEX IF NOT EXISTS idx_locus_mem_phase ON locus_memories(phase);
   CREATE INDEX IF NOT EXISTS idx_locus_mem_confidence ON locus_memories(confidence);
   CREATE INDEX IF NOT EXISTS idx_locus_mem_type ON locus_memories(memory_type);
+
+  -- Sequential ID counters (constellation IDs: c-1, c-2, ...)
+  CREATE TABLE IF NOT EXISTS id_counter (
+    name    TEXT PRIMARY KEY,
+    value   INTEGER NOT NULL DEFAULT 0
+  );
+  INSERT OR IGNORE INTO id_counter (name, value) VALUES ('constellation', 0);
 `
 
 
@@ -705,6 +712,27 @@ export class ConstellationStore {
         CREATE INDEX IF NOT EXISTS idx_locus_mem_type ON locus_memories(memory_type);
       `)
     }
+
+    // Migration from version 4 to 5: sequential ID counter table
+    if (fromVersion < 5) {
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS id_counter (
+          name    TEXT PRIMARY KEY,
+          value   INTEGER NOT NULL DEFAULT 0
+        );
+      `)
+      // Seed the counter from existing sessions to avoid ID collisions
+      const maxId = this.db.prepare(`
+        SELECT MAX(CAST(REPLACE(id, 'c-', '') AS INTEGER)) as max_val
+        FROM constellation_sessions
+        WHERE id LIKE 'c-%'
+      `).get() as { max_val: number | null } | undefined
+      const seedValue = maxId?.max_val ?? 0
+      this.db.prepare(
+        'INSERT OR REPLACE INTO id_counter (name, value) VALUES (?, ?)'
+      ).run('constellation', seedValue)
+      this.logger.info('ConstellationStore: seeded constellation counter', { seedValue })
+    }
   }
 
 
@@ -971,6 +999,38 @@ export class ConstellationStore {
       created_at: Date.now(),
     })
     this.logger.debug(`Created Constellation session ${id}`, { goal })
+  }
+
+
+  /**
+   * Generate the next sequential constellation ID: c-1, c-2, ...
+   * Thread-safe within a single process (SQLite serializes writes).
+   */
+  generateConstellationId(): string {
+    const row = this.db.prepare(
+      `UPDATE id_counter SET value = value + 1 WHERE name = 'constellation' RETURNING value`
+    ).get() as { value: number } | undefined
+    if (!row) {
+      // Counter row missing — re-seed and retry
+      this.db.prepare(
+        'INSERT OR REPLACE INTO id_counter (name, value) VALUES (?, 1)'
+      ).run('constellation')
+      return 'c-1'
+    }
+    return `c-${row.value}`
+  }
+
+
+  /**
+   * Get the next helix index for a constellation session.
+   * Counts existing branches to determine the next sequential number.
+   * Returns "helix-0", "helix-1", etc.
+   */
+  nextHelixId(constellationId: string): string {
+    const row = this.db.prepare(
+      `SELECT COUNT(*) as count FROM constellation_branches WHERE session_id = ?`
+    ).get(constellationId) as { count: number }
+    return `helix-${row.count}`
   }
 
 

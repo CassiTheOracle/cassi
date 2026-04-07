@@ -326,6 +326,9 @@ export async function runConstellationPipeline(
   const costEffective = opts.costEffective ?? false
   const log = logger.child('constellation-pipeline')
 
+  // Fallback counter for helix IDs when constellation store is unavailable
+  let helixCounter = 0
+
   // WHY: Worktree isolation gives each branch its own working copy.
   // Prevents file conflicts when multiple branches edit the same files.
   const worktreeIsolation = opts.isolation === 'worktree'
@@ -763,7 +766,8 @@ export async function runConstellationPipeline(
     depth: number,
     toolFilter?: { allow?: string[]; deny?: string[] }
   ): Promise<RunningHelix> {
-    const helixId = `helix-${constellationId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const helixId = constellationStore?.nextHelixId(constellationId)
+      ?? `helix-${helixCounter++}`
     const helixLog = log.child(helixId)
 
     helixLog.info('Launching Helix', {

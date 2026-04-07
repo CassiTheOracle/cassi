@@ -191,9 +191,8 @@ export class CorpusMiniHelix {
 
     this.session = createMiniHelixSession(tools, config, this.miniHelixDeps)
 
-    // Start the cycle loop in the background — don't await it,
-    // otherwise start() blocks forever as runCycle() recursively re-invokes itself.
-    void this.runCycle()
+    // Run initial cycle
+    await this.runCycle()
   }
 
   /** Stop the Corpus mini-Helix */
