@@ -247,9 +247,12 @@ export function createConstellationOrchestrator(
     const effectiveExecutor = getEffectiveToolExecutor()
     const effectiveRegistry = getEffectiveToolRegistry()
 
-    // Handle factory adapts tier → template for model pool
-    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
-      effectivePool.acquire(config.purpose, config.tier, config.sessionId)
+    // Handle factory adapts tier → template for model pool.
+    // Consults modelDirective so session/job/default overrides propagate to constellation slots.
+    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) => {
+      const override = modelDirective?.resolveOverride(sessionId, config.purpose)
+      return effectivePool.acquire(config.purpose, config.tier, config.sessionId, override)
+    }
 
     const pipelineOpts: ConstellationPipelineOpts = {
       goal: session.goal,
@@ -361,9 +364,12 @@ export function createConstellationOrchestrator(
         template: template ?? 'standard',
       })
 
-      // Handle factory adapts tier → template for model pool
-      const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
-        effectivePool.acquire(config.purpose, config.tier, config.sessionId)
+      // Handle factory adapts tier → template for model pool.
+      // Consults modelDirective so session/job/default overrides propagate to constellation slots.
+      const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) => {
+        const override = modelDirective?.resolveOverride(sessionId, config.purpose)
+        return effectivePool.acquire(config.purpose, config.tier, config.sessionId, override)
+      }
 
        const pipelineOpts: ConstellationPipelineOpts = {
         goal,
