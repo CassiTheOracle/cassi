@@ -415,7 +415,7 @@ export interface BlackboardArchiveRow {
   archivedAt: number
 }
 
-export type TrainingSignalType = 'brainstem_annotation' | 'corpus_decision' | 'dialectic_outcome' | 'convergence' | 'tension_resolved' | 'intervention_effective'
+export type TrainingSignalType = 'brainstem_annotation' | 'corpus_decision' | 'dialectic_outcome' | 'convergence' | 'tension_resolved' | 'intervention_effective' | 'locus_kindling' | 'locus_radiance' | 'locus_response' | 'cross_pattern' | 'intervention_sent' | 'effectiveness_measured'
 
 export interface TrainingSignalRow {
   id: number

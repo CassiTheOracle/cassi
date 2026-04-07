@@ -572,9 +572,10 @@ export type BranchHealthStatus =
   | 'failed'
 
 /**
- * @dep callers: constructor (core/intelligence/constellation/corpus-mini-helix.ts), constructor (core/intelligence/constellation/corpus.ts)
+ * @dep callers: constructor (core/intelligence/constellation/corpus-mini-helix.ts), constructor (core/intelligence/constellation/corpus.ts), createState (tests/corpus-strategy.test.ts)
+ * @dep calls: now
  * @dep module: Constellation
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
+ * @dep risk: LOW | 3 callers, 0 flows, 1 module
  */
 
 export function createInitialProcessedState(goal?: string): CorpusProcessedState {
@@ -1050,6 +1051,8 @@ export interface CorpusResult {
   /** Dual-ledger final state (post-mortem analysis) */
   taskLedger?: TaskLedger
   progressLedger?: ProgressLedger
+  /** Locus (Global Workspace) snapshot — attention layer state */
+  locusSnapshot?: import('./locus/locus-types.js').LocusSnapshot
 }
 
 /**

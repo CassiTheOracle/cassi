@@ -68,6 +68,8 @@ import {
   getCorpusToolDefinitions,
 } from './corpus-tools.js'
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
+import { Locus } from './locus/index.js'
+import type { LocusSweepResult } from './locus/index.js'
 
 /**
  * Minimal interface for child Brainstem to avoid circular imports.
@@ -156,6 +158,10 @@ export class Corpus {
   // Incremental re-decomposition tracker
   private decompositionTracker?: DecompositionTracker
 
+  // Locus — Global Workspace (attention layer between Corpus and Brainstems)
+  private locus: Locus
+  private locusSweepResults: LocusSweepResult[] = []
+
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
     this.deps = deps
@@ -168,6 +174,8 @@ export class Corpus {
       constellationId: deps.constellationId,
       enabled: this.config.enabled,
     })
+
+    this.locus = new Locus({ logger: this.logger })
   }
 
   /**
@@ -649,6 +657,7 @@ export class Corpus {
       llmHealthy: this.llmHealthy,
       llmFailureCount: this.llmFailureCount,
       durationMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
+      locusSnapshot: this.locus.enabled ? this.locus.getSnapshot() : undefined,
     }
   }
 
@@ -751,6 +760,26 @@ export class Corpus {
         // Detect cross-branch patterns
         const newPatterns = this.detectCrossPatterns()
 
+        // Locus sweep: extract sparks, score, kindle, broadcast
+        let lastLocusSweep: LocusSweepResult | undefined
+        if (this.locus.enabled) {
+          const allDigests = this.tree.getAllDigests()
+          const activeHelixIds = this.tree.getAllBranches()
+            .filter(b => b.status === 'active')
+            .map(b => b.helixId)
+
+          lastLocusSweep = this.locus.sweep(allDigests, activeHelixIds, {
+            crossPatterns: newPatterns,
+            topology: this.deps.topology ?? undefined,
+            assessments: this.state.branchAssessments,
+            injectGuidance: this.deps.injectGuidance ?? undefined,
+          })
+
+          if (lastLocusSweep.sparksExtracted > 0 || lastLocusSweep.kindlingEvents.length > 0) {
+            this.locusSweepResults.push(lastLocusSweep)
+          }
+        }
+
         // Run LLM analysis if needed — or fall back to rule-based directives
         if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
           if (this.llmHealthy) {
@@ -797,6 +826,9 @@ export class Corpus {
           // Still update timestamp to avoid rapid retry
           this.lastCheckpointAt = Date.now()
         }
+
+        // Record training signals from this sweep (Locus events, patterns, interventions)
+        this.recordSweepTrainingSignals(newPatterns, lastLocusSweep)
 
         // Update sweep stats
         this.state.sweepCount++
@@ -2377,6 +2409,22 @@ Guidelines:
         effective,
       })
 
+      // Persist as training signal
+      this.deps.store?.recordTrainingSignal(this.deps.constellationId, {
+        signalType: 'effectiveness_measured',
+        sourceHelixId: helixId,
+        data: {
+          interventionType: baseline.type,
+          adjustmentType,
+          scoreBefore: baseline.score,
+          scoreAfter: assessment.rollingScore,
+          improvement,
+          effective,
+          stepsDelta: stepsSinceBaseline,
+        },
+        qualityScore: effective ? 0.9 : 0.4,
+      })
+
       // WHY: Update the DirectiveRecord outcome so callers can inspect lifecycle state
       // rather than finding every record permanently 'pending'
       for (const record of assessment.directiveHistory) {
@@ -3860,6 +3908,119 @@ Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority":
     }
 
     return paths
+  }
+
+
+  /**
+   * Record training signals from the current sweep.
+   * Persists high-value events (Locus, cross-patterns, interventions,
+   * effectiveness measurements) to training_signals for later ingest
+   * into the training warehouse.
+   */
+  private recordSweepTrainingSignals(
+    newPatterns: CrossHelixPattern[],
+    locusSweep?: LocusSweepResult,
+  ): void {
+    const store = this.deps.store
+    if (!store) return
+
+    const sessionId = this.deps.constellationId
+
+    // Locus kindling events (sparks that entered the workspace)
+    if (locusSweep) {
+      for (const event of locusSweep.kindlingEvents) {
+        store.recordTrainingSignal(sessionId, {
+          signalType: 'locus_kindling',
+          sourceHelixId: event.spark.sourceHelixId,
+          data: {
+            sparkType: event.spark.type,
+            content: event.spark.content,
+            luminance: event.spark.luminance,
+            slotIndex: event.slotIndex,
+            eclipsed: event.eclipse ? {
+              eclipsedType: event.eclipse.eclipsedSpark.type,
+              luminanceDelta: event.eclipse.luminanceDelta,
+              occupancyAtEclipse: event.eclipse.occupancyAtEclipse,
+            } : null,
+          },
+          qualityScore: event.kindlingLuminance,
+        })
+      }
+
+      // Locus radiance broadcasts
+      for (const event of locusSweep.radianceEvents) {
+        store.recordTrainingSignal(sessionId, {
+          signalType: 'locus_radiance',
+          sourceHelixId: event.source.spark.sourceHelixId,
+          data: {
+            sparkType: event.source.spark.type,
+            recipientCount: event.recipients.length,
+            recipientDistances: event.recipientDistances,
+            kindlingLuminance: event.source.kindlingLuminance,
+          },
+          qualityScore: event.source.kindlingLuminance,
+        })
+      }
+
+      // Locus radiance responses (measured on subsequent sweeps)
+      for (const response of locusSweep.responses) {
+        store.recordTrainingSignal(sessionId, {
+          signalType: 'locus_response',
+          sourceHelixId: response.helixId,
+          data: {
+            radianceId: response.radianceId,
+            responseType: response.responseType,
+            evidence: response.evidence,
+            responseDelay: response.responseDelay,
+          },
+          qualityScore: response.responseType === 'incorporated' ? 1.0
+            : response.responseType === 'noted' ? 0.6
+            : response.responseType === 'contradicted' ? 0.3
+            : 0.1,
+        })
+      }
+    }
+
+    // Cross-branch patterns
+    for (const pattern of newPatterns) {
+      store.recordTrainingSignal(sessionId, {
+        signalType: 'cross_pattern',
+        data: {
+          type: pattern.type,
+          helixIds: pattern.helixIds,
+          severity: pattern.severity,
+          description: pattern.description,
+          suggestedAction: pattern.suggestedAction,
+        },
+        qualityScore: pattern.severity === 'critical' ? 1.0
+          : pattern.severity === 'high' ? 0.8
+          : pattern.severity === 'medium' ? 0.5
+          : 0.3,
+      })
+    }
+
+    // Interventions sent this sweep
+    const recentInterventions = this.state.interventions.filter(
+      i => i.sweepNumber === this.state.sweepCount,
+    )
+    for (const intervention of recentInterventions) {
+      store.recordTrainingSignal(sessionId, {
+        signalType: 'intervention_sent',
+        sourceHelixId: intervention.targetHelixId,
+        data: {
+          type: intervention.type,
+          urgency: intervention.urgency,
+          reason: intervention.reason,
+          text: intervention.text,
+          fromPattern: intervention.fromPattern,
+          requiredAction: intervention.requiredAction,
+        },
+        qualityScore: intervention.urgency === 'critical' ? 1.0
+          : intervention.urgency === 'high' ? 0.8
+          : intervention.urgency === 'medium' ? 0.5
+          : 0.3,
+      })
+    }
   }
 }
 
