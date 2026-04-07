@@ -241,8 +241,7 @@ export class CommandDispatcher {
 ├─ Rule Enforcer: ${this.intelligence?.ruleEnforcer ? '✓' : '○'}
 ├─ Thinker: ${this.intelligence?.thinker ? '✓' : '○'}
 ├─ AI Scientist: ${this.intelligence?.aiScientist ? '✓' : '○'}
-├─ Dialectic: ${this.intelligence?.dialectic ? '✓' : '○'}
-└─ Multi-Agent: ${this.intelligence?.multiAgent ? '✓' : '○'}
+└─ Dialectic: ${this.intelligence?.dialectic ? '✓' : '○'}
 
 <i>Commands</i>
 ├─ /status — Show this view

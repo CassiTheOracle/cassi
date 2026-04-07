@@ -15,7 +15,6 @@
  */
 import { approveAll } from '@github/copilot-sdk'
 import type { CopilotSession, SessionEvent, Tool as SdkTool } from '@github/copilot-sdk'
-import { compressToolSet } from './tool-compressor.js'
 
 import { BaseProvider } from '../base.js'
 import { CopilotSdkManager } from './client-manager.js'
@@ -599,23 +598,14 @@ export class CopilotSdkProvider extends BaseProvider {
 
     try {
       const metaTools = this.buildMetaToolDefinitions(opts.tools || [], chunks, () => resolveWait?.(), log, sessionId)
-      const rawTools = [...this.sdkTools, ...metaTools]
-      const compressed = compressToolSet(rawTools, systemPrompt)
-      const allTools = compressed.tools
-      const effectiveSystemPrompt = compressed.systemPrompt
-      if (compressed.compressed) {
-        log.info('SDK cold session tools compressed', {
-          sessionId, original: compressed.originalCount, compressed: compressed.compressedCount,
-        })
-      }
-      const session = await this.createSessionWithTools(sessionId, effectiveSystemPrompt, model, allTools)
+      const allTools = [...this.sdkTools, ...metaTools]
+      const session = await this.createSessionWithTools(sessionId, systemPrompt, model, allTools)
       log.info('SDK session ready (cold)', {
         model, sessionId,
         promptLength: prompt.length,
         cassiTools: this.sdkTools.length,
         metaTools: metaTools.length,
         totalTools: allTools.length,
-        compressed: compressed.compressed,
       })
 
       const unsubscribe = session.on((event: SessionEvent) => {
@@ -811,26 +801,15 @@ export class CopilotSdkProvider extends BaseProvider {
         // Also include standalone finished() tool as fallback
         // (in case caller has no signal_conclusion tool)
         const finishedSdkTool = buildFinishedSdkTool(state, log)
-        const rawTools = [...this.sdkTools, ...metaTools, finishedSdkTool]
+        const allTools = [...this.sdkTools, ...metaTools, finishedSdkTool]
 
-        // Compress tools if count exceeds SDK limits
-        const compressed = compressToolSet(rawTools, systemPrompt)
-        const allTools = compressed.tools
-        const effectiveSystemPrompt = compressed.systemPrompt
-        if (compressed.compressed) {
-          log.info('SDK warm session tools compressed', {
-            warmKey, original: compressed.originalCount, compressed: compressed.compressedCount,
-          })
-        }
-
-        const session = await this.createSessionWithTools(sessionId, effectiveSystemPrompt, model, allTools)
+        const session = await this.createSessionWithTools(sessionId, systemPrompt, model, allTools)
         log.info('SDK warm session created', {
           warmKey, sessionId, model,
           promptLength: prompt.length,
           cassiTools: this.sdkTools.length,
           metaTools: metaTools.length,
           totalTools: allTools.length,
-          compressed: compressed.compressed,
         })
 
         // Subscribe event handler
