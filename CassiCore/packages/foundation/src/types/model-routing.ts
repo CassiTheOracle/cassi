@@ -112,14 +112,6 @@ export interface IModelDirective {
    */
   resolve(jobId?: string, slot?: string): ModelConfig
 
-  /**
-   * Resolve routing only if there is an explicit user override (not just the hardcoded fallback).
-   * Returns undefined when the only match is the hardcoded default.
-   * Used by callers that have their own fallback mechanism (e.g. ModelPool fallback chains)
-   * and only want to override it when the user has explicitly set routing.
-   */
-  resolveOverride(jobId?: string, slot?: string): ModelConfig | undefined
-
   /** Get the full directive state for diagnostics */
   getState(jobId?: string): ModelDirectiveState
 
