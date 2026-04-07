@@ -53,118 +53,123 @@ interface RouteRule {
 }
 
 /**
- * Event type prefix → routing rule.
+ * Event type → routing rule.
  * More specific patterns are checked first (exact match), then prefix match.
+ *
+ * Consolidated topic mapping (2026-04 redesign):
+ *   constellation → all orchestration events (Lumen, Dyad, FluxTeam, Triad, Drone, Multi-Agent, Constellation)
+ *   intelligence  → Thinker, Dialectic, Consciousness, Adaptive
+ *   memory        → Dreams, Archive, Search, Heart
+ *   system        → Errors, budget, tools, LLM calls, blackboard, timeline, trust, self-healing
+ *   sessions      → User session lifecycle
  */
 const EXACT_ROUTES: Record<string, RouteRule> = {
-  'lumen:synthesis-complete':  { topicKey: 'lumen', highlight: true, priority: 'high' },
-  'lumen:started':             { topicKey: 'lumen', highlight: true, priority: 'medium' },
-  'lumen:completed':            { topicKey: 'lumen', highlight: true, priority: 'high' },
-  'lumen:persisted':           { topicKey: 'lumen', highlight: false },
-  'lumen:yang-complete':       { topicKey: 'lumen', highlight: false },
-  'lumen:yin-complete':        { topicKey: 'lumen', highlight: false },
-  'lumen:posture:start':       { topicKey: 'lumen', highlight: false },
-  'lumen:posture:concluded':   { topicKey: 'lumen', highlight: false },
-  'lumen:posture:error':       { topicKey: 'lumen', highlight: true, priority: 'high' },
+  // Constellation War Room — all orchestration events
+  'lumen:synthesis-complete':  { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'lumen:started':             { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'lumen:completed':           { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'lumen:persisted':           { topicKey: 'constellation', highlight: false },
+  'lumen:yang-complete':       { topicKey: 'constellation', highlight: false },
+  'lumen:yin-complete':        { topicKey: 'constellation', highlight: false },
+  'lumen:posture:start':       { topicKey: 'constellation', highlight: false },
+  'lumen:posture:concluded':   { topicKey: 'constellation', highlight: false },
+  'lumen:posture:error':       { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'lumen:dialectic:finding':           { topicKey: 'constellation', highlight: false },
+  'lumen:dialectic:challenge':         { topicKey: 'constellation', highlight: false },
+  'lumen:dialectic:concession':        { topicKey: 'constellation', highlight: false },
+  'lumen:dialectic:investigation':     { topicKey: 'constellation', highlight: false },
+  'lumen:dialectic:executive-injection': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'lumen:dialectic:executive-steering': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'lumen:dialectic:digest':            { topicKey: 'constellation', highlight: false },
+  'lumen:posture:iteration':           { topicKey: 'constellation', highlight: false },
+  'lumen:posture:progress':            { topicKey: 'constellation', highlight: false },
+  'lumen:iteration:digest':            { topicKey: 'constellation', highlight: false },
+  'lumen:progress:digest':             { topicKey: 'constellation', highlight: false },
 
-  // Lumen dialectic flow events (real-time message flow)
-  'lumen:dialectic:finding':           { topicKey: 'lumen', highlight: false },
-  'lumen:dialectic:challenge':         { topicKey: 'lumen', highlight: false },
-  'lumen:dialectic:concession':        { topicKey: 'lumen', highlight: false },
-  'lumen:dialectic:investigation':     { topicKey: 'lumen', highlight: false },
-  'lumen:dialectic:executive-injection': { topicKey: 'lumen', highlight: true, priority: 'medium' },
-  'lumen:dialectic:executive-steering': { topicKey: 'lumen', highlight: true, priority: 'medium' },
-  'lumen:dialectic:digest':            { topicKey: 'lumen', highlight: false },
-  'lumen:posture:iteration':           { topicKey: 'lumen', highlight: false },
-  'lumen:posture:progress':            { topicKey: 'lumen', highlight: false },
-  'lumen:iteration:digest':            { topicKey: 'lumen', highlight: false },
-  'lumen:progress:digest':             { topicKey: 'lumen', highlight: false },
+  'dyad:started':              { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'dyad:completed':            { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'dyad:failed':               { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'dyad:role:completed':       { topicKey: 'constellation', highlight: false },
+  'dyad:role:failed':          { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'dyad:work-unit':            { topicKey: 'constellation', highlight: false },
+  'dyad:refinement':           { topicKey: 'constellation', highlight: false },
+  'dyad:nudge':                { topicKey: 'constellation', highlight: false },
+  'dyad:research':             { topicKey: 'constellation', highlight: false },
+  'dyad:guidance':             { topicKey: 'constellation', highlight: false },
+  'dyad:quality-assessment':   { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'dyad:posture:iteration':    { topicKey: 'constellation', highlight: false },
+  'dyad:work-stream:digest':   { topicKey: 'constellation', highlight: false },
+  'dyad:iteration:digest':     { topicKey: 'constellation', highlight: false },
 
-  'dyad:started':              { topicKey: 'dyad', highlight: true, priority: 'medium' },
-  'dyad:completed':             { topicKey: 'dyad', highlight: true, priority: 'high' },
-  'dyad:failed':               { topicKey: 'dyad', highlight: true, priority: 'high' },
-  'dyad:role:completed':       { topicKey: 'dyad', highlight: false },
-  'dyad:role:failed':          { topicKey: 'dyad', highlight: true, priority: 'high' },
+  'team:started':              { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'team:completed':            { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'team:failed':               { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'team:cancelled':            { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'team:paused':               { topicKey: 'constellation', highlight: false },
+  'team:resumed':              { topicKey: 'constellation', highlight: false },
+  'team:checkpoint':           { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'flux:event':                { topicKey: 'constellation', highlight: false },
+  'flux:node:completed':       { topicKey: 'constellation', highlight: false },
 
-  // Dyad work stream flow events (real-time message flow)
-  'dyad:work-unit':            { topicKey: 'dyad', highlight: false },
-  'dyad:refinement':           { topicKey: 'dyad', highlight: false },
-  'dyad:nudge':                { topicKey: 'dyad', highlight: false },
-  'dyad:research':             { topicKey: 'dyad', highlight: false },
-  'dyad:guidance':             { topicKey: 'dyad', highlight: false },
-  'dyad:quality-assessment':   { topicKey: 'dyad', highlight: true, priority: 'medium' },
-  'dyad:posture:iteration':    { topicKey: 'dyad', highlight: false },
-  'dyad:work-stream:digest':   { topicKey: 'dyad', highlight: false },
-  'dyad:iteration:digest':     { topicKey: 'dyad', highlight: false },
+  'triad-team:created':        { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'triad-team:completed':      { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'triad-team:failed':         { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'triad-team:cancelled':      { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'triad-team:checkpoint':     { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'triad-team:cell-completed-without-action': { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'cell:turn:start':           { topicKey: 'constellation', highlight: false },
+  'cell:turn:end':             { topicKey: 'constellation', highlight: false },
+  'cell:thinking:signal-extracted': { topicKey: 'constellation', highlight: false },
 
-  // Flux team direct events (real-time flow)
-  'team:started':              { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
-  'team:completed':            { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
-  'team:failed':               { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
+  'drone:swarm:completed':     { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'drone:swarm:failed':        { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'drone:swarm:cognitive-summary': { topicKey: 'constellation', highlight: false },
+  'drone:prediction':          { topicKey: 'constellation', highlight: false },
+  'drone:speculative:matched': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'drone:speculative:discarded': { topicKey: 'constellation', highlight: false },
+  'drone:autonomous-probe:triggered': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'drone:autonomous-probe:completed': { topicKey: 'constellation', highlight: false },
+  'drone:spawned':             { topicKey: 'constellation', highlight: false, priority: 'low' },
+  'drone:completed':           { topicKey: 'constellation', highlight: false, priority: 'low' },
+  'drone:failed':              { topicKey: 'constellation', highlight: false },
+  'drone:cache-hit':           { topicKey: 'constellation', highlight: false, priority: 'low' },
 
-  'flux:event':                { topicKey: 'fluxTeam', highlight: false },
-  'flux:node:completed':       { topicKey: 'fluxTeam', highlight: false },
+  'agent:spawned':             { topicKey: 'constellation', highlight: false },
+  'agent:task-assigned':       { topicKey: 'constellation', highlight: false },
+  'agent:completed':           { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'agent:error':               { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'agent:handoff':             { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'multi-agent:spawn-failed':  { topicKey: 'constellation', highlight: true, priority: 'high' },
 
-  'triad-team:created':        { topicKey: 'triadTeam', highlight: true, priority: 'medium' },
-  'triad-team:completed':      { topicKey: 'triadTeam', highlight: true, priority: 'medium' },
-  'triad-team:failed':         { topicKey: 'triadTeam', highlight: true, priority: 'high' },
-  'triad-team:cancelled':      { topicKey: 'triadTeam', highlight: true, priority: 'medium' },
-  'triad-team:checkpoint':     { topicKey: 'triadTeam', highlight: true, priority: 'high' },
-  'triad-team:cell-completed-without-action': { topicKey: 'triadTeam', highlight: true, priority: 'high' },
-  'cell:turn:start':           { topicKey: 'fluxTeam', highlight: false },
-  'cell:turn:end':             { topicKey: 'fluxTeam', highlight: false },
-  'cell:thinking:signal-extracted': { topicKey: 'fluxTeam', highlight: false },
+  'constellation:started':     { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:completed':   { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:failed':      { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:checkpoint':  { topicKey: 'constellation', highlight: true, priority: 'medium' },
 
-  'drone:swarm:completed':     { topicKey: 'droneSwarm', highlight: true, priority: 'medium' },
-  'drone:swarm:failed':        { topicKey: 'droneSwarm', highlight: true, priority: 'high' },
-  'drone:swarm:cognitive-summary': { topicKey: 'droneSwarm', highlight: false },
-  'drone:prediction':          { topicKey: 'droneSwarm', highlight: false },
-  'drone:speculative:matched': { topicKey: 'droneSwarm', highlight: true, priority: 'medium' },
-  'drone:speculative:discarded': { topicKey: 'droneSwarm', highlight: false },
-  'drone:autonomous-probe:triggered': { topicKey: 'droneSwarm', highlight: true, priority: 'medium' },
-  'drone:autonomous-probe:completed': { topicKey: 'droneSwarm', highlight: false },
-  'drone:spawned':             { topicKey: 'droneSwarm', highlight: false, priority: 'low' },
-  'drone:completed':           { topicKey: 'droneSwarm', highlight: false, priority: 'low' },
-  'drone:failed':              { topicKey: 'droneSwarm', highlight: false },
-  'drone:cache-hit':           { topicKey: 'droneSwarm', highlight: false, priority: 'low' },
-
-  'agent:spawned':             { topicKey: 'multiAgent', highlight: false },
-  'agent:task-assigned':       { topicKey: 'multiAgent', highlight: false },
-  'agent:completed':           { topicKey: 'multiAgent', highlight: true, priority: 'medium' },
-  'agent:error':               { topicKey: 'multiAgent', highlight: true, priority: 'high' },
-  'agent:handoff':             { topicKey: 'multiAgent', highlight: true, priority: 'medium' },
-  'multi-agent:spawn-failed':  { topicKey: 'multiAgent', highlight: true, priority: 'high' },
-
-  'thinker:insight-applied':   { topicKey: 'thinker', highlight: true, priority: 'high' },
-  'thinker:early-warning':     { topicKey: 'thinker', highlight: true, priority: 'high' },
-  'thinker:strategy-snapshot': { topicKey: 'thinker', highlight: false },
-  'thinker:self-modified':     { topicKey: 'thinker', highlight: true, priority: 'medium' },
+  // Intelligence — reasoning and awareness
+  'thinker:insight-applied':   { topicKey: 'intelligence', highlight: true, priority: 'high' },
+  'thinker:early-warning':     { topicKey: 'intelligence', highlight: true, priority: 'high' },
+  'thinker:strategy-snapshot': { topicKey: 'intelligence', highlight: false },
+  'thinker:self-modified':     { topicKey: 'intelligence', highlight: true, priority: 'medium' },
 
   'dialectic:signal': {
-    topicKey: 'dialectic',
+    topicKey: 'intelligence',
     highlight: true,
     priority: 'medium',
     filter: (event, config) => {
       const e = event as any
       return (e.confidence ?? 1) >= config.minConfidence
     },
-    /** Boost priority based on urgency field (added per Lumen analysis) */
     priorityFn: (event) => {
       const e = event as any
       return e.urgency === 'immediate' ? 'high' : 'medium'
     },
   },
-  'dialectic:round-complete':  { topicKey: 'dialectic', highlight: false },
-  'dialectic:convergence':     { topicKey: 'dialectic', highlight: false },
-
-  // Constellation events - real-time visibility in dedicated topic
-  'constellation:started':   { topicKey: 'constellation', highlight: true, priority: 'high' },
-  'constellation:completed': { topicKey: 'constellation', highlight: true, priority: 'high' },
-  'constellation:failed':    { topicKey: 'constellation', highlight: true, priority: 'high' },
-  'constellation:checkpoint':{ topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'dialectic:round-complete':  { topicKey: 'intelligence', highlight: false },
+  'dialectic:convergence':     { topicKey: 'intelligence', highlight: false },
 
   'consciousness:anomaly': {
-    topicKey: 'consciousness',
+    topicKey: 'intelligence',
     highlight: true,
     priority: 'high',
     filter: (event, config) => {
@@ -175,25 +180,26 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
              (severityOrder[config.minSeverity] ?? 1)
     },
   },
-  'consciousness:insight':              { topicKey: 'consciousness', highlight: true, priority: 'medium' },
-  'consciousness:observation':          { topicKey: 'consciousness', highlight: true, priority: 'low' },
-  'consciousness:cross-session-correlation': { topicKey: 'consciousness', highlight: true, priority: 'medium' },
-  'subconscious:learning':              { topicKey: 'consciousness', highlight: true, priority: 'low' },
+  'consciousness:insight':              { topicKey: 'intelligence', highlight: true, priority: 'medium' },
+  'consciousness:observation':          { topicKey: 'intelligence', highlight: true, priority: 'low' },
+  'consciousness:cross-session-correlation': { topicKey: 'intelligence', highlight: true, priority: 'medium' },
+  'subconscious:learning':              { topicKey: 'intelligence', highlight: true, priority: 'low' },
 
-  'dreamer:cycle-complete':    { topicKey: 'memoryDreams', highlight: true, priority: 'medium' },
-  'dreamer:insight':           { topicKey: 'memoryDreams', highlight: true, priority: 'medium' },
-  'memory:stored':             { topicKey: 'memoryDreams', highlight: false, priority: 'low' },
-  'memory:recalled':           { topicKey: 'memoryDreams', highlight: false, priority: 'low' },
+  'adaptive:adaptation-applied':  { topicKey: 'intelligence', highlight: true, priority: 'medium' },
+  'adaptive:adaptation-reverted': { topicKey: 'intelligence', highlight: true, priority: 'medium' },
+  'verification:scenario-run':    { topicKey: 'intelligence', highlight: false },
+  'improvement:cycle-complete':   { topicKey: 'intelligence', highlight: false },
 
-  'adaptive:adaptation-applied':  { topicKey: 'adaptive', highlight: true, priority: 'medium' },
-  'adaptive:adaptation-reverted': { topicKey: 'adaptive', highlight: true, priority: 'medium' },
-  'verification:scenario-run':    { topicKey: 'adaptive', highlight: false },
-  'improvement:cycle-complete':   { topicKey: 'adaptive', highlight: false },
+  // Memory — dreams, archive, heart
+  'dreamer:cycle-complete':    { topicKey: 'memory', highlight: true, priority: 'medium' },
+  'dreamer:insight':           { topicKey: 'memory', highlight: true, priority: 'medium' },
+  'memory:stored':             { topicKey: 'memory', highlight: false, priority: 'low' },
+  'memory:recalled':           { topicKey: 'memory', highlight: false, priority: 'low' },
+  'heart:beat':                { topicKey: 'memory', highlight: false, priority: 'low' },
+  'heart:delivered':           { topicKey: 'memory', highlight: false, priority: 'low' },
+  'heart:skipped':             { topicKey: 'memory', highlight: false, priority: 'low' },
 
-  'heart:beat':                { topicKey: 'heart', highlight: false, priority: 'low' },
-  'heart:delivered':           { topicKey: 'heart', highlight: false, priority: 'low' },
-  'heart:skipped':             { topicKey: 'heart', highlight: false, priority: 'low' },
-
+  // System — errors, budget, tools, LLM, blackboard, timeline
   'provider:request_error':    { topicKey: 'system', highlight: true, priority: 'high' },
   'provider:request_timeout':  { topicKey: 'system', highlight: true, priority: 'high' },
   'provider:rate_limited':     { topicKey: 'system', highlight: true, priority: 'high' },
@@ -203,38 +209,25 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'daemon:health':             { topicKey: 'system', highlight: false, priority: 'low' },
   'daemon:ready':              { topicKey: 'system', highlight: true, priority: 'high' },
   'daemon:shutdown':           { topicKey: 'system', highlight: true, priority: 'high' },
+  'budget:warning':            { topicKey: 'system', highlight: true, priority: 'high' },
+  'budget:exhausted':          { topicKey: 'system', highlight: true, priority: 'high' },
+  'budget:tier_changed':       { topicKey: 'system', highlight: true, priority: 'medium' },
+  'team:budget:warning':       { topicKey: 'system', highlight: true, priority: 'high' },
+  'triad-team:budget-warning': { topicKey: 'system', highlight: true, priority: 'high' },
+  'tool:registered':           { topicKey: 'system', highlight: false, priority: 'low' },
+  'tool:executed':             { topicKey: 'system', highlight: false, priority: 'low' },
+  'provider:request_start':    { topicKey: 'system', highlight: false, priority: 'low' },
+  'provider:request_end':      { topicKey: 'system', highlight: false, priority: 'low' },
+  'provider:request_chunk':    { topicKey: 'system', highlight: false, priority: 'low' },
+  'blackboard:entry':          { topicKey: 'system', highlight: false },
+  'timeline:retention':        { topicKey: 'system', highlight: true, priority: 'medium' },
+  'timeline:stats':            { topicKey: 'system', highlight: false, priority: 'low' },
 
-  // Budget events — consolidated in dedicated topic (per Lumen analysis: single-topic rule)
-  'budget:warning':            { topicKey: 'budget', highlight: true, priority: 'high' },
-  'budget:exhausted':          { topicKey: 'budget', highlight: true, priority: 'high' },
-  'budget:tier_changed':       { topicKey: 'budget', highlight: true, priority: 'medium' },
-  'team:budget:warning':       { topicKey: 'budget', highlight: true, priority: 'high' },
-  'triad-team:budget-warning': { topicKey: 'budget', highlight: true, priority: 'high', mirrorTopics: ['triadTeam'] },
-
-  // Tool lifecycle
-  'tool:registered':           { topicKey: 'tools', highlight: false, priority: 'low' },
-  'tool:executed':             { topicKey: 'tools', highlight: false, priority: 'low' },
-
-  'provider:request_start':    { topicKey: 'llmCalls', highlight: false, priority: 'low' },
-  'provider:request_end':      { topicKey: 'llmCalls', highlight: false, priority: 'low' },
-  'provider:request_chunk':    { topicKey: 'llmCalls', highlight: false, priority: 'low' },
-
-  // Session lifecycle — dedicated user-facing topic
+  // Sessions — user-facing lifecycle
   'session:created':           { topicKey: 'sessions', highlight: true, priority: 'medium' },
   'session:ended':             { topicKey: 'sessions', highlight: true, priority: 'low' },
   'turn:start':                { topicKey: 'sessions', highlight: false, priority: 'low' },
   'turn:end':                  { topicKey: 'sessions', highlight: false, priority: 'low' },
-
-  'blackboard:entry':          { topicKey: 'blackboard', highlight: false },
-
-  // Timeline store events
-  'timeline:retention':        { topicKey: 'timeStore', highlight: true, priority: 'medium' },
-  'timeline:stats':            { topicKey: 'timeStore', highlight: false, priority: 'low' },
-
-  'team:cancelled':            { topicKey: 'fluxTeam', highlight: true, priority: 'medium' },
-  'team:paused':               { topicKey: 'fluxTeam', highlight: false },
-  'team:resumed':              { topicKey: 'fluxTeam', highlight: false },
-  'team:checkpoint':           { topicKey: 'fluxTeam', highlight: true, priority: 'high' },
 }
 
 /**
@@ -242,43 +235,52 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
  * Checked in order — first match wins.
  */
 const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
-  { prefix: 'lumen:',          rule: { topicKey: 'lumen', highlight: false } },
-  { prefix: 'dyad:',           rule: { topicKey: 'dyad', highlight: false } },
-  { prefix: 'flux:',           rule: { topicKey: 'fluxTeam', highlight: false } },
-  { prefix: 'triad-team:',     rule: { topicKey: 'triadTeam', highlight: false } },
-  { prefix: 'cell:',           rule: { topicKey: 'fluxTeam', highlight: false } },
-  { prefix: 'drone:',          rule: { topicKey: 'droneSwarm', highlight: false } },
-  { prefix: 'agent:',          rule: { topicKey: 'multiAgent', highlight: false } },
-  { prefix: 'multi-agent:',    rule: { topicKey: 'multiAgent', highlight: false } },
-  { prefix: 'thinker:',        rule: { topicKey: 'thinker', highlight: false } },
-  { prefix: 'dialectic:',      rule: { topicKey: 'dialectic', highlight: false } },
+  // Constellation War Room — all orchestration prefixes
+  { prefix: 'lumen:',          rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'dyad:',           rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'flux:',           rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'triad-team:',     rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'cell:',           rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'drone:',          rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'agent:',          rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'multi-agent:',    rule: { topicKey: 'constellation', highlight: false } },
   { prefix: 'constellation:',  rule: { topicKey: 'constellation', highlight: true, priority: 'high' } },
-  { prefix: 'consciousness:',  rule: { topicKey: 'consciousness', highlight: true } },
-  { prefix: 'subconscious:',   rule: { topicKey: 'consciousness', highlight: true } },
-  { prefix: 'axon:',           rule: { topicKey: 'consciousness', highlight: true, priority: 'low' } },
-  { prefix: 'synapse:',        rule: { topicKey: 'consciousness', highlight: true, priority: 'medium' } },
-  { prefix: 'brainstem:',      rule: { topicKey: 'consciousness', highlight: true, priority: 'medium' } },
-  { prefix: 'corpus:',         rule: { topicKey: 'consciousness', highlight: true, priority: 'medium' } },
-  { prefix: 'dreamer:',        rule: { topicKey: 'memoryDreams', highlight: false } },
-  { prefix: 'memory:',         rule: { topicKey: 'memoryDreams', highlight: false } },
-  { prefix: 'archive:',        rule: { topicKey: 'memoryDreams', highlight: false } },
-  { prefix: 'adaptive:',       rule: { topicKey: 'adaptive', highlight: false } },
-  { prefix: 'improvement:',    rule: { topicKey: 'adaptive', highlight: false } },
-  { prefix: 'verification:',   rule: { topicKey: 'adaptive', highlight: false } },
-  { prefix: 'heart:',          rule: { topicKey: 'heart', highlight: false } },
-  { prefix: 'budget:',         rule: { topicKey: 'budget', highlight: false } },
-  { prefix: 'tool:',           rule: { topicKey: 'tools', highlight: false, priority: 'low' } },
-  { prefix: 'provider:',       rule: { topicKey: 'llmCalls', highlight: false, priority: 'low' } },
+  { prefix: 'corpus:',         rule: { topicKey: 'constellation', highlight: true, priority: 'medium' } },
+  { prefix: 'brainstem:',      rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'team:',           rule: { topicKey: 'constellation', highlight: false } },
+
+  // Intelligence — reasoning, awareness, adaptation
+  { prefix: 'thinker:',        rule: { topicKey: 'intelligence', highlight: false } },
+  { prefix: 'dialectic:',      rule: { topicKey: 'intelligence', highlight: false } },
+  { prefix: 'consciousness:',  rule: { topicKey: 'intelligence', highlight: true } },
+  { prefix: 'subconscious:',   rule: { topicKey: 'intelligence', highlight: true } },
+  { prefix: 'axon:',           rule: { topicKey: 'intelligence', highlight: true, priority: 'low' } },
+  { prefix: 'synapse:',        rule: { topicKey: 'intelligence', highlight: true, priority: 'medium' } },
+  { prefix: 'adaptive:',       rule: { topicKey: 'intelligence', highlight: false } },
+  { prefix: 'improvement:',    rule: { topicKey: 'intelligence', highlight: false } },
+  { prefix: 'verification:',   rule: { topicKey: 'intelligence', highlight: false } },
+
+  // Memory — dreams, archive, heart
+  { prefix: 'dreamer:',        rule: { topicKey: 'memory', highlight: false } },
+  { prefix: 'memory:',         rule: { topicKey: 'memory', highlight: false } },
+  { prefix: 'archive:',        rule: { topicKey: 'memory', highlight: false } },
+  { prefix: 'heart:',          rule: { topicKey: 'memory', highlight: false } },
+
+  // System — operational catch-all
+  { prefix: 'budget:',         rule: { topicKey: 'system', highlight: false } },
+  { prefix: 'tool:',           rule: { topicKey: 'system', highlight: false, priority: 'low' } },
+  { prefix: 'provider:',       rule: { topicKey: 'system', highlight: false, priority: 'low' } },
   { prefix: 'daemon:',         rule: { topicKey: 'system', highlight: false } },
   { prefix: 'self-healer:',    rule: { topicKey: 'system', highlight: false } },
   { prefix: 'trust:',          rule: { topicKey: 'system', highlight: false } },
   { prefix: 'permission:',     rule: { topicKey: 'system', highlight: false } },
   { prefix: 'error-learner:',  rule: { topicKey: 'system', highlight: false } },
+  { prefix: 'blackboard:',     rule: { topicKey: 'system', highlight: false } },
+  { prefix: 'timeline:',       rule: { topicKey: 'system', highlight: false } },
+
+  // Sessions
   { prefix: 'session:',        rule: { topicKey: 'sessions', highlight: false } },
   { prefix: 'turn:',           rule: { topicKey: 'sessions', highlight: false, priority: 'low' } },
-  { prefix: 'team:',           rule: { topicKey: 'fluxTeam', highlight: false } },
-  { prefix: 'blackboard:',     rule: { topicKey: 'blackboard', highlight: false } },
-  { prefix: 'timeline:',       rule: { topicKey: 'timeStore', highlight: false } },
 ]
 
 // EventCurator
@@ -314,13 +316,12 @@ export class EventCurator {
     // Determine mirror topics
     const mirrorTopics = [...(rule.mirrorTopics ?? [])]
 
-    // Blackboard events from orchestration systems also mirror to the parent system's topic
-    if (type === 'blackboard:entry') {
+    // Blackboard events from orchestration systems mirror to the constellation topic
+    if (type === 'blackboard:entry' && rule.topicKey !== 'constellation') {
       const e = event as any
-      // If we can identify the source system, mirror there too
-      if (e.teamId || e.source === 'flux') mirrorTopics.push('fluxTeam')
-      if (e.source === 'lumen' || e.lumenId) mirrorTopics.push('lumen')
-      if (e.source === 'dyad' || e.dyadId) mirrorTopics.push('dyad')
+      if (e.teamId || e.source === 'flux' || e.source === 'lumen' || e.lumenId || e.source === 'dyad' || e.dyadId) {
+        mirrorTopics.push('constellation')
+      }
     }
 
     return {

@@ -48,41 +48,59 @@ export interface TopicDefinition {
 /**
  * All available topic definitions.
  * Order determines creation order in the supergroup.
+ *
+ * Consolidated from 21 topics to 5 (2026-04 redesign):
+ *  - constellation: War Room — full visibility into multi-agent runs + bidirectional steer
+ *  - intelligence:   Thinker + Dialectic + Consciousness + Adaptive
+ *  - memory:         Dreams + Archive + Search + Heart
+ *  - system:         Errors, budget, health, trust, tools, LLM calls, blackboard, timeline
+ *  - sessions:       User session lifecycle
  */
 export const TOPIC_DEFINITIONS: TopicDefinition[] = [
-  // Team / orchestration systems
-  { key: 'dyad',        displayName: 'Dyad',           color: TOPIC_COLORS.BLUE,   description: 'Yang/Yin/Apex pipeline',                category: 'team' },
-  { key: 'lumen',       displayName: 'Lumen',          color: TOPIC_COLORS.VIOLET, description: 'Yang/Yin/Executive dialectic',           category: 'team' },
-  { key: 'fluxTeam',    displayName: 'FluxTeam',       color: TOPIC_COLORS.GREEN,  description: 'Graph-based team execution',             category: 'team' },
-  { key: 'triadTeam',   displayName: 'Triad Team',     color: TOPIC_COLORS.YELLOW, description: 'Proposer/Critic/Executor hierarchy',     category: 'team' },
-  { key: 'droneSwarm',  displayName: 'Drone Swarm',    color: TOPIC_COLORS.ROSE,   description: 'Parallel agent fan-out',                 category: 'team' },
-  { key: 'multiAgent',  displayName: 'Multi-Agent',    color: TOPIC_COLORS.BLUE,   description: 'Agent spawning & coordination',          category: 'team' },
+  // War Room — full Constellation visibility + bidirectional Telegram ↔ Corpus steering
+  {
+    key: 'constellation',
+    displayName: 'Constellation',
+    color: TOPIC_COLORS.RED,
+    description: 'War Room: branch lifecycle, Corpus decisions, cross-branch dialectic, bidirectional steer',
+    category: 'team',
+  },
 
-  // Intelligence modules
-  { key: 'thinker',       displayName: 'Thinker',        color: TOPIC_COLORS.VIOLET, description: 'Autonomous background thinking',       category: 'intel' },
-  { key: 'dialectic',     displayName: 'Dialectic',      color: TOPIC_COLORS.VIOLET, description: 'Inline Yang/Yin/Serenity reasoning',   category: 'intel' },
-  { key: 'constellation', displayName: 'Constellation',  color: TOPIC_COLORS.RED,    description: 'Constellation reasoning tree & Helix activity', category: 'intel' },
-  { key: 'consciousness', displayName: 'Consciousness',  color: TOPIC_COLORS.RED,    description: 'Subconscious observations & anomalies', category: 'intel' },
-  { key: 'memoryDreams',  displayName: 'Memory & Dreams', color: TOPIC_COLORS.GREEN, description: 'Memory queries, archive, dream cycles', category: 'intel' },
-  { key: 'adaptive',      displayName: 'Adaptive',       color: TOPIC_COLORS.YELLOW, description: 'Optimizer, reflex, smart rules, improvement', category: 'intel' },
-  { key: 'heart',         displayName: 'Heart',          color: TOPIC_COLORS.ROSE,   description: 'Heartbeat & delivery',                 category: 'intel' },
+  // Intelligence — reasoning and awareness modules
+  {
+    key: 'intelligence',
+    displayName: 'Intelligence',
+    color: TOPIC_COLORS.VIOLET,
+    description: 'Thinker insights, dialectic reasoning, consciousness observations, adaptive optimization',
+    category: 'intel',
+  },
 
-  // Operational / system
-  { key: 'system',     displayName: 'System',         color: TOPIC_COLORS.RED,    description: 'Errors, self-healing, trust, permissions', category: 'ops' },
-  { key: 'budget',     displayName: 'Budget',         color: TOPIC_COLORS.RED,    description: 'Provider & team budget alerts',            category: 'ops' },
-  { key: 'tools',      displayName: 'Tools',          color: TOPIC_COLORS.BLUE,   description: 'Tool registration & execution lifecycle', category: 'ops' },
+  // Memory — archive, dreams, and delivery
+  {
+    key: 'memory',
+    displayName: 'Memory',
+    color: TOPIC_COLORS.GREEN,
+    description: 'Dream cycles, memory queries, archive operations, heartbeat delivery',
+    category: 'intel',
+  },
 
-  // Raw feeds
-  { key: 'llmCalls',   displayName: 'LLM Calls',     color: TOPIC_COLORS.BLUE,   description: 'Raw provider request feed',               category: 'ops' },
+  // System — operational health and tooling
+  {
+    key: 'system',
+    displayName: 'System',
+    color: TOPIC_COLORS.BLUE,
+    description: 'Errors, self-healing, budget alerts, trust, tools, LLM calls, blackboard, timeline',
+    category: 'ops',
+  },
 
-  // Shared workspaces
-  { key: 'blackboard', displayName: 'Blackboard',     color: TOPIC_COLORS.GREEN,  description: 'Global & session blackboard updates',     category: 'ops' },
-
-  // Timeline
-  { key: 'timeStore',  displayName: 'TimeStore',      color: TOPIC_COLORS.BLUE,   description: 'Timeline store ingestion & retention',     category: 'ops' },
-
-  // User-facing
-  { key: 'sessions',   displayName: 'Sessions',       color: TOPIC_COLORS.YELLOW, description: 'User session lifecycle events',           category: 'user' },
+  // Sessions — user-facing lifecycle
+  {
+    key: 'sessions',
+    displayName: 'Sessions',
+    color: TOPIC_COLORS.YELLOW,
+    description: 'User session lifecycle events',
+    category: 'user',
+  },
 ]
 
 /** Map of topic key → definition for fast lookup */

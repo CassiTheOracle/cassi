@@ -54,26 +54,11 @@ export interface CognitiveFeedConfig {
   }
   topics: {
     autoCreate: boolean
-    dyad: boolean
-    lumen: boolean
-    fluxTeam: boolean
-    triadTeam: boolean
-    droneSwarm: boolean
-    multiAgent: boolean
-    thinker: boolean
-    dialectic: boolean
     constellation: boolean
-    consciousness: boolean
-    memoryDreams: boolean
-    adaptive: boolean
-    heart: boolean
+    intelligence: boolean
+    memory: boolean
     system: boolean
-    budget: boolean
-    tools: boolean
-    llmCalls: boolean
-    blackboard: boolean
     sessions: boolean
-    timeStore: boolean
   }
   rateLimit: {
     messagesPerSecond: number
@@ -112,26 +97,11 @@ const DEFAULT_CONFIG: CognitiveFeedConfig = {
   },
   topics: {
     autoCreate: true,
-    dyad: true,
-    lumen: true,
-    fluxTeam: true,
-    triadTeam: true,
-    droneSwarm: true,
-    multiAgent: true,
-    thinker: true,
-    dialectic: true,
     constellation: true,
-    consciousness: true,
-    memoryDreams: true,
-    adaptive: true,
-    heart: true,
-    system: false, // Off by default — very noisy
-    budget: false, // Off by default — noisy and irrelevant for unlimited-use providers
-    tools: true,
-    llmCalls: false, // Off by default — very noisy
-    blackboard: true,
-    sessions: false, // Off by default — very noisy
-    timeStore: true,
+    intelligence: true,
+    memory: true,
+    system: false,
+    sessions: false,
   },
   rateLimit: {
     messagesPerSecond: 20,

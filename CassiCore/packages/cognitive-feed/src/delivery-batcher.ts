@@ -118,29 +118,20 @@ interface LaneBucket {
 
 
 const TOPIC_TO_LANE: Record<string, DeliveryLane> = {
-  // Orchestration systems
-  lumen:       'orchestration',
-  dyad:        'orchestration',
-  fluxTeam:    'orchestration',
-  triadTeam:   'orchestration',
-  droneSwarm:  'orchestration',
-  multiAgent:  'orchestration',
-
-  // Constellation - dedicated lane for real-time visibility
+  // Constellation War Room — real-time visibility, dedicated lane
   constellation: 'constellation',
 
-  // Intelligence systems
-  thinker:     'intelligence',
-  dialectic:   'intelligence',
-  consciousness: 'constellation', // Consciousness events use constellation lane for real-time delivery
+  // Intelligence — reasoning and awareness
+  intelligence:  'intelligence',
 
-  // Routine / lower priority
-  memoryDreams: 'routine',
-  adaptive:     'routine',
-  heart:        'routine',
-  llmCalls:     'routine',
-  blackboard:   'routine',
-  system:       'routine', // Most system events are routine; truly critical ones are overridden below
+  // Memory — dreams, archive, heart
+  memory:        'routine',
+
+  // System — operational health
+  system:        'routine',
+
+  // Sessions — user lifecycle
+  sessions:      'routine',
 }
 
 /** Event types that are always on the critical lane regardless of topic */

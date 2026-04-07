@@ -15,24 +15,12 @@ import type { CuratedEvent } from './event-curator.js'
 
 /** Module labels used in highlight messages */
 const MODULE_LABELS: Record<string, string> = {
-  // Orchestration
-  dyad:          'Dyad',
-  lumen:         'Lumen',
-  fluxTeam:      'FluxTeam',
-  triadTeam:     'Triad',
-  droneSwarm:    'Swarm',
-  multiAgent:    'Agent',
-
-  // Intelligence
-  thinker:       'Thinker',
-  dialectic:     'Dialectic',
-  consciousness: 'Observer',
-  memoryDreams:  'Memory',
-  adaptive:      'Adaptive',
-  heart:         'Heart',
+  // New consolidated topics (2026-04 redesign)
+  constellation: 'Constellation',
+  intelligence:  'Intelligence',
+  memory:        'Memory',
   system:        'System',
-  llmCalls:      'LLM',
-  blackboard:    'Board',
+  sessions:      'Sessions',
 }
 
 // Helpers
