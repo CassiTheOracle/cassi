@@ -70,6 +70,7 @@ import {
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
+import type { LocusSnapshot } from './locus/locus-types.js'
 
 /**
  * Minimal interface for child Brainstem to avoid circular imports.
@@ -366,6 +367,22 @@ export class Corpus {
   }
 
   /**
+   * Get the Locus snapshot for external introspection.
+   * Returns undefined if Locus is disabled.
+   */
+  getLocusSnapshot(): LocusSnapshot | undefined {
+    return this.locus.enabled ? this.locus.getSnapshot() : undefined
+  }
+
+  /**
+   * Get active Locus memories for external introspection.
+   * Returns undefined if Locus is disabled.
+   */
+  getLocusMemories(): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined {
+    return this.locus.enabled ? this.locus.getMemory().getActive() : undefined
+  }
+
+  /**
    * Get a full snapshot of the Corpus state for an external agent.
    * This is the external agent's view of the constellation.
    */
@@ -392,6 +409,7 @@ export class Corpus {
       recentInterventions: [...this.state.interventions.slice(-10)],
       sweepCount: this.state.sweepCount,
       goal: this.deps.goal,
+      locusSnapshot: this.locus.enabled ? this.locus.getSnapshot() : undefined,
     }
   }
 

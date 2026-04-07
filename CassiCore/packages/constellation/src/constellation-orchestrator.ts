@@ -67,6 +67,8 @@ export interface ConstellationOrchestrator {
   releaseCorpus(sessionId: string, reason?: string): { released: boolean; error?: string }
   getCorpusExternalState(sessionId: string): ExternalCorpusState | undefined
   getCorpusSnapshot(sessionId: string): ExternalCorpusSnapshot | undefined
+  getLocusSnapshot(sessionId: string): import('./locus/locus-types.js').LocusSnapshot | undefined
+  getLocusMemories(sessionId: string): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined
   corpusDirective(sessionId: string, directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string }
   corpusSpawnDecide(sessionId: string, requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string }
   corpusSynthesis(sessionId: string, content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string }
@@ -567,6 +569,18 @@ export function createConstellationOrchestrator(
       const entry = running.get(sessionId)
       if (!entry?.liveState?.corpus) return undefined
       return entry.liveState.corpus.getExternalSnapshot()
+    },
+
+    getLocusSnapshot(sessionId) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) return undefined
+      return entry.liveState.corpus.getLocusSnapshot()
+    },
+
+    getLocusMemories(sessionId) {
+      const entry = running.get(sessionId)
+      if (!entry?.liveState?.corpus) return undefined
+      return entry.liveState.corpus.getLocusMemories()
     },
 
     corpusDirective(sessionId, directive) {

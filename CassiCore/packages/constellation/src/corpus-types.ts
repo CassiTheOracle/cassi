@@ -1291,6 +1291,8 @@ export interface ExternalCorpusSnapshot {
   /** Dual-ledger planning state — visible to external orchestrators */
   taskLedger?: TaskLedger
   progressLedger?: ProgressLedger
+  /** Locus (Global Workspace) snapshot — attention and memory state */
+  locusSnapshot?: import('./locus/locus-types.js').LocusSnapshot
 }
 
 /** Default heartbeat timeout: 5 minutes of inactivity triggers auto-release */

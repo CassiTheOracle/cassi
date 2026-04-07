@@ -40,6 +40,8 @@ export interface ConstellationLiveState {
     isExternallyAssumed(): boolean
     getExternalState(): ExternalCorpusState
     getExternalSnapshot(): ExternalCorpusSnapshot
+    getLocusSnapshot(): import('./locus/locus-types.js').LocusSnapshot | undefined
+    getLocusMemories(): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined
     externalDirective(directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string }
     externalSpawnDecide(requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string }
     externalSynthesis(content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string }

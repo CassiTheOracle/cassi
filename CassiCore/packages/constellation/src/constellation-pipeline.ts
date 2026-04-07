@@ -682,6 +682,8 @@ export async function runConstellationPipeline(
         isExternallyAssumed: () => corpus.isExternallyAssumed(),
         getExternalState: () => corpus.getExternalState(),
         getExternalSnapshot: () => corpus.getExternalSnapshot(),
+        getLocusSnapshot: () => corpus.getLocusSnapshot(),
+        getLocusMemories: () => corpus.getLocusMemories(),
         externalDirective: (directive) => corpus.externalDirective(directive),
         externalSpawnDecide: (requestId, approved, reason, modifiedGoal) =>
           corpus.externalSpawnDecide(requestId, approved, reason, modifiedGoal),
