@@ -126,7 +126,7 @@ export async function handleHealthRoutes(
       thinker: !!(intel.thinker),
       optimizer: !!(intel.optimizer),
       dialectic: !!(intel.dialectic),
-      multiAgent: !!(intel.multiAgent),
+      multiAgent: false,
       ruleEnforcer: !!(intel.ruleEnforcer),
       subconscious: !!(intel.subconscious),
     }
@@ -147,7 +147,7 @@ export async function handleHealthRoutes(
         events: true,       // GET /events/stream (cognitive event bus over SSE)
         command: true,      // POST /sessions/:id/command (slash command routing)
         models: true,       // GET /models (CassiCore model routing)
-        confirmations: true, // POST /intelligence/multi-agent/confirmations/:id/approve|reject
+        confirmations: false,
         bridge: false,      // bridge.ts is a raw provider passthrough — does NOT run intelligence
       },
       // Active intelligence modules — Crush uses this to decide which panels to show

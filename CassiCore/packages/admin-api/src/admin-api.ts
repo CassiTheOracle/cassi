@@ -14,7 +14,6 @@ import { handleOrchestrationRoutes } from './admin-api/orchestration.js'
 import { handlePluginsRoutes } from './admin-api/plugins.js'
 import { handleDebugRoutes } from './admin-api/debug.js'
 import { handleDelegationRoutes } from './admin-api/delegation.js'
-import { handleDialecticControlRoutes } from './admin-api/dialectic-control.js'
 import { handleDialecticRoutes } from './admin-api/dialectic.js'
 import { handleEventsRoutes } from './admin-api/events.js'
 import { handleHealthRoutes } from './admin-api/health.js'
@@ -23,7 +22,6 @@ import { handleMcpRoutes } from './admin-api/mcp.js'
 import { handleMemoryRoutes } from './admin-api/memory.js'
 import { handleModulesRoutes } from './admin-api/modules.js'
 import { handleModelsRoutes } from './admin-api/models.js'
-import { handleMultiAgentRoutes } from './admin-api/multi-agent.js'
 import { handlePermissionsRoutes } from './admin-api/permissions.js'
 import { handleProvidersRoutes } from './admin-api/providers.js'
 import { handleSessionsRoutes } from './admin-api/sessions.js'
@@ -1925,8 +1923,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handlePluginsRoutes({ daemon, logger, sendJSON, parts }, req, res, method),
         () => handleIntelligenceRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleCycleHooksRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
-        () => handleMultiAgentRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
-        () => handleDialecticControlRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method),
         () => handleProvidersRoutes({ runtime, logger, sendJSON, parseBody, isObject, mergeDeep }, req, res, method, pathname),
         () => handleSubagentsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleDelegationRoutes({ daemon, logger, sendJSON, parseBody, delegationTracker, subagentToTeamMap }, req, res, method, pathname),

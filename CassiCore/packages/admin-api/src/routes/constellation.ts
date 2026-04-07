@@ -39,6 +39,13 @@ function generateJobId(): string {
   return `constellation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+/** Generate a sequential constellation ID from the store, or fall back to timestamp-based. */
+function generateConstellationId(daemon: any): string {
+  const orchestrator = daemon.intelligence?.constellation
+  const id = orchestrator?.generateId?.()
+  return id ?? generateJobId()
+}
+
 function pruneOldJobs(): void {
   const now = Date.now()
   for (const [id, job] of constellationJobs) {
@@ -153,7 +160,7 @@ export async function handleConstellationRoutes(
         return true
       }
 
-      const jobId = generateJobId()
+      const jobId = generateConstellationId(daemon)
       const sessionId = jobId
 
       const job: ConstellationJob = {
