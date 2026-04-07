@@ -254,10 +254,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     if (sessionDigestStore) autonomousLoop.setDigestStore(sessionDigestStore)
     autonomousLoop.setSessions(sessions)
     if (intelligence.dialectic) autonomousLoop.setDialectic(intelligence.dialectic as any)
-    if (intelligence.multiAgent) {
-      autonomousLoop.setMultiAgent(intelligence.multiAgent as any)
-      intelligence.multiAgent.setAutonomousLoop?.(autonomousLoop)
-    }
 
     const backendType = config.get<ExecutionBackendType>('intelligence.executionBackend.type', 'cassicore')
     if (backendType !== 'cassicore') {

@@ -725,9 +725,6 @@ export class Daemon {
         this.logger.warn('Failed to wire Subconscious live session getter', { error: String(err) })
       }
 
-      // Wire Multi-Agent Coordinator to event bus
-      this.wireModule(this.intelligence.multiAgent, bus)
-
       // Wire Rule Enforcer to event bus
       this.wireModule(this.intelligence.ruleEnforcer, bus)
 
@@ -1428,20 +1425,6 @@ export class Daemon {
       this.logger.warn('Failed to initialize timeline store', { error: String(err) })
     }
 
-    // Wire provider map into Multi-Agent Coordinator so providerId hints can be resolved
-    interface MultiAgentWithProviders {
-      setProviders?(providers: Map<string, IProvider>): void
-    }
-    try {
-      const multiAgent = this.intelligence?.multiAgent as MultiAgentWithProviders | undefined
-      if (multiAgent && typeof multiAgent.setProviders === 'function') {
-        multiAgent.setProviders(providers)
-        this.logger.info('Multi-Agent providers wired')
-      }
-    } catch (e) {
-      this.logger.warn('failed to wire providers to multi-agent', { error: String(e) })
-    }
-
     // Wire the default provider into the Thinker so it can make real calls
     interface ThinkerWithProvider {
       setProvider?(provider: IProvider): void
@@ -1573,6 +1556,7 @@ export class Daemon {
           slotName: slot,
           chain: [
             { role: slot, provider: tierCfg.provider, model: tierCfg.model, priority: 10 },
+            { role: slot, provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         })
@@ -1588,6 +1572,7 @@ export class Daemon {
           slotName: 'mini-helix:corpus',
           chain: [
             { role: 'mini-helix:corpus', provider: qwenMaxCfg.provider, model: qwenMaxCfg.model, priority: 10 },
+            { role: 'mini-helix:corpus', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
@@ -1604,11 +1589,11 @@ export class Daemon {
           logger: this.logger.child('helix-pool'),
           eventBus: this.bus,
           fallbackChains: [
-            makeHelixChain('yang', glmConfig),
-            makeHelixChain('yin', kimiConfig),
-            makeHelixChain('apex', qwenPlusCfg),
-            makeHelixChain('unity', qwenMaxCfg),
-            makeHelixChain('helix', kimiConfig),
+            makeHelixChain('yang', bgConfig),
+            makeHelixChain('yin', bgConfig),
+            makeHelixChain('apex', bgConfig),
+            makeHelixChain('unity', bgConfig),
+            makeHelixChain('helix', bgConfig),
             brainstemChain,
             miniHelixCorpusChain,
             miniHelixBrainstemChain,
@@ -1632,9 +1617,6 @@ export class Daemon {
 
         if (this.intelligence?.constellation) {
           this.intelligence.constellation.setModelPool(helixModelPool)
-          if (directive) {
-            this.intelligence.constellation.setModelDirective(directive)
-          }
           this.logger.info('Constellation ModelPool wired (shared with Helix)', { provider: defaultRouting.provider, model: defaultRouting.model })
         }
       } catch (err) {
@@ -1989,20 +1971,6 @@ export class Daemon {
       mcpRegistry = new MCPRegistry(toolRegistry, this.logger)
       await mcpRegistry.start(mcpConfigs)
 
-      // Inform the Multi-Agent coordinator about available tools so agents can
-      // automatically include dynamic MCP tool instructions in their prompts.
-      interface MultiAgentWithToolRegistry {
-        setToolRegistry?(registry: ToolRegistry): void
-      }
-      try {
-        const multiAgent = this.intelligence?.multiAgent as MultiAgentWithToolRegistry | undefined
-        if (multiAgent?.setToolRegistry) {
-          multiAgent.setToolRegistry(toolRegistry)
-          this.logger.info('Connected ToolRegistry to Multi-Agent Coordinator')
-        }
-      } catch (e) {
-        this.logger.warn('Failed to wire ToolRegistry to Multi-Agent Coordinator', { error: String(e) })
-      }
     } else {
       this.logger.info('No MCP servers configured')
     }
@@ -2041,7 +2009,7 @@ export class Daemon {
         const intelligenceDir = join(path.dirname(fileURLToPath(import.meta.url)), 'intelligence')
         await registry.discover(intelligenceDir, new Set([
           'base', 'memory', 'continuity', 'recover', 'reflect', 'thinker',
-          'optimizer', 'dialectic', 'ai-scientist', 'multi-agent', 'rule-enforcer',
+          'optimizer', 'dialectic', 'ai-scientist', 'rule-enforcer',
            'subconscious', 'team-orchestrator', 'triad-team', 'embeddings', 'yang', 'yin',
           'synthesizer', 'serenity',
           // self-healer is manually instantiated in createIntelligence() — skip auto-discovery
