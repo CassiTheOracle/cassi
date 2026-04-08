@@ -71,6 +71,12 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     pipeline.setInjectionAggregator(intelligence.injectionAggregator)
     logger.info('InjectionAggregator wired to pipeline')
 
+    if (intelligence.globalWorkspace) {
+      const useGwt = config?.get?.('intelligence.workspace.enabled') === true
+      pipeline.setGlobalWorkspace(intelligence.globalWorkspace, useGwt)
+      logger.info('GlobalWorkspace wired to pipeline', { enabled: useGwt })
+    }
+
     // Register skill effectiveness injection source
     const skillTracker = (intelligence as any).skillMetricsTracker
     if (skillTracker) {
@@ -113,6 +119,17 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     }
   } catch (err) {
     logger.warn(`Failed to wire Heart module: ${String(err)}`)
+  }
+
+  // Start Meditation controller (idle-check loop + MeditationStore)
+  try {
+    const meditation = intelligence.meditation
+    if (meditation && typeof (meditation as any).start === 'function') {
+      await (meditation as any).start()
+      logger.info('Meditation controller started')
+    }
+  } catch (err) {
+    logger.warn(`Failed to start Meditation controller: ${String(err)}`)
   }
 
   pipeline.mountIntelligence({ continuity: intelligence.continuity as any })

@@ -46,6 +46,8 @@ import { createSessionBridge } from './session-bridge.js'
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
 import { FileArtifactStore } from './file-artifact-store.js'
+import { MnemicField, CodeStore } from './intelligence/mnemic-field/index.js'
+import { FileVault } from './intelligence/file-vault/index.js'
 import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
@@ -1035,6 +1037,18 @@ export class Daemon {
         if (event.insight && this.intelligence?.injectionAggregator) {
           this.intelligence.injectionAggregator.setThinkerInsight(event.insight)
         }
+        if (event.insight && this.intelligence?.globalWorkspace) {
+          this.intelligence.globalWorkspace.submit({
+            signalId: `thinker-insight-${Date.now()}`,
+            source: 'thinker',
+            sessionId: (event as any).sessionId ?? '*',
+            type: 'insight',
+            content: event.insight,
+            luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+            createdAt: Date.now(),
+            urgencyHint: (event as any).urgency === 'high' ? 0.15 : 0,
+          })
+        }
       })
 
       bus.on('thinker:early-warning', (e) => {
@@ -1549,6 +1563,8 @@ export class Daemon {
         const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
         const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.5-plus' }
         const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'github-copilot', model: 'gpt-5-mini' }
+        const claudeHaikuCfg  = directive ? directive.resolveTier('background') : { provider: 'claude-code', model: 'claude-haiku-4-5' }
+        const claudeSonnetCfg = { provider: 'claude-code', model: 'claude-sonnet-4-6' }
 
         const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
           slotName: slot,
@@ -1562,15 +1578,16 @@ export class Daemon {
         const brainstemChain = {
           slotName: 'brainstem',
           chain: [
-            { role: 'brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
+            { role: 'brainstem', provider: claudeHaikuCfg.provider, model: claudeHaikuCfg.model, priority: 10 },
+            { role: 'brainstem', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
         const miniHelixCorpusChain = {
           slotName: 'mini-helix:corpus',
           chain: [
-            { role: 'mini-helix:corpus', provider: qwenMaxCfg.provider, model: qwenMaxCfg.model, priority: 10 },
-            { role: 'mini-helix:corpus', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
+            { role: 'mini-helix:corpus', provider: claudeSonnetCfg.provider, model: claudeSonnetCfg.model, priority: 10 },
+            { role: 'mini-helix:corpus', provider: claudeHaikuCfg.provider, model: claudeHaikuCfg.model, priority: 5 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
@@ -1587,11 +1604,11 @@ export class Daemon {
           logger: this.logger.child('helix-pool'),
           eventBus: this.bus,
           fallbackChains: [
-            makeHelixChain('yang', bgConfig),
-            makeHelixChain('yin', bgConfig),
-            makeHelixChain('apex', bgConfig),
-            makeHelixChain('unity', bgConfig),
-            makeHelixChain('helix', bgConfig),
+            makeHelixChain('yang', claudeHaikuCfg),
+            makeHelixChain('yin', claudeHaikuCfg),
+            makeHelixChain('apex', claudeHaikuCfg),
+            makeHelixChain('unity', claudeHaikuCfg),
+            makeHelixChain('helix', claudeHaikuCfg),
             brainstemChain,
             miniHelixCorpusChain,
             miniHelixBrainstemChain,
@@ -1701,6 +1718,28 @@ export class Daemon {
       this.logger.warn('FileArtifactStore not available', { error: String(err) })
     }
 
+    // Initialize CodeStore for CassiCore source files in the mnemic field
+    let codeStore: CodeStore | undefined
+    try {
+      const field = new MnemicField(this.logger)
+      codeStore = new CodeStore(field, this.logger)
+      ;(this as any).__codeStore = codeStore
+      ;(this as any).__mnemicFieldForCode = field
+      this.logger.info('CodeStore initialized for codebase-in-database')
+    } catch (err) {
+      this.logger.warn('CodeStore not available', { error: String(err) })
+    }
+
+    // Initialize FileVault (topology-aware replacement for FileArtifactStore)
+    let fileVault: FileVault | undefined
+    try {
+      fileVault = FileVault.open(this.logger)
+      ;(this as any).__fileVault = fileVault
+      this.logger.info('FileVault initialized for topology-aware file storage')
+    } catch (err) {
+      this.logger.warn('FileVault not available', { error: String(err) })
+    }
+
     // Initialize Constellation audit trail (bridges EventBus events to FileArtifactStore)
     if (fileArtifactStore) {
       try {
@@ -1751,6 +1790,7 @@ export class Daemon {
 
     // Build tool registry + executor
     const toolRegistry = new ToolRegistry()
+    ;(this as any).toolRegistry = toolRegistry
 
     // Initialize workflow system
     let workflowStore: WorkflowStore | undefined
@@ -1884,6 +1924,8 @@ export class Daemon {
       networkAllowlist,
       logger: this.logger,
       _fileArtifactStore: fileArtifactStore,
+      _fileVault: fileVault,
+      _codeStore: codeStore,
       _globalBlackboardRegistry: this.globalBlackboardRegistry,
     }, this.bus)
       // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
@@ -3438,7 +3480,15 @@ export class Daemon {
       sessions?.store?.close?.()
     } catch { /* ignore */ }
 
-    // Close training warehouse SQLite database
+    // Close mnemic field code store and file vault databases
+    try {
+      const mnemicField = (this as any).__mnemicFieldForCode as { close(): void } | undefined
+      mnemicField?.close()
+    } catch { /* ignore */ }
+    try {
+      const vault = (this as any).__fileVault as { close(): void } | undefined
+      vault?.close()
+    } catch { /* ignore */ }
 
     // Close prompt log store
     try {
