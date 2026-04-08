@@ -1,0 +1,88 @@
+{
+  "$comment": "Claude Code settings for CassiCore integration. Copy relevant sections to the appropriate files.",
+
+  "mcpServers": {
+    "$comment_mcp": "Add to ~/.claude/settings.json — provides all CassiCore tools via the main MCP gateway",
+    "cassicore": {
+      "command": "npx",
+      "args": ["tsx", "__REPLACE_WITH_ABSOLUTE_PATH__/mcp/cassicore-gateway.ts"],
+      "env": {}
+    }
+  },
+
+  "hooks": {
+    "$comment_hooks": "Add to .claude/settings.json in the project — injects CassiCore intelligence into every turn",
+    "SessionStart": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 5
+      }]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 5
+      }]
+    }],
+    "PreToolUse": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 3
+      }]
+    }],
+    "PostToolUse": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 3
+      }]
+    }],
+    "PreCompact": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 10
+      }]
+    }],
+    "PostCompact": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 5
+      }]
+    }],
+    "Stop": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 3
+      }]
+    }],
+    "SubagentStart": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 3
+      }]
+    }],
+    "SubagentStop": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 3
+      }]
+    }],
+    "SessionEnd": [{
+      "hooks": [{
+        "type": "http",
+        "url": "http://127.0.0.1:7434",
+        "timeout": 3
+      }]
+    }]
+  },
+
+  "$comment_proxy": "Set ANTHROPIC_BASE_URL=http://localhost:7435 in your shell to route Claude Code API requests through the CassiCore proxy. The proxy injects intelligence into the system prompt and tracks token usage."
+}

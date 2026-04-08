@@ -1,0 +1,169 @@
+# CassiCore Integration for Claude Code
+
+CassiCore is a local AI daemon providing intelligence services: a parallel Thinker (persistent reasoning partner), dialectic analysis (Yang/Yin synthesis), subconscious pattern detection, persistent memory, shared blackboards, and multi-agent orchestration.
+
+## Architecture
+
+The integration has three components:
+
+1. **API Proxy** (port 7435) — intercepts Claude Code's API requests, injects CassiCore intelligence into the system prompt, and tracks token usage
+2. **MCP Server** (stdio) — provides the full CassiCore tool suite (code intelligence, memory, blackboard, agents, etc.)
+3. **Hook Server** (port 7434) — injects cognitive context into Claude Code's transcript on each turn
+
+### Why three layers?
+
+| Layer | What it controls | How |
+|-------|-----------------|-----|
+| API Proxy | What the **model** sees | Rewrites the system prompt before it reaches the Anthropic API |
+| MCP Server | What **tools** are available | Exposes CassiCore's tools via MCP protocol |
+| Hook Server | What **Claude Code** adds to the transcript | Returns `additionalContext` on each hook event |
+
+The proxy gives us context modification — hooks can only add context, not modify or remove it.
+
+## Available MCP Tools
+
+The integration uses the main CassiCore MCP gateway, providing the full tool suite:
+
+| Tool | Purpose |
+|------|---------|
+| `cassi_enrich` | Fetch cognitive signals, memories, and context on demand |
+| `cassi_memory` | Search/store persistent memories, KV operations |
+| `cassi_blackboard` | Read/write shared blackboards |
+| `cassi_agent` | Launch Constellation multi-agent orchestration |
+| `cassi_intelligence` | Introspect CassiCore modules |
+| `cassi_session` | View active CassiCore sessions |
+| `cassi_code` | Code intelligence — query, impact, dead code, hotspots |
+| `cassi_file` | Filesystem operations |
+| `cassi_browser` | Browser automation |
+| `cassi_web` | Web search and fetch |
+| `cassi_config` | Runtime configuration |
+| `cassi_model` | Model/provider routing |
+| `cassi_artifact` | File sharing and artifact versioning |
+| `cassi_training` | Training data pipeline |
+
+## When to Use Tools
+
+- **Start of complex tasks**: Call `cassi_enrich` to get additional context
+- **Multi-step work**: Post progress to `cassi_blackboard` as you go
+- **Persistent knowledge**: Use `cassi_memory` across sessions
+- **Large tasks**: Use `cassi_agent` to delegate parallel work
+- **Code understanding**: Use `cassi_code` for impact analysis and knowledge graph queries
+
+## Context Management
+
+The API proxy monitors context by tracking actual token usage from API responses. The hook server provides complementary transcript-level pressure warnings.
+
+When context pressure rises:
+
+| Tier | What happens |
+|------|-------------|
+| warming (50-70%) | Cognitive signals switch to compact mode |
+| elevated (70-78%) | Warning injected — consider consolidating |
+| high (78-85%) | Warning to collapse old results |
+| critical (85-92%) | Suggestion to delegate via Constellation |
+| overflow (>92%) | Emergency delegation recommended |
+
+At critical/overflow, save your progress to the blackboard and delegate remaining work:
+```
+cassi_blackboard({ action: "post", name: "session-handoff", channel: "artifacts", content: "..." })
+cassi_agent({ type: "constellation", action: "project", goal: "Continue: <remaining work>" })
+```
+
+## Blackboard Channels
+
+- `findings` — analysis results, progress
+- `concerns` — deferred issues
+- `decisions` — choices and rationale
+- `artifacts` — generated outputs
+- `requests` — things needed from user
+- `bugs` — defects found
+
+## Setup
+
+### 1. Start CassiCore daemon:
+```bash
+cd /home/valerie/workspaces/cassicore
+./bin/cassicore boot start
+```
+
+### 2. Start the API proxy:
+```bash
+cd /home/valerie/workspaces/cassicore/integrations/claude-code
+npx tsx src/proxy.ts &
+```
+
+### 3. Start the hook server:
+```bash
+cd /home/valerie/workspaces/cassicore/integrations/claude-code
+npx tsx src/hook-server.ts &
+```
+
+### 4. Configure Claude Code to use the proxy:
+Add to your shell profile or run before starting Claude Code:
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:7435
+```
+
+### 5. Add MCP server to Claude Code settings (`~/.claude/settings.json`):
+```json
+{
+  "mcpServers": {
+    "cassicore": {
+      "command": "npx",
+      "args": ["tsx", "/home/valerie/workspaces/cassicore/mcp/cassicore-gateway.ts"]
+    }
+  }
+}
+```
+
+### 6. Add hooks to project settings (`.claude/settings.json` in the project root):
+```json
+{
+  "hooks": {
+    "SessionStart": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 5 }]
+    }],
+    "UserPromptSubmit": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 5 }]
+    }],
+    "PreToolUse": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+    }],
+    "PostToolUse": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+    }],
+    "PreCompact": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 10 }]
+    }],
+    "PostCompact": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 5 }]
+    }],
+    "Stop": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+    }],
+    "SubagentStart": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+    }],
+    "SubagentStop": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+    }],
+    "SessionEnd": [{
+      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+    }]
+  }
+}
+```
+
+## Verification
+
+Check that all components are running:
+```bash
+# API Proxy health
+curl http://localhost:7435/health
+
+# Hook server health
+curl http://localhost:7434/health
+
+# CassiCore daemon health
+curl --unix-socket ~/.cassicore/admin.sock http://localhost/health
+```
