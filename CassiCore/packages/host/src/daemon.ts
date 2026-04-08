@@ -58,8 +58,6 @@ import { WorkflowDefinitionStore } from './workflow/definition-store.js'
 import { WorkflowScheduler } from './workflow/scheduler.js'
 import { WorkflowTriggerStore } from './workflow/trigger-store.js'
 import { BranchingConversationManager } from './intelligence/branching-conversation/manager.js'
-import { ThinkerSession } from './intelligence/thinker/thinker-session.js'
-import { ConcreteThinkerToolProvider } from './intelligence/thinker/thinker-tool-provider.js'
 import { TurnPipeline } from './turn-pipeline.js'
 import { buildSystemPrompt } from './workspace/loader.js'
 import { executeTurn, getPreferredTurnEngine } from './admin-api/turn-routing.js'
@@ -1857,46 +1855,7 @@ export class Daemon {
           logger: this.logger.child?.('collect-thoughts') ?? this.logger,
           synapse,
           constellationGuidanceRegistry: this.intelligence!.constellationGuidanceRegistry,
-          thinkerSession: (() => {
-            try {
-              const thinkerEnabled = this.config.get<boolean>('intelligence.thinkerSession.enabled', true)
-              if (!thinkerEnabled) {
-                this.logger.info('ThinkerSession: disabled by config')
-                return undefined
-              }
-              const model = this.config.get<string>('intelligence.thinkerSession.model', 'claude-haiku-4.5')
-              const toolProvider = this.intelligence?.memory
-                ? new ConcreteThinkerToolProvider({
-                    workspaceRoot: process.cwd(),
-                    logger: this.logger,
-                    memory: this.intelligence.memory,
-                    blackboardRegistry: this.globalBlackboardRegistry,
-                  })
-                : undefined
-              const session = new ThinkerSession({
-                logger: this.logger,
-                bus: this.bus,
-                getProvider: () => {
-                  const sdkProvider = this.providers.get('copilot-sdk')
-                  return sdkProvider as any
-                },
-                toolProvider,
-                config: {
-                  enabled: true,
-                  model,
-                  firstCallTimeoutMs: this.config.get<number>('intelligence.thinkerSession.firstCallTimeoutMs', 5_000),
-                  turnTimeoutMs: this.config.get<number>('intelligence.thinkerSession.turnTimeoutMs', 30_000),
-                  maxBufferSize: this.config.get<number>('intelligence.thinkerSession.maxBufferSize', 20),
-                },
-              })
-              void session.start()
-              this.logger.info('ThinkerSession: created and started', { isRunning: session.isRunning, hasTools: !!toolProvider })
-              return session
-            } catch (err) {
-              this.logger.error('ThinkerSession: creation failed', { error: String(err) })
-              return undefined
-            }
-          })(),
+          getThinkerSession: (sessionId: string) => (this.intelligence?.thinker as any)?.getThinkerSession?.(sessionId),
         }
       })() : undefined,
       getWorkflowEngine: () => this.workflowEngine ?? null,
