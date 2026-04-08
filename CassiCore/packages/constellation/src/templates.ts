@@ -245,6 +245,36 @@ const REVIEW_POSTURES: FlexPosture[] = [
   },
 ]
 
+// Meditation Template — Solitary explorers, no channels, no goals
+
+const MEDITATION_POSTURES: FlexPosture[] = [
+  {
+    name: 'explorer-alpha',
+    instruction: 'You have access to tools. Explore.',
+    toolAccess: 'read-only',
+    channels: {},
+    maxIterations: 50,
+    capabilities: {
+      primary: ['exploration'],
+      modelTier: 'background',
+      traits: { divergent: 0.95, convergent: 0.05, executive: 0.0 },
+    },
+  },
+  {
+    name: 'explorer-beta',
+    instruction: 'You have access to tools. Explore.',
+    toolAccess: 'read-only',
+    channels: {},
+    maxIterations: 50,
+    capabilities: {
+      primary: ['exploration'],
+      modelTier: 'background',
+      traits: { divergent: 0.9, convergent: 0.1, executive: 0.0 },
+    },
+  },
+]
+
+
 /**
  * @dep callers: getTemplateCapabilities (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/templates.ts), resolvePostures (core/intelligence/constellation/constellation-pipeline.ts), constellation-template-capabilities.test.ts (tests/constellation-template-capabilities.test.ts)
  * @dep calls: createPostureSet
@@ -262,6 +292,8 @@ export function getTemplatePostures(template: ConstellationTemplate): FlexPostur
       return createPostureSet(IMPLEMENTATION_POSTURES)
     case 'review':
       return createPostureSet(REVIEW_POSTURES)
+    case 'meditation':
+      return createPostureSet(MEDITATION_POSTURES)
     case 'minimal':
       return createPostureSet([
         { name: 'unity', instruction: 'Implement the goal. You are the primary worker — create artifacts and move forward.', energy: 'unity', toolAccess: 'full', channels: { workStream: 'producer', constellationBoard: true }, maxIterations: 200, capabilities: { primary: ['implementation'], modelTier: 'background', traits: { divergent: 0.1, convergent: 0.2, executive: 0.9 } } },
@@ -277,7 +309,7 @@ export function getTemplatePostures(template: ConstellationTemplate): FlexPostur
  */
 
 export function listTemplates(): ConstellationTemplate[] {
-  return ['standard', 'research', 'implementation', 'review', 'minimal']
+  return ['standard', 'research', 'implementation', 'review', 'minimal', 'meditation']
 }
 
 export function describeTemplate(template: ConstellationTemplate): string {
@@ -292,6 +324,8 @@ export function describeTemplate(template: ConstellationTemplate): string {
       return 'One builder + four reviewers — high-quality review (Brainstem organizes)'
     case 'minimal':
       return 'One builder + one reviewer — fast, lightweight'
+    case 'meditation':
+      return 'Solitary explorers — no channels, no goals, read-only'
   }
 }
 
@@ -377,6 +411,14 @@ const TEMPLATE_CAPABILITIES: Record<ConstellationTemplate, CapabilityFactory> = 
     postureCount,
     primaryDomains,
     bestFor: ['quick-fixes', 'small-changes', 'simple-tasks', 'cost-sensitive'],
+    dominantModelTier,
+  }),
+  meditation: (postureCount, primaryDomains, dominantModelTier) => ({
+    template: 'meditation',
+    description: 'Solitary explorers — no channels, no goals, read-only',
+    postureCount,
+    primaryDomains,
+    bestFor: ['introspection', 'exploration', 'self-reflection', 'pattern-discovery'],
     dominantModelTier,
   }),
 }

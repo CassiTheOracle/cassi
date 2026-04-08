@@ -575,6 +575,34 @@ export class ConstellationStore {
       this.db.prepare('UPDATE schema_version SET version = ?').run(SCHEMA_VERSION)
       this.logger.info('ConstellationStore schema migrated', { from: current, to: SCHEMA_VERSION })
     }
+
+    this.ensureIdCounterTable()
+  }
+
+  private ensureIdCounterTable(): void {
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS id_counter (
+        name    TEXT PRIMARY KEY,
+        value   INTEGER NOT NULL DEFAULT 0
+      );
+    `)
+
+    const existing = this.db.prepare(
+      `SELECT value FROM id_counter WHERE name = 'constellation'`
+    ).get() as { value: number } | undefined
+
+    if (!existing) {
+      const maxId = this.db.prepare(`
+        SELECT MAX(CAST(REPLACE(id, 'c-', '') AS INTEGER)) as max_val
+        FROM constellation_sessions
+        WHERE id LIKE 'c-%'
+      `).get() as { max_val: number | null } | undefined
+      const seedValue = maxId?.max_val ?? 0
+      this.db.prepare(
+        'INSERT OR REPLACE INTO id_counter (name, value) VALUES (?, ?)'
+      ).run('constellation', seedValue)
+      this.logger.info('ConstellationStore: ensured constellation counter', { seedValue })
+    }
   }
 
   private runMigrations(fromVersion: number): void {
@@ -1007,6 +1035,7 @@ export class ConstellationStore {
    * Thread-safe within a single process (SQLite serializes writes).
    */
   generateConstellationId(): string {
+    this.ensureIdCounterTable()
     const row = this.db.prepare(
       `UPDATE id_counter SET value = value + 1 WHERE name = 'constellation' RETURNING value`
     ).get() as { value: number } | undefined
@@ -1024,13 +1053,14 @@ export class ConstellationStore {
   /**
    * Get the next helix index for a constellation session.
    * Counts existing branches to determine the next sequential number.
-   * Returns "helix-0", "helix-1", etc.
+   * Returns "{constellationId}-helix-0", "{constellationId}-helix-1", etc.
+   * Includes the constellation ID to avoid collisions in the global helix_sessions table.
    */
   nextHelixId(constellationId: string): string {
     const row = this.db.prepare(
       `SELECT COUNT(*) as count FROM constellation_branches WHERE session_id = ?`
     ).get(constellationId) as { count: number }
-    return `helix-${row.count}`
+    return `${constellationId}-helix-${row.count}`
   }
 
 

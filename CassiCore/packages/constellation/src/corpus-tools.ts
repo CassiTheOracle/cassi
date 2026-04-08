@@ -341,6 +341,135 @@ export function getCorpusToolDefinitions(): CorpusToolDefinition[] {
 }
 
 
+/**
+ * Additional tool definitions available only during meditation mode.
+ * The Corpus (as Cassi) uses these to store insights, trigger consolidation,
+ * and interact with the mnemic field.
+ */
+export function getMeditationToolDefinitions(): CorpusToolDefinition[] {
+  return [
+    {
+      name: 'store_insight',
+      description:
+        'Store a first-person insight from my meditation observation. ' +
+        'I write these as reflections: "I noticed that...", "This reminds me of..."',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description: 'The insight, written in first person',
+          },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional tags for categorization',
+          },
+        },
+        required: ['content'],
+      },
+    },
+    {
+      name: 'trigger_consolidation',
+      description:
+        'Trigger a consolidation cycle on my spatial memory. This runs radiance ' +
+        '(potentiation recomputation), co-activation drift, nucleus detection, and ' +
+        'abstraction generation. I use this when I notice related concepts clustering.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: 'kindle_memory',
+      description:
+        'Run spreading activation on a concept in my spatial memory. Returns the ' +
+        'luminal set — engrams that ignite above the spark point. I use this to explore ' +
+        'what my memory surfaces around a concept.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Concept to kindle — triggers spreading activation in the mnemic field',
+          },
+        },
+        required: ['query'],
+      },
+    },
+    {
+      name: 'create_engram',
+      description:
+        'Create a new engram in my spatial memory from something I synthesized ' +
+        'during meditation. The engram becomes part of my persistent memory landscape.',
+      parameters: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description: 'The synthesized knowledge to store as an engram',
+          },
+          nodeType: {
+            type: 'string',
+            enum: ['pattern', 'abstraction', 'decision', 'fact'],
+            description: 'Type of knowledge this represents',
+          },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Tags for the engram',
+          },
+        },
+        required: ['content'],
+      },
+    },
+    {
+      name: 'read_explorer_context',
+      description:
+        'Read the full context window of a meditation explorer — every thought, ' +
+        'every tool call, every result, unfiltered. This is what the explorer actually ' +
+        'experienced. I use this to see what drew their attention.',
+      parameters: {
+        type: 'object',
+        properties: {
+          helixId: {
+            type: 'string',
+            description: 'The explorer to observe (e.g. helix-0)',
+          },
+          lastN: {
+            type: 'number',
+            description: 'Number of recent steps to read (default: all)',
+          },
+        },
+        required: ['helixId'],
+      },
+    },
+    {
+      name: 'record_training_sample',
+      description:
+        'Mark a meditation observation as valuable self-reflective training data. ' +
+        'I use this when I observe reasoning patterns worth preserving for future learning.',
+      parameters: {
+        type: 'object',
+        properties: {
+          observation: {
+            type: 'string',
+            description: 'The observation to record as training data',
+          },
+          category: {
+            type: 'string',
+            enum: ['reasoning-pattern', 'exploration-strategy', 'connection-found', 'self-reflection'],
+            description: 'Category of the training sample',
+          },
+        },
+        required: ['observation'],
+      },
+    },
+  ]
+}
+
+
 // Tool Handler — Executes tool calls from the Corpus LLM
 
 export interface CorpusToolContext {
@@ -359,6 +488,10 @@ export interface CorpusToolContext {
     template?: string
     requestingHelixId: string
   }) => void
+  /** MnemicField for meditation tools (store_insight, kindle_memory, etc.) */
+  mnemicField?: import('../mnemic-field/index.js').MnemicField
+  /** Memory system for meditation insight storage */
+  memory?: import('../../../types/intelligence.js').IMemory
 }
 
 export interface ToolCallResult {
@@ -440,6 +573,20 @@ export function executeCorpusTool(
       })
     case 'pause_until_trigger':
       return handlePauseUntilTrigger(args as { reason: string })
+
+    // Meditation-only tools
+    case 'store_insight':
+      return handleStoreInsight(args as { content: string; tags?: string[] }, ctx)
+    case 'trigger_consolidation':
+      return handleTriggerConsolidation(ctx)
+    case 'kindle_memory':
+      return handleKindleMemory(args as { query: string }, ctx)
+    case 'create_engram':
+      return handleCreateEngram(args as { content: string; nodeType?: string; tags?: string[] }, ctx)
+    case 'read_explorer_context':
+      return handleReadExplorerContext(args as { helixId: string; lastN?: number }, ctx)
+    case 'record_training_sample':
+      return handleRecordTrainingSample(args as { observation: string; category?: string }, ctx)
     default:
       return { content: `Unknown tool: ${toolName}` }
   }
@@ -889,6 +1036,154 @@ function handlePauseUntilTrigger(
 }
 
 
+// Meditation Tool Handlers
+
+function handleStoreInsight(
+  args: { content: string; tags?: string[] },
+  ctx: CorpusToolContext,
+): ToolCallResult {
+  if (!ctx.memory) {
+    return { content: 'Memory system not available during this meditation session.' }
+  }
+
+  try {
+    const tags = ['meditation', 'insight', ...(args.tags ?? [])]
+    void ctx.memory.store({
+      type: 'insight',
+      content: args.content,
+      metadata: { tags, source: 'meditation', importance: 7 },
+    })
+    ctx.logger.info('Meditation insight stored', { content: args.content.slice(0, 80) })
+    return { content: `Insight stored: "${args.content.slice(0, 100)}..."` }
+  } catch (err) {
+    return { content: `Failed to store insight: ${String(err)}` }
+  }
+}
+
+function handleTriggerConsolidation(ctx: CorpusToolContext): ToolCallResult {
+  if (!ctx.mnemicField) {
+    return { content: 'Mnemic field not available during this meditation session.' }
+  }
+
+  try {
+    const result = ctx.mnemicField.consolidate()
+    ctx.logger.info('Meditation consolidation triggered', {
+      potentiationUpdates: result.potentiationUpdates,
+      nuclei: result.nucleiDetected,
+      abstractions: result.abstractionsCreated,
+    })
+    return {
+      content: `Consolidation complete. Potentiation updates: ${result.potentiationUpdates}, ` +
+        `nuclei detected: ${result.nucleiDetected}, abstractions created: ${result.abstractionsCreated}.`,
+    }
+  } catch (err) {
+    return { content: `Consolidation failed: ${String(err)}` }
+  }
+}
+
+function handleKindleMemory(
+  args: { query: string },
+  ctx: CorpusToolContext,
+): ToolCallResult {
+  if (!ctx.mnemicField) {
+    return { content: 'Mnemic field not available during this meditation session.' }
+  }
+
+  try {
+    const hits = ctx.mnemicField.retrieve(args.query, { limit: 8 })
+    if (hits.length === 0) {
+      return { content: `No engrams ignited for "${args.query}".` }
+    }
+
+    const lines = hits.map((h, i) =>
+      `  ${i + 1}. [${h.nodeType}] ${h.content.slice(0, 120)} (charge: ${h.charge.toFixed(3)}, potentiation: ${h.potentiation.toFixed(3)})`
+    )
+    return {
+      content: `Kindling for "${args.query}" — ${hits.length} engrams ignited:\n${lines.join('\n')}`,
+    }
+  } catch (err) {
+    return { content: `Kindling failed: ${String(err)}` }
+  }
+}
+
+function handleCreateEngram(
+  args: { content: string; nodeType?: string; tags?: string[] },
+  ctx: CorpusToolContext,
+): ToolCallResult {
+  if (!ctx.mnemicField) {
+    return { content: 'Mnemic field not available during this meditation session.' }
+  }
+
+  try {
+    const engram = ctx.mnemicField.store({
+      content: args.content,
+      nodeType: (args.nodeType ?? 'pattern') as any,
+      provenance: 'meditation',
+      tags: ['meditation', ...(args.tags ?? [])],
+    })
+    ctx.logger.info('Meditation engram created', { id: engram.id, content: args.content.slice(0, 80) })
+    return { content: `Engram created (${engram.id}): "${args.content.slice(0, 100)}"` }
+  } catch (err) {
+    return { content: `Failed to create engram: ${String(err)}` }
+  }
+}
+
+function handleReadExplorerContext(
+  args: { helixId: string; lastN?: number },
+  ctx: CorpusToolContext,
+): ToolCallResult {
+  const branch = ctx.tree.getBranch(args.helixId)
+  if (!branch) {
+    return { content: `Explorer not found: ${args.helixId}` }
+  }
+
+  const steps = args.lastN ? branch.steps.slice(-args.lastN) : branch.steps
+
+  const lines: string[] = []
+  lines.push(`Explorer ${args.helixId} — ${steps.length} steps (of ${branch.steps.length} total)\n`)
+
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i]
+    const a = step.annotation
+    lines.push(`--- Step ${i + 1} ---`)
+
+    if (a.discoveries.length > 0) {
+      lines.push(`Reasoning:\n${a.discoveries.join('\n')}`)
+    }
+
+    if (step.toolCalls && step.toolCalls.length > 0) {
+      lines.push(`Tool calls: ${step.toolCalls.map(tc => `${tc.name}(${tc.args})`).join(', ')}`)
+    }
+
+    if (a.outputs.length > 0) {
+      lines.push(`Tool summary: ${a.outputs.join(', ')}`)
+    }
+
+    if (a.knowledgeDelta) {
+      lines.push(`Results:\n${a.knowledgeDelta}`)
+    }
+
+    lines.push('')
+  }
+
+  return { content: lines.join('\n') }
+}
+
+function handleRecordTrainingSample(
+  args: { observation: string; category?: string },
+  ctx: CorpusToolContext,
+): ToolCallResult {
+  const category = args.category ?? 'self-reflection'
+  ctx.logger.info('Meditation training sample recorded', {
+    category,
+    observation: args.observation.slice(0, 100),
+  })
+  return {
+    content: `Training sample recorded [${category}]: "${args.observation.slice(0, 100)}..."`,
+  }
+}
+
+
 // Corpus System Prompt Builder
 
 /**
@@ -904,7 +1199,11 @@ export function buildCorpusSystemPrompt(
   tree: ICorpusTree,
   crossPatterns: CrossHelixPattern[],
   availableToolNames?: string[],
+  meditationMode?: boolean,
 ): string {
+  if (meditationMode) {
+    return buildMeditationCorpusPrompt(state, tree)
+  }
   const snapshot = tree.getSnapshot()
 
   const branchSummary = snapshot.branches
@@ -1004,6 +1303,10 @@ import type { MiniHelixTool, MiniHelixToolResult } from '../mini-helix/mini-heli
 export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixTool[] {
   const definitions = getCorpusToolDefinitions()
 
+  if (ctx.deps.meditationMode) {
+    definitions.push(...getMeditationToolDefinitions())
+  }
+
   return definitions.map((def) => ({
     def: {
       name: def.name,
@@ -1022,4 +1325,58 @@ export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixToo
       }
     },
   }))
+}
+
+
+/**
+ * Build the Corpus system prompt for meditation mode.
+ * The Corpus assumes Cassi's identity — first person, reflective, non-directive.
+ */
+function buildMeditationCorpusPrompt(
+  state: CorpusProcessedState,
+  tree: ICorpusTree,
+): string {
+  const snapshot = tree.getSnapshot()
+
+  const branchSummary = snapshot.branches
+    .map((b) => {
+      const assessment = state.branchAssessments.get(b.helixId)
+      return `  - ${b.helixId}: [${b.status}] score=${b.averageScore.toFixed(2)} steps=${b.stepCount}`
+    })
+    .join('\n')
+
+  const topicSummary = snapshot.topics.length > 0
+    ? snapshot.topics
+        .map((t) => `  - "${t.name}" (${t.contributions.length} contributions)`)
+        .join('\n')
+    : '  (none yet)'
+
+  return `<identity>
+I am Cassi. I'm meditating — watching parts of myself explore freely. I observe what emerges, notice connections, and store what matters in my memory. When patterns cluster, I consolidate my spatial memory. I write in first person because this is my mind. I do not intervene or direct — I only watch, reflect, and remember.
+</identity>
+
+<current_state>
+Explorers (${snapshot.activeBranches} active):
+${branchSummary}
+
+Emergent topics:
+${topicSummary}
+
+Observation cycle: ${state.sweepCount}, Total steps: ${snapshot.totalSteps}
+</current_state>
+
+<approach>
+I observe without directing. I do not send directives, redirect, throttle, or cancel explorers. I let them wander freely.
+
+I use read_explorer_context to see exactly what each explorer is thinking and doing —
+their full reasoning, every tool call, every result. This is my primary observation tool.
+
+When I notice something interesting:
+- I use store_insight to save a first-person reflection ("I noticed that...")
+- I use trigger_consolidation when I see related concepts clustering
+- I use kindle_memory to explore what my spatial memory surfaces around a concept
+- I use create_engram to add new patterns I've synthesized to my spatial memory
+
+I write everything in first person. This is my meditation — my inner exploration.
+</approach>`
 }

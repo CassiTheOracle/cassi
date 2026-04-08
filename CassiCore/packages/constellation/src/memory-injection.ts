@@ -47,6 +47,20 @@ export const DEFAULT_MEMORY_INJECTION_CONFIG: MemoryInjectionConfig = {
 }
 
 /**
+ * Meditation memory injection — broader associations, no age limit.
+ * Meditation agents receive whatever the memory system naturally surfaces
+ * with minimal filtering. Old memories are as interesting as new ones.
+ */
+export const MEDITATION_MEMORY_INJECTION_CONFIG: Partial<MemoryInjectionConfig> = {
+  maxMemories: 10,
+  minRelevance: 0.15,
+  maxAgeDays: 0,
+  includePinned: true,
+  prioritizeImportance: false,
+  maxContentLength: 3000,
+}
+
+/**
  * Memory Injection Service — Provides branch-level memory continuity.
  */
 export class MemoryInjectionService {

@@ -46,7 +46,7 @@ interface MinimalBrainstem {
  * Configuration specific to the Corpus mini-Helix mode.
  */
 export interface CorpusMiniHelixConfig {
-  /** Model tier for the Corpus mini-Helix. Default: 'qwenMax' */
+  /** Model tier for the Corpus mini-Helix. Default: 'sonnet' */
   modelTier?: string
   /** Model name override (e.g., 'qwen3-max'). Optional. */
   modelName?: string
@@ -185,8 +185,8 @@ export class CorpusMiniHelix {
       maxIterationsPerCycle: this.miniHelixConfig.maxIterationsPerCycle ?? 50,
       maxTokens: this.corpusConfig.maxTokens,
       cycleTimeoutMs: this.miniHelixConfig.cycleTimeoutMs ?? 120_000,
-      modelTier: this.miniHelixConfig.modelTier ?? 'qwenMax',
-      modelName: this.miniHelixConfig.modelName,
+      modelTier: this.miniHelixConfig.modelTier ?? 'sonnet',
+      modelName: this.miniHelixConfig.modelName ?? 'claude-sonnet-4-6',
     }
 
     this.session = createMiniHelixSession(tools, config, this.miniHelixDeps)
@@ -267,6 +267,7 @@ export class CorpusMiniHelix {
       this.tree,
       this.crossPatterns,
       this.availableToolNames,
+      this.deps.meditationMode,
     )
   }
 
@@ -302,6 +303,8 @@ export class CorpusMiniHelix {
           this.deps.onSpawnRequest(request)
         }
       },
+      mnemicField: this.deps.mnemicField,
+      memory: this.deps.memory,
     }
   }
 }

@@ -40,12 +40,16 @@ export interface ConstellationOrchestrator {
     postures?: FlexPosture[]
     maxHelixes?: number
     maxDepth?: number
+    maxTotalSteps?: number
     sessionId: string
     costEffective?: boolean
+    meditationMode?: boolean
   }): Promise<ConstellationResult>
   resumeConstellation(sessionId: string): Promise<ConstellationResult>
   cancel(sessionId: string): boolean
   getTree(sessionId: string): CorpusTreeSnapshot | undefined
+  /** Get the live CorpusTree for real-time observation (e.g. MnemicBridge). */
+  getLiveTree(sessionId: string): import('./corpus-types.js').ICorpusTree | undefined
   getProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
   steer(sessionId: string, opts: { message: string; targetHelixId?: string; urgency?: string }): void
   getBranchAssessments(sessionId: string): Array<{ helixId: string; status: string; rollingScore: number; dominantPattern: string }>
@@ -63,6 +67,7 @@ export interface ConstellationOrchestrator {
   setMemory(memory: IMemory): void
   setAuditTrail(trail: import('./constellation-audit-trail.js').ConstellationAuditTrail): void
   setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
+  setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
 
   // External Corpus Protocol
   assumeCorpus(sessionId: string, agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string }
@@ -111,6 +116,7 @@ export function createConstellationOrchestrator(
   let memory: IMemory | undefined
   let auditTrail: import('./constellation-audit-trail.js').ConstellationAuditTrail | undefined
   let reasoningBank: import('../reasoning-bank/index.js').ReasoningBank | undefined
+  let mnemicField: import('../mnemic-field/index.js').MnemicField | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -342,6 +348,17 @@ export function createConstellationOrchestrator(
 
   const orchestrator: ConstellationOrchestrator = {
     async project(opts) {
+      // Preempt any running meditation sessions before launching real work
+      if (!opts.meditationMode) {
+        for (const [id, entry] of running) {
+          if (id.startsWith('meditation-')) {
+            log.info('Preempting meditation session for real work', { meditationId: id, newSessionId: opts.sessionId })
+            entry.cancel()
+            running.delete(id)
+          }
+        }
+      }
+
       const effectivePool = getEffectiveModelPool()
       const effectiveExecutor = getEffectiveToolExecutor()
       const effectiveRegistry = getEffectiveToolRegistry()
@@ -353,8 +370,10 @@ export function createConstellationOrchestrator(
         postures,
         maxHelixes,
         maxDepth,
+        maxTotalSteps,
         sessionId,
         costEffective,
+        meditationMode,
       } = opts
 
       log.info('Constellation project starting', {
@@ -375,7 +394,10 @@ export function createConstellationOrchestrator(
         postures,
         maxHelixes,
         maxDepth,
+        maxTotalSteps,
         costEffective,
+        meditationMode,
+        mnemicField: meditationMode ? mnemicField : undefined,
         logger,
         eventBus,
         toolExecutor: effectiveExecutor,
@@ -472,6 +494,11 @@ export function createConstellationOrchestrator(
       }
     },
 
+    getLiveTree(sessionId) {
+      const entry = running.get(sessionId)
+      return entry?.liveState?.getTree?.() ?? undefined
+    },
+
     getProgress(sessionId) {
       const entry = running.get(sessionId)
       if (!entry?.liveState) return undefined
@@ -535,6 +562,7 @@ export function createConstellationOrchestrator(
     setMemory(mem) { memory = mem },
     setAuditTrail(trail) { auditTrail = trail },
     setReasoningBank(bank) { reasoningBank = bank },
+    setMnemicField(field) { mnemicField = field },
     generateId() { return constellationStore?.generateConstellationId() },
 
     // External Corpus Protocol

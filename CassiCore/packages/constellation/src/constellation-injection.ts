@@ -17,7 +17,7 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { InjectionSource } from '../injection-aggregator.js'
-import type { CorpusTreeSnapshot, CrossHelixPattern, CorpusIntervention, BranchAssessment, BranchHealthStatus, ExternalCorpusState, ExternalCorpusSnapshot, CorpusDirective, CorpusDirectiveType } from './corpus-types.js'
+import type { ICorpusTree, CorpusTreeSnapshot, CrossHelixPattern, CorpusIntervention, BranchAssessment, BranchHealthStatus, ExternalCorpusState, ExternalCorpusSnapshot, CorpusDirective, CorpusDirectiveType } from './corpus-types.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
 
 
@@ -29,6 +29,9 @@ export interface ConstellationLiveState {
   getCrossPatterns(): CrossHelixPattern[]
   getInterventions(): CorpusIntervention[]
   getBranchAssessments(): Array<{ helixId: string; status: BranchHealthStatus; rollingScore: number; dominantPattern: string }>
+
+  /** Live CorpusTree reference for real-time observation (e.g. MnemicBridge polling). */
+  getTree?(): ICorpusTree
 
   /** Live topology snapshot — positions, links, clusters. Undefined if topology is disabled. */
   getTopologySnapshot?(): TopologySnapshot | undefined
@@ -80,11 +83,16 @@ export class ConstellationRegistry {
 export class ConstellationInjectionSource implements InjectionSource {
   readonly name = 'constellation'
   readonly priority = 5  // Medium priority — after optimizer/thinker, before session-digest
+  private globalWorkspace?: import('../workspace/index.js').GlobalWorkspace
 
   constructor(
     private readonly registry: ConstellationRegistry,
     private readonly logger: ILogger,
   ) {}
+
+  setGlobalWorkspace(workspace: import('../workspace/index.js').GlobalWorkspace): void {
+    this.globalWorkspace = workspace
+  }
 
   async getInjection(_sessionId: string, _turnContext?: unknown): Promise<string | null> {
     const constellations = this.registry.getAll()
@@ -110,6 +118,19 @@ export class ConstellationInjectionSource implements InjectionSource {
       }
 
       const content = `### Cassi — Active Constellation${constellations.length > 1 ? 's' : ''}\n\n${sections.join('\n\n')}`
+
+      if (this.globalWorkspace) {
+        this.globalWorkspace.submit({
+          signalId: `constellation-${Date.now()}`,
+          source: 'constellation',
+          sessionId: _sessionId,
+          type: 'context',
+          content,
+          luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+          createdAt: Date.now(),
+          urgencyHint: 0.1,
+        })
+      }
 
       return content
     } catch (err) {

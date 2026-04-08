@@ -1492,7 +1492,9 @@ export class Corpus {
       this.deps.goal,
       this.state,
       this.tree,
-      newPatterns
+      newPatterns,
+      undefined,
+      this.deps.meditationMode,
     )
 
     // Include escalation context if any
@@ -1688,7 +1690,7 @@ export class Corpus {
       })
       const result = await this.deps.llm.complete({
         prompt: 'Respond with the single word "ok".',
-        modelTier: 'background',
+        modelTier: this.config.modelTier,
         maxTokens: 10,
         timeoutMs: 15_000,
       })
@@ -2198,6 +2200,7 @@ Guidelines:
    * Send a directive to a child Brainstem
    */
    private sendDirective(directive: CorpusDirective): void {
+    if (this.deps.meditationMode) return
     const brainstem = this.childBrainstems.get(directive.targetHelixId)
     if (!brainstem) {
       this.logger.warn('Cannot send directive: Brainstem not registered', {
@@ -3092,7 +3095,7 @@ Reason for assessment: ${reason}
 
 Should this task be split into smaller sub-tasks? If yes, describe 2-3 sub-tasks.
 Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority": 1 }] }`,
-      modelTier: 'background',
+      modelTier: this.config.modelTier,
       maxTokens: 1000,
       timeoutMs: 15000,
     })

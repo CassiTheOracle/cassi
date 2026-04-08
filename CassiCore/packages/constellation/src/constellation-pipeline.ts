@@ -19,7 +19,7 @@ import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixStore } from '../helix/helix-store.js'
 import type { HelixResult } from '../helix/types.js'
 import type { ConstellationStore, ProgressSnapshot } from './constellation-store.js'
-import type { BrainstemDeps, SharedTreeReader } from '../helix/brainstem-types.js'
+import type { BrainstemDeps, BrainstemAnnotation, SharedTreeReader } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import { BrainstemMiniHelix } from '../helix/brainstem-mini-helix.js'
 import { CorpusMiniHelix } from './corpus-mini-helix.js'
@@ -271,6 +271,17 @@ export interface ConstellationPipelineOpts {
    *  creates per-branch guidance providers and registers them here so that
    *  collect_thoughts can look them up by sessionId during mid-reasoning enrichment. */
   guidanceRegistry?: import('./guidance-provider.js').ConstellationGuidanceRegistry
+
+  /**
+   * Meditation mode. When true, Helix branches receive no workspace structure,
+   * no codebase context, no elevated patterns, no reasoning bank traces —
+   * only what the memory system naturally surfaces. Agents explore in solitude.
+   * The Brainstem still captures work units for passive Corpus observation.
+   */
+  meditationMode?: boolean
+
+  /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
+  mnemicField?: import('../mnemic-field/index.js').MnemicField
 }
 
 // Internal State
@@ -490,6 +501,9 @@ export async function runConstellationPipeline(
       eventBus,
       blackboard: constellationBlackboard,
       crossHelixDialectic,
+      meditationMode: opts.meditationMode,
+      mnemicField: opts.mnemicField,
+      memory: opts.memory,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
       onSpawnRequest: (req) => {
         const spawnRequest: SpawnRequest = {
@@ -670,6 +684,7 @@ export async function runConstellationPipeline(
     const liveState: ConstellationLiveState = {
       constellationId,
       goal,
+      getTree: () => corpusTree,
       getTreeSnapshot: () => corpusTree.getSnapshot(),
       getCrossPatterns: () => corpus.getResult().crossPatterns,
       getInterventions: () => corpus.getResult().interventions,
@@ -767,7 +782,7 @@ export async function runConstellationPipeline(
     toolFilter?: { allow?: string[]; deny?: string[] }
   ): Promise<RunningHelix> {
     const helixId = constellationStore?.nextHelixId(constellationId)
-      ?? `helix-${helixCounter++}`
+      ?? `${constellationId}-helix-${helixCounter++}`
     const helixLog = log.child(helixId)
 
     helixLog.info('Launching Helix', {
@@ -779,8 +794,29 @@ export async function runConstellationPipeline(
     // WHY: cross-run memory continuity improves branch output quality
     let enrichedContext = helixContext
 
-    // Create worktree for branch isolation (if enabled)
+    // Memory injection runs in all modes — it's the only context meditation agents receive
+    if (memoryInjectionService) {
+      try {
+        const memoryContext = await memoryInjectionService.injectForBranch(helixId, helixGoal, parentId)
+        if (memoryContext && memoryContext.memories.length > 0) {
+          const memoryBlock = memoryInjectionService.formatMemoriesForContext(memoryContext)
+          enrichedContext = helixContext ? `${helixContext}\n${memoryBlock}` : memoryBlock
+          helixLog.info('Memory context injected for branch', {
+            memories: memoryContext.memories.length,
+            searchQuery: memoryContext.searchQuery,
+          })
+        }
+      } catch (err) {
+        helixLog.warn('Memory injection failed for branch', { error: String(err) })
+      }
+    }
+
+    // Meditation mode: strip all other context. The agents explore in solitude —
+    // no workspace, no codebase, no patterns, no reasoning bank.
     let branchWorkingDir: string | undefined
+    if (!opts.meditationMode) {
+
+    // Create worktree for branch isolation (if enabled)
     if (worktreeIsolation) {
       try {
         branchWorkingDir = await worktreeIsolation.createBranchWorktree(helixId)
@@ -812,23 +848,6 @@ export async function runConstellationPipeline(
       }
     } catch {
       // best-effort — don't block launch on directory read failure
-    }
-
-    if (memoryInjectionService) {
-      try {
-        const memoryContext = await memoryInjectionService.injectForBranch(helixId, helixGoal, parentId)
-        if (memoryContext && memoryContext.memories.length > 0) {
-          const memoryBlock = memoryInjectionService.formatMemoriesForContext(memoryContext)
-          enrichedContext = helixContext ? `${helixContext}\n${memoryBlock}` : memoryBlock
-          helixLog.info('Memory context injected for branch', {
-            memories: memoryContext.memories.length,
-            searchQuery: memoryContext.searchQuery,
-          })
-        }
-      } catch (err) {
-        helixLog.warn('Memory injection failed for branch', { error: String(err) })
-        // Continue with original context — don't block launch
-      }
     }
 
     // WHY: Inject pre-assembled codebase context so branches start with knowledge
@@ -925,6 +944,8 @@ export async function runConstellationPipeline(
       helixLog.warn('Elevated pattern injection failed', { error: String(err) })
       // Continue with existing context — don't block launch
     }
+
+    } // end of !meditationMode guard
 
     corpusTree.registerBranch(helixId, helixGoal, depth, parentId)
 
@@ -1070,39 +1091,43 @@ export async function runConstellationPipeline(
       }
     }
 
-    const brainstemDeps: BrainstemDeps = {
-      llm: brainstemLLM,
-      logger,
-      goal: helixGoal,
-      sessionId: helixId,
-      eventBus,
-      corpusTree,
-      helixId,
-      readFile: (path: string) => safeReadFile(path, process.cwd()),
-      sharedTree: sharedTreeReader,
-      escalateToCorpus: (reason: string, context: Record<string, unknown>) => {
-        corpus.receiveEscalation(reason, { ...context, helixId })
-      },
-      onSpawnRequest: (req) => {
-        const spawnRequest: SpawnRequest = {
-          requestId: `spawn-${helixId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          requestingHelixId: helixId,
-          requestingPosture: 'brainstem',
-          targetDepth: depth + 1,
-          goal: req.goal,
-          context: req.context,
-          template: (req.template as ConstellationTemplate) ?? template,
-          status: 'pending',
-          timestamp: Date.now(),
-        }
-        spawnQueue.push(spawnRequest)
-        log.info('Spawn request queued from Brainstem', {
-          requestId: spawnRequest.requestId,
+    // Meditation mode: skip Brainstem entirely — the Corpus reads raw posture output.
+    // WorkUnits are pushed directly to the CorpusTree as pass-through annotations.
+    const brainstemDeps: BrainstemDeps | undefined = opts.meditationMode
+      ? undefined
+      : {
+          llm: brainstemLLM,
+          logger,
+          goal: helixGoal,
+          sessionId: helixId,
+          eventBus,
+          corpusTree,
           helixId,
-          goal: req.goal.slice(0, 100),
-        })
-      },
-    }
+          readFile: (path: string) => safeReadFile(path, process.cwd()),
+          sharedTree: sharedTreeReader,
+          escalateToCorpus: (reason: string, context: Record<string, unknown>) => {
+            corpus.receiveEscalation(reason, { ...context, helixId })
+          },
+          onSpawnRequest: (req) => {
+            const spawnRequest: SpawnRequest = {
+              requestId: `spawn-${helixId}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+              requestingHelixId: helixId,
+              requestingPosture: 'brainstem',
+              targetDepth: depth + 1,
+              goal: req.goal,
+              context: req.context,
+              template: (req.template as ConstellationTemplate) ?? template,
+              status: 'pending',
+              timestamp: Date.now(),
+            }
+            spawnQueue.push(spawnRequest)
+            log.info('Spawn request queued from Brainstem', {
+              requestId: spawnRequest.requestId,
+              helixId,
+              goal: req.goal.slice(0, 100),
+            })
+          },
+        }
 
     // HOW: The actual brainstem reference — set by onBrainstemCreated when the pipeline starts it
     let activeBrainstem: HelixBrainstem | undefined
@@ -1149,8 +1174,36 @@ export async function runConstellationPipeline(
         killMs: 900_000,
       },
       onWorkUnit: (wu, iteration) => {
-        // Feed work units to the RUNNING brainstem (captured from onBrainstemCreated)
-        if (activeBrainstem) {
+        if (opts.meditationMode) {
+          // Meditation: push raw posture context directly to the CorpusTree.
+          // No Brainstem filtering — the Corpus sees the full reasoning and tool calls.
+          const toolSummary = wu.toolCalls.map(tc => `${tc.name}(${JSON.stringify(tc.input).slice(0, 200)})`).join(', ')
+          const resultSummary = wu.toolResults.map(tr => tr.content.slice(0, 300)).join('\n')
+          const rawAnnotation: BrainstemAnnotation = {
+            workUnitId: wu.id,
+            score: 0,
+            annotation: 'exploration' as any,
+            synthesis: '',
+            pattern: 'none' as any,
+            guidance: null,
+            guidanceUrgency: 'low' as any,
+            trainingNote: '',
+            axonStep: iteration,
+            timestamp: wu.timestamp,
+            goalAlignment: 0,
+            novelty: 0,
+            progress: 0,
+            discoveries: wu.reasoning ? [wu.reasoning] : [],
+            decisions: [],
+            hypothesis: '',
+            outputs: toolSummary ? [toolSummary] : [],
+            blockers: [],
+            nextSteps: [],
+            knowledgeDelta: resultSummary,
+          }
+          const toolCalls = wu.toolCalls.map(tc => ({ name: tc.name, args: JSON.stringify(tc.input).slice(0, 500) }))
+          corpusTree.pushAnnotation(helixId, rawAnnotation, toolCalls)
+        } else if (activeBrainstem) {
           activeBrainstem.onWorkUnit(wu, iteration)
         }
       },

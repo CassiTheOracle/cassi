@@ -202,6 +202,7 @@ export type ConstellationTemplate =
   | 'implementation' // 2 Unities + Yang + Yin + Mentor (heavy build)
   | 'review'         // Unity + 2 Yangs + 2 Yins + Mentor (heavy review)
   | 'minimal'        // Unity + single Reviewer (lightweight)
+  | 'meditation'     // Solitary explorers — no channels, no goals, read-only
 
 /**
  * Configuration for creating a single Helix node in the Constellation.

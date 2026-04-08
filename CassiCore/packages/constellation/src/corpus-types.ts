@@ -941,7 +941,7 @@ export interface CorpusConfig {
 export type CorpusCadence = 'active' | 'safety-net'
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
-  modelTier: 'qwenMax',
+  modelTier: 'sonnet',
   maxTokens: 16_000,
   timeoutMs: 90_000,
   idlePollMs: 10_000,
@@ -989,6 +989,12 @@ export interface CorpusDeps {
   killHelix?: (helixId: string) => void
   injectGuidance?: (helixId: string, content: string, urgency: import('../helix/brainstem-types.js').GuidanceUrgency) => void
   runCommand?: (command: string, timeoutMs?: number) => Promise<{ exitCode: number; stdout: string; stderr: string }>
+  /** Meditation mode — Corpus observes silently as Cassi, never sends directives */
+  meditationMode?: boolean
+  /** MnemicField for meditation Corpus tools */
+  mnemicField?: import('../mnemic-field/index.js').MnemicField
+  /** Memory system for meditation insight storage */
+  memory?: import('../../../types/intelligence.js').IMemory
   getHelixTemplate?: (helixId: string) => ConstellationTemplate | undefined
   persistEvent?: (type: string, entity: string | null, message: string, data?: unknown) => void
   store?: import('./constellation-store.js').ConstellationStore
