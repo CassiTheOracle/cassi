@@ -240,6 +240,7 @@ export interface AssemblyMeta {
   historyTokens: number
   turnsIncluded: number
   turnsDropped: number
+  keptMessageIndices: number[]
   fociSnapshot: Array<{ slotIndex: number; content: string | null; luminance: number }>
   taskBoundaries: number[]
   assembledAt: number

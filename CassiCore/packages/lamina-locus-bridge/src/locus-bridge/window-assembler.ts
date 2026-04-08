@@ -101,6 +101,7 @@ export class WindowAssembler {
       historyTokens: actualHistoryTokens,
       turnsIncluded: selectedIndices.length,
       turnsDropped: messages.length - selectedIndices.length,
+      keptMessageIndices: [...selectedIndices],
       fociSnapshot: foci.map(f => ({
         slotIndex: f.slotIndex,
         content: f.spark?.content.slice(0, 80) ?? null,

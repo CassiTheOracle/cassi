@@ -594,6 +594,7 @@ export class LocusBridge {
       historyTokens: 0,
       turnsIncluded: totalMessages,
       turnsDropped: 0,
+      keptMessageIndices: Array.from({ length: totalMessages }, (_, i) => i),
       fociSnapshot: [],
       taskBoundaries: [],
       assembledAt: Date.now(),
