@@ -1,0 +1,570 @@
+import type { ILogger } from '../../../types/interfaces.js'
+import type { Cortex } from './cortex.js'
+import type { Engram, MnemicSynapse, Nucleus } from './types.js'
+import {
+  POTENTIATION_DEFAULTS, SYNAPSE_PROPAGATION, KINDLING_DEFAULTS,
+} from './types.js'
+
+export interface ConsolidationResult {
+  potentiationUpdates: number
+  positionDrifts: number
+  nucleiDetected: number
+  abstractionsCreated: number
+  spikesPruned: number
+  durationMs: number
+}
+
+export interface ConsolidationOptions {
+  skipRadiance?: boolean
+  skipDrift?: boolean
+  skipNuclei?: boolean
+  skipAbstractions?: boolean
+  skipPruning?: boolean
+  pruneKeepCount?: number
+  nucleiMinClusterSize?: number
+  nucleiEpsilon?: number
+  abstractionMinMembers?: number
+  abstractionMinPotentiation?: number
+}
+
+/**
+ * The Consolidation Engine: periodic recomputation of potentiation,
+ * XY drift from co-activation, nucleus detection, and spike pruning.
+ */
+export class ConsolidationEngine {
+  private logger: ILogger
+
+  constructor(
+    private cortex: Cortex,
+    logger: ILogger,
+  ) {
+    this.logger = logger.child ? logger.child('consolidation') : logger
+  }
+
+  /**
+   * Run a full consolidation cycle.
+   */
+  consolidate(options: ConsolidationOptions = {}): ConsolidationResult {
+    const start = Date.now()
+    let potentiationUpdates = 0
+    let positionDrifts = 0
+    let nucleiDetected = 0
+    let abstractionsCreated = 0
+    let spikesPruned = 0
+
+    if (!options.skipRadiance) {
+      potentiationUpdates = this.computeRadiance()
+    }
+
+    if (!options.skipDrift) {
+      positionDrifts = this.applyCoActivationDrift()
+    }
+
+    if (!options.skipNuclei) {
+      nucleiDetected = this.detectNuclei(
+        options.nucleiMinClusterSize ?? 3,
+        options.nucleiEpsilon ?? 2.0,
+      )
+    }
+
+    if (!options.skipAbstractions) {
+      abstractionsCreated = this.generateAbstractions(
+        options.abstractionMinMembers ?? 5,
+        options.abstractionMinPotentiation ?? 0.3,
+      )
+    }
+
+    if (!options.skipPruning) {
+      spikesPruned = this.pruneSpikeHistories(options.pruneKeepCount ?? 100)
+    }
+
+    const durationMs = Date.now() - start
+    this.logger.info('Consolidation complete', {
+      potentiationUpdates,
+      positionDrifts,
+      nucleiDetected,
+      abstractionsCreated,
+      spikesPruned,
+      durationMs,
+    })
+
+    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, durationMs }
+  }
+
+  /**
+   * Radiance: Recompute potentiation for all engrams using
+   * PageRank-style iterative propagation with spike history as teleportation.
+   *
+   * potentiation_i = α_i × spike_importance_i + (1 - α_i) × Σⱼ(w_ij × propagation(type_ij) × potentiation_j) / norm
+   *
+   * Where α_i is adaptive per-engram based on spike count.
+   */
+  computeRadiance(): number {
+    const { engrams, synapses } = this.cortex.getAllEngramsWithSynapses()
+    if (engrams.length === 0) return 0
+
+    const idToIdx = new Map<string, number>()
+    engrams.forEach((e, i) => idToIdx.set(e.id, i))
+
+    const spikeImportances = engrams.map(e => this.computeSpikeImportance(e.id))
+    const alphas = engrams.map(e => this.computeAlpha(e.id))
+
+    const baselineTeleportation = 1.0 / engrams.length
+    const teleportations = spikeImportances.map(si =>
+      si > 0 ? si : baselineTeleportation
+    )
+
+    const adjacency = this.buildAdjacency(engrams, synapses, idToIdx)
+
+    let potentiations = engrams.map(() => 0.0)
+    const { pageRankIterations: maxIter, convergenceThreshold: tol } = POTENTIATION_DEFAULTS
+
+    for (let iter = 0; iter < maxIter; iter++) {
+      const next = new Array<number>(engrams.length).fill(0)
+
+      for (let i = 0; i < engrams.length; i++) {
+        let graphComponent = 0
+        let totalWeight = 0
+
+        for (const { neighborIdx, weight } of adjacency[i]) {
+          graphComponent += weight * potentiations[neighborIdx]
+          totalWeight += weight
+        }
+
+        if (totalWeight > 0) {
+          graphComponent /= totalWeight
+        }
+
+        const alpha = alphas[i]
+        next[i] = alpha * teleportations[i] + (1 - alpha) * graphComponent
+      }
+
+      let maxDelta = 0
+      for (let i = 0; i < engrams.length; i++) {
+        maxDelta = Math.max(maxDelta, Math.abs(next[i] - potentiations[i]))
+      }
+      potentiations = next
+
+      if (maxDelta < tol) {
+        this.logger.debug('Radiance converged', { iterations: iter + 1, maxDelta })
+        break
+      }
+    }
+
+    const maxPot = Math.max(...potentiations, 0.001)
+    const normalized = potentiations.map(p => p / maxPot)
+
+    const updates = engrams
+      .map((e, i) => ({ id: e.id, potentiation: normalized[i] }))
+      .filter((u, i) => Math.abs(u.potentiation - engrams[i].potentiation) > 0.001)
+
+    if (updates.length > 0) {
+      this.cortex.bulkUpdatePotentiation(updates)
+    }
+
+    return updates.length
+  }
+
+  /**
+   * Build adjacency list from synapses, with weights incorporating
+   * synapse weight × edge type propagation factor.
+   */
+  private buildAdjacency(
+    engrams: Engram[],
+    synapses: MnemicSynapse[],
+    idToIdx: Map<string, number>,
+  ): Array<Array<{ neighborIdx: number; weight: number }>> {
+    const adj: Array<Array<{ neighborIdx: number; weight: number }>> =
+      engrams.map(() => [])
+
+    for (const syn of synapses) {
+      const srcIdx = idToIdx.get(syn.sourceId)
+      const tgtIdx = idToIdx.get(syn.targetId)
+      if (srcIdx === undefined || tgtIdx === undefined) continue
+
+      const propagation = SYNAPSE_PROPAGATION[syn.edgeType] ?? 0.5
+      const weight = syn.weight * propagation
+
+      adj[srcIdx].push({ neighborIdx: tgtIdx, weight })
+      adj[tgtIdx].push({ neighborIdx: srcIdx, weight })
+    }
+
+    return adj
+  }
+
+  /**
+   * Spike-based importance (ACT-R base-level equation).
+   */
+  private computeSpikeImportance(engramId: string): number {
+    const spikes = this.cortex.getSpikes(engramId, 200)
+    if (spikes.length === 0) return 0
+
+    const now = Date.now()
+    const d = POTENTIATION_DEFAULTS.decayRate
+    let sum = 0
+
+    for (const spike of spikes) {
+      const elapsed = Math.max(1, (now - spike.timestamp) / 1000)
+      sum += spike.magnitude * Math.pow(elapsed, -d)
+    }
+
+    return Math.log1p(sum)
+  }
+
+  /**
+   * Adaptive alpha: balance between spike history and graph structure.
+   */
+  private computeAlpha(engramId: string): number {
+    const count = this.cortex.getSpikeCount(engramId)
+    const { alphaMin, alphaMax, alphaTau } = POTENTIATION_DEFAULTS
+    return alphaMin + (alphaMax - alphaMin) * (1 - Math.exp(-count / alphaTau))
+  }
+
+  /**
+   * Apply XY drift from recent co-activation patterns.
+   * Loads recent spikes to find pairs that were co-activated in the same task,
+   * then pulls their positions closer.
+   */
+  applyCoActivationDrift(): number {
+    const { engrams, synapses } = this.cortex.getAllEngramsWithSynapses()
+    if (engrams.length < 2) return 0
+
+    const coActivationCounts = this.findCoActivationPairs(engrams)
+    if (coActivationCounts.size === 0) return 0
+
+    const engramMap = new Map(engrams.map(e => [e.id, e]))
+    const pullVectors = new Map<string, { dx: number; dy: number; totalWeight: number }>()
+
+    for (const [pairKey, count] of coActivationCounts) {
+      const [idA, idB] = pairKey.split('|')
+      const a = engramMap.get(idA)
+      const b = engramMap.get(idB)
+      if (!a || !b) continue
+
+      const rate = KINDLING_DEFAULTS.driftLearningRate * Math.min(count * 0.1, 0.5)
+
+      const pullA = pullVectors.get(idA) ?? { dx: 0, dy: 0, totalWeight: 0 }
+      pullA.dx += rate * (b.x - a.x)
+      pullA.dy += rate * (b.y - a.y)
+      pullA.totalWeight += rate
+      pullVectors.set(idA, pullA)
+
+      const pullB = pullVectors.get(idB) ?? { dx: 0, dy: 0, totalWeight: 0 }
+      pullB.dx += rate * (a.x - b.x)
+      pullB.dy += rate * (a.y - b.y)
+      pullB.totalWeight += rate
+      pullVectors.set(idB, pullB)
+    }
+
+    const updates: Array<{ id: string; x: number; y: number }> = []
+    for (const [id, pull] of pullVectors) {
+      const e = engramMap.get(id)
+      if (!e || pull.totalWeight === 0) continue
+
+      const newX = e.x + pull.dx
+      const newY = e.y + pull.dy
+      if (Math.abs(newX - e.x) > 0.0001 || Math.abs(newY - e.y) > 0.0001) {
+        updates.push({ id, x: newX, y: newY })
+      }
+    }
+
+    if (updates.length > 0) {
+      this.cortex.bulkUpdatePositions(updates)
+    }
+
+    return updates.length
+  }
+
+  /**
+   * Find pairs of engrams that were co-activated in the same task context recently.
+   */
+  private findCoActivationPairs(engrams: Engram[]): Map<string, number> {
+    const taskEngrams = new Map<string, string[]>()
+
+    for (const engram of engrams) {
+      const spikes = this.cortex.getSpikes(engram.id, 20)
+      for (const spike of spikes) {
+        if (!spike.taskContext) continue
+        const existing = taskEngrams.get(spike.taskContext) ?? []
+        existing.push(engram.id)
+        taskEngrams.set(spike.taskContext, existing)
+      }
+    }
+
+    const pairCounts = new Map<string, number>()
+    for (const [, ids] of taskEngrams) {
+      if (ids.length < 2) continue
+      const unique = [...new Set(ids)]
+      for (let i = 0; i < unique.length && i < 10; i++) {
+        for (let j = i + 1; j < unique.length && j < 10; j++) {
+          const key = unique[i] < unique[j] ? `${unique[i]}|${unique[j]}` : `${unique[j]}|${unique[i]}`
+          pairCounts.set(key, (pairCounts.get(key) ?? 0) + 1)
+        }
+      }
+    }
+
+    return pairCounts
+  }
+
+  /**
+   * DBSCAN-lite: density-based clustering on XY coordinates.
+   * Simpler than full HDBSCAN but effective for detecting spatial clusters.
+   * Returns the number of nuclei detected.
+   */
+  detectNuclei(minClusterSize = 3, epsilon = 2.0): number {
+    const { engrams } = this.cortex.getAllEngramsWithSynapses()
+    if (engrams.length < minClusterSize) return 0
+
+    const clusters = this.dbscan(engrams, epsilon, minClusterSize)
+
+    for (const existing of this.cortex.listNuclei()) {
+      this.cortex.deleteNucleus(existing.id)
+    }
+
+    let nucleiCount = 0
+    for (const [clusterId, members] of clusters) {
+      const centroidX = members.reduce((s, e) => s + e.x, 0) / members.length
+      const centroidY = members.reduce((s, e) => s + e.y, 0) / members.length
+      const avgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
+
+      const dominantType = this.findDominantType(members)
+      const label = `${dominantType}-cluster-${nucleiCount}`
+
+      const nucleus = this.cortex.createNucleus({
+        label,
+        centroidX,
+        centroidY,
+      })
+
+      this.cortex.updateNucleus(nucleus.id, {
+        memberCount: members.length,
+        avgPotentiation: avgPot,
+      })
+
+      for (const member of members) {
+        this.cortex.updateEngram(member.id, { clusterId: nucleus.id })
+      }
+
+      nucleiCount++
+    }
+
+    this.logger.debug('Nucleus detection complete', { nucleiCount, totalEngrams: engrams.length })
+    return nucleiCount
+  }
+
+  /**
+   * DBSCAN clustering algorithm.
+   * Returns clusters as Map<clusterIndex, Engram[]>.
+   */
+  private dbscan(engrams: Engram[], epsilon: number, minPts: number): Map<number, Engram[]> {
+    const n = engrams.length
+    const labels = new Array<number>(n).fill(-1)
+    let clusterId = 0
+
+    const regionQuery = (idx: number): number[] => {
+      const neighbors: number[] = []
+      const e = engrams[idx]
+      for (let j = 0; j < n; j++) {
+        if (j === idx) continue
+        const dist = Math.sqrt((e.x - engrams[j].x) ** 2 + (e.y - engrams[j].y) ** 2)
+        if (dist <= epsilon) neighbors.push(j)
+      }
+      return neighbors
+    }
+
+    for (let i = 0; i < n; i++) {
+      if (labels[i] !== -1) continue
+
+      const neighbors = regionQuery(i)
+      if (neighbors.length < minPts - 1) {
+        labels[i] = -2
+        continue
+      }
+
+      labels[i] = clusterId
+      const queue = [...neighbors]
+      const visited = new Set<number>([i])
+
+      while (queue.length > 0) {
+        const j = queue.shift()!
+        if (visited.has(j)) continue
+        visited.add(j)
+
+        if (labels[j] === -2) labels[j] = clusterId
+
+        if (labels[j] !== -1) continue
+        labels[j] = clusterId
+
+        const jNeighbors = regionQuery(j)
+        if (jNeighbors.length >= minPts - 1) {
+          queue.push(...jNeighbors)
+        }
+      }
+
+      clusterId++
+    }
+
+    const clusters = new Map<number, Engram[]>()
+    for (let i = 0; i < n; i++) {
+      if (labels[i] < 0) continue
+      const existing = clusters.get(labels[i]) ?? []
+      existing.push(engrams[i])
+      clusters.set(labels[i], existing)
+    }
+
+    return clusters
+  }
+
+  private findDominantType(engrams: Engram[]): string {
+    const counts = new Map<string, number>()
+    for (const e of engrams) {
+      counts.set(e.nodeType, (counts.get(e.nodeType) ?? 0) + 1)
+    }
+    let best = 'mixed'
+    let bestCount = 0
+    for (const [type, count] of counts) {
+      if (count > bestCount) { best = type; bestCount = count }
+    }
+    return best
+  }
+
+  /**
+   * Generate abstraction engrams for qualifying nuclei.
+   * Tier 1 (structural extraction): extract common tags, types, entities, temporal range.
+   * Creates a summary engram at the nucleus centroid connected to all members.
+   */
+  generateAbstractions(minMembers = 5, minAvgPotentiation = 0.3): number {
+    const nuclei = this.cortex.listNuclei()
+    let created = 0
+
+    for (const nucleus of nuclei) {
+      if (nucleus.memberCount < minMembers) continue
+      if (nucleus.avgPotentiation < minAvgPotentiation) continue
+      if (nucleus.abstractionId) continue
+
+      const existingAbstraction = this.findExistingAbstraction(nucleus)
+      if (existingAbstraction) {
+        this.cortex.updateNucleus(nucleus.id, { abstractionId: existingAbstraction.id })
+        continue
+      }
+
+      const members = this.cortex.getEngramsByCluster(nucleus.id)
+
+      if (members.length < minMembers) continue
+
+      const abstraction = this.buildAbstractionContent(members, nucleus)
+
+      const engram = this.cortex.createEngram({
+        content: abstraction.content,
+        nodeType: 'abstraction',
+        x: nucleus.centroidX,
+        y: nucleus.centroidY,
+        tags: abstraction.tags,
+        provenance: `nucleus:${nucleus.id}`,
+        metadata: {
+          nucleusId: nucleus.id,
+          memberCount: members.length,
+          temporalRange: abstraction.temporalRange,
+          typeBreakdown: abstraction.typeBreakdown,
+        },
+      })
+
+      for (const member of members) {
+        this.cortex.createSynapse({
+          sourceId: engram.id,
+          targetId: member.id,
+          edgeType: 'part_of',
+          weight: 0.7,
+        })
+      }
+
+      this.cortex.updateNucleus(nucleus.id, { abstractionId: engram.id })
+      created++
+    }
+
+    if (created > 0) {
+      this.logger.debug('Abstractions generated', { created })
+    }
+
+    return created
+  }
+
+  /**
+   * Check if an abstraction engram already exists near a nucleus centroid.
+   */
+  private findExistingAbstraction(nucleus: Nucleus): Engram | null {
+    const nearby = this.cortex.spatialQuery({
+      xMin: nucleus.centroidX - 1.0,
+      xMax: nucleus.centroidX + 1.0,
+      yMin: nucleus.centroidY - 1.0,
+      yMax: nucleus.centroidY + 1.0,
+    })
+    return nearby.find(e => e.nodeType === 'abstraction') ?? null
+  }
+
+  /**
+   * Build Tier 1 abstraction content from cluster members.
+   */
+  private buildAbstractionContent(members: Engram[], nucleus: Nucleus): {
+    content: string
+    tags: string[]
+    temporalRange: { earliest: string; latest: string }
+    typeBreakdown: Record<string, number>
+  } {
+    const allTags = new Map<string, number>()
+    for (const m of members) {
+      for (const tag of m.tags) {
+        allTags.set(tag, (allTags.get(tag) ?? 0) + 1)
+      }
+    }
+    const commonTags = [...allTags.entries()]
+      .filter(([, count]) => count >= Math.ceil(members.length * 0.3))
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag]) => tag)
+
+    const typeBreakdown: Record<string, number> = {}
+    for (const m of members) {
+      typeBreakdown[m.nodeType] = (typeBreakdown[m.nodeType] ?? 0) + 1
+    }
+
+    const timestamps = members
+      .map(m => m.createdAt)
+      .filter(Boolean)
+      .sort()
+    const temporalRange = {
+      earliest: timestamps[0] ?? '',
+      latest: timestamps[timestamps.length - 1] ?? '',
+    }
+
+    const dominantType = Object.entries(typeBreakdown)
+      .sort(([, a], [, b]) => b - a)[0]?.[0] ?? 'mixed'
+
+    const tagSummary = commonTags.length > 0 ? ` [${commonTags.slice(0, 5).join(', ')}]` : ''
+    const content = `Cluster "${nucleus.label}": ${members.length} ${dominantType} engrams${tagSummary}. ` +
+      `Types: ${Object.entries(typeBreakdown).map(([t, c]) => `${t}(${c})`).join(', ')}. ` +
+      `Avg potentiation: ${nucleus.avgPotentiation.toFixed(3)}.`
+
+    return { content, tags: commonTags, temporalRange, typeBreakdown }
+  }
+
+  /**
+   * Prune old, low-magnitude spikes to bound storage.
+   */
+  pruneSpikeHistories(keepCount = 100): number {
+    const { engrams } = this.cortex.getAllEngramsWithSynapses()
+    let totalPruned = 0
+
+    for (const engram of engrams) {
+      const count = this.cortex.getSpikeCount(engram.id)
+      if (count > keepCount) {
+        totalPruned += this.cortex.pruneSpikes(engram.id, keepCount)
+      }
+    }
+
+    if (totalPruned > 0) {
+      this.logger.debug('Spike histories pruned', { totalPruned })
+    }
+
+    return totalPruned
+  }
+}
