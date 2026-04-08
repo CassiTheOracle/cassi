@@ -19,6 +19,8 @@ import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
+import { parseFileVaultUri } from '../../intelligence/file-vault/index.js'
+import { getRepoRoot } from '../../utils/paths.js'
 
 
 /**
@@ -55,30 +57,155 @@ function mirrorToArtifactStore(
   content: string,
   ctx: ToolExecutionContext,
 ): void {
-  const store = ctx._fileArtifactStore
-  if (!store) return
-
   const relPath = relative(ctx.workingDir, absPath)
-  // Skip files outside the workspace (shouldn't happen but be safe)
   if (relPath.startsWith('..')) return
 
+  const writeOpts = {
+    namespace: 'workspace',
+    path: relPath,
+    content,
+    sessionId: ctx.sessionId,
+    agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
+    message: `write_file: ${relPath}`,
+    visibility: 'public' as const,
+    tags: ['workspace-mirror', ctx.sessionType ?? 'unknown'].filter(Boolean),
+  }
+
+  // Prefer FileVault (topology-aware), fall back to FileArtifactStore
+  const vault = ctx._fileVault
+  if (vault) {
+    try {
+      vault.write(writeOpts)
+      return
+    } catch (err) {
+      ctx.logger.debug?.('[write_file] file-vault mirror failed (non-fatal)', { path: relPath, error: String(err) })
+    }
+  }
+
+  const store = ctx._fileArtifactStore
+  if (store) {
+    try {
+      store.write(writeOpts)
+    } catch (err) {
+      ctx.logger.debug?.('[write_file] artifact-store mirror failed (non-fatal)', { path: relPath, error: String(err) })
+    }
+  }
+}
+
+// ── CassiCore Code Store Integration ───────────────────────────────
+
+const CODE_STORE_SOURCE_EXTS = new Set(['ts', 'tsx', 'js', 'jsx', 'json', 'yaml', 'yml', 'md', 'sh'])
+
+/**
+ * Check if a file path is a CassiCore source file that should be managed
+ * by the code store (mnemic field database).
+ */
+function isCassiCoreSourceFile(absPath: string): { is: boolean; relPath: string } {
+  const repoRoot = getRepoRoot()
+  if (!absPath.startsWith(repoRoot)) return { is: false, relPath: '' }
+
+  const relPath = relative(repoRoot, absPath)
+
+  // Skip generated/vendored directories
+  if (relPath.startsWith('dist/') || relPath.startsWith('node_modules/')) {
+    return { is: false, relPath }
+  }
+
+  const ext = absPath.split('.').pop() ?? ''
+  if (!CODE_STORE_SOURCE_EXTS.has(ext)) return { is: false, relPath }
+
+  return { is: true, relPath }
+}
+
+// Session-scoped changeset tracking: one active changeset per session
+const activeChangesets = new Map<string, string>()
+
+/**
+ * Get or create an active changeset for this session.
+ */
+function getOrCreateChangeset(ctx: ToolExecutionContext): string | null {
+  const codeStore = ctx._codeStore
+  if (!codeStore) return null
+
+  const existing = activeChangesets.get(ctx.sessionId)
+  if (existing) {
+    const cs = codeStore.getChangeset(existing)
+    if (cs && cs.status === 'pending') return existing
+    activeChangesets.delete(ctx.sessionId)
+  }
+
   try {
-    store.write({
-      namespace: 'workspace',
-      path: relPath,
-      content,
-      sessionId: ctx.sessionId,
-      agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
-      message: `write_file: ${relPath}`,
-      visibility: 'public',  // workspace mirrors are always accessible
-      tags: ['workspace-mirror', ctx.sessionType ?? 'unknown'].filter(Boolean),
+    const cs = codeStore.createChangeset({
+      description: `Session ${ctx.sessionId} code changes`,
+      authorSessionId: ctx.sessionId,
+      authorAgentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
     })
+    activeChangesets.set(ctx.sessionId, cs.id)
+    return cs.id
   } catch (err) {
-    ctx.logger.debug?.('[write_file] artifact-store mirror failed (non-fatal)', {
+    ctx.logger.warn?.('[write_file] failed to create changeset', { error: String(err) })
+    return null
+  }
+}
+
+/**
+ * Write a CassiCore source file directly to the code store (DB-authoritative).
+ * The file is stored as an engram in the mnemic field within a changeset.
+ * Returns a result string, or null if code store is unavailable (fall back to filesystem).
+ */
+function writeToCodeStore(
+  absPath: string,
+  relPath: string,
+  content: string,
+  ctx: ToolExecutionContext,
+): string | null {
+  const codeStore = ctx._codeStore
+  if (!codeStore) return null
+
+  const changesetId = getOrCreateChangeset(ctx)
+  if (!changesetId) return null
+
+  try {
+    const { engram, operation } = codeStore.writeFileInChangeset(changesetId, relPath, content)
+    const meta = engram.metadata as Record<string, unknown>
+
+    ctx.logger.debug?.('[write_file] wrote to code store (DB-authoritative)', {
+      path: relPath,
+      operation,
+      changesetId,
+      engramId: engram.id,
+    })
+
+    const sizeBytes = meta.sizeBytes ?? Buffer.byteLength(content, 'utf8')
+    return `Wrote ${sizeBytes} bytes to code store: ${relPath} (${operation}, changeset: ${changesetId.slice(0, 8)})`
+  } catch (err) {
+    ctx.logger.warn?.('[write_file] code store write failed, falling back to filesystem', {
       path: relPath,
       error: String(err),
     })
+    return null
   }
+}
+
+/**
+ * Commit the active changeset for a session. Called when a batch of changes
+ * is complete (e.g., end of turn or explicit commit).
+ */
+export function commitSessionChangeset(sessionId: string, codeStore: import('../../intelligence/mnemic-field/code-store.js').CodeStore): string | null {
+  const changesetId = activeChangesets.get(sessionId)
+  if (!changesetId) return null
+
+  const cs = codeStore.commitChangeset(changesetId)
+  activeChangesets.delete(sessionId)
+  return cs?.id ?? null
+}
+
+/**
+ * Clean up the active changeset for a session without committing.
+ * Call on session end to prevent memory leaks in the activeChangesets map.
+ */
+export function discardSessionChangeset(sessionId: string): void {
+  activeChangesets.delete(sessionId)
 }
 
 // ── EditMagnitudeGuard ──────────────────────────────────────────────
@@ -387,17 +514,32 @@ export const writeFileHandler: ToolHandler = async (
   const content = input['content'] as string
   const atomic = (input['atomic'] as boolean | undefined) ?? ATOMIC_WRITE
 
-  // Routes to FileArtifactStore instead of filesystem
-  const artifactUri = parseFileArtifactUri(rawPath)
-  if (artifactUri) {
+  // Routes cassi://files/ URIs to FileVault (preferred) or FileArtifactStore (fallback)
+  const vaultUri = parseFileVaultUri(rawPath) ?? parseFileArtifactUri(rawPath)
+  if (vaultUri) {
     try {
+      const vault = ctx._fileVault
+      if (vault) {
+        const result = vault.write({
+          namespace: vaultUri.namespace,
+          path: vaultUri.path,
+          content,
+          sessionId: ctx.sessionId,
+          message: input['message'] as string | undefined,
+          visibility: input['visibility'] as 'private' | 'shared' | 'public' | undefined,
+          tags: input['tags'] as string[] | undefined,
+        })
+        const uri = `cassi://files/${result.file.namespace}/${result.file.path}@v${result.version.versionNumber}`
+        return `${result.created ? 'Created' : 'Updated'} artifact: ${uri} (${result.version.size} bytes, v${result.version.versionNumber})`
+      }
+      // Fallback to legacy FileArtifactStore
       const store = ctx._fileArtifactStore
       if (!store) {
-        return `Error: FileArtifactStore not available. Cannot write cassi:// URIs.`
+        return `Error: No file store available. Cannot write cassi:// URIs.`
       }
       const result = store.write({
-        namespace: artifactUri.namespace,
-        path: artifactUri.path,
+        namespace: vaultUri.namespace,
+        path: vaultUri.path,
         content,
         sessionId: ctx.sessionId,
         message: input['message'] as string | undefined,
@@ -413,13 +555,37 @@ export const writeFileHandler: ToolHandler = async (
   
   // Path resolution
   const absPath = rawPath.startsWith('/') ? rawPath : resolve(ctx.workingDir, rawPath)
-  
+
   // Security check
   const allowed = ctx.allowedPaths.some(p => absPath.startsWith(p))
   if (!allowed) {
     return `Error: access denied — ${absPath} is outside allowed paths`
   }
-  
+
+  // DB-authoritative path: CassiCore source files write to code store
+  const codeCheck = isCassiCoreSourceFile(absPath)
+  if (codeCheck.is && ctx._codeStore) {
+    // EditMagnitudeGuard still runs — compare against code store content
+    const existingEngram = ctx._codeStore.getFileByPath(codeCheck.relPath)
+    if (existingEngram) {
+      const oldLines = existingEngram.content.split('\n').length
+      const newLines = content.split('\n').length
+      const netDeletion = oldLines - newLines
+      const deletionRatio = netDeletion > 0 ? netDeletion / oldLines : 0
+      const thresholds = ctx.sessionType === 'helix' ? HELIX_THRESHOLDS : DEFAULT_THRESHOLDS
+
+      if (oldLines >= MIN_LINES_FOR_GUARD
+        && deletionRatio > thresholds.maxDeletionRatio
+        && netDeletion > thresholds.maxNetDeletion) {
+        return `Error: EditMagnitudeGuard blocked — would delete ${netDeletion} of ${oldLines} lines (${(deletionRatio * 100).toFixed(1)}%). Use incremental edits instead.`
+      }
+    }
+
+    const result = writeToCodeStore(absPath, codeCheck.relPath, content, ctx)
+    if (result) return result
+    // If code store write failed, fall through to filesystem
+  }
+
   // EditMagnitudeGuard — block destructive overwrites
   const magnitudeCheck = await checkEditMagnitude(absPath, content, ctx)
   if (!magnitudeCheck.allowed) {
@@ -434,7 +600,7 @@ export const writeFileHandler: ToolHandler = async (
     })
     return `Error: ${magnitudeCheck.reason}`
   }
-  
+
   // Pre-write backup — snapshot existing content before overwriting
   if (magnitudeCheck.existingContent && magnitudeCheck.oldLines > 0) {
     backupBeforeOverwrite(
@@ -445,13 +611,13 @@ export const writeFileHandler: ToolHandler = async (
       ctx,
     )
   }
-  
+
   try {
     const result = await writeFileOptimized(
       { path: absPath, content, atomic },
       ctx
     )
-    
+
     ctx.logger.debug?.('[write_file] completed', {
       path: absPath,
       bytes: result.bytesWritten,
@@ -463,7 +629,7 @@ export const writeFileHandler: ToolHandler = async (
     mirrorToArtifactStore(absPath, content, ctx)
     // Stage in git (protection against accidental deletion)
     gitStage(absPath, ctx.workingDir, ctx.logger)
-    
+
     return `Wrote ${result.bytesWritten} bytes to ${absPath} (${result.method}, ${result.durationMs}ms)`
   } catch (err) {
     return `Error writing file: ${String(err)}`
@@ -525,9 +691,18 @@ export async function writeFilesBatch(
     
     await Promise.all(batch.map(async ({ key, absPath, options }) => {
       try {
+        // DB-authoritative path for CassiCore source files
+        const codeCheck = isCassiCoreSourceFile(absPath)
+        if (codeCheck.is && ctx._codeStore) {
+          const csResult = writeToCodeStore(absPath, codeCheck.relPath, options.content, ctx)
+          if (csResult) {
+            results.set(key, { success: true, bytesWritten: Buffer.byteLength(options.content, 'utf8') })
+            return
+          }
+        }
+
         const result = await writeFileOptimized(options, ctx)
         results.set(key, { success: true, bytesWritten: result.bytesWritten })
-        // Post-write: attribution + recovery (same as single-file path)
         mirrorToArtifactStore(absPath, options.content, ctx)
         gitStage(absPath, ctx.workingDir, ctx.logger)
       } catch (err) {

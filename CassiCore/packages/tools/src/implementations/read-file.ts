@@ -16,6 +16,8 @@ import { resolve, dirname, basename } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
+import { parseFileVaultUri } from '../../intelligence/file-vault/index.js'
+import { getRepoRoot } from '../../utils/paths.js'
 
 const MAX_BYTES = 1024 * 1024  // 1MB max
 const MAX_LINES_BUFFER = 10_000  // Max lines to buffer in memory
@@ -243,28 +245,72 @@ export const readFileHandler: ToolHandler = async (
   const offset = Math.max(1, (input['offset'] as number | undefined) ?? 1)
   const limit = input['limit'] as number | undefined
 
-  // WHY: cassi:// URIs route to FileArtifactStore, not filesystem
-  const artifactUri = parseFileArtifactUri(rawPath)
-  if (artifactUri) {
+  // WHY: cassi://self/ URIs read from the CodeStore (CassiCore's own source in mnemic field)
+  if (rawPath.startsWith('cassi://self/')) {
     try {
+      const codeStore = ctx._codeStore
+      if (!codeStore) {
+        return `Error: CodeStore not available. Cannot read cassi://self/ URIs.`
+      }
+      const filePath = rawPath.slice('cassi://self/'.length)
+      const engram = codeStore.getFileByPath(filePath)
+      if (!engram) {
+        return `Error: source file not found in code store: ${filePath}`
+      }
+      let content = engram.content
+      if (offset > 1 || limit !== undefined) {
+        content = extractLines(Buffer.from(content), offset, limit)
+      }
+      const meta = engram.metadata as Record<string, unknown>
+      return `[code-store: ${filePath} | ${meta.sizeBytes ?? content.length} bytes | potentiation: ${engram.potentiation.toFixed(3)}]\n\n${content}`
+    } catch (err) {
+      return `Error reading from code store: ${String(err)}`
+    }
+  }
+
+  // cassi://code/{path} URIs read from the CodeVault (external projects)
+  if (rawPath.startsWith('cassi://code/')) {
+    return `Error: CodeVault read not yet wired. Use cassi://self/ for CassiCore source or filesystem paths for external projects.`
+  }
+
+  // cassi://files/ URIs route to FileVault (preferred) or FileArtifactStore (fallback)
+  const vaultUri = parseFileVaultUri(rawPath) ?? parseFileArtifactUri(rawPath)
+  if (vaultUri) {
+    try {
+      const vault = ctx._fileVault
+      if (vault) {
+        const result = vault.read({
+          namespace: vaultUri.namespace,
+          path: vaultUri.path,
+          version: vaultUri.version,
+          sessionId: ctx.sessionId,
+          admin: false,
+        })
+        let content = result.content.toString('utf-8')
+        if (offset > 1 || limit !== undefined) {
+          content = extractLines(Buffer.from(content), offset, limit)
+        }
+        const versionTag = `@v${result.version.versionNumber}`
+        return `[vault: ${vaultUri.namespace}/${vaultUri.path}${versionTag} | ${result.version.size} bytes | ${result.file.visibility}]\n\n${content}`
+      }
+      // Fallback to legacy FileArtifactStore
       const store = ctx._fileArtifactStore
       if (!store) {
-        return `Error: FileArtifactStore not available. Cannot read cassi:// URIs.`
+        return `Error: No file store available. Cannot read cassi:// URIs.`
       }
       const result = store.read({
-        namespace: artifactUri.namespace,
-        path: artifactUri.path,
-        version: artifactUri.version,
+        namespace: vaultUri.namespace,
+        path: vaultUri.path,
+        version: vaultUri.version,
         sessionId: ctx.sessionId,
         admin: false,
       })
       let content = result.content.toString('utf-8')
-      // HOW: reuse extractLines for consistent offset/limit behavior
       if (offset > 1 || limit !== undefined) {
         content = extractLines(Buffer.from(content), offset, limit)
       }
       const versionTag = `@v${result.version.versionNumber}`
-      return `[artifact: ${artifactUri.namespace}/${artifactUri.path}${versionTag} | ${result.version.size} bytes | ${result.file.visibility}]\n\n${content}`
+      return `[artifact: ${vaultUri.namespace}/${vaultUri.path}${versionTag} | ${result.version.size} bytes | ${result.file.visibility}]\n\n${content}`
     } catch (err) {
       return `Error reading artifact: ${String(err)}`
     }

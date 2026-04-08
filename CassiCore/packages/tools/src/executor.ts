@@ -100,7 +100,7 @@ export class ToolExecutor {
       if (entry) return entry
     }
 
-    const preferredServers = (process.env.PREFERRED_MCP_SERVERS || 'serena').split(',').map(s => s.trim()).filter(Boolean)
+    const preferredServers = (process.env.PREFERRED_MCP_SERVERS || 'serena,gitnexus').split(',').map(s => s.trim()).filter(Boolean)
     for (const serverId of preferredServers) {
       const alt = `${serverId}__${toolName}`
       const e = this.registry.get(alt)
