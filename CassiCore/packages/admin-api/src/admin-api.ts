@@ -2319,8 +2319,14 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     const pluginRoute = pathname.startsWith('/plugin/')
     const pluginBearerAuth = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer cpk_')
     const pluginRegisterRoute = pluginRoute && pathname === '/plugin/register'
+    const pluginAuthenticatedRoute = pluginRoute && (
+      pathname === '/plugin/message'
+      || pathname === '/plugin/heartbeat'
+      || pathname === '/plugin/events'
+      || (method === 'DELETE' && parts.length === 2)
+    )
 
-    if (!authOk(req) && !(pluginRoute && pluginBearerAuth) && !pluginRegisterRoute) {
+    if (!authOk(req) && !(pluginAuthenticatedRoute && pluginBearerAuth) && !pluginRegisterRoute) {
       sendJSON(res, 401, { error: 'unauthorized' })
       return
     }
