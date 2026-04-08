@@ -293,12 +293,29 @@ export const TOOL_ALIASES: AliasTable = {
   training_ingest:       { name: 'training', args: { action: 'ingest'      } },
   training_tag:          { name: 'training', args: { action: 'tag'         } },
   training_export:       { name: 'training', args: { action: 'export'      } },
+
+
+  // Bare action names that agents sometimes call as standalone tools
+  find_symbol:           { name: 'code', args: { action: 'symbol'         } },
+  find_referencing_symbols: { name: 'code', args: { action: 'refs'        } },
+  get_symbols_overview:  { name: 'code', args: { action: 'overview'       } },
+  replace_content:       { name: 'file', args: { action: 'edit'           } },
+  replace_symbol_body:   { name: 'code', args: { action: 'replace_symbol' } },
+  insert_after_symbol:   { name: 'code', args: { action: 'insert_after'   } },
+  insert_before_symbol:  { name: 'code', args: { action: 'insert_before'  } },
+  search_for_pattern:    { name: 'code', args: { action: 'search_pattern' } },
+  list_dir:              { name: 'file', args: { action: 'list'           } },
+  find_file:             { name: 'file', args: { action: 'find'           } },
+  check_onboarding_performed: { name: 'code', args: { action: 'overview' } },
+  initial_instructions:  { name: 'code', args: { action: 'overview'       } },
+  onboarding:            { name: 'code', args: { action: 'overview'       } },
 };
 
 // Fuzzy matching (Levenshtein distance)
 
-const FUZZY_AUTO_RESOLVE_THRESHOLD = 0.8;
+const FUZZY_AUTO_RESOLVE_THRESHOLD = 0.7;
 const MAX_CHAIN_DEPTH = 3;
+const MIN_SUFFIX_LENGTH = 4;
 
 /**
  * Normalised Levenshtein similarity in [0, 1].
@@ -414,6 +431,23 @@ export function resolveToolAlias(
     if (stripped && stripped !== current) {
       current = stripped;
       continue;
+    }
+
+    // 4. Suffix match against alias table keys
+    // Handles bare names left after partial prefix stripping (e.g. 'search_for_pattern'
+    // matches the alias key 'serena_search_for_pattern')
+    if (current.length >= MIN_SUFFIX_LENGTH) {
+      const suffixKey = Object.keys(table).find(
+        (key) => key.endsWith(`_${current}`) && key !== current,
+      );
+      if (suffixKey) {
+        const sfxEntry = table[suffixKey];
+        current = sfxEntry.name;
+        if (sfxEntry.args) {
+          mergedArgs = { ...sfxEntry.args, ...mergedArgs };
+        }
+        continue;
+      }
     }
 
     // Nothing found for this hop — stop early

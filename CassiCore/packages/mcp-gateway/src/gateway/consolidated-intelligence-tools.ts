@@ -9,6 +9,7 @@
 
 import { executeIntelligenceTool } from './intelligence-tools.js';
 import { executeDialecticTool } from './dialectic-tools.js';
+import { fetchWithTimeout } from './helpers.js';
 import type { ILogger } from '../../types/interfaces.js';
 import { introspectSchemas } from '../../core/intelligence/code-analysis/index.js';
 import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/index.js';
@@ -29,6 +30,7 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
           'effectiveness', 'budget', 'evolution', 'blindspots', 'snapshot',
           'trust', 'consequences', 'dialectic', 'overview',
           'schema', 'context_feedback',
+          'meditation_status', 'meditation_start', 'meditation_stop',
         ],
         description: 'Intelligence operation to perform',
       },
@@ -186,6 +188,28 @@ export async function executeIntelligenceConsolidatedTool(
     }
   }
 
+  // Meditation actions — routed to admin API /meditation/* endpoints
+  if (action === 'meditation_status') {
+    const res = await fetchWithTimeout(`${baseUrl}/meditation/status`)
+    return await res.json()
+  }
+  if (action === 'meditation_start') {
+    const res = await fetchWithTimeout(`${baseUrl}/meditation/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    return await res.json()
+  }
+  if (action === 'meditation_stop') {
+    const res = await fetchWithTimeout(`${baseUrl}/meditation/stop`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+    return await res.json()
+  }
+
   // Map action to legacy tool name
   const validTools = new Set([
     'activity', 'thinker', 'subconscious', 'consciousness', 'trace',
@@ -194,7 +218,7 @@ export async function executeIntelligenceConsolidatedTool(
   ]);
 
   if (!validTools.has(action)) {
-    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback`);
+    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback, meditation_status, meditation_start, meditation_stop`);
   }
 
   return await executeIntelligenceTool(baseUrl, action, restArgs, logger);

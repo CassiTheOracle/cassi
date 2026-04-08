@@ -18,6 +18,29 @@ import {
   ensureFreshIndexBackground,
 } from '../../core/intelligence/code-analysis/index.js'
 
+/**
+ * Wraps a GitNexus router call so failures return a structured error object
+ * instead of propagating as a raw exception. This lets the agent see the error
+ * and optionally retry with `action: 'reindex'`.
+ */
+async function safeGitNexusRoute(
+  router: ToolRouter,
+  tool: string,
+  args: Record<string, unknown>,
+  logger: ILogger,
+): Promise<any> {
+  try {
+    return await router(tool, args)
+  } catch (err) {
+    const msg = String(err)
+    logger.warn('GitNexus tool call failed, returning structured error', { tool, error: msg })
+    return {
+      content: [{ type: 'text', text: `GitNexus ${tool} failed: ${msg}. The index may be stale — try cassi_code({ action: 'reindex' }).` }],
+      isError: true,
+    }
+  }
+}
+
 // Module-level singleton for Serena onboarding
 let serenaOnboarding: SerenaAutoOnboarding | null = null
 
@@ -307,7 +330,7 @@ export async function executeCodeConsolidatedTool(
     case 'query': {
       const { query, goal, task_context, limit, max_symbols, include_content, repo } = mergedArgs
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_query', {
+      return await safeGitNexusRoute(router, 'gitnexus_query', {
         query,
         goal,
         task_context,
@@ -315,23 +338,23 @@ export async function executeCodeConsolidatedTool(
         max_symbols,
         include_content,
         repo,
-      })
+      }, logger)
     }
     case 'context': {
       const { name, uid, file_path, include_content, repo } = mergedArgs
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_context', {
+      return await safeGitNexusRoute(router, 'gitnexus_context', {
         name,
         uid,
         file_path,
         include_content,
         repo,
-      })
+      }, logger)
     }
     case 'impact': {
       const { target, direction, maxDepth, minConfidence, relationTypes, includeTests, repo } = mergedArgs
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_impact', {
+      return await safeGitNexusRoute(router, 'gitnexus_impact', {
         target,
         direction,
         maxDepth,
@@ -339,33 +362,33 @@ export async function executeCodeConsolidatedTool(
         relationTypes,
         includeTests,
         repo,
-      })
+      }, logger)
     }
     case 'cypher': {
       const { query, repo } = mergedArgs
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_cypher', { query, repo })
+      return await safeGitNexusRoute(router, 'gitnexus_cypher', { query, repo }, logger)
     }
     case 'detect_changes': {
       const { scope, base_ref, repo } = mergedArgs
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_detect_changes', { scope, base_ref, repo })
+      return await safeGitNexusRoute(router, 'gitnexus_detect_changes', { scope, base_ref, repo }, logger)
     }
     case 'list_repos': {
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_list_repos', {})
+      return await safeGitNexusRoute(router, 'gitnexus_list_repos', {}, logger)
     }
     case 'rename_graph': {
       const { symbol_name, symbol_uid, new_name, file_path, dry_run, repo } = mergedArgs
       ensureFreshIndexBackground(logger)
-      return await router('gitnexus_rename', {
+      return await safeGitNexusRoute(router, 'gitnexus_rename', {
         symbol_name,
         symbol_uid,
         new_name,
         file_path,
         dry_run,
         repo,
-      })
+      }, logger)
     }
     case 'symbol': {
       const { name_path_pattern, relative_path, include_body, include_info, depth, substring_matching } = mergedArgs
