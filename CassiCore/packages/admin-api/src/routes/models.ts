@@ -78,7 +78,7 @@ export async function handleModelsRoutes(
             } else if (String(provId).toLowerCase().includes('alibaba')) {
               // Alibaba Coding Plan models
               api = 'openai-completions'
-              if (modelName === 'qwen3.5-plus' || modelName.includes('qwen3.5-plus')) {
+              if (modelName === 'qwen3.6-plus' || modelName.includes('qwen3.6-plus')) {
                 contextWindow = 1048576 // 1M context
                 maxTokens = 65536
                 reasoning = true

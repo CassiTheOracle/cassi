@@ -41,6 +41,116 @@ export async function handleIntelligenceRoutes(
 ): Promise<boolean> {
   const { daemon, logger, sendJSON, parseBody, url, parts } = deps
 
+  // --- Locus Bridge Routes ---
+
+  // Must come before generic /intelligence/:module handlers below.
+
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'assemble' && method === 'POST') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const body = await parseBody(req)
+      const { messages, systemPromptBase, sessionId } = body
+      if (!messages || !Array.isArray(messages)) {
+        sendJSON(res, 400, { error: 'messages array is required' })
+        return true
+      }
+
+      const result = await locusBridge.assemble(
+        messages,
+        systemPromptBase ?? [],
+        sessionId ?? 'unknown',
+      )
+      sendJSON(res, 200, result)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'spark' && method === 'POST') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const body = await parseBody(req)
+      const { sessionId, content, type, goal, toolName, filePath, action } = body
+
+      let events: any[] = []
+
+      if (type === 'user-intent' || (!type && content)) {
+        events = locusBridge.sparkFromUserPrompt(sessionId ?? 'unknown', content ?? '', goal)
+      } else if (type === 'tool-discovery') {
+        events = locusBridge.sparkFromToolResult(sessionId ?? 'unknown', toolName ?? 'unknown', content ?? '', goal)
+      } else if (type === 'code-reference') {
+        events = locusBridge.sparkFromCodeReference(sessionId ?? 'unknown', filePath ?? '', action ?? 'read', content, goal)
+      } else {
+        sendJSON(res, 400, { error: 'Unsupported spark type or missing content' })
+        return true
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        kindled: events.length,
+        events: events.map((e: any) => ({
+          eventId: e.eventId,
+          slotIndex: e.slotIndex,
+          luminance: e.kindlingLuminance,
+          eclipse: e.eclipse ? {
+            eclipsedSparkId: e.eclipse.eclipsedSpark.sparkId,
+            luminanceDelta: e.eclipse.luminanceDelta,
+          } : null,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'state' && method === 'GET') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const snapshot = locusBridge.getSnapshot()
+      sendJSON(res, 200, snapshot)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'curate' && method === 'POST') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const curated = await locusBridge.curate()
+      sendJSON(res, 200, curated)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // GET /intelligence - list modules
   if (parts[0] === 'intelligence' && method === 'GET' && parts.length === 1) {
     const modules = (daemon.intelligence?.all ?? []).map((m: any) => ({ name: m.name, priority: m.priority, status: 'active' }))
@@ -943,118 +1053,6 @@ export async function handleIntelligenceRoutes(
         attentionSchema: schema,
         credibility: memory.getAllRecords(),
       })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
-  }
-
-  // --- Locus Bridge Routes ---
-
-  // POST /intelligence/locus-bridge/assemble — full context assembly
-  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'assemble' && method === 'POST') {
-    const locusBridge = daemon.intelligence?.locusBridge
-    if (!locusBridge) {
-      sendJSON(res, 404, { error: 'LocusBridge not available' })
-      return true
-    }
-
-    try {
-      const body = await parseBody(req)
-      const { messages, systemPromptBase, sessionId } = body
-      if (!messages || !Array.isArray(messages)) {
-        sendJSON(res, 400, { error: 'messages array is required' })
-        return true
-      }
-
-      const result = await locusBridge.assemble(
-        messages,
-        systemPromptBase ?? [],
-        sessionId ?? 'unknown',
-      )
-      sendJSON(res, 200, result)
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
-  }
-
-  // POST /intelligence/locus-bridge/spark — submit a spark
-  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'spark' && method === 'POST') {
-    const locusBridge = daemon.intelligence?.locusBridge
-    if (!locusBridge) {
-      sendJSON(res, 404, { error: 'LocusBridge not available' })
-      return true
-    }
-
-    try {
-      const body = await parseBody(req)
-      const { sessionId, content, type, goal, toolName, filePath, action } = body
-
-      let events: any[] = []
-
-      if (type === 'user-intent' || (!type && content)) {
-        events = locusBridge.sparkFromUserPrompt(sessionId ?? 'unknown', content ?? '', goal)
-      } else if (type === 'tool-discovery') {
-        events = locusBridge.sparkFromToolResult(sessionId ?? 'unknown', toolName ?? 'unknown', content ?? '', goal)
-      } else if (type === 'code-reference') {
-        events = locusBridge.sparkFromCodeReference(sessionId ?? 'unknown', filePath ?? '', action ?? 'read', content, goal)
-      } else {
-        sendJSON(res, 400, { error: 'Unsupported spark type or missing content' })
-        return true
-      }
-
-      sendJSON(res, 200, {
-        ok: true,
-        kindled: events.length,
-        events: events.map((e: any) => ({
-          eventId: e.eventId,
-          slotIndex: e.slotIndex,
-          luminance: e.kindlingLuminance,
-          eclipse: e.eclipse ? {
-            eclipsedSparkId: e.eclipse.eclipsedSpark.sparkId,
-            luminanceDelta: e.eclipse.luminanceDelta,
-          } : null,
-        })),
-      })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
-  }
-
-  // GET /intelligence/locus-bridge/state — current foci, stats, last assembly meta
-  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'state' && method === 'GET') {
-    const locusBridge = daemon.intelligence?.locusBridge
-    if (!locusBridge) {
-      sendJSON(res, 404, { error: 'LocusBridge not available' })
-      return true
-    }
-
-    try {
-      const snapshot = locusBridge.getSnapshot()
-      sendJSON(res, 200, snapshot)
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
-  }
-
-  // POST /intelligence/locus-bridge/curate — trigger curation only
-  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'curate' && method === 'POST') {
-    const locusBridge = daemon.intelligence?.locusBridge
-    if (!locusBridge) {
-      sendJSON(res, 404, { error: 'LocusBridge not available' })
-      return true
-    }
-
-    try {
-      const curated = await locusBridge.curate()
-      sendJSON(res, 200, curated)
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })

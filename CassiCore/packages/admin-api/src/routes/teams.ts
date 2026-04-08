@@ -270,7 +270,7 @@ export async function handleTeamsRoutes(
           secondaryProviderId: body.provider.secondaryProviderId ?? body.provider.freeProviderId ?? body.secondaryProviderId ?? body.freeProviderId ?? undefined,
         }
       } else if (body.provider && typeof body.provider === 'string') {
-        // Flat: { provider: "alibaba-coding", model: "qwen3.5-plus" } (github-copilot is blocked for Teams)
+        // Flat: { provider: "alibaba-coding", model: "qwen3.6-plus" } (github-copilot is blocked for Teams)
         providerConfig = {
           providerId: body.provider,
           model: body.model || undefined,
