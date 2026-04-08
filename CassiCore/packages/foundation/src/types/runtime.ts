@@ -81,10 +81,15 @@ export interface CompletionOpts {
   sessionId?: string;
   /**
    * Keeps the SDK session alive across successive complete() calls.
-   * All iterations within the same warm session are part of a single premium request.
+   * All iterations within the same persistent session are part of a single request lifecycle.
    *
    * The key identifies the logical session — e.g. `lumen:session123:yang`.
    * Falls back to create-and-destroy pattern when not set.
+   */
+  persistentSessionKey?: string;
+  /**
+   * Backward-compatible alias for persistentSessionKey.
+   * Prefer persistentSessionKey for new code.
    */
   warmSessionKey?: string;
 }
