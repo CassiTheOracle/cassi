@@ -28,7 +28,7 @@ export type RoutingScope = 'next' | 'next-job' | 'session' | 'job' | 'default'
  * | Tier       | Provider       | Model                  | Character                  |
  * |------------|----------------|------------------------|----------------------------|
  * | minimax    | alibaba-coding | MiniMax-M2.5           | Fastest, lightweight       |
- * | qwenPlus   | alibaba-coding | qwen3.5-plus           | Fast, decent reasoning     |
+ * | qwenPlus   | alibaba-coding | qwen3.6-plus           | Fast, decent reasoning     |
  * | glm        | alibaba-coding | glm-5                  | Solid mid-range            |
  * | kimi       | alibaba-coding | kimi-k2.5              | Best mid-tier reasoning    |
  * | qwenMax    | alibaba-coding | qwen3-max-2026-01-23   | High-capability, 2nd tier  |

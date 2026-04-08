@@ -27,31 +27,31 @@ export const MODEL_DEFAULTS = {
   /** Main agent — the user-facing conversational model */
   main: {
     provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_MAIN', 'qwen3.5-plus'),
+    model: getEnvString('CASSICORE_MODEL_MAIN', 'qwen3.6-plus'),
   },
 
   /** Background reasoning — intelligence modules (thinker, dialectic, memory, subconscious) */
   reasoning: {
     provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_REASONING', 'qwen3.5-plus'),
+    model: getEnvString('CASSICORE_MODEL_REASONING', 'qwen3.6-plus'),
   },
 
   /** Spawned agents — team members, sub-agents, coordinators */
   agent: {
     provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_AGENT', 'qwen3.5-plus'),
+    model: getEnvString('CASSICORE_MODEL_AGENT', 'qwen3.6-plus'),
   },
 
   /** Fast — quick intent parsing, low-latency operations */
   fast: {
     provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_FAST', 'qwen3.5-plus'),
+    model: getEnvString('CASSICORE_MODEL_FAST', 'qwen3.6-plus'),
   },
 
   /** Fallback — used when provider resolution fails entirely */
   fallback: {
     provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'qwen3.5-plus'),
+    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'qwen3.6-plus'),
   },
 
   /** Background — cheap/free model for drones, scouts, and low-priority work */
