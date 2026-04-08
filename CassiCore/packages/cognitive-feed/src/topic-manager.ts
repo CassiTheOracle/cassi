@@ -84,6 +84,15 @@ export const TOPIC_DEFINITIONS: TopicDefinition[] = [
     category: 'intel',
   },
 
+  // Meditation — idle-time exploration, prompt evolution, self-reflection
+  {
+    key: 'meditation',
+    displayName: 'Meditation',
+    color: TOPIC_COLORS.VIOLET,
+    description: 'Meditation sessions, prompt evolution, evaluation scores, focused seeding',
+    category: 'intel',
+  },
+
   // System — operational health and tooling
   {
     key: 'system',

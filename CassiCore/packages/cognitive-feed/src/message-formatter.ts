@@ -19,6 +19,7 @@ const MODULE_LABELS: Record<string, string> = {
   constellation: 'Constellation',
   intelligence:  'Intelligence',
   memory:        'Memory',
+  meditation:    'Meditation',
   system:        'System',
   sessions:      'Sessions',
 }
@@ -324,6 +325,30 @@ export class MessageFormatter {
     if (type.startsWith('blackboard:')) {
       const channel = e.channel ?? '?'
       return `[${esc(channel)}] ${esc(truncate(e.content ?? '', 100))}`
+    }
+
+    // Meditation events
+    if (type === 'meditation:started') {
+      const prompts = (e.prompts ?? []).map((p: any) => p.promptId).join(', ')
+      return `🔮 Meditation started (${esc(e.style ?? '?')}) — prompts: ${esc(prompts)}`
+    }
+    if (type === 'meditation:stopped') {
+      const dur = e.durationMs ? fmtDuration(e.durationMs) : '?'
+      return `🔮 Meditation ended (${esc(e.reason ?? '?')}) — ${dur}, ${e.engrams?.spiked ?? 0} engrams spiked`
+    }
+    if (type === 'meditation:evaluation-complete') {
+      const scores = (e.scores ?? []).map((s: any) => `${s.promptId}: ${s.overallScore.toFixed(2)}`).join(', ')
+      return `🔮 Evaluation: ${esc(scores)}`
+    }
+    if (type === 'meditation:prompt-created') {
+      return `🔮 New prompt: "<i>${esc(truncate(e.content ?? '', 80))}</i>" (from ${esc(e.parentId ?? '?')})`
+    }
+    if (type === 'meditation:evolution-adjusted') {
+      return `🔮 Evolution rate: ${e.oldTemperature?.toFixed(2) ?? '?'} → ${e.newTemperature?.toFixed(2) ?? '?'} (${esc(e.direction ?? '?')})`
+    }
+    if (type === 'meditation:focused-seeding') {
+      const topics = (e.focusTopics ?? []).join(', ')
+      return `🔮 Focused seeding: ${esc(topics)} (${e.engramsKindled ?? 0} kindled)`
     }
 
     return `${esc(type)}`
@@ -878,6 +903,58 @@ export class MessageFormatter {
     if (type === 'axon:complete') {
       parts.push(`<b>Thinking complete</b> (${e.totalSteps ?? '?'} steps)`)
       if (e.summary) parts.push(esc(truncate(e.summary, 500)))
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+
+    // Meditation events
+    if (type === 'meditation:started') {
+      parts.push(`🔮 <b>Meditation Started</b> (${esc(e.style ?? 'passive')})`)
+      if (e.prompts?.length) {
+        const promptLines = (e.prompts as any[]).map((p: any) =>
+          `  • <b>${esc(p.explorer)}</b>: [${esc(p.promptId)}] <i>${esc(truncate(p.prompt, 60))}</i>`,
+        )
+        parts.push(promptLines.join('\n'))
+      }
+      return parts.join('\n\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'meditation:stopped') {
+      parts.push(`🔮 <b>Meditation Complete</b> (${esc(e.reason ?? '?')})`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
+      if (e.engrams) parts.push(`<b>Engrams:</b> ${e.engrams.spiked} spiked, ${e.engrams.created} created`)
+      if (e.consolidations) parts.push(`<b>Consolidations:</b> ${e.consolidations}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'meditation:evaluation-complete') {
+      parts.push(`🔮 <b>Evaluation Complete</b> (${esc(e.style ?? 'passive')})`)
+      if (e.scores?.length) {
+        const scoreLines = (e.scores as any[]).map((s: any) =>
+          `  • <b>${esc(s.promptId)}</b> → ${s.overallScore.toFixed(2)}`,
+        )
+        parts.push(scoreLines.join('\n'))
+      }
+      if (e.summary) parts.push(`\n<i>${esc(truncate(e.summary, 500))}</i>`)
+      if (e.evalDurationMs) parts.push(`<b>Eval:</b> ${fmtDuration(e.evalDurationMs)}, ${fmtTokens(e.evalTokensUsed ?? 0)} tokens`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'meditation:prompt-created') {
+      parts.push(`🔮 <b>New Prompt Created</b>`)
+      parts.push(`<b>ID:</b> <code>${esc(e.promptId ?? '?')}</code>`)
+      parts.push(`<b>Parent:</b> <code>${esc(e.parentId ?? '?')}</code>`)
+      parts.push(`<b>Category:</b> ${esc(e.category ?? '?')}`)
+      parts.push(`<b>Content:</b> <i>"${esc(truncate(e.content ?? '', 200))}"</i>`)
+      if (e.rationale) parts.push(`<b>Rationale:</b> ${esc(truncate(e.rationale, 200))}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'meditation:evolution-adjusted') {
+      parts.push(`🔮 <b>Evolution Rate Adjusted</b> (${esc(e.direction ?? '?')})`)
+      parts.push(`<b>Temperature:</b> ${e.oldTemperature?.toFixed(2) ?? '?'} → ${e.newTemperature?.toFixed(2) ?? '?'}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'meditation:focused-seeding') {
+      parts.push(`🔮 <b>Focused Seeding</b>`)
+      if (e.focusTopics?.length) parts.push(`<b>Topics:</b> ${(e.focusTopics as string[]).map(t => esc(t)).join(', ')}`)
+      parts.push(`<b>Engrams kindled:</b> ${e.engramsKindled ?? 0}`)
+      if (e.seedingDurationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.seedingDurationMs)}`)
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 

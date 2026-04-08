@@ -199,6 +199,16 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'heart:delivered':           { topicKey: 'memory', highlight: false, priority: 'low' },
   'heart:skipped':             { topicKey: 'memory', highlight: false, priority: 'low' },
 
+  // Meditation — idle-time exploration and prompt evolution
+  'meditation:started':              { topicKey: 'meditation', highlight: true, priority: 'medium' },
+  'meditation:stopped':              { topicKey: 'meditation', highlight: true, priority: 'medium' },
+  'meditation:evaluation-complete':  { topicKey: 'meditation', highlight: true, priority: 'high' },
+  'meditation:prompt-created':       { topicKey: 'meditation', highlight: true, priority: 'high' },
+  'meditation:prompt-retired':       { topicKey: 'meditation', highlight: true, priority: 'medium' },
+  'meditation:style-selected':       { topicKey: 'meditation', highlight: false, priority: 'low' },
+  'meditation:evolution-adjusted':   { topicKey: 'meditation', highlight: true, priority: 'medium' },
+  'meditation:focused-seeding':      { topicKey: 'meditation', highlight: true, priority: 'medium' },
+
   // System — errors, budget, tools, LLM, blackboard, timeline
   'provider:request_error':    { topicKey: 'system', highlight: true, priority: 'high' },
   'provider:request_timeout':  { topicKey: 'system', highlight: true, priority: 'high' },
@@ -265,6 +275,9 @@ const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
   { prefix: 'memory:',         rule: { topicKey: 'memory', highlight: false } },
   { prefix: 'archive:',        rule: { topicKey: 'memory', highlight: false } },
   { prefix: 'heart:',          rule: { topicKey: 'memory', highlight: false } },
+
+  // Meditation — idle-time exploration
+  { prefix: 'meditation:',     rule: { topicKey: 'meditation', highlight: true, priority: 'medium' } },
 
   // System — operational catch-all
   { prefix: 'budget:',         rule: { topicKey: 'system', highlight: false } },
