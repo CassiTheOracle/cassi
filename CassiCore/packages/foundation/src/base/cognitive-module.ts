@@ -45,6 +45,7 @@ import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js'
+import type { GlobalWorkspace, CognitiveSignal, SignalType } from '../workspace/index.js'
 
 // Re-export types for backward compatibility
 export type { ModuleModelConfig } from './model-config.js'
@@ -83,8 +84,10 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   protected providerResolver?: (providerId: string) => IProvider | undefined
   protected moduleRegistry?: ModuleSessionRegistry
   protected globalBlackboardRegistry?: GlobalBlackboardRegistry
+  protected globalWorkspace?: GlobalWorkspace
 
   private _status: ModuleStatus = 'created'
+  private _signalCounter = 0
   private _metrics: CognitiveModuleMetrics = {
     inferenceCalls: 0,
     inferenceErrors: 0,
@@ -305,6 +308,52 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   ): Promise<void>
   protected registerSubscriptions?(): void
 
+  /**
+   * Called when the Global Workspace broadcasts its current state.
+   * Override to adapt behavior based on what other modules are contributing.
+   * This is the GWT "feedback" path — the workspace broadcasting back to specialists.
+   */
+  protected onWorkspaceBroadcast?(
+    signals: CognitiveSignal[],
+    workspaceState: { threshold: number; occupiedSlots: number; totalSlots: number },
+  ): void
+
+
+  // ── Global Workspace Signal Submission ──────────────────────────
+
+  /**
+   * Submit a cognitive signal to the Global Workspace for competition.
+   *
+   * Signals are scored on luminance (novelty, urgency, relevance, source credibility)
+   * and compete for limited workspace slots. Only signals above the ignition threshold
+   * enter consciousness — the rest stay unconscious.
+   *
+   * Returns true if the signal ignited (entered workspace).
+   */
+  protected submitSignal(
+    type: SignalType,
+    content: string,
+    sessionId: string,
+    opts?: { urgencyHint?: number; metadata?: Record<string, unknown> },
+  ): boolean {
+    if (!this.globalWorkspace) return false
+
+    const signal: CognitiveSignal = {
+      signalId: `${this.name}-${Date.now()}-${this._signalCounter++}`,
+      source: this.name,
+      sessionId,
+      type,
+      content,
+      luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+      createdAt: Date.now(),
+      urgencyHint: opts?.urgencyHint,
+      metadata: opts?.metadata,
+    }
+
+    return this.globalWorkspace.submit(signal)
+  }
+
+
   // LLM Inference — delegates to standalone inference helpers
 
   /**
@@ -497,5 +546,33 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     }
 
     this.registerSubscriptions?.()
+  }
+
+  private _workspaceBroadcastUnsub?: () => void
+
+  /**
+   * Wire the Global Workspace for GWT-based signal competition.
+   * When set, modules can call submitSignal() to propose content for
+   * the capacity-limited workspace. Only bright signals enter consciousness.
+   */
+  setGlobalWorkspace(workspace: GlobalWorkspace): void {
+    this.globalWorkspace = workspace
+
+    // Subscribe to broadcasts if the module implements the handler
+    if (this.onWorkspaceBroadcast) {
+      this._workspaceBroadcastUnsub?.()
+      this._workspaceBroadcastUnsub = workspace.onBroadcast((signals) => {
+        try {
+          const snapshot = workspace.getSnapshot()
+          this.onWorkspaceBroadcast!(signals, {
+            threshold: snapshot.threshold,
+            occupiedSlots: snapshot.slots.filter(s => s.signal !== null).length,
+            totalSlots: snapshot.slots.length,
+          })
+        } catch (err) {
+          this.logger.error(`[${this.name}] Error in onWorkspaceBroadcast`, { error: String(err) })
+        }
+      })
+    }
   }
 }

@@ -15,8 +15,10 @@
  * instead of mutating HOME.
  */
 
+import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
+import { fileURLToPath } from 'node:url'
 
 
 /**
@@ -79,4 +81,33 @@ export function getAdminSocketPath(): string {
  */
 export function getEnvFilePath(): string {
   return path.join(getCassiCoreHome(), '.env')
+}
+
+/**
+ * Returns the CassiCore repository root (the directory containing package.json).
+ * Derived from this file's location: core/utils/paths.ts → repo root is two levels up.
+ */
+let _repoRoot: string | null = null
+export function getRepoRoot(): string {
+  if (_repoRoot) return _repoRoot
+  const here = path.dirname(fileURLToPath(import.meta.url))
+  // This file lives at core/utils/paths.ts (or dist/core/utils/paths.js)
+  // Walk up to find the directory containing package.json
+  let dir = here
+  for (let i = 0; i < 5; i++) {
+    const parent = path.dirname(dir)
+    if (parent === dir) break
+    dir = parent
+    try {
+      const pkgPath = path.join(dir, 'package.json')
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'))
+      if (pkg.name === 'cassicore' || pkg.name === '@cassicore/core') {
+        _repoRoot = dir
+        return dir
+      }
+    } catch { /* not the right level */ }
+  }
+  // Fallback: assume two levels up from core/utils/
+  _repoRoot = path.resolve(here, '../..')
+  return _repoRoot
 }
