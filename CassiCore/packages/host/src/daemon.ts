@@ -1561,7 +1561,7 @@ export class Daemon {
         const kimiConfig = directive ? directive.resolveTier('kimi')    : { provider: 'alibaba-coding', model: 'kimi-k2.5' }
         const glmConfig  = directive ? directive.resolveTier('glm')     : { provider: 'alibaba-coding', model: 'glm-5' }
         const qwenMaxCfg = directive ? directive.resolveTier('qwenMax') : { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' }
-        const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.5-plus' }
+        const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.6-plus' }
         const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'github-copilot', model: 'gpt-5-mini' }
         const claudeHaikuCfg  = directive ? directive.resolveTier('background') : { provider: 'claude-code', model: 'claude-haiku-4-5' }
         const claudeSonnetCfg = { provider: 'claude-code', model: 'claude-sonnet-4-6' }
@@ -2323,10 +2323,10 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Corpus strategic analysis.
-        // Uses alibaba-coding/qwen3.5-plus for high-capability synthesis and cross-branch reasoning.
+        // Uses alibaba-coding/qwen3.6-plus for high-capability synthesis and cross-branch reasoning.
         if (this.intelligence?.setCorpusLLMProvider) {
           try {
-            const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenPlus') : { provider: 'alibaba-coding', model: 'qwen3.5-plus' }
+            const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenPlus') : { provider: 'alibaba-coding', model: 'qwen3.6-plus' }
             const corpusProvider = providers.get(corpusCfg.provider) ?? providers.values().next().value
             if (corpusProvider) {
               this.intelligence.setCorpusLLMProvider(corpusProvider, corpusCfg.model)
