@@ -22,6 +22,9 @@ const CATWALK_ID_MAP: Record<string, string> = {
   'github-copilot/claude-haiku-4.5': 'anthropic:claude-haiku-4-5',
   'github-copilot/gemini-3-flash-preview': 'google:gemini-3-flash-preview',
   'github-copilot/gemini-3-pro-preview': 'google:gemini-3-pro-preview',
+  'claude-code/claude-sonnet-4-6': 'anthropic:claude-sonnet-4-6',
+  'claude-code/claude-opus-4-6': 'anthropic:claude-opus-4-6',
+  'claude-code/claude-haiku-4-5': 'anthropic:claude-haiku-4-5',
 }
 
 export interface ModelsRoutesDeps {
@@ -66,6 +69,12 @@ export async function handleModelsRoutes(
               input = ['text', 'image']
               contextWindow = 262144
               maxTokens = 32768
+            } else if (String(provId).toLowerCase().includes('claude-code')) {
+              api = 'anthropic-messages'
+              reasoning = modelName.includes('sonnet') || modelName.includes('opus')
+              input = ['text']
+              contextWindow = modelName.includes('opus') ? 1000000 : 200000
+              maxTokens = modelName.includes('opus') ? 64000 : 32000
             } else if (String(provId).toLowerCase().includes('alibaba')) {
               // Alibaba Coding Plan models
               api = 'openai-completions'

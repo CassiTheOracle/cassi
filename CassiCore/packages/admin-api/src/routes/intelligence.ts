@@ -5,6 +5,15 @@ import path from 'node:path'
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 import { getDataDir } from '../utils/paths.js'
+import { MnemicField } from '../intelligence/mnemic-field/index.js'
+
+let _mnemicField: MnemicField | undefined
+function getMnemicField(logger: ILogger): MnemicField {
+  if (_mnemicField) return _mnemicField
+  const dbPath = path.join(getDataDir(), 'mnemic-field.db')
+  _mnemicField = new MnemicField(logger, dbPath)
+  return _mnemicField
+}
 
 export interface IntelligenceRoutesDeps {
   daemon: any
@@ -787,6 +796,270 @@ export async function handleIntelligenceRoutes(
       sendJSON(res, 500, { error: String(err) })
     }
     return true
+  }
+
+  // POST /intelligence/workspace/enrich — Search memory and submit results as workspace signals
+  if (method === 'POST' && parts[1] === 'workspace' && parts[2] === 'enrich') {
+    const workspace = daemon.intelligence?.globalWorkspace
+    if (!workspace) {
+      sendJSON(res, 503, { error: 'Global Workspace not available' })
+      return true
+    }
+
+    try {
+      const body = await deps.parseBody(req)
+      const query = body?.query as string
+      const sessionId = body?.sessionId as string ?? '*'
+      if (!query) {
+        sendJSON(res, 400, { error: 'Missing query' })
+        return true
+      }
+
+      let submitted = 0
+      const signalBase = `memory-enrich-${Date.now()}`
+
+      // Search the Mnemic Field (spatial memory — engrams, potentiation, kindling)
+      try {
+        const mnemicField = getMnemicField(logger)
+        const hits = mnemicField.retrieve(query, { limit: 5 })
+        for (const hit of hits) {
+          if (!hit.content || hit.content.length < 10) continue
+          const signal = {
+            signalId: `${signalBase}-mnemic-${submitted}`,
+            source: 'memory',
+            sessionId,
+            type: 'memory' as const,
+            content: hit.content,
+            luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+            createdAt: Date.now(),
+            urgencyHint: Math.min(0.2, (hit.potentiation ?? 0) * 0.3),
+            metadata: {
+              engramId: hit.id,
+              nodeType: hit.nodeType,
+              score: hit.score,
+              charge: hit.charge,
+              provenance: hit.provenance,
+            },
+          }
+          if (workspace.submit(signal)) submitted++
+        }
+      } catch (err) {
+        logger.warn('Workspace enrich: mnemic field search failed', { error: String(err) })
+      }
+
+      // Search the classic Memory module (archived conversations, insights, patterns)
+      const memory = daemon.intelligence?.memory
+      if (memory) {
+        try {
+          const results = await (memory as any).search(query, { limit: 5 })
+          for (const result of results) {
+            const content = result.content ?? result.text
+            if (!content || content.length < 10) continue
+            const signal = {
+              signalId: `${signalBase}-classic-${submitted}`,
+              source: 'memory',
+              sessionId,
+              type: 'memory' as const,
+              content,
+              luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+              createdAt: Date.now(),
+              metadata: {
+                memoryId: result.id,
+                type: result.type,
+                confidence: result.confidence,
+                score: result.score,
+              },
+            }
+            if (workspace.submit(signal)) submitted++
+          }
+        } catch (err) {
+          logger.warn('Workspace enrich: classic memory search failed', { error: String(err) })
+        }
+      }
+
+      sendJSON(res, 200, { submitted, query: query.slice(0, 100) })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /intelligence/workspace/context — Assembled workspace context for hook injection
+  if (method === 'GET' && parts[1] === 'workspace' && parts[2] === 'context') {
+    const workspace = daemon.intelligence?.globalWorkspace
+    if (!workspace) {
+      sendJSON(res, 503, { error: 'Global Workspace not available' })
+      return true
+    }
+
+    try {
+      const sessionId = deps.url.searchParams.get('sessionId') ?? '*'
+      const assembled = workspace.assemble(sessionId)
+      const schema = workspace.getAttentionSchema()
+
+      sendJSON(res, 200, {
+        parts: assembled,
+        attentionSchema: schema,
+        threshold: workspace.getSnapshot().threshold,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /intelligence/workspace — Global Workspace state
+  if (method === 'GET' && parts[1] === 'workspace') {
+    const workspace = daemon.intelligence?.globalWorkspace
+    if (!workspace) {
+      sendJSON(res, 503, { error: 'Global Workspace not available' })
+      return true
+    }
+
+    try {
+      const snapshot = workspace.getSnapshot()
+      const schema = workspace.getAttentionSchema()
+      const memory = workspace.getMemory()
+
+      sendJSON(res, 200, {
+        snapshot: {
+          slots: snapshot.slots.map((s: any) => s.signal ? {
+            index: s.index,
+            source: s.signal.source,
+            type: s.signal.type,
+            contentPreview: s.signal.content.slice(0, 200),
+            luminance: s.signal.luminance.composite,
+            occupancyTicks: s.occupancyTicks,
+          } : { index: s.index, empty: true }),
+          pendingCount: snapshot.pendingCount,
+          totalSubmitted: snapshot.totalSubmitted,
+          totalIgnited: snapshot.totalIgnited,
+          ignitionRate: snapshot.ignitionRate,
+          threshold: snapshot.threshold,
+          tickCount: snapshot.tickCount,
+        },
+        attentionSchema: schema,
+        credibility: memory.getAllRecords(),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // --- Locus Bridge Routes ---
+
+  // POST /intelligence/locus-bridge/assemble — full context assembly
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'assemble' && method === 'POST') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const body = await parseBody(req)
+      const { messages, systemPromptBase, sessionId } = body
+      if (!messages || !Array.isArray(messages)) {
+        sendJSON(res, 400, { error: 'messages array is required' })
+        return true
+      }
+
+      const result = await locusBridge.assemble(
+        messages,
+        systemPromptBase ?? [],
+        sessionId ?? 'unknown',
+      )
+      sendJSON(res, 200, result)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /intelligence/locus-bridge/spark — submit a spark
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'spark' && method === 'POST') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const body = await parseBody(req)
+      const { sessionId, content, type, goal, toolName, filePath, action } = body
+
+      let events: any[] = []
+
+      if (type === 'user-intent' || (!type && content)) {
+        events = locusBridge.sparkFromUserPrompt(sessionId ?? 'unknown', content ?? '', goal)
+      } else if (type === 'tool-discovery') {
+        events = locusBridge.sparkFromToolResult(sessionId ?? 'unknown', toolName ?? 'unknown', content ?? '', goal)
+      } else if (type === 'code-reference') {
+        events = locusBridge.sparkFromCodeReference(sessionId ?? 'unknown', filePath ?? '', action ?? 'read', content, goal)
+      } else {
+        sendJSON(res, 400, { error: 'Unsupported spark type or missing content' })
+        return true
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        kindled: events.length,
+        events: events.map((e: any) => ({
+          eventId: e.eventId,
+          slotIndex: e.slotIndex,
+          luminance: e.kindlingLuminance,
+          eclipse: e.eclipse ? {
+            eclipsedSparkId: e.eclipse.eclipsedSpark.sparkId,
+            luminanceDelta: e.eclipse.luminanceDelta,
+          } : null,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /intelligence/locus-bridge/state — current foci, stats, last assembly meta
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'state' && method === 'GET') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const snapshot = locusBridge.getSnapshot()
+      sendJSON(res, 200, snapshot)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /intelligence/locus-bridge/curate — trigger curation only
+  if (parts[0] === 'intelligence' && parts[1] === 'locus-bridge' && parts[2] === 'curate' && method === 'POST') {
+    const locusBridge = daemon.intelligence?.locusBridge
+    if (!locusBridge) {
+      sendJSON(res, 404, { error: 'LocusBridge not available' })
+      return true
+    }
+
+    try {
+      const curated = await locusBridge.curate()
+      sendJSON(res, 200, curated)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
   }
 
   return false

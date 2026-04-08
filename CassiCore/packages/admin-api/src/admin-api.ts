@@ -11,6 +11,7 @@ import { handleContextRoutes } from './admin-api/context.js'
 import { handleCycleHooksRoutes } from './admin-api/cycle-hooks.js'
 import { handleObservabilityRoutes } from './admin-api/observability.js'
 import { handleOrchestrationRoutes } from './admin-api/orchestration.js'
+import { handlePluginAPIRoutes } from './admin-api/plugin-api.js'
 import { handlePluginsRoutes } from './admin-api/plugins.js'
 import { handleDebugRoutes } from './admin-api/debug.js'
 import { handleDelegationRoutes } from './admin-api/delegation.js'
@@ -32,11 +33,13 @@ import { handleVerificationRoutes } from './admin-api/verification.js'
 import { handleImprovementRoutes } from './admin-api/improvement.js'
 import { handleHelixRoutes } from './admin-api/helix.js'
 import { handleConstellationRoutes } from './admin-api/constellation.js'
+import { handleMeditationRoutes } from './admin-api/meditation.js'
 import { handleProactiveRoutes } from './admin-api/proactive.js'
 import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { handleBlackboardRoutes } from './admin-api/blackboard.js'
 import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
+import { handleCodeStoreRoutes } from './admin-api/code-store.js'
 import { handleTrainingRoutes } from './admin-api/training.js'
 import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
 import { handleTimelineRoutes } from './admin-api/timeline.js'
@@ -45,9 +48,11 @@ import { createAdminRuntimeFacade } from './admin-api/runtime.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
 import { createToolsApi } from './tools-api.js'
+import { PluginAPI, PluginRegistry } from './plugins/index.js'
 
 import type { DialecticStreamEvent } from '../types/dialectic.js'
 import type { ILogger } from '../types/interfaces.js'
+import type { Message } from '../types/runtime.js'
 
 interface WSConnection {
   socket: any
@@ -99,11 +104,13 @@ interface SessionHierarchyEntry {
 
 export function createAdminApi(daemon: any, logger: ILogger) {
   const runtime = createAdminRuntimeFacade(daemon)
+  const pluginRegistry = new PluginRegistry(logger)
   const unixPath = path.join(os.homedir(), '.cassicore', 'admin.sock')
   const tcpHost = (daemon?.config?.get?.('admin.host', '127.0.0.1')) ?? '127.0.0.1'
   const baseTcpPort = Number(daemon?.config?.get?.('admin.port', 7433)) || 7433
   let currentTcpPort = baseTcpPort
   let unixSocketInode: number | null = null
+  const pluginEventStreams = new Map<string, Set<http.ServerResponse>>()
 
   // WebSocket connections store
   const wsConnections = new Map<string, WSConnection>()
@@ -701,6 +708,444 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       req.on('error', reject)
     })
   }
+
+  function normalizePluginSessionId(sessionId: string): string {
+    return sessionId.includes(':') ? sessionId : sessionId
+  }
+
+  function extractTextContent(content: string | Array<{ type: string; text?: string }>): string {
+    if (typeof content === 'string') return content
+    if (!Array.isArray(content)) return ''
+    return content
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text ?? '')
+      .join('\n')
+  }
+
+  async function memorySearch(query: string, limit?: number): Promise<unknown[]> {
+    if (!daemon.intelligence?.memory?.search) return []
+    return daemon.intelligence.memory.search(query, { limit: limit ?? 10 })
+  }
+
+  async function memoryStore(content: string, tags?: string[]): Promise<string> {
+    if (!daemon.intelligence?.memory?.store) return ''
+    return daemon.intelligence.memory.store({
+      type: 'conversation',
+      content,
+      metadata: { tags: tags ?? [], source: 'plugin-api' },
+    })
+  }
+
+  async function contextArchive(sessionId: string, messages: unknown[]): Promise<void> {
+    if (!daemon.intelligence?.memory?.indexSession) return
+    const normalized = Array.isArray(messages)
+      ? messages.map((msg) => {
+          const m = msg as { role?: string; content?: string | Array<{ type: string; text?: string }> }
+          return {
+            role: (m.role ?? 'user') as Message['role'],
+            content: extractTextContent(m.content ?? ''),
+          }
+        })
+      : []
+    daemon.intelligence.memory.indexSession(sessionId, normalized)
+  }
+
+  async function contextCompact(sessionId: string, messages: unknown[]): Promise<unknown> {
+    const memory = daemon.intelligence?.memory as any
+    const aggregator = daemon.intelligence?.injectionAggregator as any
+
+    const cognitiveParts = aggregator?.aggregateForExternal
+      ? await aggregator.aggregateForExternal(sessionId)
+      : []
+    const cognitiveContext = Array.isArray(cognitiveParts)
+      ? cognitiveParts
+          .filter((p: any) => p.content && p.charCount > 0)
+          .map((p: any) => String(p.content))
+          .join('\n\n')
+      : ''
+
+    let memoryContext = ''
+    let lastUserQuery = ''
+    if (memory?.search) {
+      const lastUser = [...(messages as Array<{ role?: string; content?: string | Array<{ type: string; text?: string }> }>)]
+        .reverse()
+        .find((m) => m.role === 'user')
+      lastUserQuery = extractTextContent(lastUser?.content ?? '').slice(0, 200)
+      if (lastUserQuery) {
+        const results = await memory.search(lastUserQuery, { limit: 6, minScore: 0.25 })
+        if (Array.isArray(results) && results.length > 0) {
+          const items = results.map((r: any) => {
+            const score = Math.round((r.score ?? 0) * 100)
+            return `- (${score}%) ${String(r.entry?.content ?? r.content ?? '').slice(0, 400)}`
+          })
+          memoryContext = `### Relevant Memory\n${items.join('\n')}`
+        }
+      }
+    }
+
+    const { SmartCompactionEngine } = await import('./intelligence/smart-compaction.js')
+    const COMPACTION_MODEL = 'gpt-5-mini'
+    const COMPACTION_PROVIDER = 'github-copilot'
+    let summarizer: ((content: string, instruction: string) => Promise<string>) | undefined
+    let modelLabel = 'heuristic-only'
+
+    const modelPool = runtime.getLumenModelPool()
+    if (modelPool && typeof modelPool.acquire === 'function') {
+      summarizer = async (content: string, instruction: string): Promise<string> => {
+        let handle: any
+        try {
+          handle = await modelPool.acquire('compaction', undefined, sessionId, {
+            provider: COMPACTION_PROVIDER,
+            model: COMPACTION_MODEL,
+          })
+        } catch {
+          return ''
+        }
+        try {
+          const result = await handle.complete(
+            [{ role: 'user', content: `${instruction}\n\n---\n\n${content}` }],
+            {
+              model: COMPACTION_MODEL,
+              maxTokens: 2000,
+              temperature: 0.2,
+              thinking: 'none',
+              reasoning: 'none',
+              systemPrompt: 'You are a concise summarizer. Follow the instruction exactly. Output only the summary, no preamble or reasoning.',
+              source: 'smart-compaction-cluster',
+              trigger: 'compact',
+              sessionId,
+              allowConcurrent: true,
+              timeoutMs: 30000,
+            },
+          )
+          return SmartCompactionEngine.stripThinkingArtifacts((result.response ?? '').trim())
+        } finally {
+          try { handle.release() } catch {}
+        }
+      }
+      modelLabel = `${COMPACTION_PROVIDER}/${COMPACTION_MODEL}`
+    }
+
+    const normalized = Array.isArray(messages)
+      ? messages.map((msg) => {
+          const m = msg as { role?: string; content?: string | Array<{ type: string; text?: string }> }
+          return {
+            role: (m.role ?? 'user') as Message['role'],
+            content: typeof m.content === 'string'
+              ? m.content
+              : Array.isArray(m.content)
+                ? m.content.map((part) => ({ type: part.type, text: part.text }))
+                : '',
+          }
+        })
+      : []
+
+    const engine = new SmartCompactionEngine(
+      {
+        outputCharBudget: 80000,
+        preserveRecentCount: 8,
+        minMessagesForCompaction: 12,
+        summarizer,
+      },
+      logger,
+    )
+
+    const result = await engine.compact(normalized, {
+      memoryContext,
+      cognitiveContext,
+      lastUserQuery,
+    })
+
+    if (memory?.store && result.summary) {
+      await memory.store({
+        content: `[Compaction summary — session ${sessionId}]\n\n${result.summary.slice(0, 8000)}`,
+        type: 'conversation',
+        tags: ['compaction', 'session', sessionId],
+      }).catch(() => {})
+    }
+
+    return {
+      sessionId,
+      summary: result.summary,
+      model: modelLabel,
+      strategy: result.strategy,
+      stats: {
+        keptVerbatim: result.keptVerbatim,
+        summarized: result.summarized,
+        pruned: result.pruned,
+        durationMs: result.durationMs,
+      },
+      hasMemory: !!memoryContext,
+      hasCognitive: !!cognitiveContext,
+    }
+  }
+
+  function contextIndex(sessionId: string, messages: unknown[]): void {
+    if (!daemon.intelligence?.memory?.indexSession) return
+    const normalized = Array.isArray(messages)
+      ? messages.map((msg) => {
+          const m = msg as { role?: string; content?: string | Array<{ type: string; text?: string }> }
+          return {
+            role: (m.role ?? 'user') as Message['role'],
+            content: extractTextContent(m.content ?? ''),
+          }
+        })
+      : []
+    daemon.intelligence.memory.indexSession(sessionId, normalized)
+  }
+
+  async function contextResolveRef(ref: string): Promise<unknown> {
+    const memory = daemon.intelligence?.memory
+    if (!memory?.resolveRef) return []
+    return memory.resolveRef(ref)
+  }
+
+  async function contextSearchIndex(query: string, sessionId?: string): Promise<unknown> {
+    const memory = daemon.intelligence?.memory
+    if (!memory?.searchIndex) return []
+    return memory.searchIndex(query, sessionId ? { sessionId, limit: 10 } : { limit: 10 })
+  }
+
+  function buildCognitiveStatus(): unknown {
+    const activity = daemon.intelligence?.all?.map((mod: any) => ({
+      name: mod?.name,
+      status: 'active',
+    })) ?? []
+    return {
+      modules: activity,
+      thinker: daemon.intelligence?.thinker?.getStats?.() ?? null,
+      dialectic: daemon.intelligence?.dialectic?.getStats?.() ?? null,
+      memory: daemon.intelligence?.memory?.getStats?.() ?? null,
+      teams: daemon.intelligence?.teamOrchestrator?.listAllTeams?.() ?? [],
+      lumen: daemon.intelligence?.lumen?.listJobs?.() ?? [],
+    }
+  }
+
+  const pluginApi = new PluginAPI({
+    logger,
+    registry: pluginRegistry,
+    sessions: {
+      create: (stableId: string, opts) => thisSessionsCreate(stableId, opts),
+      get: (id: string) => {
+        const session = daemon.sessions?.get?.(id)
+        return session ? { id: session.id, status: 'active' } : null
+      },
+      destroy: (id: string) => {
+        daemon.sessions?.delete?.(id)
+      },
+      append: (id: string, message: Message) => {
+        daemon.sessions?.addTurn?.(id, message)
+      },
+    },
+    context: {
+      fetchContext: buildInjectPayload,
+      inject: async (sessionId: string) => {
+        const aggregator = daemon.intelligence?.injectionAggregator as any
+        if (!aggregator?.aggregateForExternal) return []
+        const parts = await aggregator.aggregateForExternal(sessionId)
+        return Array.isArray(parts) ? parts.filter((p: any) => p.content && p.charCount > 0).map((p: any) => p.content) : []
+      },
+      cognitiveStatus: async () => buildCognitiveStatus(),
+      storeChunks: async (sessionId: string, chunks: unknown[]) => {
+        const memory = daemon.intelligence?.memory as any
+        if (!memory?.kv_set) return { stored: 0 }
+        let stored = 0
+        for (const chunk of chunks as Array<Record<string, unknown>>) {
+          if (!chunk.id || !chunk.content) continue
+          await memory.kv_set(`chunk:${sessionId}:${chunk.id}`, {
+            content: chunk.content,
+            role: chunk.role || 'unknown',
+            type: chunk.type || 'text',
+            toolName: chunk.toolName,
+            tokens: chunk.tokens || 0,
+            preview: chunk.preview || '',
+            storedAt: Date.now(),
+          })
+          stored++
+        }
+        const existingIndex = await memory.kv_get(`chunk-index:${sessionId}`) as string[] | undefined
+        const index = new Set(existingIndex || [])
+        for (const chunk of chunks as Array<Record<string, unknown>>) {
+          if (typeof chunk.id === 'string') index.add(chunk.id)
+        }
+        await memory.kv_set(`chunk-index:${sessionId}`, [...index])
+        return { stored }
+      },
+      expandChunks: async (sessionId: string, ids: string[]) => {
+        const memory = daemon.intelligence?.memory as any
+        if (!memory?.kv_get) return []
+        const results: unknown[] = []
+        for (const id of ids) {
+          const data = await memory.kv_get(`chunk:${sessionId}:${id}`)
+          if (data) results.push({ id, ...(data as Record<string, unknown>) })
+        }
+        return results
+      },
+      archive: contextArchive,
+      compact: contextCompact,
+      index: contextIndex,
+      resolveRef: contextResolveRef,
+      searchIndex: contextSearchIndex,
+      ingestEvents: async (sessionId: string, events: unknown[]) => {
+        const bus = daemon.bus
+        for (const event of events as Array<Record<string, unknown>>) {
+          const normalized = {
+            ...event,
+            sessionId,
+            timestamp: event.timestamp instanceof Date ? event.timestamp : new Date(Number(event.timestamp ?? Date.now())),
+          }
+          processHierarchyEvent(normalized)
+          await bus.emit(normalized)
+        }
+      },
+      forwardTurnStart: (sessionId: string, message: string) => {
+        void daemon.bus.emit({
+          type: 'turn:start',
+          sessionId,
+          message,
+          timestamp: new Date(),
+        } as any)
+      },
+      forwardTurnEnd: (sessionId: string) => {
+        void daemon.bus.emit({
+          type: 'worker:message',
+          pluginId: `session:${sessionId}`,
+          payload: { type: 'turn:done', sessionId },
+        } as any)
+      },
+      forwardToken: (sessionId: string, delta: string, kind: string) => {
+        void daemon.bus.emit({
+          type: 'worker:message',
+          pluginId: `session:${sessionId}`,
+          payload: { type: kind === 'thinking' ? 'turn:thinking' : 'turn:token', sessionId, token: delta },
+        } as any)
+      },
+      forwardToolCall: (sessionId: string, toolName: string, meta?: Record<string, unknown>) => {
+        void daemon.bus.emit({
+          type: 'worker:message',
+          pluginId: `session:${sessionId}`,
+          payload: { type: 'turn:tool_call', sessionId, tool: toolName, input: meta },
+        } as any)
+      },
+      forwardToolResult: (sessionId: string, callId: string, isError: boolean) => {
+        void daemon.bus.emit({
+          type: 'worker:message',
+          pluginId: `session:${sessionId}`,
+          payload: { type: 'turn:tool_result', sessionId, toolCallId: callId, isError, content: '' },
+        } as any)
+      },
+    },
+    memory: {
+      search: memorySearch,
+      store: memoryStore,
+      kvGet: async (key: string) => daemon.intelligence?.memory?.kv_get?.(key),
+      kvSet: async (key: string, value: unknown) => daemon.intelligence?.memory?.kv_set?.(key, value),
+    },
+    intelligence: {
+      status: async () => buildCognitiveStatus(),
+      enrich: async (query: string) => daemon.intelligence?.memory?.universalSearch?.(query, { limit: 10 }) ?? [],
+    },
+    eventBus: {
+      on: (type, handler) => daemon.bus.on(type as any, handler as any),
+      emit: (event) => daemon.bus.emit(event as any),
+    },
+    toolRegistry: {
+      register: (tool) => {
+        const registry = daemon.toolRegistry ?? daemon.pipeline?.toolRegistry
+        registry?.register?.({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+          visibleToAgent: true,
+          category: 'extended',
+        }, async (input: Record<string, unknown>, context: unknown) => {
+          const result = await tool.execute(input, context)
+          return typeof result === 'string' ? result : JSON.stringify(result)
+        })
+      },
+    },
+  })
+
+  function thisSessionsCreate(stableId: string, opts?: { channelId?: string; meta?: Record<string, unknown> }) {
+    const session = daemon.sessions.getOrCreateById(
+      normalizePluginSessionId(stableId),
+      opts?.channelId ?? 'plugin',
+      normalizePluginSessionId(stableId),
+      opts?.meta ? { ...(opts.meta as Record<string, unknown>) } : undefined,
+    )
+    return { id: session.id }
+  }
+
+  function attachPluginEventStream(pluginId: string, res: http.ServerResponse, req: http.IncomingMessage): void {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+    })
+    res.write(': connected\n\n')
+
+    let streams = pluginEventStreams.get(pluginId)
+    if (!streams) {
+      streams = new Set()
+      pluginEventStreams.set(pluginId, streams)
+    }
+    streams.add(res)
+
+    const heartbeatTimer = setInterval(() => {
+      if (res.destroyed || res.writableEnded) {
+        clearInterval(heartbeatTimer)
+        return
+      }
+      try {
+        res.write(': heartbeat\n\n')
+        pluginRegistry.heartbeat(pluginId)
+      } catch {
+        clearInterval(heartbeatTimer)
+      }
+    }, 15_000)
+
+    const cleanup = () => {
+      clearInterval(heartbeatTimer)
+      streams?.delete(res)
+      if (streams && streams.size === 0) {
+        pluginEventStreams.delete(pluginId)
+      }
+      pluginRegistry.setStatus(pluginId, 'disconnected')
+    }
+
+    req.on('close', cleanup)
+    res.on('close', cleanup)
+  }
+
+  daemon.bus.onAll((event: any) => {
+    if (pluginEventStreams.size === 0) return
+    const payload = `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`
+    for (const [pluginId, streams] of pluginEventStreams) {
+      if (event?.type === 'worker:message' && event?.pluginId && event.pluginId !== pluginId) {
+        continue
+      }
+
+      const filters = pluginApi.getEventFilters(pluginId)
+      const matches = filters.includes('*') || filters.some((filter) => {
+        if (filter === event.type) return true
+        if (filter.endsWith('*')) return event.type.startsWith(filter.slice(0, -1))
+        return false
+      })
+      if (!matches) continue
+
+      for (const stream of streams) {
+        if (stream.destroyed || stream.writableEnded) continue
+        try {
+          stream.write(payload)
+        } catch {
+          streams.delete(stream)
+        }
+      }
+      if (streams.size === 0) {
+        pluginEventStreams.delete(pluginId)
+      }
+    }
+  })
 
   function authOk(req: http.IncomingMessage) {
     try {
@@ -1866,15 +2311,19 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   }
 
   async function handler(req: http.IncomingMessage, res: http.ServerResponse) {
-    if (!authOk(req)) {
-      sendJSON(res, 401, { error: 'unauthorized' })
-      return
-    }
-
     const url = new URL(req.url || '', `http://${tcpHost}:${currentTcpPort}`)
     const parts = url.pathname.split('/').filter(Boolean)
     const pathname = url.pathname
     const method = req.method || 'GET'
+
+    const pluginRoute = pathname.startsWith('/plugin/')
+    const pluginBearerAuth = typeof req.headers.authorization === 'string' && req.headers.authorization.startsWith('Bearer cpk_')
+    const pluginRegisterRoute = pluginRoute && pathname === '/plugin/register'
+
+    if (!authOk(req) && !(pluginRoute && pluginBearerAuth) && !pluginRegisterRoute) {
+      sendJSON(res, 401, { error: 'unauthorized' })
+      return
+    }
 
     try {
       // HOW: GET /context is a special case that uses buildInjectPayload directly
@@ -1920,6 +2369,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleDebugRoutes({ daemon, logger, sendJSON, parseBody, url, pathname, sseConnections, sseConnectionId }, req, res, method),
         () => handleEventsRoutes({ daemon, logger, sendJSON, parseBody, buildStateSnapshot, processHierarchyEvent, onEventsIngested: _ocIngestInterceptor, url, pathname, sseConnections, sseConnectionId }, req, res, method),
         () => handleOrchestrationRoutes({ daemon, logger, sendJSON, parseBody, parts }, req, res, method),
+        () => handlePluginAPIRoutes({ logger, registry: pluginRegistry, pluginAPI: pluginApi, sendJSON, readBody: parseBody, parts, attachEventStream: attachPluginEventStream }, req, res, method),
         () => handlePluginsRoutes({ daemon, logger, sendJSON, parts }, req, res, method),
         () => handleIntelligenceRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleCycleHooksRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
@@ -1942,6 +2392,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleHelixRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleConstellationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleMeditationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleProactiveRoutes({ proactive: daemon.intelligence?.proactiveEnricher, logger, sendJSON, parseBody }, req, res, method),
          () => handleDreamerRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleModelDirectiveRoutes({
@@ -1958,6 +2409,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          }, req, res, method, pathname),
          () => handleBlackboardRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleFileArtifactRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleCodeStoreRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleTrainingRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handlePromptLogRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
          () => handleTimelineRoutes({ daemon, logger, sendJSON, parseBody, url, pathname, sseConnections, sseConnectionId }, req, res, method),
@@ -2068,6 +2520,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         await new Promise<void>((resolve) => tcpServer!.close(() => resolve()))
         tcpServer = null
       }
+      pluginRegistry.destroy()
       try {
         if (fs.existsSync(unixPath)) {
           const stat = fs.statSync(unixPath)

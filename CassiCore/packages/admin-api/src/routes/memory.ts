@@ -1,4 +1,10 @@
 import type { ILogger } from '../../types/interfaces.js'
+import { MnemicField } from '../intelligence/mnemic-field/index.js'
+import { migrateMemoryAndArchives, migrateMemoryOnly } from '../intelligence/mnemic-field/migrate-memory.js'
+import { getEmbeddingService } from '../intelligence/embeddings/embedding-service.js'
+import { getDataDir } from '../utils/paths.js'
+import fs from 'node:fs'
+import path from 'node:path'
 import type http from 'node:http'
 
 export interface MemoryRoutesDeps {
@@ -10,13 +16,48 @@ export interface MemoryRoutesDeps {
   parts: string[]
 }
 
+let mnemicField: MnemicField | undefined
+const activeMigrationLoops = new Map<string, NodeJS.Timeout>()
+
+function getMnemicField(logger: ILogger, daemon?: any): MnemicField {
+  if (mnemicField) return mnemicField
+  const dbPath = path.join(getDataDir(), 'mnemic-field.db')
+  mnemicField = new MnemicField(logger, dbPath)
+  if (daemon) (daemon as any).__mnemicField = mnemicField
+  return mnemicField
+}
+
+function scheduleMigrationJob(jobId: string, useLocalEmbeddings: boolean, logger: ILogger, daemon?: any): void {
+  if (activeMigrationLoops.has(jobId)) return
+  const timer = setTimeout(async () => {
+    activeMigrationLoops.delete(jobId)
+    try {
+      const field = getMnemicField(logger, daemon)
+      const job = field.getMigrationJob(jobId)
+      if (!job || job.status === 'completed' || job.status === 'failed') return
+      const updated = await field.runMigrationJob(jobId, null, {
+        embeddingProvider: useLocalEmbeddings ? async (text: string) => {
+          const svc = getEmbeddingService(logger)
+          return svc.available ? await svc.embed(text, 'document') : null
+        } : undefined,
+      })
+      if (updated.status === 'paused') {
+        scheduleMigrationJob(jobId, useLocalEmbeddings, logger, daemon)
+      }
+    } catch {
+      // failure state recorded in job record
+    }
+  }, 50)
+  activeMigrationLoops.set(jobId, timer)
+}
+
 export async function handleMemoryRoutes(
   deps: MemoryRoutesDeps,
   req: http.IncomingMessage,
   res: http.ServerResponse,
   method: string
 ): Promise<boolean> {
-  const { daemon, sendJSON, parseBody, url, parts } = deps
+  const { daemon, logger, sendJSON, parseBody, url, parts } = deps
 
   if (parts[0] !== 'memory') return false
 
@@ -34,6 +75,222 @@ export async function handleMemoryRoutes(
     const queueStats = memory.getArchiveQueueStats?.() ?? null
     sendJSON(res, 200, { memory: memStats, archives: archiveStats, queue: queueStats })
     return true
+  }
+
+  // POST /memory/mnemic/migrate
+  if (parts[1] === 'mnemic' && parts[2] === 'migrate' && !parts[3] && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const sourceDbPath = path.join(getDataDir(), 'memory.db')
+      const job = field.createMigrationJob({
+        sourceDbPath,
+        migrateArchives: !!body?.migrateArchives,
+        includeArchived: !!body?.includeArchived,
+        inferSynapses: body?.inferSynapses !== false,
+        enableMicroChunking: body?.enableMicroChunking !== false,
+        useLocalEmbeddings: !!body?.useLocalEmbeddings,
+        memoryLimit: typeof body?.limit === 'number' ? body.limit : undefined,
+        archiveLimit: typeof body?.archiveLimit === 'number' ? body.archiveLimit : undefined,
+        archiveLinkLimit: typeof body?.archiveLinkLimit === 'number' ? body.archiveLinkLimit : undefined,
+        microChunkTokenTarget: typeof body?.microChunkTokenTarget === 'number' ? body.microChunkTokenTarget : undefined,
+      })
+
+      scheduleMigrationJob(job.id, job.useLocalEmbeddings, logger, daemon)
+
+      sendJSON(res, 202, { ok: true, job })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/migrate/resume/:jobId
+  if (parts[1] === 'mnemic' && parts[2] === 'migrate' && parts[3] === 'resume' && parts[4] && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const job = field.getMigrationJob(parts[4])
+      if (!job) {
+        sendJSON(res, 404, { error: 'job not found' })
+        return true
+      }
+      scheduleMigrationJob(job.id, job.useLocalEmbeddings, logger, daemon)
+      sendJSON(res, 202, { ok: true, jobId: job.id })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/migrate/jobs
+  if (parts[1] === 'mnemic' && parts[2] === 'migrate' && parts[3] === 'jobs' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, jobs: field.listMigrationJobs() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/migrate/job/:jobId
+  if (parts[1] === 'mnemic' && parts[2] === 'migrate' && parts[3] === 'job' && parts[4] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const job = field.getMigrationJob(parts[4])
+      if (!job) {
+        sendJSON(res, 404, { error: 'job not found' })
+        return true
+      }
+      sendJSON(res, 200, { ok: true, job })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/nuclei
+  if (parts[1] === 'mnemic' && parts[2] === 'nuclei' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, nuclei: field.listNuclei() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/abstractions
+  if (parts[1] === 'mnemic' && parts[2] === 'abstractions' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, abstractions: field.listAbstractions() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/stats
+  if (parts[1] === 'mnemic' && parts[2] === 'stats' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/reset
+  if (parts[1] === 'mnemic' && parts[2] === 'reset' && method === 'POST') {
+    try {
+      const dbPath = path.join(getDataDir(), 'mnemic-field.db')
+      if (mnemicField) {
+        mnemicField.close()
+        mnemicField = undefined
+      }
+      if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath)
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, stats: field.stats(), path: dbPath })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/consolidate
+  if (parts[1] === 'mnemic' && parts[2] === 'consolidate' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const result = field.consolidate({
+        skipRadiance: !!body?.skipRadiance,
+        skipDrift: !!body?.skipDrift,
+        skipNuclei: !!body?.skipNuclei,
+        skipAbstractions: !!body?.skipAbstractions,
+        skipPruning: !!body?.skipPruning,
+        pruneKeepCount: typeof body?.pruneKeepCount === 'number' ? body.pruneKeepCount : undefined,
+        nucleiMinClusterSize: typeof body?.nucleiMinClusterSize === 'number' ? body.nucleiMinClusterSize : undefined,
+        nucleiEpsilon: typeof body?.nucleiEpsilon === 'number' ? body.nucleiEpsilon : undefined,
+        abstractionMinMembers: typeof body?.abstractionMinMembers === 'number' ? body.abstractionMinMembers : undefined,
+        abstractionMinPotentiation: typeof body?.abstractionMinPotentiation === 'number' ? body.abstractionMinPotentiation : undefined,
+      })
+      sendJSON(res, 200, { ok: true, result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/backfill
+  if (parts[1] === 'mnemic' && parts[2] === 'backfill' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const result = await field.backfillEmbeddings(typeof body?.limit === 'number' ? body.limit : 1000)
+      sendJSON(res, 200, { ok: true, result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/tensions
+  if (parts[1] === 'mnemic' && parts[2] === 'tensions' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const minPotentiation = url.searchParams.get('minPotentiation')
+      const limit = url.searchParams.get('limit')
+      const report = field.tensionReport(
+        minPotentiation ? Number(minPotentiation) : 0.3,
+        limit ? Number(limit) : 10,
+      )
+      sendJSON(res, 200, { ok: true, report })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/kindle
+  if (parts[1] === 'mnemic' && parts[2] === 'kindle' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const result = field.kindle(null, typeof body?.query === 'string' ? body.query : null, {
+        complexity: body?.complexity,
+        maxSeeds: typeof body?.maxSeeds === 'number' ? body.maxSeeds : undefined,
+        maxLuminalSize: typeof body?.maxLuminalSize === 'number' ? body.maxLuminalSize : undefined,
+      })
+      sendJSON(res, 200, {
+        ok: true,
+        luminal: {
+          ...result,
+          engrams: result.engrams.map(e => ({
+            id: e.engram.id,
+            nodeType: e.engram.nodeType,
+            charge: e.charge,
+            content: e.engram.content.slice(0, 180),
+          })),
+        },
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
   }
 
 
