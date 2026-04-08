@@ -60,6 +60,7 @@ export const DEFAULT_COST_RULES: CostRule[] = [
   { pattern: 'qwen/*',           cost: 'metered' },
   { pattern: 'qwen-coder/*',     cost: 'metered' },
   { pattern: 'google-antigravity/*', cost: 'metered' },
+  { pattern: 'claude-code/*',    cost: 'metered' },
 
   // Catch-all: unknown providers are assumed metered
   { pattern: '*/*', cost: 'metered' },

@@ -9,6 +9,7 @@ import {
 
 import { getCassiCoreHome } from '../utils/paths.js'
 import { CentralizedProvider, wrapProvidersWithCentralized } from './centralized.js'
+import { ClaudeCodeProvider } from './claude-code.js'
 import { GitHubCopilotProvider } from './github-copilot.js'
 import { GitHubCopilotLoadBalancer, type GitHubCopilotAccount } from './github-copilot-loadbalancer.js'
 import { GoogleAntigravityProvider } from './google-antigravity.js'
@@ -34,6 +35,7 @@ export type { BudgetSnapshot, BudgetTier, ProviderBudgetConfig } from './budget-
 
 export { ModelRouter, getModelRouter, createModelRouter } from './model-router.js'
 export type { RequestPurpose, RoutingDecision } from './model-router.js'
+export { ClaudeCodeProvider } from './claude-code.js'
 
 export interface CreateProvidersOptions {
   /** Enable centralized request tracking and rate limiting (default: true) */
@@ -181,6 +183,22 @@ export function createProviders(
       logger.info('Provider loaded: openrouter')
     } catch (err) {
       logger.warn(`failed to load openrouter provider: ${String(err)}`)
+    }
+  }
+
+  const claudeCodeEnabled = config.get<boolean>('providers.claudeCode.enabled', false)
+  if (claudeCodeEnabled) {
+    try {
+      const claudeCodeProvider = new ClaudeCodeProvider({
+        cliPath: config.get<string>('providers.claudeCode.cliPath', '') || undefined,
+        defaultModel: config.get<string>('providers.claudeCode.model', 'claude-sonnet-4-6'),
+        workingDirectory: config.get<string>('providers.claudeCode.workingDirectory', '') || undefined,
+        logger,
+      })
+      rawProviders.set('claude-code', claudeCodeProvider)
+      logger.info(`Provider loaded: claude-code (${claudeCodeProvider.models.length} models)`)
+    } catch (err) {
+      logger.warn(`failed to load claude-code provider: ${String(err)}`)
     }
   }
 
