@@ -30,7 +30,7 @@ Instead of specifying provider/model on each tool call, use this tool to set the
 
 Named tiers are available as shortcuts:
 - minimax: Fastest, lightweight (MiniMax-M2.5)
-- qwenPlus: Fast with decent reasoning (qwen3.5-plus)
+- qwenPlus: Fast with decent reasoning (qwen3.6-plus)
 - glm: Solid mid-range (glm-5)
 - kimi: Best mid-tier reasoning (kimi-k2.5)
 - qwenMax: High-capability 2nd tier (qwen3-max-2026-01-23)
