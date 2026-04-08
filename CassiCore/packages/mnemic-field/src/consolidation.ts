@@ -151,7 +151,7 @@ export class ConsolidationEngine {
       }
     }
 
-    const maxPot = Math.max(...potentiations, 0.001)
+    const maxPot = potentiations.reduce((m, p) => p > m ? p : m, 0.001)
     const normalized = potentiations.map(p => p / maxPot)
 
     const updates = engrams
@@ -309,10 +309,14 @@ export class ConsolidationEngine {
   /**
    * DBSCAN-lite: density-based clustering on XY coordinates.
    * Simpler than full HDBSCAN but effective for detecting spatial clusters.
+   * Only considers engrams with non-zero XY (those that have embeddings).
    * Returns the number of nuclei detected.
    */
   detectNuclei(minClusterSize = 3, epsilon = 2.0): number {
-    const { engrams } = this.cortex.getAllEngramsWithSynapses()
+    const { engramCount } = this.cortex.stats()
+    const engrams = engramCount <= 10000
+      ? this.cortex.getAllEngrams()
+      : this.cortex.getSpatialEngrams(10000)
     if (engrams.length < minClusterSize) return 0
 
     const clusters = this.dbscan(engrams, epsilon, minClusterSize)
@@ -353,21 +357,24 @@ export class ConsolidationEngine {
   }
 
   /**
-   * DBSCAN clustering algorithm.
+   * DBSCAN clustering algorithm using index-based queue for O(n²) performance.
    * Returns clusters as Map<clusterIndex, Engram[]>.
    */
   private dbscan(engrams: Engram[], epsilon: number, minPts: number): Map<number, Engram[]> {
     const n = engrams.length
     const labels = new Array<number>(n).fill(-1)
     let clusterId = 0
+    const epsSq = epsilon * epsilon
 
     const regionQuery = (idx: number): number[] => {
       const neighbors: number[] = []
-      const e = engrams[idx]
+      const ex = engrams[idx].x
+      const ey = engrams[idx].y
       for (let j = 0; j < n; j++) {
         if (j === idx) continue
-        const dist = Math.sqrt((e.x - engrams[j].x) ** 2 + (e.y - engrams[j].y) ** 2)
-        if (dist <= epsilon) neighbors.push(j)
+        const dx = ex - engrams[j].x
+        const dy = ey - engrams[j].y
+        if (dx * dx + dy * dy <= epsSq) neighbors.push(j)
       }
       return neighbors
     }
@@ -382,22 +389,22 @@ export class ConsolidationEngine {
       }
 
       labels[i] = clusterId
-      const queue = [...neighbors]
-      const visited = new Set<number>([i])
+      const queue = neighbors.slice()
+      let front = 0
 
-      while (queue.length > 0) {
-        const j = queue.shift()!
-        if (visited.has(j)) continue
-        visited.add(j)
+      while (front < queue.length) {
+        const j = queue[front++]
+        if (labels[j] === clusterId) continue
 
         if (labels[j] === -2) labels[j] = clusterId
-
-        if (labels[j] !== -1) continue
+        if (labels[j] !== -1 && labels[j] !== clusterId) continue
         labels[j] = clusterId
 
         const jNeighbors = regionQuery(j)
         if (jNeighbors.length >= minPts - 1) {
-          queue.push(...jNeighbors)
+          for (const k of jNeighbors) {
+            if (labels[k] === -1 || labels[k] === -2) queue.push(k)
+          }
         }
       }
 

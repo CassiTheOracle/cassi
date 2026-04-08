@@ -1,6 +1,7 @@
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',
-  'abstraction', 'goal', 'file', 'tool', 'session', 'outcome'
+  'abstraction', 'goal', 'file', 'tool', 'session', 'outcome',
+  'source_file', 'changeset', 'artifact'
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
@@ -8,7 +9,8 @@ export type EngramType = typeof ENGRAM_TYPES[number]
 export const SYNAPSE_TYPES = [
   'similar_to', 'contradicts', 'supports',
   'caused_by', 'led_to', 'used_in_task', 'part_of',
-  'temporal_neighbor', 'supersedes', 'about_file', 'spawned_from'
+  'temporal_neighbor', 'supersedes', 'about_file', 'spawned_from',
+  'imports', 'modified_by', 'co_changed', 'contains_symbol'
 ] as const
 
 export type SynapseType = typeof SYNAPSE_TYPES[number]
@@ -152,6 +154,18 @@ export interface FieldStats {
   topEngramsByPotentiation: Array<{ id: string; content: string; potentiation: number }>
 }
 
+export interface MnemicRetrievalHit {
+  id: string
+  content: string
+  nodeType: EngramType
+  score: number
+  charge: number
+  potentiation: number
+  provenance: string
+  tags: string[]
+  metadata: Record<string, unknown>
+}
+
 export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   caused_by: 0.9,
   led_to: 0.9,
@@ -164,6 +178,10 @@ export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   supersedes: 0.4,
   about_file: 0.5,
   spawned_from: 0.6,
+  imports: 0.7,
+  modified_by: 0.3,
+  co_changed: 0.6,
+  contains_symbol: 0.4,
 }
 
 export const POTENTIATION_DEFAULTS = {
@@ -224,3 +242,46 @@ export const KINDLING_DEFAULTS = {
   potentiationBoostScale: 0.5,
   driftLearningRate: 0.02,
 } as const
+
+export type ChangesetStatus = 'pending' | 'committed' | 'verified' | 'failed'
+export type ChangesetFileOperation = 'create' | 'modify' | 'delete'
+
+export interface Changeset {
+  id: string
+  description: string
+  authorSessionId: string | null
+  authorAgentId: string | null
+  parentChangesetId: string | null
+  status: ChangesetStatus
+  buildVerified: boolean
+  fileCount: number
+  createdAt: string
+  committedAt: string | null
+  metadata: Record<string, unknown>
+}
+
+export interface ChangesetCreate {
+  id?: string
+  description: string
+  authorSessionId?: string
+  authorAgentId?: string
+  parentChangesetId?: string
+  metadata?: Record<string, unknown>
+}
+
+export interface ChangesetFile {
+  changesetId: string
+  engramId: string
+  previousChecksum: string | null
+  previousContent: string | null
+  operation: ChangesetFileOperation
+}
+
+export interface SourceFileMetadata {
+  filePath: string
+  language: string
+  checksum: string
+  sizeBytes: number
+  changesetId: string | null
+  buildable: boolean
+}

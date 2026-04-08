@@ -2,18 +2,22 @@ import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
 import type { ILogger } from '../../../types/interfaces.js'
+import { getEmbeddingService } from '../embeddings/embedding-service.js'
 import { getDataDir } from '../../utils/paths.js'
 import { Cortex } from './cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
+import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
+import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
-import { projectTo2D, projectSingle, computePCAComponents } from './pca.js'
+import { projectTo2D, projectSingle, buildProjectionState } from './umap.js'
+import type { ProjectionState } from './umap.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
   ActivationSpike, SpikeCreate,
   Nucleus, NucleusCreate,
-  SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats,
+  SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,
   TaskComplexity, LuminalSet, KindlingOptions, SpikeOutcome,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
@@ -21,33 +25,35 @@ import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 export { Cortex } from './cortex.js'
 export { KindlingEngine } from './kindling.js'
 export { ConsolidationEngine } from './consolidation.js'
+export { CodeStore } from './code-store.js'
+export { CodeIngestor } from './code-ingestor.js'
+export { GitNexusBridge } from './gitnexus-bridge.js'
+export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
-export { projectTo2D, projectSingle, computePCAComponents } from './pca.js'
+export { projectTo2D, projectSingle, buildProjectionState } from './umap.js'
+export type { ProjectionResult, ProjectionState, UMAPOptions } from './umap.js'
 export type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
   ActivationSpike, SpikeCreate,
   Nucleus, NucleusCreate,
-  SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats,
+  SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,
   TaskComplexity, LuminalSet, KindlingOptions, ChargedEngram,
+  Changeset, ChangesetCreate, ChangesetFile, ChangesetStatus, ChangesetFileOperation,
+  SourceFileMetadata,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
   POTENTIATION_DEFAULTS, SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
 } from './types.js'
 
-interface PCAState {
-  mean: number[]
-  pc1: number[]
-  pc2: number[]
-}
-
 export class MnemicField {
   private cortex: Cortex
   private kindlingEngine: KindlingEngine
   private consolidationEngine: ConsolidationEngine
+  private migrationJobs: MigrationJobStore
   private logger: ILogger
-  private pcaState: PCAState | null = null
+  private projectionState: ProjectionState | null = null
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -68,6 +74,7 @@ export class MnemicField {
     this.cortex = new Cortex(db, logger)
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger)
+    this.migrationJobs = new MigrationJobStore(db)
     this.logger.info('Mnemic Field initialized')
   }
 
@@ -228,44 +235,175 @@ export class MnemicField {
   }
 
   /**
-   * Rebuild PCA state from all engrams that have embeddings.
-   * Call this after bulk imports or periodically during consolidation.
+   * Primary retrieval API for runtime consumers.
+   * Uses kindling first, falls back to text search when needed.
    */
-  rebuildPCA(): PCAState | null {
-    const engrams = this.cortex.getAllEngrams()
-    const vectors = engrams
-      .filter(e => e.embedding && e.embedding.length > 0)
-      .map(e => Array.from(e.embedding!))
+  retrieve(
+    query: string,
+    options?: KindlingOptions & { limit?: number },
+  ): MnemicRetrievalHit[] {
+    const limit = options?.limit ?? options?.maxLuminalSize ?? 8
+    const luminal = this.kindle(null, query, {
+      ...options,
+      maxLuminalSize: limit,
+      includeText: true,
+    })
 
-    if (vectors.length < 2) {
-      this.pcaState = null
-      return null
+    if (luminal.engrams.length > 0) {
+      return luminal.engrams.map(hit => ({
+        id: hit.engram.id,
+        content: hit.engram.content,
+        nodeType: hit.engram.nodeType,
+        score: hit.charge,
+        charge: hit.charge,
+        potentiation: hit.engram.potentiation,
+        provenance: hit.engram.provenance,
+        tags: hit.engram.tags,
+        metadata: hit.engram.metadata,
+      }))
     }
 
-    this.pcaState = computePCAComponents(vectors)
-    this.logger.debug('PCA state rebuilt', { vectorCount: vectors.length })
-    return this.pcaState
+    return this.searchText(query, limit).map(r => ({
+      id: r.engram.id,
+      content: r.engram.content,
+      nodeType: r.engram.nodeType,
+      score: r.score,
+      charge: 0,
+      potentiation: r.engram.potentiation,
+      provenance: r.engram.provenance,
+      tags: r.engram.tags,
+      metadata: r.engram.metadata,
+    }))
+  }
+
+  createMigrationJob(spec: MigrationJobSpec): MigrationJobRecord {
+    return this.migrationJobs.create(spec)
+  }
+
+  getMigrationJob(id: string): MigrationJobRecord | null {
+    return this.migrationJobs.get(id)
+  }
+
+  listMigrationJobs(limit = 20): MigrationJobRecord[] {
+    return this.migrationJobs.list(limit)
+  }
+
+  updateMigrationJob(id: string, patch: Partial<MigrationJobRecord>): MigrationJobRecord | null {
+    return this.migrationJobs.updateProgress(id, patch)
+  }
+
+  async runMigrationJob(
+    id: string,
+    runner: Pick<typeof import('../embeddings/embedding-service.js'), never> | null,
+    options?: { logger?: ILogger; embeddingProvider?: (text: string) => Promise<number[] | null> },
+  ): Promise<MigrationJobRecord> {
+    const job = this.getMigrationJob(id)
+    if (!job) throw new Error(`Unknown migration job: ${id}`)
+
+    const existing = this.getMigrationJob(id)
+    if (!existing) throw new Error(`Unknown migration job: ${id}`)
+    if (existing.status === 'running') return existing
+
+    this.updateMigrationJob(id, { status: 'running', errorText: null })
+
+    try {
+      const current = this.getMigrationJob(id)
+      if (!current) throw new Error(`Unknown migration job: ${id}`)
+
+      const result = await migrateChunk(this.logger, {
+        sourceDbPath: current.sourceDbPath,
+        targetField: this,
+        includeArchived: current.includeArchived,
+        migrateArchives: current.migrateArchives,
+        inferSynapses: current.inferSynapses,
+        limit: current.memoryLimit,
+        archiveLimit: current.archiveLimit,
+        archiveLinkLimit: current.archiveLinkLimit,
+        microChunkTokenTarget: current.microChunkTokenTarget,
+        enableMicroChunking: current.enableMicroChunking,
+        embeddingProvider: options?.embeddingProvider,
+        memoryOffset: current.nextMemoryOffset,
+        archiveOffset: current.nextArchiveOffset,
+        linkOffset: current.nextLinkOffset,
+        memoryBatchSize: Math.min(current.memoryLimit ?? 250, 250),
+        archiveBatchSize: Math.min(current.archiveLimit ?? 200, 200),
+        linkBatchSize: Math.min(current.archiveLinkLimit ?? 1000, 1000),
+        phase: current.phase,
+      })
+
+      const updated = this.updateMigrationJob(id, {
+        status: result.done ? 'completed' : 'paused',
+        phase: result.phase,
+        migratedMemories: current.migratedMemories + result.migrated,
+        migratedArchives: current.migratedArchives + result.archivedMigrated,
+        createdSynapses: current.createdSynapses + result.synapsesCreated,
+        createdFragments: current.createdFragments + result.fragmentEngramsCreated,
+        nextMemoryOffset: result.nextMemoryOffset,
+        nextArchiveOffset: result.nextArchiveOffset,
+        nextLinkOffset: result.nextLinkOffset,
+        completedAt: result.done ? new Date().toISOString() : null,
+      })
+      if (!updated) throw new Error(`Failed to update migration job: ${id}`)
+      return updated
+    } catch (err) {
+      const updated = this.updateMigrationJob(id, {
+        status: 'failed',
+        errorText: String(err),
+      })
+      if (!updated) throw err
+      return updated
+    }
+  }
+
+
+  listNuclei(): Nucleus[] {
+    return this.cortex.listNuclei()
+  }
+
+  listAbstractions(limit = 50): Engram[] {
+    return this.cortex.listEngrams(limit, 'abstraction')
   }
 
   /**
-   * Project a new vector into XY space using current PCA state.
-   * If no PCA state exists, rebuilds from all engrams.
+   * Rebuild projection state from current engram embeddings and positions.
+   * The state caches reference data for fast online projection of new engrams.
+   * Call after bulk imports or periodically during consolidation.
    */
-  private projectNewVector(vector: number[]): { x: number; y: number } {
-    if (!this.pcaState) {
-      this.rebuildPCA()
+  rebuildProjection(): ProjectionState | null {
+    const engrams = this.cortex.getAllEngrams()
+    const withEmbeddings = engrams.filter(e => e.embedding && e.embedding.length > 0)
+
+    if (withEmbeddings.length < 2) {
+      this.projectionState = null
+      return null
     }
 
-    if (this.pcaState) {
-      return projectSingle(vector, this.pcaState.mean, this.pcaState.pc1, this.pcaState.pc2)
+    const vectors = withEmbeddings.map(e => Array.from(e.embedding!))
+    const positions = withEmbeddings.map(e => ({ x: e.x, y: e.y }))
+    this.projectionState = buildProjectionState(vectors, positions)
+    this.logger.debug('Projection state rebuilt', { vectorCount: vectors.length })
+    return this.projectionState
+  }
+
+  /**
+   * Project a new vector into XY space using cached projection state.
+   * If no state exists, rebuilds from current engrams.
+   */
+  private projectNewVector(vector: number[]): { x: number; y: number } {
+    if (!this.projectionState) {
+      this.rebuildProjection()
+    }
+
+    if (this.projectionState) {
+      return projectSingle(vector, this.projectionState)
     }
 
     return { x: 0, y: 0 }
   }
 
   /**
-   * Bulk reproject all engrams using current embeddings.
-   * Useful after PCA rebuild or initial migration.
+   * Bulk reproject all engrams using UMAP on current embeddings.
+   * Computes full non-linear projection preserving local neighborhoods.
    */
   reprojectAll(): number {
     const engrams = this.cortex.getAllEngrams()
@@ -283,10 +421,36 @@ export class MnemicField {
     }))
 
     this.cortex.bulkUpdatePositions(updates)
-    this.pcaState = computePCAComponents(vectors)
+    this.projectionState = buildProjectionState(vectors, positions)
 
-    this.logger.info('Reprojected all engrams', { count: updates.length })
+    this.logger.info('Reprojected all engrams via UMAP', { count: updates.length })
     return updates.length
+  }
+
+  /**
+   * Backfill missing embeddings using the configured local embedding service,
+   * then reproject the full field.
+   */
+  async backfillEmbeddings(limit = 1000): Promise<{ embedded: number; reprojected: number }> {
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) {
+      throw new Error('Embedding service not available')
+    }
+
+    const all = this.cortex.getAllEngrams()
+    const missing = all.filter(e => !e.embedding || e.embedding.length === 0).slice(0, limit)
+    let embedded = 0
+
+    for (const engram of missing) {
+      const vec = await embSvc.embed(engram.content, 'document')
+      if (!vec) continue
+      this.cortex.updateEngram(engram.id, { embedding: vec })
+      embedded++
+    }
+
+    const reprojected = this.reprojectAll()
+    this.logger.info('Backfilled embeddings and reprojected field', { embedded, reprojected })
+    return { embedded, reprojected }
   }
 
   /**

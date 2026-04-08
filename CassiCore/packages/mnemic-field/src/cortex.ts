@@ -496,6 +496,13 @@ export class Cortex {
     return (this.db.prepare(`SELECT * FROM engrams`).all() as Record<string, unknown>[]).map(rowToEngram)
   }
 
+  getSpatialEngrams(maxCount = 10000): Engram[] {
+    return (this.db.prepare(
+      `SELECT * FROM engrams WHERE x != 0 OR y != 0 OR (embedding IS NOT NULL AND length(embedding) > 0)
+       ORDER BY potentiation DESC LIMIT ?`
+    ).all(maxCount) as Record<string, unknown>[]).map(rowToEngram)
+  }
+
   getEngramsByCluster(clusterId: string): Engram[] {
     const rows = this.db.prepare(
       `SELECT * FROM engrams WHERE cluster_id = ? ORDER BY potentiation DESC`
@@ -525,6 +532,10 @@ export class Cortex {
       avgPotentiation: avgRow.avg ?? 0,
       topEngramsByPotentiation: topRows,
     }
+  }
+
+  getDatabase(): Database.Database {
+    return this.db
   }
 
   close(): void {

@@ -50,18 +50,73 @@ export function initMnemicFieldSchema(db: Database.Database): void {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS migration_jobs (
+      id TEXT PRIMARY KEY,
+      status TEXT NOT NULL,
+      phase TEXT NOT NULL DEFAULT 'memories',
+      source_db_path TEXT NOT NULL,
+      migrate_archives INTEGER NOT NULL DEFAULT 0,
+      include_archived INTEGER NOT NULL DEFAULT 0,
+      infer_synapses INTEGER NOT NULL DEFAULT 1,
+      enable_micro_chunking INTEGER NOT NULL DEFAULT 1,
+      use_local_embeddings INTEGER NOT NULL DEFAULT 0,
+      memory_limit INTEGER,
+      archive_limit INTEGER,
+      archive_link_limit INTEGER,
+      micro_chunk_token_target INTEGER,
+      migrated_memories INTEGER NOT NULL DEFAULT 0,
+      migrated_archives INTEGER NOT NULL DEFAULT 0,
+      created_synapses INTEGER NOT NULL DEFAULT 0,
+      created_fragments INTEGER NOT NULL DEFAULT 0,
+      next_memory_offset INTEGER NOT NULL DEFAULT 0,
+      next_archive_offset INTEGER NOT NULL DEFAULT 0,
+      next_link_offset INTEGER NOT NULL DEFAULT 0,
+      error_text TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      completed_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS changesets (
+      id TEXT PRIMARY KEY,
+      description TEXT NOT NULL,
+      author_session_id TEXT,
+      author_agent_id TEXT,
+      parent_changeset_id TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      build_verified INTEGER NOT NULL DEFAULT 0,
+      file_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      committed_at TEXT,
+      metadata TEXT DEFAULT '{}'
+    );
+
+    CREATE TABLE IF NOT EXISTS changeset_files (
+      changeset_id TEXT NOT NULL REFERENCES changesets(id) ON DELETE CASCADE,
+      engram_id TEXT NOT NULL REFERENCES engrams(id) ON DELETE CASCADE,
+      previous_checksum TEXT,
+      previous_content TEXT,
+      operation TEXT NOT NULL,
+      PRIMARY KEY (changeset_id, engram_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_engrams_cluster ON engrams(cluster_id);
     CREATE INDEX IF NOT EXISTS idx_engrams_type ON engrams(node_type);
     CREATE INDEX IF NOT EXISTS idx_engrams_potentiation ON engrams(potentiation DESC);
     CREATE INDEX IF NOT EXISTS idx_engrams_t ON engrams(t);
+    CREATE INDEX IF NOT EXISTS idx_migration_jobs_status ON migration_jobs(status);
     CREATE INDEX IF NOT EXISTS idx_synapses_target ON mnemic_synapses(target_id, edge_type);
     CREATE INDEX IF NOT EXISTS idx_synapses_source ON mnemic_synapses(source_id, edge_type);
     CREATE INDEX IF NOT EXISTS idx_spikes_engram ON activation_spikes(engram_id, timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_spikes_timestamp ON activation_spikes(timestamp DESC);
+    CREATE INDEX IF NOT EXISTS idx_changesets_status ON changesets(status);
+    CREATE INDEX IF NOT EXISTS idx_changesets_committed ON changesets(committed_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_changeset_files_engram ON changeset_files(engram_id);
   `)
 
   createRtreeIfNeeded(db)
   createFtsIfNeeded(db)
+  migrateSchema(db)
 }
 
 function createRtreeIfNeeded(db: Database.Database): void {
@@ -113,5 +168,13 @@ function createFtsIfNeeded(db: Database.Database): void {
         VALUES (NEW.rowid, NEW.content, NEW.tags, NEW.provenance);
       END;
     `)
+  }
+}
+
+function migrateSchema(db: Database.Database): void {
+  const cols = db.prepare(`PRAGMA table_info(migration_jobs)`).all() as Array<{ name: string }>
+  const names = new Set(cols.map(c => c.name))
+  if (!names.has('phase')) {
+    db.exec(`ALTER TABLE migration_jobs ADD COLUMN phase TEXT NOT NULL DEFAULT 'memories'`)
   }
 }
