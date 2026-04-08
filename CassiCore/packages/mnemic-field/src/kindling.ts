@@ -120,14 +120,13 @@ export class KindlingEngine {
    * Find seeds by embedding cosine similarity against all engrams with embeddings.
    */
   private findSeedsByEmbedding(queryEmb: number[], limit: number): SeedResult[] {
-    const engrams = this.cortex.getAllEngrams()
-    const withEmbeddings = engrams.filter(e => e.embedding && e.embedding.length > 0)
+    const embData = this.cortex.getEmbeddingVectors(50000)
 
-    if (withEmbeddings.length === 0) return []
+    if (embData.length === 0) return []
 
-    const scored = withEmbeddings.map(e => ({
+    const scored = embData.map(e => ({
       engramId: e.id,
-      charge: cosineSimilarity(queryEmb, Array.from(e.embedding!)),
+      charge: cosineSimilarity(queryEmb, Array.from(e.embedding)),
     }))
 
     return scored

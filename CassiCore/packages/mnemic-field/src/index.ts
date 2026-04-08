@@ -10,8 +10,7 @@ import { ConsolidationEngine } from './consolidation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
-import { projectTo2D, projectSingle, buildProjectionState } from './umap.js'
-import type { ProjectionState } from './umap.js'
+import { projectTo2D, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -80,7 +79,7 @@ export class MnemicField {
 
   /**
    * Store a new engram. If embedding is provided but x/y are not,
-   * computes XY from PCA against existing field topology.
+   * projects into the existing field topology via nearest-neighbor placement.
    */
   store(input: EngramCreate): Engram {
     const shouldProject = input.embedding && input.x === undefined && input.y === undefined
@@ -370,16 +369,15 @@ export class MnemicField {
    * Call after bulk imports or periodically during consolidation.
    */
   rebuildProjection(): ProjectionState | null {
-    const engrams = this.cortex.getAllEngrams()
-    const withEmbeddings = engrams.filter(e => e.embedding && e.embedding.length > 0)
+    const embData = this.cortex.getEmbeddingVectorsWithPositions(10000)
 
-    if (withEmbeddings.length < 2) {
+    if (embData.length < 2) {
       this.projectionState = null
       return null
     }
 
-    const vectors = withEmbeddings.map(e => Array.from(e.embedding!))
-    const positions = withEmbeddings.map(e => ({ x: e.x, y: e.y }))
+    const vectors = embData.map(e => Array.from(e.embedding))
+    const positions = embData.map(e => ({ x: e.x, y: e.y }))
     this.projectionState = buildProjectionState(vectors, positions)
     this.logger.debug('Projection state rebuilt', { vectorCount: vectors.length })
     return this.projectionState
@@ -406,15 +404,18 @@ export class MnemicField {
    * Computes full non-linear projection preserving local neighborhoods.
    */
   reprojectAll(): number {
-    const engrams = this.cortex.getAllEngrams()
-    const withEmbeddings = engrams.filter(e => e.embedding && e.embedding.length > 0)
+    const embData = this.cortex.getEmbeddingVectors(50000)
 
-    if (withEmbeddings.length < 2) return 0
+    if (embData.length < 2) return 0
 
-    const vectors = withEmbeddings.map(e => Array.from(e.embedding!))
+    if (embData.length >= 50000) {
+      this.logger.warn('reprojectAll capped at 50k embeddings to avoid OOM — use external tooling for full reprojection')
+    }
+
+    const vectors = embData.map(e => Array.from(e.embedding))
     const positions = projectTo2D(vectors)
 
-    const updates = withEmbeddings.map((e, i) => ({
+    const updates = embData.map((e, i) => ({
       id: e.id,
       x: positions[i].x,
       y: positions[i].y,
@@ -423,7 +424,7 @@ export class MnemicField {
     this.cortex.bulkUpdatePositions(updates)
     this.projectionState = buildProjectionState(vectors, positions)
 
-    this.logger.info('Reprojected all engrams via UMAP', { count: updates.length })
+    this.logger.info('Reprojected engrams via UMAP', { count: updates.length })
     return updates.length
   }
 
@@ -437,19 +438,27 @@ export class MnemicField {
       throw new Error('Embedding service not available')
     }
 
-    const all = this.cortex.getAllEngrams()
-    const missing = all.filter(e => !e.embedding || e.embedding.length === 0).slice(0, limit)
+    const missing = this.cortex.getEngramsWithoutEmbedding(limit)
     let embedded = 0
 
-    for (const engram of missing) {
-      const vec = await embSvc.embed(engram.content, 'document')
+    for (const { id, content } of missing) {
+      const vec = await embSvc.embed(content, 'document')
       if (!vec) continue
-      this.cortex.updateEngram(engram.id, { embedding: vec })
+      this.cortex.updateEngram(id, { embedding: vec })
+
+      if (this.projectionState) {
+        const pos = projectSingle(vec, this.projectionState)
+        this.cortex.bulkUpdatePositions([{ id, x: pos.x, y: pos.y }])
+      }
       embedded++
     }
 
-    const reprojected = this.reprojectAll()
-    this.logger.info('Backfilled embeddings and reprojected field', { embedded, reprojected })
+    let reprojected = 0
+    if (!this.projectionState && embedded > 0) {
+      reprojected = this.reprojectAll()
+    }
+
+    this.logger.info('Backfilled embeddings', { embedded, reprojected, remaining: this.cortex.countMissingEmbeddings() })
     return { embedded, reprojected }
   }
 

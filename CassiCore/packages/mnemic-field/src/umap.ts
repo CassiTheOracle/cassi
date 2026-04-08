@@ -19,11 +19,11 @@ export interface ProjectionResult {
 
 /**
  * Cached state for online projection of new engrams into existing topology.
- * Stores sampled reference embeddings and their 2D positions so that
+ * Stores pre-normalized reference embeddings and their 2D positions so
  * projectSingle can find nearest neighbors without a full field scan.
  */
 export interface ProjectionState {
-  referenceEmbeddings: number[][]
+  referenceEmbeddings: number[][]  // pre-normalized by buildProjectionState
   referencePositions: ProjectionResult[]
   nNeighbors: number
 }
@@ -99,29 +99,34 @@ export function projectSingle(vector: number[], state: ProjectionState): Project
 
   const k = Math.min(nNeighbors, referenceEmbeddings.length)
   const normedVec = normalizeVec(vector)
+  const nRef = referenceEmbeddings.length
 
-  const neighbors: Array<{ idx: number; dist: number }> = []
-  for (let i = 0; i < referenceEmbeddings.length; i++) {
-    const sim = dot(normedVec, normalizeVec(referenceEmbeddings[i]))
-    neighbors.push({ idx: i, dist: Math.max(0, 1 - sim) })
+  const distBuf = new Float64Array(nRef)
+  const idxBuf = new Uint32Array(nRef)
+  for (let i = 0; i < nRef; i++) {
+    distBuf[i] = Math.max(0, 1 - dot(normedVec, referenceEmbeddings[i]))
+    idxBuf[i] = i
   }
-  neighbors.sort((a, b) => a.dist - b.dist)
-  const topK = neighbors.slice(0, k)
+  partialSelectionSort(distBuf, idxBuf, nRef, k)
 
-  const rho = topK[0].dist
-  const sigma = findSigmaForPoint(topK.map(t => t.dist), rho, Math.log2(k))
+  const topKDists = new Array<number>(k)
+  const topKIdxs = new Array<number>(k)
+  for (let i = 0; i < k; i++) {
+    topKDists[i] = distBuf[i]
+    topKIdxs[i] = idxBuf[i]
+  }
 
-  const weights = topK.map(t => {
-    const adjusted = Math.max(0, t.dist - rho)
-    return sigma > 1e-10 ? Math.exp(-adjusted / sigma) : 1.0
-  })
+  const rho = topKDists[0]
+  const sigma = findSigmaForPoint(topKDists, rho, Math.log2(k))
 
   let sumX = 0, sumY = 0, sumW = 0
-  for (let i = 0; i < topK.length; i++) {
-    const pos = referencePositions[topK[i].idx]
-    sumX += weights[i] * pos.x
-    sumY += weights[i] * pos.y
-    sumW += weights[i]
+  for (let i = 0; i < k; i++) {
+    const adjusted = Math.max(0, topKDists[i] - rho)
+    const w = sigma > 1e-10 ? Math.exp(-adjusted / sigma) : 1.0
+    const pos = referencePositions[topKIdxs[i]]
+    sumX += w * pos.x
+    sumY += w * pos.y
+    sumW += w
   }
 
   return sumW > 0 ? { x: sumX / sumW, y: sumY / sumW } : { x: 0, y: 0 }
@@ -129,6 +134,7 @@ export function projectSingle(vector: number[], state: ProjectionState): Project
 
 /**
  * Build a ProjectionState from existing embeddings and their 2D positions.
+ * Pre-normalizes embeddings so projectSingle only normalizes the query.
  * For large fields, samples uniformly to keep the state under MAX_REFERENCE_SAMPLES.
  */
 export function buildProjectionState(
@@ -139,7 +145,7 @@ export function buildProjectionState(
   const nNeighbors = options?.nNeighbors ?? UMAP_DEFAULTS.nNeighbors
 
   if (vectors.length <= MAX_REFERENCE_SAMPLES) {
-    return { referenceEmbeddings: vectors, referencePositions: positions, nNeighbors }
+    return { referenceEmbeddings: normalizeRows(vectors), referencePositions: positions, nNeighbors }
   }
 
   const step = vectors.length / MAX_REFERENCE_SAMPLES
@@ -147,7 +153,7 @@ export function buildProjectionState(
   const sampledPos: ProjectionResult[] = []
   for (let i = 0; i < MAX_REFERENCE_SAMPLES; i++) {
     const idx = Math.min(Math.floor(i * step), vectors.length - 1)
-    sampledEmb.push(vectors[idx])
+    sampledEmb.push(normalizeVec(vectors[idx]))
     sampledPos.push(positions[idx])
   }
 
@@ -164,26 +170,28 @@ function buildKNNGraph(normed: number[][], k: number): {
   distances: number[][]
 } {
   const n = normed.length
-  const indices: number[][] = new Array(n)
-  const distances: number[][] = new Array(n)
+  const resultIndices: number[][] = new Array(n)
+  const resultDistances: number[][] = new Array(n)
+
+  const distBuf = new Float64Array(n)
+  const idxBuf = new Uint32Array(n)
 
   for (let i = 0; i < n; i++) {
-    const dists: Array<{ j: number; d: number }> = new Array(n - 1)
-    let di = 0
+    let count = 0
     for (let j = 0; j < n; j++) {
       if (j === i) continue
-      dists[di++] = { j, d: Math.max(0, 1 - dot(normed[i], normed[j])) }
+      distBuf[count] = Math.max(0, 1 - dot(normed[i], normed[j]))
+      idxBuf[count] = j
+      count++
     }
-    dists.sort((a, b) => a.d - b.d)
-    indices[i] = new Array(k)
-    distances[i] = new Array(k)
-    for (let ki = 0; ki < k; ki++) {
-      indices[i][ki] = dists[ki].j
-      distances[i][ki] = dists[ki].d
-    }
+
+    partialSelectionSort(distBuf, idxBuf, count, k)
+
+    resultIndices[i] = Array.from(idxBuf.subarray(0, k))
+    resultDistances[i] = Array.from(distBuf.subarray(0, k))
   }
 
-  return { indices, distances }
+  return { indices: resultIndices, distances: resultDistances }
 }
 
 /**
@@ -315,9 +323,6 @@ function pcaInitialize(vectors: number[][], n: number, seed: number): Projection
  * PCA fallback for n < 4 where UMAP can't form meaningful neighborhoods.
  */
 function pcaFallback(vectors: number[][]): ProjectionResult[] {
-  if (vectors.length === 0) return []
-  if (vectors.length === 1) return [{ x: 0, y: 0 }]
-
   const dim = vectors[0].length
   const mean = computeMean(vectors, dim)
   const centered = vectors.map(v => v.map((x, i) => x - mean[i]))
@@ -326,8 +331,6 @@ function pcaFallback(vectors: number[][]): ProjectionResult[] {
 
   return centered.map(v => ({ x: dot(v, pc1), y: dot(v, pc2) }))
 }
-
-// ── SGD Layout Optimization ─────────────────────────────────────────
 
 interface LayoutParams {
   nEpochs: number
@@ -415,8 +418,6 @@ function optimizeLayout(
   }
 }
 
-// ── Curve Parameter Fitting ─────────────────────────────────────────
-
 /**
  * Find the a, b parameters for UMAP's smooth approximation curve:
  *   φ(d) = 1 / (1 + a·d^(2b))
@@ -460,8 +461,6 @@ function findAB(spread: number, minDist: number): { a: number; b: number } {
 
   return { a: bestA, b: bestB }
 }
-
-// ── Linear Algebra Primitives ───────────────────────────────────────
 
 function dot(a: number[], b: number[]): number {
   let s = 0
@@ -534,10 +533,30 @@ function deterministicUnitVector(dim: number): number[] {
   return normalizeVec(v)
 }
 
-// ── Utilities ───────────────────────────────────────────────────────
-
 function clamp(val: number, limit = 4): number {
   return val < -limit ? -limit : val > limit ? limit : val
+}
+
+/**
+ * In-place partial sort: after return, the k smallest values
+ * occupy positions [0..k) in both buffers (sorted ascending).
+ */
+function partialSelectionSort(
+  dists: Float64Array,
+  idxs: Uint32Array | number[],
+  count: number,
+  k: number,
+): void {
+  for (let ki = 0; ki < k; ki++) {
+    let minPos = ki
+    for (let m = ki + 1; m < count; m++) {
+      if (dists[m] < dists[minPos]) minPos = m
+    }
+    if (minPos !== ki) {
+      const td = dists[ki]; dists[ki] = dists[minPos]; dists[minPos] = td
+      const ti = idxs[ki]; idxs[ki] = idxs[minPos]; idxs[minPos] = ti
+    }
+  }
 }
 
 function resolveOptions(options?: UMAPOptions): Required<UMAPOptions> {
@@ -560,7 +579,7 @@ class PRNG {
   private state: number
 
   constructor(seed: number) {
-    this.state = seed & 0x7fffffff
+    this.state = (seed & 0x7fffffff) || 1
   }
 
   next(): number {

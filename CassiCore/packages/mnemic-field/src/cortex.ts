@@ -496,6 +496,52 @@ export class Cortex {
     return (this.db.prepare(`SELECT * FROM engrams`).all() as Record<string, unknown>[]).map(rowToEngram)
   }
 
+  /**
+   * Return only (id, embedding) pairs — avoids loading content/metadata blobs.
+   * Critical for large fields where getAllEngrams() would OOM from blob pressure.
+   */
+  getEmbeddingVectors(maxCount?: number): Array<{ id: string; embedding: Float32Array }> {
+    const limit = maxCount ?? 999999
+    const rows = this.db.prepare(
+      `SELECT id, embedding FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT ?`
+    ).all(limit) as Array<{ id: string; embedding: Buffer }>
+    return rows
+      .map(r => ({ id: r.id, embedding: toFloatArray(r.embedding)! }))
+      .filter(r => r.embedding !== null) as Array<{ id: string; embedding: Float32Array }>
+  }
+
+  /**
+   * Return (id, content) for engrams missing embeddings — no embedding blobs loaded.
+   */
+  getEngramsWithoutEmbedding(limit: number): Array<{ id: string; content: string }> {
+    return this.db.prepare(
+      `SELECT id, content FROM engrams WHERE embedding IS NULL LIMIT ?`
+    ).all(limit) as Array<{ id: string; content: string }>
+  }
+
+  /**
+   * Count engrams missing embeddings without loading them into memory.
+   */
+  countMissingEmbeddings(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM engrams WHERE embedding IS NULL`).get() as { c: number }).c
+  }
+
+  /**
+   * Return (id, embedding, x, y) — for rebuilding projection state without full engram load.
+   */
+  getEmbeddingVectorsWithPositions(maxCount?: number): Array<{ id: string; embedding: Float32Array; x: number; y: number }> {
+    const limit = maxCount ?? 999999
+    const rows = this.db.prepare(
+      `SELECT id, embedding, x, y FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT ?`
+    ).all(limit) as Array<{ id: string; embedding: Buffer; x: number; y: number }>
+    return rows
+      .map(r => {
+        const emb = toFloatArray(r.embedding)
+        return emb ? { id: r.id, embedding: emb, x: r.x, y: r.y } : null
+      })
+      .filter(Boolean) as Array<{ id: string; embedding: Float32Array; x: number; y: number }>
+  }
+
   getSpatialEngrams(maxCount = 10000): Engram[] {
     return (this.db.prepare(
       `SELECT * FROM engrams WHERE x != 0 OR y != 0 OR (embedding IS NOT NULL AND length(embedding) > 0)
