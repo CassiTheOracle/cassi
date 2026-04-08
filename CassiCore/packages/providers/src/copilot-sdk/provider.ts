@@ -19,7 +19,7 @@ import type { CopilotSession, SessionEvent, Tool as SdkTool } from '@github/copi
 import { BaseProvider } from '../base.js'
 import { CopilotSdkManager } from './client-manager.js'
 import { mapSdkEvent, createTurnState } from './event-mapper.js'
-import { WarmSessionState, buildFinishedSdkTool } from './finished-tool.js'
+import { WarmSessionState, buildFinishedSdkTool, buildIdleSdkTool } from './finished-tool.js'
 import type { IterationResult } from './finished-tool.js'
 
 import type { Message, CompletionOpts, CompletionChunk, TurnResult, ImageAttachment } from '../../../types/runtime.js'
@@ -69,6 +69,16 @@ interface WarmSession {
   warmKey: string
 }
 
+interface PersistentScopedSession {
+  session: CopilotSession
+  state: WarmSessionState
+  completionPromise: Promise<unknown>
+  model: string
+  createdAt: number
+  lastActivity: number
+  sessionKey: string
+}
+
 export class CopilotSdkProvider extends BaseProvider {
   readonly id = 'copilot-sdk'
   models: string[] = []
@@ -85,6 +95,9 @@ export class CopilotSdkProvider extends BaseProvider {
 
   /** Map warmSessionKey → WarmSession (for complete() warm sessions) */
   private warmSessions = new Map<string, WarmSession>()
+
+  /** Map session key → persistent scoped session (for thinker-style loops) */
+  private persistentScopedSessions = new Map<string, PersistentScopedSession>()
 
   constructor(options: CopilotSdkProviderOptions) {
     super()
@@ -377,6 +390,132 @@ export class CopilotSdkProvider extends BaseProvider {
     }
   }
 
+  async executePersistentScopedTurn(
+    sessionId: string,
+    prompt: string,
+    systemMessage: string,
+    customTools: Array<{
+      name: string
+      description: string
+      parameters: Record<string, unknown>
+      handler: (args: unknown) => Promise<{ textResultForLlm: string; resultType: 'success' | 'error' }>
+    }>,
+    model?: string,
+  ): Promise<TurnResult> {
+    const log = this.logger.child('sdk-persistent-scoped')
+    const sessionKey = sessionId
+    const useModel = model || this.defaultModel
+    const startedAt = Date.now()
+
+    let entry = this.persistentScopedSessions.get(sessionKey)
+    const state = createTurnState(sessionKey)
+    state.model = useModel
+
+    let finishedPromise: Promise<IterationResult>
+    let unsubscribe: (() => void) | undefined
+
+    try {
+      if (entry?.state.isBlocked) {
+        try {
+          await entry.session.setModel(useModel)
+        } catch {
+          // best-effort
+        }
+        entry.state.prepareForIteration()
+        finishedPromise = entry.state.waitForFinished()
+        unsubscribe = entry.session.on((event: SessionEvent) => {
+          mapSdkEvent(event, state, this.bus)
+        })
+        entry.state.resume(prompt)
+        entry.lastActivity = Date.now()
+        log.info('Persistent scoped session resumed', {
+          sessionId: sessionKey.slice(-8),
+          model: useModel,
+          blockedMs: Date.now() - entry.state.lastFinishedAt,
+        })
+      } else {
+        if (entry) {
+          await this.destroyPersistentScopedSession(sessionKey, 'stale persistent scoped session')
+        }
+
+        const scopedState = new WarmSessionState()
+        const scopedTools: SdkTool[] = customTools.map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+          handler: async (args: unknown) => tool.handler(args),
+        }))
+        scopedTools.push(buildIdleSdkTool(scopedState, log))
+
+        const session = await this.createSessionWithTools(sessionKey, systemMessage, useModel, scopedTools)
+        scopedState.prepareForIteration()
+        finishedPromise = scopedState.waitForFinished()
+        unsubscribe = session.on((event: SessionEvent) => {
+          mapSdkEvent(event, state, this.bus)
+        })
+
+        const completionPromise = session.sendAndWait(
+          { prompt },
+          WARM_SESSION_TIMEOUT_MS,
+        ).then((response: any) => {
+          scopedState.sessionEnded(response?.data?.content)
+          this.persistentScopedSessions.delete(sessionKey)
+        }).catch((err: unknown) => {
+          log.warn('Persistent scoped sendAndWait rejected', {
+            sessionId: sessionKey.slice(-8),
+            error: String(err),
+          })
+          scopedState.sessionEnded()
+          this.persistentScopedSessions.delete(sessionKey)
+        })
+
+        entry = {
+          session,
+          state: scopedState,
+          completionPromise,
+          model: useModel,
+          createdAt: Date.now(),
+          lastActivity: Date.now(),
+          sessionKey,
+        }
+        this.persistentScopedSessions.set(sessionKey, entry)
+
+        log.info('Persistent scoped session created', {
+          sessionId: sessionKey.slice(-8),
+          model: useModel,
+          tools: scopedTools.map((tool) => tool.name),
+        })
+      }
+
+      const iterationResult = await Promise.race([
+        finishedPromise,
+        sleep(SDK_TURN_TIMEOUT_MS).then(() => {
+          throw new Error(`Persistent scoped turn timeout after ${SDK_TURN_TIMEOUT_MS}ms`)
+        }),
+      ])
+
+      const responseText = state.text || iterationResult.result || ''
+
+      return {
+        response: responseText,
+        tokensUsed: state.tokensUsed,
+        model: state.model,
+        durationMs: Date.now() - startedAt,
+        contextHealth: state.contextHealth,
+      }
+    } catch (err) {
+      return {
+        response: `Error: ${String(err)}`,
+        tokensUsed: state.tokensUsed,
+        model: state.model,
+        durationMs: Date.now() - startedAt,
+        contextHealth: state.contextHealth,
+      }
+    } finally {
+      try { unsubscribe?.() } catch {}
+    }
+  }
+
   // Session Management
 
   /**
@@ -465,6 +604,12 @@ export class CopilotSdkProvider extends BaseProvider {
    * Destroy an SDK session (called when CassiCore session ends).
    */
   async destroySession(sessionId: string): Promise<void> {
+    const persistent = this.persistentScopedSessions.get(sessionId)
+    if (persistent) {
+      persistent.state.abort('persistent scoped session destroyed')
+      this.persistentScopedSessions.delete(sessionId)
+    }
+
     const session = this.sessions.get(sessionId)
     if (!session) return
 
@@ -474,6 +619,18 @@ export class CopilotSdkProvider extends BaseProvider {
       this.logger.warn(`Error disconnecting SDK session ${sessionId}: ${String(err)}`)
     }
     this.sessions.delete(sessionId)
+  }
+
+  async destroyPersistentScopedSession(sessionId: string, reason = 'persistent scoped session destroyed'): Promise<void> {
+    const persistent = this.persistentScopedSessions.get(sessionId)
+    if (!persistent) return
+    persistent.state.abort(reason)
+    this.persistentScopedSessions.delete(sessionId)
+    try {
+      await this.destroySession(sessionId)
+    } catch (err) {
+      this.logger.warn(`Error destroying persistent scoped session ${sessionId}: ${String(err)}`)
+    }
   }
 
   /**
@@ -549,8 +706,8 @@ export class CopilotSdkProvider extends BaseProvider {
    *     gets an acknowledgment; the caller handles the actual tool logic.
    *   - Text is streamed via assistant.message_delta events.
    *
-   * Warm Session Pattern (when opts.warmSessionKey is set):
-   *   All iterations within the same warmSessionKey share one sendAndWait() call.
+    * Persistent session pattern (when opts.persistentSessionKey is set):
+    *   All iterations within the same persistent session key share one sendAndWait() call.
    *   The `finished()` tool handler blocks between iterations, keeping the session
    *   alive and collapsing all iterations into a single premium request.
    *
@@ -563,7 +720,7 @@ export class CopilotSdkProvider extends BaseProvider {
     _attachments?: ImageAttachment[],
     _signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
-    const warmKey = opts.warmSessionKey
+    const warmKey = opts.persistentSessionKey ?? opts.warmSessionKey
     if (warmKey) {
       yield* this.completeWithWarmSession(warmKey, messages, opts)
     } else {
@@ -798,10 +955,10 @@ export class CopilotSdkProvider extends BaseProvider {
         const metaTools = this.buildMetaToolDefinitions(
           opts.tools || [], chunks, wakeGenerator, log, warmKey, state,
         )
-        // Also include standalone finished() tool as fallback
-        // (in case caller has no signal_conclusion tool)
+        // Also include standalone finished()/idle() tools as fallbacks.
         const finishedSdkTool = buildFinishedSdkTool(state, log)
-        const allTools = [...this.sdkTools, ...metaTools, finishedSdkTool]
+        const idleSdkTool = buildIdleSdkTool(state, log)
+        const allTools = [...this.sdkTools, ...metaTools, finishedSdkTool, idleSdkTool]
 
         const session = await this.createSessionWithTools(sessionId, systemPrompt, model, allTools)
         log.info('SDK warm session created', {
@@ -1105,4 +1262,8 @@ export class CopilotSdkProvider extends BaseProvider {
   async ping(): Promise<boolean> {
     return this.manager.ping()
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }

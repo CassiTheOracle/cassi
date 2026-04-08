@@ -246,3 +246,58 @@ export function buildFinishedSdkTool(state: WarmSessionState, log: ILogger): Sdk
     },
   }
 }
+
+export function buildIdleSdkTool(state: WarmSessionState, log: ILogger): SdkTool {
+  return {
+    name: 'idle',
+    description: [
+      'Call this tool when you have completed the current work item and should wait for more instructions.',
+      'Include a short summary of what you concluded or learned.',
+      'The tool will block until new work arrives or the session is terminated.',
+    ].join(' '),
+    parameters: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'A short summary of the completed work item or current waiting state',
+        },
+      },
+      required: ['summary'],
+    },
+    handler: async (args: unknown) => {
+      const summary = (args as { summary?: string })?.summary ?? ''
+      const iteration = state.iterationCount + 1
+
+      log.info('Agent called idle()', {
+        iteration,
+        summaryLength: summary.length,
+        summaryPreview: summary.slice(0, 120),
+      })
+
+      try {
+        const newPrompt = await state.onFinishedCalled(summary)
+
+        log.info('Warm idle session resumed', {
+          iteration: iteration + 1,
+          promptLength: newPrompt.length,
+          blockedMs: Date.now() - state.lastFinishedAt,
+        })
+
+        return {
+          textResultForLlm: newPrompt,
+          resultType: 'success' as const,
+        }
+      } catch (err) {
+        log.info('Warm session terminated during idle() block', {
+          iteration,
+          error: String(err),
+        })
+        return {
+          textResultForLlm: `Session ended: ${String(err)}. You may stop now.`,
+          resultType: 'success' as const,
+        }
+      }
+    },
+  }
+}
