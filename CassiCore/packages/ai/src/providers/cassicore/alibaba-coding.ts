@@ -25,7 +25,7 @@ const OPENAI_BASE_URL = "https://coding-intl.dashscope.aliyuncs.com/v1";
 
 /** Models available through the OpenAI-compatible endpoint */
 const ALIBABA_CODING_OPENAI_MODELS = [
-  "qwen3.5-plus",
+  "qwen3.6-plus",
   "qwen3-max-2026-01-23",
 ] as const;
 
@@ -107,7 +107,7 @@ export class AlibabaCodingProvider extends OpenAICompatibleBase {
     };
 
     // Enable Qwen thinking mode for reasoning-capable models
-    if (model === "qwen3.5-plus" || model === "qwen3-max-2026-01-23") {
+    if (model === "qwen3.6-plus" || model === "qwen3-max-2026-01-23") {
       body.enable_thinking = true;
     }
 
@@ -169,7 +169,7 @@ export class AlibabaCodingProvider extends OpenAICompatibleBase {
     signal?: AbortSignal,
   ): AsyncIterable<CompletionChunk> {
     yield* this.streamChatCompletion(
-      opts.model || "qwen3.5-plus",
+      opts.model || "qwen3.6-plus",
       messages,
       opts,
       attachments,
