@@ -297,7 +297,10 @@ function handle_read_work_stream(ctx: BrainstemToolContext): MiniHelixToolHandle
     }
 
     if (workUnits.length === 0) {
-      return { content: 'No work units available.' }
+      return {
+        content: 'No work units available yet. Your worker may still be starting up or in progress. ' +
+          'Check again next iteration — do NOT call signal_done until you have observed at least some output.',
+      }
     }
 
     const formatted = workUnits.map((wu: WorkUnit) => ({
@@ -589,10 +592,20 @@ function handle_escalate_to_corpus(ctx: BrainstemToolContext): MiniHelixToolHand
   }
 }
 
-function handle_signal_done(_ctx: BrainstemToolContext): MiniHelixToolHandler {
+function handle_signal_done(ctx: BrainstemToolContext): MiniHelixToolHandler {
   return (args) => {
     const summary = String(args.summary ?? 'Monitoring cycle complete.')
     const nextCheck = String(args.next_check ?? 'normal')
+
+    const workUnits = ctx.getAllWorkUnits()
+    const annotations = ctx.getAnnotations()
+
+    if (workUnits.length === 0 && annotations.length === 0) {
+      return {
+        content: 'Cannot end monitoring yet — your worker has not produced any output and you have ' +
+          'no annotations. Use read_work_stream to check for new work. Your worker may still be starting up.',
+      }
+    }
 
     return {
       content: `Cycle complete. Summary: ${summary}. Next check: ${nextCheck}.`,

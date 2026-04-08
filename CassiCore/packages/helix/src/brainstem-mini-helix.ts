@@ -49,7 +49,7 @@ import type { BrainstemToolContext } from './brainstem-tools.js'
  * Configuration specific to the Brainstem mini-Helix mode.
  */
 export interface BrainstemMiniHelixConfig {
-  /** Model tier for the Brainstem mini-Helix. Default: 'background' */
+  /** Model tier for the Brainstem mini-Helix. Default: 'haiku' */
   modelTier?: string
   /** Model name override (e.g., 'gpt-5-mini'). Optional. */
   modelName?: string
@@ -161,8 +161,8 @@ export class BrainstemMiniHelix {
       maxIterationsPerCycle: this.config.maxIterationsPerCycle ?? 30,
       maxTokens: 1024,
       cycleTimeoutMs: this.config.cycleTimeoutMs ?? 60_000,
-      modelTier: this.config.modelTier ?? 'background',
-      modelName: this.config.modelName,
+      modelTier: this.config.modelTier ?? 'haiku',
+      modelName: this.config.modelName ?? 'claude-haiku-4-5',
     }
 
     this.session = createMiniHelixSession(tools, config, this.miniHelixDeps)
