@@ -73,10 +73,8 @@ export interface CollectThoughtsDeps {
   /** Session-scoped registry of guidance providers. The Constellation pipeline
    *  registers per-branch providers here; collect_thoughts looks up by sessionId. */
   constellationGuidanceRegistry?: import('../../intelligence/constellation/guidance-provider.js').ConstellationGuidanceRegistry
-  /** Parallel Thinker session for main-agent context. When present and no
-   *  Constellation guidance provider exists, thoughts are routed to the Thinker
-   *  instead of the synchronous memory + Synapse pipeline (stages 5-6). */
-  thinkerSession?: ThinkerSession
+  /** Resolve the parallel Thinker session for the current host session. */
+  getThinkerSession?: (sessionId: string) => ThinkerSession | undefined
 }
 
 
@@ -464,9 +462,10 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
     let thinkerGuidance: string | null = null
     const isConstellationContext = !!(deps.constellationProvider
       || deps.constellationGuidanceRegistry?.get(context.sessionId))
-    if (deps.thinkerSession && !isConstellationContext) {
+    const thinkerSession = deps.getThinkerSession?.(context.sessionId)
+    if (thinkerSession && !isConstellationContext) {
       try {
-        deps.thinkerSession.enqueueThought(input.thought, {
+        thinkerSession.enqueueThought(input.thought, {
           step: input.step,
           estimatedSteps: input.estimated_steps,
           isRevision: input.is_revision ?? false,
@@ -474,9 +473,9 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
         })
 
         if (input.step === 1) {
-          const hasResponse = await deps.thinkerSession.waitForResponse(5000)
+          const hasResponse = await thinkerSession.waitForResponse(5000)
           if (hasResponse) {
-            const buffered = deps.thinkerSession.drainBuffer()
+            const buffered = thinkerSession.drainBuffer()
             if (buffered.length > 0) {
               thinkerGuidance = buffered[buffered.length - 1].content
               log.info('Thinker initial guidance received', {
@@ -486,7 +485,7 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
             }
           }
         } else {
-          const buffered = deps.thinkerSession.drainBuffer()
+          const buffered = thinkerSession.drainBuffer()
           if (buffered.length > 0) {
             thinkerGuidance = buffered[buffered.length - 1].content
             log.info('Thinker buffered guidance collected', {
