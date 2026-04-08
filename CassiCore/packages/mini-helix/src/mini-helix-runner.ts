@@ -360,7 +360,7 @@ class MiniHelixRunner implements MiniHelixSession {
         // Nudge to use tools
         this.messages.push({
           role: 'user',
-          content: 'Use your tools to take action, or call signal_done if your work is complete.',
+          content: 'Use your tools to continue your analysis. Read available data and take action.',
         })
         continue
       }

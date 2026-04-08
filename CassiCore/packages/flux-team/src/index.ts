@@ -1,4 +1,10 @@
 /**
+ * DEPRECATED: FluxTeam is deprecated.
+ *
+ * Do not build new features on FluxTeam. Prefer Constellation and Helix for
+ * all new orchestration work. This module remains only for compatibility and
+ * migration support while dependent code is retired.
+ *
  * FluxTeam — Next-generation dynamic multi-agent team architecture.
  *
  * Replaces the rigid TriadCell (Proposer→Critic→Executor) pipeline with
