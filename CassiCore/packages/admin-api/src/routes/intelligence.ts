@@ -217,10 +217,7 @@ export async function handleIntelligenceRoutes(
       const subconscious = daemon.intelligence?.subconscious
       const contextManager = daemon.intelligence?.contextManager
 
-      // v5: use snapshot() and getRecentObservations(); fall back to legacy shims if needed
-      const snap = typeof subconscious?.snapshot === 'function'
-        ? subconscious.snapshot()
-        : subconscious?.getMentalModel?.(sessionId)
+      const snap = subconscious?.snapshot?.()
 
       let contextData: any = null
       if (contextManager?.getEffectiveContext) {
@@ -241,10 +238,7 @@ export async function handleIntelligenceRoutes(
         }
       }
 
-      // v5: use getRecentObservations(); fall back to legacy getRecentSignals()
-      const recentObservations = typeof subconscious?.getRecentObservations === 'function'
-        ? subconscious.getRecentObservations(10)
-        : (subconscious?.getRecentSignals?.(sessionId, 10) || [])
+      const recentObservations = subconscious?.getRecentObservations?.(10) ?? []
 
       sendJSON(res, 200, {
         sessionId,
@@ -258,9 +252,7 @@ export async function handleIntelligenceRoutes(
           timestamp: o.timestamp,
           patterns: o.patterns,
         })),
-        stats: typeof subconscious?.getEventStreamStats === 'function'
-          ? subconscious.getEventStreamStats()
-          : (subconscious?.getEnhancedSearchStats?.() || {}),
+        stats: subconscious?.getEventStreamStats?.() ?? {},
       })
       return true
     } catch (err) {

@@ -1339,16 +1339,11 @@ export function createAdminApi(daemon: any, logger: ILogger) {
    * Build a unified focusState for a single session.
    */
   function buildFocusState(sessionId: string, opts?: { includeParentFocus?: boolean }): Record<string, any> | null {
-    const subconscious = daemon.intelligence?.subconscious
     const digestStore = daemon.sessionDigestStore
-
-    const mm = subconscious?.getMentalModel?.(sessionId)
-    const mmState = mm?.state
-    const mmContext = mm?.context
 
     const digest = digestStore?.get?.(sessionId)
 
-    if (!mmState && !digest) {
+    if (!digest) {
       // Fallback for OpenCode sessions: infer focus state from accumulated conversation history.
       // This enables pruneAdvice to scale with session length even without the subconscious module.
       const ocHistory = ocConversationHistory.get(sessionId)
@@ -1388,29 +1383,22 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       }
     }
 
-    const topic = mmState?.topic || digest?.topic || ''
-    const intentType = mmState?.intent?.type || ''
-    const phase = mmState?.phase || digest?.phase || 'initial'
+    const topic = digest?.topic || ''
+    const phase = digest?.phase || 'initial'
 
-    const mode = phaseToMode(phase, intentType, topic)
+    const mode = phaseToMode(phase, '', topic)
 
     const activeFilesSet = new Set<string>()
-    if (mmContext?.loadedFiles) {
-      for (const f of mmContext.loadedFiles) {
-        if (f?.path) activeFilesSet.add(f.path)
-      }
-    }
     if (digest?.filesActive) {
       for (const f of digest.filesActive) activeFilesSet.add(f)
     }
 
     const focusTopics: string[] = []
     if (topic) focusTopics.push(topic)
-    if (mmState?.intent?.description) focusTopics.push(mmState.intent.description)
     if (digest?.currentTask && digest.currentTask !== topic) focusTopics.push(digest.currentTask)
 
     const turnCount = digest?.turnCount ?? 0
-    const complexity = mmState?.complexity ?? 0.5
+    const complexity = 0.5
 
     const pruneAdvice = computePruneAdvice(turnCount, complexity, mode, focusTopics)
 
@@ -1424,12 +1412,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     const result: Record<string, any> = {
       mode,
       topic,
-      intent: mmState?.intent
-        ? { type: mmState.intent.type, description: mmState.intent.description, confidence: mmState.intent.confidence }
-        : null,
+      intent: null,
       complexity,
       activeFiles: Array.from(activeFilesSet).slice(0, 20),
-      activeSkills: (mmContext?.activeSkills ?? []).slice(0, 5),
+      activeSkills: [],
       recentActions: digest?.recentActions ?? [],
       turnCount,
       filesActive: digest?.filesActive ?? [],
@@ -1523,17 +1509,14 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     estimatedComplexity: 'low' | 'moderate' | 'high' | 'very-high'
   } | null {
     const digest = daemon.sessionDigestStore?.get?.(sessionId)
-    const subconscious = daemon.intelligence?.subconscious
-    const mm = subconscious?.getMentalModel?.(sessionId)
-    const mmState = mm?.state
 
-    if (!digest && !mmState) return null
+    if (!digest) return null
 
     const turnCount = digest?.turnCount ?? 0
-    const complexity = mmState?.complexity ?? 0.5
+    const complexity = 0.5
     const fileCount = digest?.filesActive?.length ?? 0
-    const topic = mmState?.topic || digest?.topic || ''
-    const intent = mmState?.intent?.description || digest?.currentTask || ''
+    const topic = digest?.topic || ''
+    const intent = digest?.currentTask || ''
 
     if (turnCount < 3) return null
 
@@ -1618,16 +1601,13 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     if (pendingForSession.length >= 2) return requests
 
     const digest = daemon.sessionDigestStore?.get?.(sessionId)
-    const subconscious = daemon.intelligence?.subconscious
-    const mm = subconscious?.getMentalModel?.(sessionId)
-    const mmState = mm?.state
 
-    if (!digest && !mmState) return requests
+    if (!digest) return requests
 
     const turnCount = digest?.turnCount ?? 0
-    const complexity = mmState?.complexity ?? 0.5
-    const intent = mmState?.intent?.description || digest?.currentTask || ''
-    const topic = mmState?.topic || digest?.topic || ''
+    const complexity = 0.5
+    const intent = digest?.currentTask || ''
+    const topic = digest?.topic || ''
 
     if (turnCount < 5) return requests
 
@@ -1770,24 +1750,6 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     }
 
     const sessions: Record<string, { items: any[] }> = {}
-    if (subconscious?.getSessionIds && subconscious?.peekRetrievedContext) {
-      const sessionIds = subconscious.getSessionIds()
-      for (const sid of sessionIds) {
-        try {
-          const items = subconscious.peekRetrievedContext(sid)
-          if (items && items.length > 0) {
-            sessions[sid] = {
-              items: items.map((item: any) => ({
-                source: item.source ?? 'memory',
-                content: item.content ?? '',
-                relevance: item.relevance ?? 0,
-                query: item.query ?? '',
-              })),
-            }
-          }
-        } catch {}
-      }
-    }
 
     const focusStates: Record<string, any> = {}
     const allSessionIds = new Set<string>()

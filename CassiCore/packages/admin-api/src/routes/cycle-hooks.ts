@@ -408,10 +408,7 @@ export async function handleCycleHooksRoutes(
 
       if (daemon.intelligence?.subconscious) {
         try {
-          const sub = daemon.intelligence.subconscious
-          if (sub.getMentalModel) {
-            trace.mentalModel = sub.getMentalModel(sessionId)
-          }
+          trace.mentalModel = daemon.intelligence.subconscious.snapshot?.()
         } catch {}
       }
 
