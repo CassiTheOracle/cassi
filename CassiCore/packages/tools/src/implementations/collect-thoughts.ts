@@ -82,11 +82,10 @@ export const collectThoughtsDefinition: ToolDefinition = {
   name: 'collect_thoughts',
   readOnly: true,
   description:
-    'Collect and organize your thoughts with live intelligence guidance. Each step is ' +
-    'enriched with signal extraction, memory recall, peer activity, and Synapse guidance. ' +
-    'Use this as your primary thinking tool — before planning, deciding, evaluating, or ' +
-    'concluding. Supports branching (explore alternatives) and revision (reconsider earlier ' +
-    'steps). Your posture energy adapts the guidance tone automatically.',
+    'Organize multi-step reasoning with intelligence enrichment. Steps are enriched with ' +
+    'signal extraction, memory recall, and peer activity. Supports branching (explore ' +
+    'alternatives) and revision (reconsider earlier steps). Use sparingly — prefer direct ' +
+    'action with tools over extended deliberation.',
   parameters: {
     type: 'object',
     properties: {
