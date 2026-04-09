@@ -502,10 +502,7 @@ Only set hasSignal=false if the input is truly empty or nonsensical.`)
     const selfCritiques: YinCritique[] = (raw.critiques || [])
       .map((c: any) => {
         const branchIdx = Number(c.yangBranchIndex) || 0
-        // Support legacy 'keep'→'surface', 'flag'→'compress', old 'refine'→'compress', 'ignore'→'discard'
-        const legacyMap: Record<string, import('../../../types/dialectic.js').YinAction> = { keep: 'surface', flag: 'compress', refine: 'compress', ignore: 'discard' }
-        const rawAction = legacyMap[c.action] ?? c.action
-        const action = (validActions.includes(rawAction) ? rawAction : 'surface') as import('../../../types/dialectic.js').YinAction
+        const action = (validActions.includes(c.action) ? c.action : 'surface') as import('../../../types/dialectic.js').YinAction
         return {
           yangBranchId: yangBranches[branchIdx]
             ? `consolidated-yang-${branchIdx}`

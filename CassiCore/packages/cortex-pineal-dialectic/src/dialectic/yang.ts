@@ -130,7 +130,7 @@ export class YangObserver extends DialecticVoiceBase<YangConfig> implements IYan
           model: opts?.model,
           allowConcurrent: opts?.allowConcurrent,
           dedupe: opts?.dedupe,
-          timeoutMs: 30000,
+          inactivityMs: 30_000,
         });
         const branches = await this.parseResponse(response, providerToUse, opts?.model, opts?.signal);
         const filteredBranches = branches.filter(b => b.confidence >= this.config.minConfidence).slice(0, targetBranches);
@@ -186,7 +186,7 @@ export class YangObserver extends DialecticVoiceBase<YangConfig> implements IYan
                 allowConcurrent: true,
                 dedupe: false,
                 maxTokens: 400,
-                timeoutMs: 30000,
+                inactivityMs: 30_000,
               });
               const parsed = await this.parseResponse(resp, providerToUse, modelName, opts?.signal);
               if (parsed && parsed.length > 0) {

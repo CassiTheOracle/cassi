@@ -9,6 +9,7 @@ import type { PromptOptimizer } from './prompt-optimizer.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { ModuleSessionRegistry } from '../module-session-registry.js';
+import { ActivityTimeout } from '../../utils/activity-timeout.js';
 
 /**
  * Base configuration shared by all dialectic voices
@@ -28,7 +29,8 @@ export interface CallProviderOptions {
   maxTokens?: number;
   allowConcurrent?: boolean;
   dedupe?: boolean;
-  timeoutMs?: number;
+  /** Stall detection: kill if no streaming chunks arrive within this window. */
+  inactivityMs?: number;
   signal?: AbortSignal;
 }
 
@@ -175,7 +177,7 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
     const maxRetries = 3;
     let attempt = 0;
     const baseDelay = 150;
-    const timeoutMs = opts?.timeoutMs ?? 30_000;
+    const inactivityMs = opts?.inactivityMs ?? 30_000;
 
     while (true) {
       attempt++;
@@ -189,28 +191,18 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
         } catch {}
 
         const stream = (provider as any).complete(messages, callOpts as any, undefined, opts?.signal) as AsyncIterable<any>;
-        const iterator = (stream as any)[Symbol.asyncIterator]() as AsyncIterator<any>;
 
         let text = '';
         let outputTokens = 0;
-        const start = Date.now();
 
-        while (true) {
-          const timeLeft = Math.max(0, timeoutMs - (Date.now() - start));
-          if (timeLeft <= 0) {
-            try { await iterator.return?.(); } catch {}
-            throw new Error('Provider request timed out');
-          }
+        const activityTimeout = new ActivityTimeout({
+          inactivityMs,
+          label: `dialectic:${this.constructor.name}`,
+          parentSignal: opts?.signal,
+        });
 
-          const nextPromise = iterator.next();
-          const timeoutPromise = new Promise<never>((_, rej) =>
-            setTimeout(() => rej(new Error('timeout')), timeLeft),
-          );
-
-          try {
-            const res = await Promise.race([nextPromise, timeoutPromise]) as IteratorResult<any>;
-            if (res.done) break;
-            const chunk = res.value;
+        try {
+          for await (const chunk of ActivityTimeout.wrapIterator(stream, activityTimeout)) {
             if (chunk.type === 'token' && chunk.text) {
               text += chunk.text;
               outputTokens += chunk.tokensUsed || Math.ceil(chunk.text.length / 4);
@@ -220,13 +212,13 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
             } else if (chunk.type === 'done') {
               break;
             }
-          } catch (err) {
-            if ((err as Error).message === 'timeout') {
-              try { await iterator.return?.(); } catch {}
-              throw new Error('Provider request timed out');
-            }
-            throw err;
           }
+
+          if (activityTimeout.fired) {
+            throw new Error(`Provider request timed out (${activityTimeout.reason})`);
+          }
+        } finally {
+          activityTimeout.dispose();
         }
 
         const inputTokens = Math.ceil(prompt.length / 4);

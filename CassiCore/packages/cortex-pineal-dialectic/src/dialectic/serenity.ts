@@ -163,7 +163,7 @@ export class Serenity extends DialecticVoiceBase<SerenityConfig> implements ISer
         model: opts?.model,
         allowConcurrent: opts?.allowConcurrent,
         dedupe: opts?.dedupe,
-        timeoutMs: 30000,
+        inactivityMs: 30_000,
         signal: opts?.signal,
       });
 
@@ -273,7 +273,7 @@ export class Serenity extends DialecticVoiceBase<SerenityConfig> implements ISer
         model: opts?.model,
         allowConcurrent: opts?.allowConcurrent,
         dedupe: opts?.dedupe,
-        timeoutMs: 30000,
+        inactivityMs: 30_000,
         signal: opts?.signal,
       });
 

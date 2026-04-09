@@ -144,7 +144,7 @@ export class YinObserver extends DialecticVoiceBase<YinConfig> implements IYinOb
         model: opts?.model,
         allowConcurrent: opts?.allowConcurrent,
         dedupe: opts?.dedupe,
-        timeoutMs: 30000,
+        inactivityMs: 30_000,
       });
       const critiques = await this.parseResponse(response, yangOutput.branches, providerToUse, opts?.model, opts?.signal);
 
@@ -251,7 +251,7 @@ export class YinObserver extends DialecticVoiceBase<YinConfig> implements IYinOb
         model: opts?.model,
         allowConcurrent: opts?.allowConcurrent,
         dedupe: opts?.dedupe,
-        timeoutMs: 30000,
+        inactivityMs: 30_000,
         signal: opts?.signal,
       });
 
