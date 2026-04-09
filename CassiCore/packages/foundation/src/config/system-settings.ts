@@ -62,6 +62,22 @@ export const MODEL_DEFAULTS = {
 } as const
 
 /**
+ * Model Directive tier defaults — maps to the runtime tier system.
+ * These feed into ModelDirective.DEFAULT_TIERS and can be overridden
+ * via config at intelligence.modelDirective.tiers.*
+ */
+export const MODEL_DIRECTIVE_TIER_DEFAULTS = {
+  minimax:    { provider: 'alibaba-coding', model: 'MiniMax-M2.5' },
+  qwenPlus:   { provider: 'alibaba-coding', model: 'qwen3.6-plus' },
+  glm:        { provider: 'alibaba-coding', model: 'glm-5' },
+  kimi:       { provider: 'alibaba-coding', model: 'kimi-k2.5' },
+  qwenMax:    { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' },
+  sonnet:     { provider: 'claude-code',    model: 'claude-sonnet-4-6' },
+  opus:       { provider: 'claude-code',    model: 'claude-opus-4-6' },
+  background: { provider: 'github-copilot', model: 'gpt-5-mini' },
+} as const
+
+/**
  * Convenience: get a combined 'provider/model' string for a tier.
  * @dep callers: spawn-subagent.ts (core/tools/implementations/spawn-subagent.ts), intelligence-registry.test.ts (tests/intelligence-registry.test.ts), executeResume (core/intelligence/triad-team/index.ts), executeDecomposition (core/intelligence/triad-team/index.ts), createTeam (core/intelligence/triad-team/index.ts) [+19]
  * @dep flows: ExecuteWithGroupBarrier → GetModelSpec (5/5)
