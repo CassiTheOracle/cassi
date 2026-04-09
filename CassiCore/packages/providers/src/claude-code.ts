@@ -258,7 +258,12 @@ export class ClaudeCodeProvider extends BaseProvider implements IProvider {
 
       if (parsed.type === 'stream_event') {
         const event = parsed.event
-        if (event?.type === 'content_block_start') {
+        if (event?.type === 'message_start') {
+          const msgUsage = (event as any).message?.usage
+          if (msgUsage) {
+            finalUsage = { ...finalUsage, ...msgUsage }
+          }
+        } else if (event?.type === 'content_block_start') {
           const block = event.content_block
           if (block?.type === 'tool_use' && typeof event.index === 'number' && block.id && block.name) {
             pendingToolUses.set(event.index, {
@@ -311,7 +316,7 @@ export class ClaudeCodeProvider extends BaseProvider implements IProvider {
             wake()
           }
         } else if (event?.type === 'message_delta' && event.usage) {
-          finalUsage = event.usage
+          finalUsage = { ...finalUsage, ...event.usage }
         }
         return
       }
