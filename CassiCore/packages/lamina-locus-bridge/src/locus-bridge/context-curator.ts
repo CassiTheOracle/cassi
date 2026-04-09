@@ -1,18 +1,18 @@
 /**
- * Context Curator — Focus-to-Context Retrieval Pipeline
+ * Context Curator — Memory retrieval and context assembly
  *
- * Translates current LocusBridge foci into concrete retrieval operations
- * and assembles curated content for the system prompt.
+ * Searches memories relevant to the current work and assembles curated
+ * content for system prompt injection. Uses two complementary signals:
  *
- * Per-focus pipeline:
- *   1. Extract query terms from spark content + goal
- *   2. Memory retrieval (memory module search)
- *   3. Code retrieval (file reads from spark.relevantFiles)
- *   4. Intelligence signals (thinker, dialectic, anomalies, teams)
- *   5. Budget allocation proportional to focus luminance
+ *   1. Foci sparks — attentional state from session events
+ *   2. Recent messages — direct conversational context (user + assistant)
  *
- * The curator doesn't know about history or budget — it only produces
- * curated content. The WindowAssembler handles budget allocation.
+ * This dual-source approach ensures memory retrieval works from the first
+ * turn (before foci build up) and stays relevant to what's actively being
+ * discussed and worked on.
+ *
+ * The curator produces content without budget awareness — the
+ * WindowAssembler handles budget allocation dynamically.
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
@@ -85,69 +85,75 @@ export class ContextCurator {
   }
 
   /**
-   * Curate context from current foci.
-   * Returns curated content for system prompt injection.
+   * Curate context from foci and recent messages.
+   *
+   * Memory queries are built from two sources:
+   *   1. Active foci (spark content + goals)
+   *   2. Recent user + assistant messages (direct conversational context)
+   *
+   * This ensures memories are found even when foci are empty (fresh
+   * session, first turn) and that the assistant's active work context
+   * (tool calls, file references, decisions) feeds the search.
    */
-  async curate(foci: BridgeFocus[]): Promise<CuratedContext> {
-    const activeFoci = foci.filter(f => f.spark !== null)
-
-    if (activeFoci.length === 0) {
+  async curate(foci: BridgeFocus[], messages?: any[]): Promise<CuratedContext> {
+    if (!this.memory) {
       return this.emptyContext()
     }
 
-    // Compute luminance-proportional budgets per focus
-    const totalLuminance = activeFoci.reduce(
-      (sum, f) => sum + (f.spark?.luminance.composite ?? 0), 0,
-    )
-
+    const activeFoci = foci.filter(f => f.spark !== null)
     const memoryLimit = this.config.memoryRetrievalLimit
     const allMemories: CuratedMemory[] = []
     const allCode: CuratedCode[] = []
     const seenContent = new Set<string>()
 
-    for (const focus of activeFoci) {
-      if (!focus.spark) continue
+    // Source 1: Foci-driven queries (attentional state)
+    if (activeFoci.length > 0) {
+      const totalLuminance = activeFoci.reduce(
+        (sum, f) => sum + (f.spark?.luminance.composite ?? 0), 0,
+      )
 
-      const luminanceFraction = totalLuminance > 0
-        ? focus.spark.luminance.composite / totalLuminance
-        : 1 / activeFoci.length
+      for (const focus of activeFoci) {
+        if (!focus.spark) continue
 
-      const focusMemoryLimit = Math.max(1, Math.ceil(memoryLimit * luminanceFraction))
+        const luminanceFraction = totalLuminance > 0
+          ? focus.spark.luminance.composite / totalLuminance
+          : 1 / activeFoci.length
 
-      // Memory retrieval
-      if (this.memory) {
+        const focusMemoryLimit = Math.max(1, Math.ceil(memoryLimit * luminanceFraction))
+
         try {
           const query = this.buildQuery(focus.spark.content, focus.spark.sourceGoal)
           const results = await this.memory.search(query, { limit: focusMemoryLimit })
-
-          for (const result of results) {
-            const hash = this.contentHash(result.entry.content)
-            if (seenContent.has(hash)) continue
-            seenContent.add(hash)
-
-            allMemories.push({
-              content: result.entry.content,
-              source: result.source ?? result.entry.type ?? 'memory',
-              score: result.score,
-            })
-          }
+          this.addMemories(results, allMemories, seenContent)
         } catch (err) {
           this.logger.warn('Memory retrieval failed for focus', {
             slotIndex: focus.slotIndex,
             error: String(err),
           })
         }
+
+        // Code references from focus
+        for (const file of focus.spark.relevantFiles.slice(0, this.config.codeRetrievalLimit)) {
+          if (seenContent.has(`code:${file}`)) continue
+          seenContent.add(`code:${file}`)
+          allCode.push({ path: file, content: `[Active file: ${file}]` })
+        }
       }
+    }
 
-      // Code references from focus
-      for (const file of focus.spark.relevantFiles.slice(0, this.config.codeRetrievalLimit)) {
-        if (seenContent.has(`code:${file}`)) continue
-        seenContent.add(`code:${file}`)
-
-        allCode.push({
-          path: file,
-          content: `[Active file: ${file}]`,
-        })
+    // Source 2: Recent message-driven queries (conversational context)
+    // Extracts terms from the last few user + assistant messages and
+    // searches memories against them. This catches context that foci
+    // may have missed (eclipsed sparks, fresh session, etc.)
+    if (messages && messages.length > 0) {
+      const messageQueries = this.buildMessageQueries(messages)
+      for (const query of messageQueries) {
+        try {
+          const results = await this.memory.search(query, { limit: Math.ceil(memoryLimit / 2) })
+          this.addMemories(results, allMemories, seenContent)
+        } catch (err) {
+          this.logger.warn('Memory retrieval from messages failed', { error: String(err) })
+        }
       }
     }
 
@@ -161,8 +167,8 @@ export class ContextCurator {
       }
     }
 
-    // Build focus summary
-    const focusSummary = this.buildFocusSummary(activeFoci)
+    // Build focus summary (only if foci are active)
+    const focusSummary = activeFoci.length > 0 ? this.buildFocusSummary(activeFoci) : ''
 
     // Estimate total tokens
     const totalChars =
@@ -191,6 +197,77 @@ export class ContextCurator {
 
   // --- Private ---
 
+  /**
+   * Add memory results, deduplicating by content hash.
+   */
+  private addMemories(
+    results: Array<{ entry: { content: string; type?: string }; score: number; source?: string }>,
+    allMemories: CuratedMemory[],
+    seenContent: Set<string>,
+  ): void {
+    for (const result of results) {
+      const hash = this.contentHash(result.entry.content)
+      if (seenContent.has(hash)) continue
+      seenContent.add(hash)
+
+      allMemories.push({
+        content: result.entry.content,
+        source: result.source ?? result.entry.type ?? 'memory',
+        score: result.score,
+      })
+    }
+  }
+
+  /**
+   * Build search queries from recent user + assistant messages.
+   * Returns 1-3 queries covering the most recent conversational context.
+   */
+  private buildMessageQueries(messages: any[]): string[] {
+    const queries: string[] = []
+    let seen = 0
+
+    for (let i = messages.length - 1; i >= 0 && seen < 6; i--) {
+      const msg = messages[i]
+      if (msg?.role !== 'user' && msg?.role !== 'assistant') continue
+      seen++
+
+      const content = this.extractMessageContent(msg)
+      if (content.length < 20) continue
+
+      const terms = content
+        .split(/[\s,;:.!?()\[\]{}'"]+/)
+        .filter((w: string) => w.length >= 4 && !STOP_WORDS.has(w.toLowerCase()))
+        .slice(0, 15)
+
+      if (terms.length >= 3) {
+        queries.push(terms.join(' ').slice(0, 200))
+      }
+
+      if (queries.length >= 3) break
+    }
+
+    return queries
+  }
+
+  /**
+   * Extract readable text from a message.
+   */
+  private extractMessageContent(msg: any): string {
+    if (!msg) return ''
+    if (typeof msg.content === 'string') return msg.content
+    if (Array.isArray(msg.content)) {
+      return msg.content
+        .map((c: any) => {
+          if (typeof c === 'string') return c
+          if (c?.type === 'text') return c.text ?? ''
+          if (c?.type === 'tool_result') return c.content ?? ''
+          return ''
+        })
+        .join('\n')
+    }
+    return ''
+  }
+
   private emptyContext(): CuratedContext {
     return {
       focusSummary: '',
@@ -203,7 +280,6 @@ export class ContextCurator {
 
   /**
    * Build a search query from spark content and goal.
-   * Takes the most distinctive terms.
    */
   private buildQuery(content: string, goal: string): string {
     const combined = `${content} ${goal}`
@@ -246,3 +322,18 @@ export class ContextCurator {
     return `h${hash}`
   }
 }
+
+
+const STOP_WORDS = new Set([
+  'this', 'that', 'with', 'from', 'have', 'been', 'will', 'would', 'could',
+  'should', 'their', 'there', 'they', 'what', 'when', 'where', 'which',
+  'while', 'about', 'after', 'before', 'between', 'through', 'during',
+  'into', 'each', 'some', 'more', 'most', 'other', 'than', 'then',
+  'them', 'these', 'those', 'such', 'only', 'also', 'just', 'very',
+  'make', 'made', 'like', 'well', 'back', 'over', 'does', 'done',
+  'need', 'want', 'here', 'your', 'were', 'being', 'still', 'much',
+  'same', 'both', 'many', 'even', 'under', 'sure', 'look', 'good',
+  'true', 'false', 'null', 'undefined', 'const', 'function', 'return',
+  'import', 'export', 'default', 'class', 'type', 'interface',
+  'let', 'help', 'please', 'thanks',
+])

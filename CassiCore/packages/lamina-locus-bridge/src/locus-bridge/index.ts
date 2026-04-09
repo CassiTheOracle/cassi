@@ -223,8 +223,8 @@ export class LocusBridge {
       }
     }
 
-    // Curate context from current foci
-    const curated = await this.curator.curate(this.foci)
+    // Curate context from current foci and recent messages
+    const curated = await this.curator.curate(this.foci, messages)
 
     // Score all history turns
     const scoredTurns = this.historyScorer.scoreTurns(messages, this.foci)
@@ -242,8 +242,8 @@ export class LocusBridge {
   /**
    * Get curated context only (without history assembly).
    */
-  async curate(): Promise<CuratedContext> {
-    return this.curator.curate(this.foci)
+  async curate(messages?: any[]): Promise<CuratedContext> {
+    return this.curator.curate(this.foci, messages)
   }
 
   /**

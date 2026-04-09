@@ -141,8 +141,6 @@ export interface LocusBridgeConfig {
   tokenBudget: number
   /** Reserve for system prompt (SOUL + AGENTS + base). Default: 15_000 */
   systemPromptReserve: number
-  /** Soft cap for curated context. Default: 30_000 */
-  curatedContextMax: number
   /** Minimum history tokens (always keep at least this). Default: 10_000 */
   historyMinTokens: number
   /** Minimum number of most-recent messages to always keep regardless of score. Default: 20 */
@@ -166,7 +164,6 @@ export const DEFAULT_LOCUS_BRIDGE_CONFIG: LocusBridgeConfig = {
   eclipseMargin: 0.05,
   tokenBudget: 100_000,
   systemPromptReserve: 15_000,
-  curatedContextMax: 30_000,
   historyMinTokens: 10_000,
   recentWindowMinMessages: 20,
   memoryRetrievalLimit: 10,

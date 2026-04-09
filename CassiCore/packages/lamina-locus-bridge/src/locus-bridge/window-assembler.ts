@@ -7,13 +7,14 @@
  *
  * Assembly algorithm:
  *   1. Reserve system prompt budget (fixed)
- *   2. Allocate curated content budget (flex within soft cap)
- *   3. Calculate remaining history budget
- *   4. Always include the recent window (last N messages)
- *   5. Fill remaining budget with highest-scored older turns
- *   6. Re-order selected turns by original position
- *   7. Insert bridge summaries for gaps
- *   8. Return assembled window
+ *   2. Calculate recent window cost (guaranteed, last N messages)
+ *   3. Dynamic budget: curated context and older history share the
+ *      remaining budget. Curated context (memories) has no hard cap —
+ *      it gets up to 50% of flex budget or all its content.
+ *   4. Select highest-scored older turns for remaining budget
+ *   5. Re-order selected turns by original position
+ *   6. Insert bridge summaries for gaps
+ *   7. Return assembled window
  *
  * The recent window (configurable via recentWindowMinMessages, default 20)
  * is always included regardless of score — this ensures the model never
@@ -71,27 +72,47 @@ export class WindowAssembler {
     // 1. Calculate system prompt tokens (fixed cost)
     const systemPromptTokens = this.estimateTokensFromStrings(systemPromptBase)
 
-    // 2. Curated context — flex within soft cap
-    const curatedTokens = Math.min(curated.totalTokens, this.config.curatedContextMax)
-    const systemContextBlocks = this.formatCuratedContext(curated, this.config.curatedContextMax)
+    // 2. Calculate recent window cost (guaranteed)
+    const recentWindowSize = this.config.recentWindowMinMessages ?? 20
+    const recentStart = Math.max(0, messages.length - recentWindowSize)
+    let recentWindowTokens = 0
+    for (let i = recentStart; i < messages.length; i++) {
+      const scored = scoredTurns.find(s => s.messageIndex === i)
+      recentWindowTokens += scored?.estimatedTokens ?? 0
+    }
 
-    // 3. Calculate history budget
-    const fixedCost = systemPromptTokens + curatedTokens
+    // 3. Dynamic budget allocation
+    //    Priority: system prompt > recent window > curated context > older history
+    //    Curated context has no hard cap — it gets as much as it has content,
+    //    limited only by the remaining budget after guaranteed allocations.
+    const fixedCost = systemPromptTokens + recentWindowTokens
+    const flexBudget = Math.max(0, budget - fixedCost)
+
+    // Curated context takes up to half the flex budget (or all of its content,
+    // whichever is less). This prevents memories from starving history entirely.
+    const maxCuratedTokens = Math.max(
+      Math.floor(flexBudget * 0.5),
+      this.config.historyMinTokens > 0 ? flexBudget - this.config.historyMinTokens : 0,
+    )
+    const curatedTokens = Math.min(curated.totalTokens, maxCuratedTokens)
+    const systemContextBlocks = this.formatCuratedContext(curated, curatedTokens)
+
+    // 4. History gets the remainder
     const historyBudget = Math.max(
       this.config.historyMinTokens,
-      budget - fixedCost,
+      flexBudget - curatedTokens,
     )
 
-    // 4. Select turns that fit within history budget
+    // 5. Select turns that fit within history budget
     const selectedIndices = this.selectTurns(scoredTurns, messages, historyBudget)
 
-    // 5. Re-order by original position (conversation coherence)
+    // 6. Re-order by original position (conversation coherence)
     selectedIndices.sort((a, b) => a - b)
 
-    // 6. Build selected messages with bridge summaries for gaps
+    // 7. Build selected messages with bridge summaries for gaps
     const assembledMessages = this.buildMessagesWithBridges(selectedIndices, messages, scoredTurns)
 
-    // 7. Calculate actual token usage
+    // 8. Calculate actual token usage
     const actualHistoryTokens = selectedIndices.reduce((sum, idx) => {
       const scored = scoredTurns.find(s => s.messageIndex === idx)
       return sum + (scored?.estimatedTokens ?? 0)
