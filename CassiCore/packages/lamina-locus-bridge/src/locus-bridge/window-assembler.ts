@@ -9,13 +9,16 @@
  *   1. Reserve system prompt budget (fixed)
  *   2. Allocate curated content budget (flex within soft cap)
  *   3. Calculate remaining history budget
- *   4. Select highest-scored turns that fit
- *   5. Re-order selected turns by original position
- *   6. Insert bridge summaries for gaps
- *   7. Return assembled window
+ *   4. Always include the recent window (last N messages)
+ *   5. Fill remaining budget with highest-scored older turns
+ *   6. Re-order selected turns by original position
+ *   7. Insert bridge summaries for gaps
+ *   8. Return assembled window
  *
- * The most recent user message is always included — it's what the agent
- * responds to. Everything else competes on score.
+ * The recent window (configurable via recentWindowMinMessages, default 20)
+ * is always included regardless of score — this ensures the model never
+ * forgets what it was just working on, including intermediate tool call
+ * chains and results.
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
@@ -147,7 +150,13 @@ export class WindowAssembler {
 
   /**
    * Select turns by score, respecting the history budget.
-   * Most recent user message is always included.
+   *
+   * Priority order:
+   *   1. Recent window — always keep the last N messages (configurable via
+   *      recentWindowMinMessages). This guarantees the model never forgets
+   *      what it was just working on, including intermediate tool calls/results.
+   *   2. Score-based fill — remaining budget is filled with the highest-scored
+   *      turns from older history.
    */
   private selectTurns(
     scoredTurns: ScoredTurn[],
@@ -157,27 +166,20 @@ export class WindowAssembler {
     const selected = new Set<number>()
     let usedTokens = 0
 
-    // Always include the most recent user message
-    const lastUserIdx = this.findLastUserMessageIndex(messages)
-    if (lastUserIdx >= 0) {
-      const scored = scoredTurns.find(s => s.messageIndex === lastUserIdx)
+    // 1. Always include the recent window (last N messages).
+    //    This keeps the current work context intact — tool call chains,
+    //    results, and the ongoing conversation thread.
+    const recentWindowSize = this.config.recentWindowMinMessages ?? 20
+    const recentStart = Math.max(0, messages.length - recentWindowSize)
+    for (let i = recentStart; i < messages.length; i++) {
+      const scored = scoredTurns.find(s => s.messageIndex === i)
       if (scored) {
-        selected.add(lastUserIdx)
+        selected.add(i)
         usedTokens += scored.estimatedTokens
       }
     }
 
-    // Also always include the most recent assistant message (it contains the current response context)
-    const lastAssistantIdx = this.findLastAssistantMessageIndex(messages)
-    if (lastAssistantIdx >= 0 && !selected.has(lastAssistantIdx)) {
-      const scored = scoredTurns.find(s => s.messageIndex === lastAssistantIdx)
-      if (scored) {
-        selected.add(lastAssistantIdx)
-        usedTokens += scored.estimatedTokens
-      }
-    }
-
-    // Fill with highest-scored turns
+    // 2. Fill remaining budget with highest-scored older turns
     for (const scored of scoredTurns) {
       if (selected.has(scored.messageIndex)) continue
 
@@ -323,26 +325,6 @@ export class WindowAssembler {
     }
 
     return blocks
-  }
-
-  /**
-   * Find the last user message index.
-   */
-  private findLastUserMessageIndex(messages: any[]): number {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i]?.role === 'user') return i
-    }
-    return -1
-  }
-
-  /**
-   * Find the last assistant message index.
-   */
-  private findLastAssistantMessageIndex(messages: any[]): number {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i]?.role === 'assistant') return i
-    }
-    return -1
   }
 
   /**

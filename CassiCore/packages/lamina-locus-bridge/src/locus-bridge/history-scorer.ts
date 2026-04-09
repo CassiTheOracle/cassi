@@ -81,6 +81,7 @@ export class HistoryScorer {
     const activeFiles = new Set<string>()
     const activeTerms = new Set<string>()
 
+    // Layer A: Extract terms from foci sparks
     for (const focus of activeFoci) {
       if (!focus.spark) continue
       for (const file of focus.spark.relevantFiles) {
@@ -88,6 +89,27 @@ export class HistoryScorer {
       }
       for (const term of this.extractTerms(focus.spark.content)) {
         activeTerms.add(term.toLowerCase())
+      }
+    }
+
+    // Layer B: Extract terms directly from recent user and assistant messages.
+    // Foci only capture 500-char spark summaries and can be eclipsed.
+    // This ensures the actual words/files mentioned in recent conversation
+    // are always used for scoring, giving a direct relevance signal.
+    // Assistant messages are especially valuable — they contain the active
+    // work context: file paths, function names, decisions, and concepts.
+    const recentMessageWindow = 10
+    let messagesSeen = 0
+    for (let i = messages.length - 1; i >= 0 && messagesSeen < recentMessageWindow; i--) {
+      const msg = messages[i]
+      if (msg?.role !== 'user' && msg?.role !== 'assistant') continue
+      messagesSeen++
+      const content = this.extractMessageContent(msg)
+      for (const term of this.extractTerms(content)) {
+        activeTerms.add(term.toLowerCase())
+      }
+      for (const file of this.extractFilePaths(content)) {
+        activeFiles.add(file)
       }
     }
 
@@ -346,6 +368,23 @@ export class HistoryScorer {
   private extractTerms(content: string): string[] {
     const words = content.split(/[\s,;:.!?()\[\]{}'"]+/)
     return words.filter(w => w.length >= 4 && !STOP_WORDS.has(w.toLowerCase()))
+  }
+
+  /**
+   * Extract file paths from content (e.g. "core/intelligence/locus-bridge/index.ts").
+   * Matches common path patterns found in user messages and code references.
+   */
+  private extractFilePaths(content: string): string[] {
+    const pathPattern = /(?:^|\s|["'`(])([a-zA-Z0-9_\-./]+\/[a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,10})(?:\s|["'`),:]|$)/g
+    const paths: string[] = []
+    let match: RegExpExecArray | null
+    while ((match = pathPattern.exec(content)) !== null) {
+      const p = match[1]
+      if (p.length > 5 && !p.startsWith('http')) {
+        paths.push(p)
+      }
+    }
+    return paths
   }
 }
 

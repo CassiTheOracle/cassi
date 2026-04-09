@@ -145,6 +145,8 @@ export interface LocusBridgeConfig {
   curatedContextMax: number
   /** Minimum history tokens (always keep at least this). Default: 10_000 */
   historyMinTokens: number
+  /** Minimum number of most-recent messages to always keep regardless of score. Default: 20 */
+  recentWindowMinMessages: number
 
   /** Max memory results per focus. Default: 10 */
   memoryRetrievalLimit: number
@@ -166,6 +168,7 @@ export const DEFAULT_LOCUS_BRIDGE_CONFIG: LocusBridgeConfig = {
   systemPromptReserve: 15_000,
   curatedContextMax: 30_000,
   historyMinTokens: 10_000,
+  recentWindowMinMessages: 20,
   memoryRetrievalLimit: 10,
   codeRetrievalLimit: 5,
   luminanceWeights: DEFAULT_BRIDGE_LUMINANCE_WEIGHTS,
