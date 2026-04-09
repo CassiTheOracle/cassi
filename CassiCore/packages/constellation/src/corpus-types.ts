@@ -991,6 +991,8 @@ export interface CorpusDeps {
   runCommand?: (command: string, timeoutMs?: number) => Promise<{ exitCode: number; stdout: string; stderr: string }>
   /** Meditation mode — Corpus observes silently as Cassi, never sends directives */
   meditationMode?: boolean
+  /** Meditation style — controls tool set and Corpus prompt tone */
+  meditationStyle?: 'passive' | 'active' | 'focused'
   /** MnemicField for meditation Corpus tools */
   mnemicField?: import('../mnemic-field/index.js').MnemicField
   /** Memory system for meditation insight storage */

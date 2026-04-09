@@ -44,6 +44,7 @@ export interface ConstellationOrchestrator {
     sessionId: string
     costEffective?: boolean
     meditationMode?: boolean
+    meditationStyle?: 'passive' | 'active' | 'focused'
   }): Promise<ConstellationResult>
   resumeConstellation(sessionId: string): Promise<ConstellationResult>
   cancel(sessionId: string): boolean
@@ -376,6 +377,7 @@ export function createConstellationOrchestrator(
         sessionId,
         costEffective,
         meditationMode,
+        meditationStyle,
       } = opts
 
       log.info('Constellation project starting', {
@@ -399,6 +401,7 @@ export function createConstellationOrchestrator(
         maxTotalSteps,
         costEffective,
         meditationMode,
+        meditationStyle,
         mnemicField: meditationMode ? mnemicField : undefined,
         logger,
         eventBus,

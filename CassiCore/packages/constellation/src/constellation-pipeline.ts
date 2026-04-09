@@ -280,6 +280,9 @@ export interface ConstellationPipelineOpts {
    */
   meditationMode?: boolean
 
+  /** Meditation style — controls tool set and Corpus prompt tone */
+  meditationStyle?: 'passive' | 'active' | 'focused'
+
   /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
   mnemicField?: import('../mnemic-field/index.js').MnemicField
 }
@@ -420,7 +423,8 @@ export async function runConstellationPipeline(
   constellationBlackboard.initReport(goal)
 
   // Create cross-Helix dialectic for inter-branch communication
-  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false)
+  // Skip in meditation — single-branch exploration has no inter-branch communication
+  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false && !opts.meditationMode)
     ? new CrossHelixDialectic(log)
     : undefined
 
@@ -429,7 +433,8 @@ export async function runConstellationPipeline(
   let topologyGraph: TopologyGraph | undefined
   let brainstemBridge: BrainstemBridge | undefined
 
-  if (opts.embeddingService) {
+  // Skip topology/gravity engine in meditation — no multi-branch spatial coordination needed
+  if (opts.embeddingService && !opts.meditationMode) {
     brainstemBridge = new BrainstemBridge({
       tree: corpusTree,
       logger,
@@ -495,6 +500,7 @@ export async function runConstellationPipeline(
       blackboard: constellationBlackboard,
       crossHelixDialectic,
       meditationMode: opts.meditationMode,
+      meditationStyle: opts.meditationStyle,
       miniHelixActive: !!opts.useMiniHelixCorpus,
       mnemicField: opts.mnemicField,
       memory: opts.memory,
@@ -638,6 +644,7 @@ export async function runConstellationPipeline(
         crossHelixDialectic,
         readFile: (path: string) => safeReadFile(path, process.cwd()),
         meditationMode: opts.meditationMode,
+        meditationStyle: opts.meditationStyle,
         mnemicField: opts.mnemicField,
         memory: opts.memory,
         onSpawnRequest: (req) => {
@@ -674,8 +681,16 @@ export async function runConstellationPipeline(
       toolRegistry ? toolRegistry.list().map((t) => t.name) : [],
     )
 
-    await corpusMiniHelix.start()
-    log.info('Corpus mini-Helix started')
+    if (opts.meditationMode) {
+      // Fire-and-forget — meditation Corpus observes as branches come online
+      corpusMiniHelix.start().catch((err) => {
+        log.warn('Corpus mini-Helix failed in meditation mode', { error: String(err) })
+      })
+      log.info('Corpus mini-Helix started (background, meditation)')
+    } else {
+      await corpusMiniHelix.start()
+      log.info('Corpus mini-Helix started')
+    }
   }
 
   if (opts.onCorpusReady) {
@@ -1208,6 +1223,9 @@ export async function runConstellationPipeline(
         }
       },
       onBlackboardCreated: (childBlackboard) => {
+        // Skip bridge in meditation — no cross-branch governance infrastructure to feed
+        if (opts.meditationMode) return
+
         // Wire a BlackboardBridge between the constellation blackboard and this Helix's blackboard
         const bridge = new BlackboardBridge({
           parent: constellationBlackboard,
@@ -1259,7 +1277,9 @@ export async function runConstellationPipeline(
         }
 
         // Optionally start a Brainstem mini-Helix sidecar
-        if (opts.useMiniHelixBrainstem) {
+        // WHY: Meditation mode skips Brainstem entirely — the Corpus reads raw posture
+        // output directly via the onWorkUnit pass-through above.
+        if (opts.useMiniHelixBrainstem && !opts.meditationMode) {
           // WHY: Brainstem needs the tool list to generate valid tool_use blocks
           const workerToolNames = toolRegistry
             ? toolRegistry.list().map((t) => t.name)

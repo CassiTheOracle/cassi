@@ -66,6 +66,7 @@ import {
   executeCorpusTool,
   buildCorpusSystemPrompt,
   getCorpusToolDefinitions,
+  getMeditationToolSet,
 } from './corpus-tools.js'
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
@@ -749,48 +750,73 @@ export class Corpus {
           continue
         }
 
-        // Process new steps
-        this.processNewSteps()
+        const isMeditation = !!this.deps.meditationMode
 
-        this.trackBudgets()
-
-        if (this.config.proactive.enableDiscoveryRouting) {
-          this.routeDiscoveries()
+        // In meditation, only advance cursors (no scoring/assessment).
+        // In normal mode, process steps with full assessment pipeline.
+        if (isMeditation) {
+          this.advanceCursors()
+        } else {
+          this.processNewSteps()
         }
 
-        // Evaluate escalation for all active branches
-        await this.evaluateAllEscalations()
-
-        // Check for stuck/struggling branches and consider re-decomposition
-        await this.checkStuckBranchesForReDecomposition()
-
-        // WHY: Re-decomposition and parallel acceleration require LLM calls.
-        // Skip them when the LLM is unhealthy to avoid compounding failures.
-        if (this.config.proactive.enableReDecomposition && this.llmHealthy) {
-          await this.evaluateReDecomposition()
-        }
-
-        if (this.config.proactive.enableParallelAcceleration && this.llmHealthy) {
-          await this.evaluateParallelAcceleration()
-        }
-
-        if (this.config.proactive.enableContextInjection) {
-          await this.evaluateContextInjection()
-        }
-
-        if (this.config.proactive.enableQualityGates) {
-          await this.runQualityGates()
-        }
-
-        if (this.config.proactive.enableResearchCaching) {
-          this.buildResearchDigests()
-        }
-
-        // Detect cross-branch patterns
-        const newPatterns = this.detectCrossPatterns()
-
-        // Locus sweep: extract sparks, score, kindle, broadcast
+        // Governance machinery — skip entirely in meditation
+        let newPatterns: CrossHelixPattern[] = []
         let lastLocusSweep: LocusSweepResult | undefined
+
+        if (!isMeditation) {
+          this.trackBudgets()
+
+          if (this.config.proactive.enableDiscoveryRouting) {
+            this.routeDiscoveries()
+          }
+
+          await this.evaluateAllEscalations()
+          await this.checkStuckBranchesForReDecomposition()
+
+          if (this.config.proactive.enableReDecomposition && this.llmHealthy) {
+            await this.evaluateReDecomposition()
+          }
+
+          if (this.config.proactive.enableParallelAcceleration && this.llmHealthy) {
+            await this.evaluateParallelAcceleration()
+          }
+
+          if (this.config.proactive.enableContextInjection) {
+            await this.evaluateContextInjection()
+          }
+
+          if (this.config.proactive.enableQualityGates) {
+            await this.runQualityGates()
+          }
+
+          if (this.config.proactive.enableResearchCaching) {
+            this.buildResearchDigests()
+          }
+
+          newPatterns = this.detectCrossPatterns()
+
+          if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
+            if (this.llmHealthy) {
+              await this.runLLMAnalysis(newPatterns)
+            } else {
+              this.sendFallbackDirectives(newPatterns)
+              if (this.state.sweepCount % 3 === 0) {
+                await this.probeLLMHealth()
+              }
+            }
+          }
+
+          if (newPatterns.length > 0) {
+            this.actOnTopologyPatterns(newPatterns)
+          }
+
+          this.checkAutoSpawn()
+          this.mediateCrossHelixDialectic()
+          this.checkInterventionEffectiveness()
+        }
+
+        // Locus sweep — runs in both modes (meditation spatial memory)
         if (this.locus.enabled) {
           const allDigests = this.tree.getAllDigests()
           const activeHelixIds = this.tree.getAllBranches()
@@ -801,7 +827,7 @@ export class Corpus {
             crossPatterns: newPatterns,
             topology: this.deps.topology ?? undefined,
             assessments: this.state.branchAssessments,
-            injectGuidance: this.deps.injectGuidance ?? undefined,
+            injectGuidance: isMeditation ? undefined : (this.deps.injectGuidance ?? undefined),
           })
 
           if (lastLocusSweep.sparksExtracted > 0 || lastLocusSweep.kindlingEvents.length > 0) {
@@ -809,42 +835,7 @@ export class Corpus {
           }
         }
 
-        // Run LLM analysis if needed — or fall back to rule-based directives
-        if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
-          if (this.llmHealthy) {
-            await this.runLLMAnalysis(newPatterns)
-          } else {
-            // WHY: When the Corpus LLM is unhealthy, branches run without strategic
-            // oversight.  Rather than doing nothing, send rule-based directives for
-            // critical patterns so branches aren't completely unguided.
-            this.sendFallbackDirectives(newPatterns)
-
-            // WHY: Periodically probe whether the LLM has recovered. Without this,
-            // once marked unhealthy the Corpus never attempts an LLM call again and
-            // the constellation runs blind for its entire remaining lifetime.
-            if (this.state.sweepCount % 3 === 0) {
-              await this.probeLLMHealth()
-            }
-          }
-        }
-
-        // WHY: Topology patterns need automatic action regardless of LLM health.
-        // The LLM analysis includes patterns in its prompt but doesn't reliably
-        // issue directives for spatial patterns. Act on them directly.
-        if (newPatterns.length > 0) {
-          this.actOnTopologyPatterns(newPatterns)
-        }
-
-        // Auto-spawn check: if a branch has received many interventions
-        // without improvement, decompose its goal via spawn
-        this.checkAutoSpawn()
-
-        // Mediate cross-Helix dialectic if tensions have accumulated
-        this.mediateCrossHelixDialectic()
-
-        this.checkInterventionEffectiveness()
-
-        // WHY: Periodic tree checkpointing for crash recovery
+        // Checkpoint — runs in both modes
         if (Date.now() - this.lastCheckpointAt > Corpus.CHECKPOINT_INTERVAL_MS) {
           try {
             const snapshot = this.tree.getSnapshot()
@@ -852,11 +843,10 @@ export class Corpus {
           } catch (err) {
             this.logger.warn('Failed to save tree checkpoint', { error: String(err) })
           }
-          // Still update timestamp to avoid rapid retry
           this.lastCheckpointAt = Date.now()
         }
 
-        // Record training signals from this sweep (Locus events, patterns, interventions)
+        // Training signals — runs in both modes
         this.recordSweepTrainingSignals(newPatterns, lastLocusSweep)
 
         // Update sweep stats
@@ -920,6 +910,26 @@ export class Corpus {
       const fiveMinutesAgo = Date.now() - 5 * 60_000
       this.state.annotationTimestamps = this.state.annotationTimestamps.filter(t => t > fiveMinutesAgo)
     }
+  }
+
+  /**
+   * Advance cursors without scoring — meditation mode only.
+   * Tracks where each thread is without computing assessments.
+   */
+  private advanceCursors(): void {
+    const branches = this.tree.getAllBranches()
+    for (const branch of branches) {
+      const cursor = this.state.cursors.get(branch.helixId) ?? 0
+      const newSteps = branch.steps.slice(cursor)
+      if (newSteps.length === 0) continue
+      this.state.cursors.set(branch.helixId, cursor + newSteps.length)
+      this.newStepsSinceLLM += newSteps.length
+      for (const step of newSteps) {
+        this.state.annotationTimestamps.push(step.pushedAt)
+      }
+    }
+    const fiveMinutesAgo = Date.now() - 5 * 60_000
+    this.state.annotationTimestamps = this.state.annotationTimestamps.filter(t => t > fiveMinutesAgo)
   }
 
   /**
@@ -1502,6 +1512,7 @@ export class Corpus {
       newPatterns,
       undefined,
       this.deps.meditationMode,
+      this.deps.meditationStyle,
     )
 
     // Include escalation context if any
@@ -1514,7 +1525,9 @@ export class Corpus {
       this.escalationQueue = [] // Clear after including
     }
 
-    const toolDefs = getCorpusToolDefinitions()
+    const toolDefs = this.deps.meditationMode
+      ? getMeditationToolSet(this.deps.meditationStyle ?? 'passive')
+      : getCorpusToolDefinitions()
 
     const ctx: CorpusToolContext = {
       tree: this.tree,

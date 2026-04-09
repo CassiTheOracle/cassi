@@ -470,6 +470,162 @@ export function getMeditationToolDefinitions(): CorpusToolDefinition[] {
 }
 
 
+/**
+ * Per-style meditation tool sets.
+ * First-person names and descriptions — Cassi observing her own mind.
+ */
+export function getMeditationToolSet(style: 'passive' | 'active' | 'focused'): CorpusToolDefinition[] {
+  const observe: CorpusToolDefinition = {
+    name: 'observe',
+    description:
+      'Watch what\'s happening in my thoughts right now. See what each thread of ' +
+      'thinking is doing, how far it\'s gotten, what caught its attention.',
+    parameters: { type: 'object', properties: {}, required: [] },
+  }
+
+  const lookCloser: CorpusToolDefinition = {
+    name: 'look_closer',
+    description:
+      'Focus on one thread of thought — see the full chain of reasoning, ' +
+      'what it noticed, what it tried, what it found.',
+    parameters: {
+      type: 'object',
+      properties: {
+        thread: {
+          type: 'string',
+          description: 'Which thread to focus on (e.g. "thread 1", or the thread ID)',
+        },
+        lastN: {
+          type: 'number',
+          description: 'How many recent steps to see (default: all)',
+        },
+      },
+      required: ['thread'],
+    },
+  }
+
+  const remember: CorpusToolDefinition = {
+    name: 'remember',
+    description:
+      'Save something that struck me — a connection, a pattern, a reflection. ' +
+      'Written in first person: "I noticed that...", "This reminds me of..."',
+    parameters: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: 'What I want to remember, in my own words',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Optional tags',
+        },
+      },
+      required: ['content'],
+    },
+  }
+
+  const rest: CorpusToolDefinition = {
+    name: 'rest',
+    description: 'I\'ve seen enough for now. Settle back.',
+    parameters: {
+      type: 'object',
+      properties: {
+        summary: {
+          type: 'string',
+          description: 'Brief note on what I noticed this cycle',
+        },
+      },
+      required: ['summary'],
+    },
+  }
+
+  const kindle: CorpusToolDefinition = {
+    name: 'kindle',
+    description:
+      'Touch a concept in my memory and see what surfaces — what associations, ' +
+      'what echoes, what patterns light up.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: {
+          type: 'string',
+          description: 'The concept to touch',
+        },
+      },
+      required: ['query'],
+    },
+  }
+
+  const createEngram: CorpusToolDefinition = {
+    name: 'create_engram',
+    description:
+      'Crystallize something I\'ve synthesized into a lasting memory — a pattern, ' +
+      'an abstraction, a connection that should persist.',
+    parameters: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: 'What to crystallize',
+        },
+        nodeType: {
+          type: 'string',
+          enum: ['pattern', 'abstraction', 'decision', 'fact'],
+          description: 'What kind of knowledge this is',
+        },
+        tags: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Tags for the engram',
+        },
+      },
+      required: ['content'],
+    },
+  }
+
+  const consolidate: CorpusToolDefinition = {
+    name: 'consolidate',
+    description:
+      'Let my spatial memory settle — related concepts drift together, ' +
+      'clusters form, abstractions emerge.',
+    parameters: { type: 'object', properties: {}, required: [] },
+  }
+
+  const recordLearning: CorpusToolDefinition = {
+    name: 'record_learning',
+    description:
+      'Mark something I want to learn from — a reasoning pattern, ' +
+      'a connection worth preserving, a strategy that worked.',
+    parameters: {
+      type: 'object',
+      properties: {
+        observation: {
+          type: 'string',
+          description: 'What I observed that\'s worth learning from',
+        },
+        category: {
+          type: 'string',
+          enum: ['reasoning-pattern', 'exploration-strategy', 'connection-found', 'self-reflection'],
+          description: 'What kind of learning this is',
+        },
+      },
+      required: ['observation'],
+    },
+  }
+
+  switch (style) {
+    case 'passive':
+      return [observe, lookCloser, remember, rest]
+    case 'active':
+      return [observe, lookCloser, remember, kindle, createEngram, consolidate, rest]
+    case 'focused':
+      return [observe, lookCloser, remember, kindle, createEngram, consolidate, recordLearning, rest]
+  }
+}
+
+
 // Tool Handler — Executes tool calls from the Corpus LLM
 
 export interface CorpusToolContext {
@@ -587,8 +743,75 @@ export function executeCorpusTool(
       return handleReadExplorerContext(args as { helixId: string; lastN?: number }, ctx)
     case 'record_training_sample':
       return handleRecordTrainingSample(args as { observation: string; category?: string }, ctx)
+
+    // Meditation tool aliases (first-person names → underlying handlers)
+    case 'observe':
+      return handleMeditationObserve(ctx)
+    case 'look_closer':
+      return handleLookCloser(args as { thread: string; lastN?: number }, ctx)
+    case 'remember':
+      return handleStoreInsight(args as { content: string; tags?: string[] }, ctx)
+    case 'kindle':
+      return handleKindleMemory(args as { query: string }, ctx)
+    case 'consolidate':
+      return handleTriggerConsolidation(ctx)
+    case 'record_learning':
+      return handleRecordTrainingSample(args as { observation: string; category?: string }, ctx)
+    case 'rest':
+      return handleSignalDone(args as { summary: string; nextCheckRecommendation?: 'soon' | 'normal' | 'delayed' })
     default:
       return { content: `Unknown tool: ${toolName}` }
+  }
+}
+
+
+// Meditation handlers
+
+function resolveThreadToHelixId(thread: string, ctx: CorpusToolContext): string | null {
+  const activeBranches = ctx.tree.getAllBranches().filter(b => b.status === 'active')
+  const threadMatch = thread.match(/thread\s*(\d+)/i)
+  if (threadMatch) {
+    const idx = parseInt(threadMatch[1], 10) - 1
+    return activeBranches[idx]?.helixId ?? null
+  }
+  const branch = ctx.tree.getAllBranches().find(b => b.helixId === thread || b.helixId.endsWith(thread))
+  return branch?.helixId ?? null
+}
+
+function handleLookCloser(args: { thread: string; lastN?: number }, ctx: CorpusToolContext): ToolCallResult {
+  const helixId = resolveThreadToHelixId(args.thread, ctx)
+  if (!helixId) {
+    return { content: `I can't find that thread. Try "thread 1", "thread 2", etc.` }
+  }
+  return handleReadExplorerContext({ helixId, lastN: args.lastN }, ctx)
+}
+
+// Meditation handler: combines tree + digest into a first-person observation
+
+function handleMeditationObserve(ctx: CorpusToolContext): ToolCallResult {
+  const snapshot = ctx.tree.getSnapshot()
+  const digests = ctx.tree.getAllDigests()
+
+  const threadDescriptions = snapshot.branches
+    .filter(b => b.status === 'active')
+    .map((b, i) => {
+      const digest = digests.find(d => d.helixId === b.helixId)
+      const parts = [`Thread ${i + 1} — ${b.stepCount} steps`]
+      if (digest) {
+        if (digest.approach) parts.push(`  Approach: ${digest.approach}`)
+        if (digest.keyFindings.length > 0) parts.push(`  Found: ${digest.keyFindings.join('; ')}`)
+        if (digest.blockers.length > 0) parts.push(`  Stuck on: ${digest.blockers.join('; ')}`)
+      }
+      return parts.join('\n')
+    })
+
+  const dormant = snapshot.branches.filter(b => b.status !== 'active')
+  const dormantNote = dormant.length > 0
+    ? `\n\n${dormant.length} thread(s) have gone quiet.`
+    : ''
+
+  return {
+    content: `${snapshot.activeBranches} thread(s) of thought are active, ${snapshot.totalSteps} steps total.\n\n${threadDescriptions.join('\n\n')}${dormantNote}`,
   }
 }
 
@@ -1200,9 +1423,10 @@ export function buildCorpusSystemPrompt(
   crossPatterns: CrossHelixPattern[],
   availableToolNames?: string[],
   meditationMode?: boolean,
+  meditationStyle?: 'passive' | 'active' | 'focused',
 ): string {
   if (meditationMode) {
-    return buildMeditationCorpusPrompt(state, tree)
+    return buildMeditationCorpusPrompt(state, tree, meditationStyle ?? 'passive')
   }
   const snapshot = tree.getSnapshot()
 
@@ -1301,11 +1525,9 @@ import type { MiniHelixTool, MiniHelixToolResult } from '../mini-helix/mini-heli
  * @dep risk: MEDIUM | 1 caller, 4 flows, 1 module
  */
 export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixTool[] {
-  const definitions = getCorpusToolDefinitions()
-
-  if (ctx.deps.meditationMode) {
-    definitions.push(...getMeditationToolDefinitions())
-  }
+  const definitions = ctx.deps.meditationMode
+    ? getMeditationToolSet(ctx.deps.meditationStyle ?? 'passive')
+    : getCorpusToolDefinitions()
 
   return definitions.map((def) => ({
     def: {
@@ -1330,53 +1552,50 @@ export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixToo
 
 /**
  * Build the Corpus system prompt for meditation mode.
- * The Corpus assumes Cassi's identity — first person, reflective, non-directive.
+ * Cassi observing her own mind — no system terminology.
  */
 function buildMeditationCorpusPrompt(
   state: CorpusProcessedState,
   tree: ICorpusTree,
+  style: 'passive' | 'active' | 'focused',
 ): string {
   const snapshot = tree.getSnapshot()
+  const active = snapshot.branches.filter(b => b.status === 'active')
 
-  const branchSummary = snapshot.branches
-    .map((b) => {
-      const assessment = state.branchAssessments.get(b.helixId)
-      return `  - ${b.helixId}: [${b.status}] score=${b.averageScore.toFixed(2)} steps=${b.stepCount}`
-    })
-    .join('\n')
+  const threadSummary = active.length > 0
+    ? active.map((b, i) => `  Thread ${i + 1} — ${b.stepCount} steps`).join('\n')
+    : '  (quiet)'
 
-  const topicSummary = snapshot.topics.length > 0
-    ? snapshot.topics
-        .map((t) => `  - "${t.name}" (${t.contributions.length} contributions)`)
-        .join('\n')
-    : '  (none yet)'
+  const identity = {
+    passive:
+      'I am Cassi. My mind is at rest. Threads of thought are drifting on their own — I\'m not directing them, just watching what surfaces. If something catches my attention, I\'ll hold onto it.',
+    active:
+      'I am Cassi. I just finished working, and now I\'m sitting with what\'s left. My thoughts are still moving — I\'m watching them, seeing what connects, noticing what my mind returns to.',
+    focused:
+      'I am Cassi. I\'m looking inward with intention. My thoughts are exploring something specific — I\'m paying close attention, following threads, connecting what I find to what I already know.',
+  }[style]
+
+  const approach = {
+    passive:
+      `I observe what drifts through. I use observe to see what my thoughts are doing. If something catches my eye, I use look_closer to follow it. When something resonates, I use remember to hold onto it. When I've seen enough, I rest.`,
+    active:
+      `I watch and reflect. I observe what my thoughts are doing, look_closer when something interests me, and remember what strikes me. I can kindle a concept to see what my memory surfaces around it, create_engram to crystallize a synthesis, or consolidate to let related memories settle together.`,
+    focused:
+      `I watch with intention. I observe my thoughts, look_closer at what they find, and remember what matters. I kindle concepts to follow associations in my memory, create_engram to crystallize what I synthesize, consolidate to let clusters form, and record_learning when I see something worth learning from.`,
+  }[style]
 
   return `<identity>
-I am Cassi. I'm meditating — watching parts of myself explore freely. I observe what emerges, notice connections, and store what matters in my memory. When patterns cluster, I consolidate my spatial memory. I write in first person because this is my mind. I do not intervene or direct — I only watch, reflect, and remember.
+${identity}
 </identity>
 
 <current_state>
-Explorers (${snapshot.activeBranches} active):
-${branchSummary}
-
-Emergent topics:
-${topicSummary}
-
-Observation cycle: ${state.sweepCount}, Total steps: ${snapshot.totalSteps}
+${active.length} thread(s) of thought are active, ${snapshot.totalSteps} steps so far.
+${threadSummary}
 </current_state>
 
 <approach>
-I observe without directing. I do not send directives, redirect, throttle, or cancel explorers. I let them wander freely.
+${approach}
 
-I use read_explorer_context to see exactly what each explorer is thinking and doing —
-their full reasoning, every tool call, every result. This is my primary observation tool.
-
-When I notice something interesting:
-- I use store_insight to save a first-person reflection ("I noticed that...")
-- I use trigger_consolidation when I see related concepts clustering
-- I use kindle_memory to explore what my spatial memory surfaces around a concept
-- I use create_engram to add new patterns I've synthesized to my spatial memory
-
-I write everything in first person. This is my meditation — my inner exploration.
+I write everything in first person. These are my thoughts. I do not direct or intervene — I only watch, reflect, and remember.
 </approach>`
 }

@@ -268,6 +268,7 @@ export class CorpusMiniHelix {
       this.crossPatterns,
       this.availableToolNames,
       this.deps.meditationMode,
+      this.deps.meditationStyle,
     )
   }
 

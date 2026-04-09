@@ -334,6 +334,7 @@ export class MeditationController extends BaseCognitiveModule {
         maxDepth: 1,
         maxTotalSteps: this.meditationConfig.maxTotalSteps,
         meditationMode: true,
+        meditationStyle: resolvedStyle,
       })
 
       // Don't await — let it run in background.
