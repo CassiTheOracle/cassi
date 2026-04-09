@@ -293,6 +293,84 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/enrich — Mnemic Field retrieval with first-person formatting
+  if (parts[1] === 'enrich' && !parts[2] && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const query = typeof body?.query === 'string' ? body.query : ''
+      if (!query.trim()) {
+        sendJSON(res, 400, { error: 'query is required' })
+        return true
+      }
+
+      const field = getMnemicField(logger, daemon)
+      const complexity = body?.complexity ?? 'normal'
+      const limit = typeof body?.limit === 'number' ? body.limit : 12
+
+      const hits = field.retrieve(query, { complexity, limit })
+
+      if (hits.length === 0) {
+        sendJSON(res, 200, {
+          ok: true,
+          hasContext: false,
+          markdown: `No relevant context found for: \`${query}\``,
+        })
+        return true
+      }
+
+      // Build first-person briefing
+      const sections = buildEnrichmentBriefing(hits, query)
+
+      sendJSON(res, 200, {
+        ok: true,
+        hasContext: true,
+        markdown: sections.join('\n\n'),
+        engramIds: hits.map(h => h.id),
+        hitCount: hits.length,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/field/feedback — Record spikes for engram feedback
+  if (parts[1] === 'field' && parts[2] === 'feedback' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const feedback = body?.feedback as Record<string, boolean> | undefined
+      if (!feedback || typeof feedback !== 'object') {
+        sendJSON(res, 400, { error: 'feedback map is required (engramId -> true/false)' })
+        return true
+      }
+
+      const field = getMnemicField(logger, daemon)
+      const taskContext = typeof body?.taskContext === 'string' ? body.taskContext : null
+      let recorded = 0
+
+      for (const [engramId, helpful] of Object.entries(feedback)) {
+        try {
+          field.spike({
+            engramId,
+            magnitude: helpful ? 1.0 : -0.3,
+            outcome: helpful ? 'success' : 'failure',
+            taskContext: taskContext || undefined,
+          })
+          recorded++
+        } catch {
+          // Engram may not exist — skip silently
+        }
+      }
+
+      sendJSON(res, 200, { ok: true, recorded })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
 
   // POST /memory/archives/search
   if (parts[1] === 'archives' && parts[2] === 'search' && method === 'POST') {
@@ -681,4 +759,78 @@ export async function handleMemoryRoutes(
   }
 
   return false
+}
+
+// --- Enrichment Briefing Builder ---
+
+/**
+ * Build a first-person briefing from Mnemic Field retrieval hits.
+ * Groups engrams by type and relevance, formats as natural language.
+ */
+function buildEnrichmentBriefing(
+  hits: Array<{ id: string; content: string; nodeType: string; charge: number; potentiation: number; tags: string[] }>,
+  query: string,
+): string[] {
+  const sections: string[] = []
+
+  // Section 1: What I remember (facts, episodes, decisions, patterns)
+  const memories = hits.filter(h =>
+    ['fact', 'episode', 'decision', 'pattern', 'abstraction'].includes(h.nodeType),
+  )
+  if (memories.length > 0) {
+    const lines = memories.map(h => {
+      const content = h.content.length > 400 ? h.content.slice(0, 400) + '...' : h.content
+      return `- ${content}`
+    })
+    sections.push(`## What I remember\n\n${lines.join('\n\n')}`)
+  }
+
+  // Section 2: Decisions I've made
+  const decisions = hits.filter(h => h.nodeType === 'decision')
+  if (decisions.length > 0) {
+    const lines = decisions.map(h => {
+      const content = h.content.length > 300 ? h.content.slice(0, 300) + '...' : h.content
+      return `- ${content}`
+    })
+    sections.push(`## Decisions I've made\n\n${lines.join('\n')}`)
+  }
+
+  // Section 3: Watch out for (contradictions, outcomes, failures)
+  const warnings = hits.filter(h =>
+    ['outcome', 'pattern'].includes(h.nodeType) &&
+    (h.content.toLowerCase().includes('fail') ||
+     h.content.toLowerCase().includes('error') ||
+     h.content.toLowerCase().includes('contradict') ||
+     h.content.toLowerCase().includes('watch out')),
+  )
+  if (warnings.length > 0) {
+    const lines = warnings.map(h => {
+      const content = h.content.length > 300 ? h.content.slice(0, 300) + '...' : h.content
+      return `- ${content}`
+    })
+    sections.push(`## Things to watch out for\n\n${lines.join('\n')}`)
+  }
+
+  // Section 4: Connected work (files, tools, sessions)
+  const connections = hits.filter(h =>
+    ['file', 'tool', 'session', 'source_file', 'changeset'].includes(h.nodeType),
+  )
+  if (connections.length > 0) {
+    const lines = connections.map(h => {
+      const content = h.content.length > 250 ? h.content.slice(0, 250) + '...' : h.content
+      return `- ${content}`
+    })
+    sections.push(`## This connects to\n\n${lines.join('\n')}`)
+  }
+
+  // Fallback: if nothing categorized well, show everything
+  if (sections.length === 0) {
+    const lines = hits.slice(0, 8).map(h => {
+      const content = h.content.length > 300 ? h.content.slice(0, 300) + '...' : h.content
+      return `- ${content}`
+    })
+    sections.push(`## Context for "${query}"\n\n${lines.join('\n\n')}`)
+  }
+
+  return sections
 }
