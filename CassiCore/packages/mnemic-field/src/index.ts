@@ -5,12 +5,15 @@ import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
 import { getDataDir } from '../../utils/paths.js'
 import { Cortex } from './cortex.js'
+import { FilamentCortex } from './filament-cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 import { projectTo2D, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
+import { segmentEngram } from './segmentation.js'
+import { EntityLinker } from './filament-entities.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -18,15 +21,20 @@ import type {
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,
   TaskComplexity, LuminalSet, KindlingOptions, SpikeOutcome,
+  Filament, FilamentAnnotation, EngramPosition,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
 export { Cortex } from './cortex.js'
+export { FilamentCortex } from './filament-cortex.js'
 export { KindlingEngine } from './kindling.js'
 export { ConsolidationEngine } from './consolidation.js'
 export { CodeStore } from './code-store.js'
 export { CodeIngestor } from './code-ingestor.js'
 export { GitNexusBridge } from './gitnexus-bridge.js'
+export { segmentEngram } from './segmentation.js'
+export { EntityLinker, extractEntities } from './filament-entities.js'
+export type { FilamentSpan } from './segmentation.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 export { projectTo2D, projectSingle, buildProjectionState } from './umap.js'
@@ -40,14 +48,20 @@ export type {
   TaskComplexity, LuminalSet, KindlingOptions, ChargedEngram,
   Changeset, ChangesetCreate, ChangesetFile, ChangesetStatus, ChangesetFileOperation,
   SourceFileMetadata,
+  Filament, FilamentCreate, FilamentSynapse, FilamentSynapseCreate,
+  FilamentEntity, FilamentAnnotation, FilamentSynapseType, SegmentationConfig,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
   POTENTIATION_DEFAULTS, SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
+  FILAMENT_SYNAPSE_TYPES, FILAMENT_SYNAPSE_PROPAGATION,
+  SEGMENTATION_DEFAULTS, FILAMENT_KINDLING_DEFAULTS,
 } from './types.js'
 
 export class MnemicField {
   private cortex: Cortex
+  private filamentCortex: FilamentCortex
+  private entityLinker: EntityLinker
   private kindlingEngine: KindlingEngine
   private consolidationEngine: ConsolidationEngine
   private migrationJobs: MigrationJobStore
@@ -71,7 +85,9 @@ export class MnemicField {
     }
 
     this.cortex = new Cortex(db, logger)
-    this.kindlingEngine = new KindlingEngine(this.cortex, logger)
+    this.filamentCortex = new FilamentCortex(db, logger)
+    this.entityLinker = new EntityLinker(this.filamentCortex, logger)
+    this.kindlingEngine = new KindlingEngine(this.cortex, logger, this.filamentCortex)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger)
     this.migrationJobs = new MigrationJobStore(db)
     this.logger.info('Mnemic Field initialized')
@@ -95,7 +111,22 @@ export class MnemicField {
       y = pos.y
     }
 
-    return this.cortex.createEngram({ ...input, x, y })
+    const engram = this.cortex.createEngram({ ...input, x, y })
+
+    const spans = segmentEngram(engram.content, engram.nodeType)
+    if (spans.length > 0) {
+      const filaments = this.filamentCortex.createFilamentsBatch(
+        spans.map(s => ({
+          engramId: engram.id,
+          spanStart: s.spanStart,
+          spanEnd: s.spanEnd,
+          content: s.content,
+        }))
+      )
+      this.entityLinker.linkFilaments(filaments)
+    }
+
+    return engram
   }
 
   get(id: string): Engram | null {
@@ -153,6 +184,10 @@ export class MnemicField {
    */
   querySpatial(query: SpatialQuery): Engram[] {
     return this.cortex.spatialQuery(query)
+  }
+
+  getPositions(limit?: number): EngramPosition[] {
+    return this.cortex.getPositions(limit)
   }
 
   /**
@@ -230,7 +265,14 @@ export class MnemicField {
   }
 
   stats(): FieldStats {
-    return this.cortex.stats()
+    const base = this.cortex.stats()
+    const fStats = this.filamentCortex.stats()
+    return {
+      ...base,
+      filamentCount: fStats.filamentCount,
+      filamentSynapseCount: fStats.filamentSynapseCount,
+      filamentEntityCount: fStats.entityCount,
+    }
   }
 
   /**
@@ -249,6 +291,16 @@ export class MnemicField {
     })
 
     if (luminal.engrams.length > 0) {
+      const excerptMap = new Map<string, { content: string; similarity: number }>()
+      if (luminal.filamentAnnotations) {
+        for (const ann of luminal.filamentAnnotations) {
+          const existing = excerptMap.get(ann.engramId)
+          if (!existing || ann.similarity > existing.similarity) {
+            excerptMap.set(ann.engramId, { content: ann.content, similarity: ann.similarity })
+          }
+        }
+      }
+
       return luminal.engrams.map(hit => ({
         id: hit.engram.id,
         content: hit.engram.content,
@@ -259,6 +311,7 @@ export class MnemicField {
         provenance: hit.engram.provenance,
         tags: hit.engram.tags,
         metadata: hit.engram.metadata,
+        filamentExcerpt: excerptMap.get(hit.engram.id)?.content,
       }))
     }
 
@@ -432,7 +485,7 @@ export class MnemicField {
    * Backfill missing embeddings using the configured local embedding service,
    * then reproject the full field.
    */
-  async backfillEmbeddings(limit = 1000): Promise<{ embedded: number; reprojected: number }> {
+  async backfillEmbeddings(limit = 1000): Promise<{ embedded: number; reprojected: number; filamentEmbeddings: number }> {
     const embSvc = getEmbeddingService(this.logger)
     if (!embSvc.available) {
       throw new Error('Embedding service not available')
@@ -440,6 +493,7 @@ export class MnemicField {
 
     const missing = this.cortex.getEngramsWithoutEmbedding(limit)
     let embedded = 0
+    let filamentEmbeddings = 0
 
     for (const { id, content } of missing) {
       const vec = await embSvc.embed(content, 'document')
@@ -451,6 +505,9 @@ export class MnemicField {
         this.cortex.bulkUpdatePositions([{ id, x: pos.x, y: pos.y }])
       }
       embedded++
+
+      const filEmbedded = await this.embedFilaments(id)
+      filamentEmbeddings += filEmbedded
     }
 
     let reprojected = 0
@@ -458,8 +515,8 @@ export class MnemicField {
       reprojected = this.reprojectAll()
     }
 
-    this.logger.info('Backfilled embeddings', { embedded, reprojected, remaining: this.cortex.countMissingEmbeddings() })
-    return { embedded, reprojected }
+    this.logger.info('Backfilled embeddings', { embedded, reprojected, filamentEmbeddings, remaining: this.cortex.countMissingEmbeddings() })
+    return { embedded, reprojected, filamentEmbeddings }
   }
 
   /**
@@ -494,12 +551,80 @@ export class MnemicField {
     return this.consolidationEngine.consolidate(options)
   }
 
+  getFilaments(engramId: string): Filament[] {
+    return this.filamentCortex.getFilamentsByEngram(engramId)
+  }
+
+  async embedFilaments(engramId: string): Promise<number> {
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return 0
+
+    const filaments = this.filamentCortex.getFilamentsByEngram(engramId)
+    const toEmbed = filaments.filter(f => f.embedding === null)
+    if (toEmbed.length === 0) return 0
+
+    const texts = toEmbed.map(f => f.content)
+    const embeddings = await embSvc.embedBatch(texts, 'document')
+
+    let embedded = 0
+    for (let i = 0; i < toEmbed.length; i++) {
+      if (embeddings[i]) {
+        this.filamentCortex.updateFilamentEmbedding(toEmbed[i].id, embeddings[i]!)
+        embedded++
+      }
+    }
+
+    return embedded
+  }
+
+  async backfillFilaments(batchSize = 100): Promise<{ segmented: number; embedded: number; linked: number }> {
+    const engramIds = this.filamentCortex.getEngramIdsWithoutFilaments(batchSize)
+    let segmented = 0
+    let embedded = 0
+    let linked = 0
+
+    for (const id of engramIds) {
+      const engram = this.cortex.getEngram(id)
+      if (!engram) continue
+
+      const spans = segmentEngram(engram.content, engram.nodeType)
+      if (spans.length === 0) continue
+
+      const filaments = this.filamentCortex.createFilamentsBatch(
+        spans.map(s => ({
+          engramId: engram.id,
+          spanStart: s.spanStart,
+          spanEnd: s.spanEnd,
+          content: s.content,
+        }))
+      )
+      segmented += filaments.length
+
+      const linkResult = this.entityLinker.linkFilaments(filaments)
+      linked += linkResult.synapses
+
+      const embResult = await this.embedFilaments(engram.id)
+      embedded += embResult
+    }
+
+    this.logger.info('Filament backfill complete', { engrams: engramIds.length, segmented, embedded, linked })
+    return { segmented, embedded, linked }
+  }
+
   /**
    * Get the underlying Cortex for direct operations.
    * Prefer using MnemicField methods; use this for advanced/batch operations.
    */
   getCortex(): Cortex {
     return this.cortex
+  }
+
+  /**
+   * Get the underlying FilamentCortex for direct operations.
+   * Prefer using MnemicField methods; use this for advanced/batch operations.
+   */
+  getFilamentCortex(): FilamentCortex {
+    return this.filamentCortex
   }
 
   close(): void {

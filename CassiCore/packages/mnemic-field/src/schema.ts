@@ -112,10 +112,45 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_changesets_status ON changesets(status);
     CREATE INDEX IF NOT EXISTS idx_changesets_committed ON changesets(committed_at DESC);
     CREATE INDEX IF NOT EXISTS idx_changeset_files_engram ON changeset_files(engram_id);
+
+    CREATE TABLE IF NOT EXISTS filaments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      engram_id TEXT NOT NULL REFERENCES engrams(id) ON DELETE CASCADE,
+      span_start INTEGER NOT NULL,
+      span_end INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      embedding BLOB,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS filament_synapses (
+      source_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
+      target_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
+      edge_type TEXT NOT NULL,
+      weight REAL NOT NULL DEFAULT 0.5,
+      confidence REAL NOT NULL DEFAULT 1.0,
+      provenance TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      metadata TEXT,
+      PRIMARY KEY (source_id, target_id, edge_type)
+    );
+
+    CREATE TABLE IF NOT EXISTS filament_entities (
+      filament_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
+      entity TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      PRIMARY KEY (filament_id, entity)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_filaments_engram ON filaments(engram_id);
+    CREATE INDEX IF NOT EXISTS idx_filament_syn_source ON filament_synapses(source_id, edge_type);
+    CREATE INDEX IF NOT EXISTS idx_filament_syn_target ON filament_synapses(target_id, edge_type);
+    CREATE INDEX IF NOT EXISTS idx_fent_entity ON filament_entities(entity);
   `)
 
   createRtreeIfNeeded(db)
   createFtsIfNeeded(db)
+  createFilamentsFtsIfNeeded(db)
   migrateSchema(db)
 }
 
@@ -166,6 +201,40 @@ function createFtsIfNeeded(db: Database.Database): void {
         VALUES ('delete', OLD.rowid, OLD.content, OLD.tags, OLD.provenance);
         INSERT INTO engrams_fts(rowid, content, tags, provenance)
         VALUES (NEW.rowid, NEW.content, NEW.tags, NEW.provenance);
+      END;
+    `)
+  }
+}
+
+function createFilamentsFtsIfNeeded(db: Database.Database): void {
+  const ftsExists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='filaments_fts'`
+  ).get()
+
+  if (!ftsExists) {
+    db.exec(`
+      CREATE VIRTUAL TABLE filaments_fts USING fts5(
+        content,
+        content='filaments', content_rowid='id'
+      );
+    `)
+
+    db.exec(`
+      CREATE TRIGGER IF NOT EXISTS filaments_fts_insert AFTER INSERT ON filaments BEGIN
+        INSERT INTO filaments_fts(rowid, content)
+        VALUES (NEW.id, NEW.content);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS filaments_fts_delete AFTER DELETE ON filaments BEGIN
+        INSERT INTO filaments_fts(filaments_fts, rowid, content)
+        VALUES ('delete', OLD.id, OLD.content);
+      END;
+
+      CREATE TRIGGER IF NOT EXISTS filaments_fts_update AFTER UPDATE ON filaments BEGIN
+        INSERT INTO filaments_fts(filaments_fts, rowid, content)
+        VALUES ('delete', OLD.id, OLD.content);
+        INSERT INTO filaments_fts(rowid, content)
+        VALUES (NEW.id, NEW.content);
       END;
     `)
   }

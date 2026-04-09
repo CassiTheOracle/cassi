@@ -8,20 +8,21 @@ import type {
   ActivationSpike, SpikeCreate,
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, FieldStats,
+  EngramPosition, EngramType,
 } from './types.js'
 
-function toFloatArray(buf: Buffer | null): Float32Array | null {
+export function toFloatArray(buf: Buffer | null): Float32Array | null {
   if (!buf || buf.length === 0) return null
   return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
 }
 
-function fromFloatArray(arr: Float32Array | number[] | null | undefined): Buffer | null {
+export function fromFloatArray(arr: Float32Array | number[] | null | undefined): Buffer | null {
   if (!arr) return null
   const f32 = arr instanceof Float32Array ? arr : new Float32Array(arr)
   return Buffer.from(f32.buffer, f32.byteOffset, f32.byteLength)
 }
 
-function parseJsonSafe<T>(raw: string | null | undefined, fallback: T): T {
+export function parseJsonSafe<T>(raw: string | null | undefined, fallback: T): T {
   if (!raw) return fallback
   try { return JSON.parse(raw) as T } catch { return fallback }
 }
@@ -494,6 +495,27 @@ export class Cortex {
 
   getAllEngrams(): Engram[] {
     return (this.db.prepare(`SELECT * FROM engrams`).all() as Record<string, unknown>[]).map(rowToEngram)
+  }
+
+  /**
+   * Lean bulk query for CassiPrism — returns only position/type data.
+   * Avoids loading content, embedding, and metadata BLOBs.
+   * At 150K engrams this is ~900KB JSON vs ~150MB for getAllEngrams().
+   */
+  getPositions(limit?: number): EngramPosition[] {
+    const l = limit ?? 999999
+    const rows = this.db.prepare(
+      `SELECT id, x, y, t, potentiation, node_type, cluster_id FROM engrams ORDER BY t ASC LIMIT ?`
+    ).all(l) as Array<{ id: string; x: number; y: number; t: number; potentiation: number; node_type: string; cluster_id: string | null }>
+    return rows.map(r => ({
+      id: r.id,
+      x: r.x,
+      y: r.y,
+      t: r.t,
+      potentiation: r.potentiation,
+      nodeType: r.node_type as EngramType,
+      clusterId: r.cluster_id,
+    }))
   }
 
   /**

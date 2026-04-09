@@ -152,6 +152,9 @@ export interface FieldStats {
   nucleusCount: number
   avgPotentiation: number
   topEngramsByPotentiation: Array<{ id: string; content: string; potentiation: number }>
+  filamentCount?: number
+  filamentSynapseCount?: number
+  filamentEntityCount?: number
 }
 
 export interface MnemicRetrievalHit {
@@ -164,6 +167,7 @@ export interface MnemicRetrievalHit {
   provenance: string
   tags: string[]
   metadata: Record<string, unknown>
+  filamentExcerpt?: string
 }
 
 export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
@@ -220,6 +224,23 @@ export interface LuminalSet {
   sparkPoint: number
   taskComplexity: TaskComplexity
   durationMs: number
+  filamentAnnotations?: FilamentAnnotation[]
+  trace?: KindlingTrace[]
+}
+
+export interface KindlingTrace {
+  iteration: number
+  charges: Record<string, number>
+}
+
+export interface EngramPosition {
+  id: string
+  x: number
+  y: number
+  t: number
+  potentiation: number
+  nodeType: EngramType
+  clusterId: string | null
 }
 
 export interface KindlingOptions {
@@ -229,6 +250,12 @@ export interface KindlingOptions {
   maxSeeds?: number
   maxLuminalSize?: number
   includeText?: boolean
+  enableFilaments?: boolean
+  maxFilamentSeeds?: number
+  maxFilamentExpansions?: number
+  chaseSupersessions?: boolean
+  filamentPrecisionBoost?: number
+  recordTrace?: boolean
 }
 
 export const KINDLING_DEFAULTS = {
@@ -285,3 +312,113 @@ export interface SourceFileMetadata {
   changesetId: string | null
   buildable: boolean
 }
+
+export const FILAMENT_SYNAPSE_TYPES = [
+  'references', 'contradicts', 'elaborates', 'supersedes',
+  'derives_from', 'confirms', 'co_activated',
+] as const
+
+export type FilamentSynapseType = typeof FILAMENT_SYNAPSE_TYPES[number]
+
+export const FILAMENT_SYNAPSE_PROPAGATION: Record<FilamentSynapseType, number> = {
+  supersedes: 0.9,
+  references: 0.8,
+  elaborates: 0.75,
+  contradicts: 0.7,
+  derives_from: 0.7,
+  confirms: 0.5,
+  co_activated: 0.3,
+}
+
+export interface Filament {
+  id: number
+  engramId: string
+  spanStart: number
+  spanEnd: number
+  content: string
+  embedding: Float32Array | null
+  createdAt: string
+}
+
+export interface FilamentCreate {
+  engramId: string
+  spanStart: number
+  spanEnd: number
+  content: string
+  embedding?: Float32Array | number[] | null
+}
+
+export interface FilamentSynapse {
+  sourceId: number
+  targetId: number
+  edgeType: FilamentSynapseType
+  weight: number
+  confidence: number
+  provenance: string
+  createdAt: string
+  metadata: Record<string, unknown>
+}
+
+export interface FilamentSynapseCreate {
+  sourceId: number
+  targetId: number
+  edgeType: FilamentSynapseType
+  weight?: number
+  confidence?: number
+  provenance: string
+  metadata?: Record<string, unknown>
+}
+
+export interface FilamentEntity {
+  filamentId: number
+  entity: string
+  entityType: string
+}
+
+export type FilamentMatchType = 'direct_embedding' | 'direct_text' | 'synapse_expansion' | 'supersession_chase'
+
+export interface FilamentAnnotation {
+  filamentId: number
+  engramId: string
+  content: string
+  matchType: FilamentMatchType
+  similarity: number
+  expansionPath?: {
+    sourceFilamentId: number
+    edgeType: FilamentSynapseType
+    sourceContent: string
+  }
+}
+
+export interface SegmentationConfig {
+  minFilamentLength: number
+  maxFilamentLength: number
+  minContentLength: number
+  skipNodeTypes: EngramType[]
+  abbreviations: string[]
+  fileExtensions: string[]
+}
+
+export const SEGMENTATION_DEFAULTS: SegmentationConfig = {
+  minFilamentLength: 20,
+  maxFilamentLength: 500,
+  minContentLength: 50,
+  skipNodeTypes: ['source_file', 'changeset'],
+  abbreviations: ['e.g.', 'i.e.', 'etc.', 'vs.', 'approx.', 'cf.', 'al.', 'Dr.', 'Mr.', 'Mrs.', 'Ms.', 'Jr.', 'Sr.', 'No.', 'Vol.'],
+  fileExtensions: ['ts', 'js', 'tsx', 'jsx', 'sql', 'md', 'json', 'yaml', 'yml', 'toml', 'py', 'rs', 'go', 'rb', 'html', 'css', 'sh', 'txt', 'log', 'env', 'xml', 'csv'],
+} as const
+
+export const FILAMENT_KINDLING_DEFAULTS = {
+  precisionBoost: 1.15,
+  contextPenalty: 0.9,
+  lazyThreshold: 0.75,
+  maxFilamentSeeds: 20,
+  maxFilamentExpansions: 10,
+  maxSupersessionHops: 5,
+  coActivationMinSimilarity: 0.6,
+  coActivationMaxPerFilament: 20,
+  coActivationInitialWeightScale: 0.4,
+  coActivationMaxInitialWeight: 0.5,
+  coActivationReinforcementStep: 0.05,
+  coActivationWeightCap: 0.8,
+} as const

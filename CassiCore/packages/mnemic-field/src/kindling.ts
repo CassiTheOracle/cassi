@@ -1,17 +1,28 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
+import type { FilamentCortex } from './filament-cortex.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
-  KindlingOptions, TaskComplexity, SpikeOutcome,
+  KindlingOptions, KindlingTrace, TaskComplexity, SpikeOutcome,
+  FilamentAnnotation, FilamentMatchType, FilamentSynapseType,
 } from './types.js'
 import {
   SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
   SYNAPSE_PROPAGATION, POTENTIATION_DEFAULTS,
+  FILAMENT_KINDLING_DEFAULTS, FILAMENT_SYNAPSE_PROPAGATION,
 } from './types.js'
 
 interface SeedResult {
   engramId: string
   charge: number
+}
+
+interface MatchedFilamentInfo {
+  engramId: string
+  content: string
+  similarity: number
+  matchType: FilamentMatchType
+  expansionPath?: FilamentAnnotation['expansionPath']
 }
 
 /**
@@ -22,10 +33,12 @@ interface SeedResult {
  */
 export class KindlingEngine {
   private logger: ILogger
+  private matchedFilaments: Map<number, MatchedFilamentInfo> = new Map()
 
   constructor(
     private cortex: Cortex,
     logger: ILogger,
+    private filamentCortex: FilamentCortex | null = null,
   ) {
     this.logger = logger.child ? logger.child('kindling') : logger
   }
@@ -39,13 +52,14 @@ export class KindlingEngine {
     options: KindlingOptions = {},
   ): LuminalSet {
     const start = Date.now()
+    this.matchedFilaments = new Map()
     const complexity = options.complexity ?? 'normal'
     const maxIter = options.maxIterations ?? KINDLING_DEFAULTS.maxIterations
     const tol = options.convergenceTolerance ?? KINDLING_DEFAULTS.convergenceTolerance
     const maxSeeds = options.maxSeeds ?? KINDLING_DEFAULTS.maxSeeds
     const maxLuminal = options.maxLuminalSize ?? KINDLING_DEFAULTS.maxLuminalSize
 
-    const seeds = this.findSeeds(embedding, textQuery, maxSeeds, options.includeText ?? true)
+    const seeds = this.findSeeds(embedding, textQuery, options)
     if (seeds.length === 0) {
       return this.emptyLuminalSet(complexity, Date.now() - start)
     }
@@ -55,21 +69,34 @@ export class KindlingEngine {
       chargeMap.set(seed.engramId, seed.charge)
     }
 
+    const trace: KindlingTrace[] = []
+    const recording = options.recordTrace === true
+
+    if (recording) {
+      trace.push({ iteration: 0, charges: Object.fromEntries(chargeMap) })
+    }
+
     let iterations = 0
     for (let iter = 0; iter < maxIter; iter++) {
       iterations++
       const delta = this.spreadOnce(chargeMap)
+      if (recording) {
+        trace.push({ iteration: iterations, charges: Object.fromEntries(chargeMap) })
+      }
       if (delta < tol) break
     }
 
     const sparkPoint = this.computeGlobalSparkPoint(complexity)
     const luminal = this.ignite(chargeMap, sparkPoint, maxLuminal)
 
+    const filamentAnnotations = this.annotateFilaments(luminal)
+
     const durationMs = Date.now() - start
     this.logger.debug('Kindling complete', {
       seeds: seeds.length,
       iterations,
       luminalSize: luminal.length,
+      filamentMatches: this.matchedFilaments.size,
       durationMs,
     })
 
@@ -81,6 +108,8 @@ export class KindlingEngine {
       sparkPoint,
       taskComplexity: complexity,
       durationMs,
+      filamentAnnotations: filamentAnnotations.length > 0 ? filamentAnnotations : undefined,
+      trace: recording ? trace : undefined,
     }
   }
 
@@ -90,23 +119,38 @@ export class KindlingEngine {
   private findSeeds(
     embedding: number[] | null,
     textQuery: string | null,
-    maxSeeds: number,
-    includeText: boolean,
+    options: KindlingOptions = {},
   ): SeedResult[] {
+    const maxSeeds = options.maxSeeds ?? KINDLING_DEFAULTS.maxSeeds
+    const includeText = options.includeText ?? true
     const seedMap = new Map<string, number>()
 
     if (embedding && embedding.length > 0) {
-      const embeddingSeeds = this.findSeedsByEmbedding(embedding, maxSeeds)
-      for (const s of embeddingSeeds) {
-        seedMap.set(s.engramId, Math.max(seedMap.get(s.engramId) ?? 0, s.charge))
-      }
+      mergeSeeds(seedMap, this.findSeedsByEmbedding(embedding, maxSeeds))
     }
 
     if (textQuery && includeText) {
-      const textSeeds = this.findSeedsByText(textQuery, Math.ceil(maxSeeds / 2))
-      for (const s of textSeeds) {
-        const existing = seedMap.get(s.engramId) ?? 0
-        seedMap.set(s.engramId, Math.max(existing, s.charge * 0.8))
+      mergeSeeds(seedMap, this.findSeedsByText(textQuery, Math.ceil(maxSeeds / 2)), 0.8)
+    }
+
+    if (this.filamentCortex && options.enableFilaments !== false) {
+      const bestEngramCharge = Math.max(0, ...Array.from(seedMap.values()))
+      const lazyThreshold = FILAMENT_KINDLING_DEFAULTS.lazyThreshold
+
+      if (bestEngramCharge < lazyThreshold) {
+        const maxFilSeeds = options.maxFilamentSeeds ?? FILAMENT_KINDLING_DEFAULTS.maxFilamentSeeds
+        const boost = options.filamentPrecisionBoost ?? FILAMENT_KINDLING_DEFAULTS.precisionBoost
+
+        if (embedding && embedding.length > 0) {
+          mergeSeeds(seedMap, this.findFilamentsByEmbedding(embedding, maxFilSeeds, boost))
+        }
+
+        if (textQuery && includeText) {
+          mergeSeeds(seedMap, this.findFilamentsByText(textQuery, Math.ceil(maxFilSeeds / 2), boost))
+        }
+
+        const maxExpansions = options.maxFilamentExpansions ?? FILAMENT_KINDLING_DEFAULTS.maxFilamentExpansions
+        this.expandSeedsThroughFilaments(seedMap, maxExpansions, options.chaseSupersessions ?? true)
       }
     }
 
@@ -246,12 +290,36 @@ export class KindlingEngine {
     }
 
     this.driftCoActivated(luminalSet.engrams)
+    this.recordFilamentCoActivation()
 
     this.logger.debug('Activation recorded', {
       engramCount: luminalSet.engrams.length,
       taskContext,
       outcome,
     })
+  }
+
+  private recordFilamentCoActivation(): void {
+    if (!this.filamentCortex || this.matchedFilaments.size < 2) return
+
+    const directMatches = Array.from(this.matchedFilaments.entries())
+      .filter(([_, info]) => info.matchType === 'direct_embedding' || info.matchType === 'direct_text')
+
+    const minSim = FILAMENT_KINDLING_DEFAULTS.coActivationMinSimilarity
+
+    for (let i = 0; i < directMatches.length; i++) {
+      for (let j = i + 1; j < directMatches.length; j++) {
+        const [idA, infoA] = directMatches[i]
+        const [idB, infoB] = directMatches[j]
+
+        if (infoA.engramId === infoB.engramId) continue
+
+        const approxSim = Math.min(infoA.similarity, infoB.similarity)
+        if (approxSim < minSim) continue
+
+        this.filamentCortex.upsertCoActivationSynapse(idA, idB, approxSim)
+      }
+    }
   }
 
   /**
@@ -300,6 +368,164 @@ export class KindlingEngine {
     }
   }
 
+  private findFilamentsByEmbedding(queryEmb: number[], limit: number, boost: number): SeedResult[] {
+    if (!this.filamentCortex) return []
+
+    const embData = this.filamentCortex.getFilamentEmbeddings(50000)
+    if (embData.length === 0) return []
+
+    const contextPenalty = FILAMENT_KINDLING_DEFAULTS.contextPenalty
+
+    const scored = embData.map(f => ({
+      filamentId: f.id,
+      engramId: f.engramId,
+      similarity: cosineSimilarity(queryEmb, Array.from(f.embedding)),
+    }))
+
+    const filtered = scored
+      .filter(s => s.similarity > 0.1)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+
+    for (const match of filtered) {
+      const filament = this.filamentCortex.getFilament(match.filamentId)
+      if (filament) {
+        this.matchedFilaments.set(match.filamentId, {
+          engramId: match.engramId,
+          content: filament.content,
+          similarity: match.similarity,
+          matchType: 'direct_embedding',
+        })
+      }
+    }
+
+    return filtered.map(f => ({
+      engramId: f.engramId,
+      charge: f.similarity * boost * contextPenalty,
+    }))
+  }
+
+  private findFilamentsByText(query: string, limit: number, boost: number): SeedResult[] {
+    if (!this.filamentCortex) return []
+
+    const contextPenalty = FILAMENT_KINDLING_DEFAULTS.contextPenalty
+    const results = this.filamentCortex.searchFilamentsText(query, limit)
+
+    for (const { filament, score } of results) {
+      this.matchedFilaments.set(filament.id, {
+        engramId: filament.engramId,
+        content: filament.content,
+        similarity: score,
+        matchType: 'direct_text',
+      })
+    }
+
+    return results.map(r => ({
+      engramId: r.filament.engramId,
+      charge: r.score * boost * contextPenalty,
+    }))
+  }
+
+  private expandSeedsThroughFilaments(
+    seedMap: Map<string, number>,
+    maxExpansions: number,
+    chaseSupersessions: boolean,
+  ): void {
+    if (!this.filamentCortex) return
+
+    const expansions: Array<{ engramId: string; charge: number }> = []
+    const snapshot = [...this.matchedFilaments.entries()]
+
+    for (const [filamentId, info] of snapshot) {
+      const synapses = this.filamentCortex.getFilamentSynapsesFrom(filamentId)
+      for (const syn of synapses) {
+        const propagation = FILAMENT_SYNAPSE_PROPAGATION[syn.edgeType as FilamentSynapseType] ?? 0.3
+        const derivedCharge = info.similarity * syn.weight * syn.confidence * propagation
+
+        const targetFilament = this.filamentCortex.getFilament(syn.targetId)
+        if (!targetFilament) continue
+
+        if (!this.matchedFilaments.has(syn.targetId)) {
+          this.matchedFilaments.set(syn.targetId, {
+            engramId: targetFilament.engramId,
+            content: targetFilament.content,
+            similarity: derivedCharge,
+            matchType: 'synapse_expansion',
+            expansionPath: {
+              sourceFilamentId: filamentId,
+              edgeType: syn.edgeType as FilamentSynapseType,
+              sourceContent: info.content,
+            },
+          })
+        }
+
+        expansions.push({ engramId: targetFilament.engramId, charge: derivedCharge })
+
+        if (chaseSupersessions && syn.edgeType === 'supersedes') {
+          const terminal = this.chaseSupersessionChain(syn.targetId)
+          if (terminal && !this.matchedFilaments.has(terminal.id)) {
+            this.matchedFilaments.set(terminal.id, {
+              engramId: terminal.engramId,
+              content: terminal.content,
+              similarity: derivedCharge * 1.1,
+              matchType: 'supersession_chase',
+            })
+            expansions.push({ engramId: terminal.engramId, charge: derivedCharge * 1.1 })
+          }
+        }
+      }
+    }
+
+    const topExpansions = expansions
+      .sort((a, b) => b.charge - a.charge)
+      .slice(0, maxExpansions)
+    mergeSeeds(seedMap, topExpansions)
+  }
+
+  private chaseSupersessionChain(
+    filamentId: number,
+  ): { id: number; engramId: string; content: string } | null {
+    if (!this.filamentCortex) return null
+
+    const maxHops = FILAMENT_KINDLING_DEFAULTS.maxSupersessionHops
+    let currentId = filamentId
+    let result: { id: number; engramId: string; content: string } | null = null
+
+    for (let hop = 0; hop < maxHops; hop++) {
+      const incoming = this.filamentCortex.getFilamentSynapsesTo(currentId)
+      const superseder = incoming.find(s => s.edgeType === 'supersedes')
+      if (!superseder) break
+
+      const filament = this.filamentCortex.getFilament(superseder.sourceId)
+      if (!filament) break
+
+      result = { id: filament.id, engramId: filament.engramId, content: filament.content }
+      currentId = superseder.sourceId
+    }
+
+    return result
+  }
+
+  private annotateFilaments(luminal: ChargedEngram[]): FilamentAnnotation[] {
+    const luminalIds = new Set(luminal.map(e => e.engram.id))
+    const annotations: FilamentAnnotation[] = []
+
+    for (const [filamentId, info] of this.matchedFilaments) {
+      if (!luminalIds.has(info.engramId)) continue
+
+      annotations.push({
+        filamentId,
+        engramId: info.engramId,
+        content: info.content,
+        matchType: info.matchType,
+        similarity: info.similarity,
+        expansionPath: info.expansionPath,
+      })
+    }
+
+    return annotations
+  }
+
   private computeGlobalSparkPoint(complexity: TaskComplexity): number {
     const modifier = SPARK_POINT_DEFAULTS.taskModifiers[complexity]
     return SPARK_POINT_DEFAULTS.baseThreshold * modifier
@@ -315,6 +541,17 @@ export class KindlingEngine {
       taskComplexity: complexity,
       durationMs,
     }
+  }
+}
+
+function mergeSeeds(
+  seedMap: Map<string, number>,
+  seeds: Array<{ engramId: string; charge: number }>,
+  chargeScale = 1.0,
+): void {
+  for (const s of seeds) {
+    const charge = s.charge * chargeScale
+    seedMap.set(s.engramId, Math.max(seedMap.get(s.engramId) ?? 0, charge))
   }
 }
 
