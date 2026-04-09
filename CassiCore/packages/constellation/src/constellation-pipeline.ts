@@ -1791,7 +1791,7 @@ export async function runConstellationPipeline(
     // (user action or constellation timeout) should force-kill branches.
     const softStepBudget = opts.maxTotalSteps ?? 200
     let softBudgetReached = false
-    if (constellationStore) {
+    if (constellationStore && !opts.meditationMode) {
       checkpointHandle = setInterval(() => {
         try {
           const nodeArr = Array.from(nodes.values())

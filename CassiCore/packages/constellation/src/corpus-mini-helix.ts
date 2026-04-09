@@ -77,6 +77,7 @@ export class CorpusMiniHelix {
   // Lifecycle
   private running = false
   private shutdownRequested = false
+  private meditationWakeTimer?: ReturnType<typeof setTimeout>
 
   // Cross-Helix dialectic (optional)
   private crossHelixDialectic?: CrossHelixDialectic
@@ -140,6 +141,12 @@ export class CorpusMiniHelix {
   triggerResume(reason: string): void {
     if (!this.session || this.shutdownRequested) return
 
+    // Clear any pending meditation wake timer — we're waking now
+    if (this.meditationWakeTimer) {
+      clearTimeout(this.meditationWakeTimer)
+      this.meditationWakeTimer = undefined
+    }
+
     const status = this.session.getStatus()
     if (status === 'paused') {
       this.logger.info('Triggering Corpus resume', { reason })
@@ -159,7 +166,25 @@ export class CorpusMiniHelix {
       this.runCycle().catch((err) => {
         this.logger.error('Triggered cycle failed', { error: String(err) })
       })
+    } else if (status === 'completed' || status === 'idle') {
+      // Meditation timer-based: session completed but waiting on timer
+      this.logger.info('Event-triggered meditation wake', { reason })
+      this.runCycle().catch((err) => {
+        this.logger.error('Event-triggered cycle failed', { error: String(err) })
+      })
     }
+  }
+
+  private scheduleMeditationWake(intervalMs: number): void {
+    this.meditationWakeTimer = setTimeout(() => {
+      this.meditationWakeTimer = undefined
+      if (!this.shutdownRequested) {
+        this.runCycle().catch((err) => {
+          this.logger.error('Scheduled meditation cycle failed', { error: String(err) })
+        })
+      }
+    }, intervalMs)
+    if (this.meditationWakeTimer.unref) this.meditationWakeTimer.unref()
   }
 
   /** Start the Corpus mini-Helix */
@@ -199,6 +224,11 @@ export class CorpusMiniHelix {
   async stop(): Promise<void> {
     this.shutdownRequested = true
     this.running = false
+
+    if (this.meditationWakeTimer) {
+      clearTimeout(this.meditationWakeTimer)
+      this.meditationWakeTimer = undefined
+    }
 
     if (this.session) {
       this.session.cancel()
@@ -246,11 +276,18 @@ export class CorpusMiniHelix {
         llmCalls: result.llmCalls,
       })
 
-      // If the session completed (signal_done), keep running in a loop
+      // If the session completed (signal_done), schedule next cycle
       if (result.status === 'completed' && !this.shutdownRequested) {
-        // Small delay before next cycle
-        await new Promise((resolve) => setTimeout(resolve, this.corpusConfig.idlePollMs))
-        await this.runCycle()
+        if (this.deps.meditationMode) {
+          // Meditation: wake on a wall-clock timer, not a tight poll loop.
+          // triggerResume() can clear the timer for immediate wake on events.
+          const intervalMs = this.deps.meditationStyle === 'passive' ? 600_000
+            : this.deps.meditationStyle === 'focused' ? 180_000 : 300_000
+          this.scheduleMeditationWake(intervalMs)
+        } else {
+          await new Promise((resolve) => setTimeout(resolve, this.corpusConfig.idlePollMs))
+          await this.runCycle()
+        }
       }
 
       // If paused (pause_until_trigger), we wait for triggerResume()

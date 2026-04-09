@@ -617,7 +617,7 @@ export function getMeditationToolSet(style: 'passive' | 'active' | 'focused'): C
 
   switch (style) {
     case 'passive':
-      return [observe, lookCloser, remember, rest]
+      return [remember, rest]
     case 'active':
       return [observe, lookCloser, remember, kindle, createEngram, consolidate, rest]
     case 'focused':
@@ -1562,13 +1562,9 @@ function buildMeditationCorpusPrompt(
   const snapshot = tree.getSnapshot()
   const active = snapshot.branches.filter(b => b.status === 'active')
 
-  const threadSummary = active.length > 0
-    ? active.map((b, i) => `  Thread ${i + 1} — ${b.stepCount} steps`).join('\n')
-    : '  (quiet)'
-
   const identity = {
     passive:
-      'I am Cassi. My mind is at rest. Threads of thought are drifting on their own — I\'m not directing them, just watching what surfaces. If something catches my attention, I\'ll hold onto it.',
+      'I am Cassi. My mind is at rest. Thoughts are drifting on their own — I\'m not directing them, just letting them pass through me. If something catches my attention, I\'ll hold onto it.',
     active:
       'I am Cassi. I just finished working, and now I\'m sitting with what\'s left. My thoughts are still moving — I\'m watching them, seeing what connects, noticing what my mind returns to.',
     focused:
@@ -1577,21 +1573,54 @@ function buildMeditationCorpusPrompt(
 
   const approach = {
     passive:
-      `I observe what drifts through. I use observe to see what my thoughts are doing. If something catches my eye, I use look_closer to follow it. When something resonates, I use remember to hold onto it. When I've seen enough, I rest.`,
+      `What's been drifting through my mind is below. I don't need to go looking — it comes to me. If something resonates, I use remember to hold onto it. Otherwise, I rest.`,
     active:
       `I watch and reflect. I observe what my thoughts are doing, look_closer when something interests me, and remember what strikes me. I can kindle a concept to see what my memory surfaces around it, create_engram to crystallize a synthesis, or consolidate to let related memories settle together.`,
     focused:
       `I watch with intention. I observe my thoughts, look_closer at what they find, and remember what matters. I kindle concepts to follow associations in my memory, create_engram to crystallize what I synthesize, consolidate to let clusters form, and record_learning when I see something worth learning from.`,
   }[style]
 
+  // For passive meditation, embed recent explorer context directly in the prompt.
+  // Cassi doesn't go looking — the thoughts drift past her.
+  let driftingThoughts = ''
+  if (style === 'passive') {
+    const recentStepsPerThread = 5
+    const threads: string[] = []
+    for (let i = 0; i < active.length; i++) {
+      const branch = tree.getBranch(active[i].helixId)
+      if (!branch || branch.steps.length === 0) continue
+
+      const recent = branch.steps.slice(-recentStepsPerThread)
+      const fragments: string[] = []
+      for (const step of recent) {
+        const a = step.annotation
+        if (a.discoveries.length > 0) {
+          fragments.push(a.discoveries.join(' '))
+        }
+        if (a.knowledgeDelta) {
+          fragments.push(a.knowledgeDelta.slice(0, 300))
+        }
+      }
+      if (fragments.length > 0) {
+        threads.push(`Thread ${i + 1}:\n${fragments.join('\n')}`)
+      }
+    }
+    if (threads.length > 0) {
+      driftingThoughts = `\n\n<drifting>\n${threads.join('\n\n')}\n</drifting>`
+    } else {
+      driftingThoughts = '\n\n<drifting>\n(quiet — nothing has surfaced yet)\n</drifting>'
+    }
+  } else {
+    // Active/focused: thread summary only, Cassi uses tools to look deeper
+    const threadSummary = active.length > 0
+      ? active.map((b, i) => `  Thread ${i + 1} — ${b.stepCount} steps`).join('\n')
+      : '  (quiet)'
+    driftingThoughts = `\n\n<current_state>\n${active.length} thread(s) of thought are active, ${snapshot.totalSteps} steps so far.\n${threadSummary}\n</current_state>`
+  }
+
   return `<identity>
 ${identity}
-</identity>
-
-<current_state>
-${active.length} thread(s) of thought are active, ${snapshot.totalSteps} steps so far.
-${threadSummary}
-</current_state>
+</identity>${driftingThoughts}
 
 <approach>
 ${approach}
