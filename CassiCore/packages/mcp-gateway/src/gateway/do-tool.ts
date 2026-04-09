@@ -18,8 +18,7 @@
  */
 
 import { augmentDoResult, fetchStateCard, type DoMode, type StateView } from './do-augmentation.js';
-import { fetchAndFormatContext, type ContextLimits, fetchProactiveResults, formatProactiveResults } from './context-enrichment.js';
-import { resolveSessionId } from './helpers.js';
+import { fetchWithTimeout } from './helpers.js';
 import { stripKnownPrefix } from './tool-aliases.js';
 import type { ILogger } from '../../types/interfaces.js';
 
@@ -100,26 +99,19 @@ The tool parameter accepts both the raw registered name ("bash") and the legacy 
 export const ENRICH_TOOLS = [
   {
     name: 'enrich',
-    description: `Fetch CassiCore context enrichment for a query — returns relevant memories, archived conversations, and session history WITHOUT calling any tool.
+    description: `Fetch CassiCore context enrichment for a query — returns relevant memories, past decisions, and connected work via the Mnemic Field (topology-aware spreading activation).
 
 MANDATORY: Call this at the start of EVERY user turn with the user's message as the query. This surfaces past decisions, stored knowledge, user preferences, and conversation history that are critical for informed responses.
 
-The query is processed through a Query Intelligence pipeline before searching:
-  - Entity extraction  — session refs (S0#M1), tool names, file paths, providers
-  - Dynamic expansion  — related tags/entities/topics from archive metadata (cached)
-  - Multi-variant search — 6–9 parallel searches using exact, entity, and expanded variants
-  - Cross-source merge — results ranked by relevance × 0.7 + recency × 0.2 + diversity × 0.1
-  - Empty recovery     — fallback searches + suggested related terms when nothing matches
+The Mnemic Field uses spreading activation — not keyword matching — to find contextually relevant memories connected through typed relationships (caused_by, led_to, contradicts, used_in_task, etc.).
 
-Returns a formatted markdown block with:
-  1. Top Relevant (cross-source) — best 5 results merged and ranked across all sources
-  2. From Memory               — stored facts, preferences, insights
-  3. From Archive              — past conversations, tool calls, patterns, dialectic outputs
-  4. From Session History      — indexed past session excerpts with paragraph-level granularity
+Returns first-person briefing sections:
+  - What I remember        — relevant facts, episodes, patterns
+  - Decisions I've made    — past choices on this topic
+  - Things to watch out for — contradictions, failures, gotchas
+  - This connects to       — related files, sessions, tools
 
-If no direct matches are found, returns broadened results + suggested search terms instead.
-
-If no relevant context is found at all, returns a brief "no context" message.`,
+Each result includes embedded engram references for feedback.`,
     inputSchema: {
       type: 'object',
       properties: {
@@ -128,20 +120,45 @@ If no relevant context is found at all, returns a brief "no context" message.`,
           description:
             'The search query — typically the user\'s full message. Can also be a focused topic or question.',
         },
-        memory_limit: {
-          type: 'number',
-          description: 'Max memory results (default: 5, 0 = skip).',
+        complexity: {
+          type: 'string',
+          enum: ['simple', 'normal', 'complex'],
+          description: 'Task complexity affecting retrieval breadth (default: normal).',
         },
-        archive_limit: {
+        limit: {
           type: 'number',
-          description: 'Max archive results (default: 5, 0 = skip).',
-        },
-        index_limit: {
-          type: 'number',
-          description: 'Max session history results (default: 10, 0 = skip).',
+          description: 'Max engrams to retrieve (default: 12).',
         },
       },
       required: ['query'],
+    },
+  },
+  {
+    name: 'field_feedback',
+    description: `Provide feedback on enrich tool results to improve Mnemic Field retrieval.
+
+After using enrich results, call this to tell the system which memories were helpful. This records activation spikes that adjust potentiation — helpful memories surface more easily, unhelpful ones sink below the spark point.
+
+Use engram IDs from enrich results (embedded as [ref:engram_id] markers).
+
+Example:
+  cassi_field_feedback({
+    feedback: { "e_1234": true, "e_5678": true, "e_9012": false }
+  })`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        feedback: {
+          type: 'object',
+          description: 'Map of engram IDs to helpfulness (true = helpful, false = not).',
+          additionalProperties: { type: 'boolean' },
+        },
+        taskContext: {
+          type: 'string',
+          description: 'Optional context about what you were working on.',
+        },
+      },
+      required: ['feedback'],
     },
   },
 ];
@@ -170,7 +187,7 @@ export function normalizeToolName(name: string): string {
 
 
 /**
- * Execute the `enrich` tool — context-only enrichment (no delegated tool call).
+ * Execute the `enrich` tool — Mnemic Field retrieval with first-person formatting.
  *
  * @param baseUrl  CassiCore admin API base URL
  * @param args     Tool call arguments from the MCP caller
@@ -190,17 +207,24 @@ export async function executeEnrichTool(
     };
   }
 
-  const limits: ContextLimits = {
-    memoryLimit: a?.memory_limit ?? 5,
-    archiveLimit: a?.archive_limit ?? 5,
-    indexLimit: a?.index_limit ?? 10,
-  };
-
-  logger.info('executeEnrichTool', { query, ...limits });
+  logger.info('executeEnrichTool', { query, complexity: a?.complexity ?? 'normal', limit: a?.limit ?? 12 });
 
   let result;
   try {
-    result = await fetchAndFormatContext(baseUrl, query, limits);
+    const body = JSON.stringify({
+      query,
+      complexity: a?.complexity ?? 'normal',
+      limit: a?.limit ?? 12,
+    });
+
+    const res = await fetchWithTimeout(`${baseUrl}/memory/enrich`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      timeoutMs: 8000,
+    });
+
+    result = await res.json();
   } catch (err) {
     logger.error('Context enrichment failed', { error: String(err) });
     return {
@@ -213,12 +237,12 @@ export async function executeEnrichTool(
     };
   }
 
-  if (!result.hasContext) {
+  if (!result?.hasContext) {
     return {
       content: [
         {
           type: 'text',
-          text: `## Cassi Context\n> No relevant context found for: \`${query}\`\n\nNo matching memories, archive entries, or session history. Proceeding without historical context.`,
+          text: `## Cassi Context\n> No relevant context found for: \`${query}\`\n\nNo matching memories or past decisions. Proceeding without historical context.`,
         },
       ],
     };
@@ -227,6 +251,59 @@ export async function executeEnrichTool(
   return {
     content: [{ type: 'text', text: result.markdown }],
   };
+}
+
+/**
+ * Execute the `field_feedback` tool — record activation spikes for engrams.
+ *
+ * @param baseUrl  CassiCore admin API base URL
+ * @param args     Tool call arguments from the MCP caller
+ * @param logger   Child logger for structured output
+ */
+export async function executeFieldFeedbackTool(
+  baseUrl: string,
+  args: unknown,
+  logger: ILogger
+): Promise<McpToolResponse> {
+  const a = args as any;
+  const feedback = a?.feedback;
+
+  if (!feedback || typeof feedback !== 'object') {
+    return {
+      content: [{ type: 'text', text: 'No feedback provided — nothing to record.' }],
+    };
+  }
+
+  const count = Object.keys(feedback).length;
+  logger.info('executeFieldFeedbackTool', { engramCount: count });
+
+  try {
+    const body = JSON.stringify({
+      feedback,
+      taskContext: a?.taskContext ?? null,
+    });
+
+    await fetchWithTimeout(`${baseUrl}/memory/field/feedback`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      timeoutMs: 5000,
+    });
+
+    const helpful = Object.values(feedback).filter(Boolean).length;
+    const unhelpful = count - helpful;
+    return {
+      content: [{
+        type: 'text',
+        text: `Feedback recorded: ${helpful} helpful, ${unhelpful} not. Potentiation will adjust on next consolidation.`,
+      }],
+    };
+  } catch (err) {
+    logger.error('Field feedback failed', { error: String(err) });
+    return {
+      content: [{ type: 'text', text: `Feedback recording failed: ${String(err)}` }],
+    };
+  }
 }
 
 
