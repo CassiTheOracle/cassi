@@ -260,6 +260,34 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/chains
+  if (parts[1] === 'mnemic' && parts[2] === 'chains' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const engramIds = Array.isArray(body?.engramIds) ? body.engramIds : undefined
+      const chains = field.getChains(engramIds)
+      sendJSON(res, 200, { ok: true, chains, count: chains.length })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/tier3
+  if (parts[1] === 'mnemic' && parts[2] === 'tier3' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const result = await field.runTier3Analysis()
+      sendJSON(res, 200, { ok: true, result })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // GET /memory/mnemic/tensions
   if (parts[1] === 'mnemic' && parts[2] === 'tensions' && method === 'GET') {
     try {
