@@ -121,7 +121,7 @@ export const MINI_HELIX_DEFAULTS: Record<MiniHelixConsumer, Partial<MiniHelixCon
   brainstem: {
     maxIterationsPerCycle: 30,
     maxTokens: 1024,
-    cycleTimeoutMs: 60_000,
+    cycleTimeoutMs: 90_000,
     modelTier: 'background', // GPT-5-Mini via github-copilot
   },
 }
