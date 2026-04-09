@@ -167,11 +167,19 @@ export interface WiringDependencies {
   };
 }
 
-/**
- * @deprecated Use WiringDependencies + wire() instead.
- * Kept for backward compatibility — will be removed in next major version.
- */
-export interface ModuleWiringSurface {
+export interface ThinkerDeferredWiring {
+  setSessionManager(sessionManager: unknown, sessionStore?: unknown): void;
+  setPipelineGetter(getPipeline: () => unknown): void;
+}
+
+export interface IntelligenceModule {
+  readonly name: string;
+  /** Higher priority = runs first */
+  readonly priority: number;
+
+  /** Wire dependencies in one call — preferred over individual setX() methods. */
+  wire?(deps: Partial<WiringDependencies>): void;
+
   setEventBus?(bus: IEventBus): void;
   setMemory?(memory: unknown): void;
   setProvider?(provider: unknown): void;
@@ -198,20 +206,6 @@ export interface ModuleWiringSurface {
   setConsequenceEstimator?(estimator: unknown): void;
   setTrustLedger?(ledger: unknown): void;
   setInjectionAggregator?(aggregator: unknown): void;
-}
-
-export interface ThinkerDeferredWiring {
-  setSessionManager(sessionManager: unknown, sessionStore?: unknown): void;
-  setPipelineGetter(getPipeline: () => unknown): void;
-}
-
-export interface IntelligenceModule extends Partial<ModuleWiringSurface> {
-  readonly name: string;
-  /** Higher priority = runs first */
-  readonly priority: number;
-
-  /** Wire dependencies in one call — preferred over individual setX() methods. */
-  wire?(deps: Partial<WiringDependencies>): void;
 
   /** Called for every runtime event (optional — implement for side effects) */
   onEvent?(event: RuntimeEvent): Promise<void>;

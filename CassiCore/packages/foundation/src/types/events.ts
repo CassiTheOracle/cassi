@@ -60,7 +60,7 @@ export type RuntimeEvent =
    | { type: "provider:rate_limited"; providerId: string; sessionId: string; retryAfterMs: number }
    | { type: "provider:rate_learned"; providerId: string; model: string; learnedWindows: Array<{ label: string; observedCount: number; safeCount: number }>; timestamp: Date }
    | { type: "provider:error_reset"; providerId: string }
-  | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number }
+  | { type: "provider:request_timeout"; providerId: string; requestId: string; sessionId: string; timeoutMs: number; reason?: 'inactivity' | 'max_duration' | 'parent_signal' }
   | { type: "provider:request_chunk"; providerId: string; requestId: string; sessionId: string; source: string; trigger?: string; model: string; chunkType: "token" | "thinking" | "tool_use"; text?: string; toolCall?: { id: string; name: string; input: Record<string, unknown> }; timestamp: Date }
   // WHY: Budget tracking enables tiered spending controls (cautious/frugal/critical) to prevent runaway costs and enforce spending limits
   | { type: "budget:warning"; providerId: string; tier: "cautious" | "frugal" | "critical"; percentUsed: number; remaining: number; monthlyLimit: number }

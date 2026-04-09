@@ -155,9 +155,3 @@ export type WorkerMessage =
   | WorkerToolUpdateMessage
   | WorkerErrorMessage
   | WorkerLogMessage
-
-
-/** @deprecated Use HostToWorkerMessage */
-export type HostToWorker = HostToWorkerMessage
-/** @deprecated Use WorkerToHostMessage */
-export type WorkerToHost = WorkerToHostMessage
