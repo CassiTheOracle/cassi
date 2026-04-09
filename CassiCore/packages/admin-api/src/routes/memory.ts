@@ -363,12 +363,18 @@ export async function handleMemoryRoutes(
       // Build first-person briefing
       const sections = buildEnrichmentBriefing(hits, query)
 
+      const affectState = field.getAffect()
+      if (affectState.label !== 'neutral') {
+        sections.unshift(`*Current affect: ${affectState.label} (v: ${affectState.valence.toFixed(2)}, a: ${affectState.arousal.toFixed(2)})*`)
+      }
+
       sendJSON(res, 200, {
         ok: true,
         hasContext: true,
         markdown: sections.join('\n\n'),
         engramIds: hits.map(h => h.id),
         hitCount: hits.length,
+        affect: affectState,
       })
       return true
     } catch (err) {
