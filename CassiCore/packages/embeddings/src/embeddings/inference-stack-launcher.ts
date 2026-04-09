@@ -77,7 +77,7 @@ export interface InferenceStackLauncherConfig {
   rerankerPort?: number
   /** Path to zembed-1 GGUF model. Default: ~/models/zembed-1-Q4_K_M.gguf */
   embeddingModelPath?: string
-  /** @deprecated Reranker now uses GGUF via llama-cpp-python. Use rerankerModelPath instead. */
+  /** Path to Python interpreter for the reranker server. Default: ~/.venvs/reranker/bin/python */
   rerankerPython?: string
   /** Path to reranker GGUF model. Default: ~/models/Qwen3-Reranker-0.6B-Q8_0.gguf */
   rerankerModelPath?: string
@@ -87,10 +87,6 @@ export interface InferenceStackLauncherConfig {
   rerankerGpuLayers?: number
   /** Context size for the reranker. Default: 4096 */
   rerankerCtxSize?: number
-  /** @deprecated Reranker uses llama-cpp-python, not llama-server. No effect. */
-  rerankerBatchSize?: number
-  /** @deprecated Reranker uses llama-cpp-python, not llama-server. No effect. */
-  rerankerParallel?: number
   /** Disable reranker auto-start. Default: false */
   rerankerDisabled?: boolean
   /** llama.cpp GPU layers. Lower this if HIP/Vulkan runs out of VRAM. Default: 99 */
@@ -138,9 +134,6 @@ export interface InferenceStackLauncherConfig {
   gpuGuardIntervalMs?: number
 }
 
-/** @deprecated Use InferenceStackLauncherConfig instead */
-export type EmbeddingStackLauncherConfig = InferenceStackLauncherConfig
-
 export class InferenceStackLauncher {
   private logger: ILogger
   private managed: ManagedProcess[] = []
@@ -182,10 +175,6 @@ export class InferenceStackLauncher {
         ?? Number(process.env.RERANKER_GPU_LAYERS || '99'),
       rerankerCtxSize: config?.rerankerCtxSize
         ?? Number(process.env.RERANKER_CTX_SIZE || '4096'),
-      rerankerBatchSize: config?.rerankerBatchSize
-        ?? Number(process.env.RERANKER_BATCH_SIZE || '512'),
-      rerankerParallel: config?.rerankerParallel
-        ?? Number(process.env.RERANKER_PARALLEL || '8'),
       rerankerDisabled: config?.rerankerDisabled ?? false,
       embeddingGpuLayers: config?.embeddingGpuLayers
         ?? Number(process.env.EMBEDDING_GPU_LAYERS || '99'),
@@ -791,9 +780,6 @@ export class InferenceStackLauncher {
     }
   }
 }
-
-/** @deprecated Use InferenceStackLauncher instead */
-export const EmbeddingStackLauncher = InferenceStackLauncher
 
 let _launcherInstance: InferenceStackLauncher | null = null
 
