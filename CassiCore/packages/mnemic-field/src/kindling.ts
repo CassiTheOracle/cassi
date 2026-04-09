@@ -1,6 +1,7 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import { cosineSimilarity } from './cortex.js'
 import type { Cortex } from './cortex.js'
+import { affectSimilarity } from './affect.js'
 import type { FilamentCortex } from './filament-cortex.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
@@ -8,7 +9,7 @@ import type {
   FilamentAnnotation, FilamentMatchType, FilamentSynapseType,
 } from './types.js'
 import {
-  SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
+  SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS, AFFECT_DEFAULTS,
   SYNAPSE_PROPAGATION, POTENTIATION_DEFAULTS,
   FILAMENT_KINDLING_DEFAULTS, FILAMENT_SYNAPSE_PROPAGATION,
 } from './types.js'
@@ -35,6 +36,7 @@ interface MatchedFilamentInfo {
 export class KindlingEngine {
   private logger: ILogger
   private matchedFilaments: Map<number, MatchedFilamentInfo> = new Map()
+  private currentAffect: { valence: number; arousal: number } | null = null
 
   constructor(
     private cortex: Cortex,
@@ -54,6 +56,7 @@ export class KindlingEngine {
   ): LuminalSet {
     const start = Date.now()
     this.matchedFilaments = new Map()
+    this.currentAffect = options.currentAffect ?? null
     const complexity = options.complexity ?? 'normal'
     const maxIter = options.maxIterations ?? KINDLING_DEFAULTS.maxIterations
     const tol = options.convergenceTolerance ?? KINDLING_DEFAULTS.convergenceTolerance
@@ -66,8 +69,18 @@ export class KindlingEngine {
     }
 
     const chargeMap = new Map<string, number>()
+    const currentAffect = options.currentAffect
     for (const seed of seeds) {
-      chargeMap.set(seed.engramId, seed.charge)
+      let charge = seed.charge
+      if (currentAffect) {
+        const engram = this.cortex.getEngram(seed.engramId)
+        const engramAffect = engram?.metadata?.affect as { valence: number; arousal: number } | undefined
+        if (engramAffect) {
+          const resonance = affectSimilarity(currentAffect, engramAffect)
+          charge *= 1 + AFFECT_DEFAULTS.resonanceFactor * resonance
+        }
+      }
+      chargeMap.set(seed.engramId, charge)
     }
 
     const trace: KindlingTrace[] = []
@@ -87,7 +100,11 @@ export class KindlingEngine {
       if (delta < tol) break
     }
 
-    const sparkPoint = this.computeGlobalSparkPoint(complexity)
+    let sparkPoint = this.computeGlobalSparkPoint(complexity)
+    if (this.currentAffect) {
+      const arousalShift = (this.currentAffect.arousal - AFFECT_DEFAULTS.baselineArousal) * AFFECT_DEFAULTS.arousalSparkModulation
+      sparkPoint *= (1 - arousalShift)
+    }
     const luminal = this.ignite(chargeMap, sparkPoint, maxLuminal)
 
     const filamentAnnotations = this.annotateFilaments(luminal)
@@ -219,7 +236,18 @@ export class KindlingEngine {
 
         const potBoost = 1 + KINDLING_DEFAULTS.potentiationBoostScale * neighborEngram.potentiation
 
-        const spread = charge * syn.weight * propagation * distDecay * temporalRelevance * potBoost
+        let emotionalDamping = 1.0
+        if (this.currentAffect) {
+          const nAffect = neighborEngram.metadata?.affect as { valence: number; arousal: number } | undefined
+          if (nAffect) {
+            const congruence = affectSimilarity(this.currentAffect, nAffect)
+            if (congruence < 0.5) {
+              emotionalDamping = 1 - AFFECT_DEFAULTS.dampingFactor * (1 - congruence)
+            }
+          }
+        }
+
+        const spread = charge * syn.weight * propagation * distDecay * temporalRelevance * potBoost * emotionalDamping
 
         const existing = updates.get(neighborId) ?? 0
         updates.set(neighborId, existing + spread)

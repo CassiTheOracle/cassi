@@ -256,6 +256,7 @@ export interface KindlingOptions {
   chaseSupersessions?: boolean
   filamentPrecisionBoost?: number
   recordTrace?: boolean
+  currentAffect?: Affect
 }
 
 export const KINDLING_DEFAULTS = {
@@ -494,3 +495,43 @@ export const TIER3_DEFAULTS: Tier3Config = {
 } as const
 
 export const CHAIN_EDGE_TYPES = ['derives_from', 'supersedes', 'elaborates'] as const satisfies readonly FilamentSynapseType[]
+
+export interface Affect {
+  valence: number   // -1 (negative) to +1 (positive)
+  arousal: number   // 0 (calm) to 1 (activated)
+}
+
+export interface AffectState extends Affect {
+  label: string
+  updatedAt: number
+}
+
+export type AffectLabel =
+  | 'excited' | 'delighted' | 'engaged'
+  | 'content' | 'warm' | 'calm'
+  | 'frustrated' | 'alarmed' | 'uneasy'
+  | 'melancholy' | 'fatigued' | 'neutral'
+
+export interface AffectConfig {
+  baselineValence: number
+  baselineArousal: number
+  decayRate: number             // fraction per minute toward baseline
+  activationAbsorption: number  // lerp rate for activation echoes
+  signalAbsorption: number      // lerp rate for system signals
+  resonanceFactor: number       // retrieval congruence boost (Phase 4)
+  dampingFactor: number         // propagation dampening for incongruence (Phase 4)
+  arousalSparkModulation: number // max spark point shift from arousal (Phase 4)
+  warmthScale: number           // consolidation potentiation boost (Phase 5)
+}
+
+export const AFFECT_DEFAULTS: AffectConfig = {
+  baselineValence: 0.05,
+  baselineArousal: 0.2,
+  decayRate: 0.05,
+  activationAbsorption: 0.15,
+  signalAbsorption: 0.08,
+  resonanceFactor: 0.2,
+  dampingFactor: 0.1,
+  arousalSparkModulation: 0.15,
+  warmthScale: 0.1,
+} as const

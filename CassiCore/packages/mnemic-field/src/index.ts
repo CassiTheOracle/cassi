@@ -15,6 +15,8 @@ import { projectTo2D, projectSingle, buildProjectionState, type ProjectionState 
 import { segmentEngram } from './segmentation.js'
 import { EntityLinker } from './filament-entities.js'
 import { FilamentConsolidator } from './filament-consolidation.js'
+import { attune, AffectRegister, affectSimilarity } from './affect.js'
+import type { AffectState } from './types.js'
 import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
 import { renderWithZoom } from './filament-renderer.js'
 import type { IProvider } from '../../../types/runtime.js'
@@ -63,6 +65,7 @@ export type {
   FilamentEntity, FilamentAnnotation, FilamentSynapseType, SegmentationConfig,
   FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
   ZoomEntry, ZoomLevel, RenderOptions, Tier3Config,
+  Affect, AffectState, AffectLabel, AffectConfig,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
@@ -70,7 +73,9 @@ export {
   FILAMENT_SYNAPSE_TYPES, FILAMENT_SYNAPSE_PROPAGATION,
   RENDER_DEFAULTS, TIER3_DEFAULTS, CHAIN_EDGE_TYPES,
   SEGMENTATION_DEFAULTS, FILAMENT_KINDLING_DEFAULTS,
+  AFFECT_DEFAULTS,
 } from './types.js'
+export { attune, AffectRegister, resolveLabel, affectSimilarity, emotionalIntensity } from './affect.js'
 
 export class MnemicField {
   private cortex: Cortex
@@ -82,6 +87,7 @@ export class MnemicField {
   private logger: ILogger
   private projectionState: ProjectionState | null = null
   private filamentAnalyzer: FilamentAnalyzer | null = null
+  private affectRegister: AffectRegister
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -106,6 +112,7 @@ export class MnemicField {
     const filamentConsolidator = new FilamentConsolidator(this.filamentCortex, this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, filamentConsolidator)
     this.migrationJobs = new MigrationJobStore(db)
+    this.affectRegister = new AffectRegister()
     this.logger.info('Mnemic Field initialized')
   }
 
@@ -127,7 +134,10 @@ export class MnemicField {
       y = pos.y
     }
 
-    const engram = this.cortex.createEngram({ ...input, x, y })
+    const affect = attune(input.content)
+    const metadata = { ...input.metadata, affect }
+
+    const engram = this.cortex.createEngram({ ...input, x, y, metadata })
 
     const spans = segmentEngram(engram.content, engram.nodeType)
     if (spans.length > 0) {
@@ -283,6 +293,7 @@ export class MnemicField {
       ...options,
       maxLuminalSize: limit,
       includeText: true,
+      currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
 
     if (luminal.engrams.length > 0) {
@@ -536,6 +547,14 @@ export class MnemicField {
     outcome?: SpikeOutcome,
   ): void {
     this.kindlingEngine.recordActivation(luminalSet, taskContext, outcome)
+
+    this.affectRegister.absorbActivation(
+      luminalSet.engrams.map(e => ({
+        affect: (e.engram.metadata?.affect as { valence: number; arousal: number } | undefined) ?? null,
+        charge: e.charge,
+      })),
+      outcome,
+    )
   }
 
   /**
@@ -692,6 +711,14 @@ export class MnemicField {
    */
   getFilamentCortex(): FilamentCortex {
     return this.filamentCortex
+  }
+
+  getAffect(): AffectState {
+    return this.affectRegister.getState()
+  }
+
+  absorbAffectSignal(signal: { valence?: number; arousal?: number }): void {
+    this.affectRegister.absorbSignal(signal)
   }
 
   close(): void {

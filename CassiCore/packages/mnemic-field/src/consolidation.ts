@@ -4,8 +4,10 @@ import type { Cortex } from './cortex.js'
 import type { FilamentConsolidator } from './filament-consolidation.js'
 import type { Engram, MnemicSynapse, Nucleus } from './types.js'
 import {
-  POTENTIATION_DEFAULTS, SYNAPSE_PROPAGATION, KINDLING_DEFAULTS,
+  POTENTIATION_DEFAULTS, SYNAPSE_PROPAGATION, KINDLING_DEFAULTS, AFFECT_DEFAULTS,
 } from './types.js'
+import { emotionalIntensity, resolveLabel } from './affect.js'
+import type { Affect } from './types.js'
 
 export interface ConsolidationResult {
   potentiationUpdates: number
@@ -169,7 +171,15 @@ export class ConsolidationEngine {
     }
 
     const maxPot = potentiations.reduce((m, p) => p > m ? p : m, 0.001)
-    const normalized = potentiations.map(p => p / maxPot)
+    const normalized = potentiations.map((p, i) => {
+      let norm = p / maxPot
+      const affect = engrams[i].metadata?.affect as Affect | undefined
+      if (affect) {
+        const intensity = emotionalIntensity(affect)
+        norm *= 1 + AFFECT_DEFAULTS.warmthScale * intensity
+      }
+      return norm
+    })
 
     const updates = engrams
       .map((e, i) => ({ id: e.id, potentiation: normalized[i] }))
@@ -321,7 +331,9 @@ export class ConsolidationEngine {
       const avgPot = members.reduce((s, e) => s + e.potentiation, 0) / members.length
 
       const dominantType = this.findDominantType(members)
-      const label = `${dominantType}-cluster-${nucleiCount}`
+      const dominantEmotion = this.computeClusterAffect(members)
+      const emotionPrefix = dominantEmotion ? `${dominantEmotion}-` : ''
+      const label = `${emotionPrefix}${dominantType}-cluster-${nucleiCount}`
 
       const nucleus = this.cortex.createNucleus({
         label,
@@ -422,6 +434,23 @@ export class ConsolidationEngine {
       if (count > bestCount) { best = type; bestCount = count }
     }
     return best
+  }
+
+  private computeClusterAffect(engrams: Engram[]): string | null {
+    let totalV = 0
+    let totalA = 0
+    let count = 0
+    for (const e of engrams) {
+      const affect = e.metadata?.affect as Affect | undefined
+      if (!affect) continue
+      totalV += affect.valence
+      totalA += affect.arousal
+      count++
+    }
+    if (count < 2) return null
+    const avg: Affect = { valence: totalV / count, arousal: totalA / count }
+    if (emotionalIntensity(avg) < 0.15) return null
+    return resolveLabel(avg)
   }
 
   /**
