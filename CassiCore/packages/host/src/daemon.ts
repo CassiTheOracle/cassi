@@ -322,22 +322,22 @@ export class Daemon {
    */
   private async startInferenceStackLauncher(): Promise<void> {
     try {
-      const { EmbeddingStackLauncher } = await import('./intelligence/embeddings/embedding-stack-launcher.js')
+      const { InferenceStackLauncher } = await import('./intelligence/embeddings/inference-stack-launcher.js')
       const gpuGuardEnabled = this.config.get<boolean>('intelligence.inferenceStack.gpuGuard', true)
       const gpuGuardIntervalMs = this.config.get<number>('intelligence.inferenceStack.gpuGuardIntervalMs', 60_000)
-      this.embeddingStackLauncher = new EmbeddingStackLauncher(this.logger, {
+      this.embeddingStackLauncher = new InferenceStackLauncher(this.logger, {
         gpuGuardEnabled,
         gpuGuardIntervalMs,
       })
       this.embeddingStackLauncher.start()
         .then(() => {
-          this.logger.info('EmbeddingStackLauncher ready')
+          this.logger.info('InferenceStackLauncher ready')
         })
         .catch((err: unknown) => {
-          this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
+          this.logger.warn(`Failed to start inference stack: ${String(err)}`)
         })
       this.inferenceStackEnabled = true
-      this.logger.info('EmbeddingStackLauncher starting')
+      this.logger.info('InferenceStackLauncher starting')
     } catch (err) {
       this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
     }
