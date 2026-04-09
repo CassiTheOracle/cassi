@@ -178,11 +178,3 @@ export type ConversationPhase =
   | "resolution"
   | "wrap_up";
 
-/** @deprecated Use Observation instead */
-export interface SubconsciousSignal {
-  type: string;
-  confidence: number;
-  description: string;
-  sessionId?: string;
-  timestamp: number;
-}
