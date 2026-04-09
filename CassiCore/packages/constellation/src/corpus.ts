@@ -1248,6 +1248,13 @@ export class Corpus {
       return false
     }
 
+    // WHY: When the CorpusMiniHelix is running, it handles strategic LLM
+    // analysis via a proper tool-calling Helix session. The old Corpus LLM
+    // loop would duplicate that work and fall back to legacy parsing.
+    if (this.deps.miniHelixActive) {
+      return false
+    }
+
     // In active mode: same as before — trigger after enough new steps
     if (this.config.cadence === 'active') {
       return this.newStepsSinceLLM >= this.config.llmAnalysisThreshold

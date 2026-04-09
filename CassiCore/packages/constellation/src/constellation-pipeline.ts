@@ -366,13 +366,6 @@ export async function runConstellationPipeline(
     maxDepth,
   })
 
-  // Emit start event
-  eventBus?.emit({
-    type: 'team:event' as any,
-    teamId: constellationId,
-    data: { event: 'constellation:started', goal, timestamp: Date.now() },
-  } as any)
-
   // Create session in ConstellationStore (if provided)
 
   if (constellationStore) {
@@ -502,6 +495,7 @@ export async function runConstellationPipeline(
       blackboard: constellationBlackboard,
       crossHelixDialectic,
       meditationMode: opts.meditationMode,
+      miniHelixActive: !!opts.useMiniHelixCorpus,
       mnemicField: opts.mnemicField,
       memory: opts.memory,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
@@ -616,6 +610,7 @@ export async function runConstellationPipeline(
         : undefined,
 
       topology: topologyGraph,
+      store: constellationStore,
     },
     {
       maxBranches: maxHelixes,
@@ -642,6 +637,9 @@ export async function runConstellationPipeline(
         blackboard: constellationBlackboard,
         crossHelixDialectic,
         readFile: (path: string) => safeReadFile(path, process.cwd()),
+        meditationMode: opts.meditationMode,
+        mnemicField: opts.mnemicField,
+        memory: opts.memory,
         onSpawnRequest: (req) => {
           const spawnRequest: SpawnRequest = {
             requestId: `spawn-corpus-mh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -744,16 +742,18 @@ export async function runConstellationPipeline(
 
   // WHY: costEffective mode downgrades each posture's model tier to a cheaper
   // alternative. The mapping preserves relative ordering: expensive tiers drop
-  // one level, cheap tiers stay the same or go to background.
+  // one level, cheap tiers stay the same. qwenPlus is the floor — it does NOT
+  // downgrade to minimax because meditation runs (which use qwenPlus) must stay
+  // on alibaba-coding even in cost-effective mode.
   const COST_EFFECTIVE_TIER_MAP: Record<string, string> = {
     opus:     'kimi',
     sonnet:   'kimi',
     qwenMax:  'qwenPlus',
     kimi:     'qwenPlus',
-    glm:      'minimax',
-    qwenPlus: 'minimax',
-    minimax:  'background',
-    background: 'background',
+    glm:      'qwenPlus',
+    qwenPlus: 'qwenPlus',
+    minimax:  'qwenPlus',
+    background: 'qwenPlus',
   }
 
   // HOW: Default tier per energy when posture has no modelTier set.

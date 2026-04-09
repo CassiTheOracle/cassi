@@ -1000,6 +1000,8 @@ export interface CorpusDeps {
   store?: import('./constellation-store.js').ConstellationStore
   decompositionTracker?: import('./decomposition-tracker.js').DecompositionTracker
   topology?: import('./topology/topology-graph.js').TopologyGraph
+  /** When true, the CorpusMiniHelix handles strategic LLM analysis — skip internal LLM calls */
+  miniHelixActive?: boolean
 }
 
 /**

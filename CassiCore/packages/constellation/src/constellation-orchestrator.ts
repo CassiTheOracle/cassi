@@ -68,6 +68,8 @@ export interface ConstellationOrchestrator {
   setAuditTrail(trail: import('./constellation-audit-trail.js').ConstellationAuditTrail): void
   setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
   setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
+  /** True when any non-meditation constellation is running or launching. */
+  hasActiveWork(): boolean
 
   // External Corpus Protocol
   assumeCorpus(sessionId: string, agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string }
@@ -472,6 +474,13 @@ export function createConstellationOrchestrator(
 
     async resumeConstellation(sessionId: string): Promise<ConstellationResult> {
       return resumeConstellationInternal(sessionId)
+    },
+
+    hasActiveWork() {
+      for (const id of running.keys()) {
+        if (!id.startsWith('meditation-')) return true
+      }
+      return false
     },
 
     cancel(sessionId) {

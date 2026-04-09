@@ -256,7 +256,7 @@ const MEDITATION_POSTURES: FlexPosture[] = [
     maxIterations: 50,
     capabilities: {
       primary: ['exploration'],
-      modelTier: 'background',
+      modelTier: 'qwenPlus',
       traits: { divergent: 0.95, convergent: 0.05, executive: 0.0 },
     },
   },
@@ -268,7 +268,7 @@ const MEDITATION_POSTURES: FlexPosture[] = [
     maxIterations: 50,
     capabilities: {
       primary: ['exploration'],
-      modelTier: 'background',
+      modelTier: 'qwenPlus',
       traits: { divergent: 0.9, convergent: 0.1, executive: 0.0 },
     },
   },

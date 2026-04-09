@@ -212,8 +212,10 @@ export class MeditationController extends BaseCognitiveModule {
 
     if (!this.orchestrator || !this.registry) return
 
-    // No active constellations
+    // No active constellations (check both registry and orchestrator's running map
+    // to cover the gap between project() call and registry.register())
     if (this.registry.size > 0) return
+    if (this.orchestrator.hasActiveWork()) return
 
     // Idle long enough
     const idleMs = Date.now() - this.lastTurnAt

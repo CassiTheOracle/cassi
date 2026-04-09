@@ -308,9 +308,9 @@ export function deserializeTopologySnapshot(data: SerializableTopologySnapshot):
 // Defaults
 
 export const DEFAULT_GRAVITY_WEIGHTS: GravityWeights = {
-  goalSimilarity: 0.4,
-  findingsSimilarity: 0.3,
-  fileOverlap: 0.2,
+  goalSimilarity: 0.5,
+  findingsSimilarity: 0.25,
+  fileOverlap: 0.15,
   approachAlignment: 0.1,
 }
 
@@ -326,7 +326,7 @@ export const DEFAULT_GRAVITY_CONFIG: GravityConfig = {
 export const DEFAULT_LINK_CONFIG: LinkConfig = {
   linkThreshold: 1.5,
   unlinkThreshold: 2.5,
-  minLinkSimilarity: 0.45,
+  minLinkSimilarity: 0.25,
   mediumMergeStabilityTicks: 5,
   deepMergeStabilityTicks: 15,
 }
