@@ -32,6 +32,7 @@ import { ContextChunkIndex } from './context-chunk-index.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
+import { signalPromise } from '../../utils/abort.js'
 import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
 
@@ -271,7 +272,11 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 
   let lastActivity = Date.now()
-  const onActivity = () => { lastActivity = Date.now() }
+  let hardCapTimeout: import('../../utils/activity-timeout.js').ActivityTimeout | undefined
+  const onActivity = () => {
+    lastActivity = Date.now()
+    hardCapTimeout?.touch()
+  }
 
 
 
@@ -459,10 +464,17 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 
 
-  const timeoutHandle = setTimeout(() => {
-    log.warn('Helix pipeline timeout', { sessionId, timeoutMs })
-    cancelAll()
-  }, timeoutMs)
+  const { ActivityTimeout } = await import('../../utils/activity-timeout.js')
+  hardCapTimeout = new ActivityTimeout({
+    inactivityMs: inactivityKillMs,
+    label: `helix-pipeline:${sessionId}`,
+  })
+  signalPromise(hardCapTimeout.signal).then(() => {
+    if (!cancelled) {
+      log.warn('Helix pipeline inactivity timeout', { sessionId, reason: hardCapTimeout!.reason })
+      cancelAll()
+    }
+  }).catch(() => {})
 
 
 
@@ -730,7 +742,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     throw pipelineError
   } finally {
     clearInterval(watchdogInterval)
-    clearTimeout(timeoutHandle)
+    hardCapTimeout?.dispose()
     if (dialecticFeedTimer) clearTimeout(dialecticFeedTimer)
 
     // Stop Brainstem if running

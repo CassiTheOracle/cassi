@@ -273,7 +273,7 @@ async function buildResearchSpawner(deps: {
 function isReadOnlyName(name: string): boolean {
   const readPrefixes = [
     'read', 'grep', 'glob', 'find_', 'get_symbols_overview', 'search_for_pattern',
-    'list_dir', 'web_search', 'web_fetch', 'memory_search', 'memory_kv_get',
+    'list_dir', 'web_search', 'web_fetch', 'memory_kv_get',
     'gitnexus_query', 'gitnexus_context', 'gitnexus_impact', 'gitnexus_cypher',
     'universal_search', 'archive_search',
   ]
