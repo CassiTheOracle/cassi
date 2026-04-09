@@ -1,5 +1,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
+import type { FilamentConsolidator } from './filament-consolidation.js'
 import type { Engram, MnemicSynapse, Nucleus } from './types.js'
 import {
   POTENTIATION_DEFAULTS, SYNAPSE_PROPAGATION, KINDLING_DEFAULTS,
@@ -11,6 +12,8 @@ export interface ConsolidationResult {
   nucleiDetected: number
   abstractionsCreated: number
   spikesPruned: number
+  filamentSynapsesCreated: number
+  filamentSynapsesDecayed: number
   durationMs: number
 }
 
@@ -20,6 +23,7 @@ export interface ConsolidationOptions {
   skipNuclei?: boolean
   skipAbstractions?: boolean
   skipPruning?: boolean
+  skipFilamentConsolidation?: boolean
   pruneKeepCount?: number
   nucleiMinClusterSize?: number
   nucleiEpsilon?: number
@@ -37,6 +41,7 @@ export class ConsolidationEngine {
   constructor(
     private cortex: Cortex,
     logger: ILogger,
+    private filamentConsolidator: FilamentConsolidator | null = null,
   ) {
     this.logger = logger.child ? logger.child('consolidation') : logger
   }
@@ -51,6 +56,8 @@ export class ConsolidationEngine {
     let nucleiDetected = 0
     let abstractionsCreated = 0
     let spikesPruned = 0
+    let filamentSynapsesCreated = 0
+    let filamentSynapsesDecayed = 0
 
     if (!options.skipRadiance) {
       potentiationUpdates = this.computeRadiance()
@@ -78,6 +85,13 @@ export class ConsolidationEngine {
       spikesPruned = this.pruneSpikeHistories(options.pruneKeepCount ?? 100)
     }
 
+    if (!options.skipFilamentConsolidation && this.filamentConsolidator) {
+      const decay = this.filamentConsolidator.decayCoActivation()
+      filamentSynapsesDecayed = decay.deleted
+      const tier2 = this.filamentConsolidator.runTier2()
+      filamentSynapsesCreated = tier2.synapsesCreated
+    }
+
     const durationMs = Date.now() - start
     this.logger.info('Consolidation complete', {
       potentiationUpdates,
@@ -85,10 +99,12 @@ export class ConsolidationEngine {
       nucleiDetected,
       abstractionsCreated,
       spikesPruned,
+      filamentSynapsesCreated,
+      filamentSynapsesDecayed,
       durationMs,
     })
 
-    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, durationMs }
+    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, durationMs }
   }
 
   /**

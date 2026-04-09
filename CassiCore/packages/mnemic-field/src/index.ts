@@ -14,6 +14,11 @@ import type { ConsolidationResult, ConsolidationOptions } from './consolidation.
 import { projectTo2D, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
 import { segmentEngram } from './segmentation.js'
 import { EntityLinker } from './filament-entities.js'
+import { FilamentConsolidator } from './filament-consolidation.js'
+import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
+import { renderWithZoom } from './filament-renderer.js'
+import type { IProvider } from '../../../types/runtime.js'
+import { FilamentAnalyzer } from './filament-llm.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -22,6 +27,8 @@ import type {
   SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,
   TaskComplexity, LuminalSet, KindlingOptions, SpikeOutcome,
   Filament, FilamentAnnotation, EngramPosition,
+  FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
+  ZoomEntry, RenderOptions,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
@@ -34,6 +41,10 @@ export { CodeIngestor } from './code-ingestor.js'
 export { GitNexusBridge } from './gitnexus-bridge.js'
 export { segmentEngram } from './segmentation.js'
 export { EntityLinker, extractEntities } from './filament-entities.js'
+export { FilamentConsolidator } from './filament-consolidation.js'
+export { FilamentAnalyzer } from './filament-llm.js'
+export { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
+export { renderWithZoom } from './filament-renderer.js'
 export type { FilamentSpan } from './segmentation.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
@@ -50,11 +61,14 @@ export type {
   SourceFileMetadata,
   Filament, FilamentCreate, FilamentSynapse, FilamentSynapseCreate,
   FilamentEntity, FilamentAnnotation, FilamentSynapseType, SegmentationConfig,
+  FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
+  ZoomEntry, ZoomLevel, RenderOptions, Tier3Config,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
   POTENTIATION_DEFAULTS, SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
   FILAMENT_SYNAPSE_TYPES, FILAMENT_SYNAPSE_PROPAGATION,
+  RENDER_DEFAULTS, TIER3_DEFAULTS, CHAIN_EDGE_TYPES,
   SEGMENTATION_DEFAULTS, FILAMENT_KINDLING_DEFAULTS,
 } from './types.js'
 
@@ -67,6 +81,7 @@ export class MnemicField {
   private migrationJobs: MigrationJobStore
   private logger: ILogger
   private projectionState: ProjectionState | null = null
+  private filamentAnalyzer: FilamentAnalyzer | null = null
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -88,7 +103,8 @@ export class MnemicField {
     this.filamentCortex = new FilamentCortex(db, logger)
     this.entityLinker = new EntityLinker(this.filamentCortex, logger)
     this.kindlingEngine = new KindlingEngine(this.cortex, logger, this.filamentCortex)
-    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger)
+    const filamentConsolidator = new FilamentConsolidator(this.filamentCortex, this.cortex, logger)
+    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, filamentConsolidator)
     this.migrationJobs = new MigrationJobStore(db)
     this.logger.info('Mnemic Field initialized')
   }
@@ -617,6 +633,81 @@ export class MnemicField {
    */
   getCortex(): Cortex {
     return this.cortex
+  }
+
+  getChains(engramIds?: string[]): FilamentChain[] {
+    return extractChains(this.filamentCortex, engramIds)
+  }
+
+  getCrystallization(filamentIds?: number[]): CrystallizationScore[] {
+    return scoreCrystallization(this.filamentCortex, filamentIds)
+  }
+
+  getExpertiseMetrics(): ExpertiseMetrics[] {
+    return computeExpertiseMetrics(this.filamentCortex, this.cortex)
+  }
+
+  getStaleDependents(supersededFilamentId: number): number[] {
+    return propagateStaleness(this.filamentCortex, supersededFilamentId)
+  }
+
+  renderContext(
+    query: string,
+    options: RenderOptions & KindlingOptions,
+  ): { entries: ZoomEntry[]; totalTokens: number } {
+    const luminal = this.kindle(null, query, options)
+    return renderWithZoom(luminal.engrams, luminal.filamentAnnotations, this.filamentCortex, options)
+  }
+
+  buildDelegationContext(
+    query: string,
+    options: RenderOptions & KindlingOptions,
+  ): DelegationContext {
+    const luminal = this.kindle(null, query, options)
+    const rendered = renderWithZoom(luminal.engrams, luminal.filamentAnnotations, this.filamentCortex, options)
+    const renderedText = rendered.entries.map(e => e.rendered).join('\n\n')
+
+    const engramIds = luminal.engrams.map(e => e.engram.id)
+    const chains = extractChains(this.filamentCortex, engramIds)
+
+    const contradictions: Array<{ claimA: string; claimB: string; engramIds: [string, string] }> = []
+    if (luminal.filamentAnnotations) {
+      for (const ann of luminal.filamentAnnotations) {
+        const synapses = this.filamentCortex.getFilamentSynapsesFrom(ann.filamentId)
+        for (const syn of synapses) {
+          if (syn.edgeType === 'contradicts') {
+            const target = this.filamentCortex.getFilament(syn.targetId)
+            if (target) {
+              contradictions.push({
+                claimA: ann.content,
+                claimB: target.content,
+                engramIds: [ann.engramId, target.engramId],
+              })
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      renderedText,
+      filamentGraph: {
+        matchedFilaments: luminal.filamentAnnotations ?? [],
+        chains,
+        contradictions,
+      },
+    }
+  }
+
+  setLlmProvider(provider: IProvider): void {
+    this.filamentAnalyzer = new FilamentAnalyzer(
+      this.filamentCortex, this.cortex, provider, this.logger,
+    )
+  }
+
+  async runTier3Analysis(): Promise<{ callsMade: number; synapsesCreated: number }> {
+    if (!this.filamentAnalyzer) return { callsMade: 0, synapsesCreated: 0 }
+    return this.filamentAnalyzer.runTier3()
   }
 
   /**

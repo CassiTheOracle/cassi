@@ -422,3 +422,75 @@ export const FILAMENT_KINDLING_DEFAULTS = {
   coActivationReinforcementStep: 0.05,
   coActivationWeightCap: 0.8,
 } as const
+
+export interface FilamentChain {
+  filaments: Array<{ id: number; engramId: string; content: string; createdAt: string }>
+  edgeTypes: FilamentSynapseType[]
+  length: number
+}
+
+export type CrystallizationStatus = 'crystallized' | 'contested' | 'isolated'
+
+export interface CrystallizationScore {
+  filamentId: number
+  content: string
+  confirmCount: number
+  contradictCount: number
+  status: CrystallizationStatus
+}
+
+export type ExpertiseLevel = 'deep' | 'moderate' | 'surface'
+
+export interface ExpertiseMetrics {
+  nucleusId: string
+  label: string
+  filamentDensity: number
+  synapseDensity: number
+  chainDepth: number
+  status: ExpertiseLevel
+}
+
+export interface DelegationContext {
+  renderedText: string
+  filamentGraph?: {
+    matchedFilaments: FilamentAnnotation[]
+    chains: FilamentChain[]
+    contradictions: Array<{ claimA: string; claimB: string; engramIds: [string, string] }>
+  }
+}
+
+export type ZoomLevel = 'full' | 'excerpt' | 'chain'
+
+export interface ZoomEntry {
+  engramId: string
+  zoom: ZoomLevel
+  rendered: string
+  tokenEstimate: number
+}
+
+export interface RenderOptions {
+  tokenBudget: number
+  chainBudgetShare?: number
+  fullBudgetShare?: number
+}
+
+export const RENDER_DEFAULTS = {
+  chainBudgetShare: 0.3,
+  fullBudgetShare: 0.6,
+} as const
+
+export interface Tier3Config {
+  maxLlmCallsPerCycle: number
+  maxPairsPerCall: number
+  cooldownMs: number
+  potentiationThreshold: number
+}
+
+export const TIER3_DEFAULTS: Tier3Config = {
+  maxLlmCallsPerCycle: 5,
+  maxPairsPerCall: 15,
+  cooldownMs: 600_000,
+  potentiationThreshold: 0.8,
+} as const
+
+export const CHAIN_EDGE_TYPES: FilamentSynapseType[] = ['derives_from', 'supersedes', 'elaborates']
