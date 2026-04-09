@@ -1,5 +1,6 @@
 import { rootLogger, writeThoughtRequestLog, writeThoughtResultLog } from '../logger.js'
 import { signalPromise } from '../utils/abort.js'
+import { ActivityTimeout } from '../utils/activity-timeout.js'
 
 import type { BudgetTracker } from './budget-tracker.js'
 import type { RateLimitStore } from './rate-limit-store.js'
@@ -101,6 +102,7 @@ const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
  * Can be tuned via runtime config (preferred) or environment variables for quick experiments.
  */
 const DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '1200000', 10)
+const DEFAULT_INACTIVITY_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_INACTIVITY_TIMEOUT_MS || '60000', 10)
 
 logger.debug(`Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 1000}s`)
 
@@ -384,10 +386,14 @@ export class CentralizedProvider implements IProvider {
       let chunksYielded = 0
       let got429 = false
 
-      // Merge provided signal with our timeout controller
-      const requestedTimeoutMs = (opts as { timeoutMs?: number }).timeoutMs ?? DEFAULT_PER_REQUEST_TIMEOUT_MS
+      // Activity-based timeout: resets on each streaming chunk, fires only on genuine stalls
+      const inactivityTimeoutMs = (opts as { inactivityTimeoutMs?: number }).inactivityTimeoutMs ?? DEFAULT_INACTIVITY_TIMEOUT_MS
       const controller = new AbortController()
-      let timeoutHandle: ReturnType<typeof setTimeout> | undefined
+      const activityTimeout = new ActivityTimeout({
+        inactivityMs: inactivityTimeoutMs,
+        label: `provider:${this.id}/${reportedModel}`,
+        parentSignal: signal,
+      })
 
       try {
         try {
@@ -397,15 +403,18 @@ export class CentralizedProvider implements IProvider {
           // accurate structured usage that should override this fallback upstream.
         }
 
-        timeoutHandle = setTimeout(() => {
+        signalPromise(activityTimeout.signal).then(() => {
           try {
-            entry.error = `timeout after ${requestedTimeoutMs}ms`
+            const reason = activityTimeout.reason
+            entry.error = reason === 'inactivity'
+              ? `stream stalled - no activity for ${activityTimeout.silentMs}ms`
+              : `aborted by caller`
             entry.aborted = true
             this.metrics.totalErrors++
             this.consecutiveErrors++
             this.lastErrorAt = Date.now()
-            this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: requestedTimeoutMs })
-            this.logger.warn(`[timeout] ${requestId.slice(-12)} timed out after ${requestedTimeoutMs}ms - provider may be overloaded or model is too slow`)
+            this.bus.emit({ type: 'provider:request_timeout', providerId: this.id, requestId, sessionId, timeoutMs: inactivityTimeoutMs, reason: reason ?? undefined })
+            this.logger.warn(`[timeout] ${requestId.slice(-12)} ${entry.error} - provider:${this.id}/${reportedModel}`)
             writeThoughtResultLog('● THOUGHT  timeout', {
               requestId,
               provider: this.id,
@@ -415,17 +424,7 @@ export class CentralizedProvider implements IProvider {
             })
             controller.abort()
           } catch { /* ignore errors in timeout handler */ }
-        }, requestedTimeoutMs)
-
-        // If caller provided a signal, wire it to our controller so caller aborts propagate
-        if (signal) {
-          if (signal.aborted) {
-            try { controller.abort() } catch { }
-          } else {
-            // Use shared helper to avoid manual listener bookkeeping
-            signalPromise(signal).then(() => { try { controller.abort() } catch { } }).catch(() => { })
-          }
-        }
+        }).catch(() => { })
         // Use 'as any' to pass attachments (not in IProvider interface but supported by implementations)
         const stream = (this.wrapped as any).complete(messages, opts, attachments, controller.signal)
         for await (const chunk of stream) {
@@ -437,6 +436,7 @@ export class CentralizedProvider implements IProvider {
           }
 
           chunksYielded++
+          activityTimeout.touch()
 
           // Pass through to caller
           yield chunk
@@ -501,8 +501,7 @@ export class CentralizedProvider implements IProvider {
         if (!got429) throw err
 
       } finally {
-        if (timeoutHandle) clearTimeout(timeoutHandle)
-        // No external listener removal required when using signalPromise
+        activityTimeout.dispose()
 
         entry.completedAt = Date.now()
         this.inFlight.delete(sessionId)

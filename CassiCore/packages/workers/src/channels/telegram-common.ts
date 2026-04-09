@@ -94,19 +94,6 @@ async function tgCall<T>(method: string, body?: Record<string, unknown>): Promis
 
 
 /**
- * Sanitize text for Telegram display.
- *
- * Converts GitHub-flavored Markdown to Telegram HTML using the markdown-it
- * based pipeline (ported from OpenClaw).
- *
- * @deprecated Prefer calling markdownToTelegramHtml() directly.
- */
-export function sanitizeMarkdown(text: string): string {
-  return markdownToTelegramHtml(text)
-}
-
-
-/**
  * Call editMessageText with tri-state return: 'ok' | 'not_modified' | 'error'.
  * This lets callers skip the plain-text retry on harmless "not modified" results.
  */
