@@ -28,7 +28,7 @@ import { skillDefinition, makeSkillHandler } from './skill.js'
 import { getSubagentResultDefinition, makeGetSubagentResultHandler } from './get-subagent-result.js'
 import { getSubagentStatusDefinition, makeGetSubagentStatusHandler } from './get-subagent-status.js'
 import { listSubagentsDefinition, makeListSubagentsHandler } from './list-subagents.js'
-import { memorySearchDefinition, makeMemorySearchHandler, rememberDefinition, makeRememberHandler } from './memory-search.js'
+import { rememberDefinition, makeRememberHandler } from './memory-search.js'
 import { createQueryEventsTool, listPresetsForTool } from './query-events.js'
 import { readFileDefinition, readFileHandler } from './read-file.js'
 import { readFilesDefinition, readFilesHandler } from './read-files.js'
@@ -179,11 +179,6 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // Memory tools (requires memory module)
   if (deps.memory) {
-    // memory_search is DEPRECATED - use universal_search instead
-    registry.register(
-      memorySearchDefinition, 
-      makeMemorySearchHandler(deps.memory)
-    )
     registry.register(rememberDefinition, makeRememberHandler(deps.memory))
   }
 
