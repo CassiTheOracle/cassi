@@ -27,6 +27,39 @@ export function parseJsonSafe<T>(raw: string | null | undefined, fallback: T): T
   try { return JSON.parse(raw) as T } catch { return fallback }
 }
 
+export function computeSpikeImportance(
+  spikes: Array<{ timestamp: number; magnitude: number }>,
+  decayRate: number,
+): number {
+  if (spikes.length === 0) return 0
+  const now = Date.now()
+  let sum = 0
+  for (const spike of spikes) {
+    const elapsed = Math.max(1, (now - spike.timestamp) / 1000)
+    sum += spike.magnitude * Math.pow(elapsed, -decayRate)
+  }
+  return Math.log1p(sum)
+}
+
+export function computeAlpha(
+  spikeCount: number,
+  config: { alphaMin: number; alphaMax: number; alphaTau: number },
+): number {
+  return config.alphaMin + (config.alphaMax - config.alphaMin) * (1 - Math.exp(-spikeCount / config.alphaTau))
+}
+
+export function cosineSimilarity(a: ArrayLike<number>, b: ArrayLike<number>): number {
+  if (a.length !== b.length || a.length === 0) return 0
+  let dot = 0, normA = 0, normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB)
+  return denom > 0 ? dot / denom : 0
+}
+
 function rowToEngram(row: Record<string, unknown>): Engram {
   return {
     id: row.id as string,

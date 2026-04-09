@@ -1,4 +1,5 @@
 import type { ILogger } from '../../../types/interfaces.js'
+import { cosineSimilarity } from './cortex.js'
 import type { Cortex } from './cortex.js'
 import type { FilamentCortex } from './filament-cortex.js'
 import type {
@@ -371,7 +372,7 @@ export class KindlingEngine {
   private findFilamentsByEmbedding(queryEmb: number[], limit: number, boost: number): SeedResult[] {
     if (!this.filamentCortex) return []
 
-    const embData = this.filamentCortex.getFilamentEmbeddings(50000)
+    const embData = this.filamentCortex.getFilamentEmbeddingsWithContent(50000)
     if (embData.length === 0) return []
 
     const contextPenalty = FILAMENT_KINDLING_DEFAULTS.contextPenalty
@@ -379,6 +380,7 @@ export class KindlingEngine {
     const scored = embData.map(f => ({
       filamentId: f.id,
       engramId: f.engramId,
+      content: f.content,
       similarity: cosineSimilarity(queryEmb, Array.from(f.embedding)),
     }))
 
@@ -388,15 +390,12 @@ export class KindlingEngine {
       .slice(0, limit)
 
     for (const match of filtered) {
-      const filament = this.filamentCortex.getFilament(match.filamentId)
-      if (filament) {
-        this.matchedFilaments.set(match.filamentId, {
-          engramId: match.engramId,
-          content: filament.content,
-          similarity: match.similarity,
-          matchType: 'direct_embedding',
-        })
-      }
+      this.matchedFilaments.set(match.filamentId, {
+        engramId: match.engramId,
+        content: match.content,
+        similarity: match.similarity,
+        matchType: 'direct_embedding',
+      })
     }
 
     return filtered.map(f => ({
@@ -553,18 +552,6 @@ function mergeSeeds(
     const charge = s.charge * chargeScale
     seedMap.set(s.engramId, Math.max(seedMap.get(s.engramId) ?? 0, charge))
   }
-}
-
-function cosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length || a.length === 0) return 0
-  let dot = 0, normA = 0, normB = 0
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i]
-    normA += a[i] * a[i]
-    normB += b[i] * b[i]
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB)
-  return denom > 0 ? dot / denom : 0
 }
 
 function euclideanDistance(a: Engram, b: Engram): number {

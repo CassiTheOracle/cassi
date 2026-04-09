@@ -143,8 +143,8 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     );
 
     CREATE TABLE IF NOT EXISTS filament_analysis_log (
-      source_id INTEGER NOT NULL,
-      target_id INTEGER NOT NULL,
+      source_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
+      target_id INTEGER NOT NULL REFERENCES filaments(id) ON DELETE CASCADE,
       analyzed_at TEXT NOT NULL,
       PRIMARY KEY (source_id, target_id)
     );
@@ -152,6 +152,7 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_filaments_engram ON filaments(engram_id);
     CREATE INDEX IF NOT EXISTS idx_filament_syn_source ON filament_synapses(source_id, edge_type);
     CREATE INDEX IF NOT EXISTS idx_filament_syn_target ON filament_synapses(target_id, edge_type);
+    CREATE INDEX IF NOT EXISTS idx_filament_syn_edge ON filament_synapses(edge_type, weight);
     CREATE INDEX IF NOT EXISTS idx_fent_entity ON filament_entities(entity);
   `)
 

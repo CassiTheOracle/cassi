@@ -493,4 +493,4 @@ export const TIER3_DEFAULTS: Tier3Config = {
   potentiationThreshold: 0.8,
 } as const
 
-export const CHAIN_EDGE_TYPES: FilamentSynapseType[] = ['derives_from', 'supersedes', 'elaborates']
+export const CHAIN_EDGE_TYPES = ['derives_from', 'supersedes', 'elaborates'] as const satisfies readonly FilamentSynapseType[]

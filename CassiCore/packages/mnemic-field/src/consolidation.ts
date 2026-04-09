@@ -1,4 +1,5 @@
 import type { ILogger } from '../../../types/interfaces.js'
+import { computeSpikeImportance, computeAlpha } from './cortex.js'
 import type { Cortex } from './cortex.js'
 import type { FilamentConsolidator } from './filament-consolidation.js'
 import type { Engram, MnemicSynapse, Nucleus } from './types.js'
@@ -122,8 +123,8 @@ export class ConsolidationEngine {
     const idToIdx = new Map<string, number>()
     engrams.forEach((e, i) => idToIdx.set(e.id, i))
 
-    const spikeImportances = engrams.map(e => this.computeSpikeImportance(e.id))
-    const alphas = engrams.map(e => this.computeAlpha(e.id))
+    const spikeImportances = engrams.map(e => computeSpikeImportance(this.cortex.getSpikes(e.id, 200), POTENTIATION_DEFAULTS.decayRate))
+    const alphas = engrams.map(e => computeAlpha(this.cortex.getSpikeCount(e.id), POTENTIATION_DEFAULTS))
 
     const baselineTeleportation = 1.0 / engrams.length
     const teleportations = spikeImportances.map(si =>
@@ -206,34 +207,6 @@ export class ConsolidationEngine {
     }
 
     return adj
-  }
-
-  /**
-   * Spike-based importance (ACT-R base-level equation).
-   */
-  private computeSpikeImportance(engramId: string): number {
-    const spikes = this.cortex.getSpikes(engramId, 200)
-    if (spikes.length === 0) return 0
-
-    const now = Date.now()
-    const d = POTENTIATION_DEFAULTS.decayRate
-    let sum = 0
-
-    for (const spike of spikes) {
-      const elapsed = Math.max(1, (now - spike.timestamp) / 1000)
-      sum += spike.magnitude * Math.pow(elapsed, -d)
-    }
-
-    return Math.log1p(sum)
-  }
-
-  /**
-   * Adaptive alpha: balance between spike history and graph structure.
-   */
-  private computeAlpha(engramId: string): number {
-    const count = this.cortex.getSpikeCount(engramId)
-    const { alphaMin, alphaMax, alphaTau } = POTENTIATION_DEFAULTS
-    return alphaMin + (alphaMax - alphaMin) * (1 - Math.exp(-count / alphaTau))
   }
 
   /**

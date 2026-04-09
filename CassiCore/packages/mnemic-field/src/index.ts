@@ -4,7 +4,7 @@ import path from 'node:path'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
 import { getDataDir } from '../../utils/paths.js'
-import { Cortex } from './cortex.js'
+import { Cortex, computeSpikeImportance, computeAlpha } from './cortex.js'
 import { FilamentCortex } from './filament-cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
@@ -237,33 +237,12 @@ export class MnemicField {
     return { pairs, totalTension, highestTension, recommendation }
   }
 
-  /**
-   * Compute spike-based importance for an engram (ACT-R base-level equation).
-   */
   computeSpikeImportance(engramId: string): number {
-    const spikes = this.cortex.getSpikes(engramId, 200)
-    if (spikes.length === 0) return 0
-
-    const now = Date.now()
-    const d = POTENTIATION_DEFAULTS.decayRate
-    let sum = 0
-
-    for (const spike of spikes) {
-      const elapsed = Math.max(1, (now - spike.timestamp) / 1000)
-      sum += spike.magnitude * Math.pow(elapsed, -d)
-    }
-
-    return Math.log1p(sum)
+    return computeSpikeImportance(this.cortex.getSpikes(engramId, 200), POTENTIATION_DEFAULTS.decayRate)
   }
 
-  /**
-   * Compute the adaptive α for a specific engram.
-   * α determines the balance between spike history and graph structure.
-   */
   computeAlpha(engramId: string): number {
-    const count = this.cortex.getSpikeCount(engramId)
-    const { alphaMin, alphaMax, alphaTau } = POTENTIATION_DEFAULTS
-    return alphaMin + (alphaMax - alphaMin) * (1 - Math.exp(-count / alphaTau))
+    return computeAlpha(this.cortex.getSpikeCount(engramId), POTENTIATION_DEFAULTS)
   }
 
   /**
@@ -667,9 +646,6 @@ export class MnemicField {
     const rendered = renderWithZoom(luminal.engrams, luminal.filamentAnnotations, this.filamentCortex, options)
     const renderedText = rendered.entries.map(e => e.rendered).join('\n\n')
 
-    const engramIds = luminal.engrams.map(e => e.engram.id)
-    const chains = extractChains(this.filamentCortex, engramIds)
-
     const contradictions: Array<{ claimA: string; claimB: string; engramIds: [string, string] }> = []
     if (luminal.filamentAnnotations) {
       for (const ann of luminal.filamentAnnotations) {
@@ -693,7 +669,7 @@ export class MnemicField {
       renderedText,
       filamentGraph: {
         matchedFilaments: luminal.filamentAnnotations ?? [],
-        chains,
+        chains: rendered.chains,
         contradictions,
       },
     }
