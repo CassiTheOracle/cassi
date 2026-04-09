@@ -84,15 +84,6 @@ export interface FluxRunConfig {
     maxIterations?: number;
     maxCells?: number;
   };
-  /** @deprecated Use model_directive tool to set routing before creating teams. */
-  provider?: {
-    providerId?: string;
-    model?: string;
-    secondaryModel?: string;
-    secondaryProviderId?: string;
-  };
-  /** Use Lumen's three-agent dialectic instead of Proposer+Critic */
-  useLumen?: boolean;
   /** Use FluxTeam engine (default: true). Set false for legacy TriadTeam. */
   useFluxTeam?: boolean;
   /** Checkpoint approval policy (default: 'auto-approve') */
@@ -165,23 +156,11 @@ export const FLUX_TOOLS = [
         },
         provider: {
           type: 'string',
-          description: 'Provider ID for action "change_model" (use with model). DEPRECATED for action "start" — use model_directive tool instead.',
+          description: 'Provider ID for action "change_model" (use with model).',
         },
         model: {
           type: 'string',
-          description: 'Model name for action "change_model" (use with provider). DEPRECATED for action "start" — use model_directive tool instead.',
-        },
-        secondaryModel: {
-          type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing before creating teams.',
-        },
-        secondaryProviderId: {
-          type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing before creating teams.',
-        },
-        useLumen: {
-          type: 'boolean',
-          description: 'When true, Lumen\'s three-agent dialectic (Yang/Yin/Executive) replaces Proposer + Critic phases. Requires Lumen to be initialized with a ModelPool.',
+          description: 'Model name for action "change_model" (use with provider).',
         },
         useFluxTeam: {
           type: 'boolean',
@@ -222,22 +201,6 @@ export const FLUX_TOOLS = [
             maxIterations: { type: 'number' },
             maxCells: { type: 'number' },
           },
-        },
-        provider: {
-          type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing. This parameter is ignored.',
-        },
-        model: {
-          type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing. This parameter is ignored.',
-        },
-        secondaryModel: {
-          type: 'string',
-          description: 'DEPRECATED: Use model_directive tool to set routing.',
-        },
-        useLumen: {
-          type: 'boolean',
-          description: 'Use Lumen dialectic instead of Proposer+Critic',
         },
         useFluxTeam: {
           type: 'boolean',
@@ -661,8 +624,6 @@ export async function executeFluxRun(
     name,
     roles,
     budget,
-    provider,
-    useLumen,
     useFluxTeam,
     parentSessionId,
     checkpointPolicy = 'auto-approve',
@@ -686,11 +647,6 @@ export async function executeFluxRun(
     name,
     roles,
     budget,
-    provider: provider?.providerId,
-    model: provider?.model,
-    secondaryModel: provider?.secondaryModel,
-    secondaryProviderId: provider?.secondaryProviderId,
-    useLumen,
     useFluxTeam,
     parentSessionId,
   };

@@ -126,10 +126,6 @@ export const AGENT_TOOL = {
         type: 'boolean',
         description: 'Use FluxTeam engine instead of TriadTeam',
       },
-      useLumen: {
-        type: 'boolean',
-        description: 'Include Lumen-style dialectic analysis in flux_run (deprecated, ignored)',
-      },
       name: {
         type: 'string',
         description: 'Team name for flux_run',
