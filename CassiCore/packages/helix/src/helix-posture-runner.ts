@@ -2053,7 +2053,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       ...toolResults,
       {
         type: 'text' as const,
-        text: `\n${guidance}\nRemember: use collect_thoughts for complex analysis steps.`,
+        text: `\n${guidance}`,
       },
     ]
   }
