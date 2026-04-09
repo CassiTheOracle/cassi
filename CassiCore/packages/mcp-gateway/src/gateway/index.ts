@@ -110,7 +110,7 @@ export {
   ENRICH_TOOL_NAMES,
   executeDoTool,
   executeEnrichTool,
-  executeFieldFeedbackTool,
+  executeEnrichFeedbackTool,
   getDoTools,
   normalizeToolName,
 } from './do-tool.js';

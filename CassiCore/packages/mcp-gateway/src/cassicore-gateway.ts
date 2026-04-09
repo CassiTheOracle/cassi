@@ -48,7 +48,7 @@ import {
   getDoTools,
   executeDoTool,
   executeEnrichTool,
-  executeFieldFeedbackTool,
+  executeEnrichFeedbackTool,
   DO_TOOL_NAMES,
   ENRICH_TOOL_NAMES,
   getAgentTool,
@@ -347,9 +347,9 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       return await executeEnrichTool(CASSICORE_URL, args, logger);
     }
 
-    // HOW: field_feedback records activation spikes for Mnemic Field reinforcement
-    if (name === 'field_feedback') {
-      return await executeFieldFeedbackTool(CASSICORE_URL, args, logger);
+    // HOW: enrich_feedback records activation spikes for Mnemic Field reinforcement
+    if (name === 'enrich_feedback') {
+      return await executeEnrichFeedbackTool(CASSICORE_URL, args, logger);
     }
 
     switch (name) {

@@ -134,7 +134,7 @@ Each result includes embedded engram references for feedback.`,
     },
   },
   {
-    name: 'field_feedback',
+    name: 'enrich_feedback',
     description: `Provide feedback on enrich tool results to improve Mnemic Field retrieval.
 
 After using enrich results, call this to tell the system which memories were helpful. This records activation spikes that adjust potentiation — helpful memories surface more easily, unhelpful ones sink below the spark point.
@@ -142,7 +142,7 @@ After using enrich results, call this to tell the system which memories were hel
 Use engram IDs from enrich results (embedded as [ref:engram_id] markers).
 
 Example:
-  cassi_field_feedback({
+  cassi_enrich_feedback({
     feedback: { "e_1234": true, "e_5678": true, "e_9012": false }
   })`,
     inputSchema: {
@@ -254,13 +254,13 @@ export async function executeEnrichTool(
 }
 
 /**
- * Execute the `field_feedback` tool — record activation spikes for engrams.
+ * Execute the `enrich_feedback` tool — record activation spikes for engrams.
  *
  * @param baseUrl  CassiCore admin API base URL
  * @param args     Tool call arguments from the MCP caller
  * @param logger   Child logger for structured output
  */
-export async function executeFieldFeedbackTool(
+export async function executeEnrichFeedbackTool(
   baseUrl: string,
   args: unknown,
   logger: ILogger
@@ -275,7 +275,7 @@ export async function executeFieldFeedbackTool(
   }
 
   const count = Object.keys(feedback).length;
-  logger.info('executeFieldFeedbackTool', { engramCount: count });
+  logger.info('executeEnrichFeedbackTool', { engramCount: count });
 
   try {
     const body = JSON.stringify({
