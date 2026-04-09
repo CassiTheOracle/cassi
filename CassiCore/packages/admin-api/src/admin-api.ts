@@ -44,6 +44,7 @@ import { handleTrainingRoutes } from './admin-api/training.js'
 import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
 import { handleTimelineRoutes } from './admin-api/timeline.js'
 import { handleWarmProviderRoutes, shutdownWarmProvider } from './admin-api/warm-provider.js'
+import { handlePrismRoutes } from './admin-api/prism.js'
 import { createAdminRuntimeFacade } from './admin-api/runtime.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
@@ -2381,6 +2382,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleTrainingRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handlePromptLogRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
          () => handleTimelineRoutes({ daemon, logger, sendJSON, parseBody, url, pathname, sseConnections, sseConnectionId }, req, res, method),
+         () => handlePrismRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
       ]
 
       for (const routeHandler of routeHandlers) {

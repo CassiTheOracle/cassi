@@ -246,6 +246,20 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/backfill-filaments
+  if (parts[1] === 'mnemic' && parts[2] === 'backfill-filaments' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const result = await field.backfillFilaments(typeof body?.limit === 'number' ? body.limit : 100)
+      sendJSON(res, 200, { ok: true, result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // GET /memory/mnemic/tensions
   if (parts[1] === 'mnemic' && parts[2] === 'tensions' && method === 'GET') {
     try {
@@ -767,8 +781,23 @@ export async function handleMemoryRoutes(
  * Build a first-person briefing from Mnemic Field retrieval hits.
  * Groups engrams by type and relevance, formats as natural language.
  */
+interface BriefingHit {
+  id: string
+  content: string
+  nodeType: string
+  charge: number
+  potentiation: number
+  tags: string[]
+  filamentExcerpt?: string
+}
+
+function excerpt(h: BriefingHit, maxLen: number): string {
+  if (h.filamentExcerpt) return h.filamentExcerpt
+  return h.content.length > maxLen ? h.content.slice(0, maxLen) + '...' : h.content
+}
+
 function buildEnrichmentBriefing(
-  hits: Array<{ id: string; content: string; nodeType: string; charge: number; potentiation: number; tags: string[] }>,
+  hits: BriefingHit[],
   query: string,
 ): string[] {
   const sections: string[] = []
@@ -778,20 +807,14 @@ function buildEnrichmentBriefing(
     ['fact', 'episode', 'decision', 'pattern', 'abstraction'].includes(h.nodeType),
   )
   if (memories.length > 0) {
-    const lines = memories.map(h => {
-      const content = h.content.length > 400 ? h.content.slice(0, 400) + '...' : h.content
-      return `- ${content}`
-    })
+    const lines = memories.map(h => `- ${excerpt(h, 400)}`)
     sections.push(`## What I remember\n\n${lines.join('\n\n')}`)
   }
 
   // Section 2: Decisions I've made
   const decisions = hits.filter(h => h.nodeType === 'decision')
   if (decisions.length > 0) {
-    const lines = decisions.map(h => {
-      const content = h.content.length > 300 ? h.content.slice(0, 300) + '...' : h.content
-      return `- ${content}`
-    })
+    const lines = decisions.map(h => `- ${excerpt(h, 300)}`)
     sections.push(`## Decisions I've made\n\n${lines.join('\n')}`)
   }
 
@@ -804,10 +827,7 @@ function buildEnrichmentBriefing(
      h.content.toLowerCase().includes('watch out')),
   )
   if (warnings.length > 0) {
-    const lines = warnings.map(h => {
-      const content = h.content.length > 300 ? h.content.slice(0, 300) + '...' : h.content
-      return `- ${content}`
-    })
+    const lines = warnings.map(h => `- ${excerpt(h, 300)}`)
     sections.push(`## Things to watch out for\n\n${lines.join('\n')}`)
   }
 
@@ -816,19 +836,13 @@ function buildEnrichmentBriefing(
     ['file', 'tool', 'session', 'source_file', 'changeset'].includes(h.nodeType),
   )
   if (connections.length > 0) {
-    const lines = connections.map(h => {
-      const content = h.content.length > 250 ? h.content.slice(0, 250) + '...' : h.content
-      return `- ${content}`
-    })
+    const lines = connections.map(h => `- ${excerpt(h, 250)}`)
     sections.push(`## This connects to\n\n${lines.join('\n')}`)
   }
 
   // Fallback: if nothing categorized well, show everything
   if (sections.length === 0) {
-    const lines = hits.slice(0, 8).map(h => {
-      const content = h.content.length > 300 ? h.content.slice(0, 300) + '...' : h.content
-      return `- ${content}`
-    })
+    const lines = hits.slice(0, 8).map(h => `- ${excerpt(h, 300)}`)
     sections.push(`## Context for "${query}"\n\n${lines.join('\n\n')}`)
   }
 
