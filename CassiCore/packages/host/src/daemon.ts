@@ -1731,15 +1731,16 @@ export class Daemon {
       ;(this as any).__codeStore = codeStore
       ;(this as any).__mnemicFieldForCode = field
       this.logger.info('CodeStore initialized for codebase-in-database')
-      // Wire cortex consolidation bridge — reuse this MnemicField instance
       if (this.intelligence?.cortex) {
         try {
+          this.intelligence.cortex.setAffectRegister(field.getAffectRegister())
           const { createConsolidationBridge } = await import('./intelligence/cortex/mnemic-bridge.js')
           this.intelligence.cortex.setConsolidationCallback(
             createConsolidationBridge(field, this.logger)
           )
+          field.setCorticalField(this.intelligence.cortex)
         } catch (err) {
-          this.logger.warn('Cortex consolidation bridge not available', { error: String(err) })
+          this.logger.warn('Cortex affect/consolidation bridge not available', { error: String(err) })
         }
       }
     } catch (err) {
