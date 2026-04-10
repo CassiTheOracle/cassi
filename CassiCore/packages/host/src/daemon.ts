@@ -594,6 +594,11 @@ export class Daemon {
         }
       }
 
+      // Start cortex oscillation — periodic decay, prune, consolidate, bind
+      if (this.intelligence.cortex) {
+        this.intelligence.cortex.startOscillation()
+      }
+
       // Wire modules to event bus — enables reactive intelligence triggers
       const bus = this.bus
       bus.on("turn:start", (e) => {
@@ -1726,6 +1731,17 @@ export class Daemon {
       ;(this as any).__codeStore = codeStore
       ;(this as any).__mnemicFieldForCode = field
       this.logger.info('CodeStore initialized for codebase-in-database')
+      // Wire cortex consolidation bridge — reuse this MnemicField instance
+      if (this.intelligence?.cortex) {
+        try {
+          const { createConsolidationBridge } = await import('./intelligence/cortex/mnemic-bridge.js')
+          this.intelligence.cortex.setConsolidationCallback(
+            createConsolidationBridge(field, this.logger)
+          )
+        } catch (err) {
+          this.logger.warn('Cortex consolidation bridge not available', { error: String(err) })
+        }
+      }
     } catch (err) {
       this.logger.warn('CodeStore not available', { error: String(err) })
     }
@@ -3478,6 +3494,10 @@ export class Daemon {
     try {
       const sessions = this.sessions as unknown as SessionsWithStore | undefined
       sessions?.store?.close?.()
+    } catch { /* ignore */ }
+
+    try {
+      this.intelligence?.cortex?.close()
     } catch { /* ignore */ }
 
     // Close mnemic field code store and file vault databases
