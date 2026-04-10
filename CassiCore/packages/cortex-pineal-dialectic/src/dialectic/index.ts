@@ -25,6 +25,7 @@ import type {
  PromptOptimizerConfig } from '../../../types/dialectic.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
+import type { CorticalField } from '../cortex/index.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { ModuleSessionRegistry } from '../module-session-registry.js';
 import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js';
@@ -140,7 +141,7 @@ export class DialecticSystem implements IDialecticSystem {
   private provider?: IProvider;
   private moduleRegistry?: ModuleSessionRegistry;
   private globalBlackboardRegistry?: GlobalBlackboardRegistry;
-  private cortex?: import('../cortex/index.js').CorticalField;
+  private cortex?: CorticalField;
 
   private consolidatedProcessor: ConsolidatedDialecticProcessor;
   private promptOptimizer?: PromptOptimizer;
@@ -291,7 +292,7 @@ export class DialecticSystem implements IDialecticSystem {
     this.logger.info('DialecticSystem: global blackboard registry wired');
   }
 
-  setCortex(cortex: import('../cortex/index.js').CorticalField): void {
+  setCortex(cortex: CorticalField): void {
     this.cortex = cortex
   }
 
