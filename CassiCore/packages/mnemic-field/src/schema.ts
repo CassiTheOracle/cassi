@@ -254,4 +254,50 @@ function migrateSchema(db: Database.Database): void {
   if (!names.has('phase')) {
     db.exec(`ALTER TABLE migration_jobs ADD COLUMN phase TEXT NOT NULL DEFAULT 'memories'`)
   }
+
+  remediateMigrationTimestamps(db)
+}
+
+function remediateMigrationTimestamps(db: Database.Database): void {
+  const affected = db.prepare(`
+    SELECT COUNT(*) as cnt FROM engrams
+    WHERE created_at LIKE '2026-04-08T14:4%' AND t > 0
+  `).get() as { cnt: number }
+
+  if (affected.cnt === 0) return
+
+  db.exec(`BEGIN TRANSACTION`)
+  try {
+    db.prepare(`
+      UPDATE engrams
+      SET t = t / 1000,
+          created_at = strftime('%Y-%m-%dT%H:%M:%fZ', t / 1000 / 1000, 'unixepoch')
+      WHERE created_at LIKE '2026-04-08T14:4%' AND t >= 1e15
+    `).run()
+
+    db.prepare(`
+      UPDATE engrams
+      SET created_at = strftime('%Y-%m-%dT%H:%M:%fZ', t / 1000, 'unixepoch')
+      WHERE created_at LIKE '2026-04-08T14:4%' AND t > 0 AND t < 1e15
+    `).run()
+
+    const rtreeExists = db.prepare(
+      `SELECT 1 FROM sqlite_master WHERE type='table' AND name='engram_rtree'`
+    ).get()
+
+    if (rtreeExists) {
+      db.prepare(`
+        UPDATE engram_rtree
+        SET t_min = e.t, t_max = e.t
+        FROM engrams e
+        WHERE engram_rtree.id = e.rowid
+          AND engram_rtree.t_min >= 1e15
+      `).run()
+    }
+
+    db.exec(`COMMIT`)
+  } catch (err) {
+    db.exec(`ROLLBACK`)
+    throw err
+  }
 }

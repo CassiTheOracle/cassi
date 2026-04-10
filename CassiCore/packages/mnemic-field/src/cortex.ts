@@ -239,7 +239,7 @@ export class Cortex {
       embedding: fromFloatArray(input.embedding ?? null),
       tags: JSON.stringify(input.tags ?? []),
       provenance: input.provenance ?? '',
-      created_at: now,
+      created_at: input.createdAt ?? now,
       metadata: JSON.stringify(input.metadata ?? {}),
     })
 

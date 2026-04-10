@@ -226,13 +226,15 @@ async function migrateArchiveRows(
         `archive-type:${row.type}`,
         ...(row.session_id ? [`session:${row.session_id}`] : []),
       ]
-      const timeMs = (row.timestamp ?? row.created_at ?? 0) * 1000
+      const rawTime = row.timestamp ?? row.created_at ?? 0
+      const timeMs = rawTime > 1e10 ? rawTime : rawTime * 1000
 
       options.targetField.store({
         id,
         content,
         nodeType: mapArchiveType(row.type),
         t: timeMs,
+        createdAt: new Date(timeMs).toISOString(),
         tags: [...new Set(archiveTags)],
         provenance: row.source || (row.session_id ? `archive:${row.session_id}` : 'archive:migrated'),
         metadata: {
@@ -256,6 +258,7 @@ async function migrateArchiveRows(
         content,
         nodeType: mapArchiveType(row.type),
         t: timeMs,
+        createdAt: new Date(timeMs).toISOString(),
         tags: [...new Set(archiveTags)],
         provenance: row.source || (row.session_id ? `archive:${row.session_id}` : 'archive:migrated'),
         metadata: { granularity: 'macro' },
@@ -360,6 +363,7 @@ function mapLegacyRow(row: LegacyMemoryRow, embedding: number[] | null): {
   content: string
   nodeType: EngramType
   t: number
+  createdAt: string
   embedding?: number[] | null
   tags?: string[]
   provenance?: string
@@ -390,6 +394,7 @@ function mapLegacyRow(row: LegacyMemoryRow, embedding: number[] | null): {
     content: row.content,
     nodeType,
     t: createdMs,
+    createdAt: new Date(createdMs).toISOString(),
     ...(embedding ? { embedding } : {}),
     ...(tags.length > 0 ? { tags } : {}),
     provenance,
@@ -399,7 +404,7 @@ function mapLegacyRow(row: LegacyMemoryRow, embedding: number[] | null): {
 
 function createFragmentsForParent(
   field: MnemicField,
-  parent: { id: string; content: string; nodeType: EngramType; t: number; tags?: string[]; provenance?: string; metadata?: Record<string, unknown> },
+  parent: { id: string; content: string; nodeType: EngramType; t: number; createdAt?: string; tags?: string[]; provenance?: string; metadata?: Record<string, unknown> },
   content: string,
   options: MemoryMigrationOptions,
 ): number {
@@ -415,6 +420,7 @@ function createFragmentsForParent(
       content: plan.fragments[i],
       nodeType: parent.nodeType,
       t: parent.t,
+      createdAt: parent.createdAt,
       tags: [...(parent.tags ?? []), 'granularity:micro', `parent:${parent.id}`],
       provenance: `${parent.provenance ?? 'migrated'}:fragment`,
       metadata: {

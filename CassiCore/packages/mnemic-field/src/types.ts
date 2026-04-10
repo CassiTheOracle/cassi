@@ -45,6 +45,7 @@ export interface EngramCreate {
   embedding?: Float32Array | number[] | null
   tags?: string[]
   provenance?: string
+  createdAt?: string
   metadata?: Record<string, unknown>
 }
 
