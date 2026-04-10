@@ -84,7 +84,8 @@ export async function handleMeditationRoutes(
       const body = await deps.parseBody(req)
       const style = body?.style as string | undefined
       const followUp = body?.followUp === true
-      const session = await meditation.triggerMeditation(style as any, followUp)
+      const modelTier = body?.modelTier as string | undefined
+      const session = await meditation.triggerMeditation(style as any, followUp, modelTier)
       if (session) {
         sendJSON(res, 200, {
           started: true,
@@ -92,6 +93,7 @@ export async function handleMeditationRoutes(
           style: session.style,
           startedAt: new Date(session.startedAt).toISOString(),
           followUp,
+          modelTier,
         })
       } else {
         sendJSON(res, 200, {
