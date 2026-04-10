@@ -2,14 +2,18 @@
 /**
  * Consolidated Intelligence Tools Module
  *
- * Merges 14 intelligence tools into a single cassi_intelligence tool with action parameter:
+ * Merges intelligence tools into a single cassi_intelligence tool with action parameter:
  * - activity, thinker, subconscious, consciousness, trace, effectiveness, budget, evolution
  * - blindspots, snapshot, trust, consequences, dialectic, overview
+ * - schema, context_feedback
+ * - meditation_status, meditation_start, meditation_stop
+ * - cortex_stats, cortex_oscillation, cortex_region, cortex_signal, cortex_search,
+ *   cortex_consolidated, cortex_fading, cortex_session, cortex_tract
  */
 
 import { executeIntelligenceTool } from './intelligence-tools.js';
 import { executeDialecticTool } from './dialectic-tools.js';
-import { fetchWithTimeout } from './helpers.js';
+import { fetchWithTimeout, fetchIntelligence } from './helpers.js';
 import type { ILogger } from '../../types/interfaces.js';
 import { introspectSchemas } from '../../core/intelligence/code-analysis/index.js';
 import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/index.js';
@@ -19,7 +23,7 @@ import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/in
  */
 export const INTELLIGENCE_CONSOLIDATED_TOOL = {
   name: 'intelligence',
-  description: 'Intelligence layer introspection — activity, thinker, subconscious, dialectic, trust, and more. Use action parameter to select operation.\n\nUse this tool when you need to understand what the intelligence layer is doing (activity), inspect cognitive state (thinker/subconscious), trace why a response was shaped a certain way (trace), check trust scores (trust), or introspect database schemas (schema). For context feedback after delegated work, use the context_feedback action.\n\nCommon actions: activity (high-level dashboard), schema (database introspection), trust (permission/autonomy scores), trace (forensic turn analysis), context_feedback (record whether assembled context helped).',
+  description: 'Intelligence layer introspection — activity, thinker, subconscious, dialectic, trust, cortex, and more. Use action parameter to select operation.\n\nUse this tool when you need to understand what the intelligence layer is doing (activity), inspect cognitive state (thinker/subconscious), trace why a response was shaped a certain way (trace), check trust scores (trust), introspect database schemas (schema), or observe the cortical field (cortex_stats, cortex_search, cortex_region).\n\nCommon actions: activity (high-level dashboard), schema (database introspection), trust (permission/autonomy scores), trace (forensic turn analysis), context_feedback (record whether assembled context helped), cortex_stats (cortical field dashboard), cortex_search (find signals by type/state/author/tags/content).',
   inputSchema: {
     type: 'object',
     properties: {
@@ -31,6 +35,9 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
           'trust', 'consequences', 'dialectic', 'overview',
           'schema', 'context_feedback',
           'meditation_status', 'meditation_start', 'meditation_stop',
+          'cortex_stats', 'cortex_oscillation', 'cortex_region', 'cortex_signal',
+          'cortex_search', 'cortex_consolidated', 'cortex_fading',
+          'cortex_session', 'cortex_tract',
         ],
         description: 'Intelligence operation to perform',
       },
@@ -95,6 +102,39 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
       table: {
         type: 'string',
         description: 'Filter to specific table name (for schema action)',
+      },
+      // cortex params
+      signalId: {
+        type: 'string',
+        description: 'Signal ID (for cortex_signal action)',
+      },
+      region: {
+        type: 'string',
+        description: 'Region name (for cortex_region action, or cortex_search filter)',
+      },
+      signalType: {
+        type: 'string',
+        description: 'Signal type filter (for cortex_search: perception, association, concern, decision, action, request, anomaly, insight)',
+      },
+      signalState: {
+        type: 'string',
+        description: 'Signal state filter (for cortex_search: active, fading, consolidated, decayed)',
+      },
+      author: {
+        type: 'string',
+        description: 'Author filter (for cortex_search)',
+      },
+      tags: {
+        type: 'string',
+        description: 'Comma-separated tags filter (for cortex_search)',
+      },
+      content: {
+        type: 'string',
+        description: 'Content substring filter (for cortex_search)',
+      },
+      tractId: {
+        type: 'string',
+        description: 'Tract ID (for cortex_tract action)',
       },
     },
     required: ['action'],
@@ -210,6 +250,52 @@ export async function executeIntelligenceConsolidatedTool(
     return await res.json()
   }
 
+  // Cortex observability actions — routed to admin API /cortex/* endpoints
+  if (action === 'cortex_stats') {
+    return await fetchIntelligence(baseUrl, '/cortex/stats')
+  }
+  if (action === 'cortex_oscillation') {
+    const limit = restArgs.limit ?? 50
+    return await fetchIntelligence(baseUrl, `/cortex/oscillation/history?limit=${limit}`)
+  }
+  if (action === 'cortex_region') {
+    if (!restArgs.region) throw new Error('region parameter required for cortex_region action')
+    return await fetchIntelligence(baseUrl, `/cortex/region/${encodeURIComponent(restArgs.region)}`)
+  }
+  if (action === 'cortex_signal') {
+    if (!restArgs.signalId) throw new Error('signalId parameter required for cortex_signal action')
+    return await fetchIntelligence(baseUrl, `/cortex/signal/${encodeURIComponent(restArgs.signalId)}`)
+  }
+  if (action === 'cortex_search') {
+    const params = new URLSearchParams()
+    if (restArgs.region) params.set('region', restArgs.region)
+    if (restArgs.signalType) params.set('type', restArgs.signalType)
+    if (restArgs.signalState) params.set('state', restArgs.signalState)
+    if (restArgs.author) params.set('author', restArgs.author)
+    if (restArgs.tags) params.set('tags', restArgs.tags)
+    if (restArgs.sessionId) params.set('sessionId', restArgs.sessionId)
+    if (restArgs.content) params.set('content', restArgs.content)
+    if (restArgs.limit) params.set('limit', String(restArgs.limit))
+    const qs = params.toString()
+    return await fetchIntelligence(baseUrl, `/cortex/signals/search${qs ? '?' + qs : ''}`)
+  }
+  if (action === 'cortex_consolidated') {
+    const limit = restArgs.limit ?? 20
+    return await fetchIntelligence(baseUrl, `/cortex/signals/consolidated?limit=${limit}`)
+  }
+  if (action === 'cortex_fading') {
+    const limit = restArgs.limit ?? 20
+    return await fetchIntelligence(baseUrl, `/cortex/signals/fading?limit=${limit}`)
+  }
+  if (action === 'cortex_session') {
+    if (!restArgs.sessionId) throw new Error('sessionId parameter required for cortex_session action')
+    return await fetchIntelligence(baseUrl, `/cortex/session/${encodeURIComponent(restArgs.sessionId)}`)
+  }
+  if (action === 'cortex_tract') {
+    if (!restArgs.tractId) throw new Error('tractId parameter required for cortex_tract action')
+    return await fetchIntelligence(baseUrl, `/cortex/tract/${encodeURIComponent(restArgs.tractId)}`)
+  }
+
   // Map action to legacy tool name
   const validTools = new Set([
     'activity', 'thinker', 'subconscious', 'consciousness', 'trace',
@@ -218,7 +304,7 @@ export async function executeIntelligenceConsolidatedTool(
   ]);
 
   if (!validTools.has(action)) {
-    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback, meditation_status, meditation_start, meditation_stop`);
+    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback, meditation_*, cortex_*`);
   }
 
   return await executeIntelligenceTool(baseUrl, action, restArgs, logger);
