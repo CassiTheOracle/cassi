@@ -1,7 +1,7 @@
 import type { MeditationPrompt } from './types.js'
 import type { Affect } from '../../mnemic-field/types.js'
 
-export type MeditationStyle = 'passive' | 'active' | 'focused' | 'reflective'
+export type MeditationStyle = 'passive' | 'active' | 'focused' | 'reflective' | 'organizing'
 
 export interface StyleConfig {
   categoryPreferences: MeditationPrompt['category'][]
@@ -25,21 +25,45 @@ export const STYLE_CONFIGS: Record<MeditationStyle, StyleConfig> = {
     categoryPreferences: ['emotional', 'presence'],
     description: 'Emotional processing. Cassi explores what she is feeling and why.',
   },
+  organizing: {
+    categoryPreferences: ['organizing'],
+    description: 'Memory reorganization. Cassi strengthens connections, bridges clusters, and accelerates learning across the entire brain.',
+  },
 }
 
 const AFFECT_INTENSITY_THRESHOLD = 0.45
+
+/**
+ * How many regular sessions between automatic organizing sessions.
+ * After every N non-organizing sessions, selectStyle may choose
+ * 'organizing' if the system has been idle long enough (deep idle).
+ */
+const ORGANIZING_INTERVAL = 5
 
 export function selectStyle(
   lastTurnAt: number,
   idleThresholdMs: number,
   defaultStyle: MeditationStyle,
   affect?: Affect | null,
+  sessionCount?: number,
 ): MeditationStyle {
   if (affect && isEmotionallyCharged(affect)) return 'reflective'
 
   if (lastTurnAt <= 0) return defaultStyle
 
   const idleMs = Date.now() - lastTurnAt
+
+  // Periodic organizing: during deep idle, every Nth session reorganizes
+  // the mnemic field to accelerate future learning across all domains.
+  if (
+    sessionCount !== undefined &&
+    sessionCount > 0 &&
+    sessionCount % ORGANIZING_INTERVAL === 0 &&
+    idleMs > idleThresholdMs * 3
+  ) {
+    return 'organizing'
+  }
+
   if (idleMs < idleThresholdMs * 2) return 'active'
   if (idleMs > idleThresholdMs * 4) return 'passive'
   return defaultStyle

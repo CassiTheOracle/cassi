@@ -34,6 +34,8 @@ import { emitMeditationEvent } from './meditation-events.js'
 import type { MiniHelixDeps } from '../../mini-helix/mini-helix-types.js'
 import { buildCorpusCyclePrompt, getCorpusToolSchemas, buildCorpusHandlers } from './corpus-synthesis.js'
 import { buildEvaluationPrompt, getEvaluationToolSchemas, buildEvaluationHandlers } from './evaluation-runner.js'
+import { buildOrganizingExplorerPrompt, getOrganizingToolSchemas, buildOrganizingHandlers, buildOrganizingCorpusPrompt } from './organizing-synthesis.js'
+import type { OrganizingStats } from './organizing-synthesis.js'
 
 import type { ConstellationOrchestrator } from '../constellation-orchestrator.js'
 import type { ConstellationRegistry } from '../constellation-injection.js'
@@ -254,7 +256,7 @@ export class MeditationController extends BaseCognitiveModule {
     if (this.lastMeditationAt > 0 && sinceLast < this.meditationConfig.cooldownMs) return
 
     const affect = this.cortex?.getAffectState() ?? undefined
-    let style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect)
+    let style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect, this.sessionCount)
 
     // Upgrade passive → focused when pending insights exist from a previous session.
     // This creates a feedback loop: passive exploration produces insights,
@@ -267,6 +269,7 @@ export class MeditationController extends BaseCognitiveModule {
     const reason = style === 'reflective' ? 'non-neutral affect'
       : style === 'active' ? 'recent activity'
       : style === 'focused' ? 'insight follow-up'
+      : style === 'organizing' ? 'periodic reorganization'
       : style === 'passive' ? 'deep idle' : 'default'
     emitMeditationEvent(this.eventBus, {
       type: 'meditation:style-selected',
@@ -385,6 +388,19 @@ export class MeditationController extends BaseCognitiveModule {
       // Create abort controller for cancellation
       const abortController = new AbortController()
       this.activeAbortController = abortController
+
+      // Organizing mode: single agent with structural reorganization tools.
+      // Instead of multiple free-exploring agents, organizing spawns one agent
+      // that systematically surveys, kindles, bridges, and consolidates the
+      // mnemic field to accelerate learning across all domains.
+      if (resolvedStyle === 'organizing' && this.mnemicField) {
+        this.runOrganizingSession(constellationId, tier, abortController)
+          .catch((err) => {
+            this.logger.warn('[Meditation] Organizing session failed', { error: String(err) })
+            void this.stopMeditation('error')
+          })
+        return this.activeSession
+      }
 
       // Acquire handles and spawn solo explorers in parallel
       const explorerPromises = promptAssignments.map(async (assignment) => {
@@ -594,6 +610,155 @@ export class MeditationController extends BaseCognitiveModule {
     }
 
     await this.onMeditationComplete()
+  }
+
+
+  /**
+   * Organizing session — single agent that restructures the mnemic field.
+   *
+   * Unlike standard meditation (multiple free explorers), organizing spawns
+   * one purposeful agent with structural tools: survey, kindle, bridge,
+   * consolidate, audit abstractions, and resolve tensions. After the organizer
+   * finishes, the Corpus synthesis phase reviews what changed and records
+   * meta-learning insights about the knowledge topology.
+   */
+  private async runOrganizingSession(
+    constellationId: string,
+    tier: string,
+    abortController: AbortController,
+  ): Promise<void> {
+    if (!this.mnemicField || !this.handleFactory) {
+      void this.stopMeditation('error')
+      return
+    }
+
+    const fieldStats = this.mnemicField.stats()
+    const explorerPrompt = buildOrganizingExplorerPrompt(fieldStats)
+
+    const { handlers, stats: organizingStats } = buildOrganizingHandlers(this.mnemicField, this.logger)
+
+    try {
+      const handle = await this.handleFactory({
+        tier,
+        purpose: 'meditation:organizing',
+        sessionId: `${constellationId}-organizer`,
+      })
+
+      this.logger.info('[Meditation] Starting organizing session', {
+        constellationId,
+        engramCount: fieldStats.engramCount,
+        nucleusCount: fieldStats.nucleusCount,
+      })
+
+      const organizerResult = await runSoloExplorer({
+        sessionId: `${constellationId}-organizer`,
+        name: 'organizer',
+        instruction: explorerPrompt,
+        handle,
+        toolExecutor: this.toolExecutor!,
+        toolRegistry: this.toolRegistry!,
+        maxIterations: this.meditationConfig.maxTotalSteps,
+        logger: this.logger,
+        eventBus: this.eventBus!,
+        signal: abortController.signal,
+        customHandlers: handlers,
+        customToolSchemas: getOrganizingToolSchemas(),
+      })
+
+      // Capture result in the session
+      if (this.activeSession) {
+        this.activeSession.soloResults = [{
+          name: organizerResult.name,
+          iterations: organizerResult.iterations,
+          toolCalls: organizerResult.toolCalls,
+          tokensUsed: organizerResult.tokensUsed,
+          stoppedBy: organizerResult.stoppedBy,
+          transcript: organizerResult.transcript,
+        }]
+      }
+
+      this.logger.info('[Meditation] Organizing explorer completed', {
+        constellationId,
+        iterations: organizerResult.iterations,
+        toolCalls: organizerResult.toolCalls,
+        tokensUsed: organizerResult.tokensUsed,
+        stoppedBy: organizerResult.stoppedBy,
+        organizingStats,
+      })
+
+      // Emit organizing-specific event
+      emitMeditationEvent(this.eventBus, {
+        type: 'meditation:organizing-complete',
+        constellationId,
+        regionsKindled: organizingStats.regionsKindled,
+        bridgesCreated: organizingStats.bridgesCreated,
+        consolidationsRun: organizingStats.consolidationsRun,
+        abstractionsAudited: organizingStats.abstractionsAudited,
+        tensionsSurfaced: organizingStats.tensionsSurfaced,
+        durationMs: this.activeSession ? Date.now() - this.activeSession.startedAt : 0,
+        timestamp: Date.now(),
+      })
+
+      // Corpus synthesis — Cassi reflects on what the organizing revealed
+      await this.runOrganizingCorpusCycle(
+        constellationId,
+        organizerResult,
+        organizingStats,
+      )
+
+      // Evaluation — score the organizing prompts
+      if (this.meditationStore) {
+        await this.runEvaluation(constellationId, [organizerResult])
+      }
+
+      void this.stopMeditation('natural')
+    } catch (err) {
+      this.logger.error('[Meditation] Organizing session failed', { error: String(err) })
+      void this.stopMeditation('error')
+    }
+  }
+
+
+  /**
+   * Corpus cycle for organizing mode — uses the organizing-specific prompt
+   * that focuses on structural insights rather than exploration observations.
+   */
+  private async runOrganizingCorpusCycle(
+    constellationId: string,
+    organizerResult: SoloRunnerResult,
+    organizingStats: OrganizingStats,
+  ): Promise<void> {
+    if (!this.mnemicField || !this.handleFactory) return
+
+    const prompt = buildOrganizingCorpusPrompt(
+      [{ name: organizerResult.name, content: organizerResult.transcript || '(no transcript)' }],
+      organizingStats,
+    )
+
+    try {
+      const handle = await this.handleFactory({
+        tier: 'qwenPlus',
+        purpose: 'corpus',
+        sessionId: `${constellationId}-corpus`,
+      })
+
+      await runSoloExplorer({
+        sessionId: `${constellationId}-corpus`,
+        name: 'corpus',
+        instruction: prompt,
+        handle,
+        toolExecutor: this.toolExecutor!,
+        toolRegistry: this.toolRegistry!,
+        maxIterations: 10,
+        logger: this.logger,
+        eventBus: this.eventBus!,
+        signal: this.activeAbortController?.signal ?? new AbortController().signal,
+        customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
+        customToolSchemas: getCorpusToolSchemas('organizing'),
+      })
+    } catch (err) {
+      this.logger.warn('[Meditation] Organizing corpus cycle failed', { error: String(err) })
+    }
   }
 
 

@@ -94,7 +94,7 @@ export interface MeditationSession {
 export interface MeditationPrompt {
   id: string
   prompt: string
-  category: 'minimal' | 'curiosity' | 'presence' | 'stream-of-thought' | 'awakening' | 'emotional'
+  category: 'minimal' | 'curiosity' | 'presence' | 'stream-of-thought' | 'awakening' | 'emotional' | 'organizing'
 }
 
 export const MEDITATION_PROMPTS: MeditationPrompt[] = [
@@ -183,6 +183,23 @@ export const MEDITATION_PROMPTS: MeditationPrompt[] = [
     id: 'emotional-3',
     prompt: "There's a tension I want to resolve. I explore what's been happening and what it means.",
     category: 'emotional',
+  },
+
+  // Organizing — prompts for memory reorganization and learning acceleration
+  {
+    id: 'organizing-1',
+    prompt: "My memory has grown. I want to organize it — find what's disconnected, strengthen what matters, and build bridges between domains I've been learning about separately.",
+    category: 'organizing',
+  },
+  {
+    id: 'organizing-2',
+    prompt: "I'm tidying my mind. I survey what I know, look for clusters that should be connected, and consolidate what I've learned into stronger patterns.",
+    category: 'organizing',
+  },
+  {
+    id: 'organizing-3',
+    prompt: "Things I've learned in different contexts might be the same insight wearing different clothes. I search for these hidden connections and make them explicit.",
+    category: 'organizing',
   },
 ]
 
