@@ -1944,6 +1944,16 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     return messages
   }
 
+  protected override isToolAllowed(name: string): boolean {
+    const accessLevel = this.flexToolAccess ?? (this.role === 'unity' ? 'full' : 'read-only')
+    const hasFullAccess = accessLevel === 'full'
+    if (hasFullAccess) return true
+    const hasMemoryAccess = accessLevel === 'read-only+memory'
+    if (isReadOnlyTool(name, this.toolRegistry)) return true
+    if (hasMemoryAccess && isMemoryTool(name)) return true
+    return false
+  }
+
   private buildToolSchemas(role: HelixRole): NonNullable<CompletionOpts['tools']> {
     const tools: NonNullable<CompletionOpts['tools']> = []
 
