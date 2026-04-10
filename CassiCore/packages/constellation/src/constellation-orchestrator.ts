@@ -13,6 +13,7 @@
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { IModelDirective } from '../../../types/model-routing.js'
+import type { RoutingTier } from '../../../types/model-routing.js'
 import type { ModelPool } from '../../model-pool/index.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
@@ -138,6 +139,20 @@ export function createConstellationOrchestrator(
     return toolRegistry
   }
 
+  const KNOWN_TIERS: Set<string> = new Set(['minimax', 'qwenPlus', 'glm', 'kimi', 'qwenMax', 'sonnet', 'opus', 'background'])
+
+  // Resolve a tier name to a provider+model override via ModelDirective.
+  // Returns undefined when no directive is available or the tier is unknown,
+  // which lets the pool fall back to its default slot-based chain.
+  function resolveDirectiveOverride(tier: string): { provider: string; model: string } | undefined {
+    if (!modelDirective || !KNOWN_TIERS.has(tier)) return undefined
+    try {
+      return modelDirective.resolveTier(tier as RoutingTier)
+    } catch {
+      return undefined
+    }
+  }
+
   function buildProgressMarkdown(
     sessionId: string,
     liveState: ConstellationLiveState,
@@ -258,9 +273,11 @@ export function createConstellationOrchestrator(
     const effectiveExecutor = getEffectiveToolExecutor()
     const effectiveRegistry = getEffectiveToolRegistry()
 
-    // Handle factory adapts tier → template for model pool
-    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
-      effectivePool.acquire(config.purpose, config.tier, config.sessionId)
+    // Handle factory resolves tier → provider+model via ModelDirective, then acquires from pool
+    const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) => {
+      const override = resolveDirectiveOverride(config.tier)
+      return effectivePool.acquire(config.purpose, config.tier, config.sessionId, override)
+    }
 
     const pipelineOpts: ConstellationPipelineOpts = {
       goal: session.goal,
@@ -387,9 +404,11 @@ export function createConstellationOrchestrator(
         template: template ?? 'standard',
       })
 
-      // Handle factory adapts tier → template for model pool
-      const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) =>
-        effectivePool.acquire(config.purpose, config.tier, config.sessionId)
+      // Handle factory resolves tier → provider+model via ModelDirective, then acquires from pool
+      const handleFactory = (config: { tier: string; purpose: string; sessionId: string }) => {
+        const override = resolveDirectiveOverride(config.tier)
+        return effectivePool.acquire(config.purpose, config.tier, config.sessionId, override)
+      }
 
        const pipelineOpts: ConstellationPipelineOpts = {
         goal,
