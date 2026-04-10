@@ -144,7 +144,7 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
       // meditation params
       posture: {
         type: 'string',
-        description: 'Filter by posture (e.g., yang, yin, executive)',
+        description: 'Filter by posture (e.g., yang, yin, executive). For meditation_start: style (passive, active, focused, reflective) or "follow-up" to seed from previous meditation insights.',
       },
     },
     required: ['action'],
@@ -243,11 +243,16 @@ export async function executeIntelligenceConsolidatedTool(
     return await fetchIntelligence(baseUrl, '/meditation/status')
   }
   if (action === 'meditation_start') {
-    const body = restArgs.posture ? JSON.stringify({ style: restArgs.posture }) : '{}'
+    const bodyObj: Record<string, unknown> = {}
+    if (restArgs.posture === 'follow-up') {
+      bodyObj.followUp = true
+    } else if (restArgs.posture) {
+      bodyObj.style = restArgs.posture
+    }
     const res = await fetchWithTimeout(`${baseUrl}/meditation/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body,
+      body: JSON.stringify(bodyObj),
     })
     return await res.json()
   }
