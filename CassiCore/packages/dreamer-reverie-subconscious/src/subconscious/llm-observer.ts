@@ -40,6 +40,7 @@ export class LLMObserver {
   private memory?: IMemory;
   private moduleRegistry?: ModuleSessionRegistry;
   private globalBlackboardRegistry?: GlobalBlackboardRegistry;
+  private cortex?: import('../cortex/index.js').CorticalField;
 
   private timer?: NodeJS.Timeout;
   private lastSweepAt = 0;
@@ -88,6 +89,10 @@ export class LLMObserver {
   /** Wire the GlobalBlackboardRegistry for posting to named global boards. */
   setGlobalBlackboardRegistry(registry: GlobalBlackboardRegistry): void {
     this.globalBlackboardRegistry = registry;
+  }
+
+  setCortex(cortex: import('../cortex/index.js').CorticalField): void {
+    this.cortex = cortex
   }
 
   /** Post an entry to a named global board. Fire-and-forget — never throws. */
@@ -289,6 +294,25 @@ export class LLMObserver {
           confidence: observation.confidence,
           timestamp: Date.now(),
         }), { tags: ['anomaly'] });
+      }
+
+      if (this.cortex) {
+        this.cortex.signal('association', {
+          type: 'association',
+          content: observation.summary,
+          author: 'subconscious',
+          salience: observation.confidence,
+          tags: observation.patterns,
+        })
+        for (const concern of observation.concerns) {
+          this.cortex.signal('limbic', {
+            type: 'concern',
+            content: concern,
+            author: 'subconscious',
+            salience: 0.6,
+            valence: -0.3,
+          })
+        }
       }
 
       this.logger.debug("LLMObserver sweep complete", {

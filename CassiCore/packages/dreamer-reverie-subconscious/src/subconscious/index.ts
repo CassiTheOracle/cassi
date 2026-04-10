@@ -63,6 +63,7 @@ export class Subconscious {
   private eventBus?: IEventBus;
   private digestStore?: SessionDigestStore;
   private memory?: IMemory;
+  private cortex?: import('../cortex/index.js').CorticalField;
   /** Callback to retrieve live session IDs from the SessionManager for periodic reconciliation. */
   private liveSessionGetter?: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>;
 
@@ -116,6 +117,11 @@ export class Subconscious {
     this.llmObserver.setMemory(memory);
     this.logger.info("Subconscious: memory wired");
     void this.systemModel.hydrate();
+  }
+
+  setCortex(cortex: import('../cortex/index.js').CorticalField): void {
+    this.cortex = cortex
+    this.llmObserver.setCortex(cortex)
   }
 
   setProvider(provider: IProvider): void {
@@ -436,6 +442,19 @@ export class Subconscious {
       this.systemModel.addObservation(obs);
       this.emitEvent("consciousness:observation", { observation: obs });
 
+      if (this.cortex) {
+        try {
+          this.cortex.signal('sensory', {
+            type: 'perception',
+            content: obs.summary,
+            author: 'subconscious',
+            sessionId: obs.sessionId,
+            salience: obs.confidence,
+            tags: obs.patterns,
+          })
+        } catch { /* cortex signal is fire-and-forget */ }
+      }
+
       // Emit legacy subconscious:learning so Thinker / AI Scientist continue
       // to receive structured observations without needing changes to their
       // event subscriptions in this migration phase.
@@ -460,6 +479,20 @@ export class Subconscious {
     for (const anomaly of anomalies) {
       this.systemModel.addAnomaly(anomaly);
       this.emitEvent("consciousness:anomaly", { anomaly });
+
+      if (this.cortex) {
+        try {
+          this.cortex.signal('limbic', {
+            type: 'anomaly',
+            content: anomaly.description,
+            author: 'subconscious',
+            sessionId: anomaly.sessionId,
+            salience: anomaly.severity === 'high' ? 0.8 : anomaly.severity === 'medium' ? 0.6 : 0.4,
+            valence: -0.4,
+            tags: [anomaly.severity],
+          })
+        } catch { /* cortex signal is fire-and-forget */ }
+      }
 
       // Emit legacy subconscious:anomaly so Thinker / Dialectic / AI Scientist
       // keep receiving anomaly notifications during Phase 3 migration.
