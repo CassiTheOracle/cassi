@@ -14,7 +14,6 @@ import {
   MODEL_DIRECTIVE_TOOLS,
   DO_TOOLS,
   ENRICH_TOOLS,
-  BLACKBOARD_TOOLS,
   TRAINING_TOOLS,
 } from '../../mcp/gateway/index.js'
 
@@ -28,7 +27,6 @@ const TOOL_CATEGORIES: Array<{ label: string; tools: readonly { name: string; de
   { label: 'flux',         tools: FLUX_TOOLS },
   { label: 'config',       tools: CONFIG_ADMIN_TOOLS },
 
-  { label: 'blackboard',   tools: BLACKBOARD_TOOLS },
   { label: 'training',     tools: TRAINING_TOOLS },
   { label: 'meta',         tools: [...DO_TOOLS, ...ENRICH_TOOLS, ...DIALECTIC_TOOLS, ...MODEL_DIRECTIVE_TOOLS] },
 ]
