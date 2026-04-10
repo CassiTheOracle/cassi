@@ -580,11 +580,12 @@ export class MeditationController extends BaseCognitiveModule {
     // The next meditation will auto-upgrade to 'focused' to explore deeper.
     if (this.activeSession?.style === 'passive' && this.memory) {
       try {
-        const results = await this.memory.search('meditation insight', { limit: 50 })
-        const sessionInsights = results.filter((r: any) =>
-          r.entry?.metadata?.source === 'meditation' &&
-          r.entry?.type === 'insight' &&
-          r.entry?.createdAt && new Date(r.entry.createdAt).getTime() > (this.activeSession?.startedAt ?? 0)
+        // getRecent is on MemoryModule but not in IMemory interface — cast for access
+        const recent = await (this.memory as any).getRecent?.(200) ?? []
+        const sessionInsights = recent.filter((e: any) =>
+          e.metadata?.source === 'meditation' &&
+          e.type === 'insight' &&
+          e.createdAt && new Date(e.createdAt).getTime() > (this.activeSession?.startedAt ?? 0)
         )
         if (sessionInsights.length > 0) {
           this.pendingInsightFollowUp = true
@@ -592,7 +593,9 @@ export class MeditationController extends BaseCognitiveModule {
             insightCount: sessionInsights.length,
           })
         }
-      } catch { /* best-effort */ }
+      } catch (err) {
+        this.logger.warn('[Meditation] Insight follow-up check failed', { error: String(err) })
+      }
     }
 
     this.activeSession = undefined

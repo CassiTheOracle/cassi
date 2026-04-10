@@ -1180,6 +1180,14 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
+      // WHY: Flex postures from the template define per-role tool access levels
+      // (e.g., 'read-only' for meditation explorers). Without this, the pipeline
+      // falls back to UNITY_POSTURE.toolAccess ('full'), ignoring the template.
+      toolAccessOverrides: {
+        unity: (postures.find(p => p.energy === 'unity') ?? postures[0]).toolAccess,
+        yang: (postures.find(p => p.energy === 'yang') ?? postures[1])?.toolAccess,
+        yin: (postures.find(p => p.energy === 'yin') ?? postures[2])?.toolAccess,
+      },
       // WHY: When running in a worktree, all tool execution uses the branch's working directory
       workingDir: branchWorkingDir,
       // WHY: Pass tool filter from Constellation config to restrict tools for this branch
