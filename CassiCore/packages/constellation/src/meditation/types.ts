@@ -68,6 +68,15 @@ export interface MeditationSession {
   consolidations: number
   /** Which prompt each explorer received (for observing what works) */
   prompts: Array<{ explorer: string; promptId: string; prompt: string }>
+  /** SoloRunner results — populated when using the SoloRunner path */
+  soloResults?: Array<{
+    name: string
+    iterations: number
+    toolCalls: number
+    tokensUsed: number
+    stoppedBy: string
+    transcript?: string
+  }>
 }
 
 

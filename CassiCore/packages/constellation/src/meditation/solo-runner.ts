@@ -60,6 +60,8 @@ export interface SoloRunnerResult {
   tokensUsed: number
   stoppedBy: 'natural' | 'max-iterations' | 'cancelled' | 'error'
   error?: string
+  /** The explorer's full text output — assistant messages only, for post-session synthesis */
+  transcript: string
 }
 
 const CONSOLIDATED_TOOL_NAMES = new Set(['code', 'file', 'web'])
@@ -77,6 +79,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
   let iterations = 0
   let totalToolCalls = 0
   let tokensUsed = 0
+  const transcriptParts: string[] = []
 
   const tools = buildToolSchemas(toolRegistry)
   const messages: Message[] = buildInitialMessages(instruction, memoryContext, sessionId)
@@ -102,6 +105,13 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
       }
 
       messages.push({ role: 'assistant', content: blocks })
+
+      // Capture text output for post-session synthesis
+      for (const block of blocks) {
+        if (block.type === 'text' && (block as any).text) {
+          transcriptParts.push((block as any).text)
+        }
+      }
 
       // Extract tool calls
       const toolUseBlocks = blocks.filter(
@@ -138,7 +148,13 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
   }
 
   function result(stoppedBy: SoloRunnerResult['stoppedBy'], error?: string): SoloRunnerResult {
-    return { name, sessionId, iterations, toolCalls: totalToolCalls, tokensUsed, stoppedBy, error }
+    // Truncate transcript to prevent memory bloat — keep the most recent ~8K chars
+    const MAX_TRANSCRIPT = 8_000
+    const fullTranscript = transcriptParts.join('\n\n')
+    const transcript = fullTranscript.length > MAX_TRANSCRIPT
+      ? fullTranscript.slice(-MAX_TRANSCRIPT)
+      : fullTranscript
+    return { name, sessionId, iterations, toolCalls: totalToolCalls, tokensUsed, stoppedBy, error, transcript }
   }
 }
 

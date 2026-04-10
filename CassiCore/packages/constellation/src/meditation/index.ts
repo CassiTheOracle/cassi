@@ -428,6 +428,16 @@ export class MeditationController extends BaseCognitiveModule {
             .filter((r): r is PromiseFulfilledResult<SoloRunnerResult> => r.status === 'fulfilled')
             .map(r => r.value)
 
+          // Capture SoloRunner results in the session for evaluation
+          if (this.activeSession) {
+            this.activeSession.soloResults = soloResults.map(r => ({
+              name: r.name, iterations: r.iterations,
+              toolCalls: r.toolCalls, tokensUsed: r.tokensUsed,
+              stoppedBy: r.stoppedBy,
+              transcript: r.transcript,
+            }))
+          }
+
           this.logger.info('[Meditation] All explorers completed', {
             constellationId,
             explorers: soloResults.map(r => ({
@@ -563,14 +573,16 @@ export class MeditationController extends BaseCognitiveModule {
     }
 
     // Post-session evaluation — runs for any stop reason if session ran long enough.
-    // Very short sessions or error-only sessions won't have enough tree data
+    // Very short sessions or error-only sessions won't have enough data
     // for meaningful evaluation. The duration threshold prevents wasted LLM calls.
     const sessionDurationMs = this.activeSession ? Date.now() - this.activeSession.startedAt : 0
+    const hasSoloResults = (this.activeSession?.soloResults?.length ?? 0) > 0
+    const hasTreeOrSoloData = tree || hasSoloResults
     const shouldEvaluate = this.meditationConfig.evaluateOnComplete
       && this.meditationStore
       && this.handleFactory
       && this.activeSession
-      && tree
+      && hasTreeOrSoloData
       && sessionDurationMs >= this.meditationConfig.minEvalDurationMs
 
     if (shouldEvaluate) {
@@ -583,7 +595,7 @@ export class MeditationController extends BaseCognitiveModule {
         )
         const evalResult = await runPostMeditationEvaluation({
           session: this.activeSession!,
-          tree: tree!,
+          tree: tree ?? undefined,
           store: this.meditationStore!,
           handleFactory: this.handleFactory!,
           mnemicField: this.mnemicField,

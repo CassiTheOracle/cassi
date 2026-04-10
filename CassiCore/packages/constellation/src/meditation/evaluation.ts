@@ -30,7 +30,7 @@ export interface EvaluationResult {
 
 interface EvalToolContext {
   session: MeditationSession
-  tree: ICorpusTree
+  tree?: ICorpusTree
   store: MeditationStore
   mnemicField?: MnemicField
   logger: ILogger
@@ -38,20 +38,36 @@ interface EvalToolContext {
   mutations: EvaluationResult['mutations']
   evolutionAdjustment?: EvaluationResult['evolutionAdjustment']
   summary: string
+  insightsStored: number
 }
 
 
 function buildEvaluationSystemPrompt(
   session: MeditationSession,
-  tree: ICorpusTree,
+  tree: ICorpusTree | undefined,
   store: MeditationStore,
 ): string {
-  // Map explorer names to helix IDs from the tree so Cassi can call read_explorer_context
-  const branches = tree.getAllBranches()
-  const explorerLines = session.prompts.map((p, i) => {
-    const helixId = branches[i]?.helixId ?? `helix-${i}`
-    return `  - ${p.explorer} (${helixId}): [${p.promptId}] "${p.prompt}" — ${branches[i]?.steps.length ?? 0} steps`
-  }).join('\n')
+  // Build explorer descriptions from tree branches or SoloRunner results
+  let explorerLines: string
+  if (tree) {
+    const branches = tree.getAllBranches()
+    explorerLines = session.prompts.map((p, i) => {
+      const helixId = branches[i]?.helixId ?? `helix-${i}`
+      return `  - ${p.explorer} (${helixId}): [${p.promptId}] "${p.prompt}" — ${branches[i]?.steps.length ?? 0} steps`
+    }).join('\n')
+  } else if (session.soloResults) {
+    explorerLines = session.prompts.map((p, i) => {
+      const solo = session.soloResults?.[i]
+      const stats = solo
+        ? `${solo.iterations} iterations, ${solo.toolCalls} tool calls, ${Math.round(solo.tokensUsed / 1000)}K tokens, stopped: ${solo.stoppedBy}`
+        : 'no data'
+      return `  - ${p.explorer}: [${p.promptId}] "${p.prompt}" — ${stats}`
+    }).join('\n')
+  } else {
+    explorerLines = session.prompts.map(p =>
+      `  - ${p.explorer}: [${p.promptId}] "${p.prompt}"`
+    ).join('\n')
+  }
 
   // Summarize previous performance for context
   const leaderboard = store.getPromptLeaderboard()
@@ -74,17 +90,20 @@ Explorers and their prompts:
 ${explorerLines}
 
 For each explorer, I will:
-1. Read their full context with read_explorer_context (using the helixId shown above) to see what they actually did
+1. Read their full context with read_explorer_context (using the explorer name shown above) to see what they actually did
 2. Optionally check read_prompt_history to see how this prompt performed before
 3. Consider: Did this prompt lead to genuine exploration? Deep thinking? Interesting connections?
 4. Score the prompt with score_prompt on a 0-1 scale with sub-scores and a brief reflection
-5. After scoring all prompts, call complete_evaluation with my overall session reflection
+5. Extract any genuine insights from the explorer's activity with store_insight — things worth remembering
+6. After scoring all prompts, call complete_evaluation with my overall session reflection
 
 My scoring criteria:
 - exploration_depth (0-1): How deep did the explorer go? Did it follow threads or stay surface-level?
 - curiosity_signal (0-1): Did genuine curiosity emerge, or was exploration mechanical?
 - connection_quality (0-1): Were interesting connections or patterns found?
 - overall_score (0-1): My holistic assessment of how well this prompt worked
+
+I also observe the explorers' thinking and store_insight for anything genuinely interesting — patterns, connections, or discoveries that deserve to be remembered. Quality over quantity. Only store what matters.
 
 I can also evolve the prompt library:
 - If a prompt worked well, I can create a variant with suggest_mutation (when mutation temperature allows)
@@ -200,9 +219,56 @@ function getEvaluationToolDefinitions(): MiniHelixToolDef[] {
         required: ['summary'],
       },
     },
+    {
+      name: 'store_insight',
+      description:
+        'Store a genuine insight extracted from observing the explorers. ' +
+        'This is the Corpus role — silently watching what the explorers found and ' +
+        'distilling what matters. Only store observations that feel genuine, ' +
+        'non-obvious, and worth remembering. Quality over quantity.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          content: {
+            type: 'string',
+            description: 'The insight — what you noticed from the explorers\' activity',
+          },
+          tags: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Short categorization tags',
+          },
+          importance: {
+            type: 'number',
+            description: 'Importance 1-10 (default 5)',
+          },
+        },
+        required: ['content'],
+      },
+    },
   ]
 }
 
+
+function formatSoloResult(
+  prompt: MeditationSession['prompts'][number] | undefined,
+  solo: NonNullable<MeditationSession['soloResults']>[number],
+): string {
+  const lines = [
+    `Explorer: ${solo.name}`,
+    prompt ? `Prompt: [${prompt.promptId}] "${prompt.prompt}"` : '',
+    `Iterations: ${solo.iterations}`,
+    `Tool calls: ${solo.toolCalls}`,
+    `Tokens used: ${Math.round(solo.tokensUsed / 1000)}K`,
+    `Stopped by: ${solo.stoppedBy}`,
+  ]
+  if (solo.transcript) {
+    lines.push('', '--- Explorer transcript (assistant text only) ---', solo.transcript)
+  } else {
+    lines.push('', '(No transcript available — score based on quantitative metrics above)')
+  }
+  return lines.filter(Boolean).join('\n')
+}
 
 function createEvaluationTools(ctx: EvalToolContext): MiniHelixTool[] {
   const defs = getEvaluationToolDefinitions()
@@ -210,6 +276,29 @@ function createEvaluationTools(ctx: EvalToolContext): MiniHelixTool[] {
 
   handlers.set('read_explorer_context', (args) => {
     const { helixId, lastN } = args as { helixId: string; lastN?: number }
+
+    // SoloRunner path: no tree, return summary from session data
+    if (!ctx.tree) {
+      const solo = ctx.session.soloResults?.find(r =>
+        helixId.includes(r.name) || r.name === helixId
+      )
+      if (!solo) {
+        // Try matching by explorer name from prompts
+        const prompt = ctx.session.prompts.find(p =>
+          helixId.includes(p.explorer) || p.explorer === helixId
+        )
+        if (prompt) {
+          const soloByName = ctx.session.soloResults?.find(r => r.name === prompt.explorer)
+          if (soloByName) {
+            return { content: formatSoloResult(prompt, soloByName) }
+          }
+        }
+        return { content: `Explorer not found: ${helixId}. Available: ${ctx.session.prompts.map(p => p.explorer).join(', ')}` }
+      }
+      const prompt = ctx.session.prompts.find(p => p.explorer === solo.name)
+      return { content: formatSoloResult(prompt, solo) }
+    }
+
     const branch = ctx.tree.getBranch(helixId)
     if (!branch) {
       return { content: `Explorer not found: ${helixId}` }
@@ -247,7 +336,6 @@ function createEvaluationTools(ctx: EvalToolContext): MiniHelixTool[] {
   })
 
   handlers.set('read_session_summary', () => {
-    const branches = ctx.tree.getAllBranches()
     const lines: string[] = [
       `Session: ${ctx.session.constellationId}`,
       `Style: ${ctx.session.style}`,
@@ -255,15 +343,31 @@ function createEvaluationTools(ctx: EvalToolContext): MiniHelixTool[] {
       `Engrams: ${ctx.session.engrams.spiked} spiked, ${ctx.session.engrams.created} created`,
       `Consolidations: ${ctx.session.consolidations}`,
       '',
-      'Explorers (use helixId with read_explorer_context):',
+      'Explorers:',
     ]
 
-    for (let i = 0; i < ctx.session.prompts.length; i++) {
-      const p = ctx.session.prompts[i]
-      const branch = branches[i]
-      const helixId = branch?.helixId ?? `helix-${i}`
-      const stepCount = branch?.steps.length ?? 0
-      lines.push(`  ${p.explorer} → helixId: ${helixId}, prompt: [${p.promptId}] "${p.prompt}", steps: ${stepCount}`)
+    if (ctx.tree) {
+      const branches = ctx.tree.getAllBranches()
+      for (let i = 0; i < ctx.session.prompts.length; i++) {
+        const p = ctx.session.prompts[i]
+        const branch = branches[i]
+        const helixId = branch?.helixId ?? `helix-${i}`
+        const stepCount = branch?.steps.length ?? 0
+        lines.push(`  ${p.explorer} → helixId: ${helixId}, prompt: [${p.promptId}] "${p.prompt}", steps: ${stepCount}`)
+      }
+      lines.push('')
+      lines.push('Use read_explorer_context with a helixId to see detailed steps.')
+    } else if (ctx.session.soloResults) {
+      for (let i = 0; i < ctx.session.prompts.length; i++) {
+        const p = ctx.session.prompts[i]
+        const solo = ctx.session.soloResults[i]
+        const stats = solo
+          ? `${solo.iterations} iterations, ${solo.toolCalls} tool calls, ${Math.round(solo.tokensUsed / 1000)}K tokens, stopped: ${solo.stoppedBy}`
+          : 'no data'
+        lines.push(`  ${p.explorer}: [${p.promptId}] "${p.prompt}" — ${stats}`)
+      }
+      lines.push('')
+      lines.push('Use read_explorer_context with an explorer name to see details.')
     }
 
     return { content: lines.join('\n') }
@@ -399,6 +503,50 @@ function createEvaluationTools(ctx: EvalToolContext): MiniHelixTool[] {
     return { content: 'Evaluation complete.', done: true }
   })
 
+  handlers.set('store_insight', (args) => {
+    const { content, tags, importance } = args as { content: string; tags?: string[]; importance?: number }
+    if (!content || content.length < 10) {
+      return { content: 'Insight too short — must be at least 10 characters.' }
+    }
+
+    try {
+      // Store as engram in the mnemic field
+      if (ctx.mnemicField) {
+        ctx.mnemicField.store({
+          content,
+          nodeType: 'pattern',
+          provenance: 'meditation',
+          tags: tags ?? ['meditation'],
+        })
+        ctx.insightsStored++
+
+        // Spike related engrams to reinforce connections
+        try {
+          const hits = ctx.mnemicField.searchText(content, 10)
+          for (const hit of hits.filter(h => h.score >= 0.3).slice(0, 5)) {
+            ctx.mnemicField.spike({
+              engramId: hit.engram.id,
+              magnitude: 0.5,
+              taskContext: `meditation:insight:${ctx.session.constellationId}`,
+              outcome: 'unknown' as const,
+            })
+          }
+        } catch {
+          // best-effort spiking
+        }
+
+        ctx.logger.info('[Evaluation] Insight stored', { content: content.slice(0, 80), tags, importance })
+        return { content: `Insight stored as engram (${ctx.insightsStored} total this session).` }
+      }
+
+      // Fallback: store in MeditationStore's insights table if available
+      ctx.logger.warn('[Evaluation] No mnemic field available for insight storage')
+      return { content: 'Insight noted but could not be persisted (no mnemic field available).' }
+    } catch (err) {
+      return { content: `Failed to store insight: ${String(err)}` }
+    }
+  })
+
   return defs.map(def => ({
     def,
     handler: handlers.get(def.name)!,
@@ -414,7 +562,7 @@ function createEvaluationTools(ctx: EvalToolContext): MiniHelixTool[] {
  */
 export async function runPostMeditationEvaluation(opts: {
   session: MeditationSession
-  tree: ICorpusTree
+  tree?: ICorpusTree
   store: MeditationStore
   handleFactory: MiniHelixDeps['handleFactory']
   mnemicField?: MnemicField
@@ -433,6 +581,7 @@ export async function runPostMeditationEvaluation(opts: {
     scores: [],
     mutations: [],
     summary: '',
+    insightsStored: 0,
   }
 
   const tools = createEvaluationTools(ctx)
