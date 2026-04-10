@@ -77,51 +77,10 @@ async function buildCognitiveInjection(state: ProxySessionState): Promise<string
     return state.lastCognitiveContext;
   }
 
-  const parts: string[] = [];
-
-  const ctx = await bridge.fetchContext();
-  if (!ctx) return null;
-
-  if (ctx.insight) {
-    parts.push(`[Thinker] ${ctx.insight}`);
-  }
-
-  if (ctx.learnings?.length) {
-    const items = ctx.learnings.slice(0, 5);
-    parts.push(`[Subconscious Patterns]\n${items.map(l =>
-      `- ${l.clusterLabel}: ${l.summary}${l.occurrences ? ` (${l.occurrences}x)` : ""}`
-    ).join("\n")}`);
-  }
-
-  const dialectic = ctx.dialecticLatest?.[state.ccSessionId]
-    ?? Object.values(ctx.dialecticLatest ?? {})[0];
-  if (dialectic?.hasSignal && dialectic.signal) {
-    parts.push(`[Dialectic: ${dialectic.signal.type}] (${(dialectic.signal.confidence * 100).toFixed(0)}%) ${dialectic.signal.content}`);
-  }
-
-  if (ctx.anomalies?.length) {
-    const recent = ctx.anomalies.filter(a => now - a.detectedAt < 300_000).slice(0, 3);
-    if (recent.length) {
-      parts.push(`[Anomalies] ${recent.map(a => `${a.type}[${a.severity}]: ${a.summary}`).join("; ")}`);
-    }
-  }
-
-  if (ctx.teams?.active?.length) {
-    parts.push(`[Active Teams]\n${ctx.teams.active.map(t =>
-      `- ${t.name ?? t.id} [${t.status}] ${t.progress?.pctComplete ?? "?"}% — ${t.goal}`
-    ).join("\n")}`);
-  }
-
   const injections = await bridge.inject(state.ccSessionId);
-  for (const signal of injections) {
-    if (!parts.some(p => signal.length > 50 && p.includes(signal.slice(0, 50)))) {
-      parts.push(signal);
-    }
-  }
+  if (injections.length === 0) return null;
 
-  if (parts.length === 0) return null;
-
-  let result = parts.join("\n\n");
+  let result = injections.join("\n\n");
   if (result.length > MAX_INJECTION_CHARS) {
     result = result.slice(0, MAX_INJECTION_CHARS - 20) + "\n[...truncated]";
   }
