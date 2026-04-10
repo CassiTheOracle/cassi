@@ -40,6 +40,8 @@ import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { CorticalField } from '../../cortex/index.js'
 import type { ICorpusTree } from '../corpus-types.js'
+import { runSoloExplorer } from './solo-runner.js'
+import type { SoloRunnerResult } from './solo-runner.js'
 
 
 export class MeditationController extends BaseCognitiveModule {
@@ -66,6 +68,7 @@ export class MeditationController extends BaseCognitiveModule {
   private meditationStore?: MeditationStore
   private handleFactory?: MiniHelixDeps['handleFactory']
   private cortex?: CorticalField
+  private activeAbortController?: AbortController
 
 
   constructor(logger: ILogger, config?: Partial<MeditationConfig>) {
@@ -96,6 +99,8 @@ export class MeditationController extends BaseCognitiveModule {
   setCortex(cortex: CorticalField): void {
     this.cortex = cortex
   }
+
+
 
   getStore(): MeditationStore | undefined {
     return this.meditationStore
@@ -275,7 +280,10 @@ export class MeditationController extends BaseCognitiveModule {
 
   private async startMeditation(style?: MeditationStyle, modelTier?: string): Promise<MeditationSession | null> {
     this.logger.info('[Meditation] startMeditation called', { style, modelTier })
-    if (!this.orchestrator) return null
+    if (!this.handleFactory || !this.toolExecutor || !this.toolRegistry) {
+      this.logger.warn('[Meditation] Cannot meditate — missing handleFactory, toolExecutor, or toolRegistry')
+      return null
+    }
 
     const constellationId = `meditation-${Date.now()}`
     let resolvedStyle = style ?? this.meditationConfig.defaultStyle
@@ -305,16 +313,9 @@ export class MeditationController extends BaseCognitiveModule {
       })
     }
 
-    const postures = basePostures.map((posture, i) => {
+    basePostures.forEach((posture, i) => {
       const picked = pickedPrompts[i]
       promptAssignments.push({ explorer: posture.name, promptId: picked.id, prompt: picked.prompt })
-      const enhanced = { ...posture, instruction: picked.prompt }
-      // Override model tier when explicitly specified (e.g., 'opus' for deep introspection)
-      if (modelTier && enhanced.capabilities) {
-        enhanced.capabilities = { ...enhanced.capabilities, modelTier: modelTier as any }
-        this.logger.info('[Meditation] Overriding model tier', { explorer: posture.name, modelTier })
-      }
-      return enhanced
     })
 
     // Focused mode: seed the mnemic field before launching explorers
@@ -377,47 +378,79 @@ export class MeditationController extends BaseCognitiveModule {
     if (this.durationTimer.unref) this.durationTimer.unref()
 
     try {
-      const resultPromise = this.orchestrator.project({
-        goal: 'Explore.',
-        postures,
-        sessionId: constellationId,
-        // Disable cost-effective when custom model tier is specified — the user
-        // explicitly chose a premium model (e.g., opus) and expects it to be used.
-        costEffective: !modelTier,
-        maxHelixes: this.meditationConfig.maxConcurrentHelixes,
-        maxDepth: 1,
-        maxTotalSteps: this.meditationConfig.maxTotalSteps,
-        meditationMode: true,
-        meditationStyle: resolvedStyle,
+      // Resolve model tier for each explorer
+      const tier = modelTier ?? this.meditationConfig.modelTier ?? 'qwenPlus'
+
+      // Create abort controller for cancellation
+      const abortController = new AbortController()
+      this.activeAbortController = abortController
+
+      // Acquire handles and spawn solo explorers in parallel
+      const explorerPromises = promptAssignments.map(async (assignment) => {
+        const handle = await this.handleFactory!({
+          tier,
+          purpose: `meditation:${assignment.explorer}`,
+          sessionId: `${constellationId}-${assignment.explorer}`,
+        })
+
+        // Inject memory context if available
+        let memoryContext: string | undefined
+        if (this.memory) {
+          try {
+            const memories = await this.memory.search(assignment.prompt, { limit: 5 })
+            if (memories && memories.length > 0) {
+              memoryContext = memories.map((m: any) => m.content ?? String(m)).join('\n\n')
+            }
+          } catch {
+            // best-effort memory injection
+          }
+        }
+
+        return runSoloExplorer({
+          sessionId: `${constellationId}-${assignment.explorer}`,
+          name: assignment.explorer,
+          instruction: assignment.prompt,
+          handle,
+          toolExecutor: this.toolExecutor!,
+          toolRegistry: this.toolRegistry!,
+          maxIterations: Math.floor(this.meditationConfig.maxTotalSteps / basePostures.length),
+          logger: this.logger,
+          eventBus: this.eventBus!,
+          signal: abortController.signal,
+          memoryContext,
+        })
       })
 
-      // Don't await — let it run in background.
-      // The MnemicBridge starts observing once the CorpusTree is populated.
-      resultPromise
-        .then(() => {
-          this.logger.info('[Meditation] Meditation constellation completed naturally', { constellationId })
+      // Run all explorers in background — don't await
+      Promise.allSettled(explorerPromises)
+        .then(async (results) => {
+          const soloResults = results
+            .filter((r): r is PromiseFulfilledResult<SoloRunnerResult> => r.status === 'fulfilled')
+            .map(r => r.value)
+
+          this.logger.info('[Meditation] All explorers completed', {
+            constellationId,
+            explorers: soloResults.map(r => ({
+              name: r.name, iterations: r.iterations,
+              toolCalls: r.toolCalls, tokensUsed: r.tokensUsed,
+              stoppedBy: r.stoppedBy,
+            })),
+          })
+
           void this.stopMeditation('natural')
         })
         .catch((err) => {
-          this.logger.warn('[Meditation] Meditation constellation failed', { error: String(err) })
+          this.logger.warn('[Meditation] Explorer execution failed', { error: String(err) })
           void this.stopMeditation('error')
         })
-
-      // Start MnemicBridge if mnemic field is available
-      if (this.mnemicField) {
-        // The CorpusTree is created inside the pipeline — we need to access it
-        // via the orchestrator's tree accessor once it's ready.
-        // Poll briefly for the tree to become available.
-        const bridge = await this.waitForTreeAndStartBridge(constellationId)
-        if (bridge) this.mnemicBridge = bridge
-      }
 
       return this.activeSession
 
     } catch (err) {
-      this.logger.error('[Meditation] Failed to start meditation constellation', { error: String(err) })
+      this.logger.error('[Meditation] Failed to start solo explorers', { error: String(err) })
       this.state = 'idle'
       this.activeSession = undefined
+      this.activeAbortController = undefined
       if (this.durationTimer) {
         clearTimeout(this.durationTimer)
         this.durationTimer = undefined
@@ -562,7 +595,12 @@ export class MeditationController extends BaseCognitiveModule {
       }
     }
 
-    // Cancel the constellation
+    // Cancel running explorers
+    if (this.activeAbortController) {
+      this.activeAbortController.abort()
+      this.activeAbortController = undefined
+    }
+    // Also cancel via orchestrator if a constellation-based session is still running
     if (constellationId && this.orchestrator) {
       this.orchestrator.cancel(constellationId)
     }
