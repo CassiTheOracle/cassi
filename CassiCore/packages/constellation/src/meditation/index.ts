@@ -38,6 +38,7 @@ import type { ConstellationOrchestrator } from '../constellation-orchestrator.js
 import type { ConstellationRegistry } from '../constellation-injection.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ILogger } from '../../../../types/interfaces.js'
+import type { CorticalField } from '../../cortex/index.js'
 
 
 export class MeditationController extends BaseCognitiveModule {
@@ -61,7 +62,7 @@ export class MeditationController extends BaseCognitiveModule {
   private mnemicField?: MnemicField
   private meditationStore?: MeditationStore
   private handleFactory?: MiniHelixDeps['handleFactory']
-  private cortex?: import('../../cortex/index.js').CorticalField
+  private cortex?: CorticalField
 
 
   constructor(logger: ILogger, config?: Partial<MeditationConfig>) {
@@ -89,7 +90,7 @@ export class MeditationController extends BaseCognitiveModule {
     this.handleFactory = factory
   }
 
-  setCortex(cortex: import('../../cortex/index.js').CorticalField): void {
+  setCortex(cortex: CorticalField): void {
     this.cortex = cortex
   }
 
