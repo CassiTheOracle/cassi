@@ -442,13 +442,16 @@ export class MeditationController extends BaseCognitiveModule {
       this.mnemicBridge = undefined
     }
 
-    // Post-session evaluation — only for non-urgent stops
+    // Post-session evaluation — runs for any stop reason if session ran long enough.
+    // Very short sessions or error-only sessions won't have enough tree data
+    // for meaningful evaluation. The duration threshold prevents wasted LLM calls.
+    const sessionDurationMs = this.activeSession ? Date.now() - this.activeSession.startedAt : 0
     const shouldEvaluate = this.meditationConfig.evaluateOnComplete
       && this.meditationStore
       && this.handleFactory
       && this.activeSession
       && tree
-      && (reason === 'natural' || reason === 'max-duration')
+      && sessionDurationMs >= this.meditationConfig.minEvalDurationMs
 
     if (shouldEvaluate) {
       try {

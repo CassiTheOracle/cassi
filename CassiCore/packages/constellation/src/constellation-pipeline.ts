@@ -378,6 +378,9 @@ export async function runConstellationPipeline(
         template,
         maxHelixes,
         maxDepth,
+        meditationMode: opts.meditationMode,
+        meditationStyle: opts.meditationStyle,
+        costEffective: opts.costEffective,
       })
       log.debug('Created ConstellationStore session', { constellationId })
     } catch (err) {

@@ -33,6 +33,8 @@ export interface MeditationConfig {
   defaultStyle: MeditationStyle
   /** Run post-session evaluation (Cassi scores prompts). Default: true */
   evaluateOnComplete: boolean
+  /** Minimum session duration (ms) before evaluation runs. Prevents evaluation on very short/failed sessions. Default: 120_000 (2 min) */
+  minEvalDurationMs: number
 }
 
 export const DEFAULT_MEDITATION_CONFIG: MeditationConfig = {
@@ -47,6 +49,7 @@ export const DEFAULT_MEDITATION_CONFIG: MeditationConfig = {
   consolidateOnComplete: true,
   defaultStyle: 'passive',
   evaluateOnComplete: true,
+  minEvalDurationMs: 120_000,
 }
 
 

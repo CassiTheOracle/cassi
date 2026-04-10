@@ -269,9 +269,10 @@ export function createConstellationOrchestrator(
       template: (session.template as ConstellationTemplate) ?? 'standard',
       maxHelixes: session.maxHelixes ?? undefined,
       maxDepth: session.maxDepth ?? undefined,
-      // WHY: costEffective flag is not yet persisted in constellation_sessions table.
-      // Defaulting to false is safe — it only affects model tier selection for new branches.
-      costEffective: false,
+      costEffective: session.costEffective,
+      meditationMode: session.meditationMode,
+      meditationStyle: (session.meditationStyle as import('./meditation/styles.js').MeditationStyle | null) ?? undefined,
+      mnemicField: session.meditationMode ? mnemicField : undefined,
       logger,
       eventBus,
       toolExecutor: effectiveExecutor,

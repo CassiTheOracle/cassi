@@ -31,7 +31,7 @@ import type { LocusMemoryPersistence } from './locus/constellation-memory.js'
 import { getDataDir } from '../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 5  // v5: id_counter table for sequential IDs
+const SCHEMA_VERSION = 6  // v6: meditation_mode, meditation_style, cost_effective columns
 const DEFAULT_MAX_AGE_DAYS = 180  // Much longer retention than Helix's 7 days
 
 
@@ -61,6 +61,9 @@ const SCHEMA_SQL = `
     max_helixes             INTEGER,
     max_depth               INTEGER,
     timeout_ms              INTEGER,
+    meditation_mode         INTEGER NOT NULL DEFAULT 0,
+    meditation_style        TEXT,
+    cost_effective          INTEGER NOT NULL DEFAULT 0,
 
     -- Metrics
     total_branches          INTEGER DEFAULT 0,
@@ -259,6 +262,9 @@ interface RawSessionRow {
   max_helixes: number | null
   max_depth: number | null
   timeout_ms: number | null
+  meditation_mode: number
+  meditation_style: string | null
+  cost_effective: number
   total_branches: number
   completed_branches: number
   failed_branches: number
@@ -333,6 +339,9 @@ export interface ConstellationSessionRow {
   maxHelixes: number | null
   maxDepth: number | null
   timeoutMs: number | null
+  meditationMode: boolean
+  meditationStyle: string | null
+  costEffective: boolean
   totalBranches: number
   completedBranches: number
   failedBranches: number
@@ -466,6 +475,9 @@ export interface CreateSessionOpts {
   maxHelixes?: number
   maxDepth?: number
   timeoutMs?: number
+  meditationMode?: boolean
+  meditationStyle?: string
+  costEffective?: boolean
 }
 
 export interface CompleteSessionData {
@@ -761,6 +773,15 @@ export class ConstellationStore {
       ).run('constellation', seedValue)
       this.logger.info('ConstellationStore: seeded constellation counter', { seedValue })
     }
+
+    // Migration from version 5 to 6: meditation/cost-effective flags
+    if (fromVersion < 6) {
+      this.db.exec(`
+        ALTER TABLE constellation_sessions ADD COLUMN meditation_mode INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE constellation_sessions ADD COLUMN meditation_style TEXT;
+        ALTER TABLE constellation_sessions ADD COLUMN cost_effective INTEGER NOT NULL DEFAULT 0;
+      `)
+    }
   }
 
 
@@ -770,10 +791,14 @@ export class ConstellationStore {
         insertSession: this.db.prepare(`
           INSERT INTO constellation_sessions (
             id, goal, context, status, template,
-            max_helixes, max_depth, timeout_ms, created_at
+            max_helixes, max_depth, timeout_ms,
+            meditation_mode, meditation_style, cost_effective,
+            created_at
           ) VALUES (
             @id, @goal, @context, @status, @template,
-            @max_helixes, @max_depth, @timeout_ms, @created_at
+            @max_helixes, @max_depth, @timeout_ms,
+            @meditation_mode, @meditation_style, @cost_effective,
+            @created_at
           )
         `),
 
@@ -1024,6 +1049,9 @@ export class ConstellationStore {
       max_helixes: opts?.maxHelixes ?? null,
       max_depth: opts?.maxDepth ?? null,
       timeout_ms: opts?.timeoutMs ?? null,
+      meditation_mode: opts?.meditationMode ? 1 : 0,
+      meditation_style: opts?.meditationStyle ?? null,
+      cost_effective: opts?.costEffective ? 1 : 0,
       created_at: Date.now(),
     })
     this.logger.debug(`Created Constellation session ${id}`, { goal })
@@ -1399,6 +1427,26 @@ export class ConstellationStore {
 
     for (const orphan of orphans) {
       const hasCheckpoint = !!(orphan.has_tree && orphan.has_progress)
+
+      // Meditation sessions are disposable background work — never resume them.
+      // The meditation controller will start a fresh session when idle.
+      if (orphan.id.startsWith('meditation-')) {
+        this.db.prepare(`
+          UPDATE constellation_sessions SET
+            status = 'completed',
+            error = 'Process terminated during meditation (non-resumable)',
+            completed_at = ?,
+            duration_ms = CASE
+              WHEN created_at IS NOT NULL THEN ? - created_at
+              ELSE duration_ms
+            END
+          WHERE id = ?
+        `).run(now, now, orphan.id)
+        failedCount++
+        this.logger.info('Marking orphaned meditation as completed (not resumable)', { id: orphan.id })
+        continue
+      }
+
       this.logger.info('Recovering orphaned constellation session', {
         id: orphan.id,
         goal: orphan.goal.slice(0, 100),
@@ -1563,6 +1611,9 @@ export class ConstellationStore {
       maxHelixes: row.max_helixes,
       maxDepth: row.max_depth,
       timeoutMs: row.timeout_ms,
+      meditationMode: !!row.meditation_mode,
+      meditationStyle: row.meditation_style,
+      costEffective: !!row.cost_effective,
       totalBranches: row.total_branches,
       completedBranches: row.completed_branches,
       failedBranches: row.failed_branches,
