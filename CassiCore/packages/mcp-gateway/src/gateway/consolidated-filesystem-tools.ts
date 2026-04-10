@@ -144,7 +144,13 @@ export async function executeFilesystemConsolidatedTool(
   const { action, path, relative_path, ...restArgs } = args
 
   if (!action) {
-    throw new Error('Missing required parameter: action')
+    // Infer action from provided parameters when the LLM omits it
+    if (args.pattern || args.substring_pattern) return executeFilesystemConsolidatedTool({ ...args, action: 'search' }, logger, router)
+    if (args.file_mask) return executeFilesystemConsolidatedTool({ ...args, action: 'find' }, logger, router)
+    if (args.oldText && args.newText) return executeFilesystemConsolidatedTool({ ...args, action: 'edit' }, logger, router)
+    if (args.content && (args.path || args.relative_path)) return executeFilesystemConsolidatedTool({ ...args, action: 'write' }, logger, router)
+    if (args.path || args.relative_path) return executeFilesystemConsolidatedTool({ ...args, action: 'read' }, logger, router)
+    throw new Error('Missing required parameter: action. Use one of: read, write, edit, list, find, search, symbols')
   }
 
   // Ensure Serena onboarding for all filesystem actions
@@ -241,10 +247,7 @@ export async function executeFilesystemConsolidatedTool(
       })
     }
     case 'find': {
-      const { file_mask } = restArgs
-      if (!file_mask) {
-        throw new Error('Missing required parameter: file_mask for find action')
-      }
+      const { file_mask = '*' } = restArgs
       return await router('serena_find_file', {
         relative_path: targetPath ?? '.',
         file_mask,

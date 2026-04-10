@@ -593,7 +593,19 @@ export async function executeCodeConsolidatedTool(
     }
 
     default:
-      throw new Error(`Unknown code action: ${action}`)
+      // Handle common LLM confusion: 'read' is a file operation, not a code operation.
+      // Provide a helpful error message with valid actions.
+      if (action === 'read' || action === 'write' || action === 'edit' || action === 'list' || action === 'find') {
+        throw new Error(
+          `"${action}" is a file operation, not a code operation. ` +
+          `Use the "file" tool with action: "${action}" instead. ` +
+          `The "code" tool supports: query, context, impact, symbol, refs, overview, search_pattern, dead_code, hotspots, cochange, schema, reindex`
+        )
+      }
+      throw new Error(
+        `Unknown code action: ${action}. ` +
+        `Valid actions: query, context, impact, symbol, refs, overview, search_pattern, dead_code, hotspots, cochange, schema, reindex`
+      )
   }
 }
 
