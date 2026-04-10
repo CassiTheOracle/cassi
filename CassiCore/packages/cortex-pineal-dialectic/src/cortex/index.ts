@@ -1,6 +1,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type {
-  CorticalSignal, SignalInput, SignalType,
+  CorticalSignal, SignalInput, SignalType, SignalState,
   RegionConfig, RegionInfo, RegionSnapshot,
   Tract, TractConfig,
   CorticalFieldConfig, CorticalFieldSnapshot,
@@ -18,6 +18,62 @@ import { computeActivation } from './signal.js'
 import { CortexSession } from './session.js'
 import type { AffectRegister } from '../mnemic-field/affect.js'
 
+const MAX_OSCILLATION_HISTORY = 100
+
+export interface OscillationHistoryEntry extends OscillationResult {
+  timestamp: number
+}
+
+export interface CortexStats {
+  regions: {
+    count: number
+    totalSignals: number
+    totalActive: number
+    totalFading: number
+    totalConsolidated: number
+    capacityUtilization: number
+    perRegion: Array<{
+      name: string
+      signals: number
+      active: number
+      fading: number
+      consolidated: number
+      capacity: number
+      utilization: number
+    }>
+  }
+  tracts: {
+    count: number
+  }
+  sessions: {
+    count: number
+    totalWorkingMemory: number
+  }
+  oscillation: {
+    isRunning: boolean
+    intervalMs: number
+    totalTicks: number
+    avgDurationMs: number
+    totalDecayed: number
+    totalPruned: number
+    totalConsolidated: number
+    totalBound: number
+  }
+  signalsByType: Record<string, number>
+  signalsByState: Record<string, number>
+}
+
+export interface SignalSearchOpts {
+  region?: string
+  type?: SignalType
+  state?: SignalState
+  author?: string
+  tags?: string[]
+  sessionId?: string
+  content?: string
+  limit?: number
+}
+
 export class CorticalField {
   readonly sensory: Region
   readonly association: Region
@@ -34,6 +90,8 @@ export class CorticalField {
   private onConsolidate?: ConsolidationCallback
   private affectRegister?: AffectRegister
   private sessions = new Map<string, CortexSession>()
+  private oscillationHistory: OscillationHistoryEntry[] = []
+  private cumulativeOscillation = { ticks: 0, decayed: 0, pruned: 0, consolidated: 0, bound: 0, totalDurationMs: 0 }
 
   constructor(logger: ILogger, config?: CorticalFieldConfig) {
     this.logger = logger.child('cortex')
@@ -255,6 +313,18 @@ export class CorticalField {
 
   tick(): OscillationResult {
     const result = oscillate(this.regions, this.onConsolidate)
+
+    this.oscillationHistory.push({ ...result, timestamp: Date.now() })
+    if (this.oscillationHistory.length > MAX_OSCILLATION_HISTORY) {
+      this.oscillationHistory.shift()
+    }
+    this.cumulativeOscillation.ticks++
+    this.cumulativeOscillation.decayed += result.decayed
+    this.cumulativeOscillation.pruned += result.pruned
+    this.cumulativeOscillation.consolidated += result.consolidated
+    this.cumulativeOscillation.bound += result.bound
+    this.cumulativeOscillation.totalDurationMs += result.durationMs
+
     if (result.pruned > 0 || result.consolidated > 0 || result.bound > 0) {
       this.logger.debug('Oscillation tick', { ...result })
     }
@@ -304,6 +374,231 @@ export class CorticalField {
       regions: snap.regions.length,
       tracts: snap.tracts.length,
     })
+  }
+
+  getOscillationHistory(limit?: number): OscillationHistoryEntry[] {
+    const entries = this.oscillationHistory
+    if (limit && limit < entries.length) {
+      return entries.slice(-limit)
+    }
+    return [...entries]
+  }
+
+  getStats(): CortexStats {
+    const now = Date.now()
+    const perRegion: CortexStats['regions']['perRegion'] = []
+    let totalSignals = 0
+    let totalActive = 0
+    let totalFading = 0
+    let totalConsolidated = 0
+    let totalCapacity = 0
+    const byType: Record<string, number> = {}
+    const byState: Record<string, number> = {}
+
+    for (const [name, region] of this.regions) {
+      const signals = region.snapshot()
+      let active = 0, fading = 0, consolidated = 0
+
+      for (const s of signals) {
+        const a = computeActivation(s, now)
+        if (s.state === 'consolidated') {
+          consolidated++
+        } else if (a > ACTIVATION_DEFAULTS.activeThreshold) {
+          active++
+        } else if (a > ACTIVATION_DEFAULTS.fadingThreshold) {
+          fading++
+        }
+        byType[s.type] = (byType[s.type] ?? 0) + 1
+        byState[s.state] = (byState[s.state] ?? 0) + 1
+      }
+
+      const capacity = region.config.capacity
+      totalSignals += signals.length
+      totalActive += active
+      totalFading += fading
+      totalConsolidated += consolidated
+      totalCapacity += capacity
+
+      perRegion.push({
+        name,
+        signals: signals.length,
+        active,
+        fading,
+        consolidated,
+        capacity,
+        utilization: capacity > 0 ? signals.length / capacity : 0,
+      })
+    }
+
+    const cum = this.cumulativeOscillation
+    return {
+      regions: {
+        count: this.regions.size,
+        totalSignals,
+        totalActive,
+        totalFading,
+        totalConsolidated,
+        capacityUtilization: totalCapacity > 0 ? totalSignals / totalCapacity : 0,
+        perRegion,
+      },
+      tracts: { count: this.tractEngine.list().length },
+      sessions: {
+        count: this.sessions.size,
+        totalWorkingMemory: [...this.sessions.values()]
+          .reduce((sum, s) => sum + s.getWorkingMemorySize(), 0),
+      },
+      oscillation: {
+        isRunning: this.tickInterval !== null,
+        intervalMs: this.tickIntervalMs,
+        totalTicks: cum.ticks,
+        avgDurationMs: cum.ticks > 0 ? cum.totalDurationMs / cum.ticks : 0,
+        totalDecayed: cum.decayed,
+        totalPruned: cum.pruned,
+        totalConsolidated: cum.consolidated,
+        totalBound: cum.bound,
+      },
+      signalsByType: byType,
+      signalsByState: byState,
+    }
+  }
+
+  searchSignals(opts: SignalSearchOpts): CorticalSignal[] {
+    const now = Date.now()
+    let results: CorticalSignal[] = []
+    const regionNames = opts.region ? [opts.region] : [...this.regions.keys()]
+
+    for (const name of regionNames) {
+      const region = this.regions.get(name)
+      if (!region) continue
+      results.push(...region.snapshot())
+    }
+
+    if (opts.type) {
+      results = results.filter(s => s.type === opts.type)
+    }
+    if (opts.state) {
+      results = results.filter(s => s.state === opts.state)
+    }
+    if (opts.author) {
+      results = results.filter(s => s.author === opts.author)
+    }
+    if (opts.sessionId) {
+      results = results.filter(s => s.sessionId === opts.sessionId)
+    }
+    if (opts.tags && opts.tags.length > 0) {
+      results = results.filter(s => opts.tags!.some(t => s.tags.includes(t)))
+    }
+    if (opts.content) {
+      const lower = opts.content.toLowerCase()
+      results = results.filter(s => s.content.toLowerCase().includes(lower))
+    }
+
+    results.sort((a, b) => computeActivation(b, now) - computeActivation(a, now))
+
+    if (opts.limit) {
+      results = results.slice(0, opts.limit)
+    }
+    return results
+  }
+
+  getConsolidated(limit = 20): CorticalSignal[] {
+    const consolidated: CorticalSignal[] = []
+    for (const region of this.regions.values()) {
+      for (const s of region.snapshot()) {
+        if (s.state === 'consolidated') consolidated.push(s)
+      }
+    }
+    consolidated.sort((a, b) => (b.consolidatedAt ?? 0) - (a.consolidatedAt ?? 0))
+    return consolidated.slice(0, limit)
+  }
+
+  getFading(limit = 20): CorticalSignal[] {
+    const now = Date.now()
+    const fading: CorticalSignal[] = []
+    for (const region of this.regions.values()) {
+      fading.push(...region.readFading(now))
+    }
+    fading.sort((a, b) => computeActivation(b, now) - computeActivation(a, now))
+    return fading.slice(0, limit)
+  }
+
+  getRegionDetail(name: string): {
+    name: string
+    config: RegionConfig
+    signals: Array<CorticalSignal & { computedActivation: number }>
+    stateDistribution: Record<string, number>
+    capacityUtilization: number
+  } | undefined {
+    const region = this.regions.get(name)
+    if (!region) return undefined
+    const now = Date.now()
+    const signals = region.snapshot()
+    const stateDistribution: Record<string, number> = {}
+
+    const enriched = signals.map(s => {
+      stateDistribution[s.state] = (stateDistribution[s.state] ?? 0) + 1
+      return { ...s, computedActivation: computeActivation(s, now) }
+    })
+    enriched.sort((a, b) => b.computedActivation - a.computedActivation)
+
+    return {
+      name,
+      config: region.config,
+      signals: enriched,
+      stateDistribution,
+      capacityUtilization: region.config.capacity > 0 ? signals.length / region.config.capacity : 0,
+    }
+  }
+
+  getSignalDetail(signalId: string): (CorticalSignal & { computedActivation: number; boundSignals: Array<{ id: string; content: string; region: string }> }) | undefined {
+    const signal = this.getSignal(signalId)
+    if (!signal) return undefined
+    const now = Date.now()
+    const boundSignals = signal.bindings
+      .map(id => {
+        const bound = this.getSignal(id)
+        return bound ? { id: bound.id, content: bound.content, region: bound.region } : null
+      })
+      .filter((b): b is NonNullable<typeof b> => b !== null)
+
+    return {
+      ...signal,
+      computedActivation: computeActivation(signal, now),
+      boundSignals,
+    }
+  }
+
+  getSessionDetail(sessionId: string): {
+    sessionId: string
+    workingMemoryCapacity: number
+    workingMemory: Array<CorticalSignal & { computedActivation: number }>
+    allSessionSignals: number
+  } | undefined {
+    const session = this.sessions.get(sessionId)
+    if (!session) return undefined
+    const now = Date.now()
+    const wmSignals = session.getWorkingMemory().map(s => ({
+      ...s,
+      computedActivation: computeActivation(s, now),
+    }))
+
+    let allCount = 0
+    for (const region of this.regions.values()) {
+      for (const s of region.snapshot()) {
+        if (s.sessionId === sessionId) allCount++
+      }
+    }
+
+    return {
+      sessionId,
+      workingMemoryCapacity: session.workingMemoryCapacity,
+      workingMemory: wmSignals,
+      allSessionSignals: allCount,
+    }
+  }
+
+  getTract(tractId: string): Tract | undefined {
+    return this.tractEngine.get(tractId)
   }
 
   close(): void {
