@@ -29,10 +29,11 @@ import { selectStyle } from './styles.js'
 import type { MeditationStyle } from './styles.js'
 import { MeditationStore } from './meditation-store.js'
 import { pickPromptsThompson } from './thompson.js'
-import { runPostMeditationEvaluation } from './evaluation.js'
 import { runFocusedSeeding } from './focused-seeding.js'
 import { emitMeditationEvent } from './meditation-events.js'
 import type { MiniHelixDeps } from '../../mini-helix/mini-helix-types.js'
+import { buildCorpusCyclePrompt, getCorpusToolSchemas, buildCorpusHandlers } from './corpus-synthesis.js'
+import { buildEvaluationPrompt, getEvaluationToolSchemas, buildEvaluationHandlers } from './evaluation-runner.js'
 
 import type { ConstellationOrchestrator } from '../constellation-orchestrator.js'
 import type { ConstellationRegistry } from '../constellation-injection.js'
@@ -428,7 +429,7 @@ export class MeditationController extends BaseCognitiveModule {
             .filter((r): r is PromiseFulfilledResult<SoloRunnerResult> => r.status === 'fulfilled')
             .map(r => r.value)
 
-          // Capture SoloRunner results in the session for evaluation
+          // Capture SoloRunner results in the session
           if (this.activeSession) {
             this.activeSession.soloResults = soloResults.map(r => ({
               name: r.name, iterations: r.iterations,
@@ -446,6 +447,16 @@ export class MeditationController extends BaseCognitiveModule {
               stoppedBy: r.stoppedBy,
             })),
           })
+
+          // Corpus synthesis — Cassi observes what the explorers found
+          if (this.mnemicField) {
+            await this.runCorpusCycle(constellationId, resolvedStyle, soloResults)
+          }
+
+          // Evaluation — score prompts and mutate library
+          if (this.meditationStore && this.handleFactory) {
+            await this.runEvaluation(constellationId, soloResults)
+          }
 
           void this.stopMeditation('natural')
         })
@@ -572,83 +583,6 @@ export class MeditationController extends BaseCognitiveModule {
       }
     }
 
-    // Post-session evaluation — runs for any stop reason if session ran long enough.
-    // Very short sessions or error-only sessions won't have enough data
-    // for meaningful evaluation. The duration threshold prevents wasted LLM calls.
-    const sessionDurationMs = this.activeSession ? Date.now() - this.activeSession.startedAt : 0
-    const hasSoloResults = (this.activeSession?.soloResults?.length ?? 0) > 0
-    const hasTreeOrSoloData = tree || hasSoloResults
-    const shouldEvaluate = this.meditationConfig.evaluateOnComplete
-      && this.meditationStore
-      && this.handleFactory
-      && this.activeSession
-      && hasTreeOrSoloData
-      && sessionDurationMs >= this.meditationConfig.minEvalDurationMs
-
-    if (shouldEvaluate) {
-      try {
-        this.meditationStore!.createEvaluationSession(
-          this.activeSession!.constellationId,
-          this.activeSession!.style,
-          this.activeSession!.startedAt,
-          reason,
-        )
-        const evalResult = await runPostMeditationEvaluation({
-          session: this.activeSession!,
-          tree: tree ?? undefined,
-          store: this.meditationStore!,
-          handleFactory: this.handleFactory!,
-          mnemicField: this.mnemicField,
-          logger: this.logger,
-        })
-        emitMeditationEvent(this.eventBus, {
-          type: 'meditation:evaluation-complete',
-          constellationId: this.activeSession!.constellationId,
-          style: this.activeSession!.style,
-          scores: evalResult.scores,
-          summary: evalResult.summary,
-          evalDurationMs: evalResult.durationMs,
-          evalTokensUsed: evalResult.tokensUsed,
-          timestamp: Date.now(),
-        })
-
-        // Emit events for prompt mutations
-        for (const m of evalResult.mutations) {
-          emitMeditationEvent(this.eventBus, {
-            type: 'meditation:prompt-created',
-            promptId: m.promptId,
-            parentId: m.parentId,
-            content: m.content,
-            category: m.category,
-            rationale: m.rationale,
-            timestamp: Date.now(),
-          })
-        }
-
-        // Emit evolution adjustment event
-        if (evalResult.evolutionAdjustment) {
-          emitMeditationEvent(this.eventBus, {
-            type: 'meditation:evolution-adjusted',
-            oldTemperature: evalResult.evolutionAdjustment.oldTemp,
-            newTemperature: evalResult.evolutionAdjustment.newTemp,
-            recentMutationAvg: 0,
-            recentLibraryAvg: 0,
-            direction: evalResult.evolutionAdjustment.direction as any,
-            timestamp: Date.now(),
-          })
-        }
-
-        this.logger.info('[Meditation] Post-meditation evaluation complete', {
-          scores: evalResult.scores.length,
-          mutations: evalResult.mutations.length,
-          durationMs: evalResult.durationMs,
-          summary: evalResult.summary.slice(0, 100),
-        })
-      } catch (err) {
-        this.logger.warn('[Meditation] Post-meditation evaluation failed', { error: String(err) })
-      }
-    }
-
     // Cancel running explorers
     if (this.activeAbortController) {
       this.activeAbortController.abort()
@@ -660,6 +594,98 @@ export class MeditationController extends BaseCognitiveModule {
     }
 
     await this.onMeditationComplete()
+  }
+
+
+  /**
+   * Corpus synthesis — Cassi observes explorer transcripts and extracts insights.
+   * Runs as a SoloRunner with custom handlers that write to the mnemic field.
+   */
+  private async runCorpusCycle(
+    constellationId: string,
+    style: MeditationStyle,
+    soloResults: SoloRunnerResult[],
+  ): Promise<void> {
+    if (!this.mnemicField || !this.handleFactory) return
+
+    const prompt = buildCorpusCyclePrompt(style, soloResults.map(r => ({
+      name: r.name,
+      content: r.transcript || '(no transcript)',
+    })), {
+      style,
+      durationMs: this.activeSession ? Date.now() - this.activeSession.startedAt : 0,
+      prompts: this.activeSession?.prompts ?? [],
+      cycleNumber: 1,
+      totalExplorers: soloResults.length,
+    })
+
+    try {
+      const handle = await this.handleFactory({
+        tier: 'qwenPlus',
+        purpose: 'corpus',
+        sessionId: `${constellationId}-corpus`,
+      })
+
+      await runSoloExplorer({
+        sessionId: `${constellationId}-corpus`,
+        name: 'corpus',
+        instruction: prompt,
+        handle,
+        toolExecutor: this.toolExecutor!,
+        toolRegistry: this.toolRegistry!,
+        maxIterations: 10,
+        logger: this.logger,
+        eventBus: this.eventBus!,
+        signal: this.activeAbortController?.signal ?? new AbortController().signal,
+        customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
+        customToolSchemas: getCorpusToolSchemas(style),
+      })
+    } catch (err) {
+      this.logger.warn('[Meditation] Corpus cycle failed', { error: String(err) })
+    }
+  }
+
+
+  /**
+   * Evaluation — Cassi scores prompts and mutates the library.
+   * Runs as a SoloRunner with custom handlers that use the MeditationStore.
+   */
+  private async runEvaluation(
+    constellationId: string,
+    soloResults: SoloRunnerResult[],
+  ): Promise<void> {
+    if (!this.meditationStore || !this.activeSession) return
+
+    const prompt = buildEvaluationPrompt(
+      this.activeSession,
+      soloResults.map(r => ({ name: r.name, transcript: r.transcript })),
+      this.meditationStore,
+    )
+
+    try {
+      const handle = await this.handleFactory!({
+        tier: 'background',
+        purpose: 'evaluation',
+        sessionId: `${constellationId}-eval`,
+      })
+
+      await runSoloExplorer({
+        sessionId: `${constellationId}-eval`,
+        name: 'evaluation',
+        instruction: prompt,
+        handle,
+        toolExecutor: this.toolExecutor!,
+        toolRegistry: this.toolRegistry!,
+        maxIterations: 15,
+        logger: this.logger,
+        eventBus: this.eventBus!,
+        signal: this.activeAbortController?.signal ?? new AbortController().signal,
+        customHandlers: buildEvaluationHandlers(this.meditationStore!, this.activeSession!, this.logger),
+        customToolSchemas: getEvaluationToolSchemas(),
+      })
+    } catch (err) {
+      this.logger.warn('[Meditation] Evaluation failed', { error: String(err) })
+    }
   }
 
 

@@ -50,6 +50,15 @@ export interface SoloRunnerOpts {
   memoryContext?: string
   /** Callback fired after each iteration for heartbeat/progress */
   onActivity?: (iteration: number, toolCalls: number) => void
+  /** Custom tool handlers that override the default executor. Keyed by tool name. */
+  customHandlers?: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>
+  /** Custom tool schemas (replaces default consolidated + memory tools when provided) */
+  customToolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
+}
+
+export interface ToolCallResult {
+  content: string
+  done?: boolean
 }
 
 export interface SoloRunnerResult {
@@ -73,6 +82,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
   const {
     sessionId, name, instruction, handle, toolExecutor, toolRegistry,
     maxIterations, logger, signal, memoryContext, onActivity,
+    customHandlers, customToolSchemas,
   } = opts
 
   const log = logger.child(`solo:${name}`)
@@ -81,7 +91,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
   let tokensUsed = 0
   const transcriptParts: string[] = []
 
-  const tools = buildToolSchemas(toolRegistry)
+  const tools = customToolSchemas ?? buildToolSchemas(toolRegistry)
   const messages: Message[] = buildInitialMessages(instruction, memoryContext, sessionId)
 
   log.info('Solo explorer starting', { name, maxIterations, model: `${handle.provider}/${handle.model}` })
@@ -124,12 +134,17 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
       }
 
       // Execute tools
-      const toolResults = await executeTools(toolUseBlocks, toolExecutor, toolRegistry, sessionId, log)
+      const { results, done } = await executeTools(toolUseBlocks, toolExecutor, toolRegistry, sessionId, log, customHandlers)
       totalToolCalls += toolUseBlocks.length
 
-      messages.push({ role: 'user', content: toolResults })
+      messages.push({ role: 'user', content: results })
 
       onActivity?.(iterations, totalToolCalls)
+
+      if (done) {
+        log.info('Solo explorer concluded (done)', { name, iterations })
+        break
+      }
     }
 
     if (iterations >= maxIterations) {
@@ -264,7 +279,8 @@ async function executeTools(
   _toolRegistry: ToolRegistry,
   sessionId: string,
   log: ILogger,
-): Promise<ContentBlock[]> {
+  customHandlers?: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>,
+): Promise<{ results: ContentBlock[]; done: boolean }> {
   const routeTool = async (toolName: string, toolArgs: unknown) => {
     const toolCall = {
       id: `solo-${Math.random().toString(36).slice(2)}`,
@@ -278,9 +294,22 @@ async function executeTools(
     }
   }
 
+  let done = false
+
   const settled = await Promise.allSettled(
     toolCalls.map(async (tc): Promise<ContentBlock> => {
       try {
+        // Check custom handler first
+        if (customHandlers?.[tc.name]) {
+          const handlerResult = await customHandlers[tc.name](tc.input)
+          if (handlerResult.done) done = true
+          return {
+            type: 'tool_result' as const,
+            tool_use_id: tc.id,
+            content: handlerResult.content,
+          }
+        }
+
         let content = ''
         let isError = false
 
@@ -331,7 +360,10 @@ async function executeTools(
     }),
   )
 
-  return settled
-    .filter((r): r is PromiseFulfilledResult<ContentBlock> => r.status === 'fulfilled')
-    .map(r => r.value)
+  return {
+    results: settled
+      .filter((r): r is PromiseFulfilledResult<ContentBlock> => r.status === 'fulfilled')
+      .map(r => r.value),
+    done,
+  }
 }
