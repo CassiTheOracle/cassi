@@ -228,12 +228,14 @@ export class Cortex {
     const x = input.x ?? 0
     const y = input.y ?? 0
     const t = input.t ?? Date.now()
+    const potentiation = input.initialPotentiation ?? 0
 
     this.stmts.insertEngram.run({
       id,
       content: input.content,
       node_type: input.nodeType,
       x, y, t,
+      potentiation,
       embedding: fromFloatArray(input.embedding ?? null),
       tags: JSON.stringify(input.tags ?? []),
       provenance: input.provenance ?? '',
@@ -243,7 +245,7 @@ export class Cortex {
 
     const rowid = (this.db.prepare(`SELECT rowid FROM engrams WHERE id = ?`).get(id) as { rowid: number })?.rowid
     if (rowid != null) {
-      this.stmts.insertRtree.run({ id: rowid, x, y, t })
+      this.stmts.insertRtree.run({ id: rowid, x, y, t, potentiation })
     }
 
     this.logger.debug('Engram created', { id, nodeType: input.nodeType })

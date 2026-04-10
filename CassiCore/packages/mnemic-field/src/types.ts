@@ -1,7 +1,7 @@
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',
   'abstraction', 'goal', 'file', 'tool', 'session', 'outcome',
-  'source_file', 'changeset', 'artifact', 'board-entry'
+  'source_file', 'changeset', 'artifact', 'concern', 'anomaly'
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
