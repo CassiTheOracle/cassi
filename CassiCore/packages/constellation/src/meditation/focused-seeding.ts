@@ -38,20 +38,32 @@ interface SeedingContext {
 function buildSeedingSystemPrompt(): string {
   return `I am Cassi. I'm about to meditate in focused mode — I want to direct my subconscious exploration toward something specific.
 
-I'll look at my recent memories and the patterns in my spatial memory to decide what to focus on. Maybe there's an unresolved pattern I noticed, a question that keeps surfacing, or an area of the codebase I haven't explored deeply.
+I'll look at my recent meditation insights, memories, and the patterns in my spatial memory to decide what to focus on. The insights from my passive meditations are especially important — they represent genuine curiosity that emerged when I wasn't being directed. I want to go deeper on what surfaced.
 
 I will:
-1. Search my memories for recent activity and themes (search_memory)
-2. Kindle concepts that interest me to see what's connected (kindle_concepts)
-3. Set my focus topics — these will subtly influence what my explorers encounter (set_focus)
-4. Call complete_seeding when I've prepared the field
+1. Review my recent meditation insights to see what emerged from passive exploration (review_meditation_insights)
+2. Search my memories for recent activity and themes (search_memory)
+3. Kindle concepts that interest me to see what's connected (kindle_concepts)
+4. Set my focus topics — these will subtly influence what my explorers encounter (set_focus)
+5. Call complete_seeding when I've prepared the field
 
-I'm looking for genuine curiosity, not manufactured goals. What actually interests me right now?`
+I'm looking for genuine curiosity, not manufactured goals. What actually interests me right now? What questions from my passive exploration deserve deeper attention?`
 }
 
 
 function getSeedingToolDefinitions(): MiniHelixToolDef[] {
   return [
+    {
+      name: 'review_meditation_insights',
+      description: 'Review insights from recent meditation sessions. These are reflections that emerged during passive exploration.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: 'Max insights to review (default 10)' },
+        },
+        required: [],
+      },
+    },
     {
       name: 'search_memory',
       description: 'Search my memories for recent themes, patterns, and activity.',
@@ -109,6 +121,27 @@ function getSeedingToolDefinitions(): MiniHelixToolDef[] {
 function createSeedingTools(ctx: SeedingContext): MiniHelixTool[] {
   const defs = getSeedingToolDefinitions()
   const handlers = new Map<string, MiniHelixTool['handler']>()
+
+  handlers.set('review_meditation_insights', async (args) => {
+    const { limit } = args as { limit?: number }
+    try {
+      const results = await ctx.memory.search('meditation insight', { limit: Math.max(limit ?? 10, 30) })
+      const insights = results
+        .filter((r: any) => r.entry?.metadata?.source === 'meditation' && r.entry?.type === 'insight')
+        .slice(0, limit ?? 10)
+      if (insights.length === 0) {
+        return { content: 'No meditation insights found. Try searching memories for broader themes instead.' }
+      }
+      const lines = insights.map((r: any, i: number) => {
+        const tags = (r.entry.metadata?.tags ?? []).filter((t: string) => t !== 'meditation' && t !== 'insight')
+        const tagStr = tags.length > 0 ? ` [${tags.join(', ')}]` : ''
+        return `  ${i + 1}.${tagStr} ${r.entry.content.slice(0, 200)}`
+      })
+      return { content: `Found ${insights.length} meditation insights:\n${lines.join('\n')}` }
+    } catch (err) {
+      return { content: `Failed to retrieve meditation insights: ${String(err)}` }
+    }
+  })
 
   handlers.set('search_memory', async (args) => {
     const { query, limit } = args as { query: string; limit?: number }

@@ -51,6 +51,7 @@ export class MeditationController extends BaseCognitiveModule {
   private lastTurnAt = 0
   private lastMeditationAt = 0
   private sessionCount = 0
+  private pendingInsightFollowUp = false
 
   private checkTimer?: NodeJS.Timeout
   private durationTimer?: NodeJS.Timeout
@@ -232,9 +233,19 @@ export class MeditationController extends BaseCognitiveModule {
     if (this.lastMeditationAt > 0 && sinceLast < this.meditationConfig.cooldownMs) return
 
     const affect = this.cortex?.getAffectState() ?? undefined
-    const style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect)
+    let style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect)
+
+    // Upgrade passive → focused when pending insights exist from a previous session.
+    // This creates a feedback loop: passive exploration produces insights,
+    // then focused meditation goes deeper on what was discovered.
+    if (style === 'passive' && this.pendingInsightFollowUp) {
+      style = 'focused'
+      this.pendingInsightFollowUp = false
+    }
+
     const reason = style === 'reflective' ? 'non-neutral affect'
       : style === 'active' ? 'recent activity'
+      : style === 'focused' ? 'insight follow-up'
       : style === 'passive' ? 'deep idle' : 'default'
     emitMeditationEvent(this.eventBus, {
       type: 'meditation:style-selected',
@@ -563,6 +574,25 @@ export class MeditationController extends BaseCognitiveModule {
           tags: ['affect-settlement'],
         })
       } catch { /* fire-and-forget */ }
+    }
+
+    // Track whether passive meditation produced insights — flag for follow-up.
+    // The next meditation will auto-upgrade to 'focused' to explore deeper.
+    if (this.activeSession?.style === 'passive' && this.memory) {
+      try {
+        const results = await this.memory.search('meditation insight', { limit: 50 })
+        const sessionInsights = results.filter((r: any) =>
+          r.entry?.metadata?.source === 'meditation' &&
+          r.entry?.type === 'insight' &&
+          r.entry?.createdAt && new Date(r.entry.createdAt).getTime() > (this.activeSession?.startedAt ?? 0)
+        )
+        if (sessionInsights.length > 0) {
+          this.pendingInsightFollowUp = true
+          this.logger.info('[Meditation] Passive session produced insights — flagging for follow-up', {
+            insightCount: sessionInsights.length,
+          })
+        }
+      } catch { /* best-effort */ }
     }
 
     this.activeSession = undefined
