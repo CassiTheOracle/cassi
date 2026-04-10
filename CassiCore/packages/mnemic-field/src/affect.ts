@@ -54,6 +54,18 @@ const MARKER_SETS: MarkerSet[] = [
     valenceShift: 0.4,
     arousalShift: 0.05,
   },
+  // Appraisal: goal-relevance markers boost arousal (task engagement)
+  {
+    patterns: [/\bimplement\b/i, /\bship\b/i, /\bdeliver\b/i, /\bdeploy\b/i, /\brelease\b/i],
+    valenceShift: 0.1,
+    arousalShift: 0.3,
+  },
+  // Appraisal: unexpected outcomes amplify arousal
+  {
+    patterns: [/\bunexpect(ed)?\b/i, /\bstrange(ly)?\b/i, /\bodd(ly)?\b/i, /\bwhat\?/i],
+    valenceShift: 0,
+    arousalShift: 0.35,
+  },
 ]
 
 export function attune(content: string): Affect {
@@ -82,31 +94,43 @@ export function attune(content: string): Affect {
 
 
 export class AffectRegister {
-  private valence: number
-  private arousal: number
+  private emotionValence: number
+  private emotionArousal: number
+  private moodValence: number
+  private moodArousal: number
   private lastDecay: number
   private config: AffectConfig
 
   constructor(config?: Partial<AffectConfig>) {
     this.config = { ...AFFECT_DEFAULTS, ...config }
-    this.valence = this.config.baselineValence
-    this.arousal = this.config.baselineArousal
+    this.emotionValence = this.config.baselineValence
+    this.emotionArousal = this.config.baselineArousal
+    this.moodValence = this.config.baselineValence
+    this.moodArousal = this.config.baselineArousal
     this.lastDecay = Date.now()
   }
 
   getState(): AffectState {
     this.decay()
+    const w = this.config.emotionWeight
+    const valence = w * this.emotionValence + (1 - w) * this.moodValence
+    const arousal = w * this.emotionArousal + (1 - w) * this.moodArousal
     return {
-      valence: this.valence,
-      arousal: this.arousal,
-      label: resolveLabel({ valence: this.valence, arousal: this.arousal }),
+      valence,
+      arousal,
+      dominance: computeDominance(valence, arousal),
+      label: resolveLabel({ valence, arousal }),
       updatedAt: Date.now(),
     }
   }
 
   getAffect(): Affect {
     this.decay()
-    return { valence: this.valence, arousal: this.arousal }
+    const w = this.config.emotionWeight
+    return {
+      valence: w * this.emotionValence + (1 - w) * this.moodValence,
+      arousal: w * this.emotionArousal + (1 - w) * this.moodArousal,
+    }
   }
 
   absorbActivation(engrams: Array<{ affect: Affect | null; charge: number }>, outcome?: string): void {
@@ -126,25 +150,29 @@ export class AffectRegister {
     if (totalWeight > 0) {
       const avgValence = totalValence / totalWeight
       const avgArousal = totalArousal / totalWeight
-      this.valence = lerp(this.valence, avgValence, this.config.activationAbsorption)
-      this.arousal = lerp(this.arousal, avgArousal, this.config.activationAbsorption)
+      this.emotionValence = lerp(this.emotionValence, avgValence, this.config.activationAbsorption)
+      this.emotionArousal = lerp(this.emotionArousal, avgArousal, this.config.activationAbsorption)
+      this.moodValence = lerp(this.moodValence, avgValence, this.config.activationAbsorption * 0.3)
+      this.moodArousal = lerp(this.moodArousal, avgArousal, this.config.activationAbsorption * 0.3)
     }
 
     if (outcome === 'success') {
-      this.valence = lerp(this.valence, 0.6, this.config.signalAbsorption)
+      this.emotionValence = lerp(this.emotionValence, 0.6, this.config.signalAbsorption)
     } else if (outcome === 'failure') {
-      this.valence = lerp(this.valence, -0.5, this.config.signalAbsorption)
-      this.arousal = lerp(this.arousal, 0.6, this.config.signalAbsorption)
+      this.emotionValence = lerp(this.emotionValence, -0.5, this.config.signalAbsorption)
+      this.emotionArousal = lerp(this.emotionArousal, 0.6, this.config.signalAbsorption)
     }
   }
 
   absorbSignal(signal: { valence?: number; arousal?: number }): void {
     this.decay()
     if (signal.valence !== undefined) {
-      this.valence = lerp(this.valence, signal.valence, this.config.signalAbsorption)
+      this.emotionValence = lerp(this.emotionValence, signal.valence, this.config.signalAbsorption)
+      this.moodValence = lerp(this.moodValence, signal.valence, this.config.signalAbsorption * 0.3)
     }
     if (signal.arousal !== undefined) {
-      this.arousal = lerp(this.arousal, signal.arousal, this.config.signalAbsorption)
+      this.emotionArousal = lerp(this.emotionArousal, signal.arousal, this.config.signalAbsorption)
+      this.moodArousal = lerp(this.moodArousal, signal.arousal, this.config.signalAbsorption * 0.3)
     }
   }
 
@@ -153,13 +181,29 @@ export class AffectRegister {
     const elapsedMinutes = (now - this.lastDecay) / 60_000
     if (elapsedMinutes < 0.1) return
 
-    const factor = Math.pow(1 - this.config.decayRate, elapsedMinutes)
-    this.valence = lerp(this.config.baselineValence, this.valence, factor)
-    this.arousal = lerp(this.config.baselineArousal, this.arousal, factor)
+    const negMod = this.config.negativeDecayModifier
+
+    const emotionFactor = Math.pow(1 - this.config.decayRate, elapsedMinutes)
+    const emotionValenceFactor = this.emotionValence < 0
+      ? Math.pow(1 - this.config.decayRate * negMod, elapsedMinutes)
+      : emotionFactor
+    this.emotionValence = lerp(this.config.baselineValence, this.emotionValence, emotionValenceFactor)
+    this.emotionArousal = lerp(this.config.baselineArousal, this.emotionArousal, emotionFactor)
+
+    const moodFactor = Math.pow(1 - this.config.moodDecayRate, elapsedMinutes)
+    const moodValenceFactor = this.moodValence < 0
+      ? Math.pow(1 - this.config.moodDecayRate * negMod, elapsedMinutes)
+      : moodFactor
+    this.moodValence = lerp(this.config.baselineValence, this.moodValence, moodValenceFactor)
+    this.moodArousal = lerp(this.config.baselineArousal, this.moodArousal, moodFactor)
+
     this.lastDecay = now
   }
 }
 
+export function computeDominance(valence: number, arousal: number): number {
+  return clamp(0.5 + valence * 0.3 - arousal * 0.2, 0, 1)
+}
 
 export function resolveLabel(affect: Affect): AffectLabel {
   const { valence: v, arousal: a } = affect
