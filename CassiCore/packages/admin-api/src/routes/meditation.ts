@@ -4,8 +4,9 @@
  * Endpoints for controlling and observing the meditation system.
  *
  *   GET  /meditation/status       — current meditation state and session info
- *   GET  /meditation/live         — compact live observability: last 3 steps per explorer, self-awareness
+ *   GET  /meditation/live         — compact live observability: last 3 steps per explorer, self-awareness, insights
  *   GET  /meditation/live/full   — untruncated full stream of every explorer step
+ *   GET  /meditation/insights     — meditation insights stored in memory (most recent first)
  *   GET  /meditation/self-awareness — all self-awareness detections with full context
  *   GET  /meditation/prompts      — all prompts with Thompson params and scores
  *   GET  /meditation/leaderboard  — prompts ranked by avg score + category stats
@@ -138,6 +139,40 @@ export async function handleMeditationRoutes(
       return true
     } catch (err) {
       logger.warn('Meditation self-awareness endpoint failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/insights — meditation insights from memory (most recent first)
+  if (method === 'GET' && parts.length === 2 && parts[1] === 'insights') {
+    try {
+      const mem = daemon.intelligence?.memory
+      if (!mem) {
+        sendJSON(res, 503, { error: 'Memory system not available' })
+        return true
+      }
+      const limitParam = url.searchParams.get('limit')
+      const limit = limitParam ? parseInt(limitParam, 10) : 20
+      // Fetch a generous window of recent entries then filter to meditation insights
+      const recent = await mem.getRecent(200)
+      const insights = recent
+        .filter((e: any) => e.metadata?.source === 'meditation' && e.type === 'insight')
+        .slice(0, limit)
+        .map((e: any) => ({
+          id: e.id,
+          content: e.content,
+          tags: e.metadata?.tags?.filter((t: string) => t !== 'meditation' && t !== 'insight') ?? [],
+          importance: e.metadata?.importance ?? 5,
+          createdAt: e.createdAt,
+        }))
+      sendJSON(res, 200, {
+        count: insights.length,
+        insights,
+      })
+      return true
+    } catch (err) {
+      logger.warn('Meditation insights endpoint failed', { error: String(err) })
       sendJSON(res, 500, { error: String(err) })
       return true
     }
@@ -281,6 +316,25 @@ export async function handleMeditationRoutes(
           reasoningMatch: d.reasoningMatch?.label ?? null,
           excerpt: d.reasoningMatch?.excerpt ?? d.fullReasoning.slice(0, 200),
         }))
+      }
+
+      // Meditation insights from memory
+      const mem = daemon.intelligence?.memory
+      if (mem) {
+        try {
+          const recent = await mem.getRecent(100)
+          const insights = recent
+            .filter((e: any) => e.metadata?.source === 'meditation' && e.type === 'insight')
+            .slice(0, 5)
+            .map((e: any) => ({
+              content: e.content,
+              tags: e.metadata?.tags?.filter((t: string) => t !== 'meditation' && t !== 'insight') ?? [],
+              createdAt: e.createdAt,
+            }))
+          if (insights.length > 0) live.insights = insights
+        } catch {
+          // best-effort — don't fail the live endpoint if memory search fails
+        }
       }
 
       sendJSON(res, 200, { state, live })
