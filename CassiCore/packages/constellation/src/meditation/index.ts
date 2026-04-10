@@ -173,8 +173,12 @@ export class MeditationController extends BaseCognitiveModule {
    * When followUp is true, forces focused style and seeds from previous
    * meditation insights — same as the automatic passive→focused upgrade
    * but triggered manually.
+   *
+   * When modelTier is specified, overrides the default model tier for all
+   * explorers (e.g., 'opus' for deep introspection).
    */
-  async triggerMeditation(style?: MeditationStyle, followUp?: boolean): Promise<MeditationSession | null> {
+  async triggerMeditation(style?: MeditationStyle, followUp?: boolean, modelTier?: string): Promise<MeditationSession | null> {
+    this.logger.info('[Meditation] triggerMeditation called', { style, followUp, modelTier })
     if (this.state === 'meditating') {
       this.logger.info('[Meditation] Already meditating — ignoring trigger')
       return this.activeSession ?? null
@@ -187,10 +191,10 @@ export class MeditationController extends BaseCognitiveModule {
 
     if (followUp) {
       this.pendingInsightFollowUp = true
-      return this.startMeditation('focused')
+      return this.startMeditation('focused', modelTier)
     }
 
-    return this.startMeditation(style)
+    return this.startMeditation(style, modelTier)
   }
 
 
@@ -269,7 +273,8 @@ export class MeditationController extends BaseCognitiveModule {
   }
 
 
-  private async startMeditation(style?: MeditationStyle): Promise<MeditationSession | null> {
+  private async startMeditation(style?: MeditationStyle, modelTier?: string): Promise<MeditationSession | null> {
+    this.logger.info('[Meditation] startMeditation called', { style, modelTier })
     if (!this.orchestrator) return null
 
     const constellationId = `meditation-${Date.now()}`
@@ -303,7 +308,13 @@ export class MeditationController extends BaseCognitiveModule {
     const postures = basePostures.map((posture, i) => {
       const picked = pickedPrompts[i]
       promptAssignments.push({ explorer: posture.name, promptId: picked.id, prompt: picked.prompt })
-      return { ...posture, instruction: picked.prompt }
+      const enhanced = { ...posture, instruction: picked.prompt }
+      // Override model tier when explicitly specified (e.g., 'opus' for deep introspection)
+      if (modelTier && enhanced.capabilities) {
+        enhanced.capabilities = { ...enhanced.capabilities, modelTier: modelTier as any }
+        this.logger.info('[Meditation] Overriding model tier', { explorer: posture.name, modelTier })
+      }
+      return enhanced
     })
 
     // Focused mode: seed the mnemic field before launching explorers
@@ -370,7 +381,9 @@ export class MeditationController extends BaseCognitiveModule {
         goal: 'Explore.',
         postures,
         sessionId: constellationId,
-        costEffective: true,
+        // Disable cost-effective when custom model tier is specified — the user
+        // explicitly chose a premium model (e.g., opus) and expects it to be used.
+        costEffective: !modelTier,
         maxHelixes: this.meditationConfig.maxConcurrentHelixes,
         maxDepth: 1,
         maxTotalSteps: this.meditationConfig.maxTotalSteps,
