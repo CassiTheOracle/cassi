@@ -45,6 +45,7 @@ import type { ILogger, IEventBus } from "../../../types/interfaces.js";
 import type { IProvider } from "../../../types/runtime.js";
 import type { SessionDigestStore } from "../session-digest.js";
 import type { ModuleSessionRegistry } from "../module-session-registry.js";
+import type { CorticalField } from "../cortex/index.js";
 
 export type { SubconsciousConfig } from "./types.js";
 
@@ -63,7 +64,7 @@ export class Subconscious {
   private eventBus?: IEventBus;
   private digestStore?: SessionDigestStore;
   private memory?: IMemory;
-  private cortex?: import('../cortex/index.js').CorticalField;
+  private cortex?: CorticalField;
   /** Callback to retrieve live session IDs from the SessionManager for periodic reconciliation. */
   private liveSessionGetter?: () => Array<{ sessionId: string; startedAt: number; lastActivityAt?: number; turnCount?: number }>;
 
@@ -119,7 +120,7 @@ export class Subconscious {
     void this.systemModel.hydrate();
   }
 
-  setCortex(cortex: import('../cortex/index.js').CorticalField): void {
+  setCortex(cortex: CorticalField): void {
     this.cortex = cortex
     this.llmObserver.setCortex(cortex)
   }

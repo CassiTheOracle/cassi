@@ -29,6 +29,7 @@ import type { IProvider, Message } from "../../../types/runtime.js";
 import type { ModuleSessionRegistry } from "../module-session-registry.js";
 import type { GlobalBlackboardRegistry } from "../flux-team/global-blackboard-registry.js";
 import type { BlackboardChannel } from "../../../types/flux-team.js";
+import type { CorticalField } from "../cortex/index.js";
 
 
 
@@ -40,7 +41,7 @@ export class LLMObserver {
   private memory?: IMemory;
   private moduleRegistry?: ModuleSessionRegistry;
   private globalBlackboardRegistry?: GlobalBlackboardRegistry;
-  private cortex?: import('../cortex/index.js').CorticalField;
+  private cortex?: CorticalField;
 
   private timer?: NodeJS.Timeout;
   private lastSweepAt = 0;
@@ -91,7 +92,7 @@ export class LLMObserver {
     this.globalBlackboardRegistry = registry;
   }
 
-  setCortex(cortex: import('../cortex/index.js').CorticalField): void {
+  setCortex(cortex: CorticalField): void {
     this.cortex = cortex
   }
 
