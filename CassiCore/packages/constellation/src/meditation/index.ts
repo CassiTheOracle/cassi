@@ -39,6 +39,7 @@ import type { ConstellationRegistry } from '../constellation-injection.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { CorticalField } from '../../cortex/index.js'
+import type { ICorpusTree } from '../corpus-types.js'
 
 
 export class MeditationController extends BaseCognitiveModule {
@@ -56,6 +57,7 @@ export class MeditationController extends BaseCognitiveModule {
   private checkTimer?: NodeJS.Timeout
   private durationTimer?: NodeJS.Timeout
   private activeSession?: MeditationSession
+  private activeTree?: ICorpusTree
   private mnemicBridge?: MnemicBridge
 
   private orchestrator?: ConstellationOrchestrator
@@ -419,7 +421,8 @@ export class MeditationController extends BaseCognitiveModule {
     for (let i = 0; i < 20; i++) {
       const liveTree = this.orchestrator.getLiveTree(constellationId)
       if (liveTree) {
-        this.logger.info('[Meditation] Live CorpusTree available — starting MnemicBridge with self-awareness detection')
+        this.logger.info('[Meditation] Live corpusTree available — starting MnemicBridge with self-awareness detection')
+        this.activeTree = liveTree
         const bridge = new MnemicBridge(this.mnemicField, liveTree, this.logger, undefined, this.eventBus)
         bridge.start()
         return bridge
@@ -445,10 +448,10 @@ export class MeditationController extends BaseCognitiveModule {
       this.durationTimer = undefined
     }
 
-    // Capture tree reference BEFORE cleanup — evaluation needs it alive
-    const tree = constellationId && this.orchestrator
-      ? this.orchestrator.getLiveTree(constellationId)
-      : undefined
+    // Capture tree reference BEFORE cleanup — evaluation needs it alive.
+    // Use the reference captured when the MnemicBridge started, since the
+    // orchestrator's .finally() deletes the running entry before our .then() fires.
+    const tree = this.activeTree
 
     // Collect MnemicBridge stats before stopping
     if (this.mnemicBridge) {
@@ -624,6 +627,7 @@ export class MeditationController extends BaseCognitiveModule {
     }
 
     this.activeSession = undefined
+    this.activeTree = undefined
     this.state = 'idle'
   }
 }
