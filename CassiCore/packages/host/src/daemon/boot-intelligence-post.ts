@@ -6,6 +6,7 @@ import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
 import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
+import { LocusBridgeInjectionSource } from '../intelligence/locus-bridge/locus-bridge-injection.js'
 
 import type { IEventBus, IConfig, ILogger, IPluginHost } from '../../types/interfaces.js'
 import type { IntelligenceLayer } from '../intelligence/index.js'
@@ -83,6 +84,16 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       intelligence.injectionAggregator.register(new SkillEffectivenessSource(skillTracker))
       logger.info('Skill effectiveness injection source registered')
     }
+
+    // Register LocusBridge injection source (curated context from attentional foci)
+    if (intelligence.locusBridge) {
+      const locusSource = new LocusBridgeInjectionSource(
+        intelligence.locusBridge,
+        logger.child('locus-bridge-injection'),
+      )
+      intelligence.injectionAggregator.register(locusSource)
+      logger.info('LocusBridge injection source registered')
+    }
   } catch (err) {
     logger.warn(`Failed to wire InjectionAggregator: ${String(err)}`)
   }
@@ -92,6 +103,15 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.info('ThoughtObserver wired to event bus')
   } catch (err) {
     logger.warn(`Failed to wire ThoughtObserver: ${String(err)}`)
+  }
+
+  try {
+    if (intelligence.locusBridge) {
+      intelligence.locusBridge.onEventBus(bus)
+      logger.info('LocusBridge wired to event bus')
+    }
+  } catch (err) {
+    logger.warn(`Failed to wire LocusBridge to event bus: ${String(err)}`)
   }
 
   try {
