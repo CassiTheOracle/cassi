@@ -1,8 +1,9 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { CorticalField } from '../intelligence/cortex/index.js'
-import type { SignalType } from '../intelligence/cortex/types.js'
+import type { SignalType, SignalState } from '../intelligence/cortex/types.js'
 import { SIGNAL_TYPES } from '../intelligence/cortex/types.js'
+import { computeActivation } from '../intelligence/cortex/signal.js'
 
 interface CortexDeps {
   daemon: any
@@ -13,6 +14,12 @@ interface CortexDeps {
 
 function getCortex(daemon: any): CorticalField | undefined {
   return daemon?.intelligence?.cortex
+}
+
+function extractPathParam(pathname: string, prefix: string): string | undefined {
+  if (!pathname.startsWith(prefix)) return undefined
+  const param = pathname.slice(prefix.length)
+  return param && !param.includes('/') ? decodeURIComponent(param) : undefined
 }
 
 export async function handleCortexRoutes(
@@ -31,6 +38,8 @@ export async function handleCortexRoutes(
     deps.sendJSON(res, 503, { error: 'CorticalField not available' })
     return true
   }
+
+  // --- Existing endpoints ---
 
   if (method === 'POST' && pathname === '/cortex/signal') {
     const body = await deps.parseBody(req)
@@ -149,6 +158,151 @@ export async function handleCortexRoutes(
   if (method === 'GET' && pathname === '/cortex/affect') {
     const affect = cortex.getAffectState()
     deps.sendJSON(res, 200, affect ?? { valence: 0, arousal: 0, dominance: 0.5, label: 'neutral' })
+    return true
+  }
+
+  // --- Observability endpoints ---
+
+  if (method === 'GET' && pathname === '/cortex/stats') {
+    deps.sendJSON(res, 200, cortex.getStats())
+    return true
+  }
+
+  if (method === 'GET' && pathname === '/cortex/oscillation/history') {
+    const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : 50
+    const history = cortex.getOscillationHistory(limit)
+    deps.sendJSON(res, 200, {
+      count: history.length,
+      entries: history,
+    })
+    return true
+  }
+
+  // GET /cortex/region/:name — detailed view of a single region
+  const regionParam = extractPathParam(pathname, '/cortex/region/')
+  if (method === 'GET' && regionParam) {
+    const detail = cortex.getRegionDetail(regionParam)
+    if (!detail) {
+      deps.sendJSON(res, 404, { error: `Region not found: ${regionParam}` })
+      return true
+    }
+    deps.sendJSON(res, 200, detail)
+    return true
+  }
+
+  // GET /cortex/signal/:id — detailed view of a single signal
+  const signalParam = extractPathParam(pathname, '/cortex/signal/')
+  if (method === 'GET' && signalParam) {
+    const detail = cortex.getSignalDetail(signalParam)
+    if (!detail) {
+      deps.sendJSON(res, 404, { error: `Signal not found: ${signalParam}` })
+      return true
+    }
+    deps.sendJSON(res, 200, detail)
+    return true
+  }
+
+  if (method === 'GET' && pathname === '/cortex/signals/search') {
+    const region = url.searchParams.get('region') ?? undefined
+    const type = url.searchParams.get('type') as SignalType | undefined
+    const state = url.searchParams.get('state') as SignalState | undefined
+    const author = url.searchParams.get('author') ?? undefined
+    const tagsRaw = url.searchParams.get('tags')
+    const tags = tagsRaw ? tagsRaw.split(',') : undefined
+    const sessionId = url.searchParams.get('sessionId') ?? undefined
+    const content = url.searchParams.get('content') ?? undefined
+    const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : 50
+
+    const signals = cortex.searchSignals({ region, type, state, author, tags, sessionId, content, limit })
+    const now = Date.now()
+    deps.sendJSON(res, 200, {
+      count: signals.length,
+      signals: signals.map(s => ({
+        id: s.id,
+        region: s.region,
+        type: s.type,
+        content: s.content,
+        author: s.author,
+        salience: s.salience,
+        activation: computeActivation(s, now),
+        valence: s.valence,
+        confidence: s.confidence,
+        state: s.state,
+        tags: s.tags,
+        bindings: s.bindings.length,
+        sessionId: s.sessionId,
+        createdAt: s.createdAt,
+      })),
+    })
+    return true
+  }
+
+  if (method === 'GET' && pathname === '/cortex/signals/consolidated') {
+    const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : 20
+    const signals = cortex.getConsolidated(limit)
+    const now = Date.now()
+    deps.sendJSON(res, 200, {
+      count: signals.length,
+      signals: signals.map(s => ({
+        id: s.id,
+        region: s.region,
+        type: s.type,
+        content: s.content,
+        author: s.author,
+        salience: s.salience,
+        activation: computeActivation(s, now),
+        tags: s.tags,
+        bindings: s.bindings.length,
+        consolidatedAt: s.consolidatedAt,
+        createdAt: s.createdAt,
+      })),
+    })
+    return true
+  }
+
+  if (method === 'GET' && pathname === '/cortex/signals/fading') {
+    const limit = url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : 20
+    const signals = cortex.getFading(limit)
+    const now = Date.now()
+    deps.sendJSON(res, 200, {
+      count: signals.length,
+      signals: signals.map(s => ({
+        id: s.id,
+        region: s.region,
+        type: s.type,
+        content: s.content,
+        author: s.author,
+        salience: s.salience,
+        activation: computeActivation(s, now),
+        tags: s.tags,
+        bindings: s.bindings.length,
+        createdAt: s.createdAt,
+      })),
+    })
+    return true
+  }
+
+  // GET /cortex/session/:id — detailed view of a session's working memory
+  const sessionParam = extractPathParam(pathname, '/cortex/session/')
+  if (method === 'GET' && sessionParam) {
+    const detail = cortex.getSessionDetail(sessionParam)
+    if (!detail) {
+      deps.sendJSON(res, 404, { error: `Session not found: ${sessionParam}` })
+      return true
+    }
+    deps.sendJSON(res, 200, detail)
+    return true
+  }
+
+  // GET /cortex/tract/:id — detailed view of a single tract
+  const tractParam = extractPathParam(pathname, '/cortex/tract/')
+  if (method === 'GET' && tractParam) {
+    const tract = cortex.getTract(tractParam)
+    if (!tract) {
+      deps.sendJSON(res, 404, { error: `Tract not found: ${tractParam}` })
+      return true
+    }
+    deps.sendJSON(res, 200, tract)
     return true
   }
 
