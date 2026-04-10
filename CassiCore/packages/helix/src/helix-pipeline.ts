@@ -122,6 +122,18 @@ export interface HelixPipelineOpts {
   reviewerContext?: string
 
   /**
+   * Override tool access levels for each posture.
+   * When set, these replace the hardcoded posture defaults (e.g., full for unity).
+   * Used by Constellation to enforce template-defined access levels
+   * (e.g., read-only for meditation explorers).
+   */
+  toolAccessOverrides?: {
+    unity?: import('../constellation/types.js').ToolAccessLevel
+    yang?: import('../constellation/types.js').ToolAccessLevel
+    yin?: import('../constellation/types.js').ToolAccessLevel
+  }
+
+  /**
    * Tool filter for this Helix session.
    * Applied on top of posture-level tool access.
    */
@@ -316,7 +328,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     handle: opts.unityHandle,
     posture: UNITY_POSTURE,
     postureSlot: 'helix.unity',
-    flexToolAccess: UNITY_POSTURE.toolAccess,
+    flexToolAccess: opts.toolAccessOverrides?.unity ?? UNITY_POSTURE.toolAccess,
     contextBudgetCoordinator,
     brainstem,
     contextChunkIndex: unityChunkIndex,
@@ -328,7 +340,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     handle: opts.yangHandle,
     posture: YANG_REVIEWER_POSTURE,
     postureSlot: 'helix.yang',
-    flexToolAccess: YANG_REVIEWER_POSTURE.toolAccess,
+    flexToolAccess: opts.toolAccessOverrides?.yang ?? YANG_REVIEWER_POSTURE.toolAccess,
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
@@ -341,7 +353,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     handle: opts.yinHandle,
     posture: YIN_REVIEWER_POSTURE,
     postureSlot: 'helix.yin',
-    flexToolAccess: YIN_REVIEWER_POSTURE.toolAccess,
+    flexToolAccess: opts.toolAccessOverrides?.yin ?? YIN_REVIEWER_POSTURE.toolAccess,
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
