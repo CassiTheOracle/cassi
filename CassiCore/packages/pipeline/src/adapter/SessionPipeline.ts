@@ -59,6 +59,7 @@ export interface SessionPipelineOptions {
     dialectic: DialecticSystem;
     thinker: ThinkerModule;
     subconscious: SubconsciousModule;
+    locusBridge?: { sparkFromUserPrompt(sessionId: string, content: string, goal?: string): unknown };
   };
   eventBus?: IEventBus;
   /** Unified injection aggregator for Corpus, SessionDigest, Optimizer, Dreamer, etc. */
@@ -381,6 +382,15 @@ export class SessionPipeline {
         error: String(err),
       });
     }
+
+    // Submit user prompt spark to LocusBridge before injection aggregation
+    // so the curated context includes the current turn's attentional focus
+    try {
+      const locusBridge = this.options.intelligence?.locusBridge;
+      if (locusBridge && typeof locusBridge.sparkFromUserPrompt === 'function') {
+        locusBridge.sparkFromUserPrompt(session.id, content);
+      }
+    } catch { /* non-blocking */ }
 
     // Apply InjectionAggregator injections (Corpus, SessionDigest, Optimizer, Dreamer, etc.)
     if (this.options.injectionAggregator) {
