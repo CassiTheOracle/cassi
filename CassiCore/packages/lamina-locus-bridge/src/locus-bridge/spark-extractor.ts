@@ -30,11 +30,9 @@ export const BASE_URGENCY: Record<BridgeSparkType, number> = {
   'code-reference': 0.50,
   'memory-recall': 0.40,
   'compaction-recovery': 0.85,
+  'reasoning_block': 0.55,
 }
 
-/**
- * Base novelty scores by bridge spark type.
- */
 export const BASE_NOVELTY: Record<BridgeSparkType, number> = {
   'user-intent': 0.75,
   'tool-discovery': 0.70,
@@ -42,6 +40,7 @@ export const BASE_NOVELTY: Record<BridgeSparkType, number> = {
   'code-reference': 0.55,
   'compaction-recovery': 0.50,
   'memory-recall': 0.45,
+  'reasoning_block': 0.80,
 }
 
 
@@ -169,23 +168,44 @@ export class BridgeSparkExtractor {
    * Create a compaction-recovery spark from current focus state.
    * Preserves attentional state across compaction events.
    */
-  fromCompactionRecovery(
-    sessionId: string,
-    focusSummary: string,
-    relevantFiles: string[],
-  ): BridgeSpark {
-    return this.createSpark(
-      sessionId,
-      `Recovery: ${focusSummary}`,
-      'compaction-recovery',
-      focusSummary,
-      relevantFiles,
-    )
-  }
+   fromCompactionRecovery(
+     sessionId: string,
+     focusSummary: string,
+     relevantFiles: string[],
+   ): BridgeSpark {
+     return this.createSpark(
+       sessionId,
+       `Recovery: ${focusSummary}`,
+       'compaction-recovery',
+       focusSummary,
+       relevantFiles,
+     )
+   }
 
-  /**
-   * Reset counter (for testing).
-   */
+   /**
+    * Extract a spark from assistant reasoning content.
+    * Captures the assistant's active thinking as attentional focus.
+    */
+   fromReasoning(
+     sessionId: string,
+     content: string,
+     goal?: string,
+   ): BridgeSpark {
+     const files = this.extractFileReferences(content)
+     const summary = this.summarizeContent(content, 300)
+
+     return this.createSpark(
+       sessionId,
+       summary,
+       'reasoning_block',
+       goal ?? summary,
+       files,
+     )
+   }
+
+   /**
+    * Reset counter (for testing).
+    */
   reset(): void {
     sparkCounter = 0
   }

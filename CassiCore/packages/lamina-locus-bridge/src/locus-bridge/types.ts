@@ -22,6 +22,7 @@ export type BridgeSparkType =
   | 'code-reference'           // Code file referenced or modified
   | 'constellation-radiance'   // Forwarded from active Constellation
   | 'compaction-recovery'      // Focus state preserved across compaction
+  | 'reasoning_block'          // Assistant reasoning/thinking content
 
 
 /**
