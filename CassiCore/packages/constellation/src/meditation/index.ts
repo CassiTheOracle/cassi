@@ -520,6 +520,48 @@ export class MeditationController extends BaseCognitiveModule {
       this.mnemicBridge = undefined
     }
 
+    // SoloRunner path: spike related engrams and consolidate directly via MnemicField.
+    // The MnemicBridge is only used by the old Constellation path — SoloRunners
+    // store insights via the store_insight tool, but without spiking or consolidation.
+    if (!this.mnemicBridge && this.mnemicField && this.meditationConfig.consolidateOnComplete) {
+      try {
+        // Spike engrams related to this session's prompts to reinforce associations
+        const prompts = this.activeSession?.prompts?.map(p => p.prompt) ?? []
+        let spiked = 0
+        for (const prompt of prompts) {
+          try {
+            const hits = this.mnemicField.searchText(prompt, 10)
+            for (const hit of hits.filter(h => h.score >= 0.3).slice(0, 5)) {
+              this.mnemicField.spike({
+                engramId: hit.engram.id,
+                magnitude: 0.5,
+                taskContext: `meditation:${constellationId}`,
+                outcome: 'unknown' as const,
+              })
+              spiked++
+            }
+          } catch {
+            // best-effort spiking
+          }
+        }
+        if (spiked > 0) {
+          if (this.activeSession) this.activeSession.engrams.spiked = spiked
+          this.logger.info('[Meditation] Post-session spiking complete', { spiked })
+        }
+
+        // Run consolidation on the mnemic field
+        const result = this.mnemicField.consolidate()
+        if (this.activeSession) this.activeSession.consolidations = 1
+        this.logger.info('[Meditation] Post-session consolidation complete', {
+          potentiationUpdates: result.potentiationUpdates,
+          nuclei: result.nucleiDetected,
+          abstractions: result.abstractionsCreated,
+        })
+      } catch (err) {
+        this.logger.warn('[Meditation] Post-session mnemic processing failed', { error: String(err) })
+      }
+    }
+
     // Post-session evaluation — runs for any stop reason if session ran long enough.
     // Very short sessions or error-only sessions won't have enough tree data
     // for meaningful evaluation. The duration threshold prevents wasted LLM calls.
