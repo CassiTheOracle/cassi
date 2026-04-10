@@ -1569,7 +1569,7 @@ export class Daemon {
         const qwenPlusCfg= directive ? directive.resolveTier('qwenPlus'): { provider: 'alibaba-coding', model: 'qwen3.6-plus' }
         const bgConfig   = directive ? directive.resolveTier('background'): { provider: 'github-copilot', model: 'gpt-5-mini' }
         const claudeHaikuCfg  = directive ? directive.resolveTier('background') : { provider: 'claude-code', model: 'claude-haiku-4-5' }
-        const claudeSonnetCfg = { provider: 'claude-code', model: 'claude-sonnet-4-6' }
+
 
         const makeHelixChain = (slot: string, tierCfg: { provider: string; model: string }) => ({
           slotName: slot,
@@ -1591,8 +1591,8 @@ export class Daemon {
         const miniHelixCorpusChain = {
           slotName: 'mini-helix:corpus',
           chain: [
-            { role: 'mini-helix:corpus', provider: claudeSonnetCfg.provider, model: claudeSonnetCfg.model, priority: 10 },
-            { role: 'mini-helix:corpus', provider: claudeHaikuCfg.provider, model: claudeHaikuCfg.model, priority: 5 },
+            { role: 'mini-helix:corpus', provider: qwenPlusCfg.provider, model: qwenPlusCfg.model, priority: 10 },
+            { role: 'mini-helix:corpus', provider: bgConfig.provider, model: bgConfig.model, priority: 5 },
           ],
           triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
         }
