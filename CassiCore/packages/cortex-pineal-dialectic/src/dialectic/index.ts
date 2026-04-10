@@ -140,6 +140,7 @@ export class DialecticSystem implements IDialecticSystem {
   private provider?: IProvider;
   private moduleRegistry?: ModuleSessionRegistry;
   private globalBlackboardRegistry?: GlobalBlackboardRegistry;
+  private cortex?: import('../cortex/index.js').CorticalField;
 
   private consolidatedProcessor: ConsolidatedDialecticProcessor;
   private promptOptimizer?: PromptOptimizer;
@@ -288,6 +289,10 @@ export class DialecticSystem implements IDialecticSystem {
   setGlobalBlackboardRegistry(registry: GlobalBlackboardRegistry): void {
     this.globalBlackboardRegistry = registry;
     this.logger.info('DialecticSystem: global blackboard registry wired');
+  }
+
+  setCortex(cortex: import('../cortex/index.js').CorticalField): void {
+    this.cortex = cortex
   }
 
   /** Post an entry to a named global board. Fire-and-forget — never throws. */
@@ -555,6 +560,25 @@ export class DialecticSystem implements IDialecticSystem {
             urgency: signal.urgency,
             timestamp: result.timestamp,
           }), { tags: ['tension', signal.type] });
+        }
+      }
+
+      if (this.cortex) {
+        const synthesis = result.serenity.synthesis
+        if (synthesis.hasSignal && synthesis.signal) {
+          const sig = synthesis.signal
+          const isThreat = sig.type === 'tension' || sig.type === 'gap' || sig.type === 'edge_case'
+          const urgencyBoost = sig.urgency === 'immediate' ? 1.0 : 0.7
+          this.cortex.signal(isThreat ? 'limbic' : 'executive', {
+            type: isThreat ? 'concern' : 'decision',
+            content: sig.content,
+            author: 'dialectic',
+            sessionId,
+            salience: Math.min(1.0, sig.confidence * urgencyBoost),
+            valence: isThreat ? -0.3 : 0.2,
+            confidence: sig.confidence,
+            tags: [sig.type],
+          })
         }
       }
 
