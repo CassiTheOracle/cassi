@@ -17,6 +17,7 @@ import { EntityLinker } from './filament-entities.js'
 import { FilamentConsolidator } from './filament-consolidation.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
 import type { AffectState } from './types.js'
+import type { CorticalField } from '../cortex/index.js'
 import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
 import { renderWithZoom } from './filament-renderer.js'
 import type { IProvider } from '../../../types/runtime.js'
@@ -88,6 +89,7 @@ export class MnemicField {
   private projectionState: ProjectionState | null = null
   private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
+  private corticalField?: CorticalField
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -534,7 +536,29 @@ export class MnemicField {
     textQuery: string | null,
     options?: KindlingOptions,
   ): LuminalSet {
-    return this.kindlingEngine.kindle(embedding, textQuery, options)
+    const result = this.kindlingEngine.kindle(embedding, textQuery, options)
+
+    if (this.corticalField && result.engrams.length > 0) {
+      try {
+        const topCharge = result.engrams[0].charge
+        this.corticalField.signal('sensory', {
+          type: 'perception',
+          content: `Mnemic retrieval: ${result.engrams.length} engrams kindled (top charge ${topCharge.toFixed(2)}, ${result.iterationsUsed} iterations, ${result.durationMs}ms)`,
+          author: 'mnemic-field',
+          salience: Math.min(0.7, topCharge * 0.5),
+          tags: ['mnemic-retrieval'],
+          structured: {
+            engramCount: result.engrams.length,
+            seedCount: result.seedCount,
+            totalCharge: result.totalCharge,
+            sparkPoint: result.sparkPoint,
+            taskComplexity: result.taskComplexity,
+          },
+        })
+      } catch { /* fire-and-forget — cortex issue should not block retrieval */ }
+    }
+
+    return result
   }
 
   /**
@@ -719,6 +743,14 @@ export class MnemicField {
 
   absorbAffectSignal(signal: { valence?: number; arousal?: number }): void {
     this.affectRegister.absorbSignal(signal)
+  }
+
+  getAffectRegister(): AffectRegister {
+    return this.affectRegister
+  }
+
+  setCorticalField(cortex: CorticalField): void {
+    this.corticalField = cortex
   }
 
   close(): void {
