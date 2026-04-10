@@ -262,7 +262,16 @@ export class MeditationController extends BaseCognitiveModule {
     if (!this.orchestrator) return null
 
     const constellationId = `meditation-${Date.now()}`
-    const resolvedStyle = style ?? this.meditationConfig.defaultStyle
+    let resolvedStyle = style ?? this.meditationConfig.defaultStyle
+
+    // Upgrade passive → focused when pending insights exist from a previous session.
+    // This applies to both auto-triggered and manual meditation starts.
+    if (resolvedStyle === 'passive' && this.pendingInsightFollowUp) {
+      resolvedStyle = 'focused'
+      this.pendingInsightFollowUp = false
+      this.logger.info('[Meditation] Upgrading to focused style — following up on previous insights')
+    }
+
     this.state = 'meditating'
 
     // Build postures with prompts — Thompson sampling when store is available, fallback otherwise
@@ -581,17 +590,24 @@ export class MeditationController extends BaseCognitiveModule {
     if (this.activeSession?.style === 'passive' && this.memory) {
       try {
         // getRecent is on MemoryModule but not in IMemory interface — cast for access
-        const recent = await (this.memory as any).getRecent?.(200) ?? []
-        const sessionInsights = recent.filter((e: any) =>
-          e.metadata?.source === 'meditation' &&
-          e.type === 'insight' &&
-          e.createdAt && new Date(e.createdAt).getTime() > (this.activeSession?.startedAt ?? 0)
-        )
-        if (sessionInsights.length > 0) {
-          this.pendingInsightFollowUp = true
-          this.logger.info('[Meditation] Passive session produced insights — flagging for follow-up', {
-            insightCount: sessionInsights.length,
-          })
+        const memAny = this.memory as any
+        if (typeof memAny.getRecent !== 'function') {
+          this.logger.warn('[Meditation] getRecent not available on memory module')
+        } else {
+          const recent = await memAny.getRecent(200)
+          this.logger.info('[Meditation] Insight check', { recentCount: recent?.length ?? 0, sessionStart: this.activeSession.startedAt })
+          const sessionInsights = (recent ?? []).filter((e: any) =>
+            e.metadata?.source === 'meditation' &&
+            e.type === 'insight' &&
+            e.createdAt && new Date(e.createdAt).getTime() > (this.activeSession?.startedAt ?? 0)
+          )
+          this.logger.info('[Meditation] Insight check results', { sessionInsights: sessionInsights.length })
+          if (sessionInsights.length > 0) {
+            this.pendingInsightFollowUp = true
+            this.logger.info('[Meditation] Passive session produced insights — flagging for follow-up', {
+              insightCount: sessionInsights.length,
+            })
+          }
         }
       } catch (err) {
         this.logger.warn('[Meditation] Insight follow-up check failed', { error: String(err) })
