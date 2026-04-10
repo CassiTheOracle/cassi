@@ -1264,7 +1264,7 @@ function handlePauseUntilTrigger(
 // Meditation Tool Handlers
 
 function handleStoreInsight(
-  args: { content: string; tags?: string[] },
+  args: { content: string; tags?: string[] | string },
   ctx: CorpusToolContext,
 ): ToolCallResult {
   if (!ctx.memory) {
@@ -1272,7 +1272,11 @@ function handleStoreInsight(
   }
 
   try {
-    const tags = ['meditation', 'insight', ...(args.tags ?? [])]
+    const rawTags = args.tags ?? []
+    const parsedTags = typeof rawTags === 'string'
+      ? rawTags.split(',').map(t => t.trim()).filter(Boolean)
+      : rawTags
+    const tags = ['meditation', 'insight', ...parsedTags]
     void ctx.memory.store({
       type: 'insight',
       content: args.content,
