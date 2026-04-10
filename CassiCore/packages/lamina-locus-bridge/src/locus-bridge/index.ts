@@ -285,6 +285,38 @@ export class LocusBridge {
     this.curator.setSignalProvider(provider)
   }
 
+  onEventBus(bus: { on(eventType: string, handler: (event: unknown) => void): void }): void {
+    bus.on('worker:message' as any, (event: unknown) => {
+      try {
+        if (!this.config.enabled) return
+        const e = event as Record<string, unknown>
+        const payload = (e?.payload ?? e) as Record<string, unknown>
+        const payloadType = payload?.type ?? e?.type
+
+        if (payloadType === 'turn:tool_result') {
+          const sessionId = String(payload?.sessionId ?? 'unknown')
+          const content = String(payload?.content ?? '')
+          const toolName = String(payload?.tool ?? 'unknown')
+          if (content) {
+            this.sparkFromToolResult(sessionId, toolName, content.slice(0, 2000))
+          }
+        }
+      } catch { /* non-blocking */ }
+    })
+
+    bus.on('turn:start' as any, (event: unknown) => {
+      try {
+        if (!this.config.enabled) return
+        const e = event as Record<string, unknown>
+        const sessionId = String(e?.sessionId ?? 'unknown')
+        const message = String(e?.message ?? '')
+        if (message) {
+          this.sparkFromUserPrompt(sessionId, message)
+        }
+      } catch { /* non-blocking */ }
+    })
+  }
+
   /**
    * Check if the bridge is enabled.
    */
