@@ -1,7 +1,7 @@
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',
   'abstraction', 'goal', 'file', 'tool', 'session', 'outcome',
-  'source_file', 'changeset', 'artifact'
+  'source_file', 'changeset', 'artifact', 'board-entry'
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
@@ -41,6 +41,7 @@ export interface EngramCreate {
   x?: number
   y?: number
   t?: number
+  initialPotentiation?: number
   embedding?: Float32Array | number[] | null
   tags?: string[]
   provenance?: string

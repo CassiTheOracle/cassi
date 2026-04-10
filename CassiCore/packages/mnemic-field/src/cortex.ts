@@ -132,7 +132,7 @@ export class Cortex {
     return {
       insertEngram: this.db.prepare(`
         INSERT INTO engrams (id, content, node_type, x, y, t, potentiation, cluster_id, embedding, tags, provenance, created_at, accessed_at, metadata)
-        VALUES (@id, @content, @node_type, @x, @y, @t, 0, NULL, @embedding, @tags, @provenance, @created_at, NULL, @metadata)
+        VALUES (@id, @content, @node_type, @x, @y, @t, @potentiation, NULL, @embedding, @tags, @provenance, @created_at, NULL, @metadata)
       `),
       getEngram: this.db.prepare(`SELECT * FROM engrams WHERE id = ?`),
       deleteEngram: this.db.prepare(`DELETE FROM engrams WHERE id = ?`),
@@ -142,7 +142,7 @@ export class Cortex {
 
       insertRtree: this.db.prepare(`
         INSERT INTO engram_rtree (id, x_min, x_max, y_min, y_max, t_min, t_max, potentiation_min, potentiation_max)
-        VALUES (@id, @x, @x, @y, @y, @t, @t, 0, 0)
+        VALUES (@id, @x, @x, @y, @y, @t, @t, @potentiation, @potentiation)
       `),
       updateRtree: this.db.prepare(`
         UPDATE engram_rtree SET x_min = @x, x_max = @x, y_min = @y, y_max = @y, t_min = @t, t_max = @t, potentiation_min = @p, potentiation_max = @p
