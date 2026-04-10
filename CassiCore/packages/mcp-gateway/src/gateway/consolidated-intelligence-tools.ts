@@ -146,6 +146,10 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
         type: 'string',
         description: 'Filter by posture (e.g., yang, yin, executive). For meditation_start: style (passive, active, focused, reflective) or "follow-up" to seed from previous meditation insights.',
       },
+      modelTier: {
+        type: 'string',
+        description: 'Model tier for meditation explorers (e.g., "opus", "sonnet", "qwenPlus"). Overrides the default qwenPlus for deeper introspection.',
+      },
     },
     required: ['action'],
   },
@@ -248,6 +252,9 @@ export async function executeIntelligenceConsolidatedTool(
       bodyObj.followUp = true
     } else if (restArgs.posture) {
       bodyObj.style = restArgs.posture
+    }
+    if (restArgs.modelTier) {
+      bodyObj.modelTier = restArgs.modelTier
     }
     const res = await fetchWithTimeout(`${baseUrl}/meditation/start`, {
       method: 'POST',
