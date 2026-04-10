@@ -73,8 +73,6 @@ import {
   executeConfigConsolidatedTool,
   getModelConsolidatedTool,
   executeModelConsolidatedTool,
-  getBlackboardConsolidatedTool,
-  executeBlackboardConsolidatedTool,
   getTrainingConsolidatedTool,
   executeTrainingConsolidatedTool,
   AGENT_TOOL_NAME,
@@ -88,7 +86,6 @@ import {
   WEB_CONSOLIDATED_TOOL_NAME,
   CONFIG_CONSOLIDATED_TOOL_NAME,
   MODEL_CONSOLIDATED_TOOL_NAME,
-  BLACKBOARD_CONSOLIDATED_TOOL_NAME,
   TRAINING_CONSOLIDATED_TOOL_NAME,
 } from './gateway/index.js';
 import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
@@ -208,7 +205,6 @@ function getAllTools() {
     getWebConsolidatedTool(),
     getConfigConsolidatedTool(),
     getModelConsolidatedTool(),
-    getBlackboardConsolidatedTool(),
     getTrainingConsolidatedTool(),
     VYBIT_TOOL,
     SKILL_INTELLIGENCE_TOOL,
@@ -418,12 +414,6 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case MODEL_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeModelConsolidatedTool(CASSICORE_URL, args, logger));
-
-      case BLACKBOARD_CONSOLIDATED_TOOL_NAME: {
-        const result = await executeBlackboardConsolidatedTool(CASSICORE_URL, args, logger);
-        // HOW: Blackboard tools return MCP format directly
-        return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
-      }
 
       case TRAINING_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeTrainingConsolidatedTool(CASSICORE_URL, args, logger));

@@ -57,7 +57,7 @@ export const CANONICAL_TOOL_NAMES: readonly string[] = [
   // Consolidated domain tools
   'agent', 'memory', 'session', 'intelligence', 'artifact',
   'code', 'file', 'browser', 'web', 'config', 'model',
-  'blackboard', 'training',
+  'training',
 ];
 
 // Prefix stripping rules
@@ -271,16 +271,6 @@ export const TOOL_ALIASES: AliasTable = {
   set_model:             { name: 'model', args: { action: 'set'   } },
   get_model:             { name: 'model', args: { action: 'get'   } },
   clear_model:           { name: 'model', args: { action: 'clear' } },
-
-
-  bb_global_list:        { name: 'blackboard', args: { action: 'list'   } },
-  bb_global_create:      { name: 'blackboard', args: { action: 'create' } },
-  bb_global_delete:      { name: 'blackboard', args: { action: 'delete' } },
-  bb_global_post:        { name: 'blackboard', args: { action: 'post'   } },
-  bb_global_read:        { name: 'blackboard', args: { action: 'read'   } },
-  bb_global_search:      { name: 'blackboard', args: { action: 'search' } },
-  bb_global_watch:       { name: 'blackboard', args: { action: 'watch'  } },
-  bb:                    { name: 'blackboard' },
 
 
   training_stats:        { name: 'training', args: { action: 'stats'       } },

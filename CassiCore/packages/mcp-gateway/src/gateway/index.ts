@@ -132,14 +132,6 @@ export {
   parseResourceUri,
 } from './resources.js';
 
-// Blackboard Tools (Global boards + session snapshots)
-export {
-  BLACKBOARD_TOOLS,
-  BLACKBOARD_TOOL_NAMES,
-  getBlackboardMcpTools,
-  executeBlackboardTool,
-} from './blackboard-tools.js';
-
 // File Artifact Tools (Agent file sharing)
 export {
   FILE_ARTIFACT_TOOLS,
@@ -212,13 +204,6 @@ export {
   executeModelConsolidatedTool,
   getModelConsolidatedTool,
 } from './consolidated-model-tools.js';
-
-export {
-  BLACKBOARD_CONSOLIDATED_TOOL,
-  BLACKBOARD_CONSOLIDATED_TOOL_NAME,
-  executeBlackboardConsolidatedTool,
-  getBlackboardConsolidatedTool,
-} from './consolidated-blackboard-tools.js';
 
 export {
   TRAINING_CONSOLIDATED_TOOL,

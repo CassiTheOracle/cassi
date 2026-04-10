@@ -51,7 +51,7 @@ export const AGENT_TOOL = {
           // Common actions across all types
           'project', 'status', 'health', 'jobs', 'watch', 'cancel',
           'sessions', 'messages', 'tool_calls', 'events', 'postures',
-          'progress', 'blackboard',
+          'progress',
           // Flux-specific actions
           'inspect', 'run', 'team', 'steer', 'approve', 'reject',
           'pause', 'resume', 'checkpoints', 'tree', 'change_model',
@@ -271,7 +271,6 @@ async function executeHelixAgentTool(
     'helix_project', 'helix_status', 'helix_cancel', 'helix_health',
     'helix_jobs', 'helix_watch', 'helix_sessions', 'helix_messages',
     'helix_tool_calls', 'helix_events', 'helix_postures', 'helix_progress',
-    'helix_blackboard',
   ]);
 
   if (!validHelixTools.has(toolName)) {
@@ -297,7 +296,7 @@ async function executeConstellationAgentTool(
     'constellation_project', 'constellation_status', 'constellation_cancel',
     'constellation_jobs', 'constellation_sessions', 'constellation_watch',
     'constellation_progress', 'constellation_tree', 'constellation_topology', 'constellation_steer',
-    'constellation_blackboard', 'constellation_analyze',
+    'constellation_analyze',
     // External Corpus Protocol
     'constellation_corpus_assume', 'constellation_corpus_release',
     'constellation_corpus_snapshot', 'constellation_corpus_state',
