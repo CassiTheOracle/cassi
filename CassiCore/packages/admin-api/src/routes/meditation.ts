@@ -78,18 +78,20 @@ export async function handleMeditationRoutes(
     }
   }
 
-  // POST /meditation/start
+   // POST /meditation/start
   if (method === 'POST' && parts.length === 2 && parts[1] === 'start') {
     try {
       const body = await deps.parseBody(req)
       const style = body?.style as string | undefined
-      const session = await meditation.triggerMeditation(style as any)
+      const followUp = body?.followUp === true
+      const session = await meditation.triggerMeditation(style as any, followUp)
       if (session) {
         sendJSON(res, 200, {
           started: true,
           constellationId: session.constellationId,
           style: session.style,
           startedAt: new Date(session.startedAt).toISOString(),
+          followUp,
         })
       } else {
         sendJSON(res, 200, {
