@@ -57,7 +57,7 @@ export const CANONICAL_TOOL_NAMES: readonly string[] = [
   // Consolidated domain tools
   'agent', 'memory', 'session', 'intelligence', 'artifact',
   'code', 'file', 'browser', 'web', 'config', 'model',
-  'training',
+  'training', 'cortex',
 ];
 
 // Prefix stripping rules

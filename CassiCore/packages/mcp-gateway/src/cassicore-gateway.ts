@@ -75,6 +75,8 @@ import {
   executeModelConsolidatedTool,
   getTrainingConsolidatedTool,
   executeTrainingConsolidatedTool,
+  getCortexConsolidatedTool,
+  executeCortexConsolidatedTool,
   AGENT_TOOL_NAME,
   MEMORY_CONSOLIDATED_TOOL_NAME,
   SESSION_CONSOLIDATED_TOOL_NAME,
@@ -87,6 +89,7 @@ import {
   CONFIG_CONSOLIDATED_TOOL_NAME,
   MODEL_CONSOLIDATED_TOOL_NAME,
   TRAINING_CONSOLIDATED_TOOL_NAME,
+  CORTEX_CONSOLIDATED_TOOL_NAME,
 } from './gateway/index.js';
 import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
 
@@ -206,6 +209,7 @@ function getAllTools() {
     getConfigConsolidatedTool(),
     getModelConsolidatedTool(),
     getTrainingConsolidatedTool(),
+    getCortexConsolidatedTool(),
     VYBIT_TOOL,
     SKILL_INTELLIGENCE_TOOL,
     WORKFLOW_TOOL,
@@ -417,6 +421,9 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case TRAINING_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeTrainingConsolidatedTool(CASSICORE_URL, args, logger));
+
+      case CORTEX_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeCortexConsolidatedTool(CASSICORE_URL, args, logger));
 
       default:
         throw unknownToolError(name);

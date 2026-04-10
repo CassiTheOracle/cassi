@@ -212,6 +212,13 @@ export {
   getTrainingConsolidatedTool,
 } from './consolidated-training-tools.js';
 
+export {
+  CORTEX_CONSOLIDATED_TOOL,
+  CORTEX_CONSOLIDATED_TOOL_NAME,
+  executeCortexConsolidatedTool,
+  getCortexConsolidatedTool,
+} from './cortex-tools.js';
+
 // Serena Auto-Onboarding
 export {
   SerenaAutoOnboarding,
