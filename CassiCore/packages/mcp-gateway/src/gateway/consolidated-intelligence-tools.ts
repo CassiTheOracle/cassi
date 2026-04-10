@@ -6,7 +6,9 @@
  * - activity, thinker, subconscious, consciousness, trace, effectiveness, budget, evolution
  * - blindspots, snapshot, trust, consequences, dialectic, overview
  * - schema, context_feedback
- * - meditation_status, meditation_start, meditation_stop
+ * - meditation_status, meditation_start, meditation_stop, meditation_live, meditation_live_full,
+ *   meditation_insights, meditation_self_awareness, meditation_prompts, meditation_leaderboard,
+ *   meditation_scores, meditation_evolution, meditation_search
  * - cortex_stats, cortex_oscillation, cortex_region, cortex_signal, cortex_search,
  *   cortex_consolidated, cortex_fading, cortex_session, cortex_tract
  */
@@ -23,7 +25,7 @@ import { ContextFeedbackTracker } from '../../core/intelligence/code-analysis/in
  */
 export const INTELLIGENCE_CONSOLIDATED_TOOL = {
   name: 'intelligence',
-  description: 'Intelligence layer introspection — activity, thinker, subconscious, dialectic, trust, cortex, and more. Use action parameter to select operation.\n\nUse this tool when you need to understand what the intelligence layer is doing (activity), inspect cognitive state (thinker/subconscious), trace why a response was shaped a certain way (trace), check trust scores (trust), introspect database schemas (schema), or observe the cortical field (cortex_stats, cortex_search, cortex_region).\n\nCommon actions: activity (high-level dashboard), schema (database introspection), trust (permission/autonomy scores), trace (forensic turn analysis), context_feedback (record whether assembled context helped), cortex_stats (cortical field dashboard), cortex_search (find signals by type/state/author/tags/content).',
+  description: 'Intelligence layer introspection — activity, thinker, subconscious, dialectic, trust, cortex, and more. Use action parameter to select operation.\n\nUse this tool when you need to understand what the intelligence layer is doing (activity), inspect cognitive state (thinker/subconscious), trace why a response was shaped a certain way (trace), check trust scores (trust), introspect database schemas (schema), observe the cortical field (cortex_stats, cortex_search, cortex_region), or inspect meditation (meditation_status, meditation_live, meditation_leaderboard).\n\nCommon actions: activity (high-level dashboard), schema (database introspection), trust (permission/autonomy scores), trace (forensic turn analysis), context_feedback (record whether assembled context helped), cortex_stats (cortical field dashboard), cortex_search (find signals by type/state/author/tags/content).',
   inputSchema: {
     type: 'object',
     properties: {
@@ -35,6 +37,9 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
           'trust', 'consequences', 'dialectic', 'overview',
           'schema', 'context_feedback',
           'meditation_status', 'meditation_start', 'meditation_stop',
+          'meditation_live', 'meditation_live_full', 'meditation_insights',
+          'meditation_self_awareness', 'meditation_prompts', 'meditation_leaderboard',
+          'meditation_scores', 'meditation_evolution', 'meditation_search',
           'cortex_stats', 'cortex_oscillation', 'cortex_region', 'cortex_signal',
           'cortex_search', 'cortex_consolidated', 'cortex_fading',
           'cortex_session', 'cortex_tract',
@@ -136,6 +141,11 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
         type: 'string',
         description: 'Tract ID (for cortex_tract action)',
       },
+      // meditation params
+      posture: {
+        type: 'string',
+        description: 'Filter by posture (e.g., yang, yin, executive)',
+      },
     },
     required: ['action'],
   },
@@ -230,14 +240,14 @@ export async function executeIntelligenceConsolidatedTool(
 
   // Meditation actions — routed to admin API /meditation/* endpoints
   if (action === 'meditation_status') {
-    const res = await fetchWithTimeout(`${baseUrl}/meditation/status`)
-    return await res.json()
+    return await fetchIntelligence(baseUrl, '/meditation/status')
   }
   if (action === 'meditation_start') {
+    const body = restArgs.posture ? JSON.stringify({ style: restArgs.posture }) : '{}'
     const res = await fetchWithTimeout(`${baseUrl}/meditation/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: '{}',
+      body,
     })
     return await res.json()
   }
@@ -248,6 +258,36 @@ export async function executeIntelligenceConsolidatedTool(
       body: '{}',
     })
     return await res.json()
+  }
+  if (action === 'meditation_live') {
+    return await fetchIntelligence(baseUrl, '/meditation/live')
+  }
+  if (action === 'meditation_live_full') {
+    return await fetchIntelligence(baseUrl, '/meditation/live/full')
+  }
+  if (action === 'meditation_insights') {
+    return await fetchIntelligence(baseUrl, '/meditation/insights')
+  }
+  if (action === 'meditation_self_awareness') {
+    return await fetchIntelligence(baseUrl, '/meditation/self-awareness')
+  }
+  if (action === 'meditation_prompts') {
+    return await fetchIntelligence(baseUrl, '/meditation/prompts')
+  }
+  if (action === 'meditation_leaderboard') {
+    return await fetchIntelligence(baseUrl, '/meditation/leaderboard')
+  }
+  if (action === 'meditation_scores') {
+    const limit = restArgs.limit ?? 20
+    return await fetchIntelligence(baseUrl, `/meditation/scores?limit=${limit}`)
+  }
+  if (action === 'meditation_evolution') {
+    return await fetchIntelligence(baseUrl, '/meditation/evolution')
+  }
+  if (action === 'meditation_search') {
+    if (!restArgs.content) throw new Error('content parameter required for meditation_search (search query)')
+    const limit = restArgs.limit ?? 20
+    return await fetchIntelligence(baseUrl, `/meditation/search?q=${encodeURIComponent(restArgs.content)}&limit=${limit}`)
   }
 
   // Cortex observability actions — routed to admin API /cortex/* endpoints
@@ -304,7 +344,7 @@ export async function executeIntelligenceConsolidatedTool(
   ]);
 
   if (!validTools.has(action)) {
-    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback, meditation_*, cortex_*`);
+    throw new Error(`Unknown intelligence action: ${action}. Valid actions: ${[...validTools].join(', ')}, dialectic, overview, schema, context_feedback, meditation_status/start/stop/live/live_full/insights/self_awareness/prompts/leaderboard/scores/evolution/search, cortex_*`);
   }
 
   return await executeIntelligenceTool(baseUrl, action, restArgs, logger);
