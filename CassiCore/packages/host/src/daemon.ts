@@ -1637,6 +1637,9 @@ export class Daemon {
 
         if (this.intelligence?.constellation) {
           this.intelligence.constellation.setModelPool(helixModelPool)
+          if (directive) {
+            this.intelligence.constellation.setModelDirective(directive)
+          }
           this.logger.info('Constellation ModelPool wired (shared with Helix)', { provider: defaultRouting.provider, model: defaultRouting.model })
         }
       } catch (err) {
