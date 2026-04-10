@@ -520,6 +520,7 @@ export interface AffectConfig {
   moodDecayRate: number         // mood register: slower decay for sustained affect
   emotionWeight: number         // blend weight for emotion vs mood (0-1)
   negativeDecayModifier: number // multiplier on decay when valence < 0 (< 1 = slower)
+  moodAbsorptionRatio: number   // mood absorbs at this fraction of the emotion rate
   activationAbsorption: number  // lerp rate for activation echoes
   signalAbsorption: number      // lerp rate for system signals
   resonanceFactor: number       // retrieval congruence boost
@@ -535,6 +536,7 @@ export const AFFECT_DEFAULTS: AffectConfig = {
   moodDecayRate: 0.02,
   emotionWeight: 0.6,
   negativeDecayModifier: 0.8,
+  moodAbsorptionRatio: 0.3,
   activationAbsorption: 0.15,
   signalAbsorption: 0.08,
   resonanceFactor: 0.2,
