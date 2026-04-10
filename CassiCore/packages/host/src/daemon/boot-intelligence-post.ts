@@ -7,6 +7,9 @@ import { ModuleSessionRegistry } from '../intelligence/module-session-registry.j
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
 import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
 import { LocusBridgeInjectionSource } from '../intelligence/locus-bridge/locus-bridge-injection.js'
+import { PinealInjectionSource } from '../intelligence/pineal/injection.js'
+import { PinealAssembler } from '../intelligence/pineal/assembler.js'
+import type { PinealModule } from '../intelligence/pineal/index.js'
 
 import type { IEventBus, IConfig, ILogger, IPluginHost } from '../../types/interfaces.js'
 import type { IntelligenceLayer } from '../intelligence/index.js'
@@ -76,6 +79,28 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       const useGwt = config?.get?.('intelligence.workspace.enabled') === true
       pipeline.setGlobalWorkspace(intelligence.globalWorkspace, useGwt)
       logger.info('GlobalWorkspace wired to pipeline', { enabled: useGwt })
+    }
+
+    // Register Pineal injection source (identity, wisdom, philosophy facets)
+    const pineal = intelligence.registry.get('pineal') as PinealModule | undefined
+    if (pineal) {
+      intelligence.pineal = pineal
+      const assembler = new PinealAssembler(pineal.getStore(), logger.child('pineal-assembler'))
+      const pinealSource = new PinealInjectionSource(
+        assembler,
+        pineal.getFacetManager(),
+        logger.child('pineal-injection'),
+      )
+      intelligence.injectionAggregator.register(pinealSource)
+
+      bus.on('turn:end', () => {
+        try {
+          pinealSource.reinforceLastInjection()
+        } catch (err) {
+          logger.debug('[pineal] Reinforcement failed (non-fatal)', { error: String(err) })
+        }
+      })
+      logger.info('Pineal injection source registered with turn reinforcement')
     }
 
     // Register LocusBridge injection source (curated context from attentional foci)
