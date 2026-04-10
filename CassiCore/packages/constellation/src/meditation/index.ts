@@ -167,8 +167,12 @@ export class MeditationController extends BaseCognitiveModule {
   /**
    * Force-start meditation. Bypasses idle check.
    * Safe to call from admin API.
+   *
+   * When followUp is true, forces focused style and seeds from previous
+   * meditation insights — same as the automatic passive→focused upgrade
+   * but triggered manually.
    */
-  async triggerMeditation(style?: MeditationStyle): Promise<MeditationSession | null> {
+  async triggerMeditation(style?: MeditationStyle, followUp?: boolean): Promise<MeditationSession | null> {
     if (this.state === 'meditating') {
       this.logger.info('[Meditation] Already meditating — ignoring trigger')
       return this.activeSession ?? null
@@ -177,6 +181,11 @@ export class MeditationController extends BaseCognitiveModule {
     if (!this.orchestrator || !this.registry) {
       this.logger.warn('[Meditation] Cannot meditate — orchestrator or registry not wired')
       return null
+    }
+
+    if (followUp) {
+      this.pendingInsightFollowUp = true
+      return this.startMeditation('focused')
     }
 
     return this.startMeditation(style)
