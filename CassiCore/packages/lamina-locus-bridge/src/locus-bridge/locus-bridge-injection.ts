@@ -45,7 +45,7 @@ export class LocusBridgeInjectionSource implements InjectionSource {
 
     if (ctx.memories.length > 0) {
       const memLines = ctx.memories.map(m =>
-        `- [${m.source}] (relevance: ${(m.score * 100).toFixed(0)}%) ${m.content}`
+        `- [${m.source}] (relevance: ${(m.score * 100).toFixed(0)}%) ${m.content.slice(0, 300)}`
       )
       sections.push(`### Retrieved Memories\n${memLines.join('\n')}`)
     }
@@ -53,14 +53,15 @@ export class LocusBridgeInjectionSource implements InjectionSource {
     if (ctx.code.length > 0) {
       const codeLines = ctx.code.map(c => {
         const loc = c.lines ? `:${c.lines[0]}-${c.lines[1]}` : ''
-        return `#### ${c.path}${loc}\n\`\`\`\n${c.content}\n\`\`\``
+        const snippet = c.content.length > 200 ? `${c.content.slice(0, 200)}\n...` : c.content
+        return `#### ${c.path}${loc}\n\`\`\`\n${snippet}\n\`\`\``
       })
       sections.push(`### Relevant Code\n${codeLines.join('\n\n')}`)
     }
 
     if (ctx.signals.length > 0) {
       const sigLines = ctx.signals.map(s =>
-        `- [${s.source}] ${s.content}`
+        `- [${s.source}] ${s.content.slice(0, 200)}`
       )
       sections.push(`### Intelligence Signals\n${sigLines.join('\n')}`)
     }
