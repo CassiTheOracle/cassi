@@ -1642,6 +1642,15 @@ export class Daemon {
           }
           this.logger.info('Constellation ModelPool wired (shared with Helix)', { provider: defaultRouting.provider, model: defaultRouting.model })
         }
+
+        // Wire Meditation handleFactory so SoloRunners can acquire model handles
+        // Use 'unity' slot — meditation explorers share the same model tier as Helix unity agents
+        if (this.intelligence?.setMeditationHandleFactory) {
+          this.intelligence.setMeditationHandleFactory(
+            (config) => helixModelPool.acquire('unity', config.tier, config.sessionId),
+          )
+          this.logger.info('Meditation handleFactory wired (shared ModelPool)')
+        }
       } catch (err) {
         this.logger.warn('Failed to wire Helix/Constellation ModelPool', { error: String(err) })
       }
@@ -1745,6 +1754,17 @@ export class Daemon {
         } catch (err) {
           this.logger.warn('Cortex affect/consolidation bridge not available', { error: String(err) })
         }
+      }
+
+      // Wire MnemicField into meditation controller for post-session spiking/consolidation
+      if (this.intelligence?.meditation && typeof (this.intelligence.meditation as any).setMnemicField === 'function') {
+        (this.intelligence.meditation as any).setMnemicField(field)
+        this.logger.info('Meditation MnemicField wired')
+      }
+
+      // Wire MnemicField into constellation orchestrator
+      if (this.intelligence?.constellation && typeof this.intelligence.constellation.setMnemicField === 'function') {
+        this.intelligence.constellation.setMnemicField(field)
       }
     } catch (err) {
       this.logger.warn('CodeStore not available', { error: String(err) })
@@ -2303,6 +2323,18 @@ export class Daemon {
           }
         }
 
+        // Wire Meditation controller tool deps (SoloRunner needs direct tool access)
+        if (this.intelligence?.meditation) {
+          try {
+            const med = this.intelligence.meditation as { setToolRegistry?: (r: typeof toolRegistry) => void; setToolExecutor?: (e: typeof toolExecutor) => void }
+            if (typeof med.setToolRegistry === 'function') med.setToolRegistry(toolRegistry)
+            if (typeof med.setToolExecutor === 'function') med.setToolExecutor(toolExecutor)
+            this.logger.info('Meditation controller tool access wired')
+          } catch (medErr) {
+            this.logger.warn('Failed to wire Meditation tools', { error: String(medErr) })
+          }
+        }
+
         // Initialize ProactiveEnricher — listens for ThoughtObserver intent
         // signals and spawns a Helix co-pilot to gather context proactively
         if (this.intelligence?.proactiveEnricher) {
@@ -2631,7 +2663,8 @@ export class Daemon {
           memory: (this as any).intelligence?.memory,
           dialectic: (this as any).intelligence?.dialectic,
           thinker: (this as any).intelligence?.thinker,
-          subconscious: (this as any).intelligence?.subconscious
+          subconscious: (this as any).intelligence?.subconscious,
+          locusBridge: (this as any).intelligence?.locusBridge,
         },
         eventBus: this.bus,
         injectionAggregator: (this as any).intelligence?.injectionAggregator,

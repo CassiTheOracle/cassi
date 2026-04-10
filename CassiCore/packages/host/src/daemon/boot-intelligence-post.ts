@@ -78,13 +78,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       logger.info('GlobalWorkspace wired to pipeline', { enabled: useGwt })
     }
 
-    // Register skill effectiveness injection source
-    const skillTracker = (intelligence as any).skillMetricsTracker
-    if (skillTracker) {
-      intelligence.injectionAggregator.register(new SkillEffectivenessSource(skillTracker))
-      logger.info('Skill effectiveness injection source registered')
-    }
-
     // Register LocusBridge injection source (curated context from attentional foci)
     if (intelligence.locusBridge) {
       const locusSource = new LocusBridgeInjectionSource(
