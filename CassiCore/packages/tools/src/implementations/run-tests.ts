@@ -34,7 +34,7 @@ export const runTestsDefinition: ToolDefinition = {
     required: ['testPath'],
   },
   timeoutMs: 130_000,
-  readOnly: true,
+  readOnly: false,
   requiredPermission: 'workspace-write',
 }
 
