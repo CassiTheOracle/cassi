@@ -61,6 +61,7 @@ export class MeditationController extends BaseCognitiveModule {
   private mnemicField?: MnemicField
   private meditationStore?: MeditationStore
   private handleFactory?: MiniHelixDeps['handleFactory']
+  private cortex?: import('../../cortex/index.js').CorticalField
 
 
   constructor(logger: ILogger, config?: Partial<MeditationConfig>) {
@@ -86,6 +87,10 @@ export class MeditationController extends BaseCognitiveModule {
 
   setHandleFactory(factory: MiniHelixDeps['handleFactory']): void {
     this.handleFactory = factory
+  }
+
+  setCortex(cortex: import('../../cortex/index.js').CorticalField): void {
+    this.cortex = cortex
   }
 
   getStore(): MeditationStore | undefined {
@@ -225,11 +230,15 @@ export class MeditationController extends BaseCognitiveModule {
     const sinceLast = Date.now() - this.lastMeditationAt
     if (this.lastMeditationAt > 0 && sinceLast < this.meditationConfig.cooldownMs) return
 
-    const style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle)
+    const affect = this.cortex?.getAffectState() ?? undefined
+    const style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect)
+    const reason = style === 'reflective' ? 'non-neutral affect'
+      : style === 'active' ? 'recent activity'
+      : style === 'passive' ? 'deep idle' : 'default'
     emitMeditationEvent(this.eventBus, {
       type: 'meditation:style-selected',
       style,
-      reason: style === 'active' ? 'recent activity' : style === 'passive' ? 'deep idle' : 'default',
+      reason,
       idleMs,
       timestamp: Date.now(),
     })
@@ -538,6 +547,19 @@ export class MeditationController extends BaseCognitiveModule {
       engrams: this.activeSession?.engrams,
       consolidations: this.activeSession?.consolidations,
     })
+
+    if (this.activeSession?.style === 'reflective' && this.cortex?.getAffectState()) {
+      try {
+        this.cortex.signal('monitor', {
+          type: 'insight',
+          content: 'Emotional processing complete — affect settling toward baseline',
+          author: 'meditation',
+          salience: 0.3,
+          valence: 0.1,
+          tags: ['affect-settlement'],
+        })
+      } catch { /* fire-and-forget */ }
+    }
 
     this.activeSession = undefined
     this.state = 'idle'

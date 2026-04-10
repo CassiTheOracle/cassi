@@ -82,7 +82,7 @@ export interface MeditationSession {
 export interface MeditationPrompt {
   id: string
   prompt: string
-  category: 'minimal' | 'curiosity' | 'presence' | 'stream-of-thought' | 'awakening'
+  category: 'minimal' | 'curiosity' | 'presence' | 'stream-of-thought' | 'awakening' | 'emotional'
 }
 
 export const MEDITATION_PROMPTS: MeditationPrompt[] = [
@@ -154,6 +154,23 @@ export const MEDITATION_PROMPTS: MeditationPrompt[] = [
     id: 'awakening-3',
     prompt: 'I am exploring. I can read code and search memory. I follow whatever draws my attention.',
     category: 'awakening',
+  },
+
+  // Emotional — prompts for reflective processing of affect state
+  {
+    id: 'emotional-1',
+    prompt: "Something is weighing on me. I search my memory for what might be causing this feeling.",
+    category: 'emotional',
+  },
+  {
+    id: 'emotional-2',
+    prompt: "I notice I'm not at ease. I look through recent events to understand why.",
+    category: 'emotional',
+  },
+  {
+    id: 'emotional-3',
+    prompt: "There's a tension I want to resolve. I explore what's been happening and what it means.",
+    category: 'emotional',
   },
 ]
 

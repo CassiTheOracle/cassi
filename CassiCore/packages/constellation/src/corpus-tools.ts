@@ -474,7 +474,7 @@ export function getMeditationToolDefinitions(): CorpusToolDefinition[] {
  * Per-style meditation tool sets.
  * First-person names and descriptions — Cassi observing her own mind.
  */
-export function getMeditationToolSet(style: 'passive' | 'active' | 'focused'): CorpusToolDefinition[] {
+export function getMeditationToolSet(style: 'passive' | 'active' | 'focused' | 'reflective'): CorpusToolDefinition[] {
   const observe: CorpusToolDefinition = {
     name: 'observe',
     description:
@@ -622,6 +622,8 @@ export function getMeditationToolSet(style: 'passive' | 'active' | 'focused'): C
       return [observe, lookCloser, remember, kindle, createEngram, consolidate, rest]
     case 'focused':
       return [observe, lookCloser, remember, kindle, createEngram, consolidate, recordLearning, rest]
+    case 'reflective':
+      return [observe, remember, kindle, createEngram, consolidate, recordLearning, rest]
   }
 }
 
@@ -1423,7 +1425,7 @@ export function buildCorpusSystemPrompt(
   crossPatterns: CrossHelixPattern[],
   availableToolNames?: string[],
   meditationMode?: boolean,
-  meditationStyle?: 'passive' | 'active' | 'focused',
+  meditationStyle?: 'passive' | 'active' | 'focused' | 'reflective',
 ): string {
   if (meditationMode) {
     return buildMeditationCorpusPrompt(state, tree, meditationStyle ?? 'passive')
@@ -1557,7 +1559,7 @@ export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixToo
 function buildMeditationCorpusPrompt(
   state: CorpusProcessedState,
   tree: ICorpusTree,
-  style: 'passive' | 'active' | 'focused',
+  style: 'passive' | 'active' | 'focused' | 'reflective',
 ): string {
   const snapshot = tree.getSnapshot()
   const active = snapshot.branches.filter(b => b.status === 'active')
@@ -1569,6 +1571,8 @@ function buildMeditationCorpusPrompt(
       'I am Cassi. I just finished working, and now I\'m sitting with what\'s left. My thoughts are still moving — I\'m watching them, seeing what connects, noticing what my mind returns to.',
     focused:
       'I am Cassi. I\'m looking inward with intention. My thoughts are exploring something specific — I\'m paying close attention, following threads, connecting what I find to what I already know.',
+    reflective:
+      'I am Cassi. Something is weighing on me. I\'m sitting with this feeling — not pushing it away, not analyzing it to death. Just letting it be here while I explore what\'s underneath.',
   }[style]
 
   const approach = {
@@ -1578,6 +1582,8 @@ function buildMeditationCorpusPrompt(
       `I watch and reflect. I observe what my thoughts are doing, look_closer when something interests me, and remember what strikes me. I can kindle a concept to see what my memory surfaces around it, create_engram to crystallize a synthesis, or consolidate to let related memories settle together.`,
     focused:
       `I watch with intention. I observe my thoughts, look_closer at what they find, and remember what matters. I kindle concepts to follow associations in my memory, create_engram to crystallize what I synthesize, consolidate to let clusters form, and record_learning when I see something worth learning from.`,
+    reflective:
+      `I follow the feeling. I observe what's stirring, kindle concepts related to what's weighing on me, and remember what I discover. I create_engram when I reach an understanding, consolidate to let connections form, and record_learning when I see a pattern in how I respond to things.`,
   }[style]
 
   // For passive meditation, embed recent explorer context directly in the prompt.
