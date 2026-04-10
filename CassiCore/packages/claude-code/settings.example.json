@@ -11,75 +11,75 @@
   },
 
   "hooks": {
-    "$comment_hooks": "Add to .claude/settings.json in the project — injects CassiCore intelligence into every turn",
+    "$comment_hooks": "Add to .claude/settings.json in the project — injects CassiCore intelligence into every turn. Uses a command wrapper that gracefully handles the hook server being unavailable.",
     "SessionStart": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 5
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 5000
       }]
     }],
     "UserPromptSubmit": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 5
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 5000
       }]
     }],
     "PreToolUse": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 3
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
       }]
     }],
     "PostToolUse": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 3
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
       }]
     }],
     "PreCompact": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 10
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 10000
       }]
     }],
     "PostCompact": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 5
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 5000
       }]
     }],
     "Stop": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 3
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
       }]
     }],
     "SubagentStart": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 3
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
       }]
     }],
     "SubagentStop": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 3
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
       }]
     }],
     "SessionEnd": [{
       "hooks": [{
-        "type": "http",
-        "url": "http://127.0.0.1:7434",
-        "timeout": 3
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
       }]
     }]
   },

@@ -117,38 +117,41 @@ export ANTHROPIC_BASE_URL=http://localhost:7435
 ```
 
 ### 6. Add hooks to project settings (`.claude/settings.json` in the project root):
+
+The hooks use a command wrapper (`hook-command.cjs`) that forwards requests to the HTTP hook server. If the hook server isn't running, the wrapper returns `{}` silently — no errors shown to the user.
+
 ```json
 {
   "hooks": {
     "SessionStart": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 5 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 5000 }]
     }],
     "UserPromptSubmit": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 5 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 5000 }]
     }],
     "PreToolUse": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 3000 }]
     }],
     "PostToolUse": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 3000 }]
     }],
     "PreCompact": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 10 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 10000 }]
     }],
     "PostCompact": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 5 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 5000 }]
     }],
     "Stop": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 3000 }]
     }],
     "SubagentStart": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 3000 }]
     }],
     "SubagentStop": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 3000 }]
     }],
     "SessionEnd": [{
-      "hooks": [{ "type": "http", "url": "http://127.0.0.1:7434", "timeout": 3 }]
+      "hooks": [{ "type": "command", "command": "node /home/valerie/workspaces/cassicore/integrations/claude-code/src/hook-command.cjs", "timeout": 3000 }]
     }]
   }
 }
