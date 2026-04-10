@@ -27,7 +27,7 @@ export const STYLE_CONFIGS: Record<MeditationStyle, StyleConfig> = {
   },
 }
 
-const AFFECT_INTENSITY_THRESHOLD = 0.3
+const AFFECT_INTENSITY_THRESHOLD = 0.45
 
 export function selectStyle(
   lastTurnAt: number,

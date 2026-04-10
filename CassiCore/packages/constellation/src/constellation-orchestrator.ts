@@ -44,7 +44,7 @@ export interface ConstellationOrchestrator {
     sessionId: string
     costEffective?: boolean
     meditationMode?: boolean
-    meditationStyle?: 'passive' | 'active' | 'focused' | 'reflective'
+    meditationStyle?: import('./meditation/styles.js').MeditationStyle
   }): Promise<ConstellationResult>
   resumeConstellation(sessionId: string): Promise<ConstellationResult>
   cancel(sessionId: string): boolean

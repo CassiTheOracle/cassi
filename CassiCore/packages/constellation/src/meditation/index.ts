@@ -550,8 +550,8 @@ export class MeditationController extends BaseCognitiveModule {
 
     if (this.activeSession?.style === 'reflective' && this.cortex?.getAffectState()) {
       try {
-        this.cortex.signal('monitor', {
-          type: 'insight',
+        this.cortex.signal('limbic', {
+          type: 'perception',
           content: 'Emotional processing complete — affect settling toward baseline',
           author: 'meditation',
           salience: 0.3,

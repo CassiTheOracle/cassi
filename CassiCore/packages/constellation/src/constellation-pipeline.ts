@@ -281,7 +281,7 @@ export interface ConstellationPipelineOpts {
   meditationMode?: boolean
 
   /** Meditation style — controls tool set and Corpus prompt tone */
-  meditationStyle?: 'passive' | 'active' | 'focused' | 'reflective'
+  meditationStyle?: import('./meditation/styles.js').MeditationStyle
 
   /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
   mnemicField?: import('../mnemic-field/index.js').MnemicField

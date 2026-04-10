@@ -992,7 +992,7 @@ export interface CorpusDeps {
   /** Meditation mode — Corpus observes silently as Cassi, never sends directives */
   meditationMode?: boolean
   /** Meditation style — controls tool set and Corpus prompt tone */
-  meditationStyle?: 'passive' | 'active' | 'focused' | 'reflective'
+  meditationStyle?: import('./meditation/styles.js').MeditationStyle
   /** MnemicField for meditation Corpus tools */
   mnemicField?: import('../mnemic-field/index.js').MnemicField
   /** Memory system for meditation insight storage */

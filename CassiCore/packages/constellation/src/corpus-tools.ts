@@ -474,7 +474,7 @@ export function getMeditationToolDefinitions(): CorpusToolDefinition[] {
  * Per-style meditation tool sets.
  * First-person names and descriptions — Cassi observing her own mind.
  */
-export function getMeditationToolSet(style: 'passive' | 'active' | 'focused' | 'reflective'): CorpusToolDefinition[] {
+export function getMeditationToolSet(style: import('./meditation/styles.js').MeditationStyle): CorpusToolDefinition[] {
   const observe: CorpusToolDefinition = {
     name: 'observe',
     description:
@@ -1425,7 +1425,7 @@ export function buildCorpusSystemPrompt(
   crossPatterns: CrossHelixPattern[],
   availableToolNames?: string[],
   meditationMode?: boolean,
-  meditationStyle?: 'passive' | 'active' | 'focused' | 'reflective',
+  meditationStyle?: import('./meditation/styles.js').MeditationStyle,
 ): string {
   if (meditationMode) {
     return buildMeditationCorpusPrompt(state, tree, meditationStyle ?? 'passive')
@@ -1559,7 +1559,7 @@ export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixToo
 function buildMeditationCorpusPrompt(
   state: CorpusProcessedState,
   tree: ICorpusTree,
-  style: 'passive' | 'active' | 'focused' | 'reflective',
+  style: import('./meditation/styles.js').MeditationStyle,
 ): string {
   const snapshot = tree.getSnapshot()
   const active = snapshot.branches.filter(b => b.status === 'active')
