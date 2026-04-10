@@ -2258,6 +2258,11 @@ export class Daemon {
               if (recovered.interrupted > 0) {
                 const interrupted = constellationStore.listSessions({ status: 'interrupted' })
                 for (const session of interrupted) {
+                  // Defense-in-depth: skip meditation sessions even if they somehow reach 'interrupted'
+                  if (session.id.startsWith('meditation-') || session.meditationMode) {
+                    this.logger.info('Skipping auto-resume for meditation session', { sessionId: session.id })
+                    continue
+                  }
                   this.logger.info('Auto-resuming interrupted constellation', {
                     sessionId: session.id,
                     goal: session.goal.slice(0, 100),
