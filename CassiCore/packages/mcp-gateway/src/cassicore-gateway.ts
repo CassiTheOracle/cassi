@@ -371,8 +371,13 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case INTELLIGENCE_CONSOLIDATED_TOOL_NAME: {
         const result = await executeIntelligenceConsolidatedTool(CASSICORE_URL, args, logger);
-        // HOW: Intelligence tools return markdown
-        return formatTextResponse(result);
+        // HOW: Standard intelligence actions return markdown strings; schema, context_feedback,
+        // and meditation actions return objects. formatTextResponse requires a string — passing
+        // an object causes MCP error -32602 ("expected string, received object").
+        if (typeof result === 'string') {
+          return formatTextResponse(result);
+        }
+        return formatJsonResponse(result);
       }
 
       case ARTIFACT_CONSOLIDATED_TOOL_NAME: {
