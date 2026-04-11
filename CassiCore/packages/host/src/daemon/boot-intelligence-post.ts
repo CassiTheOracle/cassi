@@ -170,6 +170,35 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.warn(`Failed to start Meditation controller: ${String(err)}`)
   }
 
+  // Wire Thalamus to GWT systems + secondary brain inputs
+  try {
+    const thalamus = intelligence.registry.get('thalamus') as
+      import('../intelligence/thalamus/index.js').ThalamusModule | undefined
+    if (thalamus) {
+      if (intelligence.globalWorkspace) thalamus.setGlobalWorkspace(intelligence.globalWorkspace)
+      if (intelligence.locusBridge) thalamus.setLocusBridge(intelligence.locusBridge)
+      if (intelligence.cortex) thalamus.setCortex(intelligence.cortex)
+      const mnemicField = (intelligence as any).__mnemicField
+      if (mnemicField) thalamus.setMnemicField(mnemicField)
+
+      // Wire Thalamus into Meditation for always-on context management
+      const meditation = intelligence.meditation
+      if (meditation && typeof (meditation as any).setThalamus === 'function') {
+        (meditation as any).setThalamus(thalamus)
+      }
+
+      logger.info('Thalamus wired', {
+        gwt: !!intelligence.globalWorkspace,
+        locus: !!intelligence.locusBridge,
+        cortex: !!intelligence.cortex,
+        mnemic: !!mnemicField,
+        meditation: !!(meditation && typeof (meditation as any).setThalamus === 'function'),
+      })
+    }
+  } catch (err) {
+    logger.warn('Failed to wire Thalamus', { error: String(err) })
+  }
+
   pipeline.mountIntelligence({ continuity: intelligence.continuity as any })
   pipeline.setIntelligence(intelligence)
 
