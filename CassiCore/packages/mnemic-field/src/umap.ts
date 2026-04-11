@@ -51,6 +51,43 @@ export const UMAP_DEFAULTS = {
 const MAX_REFERENCE_SAMPLES = 5000
 
 /**
+ * Normalize positions to fit within [-spread, spread] range.
+ * Centers on mean and scales so the max absolute coordinate equals spread.
+ */
+function normalizeToSpread(positions: ProjectionResult[], spread: number): void {
+  if (positions.length === 0) return
+
+  // Center
+  let sumX = 0, sumY = 0
+  for (const p of positions) {
+    sumX += p.x
+    sumY += p.y
+  }
+  const meanX = sumX / positions.length
+  const meanY = sumY / positions.length
+
+  for (const p of positions) {
+    p.x -= meanX
+    p.y -= meanY
+  }
+
+  // Scale
+  let maxCoord = 1e-8
+  for (const p of positions) {
+    const ax = Math.abs(p.x), ay = Math.abs(p.y)
+    if (ax > maxCoord) maxCoord = ax
+    if (ay > maxCoord) maxCoord = ay
+  }
+  const factor = spread / maxCoord
+  if (Math.abs(factor - 1.0) > 0.001) {
+    for (const p of positions) {
+      p.x *= factor
+      p.y *= factor
+    }
+  }
+}
+
+/**
  * Project a set of high-dimensional embedding vectors to 2D using UMAP.
  * Returns one {x, y} per input vector, in the same order.
  *
@@ -70,7 +107,7 @@ export function projectTo2D(vectors: number[][], options?: UMAPOptions): Project
   const { sigmas, rhos } = smoothKNNDistances(distances, k)
   const edges = buildFuzzySimplicialSet(indices, distances, sigmas, rhos, n)
 
-  const positions = pcaInitialize(vectors, n, opts.seed)
+  const positions = pcaInitialize(vectors, n, opts.seed, opts.spread)
   const { a, b } = findAB(opts.spread, opts.minDist)
 
   optimizeLayout(positions, edges, n, {
@@ -80,6 +117,10 @@ export function projectTo2D(vectors: number[][], options?: UMAPOptions): Project
     a, b,
     seed: opts.seed,
   })
+
+  // Normalize final positions to the spread scale.
+  // The SGD optimization can drift — ensure the output fits in [-spread, spread].
+  normalizeToSpread(positions, opts.spread)
 
   return positions
 }
@@ -288,7 +329,7 @@ function buildFuzzySimplicialSet(
  * Initialize 2D positions via PCA, scaled to a small range (~10/√n).
  * PCA gives a stable global structure for UMAP's SGD to refine.
  */
-function pcaInitialize(vectors: number[][], n: number, seed: number): ProjectionResult[] {
+function pcaInitialize(vectors: number[][], n: number, seed: number, spread = 1.0): ProjectionResult[] {
   const dim = vectors[0].length
   const mean = computeMean(vectors, dim)
   const centered = vectors.map(v => v.map((x, i) => x - mean[i]))
@@ -301,14 +342,18 @@ function pcaInitialize(vectors: number[][], n: number, seed: number): Projection
     y: dot(v, pc2),
   }))
 
-  const scale = 10 / Math.sqrt(n)
+  // Scale PCA output to roughly match the UMAP spread parameter.
+  // The old formula (10 / √n) collapsed large datasets — at 124K points
+  // it gave a scale of 0.028, crushing everything into a tiny ball.
+  // Instead, we normalize to [-spread, spread] so the SGD starts in
+  // the right range regardless of dataset size.
   let maxCoord = 1e-8
   for (const p of positions) {
     const ax = Math.abs(p.x), ay = Math.abs(p.y)
     if (ax > maxCoord) maxCoord = ax
     if (ay > maxCoord) maxCoord = ay
   }
-  const factor = scale / maxCoord
+  const factor = spread / maxCoord
 
   const rng = new PRNG(seed + 2000)
   for (const p of positions) {

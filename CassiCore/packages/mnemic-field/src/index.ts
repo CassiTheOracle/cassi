@@ -464,7 +464,7 @@ export class MnemicField {
    * Bulk reproject all engrams using UMAP on current embeddings.
    * Computes full non-linear projection preserving local neighborhoods.
    */
-  reprojectAll(): number {
+  reprojectAll(umapOptions?: import('./umap.js').UMAPOptions): number {
     const embData = this.cortex.getEmbeddingVectors(50000)
 
     if (embData.length < 2) return 0
@@ -474,7 +474,7 @@ export class MnemicField {
     }
 
     const vectors = embData.map(e => Array.from(e.embedding))
-    const positions = projectTo2D(vectors)
+    const positions = projectTo2D(vectors, umapOptions)
 
     const updates = embData.map((e, i) => ({
       id: e.id,
