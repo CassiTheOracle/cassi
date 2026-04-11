@@ -76,16 +76,16 @@ export class ConsolidationEngine {
     // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
     // instead of three times cuts ~2/3 of the SQLite I/O per consolidation.
     const needsFullDataset = !options.skipRadiance || !options.skipDrift || !options.skipPruning
-    const dataset = needsFullDataset ? this.cortex.getAllEngramsWithSynapses() : null
-    await yieldToEventLoop()
+    const dataset = needsFullDataset ? this.cortex.getAllEngramsWithSynapses() : undefined
+    if (needsFullDataset) await yieldToEventLoop()
 
     if (!options.skipRadiance) {
-      potentiationUpdates = await this.computeRadiance(dataset!)
+      potentiationUpdates = await this.computeRadiance(dataset)
       await yieldToEventLoop()
     }
 
     if (!options.skipDrift) {
-      positionDrifts = await this.applyCoActivationDrift(dataset!)
+      positionDrifts = await this.applyCoActivationDrift(dataset)
       await yieldToEventLoop()
     }
 

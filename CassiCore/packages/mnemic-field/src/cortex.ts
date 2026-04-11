@@ -512,34 +512,20 @@ export class Cortex {
   }
 
   /**
-   * Batched version of bulkUpdatePotentiation that yields to the event loop
-   * between batches. Prevents long SQLite transactions from blocking
-   * heartbeats and IPC when updating thousands of rows.
+   * Batched version that yields to the event loop between batches.
+   * Prevents long SQLite transactions from blocking heartbeats and IPC
+   * when updating thousands of rows.
    */
   async bulkUpdatePotentiationBatched(
     updates: Array<{ id: string; potentiation: number }>,
     batchSize = 1000,
   ): Promise<void> {
-    const updateStmt = this.db.prepare(`UPDATE engrams SET potentiation = ? WHERE id = ?`)
-    const updateRtreeStmt = this.db.prepare(`
-      UPDATE engram_rtree SET potentiation_min = @p, potentiation_max = @p
-      WHERE id = (SELECT rowid FROM engrams WHERE id = @id)
-    `)
-
-    const tx = this.db.transaction((items: typeof updates) => {
-      for (const { id, potentiation } of items) {
-        updateStmt.run(potentiation, id)
-        updateRtreeStmt.run({ p: potentiation, id })
-      }
-    })
-
     for (let i = 0; i < updates.length; i += batchSize) {
-      tx(updates.slice(i, i + batchSize))
+      this.bulkUpdatePotentiation(updates.slice(i, i + batchSize))
       if (i + batchSize < updates.length) {
         await new Promise<void>(resolve => setImmediate(resolve))
       }
     }
-    this.logger.debug('Bulk potentiation update (batched)', { count: updates.length, batches: Math.ceil(updates.length / batchSize) })
   }
 
   bulkUpdatePositions(updates: Array<{ id: string; x: number; y: number }>): void {
@@ -560,32 +546,18 @@ export class Cortex {
   }
 
   /**
-   * Batched version of bulkUpdatePositions that yields between batches.
+   * Batched version that yields between batches.
    */
   async bulkUpdatePositionsBatched(
     updates: Array<{ id: string; x: number; y: number }>,
     batchSize = 1000,
   ): Promise<void> {
-    const updateStmt = this.db.prepare(`UPDATE engrams SET x = ?, y = ? WHERE id = ?`)
-    const updateRtreeStmt = this.db.prepare(`
-      UPDATE engram_rtree SET x_min = @x, x_max = @x, y_min = @y, y_max = @y
-      WHERE id = (SELECT rowid FROM engrams WHERE id = @id)
-    `)
-
-    const tx = this.db.transaction((items: typeof updates) => {
-      for (const { id, x, y } of items) {
-        updateStmt.run(x, y, id)
-        updateRtreeStmt.run({ x, y, id })
-      }
-    })
-
     for (let i = 0; i < updates.length; i += batchSize) {
-      tx(updates.slice(i, i + batchSize))
+      this.bulkUpdatePositions(updates.slice(i, i + batchSize))
       if (i + batchSize < updates.length) {
         await new Promise<void>(resolve => setImmediate(resolve))
       }
     }
-    this.logger.debug('Bulk position update (batched)', { count: updates.length, batches: Math.ceil(updates.length / batchSize) })
   }
 
   getAllEngrams(): Engram[] {
