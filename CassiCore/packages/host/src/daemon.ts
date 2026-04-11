@@ -1780,6 +1780,28 @@ export class Daemon {
         this.intelligence.injectionAggregator.register(mnemicSource)
         this.logger.info('MnemicField injection source registered')
       }
+
+      // Wire ArchiveIngestionBridge — automatic sync from Archivist to MnemicField.
+      // Runs as a cycle hook in the unified loop, checking for new archives each cycle.
+      try {
+        const archiveDbPath = path.join(
+          String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data')),
+          'memory.db',
+        )
+        if (this.unifiedLoop && fs.existsSync(archiveDbPath)) {
+          const { ArchiveIngestionBridge } = await import('./intelligence/mnemic-field/archive-ingestion-bridge.js')
+          const bridge = new ArchiveIngestionBridge(
+            field,
+            this.logger.child('archive-ingestion'),
+            { archiveDbPath },
+          )
+          bridge.start()
+          this.unifiedLoop.addCycleHook(bridge)
+          this.logger.info('ArchiveIngestionBridge started', { intervalMs: 10000 })
+        }
+      } catch (err) {
+        this.logger.warn('ArchiveIngestionBridge not available', { error: String(err) })
+      }
     } catch (err) {
       this.logger.warn('CodeStore not available', { error: String(err) })
     }
