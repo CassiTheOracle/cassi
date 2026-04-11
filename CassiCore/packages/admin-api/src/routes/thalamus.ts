@@ -4,6 +4,9 @@ import type { ThalamusModule } from '../intelligence/thalamus/index.js'
 import { ExternalClientCurator } from '../plugins/external-clients/index.js'
 import type { ExternalCurateRequest } from '../plugins/external-clients/types.js'
 
+// 2MB — generous for even the longest conversations (2000 digests ≈ 500KB)
+const MAX_CURATION_BODY_BYTES = 2 * 1024 * 1024
+
 interface ThalamusDeps {
   daemon: any
   logger: ILogger
@@ -76,6 +79,12 @@ export async function handleThalamusRoutes(
   // Accepts lightweight message digests, returns kept indices + gap annotations.
   // This is the primary integration point for OpenCode, Claude Code, Cursor, etc.
   if (method === 'POST' && pathname === '/context/curate/external') {
+    const contentLength = parseInt(req.headers['content-length'] ?? '0', 10)
+    if (contentLength > MAX_CURATION_BODY_BYTES) {
+      deps.sendJSON(res, 413, { error: `Request body too large (${contentLength} bytes, max ${MAX_CURATION_BODY_BYTES})` })
+      return true
+    }
+
     const curator = getOrCreateCurator(deps)
     if (!curator) {
       deps.sendJSON(res, 503, { error: 'External client curator not available' })
