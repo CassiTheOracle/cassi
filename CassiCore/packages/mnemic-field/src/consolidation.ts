@@ -72,13 +72,20 @@ export class ConsolidationEngine {
     let filamentSynapsesCreated = 0
     let filamentSynapsesDecayed = 0
 
+    // Load the full dataset once — computeRadiance, applyCoActivationDrift,
+    // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
+    // instead of three times cuts ~2/3 of the SQLite I/O per consolidation.
+    const needsFullDataset = !options.skipRadiance || !options.skipDrift || !options.skipPruning
+    const dataset = needsFullDataset ? this.cortex.getAllEngramsWithSynapses() : null
+    await yieldToEventLoop()
+
     if (!options.skipRadiance) {
-      potentiationUpdates = await this.computeRadiance()
+      potentiationUpdates = await this.computeRadiance(dataset!)
       await yieldToEventLoop()
     }
 
     if (!options.skipDrift) {
-      positionDrifts = await this.applyCoActivationDrift()
+      positionDrifts = await this.applyCoActivationDrift(dataset!)
       await yieldToEventLoop()
     }
 
@@ -99,7 +106,7 @@ export class ConsolidationEngine {
     }
 
     if (!options.skipPruning) {
-      spikesPruned = await this.pruneSpikeHistories(options.pruneKeepCount ?? 100)
+      spikesPruned = await this.pruneSpikeHistories(options.pruneKeepCount ?? 100, dataset?.engrams)
       await yieldToEventLoop()
     }
 
@@ -135,8 +142,10 @@ export class ConsolidationEngine {
    *
    * Where α_i is adaptive per-engram based on spike count.
    */
-  async computeRadiance(): Promise<number> {
-    const { engrams, synapses } = this.cortex.getAllEngramsWithSynapses()
+  async computeRadiance(
+    preloaded?: { engrams: Engram[]; synapses: MnemicSynapse[] },
+  ): Promise<number> {
+    const { engrams, synapses } = preloaded ?? this.cortex.getAllEngramsWithSynapses()
     if (engrams.length === 0) return 0
 
     await yieldToEventLoop()
@@ -250,8 +259,10 @@ export class ConsolidationEngine {
    * Loads recent spikes to find pairs that were co-activated in the same task,
    * then pulls their positions closer.
    */
-  async applyCoActivationDrift(): Promise<number> {
-    const { engrams, synapses } = this.cortex.getAllEngramsWithSynapses()
+  async applyCoActivationDrift(
+    preloaded?: { engrams: Engram[]; synapses: MnemicSynapse[] },
+  ): Promise<number> {
+    const { engrams, synapses } = preloaded ?? this.cortex.getAllEngramsWithSynapses()
     if (engrams.length < 2) return 0
 
     await yieldToEventLoop()
@@ -603,8 +614,8 @@ export class ConsolidationEngine {
   /**
    * Prune old, low-magnitude spikes to bound storage.
    */
-  async pruneSpikeHistories(keepCount = 100): Promise<number> {
-    const { engrams } = this.cortex.getAllEngramsWithSynapses()
+  async pruneSpikeHistories(keepCount = 100, preloadedEngrams?: Engram[]): Promise<number> {
+    const engrams = preloadedEngrams ?? this.cortex.getAllEngramsWithSynapses().engrams
     let totalPruned = 0
 
     for (let i = 0; i < engrams.length; i++) {
