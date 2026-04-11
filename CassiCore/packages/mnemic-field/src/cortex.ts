@@ -641,6 +641,97 @@ export class Cortex {
     return this.db
   }
 
+
+  /**
+   * Sample random orphan engrams (those not assigned to any nucleus).
+   * Content is truncated to keep results lightweight for batch analysis.
+   */
+  sampleOrphans(limit = 20): Array<{ id: string; content: string; nodeType: string; potentiation: number; tags: string; provenance: string }> {
+    return (this.db.prepare(
+      `SELECT id, SUBSTR(content, 1, 200) as content, node_type as nodeType, potentiation, tags, provenance
+       FROM engrams WHERE cluster_id IS NULL ORDER BY RANDOM() LIMIT ?`
+    ).all(limit) as Array<{ id: string; content: string; nodeType: string; potentiation: number; tags: string; provenance: string }>)
+  }
+
+  /**
+   * Count orphan engrams (not assigned to any nucleus).
+   */
+  orphanCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM engrams WHERE cluster_id IS NULL`).get() as { c: number }).c
+  }
+
+  /**
+   * Distribution of orphan engrams by node_type and provenance.
+   * Gives a structural overview of the unorganized memory space.
+   */
+  orphanDistribution(): {
+    byNodeType: Array<{ nodeType: string; count: number }>
+    byProvenance: Array<{ provenance: string; count: number }>
+    total: number
+  } {
+    const byNodeType = this.db.prepare(
+      `SELECT node_type as nodeType, COUNT(*) as count FROM engrams
+       WHERE cluster_id IS NULL GROUP BY node_type ORDER BY count DESC`
+    ).all() as Array<{ nodeType: string; count: number }>
+
+    const byProvenance = this.db.prepare(
+      `SELECT COALESCE(provenance, 'unknown') as provenance, COUNT(*) as count FROM engrams
+       WHERE cluster_id IS NULL GROUP BY provenance ORDER BY count DESC LIMIT 20`
+    ).all() as Array<{ provenance: string; count: number }>
+
+    const total = this.orphanCount()
+    return { byNodeType, byProvenance, total }
+  }
+
+  /**
+   * Assign a batch of engrams to a nucleus.
+   * Updates both the engram's cluster_id and the nucleus member count.
+   */
+  assignToNucleus(engramIds: string[], nucleusId: string): number {
+    if (engramIds.length === 0) return 0
+
+    const placeholders = engramIds.map(() => '?').join(',')
+    const result = this.db.prepare(
+      `UPDATE engrams SET cluster_id = ? WHERE id IN (${placeholders})`
+    ).run(nucleusId, ...engramIds)
+
+    const count = (this.db.prepare(
+      `SELECT COUNT(*) as c FROM engrams WHERE cluster_id = ?`
+    ).get(nucleusId) as { c: number }).c
+    this.db.prepare(
+      `UPDATE nuclei SET member_count = ? WHERE id = ?`
+    ).run(count, nucleusId)
+
+    return result.changes
+  }
+
+  /**
+   * Tag frequency distribution across orphan engrams.
+   * Parses the JSON tag arrays and aggregates counts to show
+   * which topics dominate the unorganized memory.
+   */
+  orphanTagDistribution(limit = 30): Array<{ tag: string; count: number }> {
+    const rows = this.db.prepare(
+      `SELECT tags FROM engrams WHERE cluster_id IS NULL AND tags IS NOT NULL AND tags != '[]'`
+    ).all() as Array<{ tags: string }>
+
+    const tagCounts = new Map<string, number>()
+    for (const row of rows) {
+      try {
+        const tags = JSON.parse(row.tags) as string[]
+        for (const tag of tags) {
+          tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
+        }
+      } catch { /* skip malformed tag arrays */ }
+    }
+
+    return [...tagCounts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([tag, count]) => ({ tag, count }))
+  }
+
+
   close(): void {
     try {
       this.db.close()
