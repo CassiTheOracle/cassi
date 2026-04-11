@@ -44,6 +44,7 @@ export interface IntelligencePostBootDeps {
   pluginHost?: IPluginHost
   compactionProvider?: IProvider
   contextDistiller?: ContextDistiller
+  handleFactory?: (config: { tier: string; purpose: string; sessionId: string }) => Promise<any>
 }
 
 export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDeps): Promise<AutonomousAgentLoop | undefined> {
@@ -90,8 +91,24 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         })
         if (intelligence.cortex) radianceLoop.setCortex(intelligence.cortex)
         if (bus) radianceLoop.setEventBus(bus)
+
+        if (deps.handleFactory) {
+          radianceLoop.setHandleFactory(deps.handleFactory, toolExecutor, toolRegistry, bus)
+          logger.info('RadianceLoop observer wired with model handle factory')
+        }
+
         pipeline.setRadianceLoop(radianceLoop)
-        logger.info('RadianceLoop wired to pipeline')
+
+        // Event-bus trigger: the SessionPipeline doesn't call RadianceLoop directly
+        // (only the legacy TurnPipeline does), so we also listen on turn:end.
+        // The cycle is async fire-and-forget — observations feed the NEXT turn.
+        bus.on('turn:end', () => {
+          queueMicrotask(() => {
+            radianceLoop.cycle().catch(() => { /* non-critical */ })
+          })
+        })
+
+        logger.info('RadianceLoop wired to pipeline and event bus')
       }
     }
 

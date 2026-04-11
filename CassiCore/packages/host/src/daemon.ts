@@ -2599,6 +2599,10 @@ export class Daemon {
         ?? providers.get('alibaba')
         ?? Array.from(providers.values())[0],
       contextDistiller: this.contextDistiller,
+      handleFactory: this.helixModelPool
+        ? (config: { tier: string; purpose: string; sessionId: string }) =>
+          this.helixModelPool!.acquire('unity', config.tier, config.sessionId)
+        : undefined,
     })
 
     // Register workflow templates now that intelligence modules are wired
@@ -2709,6 +2713,13 @@ export class Daemon {
       await pipeline.initialize()
       this.sessionPipeline = pipeline
       this.logger.info('Session pipeline initialized')
+
+      // Wire GlobalWorkspace into session pipeline for GWT-based injection
+      if (this.intelligence?.globalWorkspace) {
+        const useGwt = this.config.get<boolean>('intelligence.workspace.enabled', false)
+        pipeline.setGlobalWorkspace(this.intelligence.globalWorkspace, useGwt)
+        this.logger.info('GlobalWorkspace wired to session pipeline', { enabled: useGwt })
+      }
 
       // Phase 4: Bootstrap cassi:primary conductor session so turn:token routing works
       if (this.primaryRouter) {
@@ -2991,6 +3002,61 @@ export class Daemon {
               }
             } catch (err) {
               this.logger.warn(`Failed to persist captured turn: ${String(err)}`, { sessionId: sid })
+            }
+
+            // Submit workspace signals from the captured turn so the GWT
+            // workspace has content for broadcast and the RadianceLoop can
+            // observe module responses to external agent activity.
+            if (this.intelligence?.globalWorkspace) {
+              try {
+                const ws = this.intelligence.globalWorkspace
+                ws.submit({
+                  signalId: `ext-user-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                  source: pluginId,
+                  sessionId: sid,
+                  type: 'observation' as const,
+                  content: userMessage.slice(0, 500),
+                  luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+                  createdAt: Date.now(),
+                })
+                if (assistantResponse) {
+                  ws.submit({
+                    signalId: `ext-response-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                    source: `${pluginId}:response`,
+                    sessionId: sid,
+                    type: 'context' as const,
+                    content: assistantResponse.slice(0, 500),
+                    luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+                    createdAt: Date.now(),
+                  })
+                }
+
+                // Enrich workspace with memory-derived signals (Mnemic Field).
+                // Same pattern as the Claude Code hook server's workspaceEnrich call,
+                // but inline to avoid HTTP round-trip.
+                try {
+                  const mnemicField = (this.intelligence as any).__mnemicField
+                  if (mnemicField?.retrieve) {
+                    const hits = mnemicField.retrieve(userMessage, { limit: 3 })
+                    for (const hit of hits) {
+                      if (!hit.content || hit.content.length < 10) continue
+                      ws.submit({
+                        signalId: `ext-memory-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                        source: 'mnemic-field',
+                        sessionId: sid,
+                        type: 'memory' as const,
+                        content: hit.content.slice(0, 400),
+                        luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+                        createdAt: Date.now(),
+                        metadata: { engram: hit.id, score: hit.score },
+                      })
+                    }
+                  }
+                } catch { /* non-critical — enrichment is supplementary */ }
+
+                ws.broadcast()
+                ws.tick()
+              } catch { /* non-critical */ }
             }
 
             // Emit turn:end — triggers archivist, thinker end, streaming finalization
