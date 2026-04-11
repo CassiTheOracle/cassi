@@ -42,6 +42,7 @@ import { handleCortexRoutes } from './admin-api/cortex.js'
 import { handlePinealRoutes } from './admin-api/pineal.js'
 import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
 import { handleCodeStoreRoutes } from './admin-api/code-store.js'
+import { handleThalamusRoutes } from './admin-api/thalamus.js'
 import { handleTrainingRoutes } from './admin-api/training.js'
 import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
 import { handleTimelineRoutes } from './admin-api/timeline.js'
@@ -2357,6 +2358,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleModelsRoutes({ runtime, logger, sendJSON }, req, res, method, pathname),
         () => handleMcpRoutes({ daemon, logger, sendJSON }, req, res, method, pathname),
         () => handleToolsRoutes({ runtime, logger, sendJSON, parseBody, pathname }, req, res, method),
+        () => handleThalamusRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
         () => handleContextRoutes({ runtime, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
         () => handlePermissionsRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method, pathname),
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
