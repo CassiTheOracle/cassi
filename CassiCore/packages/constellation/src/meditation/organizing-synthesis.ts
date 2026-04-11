@@ -1344,6 +1344,12 @@ export function buildOrganizingHandlers(
         })
         stats.embeddingsBackfilled += result.embedded
 
+        if (result.reprojected === 0) {
+          return {
+            content: `Backfill complete: ${result.embedded} engrams embedded. Reprojection skipped (cooldown active or blocked by recent failures — wait 30 min before retrying).\nRemaining without embeddings: ${afterMissing}`,
+          }
+        }
+
         return {
           content: `Backfill complete: ${result.embedded} engrams embedded, ${result.reprojected} reprojected.\nRemaining without embeddings: ${afterMissing}`,
         }
@@ -1369,6 +1375,10 @@ export function buildOrganizingHandlers(
         if (n_epochs) umapOpts.nEpochs = n_epochs
 
         const reprojected = await mnemicField.reprojectAllAsync(Object.keys(umapOpts).length > 0 ? umapOpts as any : undefined)
+
+        if (reprojected === 0) {
+          return { content: 'Reprojection skipped — cooldown active or blocked by recent failures. Wait 30 minutes before retrying.' }
+        }
 
         // After reprojection, run nucleus detection to see if clusters emerge
         const nuclei = mnemicField.listNuclei()
