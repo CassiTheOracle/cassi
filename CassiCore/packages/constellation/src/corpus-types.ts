@@ -941,7 +941,7 @@ export interface CorpusConfig {
 export type CorpusCadence = 'active' | 'safety-net'
 
 export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
-  modelTier: 'sonnet',
+  modelTier: 'qwenPlus',
   maxTokens: 16_000,
   timeoutMs: 90_000,
   idlePollMs: 10_000,

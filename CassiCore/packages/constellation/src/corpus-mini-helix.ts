@@ -46,7 +46,7 @@ interface MinimalBrainstem {
  * Configuration specific to the Corpus mini-Helix mode.
  */
 export interface CorpusMiniHelixConfig {
-  /** Model tier for the Corpus mini-Helix. Default: 'sonnet' */
+  /** Model tier for the Corpus mini-Helix. Default: 'qwenPlus' */
   modelTier?: string
   /** Model name override (e.g., 'qwen3-max'). Optional. */
   modelName?: string
@@ -210,8 +210,8 @@ export class CorpusMiniHelix {
       maxIterationsPerCycle: this.miniHelixConfig.maxIterationsPerCycle ?? 50,
       maxTokens: this.corpusConfig.maxTokens,
       cycleTimeoutMs: this.miniHelixConfig.cycleTimeoutMs ?? 120_000,
-      modelTier: this.miniHelixConfig.modelTier ?? 'sonnet',
-      modelName: this.miniHelixConfig.modelName ?? 'claude-sonnet-4-6',
+      modelTier: this.miniHelixConfig.modelTier ?? 'qwenPlus',
+      modelName: this.miniHelixConfig.modelName,
     }
 
     this.session = createMiniHelixSession(tools, config, this.miniHelixDeps)

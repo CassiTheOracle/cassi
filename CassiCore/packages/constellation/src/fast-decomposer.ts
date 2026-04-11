@@ -572,7 +572,7 @@ Respond ONLY with the JSON object. No markdown, no explanation.`
   try {
     const response = await llm.complete({
       prompt: correctivePrompt,
-      modelTier: 'sonnet',
+      modelTier: 'qwenPlus',
       maxTokens: 2000,
       timeoutMs: 30_000,
     })
@@ -672,7 +672,7 @@ export async function fastDecompose(opts: FastDecomposerOpts): Promise<GoalDecom
   try {
     response = await llm.complete({
       prompt,
-      modelTier: 'sonnet', // WHY: Use capable model for architectural reasoning
+      modelTier: 'qwenPlus',
       maxTokens: 2000,
       timeoutMs: 60_000,
     })
