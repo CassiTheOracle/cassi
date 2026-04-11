@@ -1762,6 +1762,15 @@ export class Daemon {
         this.logger.info('Meditation MnemicField wired')
       }
 
+      // Wire MnemicField + Cortex into Thalamus for brain-enriched context curation
+      const thalamus = this.intelligence?.registry?.get('thalamus') as
+        import('./intelligence/thalamus/index.js').ThalamusModule | undefined
+      if (thalamus) {
+        thalamus.setMnemicField(field)
+        if (this.intelligence?.cortex) thalamus.setCortex(this.intelligence.cortex)
+        this.logger.info('Thalamus wired to MnemicField and Cortex')
+      }
+
       // Wire MnemicField into constellation orchestrator
       if (this.intelligence?.constellation && typeof this.intelligence.constellation.setMnemicField === 'function') {
         this.intelligence.constellation.setMnemicField(field)
