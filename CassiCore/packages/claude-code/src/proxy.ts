@@ -183,6 +183,13 @@ async function proxyRequest(
         injectIntoSystemPrompt(body, cognitive);
       }
 
+      if (Array.isArray(body.messages) && body.messages.length >= 40) {
+        const curated = await bridge.curate(state.ccSessionId, body.messages);
+        if (curated?.messages) {
+          body.messages = curated.messages;
+        }
+      }
+
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
     } catch {
       // Parse failure — forward unchanged

@@ -136,6 +136,16 @@ export function index(sessionId: string, messages: any[]): void {
   send("POST", "/context/index", { sessionId, messages }).catch(() => {});
 }
 
+// Curation via Thalamus module
+
+export async function curate(
+  sessionId: string,
+  messages: any[],
+  config?: Record<string, unknown>,
+): Promise<{ messages: any[]; meta: any } | null> {
+  return send("POST", "/context/curate", { sessionId, messages, config }, LONG_TIMEOUT);
+}
+
 // ── Memory ──────────────────────────────────────────────────────────────────
 
 export async function memorySearch(query: string, limit = 5): Promise<any[]> {
