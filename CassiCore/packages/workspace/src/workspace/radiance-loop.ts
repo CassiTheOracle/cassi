@@ -106,6 +106,44 @@ export class RadianceLoop {
     this.observerRunner = runner
   }
 
+  /**
+   * Convenience: create an ObserverRunner from a handle factory.
+   * Wraps SoloRunner to acquire a model handle, run the observer,
+   * and release the handle when done.
+   */
+  setHandleFactory(
+    factory: (config: { tier: string; purpose: string; sessionId: string }) => Promise<import('../../../core/model-pool/types.js').ModelHandle>,
+    toolExecutor: import('../../../core/tools/executor.js').ToolExecutor,
+    toolRegistry: import('../../../core/tools/registry.js').ToolRegistry,
+    eventBus: IEventBus,
+  ): void {
+    this.observerRunner = async (prompt, toolSchemas, handlers, maxIterations) => {
+      const { runSoloExplorer } = await import('../constellation/meditation/solo-runner.js')
+
+      const handle = await factory({
+        tier: this.config.observerModelTier,
+        purpose: 'radiance-observer',
+        sessionId: `radiance-observer-${this.cycleCount}`,
+      })
+
+      await runSoloExplorer({
+        sessionId: `radiance-observer-${this.cycleCount}`,
+        name: 'radiance-observer',
+        instruction: prompt,
+        handle,
+        toolExecutor,
+        toolRegistry,
+        maxIterations,
+        logger: this.logger,
+        eventBus,
+        signal: new AbortController().signal,
+        customHandlers: handlers,
+        customToolSchemas: toolSchemas,
+      })
+    }
+    this.logger.info('[Radiance] Observer handle factory configured')
+  }
+
 
   /**
    * Run one full radiance cycle.
