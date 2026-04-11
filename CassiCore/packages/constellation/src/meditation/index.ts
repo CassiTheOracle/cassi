@@ -33,7 +33,10 @@ import { runFocusedSeeding } from './focused-seeding.js'
 import { emitMeditationEvent } from './meditation-events.js'
 import type { MiniHelixDeps } from '../../mini-helix/mini-helix-types.js'
 import { buildCorpusCyclePrompt, getCorpusToolSchemas, buildCorpusHandlers } from './corpus-synthesis.js'
+import { DEFAULT_CORPUS_PROMPTS, pickCorpusPromptThompson } from './corpus-prompt-library.js'
+import type { CorpusPrompt } from './corpus-prompt-library.js'
 import { buildEvaluationPrompt, getEvaluationToolSchemas, buildEvaluationHandlers } from './evaluation-runner.js'
+import { buildMetaEvaluationPrompt, getMetaEvaluationToolSchemas, buildMetaEvaluationHandlers } from './meta-evaluation-runner.js'
 import { buildOrganizingExplorerPrompt, getOrganizingToolSchemas, buildOrganizingHandlers, buildOrganizingCorpusPrompt } from './organizing-synthesis.js'
 import type { OrganizingStats } from './organizing-synthesis.js'
 import { FieldHealthAnalyzer } from './field-health.js'
@@ -490,8 +493,12 @@ export class MeditationController extends BaseCognitiveModule {
           })
 
           // Corpus synthesis — Cassi observes what the explorers found
-          if (this.mnemicField) {
-            await this.runCorpusCycle(constellationId, resolvedStyle, soloResults)
+          if (this.mnemicField && this.meditationStore) {
+            const corpusPrompt = this.pickCorpusPrompt(resolvedStyle)
+            await this.runCorpusCycle(constellationId, corpusPrompt, soloResults)
+
+            // Meta-evaluation — score the corpus prompt
+            await this.runMetaEvaluation(constellationId, corpusPrompt, soloResults)
           }
 
           // Evaluation — score prompts and mutate library
@@ -807,7 +814,7 @@ export class MeditationController extends BaseCognitiveModule {
         eventBus: this.eventBus!,
         signal: this.activeAbortController?.signal ?? new AbortController().signal,
         customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
-        customToolSchemas: getCorpusToolSchemas('organizing'),
+        customToolSchemas: getCorpusToolSchemas({ id: 'organizing', category: 'synthesizer', identity: '', approach: '', style: 'passive' }),
       })
     } catch (err) {
       this.logger.warn('[Meditation] Organizing corpus cycle failed', { error: String(err) })
@@ -821,16 +828,16 @@ export class MeditationController extends BaseCognitiveModule {
    */
   private async runCorpusCycle(
     constellationId: string,
-    style: MeditationStyle,
+    corpusPrompt: CorpusPrompt,
     soloResults: SoloRunnerResult[],
   ): Promise<void> {
     if (!this.mnemicField || !this.handleFactory) return
 
-    const prompt = buildCorpusCyclePrompt(style, soloResults.map(r => ({
+    const prompt = buildCorpusCyclePrompt(corpusPrompt, soloResults.map(r => ({
       name: r.name,
       content: r.transcript || '(no transcript)',
     })), {
-      style,
+      style: corpusPrompt.style,
       durationMs: this.activeSession ? Date.now() - this.activeSession.startedAt : 0,
       prompts: this.activeSession?.prompts ?? [],
       cycleNumber: 1,
@@ -856,10 +863,91 @@ export class MeditationController extends BaseCognitiveModule {
         eventBus: this.eventBus!,
         signal: this.activeAbortController?.signal ?? new AbortController().signal,
         customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
-        customToolSchemas: getCorpusToolSchemas(style),
+        customToolSchemas: getCorpusToolSchemas(corpusPrompt),
       })
     } catch (err) {
       this.logger.warn('[Meditation] Corpus cycle failed', { error: String(err) })
+    }
+  }
+
+
+  /**
+   * Pick a corpus prompt via Thompson sampling.
+   */
+  private pickCorpusPrompt(style: MeditationStyle): CorpusPrompt {
+    if (!this.meditationStore) {
+      return DEFAULT_CORPUS_PROMPTS.find(p => p.style === style) ?? DEFAULT_CORPUS_PROMPTS[0]
+    }
+
+    const prompts = this.meditationStore.getAllCorpusPrompts()
+    if (prompts.length === 0) {
+      // Seed defaults
+      this.meditationStore.seedCorpusPrompts(DEFAULT_CORPUS_PROMPTS.map(p => ({
+        id: p.id, category: p.category, identity: p.identity,
+        approach: p.approach, style: p.style,
+      })))
+      return DEFAULT_CORPUS_PROMPTS.find(p => p.style === style) ?? DEFAULT_CORPUS_PROMPTS[0]
+    }
+
+    const thompsonParams = this.meditationStore.getCorpusThompsonParams(style)
+    const stylePrompts: CorpusPrompt[] = prompts
+      .filter(p => p.style === style && p.retired_at === null)
+      .map(p => ({
+        id: p.id, category: p.category as CorpusPrompt['category'],
+        identity: p.identity, approach: p.approach, style: p.style as MeditationStyle,
+      }))
+    return pickCorpusPromptThompson(style, stylePrompts, thompsonParams)
+  }
+
+
+  /**
+   * Meta-evaluation — Cassi scores her own corpus observation prompt.
+   */
+  private async runMetaEvaluation(
+    constellationId: string,
+    corpusPrompt: CorpusPrompt,
+    soloResults: SoloRunnerResult[],
+  ): Promise<void> {
+    if (!this.meditationStore || !this.handleFactory) return
+
+    const corpusOutput = {
+      iterations: soloResults.reduce((sum, r) => sum + r.iterations, 0),
+      toolCalls: soloResults.reduce((sum, r) => sum + r.toolCalls, 0),
+      toolsUsed: [...new Set(soloResults.flatMap(r => r.transcript ? ['transcript'] : []))],
+      insightsStored: 0,
+      consolidations: this.activeSession?.consolidations ?? 0,
+    }
+
+    const prompt = buildMetaEvaluationPrompt(
+      this.activeSession!,
+      { id: corpusPrompt.id, identity: corpusPrompt.identity, approach: corpusPrompt.approach, category: corpusPrompt.category },
+      corpusOutput,
+      this.meditationStore,
+    )
+
+    try {
+      const handle = await this.handleFactory({
+        tier: 'background',
+        purpose: 'meta-evaluation',
+        sessionId: `${constellationId}-meta`,
+      })
+
+      await runSoloExplorer({
+        sessionId: `${constellationId}-meta`,
+        name: 'meta-evaluation',
+        instruction: prompt,
+        handle,
+        toolExecutor: this.toolExecutor!,
+        toolRegistry: this.toolRegistry!,
+        maxIterations: 10,
+        logger: this.logger,
+        eventBus: this.eventBus!,
+        signal: this.activeAbortController?.signal ?? new AbortController().signal,
+        customHandlers: buildMetaEvaluationHandlers(this.meditationStore!, this.activeSession!, corpusPrompt.id, this.logger),
+        customToolSchemas: getMetaEvaluationToolSchemas(),
+      })
+    } catch (err) {
+      this.logger.warn('[Meditation] Meta-evaluation failed', { error: String(err) })
     }
   }
 

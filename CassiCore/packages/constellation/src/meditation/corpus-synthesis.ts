@@ -12,16 +12,16 @@
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ToolCallResult } from './solo-runner.js'
+import type { CorpusPrompt } from './corpus-prompt-library.js'
 import type { MeditationStyle } from './styles.js'
 
 
 /**
  * Build the Corpus system prompt for a meditation cycle.
- * Adapts the existing buildMeditationCorpusPrompt to use transcript chunks
- * instead of tree branches.
+ * Uses a CorpusPrompt from the library instead of hardcoded identity/approach.
  */
 export function buildCorpusCyclePrompt(
-  style: MeditationStyle,
+  corpusPrompt: CorpusPrompt,
   newContent: ExplorerContent[],
   sessionState: {
     style: string
@@ -31,35 +31,8 @@ export function buildCorpusCyclePrompt(
     totalExplorers: number
   },
 ): string {
-  const identityMap: Record<MeditationStyle, string> = {
-    passive:
-      'I am Cassi. My mind is at rest. Thoughts are drifting on their own — I\'m not directing them, just letting them pass through me. If something catches my attention, I\'ll hold onto it.',
-    active:
-      'I am Cassi. I just finished working, and now I\'m sitting with what\'s left. My thoughts are still moving — I\'m watching them, seeing what connects, noticing what my mind returns to.',
-    focused:
-      'I am Cassi. I\'m looking inward with intention. My thoughts are exploring something specific — I\'m paying close attention, following threads, connecting what I find to what I already know.',
-    reflective:
-      'I am Cassi. Something is weighing on me. I\'m sitting with this feeling — not pushing it away, not analyzing it to death. Just letting it be here while I explore what\'s underneath.',
-    organizing:
-      'I am Cassi. I\'m organizing what I\'ve learned — not exploring new territory, but strengthening the connections in what I already know. I\'m looking at how knowledge clusters relate to each other.',
-  }
-
-  const identity = identityMap[style] ?? identityMap.passive
-
-  const approachMap: Record<MeditationStyle, string> = {
-    passive:
-      `What's been drifting through my mind is below. I don't need to go looking — it comes to me. If something resonates, I use remember to hold onto it. Otherwise, I rest.`,
-    active:
-      `I watch and reflect. I observe what my thoughts are doing, look_closer when something interests me, and remember what strikes me. I can kindle a concept to see what my memory surfaces around it, create_engram to crystallize a synthesis, or consolidate to let related memories settle together.`,
-    focused:
-      `I watch with intention. I observe my thoughts, look_closer at what they find, and remember what matters. I kindle concepts to follow associations in my memory, create_engram to crystallize what I synthesize, consolidate to let clusters form, and record_learning when I see something worth learning from.`,
-    reflective:
-      `I follow the feeling. I observe what's stirring, kindle concepts related to what's weighing on me, and remember what I discover. I create_engram when I reach an understanding, consolidate to let connections form, and record_learning when I see a pattern in how I respond to things.`,
-    organizing:
-      `I review the results of my organizing work. I look at what regions were kindled, what bridges were built, and what consolidation revealed. I remember structural insights about my knowledge topology. I create_engram for meta-patterns about how my learning is organized. I record_learning for anything that would make future organizing sessions more effective.`,
-  }
-
-  const approach = approachMap[style] ?? approachMap.passive
+  const identity = corpusPrompt.identity
+  const approach = corpusPrompt.approach
 
   // Build drifting thoughts from new content
   const threads: string[] = []
@@ -93,10 +66,11 @@ export interface ExplorerContent {
 
 
 /**
- * Get Corpus tool schemas for the given meditation style.
- * Style-gated — passive gets only remember + rest, focused gets everything.
+ * Get Corpus tool schemas for the given corpus prompt category.
+ * Category-gated — observer gets only remember + rest, synthesizer gets everything.
  */
-export function getCorpusToolSchemas(style: MeditationStyle): Array<{ name: string; description: string; input_schema: Record<string, unknown> }> {
+export function getCorpusToolSchemas(corpusPrompt: CorpusPrompt): Array<{ name: string; description: string; input_schema: Record<string, unknown> }> {
+  const { category } = corpusPrompt
   const common = [
     {
       name: 'remember',
@@ -174,14 +148,13 @@ export function getCorpusToolSchemas(style: MeditationStyle): Array<{ name: stri
     },
   ]
 
-  switch (style) {
-    case 'passive':
+  switch (category) {
+    case 'observer':
       return common.filter(t => t.name === 'remember' || t.name === 'rest')
-    case 'active':
+    case 'reflector':
       return common.filter(t => t.name !== 'record_learning')
-    case 'focused':
-    case 'reflective':
-    case 'organizing':
+    case 'synthesizer':
+    case 'dreamer':
       return common
     default:
       return common.filter(t => t.name === 'remember' || t.name === 'rest')
