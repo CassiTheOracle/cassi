@@ -33,19 +33,20 @@ export class ThalamusModule extends BaseCognitiveModule {
   setCortex(c: CorticalField): void { this.cortex = c }
   setMnemicField(mf: MnemicField): void { this.mnemicField = mf }
 
-  async initialize(): Promise<void> {
+  async init(): Promise<void> {
+    await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
     this.compressor = new ToolResultCompressor(this.logger)
     this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 2)
-    this.logger.info('Thalamus initialized (GWT luminance scoring)')
   }
 
-  async shutdown(): Promise<void> {
+  async stop(): Promise<void> {
     if (this.evictionTimer) {
       clearInterval(this.evictionTimer)
       this.evictionTimer = null
     }
     this.sessions.clear()
+    await super.stop()
   }
 
   curate(
@@ -55,8 +56,8 @@ export class ThalamusModule extends BaseCognitiveModule {
   ): CurationResult {
     const start = Date.now()
 
-    if (!messages || messages.length < 10) {
-      return this.skipResult(messages ?? [], Date.now() - start, 'too_few_messages')
+    if (!messages || messages.length === 0) {
+      return this.skipResult(messages ?? [], Date.now() - start, 'empty')
     }
 
     const cfg = { ...DEFAULT_CURATION_CONFIG, ...this.getConfigOverrides(), ...configOverrides }
@@ -352,6 +353,16 @@ export class ThalamusModule extends BaseCognitiveModule {
           } else {
             included.delete(idx)
           }
+        }
+      }
+    }
+
+    // Protected boundary: first protected message may be a tool_result
+    // whose tool_use companion is in the non-protected region and was dropped
+    if (protectedStart > 0 && protectedStart < messages.length) {
+      if (hasToolResult(messages[protectedStart]) && !included.has(protectedStart - 1)) {
+        if (hasToolUse(messages[protectedStart - 1])) {
+          included.add(protectedStart - 1)
         }
       }
     }
