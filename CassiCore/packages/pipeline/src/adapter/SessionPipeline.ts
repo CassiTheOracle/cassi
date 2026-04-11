@@ -98,6 +98,10 @@ export class SessionPipeline {
   private intelligenceLayer?: IntelligenceLayer;
   private store?: SQLiteSessionStore;
 
+  // GWT workspace (opt-in: enables luminance-gated injection + RadianceLoop)
+  private globalWorkspace?: import('../../intelligence/workspace/index.js').GlobalWorkspace;
+  private useWorkspaceForInjection = false;
+
   // State
   private initialized = false;
   private systemPrompt = '';
@@ -109,6 +113,17 @@ export class SessionPipeline {
     this.options = options;
     this.logger = options.logger.child('session-pipeline');
     this.eventBus = options.eventBus;
+  }
+
+  /**
+   * Set the Global Workspace for GWT-based injection.
+   * When enabled, the workspace assembles injections from luminance-ranked
+   * signal slots instead of the static-cap aggregator.
+   */
+  setGlobalWorkspace(workspace: import('../../intelligence/workspace/index.js').GlobalWorkspace, enable = false): void {
+    this.globalWorkspace = workspace;
+    this.useWorkspaceForInjection = enable;
+    this.logger.debug('GlobalWorkspace wired', { enabled: enable });
   }
 
   /**
@@ -393,27 +408,55 @@ export class SessionPipeline {
     } catch { /* non-blocking */ }
 
     // Apply InjectionAggregator injections (Corpus, SessionDigest, Optimizer, Dreamer, etc.)
-    if (this.options.injectionAggregator) {
+    // Two paths: GWT workspace (luminance-ranked competition) or legacy aggregator (static caps).
+    if (this.useWorkspaceForInjection && this.globalWorkspace) {
+      // GWT path: workspace assembles from luminance-ranked signal slots.
+      // Seed the workspace with a user-intent signal so there's content to broadcast.
       try {
-        const turnContext = { session, userMessage: content, timestamp: Date.now() };
-        const injections = await this.options.injectionAggregator.aggregate(session.id, turnContext);
+        this.globalWorkspace.submit({
+          signalId: `user-intent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          source: 'turn-pipeline',
+          sessionId: session.id,
+          type: 'observation',
+          content: content.slice(0, 500),
+          luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+          createdAt: Date.now(),
+        });
+      } catch { /* non-critical */ }
+
+      // Also run the legacy aggregator so modules can contribute their signals
+      // to the workspace (they submit via setGlobalWorkspace during aggregate)
+      if (this.options.injectionAggregator) {
+        try {
+          const turnContext = { session, userMessage: content, timestamp: Date.now() };
+          await this.options.injectionAggregator.aggregate(session.id, turnContext);
+        } catch { /* non-critical — aggregator is supplementary in GWT mode */ }
+      }
+
+      try {
+        const injections = this.globalWorkspace.assemble(session.id);
+        this.globalWorkspace.broadcast();
+        this.globalWorkspace.tick();
         if (injections.length > 0) {
           if (!session.context) {
             session.context = { updatedAt: Date.now() };
           }
           session.context.injections = injections.map(i => i.content);
-          this.logger.debug('InjectionAggregator applied', {
+          this.logger.debug('GlobalWorkspace injections applied', {
             sessionId: session.id,
             sources: injections.map(i => i.source),
             totalChars: injections.reduce((s, i) => s + i.content.length, 0),
           });
         }
       } catch (err) {
-        this.logger.debug('InjectionAggregator failed (non-fatal)', {
+        this.logger.debug('GlobalWorkspace assembly failed, falling back to aggregator', {
           sessionId: session.id,
           error: String(err),
         });
+        await this.applyLegacyInjections(session, content);
       }
+    } else if (this.options.injectionAggregator) {
+      await this.applyLegacyInjections(session, content);
     }
 
     // Emit stream start event if streaming is requested
@@ -511,6 +554,14 @@ export class SessionPipeline {
         }
       );
 
+      // Feed response back to GlobalWorkspace for the next cycle
+      if (this.useWorkspaceForInjection && this.globalWorkspace && result.response) {
+        const ws = this.globalWorkspace;
+        queueMicrotask(() => {
+          try { ws.processFeedback(result.response); } catch { /* non-critical */ }
+        });
+      }
+
       if (this.eventBus) {
         this.eventBus.emit({
           type: 'turn:end' as any,
@@ -552,6 +603,35 @@ export class SessionPipeline {
     } finally {
       // Always clean up the controller
       this.activeControllers.delete(session.id);
+    }
+  }
+
+  /**
+   * Apply injections via the legacy static-cap aggregator path.
+   * Used as the default when GWT workspace is disabled, or as a fallback
+   * when workspace assembly fails.
+   */
+  private async applyLegacyInjections(session: SessionState, content: string): Promise<void> {
+    if (!this.options.injectionAggregator) return;
+    try {
+      const turnContext = { session, userMessage: content, timestamp: Date.now() };
+      const injections = await this.options.injectionAggregator.aggregate(session.id, turnContext);
+      if (injections.length > 0) {
+        if (!session.context) {
+          session.context = { updatedAt: Date.now() };
+        }
+        session.context.injections = injections.map(i => i.content);
+        this.logger.debug('InjectionAggregator applied', {
+          sessionId: session.id,
+          sources: injections.map(i => i.source),
+          totalChars: injections.reduce((s, i) => s + i.content.length, 0),
+        });
+      }
+    } catch (err) {
+      this.logger.debug('InjectionAggregator failed (non-fatal)', {
+        sessionId: session.id,
+        error: String(err),
+      });
     }
   }
 
