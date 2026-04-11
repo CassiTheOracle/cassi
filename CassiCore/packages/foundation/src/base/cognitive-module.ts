@@ -45,7 +45,7 @@ import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { GlobalBlackboardRegistry } from '../flux-team/global-blackboard-registry.js'
-import type { GlobalWorkspace, CognitiveSignal, SignalType } from '../workspace/index.js'
+import type { GlobalWorkspace, CognitiveSignal, SignalType, WorkspaceResponse } from '../workspace/index.js'
 
 // Re-export types for backward compatibility
 export type { ModuleModelConfig } from './model-config.js'
@@ -318,6 +318,19 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
     workspaceState: { threshold: number; occupiedSlots: number; totalSlots: number },
   ): void
 
+  /**
+   * Called during a Radiance Loop cycle to collect this module's response.
+   * Override to return the most relevant context for the broadcast signals.
+   * Return null to indicate silence (nothing relevant).
+   *
+   * This is the bidirectional part of GWT — the workspace doesn't just broadcast,
+   * it listens to what each module considers relevant. The response pattern
+   * is then observed by the LLM observer for metacognitive signals.
+   */
+  protected onWorkspaceRadiance?(
+    signals: CognitiveSignal[],
+  ): Promise<WorkspaceResponse | null> | WorkspaceResponse | null
+
 
   // ── Global Workspace Signal Submission ──────────────────────────
 
@@ -549,6 +562,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
   }
 
   private _workspaceBroadcastUnsub?: () => void
+  private _workspaceRadianceUnsub?: () => void
 
   /**
    * Wire the Global Workspace for GWT-based signal competition.
@@ -572,6 +586,14 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
         } catch (err) {
           this.logger.error(`[${this.name}] Error in onWorkspaceBroadcast`, { error: String(err) })
         }
+      })
+    }
+
+    // Register as a radiance response handler if the module implements it
+    if (this.onWorkspaceRadiance) {
+      this._workspaceRadianceUnsub?.()
+      this._workspaceRadianceUnsub = workspace.onRadiance(this.name, (signals) => {
+        return this.onWorkspaceRadiance!(signals)
       })
     }
   }
