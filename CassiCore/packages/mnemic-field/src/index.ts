@@ -35,6 +35,11 @@ import type {
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
+const REPROJECTION = {
+  cooldownMs: 30 * 60 * 1000,    // 30 min between runs
+  maxFailures: 2,                 // block after this many consecutive failures
+} as const
+
 export { Cortex } from './cortex.js'
 export { FilamentCortex } from './filament-cortex.js'
 export { KindlingEngine } from './kindling.js'
@@ -88,6 +93,8 @@ export class MnemicField {
   private logger: ILogger
   private projectionState: ProjectionState | null = null
   private reprojectionInFlight: Promise<number> | null = null
+  private reprojectionFailures = 0
+  private lastReprojectionAt = 0
   private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
   private corticalField?: CorticalField
@@ -507,6 +514,25 @@ export class MnemicField {
       return this.reprojectionInFlight
     }
 
+    // Block after repeated failures to avoid compounding memory pressure
+    if (this.reprojectionFailures >= REPROJECTION.maxFailures) {
+      this.logger.warn('Reprojection blocked — too many recent failures', {
+        failures: this.reprojectionFailures,
+      })
+      return 0
+    }
+
+    // Cooldown: prevent excessive reprojection
+    const now = Date.now()
+    if (this.lastReprojectionAt > 0 && now - this.lastReprojectionAt < REPROJECTION.cooldownMs) {
+      const elapsed = Math.round((now - this.lastReprojectionAt) / 1000)
+      this.logger.info('Reprojection cooldown active — skipping', {
+        elapsedSecs: elapsed,
+        cooldownSecs: REPROJECTION.cooldownMs / 1000,
+      })
+      return 0
+    }
+
     const promise = this._doReprojectAsync(umapOptions)
     this.reprojectionInFlight = promise
     try {
@@ -517,15 +543,12 @@ export class MnemicField {
   }
 
   private async _doReprojectAsync(umapOptions?: import('./umap.js').UMAPOptions): Promise<number> {
-    // Stream embeddings directly into a SharedArrayBuffer — avoids loading
-    // all 124K+ embeddings into JS arrays (which caused OOM at 3.3GB).
     const { buffer, ids, dim, count } = this.cortex.packEmbeddingsIntoSAB()
 
     if (count < 2) return 0
 
     const effectiveOptions: import('./umap.js').ProjectTo2DFromSABOptions = umapOptions ? { ...umapOptions } : {}
 
-    // Scale epochs for very large datasets
     if (count > 10000 && !effectiveOptions.nEpochs) {
       effectiveOptions.nEpochs = Math.max(50, Math.floor(200 * 10000 / count))
     }
@@ -548,42 +571,55 @@ export class MnemicField {
       sabSizeMB: Math.round(buffer.byteLength / 1024 / 1024),
     })
 
-    const { positions, stats } = await projectTo2DFromSAB(buffer, count, dim, effectiveOptions)
+    try {
+      const { positions, stats } = await projectTo2DFromSAB(buffer, count, dim, effectiveOptions)
 
-    const updates = ids.map((id, i) => ({
-      id,
-      x: positions[i].x,
-      y: positions[i].y,
-    }))
+      const updates = ids.map((id, i) => ({
+        id,
+        x: positions[i].x,
+        y: positions[i].y,
+      }))
 
-    this.cortex.bulkUpdatePositions(updates)
+      this.cortex.bulkUpdatePositions(updates)
 
-    // Build projection state from a sample — avoid loading all vectors again.
-    // Use positions directly and reconstruct vectors from the SAB.
-    const MAX_REF = 5000
-    const packed = new Float32Array(buffer)
-    const step = count > MAX_REF ? count / MAX_REF : 1
-    const refEmb: number[][] = []
-    const refPos: import('./umap.js').ProjectionResult[] = []
-    for (let i = 0; i < Math.min(count, MAX_REF); i++) {
-      const idx = Math.min(Math.floor(i * step), count - 1)
-      const vec: number[] = new Array(dim)
-      const off = idx * dim
-      for (let d = 0; d < dim; d++) vec[d] = packed[off + d]
-      refEmb.push(vec)
-      refPos.push(positions[idx])
+      // Build projection state from a sample — avoid loading all vectors again.
+      const MAX_REF = 5000
+      const packed = new Float32Array(buffer)
+      const step = count > MAX_REF ? count / MAX_REF : 1
+      const refEmb: number[][] = []
+      const refPos: import('./umap.js').ProjectionResult[] = []
+      for (let i = 0; i < Math.min(count, MAX_REF); i++) {
+        const idx = Math.min(Math.floor(i * step), count - 1)
+        const vec: number[] = new Array(dim)
+        const off = idx * dim
+        for (let d = 0; d < dim; d++) vec[d] = packed[off + d]
+        refEmb.push(vec)
+        refPos.push(positions[idx])
+      }
+      this.projectionState = buildProjectionState(refEmb, refPos)
+
+      this.logger.info('Reprojected engrams via UMAP (async worker)', {
+        count: updates.length,
+        totalMs: stats.totalMs,
+        knnMs: stats.knnMs,
+        sgdMs: stats.sgdMs,
+        edges: stats.edges,
+      })
+
+      this.lastReprojectionAt = Date.now()
+      this.reprojectionFailures = 0
+
+      return updates.length
+    } catch (err) {
+      this.reprojectionFailures++
+      this.logger.error('Reprojection failed', {
+        error: String(err),
+        count,
+        dim,
+        failures: this.reprojectionFailures,
+      })
+      throw err
     }
-    this.projectionState = buildProjectionState(refEmb, refPos)
-
-    this.logger.info('Reprojected engrams via UMAP (async worker)', {
-      count: updates.length,
-      totalMs: stats.totalMs,
-      knnMs: stats.knnMs,
-      sgdMs: stats.sgdMs,
-      edges: stats.edges,
-    })
-
-    return updates.length
   }
 
   /**

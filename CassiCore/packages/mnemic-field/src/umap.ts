@@ -57,6 +57,7 @@ export const UMAP_DEFAULTS = {
 } as const
 
 const MAX_REFERENCE_SAMPLES = 5000
+const WORKER_TIMEOUT_MS = 600_000  // 10 minutes
 
 /**
  * Normalize positions to fit within [-spread, spread] range.
@@ -271,25 +272,35 @@ export function projectTo2DFromSAB(
       },
     })
 
+    const timeoutMs = WORKER_TIMEOUT_MS
+    const timeout = setTimeout(() => {
+      worker.terminate()
+      reject(new Error(`UMAP worker timed out after ${timeoutMs / 1000}s`))
+    }, timeoutMs)
+
     worker.on('message', (msg: { type: string; [key: string]: unknown }) => {
       if (msg.type === 'progress' && options?.onProgress) {
         options.onProgress(msg as UMAPProgressEvent)
       } else if (msg.type === 'result') {
+        clearTimeout(timeout)
         resolve({
           positions: msg.positions as ProjectionResult[],
           stats: msg.stats as { totalMs: number; knnMs: number; sgdMs: number; edges: number },
         })
       } else if (msg.type === 'error') {
+        clearTimeout(timeout)
         reject(new Error(`UMAP worker error: ${msg.message}`))
       }
     })
 
     worker.on('error', (err) => {
+      clearTimeout(timeout)
       reject(new Error(`UMAP worker thread error: ${String(err)}`))
     })
 
     worker.on('exit', (code) => {
       if (code !== 0) {
+        clearTimeout(timeout)
         reject(new Error(`UMAP worker exited with code ${code}`))
       }
     })
