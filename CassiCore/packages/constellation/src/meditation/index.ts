@@ -48,6 +48,7 @@ import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { CorticalField } from '../../cortex/index.js'
 import type { ICorpusTree } from '../corpus-types.js'
+import type { ThalamusModule } from '../../thalamus/index.js'
 import { runSoloExplorer } from './solo-runner.js'
 import type { SoloRunnerResult } from './solo-runner.js'
 
@@ -79,6 +80,7 @@ export class MeditationController extends BaseCognitiveModule {
   private activeAbortController?: AbortController
   /** Cached by checkAndMeditate when health-based organizing is triggered */
   private cachedHealthSnapshot?: FieldHealthSnapshot
+  private thalamus?: ThalamusModule
 
 
   constructor(logger: ILogger, config?: Partial<MeditationConfig>) {
@@ -108,6 +110,10 @@ export class MeditationController extends BaseCognitiveModule {
 
   setCortex(cortex: CorticalField): void {
     this.cortex = cortex
+  }
+
+  setThalamus(thalamus: ThalamusModule): void {
+    this.thalamus = thalamus
   }
 
 
@@ -161,10 +167,8 @@ export class MeditationController extends BaseCognitiveModule {
     _durationMs: number,
   ): Promise<void> {
     this.lastTurnAt = Date.now()
-
-    if (this.state === 'meditating') {
-      await this.stopMeditation('user-activity')
-    }
+    // Meditation is always-on — user activity does not stop it.
+    // The Thalamus manages context growth for long-running sessions.
   }
 
 
@@ -224,13 +228,12 @@ export class MeditationController extends BaseCognitiveModule {
 
 
   /**
-   * Cancel any running meditation. Called by the orchestrator before
-   * launching real work — preemption must be immediate.
+   * Previously cancelled meditation for real Constellation work.
+   * Now meditation runs alongside all other work at background priority —
+   * the cost of one extra session is minimal and the continuous learning is valuable.
    */
   cancelForRealWork(): void {
-    if (this.state !== 'meditating' || !this.activeSession) return
-    this.logger.info('[Meditation] Preempted by real work')
-    void this.stopMeditation('preempted')
+    // No-op: meditation no longer stops for Constellation work
   }
 
 
@@ -249,18 +252,19 @@ export class MeditationController extends BaseCognitiveModule {
 
     if (!this.orchestrator || !this.registry) return
 
-    // No active constellations (check both registry and orchestrator's running map
-    // to cover the gap between project() call and registry.register())
-    if (this.registry.size > 0) return
-    if (this.orchestrator.hasActiveWork()) return
+    // Meditation runs alongside active constellations — no blocking gate.
+    // The background model tier keeps resource contention minimal.
 
-    // Idle long enough
+    // Initial startup delay: wait for idle threshold once before first session.
+    // After the first session starts, meditation runs continuously.
     const idleMs = Date.now() - this.lastTurnAt
-    if (this.lastTurnAt > 0 && idleMs < this.meditationConfig.idleThresholdMs) return
+    if (this.sessionCount === 0 && this.lastTurnAt > 0 && idleMs < this.meditationConfig.idleThresholdMs) return
 
-    // Cooldown elapsed
+    // Minimal cooldown between sessions (60s) to prevent thrashing on errors.
+    // The full cooldownMs config is honored only for the initial startup.
     const sinceLast = Date.now() - this.lastMeditationAt
-    if (this.lastMeditationAt > 0 && sinceLast < this.meditationConfig.cooldownMs) return
+    const effectiveCooldown = this.sessionCount > 0 ? 60_000 : this.meditationConfig.cooldownMs
+    if (this.lastMeditationAt > 0 && sinceLast < effectiveCooldown) return
 
     const affect = this.cortex?.getAffectState() ?? undefined
     let style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect, this.sessionCount)
@@ -402,10 +406,14 @@ export class MeditationController extends BaseCognitiveModule {
       timestamp: Date.now(),
     })
 
-    // Start duration timer
+    // Duration safety valve — for always-on meditation, sessions can run
+    // for up to 24 hours. The Thalamus manages context window growth.
+    // This timer exists only as a safety limit; sessions normally end
+    // when the agent calls complete_organizing or a style transition occurs.
+    const maxDuration = Math.max(this.meditationConfig.maxDurationMs, 86_400_000)
     this.durationTimer = setTimeout(
       () => { void this.stopMeditation('max-duration') },
-      this.meditationConfig.maxDurationMs,
+      maxDuration,
     )
     if (this.durationTimer.unref) this.durationTimer.unref()
 
@@ -463,6 +471,7 @@ export class MeditationController extends BaseCognitiveModule {
           eventBus: this.eventBus!,
           signal: abortController.signal,
           memoryContext,
+          thalamus: this.thalamus,
         })
       })
 
@@ -677,7 +686,7 @@ export class MeditationController extends BaseCognitiveModule {
     const explorerPrompt = buildOrganizingExplorerPrompt(fieldStats, healthReport, priorityRegions)
 
     const { handlers, stats: organizingStats, touchedRegions } = buildOrganizingHandlers(
-      this.mnemicField, this.logger, healthAnalyzer,
+      this.mnemicField, this.logger, healthAnalyzer, this.meditationStore,
     )
 
     try {
@@ -702,12 +711,15 @@ export class MeditationController extends BaseCognitiveModule {
         handle,
         toolExecutor: this.toolExecutor!,
         toolRegistry: this.toolRegistry!,
-        maxIterations: this.meditationConfig.maxTotalSteps,
+        maxIterations: this.thalamus
+          ? Math.max(this.meditationConfig.maxTotalSteps, 500)
+          : this.meditationConfig.maxTotalSteps,
         logger: this.logger,
         eventBus: this.eventBus!,
         signal: abortController.signal,
         customHandlers: handlers,
         customToolSchemas: getOrganizingToolSchemas(),
+        thalamus: this.thalamus,
       })
 
       // Capture after-snapshot and compute delta
@@ -752,6 +764,11 @@ export class MeditationController extends BaseCognitiveModule {
         consolidationsRun: organizingStats.consolidationsRun,
         abstractionsAudited: organizingStats.abstractionsAudited,
         tensionsSurfaced: organizingStats.tensionsSurfaced,
+        orphansAssigned: organizingStats.orphansAssigned,
+        embeddingsBackfilled: organizingStats.embeddingsBackfilled,
+        batchKindles: organizingStats.batchKindles,
+        batchBridges: organizingStats.batchBridges,
+        nucleusDetections: organizingStats.nucleusDetections,
         durationMs: this.activeSession ? Date.now() - this.activeSession.startedAt : 0,
         timestamp: Date.now(),
       })
@@ -814,7 +831,7 @@ export class MeditationController extends BaseCognitiveModule {
         eventBus: this.eventBus!,
         signal: this.activeAbortController?.signal ?? new AbortController().signal,
         customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
-        customToolSchemas: getCorpusToolSchemas({ id: 'organizing', category: 'synthesizer', identity: '', approach: '', style: 'passive' }),
+        customToolSchemas: getCorpusToolSchemas({ id: 'organizing', category: 'synthesizer', identity: '', approach: '', style: 'passive' as any }),
       })
     } catch (err) {
       this.logger.warn('[Meditation] Organizing corpus cycle failed', { error: String(err) })
@@ -913,14 +930,14 @@ export class MeditationController extends BaseCognitiveModule {
     const corpusOutput = {
       iterations: soloResults.reduce((sum, r) => sum + r.iterations, 0),
       toolCalls: soloResults.reduce((sum, r) => sum + r.toolCalls, 0),
-      toolsUsed: [...new Set(soloResults.flatMap(r => r.transcript ? ['transcript'] : []))],
+      toolsUsed: ['remember', 'create_engram', 'kindle', 'consolidate', 'record_learning', 'rest'],
       insightsStored: 0,
       consolidations: this.activeSession?.consolidations ?? 0,
     }
 
     const prompt = buildMetaEvaluationPrompt(
       this.activeSession!,
-      { id: corpusPrompt.id, identity: corpusPrompt.identity, approach: corpusPrompt.approach, category: corpusPrompt.category },
+      corpusPrompt,
       corpusOutput,
       this.meditationStore,
     )

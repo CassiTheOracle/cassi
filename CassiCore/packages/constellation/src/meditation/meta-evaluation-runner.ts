@@ -12,7 +12,6 @@
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { MeditationStore } from './meditation-store.js'
 import type { MeditationSession } from './types.js'
-import type { MeditationStyle } from './styles.js'
 import type { ToolCallResult } from './solo-runner.js'
 
 
@@ -211,7 +210,7 @@ export function buildMetaEvaluationHandlers(
           return { content: `Mutation temperature too low (${temp.toFixed(2)}) — not creating variants right now.` }
         }
         const newId = `cassi-corpus-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-        const ok = store.createCorpusMutation(newId, identity, approach, category ?? 'observer', session.style, parentId)
+        const ok = store.createCorpusMutation(newId, identity, approach, category ?? 'observer', session.style as any, parentId)
         if (!ok) {
           return { content: 'Corpus prompt cap reached — cannot create new variant.' }
         }

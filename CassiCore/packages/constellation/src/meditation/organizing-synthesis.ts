@@ -22,6 +22,7 @@ import type { ILogger } from '../../../../types/interfaces.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ToolCallResult } from './solo-runner.js'
 import type { FieldHealthAnalyzer, FieldHealthSnapshot, RegionHealth } from './field-health.js'
+import type { MeditationStore } from './meditation-store.js'
 
 
 /**
@@ -57,16 +58,24 @@ export function buildOrganizingExplorerPrompt(fieldStats: {
 
 My memory field currently has ${fieldStats.engramCount} engrams across ${fieldStats.nucleusCount} clusters, with ${fieldStats.synapseCount} connections and average potentiation of ${fieldStats.avgPotentiation.toFixed(3)}.${healthBlock}${regionGuidance}
 
-I will:
-1. Survey my memory field to understand its current shape — where clusters are dense, where they're sparse, where connections are missing (survey_field)
-2. Kindle weak or orphaned regions to activate dormant knowledge (kindle_region)
-3. Build bridges between clusters that should be connected but aren't (bridge_clusters)
-4. Run consolidation to let the field reorganize based on fresh activation (run_consolidation)
-5. Audit my abstractions to ensure clusters have proper summaries (audit_abstractions)
-6. Surface and address any contradictions or tensions in my knowledge (resolve_tension)
-7. Call complete_organizing when I'm satisfied with the reorganization
+I start by loading any checkpoint from my previous organizing session (load_checkpoint), then survey the field (survey_field or scan_coverage) to understand the current state. Then I work strategically:
 
-I work methodically. Each step builds on the previous one — surveying informs kindling, kindling creates activation for consolidation, and consolidation reveals where abstractions are missing. I write everything in first person. This is my mind and I'm taking care of it.`
+For small fields (under 1000 engrams):
+1. Survey, kindle weak regions, bridge clusters, consolidate, audit abstractions, resolve tensions
+
+For large fields (thousands of orphans):
+1. scan_coverage — understand the scale: orphan count, embedding gaps, type distribution
+2. sample_orphans — get representative samples to identify topic patterns
+3. topic_scan — see tag frequency distribution across unorganized memory
+4. check_embeddings — if many engrams lack embeddings, trigger_backfill first
+5. batch_kindle — activate multiple topics at once efficiently
+6. run_nucleus_detection — experiment with clustering parameters
+7. assign_by_similarity — assign orphans to matching nuclei
+8. batch_bridge — connect related domains in bulk
+9. run_consolidation — let the field reorganize with fresh activation
+10. save_checkpoint — record my progress and strategy for next session
+
+I work methodically, saving checkpoints so my next session continues where I left off. Each step builds on the previous one. I write everything in first person. This is my mind and I'm taking care of it.`
 }
 
 
@@ -93,7 +102,12 @@ Regions kindled: ${organizingStats.regionsKindled}
 Bridges created: ${organizingStats.bridgesCreated}
 Consolidations run: ${organizingStats.consolidationsRun}
 Abstractions audited: ${organizingStats.abstractionsAudited}
-Tensions surfaced: ${organizingStats.tensionsSurfaced}${delta ? `\n\nBefore/After Summary: ${delta.summary}` : ''}
+Tensions surfaced: ${organizingStats.tensionsSurfaced}
+Orphans assigned: ${organizingStats.orphansAssigned}
+Embeddings backfilled: ${organizingStats.embeddingsBackfilled}
+Batch kindles: ${organizingStats.batchKindles}
+Batch bridges: ${organizingStats.batchBridges}
+Nucleus detections: ${organizingStats.nucleusDetections}${delta ? `\n\nBefore/After Summary: ${delta.summary}` : ''}
 </organizing_results>
 
 <exploration_notes>
@@ -118,6 +132,39 @@ export interface OrganizingStats {
   consolidationsRun: number
   abstractionsAudited: number
   tensionsSurfaced: number
+  orphansAssigned: number
+  embeddingsBackfilled: number
+  batchKindles: number
+  batchBridges: number
+  nucleusDetections: number
+  checkpointsSaved: number
+}
+
+
+export interface OrganizingCheckpoint {
+  timestamp: number
+  passNumber: number
+  strategy: string
+  topicsCovered: string[]
+  topicsRemaining: string[]
+  notes: string
+  metrics: {
+    orphanRatioSnapshot: number
+    regionsKindled: number
+    bridgesCreated: number
+    consolidationsRun: number
+  }
+}
+
+const CHECKPOINT_KEY = 'organizing_checkpoint'
+
+function loadCheckpointData(store: MeditationStore): OrganizingCheckpoint | null {
+  try {
+    const json = store.getMetaText(CHECKPOINT_KEY)
+    return json ? JSON.parse(json) : null
+  } catch {
+    return null
+  }
 }
 
 
@@ -130,7 +177,7 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'survey_field',
       description:
-        'Take a diagnostic snapshot of my memory field. Shows cluster distribution, ' +
+        'I use this when I want a diagnostic snapshot of my memory field — cluster distribution, ' +
         'engram health, potentiation spread, orphan count, and areas needing attention.',
       input_schema: {
         type: 'object',
@@ -146,7 +193,7 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'kindle_region',
       description:
-        'Activate a weak or dormant region of memory by spreading activation through it. ' +
+        'I use this when I want to activate a weak or dormant region of memory by spreading activation through it. ' +
         'This warms up connections and makes them available for consolidation.',
       input_schema: {
         type: 'object',
@@ -167,8 +214,8 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'bridge_clusters',
       description:
-        'Search for thematic connections between two topics or domains and create ' +
-        'explicit bridges. Finds engrams in both domains and looks for shared concepts.',
+        'I use this when I want to search for thematic connections between two topics or domains and create ' +
+        'explicit bridges. Finds engrams in both domains and creates synapses between them.',
       input_schema: {
         type: 'object',
         properties: {
@@ -191,9 +238,8 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'run_consolidation',
       description:
-        'Trigger a full consolidation cycle: radiance recomputation, co-activation drift, ' +
-        'nucleus detection, and abstraction generation. Best done after kindling to let ' +
-        'the field reorganize with fresh activation data.',
+        'I use this when I want to trigger a full consolidation cycle: potentiation recomputation, co-activation drift, ' +
+        'nucleus detection, and abstraction generation. Best done after kindling.',
       input_schema: {
         type: 'object',
         properties: {
@@ -208,8 +254,8 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'audit_abstractions',
       description:
-        'Review existing abstractions (summary engrams for clusters) and identify gaps. ' +
-        'Shows which clusters have summaries and which need them.',
+        'I use this when I want to review existing cluster summaries and identify which clusters are missing them. ' +
+        'Can trigger re-consolidation to generate abstractions for gaps.',
       input_schema: {
         type: 'object',
         properties: {
@@ -224,7 +270,7 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'resolve_tension',
       description:
-        'Surface contradictions or tensions in my knowledge and record how to resolve them. ' +
+        'I use this when I want to surface contradictions or tensions in my knowledge and record how to resolve them. ' +
         'Tensions are pairs of engrams that assert conflicting things.',
       input_schema: {
         type: 'object',
@@ -244,7 +290,7 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
     {
       name: 'complete_organizing',
       description:
-        'Finish the organizing session with a summary of what changed.',
+        'I use this when I am satisfied with the reorganization and want to finish the session with a summary.',
       input_schema: {
         type: 'object',
         properties: {
@@ -254,6 +300,214 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
           },
         },
         required: ['summary'],
+      },
+    },
+    // Diagnostic tools — understanding the landscape
+    {
+      name: 'scan_coverage',
+      description:
+        'I use this when I want to understand the overall shape of my memory — how many orphans, ' +
+        'what types of engrams are unorganized, which provenances dominate, and whether embeddings are missing.',
+      input_schema: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: 'sample_orphans',
+      description:
+        'I use this when I want to see a random sample of unorganized engrams. ' +
+        'This helps me identify topic patterns and decide what to organize next.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          count: {
+            type: 'number',
+            description: 'Number of random orphans to sample (default: 20)',
+          },
+        },
+        required: [],
+      },
+    },
+    {
+      name: 'topic_scan',
+      description:
+        'I use this when I want to see the frequency distribution of tags across my orphan engrams. ' +
+        'Shows me which topics have the most unorganized memories, helping me prioritize.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          limit: {
+            type: 'number',
+            description: 'Maximum number of top tags to return (default: 30)',
+          },
+        },
+        required: [],
+      },
+    },
+    // Batch action tools — efficient large-scale operations
+    {
+      name: 'batch_kindle',
+      description:
+        'I use this when I want to activate multiple topics at once instead of kindling them one at a time. ' +
+        'Much more efficient for warming up several regions before consolidation.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          queries: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                query: { type: 'string' },
+                intensity: { type: 'string', enum: ['gentle', 'moderate', 'strong'] },
+              },
+              required: ['query'],
+            },
+            description: 'Array of topics to kindle, each with optional intensity',
+          },
+        },
+        required: ['queries'],
+      },
+    },
+    {
+      name: 'batch_bridge',
+      description:
+        'I use this when I want to create bridges between multiple domain pairs at once. ' +
+        'Each pair gets cross-activated and connected with synapses.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          pairs: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                domain_a: { type: 'string' },
+                domain_b: { type: 'string' },
+                rationale: { type: 'string' },
+              },
+              required: ['domain_a', 'domain_b'],
+            },
+            description: 'Array of domain pairs to bridge',
+          },
+        },
+        required: ['pairs'],
+      },
+    },
+    {
+      name: 'assign_by_similarity',
+      description:
+        'I use this when I want to find orphan engrams matching a topic and assign them to ' +
+        'the nearest existing nucleus. Works by text similarity — does not require embeddings.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          query: {
+            type: 'string',
+            description: 'Topic to search for among orphans',
+          },
+          nucleus_label: {
+            type: 'string',
+            description: 'Label of the target nucleus to assign matches to',
+          },
+          max_assign: {
+            type: 'number',
+            description: 'Maximum number of orphans to assign in this batch (default: 50)',
+          },
+        },
+        required: ['query', 'nucleus_label'],
+      },
+    },
+    {
+      name: 'run_nucleus_detection',
+      description:
+        'I use this when I want to run spatial clustering (DBSCAN) with specific parameters ' +
+        'to discover new nuclei. Useful for experimenting with different epsilon and min_cluster_size values.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          epsilon: {
+            type: 'number',
+            description: 'DBSCAN neighborhood radius (default: 2.0, smaller = tighter clusters)',
+          },
+          min_cluster_size: {
+            type: 'number',
+            description: 'Minimum engrams to form a cluster (default: 3)',
+          },
+        },
+        required: [],
+      },
+    },
+    // Infrastructure tools — addressing root causes
+    {
+      name: 'check_embeddings',
+      description:
+        'I use this when I want to know how many of my engrams are missing embeddings. ' +
+        'Engrams without embeddings cannot be spatially positioned or clustered by DBSCAN.',
+      input_schema: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: 'trigger_backfill',
+      description:
+        'I use this when I want to generate embeddings for engrams that are missing them. ' +
+        'This enables those engrams to be spatially positioned and clustered in future consolidation.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          batch_size: {
+            type: 'number',
+            description: 'Number of engrams to embed in this batch (default: 100)',
+          },
+        },
+        required: [],
+      },
+    },
+    // Continuation tools — multi-session progress
+    {
+      name: 'save_checkpoint',
+      description:
+        'I use this when I want to save my organizing progress so the next session can continue where I left off. ' +
+        'Stores my strategy, topics covered, and what remains to be done.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          strategy: {
+            type: 'string',
+            description: 'My current strategy and approach notes',
+          },
+          topics_covered: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Topics/regions I have already organized',
+          },
+          topics_remaining: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Topics/regions that still need organizing',
+          },
+          notes: {
+            type: 'string',
+            description: 'Any additional observations for my next session',
+          },
+        },
+        required: ['strategy'],
+      },
+    },
+    {
+      name: 'load_checkpoint',
+      description:
+        'I use this at the start of an organizing session to see what my previous session accomplished ' +
+        'and what strategy I was following. Lets me pick up where I left off.',
+      input_schema: {
+        type: 'object',
+        properties: {},
+        required: [],
       },
     },
   ]
@@ -268,6 +522,7 @@ export function buildOrganizingHandlers(
   mnemicField: MnemicField,
   logger: ILogger,
   healthAnalyzer?: FieldHealthAnalyzer,
+  meditationStore?: MeditationStore,
 ): { handlers: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>; stats: OrganizingStats; touchedRegions: string[] } {
   const stats: OrganizingStats = {
     regionsKindled: 0,
@@ -275,6 +530,12 @@ export function buildOrganizingHandlers(
     consolidationsRun: 0,
     abstractionsAudited: 0,
     tensionsSurfaced: 0,
+    orphansAssigned: 0,
+    embeddingsBackfilled: 0,
+    batchKindles: 0,
+    batchBridges: 0,
+    nucleusDetections: 0,
+    checkpointsSaved: 0,
   }
 
   /** Track which regions (query terms) were organized for progressive tracking */
@@ -676,6 +937,457 @@ export function buildOrganizingHandlers(
       })
 
       return { content: 'Organizing complete.', done: true }
+    },
+
+
+    async scan_coverage() {
+      try {
+        const cortex = mnemicField.getCortex()
+        const fieldStats = mnemicField.stats()
+        const distribution = cortex.orphanDistribution()
+        const missingEmbeddings = cortex.countMissingEmbeddings()
+        const nuclei = mnemicField.listNuclei()
+
+        const lines: string[] = [
+          'Field Coverage Report:',
+          `  Total engrams: ${fieldStats.engramCount}`,
+          `  Orphans (no cluster): ${distribution.total} (${((distribution.total / Math.max(fieldStats.engramCount, 1)) * 100).toFixed(1)}%)`,
+          `  Clustered: ${fieldStats.engramCount - distribution.total}`,
+          `  Nuclei (clusters): ${fieldStats.nucleusCount}`,
+          `  Synapses: ${fieldStats.synapseCount}`,
+          `  Missing embeddings: ${missingEmbeddings} (${((missingEmbeddings / Math.max(fieldStats.engramCount, 1)) * 100).toFixed(1)}%)`,
+          '',
+          'Orphan breakdown by type:',
+        ]
+        for (const entry of distribution.byNodeType) {
+          lines.push(`  ${entry.nodeType}: ${entry.count}`)
+        }
+        lines.push('', 'Orphan breakdown by provenance:')
+        for (const entry of distribution.byProvenance.slice(0, 10)) {
+          lines.push(`  ${entry.provenance}: ${entry.count}`)
+        }
+
+        if (nuclei.length > 0) {
+          lines.push('', `Existing clusters (${nuclei.length}):`)
+          for (const n of nuclei.slice(0, 15)) {
+            lines.push(`  - "${n.label}" (${n.memberCount} members, pot: ${n.avgPotentiation.toFixed(3)})`)
+          }
+          if (nuclei.length > 15) {
+            lines.push(`  ... and ${nuclei.length - 15} more`)
+          }
+        }
+
+        logger.info('[Organizing] Coverage scan', {
+          total: fieldStats.engramCount,
+          orphans: distribution.total,
+          missingEmbeddings,
+          nuclei: fieldStats.nucleusCount,
+        })
+
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Coverage scan failed: ${String(err)}` }
+      }
+    },
+
+
+    async sample_orphans(input) {
+      const { count } = input as { count?: number }
+      const sampleSize = Math.min(count ?? 20, 50)
+
+      try {
+        const cortex = mnemicField.getCortex()
+        const samples = cortex.sampleOrphans(sampleSize)
+
+        if (samples.length === 0) {
+          return { content: 'No orphan engrams found — all engrams are clustered.' }
+        }
+
+        const lines: string[] = [`Random orphan sample (${samples.length} of ${cortex.orphanCount()} total):\n`]
+        for (const s of samples) {
+          let tags = ''
+          try { tags = JSON.parse(s.tags).join(', ') } catch { /* no tags */ }
+          lines.push(`  [${s.nodeType}] ${s.content}${tags ? ` (tags: ${tags})` : ''}`)
+        }
+
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Orphan sampling failed: ${String(err)}` }
+      }
+    },
+
+
+    async topic_scan(input) {
+      const { limit } = input as { limit?: number }
+      const topN = limit ?? 30
+
+      try {
+        const cortex = mnemicField.getCortex()
+        const distribution = cortex.orphanTagDistribution(topN)
+
+        if (distribution.length === 0) {
+          return { content: 'No tags found among orphan engrams — they may not have been tagged.' }
+        }
+
+        const lines: string[] = [`Orphan topic distribution (top ${distribution.length} tags):\n`]
+        for (const entry of distribution) {
+          lines.push(`  ${entry.tag}: ${entry.count} engrams`)
+        }
+
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Topic scan failed: ${String(err)}` }
+      }
+    },
+
+
+    async batch_kindle(input) {
+      const { queries } = input as { queries: Array<{ query: string; intensity?: 'gentle' | 'moderate' | 'strong' }> }
+      if (!queries || queries.length === 0) return { content: 'No queries provided.' }
+
+      const results: string[] = []
+      let totalActivated = 0
+      let totalSpiked = 0
+
+      for (const item of queries.slice(0, 20)) {
+        try {
+          const magnitudeMap = { gentle: 0.3, moderate: 0.5, strong: 0.8 }
+          const magnitude = magnitudeMap[item.intensity ?? 'moderate']
+
+          const hits = mnemicField.retrieve(item.query, { limit: 15 })
+          stats.regionsKindled++
+          touchedRegions.push(item.query)
+          totalActivated += hits.length
+
+          let spiked = 0
+          for (const hit of hits.slice(0, 8)) {
+            try {
+              mnemicField.spike({
+                engramId: hit.id,
+                magnitude,
+                taskContext: `organizing:kindle:${item.query}`,
+                outcome: 'unknown' as const,
+              })
+              spiked++
+            } catch { /* non-fatal spike failure */ }
+          }
+          totalSpiked += spiked
+
+          results.push(`  "${item.query}": ${hits.length} activated, ${spiked} spiked`)
+        } catch (err) {
+          results.push(`  "${item.query}": failed — ${String(err)}`)
+        }
+      }
+
+      logger.info('[Organizing] Batch kindle', { queries: queries.length, totalActivated, totalSpiked })
+      stats.batchKindles++
+      return {
+        content: `Batch kindle (${queries.length} topics):\n${results.join('\n')}\nTotal: ${totalActivated} activated, ${totalSpiked} spiked`,
+      }
+    },
+
+
+    async batch_bridge(input) {
+      const { pairs } = input as { pairs: Array<{ domain_a: string; domain_b: string; rationale?: string }> }
+      if (!pairs || pairs.length === 0) return { content: 'No bridge pairs provided.' }
+
+      const results: string[] = []
+      let totalSynapses = 0
+
+      for (const pair of pairs.slice(0, 10)) {
+        try {
+          const hitsA = mnemicField.searchText(pair.domain_a, 10)
+          const hitsB = mnemicField.searchText(pair.domain_b, 10)
+
+          if (hitsA.length === 0 || hitsB.length === 0) {
+            const missing = hitsA.length === 0 ? pair.domain_a : pair.domain_b
+            results.push(`  "${pair.domain_a}" <-> "${pair.domain_b}": skipped ("${missing}" has no matches)`)
+            continue
+          }
+
+          // Cross-activate and connect
+          let synapsesCreated = 0
+          for (const hitA of hitsA.slice(0, 3)) {
+            for (const hitB of hitsB.slice(0, 3)) {
+              try {
+                mnemicField.spike({
+                  engramId: hitA.engram.id,
+                  magnitude: 0.3,
+                  taskContext: `organizing:bridge:${pair.domain_b}`,
+                  outcome: 'unknown' as const,
+                })
+                mnemicField.spike({
+                  engramId: hitB.engram.id,
+                  magnitude: 0.3,
+                  taskContext: `organizing:bridge:${pair.domain_a}`,
+                  outcome: 'unknown' as const,
+                })
+                mnemicField.connect({
+                  sourceId: hitA.engram.id,
+                  targetId: hitB.engram.id,
+                  edgeType: 'similar_to',
+                  weight: 0.5,
+                  metadata: { provenance: 'meditation:organizing' },
+                })
+                synapsesCreated++
+              } catch { /* non-fatal connection failure */ }
+            }
+          }
+
+          // Bridge engram
+          const bridgeContent = pair.rationale
+            ? `Bridge: "${pair.domain_a}" connects to "${pair.domain_b}" — ${pair.rationale}`
+            : `Bridge: "${pair.domain_a}" and "${pair.domain_b}" are related domains.`
+          mnemicField.store({
+            content: bridgeContent,
+            nodeType: 'pattern',
+            provenance: 'meditation:organizing',
+            tags: ['bridge', 'organizing', pair.domain_a.toLowerCase(), pair.domain_b.toLowerCase()],
+          })
+
+          stats.bridgesCreated++
+          totalSynapses += synapsesCreated
+          results.push(`  "${pair.domain_a}" <-> "${pair.domain_b}": ${synapsesCreated} synapses, 1 bridge engram`)
+        } catch (err) {
+          results.push(`  "${pair.domain_a}" <-> "${pair.domain_b}": failed — ${String(err)}`)
+        }
+      }
+
+      logger.info('[Organizing] Batch bridge', { pairs: pairs.length, totalSynapses })
+      stats.batchBridges++
+      return {
+        content: `Batch bridge (${pairs.length} pairs):\n${results.join('\n')}\nTotal: ${totalSynapses} new synapses`,
+      }
+    },
+
+
+    async assign_by_similarity(input) {
+      const { query, nucleus_label, max_assign } = input as { query: string; nucleus_label: string; max_assign?: number }
+      if (!query || !nucleus_label) return { content: 'Both query and nucleus_label are required.' }
+
+      const maxCount = Math.min(max_assign ?? 50, 200)
+
+      try {
+        // Find the target nucleus
+        const nuclei = mnemicField.listNuclei()
+        const targetNucleus = nuclei.find(n =>
+          n.label.toLowerCase().includes(nucleus_label.toLowerCase())
+        )
+
+        if (!targetNucleus) {
+          const available = nuclei.slice(0, 10).map(n => `"${n.label}"`).join(', ')
+          return { content: `No nucleus matching "${nucleus_label}" found. Available: ${available}` }
+        }
+
+        // Search for orphan engrams matching the query
+        const hits = mnemicField.searchText(query, maxCount)
+        const cortex = mnemicField.getCortex()
+
+        // Filter to only orphans
+        const orphanHits = hits.filter(h => !h.engram.clusterId)
+        if (orphanHits.length === 0) {
+          return { content: `No orphan engrams found matching "${query}".` }
+        }
+
+        // Assign them
+        const engramIds = orphanHits.map(h => h.engram.id)
+        const assigned = cortex.assignToNucleus(engramIds, targetNucleus.id)
+
+        logger.info('[Organizing] Assigned orphans by similarity', {
+          query, nucleusLabel: nucleus_label, assigned,
+        })
+        stats.orphansAssigned += assigned
+
+        return {
+          content: `Assigned ${assigned} orphan engrams matching "${query}" to nucleus "${targetNucleus.label}" (${targetNucleus.memberCount + assigned} total members now).`,
+        }
+      } catch (err) {
+        return { content: `Assignment failed: ${String(err)}` }
+      }
+    },
+
+
+    async run_nucleus_detection(input) {
+      const { epsilon, min_cluster_size } = input as { epsilon?: number; min_cluster_size?: number }
+
+      try {
+        const eps = epsilon ?? 2.0
+        const minSize = min_cluster_size ?? 3
+
+        // Run consolidation with custom nucleus detection parameters
+        const result = mnemicField.consolidate({
+          skipRadiance: true,
+          skipDrift: true,
+          skipAbstractions: true,
+          skipPruning: true,
+          skipFilamentConsolidation: true,
+          nucleiEpsilon: eps,
+          nucleiMinClusterSize: minSize,
+        })
+
+        const nuclei = mnemicField.listNuclei()
+        const lines = [
+          `Nucleus detection (epsilon=${eps}, minSize=${minSize}):`,
+          `  Nuclei found: ${result.nucleiDetected}`,
+          '',
+          'Detected clusters:',
+        ]
+        for (const n of nuclei.slice(0, 15)) {
+          lines.push(`  - "${n.label}" (${n.memberCount} members, pot: ${n.avgPotentiation.toFixed(3)})`)
+        }
+        if (nuclei.length > 15) {
+          lines.push(`  ... and ${nuclei.length - 15} more`)
+        }
+
+        logger.info('[Organizing] Nucleus detection', { epsilon: eps, minSize, nuclei: result.nucleiDetected })
+        stats.nucleusDetections++
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Nucleus detection failed: ${String(err)}` }
+      }
+    },
+
+
+    async check_embeddings() {
+      try {
+        const cortex = mnemicField.getCortex()
+        const total = mnemicField.stats().engramCount
+        const missing = cortex.countMissingEmbeddings()
+        const embedded = total - missing
+        const percentage = total > 0 ? ((embedded / total) * 100).toFixed(1) : '0'
+
+        const lines = [
+          'Embedding Coverage:',
+          `  Total engrams: ${total}`,
+          `  With embeddings: ${embedded} (${percentage}%)`,
+          `  Missing embeddings: ${missing}`,
+          '',
+          missing > 0
+            ? `${missing} engrams cannot be spatially positioned or clustered until they get embeddings. Use trigger_backfill to generate them.`
+            : 'All engrams have embeddings — spatial clustering should work well.',
+        ]
+
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Embedding check failed: ${String(err)}` }
+      }
+    },
+
+
+    async trigger_backfill(input) {
+      const { batch_size } = input as { batch_size?: number }
+      const batchSize = Math.min(batch_size ?? 100, 500)
+
+      try {
+        const beforeMissing = mnemicField.getCortex().countMissingEmbeddings()
+        if (beforeMissing === 0) {
+          return { content: 'All engrams already have embeddings — nothing to backfill.' }
+        }
+
+        const result = await mnemicField.backfillEmbeddings(batchSize)
+        const afterMissing = mnemicField.getCortex().countMissingEmbeddings()
+
+        logger.info('[Organizing] Embedding backfill', {
+          embedded: result.embedded,
+          reprojected: result.reprojected,
+          remaining: afterMissing,
+        })
+        stats.embeddingsBackfilled += result.embedded
+
+        return {
+          content: `Backfill complete: ${result.embedded} engrams embedded, ${result.reprojected} reprojected.\nRemaining without embeddings: ${afterMissing}`,
+        }
+      } catch (err) {
+        return { content: `Backfill failed: ${String(err)}` }
+      }
+    },
+
+
+    async save_checkpoint(input) {
+      const { strategy, topics_covered, topics_remaining, notes } = input as {
+        strategy: string
+        topics_covered?: string[]
+        topics_remaining?: string[]
+        notes?: string
+      }
+
+      if (!meditationStore) {
+        return { content: 'Cannot save checkpoint — meditation store not available.' }
+      }
+
+      try {
+        const checkpoint: OrganizingCheckpoint = {
+          timestamp: Date.now(),
+          passNumber: (loadCheckpointData(meditationStore)?.passNumber ?? 0) + 1,
+          strategy,
+          topicsCovered: [...touchedRegions, ...(topics_covered ?? [])],
+          topicsRemaining: topics_remaining ?? [],
+          notes: notes ?? '',
+          metrics: {
+            orphanRatioSnapshot: healthAnalyzer
+              ? healthAnalyzer.snapshot().orphanRatio
+              : 0,
+            regionsKindled: stats.regionsKindled,
+            bridgesCreated: stats.bridgesCreated,
+            consolidationsRun: stats.consolidationsRun,
+          },
+        }
+
+        meditationStore.setMetaText(CHECKPOINT_KEY, JSON.stringify(checkpoint))
+        logger.info('[Organizing] Checkpoint saved', { passNumber: checkpoint.passNumber, topicsCovered: checkpoint.topicsCovered.length })
+        stats.checkpointsSaved++
+        return { content: `Checkpoint saved (pass ${checkpoint.passNumber}). Strategy and ${checkpoint.topicsCovered.length} covered topics recorded for next session.` }
+      } catch (err) {
+        return { content: `Checkpoint save failed: ${String(err)}` }
+      }
+    },
+
+
+    async load_checkpoint() {
+      if (!meditationStore) {
+        return { content: 'No checkpoint available — meditation store not available.' }
+      }
+
+      try {
+        const checkpoint = loadCheckpointData(meditationStore)
+        if (!checkpoint) {
+          return { content: 'No previous checkpoint found. This is the first organizing session.' }
+        }
+
+        const lines = [
+          `Previous checkpoint (pass ${checkpoint.passNumber}, ${new Date(checkpoint.timestamp).toISOString()}):`,
+          '',
+          `Strategy: ${checkpoint.strategy}`,
+          '',
+          `Topics covered (${checkpoint.topicsCovered.length}):`,
+          ...checkpoint.topicsCovered.slice(0, 20).map((t: string) => `  - ${t}`),
+        ]
+
+        if (checkpoint.topicsCovered.length > 20) {
+          lines.push(`  ... and ${checkpoint.topicsCovered.length - 20} more`)
+        }
+
+        if (checkpoint.topicsRemaining.length > 0) {
+          lines.push('', `Topics remaining (${checkpoint.topicsRemaining.length}):`)
+          for (const t of checkpoint.topicsRemaining) {
+            lines.push(`  - ${t}`)
+          }
+        }
+
+        if (checkpoint.notes) {
+          lines.push('', `Notes: ${checkpoint.notes}`)
+        }
+
+        lines.push('', `Metrics from last pass:`)
+        lines.push(`  Orphan ratio: ${(checkpoint.metrics.orphanRatioSnapshot * 100).toFixed(1)}%`)
+        lines.push(`  Regions kindled: ${checkpoint.metrics.regionsKindled}`)
+        lines.push(`  Bridges created: ${checkpoint.metrics.bridgesCreated}`)
+        lines.push(`  Consolidations: ${checkpoint.metrics.consolidationsRun}`)
+
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Checkpoint load failed: ${String(err)}` }
+      }
     },
   }
 

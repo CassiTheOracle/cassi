@@ -11,9 +11,9 @@
 
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
+import type { EngramType } from '../../mnemic-field/types.js'
 import type { ToolCallResult } from './solo-runner.js'
 import type { CorpusPrompt } from './corpus-prompt-library.js'
-import type { MeditationStyle } from './styles.js'
 
 
 /**
@@ -196,9 +196,13 @@ export function buildCorpusHandlers(
         return { content: 'Nothing to crystallize.' }
       }
       try {
+        const validTypes: EngramType[] = ['pattern', 'abstraction', 'decision', 'fact']
+        const resolvedType: EngramType = validTypes.includes(nodeType as EngramType)
+          ? (nodeType as EngramType)
+          : 'pattern'
         mnemicField.store({
           content,
-          nodeType: (nodeType as any) ?? 'pattern',
+          nodeType: resolvedType,
           provenance: 'meditation',
           tags: tags ?? ['meditation'],
         })

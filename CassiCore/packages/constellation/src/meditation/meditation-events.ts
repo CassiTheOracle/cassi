@@ -114,6 +114,11 @@ export interface MeditationOrganizingCompleteEvent {
   consolidationsRun: number
   abstractionsAudited: number
   tensionsSurfaced: number
+  orphansAssigned: number
+  embeddingsBackfilled: number
+  batchKindles: number
+  batchBridges: number
+  nucleusDetections: number
   durationMs: number
   timestamp: number
 }
