@@ -543,7 +543,7 @@ export class MnemicField {
   }
 
   private async _doReprojectAsync(umapOptions?: import('./umap.js').UMAPOptions): Promise<number> {
-    const { buffer, ids, dim, count } = this.cortex.packEmbeddingsIntoSAB()
+    let { buffer, ids, dim, count } = this.cortex.packEmbeddingsIntoSAB()
 
     if (count < 2) return 0
 
@@ -597,6 +597,10 @@ export class MnemicField {
         refPos.push(positions[idx])
       }
       this.projectionState = buildProjectionState(refEmb, refPos)
+
+      // Release large allocations so GC can reclaim them before we return
+      buffer = null as any
+      ids = null as any
 
       this.logger.info('Reprojected engrams via UMAP (async worker)', {
         count: updates.length,
