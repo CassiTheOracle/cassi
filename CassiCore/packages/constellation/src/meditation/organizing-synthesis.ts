@@ -1368,7 +1368,7 @@ export function buildOrganizingHandlers(
         if (spread) umapOpts.spread = spread
         if (n_epochs) umapOpts.nEpochs = n_epochs
 
-        const reprojected = mnemicField.reprojectAll(Object.keys(umapOpts).length > 0 ? umapOpts as any : undefined)
+        const reprojected = await mnemicField.reprojectAllAsync(Object.keys(umapOpts).length > 0 ? umapOpts as any : undefined)
 
         // After reprojection, run nucleus detection to see if clusters emerge
         const nuclei = mnemicField.listNuclei()
