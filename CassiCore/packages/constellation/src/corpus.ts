@@ -1573,7 +1573,7 @@ export class Corpus {
           break
         }
 
-        const result = executeCorpusTool(call.name, call.args, ctx)
+        const result = await executeCorpusTool(call.name, call.args, ctx)
         callCount++
 
         if (result.done) {

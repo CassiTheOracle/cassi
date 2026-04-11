@@ -234,7 +234,7 @@ export function buildCorpusHandlers(
 
     async consolidate() {
       try {
-        const result = mnemicField.consolidate()
+        const result = await mnemicField.consolidate()
         return {
           content: `Consolidation complete: ${result.potentiationUpdates} updates, ${result.nucleiDetected} nuclei, ${result.abstractionsCreated} abstractions.`,
         }

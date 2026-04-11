@@ -589,7 +589,7 @@ export class MeditationController extends BaseCognitiveModule {
 
     // Consolidation before bridge stops
     if (this.meditationConfig.consolidateOnComplete && this.mnemicBridge) {
-      this.mnemicBridge.triggerConsolidation()
+      await this.mnemicBridge.triggerConsolidation()
     }
 
     // Stop MnemicBridge
@@ -628,7 +628,7 @@ export class MeditationController extends BaseCognitiveModule {
         }
 
         // Run consolidation on the mnemic field
-        const result = this.mnemicField.consolidate()
+        const result = await this.mnemicField.consolidate()
         if (this.activeSession) this.activeSession.consolidations = 1
         this.logger.info('[Meditation] Post-session consolidation complete', {
           potentiationUpdates: result.potentiationUpdates,

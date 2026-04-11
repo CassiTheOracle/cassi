@@ -673,7 +673,7 @@ export function executeCorpusTool(
   toolName: string,
   args: Record<string, unknown>,
   ctx: CorpusToolContext
-): ToolCallResult {
+): ToolCallResult | Promise<ToolCallResult> {
   switch (toolName) {
     case 'read_tree':
       return handleReadTree(ctx)
@@ -1291,13 +1291,13 @@ function handleStoreInsight(
   }
 }
 
-function handleTriggerConsolidation(ctx: CorpusToolContext): ToolCallResult {
+async function handleTriggerConsolidation(ctx: CorpusToolContext): Promise<ToolCallResult> {
   if (!ctx.mnemicField) {
     return { content: 'Mnemic field not available during this meditation session.' }
   }
 
   try {
-    const result = ctx.mnemicField.consolidate()
+    const result = await ctx.mnemicField.consolidate()
     ctx.logger.info('Meditation consolidation triggered', {
       potentiationUpdates: result.potentiationUpdates,
       nuclei: result.nucleiDetected,
@@ -1543,8 +1543,8 @@ export function createCorpusMiniHelixTools(ctx: CorpusToolContext): MiniHelixToo
       description: def.description,
       input_schema: def.parameters,
     },
-    handler: (args: Record<string, unknown>): MiniHelixToolResult => {
-      const result = executeCorpusTool(def.name, args, ctx)
+    handler: async (args: Record<string, unknown>): Promise<MiniHelixToolResult> => {
+      const result = await executeCorpusTool(def.name, args, ctx)
       return {
         content: result.content,
         done: result.done,

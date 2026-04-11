@@ -810,7 +810,7 @@ export function buildOrganizingHandlers(
     async run_consolidation(input) {
       const { note } = input as { note?: string }
       try {
-        const result = mnemicField.consolidate()
+        const result = await mnemicField.consolidate()
         stats.consolidationsRun++
 
         const lines = [
@@ -879,7 +879,7 @@ export function buildOrganizingHandlers(
 
         // Trigger consolidation to generate abstractions for gaps
         if (shouldCreate && missing.length > 0) {
-          const result = mnemicField.consolidate()
+          const result = await mnemicField.consolidate()
           lines.push(`  Re-consolidated: ${result.abstractionsCreated} new abstractions generated`)
         }
 
@@ -1265,7 +1265,7 @@ export function buildOrganizingHandlers(
         const minSize = min_cluster_size ?? 3
 
         // Run consolidation with custom nucleus detection parameters
-        const result = mnemicField.consolidate({
+        const result = await mnemicField.consolidate({
           skipRadiance: true,
           skipDrift: true,
           skipAbstractions: true,

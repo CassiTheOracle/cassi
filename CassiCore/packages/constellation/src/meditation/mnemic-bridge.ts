@@ -208,9 +208,9 @@ export class MnemicBridge {
    * Trigger a full consolidation cycle.
    * Runs radiance, co-activation drift, nucleus detection, abstraction generation.
    */
-  triggerConsolidation(): void {
+  async triggerConsolidation(): Promise<void> {
     try {
-      const result = this.field.consolidate()
+      const result = await this.field.consolidate()
       this.stats.consolidations++
       this.logger.info('Meditation consolidation complete', {
         potentiationUpdates: result.potentiationUpdates,
