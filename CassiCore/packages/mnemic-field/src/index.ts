@@ -11,7 +11,7 @@ import { ConsolidationEngine } from './consolidation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
-import { projectTo2D, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
+import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
 import { segmentEngram } from './segmentation.js'
 import { EntityLinker } from './filament-entities.js'
 import { FilamentConsolidator } from './filament-consolidation.js'
@@ -51,8 +51,8 @@ export { renderWithZoom } from './filament-renderer.js'
 export type { FilamentSpan } from './segmentation.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
-export { projectTo2D, projectSingle, buildProjectionState } from './umap.js'
-export type { ProjectionResult, ProjectionState, UMAPOptions } from './umap.js'
+export { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState } from './umap.js'
+export type { ProjectionResult, ProjectionState, UMAPOptions, UMAPProgressEvent } from './umap.js'
 export type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -87,6 +87,7 @@ export class MnemicField {
   private migrationJobs: MigrationJobStore
   private logger: ILogger
   private projectionState: ProjectionState | null = null
+  private reprojectionInFlight: Promise<number> | null = null
   private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
   private corticalField?: CorticalField
@@ -470,11 +471,16 @@ export class MnemicField {
     if (embData.length < 2) return 0
 
     if (embData.length >= 50000) {
-      this.logger.warn('reprojectAll capped at 50k embeddings to avoid OOM — use external tooling for full reprojection')
+      this.logger.warn('reprojectAll (sync) capped at 50k embeddings — use reprojectAllAsync for full dataset')
+    }
+
+    const effectiveOptions = umapOptions ? { ...umapOptions } : {}
+    if (embData.length > 10000 && !effectiveOptions.nEpochs) {
+      effectiveOptions.nEpochs = Math.max(50, Math.floor(200 * 10000 / embData.length))
     }
 
     const vectors = embData.map(e => Array.from(e.embedding))
-    const positions = projectTo2D(vectors, umapOptions)
+    const positions = projectTo2D(vectors, effectiveOptions)
 
     const updates = embData.map((e, i) => ({
       id: e.id,
@@ -485,7 +491,98 @@ export class MnemicField {
     this.cortex.bulkUpdatePositions(updates)
     this.projectionState = buildProjectionState(vectors, positions)
 
-    this.logger.info('Reprojected engrams via UMAP', { count: updates.length })
+    this.logger.info('Reprojected engrams via UMAP (sync)', { count: updates.length })
+    return updates.length
+  }
+
+  /**
+   * Async reprojection using a dedicated worker thread. Supports the full
+   * dataset (no 50K cap) and uses NN-Descent for large datasets (>5K).
+   * The daemon event loop stays responsive during the entire computation.
+   */
+  async reprojectAllAsync(umapOptions?: import('./umap.js').UMAPOptions): Promise<number> {
+    // Prevent concurrent reprojections — each one allocates a multi-GB SAB
+    if (this.reprojectionInFlight) {
+      this.logger.info('Reprojection already in progress — waiting for it to finish')
+      return this.reprojectionInFlight
+    }
+
+    const promise = this._doReprojectAsync(umapOptions)
+    this.reprojectionInFlight = promise
+    try {
+      return await promise
+    } finally {
+      this.reprojectionInFlight = null
+    }
+  }
+
+  private async _doReprojectAsync(umapOptions?: import('./umap.js').UMAPOptions): Promise<number> {
+    // Stream embeddings directly into a SharedArrayBuffer — avoids loading
+    // all 124K+ embeddings into JS arrays (which caused OOM at 3.3GB).
+    const { buffer, ids, dim, count } = this.cortex.packEmbeddingsIntoSAB()
+
+    if (count < 2) return 0
+
+    const effectiveOptions: import('./umap.js').ProjectTo2DFromSABOptions = umapOptions ? { ...umapOptions } : {}
+
+    // Scale epochs for very large datasets
+    if (count > 10000 && !effectiveOptions.nEpochs) {
+      effectiveOptions.nEpochs = Math.max(50, Math.floor(200 * 10000 / count))
+    }
+
+    effectiveOptions.onProgress = (event) => {
+      this.logger.debug('UMAP worker progress', {
+        phase: event.phase,
+        progress: event.progress,
+        ...(event.durationMs !== undefined ? { durationMs: event.durationMs } : {}),
+        ...(event.updates !== undefined ? { updates: event.updates } : {}),
+        ...(event.edgeCount !== undefined ? { edgeCount: event.edgeCount } : {}),
+        ...(event.iter !== undefined ? { iter: event.iter } : {}),
+      })
+    }
+
+    this.logger.info('Starting async reprojection via worker thread', {
+      count,
+      dim,
+      epochs: effectiveOptions.nEpochs ?? 200,
+      sabSizeMB: Math.round(buffer.byteLength / 1024 / 1024),
+    })
+
+    const { positions, stats } = await projectTo2DFromSAB(buffer, count, dim, effectiveOptions)
+
+    const updates = ids.map((id, i) => ({
+      id,
+      x: positions[i].x,
+      y: positions[i].y,
+    }))
+
+    this.cortex.bulkUpdatePositions(updates)
+
+    // Build projection state from a sample — avoid loading all vectors again.
+    // Use positions directly and reconstruct vectors from the SAB.
+    const MAX_REF = 5000
+    const packed = new Float32Array(buffer)
+    const step = count > MAX_REF ? count / MAX_REF : 1
+    const refEmb: number[][] = []
+    const refPos: import('./umap.js').ProjectionResult[] = []
+    for (let i = 0; i < Math.min(count, MAX_REF); i++) {
+      const idx = Math.min(Math.floor(i * step), count - 1)
+      const vec: number[] = new Array(dim)
+      const off = idx * dim
+      for (let d = 0; d < dim; d++) vec[d] = packed[off + d]
+      refEmb.push(vec)
+      refPos.push(positions[idx])
+    }
+    this.projectionState = buildProjectionState(refEmb, refPos)
+
+    this.logger.info('Reprojected engrams via UMAP (async worker)', {
+      count: updates.length,
+      totalMs: stats.totalMs,
+      knnMs: stats.knnMs,
+      sgdMs: stats.sgdMs,
+      edges: stats.edges,
+    })
+
     return updates.length
   }
 
@@ -520,7 +617,7 @@ export class MnemicField {
 
     let reprojected = 0
     if (!this.projectionState && embedded > 0) {
-      reprojected = this.reprojectAll()
+      reprojected = await this.reprojectAllAsync()
     }
 
     this.logger.info('Backfilled embeddings', { embedded, reprojected, filamentEmbeddings, remaining: this.cortex.countMissingEmbeddings() })

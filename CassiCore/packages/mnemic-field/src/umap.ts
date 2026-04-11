@@ -5,12 +5,20 @@
  * Zero external dependencies — implements the full UMAP pipeline:
  * k-NN graph → fuzzy simplicial set → PCA initialization → SGD layout.
  *
+ * For datasets > 5K points, delegates to a worker thread using NN-Descent
+ * (O(n^1.14)) instead of brute-force KNN (O(n²)). The worker runs the
+ * entire pipeline off the main thread so the daemon event loop stays free.
+ *
  * Preserves local neighborhood structure far better than PCA,
  * producing tighter semantic clusters for kindling seeding.
  *
  * Reference: McInnes, Healy, Melville (2018). "UMAP: Uniform Manifold
  * Approximation and Projection for Dimension Reduction."
  */
+
+import { Worker } from 'node:worker_threads'
+import { fileURLToPath } from 'node:url'
+import { join, dirname } from 'node:path'
 
 export interface ProjectionResult {
   x: number
@@ -123,6 +131,169 @@ export function projectTo2D(vectors: number[][], options?: UMAPOptions): Project
   normalizeToSpread(positions, opts.spread)
 
   return positions
+}
+
+/**
+ * Resolve the worker script path. Works in both tsx development and
+ * compiled JS builds because the worker is plain .js.
+ */
+function getWorkerPath(): string {
+  const thisDir = dirname(fileURLToPath(import.meta.url))
+  return join(thisDir, 'umap-worker.cjs')
+}
+
+export interface UMAPProgressEvent {
+  type: 'progress'
+  phase: string
+  progress?: number
+  [key: string]: unknown
+}
+
+/**
+ * Project high-dimensional vectors to 2D using a dedicated worker thread.
+ * The entire UMAP pipeline (NN-Descent KNN → fuzzy set → PCA → SGD) runs
+ * off the main thread. For datasets > 5K this uses NN-Descent (O(n^1.14))
+ * instead of brute-force KNN (O(n²)).
+ *
+ * Returns a promise that resolves with {x, y} positions and timing stats.
+ * The onProgress callback fires with phase updates from the worker.
+ */
+export function projectTo2DAsync(
+  vectors: number[][],
+  options?: UMAPOptions & {
+    onProgress?: (event: UMAPProgressEvent) => void
+    nnDescentThreshold?: number
+    nnDescentMaxIter?: number
+  },
+): Promise<{
+  positions: ProjectionResult[]
+  stats: { totalMs: number; knnMs: number; sgdMs: number; edges: number }
+}> {
+  const n = vectors.length
+  if (n === 0) return Promise.resolve({ positions: [], stats: { totalMs: 0, knnMs: 0, sgdMs: 0, edges: 0 } })
+  if (n === 1) return Promise.resolve({ positions: [{ x: 0, y: 0 }], stats: { totalMs: 0, knnMs: 0, sgdMs: 0, edges: 0 } })
+  if (n < 4) return Promise.resolve({ positions: pcaFallback(vectors), stats: { totalMs: 0, knnMs: 0, sgdMs: 0, edges: 0 } })
+
+  const opts = resolveOptions(options)
+
+  // Pack vectors into SharedArrayBuffer for zero-copy transfer to worker
+  const dim = vectors[0].length
+  const sab = new SharedArrayBuffer(n * dim * Float64Array.BYTES_PER_ELEMENT)
+  const packed = new Float64Array(sab)
+  for (let i = 0; i < n; i++) {
+    const off = i * dim
+    const vec = vectors[i]
+    for (let d = 0; d < dim; d++) packed[off + d] = vec[d]
+  }
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(getWorkerPath(), {
+      workerData: {
+        vectorsBuffer: sab,
+        n,
+        dim,
+        nNeighbors: opts.nNeighbors,
+        minDist: opts.minDist,
+        spread: opts.spread,
+        nEpochs: opts.nEpochs,
+        learningRate: opts.learningRate,
+        negativeSampleRate: opts.negativeSampleRate,
+        seed: opts.seed,
+        nnDescentThreshold: options?.nnDescentThreshold ?? 0.001,
+        nnDescentMaxIter: options?.nnDescentMaxIter ?? 15,
+      },
+    })
+
+    worker.on('message', (msg: { type: string; [key: string]: unknown }) => {
+      if (msg.type === 'progress' && options?.onProgress) {
+        options.onProgress(msg as UMAPProgressEvent)
+      } else if (msg.type === 'result') {
+        resolve({
+          positions: msg.positions as ProjectionResult[],
+          stats: msg.stats as { totalMs: number; knnMs: number; sgdMs: number; edges: number },
+        })
+      } else if (msg.type === 'error') {
+        reject(new Error(`UMAP worker error: ${msg.message}`))
+      }
+    })
+
+    worker.on('error', (err) => {
+      reject(new Error(`UMAP worker thread error: ${String(err)}`))
+    })
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`UMAP worker exited with code ${code}`))
+      }
+    })
+  })
+}
+
+export interface ProjectTo2DFromSABOptions extends UMAPOptions {
+  onProgress?: (event: UMAPProgressEvent) => void
+  nnDescentThreshold?: number
+  nnDescentMaxIter?: number
+}
+
+/**
+ * Project from a pre-packed SharedArrayBuffer. Avoids creating intermediate
+ * JS arrays — the SAB goes directly to the worker with zero-copy transfer.
+ * Use this when projecting large datasets where memory is a concern.
+ */
+export function projectTo2DFromSAB(
+  buffer: SharedArrayBuffer,
+  n: number,
+  dim: number,
+  options?: ProjectTo2DFromSABOptions,
+): Promise<{
+  positions: ProjectionResult[]
+  stats: { totalMs: number; knnMs: number; sgdMs: number; edges: number }
+}> {
+  if (n < 2) return Promise.resolve({ positions: n === 1 ? [{ x: 0, y: 0 }] : [], stats: { totalMs: 0, knnMs: 0, sgdMs: 0, edges: 0 } })
+
+  const opts = resolveOptions(options)
+
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(getWorkerPath(), {
+      workerData: {
+        vectorsBuffer: buffer,
+        n,
+        dim,
+        nNeighbors: opts.nNeighbors,
+        minDist: opts.minDist,
+        spread: opts.spread,
+        nEpochs: opts.nEpochs,
+        learningRate: opts.learningRate,
+        negativeSampleRate: opts.negativeSampleRate,
+        seed: opts.seed,
+        nnDescentThreshold: options?.nnDescentThreshold ?? 0.001,
+        nnDescentMaxIter: options?.nnDescentMaxIter ?? 15,
+      },
+    })
+
+    worker.on('message', (msg: { type: string; [key: string]: unknown }) => {
+      if (msg.type === 'progress' && options?.onProgress) {
+        options.onProgress(msg as UMAPProgressEvent)
+      } else if (msg.type === 'result') {
+        resolve({
+          positions: msg.positions as ProjectionResult[],
+          stats: msg.stats as { totalMs: number; knnMs: number; sgdMs: number; edges: number },
+        })
+      } else if (msg.type === 'error') {
+        reject(new Error(`UMAP worker error: ${msg.message}`))
+      }
+    })
+
+    worker.on('error', (err) => {
+      reject(new Error(`UMAP worker thread error: ${String(err)}`))
+    })
+
+    worker.on('exit', (code) => {
+      if (code !== 0) {
+        reject(new Error(`UMAP worker exited with code ${code}`))
+      }
+    })
+  })
 }
 
 /**

@@ -186,7 +186,7 @@ async function migrateMemoryRows(
   }
 
   if (embeddingRows.length > 1) {
-    options.targetField.reprojectAll()
+    await options.targetField.reprojectAllAsync()
   }
 }
 

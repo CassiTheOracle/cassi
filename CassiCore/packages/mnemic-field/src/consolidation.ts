@@ -73,7 +73,7 @@ export class ConsolidationEngine {
     if (!options.skipNuclei) {
       nucleiDetected = this.detectNuclei(
         options.nucleiMinClusterSize ?? 3,
-        options.nucleiEpsilon ?? 2.0,
+        options.nucleiEpsilon ?? 0.03,
       )
     }
 
@@ -311,7 +311,7 @@ export class ConsolidationEngine {
    * Only considers engrams with non-zero XY (those that have embeddings).
    * Returns the number of nuclei detected.
    */
-  detectNuclei(minClusterSize = 3, epsilon = 2.0): number {
+  detectNuclei(minClusterSize = 3, epsilon = 0.03): number {
     const { engramCount } = this.cortex.stats()
     const engrams = engramCount <= 10000
       ? this.cortex.getAllEngrams()

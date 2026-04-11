@@ -599,6 +599,65 @@ export class Cortex {
       .filter(Boolean) as Array<{ id: string; embedding: Float32Array; x: number; y: number }>
   }
 
+  /**
+   * Count engrams that have embeddings.
+   */
+  countEmbeddings(): number {
+    return (this.db.prepare(
+      `SELECT COUNT(*) as c FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0`
+    ).get() as { c: number }).c
+  }
+
+  /**
+   * Get embedding dimension from the first available embedding.
+   */
+  getEmbeddingDim(): number {
+    const row = this.db.prepare(
+      `SELECT LENGTH(embedding) as len FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT 1`
+    ).get() as { len: number } | undefined
+    if (!row) return 0
+    return row.len / 4  // Float32 = 4 bytes per dim
+  }
+
+  /**
+   * Pack all embeddings directly into a SharedArrayBuffer for worker thread
+   * transfer. Returns the SAB, the array of IDs, and the embedding dimension.
+   * Uses an iterator-based approach to avoid loading all rows into memory at once.
+   */
+  packEmbeddingsIntoSAB(maxCount?: number): {
+    buffer: SharedArrayBuffer
+    ids: string[]
+    dim: number
+    count: number
+  } {
+    const limit = maxCount ?? 999999
+    const dim = this.getEmbeddingDim()
+    if (dim === 0) return { buffer: new SharedArrayBuffer(0), ids: [], dim: 0, count: 0 }
+
+    const count = Math.min(this.countEmbeddings(), limit)
+    // Use Float32 to match the DB storage format and halve memory usage
+    const sab = new SharedArrayBuffer(count * dim * Float32Array.BYTES_PER_ELEMENT)
+    const packed = new Float32Array(sab)
+    const ids: string[] = []
+
+    const stmt = this.db.prepare(
+      `SELECT id, embedding FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT ?`
+    )
+
+    let idx = 0
+    for (const row of stmt.iterate(limit) as Iterable<{ id: string; embedding: Buffer }>) {
+      const f32 = toFloatArray(row.embedding)
+      if (!f32 || f32.length !== dim) continue
+
+      const offset = idx * dim
+      packed.set(f32, offset)
+      ids.push(row.id)
+      idx++
+    }
+
+    return { buffer: sab, ids, dim, count: idx }
+  }
+
   getSpatialEngrams(maxCount = 10000): Engram[] {
     return (this.db.prepare(
       `SELECT * FROM engrams WHERE x != 0 OR y != 0 OR (embedding IS NOT NULL AND length(embedding) > 0)
