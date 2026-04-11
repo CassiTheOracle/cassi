@@ -246,6 +246,19 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/reproject
+  if (parts[1] === 'mnemic' && parts[2] === 'reproject' && method === 'POST') {
+    const field = getMnemicField(deps.logger, daemon)
+    const startMs = Date.now()
+    try {
+      const count = await field.reprojectAllAsync()
+      sendJSON(res, 200, { ok: true, count, durationMs: Date.now() - startMs })
+    } catch (err) {
+      sendJSON(res, 500, { ok: false, error: String(err) })
+    }
+    return true
+  }
+
   // POST /memory/mnemic/backfill-filaments
   if (parts[1] === 'mnemic' && parts[2] === 'backfill-filaments' && method === 'POST') {
     try {
