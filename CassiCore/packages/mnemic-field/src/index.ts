@@ -717,8 +717,11 @@ export class MnemicField {
   /**
    * Run a full consolidation cycle: radiance (potentiation recomputation),
    * co-activation drift, nucleus detection, and spike history pruning.
+   *
+   * Async — yields to the event loop between phases to prevent blocking
+   * heartbeats and IPC when processing large datasets.
    */
-  consolidate(options?: ConsolidationOptions): ConsolidationResult {
+  async consolidate(options?: ConsolidationOptions): Promise<ConsolidationResult> {
     return this.consolidationEngine.consolidate(options)
   }
 

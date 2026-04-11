@@ -34,6 +34,11 @@ export interface ConsolidationOptions {
   abstractionMinPotentiation?: number
 }
 
+/** Yield control back to the event loop so heartbeats and IPC stay responsive. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise(resolve => setImmediate(resolve))
+}
+
 /**
  * The Consolidation Engine: periodic recomputation of potentiation,
  * XY drift from co-activation, nucleus detection, and spike pruning.
@@ -51,8 +56,13 @@ export class ConsolidationEngine {
 
   /**
    * Run a full consolidation cycle.
+   *
+   * Yields to the event loop between phases and within heavy loops so
+   * the daemon can process heartbeats, IPC, and HTTP requests. Without
+   * yielding, consolidation over 125K+ engrams blocks the event loop
+   * for 50–100 seconds and triggers supervisor restarts.
    */
-  consolidate(options: ConsolidationOptions = {}): ConsolidationResult {
+  async consolidate(options: ConsolidationOptions = {}): Promise<ConsolidationResult> {
     const start = Date.now()
     let potentiationUpdates = 0
     let positionDrifts = 0
@@ -63,11 +73,13 @@ export class ConsolidationEngine {
     let filamentSynapsesDecayed = 0
 
     if (!options.skipRadiance) {
-      potentiationUpdates = this.computeRadiance()
+      potentiationUpdates = await this.computeRadiance()
+      await yieldToEventLoop()
     }
 
     if (!options.skipDrift) {
-      positionDrifts = this.applyCoActivationDrift()
+      positionDrifts = await this.applyCoActivationDrift()
+      await yieldToEventLoop()
     }
 
     if (!options.skipNuclei) {
@@ -75,6 +87,7 @@ export class ConsolidationEngine {
         options.nucleiMinClusterSize ?? 3,
         options.nucleiEpsilon ?? 0.015,
       )
+      await yieldToEventLoop()
     }
 
     if (!options.skipAbstractions) {
@@ -82,17 +95,21 @@ export class ConsolidationEngine {
         options.abstractionMinMembers ?? 5,
         options.abstractionMinPotentiation ?? 0.3,
       )
+      await yieldToEventLoop()
     }
 
     if (!options.skipPruning) {
-      spikesPruned = this.pruneSpikeHistories(options.pruneKeepCount ?? 100)
+      spikesPruned = await this.pruneSpikeHistories(options.pruneKeepCount ?? 100)
+      await yieldToEventLoop()
     }
 
     if (!options.skipFilamentConsolidation && this.filamentConsolidator) {
       const decay = this.filamentConsolidator.decayCoActivation()
       filamentSynapsesDecayed = decay.deleted
+      await yieldToEventLoop()
       const tier2 = this.filamentConsolidator.runTier2()
       filamentSynapsesCreated = tier2.synapsesCreated
+      await yieldToEventLoop()
     }
 
     const durationMs = Date.now() - start
@@ -118,9 +135,11 @@ export class ConsolidationEngine {
    *
    * Where α_i is adaptive per-engram based on spike count.
    */
-  computeRadiance(): number {
+  async computeRadiance(): Promise<number> {
     const { engrams, synapses } = this.cortex.getAllEngramsWithSynapses()
     if (engrams.length === 0) return 0
+
+    await yieldToEventLoop()
 
     const idToIdx = new Map<string, number>()
     engrams.forEach((e, i) => idToIdx.set(e.id, i))
@@ -128,12 +147,16 @@ export class ConsolidationEngine {
     const spikeImportances = engrams.map(e => computeSpikeImportance(this.cortex.getSpikes(e.id, 200), POTENTIATION_DEFAULTS.decayRate))
     const alphas = engrams.map(e => computeAlpha(this.cortex.getSpikeCount(e.id), POTENTIATION_DEFAULTS))
 
+    await yieldToEventLoop()
+
     const baselineTeleportation = 1.0 / engrams.length
     const teleportations = spikeImportances.map(si =>
       si > 0 ? si : baselineTeleportation
     )
 
     const adjacency = this.buildAdjacency(engrams, synapses, idToIdx)
+
+    await yieldToEventLoop()
 
     let potentiations = engrams.map(() => 0.0)
     const { pageRankIterations: maxIter, convergenceThreshold: tol } = POTENTIATION_DEFAULTS
@@ -164,6 +187,9 @@ export class ConsolidationEngine {
       }
       potentiations = next
 
+      // Yield every iteration so the event loop stays responsive
+      await yieldToEventLoop()
+
       if (maxDelta < tol) {
         this.logger.debug('Radiance converged', { iterations: iter + 1, maxDelta })
         break
@@ -186,7 +212,7 @@ export class ConsolidationEngine {
       .filter((u, i) => Math.abs(u.potentiation - engrams[i].potentiation) > 0.001)
 
     if (updates.length > 0) {
-      this.cortex.bulkUpdatePotentiation(updates)
+      await this.cortex.bulkUpdatePotentiationBatched(updates)
     }
 
     return updates.length
@@ -224,9 +250,11 @@ export class ConsolidationEngine {
    * Loads recent spikes to find pairs that were co-activated in the same task,
    * then pulls their positions closer.
    */
-  applyCoActivationDrift(): number {
+  async applyCoActivationDrift(): Promise<number> {
     const { engrams, synapses } = this.cortex.getAllEngramsWithSynapses()
     if (engrams.length < 2) return 0
+
+    await yieldToEventLoop()
 
     const coActivationCounts = this.findCoActivationPairs(engrams)
     if (coActivationCounts.size === 0) return 0
@@ -268,7 +296,7 @@ export class ConsolidationEngine {
     }
 
     if (updates.length > 0) {
-      this.cortex.bulkUpdatePositions(updates)
+      await this.cortex.bulkUpdatePositionsBatched(updates)
     }
 
     return updates.length
@@ -575,15 +603,18 @@ export class ConsolidationEngine {
   /**
    * Prune old, low-magnitude spikes to bound storage.
    */
-  pruneSpikeHistories(keepCount = 100): number {
+  async pruneSpikeHistories(keepCount = 100): Promise<number> {
     const { engrams } = this.cortex.getAllEngramsWithSynapses()
     let totalPruned = 0
 
-    for (const engram of engrams) {
+    for (let i = 0; i < engrams.length; i++) {
+      const engram = engrams[i]
       const count = this.cortex.getSpikeCount(engram.id)
       if (count > keepCount) {
         totalPruned += this.cortex.pruneSpikes(engram.id, keepCount)
       }
+      // Yield every 5000 engrams to keep the event loop responsive
+      if (i > 0 && i % 5000 === 0) await yieldToEventLoop()
     }
 
     if (totalPruned > 0) {
