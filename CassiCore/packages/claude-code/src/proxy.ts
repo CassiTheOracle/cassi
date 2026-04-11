@@ -183,7 +183,7 @@ async function proxyRequest(
         injectIntoSystemPrompt(body, cognitive);
       }
 
-      if (Array.isArray(body.messages) && body.messages.length >= 40) {
+      if (Array.isArray(body.messages)) {
         try {
           const curated = await bridge.curate(state.ccSessionId, body.messages);
           if (curated?.messages) {
