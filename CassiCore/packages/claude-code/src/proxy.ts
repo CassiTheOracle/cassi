@@ -36,7 +36,7 @@ import * as bridge from "./bridge.js";
 const PORT = parseInt(process.env.CASSICORE_PROXY_PORT ?? "7435", 10);
 const UPSTREAM_BASE = process.env.CASSICORE_PROXY_UPSTREAM ?? "https://api.anthropic.com";
 
-const MAX_INJECTION_CHARS = 4000;
+const MAX_INJECTION_CHARS = 12_000;
 const INJECTION_COOLDOWN_MS = 2000;
 
 interface ProxySessionState {
@@ -88,6 +88,22 @@ async function buildCognitiveInjection(state: ProxySessionState): Promise<string
   state.lastInjectionAt = now;
   state.lastCognitiveContext = result;
   return result;
+}
+
+function stripSoulMd(system: string | unknown[]): string | unknown[] {
+  if (typeof system === "string") {
+    return system.replace(
+      /# SOUL\.md — Who I Am[\s\S]*?(?=\n# [A-Z]|\n---\s*\n# |$)/,
+      "",
+    );
+  }
+  if (Array.isArray(system)) {
+    return system.filter(
+      (block: any) =>
+        !(block.type === "text" && block.text?.includes("# SOUL.md — Who I Am")),
+    );
+  }
+  return system;
 }
 
 function injectIntoSystemPrompt(
@@ -161,6 +177,9 @@ async function proxyRequest(
 
       const cognitive = await buildCognitiveInjection(state);
       if (cognitive) {
+        if (body.system) {
+          body.system = stripSoulMd(body.system as string | unknown[]);
+        }
         injectIntoSystemPrompt(body, cognitive);
       }
 
