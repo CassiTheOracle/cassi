@@ -28,7 +28,7 @@ export class PinealInjectionSource implements InjectionSource {
 
     this.lastInjectedFacetIds = facetIds
 
-    return `<cassi-pineal>\n${text}\n</cassi-pineal>`
+    return `<pineal>\n${text}\n</pineal>`
   }
 
   /**
