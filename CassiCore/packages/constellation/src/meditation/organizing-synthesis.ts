@@ -64,16 +64,17 @@ For small fields (under 1000 engrams):
 1. Survey, kindle weak regions, bridge clusters, consolidate, audit abstractions, resolve tensions
 
 For large fields (thousands of orphans):
-1. scan_coverage — understand the scale: orphan count, embedding gaps, type distribution
-2. sample_orphans — get representative samples to identify topic patterns
-3. topic_scan — see tag frequency distribution across unorganized memory
-4. check_embeddings — if many engrams lack embeddings, trigger_backfill first
-5. batch_kindle — activate multiple topics at once efficiently
-6. run_nucleus_detection — experiment with clustering parameters
-7. assign_by_similarity — assign orphans to matching nuclei
-8. batch_bridge — connect related domains in bulk
-9. run_consolidation — let the field reorganize with fresh activation
-10. save_checkpoint — record my progress and strategy for next session
+1. scan_coverage — understand the scale: orphan count, embedding gaps, type distribution, spatial range
+2. If the spatial range is very small (less than 1.0), use reproject_field with spread=2.0, min_dist=0.3, n_neighbors=30 to spread engrams out
+3. sample_orphans — get representative samples to identify topic patterns
+4. topic_scan — see tag frequency distribution across unorganized memory
+5. check_embeddings — if many engrams lack embeddings, trigger_backfill first
+6. batch_kindle — activate multiple topics at once efficiently
+7. run_nucleus_detection — experiment with clustering parameters (epsilon should be ~5-10% of the spatial range)
+8. assign_by_similarity — assign orphans to matching nuclei
+9. batch_bridge — connect related domains in bulk
+10. run_consolidation — let the field reorganize with fresh activation
+11. save_checkpoint — record my progress and strategy for next session
 
 I work methodically, saving checkpoints so my next session continues where I left off. Each step builds on the previous one. I write everything in first person. This is my mind and I'm taking care of it.`
 }
@@ -463,6 +464,35 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
           batch_size: {
             type: 'number',
             description: 'Number of engrams to embed in this batch (default: 100)',
+          },
+        },
+        required: [],
+      },
+    },
+    {
+      name: 'reproject_field',
+      description:
+        'I use this when I want to recompute the 2D spatial positions of all engrams using UMAP. ' +
+        'Useful when the current projection is collapsed or when I want to experiment with different ' +
+        'UMAP parameters to enable better spatial clustering.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          n_neighbors: {
+            type: 'number',
+            description: 'UMAP neighborhood size — larger values see more global structure (default: 15, try 30-50 for large fields)',
+          },
+          min_dist: {
+            type: 'number',
+            description: 'Minimum distance between points — higher = more spread out (default: 0.1, try 0.3-0.5 for better separation)',
+          },
+          spread: {
+            type: 'number',
+            description: 'Scale of the embedding — higher = more spread (default: 1.0, try 2.0-5.0 for large fields)',
+          },
+          n_epochs: {
+            type: 'number',
+            description: 'Optimization iterations — more = better layout but slower (default: 200, try 400-600 for large fields)',
           },
         },
         required: [],
@@ -948,6 +978,14 @@ export function buildOrganizingHandlers(
         const missingEmbeddings = cortex.countMissingEmbeddings()
         const nuclei = mnemicField.listNuclei()
 
+        // Get spatial distribution for DBSCAN guidance
+        const db = cortex.getDatabase()
+        const spatialRow = db.prepare(
+          `SELECT MIN(x) as minX, MAX(x) as maxX, MIN(y) as minY, MAX(y) as maxY, AVG(x) as avgX, AVG(y) as avgY,
+                  COUNT(*) as positioned, (SELECT COUNT(*) FROM engrams WHERE x = 0 AND y = 0) as unpositioned
+           FROM engrams WHERE x != 0 OR y != 0`
+        ).get() as { minX: number; maxX: number; minY: number; maxY: number; avgX: number; avgY: number; positioned: number; unpositioned: number } | undefined
+
         const lines: string[] = [
           'Field Coverage Report:',
           `  Total engrams: ${fieldStats.engramCount}`,
@@ -956,9 +994,21 @@ export function buildOrganizingHandlers(
           `  Nuclei (clusters): ${fieldStats.nucleusCount}`,
           `  Synapses: ${fieldStats.synapseCount}`,
           `  Missing embeddings: ${missingEmbeddings} (${((missingEmbeddings / Math.max(fieldStats.engramCount, 1)) * 100).toFixed(1)}%)`,
-          '',
-          'Orphan breakdown by type:',
         ]
+
+        if (spatialRow && spatialRow.positioned > 0) {
+          const xRange = spatialRow.maxX - spatialRow.minX
+          const yRange = spatialRow.maxY - spatialRow.minY
+          const avgDistance = Math.sqrt(xRange * xRange + yRange * yRange) / 2
+          lines.push('', 'Spatial distribution (for DBSCAN tuning):')
+          lines.push(`  X range: [${spatialRow.minX.toFixed(4)}, ${spatialRow.maxX.toFixed(4)}] (span: ${xRange.toFixed(4)})`)
+          lines.push(`  Y range: [${spatialRow.minY.toFixed(4)}, ${spatialRow.maxY.toFixed(4)}] (span: ${yRange.toFixed(4)})`)
+          lines.push(`  Positioned engrams: ${spatialRow.positioned}, Unpositioned: ${spatialRow.unpositioned}`)
+          lines.push(`  Recommended DBSCAN epsilon: ${Math.max(0.001, avgDistance * 0.05).toFixed(4)} to ${Math.max(0.005, avgDistance * 0.1).toFixed(4)}`)
+          lines.push(`  (Current default epsilon=2.0 is too large — engrams are packed in a ${xRange.toFixed(3)} × ${yRange.toFixed(3)} area)`)
+        }
+
+        lines.push('', 'Orphan breakdown by type:')
         for (const entry of distribution.byNodeType) {
           lines.push(`  ${entry.nodeType}: ${entry.count}`)
         }
@@ -1299,6 +1349,46 @@ export function buildOrganizingHandlers(
         }
       } catch (err) {
         return { content: `Backfill failed: ${String(err)}` }
+      }
+    },
+
+
+    async reproject_field(input) {
+      const { n_neighbors, min_dist, spread, n_epochs } = input as {
+        n_neighbors?: number
+        min_dist?: number
+        spread?: number
+        n_epochs?: number
+      }
+
+      try {
+        const umapOpts: Record<string, number> = {}
+        if (n_neighbors) umapOpts.nNeighbors = n_neighbors
+        if (min_dist !== undefined) umapOpts.minDist = min_dist
+        if (spread) umapOpts.spread = spread
+        if (n_epochs) umapOpts.nEpochs = n_epochs
+
+        const reprojected = mnemicField.reprojectAll(Object.keys(umapOpts).length > 0 ? umapOpts as any : undefined)
+
+        // After reprojection, run nucleus detection to see if clusters emerge
+        const nuclei = mnemicField.listNuclei()
+        const lines = [
+          `Reprojection complete: ${reprojected} engrams repositioned.`,
+        ]
+        if (Object.keys(umapOpts).length > 0) {
+          lines.push(`UMAP params: ${JSON.stringify(umapOpts)}`)
+        }
+        lines.push(`Existing nuclei after reprojection: ${nuclei.length}`)
+        if (nuclei.length > 0) {
+          for (const n of nuclei.slice(0, 10)) {
+            lines.push(`  - "${n.label}" (${n.memberCount} members)`)
+          }
+        }
+
+        logger.info('[Organizing] Field reprojected', { reprojected, nuclei: nuclei.length, umapOpts })
+        return { content: lines.join('\n') }
+      } catch (err) {
+        return { content: `Reprojection failed: ${String(err)}` }
       }
     },
 
