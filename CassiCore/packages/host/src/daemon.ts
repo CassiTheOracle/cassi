@@ -1762,6 +1762,12 @@ export class Daemon {
         this.logger.info('Meditation MnemicField wired')
       }
 
+      // Wire MnemicField into memory module so cassi_memory store creates engrams
+      if (this.intelligence?.memory && typeof (this.intelligence.memory as any).setMnemicField === 'function') {
+        (this.intelligence.memory as any).setMnemicField(field)
+        this.logger.info('Memory MnemicField bridge wired')
+      }
+
       // Store MnemicField on intelligence layer for post-boot wiring (e.g. Thalamus)
       ;(this.intelligence as any).__mnemicField = field
 
