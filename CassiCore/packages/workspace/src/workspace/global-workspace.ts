@@ -40,6 +40,11 @@ import {
   type AttentionSchema,
   type EclipseRecord,
 } from './attention-schema.js'
+import type {
+  WorkspaceResponse,
+  WorkspaceResponseHandler,
+  ResponsePattern,
+} from './radiance-types.js'
 
 
 type Unsubscribe = () => void
@@ -76,6 +81,12 @@ export class GlobalWorkspace {
 
   // Broadcast subscribers
   private broadcastHandlers: Array<(signals: CognitiveSignal[]) => void> = []
+
+  // Response channel subscribers (bidirectional broadcast — modules return context)
+  private responseHandlers = new Map<string, WorkspaceResponseHandler>()
+
+  // Last collected response pattern (for observer consumption)
+  private lastResponsePattern: ResponsePattern | null = null
 
   // Signals that were active during the current/last turn (for feedback)
   private lastAssembledSignals: CognitiveSignal[] = []
@@ -327,6 +338,109 @@ export class GlobalWorkspace {
       const idx = this.broadcastHandlers.indexOf(handler)
       if (idx >= 0) this.broadcastHandlers.splice(idx, 1)
     }
+  }
+
+
+  /**
+   * Register a response handler for the bidirectional broadcast channel.
+   * When the workspace broadcasts, this handler is called and may return
+   * relevant context (WorkspaceResponse) or null for silence.
+   */
+  onRadiance(source: string, handler: WorkspaceResponseHandler): Unsubscribe {
+    this.responseHandlers.set(source, handler)
+    return () => { this.responseHandlers.delete(source) }
+  }
+
+  /**
+   * Collect responses from all registered response handlers.
+   * Called after broadcast to build the ResponsePattern.
+   */
+  async collectResponses(signals: CognitiveSignal[]): Promise<ResponsePattern> {
+    const responses: ResponsePattern['responses'] = []
+    const respondedSources = new Set<string>()
+
+    const broadcastSummary = signals.map(s => ({
+      signalId: s.signalId,
+      source: s.source,
+      type: s.type,
+      contentPreview: s.content.slice(0, 200),
+      luminance: s.luminance.composite,
+    }))
+
+    const entries = [...this.responseHandlers.entries()]
+    const results = await Promise.allSettled(
+      entries.map(async ([source, handler]) => {
+        const response = await handler(signals)
+        return { source, response }
+      }),
+    )
+
+    for (const result of results) {
+      if (result.status === 'fulfilled') {
+        const { source, response } = result.value
+        if (response) {
+          respondedSources.add(source)
+          responses.push({
+            source,
+            disposition: response.disposition,
+            contentPreview: response.content.slice(0, 500),
+            confidence: response.confidence,
+            type: response.type,
+            wasExpected: false,
+          })
+        } else {
+          responses.push({
+            source,
+            disposition: 'silent',
+            contentPreview: '',
+            confidence: 0,
+            type: 'context',
+            wasExpected: false,
+          })
+        }
+      } else {
+        const entry = entries[results.indexOf(result)]
+        if (entry) {
+          this.logger.warn('Response handler failed', {
+            source: entry[0],
+            error: String(result.reason),
+          })
+        }
+      }
+    }
+
+    let convergent = 0, divergent = 0, lateral = 0, silent = 0
+    for (const r of responses) {
+      switch (r.disposition) {
+        case 'convergent': convergent++; break
+        case 'divergent': divergent++; break
+        case 'lateral': lateral++; break
+        case 'silent': silent++; break
+      }
+    }
+
+    const pattern: ResponsePattern = {
+      broadcastSignals: broadcastSummary,
+      responses,
+      unexpectedSilences: [],
+      unexpectedResponses: [],
+      convergentCount: convergent,
+      divergentCount: divergent,
+      lateralCount: lateral,
+      silentCount: silent,
+      totalModules: this.responseHandlers.size,
+      timestamp: Date.now(),
+    }
+
+    this.lastResponsePattern = pattern
+    return pattern
+  }
+
+  /**
+   * Get the last collected response pattern (for observer consumption).
+   */
+  getLastResponsePattern(): ResponsePattern | null {
+    return this.lastResponsePattern
   }
 
 
