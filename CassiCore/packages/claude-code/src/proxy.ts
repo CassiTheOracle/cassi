@@ -184,9 +184,13 @@ async function proxyRequest(
       }
 
       if (Array.isArray(body.messages) && body.messages.length >= 40) {
-        const curated = await bridge.curate(state.ccSessionId, body.messages);
-        if (curated?.messages) {
-          body.messages = curated.messages;
+        try {
+          const curated = await bridge.curate(state.ccSessionId, body.messages);
+          if (curated?.messages) {
+            body.messages = curated.messages;
+          }
+        } catch {
+          // Curation failure — proceed with original messages
         }
       }
 
