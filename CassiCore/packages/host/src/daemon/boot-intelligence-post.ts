@@ -6,7 +6,6 @@ import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
 import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
-import { LocusBridgeInjectionSource } from '../intelligence/locus-bridge/locus-bridge-injection.js'
 import { PinealInjectionSource } from '../intelligence/pineal/injection.js'
 import { PinealAssembler } from '../intelligence/pineal/assembler.js'
 import type { PinealModule } from '../intelligence/pineal/index.js'
@@ -103,14 +102,15 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       logger.info('Pineal injection source registered with turn reinforcement')
     }
 
-    // Register LocusBridge injection source (curated context from attentional foci)
-    if (intelligence.locusBridge) {
-      const locusSource = new LocusBridgeInjectionSource(
-        intelligence.locusBridge,
-        logger.child('locus-bridge-injection'),
+    // Register Cortex injection source (active working memory signals)
+    if (intelligence.cortex) {
+      const { CortexInjectionSource } = await import('../intelligence/cortex/injection.js')
+      const cortexSource = new CortexInjectionSource(
+        intelligence.cortex,
+        logger.child('cortex-injection'),
       )
-      intelligence.injectionAggregator.register(locusSource)
-      logger.info('LocusBridge injection source registered')
+      intelligence.injectionAggregator.register(cortexSource)
+      logger.info('Cortex injection source registered')
     }
   } catch (err) {
     logger.warn(`Failed to wire InjectionAggregator: ${String(err)}`)

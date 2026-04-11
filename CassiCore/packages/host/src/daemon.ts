@@ -1766,6 +1766,17 @@ export class Daemon {
       if (this.intelligence?.constellation && typeof this.intelligence.constellation.setMnemicField === 'function') {
         this.intelligence.constellation.setMnemicField(field)
       }
+
+      // Register MnemicField injection source (long-term memory retrieval)
+      if (this.intelligence?.injectionAggregator) {
+        const { MnemicFieldInjectionSource } = await import('./intelligence/mnemic-field/injection.js')
+        const mnemicSource = new MnemicFieldInjectionSource(
+          field,
+          this.logger.child('mnemic-field-injection'),
+        )
+        this.intelligence.injectionAggregator.register(mnemicSource)
+        this.logger.info('MnemicField injection source registered')
+      }
     } catch (err) {
       this.logger.warn('CodeStore not available', { error: String(err) })
     }
