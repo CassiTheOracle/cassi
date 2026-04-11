@@ -1,14 +1,16 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
-import { MessageScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
+import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
 import { ToolResultCompressor } from './compressor.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
+import type { LocusBridge } from '../locus-bridge/index.js'
 import type {
   CurationConfig,
   CurationResult,
   CurationSession,
   BrainContext,
+  ScoredMessage,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG } from './types.js'
 
@@ -18,138 +20,101 @@ export class ThalamusModule extends BaseCognitiveModule {
   readonly name = 'thalamus'
   readonly priority = 85
 
-  private scorer!: MessageScorer
+  private scorer!: MessageLuminanceScorer
   private compressor!: ToolResultCompressor
   private sessions = new Map<string, CurationSession>()
   private evictionTimer: ReturnType<typeof setInterval> | null = null
 
+  private locusBridge: LocusBridge | null = null
   private cortex: CorticalField | null = null
   private mnemicField: MnemicField | null = null
 
-  constructor(logger: ILogger) {
-    super(logger)
-    this.logger = logger.child('thalamus')
-  }
+  setLocusBridge(lb: LocusBridge): void { this.locusBridge = lb }
+  setCortex(c: CorticalField): void { this.cortex = c }
+  setMnemicField(mf: MnemicField): void { this.mnemicField = mf }
 
-  async init(): Promise<void> {
-    await super.init()
-    this.scorer = new MessageScorer(this.logger)
+  async initialize(): Promise<void> {
+    this.scorer = new MessageLuminanceScorer(this.logger)
     this.compressor = new ToolResultCompressor(this.logger)
+    this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 2)
+    this.logger.info('Thalamus initialized (GWT luminance scoring)')
   }
 
-  async start(): Promise<void> {
-    await super.start()
-    this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 4)
-  }
-
-  async stop(): Promise<void> {
+  async shutdown(): Promise<void> {
     if (this.evictionTimer) {
       clearInterval(this.evictionTimer)
       this.evictionTimer = null
     }
     this.sessions.clear()
-    await super.stop()
   }
 
-  setCortex(cortex: CorticalField): void {
-    this.cortex = cortex
-  }
+  curate(
+    sessionId: string,
+    messages: any[],
+    configOverrides?: Partial<CurationConfig>,
+  ): CurationResult {
+    const start = Date.now()
 
-  setMnemicField(field: MnemicField): void {
-    this.mnemicField = field
-  }
-
-  curate(sessionId: string, messages: any[], config?: Partial<CurationConfig>): CurationResult {
-    const startTime = Date.now()
-    const cfg = { ...DEFAULT_CURATION_CONFIG, ...this.getConfigOverrides(), ...config }
-
-    if (cfg.excludeSessionPrefixes.some(p => sessionId.startsWith(p))) {
-      return {
-        messages,
-        meta: {
-          originalCount: messages.length,
-          curatedCount: messages.length,
-          originalChars: 0,
-          curatedChars: 0,
-          compressed: 0,
-          deduped: 0,
-          dropped: 0,
-          gapNotes: 0,
-          durationMs: Date.now() - startTime,
-          skipped: true,
-          reason: 'excluded-session-type',
-        },
-      }
+    if (!messages || messages.length < 10) {
+      return this.skipResult(messages ?? [], Date.now() - start, 'too_few_messages')
     }
 
-    if (!messages || messages.length < cfg.recentWindowSize + 5) {
-      return {
-        messages,
-        meta: {
-          originalCount: messages.length,
-          curatedCount: messages.length,
-          originalChars: 0,
-          curatedChars: 0,
-          compressed: 0,
-          deduped: 0,
-          dropped: 0,
-          gapNotes: 0,
-          durationMs: Date.now() - startTime,
-          skipped: true,
-          reason: 'below-threshold',
-        },
-      }
+    const cfg = { ...DEFAULT_CURATION_CONFIG, ...this.getConfigOverrides(), ...configOverrides }
+
+    // Exclude non-primary sessions
+    if (cfg.excludeSessionPrefixes.some(p => sessionId.startsWith(p))) {
+      return this.skipResult(messages, Date.now() - start, 'excluded_session')
     }
 
     const session = this.getSession(sessionId)
-    session.lastCuratedAt = Date.now()
     session.totalCurations++
+    session.lastCuratedAt = Date.now()
 
     const originalChars = messages.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
 
-    const brainContext = this.buildBrainContext(sessionId, messages)
-    const recentWindowStart = Math.max(0, messages.length - cfg.recentWindowSize)
+    // Phase 1: Compress tool results — reduces content within messages
+    const { messages: compressed, compressed: compressedCount, deduped: dedupedCount } =
+      this.compressor.compress(messages, messages.length, { toolResultMaxChars: cfg.toolResultMaxChars }, session.fileReadMap)
 
-    const { messages: compressed, compressed: compressedCount, deduped } =
-      this.compressor.compress(messages, recentWindowStart, { toolResultMaxChars: cfg.toolResultMaxChars }, session.fileReadMap)
+    // Phase 2: Score with GWT luminance and select by ignition threshold
+    const brainContext = this.buildBrainContext(sessionId, compressed)
+    const protectedStart = Math.max(0, compressed.length - cfg.recentWindowSize)
 
-    const scored = this.scorer.scoreAll(compressed, brainContext, recentWindowStart)
-
-    const assembled = this.assembleWindow(compressed, scored, recentWindowStart, cfg.charBudget)
+    const scored = this.scorer.scoreAll(compressed, brainContext, protectedStart)
+    const assembled = this.assembleByThreshold(compressed, scored, protectedStart, cfg)
 
     const curatedChars = assembled.messages.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
 
-    const durationMs = Date.now() - startTime
-    if (durationMs > 200) {
-      this.logger.info('Curation completed', {
-        sessionId,
-        originalCount: messages.length,
-        curatedCount: assembled.messages.length,
-        dropped: messages.length - assembled.messages.length,
-        compressed: compressedCount,
-        deduped,
-        durationMs,
-      })
+    const dropped = compressed.length - assembled.messages.length
+
+    const meta = {
+      originalCount: messages.length,
+      curatedCount: assembled.messages.length,
+      originalChars,
+      curatedChars,
+      compressed: compressedCount,
+      deduped: dedupedCount,
+      dropped,
+      gapNotes: assembled.gapNotes,
+      durationMs: Date.now() - start,
     }
 
-    return {
-      messages: assembled.messages,
-      meta: {
-        originalCount: messages.length,
-        curatedCount: assembled.messages.length,
-        originalChars,
-        curatedChars,
-        compressed: compressedCount,
-        deduped,
-        dropped: messages.length - assembled.messages.length,
-        gapNotes: assembled.gapNotes,
-        durationMs,
-      },
-    }
+    this.logger.info('Thalamus curated', {
+      sessionId,
+      original: messages.length,
+      curated: assembled.messages.length,
+      originalChars,
+      curatedChars,
+      threshold: cfg.ignitionThreshold,
+      dropped,
+      durationMs: meta.durationMs,
+    })
+
+    return { messages: assembled.messages, meta }
   }
 
   getStats(): { sessions: number; totalCurations: number } {
@@ -161,32 +126,48 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   private buildBrainContext(sessionId: string, messages: any[]): BrainContext {
-    const cortexSignals = this.cortex?.readActive({ limit: 15, sessionId }) ?? []
-    const cortexTerms = new Set<string>()
-    const cortexFiles = new Set<string>()
+    const foci = this.locusBridge?.getFoci() ?? []
+    const focusTerms = new Set<string>()
+    const focusFiles = new Set<string>()
+    for (const f of foci) {
+      if (!f.spark) continue
+      for (const term of extractTerms(f.spark.content)) focusTerms.add(term)
+      for (const file of extractFilePaths(f.spark.content)) focusFiles.add(file)
+      for (const file of (f.spark.relevantFiles ?? [])) focusFiles.add(file)
+    }
 
+    const snapshot = this.globalWorkspace?.getSnapshot()
+    const workspaceSignals = snapshot?.slots
+      ?.filter((s: any) => s.signal !== null)
+      ?.map((s: any) => s.signal!) ?? []
+
+    for (const sig of workspaceSignals) {
+      for (const term of extractTerms(sig.content)) focusTerms.add(term)
+      for (const file of extractFilePaths(sig.content)) focusFiles.add(file)
+    }
+
+    const cortexSignals = this.cortex?.readActive({ limit: 10, sessionId }) ?? []
     for (const sig of cortexSignals) {
-      for (const term of extractTerms(sig.content)) cortexTerms.add(term)
-      for (const file of extractFilePaths(sig.content)) cortexFiles.add(file)
+      for (const term of extractTerms(sig.content)) focusTerms.add(term)
+      for (const file of extractFilePaths(sig.content)) focusFiles.add(file)
     }
 
     const mnemonicTerms = new Set<string>()
     if (this.mnemicField) {
       try {
-        const topEngrams = this.mnemicField.list(20).filter(e => e.potentiation > 0.4)
+        const topEngrams = this.mnemicField.list(15).filter(e => e.potentiation > 0.5)
         for (const e of topEngrams) {
           for (const term of extractTerms(e.content)) mnemonicTerms.add(term)
         }
       } catch {
-        // MnemicField may not be fully initialized — degrade gracefully
+        // Degrade gracefully
       }
     }
 
     const recentMessageTerms = new Set<string>()
     const recentMessageFiles = new Set<string>()
-    const recentWindow = 10
     let seen = 0
-    for (let i = messages.length - 1; i >= 0 && seen < recentWindow; i--) {
+    for (let i = messages.length - 1; i >= 0 && seen < 8; i--) {
       const msg = messages[i]
       if (msg?.role !== 'user' && msg?.role !== 'assistant') continue
       seen++
@@ -196,55 +177,87 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     return {
+      foci,
+      workspaceSignals,
+      focusTerms,
+      focusFiles,
       cortexSignals,
-      cortexTerms,
-      cortexFiles,
       mnemonicTerms,
       recentMessageTerms,
       recentMessageFiles,
     }
   }
 
-  private assembleWindow(
+  /**
+   * Threshold-based assembly: include only messages that ignite.
+   * Protected messages (last N) are always included.
+   * If ignited messages exceed budget, raise threshold until they fit.
+   */
+  private assembleByThreshold(
     messages: any[],
     scored: ScoredMessage[],
-    recentWindowStart: number,
-    charBudget: number,
+    protectedStart: number,
+    config: CurationConfig,
   ): { messages: any[]; gapNotes: number } {
-    const recentMessages = messages.slice(recentWindowStart)
-    let recentChars = 0
-    for (const m of recentMessages) {
-      recentChars += extractMessageContent(m).length
-    }
+    let threshold = config.ignitionThreshold
 
-    let remainingBudget = charBudget - recentChars
+    // Protected messages always included
+    const protectedChars = scored
+      .filter(s => s.messageIndex >= protectedStart)
+      .reduce((sum, s) => sum + s.estimatedChars, 0)
+
+    let remainingBudget = config.charBudget - protectedChars
     if (remainingBudget <= 0) {
-      return { messages: recentMessages, gapNotes: 0 }
-    }
-
-    const olderScored = scored
-      .filter(s => s.messageIndex < recentWindowStart)
-      .sort((a, b) => b.score - a.score)
-
-    const includedIndices = new Set<number>()
-    for (const s of olderScored) {
-      if (remainingBudget <= 0) break
-
-      const chars = s.estimatedChars
-      if (s.mnemonicallyCovered) {
-        if (s.score < 0.3) continue
-      }
-      if (chars <= remainingBudget) {
-        includedIndices.add(s.messageIndex)
-        remainingBudget -= chars
+      return {
+        messages: messages.slice(protectedStart),
+        gapNotes: 0,
       }
     }
 
-    this.ensureAlternation(messages, includedIndices, recentWindowStart)
+    // Candidates: older messages that must compete for inclusion
+    const candidates = scored
+      .filter(s => s.messageIndex < protectedStart)
+      .sort((a, b) => b.luminance.composite - a.luminance.composite)
 
+    // Ignition: select candidates above threshold, within budget
+    let included = new Set<number>()
+    let usedChars = 0
+
+    const selectByThreshold = (t: number): { set: Set<number>; chars: number } => {
+      const set = new Set<number>()
+      let chars = 0
+      for (const s of candidates) {
+        if (s.luminance.composite < t) continue
+        if (chars + s.estimatedChars > remainingBudget) continue
+        set.add(s.messageIndex)
+        chars += s.estimatedChars
+      }
+      return { set, chars }
+    }
+
+    const result = selectByThreshold(threshold)
+    included = result.set
+    usedChars = result.chars
+
+    // If still over budget (shouldn't happen with the check above, but safety), raise threshold
+    if (usedChars > remainingBudget) {
+      const step = 0.05
+      for (let t = threshold + step; t < 1.0; t += step) {
+        const retry = selectByThreshold(t)
+        if (retry.chars <= remainingBudget) {
+          included = retry.set
+          break
+        }
+      }
+    }
+
+    this.ensureToolPairs(messages, included, protectedStart)
+    this.ensureAlternation(messages, included, protectedStart)
+
+    // Merge included older messages with protected recent messages, in order
     const allIndices = [
-      ...Array.from(includedIndices).sort((a, b) => a - b),
-      ...Array.from({ length: messages.length - recentWindowStart }, (_, i) => recentWindowStart + i),
+      ...Array.from(included).sort((a, b) => a - b),
+      ...Array.from({ length: messages.length - protectedStart }, (_, i) => protectedStart + i),
     ]
 
     const assembled: any[] = []
@@ -277,7 +290,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   private ensureAlternation(
     messages: any[],
     included: Set<number>,
-    recentWindowStart: number,
+    protectedStart: number,
   ): void {
     const sorted = Array.from(included).sort((a, b) => a - b)
 
@@ -286,7 +299,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       const next = sorted[i + 1]
       if (messages[curr]?.role === messages[next]?.role) {
         for (let bridge = curr + 1; bridge < next; bridge++) {
-          if (messages[bridge]?.role !== messages[curr]?.role && bridge < recentWindowStart) {
+          if (messages[bridge]?.role !== messages[curr]?.role && bridge < protectedStart) {
             included.add(bridge)
             break
           }
@@ -296,7 +309,7 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     if (sorted.length > 0) {
       const lastOlder = sorted[sorted.length - 1]
-      const firstRecent = recentWindowStart
+      const firstRecent = protectedStart
       if (firstRecent < messages.length && messages[lastOlder]?.role === messages[firstRecent]?.role) {
         for (let bridge = lastOlder + 1; bridge < firstRecent; bridge++) {
           if (messages[bridge]?.role !== messages[lastOlder]?.role) {
@@ -308,12 +321,66 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
   }
 
+  private ensureToolPairs(
+    messages: any[],
+    included: Set<number>,
+    protectedStart: number,
+  ): void {
+    const hasToolUse = (msg: any): boolean =>
+      Array.isArray(msg?.content) && msg.content.some((c: any) => c?.type === 'tool_use')
+    const hasToolResult = (msg: any): boolean =>
+      Array.isArray(msg?.content) && msg.content.some((c: any) => c?.type === 'tool_result')
+
+    for (const idx of Array.from(included)) {
+      if (idx >= protectedStart) continue
+      const msg = messages[idx]
+
+      if (hasToolUse(msg) && idx + 1 < protectedStart) {
+        if (!included.has(idx + 1)) {
+          if (hasToolResult(messages[idx + 1])) {
+            included.add(idx + 1)
+          } else {
+            included.delete(idx)
+          }
+        }
+      }
+
+      if (hasToolResult(msg) && idx - 1 >= 0) {
+        if (!included.has(idx - 1)) {
+          if (hasToolUse(messages[idx - 1])) {
+            included.add(idx - 1)
+          } else {
+            included.delete(idx)
+          }
+        }
+      }
+    }
+  }
+
+  private skipResult(messages: any[], durationMs: number, reason: string): CurationResult {
+    return {
+      messages,
+      meta: {
+        originalCount: messages.length,
+        curatedCount: messages.length,
+        originalChars: 0,
+        curatedChars: 0,
+        compressed: 0,
+        deduped: 0,
+        dropped: 0,
+        gapNotes: 0,
+        durationMs,
+        skipped: true,
+        reason,
+      },
+    }
+  }
+
   private getSession(sessionId: string): CurationSession {
     let session = this.sessions.get(sessionId)
     if (!session) {
       session = {
         sessionId,
-        scoreCache: new Map(),
         fileReadMap: new Map(),
         lastCuratedAt: Date.now(),
         totalCurations: 0,
@@ -335,16 +402,16 @@ export class ThalamusModule extends BaseCognitiveModule {
   private getConfigOverrides(): Partial<CurationConfig> {
     if (!this.config) return {}
     const overrides: Partial<CurationConfig> = {}
-    const budget = this.config.get<number>('intelligence.thalamus.charBudget', undefined)
+    const budget = this.config.get('intelligence.thalamus.charBudget', undefined)
     if (budget) overrides.charBudget = budget
-    const window = this.config.get<number>('intelligence.thalamus.recentWindowSize', undefined)
+    const window = this.config.get('intelligence.thalamus.recentWindowSize', undefined)
     if (window) overrides.recentWindowSize = window
-    const maxChars = this.config.get<number>('intelligence.thalamus.toolResultMaxChars', undefined)
+    const maxChars = this.config.get('intelligence.thalamus.toolResultMaxChars', undefined)
     if (maxChars) overrides.toolResultMaxChars = maxChars
-    const prefixes = this.config.get<string[]>('intelligence.thalamus.excludeSessionPrefixes', undefined)
+    const threshold = this.config.get('intelligence.thalamus.ignitionThreshold', undefined)
+    if (threshold) overrides.ignitionThreshold = threshold
+    const prefixes = this.config.get('intelligence.thalamus.excludeSessionPrefixes', undefined)
     if (prefixes) overrides.excludeSessionPrefixes = prefixes
     return overrides
   }
 }
-
-import type { ScoredMessage } from './types.js'

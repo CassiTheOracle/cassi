@@ -1,10 +1,19 @@
 import type { ILogger } from '../../../types/interfaces.js'
-import type { CorticalSignal } from '../cortex/types.js'
+import type { SystemLuminanceScore } from '../workspace/cognitive-signal.js'
 import type { BrainContext, ScoredMessage } from './types.js'
 
-const CHARS_PER_TOKEN = 4
+const THALAMUS_WEIGHTS = {
+  novelty: 0.15,
+  urgency: 0.15,
+  relevance: 0.50,
+  sourceCredibility: 0.20,
+} as const
+import { MESSAGE_CREDIBILITY_PRIORS } from './types.js'
 
 const STOP_WORDS = new Set([
+  'the', 'and', 'for', 'not', 'but', 'are', 'was', 'all', 'can', 'had',
+  'her', 'his', 'one', 'our', 'out', 'has', 'its', 'let', 'say', 'she',
+  'too', 'use', 'way', 'who', 'how', 'any', 'may', 'got', 'get', 'did',
   'this', 'that', 'with', 'from', 'have', 'been', 'will', 'would', 'could',
   'should', 'their', 'there', 'they', 'what', 'when', 'where', 'which',
   'while', 'about', 'after', 'before', 'between', 'through', 'during',
@@ -17,7 +26,7 @@ const STOP_WORDS = new Set([
   'import', 'export', 'default', 'class', 'type', 'interface',
 ])
 
-export class MessageScorer {
+export class MessageLuminanceScorer {
   private logger: ILogger
 
   constructor(logger: ILogger) {
@@ -26,8 +35,8 @@ export class MessageScorer {
 
   scoreAll(
     messages: any[],
-    brainContext: BrainContext,
-    recentWindowStart: number,
+    ctx: BrainContext,
+    protectedStart: number,
   ): ScoredMessage[] {
     const total = messages.length
     const scored: ScoredMessage[] = []
@@ -35,169 +44,194 @@ export class MessageScorer {
     for (let i = 0; i < total; i++) {
       const msg = messages[i]
 
-      if (i >= recentWindowStart) {
+      if (i >= protectedStart) {
         scored.push({
           messageIndex: i,
-          score: 1.0,
+          luminance: { novelty: 1, urgency: 1, relevance: 1, sourceCredibility: 1, composite: 1 },
           estimatedChars: this.estimateChars(msg),
-          mnemonicallyCovered: false,
         })
         continue
       }
 
-      const recency = this.recencyScore(i, total)
-      const refDensity = this.referenceDensityScore(msg, brainContext)
-      const infoDensity = this.informationDensityScore(msg)
-      const editProx = this.editProximityScore(msg, brainContext.cortexFiles, brainContext.recentMessageFiles)
-      const cortexRel = this.cortexRelevance(msg, brainContext.cortexSignals)
+      const nov = this.novelty(msg, ctx)
+      const urg = this.urgency(msg, i, total)
+      const rel = this.relevance(msg, ctx)
+      const cred = this.credibility(msg)
 
-      const score =
-        0.35 * recency +
-        0.25 * refDensity +
-        0.20 * infoDensity +
-        0.10 * editProx +
-        0.10 * cortexRel
+      const composite =
+        THALAMUS_WEIGHTS.novelty * nov +
+        THALAMUS_WEIGHTS.urgency * urg +
+        THALAMUS_WEIGHTS.relevance * rel +
+        THALAMUS_WEIGHTS.sourceCredibility * cred
 
-      const mnemonicallyCovered = this.checkMnemonicCoverage(msg, brainContext.mnemonicTerms)
+      const luminance: SystemLuminanceScore = {
+        novelty: nov,
+        urgency: urg,
+        relevance: rel,
+        sourceCredibility: cred,
+        composite,
+      }
 
       scored.push({
         messageIndex: i,
-        score,
+        luminance,
         estimatedChars: this.estimateChars(msg),
-        mnemonicallyCovered,
       })
     }
 
     return scored
   }
 
-  private recencyScore(index: number, total: number): number {
-    if (total <= 1) return 1.0
-    return 0.1 + 0.9 * (index / (total - 1))
-  }
-
-  private referenceDensityScore(msg: any, ctx: BrainContext): number {
+  /**
+   * Novelty: unique information not covered by memory or redundant with other messages.
+   * Mnemonic coverage → low novelty (memory already holds this).
+   * High unique-term density → high novelty.
+   */
+  private novelty(msg: any, ctx: BrainContext): number {
     const content = extractMessageContent(msg).toLowerCase()
     if (!content) return 0
 
-    const allTerms = new Set([...ctx.cortexTerms, ...ctx.recentMessageTerms])
-    const allFiles = new Set([...ctx.cortexFiles, ...ctx.recentMessageFiles])
-    if (allTerms.size === 0 && allFiles.size === 0) return 0
+    const terms = extractTerms(content)
+    if (terms.length === 0) return 0.1
 
-    let hits = 0
-    let checks = 0
-
-    for (const file of allFiles) {
-      checks++
-      if (content.includes(file) || content.includes(file.split('/').pop() ?? '')) {
-        hits++
+    // Mnemonic anti-coverage: terms already in long-term memory reduce novelty
+    let mnemonicOverlap = 0
+    if (ctx.mnemonicTerms.size > 0) {
+      for (const term of terms) {
+        if (ctx.mnemonicTerms.has(term)) mnemonicOverlap++
       }
     }
+    const mnemonicRatio = terms.length > 0 ? mnemonicOverlap / terms.length : 0
 
-    for (const term of allTerms) {
-      if (term.length < 4) continue
-      checks++
-      if (content.includes(term)) {
-        hits++
-      }
-    }
+    // Unique term density — how much distinct information per unit length
+    const uniqueTerms = new Set(terms)
+    const density = Math.min(1.0, uniqueTerms.size / Math.max(content.length / 50, 1))
 
-    return checks > 0 ? Math.min(1.0, hits / Math.max(checks * 0.3, 1)) : 0
+    // Novelty is high density minus mnemonic overlap
+    return Math.max(0, Math.min(1.0, density * (1 - mnemonicRatio * 0.7)))
   }
 
-  private informationDensityScore(msg: any): number {
+  /**
+   * Urgency: exponential recency decay + role-based boost.
+   * Recent messages are urgent. User instructions get a floor.
+   */
+  private urgency(msg: any, index: number, total: number): number {
+    if (total <= 1) return 1.0
+
+    // Exponential decay — much steeper than linear, drops old messages faster
+    const position = index / (total - 1)
+    const recency = Math.pow(position, 2.5)
+
+    // Role boost: user messages carry instructions that may still be active
     const role = msg?.role
-    const content = extractMessageContent(msg)
+    if (role === 'user') return Math.max(0.15, recency)
 
-    if (role === 'tool' || role === 'tool_result') return 0.8
-    if (role === 'assistant') {
-      const hasToolUse = Array.isArray(msg?.content) &&
-        msg.content.some((c: any) => c?.type === 'tool_use')
-      if (hasToolUse) return 0.7
-
-      if (content.includes('```')) return 0.6
-      return 0.3
-    }
-    if (role === 'user') {
-      const hasToolResult = Array.isArray(msg?.content) &&
-        msg.content.some((c: any) => c?.type === 'tool_result')
-      if (hasToolResult) return 0.8
-      return 0.5
-    }
-    if (role === 'system') return 0.2
-    return 0.3
+    return Math.max(0.02, recency)
   }
 
-  private editProximityScore(msg: any, cortexFiles: Set<string>, recentFiles: Set<string>): number {
-    const allFiles = new Set([...cortexFiles, ...recentFiles])
-    if (allFiles.size === 0) return 0
+  /**
+   * Relevance: alignment with current GWT focus + workspace signals + active files.
+   * Merges the old focusOverlap, workspaceAlignment, and editProximity.
+   */
+  private relevance(msg: any, ctx: BrainContext): number {
+    const content = extractMessageContent(msg).toLowerCase()
+    if (!content) return 0
 
-    if (Array.isArray(msg?.content)) {
+    // GWT focus relevance (primary)
+    let focusScore = 0
+    if (ctx.focusTerms.size > 0 || ctx.focusFiles.size > 0) {
+      focusScore = this.termOverlap(content, ctx.focusTerms, ctx.focusFiles)
+    } else if (ctx.recentMessageTerms.size > 0) {
+      focusScore = this.termOverlap(content, ctx.recentMessageTerms, ctx.recentMessageFiles)
+    }
+
+    // Workspace signal alignment — boost from broadcast winners
+    let workspaceScore = 0
+    for (const sig of ctx.workspaceSignals) {
+      const sigTerms = extractTerms(sig.content)
+      const overlap = sigTerms.filter(t => content.includes(t)).length
+      if (overlap > 0) {
+        const match = Math.min(1.0, overlap / Math.max(sigTerms.length * 0.25, 1))
+        const weighted = match * sig.luminance.composite
+        workspaceScore = Math.max(workspaceScore, weighted)
+      }
+    }
+
+    // File proximity — does this message touch files we're focused on
+    let fileScore = 0
+    const allFiles = new Set([...ctx.focusFiles, ...ctx.recentMessageFiles])
+    if (allFiles.size > 0 && Array.isArray(msg?.content)) {
       for (const block of msg.content) {
         if (block?.type === 'tool_use') {
           const input = block.input ?? {}
           const filePath = input.filePath ?? input.path ?? input.relative_path ?? input.file_path ?? ''
-          if (filePath && allFiles.has(filePath)) return 1.0
-          const basename = filePath.split('/').pop() ?? ''
-          if (basename.length > 3) {
-            for (const af of allFiles) {
-              if (af.endsWith(basename)) return 0.8
+          if (filePath && allFiles.has(filePath)) {
+            fileScore = 1.0
+            break
+          }
+          const fileName = filePath.split('/').pop() ?? ''
+          for (const f of allFiles) {
+            if (f.endsWith(fileName) && fileName.length > 3) {
+              fileScore = 0.8
+              break
             }
           }
         }
       }
     }
 
-    return 0
+    // Composite relevance: focus is primary, workspace and file proximity add signal
+    return Math.min(1.0, focusScore * 0.5 + workspaceScore * 0.3 + fileScore * 0.2)
   }
 
-  private cortexRelevance(msg: any, signals: CorticalSignal[]): number {
-    const content = extractMessageContent(msg).toLowerCase()
-    if (!content || signals.length === 0) return 0
+  /**
+   * Credibility: static priors based on message role and content type.
+   * User instructions are almost always useful. Old assistant reasoning rarely is.
+   */
+  private credibility(msg: any): number {
+    const role = msg?.role ?? ''
 
-    let maxMatch = 0
-    for (const sig of signals) {
-      const sigTerms = extractTerms(sig.content)
-      const overlap = sigTerms.filter(t => content.includes(t)).length
-      if (overlap > 0) {
-        const match = Math.min(1.0, overlap / Math.max(sigTerms.length * 0.3, 1))
-        const weighted = match * sig.activation
-        maxMatch = Math.max(maxMatch, weighted)
-      }
+    if (role === 'user') {
+      const hasToolResult = Array.isArray(msg?.content) &&
+        msg.content.some((c: any) => c?.type === 'tool_result')
+      return hasToolResult
+        ? (MESSAGE_CREDIBILITY_PRIORS['user:tool_result'] ?? 0.70)
+        : (MESSAGE_CREDIBILITY_PRIORS['user'] ?? 0.90)
     }
 
-    return maxMatch
+    if (role === 'assistant') {
+      const hasToolUse = Array.isArray(msg?.content) &&
+        msg.content.some((c: any) => c?.type === 'tool_use')
+      return hasToolUse
+        ? (MESSAGE_CREDIBILITY_PRIORS['assistant:tool_use'] ?? 0.65)
+        : (MESSAGE_CREDIBILITY_PRIORS['assistant'] ?? 0.40)
+    }
+
+    return MESSAGE_CREDIBILITY_PRIORS[role] ?? 0.20
   }
 
-  private checkMnemonicCoverage(msg: any, mnemonicTerms: Set<string>): boolean {
-    if (mnemonicTerms.size === 0) return false
+  private termOverlap(content: string, terms: Set<string>, files: Set<string>): number {
+    if (terms.size === 0 && files.size === 0) return 0
 
-    const content = extractMessageContent(msg).toLowerCase()
-    if (!content || content.length < 50) return false
+    let hits = 0
+    let checks = 0
 
-    const msgTerms = extractTerms(content)
-    if (msgTerms.length === 0) return false
-
-    let covered = 0
-    for (const term of msgTerms) {
-      if (mnemonicTerms.has(term)) covered++
+    for (const file of files) {
+      checks++
+      if (content.includes(file) || content.includes(file.split('/').pop() ?? '')) hits++
     }
 
-    return (covered / msgTerms.length) > 0.6
+    for (const term of terms) {
+      if (term.length < 4) continue
+      checks++
+      if (content.includes(term)) hits++
+    }
+
+    return checks > 0 ? Math.min(1.0, hits / Math.max(checks * 0.25, 1)) : 0
   }
 
   private estimateChars(msg: any): number {
-    const content = extractMessageContent(msg)
-    let base = content.length
-
-    if (Array.isArray(msg?.content)) {
-      const toolBlocks = msg.content.filter(
-        (c: any) => c?.type === 'tool_use' || c?.type === 'tool_result'
-      )
-      base += toolBlocks.length * 200
-    }
-
-    return Math.max(base, 40)
+    return extractMessageContent(msg).length
   }
 }
 
@@ -209,7 +243,13 @@ export function extractMessageContent(msg: any): string {
       .map((c: any) => {
         if (typeof c === 'string') return c
         if (c?.type === 'text') return c.text ?? ''
-        if (c?.type === 'tool_result') return typeof c.content === 'string' ? c.content : ''
+        if (c?.type === 'tool_use') return `tool:${c.name ?? ''} ${JSON.stringify(c.input ?? {}).slice(0, 200)}`
+        if (c?.type === 'tool_result') {
+          const inner = Array.isArray(c.content)
+            ? c.content.map((b: any) => b?.text ?? '').join('\n')
+            : (typeof c.content === 'string' ? c.content : '')
+          return inner
+        }
         return ''
       })
       .join('\n')
@@ -217,28 +257,22 @@ export function extractMessageContent(msg: any): string {
   return ''
 }
 
-export function extractTerms(content: string): string[] {
-  const words = content.toLowerCase().split(/[\s,;:.!?()\[\]{}'"]+/)
-  return words.filter(w => w.length >= 4 && !STOP_WORDS.has(w))
+export function extractTerms(text: string): string[] {
+  const lower = text.toLowerCase()
+  const words = lower.match(/[a-z_][a-z0-9_]{2,}/g) ?? []
+  return words.filter(w => !STOP_WORDS.has(w))
 }
 
-export function extractFilePaths(content: string): string[] {
-  const pathPattern = /(?:^|\s|["'`(])([a-zA-Z0-9_\-./]+\/[a-zA-Z0-9_\-./]+\.[a-zA-Z]{1,10})(?:\s|["'`),:]|$)/g
+export function extractFilePaths(text: string): string[] {
   const paths: string[] = []
-  let match: RegExpExecArray | null
-  while ((match = pathPattern.exec(content)) !== null) {
-    const p = match[1]
-    if (p.length > 5 && !p.startsWith('http')) {
-      paths.push(p)
+  const urlStripped = text.replace(/https?:\/\/\S+/g, '')
+  const matches = urlStripped.match(/(?:[\w.-]+\/)+[\w.-]+\.\w+/g)
+  if (matches) {
+    for (const m of matches) {
+      if (m.split('/').length >= 2) {
+        paths.push(m)
+      }
     }
   }
   return paths
-}
-
-export function djb2Hash(str: string): number {
-  let hash = 5381
-  for (let i = 0; i < str.length; i++) {
-    hash = ((hash << 5) + hash) + str.charCodeAt(i)
-  }
-  return hash >>> 0
 }

@@ -1,24 +1,27 @@
 import type { CorticalSignal } from '../cortex/types.js'
+import type { CognitiveSignal, SystemLuminanceScore } from '../workspace/cognitive-signal.js'
+import type { BridgeFocus } from '../locus-bridge/types.js'
 
 export interface CurationConfig {
   charBudget: number
   recentWindowSize: number
   toolResultMaxChars: number
+  ignitionThreshold: number
   excludeSessionPrefixes: string[]
 }
 
 export const DEFAULT_CURATION_CONFIG: CurationConfig = {
-  charBudget: 400_000,
-  recentWindowSize: 20,
-  toolResultMaxChars: 4000,
+  charBudget: 120_000,
+  recentWindowSize: 6,
+  toolResultMaxChars: 2000,
+  ignitionThreshold: 0.20,
   excludeSessionPrefixes: ['meditation:', 'module:', 'helix-review:'],
 }
 
 export interface ScoredMessage {
   messageIndex: number
-  score: number
+  luminance: SystemLuminanceScore
   estimatedChars: number
-  mnemonicallyCovered: boolean
 }
 
 export interface CurationMeta {
@@ -40,27 +43,32 @@ export interface CurationResult {
   meta: CurationMeta
 }
 
-export interface CachedScore {
-  score: number
-  mnemonicallyCovered: boolean
-  hash: number
-}
-
 export interface CurationSession {
   sessionId: string
-  scoreCache: Map<string, CachedScore>
   fileReadMap: Map<string, number>
   lastCuratedAt: number
   totalCurations: number
 }
 
 export interface BrainContext {
+  foci: BridgeFocus[]
+  workspaceSignals: CognitiveSignal[]
+  focusTerms: Set<string>
+  focusFiles: Set<string>
+
   cortexSignals: CorticalSignal[]
-  cortexTerms: Set<string>
-  cortexFiles: Set<string>
   mnemonicTerms: Set<string>
+
   recentMessageTerms: Set<string>
   recentMessageFiles: Set<string>
+}
+
+export const MESSAGE_CREDIBILITY_PRIORS: Record<string, number> = {
+  'user': 0.90,
+  'user:tool_result': 0.70,
+  'assistant:tool_use': 0.65,
+  'assistant': 0.40,
+  'system': 0.20,
 }
 
 export interface CompressionConfig {
