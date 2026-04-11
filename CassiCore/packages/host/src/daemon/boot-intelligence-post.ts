@@ -78,6 +78,21 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       const useGwt = config?.get?.('intelligence.workspace.enabled') === true
       pipeline.setGlobalWorkspace(intelligence.globalWorkspace, useGwt)
       logger.info('GlobalWorkspace wired to pipeline', { enabled: useGwt })
+
+      // Radiance Loop: bidirectional workspace feedback with surprise-gated observer
+      const radianceEnabled = config?.get?.('intelligence.workspace.radiance.enabled') === true
+      if (radianceEnabled && useGwt) {
+        const { RadianceLoop } = await import('../intelligence/workspace/radiance-loop.js')
+        const radianceLoop = new RadianceLoop(intelligence.globalWorkspace, logger, {
+          enabled: true,
+          warmupCycles: 10,
+          surpriseThreshold: 0.3,
+        })
+        if (intelligence.cortex) radianceLoop.setCortex(intelligence.cortex)
+        if (bus) radianceLoop.setEventBus(bus)
+        pipeline.setRadianceLoop(radianceLoop)
+        logger.info('RadianceLoop wired to pipeline')
+      }
     }
 
     // Register Pineal injection source (identity, wisdom, philosophy facets)
