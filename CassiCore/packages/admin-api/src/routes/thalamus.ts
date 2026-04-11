@@ -1,6 +1,8 @@
 import type http from 'node:http'
 import type { ILogger } from '../../types/interfaces.js'
 import type { ThalamusModule } from '../intelligence/thalamus/index.js'
+import { ExternalClientCurator } from '../plugins/external-clients/index.js'
+import type { ExternalCurateRequest } from '../plugins/external-clients/types.js'
 
 interface ThalamusDeps {
   daemon: any
@@ -11,6 +13,33 @@ interface ThalamusDeps {
 
 function getThalamus(daemon: any): ThalamusModule | undefined {
   return daemon?.intelligence?.registry?.get('thalamus') as ThalamusModule | undefined
+}
+
+let curatorInstance: ExternalClientCurator | null = null
+
+function getOrCreateCurator(deps: ThalamusDeps): ExternalClientCurator | null {
+  if (curatorInstance) return curatorInstance
+
+  const thalamus = getThalamus(deps.daemon)
+  if (!thalamus) return null
+
+  curatorInstance = new ExternalClientCurator({
+    logger: deps.logger,
+    getThalamus: () => getThalamus(deps.daemon),
+    getSystemContext: async (sessionId: string) => {
+      // Fetch cognitive context from the LocusBridge if available
+      const locusBridge = deps.daemon?.intelligence?.locusBridge
+      if (!locusBridge || typeof locusBridge.curate !== 'function') return []
+      try {
+        const curated = await locusBridge.curate()
+        return curated?.systemContext ?? curated?.parts?.map((p: any) => p.content) ?? []
+      } catch {
+        return []
+      }
+    },
+  })
+
+  return curatorInstance
 }
 
 export async function handleThalamusRoutes(
@@ -30,6 +59,7 @@ export async function handleThalamusRoutes(
     return true
   }
 
+  // POST /context/curate — Direct thalamus curation (full message objects)
   if (method === 'POST' && pathname === '/context/curate') {
     const body = await deps.parseBody(req)
     const { sessionId, messages, config } = body
@@ -42,6 +72,33 @@ export async function handleThalamusRoutes(
     return true
   }
 
+  // POST /context/curate/external — Index-only curation for external editor clients.
+  // Accepts lightweight message digests, returns kept indices + gap annotations.
+  // This is the primary integration point for OpenCode, Claude Code, Cursor, etc.
+  if (method === 'POST' && pathname === '/context/curate/external') {
+    const curator = getOrCreateCurator(deps)
+    if (!curator) {
+      deps.sendJSON(res, 503, { error: 'External client curator not available' })
+      return true
+    }
+
+    const body = await deps.parseBody(req) as ExternalCurateRequest
+    if (!body?.sessionId || !Array.isArray(body?.digests)) {
+      deps.sendJSON(res, 400, { error: 'sessionId and digests[] are required' })
+      return true
+    }
+
+    try {
+      const result = await curator.curate(body)
+      deps.sendJSON(res, 200, result)
+    } catch (err) {
+      deps.logger.error('External curation failed', { error: String(err), sessionId: body.sessionId })
+      deps.sendJSON(res, 500, { error: String(err) })
+    }
+    return true
+  }
+
+  // GET /context/curate/stats — Thalamus curation statistics
   if (method === 'GET' && pathname === '/context/curate/stats') {
     const stats = thalamus.getStats()
     deps.sendJSON(res, 200, stats)
