@@ -25,7 +25,7 @@ import type { MeditationStyle } from './styles.js'
 import { getDataDir } from '../../../utils/paths.js'
 
 
-const SCHEMA_VERSION = 2
+const SCHEMA_VERSION = 3
 
 
 const SCHEMA_V1 = `
@@ -131,6 +131,48 @@ const MIGRATE_V1_TO_V2 = `
 `
 
 
+const MIGRATE_V2_TO_V3 = `
+  -- Corpus prompt evolution: parallel to explorer prompts
+  CREATE TABLE IF NOT EXISTS corpus_prompts (
+    id          TEXT PRIMARY KEY,
+    category    TEXT NOT NULL,
+    identity    TEXT NOT NULL,
+    approach    TEXT NOT NULL,
+    style       TEXT NOT NULL,
+    alpha       REAL NOT NULL DEFAULT 1.0,
+    beta        REAL NOT NULL DEFAULT 1.0,
+    times_used  INTEGER NOT NULL DEFAULT 0,
+    avg_score   REAL NOT NULL DEFAULT 0.0,
+    last_used_at INTEGER,
+    author      TEXT DEFAULT 'library',
+    parent_id   TEXT REFERENCES corpus_prompts(id),
+    retired_at  INTEGER,
+    created_at  INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_corpus_prompts_style ON corpus_prompts(style);
+  CREATE INDEX IF NOT EXISTS idx_corpus_prompts_avg_score ON corpus_prompts(avg_score DESC);
+
+  CREATE TABLE IF NOT EXISTS corpus_prompt_scores (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id          TEXT NOT NULL,
+    corpus_prompt_id    TEXT NOT NULL,
+    style               TEXT NOT NULL,
+    insight_quality     REAL,
+    tool_diversity      REAL,
+    depth               REAL,
+    self_reflection     REAL,
+    overall_score       REAL NOT NULL,
+    evaluation_text     TEXT,
+    scored_at           INTEGER NOT NULL,
+    FOREIGN KEY (corpus_prompt_id) REFERENCES corpus_prompts(id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_corpus_scores_prompt ON corpus_prompt_scores(corpus_prompt_id);
+  CREATE INDEX IF NOT EXISTS idx_corpus_scores_scored ON corpus_prompt_scores(scored_at DESC);
+`
+
+
 export interface PromptRow {
   id: string
   category: string
@@ -174,6 +216,35 @@ export interface StyleStatsRow {
   avg_score: number
 }
 
+export interface CorpusPromptRow {
+  id: string
+  category: string
+  identity: string
+  approach: string
+  style: string
+  alpha: number
+  beta: number
+  times_used: number
+  avg_score: number
+  last_used_at: number | null
+  author: string
+  parent_id: string | null
+  retired_at: number | null
+  created_at: number
+}
+
+export interface CorpusPromptScoreInsert {
+  session_id: string
+  corpus_prompt_id: string
+  style: MeditationStyle
+  insight_quality?: number
+  tool_diversity?: number
+  depth?: number
+  self_reflection?: number
+  overall_score: number
+  evaluation_text?: string
+}
+
 
 export class MeditationStore {
   private db: Database.Database
@@ -210,9 +281,14 @@ export class MeditationStore {
     if (!existing) {
       db.exec(SCHEMA_V1)
       db.exec(MIGRATE_V1_TO_V2)
+      db.exec(MIGRATE_V2_TO_V3)
       db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(SCHEMA_VERSION)
     } else if (existing < 2) {
       db.exec(MIGRATE_V1_TO_V2)
+      db.exec(MIGRATE_V2_TO_V3)
+      db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(SCHEMA_VERSION)
+    } else if (existing < 3) {
+      db.exec(MIGRATE_V2_TO_V3)
       db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)').run(SCHEMA_VERSION)
     }
 
@@ -383,6 +459,40 @@ export class MeditationStore {
       // Cleanup
       pruneScores: this.db.prepare('DELETE FROM prompt_scores WHERE scored_at < ?'),
       pruneSessions: this.db.prepare('DELETE FROM evaluation_sessions WHERE started_at < ?'),
+
+      // Corpus prompts
+      seedCorpusPrompt: this.db.prepare(`
+        INSERT INTO corpus_prompts (id, category, identity, approach, style, author, created_at)
+        VALUES (@id, @category, @identity, @approach, @style, @author, @created_at)
+        ON CONFLICT(id) DO UPDATE SET
+          category = @category, identity = @identity, approach = @approach, style = @style
+      `),
+      getCorpusPrompt: this.db.prepare('SELECT * FROM corpus_prompts WHERE id = ?'),
+      getCorpusPromptsByStyle: this.db.prepare('SELECT * FROM corpus_prompts WHERE style = ? AND retired_at IS NULL ORDER BY avg_score DESC'),
+      getAllCorpusPrompts: this.db.prepare('SELECT * FROM corpus_prompts WHERE retired_at IS NULL ORDER BY avg_score DESC'),
+      getCassiCorpusPromptCount: this.db.prepare("SELECT COUNT(*) FROM corpus_prompts WHERE author = 'cassi' AND retired_at IS NULL").pluck(),
+      insertCorpusMutation: this.db.prepare(`
+        INSERT INTO corpus_prompts (id, category, identity, approach, style, author, parent_id, created_at)
+        VALUES (@id, @category, @identity, @approach, @style, 'cassi', @parent_id, @created_at)
+      `),
+      retireCorpusPrompt: this.db.prepare('UPDATE corpus_prompts SET retired_at = ? WHERE id = ?'),
+      insertCorpusScore: this.db.prepare(`
+        INSERT INTO corpus_prompt_scores
+          (session_id, corpus_prompt_id, style, insight_quality, tool_diversity, depth, self_reflection, overall_score, evaluation_text, scored_at)
+        VALUES (@session_id, @corpus_prompt_id, @style, @insight_quality, @tool_diversity, @depth, @self_reflection, @overall_score, @evaluation_text, @scored_at)
+      `),
+      updateCorpusPromptAggregates: this.db.prepare(`
+        UPDATE corpus_prompts SET
+          alpha = alpha + @score,
+          beta = beta + (1.0 - @score),
+          times_used = times_used + 1,
+          avg_score = (avg_score * times_used + @score) / (times_used + 1),
+          last_used_at = @now
+        WHERE id = @id
+      `),
+      getCorpusThompsonParams: this.db.prepare('SELECT id, category, style, alpha, beta FROM corpus_prompts WHERE retired_at IS NULL'),
+      getCorpusLeaderboard: this.db.prepare('SELECT id, category, identity, approach, style, avg_score, times_used, alpha, beta, author, parent_id FROM corpus_prompts WHERE retired_at IS NULL ORDER BY avg_score DESC'),
+      getCorpusScoresForPrompt: this.db.prepare('SELECT * FROM corpus_prompt_scores WHERE corpus_prompt_id = ? ORDER BY scored_at DESC LIMIT ?'),
     }
   }
 
@@ -646,5 +756,108 @@ export class MeditationStore {
 
   close(): void {
     this.db.close()
+  }
+
+
+  // ── Corpus Prompt Library ───────────────────────────────────────
+
+  seedCorpusPrompts(prompts: Array<{ id: string; category: string; identity: string; approach: string; style: MeditationStyle }>): void {
+    const now = Date.now()
+    const txn = this.db.transaction(() => {
+      for (const p of prompts) {
+        this.stmts.seedCorpusPrompt.run({
+          id: p.id, category: p.category, identity: p.identity,
+          approach: p.approach, style: p.style, author: 'library', created_at: now,
+        })
+      }
+    })
+    txn()
+    this.logger.info('[MeditationStore] Seeded corpus prompts', { count: prompts.length })
+  }
+
+  getCorpusPrompt(id: string): CorpusPromptRow | undefined {
+    return this.stmts.getCorpusPrompt.get(id) as CorpusPromptRow | undefined
+  }
+
+  getCorpusPromptsByStyle(style: MeditationStyle): CorpusPromptRow[] {
+    return this.stmts.getCorpusPromptsByStyle.all(style) as CorpusPromptRow[]
+  }
+
+  getAllCorpusPrompts(): CorpusPromptRow[] {
+    return this.stmts.getAllCorpusPrompts.all() as CorpusPromptRow[]
+  }
+
+  getCorpusPromptLeaderboard(): Array<{
+    id: string; category: string; identity: string; approach: string; style: string
+    avg_score: number; times_used: number; alpha: number; beta: number
+    author: string; parent_id: string | null
+    expected_value: number; confidence: number
+  }> {
+    const rows = this.stmts.getCorpusLeaderboard.all() as Array<{
+      id: string; category: string; identity: string; approach: string; style: string
+      avg_score: number; times_used: number; alpha: number; beta: number
+      author: string; parent_id: string | null
+    }>
+    return rows.map(r => ({
+      ...r,
+      expected_value: r.alpha / (r.alpha + r.beta),
+      confidence: 1 / Math.sqrt(r.alpha + r.beta),
+    }))
+  }
+
+  getCorpusThompsonParams(style: MeditationStyle): Array<{ id: string; category: string; style: string; alpha: number; beta: number }> {
+    return this.stmts.getCorpusThompsonParams.all() as Array<{ id: string; category: string; style: string; alpha: number; beta: number }>
+  }
+
+  recordCorpusScore(score: CorpusPromptScoreInsert): void {
+    const now = Date.now()
+    const txn = this.db.transaction(() => {
+      this.stmts.insertCorpusScore.run({
+        session_id: score.session_id,
+        corpus_prompt_id: score.corpus_prompt_id,
+        style: score.style,
+        insight_quality: score.insight_quality ?? null,
+        tool_diversity: score.tool_diversity ?? null,
+        depth: score.depth ?? null,
+        self_reflection: score.self_reflection ?? null,
+        overall_score: score.overall_score,
+        evaluation_text: score.evaluation_text ?? null,
+        scored_at: now,
+      })
+      this.stmts.updateCorpusPromptAggregates.run({
+        id: score.corpus_prompt_id,
+        score: score.overall_score,
+        now,
+      })
+    })
+    txn()
+  }
+
+  createCorpusMutation(
+    id: string,
+    identity: string,
+    approach: string,
+    category: string,
+    style: MeditationStyle,
+    parentId: string,
+  ): boolean {
+    const maxCassi = this.getMetaReal('max_cassi_prompts') ?? 20
+    const current = (this.stmts.getCassiCorpusPromptCount.get() as number) ?? 0
+    if (current >= maxCassi) {
+      this.logger.info('[MeditationStore] Cassi corpus prompt cap reached', { current, max: maxCassi })
+      return false
+    }
+    this.stmts.insertCorpusMutation.run({
+      id, category, identity, approach, style, parent_id: parentId, created_at: Date.now(),
+    })
+    return true
+  }
+
+  retireCorpusPrompt(id: string): void {
+    this.stmts.retireCorpusPrompt.run(Date.now(), id)
+  }
+
+  getCorpusScoresForPrompt(id: string, limit = 20): Array<{ id: number; session_id: string; corpus_prompt_id: string; style: string; overall_score: number; scored_at: number }> {
+    return this.stmts.getCorpusScoresForPrompt.all(id, limit) as any[]
   }
 }

@@ -36,6 +36,8 @@ import { buildCorpusCyclePrompt, getCorpusToolSchemas, buildCorpusHandlers } fro
 import { buildEvaluationPrompt, getEvaluationToolSchemas, buildEvaluationHandlers } from './evaluation-runner.js'
 import { buildOrganizingExplorerPrompt, getOrganizingToolSchemas, buildOrganizingHandlers, buildOrganizingCorpusPrompt } from './organizing-synthesis.js'
 import type { OrganizingStats } from './organizing-synthesis.js'
+import { FieldHealthAnalyzer } from './field-health.js'
+import type { FieldHealthSnapshot } from './field-health.js'
 
 import type { ConstellationOrchestrator } from '../constellation-orchestrator.js'
 import type { ConstellationRegistry } from '../constellation-injection.js'
@@ -72,6 +74,8 @@ export class MeditationController extends BaseCognitiveModule {
   private handleFactory?: MiniHelixDeps['handleFactory']
   private cortex?: CorticalField
   private activeAbortController?: AbortController
+  /** Cached by checkAndMeditate when health-based organizing is triggered */
+  private cachedHealthSnapshot?: FieldHealthSnapshot
 
 
   constructor(logger: ILogger, config?: Partial<MeditationConfig>) {
@@ -266,10 +270,31 @@ export class MeditationController extends BaseCognitiveModule {
       this.pendingInsightFollowUp = false
     }
 
+    // Health-based organizing upgrade: if the field is significantly fragmented,
+    // override the style to organizing regardless of what selectStyle chose.
+    // This ensures organizing happens when the field genuinely needs it,
+    // not just on a fixed interval.
+    if (style !== 'reflective' && style !== 'organizing' && this.mnemicField) {
+      try {
+        const analyzer = new FieldHealthAnalyzer(this.mnemicField, this.logger, this.meditationStore)
+        const health = analyzer.shouldOrganize()
+        if (health.trigger) {
+          style = 'organizing'
+          this.cachedHealthSnapshot = analyzer.snapshot()
+          this.logger.info('[Meditation] Health-based organizing upgrade', {
+            reason: health.reason,
+            score: health.score,
+          })
+        }
+      } catch (err) {
+        this.logger.debug('[Meditation] Health check failed (non-fatal)', { error: String(err) })
+      }
+    }
+
     const reason = style === 'reflective' ? 'non-neutral affect'
       : style === 'active' ? 'recent activity'
       : style === 'focused' ? 'insight follow-up'
-      : style === 'organizing' ? 'periodic reorganization'
+      : style === 'organizing' ? 'field health or periodic reorganization'
       : style === 'passive' ? 'deep idle' : 'default'
     emitMeditationEvent(this.eventBus, {
       type: 'meditation:style-selected',
@@ -632,10 +657,21 @@ export class MeditationController extends BaseCognitiveModule {
       return
     }
 
-    const fieldStats = this.mnemicField.stats()
-    const explorerPrompt = buildOrganizingExplorerPrompt(fieldStats)
+    // Create health analyzer for before/after diagnostics
+    const healthAnalyzer = new FieldHealthAnalyzer(this.mnemicField, this.logger, this.meditationStore)
 
-    const { handlers, stats: organizingStats } = buildOrganizingHandlers(this.mnemicField, this.logger)
+    // Reuse cached snapshot from health check when available
+    const beforeSnapshot = this.cachedHealthSnapshot ?? healthAnalyzer.snapshot()
+    this.cachedHealthSnapshot = undefined
+
+    const fieldStats = this.mnemicField.stats()
+    const healthReport = healthAnalyzer.formatHealthReport(beforeSnapshot)
+    const priorityRegions = healthAnalyzer.prioritizeRegions(5)
+    const explorerPrompt = buildOrganizingExplorerPrompt(fieldStats, healthReport, priorityRegions)
+
+    const { handlers, stats: organizingStats, touchedRegions } = buildOrganizingHandlers(
+      this.mnemicField, this.logger, healthAnalyzer,
+    )
 
     try {
       const handle = await this.handleFactory({
@@ -648,6 +684,8 @@ export class MeditationController extends BaseCognitiveModule {
         constellationId,
         engramCount: fieldStats.engramCount,
         nucleusCount: fieldStats.nucleusCount,
+        fragmentationScore: beforeSnapshot.fragmentationScore,
+        priorityRegions: priorityRegions.map(r => r.label),
       })
 
       const organizerResult = await runSoloExplorer({
@@ -664,6 +702,15 @@ export class MeditationController extends BaseCognitiveModule {
         customHandlers: handlers,
         customToolSchemas: getOrganizingToolSchemas(),
       })
+
+      // Capture after-snapshot and compute delta
+      const afterSnapshot = healthAnalyzer.snapshot()
+      const { delta } = healthAnalyzer.recordOrganizingSession(
+        constellationId,
+        touchedRegions,
+        beforeSnapshot,
+        afterSnapshot,
+      )
 
       // Capture result in the session
       if (this.activeSession) {
@@ -684,6 +731,9 @@ export class MeditationController extends BaseCognitiveModule {
         tokensUsed: organizerResult.tokensUsed,
         stoppedBy: organizerResult.stoppedBy,
         organizingStats,
+        delta: delta.summary,
+        fragmentationBefore: beforeSnapshot.fragmentationScore.toFixed(3),
+        fragmentationAfter: afterSnapshot.fragmentationScore.toFixed(3),
       })
 
       // Emit organizing-specific event
@@ -704,6 +754,7 @@ export class MeditationController extends BaseCognitiveModule {
         constellationId,
         organizerResult,
         organizingStats,
+        delta,
       )
 
       // Evaluation — score the organizing prompts
@@ -727,12 +778,14 @@ export class MeditationController extends BaseCognitiveModule {
     constellationId: string,
     organizerResult: SoloRunnerResult,
     organizingStats: OrganizingStats,
+    delta?: import('./field-health.js').OrganizingDelta,
   ): Promise<void> {
     if (!this.mnemicField || !this.handleFactory) return
 
     const prompt = buildOrganizingCorpusPrompt(
       [{ name: organizerResult.name, content: organizerResult.transcript || '(no transcript)' }],
       organizingStats,
+      delta ? { summary: delta.summary, improvements: delta.improvements as unknown as Record<string, number> } : undefined,
     )
 
     try {

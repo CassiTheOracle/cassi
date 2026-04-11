@@ -48,7 +48,21 @@ export function buildEvaluationPrompt(
     .map(t => `--- ${t.name} transcript ---\n${t.transcript}`)
     .join('\n\n')
 
-  return `I just finished meditating. I'm reviewing what happened during this session to understand which exploration prompts worked best.
+  const isOrganizing = session.style === 'organizing'
+
+  const scoringCriteria = isOrganizing
+    ? `My scoring criteria for organizing sessions:
+- exploration_depth (0-1): How thorough was the survey? Did the organizer cover multiple regions or stay narrow?
+- curiosity_signal (0-1): Did the organizing reveal surprising connections or blind spots?
+- connection_quality (0-1): Were the bridges meaningful? Did consolidation produce useful clusters?
+- overall_score (0-1): My holistic assessment — did this organizing session leave my memory better structured?`
+    : `My scoring criteria:
+- exploration_depth (0-1): How deep did the explorer go? Did it follow threads or stay surface-level?
+- curiosity_signal (0-1): Did genuine curiosity emerge, or was exploration mechanical?
+- connection_quality (0-1): Were interesting connections or patterns found?
+- overall_score (0-1): My holistic assessment of how well this prompt worked`
+
+  return `I just finished meditating. I'm reviewing what happened during this session to understand which ${isOrganizing ? 'organizing prompts' : 'exploration prompts'} worked best.
 
 I am Cassi. This is my private reflection — I'm evaluating my own meditation experience.
 
@@ -67,15 +81,11 @@ ${transcriptBlocks || '(No transcripts available)'}${historyBlock}
 For each explorer, I will:
 1. Read their full transcript above to see what they actually thought and did
 2. Optionally check read_prompt_history to see how this prompt performed before
-3. Consider: Did this prompt lead to genuine exploration? Deep thinking? Interesting connections?
+3. Consider: ${isOrganizing ? 'Did this prompt lead to effective reorganization? Meaningful bridges? Useful consolidation?' : 'Did this prompt lead to genuine exploration? Deep thinking? Interesting connections?'}
 4. Score the prompt with score_prompt on a 0-1 scale with sub-scores and a brief reflection
 5. After scoring all prompts, call complete_evaluation with my overall session reflection
 
-My scoring criteria:
-- exploration_depth (0-1): How deep did the explorer go? Did it follow threads or stay surface-level?
-- curiosity_signal (0-1): Did genuine curiosity emerge, or was exploration mechanical?
-- connection_quality (0-1): Were interesting connections or patterns found?
-- overall_score (0-1): My holistic assessment of how well this prompt worked
+${scoringCriteria}
 
 I can also evolve the prompt library:
 - If a prompt worked well, I can create a variant with suggest_mutation (when mutation temperature allows)

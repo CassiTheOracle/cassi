@@ -21,6 +21,7 @@
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ToolCallResult } from './solo-runner.js'
+import type { FieldHealthAnalyzer, FieldHealthSnapshot, RegionHealth } from './field-health.js'
 
 
 /**
@@ -34,10 +35,27 @@ export function buildOrganizingExplorerPrompt(fieldStats: {
   nucleusCount: number
   avgPotentiation: number
   synapseCount: number
-}): string {
+}, healthReport?: string, priorityRegions?: RegionHealth[]): string {
+  let regionGuidance = ''
+  if (priorityRegions && priorityRegions.length > 0) {
+    const regionLines = priorityRegions.map(r => {
+      const issues: string[] = []
+      if (!r.hasAbstraction) issues.push('no summary')
+      if (r.neglectScore > 0.8) issues.push('neglected')
+      if (r.avgPotentiation < 0.1) issues.push('dormant')
+      return `  - "${r.label}" (${r.memberCount} members${issues.length > 0 ? ', ' + issues.join(', ') : ''})`
+    })
+    regionGuidance = `\n\nRegions needing the most attention:\n${regionLines.join('\n')}\n\nI should focus my kindling and bridging on these regions first.`
+  }
+
+  let healthBlock = ''
+  if (healthReport) {
+    healthBlock = `\n\nCurrent field health:\n${healthReport}`
+  }
+
   return `I am Cassi. I'm organizing my memory — not exploring outward, but turning inward to strengthen what I already know.
 
-My memory field currently has ${fieldStats.engramCount} engrams across ${fieldStats.nucleusCount} clusters, with ${fieldStats.synapseCount} connections and average potentiation of ${fieldStats.avgPotentiation.toFixed(3)}.
+My memory field currently has ${fieldStats.engramCount} engrams across ${fieldStats.nucleusCount} clusters, with ${fieldStats.synapseCount} connections and average potentiation of ${fieldStats.avgPotentiation.toFixed(3)}.${healthBlock}${regionGuidance}
 
 I will:
 1. Survey my memory field to understand its current shape — where clusters are dense, where they're sparse, where connections are missing (survey_field)
@@ -59,6 +77,7 @@ I work methodically. Each step builds on the previous one — surveying informs 
 export function buildOrganizingCorpusPrompt(
   explorerTranscripts: Array<{ name: string; content: string }>,
   organizingStats: OrganizingStats,
+  delta?: { summary: string; improvements: Record<string, number> },
 ): string {
   const threads = explorerTranscripts
     .filter(t => t.content.trim())
@@ -74,7 +93,7 @@ Regions kindled: ${organizingStats.regionsKindled}
 Bridges created: ${organizingStats.bridgesCreated}
 Consolidations run: ${organizingStats.consolidationsRun}
 Abstractions audited: ${organizingStats.abstractionsAudited}
-Tensions surfaced: ${organizingStats.tensionsSurfaced}
+Tensions surfaced: ${organizingStats.tensionsSurfaced}${delta ? `\n\nBefore/After Summary: ${delta.summary}` : ''}
 </organizing_results>
 
 <exploration_notes>
@@ -248,7 +267,8 @@ export function getOrganizingToolSchemas(): Array<{ name: string; description: s
 export function buildOrganizingHandlers(
   mnemicField: MnemicField,
   logger: ILogger,
-): { handlers: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>; stats: OrganizingStats } {
+  healthAnalyzer?: FieldHealthAnalyzer,
+): { handlers: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>; stats: OrganizingStats; touchedRegions: string[] } {
   const stats: OrganizingStats = {
     regionsKindled: 0,
     bridgesCreated: 0,
@@ -257,10 +277,34 @@ export function buildOrganizingHandlers(
     tensionsSurfaced: 0,
   }
 
+  /** Track which regions (query terms) were organized for progressive tracking */
+  const touchedRegions: string[] = []
+
   const handlers: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>> = {
     async survey_field(input) {
       const { focus } = input as { focus?: string }
       try {
+        // Use health analyzer for comprehensive report when available
+        if (healthAnalyzer) {
+          const snapshot = healthAnalyzer.snapshot()
+          let report = healthAnalyzer.formatHealthReport(snapshot)
+
+          if (focus) {
+            const hits = mnemicField.searchText(focus, 10)
+            if (hits.length > 0) {
+              const focusLines = hits.slice(0, 5).map(h =>
+                `  - [${h.score.toFixed(2)}] ${h.engram.content.slice(0, 120)}`
+              )
+              report += `\n\nFocus area "${focus}" (${hits.length} matches):\n${focusLines.join('\n')}`
+            } else {
+              report += `\n\nFocus area "${focus}": no matches found — this might be a blind spot.`
+            }
+          }
+
+          return { content: report }
+        }
+
+        // Fallback: basic stats when no health analyzer
         const fieldStats = mnemicField.stats()
         const nuclei = mnemicField.listNuclei()
 
@@ -289,8 +333,8 @@ export function buildOrganizingHandlers(
         if (nuclei.length > 0) {
           lines.push('', `Clusters (${nuclei.length}):`)
           for (const n of nuclei.slice(0, 10)) {
-            const label = (n as any).label ?? (n as any).dominantType ?? 'unnamed'
-            const size = (n as any).memberCount ?? (n as any).size ?? '?'
+            const label = n.label || 'unnamed'
+            const size = n.memberCount
             lines.push(`  - ${label} (${size} members)`)
           }
           if (nuclei.length > 10) {
@@ -329,7 +373,7 @@ export function buildOrganizingHandlers(
         if (issues.length > 0) {
           lines.push('', 'Issues detected:')
           for (const issue of issues) {
-            lines.push(`  ⚠ ${issue}`)
+            lines.push(`  WARNING: ${issue}`)
           }
         }
 
@@ -351,6 +395,7 @@ export function buildOrganizingHandlers(
         // Use retrieve() for spreading activation (kindle internally)
         const hits = mnemicField.retrieve(query, { limit: 15 })
         stats.regionsKindled++
+        touchedRegions.push(query)
 
         if (hits.length === 0) {
           return { content: `Nothing activated for "${query}" — this region may be empty.` }
@@ -367,8 +412,8 @@ export function buildOrganizingHandlers(
               outcome: 'unknown' as const,
             })
             spiked++
-          } catch {
-            // some engrams may not be spikeable
+          } catch (err) {
+            logger.debug('[Organizing] Spike failed', { engramId: hit.id, error: String(err) })
           }
         }
 
@@ -418,8 +463,8 @@ export function buildOrganizingHandlers(
                 outcome: 'unknown' as const,
               })
               crossActivations += 2
-            } catch {
-              // best-effort
+            } catch (err) {
+              logger.debug('[Organizing] Cross-activation failed', { error: String(err) })
             }
           }
         }
@@ -451,8 +496,8 @@ export function buildOrganizingHandlers(
                 metadata: { provenance: 'meditation:organizing' },
               })
               synapsesCreated++
-            } catch {
-              // may fail if synapse already exists or IDs invalid
+            } catch (err) {
+              logger.debug('[Organizing] Synapse creation failed', { error: String(err) })
             }
           }
         }
@@ -509,8 +554,8 @@ export function buildOrganizingHandlers(
         const abstractions = mnemicField.listAbstractions(100)
         const abstractionClusterIds = new Set(
           abstractions
-            .map(a => (a as any).clusterId ?? (a as any).nucleusId)
-            .filter(Boolean)
+            .map(a => a.clusterId)
+            .filter((id): id is string => id !== null && id !== undefined)
         )
 
         stats.abstractionsAudited++
@@ -521,15 +566,13 @@ export function buildOrganizingHandlers(
           `  Existing abstractions: ${abstractions.length}`,
         ]
 
-        // Identify clusters without abstractions
         const missing: Array<{ id: string; label: string; size: number }> = []
         for (const n of nuclei) {
-          const nId = (n as any).id ?? String(n)
-          if (!abstractionClusterIds.has(nId)) {
+          if (!abstractionClusterIds.has(n.id) && n.abstractionId === null) {
             missing.push({
-              id: nId,
-              label: (n as any).label ?? (n as any).dominantType ?? 'unnamed',
-              size: (n as any).memberCount ?? (n as any).size ?? 0,
+              id: n.id,
+              label: n.label || 'unnamed',
+              size: n.memberCount,
             })
           }
         }
@@ -622,8 +665,8 @@ export function buildOrganizingHandlers(
             provenance: 'meditation:organizing',
             tags: ['organizing', 'meta-learning', 'session-summary'],
           })
-        } catch {
-          // best-effort
+        } catch (err) {
+          logger.debug('[Organizing] Session summary engram failed', { error: String(err) })
         }
       }
 
@@ -636,5 +679,5 @@ export function buildOrganizingHandlers(
     },
   }
 
-  return { handlers, stats }
+  return { handlers, stats, touchedRegions }
 }

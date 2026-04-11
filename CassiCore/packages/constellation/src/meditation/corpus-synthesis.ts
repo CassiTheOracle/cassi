@@ -181,6 +181,7 @@ export function getCorpusToolSchemas(style: MeditationStyle): Array<{ name: stri
       return common.filter(t => t.name !== 'record_learning')
     case 'focused':
     case 'reflective':
+    case 'organizing':
       return common
     default:
       return common.filter(t => t.name === 'remember' || t.name === 'rest')
