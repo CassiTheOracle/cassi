@@ -86,7 +86,7 @@ interface LearnedLimit {
 
 const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   'github-copilot': {
-    errorCooldownMs: 5_000,
+    errorCooldownMs: 15_000,
   },
   'kimi-coding': {
     errorCooldownMs: 5_000,
