@@ -121,6 +121,10 @@ export class InterFieldBridge {
   /**
    * Cross-field retrieval — kindles both fields, boosts portal-connected
    * engrams from each field's top hits, then merges and ranks.
+   *
+   * As a side effect, auto-links episodic hits to portals when co-occurring
+   * self-model hits are portal-connected. This builds cross-field bridges
+   * organically over time as queries exercise the system.
    */
   crossRetrieve(
     query: string,
@@ -137,6 +141,8 @@ export class InterFieldBridge {
       ...options,
       limit: halfLimit,
     })
+
+    this.autoLinkEpisodicHits(episodicHits, selfModelHits)
 
     const crossBoosts = this.computeCrossBoosts(episodicHits, selfModelHits)
     const merged = this.mergeResults(episodicHits, selfModelHits, crossBoosts, preferField)
@@ -272,6 +278,114 @@ export class InterFieldBridge {
     }
 
     return null
+  }
+
+  /**
+   * Auto-link episodic hits to portal pairs when co-occurring self-model hits
+   * are portal-connected. This builds cross-field bridges organically as
+   * queries exercise the system — the first cross-retrieve for a topic builds
+   * the bridges, and subsequent queries benefit from the boost paths.
+   */
+  private autoLinkEpisodicHits(
+    episodicHits: MnemicRetrievalHit[],
+    selfModelHits: MnemicRetrievalHit[],
+  ): void {
+    if (episodicHits.length === 0 || selfModelHits.length === 0) return
+
+    const linkedPortalConcepts = new Set<string>()
+    for (const smHit of selfModelHits) {
+      const concept = this.findPortalConceptForEngram(smHit.id, 'self-model')
+      if (concept) linkedPortalConcepts.add(concept)
+    }
+
+    if (linkedPortalConcepts.size === 0) return
+
+    let linked = 0
+    for (const concept of linkedPortalConcepts) {
+      const pair = this.portalPairs.get(concept)
+      if (!pair) continue
+
+      const { synapses: portalNeighbors } = this.episodicField.neighbors(pair.episodicId)
+      const existingLinks = new Set(
+        portalNeighbors
+          .filter(s => s.edgeType === 'portal_link')
+          .flatMap(s => [s.sourceId, s.targetId]),
+      )
+
+      for (const epHit of episodicHits) {
+        if (existingLinks.has(epHit.id)) continue
+
+        try {
+          this.episodicField.connect({
+            sourceId: epHit.id,
+            targetId: pair.episodicId,
+            edgeType: 'portal_link',
+            weight: 0.4,
+          })
+          existingLinks.add(epHit.id)
+          linked++
+        } catch {
+          // Connection may already exist
+        }
+      }
+    }
+
+    if (linked > 0) {
+      this.logger.debug('Auto-linked episodic engrams to portals', {
+        linked,
+        concepts: Array.from(linkedPortalConcepts),
+      })
+    }
+  }
+
+  /**
+   * One-time seeding: scan recent episodic engrams and link those
+   * whose content mentions portal concepts. Call after ingestion to
+   * bootstrap cross-field bridges from existing episodic memory.
+   */
+  seedEpisodicLinks(limit = 200): number {
+    let totalLinked = 0
+
+    const recentEpisodic = this.episodicField.list(limit)
+
+    for (const [concept, pair] of this.portalPairs) {
+      const { synapses: portalNeighbors } = this.episodicField.neighbors(pair.episodicId)
+      const existingLinks = new Set(
+        portalNeighbors
+          .filter(s => s.edgeType === 'portal_link')
+          .flatMap(s => [s.sourceId, s.targetId]),
+      )
+
+      for (const engram of recentEpisodic) {
+        if (engram.nodeType === 'portal') continue
+        if (existingLinks.has(engram.id)) continue
+
+        const contentLower = engram.content.toLowerCase()
+        const hasTagMatch = engram.tags.some(t => t.toLowerCase() === concept)
+        const hasContentMatch = contentLower.includes(concept)
+
+        if (!hasTagMatch && !hasContentMatch) continue
+
+        try {
+          this.episodicField.connect({
+            sourceId: engram.id,
+            targetId: pair.episodicId,
+            edgeType: 'portal_link',
+            weight: hasTagMatch ? 0.5 : 0.3,
+          })
+          existingLinks.add(engram.id)
+          totalLinked++
+        } catch {
+          // Connection may already exist
+        }
+      }
+    }
+
+    if (totalLinked > 0) {
+      this.logger.info('Seeded episodic portal links from existing memory', { linked: totalLinked })
+    }
+
+    return totalLinked
   }
 
   getPortalStats(): Array<{ concept: string; episodicConnections: number; selfModelConnections: number }> {

@@ -161,9 +161,14 @@ export class SelfModelField {
 
   /**
    * Retrieve from the self-model using kindling with SMF-tuned defaults.
+   *
+   * Multi-word queries use OR semantics (via FTS5 OR operator) because
+   * architectural queries are conceptual — "spawn decisions" should find
+   * modules mentioning either "spawn" or "decisions", not require both.
    */
   retrieve(query: string, options?: KindlingOptions & { limit?: number }): MnemicRetrievalHit[] {
-    return this.field.retrieve(query, {
+    const orQuery = this.toOrQuery(query)
+    return this.field.retrieve(orQuery, {
       ...SELF_MODEL_KINDLING_DEFAULTS,
       ...options,
     })
@@ -239,6 +244,26 @@ export class SelfModelField {
 
   getField(): MnemicField {
     return this.field
+  }
+
+  /**
+   * Transform a multi-word query into FTS5 OR syntax.
+   * "spawn decisions" → "spawn OR decisions"
+   *
+   * Single words and queries that already contain FTS5 operators pass through.
+   * This gives the self-model broad conceptual matching rather than requiring
+   * every term to appear in the same engram.
+   */
+  private toOrQuery(query: string): string {
+    const trimmed = query.trim()
+    if (!trimmed) return trimmed
+    if (/\b(OR|AND|NOT|NEAR)\b/.test(trimmed)) return trimmed
+    if (trimmed.includes('"')) return trimmed
+
+    const words = trimmed.split(/\s+/).filter(w => w.length > 0)
+    if (words.length <= 1) return trimmed
+
+    return words.join(' OR ')
   }
 
   close(): void {

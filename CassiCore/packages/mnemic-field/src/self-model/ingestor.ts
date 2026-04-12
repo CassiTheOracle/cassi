@@ -21,6 +21,7 @@ interface ProcessRow {
 
 export interface IngestResult {
   modulesCreated: number
+  modulesUpdated: number
   capabilitiesCreated: number
   weaknessesCreated: number
   dependencySynapsesCreated: number
@@ -36,6 +37,8 @@ export interface IngestOptions {
   minCommunitySize?: number
   /** Hotspot score threshold above which a module is flagged as a weakness */
   weaknessThreshold?: number
+  /** Update existing modules with enriched descriptions from symbols + processes */
+  updateExisting?: boolean
 }
 
 const INGEST_DEFAULTS = {
@@ -83,6 +86,7 @@ export class SelfModelIngestor {
     const start = Date.now()
     const minSize = options?.minCommunitySize ?? INGEST_DEFAULTS.minCommunitySize
     const weaknessThreshold = options?.weaknessThreshold ?? INGEST_DEFAULTS.weaknessThreshold
+    const updateExisting = options?.updateExisting ?? false
 
     this.logger.info('Starting Self-Model ingestion from GitNexus')
 
@@ -92,7 +96,14 @@ export class SelfModelIngestor {
     const processes = this.queryProcesses()
     this.logger.info('Loaded processes', { count: processes.length })
 
-    const modulesCreated = this.ingestModules(communities)
+    const symbolsByCommunity = this.querySymbolsByCommunity()
+    this.logger.info('Loaded symbols for enrichment', { communityCount: symbolsByCommunity.size })
+
+    const processMap = this.buildProcessMap(processes)
+
+    const { created: modulesCreated, updated: modulesUpdated } = this.ingestModules(
+      communities, symbolsByCommunity, processMap, updateExisting,
+    )
     const capabilitiesCreated = this.ingestCapabilities(processes)
     const dependencySynapsesCreated = this.ingestDependencies(communities)
     const weaknessesCreated = this.ingestWeaknesses(weaknessThreshold)
@@ -101,6 +112,7 @@ export class SelfModelIngestor {
     const durationMs = Date.now() - start
     this.logger.info('Self-Model ingestion complete', {
       modulesCreated,
+      modulesUpdated,
       capabilitiesCreated,
       weaknessesCreated,
       dependencySynapsesCreated,
@@ -110,6 +122,7 @@ export class SelfModelIngestor {
 
     return {
       modulesCreated,
+      modulesUpdated,
       capabilitiesCreated,
       weaknessesCreated,
       dependencySynapsesCreated,
@@ -119,19 +132,45 @@ export class SelfModelIngestor {
   }
 
   /**
-   * Ingest GitNexus communities as module engrams.
+   * Ingest GitNexus communities as module engrams with rich semantic descriptions.
+   *
+   * Each module gets a description built from its domain, key symbol names,
+   * and the execution flows that pass through it — making the FTS5 index
+   * rich enough for conceptual queries like "what handles task delegation?".
    */
-  private ingestModules(communities: CommunityRow[]): number {
+  private ingestModules(
+    communities: CommunityRow[],
+    symbolsByCommunity: Map<string, string[]>,
+    processMap: Map<string, string[]>,
+    updateExisting: boolean,
+  ): { created: number; updated: number } {
     let created = 0
+    let updated = 0
+
+    const existingByCommId = new Map<string, { id: string }>()
+    for (const mod of this.smf.list('module', 10000)) {
+      const commTag = mod.tags.find(t => t.startsWith('community:'))
+      if (commTag) {
+        existingByCommId.set(commTag.replace('community:', ''), { id: mod.id })
+      }
+    }
 
     for (const comm of communities) {
-      const existing = this.smf.list('module').find(e =>
-        e.tags.includes(`community:${comm.id}`)
-      )
-      if (existing) continue
-
       const domain = this.inferDomain(comm.label)
       const maturity = this.inferMaturity(comm.cohesion, comm.symbolCount)
+      const symbolNames = symbolsByCommunity.get(comm.id) ?? []
+      const processLabels = processMap.get(comm.id) ?? []
+      const richDescription = this.buildRichDescription(comm, domain, maturity, symbolNames, processLabels)
+
+      const existing = existingByCommId.get(comm.id)
+
+      if (existing) {
+        if (updateExisting) {
+          this.smf.update(existing.id, { content: `${comm.label} — ${richDescription}` })
+          updated++
+        }
+        continue
+      }
 
       const metadata: ModuleMetadata = {
         path: `cluster:${comm.id}`,
@@ -146,14 +185,14 @@ export class SelfModelIngestor {
 
       this.smf.storeModule(
         comm.label,
-        `${comm.label} — ${comm.symbolCount} symbols, cohesion ${(comm.cohesion * 100).toFixed(0)}%`,
+        richDescription,
         metadata,
         { tags: [`community:${comm.id}`] },
       )
       created++
     }
 
-    return created
+    return { created, updated }
   }
 
   /**
@@ -162,11 +201,14 @@ export class SelfModelIngestor {
   private ingestCapabilities(processes: ProcessRow[]): number {
     let created = 0
 
+    const existingByProcId = new Set<string>()
+    for (const cap of this.smf.list('capability', 10000)) {
+      const procTag = cap.tags.find(t => t.startsWith('process:'))
+      if (procTag) existingByProcId.add(procTag.replace('process:', ''))
+    }
+
     for (const proc of processes) {
-      const existing = this.smf.list('capability').find(e =>
-        e.tags.includes(`process:${proc.id}`)
-      )
-      if (existing) continue
+      if (existingByProcId.has(proc.id)) continue
 
       const metadata: CapabilityMetadata = {
         implementedBy: proc.communities.map(c => c.replace(/'/g, '')),
@@ -194,7 +236,7 @@ export class SelfModelIngestor {
     if (crossEdges.length === 0) return 0
 
     const moduleByCommId = new Map<string, string>()
-    const modules = this.smf.list('module')
+    const modules = this.smf.list('module', 10000)
     for (const mod of modules) {
       const commTag = mod.tags.find(t => t.startsWith('community:'))
       if (commTag) {
@@ -233,13 +275,15 @@ export class SelfModelIngestor {
     const hotspots = this.queryHotspots()
     let created = 0
 
+    const existingByPath = new Set<string>()
+    for (const w of this.smf.list('weakness', 10000)) {
+      const tag = w.tags.find(t => t.startsWith('hotspot:'))
+      if (tag) existingByPath.add(tag.replace('hotspot:', ''))
+    }
+
     for (const hotspot of hotspots) {
       if (hotspot.score < threshold) continue
-
-      const existing = this.smf.list('weakness').find(e =>
-        e.tags.includes(`hotspot:${hotspot.filePath}`)
-      )
-      if (existing) continue
+      if (existingByPath.has(hotspot.filePath)) continue
 
       const severity = hotspot.score >= 0.8 ? 'critical' as const
         : hotspot.score >= 0.7 ? 'high' as const
@@ -279,7 +323,7 @@ export class SelfModelIngestor {
       const result = this.bridge.createPortalPair(concept)
       if (!result) continue
 
-      const module = this.smf.list('module').find(e =>
+      const module = this.smf.list('module', 10000).find(e =>
         e.tags.includes(`community:${comm.id}`)
       )
       if (module) {
@@ -290,6 +334,125 @@ export class SelfModelIngestor {
     }
 
     return created
+  }
+
+  /**
+   * Batch-query all symbol names grouped by community.
+   * Returns a map of communityId → symbol names for enriching module descriptions.
+   */
+  private querySymbolsByCommunity(): Map<string, string[]> {
+    try {
+      const raw = this.cypher(
+        `MATCH (s)-[:CodeRelation {type: 'MEMBER_OF'}]->(c:Community) WHERE c.symbolCount >= 5 RETURN c.id AS commId, s.name AS name ORDER BY c.id`
+      )
+      const rows = this.parseRows<{ commId: string; name: string }>(raw)
+      const map = new Map<string, string[]>()
+      for (const row of rows) {
+        if (!row.commId || !row.name) continue
+        const arr = map.get(row.commId) ?? []
+        arr.push(row.name)
+        map.set(row.commId, arr)
+      }
+      this.logger.debug('Symbol enrichment data loaded', {
+        communities: map.size,
+        totalSymbols: rows.length,
+      })
+      return map
+    } catch (err) {
+      this.logger.warn('Failed to query symbols for enrichment', { error: String(err) })
+      return new Map()
+    }
+  }
+
+  /**
+   * Build a reverse map from communityId → process labels.
+   */
+  private buildProcessMap(processes: ProcessRow[]): Map<string, string[]> {
+    const map = new Map<string, string[]>()
+    for (const proc of processes) {
+      if (!Array.isArray(proc.communities)) continue
+      for (const rawCommId of proc.communities) {
+        const commId = String(rawCommId).replace(/'/g, '').trim()
+        if (!commId) continue
+        const arr = map.get(commId) ?? []
+        arr.push(proc.label)
+        map.set(commId, arr)
+      }
+    }
+    return map
+  }
+
+  /**
+   * Build a rich natural-language description of a module from its structural data.
+   *
+   * Instead of "Constellation — 67 symbols, cohesion 88%", produces:
+   * "Multi-agent orchestration (67 symbols, 88% cohesion, stable). Key functions:
+   * getHelixTemplate, evaluateSpawnRequest, detectCrossPatterns. Execution flows:
+   * ProcessSingleWorkUnit → ToFloatArray, TriggerResume → TotalStepCount."
+   *
+   * This makes FTS5 queries like "task delegation" or "spawn decisions"
+   * find the relevant modules — the self-model knows what things DO, not just
+   * what they're named.
+   */
+  private buildRichDescription(
+    comm: CommunityRow,
+    domain: string,
+    maturity: string,
+    symbolNames: string[],
+    processLabels: string[],
+  ): string {
+    const parts: string[] = []
+
+    parts.push(
+      `${this.describeDomain(domain)} (${comm.symbolCount} symbols, ` +
+      `${(comm.cohesion * 100).toFixed(0)}% cohesion, ${maturity})`,
+    )
+
+    if (symbolNames.length > 0) {
+      const topSymbols = symbolNames
+        .filter(n => n.length > 3)
+        .sort((a, b) => b.length - a.length)
+        .slice(0, 12)
+      if (topSymbols.length > 0) {
+        parts.push(`Key functions: ${topSymbols.join(', ')}`)
+
+        const splitWords = new Set<string>()
+        for (const sym of topSymbols) {
+          for (const word of sym.replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/)) {
+            if (word.length > 2) splitWords.add(word.toLowerCase())
+          }
+        }
+        const wordList = Array.from(splitWords).slice(0, 25)
+        if (wordList.length > 0) {
+          parts.push(`Concepts: ${wordList.join(' ')}`)
+        }
+      }
+    }
+
+    if (processLabels.length > 0) {
+      const uniqueFlows = [...new Set(processLabels)].slice(0, 5)
+      parts.push(`Execution flows: ${uniqueFlows.join('; ')}`)
+    }
+
+    return parts.join('. ')
+  }
+
+  private describeDomain(domain: string): string {
+    const descriptions: Record<string, string> = {
+      orchestration: 'multi-agent orchestration',
+      memory: 'memory and knowledge storage',
+      retrieval: 'memory retrieval and activation',
+      runtime: 'daemon runtime infrastructure',
+      cognition: 'cognitive intelligence processing',
+      background: 'background and offline processing',
+      embeddings: 'embedding generation and management',
+      training: 'training data pipeline',
+      workflow: 'workflow execution engine',
+      tools: 'tool registration and execution',
+      testing: 'test infrastructure',
+      other: 'supporting infrastructure',
+    }
+    return descriptions[domain] ?? domain
   }
 
   private queryCommunities(minSize: number): CommunityRow[] {
