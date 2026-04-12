@@ -350,6 +350,9 @@ export class MessageFormatter {
       const topics = (e.focusTopics ?? []).join(', ')
       return `🔮 Focused seeding: ${esc(topics)} (${e.engramsKindled ?? 0} kindled)`
     }
+    if (type === 'meditation:self-modeling-complete') {
+      return `🔮 Self-modeling complete — ${e.modulesReclassified ?? 0} reclassified, ${e.patternsCreated ?? 0} patterns, ${e.weaknessesCreated ?? 0} weaknesses`
+    }
 
     return `${esc(type)}`
   }
@@ -955,6 +958,18 @@ export class MessageFormatter {
       if (e.focusTopics?.length) parts.push(`<b>Topics:</b> ${(e.focusTopics as string[]).map(t => esc(t)).join(', ')}`)
       parts.push(`<b>Engrams kindled:</b> ${e.engramsKindled ?? 0}`)
       if (e.seedingDurationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.seedingDurationMs)}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'meditation:self-modeling-complete') {
+      parts.push(`🔮 <b>Self-Modeling Complete</b>`)
+      parts.push(`<b>Domains audited:</b> ${e.domainsAudited ?? 0}`)
+      parts.push(`<b>Modules reclassified:</b> ${e.modulesReclassified ?? 0}`)
+      parts.push(`<b>Grounding gaps found:</b> ${e.groundingGapsFound ?? 0}`)
+      parts.push(`<b>Principles created:</b> ${e.principlesCreated ?? 0}`)
+      parts.push(`<b>Patterns created:</b> ${e.patternsCreated ?? 0}`)
+      parts.push(`<b>Weaknesses created:</b> ${e.weaknessesCreated ?? 0}`)
+      parts.push(`<b>Grounding links seeded:</b> ${e.groundingLinksSeeded ?? 0}`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 

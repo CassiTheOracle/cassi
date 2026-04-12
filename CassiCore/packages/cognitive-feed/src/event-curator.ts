@@ -208,6 +208,7 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'meditation:style-selected':       { topicKey: 'meditation', highlight: false, priority: 'low' },
   'meditation:evolution-adjusted':   { topicKey: 'meditation', highlight: true, priority: 'medium' },
   'meditation:focused-seeding':      { topicKey: 'meditation', highlight: true, priority: 'medium' },
+  'meditation:self-modeling-complete': { topicKey: 'meditation', highlight: true, priority: 'high' },
 
   // System — errors, budget, tools, LLM, blackboard, timeline
   'provider:request_error':    { topicKey: 'system', highlight: true, priority: 'high' },
