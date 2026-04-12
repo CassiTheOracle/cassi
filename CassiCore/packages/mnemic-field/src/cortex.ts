@@ -9,6 +9,7 @@ import type {
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, FieldStats,
   EngramPosition, EngramType,
+  ForwardTape,
 } from './types.js'
 
 export function toFloatArray(buf: Buffer | null): Float32Array | null {
@@ -820,6 +821,79 @@ export class Cortex {
       .sort((a, b) => b[1] - a[1])
       .slice(0, limit)
       .map(([tag, count]) => ({ tag, count }))
+  }
+
+
+  storeForwardTape(tape: ForwardTape): void {
+    this.db.prepare(`
+      INSERT INTO forward_tapes (id, created_at, seed_charges, records, output_charges, spark_point, luminal_ids)
+      VALUES (@id, @created_at, @seed_charges, @records, @output_charges, @spark_point, @luminal_ids)
+    `).run({
+      id: tape.id,
+      created_at: tape.createdAt,
+      seed_charges: JSON.stringify(tape.seedCharges),
+      records: JSON.stringify(tape.records),
+      output_charges: JSON.stringify(tape.outputCharges),
+      spark_point: tape.sparkPoint,
+      luminal_ids: JSON.stringify(tape.luminalIds),
+    })
+  }
+
+  getForwardTape(id: string): ForwardTape | null {
+    const row = this.db.prepare(`SELECT * FROM forward_tapes WHERE id = ?`).get(id) as Record<string, unknown> | undefined
+    if (!row) return null
+    return {
+      id: row.id as string,
+      createdAt: row.created_at as number,
+      seedCharges: JSON.parse(row.seed_charges as string),
+      records: JSON.parse(row.records as string),
+      outputCharges: JSON.parse(row.output_charges as string),
+      sparkPoint: row.spark_point as number,
+      luminalIds: JSON.parse(row.luminal_ids as string),
+    }
+  }
+
+  storeGradientRequest(tapeId: string, feedback: Record<string, boolean>): void {
+    this.db.prepare(`
+      INSERT INTO gradient_requests (tape_id, feedback, created_at)
+      VALUES (@tape_id, @feedback, @created_at)
+    `).run({
+      tape_id: tapeId,
+      feedback: JSON.stringify(feedback),
+      created_at: Date.now(),
+    })
+  }
+
+  getPendingGradientRequests(limit = 100): Array<{ id: number; tapeId: string; feedback: Record<string, boolean> }> {
+    const rows = this.db.prepare(`
+      SELECT id, tape_id, feedback FROM gradient_requests
+      WHERE processed = 0 ORDER BY created_at ASC LIMIT ?
+    `).all(limit) as Array<Record<string, unknown>>
+    return rows.map(row => ({
+      id: row.id as number,
+      tapeId: row.tape_id as string,
+      feedback: JSON.parse(row.feedback as string),
+    }))
+  }
+
+  markGradientRequestsProcessed(ids: number[]): void {
+    if (ids.length === 0) return
+    const placeholders = ids.map(() => '?').join(',')
+    this.db.prepare(`UPDATE gradient_requests SET processed = 1 WHERE id IN (${placeholders})`).run(...ids)
+  }
+
+  pruneOldTapes(maxAgeMs: number): number {
+    const cutoff = Date.now() - maxAgeMs
+    const result = this.db.prepare(`DELETE FROM forward_tapes WHERE created_at < ?`).run(cutoff)
+    return result.changes
+  }
+
+  forwardTapeCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM forward_tapes`).get() as { c: number }).c
+  }
+
+  pendingGradientCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM gradient_requests WHERE processed = 0`).get() as { c: number }).c
   }
 
 

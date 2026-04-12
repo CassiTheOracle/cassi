@@ -7,11 +7,13 @@ import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
   KindlingOptions, KindlingTrace, TaskComplexity, SpikeOutcome,
   FilamentAnnotation, FilamentMatchType, FilamentSynapseType,
+  NeuralKindlingConfig, ForwardRecord, ForwardTape,
 } from './types.js'
 import {
   SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS, AFFECT_DEFAULTS,
   SYNAPSE_PROPAGATION, POTENTIATION_DEFAULTS,
   FILAMENT_KINDLING_DEFAULTS, FILAMENT_SYNAPSE_PROPAGATION,
+  NEURAL_KINDLING_DEFAULTS,
 } from './types.js'
 
 interface SeedResult {
@@ -32,22 +34,44 @@ interface MatchedFilamentInfo {
  *
  * Query → seed activation → excitation spreads through neighbors
  * → engrams crossing spark point enter Luminal Set → working memory.
+ *
+ * When neural kindling is enabled, spreading uses nonlinear activation functions
+ * and records forward tapes for gradient-based learning during consolidation.
  */
 export class KindlingEngine {
   private logger: ILogger
   private matchedFilaments: Map<number, MatchedFilamentInfo> = new Map()
   private currentAffect: { valence: number; arousal: number } | null = null
+  private neuralConfig: NeuralKindlingConfig
+  private lastTape: ForwardTape | null = null
 
   constructor(
     private cortex: Cortex,
     logger: ILogger,
     private filamentCortex: FilamentCortex | null = null,
+    neuralConfig?: Partial<NeuralKindlingConfig>,
   ) {
     this.logger = logger.child ? logger.child('kindling') : logger
+    this.neuralConfig = { ...NEURAL_KINDLING_DEFAULTS, ...neuralConfig }
+  }
+
+  getLastTape(): ForwardTape | null {
+    return this.lastTape
+  }
+
+  getNeuralConfig(): NeuralKindlingConfig {
+    return { ...this.neuralConfig }
+  }
+
+  setNeuralConfig(config: Partial<NeuralKindlingConfig>): void {
+    this.neuralConfig = { ...this.neuralConfig, ...config }
   }
 
   /**
    * Run the full kindling process: seed → spread → ignite → return Luminal Set.
+   *
+   * When neural kindling is enabled, the forward computation graph is recorded
+   * as a "tape" for later backpropagation during consolidation.
    */
   kindle(
     embedding: number[] | null,
@@ -56,12 +80,16 @@ export class KindlingEngine {
   ): LuminalSet {
     const start = Date.now()
     this.matchedFilaments = new Map()
+    this.lastTape = null
     this.currentAffect = options.currentAffect ?? null
     const complexity = options.complexity ?? 'normal'
     const maxIter = options.maxIterations ?? KINDLING_DEFAULTS.maxIterations
     const tol = options.convergenceTolerance ?? KINDLING_DEFAULTS.convergenceTolerance
     const maxSeeds = options.maxSeeds ?? KINDLING_DEFAULTS.maxSeeds
     const maxLuminal = options.maxLuminalSize ?? KINDLING_DEFAULTS.maxLuminalSize
+
+    const neural = this.neuralConfig.enabled
+    const shouldRecordTape = neural && this.neuralConfig.tapeRecording
 
     const seeds = this.findSeeds(embedding, textQuery, options)
     if (seeds.length === 0) {
@@ -85,15 +113,20 @@ export class KindlingEngine {
 
     const trace: KindlingTrace[] = []
     const recording = options.recordTrace === true
+    const tapeRecords: ForwardRecord[] = shouldRecordTape ? [] : []
 
     if (recording) {
       trace.push({ iteration: 0, charges: Object.fromEntries(chargeMap) })
     }
 
+    const seedCharges = shouldRecordTape ? Object.fromEntries(chargeMap) : undefined
+
     let iterations = 0
     for (let iter = 0; iter < maxIter; iter++) {
       iterations++
-      const delta = this.spreadOnce(chargeMap)
+      const delta = neural
+        ? this.spreadOnceNeural(chargeMap, iter + 1, shouldRecordTape ? tapeRecords : undefined)
+        : this.spreadOnce(chargeMap)
       if (recording) {
         trace.push({ iteration: iterations, charges: Object.fromEntries(chargeMap) })
       }
@@ -109,12 +142,32 @@ export class KindlingEngine {
 
     const filamentAnnotations = this.annotateFilaments(luminal)
 
+    if (shouldRecordTape && seedCharges) {
+      const tapeId = `tape_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      this.lastTape = {
+        id: tapeId,
+        createdAt: Date.now(),
+        seedCharges,
+        records: tapeRecords,
+        outputCharges: Object.fromEntries(chargeMap),
+        sparkPoint,
+        luminalIds: luminal.map(e => e.engram.id),
+      }
+      try {
+        this.cortex.storeForwardTape(this.lastTape)
+      } catch (err) {
+        this.logger.warn('Failed to store forward tape', { error: err })
+      }
+    }
+
     const durationMs = Date.now() - start
     this.logger.debug('Kindling complete', {
       seeds: seeds.length,
       iterations,
       luminalSize: luminal.length,
       filamentMatches: this.matchedFilaments.size,
+      neural,
+      tapeRecorded: shouldRecordTape && tapeRecords.length > 0,
       durationMs,
     })
 
@@ -209,7 +262,7 @@ export class KindlingEngine {
   }
 
   /**
-   * Step 2: One iteration of spreading excitation.
+   * Step 2: One iteration of spreading excitation (original, linear).
    * Returns the total absolute change in charge (for convergence detection).
    */
   private spreadOnce(chargeMap: Map<string, number>): number {
@@ -264,6 +317,148 @@ export class KindlingEngine {
     }
 
     return totalDelta
+  }
+
+  /**
+   * Step 2 (Neural): One iteration of spreading with nonlinear activation and bias.
+   *
+   * Key differences from linear spreadOnce():
+   * 1. Incoming contributions are aggregated per target node, then a bias (from potentiation)
+   *    is added, and a nonlinear activation function is applied.
+   * 2. Optionally records every contribution to a forward tape for backpropagation.
+   *
+   * This turns the Mnemic Field into a genuine message-passing neural network layer.
+   */
+  private spreadOnceNeural(
+    chargeMap: Map<string, number>,
+    iteration: number,
+    tape?: ForwardRecord[],
+  ): number {
+    const aggregated = new Map<string, number>()
+    const biasScale = this.neuralConfig.biasScale
+
+    for (const [engramId, charge] of chargeMap) {
+      if (charge < 0.01) continue
+
+      const synapses = this.cortex.getNeighborSynapses(engramId)
+      for (const syn of synapses) {
+        const neighborId = syn.sourceId === engramId ? syn.targetId : syn.sourceId
+        const neighborEngram = this.cortex.getEngram(neighborId)
+        if (!neighborEngram) continue
+
+        const sourceEngram = this.cortex.getEngram(engramId)
+        if (!sourceEngram) continue
+
+        const propagation = SYNAPSE_PROPAGATION[syn.edgeType] ?? 0.5
+        const xyDist = euclideanDistance(sourceEngram, neighborEngram)
+        const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
+
+        const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
+        const temporalRelevance = 1 / (1 + KINDLING_DEFAULTS.temporalDecayRate * tDist)
+
+        const potBoost = 1 + KINDLING_DEFAULTS.potentiationBoostScale * neighborEngram.potentiation
+
+        let emotionalDamping = 1.0
+        if (this.currentAffect) {
+          const nAffect = neighborEngram.metadata?.affect as { valence: number; arousal: number } | undefined
+          if (nAffect) {
+            const congruence = affectSimilarity(this.currentAffect, nAffect)
+            if (congruence < 0.5) {
+              emotionalDamping = 1 - AFFECT_DEFAULTS.dampingFactor * (1 - congruence)
+            }
+          }
+        }
+
+        const rawContribution = charge * syn.weight * propagation * distDecay * temporalRelevance * potBoost * emotionalDamping
+
+        const existing = aggregated.get(neighborId) ?? 0
+        aggregated.set(neighborId, existing + rawContribution)
+
+        if (tape) {
+          tape.push({
+            iteration,
+            sourceId: engramId,
+            targetId: neighborId,
+            edgeType: syn.edgeType,
+            synapseWeight: syn.weight,
+            sourceCharge: charge,
+            propagationFactor: propagation,
+            distDecay,
+            temporalRelevance,
+            potBoost,
+            emotionalDamping,
+            rawContribution,
+            activatedOutput: 0,  // filled in below
+            preActivation: 0,    // filled in below
+          })
+        }
+      }
+    }
+
+    let totalDelta = 0
+    for (const [id, rawInput] of aggregated) {
+      const engram = this.cortex.getEngram(id)
+      const bias = (engram?.potentiation ?? 0) * biasScale
+      const dampened = rawInput * KINDLING_DEFAULTS.spreadDampening
+      const oldCharge = chargeMap.get(id) ?? 0
+      const preActivation = oldCharge + dampened + bias
+      const activated = this.activate(preActivation)
+
+      chargeMap.set(id, activated)
+      totalDelta += Math.abs(activated - oldCharge)
+
+      if (tape) {
+        const records = tape.filter(r => r.iteration === iteration && r.targetId === id)
+        for (const record of records) {
+          record.preActivation = preActivation
+          record.activatedOutput = activated
+        }
+      }
+    }
+
+    return totalDelta
+  }
+
+  /**
+   * Apply the configured nonlinear activation function.
+   * This is the key addition that makes spreading activation behave like
+   * a neural network layer — introducing nonlinearity allows the system
+   * to learn non-linear separations in the memory space.
+   */
+  private activate(x: number): number {
+    switch (this.neuralConfig.activationFn) {
+      case 'leaky_relu':
+        return x > 0 ? x : this.neuralConfig.leakyReluSlope * x
+      case 'sigmoid':
+        return 1 / (1 + Math.exp(-x))
+      case 'tanh':
+        return Math.tanh(x)
+      case 'linear':
+      default:
+        return x
+    }
+  }
+
+  /**
+   * Compute the derivative of the activation function at x.
+   * Needed for backpropagation during consolidation.
+   */
+  activationDerivative(x: number): number {
+    switch (this.neuralConfig.activationFn) {
+      case 'leaky_relu':
+        return x > 0 ? 1 : this.neuralConfig.leakyReluSlope
+      case 'sigmoid': {
+        const s = 1 / (1 + Math.exp(-x))
+        return s * (1 - s)
+      }
+      case 'tanh': {
+        const t = Math.tanh(x)
+        return 1 - t * t
+      }
+      case 'linear':
+      default:
+        return 1
+    }
   }
 
   /**

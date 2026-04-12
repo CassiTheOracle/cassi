@@ -154,6 +154,40 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_filament_syn_target ON filament_synapses(target_id, edge_type);
     CREATE INDEX IF NOT EXISTS idx_filament_syn_edge ON filament_synapses(edge_type, weight);
     CREATE INDEX IF NOT EXISTS idx_fent_entity ON filament_entities(entity);
+
+    -- Neural Kindling: forward tapes for backpropagation during consolidation
+    CREATE TABLE IF NOT EXISTS forward_tapes (
+      id TEXT PRIMARY KEY,
+      created_at REAL NOT NULL,
+      seed_charges TEXT NOT NULL,
+      records TEXT NOT NULL,
+      output_charges TEXT NOT NULL,
+      spark_point REAL NOT NULL,
+      luminal_ids TEXT NOT NULL
+    );
+
+    -- Neural Kindling: gradient requests from enrichment feedback
+    CREATE TABLE IF NOT EXISTS gradient_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tape_id TEXT NOT NULL REFERENCES forward_tapes(id) ON DELETE CASCADE,
+      feedback TEXT NOT NULL,
+      created_at REAL NOT NULL,
+      processed INTEGER NOT NULL DEFAULT 0
+    );
+
+    -- Neural Kindling: Adam optimizer state per synapse
+    CREATE TABLE IF NOT EXISTS synapse_optimizer_state (
+      source_id TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      edge_type TEXT NOT NULL,
+      m REAL NOT NULL DEFAULT 0,
+      v REAL NOT NULL DEFAULT 0,
+      step INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (source_id, target_id, edge_type)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_forward_tapes_created ON forward_tapes(created_at);
+    CREATE INDEX IF NOT EXISTS idx_gradient_requests_processed ON gradient_requests(processed, created_at);
   `)
 
   createRtreeIfNeeded(db)

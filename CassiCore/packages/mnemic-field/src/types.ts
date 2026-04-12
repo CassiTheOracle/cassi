@@ -558,3 +558,71 @@ export const AFFECT_DEFAULTS: AffectConfig = {
   arousalSparkModulation: 0.15,
   warmthScale: 0.1,
 } as const
+
+
+export type ActivationFunction = 'linear' | 'leaky_relu' | 'sigmoid' | 'tanh'
+
+export interface NeuralKindlingConfig {
+  enabled: boolean
+  activationFn: ActivationFunction
+  biasScale: number             // how much potentiation contributes as a bias term
+  tapeRecording: boolean        // whether to record forward tapes for later backprop
+  maxTapeAge: number            // ms before tapes are garbage-collected
+  leakyReluSlope: number        // negative slope for leaky ReLU (default 0.01)
+}
+
+export const NEURAL_KINDLING_DEFAULTS: NeuralKindlingConfig = {
+  enabled: false,
+  activationFn: 'leaky_relu',
+  biasScale: 0.3,
+  tapeRecording: true,
+  maxTapeAge: 3_600_000,        // 1 hour
+  leakyReluSlope: 0.01,
+} as const
+
+/**
+ * A single recorded contribution during spreading activation.
+ * These records form the "tape" used for backpropagation during consolidation.
+ */
+export interface ForwardRecord {
+  iteration: number
+  sourceId: string
+  targetId: string
+  edgeType: SynapseType
+  synapseWeight: number
+  sourceCharge: number
+  propagationFactor: number     // edgeType-based propagation constant
+  distDecay: number
+  temporalRelevance: number
+  potBoost: number
+  emotionalDamping: number
+  rawContribution: number       // the spread value before activation
+  activatedOutput: number       // the charge after activation function
+  preActivation: number         // the aggregated input before activation (needed for σ')
+}
+
+/**
+ * A complete forward tape for one kindling operation.
+ * Contains everything needed to compute gradients during consolidation.
+ */
+export interface ForwardTape {
+  id: string                    // unique tape identifier
+  createdAt: number             // timestamp
+  seedCharges: Record<string, number>  // initial seed → charge mapping
+  records: ForwardRecord[]      // ordered by iteration, then by contribution
+  outputCharges: Record<string, number>  // final chargeMap snapshot after spreading
+  sparkPoint: number            // the threshold used for ignition
+  luminalIds: string[]          // engram IDs that made it into the LuminalSet
+}
+
+/**
+ * Feedback for a completed kindling — maps engram IDs to helpfulness.
+ * Used to compute loss during consolidation backprop.
+ */
+export interface GradientRequest {
+  id: number
+  tapeId: string
+  feedback: Record<string, boolean>  // engramId → was this helpful?
+  createdAt: number
+  processed: boolean
+}

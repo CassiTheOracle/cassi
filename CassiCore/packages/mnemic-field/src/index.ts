@@ -32,6 +32,7 @@ import type {
   Filament, FilamentAnnotation, EngramPosition,
   FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
   ZoomEntry, RenderOptions,
+  NeuralKindlingConfig,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
@@ -86,6 +87,7 @@ export type {
   FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
   ZoomEntry, ZoomLevel, RenderOptions, Tier3Config,
   Affect, AffectState, AffectLabel, AffectConfig,
+  NeuralKindlingConfig, ForwardTape, ForwardRecord, GradientRequest,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
@@ -730,6 +732,55 @@ export class MnemicField {
       })),
       outcome,
     )
+  }
+
+
+  enableNeuralKindling(config?: Partial<NeuralKindlingConfig>): void {
+    this.kindlingEngine.setNeuralConfig({ enabled: true, ...config })
+    this.logger.info('Neural kindling enabled', { config: this.kindlingEngine.getNeuralConfig() })
+  }
+
+  disableNeuralKindling(): void {
+    this.kindlingEngine.setNeuralConfig({ enabled: false })
+    this.logger.info('Neural kindling disabled')
+  }
+
+  isNeuralKindlingEnabled(): boolean {
+    return this.kindlingEngine.getNeuralConfig().enabled
+  }
+
+  /**
+   * Store a gradient request linking enrichment feedback to the last forward tape.
+   * Called from the feedback handler to accumulate learning signals for consolidation.
+   */
+  recordEnrichFeedback(feedback: Record<string, boolean>): boolean {
+    const tape = this.kindlingEngine.getLastTape()
+    if (!tape) return false
+
+    try {
+      this.cortex.storeGradientRequest(tape.id, feedback)
+      this.logger.debug('Gradient request stored', {
+        tapeId: tape.id,
+        feedbackCount: Object.keys(feedback).length,
+      })
+      return true
+    } catch (err) {
+      this.logger.warn('Failed to store gradient request', { error: err })
+      return false
+    }
+  }
+
+  getForwardTapeCount(): number {
+    return this.cortex.forwardTapeCount()
+  }
+
+  getPendingGradientCount(): number {
+    return this.cortex.pendingGradientCount()
+  }
+
+  pruneOldTapes(maxAgeMs?: number): number {
+    const maxAge = maxAgeMs ?? this.kindlingEngine.getNeuralConfig().maxTapeAge
+    return this.cortex.pruneOldTapes(maxAge)
   }
 
   /**
