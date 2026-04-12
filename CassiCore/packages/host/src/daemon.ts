@@ -1834,15 +1834,25 @@ export class Daemon {
           try {
             const { SelfModelIngestor } = await import('./intelligence/mnemic-field/self-model/ingestor.js')
             const ingestor = new SelfModelIngestor(selfModelField, this.logger, repoRoot, interFieldBridge)
-            const result = await ingestor.ingest({ minCommunitySize: 5, weaknessThreshold: 0.6 })
+            const result = await ingestor.ingest({
+              minCommunitySize: 5,
+              weaknessThreshold: 0.6,
+              updateExisting: true,
+            })
             this.logger.info('Self-Model ingestion complete', {
               modules: result.modulesCreated,
+              modulesUpdated: result.modulesUpdated,
               capabilities: result.capabilitiesCreated,
               weaknesses: result.weaknessesCreated,
               synapses: result.dependencySynapsesCreated,
               portals: result.portalsCreated,
               durationMs: result.durationMs,
             })
+
+            const seeded = interFieldBridge.seedEpisodicLinks()
+            if (seeded > 0) {
+              this.logger.info('Seeded episodic portal links', { count: seeded })
+            }
           } catch (err) {
             this.logger.warn('Self-Model ingestion failed (GitNexus may not be indexed)', { error: String(err) })
           }
