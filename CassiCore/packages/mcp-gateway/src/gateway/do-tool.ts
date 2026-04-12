@@ -105,11 +105,14 @@ MANDATORY: Call this at the start of EVERY user turn with the user's message as 
 
 The Mnemic Field uses spreading activation — not keyword matching — to find contextually relevant memories connected through typed relationships (caused_by, led_to, contradicts, used_in_task, etc.).
 
+When the Self-Model Field is available, results include architectural self-knowledge — modules, capabilities, weaknesses, and patterns from the codebase — cross-pollinated with episodic memories via portal engrams.
+
 Returns first-person briefing sections:
-  - What I remember        — relevant facts, episodes, patterns
-  - Decisions I've made    — past choices on this topic
-  - Things to watch out for — contradictions, failures, gotchas
-  - This connects to       — related files, sessions, tools
+  - What I remember           — relevant facts, episodes, patterns
+  - Decisions I've made       — past choices on this topic
+  - Things to watch out for   — contradictions, failures, gotchas
+  - This connects to          — related files, sessions, tools
+  - Architectural self-knowledge — modules, capabilities, weaknesses (when available)
 
 Each result includes embedded engram references for feedback.`,
     inputSchema: {
