@@ -1,5 +1,7 @@
 export { SelfModelField } from './self-model-field.js'
 export { InterFieldBridge } from './inter-field-bridge.js'
+export { SelfModelIngestor } from './ingestor.js'
+export type { IngestResult, IngestOptions } from './ingestor.js'
 export type {
   ModuleMetadata, CapabilityMetadata, PatternMetadata,
   WeaknessMetadata, EvolutionMetadata, PortalMetadata,

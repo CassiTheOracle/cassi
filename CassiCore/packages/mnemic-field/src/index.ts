@@ -47,6 +47,20 @@ export { ConsolidationEngine } from './consolidation.js'
 export { CodeStore } from './code-store.js'
 export { CodeIngestor } from './code-ingestor.js'
 export { GitNexusBridge } from './gitnexus-bridge.js'
+export { SelfModelField, InterFieldBridge, SelfModelIngestor } from './self-model/index.js'
+export type {
+  ModuleMetadata, CapabilityMetadata, PatternMetadata,
+  WeaknessMetadata, EvolutionMetadata, PortalMetadata,
+  BridgeConfig, CrossFieldRetrievalHit, CrossFieldResult,
+} from './self-model/index.js'
+export type {
+  IngestResult as SelfModelIngestResult,
+  IngestOptions as SelfModelIngestOptions,
+} from './self-model/index.js'
+export {
+  SELF_MODEL_ENGRAM_TYPES, SELF_MODEL_SYNAPSE_TYPES,
+  SELF_MODEL_KINDLING_DEFAULTS, BRIDGE_DEFAULTS,
+} from './self-model/index.js'
 export { segmentEngram } from './segmentation.js'
 export { EntityLinker, extractEntities } from './filament-entities.js'
 export { FilamentConsolidator } from './filament-consolidation.js'
