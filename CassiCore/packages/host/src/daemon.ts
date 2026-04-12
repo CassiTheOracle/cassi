@@ -2438,10 +2438,10 @@ export class Daemon {
         }
 
         // Wire BrainstemLLM adapter for Helix per-branch annotation.
-        // Uses github-copilot/gpt-5-mini — fast, reliable, separate from the Corpus model.
+        // Uses claude-code/claude-haiku-4-5 — fast response times for monitoring.
         if (this.intelligence?.setBrainstemLLMProvider) {
           try {
-            const bsCfg = { provider: 'github-copilot', model: 'gpt-5-mini' }
+            const bsCfg = { provider: 'claude-code', model: 'claude-haiku-4-5' }
             const bsProvider = providers.get(bsCfg.provider) ?? providers.values().next().value
             if (bsProvider) {
               this.intelligence.setBrainstemLLMProvider(bsProvider, bsCfg.model)
