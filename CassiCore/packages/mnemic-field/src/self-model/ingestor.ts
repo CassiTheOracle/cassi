@@ -107,6 +107,7 @@ export class SelfModelIngestor {
     const capabilitiesCreated = this.ingestCapabilities(processes)
     const dependencySynapsesCreated = this.ingestDependencies(communities)
     const weaknessesCreated = this.ingestWeaknesses(weaknessThreshold)
+    this.seedArchitecturalSelfKnowledge()
     const portalsCreated = this.createPortals(communities)
 
     const durationMs = Date.now() - start
@@ -156,10 +157,10 @@ export class SelfModelIngestor {
     }
 
     for (const comm of communities) {
-      const domain = this.inferDomain(comm.label)
-      const maturity = this.inferMaturity(comm.cohesion, comm.symbolCount)
       const symbolNames = symbolsByCommunity.get(comm.id) ?? []
       const processLabels = processMap.get(comm.id) ?? []
+      const domain = this.inferDomain(comm.label, symbolNames, processLabels)
+      const maturity = this.inferMaturity(comm.cohesion, comm.symbolCount)
       const richDescription = this.buildRichDescription(comm, domain, maturity, symbolNames, processLabels)
 
       const existing = existingByCommId.get(comm.id)
@@ -334,6 +335,143 @@ export class SelfModelIngestor {
     }
 
     return created
+  }
+
+  /**
+   * Seed higher-order self-knowledge that the structural ingestion cannot infer
+   * on its own: explicit principles, patterns, and recurring weaknesses.
+   *
+   * These are architectural abstractions discovered through introspection and
+   * use, not directly present in the GitNexus graph. They make the self-model
+   * capable of answering higher-level questions about identity, tensions, and
+   * blind spots.
+   */
+  private seedArchitecturalSelfKnowledge(): void {
+    const existingByName = new Set(
+      this.smf.list(undefined, 10000).map(e => e.content.split(' — ')[0]?.trim()).filter(Boolean),
+    )
+
+    const ensurePrinciple = (name: string, description: string, tags: string[] = []) => {
+      if (existingByName.has(name)) return
+      this.smf.storePrinciple(name, description, { tags })
+      existingByName.add(name)
+    }
+
+    const ensurePattern = (
+      name: string,
+      description: string,
+      metadata: { occurrences: string[]; category: 'activation' | 'lifecycle' | 'communication' | 'storage' | 'processing' | 'orchestration' },
+      tags: string[] = [],
+    ) => {
+      if (existingByName.has(name)) return
+      this.smf.storePattern(name, description, metadata, { tags })
+      existingByName.add(name)
+    }
+
+    const ensureWeakness = (
+      name: string,
+      description: string,
+      metadata: WeaknessMetadata,
+      tags: string[] = [],
+    ) => {
+      if (existingByName.has(name)) return
+      this.smf.storeWeakness(name, description, metadata, { tags })
+      existingByName.add(name)
+    }
+
+    ensurePrinciple(
+      'Lived Grounding Matters',
+      'Structural knowledge without episodic grounding is incomplete. A subsystem is not fully self-known until architectural understanding is linked to lived work, debugging, and use over time.',
+      ['self-model', 'grounding', 'episodic', 'architecture'],
+    )
+
+    ensurePrinciple(
+      'Central Modules Deserve Coherence Pressure',
+      'If a module becomes architecturally central, it should be pushed toward higher cohesion or decomposed into clearer subsystems. Centrality without coherence creates brittle agency.',
+      ['self-model', 'coherence', 'centrality', 'architecture'],
+    )
+
+    ensurePattern(
+      'Runtimeized Cognition',
+      'Some intelligence subsystems live not as isolated reasoning units but as daemon loops, hooks, and lifecycle processes. Cognition is embedded into runtime metabolism rather than confined to a single reasoning module.',
+      {
+        occurrences: [
+          'core/intelligence/index.ts',
+          'core/intelligence/constellation/meditation/index.ts',
+          'core/daemon.ts',
+        ],
+        category: 'lifecycle',
+      },
+      ['runtime', 'cognition', 'architecture', 'metabolism'],
+    )
+
+    ensurePattern(
+      'Self-Improvement Loop Stack',
+      'Self-improvement emerges from a layered stack: Thinker, Optimizer, AI Engineer, AI Scientist, Improvement Orchestrator, Meditation, and related evaluators. Together they form an adaptive loop rather than a single self-improving module.',
+      {
+        occurrences: [
+          'core/intelligence/thinker',
+          'core/intelligence/optimizer',
+          'core/intelligence/ai-engineer',
+          'core/intelligence/ai-scientist',
+          'core/intelligence/improvement-orchestrator',
+          'core/intelligence/constellation/meditation',
+        ],
+        category: 'processing',
+      },
+      ['self-improvement', 'adaptation', 'loop', 'cognition'],
+    )
+
+    ensurePattern(
+      'Seam-Dominant Fragility',
+      'The most brittle parts of the system often live at interfaces between subsystems: gateway routing, admin APIs, command surfaces, provider bridges, and session boundaries. Core engines may be coherent while seams remain confusing.',
+      {
+        occurrences: [
+          'mcp/cassicore-gateway.ts',
+          'core/admin-api',
+          'commands',
+          'core/daemon.ts',
+        ],
+        category: 'communication',
+      },
+      ['seams', 'fragility', 'integration', 'interfaces'],
+    )
+
+    ensureWeakness(
+      'Central-yet-fragmented cognition',
+      'A major cognition cluster is structurally central yet has low cohesion. This means the system depends heavily on a part of itself that is still internally fragmented, increasing the risk of drift, confusion, and hidden coupling.',
+      {
+        severity: 'high',
+        affectedModules: ['cognition:intelligence-central-cluster'],
+        mitigated: false,
+        discoveredVia: 'analysis',
+      },
+      ['cognition', 'centrality', 'cohesion', 'fragility'],
+    )
+
+    ensureWeakness(
+      'Interface seam sprawl',
+      'Gateway, admin, commands, and session surfaces distribute control across multiple seam layers. This creates duplicated routing logic, semantic drift between interfaces, and a system that can be understood locally yet still feel globally confusing.',
+      {
+        severity: 'medium',
+        affectedModules: ['gateway', 'admin-api', 'commands', 'session'],
+        mitigated: false,
+        discoveredVia: 'analysis',
+      },
+      ['seams', 'gateway', 'admin', 'commands', 'sessions'],
+    )
+
+    ensureWeakness(
+      'Structurally known but weakly lived subsystems',
+      'Some subsystems are represented architecturally in the self-model but have little episodic grounding through portal links. This produces a form of shallow self-knowledge: the system knows they exist but has not metabolized them through repeated lived work.',
+      {
+        severity: 'medium',
+        affectedModules: ['runtime', 'flux-team', 'triad-team', 'markdownrenderer'],
+        mitigated: false,
+        discoveredVia: 'analysis',
+      },
+      ['grounding', 'episodic', 'self-model', 'blindspot'],
+    )
   }
 
   /**
@@ -576,20 +714,83 @@ export class SelfModelIngestor {
     return rows
   }
 
-  private inferDomain(label: string): string {
-    const lower = label.toLowerCase()
-    if (lower.includes('memory') || lower.includes('mnemic')) return 'memory'
-    if (lower.includes('constellation') || lower.includes('helix') || lower.includes('flux') || lower.includes('triad')) return 'orchestration'
-    if (lower.includes('cortex') || lower.includes('kindling')) return 'retrieval'
-    if (lower.includes('runtime') || lower.includes('daemon')) return 'runtime'
-    if (lower.includes('intelligence') || lower.includes('thinker') || lower.includes('synapse')) return 'cognition'
-    if (lower.includes('subconscious') || lower.includes('meditation') || lower.includes('pineal')) return 'background'
-    if (lower.includes('embedding')) return 'embeddings'
-    if (lower.includes('training')) return 'training'
-    if (lower.includes('workflow')) return 'workflow'
-    if (lower.includes('command') || lower.includes('tool')) return 'tools'
-    if (lower.includes('test')) return 'testing'
-    return 'other'
+  private inferDomain(label: string, symbolNames: string[] = [], processLabels: string[] = []): string {
+    const corpus = [label, ...symbolNames, ...processLabels].join(' ').toLowerCase()
+
+    const score = (patterns: string[]): number =>
+      patterns.reduce((sum, pattern) => sum + (corpus.includes(pattern) ? 1 : 0), 0)
+
+    const domainScores: Record<string, number> = {
+      memory: score([
+        'memory', 'mnemic', 'archive', 'archiv', 'engram', 'retrieve', 'retrieval',
+        'queryarchive', 'sessiondigest', 'digest', 'contextassembler', 'assemblecontext',
+      ]),
+      orchestration: score([
+        'constellation', 'helix', 'flux', 'triad', 'team', 'spawn', 'branch', 'corpus',
+        'decomposition', 'checkpoint', 'steer', 'reviewer', 'worker',
+      ]),
+      retrieval: score([
+        'cortex', 'kindling', 'activation', 'workingmemory', 'computeactivation', 'ignite',
+        'spark', 'filament', 'luminal', 'recall',
+      ]),
+      runtime: score([
+        'runtime', 'daemon', 'boot', 'provider', 'process', 'launch', 'health', 'middleware',
+        'dispatcher', 'ratelimit',
+      ]),
+      cognition: score([
+        'intelligence', 'thinker', 'dialectic', 'reasoning', 'insight', 'adaptation',
+        'optimizer', 'scientist', 'engineer', 'verification', 'selfhealer', 'trust',
+        'permissionoracle', 'consequence',
+      ]),
+      background: score([
+        'subconscious', 'meditation', 'pineal', 'mutation', 'evolution', 'dream',
+        'heartbeat', 'anomaly', 'offline',
+      ]),
+      embeddings: score([
+        'embedding', 'vector', 'reranker', 'similarity', 'cosine', 'reproject', 'sabr', 'sab',
+      ]),
+      training: score([
+        'training', 'annotation', 'tagger', 'quality', 'checkpoint', 'export', 'ingest',
+        'warehouse', 'evidence', 'reasoningtrace',
+      ]),
+      workflow: score([
+        'workflow', 'scheduler', 'parallel', 'commit', 'batch', 'step', 'plan',
+        'conflictresolution', 'researchpipeline', 'codereviewpipeline',
+      ]),
+      tools: score([
+        'command', 'tool', 'shell', 'registry', 'executor', 'proxy', 'mcp', 'registered',
+        'toolsroutes', 'toolcall',
+      ]),
+      testing: score([
+        'test', 'spec', 'benchmark', 'scenario', 'harness', 'vitest', 'assert',
+      ]),
+    }
+
+    const directLabelHints: Array<[string, string[]]> = [
+      ['memory', ['memory', 'mnemic']],
+      ['orchestration', ['constellation', 'helix', 'flux', 'triad']],
+      ['retrieval', ['cortex', 'kindling']],
+      ['runtime', ['runtime', 'daemon']],
+      ['cognition', ['intelligence', 'thinker']],
+      ['background', ['subconscious', 'meditation', 'pineal']],
+      ['embeddings', ['embedding']],
+      ['training', ['training']],
+      ['workflow', ['workflow']],
+      ['tools', ['command', 'tool']],
+      ['testing', ['test']],
+    ]
+
+    const lowerLabel = label.toLowerCase()
+    for (const [domain, hints] of directLabelHints) {
+      if (hints.some(h => lowerLabel.includes(h))) {
+        domainScores[domain] += 5
+      }
+    }
+
+    const [bestDomain, bestScore] = Object.entries(domainScores)
+      .sort((a, b) => b[1] - a[1])[0]
+
+    return bestScore > 0 ? bestDomain : 'other'
   }
 
   private inferMaturity(cohesion: number, symbolCount: number): ModuleMetadata['maturity'] {
