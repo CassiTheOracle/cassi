@@ -155,8 +155,8 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_filament_syn_edge ON filament_synapses(edge_type, weight);
     CREATE INDEX IF NOT EXISTS idx_fent_entity ON filament_entities(entity);
 
-    -- Neural Kindling: forward tapes for backpropagation during consolidation
-    CREATE TABLE IF NOT EXISTS forward_tapes (
+    -- Neural Kindling: forward traces for backpropagation during consolidation
+    CREATE TABLE IF NOT EXISTS forward_traces (
       id TEXT PRIMARY KEY,
       created_at REAL NOT NULL,
       seed_charges TEXT NOT NULL,
@@ -169,7 +169,7 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     -- Neural Kindling: gradient requests from enrichment feedback
     CREATE TABLE IF NOT EXISTS gradient_requests (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      tape_id TEXT NOT NULL REFERENCES forward_tapes(id) ON DELETE CASCADE,
+      trace_id TEXT NOT NULL REFERENCES forward_traces(id) ON DELETE CASCADE,
       feedback TEXT NOT NULL,
       created_at REAL NOT NULL,
       processed INTEGER NOT NULL DEFAULT 0
@@ -186,7 +186,7 @@ export function initMnemicFieldSchema(db: Database.Database): void {
       PRIMARY KEY (source_id, target_id, edge_type)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_forward_tapes_created ON forward_tapes(created_at);
+    CREATE INDEX IF NOT EXISTS idx_forward_traces_created ON forward_traces(created_at);
     CREATE INDEX IF NOT EXISTS idx_gradient_requests_processed ON gradient_requests(processed, created_at);
   `)
 
@@ -287,6 +287,13 @@ function migrateSchema(db: Database.Database): void {
   const names = new Set(cols.map(c => c.name))
   if (!names.has('phase')) {
     db.exec(`ALTER TABLE migration_jobs ADD COLUMN phase TEXT NOT NULL DEFAULT 'memories'`)
+  }
+
+  // Rename forward_tapes → forward_traces (and tape_id → trace_id in gradient_requests)
+  const hasOldTable = db.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='forward_tapes'`).get()
+  if (hasOldTable) {
+    db.exec(`ALTER TABLE forward_tapes RENAME TO forward_traces`)
+    db.exec(`ALTER TABLE gradient_requests RENAME COLUMN tape_id TO trace_id`)
   }
 
   remediateMigrationTimestamps(db)

@@ -9,7 +9,7 @@ import type {
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, FieldStats,
   EngramPosition, EngramType,
-  ForwardTape,
+  ForwardTrace,
 } from './types.js'
 
 export function toFloatArray(buf: Buffer | null): Float32Array | null {
@@ -824,23 +824,23 @@ export class Cortex {
   }
 
 
-  storeForwardTape(tape: ForwardTape): void {
+  storeForwardTrace(trace: ForwardTrace): void {
     this.db.prepare(`
-      INSERT INTO forward_tapes (id, created_at, seed_charges, records, output_charges, spark_point, luminal_ids)
+      INSERT INTO forward_traces (id, created_at, seed_charges, records, output_charges, spark_point, luminal_ids)
       VALUES (@id, @created_at, @seed_charges, @records, @output_charges, @spark_point, @luminal_ids)
     `).run({
-      id: tape.id,
-      created_at: tape.createdAt,
-      seed_charges: JSON.stringify(tape.seedCharges),
-      records: JSON.stringify(tape.records),
-      output_charges: JSON.stringify(tape.outputCharges),
-      spark_point: tape.sparkPoint,
-      luminal_ids: JSON.stringify(tape.luminalIds),
+      id: trace.id,
+      created_at: trace.createdAt,
+      seed_charges: JSON.stringify(trace.seedCharges),
+      records: JSON.stringify(trace.records),
+      output_charges: JSON.stringify(trace.outputCharges),
+      spark_point: trace.sparkPoint,
+      luminal_ids: JSON.stringify(trace.luminalIds),
     })
   }
 
-  getForwardTape(id: string): ForwardTape | null {
-    const row = this.db.prepare(`SELECT * FROM forward_tapes WHERE id = ?`).get(id) as Record<string, unknown> | undefined
+  getForwardTrace(id: string): ForwardTrace | null {
+    const row = this.db.prepare(`SELECT * FROM forward_traces WHERE id = ?`).get(id) as Record<string, unknown> | undefined
     if (!row) return null
     return {
       id: row.id as string,
@@ -853,25 +853,25 @@ export class Cortex {
     }
   }
 
-  storeGradientRequest(tapeId: string, feedback: Record<string, boolean>): void {
+  storeGradientRequest(traceId: string, feedback: Record<string, boolean>): void {
     this.db.prepare(`
-      INSERT INTO gradient_requests (tape_id, feedback, created_at)
-      VALUES (@tape_id, @feedback, @created_at)
+      INSERT INTO gradient_requests (trace_id, feedback, created_at)
+      VALUES (@trace_id, @feedback, @created_at)
     `).run({
-      tape_id: tapeId,
+      trace_id: traceId,
       feedback: JSON.stringify(feedback),
       created_at: Date.now(),
     })
   }
 
-  getPendingGradientRequests(limit = 100): Array<{ id: number; tapeId: string; feedback: Record<string, boolean> }> {
+  getPendingGradientRequests(limit = 100): Array<{ id: number; traceId: string; feedback: Record<string, boolean> }> {
     const rows = this.db.prepare(`
-      SELECT id, tape_id, feedback FROM gradient_requests
+      SELECT id, trace_id, feedback FROM gradient_requests
       WHERE processed = 0 ORDER BY created_at ASC LIMIT ?
     `).all(limit) as Array<Record<string, unknown>>
     return rows.map(row => ({
       id: row.id as number,
-      tapeId: row.tape_id as string,
+      traceId: row.trace_id as string,
       feedback: JSON.parse(row.feedback as string),
     }))
   }
@@ -882,14 +882,14 @@ export class Cortex {
     this.db.prepare(`UPDATE gradient_requests SET processed = 1 WHERE id IN (${placeholders})`).run(...ids)
   }
 
-  pruneOldTapes(maxAgeMs: number): number {
+  pruneOldTraces(maxAgeMs: number): number {
     const cutoff = Date.now() - maxAgeMs
-    const result = this.db.prepare(`DELETE FROM forward_tapes WHERE created_at < ?`).run(cutoff)
+    const result = this.db.prepare(`DELETE FROM forward_traces WHERE created_at < ?`).run(cutoff)
     return result.changes
   }
 
-  forwardTapeCount(): number {
-    return (this.db.prepare(`SELECT COUNT(*) as c FROM forward_tapes`).get() as { c: number }).c
+  forwardTraceCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM forward_traces`).get() as { c: number }).c
   }
 
   pendingGradientCount(): number {

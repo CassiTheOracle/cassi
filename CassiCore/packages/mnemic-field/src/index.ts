@@ -87,7 +87,7 @@ export type {
   FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
   ZoomEntry, ZoomLevel, RenderOptions, Tier3Config,
   Affect, AffectState, AffectLabel, AffectConfig,
-  NeuralKindlingConfig, ForwardTape, ForwardRecord, GradientRequest,
+  NeuralKindlingConfig, ForwardTrace, ForwardRecord, GradientRequest,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
@@ -750,17 +750,17 @@ export class MnemicField {
   }
 
   /**
-   * Store a gradient request linking enrichment feedback to the last forward tape.
+   * Store a gradient request linking enrichment feedback to the last forward trace.
    * Called from the feedback handler to accumulate learning signals for consolidation.
    */
   recordEnrichFeedback(feedback: Record<string, boolean>): boolean {
-    const tape = this.kindlingEngine.getLastTape()
-    if (!tape) return false
+    const trace = this.kindlingEngine.getLastTrace()
+    if (!trace) return false
 
     try {
-      this.cortex.storeGradientRequest(tape.id, feedback)
+      this.cortex.storeGradientRequest(trace.id, feedback)
       this.logger.debug('Gradient request stored', {
-        tapeId: tape.id,
+        traceId: trace.id,
         feedbackCount: Object.keys(feedback).length,
       })
       return true
@@ -770,17 +770,17 @@ export class MnemicField {
     }
   }
 
-  getForwardTapeCount(): number {
-    return this.cortex.forwardTapeCount()
+  getForwardTraceCount(): number {
+    return this.cortex.forwardTraceCount()
   }
 
   getPendingGradientCount(): number {
     return this.cortex.pendingGradientCount()
   }
 
-  pruneOldTapes(maxAgeMs?: number): number {
-    const maxAge = maxAgeMs ?? this.kindlingEngine.getNeuralConfig().maxTapeAge
-    return this.cortex.pruneOldTapes(maxAge)
+  pruneOldTraces(maxAgeMs?: number): number {
+    const maxAge = maxAgeMs ?? this.kindlingEngine.getNeuralConfig().maxTraceAge
+    return this.cortex.pruneOldTraces(maxAge)
   }
 
   /**

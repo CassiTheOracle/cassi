@@ -7,7 +7,7 @@ import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
   KindlingOptions, KindlingTrace, TaskComplexity, SpikeOutcome,
   FilamentAnnotation, FilamentMatchType, FilamentSynapseType,
-  NeuralKindlingConfig, ForwardRecord, ForwardTape,
+  NeuralKindlingConfig, ForwardRecord, ForwardTrace,
 } from './types.js'
 import {
   SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS, AFFECT_DEFAULTS,
@@ -36,14 +36,14 @@ interface MatchedFilamentInfo {
  * → engrams crossing spark point enter Luminal Set → working memory.
  *
  * When neural kindling is enabled, spreading uses nonlinear activation functions
- * and records forward tapes for gradient-based learning during consolidation.
+ * and records forward traces for gradient-based learning during consolidation.
  */
 export class KindlingEngine {
   private logger: ILogger
   private matchedFilaments: Map<number, MatchedFilamentInfo> = new Map()
   private currentAffect: { valence: number; arousal: number } | null = null
   private neuralConfig: NeuralKindlingConfig
-  private lastTape: ForwardTape | null = null
+  private lastTrace: ForwardTrace | null = null
 
   constructor(
     private cortex: Cortex,
@@ -55,8 +55,8 @@ export class KindlingEngine {
     this.neuralConfig = { ...NEURAL_KINDLING_DEFAULTS, ...neuralConfig }
   }
 
-  getLastTape(): ForwardTape | null {
-    return this.lastTape
+  getLastTrace(): ForwardTrace | null {
+    return this.lastTrace
   }
 
   getNeuralConfig(): NeuralKindlingConfig {
@@ -71,7 +71,7 @@ export class KindlingEngine {
    * Run the full kindling process: seed → spread → ignite → return Luminal Set.
    *
    * When neural kindling is enabled, the forward computation graph is recorded
-   * as a "tape" for later backpropagation during consolidation.
+   * as a "trace" for later backpropagation during consolidation.
    */
   kindle(
     embedding: number[] | null,
@@ -80,7 +80,7 @@ export class KindlingEngine {
   ): LuminalSet {
     const start = Date.now()
     this.matchedFilaments = new Map()
-    this.lastTape = null
+    this.lastTrace = null
     this.currentAffect = options.currentAffect ?? null
     const complexity = options.complexity ?? 'normal'
     const maxIter = options.maxIterations ?? KINDLING_DEFAULTS.maxIterations
@@ -89,7 +89,7 @@ export class KindlingEngine {
     const maxLuminal = options.maxLuminalSize ?? KINDLING_DEFAULTS.maxLuminalSize
 
     const neural = this.neuralConfig.enabled
-    const shouldRecordTape = neural && this.neuralConfig.tapeRecording
+    const shouldRecordTrace = neural && this.neuralConfig.traceRecording
 
     const seeds = this.findSeeds(embedding, textQuery, options)
     if (seeds.length === 0) {
@@ -113,19 +113,19 @@ export class KindlingEngine {
 
     const trace: KindlingTrace[] = []
     const recording = options.recordTrace === true
-    const tapeRecords: ForwardRecord[] = shouldRecordTape ? [] : []
+    const traceRecords: ForwardRecord[] = shouldRecordTrace ? [] : []
 
     if (recording) {
       trace.push({ iteration: 0, charges: Object.fromEntries(chargeMap) })
     }
 
-    const seedCharges = shouldRecordTape ? Object.fromEntries(chargeMap) : undefined
+    const seedCharges = shouldRecordTrace ? Object.fromEntries(chargeMap) : undefined
 
     let iterations = 0
     for (let iter = 0; iter < maxIter; iter++) {
       iterations++
       const delta = neural
-        ? this.spreadOnceNeural(chargeMap, iter + 1, shouldRecordTape ? tapeRecords : undefined)
+        ? this.spreadOnceNeural(chargeMap, iter + 1, shouldRecordTrace ? traceRecords : undefined)
         : this.spreadOnce(chargeMap)
       if (recording) {
         trace.push({ iteration: iterations, charges: Object.fromEntries(chargeMap) })
@@ -142,21 +142,21 @@ export class KindlingEngine {
 
     const filamentAnnotations = this.annotateFilaments(luminal)
 
-    if (shouldRecordTape && seedCharges) {
-      const tapeId = `tape_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      this.lastTape = {
-        id: tapeId,
+    if (shouldRecordTrace && seedCharges) {
+      const traceId = `trace_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      this.lastTrace = {
+        id: traceId,
         createdAt: Date.now(),
         seedCharges,
-        records: tapeRecords,
+        records: traceRecords,
         outputCharges: Object.fromEntries(chargeMap),
         sparkPoint,
         luminalIds: luminal.map(e => e.engram.id),
       }
       try {
-        this.cortex.storeForwardTape(this.lastTape)
+        this.cortex.storeForwardTrace(this.lastTrace)
       } catch (err) {
-        this.logger.warn('Failed to store forward tape', { error: err })
+        this.logger.warn('Failed to store forward trace', { error: err })
       }
     }
 
@@ -167,7 +167,7 @@ export class KindlingEngine {
       luminalSize: luminal.length,
       filamentMatches: this.matchedFilaments.size,
       neural,
-      tapeRecorded: shouldRecordTape && tapeRecords.length > 0,
+      traceRecorded: shouldRecordTrace && traceRecords.length > 0,
       durationMs,
     })
 
@@ -325,14 +325,14 @@ export class KindlingEngine {
    * Key differences from linear spreadOnce():
    * 1. Incoming contributions are aggregated per target node, then a bias (from potentiation)
    *    is added, and a nonlinear activation function is applied.
-   * 2. Optionally records every contribution to a forward tape for backpropagation.
+   * 2. Optionally records every contribution to a forward trace for backpropagation.
    *
    * This turns the Mnemic Field into a genuine message-passing neural network layer.
    */
   private spreadOnceNeural(
     chargeMap: Map<string, number>,
     iteration: number,
-    tape?: ForwardRecord[],
+    trace?: ForwardRecord[],
   ): number {
     const aggregated = new Map<string, number>()
     const biasScale = this.neuralConfig.biasScale
@@ -374,8 +374,8 @@ export class KindlingEngine {
         const existing = aggregated.get(neighborId) ?? 0
         aggregated.set(neighborId, existing + rawContribution)
 
-        if (tape) {
-          tape.push({
+        if (trace) {
+          trace.push({
             iteration,
             sourceId: engramId,
             targetId: neighborId,
@@ -407,8 +407,8 @@ export class KindlingEngine {
       chargeMap.set(id, activated)
       totalDelta += Math.abs(activated - oldCharge)
 
-      if (tape) {
-        const records = tape.filter(r => r.iteration === iteration && r.targetId === id)
+      if (trace) {
+        const records = trace.filter(r => r.iteration === iteration && r.targetId === id)
         for (const record of records) {
           record.preActivation = preActivation
           record.activatedOutput = activated

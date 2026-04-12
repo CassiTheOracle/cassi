@@ -566,8 +566,8 @@ export interface NeuralKindlingConfig {
   enabled: boolean
   activationFn: ActivationFunction
   biasScale: number             // how much potentiation contributes as a bias term
-  tapeRecording: boolean        // whether to record forward tapes for later backprop
-  maxTapeAge: number            // ms before tapes are garbage-collected
+  traceRecording: boolean       // whether to record forward traces for later backprop
+  maxTraceAge: number           // ms before traces are garbage-collected
   leakyReluSlope: number        // negative slope for leaky ReLU (default 0.01)
 }
 
@@ -575,14 +575,14 @@ export const NEURAL_KINDLING_DEFAULTS: NeuralKindlingConfig = {
   enabled: false,
   activationFn: 'leaky_relu',
   biasScale: 0.3,
-  tapeRecording: true,
-  maxTapeAge: 3_600_000,        // 1 hour
+  traceRecording: true,
+  maxTraceAge: 3_600_000,        // 1 hour
   leakyReluSlope: 0.01,
 } as const
 
 /**
  * A single recorded contribution during spreading activation.
- * These records form the "tape" used for backpropagation during consolidation.
+ * These records form the "trace" used for backpropagation during consolidation.
  */
 export interface ForwardRecord {
   iteration: number
@@ -602,11 +602,11 @@ export interface ForwardRecord {
 }
 
 /**
- * A complete forward tape for one kindling operation.
+ * A complete forward trace for one kindling operation.
  * Contains everything needed to compute gradients during consolidation.
  */
-export interface ForwardTape {
-  id: string                    // unique tape identifier
+export interface ForwardTrace {
+  id: string                    // unique trace identifier
   createdAt: number             // timestamp
   seedCharges: Record<string, number>  // initial seed → charge mapping
   records: ForwardRecord[]      // ordered by iteration, then by contribution
@@ -621,7 +621,7 @@ export interface ForwardTape {
  */
 export interface GradientRequest {
   id: number
-  tapeId: string
+  traceId: string
   feedback: Record<string, boolean>  // engramId → was this helpful?
   createdAt: number
   processed: boolean
