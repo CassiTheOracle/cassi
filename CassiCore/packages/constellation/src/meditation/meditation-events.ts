@@ -123,6 +123,20 @@ export interface MeditationOrganizingCompleteEvent {
   timestamp: number
 }
 
+export interface MeditationSelfModelingCompleteEvent {
+  type: 'meditation:self-modeling-complete'
+  constellationId: string
+  domainsAudited: number
+  modulesReclassified: number
+  groundingGapsFound: number
+  principlesCreated: number
+  patternsCreated: number
+  weaknessesCreated: number
+  groundingLinksSeeded: number
+  durationMs: number
+  timestamp: number
+}
+
 export type MeditationEvent =
   | MeditationStartedEvent
   | MeditationStoppedEvent
@@ -134,6 +148,7 @@ export type MeditationEvent =
   | MeditationFocusedSeedingEvent
   | MeditationSelfAwarenessEvent
   | MeditationOrganizingCompleteEvent
+  | MeditationSelfModelingCompleteEvent
 
 
 /**

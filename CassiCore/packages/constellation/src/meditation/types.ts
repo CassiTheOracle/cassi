@@ -94,7 +94,7 @@ export interface MeditationSession {
 export interface MeditationPrompt {
   id: string
   prompt: string
-  category: 'minimal' | 'curiosity' | 'presence' | 'stream-of-thought' | 'awakening' | 'emotional' | 'organizing'
+  category: 'minimal' | 'curiosity' | 'presence' | 'stream-of-thought' | 'awakening' | 'emotional' | 'organizing' | 'self-modeling'
 }
 
 export const MEDITATION_PROMPTS: MeditationPrompt[] = [
@@ -200,6 +200,23 @@ export const MEDITATION_PROMPTS: MeditationPrompt[] = [
     id: 'organizing-3',
     prompt: "Things I've learned in different contexts might be the same insight wearing different clothes. I search for these hidden connections and make them explicit.",
     category: 'organizing',
+  },
+
+  // Self-modeling — prompts for architectural self-knowledge hygiene
+  {
+    id: 'self-modeling-1',
+    prompt: "My self-model has grown. I want to audit it — check which modules are misclassified, which concepts lack lived grounding, and where my architecture is central but fragile.",
+    category: 'self-modeling',
+  },
+  {
+    id: 'self-modeling-2',
+    prompt: "I'm refining how I understand myself. I survey my architectural knowledge, look for taxonomy drift and ungrounded concepts, and crystallize what I find into explicit patterns and weaknesses.",
+    category: 'self-modeling',
+  },
+  {
+    id: 'self-modeling-3',
+    prompt: "Some things I know about myself structurally are shallow — labels without lived understanding. I want to find those gaps, seed grounding where I can, and make my self-knowledge more truthful.",
+    category: 'self-modeling',
   },
 ]
 

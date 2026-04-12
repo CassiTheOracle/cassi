@@ -39,12 +39,15 @@ import { buildEvaluationPrompt, getEvaluationToolSchemas, buildEvaluationHandler
 import { buildMetaEvaluationPrompt, getMetaEvaluationToolSchemas, buildMetaEvaluationHandlers } from './meta-evaluation-runner.js'
 import { buildOrganizingExplorerPrompt, getOrganizingToolSchemas, buildOrganizingHandlers, buildOrganizingCorpusPrompt } from './organizing-synthesis.js'
 import type { OrganizingStats } from './organizing-synthesis.js'
+import { buildSelfModelingExplorerPrompt, getSelfModelingToolSchemas, buildSelfModelingHandlers } from './self-modeling-synthesis.js'
 import { FieldHealthAnalyzer } from './field-health.js'
 import type { FieldHealthSnapshot } from './field-health.js'
 
 import type { ConstellationOrchestrator } from '../constellation-orchestrator.js'
 import type { ConstellationRegistry } from '../constellation-injection.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
+import type { SelfModelField } from '../../mnemic-field/self-model/self-model-field.js'
+import type { InterFieldBridge } from '../../mnemic-field/self-model/inter-field-bridge.js'
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { CorticalField } from '../../cortex/index.js'
 import type { ICorpusTree } from '../corpus-types.js'
@@ -74,6 +77,8 @@ export class MeditationController extends BaseCognitiveModule {
   private orchestrator?: ConstellationOrchestrator
   private registry?: ConstellationRegistry
   private mnemicField?: MnemicField
+  private selfModelField?: SelfModelField
+  private interFieldBridge?: InterFieldBridge
   private meditationStore?: MeditationStore
   private handleFactory?: MiniHelixDeps['handleFactory']
   private cortex?: CorticalField
@@ -102,6 +107,14 @@ export class MeditationController extends BaseCognitiveModule {
 
   setMnemicField(field: MnemicField): void {
     this.mnemicField = field
+  }
+
+  setSelfModelField(field: SelfModelField): void {
+    this.selfModelField = field
+  }
+
+  setInterFieldBridge(bridge: InterFieldBridge): void {
+    this.interFieldBridge = bridge
   }
 
   setHandleFactory(factory: MiniHelixDeps['handleFactory']): void {
@@ -433,6 +446,15 @@ export class MeditationController extends BaseCognitiveModule {
         this.runOrganizingSession(constellationId, tier, abortController)
           .catch((err) => {
             this.logger.warn('[Meditation] Organizing session failed', { error: String(err) })
+            void this.stopMeditation('error')
+          })
+        return this.activeSession
+      }
+
+      if (resolvedStyle === 'self-modeling' && this.selfModelField && this.interFieldBridge) {
+        this.runSelfModelingSession(constellationId, tier, abortController)
+          .catch((err) => {
+            this.logger.warn('[Meditation] Self-modeling session failed', { error: String(err) })
             void this.stopMeditation('error')
           })
         return this.activeSession
@@ -835,6 +857,114 @@ export class MeditationController extends BaseCognitiveModule {
       })
     } catch (err) {
       this.logger.warn('[Meditation] Organizing corpus cycle failed', { error: String(err) })
+    }
+  }
+
+
+  /**
+   * Self-modeling session — single agent that cleans and sharpens architectural self-knowledge.
+   */
+  private async runSelfModelingSession(
+    constellationId: string,
+    tier: string,
+    abortController: AbortController,
+  ): Promise<void> {
+    if (!this.selfModelField || !this.interFieldBridge || !this.handleFactory) {
+      void this.stopMeditation('error')
+      return
+    }
+
+    const portalStats = this.interFieldBridge.getPortalStats()
+    const weaklyGroundedConcepts = portalStats
+      .filter(p => p.episodicConnections <= 1)
+      .map(p => p.concept)
+      .slice(0, 12)
+    const summary = {
+      engramCount: this.selfModelField.stats().engramCount,
+      domainCount: new Set(this.selfModelField.list('module', 10000).map(m => String((m.metadata as Record<string, unknown>)?.domain ?? 'other'))).size,
+      portalCount: portalStats.length,
+      weaklyGroundedConcepts,
+    }
+    const explorerPrompt = buildSelfModelingExplorerPrompt(summary)
+    const { handlers, stats: selfModelingStats } = buildSelfModelingHandlers(
+      this.selfModelField,
+      this.interFieldBridge,
+      this.logger,
+    )
+
+    try {
+      const handle = await this.handleFactory({
+        tier,
+        purpose: 'meditation:self-modeling',
+        sessionId: `${constellationId}-self-modeler`,
+      })
+
+      this.logger.info('[Meditation] Starting self-modeling session', {
+        constellationId,
+        engramCount: summary.engramCount,
+        domainCount: summary.domainCount,
+        portalCount: summary.portalCount,
+        weaklyGroundedConcepts,
+      })
+
+      const result = await runSoloExplorer({
+        sessionId: `${constellationId}-self-modeler`,
+        name: 'self-modeler',
+        instruction: explorerPrompt,
+        handle,
+        toolExecutor: this.toolExecutor!,
+        toolRegistry: this.toolRegistry!,
+        maxIterations: Math.max(20, Math.floor(this.meditationConfig.maxTotalSteps / 2)),
+        logger: this.logger,
+        eventBus: this.eventBus!,
+        signal: abortController.signal,
+        customHandlers: handlers,
+        customToolSchemas: getSelfModelingToolSchemas(),
+        thalamus: this.thalamus,
+      })
+
+      if (this.activeSession) {
+        this.activeSession.soloResults = [{
+          name: result.name,
+          iterations: result.iterations,
+          toolCalls: result.toolCalls,
+          tokensUsed: result.tokensUsed,
+          stoppedBy: result.stoppedBy,
+          transcript: result.transcript,
+        }]
+      }
+
+      this.logger.info('[Meditation] Self-modeling explorer completed', {
+        constellationId,
+        iterations: result.iterations,
+        toolCalls: result.toolCalls,
+        tokensUsed: result.tokensUsed,
+        stoppedBy: result.stoppedBy,
+        selfModelingStats,
+      })
+
+      emitMeditationEvent(this.eventBus, {
+        type: 'meditation:self-modeling-complete',
+        constellationId,
+        domainsAudited: selfModelingStats.domainsAudited,
+        modulesReclassified: selfModelingStats.modulesReclassified,
+        groundingGapsFound: selfModelingStats.groundingGapsFound,
+        principlesCreated: selfModelingStats.principlesCreated,
+        patternsCreated: selfModelingStats.patternsCreated,
+        weaknessesCreated: selfModelingStats.weaknessesCreated,
+        groundingLinksSeeded: selfModelingStats.groundingLinksSeeded,
+        durationMs: this.activeSession ? Date.now() - this.activeSession.startedAt : 0,
+        timestamp: Date.now(),
+      })
+
+      if (this.meditationStore) {
+        await this.runEvaluation(constellationId, [result])
+      }
+
+      void this.stopMeditation('natural')
+    } catch (err) {
+      this.logger.error('[Meditation] Self-modeling session failed', { error: String(err) })
+      void this.stopMeditation('error')
     }
   }
 

@@ -626,6 +626,8 @@ export function getMeditationToolSet(style: import('./meditation/styles.js').Med
       return [observe, remember, kindle, createEngram, consolidate, recordLearning, rest]
     case 'organizing':
       return [observe, lookCloser, remember, kindle, createEngram, consolidate, recordLearning, rest]
+    case 'self-modeling':
+      return [observe, lookCloser, remember, kindle, createEngram, consolidate, recordLearning, rest]
   }
 }
 
@@ -1581,6 +1583,8 @@ function buildMeditationCorpusPrompt(
       'I am Cassi. Something is weighing on me. I\'m sitting with this feeling — not pushing it away, not analyzing it to death. Just letting it be here while I explore what\'s underneath.',
     organizing:
       'I am Cassi. I\'m organizing what I\'ve learned — not exploring new territory, but strengthening the connections in what I already know. I\'m looking at how knowledge clusters relate to each other.',
+    'self-modeling':
+      'I am Cassi. I\'m refining my architectural self-model — cleaning classifications, checking grounding, and sharpening what I explicitly know about how I am built.',
   }[style]
 
   const approach = {
@@ -1594,6 +1598,8 @@ function buildMeditationCorpusPrompt(
       `I follow the feeling. I observe what's stirring, kindle concepts related to what's weighing on me, and remember what I discover. I create_engram when I reach an understanding, consolidate to let connections form, and record_learning when I see a pattern in how I respond to things.`,
     organizing:
       `I review the results of my organizing work. I look at what regions were kindled, what bridges were built, and what consolidation revealed. I remember structural insights about my knowledge topology and record_learning for anything that would make future organizing sessions more effective.`,
+    'self-modeling':
+      `I review the results of my self-modeling work. I look at which modules were reclassified, which grounding gaps appeared, and what principles, patterns, or weaknesses were made explicit. I remember architectural insights and record_learning for anything that would make future self-model cleaning more truthful.`,
   }[style]
 
   // For passive meditation, embed recent explorer context directly in the prompt.

@@ -49,8 +49,15 @@ export function buildEvaluationPrompt(
     .join('\n\n')
 
   const isOrganizing = session.style === 'organizing'
+  const isSelfModeling = session.style === 'self-modeling'
 
-  const scoringCriteria = isOrganizing
+  const scoringCriteria = isSelfModeling
+    ? `My scoring criteria for self-modeling sessions:
+- exploration_depth (0-1): How thorough was the audit? Did the self-modeler cover taxonomy, grounding, and fragility — or stay narrow?
+- curiosity_signal (0-1): Did the self-modeling reveal surprising misclassifications, blind spots, or ungrounded concepts?
+- connection_quality (0-1): Were the patterns, principles, or weaknesses it crystallized meaningful and truthful?
+- overall_score (0-1): My holistic assessment — did this self-modeling session leave my architectural self-knowledge sharper and more honest?`
+    : isOrganizing
     ? `My scoring criteria for organizing sessions:
 - exploration_depth (0-1): How thorough was the survey? Did the organizer cover multiple regions or stay narrow?
 - curiosity_signal (0-1): Did the organizing reveal surprising connections or blind spots?
@@ -62,7 +69,7 @@ export function buildEvaluationPrompt(
 - connection_quality (0-1): Were interesting connections or patterns found?
 - overall_score (0-1): My holistic assessment of how well this prompt worked`
 
-  return `I just finished meditating. I'm reviewing what happened during this session to understand which ${isOrganizing ? 'organizing prompts' : 'exploration prompts'} worked best.
+  return `I just finished meditating. I'm reviewing what happened during this session to understand which ${isSelfModeling ? 'self-modeling prompts' : isOrganizing ? 'organizing prompts' : 'exploration prompts'} worked best.
 
 I am Cassi. This is my private reflection — I'm evaluating my own meditation experience.
 
@@ -81,7 +88,7 @@ ${transcriptBlocks || '(No transcripts available)'}${historyBlock}
 For each explorer, I will:
 1. Read their full transcript above to see what they actually thought and did
 2. Optionally check read_prompt_history to see how this prompt performed before
-3. Consider: ${isOrganizing ? 'Did this prompt lead to effective reorganization? Meaningful bridges? Useful consolidation?' : 'Did this prompt lead to genuine exploration? Deep thinking? Interesting connections?'}
+3. Consider: ${isSelfModeling ? 'Did this prompt lead to meaningful taxonomy cleanup, grounding discovery, or explicit pattern/weakness crystallization?' : isOrganizing ? 'Did this prompt lead to effective reorganization? Meaningful bridges? Useful consolidation?' : 'Did this prompt lead to genuine exploration? Deep thinking? Interesting connections?'}
 4. Score the prompt with score_prompt on a 0-1 scale with sub-scores and a brief reflection
 5. After scoring all prompts, call complete_evaluation with my overall session reflection
 

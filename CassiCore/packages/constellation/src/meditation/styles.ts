@@ -1,7 +1,7 @@
 import type { MeditationPrompt } from './types.js'
 import type { Affect } from '../../mnemic-field/types.js'
 
-export type MeditationStyle = 'passive' | 'active' | 'focused' | 'reflective' | 'organizing'
+export type MeditationStyle = 'passive' | 'active' | 'focused' | 'reflective' | 'organizing' | 'self-modeling'
 
 export interface StyleConfig {
   categoryPreferences: MeditationPrompt['category'][]
@@ -28,6 +28,10 @@ export const STYLE_CONFIGS: Record<MeditationStyle, StyleConfig> = {
   organizing: {
     categoryPreferences: ['organizing'],
     description: 'Memory reorganization. Cassi strengthens connections, bridges clusters, and accelerates learning across the entire brain.',
+  },
+  'self-modeling': {
+    categoryPreferences: ['self-modeling'],
+    description: 'Architectural self-knowledge hygiene. Cassi cleans, reclassifies, grounds, and distills the self-model into sharper principles, patterns, and weaknesses.',
   },
 }
 
