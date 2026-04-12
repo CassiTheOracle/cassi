@@ -2423,10 +2423,10 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Corpus strategic analysis.
-        // Uses ModelPool to get a ModelHandle for qwenPlus tier.
+        // Uses ModelPool 'unity' slot (qwenPlus tier) for high-capability synthesis.
         if (this.intelligence?.setCorpusLLMProvider && this.helixModelPool) {
           try {
-            const corpusHandle = await this.helixModelPool.acquire('corpus', 'qwenPlus', 'corpus-llm')
+            const corpusHandle = await this.helixModelPool.acquire('unity', undefined, 'corpus-llm')
             this.intelligence.setCorpusLLMProvider(corpusHandle)
             this.logger.info('CorpusLLM handle wired', { provider: corpusHandle.provider, model: corpusHandle.model })
           } catch (err) {
@@ -2435,10 +2435,10 @@ export class Daemon {
         }
 
         // Wire BrainstemLLM adapter for Helix per-branch annotation.
-        // Uses ModelPool to get a ModelHandle for background tier (haiku).
+        // Uses ModelPool 'mini-helix:brainstem' slot (haiku with gpt-5-mini fallback).
         if (this.intelligence?.setBrainstemLLMProvider && this.helixModelPool) {
           try {
-            const bsHandle = await this.helixModelPool.acquire('brainstem', 'background', 'brainstem-llm')
+            const bsHandle = await this.helixModelPool.acquire('mini-helix:brainstem', undefined, 'brainstem-llm')
             this.intelligence.setBrainstemLLMProvider(bsHandle)
             this.logger.info('BrainstemLLM handle wired', { provider: bsHandle.provider, model: bsHandle.model })
           } catch (err) {
