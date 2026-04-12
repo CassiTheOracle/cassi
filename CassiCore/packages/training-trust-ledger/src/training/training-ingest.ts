@@ -512,16 +512,19 @@ export class TrainingIngest {
 
     try {
       const checkpoint = this.store.getCheckpoint('lumen', 'sessions')
-      const lastId = checkpoint?.last_processed_id ?? ''
+      // WHY: Use created_at timestamp for checkpointing — lumen session IDs mix formats
+      // (lumen-1xxxxxxx vs lumen-flux-...) so string comparison fails for ordering.
+      // Timestamps are monotonically increasing integers and work across all ID formats.
+      const lastTs = checkpoint?.last_processed_ts ?? 0
       const limit = opts.batchSize ?? 100
 
       // WHY: Lumen DB uses `sessions` (not `lumen_sessions`) with PK `id` (not `session_id`)
       const sessions = sourceDb.prepare(`
         SELECT * FROM sessions
-        WHERE id > ?
-        ORDER BY id ASC
+        WHERE created_at > ?
+        ORDER BY created_at ASC
         LIMIT ?
-      `).all(lastId, limit) as any[]
+      `).all(lastTs, limit) as any[]
 
       if (sessions.length === 0) {
         result.durationMs = Date.now() - start
@@ -695,7 +698,7 @@ export class TrainingIngest {
           source_db: 'lumen',
           source_table: 'sessions',
           last_processed_id: sessions[sessions.length - 1].id,
-          last_processed_ts: now,
+          last_processed_ts: sessions[sessions.length - 1].created_at ?? now,
           rows_ingested: (checkpoint?.rows_ingested ?? 0) + result.rowsIngested,
           updated_at: now,
         })
