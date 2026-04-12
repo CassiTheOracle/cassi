@@ -1952,13 +1952,20 @@ export class Daemon {
                 async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
                   const messages = [{ role: 'user' as const, content: opts.prompt }]
                   let content = ''
-                  const controller = new AbortController()
-                  const timeout = setTimeout(() => controller.abort(), opts.timeoutMs)
+                  const { ActivityTimeout } = await import('./utils/activity-timeout.js')
+                  const activityTimeout = new ActivityTimeout({
+                    inactivityMs: opts.timeoutMs,
+                    maxDurationMs: opts.timeoutMs * 3,
+                    label: 'synapse-llm',
+                  })
                   try {
-                    for await (const chunk of firstProvider.complete(messages, { model: opts.modelTier, maxTokens: opts.maxTokens }, undefined, controller.signal)) {
+                    for await (const chunk of ActivityTimeout.wrapIterator(
+                      firstProvider.complete(messages, { model: opts.modelTier, maxTokens: opts.maxTokens }, undefined, activityTimeout.signal),
+                      activityTimeout,
+                    )) {
                       if (chunk.type === 'token' && chunk.text) content += chunk.text
                     }
-                  } finally { clearTimeout(timeout) }
+                  } finally { activityTimeout.dispose() }
                   return { content, truncated: false }
                 },
               },
