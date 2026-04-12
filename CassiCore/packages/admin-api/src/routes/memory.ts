@@ -708,7 +708,7 @@ export async function handleMemoryRoutes(
         }
       }
 
-      // Neural Kindling: also store a gradient request linking feedback to the last tape
+      // Neural Kindling: also store a gradient request linking feedback to the last forward trace
       let gradientStored = false
       try {
         gradientStored = field.recordEnrichFeedback(feedback)
