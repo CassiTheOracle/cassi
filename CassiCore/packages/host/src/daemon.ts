@@ -1826,6 +1826,16 @@ export class Daemon {
         ;(this.intelligence as any).__selfModelField = selfModelField
         ;(this.intelligence as any).__interFieldBridge = interFieldBridge
 
+        if (this.intelligence?.meditation) {
+          if (typeof (this.intelligence.meditation as any).setSelfModelField === 'function') {
+            (this.intelligence.meditation as any).setSelfModelField(selfModelField)
+          }
+          if (typeof (this.intelligence.meditation as any).setInterFieldBridge === 'function') {
+            (this.intelligence.meditation as any).setInterFieldBridge(interFieldBridge)
+          }
+          this.logger.info('Meditation Self-Model Field and bridge wired')
+        }
+
         this.logger.info('Self-Model Field initialized with InterFieldBridge')
 
         // Run ingestion from GitNexus in background (non-blocking)
