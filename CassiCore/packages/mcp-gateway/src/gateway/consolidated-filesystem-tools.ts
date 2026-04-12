@@ -171,9 +171,10 @@ export async function executeFilesystemConsolidatedTool(
       // so we can slice from the offset position. Without this, Serena's default
       // max_answer_chars may be smaller than the offset, causing "beyond file length"
       // errors that make agents unable to paginate through large files.
+      const DEFAULT_READ_LIMIT = 100_000 // 100KB default for file reads
       const effectiveMaxChars = (offset && typeof offset === 'number' && offset > 0)
-        ? offset + (limit ?? 30_000)
-        : limit
+        ? offset + (limit ?? DEFAULT_READ_LIMIT)
+        : (limit ?? DEFAULT_READ_LIMIT)
       const result = await router('serena_read_file', {
         relative_path: targetPath,
         max_answer_chars: effectiveMaxChars,
