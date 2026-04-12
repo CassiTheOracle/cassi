@@ -509,8 +509,15 @@ export async function handleMemoryRoutes(
       const result = await ingestor.ingest({
         minCommunitySize: body?.minCommunitySize ?? 5,
         weaknessThreshold: body?.weaknessThreshold ?? 0.6,
+        updateExisting: body?.updateExisting ?? true,
       })
-      sendJSON(res, 200, { ok: true, ...result })
+
+      let seeded = 0
+      if (bridge) {
+        seeded = bridge.seedEpisodicLinks()
+      }
+
+      sendJSON(res, 200, { ok: true, ...result, episodicLinksSeeded: seeded })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -524,6 +531,63 @@ export async function handleMemoryRoutes(
     if (!bridge) return true
     try {
       sendJSON(res, 200, { ok: true, portals: bridge.getPortalStats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/store — store a new self-model engram
+  if (parts[1] === 'self-model' && parts[2] === 'store' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const nodeType = body?.nodeType
+      const name = body?.name
+      const description = body?.description ?? ''
+      const metadata = body?.metadata ?? {}
+      const tags = body?.tags ?? []
+
+      if (!nodeType || !name) {
+        sendJSON(res, 400, { error: 'nodeType and name are required' })
+        return true
+      }
+
+      const engram = smf.store(nodeType, name, description, metadata, { tags })
+      sendJSON(res, 200, { ok: true, engram: { id: engram.id, content: engram.content, nodeType: engram.nodeType, tags: engram.tags } })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // PATCH /memory/self-model/update — update an existing self-model engram
+  if (parts[1] === 'self-model' && parts[2] === 'update' && !parts[3] && method === 'PATCH') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const id = body?.id
+      if (!id) {
+        sendJSON(res, 400, { error: 'id is required' })
+        return true
+      }
+
+      const patch: Record<string, unknown> = {}
+      if (body.content !== undefined) patch.content = body.content
+      if (body.metadata !== undefined) patch.metadata = body.metadata
+      if (body.tags !== undefined) patch.tags = body.tags
+
+      const updated = smf.update(id, patch)
+      if (!updated) {
+        sendJSON(res, 404, { error: 'Engram not found' })
+        return true
+      }
+
+      sendJSON(res, 200, { ok: true, engram: { id: updated.id, content: updated.content, nodeType: updated.nodeType, tags: updated.tags } })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
