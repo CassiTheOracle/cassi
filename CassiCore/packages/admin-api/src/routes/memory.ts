@@ -212,7 +212,7 @@ export async function handleMemoryRoutes(
     try {
       const body = await parseBody(req).catch(() => ({}))
       const field = getMnemicField(logger, daemon)
-      const result = field.consolidate({
+      const result = await field.consolidate({
         skipRadiance: !!body?.skipRadiance,
         skipDrift: !!body?.skipDrift,
         skipNuclei: !!body?.skipNuclei,
