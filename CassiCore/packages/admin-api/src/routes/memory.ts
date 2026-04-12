@@ -3,6 +3,8 @@ import { MnemicField } from '../intelligence/mnemic-field/index.js'
 import { migrateMemoryAndArchives, migrateMemoryOnly } from '../intelligence/mnemic-field/migrate-memory.js'
 import { getEmbeddingService } from '../intelligence/embeddings/embedding-service.js'
 import { getDataDir } from '../utils/paths.js'
+import type { SelfModelField } from '../intelligence/mnemic-field/self-model/self-model-field.js'
+import type { InterFieldBridge } from '../intelligence/mnemic-field/self-model/inter-field-bridge.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import type http from 'node:http'
@@ -25,6 +27,36 @@ function getMnemicField(logger: ILogger, daemon?: any): MnemicField {
   mnemicField = new MnemicField(logger, dbPath)
   if (daemon) (daemon as any).__mnemicField = mnemicField
   return mnemicField
+}
+
+function getSelfModelField(daemon: any): SelfModelField | null {
+  return (daemon as any).__selfModelField ?? (daemon?.intelligence as any)?.__selfModelField ?? null
+}
+
+function getInterFieldBridge(daemon: any): InterFieldBridge | null {
+  return (daemon as any).__interFieldBridge ?? (daemon?.intelligence as any)?.__interFieldBridge ?? null
+}
+
+/** Unwrap self-model or send 503; returns null if unavailable. */
+function requireSelfModel(
+  daemon: any,
+  res: http.ServerResponse,
+  sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void,
+): SelfModelField | null {
+  const smf = getSelfModelField(daemon)
+  if (!smf) sendJSON(res, 503, { error: 'Self-Model Field not available' })
+  return smf
+}
+
+/** Unwrap bridge or send 503; returns null if unavailable. */
+function requireBridge(
+  daemon: any,
+  res: http.ServerResponse,
+  sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void,
+): InterFieldBridge | null {
+  const bridge = getInterFieldBridge(daemon)
+  if (!bridge) sendJSON(res, 503, { error: 'InterFieldBridge not available' })
+  return bridge
 }
 
 function scheduleMigrationJob(jobId: string, useLocalEmbeddings: boolean, logger: ILogger, daemon?: any): void {
@@ -348,6 +380,157 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // Self-Model Field routes
+  // The self-model stores semantic understanding of the codebase architecture.
+
+  // GET /memory/self-model/stats — self-model field statistics
+  if (parts[1] === 'self-model' && parts[2] === 'stats' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      sendJSON(res, 200, { ok: true, stats: smf.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/retrieve?query=...&limit=N — self-model retrieval via kindling
+  if (parts[1] === 'self-model' && parts[2] === 'retrieve' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const query = url.searchParams.get('query') ?? ''
+      if (!query.trim()) {
+        sendJSON(res, 400, { error: 'query parameter is required' })
+        return true
+      }
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+      const hits = smf.retrieve(query, { limit })
+      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({
+        id: h.id, nodeType: h.nodeType, content: h.content,
+        score: h.score, charge: h.charge, tags: h.tags,
+        metadata: h.metadata,
+      }))})
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/modules?domain=...&limit=N — list module engrams
+  if (parts[1] === 'self-model' && parts[2] === 'modules' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const domain = url.searchParams.get('domain')
+      const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
+      const modules = domain
+        ? smf.findModulesByDomain(domain, limit)
+        : smf.list('module', limit)
+      sendJSON(res, 200, { ok: true, modules })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/weaknesses?severity=...&limit=N — list weakness engrams
+  if (parts[1] === 'self-model' && parts[2] === 'weaknesses' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const severity = url.searchParams.get('severity') as 'low' | 'medium' | 'high' | 'critical' | null
+      const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
+      const weaknesses = smf.findWeaknesses(severity ?? undefined, limit)
+      sendJSON(res, 200, { ok: true, weaknesses })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/dependency-graph — module dependency graph
+  if (parts[1] === 'self-model' && parts[2] === 'dependency-graph' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const graph = smf.getDependencyGraph()
+      sendJSON(res, 200, { ok: true, graph: graph.map(g => ({
+        module: { id: g.module.id, content: g.module.content, metadata: g.module.metadata },
+        dependsOn: g.dependsOn.map(d => ({ id: d.id, content: d.content, metadata: d.metadata })),
+      }))})
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/cross-retrieve?query=...&limit=N&prefer=... — cross-field retrieval
+  if (parts[1] === 'self-model' && parts[2] === 'cross-retrieve' && !parts[3] && method === 'GET') {
+    const bridge = requireBridge(daemon, res, sendJSON)
+    if (!bridge) return true
+    try {
+      const query = url.searchParams.get('query') ?? ''
+      if (!query.trim()) {
+        sendJSON(res, 400, { error: 'query parameter is required' })
+        return true
+      }
+      const limit = parseInt(url.searchParams.get('limit') ?? '12', 10)
+      const prefer = url.searchParams.get('prefer') as 'episodic' | 'self-model' | null
+      const result = bridge.crossRetrieve(query, { limit, preferField: prefer ?? undefined })
+      sendJSON(res, 200, { ok: true, ...result, hits: result.hits.map(h => ({
+        id: h.id, nodeType: h.nodeType, content: h.content,
+        score: h.score, charge: h.charge, tags: h.tags,
+        sourceField: h.sourceField, crossFieldBoosted: h.crossFieldBoosted,
+        metadata: h.metadata,
+      }))})
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/ingest — trigger self-model ingestion from GitNexus
+  if (parts[1] === 'self-model' && parts[2] === 'ingest' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const bridge = getInterFieldBridge(daemon)
+      const { SelfModelIngestor } = await import('../intelligence/mnemic-field/self-model/ingestor.js')
+      const ingestor = new SelfModelIngestor(smf, logger, process.cwd(), bridge ?? undefined)
+      const result = await ingestor.ingest({
+        minCommunitySize: body?.minCommunitySize ?? 5,
+        weaknessThreshold: body?.weaknessThreshold ?? 0.6,
+      })
+      sendJSON(res, 200, { ok: true, ...result })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/portals — portal pair statistics
+  if (parts[1] === 'self-model' && parts[2] === 'portals' && !parts[3] && method === 'GET') {
+    const bridge = requireBridge(daemon, res, sendJSON)
+    if (!bridge) return true
+    try {
+      sendJSON(res, 200, { ok: true, portals: bridge.getPortalStats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/enrich — Mnemic Field retrieval with first-person formatting
   if (parts[1] === 'enrich' && !parts[2] && method === 'POST') {
     try {
@@ -362,7 +545,25 @@ export async function handleMemoryRoutes(
       const complexity = body?.complexity ?? 'normal'
       const limit = typeof body?.limit === 'number' ? body.limit : 12
 
-      const hits = field.retrieve(query, { complexity, limit })
+      // Attempt cross-field retrieval (episodic + self-model) when available
+      const bridge = getInterFieldBridge(daemon)
+      let hits: BriefingHit[]
+      let selfModelCount = 0
+      let crossFieldBoosts = 0
+
+      if (bridge) {
+        try {
+          const crossResult = bridge.crossRetrieve(query, { complexity, limit })
+          hits = crossResult.hits as BriefingHit[]
+          selfModelCount = crossResult.selfModelCount
+          crossFieldBoosts = crossResult.crossFieldBoosts
+        } catch (crossErr) {
+          logger.warn('Cross-field retrieval failed, falling back to episodic only', { error: String(crossErr) })
+          hits = field.retrieve(query, { complexity, limit })
+        }
+      } else {
+        hits = field.retrieve(query, { complexity, limit })
+      }
 
       if (hits.length === 0) {
         sendJSON(res, 200, {
@@ -373,8 +574,24 @@ export async function handleMemoryRoutes(
         return true
       }
 
-      // Build first-person briefing
+      // Build first-person briefing from episodic hits
       const sections = buildEnrichmentBriefing(hits, query)
+
+      // Append self-model section if cross-field produced self-model results
+      if (selfModelCount > 0) {
+        const smHits = hits.filter(h => (h as any).sourceField === 'self-model')
+        if (smHits.length > 0) {
+          const smLines = smHits.slice(0, 5).map(h => {
+            const prefix = h.nodeType === 'module' ? '[Module]'
+              : h.nodeType === 'capability' ? '[Capability]'
+              : h.nodeType === 'weakness' ? '[Weakness]'
+              : h.nodeType === 'pattern' ? '[Pattern]'
+              : `[${h.nodeType}]`
+            return `- ${prefix} ${h.content.slice(0, 300)}`
+          })
+          sections.push(`## Architectural self-knowledge\n\n${smLines.join('\n')}`)
+        }
+      }
 
       const affectState = field.getAffect()
       if (affectState.label !== 'neutral') {
@@ -387,6 +604,8 @@ export async function handleMemoryRoutes(
         markdown: sections.join('\n\n'),
         engramIds: hits.map(h => h.id),
         hitCount: hits.length,
+        selfModelCount,
+        crossFieldBoosts,
         affect: affectState,
       })
       return true

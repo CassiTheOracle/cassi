@@ -949,6 +949,38 @@ export async function handleIntelligenceRoutes(
         logger.warn('Workspace enrich: mnemic field search failed', { error: String(err) })
       }
 
+      // Search the Self-Model Field (architectural knowledge — modules, capabilities, weaknesses)
+      try {
+        const smf = (daemon as any).__selfModelField ?? (daemon?.intelligence as any)?.__selfModelField
+        if (smf && typeof smf.retrieve === 'function') {
+          const smHits = smf.retrieve(query, { limit: 3 })
+          for (const hit of smHits) {
+            const prefix = hit.nodeType === 'module' ? '[Module]'
+              : hit.nodeType === 'capability' ? '[Capability]'
+              : hit.nodeType === 'weakness' ? '[Weakness]'
+              : `[${hit.nodeType}]`
+            const signal = {
+              signalId: `${signalBase}-selfmodel-${submitted}`,
+              source: 'self-model',
+              sessionId,
+              type: 'memory' as const,
+              content: `${prefix} ${hit.content}`,
+              luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+              createdAt: Date.now(),
+              metadata: {
+                engramId: hit.id,
+                nodeType: hit.nodeType,
+                score: hit.score,
+                sourceField: 'self-model',
+              },
+            }
+            if (workspace.submit(signal)) submitted++
+          }
+        }
+      } catch (err) {
+        logger.warn('Workspace enrich: self-model search failed', { error: String(err) })
+      }
+
       // Search the classic Memory module (archived conversations, insights, patterns)
       const memory = daemon.intelligence?.memory
       if (memory) {
