@@ -36,8 +36,6 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_pineal_category ON pineal_facets(domain, category, active);
   CREATE INDEX IF NOT EXISTS idx_pineal_conviction ON pineal_facets(conviction DESC);
   CREATE INDEX IF NOT EXISTS idx_pineal_evolution ON pineal_facets(evolved_from);
-  CREATE INDEX IF NOT EXISTS idx_pineal_pinned ON pineal_facets(pinned, active);
-  CREATE INDEX IF NOT EXISTS idx_pineal_scope ON pineal_facets(scope, active);
 `
 
 const MIGRATION_SQL = `
@@ -380,11 +378,15 @@ export class PinealStore {
     if (!hasPinned) {
       this.db.exec(MIGRATION_SQL)
       this.logger.info('[pineal-store] Migrated: added pinned column')
+    } else {
+      this.db.exec(`CREATE INDEX IF NOT EXISTS idx_pineal_pinned ON pineal_facets(pinned, active)`)
     }
     const hasScope = cols.some(c => c.name === 'scope')
     if (!hasScope) {
       this.db.exec(MIGRATION_SCOPE_SQL)
       this.logger.info('[pineal-store] Migrated: added scope column')
+    } else {
+      this.db.exec(`CREATE INDEX IF NOT EXISTS idx_pineal_scope ON pineal_facets(scope, active)`)
     }
   }
 
