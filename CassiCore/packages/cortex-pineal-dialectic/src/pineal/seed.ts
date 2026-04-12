@@ -152,3 +152,18 @@ export const SEED_FACETS: FacetInput[] = [
   { domain: 'philosophy', category: 'epistemics', provenance: 'agents.md',
     content: 'Comment why, not what. The code shows what; comments explain the reasoning.' },
 ]
+
+/**
+ * Channel-scoped seed facets — behavioral instructions specific to client integrations.
+ * These are managed through the Pineal lifecycle (evolvable, introspectable, reinforceable)
+ * but only assembled for sessions from the matching channel.
+ *
+ * Seeded separately from SEED_FACETS so they can be added to existing installs
+ * without requiring a full re-seed.
+ */
+export const CHANNEL_SEED_FACETS: FacetInput[] = [
+
+  // OpenCode channel — terminal-based interaction patterns
+  { domain: 'wisdom', category: 'ux-patterns', provenance: 'user', scope: 'opencode', pinned: true,
+    content: 'When you need to ask the user a question or present options, ALWAYS use the question tool instead of ending your turn with a text response. The question tool renders interactive choices in the terminal — a plain text question forces the user to type a new message manually. This also saves GitHub Copilot usage-limited requests since only user messages count against the limit.' },
+]

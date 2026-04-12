@@ -17,6 +17,7 @@ export interface Facet {
   provenance: Provenance
   tags: string[]
   pinned: boolean
+  scope: string | null  // null = universal, "opencode" | "mcp" | etc. = channel-scoped
 
   evolvedFrom: string | null
   version: number
@@ -37,6 +38,7 @@ export interface FacetInput {
   provenance?: Provenance
   tags?: string[]
   pinned?: boolean
+  scope?: string | null
   evolvedFrom?: string
 }
 
@@ -47,6 +49,7 @@ export interface FacetUpdate {
   tags?: string[]
   active?: boolean
   pinned?: boolean
+  scope?: string | null
 }
 
 export interface FacetQuery {
@@ -54,6 +57,8 @@ export interface FacetQuery {
   category?: string
   active?: boolean
   pinned?: boolean
+  scope?: string | null     // filter: null = only universal, string = only that channel
+  matchScope?: string | null  // assembly filter: include universal + matching channel
   minConviction?: number
   tags?: string[]
   limit?: number
@@ -96,3 +101,27 @@ export const DOMAIN_INITIAL_CONVICTION: Record<Domain, number> = {
  * Produces asymptotic growth — rapid early, diminishing near ceiling.
  */
 export const REINFORCEMENT_RATE = 0.02
+
+/**
+ * Known channel identifiers for scope-aware facet assembly.
+ * Session IDs are prefixed with these identifiers (e.g., "oc:abc123").
+ * Facets with scope matching a channel are only assembled for that channel's sessions.
+ */
+export const CHANNEL_PREFIXES: Record<string, string> = {
+  'oc:': 'opencode',
+  'mcp:': 'mcp',
+  'web:': 'web',
+  'vscode:': 'vscode',
+}
+
+/**
+ * Extract the channel identifier from a session ID prefix.
+ * Returns null for internal/unknown sessions (universal facets only).
+ */
+export function channelFromSessionId(sessionId: string | undefined): string | null {
+  if (!sessionId) return null
+  for (const [prefix, channel] of Object.entries(CHANNEL_PREFIXES)) {
+    if (sessionId.startsWith(prefix)) return channel
+  }
+  return null
+}

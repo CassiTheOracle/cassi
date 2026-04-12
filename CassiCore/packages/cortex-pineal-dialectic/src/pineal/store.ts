@@ -22,6 +22,7 @@ const SCHEMA_SQL = `
     provenance TEXT NOT NULL DEFAULT 'self',
     tags TEXT NOT NULL DEFAULT '[]',
     pinned INTEGER NOT NULL DEFAULT 0,
+    scope TEXT DEFAULT NULL,
     evolved_from TEXT,
     version INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
@@ -36,11 +37,17 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_pineal_conviction ON pineal_facets(conviction DESC);
   CREATE INDEX IF NOT EXISTS idx_pineal_evolution ON pineal_facets(evolved_from);
   CREATE INDEX IF NOT EXISTS idx_pineal_pinned ON pineal_facets(pinned, active);
+  CREATE INDEX IF NOT EXISTS idx_pineal_scope ON pineal_facets(scope, active);
 `
 
 const MIGRATION_SQL = `
   ALTER TABLE pineal_facets ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
   CREATE INDEX IF NOT EXISTS idx_pineal_pinned ON pineal_facets(pinned, active);
+`
+
+const MIGRATION_SCOPE_SQL = `
+  ALTER TABLE pineal_facets ADD COLUMN scope TEXT DEFAULT NULL;
+  CREATE INDEX IF NOT EXISTS idx_pineal_scope ON pineal_facets(scope, active);
 `
 
 let counter = 0
@@ -61,6 +68,7 @@ function rowToFacet(row: Record<string, unknown>): Facet {
     provenance: row.provenance as Facet['provenance'],
     tags: JSON.parse(row.tags as string),
     pinned: (row.pinned as number) === 1,
+    scope: (row.scope as string) ?? null,
     evolvedFrom: row.evolved_from as string | null,
     version: row.version as number,
     createdAt: row.created_at as string,
@@ -111,11 +119,11 @@ export class PinealStore {
     if (!this._stmts) {
       this._stmts = {
         insert: this.db.prepare(`
-          INSERT INTO pineal_facets (id, domain, category, content, conviction, salience, provenance, tags, pinned, evolved_from, version, created_at, last_reinforced, reinforcements, active)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+          INSERT INTO pineal_facets (id, domain, category, content, conviction, salience, provenance, tags, pinned, scope, evolved_from, version, created_at, last_reinforced, reinforcements, active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
         `),
         update: this.db.prepare(`
-          UPDATE pineal_facets SET content = ?, conviction = ?, salience = ?, tags = ?, active = ?, pinned = ?
+          UPDATE pineal_facets SET content = ?, conviction = ?, salience = ?, tags = ?, active = ?, pinned = ?, scope = ?
           WHERE id = ?
         `),
         getById: this.db.prepare(`SELECT * FROM pineal_facets WHERE id = ?`),
@@ -193,6 +201,7 @@ export class PinealStore {
       input.provenance ?? 'self',
       JSON.stringify(input.tags ?? []),
       input.pinned ? 1 : 0,
+      input.scope ?? null,
       input.evolvedFrom ?? null,
       version,
       now,
@@ -218,6 +227,7 @@ export class PinealStore {
       JSON.stringify(updates.tags ?? existing.tags),
       updates.active !== undefined ? (updates.active ? 1 : 0) : (existing.active ? 1 : 0),
       updates.pinned !== undefined ? (updates.pinned ? 1 : 0) : (existing.pinned ? 1 : 0),
+      updates.scope !== undefined ? updates.scope : existing.scope,
       id,
     )
 
@@ -249,6 +259,7 @@ export class PinealStore {
       provenance: input?.provenance ?? original.provenance,
       tags: input?.tags ?? original.tags,
       pinned: input?.pinned ?? original.pinned,
+      scope: input?.scope !== undefined ? input.scope : original.scope,
       evolvedFrom: id,
     })
   }
@@ -272,6 +283,13 @@ export class PinealStore {
 
     if (query.pinned !== undefined) {
       facets = facets.filter(f => f.pinned === query.pinned)
+    }
+    if (query.scope !== undefined) {
+      facets = facets.filter(f => f.scope === query.scope)
+    }
+    if (query.matchScope !== undefined) {
+      // Assembly mode: include universal facets (scope=null) + matching channel
+      facets = facets.filter(f => f.scope === null || f.scope === query.matchScope)
     }
     if (query.minConviction !== undefined) {
       facets = facets.filter(f => f.conviction >= query.minConviction!)
@@ -362,6 +380,11 @@ export class PinealStore {
     if (!hasPinned) {
       this.db.exec(MIGRATION_SQL)
       this.logger.info('[pineal-store] Migrated: added pinned column')
+    }
+    const hasScope = cols.some(c => c.name === 'scope')
+    if (!hasScope) {
+      this.db.exec(MIGRATION_SCOPE_SQL)
+      this.logger.info('[pineal-store] Migrated: added scope column')
     }
   }
 

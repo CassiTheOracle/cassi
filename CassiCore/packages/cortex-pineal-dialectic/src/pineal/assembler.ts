@@ -1,5 +1,6 @@
 import type { PinealStore } from './store.js'
 import type { Facet, SkillSummary } from './types.js'
+import { channelFromSessionId } from './types.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
 /**
@@ -12,6 +13,11 @@ import type { ILogger } from '../../../types/interfaces.js'
  *   4. Include remaining philosophy facets ranked by conviction (established beliefs)
  *   5. Append skills index as compact comma-separated list
  *   6. Non-pinned facets respect the character budget
+ *
+ * Channel-scoped facets: facets with a `scope` matching the session's channel
+ * are included alongside universal (scope=null) facets. Scoped facets from other
+ * channels are excluded. This enables per-integration behavior rules (e.g.,
+ * "prefer the question tool" for OpenCode) managed through the Pineal lifecycle.
  *
  * Within each domain, the store returns pinned facets first, then by conviction DESC.
  * Output is natural language prose grouped by domain, not bullet lists.
@@ -27,13 +33,20 @@ export class PinealAssembler {
   /**
    * Assemble relevant facets for a turn injection.
    * Returns formatted natural language text ready for `<pineal>` wrapping.
+   *
+   * @param sessionId — used to determine channel for scope filtering
+   * @param channel — explicit channel override (takes precedence over sessionId prefix)
    */
-  assemble(_sessionId?: string): { text: string; facetIds: string[] } {
+  assemble(sessionId?: string, channel?: string | null): { text: string; facetIds: string[] } {
+    const resolvedChannel = channel ?? channelFromSessionId(sessionId)
     const facetIds: string[] = []
     const sections: string[] = []
     let remaining = this.charBudget
 
-    const identity = this.store.list({ domain: 'identity', active: true })
+    // matchScope: include universal (scope=null) + channel-specific facets
+    const queryBase = { active: true as const, matchScope: resolvedChannel }
+
+    const identity = this.store.list({ ...queryBase, domain: 'identity' })
     const identitySection = this.formatDomain('Identity', identity, remaining)
     if (identitySection.text) {
       sections.push(identitySection.text)
@@ -41,7 +54,7 @@ export class PinealAssembler {
       facetIds.push(...identitySection.ids)
     }
 
-    const wisdom = this.store.list({ domain: 'wisdom', active: true })
+    const wisdom = this.store.list({ ...queryBase, domain: 'wisdom' })
     const wisdomSection = this.formatDomain('Wisdom', wisdom, remaining)
     if (wisdomSection.text) {
       sections.push(wisdomSection.text)
@@ -49,7 +62,7 @@ export class PinealAssembler {
       facetIds.push(...wisdomSection.ids)
     }
 
-    const philosophy = this.store.list({ domain: 'philosophy', active: true })
+    const philosophy = this.store.list({ ...queryBase, domain: 'philosophy' })
     const philSection = this.formatDomain('Philosophy', philosophy, remaining)
     if (philSection.text) {
       sections.push(philSection.text)
@@ -63,6 +76,13 @@ export class PinealAssembler {
       if (skillsIndex) {
         sections.push(skillsIndex)
       }
+    }
+
+    if (resolvedChannel) {
+      this.logger.debug('[pineal-assembler] Assembled with channel scope', {
+        channel: resolvedChannel,
+        facetCount: facetIds.length,
+      })
     }
 
     return {

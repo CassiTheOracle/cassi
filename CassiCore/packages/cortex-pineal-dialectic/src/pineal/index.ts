@@ -3,7 +3,7 @@ import { PinealStore } from './store.js'
 import { FacetManager } from './facet.js'
 import { SkillLoader } from './skill-loader.js'
 import { parseAllSkillFiles } from './skill-parser.js'
-import { SEED_FACETS } from './seed.js'
+import { SEED_FACETS, CHANNEL_SEED_FACETS } from './seed.js'
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain, DomainStats, PinealSnapshot, SkillSummary } from './types.js'
@@ -26,6 +26,9 @@ export class PinealModule extends BaseCognitiveModule {
     this.store = new PinealStore(this.logger)
     this.facets = new FacetManager(this.store, this.logger)
     this.skills = new SkillLoader(this.store, this.logger)
+
+    // Seed channel-scoped facets on every boot (additive, idempotent by content)
+    this.seedChannelFacets()
 
     const count = this.store.countActive()
     this.logger.info('[pineal] Initialized', { activeFacets: count })
@@ -137,6 +140,38 @@ export class PinealModule extends BaseCognitiveModule {
   }
 
   /**
+   * Seed channel-scoped facets for client integrations.
+   * Unlike seed(), this is additive — it checks for duplicates by content+scope
+   * and only creates missing facets. Safe to call on every boot.
+   * Returns the number of facets created.
+   */
+  seedChannelFacets(): number {
+    let created = 0
+
+    for (const input of CHANNEL_SEED_FACETS) {
+      // Check if a facet with the same content+scope already exists
+      const existing = this.store.list({
+        domain: input.domain,
+        category: input.category,
+        active: true,
+        scope: input.scope ?? null,
+      })
+
+      const duplicate = existing.find(f => f.content === input.content)
+      if (duplicate) continue
+
+      this.facets.create(input)
+      created++
+    }
+
+    if (created > 0) {
+      this.logger.info('[pineal] Seeded channel-scoped facets', { created })
+    }
+
+    return created
+  }
+
+  /**
    * Parse skill files from skill directories into praxis facets.
    * Idempotent by skill category — re-parsing retires old facets and creates new ones.
    */
@@ -196,4 +231,4 @@ export class PinealModule extends BaseCognitiveModule {
 }
 
 export type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain, DomainStats, PinealSnapshot, SkillSummary } from './types.js'
-export { DOMAINS, DOMAIN_INITIAL_CONVICTION, REINFORCEMENT_RATE } from './types.js'
+export { DOMAINS, DOMAIN_INITIAL_CONVICTION, REINFORCEMENT_RATE, CHANNEL_PREFIXES, channelFromSessionId } from './types.js'
