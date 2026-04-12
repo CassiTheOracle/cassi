@@ -125,6 +125,10 @@ export class ExternalClientCurator {
    * We construct minimal synthetic messages that carry enough information for
    * the scorer (term extraction, file path detection, role-based credibility)
    * without requiring the full AI SDK message structure.
+   *
+   * Each synthetic message is tagged with `_originalIndex` so that
+   * `mapCuratedToIndices` can recover the original digest position after
+   * curation, without relying on fragile role-matching heuristics.
    */
   private digestsToMessages(digests: ExternalMessageDigest[]): any[] {
     return digests.map(digest => {
@@ -142,6 +146,7 @@ export class ExternalClientCurator {
           // real char count for budget tracking, or it will underestimate message
           // sizes by 10-50x and keep too many messages.
           _originalChars: digest.chars,
+          _originalIndex: digest.index,
         }
       }
 
@@ -158,6 +163,7 @@ export class ExternalClientCurator {
             text: digest.text,
           }],
           _originalChars: digest.chars,
+          _originalIndex: digest.index,
         }
       }
 
@@ -165,6 +171,7 @@ export class ExternalClientCurator {
         role: digest.role,
         content: digest.text,
         _originalChars: digest.chars,
+        _originalIndex: digest.index,
       }
     })
   }
@@ -172,39 +179,26 @@ export class ExternalClientCurator {
   /**
    * Map curated messages back to original digest indices.
    *
-   * The thalamus preserves relative order of surviving messages — it drops
-   * and compresses but never reorders. We walk both arrays with two pointers:
-   * for each curated message, advance the original pointer until we find a
-   * role match, then record that index as kept. Gap notes (role 'system'
-   * with bracketed text) are skipped as they have no original index.
+   * Synthetic messages are tagged with `_originalIndex` in `digestsToMessages`.
+   * The tag survives the thalamus compressor (which uses `{ ...msg, ... }` spread)
+   * and assembly (kept messages are referenced directly or spread). We simply read
+   * the tag back to recover the original position.
+   *
+   * Gap notes created by `assembleByThreshold` carry the index of the message they
+   * annotate (via the same spread), so they are counted as kept. Synthesized system
+   * messages with no `_originalIndex` are skipped.
    */
   private mapCuratedToIndices(
     curatedMessages: any[],
     originalDigests: ExternalMessageDigest[],
   ): number[] {
     const keptIndices: number[] = []
-    let origPtr = 0
 
     for (const msg of curatedMessages) {
-      const role = msg?.role ?? ''
-      const text = typeof msg.content === 'string'
-        ? msg.content
-        : Array.isArray(msg.content)
-          ? msg.content.map((c: any) => c?.text ?? c?.content ?? '').join('')
-          : ''
-
-      // Skip gap notes inserted by the thalamus
-      if (role === 'system' && text.startsWith('[')) continue
-
-      // Advance original pointer to find the matching message
-      while (origPtr < originalDigests.length) {
-        const orig = originalDigests[origPtr]
-        if (orig.role === role) {
-          keptIndices.push(orig.index)
-          origPtr++
-          break
-        }
-        origPtr++
+      const idx = msg?._originalIndex
+      if (typeof idx !== 'number') continue
+      if (idx >= 0 && idx < originalDigests.length) {
+        keptIndices.push(idx)
       }
     }
 
