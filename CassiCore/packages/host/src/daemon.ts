@@ -2423,32 +2423,26 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Corpus strategic analysis.
-        // Uses alibaba-coding/qwen3.6-plus for high-capability synthesis and cross-branch reasoning.
-        if (this.intelligence?.setCorpusLLMProvider) {
+        // Uses ModelPool to get a ModelHandle for qwenPlus tier.
+        if (this.intelligence?.setCorpusLLMProvider && this.helixModelPool) {
           try {
-            const corpusCfg = this.modelDirective ? this.modelDirective.resolveTier('qwenPlus') : { provider: 'alibaba-coding', model: 'qwen3.6-plus' }
-            const corpusProvider = providers.get(corpusCfg.provider) ?? providers.values().next().value
-            if (corpusProvider) {
-              this.intelligence.setCorpusLLMProvider(corpusProvider, corpusCfg.model)
-              this.logger.info('CorpusLLM provider wired', { provider: corpusCfg.provider, model: corpusCfg.model })
-            }
+            const corpusHandle = await this.helixModelPool.acquire('corpus', 'qwenPlus', 'corpus-llm')
+            this.intelligence.setCorpusLLMProvider(corpusHandle)
+            this.logger.info('CorpusLLM handle wired', { provider: corpusHandle.provider, model: corpusHandle.model })
           } catch (err) {
-            this.logger.warn('Failed to wire CorpusLLM provider', { error: String(err) })
+            this.logger.warn('Failed to wire CorpusLLM handle', { error: String(err) })
           }
         }
 
         // Wire BrainstemLLM adapter for Helix per-branch annotation.
-        // Uses claude-code/claude-haiku-4-5 — fast response times for monitoring.
-        if (this.intelligence?.setBrainstemLLMProvider) {
+        // Uses ModelPool to get a ModelHandle for background tier (haiku).
+        if (this.intelligence?.setBrainstemLLMProvider && this.helixModelPool) {
           try {
-            const bsCfg = { provider: 'claude-code', model: 'claude-haiku-4-5' }
-            const bsProvider = providers.get(bsCfg.provider) ?? providers.values().next().value
-            if (bsProvider) {
-              this.intelligence.setBrainstemLLMProvider(bsProvider, bsCfg.model)
-              this.logger.info('BrainstemLLM provider wired', { provider: bsCfg.provider, model: bsCfg.model })
-            }
+            const bsHandle = await this.helixModelPool.acquire('brainstem', 'background', 'brainstem-llm')
+            this.intelligence.setBrainstemLLMProvider(bsHandle)
+            this.logger.info('BrainstemLLM handle wired', { provider: bsHandle.provider, model: bsHandle.model })
           } catch (err) {
-            this.logger.warn('Failed to wire BrainstemLLM provider', { error: String(err) })
+            this.logger.warn('Failed to wire BrainstemLLM handle', { error: String(err) })
           }
         }
 
