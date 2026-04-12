@@ -203,6 +203,8 @@ export interface HelixPostureRunnerOpts {
   brainstem?: HelixBrainstem
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
+  /** Thalamus for context curation during long-running sessions */
+  thalamus?: import('../thalamus/index.js').ThalamusModule
   /** Callback fired when Unity posts a work unit */
   onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */
@@ -304,6 +306,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       postureSlot: opts.postureSlot,
       moduleDebugSessionId: opts.moduleDebugSessionId,
       contextBudgetCoordinator: opts.contextBudgetCoordinator,
+      thalamus: opts.thalamus,
     })
     this.role = opts.role
     this.workStream = opts.workStream

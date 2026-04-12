@@ -297,6 +297,7 @@ export interface HelixOrchestrator {
   setToolExecutor(executor: ToolExecutor): void
   setStore(store: HelixStore): void
   setModelDirective(directive: IModelDirective): void
+  setThalamus(thalamus: import('../thalamus/index.js').ThalamusModule): void
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   getHealth(): { healthy: boolean; lastRun?: Date; errorCount: number; activeSessionCount: number; modelPoolAvailable: boolean }
@@ -324,6 +325,7 @@ export function createHelix(
   let storedModelDirective: IModelDirective | undefined
   let storedContextDistiller: ContextDistiller | undefined
   let storedModuleDebugSessionId: string | undefined
+  let storedThalamus: import('../thalamus/index.js').ThalamusModule | undefined
   const activeSessions = new Map<string, () => void>()
   const activeWorkStreams = new Map<string, WorkStream>()
   const activeDialecticChannels = new Map<string, DialecticChannel>()
@@ -425,6 +427,10 @@ export function createHelix(
 
     setModuleRegistry(registry: ModuleSessionRegistry): void {
       storedModuleDebugSessionId = registry.getOrCreate('helix').id
+    },
+
+    setThalamus(thalamus: import('../thalamus/index.js').ThalamusModule): void {
+      storedThalamus = thalamus
     },
 
     async project(opts: HelixProjectOpts): Promise<HelixResult> {
@@ -582,6 +588,7 @@ export function createHelix(
             researchSpawner,
             useNativeCoordinator: true,
             brainstemDeps,
+            thalamus: storedThalamus,
             onCancelRegistered: (cancelFn) => {
               activeSessions.set(sessionId, cancelFn)
             },

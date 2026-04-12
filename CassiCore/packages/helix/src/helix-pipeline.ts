@@ -90,6 +90,9 @@ export interface HelixPipelineOpts {
   /** Optional research spawner — passed to mentor for eager research execution */
   researchSpawner?: ResearchSpawner
 
+  /** Thalamus for context curation during long-running sessions */
+  thalamus?: import('../thalamus/index.js').ThalamusModule
+
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: import('./work-stream.js').UnityStatusThresholds
 
@@ -332,6 +335,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     contextBudgetCoordinator,
     brainstem,
     contextChunkIndex: unityChunkIndex,
+    thalamus: opts.thalamus,
   })
 
   const yangSession = new HelixPostureRunner({
@@ -345,6 +349,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     contextBudgetCoordinator,
     brainstem,
     contextChunkIndex: yangChunkIndex,
+    thalamus: opts.thalamus,
   })
 
   const yinSession = new HelixPostureRunner({
@@ -358,6 +363,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     contextBudgetCoordinator,
     brainstem,
     contextChunkIndex: yinChunkIndex,
+    thalamus: opts.thalamus,
   })
 
   // Mentor path removed — Brainstem is the only cognitive organizer
