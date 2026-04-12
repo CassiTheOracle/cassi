@@ -144,7 +144,7 @@ export const INTELLIGENCE_CONSOLIDATED_TOOL = {
       // meditation params
       posture: {
         type: 'string',
-        description: 'Filter by posture (e.g., yang, yin, executive). For meditation_start: style (passive, active, focused, reflective) or "follow-up" to seed from previous meditation insights.',
+        description: 'Filter by posture (e.g., yang, yin, executive). For meditation_start: style (passive, active, focused, reflective, organizing, self-modeling) or "follow-up" to seed from previous meditation insights.',
       },
       modelTier: {
         type: 'string',
