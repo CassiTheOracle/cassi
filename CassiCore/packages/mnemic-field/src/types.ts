@@ -1,7 +1,8 @@
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',
   'abstraction', 'goal', 'file', 'tool', 'session', 'outcome',
-  'source_file', 'changeset', 'artifact', 'concern', 'anomaly'
+  'source_file', 'changeset', 'artifact', 'concern', 'anomaly',
+  'module', 'capability', 'principle', 'weakness', 'evolution', 'portal',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
@@ -10,7 +11,9 @@ export const SYNAPSE_TYPES = [
   'similar_to', 'contradicts', 'supports',
   'caused_by', 'led_to', 'used_in_task', 'part_of',
   'temporal_neighbor', 'supersedes', 'about_file', 'spawned_from',
-  'imports', 'modified_by', 'co_changed', 'contains_symbol'
+  'imports', 'modified_by', 'co_changed', 'contains_symbol',
+  'depends_on', 'implements', 'uses_pattern', 'governed_by',
+  'evolved_from', 'enables', 'constrains', 'mitigates', 'portal_link',
 ] as const
 
 export type SynapseType = typeof SYNAPSE_TYPES[number]
@@ -188,6 +191,15 @@ export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   modified_by: 0.3,
   co_changed: 0.6,
   contains_symbol: 0.4,
+  depends_on: 0.85,
+  implements: 0.9,
+  uses_pattern: 0.7,
+  governed_by: 0.6,
+  evolved_from: 0.8,
+  enables: 0.85,
+  constrains: 0.5,
+  mitigates: 0.7,
+  portal_link: 0.6,
 }
 
 export const POTENTIATION_DEFAULTS = {
