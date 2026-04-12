@@ -16,6 +16,7 @@ export interface Facet {
   salience: number
   provenance: Provenance
   tags: string[]
+  pinned: boolean
 
   evolvedFrom: string | null
   version: number
@@ -35,6 +36,7 @@ export interface FacetInput {
   salience?: number
   provenance?: Provenance
   tags?: string[]
+  pinned?: boolean
   evolvedFrom?: string
 }
 
@@ -44,12 +46,14 @@ export interface FacetUpdate {
   salience?: number
   tags?: string[]
   active?: boolean
+  pinned?: boolean
 }
 
 export interface FacetQuery {
   domain?: Domain
   category?: string
   active?: boolean
+  pinned?: boolean
   minConviction?: number
   tags?: string[]
   limit?: number

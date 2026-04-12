@@ -6,21 +6,22 @@ import type { ILogger } from '../../../types/interfaces.js'
  * PinealAssembler — selects and formats relevant facets for context injection.
  *
  * Assembly strategy:
- *   1. Always include all active identity facets (core self)
- *   2. Include wisdom facets ranked by conviction (operational knowledge)
- *   3. Include high-conviction philosophy facets (established beliefs)
- *   4. Append skills index as compact comma-separated list
- *   5. Respect character budget
+ *   1. Always include pinned facets (guaranteed inclusion, exempt from budget)
+ *   2. Include remaining active identity facets (core self)
+ *   3. Include remaining wisdom facets ranked by conviction (operational knowledge)
+ *   4. Include remaining philosophy facets ranked by conviction (established beliefs)
+ *   5. Append skills index as compact comma-separated list
+ *   6. Non-pinned facets respect the character budget
  *
+ * Within each domain, the store returns pinned facets first, then by conviction DESC.
  * Output is natural language prose grouped by domain, not bullet lists.
- * Higher-conviction facets appear first within each domain (store already sorts by conviction DESC).
  * Praxis facets are NOT included — they're loaded on demand via SkillLoader.
  */
 export class PinealAssembler {
   constructor(
     private store: PinealStore,
     private logger: ILogger,
-    private charBudget: number = 4_500,
+    private charBudget: number = 8_000,
   ) {}
 
   /**
@@ -70,6 +71,11 @@ export class PinealAssembler {
     }
   }
 
+  /**
+   * Format a domain section. Pinned facets are always included (exempt from budget).
+   * Non-pinned facets fill remaining budget by conviction order.
+   * Store already returns facets sorted: pinned DESC, conviction DESC, salience DESC.
+   */
   private formatDomain(
     label: string,
     facets: Facet[],
@@ -86,9 +92,14 @@ export class PinealAssembler {
         ? `${facet.content} `
         : `${facet.content}. `
 
-      if (text.length + sentence.length > budget) break
-      text += sentence
-      ids.push(facet.id)
+      if (facet.pinned) {
+        text += sentence
+        ids.push(facet.id)
+      } else {
+        if (text.length + sentence.length > budget) break
+        text += sentence
+        ids.push(facet.id)
+      }
     }
 
     if (ids.length === 0) return { text: '', ids: [] }

@@ -21,6 +21,7 @@ const SCHEMA_SQL = `
     salience REAL NOT NULL DEFAULT 0.5,
     provenance TEXT NOT NULL DEFAULT 'self',
     tags TEXT NOT NULL DEFAULT '[]',
+    pinned INTEGER NOT NULL DEFAULT 0,
     evolved_from TEXT,
     version INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL,
@@ -34,6 +35,12 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_pineal_category ON pineal_facets(domain, category, active);
   CREATE INDEX IF NOT EXISTS idx_pineal_conviction ON pineal_facets(conviction DESC);
   CREATE INDEX IF NOT EXISTS idx_pineal_evolution ON pineal_facets(evolved_from);
+  CREATE INDEX IF NOT EXISTS idx_pineal_pinned ON pineal_facets(pinned, active);
+`
+
+const MIGRATION_SQL = `
+  ALTER TABLE pineal_facets ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+  CREATE INDEX IF NOT EXISTS idx_pineal_pinned ON pineal_facets(pinned, active);
 `
 
 let counter = 0
@@ -53,6 +60,7 @@ function rowToFacet(row: Record<string, unknown>): Facet {
     salience: row.salience as number,
     provenance: row.provenance as Facet['provenance'],
     tags: JSON.parse(row.tags as string),
+    pinned: (row.pinned as number) === 1,
     evolvedFrom: row.evolved_from as string | null,
     version: row.version as number,
     createdAt: row.created_at as string,
@@ -72,6 +80,7 @@ export class PinealStore {
     getById: Database.Statement
     retire: Database.Statement
     reinforce: Database.Statement
+    pin: Database.Statement
     listByDomain: Database.Statement
     listByCategory: Database.Statement
     listAll: Database.Statement
@@ -93,6 +102,7 @@ export class PinealStore {
     this.db.pragma('journal_mode = WAL')
     this.db.pragma('foreign_keys = ON')
     this.db.exec(SCHEMA_SQL)
+    this.migrate()
 
     this.logger.info('[pineal-store] Initialized', { path: dbPath })
   }
@@ -101,11 +111,11 @@ export class PinealStore {
     if (!this._stmts) {
       this._stmts = {
         insert: this.db.prepare(`
-          INSERT INTO pineal_facets (id, domain, category, content, conviction, salience, provenance, tags, evolved_from, version, created_at, last_reinforced, reinforcements, active)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
+          INSERT INTO pineal_facets (id, domain, category, content, conviction, salience, provenance, tags, pinned, evolved_from, version, created_at, last_reinforced, reinforcements, active)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 1)
         `),
         update: this.db.prepare(`
-          UPDATE pineal_facets SET content = ?, conviction = ?, salience = ?, tags = ?, active = ?
+          UPDATE pineal_facets SET content = ?, conviction = ?, salience = ?, tags = ?, active = ?, pinned = ?
           WHERE id = ?
         `),
         getById: this.db.prepare(`SELECT * FROM pineal_facets WHERE id = ?`),
@@ -114,15 +124,16 @@ export class PinealStore {
           UPDATE pineal_facets SET conviction = ?, last_reinforced = ?, reinforcements = reinforcements + 1
           WHERE id = ?
         `),
+        pin: this.db.prepare(`UPDATE pineal_facets SET pinned = ? WHERE id = ?`),
         listByDomain: this.db.prepare(`
-          SELECT * FROM pineal_facets WHERE domain = ? AND active = ? ORDER BY conviction DESC, salience DESC
+          SELECT * FROM pineal_facets WHERE domain = ? AND active = ? ORDER BY pinned DESC, conviction DESC, salience DESC
         `),
         listByCategory: this.db.prepare(`
-          SELECT * FROM pineal_facets WHERE domain = ? AND category = ? AND active = ? ORDER BY conviction DESC, salience DESC
+          SELECT * FROM pineal_facets WHERE domain = ? AND category = ? AND active = ? ORDER BY pinned DESC, conviction DESC, salience DESC
         `),
-        listAll: this.db.prepare(`SELECT * FROM pineal_facets ORDER BY domain, conviction DESC`),
+        listAll: this.db.prepare(`SELECT * FROM pineal_facets ORDER BY domain, pinned DESC, conviction DESC`),
         listActive: this.db.prepare(`
-          SELECT * FROM pineal_facets WHERE active = 1 ORDER BY domain, conviction DESC, salience DESC
+          SELECT * FROM pineal_facets WHERE active = 1 ORDER BY domain, pinned DESC, conviction DESC, salience DESC
         `),
         getHistory: this.db.prepare(`
           WITH RECURSIVE chain(fid) AS (
@@ -181,6 +192,7 @@ export class PinealStore {
       input.salience ?? 0.5,
       input.provenance ?? 'self',
       JSON.stringify(input.tags ?? []),
+      input.pinned ? 1 : 0,
       input.evolvedFrom ?? null,
       version,
       now,
@@ -205,6 +217,7 @@ export class PinealStore {
       updates.salience ?? existing.salience,
       JSON.stringify(updates.tags ?? existing.tags),
       updates.active !== undefined ? (updates.active ? 1 : 0) : (existing.active ? 1 : 0),
+      updates.pinned !== undefined ? (updates.pinned ? 1 : 0) : (existing.pinned ? 1 : 0),
       id,
     )
 
@@ -235,6 +248,7 @@ export class PinealStore {
       salience: input?.salience ?? original.salience,
       provenance: input?.provenance ?? original.provenance,
       tags: input?.tags ?? original.tags,
+      pinned: input?.pinned ?? original.pinned,
       evolvedFrom: id,
     })
   }
@@ -256,6 +270,9 @@ export class PinealStore {
 
     let facets = rows.map(rowToFacet)
 
+    if (query.pinned !== undefined) {
+      facets = facets.filter(f => f.pinned === query.pinned)
+    }
     if (query.minConviction !== undefined) {
       facets = facets.filter(f => f.conviction >= query.minConviction!)
     }
@@ -330,8 +347,22 @@ export class PinealStore {
     return row.count
   }
 
+  pin(id: string, pinned: boolean): boolean {
+    const result = this.stmts.pin.run(pinned ? 1 : 0, id)
+    return result.changes > 0
+  }
+
   close(): void {
     this.db.close()
+  }
+
+  private migrate(): void {
+    const cols = this.db.pragma('table_info(pineal_facets)') as Array<{ name: string }>
+    const hasPinned = cols.some(c => c.name === 'pinned')
+    if (!hasPinned) {
+      this.db.exec(MIGRATION_SQL)
+      this.logger.info('[pineal-store] Migrated: added pinned column')
+    }
   }
 
   private getNextVersion(evolvedFromId: string): number {

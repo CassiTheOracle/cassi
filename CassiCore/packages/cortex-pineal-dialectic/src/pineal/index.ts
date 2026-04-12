@@ -68,6 +68,14 @@ export class PinealModule extends BaseCognitiveModule {
     return this.facets.setConviction(id, conviction)
   }
 
+  pinFacet(id: string): boolean {
+    return this.facets.pin(id)
+  }
+
+  unpinFacet(id: string): boolean {
+    return this.facets.unpin(id)
+  }
+
   listFacets(query?: FacetQuery): Facet[] {
     return this.facets.list(query)
   }

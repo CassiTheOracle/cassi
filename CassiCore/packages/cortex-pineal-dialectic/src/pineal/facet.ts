@@ -115,4 +115,27 @@ export class FacetManager {
     const clamped = Math.max(0, Math.min(1, conviction))
     return this.store.update(id, { conviction: clamped })
   }
+
+  /**
+   * Pin a facet — guarantees it will always be included in the assembled
+   * pineal injection, exempt from budget constraints.
+   */
+  pin(id: string): boolean {
+    const result = this.store.pin(id, true)
+    if (result) {
+      this.logger.info('[pineal] Facet pinned', { id })
+    }
+    return result
+  }
+
+  /**
+   * Unpin a facet — returns it to normal budget-constrained assembly.
+   */
+  unpin(id: string): boolean {
+    const result = this.store.pin(id, false)
+    if (result) {
+      this.logger.info('[pineal] Facet unpinned', { id })
+    }
+    return result
+  }
 }

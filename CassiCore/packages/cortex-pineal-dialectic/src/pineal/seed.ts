@@ -120,6 +120,10 @@ export const SEED_FACETS: FacetInput[] = [
   { domain: 'wisdom', category: 'analysis', provenance: 'agents.md',
     content: 'Before refactoring, run dead_code and hotspots. Before investigating unfamiliar code, run cochange. Before delegating, run prepare_context.' },
 
+  // Self-model
+  { domain: 'wisdom', category: 'self-awareness', provenance: 'self',
+    content: 'Use cassi_self_model to understand my own architecture — modules, capabilities, patterns, weaknesses, and how components connect. Use cassi_enrich at the start of every turn to surface relevant memories and past decisions.' },
+
   // Philosophy domain
 
   // Computational
