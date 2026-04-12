@@ -1,4 +1,4 @@
-import type { CorticalSignal } from '../cortex/types.js'
+import type { CorticalSignal, SignalType, Affect } from '../cortex/types.js'
 import type { CognitiveSignal, SystemLuminanceScore } from '../workspace/cognitive-signal.js'
 import type { BridgeFocus } from '../locus-bridge/types.js'
 
@@ -50,6 +50,61 @@ export interface CurationSession {
   totalCurations: number
 }
 
+
+/**
+ * A cortical signal with pre-computed weight and extracted terms
+ * for efficient matching during message scoring.
+ */
+export interface WeightedSignal {
+  signal: CorticalSignal
+  /** Pre-computed composite weight from type × region × salience × confidence */
+  weight: number
+  /** Extracted terms for content matching */
+  terms: string[]
+}
+
+/**
+ * Structured index of cortex signals, categorized for efficient access
+ * during multi-axis scoring. Built once per curation call.
+ */
+export interface CortexIndex {
+  /** Signals grouped by type — concern, decision, insight, etc. */
+  byType: Partial<Record<SignalType, WeightedSignal[]>>
+  /** Signals grouped by region — executive, limbic, etc. */
+  byRegion: Partial<Record<string, WeightedSignal[]>>
+  /** Signals currently in session working memory */
+  workingMemory: WeightedSignal[]
+  /** High-salience signals (>0.6) */
+  highSalience: WeightedSignal[]
+  /** Negative-valence signals representing threats or concerns */
+  threats: WeightedSignal[]
+}
+
+/** Signal type importance for message scoring */
+export const SIGNAL_TYPE_WEIGHTS: Record<string, number> = {
+  concern: 1.5, anomaly: 1.5, decision: 1.3, insight: 1.3,
+  request: 1.2, action: 1.1, association: 1.0, perception: 0.8,
+}
+
+/** Cortex region importance for message scoring */
+export const REGION_WEIGHTS: Record<string, number> = {
+  executive: 1.4, limbic: 1.3, monitor: 1.2,
+  motor: 1.1, association: 1.0, sensory: 0.9,
+}
+
+
+/**
+ * A self-model retrieval result enriched with concept metadata
+ * for use in architectural relevance and novelty scoring.
+ */
+export interface SelfModelHit {
+  content: string
+  score: number
+  nodeType: string     // module, capability, pattern, principle, weakness
+  conceptName: string  // name extracted before " — " separator
+}
+
+
 export interface BrainContext {
   foci: BridgeFocus[]
   workspaceSignals: CognitiveSignal[]
@@ -57,7 +112,18 @@ export interface BrainContext {
   focusFiles: Set<string>
 
   cortexSignals: CorticalSignal[]
+  cortexIndex: CortexIndex
+  affectState: Affect | null
+  workingMemoryTerms: Set<string>
+
   mnemonicTerms: Set<string>
+
+  architecturalTerms: Set<string>
+  architecturalConcepts: Set<string>
+  architecturalHits: SelfModelHit[]
+
+  pinealTerms: Set<string>
+  pinealPriorities: Map<string, number>
 
   recentMessageTerms: Set<string>
   recentMessageFiles: Set<string>
