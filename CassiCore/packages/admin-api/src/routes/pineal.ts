@@ -43,6 +43,7 @@ export async function handlePinealRoutes(
     const domain = url.searchParams.get('domain') as Domain | null
     const category = url.searchParams.get('category') ?? undefined
     const active = url.searchParams.get('active')
+    const pinned = url.searchParams.get('pinned')
     const minConviction = url.searchParams.get('minConviction')
     const limit = url.searchParams.get('limit')
 
@@ -50,6 +51,7 @@ export async function handlePinealRoutes(
       domain: domain && DOMAINS.includes(domain as Domain) ? domain as Domain : undefined,
       category,
       active: active !== null ? active !== 'false' : undefined,
+      pinned: pinned !== null ? pinned !== 'false' : undefined,
       minConviction: minConviction ? parseFloat(minConviction) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
     })
@@ -60,7 +62,7 @@ export async function handlePinealRoutes(
 
   // GET /pineal/facets/:id — get single facet
   const facetId = extractPathParam(pathname, '/pineal/facets/')
-  if (method === 'GET' && facetId && !pathname.includes('/history') && !pathname.includes('/reinforce') && !pathname.includes('/evolve')) {
+  if (method === 'GET' && facetId && !pathname.includes('/history') && !pathname.includes('/reinforce') && !pathname.includes('/evolve') && !pathname.includes('/pin') && !pathname.includes('/unpin')) {
     const facet = pineal.getFacet(facetId)
     if (!facet) {
       deps.sendJSON(res, 404, { error: 'Facet not found' })
@@ -73,7 +75,7 @@ export async function handlePinealRoutes(
   // POST /pineal/facets — create new facet
   if (method === 'POST' && pathname === '/pineal/facets') {
     const body = await deps.parseBody(req)
-    const { domain, category, content, conviction, salience, provenance, tags } = body
+    const { domain, category, content, conviction, salience, provenance, tags, pinned } = body
     if (!domain || !category || !content) {
       deps.sendJSON(res, 400, { error: 'domain, category, and content are required' })
       return true
@@ -82,7 +84,7 @@ export async function handlePinealRoutes(
       deps.sendJSON(res, 400, { error: `Invalid domain. Valid: ${DOMAINS.join(', ')}` })
       return true
     }
-    const facet = pineal.createFacet({ domain, category, content, conviction, salience, provenance, tags })
+    const facet = pineal.createFacet({ domain, category, content, conviction, salience, provenance, tags, pinned })
     deps.sendJSON(res, 201, facet)
     return true
   }
@@ -108,6 +110,37 @@ export async function handlePinealRoutes(
       return true
     }
     deps.sendJSON(res, 200, reinforced)
+    return true
+  }
+
+  // POST /pineal/facets/:id/pin — pin a facet (guaranteed inclusion in assembly)
+  if (method === 'POST' && pathname.endsWith('/pin') && !pathname.endsWith('/unpin')) {
+    const id = pathname.replace('/pineal/facets/', '').replace('/pin', '')
+    const pinned = pineal.pinFacet(id)
+    if (!pinned) {
+      deps.sendJSON(res, 404, { error: 'Facet not found' })
+      return true
+    }
+    deps.sendJSON(res, 200, { pinned: true, id })
+    return true
+  }
+
+  // POST /pineal/facets/:id/unpin — unpin a facet
+  if (method === 'POST' && pathname.endsWith('/unpin')) {
+    const id = pathname.replace('/pineal/facets/', '').replace('/unpin', '')
+    const unpinned = pineal.unpinFacet(id)
+    if (!unpinned) {
+      deps.sendJSON(res, 404, { error: 'Facet not found' })
+      return true
+    }
+    deps.sendJSON(res, 200, { pinned: false, id })
+    return true
+  }
+
+  // GET /pineal/pinned — list all pinned facets
+  if (method === 'GET' && pathname === '/pineal/pinned') {
+    const facets = pineal.listFacets({ pinned: true })
+    deps.sendJSON(res, 200, { facets, count: facets.length })
     return true
   }
 
