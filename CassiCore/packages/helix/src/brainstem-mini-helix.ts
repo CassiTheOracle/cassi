@@ -55,7 +55,7 @@ export interface BrainstemMiniHelixConfig {
   modelName?: string
   /** Max tool-call iterations per monitoring cycle. Default: 10 */
   maxIterationsPerCycle?: number
-  /** Timeout per cycle in ms. Default: 60_000 */
+  /** Timeout per cycle in ms. Default: 180_000 (3 minutes) */
   cycleTimeoutMs?: number
   /** Delay between monitoring cycles in ms. Default: 10_000 */
   cyclePollMs?: number
@@ -160,7 +160,7 @@ export class BrainstemMiniHelix {
       constellationId: this.constellationId,
       maxIterationsPerCycle: this.config.maxIterationsPerCycle ?? 10,
       maxTokens: 1024,
-      cycleTimeoutMs: this.config.cycleTimeoutMs ?? 60_000,
+      cycleTimeoutMs: this.config.cycleTimeoutMs ?? 180_000,
       modelTier: this.config.modelTier ?? 'haiku',
       modelName: this.config.modelName ?? 'claude-haiku-4-5',
     }
