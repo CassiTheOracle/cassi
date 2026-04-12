@@ -8,6 +8,9 @@ import { validateToolInput, validateToolOutput, executeToolSafe } from './safety
 import { ExternalHookRunner, mergeHookFeedback, EMPTY_HOOK_CONFIG } from './hooks/external-hook-runner.js'
 import type { ExternalHookConfig } from './hooks/external-hook-runner.js'
 
+import type { CorticalField } from '../intelligence/cortex/index.js'
+import type { SignalType } from '../intelligence/cortex/types.js'
+
 import type { ToolRegistry } from './registry.js'
 import type { ToolCall, ToolResult, ToolExecutionContext } from './types.js'
 
@@ -545,6 +548,9 @@ export class ToolExecutor {
     durationMs: number,
     isError: boolean,
   ): void {
+    // Brain signal — always posted regardless of event bus availability
+    this.postBrainSignal(sessionId, toolName, durationMs, isError)
+
     if (!this.eventBus) return
 
     this.eventBus.emit({
@@ -555,6 +561,65 @@ export class ToolExecutor {
       isError,
       timestamp: new Date(),
     })
+  }
+
+  /* ------------------------------------------------------------------ */
+  /*  Brain integration — cortex signal on every tool execution          */
+  /* ------------------------------------------------------------------ */
+
+  /**
+   * Tool category → cortex region/type mapping.
+   * Mirrors the gateway TOOL_SIGNAL_MAP but works in-process via CorticalField.
+   */
+  private static readonly TOOL_BRAIN_MAP: Record<string, { region: string; type: SignalType; salienceBase: number }> = {
+    // Motor: tools that mutate state
+    bash:          { region: 'motor',       type: 'action',      salienceBase: 0.45 },
+    write_file:    { region: 'motor',       type: 'action',      salienceBase: 0.5 },
+    write:         { region: 'motor',       type: 'action',      salienceBase: 0.5 },
+    edit:          { region: 'motor',       type: 'action',      salienceBase: 0.5 },
+    todo_write:    { region: 'motor',       type: 'action',      salienceBase: 0.45 },
+    // Sensory: tools that observe/read (above 0.3 activeThreshold)
+    read_file:     { region: 'sensory',     type: 'perception',  salienceBase: 0.35 },
+    read:          { region: 'sensory',     type: 'perception',  salienceBase: 0.35 },
+    // Association: tools that analyze
+    collect_thoughts: { region: 'association', type: 'association', salienceBase: 0.5 },
+    // Executive: tools that decide/orchestrate
+    spawn_subagent:   { region: 'executive',  type: 'decision',   salienceBase: 0.7 },
+  }
+
+  /** Post a cortex signal for a tool execution. Fire-and-forget — never blocks. */
+  private postBrainSignal(
+    sessionId: string,
+    toolName: string,
+    durationMs: number,
+    isError: boolean,
+    resultPreview?: string,
+  ): void {
+    const cortex = this.defaultContext._cortex as CorticalField | undefined
+    if (!cortex) return
+
+    // Strip MCP server prefixes (serena__, gitnexus__) to find the base tool
+    const baseName = toolName.replace(/^[a-z]+__/, '')
+    const mapping = ToolExecutor.TOOL_BRAIN_MAP[baseName]
+    if (!mapping) return
+
+    const salience = Math.min(1.0, mapping.salienceBase + (isError ? 0.3 : 0))
+    const preview = (resultPreview || '').slice(0, 120).replace(/\n/g, ' ')
+
+    try {
+      cortex.signal(isError ? 'limbic' : mapping.region, {
+        type: isError ? 'concern' : mapping.type,
+        content: `[tool:${baseName}] ${isError ? 'ERROR: ' : ''}${preview} (${durationMs}ms)`,
+        author: 'tool-executor',
+        salience,
+        confidence: isError ? 0.9 : 0.7,
+        valence: isError ? -0.3 : 0.1,
+        tags: ['tool', baseName, ...(isError ? ['error'] : [])],
+        sessionId,
+      })
+    } catch {
+      // Brain signals are best-effort — never let this break tool execution
+    }
   }
 
   private enrichToolResult(

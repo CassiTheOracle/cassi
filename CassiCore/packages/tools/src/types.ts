@@ -90,6 +90,10 @@ export interface ToolExecutionContext {
   _codeStore?: import('../intelligence/mnemic-field/code-store.js').CodeStore;
   /** Global blackboard registry — injected by daemon for cross-session todo/plan sharing */
   _globalBlackboardRegistry?: import('../intelligence/flux-team/global-blackboard-registry.js').GlobalBlackboardRegistry;
+  /** Cortical field — injected by daemon for working memory integration */
+  _cortex?: import('../intelligence/cortex/index.js').CorticalField;
+  /** Memory module — injected by daemon for episodic persistence */
+  _memory?: import('../intelligence/memory/index.js').MemoryModule;
   /** Auto-resolved artifact namespace for this session (e.g., 'dyad:{id}', 'team:{id}') */
   artifactNamespace?: string;
   /** Session type hint for smart defaults */
