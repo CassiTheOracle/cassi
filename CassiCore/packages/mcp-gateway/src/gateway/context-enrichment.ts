@@ -62,6 +62,7 @@ export interface ContextEnrichmentResult {
     memory: number;
     archive: number;
     index: number;
+    selfModel?: number;
   };
 }
 
@@ -490,15 +491,17 @@ export async function fetchAndFormatContext(
 
   const variants = buildQueryVariants(normalized, entities, metadata);
 
-  const [memSettled, arcSettled, idxSettled] = await Promise.allSettled([
+  const [memSettled, arcSettled, idxSettled, smSettled] = await Promise.allSettled([
     memoryLimit  > 0 ? searchMultiVariant('memory',  baseUrl, variants, memoryLimit)  : Promise.resolve([]),
     archiveLimit > 0 ? searchMultiVariant('archive', baseUrl, variants, archiveLimit) : Promise.resolve([]),
     indexLimit   > 0 ? searchMultiVariant('index',   baseUrl, variants, indexLimit)   : Promise.resolve([]),
+    fetchSelfModelContext(baseUrl, normalized, 5),
   ]);
 
   const memoriesAll:  RankedSearchResult[] = memSettled.status  === 'fulfilled' ? memSettled.value  : [];
   const archivesAll:  RankedSearchResult[] = arcSettled.status  === 'fulfilled' ? arcSettled.value  : [];
   const indexAll:     RankedSearchResult[] = idxSettled.status  === 'fulfilled' ? idxSettled.value  : [];
+  const selfModelHits: SelfModelHit[] = smSettled.status === 'fulfilled' ? smSettled.value : [];
 
   const hasResults = memoriesAll.length > 0 || archivesAll.length > 0 || indexAll.length > 0;
 
@@ -652,6 +655,21 @@ export async function fetchAndFormatContext(
     }
   }
 
+  if (selfModelHits.length > 0) {
+    lines.push(`### Architectural self-knowledge (${selfModelHits.length} result${selfModelHits.length === 1 ? '' : 's'})`);
+    lines.push('');
+    for (const hit of selfModelHits) {
+      const prefix = hit.nodeType === 'module' ? '[Module]'
+        : hit.nodeType === 'capability' ? '[Capability]'
+        : hit.nodeType === 'weakness' ? '[Weakness]'
+        : hit.nodeType === 'pattern' ? '[Pattern]'
+        : `[${hit.nodeType}]`;
+      const field = hit.sourceField ? ` (${hit.sourceField})` : '';
+      lines.push(`- ${prefix}${field} ${hit.content}`);
+    }
+    lines.push('');
+  }
+
   return {
     markdown: lines.join('\n'),
     hasContext: true,
@@ -659,8 +677,67 @@ export async function fetchAndFormatContext(
       memory:  memories.length,
       archive: archiveEntries.length,
       index:   indexEntries.length,
+      selfModel: selfModelHits.length,
     },
   };
+}
+
+/**
+ * Self-model hit from the cross-retrieve or direct retrieve endpoint.
+ */
+interface SelfModelHit {
+  id: string;
+  nodeType: string;
+  content: string;
+  score: number;
+  sourceField?: 'episodic' | 'self-model';
+  crossFieldBoosted?: boolean;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Fetch architectural self-knowledge from the Self-Model Field.
+ * Uses cross-retrieve to blend architectural knowledge with episodic memory,
+ * falling back to direct self-model retrieve if the bridge is unavailable.
+ */
+async function fetchSelfModelContext(
+  baseUrl: string,
+  query: string,
+  limit: number,
+): Promise<SelfModelHit[]> {
+  try {
+    const encoded = encodeURIComponent(query);
+    const crossRes = await fetchWithTimeout(
+      `${baseUrl}/memory/self-model/cross-retrieve?query=${encoded}&limit=${limit}&prefer=self-model`,
+      { timeoutMs: CONTEXT_FETCH_TIMEOUT_MS },
+    );
+    if (crossRes.ok) {
+      const data = await crossRes.json() as { ok: boolean; hits?: SelfModelHit[] };
+      if (data.ok && data.hits && data.hits.length > 0) {
+        return data.hits.filter(h => h.nodeType !== 'portal');
+      }
+    }
+  } catch {
+    // Cross-retrieve unavailable, try direct self-model
+  }
+
+  try {
+    const encoded = encodeURIComponent(query);
+    const directRes = await fetchWithTimeout(
+      `${baseUrl}/memory/self-model/retrieve?query=${encoded}&limit=${limit}`,
+      { timeoutMs: CONTEXT_FETCH_TIMEOUT_MS },
+    );
+    if (directRes.ok) {
+      const data = await directRes.json() as { ok: boolean; hits?: SelfModelHit[] };
+      if (data.ok && data.hits) {
+        return data.hits.filter(h => h.nodeType !== 'portal');
+      }
+    }
+  } catch {
+    // Self-model not available
+  }
+
+  return [];
 }
 
 /**

@@ -265,3 +265,11 @@ export {
   allKnownToolNames,
 } from './tool-aliases.js';
 export type { AliasEntry, AliasTable } from './tool-aliases.js';
+
+// Self-Model Tools (architectural self-knowledge)
+export {
+  SELF_MODEL_TOOL,
+  SELF_MODEL_TOOL_NAME,
+  executeSelfModelTool,
+  getSelfModelTool,
+} from './self-model-tools.js';
