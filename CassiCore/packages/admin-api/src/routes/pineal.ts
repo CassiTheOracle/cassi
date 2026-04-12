@@ -44,6 +44,7 @@ export async function handlePinealRoutes(
     const category = url.searchParams.get('category') ?? undefined
     const active = url.searchParams.get('active')
     const pinned = url.searchParams.get('pinned')
+    const scope = url.searchParams.get('scope')
     const minConviction = url.searchParams.get('minConviction')
     const limit = url.searchParams.get('limit')
 
@@ -52,6 +53,7 @@ export async function handlePinealRoutes(
       category,
       active: active !== null ? active !== 'false' : undefined,
       pinned: pinned !== null ? pinned !== 'false' : undefined,
+      scope: scope !== null ? (scope === '' ? null : scope) : undefined,
       minConviction: minConviction ? parseFloat(minConviction) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
     })
@@ -75,7 +77,7 @@ export async function handlePinealRoutes(
   // POST /pineal/facets — create new facet
   if (method === 'POST' && pathname === '/pineal/facets') {
     const body = await deps.parseBody(req)
-    const { domain, category, content, conviction, salience, provenance, tags, pinned } = body
+    const { domain, category, content, conviction, salience, provenance, tags, pinned, scope } = body
     if (!domain || !category || !content) {
       deps.sendJSON(res, 400, { error: 'domain, category, and content are required' })
       return true
@@ -84,7 +86,7 @@ export async function handlePinealRoutes(
       deps.sendJSON(res, 400, { error: `Invalid domain. Valid: ${DOMAINS.join(', ')}` })
       return true
     }
-    const facet = pineal.createFacet({ domain, category, content, conviction, salience, provenance, tags, pinned })
+    const facet = pineal.createFacet({ domain, category, content, conviction, salience, provenance, tags, pinned, scope })
     deps.sendJSON(res, 201, facet)
     return true
   }
