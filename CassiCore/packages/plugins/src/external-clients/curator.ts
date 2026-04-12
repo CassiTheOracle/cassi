@@ -137,6 +137,11 @@ export class ExternalClientCurator {
             tool_use_id: digest.toolCallId,
             content: digest.text,
           }],
+          // WHY: The digest text is truncated (≤2000 chars) but the real message
+          // in the editor's context has `digest.chars` chars. The scorer must use
+          // real char count for budget tracking, or it will underestimate message
+          // sizes by 10-50x and keep too many messages.
+          _originalChars: digest.chars,
         }
       }
 
@@ -152,12 +157,14 @@ export class ExternalClientCurator {
             type: 'text',
             text: digest.text,
           }],
+          _originalChars: digest.chars,
         }
       }
 
       return {
         role: digest.role,
         content: digest.text,
+        _originalChars: digest.chars,
       }
     })
   }
