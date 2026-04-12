@@ -237,6 +237,12 @@ export class SelfModelField {
     return { ...base, selfModelTypes: typeCounts }
   }
 
+  async backfillEmbeddings(limit = 1000): Promise<{ embedded: number; reprojected: number; filamentEmbeddings: number }> {
+    const result = await this.field.backfillEmbeddings(limit)
+    this.logger.info('Self-Model Field backfilled embeddings', result)
+    return result
+  }
+
   async consolidate(): Promise<void> {
     await this.field.consolidate()
     this.logger.debug('Self-Model Field consolidated')
