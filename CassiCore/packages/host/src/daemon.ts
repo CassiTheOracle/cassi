@@ -1809,6 +1809,47 @@ export class Daemon {
       } catch (err) {
         this.logger.warn('ArchiveIngestionBridge not available', { error: String(err) })
       }
+
+      // Initialize Self-Model Field — a second Mnemic Field for architectural self-knowledge.
+      // Stores semantic understanding of the codebase (modules, capabilities, weaknesses)
+      // and connects to the episodic field via portal engrams for cross-field retrieval.
+      try {
+        const { SelfModelField } = await import('./intelligence/mnemic-field/self-model/self-model-field.js')
+        const { InterFieldBridge } = await import('./intelligence/mnemic-field/self-model/inter-field-bridge.js')
+
+        const selfModelField = new SelfModelField(this.logger)
+        const interFieldBridge = new InterFieldBridge(field, selfModelField, this.logger)
+        interFieldBridge.rebuildFromPersisted()
+
+        ;(this as any).__selfModelField = selfModelField
+        ;(this as any).__interFieldBridge = interFieldBridge
+        ;(this.intelligence as any).__selfModelField = selfModelField
+        ;(this.intelligence as any).__interFieldBridge = interFieldBridge
+
+        this.logger.info('Self-Model Field initialized with InterFieldBridge')
+
+        // Run ingestion from GitNexus in background (non-blocking)
+        const repoRoot = process.cwd()
+        setImmediate(async () => {
+          try {
+            const { SelfModelIngestor } = await import('./intelligence/mnemic-field/self-model/ingestor.js')
+            const ingestor = new SelfModelIngestor(selfModelField, this.logger, repoRoot, interFieldBridge)
+            const result = await ingestor.ingest({ minCommunitySize: 5, weaknessThreshold: 0.6 })
+            this.logger.info('Self-Model ingestion complete', {
+              modules: result.modulesCreated,
+              capabilities: result.capabilitiesCreated,
+              weaknesses: result.weaknessesCreated,
+              synapses: result.dependencySynapsesCreated,
+              portals: result.portalsCreated,
+              durationMs: result.durationMs,
+            })
+          } catch (err) {
+            this.logger.warn('Self-Model ingestion failed (GitNexus may not be indexed)', { error: String(err) })
+          }
+        })
+      } catch (err) {
+        this.logger.warn('Self-Model Field not available', { error: String(err) })
+      }
     } catch (err) {
       this.logger.warn('CodeStore not available', { error: String(err) })
     }
