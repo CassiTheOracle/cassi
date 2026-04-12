@@ -53,11 +53,11 @@ export interface BrainstemMiniHelixConfig {
   modelTier?: string
   /** Model name override (e.g., 'gpt-5-mini'). Optional. */
   modelName?: string
-  /** Max tool-call iterations per monitoring cycle. Default: 30 */
+  /** Max tool-call iterations per monitoring cycle. Default: 10 */
   maxIterationsPerCycle?: number
   /** Timeout per cycle in ms. Default: 60_000 */
   cycleTimeoutMs?: number
-  /** Delay between monitoring cycles in ms. Default: 5_000 */
+  /** Delay between monitoring cycles in ms. Default: 10_000 */
   cyclePollMs?: number
 }
 
@@ -158,7 +158,7 @@ export class BrainstemMiniHelix {
       ),
       sessionId: `brainstem-${this.helixId}`,
       constellationId: this.constellationId,
-      maxIterationsPerCycle: this.config.maxIterationsPerCycle ?? 30,
+      maxIterationsPerCycle: this.config.maxIterationsPerCycle ?? 10,
       maxTokens: 1024,
       cycleTimeoutMs: this.config.cycleTimeoutMs ?? 60_000,
       modelTier: this.config.modelTier ?? 'haiku',
@@ -272,7 +272,7 @@ export class BrainstemMiniHelix {
 
       // Schedule next cycle if still running
       if (this.running && !this.shutdownRequested) {
-        const delay = this.config.cyclePollMs ?? 5_000
+        const delay = this.config.cyclePollMs ?? 10_000
         this.cycleTimer = setTimeout(() => {
           this.runMonitoringLoop().catch((err) => {
             this.logger.error('Monitoring cycle failed', { error: String(err) })
