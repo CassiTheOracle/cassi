@@ -219,12 +219,18 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         (meditation as any).setThalamus(thalamus)
       }
 
+      // Wire Thalamus into Helix for context curation during long-running sessions
+      if (intelligence.helix && typeof (intelligence.helix as any).setThalamus === 'function') {
+        (intelligence.helix as any).setThalamus(thalamus)
+      }
+
       logger.info('Thalamus wired', {
         gwt: !!intelligence.globalWorkspace,
         locus: !!intelligence.locusBridge,
         cortex: !!intelligence.cortex,
         mnemic: !!mnemicField,
         meditation: !!(meditation && typeof (meditation as any).setThalamus === 'function'),
+        helix: !!(intelligence.helix && typeof (intelligence.helix as any).setThalamus === 'function'),
       })
     }
   } catch (err) {
