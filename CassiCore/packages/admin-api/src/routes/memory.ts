@@ -25,6 +25,7 @@ function getMnemicField(logger: ILogger, daemon?: any): MnemicField {
   if (mnemicField) return mnemicField
   const dbPath = path.join(getDataDir(), 'mnemic-field.db')
   mnemicField = new MnemicField(logger, dbPath)
+  mnemicField.enableNeuralKindling()
   if (daemon) (daemon as any).__mnemicField = mnemicField
   return mnemicField
 }
@@ -707,7 +708,15 @@ export async function handleMemoryRoutes(
         }
       }
 
-      sendJSON(res, 200, { ok: true, recorded })
+      // Neural Kindling: also store a gradient request linking feedback to the last tape
+      let gradientStored = false
+      try {
+        gradientStored = field.recordEnrichFeedback(feedback)
+      } catch {
+        // Non-critical — gradient storage failure shouldn't block feedback
+      }
+
+      sendJSON(res, 200, { ok: true, recorded, gradientStored })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })

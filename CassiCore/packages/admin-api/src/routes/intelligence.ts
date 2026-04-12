@@ -12,6 +12,7 @@ function getMnemicField(logger: ILogger): MnemicField {
   if (_mnemicField) return _mnemicField
   const dbPath = path.join(getDataDir(), 'mnemic-field.db')
   _mnemicField = new MnemicField(logger, dbPath)
+  _mnemicField.enableNeuralKindling()
   return _mnemicField
 }
 
