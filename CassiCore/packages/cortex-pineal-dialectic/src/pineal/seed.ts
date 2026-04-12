@@ -165,5 +165,5 @@ export const CHANNEL_SEED_FACETS: FacetInput[] = [
 
   // OpenCode channel — terminal-based interaction patterns
   { domain: 'wisdom', category: 'ux-patterns', provenance: 'user', scope: 'opencode', pinned: true,
-    content: 'When you need to ask the user a question or present options, ALWAYS use the question tool instead of ending your turn with a text response. The question tool renders interactive choices in the terminal — a plain text question forces the user to type a new message manually. This also saves GitHub Copilot usage-limited requests since only user messages count against the limit.' },
+    content: 'When you need to ask the user a question, present options, clarify ambiguous intent, or confirm an assumption, ALWAYS use the question() tool instead of ending your turn with a text response. question() renders interactive choices in the terminal — a plain text question forces the user to type a new message manually. This also saves GitHub Copilot usage-limited requests since only user messages count against the limit.' },
 ]
