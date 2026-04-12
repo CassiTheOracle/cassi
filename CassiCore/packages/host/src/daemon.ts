@@ -2078,6 +2078,8 @@ export class Daemon {
       _fileVault: fileVault,
       _codeStore: codeStore,
       _globalBlackboardRegistry: this.globalBlackboardRegistry,
+      _cortex: this.intelligence?.cortex,
+      _memory: this.intelligence?.memory as any,
     }, this.bus)
       // Expose toolExecutor on the daemon instance so admin API and CLI can invoke tools
       ; this.toolExecutor = toolExecutor

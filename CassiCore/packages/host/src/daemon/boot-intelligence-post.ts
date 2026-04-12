@@ -213,6 +213,19 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       const mnemicField = (intelligence as any).__mnemicField
       if (mnemicField) thalamus.setMnemicField(mnemicField)
 
+      // Wire Self-Model Field for architectural relevance scoring
+      const selfModelField = (intelligence as any).__selfModelField
+      if (selfModelField && typeof thalamus.setSelfModelField === 'function') {
+        thalamus.setSelfModelField(selfModelField)
+      }
+
+      // Wire Pineal FacetManager for identity/wisdom credibility and resonance
+      const pineal = intelligence.registry.get('pineal') as
+        import('../intelligence/pineal/index.js').PinealModule | undefined
+      if (pineal && typeof thalamus.setPinealFacets === 'function') {
+        thalamus.setPinealFacets(pineal.getFacetManager())
+      }
+
       // Wire Thalamus into Meditation for always-on context management
       const meditation = intelligence.meditation
       if (meditation && typeof (meditation as any).setThalamus === 'function') {
@@ -229,6 +242,8 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         locus: !!intelligence.locusBridge,
         cortex: !!intelligence.cortex,
         mnemic: !!mnemicField,
+        selfModel: !!selfModelField,
+        pinealFacets: !!(pineal),
         meditation: !!(meditation && typeof (meditation as any).setThalamus === 'function'),
         helix: !!(intelligence.helix && typeof (intelligence.helix as any).setThalamus === 'function'),
       })
