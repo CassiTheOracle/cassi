@@ -383,6 +383,9 @@ export async function executeDoTool(
       ?.map((c: { type: string; text: string }) => c.text)
       .join('\n') ?? '';
 
+  // Non-blocking — fire and forget. Never delays the tool response.
+  postToolBrainSignal(baseUrl, resolvedToolName, resultText, isToolError, durationMs, logger).catch(() => {})
+
   // Augment — pass prefetched state so augmentDoResult skips a second fetch.
   // WHY: If augmentation fails, return the raw tool result rather than losing
   // the work the tool already did.
@@ -406,4 +409,90 @@ export async function executeDoTool(
     content: [{ type: 'text', text: augmented.text }],
     ...(augmented.isError ? { isError: true as const } : {}),
   };
+}
+
+
+/* ------------------------------------------------------------------ */
+/*  Brain signal integration                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Tool category → cortex signal mapping.
+ * Each tool execution posts a cortical signal so the thalamus can
+ * score conversation context against active tool usage patterns.
+ *
+ * Signals are fire-and-forget — they never delay tool responses.
+ */
+export const TOOL_SIGNAL_MAP: Record<string, { region: string; type: string; salienceBase: number }> = {
+  bash:               { region: 'motor',       type: 'action',      salienceBase: 0.45 },
+  write:              { region: 'motor',       type: 'action',      salienceBase: 0.5 },
+  edit:               { region: 'motor',       type: 'action',      salienceBase: 0.5 },
+  todo_write:         { region: 'motor',       type: 'action',      salienceBase: 0.45 },
+
+  file:               { region: 'sensory',     type: 'perception',  salienceBase: 0.35 },
+  read:               { region: 'sensory',     type: 'perception',  salienceBase: 0.35 },
+  browser:            { region: 'sensory',     type: 'perception',  salienceBase: 0.4 },
+  web:                { region: 'sensory',     type: 'perception',  salienceBase: 0.35 },
+
+  code:               { region: 'association',  type: 'association', salienceBase: 0.5 },
+  memory:             { region: 'association',  type: 'association', salienceBase: 0.4 },
+  enrich:             { region: 'association',  type: 'association', salienceBase: 0.35 },
+  enrich_feedback:    { region: 'association',  type: 'association', salienceBase: 0.35 },
+  self_model:         { region: 'association',  type: 'association', salienceBase: 0.45 },
+  training:           { region: 'association',  type: 'association', salienceBase: 0.35 },
+
+  agent:              { region: 'executive',    type: 'decision',   salienceBase: 0.7 },
+  workflow:           { region: 'executive',    type: 'decision',   salienceBase: 0.6 },
+
+  session:            { region: 'monitor',      type: 'perception', salienceBase: 0.35 },
+  intelligence:       { region: 'monitor',      type: 'perception', salienceBase: 0.4 },
+  config:             { region: 'monitor',      type: 'perception', salienceBase: 0.35 },
+  model:              { region: 'monitor',      type: 'perception', salienceBase: 0.35 },
+
+  cortex:             { region: 'limbic',       type: 'insight',    salienceBase: 0.4 },
+  vybit:              { region: 'sensory',      type: 'perception', salienceBase: 0.35 },
+  skill_intelligence: { region: 'monitor',      type: 'perception', salienceBase: 0.35 },
+
+  artifact:           { region: 'motor',        type: 'action',     salienceBase: 0.35 },
+}
+
+/** Error salience boost — tool errors are always more important */
+const ERROR_SALIENCE_BOOST = 0.3
+
+export async function postToolBrainSignal(
+  baseUrl: string,
+  toolName: string,
+  resultText: string,
+  isError: boolean,
+  durationMs?: number,
+  logger?: ILogger,
+): Promise<void> {
+  const mapping = TOOL_SIGNAL_MAP[toolName]
+  if (!mapping) return // Unknown tool — skip
+
+  // Truncate result text for signal content (cortex signals should be compact)
+  const preview = resultText.slice(0, 120).replace(/\n/g, ' ')
+  const salience = Math.min(1.0, mapping.salienceBase + (isError ? ERROR_SALIENCE_BOOST : 0))
+
+  const body = JSON.stringify({
+    region: isError ? 'limbic' : mapping.region,
+    type: isError ? 'concern' : mapping.type,
+    content: `[tool:${toolName}] ${isError ? 'ERROR: ' : ''}${preview}`,
+    author: 'tool-brain',
+    salience,
+    confidence: isError ? 0.9 : 0.7,
+    valence: isError ? -0.3 : 0.1,
+    tags: ['tool', toolName, ...(isError ? ['error'] : [])],
+  })
+
+  try {
+    await fetchWithTimeout(`${baseUrl}/cortex/signal`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+      timeoutMs: 2000, // Fast fail — brain signals are best-effort
+    })
+  } catch {
+    // Brain signals are best-effort — never log failures to avoid noise
+  }
 }

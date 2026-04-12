@@ -113,6 +113,8 @@ export {
   executeEnrichFeedbackTool,
   getDoTools,
   normalizeToolName,
+  postToolBrainSignal,
+  TOOL_SIGNAL_MAP,
 } from './do-tool.js';
 export type { ToolRouter } from './do-tool.js';
 

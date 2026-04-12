@@ -93,6 +93,7 @@ import {
   TRAINING_CONSOLIDATED_TOOL_NAME,
   CORTEX_CONSOLIDATED_TOOL_NAME,
   SELF_MODEL_TOOL_NAME,
+  postToolBrainSignal,
 } from './gateway/index.js';
 import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
 
@@ -554,14 +555,20 @@ function createServer() {
         safeNotify({ progressToken, progress: 50, total: 100, message: `${name} waiting for events...` });
       } : undefined
 
+      const t0 = Date.now();
       const result = await routeToolCall(name, args, progressToken, heartbeat);
+      const durationMs = Date.now() - t0;
+
+      // Fire and forget — never delays the tool response.
+      const resultText = result?.content?.map(c => c.text).join('\n') ?? '';
+      postToolBrainSignal(CASSICORE_URL, name, resultText, !!result?.isError, durationMs, logger).catch(() => {});
       
       if (progressToken) {
         safeNotify({ progressToken, progress: 100, total: 100, message: `${name} completed` });
       }
       
       return result;
-      } catch (error: any) {
+    } catch (error: any) {
       if (progressToken) {
         safeNotify({ progressToken, progress: 100, total: 100, message: `${name} failed: ${error.message}` });
       }
@@ -569,6 +576,8 @@ function createServer() {
       // the MCP connection if the error is non-serializable or the transport is
       // already in a bad state.
       logger.error('Tool call threw in handler', { tool: name, error: String(error) });
+      // Brain signal for tool error
+      postToolBrainSignal(CASSICORE_URL, name, String(error), true, 0, logger).catch(() => {});
       return formatError(error);
     }
   });
