@@ -1740,6 +1740,7 @@ export class Daemon {
     let codeStore: CodeStore | undefined
     try {
       const field = new MnemicField(this.logger)
+      field.enableNeuralKindling()
       codeStore = new CodeStore(field, this.logger)
       ;(this as any).__codeStore = codeStore
       ;(this as any).__mnemicFieldForCode = field
