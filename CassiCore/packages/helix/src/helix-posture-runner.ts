@@ -483,8 +483,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           )
         )
 
-        this.messages.push({ role: 'assistant', content: result.contentBlocks })
-        this.messages.push({ role: 'user', content: enrichedResults })
+        this.pushMessage({ role: 'assistant', content: result.contentBlocks })
+        this.pushMessage({ role: 'user', content: enrichedResults })
       }
 
       this.workStream.signalWorkerDone()
@@ -620,8 +620,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Inject Brainstem guidance (primary cognitive organizer)
         const finalResults = this.injectBrainstemGuidance(withSynapse)
 
-        this.messages.push({ role: 'assistant', content: result.contentBlocks })
-        this.messages.push({ role: 'user', content: finalResults })
+        this.pushMessage({ role: 'assistant', content: result.contentBlocks })
+        this.pushMessage({ role: 'user', content: finalResults })
       }
 
       return this.buildPostureResult(startTime)
@@ -776,8 +776,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           this.injectDialecticIntoResults(toolResults)
         )
 
-        this.messages.push({ role: 'assistant', content: result.contentBlocks })
-        this.messages.push({ role: 'user', content: enrichedResults })
+        this.pushMessage({ role: 'assistant', content: result.contentBlocks })
+        this.pushMessage({ role: 'user', content: enrichedResults })
       }
 
       return this.buildPostureResult(startTime)
