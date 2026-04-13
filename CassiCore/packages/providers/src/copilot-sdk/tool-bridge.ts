@@ -1,10 +1,10 @@
 /**
  * SDK Tool Bridge — converts CassiCore tools to SDK Tool[] format,
- * routing all execution through the cassi_do augmentation pipeline.
+ * annotating tool results with a compact status prefix.
  *
- * Every tool result the LLM sees includes a status bar, optional live
- * system state card, and (in analyze/guide modes) execution metadata.
- * Memory/archive context is NOT fetched here — that's cassi_enrich's job.
+ * The Thalamus handles full annotation (_thalamus metadata) when messages
+ * enter the conversation. This bridge adds a lightweight status prefix
+ * so the LLM sees tool name, duration, output size, and status immediately.
  */
 import type { Tool as SdkTool, ToolInvocation } from '@github/copilot-sdk'
 
@@ -12,7 +12,7 @@ import type { ToolRegistry } from '../../tools/registry.js'
 import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolDefinition } from '../../tools/types.js'
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import { augmentDoResult, type DoMode } from '../../../mcp/gateway/do-augmentation.js'
+import { buildToolResultPrefix } from '../../intelligence/thalamus/classifier.js'
 
 /** Admin API base URL for state-card fetching */
 const DEFAULT_ADMIN_URL = 'http://127.0.0.1:7433'
@@ -138,22 +138,20 @@ function createSdkTool(
 }
 
 /**
- * Execute a tool with cassi_do-style augmentation.
+ * Execute a tool and prepend a compact status prefix.
  *
- * Wraps the tool result with:
- *   - Status bar (always): tool · latency · time · size · status
- *   - State card (observe/analyze/guide): rotating live system snapshot
- *   - Exec block (analyze/guide): tool class, output stats
- *   - Guide suggestions (guide): next-step tools when IDs detected
+ * Format: [tool_name · 342ms · 3.2KB · ✓]
+ * <raw tool result>
  *
- * Memory/archive context is NOT fetched here — that's cassi_enrich's job.
+ * The Thalamus will attach full _thalamus annotation when the message
+ * enters the conversation. This prefix gives the LLM immediate metadata.
  */
 async function executeWithAugmentation(
   toolName: string,
   args: Record<string, unknown>,
   toolExecutor: ToolExecutor,
   sessionId: string,
-  adminBaseUrl: string,
+  _adminBaseUrl: string,
   logger: ILogger,
 ): Promise<string> {
   const start = Date.now()
@@ -165,16 +163,8 @@ async function executeWithAugmentation(
   )
 
   const durationMs = Date.now() - start
+  const outputBytes = Buffer.byteLength(toolResult.content, 'utf8')
 
-  // Augment with cassi_do execution layer (default: observe mode, auto state view)
-  const augmented = await augmentDoResult({
-    toolName,
-    result: { text: toolResult.content, isError: toolResult.isError },
-    durationMs,
-    mode: 'observe' as DoMode,
-    stateView: 'auto',
-    baseUrl: adminBaseUrl,
-  })
-
-  return augmented.text
+  const prefix = buildToolResultPrefix(toolName, durationMs, outputBytes, toolResult.isError)
+  return `${prefix}\n${toolResult.content}`
 }
