@@ -1,26 +1,19 @@
 #!/usr/bin/env node
 /**
- * do-tool.ts — `cassi_do` execution-layer tool + `cassi_enrich` context tool
+ * do-tool.ts — MCP cassi_do implementation (deprecated).
  *
- * `cassi_do`:     Executes any registered gateway tool and wraps its result
- *                 with a status bar, optional rotating live system state card,
- *                 execution metadata, and (in guide mode) next-step suggestions.
+ * cassi_do is a meta-tool that delegates to other tools and prepends
+ * a compact status prefix. The Thalamus now handles full message annotation
+ * via typed slots. cassi_do is kept for backward compatibility but the
+ * mode/state_view parameters are no-ops — state cards have been removed.
  *
- *                 Modes: raw | observe (default) | analyze | guide
- *                 State views: auto (cycles) | health | activity | cognitive
- *
- * `cassi_enrich`: Standalone context retrieval — memories, archive, session
- *                 history. Call at the start of every turn with the user's
- *                 message. This is the ONLY tool that searches memory.
- *
- * Augmentation logic lives in do-augmentation.ts (shared with SDK bridge).
- * Memory/archive context logic lives in context-enrichment.ts (enrich only).
+ * @see core/intelligence/thalamus/classifier.ts — buildToolResultPrefix
+ * @see core/intelligence/thalamus/slots/tool-result-slot.ts — ToolResultSlot
  */
-
-import { augmentDoResult, fetchStateCard, type DoMode, type StateView } from './do-augmentation.js';
+import type { ILogger } from '../../types/interfaces.js'
 import { fetchWithTimeout } from './helpers.js';
 import { stripKnownPrefix } from './tool-aliases.js';
-import type { ILogger } from '../../types/interfaces.js';
+import { buildToolResultPrefix } from '../../core/intelligence/thalamus/classifier.js';
 
 
 /** MCP tool response shape (matches what routeToolCall returns) */
@@ -44,26 +37,11 @@ export const DO_TOOLS = [
     name: 'do',
     description: `Call any registered tool and receive its result wrapped with live system context.
 
-Every cassi_do result includes:
-  1. Status bar  — always: tool · latency · time · output-size · status · mode
-  2. State card  — observe/analyze/guide: rotating live system snapshot (health | activity | cognitive)
-  3. Exec block  — analyze/guide: tool class, output size, latency breakdown
-  4. Guide block — guide mode only: next-step tool suggestions when orchestration IDs are detected
-  5. Tool output — the raw result of the delegated tool call
+Every cassi_do result includes a compact status prefix:
+  [tool · latency · output-size · status]
 
-Modes (mode param, default "observe"):
-  raw     — status bar + raw output only
-  observe — status bar + state card + output
-  analyze — observe + execution metadata
-  guide   — analyze + next-step suggestions for orchestration/job/session IDs in the result
-
-State views (state_view param, default "auto"):
-  auto      — cycles through health → activity → cognitive on successive calls
-  health    — provider status, active sessions, anomaly count
-  activity  — intelligence module pulse, thinker ponder count, archive stats
-  cognitive — thinker insight count, last insight, strategy/confidence
-
-Use cassi_enrich separately to surface memories and past context — cassi_do does not search memory.
+The Thalamus handles full message annotation — this prefix is a lightweight summary.
+Use cassi_enrich separately to surface memories and past context.
 
 The tool parameter accepts both the raw registered name ("bash") and the legacy prefixed form ("cassi_bash") — one leading cassi_ prefix is stripped automatically for compatibility.`,
     inputSchema: {
@@ -78,18 +56,7 @@ The tool parameter accepts both the raw registered name ("bash") and the legacy 
           type: 'object',
           description: 'Input arguments for the delegated tool.',
         },
-        mode: {
-          type: 'string',
-          enum: ['raw', 'observe', 'analyze', 'guide'],
-          description:
-            'Augmentation mode (default: "observe"). raw=status bar only; observe=+state card; analyze=+exec metadata; guide=+next-step suggestions.',
-        },
-        state_view: {
-          type: 'string',
-          enum: ['auto', 'health', 'activity', 'cognitive'],
-          description:
-            'Which live state lens to show (default: "auto"). auto cycles through all three on successive calls.',
-        },
+
       },
       required: ['tool', 'input'],
     },
@@ -329,8 +296,6 @@ export async function executeDoTool(
 
   const rawToolName: string = a?.tool ?? '';
   const toolInput: unknown  = a?.input ?? {};
-  const mode: DoMode        = a?.mode       ?? 'observe';
-  const stateView: StateView= a?.state_view ?? 'auto';
 
   // Strip one cassi_ prefix so callers can use the name as shown in OpenCode
   const resolvedToolName = normalizeToolName(rawToolName);
@@ -351,22 +316,12 @@ export async function executeDoTool(
     };
   }
 
-  logger.info('executeDoTool', { tool: resolvedToolName, mode, stateView });
-
-  // Starting the state card fetch alongside the tool call means its latency
-  // is hidden by the tool's own execution time in most cases.
-  const stateCardPromise = mode !== 'raw'
-    ? fetchStateCard(baseUrl, stateView).catch(() => ({ card: '', resolvedView: stateView as string }))
-    : Promise.resolve({ card: '', resolvedView: stateView as string });
+  logger.info('executeDoTool', { tool: resolvedToolName });
 
   const start = Date.now();
   let toolResult: McpToolResponse;
-  let prefetchedState: { card: string; resolvedView: string } = { card: '', resolvedView: stateView };
   try {
-    [toolResult, prefetchedState] = await Promise.all([
-      routeTool(resolvedToolName, toolInput),
-      stateCardPromise,
-    ]);
+    toolResult = await routeTool(resolvedToolName, toolInput);
   } catch (err) {
     const durationMs = Date.now() - start;
     logger.error('cassi_do delegated tool call failed', { tool: resolvedToolName, error: String(err), durationMs });
@@ -386,28 +341,14 @@ export async function executeDoTool(
   // Non-blocking — fire and forget. Never delays the tool response.
   postToolBrainSignal(baseUrl, resolvedToolName, resultText, isToolError, durationMs, logger).catch(() => {})
 
-  // Augment — pass prefetched state so augmentDoResult skips a second fetch.
-  // WHY: If augmentation fails, return the raw tool result rather than losing
-  // the work the tool already did.
-  let augmented: { text: string; isError?: boolean };
-  try {
-    augmented = await augmentDoResult({
-      toolName: resolvedToolName,
-      result: { text: resultText, isError: isToolError },
-      durationMs,
-      mode,
-      stateView,
-      baseUrl,
-      prefetchedState: mode !== 'raw' ? prefetchedState : undefined,
-    });
-  } catch (err) {
-    logger.warn('cassi_do augmentation failed, returning raw result', { error: String(err) });
-    augmented = { text: resultText, isError: isToolError };
-  }
+  // Prepend a compact status prefix (absorbed from cassi_do's status bar)
+  const outputBytes = Buffer.byteLength(resultText, 'utf8');
+  const prefix = buildToolResultPrefix(resolvedToolName, durationMs, outputBytes, isToolError);
+  const annotatedText = `${prefix}\n${resultText}`;
 
   return {
-    content: [{ type: 'text', text: augmented.text }],
-    ...(augmented.isError ? { isError: true as const } : {}),
+    content: [{ type: 'text', text: annotatedText }],
+    ...(isToolError ? { isError: true as const } : {}),
   };
 }
 
