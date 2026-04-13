@@ -8,6 +8,7 @@ import { Cortex, computeSpikeImportance, computeAlpha } from './cortex.js'
 import { FilamentCortex } from './filament-cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
+import { GradientEngine } from './backpropagation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
@@ -33,6 +34,7 @@ import type {
   FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
   ZoomEntry, RenderOptions,
   NeuralKindlingConfig,
+  BackpropConfig,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
@@ -45,6 +47,7 @@ export { Cortex } from './cortex.js'
 export { FilamentCortex } from './filament-cortex.js'
 export { KindlingEngine } from './kindling.js'
 export { ConsolidationEngine } from './consolidation.js'
+export { GradientEngine } from './backpropagation.js'
 export { CodeStore } from './code-store.js'
 export { CodeIngestor } from './code-ingestor.js'
 export { GitNexusBridge } from './gitnexus-bridge.js'
@@ -88,6 +91,7 @@ export type {
   ZoomEntry, ZoomLevel, RenderOptions, Tier3Config,
   Affect, AffectState, AffectLabel, AffectConfig,
   NeuralKindlingConfig, ForwardTrace, ForwardRecord, GradientRequest,
+  BackpropConfig, BackpropResult, TraceGradientResult, SynapseOptimizerState,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
@@ -95,7 +99,7 @@ export {
   FILAMENT_SYNAPSE_TYPES, FILAMENT_SYNAPSE_PROPAGATION,
   RENDER_DEFAULTS, TIER3_DEFAULTS, CHAIN_EDGE_TYPES,
   SEGMENTATION_DEFAULTS, FILAMENT_KINDLING_DEFAULTS,
-  AFFECT_DEFAULTS,
+  AFFECT_DEFAULTS, BACKPROP_DEFAULTS,
 } from './types.js'
 export { attune, AffectRegister, resolveLabel, affectSimilarity, emotionalIntensity } from './affect.js'
 
@@ -105,6 +109,7 @@ export class MnemicField {
   private entityLinker: EntityLinker
   private kindlingEngine: KindlingEngine
   private consolidationEngine: ConsolidationEngine
+  private gradientEngine: GradientEngine
   private migrationJobs: MigrationJobStore
   private logger: ILogger
   private projectionState: ProjectionState | null = null
@@ -136,7 +141,8 @@ export class MnemicField {
     this.entityLinker = new EntityLinker(this.filamentCortex, logger)
     this.kindlingEngine = new KindlingEngine(this.cortex, logger, this.filamentCortex)
     const filamentConsolidator = new FilamentConsolidator(this.filamentCortex, this.cortex, logger)
-    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, filamentConsolidator)
+    this.gradientEngine = new GradientEngine(this.cortex, logger)
+    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, filamentConsolidator, this.gradientEngine)
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
     this.logger.info('Mnemic Field initialized')
@@ -778,6 +784,19 @@ export class MnemicField {
     return this.cortex.pendingGradientCount()
   }
 
+  getOptimizerStateCount(): number {
+    return this.cortex.optimizerStateCount()
+  }
+
+  getBackpropConfig(): BackpropConfig {
+    return this.gradientEngine.getConfig()
+  }
+
+  setBackpropConfig(config: Partial<BackpropConfig>): void {
+    this.gradientEngine.setConfig(config)
+    this.logger.info('Backprop config updated', { config: this.gradientEngine.getConfig() })
+  }
+
   pruneOldTraces(maxAgeMs?: number): number {
     const maxAge = maxAgeMs ?? this.kindlingEngine.getNeuralConfig().maxTraceAge
     return this.cortex.pruneOldTraces(maxAge)
@@ -785,7 +804,8 @@ export class MnemicField {
 
   /**
    * Run a full consolidation cycle: radiance (potentiation recomputation),
-   * co-activation drift, nucleus detection, and spike history pruning.
+   * co-activation drift, nucleus detection, spike history pruning,
+   * and gradient-based synapse weight learning from enrichment feedback.
    *
    * Async — yields to the event loop between phases to prevent blocking
    * heartbeats and IPC when processing large datasets.

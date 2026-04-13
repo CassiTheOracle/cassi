@@ -626,3 +626,67 @@ export interface GradientRequest {
   createdAt: number
   processed: boolean
 }
+
+
+/**
+ * Per-synapse Adam optimizer state, persisted in synapse_optimizer_state.
+ */
+export interface SynapseOptimizerState {
+  sourceId: string
+  targetId: string
+  edgeType: SynapseType
+  m: number          // first moment estimate (mean of gradients)
+  v: number          // second moment estimate (mean of squared gradients)
+  step: number       // number of updates applied
+}
+
+/**
+ * Configuration for the backpropagation / gradient engine.
+ */
+export interface BackpropConfig {
+  learningRate: number           // Adam step size (α)
+  beta1: number                  // exponential decay for first moment
+  beta2: number                  // exponential decay for second moment
+  epsilon: number                // numerical stability constant
+  maxGradNorm: number            // gradient clipping threshold
+  weightMin: number              // minimum synapse weight after update
+  weightMax: number              // maximum synapse weight after update
+  batchSize: number              // max gradient requests to process per consolidation
+  minTraceRecords: number        // skip traces with fewer records than this
+}
+
+export const BACKPROP_DEFAULTS: BackpropConfig = {
+  learningRate: 0.001,
+  beta1: 0.9,
+  beta2: 0.999,
+  epsilon: 1e-8,
+  maxGradNorm: 1.0,
+  weightMin: 0.01,
+  weightMax: 5.0,
+  batchSize: 50,
+  minTraceRecords: 2,
+} as const
+
+/**
+ * Result of a single backpropagation pass over one forward trace.
+ */
+export interface TraceGradientResult {
+  traceId: string
+  synapseGradients: Map<string, number>  // "source|target|edgeType" → accumulated gradient
+  feedbackCount: number
+  positiveCount: number
+  negativeCount: number
+}
+
+/**
+ * Aggregate result from processing a batch of gradient requests.
+ */
+export interface BackpropResult {
+  requestsProcessed: number
+  tracesProcessed: number
+  synapsesUpdated: number
+  avgGradientMagnitude: number
+  maxGradientMagnitude: number
+  skippedStaleTraces: number
+  durationMs: number
+}

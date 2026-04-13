@@ -2,7 +2,8 @@ import type { ILogger } from '../../../types/interfaces.js'
 import { computeSpikeImportance, computeAlpha } from './cortex.js'
 import type { Cortex } from './cortex.js'
 import type { FilamentConsolidator } from './filament-consolidation.js'
-import type { Engram, MnemicSynapse, Nucleus } from './types.js'
+import type { GradientEngine } from './backpropagation.js'
+import type { Engram, MnemicSynapse, Nucleus, BackpropResult } from './types.js'
 import {
   POTENTIATION_DEFAULTS, SYNAPSE_PROPAGATION, KINDLING_DEFAULTS, AFFECT_DEFAULTS,
 } from './types.js'
@@ -17,6 +18,7 @@ export interface ConsolidationResult {
   spikesPruned: number
   filamentSynapsesCreated: number
   filamentSynapsesDecayed: number
+  gradientResult?: BackpropResult
   durationMs: number
 }
 
@@ -27,6 +29,7 @@ export interface ConsolidationOptions {
   skipAbstractions?: boolean
   skipPruning?: boolean
   skipFilamentConsolidation?: boolean
+  skipGradients?: boolean
   pruneKeepCount?: number
   nucleiMinClusterSize?: number
   nucleiEpsilon?: number
@@ -50,6 +53,7 @@ export class ConsolidationEngine {
     private cortex: Cortex,
     logger: ILogger,
     private filamentConsolidator: FilamentConsolidator | null = null,
+    private gradientEngine: GradientEngine | null = null,
   ) {
     this.logger = logger.child ? logger.child('consolidation') : logger
   }
@@ -71,6 +75,7 @@ export class ConsolidationEngine {
     let spikesPruned = 0
     let filamentSynapsesCreated = 0
     let filamentSynapsesDecayed = 0
+    let gradientResult: BackpropResult | undefined
 
     // Load the full dataset once — computeRadiance, applyCoActivationDrift,
     // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
@@ -119,6 +124,11 @@ export class ConsolidationEngine {
       await yieldToEventLoop()
     }
 
+    if (!options.skipGradients && this.gradientEngine) {
+      gradientResult = await this.gradientEngine.processGradients()
+      await yieldToEventLoop()
+    }
+
     const durationMs = Date.now() - start
     this.logger.info('Consolidation complete', {
       potentiationUpdates,
@@ -128,10 +138,14 @@ export class ConsolidationEngine {
       spikesPruned,
       filamentSynapsesCreated,
       filamentSynapsesDecayed,
+      gradientResult: gradientResult ? {
+        synapsesUpdated: gradientResult.synapsesUpdated,
+        requestsProcessed: gradientResult.requestsProcessed,
+      } : undefined,
       durationMs,
     })
 
-    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, durationMs }
+    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, gradientResult, durationMs }
   }
 
   /**

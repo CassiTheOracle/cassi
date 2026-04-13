@@ -897,6 +897,76 @@ export class Cortex {
   }
 
 
+  getOptimizerState(sourceId: string, targetId: string, edgeType: string): { m: number; v: number; step: number } | null {
+    const row = this.db.prepare(
+      `SELECT m, v, step FROM synapse_optimizer_state WHERE source_id = ? AND target_id = ? AND edge_type = ?`
+    ).get(sourceId, targetId, edgeType) as { m: number; v: number; step: number } | undefined
+    return row ?? null
+  }
+
+  upsertOptimizerState(sourceId: string, targetId: string, edgeType: string, m: number, v: number, step: number): void {
+    this.db.prepare(`
+      INSERT INTO synapse_optimizer_state (source_id, target_id, edge_type, m, v, step)
+      VALUES (@source_id, @target_id, @edge_type, @m, @v, @step)
+      ON CONFLICT(source_id, target_id, edge_type)
+      DO UPDATE SET m = @m, v = @v, step = @step
+    `).run({
+      source_id: sourceId,
+      target_id: targetId,
+      edge_type: edgeType,
+      m, v, step,
+    })
+  }
+
+  bulkUpsertOptimizerStates(states: Array<{ sourceId: string; targetId: string; edgeType: string; m: number; v: number; step: number }>): void {
+    if (states.length === 0) return
+    const stmt = this.db.prepare(`
+      INSERT INTO synapse_optimizer_state (source_id, target_id, edge_type, m, v, step)
+      VALUES (@source_id, @target_id, @edge_type, @m, @v, @step)
+      ON CONFLICT(source_id, target_id, edge_type)
+      DO UPDATE SET m = @m, v = @v, step = @step
+    `)
+    const tx = this.db.transaction((items: typeof states) => {
+      for (const s of items) {
+        stmt.run({
+          source_id: s.sourceId,
+          target_id: s.targetId,
+          edge_type: s.edgeType,
+          m: s.m, v: s.v, step: s.step,
+        })
+      }
+    })
+    tx(states)
+  }
+
+  updateSynapseWeight(sourceId: string, targetId: string, edgeType: string, newWeight: number): boolean {
+    const result = this.db.prepare(
+      `UPDATE mnemic_synapses SET weight = ? WHERE source_id = ? AND target_id = ? AND edge_type = ?`
+    ).run(newWeight, sourceId, targetId, edgeType)
+    return result.changes > 0
+  }
+
+  bulkUpdateSynapseWeights(updates: Array<{ sourceId: string; targetId: string; edgeType: string; weight: number }>): number {
+    if (updates.length === 0) return 0
+    const stmt = this.db.prepare(
+      `UPDATE mnemic_synapses SET weight = ? WHERE source_id = ? AND target_id = ? AND edge_type = ?`
+    )
+    let totalChanges = 0
+    const tx = this.db.transaction((items: typeof updates) => {
+      for (const u of items) {
+        const result = stmt.run(u.weight, u.sourceId, u.targetId, u.edgeType)
+        totalChanges += result.changes
+      }
+    })
+    tx(updates)
+    return totalChanges
+  }
+
+  optimizerStateCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM synapse_optimizer_state`).get() as { c: number }).c
+  }
+
+
   close(): void {
     try {
       this.db.close()
