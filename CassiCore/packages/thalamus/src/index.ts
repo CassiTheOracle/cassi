@@ -1,6 +1,9 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
 import { ToolResultCompressor } from './compressor.js'
+import { TemporalRegistry } from './temporal.js'
+import { createSlots } from './slots/index.js'
+import { classifyMessage } from './classifier.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
@@ -16,10 +19,24 @@ import type {
   CortexIndex,
   WeightedSignal,
   SelfModelHit,
+  MessageSlot,
+  SlotContext,
+  ThalamusAnnotation,
+  MessageSlotType,
 } from './types.js'
-import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS } from './types.js'
+import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS } from './types.js'
 
 const SESSION_EVICT_MS = 2 * 60 * 60 * 1000
+
+/** Format a duration in ms to a human-readable string for gap notes. */
+function formatGapDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(0)}s`
+  const minutes = Math.floor(ms / 60_000)
+  const seconds = Math.floor((ms % 60_000) / 1000)
+  if (seconds === 0) return `${minutes}m`
+  return `${minutes}m${seconds}s`
+}
 
 export class ThalamusModule extends BaseCognitiveModule {
   readonly name = 'thalamus'
@@ -29,6 +46,11 @@ export class ThalamusModule extends BaseCognitiveModule {
   private compressor!: ToolResultCompressor
   private sessions = new Map<string, CurationSession>()
   private evictionTimer: ReturnType<typeof setInterval> | null = null
+
+  /** GWT-style processing slots — one per message type */
+  private slots!: MessageSlot[]
+  /** Per-session temporal registries */
+  private temporalRegistries = new Map<string, TemporalRegistry>()
 
   private locusBridge: LocusBridge | null = null
   private cortex: CorticalField | null = null
@@ -46,6 +68,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
     this.compressor = new ToolResultCompressor(this.logger)
+    this.slots = createSlots()
     this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 2)
   }
 
@@ -55,7 +78,89 @@ export class ThalamusModule extends BaseCognitiveModule {
       this.evictionTimer = null
     }
     this.sessions.clear()
+    this.temporalRegistries.clear()
     await super.stop()
+  }
+
+  /**
+   * Process a message in real-time as it arrives. Routes it to the
+   * appropriate slot, attaches _thalamus annotation, and records
+   * temporal data.
+   *
+   * Call this when a message enters the conversation — before it's
+   * stored in the message history. Returns the augmented message.
+   */
+  process(
+    sessionId: string,
+    msg: any,
+    index: number,
+    toolMetrics?: Map<string, { durationMs: number; outputBytes: number }>,
+  ): any {
+    const temporal = this.getTemporalRegistry(sessionId)
+    const timestamp = new Date().toISOString()
+    const slotType = classifyMessage(msg)
+    const isUser = slotType === 'user'
+
+    temporal.recordMessage(index, timestamp, isUser)
+
+    // Record tool metrics if provided (from the executor)
+    if (toolMetrics) {
+      for (const [id, metrics] of toolMetrics) {
+        temporal.recordToolMetrics(id, metrics.durationMs, metrics.outputBytes)
+      }
+    }
+
+    const ctx: SlotContext = {
+      timestamp,
+      sessionStart: temporal.sessionStart,
+      lastUserMessageAt: temporal.lastUserMessageAt,
+      toolMetrics: temporal.getToolMetricsMap(),
+      toolUseMap: this.getSession(sessionId).toolUseMap,
+      previousMessageTs: index > 0 ? temporal.getTimestamp(index - 1) : null,
+    }
+
+    // Route to the matching slot
+    const slot = this.slots.find(s => s.matches(msg))
+    if (!slot) {
+      // Fallback: attach minimal annotation
+      return {
+        ...msg,
+        _thalamus: { ts: timestamp, slot: slotType, chars: extractMessageContent(msg).length },
+      }
+    }
+
+    return slot.augment(msg, ctx)
+  }
+
+  /**
+   * Process an array of messages that don't yet have _thalamus annotations.
+   * Used when curate() receives un-processed messages (backward compatibility).
+   */
+  processAll(sessionId: string, messages: any[]): any[] {
+    return messages.map((msg, i) => {
+      if (msg?._thalamus) return msg // already processed
+      return this.process(sessionId, msg, i)
+    })
+  }
+
+  /**
+   * Get the slot instance for a given message type.
+   * Useful for external callers that need type-specific rendering.
+   */
+  getSlot(type: MessageSlotType): MessageSlot | undefined {
+    return this.slots.find(s => s.type === type)
+  }
+
+  /**
+   * Get the temporal registry for a session.
+   */
+  getTemporalRegistry(sessionId: string): TemporalRegistry {
+    let registry = this.temporalRegistries.get(sessionId)
+    if (!registry) {
+      registry = new TemporalRegistry()
+      this.temporalRegistries.set(sessionId, registry)
+    }
+    return registry
   }
 
   curate(
@@ -80,19 +185,47 @@ export class ThalamusModule extends BaseCognitiveModule {
     session.totalCurations++
     session.lastCuratedAt = Date.now()
 
-    const originalChars = messages.reduce(
+    // Ensure all messages have _thalamus annotations (backward compatibility)
+    const annotated = this.processAll(sessionId, messages)
+
+    const originalChars = annotated.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
 
-    // Phase 1: Compress tool results — reduces content within messages
+    // Phase 1: Slot-aware compression — uses _thalamus.tool.class for strategy selection
     const { messages: compressed, compressed: compressedCount, deduped: dedupedCount } =
-      this.compressor.compress(messages, messages.length, { toolResultMaxChars: cfg.toolResultMaxChars }, session.fileReadMap)
+      this.compressor.compress(annotated, annotated.length, { toolResultMaxChars: cfg.toolResultMaxChars }, session.fileReadMap)
 
-    // Phase 2: Score with GWT luminance and select by ignition threshold
+    // Phase 2: Enrich with temporal context for scoring
+    const temporal = this.getTemporalRegistry(sessionId)
+    for (let i = 0; i < compressed.length; i++) {
+      const msg = compressed[i]
+      if (msg?._thalamus && !msg._thalamus.temporal) {
+        const tc = temporal.computeTemporalContext(i)
+        if (tc) {
+          compressed[i] = { ...msg, _thalamus: { ...msg._thalamus, temporal: tc } }
+        }
+      }
+    }
+
+    // Phase 3: Score with GWT luminance and select by ignition threshold
     const brainContext = this.buildBrainContext(sessionId, compressed)
     const protectedStart = Math.max(0, compressed.length - cfg.recentWindowSize)
 
     const scored = this.scorer.scoreAll(compressed, brainContext, protectedStart)
+
+    // Apply slot-specific score adjustments
+    for (const sm of scored) {
+      const msg = compressed[sm.messageIndex]
+      const annotation: ThalamusAnnotation | undefined = msg?._thalamus
+      if (annotation) {
+        const slot = this.slots.find(s => s.type === annotation.slot)
+        if (slot) {
+          sm.luminance = slot.adjustScore(sm.luminance, annotation)
+        }
+      }
+    }
+
     const assembled = this.assembleByThreshold(compressed, scored, protectedStart, cfg)
 
     const curatedChars = assembled.messages.reduce(
@@ -451,8 +584,10 @@ export class ThalamusModule extends BaseCognitiveModule {
         const gapSize = idx - prevIdx - 1
         const gapMsg = messages[idx]
         if (gapMsg && Array.isArray(gapMsg.content)) {
+          // Time-aware gap note using temporal registry
+          const gapDesc = this.buildGapDescription(gapSize, prevIdx, idx, messages)
           const noted = [
-            { type: 'text', text: `[${gapSize} turns omitted]` },
+            { type: 'text', text: `[${gapDesc}]` },
             ...gapMsg.content,
           ]
           assembled.push({ ...gapMsg, content: noted })
@@ -572,6 +707,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       session = {
         sessionId,
         fileReadMap: new Map(),
+        toolUseMap: new Map(),
         lastCuratedAt: Date.now(),
         totalCurations: 0,
       }
@@ -585,8 +721,42 @@ export class ThalamusModule extends BaseCognitiveModule {
     for (const [id, session] of this.sessions) {
       if (now - session.lastCuratedAt > SESSION_EVICT_MS) {
         this.sessions.delete(id)
+        this.temporalRegistries.delete(id)
       }
     }
+  }
+
+  /**
+   * Build a time-aware gap description for omitted turns.
+   * Uses temporal annotations if available, falls back to count-only.
+   */
+  private buildGapDescription(gapSize: number, fromIdx: number, toIdx: number, messages: any[]): string {
+    const parts: string[] = [`${gapSize} turn${gapSize > 1 ? 's' : ''}`]
+
+    // Try to compute elapsed time from _thalamus annotations
+    const fromTs = messages[fromIdx]?._thalamus?.ts
+    const toTs = messages[toIdx]?._thalamus?.ts
+    if (fromTs && toTs) {
+      const elapsed = new Date(toTs).getTime() - new Date(fromTs).getTime()
+      if (elapsed > 0) {
+        parts.push(`~${formatGapDuration(elapsed)}`)
+      }
+    }
+
+    // Count tool calls in the gap
+    let toolCalls = 0
+    for (let i = fromIdx + 1; i < toIdx; i++) {
+      const slotType = messages[i]?._thalamus?.slot
+      if (slotType === 'tool_call' || slotType === 'tool_result') toolCalls++
+    }
+    if (toolCalls > 0) {
+      // tool_call + tool_result = 1 logical tool call
+      const logical = Math.ceil(toolCalls / 2)
+      if (logical > 0) parts.push(`${logical} tool call${logical > 1 ? 's' : ''}`)
+    }
+
+    parts.push('omitted')
+    return parts.join(' · ')
   }
 
   private getConfigOverrides(): Partial<CurationConfig> {

@@ -1,5 +1,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CompressionConfig } from './types.js'
+import { classifyTool } from './classifier.js'
 
 interface CompressionResult {
   messages: any[]
@@ -53,10 +54,36 @@ function compressGeneric(content: string, maxChars: number): string {
   return `${head}\n[compressed ${content.length}→${headLen + tailLen} chars, ${omitted} omitted]\n${tail}`
 }
 
-function getStrategy(toolName: string): ToolStrategy {
+/**
+ * Select compression strategy. Prefers _thalamus annotation tool class
+ * (set by slots during processing), falls back to regex matching on
+ * tool name for un-annotated messages.
+ */
+function getStrategy(toolName: string, toolClass?: string): ToolStrategy {
+  // Use annotation-based class if available (from slot processing)
+  if (toolClass) {
+    switch (toolClass) {
+      case 'fs':       return compressRead
+      case 'code':     return compressSearch
+      case 'shell':    return compressBash
+      case 'memory':
+      case 'archive':
+      case 'sessions': return compressSearch
+      default:         return compressGeneric
+    }
+  }
+
+  // Fallback: regex matching for un-annotated messages
   if (READ_PATTERN.test(toolName)) return compressRead
   if (SEARCH_PATTERN.test(toolName)) return compressSearch
   if (BASH_PATTERN.test(toolName)) return compressBash
+
+  // Last resort: try classifier
+  const cls = classifyTool(toolName)
+  if (cls === 'fs') return compressRead
+  if (cls === 'code') return compressSearch
+  if (cls === 'shell') return compressBash
+
   return compressGeneric
 }
 
@@ -111,7 +138,9 @@ export class ToolResultCompressor {
 
         if (content.length <= config.toolResultMaxChars) return block
 
-        const strategy = getStrategy(toolName)
+        // Use _thalamus annotation tool class if available
+        const toolClass: string | undefined = msg._thalamus?.tool?.class
+        const strategy = getStrategy(toolName, toolClass)
         const compressedContent = strategy(content, config.toolResultMaxChars)
         modified = true
         compressed++

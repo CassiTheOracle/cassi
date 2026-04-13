@@ -148,11 +148,26 @@ export class MessageLuminanceScorer {
   private urgency(msg: any, index: number, total: number): number {
     if (total <= 1) return 1.0
 
-    // Exponential decay — much steeper than linear, drops old messages faster
+    // Prefer real timestamp-based urgency from _thalamus annotation
+    const ts: string | undefined = msg?._thalamus?.ts
+    if (ts) {
+      const msgTime = new Date(ts).getTime()
+      const now = Date.now()
+      const ageMs = Math.max(0, now - msgTime)
+      const halfLifeMs = 10 * 60 * 1000 // 10 minutes
+      const temporalUrgency = 1 / (1 + ageMs / halfLifeMs)
+
+      // Role boost: user messages carry instructions that may still be active
+      if (msg?.role === 'user' && !msg._thalamus?.tool) {
+        return Math.max(0.15, temporalUrgency)
+      }
+      return Math.max(0.02, temporalUrgency)
+    }
+
+    // Fallback: positional decay for un-annotated messages
     const position = index / (total - 1)
     const recency = Math.pow(position, 2.5)
 
-    // Role boost: user messages carry instructions that may still be active
     const role = msg?.role
     if (role === 'user') return Math.max(0.15, recency)
 
