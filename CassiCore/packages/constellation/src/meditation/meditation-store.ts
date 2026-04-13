@@ -330,7 +330,7 @@ export class MeditationStore {
   private prepareStatements() {
     return {
       // Prompt queries
-      getPrompt: this.db.prepare('SELECT * FROM prompts WHERE id = ?'),
+      getPrompt: this.db.prepare('SELECT id, category, prompt_text as prompt_text, alpha, beta, times_used, avg_score, last_used_at, created_at, author, parent_id, retired_at FROM prompts WHERE id = ?'),
       getAllPrompts: this.db.prepare('SELECT * FROM prompts WHERE retired_at IS NULL ORDER BY avg_score DESC'),
       getPromptsByCategory: this.db.prepare('SELECT * FROM prompts WHERE category = ? AND retired_at IS NULL ORDER BY avg_score DESC'),
       getActivePromptCount: this.db.prepare('SELECT COUNT(*) FROM prompts WHERE retired_at IS NULL').pluck(),

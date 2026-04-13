@@ -11,8 +11,34 @@
  *   - Well-tested good prompts converge to high expected value
  *   - Well-tested bad prompts converge to low expected value
  *
+ * **Exploration Boost**: Prompts with few uses (< MIN_USES_FOR_CONFIDENCE)
+ * get an exploration bonus — their sampled theta is boosted to ensure
+ * new/mutated prompts get a fair trial before being dominated by
+ * established performers.
+ *
  * Multiple explorers in the same session get different prompts (no repeats).
  */
+
+/** Minimum uses before we trust the Beta posterior over exploration bonus */
+const MIN_USES_FOR_CONFIDENCE = 5
+
+/** Boost factor for under-tested prompts: (1 + boost * (1 - uses/min_uses)) */
+const EXPLORATION_BOOST = 0.3
+
+/** Additional boost for Cassi-mutated prompts (reward evolution) */
+const CASSI_MUTATION_BOOST = 0.25
+
+/** Penalty threshold: prompts with expected value below this get penalized */
+const UNDERPERFORMER_THRESHOLD = 0.2
+
+/** Penalty multiplier for underperformers (reduces their selection chance) */
+const UNDERPERFORMER_PENALTY = 0.5
+
+/** Auto-retire threshold: prompts with expected value below this after sufficient samples are excluded */
+const AUTO_RETIRE_THRESHOLD = 0.1
+
+/** Minimum samples before auto-retire consideration */
+const AUTO_RETIRE_MIN_SAMPLES = 50
 
 import type { MeditationPrompt } from './types.js'
 import type { MeditationStyle } from './styles.js'
@@ -98,11 +124,56 @@ export function pickPromptsThompson(
     eligible = params
   }
 
-  // Sample and rank
-  const sampled = eligible.map(p => ({
-    id: p.id,
-    theta: sampleBeta(p.alpha, p.beta),
-  }))
+  // Filter out chronically underperforming prompts (effective auto-retire)
+  const viable = eligible.filter(p => {
+    const expectedValue = p.alpha / (p.alpha + p.beta)
+    const totalSamples = p.alpha + p.beta - 2 // Subtract prior (alpha_0=1, beta_0=1)
+    // Exclude prompts that are terrible even after many trials
+    if (expectedValue < AUTO_RETIRE_THRESHOLD && totalSamples >= AUTO_RETIRE_MIN_SAMPLES) {
+      return false
+    }
+    return true
+  })
+
+  // If filtering removed everything, fall back to all eligible (safety)
+  const candidates = viable.length >= explorerCount ? viable : eligible
+
+  // Sample and rank — with exploration boost for under-tested prompts
+  const sampled = candidates.map(p => {
+    const rawTheta = sampleBeta(p.alpha, p.beta)
+    // Fetch prompt metadata from store
+    const promptRow = store.getPrompt(p.id)
+    const timesUsed = promptRow?.times_used ?? 0
+    const author = promptRow?.author ?? 'library'
+    // Expected value from Beta distribution
+    const expectedValue = p.alpha / (p.alpha + p.beta)
+
+    // Apply exploration boost: under-tested prompts get bonus
+    let boostedTheta = rawTheta
+    if (timesUsed < MIN_USES_FOR_CONFIDENCE) {
+      const boost = 1 + EXPLORATION_BOOST * (1 - timesUsed / MIN_USES_FOR_CONFIDENCE)
+      boostedTheta = Math.min(1.0, rawTheta * boost)
+    }
+
+    // Additional boost for Cassi mutations (evolution reward)
+    if (author === 'cassi') {
+      boostedTheta = Math.min(1.0, boostedTheta * (1 + CASSI_MUTATION_BOOST))
+    }
+
+    // Penalty for chronic underperformers (expected value < threshold with sufficient samples)
+    if (expectedValue < UNDERPERFORMER_THRESHOLD && timesUsed >= MIN_USES_FOR_CONFIDENCE) {
+      boostedTheta = boostedTheta * UNDERPERFORMER_PENALTY
+    }
+
+    return {
+      id: p.id,
+      theta: boostedTheta,
+      rawTheta,
+      timesUsed,
+      author,
+      expectedValue,
+    }
+  })
   sampled.sort((a, b) => b.theta - a.theta)
 
   // Pick top-N (no repeats)
