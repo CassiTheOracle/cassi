@@ -12,6 +12,7 @@ import path from 'path';
 import Database from 'better-sqlite3';
 
 import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
+import { DialecticEngine } from './engine.js';
 import { type PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
 import { getDataDir } from '../../utils/paths.js'
 
@@ -39,6 +40,15 @@ import type { BlackboardChannel } from '../../../types/flux-team.js';
 export { YangObserver, type YangConfig, createYangObserver } from './yang.js';
 export { YinObserver, type YinConfig, createYinObserver } from './yin.js';
 export { Serenity, type SerenityConfig, createSerenity } from './serenity.js';
+
+// Re-export the new DialecticEngine (string in → string out)
+export { DialecticEngine, createDialecticEngine as createEngine } from './engine.js';
+export type {
+  DialecticEngineConfig,
+  ReasonOptions,
+  DialecticStructuredResult,
+  IDialecticEngine,
+} from '../../../types/dialectic-engine.js';
 
 export interface DialecticSystemConfig {
   enabled: boolean;
@@ -144,6 +154,8 @@ export class DialecticSystem implements IDialecticSystem {
   private cortex?: CorticalField;
 
   private consolidatedProcessor: ConsolidatedDialecticProcessor;
+  /** The new pure reasoning engine — string in → string out */
+  readonly engine: DialecticEngine;
   private promptOptimizer?: PromptOptimizer;
   private db?: Database.Database;
   private streamCallbacks: Map<string, Set<(event: DialecticStreamEvent) => void>> = new Map();
@@ -188,6 +200,17 @@ export class DialecticSystem implements IDialecticSystem {
         model: this.config.yang?.model ?? 'gpt-4o',
       },
     );
+
+    // Initialize the pure reasoning engine (string in → string out)
+    this.engine = new DialecticEngine(this.logger, {
+      maxBranches: this.config.yang?.maxBranches ?? 3,
+      yangTemperature: this.config.yang?.temperature ?? 0.8,
+      yinTemperature: this.config.yin?.temperature ?? 0.3,
+      unityTemperature: this.config.serenity?.temperature ?? 0.4,
+      model: this.config.yang?.model ?? 'gpt-4o',
+      maxTokens: 2000,
+      postureTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 30_000,
+    });
 
     // Create and wire prompt optimizer if enabled
     const optimizerConfig = this.config.promptOptimizer;
@@ -261,6 +284,7 @@ export class DialecticSystem implements IDialecticSystem {
   setProvider(provider: IProvider): void {
     this.provider = provider;
     this.consolidatedProcessor.setProvider(provider);
+    this.engine.setProvider(provider);
     this.logger.info('DialecticSystem: provider wired');
   }
 
