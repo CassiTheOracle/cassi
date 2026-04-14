@@ -13,6 +13,7 @@ import Database from 'better-sqlite3';
 
 import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
 import { DialecticEngine } from './engine.js';
+import { formatDialecticAsThoughts } from './thought-formatter.js';
 import { type PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
 import { getDataDir } from '../../utils/paths.js'
 
@@ -43,6 +44,7 @@ export { Serenity, type SerenityConfig, createSerenity } from './serenity.js';
 
 // Re-export the new DialecticEngine (string in → string out)
 export { DialecticEngine, createDialecticEngine as createEngine } from './engine.js';
+export { formatDialecticAsThoughts } from './thought-formatter.js';
 export type {
   DialecticEngineConfig,
   ReasonOptions,
@@ -73,6 +75,21 @@ export interface DialecticSystemConfig {
     model?: string;
   };
   promptOptimizer?: Partial<PromptOptimizerConfig>;
+  /**
+   * When enabled, the dialectic engine runs synchronously on the user message
+   * and injects its full reasoning as an assistant message — as if the model
+   * thought through Yang/Yin/Unity before responding.
+   *
+   * This adds 2-5s of latency per turn but gives the model access to its own
+   * dialectic reasoning about the current question.
+   */
+  injectAsThoughts?: {
+    enabled?: boolean;
+    /** Timeout for the synchronous dialectic call (default: 15000ms) */
+    timeoutMs?: number;
+    /** Use 'parallel' (3 calls, higher quality) or 'consolidated' (1 call, faster) */
+    mode?: 'parallel' | 'consolidated';
+  };
 }
 
 // Result Cache
@@ -352,6 +369,73 @@ export class DialecticSystem implements IDialecticSystem {
       try { this.db.close(); } catch {}
       this.db = undefined;
     }
+  }
+
+  /**
+   * Run the dialectic engine on the user message and return the full reasoning
+   * formatted as natural inner-monologue prose, suitable for injection as an
+   * assistant message.
+   *
+   * Returns null if inject-as-thoughts is disabled, no provider is available,
+   * or the dialectic fails/times out.
+   */
+  async reasonAsThoughts(
+    userMessage: string,
+    opts?: { signal?: AbortSignal; context?: string },
+  ): Promise<string | null> {
+    const thoughtConfig = this.config.injectAsThoughts;
+    if (!thoughtConfig?.enabled) return null;
+    if (!this.provider) {
+      this.logger.debug('DialecticSystem.reasonAsThoughts: no provider, skipping');
+      return null;
+    }
+
+    const timeoutMs = thoughtConfig.timeoutMs ?? 15_000;
+    const mode = thoughtConfig.mode ?? 'consolidated';
+
+    try {
+      const result = await Promise.race([
+        this.engine.reasonStructured(userMessage, {
+          context: opts?.context,
+          mode,
+          signal: opts?.signal,
+        }),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
+      ]);
+
+      if (!result) {
+        this.logger.info('DialecticSystem.reasonAsThoughts: timed out');
+        return null;
+      }
+
+      const thoughts = formatDialecticAsThoughts(result);
+      this.logger.info('DialecticSystem.reasonAsThoughts: complete', {
+        selected: result.unity.selected,
+        tension: result.quality.tension.toFixed(2),
+        confidence: result.quality.dialecticQuality.toFixed(2),
+        thoughtChars: thoughts.length,
+        latencyMs: result.meta.totalLatencyMs,
+      });
+
+      return thoughts;
+    } catch (err) {
+      this.logger.warn('DialecticSystem.reasonAsThoughts: failed', { error: String(err) });
+      return null;
+    }
+  }
+
+  /** Whether inject-as-thoughts mode is enabled. */
+  get injectAsThoughtsEnabled(): boolean {
+    return !!this.config.injectAsThoughts?.enabled;
+  }
+
+  /** Hot-update the injectAsThoughts config at runtime. */
+  setInjectAsThoughts(opts: { enabled?: boolean; timeoutMs?: number; mode?: 'parallel' | 'consolidated' }): void {
+    this.config = {
+      ...this.config,
+      injectAsThoughts: { ...this.config.injectAsThoughts, ...opts },
+    };
+    this.logger.info('DialecticSystem: injectAsThoughts updated', { ...this.config.injectAsThoughts });
   }
 
   onEventBus(bus: IEventBus): void {
