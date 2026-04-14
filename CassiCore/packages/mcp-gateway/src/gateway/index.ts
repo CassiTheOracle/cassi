@@ -275,3 +275,12 @@ export {
   executeSelfModelTool,
   getSelfModelTool,
 } from './self-model-tools.js';
+
+// Annotation Tools (iterative Self-Model annotation workflow)
+export {
+  ANNOTATION_TOOLS,
+  ANNOTATION_TOOL_NAME,
+  ANNOTATION_TOOL_NAMES,
+  executeAnnotationTool,
+  getAnnotationTools,
+} from './annotation-tools.js';

@@ -79,6 +79,9 @@ import {
   executeCortexConsolidatedTool,
   getSelfModelTool,
   executeSelfModelTool,
+  getAnnotationTools,
+  executeAnnotationTool,
+  ANNOTATION_TOOL_NAME,
   AGENT_TOOL_NAME,
   MEMORY_CONSOLIDATED_TOOL_NAME,
   SESSION_CONSOLIDATED_TOOL_NAME,
@@ -215,6 +218,7 @@ function getAllTools() {
     getTrainingConsolidatedTool(),
     getCortexConsolidatedTool(),
     getSelfModelTool(),
+    ...getAnnotationTools(),
     VYBIT_TOOL,
     SKILL_INTELLIGENCE_TOOL,
     WORKFLOW_TOOL,
@@ -432,6 +436,9 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case SELF_MODEL_TOOL_NAME:
         return formatJsonResponse(await executeSelfModelTool(CASSICORE_URL, args, logger));
+
+      case ANNOTATION_TOOL_NAME:
+        return formatJsonResponse(await executeAnnotationTool(CASSICORE_URL, args, logger));
 
       default:
         throw unknownToolError(name);
