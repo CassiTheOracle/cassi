@@ -355,6 +355,73 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
+   * Build a compact context string for the dialectic engine from the current
+   * brain state. Summarizes cortex signals, affect, memory, self-model concepts,
+   * focus files, and recent conversation themes into a ~2000-char payload.
+   */
+  buildDialecticContext(sessionId: string, messages: any[]): string {
+    const ctx = this.buildBrainContext(sessionId, messages)
+    const parts: string[] = []
+
+    // Cortex signals — what's active in working memory
+    if (ctx.cortexIndex.highSalience.length > 0) {
+      const signals = ctx.cortexIndex.highSalience.slice(0, 5)
+        .map(ws => `[${ws.signal.type}] ${ws.signal.content.slice(0, 120)}`)
+        .join('\n')
+      parts.push(`Active cognitive signals:\n${signals}`)
+    }
+
+    // Affect state — emotional/cognitive tone
+    if (ctx.affectState) {
+      const a = ctx.affectState as { valence?: number; arousal?: number; dominantEmotion?: string }
+      if (a.dominantEmotion) {
+        parts.push(`Affect: ${a.dominantEmotion} (valence=${a.valence?.toFixed(2) ?? '?'}, arousal=${a.arousal?.toFixed(2) ?? '?'})`)
+      }
+    }
+
+    // Attention focus — what files and terms are being worked on
+    if (ctx.focusTerms.size > 0) {
+      parts.push(`Focus terms: ${[...ctx.focusTerms].slice(0, 15).join(', ')}`)
+    }
+    if (ctx.focusFiles.size > 0) {
+      parts.push(`Focus files: ${[...ctx.focusFiles].slice(0, 8).join(', ')}`)
+    }
+
+    // Memory terms — what's been potentiated in the Mnemic Field
+    if (ctx.mnemonicTerms.size > 0) {
+      parts.push(`Active memories: ${[...ctx.mnemonicTerms].slice(0, 12).join(', ')}`)
+    }
+
+    // Architectural self-knowledge — relevant codebase concepts
+    if (ctx.architecturalHits.length > 0) {
+      const hits = ctx.architecturalHits.slice(0, 4)
+        .map(h => `${h.nodeType}: ${h.conceptName}`)
+        .join(', ')
+      parts.push(`Architectural context: ${hits}`)
+    }
+
+    // Identity / pineal priorities
+    if (ctx.pinealTerms.size > 0) {
+      parts.push(`Identity priorities: ${[...ctx.pinealTerms].slice(0, 8).join(', ')}`)
+    }
+
+    // Recent conversation themes
+    if (ctx.recentMessageTerms.size > 0) {
+      parts.push(`Recent conversation: ${[...ctx.recentMessageTerms].slice(0, 15).join(', ')}`)
+    }
+
+    // Working memory threats / concerns
+    if (ctx.cortexIndex.threats.length > 0) {
+      const threats = ctx.cortexIndex.threats.slice(0, 3)
+        .map(ws => ws.signal.content.slice(0, 100))
+        .join('; ')
+      parts.push(`Active concerns: ${threats}`)
+    }
+
+    return parts.join('\n\n')
+  }
+
+  /**
    * Build a structured index of cortex signals, categorized by type, region,
    * salience, valence, and working memory state. This enables efficient
    * multi-axis scoring without repeated iteration.
