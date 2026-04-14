@@ -24,6 +24,91 @@ export async function handleDialecticRoutes(
 
   if (parts[0] !== 'dialectic') return false
 
+  // POST /dialectic/reason-as-thoughts — synchronous dialectic reasoning, formatted as inner monologue
+  if (parts.length === 2 && parts[1] === 'reason-as-thoughts' && method === 'POST') {
+    try {
+      const body = await parseBody(req)
+      const { query, context, sessionId } = body || {}
+      if (!query) {
+        sendJSON(res, 400, { error: 'missing required field: query' })
+        return true
+      }
+      const dialectic = runtime.getIntelligence()?.dialectic as any
+      if (!dialectic?.reasonAsThoughts) {
+        sendJSON(res, 503, { error: 'dialectic.reasonAsThoughts not available' })
+        return true
+      }
+
+      // Build rich context from Thalamus if no explicit context provided
+      let finalContext = context
+      if (!finalContext) {
+        try {
+          const thalamus = runtime.getIntelligence()?.registry?.get?.('thalamus') as any
+          if (thalamus?.buildDialecticContext) {
+            // Get session messages for context building
+            const sid = sessionId || 'cassi:primary'
+            const sessionStore = runtime.getPrimarySessionStore?.() ?? runtime.getLegacySessionStore?.()
+            const session = sessionStore?.getSession?.(sid) ?? sessionStore?.getOrCreateById?.(sid)
+            const messages = session?.messages ?? []
+            finalContext = thalamus.buildDialecticContext(sid, messages)
+            runtime.logger?.info?.('Dialectic context built from Thalamus', {
+              sessionId: sid,
+              contextChars: finalContext?.length ?? 0,
+              messageCount: messages.length,
+            })
+          }
+        } catch { /* best-effort */ }
+      }
+
+      // Temporarily force enable for this call (admin API should always work)
+      const wasEnabled = dialectic.injectAsThoughtsEnabled
+      if (!wasEnabled) {
+        dialectic.setInjectAsThoughts({ enabled: true })
+      }
+      try {
+        const startMs = Date.now()
+        const thoughts = await dialectic.reasonAsThoughts(query, { context: finalContext })
+        const latencyMs = Date.now() - startMs
+        sendJSON(res, 200, {
+          thoughts, latencyMs, chars: thoughts?.length ?? 0,
+          contextChars: finalContext?.length ?? 0,
+        })
+      } finally {
+        if (!wasEnabled) {
+          dialectic.setInjectAsThoughts({ enabled: false })
+        }
+      }
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /dialectic/reason-structured — full structured dialectic result (raw JSON)
+  if (parts.length === 2 && parts[1] === 'reason-structured' && method === 'POST') {
+    try {
+      const body = await parseBody(req)
+      const { query, context, mode } = body || {}
+      if (!query) {
+        sendJSON(res, 400, { error: 'missing required field: query' })
+        return true
+      }
+      const dialectic = runtime.getIntelligence()?.dialectic as any
+      const engine = dialectic?.engine
+      if (!engine) {
+        sendJSON(res, 503, { error: 'dialectic engine not available' })
+        return true
+      }
+      const result = await engine.reasonStructured(query, { context, mode: mode ?? 'parallel' })
+      sendJSON(res, 200, result)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // GET /dialectic/:sessionId/history
   if (parts.length === 3 && parts[2] === 'history' && method === 'GET') {
     const sessionId = parts[1]
