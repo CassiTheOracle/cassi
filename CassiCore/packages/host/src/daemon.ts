@@ -2777,6 +2777,7 @@ export class Daemon {
           thinker: (this as any).intelligence?.thinker,
           subconscious: (this as any).intelligence?.subconscious,
           locusBridge: (this as any).intelligence?.locusBridge,
+          thalamus: (this as any).intelligence?.registry?.get('thalamus'),
         },
         eventBus: this.bus,
         injectionAggregator: (this as any).intelligence?.injectionAggregator,
@@ -3368,10 +3369,30 @@ export class Daemon {
       this.logger.info(`plugin restarted: ${event.pluginId} (attempt ${event.attempt})`)
     })
 
-    // 10. Subscribe to config:reloaded — hot-reload confirmation
+    // 10. Subscribe to config:reloaded — hot-reload confirmation + dialectic hot-update
     this.bus.on("config:reloaded", () => {
       this.logger.info("Config reloaded — no restart needed")
+      // Hot-update dialectic injectAsThoughts from runtime config
+      try {
+        const dialecticCfg = this.config.get('intelligence.dialectic.injectAsThoughts', undefined) as
+          | { enabled?: boolean; mode?: 'parallel' | 'consolidated'; timeoutMs?: number }
+          | undefined
+        if (dialecticCfg && this.intelligence?.dialectic) {
+          this.intelligence.dialectic.setInjectAsThoughts(dialecticCfg)
+        }
+      } catch { /* best-effort */ }
     })
+
+    // One-shot: propagate persisted dialectic injectAsThoughts override on boot
+    // (loadPersistedOverrides runs before this, so the override is in the layered config)
+    try {
+      const dialecticCfg = this.config.get('intelligence.dialectic.injectAsThoughts', undefined) as
+        | { enabled?: boolean; mode?: 'parallel' | 'consolidated'; timeoutMs?: number }
+        | undefined
+      if (dialecticCfg && this.intelligence?.dialectic) {
+        this.intelligence.dialectic.setInjectAsThoughts(dialecticCfg)
+      }
+    } catch { /* best-effort */ }
 
     completePhase('runtime-wiring', {
       sessionPipeline: !!this.sessionPipeline,
