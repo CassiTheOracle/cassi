@@ -17,6 +17,10 @@ const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'zembed-1'
 const EMB_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || '5000')
 const EMB_BATCH_SIZE = Number(process.env.EMBEDDING_BATCH_SIZE || '32')
 
+// Truncate embeddings to this dimension (zembed-1 supports 2560, 1280, 640, 320, 160, 80, 40)
+// Using 640 for 4x storage reduction while preserving semantic quality via Matryoshka learning
+const EMBEDDING_DIM = Number(process.env.EMBEDDING_DIM || '640')
+
 // Cache tuning
 const CACHE_MAX_ENTRIES = Number(process.env.EMB_CACHE_MAX_ENTRIES || '4000')
 const CACHE_MAX_BYTES = Number(process.env.EMB_CACHE_MAX_BYTES || String(80 * 1024 * 1024))  // 80 MB
@@ -95,7 +99,7 @@ export class EmbeddingService {
     const results = await this.fetchBatch([text], mode)
     const vec = results[0] ?? null
     if (vec) this.cacheSet(key, vec)
-    return vec
+    return vec ? this.truncate(vec) : null
   }
 
   /** Embed multiple texts in a single batch. Returns parallel array (null for failures). */
@@ -125,14 +129,21 @@ export class EmbeddingService {
       for (let j = 0; j < fetched.length; j++) {
         const vec = fetched[j]
         const origIdx = uncachedIndices[j]
-        results[origIdx] = vec
-        if (vec) {
-          this.cacheSet(this.cacheKey(texts[origIdx], mode), vec)
+        const truncated = vec ? this.truncate(vec) : null
+        results[origIdx] = truncated
+        if (truncated) {
+          this.cacheSet(this.cacheKey(texts[origIdx], mode), truncated)
         }
       }
     }
 
     return results
+  }
+
+  /** Truncate embedding to configured dimension (Matryoshka-style). */
+  private truncate(vec: number[]): number[] {
+    if (vec.length <= EMBEDDING_DIM) return vec
+    return vec.slice(0, EMBEDDING_DIM)
   }
 
   /** Cosine similarity between two vectors. Returns 0 on null/mismatched input. */
