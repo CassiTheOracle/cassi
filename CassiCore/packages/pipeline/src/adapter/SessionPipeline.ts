@@ -32,6 +32,10 @@ import type { IProvider } from '../../../types/runtime.js';
 // Intelligence module interfaces (from existing code)
 interface DialecticSystem {
   processTurn: (...args: unknown[]) => Promise<unknown>;
+  /** Whether inject-as-thoughts mode is enabled (added for dialectic-as-thoughts experiment). */
+  injectAsThoughtsEnabled?: boolean;
+  /** Run dialectic reasoning and return formatted inner-monologue prose. */
+  reasonAsThoughts?: (userMessage: string, opts?: { signal?: AbortSignal; context?: string }) => Promise<string | null>;
 }
 
 interface ThinkerModule {
@@ -60,6 +64,7 @@ export interface SessionPipelineOptions {
     thinker: ThinkerModule;
     subconscious: SubconsciousModule;
     locusBridge?: { sparkFromUserPrompt(sessionId: string, content: string, goal?: string): unknown };
+    thalamus?: { buildDialecticContext(sessionId: string, messages: any[]): string };
   };
   eventBus?: IEventBus;
   /** Unified injection aggregator for Corpus, SessionDigest, Optimizer, Dreamer, etc. */
@@ -524,6 +529,50 @@ export class SessionPipeline {
       } as any);
     }
 
+    // Dialectic-as-thoughts injection: run dialectic reasoning synchronously
+    // and inject the result as an assistant message so the model sees it as its
+    // own prior deliberation about the user's question.
+    // HOW: The Thalamus builds a rich context from cortex signals, mnemic field,
+    // self-model, affect state, and conversation themes — passed to the dialectic
+    // so Yang and Yin reason with full situational awareness.
+    let injectedThoughtMsg: { role: 'assistant'; content: string; timestamp: number } | null = null;
+    const dialectic = this.options.intelligence?.dialectic;
+    if (dialectic?.injectAsThoughtsEnabled && dialectic.reasonAsThoughts) {
+      try {
+        // Build rich context from the Thalamus brain state
+        let dialecticContext: string | undefined;
+        const thalamus = this.options.intelligence?.thalamus;
+        if (thalamus) {
+          try {
+            dialecticContext = thalamus.buildDialecticContext(session.id, session.messages);
+            if (dialecticContext) {
+              this.logger.debug('Dialectic context built from Thalamus', {
+                sessionId: session.id,
+                contextChars: dialecticContext.length,
+              });
+            }
+          } catch (err) {
+            this.logger.debug('Thalamus context build failed (non-critical)', { error: String(err) });
+          }
+        }
+
+        const thoughts = await dialectic.reasonAsThoughts(content, {
+          signal: controller.signal,
+          context: dialecticContext,
+        });
+        if (thoughts) {
+          injectedThoughtMsg = { role: 'assistant', content: thoughts, timestamp: Date.now() };
+          session.messages.push(injectedThoughtMsg);
+          this.logger.info('Injected dialectic thoughts as assistant message', {
+            sessionId: session.id,
+            thoughtChars: thoughts.length,
+          });
+        }
+      } catch (err) {
+        this.logger.debug('Dialectic thought injection failed (non-critical)', { error: String(err) });
+      }
+    }
+
     try {
       const result = await this.turnHandler!.process(session, request, onStreamEvent);
 
@@ -603,6 +652,13 @@ export class SessionPipeline {
     } finally {
       // Always clean up the controller
       this.activeControllers.delete(session.id);
+
+      // Remove the ephemeral dialectic thought from session history so it
+      // doesn't persist across turns (it's a one-shot context injection).
+      if (injectedThoughtMsg) {
+        const idx = session.messages.indexOf(injectedThoughtMsg);
+        if (idx !== -1) session.messages.splice(idx, 1);
+      }
     }
   }
 
