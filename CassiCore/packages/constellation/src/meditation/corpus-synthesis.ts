@@ -164,11 +164,13 @@ export function getCorpusToolSchemas(corpusPrompt: CorpusPrompt): Array<{ name: 
 
 /**
  * Build custom handlers for Corpus tools.
- * Each handler writes to the mnemic field or returns a result.
+ * Each handler writes to the mnemic field AND to meditation_insights for full observability.
  */
 export function buildCorpusHandlers(
   mnemicField: MnemicField,
   logger: ILogger,
+  meditationStore?: any, // MeditationStore type
+  constellationId?: string,
 ): Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>> {
   return {
     async remember(input) {
@@ -177,12 +179,32 @@ export function buildCorpusHandlers(
         return { content: 'Nothing to remember.' }
       }
       try {
-        mnemicField.store({
+        // Store in mnemic field
+        const engramId = mnemicField.store({
           content,
           nodeType: 'pattern',
           provenance: 'meditation',
           tags: tags ?? ['meditation'],
         })
+        
+        // ── Phase 7: Also persist to meditation_insights table ────────
+        if (meditationStore && constellationId) {
+          try {
+            meditationStore.recordMeditationInsight({
+              id: `mi-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              session_id: constellationId,
+              content,
+              importance: 7,
+              generated_at: Date.now(),
+              insight_type: 'reflection',
+              source_tags: JSON.stringify(tags ?? ['meditation']),
+              consolidation_ref: engramId,
+            })
+          } catch (err) {
+            logger.warn('[Corpus] Insight persistence failed', { error: String(err) })
+          }
+        }
+        
         logger.info('[Corpus] Remembered', { content: content.slice(0, 80) })
         return { content: `Remembered: "${content.slice(0, 100)}..."` }
       } catch (err) {
@@ -200,12 +222,33 @@ export function buildCorpusHandlers(
         const resolvedType: EngramType = validTypes.includes(nodeType as EngramType)
           ? (nodeType as EngramType)
           : 'pattern'
-        mnemicField.store({
+        
+        // Store in mnemic field
+        const engramId = mnemicField.store({
           content,
           nodeType: resolvedType,
           provenance: 'meditation',
           tags: tags ?? ['meditation'],
         })
+        
+        // ── Phase 7: Also persist to meditation_insights table ────────
+        if (meditationStore && constellationId) {
+          try {
+            meditationStore.recordMeditationInsight({
+              id: `mi-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              session_id: constellationId,
+              content,
+              importance: 8, // Engrams are higher importance
+              generated_at: Date.now(),
+              insight_type: resolvedType,
+              source_tags: JSON.stringify(tags ?? ['meditation']),
+              consolidation_ref: engramId,
+            })
+          } catch (err) {
+            logger.warn('[Corpus] Insight persistence failed', { error: String(err) })
+          }
+        }
+        
         logger.info('[Corpus] Engram created', { content: content.slice(0, 80), nodeType })
         return { content: `Engram created: "${content.slice(0, 100)}..."` }
       } catch (err) {

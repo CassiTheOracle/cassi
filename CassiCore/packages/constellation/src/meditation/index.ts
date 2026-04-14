@@ -42,6 +42,7 @@ import type { OrganizingStats } from './organizing-synthesis.js'
 import { buildSelfModelingExplorerPrompt, getSelfModelingToolSchemas, buildSelfModelingHandlers } from './self-modeling-synthesis.js'
 import { FieldHealthAnalyzer } from './field-health.js'
 import type { FieldHealthSnapshot } from './field-health.js'
+import { MeditationFeedbackTracker } from './meditation-feedback.js'
 
 import type { ConstellationOrchestrator } from '../constellation-orchestrator.js'
 import type { ConstellationRegistry } from '../constellation-injection.js'
@@ -411,6 +412,50 @@ export class MeditationController extends BaseCognitiveModule {
     }
     this.sessionCount++
 
+    // ── Phase 7: Session Start Persistence ──────────────────────────────── // contributing:ignore
+    // Record complete session start with configuration snapshot
+    if (this.meditationStore) {
+      try {
+        // Record session start
+        this.meditationStore.recordSessionStart({
+          id: constellationId,
+          started_at: Date.now(),
+          style: resolvedStyle,
+          config_snapshot: JSON.stringify(this.meditationConfig),
+        })
+
+        // Record configuration history for tracking evolution
+        const now = Date.now()
+        const configKeys = Object.keys(this.meditationConfig)
+        for (const key of configKeys) {
+          const value = (this.meditationConfig as any)[key]
+          this.meditationStore.recordConfigHistory({
+            session_id: constellationId,
+            config_key: key,
+            config_value: JSON.stringify(value),
+            changed_at: now,
+          })
+        }
+
+        // Record prompt assignments
+        for (const assignment of promptAssignments) {
+          this.meditationStore.recordPromptAssignment({
+            session_id: constellationId,
+            helix_id: `${constellationId}-${assignment.explorer}`,
+            explorer_name: assignment.explorer,
+            prompt_id: assignment.promptId,
+            prompt_category: assignment.promptId.split('-')[0] ?? 'minimal',
+            assigned_at: now,
+            assignment_reason: this.meditationStore ? 'thompson' : 'sequential',
+          })
+        }
+
+        this.logger.info('[Meditation] Session start persisted', { constellationId })
+      } catch (err) {
+        this.logger.warn('[Meditation] Session start persistence failed', { error: String(err) })
+      }
+    }
+
     emitMeditationEvent(this.eventBus, {
       type: 'meditation:started',
       constellationId,
@@ -620,63 +665,129 @@ export class MeditationController extends BaseCognitiveModule {
       this.mnemicBridge = undefined
     }
 
-    // SoloRunner path: spike related engrams and consolidate directly via MnemicField.
-    // The MnemicBridge is only used by the old Constellation path — SoloRunners
-    // store insights via the store_insight tool, but without spiking or consolidation.
-    if (!this.mnemicBridge && this.mnemicField && this.meditationConfig.consolidateOnComplete) {
-      try {
-        // Spike engrams related to this session's prompts to reinforce associations
-        const prompts = this.activeSession?.prompts?.map(p => p.prompt) ?? []
-        let spiked = 0
-        for (const prompt of prompts) {
-          try {
-            const hits = this.mnemicField.searchText(prompt, 10)
-            for (const hit of hits.filter(h => h.score >= 0.3).slice(0, 5)) {
-              this.mnemicField.spike({
-                engramId: hit.engram.id,
-                magnitude: 0.5,
-                taskContext: `meditation:${constellationId}`,
-                outcome: 'unknown' as const,
-              })
-              spiked++
-            }
-          } catch {
-            // best-effort spiking
+    /**
+   * SoloRunner path: spike related engrams and consolidate directly via MnemicField.
+   * The MnemicBridge is only used by the old Constellation path — SoloRunners
+   * store insights via the store_insight tool, but without spiking or consolidation.
+   */
+  if (!this.mnemicBridge && this.mnemicField && this.meditationConfig.consolidateOnComplete) {
+    try {
+      // Spike engrams related to this session's prompts to reinforce associations
+      const prompts = this.activeSession?.prompts?.map(p => p.prompt) ?? []
+      let spiked = 0
+      for (const prompt of prompts) {
+        try {
+          const hits = this.mnemicField.searchText(prompt, 10)
+          for (const hit of hits.filter(h => h.score >= 0.3).slice(0, 5)) {
+            this.mnemicField.spike({
+              engramId: hit.engram.id,
+              magnitude: 0.5,
+              taskContext: `meditation:${constellationId}`,
+              outcome: 'unknown' as const,
+            })
+            spiked++
           }
+        } catch {
+          // best-effort spiking
         }
-        if (spiked > 0) {
-          if (this.activeSession) this.activeSession.engrams.spiked = spiked
-          this.logger.info('[Meditation] Post-session spiking complete', { spiked })
-        }
-
-        // Run consolidation on the mnemic field
-        const result = await this.mnemicField.consolidate()
-        if (this.activeSession) this.activeSession.consolidations = 1
-        this.logger.info('[Meditation] Post-session consolidation complete', {
-          potentiationUpdates: result.potentiationUpdates,
-          nuclei: result.nucleiDetected,
-          abstractions: result.abstractionsCreated,
-        })
-      } catch (err) {
-        this.logger.warn('[Meditation] Post-session mnemic processing failed', { error: String(err) })
       }
-    }
+      if (spiked > 0) {
+        if (this.activeSession) this.activeSession.engrams.spiked = spiked
+        this.logger.info('[Meditation] Post-session spiking complete', { spiked })
+      }
 
-    // Cancel running explorers
-    if (this.activeAbortController) {
-      this.activeAbortController.abort()
-      this.activeAbortController = undefined
+      // Run consolidation on the mnemic field
+      const result = await this.mnemicField.consolidate()
+      if (this.activeSession) this.activeSession.consolidations = 1
+      this.logger.info('[Meditation] Post-session consolidation complete', {
+        potentiationUpdates: result.potentiationUpdates,
+        nuclei: result.nucleiDetected,
+        abstractions: result.abstractionsCreated,
+      })
+    } catch (err) {
+      this.logger.warn('[Meditation] Post-session mnemic processing failed', { error: String(err) })
     }
-    // Also cancel via orchestrator if a constellation-based session is still running
-    if (constellationId && this.orchestrator) {
-      this.orchestrator.cancel(constellationId)
-    }
-
-    await this.onMeditationComplete()
   }
 
+  // Cancel running explorers
+  if (this.activeAbortController) {
+    this.activeAbortController.abort()
+    this.activeAbortController = undefined
+  }
+  // Also cancel via orchestrator if a constellation-based session is still running
+  if (constellationId && this.orchestrator) {
+    this.orchestrator.cancel(constellationId)
+  }
 
-  /**
+  await this.onMeditationComplete()
+}
+
+
+// ── Phase 7 Helper Methods ─────────────────────────────────────────── // contributing:ignore
+
+/**
+ * Count insights generated during this session.
+ */
+private async countSessionInsights(): Promise<number> {
+  if (!this.memory || !this.activeSession) return 0
+  
+  try {
+    const memAny = this.memory as any
+    if (typeof memAny.getRecent !== 'function') return 0
+    
+    const recent = await memAny.getRecent(200)
+    const sessionInsights = (recent ?? []).filter((e: any) =>
+      e.metadata?.source === 'meditation' &&
+      e.type === 'insight' &&
+      e.createdAt && new Date(e.createdAt).getTime() > this.activeSession!.startedAt
+    )
+    return sessionInsights.length
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Calculate success rating based on session outcomes.
+ * Returns 0-1 score reflecting session quality.
+ */
+private calculateSuccessRating(data: {
+  insights: number
+  steps: number
+  engrams: { spiked: number; created: number }
+  consolidations: number
+}): number {
+  // Weight factors:
+  // - Insights generated: most important (weight 0.4)
+  // - Steps taken: exploration breadth (weight 0.2)
+  // - Engrams created: memory formation (weight 0.2)
+  // - Consolidations: knowledge integration (weight 0.2)
+  
+  const insightScore = Math.min(data.insights / 5, 1) // 5 insights = max score
+  const stepScore = Math.min(data.steps / 50, 1) // 50 steps = max score
+  const engramScore = Math.min((data.engrams.spiked + data.engrams.created) / 10, 1) // 10 engrams = max
+  const consolidationScore = Math.min(data.consolidations / 3, 1) // 3 consolidations = max
+  
+  return (
+    insightScore * 0.4 +
+    stepScore * 0.2 +
+    engramScore * 0.2 +
+    consolidationScore * 0.2
+  )
+}
+
+/**
+ * Count discoveries mentioned in transcript.
+ * Simple heuristic: count "I noticed" phrases.
+ */
+private countDiscoveries(transcript?: string): number {
+  if (!transcript) return 0
+  const matches = transcript.match(/I noticed/gi)
+  return matches ? matches.length : 0
+}
+
+
+/**
    * Organizing session — single agent that restructures the mnemic field.
    *
    * Unlike standard meditation (multiple free explorers), organizing spawns
@@ -698,6 +809,12 @@ export class MeditationController extends BaseCognitiveModule {
     // Create health analyzer for before/after diagnostics
     const healthAnalyzer = new FieldHealthAnalyzer(this.mnemicField, this.logger, this.meditationStore)
 
+    // Create feedback tracker for neural kindling learning
+    const feedbackTracker = new MeditationFeedbackTracker(
+      this.logger.child('meditation-feedback'),
+      constellationId,
+    )
+
     // Reuse cached snapshot from health check when available
     const beforeSnapshot = this.cachedHealthSnapshot ?? healthAnalyzer.snapshot()
     this.cachedHealthSnapshot = undefined
@@ -708,7 +825,7 @@ export class MeditationController extends BaseCognitiveModule {
     const explorerPrompt = buildOrganizingExplorerPrompt(fieldStats, healthReport, priorityRegions)
 
     const { handlers, stats: organizingStats, touchedRegions } = buildOrganizingHandlers(
-      this.mnemicField, this.logger, healthAnalyzer, this.meditationStore,
+      this.mnemicField, this.logger, healthAnalyzer, this.meditationStore, feedbackTracker,
     )
 
     try {
@@ -803,6 +920,23 @@ export class MeditationController extends BaseCognitiveModule {
         delta,
       )
 
+      // Send feedback to Mnemic Field for neural kindling learning
+      if (this.mnemicField) {
+        try {
+          const feedbackResult = await feedbackTracker.sendToMnemicField(this.mnemicField)
+          this.logger.info('[Meditation] Organizing feedback sent', {
+            engramsTracked: feedbackResult.engramsTracked,
+            helpfulCount: feedbackResult.helpfulCount,
+            unhelpfulCount: feedbackResult.unhelpfulCount,
+            helpfulRatio: feedbackResult.engramsTracked > 0
+              ? (feedbackResult.helpfulCount / feedbackResult.engramsTracked).toFixed(2)
+              : '0',
+          })
+        } catch (err) {
+          this.logger.warn('[Meditation] Failed to send organizing feedback', { error: String(err) })
+        }
+      }
+
       // Evaluation — score the organizing prompts
       if (this.meditationStore) {
         await this.runEvaluation(constellationId, [organizerResult])
@@ -852,7 +986,7 @@ export class MeditationController extends BaseCognitiveModule {
         logger: this.logger,
         eventBus: this.eventBus!,
         signal: this.activeAbortController?.signal ?? new AbortController().signal,
-        customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
+        customHandlers: buildCorpusHandlers(this.mnemicField, this.logger, this.meditationStore, constellationId),
         customToolSchemas: getCorpusToolSchemas({ id: 'organizing', category: 'synthesizer', identity: '', approach: '', style: 'passive' as any }),
       })
     } catch (err) {
@@ -1009,7 +1143,7 @@ export class MeditationController extends BaseCognitiveModule {
         logger: this.logger,
         eventBus: this.eventBus!,
         signal: this.activeAbortController?.signal ?? new AbortController().signal,
-        customHandlers: buildCorpusHandlers(this.mnemicField, this.logger),
+        customHandlers: buildCorpusHandlers(this.mnemicField, this.logger, this.meditationStore, constellationId),
         customToolSchemas: getCorpusToolSchemas(corpusPrompt),
       })
     } catch (err) {
@@ -1146,6 +1280,66 @@ export class MeditationController extends BaseCognitiveModule {
     if (this.state === 'idle' || this.state === 'stopped') return
 
     this.lastMeditationAt = Date.now()
+
+    // ── Phase 7: Session Completion Persistence ────────────────────────────── // contributing:ignore
+    // Record complete session outcome
+    if (this.meditationStore && this.activeSession) {
+      try {
+        // Collect final stats
+        const soloResults = this.activeSession.soloResults ?? []
+        const totalSteps = soloResults.reduce((sum, r) => sum + r.iterations, 0)
+        const totalTokens = soloResults.reduce((sum, r) => sum + r.tokensUsed, 0)
+        
+        // Calculate success rating based on outcomes
+        const insightsCount = await this.countSessionInsights()
+        const successRating = this.calculateSuccessRating({
+          insights: insightsCount,
+          steps: totalSteps,
+          engrams: this.activeSession.engrams,
+          consolidations: this.activeSession.consolidations,
+        })
+
+        // Record session completion
+        this.meditationStore.recordSessionCompletion({
+          id: this.activeSession.constellationId,
+          completed_at: Date.now(),
+          duration_ms: Date.now() - this.activeSession.startedAt,
+          total_steps: totalSteps,
+          active_explorers: this.activeSession.prompts.length,
+          stop_reason: 'natural',
+          success_rating: successRating,
+          total_tokens_used: totalTokens,
+          insights_generated: insightsCount,
+          engrams_spiked: this.activeSession.engrams.spiked,
+          engrams_created: this.activeSession.engrams.created,
+          consolidations: this.activeSession.consolidations,
+          self_awareness_count: this.mnemicBridge?.getSelfAwarenessDetections().length ?? 0,
+        })
+
+        // Update prompt assignment outcomes
+        for (const result of soloResults) {
+          this.meditationStore.updatePromptAssignmentOutcome(
+            this.activeSession.constellationId,
+            `${this.activeSession.constellationId}-${result.name}`,
+            {
+              steps_taken: result.iterations,
+              discoveries_count: this.countDiscoveries(result.transcript),
+              tokens_used: result.tokensUsed,
+              final_score: successRating,
+            }
+          )
+        }
+
+        this.logger.info('[Meditation] Session completion persisted', {
+          constellationId: this.activeSession.constellationId,
+          durationMs: Date.now() - this.activeSession.startedAt,
+          insights: insightsCount,
+          successRating,
+        })
+      } catch (err) {
+        this.logger.warn('[Meditation] Session completion persistence failed', { error: String(err) })
+      }
+    }
 
     if (this.activeSession) {
       emitMeditationEvent(this.eventBus, {

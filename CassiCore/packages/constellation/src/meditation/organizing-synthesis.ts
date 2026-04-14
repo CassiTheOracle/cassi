@@ -23,6 +23,7 @@ import type { MnemicField } from '../../mnemic-field/index.js'
 import type { ToolCallResult } from './solo-runner.js'
 import type { FieldHealthAnalyzer, FieldHealthSnapshot, RegionHealth } from './field-health.js'
 import type { MeditationStore } from './meditation-store.js'
+import { MeditationFeedbackTracker } from './meditation-feedback.js'
 
 
 /**
@@ -553,6 +554,7 @@ export function buildOrganizingHandlers(
   logger: ILogger,
   healthAnalyzer?: FieldHealthAnalyzer,
   meditationStore?: MeditationStore,
+  feedbackTracker?: MeditationFeedbackTracker,
 ): { handlers: Record<string, (input: Record<string, unknown>) => Promise<ToolCallResult>>; stats: OrganizingStats; touchedRegions: string[] } {
   const stats: OrganizingStats = {
     regionsKindled: 0,
@@ -688,12 +690,17 @@ export function buildOrganizingHandlers(
         stats.regionsKindled++
         touchedRegions.push(query)
 
+        // Track feedback: record retrieved engrams
+        if (feedbackTracker && hits.length > 0) {
+          feedbackTracker.recordRetrieved(hits.map(h => h.id), `organizing:kindle:${query}`)
+        }
+
         if (hits.length === 0) {
           return { content: `Nothing activated for "${query}" — this region may be empty.` }
         }
 
         // Spike the top hits to reinforce their activation
-        let spiked = 0
+        const spikedIds: string[] = []
         for (const hit of hits.slice(0, 8)) {
           try {
             mnemicField.spike({
@@ -702,19 +709,24 @@ export function buildOrganizingHandlers(
               taskContext: `organizing:kindle:${query}`,
               outcome: 'unknown' as const,
             })
-            spiked++
+            spikedIds.push(hit.id)
           } catch (err) {
             logger.debug('[Organizing] Spike failed', { engramId: hit.id, error: String(err) })
           }
+        }
+
+        // Track feedback: spiked engrams are productive
+        if (feedbackTracker && spikedIds.length > 0) {
+          feedbackTracker.recordProductive(spikedIds)
         }
 
         const lines = hits.slice(0, 8).map(h =>
           `  - [charge: ${h.charge.toFixed(2)}, pot: ${h.potentiation.toFixed(2)}] ${h.content.slice(0, 120)}`
         )
 
-        logger.info('[Organizing] Region kindled', { query, intensity, hits: hits.length, spiked })
+        logger.info('[Organizing] Region kindled', { query, intensity, hits: hits.length, spiked: spikedIds.length })
         return {
-          content: `Kindled "${query}" (${intensity ?? 'moderate'}): ${hits.length} engrams activated, ${spiked} spiked\n${lines.join('\n')}`,
+          content: `Kindled "${query}" (${intensity ?? 'moderate'}): ${hits.length} engrams activated, ${spikedIds.length} spiked\n${lines.join('\n')}`,
         }
       } catch (err) {
         return { content: `Kindling failed: ${String(err)}` }
@@ -736,8 +748,14 @@ export function buildOrganizingHandlers(
           return { content: `Cannot bridge — "${missing}" has no matching engrams.` }
         }
 
+        // Track feedback: record retrieved engrams
+        if (feedbackTracker) {
+          const retrievedIds = [...hitsA.map(h => h.engram.id), ...hitsB.map(h => h.engram.id)]
+          feedbackTracker.recordRetrieved(retrievedIds, `organizing:bridge:${domain_a}↔${domain_b}`)
+        }
+
         // Cross-kindle: activate domain_a's engrams with domain_b's context and vice versa
-        let crossActivations = 0
+        const crossActivatedIds: string[] = []
         for (const hitA of hitsA.slice(0, 5)) {
           for (const hitB of hitsB.slice(0, 5)) {
             try {
@@ -753,7 +771,7 @@ export function buildOrganizingHandlers(
                 taskContext: `organizing:bridge:${domain_a}`,
                 outcome: 'unknown' as const,
               })
-              crossActivations += 2
+              crossActivatedIds.push(hitA.engram.id, hitB.engram.id)
             } catch (err) {
               logger.debug('[Organizing] Cross-activation failed', { error: String(err) })
             }
@@ -775,7 +793,7 @@ export function buildOrganizingHandlers(
         stats.bridgesCreated++
 
         // Try to create explicit synapse connections between top engrams
-        let synapsesCreated = 0
+        const connectedIds: string[] = []
         for (const hitA of hitsA.slice(0, 3)) {
           for (const hitB of hitsB.slice(0, 3)) {
             try {
@@ -786,20 +804,26 @@ export function buildOrganizingHandlers(
                 weight: 0.5,
                 metadata: { provenance: 'meditation:organizing' },
               })
-              synapsesCreated++
+              connectedIds.push(hitA.engram.id, hitB.engram.id)
             } catch (err) {
               logger.debug('[Organizing] Synapse creation failed', { error: String(err) })
             }
           }
         }
 
+        // Track feedback: connected engrams are productive
+        if (feedbackTracker && connectedIds.length > 0) {
+          feedbackTracker.recordProductive([...new Set(connectedIds)])
+        }
+
         logger.info('[Organizing] Bridge created', {
           domainA: domain_a, domainB: domain_b,
-          crossActivations, synapsesCreated,
+          crossActivations: crossActivatedIds.length,
+          synapsesCreated: connectedIds.length / 2,
         })
 
         return {
-          content: `Bridged "${domain_a}" ↔ "${domain_b}": ${crossActivations} cross-activations, ${synapsesCreated} new synapses, 1 bridge engram created.${rationale ? `\nRationale: ${rationale}` : ''}`,
+          content: `Bridged "${domain_a}" ↔ "${domain_b}": ${crossActivatedIds.length} cross-activations, ${connectedIds.length / 2} new synapses, 1 bridge engram created.${rationale ? `\nRationale: ${rationale}` : ''}`,
         }
       } catch (err) {
         return { content: `Bridging failed: ${String(err)}` }
@@ -1098,6 +1122,8 @@ export function buildOrganizingHandlers(
       const results: string[] = []
       let totalActivated = 0
       let totalSpiked = 0
+      const allRetrievedIds: string[] = []
+      const allSpikedIds: string[] = []
 
       for (const item of queries.slice(0, 20)) {
         try {
@@ -1109,7 +1135,13 @@ export function buildOrganizingHandlers(
           touchedRegions.push(item.query)
           totalActivated += hits.length
 
-          let spiked = 0
+          // Track feedback: record retrieved engrams
+          if (feedbackTracker && hits.length > 0) {
+            const ids = hits.map(h => h.id)
+            allRetrievedIds.push(...ids)
+          }
+
+          const spikedIds: string[] = []
           for (const hit of hits.slice(0, 8)) {
             try {
               mnemicField.spike({
@@ -1118,14 +1150,23 @@ export function buildOrganizingHandlers(
                 taskContext: `organizing:kindle:${item.query}`,
                 outcome: 'unknown' as const,
               })
-              spiked++
+              spikedIds.push(hit.id)
             } catch { /* non-fatal spike failure */ }
           }
-          totalSpiked += spiked
+          totalSpiked += spikedIds.length
+          allSpikedIds.push(...spikedIds)
 
-          results.push(`  "${item.query}": ${hits.length} activated, ${spiked} spiked`)
+          results.push(`  "${item.query}": ${hits.length} activated, ${spikedIds.length} spiked`)
         } catch (err) {
           results.push(`  "${item.query}": failed — ${String(err)}`)
+        }
+      }
+
+      // Track feedback: retrieved and spiked engrams
+      if (feedbackTracker && allRetrievedIds.length > 0) {
+        feedbackTracker.recordRetrieved(allRetrievedIds, 'organizing:batch_kindle')
+        if (allSpikedIds.length > 0) {
+          feedbackTracker.recordProductive(allSpikedIds)
         }
       }
 
@@ -1233,6 +1274,11 @@ export function buildOrganizingHandlers(
         const hits = mnemicField.searchText(query, maxCount)
         const cortex = mnemicField.getCortex()
 
+        // Track feedback: record retrieved engrams
+        if (feedbackTracker && hits.length > 0) {
+          feedbackTracker.recordRetrieved(hits.map(h => h.engram.id), `organizing:assign:${query}`)
+        }
+
         // Filter to only orphans
         const orphanHits = hits.filter(h => !h.engram.clusterId)
         if (orphanHits.length === 0) {
@@ -1242,6 +1288,11 @@ export function buildOrganizingHandlers(
         // Assign them
         const engramIds = orphanHits.map(h => h.engram.id)
         const assigned = cortex.assignToNucleus(engramIds, targetNucleus.id)
+
+        // Track feedback: assigned engrams are productive
+        if (feedbackTracker && assigned > 0) {
+          feedbackTracker.recordProductive(engramIds.slice(0, assigned))
+        }
 
         logger.info('[Organizing] Assigned orphans by similarity', {
           query, nucleusLabel: nucleus_label, assigned,
