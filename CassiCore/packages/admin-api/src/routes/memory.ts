@@ -5,6 +5,14 @@ import { getEmbeddingService } from '../intelligence/embeddings/embedding-servic
 import { getDataDir } from '../utils/paths.js'
 import type { SelfModelField } from '../intelligence/mnemic-field/self-model/self-model-field.js'
 import type { InterFieldBridge } from '../intelligence/mnemic-field/self-model/inter-field-bridge.js'
+import {
+  findNextUnannotated,
+  annotateEngram,
+  skipEngram,
+  countUnannotated,
+  buildInstruction,
+  type AnnotationResponse,
+} from '../intelligence/mnemic-field/self-model/annotation.js'
 import fs from 'node:fs'
 import path from 'node:path'
 import type http from 'node:http'
@@ -215,6 +223,47 @@ export async function handleMemoryRoutes(
     try {
       const field = getMnemicField(logger, daemon)
       sendJSON(res, 200, { ok: true, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/ann/status
+  if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'status' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const stats = field.getAnnStats()
+      sendJSON(res, 200, { ok: true, ready: field.isAnnReady(), stats })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/ann/initialize
+  if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'initialize' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      await field.initializeAnn()
+      const stats = field.getAnnStats()
+      sendJSON(res, 200, { ok: true, ready: field.isAnnReady(), stats })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/ann/rebuild
+  if (parts[1] === 'mnemic' && parts[2] === 'ann' && parts[3] === 'rebuild' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      await field.rebuildAnn()
+      const stats = field.getAnnStats()
+      sendJSON(res, 200, { ok: true, ready: field.isAnnReady(), stats })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -592,6 +641,60 @@ export async function handleMemoryRoutes(
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/annotate — iterative annotation workflow
+  if (parts[1] === 'self-model' && parts[2] === 'annotate' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const engramId = body?.engramId as string | undefined
+      const summary = body?.summary as string | undefined
+      const skip = body?.skip as boolean | undefined
+
+      // Store annotation if provided
+      if (engramId && summary && summary.trim()) {
+        annotateEngram(smf, engramId, summary.trim())
+        logger.info('Stored self-model annotation', { engramId, summaryLength: summary.length })
+      }
+
+      // Skip if requested
+      if (engramId && skip) {
+        skipEngram(smf, engramId)
+        logger.info('Skipped self-model annotation', { engramId })
+      }
+
+      // Find next unannotated
+      const next = findNextUnannotated(smf)
+      const progress = countUnannotated(smf)
+
+      if (!next) {
+        sendJSON(res, 200, {
+          status: 'complete',
+          instruction: 'All Self-Model engrams have been reviewed. No more unannotated entries.',
+          complete: { message: 'Annotation finished' },
+          progress,
+        } as AnnotationResponse)
+        return true
+      }
+
+      const previousAction = engramId
+        ? { engramId, action: skip ? 'skipped' : 'annotated' }
+        : undefined
+
+      sendJSON(res, 200, {
+        status: engramId ? (skip ? 'skipped' : 'stored') : 'pending',
+        instruction: buildInstruction(next),
+        engram: next,
+        progress,
+        previousAction,
+      } as AnnotationResponse)
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { status: 'error', error: String(err) } as AnnotationResponse)
       return true
     }
   }

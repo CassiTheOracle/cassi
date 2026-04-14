@@ -453,6 +453,239 @@ export async function handleMeditationRoutes(
     }
   }
 
+  // ── Phase 5: Analytics Endpoints ────────────────────────────────────────
+
+  // GET /meditation/trends/styles — all style trends
+  if (method === 'GET' && parts.length === 3 && parts[1] === 'trends' && parts[2] === 'styles') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      sendJSON(res, 200, { trends: store.getAllStyleTrends() })
+      return true
+    } catch (err) {
+      logger.warn('Meditation style trends failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/trends/prompts — all prompt trends
+  if (method === 'GET' && parts.length === 3 && parts[1] === 'trends' && parts[2] === 'prompts') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      sendJSON(res, 200, { trends: store.getAllPromptTrends() })
+      return true
+    } catch (err) {
+      logger.warn('Meditation prompt trends failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/trends/patterns — all pattern clusters
+  if (method === 'GET' && parts.length === 3 && parts[1] === 'trends' && parts[2] === 'patterns') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      sendJSON(res, 200, { patterns: store.getAllPatternClusters() })
+      return true
+    } catch (err) {
+      logger.warn('Meditation patterns failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/trends/config-impact — config impact analysis
+  if (method === 'GET' && parts.length === 3 && parts[1] === 'trends' && parts[2] === 'config-impact') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const limitParam = url.searchParams.get('limit')
+      const limit = limitParam ? parseInt(limitParam, 10) : 20
+      sendJSON(res, 200, { impacts: store.getConfigImpacts(limit) })
+      return true
+    } catch (err) {
+      logger.warn('Meditation config impact failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // ── Phase 6: Session Replay & Comparison ────────────────────────────────
+
+  // GET /meditation/session/:id — get full session data
+  if (method === 'GET' && parts.length === 3 && parts[1] === 'session') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const sessionId = parts[2]
+      const session = store.getSessionFull(sessionId)
+      if (!session) {
+        sendJSON(res, 404, { error: 'Session not found' })
+        return true
+      }
+      sendJSON(res, 200, { session })
+      return true
+    } catch (err) {
+      logger.warn('Meditation session fetch failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/session/:id/replay — complete session replay with all data
+  if (method === 'GET' && parts.length === 4 && parts[1] === 'session' && parts[3] === 'replay') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const sessionId = parts[2]
+      const session = store.getSessionFull(sessionId)
+      if (!session) {
+        sendJSON(res, 404, { error: 'Session not found' })
+        return true
+      }
+
+      // Build complete replay
+      const replay = {
+        session,
+        steps: store.getStepsForSession(sessionId),
+        assignments: store.getPromptAssignmentsForSession(sessionId),
+        insights: store.getInsightsForSession(sessionId),
+        selfAwareness: store.getSelfAwarenessForSession(sessionId),
+        errors: store.getErrorsForSession(sessionId),
+        resources: store.getResourceTimeline(sessionId),
+        configHistory: store.getConfigHistoryForSession(sessionId),
+      }
+
+      sendJSON(res, 200, replay)
+      return true
+    } catch (err) {
+      logger.warn('Meditation replay failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/sessions — list recent sessions
+  if (method === 'GET' && parts.length === 2 && parts[1] === 'sessions') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const limitParam = url.searchParams.get('limit')
+      const limit = limitParam ? parseInt(limitParam, 10) : 20
+      sendJSON(res, 200, { sessions: store.getRecentSessionsFull(limit) })
+      return true
+    } catch (err) {
+      logger.warn('Meditation sessions list failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/session/:id/steps — get all steps for a session
+  if (method === 'GET' && parts.length === 4 && parts[1] === 'session' && parts[3] === 'steps') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const sessionId = parts[2]
+      sendJSON(res, 200, { steps: store.getStepsForSession(sessionId) })
+      return true
+    } catch (err) {
+      logger.warn('Meditation steps fetch failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /meditation/webhooks — list all webhooks
+  if (method === 'GET' && parts.length === 2 && parts[1] === 'webhooks') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      sendJSON(res, 200, { webhooks: store.getAllWebhooks() })
+      return true
+    } catch (err) {
+      logger.warn('Meditation webhooks list failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /meditation/webhooks — create webhook
+  if (method === 'POST' && parts.length === 2 && parts[1] === 'webhooks') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const body = await deps.parseBody(req)
+      const id = `wh-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      store.createWebhook({
+        id,
+        url: body.url,
+        events: JSON.stringify(body.events ?? ['session:*']),
+        secret: body.secret,
+        retries: body.retries ?? 3,
+        timeout_ms: body.timeout_ms ?? 5000,
+      })
+      sendJSON(res, 200, { created: true, id })
+      return true
+    } catch (err) {
+      logger.warn('Meditation webhook create failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // DELETE /meditation/webhooks/:id — delete webhook
+  if (method === 'DELETE' && parts.length === 3 && parts[1] === 'webhooks') {
+    const store = meditation.getStore()
+    if (!store) {
+      sendJSON(res, 503, { error: 'Meditation store not available' })
+      return true
+    }
+    try {
+      const webhookId = parts[2]
+      store.deleteWebhook(webhookId)
+      sendJSON(res, 200, { deleted: true })
+      return true
+    } catch (err) {
+      logger.warn('Meditation webhook delete failed', { error: String(err) })
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   sendJSON(res, 404, { error: `Unknown meditation route: ${pathname}` })
   return true
 }
