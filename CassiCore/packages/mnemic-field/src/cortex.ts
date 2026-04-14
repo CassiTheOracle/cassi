@@ -642,6 +642,16 @@ export class Cortex {
   }
 
   /**
+   * Count engrams that have valid (non-origin) positions.
+   * Used to determine if projection state can be restored from DB.
+   */
+  countValidPositions(): number {
+    return (this.db.prepare(
+      `SELECT COUNT(*) as c FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 AND (x != 0 OR y != 0)`
+    ).get() as { c: number }).c
+  }
+
+  /**
    * Get embedding dimension from the first available embedding.
    */
   getEmbeddingDim(): number {

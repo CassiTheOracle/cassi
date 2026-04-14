@@ -119,6 +119,7 @@ export class MnemicField {
   private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
   private corticalField?: CorticalField
+  private db: Database.Database  // Store for persistence operations
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -136,6 +137,7 @@ export class MnemicField {
       db = dbOrPath
     }
 
+    this.db = db  // Store for persistence
     this.cortex = new Cortex(db, logger)
     this.filamentCortex = new FilamentCortex(db, logger)
     this.entityLinker = new EntityLinker(this.filamentCortex, logger)
@@ -145,7 +147,116 @@ export class MnemicField {
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, filamentConsolidator, this.gradientEngine)
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
-    this.logger.info('Mnemic Field initialized')
+
+    // Initialize projection state from existing positions in DB (if available)
+    this.projectionState = this._restoreProjectionState()
+
+    this.logger.info('Mnemic Field initialized', {
+      projectionStateRestored: this.projectionState !== null,
+      validPositions: this.cortex.countValidPositions(),
+    })
+  }
+
+  /**
+   * Restore projection state from database if valid positions exist.
+   * This avoids triggering expensive full reprojection on startup.
+   */
+  private _restoreProjectionState(): ProjectionState | null {
+    // Check if we have enough positions to build a useful state
+    const validPositions = this.cortex.countValidPositions()
+    if (validPositions < 100) {
+      this.logger.debug('Not enough valid positions to restore projection state', { count: validPositions })
+      return null
+    }
+
+    // Try to load from persisted state first
+    const persisted = this._loadPersistedProjectionState()
+    if (persisted) {
+      this.logger.info('Restored projection state from persisted cache', {
+        vectorCount: persisted.referenceEmbeddings.length,
+      })
+      return persisted
+    }
+
+    // Fall back to rebuilding from current DB positions
+    this.logger.info('Rebuilding projection state from DB positions', { validPositions })
+    return this.rebuildProjection()
+  }
+
+  /**
+   * Persist projection state to mnemic_meta table for fast restoration.
+   * Stores reference embeddings and positions as JSON.
+   */
+  private _saveProjectionState(state: ProjectionState): void {
+    try {
+      // Serialize state: embeddings as nested arrays, positions as {x, y} objects
+      const serialized = JSON.stringify({
+        referenceEmbeddings: state.referenceEmbeddings,
+        referencePositions: state.referencePositions,
+        nNeighbors: state.nNeighbors,
+        version: 1,
+        timestamp: Date.now(),
+      })
+
+      // Upsert to mnemic_meta
+      this.db.prepare(`
+        INSERT OR REPLACE INTO mnemic_meta (key, value)
+        VALUES ('projection_state', ?)
+      `).run(serialized)
+
+      this.logger.debug('Projection state persisted', {
+        vectorCount: state.referenceEmbeddings.length,
+        sizeBytes: serialized.length,
+      })
+    } catch (err) {
+      this.logger.warn('Failed to persist projection state', { error: String(err) })
+    }
+  }
+
+  /**
+   * Load persisted projection state from mnemic_meta table.
+   */
+  private _loadPersistedProjectionState(): ProjectionState | null {
+    try {
+      const row = this.db.prepare(
+        `SELECT value FROM mnemic_meta WHERE key = 'projection_state'`
+      ).get() as { value: string } | undefined
+
+      if (!row) return null
+
+      const parsed = JSON.parse(row.value) as {
+        referenceEmbeddings: number[][]
+        referencePositions: { x: number; y: number }[]
+        nNeighbors: number
+        version: number
+        timestamp: number
+      }
+
+      // Validate the loaded state
+      if (!parsed.referenceEmbeddings || parsed.referenceEmbeddings.length < 2) {
+        return null
+      }
+
+      return {
+        referenceEmbeddings: parsed.referenceEmbeddings,
+        referencePositions: parsed.referencePositions,
+        nNeighbors: parsed.nNeighbors,
+      }
+    } catch (err) {
+      this.logger.warn('Failed to load persisted projection state', { error: String(err) })
+      return null
+    }
+  }
+
+  /**
+   * Clear persisted projection state (e.g., before full reprojection).
+   */
+  private _clearPersistedProjectionState(): void {
+    try {
+      this.db.prepare(`DELETE FROM mnemic_meta WHERE key = 'projection_state'`).run()
+    } catch (err) {
+      this.logger.warn('Failed to clear persisted projection state', { error: String(err) })
+    }
   }
 
   /**
@@ -458,12 +569,14 @@ export class MnemicField {
    * Rebuild projection state from current engram embeddings and positions.
    * The state caches reference data for fast online projection of new engrams.
    * Call after bulk imports or periodically during consolidation.
+   * Also persists the state to DB for restoration on next startup.
    */
   rebuildProjection(): ProjectionState | null {
     const embData = this.cortex.getEmbeddingVectorsWithPositions(10000)
 
     if (embData.length < 2) {
       this.projectionState = null
+      this._clearPersistedProjectionState()
       return null
     }
 
@@ -471,6 +584,12 @@ export class MnemicField {
     const positions = embData.map(e => ({ x: e.x, y: e.y }))
     this.projectionState = buildProjectionState(vectors, positions)
     this.logger.debug('Projection state rebuilt', { vectorCount: vectors.length })
+
+    // Persist for fast restoration on next startup
+    if (this.projectionState) {
+      this._saveProjectionState(this.projectionState)
+    }
+
     return this.projectionState
   }
 
@@ -620,6 +739,11 @@ export class MnemicField {
       }
       this.projectionState = buildProjectionState(refEmb, refPos)
 
+      // Persist for fast restoration on next startup
+      if (this.projectionState) {
+        this._saveProjectionState(this.projectionState)
+      }
+
       // Release large allocations so GC can reclaim them before we return
       buffer = null as any
       ids = null as any
@@ -649,8 +773,9 @@ export class MnemicField {
   }
 
   /**
-   * Backfill missing embeddings using the configured local embedding service,
-   * then reproject the full field.
+   * Backfill missing embeddings using the configured local embedding service.
+   * Uses incremental projection (k-NN placement) when positions exist in DB,
+   * avoiding expensive full reprojection.
    */
   async backfillEmbeddings(limit = 1000): Promise<{ embedded: number; reprojected: number; filamentEmbeddings: number }> {
     const embSvc = getEmbeddingService(this.logger)
@@ -659,17 +784,29 @@ export class MnemicField {
     }
 
     const missing = this.cortex.getEngramsWithoutEmbedding(limit)
+    if (missing.length === 0) {
+      return { embedded: 0, reprojected: 0, filamentEmbeddings: 0 }
+    }
+
+    // Ensure we have projection state for incremental placement
+    // Try to restore from DB positions first (fast), only fall back to rebuild
+    if (!this.projectionState) {
+      this.projectionState = this._restoreProjectionState()
+    }
+
     let embedded = 0
     let filamentEmbeddings = 0
+    const positionUpdates: Array<{ id: string; x: number; y: number }> = []
 
     for (const { id, content } of missing) {
       const vec = await embSvc.embed(content, 'document')
       if (!vec) continue
       this.cortex.updateEngram(id, { embedding: vec })
 
+      // Incremental projection: place via k-NN if we have state
       if (this.projectionState) {
         const pos = projectSingle(vec, this.projectionState)
-        this.cortex.bulkUpdatePositions([{ id, x: pos.x, y: pos.y }])
+        positionUpdates.push({ id, x: pos.x, y: pos.y })
       }
       embedded++
 
@@ -677,12 +814,28 @@ export class MnemicField {
       filamentEmbeddings += filEmbedded
     }
 
+    // Bulk update positions for efficiency
+    if (positionUpdates.length > 0) {
+      this.cortex.bulkUpdatePositions(positionUpdates)
+    }
+
+    // Only trigger full reprojection if:
+    // 1. We still have no projection state (no valid positions existed in DB)
+    // 2. AND we actually embedded something
+    // This is rare - only happens on fresh/empty databases
     let reprojected = 0
     if (!this.projectionState && embedded > 0) {
+      this.logger.info('No positions in DB - triggering full reprojection')
       reprojected = await this.reprojectAllAsync()
     }
 
-    this.logger.info('Backfilled embeddings', { embedded, reprojected, filamentEmbeddings, remaining: this.cortex.countMissingEmbeddings() })
+    this.logger.info('Backfilled embeddings', {
+      embedded,
+      reprojected,
+      filamentEmbeddings,
+      incrementalPlacement: positionUpdates.length,
+      remaining: this.cortex.countMissingEmbeddings(),
+    })
     return { embedded, reprojected, filamentEmbeddings }
   }
 
@@ -753,6 +906,26 @@ export class MnemicField {
 
   isNeuralKindlingEnabled(): boolean {
     return this.kindlingEngine.getNeuralConfig().enabled
+  }
+
+  /** Initialize ANN indexes (async, should be called after startup) */
+  async initializeAnn(): Promise<void> {
+    await this.kindlingEngine.initializeAnn()
+  }
+
+  /** Check if ANN indexes are ready */
+  isAnnReady(): boolean {
+    return this.kindlingEngine.isAnnReady()
+  }
+
+  /** Get ANN index statistics */
+  getAnnStats(): { engram: { vectorCount: number; needsRebuild: boolean } | null; filament: { vectorCount: number; needsRebuild: boolean } | null } {
+    return this.kindlingEngine.getAnnStats()
+  }
+
+  /** Force rebuild ANN indexes */
+  async rebuildAnn(): Promise<void> {
+    await this.kindlingEngine.rebuildAnn()
   }
 
   /**

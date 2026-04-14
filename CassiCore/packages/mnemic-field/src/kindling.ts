@@ -3,6 +3,7 @@ import { cosineSimilarity } from './cortex.js'
 import type { Cortex } from './cortex.js'
 import { affectSimilarity } from './affect.js'
 import type { FilamentCortex } from './filament-cortex.js'
+import { ANNIndex, FilamentANNIndex, ANNIndexConfig, ANN_DEFAULTS, FILAMENT_ANN_DEFAULTS } from './ann-index.js'
 import type {
   Engram, MnemicSynapse, ChargedEngram, LuminalSet,
   KindlingOptions, KindlingTrace, TaskComplexity, SpikeOutcome,
@@ -44,15 +45,68 @@ export class KindlingEngine {
   private currentAffect: { valence: number; arousal: number } | null = null
   private neuralConfig: NeuralKindlingConfig
   private lastTrace: ForwardTrace | null = null
+  private engramAnnIndex: ANNIndex | null = null
+  private filamentAnnIndex: FilamentANNIndex | null = null
+  private annInitialized = false
 
   constructor(
     private cortex: Cortex,
     logger: ILogger,
     private filamentCortex: FilamentCortex | null = null,
     neuralConfig?: Partial<NeuralKindlingConfig>,
+    annConfig?: Partial<ANNIndexConfig>,
+    filamentAnnConfig?: Partial<ANNIndexConfig>,
   ) {
     this.logger = logger.child ? logger.child('kindling') : logger
     this.neuralConfig = { ...NEURAL_KINDLING_DEFAULTS, ...neuralConfig }
+
+    // Create ANN indexes (will be initialized lazily)
+    this.engramAnnIndex = new ANNIndex(cortex, logger, { ...ANN_DEFAULTS, ...annConfig })
+    if (filamentCortex) {
+      this.filamentAnnIndex = new FilamentANNIndex(filamentCortex, logger, { ...FILAMENT_ANN_DEFAULTS, ...filamentAnnConfig })
+    }
+  }
+
+  /** Initialize ANN indexes (async, should be called once) */
+  async initializeAnn(): Promise<void> {
+    if (this.annInitialized) return
+
+    this.logger.info('Initializing ANN indexes...')
+    const start = Date.now()
+
+    await this.engramAnnIndex?.initialize()
+    if (this.filamentAnnIndex) {
+      await this.filamentAnnIndex.initialize()
+    }
+
+    this.annInitialized = true
+    this.logger.info('ANN indexes initialized', {
+      engramCount: this.engramAnnIndex?.getVectorCount() ?? 0,
+      filamentCount: this.filamentAnnIndex?.getVectorCount() ?? 0,
+      durationMs: Date.now() - start,
+    })
+  }
+
+  /** Check if ANN is ready for use */
+  isAnnReady(): boolean {
+    return this.annInitialized && this.engramAnnIndex?.isReady() === true
+  }
+
+  /** Get ANN statistics */
+  getAnnStats(): { engram: ReturnType<ANNIndex['stats']>; filament: ReturnType<ANNIndex['stats']> } {
+    return {
+      engram: this.engramAnnIndex?.stats() ?? null,
+      filament: this.filamentAnnIndex?.stats() ?? null,
+    }
+  }
+
+  /** Force rebuild ANN indexes */
+  async rebuildAnn(): Promise<void> {
+    this.logger.info('Force rebuilding ANN indexes')
+    await this.engramAnnIndex?.forceRebuild()
+    if (this.filamentAnnIndex) {
+      await this.filamentAnnIndex.forceRebuild()
+    }
   }
 
   getLastTrace(): ForwardTrace | null {
@@ -232,10 +286,34 @@ export class KindlingEngine {
   }
 
   /**
-   * Find seeds by embedding cosine similarity against all engrams with embeddings.
+   * Find seeds by embedding cosine similarity against engrams with embeddings.
+   * Uses ANN index if available (O(log n)), otherwise brute-force (O(n)).
    */
   private findSeedsByEmbedding(queryEmb: number[], limit: number): SeedResult[] {
-    const embData = this.cortex.getEmbeddingVectors(50000)
+    // Try ANN index first if available
+    if (this.isAnnReady()) {
+      const annResults = this.engramAnnIndex!.search(queryEmb, limit * 2)
+      
+      if (annResults.length > 0) {
+        const seeds = annResults.map(r => ({
+          engramId: r.id,
+          // Convert cosine distance to similarity: similarity = 1 - distance
+          charge: Math.max(0, 1 - r.distance),
+        }))
+        
+        this.logger.debug('ANN seed search', {
+          candidates: annResults.length,
+          topCharge: seeds[0]?.charge.toFixed(3),
+        })
+        
+        return seeds.filter(s => s.charge > 0.1).slice(0, limit)
+      }
+    }
+
+    // Fallback: brute-force with reduced limit
+    // At 640 dims: 5000 embeddings = 5000 × 640 × 4 = 12.5MB vs 125MB for 50k
+    this.logger.debug('Using brute-force seed search (ANN not ready)')
+    const embData = this.cortex.getEmbeddingVectors(5000)
 
     if (embData.length === 0) return []
 
@@ -595,10 +673,45 @@ export class KindlingEngine {
   private findFilamentsByEmbedding(queryEmb: number[], limit: number, boost: number): SeedResult[] {
     if (!this.filamentCortex) return []
 
-    const embData = this.filamentCortex.getFilamentEmbeddingsWithContent(50000)
-    if (embData.length === 0) return []
-
     const contextPenalty = FILAMENT_KINDLING_DEFAULTS.contextPenalty
+
+    // Try ANN index first if available
+    if (this.filamentAnnIndex?.isReady()) {
+      const annResults = this.filamentAnnIndex.search(queryEmb, limit * 2)
+      
+      if (annResults.length > 0) {
+        const seeds: SeedResult[] = []
+        
+        for (const r of annResults) {
+          // Parse filament ID from "filament:123" format
+          if (!r.id.startsWith('filament:')) continue
+          
+          const filamentId = parseInt(r.id.slice(9), 10)
+          const charge = Math.max(0, 1 - r.distance) * boost * contextPenalty
+          
+          if (charge > 0.1) {
+            // Get filament content for matchedFilaments tracking
+            const filament = this.filamentCortex.getFilament(filamentId)
+            if (filament) {
+              this.matchedFilaments.set(filamentId, {
+                engramId: filament.engramId,
+                content: filament.content,
+                similarity: 1 - r.distance,
+                matchType: 'direct_embedding',
+              })
+              seeds.push({ engramId: filament.engramId, charge })
+            }
+          }
+        }
+        
+        return seeds.slice(0, limit)
+      }
+    }
+
+    // Fallback: brute-force search
+    this.logger.debug('Using brute-force filament search (ANN not ready)')
+    const embData = this.filamentCortex.getFilamentEmbeddingsWithContent(5000)
+    if (embData.length === 0) return []
 
     const scored = embData.map(f => ({
       filamentId: f.id,
