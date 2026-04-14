@@ -1741,6 +1741,12 @@ export class Daemon {
     try {
       const field = new MnemicField(this.logger)
       field.enableNeuralKindling()
+      
+      // Initialize ANN indexes asynchronously (non-blocking)
+      field.initializeAnn().catch(err => {
+        this.logger.warn('ANN initialization failed, will use brute-force fallback', { error: String(err) })
+      })
+      
       codeStore = new CodeStore(field, this.logger)
       ;(this as any).__codeStore = codeStore
       ;(this as any).__mnemicFieldForCode = field
