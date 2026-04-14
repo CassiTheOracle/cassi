@@ -1336,6 +1336,9 @@ private countDiscoveries(transcript?: string): number {
           insights: insightsCount,
           successRating,
         })
+
+        // ── Phase 5: Aggregate session data for trend analysis ────────
+        this.meditationStore.aggregateSessionData(this.activeSession.constellationId)
       } catch (err) {
         this.logger.warn('[Meditation] Session completion persistence failed', { error: String(err) })
       }

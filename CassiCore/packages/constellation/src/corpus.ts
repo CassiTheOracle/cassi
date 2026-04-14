@@ -68,6 +68,13 @@ import {
   getCorpusToolDefinitions,
   getMeditationToolSet,
 } from './corpus-tools.js'
+import {
+  normalizeDirectiveType,
+  normalizeUrgency,
+  extractFilePaths,
+} from './corpus/corpus-utils.js'
+import { PatternDetector } from './corpus/corpus-patterns.js'
+import { ExternalCorpusProtocol } from './corpus/corpus-external.js'
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
@@ -148,8 +155,7 @@ export class Corpus {
   private static readonly CHECKPOINT_INTERVAL_MS = 60_000 // checkpoint every 60s
 
   // External Corpus Protocol — allow an external agent to assume the Corpus role
-  private externalState: ExternalCorpusState
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  private externalProtocol: ExternalCorpusProtocol
   private stopped = false
 
   // WHY: When new branches are created, the Corpus should wake up immediately
@@ -164,13 +170,15 @@ export class Corpus {
   private locus: Locus
   private locusSweepResults: LocusSweepResult[] = []
 
+  // PatternDetector — Cross-branch pattern detection
+  private patternDetector: PatternDetector
+
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
     this.deps = deps
     this.config = { ...DEFAULT_CORPUS_CONFIG, ...config }
     this.state = createInitialProcessedState()
     this.logger = deps.logger.child('Corpus')
-    this.externalState = createInitialExternalCorpusState()
 
     this.logger.info('Corpus initialized', {
       constellationId: deps.constellationId,
@@ -181,6 +189,30 @@ export class Corpus {
       logger: this.logger,
       sessionId: deps.constellationId,
       memoryPersistence: deps.store?.getLocusMemoryPersistence(),
+    })
+
+    this.patternDetector = new PatternDetector({
+      tree,
+      state: this.state,
+      topology: deps.topology,
+      eventBus: deps.eventBus,
+      logger: this.logger,
+    })
+
+    // External Corpus Protocol — initialized with callbacks that reference this
+    this.externalProtocol = new ExternalCorpusProtocol({
+      callbacks: {
+        isRunning: () => this.running,
+        isStopped: () => this.stopped,
+        getConstellationId: () => this.deps.constellationId,
+        getExternalSnapshot: () => this.getExternalSnapshotInternal(),
+        postSynthesisToBlackboard: (content, author) => this.postSynthesisToBlackboard(content, author),
+        onSpawnRequest: (req) => this.deps.onSpawnRequest?.(req),
+        recordSpawnDecision: (decision) => this.state.spawnDecisions.push(decision),
+        sendDirective: (directive) => this.sendDirectiveInternal(directive),
+        emitEvent: (type, data) => this.emitEvent(type, data),
+      },
+      logger: this.logger,
     })
   }
 
@@ -220,10 +252,10 @@ export class Corpus {
     this.stopped = true
 
     // Release external Corpus if assumed
-    if (this.externalState.assumed) {
+    if (this.externalProtocol.isAssumed()) {
       this.release('corpus shutting down')
     }
-    this.stopHeartbeatMonitor()
+    this.externalProtocol.stop()
 
     if (this.loopPromise) {
       await this.loopPromise
@@ -252,124 +284,24 @@ export class Corpus {
   }
 
   // --- External Corpus Protocol ---
-
-  /**
-   * Allow an external agent to assume the Corpus role.
-   * Pauses the internal LLM loop and routes all decisions through
-   * the external agent's MCP tool calls.
-   *
-   * HOW: The running loop continues processing steps and tracking state,
-   * but LLM analysis is skipped while an external agent holds the lock.
-   * Spawn requests queue up instead of auto-evaluating.
-   */
-  assume(agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string } {
-    if (this.externalState.assumed) {
-      return {
-        assumed: false,
-        snapshot: null,
-        error: `Corpus is already assumed by agent "${this.externalState.agentId}"`,
-      }
-    }
-
-    if (!this.running) {
-      return {
-        assumed: false,
-        snapshot: null,
-        error: 'Corpus is not running',
-      }
-    }
-
-    // Validate agentId format
-    if (!agentId || typeof agentId !== 'string' || agentId.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(agentId)) {
-      return {
-        assumed: false,
-        snapshot: null,
-        error: 'agentId must be 1-128 alphanumeric characters, hyphens, or underscores',
-      }
-    }
-
-    this.externalState.assumed = true
-    this.externalState.agentId = agentId
-    this.externalState.assumedAt = Date.now()
-    this.externalState.lastActionAt = Date.now()
-    if (heartbeatTimeoutMs) {
-      this.externalState.heartbeatTimeoutMs = heartbeatTimeoutMs
-    }
-
-    // Start heartbeat monitoring
-    this.startHeartbeatMonitor()
-
-    this.logger.info('External agent assumed Corpus role', {
-      agentId,
-      heartbeatTimeoutMs: this.externalState.heartbeatTimeoutMs,
-    })
-
-    this.emitEvent('corpus:external-assumed', {
-      agentId,
-      constellationId: this.deps.constellationId,
-    })
-
-    return {
-      assumed: true,
-      snapshot: this.getExternalSnapshot(),
-    }
-  }
-
-  /**
-   * Release the Corpus role back to the internal LLM loop.
-   * Can be called by the external agent or triggered by heartbeat timeout.
-   */
-  release(reason?: string): { released: boolean; error?: string } {
-    if (!this.externalState.assumed) {
-      return { released: false, error: 'No external agent holds the Corpus role' }
-    }
-
-    const agentId = this.externalState.agentId
-    const heldForMs = Date.now() - (this.externalState.assumedAt ?? Date.now())
-
-    // Stop heartbeat monitoring
-    this.stopHeartbeatMonitor()
-
-    // Clear pending spawn requests — they'll be re-evaluated by internal Corpus
-    const pendingCount = this.externalState.pendingSpawnRequests.length
-
-    // Reset external state
-    this.externalState = createInitialExternalCorpusState()
-
-    this.logger.info('External agent released Corpus role', {
-      agentId,
-      reason: reason ?? 'explicit release',
-      heldForMs,
-      pendingSpawnRequestsDropped: pendingCount,
-    })
-
-    this.emitEvent('corpus:external-released', {
-      agentId,
-      reason: reason ?? 'explicit release',
-      heldForMs,
-      constellationId: this.deps.constellationId,
-    })
-
-    return { released: true }
-  }
+  // All external protocol methods delegate to ExternalCorpusProtocol instance
 
   /**
    * Check if an external agent currently holds the Corpus role.
    */
   isExternallyAssumed(): boolean {
-    return this.externalState.assumed
+    return this.externalProtocol.isAssumed()
   }
 
   /**
    * Get the external Corpus state (for status queries).
    */
   getExternalState(): ExternalCorpusState {
-    return { ...this.externalState, pendingSpawnRequests: [...this.externalState.pendingSpawnRequests] }
+    return this.externalProtocol.getState()
   }
 
   /**
    * Get the Locus snapshot for external introspection.
-   * Returns undefined if Locus is disabled.
    */
   getLocusSnapshot(): LocusSnapshot | undefined {
     return this.locus.enabled ? this.locus.getSnapshot() : undefined
@@ -377,7 +309,6 @@ export class Corpus {
 
   /**
    * Get active Locus memories for external introspection.
-   * Returns undefined if Locus is disabled.
    */
   getLocusMemories(): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined {
     return this.locus.enabled ? this.locus.getMemory().getActive() : undefined
@@ -385,7 +316,6 @@ export class Corpus {
 
   /**
    * Get a full snapshot of the Corpus state for an external agent.
-   * This is the external agent's view of the constellation.
    */
   getExternalSnapshot(): ExternalCorpusSnapshot {
     const assessments = Array.from(this.state.branchAssessments.values()).map((ba) => ({
@@ -406,7 +336,7 @@ export class Corpus {
       tree: this.tree.getSnapshot(),
       branchAssessments: assessments,
       crossPatterns: [...this.state.crossPatterns],
-      pendingSpawnRequests: [...this.externalState.pendingSpawnRequests],
+      pendingSpawnRequests: this.externalProtocol.getPendingSpawnRequests(),
       recentInterventions: [...this.state.interventions.slice(-10)],
       sweepCount: this.state.sweepCount,
       goal: this.deps.goal,
@@ -415,182 +345,50 @@ export class Corpus {
   }
 
   /**
+   * Allow an external agent to assume the Corpus role.
+   */
+  assume(agentId: string, heartbeatTimeoutMs?: number): { assumed: boolean; snapshot: ExternalCorpusSnapshot | null; error?: string } {
+    return this.externalProtocol.assume(agentId, heartbeatTimeoutMs)
+  }
+
+  /**
+   * Release the Corpus role back to the internal LLM loop.
+   */
+  release(reason?: string): { released: boolean; error?: string } {
+    return this.externalProtocol.release(reason)
+  }
+
+  /**
    * External agent sends a directive to a branch.
-   * Updates heartbeat timestamp.
    */
   externalDirective(directive: Omit<CorpusDirective, 'timestamp'>): { sent: boolean; error?: string } {
-    if (!this.externalState.assumed) {
-      return { sent: false, error: 'No external agent holds the Corpus role' }
-    }
-
-    // Validate directive type
-    const allowedTypes = new Set(['guidance', 'redirect', 'throttle', 'priority-shift', 'cancel', 'context-inject'])
-    if (!allowedTypes.has(directive.type)) {
-      return { sent: false, error: `Invalid directive type "${directive.type}". Allowed: ${[...allowedTypes].join(', ')}` }
-    }
-
-    // Validate directive fields
-    if (!directive.text || typeof directive.text !== 'string') {
-      return { sent: false, error: 'Directive text is required' }
-    }
-    if (directive.text.length > 10_000) {
-      return { sent: false, error: 'Directive text must be 10,000 characters or less' }
-    }
-
-    // Validate target exists
-    const branches = this.tree.getAllBranches()
-    if (!branches.some(b => b.helixId === directive.targetHelixId)) {
-      return { sent: false, error: `Target branch "${directive.targetHelixId}" not found` }
-    }
-
-    this.touchHeartbeat()
-
-    this.sendDirective({
-      ...directive,
-      timestamp: Date.now(),
-    })
-
-    this.emitEvent('corpus:external-directive', {
-      targetHelixId: directive.targetHelixId,
-      type: directive.type,
-      urgency: directive.urgency,
-      agentId: this.externalState.agentId,
-      textLength: directive.text.length,
-    })
-
-    return { sent: true }
+    return this.externalProtocol.sendDirective(directive)
   }
 
   /**
    * External agent decides on a pending spawn request.
-   * Updates heartbeat timestamp.
    */
   externalSpawnDecide(requestId: string, approved: boolean, reason: string, modifiedGoal?: string): { decided: boolean; error?: string } {
-    if (!this.externalState.assumed) {
-      return { decided: false, error: 'No external agent holds the Corpus role' }
-    }
-    this.touchHeartbeat()
-
-    const requestIdx = this.externalState.pendingSpawnRequests.findIndex(r => r.requestId === requestId)
-    if (requestIdx === -1) {
-      return { decided: false, error: `Spawn request "${requestId}" not found` }
-    }
-
-    const request = this.externalState.pendingSpawnRequests[requestIdx]
-    this.externalState.pendingSpawnRequests.splice(requestIdx, 1)
-
-    const decision: SpawnDecision = {
-      requestId,
-      requestingHelixId: request.requestingHelixId,
-      goal: modifiedGoal ?? request.goal,
-      approved,
-      reason,
-      evaluatedAt: Date.now(),
-    }
-    this.state.spawnDecisions.push(decision)
-
-    if (approved && this.deps.onSpawnRequest) {
-      this.deps.onSpawnRequest({
-        requestingHelixId: request.requestingHelixId,
-        goal: modifiedGoal ?? request.goal,
-        context: request.context,
-        template: request.template,
-      })
-    }
-
-    this.emitEvent('corpus:external-spawn-decision', {
-      requestId,
-      approved,
-      reason,
-      agentId: this.externalState.agentId,
-    })
-
-    return { decided: true }
+    return this.externalProtocol.decideSpawn(requestId, approved, reason, modifiedGoal)
   }
 
   /**
    * External agent posts a synthesis visible to all branches.
-   * Updates heartbeat timestamp.
    */
   externalSynthesis(content: string, priority?: number, tags?: string[]): { posted: boolean; error?: string } {
-    if (!this.externalState.assumed) {
-      return { posted: false, error: 'No external agent holds the Corpus role' }
-    }
-
-    if (!content || typeof content !== 'string') {
-      return { posted: false, error: 'Synthesis content is required' }
-    }
-    if (content.length > 10_000) {
-      return { posted: false, error: 'Synthesis content must be 10,000 characters or less' }
-    }
-
-    this.touchHeartbeat()
-
-    this.postSynthesisToBlackboard(content, `External Corpus (${this.externalState.agentId})`)
-
-    this.emitEvent('corpus:external-synthesis', {
-      agentId: this.externalState.agentId,
-      contentLength: content.length,
-    })
-
-    return { posted: true }
+    return this.externalProtocol.postSynthesis(content, priority, tags)
   }
 
-  /**
-   * Queue a spawn request for external decision (called internally when assumed).
-   */
-  private queueSpawnForExternalDecision(request: { requestId: string; requestingHelixId: string; goal: string; context?: string; template?: string; targetDepth: number }): void {
-    this.externalState.pendingSpawnRequests.push({
-      ...request,
-      queuedAt: Date.now(),
-    })
-    this.logger.info('Spawn request queued for external Corpus', {
-      requestId: request.requestId,
-      agentId: this.externalState.agentId,
-    })
-    this.emitEvent('corpus:external-spawn-queued', {
-      requestId: request.requestId,
-      agentId: this.externalState.agentId,
-    })
+  // Internal helpers for ExternalCorpusProtocol callbacks
+
+  /** Internal helper for ExternalCorpusProtocol callback */
+  private getExternalSnapshotInternal(): ExternalCorpusSnapshot {
+    return this.getExternalSnapshot()
   }
 
-  /** Update heartbeat timestamp */
-  private touchHeartbeat(): void {
-    this.externalState.lastActionAt = Date.now()
-  }
-
-  /** Start heartbeat monitoring interval */
-  private startHeartbeatMonitor(): void {
-    this.stopHeartbeatMonitor()
-    const checkInterval = Math.min(10_000, this.externalState.heartbeatTimeoutMs / 3)
-    this.heartbeatTimer = setInterval(() => {
-      // HOW: Check stopped flag to prevent post-shutdown callbacks
-      if (this.stopped || !this.externalState.assumed) {
-        this.stopHeartbeatMonitor()
-        return
-      }
-      const elapsed = Date.now() - (this.externalState.lastActionAt ?? 0)
-      if (elapsed > this.externalState.heartbeatTimeoutMs) {
-        this.logger.warn('External Corpus heartbeat timeout — auto-releasing', {
-          agentId: this.externalState.agentId,
-          elapsedMs: elapsed,
-          timeoutMs: this.externalState.heartbeatTimeoutMs,
-        })
-        this.release('heartbeat timeout')
-      }
-    }, checkInterval)
-    // WHY: unref prevents the timer from keeping the event loop alive during shutdown
-    if (typeof this.heartbeatTimer.unref === 'function') {
-      this.heartbeatTimer.unref()
-    }
-  }
-
-  /** Stop heartbeat monitoring interval */
-  private stopHeartbeatMonitor(): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer)
-      this.heartbeatTimer = null
-    }
+  /** Internal helper for ExternalCorpusProtocol callback */
+  private sendDirectiveInternal(directive: CorpusDirective): void {
+    this.sendDirective(directive)
   }
 
   /**
@@ -622,8 +420,8 @@ export class Corpus {
   async evaluateSpawnRequest(request: SpawnRequest): Promise<SpawnDecision> {
     // WHY: When an external agent holds the Corpus role, spawn decisions
     // are queued for the external agent rather than auto-evaluated by LLM.
-    if (this.externalState.assumed) {
-      this.queueSpawnForExternalDecision({
+    if (this.externalProtocol.isAssumed()) {
+      this.externalProtocol.queueSpawnRequest({
         requestId: request.requestId,
         requestingHelixId: request.requestingHelixId,
         goal: request.goal,
@@ -794,7 +592,7 @@ export class Corpus {
             this.buildResearchDigests()
           }
 
-          newPatterns = this.detectCrossPatterns()
+          newPatterns = this.patternDetector.detect()
 
           if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
             if (this.llmHealthy) {
@@ -1081,180 +879,12 @@ export class Corpus {
   }
 
   /**
-   * Detect cross-branch patterns
-   */
-  private detectCrossPatterns(): CrossHelixPattern[] {
-    const patterns: CrossHelixPattern[] = []
-    const assessments = Array.from(this.state.branchAssessments.values())
-    const branches = this.tree.getAllBranches()
-
-    // 1. Conflict: filesModified Set intersection across branches
-    for (let i = 0; i < assessments.length; i++) {
-      for (let j = i + 1; j < assessments.length; j++) {
-        const a = assessments[i]
-        const b = assessments[j]
-        const intersection = new Set(
-          [...a.filesModified].filter((x) => b.filesModified.has(x))
-        )
-        if (intersection.size > 0) {
-          patterns.push({
-            type: 'conflict',
-            helixIds: [a.helixId, b.helixId],
-            severity: 'high',
-            description: `Branches ${a.helixId} and ${b.helixId} may be modifying the same work units`,
-            detectedAt: Date.now(),
-            actedUpon: false,
-          })
-        }
-      }
-    }
-
-    // 2. Asymmetric progress: one branch has 3+ more steps than sibling
-    const branchMap = new Map(branches.map((b) => [b.helixId, b]))
-    for (const branch of branches) {
-      if (!branch.parentId) continue
-      const siblings = branches.filter(
-        (b) => b.parentId === branch.parentId && b.helixId !== branch.helixId
-      )
-      for (const sibling of siblings) {
-        const diff = branch.steps.length - sibling.steps.length
-        if (diff >= 3) {
-          const siblingAssessment = this.state.branchAssessments.get(sibling.helixId)
-          if (siblingAssessment && siblingAssessment.rollingScore < 0.5) {
-            patterns.push({
-              type: 'asymmetric-progress',
-              helixIds: [branch.helixId, sibling.helixId],
-              severity: 'medium',
-              description: `${sibling.helixId} is lagging behind ${branch.helixId} with low scores`,
-              detectedAt: Date.now(),
-              actedUpon: false,
-            })
-          }
-        }
-      }
-    }
-
-    // 3. Cascade failure: 2+ branches 'failed'/'struggling' created within 30s
-    const strugglingBranches = branches.filter(
-      (b) => b.status === 'failed' || this.state.branchAssessments.get(b.helixId)?.status === 'struggling'
-    )
-    if (strugglingBranches.length >= 2) {
-      const timestamps = strugglingBranches.map((b) => b.createdAt).sort((a, b) => a - b)
-      if (timestamps[timestamps.length - 1] - timestamps[0] < 30000) {
-        patterns.push({
-          type: 'cascade-failure',
-          helixIds: strugglingBranches.map((b) => b.helixId),
-          severity: 'critical',
-          description: `Multiple branches failing within 30 seconds: ${strugglingBranches.map((b) => b.helixId).join(', ')}`,
-          detectedAt: Date.now(),
-          actedUpon: false,
-        })
-      }
-    }
-
-    // 4. Convergence: 2+ branches with dominantPattern 'implementation' and rollingScore > 0.7
-    const highPerformingImpls = assessments.filter(
-      (a) => a.dominantPattern === 'implementation' && a.rollingScore > 0.7
-    )
-    if (highPerformingImpls.length >= 2) {
-      patterns.push({
-        type: 'convergence',
-        helixIds: highPerformingImpls.map((a) => a.helixId),
-        severity: 'low',
-        description: `Multiple branches showing strong implementation progress`,
-        detectedAt: Date.now(),
-        actedUpon: false,
-      })
-    }
-
-    // 5. Topology-enhanced pattern detection
-    // HOW: When the topology graph is active, use spatial clustering to detect
-    // redundancy (branches in the same cluster with similar approaches) and
-    // to escalate conflict severity when conflicting branches are also clustered.
-    const topology = this.deps.topology
-    if (topology?.enabled) {
-      const snapshot = topology.getSnapshot()
-
-      // 5a. Redundancy: branches in the same cluster with same approach and similar scores
-      for (const cluster of snapshot.clusters) {
-        if (cluster.members.length < 2) continue
-        const clusterAssessments = cluster.members
-          .map(id => this.state.branchAssessments.get(id))
-          .filter((a): a is BranchAssessment => !!a)
-
-        // Group by dominant approach
-        const byApproach = new Map<string, BranchAssessment[]>()
-        for (const a of clusterAssessments) {
-          const key = String(a.dominantPattern)
-          const existing = byApproach.get(key) ?? []
-          existing.push(a)
-          byApproach.set(key, existing)
-        }
-
-        for (const [approach, group] of byApproach) {
-          if (group.length >= 2 && approach !== 'none') {
-            patterns.push({
-              type: 'redundancy',
-              helixIds: group.map(a => a.helixId),
-              severity: 'medium',
-              description: `Topology cluster "${cluster.clusterId}" contains ${group.length} branches with approach "${approach}" — possible redundancy`,
-              suggestedAction: 'Consider merging or redirecting one branch to a different aspect',
-              detectedAt: Date.now(),
-              actedUpon: false,
-            })
-          }
-        }
-      }
-
-      // 5b. Escalate conflict severity when conflicting branches are in the same cluster
-      for (const pattern of patterns) {
-        if (pattern.type === 'conflict' && pattern.severity !== 'critical') {
-          const [idA, idB] = pattern.helixIds
-          if (idA && idB && topology.areInSameCluster(idA, idB)) {
-            pattern.severity = 'critical'
-            pattern.description += ' (topology confirms: branches are in same cluster — high collision risk)'
-          }
-        }
-      }
-    }
-
-    // De-duplicate against existing patterns (5-minute window prevents spam across sweeps)
-    const now = Date.now()
-    const newPatterns: CrossHelixPattern[] = []
-    for (const pattern of patterns) {
-      const isDuplicate = this.state.crossPatterns.some(
-        (existing) =>
-          existing.type === pattern.type &&
-          existing.helixIds.length === pattern.helixIds.length &&
-          existing.helixIds.every((id) => pattern.helixIds.includes(id)) &&
-          now - existing.detectedAt < 300_000 // 5-minute window — was 15s which caused 560+ dupes
-      )
-      if (!isDuplicate) {
-        newPatterns.push(pattern)
-        this.state.crossPatterns.push(pattern)
-        this.emitEvent('corpus:pattern', {
-          type: pattern.type,
-          helixIds: pattern.helixIds,
-          severity: pattern.severity,
-        })
-      }
-    }
-
-    // Prune old patterns to prevent unbounded growth (keep last 50)
-    if (this.state.crossPatterns.length > 50) {
-      this.state.crossPatterns = this.state.crossPatterns.slice(-50)
-    }
-
-    return newPatterns
-  }
-
-  /**
    * Check if we should run LLM analysis
    */
   private shouldRunLLMAnalysis(): boolean {
     // WHY: When an external agent holds the Corpus role, the internal LLM
     // should not run analysis — the external agent makes strategic decisions.
-    if (this.externalState.assumed) {
+    if (this.externalProtocol.isAssumed()) {
       return false
     }
 
@@ -2091,8 +1721,8 @@ Guidelines:
       if (text.toUpperCase() === 'NONE') continue
 
       // Normalize type — accept partial matches
-      const type = this.normalizeDirectiveType(rawType)
-      const urgency = this.normalizeUrgency(rawUrgency)
+      const type = normalizeDirectiveType(rawType)
+      const urgency = normalizeUrgency(rawUrgency)
 
       if (type && urgency) {
         const directive: CorpusDirective = {
@@ -2179,41 +1809,6 @@ Guidelines:
     if (synthesis) {
       this.postSynthesisToBlackboard(synthesis, assessment)
     }
-  }
-
-  /** Normalize a directive type string to a valid CorpusDirectiveType */
-  private normalizeDirectiveType(raw: string): CorpusDirectiveType | null {
-    const map: Record<string, CorpusDirectiveType> = {
-      'guidance': 'guidance',
-      'guide': 'guidance',
-      'suggest': 'guidance',
-      'redirect': 'redirect',
-      'refocus': 'redirect',
-      'change': 'redirect',
-      'throttle': 'throttle',
-      'slow': 'throttle',
-      'priority-shift': 'priority-shift',
-      'priority': 'priority-shift',
-      'prioritize': 'priority-shift',
-      'cancel': 'cancel',
-      'stop': 'cancel',
-      'abort': 'cancel',
-    }
-    return map[raw] ?? null
-  }
-
-  /** Normalize an urgency string to a valid GuidanceUrgency */
-  private normalizeUrgency(raw: string): GuidanceUrgency | null {
-    const map: Record<string, GuidanceUrgency> = {
-      'low': 'low',
-      'medium': 'medium',
-      'med': 'medium',
-      'moderate': 'medium',
-      'high': 'high',
-      'critical': 'critical',
-      'urgent': 'critical',
-    }
-    return map[raw] ?? null
   }
 
   /**
@@ -3018,7 +2613,7 @@ Guidelines:
             content: ann.synthesis,
             type: this.classifyDiscovery(ann.synthesis),
             relatedFiles: (step.toolCalls ?? [])
-              .flatMap(tc => this.extractFilePaths(tc.args))
+              .flatMap(tc => extractFilePaths(tc.args))
               .filter(Boolean),
             timestamp: Date.now(),
             deliveredTo: new Set([branch.helixId]),
@@ -3423,7 +3018,7 @@ Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority":
         filesExplored: [...new Set(
           branch.steps.flatMap(s =>
             (s.toolCalls ?? []).filter(tc => tc.name === 'read_file' || tc.name === 'list_directory')
-              .flatMap(tc => this.extractFilePaths(tc.args))
+              .flatMap(tc => extractFilePaths(tc.args))
           )
         )],
         filesModified: [...assessment.filesModified],
@@ -3819,7 +3414,7 @@ Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority":
       const recentToolCalls = branch.steps.slice(-3).flatMap(s => s.toolCalls ?? [])
       const fileReads = recentToolCalls
         .filter(tc => tc.name === 'read_file')
-        .flatMap(tc => this.extractFilePaths(tc.args))
+        .flatMap(tc => extractFilePaths(tc.args))
       const searchQueries = recentToolCalls
         .filter(tc => tc.name === 'search_for_pattern' || tc.name === 'find_file')
         .map(tc => {
@@ -3932,34 +3527,6 @@ Respond with JSON: { "split": true/false, "tasks": [{ "goal": "...", "priority":
     }
 
     return sections.join('\n\n---\n\n')
-  }
-
-
-
-  /**
-   * Extract file paths from tool call arguments.
-   * Handles various argument formats (JSON string, object, etc.)
-   */
-  private extractFilePaths(args: string | Record<string, unknown> | unknown): string[] {
-    const paths: string[] = []
-
-    try {
-      const obj = typeof args === 'string' ? JSON.parse(args) : args
-      if (!obj || typeof obj !== 'object') return paths
-
-      const record = obj as Record<string, unknown>
-
-      // Common path field names
-      for (const key of ['path', 'relative_path', 'filePath', 'file_path', 'file']) {
-        if (typeof record[key] === 'string' && record[key]) {
-          paths.push(record[key] as string)
-        }
-      }
-    } catch {
-      // Not parseable — ignore
-    }
-
-    return paths
   }
 
 
