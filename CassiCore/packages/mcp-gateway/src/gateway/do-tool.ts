@@ -177,49 +177,79 @@ export async function executeEnrichTool(
     };
   }
 
-  logger.info('executeEnrichTool', { query, complexity: a?.complexity ?? 'normal', limit: a?.limit ?? 12 });
+  const complexity = a?.complexity ?? 'normal';
+  logger.info('executeEnrichTool', { query, complexity, limit: a?.limit ?? 12 });
 
-  let result;
-  try {
-    const body = JSON.stringify({
-      query,
-      complexity: a?.complexity ?? 'normal',
-      limit: a?.limit ?? 12,
-    });
+  // Fire memory enrichment and dialectic reasoning in parallel.
+  // Dialectic only fires for normal/complex queries — simple queries skip it.
+  const shouldDialectic = complexity !== 'simple';
+  const dialecticTimeoutMs = complexity === 'complex' ? 20000 : 15000;
 
-    const res = await fetchWithTimeout(`${baseUrl}/memory/enrich`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      timeoutMs: 8000,
-    });
+  const enrichPromise = (async () => {
+    try {
+      const body = JSON.stringify({
+        query,
+        complexity,
+        limit: a?.limit ?? 12,
+      });
+      const res = await fetchWithTimeout(`${baseUrl}/memory/enrich`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body,
+        timeoutMs: 8000,
+      });
+      return await res.json();
+    } catch (err) {
+      logger.error('Context enrichment failed', { error: String(err) });
+      return null;
+    }
+  })();
 
-    result = await res.json();
-  } catch (err) {
-    logger.error('Context enrichment failed', { error: String(err) });
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `## Cassi Context\n> Enrichment failed for: \`${query}\`\n\nError: ${String(err)}\n\nProceeding without historical context.`,
-        },
-      ],
-    };
+  const dialecticPromise = shouldDialectic
+    ? (async () => {
+        try {
+          const res = await fetchWithTimeout(`${baseUrl}/dialectic/reason-as-thoughts`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ query, sessionId: 'cassi:primary' }),
+            timeoutMs: dialecticTimeoutMs,
+          });
+          const data = await res.json();
+          if (data?.thoughts && data.chars > 0) {
+            logger.info('dialectic thoughts received', { chars: data.chars, latencyMs: data.latencyMs });
+            return data;
+          }
+          return null;
+        } catch (err) {
+          logger.debug('Dialectic reasoning skipped (timeout or error)', { error: String(err) });
+          return null;
+        }
+      })()
+    : Promise.resolve(null);
+
+  const [result, dialecticResult] = await Promise.all([enrichPromise, dialecticPromise]);
+
+  // Build the response markdown
+  const sections: string[] = [];
+
+  // Dialectic thoughts go first — they're the "inner monologue" that primes reasoning
+  if (dialecticResult?.thoughts) {
+    sections.push(
+      `## Dialectic Thoughts\n> Auto-generated dialectic reasoning (${(dialecticResult.latencyMs / 1000).toFixed(1)}s)\n\n${dialecticResult.thoughts}`
+    );
   }
 
+  // Then the memory/context enrichment
   if (!result?.hasContext) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `## Cassi Context\n> No relevant context found for: \`${query}\`\n\nNo matching memories or past decisions. Proceeding without historical context.`,
-        },
-      ],
-    };
+    sections.push(
+      `## Cassi Context\n> ${result ? 'No relevant context found' : 'Enrichment failed'} for: \`${query}\`\n\nNo matching memories or past decisions. Proceeding without historical context.`
+    );
+  } else {
+    sections.push(result.markdown);
   }
 
   return {
-    content: [{ type: 'text', text: result.markdown }],
+    content: [{ type: 'text', text: sections.join('\n\n---\n\n') }],
   };
 }
 
