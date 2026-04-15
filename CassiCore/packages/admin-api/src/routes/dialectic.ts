@@ -50,7 +50,7 @@ export async function handleDialecticRoutes(
             const sessionStore = runtime.getPrimarySessionStore?.() ?? runtime.getLegacySessionStore?.()
             const session = sessionStore?.getSession?.(sid) ?? sessionStore?.getOrCreateById?.(sid)
             const messages = session?.messages ?? []
-            finalContext = thalamus.buildDialecticContext(sid, messages)
+            finalContext = await thalamus.buildDialecticContext(sid, messages)
             runtime.logger?.info?.('Dialectic context built from Thalamus', {
               sessionId: sid,
               contextChars: finalContext?.length ?? 0,

@@ -70,7 +70,7 @@ export async function handleThalamusRoutes(
       deps.sendJSON(res, 400, { error: 'sessionId and messages[] are required' })
       return true
     }
-    const result = thalamus.curate(sessionId, messages, config)
+    const result = await thalamus.curate(sessionId, messages, config)
     deps.sendJSON(res, 200, result)
     return true
   }
