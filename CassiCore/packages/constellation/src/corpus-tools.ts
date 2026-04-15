@@ -671,11 +671,11 @@ export interface ToolCallResult {
  * @dep module: Constellation
  * @dep risk: MEDIUM | 2 callers, 4 flows, 1 module
  */
-export function executeCorpusTool(
+export async function executeCorpusTool(
   toolName: string,
   args: Record<string, unknown>,
   ctx: CorpusToolContext
-): ToolCallResult | Promise<ToolCallResult> {
+): Promise<ToolCallResult> {
   switch (toolName) {
     case 'read_tree':
       return handleReadTree(ctx)

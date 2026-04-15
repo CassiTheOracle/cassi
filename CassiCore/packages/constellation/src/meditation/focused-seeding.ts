@@ -159,10 +159,10 @@ function createSeedingTools(ctx: SeedingContext): MiniHelixTool[] {
     }
   })
 
-  handlers.set('kindle_concepts', (args) => {
+  handlers.set('kindle_concepts', async (args) => {
     const { query } = args as { query: string }
     try {
-      const hits = ctx.mnemicField.retrieve(query, { limit: 10 })
+      const hits = await ctx.mnemicField.retrieve(query, { limit: 10 })
       ctx.engramsKindled += hits.length
 
       if (hits.length === 0) {
@@ -177,14 +177,14 @@ function createSeedingTools(ctx: SeedingContext): MiniHelixTool[] {
     }
   })
 
-  handlers.set('set_focus', (args) => {
+  handlers.set('set_focus', async (args) => {
     const { topics, rationale } = args as { topics: string[]; rationale?: string }
     ctx.focusTopics = topics.slice(0, 5)
 
     // Kindle each focus topic to shift the potentiation landscape
     for (const topic of ctx.focusTopics) {
       try {
-        const hits = ctx.mnemicField.retrieve(topic, { limit: 5 })
+        const hits = await ctx.mnemicField.retrieve(topic, { limit: 5 })
         ctx.engramsKindled += hits.length
       } catch {
         // best-effort
