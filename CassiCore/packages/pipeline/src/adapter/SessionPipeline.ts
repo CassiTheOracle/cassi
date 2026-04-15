@@ -150,15 +150,16 @@ export class SessionPipeline {
     });
     await this.store.initialize();
 
-    // 2. Resolve default model — prefer config, but validate against available providers
+    // 2. Resolve default model — prefer config, but validate against available providers.
+    //    Empty strings in config mean "use MODEL_DEFAULTS", not "use empty".
     const configuredProvider = this.options.config.get(
       'intelligence.defaultProvider',
       MODEL_DEFAULTS.main.provider,
-    );
+    ) || MODEL_DEFAULTS.main.provider;
     const configuredModel = this.options.config.get(
       'intelligence.defaultModel',
       MODEL_DEFAULTS.main.model,
-    );
+    ) || MODEL_DEFAULTS.main.model;
     const candidateModel = configuredModel.includes('/')
       ? configuredModel
       : `${configuredProvider}/${configuredModel}`;
