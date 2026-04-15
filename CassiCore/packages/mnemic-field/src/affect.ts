@@ -195,6 +195,34 @@ export class AffectRegister {
     }
   }
 
+  /**
+   * Absorb a resonant affect signal from the memory bridge.
+   *
+   * Resonant signals are grounded in actual model/memory interaction,
+   * so they carry more weight than text-based attune() signals.
+   * The blend factor controls how much resonance overrides text-based affect.
+   *
+   * The resonant signal also shifts mood more strongly because it reflects
+   * sustained computational reality, not momentary word choice.
+   */
+  absorbResonantSignal(
+    signal: { valence: number; arousal: number },
+    blendFactor: number = 0.5,
+  ): void {
+    this.decay()
+
+    // Resonant signals absorb at a higher rate than text signals
+    const resonantAbsorption = this.config.signalAbsorption * (1 + blendFactor)
+    const resonantMoodRate = resonantAbsorption * this.config.moodAbsorptionRatio * 1.5
+
+    this.emotionValence = lerp(this.emotionValence, signal.valence, resonantAbsorption)
+    this.emotionArousal = lerp(this.emotionArousal, signal.arousal, resonantAbsorption)
+
+    // Mood absorbs resonant signals more readily — they reflect computational ground truth
+    this.moodValence = lerp(this.moodValence, signal.valence, resonantMoodRate)
+    this.moodArousal = lerp(this.moodArousal, signal.arousal, resonantMoodRate)
+  }
+
   private decay(): void {
     const now = Date.now()
     const elapsedMinutes = (now - this.lastDecay) / 60_000

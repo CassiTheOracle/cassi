@@ -125,18 +125,20 @@ export class InterFieldBridge {
    * As a side effect, auto-links episodic hits to portals when co-occurring
    * self-model hits are portal-connected. This builds cross-field bridges
    * organically over time as queries exercise the system.
+   *
+   * NOTE: This is async because retrieve() now uses embedding service.
    */
-  crossRetrieve(
+  async crossRetrieve(
     query: string,
     options?: KindlingOptions & { limit?: number; preferField?: 'episodic' | 'self-model' },
-  ): CrossFieldResult {
+  ): Promise<CrossFieldResult> {
     const start = Date.now()
     const limit = options?.limit ?? 12
     const halfLimit = Math.ceil(limit / 2)
     const preferField = options?.preferField
 
-    const episodicHits = this.episodicField.retrieve(query, { ...options, limit: halfLimit })
-    const selfModelHits = this.selfModelField.retrieve(query, {
+    const episodicHits = await this.episodicField.retrieve(query, { ...options, limit: halfLimit })
+    const selfModelHits = await this.selfModelField.retrieve(query, {
       ...SELF_MODEL_KINDLING_DEFAULTS,
       ...options,
       limit: halfLimit,

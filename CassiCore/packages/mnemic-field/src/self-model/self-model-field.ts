@@ -166,7 +166,7 @@ export class SelfModelField {
    * architectural queries are conceptual — "spawn decisions" should find
    * modules mentioning either "spawn" or "decisions", not require both.
    */
-  retrieve(query: string, options?: KindlingOptions & { limit?: number }): MnemicRetrievalHit[] {
+  async retrieve(query: string, options?: KindlingOptions & { limit?: number }): Promise<MnemicRetrievalHit[]> {
     const orQuery = this.toOrQuery(query)
     return this.field.retrieve(orQuery, {
       ...SELF_MODEL_KINDLING_DEFAULTS,

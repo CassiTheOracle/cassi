@@ -423,16 +423,23 @@ export class MnemicField {
     }
   }
 
-  /**
+/**
    * Primary retrieval API for runtime consumers.
    * Uses kindling first, falls back to text search when needed.
+   * 
+   * Generates query embedding so filament ANN search is used.
    */
-  retrieve(
+  async retrieve(
     query: string,
     options?: KindlingOptions & { limit?: number },
-  ): MnemicRetrievalHit[] {
+  ): Promise<MnemicRetrievalHit[]> {
     const limit = options?.limit ?? options?.maxLuminalSize ?? 8
-    const luminal = this.kindle(null, query, {
+    
+    // Generate embedding for query so filament ANN can be used
+    const embSvc = getEmbeddingService(this.logger)
+    const queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
+    
+    const luminal = this.kindle(queryEmbedding, query, {
       ...options,
       maxLuminalSize: limit,
       includeText: true,
