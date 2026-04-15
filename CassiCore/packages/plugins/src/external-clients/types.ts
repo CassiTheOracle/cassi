@@ -36,6 +36,10 @@ export interface ExternalCurationResult {
   gaps: CurationGap[]
   /** System-level context strings to inject (from cognitive modules). */
   systemContext: string[]
+  /** Estimated token count for curated context (chars / 4). Use for overflow detection. */
+  estimatedTokens?: number
+  /** Total character count of curated messages + system context. */
+  estimatedChars?: number
   meta: CurationMeta & {
     /** Whether curation was actually applied (false = passthrough). */
     applied: boolean

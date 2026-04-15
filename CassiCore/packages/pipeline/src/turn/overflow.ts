@@ -9,6 +9,15 @@
 /*  Overflow patterns                                                  */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Regex patterns to detect context overflow errors from different providers.
+ * 
+ * NOTE: These patterns are duplicated in ai/src/utils/overflow.ts for the AI package.
+ * When adding new patterns, update BOTH files to maintain consistency.
+ * 
+ * Example errors:
+ * - z.ai: "<400> InternalError.Algo.InvalidParameter: Range of input length should be [1, 202745]"
+ */
 const OVERFLOW_PATTERNS = [
   /prompt is too long/i,
   /input is too long for requested model/i,
@@ -25,6 +34,7 @@ const OVERFLOW_PATTERNS = [
   /context[_ ]length[_ ]exceeded/i,
   /too many tokens/i,
   /token limit exceeded/i,
+  /InternalError\.Algo\.InvalidParameter.*input length/i, // z.ai
 ]
 
 /* ------------------------------------------------------------------ */

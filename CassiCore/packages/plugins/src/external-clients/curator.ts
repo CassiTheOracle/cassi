@@ -107,10 +107,21 @@ export class ExternalClientCurator {
       durationMs: result.meta.durationMs,
     })
 
+    // Calculate estimated token count for overflow detection by the caller
+    const keptChars = digests
+      .filter(d => keptIndices.includes(d.index))
+      .reduce((sum, d) => sum + d.chars, 0)
+    const systemChars = systemContext.reduce((sum, s) => sum + s.length, 0)
+    const estimatedChars = keptChars + systemChars
+    // Use 4 chars/token as conservative estimate (code-heavy content has lower ratio)
+    const estimatedTokens = Math.ceil(estimatedChars / 4)
+
     return {
       kept: keptIndices,
       gaps,
       systemContext,
+      estimatedTokens,
+      estimatedChars,
       meta: {
         ...result.meta,
         applied: true,
