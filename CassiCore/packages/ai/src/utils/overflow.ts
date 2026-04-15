@@ -21,7 +21,8 @@ import type { AssistantMessage } from "../types.js";
  * - Kimi For Coding: "Your request exceeded model token limit: X (requested: Y)"
  * - Cerebras: Returns "400/413 status code (no body)" - handled separately below
  * - Mistral: Returns "400/413 status code (no body)" - handled separately below
- * - z.ai: Does NOT error, accepts overflow silently - handled via usage.input > contextWindow
+ * - z.ai: Returns "InternalError.Algo.InvalidParameter: Range of input length should be [1, X]"
+ *         (also has silent overflow mode — see "Mixed behavior" section below)
  * - Ollama: Silently truncates input - not detectable via error message
  */
 const OVERFLOW_PATTERNS = [
@@ -40,6 +41,7 @@ const OVERFLOW_PATTERNS = [
 	/context[_ ]length[_ ]exceeded/i, // Generic fallback
 	/too many tokens/i, // Generic fallback
 	/token limit exceeded/i, // Generic fallback
+	/InternalError\.Algo\.InvalidParameter.*input length/i, // z.ai (GLM models)
 ];
 
 /**
@@ -66,9 +68,12 @@ const OVERFLOW_PATTERNS = [
  * - LM Studio: "greater than the context length"
  * - Kimi For Coding: "exceeded model token limit: X (requested: Y)"
  *
+ * **Mixed behavior (may error OR silently accept):**
+ * - z.ai: Sometimes returns "InternalError.Algo.InvalidParameter: Range of input length should be [1, X]"
+ *   (detectable), sometimes accepts overflow silently (detectable via usage.input > contextWindow).
+ *   Pass contextWindow param to detect silent overflow cases.
+ *
  * **Unreliable detection:**
- * - z.ai: Sometimes accepts overflow silently (detectable via usage.input > contextWindow),
- *   sometimes returns rate limit errors. Pass contextWindow param to detect silent overflow.
  * - Ollama: Silently truncates input without error. Cannot be detected via this function.
  *   The response will have usage.input < expected, but we don't know the expected value.
  *
