@@ -426,7 +426,7 @@ export const SEGMENTATION_DEFAULTS: SegmentationConfig = {
 export const FILAMENT_KINDLING_DEFAULTS = {
   precisionBoost: 1.15,
   contextPenalty: 0.9,
-  lazyThreshold: 0.75,
+  lazyThreshold: 1.5,  // Always check filaments (charge rarely exceeds 1.5)
   maxFilamentSeeds: 20,
   maxFilamentExpansions: 10,
   maxSupersessionHops: 5,
