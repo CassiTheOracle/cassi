@@ -463,33 +463,35 @@ export class TrainingStore {
 
 
   private initSchema(): void {
-    // Execute DDL line by line (split on semicolons that end a statement)
-    const statements = DDL
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
+    // WHY: PRAGMAs must run outside any transaction — SQLite forbids changing
+    // journal_mode and synchronous inside a transaction.  Execute them first,
+    // then run the full DDL (including multi-statement triggers) via db.exec()
+    // which handles compound statements natively without semicolon-splitting.
 
+    // 1. PRAGMAs — outside transaction
+    const pragmas = [
+      'PRAGMA journal_mode = WAL',
+      'PRAGMA synchronous = NORMAL',
+      'PRAGMA foreign_keys = ON',
+      'PRAGMA busy_timeout = 5000',
+      'PRAGMA cache_size = -64000',
+    ]
+    for (const pragma of pragmas) {
+      try {
+        this.db.pragma(pragma.replace(/^PRAGMA\s+/i, ''))
+      } catch (err) {
+        this.logger.warn('PRAGMA failed', { pragma, error: String(err) })
+      }
+    }
+
+    // 2. DDL body — strip the PRAGMA block and execute as one compound statement.
+    //    db.exec() handles CREATE TRIGGER ... BEGIN ... END; correctly.
+    const ddlBody = DDL.replace(/^[\s\S]*?(?=--\s*──\s*Schema Version)/, '')
     try {
-      this.db.transaction(() => {
-        for (const sql of statements) {
-          try {
-            this.db.exec(sql + ';')
-          } catch (err) {
-            // Ignore "already exists" errors for idempotency
-            const msg = String(err)
-            if (!msg.includes('already exists')) {
-              this.logger.warn('Schema statement failed', { sql: sql.slice(0, 120), error: msg })
-            }
-          }
-        }
-      })()
+      this.db.exec(ddlBody)
     } catch (err) {
-      // DDL can cause implicit commits in SQLite, breaking the transaction wrapper.
-      // This is benign — each statement executed individually regardless.
       const msg = String(err)
-      if (msg.includes('no transaction is active') || msg.includes('cannot commit')) {
-        this.logger.debug('Schema init: transaction wrapper exited (DDL implicit commits)', { error: msg })
-      } else {
+      if (!msg.includes('already exists')) {
         this.logger.warn('Schema init failed', { error: msg })
       }
     }
