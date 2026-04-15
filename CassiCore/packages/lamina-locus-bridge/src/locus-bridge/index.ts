@@ -243,7 +243,7 @@ export class LocusBridge {
    * Get curated context only (without history assembly).
    */
   async curate(messages?: any[]): Promise<CuratedContext> {
-    return this.curator.curate(this.foci, messages)
+    return await this.curator.curate(this.foci, messages)
   }
 
   /**
