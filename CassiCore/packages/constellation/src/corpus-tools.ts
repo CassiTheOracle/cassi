@@ -1314,16 +1314,16 @@ async function handleTriggerConsolidation(ctx: CorpusToolContext): Promise<ToolC
   }
 }
 
-function handleKindleMemory(
+async function handleKindleMemory(
   args: { query: string },
   ctx: CorpusToolContext,
-): ToolCallResult {
+): Promise<ToolCallResult> {
   if (!ctx.mnemicField) {
     return { content: 'Mnemic field not available during this meditation session.' }
   }
 
   try {
-    const hits = ctx.mnemicField.retrieve(args.query, { limit: 8 })
+    const hits = await ctx.mnemicField.retrieve(args.query, { limit: 8 })
     if (hits.length === 0) {
       return { content: `No engrams ignited for "${args.query}".` }
     }
