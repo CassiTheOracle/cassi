@@ -686,7 +686,7 @@ export function buildOrganizingHandlers(
         const magnitude = magnitudeMap[intensity ?? 'moderate']
 
         // Use retrieve() for spreading activation (kindle internally)
-        const hits = mnemicField.retrieve(query, { limit: 15 })
+        const hits = await mnemicField.retrieve(query, { limit: 15 })
         stats.regionsKindled++
         touchedRegions.push(query)
 
@@ -1130,7 +1130,7 @@ export function buildOrganizingHandlers(
           const magnitudeMap = { gentle: 0.3, moderate: 0.5, strong: 0.8 }
           const magnitude = magnitudeMap[item.intensity ?? 'moderate']
 
-          const hits = mnemicField.retrieve(item.query, { limit: 15 })
+          const hits = await mnemicField.retrieve(item.query, { limit: 15 })
           stats.regionsKindled++
           touchedRegions.push(item.query)
           totalActivated += hits.length
