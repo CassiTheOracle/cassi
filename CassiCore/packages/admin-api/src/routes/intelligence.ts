@@ -924,7 +924,7 @@ export async function handleIntelligenceRoutes(
       // Search the Mnemic Field (spatial memory — engrams, potentiation, kindling)
       try {
         const mnemicField = getMnemicField(logger)
-        const hits = mnemicField.retrieve(query, { limit: 5 })
+        const hits = await mnemicField.retrieve(query, { limit: 5 })
         for (const hit of hits) {
           if (!hit.content || hit.content.length < 10) continue
           const signal = {
