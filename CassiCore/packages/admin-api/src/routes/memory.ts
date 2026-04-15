@@ -457,7 +457,7 @@ export async function handleMemoryRoutes(
         return true
       }
       const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
-      const hits = smf.retrieve(query, { limit })
+      const hits = await smf.retrieve(query, { limit })
       sendJSON(res, 200, { ok: true, hits: hits.map(h => ({
         id: h.id, nodeType: h.nodeType, content: h.content,
         score: h.score, charge: h.charge, tags: h.tags,
@@ -533,7 +533,7 @@ export async function handleMemoryRoutes(
       }
       const limit = parseInt(url.searchParams.get('limit') ?? '12', 10)
       const prefer = url.searchParams.get('prefer') as 'episodic' | 'self-model' | null
-      const result = bridge.crossRetrieve(query, { limit, preferField: prefer ?? undefined })
+      const result = await bridge.crossRetrieve(query, { limit, preferField: prefer ?? undefined })
       sendJSON(res, 200, { ok: true, ...result, hits: result.hits.map(h => ({
         id: h.id, nodeType: h.nodeType, content: h.content,
         score: h.score, charge: h.charge, tags: h.tags,
@@ -721,16 +721,16 @@ export async function handleMemoryRoutes(
 
       if (bridge) {
         try {
-          const crossResult = bridge.crossRetrieve(query, { complexity, limit })
+          const crossResult = await bridge.crossRetrieve(query, { complexity, limit })
           hits = crossResult.hits as BriefingHit[]
           selfModelCount = crossResult.selfModelCount
           crossFieldBoosts = crossResult.crossFieldBoosts
         } catch (crossErr) {
           logger.warn('Cross-field retrieval failed, falling back to episodic only', { error: String(crossErr) })
-          hits = field.retrieve(query, { complexity, limit })
+          hits = await field.retrieve(query, { complexity, limit })
         }
       } else {
-        hits = field.retrieve(query, { complexity, limit })
+        hits = await field.retrieve(query, { complexity, limit })
       }
 
       if (hits.length === 0) {
