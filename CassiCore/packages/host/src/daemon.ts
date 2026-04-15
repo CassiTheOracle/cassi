@@ -2124,14 +2124,21 @@ export class Daemon {
 
     this.logger.info(`Tools loaded: ${toolRegistry.list().map(t => t.name).join(', ')}`)
 
-    // Initialize MCP registry and connect configured servers
+    // Initialize MCP registry and connect configured servers.
+    // WHY: MCP servers (especially gitnexus via npx) can take 10-30s to start.
+    // We must not block the boot path — the supervisor kills the daemon if it
+    // doesn't become ready within 60s.  Start the registry asynchronously and
+    // let servers connect in the background.  Tools registered by MCP become
+    // available as each server completes its handshake.
     let mcpRegistry: MCPRegistry | undefined
     const mcpConfigs = this.config.get<Array<{ id: string; command: string; args?: string[]; env?: Record<string, string>; restartOnCrash?: boolean; maxRestarts?: number; startupTimeoutMs?: number; description?: string }>>('mcp.servers', [])
     if (mcpConfigs.length > 0) {
-      this.logger.info(`Initializing MCP registry with ${mcpConfigs.length} server(s)`)
+      this.logger.info(`Initializing MCP registry with ${mcpConfigs.length} server(s) (non-blocking)`)
       mcpRegistry = new MCPRegistry(toolRegistry, this.logger)
-      await mcpRegistry.start(mcpConfigs)
-
+      // Fire-and-forget: servers connect asynchronously, tools appear as they become ready
+      mcpRegistry.start(mcpConfigs).catch(err => {
+        this.logger.warn('MCP registry startup error', { error: String(err) })
+      })
     } else {
       this.logger.info('No MCP servers configured')
     }
