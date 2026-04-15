@@ -163,11 +163,11 @@ export class ThalamusModule extends BaseCognitiveModule {
     return registry
   }
 
-  curate(
+  async curate(
     sessionId: string,
     messages: any[],
     configOverrides?: Partial<CurationConfig>,
-  ): CurationResult {
+  ): Promise<CurationResult> {
     const start = Date.now()
 
     if (!messages || messages.length === 0) {
@@ -209,7 +209,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     // Phase 3: Score with GWT luminance and select by ignition threshold
-    const brainContext = this.buildBrainContext(sessionId, compressed)
+    const brainContext = await this.buildBrainContext(sessionId, compressed)
     const protectedStart = Math.max(0, compressed.length - cfg.recentWindowSize)
 
     const scored = this.scorer.scoreAll(compressed, brainContext, protectedStart)
@@ -268,7 +268,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     return { sessions: this.sessions.size, totalCurations }
   }
 
-  private buildBrainContext(sessionId: string, messages: any[]): BrainContext {
+  private async buildBrainContext(sessionId: string, messages: any[]): Promise<BrainContext> {
     const foci = this.locusBridge?.getFoci() ?? []
     const focusTerms = new Set<string>()
     const focusFiles = new Set<string>()
@@ -330,7 +330,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     const { architecturalTerms, architecturalConcepts, architecturalHits } =
-      this.buildSelfModelContext(focusTerms, recentMessageTerms)
+      await this.buildSelfModelContext(focusTerms, recentMessageTerms)
 
     const { pinealTerms, pinealPriorities } = this.buildPinealContext(sessionId)
 
@@ -359,8 +359,8 @@ export class ThalamusModule extends BaseCognitiveModule {
    * brain state. Summarizes cortex signals, affect, memory, self-model concepts,
    * focus files, and recent conversation themes into a ~2000-char payload.
    */
-  buildDialecticContext(sessionId: string, messages: any[]): string {
-    const ctx = this.buildBrainContext(sessionId, messages)
+  async buildDialecticContext(sessionId: string, messages: any[]): Promise<string> {
+    const ctx = await this.buildBrainContext(sessionId, messages)
     const parts: string[] = []
 
     // Cortex signals — what's active in working memory
@@ -474,11 +474,11 @@ export class ThalamusModule extends BaseCognitiveModule {
    * relevant concepts. Returns enriched terms, concept names, and raw hits.
    * ~4-5ms cost, called once per curation.
    */
-  private buildSelfModelContext(focusTerms: Set<string>, recentMessageTerms: Set<string>): {
+  private async buildSelfModelContext(focusTerms: Set<string>, recentMessageTerms: Set<string>): Promise<{
     architecturalTerms: Set<string>
     architecturalConcepts: Set<string>
     architecturalHits: SelfModelHit[]
-  } {
+  }> {
     const empty = { architecturalTerms: new Set<string>(), architecturalConcepts: new Set<string>(), architecturalHits: [] as SelfModelHit[] }
     if (!this.selfModelField) return empty
 
@@ -491,7 +491,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
       if (!sample) return empty
 
-      const hits = this.selfModelField.retrieve(sample, { limit: 10 })
+      const hits = await this.selfModelField.retrieve(sample, { limit: 10 })
       const architecturalTerms = new Set<string>()
       const architecturalConcepts = new Set<string>()
       const architecturalHits: SelfModelHit[] = []
