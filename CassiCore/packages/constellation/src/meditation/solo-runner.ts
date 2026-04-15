@@ -115,7 +115,7 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
       let inferenceMessages = messages
       if (thalamus) {
         try {
-          const curation = thalamus.curate(sessionId, messages, {
+          const curation = await thalamus.curate(sessionId, messages, {
             excludeSessionPrefixes: [],
           })
           inferenceMessages = curation.messages
