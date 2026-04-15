@@ -742,7 +742,7 @@ export function executeCorpusTool(
     case 'trigger_consolidation':
       return handleTriggerConsolidation(ctx)
     case 'kindle_memory':
-      return handleKindleMemory(args as { query: string }, ctx)
+      return await handleKindleMemory(args as { query: string }, ctx)
     case 'create_engram':
       return handleCreateEngram(args as { content: string; nodeType?: string; tags?: string[] }, ctx)
     case 'read_explorer_context':
@@ -758,7 +758,7 @@ export function executeCorpusTool(
     case 'remember':
       return handleStoreInsight(args as { content: string; tags?: string[] }, ctx)
     case 'kindle':
-      return handleKindleMemory(args as { query: string }, ctx)
+      return await handleKindleMemory(args as { query: string }, ctx)
     case 'consolidate':
       return handleTriggerConsolidation(ctx)
     case 'record_learning':
