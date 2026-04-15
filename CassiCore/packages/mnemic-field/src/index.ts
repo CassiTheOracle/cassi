@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
+import type { DreamEngine } from '../memory-bridge/dream-engine.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
 import { getDataDir } from '../../utils/paths.js'
@@ -120,6 +121,7 @@ export class MnemicField {
   private affectRegister: AffectRegister
   private corticalField?: CorticalField
   private db: Database.Database  // Store for persistence operations
+  private dreamEngine: DreamEngine | null = null
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -1156,6 +1158,24 @@ export class MnemicField {
 
   setCorticalField(cortex: CorticalField): void {
     this.corticalField = cortex
+  }
+
+  /**
+   * Set the dream engine for consolidation-time discovery of hidden connections.
+   * The dream engine walks engrams through the vindex to find feature overlap.
+   */
+  setDreamEngine(engine: DreamEngine): void {
+    this.dreamEngine = engine
+    // Recreate consolidation engine with the dream engine
+    const filamentConsolidator = new FilamentConsolidator(this.filamentCortex, this.cortex, this.logger)
+    this.consolidationEngine = new ConsolidationEngine(
+      this.cortex,
+      this.logger,
+      filamentConsolidator,
+      this.gradientEngine,
+      this.dreamEngine,
+    )
+    this.logger.info('Dream engine connected to consolidation pipeline')
   }
 
   close(): void {

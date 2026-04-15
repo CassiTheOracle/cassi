@@ -9,6 +9,7 @@ import {
 } from './types.js'
 import { emotionalIntensity, resolveLabel } from './affect.js'
 import type { Affect } from './types.js'
+import type { DreamEngine, DreamResult } from '../memory-bridge/dream-engine.js'
 
 export interface ConsolidationResult {
   potentiationUpdates: number
@@ -19,6 +20,7 @@ export interface ConsolidationResult {
   filamentSynapsesCreated: number
   filamentSynapsesDecayed: number
   gradientResult?: BackpropResult
+  dreamResult?: DreamResult
   durationMs: number
 }
 
@@ -30,6 +32,7 @@ export interface ConsolidationOptions {
   skipPruning?: boolean
   skipFilamentConsolidation?: boolean
   skipGradients?: boolean
+  skipDreaming?: boolean
   pruneKeepCount?: number
   nucleiMinClusterSize?: number
   nucleiEpsilon?: number
@@ -54,6 +57,7 @@ export class ConsolidationEngine {
     logger: ILogger,
     private filamentConsolidator: FilamentConsolidator | null = null,
     private gradientEngine: GradientEngine | null = null,
+    private dreamEngine: DreamEngine | null = null,
   ) {
     this.logger = logger.child ? logger.child('consolidation') : logger
   }
@@ -76,6 +80,7 @@ export class ConsolidationEngine {
     let filamentSynapsesCreated = 0
     let filamentSynapsesDecayed = 0
     let gradientResult: BackpropResult | undefined
+    let dreamResult: DreamResult | undefined
 
     // Load the full dataset once — computeRadiance, applyCoActivationDrift,
     // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
@@ -91,6 +96,12 @@ export class ConsolidationEngine {
 
     if (!options.skipDrift) {
       positionDrifts = await this.applyCoActivationDrift(dataset)
+      await yieldToEventLoop()
+    }
+
+    // Dreaming: discover hidden connections via vindex feature overlap
+    if (!options.skipDreaming && this.dreamEngine) {
+      dreamResult = await this.dreamEngine.dream()
       await yieldToEventLoop()
     }
 
@@ -138,6 +149,13 @@ export class ConsolidationEngine {
       spikesPruned,
       filamentSynapsesCreated,
       filamentSynapsesDecayed,
+      dreamResult: dreamResult ? {
+        seeds: dreamResult.seedCount,
+        fingerprints: dreamResult.fingerprintsComputed,
+        discoveries: dreamResult.discoveries.length,
+        synapsesCreated: dreamResult.synapsesCreated,
+        durationMs: dreamResult.durationMs,
+      } : undefined,
       gradientResult: gradientResult ? {
         synapsesUpdated: gradientResult.synapsesUpdated,
         requestsProcessed: gradientResult.requestsProcessed,
@@ -145,7 +163,7 @@ export class ConsolidationEngine {
       durationMs,
     })
 
-    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, gradientResult, durationMs }
+    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, gradientResult, dreamResult, durationMs }
   }
 
   /**
