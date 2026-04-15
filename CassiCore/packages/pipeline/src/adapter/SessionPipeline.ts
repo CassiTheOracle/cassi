@@ -545,7 +545,7 @@ export class SessionPipeline {
         const thalamus = this.options.intelligence?.thalamus;
         if (thalamus) {
           try {
-            dialecticContext = thalamus.buildDialecticContext(session.id, session.messages);
+            dialecticContext = await thalamus.buildDialecticContext(session.id, session.messages);
             if (dialecticContext) {
               this.logger.debug('Dialectic context built from Thalamus', {
                 sessionId: session.id,

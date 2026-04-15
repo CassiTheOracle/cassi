@@ -77,7 +77,7 @@ export class ExternalClientCurator {
     curateConfig.excludeSessionPrefixes = []
 
     // Run thalamus curation
-    const result = thalamus.curate(sessionId, syntheticMessages, curateConfig)
+    const result = await thalamus.curate(sessionId, syntheticMessages, curateConfig)
 
     // Map curated messages back to original indices.
     // The thalamus may drop messages and insert gap notes, but it preserves
