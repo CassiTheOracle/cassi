@@ -1784,16 +1784,7 @@ export class Daemon {
         this.intelligence.constellation.setMnemicField(field)
       }
 
-      // Register MnemicField injection source (long-term memory retrieval)
-      if (this.intelligence?.injectionAggregator) {
-        const { MnemicFieldInjectionSource } = await import('./intelligence/mnemic-field/injection.js')
-        const mnemicSource = new MnemicFieldInjectionSource(
-          field,
-          this.logger.child('mnemic-field-injection'),
-        )
-        this.intelligence.injectionAggregator.register(mnemicSource)
-        this.logger.info('MnemicField injection source registered')
-      }
+      // MnemicField injection — now handled by Thalamus via Aurora cognitive state
 
       // Wire ArchiveIngestionBridge — automatic sync from Archivist to MnemicField.
       // Runs as a cycle hook in the unified loop, checking for new archives each cycle.

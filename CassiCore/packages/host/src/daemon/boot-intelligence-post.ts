@@ -6,7 +6,7 @@ import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
 import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
-import { PinealInjectionSource } from '../intelligence/pineal/injection.js'
+// PinealInjectionSource deprecated — Thalamus now owns Pineal injection via PinealAssembler
 import { PinealAssembler } from '../intelligence/pineal/assembler.js'
 import type { PinealModule } from '../intelligence/pineal/index.js'
 
@@ -112,37 +112,10 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       }
     }
 
-    // Register Pineal injection source (identity, wisdom, philosophy facets)
+    // Pineal — set on intelligence layer for other modules to access
     const pineal = intelligence.registry.get('pineal') as PinealModule | undefined
     if (pineal) {
       intelligence.pineal = pineal
-      const assembler = new PinealAssembler(pineal.getStore(), logger.child('pineal-assembler'))
-      const pinealSource = new PinealInjectionSource(
-        assembler,
-        pineal.getFacetManager(),
-        logger.child('pineal-injection'),
-      )
-      intelligence.injectionAggregator.register(pinealSource)
-
-      bus.on('turn:end', () => {
-        try {
-          pinealSource.reinforceLastInjection()
-        } catch (err) {
-          logger.debug('[pineal] Reinforcement failed (non-fatal)', { error: String(err) })
-        }
-      })
-      logger.info('Pineal injection source registered with turn reinforcement')
-    }
-
-    // Register Cortex injection source (active working memory signals)
-    if (intelligence.cortex) {
-      const { CortexInjectionSource } = await import('../intelligence/cortex/injection.js')
-      const cortexSource = new CortexInjectionSource(
-        intelligence.cortex,
-        logger.child('cortex-injection'),
-      )
-      intelligence.injectionAggregator.register(cortexSource)
-      logger.info('Cortex injection source registered')
     }
   } catch (err) {
     logger.warn(`Failed to wire InjectionAggregator: ${String(err)}`)
@@ -237,6 +210,50 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         (intelligence.helix as any).setThalamus(thalamus)
       }
 
+      // Wire Aurora (cognitive state loop) into Thalamus
+      if (mnemicField && typeof mnemicField.getCortex === 'function') {
+        try {
+          const { Aurora } = await import('../intelligence/aurora/index.js')
+          const aurora = new Aurora(
+            mnemicField.getCortex(),
+            null,
+            null,
+            logger,
+          )
+          thalamus.setAurora(aurora)
+
+          // Feed reasoning back to Aurora on turn:end
+          bus.on('turn:end', (event: any) => {
+            try {
+              const assistantMessage = event?.assistantMessage ?? event?.response
+              if (assistantMessage && typeof assistantMessage === 'string') {
+                aurora.observeReasoning(assistantMessage)
+              }
+            } catch { /* non-critical */ }
+          })
+
+          logger.info('Aurora wired to Thalamus')
+        } catch (err) {
+          logger.warn('Failed to wire Aurora to Thalamus', { error: String(err) })
+        }
+      }
+
+      // Wire PinealAssembler into Thalamus for identity injection
+      const pinealModule = intelligence.registry.get('pineal') as
+        import('../intelligence/pineal/index.js').PinealModule | undefined
+      if (pinealModule) {
+        const assembler = new PinealAssembler(pinealModule.getStore(), logger.child('pineal-assembler'))
+        thalamus.setPinealAssembler(assembler)
+
+        bus.on('turn:end', () => {
+          try {
+            thalamus.reinforcePinealFacets()
+          } catch { /* non-critical */ }
+        })
+
+        logger.info('Pineal assembler wired to Thalamus with turn reinforcement')
+      }
+
       logger.info('Thalamus wired', {
         gwt: !!intelligence.globalWorkspace,
         locus: !!intelligence.locusBridge,
@@ -244,6 +261,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         mnemic: !!mnemicField,
         selfModel: !!selfModelField,
         pinealFacets: !!(pineal),
+        aurora: !!mnemicField,
         meditation: !!(meditation && typeof (meditation as any).setThalamus === 'function'),
         helix: !!(intelligence.helix && typeof (intelligence.helix as any).setThalamus === 'function'),
       })
