@@ -1,11 +1,12 @@
 /**
- * Cognitive Context Builder for Claude Code — Global Workspace Edition.
+ * Cognitive Context Builder for Claude Code — Aurora Edition.
  *
- * Pulls assembled context directly from the Global Workspace, which handles
- * luminance scoring, slot competition, eclipse dynamics, and coalition
- * formation. No more static per-module budget allocation.
+ * Pulls serialized mental state from Aurora, which integrates memory (Mnemic
+ * Field), model knowledge (LARQL), cortical signals, and affect into a unified
+ * cognitive graph. Aurora decides what's salient; StateProjector serializes it
+ * into a compact narrative form. We inject that directly.
  *
- * The workspace already decides what's salient. We just format it.
+ * Falls back to the Global Workspace if Aurora isn't available yet.
  */
 
 import * as bridge from "./bridge.js";
@@ -18,7 +19,7 @@ import {
 const MAX_CONTEXT_CHARS = 9_500;
 
 /**
- * Build cognitive context by pulling the Global Workspace's assembled output.
+ * Build cognitive context — Aurora-first with GWT fallback.
  */
 export async function buildCognitiveContext(
   state: SessionState,
@@ -27,37 +28,39 @@ export async function buildCognitiveContext(
   const parts: string[] = [];
   let charCount = 0;
 
-  const sid = state.ccSessionId;
+  const push = (text: string): boolean => {
+    if (charCount + text.length > MAX_CONTEXT_CHARS) return false;
+    parts.push(text);
+    charCount += text.length;
+    return true;
+  };
 
-  // Pull assembled context from the Global Workspace (wildcard — all salient signals)
-  const workspace = await bridge.workspaceContext("*");
-
-  if (workspace?.parts?.length) {
-    for (const part of workspace.parts) {
-      const content = part.content as string;
-      if (!content) continue;
-      if (charCount + content.length > MAX_CONTEXT_CHARS) break;
-      parts.push(content);
-      charCount += content.length;
+  // Aurora: unified mental state (memory + model knowledge + affect + cortex)
+  const aurora = await bridge.auroraState().catch(() => null);
+  if (aurora?.serialized) {
+    push(aurora.serialized);
+  } else {
+    // GWT fallback when Aurora isn't wired up yet
+    const workspace = await bridge.workspaceContext("*");
+    if (workspace?.parts?.length) {
+      for (const part of workspace.parts) {
+        const content = part.content as string;
+        if (!content) continue;
+        if (!push(content)) break;
+      }
     }
   }
 
   // Pressure status (comes from transcript size, not workspace)
   const tier = classifyTier(state.estimatedPressure);
   if (tier !== "healthy") {
-    const block = buildPressureBlock(state, tier);
-    if (charCount + block.length < MAX_CONTEXT_CHARS) {
-      parts.push(block);
-      charCount += block.length;
-    }
+    push(buildPressureBlock(state, tier));
   }
 
   // Post-compaction recovery context
   if (options.includeRecovery) {
     const recovery = await buildRecoveryContext(state);
-    if (recovery && charCount + recovery.length < MAX_CONTEXT_CHARS) {
-      parts.push(recovery);
-    }
+    if (recovery) push(recovery);
   }
 
   if (parts.length === 0) return "";

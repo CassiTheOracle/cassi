@@ -116,12 +116,17 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
     bridge.index(state.ccSessionId, [{ role: "user", content: prompt }]);
   }
 
-  // Enrich workspace with memory signals relevant to this prompt
+  // Feed prompt to Aurora for concept tracking and shift detection
   if (prompt && prompt.length > 5) {
-    await bridge.workspaceEnrich(prompt, state.ccSessionId).catch(() => {});
+    await bridge.auroraObserve(prompt).catch(() => {});
   }
 
-  // Build cognitive context (fresh on each turn)
+  // Enrich workspace with memory signals (GWT fallback path)
+  if (prompt && prompt.length > 5) {
+    bridge.workspaceEnrich(prompt, state.ccSessionId).catch(() => {});
+  }
+
+  // Build cognitive context (Aurora-first with GWT fallback)
   const context = await buildCognitiveContext(state, {
     includeRecovery: state.postCompaction,
     compact: state.estimatedPressure > 0.5,

@@ -259,6 +259,21 @@ export async function cognitiveStatus(): Promise<any> {
   };
 }
 
+// ── Aurora ──────────────────────────────────────────────────────────────────
+
+export async function auroraState(): Promise<any> {
+  return send("GET", "/intelligence/aurora", undefined, 2000);
+}
+
+export async function auroraSerialized(): Promise<string | null> {
+  const res = await send("GET", "/intelligence/aurora/serialize", undefined, 2000);
+  return res?.context ?? null;
+}
+
+export async function auroraObserve(text: string): Promise<any> {
+  return send("POST", "/intelligence/aurora/observe", { text }, 2000);
+}
+
 // ── Compaction ───────────────────────────────────────────────────────────────
 
 export async function compact(sessionId: string, messages: any[]): Promise<any> {
