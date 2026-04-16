@@ -611,6 +611,14 @@ export class SessionPipeline {
         timestamp: Date.now()
       });
 
+      // Post-turn Thalamus hooks: Aurora observes reasoning, Pineal reinforces used facets
+      if (thalamus && result.response) {
+        queueMicrotask(() => {
+          try { thalamus.observeReasoning?.(result.response); } catch { /* non-critical */ }
+          try { thalamus.reinforcePinealFacets?.(); } catch { /* non-critical */ }
+        });
+      }
+
       return {
         response: result.response,
         sessionId: session.id,
