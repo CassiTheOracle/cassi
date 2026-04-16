@@ -64,7 +64,12 @@ export interface SessionPipelineOptions {
     thinker: ThinkerModule;
     subconscious: SubconsciousModule;
     locusBridge?: { sparkFromUserPrompt(sessionId: string, content: string, goal?: string): unknown };
-    thalamus?: { buildDialecticContext(sessionId: string, messages: any[]): string };
+    thalamus?: {
+      buildDialecticContext(sessionId: string, messages: any[]): string;
+      assembleInjections?(sessionId: string, messages: any[]): Promise<Array<{ content: string; source: string }>>;
+      observeReasoning?(text: string): void;
+      reinforcePinealFacets?(): number;
+    };
   };
   eventBus?: IEventBus;
   /** Unified injection aggregator for Corpus, SessionDigest, Optimizer, Dreamer, etc. */
@@ -413,53 +418,27 @@ export class SessionPipeline {
       }
     } catch { /* non-blocking */ }
 
-    // Apply InjectionAggregator injections (Corpus, SessionDigest, Optimizer, Dreamer, etc.)
-    // Two paths: GWT workspace (luminance-ranked competition) or legacy aggregator (static caps).
-    if (this.useWorkspaceForInjection && this.globalWorkspace) {
-      // GWT path: workspace assembles from luminance-ranked signal slots.
-      // Seed the workspace with a user-intent signal so there's content to broadcast.
+    // Thalamus assembles injections (Aurora cognitive state + Pineal identity).
+    const thalamus = this.options.intelligence?.thalamus;
+    if (thalamus?.assembleInjections) {
       try {
-        this.globalWorkspace.submit({
-          signalId: `user-intent-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-          source: 'turn-pipeline',
-          sessionId: session.id,
-          type: 'observation',
-          content: content.slice(0, 500),
-          luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
-          createdAt: Date.now(),
-        });
-      } catch { /* non-critical */ }
-
-      // Also run the legacy aggregator so modules can contribute their signals
-      // to the workspace (they submit via setGlobalWorkspace during aggregate)
-      if (this.options.injectionAggregator) {
-        try {
-          const turnContext = { session, userMessage: content, timestamp: Date.now() };
-          await this.options.injectionAggregator.aggregate(session.id, turnContext);
-        } catch { /* non-critical — aggregator is supplementary in GWT mode */ }
-      }
-
-      try {
-        const injections = this.globalWorkspace.assemble(session.id);
-        this.globalWorkspace.broadcast();
-        this.globalWorkspace.tick();
+        const injections = await thalamus.assembleInjections(session.id, session.messages);
         if (injections.length > 0) {
           if (!session.context) {
             session.context = { updatedAt: Date.now() };
           }
           session.context.injections = injections.map(i => i.content);
-          this.logger.debug('GlobalWorkspace injections applied', {
+          this.logger.debug('Thalamus injections applied', {
             sessionId: session.id,
             sources: injections.map(i => i.source),
             totalChars: injections.reduce((s, i) => s + i.content.length, 0),
           });
         }
       } catch (err) {
-        this.logger.debug('GlobalWorkspace assembly failed, falling back to aggregator', {
+        this.logger.debug('Thalamus injection assembly failed (non-fatal)', {
           sessionId: session.id,
           error: String(err),
         });
-        await this.applyLegacyInjections(session, content);
       }
     } else if (this.options.injectionAggregator) {
       await this.applyLegacyInjections(session, content);
