@@ -66,6 +66,8 @@ export class ThalamusModule extends BaseCognitiveModule {
   private slots!: MessageSlot[]
   /** Per-session temporal registries */
   private temporalRegistries = new Map<string, TemporalRegistry>()
+  /** Per-turn brain context cache — cleared after each curate() call */
+  private cachedBrainContext: { sessionId: string; ctx: BrainContext } | null = null
 
   private locusBridge: LocusBridge | null = null
   private cortex: CorticalField | null = null
@@ -229,7 +231,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     // Phase 3: Score with GWT luminance and select by ignition threshold
-    const brainContext = await this.buildBrainContext(sessionId, compressed)
+    const brainContext = await this.getBrainContext(sessionId, compressed)
     const protectedStart = Math.max(0, compressed.length - cfg.recentWindowSize)
 
     const scored = this.scorer.scoreAll(compressed, brainContext, protectedStart)
@@ -278,6 +280,9 @@ export class ThalamusModule extends BaseCognitiveModule {
       durationMs: meta.durationMs,
     })
 
+    // Invalidate brain context cache after curation — each turn gets fresh context
+    this.cachedBrainContext = null
+
     return { messages: stripThalamusAnnotations(assembled.messages), meta }
   }
 
@@ -287,6 +292,20 @@ export class ThalamusModule extends BaseCognitiveModule {
       totalCurations += s.totalCurations
     }
     return { sessions: this.sessions.size, totalCurations }
+  }
+
+  /**
+   * Get or build brain context for this session+messages.
+   * Caches the result so assembleInjections and curate don't
+   * duplicate the expensive buildBrainContext call in the same turn.
+   */
+  private async getBrainContext(sessionId: string, messages: any[]): Promise<BrainContext> {
+    if (this.cachedBrainContext?.sessionId === sessionId) {
+      return this.cachedBrainContext.ctx
+    }
+    const ctx = await this.buildBrainContext(sessionId, messages)
+    this.cachedBrainContext = { sessionId, ctx }
+    return ctx
   }
 
   private async buildBrainContext(sessionId: string, messages: any[]): Promise<BrainContext> {
@@ -389,7 +408,7 @@ export class ThalamusModule extends BaseCognitiveModule {
    * focus files, and recent conversation themes into a ~2000-char payload.
    */
   async buildDialecticContext(sessionId: string, messages: any[]): Promise<string> {
-    const ctx = await this.buildBrainContext(sessionId, messages)
+    const ctx = await this.getBrainContext(sessionId, messages)
     const parts: string[] = []
 
     // Cortex signals — what's active in working memory
@@ -464,8 +483,29 @@ export class ThalamusModule extends BaseCognitiveModule {
     try {
       // Aurora: build cognitive state from current attention foci
       if (this.aurora) {
-        const brainContext = await this.buildBrainContext(sessionId, messages)
-        const foci = [...brainContext.focusTerms].slice(0, 5)
+        const brainContext = await this.getBrainContext(sessionId, messages)
+
+        // Blend focus terms with recent conversation terms, weighted by
+        // phase coherence. When coherence is low (topic shift), recent
+        // terms dominate so Aurora doesn't build mental state around
+        // stale focus from a completed work phase.
+        const pc = brainContext.phaseCoherence
+        const blended: string[] = []
+
+        // Recent terms always contribute (phase-independent ground truth)
+        for (const term of brainContext.recentMessageTerms) {
+          blended.push(term)
+        }
+        // Focus terms contribute proportionally to phase coherence
+        if (pc > 0.3) {
+          for (const term of brainContext.focusTerms) {
+            if (!brainContext.recentMessageTerms.has(term)) {
+              blended.push(term)
+            }
+          }
+        }
+
+        const foci = blended.slice(0, 8)
 
         const state = this.aurora.buildState(foci)
         const text = this.aurora.serialize(state)
