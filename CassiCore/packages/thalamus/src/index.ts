@@ -10,6 +10,8 @@ import type { MnemicField } from '../mnemic-field/index.js'
 import type { SelfModelField } from '../mnemic-field/self-model/self-model-field.js'
 import type { LocusBridge } from '../locus-bridge/index.js'
 import type { FacetManager } from '../pineal/facet.js'
+import type { PinealAssembler } from '../pineal/assembler.js'
+import type { Aurora } from '../aurora/index.js'
 import type {
   CurationConfig,
   CurationResult,
@@ -38,6 +40,19 @@ function formatGapDuration(ms: number): string {
   return `${minutes}m${seconds}s`
 }
 
+/**
+ * Strip _thalamus annotations from messages before they leave CassiCore.
+ * The Anthropic API (and other providers) reject extra fields on message objects
+ * with "Extra inputs are not permitted". _thalamus is CassiCore-internal metadata.
+ */
+function stripThalamusAnnotations(messages: any[]): any[] {
+  return messages.map(msg => {
+    if (!msg || typeof msg !== 'object') return msg
+    const { _thalamus, ...rest } = msg
+    return rest
+  })
+}
+
 export class ThalamusModule extends BaseCognitiveModule {
   readonly name = 'thalamus'
   readonly priority = 85
@@ -57,12 +72,17 @@ export class ThalamusModule extends BaseCognitiveModule {
   private mnemicField: MnemicField | null = null
   private selfModelField: SelfModelField | null = null
   private pinealFacets: FacetManager | null = null
+  private aurora: Aurora | null = null
+  private pinealAssembler: PinealAssembler | null = null
+  private lastPinealFacetIds: string[] = []
 
   setLocusBridge(lb: LocusBridge): void { this.locusBridge = lb }
   setCortex(c: CorticalField): void { this.cortex = c }
   setMnemicField(mf: MnemicField): void { this.mnemicField = mf }
   setSelfModelField(smf: SelfModelField): void { this.selfModelField = smf }
   setPinealFacets(fm: FacetManager): void { this.pinealFacets = fm }
+  setAurora(a: Aurora): void { this.aurora = a }
+  setPinealAssembler(pa: PinealAssembler): void { this.pinealAssembler = pa }
 
   async init(): Promise<void> {
     await super.init()
@@ -257,7 +277,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       durationMs: meta.durationMs,
     })
 
-    return { messages: assembled.messages, meta }
+    return { messages: stripThalamusAnnotations(assembled.messages), meta }
   }
 
   getStats(): { sessions: number; totalCurations: number } {
@@ -419,6 +439,77 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     return parts.join('\n\n')
+  }
+
+  /**
+   * Assemble context injections from Aurora (cognitive state) and Pineal (identity).
+   * Replaces the InjectionAggregator — the Thalamus now owns injection assembly
+   * using the same brain context it uses for message scoring.
+   */
+  async assembleInjections(
+    sessionId: string,
+    messages: any[],
+  ): Promise<Array<{ content: string; source: string }>> {
+    const injections: Array<{ content: string; source: string }> = []
+
+    try {
+      // Aurora: build cognitive state from current attention foci
+      if (this.aurora) {
+        const brainContext = await this.buildBrainContext(sessionId, messages)
+        const foci = [...brainContext.focusTerms].slice(0, 5)
+
+        const state = this.aurora.buildState(foci)
+        const text = this.aurora.serialize(state)
+        if (text) {
+          injections.push({ content: `<aurora>\n${text}\n</aurora>`, source: 'aurora' })
+        }
+      }
+
+      // Pineal: assemble identity facets
+      if (this.pinealAssembler) {
+        const { text, facetIds } = this.pinealAssembler.assemble(sessionId)
+        if (text) {
+          this.lastPinealFacetIds = facetIds
+          injections.push({ content: `<pineal>\n${text}\n</pineal>`, source: 'pineal' })
+        }
+      }
+    } catch (err) {
+      this.logger.warn('Thalamus injection assembly failed (non-fatal)', {
+        sessionId: sessionId.slice(-8),
+        error: String(err),
+      })
+    }
+
+    if (injections.length > 0) {
+      this.logger.debug('Thalamus injections assembled', {
+        sessionId: sessionId.slice(-8),
+        sources: injections.map(i => i.source),
+        totalChars: injections.reduce((s, i) => s + i.content.length, 0),
+      })
+    }
+
+    return injections
+  }
+
+  /**
+   * Reinforce Pineal facets that were injected on the last turn.
+   * Called on turn:end — facets earn conviction through use.
+   */
+  reinforcePinealFacets(): number {
+    if (this.lastPinealFacetIds.length === 0 || !this.pinealFacets) return 0
+
+    const count = this.pinealFacets.reinforceMany(this.lastPinealFacetIds)
+    this.lastPinealFacetIds = []
+    return count
+  }
+
+  /**
+   * Forward reasoning to Aurora for cognitive state feedback.
+   * Called on turn:end with the assistant's response.
+   */
+  observeReasoning(text: string): void {
+    if (!this.aurora) return
+    this.aurora.observeReasoning(text)
   }
 
   /**
@@ -751,7 +842,7 @@ export class ThalamusModule extends BaseCognitiveModule {
 
   private skipResult(messages: any[], durationMs: number, reason: string): CurationResult {
     return {
-      messages,
+      messages: stripThalamusAnnotations(messages),
       meta: {
         originalCount: messages.length,
         curatedCount: messages.length,
