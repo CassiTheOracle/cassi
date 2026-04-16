@@ -1085,5 +1085,92 @@ export async function handleIntelligenceRoutes(
     }
   }
 
+  if (parts[1] === 'aurora') {
+    const aurora = daemon.intelligence?.aurora
+    if (!aurora) {
+      sendJSON(res, 503, { error: 'Aurora not available' })
+      return true
+    }
+
+    if (method === 'GET' && !parts[2]) {
+      try {
+        const state = aurora.currentState
+        if (!state) {
+          sendJSON(res, 200, { state: null, message: 'No cognitive state built yet' })
+          return true
+        }
+        sendJSON(res, 200, {
+          foci: state.foci,
+          nodeCount: state.graph.nodes.size,
+          edgeCount: state.graph.edgeCount,
+          coherence: state.coherence,
+          integration: state.integration,
+          affect: state.affect,
+          trendingConcepts: state.trendingConcepts,
+          gaps: state.gaps,
+          hubs: state.hubs.map((h: any) => ({ id: h.id, label: h.label, centrality: h.centrality })),
+          timestamp: state.timestamp,
+        })
+        return true
+      } catch (err) {
+        sendJSON(res, 500, { error: String(err) })
+        return true
+      }
+    }
+
+    if (method === 'GET' && parts[2] === 'serialize') {
+      try {
+        const serialized = aurora.serialize()
+        sendJSON(res, 200, { context: serialized })
+        return true
+      } catch (err) {
+        sendJSON(res, 500, { error: String(err) })
+        return true
+      }
+    }
+
+    if (method === 'GET' && parts[2] === 'path') {
+      const from = deps.url.searchParams.get('from')
+      const to = deps.url.searchParams.get('to')
+      if (!from || !to) {
+        sendJSON(res, 400, { error: 'Missing from/to query parameters' })
+        return true
+      }
+      try {
+        const claustrum = aurora.getClaustrum()
+        const state = aurora.currentState
+        if (!state || !claustrum) {
+          sendJSON(res, 200, { path: null })
+          return true
+        }
+        const cogPath = claustrum.findShortestPath(state.graph, from, to)
+        sendJSON(res, 200, { path: cogPath })
+        return true
+      } catch (err) {
+        sendJSON(res, 500, { error: String(err) })
+        return true
+      }
+    }
+
+    if (method === 'POST' && parts[2] === 'observe') {
+      try {
+        const body = await deps.parseBody(req)
+        const text = body?.text as string
+        if (!text) {
+          sendJSON(res, 400, { error: 'Missing text field' })
+          return true
+        }
+        const update = aurora.observeReasoning(text)
+        sendJSON(res, 200, update)
+        return true
+      } catch (err) {
+        sendJSON(res, 500, { error: String(err) })
+        return true
+      }
+    }
+
+    return true
+  }
+
   return false
 }
