@@ -6,7 +6,8 @@ import type { BrainContext, ScoredMessage } from './types.js'
  * Five-axis luminance scoring:
  * - novelty (12%): unique information, self-model-aware
  * - urgency (13%): recency decay + role boost
- * - relevance (40%): focus + workspace + file + architectural + cortex-weighted
+ * - relevance (40%): focus + recent conversation + workspace + file + architectural + cortex-weighted,
+ *                     with phase-coherence modulation to suppress stale signals
  * - sourceCredibility (15%): dynamic, pineal + architectural concept modulated
  * - cognitiveResonance (20%): alignment with brain state (executive goals, affect, insights, identity)
  */
@@ -176,24 +177,37 @@ export class MessageLuminanceScorer {
 
   /**
    * Relevance: alignment with current cognitive focus across five sub-signals:
-   * - GWT focus overlap (30%): primary attentional focus terms + files
-   * - Workspace signals (15%): GWT broadcast winner alignment
+   * - GWT focus overlap (25%): primary attentional focus terms + files, modulated by phase coherence
+   * - Recent conversation overlap (15%): always-on signal from recent messages (phase-independent)
+   * - Workspace signals (10%): GWT broadcast winner alignment
    * - File proximity (10%): messages touching actively-focused files
-   * - Architectural alignment (20%): self-model concept matching
+   * - Architectural alignment (15%): self-model concept matching
    * - Cortex-weighted alignment (25%): weighted by signal type, region, salience
+   *
+   * Phase coherence modulates focus/cortex axes: when the conversation has shifted
+   * topics but cortex/focus signals are stale, their contribution is reduced so
+   * completed work phases don't get resurfaced.
    */
   private relevance(msg: any, content: string, ctx: BrainContext): number {
     if (!content) return 0
 
-    // 1. GWT focus relevance (30%)
+    const pc = ctx.phaseCoherence ?? 1.0
+
+    // 1. GWT focus relevance (25%) — modulated by phase coherence
     let focusScore = 0
     if (ctx.focusTerms.size > 0 || ctx.focusFiles.size > 0) {
-      focusScore = this.termOverlap(content, ctx.focusTerms, ctx.focusFiles)
-    } else if (ctx.recentMessageTerms.size > 0) {
-      focusScore = this.termOverlap(content, ctx.recentMessageTerms, ctx.recentMessageFiles)
+      focusScore = this.termOverlap(content, ctx.focusTerms, ctx.focusFiles) * pc
     }
 
-    // 2. Workspace signal alignment (15%)
+    // 2. Recent conversation overlap (15%) — always-on, phase-independent
+    //    This ensures the thalamus tracks what's CURRENTLY being discussed,
+    //    not just what cortex/focus signals remember from earlier phases.
+    let recentScore = 0
+    if (ctx.recentMessageTerms.size > 0 || ctx.recentMessageFiles.size > 0) {
+      recentScore = this.termOverlap(content, ctx.recentMessageTerms, ctx.recentMessageFiles)
+    }
+
+    // 3. Workspace signal alignment (10%)
     let workspaceScore = 0
     for (const sig of ctx.workspaceSignals) {
       const sigTerms = extractTerms(sig.content)
@@ -205,7 +219,7 @@ export class MessageLuminanceScorer {
       }
     }
 
-    // 3. File proximity (10%)
+    // 4. File proximity (10%)
     let fileScore = 0
     const allFiles = new Set([...ctx.focusFiles, ...ctx.recentMessageFiles])
     if (allFiles.size > 0 && Array.isArray(msg?.content)) {
@@ -228,7 +242,7 @@ export class MessageLuminanceScorer {
       }
     }
 
-    // 4. Architectural alignment (20%) — self-model concept matching
+    // 5. Architectural alignment (15%) — self-model concept matching
     let archScore = 0
     if (ctx.architecturalTerms.size > 0) {
       archScore = this.termOverlap(content, ctx.architecturalTerms, new Set())
@@ -241,7 +255,7 @@ export class MessageLuminanceScorer {
       }
     }
 
-    // 5. Cortex-weighted signal alignment (25%) — signal metadata matters
+    // 6. Cortex-weighted signal alignment (25%) — modulated by phase coherence
     let cortexScore = 0
 
     // High-salience signals: weighted by pre-computed importance
@@ -271,9 +285,12 @@ export class MessageLuminanceScorer {
       }
     }
 
+    // Apply phase coherence to cortex score — stale signals contribute less
+    cortexScore *= pc
+
     return Math.min(1.0,
-      focusScore * 0.30 + workspaceScore * 0.15 + fileScore * 0.10 +
-      archScore * 0.20 + cortexScore * 0.25,
+      focusScore * 0.25 + recentScore * 0.15 + workspaceScore * 0.10 + fileScore * 0.10 +
+      archScore * 0.15 + cortexScore * 0.25,
     )
   }
 

@@ -247,6 +247,13 @@ export interface BrainContext {
 
   recentMessageTerms: Set<string>
   recentMessageFiles: Set<string>
+
+  /**
+   * Phase transition coefficient (0.0 = total topic shift, 1.0 = same topic).
+   * When low, stale focus/cortex terms are down-weighted in relevance scoring
+   * so the thalamus doesn't keep resurfacing completed work phases.
+   */
+  phaseCoherence: number
 }
 
 export const MESSAGE_CREDIBILITY_PRIORS: Record<string, number> = {

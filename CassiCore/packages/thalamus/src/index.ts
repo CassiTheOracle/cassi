@@ -273,6 +273,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       originalChars,
       curatedChars,
       threshold: cfg.ignitionThreshold,
+      phaseCoherence: brainContext.phaseCoherence.toFixed(2),
       dropped,
       durationMs: meta.durationMs,
     })
@@ -340,7 +341,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     const recentMessageTerms = new Set<string>()
     const recentMessageFiles = new Set<string>()
     let seen = 0
-    for (let i = messages.length - 1; i >= 0 && seen < 8; i--) {
+    for (let i = messages.length - 1; i >= 0 && seen < 15; i--) {
       const msg = messages[i]
       if (msg?.role !== 'user' && msg?.role !== 'assistant') continue
       seen++
@@ -353,6 +354,13 @@ export class ThalamusModule extends BaseCognitiveModule {
       await this.buildSelfModelContext(focusTerms, recentMessageTerms)
 
     const { pinealTerms, pinealPriorities } = this.buildPinealContext(sessionId)
+
+    // Phase transition detection: measure overlap between recent conversation
+    // and the cortex/focus signals. Low overlap = topic shift → stale signals
+    // should be down-weighted so we don't resurface completed work phases.
+    const phaseCoherence = this.computePhaseCoherence(
+      recentMessageTerms, focusTerms, cortexIndex,
+    )
 
     return {
       foci,
@@ -371,6 +379,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       pinealPriorities,
       recentMessageTerms,
       recentMessageFiles,
+      phaseCoherence,
     }
   }
 
@@ -510,6 +519,44 @@ export class ThalamusModule extends BaseCognitiveModule {
   observeReasoning(text: string): void {
     if (!this.aurora) return
     this.aurora.observeReasoning(text)
+  }
+
+  /**
+   * Measure coherence between recent conversation and the cortex/focus state.
+   * Returns 0.0 (total topic shift) to 1.0 (same topic).
+   *
+   * When the conversation has moved on (e.g., from code review to running tests)
+   * but cortex/focus signals still reflect the old phase, this returns a low value.
+   * The scorer uses this to down-weight stale focus signals so old completed
+   * work phases don't get resurfaced into context.
+   */
+  private computePhaseCoherence(
+    recentTerms: Set<string>,
+    focusTerms: Set<string>,
+    cortexIndex: CortexIndex,
+  ): number {
+    if (recentTerms.size === 0) return 1.0 // No recent data → assume coherent
+
+    // Gather all "background state" terms from focus + high-salience cortex
+    const backgroundTerms = new Set<string>(focusTerms)
+    for (const ws of cortexIndex.highSalience) {
+      for (const term of ws.terms) backgroundTerms.add(term)
+    }
+    for (const ws of cortexIndex.workingMemory) {
+      for (const term of ws.terms) backgroundTerms.add(term)
+    }
+
+    if (backgroundTerms.size === 0) return 1.0 // No background state → coherent
+
+    // Jaccard-like overlap: what fraction of background terms appear in recent conversation?
+    let overlap = 0
+    for (const term of backgroundTerms) {
+      if (recentTerms.has(term)) overlap++
+    }
+
+    const coherence = overlap / backgroundTerms.size
+    // Clamp to [0.15, 1.0] — never fully zero (some background context is always useful)
+    return Math.max(0.15, Math.min(1.0, coherence))
   }
 
   /**
