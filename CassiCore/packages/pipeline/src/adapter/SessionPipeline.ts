@@ -614,8 +614,12 @@ export class SessionPipeline {
       // Post-turn Thalamus hooks: Aurora observes reasoning, Pineal reinforces used facets
       if (thalamus && result.response) {
         queueMicrotask(() => {
-          try { thalamus.observeReasoning?.(result.response); } catch { /* non-critical */ }
-          try { thalamus.reinforcePinealFacets?.(); } catch { /* non-critical */ }
+          try { thalamus.observeReasoning?.(result.response); } catch (err) {
+            this.logger.debug('Aurora observeReasoning failed', { error: String(err) });
+          }
+          try { thalamus.reinforcePinealFacets?.(); } catch (err) {
+            this.logger.debug('Pineal reinforcement failed', { error: String(err) });
+          }
         });
       }
 
