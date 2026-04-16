@@ -221,17 +221,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             logger,
           )
           thalamus.setAurora(aurora)
-
-          // Feed reasoning back to Aurora on turn:end
-          bus.on('turn:end', (event: any) => {
-            try {
-              const assistantMessage = event?.assistantMessage ?? event?.response
-              if (assistantMessage && typeof assistantMessage === 'string') {
-                aurora.observeReasoning(assistantMessage)
-              }
-            } catch { /* non-critical */ }
-          })
-
           logger.info('Aurora wired to Thalamus')
         } catch (err) {
           logger.warn('Failed to wire Aurora to Thalamus', { error: String(err) })
@@ -244,13 +233,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       if (pinealModule) {
         const assembler = new PinealAssembler(pinealModule.getStore(), logger.child('pineal-assembler'))
         thalamus.setPinealAssembler(assembler)
-
-        bus.on('turn:end', () => {
-          try {
-            thalamus.reinforcePinealFacets()
-          } catch { /* non-critical */ }
-        })
-
         logger.info('Pineal assembler wired to Thalamus with turn reinforcement')
       }
 
