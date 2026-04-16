@@ -15,19 +15,13 @@ import type { Affect, AffectLabel, EngramType, SynapseType } from '../mnemic-fie
 import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
 import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
 
-/**
- * A node in the unified cognitive graph.
- * Can originate from model knowledge, personal memory, or both.
- */
+export type CognitiveNodeSource = 'model' | 'memory' | 'both'
+export type CognitiveEdgeOrigin = 'model' | 'memory' | 'portal' | 'dream'
+
 export interface CognitiveNode {
-  /** Unique ID (engram ID for memory nodes, entity name for model nodes). */
   id: string
-
-  /** Human-readable label. */
   label: string
-
-  /** Where this node came from. */
-  source: 'model' | 'memory' | 'both'
+  source: CognitiveNodeSource
 
   /** Model-side: confidence of the entity in the model's knowledge. */
   modelConfidence?: number
@@ -54,32 +48,14 @@ export interface CognitiveNode {
   activated: boolean
 }
 
-/**
- * An edge in the unified cognitive graph.
- */
 export interface CognitiveEdge {
-  /** Source node ID. */
   sourceId: string
-
-  /** Target node ID. */
   targetId: string
-
-  /** Origin of this edge. */
-  origin: 'model' | 'memory' | 'portal' | 'dream'
-
-  /** Edge type (model relation type or Mnemic Field synapse type). */
+  origin: CognitiveEdgeOrigin
   edgeType: string
-
-  /** Edge weight. */
   weight: number
-
-  /** Model-side: confidence. */
   modelConfidence?: number
-
-  /** Model-side: layers where this relation appears. */
   modelLayers?: number[]
-
-  /** Memory-side: synapse type. */
   synapseType?: SynapseType
 }
 

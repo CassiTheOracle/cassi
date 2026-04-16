@@ -103,7 +103,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
    */
   async load(vindexPath: string): Promise<boolean> {
     try {
-      // @ts-ignore — cassi-larql is a native module
+      // @ts-ignore — cassi-larql is a native module without type declarations
       this.larql = await import('cassi-larql') as CassiLarqlModule
     } catch (err) {
       this.logger.warn('cassi-larql bindings not available', { error: String(err) })
