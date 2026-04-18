@@ -311,25 +311,11 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
-    // Search memory for related context
-    let relatedContext: string[] = []
-    if (deps.memory) {
-      try {
-        const results = await deps.memory.search(input.thought, {
-          limit: cfg.maxMemoryResults + cfg.maxArchiveResults,
-        })
-        relatedContext = results
-          .filter(r => r.score >= 0.3)
-          .slice(0, cfg.maxMemoryResults + cfg.maxArchiveResults)
-          .map(r => {
-            const text = r.entry?.content ?? ''
-            return text.slice(0, 200) // Cap at 200 chars per entry
-          })
-          .filter(t => t.length > 0)
-      } catch (err) {
-        log.warn('Memory search failed in thinking step', { error: String(err) })
-      }
-    }
+    // Memory search removed — it leaked main-session context into Helix/Constellation
+    // branches, confusing models with irrelevant "user: test message" fragments.
+    // The Mnemic Field (via reasoningBankContext below) and peer signals provide
+    // sufficient cross-session context without the noise.
+    const relatedContext: string[] = []
 
     // Stage 5b: REASONING BANK — Search past successful reasoning traces
     // HOW: Only search on step 1 (initial context) and every 3 steps (to avoid
