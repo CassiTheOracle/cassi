@@ -35,6 +35,12 @@ import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './t
 import { signalPromise } from '../../utils/abort.js'
 import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
+import { PostureModule } from './posture-module.js'
+import { HelixTelemetry } from './helix-telemetry.js'
+import { HelixConductor, shouldUseConductor } from './helix-conductor.js'
+import type { GlobalWorkspace } from '../workspace/index.js'
+import type { MnemicField } from '../mnemic-field/index.js'
+import type { Aurora } from '../aurora/index.js'
 
 
 
@@ -144,6 +150,34 @@ export interface HelixPipelineOpts {
     allow?: string[]
     deny?: string[]
   }
+
+  /**
+   * Phase A brain-integration flag. When true together with `globalWorkspace`,
+   * each posture is wrapped in a PostureModule and publishes CognitiveSignals
+   * alongside its existing WorkStream / DialecticChannel writes (dual-publish).
+   * No-op when either is unset. Default false.
+   */
+  brainIntegration?: boolean
+  /** Brain's GlobalWorkspace instance (required when brainIntegration is true). */
+  globalWorkspace?: GlobalWorkspace
+  /**
+   * Optional telemetry sink for session metrics and spans. A fresh one is
+   * created when brainIntegration is on and this is unset.
+   */
+  telemetry?: HelixTelemetry
+  /**
+   * Optional Mnemic Field — when provided alongside brainIntegration,
+   * the Conductor spins up a HelixMnemicBridge that writes milestone
+   * engrams (session/outcome/concern/decision/anomaly) for cross-session
+   * kindling via spreading activation.
+   */
+  mnemicField?: MnemicField
+  /**
+   * Optional Aurora — when provided alongside brainIntegration, posture
+   * reasoning text is piped through `aurora.observeReasoning()` so the
+   * unified mental-state graph grows during the session.
+   */
+  aurora?: Aurora
 }
 
 
@@ -287,10 +321,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
 
   let lastActivity = Date.now()
+  let watchdog: import('./inactivity-watchdog.js').InactivityWatchdog | undefined
   let hardCapTimeout: import('../../utils/activity-timeout.js').ActivityTimeout | undefined
   const onActivity = () => {
     lastActivity = Date.now()
     hardCapTimeout?.touch()
+    watchdog?.touch()
   }
 
 
@@ -325,6 +361,55 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   const yangChunkIndex = new ContextChunkIndex(log)
   const yinChunkIndex = new ContextChunkIndex(log)
 
+  // Brain integration: when the flag + a GlobalWorkspace are present, spin
+  // up a HelixConductor that owns the PostureModules, journals every signal
+  // and lifecycle event, and takes periodic snapshots. Pipeline code stays
+  // unchanged when the flag is off — conductor is optional.
+  const brainIntegrationEnabled = shouldUseConductor(opts)
+  let conductor: HelixConductor | undefined
+  let helixTelemetry: HelixTelemetry | undefined
+  let unityPostureModule: PostureModule | undefined
+  let yangPostureModule: PostureModule | undefined
+  let yinPostureModule: PostureModule | undefined
+
+  if (brainIntegrationEnabled && opts.globalWorkspace) {
+    conductor = new HelixConductor({
+      sessionId,
+      goal: opts.goal,
+      logger: log,
+      globalWorkspace: opts.globalWorkspace,
+      eventBus: opts.eventBus,
+      telemetry: opts.telemetry,
+      mnemicField: opts.mnemicField,
+      aurora: opts.aurora,
+    })
+    await conductor.start()
+    helixTelemetry = conductor.telemetry
+
+    const modules = conductor.getPostureModules()
+    unityPostureModule = modules['unity']
+    yangPostureModule = modules['yang']
+    yinPostureModule = modules['yin']
+
+    log.info('HelixConductor started — postures publishing to GlobalWorkspace', {
+      sessionId,
+      journal: conductor.journal.getDbPath(),
+    })
+
+    // Phase F — quiescence triggers orderly cancellation when the
+    // GlobalWorkspace has been quiet for long enough or the hard-cutoff
+    // fires. Runner-level termination still runs; this just short-circuits.
+    conductor.setOnQuiescence((report) => {
+      log.info('Helix quiescence triggered termination', {
+        sessionId,
+        reason: report.reason,
+        idleDurationMs: report.idleDurationMs,
+        sessionAgeMs: report.sessionAgeMs,
+      })
+      cancelAll()
+    })
+  }
+
   const unitySession = new HelixPostureRunner({
     ...commonOpts,
     role: 'unity',
@@ -336,6 +421,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem,
     contextChunkIndex: unityChunkIndex,
     thalamus: opts.thalamus,
+    postureModule: unityPostureModule,
+    telemetry: helixTelemetry,
+    aurora: conductor?.aurora,
+    journal: conductor?.journal,
   })
 
   const yangSession = new HelixPostureRunner({
@@ -350,6 +439,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem,
     contextChunkIndex: yangChunkIndex,
     thalamus: opts.thalamus,
+    postureModule: yangPostureModule,
+    telemetry: helixTelemetry,
+    aurora: conductor?.aurora,
+    journal: conductor?.journal,
   })
 
   const yinSession = new HelixPostureRunner({
@@ -364,6 +457,10 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem,
     contextChunkIndex: yinChunkIndex,
     thalamus: opts.thalamus,
+    postureModule: yinPostureModule,
+    telemetry: helixTelemetry,
+    aurora: conductor?.aurora,
+    journal: conductor?.journal,
   })
 
   // Mentor path removed — Brainstem is the only cognitive organizer
@@ -421,25 +518,26 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   const inactivityEscalateMs = opts.inactivityThresholds?.escalateMs ?? INACTIVITY_ESCALATE_MS
   const inactivityKillMs = opts.inactivityThresholds?.killMs ?? INACTIVITY_KILL_MS
 
-  let inactivityWarnSent = false
-  let inactivityEscalated = false
-
-  const watchdogInterval = setInterval(() => {
-    const silentMs = Date.now() - lastActivity
-
-    // Stage 3: Hard kill — log once, cancel, stop the watchdog
-    if (silentMs > inactivityKillMs) {
-      if (!cancelled) {
-        log.warn('Helix pipeline inactivity kill', { sessionId, silentMs })
-        cancelAll()
-      }
-      clearInterval(watchdogInterval)
-      return
-    }
-
-    // Stage 2: High-severity nudge
-    if (silentMs > inactivityEscalateMs && !inactivityEscalated) {
-      inactivityEscalated = true
+  // Three-stage inactivity watchdog (extracted to InactivityWatchdog module).
+  // Replaces the previous 60-line inline watchdog block — same semantics, isolated logic.
+  const { InactivityWatchdog } = await import('./inactivity-watchdog.js')
+  watchdog = new InactivityWatchdog({
+    warnMs: inactivityWarnMs,
+    escalateMs: inactivityEscalateMs,
+    killMs: inactivityKillMs,
+    onWarn: (silentMs) => {
+      log.info('Helix pipeline inactivity warning', { sessionId, silentMs })
+      workStream.sendNudge({
+        id: `inactivity-warn-${Date.now()}`,
+        from: 'apex', to: 'unity',
+        severity: 'low',
+        content: 'Pipeline quiet for 2+ minutes. If working, continue. If stuck, try an alternative approach.',
+        timestamp: Date.now(),
+        acknowledged: false,
+      }, 0)
+      opts.eventBus?.emit({ type: 'helix:inactivity:warned' as any, sessionId, silentMs } as any)
+    },
+    onEscalate: (silentMs) => {
       log.warn('Helix pipeline inactivity escalation', { sessionId, silentMs })
       try {
         workStream.sendNudge({
@@ -454,31 +552,14 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         log.warn('Inactivity escalation nudge failed (cooldown)', { error: String(err) })
       }
       opts.eventBus?.emit({ type: 'helix:inactivity:escalated' as any, sessionId, silentMs } as any)
-      return
-    }
-
-    // Stage 1: Gentle nudge
-    if (silentMs > inactivityWarnMs && !inactivityWarnSent) {
-      inactivityWarnSent = true
-      log.info('Helix pipeline inactivity warning', { sessionId, silentMs })
-      workStream.sendNudge({
-        id: `inactivity-warn-${Date.now()}`,
-        from: 'apex', to: 'unity',
-        severity: 'low',
-        content: 'Pipeline quiet for 2+ minutes. If working, continue. If stuck, try an alternative approach.',
-        timestamp: Date.now(),
-        acknowledged: false,
-      }, 0)
-      opts.eventBus?.emit({ type: 'helix:inactivity:warned' as any, sessionId, silentMs } as any)
-      return
-    }
-
-    // Reset when activity resumes
-    if (silentMs < inactivityWarnMs) {
-      inactivityWarnSent = false
-      inactivityEscalated = false
-    }
-  }, 15_000)
+    },
+    onKill: (silentMs) => {
+      if (!cancelled) {
+        log.warn('Helix pipeline inactivity kill', { sessionId, silentMs })
+        cancelAll()
+      }
+    },
+  })
 
 
 
@@ -759,7 +840,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
     throw pipelineError
   } finally {
-    clearInterval(watchdogInterval)
+    watchdog?.dispose()
     hardCapTimeout?.dispose()
     if (dialecticFeedTimer) clearTimeout(dialecticFeedTimer)
 
@@ -770,6 +851,15 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         log.info('Brainstem stopped')
       } catch (err) {
         log.warn('Brainstem stop failed', { error: String(err) })
+      }
+    }
+
+    // Stop the conductor (owns PostureModules, journal, telemetry, session store)
+    if (conductor) {
+      try {
+        await conductor.stop('ok')
+      } catch (err) {
+        log.warn('HelixConductor stop failed', { error: String(err) })
       }
     }
 
