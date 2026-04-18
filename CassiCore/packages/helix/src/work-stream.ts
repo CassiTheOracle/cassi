@@ -84,7 +84,10 @@ const MAX_WORK_UNIT_SIZE = 50 * 1024
 
 /** Rate limiting: max work units per window */
 const RATE_LIMIT_WINDOW_MS = 30000
-const MAX_WORK_UNITS_PER_WINDOW = 10
+// 30 work units per 30s = 1/sec total budget across all 3 postures
+// (Unity, Yang, Yin all produce work units now in posture-independence mode).
+// Originally 10/30s when only Unity produced — bumped 3x to match producer count.
+const MAX_WORK_UNITS_PER_WINDOW = 30
 
 /** Nudge timeout: high-severity nudges auto-expire after this long */
 const NUDGE_TIMEOUT_MS = 60000
