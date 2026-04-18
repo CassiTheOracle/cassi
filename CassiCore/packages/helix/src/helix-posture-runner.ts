@@ -35,6 +35,11 @@ import type { Posture as LumenPostureType } from './dialectic-channel.js'
 import type { InferenceResult, ParsedToolCall } from '../../../types/cassi-agent.js'
 import type { HelixRole, HelixPosture, HelixPostureResult } from './types.js'
 import type { HelixBrainstem } from './brainstem.js'
+import type { PostureModule, PostureSignalOpts } from './posture-module.js'
+import type { SignalType } from '../workspace/index.js'
+import type { HelixTelemetry } from './helix-telemetry.js'
+import type { Aurora } from '../aurora/index.js'
+import type { HelixJournal } from './helix-journal.js'
 import type { PendingGuidance } from './brainstem-types.js'
 import { HelixResearcher } from './helix-researcher.js'
 import {
@@ -220,6 +225,30 @@ export interface HelixPostureRunnerOpts {
    * Applied on top of posture-level access restrictions.
    */
   toolFilter?: { allow?: string[]; deny?: string[] }
+  /**
+   * Optional PostureModule wrapper for dual-publish into the GlobalWorkspace.
+   * When set, this runner additionally emits CognitiveSignals alongside its
+   * existing WorkStream / DialecticChannel writes. No-op when absent.
+   */
+  postureModule?: PostureModule
+  /**
+   * Optional HelixTelemetry sink. When set, signal submits are recorded for
+   * per-session metrics and cross-posture correlation tracing.
+   */
+  telemetry?: HelixTelemetry
+  /**
+   * Optional Aurora reference. When set, posture reasoning text is piped
+   * through `aurora.observeReasoning()` at turn boundaries so Aurora's
+   * mental-state graph grows during the session and other postures see
+   * a Thalamus context slice informed by collective reasoning.
+   */
+  aurora?: Aurora
+  /**
+   * Optional HelixJournal. When set alongside Aurora, `aurora.observe`
+   * entries are appended so the observation cadence appears in the
+   * session timeline.
+   */
+  journal?: HelixJournal
 }
 
 /** Real-time token stream event — emitted during inference for Brainstem/Corpus visibility */
@@ -251,6 +280,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
   private readonly flexToolAccess?: import('../constellation/types.js').ToolAccessLevel
   private readonly toolFilter?: { allow?: string[]; deny?: string[] }
+  private readonly postureModule?: PostureModule
+  private readonly telemetry?: HelixTelemetry
+  private readonly aurora?: Aurora
+  private readonly journal?: HelixJournal
 
   // Typed store
   protected declare store?: HelixStore
@@ -275,6 +308,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private signalDoneConclusion?: string
   private signalDoneConfidence?: number
   private signalDoneKeyPoints?: string[]
+
+  // Conversation persistence turn counter
+  private conversationTurnIndex = 0
 
   // Mentor synthesis tracking — populated by mentor_synthesize handler
   private mentorSynthesis?: {
@@ -319,6 +355,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.onStreamActivity = opts.onStreamActivity
     this.flexToolAccess = opts.flexToolAccess
     this.toolFilter = opts.toolFilter
+    this.postureModule = opts.postureModule
+    this.telemetry = opts.telemetry
+    this.aurora = opts.aurora
+    this.journal = opts.journal
     this.store = opts.store
 
     // Wire TestLock with persistence callbacks
@@ -379,12 +419,127 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   protected getTriggerLabel(): string { return 'helix' }
 
   /**
+   * Phase C broadcast-consumption helper. Pops queued GlobalWorkspace
+   * signals that landed in this posture's PostureModule since the last
+   * call, formats them as a markdown block, and appends that block as a
+   * user message so the next inference sees it.
+   *
+   * Legacy channel reads (WorkStream / DialecticChannel) continue to fire
+   * in parallel during Phase C — both sources currently drive the runner.
+   * Phase G will delete the legacy path once workspace coverage is proven.
+   *
+   * No-op when brainIntegration is off or the queue is empty.
+   */
+  private injectWorkspaceBroadcasts(): void {
+    if (!this.postureModule) return
+    const signals = this.postureModule.drainBroadcasts()
+    if (signals.length === 0) return
+
+    const lines: string[] = ['## GlobalWorkspace signals (from other postures)']
+    for (const sig of signals) {
+      const posture = String(sig.metadata?.posture ?? sig.source)
+      const kind = String(sig.metadata?.kind ?? sig.type)
+      const correlation = sig.metadata?.correlation
+      const correlationTag = typeof correlation === 'string' && correlation.length > 0
+        ? ` [corr:${correlation}]`
+        : ''
+      const preview = (sig.content ?? '').slice(0, 400)
+      lines.push(`- **${posture}** · ${kind}${correlationTag}: ${preview}`)
+    }
+
+    this.messages.push({ role: 'user', content: lines.join('\n') })
+    this.logger.debug('Injected workspace broadcasts', {
+      role: this.role,
+      count: signals.length,
+    })
+  }
+
+  /**
+   * Phase E — pipe posture reasoning text through Aurora so the unified
+   * mental-state graph grows while the session runs. No-op when Aurora
+   * isn't attached. Emits an `aurora.observe` journal entry when a journal
+   * is wired alongside Aurora.
+   */
+  private observePostureReasoning(text: string): void {
+    if (!this.aurora || !text || text.length < 20) return
+    try {
+      const update = this.aurora.observeReasoning(text)
+      if (this.journal && this.postureModule) {
+        this.journal.append({
+          sessionId: this.postureModule.sessionId,
+          eventType: 'aurora.observe',
+          postureId: this.postureModule.name,
+          payload: {
+            conceptsExtracted: update.extractedConcepts?.length ?? 0,
+            shiftType: update.shift?.type,
+            momentumConfidence: update.momentum?.confidence,
+          },
+        })
+      }
+    } catch (err) {
+      this.logger.debug('aurora.observeReasoning failed', { error: String(err) })
+    }
+  }
+
+  /**
+   * Phase A dual-publish helper. Emits a CognitiveSignal into the
+   * GlobalWorkspace when a PostureModule is wired. Safe to call
+   * unconditionally — returns false when brain-integration is off.
+   */
+  private publishSignal(
+    type: SignalType,
+    content: string,
+    opts: PostureSignalOpts = {},
+  ): boolean {
+    if (!this.postureModule) return false
+    try {
+      const ignited = this.postureModule.publish(type, content, opts)
+      this.telemetry?.recordSignalSubmit({
+        sessionId: this.postureModule.sessionId,
+        posture: this.postureModule.role,
+        signalType: type,
+        correlation: opts.correlation,
+        recipient: opts.recipient,
+        kind: opts.kind,
+        ignited,
+      })
+      return ignited
+    } catch (err) {
+      this.logger.debug('[helix] dual-publish failed', { error: String(err), type })
+      return false
+    }
+  }
+
+  /**
    * Stream chunk hook — forward token stream events to the Brainstem/Corpus
    * via the onStreamActivity callback. This gives real-time visibility into
    * what the LLM is producing, not just tool call results.
    */
+
+  /**
+   * Override pushMessage to persist conversations to HelixStore for post-mortem.
+   */
+  protected override pushMessage(msg: import('../../../types/runtime.js').Message): void {
+    super.pushMessage(msg)
+    // Persist to HelixStore for forensic analysis
+    if (this.store) {
+      try {
+        const turnIdx = this.conversationTurnIndex++
+        this.store.saveConversation(
+          this.sessionId, this.role, turnIdx,
+          msg.role, msg.content,
+        )
+      } catch {
+        // Non-fatal — conversation persistence must never break the runner
+      }
+    }
+  }
+
+  /**
+   * Stream chunk handler — forwards real-time streaming tokens to Brainstem
+   * via the onStreamActivity callback.
+   */
   protected override onStreamChunk(tokensSoFar: number, textAccumulated: string, hasToolUse: boolean): void {
-    if (!this.onStreamActivity) return
 
     // Pass the most recent 3000 chars so the brainstem can buffer live stream content
     // for heartbeat prompts. Each event is a growing slice of the current LLM iteration —
@@ -393,7 +548,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       ? textAccumulated.slice(-3000)
       : textAccumulated
 
-    this.onStreamActivity({
+    this.onStreamActivity?.({
       posture: this.role,
       tokensSoFar,
       isReasoning: !hasToolUse && textAccumulated.length > 0,
@@ -425,6 +580,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           break
         }
 
+        // Phase C — pull cross-posture signals from the GlobalWorkspace
+        // (reviewer findings/challenges, suggestion nudges, etc.). No-op
+        // when brainIntegration is off.
+        this.injectWorkspaceBroadcasts()
+
         // Backpressure — wait if reviewers are falling behind
         if (this.workStream.shouldApplyBackpressure()) {
           this.logger.debug('Unity backpressure — waiting for reviewers to catch up')
@@ -451,6 +611,15 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           if (textContent.length > 50) { // Only capture substantial text
             const reasoningUnit = this.captureReasoningWorkUnit(textContent)
             this.workStream.postWorkUnit(reasoningUnit as any)
+            this.publishSignal('observation', textContent.slice(0, 2000), {
+              kind: 'work-unit',
+              correlation: (reasoningUnit as any)?.id,
+              extra: {
+                iteration: this.iterationCount,
+                textOnly: true,
+              },
+            })
+            this.observePostureReasoning(textContent)
             this.onWorkUnit?.(reasoningUnit as any, this.iterationCount)
           }
 
@@ -473,6 +642,20 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Auto-capture work unit from this iteration
         const workUnit = this.captureWorkUnit(result, toolCalls, toolResults)
         this.workStream.postWorkUnit(workUnit as any)
+        this.publishSignal(
+          'observation',
+          ((workUnit as any)?.reasoning ?? '').slice(0, 2000) || `work unit #${(workUnit as any)?.id}`,
+          {
+            kind: 'work-unit',
+            correlation: (workUnit as any)?.id,
+            extra: {
+              iteration: this.iterationCount,
+              toolCount: toolCalls.length,
+              filesModified: ((workUnit as any)?.filesModified ?? []).length,
+            },
+          },
+        )
+        this.observePostureReasoning(((workUnit as any)?.reasoning ?? '') as string)
         this.workUnitsProduced++
         this.onWorkUnit?.(workUnit as any, this.iterationCount)
 
@@ -521,11 +704,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       this.messages = this.buildInitialMessages(goal, context, this.role)
       const tools = this.buildToolSchemas(this.role)
 
-      // Brief delay to let Unity start producing initial work units for context.
-      await new Promise(resolve => setTimeout(resolve, 2_000))
-
-      // Seed with any available work units upfront — gives the reviewer
-      // initial awareness of what Unity is working on
+      // Posture independence: reviewers start their own investigation immediately.
+      // Previously we waited 2s for Unity to seed work units, but reviewers now run
+      // their own agenda — no need to gate on Unity's startup.
       this.injectAvailableWorkUnits()
 
       while (!this.concluded && !this.cancelled) {
@@ -535,29 +716,25 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           break
         }
 
-        // Check termination: Unity done and reviewer has done meaningful work
-        if (this.workStream.isWorkerDone()) {
-          const allWUs = this.workStream.getAllWorkUnits()
+        // Phase C — pull cross-posture signals from the GlobalWorkspace.
+        // Reviewers see Unity's work units and the other reviewer's
+        // findings/challenges here when brainIntegration is on.
+        this.injectWorkspaceBroadcasts()
 
-          if (this.workStream instanceof HelixWorkStream) {
-            const seenAll = this.workStream.hasReviewerSeenAll(this.role)
-            if (seenAll && allWUs.length > 0) {
-              this.workStream.signalReviewerReady(this.role)
-              this.logger.info(`${this.role} — Unity done, all ${allWUs.length} work units observed, concluding`)
-              break
-            }
-            if (allWUs.length > 0 && this.iterationCount >= 2) {
-              this.workStream.signalReviewerReady(this.role)
-              this.logger.info(`${this.role} — Unity done, ${this.iterationCount} iterations completed, concluding`)
-              break
-            }
-          } else {
-            // Legacy WorkStream: check if all work units are reviewed
-            const allReviewed = allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
-            if ((allReviewed && allWUs.length > 0) || (allWUs.length === 0 && this.iterationCount > 1)) {
-              this.logger.info(`${this.role} — Unity done, all work units reviewed, concluding`)
-              break
-            }
+        // Posture independence: reviewers no longer auto-exit when Unity finishes.
+        // Each posture decides its own completion via signal_conclusion. Unity finishing
+        // is just one signal among many — Yang/Yin keep investigating until satisfied.
+        // The legacy "Unity done → reviewers exit" early-exit logic was removed because
+        // it caused reviewers to bail after just 2-5 iterations even when they hadn't
+        // produced meaningful findings. Reviewers now run their full investigation loop
+        // until they call signal_conclusion or hit maxIterations.
+        if (this.workStream.isWorkerDone() && !(this.workStream instanceof HelixWorkStream)) {
+          // Legacy WorkStream still uses the old reviewed-all check (back-compat path).
+          const allWUs = this.workStream.getAllWorkUnits()
+          const allReviewed = allWUs.every(wu => this.reviewedWorkUnitIds.has(wu.id))
+          if ((allReviewed && allWUs.length > 0) || (allWUs.length === 0 && this.iterationCount > 1)) {
+            this.logger.info(`${this.role} — Unity done, all work units reviewed, concluding (legacy path)`)
+            break
           }
         }
 
@@ -607,6 +784,28 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
         const toolResults = await this.processToolCalls(toolCalls)
         this.onActivity?.()
+
+        // Posture independence: reviewers also produce work units from their
+        // independent investigations. The Brainstem and Corpus see Yang/Yin's
+        // findings as concrete units alongside Unity's, not just dialectic chatter.
+        const reviewerWorkUnit = this.captureWorkUnit(result, toolCalls, toolResults)
+        this.workStream.postWorkUnit(reviewerWorkUnit as any)
+        this.publishSignal(
+          'observation',
+          ((reviewerWorkUnit as any)?.reasoning ?? '').slice(0, 2000) || `${this.role} work unit #${(reviewerWorkUnit as any)?.id}`,
+          {
+            kind: 'work-unit',
+            correlation: (reviewerWorkUnit as any)?.id,
+            extra: {
+              iteration: this.iterationCount,
+              toolCount: toolCalls.length,
+              posture: this.role,
+            },
+          },
+        )
+        this.observePostureReasoning(((reviewerWorkUnit as any)?.reasoning ?? '') as string)
+        this.workUnitsProduced++
+        this.onWorkUnit?.(reviewerWorkUnit as any, this.iterationCount)
 
         // Inject dialectic messages into tool results
         const enrichedResults = this.injectDialecticIntoResults(toolResults)
@@ -1281,6 +1480,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     const id = this.dialecticChannel.postFinding(this.role as any, finding, evidence, tags)
     this.findingsShared++
+    this.publishSignal('observation', finding.slice(0, 2000), {
+      kind: 'finding',
+      correlation: String(id),
+      extra: { findingId: String(id), tags, evidence: evidence?.slice(0, 500) },
+    })
 
     // Auto-draft to blackboard
     this.blackboard?.autoDraftFromFinding(this.role, String(id), finding, evidence ? [evidence] : undefined)
@@ -1298,6 +1502,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     try {
       const id = this.dialecticChannel.postChallenge(this.role as any, findingId, counterargument, evidence)
       this.challengesMade++
+      this.publishSignal('tension', counterargument.slice(0, 2000), {
+        kind: 'challenge',
+        correlation: findingId,
+        extra: { challengeId: String(id), findingId, evidence: evidence?.slice(0, 500) },
+      })
 
       this.blackboard?.autoDraftFromChallenge(this.role, String(id), counterargument, findingId)
 
@@ -1316,6 +1525,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     try {
       this.dialecticChannel.postConcession(this.role as any, challengeId, reason)
       this.concessionsMade++
+      this.publishSignal('insight', (reason ?? `concession to #${challengeId}`).slice(0, 2000), {
+        kind: 'concession',
+        correlation: challengeId,
+        extra: { challengeId, reason: reason?.slice(0, 500) },
+      })
 
       if (reason) {
         this.blackboard?.autoDraftFromConcession(this.role, challengeId, reason, challengeId)
@@ -1392,6 +1606,13 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         timestamp: Date.now(),
         acknowledged: false,
       } as any, this.iterationCount)
+      this.publishSignal('suggestion', content, {
+        kind: 'nudge',
+        recipient: 'unity',
+        correlation: workUnitId,
+        urgencyHint: severity === 'high' ? 0.2 : 0,
+        extra: { severity, workUnitId },
+      })
     } catch (err) {
       this.logger.warn('Reviewer nudge rejected', {
         role: this.role,
@@ -1503,6 +1724,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       undefined,
       ['investigation-request'],
     )
+    this.publishSignal('observation', `[Investigation Request] ${area}: ${reason}`.slice(0, 2000), {
+      kind: 'investigation-request',
+      correlation: String(id),
+      extra: { findingId: String(id), area, reason },
+    })
 
     // Also post to blackboard via HelixResearcher for shared visibility
     if (this.blackboard) {
@@ -1612,6 +1838,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     this.concluded = true
     this.workStream.recordRoleConclusion(this.role as any, false)
+    // Posture independence: signal coordinator that this reviewer is ready,
+    // so HelixWorkStream.isTerminationConsensus reflects voluntary completion.
+    if (this.workStream instanceof HelixWorkStream) {
+      this.workStream.signalReviewerReady(this.role)
+    }
 
     this.logger.info(`${this.role} review complete`, {
       conclusion: conclusion.slice(0, 100),
@@ -1683,6 +1914,12 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
             timestamp: Date.now(),
             acknowledged: false,
           } as any, this.iterationCount)
+          this.publishSignal('suggestion', `[Mentor Guidance] ${directive}`, {
+            kind: 'mentor-nudge',
+            recipient: 'unity',
+            urgencyHint: severity === 'high' ? 0.2 : 0,
+            extra: { severity, source: 'mentor-steer' },
+          })
         } catch (nudgeErr) {
           this.logger.warn('Mentor steering nudge rejected', { error: String(nudgeErr) })
         }
@@ -1725,6 +1962,12 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           timestamp: Date.now(),
           acknowledged: false,
         } as any, this.iterationCount)
+        this.publishSignal('warning', `[Mentor Flag: ${issueType}] ${issue}`, {
+          kind: 'mentor-flag',
+          recipient: 'unity',
+          urgencyHint: 0.25,
+          extra: { issueType, source: 'mentor-flag' },
+        })
       } catch (nudgeErr) {
         this.logger.warn('Mentor flag nudge rejected', { error: String(nudgeErr) })
       }
@@ -1934,12 +2177,25 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     if (role === 'unity') {
       userContent += '\n\n## Instructions\n\nBegin implementation work now. ' +
         'Read the goal carefully, then start making progress using the available tools. ' +
-        'Reviewers will observe the work asynchronously and provide feedback if needed.'
+        'Yang and Yin are also investigating independently and will share findings via the dialectic. ' +
+        'Call signal_done when your integration work is complete.'
+    } else if (role === 'yang') {
+      userContent += '\n\n## Instructions\n\nYou are an INDEPENDENT WORKER, not just a reviewer. ' +
+        'Investigate the goal yourself with full energy — explore the problem space, generate options, ' +
+        'validate assumptions by reading code and running read-only tools. ' +
+        'Produce concrete findings, not generic observations. ' +
+        'Cross-pollinate with Unity and Yin via the dialectic (share_finding, challenge, concede). ' +
+        'Do NOT wait for Unity to finish before doing real work — start your own investigation immediately. ' +
+        'Call signal_conclusion ONLY when you have produced substantial findings and are genuinely satisfied with your investigation.'
     } else {
-      userContent += `\n\n## Instructions\n\nAs the ${role.toUpperCase()} reviewer, observe the implementation work stream. ` +
-        'Work units will appear as progress is made. ' +
-        'Investigate each work unit with read-only tools, share findings with the other reviewer, ' +
-        'and send nudges when there is actionable feedback.'
+      // yin
+      userContent += '\n\n## Instructions\n\nYou are an INDEPENDENT WORKER, not just a reviewer. ' +
+        'Investigate the goal yourself with critical energy — probe for risks, edge cases, and contradictions. ' +
+        'Read code, audit assumptions, surface what could break. ' +
+        'Produce concrete findings, not generic concerns. ' +
+        'Cross-pollinate with Unity and Yang via the dialectic (share_finding, challenge, concede). ' +
+        'Do NOT wait for Unity to finish before doing real work — start your own audit immediately. ' +
+        'Call signal_conclusion ONLY when you have produced substantial findings and are genuinely satisfied with your audit.'
     }
 
     messages.push({ role: 'user', content: userContent })
@@ -2274,13 +2530,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       }))
 
     return {
-      id: `wu-${this.workUnitsProduced + 1}`,
+      id: `wu-${this.role}-${this.workUnitsProduced + 1}`,
       iteration: this.iterationCount,
       reasoning: textBlocks.slice(0, 500) || `Iteration ${this.iterationCount}: ${toolCalls.length} tool calls`,
       toolCalls: toolCallSummaries,
       toolResults: toolResultSummaries,
       filesModified,
       timestamp: Date.now(),
+      posture: this.role,
     }
   }
 
@@ -2290,13 +2547,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    */
   private captureReasoningWorkUnit(text: string): WorkUnit {
     return {
-      id: `wu-reasoning-${this.workUnitsProduced + 1}`,
+      id: `wu-reasoning-${this.role}-${this.workUnitsProduced + 1}`,
       iteration: this.iterationCount,
       reasoning: text.slice(0, 1000),
       toolCalls: [],
       toolResults: [],
       filesModified: [],
       timestamp: Date.now(),
+      posture: this.role,
     }
   }
 

@@ -93,6 +93,13 @@ export interface WorkUnit {
   timestamp: number
   /** Set by Yin via markWorkUnitProcessed() */
   processed?: boolean
+  /**
+   * The posture that produced this work unit ('unity' | 'yang' | 'yin').
+   * Defaults to 'unity' for back-compat with code that doesn't set it.
+   * Used by the Brainstem to distinguish worker output from reviewer
+   * investigations when building guidance prompts.
+   */
+  posture?: string
 }
 
 export interface FileChange {

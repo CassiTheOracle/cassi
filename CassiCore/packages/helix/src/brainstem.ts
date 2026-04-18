@@ -1184,6 +1184,7 @@ ${this.state.currentAxonStep}${trajectorySection}${cognitiveModelSection}${black
 <work_unit>
 ## Work Unit to Analyze
 - ID: ${workUnit.id}
+- Posture: ${workUnit.posture ?? 'unity'}
 - Iteration: ${unityIteration}
 - Timestamp: ${new Date(workUnit.timestamp).toISOString()}
 
