@@ -125,6 +125,20 @@ const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
   'serena_open_dashboard',
   // Playwright browser interaction — require interactive navigation
   'playwright_browser_install',
+  // Plan approval workflow — causes planning trap (submit requires approval before claim)
+  // These tools create a bottleneck: Unity submits steps but can't claim them without approval.
+  // Removed from autonomous postures; direct implementation preferred over plan workflow.
+  'plan_approve_step',
+  'plan_reject_step',
+  'plan_complete_step',
+  'plan_report_progress',
+  // Unused blackboard tools — minimal usage across c-26/27/28, add noise to tool list
+  'bb_scratch_list',
+  'bb_search_report',
+  // TestLock verification — never called (blocked signal_done in c-23).
+  // Yin seals specs but Unity never verifies, permanently blocking completion.
+  // Disabled to remove the blocking path; TestLock remains for sealing only.
+  'verify_test_lock',
 ])
 
 const EXTERNAL_MCP_PREFIXES = ['serena_', 'gitnexus_', 'playwright_browser_', 'duckduckgo_']
