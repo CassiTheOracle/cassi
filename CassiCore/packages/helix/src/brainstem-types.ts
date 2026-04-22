@@ -331,6 +331,21 @@ export interface BrainstemState {
   requiredAction?: 'narrow_scope' | 'switch_strategy' | 'conclude' | 'produce_output'
   /** Axon step at which the required action was set — for staleness detection */
   requiredActionSince?: number
+  /** Auto-generated report sections from work units and signals (Brainstem auto-synthesis) */
+  autoReportSections: AutoReportSection[]
+}
+
+/** Lightweight report section for Brainstem auto-synthesis (no blackboard dependency) */
+export interface AutoReportSection {
+  id: string
+  type: 'finding' | 'concern' | 'decision' | 'action' | 'outcome'
+  title: string
+  content: string
+  author: string
+  posture?: string
+  confidence?: number
+  workUnitId?: string
+  timestamp: number
 }
 
 /**
@@ -364,6 +379,7 @@ export function createInitialBrainstemState(): BrainstemState {
     reviewerFindings: { yang: 0, yin: 0 },
     // WHY: 0 means no limit; Corpus directives may cap this to enforce conclusion
     maxWorkUnits: 0,
+    autoReportSections: [],
   }
 }
 

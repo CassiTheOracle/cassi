@@ -47,6 +47,7 @@ import type {
   ReviewerAction,
   GuidanceProposal,
   GuidanceVote,
+  AutoReportSection,
 } from './brainstem-types.js'
 import {
   DEFAULT_BRAINSTEM_CONFIG,
@@ -1059,6 +1060,10 @@ PROGRESS: <number 0-1>
       if (this.config.postToBlackboard) {
         this.postAnnotationToBlackboard(annotation)
       }
+
+      // Auto-generate report section from work unit (Brainstem auto-synthesis)
+      // Replaces manual report_add_section tool which was hard-cut from focused profiles
+      this.generateAutoReportSection(workUnit, annotation)
 
       // Score context chunks based on annotation quality
       // Pin file-read results from high-scoring iterations, boost recent references
@@ -3043,6 +3048,75 @@ Scoring guidance:
         workUnitId: annotation.workUnitId,
       })
     }
+  }
+
+  /**
+   * Auto-generate a report section from a work unit and its annotation.
+   * Replaces manual report_add_section tool (hard-cut from focused profiles).
+   * Extracts key findings, concerns, and decisions for the final report.
+   */
+  private generateAutoReportSection(
+    workUnit: WorkUnit,
+    annotation: BrainstemAnnotation,
+  ): void {
+    // Only generate sections for meaningful work units (skip low-quality or idle)
+    if (annotation.score < 0.2 && annotation.pattern === 'none') {
+      return
+    }
+
+    const type: AutoReportSection['type'] =
+      annotation.pattern !== 'none'
+        ? 'concern'
+        : annotation.score >= 0.6
+          ? 'finding'
+          : annotation.score >= 0.4
+            ? 'decision'
+            : 'action'
+
+    const title =
+      annotation.pattern !== 'none'
+        ? `${annotation.pattern} detected at step ${annotation.axonStep}`
+        : annotation.score >= 0.6
+          ? `Finding at step ${annotation.axonStep}`
+          : `Action at step ${annotation.axonStep}`
+
+    const content = [
+      workUnit.reasoning.slice(0, 300),
+      annotation.synthesis ? `Synthesis: ${annotation.synthesis.slice(0, 200)}` : '',
+      annotation.guidance ? `Guidance: ${annotation.guidance.slice(0, 200)}` : '',
+      annotation.trainingNote ? `Note: ${annotation.trainingNote.slice(0, 200)}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n')
+
+    const section: AutoReportSection = {
+      id: `auto-report-${this.state.autoReportSections.length + 1}`,
+      type,
+      title,
+      content,
+      author: 'brainstem',
+      posture: workUnit.posture ?? 'unity',
+      confidence: annotation.score,
+      workUnitId: workUnit.id,
+      timestamp: Date.now(),
+    }
+
+    this.state.autoReportSections.push(section)
+
+    this.logger.debug('Auto-report section generated', {
+      sectionId: section.id,
+      type: section.type,
+      workUnitId: workUnit.id,
+      posture: section.posture,
+    })
+  }
+
+  /**
+   * Get the auto-generated report (all sections synthesized by the Brainstem).
+   * Returns lightweight sections sorted by timestamp.
+   */
+  getAutoReport(): AutoReportSection[] {
+    return [...this.state.autoReportSections].sort((a, b) => a.timestamp - b.timestamp)
   }
 
   /**
