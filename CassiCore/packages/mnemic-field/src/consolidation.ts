@@ -17,6 +17,7 @@ export interface ConsolidationResult {
   nucleiDetected: number
   abstractionsCreated: number
   spikesPruned: number
+  forwardTracesPruned: number
   filamentSynapsesCreated: number
   filamentSynapsesDecayed: number
   gradientResult?: BackpropResult
@@ -30,15 +31,20 @@ export interface ConsolidationOptions {
   skipNuclei?: boolean
   skipAbstractions?: boolean
   skipPruning?: boolean
+  skipForwardTracePrune?: boolean
   skipFilamentConsolidation?: boolean
   skipGradients?: boolean
   skipDreaming?: boolean
   pruneKeepCount?: number
+  /** Matches NeuralKindlingConfig.maxTraceAge default (1 hour). Traces older than this are garbage — their gradient feedback will never arrive. */
+  forwardTracePruneAgeMs?: number
   nucleiMinClusterSize?: number
   nucleiEpsilon?: number
   abstractionMinMembers?: number
   abstractionMinPotentiation?: number
 }
+
+const DEFAULT_FORWARD_TRACE_MAX_AGE_MS = 3_600_000
 
 /** Yield control back to the event loop so heartbeats and IPC stay responsive. */
 function yieldToEventLoop(): Promise<void> {
@@ -140,6 +146,13 @@ export class ConsolidationEngine {
       await yieldToEventLoop()
     }
 
+    let forwardTracesPruned = 0
+    if (!options.skipForwardTracePrune) {
+      const maxAgeMs = options.forwardTracePruneAgeMs ?? DEFAULT_FORWARD_TRACE_MAX_AGE_MS
+      forwardTracesPruned = this.cortex.pruneOldTraces(maxAgeMs)
+      await yieldToEventLoop()
+    }
+
     const durationMs = Date.now() - start
     this.logger.info('Consolidation complete', {
       potentiationUpdates,
@@ -147,6 +160,7 @@ export class ConsolidationEngine {
       nucleiDetected,
       abstractionsCreated,
       spikesPruned,
+      forwardTracesPruned,
       filamentSynapsesCreated,
       filamentSynapsesDecayed,
       dreamResult: dreamResult ? {
@@ -163,7 +177,7 @@ export class ConsolidationEngine {
       durationMs,
     })
 
-    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, gradientResult, dreamResult, durationMs }
+    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, forwardTracesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, gradientResult, dreamResult, durationMs }
   }
 
   /**

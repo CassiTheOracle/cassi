@@ -12,6 +12,10 @@ import type {
   ForwardTrace,
 } from './types.js'
 
+const FORWARD_TRACE_AUTO_PRUNE_INTERVAL = 100
+const FORWARD_TRACE_AUTO_MAX_AGE_MS = 3_600_000
+const FORWARD_TRACE_AUTO_MAX_ROWS = 5_000
+
 export function toFloatArray(buf: Buffer | null): Float32Array | null {
   if (!buf || buf.length === 0) return null
   return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
@@ -120,6 +124,7 @@ export class Cortex {
   private db: Database.Database
   private logger: ILogger
   private stmts!: ReturnType<typeof this.prepareStatements>
+  private traceWriteCount = 0
 
   constructor(db: Database.Database, logger: ILogger) {
     this.db = db
@@ -847,6 +852,31 @@ export class Cortex {
       spark_point: trace.sparkPoint,
       luminal_ids: JSON.stringify(trace.luminalIds),
     })
+    this.maybeAutoPruneTraces()
+  }
+
+  private maybeAutoPruneTraces(): void {
+    this.traceWriteCount++
+    if (this.traceWriteCount < FORWARD_TRACE_AUTO_PRUNE_INTERVAL) return
+    this.traceWriteCount = 0
+    try {
+      const byAge = this.pruneOldTraces(FORWARD_TRACE_AUTO_MAX_AGE_MS)
+      const byCap = this.enforceTraceRowCap(FORWARD_TRACE_AUTO_MAX_ROWS)
+      if (byAge + byCap > 0) {
+        this.logger.debug?.('forward_traces auto-pruned', { byAge, byCap })
+      }
+    } catch (err) {
+      this.logger.warn?.('forward_traces auto-prune failed', { error: String(err) })
+    }
+  }
+
+  enforceTraceRowCap(maxRows: number): number {
+    const result = this.db.prepare(
+      `DELETE FROM forward_traces WHERE id IN (
+         SELECT id FROM forward_traces ORDER BY created_at DESC LIMIT -1 OFFSET ?
+       )`
+    ).run(maxRows)
+    return result.changes
   }
 
   getForwardTrace(id: string): ForwardTrace | null {
