@@ -32,6 +32,7 @@ import { handleToolsRoutes } from './admin-api/tools.js'
 import { handleVerificationRoutes } from './admin-api/verification.js'
 import { handleImprovementRoutes } from './admin-api/improvement.js'
 import { handleHelixRoutes } from './admin-api/helix.js'
+import { handleHelixSessionsRoutes } from './admin-api/helix-sessions.js'
 import { handleConstellationRoutes } from './admin-api/constellation.js'
 import { handleMeditationRoutes } from './admin-api/meditation.js'
 import { handleProactiveRoutes } from './admin-api/proactive.js'
@@ -2364,6 +2365,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleHelixRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleHelixSessionsRoutes({ daemon, logger, sendJSON }, req, res, method),
          () => handleConstellationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleMeditationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleProactiveRoutes({ proactive: daemon.intelligence?.proactiveEnricher, logger, sendJSON, parseBody }, req, res, method),
