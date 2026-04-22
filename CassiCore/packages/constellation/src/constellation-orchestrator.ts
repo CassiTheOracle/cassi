@@ -70,6 +70,7 @@ export interface ConstellationOrchestrator {
   setAuditTrail(trail: import('./constellation-audit-trail.js').ConstellationAuditTrail): void
   setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
   setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
+  setGlobalWorkspace(workspace: import('../workspace/index.js').GlobalWorkspace): void
   /** True when any non-meditation constellation is running or launching. */
   hasActiveWork(): boolean
 
@@ -121,6 +122,7 @@ export function createConstellationOrchestrator(
   let auditTrail: import('./constellation-audit-trail.js').ConstellationAuditTrail | undefined
   let reasoningBank: import('../reasoning-bank/index.js').ReasoningBank | undefined
   let mnemicField: import('../mnemic-field/index.js').MnemicField | undefined
+  let globalWorkspace: import('../workspace/index.js').GlobalWorkspace | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -289,7 +291,8 @@ export function createConstellationOrchestrator(
       costEffective: session.costEffective,
       meditationMode: session.meditationMode,
       meditationStyle: (session.meditationStyle as import('./meditation/styles.js').MeditationStyle | null) ?? undefined,
-      mnemicField: session.meditationMode ? mnemicField : undefined,
+      mnemicField: (session.meditationMode || globalWorkspace) ? mnemicField : undefined,
+      globalWorkspace,
       logger,
       eventBus,
       toolExecutor: effectiveExecutor,
@@ -422,7 +425,8 @@ export function createConstellationOrchestrator(
         costEffective,
         meditationMode,
         meditationStyle,
-        mnemicField: meditationMode ? mnemicField : undefined,
+        mnemicField: (meditationMode || globalWorkspace) ? mnemicField : undefined,
+      globalWorkspace,
         logger,
         eventBus,
         toolExecutor: effectiveExecutor,
@@ -595,6 +599,7 @@ export function createConstellationOrchestrator(
     setAuditTrail(trail) { auditTrail = trail },
     setReasoningBank(bank) { reasoningBank = bank },
     setMnemicField(field) { mnemicField = field },
+    setGlobalWorkspace(workspace) { globalWorkspace = workspace },
     generateId() { return constellationStore?.generateConstellationId() },
 
     // External Corpus Protocol

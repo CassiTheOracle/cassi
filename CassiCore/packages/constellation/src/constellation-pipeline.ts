@@ -285,6 +285,15 @@ export interface ConstellationPipelineOpts {
 
   /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
   mnemicField?: import('../mnemic-field/index.js').MnemicField
+
+  /**
+   * Global Workspace — when provided, spawned Helix sessions boot in
+   * brain-integrated mode: PostureModules publish CognitiveSignals into the
+   * shared workspace, the HelixConductor owns journal + snapshots + locus +
+   * quiescence, and (when MnemicField is also wired) milestone engrams flow
+   * through HelixMnemicBridge. When unset, Helix runs its legacy channel path.
+   */
+  globalWorkspace?: import('../workspace/index.js').GlobalWorkspace
 }
 
 // Internal State
@@ -1180,6 +1189,9 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
+      brainIntegration: Boolean(opts.globalWorkspace),
+      globalWorkspace: opts.globalWorkspace,
+      mnemicField: opts.mnemicField,
       // WHY: Flex postures from the template define per-role tool access levels
       // (e.g., 'read-only' for meditation explorers). Without this, the pipeline
       // falls back to UNITY_POSTURE.toolAccess ('full'), ignoring the template.
