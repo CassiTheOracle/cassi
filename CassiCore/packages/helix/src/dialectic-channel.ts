@@ -148,6 +148,7 @@ export interface EditReviewMessage {
 
 
 import type { IEventBus } from '../../../types/interfaces.js'
+import { DialecticReportManager } from './dialectic-report-manager.js'
 
 
 export interface ConvergencePoint {
@@ -239,13 +240,13 @@ export class DialecticChannel {
   /** Event counter since last Executive drain (for pacing boost) */
   private eventsSinceExecutiveDrain = 0
 
-  private report: import('../../../types/flux-team.js').Report | null = null
-  private reportSectionCounter = 0
+  private reportManager = new DialecticReportManager()
 
   constructor(maxMessages = 500, eventBus?: IEventBus, sessionId?: string) {
     this.maxMessages = maxMessages
     this.eventBus = eventBus
     this.sessionId = sessionId
+    this.reportManager = new DialecticReportManager(sessionId)
   }
 
   /** Emit a dialectic event on the bus if available */
@@ -1106,15 +1107,7 @@ export class DialecticChannel {
    * Initialize the report for this session.
    */
   initReport(goal: string): import('../../../types/flux-team.js').Report {
-    const now = Date.now()
-    this.report = {
-      id: `report-${now}`,
-      goal,
-      sections: [],
-      createdAt: now,
-      updatedAt: now,
-    }
-    return this.report
+    return this.reportManager.initReport(goal)
   }
 
   /**
@@ -1133,28 +1126,7 @@ export class DialecticChannel {
     challenges?: string
     supports?: string
   }): import('../../../types/flux-team.js').ReportSection {
-    if (!this.report) this.initReport('')
-    const now = Date.now()
-    const id = `rs-${++this.reportSectionCounter}`
-    const newSection: import('../../../types/flux-team.js').ReportSection = {
-      id,
-      type: section.type,
-      status: section.status ?? 'active',
-      title: section.title,
-      content: section.content,
-      author: section.author,
-      confidence: section.confidence,
-      references: section.references,
-      threadId: section.threadId,
-      respondsTo: section.respondsTo,
-      challenges: section.challenges,
-      supports: section.supports,
-      createdAt: now,
-      updatedAt: now,
-    }
-    this.report!.sections.push(newSection)
-    this.report!.updatedAt = now
-    return newSection
+    return this.reportManager.addSection(section)
   }
 
   /**
@@ -1162,80 +1134,29 @@ export class DialecticChannel {
    * Creates a section with status='draft' linked to the originating message.
    */
   autoDraftFromFinding(posture: Posture, findingId: string, text: string, evidence?: string[]): void {
-    if (!this.report) this.initReport('')
-    this.addReportSection({
-      type: 'finding',
-      status: 'draft',
-      title: text.slice(0, 80),
-      content: text,
-      author: posture,
-      references: evidence,
-      threadId: findingId,
-    })
+    this.reportManager.autoDraftFromFinding(posture, findingId, text, evidence)
   }
 
   autoDraftFromChallenge(posture: Posture, challengeId: string, text: string, targetFindingId: string): void {
-    if (!this.report) this.initReport('')
-    this.addReportSection({
-      type: 'concern',
-      status: 'draft',
-      title: text.slice(0, 80),
-      content: text,
-      author: posture,
-      threadId: targetFindingId,  // Same thread as the finding being challenged
-      challenges: targetFindingId,
-    })
+    this.reportManager.autoDraftFromChallenge(posture, challengeId, text, targetFindingId)
   }
 
   autoDraftFromConcession(posture: Posture, concessionId: string, text: string, challengeId: string): void {
-    if (!this.report) this.initReport('')
-    this.addReportSection({
-      type: 'decision',
-      status: 'draft',
-      title: text.slice(0, 80),
-      content: text,
-      author: posture,
-      threadId: challengeId,
-      respondsTo: challengeId,
-    })
+    this.reportManager.autoDraftFromConcession(posture, concessionId, text, challengeId)
   }
 
   /**
    * Revise an existing section — creates a new active section that supersedes the original.
    */
   reviseReportSection(sectionId: string, content: string, _reason?: string): import('../../../types/flux-team.js').ReportSection | null {
-    if (!this.report) return null
-    const original = this.report.sections.find(s => s.id === sectionId)
-    if (!original) return null
-
-    // Mark original as superseded
-    original.superseded = true
-    original.status = 'superseded'
-    original.updatedAt = Date.now()
-
-    // Create new section that supersedes the original
-    return this.addReportSection({
-      type: original.type,
-      title: original.title,
-      content,
-      author: original.author,
-      confidence: original.confidence,
-      references: original.references,
-      threadId: original.threadId,
-    })
+    return this.reportManager.reviseSection(sectionId, content, _reason)
   }
 
   /**
    * Promote a draft section to active.
    */
   promoteReportSection(sectionId: string): boolean {
-    if (!this.report) return false
-    const section = this.report.sections.find(s => s.id === sectionId && s.status === 'draft')
-    if (!section) return false
-    section.status = 'active'
-    section.updatedAt = Date.now()
-    this.report.updatedAt = Date.now()
-    return true
+    return this.reportManager.promoteSection(sectionId)
   }
 
   /**
@@ -1243,28 +1164,14 @@ export class DialecticChannel {
    * Cascades: removes references to this section from other sections.
    */
   discardReportSection(sectionId: string): boolean {
-    if (!this.report) return false
-    const idx = this.report.sections.findIndex(s => s.id === sectionId && s.status === 'draft')
-    if (idx === -1) return false
-    this.report.sections.splice(idx, 1)
-
-    // Cascading cleanup: remove references to the discarded section
-    for (const s of this.report.sections) {
-      if (s.respondsTo === sectionId) s.respondsTo = undefined
-      if (s.challenges === sectionId) s.challenges = undefined
-      if (s.supports === sectionId) s.supports = undefined
-      if (s.supersedes === sectionId) s.supersedes = undefined
-    }
-
-    this.report.updatedAt = Date.now()
-    return true
+    return this.reportManager.discardSection(sectionId)
   }
 
   /**
    * Get the current report.
    */
   getReport(): import('../../../types/flux-team.js').Report | null {
-    return this.report
+    return this.reportManager.getReport()
   }
 
   /**
@@ -1276,115 +1183,20 @@ export class DialecticChannel {
     filterStatus?: string
     since?: number
   }): import('../../../types/flux-team.js').ReportSection[] {
-    if (!this.report) return []
-    let sections = this.report.sections
-    if (opts?.filterType) sections = sections.filter(s => s.type === opts.filterType)
-    if (opts?.filterAuthor) sections = sections.filter(s => s.author === opts.filterAuthor)
-    if (opts?.filterStatus) sections = sections.filter(s => s.status === opts.filterStatus)
-    if (opts?.since) sections = sections.filter(s => s.updatedAt > opts.since!)
-    return sections
+    return this.reportManager.getView(opts)
   }
 
   /**
    * Calculate quality metrics for the report.
    */
   getReportMetrics(): import('../../../types/flux-team.js').ReportQualityMetrics {
-    if (!this.report) {
-      return {
-        totalSections: 0, activeSections: 0, draftSections: 0,
-        byType: {}, byAuthor: {}, avgConfidence: 0,
-        threadCount: 0, unresolvedConcerns: 0, coverageScore: 0,
-      }
-    }
-
-    const sections = this.report.sections
-    const active = sections.filter(s => s.status === 'active')
-    const drafts = sections.filter(s => s.status === 'draft')
-
-    // Count by type
-    const byType: Partial<Record<string, number>> = {}
-    for (const s of active) {
-      byType[s.type] = (byType[s.type] || 0) + 1
-    }
-
-    // Count by author
-    const byAuthor: Record<string, number> = {}
-    for (const s of active) {
-      byAuthor[s.author] = (byAuthor[s.author] || 0) + 1
-    }
-
-    // Avg confidence
-    const withConf = active.filter(s => s.confidence != null)
-    const avgConfidence = withConf.length > 0
-      ? withConf.reduce((sum, s) => sum + (s.confidence ?? 0), 0) / withConf.length
-      : 0
-
-    // Thread count
-    const threads = new Set(active.filter(s => s.threadId).map(s => s.threadId))
-
-    // Unresolved concerns: concerns without a linked decision
-    const decisionThreads = new Set(
-      active.filter(s => s.type === 'decision').map(s => s.threadId).filter(Boolean)
-    )
-    const unresolvedConcerns = active.filter(
-      s => s.type === 'concern' && (!s.threadId || !decisionThreads.has(s.threadId))
-    ).length
-
-    // Coverage: how many of the 7 section types are represented?
-    const typesUsed = new Set(Object.keys(byType))
-    const idealTypes = ['finding', 'concern', 'recommendation']
-    const coverageScore = idealTypes.filter(t => typesUsed.has(t)).length / idealTypes.length
-
-    return {
-      totalSections: sections.length,
-      activeSections: active.length,
-      draftSections: drafts.length,
-      byType,
-      byAuthor,
-      avgConfidence: Math.round(avgConfidence * 100) / 100,
-      threadCount: threads.size,
-      unresolvedConcerns,
-      coverageScore: Math.round(coverageScore * 100) / 100,
-    }
+    return this.reportManager.getMetrics()
   }
 
   /**
    * Format the report for context injection (e.g., at synthesis time).
    */
   formatReportForContext(): string {
-    if (!this.report || this.report.sections.length === 0) return ''
-
-    const active = this.report.sections.filter(s => s.status === 'active')
-    const drafts = this.report.sections.filter(s => s.status === 'draft')
-
-    if (active.length === 0 && drafts.length === 0) return ''
-
-    const parts: string[] = ['## Incremental Report']
-
-    // Group active sections by type
-    const byType = new Map<string, typeof active>()
-    for (const s of active) {
-      if (!byType.has(s.type)) byType.set(s.type, [])
-      byType.get(s.type)!.push(s)
-    }
-
-    for (const [type, sections] of byType) {
-      parts.push(`\n### ${type.charAt(0).toUpperCase() + type.slice(1)}s`)
-      for (const s of sections) {
-        const conf = s.confidence != null ? ` (confidence: ${s.confidence})` : ''
-        const refs = s.references?.length ? `\n  References: ${s.references.join(', ')}` : ''
-        const thread = s.threadId ? ` [thread: ${s.threadId}]` : ''
-        parts.push(`- **${s.title}** — by ${s.author}${conf}${thread}\n  ${s.content}${refs}`)
-      }
-    }
-
-    if (drafts.length > 0) {
-      parts.push(`\n### Drafts (${drafts.length} pending review)`)
-      for (const s of drafts) {
-        parts.push(`- [DRAFT] **${s.title}** — ${s.type} by ${s.author}`)
-      }
-    }
-
-    return parts.join('\n')
+    return this.reportManager.formatForContext()
   }
 }
