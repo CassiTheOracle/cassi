@@ -2245,16 +2245,18 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     // Add role-specific meta-tools (filtered by tool profile)
     tools.push(...getHelixToolSchemas(role, this.toolProfile))
 
-    // Add blackboard tools
-    tools.push(...this.getBlackboardSchemas())
+    // Add blackboard tools (only when using 'full' profile — hard cut for focused profiles)
+    if (!this.toolProfile || this.toolProfile === 'full') {
+      tools.push(...this.getBlackboardSchemas())
+    }
 
-    // Add plan tools
-    if (this.planHandler) {
+    // Add plan tools (only when using 'full' profile)
+    if (this.planHandler && (!this.toolProfile || this.toolProfile === 'full')) {
       tools.push(...getPlanToolSchemas(role))
     }
 
-    // Add report tools
-    if (REPORT_TOOLS.length > 0) {
+    // Add report tools (only when using 'full' profile)
+    if (REPORT_TOOLS.length > 0 && (!this.toolProfile || this.toolProfile === 'full')) {
       tools.push(...REPORT_TOOLS)
     }
 

@@ -584,9 +584,24 @@ export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin
  * These tools encourage meta-work (research, edit proposals) over direct implementation.
  */
 const PROFILE_EXCLUDED_TOOLS: Record<string, string[]> = {
-  implementation: ['stream_research_finding', 'post_research_signal'],
-  review: ['stream_research_finding', 'post_research_signal', 'propose_edit', 'review_edit_proposal', 'request_investigation'],
-  exploration: ['signal_done', 'signal_conclusion', 'acknowledge_nudge', 'send_nudge', 'propose_edit', 'review_edit_proposal'],
+  // Implementation: action-focused — no research, no blackboard, no report drafting
+  implementation: [
+    'stream_research_finding', 'post_research_signal',
+    'bb_post', 'bb_read', 'bb_read_all', 'bb_get_artifacts', 'bb_search', 'bb_search_channel', 'bb_tool_log', 'bb_scratch_list',
+    'report_add_section', 'report_view', 'report_revise_section', 'report_promote', 'report_discard',
+  ],
+  // Review: audit-focused — no research, no blackboard, no edit proposals
+  review: [
+    'stream_research_finding', 'post_research_signal', 'propose_edit', 'review_edit_proposal', 'request_investigation',
+    'bb_post', 'bb_read', 'bb_read_all', 'bb_get_artifacts', 'bb_search', 'bb_search_channel', 'bb_tool_log', 'bb_scratch_list',
+    'report_add_section', 'report_view', 'report_revise_section', 'report_promote', 'report_discard',
+  ],
+  // Exploration: research-focused — no signal/conclusion, no nudges, no edit proposals
+  exploration: [
+    'signal_done', 'signal_conclusion', 'acknowledge_nudge', 'send_nudge', 'propose_edit', 'review_edit_proposal',
+    'bb_post', 'bb_read', 'bb_read_all', 'bb_get_artifacts', 'bb_search', 'bb_search_channel', 'bb_tool_log', 'bb_scratch_list',
+    'report_add_section', 'report_view', 'report_revise_section', 'report_promote', 'report_discard',
+  ],
 }
 
 export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor', profile?: 'full' | 'implementation' | 'review' | 'exploration'): ToolSchema[] {
