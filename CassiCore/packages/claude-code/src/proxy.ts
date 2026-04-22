@@ -153,6 +153,152 @@ function postSessionMetrics(state: ProxySessionState): void {
   });
 }
 
+export function sanitizeToolPairs(messages: any[]): any[] {
+  if (!Array.isArray(messages) || messages.length === 0) return messages;
+
+  const seenToolUseIds = new Set<string>();
+  const deduped: any[] = [];
+  for (const msg of messages) {
+    if (!msg || !Array.isArray(msg.content)) {
+      deduped.push(msg);
+      continue;
+    }
+    let changed = false;
+    const kept: any[] = [];
+    for (const block of msg.content) {
+      if (block?.type === "tool_use" && typeof block.id === "string") {
+        if (seenToolUseIds.has(block.id)) {
+          changed = true;
+          continue;
+        }
+        seenToolUseIds.add(block.id);
+      }
+      kept.push(block);
+    }
+    if (!changed) {
+      deduped.push(msg);
+    } else if (kept.length > 0) {
+      deduped.push({ ...msg, content: kept });
+    }
+  }
+  messages = deduped;
+
+  const toolUseIds = (msg: any): string[] => {
+    if (!msg || !Array.isArray(msg.content)) return [];
+    return msg.content
+      .filter((b: any) => b?.type === "tool_use" && typeof b.id === "string")
+      .map((b: any) => b.id);
+  };
+  const toolResultIds = (msg: any): Set<string> => {
+    const ids = new Set<string>();
+    if (!msg || !Array.isArray(msg.content)) return ids;
+    for (const b of msg.content) {
+      if (b?.type === "tool_result" && typeof b.tool_use_id === "string") {
+        ids.add(b.tool_use_id);
+      }
+    }
+    return ids;
+  };
+  const stripToolUse = (msg: any): any => {
+    if (!msg || !Array.isArray(msg.content)) return msg;
+    const kept = msg.content.filter((b: any) => b?.type !== "tool_use");
+    if (kept.length === 0) return null;
+    return { ...msg, content: kept };
+  };
+  const stripToolResult = (msg: any): any => {
+    if (!msg || !Array.isArray(msg.content)) return msg;
+    const kept = msg.content.filter((b: any) => b?.type !== "tool_result");
+    if (kept.length === 0) return null;
+    return { ...msg, content: kept };
+  };
+  /**
+   * Convert orphaned tool_result blocks to plain text so the user message
+   * is not dropped entirely. After compaction the matching tool_use may have
+   * been removed, but the result content is still useful context.
+   */
+  const orphanToolResultToText = (msg: any, orphanIds: string[]): any => {
+    if (!msg || !Array.isArray(msg.content)) return msg;
+    return {
+      ...msg,
+      content: msg.content.map((b: any) => {
+        if (b?.type === "tool_result" && orphanIds.includes(b.tool_use_id)) {
+          const text = typeof b.content === "string" ? b.content : JSON.stringify(b.content);
+          return {
+            type: "text",
+            text: `[Orphaned tool result for ${b.tool_use_id}]:\n${text}`,
+          };
+        }
+        return b;
+      }),
+    };
+  };
+
+  const out: any[] = [];
+  for (let i = 0; i < messages.length; i++) {
+    let msg = messages[i];
+    const uses = toolUseIds(msg);
+    if (uses.length > 0) {
+      const next = messages[i + 1];
+      const results = toolResultIds(next);
+      const orphans = uses.filter((id) => !results.has(id));
+      if (orphans.length === uses.length) {
+        const stripped = stripToolUse(msg);
+        if (!stripped) continue;
+        msg = stripped;
+      } else if (orphans.length > 0) {
+        msg = {
+          ...msg,
+          content: msg.content.filter(
+            (b: any) => b?.type !== "tool_use" || !orphans.includes(b.id),
+          ),
+        };
+      }
+    }
+    const results = toolResultIds(msg);
+    if (results.size > 0) {
+      const prevUses = new Set(toolUseIds(out[out.length - 1]));
+      const orphanResults = [...results].filter((id) => !prevUses.has(id));
+      if (orphanResults.length === results.size) {
+        const stripped = stripToolResult(msg);
+        if (!stripped) {
+          // Don't drop the user message — convert orphaned tool_results to text
+          msg = orphanToolResultToText(msg, orphanResults);
+        } else {
+          msg = stripped;
+        }
+      } else if (orphanResults.length > 0) {
+        msg = {
+          ...msg,
+          content: msg.content.map((b: any) => {
+            if (b?.type === "tool_result" && orphanResults.includes(b.tool_use_id)) {
+              const text = typeof b.content === "string" ? b.content : JSON.stringify(b.content);
+              return {
+                type: "text",
+                text: `[Orphaned tool result for ${b.tool_use_id}]:\n${text}`,
+              };
+            }
+            return b;
+          }),
+        };
+      }
+    }
+    if (out.length > 0 && out[out.length - 1].role === msg.role) {
+      const prev = out[out.length - 1];
+      const bothStrings = typeof prev.content === "string" && typeof msg.content === "string";
+      if (bothStrings) {
+        out[out.length - 1] = { ...prev, content: `${prev.content}\n\n${msg.content}` };
+      } else {
+        const prevContent = Array.isArray(prev.content) ? prev.content : [{ type: "text", text: String(prev.content ?? "") }];
+        const curContent = Array.isArray(msg.content) ? msg.content : [{ type: "text", text: String(msg.content ?? "") }];
+        out[out.length - 1] = { ...prev, content: [...prevContent, ...curContent] };
+      }
+      continue;
+    }
+    out.push(msg);
+  }
+  return out;
+}
+
 async function proxyRequest(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -184,14 +330,14 @@ async function proxyRequest(
       }
 
       if (Array.isArray(body.messages)) {
+        let nextMessages = body.messages;
         try {
           const curated = await bridge.curate(state.ccSessionId, body.messages);
-          if (curated?.messages) {
-            body.messages = curated.messages;
-          }
-        } catch {
-          // Curation failure — proceed with original messages
+          if (curated?.messages) nextMessages = curated.messages;
+        } catch (err) {
+          console.error("[proxy] curate failed:", String(err));
         }
+        body.messages = sanitizeToolPairs(nextMessages);
       }
 
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
@@ -315,20 +461,30 @@ const server = http.createServer(async (req, res) => {
   await proxyRequest(req, res, rawBody);
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`CassiCore Anthropic proxy listening on http://127.0.0.1:${PORT}`);
-  console.log(`Upstream: ${UPSTREAM_BASE}`);
-  bridge.available().then(up => {
-    console.log(`CassiCore daemon: ${up ? "connected" : "unavailable (will retry)"}`);
+// Entry-point guard — import as a module (for tests) without starting the server.
+const isMain = (() => {
+  const arg = process.argv[1];
+  if (!arg) return false;
+  const url = new URL(import.meta.url);
+  return url.pathname === arg || url.pathname.endsWith("/" + arg.split("/").pop());
+})();
+
+if (isMain) {
+  server.listen(PORT, "127.0.0.1", () => {
+    console.log(`CassiCore Anthropic proxy listening on http://127.0.0.1:${PORT}`);
+    console.log(`Upstream: ${UPSTREAM_BASE}`);
+    bridge.available().then(up => {
+      console.log(`CassiCore daemon: ${up ? "connected" : "unavailable (will retry)"}`);
+    });
   });
-});
 
-setInterval(() => {
-  const cutoff = Date.now() - 4 * 60 * 60_000;
-  for (const [id, state] of sessions) {
-    if (state.createdAt < cutoff && state.requestCount === 0) sessions.delete(id);
-  }
-}, 30 * 60_000);
+  setInterval(() => {
+    const cutoff = Date.now() - 4 * 60 * 60_000;
+    for (const [id, state] of sessions) {
+      if (state.createdAt < cutoff && state.requestCount === 0) sessions.delete(id);
+    }
+  }, 30 * 60_000);
 
-process.on("SIGINT", () => { server.close(); process.exit(0); });
-process.on("SIGTERM", () => { server.close(); process.exit(0); });
+  process.on("SIGINT", () => { server.close(); process.exit(0); });
+  process.on("SIGTERM", () => { server.close(); process.exit(0); });
+}

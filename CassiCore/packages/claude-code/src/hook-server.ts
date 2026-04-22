@@ -37,6 +37,7 @@ import {
 } from "./context-builder.js";
 
 const PORT = parseInt(process.env.CASSICORE_HOOK_PORT ?? "7434", 10);
+const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 // ── Hook Input Types ────────────────────────────────────────────────────────
 
@@ -442,9 +443,24 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Parse body
   const chunks: Buffer[] = [];
-  for await (const chunk of req) chunks.push(chunk as Buffer);
+  let total = 0;
+  try {
+    for await (const chunk of req) {
+      const buf = chunk as Buffer;
+      total += buf.length;
+      if (total > MAX_BODY_BYTES) {
+        res.writeHead(413, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "body too large" }));
+        req.destroy();
+        return;
+      }
+      chunks.push(buf);
+    }
+  } catch {
+    return;
+  }
+
   let input: HookInput;
   try {
     input = JSON.parse(Buffer.concat(chunks).toString());
