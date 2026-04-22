@@ -1200,6 +1200,13 @@ export async function runConstellationPipeline(
         yang: (postures.find(p => p.energy === 'yang') ?? postures[1])?.toolAccess,
         yin: (postures.find(p => p.energy === 'yin') ?? postures[2])?.toolAccess,
       },
+      // Per-posture tool profile — selects which subset of tools are exposed.
+      // Default: Unity gets 'implementation', reviewers get 'review'.
+      toolProfiles: {
+        unity: postures.find(p => p.energy === 'unity')?.toolProfile ?? 'implementation',
+        yang: postures.find(p => p.energy === 'yang')?.toolProfile ?? 'review',
+        yin: postures.find(p => p.energy === 'yin')?.toolProfile ?? 'review',
+      },
       // WHY: When running in a worktree, all tool execution uses the branch's working directory
       workingDir: branchWorkingDir,
       // WHY: Pass tool filter from Constellation config to restrict tools for this branch

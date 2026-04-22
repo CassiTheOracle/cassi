@@ -115,6 +115,17 @@ export interface FlexPosture {
   /** Temperature override. Default: 0.7 for yang/unity, 0.35 for yin. */
   temperature?: number
 
+  /**
+   * Tool profile — selects which subset of tools are exposed to this posture.
+   * When absent, defaults to 'full' (all tools) for back-compat.
+   *
+   *   - 'full': All tools (legacy behavior)
+   *   - 'implementation': Action-focused (~15 tools) — code, file, bash, signal_done
+   *   - 'review': Audit-focused (~12 tools) — read-only + dialectic + signal_conclusion
+   *   - 'exploration': Research-focused (~8 tools) — file, web, collect_thoughts
+   */
+  toolProfile?: import('../helix/helix-pipeline.js').HelixToolProfile
+
   /** Can this posture spawn new child Helix instances? */
   canSpawnHelix?: boolean
 
