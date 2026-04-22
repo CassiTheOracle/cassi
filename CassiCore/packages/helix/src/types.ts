@@ -18,10 +18,29 @@ import type { ConvergencePoint, UnresolvedTension } from './dialectic-channel.js
 import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from './work-types.js'
 import type { UnityStatusThresholds } from './work-stream.js'
+import type { GlobalWorkspace } from '../workspace/index.js'
 
 
 /** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers). Mentor deprecated in favor of Brainstem. */
 export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'>
+
+
+/** Unique identifier for a posture instance (e.g. "helix-unity-a3f"). */
+export type PostureId = string
+
+
+/**
+ * Preset definition for a Helix session — seeds the initial posture roster and
+ * toggles brain-integration features. Full topology lives in the HelixConductor
+ * (Phase B). For Phase A the flag on HelixProjectOpts is sufficient; this
+ * type is the forward-compatible shape presets will take.
+ */
+export interface HelixPreset {
+  name: string
+  brainIntegration: boolean
+  reviewerMode?: 'passive' | 'active'
+  postures?: Array<{ role: HelixRole; roleId?: string; priority?: number }>
+}
 
 
 export interface HelixProjectOpts {
@@ -62,6 +81,23 @@ export interface HelixProjectOpts {
    * When set, bypasses the ModelDirective and fallback chain.
    */
   modelOverride?: { provider: string; model: string }
+  /**
+   * Phase A feature flag. When true, each posture is wrapped in a
+   * PostureModule and publishes CognitiveSignals into the GlobalWorkspace
+   * alongside its existing WorkStream / DialecticChannel writes (dual-publish).
+   * Requires `globalWorkspace` to be set; no-op otherwise. Default false.
+   */
+  brainIntegration?: boolean
+  /**
+   * The brain's GlobalWorkspace instance. When absent, brain-integration
+   * features are disabled silently.
+   */
+  globalWorkspace?: GlobalWorkspace
+  /**
+   * Optional telemetry sink for session + signal metrics and spans.
+   * Created fresh if brainIntegration is on and this is unset.
+   */
+  telemetry?: import('./helix-telemetry.js').HelixTelemetry
 }
 
 
@@ -83,6 +119,12 @@ export interface HelixPosture {
   slotName: string
   toolAccess: 'read-only' | 'read-only+memory' | 'full'
   maxIterations: number
+  /**
+   * Pineal facet scope for system-prompt assembly + post-turn reinforcement.
+   * Format `helix:{role}` when brainIntegration is on. When absent, the
+   * posture uses universal facets only. See `pineal/injection.ts`.
+   */
+  pinealScope?: string
 }
 
 

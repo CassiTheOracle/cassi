@@ -29,6 +29,7 @@ export const UNITY_POSTURE: HelixPosture = {
   toolAccess: 'full',
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('unity', 'helix'),
+  pinealScope: 'helix:unity',
 }
 
 
@@ -39,6 +40,7 @@ export const YANG_POSTURE: HelixPosture = {
   toolAccess: 'read-only',
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('yang', 'helix'),
+  pinealScope: 'helix:yang',
 }
 
 
@@ -49,6 +51,7 @@ export const YIN_POSTURE: HelixPosture = {
   toolAccess: 'read-only',
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('yin', 'helix'),
+  pinealScope: 'helix:yin',
 }
 
 
