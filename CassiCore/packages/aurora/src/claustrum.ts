@@ -43,6 +43,7 @@ export class Claustrum {
     foci: string[],
     cortex: Cortex,
     modelProvider: ModelKnowledgeProvider | null,
+    knowledgeProvider: ModelKnowledgeProvider | null,
     portalBridge: PortalBridge | null,
     recentDiscoveries: DreamDiscovery[] = [],
   ): UnifiedGraph {
@@ -55,6 +56,11 @@ export class Claustrum {
     const memorySeeds = this.seedFromMemory(foci, cortex, nodes)
     this.expandMemoryNeighborhood(memorySeeds, cortex, nodes, edges, reverseEdges)
 
+    if (knowledgeProvider) {
+      const knowledgeSeeds = this.seedFromKnowledge(foci, knowledgeProvider, nodes)
+      this.expandKnowledgeNeighborhood(knowledgeSeeds, knowledgeProvider, nodes, edges, reverseEdges)
+    }
+
     if (modelProvider) {
       this.seedFromModel(foci, modelProvider, nodes, edges, reverseEdges)
     }
@@ -66,7 +72,7 @@ export class Claustrum {
     this.resolveOverlappingEntities(nodes)
     this.computePageRank(nodes, edges, reverseEdges)
 
-    const sourceBreakdown = { model: 0, memory: 0, both: 0 }
+    const sourceBreakdown = { model: 0, memory: 0, knowledge: 0, both: 0 }
     for (const node of nodes.values()) {
       sourceBreakdown[node.source]++
     }
