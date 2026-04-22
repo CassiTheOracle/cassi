@@ -128,7 +128,7 @@ export interface CurationConfig {
 }
 
 export const DEFAULT_CURATION_CONFIG: CurationConfig = {
-  charBudget: 120_000,
+  charBudget: 80_000,
   recentWindowSize: 6,
   toolResultMaxChars: 2000,
   ignitionThreshold: 0.20,
@@ -161,13 +161,58 @@ export interface CurationResult {
   meta: CurationMeta
 }
 
+/**
+ * A topic cluster detected by sliding-window term-overlap analysis.
+ * Topic boundaries are inferred from sharp Jaccard drops at user-turn boundaries,
+ * giving us a rough segmentation of the conversation into distinct work phases.
+ */
+export interface TopicCluster {
+  /** Unique ID within the session (e.g. "topic-0", "topic-1") */
+  id: string
+  /** Human-readable label — LLM-generated async; undefined until populated */
+  label?: string
+  /** Message indices (into the curated message array) belonging to this cluster */
+  messageIndices: number[]
+  /** Union of extracted terms across all messages in this cluster */
+  termSet: Set<string>
+  /** One-to-two sentence summary — LLM-generated async; undefined until populated */
+  summary?: string
+  /** True while the async LLM label/summary call is in-flight */
+  asyncPending: boolean
+}
+
+/**
+ * A completed topic that has been summarized and moved to the archive.
+ * Summaries are used to enrich gap descriptions when a pruned segment
+ * spans a finished topic.
+ */
+export interface TopicArchive {
+  id: string
+  /** Short human-readable label (first sentence of summary, ≤50 chars) */
+  label: string
+  /** One-to-two sentence LLM summary of what happened in this topic */
+  summary: string
+  /** The message indices (from the time of archiving) that were in this topic */
+  originalIndices: number[]
+  /** Unix ms timestamp when the archive entry was written */
+  archivedAt: number
+  /** Top N key terms extracted from this topic's messages */
+  keyTerms: string[]
+}
+
 export interface CurationSession {
   sessionId: string
-  fileReadMap: Map<string, number>
   /** tool_use_id → tool name, accumulated across the session */
   toolUseMap: Map<string, string>
   lastCuratedAt: number
   totalCurations: number
+  /** Topic clusters detected in the most recent curate() call */
+  topicClusters: TopicCluster[]
+  /**
+   * Completed topic archive. Entries are added asynchronously when a
+   * LLM topic-archive call resolves. Used to enrich gap descriptions.
+   */
+  topicArchive: TopicArchive[]
 }
 
 

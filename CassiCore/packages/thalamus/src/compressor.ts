@@ -5,14 +5,13 @@ import { classifyTool } from './classifier.js'
 interface CompressionResult {
   messages: any[]
   compressed: number
-  deduped: number
 }
 
 type ToolStrategy = (content: string, maxChars: number) => string
 
-const READ_PATTERN = /^(Read|mcp__\w+__read)$/
-const SEARCH_PATTERN = /^(Grep|Glob|mcp__\w+__search|mcp__\w+__file)$/
-const BASH_PATTERN = /^(Bash|mcp__\w+__bash)$/
+const READ_PATTERN = /^(Read|cassi_read|cassi_file.*read|mcp__\w+__read)$/i
+const SEARCH_PATTERN = /^(Grep|Glob|mcp__\w+__search|mcp__\w+__file)$/i
+const BASH_PATTERN = /^(Bash|cassi_bash|mcp__\w+__bash)$/i
 
 function compressRead(content: string, maxChars: number): string {
   const lines = content.split('\n')
@@ -98,20 +97,24 @@ export class ToolResultCompressor {
     messages: any[],
     recentWindowStart: number,
     config: CompressionConfig,
-    fileReadMap: Map<string, number>,
+    protectedIndices: Set<number> = new Set(),
   ): CompressionResult {
     const toolUseMap = this.buildToolUseMap(messages)
 
-    this.updateFileReadMap(messages, toolUseMap, fileReadMap)
-
     const result: any[] = []
     let compressed = 0
-    let deduped = 0
 
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i]
 
+      // Never compress messages in the protected recent window
       if (i >= recentWindowStart) {
+        result.push(msg)
+        continue
+      }
+
+      // Never compress messages explicitly marked as protected (e.g. latest reads)
+      if (protectedIndices.has(i)) {
         result.push(msg)
         continue
       }
@@ -129,13 +132,6 @@ export class ToolResultCompressor {
         const content = typeof block.content === 'string' ? block.content : ''
         if (!content) return block
 
-        const dedupResult = this.checkDedup(block, toolName, i, fileReadMap)
-        if (dedupResult !== null) {
-          modified = true
-          deduped++
-          return { ...block, content: dedupResult }
-        }
-
         if (content.length <= config.toolResultMaxChars) return block
 
         // Use _thalamus annotation tool class if available
@@ -150,7 +146,7 @@ export class ToolResultCompressor {
       result.push(modified ? { ...msg, content: newContent } : msg)
     }
 
-    return { messages: result, compressed, deduped }
+    return { messages: result, compressed }
   }
 
   private buildToolUseMap(messages: any[]): Map<string, string> {
@@ -164,50 +160,5 @@ export class ToolResultCompressor {
       }
     }
     return map
-  }
-
-  private updateFileReadMap(
-    messages: any[],
-    toolUseMap: Map<string, string>,
-    fileReadMap: Map<string, number>,
-  ): void {
-    for (let i = 0; i < messages.length; i++) {
-      const msg = messages[i]
-      if (!Array.isArray(msg?.content)) continue
-      for (const block of msg.content) {
-        if (block?.type === 'tool_use') {
-          const toolName = block.name ?? ''
-          if (READ_PATTERN.test(toolName)) {
-            const filePath = block.input?.filePath ?? block.input?.path ?? block.input?.file_path ?? ''
-            if (filePath) {
-              fileReadMap.set(filePath, i)
-            }
-          }
-        }
-      }
-    }
-  }
-
-  private checkDedup(
-    block: any,
-    toolName: string,
-    currentIndex: number,
-    fileReadMap: Map<string, number>,
-  ): string | null {
-    if (!READ_PATTERN.test(toolName)) return null
-
-    const content = typeof block.content === 'string' ? block.content : ''
-    const pathMatch = content.match(/^\s*\d+\t/) ? null :
-      content.match(/^(?:File|Reading|Content of)\s+[`"]?([^\s`"]+)/i)
-
-    if (!pathMatch) return null
-
-    const filePath = pathMatch[1]
-    const latestIndex = fileReadMap.get(filePath)
-    if (latestIndex !== undefined && latestIndex > currentIndex) {
-      return `[Earlier read of ${filePath} — see message ${latestIndex} for latest]`
-    }
-
-    return null
   }
 }

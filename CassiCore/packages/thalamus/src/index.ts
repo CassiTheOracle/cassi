@@ -25,8 +25,16 @@ import type {
   SlotContext,
   ThalamusAnnotation,
   MessageSlotType,
+  TopicCluster,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS } from './types.js'
+
+/** A function that acquires a model handle for background LLM calls. */
+type HandleFactory = (config: { tier: string; purpose: string; sessionId: string }) => Promise<{
+  complete(messages: Array<{ role: string; content: string }>, opts: Record<string, unknown>): Promise<{ response: string }>
+  release(): void
+  model: string
+}>
 
 const SESSION_EVICT_MS = 2 * 60 * 60 * 1000
 
@@ -77,6 +85,8 @@ export class ThalamusModule extends BaseCognitiveModule {
   private aurora: Aurora | null = null
   private pinealAssembler: PinealAssembler | null = null
   private lastPinealFacetIds: string[] = []
+  /** Factory for background LLM calls (topic archiving, gap summaries) */
+  private handleFactory: HandleFactory | null = null
 
   setLocusBridge(lb: LocusBridge): void { this.locusBridge = lb }
   setCortex(c: CorticalField): void { this.cortex = c }
@@ -85,6 +95,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   setPinealFacets(fm: FacetManager): void { this.pinealFacets = fm }
   setAurora(a: Aurora): void { this.aurora = a }
   setPinealAssembler(pa: PinealAssembler): void { this.pinealAssembler = pa }
+  setHandleFactory(fn: HandleFactory): void { this.handleFactory = fn }
 
   async init(): Promise<void> {
     await super.init()
@@ -214,9 +225,15 @@ export class ThalamusModule extends BaseCognitiveModule {
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
 
+    // Identify latest reads per file — non-latest reads are suppressed during scoring
+    // so they get dropped entirely instead of being summarized.
+    // Detect topic clusters before read suppression so we can scope dedup per-topic
+    const topicClusters = this.detectTopicClusters(sessionId, annotated)
+    const { nonLatestToolUseIds } = this.computeReadSuppression(annotated, topicClusters)
+
     // Phase 1: Slot-aware compression — uses _thalamus.tool.class for strategy selection
-    const { messages: compressed, compressed: compressedCount, deduped: dedupedCount } =
-      this.compressor.compress(annotated, annotated.length, { toolResultMaxChars: cfg.toolResultMaxChars }, session.fileReadMap)
+    const { messages: compressed, compressed: compressedCount } =
+      this.compressor.compress(annotated, annotated.length, { toolResultMaxChars: cfg.toolResultMaxChars })
 
     // Phase 2: Enrich with temporal context for scoring
     const temporal = this.getTemporalRegistry(sessionId)
@@ -248,7 +265,11 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
-    const assembled = this.assembleByThreshold(compressed, scored, protectedStart, cfg)
+    // Phase 3b: Zero out scores for redundant (non-latest) file reads.
+    // Past reads are dropped entirely during assembly instead of being summarized.
+    const dedupedCount = this.suppressRedundantReads(scored, compressed, nonLatestToolUseIds)
+
+    const assembled = this.assembleByThreshold(compressed, scored, protectedStart, cfg, topicClusters, sessionId)
 
     const curatedChars = assembled.messages.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
@@ -756,6 +777,8 @@ export class ThalamusModule extends BaseCognitiveModule {
     scored: ScoredMessage[],
     protectedStart: number,
     config: CurationConfig,
+    topicClusters?: TopicCluster[],
+    sessionId?: string,
   ): { messages: any[]; gapNotes: number } {
     let threshold = config.ignitionThreshold
 
@@ -809,8 +832,46 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
-    this.ensureToolPairs(messages, included, protectedStart)
-    this.ensureAlternation(messages, included, protectedStart)
+    // Iterate both repair passes to fixpoint. Each pass can create work for
+    // the other: ensureAlternation may bridge a gap with an assistant tool_use
+    // whose tool_result isn't included (alternation fixed, pairing broken);
+    // ensureToolPairs may delete an orphan pair member (pairing fixed,
+    // alternation broken). Cap at 5 iterations — converges in ≤2 in practice.
+    for (let pass = 0; pass < 5; pass++) {
+      const before = Array.from(included).sort((a, b) => a - b).join(',')
+      this.ensureToolPairs(messages, included, protectedStart)
+      this.ensureAlternation(messages, included, protectedStart)
+      const after = Array.from(included).sort((a, b) => a - b).join(',')
+      if (before === after) break
+    }
+
+    // Diversity pass: ensure at least one representative per completed topic cluster.
+    // This prevents older work phases from being completely erased when their messages
+    // all score below the ignition threshold.
+    if (topicClusters && topicClusters.length > 1) {
+      const scoredByIndex = new Map(scored.map(s => [s.messageIndex, s]))
+      // Skip the last (active) cluster — it's covered by protectedStart
+      for (let ci = 0; ci < topicClusters.length - 1; ci++) {
+        const cluster = topicClusters[ci]
+        const clusterOldIndices = cluster.messageIndices.filter(idx => idx < protectedStart)
+        if (clusterOldIndices.length === 0) continue
+        const hasRepresentative = clusterOldIndices.some(idx => included.has(idx))
+        if (!hasRepresentative) {
+          // Pick the highest-scored message in this cluster that fits in budget
+          const candidates2 = clusterOldIndices
+            .map(idx => scoredByIndex.get(idx))
+            .filter((s): s is ScoredMessage => s !== undefined && s.luminance.composite > 0)
+            .sort((a, b) => b.luminance.composite - a.luminance.composite)
+          for (const s of candidates2) {
+            if (s.estimatedChars <= remainingBudget - usedChars) {
+              included.add(s.messageIndex)
+              usedChars += s.estimatedChars
+              break
+            }
+          }
+        }
+      }
+    }
 
     // Merge included older messages with protected recent messages, in order
     const allIndices = [
@@ -829,8 +890,8 @@ export class ThalamusModule extends BaseCognitiveModule {
         const gapSize = idx - prevIdx - 1
         const gapMsg = messages[idx]
         if (gapMsg && Array.isArray(gapMsg.content)) {
-          // Time-aware gap note using temporal registry
-          const gapDesc = this.buildGapDescription(gapSize, prevIdx, idx, messages)
+          // Time-aware gap note (may include topic archive summary)
+          const gapDesc = this.buildGapDescription(gapSize, prevIdx, idx, messages, sessionId)
           const noted = [
             { type: 'text', text: `[${gapDesc}]` },
             ...gapMsg.content,
@@ -860,8 +921,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       if (messages[curr]?.role === messages[next]?.role) {
         for (let bridge = curr + 1; bridge < next; bridge++) {
           if (messages[bridge]?.role !== messages[curr]?.role && bridge < protectedStart) {
-            included.add(bridge)
-            break
+            if (this.tryAddBridge(messages, included, bridge, protectedStart)) break
           }
         }
       }
@@ -873,12 +933,47 @@ export class ThalamusModule extends BaseCognitiveModule {
       if (firstRecent < messages.length && messages[lastOlder]?.role === messages[firstRecent]?.role) {
         for (let bridge = lastOlder + 1; bridge < firstRecent; bridge++) {
           if (messages[bridge]?.role !== messages[lastOlder]?.role) {
-            included.add(bridge)
-            break
+            if (this.tryAddBridge(messages, included, bridge, protectedStart)) break
           }
         }
       }
     }
+  }
+
+  private tryAddBridge(
+    messages: any[],
+    included: Set<number>,
+    bridge: number,
+    protectedStart: number,
+  ): boolean {
+    const msg = messages[bridge]
+    if (!msg) return false
+    const content = Array.isArray(msg.content) ? msg.content : null
+    const hasToolUse = !!content?.some((c: any) => c?.type === 'tool_use')
+    const hasToolResult = !!content?.some((c: any) => c?.type === 'tool_result')
+
+    if (hasToolUse) {
+      const partnerIdx = bridge + 1
+      if (partnerIdx >= messages.length) return false
+      const partner = messages[partnerIdx]
+      const partnerOk = Array.isArray(partner?.content) &&
+        partner.content.some((c: any) => c?.type === 'tool_result')
+      if (!partnerOk) return false
+      if (partnerIdx < protectedStart) included.add(partnerIdx)
+    }
+
+    if (hasToolResult) {
+      const partnerIdx = bridge - 1
+      if (partnerIdx < 0) return false
+      const partner = messages[partnerIdx]
+      const partnerOk = Array.isArray(partner?.content) &&
+        partner.content.some((c: any) => c?.type === 'tool_use')
+      if (!partnerOk) return false
+      if (partnerIdx < protectedStart) included.add(partnerIdx)
+    }
+
+    included.add(bridge)
+    return true
   }
 
   private ensureToolPairs(
@@ -886,42 +981,96 @@ export class ThalamusModule extends BaseCognitiveModule {
     included: Set<number>,
     protectedStart: number,
   ): void {
-    const hasToolUse = (msg: any): boolean =>
-      Array.isArray(msg?.content) && msg.content.some((c: any) => c?.type === 'tool_use')
-    const hasToolResult = (msg: any): boolean =>
-      Array.isArray(msg?.content) && msg.content.some((c: any) => c?.type === 'tool_result')
+    // Build bidirectional maps by tool_use_id so we can find the *actual*
+    // partner even when compaction (or summary injection) makes pairs
+    // non-consecutive.
+    const toolUseIdxById = new Map<string, number>()
+    const toolResultIdxById = new Map<string, number>()
 
-    for (const idx of Array.from(included)) {
-      if (idx >= protectedStart) continue
-      const msg = messages[idx]
-
-      if (hasToolUse(msg) && idx + 1 < protectedStart) {
-        if (!included.has(idx + 1)) {
-          if (hasToolResult(messages[idx + 1])) {
-            included.add(idx + 1)
-          } else {
-            included.delete(idx)
-          }
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (!Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_use' && typeof block.id === 'string') {
+          toolUseIdxById.set(block.id, i)
         }
-      }
-
-      if (hasToolResult(msg) && idx - 1 >= 0) {
-        if (!included.has(idx - 1)) {
-          if (hasToolUse(messages[idx - 1])) {
-            included.add(idx - 1)
-          } else {
-            included.delete(idx)
-          }
+        if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
+          toolResultIdxById.set(block.tool_use_id, i)
         }
       }
     }
 
-    // Protected boundary: first protected message may be a tool_result
-    // whose tool_use companion is in the non-protected region and was dropped
+    const idsInMessage = (msg: any, type: 'tool_use' | 'tool_result'): string[] => {
+      if (!Array.isArray(msg?.content)) return []
+      return msg.content
+        .filter((c: any) => c?.type === type && typeof (type === 'tool_use' ? c.id : c.tool_use_id) === 'string')
+        .map((c: any) => (type === 'tool_use' ? c.id : c.tool_use_id))
+    }
+
+    // Resolve tool_use messages: every tool_use must have its matching tool_result
+    for (const idx of Array.from(included)) {
+      if (idx >= protectedStart) continue
+      const msg = messages[idx]
+      const useIds = idsInMessage(msg, 'tool_use')
+      if (useIds.length === 0) continue
+
+      let allPaired = true
+      for (const id of useIds) {
+        const resultIdx = toolResultIdxById.get(id)
+        if (resultIdx === undefined) {
+          allPaired = false
+          break
+        }
+        if (resultIdx < protectedStart && !included.has(resultIdx)) {
+          included.add(resultIdx)
+        }
+      }
+      if (!allPaired) {
+        included.delete(idx)
+      }
+    }
+
+    // Resolve tool_result messages: every tool_result must have its matching tool_use
+    for (const idx of Array.from(included)) {
+      if (idx >= protectedStart) continue
+      const msg = messages[idx]
+      const resultIds = idsInMessage(msg, 'tool_result')
+      if (resultIds.length === 0) continue
+
+      let allPaired = true
+      for (const id of resultIds) {
+        const useIdx = toolUseIdxById.get(id)
+        if (useIdx === undefined) {
+          allPaired = false
+          break
+        }
+        if (useIdx < protectedStart && !included.has(useIdx)) {
+          included.add(useIdx)
+        }
+      }
+      if (!allPaired) {
+        included.delete(idx)
+      }
+    }
+
+    // Protected boundary: fix pairs that cross the protected/candidate line.
+    // Case A: tool_result in protected region, tool_use in candidate region
     if (protectedStart > 0 && protectedStart < messages.length) {
-      if (hasToolResult(messages[protectedStart]) && !included.has(protectedStart - 1)) {
-        if (hasToolUse(messages[protectedStart - 1])) {
-          included.add(protectedStart - 1)
+      const msg = messages[protectedStart]
+      for (const id of idsInMessage(msg, 'tool_result')) {
+        const useIdx = toolUseIdxById.get(id)
+        if (useIdx !== undefined && useIdx < protectedStart && !included.has(useIdx)) {
+          included.add(useIdx)
+        }
+      }
+    }
+    // Case B: tool_use in protected region, tool_result in candidate region
+    if (protectedStart > 0 && protectedStart < messages.length) {
+      const msg = messages[protectedStart]
+      for (const id of idsInMessage(msg, 'tool_use')) {
+        const resultIdx = toolResultIdxById.get(id)
+        if (resultIdx !== undefined && resultIdx < protectedStart && !included.has(resultIdx)) {
+          included.add(resultIdx)
         }
       }
     }
@@ -951,14 +1100,290 @@ export class ThalamusModule extends BaseCognitiveModule {
     if (!session) {
       session = {
         sessionId,
-        fileReadMap: new Map(),
         toolUseMap: new Map(),
         lastCuratedAt: Date.now(),
         totalCurations: 0,
+        topicClusters: [],
+        topicArchive: [],
       }
       this.sessions.set(sessionId, session)
     }
     return session
+  }
+
+  /**
+   * Compute which file-read tool results are the latest for each file.
+   * Returns:
+   *   - latestResultIndices: indices of tool_result messages that are the latest
+   *     read of their file (protected from compression)
+   *   - nonLatestToolUseIds: tool_use_ids whose results are NOT the latest read
+   *     of their file (to be suppressed during scoring)
+   */
+  /**
+   * Detect topic clusters in the message array using a sliding-window
+   * Jaccard similarity approach.  A topic boundary is inferred at user-turn
+   * boundaries where the overlap between the preceding N/2 messages and the
+   * following N/2 messages drops below BOUNDARY_THRESHOLD.
+   *
+   * Clusters are stored on the session so async archiving can proceed.
+   * Returns the clusters for this curation call.
+   */
+  private detectTopicClusters(sessionId: string, messages: any[]): TopicCluster[] {
+    const WINDOW = 6          // sliding-window size (3 look-back + 3 look-ahead)
+    const HALF = WINDOW / 2
+    const BOUNDARY_THRESHOLD = 0.12  // Jaccard below this at a user turn → new topic
+
+    // Build term sets per message
+    const termSets: Set<string>[] = messages.map(msg => {
+      const content = extractMessageContent(msg)
+      return new Set(extractTerms(content))
+    })
+
+    const clusters: TopicCluster[] = []
+    let current: TopicCluster = {
+      id: 'topic-0',
+      messageIndices: [],
+      termSet: new Set(),
+      asyncPending: false,
+    }
+
+    for (let i = 0; i < messages.length; i++) {
+      // Only consider a boundary at user turns after we have enough context
+      if (i >= WINDOW && messages[i]?.role === 'user' && current.messageIndices.length >= 2) {
+        const prevSet = new Set<string>()
+        const nextSet = new Set<string>()
+        for (let j = i - WINDOW; j < i - HALF; j++) {
+          if (j >= 0) for (const t of termSets[j]) prevSet.add(t)
+        }
+        for (let j = i - HALF; j < i; j++) {
+          if (j >= 0) for (const t of termSets[j]) nextSet.add(t)
+        }
+        const unionSize = new Set([...prevSet, ...nextSet]).size
+        const intersectSize = [...prevSet].filter(t => nextSet.has(t)).length
+        const jaccard = unionSize > 0 ? intersectSize / unionSize : 1.0
+
+        if (jaccard < BOUNDARY_THRESHOLD) {
+          clusters.push(current)
+          current = {
+            id: `topic-${clusters.length}`,
+            messageIndices: [],
+            termSet: new Set(),
+            asyncPending: false,
+          }
+        }
+      }
+      current.messageIndices.push(i)
+      for (const t of termSets[i]) current.termSet.add(t)
+    }
+    if (current.messageIndices.length > 0) clusters.push(current)
+
+    // Persist on session; fire async archiving for completed (non-last) clusters
+    const session = this.getSession(sessionId)
+    session.topicClusters = clusters
+    for (let k = 0; k < clusters.length - 1; k++) {
+      const c = clusters[k]
+      const existing = session.topicArchive.find(a => a.id === c.id)
+      if (!existing && !c.asyncPending) {
+        this.fireTopicArchive(sessionId, c, messages)
+      }
+    }
+    return clusters
+  }
+
+  /**
+   * Fire an async background LLM call to summarize a completed topic cluster.
+   * The call is fire-and-forget: the result is cached on session.topicArchive
+   * and used to enrich gap descriptions in future curation calls.
+   */
+  private fireTopicArchive(sessionId: string, cluster: TopicCluster, messages: any[]): void {
+    if (!this.handleFactory || cluster.asyncPending) return
+    cluster.asyncPending = true
+
+    const text = cluster.messageIndices
+      .slice(0, 20)
+      .map(idx => {
+        const msg = messages[idx]
+        if (!msg) return ''
+        const role = msg.role === 'user' ? 'User' : 'Cassi'
+        return `${role}: ${extractMessageContent(msg).slice(0, 300)}`
+      })
+      .filter(Boolean)
+      .join('\n')
+
+    const keyTerms = Array.from(cluster.termSet).slice(0, 10).join(', ')
+
+    this.handleFactory({ tier: 'background', purpose: 'topic-archive', sessionId })
+      .then(async (handle) => {
+        try {
+          const result = await handle.complete(
+            [{
+              role: 'user',
+              content:
+                `Summarize this conversation segment in 1-2 sentences. ` +
+                `Focus on the main task and key outcome. Be concise.
+
+` +
+                `Key terms: ${keyTerms}
+
+Conversation:
+${text}`,
+            }],
+            {
+              model: handle.model,
+              maxTokens: 120,
+              temperature: 0.2,
+              thinking: 'none',
+              source: 'thalamus-topic-archive',
+              trigger: 'background',
+              sessionId,
+            },
+          )
+          const summary = result.response?.trim() ?? ''
+          const label = summary.split('.')[0]?.slice(0, 60) ?? `Topic ${cluster.id}`
+          cluster.summary = summary
+          cluster.label = label
+          cluster.asyncPending = false
+
+          const session = this.getSession(sessionId)
+          if (!session.topicArchive.find(a => a.id === cluster.id)) {
+            session.topicArchive.push({
+              id: cluster.id,
+              label,
+              summary,
+              originalIndices: cluster.messageIndices,
+              archivedAt: Date.now(),
+              keyTerms: Array.from(cluster.termSet).slice(0, 8),
+            })
+          }
+        } catch {
+          cluster.asyncPending = false
+        } finally {
+          handle.release()
+        }
+      })
+      .catch(() => { cluster.asyncPending = false })
+  }
+
+  /**
+   * Topic-aware read suppression.
+   * Within each topic cluster, only the latest read of a given file is kept.
+   * Reads of the same file in DIFFERENT topics are preserved — a new topic
+   * may legitimately re-read a file that was read in an earlier phase.
+   */
+  private computeReadSuppression(
+    messages: any[],
+    topicClusters?: TopicCluster[],
+  ): {
+    latestResultIndices: Set<number>
+    nonLatestToolUseIds: Set<string>
+  } {
+    const readPattern = /^(Read|cassi_read|cassi_file.*read|mcp__\w+__read)$/i
+    const toolUseIdToFile = new Map<string, string>()
+
+    // Pass 1: map read tool_use ids to their file paths
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (!Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_use' && block.id) {
+          const toolName = block.name ?? ''
+          if (readPattern.test(toolName)) {
+            const fp = block.input?.filePath ?? block.input?.path ?? block.input?.file_path ?? ''
+            if (fp) toolUseIdToFile.set(block.id, fp)
+          }
+        }
+      }
+    }
+
+    // Build per-topic (or global fallback) fileRead maps
+    const getTopicId = (msgIdx: number): string => {
+      if (!topicClusters || topicClusters.length === 0) return 'global'
+      for (const c of topicClusters) {
+        if (c.messageIndices.includes(msgIdx)) return c.id
+      }
+      return 'global'
+    }
+
+    // Pass 2: track the latest tool_result index for each (topicId, file) pair
+    const latestResultByTopicFile = new Map<string, number>()
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (!Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_result' && block.tool_use_id) {
+          const fp = toolUseIdToFile.get(block.tool_use_id)
+          if (fp) {
+            const key = `${getTopicId(i)}::${fp}`
+            latestResultByTopicFile.set(key, i)
+          }
+        }
+      }
+    }
+
+    // Pass 3: identify non-latest tool_use ids (within their topic)
+    const nonLatestToolUseIds = new Set<string>()
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (!Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_result' && block.tool_use_id) {
+          const fp = toolUseIdToFile.get(block.tool_use_id)
+          if (fp) {
+            const key = `${getTopicId(i)}::${fp}`
+            const latestIndex = latestResultByTopicFile.get(key)
+            if (latestIndex !== undefined && latestIndex !== i) {
+              nonLatestToolUseIds.add(block.tool_use_id)
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      latestResultIndices: new Set(latestResultByTopicFile.values()),
+      nonLatestToolUseIds,
+    }
+  }
+
+  /**
+   * Zero out luminance scores for non-latest file reads.
+   * Both the tool_result and its paired tool_use are suppressed so that
+   * assembly drops them entirely instead of keeping a summary.
+   */
+  private suppressRedundantReads(
+    scored: ScoredMessage[],
+    messages: any[],
+    nonLatestToolUseIds: Set<string>,
+  ): number {
+    let suppressed = 0
+
+    for (const sm of scored) {
+      const msg = messages[sm.messageIndex]
+      if (!Array.isArray(msg?.content)) continue
+
+      const isNonLatest = msg.content.some((block: any) => {
+        if (block?.type === 'tool_result' && nonLatestToolUseIds.has(block.tool_use_id)) {
+          return true
+        }
+        if (block?.type === 'tool_use' && nonLatestToolUseIds.has(block.id)) {
+          return true
+        }
+        return false
+      })
+
+      if (isNonLatest) {
+        sm.luminance = {
+          novelty: 0,
+          urgency: 0,
+          relevance: 0,
+          sourceCredibility: 0,
+          composite: 0,
+        }
+        suppressed++
+      }
+    }
+
+    return suppressed
   }
 
   private evictStaleSessions(): void {
@@ -975,7 +1400,13 @@ export class ThalamusModule extends BaseCognitiveModule {
    * Build a time-aware gap description for omitted turns.
    * Uses temporal annotations if available, falls back to count-only.
    */
-  private buildGapDescription(gapSize: number, fromIdx: number, toIdx: number, messages: any[]): string {
+  private buildGapDescription(
+    gapSize: number,
+    fromIdx: number,
+    toIdx: number,
+    messages: any[],
+    sessionId?: string,
+  ): string {
     const parts: string[] = [`${gapSize} turn${gapSize > 1 ? 's' : ''}`]
 
     // Try to compute elapsed time from _thalamus annotations
@@ -995,9 +1426,20 @@ export class ThalamusModule extends BaseCognitiveModule {
       if (slotType === 'tool_call' || slotType === 'tool_result') toolCalls++
     }
     if (toolCalls > 0) {
-      // tool_call + tool_result = 1 logical tool call
       const logical = Math.ceil(toolCalls / 2)
       if (logical > 0) parts.push(`${logical} tool call${logical > 1 ? 's' : ''}`)
+    }
+
+    // If a completed topic archive entry covers this gap, include its summary
+    if (sessionId) {
+      const session = this.getSession(sessionId)
+      const matchingArchive = session.topicArchive.find(a =>
+        a.originalIndices.some(idx => idx > fromIdx && idx < toIdx)
+      )
+      if (matchingArchive) {
+        const brief = matchingArchive.summary.slice(0, 100)
+        parts.push(`topic: ${matchingArchive.label} — ${brief}`)
+      }
     }
 
     parts.push('omitted')
