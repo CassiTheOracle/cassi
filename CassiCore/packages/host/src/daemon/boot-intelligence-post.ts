@@ -221,6 +221,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             logger,
           )
           thalamus.setAurora(aurora)
+          intelligence.aurora = aurora
           logger.info('Aurora wired to Thalamus')
         } catch (err) {
           logger.warn('Failed to wire Aurora to Thalamus', { error: String(err) })
