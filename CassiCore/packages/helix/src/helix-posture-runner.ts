@@ -240,6 +240,16 @@ export interface HelixPostureRunnerOpts {
    */
   toolFilter?: { allow?: string[]; deny?: string[] }
   /**
+   * Tool profile — selects which subset of tools are exposed to this posture.
+   * When absent, defaults to 'full' (all tools) for back-compat.
+   *
+   *   - 'full': All tools (legacy behavior)
+   *   - 'implementation': Action-focused (~15 tools) — code, file, bash, signal_done
+   *   - 'review': Audit-focused (~12 tools) — read-only + dialectic + signal_conclusion
+   *   - 'exploration': Research-focused (~8 tools) — file, web, collect_thoughts
+   */
+  toolProfile?: import('./helix-pipeline.js').HelixToolProfile
+  /**
    * Optional PostureModule wrapper for dual-publish into the GlobalWorkspace.
    * When set, this runner additionally emits CognitiveSignals alongside its
    * existing WorkStream / DialecticChannel writes. No-op when absent.
@@ -293,6 +303,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
   private readonly flexToolAccess?: import('../constellation/types.js').ToolAccessLevel
+  private readonly toolProfile?: import('./helix-pipeline.js').HelixToolProfile
   private readonly toolFilter?: { allow?: string[]; deny?: string[] }
   private readonly postureModule?: PostureModule
   private readonly telemetry?: HelixTelemetry
@@ -368,6 +379,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.onWorkUnit = opts.onWorkUnit
     this.onStreamActivity = opts.onStreamActivity
     this.flexToolAccess = opts.flexToolAccess
+    this.toolProfile = opts.toolProfile
     this.toolFilter = opts.toolFilter
     this.postureModule = opts.postureModule
     this.telemetry = opts.telemetry
@@ -2230,8 +2242,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private buildToolSchemas(role: HelixRole): NonNullable<CompletionOpts['tools']> {
     const tools: NonNullable<CompletionOpts['tools']> = []
 
-    // Add role-specific meta-tools
-    tools.push(...getHelixToolSchemas(role))
+    // Add role-specific meta-tools (filtered by tool profile)
+    tools.push(...getHelixToolSchemas(role, this.toolProfile))
 
     // Add blackboard tools
     tools.push(...this.getBlackboardSchemas())

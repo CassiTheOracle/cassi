@@ -53,6 +53,14 @@ const INACTIVITY_KILL_MS = 360_000
 
 
 
+/**
+ * Tool profile determines which subset of tools are exposed to a posture.
+ * Used to reduce tool bloat (80+ tools → ~20 focused tools) based on task type.
+ *
+ * @since Phase 1.1 posture-independence refactor
+ */
+export type HelixToolProfile = 'full' | 'implementation' | 'review' | 'exploration'
+
 export interface HelixPipelineOpts {
   goal: string
   context?: string
@@ -149,6 +157,24 @@ export interface HelixPipelineOpts {
   toolFilter?: {
     allow?: string[]
     deny?: string[]
+  }
+
+  /**
+   * Per-posture tool profile — selects which subset of tools are exposed.
+   * When absent, defaults to 'full' (all 80+ tools) for back-compat.
+   *
+   * Profiles:
+   *   - 'full': All tools (legacy behavior, 80+)
+   *   - 'implementation': Action-focused (~15 tools) — code, file, bash, signal_done
+   *   - 'review': Audit-focused (~12 tools) — read-only + dialectic + signal_conclusion
+   *   - 'exploration': Research-focused (~8 tools) — file, web, collect_thoughts
+   *
+   * Used by Constellation to give Unity 'implementation' while Yang/Yin get 'review'.
+   */
+  toolProfiles?: {
+    unity?: HelixToolProfile
+    yang?: HelixToolProfile
+    yin?: HelixToolProfile
   }
 
   /**
@@ -417,6 +443,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: UNITY_POSTURE,
     postureSlot: 'helix.unity',
     flexToolAccess: opts.toolAccessOverrides?.unity ?? UNITY_POSTURE.toolAccess,
+    toolProfile: opts.toolProfiles?.unity ?? 'implementation',
     contextBudgetCoordinator,
     brainstem,
     contextChunkIndex: unityChunkIndex,
@@ -434,6 +461,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: YANG_REVIEWER_POSTURE,
     postureSlot: 'helix.yang',
     flexToolAccess: opts.toolAccessOverrides?.yang ?? YANG_REVIEWER_POSTURE.toolAccess,
+    toolProfile: opts.toolProfiles?.yang ?? 'review',
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
@@ -452,6 +480,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     posture: YIN_REVIEWER_POSTURE,
     postureSlot: 'helix.yin',
     flexToolAccess: opts.toolAccessOverrides?.yin ?? YIN_REVIEWER_POSTURE.toolAccess,
+    toolProfile: opts.toolProfiles?.yin ?? 'review',
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,

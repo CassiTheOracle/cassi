@@ -579,11 +579,27 @@ export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin
  * @dep module: Unknown
  * @dep risk: LOW | 1 caller, 2 flows, 1 module
  */
-export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor'): ToolSchema[] {
+/**
+ * Tool names to exclude when a posture is using a focused profile instead of 'full'.
+ * These tools encourage meta-work (research, edit proposals) over direct implementation.
+ */
+const PROFILE_EXCLUDED_TOOLS: Record<string, string[]> = {
+  implementation: ['stream_research_finding', 'post_research_signal'],
+  review: ['stream_research_finding', 'post_research_signal', 'propose_edit', 'review_edit_proposal', 'request_investigation'],
+  exploration: ['signal_done', 'signal_conclusion', 'acknowledge_nudge', 'send_nudge', 'propose_edit', 'review_edit_proposal'],
+}
+
+export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor', profile?: 'full' | 'implementation' | 'review' | 'exploration'): ToolSchema[] {
+  let tools: ToolSchema[]
   switch (role) {
-    case 'unity': return ALL_UNITY_TOOLS
-    case 'yang': return ALL_YANG_TOOLS
-    case 'yin': return ALL_YIN_TOOLS
-    case 'mentor': return ALL_MENTOR_TOOLS
+    case 'unity': tools = ALL_UNITY_TOOLS; break
+    case 'yang': tools = ALL_YANG_TOOLS; break
+    case 'yin': tools = ALL_YIN_TOOLS; break
+    case 'mentor': tools = ALL_MENTOR_TOOLS; break
   }
+
+  if (!profile || profile === 'full') return tools
+
+  const excluded = PROFILE_EXCLUDED_TOOLS[profile] ?? []
+  return tools.filter(t => !excluded.includes(t.name))
 }
