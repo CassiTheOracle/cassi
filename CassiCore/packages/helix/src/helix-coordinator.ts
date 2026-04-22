@@ -62,6 +62,9 @@ export class HelixWorkStream extends WorkStream {
   /** Whether termination consensus was reached */
   private terminationReached = false
 
+  /** Event-based termination callbacks — replaces 500ms polling */
+  private terminationCallbacks = new Set<() => void>()
+
   constructor(
     opts?: {
       sessionId?: string
@@ -163,6 +166,9 @@ export class HelixWorkStream extends WorkStream {
       }
       waiters.length = 0
     }
+
+    // Check termination after worker signals done
+    this.checkAndEmitTermination()
   }
 
   /**
@@ -186,6 +192,38 @@ export class HelixWorkStream extends WorkStream {
    */
   signalReviewerReady(reviewerId: string): void {
     this.reviewerReady.set(reviewerId, true)
+    // Emit event-based termination callbacks (replaces 500ms polling)
+    this.checkAndEmitTermination()
+  }
+
+  /**
+   * Register a callback to be called when termination consensus is reached.
+   * Event-based alternative to polling waitForTerminationConsensus.
+   */
+  onTerminationConsensus(callback: () => void): () => void {
+    this.terminationCallbacks.add(callback)
+    // If already reached, fire immediately
+    if (this.terminationReached) {
+      callback()
+    }
+    return () => {
+      this.terminationCallbacks.delete(callback)
+    }
+  }
+
+  private checkAndEmitTermination(): void {
+    if (this.terminationReached) return
+    // Only emit if worker is done and we have reviewers
+    if (!this.isWorkerDone()) return
+    // Quick check: are all reviewers ready or seen-all?
+    const allReady = Array.from(this.reviewerReady.values()).every(v => v)
+    if (allReady || this.reviewerReady.size === 0) {
+      this.terminationReached = true
+      for (const cb of this.terminationCallbacks) {
+        try { cb() } catch { /* swallow */ }
+      }
+      this.terminationCallbacks.clear()
+    }
   }
 
   /**
@@ -204,6 +242,8 @@ export class HelixWorkStream extends WorkStream {
 
   /**
    * Wait for termination consensus or timeout.
+   * Refactored from polling (500ms interval) to event-based waiting
+   * via onTerminationConsensus callback.
    */
   async waitForTerminationConsensus(
     reviewerIds: string[],
@@ -212,18 +252,25 @@ export class HelixWorkStream extends WorkStream {
     if (this.isTerminationConsensus(reviewerIds)) return true
 
     return new Promise<boolean>((resolve) => {
-      const checkInterval = setInterval(() => {
-        if (this.isTerminationConsensus(reviewerIds)) {
-          clearInterval(checkInterval)
+      let resolved = false
+
+      // Event-based: resolve when termination event fires
+      const unsubscribe = this.onTerminationConsensus(() => {
+        if (!resolved && this.isTerminationConsensus(reviewerIds)) {
+          resolved = true
           clearTimeout(timer)
-          this.terminationReached = true
+          unsubscribe()
           resolve(true)
         }
-      }, 500)
+      })
 
+      // Timeout fallback
       const timer = setTimeout(() => {
-        clearInterval(checkInterval)
-        resolve(false)
+        if (!resolved) {
+          resolved = true
+          unsubscribe()
+          resolve(false)
+        }
       }, timeoutMs)
     })
   }
