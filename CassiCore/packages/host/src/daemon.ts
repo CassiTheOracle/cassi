@@ -1784,6 +1784,16 @@ export class Daemon {
         this.intelligence.constellation.setMnemicField(field)
       }
 
+      // Wire GlobalWorkspace into constellation orchestrator so spawned Helix
+      // sessions boot in brain-integrated mode (Conductor + journal + locus).
+      if (
+        this.intelligence?.constellation &&
+        this.intelligence.globalWorkspace &&
+        typeof (this.intelligence.constellation as any).setGlobalWorkspace === 'function'
+      ) {
+        ;(this.intelligence.constellation as any).setGlobalWorkspace(this.intelligence.globalWorkspace)
+      }
+
       // MnemicField injection — now handled by Thalamus via Aurora cognitive state
 
       // Wire ArchiveIngestionBridge — automatic sync from Archivist to MnemicField.

@@ -236,6 +236,12 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         logger.info('Pineal assembler wired to Thalamus with turn reinforcement')
       }
 
+      // Wire handleFactory for background LLM calls (topic archiving, gap summaries)
+      if (deps.handleFactory && typeof thalamus.setHandleFactory === 'function') {
+        thalamus.setHandleFactory(deps.handleFactory)
+        logger.info('Thalamus handleFactory wired for background LLM topic archiving')
+      }
+
       logger.info('Thalamus wired', {
         gwt: !!intelligence.globalWorkspace,
         locus: !!intelligence.locusBridge,
@@ -246,6 +252,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         aurora: !!mnemicField,
         meditation: !!(meditation && typeof (meditation as any).setThalamus === 'function'),
         helix: !!(intelligence.helix && typeof (intelligence.helix as any).setThalamus === 'function'),
+        topicArchiving: !!(deps.handleFactory),
       })
     }
   } catch (err) {
