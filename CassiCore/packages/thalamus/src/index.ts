@@ -1191,11 +1191,6 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
-   * Fire an async background LLM call to summarize a completed topic cluster.
-   * The call is fire-and-forget: the result is cached on session.topicArchive
-   * and used to enrich gap descriptions in future curation calls.
-   */
-  /**
    * Strip reasoning/thinking artifacts some models emit despite instructions.
    * Mirrors SmartCompactionEngine.stripThinkingArtifacts.
    */
@@ -1261,6 +1256,7 @@ ${text}`,
                 'You are a concise summarizer. Output only the requested summary. ' +
                 'Never include thinking steps, reasoning, or analysis.',
               thinking: 'none',
+              reasoning: 'none',
               source: 'thalamus-topic-archive',
               trigger: 'background',
               sessionId,
@@ -1314,6 +1310,14 @@ ${text}`,
     const readPattern = /^(Read|cassi_read|cassi_file.*read|mcp__\w+__read)$/i
     const toolUseIdToFile = new Map<string, string>()
 
+    // Build O(1) message-index -> topic-id lookup so the inner loops stay fast
+    const idxToTopic = new Map<number, string>()
+    if (topicClusters) {
+      for (const c of topicClusters) {
+        for (const idx of c.messageIndices) idxToTopic.set(idx, c.id)
+      }
+    }
+
     // Pass 1: map read tool_use ids to their file paths
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i]
@@ -1330,13 +1334,8 @@ ${text}`,
     }
 
     // Build per-topic (or global fallback) fileRead maps
-    const getTopicId = (msgIdx: number): string => {
-      if (!topicClusters || topicClusters.length === 0) return 'global'
-      for (const c of topicClusters) {
-        if (c.messageIndices.includes(msgIdx)) return c.id
-      }
-      return 'global'
-    }
+    const getTopicId = (msgIdx: number): string =>
+      idxToTopic.get(msgIdx) ?? 'global'
 
     // Pass 2: track the latest tool_result index for each (topicId, file) pair
     const latestResultByTopicFile = new Map<string, number>()
