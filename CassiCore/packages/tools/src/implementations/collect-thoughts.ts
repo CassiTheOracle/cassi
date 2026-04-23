@@ -60,6 +60,10 @@ export interface CollectThoughtsDeps {
   thoughtObserver?: ThoughtObserver
   cognitiveBridge?: CognitiveBridge
   memory?: IMemory
+  /** Modern long-term retrieval — preferred over deprecated memory search. */
+  mnemicField?: {
+    retrieve(query: string, options?: { limit?: number }): Promise<Array<{ content: string; score?: number }>> | Array<{ content: string; score?: number }>
+  }
   bus?: IEventBus
   logger: ILogger
   config?: Partial<CollectThoughtsConfig>
@@ -133,6 +137,11 @@ export const collectThoughtsDefinition: ToolDefinition = {
         type: 'string',
         enum: ['expansive', 'contractive', 'unifying', 'neutral'],
         description: 'Posture energy for Synapse guidance adaptation. In Helix context: unity=unifying, yang=expansive, yin=contractive.',
+      },
+      related_context_mode: {
+        type: 'string',
+        enum: ['none', 'safe-mnemic', 'mnemic', 'memory'],
+        description: 'Control related context retrieval. Default is mnemic (preferred). safe-mnemic filters chat-style leakage, memory is deprecated unrestricted search, none disables retrieval.',
       },
     },
     required: ['thought', 'step', 'estimated_steps', 'continue_thinking'],
@@ -311,11 +320,53 @@ export function makeCollectThoughtsHandler(deps: CollectThoughtsDeps): ToolHandl
       }
     }
 
-    // Memory search removed — it leaked main-session context into Helix/Constellation
-    // branches, confusing models with irrelevant "user: test message" fragments.
-    // The Mnemic Field (via reasoningBankContext below) and peer signals provide
-    // sufficient cross-session context without the noise.
-    const relatedContext: string[] = []
+    const relatedContextMode = input.related_context_mode ?? 'mnemic'
+
+    // Related-context retrieval is explicit now. Helix/Constellation should use
+    // 'none' or 'safe-memory' to avoid leaking main-session chat fragments into
+    // autonomous branches. Unrestricted 'memory' is still available for callers
+    // that genuinely want raw memory retrieval.
+    let relatedContext: string[] = []
+    if (deps.mnemicField && (relatedContextMode === 'mnemic' || relatedContextMode === 'safe-mnemic')) {
+      try {
+        const results = await Promise.resolve(deps.mnemicField.retrieve(input.thought, {
+          limit: cfg.maxMemoryResults + cfg.maxArchiveResults,
+        }))
+        relatedContext = results
+          .filter(r => (r.score ?? 1) >= 0.3)
+          .slice(0, cfg.maxMemoryResults + cfg.maxArchiveResults)
+          .map(r => (r.content ?? '').slice(0, 200))
+          .filter(t => t.length > 0)
+
+        if (relatedContextMode === 'safe-mnemic') {
+          relatedContext = relatedContext.filter(t => {
+            const lower = t.toLowerCase()
+            if (lower.includes('user:') || lower.includes('assistant:')) return false
+            if (lower.includes('system:')) return false
+            return true
+          })
+        }
+      } catch (err) {
+        log.warn('Mnemic Field retrieval failed in thinking step', { error: String(err) })
+      }
+    } else if (deps.memory && relatedContextMode === 'memory') {
+      try {
+        const results = await deps.memory.search(input.thought, {
+          limit: cfg.maxMemoryResults + cfg.maxArchiveResults,
+        })
+        relatedContext = results
+          .filter(r => r.score >= 0.3)
+          .slice(0, cfg.maxMemoryResults + cfg.maxArchiveResults)
+          .map(r => {
+            const text = r.entry?.content ?? ''
+            return text.slice(0, 200)
+          })
+          .filter(t => t.length > 0)
+
+      } catch (err) {
+        log.warn('Deprecated memory search failed in thinking step', { error: String(err) })
+      }
+    }
 
     // Stage 5b: REASONING BANK — Search past successful reasoning traces
     // HOW: Only search on step 1 (initial context) and every 3 steps (to avoid
