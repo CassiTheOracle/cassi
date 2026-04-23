@@ -130,7 +130,27 @@ export class MeditationController extends BaseCognitiveModule {
     this.thalamus = thalamus
   }
 
-
+  /**
+   * MnemicReader interface for ContextRepo projection.
+   * Returns engrams above the given potentiation threshold, newest first.
+   */
+  listForProjection(opts: { limit: number; minPotentiation: number }): import('../../context-repo/projection.js').EngramLike[] {
+    if (!this.mnemicField) return []
+    const all = this.mnemicField.list(opts.limit * 2)
+    return all
+      .filter(e => e.potentiation >= opts.minPotentiation)
+      .sort((a, b) => b.potentiation - a.potentiation)
+      .slice(0, opts.limit)
+      .map(e => ({
+        id: e.id,
+        nodeType: e.nodeType,
+        content: e.content,
+        potentiation: e.potentiation,
+        pinned: false,
+        tags: e.tags,
+        metadata: e.metadata,
+      }))
+  }
 
   getStore(): MeditationStore | undefined {
     return this.meditationStore
