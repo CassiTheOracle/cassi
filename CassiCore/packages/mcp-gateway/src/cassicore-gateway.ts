@@ -77,6 +77,10 @@ import {
   executeTrainingConsolidatedTool,
   getCortexConsolidatedTool,
   executeCortexConsolidatedTool,
+  getLaminaConsolidatedTool,
+  executeLaminaConsolidatedTool,
+  getContextRepoTool,
+  executeContextRepoTool,
   getSelfModelTool,
   executeSelfModelTool,
   getAnnotationTools,
@@ -95,7 +99,12 @@ import {
   MODEL_CONSOLIDATED_TOOL_NAME,
   TRAINING_CONSOLIDATED_TOOL_NAME,
   CORTEX_CONSOLIDATED_TOOL_NAME,
+  LAMINA_CONSOLIDATED_TOOL_NAME,
+  CONTEXT_REPO_TOOL_NAME,
   SELF_MODEL_TOOL_NAME,
+  KNOWLEDGE_TOOL_NAME,
+  executeKnowledgeTool,
+  getKnowledgeTool,
   postToolBrainSignal,
 } from './gateway/index.js';
 import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
@@ -217,7 +226,10 @@ function getAllTools() {
     getModelConsolidatedTool(),
     getTrainingConsolidatedTool(),
     getCortexConsolidatedTool(),
+    getLaminaConsolidatedTool(),
+    getContextRepoTool(),
     getSelfModelTool(),
+    getKnowledgeTool(),
     ...getAnnotationTools(),
     VYBIT_TOOL,
     SKILL_INTELLIGENCE_TOOL,
@@ -434,11 +446,20 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
       case CORTEX_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeCortexConsolidatedTool(CASSICORE_URL, args, logger));
 
+      case LAMINA_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeLaminaConsolidatedTool(CASSICORE_URL, args, logger));
+
+      case CONTEXT_REPO_TOOL_NAME:
+        return formatJsonResponse(await executeContextRepoTool(CASSICORE_URL, args, logger));
+
       case SELF_MODEL_TOOL_NAME:
         return formatJsonResponse(await executeSelfModelTool(CASSICORE_URL, args, logger));
 
       case ANNOTATION_TOOL_NAME:
         return formatJsonResponse(await executeAnnotationTool(CASSICORE_URL, args, logger));
+
+      case KNOWLEDGE_TOOL_NAME:
+        return formatJsonResponse(await executeKnowledgeTool(CASSICORE_URL, args, logger));
 
       default:
         throw unknownToolError(name);

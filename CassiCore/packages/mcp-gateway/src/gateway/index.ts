@@ -221,6 +221,20 @@ export {
   getCortexConsolidatedTool,
 } from './cortex-tools.js';
 
+export {
+  LAMINA_CONSOLIDATED_TOOL,
+  LAMINA_CONSOLIDATED_TOOL_NAME,
+  executeLaminaConsolidatedTool,
+  getLaminaConsolidatedTool,
+} from './lamina-tools.js';
+
+export {
+  CONTEXT_REPO_TOOL,
+  CONTEXT_REPO_TOOL_NAME,
+  executeContextRepoTool,
+  getContextRepoTool,
+} from './context-repo-tools.js';
+
 // Serena Auto-Onboarding
 export {
   SerenaAutoOnboarding,
@@ -284,3 +298,11 @@ export {
   executeAnnotationTool,
   getAnnotationTools,
 } from './annotation-tools.js';
+
+// Knowledge Tools (research papers, techniques, findings)
+export {
+  KNOWLEDGE_TOOL,
+  KNOWLEDGE_TOOL_NAME,
+  executeKnowledgeTool,
+  getKnowledgeTool,
+} from './knowledge-tools.js';
