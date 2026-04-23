@@ -42,6 +42,20 @@ function getSelfModelField(daemon: any): SelfModelField | null {
   return (daemon as any).__selfModelField ?? (daemon?.intelligence as any)?.__selfModelField ?? null
 }
 
+function getKnowledgeField(daemon: any): any | null {
+  return (daemon as any).__knowledgeField ?? (daemon?.intelligence as any)?.__knowledgeField ?? null
+}
+
+function requireKnowledgeField(
+  daemon: any,
+  res: http.ServerResponse,
+  sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void,
+): any | null {
+  const kf = getKnowledgeField(daemon)
+  if (!kf) sendJSON(res, 503, { error: 'Knowledge Field not available' })
+  return kf
+}
+
 function getInterFieldBridge(daemon: any): InterFieldBridge | null {
   return (daemon as any).__interFieldBridge ?? (daemon?.intelligence as any)?.__interFieldBridge ?? null
 }
@@ -695,6 +709,174 @@ export async function handleMemoryRoutes(
       return true
     } catch (err) {
       sendJSON(res, 500, { status: 'error', error: String(err) } as AnnotationResponse)
+      return true
+    }
+  }
+
+  // ─── Knowledge Field Routes ───
+
+  // GET /memory/knowledge/stats
+  if (parts[1] === 'knowledge' && parts[2] === 'stats' && !parts[3] && method === 'GET') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      sendJSON(res, 200, { ok: true, stats: kf.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/knowledge/retrieve?query=...&limit=N
+  if (parts[1] === 'knowledge' && parts[2] === 'retrieve' && !parts[3] && method === 'GET') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      const query = url.searchParams.get('query') ?? ''
+      if (!query.trim()) {
+        sendJSON(res, 400, { error: 'query parameter is required' })
+        return true
+      }
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+      const hits = await kf.retrieve(query, { limit })
+      sendJSON(res, 200, {
+        ok: true,
+        hits: hits.map((h: any) => ({
+          id: h.id,
+          nodeType: h.nodeType,
+          content: h.content,
+          score: h.score,
+          charge: h.charge,
+          tags: h.tags,
+          metadata: h.metadata,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/knowledge/kindle
+  if (parts[1] === 'knowledge' && parts[2] === 'kindle' && !parts[3] && method === 'POST') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const query = typeof body?.query === 'string' ? body.query : ''
+      if (!query.trim()) {
+        sendJSON(res, 400, { error: 'query is required' })
+        return true
+      }
+      const result = kf.kindle(query, {
+        complexity: body?.complexity,
+        maxSeeds: typeof body?.maxSeeds === 'number' ? body.maxSeeds : undefined,
+        maxLuminalSize: typeof body?.maxLuminalSize === 'number' ? body.maxLuminalSize : undefined,
+      })
+      sendJSON(res, 200, {
+        ok: true,
+        luminal: {
+          ...result,
+          engrams: result.engrams.map((e: any) => ({
+            id: e.engram.id,
+            nodeType: e.engram.nodeType,
+            charge: e.charge,
+            content: e.engram.content.slice(0, 180),
+          })),
+        },
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/knowledge/techniques?domain=...&limit=N
+  if (parts[1] === 'knowledge' && parts[2] === 'techniques' && !parts[3] && method === 'GET') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      const domain = url.searchParams.get('domain')
+      const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
+      const techniques = domain
+        ? kf.findTechniquesByDomain(domain, limit)
+        : kf.listByKnowledgeType('technique', limit)
+      sendJSON(res, 200, { ok: true, techniques })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/knowledge/item/:id
+  if (parts[1] === 'knowledge' && parts[2] === 'item' && parts[3] && method === 'GET') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      const deepDive = kf.getDeepDive(parts[3])
+      if (!deepDive) {
+        sendJSON(res, 404, { error: 'knowledge item not found' })
+        return true
+      }
+      sendJSON(res, 200, { ok: true, ...deepDive })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/knowledge/compare
+  if (parts[1] === 'knowledge' && parts[2] === 'compare' && !parts[3] && method === 'POST') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const idA = body?.idA as string | undefined
+      const idB = body?.idB as string | undefined
+      if (!idA || !idB) {
+        sendJSON(res, 400, { error: 'idA and idB are required' })
+        return true
+      }
+      const comparison = kf.compareTechniques(idA, idB)
+      if (!comparison) {
+        sendJSON(res, 404, { error: 'one or both techniques not found' })
+        return true
+      }
+      sendJSON(res, 200, { ok: true, comparison })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/knowledge/ingest
+  if (parts[1] === 'knowledge' && parts[2] === 'ingest' && !parts[3] && method === 'POST') {
+    const kf = requireKnowledgeField(daemon, res, sendJSON)
+    if (!kf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const dir = body?.dir as string | undefined
+      if (!dir) {
+        sendJSON(res, 400, { error: 'dir is required' })
+        return true
+      }
+      const { KnowledgeIngestor } = await import('../intelligence/mnemic-field/knowledge/ingestor.js')
+      const ingestor = new KnowledgeIngestor(kf, logger)
+      const result = await ingestor.ingestFromDirectory(dir, {
+        skipExisting: body?.skipExisting !== false,
+        minYear: typeof body?.minYear === 'number' ? body.minYear : undefined,
+        createSynapses: body?.createSynapses !== false,
+      })
+      sendJSON(res, 200, { ok: true, ...result })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
       return true
     }
   }

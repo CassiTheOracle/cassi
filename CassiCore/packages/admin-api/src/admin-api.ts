@@ -40,6 +40,8 @@ import { handleDreamerRoutes } from './admin-api/dreamer.js'
 import { handleModelDirectiveRoutes } from './admin-api/model-directive.js'
 import { handleBlackboardRoutes } from './admin-api/blackboard.js'
 import { handleCortexRoutes } from './admin-api/cortex.js'
+import { handleLaminaRoutes } from './admin-api/lamina.js'
+import { handleContextRepoRoutes } from './admin-api/context-repo.js'
 import { handlePinealRoutes } from './admin-api/pineal.js'
 import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
 import { handleCodeStoreRoutes } from './admin-api/code-store.js'
@@ -2383,7 +2385,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
            },
          }, req, res, method, pathname),
          () => handleCortexRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
-        () => handlePinealRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handlePinealRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleLaminaRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
+         () => handleContextRepoRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
         () => handleBlackboardRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleFileArtifactRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleCodeStoreRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),

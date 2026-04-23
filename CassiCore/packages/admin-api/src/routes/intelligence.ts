@@ -1100,15 +1100,15 @@ export async function handleIntelligenceRoutes(
           return true
         }
         sendJSON(res, 200, {
-          foci: state.foci,
-          nodeCount: state.graph.nodes.size,
-          edgeCount: state.graph.edgeCount,
-          coherence: state.coherence,
-          integration: state.integration,
-          affect: state.affect,
-          trendingConcepts: state.trendingConcepts,
-          gaps: state.gaps,
-          hubs: state.hubs.map((h: any) => ({ id: h.id, label: h.label, centrality: h.centrality })),
+          foci: state.foci ?? [],
+          nodeCount: state.graph?.nodes?.size ?? 0,
+          edgeCount: state.graph?.edgeCount ?? 0,
+          coherence: state.coherence ?? 0,
+          integration: state.integration ?? 0,
+          affect: state.affect ?? null,
+          trendingConcepts: state.trendingConcepts ?? [],
+          gaps: state.gaps ?? [],
+          hubs: (state.hubs ?? []).map((h: any) => ({ id: h.id, label: h.label, centrality: h.centrality })),
           timestamp: state.timestamp,
         })
         return true
