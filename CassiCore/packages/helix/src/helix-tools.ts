@@ -579,32 +579,34 @@ export function isHelixMetaTool(toolName: string, role?: 'unity' | 'yang' | 'yin
  * @dep module: Unknown
  * @dep risk: LOW | 1 caller, 2 flows, 1 module
  */
+type HelixToolProfile = 'full' | 'implementation' | 'review' | 'exploration'
+
 /**
- * Tool names to exclude when a posture is using a focused profile instead of 'full'.
- * These tools encourage meta-work (research, edit proposals) over direct implementation.
+ * Capability-based allowlists for focused tool profiles.
+ * This replaces brittle blacklist filtering with explicit role/profile policy.
  */
-const PROFILE_EXCLUDED_TOOLS: Record<string, string[]> = {
-  // Implementation: action-focused — no research, no blackboard, no report drafting
-  implementation: [
-    'stream_research_finding', 'post_research_signal',
-    'bb_post', 'bb_read', 'bb_read_all', 'bb_get_artifacts', 'bb_search', 'bb_search_channel', 'bb_tool_log', 'bb_scratch_list',
-    'report_add_section', 'report_view', 'report_revise_section', 'report_promote', 'report_discard',
-  ],
-  // Review: audit-focused — no research, no blackboard, no edit proposals
-  review: [
-    'stream_research_finding', 'post_research_signal', 'propose_edit', 'review_edit_proposal', 'request_investigation',
-    'bb_post', 'bb_read', 'bb_read_all', 'bb_get_artifacts', 'bb_search', 'bb_search_channel', 'bb_tool_log', 'bb_scratch_list',
-    'report_add_section', 'report_view', 'report_revise_section', 'report_promote', 'report_discard',
-  ],
-  // Exploration: research-focused — no signal/conclusion, no nudges, no edit proposals
-  exploration: [
-    'signal_done', 'signal_conclusion', 'acknowledge_nudge', 'send_nudge', 'propose_edit', 'review_edit_proposal',
-    'bb_post', 'bb_read', 'bb_read_all', 'bb_get_artifacts', 'bb_search', 'bb_search_channel', 'bb_tool_log', 'bb_scratch_list',
-    'report_add_section', 'report_view', 'report_revise_section', 'report_promote', 'report_discard',
-  ],
+const PROFILE_ALLOWED_TOOL_NAMES: Record<Exclude<HelixToolProfile, 'full'>, Record<'unity' | 'yang' | 'yin' | 'mentor', string[]>> = {
+  implementation: {
+    unity: ['signal_done', 'acknowledge_nudge', 'report_to_brainstem', 'list_test_locks'],
+    yang: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance'],
+    yin: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance', 'seal_test_spec', 'list_test_locks'],
+    mentor: ['review_progress'],
+  },
+  review: {
+    unity: ['signal_done', 'acknowledge_nudge', 'report_to_brainstem'],
+    yang: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance'],
+    yin: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance', 'seal_test_spec', 'list_test_locks'],
+    mentor: ['review_progress'],
+  },
+  exploration: {
+    unity: ['report_to_brainstem'],
+    yang: ['share_finding', 'challenge', 'concede'],
+    yin: ['share_finding', 'challenge', 'concede'],
+    mentor: ['review_progress'],
+  },
 }
 
-export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor', profile?: 'full' | 'implementation' | 'review' | 'exploration'): ToolSchema[] {
+export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor', profile?: HelixToolProfile): ToolSchema[] {
   let tools: ToolSchema[]
   switch (role) {
     case 'unity': tools = ALL_UNITY_TOOLS; break
@@ -615,6 +617,6 @@ export function getHelixToolSchemas(role: 'unity' | 'yang' | 'yin' | 'mentor', p
 
   if (!profile || profile === 'full') return tools
 
-  const excluded = PROFILE_EXCLUDED_TOOLS[profile] ?? []
-  return tools.filter(t => !excluded.includes(t.name))
+  const allowed = new Set(PROFILE_ALLOWED_TOOL_NAMES[profile]?.[role] ?? [])
+  return tools.filter(t => allowed.has(t.name))
 }

@@ -65,6 +65,9 @@ export class HelixWorkStream extends WorkStream {
   /** Event-based termination callbacks — replaces 500ms polling */
   private terminationCallbacks = new Set<() => void>()
 
+  /** Canonical reviewer IDs for authoritative termination consensus checks. */
+  private reviewerIds: string[] = ['yang', 'yin']
+
   constructor(
     opts?: {
       sessionId?: string
@@ -135,6 +138,14 @@ export class HelixWorkStream extends WorkStream {
    */
   setMetrics(metrics: HelixMetrics): void {
     this.metrics = metrics
+  }
+
+  /**
+   * Set the canonical reviewer IDs used for authoritative termination checks.
+   * Defaults to ['yang', 'yin'] for backward compatibility.
+   */
+  setReviewerIds(ids: string[]): void {
+    this.reviewerIds = [...ids]
   }
 
   /**
@@ -213,17 +224,12 @@ export class HelixWorkStream extends WorkStream {
 
   private checkAndEmitTermination(): void {
     if (this.terminationReached) return
-    // Only emit if worker is done and we have reviewers
-    if (!this.isWorkerDone()) return
-    // Quick check: are all reviewers ready or seen-all?
-    const allReady = Array.from(this.reviewerReady.values()).every(v => v)
-    if (allReady || this.reviewerReady.size === 0) {
-      this.terminationReached = true
-      for (const cb of this.terminationCallbacks) {
-        try { cb() } catch { /* swallow */ }
-      }
-      this.terminationCallbacks.clear()
+    if (!this.isTerminationConsensus(this.reviewerIds)) return
+    this.terminationReached = true
+    for (const cb of this.terminationCallbacks) {
+      try { cb() } catch { /* swallow */ }
     }
+    this.terminationCallbacks.clear()
   }
 
   /**
@@ -367,6 +373,7 @@ export class HelixCoordinator {
       backpressureThreshold: opts.backpressureThreshold,
     })
     this.workStream.setMetrics(this.metrics)
+    this.workStream.setReviewerIds(this.reviewerIds)
 
     this.dialecticMesh = new HelixDialecticMesh({
       sessionId: opts.sessionId,

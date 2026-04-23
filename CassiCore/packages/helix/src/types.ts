@@ -19,6 +19,7 @@ import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from './work-types.js'
 import type { UnityStatusThresholds } from './work-stream.js'
 import type { GlobalWorkspace } from '../workspace/index.js'
+import type { AutoReportSection } from './brainstem-types.js'
 
 
 /** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers). Mentor deprecated in favor of Brainstem. */
@@ -217,6 +218,9 @@ export interface HelixResult {
   durationMs: number
   error?: string
   completionStatus: HelixCompletionStatus
+
+  /** Brainstem-synthesized auto report sections (canonical in focused profiles). */
+  autoReport?: AutoReportSection[]
 
   /** Consolidated real-time metrics from HelixCoordinator */
   metrics?: import('./helix-metrics.js').HelixMetricsSnapshot

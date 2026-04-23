@@ -37,7 +37,7 @@ export const YANG_POSTURE: HelixPosture = {
   name: 'yang',
   temperature: 0.7,
   slotName: 'helix.yang',
-  toolAccess: 'read-only',
+  toolAccess: 'full',
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('yang', 'helix'),
   pinealScope: 'helix:yang',
@@ -48,7 +48,7 @@ export const YIN_POSTURE: HelixPosture = {
   name: 'yin',
   temperature: 0.35,
   slotName: 'helix.yin',
-  toolAccess: 'read-only',
+  toolAccess: 'full',
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('yin', 'helix'),
   pinealScope: 'helix:yin',
@@ -107,7 +107,7 @@ export const MENTOR_POSTURE: HelixPosture = {
   name: 'mentor' as any, // Cast for backward compat — 'mentor' removed from HelixRole
   temperature: 0.5,
   slotName: 'helix.mentor',
-  toolAccess: 'read-only',
+  toolAccess: 'full',
   maxIterations: 500,
   systemPrompt: MENTOR_SYSTEM_PROMPT,
 }

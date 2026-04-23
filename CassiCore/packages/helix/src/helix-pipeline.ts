@@ -730,6 +730,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
     // Get Brainstem result if available
     const brainstemResult = brainstem?.getResult()
+    const autoReport = brainstem?.getAutoReport() ?? []
 
     const completionStatus: HelixCompletionStatus = {
       complete: !cancelled,
@@ -803,6 +804,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       brainstem: brainstemResult,
 
       report: blackboard.getReport() ?? undefined,
+      autoReport: autoReport.length > 0 ? autoReport : undefined,
       blackboard: blackboard.getSnapshot(),
     }
 
