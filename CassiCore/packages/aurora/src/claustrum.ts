@@ -406,6 +406,74 @@ export class Claustrum {
     }
   }
 
+  private seedFromKnowledge(
+    foci: string[],
+    knowledgeProvider: ModelKnowledgeProvider,
+    nodes: Map<string, CognitiveNode>,
+  ): Map<string, CognitiveNode> {
+    const seeds = new Map<string, CognitiveNode>()
+
+    for (const focus of foci) {
+      const entities = knowledgeProvider.search(focus, 5)
+
+      for (const entity of entities) {
+        const nodeId = `knowledge:${entity.name}`
+
+        if (!nodes.has(nodeId)) {
+          const node: CognitiveNode = {
+            id: nodeId,
+            label: entity.name,
+            source: 'knowledge',
+            resonance: 0,
+            centrality: 0,
+            activated: true,
+          }
+          nodes.set(nodeId, node)
+          seeds.set(nodeId, node)
+        }
+      }
+
+      if (nodes.size >= this.config.maxGraphNodes) break
+    }
+
+    return seeds
+  }
+
+  private expandKnowledgeNeighborhood(
+    seeds: Map<string, CognitiveNode>,
+    knowledgeProvider: ModelKnowledgeProvider,
+    nodes: Map<string, CognitiveNode>,
+    edges: Map<string, CognitiveEdge[]>,
+    reverseEdges: Map<string, CognitiveEdge[]>,
+  ): void {
+    for (const [seedId, seedNode] of seeds) {
+      const kgEdges = knowledgeProvider.subgraph(seedNode.label, 1)
+
+      for (const edge of kgEdges) {
+        const targetId = `knowledge:${edge.object}`
+
+        if (!nodes.has(targetId)) {
+          nodes.set(targetId, {
+            id: targetId,
+            label: edge.object,
+            source: 'knowledge',
+            resonance: 0,
+            centrality: 0,
+            activated: false,
+          })
+        }
+
+        this.addEdge(edges, reverseEdges, {
+          sourceId: seedId,
+          targetId,
+          origin: 'memory',
+          edgeType: edge.relation,
+          weight: Math.min(1.0, edge.confidence),
+        })
+      }
+    }
+  }
+
   private bridgeViaPortals(
     portalBridge: PortalBridge,
     nodes: Map<string, CognitiveNode>,
@@ -413,7 +481,7 @@ export class Claustrum {
     reverseEdges: Map<string, CognitiveEdge[]>,
   ): void {
     for (const [nodeId, node] of nodes) {
-      if (node.source !== 'memory') continue
+      if (node.source !== 'memory' && node.source !== 'knowledge') continue
 
       const portals = portalBridge.getPortalsForEngram(nodeId)
       for (const portal of portals) {

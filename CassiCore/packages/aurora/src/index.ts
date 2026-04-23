@@ -62,6 +62,7 @@ export class Aurora {
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
+    private knowledgeProvider: ModelKnowledgeProvider | null,
     private portalBridge: PortalBridge | null,
     logger: ILogger,
     config?: Partial<AuroraConfig>,
@@ -74,6 +75,7 @@ export class Aurora {
 
     this.logger.info('Aurora initialized', {
       hasModelProvider: !!modelProvider,
+      hasKnowledgeProvider: !!knowledgeProvider,
       hasPortalBridge: !!portalBridge,
     })
   }
@@ -89,6 +91,7 @@ export class Aurora {
       foci,
       this.cortex,
       this.modelProvider,
+      this.knowledgeProvider,
       this.portalBridge,
       recentDiscoveries,
     )
@@ -146,6 +149,21 @@ export class Aurora {
     return text
   }
 
+  private topFoci(n: number): string[] {
+    return [...this.recentConcepts.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([concept]) => concept)
+  }
+
+  private shouldRebuildState(newConcepts: string[]): boolean {
+    if (!this.currentState) return true
+    if (newConcepts.length === 0) return false
+    const currentFoci = new Set(this.currentState.foci.map(f => f.toLowerCase()))
+    const novel = newConcepts.filter(c => !currentFoci.has(c.toLowerCase())).length
+    return novel >= Math.ceil(newConcepts.length / 2)
+  }
+
   observeReasoning(text: string): MentalStateUpdate {
     const start = Date.now()
 
@@ -193,7 +211,17 @@ export class Aurora {
       }
     }
 
-    // Activate graph nodes matching extracted concepts
+    if (!this.currentState || this.shouldRebuildState(concepts)) {
+      const foci = this.topFoci(this.maxConceptsPerTurn)
+      if (foci.length > 0) {
+        try {
+          this.buildState(foci, null)
+        } catch (err) {
+          this.logger.warn('buildState failed during observeReasoning', { error: String(err) })
+        }
+      }
+    }
+
     const activatedNodes: string[] = []
     const newEdges: CognitiveEdge[] = []
 
@@ -404,6 +432,11 @@ export class Aurora {
   setModelProvider(provider: ModelKnowledgeProvider): void {
     this.modelProvider = provider
     this.logger.info('Model knowledge provider updated')
+  }
+
+  setKnowledgeProvider(provider: ModelKnowledgeProvider): void {
+    this.knowledgeProvider = provider
+    this.logger.info('Knowledge provider updated')
   }
 
   setPortalBridge(bridge: PortalBridge): void {
