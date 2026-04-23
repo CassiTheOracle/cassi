@@ -195,4 +195,12 @@ export interface CollectThoughtsInput {
   session_id?: string
   /** Posture energy for Synapse guidance adaptation (expansive/contractive/unifying/neutral) */
   posture_energy?: 'expansive' | 'contractive' | 'unifying' | 'neutral'
+  /**
+   * Related context retrieval mode.
+   * - 'mnemic': use Mnemic Field kindling (modern default)
+   * - 'safe-mnemic': Mnemic Field kindling with chat-style fragment filtering
+   * - 'memory': deprecated unrestricted legacy memory retrieval
+   * - 'none': disable retrieval entirely
+   */
+  related_context_mode?: 'none' | 'safe-mnemic' | 'mnemic' | 'memory'
 }
