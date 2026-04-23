@@ -15,7 +15,7 @@ export const CASSICORE_BUILD: BuildIdentifier = _BUILD
 export const CASSICORE_BUILD_STRING: string = formatBuildId(_BUILD)
 
 import { createAdminApi } from './admin-api.js'
-import { createBridge } from './bridge.js'
+import { createBridge } from './bridge/openai.js'
 import { CommandDispatcher } from './commands.js'
 import { createSkillMetricsTracker, type SkillMetricsTracker } from './intelligence/skill-metrics.js'
 import { createCrossSessionCorrelator, type CrossSessionCorrelator } from './intelligence/cross-session-correlator.js'
@@ -1878,6 +1878,45 @@ export class Daemon {
       } catch (err) {
         this.logger.warn('Self-Model Field not available', { error: String(err) })
       }
+
+      // Initialize Knowledge Field — a third Mnemic Field for external research
+      // and technique knowledge. Implements ModelKnowledgeProvider so Aurora's
+      // Claustrum can seed from it directly.
+      try {
+        const { KnowledgeField } = await import('./intelligence/mnemic-field/knowledge/knowledge-field.js')
+        const knowledgeField = new KnowledgeField(this.logger)
+
+        ;(this as any).__knowledgeField = knowledgeField
+        ;(this.intelligence as any).__knowledgeField = knowledgeField
+
+        this.logger.info('Knowledge Field initialized')
+
+        // Background ingestion from data/papers/ if directory exists
+        const dataDir = (await import('./utils/paths.js')).getDataDir()
+        const papersDir = path.join(dataDir, 'papers')
+        if (fs.existsSync(papersDir)) {
+          setImmediate(async () => {
+            try {
+              const { KnowledgeIngestor } = await import('./intelligence/mnemic-field/knowledge/ingestor.js')
+              const ingestor = new KnowledgeIngestor(knowledgeField, this.logger)
+              const result = await ingestor.ingestFromDirectory(papersDir, {
+                skipExisting: true,
+                createSynapses: true,
+              })
+              this.logger.info('Knowledge ingestion complete', {
+                papers: result.papersCreated,
+                techniques: result.techniquesCreated,
+                synapses: result.synapsesCreated,
+                durationMs: result.durationMs,
+              })
+            } catch (err) {
+              this.logger.warn('Knowledge ingestion failed', { error: String(err) })
+            }
+          })
+        }
+      } catch (err) {
+        this.logger.warn('Knowledge Field not available', { error: String(err) })
+      }
     } catch (err) {
       this.logger.warn('CodeStore not available', { error: String(err) })
     }
@@ -2050,6 +2089,7 @@ export class Daemon {
           thoughtObserver: this.intelligence!.thoughtObserver,
           cognitiveBridge: this.intelligence!.cognitiveBridge,
           memory: this.intelligence!.memory,
+          mnemicField: (this.intelligence as any).__mnemicField,
           bus: this.bus,
           logger: this.logger.child?.('collect-thoughts') ?? this.logger,
           synapse,

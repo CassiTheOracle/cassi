@@ -214,15 +214,49 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       if (mnemicField && typeof mnemicField.getCortex === 'function') {
         try {
           const { Aurora } = await import('../intelligence/aurora/index.js')
+
+          let modelProvider: any = null
+          try {
+            const { LarqlKnowledgeProvider } = await import('../intelligence/aurora/larql-provider.js')
+            const { existsSync, readdirSync, statSync } = await import('node:fs')
+            const { join } = await import('node:path')
+            const { homedir } = await import('node:os')
+            const modelsDir = join(homedir(), '.cassicore', 'models')
+            if (existsSync(modelsDir)) {
+              const vindexes = readdirSync(modelsDir)
+                .filter(n => n.endsWith('.vindex'))
+                .map(n => ({ name: n, path: join(modelsDir, n), mtime: statSync(join(modelsDir, n)).mtimeMs }))
+                .sort((a, b) => b.mtime - a.mtime)
+              if (vindexes.length > 0) {
+                const provider = new LarqlKnowledgeProvider(logger)
+                const loaded = await provider.load(vindexes[0].path)
+                if (loaded) {
+                  modelProvider = provider
+                  logger.info('LarqlKnowledgeProvider loaded', { vindex: vindexes[0].name })
+                } else {
+                  logger.warn('LarqlKnowledgeProvider load returned false', { vindex: vindexes[0].name })
+                }
+              }
+            }
+          } catch (err) {
+            logger.warn('Failed to load LarqlKnowledgeProvider — Aurora will run without model knowledge', { error: String(err) })
+          }
+
+          const knowledgeField = (intelligence as any).__knowledgeField ?? null
+
           const aurora = new Aurora(
             mnemicField.getCortex(),
-            null,
+            modelProvider,
+            knowledgeField,
             null,
             logger,
           )
           thalamus.setAurora(aurora)
           intelligence.aurora = aurora
-          logger.info('Aurora wired to Thalamus')
+          logger.info('Aurora wired to Thalamus', {
+            hasModelProvider: !!modelProvider,
+            hasKnowledgeProvider: !!knowledgeField,
+          })
         } catch (err) {
           logger.warn('Failed to wire Aurora to Thalamus', { error: String(err) })
         }
@@ -235,6 +269,18 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         const assembler = new PinealAssembler(pinealModule.getStore(), logger.child('pineal-assembler'))
         thalamus.setPinealAssembler(assembler)
         logger.info('Pineal assembler wired to Thalamus with turn reinforcement')
+
+        // Mirror Pineal facets into read-only laminae
+        if (intelligence.lamina) {
+          try {
+            const { PinealLaminaBridge } = await import('../intelligence/lamina/pineal-bridge.js')
+            const bridge = new PinealLaminaBridge(pinealModule, intelligence.lamina, logger.child('pineal-lamina-bridge'))
+            const labels = bridge.syncOnce()
+            logger.info('Pineal facets mirrored to laminae', { labels })
+          } catch (err) {
+            logger.warn('Pineal→Lamina bridge failed', { error: String(err) })
+          }
+        }
       }
 
       // Wire handleFactory for background LLM calls (topic archiving, gap summaries)
