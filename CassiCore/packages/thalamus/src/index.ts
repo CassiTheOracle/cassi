@@ -1195,6 +1195,34 @@ export class ThalamusModule extends BaseCognitiveModule {
    * The call is fire-and-forget: the result is cached on session.topicArchive
    * and used to enrich gap descriptions in future curation calls.
    */
+  /**
+   * Strip reasoning/thinking artifacts some models emit despite instructions.
+   * Mirrors SmartCompactionEngine.stripThinkingArtifacts.
+   */
+  private static stripThinkingArtifacts(text: string): string {
+    return text
+      .replace(/\*\*[A-Z][^*\n]{8,80}\*\*:?\s*\n*/g, '')
+      .replace(/<think>[\s\S]*?<\/think>\s*/gi, '')
+      .replace(/Here's a thinking process:[\s\S]*/i, '')
+      .replace(/\d+\.\s*Analyze User Input:[\s\S]*/i, '')
+      .replace(/\d+\.\s*Task:[\s\S]*/i, '')
+      .trim()
+  }
+
+  /**
+   * Build a heuristic label from the cluster's messages when LLM summarization
+   * fails or produces garbage.
+   */
+  private heuristicTopicLabel(cluster: TopicCluster, messages: any[]): string {
+    const userMsgs = cluster.messageIndices
+      .map(idx => messages[idx])
+      .filter(m => m?.role === 'user')
+      .map(m => extractMessageContent(m).trim())
+    const seed = userMsgs.find(t => t.length > 10)
+    if (seed) return seed.split(/[.!?\n]/)[0].slice(0, 60)
+    return Array.from(cluster.termSet).slice(0, 4).join(', ').slice(0, 60)
+  }
+
   private fireTopicArchive(sessionId: string, cluster: TopicCluster, messages: any[]): void {
     if (!this.handleFactory || cluster.asyncPending) return
     cluster.asyncPending = true
@@ -1220,26 +1248,32 @@ export class ThalamusModule extends BaseCognitiveModule {
               role: 'user',
               content:
                 `Summarize this conversation segment in 1-2 sentences. ` +
-                `Focus on the main task and key outcome. Be concise.
-
-` +
-                `Key terms: ${keyTerms}
-
-Conversation:
+                `Focus on the main task and key outcome. Output ONLY the summary — ` +
+                `no thinking, no numbered steps, no analysis.\n\n` +
+                `Key terms: ${keyTerms}\n\nConversation:
 ${text}`,
             }],
             {
               model: handle.model,
               maxTokens: 120,
               temperature: 0.2,
+              systemPrompt:
+                'You are a concise summarizer. Output only the requested summary. ' +
+                'Never include thinking steps, reasoning, or analysis.',
               thinking: 'none',
               source: 'thalamus-topic-archive',
               trigger: 'background',
               sessionId,
             },
           )
-          const summary = result.response?.trim() ?? ''
-          const label = summary.split('.')[0]?.slice(0, 60) ?? `Topic ${cluster.id}`
+          let raw = result.response?.trim() ?? ''
+          let summary = ThalamusModule.stripThinkingArtifacts(raw)
+
+          if (!summary || summary.length > 300 || /thinking process|Analyze User Input/i.test(summary)) {
+            summary = this.heuristicTopicLabel(cluster, messages)
+          }
+
+          const label = summary.split('.')[0]?.slice(0, 60) || `Topic ${cluster.id}`
           cluster.summary = summary
           cluster.label = label
           cluster.asyncPending = false
@@ -1264,7 +1298,7 @@ ${text}`,
       .catch(() => { cluster.asyncPending = false })
   }
 
-  /**
+    /**
    * Topic-aware read suppression.
    * Within each topic cluster, only the latest read of a given file is kept.
    * Reads of the same file in DIFFERENT topics are preserved — a new topic
