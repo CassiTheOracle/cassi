@@ -93,13 +93,17 @@ export class EmbeddingService {
     const cached = this.cache.get(key)
     if (cached) {
       this.touchLRU(key)
-      return cached
+      // Defense-in-depth: cache may have stale full-dim vectors (loaded from disk
+      // or written before the truncation fix). Always return truncated.
+      return this.truncate(cached)
     }
 
     const results = await this.fetchBatch([text], mode)
     const vec = results[0] ?? null
-    if (vec) this.cacheSet(key, vec)
-    return vec ? this.truncate(vec) : null
+    if (!vec) return null
+    const truncated = this.truncate(vec)
+    this.cacheSet(key, truncated)
+    return truncated
   }
 
   /** Embed multiple texts in a single batch. Returns parallel array (null for failures). */
@@ -116,7 +120,8 @@ export class EmbeddingService {
       const cached = this.cache.get(key)
       if (cached) {
         this.touchLRU(key)
-        results[i] = cached
+        // Defense-in-depth: stale full-dim entries (from old cache) must be truncated.
+        results[i] = this.truncate(cached)
       } else {
         uncachedIndices.push(i)
         uncachedTexts.push(texts[i])
@@ -353,9 +358,11 @@ export class EmbeddingService {
       let loaded = 0
       for (const [key, vec] of entries) {
         if (typeof key === 'string' && Array.isArray(vec)) {
-          this.cache.set(key, vec)
+          // Truncate on load — older caches may contain 2560-dim vectors.
+          const truncated = vec.length > EMBEDDING_DIM ? vec.slice(0, EMBEDDING_DIM) : vec
+          this.cache.set(key, truncated)
           this.cacheOrder.push(key)
-          this.cacheByteSize += key.length + vec.length * 8
+          this.cacheByteSize += key.length + truncated.length * 8
           loaded++
           if (loaded >= this.maxEntries) break
         }
