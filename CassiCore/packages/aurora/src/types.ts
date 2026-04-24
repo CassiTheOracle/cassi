@@ -293,6 +293,76 @@ export interface ReasoningShift {
 }
 
 /**
+ * Semantic insight from Reverie's analysis of reasoning text.
+ * Produced by the slow-path ReverieReasoningObserver.
+ */
+export interface ReverieInsight {
+  /** Kind of insight detected. */
+  kind: 'contradiction' | 'gap' | 'assumption' | 'confidence' | 'task-misalignment' | 'breakthrough'
+
+  /** What was observed — the specific finding. */
+  content: string
+
+  /** How confident the observer is (0-1). */
+  confidence: number
+
+  /** Optional: suggested action or follow-up. */
+  suggestion?: string
+
+  /** Optional: if the observer recommends a lamina edit. */
+  laminaEdit?: {
+    action: 'append' | 'rethink' | 'flag'
+    label: string
+    content: string
+  }
+}
+
+/**
+ * A persisted record of a single reasoning observation.
+ * Stores the raw reasoning text alongside extracted concepts,
+ * insights, and metadata — creating a corpus for both the fast
+ * path (immediate concept activation) and future learning
+ * (pattern analysis, training data, retrospective insight).
+ */
+export interface ReasoningRecord {
+  /** Unique identifier for this observation. */
+  id: string
+
+  /** The raw reasoning text — preserved for learning and re-analysis. */
+  text: string
+
+  /** Concepts extracted via fast-path regex patterns. */
+  concepts: string[]
+
+  /** Semantic insights from Reverie slow-path (empty if not analyzed). */
+  insights: ReverieInsight[]
+
+  /** Shift detected in this observation, if any. */
+  shift: ReasoningShift | null
+
+  /** Momentum snapshot at time of observation. */
+  momentum: ReasoningMomentum
+
+  /** Which nodes in the cognitive graph were activated. */
+  activatedNodes: string[]
+
+  /** Turn number in the session. */
+  turnNumber: number
+
+  /** When this observation was recorded. */
+  recordedAt: number
+
+  /** How long the observation took (fast + slow path combined). */
+  durationMs: number
+
+  /** Whether the Reverie slow path was executed. */
+  reverieAnalyzed: boolean
+
+  /** Session ID this observation belongs to. */
+  sessionId?: string
+}
+
+/**
  * Update to the mental state after observing reasoning.
  */
 export interface MentalStateUpdate {
@@ -316,6 +386,15 @@ export interface MentalStateUpdate {
 
   /** Duration of observation in ms. */
   durationMs: number
+
+  /** Semantic insights from Reverie analysis (empty if slow path didn't run). */
+  reverieInsights: ReverieInsight[]
+
+  /** Whether the Reverie slow path was executed this turn. */
+  reverieAnalyzed: boolean
+
+  /** Reference to the persisted ReasoningRecord (id only — full record stored separately). */
+  recordId?: string
 }
 
 /**
@@ -351,6 +430,15 @@ export interface AuroraConfig {
 
   /** Concept extraction: max concepts per turn. */
   maxConceptsPerTurn: number
+
+  /** Reverie integration: minimum reasoning text length to trigger slow path. */
+  reverieMinTextLength: number
+
+  /** Reverie integration: sample every Nth observation (1 = always, 0 = disabled). */
+  reverieSamplingRate: number
+
+  /** Reverie integration: timeout for LLM analysis in ms. */
+  reverieTimeoutMs: number
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -364,4 +452,7 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   includeGraphDetail: true,
   minResonanceForHub: 0.3,
   maxConceptsPerTurn: 20,
+  reverieMinTextLength: 200,
+  reverieSamplingRate: 3,
+  reverieTimeoutMs: 8_000,
 }

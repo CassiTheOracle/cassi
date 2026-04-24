@@ -28,8 +28,12 @@ import type {
   ModelKnowledgeProvider,
   AuroraConfig,
   CognitiveEdge,
+  ReasoningRecord,
+  ReverieInsight,
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
+import type { ReverieInferenceProvider } from './reverie-reasoning-observer.js'
+import { ReverieReasoningObserver, makeReasoningRecordId } from './reverie-reasoning-observer.js'
 
 export { Claustrum } from './claustrum.js'
 export { StateProjector } from './state-projector.js'
@@ -41,9 +45,12 @@ export type {
   CognitiveEdge,
   ModelKnowledgeProvider,
   AuroraConfig,
+  ReasoningRecord,
+  ReverieInsight,
 } from './types.js'
 
 const MAX_RECENT_CONCEPTS = 200
+const MAX_REASONING_RECORDS = 500
 
 export class Aurora {
   private logger: ILogger
@@ -59,6 +66,21 @@ export class Aurora {
   private conceptHistory: string[][] = []
   private maxConceptsPerTurn: number
 
+  /** Persisted reasoning observations — corpus for learning and re-analysis. */
+  private reasoningLog: ReasoningRecord[] = []
+
+  /** Reverie slow-path observer (optional — set via setReverieInferenceProvider). */
+  private reverieObserver: ReverieReasoningObserver | null = null
+
+  /** Configuration for Reverie integration. */
+  private reverieMinTextLength: number
+  private reverieSamplingRate: number
+  private reverieTimeoutMs: number
+  private reverieObservationCounter = 0
+
+  /** Optional session ID for reasoning records. */
+  private sessionId?: string
+
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
@@ -69,6 +91,9 @@ export class Aurora {
   ) {
     this.logger = logger.child ? logger.child('aurora') : logger
     this.maxConceptsPerTurn = config?.maxConceptsPerTurn ?? AURORA_DEFAULTS.maxConceptsPerTurn
+    this.reverieMinTextLength = config?.reverieMinTextLength ?? AURORA_DEFAULTS.reverieMinTextLength
+    this.reverieSamplingRate = config?.reverieSamplingRate ?? AURORA_DEFAULTS.reverieSamplingRate
+    this.reverieTimeoutMs = config?.reverieTimeoutMs ?? AURORA_DEFAULTS.reverieTimeoutMs
 
     this.claustrum = new Claustrum(logger, config)
     this.projector = new StateProjector(logger, config)
@@ -77,7 +102,33 @@ export class Aurora {
       hasModelProvider: !!modelProvider,
       hasKnowledgeProvider: !!knowledgeProvider,
       hasPortalBridge: !!portalBridge,
+      reverieSamplingRate: this.reverieSamplingRate,
+      reverieMinTextLength: this.reverieMinTextLength,
     })
+  }
+
+  /** Wire a Reverie inference provider for the slow path. */
+  setReverieInferenceProvider(provider: ReverieInferenceProvider): void {
+    this.reverieObserver = new ReverieReasoningObserver(provider, this.logger)
+    this.logger.info('Reverie reasoning observer wired')
+  }
+
+  /** Set session ID for reasoning records. */
+  setSessionId(sessionId: string): void {
+    this.sessionId = sessionId
+  }
+
+  /** Get the persisted reasoning log (most recent first). */
+  getReasoningLog(limit = 50): ReasoningRecord[] {
+    return this.reasoningLog.slice(-limit).reverse()
+  }
+
+  /** Get reasoning records that had Reverie insights (for analysis). */
+  getInsightfulReasoning(limit = 20): ReasoningRecord[] {
+    return this.reasoningLog
+      .filter(r => r.insights.length > 0)
+      .slice(-limit)
+      .reverse()
   }
 
   buildState(
@@ -167,6 +218,7 @@ export class Aurora {
   observeReasoning(text: string): MentalStateUpdate {
     const start = Date.now()
 
+    // === FAST PATH (always) ===
     const concepts = this.extractConcepts(text)
 
     if (concepts.length === 0) {
@@ -179,6 +231,8 @@ export class Aurora {
         momentum: this.computeMomentum([]),
         extractedConcepts: [],
         durationMs: Date.now() - start,
+        reverieInsights: [],
+        reverieAnalyzed: false,
       }
     }
 
@@ -243,11 +297,40 @@ export class Aurora {
     const shift = this.detectShift(concepts)
     const momentum = this.computeMomentum(concepts)
 
+    // === SLOW PATH (conditional) ===
+    // Decide whether to run Reverie semantic analysis
+    let reverieInsights: ReverieInsight[] = []
+    let reverieAnalyzed = false
+    const shouldRunReverie = this.shouldRunReverieSlowPath(text, shift)
+
+    if (shouldRunReverie && this.reverieObserver) {
+      reverieAnalyzed = true
+      // Fire-and-forget: Reverie analysis is async but observeReasoning is sync
+      // We kick it off and let it append insights to the record later
+      this.runReverieAnalysis(text, concepts, shift, activatedNodes, momentum)
+        .catch(err => this.logger.debug('Reverie analysis failed', { error: String(err) }))
+    }
+
+    // === PERSIST ===
+    // Always save the reasoning record — this is the learning corpus
+    const record = this.persistReasoningRecord({
+      text,
+      concepts,
+      insights: reverieInsights, // will be empty if async; updated later
+      shift,
+      momentum,
+      activatedNodes,
+      durationMs: Date.now() - start,
+      reverieAnalyzed,
+    })
+
     this.logger.debug('Reasoning observed', {
       concepts: concepts.length,
       activatedNodes: activatedNodes.length,
       shift: shift?.type ?? 'none',
       turnCount: this.turnCount,
+      reverieAnalyzed,
+      recordId: record.id,
     })
 
     return {
@@ -258,7 +341,106 @@ export class Aurora {
       momentum,
       extractedConcepts: concepts,
       durationMs: Date.now() - start,
+      reverieInsights,
+      reverieAnalyzed,
+      recordId: record.id,
     }
+  }
+
+  /**
+   * Decide whether the Reverie slow path should run for this reasoning text.
+   */
+  private shouldRunReverieSlowPath(text: string, shift: ReasoningShift | null): boolean {
+    if (!this.reverieObserver) return false
+    if (this.reverieSamplingRate <= 0) return false
+
+    // Always run on significant reasoning text
+    if (text.length < this.reverieMinTextLength) return false
+
+    // Always run when a shift is detected (high-value signal)
+    if (shift) return true
+
+    // Sample every Nth observation
+    this.reverieObservationCounter++
+    return this.reverieObservationCounter % this.reverieSamplingRate === 0
+  }
+
+  /**
+   * Run Reverie semantic analysis asynchronously.
+   * Updates the persisted ReasoningRecord with insights when complete.
+   */
+  private async runReverieAnalysis(
+    text: string,
+    concepts: string[],
+    shift: ReasoningShift | null,
+    activatedNodes: string[],
+    momentum: ReasoningMomentum,
+  ): Promise<void> {
+    if (!this.reverieObserver) return
+
+    const insights = await this.reverieObserver.analyze(
+      {
+        text,
+        currentState: this.currentState,
+        activeTask: null, // TODO: wire from lamina
+        recentDecisions: [], // TODO: wire from session-decisions
+        extractedConcepts: concepts,
+        shiftDetected: shift !== null,
+      },
+      this.reverieTimeoutMs,
+    )
+
+    if (insights.length > 0) {
+      // Find the most recent record for this text and update it
+      for (let i = this.reasoningLog.length - 1; i >= 0; i--) {
+        const record = this.reasoningLog[i]
+        if (record.text === text) {
+          record.insights = insights
+          this.logger.debug('Reverie insights appended to record', {
+            recordId: record.id,
+            insights: insights.length,
+          })
+          break
+        }
+      }
+    }
+  }
+
+  /**
+   * Persist a reasoning observation to the log.
+   * This creates the learning corpus — raw text + extracted metadata.
+   */
+  private persistReasoningRecord(params: {
+    text: string
+    concepts: string[]
+    insights: ReverieInsight[]
+    shift: ReasoningShift | null
+    momentum: ReasoningMomentum
+    activatedNodes: string[]
+    durationMs: number
+    reverieAnalyzed: boolean
+  }): ReasoningRecord {
+    const record: ReasoningRecord = {
+      id: makeReasoningRecordId(),
+      text: params.text,
+      concepts: params.concepts,
+      insights: params.insights,
+      shift: params.shift,
+      momentum: params.momentum,
+      activatedNodes: params.activatedNodes,
+      turnNumber: this.turnCount,
+      recordedAt: Date.now(),
+      durationMs: params.durationMs,
+      reverieAnalyzed: params.reverieAnalyzed,
+      sessionId: this.sessionId,
+    }
+
+    this.reasoningLog.push(record)
+    if (this.reasoningLog.length > MAX_REASONING_RECORDS) {
+      this.reasoningLog.shift()
+    }
+
+    return record
   }
 
   private extractConcepts(text: string): string[] {
