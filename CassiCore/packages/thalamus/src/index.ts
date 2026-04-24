@@ -97,6 +97,11 @@ export class ThalamusModule extends BaseCognitiveModule {
   setPinealAssembler(pa: PinealAssembler): void { this.pinealAssembler = pa }
   setHandleFactory(fn: HandleFactory): void { this.handleFactory = fn }
 
+  /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
+  setReverieInferenceProvider(provider: import('../aurora/reverie-reasoning-observer.js').ReverieInferenceProvider): void {
+    this.aurora?.setReverieInferenceProvider(provider)
+  }
+
   async init(): Promise<void> {
     await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
@@ -576,6 +581,10 @@ export class ThalamusModule extends BaseCognitiveModule {
   /**
    * Forward reasoning to Aurora for cognitive state feedback.
    * Called on turn:end with the assistant's response.
+   *
+   * Aurora runs a fast path (regex concept extraction + graph activation)
+   * and optionally a Reverie slow path (LLM semantic analysis).
+   * The reasoning text is persisted as a ReasoningRecord for learning.
    */
   observeReasoning(text: string): void {
     if (!this.aurora) return
