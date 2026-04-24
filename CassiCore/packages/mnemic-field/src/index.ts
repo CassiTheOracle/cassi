@@ -119,6 +119,14 @@ export class MnemicField {
   private lastReprojectionAt = 0
   private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
+
+  // Retrieval result cache. Kindling does 5 iterations of spreading activation
+  // across ~800k filaments and takes 10-30s. Repeated identical queries (very
+  // common during a single conversation turn — agent often calls enrich with
+  // similar terms) can short-circuit. Cleared on store/insert and TTL-bounded.
+  private retrieveCache = new Map<string, { hits: MnemicRetrievalHit[]; ts: number }>()
+  private static readonly RETRIEVE_CACHE_TTL_MS = 5 * 60 * 1000  // 5 min
+  private static readonly RETRIEVE_CACHE_MAX = 64
   private corticalField?: CorticalField
   private db: Database.Database  // Store for persistence operations
   private dreamEngine: DreamEngine | null = null
@@ -266,6 +274,8 @@ export class MnemicField {
    * projects into the existing field topology via nearest-neighbor placement.
    */
   store(input: EngramCreate): Engram {
+    // New engram → invalidate retrieve cache (results may now be stale).
+    if (this.retrieveCache.size > 0) this.retrieveCache.clear()
     const shouldProject = input.embedding && input.x === undefined && input.y === undefined
     let x = input.x
     let y = input.y
@@ -436,6 +446,19 @@ export class MnemicField {
     options?: KindlingOptions & { limit?: number },
   ): Promise<MnemicRetrievalHit[]> {
     const limit = options?.limit ?? options?.maxLuminalSize ?? 8
+
+    // Cache check — see RETRIEVE_CACHE notes on the class field.
+    // Key on the parameters that change the result; intentionally exclude
+    // currentAffect (we want repeated calls within seconds to hit the cache).
+    const cacheKey = `${query}\u0000${limit}\u0000${options?.complexity ?? ''}\u0000${options?.maxIterations ?? ''}`
+    const now = Date.now()
+    const cached = this.retrieveCache.get(cacheKey)
+    if (cached && (now - cached.ts) < MnemicField.RETRIEVE_CACHE_TTL_MS) {
+      // Move to end for LRU recency
+      this.retrieveCache.delete(cacheKey)
+      this.retrieveCache.set(cacheKey, cached)
+      return cached.hits
+    }
     
     // Generate embedding for query so filament ANN can be used
     const embSvc = getEmbeddingService(this.logger)
@@ -448,6 +471,7 @@ export class MnemicField {
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
 
+    let hits: MnemicRetrievalHit[]
     if (luminal.engrams.length > 0) {
       const excerptMap = new Map<string, { content: string; similarity: number }>()
       if (luminal.filamentAnnotations) {
@@ -459,7 +483,7 @@ export class MnemicField {
         }
       }
 
-      return luminal.engrams.map(hit => ({
+      hits = luminal.engrams.map(hit => ({
         id: hit.engram.id,
         content: hit.engram.content,
         nodeType: hit.engram.nodeType,
@@ -471,19 +495,28 @@ export class MnemicField {
         metadata: hit.engram.metadata,
         filamentExcerpt: excerptMap.get(hit.engram.id)?.content,
       }))
+    } else {
+      hits = this.searchText(query, limit).map(r => ({
+        id: r.engram.id,
+        content: r.engram.content,
+        nodeType: r.engram.nodeType,
+        score: r.score,
+        charge: 0,
+        potentiation: r.engram.potentiation,
+        provenance: r.engram.provenance,
+        tags: r.engram.tags,
+        metadata: r.engram.metadata,
+      }))
     }
 
-    return this.searchText(query, limit).map(r => ({
-      id: r.engram.id,
-      content: r.engram.content,
-      nodeType: r.engram.nodeType,
-      score: r.score,
-      charge: 0,
-      potentiation: r.engram.potentiation,
-      provenance: r.engram.provenance,
-      tags: r.engram.tags,
-      metadata: r.engram.metadata,
-    }))
+    // Cache result. Evict oldest if over capacity (Map iteration order is insertion order).
+    this.retrieveCache.set(cacheKey, { hits, ts: now })
+    while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
+      const oldest = this.retrieveCache.keys().next().value
+      if (oldest === undefined) break
+      this.retrieveCache.delete(oldest)
+    }
+    return hits
   }
 
   createMigrationJob(spec: MigrationJobSpec): MigrationJobRecord {
@@ -866,8 +899,10 @@ export class MnemicField {
           type: 'perception',
           content: `Mnemic retrieval: ${result.engrams.length} engrams kindled (top charge ${topCharge.toFixed(2)}, ${result.iterationsUsed} iterations, ${result.durationMs}ms)`,
           author: 'mnemic-field',
-          salience: Math.min(0.7, topCharge * 0.5),
-          tags: ['mnemic-retrieval'],
+          // Telemetry signal — should fade fast and not flood active-cortex injection.
+          // Previously clamped to 0.7 which kept it sticky across many turns.
+          salience: 0.05,
+          tags: ['mnemic-retrieval', 'telemetry'],
           structured: {
             engramCount: result.engrams.length,
             seedCount: result.seedCount,
