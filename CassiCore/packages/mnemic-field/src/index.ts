@@ -24,6 +24,7 @@ import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagate
 import { renderWithZoom } from './filament-renderer.js'
 import type { IProvider } from '../../../types/runtime.js'
 import { FilamentAnalyzer } from './filament-llm.js'
+import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -120,6 +121,11 @@ export class MnemicField {
   private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
 
+  // LLM-based reranker (alternative to filament kindling). Set via setRerankerProvider.
+  private reranker: LLMReranker | null = null
+  private rerankerModel: string = 'github-copilot/gpt-5-mini'
+  private rerankerEnabled: boolean = false
+
   // Retrieval result cache. Kindling does 5 iterations of spreading activation
   // across ~800k filaments and takes 10-30s. Repeated identical queries (very
   // common during a single conversation turn — agent often calls enrich with
@@ -127,6 +133,26 @@ export class MnemicField {
   private retrieveCache = new Map<string, { hits: MnemicRetrievalHit[]; ts: number }>()
   private static readonly RETRIEVE_CACHE_TTL_MS = 5 * 60 * 1000  // 5 min
   private static readonly RETRIEVE_CACHE_MAX = 64
+
+  /** Enable the LLM reranker. Call during daemon startup after providers are wired. */
+  setRerankerProvider(provider: IProvider, model?: string, enabled?: boolean): void {
+    this.rerankerModel = model ?? this.rerankerModel
+    this.rerankerEnabled = enabled ?? true
+    if (this.rerankerEnabled && provider) {
+      this.reranker = new LLMReranker(this.logger, {
+        provider,
+        model: this.rerankerModel,
+        maxSentences: 120,
+        maxSentenceChars: 400,
+        source: 'mnemic.reranker',
+      })
+      this.logger.info('LLM reranker enabled', { model: this.rerankerModel })
+    } else {
+      this.reranker = null
+      this.rerankerEnabled = false
+      this.logger.info('LLM reranker disabled')
+    }
+  }
   private corticalField?: CorticalField
   private db: Database.Database  // Store for persistence operations
   private dreamEngine: DreamEngine | null = null
@@ -463,6 +489,42 @@ export class MnemicField {
     // Generate embedding for query so filament ANN can be used
     const embSvc = getEmbeddingService(this.logger)
     const queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
+
+    let hits: MnemicRetrievalHit[]
+
+    // FAST PATH: LLM reranker (alternative to filament kindling).
+    // Uses embed-recall + cross-encoder LLM to select relevant sentences.
+    // Latency: ~1-2s vs ~30s for kindling. Enabled via setRerankerProvider().
+    if (this.rerankerEnabled && this.reranker && queryEmbedding && this.kindlingEngine.isAnnReady()) {
+      const annResults = this.kindlingEngine.searchEngramAnn(queryEmbedding, 50)
+      if (annResults.length > 0) {
+        const candidates: Engram[] = []
+        for (const r of annResults) {
+          const eng = this.cortex.getEngram(r.id)
+          if (eng) candidates.push(eng)
+        }
+        if (candidates.length > 0) {
+          try {
+            const ranked = await this.reranker.rerank(query, candidates, limit, undefined)
+            if (ranked.length > 0) {
+              hits = LLMReranker.toRetrievalHits(candidates, ranked, limit)
+              // Cache result (same logic as kindling path)
+              this.retrieveCache.set(cacheKey, { hits, ts: now })
+              while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
+                const oldest = this.retrieveCache.keys().next().value
+                if (oldest === undefined) break
+                this.retrieveCache.delete(oldest)
+              }
+              return hits
+            }
+          } catch (err) {
+            this.logger.warn('LLM reranker failed, falling back to kindling', { error: String(err) })
+          }
+        }
+      }
+    }
+
+    // FALLBACK: filament-based kindling (existing path)
     
     const luminal = this.kindle(queryEmbedding, query, {
       ...options,
@@ -471,7 +533,6 @@ export class MnemicField {
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
 
-    let hits: MnemicRetrievalHit[]
     if (luminal.engrams.length > 0) {
       const excerptMap = new Map<string, { content: string; similarity: number }>()
       if (luminal.filamentAnnotations) {

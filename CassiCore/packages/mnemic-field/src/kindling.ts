@@ -92,6 +92,12 @@ export class KindlingEngine {
     return this.annInitialized && this.engramAnnIndex?.isReady() === true
   }
 
+  /** Search the engram ANN index by embedding. Returns (id, distance) pairs. */
+  searchEngramAnn(embedding: number[], limit: number): Array<{ id: string; distance: number }> {
+    if (!this.isAnnReady()) return []
+    return this.engramAnnIndex!.search(embedding, limit)
+  }
+
   /** Get ANN statistics */
   getAnnStats(): { engram: ReturnType<ANNIndex['stats']>; filament: ReturnType<ANNIndex['stats']> } {
     return {
