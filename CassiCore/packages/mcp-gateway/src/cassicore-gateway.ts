@@ -40,16 +40,9 @@ import {
   formatError,
   formatJsonResponse,
   formatTextResponse,
-  getCoreTools,
-  executeCassiCoreTool,
-  VYBIT_TOOL,
-  SKILL_INTELLIGENCE_TOOL,
   WORKFLOW_TOOL,
-  getDoTools,
-  executeDoTool,
   executeEnrichTool,
   executeEnrichFeedbackTool,
-  DO_TOOL_NAMES,
   ENRICH_TOOL_NAMES,
   getAgentTool,
   executeAgentTool,
@@ -59,16 +52,6 @@ import {
   executeSessionConsolidatedTool,
   getIntelligenceConsolidatedTool,
   executeIntelligenceConsolidatedTool,
-  getArtifactConsolidatedTool,
-  executeArtifactConsolidatedTool,
-  getCodeConsolidatedTool,
-  executeCodeConsolidatedTool,
-  getFilesystemConsolidatedTool,
-  executeFilesystemConsolidatedTool,
-  getBrowserConsolidatedTool,
-  executeBrowserConsolidatedTool,
-  getWebConsolidatedTool,
-  executeWebConsolidatedTool,
   getConfigConsolidatedTool,
   executeConfigConsolidatedTool,
   getModelConsolidatedTool,
@@ -90,11 +73,6 @@ import {
   MEMORY_CONSOLIDATED_TOOL_NAME,
   SESSION_CONSOLIDATED_TOOL_NAME,
   INTELLIGENCE_CONSOLIDATED_TOOL_NAME,
-  ARTIFACT_CONSOLIDATED_TOOL_NAME,
-  CODE_CONSOLIDATED_TOOL_NAME,
-  FILESYSTEM_CONSOLIDATED_TOOL_NAME,
-  BROWSER_CONSOLIDATED_TOOL_NAME,
-  WEB_CONSOLIDATED_TOOL_NAME,
   CONFIG_CONSOLIDATED_TOOL_NAME,
   MODEL_CONSOLIDATED_TOOL_NAME,
   TRAINING_CONSOLIDATED_TOOL_NAME,
@@ -201,27 +179,18 @@ function readBodyWithLimit(req: http.IncomingMessage, maxSize: number = 1024 * 1
 
 /**
  * Get all MCP tools.
+ * Only CassiCore intelligence/memory/workflow tools — no filesystem or core tools.
  * @dep callers: startHttp (mcp/cassicore-gateway.ts), createServer (mcp/cassicore-gateway.ts)
- * @dep calls: getCoreTools, getDoTools, getWebConsolidatedTool, getTrainingConsolidatedTool, getSessionConsolidatedTool [+10]
+ * @dep calls: getAgentTool, getMemoryConsolidatedTool, getSessionConsolidatedTool [+10]
  * @dep module: Mcp
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 function getAllTools() {
-  const coreTools = getCoreTools();
-  const mainCoreTools = coreTools.filter(t => ['bash', 'read', 'write', 'edit', 'todo_write'].includes(t.name));
-
   return [
-    ...mainCoreTools,
-    ...getDoTools(),
     getAgentTool(),
     getMemoryConsolidatedTool(),
     getSessionConsolidatedTool(),
     getIntelligenceConsolidatedTool(),
-    getArtifactConsolidatedTool(),
-    getCodeConsolidatedTool(),
-    getFilesystemConsolidatedTool(),
-    getBrowserConsolidatedTool(),
-    getWebConsolidatedTool(),
     getConfigConsolidatedTool(),
     getModelConsolidatedTool(),
     getTrainingConsolidatedTool(),
@@ -231,26 +200,8 @@ function getAllTools() {
     getSelfModelTool(),
     getKnowledgeTool(),
     ...getAnnotationTools(),
-    VYBIT_TOOL,
-    SKILL_INTELLIGENCE_TOOL,
     WORKFLOW_TOOL,
   ];
-}
-
-/**
- * Route a tool call to the appropriate domain handler
- * @dep callers: createServer (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
- * @dep calls: has, routeToolCall, executeTrainingTool, executeCassiCoreTool, getCoreTools [+19]
- * @dep flows: CreateHierarchyBridge → ExecuteIntelligenceTool (3/4), CreateHierarchyBridge → FormatTextResponse (3/4)
- * @dep module: Gateway
- * @dep risk: LOW | 2 callers, 2 flows, 1 module
- */
-let _coreToolNameCache: Set<string> | null = null;
-function isCoreToolName(name: string): boolean {
-  if (!_coreToolNameCache) {
-    _coreToolNameCache = new Set(getCoreTools().map(t => t.name));
-  }
-  return _coreToolNameCache.has(name);
 }
 
 /**
@@ -313,7 +264,7 @@ async function routeExternalToolCall(
 /**
  * Route a tool call to the appropriate domain handler.
  * @dep callers: createServer (mcp/cassicore-gateway.ts), routeToolCall (mcp/cassicore-gateway.ts)
- * @dep calls: isCoreToolName, routeExternalToolCall, routeToolCall, executeCassiCoreTool, resolveToolAlias [+20]
+ * @dep calls: routeExternalToolCall, routeToolCall, resolveToolAlias, executeEnrichTool [+20]
  * @dep module: Gateway
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
@@ -329,38 +280,19 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
   }
 
   try {
-    // HOW: Core tools return JSON format via formatJsonResponse
-    if (isCoreToolName(name)) {
-      const result = await executeCassiCoreTool(CASSICORE_URL, name, args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // HOW: VyBit routes through ToolExecutor like core tools
-    if (name === 'vybit') {
-      const result = await executeCassiCoreTool(CASSICORE_URL, 'vybit', args, logger);
-      return formatJsonResponse(result);
-    }
-
-    // HOW: Skill intelligence routes through ToolExecutor
-    if (name === 'skill_intelligence') {
-      const result = await executeCassiCoreTool(CASSICORE_URL, 'skill_intelligence', args, logger);
-      return formatJsonResponse(result);
-    }
-
     // HOW: Workflow tool routes through ToolExecutor
     if (name === 'workflow') {
-      const result = await executeCassiCoreTool(CASSICORE_URL, 'workflow', args, logger);
+      const response = await fetchWithTimeout(`${CASSICORE_URL}/tools/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'workflow', input: args }),
+        timeoutMs: 30_000,
+      });
+      if (!response.ok) {
+        return formatError(new Error(`Daemon returned ${response.status}`));
+      }
+      const result = await response.json();
       return formatJsonResponse(result);
-    }
-
-    // HOW: do tool is a meta-wrapper with parallel context enrichment
-    if (DO_TOOL_NAMES.has(name)) {
-      return await executeDoTool(
-        CASSICORE_URL,
-        args,
-        logger,
-        (toolName, toolArgs) => routeToolCall(toolName, toolArgs, progressToken, heartbeat)
-      );
     }
 
     // HOW: enrich tool performs context-only enrichment without delegated tool calls
@@ -400,39 +332,6 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
         }
         return formatJsonResponse(result);
       }
-
-      case ARTIFACT_CONSOLIDATED_TOOL_NAME: {
-        const result = await executeArtifactConsolidatedTool(CASSICORE_URL, args, logger);
-        // HOW: File artifact tools return MCP format directly
-        return result as { content: Array<{ type: 'text'; text: string }>; isError?: true };
-      }
-
-      case CODE_CONSOLIDATED_TOOL_NAME:
-        // WHY: The code tool calls router('gitnexus_*', ...) which MUST go
-        // directly to the daemon's MCP bridge. Passing routeToolCall as the
-        // router creates an infinite loop: gitnexus_query → alias → code → gitnexus_query → ...
-        return formatJsonResponse(await executeCodeConsolidatedTool(args, logger, (toolName, toolArgs) =>
-          routeExternalToolCall(toolName, toolArgs)
-        ));
-
-      case FILESYSTEM_CONSOLIDATED_TOOL_NAME:
-        // WHY: Filesystem tool calls router('serena_*') which would alias back
-        // to 'file' or 'code' via routeToolCall, creating an infinite loop.
-        return formatJsonResponse(await executeFilesystemConsolidatedTool(args, logger, (toolName, toolArgs) =>
-          routeExternalToolCall(toolName, toolArgs)
-        ));
-
-      case BROWSER_CONSOLIDATED_TOOL_NAME:
-        // WHY: Browser tool calls router('playwright_browser_*') which would
-        // alias back to 'browser' via routeToolCall, creating an infinite loop.
-        return formatJsonResponse(await executeBrowserConsolidatedTool(args, logger, (toolName, toolArgs) =>
-          routeExternalToolCall(toolName, toolArgs)
-        ));
-
-      case WEB_CONSOLIDATED_TOOL_NAME:
-        return formatJsonResponse(await executeWebConsolidatedTool(CASSICORE_URL, args, logger, (toolName, toolArgs) =>
-          routeExternalToolCall(toolName, toolArgs)
-        ));
 
       case CONFIG_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeConfigConsolidatedTool(CASSICORE_URL, args, logger));
@@ -1139,9 +1038,21 @@ async function startHttp(port: number) {
           return;
         }
 
-        const result = await executeCassiCoreTool(CASSICORE_URL, tool, args || {}, logger);
+        const result = await fetchWithTimeout(`${CASSICORE_URL}/tools/execute`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool, input: args || {} }),
+          timeoutMs: 120_000,
+        });
+        if (!result.ok) {
+          const err = await result.text().catch(() => `HTTP ${result.status}`);
+          res.writeHead(result.status, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err }));
+          return;
+        }
+        const json = await result.json();
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(result));
+        res.end(JSON.stringify(json));
       } catch (error: any) {
         const statusCode = error.message.includes('exceeds') ? 413 : 
                           error.message.includes('Unexpected token') ? 400 : 500;
