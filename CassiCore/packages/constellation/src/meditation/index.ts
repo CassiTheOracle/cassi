@@ -152,6 +152,10 @@ export class MeditationController extends BaseCognitiveModule {
       }))
   }
 
+  getMnemicField(): MnemicField | undefined {
+    return this.mnemicField
+  }
+
   getStore(): MeditationStore | undefined {
     return this.meditationStore
   }
@@ -320,12 +324,22 @@ export class MeditationController extends BaseCognitiveModule {
         const analyzer = new FieldHealthAnalyzer(this.mnemicField, this.logger, this.meditationStore)
         const health = analyzer.shouldOrganize()
         if (health.trigger) {
-          style = 'organizing'
-          this.cachedHealthSnapshot = analyzer.snapshot()
-          this.logger.info('[Meditation] Health-based organizing upgrade', {
-            reason: health.reason,
-            score: health.score,
-          })
+          const last = analyzer.getRecentSessions(1)[0]
+          const sinceLast = last ? Date.now() - last.timestamp : Infinity
+          if (sinceLast < this.meditationConfig.organizingCooldownMs) {
+            this.logger.info('[Meditation] Skipping organizing upgrade — within cooldown', {
+              sinceLastMs: sinceLast,
+              cooldownMs: this.meditationConfig.organizingCooldownMs,
+              score: health.score,
+            })
+          } else {
+            style = 'organizing'
+            this.cachedHealthSnapshot = analyzer.snapshot()
+            this.logger.info('[Meditation] Health-based organizing upgrade', {
+              reason: health.reason,
+              score: health.score,
+            })
+          }
         }
       } catch (err) {
         this.logger.debug('[Meditation] Health check failed (non-fatal)', { error: String(err) })

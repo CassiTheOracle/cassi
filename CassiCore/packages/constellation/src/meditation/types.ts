@@ -35,6 +35,8 @@ export interface MeditationConfig {
   evaluateOnComplete: boolean
   /** Minimum session duration (ms) before evaluation runs. Prevents evaluation on very short/failed sessions. Default: 120_000 (2 min) */
   minEvalDurationMs: number
+  /** Minimum gap (ms) between organizing-style sessions. Health-based upgrade is skipped while inside this window so the field has time to settle. Default: 1_800_000 (30 min) */
+  organizingCooldownMs: number
 }
 
 export const DEFAULT_MEDITATION_CONFIG: MeditationConfig = {
@@ -50,6 +52,7 @@ export const DEFAULT_MEDITATION_CONFIG: MeditationConfig = {
   defaultStyle: 'passive',
   evaluateOnComplete: true,
   minEvalDurationMs: 120_000,
+  organizingCooldownMs: 1_800_000,
 }
 
 
