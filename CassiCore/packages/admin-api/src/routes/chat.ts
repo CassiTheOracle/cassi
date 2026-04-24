@@ -63,7 +63,11 @@ export async function handleChatRoutes(
         } catch {}
       } else if (payload?.type === 'turn:tool_call') {
         try {
-          res.write(`data: ${JSON.stringify({ type: 'tool_call', tool: payload.tool, input: payload.input })}\n\n`)
+          res.write(`data: ${JSON.stringify({ type: 'tool_call', toolCallId: payload.toolCallId, tool: payload.tool, input: payload.input })}\n\n`)
+        } catch {}
+      } else if (payload?.type === 'turn:tool_result') {
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'tool_result', toolCallId: payload.toolCallId, tool: payload.tool, isError: payload.isError, content: payload.content })}\n\n`)
         } catch {}
       } else if (payload?.type === 'turn:error') {
         try {

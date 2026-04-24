@@ -954,7 +954,7 @@ export async function handleIntelligenceRoutes(
       try {
         const smf = (daemon as any).__selfModelField ?? (daemon?.intelligence as any)?.__selfModelField
         if (smf && typeof smf.retrieve === 'function') {
-          const smHits = smf.retrieve(query, { limit: 3 })
+          const smHits = await smf.retrieve(query, { limit: 3 })
           for (const hit of smHits) {
             const prefix = hit.nodeType === 'module' ? '[Module]'
               : hit.nodeType === 'capability' ? '[Capability]'
