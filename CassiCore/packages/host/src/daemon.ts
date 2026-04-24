@@ -1105,12 +1105,15 @@ export class Daemon {
       return null
     }
 
-    // 6. Load the echo-channel worker (phase 1)
+    // 6. Load the echo-channel worker (phase 1, optional — only if explicitly enabled)
     this.logger.info('── Phase 3: Channels ──────────────────────────────────')
 
-    const echoPath = resolveWorker("../workers/echo-channel")
+    const echoEnabled = this.config.get<boolean>("channels.echo.enabled", false)
+    const echoPath = echoEnabled ? resolveWorker("../workers/echo-channel") : null
 
-    if (!echoPath) {
+    if (!echoEnabled) {
+      // Silent skip — echo is a debug/test channel, not noteworthy
+    } else if (!echoPath) {
       this.logger.warn("echo-channel worker not found; continuing without it")
     } else {
       try {
@@ -1152,9 +1155,12 @@ export class Daemon {
       }
     }
 
-    // 7b. Load CLI channel worker (always enabled for admin-api support)
-    const cliPath = resolveWorker("../workers/channels/cli")
-    if (!cliPath) {
+    // 7b. Load CLI channel worker (default-enabled; opt out via channels.cli.enabled=false)
+    const cliEnabled = this.config.get<boolean>("channels.cli.enabled", true)
+    const cliPath = cliEnabled ? resolveWorker("../workers/channels/cli") : null
+    if (!cliEnabled) {
+      this.logger.info("CLI channel disabled by config; skipping")
+    } else if (!cliPath) {
       this.logger.warn("cli worker not found; skipping")
     } else {
       try {
