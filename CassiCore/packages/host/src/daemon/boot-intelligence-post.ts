@@ -253,9 +253,25 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           )
           thalamus.setAurora(aurora)
           intelligence.aurora = aurora
+
+          // Wire Reverie inference provider into Aurora for the reasoning slow path.
+          // ReverieModule exposes inferForObserver() which matches ReverieInferenceProvider.
+          if (intelligence.reverie) {
+            try {
+              const reverieProvider: import('../intelligence/aurora/reverie-reasoning-observer.js').ReverieInferenceProvider = {
+                infer: (messages, options) => intelligence.reverie!.inferForObserver(messages, options),
+              }
+              thalamus.setReverieInferenceProvider(reverieProvider)
+              logger.info('Reverie wired to Aurora reasoning observer')
+            } catch (err) {
+              logger.debug('Failed to wire Reverie to Aurora', { error: String(err) })
+            }
+          }
+
           logger.info('Aurora wired to Thalamus', {
             hasModelProvider: !!modelProvider,
             hasKnowledgeProvider: !!knowledgeField,
+            hasReverie: !!intelligence.reverie,
           })
         } catch (err) {
           logger.warn('Failed to wire Aurora to Thalamus', { error: String(err) })

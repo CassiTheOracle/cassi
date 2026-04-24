@@ -1790,6 +1790,21 @@ export class Daemon {
         this.intelligence.constellation.setMnemicField(field)
       }
 
+      // Wire LLM reranker into MnemicField (alternative to filament kindling).
+      // Uses gpt-5-mini for fast (~1s) cross-encoder reranking vs ~30s for kindling.
+      const rerankerProviderId = this.config.get<string>('intelligence.mnemic.rerankerProvider', 'github-copilot')
+      const rerankerModel = this.config.get<string>('intelligence.mnemic.rerankerModel', 'gpt-5-mini')
+      const rerankerProvider = providers.get(rerankerProviderId) ?? providers.values().next().value
+      const rerankerEnabled = this.config.get<boolean>('intelligence.mnemic.rerankerEnabled', true)
+      if (rerankerProvider && rerankerEnabled) {
+        field.setRerankerProvider(rerankerProvider, rerankerModel, true)
+        this.logger.info(`MnemicField LLM reranker wired: ${rerankerProviderId}/${rerankerModel}`)
+      } else if (!rerankerEnabled) {
+        this.logger.info('MnemicField LLM reranker disabled by config')
+      } else {
+        this.logger.warn('MnemicField LLM reranker: no provider available')
+      }
+
       // Wire GlobalWorkspace into constellation orchestrator so spawned Helix
       // sessions boot in brain-integrated mode (Conductor + journal + locus).
       if (
