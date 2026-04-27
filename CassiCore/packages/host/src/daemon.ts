@@ -1747,6 +1747,13 @@ export class Daemon {
     try {
       const field = new MnemicField(this.logger)
       field.enableNeuralKindling()
+      sessionStore.setMnemicField(field)
+      this.logger.info('SessionStore MnemicField replay bridge wired')
+      if (this.intelligence?.audit && typeof (this.intelligence.audit as any).setMnemicField === 'function') {
+        const auditStore = this.intelligence.audit as any
+        auditStore.setMnemicField(field)
+        this.logger.info('AuditStore MnemicField replay bridge wired')
+      }
       
       // Initialize ANN indexes asynchronously (non-blocking)
       field.initializeAnn().catch(err => {
