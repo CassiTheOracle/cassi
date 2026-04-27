@@ -26,6 +26,7 @@ import type {
   ThalamusAnnotation,
   MessageSlotType,
   TopicCluster,
+  TopicArchiveStructured,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS } from './types.js'
 
@@ -46,6 +47,11 @@ function formatGapDuration(ms: number): string {
   const seconds = Math.floor((ms % 60_000) / 1000)
   if (seconds === 0) return `${minutes}m`
   return `${minutes}m${seconds}s`
+}
+
+/** Escape `<`, `>`, and `&` so structured archive content can't break the wrapping XML block. */
+function escapeXml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 /**
@@ -74,8 +80,14 @@ export class ThalamusModule extends BaseCognitiveModule {
   private slots!: MessageSlot[]
   /** Per-session temporal registries */
   private temporalRegistries = new Map<string, TemporalRegistry>()
-  /** Per-turn brain context cache — cleared after each curate() call */
-  private cachedBrainContext: { sessionId: string; ctx: BrainContext } | null = null
+  /**
+   * Per-turn brain context cache — keyed by sessionId AND message count so
+   * the cache misses as soon as new messages arrive. Without the messageCount
+   * portion, a previous turn's cached context (e.g. from a buildDialecticContext
+   * admin-API call that never invokes curate) bleeds into the next turn's
+   * assembleInjections call.
+   */
+  private cachedBrainContext: { sessionId: string; messageCount: number; ctx: BrainContext } | null = null
 
   private locusBridge: LocusBridge | null = null
   private cortex: CorticalField | null = null
@@ -98,7 +110,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   setHandleFactory(fn: HandleFactory): void { this.handleFactory = fn }
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
-  setReverieInferenceProvider(provider: import('../aurora/reverie-reasoning-observer.js').ReverieInferenceProvider): void {
+  setReverieInferenceProvider(provider: import('../aurora/types.js').ReverieInferenceProvider): void {
     this.aurora?.setReverieInferenceProvider(provider)
   }
 
@@ -117,6 +129,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
     this.sessions.clear()
     this.temporalRegistries.clear()
+    this.cachedBrainContext = null
     await super.stop()
   }
 
@@ -158,7 +171,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     // Route to the matching slot
-    const slot = this.slots.find(s => s.matches(msg))
+    const slot = this.slots.find(s => s.matches(msg, ctx))
     if (!slot) {
       // Fallback: attach minimal annotation
       return {
@@ -326,11 +339,15 @@ export class ThalamusModule extends BaseCognitiveModule {
    * duplicate the expensive buildBrainContext call in the same turn.
    */
   private async getBrainContext(sessionId: string, messages: any[]): Promise<BrainContext> {
-    if (this.cachedBrainContext?.sessionId === sessionId) {
+    const messageCount = messages.length
+    if (
+      this.cachedBrainContext?.sessionId === sessionId &&
+      this.cachedBrainContext.messageCount === messageCount
+    ) {
       return this.cachedBrainContext.ctx
     }
     const ctx = await this.buildBrainContext(sessionId, messages)
-    this.cachedBrainContext = { sessionId, ctx }
+    this.cachedBrainContext = { sessionId, messageCount, ctx }
     return ctx
   }
 
@@ -1214,6 +1231,133 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
+   * Build the input transcript fed to the topic-archive LLM.
+   *
+   * Tool calls collapse to `[Tool: name args=keys]` and tool results to
+   * `[Result: name status=ok|err size=N]`. Raw tool output is suppressed —
+   * its content biased the previous prompt toward summarizing returned
+   * file bodies instead of conversational intent.
+   */
+  static shapeArchiveInput(indices: number[], messages: any[]): string {
+    const lines: string[] = []
+    let toolNameById = new Map<string, string>()
+    for (const idx of indices.slice(0, 40)) {
+      const msg = messages[idx]
+      if (!msg) continue
+      if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+        const parts: string[] = []
+        for (const block of msg.content) {
+          if (block?.type === 'text' && typeof block.text === 'string') {
+            const t = block.text.trim()
+            if (t) parts.push(t.slice(0, 400))
+          } else if (block?.type === 'tool_use' && block.name) {
+            toolNameById.set(block.id, block.name)
+            const argKeys = block.input && typeof block.input === 'object'
+              ? Object.keys(block.input).slice(0, 4).join(',')
+              : ''
+            parts.push(`[Tool: ${block.name}${argKeys ? ` args=${argKeys}` : ''}]`)
+          }
+        }
+        if (parts.length > 0) lines.push(`Cassi: ${parts.join(' ')}`)
+        continue
+      }
+      if (msg.role === 'user' && Array.isArray(msg.content)) {
+        const parts: string[] = []
+        for (const block of msg.content) {
+          if (block?.type === 'tool_result') {
+            const name = toolNameById.get(block.tool_use_id) ?? 'tool'
+            const status = block.is_error ? 'err' : 'ok'
+            const bodyLen = typeof block.content === 'string'
+              ? block.content.length
+              : Array.isArray(block.content)
+                ? block.content.reduce((n: number, c: any) => n + (typeof c?.text === 'string' ? c.text.length : 0), 0)
+                : 0
+            parts.push(`[Result: ${name} status=${status} size=${bodyLen}]`)
+          } else if (block?.type === 'text' && typeof block.text === 'string') {
+            const t = block.text.trim()
+            if (t) parts.push(t.slice(0, 400))
+          }
+        }
+        if (parts.length > 0) lines.push(`User: ${parts.join(' ')}`)
+        continue
+      }
+      const role = msg.role === 'user' ? 'User' : 'Cassi'
+      const text = extractMessageContent(msg).trim().slice(0, 400)
+      if (text) lines.push(`${role}: ${text}`)
+    }
+    return lines.join('\n')
+  }
+
+  /**
+   * Parse tagged-line output from the topic-archive LLM. Tolerant of
+   * partial output: any field that fails to parse is simply empty in the
+   * result. Callers check hasStructuredContent() to decide whether to
+   * persist the structured payload.
+   */
+  static parseStructuredArchive(raw: string): TopicArchiveStructured {
+    const result: TopicArchiveStructured = { goal: '', decisions: [], filesTouched: [], openThreads: [] }
+    if (!raw) return result
+
+    const lines = raw.split('\n').map(l => l.replace(/\r$/, ''))
+    type Field = 'goal' | 'decisions' | 'files' | 'open' | null
+    let current: Field = null
+
+    const tagMap: Record<string, Field> = {
+      goal: 'goal',
+      decisions: 'decisions',
+      decision: 'decisions',
+      files: 'files',
+      'files touched': 'files',
+      'files-touched': 'files',
+      open: 'open',
+      'open threads': 'open',
+      'open-threads': 'open',
+      unresolved: 'open',
+    }
+
+    for (const line of lines) {
+      const tagMatch = line.match(/^([a-z][a-z _-]{0,30}):\s*(.*)$/i)
+      if (tagMatch) {
+        const tag = tagMatch[1].trim().toLowerCase()
+        const inline = tagMatch[2].trim()
+        const field = tagMap[tag]
+        if (field) {
+          current = field
+          if (field === 'goal' && inline) result.goal = inline
+          else if (inline) {
+            const target = field === 'decisions' ? result.decisions
+              : field === 'files' ? result.filesTouched
+              : result.openThreads
+            target.push(inline)
+          }
+          continue
+        }
+        current = null
+        continue
+      }
+      const bulletMatch = line.match(/^\s*[-*•]\s+(.+)$/)
+      if (bulletMatch && current && current !== 'goal') {
+        const value = bulletMatch[1].trim()
+        const target = current === 'decisions' ? result.decisions
+          : current === 'files' ? result.filesTouched
+          : result.openThreads
+        if (value) target.push(value)
+      }
+    }
+
+    result.goal = result.goal.trim().slice(0, 240)
+    result.decisions = result.decisions.map(d => d.slice(0, 200)).slice(0, 8)
+    result.filesTouched = result.filesTouched.map(f => f.slice(0, 200)).slice(0, 12)
+    result.openThreads = result.openThreads.map(o => o.slice(0, 200)).slice(0, 6)
+    return result
+  }
+
+  /** True when the parsed archive has at least one usable field. */
+  static hasStructuredContent(s: TopicArchiveStructured): boolean {
+    return Boolean(s.goal) || s.decisions.length > 0 || s.filesTouched.length > 0 || s.openThreads.length > 0
+  }
+
+  /**
    * Build a heuristic label from the cluster's messages when LLM summarization
    * fails or produces garbage.
    */
@@ -1231,17 +1375,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     if (!this.handleFactory || cluster.asyncPending) return
     cluster.asyncPending = true
 
-    const text = cluster.messageIndices
-      .slice(0, 20)
-      .map(idx => {
-        const msg = messages[idx]
-        if (!msg) return ''
-        const role = msg.role === 'user' ? 'User' : 'Cassi'
-        return `${role}: ${extractMessageContent(msg).slice(0, 300)}`
-      })
-      .filter(Boolean)
-      .join('\n')
-
+    const transcript = ThalamusModule.shapeArchiveInput(cluster.messageIndices, messages)
     const keyTerms = Array.from(cluster.termSet).slice(0, 10).join(', ')
 
     this.handleFactory({ tier: 'background', purpose: 'topic-archive', sessionId })
@@ -1251,19 +1385,25 @@ export class ThalamusModule extends BaseCognitiveModule {
             [{
               role: 'user',
               content:
-                `Summarize this conversation segment in 1-2 sentences. ` +
-                `Focus on the main task and key outcome. Output ONLY the summary — ` +
-                `no thinking, no numbered steps, no analysis.\n\n` +
-                `Key terms: ${keyTerms}\n\nConversation:
-${text}`,
+                `I need a structured archive of this conversation segment so I can carry it forward after compaction. ` +
+                `Read the segment and emit four tagged fields. Focus on what I was *trying* to do and what I *decided* — ` +
+                `do not summarize tool output content.\n\n` +
+                `Output format (tagged lines, no markdown, no prose around it):\n` +
+                `goal: <one line — what I was attempting>\n` +
+                `decisions:\n- <choice that needs to survive>\n- <another>\n` +
+                `files:\n- <path> (<status: created|modified|read|deleted>)\n- <another>\n` +
+                `open:\n- <unresolved question or work that did not finish>\n- <another>\n\n` +
+                `If a section has nothing to record, write the tag with no list items. Never invent decisions or files that aren't in the segment.\n\n` +
+                `Key terms in this segment: ${keyTerms}\n\nSegment:\n${transcript}`,
             }],
             {
               model: handle.model,
-              maxTokens: 120,
+              maxTokens: 400,
               temperature: 0.2,
               systemPrompt:
-                'You are a concise summarizer. Output only the requested summary. ' +
-                'Never include thinking steps, reasoning, or analysis.',
+                'I am Cassi archiving my own conversation for future context. ' +
+                'I emit only the four requested tagged fields, no other prose. ' +
+                'I never include thinking, reasoning, or commentary outside the tags.',
               thinking: 'none',
               reasoning: 'none',
               source: 'thalamus-topic-archive',
@@ -1271,9 +1411,11 @@ ${text}`,
               sessionId,
             },
           )
-          let raw = result.response?.trim() ?? ''
-          let summary = ThalamusModule.stripThinkingArtifacts(raw)
+          const raw = result.response?.trim() ?? ''
+          const cleaned = ThalamusModule.stripThinkingArtifacts(raw)
+          const structured = ThalamusModule.parseStructuredArchive(cleaned)
 
+          let summary = structured.goal
           if (!summary || summary.length > 300 || /thinking process|Analyze User Input/i.test(summary)) {
             summary = this.heuristicTopicLabel(cluster, messages)
           }
@@ -1292,6 +1434,7 @@ ${text}`,
               originalIndices: cluster.messageIndices,
               archivedAt: Date.now(),
               keyTerms: Array.from(cluster.termSet).slice(0, 8),
+              structured: ThalamusModule.hasStructuredContent(structured) ? structured : undefined,
             })
           }
         } catch {
@@ -1434,13 +1577,21 @@ ${text}`,
       if (now - session.lastCuratedAt > SESSION_EVICT_MS) {
         this.sessions.delete(id)
         this.temporalRegistries.delete(id)
+        if (this.cachedBrainContext?.sessionId === id) {
+          this.cachedBrainContext = null
+        }
       }
     }
   }
 
   /**
-   * Build a time-aware gap description for omitted turns.
-   * Uses temporal annotations if available, falls back to count-only.
+   * Build a description for a run of omitted turns.
+   *
+   * If a topic archive covering this gap has structured fields populated by
+   * the topic-archive LLM, emit a multi-line `<archived-segment>` block
+   * containing goal, decisions, files, and open threads. Otherwise emit the
+   * legacy one-liner — used during the LLM-pending window and as a graceful
+   * degradation when parsing fails.
    */
   private buildGapDescription(
     gapSize: number,
@@ -1449,43 +1600,75 @@ ${text}`,
     messages: any[],
     sessionId?: string,
   ): string {
-    const parts: string[] = [`${gapSize} turn${gapSize > 1 ? 's' : ''}`]
-
-    // Try to compute elapsed time from _thalamus annotations
+    const turnsLabel = `${gapSize} turn${gapSize > 1 ? 's' : ''}`
+    let elapsedLabel = ''
     const fromTs = messages[fromIdx]?._thalamus?.ts
     const toTs = messages[toIdx]?._thalamus?.ts
     if (fromTs && toTs) {
       const elapsed = new Date(toTs).getTime() - new Date(fromTs).getTime()
-      if (elapsed > 0) {
-        parts.push(`~${formatGapDuration(elapsed)}`)
-      }
+      if (elapsed > 0) elapsedLabel = formatGapDuration(elapsed)
     }
-
-    // Count tool calls in the gap
     let toolCalls = 0
     for (let i = fromIdx + 1; i < toIdx; i++) {
       const slotType = messages[i]?._thalamus?.slot
       if (slotType === 'tool_call' || slotType === 'tool_result') toolCalls++
     }
-    if (toolCalls > 0) {
-      const logical = Math.ceil(toolCalls / 2)
-      if (logical > 0) parts.push(`${logical} tool call${logical > 1 ? 's' : ''}`)
+    const logicalTools = Math.ceil(toolCalls / 2)
+
+    const matchingArchive = sessionId
+      ? this.getSession(sessionId).topicArchive.find(a =>
+          a.originalIndices.some(idx => idx > fromIdx && idx < toIdx)
+        )
+      : undefined
+
+    if (matchingArchive?.structured && ThalamusModule.hasStructuredContent(matchingArchive.structured)) {
+      return ThalamusModule.renderStructuredGap(turnsLabel, elapsedLabel, logicalTools, matchingArchive.structured)
     }
 
-    // If a completed topic archive entry covers this gap, include its summary
-    if (sessionId) {
-      const session = this.getSession(sessionId)
-      const matchingArchive = session.topicArchive.find(a =>
-        a.originalIndices.some(idx => idx > fromIdx && idx < toIdx)
-      )
-      if (matchingArchive) {
-        const brief = matchingArchive.summary.slice(0, 100)
-        parts.push(`topic: ${matchingArchive.label} — ${brief}`)
-      }
+    const parts = [turnsLabel]
+    if (elapsedLabel) parts.push(`~${elapsedLabel}`)
+    if (logicalTools > 0) parts.push(`${logicalTools} tool call${logicalTools > 1 ? 's' : ''}`)
+    if (matchingArchive) {
+      const brief = matchingArchive.summary.slice(0, 100)
+      parts.push(`topic: ${matchingArchive.label} — ${brief}`)
     }
-
     parts.push('omitted')
     return parts.join(' · ')
+  }
+
+  /**
+   * Render a structured topic archive as an XML-tagged block. Empty fields
+   * are skipped — partial output is still useful, so we never emit an
+   * empty section that would waste tokens.
+   */
+  static renderStructuredGap(
+    turnsLabel: string,
+    elapsedLabel: string,
+    logicalTools: number,
+    s: TopicArchiveStructured,
+  ): string {
+    const attrs = [`turns="${turnsLabel.split(' ')[0]}"`]
+    if (elapsedLabel) attrs.push(`elapsed="${elapsedLabel}"`)
+    if (logicalTools > 0) attrs.push(`tools="${logicalTools}"`)
+    const lines: string[] = [`<archived-segment ${attrs.join(' ')}>`]
+    if (s.goal) lines.push(`  <goal>${escapeXml(s.goal)}</goal>`)
+    if (s.decisions.length > 0) {
+      lines.push(`  <decisions>`)
+      for (const d of s.decisions) lines.push(`    - ${escapeXml(d)}`)
+      lines.push(`  </decisions>`)
+    }
+    if (s.filesTouched.length > 0) {
+      lines.push(`  <files-touched>`)
+      for (const f of s.filesTouched) lines.push(`    - ${escapeXml(f)}`)
+      lines.push(`  </files-touched>`)
+    }
+    if (s.openThreads.length > 0) {
+      lines.push(`  <open-threads>`)
+      for (const o of s.openThreads) lines.push(`    - ${escapeXml(o)}`)
+      lines.push(`  </open-threads>`)
+    }
+    lines.push(`</archived-segment>`)
+    return lines.join('\n')
   }
 
   private getConfigOverrides(): Partial<CurationConfig> {

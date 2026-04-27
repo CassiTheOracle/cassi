@@ -76,8 +76,15 @@ export interface SlotContext {
 export interface MessageSlot {
   readonly type: MessageSlotType
 
-  /** Does this message belong to this slot? */
-  matches(msg: any): boolean
+  /**
+   * Does this message belong to this slot?
+   *
+   * `ctx` is optional so existing callers can pass it when available
+   * (e.g. classifyMessage in the thalamus pipeline) without forcing every
+   * synthetic test caller to construct one. UserSlot/ToolResultSlot use
+   * `ctx.toolUseMap` to identify question-tool answers.
+   */
+  matches(msg: any, ctx?: SlotContext): boolean
 
   /** Attach type-specific metadata. Returns a new message with _thalamus. */
   augment(msg: any, ctx: SlotContext): any
@@ -198,6 +205,24 @@ export interface TopicArchive {
   archivedAt: number
   /** Top N key terms extracted from this topic's messages */
   keyTerms: string[]
+  /** Structured fields parsed from the topic-archive LLM call. Empty when not yet populated or parse failed. */
+  structured?: TopicArchiveStructured
+}
+
+/**
+ * Structured payload extracted from the topic-archive LLM. Fields may be
+ * partially populated — the renderer skips empty fields rather than failing.
+ * The model is prompted to return tagged lines so partial output is still useful.
+ */
+export interface TopicArchiveStructured {
+  /** What the segment was attempting (intent, not summary of output) */
+  goal: string
+  /** Concrete decisions that should survive compaction */
+  decisions: string[]
+  /** Files touched in the segment, formatted as "path (status)" */
+  filesTouched: string[]
+  /** Unresolved questions or work that did not complete */
+  openThreads: string[]
 }
 
 export interface CurationSession {
