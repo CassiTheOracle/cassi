@@ -690,3 +690,70 @@ export interface BackpropResult {
   skippedStaleTraces: number
   durationMs: number
 }
+
+export const LIGHTNING_INDEXER_VERSION = 1
+
+export interface LightningIndexerConfig {
+  dEmb: number
+  dC: number
+  nH: number
+  dIdx: number
+  seed: number
+}
+
+export const LIGHTNING_INDEXER_DEFAULTS: LightningIndexerConfig = {
+  dEmb: 640,
+  dC: 128,
+  nH: 8,
+  dIdx: 32,
+  seed: 0xC0FFEE,
+}
+
+export interface LightningIndexerGlobal {
+  wDq: Float32Array
+  wIuq: Float32Array
+  wI: Float32Array
+  dEmb: number
+  dC: number
+  nH: number
+  dIdx: number
+  version: number
+  updatedAt: string
+}
+
+export interface LightningCandidate {
+  engramId: string
+  embedding: Float32Array
+}
+
+export interface LightningRanked {
+  engramId: string
+  score: number
+}
+
+export type LightningRetrievalMode =
+  | 'shadow'        // Indexer scores logged alongside reranker output, reranker drives ordering
+  | 'live'          // Indexer drives ordering (post-Phase 2)
+  | 'fallback'      // Indexer scored but reranker overrode based on disagreement
+  | 'kindle-only'   // No reranker, kindling charges drove ordering
+  | 'fts-fallback'  // Empty kindling, FTS searchText() fallback
+
+export interface LightningRetrievalEvent {
+  retrievalId: string
+  sessionId?: string
+  queryText: string
+  queryEmbedding?: Float32Array
+  candidateIds: string[]
+  indexerScores?: Float32Array
+  rerankerScores?: Float32Array
+  indexerVersion?: number
+  mode: LightningRetrievalMode
+  createdAt: string
+}
+
+export interface LightningRetrievalEventQuery {
+  sessionId?: string
+  since?: string
+  mode?: LightningRetrievalMode
+  limit?: number
+}

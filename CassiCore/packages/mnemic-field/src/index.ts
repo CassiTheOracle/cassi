@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import fs from 'node:fs'
 import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import type { DreamEngine } from '../memory-bridge/dream-engine.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
@@ -18,13 +19,15 @@ import { segmentEngram } from './segmentation.js'
 import { EntityLinker } from './filament-entities.js'
 import { FilamentConsolidator } from './filament-consolidation.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
-import type { AffectState } from './types.js'
+import type { AffectState, LightningRetrievalMode } from './types.js'
+import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
 import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
 import { renderWithZoom } from './filament-renderer.js'
 import type { IProvider } from '../../../types/runtime.js'
 import { FilamentAnalyzer } from './filament-llm.js'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
+import { LightningIndexer } from './lightning-indexer.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -107,8 +110,6 @@ export { attune, AffectRegister, resolveLabel, affectSimilarity, emotionalIntens
 
 export class MnemicField {
   private cortex: Cortex
-  private filamentCortex: FilamentCortex
-  private entityLinker: EntityLinker
   private kindlingEngine: KindlingEngine
   private consolidationEngine: ConsolidationEngine
   private gradientEngine: GradientEngine
@@ -118,12 +119,20 @@ export class MnemicField {
   private reprojectionInFlight: Promise<number> | null = null
   private reprojectionFailures = 0
   private lastReprojectionAt = 0
-  private filamentAnalyzer: FilamentAnalyzer | null = null
   private affectRegister: AffectRegister
 
   // LLM-based reranker (alternative to filament kindling). Set via setRerankerProvider.
   private reranker: LLMReranker | null = null
   private rerankerModel: string = 'github-copilot/gpt-5-mini'
+  private lightningIndexer: LightningIndexer | null = null
+  // Cached after each retrieve() so recordEnrichFeedback can convert
+  // helpful/unhelpful into Lightning Indexer training triples without a
+  // round-trip to lightning_retrieval_events.
+  private lastRetrievalId: string | null = null
+  private lastRetrievalCandidates: string[] = []
+  private lastRetrievalIndexerScores: Float32Array | null = null
+  private lastRetrievalRerankerScores: Float32Array | null = null
+  private lightningShadowEnabled: boolean = false
   private rerankerEnabled: boolean = false
 
   // Retrieval result cache. Kindling does 5 iterations of spreading activation
@@ -153,6 +162,15 @@ export class MnemicField {
       this.logger.info('LLM reranker disabled')
     }
   }
+
+  setLightningShadowMode(enabled: boolean): void {
+    this.lightningShadowEnabled = enabled
+    if (enabled && !this.lightningIndexer) {
+      this.lightningIndexer = new LightningIndexer(this.cortex, this.logger)
+    }
+    this.logger.info('Lightning shadow mode', { enabled })
+  }
+
   private corticalField?: CorticalField
   private db: Database.Database  // Store for persistence operations
   private dreamEngine: DreamEngine | null = null
@@ -175,12 +193,9 @@ export class MnemicField {
 
     this.db = db  // Store for persistence
     this.cortex = new Cortex(db, logger)
-    this.filamentCortex = new FilamentCortex(db, logger)
-    this.entityLinker = new EntityLinker(this.filamentCortex, logger)
-    this.kindlingEngine = new KindlingEngine(this.cortex, logger, this.filamentCortex)
-    const filamentConsolidator = new FilamentConsolidator(this.filamentCortex, this.cortex, logger)
+    this.kindlingEngine = new KindlingEngine(this.cortex, logger, null)
     this.gradientEngine = new GradientEngine(this.cortex, logger)
-    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, filamentConsolidator, this.gradientEngine)
+    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, null as any, this.gradientEngine)
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
 
@@ -319,20 +334,6 @@ export class MnemicField {
     const metadata = { ...input.metadata, affect }
 
     const engram = this.cortex.createEngram({ ...input, x, y, metadata })
-
-    const spans = segmentEngram(engram.content, engram.nodeType)
-    if (spans.length > 0) {
-      const filaments = this.filamentCortex.createFilamentsBatch(
-        spans.map(s => ({
-          engramId: engram.id,
-          spanStart: s.spanStart,
-          spanEnd: s.spanEnd,
-          content: s.content,
-        }))
-      )
-      this.entityLinker.linkFilaments(filaments)
-    }
-
     return engram
   }
 
@@ -451,14 +452,7 @@ export class MnemicField {
   }
 
   stats(): FieldStats {
-    const base = this.cortex.stats()
-    const fStats = this.filamentCortex.stats()
-    return {
-      ...base,
-      filamentCount: fStats.filamentCount,
-      filamentSynapseCount: fStats.filamentSynapseCount,
-      filamentEntityCount: fStats.entityCount,
-    }
+    return this.cortex.stats()
   }
 
 /**
@@ -469,7 +463,7 @@ export class MnemicField {
    */
   async retrieve(
     query: string,
-    options?: KindlingOptions & { limit?: number },
+    options?: KindlingOptions & { limit?: number; sessionId?: string },
   ): Promise<MnemicRetrievalHit[]> {
     const limit = options?.limit ?? options?.maxLuminalSize ?? 8
 
@@ -485,47 +479,20 @@ export class MnemicField {
       this.retrieveCache.set(cacheKey, cached)
       return cached.hits
     }
-    
-    // Generate embedding for query so filament ANN can be used
+
+    // Retrieval event ID — fresh on each cache miss so Reverie can correlate
+    // candidates with the primary's subsequent tool-round behavior.
+    const retrievalId = randomUUID()
+    const sessionId = options?.sessionId
+
+    // Generate embedding for query.
     const embSvc = getEmbeddingService(this.logger)
     const queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
 
     let hits: MnemicRetrievalHit[]
 
-    // FAST PATH: LLM reranker (alternative to filament kindling).
-    // Uses embed-recall + cross-encoder LLM to select relevant sentences.
-    // Latency: ~1-2s vs ~30s for kindling. Enabled via setRerankerProvider().
-    if (this.rerankerEnabled && this.reranker && queryEmbedding && this.kindlingEngine.isAnnReady()) {
-      const annResults = this.kindlingEngine.searchEngramAnn(queryEmbedding, 50)
-      if (annResults.length > 0) {
-        const candidates: Engram[] = []
-        for (const r of annResults) {
-          const eng = this.cortex.getEngram(r.id)
-          if (eng) candidates.push(eng)
-        }
-        if (candidates.length > 0) {
-          try {
-            const ranked = await this.reranker.rerank(query, candidates, limit, undefined)
-            if (ranked.length > 0) {
-              hits = LLMReranker.toRetrievalHits(candidates, ranked, limit)
-              // Cache result (same logic as kindling path)
-              this.retrieveCache.set(cacheKey, { hits, ts: now })
-              while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
-                const oldest = this.retrieveCache.keys().next().value
-                if (oldest === undefined) break
-                this.retrieveCache.delete(oldest)
-              }
-              return hits
-            }
-          } catch (err) {
-            this.logger.warn('LLM reranker failed, falling back to kindling', { error: String(err) })
-          }
-        }
-      }
-    }
-
-    // FALLBACK: filament-based kindling (existing path)
-    
+    // Step 1: Kindling generates candidate engrams via engram ANN + synapse spread.
+    // This is the "candidate generation" phase — no filaments involved.
     const luminal = this.kindle(queryEmbedding, query, {
       ...options,
       maxLuminalSize: limit,
@@ -533,30 +500,9 @@ export class MnemicField {
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
 
-    if (luminal.engrams.length > 0) {
-      const excerptMap = new Map<string, { content: string; similarity: number }>()
-      if (luminal.filamentAnnotations) {
-        for (const ann of luminal.filamentAnnotations) {
-          const existing = excerptMap.get(ann.engramId)
-          if (!existing || ann.similarity > existing.similarity) {
-            excerptMap.set(ann.engramId, { content: ann.content, similarity: ann.similarity })
-          }
-        }
-      }
+    let lightningRanked: Array<{ engramId: string; score: number }> | null = null
 
-      hits = luminal.engrams.map(hit => ({
-        id: hit.engram.id,
-        content: hit.engram.content,
-        nodeType: hit.engram.nodeType,
-        score: hit.charge,
-        charge: hit.charge,
-        potentiation: hit.engram.potentiation,
-        provenance: hit.engram.provenance,
-        tags: hit.engram.tags,
-        metadata: hit.engram.metadata,
-        filamentExcerpt: excerptMap.get(hit.engram.id)?.content,
-      }))
-    } else {
+    if (luminal.engrams.length === 0) {
       hits = this.searchText(query, limit).map(r => ({
         id: r.engram.id,
         content: r.engram.content,
@@ -568,6 +514,140 @@ export class MnemicField {
         tags: r.engram.tags,
         metadata: r.engram.metadata,
       }))
+    } else {
+      const candidates = luminal.engrams.map(hit => hit.engram)
+
+      // Lightning shadow mode: score candidates with the learned indexer,
+      // log overlap with the final ranking. Does not affect retrieval output.
+      if (this.lightningShadowEnabled && this.lightningIndexer && queryEmbedding) {
+        try {
+          const idxCandidates = candidates
+            .filter(e => e.embedding && e.embedding.length > 0)
+            .map(e => ({ engramId: e.id, embedding: e.embedding as Float32Array }))
+          if (idxCandidates.length > 0) {
+            lightningRanked = this.lightningIndexer.score(
+              new Float32Array(queryEmbedding),
+              idxCandidates,
+            )
+          }
+        } catch (err) {
+          this.logger.debug('Lightning shadow score failed', { error: String(err) })
+        }
+      }
+
+      // Step 2: LLM reranker selects relevant sentences from candidate engrams.
+      // This replaces the old filament-based excerpt generation.
+      if (this.rerankerEnabled && this.reranker) {
+        try {
+          const ranked = await this.reranker.rerank(query, candidates, limit, undefined)
+          if (ranked.length > 0) {
+            hits = LLMReranker.toRetrievalHits(candidates, ranked, limit)
+          } else {
+            // Reranker returned empty — fall back to kindling's charge-based ranking
+            hits = luminal.engrams.map(hit => ({
+              id: hit.engram.id,
+              content: hit.engram.content,
+              nodeType: hit.engram.nodeType,
+              score: hit.charge,
+              charge: hit.charge,
+              potentiation: hit.engram.potentiation,
+              provenance: hit.engram.provenance,
+              tags: hit.engram.tags,
+              metadata: hit.engram.metadata,
+              filamentExcerpt: undefined,
+            }))
+          }
+        } catch (err) {
+          this.logger.warn('LLM reranker failed, using kindling charges', { error: String(err) })
+          hits = luminal.engrams.map(hit => ({
+            id: hit.engram.id,
+            content: hit.engram.content,
+            nodeType: hit.engram.nodeType,
+            score: hit.charge,
+            charge: hit.charge,
+            potentiation: hit.engram.potentiation,
+            provenance: hit.engram.provenance,
+            tags: hit.engram.tags,
+            metadata: hit.engram.metadata,
+            filamentExcerpt: undefined,
+          }))
+        }
+      } else {
+        // Reranker disabled — use kindling's charge-based ranking directly
+        hits = luminal.engrams.map(hit => ({
+          id: hit.engram.id,
+          content: hit.engram.content,
+          nodeType: hit.engram.nodeType,
+          score: hit.charge,
+          charge: hit.charge,
+          potentiation: hit.engram.potentiation,
+          provenance: hit.engram.provenance,
+          tags: hit.engram.tags,
+          metadata: hit.engram.metadata,
+          filamentExcerpt: undefined,
+        }))
+      }
+    }
+
+    if (lightningRanked && lightningRanked.length > 0) {
+      const k = Math.min(limit, lightningRanked.length, hits.length)
+      if (k > 0) {
+        const finalTopK = new Set(hits.slice(0, k).map(h => h.id))
+        const lightningTopK = lightningRanked.slice(0, k).map(r => r.engramId)
+        let overlap = 0
+        for (const id of lightningTopK) if (finalTopK.has(id)) overlap++
+        this.logger.info('Lightning shadow overlap', {
+          k,
+          overlap,
+          overlapRatio: overlap / k,
+          lightningTopScore: lightningRanked[0]?.score ?? 0,
+          candidateCount: lightningRanked.length,
+        })
+      }
+    }
+
+    // Persist a retrieval event so Reverie can later label it from the
+    // primary's downstream tool-round behavior. Best-effort — failures must
+    // never block the retrieve path.
+    try {
+      const candidateIds = hits.map(h => h.id)
+      const indexerScoresArr = lightningRanked
+        ? new Float32Array(candidateIds.map(id => {
+            const entry = lightningRanked!.find(r => r.engramId === id)
+            return entry ? entry.score : 0
+          }))
+        : undefined
+
+      // Position-based reranker proxy: top hit = 1, last hit = 1/N.
+      const rerankerScoresArr = hits.length > 0
+        ? new Float32Array(hits.map((_, i) => 1 - (i / hits.length)))
+        : undefined
+
+      const mode: LightningRetrievalMode = lightningRanked ? 'shadow' : 'kindle-only'
+
+      this.lastRetrievalId = retrievalId
+      this.lastRetrievalCandidates = candidateIds
+      this.lastRetrievalIndexerScores = indexerScoresArr ?? null
+      this.lastRetrievalRerankerScores = rerankerScoresArr ?? null
+
+      this.cortex.recordLightningRetrievalEvent({
+        retrievalId,
+        sessionId,
+        queryText: query,
+        queryEmbedding: queryEmbedding ? new Float32Array(queryEmbedding) : undefined,
+        candidateIds,
+        indexerScores: indexerScoresArr,
+        rerankerScores: rerankerScoresArr,
+        indexerVersion: this.lightningIndexer?.stats().version,
+        mode,
+        createdAt: new Date().toISOString(),
+      })
+
+      for (const h of hits) {
+        h.metadata = { ...(h.metadata ?? {}), retrievalId }
+      }
+    } catch (err) {
+      this.logger.debug('Failed to persist retrieval event', { error: String(err) })
     }
 
     // Cache result. Evict oldest if over capacity (Map iteration order is insertion order).
@@ -913,8 +993,7 @@ export class MnemicField {
       }
       embedded++
 
-      const filEmbedded = await this.embedFilaments(id)
-      filamentEmbeddings += filEmbedded
+      // Filaments deprecated — no longer embedding sentence fragments
     }
 
     // Bulk update positions for efficiency
@@ -1047,10 +1126,73 @@ export class MnemicField {
         traceId: trace.id,
         feedbackCount: Object.keys(feedback).length,
       })
+
+      // Mirror feedback into Lightning Indexer training. Same signal,
+      // different consumer: the indexer learns to rank engrams the way
+      // helpful/unhelpful feedback says they should be ranked.
+      const indexerTriples = this.feedbackToIndexerTriples(feedback)
+      if (indexerTriples.length > 0) {
+        const persisted = this.cortex.recordIndexerTrainingRequests(indexerTriples)
+        this.logger.debug('Indexer training triples persisted from feedback', {
+          retrievalId: this.lastRetrievalId,
+          tripleCount: indexerTriples.length,
+          persisted,
+        })
+      }
+
       return true
     } catch (err) {
       this.logger.warn('Failed to store gradient request', { error: err })
       return false
+    }
+  }
+
+  /**
+   * Convert helpful/unhelpful feedback into Lightning Indexer training triples,
+   * keyed by the most recent retrieval. Engrams in feedback that didn't appear
+   * in the last retrieval's candidate set are dropped (no event to attach to).
+   */
+  private feedbackToIndexerTriples(feedback: Record<string, boolean>): RetrievalLabelTriple[] {
+    if (!this.lastRetrievalId || this.lastRetrievalCandidates.length === 0) return []
+
+    const candidatePosition = new Map<string, number>()
+    for (let i = 0; i < this.lastRetrievalCandidates.length; i++) {
+      candidatePosition.set(this.lastRetrievalCandidates[i]!, i)
+    }
+
+    const observedAt = new Date().toISOString()
+    const triples: RetrievalLabelTriple[] = []
+    for (const [engramId, helpful] of Object.entries(feedback)) {
+      const idx = candidatePosition.get(engramId)
+      if (idx === undefined) continue
+      triples.push({
+        retrievalId: this.lastRetrievalId,
+        candidateId: engramId,
+        label: helpful ? 'used' : 'ignored',
+        weight: 1.0,
+        evidence: [{
+          signal: 'enrich_feedback' as RetrievalLabelTriple['evidence'][number]['signal'],
+          details: { helpful, position: idx },
+          observedAt,
+        }],
+        indexerScore: this.lastRetrievalIndexerScores?.[idx] ?? undefined,
+        rerankerScore: this.lastRetrievalRerankerScores?.[idx] ?? undefined,
+      })
+    }
+    return triples
+  }
+
+  /**
+   * Persist Lightning Indexer training requests produced by Reverie's labeler.
+   * Returns the number of rows written.
+   */
+  recordIndexerTrainingRequests(triples: RetrievalLabelTriple[]): number {
+    if (triples.length === 0) return 0
+    try {
+      return this.cortex.recordIndexerTrainingRequests(triples)
+    } catch (err) {
+      this.logger.warn('Failed to record indexer training requests', { error: String(err) })
+      return 0
     }
   }
 
@@ -1092,64 +1234,81 @@ export class MnemicField {
     return this.consolidationEngine.consolidate(options)
   }
 
-  getFilaments(engramId: string): Filament[] {
-    return this.filamentCortex.getFilamentsByEngram(engramId)
+  // contributing:ignore — Deprecated filament methods (filaments removed; keep stubs for API compat)
+
+  getFilaments(_engramId?: string): Filament[] {
+    this.logger.debug('getFilaments: filaments deprecated, returning empty')
+    return []
   }
 
-  async embedFilaments(engramId: string): Promise<number> {
-    const embSvc = getEmbeddingService(this.logger)
-    if (!embSvc.available) return 0
-
-    const filaments = this.filamentCortex.getFilamentsByEngram(engramId)
-    const toEmbed = filaments.filter(f => f.embedding === null)
-    if (toEmbed.length === 0) return 0
-
-    const texts = toEmbed.map(f => f.content)
-    const embeddings = await embSvc.embedBatch(texts, 'document')
-
-    let embedded = 0
-    for (let i = 0; i < toEmbed.length; i++) {
-      if (embeddings[i]) {
-        this.filamentCortex.updateFilamentEmbedding(toEmbed[i].id, embeddings[i]!)
-        embedded++
-      }
-    }
-
-    return embedded
+  async embedFilaments(): Promise<number> {
+    return 0
   }
 
-  async backfillFilaments(batchSize = 100): Promise<{ segmented: number; embedded: number; linked: number }> {
-    const engramIds = this.filamentCortex.getEngramIdsWithoutFilaments(batchSize)
-    let segmented = 0
-    let embedded = 0
-    let linked = 0
+  async backfillFilaments(_batchSize?: number): Promise<{ segmented: number; embedded: number; linked: number }> {
+    return { segmented: 0, embedded: 0, linked: 0 }
+  }
 
-    for (const id of engramIds) {
-      const engram = this.cortex.getEngram(id)
-      if (!engram) continue
+  getChains(_engramIds?: string[]): FilamentChain[] {
+    return []
+  }
 
-      const spans = segmentEngram(engram.content, engram.nodeType)
-      if (spans.length === 0) continue
+  getCrystallization(): CrystallizationScore[] {
+    return []
+  }
 
-      const filaments = this.filamentCortex.createFilamentsBatch(
-        spans.map(s => ({
-          engramId: engram.id,
-          spanStart: s.spanStart,
-          spanEnd: s.spanEnd,
-          content: s.content,
-        }))
-      )
-      segmented += filaments.length
+  getExpertiseMetrics(): ExpertiseMetrics[] {
+    return []
+  }
 
-      const linkResult = this.entityLinker.linkFilaments(filaments)
-      linked += linkResult.synapses
+  getStaleDependents(): number[] {
+    return []
+  }
 
-      const embResult = await this.embedFilaments(engram.id)
-      embedded += embResult
+  renderContext(
+    query: string,
+    options: RenderOptions & KindlingOptions,
+  ): { entries: ZoomEntry[]; totalTokens: number } {
+    const luminal = this.kindle(null, query, options)
+    return {
+      entries: luminal.engrams.map((e, i) => ({
+        rank: i,
+        engramId: e.engram.id,
+        charge: e.charge,
+        zoom: 'full' as const,
+        tokenEstimate: Math.ceil(e.engram.content.length / 4),
+        rendered: e.engram.content.slice(0, 500),
+      })),
+      totalTokens: luminal.engrams.reduce((s, e) => s + e.engram.content.length / 4, 0),
     }
+  }
 
-    this.logger.info('Filament backfill complete', { engrams: engramIds.length, segmented, embedded, linked })
-    return { segmented, embedded, linked }
+  buildDelegationContext(
+    query: string,
+    options: RenderOptions & KindlingOptions,
+  ): DelegationContext {
+    const luminal = this.kindle(null, query, options)
+    const renderedText = luminal.engrams.map(e => e.engram.content).join('\n\n')
+    return {
+      renderedText,
+      filamentGraph: {
+        matchedFilaments: [],
+        chains: [],
+        contradictions: [],
+      },
+    }
+  }
+
+  setLlmProvider(_provider: IProvider): void {
+    this.logger.debug('setLlmProvider: filament analysis deprecated')
+  }
+
+  async runTier3Analysis(): Promise<{ callsMade: number; synapsesCreated: number }> {
+    return { callsMade: 0, synapsesCreated: 0 }
+  }
+
+  getFilamentCortex(): null {
+    return null
   }
 
   /**
@@ -1158,86 +1317,6 @@ export class MnemicField {
    */
   getCortex(): Cortex {
     return this.cortex
-  }
-
-  getChains(engramIds?: string[]): FilamentChain[] {
-    return extractChains(this.filamentCortex, engramIds)
-  }
-
-  getCrystallization(filamentIds?: number[]): CrystallizationScore[] {
-    return scoreCrystallization(this.filamentCortex, filamentIds)
-  }
-
-  getExpertiseMetrics(): ExpertiseMetrics[] {
-    return computeExpertiseMetrics(this.filamentCortex, this.cortex)
-  }
-
-  getStaleDependents(supersededFilamentId: number): number[] {
-    return propagateStaleness(this.filamentCortex, supersededFilamentId)
-  }
-
-  renderContext(
-    query: string,
-    options: RenderOptions & KindlingOptions,
-  ): { entries: ZoomEntry[]; totalTokens: number } {
-    const luminal = this.kindle(null, query, options)
-    return renderWithZoom(luminal.engrams, luminal.filamentAnnotations, this.filamentCortex, options)
-  }
-
-  buildDelegationContext(
-    query: string,
-    options: RenderOptions & KindlingOptions,
-  ): DelegationContext {
-    const luminal = this.kindle(null, query, options)
-    const rendered = renderWithZoom(luminal.engrams, luminal.filamentAnnotations, this.filamentCortex, options)
-    const renderedText = rendered.entries.map(e => e.rendered).join('\n\n')
-
-    const contradictions: Array<{ claimA: string; claimB: string; engramIds: [string, string] }> = []
-    if (luminal.filamentAnnotations) {
-      for (const ann of luminal.filamentAnnotations) {
-        const synapses = this.filamentCortex.getFilamentSynapsesFrom(ann.filamentId)
-        for (const syn of synapses) {
-          if (syn.edgeType === 'contradicts') {
-            const target = this.filamentCortex.getFilament(syn.targetId)
-            if (target) {
-              contradictions.push({
-                claimA: ann.content,
-                claimB: target.content,
-                engramIds: [ann.engramId, target.engramId],
-              })
-            }
-          }
-        }
-      }
-    }
-
-    return {
-      renderedText,
-      filamentGraph: {
-        matchedFilaments: luminal.filamentAnnotations ?? [],
-        chains: rendered.chains,
-        contradictions,
-      },
-    }
-  }
-
-  setLlmProvider(provider: IProvider): void {
-    this.filamentAnalyzer = new FilamentAnalyzer(
-      this.filamentCortex, this.cortex, provider, this.logger,
-    )
-  }
-
-  async runTier3Analysis(): Promise<{ callsMade: number; synapsesCreated: number }> {
-    if (!this.filamentAnalyzer) return { callsMade: 0, synapsesCreated: 0 }
-    return this.filamentAnalyzer.runTier3()
-  }
-
-  /**
-   * Get the underlying FilamentCortex for direct operations.
-   * Prefer using MnemicField methods; use this for advanced/batch operations.
-   */
-  getFilamentCortex(): FilamentCortex {
-    return this.filamentCortex
   }
 
   getAffect(): AffectState {
@@ -1263,11 +1342,10 @@ export class MnemicField {
   setDreamEngine(engine: DreamEngine): void {
     this.dreamEngine = engine
     // Recreate consolidation engine with the dream engine
-    const filamentConsolidator = new FilamentConsolidator(this.filamentCortex, this.cortex, this.logger)
     this.consolidationEngine = new ConsolidationEngine(
       this.cortex,
       this.logger,
-      filamentConsolidator,
+      null as any,
       this.gradientEngine,
       this.dreamEngine,
     )

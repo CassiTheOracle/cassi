@@ -10,7 +10,13 @@ import type {
   SpatialQuery, EngramSearchResult, TensionPair, FieldStats,
   EngramPosition, EngramType,
   ForwardTrace,
+  LightningRetrievalEvent,
+  LightningRetrievalEventQuery,
 } from './types.js'
+import type {
+  RetrievalLabel,
+  RetrievalLabelTriple,
+} from '../reverie/retrieval-labeler-types.js'
 
 const FORWARD_TRACE_AUTO_PRUNE_INTERVAL = 100
 const FORWARD_TRACE_AUTO_MAX_AGE_MS = 3_600_000
@@ -1006,6 +1012,375 @@ export class Cortex {
     return (this.db.prepare(`SELECT COUNT(*) as c FROM synapse_optimizer_state`).get() as { c: number }).c
   }
 
+  getLightningGlobal(): {
+    wDq: Float32Array
+    wIuq: Float32Array
+    wI: Float32Array
+    dEmb: number
+    dC: number
+    nH: number
+    dIdx: number
+    version: number
+    updatedAt: string
+  } | null {
+    const row = this.db.prepare(
+      `SELECT w_dq, w_iuq, w_i, d_emb, d_c, n_h, d_idx, version, updated_at
+       FROM lightning_index_global WHERE id = 1`
+    ).get() as
+      | { w_dq: Buffer; w_iuq: Buffer; w_i: Buffer; d_emb: number; d_c: number; n_h: number; d_idx: number; version: number; updated_at: string }
+      | undefined
+
+    if (!row) return null
+
+    const wDq = toFloatArray(row.w_dq)
+    const wIuq = toFloatArray(row.w_iuq)
+    const wI = toFloatArray(row.w_i)
+    if (!wDq || !wIuq || !wI) return null
+
+    return {
+      wDq,
+      wIuq,
+      wI,
+      dEmb: row.d_emb,
+      dC: row.d_c,
+      nH: row.n_h,
+      dIdx: row.d_idx,
+      version: row.version,
+      updatedAt: row.updated_at,
+    }
+  }
+
+  setLightningGlobal(g: {
+    wDq: Float32Array
+    wIuq: Float32Array
+    wI: Float32Array
+    dEmb: number
+    dC: number
+    nH: number
+    dIdx: number
+    version: number
+  }): void {
+    const now = new Date().toISOString()
+    this.db.prepare(
+      `INSERT INTO lightning_index_global (id, w_dq, w_iuq, w_i, d_emb, d_c, n_h, d_idx, version, updated_at)
+       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         w_dq = excluded.w_dq,
+         w_iuq = excluded.w_iuq,
+         w_i = excluded.w_i,
+         d_emb = excluded.d_emb,
+         d_c = excluded.d_c,
+         n_h = excluded.n_h,
+         d_idx = excluded.d_idx,
+         version = excluded.version,
+         updated_at = excluded.updated_at`
+    ).run(
+      fromFloatArray(g.wDq),
+      fromFloatArray(g.wIuq),
+      fromFloatArray(g.wI),
+      g.dEmb,
+      g.dC,
+      g.nH,
+      g.dIdx,
+      g.version,
+      now,
+    )
+  }
+
+  getLightningKeys(ids: string[]): Map<string, Float32Array> {
+    const out = new Map<string, Float32Array>()
+    if (ids.length === 0) return out
+
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT engram_id, keys FROM lightning_index_keys WHERE engram_id IN (${placeholders})`
+    ).all(...ids) as Array<{ engram_id: string; keys: Buffer }>
+
+    for (const row of rows) {
+      const arr = toFloatArray(row.keys)
+      if (arr) out.set(row.engram_id, arr)
+    }
+    return out
+  }
+
+  bulkUpsertLightningKeys(entries: Array<{ engramId: string; keys: Float32Array; version: number }>): number {
+    if (entries.length === 0) return 0
+    const now = new Date().toISOString()
+    const stmt = this.db.prepare(
+      `INSERT INTO lightning_index_keys (engram_id, keys, version, updated_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(engram_id) DO UPDATE SET
+         keys = excluded.keys,
+         version = excluded.version,
+         updated_at = excluded.updated_at`
+    )
+    let count = 0
+    const tx = this.db.transaction((items: typeof entries) => {
+      for (const e of items) {
+        stmt.run(e.engramId, fromFloatArray(e.keys), e.version, now)
+        count++
+      }
+    })
+    tx(entries)
+    return count
+  }
+
+  lightningKeysCount(): number {
+    return (this.db.prepare(`SELECT COUNT(*) as c FROM lightning_index_keys`).get() as { c: number }).c
+  }
+
+  recordLightningRetrievalEvent(ev: LightningRetrievalEvent): void {
+    const queryEmbBlob = ev.queryEmbedding ? fromFloatArray(ev.queryEmbedding) : null
+    this.db.prepare(
+      `INSERT INTO lightning_retrieval_events
+        (retrieval_id, session_id, query_text, query_embedding, candidate_ids,
+         indexer_scores, reranker_scores, indexer_version, mode, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(retrieval_id) DO UPDATE SET
+         session_id = excluded.session_id,
+         query_text = excluded.query_text,
+         query_embedding = excluded.query_embedding,
+         candidate_ids = excluded.candidate_ids,
+         indexer_scores = excluded.indexer_scores,
+         reranker_scores = excluded.reranker_scores,
+         indexer_version = excluded.indexer_version,
+         mode = excluded.mode,
+         created_at = excluded.created_at`
+    ).run(
+      ev.retrievalId,
+      ev.sessionId ?? null,
+      ev.queryText,
+      queryEmbBlob,
+      JSON.stringify(ev.candidateIds),
+      ev.indexerScores ? JSON.stringify(Array.from(ev.indexerScores)) : null,
+      ev.rerankerScores ? JSON.stringify(Array.from(ev.rerankerScores)) : null,
+      ev.indexerVersion ?? null,
+      ev.mode,
+      ev.createdAt ?? new Date().toISOString(),
+    )
+  }
+
+  getLightningRetrievalEvent(retrievalId: string): LightningRetrievalEvent | null {
+    const row = this.db.prepare(
+      `SELECT retrieval_id, session_id, query_text, query_embedding, candidate_ids,
+              indexer_scores, reranker_scores, indexer_version, mode, created_at
+       FROM lightning_retrieval_events WHERE retrieval_id = ?`
+    ).get(retrievalId) as
+      | {
+          retrieval_id: string
+          session_id: string | null
+          query_text: string
+          query_embedding: Buffer | null
+          candidate_ids: string
+          indexer_scores: string | null
+          reranker_scores: string | null
+          indexer_version: number | null
+          mode: string
+          created_at: string
+        }
+      | undefined
+
+    if (!row) return null
+    return this._rowToRetrievalEvent(row)
+  }
+
+  queryLightningRetrievalEvents(q: LightningRetrievalEventQuery): LightningRetrievalEvent[] {
+    const where: string[] = []
+    const args: unknown[] = []
+    if (q.sessionId !== undefined) { where.push('session_id = ?'); args.push(q.sessionId) }
+    if (q.since !== undefined) { where.push('created_at >= ?'); args.push(q.since) }
+    if (q.mode !== undefined) { where.push('mode = ?'); args.push(q.mode) }
+    const limit = Math.max(1, Math.min(q.limit ?? 200, 1000))
+
+    const sql = `
+      SELECT retrieval_id, session_id, query_text, query_embedding, candidate_ids,
+             indexer_scores, reranker_scores, indexer_version, mode, created_at
+      FROM lightning_retrieval_events
+      ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+      ORDER BY created_at DESC
+      LIMIT ?
+    `
+    const rows = this.db.prepare(sql).all(...args, limit) as Array<{
+      retrieval_id: string
+      session_id: string | null
+      query_text: string
+      query_embedding: Buffer | null
+      candidate_ids: string
+      indexer_scores: string | null
+      reranker_scores: string | null
+      indexer_version: number | null
+      mode: string
+      created_at: string
+    }>
+    return rows.map((r) => this._rowToRetrievalEvent(r))
+  }
+
+  pruneLightningRetrievalEvents(beforeIso: string): number {
+    const r = this.db.prepare(
+      `DELETE FROM lightning_retrieval_events WHERE created_at < ?`
+    ).run(beforeIso)
+    return r.changes ?? 0
+  }
+
+  lightningRetrievalEventsCount(): number {
+    return (this.db.prepare(
+      `SELECT COUNT(*) as c FROM lightning_retrieval_events`
+    ).get() as { c: number }).c
+  }
+
+  private _rowToRetrievalEvent(row: {
+    retrieval_id: string
+    session_id: string | null
+    query_text: string
+    query_embedding: Buffer | null
+    candidate_ids: string
+    indexer_scores: string | null
+    reranker_scores: string | null
+    indexer_version: number | null
+    mode: string
+    created_at: string
+  }): LightningRetrievalEvent {
+    const candidateIds = JSON.parse(row.candidate_ids) as string[]
+    const indexerScores = row.indexer_scores
+      ? Float32Array.from(JSON.parse(row.indexer_scores) as number[])
+      : null
+    const rerankerScores = row.reranker_scores
+      ? Float32Array.from(JSON.parse(row.reranker_scores) as number[])
+      : null
+    const queryEmbedding = row.query_embedding ? toFloatArray(row.query_embedding) : null
+    return {
+      retrievalId: row.retrieval_id,
+      sessionId: row.session_id ?? undefined,
+      queryText: row.query_text,
+      queryEmbedding: queryEmbedding ?? undefined,
+      candidateIds,
+      indexerScores: indexerScores ?? undefined,
+      rerankerScores: rerankerScores ?? undefined,
+      indexerVersion: row.indexer_version ?? undefined,
+      mode: row.mode as LightningRetrievalEvent['mode'],
+      createdAt: row.created_at,
+    }
+  }
+
+  recordIndexerTrainingRequests(triples: RetrievalLabelTriple[], _source?: string): number {
+    if (triples.length === 0) return 0
+    const merged = mergeTrainingTriples(triples)
+    const stmt = this.db.prepare(
+      `INSERT INTO lightning_training_requests
+         (retrieval_id, candidate_id, label, weight, evidence,
+          indexer_score, reranker_score, processed_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)
+       ON CONFLICT(retrieval_id, candidate_id) DO UPDATE SET
+         label = excluded.label,
+         weight = excluded.weight,
+         evidence = excluded.evidence,
+         indexer_score = COALESCE(excluded.indexer_score, indexer_score),
+         reranker_score = COALESCE(excluded.reranker_score, reranker_score),
+         processed_at = NULL,
+         created_at = excluded.created_at
+       WHERE
+         (CASE excluded.label
+            WHEN 'used' THEN 4
+            WHEN 'should_have_been_retrieved' THEN 3
+            WHEN 'contradicted' THEN 2
+            WHEN 'ignored' THEN 1
+            ELSE 0 END)
+         >=
+         (CASE label
+            WHEN 'used' THEN 4
+            WHEN 'should_have_been_retrieved' THEN 3
+            WHEN 'contradicted' THEN 2
+            WHEN 'ignored' THEN 1
+            ELSE 0 END)`
+    )
+    const now = new Date().toISOString()
+    let written = 0
+    const tx = this.db.transaction((rows: RetrievalLabelTriple[]) => {
+      for (const t of rows) {
+        const result = stmt.run(
+          t.retrievalId,
+          t.candidateId,
+          t.label,
+          t.weight,
+          JSON.stringify(t.evidence),
+          t.indexerScore ?? null,
+          t.rerankerScore ?? null,
+          now,
+        )
+        if (result.changes > 0) written++
+      }
+    })
+    tx(merged)
+    return written
+  }
+
+  getPendingIndexerTrainingRequests(limit: number): RetrievalLabelTriple[] {
+    const rows = this.db.prepare(
+      `SELECT retrieval_id, candidate_id, label, weight, evidence,
+              indexer_score, reranker_score
+       FROM lightning_training_requests
+       WHERE processed_at IS NULL
+       ORDER BY created_at ASC
+       LIMIT ?`
+    ).all(limit) as Array<{
+      retrieval_id: string
+      candidate_id: string
+      label: RetrievalLabel
+      weight: number
+      evidence: string
+      indexer_score: number | null
+      reranker_score: number | null
+    }>
+    return rows.map(r => ({
+      retrievalId: r.retrieval_id,
+      candidateId: r.candidate_id,
+      label: r.label,
+      weight: r.weight,
+      evidence: parseJsonSafe(r.evidence, []),
+      indexerScore: r.indexer_score ?? undefined,
+      rerankerScore: r.reranker_score ?? undefined,
+    }))
+  }
+
+  markIndexerTrainingRequestsProcessed(retrievalIds: string[]): number {
+    if (retrievalIds.length === 0) return 0
+    const placeholders = retrievalIds.map(() => '?').join(',')
+    const result = this.db.prepare(
+      `UPDATE lightning_training_requests
+       SET processed_at = ?
+       WHERE retrieval_id IN (${placeholders}) AND processed_at IS NULL`
+    ).run(new Date().toISOString(), ...retrievalIds)
+    return result.changes
+  }
+
+  countPendingIndexerTrainingRequests(): number {
+    const row = this.db.prepare(
+      `SELECT COUNT(*) AS n FROM lightning_training_requests WHERE processed_at IS NULL`
+    ).get() as { n: number }
+    return row.n
+  }
+
+  /** Alias: trainer-side name for the same query. */
+  unprocessedTrainingRequestCount(): number {
+    return this.countPendingIndexerTrainingRequests()
+  }
+
+  getEngramSummariesByIds(ids: string[]): Map<string, { id: string; content: string; tags: string[] }> {
+    const out = new Map<string, { id: string; content: string; tags: string[] }>()
+    if (ids.length === 0) return out
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT id, content, tags FROM engrams WHERE id IN (${placeholders})`
+    ).all(...ids) as Array<{ id: string; content: string; tags: string }>
+    for (const r of rows) {
+      out.set(r.id, {
+        id: r.id,
+        content: r.content,
+        tags: parseJsonSafe<string[]>(r.tags, []),
+      })
+    }
+    return out
+  }
 
   close(): void {
     try {
@@ -1013,4 +1388,44 @@ export class Cortex {
       this.logger.info('Mnemic Cortex closed')
     } catch { /* already closed */ }
   }
+}
+
+const LABEL_STRENGTH: Record<RetrievalLabel, number> = {
+  used: 4,
+  should_have_been_retrieved: 3,
+  contradicted: 2,
+  ignored: 1,
+}
+
+function mergeTrainingTriples(triples: RetrievalLabelTriple[]): RetrievalLabelTriple[] {
+  const byKey = new Map<string, RetrievalLabelTriple>()
+  for (const t of triples) {
+    const key = `${t.retrievalId}|${t.candidateId}`
+    const existing = byKey.get(key)
+    if (!existing) {
+      byKey.set(key, { ...t, evidence: [...t.evidence] })
+      continue
+    }
+    const existingStrength = LABEL_STRENGTH[existing.label] ?? 0
+    const incomingStrength = LABEL_STRENGTH[t.label] ?? 0
+    const combinedEvidence = [...existing.evidence, ...t.evidence]
+    if (incomingStrength > existingStrength) {
+      byKey.set(key, {
+        ...t,
+        evidence: combinedEvidence,
+        indexerScore: t.indexerScore ?? existing.indexerScore,
+        rerankerScore: t.rerankerScore ?? existing.rerankerScore,
+      })
+    } else {
+      existing.evidence = combinedEvidence
+      existing.weight = Math.max(existing.weight, t.weight)
+      if (existing.indexerScore === undefined && t.indexerScore !== undefined) {
+        existing.indexerScore = t.indexerScore
+      }
+      if (existing.rerankerScore === undefined && t.rerankerScore !== undefined) {
+        existing.rerankerScore = t.rerankerScore
+      }
+    }
+  }
+  return Array.from(byKey.values())
 }

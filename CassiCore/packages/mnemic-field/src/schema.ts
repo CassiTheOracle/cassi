@@ -193,7 +193,193 @@ export function initMnemicFieldSchema(db: Database.Database): void {
   createRtreeIfNeeded(db)
   createFtsIfNeeded(db)
   createFilamentsFtsIfNeeded(db)
+  createLightningIndexTablesIfNeeded(db)
+  createLightningRetrievalEventsTableIfNeeded(db)
+  createLightningTrainingRequestsTableIfNeeded(db)
+  createIndexerVersionsTableIfNeeded(db)
+  createIndexerTrainingStepsTableIfNeeded(db)
+  createLightningValidationSetTableIfNeeded(db)
   migrateSchema(db)
+}
+
+function createLightningIndexTablesIfNeeded(db: Database.Database): void {
+  const exists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='lightning_index_global'`
+  ).get()
+
+  if (!exists) {
+    db.exec(`
+      CREATE TABLE lightning_index_global (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        w_dq BLOB NOT NULL,
+        w_iuq BLOB NOT NULL,
+        w_i BLOB NOT NULL,
+        d_emb INTEGER NOT NULL,
+        d_c INTEGER NOT NULL,
+        n_h INTEGER NOT NULL,
+        d_idx INTEGER NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE lightning_index_keys (
+        engram_id TEXT PRIMARY KEY,
+        keys BLOB NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE INDEX idx_lightning_keys_version ON lightning_index_keys(version);
+    `)
+  }
+}
+
+function createLightningRetrievalEventsTableIfNeeded(db: Database.Database): void {
+  const exists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='lightning_retrieval_events'`
+  ).get()
+
+  if (!exists) {
+    db.exec(`
+      CREATE TABLE lightning_retrieval_events (
+        retrieval_id TEXT PRIMARY KEY,
+        session_id TEXT,
+        query_text TEXT NOT NULL,
+        query_embedding BLOB,
+        candidate_ids TEXT NOT NULL,
+        indexer_scores TEXT,
+        reranker_scores TEXT,
+        indexer_version INTEGER,
+        mode TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+
+      CREATE INDEX idx_lightning_retrieval_session_created
+        ON lightning_retrieval_events(session_id, created_at);
+      CREATE INDEX idx_lightning_retrieval_created
+        ON lightning_retrieval_events(created_at);
+      CREATE INDEX idx_lightning_retrieval_mode
+        ON lightning_retrieval_events(mode);
+    `)
+  }
+}
+
+function createLightningTrainingRequestsTableIfNeeded(db: Database.Database): void {
+  const exists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='lightning_training_requests'`
+  ).get()
+
+  if (!exists) {
+    db.exec(`
+      CREATE TABLE lightning_training_requests (
+        retrieval_id TEXT NOT NULL,
+        candidate_id TEXT NOT NULL,
+        label TEXT NOT NULL CHECK (label IN ('used', 'ignored', 'contradicted', 'should_have_been_retrieved')),
+        weight REAL NOT NULL DEFAULT 1.0,
+        evidence TEXT NOT NULL DEFAULT '{}',
+        indexer_score REAL,
+        reranker_score REAL,
+        created_at TEXT NOT NULL,
+        processed_at TEXT,
+        PRIMARY KEY (retrieval_id, candidate_id)
+      );
+
+      CREATE INDEX idx_lightning_training_unprocessed
+        ON lightning_training_requests(processed_at)
+        WHERE processed_at IS NULL;
+      CREATE INDEX idx_lightning_training_created
+        ON lightning_training_requests(created_at);
+      CREATE INDEX idx_lightning_training_label
+        ON lightning_training_requests(label, processed_at);
+    `)
+  }
+}
+
+function createIndexerVersionsTableIfNeeded(db: Database.Database): void {
+  const exists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='indexer_versions'`
+  ).get()
+  if (!exists) {
+    db.exec(`
+      CREATE TABLE indexer_versions (
+        version INTEGER PRIMARY KEY AUTOINCREMENT,
+        parent_version INTEGER REFERENCES indexer_versions(version),
+        weights BLOB NOT NULL,
+        d_emb INTEGER NOT NULL,
+        d_c INTEGER NOT NULL,
+        n_h INTEGER NOT NULL,
+        d_idx INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'archived'
+          CHECK (status IN ('active', 'archived', 'rolled_back')),
+        training_steps INTEGER NOT NULL DEFAULT 0,
+        requests_consumed INTEGER NOT NULL DEFAULT 0,
+        validation_loss REAL,
+        validation_recall_at_5 REAL,
+        notes TEXT,
+        created_at TEXT NOT NULL
+      );
+      CREATE UNIQUE INDEX idx_indexer_versions_active
+        ON indexer_versions(status) WHERE status = 'active';
+      CREATE INDEX idx_indexer_versions_created
+        ON indexer_versions(created_at);
+    `)
+  }
+}
+
+function createIndexerTrainingStepsTableIfNeeded(db: Database.Database): void {
+  const exists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='indexer_training_steps'`
+  ).get()
+  if (!exists) {
+    db.exec(`
+      CREATE TABLE indexer_training_steps (
+        step_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        version INTEGER NOT NULL REFERENCES indexer_versions(version) ON DELETE CASCADE,
+        requests_in_batch INTEGER NOT NULL,
+        loss_before REAL,
+        loss_after REAL,
+        learning_rate REAL NOT NULL,
+        muon_momentum REAL,
+        muon_steps INTEGER NOT NULL DEFAULT 0,
+        adamw_steps INTEGER NOT NULL DEFAULT 0,
+        grad_norm REAL,
+        duration_ms INTEGER NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX idx_indexer_training_steps_version_created
+        ON indexer_training_steps(version, created_at);
+    `)
+  }
+}
+
+function createLightningValidationSetTableIfNeeded(db: Database.Database): void {
+  const exists = db.prepare(
+    `SELECT 1 FROM sqlite_master WHERE type='table' AND name='lightning_validation_set'`
+  ).get()
+  if (!exists) {
+    db.exec(`
+      CREATE TABLE lightning_validation_set (
+        validation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        query_text TEXT NOT NULL,
+        query_embedding BLOB NOT NULL,
+        candidate_id TEXT NOT NULL,
+        expected_label TEXT NOT NULL CHECK (
+          expected_label IN ('used', 'ignored', 'contradicted', 'should_have_been_retrieved')
+        ),
+        weight REAL NOT NULL DEFAULT 1.0,
+        source_retrieval_id TEXT,
+        curated_by TEXT NOT NULL DEFAULT 'reverie',
+        notes TEXT,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        UNIQUE (query_text, candidate_id)
+      );
+      CREATE INDEX idx_lightning_validation_active
+        ON lightning_validation_set(active) WHERE active = 1;
+      CREATE INDEX idx_lightning_validation_created
+        ON lightning_validation_set(created_at);
+    `)
+  }
 }
 
 function createRtreeIfNeeded(db: Database.Database): void {
