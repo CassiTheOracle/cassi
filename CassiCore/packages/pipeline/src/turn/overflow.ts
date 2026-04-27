@@ -126,3 +126,86 @@ export function stripToolFiller(text: string): string {
 
   return trimmed
 }
+
+/* ------------------------------------------------------------------ */
+/*  Question tool detection                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Tool names that produce semantically-user-input results.
+ *
+ * `question` is CassiCore's native AskUserQuestion-equivalent; `AskUserQuestion`
+ * is the Claude Code harness tool. Both wrap user intent in a tool_result block
+ * and must survive PCPM scoring as user messages, not be flushed as tool noise.
+ */
+const QUESTION_TOOL_NAMES: ReadonlySet<string> = new Set(['question', 'AskUserQuestion'])
+
+/**
+ * Check if a ContentBlock is a question tool result.
+ *
+ * Anthropic tool_result blocks carry only `tool_use_id`, not `tool_name` —
+ * pass `toolUseMap` (built once via {@link buildToolUseMapFromMessages}) to
+ * resolve the originating tool name. Internal blocks that include `tool_name`
+ * directly are matched without needing the map.
+ */
+export function isQuestionBlock(
+  block: { type: string; tool_name?: string; tool_use_id?: string },
+  toolUseMap?: Map<string, string>,
+): boolean {
+  if (block.type !== 'tool_result') return false
+  if (block.tool_name && QUESTION_TOOL_NAMES.has(block.tool_name)) return true
+  if (toolUseMap && block.tool_use_id) {
+    const name = toolUseMap.get(block.tool_use_id)
+    if (name && QUESTION_TOOL_NAMES.has(name)) return true
+  }
+  return false
+}
+
+/**
+ * Check if a Message contains a question tool result.
+ * Works with both ContentBlock[] (runtime messages) and ToolResult[] (internal messages).
+ */
+export function hasQuestionResult(
+  msg: {
+    role: string
+    content?: unknown
+    toolResults?: Array<{ toolName?: string }>
+  },
+  opts?: { toolUseMap?: Map<string, string> },
+): boolean {
+  if (msg.role !== 'user') return false
+  const toolUseMap = opts?.toolUseMap
+
+  // ContentBlock[] path (runtime Message format)
+  if (Array.isArray(msg.content)) {
+    return (msg.content as Array<{ type: string; tool_name?: string; tool_use_id?: string }>)
+      .some(b => isQuestionBlock(b, toolUseMap))
+  }
+
+  // ToolResult[] path (internal Message format used by ToolLoop)
+  if (Array.isArray(msg.toolResults)) {
+    return msg.toolResults.some(tr => !!tr.toolName && QUESTION_TOOL_NAMES.has(tr.toolName))
+  }
+
+  return false
+}
+
+/**
+ * Build a `tool_use_id → tool_name` map from prior assistant tool_use blocks.
+ *
+ * Used by {@link hasQuestionResult} callers that have the full message array
+ * but no precomputed map. Build once per scoring/curation pass and reuse —
+ * the map is O(messages) to build but O(1) per lookup.
+ */
+export function buildToolUseMapFromMessages(messages: any[]): Map<string, string> {
+  const map = new Map<string, string>()
+  for (const msg of messages) {
+    if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue
+    for (const block of msg.content) {
+      if (block?.type === 'tool_use' && typeof block.id === 'string' && typeof block.name === 'string') {
+        map.set(block.id, block.name)
+      }
+    }
+  }
+  return map
+}

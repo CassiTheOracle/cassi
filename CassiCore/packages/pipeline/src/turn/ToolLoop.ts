@@ -17,7 +17,7 @@ import type {
   StreamEventCallback
 } from '../session/types.js'
 
-import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller } from './overflow.js'
+import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller, hasQuestionResult, buildToolUseMapFromMessages } from './overflow.js'
 import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
 
 export interface ToolLoopOptions {
@@ -182,6 +182,7 @@ export class ToolLoop {
         timestamp: Date.now(),
         toolResults: results.map(r => ({
           toolCallId: r.toolCallId,
+          toolName: r.toolName,
           content: r.content,
           isError: r.isError
         }))
@@ -395,7 +396,8 @@ export class ToolLoop {
           type: 'tool_result' as const,
           tool_use_id: tr.toolCallId,
           content: tr.content,
-          is_error: tr.isError
+          is_error: tr.isError,
+          tool_name: tr.toolName,
         }));
         return { role: m.role, content: blocks };
       }
@@ -453,14 +455,15 @@ export class ToolLoop {
   }
 
   /**
-   * Mid-loop context trim: drop oldest tool pairs when the message
-   * array exceeds the character budget. Keeps at least 3 recent tool pairs.
-   */
+    * Mid-loop context trim: drop oldest tool pairs when the message
+    * array exceeds the character budget. Keeps at least 3 recent tool pairs.
+    * Question tool results are treated as user messages and never trimmed.
+    */
   private midLoopTrim(messages: Message[], maxChars: number): void {
     const chars = this.estimateChars(messages)
     if (chars <= maxChars) return
 
-    // Count tool pairs (assistant with toolCalls + following user with toolResults)
+    // Count trimmable tool pairs (exclude pairs with question results)
     let toolPairCount = 0
     const systemEnd = messages.findIndex(m => m.role !== 'system')
     const preserveHead = Math.max(0, systemEnd)
@@ -468,6 +471,8 @@ export class ToolLoop {
     for (let i = preserveHead; i < messages.length; i++) {
       const m = messages[i]
       if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+        // Skip if the following user message contains a question result
+        if (i + 1 < messages.length && hasQuestionResult(messages[i + 1])) continue
         toolPairCount++
       }
     }
@@ -481,6 +486,9 @@ export class ToolLoop {
     for (let i = preserveHead; i < messages.length - 1 && pairsToRemove > 0; i++) {
       const m = messages[i]
       if (m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0) {
+        // Skip pairs containing question results — they're user messages
+        if (i + 1 < messages.length && hasQuestionResult(messages[i + 1])) continue
+
         toRemove.push(i)
         // The next message should be the tool results
         if (i + 1 < messages.length - 1 && messages[i + 1].role === 'user') {

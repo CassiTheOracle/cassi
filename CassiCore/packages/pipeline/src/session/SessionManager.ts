@@ -216,6 +216,7 @@ export class SessionManager {
         timestamp: now,
         toolResults: toolCalls.map(t => ({
           toolCallId: t.toolCallId,
+          toolName: t.toolName,
           content: t.content ?? '',
           isError: t.isError ?? false
         }))
