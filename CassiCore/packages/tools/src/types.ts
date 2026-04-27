@@ -60,6 +60,7 @@ export interface ToolCall {
 
 export interface ToolResult {
   toolCallId: string;
+  toolName: string;
   content: string;
   isError: boolean;
   /** Raw output before presentation formatting */
