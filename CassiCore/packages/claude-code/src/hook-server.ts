@@ -23,6 +23,7 @@
 
 import http from "node:http";
 import fs from "node:fs";
+import { integrationLogger } from "./logger.js";
 import * as bridge from "./bridge.js";
 import {
   getSession,
@@ -38,8 +39,7 @@ import {
 
 const PORT = parseInt(process.env.CASSICORE_HOOK_PORT ?? "7434", 10);
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
-
-// ── Hook Input Types ────────────────────────────────────────────────────────
+const logger = integrationLogger.child("hook-server");
 
 interface HookInput {
   session_id: string;
@@ -56,6 +56,7 @@ interface HookInput {
   tool_is_error?: boolean;
   // UserPromptSubmit
   prompt?: string;
+  message?: string;
 }
 
 interface HookOutput {
@@ -66,8 +67,6 @@ interface HookOutput {
   hookSpecificOutput?: Record<string, unknown>;
 }
 
-// ── Hook Handlers ───────────────────────────────────────────────────────────
-
 async function handleSessionStart(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
@@ -76,7 +75,6 @@ async function handleSessionStart(input: HookInput): Promise<HookOutput> {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
 
-  // Notify CassiCore of new session
   bridge.ingestEvents(state.ccSessionId, [{
     type: "session_start",
     sessionId: state.ccSessionId,
@@ -84,7 +82,28 @@ async function handleSessionStart(input: HookInput): Promise<HookOutput> {
     timestamp: Date.now(),
   }]).catch(() => {});
 
-  // Build initial cognitive context
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "perception",
+    "sensory",
+    `Claude Code session started in ${input.cwd || "unknown workspace"}`,
+    ["claude-code", "session-start"],
+    0.7,
+  ).catch(() => {});
+  bridge.laminaAppend(
+    state.ccSessionId,
+    "session-decisions",
+    `Claude Code session started in ${input.cwd || "unknown workspace"}.`,
+    "claude-code-session-start",
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code session started]\nWorkspace: ${input.cwd || "unknown"}\nSession: ${state.ccSessionId}`,
+    ["claude-code", "session-start", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-session-start").catch(() => {});
+
   const context = await buildCognitiveContext(state, { compact: false });
 
   return context
@@ -101,22 +120,18 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
   state.pendingToolCalls.clear();
   state.pendingToolResults.clear();
 
-  // Update pressure from transcript
   if (input.transcript_path) {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
 
-  // Age all signal expansions (for progressive disclosure)
   for (const [key, age] of state.signalAges) {
     state.signalAges.set(key, age + 1);
   }
 
-  // Check if the user prompt references any signals (reset progressive disclosure)
   const prompt = input.prompt ?? "";
   if (/dialectic|yang|yin/i.test(prompt)) state.signalAges.set("dialectic", 0);
   if (/anomal/i.test(prompt)) state.signalAges.set("anomalies", 0);
 
-  // Index the prompt in CassiCore
   if (prompt) {
     bridge.index(state.ccSessionId, [{ role: "user", content: prompt }]);
   }
@@ -135,34 +150,42 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
       timestamp: Date.now(),
     }]).catch(() => {});
 
-    // Mirror perception into the Cortex working memory region so spreading
-    // activation can pick it up on the next retrieval pass.
     bridge.cortexSignal(
       state.ccSessionId,
       "perception",
       "sensory",
       prompt.slice(0, 500),
       ["claude-code", "user-prompt"],
+      0.75,
     ).catch(() => {});
+    bridge.laminaRethink(
+      state.ccSessionId,
+      "open-hypotheses",
+      `Current Claude Code user request:\n${prompt.slice(0, 2000)}`,
+      "claude-code-user-prompt",
+    ).catch(() => {});
+    bridge.memoryStoreEpisode(
+      state.ccSessionId,
+      `[Claude Code user prompt]\n${prompt.slice(0, 8000)}`,
+      ["claude-code", "user-prompt", state.ccSessionId],
+      "conversation",
+    ).catch(() => {});
+    bridge.reveriePing(state.ccSessionId, "claude-code-user-prompt").catch(() => {});
   }
 
-  // Feed prompt to Aurora for concept tracking and shift detection
   if (prompt && prompt.length > 5) {
     await bridge.auroraObserve(prompt).catch(() => {});
   }
 
-  // Enrich workspace with memory signals (GWT fallback path)
   if (prompt && prompt.length > 5) {
     bridge.workspaceEnrich(prompt, state.ccSessionId).catch(() => {});
   }
 
-  // Build cognitive context (Aurora-first with GWT fallback)
   const context = await buildCognitiveContext(state, {
     includeRecovery: state.postCompaction,
     compact: state.estimatedPressure > 0.5,
   });
 
-  // Clear post-compaction flag after first injection
   if (state.postCompaction) state.postCompaction = false;
 
   return context
@@ -174,15 +197,28 @@ async function handlePreToolUse(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
   const toolName = input.tool_name ?? "";
 
-  // Capture the in-flight tool call so the matching PostToolUse can pair it
-  // into a tool:round-complete event for Reverie's tool-log + loop detection.
   if (toolName) {
     const id = (input.tool_input?.tool_use_id as string | undefined)
       ?? `${input.session_id}-${state.toolRoundCount}-${state.toolCallCount}`;
     state.pendingToolCalls.set(id, { name: toolName, id });
+    bridge.cortexSignal(
+      state.ccSessionId,
+      "decision",
+      "executive",
+      `Claude Code preparing tool ${toolName}`,
+      ["claude-code", "pre-tool-use", toolName],
+      0.55,
+    ).catch(() => {});
+    bridge.ingestEvents(state.ccSessionId, [{
+      type: "tool_call_start",
+      sessionId: state.ccSessionId,
+      toolName,
+      toolCallId: id,
+      source: "claude-code",
+      timestamp: Date.now(),
+    }]).catch(() => {});
   }
 
-  // Update pressure
   if (input.transcript_path) {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
@@ -190,7 +226,6 @@ async function handlePreToolUse(input: HookInput): Promise<HookOutput> {
   state.usedTools.add(toolName);
   state.toolCallCount++;
 
-  // Track active files from Read tools
   if (/^(read|mcp__.*__read)/i.test(toolName)) {
     const filePath = input.tool_input?.file_path ?? input.tool_input?.path;
     if (typeof filePath === "string" && !state.activeFiles.includes(filePath)) {
@@ -199,12 +234,10 @@ async function handlePreToolUse(input: HookInput): Promise<HookOutput> {
     }
   }
 
-  // At critical pressure, suggest using compressed tool calls
   const tier = classifyTier(state.estimatedPressure);
   if (tier === "critical" || tier === "overflow") {
     const importance = classifyToolImportance(toolName);
     if (importance === "file-read" && input.tool_input) {
-      // Suggest limiting read size at high pressure
       const existingLimit = input.tool_input.limit as number | undefined;
       if (!existingLimit || existingLimit > 200) {
         return {
@@ -222,17 +255,14 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
   const toolName = input.tool_name ?? "";
   const output = input.tool_output ?? "";
 
-  // Update pressure
   if (input.transcript_path) {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
 
-  // Track large outputs
   if (output.length > 10_000) {
     state.largeOutputsThisTurn++;
   }
 
-  // Index tool result in CassiCore (fire-and-forget)
   if (output.length > 0 && output.length < 50_000) {
     bridge.index(state.ccSessionId, [{
       role: "assistant",
@@ -240,8 +270,24 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
     }]);
   }
 
-  // Emit canonical tool:round-complete so Reverie's sliding tool-log,
-  // loop detection, Reflex, and Aurora's tool-affect tracking all fire.
+  if (toolName) {
+    const isError = input.tool_is_error === true || /error/i.test(output.slice(0, 200));
+    bridge.cortexSignal(
+      state.ccSessionId,
+      isError ? "concern" : "action",
+      isError ? "limbic" : "motor",
+      `Claude Code tool ${toolName} ${isError ? "errored" : "completed"}: ${output.slice(0, 700)}`,
+      ["claude-code", "post-tool-use", toolName, isError ? "error" : "success"],
+      isError ? 0.8 : 0.6,
+    ).catch(() => {});
+    bridge.memoryStoreEpisode(
+      state.ccSessionId,
+      `[Claude Code tool ${toolName} ${isError ? "error" : "result"}]\n${output.slice(0, 8000)}`,
+      ["claude-code", "tool-result", toolName, state.ccSessionId],
+      isError ? "error" : "observation",
+    ).catch(() => {});
+  }
+
   const toolUseId = (input.tool_input?.tool_use_id as string | undefined);
   let pairedId: string | undefined;
   if (toolUseId && state.pendingToolCalls.has(toolUseId)) {
@@ -268,13 +314,11 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
     }
   }
 
-  // Check for pressure warning
   const warning = buildPressureWarning(state);
   if (warning) {
     return { additionalContext: warning };
   }
 
-  // Post working state periodically
   const now = Date.now();
   if (now - state.lastWorkingStateAt > 15_000) {
     state.lastWorkingStateAt = now;
@@ -287,10 +331,8 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
 async function handlePreCompact(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
-  // Save structured checkpoint before compaction
   await saveCheckpoint(state, input.transcript_path);
 
-  // Write emergency handoff
   if (!state.handoffWritten) {
     state.handoffWritten = true;
     const handoff = {
@@ -310,7 +352,6 @@ async function handlePreCompact(input: HookInput): Promise<HookOutput> {
     bridge.kvSet(`handoff:${state.ccSessionId}`, handoff);
   }
 
-  // Archive to CassiCore
   if (input.transcript_path) {
     try {
       const transcript = fs.readFileSync(input.transcript_path, "utf-8");
@@ -324,12 +365,13 @@ async function handlePreCompact(input: HookInput): Promise<HookOutput> {
           content: typeof m.content === "string" ? m.content : JSON.stringify(m.content),
         })));
       }
-    } catch { /* transcript read is best-effort */ }
+    } catch {
+      logger.debug("transcript read failed during pre-compact", { sessionId: state.ccSessionId });
+    }
   }
 
   state.compactionCount++;
 
-  // Notify CassiCore
   bridge.ingestEvents(state.ccSessionId, [{
     type: "compaction_start",
     sessionId: state.ccSessionId,
@@ -337,6 +379,28 @@ async function handlePreCompact(input: HookInput): Promise<HookOutput> {
     turnCount: state.turnCount,
     timestamp: Date.now(),
   }]).catch(() => {});
+
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "decision",
+    "executive",
+    `Claude Code pre-compaction checkpoint saved at turn ${state.turnCount}`,
+    ["claude-code", "pre-compact"],
+    0.8,
+  ).catch(() => {});
+  bridge.laminaAppend(
+    state.ccSessionId,
+    "session-decisions",
+    `Pre-compaction checkpoint saved at turn ${state.turnCount}. Active files: ${state.activeFiles.slice(0, 5).join(", ") || "none"}.`,
+    "claude-code-pre-compact",
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code pre-compaction checkpoint]\nTurn: ${state.turnCount}\nActive files: ${state.activeFiles.slice(0, 10).join(", ")}`,
+    ["claude-code", "pre-compact", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-pre-compact").catch(() => {});
 
   return {
     systemMessage: "CassiCore: checkpoint saved before compaction",
@@ -348,19 +412,39 @@ async function handlePostCompact(input: HookInput): Promise<HookOutput> {
   state.postCompaction = true;
   state.handoffWritten = false;
 
-  // Build recovery context
   const recovery = await buildCognitiveContext(state, {
     includeRecovery: true,
     compact: false,
   });
 
-  // Notify CassiCore
   bridge.ingestEvents(state.ccSessionId, [{
     type: "compaction_complete",
     sessionId: state.ccSessionId,
     compactionCount: state.compactionCount,
     timestamp: Date.now(),
   }]).catch(() => {});
+
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "perception",
+    "sensory",
+    `Claude Code compaction completed after ${state.compactionCount} compactions` ,
+    ["claude-code", "post-compact"],
+    0.7,
+  ).catch(() => {});
+  bridge.laminaAppend(
+    state.ccSessionId,
+    "open-hypotheses",
+    `Post-compaction recovery is active for Claude Code session ${state.ccSessionId}.`,
+    "claude-code-post-compact",
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code post-compaction recovery]\nCompaction count: ${state.compactionCount}`,
+    ["claude-code", "post-compact", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-post-compact").catch(() => {});
 
   return recovery
     ? { additionalContext: recovery }
@@ -370,15 +454,12 @@ async function handlePostCompact(input: HookInput): Promise<HookOutput> {
 async function handleStop(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
-  // Update pressure final
   if (input.transcript_path) {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
 
-  // Post working state
   postWorkingState(state);
 
-  // Ingest turn complete
   bridge.ingestEvents(state.ccSessionId, [{
     type: "turn_complete",
     sessionId: state.ccSessionId,
@@ -402,8 +483,6 @@ async function handleStop(input: HookInput): Promise<HookOutput> {
     durationMs,
   ).catch(() => {});
 
-  // Direct Reverie ping as a belt-and-suspenders backup — guarantees an
-  // ambient curation pass even if the bus event is lost or filtered.
   bridge.reveriePing(state.ccSessionId, "claude-code-turn-end").catch(() => {});
 
   // Mirror as assistant_message for the conversation-history interceptor.
@@ -415,6 +494,50 @@ async function handleStop(input: HookInput): Promise<HookOutput> {
     source: "claude-code",
     timestamp: Date.now(),
   }]).catch(() => {});
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "decision",
+    "executive",
+    `Claude Code turn ${state.turnCount} stopped after ${state.toolCallCount} tools` ,
+    ["claude-code", "stop", "turn-end"],
+    0.65,
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code turn complete]\nTurn: ${state.turnCount}\nTools: ${state.toolCallCount}\nActive files: ${state.activeFiles.slice(0, 10).join(", ")}`,
+    ["claude-code", "turn-complete", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+
+  return {};
+}
+
+async function handleNotification(input: HookInput): Promise<HookOutput> {
+  const state = getSession(input.session_id);
+  const content = input.message ?? input.prompt ?? "Claude Code notification";
+
+  bridge.ingestEvents(state.ccSessionId, [{
+    type: "notification",
+    sessionId: state.ccSessionId,
+    content,
+    source: "claude-code",
+    timestamp: Date.now(),
+  }]).catch(() => {});
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "perception",
+    "sensory",
+    `Claude Code notification: ${content.slice(0, 700)}`,
+    ["claude-code", "notification"],
+    0.55,
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code notification]\n${content.slice(0, 4000)}`,
+    ["claude-code", "notification", state.ccSessionId],
+    "observation",
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-notification").catch(() => {});
 
   return {};
 }
@@ -429,6 +552,31 @@ async function handleSubagentStart(input: HookInput): Promise<HookOutput> {
     agentType: input.agent_type,
     timestamp: Date.now(),
   }]).catch(() => {});
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "decision",
+    "executive",
+    `Claude Code subagent started: ${input.agent_type ?? "unknown"}`,
+    ["claude-code", "subagent-start"],
+    0.7,
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code subagent started]\nAgent id: ${input.agent_id ?? "unknown"}\nAgent type: ${input.agent_type ?? "unknown"}`,
+    ["claude-code", "subagent", "subagent-start", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+  bridge.helixJournalAppend(
+    state.ccSessionId,
+    "session.start",
+    {
+      agentId: input.agent_id ?? null,
+      agentType: input.agent_type ?? null,
+      hookEvent: "SubagentStart",
+    },
+    input.agent_id,
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-subagent-start").catch(() => {});
 
   return {};
 }
@@ -443,6 +591,31 @@ async function handleSubagentStop(input: HookInput): Promise<HookOutput> {
     agentType: input.agent_type,
     timestamp: Date.now(),
   }]).catch(() => {});
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "action",
+    "motor",
+    `Claude Code subagent stopped: ${input.agent_type ?? "unknown"}`,
+    ["claude-code", "subagent-stop"],
+    0.65,
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code subagent stopped]\nAgent id: ${input.agent_id ?? "unknown"}\nAgent type: ${input.agent_type ?? "unknown"}`,
+    ["claude-code", "subagent", "subagent-stop", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+  bridge.helixJournalAppend(
+    state.ccSessionId,
+    "session.terminate",
+    {
+      agentId: input.agent_id ?? null,
+      agentType: input.agent_type ?? null,
+      hookEvent: "SubagentStop",
+    },
+    input.agent_id,
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-subagent-stop").catch(() => {});
 
   return {};
 }
@@ -450,7 +623,6 @@ async function handleSubagentStop(input: HookInput): Promise<HookOutput> {
 async function handleSessionEnd(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
-  // Final archive
   if (input.transcript_path) {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
@@ -465,11 +637,30 @@ async function handleSessionEnd(input: HookInput): Promise<HookOutput> {
     estimatedPressure: state.estimatedPressure,
     timestamp: Date.now(),
   }]).catch(() => {});
+  bridge.cortexSignal(
+    state.ccSessionId,
+    "decision",
+    "executive",
+    `Claude Code session ended after ${state.turnCount} turns and ${state.toolCallCount} tools`,
+    ["claude-code", "session-end"],
+    0.8,
+  ).catch(() => {});
+  bridge.laminaAppend(
+    state.ccSessionId,
+    "session-decisions",
+    `Claude Code session ended after ${state.turnCount} turns and ${state.toolCallCount} tool calls.`,
+    "claude-code-session-end",
+  ).catch(() => {});
+  bridge.memoryStoreEpisode(
+    state.ccSessionId,
+    `[Claude Code session ended]\nTurns: ${state.turnCount}\nTools: ${state.toolCallCount}\nPressure: ${state.estimatedPressure}`,
+    ["claude-code", "session-end", state.ccSessionId],
+    "conversation",
+  ).catch(() => {});
+  bridge.reveriePing(state.ccSessionId, "claude-code-session-end").catch(() => {});
 
   return {};
 }
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function postWorkingState(state: SessionState): void {
   const workingState = {
@@ -485,6 +676,12 @@ function postWorkingState(state: SessionState): void {
     largeOutputsThisTurn: state.largeOutputsThisTurn,
   };
   bridge.kvSet(`working-state:${state.ccSessionId}`, workingState);
+  bridge.laminaAppend(
+    state.ccSessionId,
+    "session-decisions",
+    `Working state: turn ${state.turnCount}, ${state.toolCallCount} tools, pressure ${classifyTier(state.estimatedPressure)}. Active files: ${state.activeFiles.slice(0, 5).join(", ") || "none"}.`,
+    "claude-code-working-state",
+  ).catch(() => {});
 }
 
 async function saveCheckpoint(state: SessionState, transcriptPath?: string): Promise<void> {
@@ -503,8 +700,6 @@ async function saveCheckpoint(state: SessionState, transcriptPath?: string): Pro
   state.lastCheckpointAt = Date.now();
 }
 
-// ── HTTP Server ─────────────────────────────────────────────────────────────
-
 const ROUTE_MAP: Record<string, (input: HookInput) => Promise<HookOutput>> = {
   SessionStart: handleSessionStart,
   UserPromptSubmit: handleUserPromptSubmit,
@@ -512,6 +707,7 @@ const ROUTE_MAP: Record<string, (input: HookInput) => Promise<HookOutput>> = {
   PostToolUse: handlePostToolUse,
   PreCompact: handlePreCompact,
   PostCompact: handlePostCompact,
+  Notification: handleNotification,
   Stop: handleStop,
   SubagentStart: handleSubagentStart,
   SubagentStop: handleSubagentStop,
@@ -597,17 +793,16 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify(response));
   } catch (err) {
-    console.error(`Hook ${eventName} error:`, err);
-    // Return empty on error — don't block Claude
+    logger.error(`Hook ${eventName} error`, { error: String(err) });
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end("{}");
   }
 });
 
 server.listen(PORT, "127.0.0.1", () => {
-  console.log(`CassiCore hook server listening on http://127.0.0.1:${PORT}`);
+  logger.info(`CassiCore hook server listening on http://127.0.0.1:${PORT}`);
   bridge.available().then(up => {
-    console.log(`CassiCore daemon: ${up ? "connected" : "unavailable (will retry)"}`);
+    logger.info(`CassiCore daemon: ${up ? "connected" : "unavailable (will retry)"}`);
   });
 });
 

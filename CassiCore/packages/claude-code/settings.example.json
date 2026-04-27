@@ -54,6 +54,13 @@
         "timeout": 5000
       }]
     }],
+    "Notification": [{
+      "hooks": [{
+        "type": "command",
+        "command": "node __REPLACE_WITH_ABSOLUTE_PATH__/integrations/claude-code/src/hook-command.cjs",
+        "timeout": 3000
+      }]
+    }],
     "Stop": [{
       "hooks": [{
         "type": "command",

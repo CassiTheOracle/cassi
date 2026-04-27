@@ -9,14 +9,10 @@ import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 
-// ── Configuration ───────────────────────────────────────────────────────────
-
 const SOCKET_PATH = path.join(os.homedir(), ".cassicore", "admin.sock");
 const TCP_BASE = "http://localhost:7433";
 const DEFAULT_TIMEOUT = 1000;
 const LONG_TIMEOUT = 60_000;
-
-// ── Transport ───────────────────────────────────────────────────────────────
 
 function request(
   method: string,
@@ -73,14 +69,10 @@ async function send(method: string, pathname: string, body?: unknown, ms?: numbe
   return request(method, pathname, body, timeout);
 }
 
-// ── Public API ──────────────────────────────────────────────────────────────
-
 export async function available(): Promise<boolean> {
   const res = await send("GET", "/health");
   return res !== null && res.status === "ok";
 }
-
-// ── Context ─────────────────────────────────────────────────────────────────
 
 export interface InjectData {
   updatedAt: number;
@@ -109,8 +101,6 @@ export async function fetchContext(): Promise<InjectData | null> {
   return data ?? contextCache.data;
 }
 
-// ── Global Workspace Context ───────────────────────────────────────────────
-
 let workspaceCache: { data: any; ts: number } = { data: null, ts: 0 };
 const WORKSPACE_CACHE_TTL = 2000;
 
@@ -136,8 +126,6 @@ export function index(sessionId: string, messages: any[]): void {
   send("POST", "/context/index", { sessionId, messages }).catch(() => {});
 }
 
-// Curation via Thalamus module
-
 export async function curate(
   sessionId: string,
   messages: any[],
@@ -145,8 +133,6 @@ export async function curate(
 ): Promise<{ messages: any[]; meta: any } | null> {
   return send("POST", "/context/curate", { sessionId, messages, config }, LONG_TIMEOUT);
 }
-
-// ── Memory ──────────────────────────────────────────────────────────────────
 
 export async function memorySearch(query: string, limit = 5): Promise<any[]> {
   const res = await send("POST", "/memory/search", { query, limit });
@@ -158,6 +144,25 @@ export async function memoryStore(content: string, tags?: string[], type = "insi
   return res?.id ?? "";
 }
 
+export async function memoryStoreEpisode(
+  sessionId: string,
+  content: string,
+  tags: string[],
+  type = "conversation",
+): Promise<string> {
+  const res = await send("POST", "/memory/store", {
+    type,
+    content,
+    sessionId,
+    metadata: {
+      sessionId,
+      source: "claude-code",
+      tags,
+    },
+  });
+  return res?.id ?? "";
+}
+
 export async function kvGet(key: string): Promise<any> {
   return send("GET", `/memory/kv/${encodeURIComponent(key)}`);
 }
@@ -165,8 +170,6 @@ export async function kvGet(key: string): Promise<any> {
 export function kvSet(key: string, value: unknown): void {
   send("POST", "/memory/kv", { key, value }).catch(() => {});
 }
-
-// ── Blackboard ──────────────────────────────────────────────────────────────
 
 export async function blackboardRead(name: string, channel?: string): Promise<any> {
   const qs = channel ? `?channel=${encodeURIComponent(channel)}` : "";
@@ -190,8 +193,6 @@ export async function blackboardSearch(pattern: string): Promise<any> {
   return send("GET", `/blackboard/search?pattern=${encodeURIComponent(pattern)}`);
 }
 
-// ── Agent (Constellation / Helix / Flux) ────────────────────────────────────
-
 export async function agentConstellation(action: string, params: Record<string, unknown>): Promise<any> {
   if (action === "project") {
     return send("POST", "/agent/constellation/project", params, LONG_TIMEOUT);
@@ -205,8 +206,6 @@ export async function agentConstellation(action: string, params: Record<string, 
   return send("POST", `/agent/constellation/${action}`, params, LONG_TIMEOUT);
 }
 
-// ── Intelligence ────────────────────────────────────────────────────────────
-
 export async function intelligence(action: string, params?: Record<string, unknown>): Promise<any> {
   if (action === "activity") return send("GET", "/intelligence/activity");
   if (action === "schema") return send("GET", `/intelligence/schema${params?.path ? `?path=${params.path}` : ""}`);
@@ -216,14 +215,10 @@ export async function intelligence(action: string, params?: Record<string, unkno
   return send("GET", `/intelligence/${action}`);
 }
 
-// ── Session ─────────────────────────────────────────────────────────────────
-
 export async function sessionList(): Promise<any[]> {
   const res = await send("GET", "/session/list");
   return res?.sessions ?? [];
 }
-
-// ── Event Ingestion ─────────────────────────────────────────────────────────
 
 export async function ingestEvents(sessionId: string, events: Record<string, unknown>[]): Promise<void> {
   await send("POST", "/events/ingest", { sessionId, events }).catch(() => {});
@@ -301,6 +296,7 @@ export async function cortexSignal(
   region: string,
   content: string,
   tags: string[] = [],
+  salience = 0.5,
 ): Promise<void> {
   await send("POST", "/cortex/signal", {
     sessionId,
@@ -309,11 +305,72 @@ export async function cortexSignal(
     content,
     tags,
     author: "claude-code",
-    salience: 0.5,
+    salience,
   }).catch(() => {});
 }
 
-// ── Chunk Storage ───────────────────────────────────────────────────────────
+export async function laminaAppend(
+  sessionId: string,
+  label: string,
+  content: string,
+  reason: string,
+): Promise<void> {
+  await ensureSessionLamina(sessionId, label);
+  await send("POST", "/lamina/append", {
+    label,
+    content,
+    reason,
+    agentId: "claude-code",
+    scope: { kind: "session", sessionId },
+  }).catch(() => {});
+}
+
+export async function laminaRethink(
+  sessionId: string,
+  label: string,
+  content: string,
+  reason: string,
+): Promise<void> {
+  await ensureSessionLamina(sessionId, label);
+  await send("POST", "/lamina/rethink", {
+    label,
+    content,
+    reason,
+    agentId: "claude-code",
+    scope: { kind: "session", sessionId },
+  }).catch(() => {});
+}
+
+export async function helixJournalAppend(
+  sessionId: string,
+  eventType: "session.start" | "session.terminate" | "posture.lifecycle" | "diagnostic",
+  payload: Record<string, unknown>,
+  correlationId?: string,
+): Promise<void> {
+  await send("POST", `/helix-sessions/${encodeURIComponent(sessionId)}/events`, {
+    eventType,
+    correlationId,
+    payload: {
+      source: "claude-code",
+      ...payload,
+    },
+  }).catch(() => {});
+}
+
+async function ensureSessionLamina(sessionId: string, label: string): Promise<void> {
+  const qs = `label=${encodeURIComponent(label)}&sessionId=${encodeURIComponent(sessionId)}`;
+  const existing = await send("GET", `/lamina/read?${qs}`);
+  if (existing && !existing.error) return;
+  await send("POST", "/lamina/create", {
+    label,
+    content: "",
+    description: `Claude Code session-scoped ${label}`,
+    owner: "claude-code",
+    scope: { kind: "session", sessionId },
+    tags: ["claude-code", "session"],
+    charLimit: 4_000,
+  }).catch(() => {});
+}
 
 export async function storeChunks(sessionId: string, chunks: any[]): Promise<any> {
   return send("POST", "/context/chunks/store", { sessionId, chunks });
@@ -323,8 +380,6 @@ export async function expandChunks(sessionId: string, chunkIds: string[]): Promi
   const res = await send("POST", "/context/chunks/retrieve", { sessionId, chunkIds });
   return res?.chunks ?? [];
 }
-
-// ── Cognitive Status ────────────────────────────────────────────────────────
 
 export async function cognitiveStatus(): Promise<any> {
   const [activity, teams, lumen] = await Promise.all([
@@ -343,8 +398,6 @@ export async function cognitiveStatus(): Promise<any> {
   };
 }
 
-// ── Aurora ──────────────────────────────────────────────────────────────────
-
 export async function auroraState(): Promise<any> {
   return send("GET", "/intelligence/aurora", undefined, 2000);
 }
@@ -357,8 +410,6 @@ export async function auroraSerialized(): Promise<string | null> {
 export async function auroraObserve(text: string): Promise<any> {
   return send("POST", "/intelligence/aurora/observe", { text }, 2000);
 }
-
-// ── Compaction ───────────────────────────────────────────────────────────────
 
 export async function compact(sessionId: string, messages: any[]): Promise<any> {
   return send("POST", `/context/compact/${sessionId}`, { messages }, LONG_TIMEOUT);
