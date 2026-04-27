@@ -1,7 +1,8 @@
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { Cortex } from '../cortex.js'
 import type { LightningIndexer } from '../lightning-indexer.js'
-import type { RetrievalLabelTriple, LightningRetrievalEvent } from '../types.js'
+import type { LightningRetrievalEvent } from '../types.js'
+import type { RetrievalLabelTriple } from '../../reverie/retrieval-labeler-types.js'
 import {
   type RetrievalRequest,
   type IndexerDims,
