@@ -1790,6 +1790,34 @@ export class Daemon {
         this.intelligence.constellation.setMnemicField(field)
       }
 
+      // Register MnemicField as an injection source so kindled engrams reach
+      // every turn's <cassicore-intelligence> block. Blends the active-task
+      // lamina goal into the seed query so retrieval follows current focus.
+      try {
+        const aggregator = (this.intelligence as any)?.injectionAggregator
+        if (aggregator && typeof aggregator.register === 'function') {
+          const { MnemicFieldInjectionSource } = await import('./intelligence/mnemic-field/injection.js')
+          const lamina = (this.intelligence as any)?.lamina
+          const activeTaskProvider: (() => string | null) | undefined = lamina
+            ? () => {
+                try {
+                  const task = lamina.read?.('active-task')
+                  return typeof task?.content === 'string' ? task.content : null
+                } catch { return null }
+              }
+            : undefined
+          aggregator.register(new MnemicFieldInjectionSource(field, this.logger, {
+            maxHits: this.config.get<number>('intelligence.mnemic.injection.maxHits', 6),
+            minCharge: this.config.get<number>('intelligence.mnemic.injection.minCharge', 0.15),
+            maxContentChars: this.config.get<number>('intelligence.mnemic.injection.maxChars', 280),
+            activeTaskProvider,
+          }))
+          this.logger.info('MnemicField injection source registered')
+        }
+      } catch (err) {
+        this.logger.warn('Failed to register MnemicField injection source', { error: String(err) })
+      }
+
       // Wire LLM reranker into MnemicField (alternative to filament kindling).
       // Uses gpt-5-mini for fast (~1s) cross-encoder reranking vs ~30s for kindling.
       const rerankerProviderId = this.config.get<string>('intelligence.mnemic.rerankerProvider', 'github-copilot')
@@ -1803,6 +1831,12 @@ export class Daemon {
         this.logger.info('MnemicField LLM reranker disabled by config')
       } else {
         this.logger.warn('MnemicField LLM reranker: no provider available')
+      }
+
+      const lightningShadow = this.config.get<boolean>('intelligence.mnemic.lightningShadow', false)
+      if (lightningShadow) {
+        field.setLightningShadowMode(true)
+        this.logger.info('MnemicField Lightning Indexer shadow mode enabled')
       }
 
       // Wire GlobalWorkspace into constellation orchestrator so spawned Helix
