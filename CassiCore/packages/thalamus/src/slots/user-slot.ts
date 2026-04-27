@@ -1,9 +1,14 @@
 import type { MessageSlot, ThalamusAnnotation, SlotContext } from '../types.js'
 import type { SystemLuminanceScore } from '../../workspace/cognitive-signal.js'
 import { extractMessageContent } from '../scorer.js'
+import { hasQuestionResult } from '../../../pipeline/turn/overflow.js'
 
 /**
- * UserSlot — processes `role: 'user'` messages that contain no tool_result blocks.
+ * UserSlot — processes `role: 'user'` messages that carry user intent.
+ *
+ * Includes plain user prompts AND `AskUserQuestion` tool answers, both of
+ * which are semantically user input. Excludes ordinary tool_result messages
+ * (Bash output, file reads, etc.) which are routed to ToolResultSlot.
  *
  * User messages carry instructions and are the highest-credibility source
  * in the conversation. They get light compression (only very long pastes),
@@ -13,8 +18,9 @@ import { extractMessageContent } from '../scorer.js'
 export class UserSlot implements MessageSlot {
   readonly type = 'user' as const
 
-  matches(msg: any): boolean {
+  matches(msg: any, ctx?: SlotContext): boolean {
     if (msg?.role !== 'user') return false
+    if (hasQuestionResult(msg, { toolUseMap: ctx?.toolUseMap })) return true
     if (Array.isArray(msg.content) && msg.content.some((c: any) => c?.type === 'tool_result')) {
       return false
     }

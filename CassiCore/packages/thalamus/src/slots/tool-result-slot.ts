@@ -1,6 +1,7 @@
 import type { MessageSlot, ThalamusAnnotation, SlotContext } from '../types.js'
 import type { SystemLuminanceScore } from '../../workspace/cognitive-signal.js'
 import { classifyTool, extractToolResults } from '../classifier.js'
+import { hasQuestionResult } from '../../../pipeline/turn/overflow.js'
 
 /**
  * ToolResultSlot — processes `role: 'user'` messages containing tool_result blocks.
@@ -9,16 +10,20 @@ import { classifyTool, extractToolResults } from '../classifier.js'
  * execution metadata (duration, output size, tool class, error status) and
  * renders a compact status prefix. During curation, it applies type-specific
  * compression strategies keyed by tool class.
+ *
+ * Note: AskUserQuestion (`question` tool) answers are routed to UserSlot
+ * instead — they carry user intent, not tool output, and must keep
+ * full user-priority scoring during context curation.
  */
 export class ToolResultSlot implements MessageSlot {
   readonly type = 'tool_result' as const
 
-  matches(msg: any): boolean {
-    return (
-      msg?.role === 'user' &&
-      Array.isArray(msg.content) &&
-      msg.content.some((c: any) => c?.type === 'tool_result')
-    )
+  matches(msg: any, ctx?: SlotContext): boolean {
+    if (msg?.role !== 'user') return false
+    if (!Array.isArray(msg.content)) return false
+    if (!msg.content.some((c: any) => c?.type === 'tool_result')) return false
+    if (hasQuestionResult(msg, { toolUseMap: ctx?.toolUseMap })) return false
+    return true
   }
 
   augment(msg: any, ctx: SlotContext): any {

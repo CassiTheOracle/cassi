@@ -1,4 +1,5 @@
 import type { MessageSlotType } from './types.js'
+import { hasQuestionResult } from '../../pipeline/turn/overflow.js'
 
 /**
  * Tool class map — classifies tool names into high-level categories.
@@ -235,6 +236,9 @@ export function classifyMessage(msg: any): MessageSlotType {
   }
 
   if (role === 'user') {
+    // AskUserQuestion answers arrive as tool_result blocks but are
+    // semantically user input, so they classify as 'user'.
+    if (hasQuestionResult(msg)) return 'user'
     if (Array.isArray(content) && content.some((c: any) => c?.type === 'tool_result')) {
       return 'tool_result'
     }

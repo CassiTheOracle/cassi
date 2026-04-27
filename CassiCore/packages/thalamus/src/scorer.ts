@@ -1,6 +1,7 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { SystemLuminanceScore } from '../workspace/cognitive-signal.js'
 import type { BrainContext, ScoredMessage } from './types.js'
+import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 
 /**
  * Five-axis luminance scoring:
@@ -38,6 +39,7 @@ const STOP_WORDS = new Set([
 
 export class MessageLuminanceScorer {
   private logger: ILogger
+  private currentToolUseMap: Map<string, string> = new Map()
 
   constructor(logger: ILogger) {
     this.logger = logger.child('thalamus-scorer')
@@ -48,6 +50,7 @@ export class MessageLuminanceScorer {
     ctx: BrainContext,
     protectedStart: number,
   ): ScoredMessage[] {
+    this.currentToolUseMap = buildToolUseMapFromMessages(messages)
     const total = messages.length
     const scored: ScoredMessage[] = []
 
@@ -158,8 +161,10 @@ export class MessageLuminanceScorer {
       const halfLifeMs = 10 * 60 * 1000 // 10 minutes
       const temporalUrgency = 1 / (1 + ageMs / halfLifeMs)
 
-      // Role boost: user messages carry instructions that may still be active
-      if (msg?.role === 'user' && !msg._thalamus?.tool) {
+      // Role boost: user messages carry instructions that may still be active.
+      // AskUserQuestion answers arrive as tool_result blocks but are semantically
+      // user input — they must receive the same urgency floor as plain user messages.
+      if (msg?.role === 'user' && (!msg._thalamus?.tool || hasQuestionResult(msg, { toolUseMap: this.currentToolUseMap }))) {
         return Math.max(0.15, temporalUrgency)
       }
       return Math.max(0.02, temporalUrgency)
@@ -307,7 +312,10 @@ export class MessageLuminanceScorer {
     if (role === 'user') {
       const hasToolResult = Array.isArray(msg?.content) &&
         msg.content.some((c: any) => c?.type === 'tool_result')
-      base = hasToolResult
+      // AskUserQuestion answers wrap user intent in a tool_result block —
+      // they're real user messages and earn the full user-credibility prior.
+      const isQuestionAnswer = hasQuestionResult(msg, { toolUseMap: this.currentToolUseMap })
+      base = (hasToolResult && !isQuestionAnswer)
         ? (MESSAGE_CREDIBILITY_PRIORS['user:tool_result'] ?? 0.70)
         : (MESSAGE_CREDIBILITY_PRIORS['user'] ?? 0.90)
     } else if (role === 'assistant') {
