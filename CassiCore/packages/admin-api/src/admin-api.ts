@@ -43,6 +43,7 @@ import { handleCortexRoutes } from './admin-api/cortex.js'
 import { handleLaminaRoutes } from './admin-api/lamina.js'
 import { handleContextRepoRoutes } from './admin-api/context-repo.js'
 import { handleReverieRoutes } from './admin-api/reverie.js'
+import { handleReplayRoutes } from './admin-api/replay.js'
 import { handlePinealRoutes } from './admin-api/pineal.js'
 import { handleFileArtifactRoutes } from './admin-api/file-artifacts.js'
 import { handleCodeStoreRoutes } from './admin-api/code-store.js'
@@ -2390,6 +2391,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleLaminaRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleContextRepoRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleReverieRoutes({ daemon, logger, sendJSON }, req, res, method),
+          () => handleReplayRoutes({ daemon, runtime, logger, sendJSON }, req, res, method, pathname),
         () => handleBlackboardRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleFileArtifactRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleCodeStoreRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
