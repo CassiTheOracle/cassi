@@ -321,7 +321,6 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
 
   const now = Date.now();
   if (now - state.lastWorkingStateAt > 15_000) {
-    state.lastWorkingStateAt = now;
     postWorkingState(state);
   }
 
@@ -458,7 +457,7 @@ async function handleStop(input: HookInput): Promise<HookOutput> {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
 
-  postWorkingState(state);
+  postWorkingState(state, true);
 
   bridge.ingestEvents(state.ccSessionId, [{
     type: "turn_complete",
@@ -627,7 +626,7 @@ async function handleSessionEnd(input: HookInput): Promise<HookOutput> {
     state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
   }
 
-  postWorkingState(state);
+  postWorkingState(state, true);
 
   bridge.ingestEvents(state.ccSessionId, [{
     type: "session_end",
@@ -662,10 +661,13 @@ async function handleSessionEnd(input: HookInput): Promise<HookOutput> {
   return {};
 }
 
-function postWorkingState(state: SessionState): void {
+function postWorkingState(state: SessionState, force = false): void {
+  const now = Date.now();
+  if (!force && now - state.lastWorkingStateAt < 15_000) return;
+  state.lastWorkingStateAt = now;
   const workingState = {
     sessionId: state.ccSessionId,
-    timestamp: Date.now(),
+    timestamp: now,
     turnCount: state.turnCount,
     pressure: state.estimatedPressure,
     tier: classifyTier(state.estimatedPressure),

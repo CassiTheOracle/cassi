@@ -13,6 +13,8 @@ const SOCKET_PATH = path.join(os.homedir(), ".cassicore", "admin.sock");
 const TCP_BASE = "http://localhost:7433";
 const DEFAULT_TIMEOUT = 1000;
 const LONG_TIMEOUT = 60_000;
+const LAMINA_CHAR_LIMIT = 4_000;
+const laminaEnsureCache = new Set<string>();
 
 function request(
   method: string,
@@ -316,13 +318,27 @@ export async function laminaAppend(
   reason: string,
 ): Promise<void> {
   await ensureSessionLamina(sessionId, label);
-  await send("POST", "/lamina/append", {
+  const current = await readSessionLamina(sessionId, label);
+  const nextContent = trimLaminaContent(
+    current?.content ? `${current.content}\n${content}` : content,
+  );
+  const replaced = await send("POST", "/lamina/replace", {
     label,
-    content,
+    content: nextContent,
     reason,
+    expectedHash: current?.contentHash ?? null,
     agentId: "claude-code",
     scope: { kind: "session", sessionId },
-  }).catch(() => {});
+  });
+  if (!replaced || replaced.error) {
+    await send("POST", "/lamina/rethink", {
+      label,
+      content: trimLaminaContent(content),
+      reason,
+      agentId: "claude-code",
+      scope: { kind: "session", sessionId },
+    }).catch(() => {});
+  }
 }
 
 export async function laminaRethink(
@@ -334,7 +350,7 @@ export async function laminaRethink(
   await ensureSessionLamina(sessionId, label);
   await send("POST", "/lamina/rethink", {
     label,
-    content,
+    content: trimLaminaContent(content),
     reason,
     agentId: "claude-code",
     scope: { kind: "session", sessionId },
@@ -358,18 +374,39 @@ export async function helixJournalAppend(
 }
 
 async function ensureSessionLamina(sessionId: string, label: string): Promise<void> {
+  const cacheKey = `${sessionId}:${label}`;
+  if (laminaEnsureCache.has(cacheKey)) return;
   const qs = `label=${encodeURIComponent(label)}&sessionId=${encodeURIComponent(sessionId)}`;
   const existing = await send("GET", `/lamina/read?${qs}`);
-  if (existing && !existing.error) return;
-  await send("POST", "/lamina/create", {
+  if (existing && !existing.error) {
+    laminaEnsureCache.add(cacheKey);
+    return;
+  }
+  const created = await send("POST", "/lamina/create", {
     label,
     content: "",
     description: `Claude Code session-scoped ${label}`,
     owner: "claude-code",
     scope: { kind: "session", sessionId },
     tags: ["claude-code", "session"],
-    charLimit: 4_000,
-  }).catch(() => {});
+    charLimit: LAMINA_CHAR_LIMIT,
+  });
+  if (created && !created.error) laminaEnsureCache.add(cacheKey);
+}
+
+async function readSessionLamina(sessionId: string, label: string): Promise<{ content: string; contentHash: string | null } | null> {
+  const qs = `label=${encodeURIComponent(label)}&sessionId=${encodeURIComponent(sessionId)}`;
+  const lamina = await send("GET", `/lamina/read?${qs}`);
+  if (!lamina || lamina.error) return null;
+  return {
+    content: typeof lamina.content === "string" ? lamina.content : "",
+    contentHash: typeof lamina.contentHash === "string" ? lamina.contentHash : null,
+  };
+}
+
+function trimLaminaContent(content: string): string {
+  if (content.length <= LAMINA_CHAR_LIMIT) return content;
+  return content.slice(content.length - LAMINA_CHAR_LIMIT + 80).replace(/^.*?\n/, "[older Claude Code session lamina entries trimmed]\n");
 }
 
 export async function storeChunks(sessionId: string, chunks: any[]): Promise<any> {

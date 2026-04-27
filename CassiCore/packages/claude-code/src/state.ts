@@ -55,10 +55,12 @@ export interface SessionState {
 }
 
 const sessions = new Map<string, SessionState>();
+const MAX_SESSIONS = 100;
 
 export function getSession(sessionId: string): SessionState {
   let s = sessions.get(sessionId);
   if (!s) {
+    evictOldestSessionIfNeeded();
     const ccId = sessionId.startsWith("cc:") ? sessionId : `cc:${sessionId}`;
     s = {
       sessionId,
@@ -91,6 +93,19 @@ export function getSession(sessionId: string): SessionState {
   }
   s.lastActivityAt = Date.now();
   return s;
+}
+
+function evictOldestSessionIfNeeded(): void {
+  if (sessions.size < MAX_SESSIONS) return;
+  let oldestId: string | undefined;
+  let oldestAt = Number.POSITIVE_INFINITY;
+  for (const [id, state] of sessions) {
+    if (state.lastActivityAt < oldestAt) {
+      oldestAt = state.lastActivityAt;
+      oldestId = id;
+    }
+  }
+  if (oldestId) sessions.delete(oldestId);
 }
 
 export function classifyTier(pressure: number): PressureTier {
