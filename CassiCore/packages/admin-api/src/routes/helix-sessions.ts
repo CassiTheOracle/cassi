@@ -20,6 +20,7 @@ import {
   getSharedHelixJournal,
   type HelixJournal,
   type HelixJournalEntry,
+  type HelixJournalEventType,
 } from '../intelligence/helix/helix-journal.js'
 import { getSharedHelixSessionStore, type HelixSessionStore } from '../intelligence/helix/helix-session-store.js'
 
@@ -28,10 +29,17 @@ export interface HelixSessionsDeps {
   daemon: any
   logger: ILogger
   sendJSON: (res: http.ServerResponse, status: number, body: unknown) => void
+  parseBody?: (req: http.IncomingMessage) => Promise<unknown>
 }
 
 
 const HEARTBEAT_INTERVAL_MS = 15_000
+const APPENDABLE_EVENT_TYPES: ReadonlySet<string> = new Set([
+  'session.start',
+  'session.terminate',
+  'posture.lifecycle',
+  'diagnostic',
+])
 
 
 export async function handleHelixSessionsRoutes(
@@ -77,6 +85,32 @@ export async function handleHelixSessionsRoutes(
     } catch (err) {
       logger.error('helix-sessions events failed', { sessionId, error: String(err) })
       sendJSON(res, 500, { error: String(err) })
+    }
+    return true
+  }
+
+  if (method === 'POST' && subRoute === 'events') {
+    if (!deps.parseBody) {
+      sendJSON(res, 503, { error: 'parseBody unavailable' })
+      return true
+    }
+    try {
+      const body = asRecord(await deps.parseBody(req))
+      const eventType = APPENDABLE_EVENT_TYPES.has(String(body.eventType))
+        ? String(body.eventType) as HelixJournalEventType
+        : 'diagnostic'
+      const payload = asRecord(body.payload)
+      const entry = journal.append({
+        sessionId,
+        eventType,
+        postureId: typeof body.postureId === 'string' ? body.postureId : undefined,
+        correlationId: typeof body.correlationId === 'string' ? body.correlationId : undefined,
+        payload,
+      })
+      sendJSON(res, 201, { sessionId, entry })
+    } catch (err) {
+      logger.error('helix-sessions append failed', { sessionId, error: String(err) })
+      sendJSON(res, 400, { error: String(err) })
     }
     return true
   }
@@ -163,4 +197,10 @@ export async function handleHelixSessionsRoutes(
   }
 
   return false
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
 }

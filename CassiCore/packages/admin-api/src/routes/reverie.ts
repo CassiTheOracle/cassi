@@ -41,8 +41,9 @@ export async function handleReverieRoutes(
 
   if (method === 'POST' && pathname === '/reverie/ping') {
     const sessionId = url.searchParams.get('sessionId') ?? 'global'
-    reverie.ping(sessionId, 'manual-admin')
-    deps.sendJSON(res, 202, { ok: true, sessionId })
+    const reason = url.searchParams.get('reason') ?? 'manual-admin'
+    reverie.ping(sessionId, reason)
+    deps.sendJSON(res, 202, { ok: true, sessionId, reason })
     return true
   }
 

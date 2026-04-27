@@ -2368,7 +2368,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
         () => handleVerificationRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleImprovementRoutes({ daemon, logger, sendJSON, parseBody, url, pathname }, req, res, method),
          () => handleHelixRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
-         () => handleHelixSessionsRoutes({ daemon, logger, sendJSON }, req, res, method),
+          () => handleHelixSessionsRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleConstellationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleMeditationRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
          () => handleProactiveRoutes({ proactive: daemon.intelligence?.proactiveEnricher, logger, sendJSON, parseBody }, req, res, method),

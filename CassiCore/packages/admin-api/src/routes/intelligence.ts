@@ -589,6 +589,23 @@ export async function handleIntelligenceRoutes(
       anomalies[idx] = { ...anomalies[idx], acknowledged: true, acknowledgedAt: Date.now() }
       await mem.kv_set('subconscious:anomalies', anomalies)
 
+      const resolvedId = (anomalies[idx] as { id?: string }).id ?? anomalyId
+      const mnemicField = (mem as { getMnemicField?: () => unknown }).getMnemicField?.()
+      if (mnemicField) {
+        try {
+          ;(mnemicField as {
+            update: (id: string, update: { metadata?: Record<string, unknown> }) => unknown
+          }).update(`memory:${resolvedId}`, {
+            metadata: {
+              acknowledged: true,
+              acknowledgedAt: new Date().toISOString(),
+            },
+          })
+        } catch {
+          // Fail-open: KV cache acknowledge already succeeded.
+        }
+      }
+
       sendJSON(res, 200, { ok: true, anomalyId })
       return true
     } catch (err) {
