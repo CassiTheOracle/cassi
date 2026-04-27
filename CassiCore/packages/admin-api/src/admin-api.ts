@@ -322,7 +322,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
   // Additionally, we hook into the admin-api handler() to intercept ingest calls directly.
   const _ocIngestInterceptor = (events: any[], sessionId: string) => {
     for (const event of events) {
-      if (event.source !== 'opencode') continue
+      if (event.source !== 'opencode' && event.source !== 'claude-code') continue
       if (event.type !== 'user_message' && event.type !== 'assistant_message') continue
 
       const sid: string = event.sessionId || sessionId
