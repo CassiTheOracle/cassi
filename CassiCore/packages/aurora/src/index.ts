@@ -32,7 +32,7 @@ import type {
   ReverieInsight,
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
-import type { ReverieInferenceProvider } from './reverie-reasoning-observer.js'
+import type { ReverieInferenceProvider } from './types.js'
 import { ReverieReasoningObserver, makeReasoningRecordId } from './reverie-reasoning-observer.js'
 
 export { Claustrum } from './claustrum.js'
@@ -76,10 +76,20 @@ export class Aurora {
   private reverieMinTextLength: number
   private reverieSamplingRate: number
   private reverieTimeoutMs: number
-  private reverieObservationCounter = 0
+  private reverieObservationCounters: Map<string, number> = new Map()
 
   /** Optional session ID for reasoning records. */
   private sessionId?: string
+
+  /** Active task for context in Reverie analysis (wired from lamina). */
+  private activeTask: string | null = null
+
+  /** Recent session decisions for contradiction detection. */
+  private recentDecisions: string[] = []
+
+  /** In-flight Reverie analyses for cleanup. */
+  private inFlightAnalyses: Set<Promise<void>> = new Set()
+  private maxInFlightAnalyses = 5
 
   constructor(
     private cortex: Cortex,
@@ -116,6 +126,26 @@ export class Aurora {
   /** Set session ID for reasoning records. */
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId
+  }
+
+  /** Set active task for Reverie analysis context (wired from lamina). */
+  setActiveTask(task: string | null): void {
+    this.activeTask = task
+  }
+
+  /** Set recent session decisions for contradiction detection. */
+  setRecentDecisions(decisions: string[]): void {
+    this.recentDecisions = decisions.slice(-10) // keep last 10
+  }
+
+  /** Dispose Aurora and cancel pending operations. */
+  dispose(): void {
+    this.reverieObserver = null
+    this.inFlightAnalyses.clear()
+    this.reasoningLog = []
+    this.recentConcepts.clear()
+    this.conceptHistory = []
+    this.logger.debug('Aurora disposed')
   }
 
   /** Get the persisted reasoning log (most recent first). */
@@ -297,32 +327,40 @@ export class Aurora {
     const shift = this.detectShift(concepts)
     const momentum = this.computeMomentum(concepts)
 
-    // === SLOW PATH (conditional) ===
-    // Decide whether to run Reverie semantic analysis
-    let reverieInsights: ReverieInsight[] = []
-    let reverieAnalyzed = false
+    // Decide whether to run Reverie slow path BEFORE persisting,
+    // so we know whether to flag the record as analyzed.
     const shouldRunReverie = this.shouldRunReverieSlowPath(text, shift)
-
-    if (shouldRunReverie && this.reverieObserver) {
-      reverieAnalyzed = true
-      // Fire-and-forget: Reverie analysis is async but observeReasoning is sync
-      // We kick it off and let it append insights to the record later
-      this.runReverieAnalysis(text, concepts, shift, activatedNodes, momentum)
-        .catch(err => this.logger.debug('Reverie analysis failed', { error: String(err) }))
-    }
+    const reverieAnalyzed = shouldRunReverie && !!this.reverieObserver
 
     // === PERSIST ===
     // Always save the reasoning record — this is the learning corpus
     const record = this.persistReasoningRecord({
       text,
       concepts,
-      insights: reverieInsights, // will be empty if async; updated later
+      insights: [], // populated async by slow path
       shift,
       momentum,
       activatedNodes,
       durationMs: Date.now() - start,
       reverieAnalyzed,
     })
+
+    // === SLOW PATH (conditional) ===
+    // Fire-and-forget: Reverie analysis is async but observeReasoning is sync.
+    // Cap in-flight analyses to prevent unbounded promise accumulation.
+    if (reverieAnalyzed) {
+      if (this.inFlightAnalyses.size >= this.maxInFlightAnalyses) {
+        this.logger.debug('Reverie analysis skipped: too many in-flight', {
+          inFlight: this.inFlightAnalyses.size,
+          max: this.maxInFlightAnalyses,
+        })
+      } else {
+        const analysis = this.runReverieAnalysis(record.id, text, concepts, shift)
+          .finally(() => { this.inFlightAnalyses.delete(analysis) })
+        this.inFlightAnalyses.add(analysis)
+        analysis.catch(err => this.logger.debug('Reverie analysis failed', { error: String(err) }))
+      }
+    }
 
     this.logger.debug('Reasoning observed', {
       concepts: concepts.length,
@@ -341,7 +379,7 @@ export class Aurora {
       momentum,
       extractedConcepts: concepts,
       durationMs: Date.now() - start,
-      reverieInsights,
+      reverieInsights: [], // always empty at return time; populated async
       reverieAnalyzed,
       recordId: record.id,
     }
@@ -360,9 +398,11 @@ export class Aurora {
     // Always run when a shift is detected (high-value signal)
     if (shift) return true
 
-    // Sample every Nth observation
-    this.reverieObservationCounter++
-    return this.reverieObservationCounter % this.reverieSamplingRate === 0
+    // Sample every Nth observation (per-session)
+    const key = this.sessionId ?? '_global'
+    const count = (this.reverieObservationCounters.get(key) ?? 0) + 1
+    this.reverieObservationCounters.set(key, count)
+    return count % this.reverieSamplingRate === 0
   }
 
   /**
@@ -370,11 +410,10 @@ export class Aurora {
    * Updates the persisted ReasoningRecord with insights when complete.
    */
   private async runReverieAnalysis(
+    recordId: string,
     text: string,
     concepts: string[],
     shift: ReasoningShift | null,
-    activatedNodes: string[],
-    momentum: ReasoningMomentum,
   ): Promise<void> {
     if (!this.reverieObserver) return
 
@@ -382,8 +421,8 @@ export class Aurora {
       {
         text,
         currentState: this.currentState,
-        activeTask: null, // TODO: wire from lamina
-        recentDecisions: [], // TODO: wire from session-decisions
+        activeTask: this.activeTask,
+        recentDecisions: this.recentDecisions,
         extractedConcepts: concepts,
         shiftDetected: shift !== null,
       },
@@ -391,10 +430,10 @@ export class Aurora {
     )
 
     if (insights.length > 0) {
-      // Find the most recent record for this text and update it
+      // Find the record by ID and update it
       for (let i = this.reasoningLog.length - 1; i >= 0; i--) {
         const record = this.reasoningLog[i]
-        if (record.text === text) {
+        if (record.id === recordId) {
           record.insights = insights
           this.logger.debug('Reverie insights appended to record', {
             recordId: record.id,

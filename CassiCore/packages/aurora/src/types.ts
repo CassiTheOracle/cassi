@@ -456,3 +456,35 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   reverieSamplingRate: 3,
   reverieTimeoutMs: 8_000,
 }
+
+// contributing:ignore — ReverieReasoningObserver types
+
+/** Minimal interface to Reverie's inference capability. */
+export interface ReverieInferenceProvider {
+  infer(messages: Array<{ role: string; content: string }>, options: {
+    maxTokens: number
+    temperature: number
+    signal?: AbortSignal
+  }): Promise<string>
+}
+
+/** Input to the ReverieReasoningObserver analysis. */
+export interface ReasoningAnalysisInput {
+  /** The raw reasoning text to analyze. */
+  text: string
+
+  /** Current mental state (for context about what's already in mind). */
+  currentState: MentalState | null
+
+  /** Active task from lamina, if available. */
+  activeTask: string | null
+
+  /** Recent session decisions, if available. */
+  recentDecisions: string[]
+
+  /** Concepts already extracted by fast path. */
+  extractedConcepts: string[]
+
+  /** Whether a reasoning shift was detected. */
+  shiftDetected: boolean
+}
