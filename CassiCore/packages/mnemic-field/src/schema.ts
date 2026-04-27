@@ -107,6 +107,16 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_migration_jobs_status ON migration_jobs(status);
     CREATE INDEX IF NOT EXISTS idx_synapses_target ON mnemic_synapses(target_id, edge_type);
     CREATE INDEX IF NOT EXISTS idx_synapses_source ON mnemic_synapses(source_id, edge_type);
+    CREATE INDEX IF NOT EXISTS idx_replay_part_of_parent ON mnemic_synapses(target_id, edge_type, source_id)
+      WHERE edge_type = 'part_of';
+    CREATE INDEX IF NOT EXISTS idx_replay_temporal_next ON mnemic_synapses(source_id, edge_type, target_id)
+      WHERE edge_type = 'temporal_neighbor';
+    CREATE INDEX IF NOT EXISTS idx_replay_temporal_prev ON mnemic_synapses(target_id, edge_type, source_id)
+      WHERE edge_type = 'temporal_neighbor';
+    CREATE INDEX IF NOT EXISTS idx_replay_caused_by_call ON mnemic_synapses(target_id, edge_type, source_id)
+      WHERE edge_type = 'caused_by';
+    CREATE INDEX IF NOT EXISTS idx_replay_spawned_from_parent ON mnemic_synapses(target_id, edge_type, source_id)
+      WHERE edge_type = 'spawned_from';
     CREATE INDEX IF NOT EXISTS idx_spikes_engram ON activation_spikes(engram_id, timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_spikes_timestamp ON activation_spikes(timestamp DESC);
     CREATE INDEX IF NOT EXISTS idx_changesets_status ON changesets(status);
@@ -155,6 +165,28 @@ export function initMnemicFieldSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_filament_syn_edge ON filament_synapses(edge_type, weight);
     CREATE INDEX IF NOT EXISTS idx_fent_entity ON filament_entities(entity);
 
+    CREATE VIEW IF NOT EXISTS replay_part_of_edges AS
+      SELECT source_id AS child_id, target_id AS parent_id, weight, created_at, metadata
+      FROM mnemic_synapses
+      WHERE edge_type = 'part_of';
+
+    CREATE VIEW IF NOT EXISTS replay_temporal_edges AS
+      SELECT source_id AS previous_id, target_id AS next_id, weight, created_at, metadata
+      FROM mnemic_synapses
+      WHERE edge_type = 'temporal_neighbor';
+
+    CREATE VIEW IF NOT EXISTS replay_session_nodes AS
+      SELECT id, node_type, content, t, created_at, metadata
+      FROM engrams
+      WHERE id LIKE 'session:%'
+         OR id LIKE 'run:%'
+         OR id LIKE 'step:%'
+         OR id LIKE 'turn:%'
+         OR id LIKE 'tc:%'
+         OR id LIKE 'tr:%'
+         OR id LIKE 'err:%'
+         OR id LIKE 'artifact:%';
+
     -- Neural Kindling: forward traces for backpropagation during consolidation
     CREATE TABLE IF NOT EXISTS forward_traces (
       id TEXT PRIMARY KEY,
@@ -199,7 +231,28 @@ export function initMnemicFieldSchema(db: Database.Database): void {
   createIndexerVersionsTableIfNeeded(db)
   createIndexerTrainingStepsTableIfNeeded(db)
   createLightningValidationSetTableIfNeeded(db)
+  createReplayInfraIfNeeded(db)
   migrateSchema(db)
+}
+
+function createReplayInfraIfNeeded(db: Database.Database): void {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_engrams_session_id
+      ON engrams (json_extract(metadata, '$.sessionId'))
+      WHERE json_extract(metadata, '$.sessionId') IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_engrams_parent_message_id
+      ON engrams (json_extract(metadata, '$.parentMessageId'))
+      WHERE json_extract(metadata, '$.parentMessageId') IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_engrams_session_t
+      ON engrams (json_extract(metadata, '$.sessionId'), t)
+      WHERE json_extract(metadata, '$.sessionId') IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_engrams_branch_id
+      ON engrams (json_extract(metadata, '$.branchId'))
+      WHERE json_extract(metadata, '$.branchId') IS NOT NULL;
+  `)
 }
 
 function createLightningIndexTablesIfNeeded(db: Database.Database): void {

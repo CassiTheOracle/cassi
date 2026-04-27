@@ -183,6 +183,27 @@ export class Cortex {
       `),
       countSynapses: this.db.prepare(`SELECT COUNT(*) as count FROM mnemic_synapses`),
 
+      getEngramsByIdPrefixAsc: this.db.prepare(`
+        SELECT * FROM engrams WHERE id LIKE ? || '%' ORDER BY t ASC, id ASC LIMIT ? OFFSET ?
+      `),
+      getEngramsByIdPrefixDesc: this.db.prepare(`
+        SELECT * FROM engrams WHERE id LIKE ? || '%' ORDER BY t DESC, id DESC LIMIT ? OFFSET ?
+      `),
+      getOutgoingTypedSynapses: this.db.prepare(`
+        SELECT * FROM mnemic_synapses WHERE source_id = ? AND edge_type = ?
+      `),
+      getIncomingTypedSynapses: this.db.prepare(`
+        SELECT * FROM mnemic_synapses WHERE target_id = ? AND edge_type = ?
+      `),
+      findBranchEngramsByPrefix: this.db.prepare(`
+        SELECT source_id AS engram_id, COUNT(*) AS out_degree
+        FROM mnemic_synapses
+        WHERE edge_type = ? AND source_id LIKE ? || '%'
+        GROUP BY source_id
+        HAVING COUNT(*) > 1
+        ORDER BY source_id ASC
+      `),
+
       insertSpike: this.db.prepare(`
         INSERT INTO activation_spikes (engram_id, timestamp, magnitude, task_context, outcome)
         VALUES (@engram_id, @timestamp, @magnitude, @task_context, @outcome)
@@ -724,6 +745,30 @@ export class Cortex {
       `SELECT * FROM engrams WHERE cluster_id = ? ORDER BY potentiation DESC`
     ).all(clusterId) as Record<string, unknown>[]
     return rows.map(rowToEngram)
+  }
+
+  getEngramsByIdPrefix(
+    prefix: string,
+    opts: { limit?: number; offset?: number; order?: 'asc' | 'desc' } = {},
+  ): Engram[] {
+    const limit = opts.limit ?? 1000
+    const offset = opts.offset ?? 0
+    const stmt = (opts.order ?? 'asc') === 'asc'
+      ? this.stmts.getEngramsByIdPrefixAsc
+      : this.stmts.getEngramsByIdPrefixDesc
+    const rows = stmt.all(prefix, limit, offset) as Record<string, unknown>[]
+    return rows.map(rowToEngram)
+  }
+
+  getTypedSynapses(engramId: string, edgeType: string, direction: 'in' | 'out'): MnemicSynapse[] {
+    const stmt = direction === 'out' ? this.stmts.getOutgoingTypedSynapses : this.stmts.getIncomingTypedSynapses
+    const rows = stmt.all(engramId, edgeType) as Record<string, unknown>[]
+    return rows.map(rowToSynapse)
+  }
+
+  findBranchEngrams(idPrefix: string, edgeType: string = 'temporal_neighbor'): Array<{ engramId: string; outDegree: number }> {
+    const rows = this.stmts.findBranchEngramsByPrefix.all(edgeType, idPrefix) as Array<{ engram_id: string; out_degree: number }>
+    return rows.map(r => ({ engramId: r.engram_id, outDegree: r.out_degree }))
   }
 
   getAllEngramsWithSynapses(): { engrams: Engram[]; synapses: MnemicSynapse[] } {

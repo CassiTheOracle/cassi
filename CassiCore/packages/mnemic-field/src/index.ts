@@ -40,6 +40,8 @@ import type {
   ZoomEntry, RenderOptions,
   NeuralKindlingConfig,
   BackpropConfig,
+  ReplayTraversal, ReplayTraversalOptions,
+  ReplayEvent, ReplayEventKind, SessionReplaySummary,
 } from './types.js'
 import { SPARK_POINT_DEFAULTS, POTENTIATION_DEFAULTS } from './types.js'
 
@@ -47,6 +49,44 @@ const REPROJECTION = {
   cooldownMs: 30 * 60 * 1000,    // 30 min between runs
   maxFailures: 2,                 // block after this many consecutive failures
 } as const
+
+function compareReplayEngrams(a: Engram, b: Engram): number {
+  const byT = a.t - b.t
+  if (byT !== 0) return byT
+  const byCreatedAt = a.createdAt.localeCompare(b.createdAt)
+  if (byCreatedAt !== 0) return byCreatedAt
+  return a.id.localeCompare(b.id)
+}
+
+function compareReplayEvents(a: ReplayEvent, b: ReplayEvent): number {
+  const byTimestamp = a.timestamp.localeCompare(b.timestamp)
+  if (byTimestamp !== 0) return byTimestamp
+  return a.id.localeCompare(b.id)
+}
+
+function replayKindForId(id: string): ReplayEventKind {
+  if (id.startsWith('session:')) return 'session'
+  if (id.startsWith('run:')) return 'run'
+  if (id.startsWith('step:')) return 'step'
+  if (id.startsWith('turn:')) return 'turn'
+  if (id.startsWith('tc:')) return 'tool_call'
+  if (id.startsWith('tr:')) return 'tool_result'
+  if (id.startsWith('session_result:')) return 'session_result'
+  if (id.startsWith('err:')) return 'error'
+  if (id.startsWith('artifact:')) return 'artifact'
+  return 'unknown'
+}
+
+function shouldIncludeReplayEvent(rootId: string, candidateId: string): boolean {
+  if (candidateId === rootId) return true
+  if (rootId.startsWith('session:') && candidateId.startsWith('session:')) return false
+  if (rootId.startsWith('run:') && candidateId.startsWith('run:')) return false
+  return true
+}
+
+function synapseKey(synapse: MnemicSynapse): string {
+  return `${synapse.sourceId}\u0000${synapse.targetId}\u0000${synapse.edgeType}`
+}
 
 export { Cortex } from './cortex.js'
 export { FilamentCortex } from './filament-cortex.js'
@@ -359,6 +399,194 @@ export class MnemicField {
 
   disconnect(sourceId: string, targetId: string, edgeType: string): boolean {
     return this.cortex.deleteSynapse(sourceId, targetId, edgeType)
+  }
+
+  getEngramsByIdPrefix(
+    prefix: string,
+    opts: { limit?: number; offset?: number; order?: 'asc' | 'desc' } = {},
+  ): Engram[] {
+    return this.cortex.getEngramsByIdPrefix(prefix, opts)
+  }
+
+  getTypedSynapses(engramId: string, edgeType: string, direction: 'in' | 'out'): MnemicSynapse[] {
+    return this.cortex.getTypedSynapses(engramId, edgeType, direction)
+  }
+
+  getReplayChildren(parentId: string, opts: { limit?: number } = {}): Engram[] {
+    const limit = Math.max(1, Math.min(opts.limit ?? 500, 5000))
+    return this.getTypedSynapses(parentId, 'part_of', 'in')
+      .map(s => this.get(s.sourceId))
+      .filter((engram): engram is Engram => Boolean(engram))
+      .sort(compareReplayEngrams)
+      .slice(0, limit)
+  }
+
+  getReplayTimeline(parentId: string, opts: { limit?: number } = {}): Engram[] {
+    const children = this.getReplayChildren(parentId, opts)
+    if (children.length <= 1) return children
+
+    const childIds = new Set(children.map(e => e.id))
+    const nextByPrevious = new Map<string, string>()
+    const previousIds = new Set<string>()
+    for (const child of children) {
+      for (const synapse of this.getTypedSynapses(child.id, 'temporal_neighbor', 'out')) {
+        if (!childIds.has(synapse.targetId)) continue
+        nextByPrevious.set(child.id, synapse.targetId)
+        previousIds.add(synapse.targetId)
+      }
+    }
+
+    const start = children.find(e => !previousIds.has(e.id)) ?? children[0]
+    const byId = new Map(children.map(e => [e.id, e]))
+    const ordered: Engram[] = []
+    const seen = new Set<string>()
+    let current: Engram | undefined = start
+    while (current && !seen.has(current.id)) {
+      ordered.push(current)
+      seen.add(current.id)
+      current = byId.get(nextByPrevious.get(current.id) ?? '')
+    }
+    for (const child of children) {
+      if (!seen.has(child.id)) ordered.push(child)
+    }
+    return ordered
+  }
+
+  getReplaySubgraph(rootId: string, opts: ReplayTraversalOptions = {}): ReplayTraversal {
+    const root = this.get(rootId)
+    if (!root) return { rootId, nodes: [], synapses: [] }
+    const limit = Math.max(1, Math.min(opts.limit ?? 1000, 10_000))
+    const nodeIds = new Set<string>([root.id])
+    const queue = [root.id]
+    const synapseMap = new Map<string, MnemicSynapse>()
+
+    while (queue.length > 0 && nodeIds.size < limit) {
+      const id = queue.shift()!
+      const childEdges = this.getTypedSynapses(id, 'part_of', 'in')
+      for (const synapse of childEdges) {
+        synapseMap.set(synapseKey(synapse), synapse)
+        if (!nodeIds.has(synapse.sourceId)) {
+          nodeIds.add(synapse.sourceId)
+          if (opts.includeRecursive !== false) queue.push(synapse.sourceId)
+        }
+      }
+    }
+
+    for (const id of [...nodeIds]) {
+      for (const synapse of this.getTypedSynapses(id, 'caused_by', 'in')) {
+        synapseMap.set(synapseKey(synapse), synapse)
+        if (nodeIds.size < limit) nodeIds.add(synapse.sourceId)
+      }
+      for (const synapse of this.getTypedSynapses(id, 'led_to', 'out')) {
+        synapseMap.set(synapseKey(synapse), synapse)
+        if (nodeIds.size < limit) nodeIds.add(synapse.targetId)
+      }
+      for (const synapse of this.getTypedSynapses(id, 'spawned_from', 'out')) {
+        synapseMap.set(synapseKey(synapse), synapse)
+        if (nodeIds.size < limit) nodeIds.add(synapse.targetId)
+      }
+      for (const synapse of this.getTypedSynapses(id, 'supersedes', 'out')) {
+        synapseMap.set(synapseKey(synapse), synapse)
+        if (nodeIds.size < limit) nodeIds.add(synapse.targetId)
+      }
+    }
+
+    for (const id of [...nodeIds]) {
+      for (const edgeType of ['temporal_neighbor', 'caused_by', 'spawned_from', 'led_to', 'supersedes'] as const) {
+        for (const synapse of this.getTypedSynapses(id, edgeType, 'out')) {
+          if (nodeIds.has(synapse.targetId)) synapseMap.set(synapseKey(synapse), synapse)
+        }
+      }
+    }
+
+    const synapses = [...synapseMap.values()]
+    const nodes = [...nodeIds]
+      .map(id => this.get(id))
+      .filter((engram): engram is Engram => Boolean(engram))
+      .sort(compareReplayEngrams)
+      .map(engram => {
+        const related = synapses.filter(s => s.sourceId === engram.id || s.targetId === engram.id)
+        return {
+          engram,
+          parentIds: related.filter(s => s.sourceId === engram.id && s.edgeType === 'part_of').map(s => s.targetId),
+          childIds: related.filter(s => s.targetId === engram.id && s.edgeType === 'part_of').map(s => s.sourceId),
+          previousIds: related.filter(s => s.targetId === engram.id && s.edgeType === 'temporal_neighbor').map(s => s.sourceId),
+          nextIds: related.filter(s => s.sourceId === engram.id && s.edgeType === 'temporal_neighbor').map(s => s.targetId),
+        }
+      })
+
+    return { rootId, nodes, synapses }
+  }
+
+  replaySession(sessionId: string, opts: ReplayTraversalOptions = {}): ReplayEvent[] {
+    const rootId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`
+    return this.replayFromRoot(rootId, opts)
+  }
+
+  replayRun(runId: string, opts: ReplayTraversalOptions = {}): ReplayEvent[] {
+    const rootId = runId.startsWith('run:') ? runId : `run:${runId}`
+    return this.replayFromRoot(rootId, opts)
+  }
+
+  getSessionSummary(sessionId: string): SessionReplaySummary {
+    const rootId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`
+    const root = this.get(rootId)
+    if (!root) {
+      return {
+        sessionId: rootId,
+        exists: false,
+        eventCount: 0,
+        turnCount: 0,
+        runCount: 0,
+        stepCount: 0,
+        toolCallCount: 0,
+        toolResultCount: 0,
+        anomalyCount: 0,
+        artifactCount: 0,
+        startedAt: null,
+        lastEventAt: null,
+      }
+    }
+
+    const events = this.replaySession(rootId)
+    const timestamps = events.map(e => e.timestamp).sort()
+    return {
+      sessionId: rootId,
+      exists: true,
+      eventCount: events.length,
+      turnCount: events.filter(e => e.kind === 'turn').length,
+      runCount: events.filter(e => e.kind === 'run').length,
+      stepCount: events.filter(e => e.kind === 'step').length,
+      toolCallCount: events.filter(e => e.kind === 'tool_call').length,
+      toolResultCount: events.filter(e => e.kind === 'tool_result').length,
+      anomalyCount: events.filter(e => e.kind === 'error').length,
+      artifactCount: events.filter(e => e.kind === 'artifact').length,
+      startedAt: timestamps[0] ?? root.createdAt,
+      lastEventAt: timestamps[timestamps.length - 1] ?? root.createdAt,
+    }
+  }
+
+  private replayFromRoot(rootId: string, opts: ReplayTraversalOptions): ReplayEvent[] {
+    const graph = this.getReplaySubgraph(rootId, opts)
+    return graph.nodes
+      .filter(node => shouldIncludeReplayEvent(rootId, node.engram.id))
+      .map(node => ({
+        id: node.engram.id,
+        kind: replayKindForId(node.engram.id),
+        nodeType: node.engram.nodeType,
+        timestamp: node.engram.createdAt,
+        content: node.engram.content,
+        metadata: node.engram.metadata,
+        parentIds: node.parentIds,
+        childIds: node.childIds,
+        previousIds: node.previousIds,
+        nextIds: node.nextIds,
+      }))
+      .sort((a, b) => {
+        if (a.id === rootId && b.id !== rootId) return -1
+        if (b.id === rootId && a.id !== rootId) return 1
+        return compareReplayEvents(a, b)
+      })
   }
 
   neighbors(engramId: string): { engrams: Engram[]; synapses: MnemicSynapse[] } {

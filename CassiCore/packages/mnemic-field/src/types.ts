@@ -150,6 +150,79 @@ export interface TensionReport {
   recommendation: string
 }
 
+export const REPLAY_ID_PREFIXES = {
+  session: 'session:',
+  run: 'run:',
+  step: 'step:',
+  turn: 'turn:',
+  toolCall: 'tc:',
+  toolResult: 'tr:',
+  sessionResult: 'session_result:',
+  error: 'err:',
+  artifact: 'artifact:',
+} as const
+
+export type ReplayNodeKind = keyof typeof REPLAY_ID_PREFIXES
+
+export interface ReplayNode {
+  engram: Engram
+  parentIds: string[]
+  childIds: string[]
+  previousIds: string[]
+  nextIds: string[]
+}
+
+export interface ReplayTraversalOptions {
+  includeRecursive?: boolean
+  limit?: number
+}
+
+export interface ReplayTraversal {
+  rootId: string
+  nodes: ReplayNode[]
+  synapses: MnemicSynapse[]
+}
+
+export type ReplayEventKind =
+  | 'session'
+  | 'run'
+  | 'step'
+  | 'turn'
+  | 'tool_call'
+  | 'tool_result'
+  | 'session_result'
+  | 'error'
+  | 'artifact'
+  | 'unknown'
+
+export interface ReplayEvent {
+  id: string
+  kind: ReplayEventKind
+  nodeType: EngramType
+  timestamp: string
+  content: string
+  metadata: Record<string, unknown>
+  parentIds: string[]
+  childIds: string[]
+  previousIds: string[]
+  nextIds: string[]
+}
+
+export interface SessionReplaySummary {
+  sessionId: string
+  exists: boolean
+  eventCount: number
+  turnCount: number
+  runCount: number
+  stepCount: number
+  toolCallCount: number
+  toolResultCount: number
+  anomalyCount: number
+  artifactCount: number
+  startedAt: string | null
+  lastEventAt: string | null
+}
+
 export interface FieldStats {
   engramCount: number
   synapseCount: number
