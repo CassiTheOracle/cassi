@@ -600,6 +600,64 @@ export class ConsolidationEngine {
   }
 
   /**
+   * Receive promotion candidates from the legacy detector and act on each.
+   *
+   * For every candidate whose source engram exists in the field, create a
+   * pattern engram representing the promoted class and link the source as
+   * superseded. The action side is fail-open per candidate so a single bad
+   * key does not abort the batch.
+   *
+   * @param candidates Promotion proposals from the legacy ConsolidationEngine
+   * @returns Number of pattern engrams created
+   */
+  consolidatePromotionCandidates(
+    candidates: ReadonlyArray<{ key: string; from: string; to: string }>,
+  ): number {
+    if (candidates.length === 0) return 0
+
+    let created = 0
+    for (const candidate of candidates) {
+      try {
+        const sourceId = `memory:${candidate.key}`
+        const source = this.cortex.getEngram(sourceId)
+        if (!source) continue
+
+        const patternId = `pattern:${candidate.key}:${candidate.to}`
+        if (this.cortex.getEngram(patternId)) continue
+
+        const content = `Consolidated ${candidate.from} → ${candidate.to}: ${source.content}`
+        this.cortex.createEngram({
+          id: patternId,
+          content,
+          nodeType: 'pattern',
+          x: source.x,
+          y: source.y,
+          tags: ['consolidation', `from:${candidate.from}`, `to:${candidate.to}`],
+          provenance: 'consolidation:promotion',
+        })
+
+        this.cortex.createSynapse({
+          sourceId: patternId,
+          targetId: sourceId,
+          edgeType: 'supersedes',
+          weight: 0.8,
+        })
+        created++
+      } catch (err) {
+        this.logger.debug('Promotion candidate consolidation failed (non-fatal)', {
+          key: candidate.key,
+          error: String(err),
+        })
+      }
+    }
+
+    if (created > 0) {
+      this.logger.info('Promotion candidates consolidated', { count: created })
+    }
+    return created
+  }
+
+  /**
    * Check if an abstraction engram already exists near a nucleus centroid.
    */
   private findExistingAbstraction(nucleus: Nucleus): Engram | null {

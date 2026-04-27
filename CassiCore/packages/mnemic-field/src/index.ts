@@ -1234,6 +1234,17 @@ export class MnemicField {
     return this.consolidationEngine.consolidate(options)
   }
 
+  /**
+   * Bridge entry point for the legacy detector. Forwards promotion
+   * candidates to the mnemic-side consolidation engine which creates
+   * pattern engrams and supersedes synapses.
+   */
+  consolidatePromotionCandidates(
+    candidates: ReadonlyArray<{ key: string; from: string; to: string }>,
+  ): number {
+    return this.consolidationEngine.consolidatePromotionCandidates(candidates)
+  }
+
   // contributing:ignore — Deprecated filament methods (filaments removed; keep stubs for API compat)
 
   getFilaments(_engramId?: string): Filament[] {
