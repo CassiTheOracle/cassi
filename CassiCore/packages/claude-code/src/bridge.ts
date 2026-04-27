@@ -229,6 +229,90 @@ export async function ingestEvents(sessionId: string, events: Record<string, unk
   await send("POST", "/events/ingest", { sessionId, events }).catch(() => {});
 }
 
+/**
+ * Emit a canonical `turn:start` runtime event. Cognitive modules (Reverie,
+ * memory, thinker) subscribe to this on the daemon bus; without it, nothing
+ * downstream wakes up for a Claude Code turn.
+ */
+export async function emitTurnStart(sessionId: string, message: string): Promise<void> {
+  await send("POST", "/events/ingest", {
+    sessionId,
+    events: [{
+      type: "turn:start",
+      sessionId,
+      message,
+      source: "claude-code",
+      timestamp: Date.now(),
+    }],
+  }).catch(() => {});
+}
+
+/**
+ * Emit a canonical `turn:end` runtime event with the assistant response so
+ * Reverie's onTurnEnd hook fires and triggers ambient curation.
+ */
+export async function emitTurnEnd(sessionId: string, response: string, durationMs: number): Promise<void> {
+  await send("POST", "/events/ingest", {
+    sessionId,
+    events: [{
+      type: "turn:end",
+      sessionId,
+      response,
+      durationMs,
+      source: "claude-code",
+      timestamp: Date.now(),
+    }],
+  }).catch(() => {});
+}
+
+/**
+ * Emit a canonical `tool:round-complete` event so Reverie's sliding tool log,
+ * loop detection, and Reflex hooks fire on every Claude Code tool round.
+ */
+export async function emitToolRound(
+  sessionId: string,
+  round: number,
+  toolCalls: Array<{ name: string; id: string }>,
+  results: Array<{ toolCallId: string; isError: boolean; contentPreview: string }>,
+): Promise<void> {
+  await send("POST", "/events/ingest", {
+    sessionId,
+    events: [{
+      type: "tool:round-complete",
+      sessionId,
+      round,
+      toolCalls,
+      results,
+      source: "claude-code",
+      timestamp: Date.now(),
+    }],
+  }).catch(() => {});
+}
+
+/** Ping Reverie directly to schedule a curation pass. */
+export async function reveriePing(sessionId: string, reason: string): Promise<void> {
+  await send("POST", `/reverie/ping?sessionId=${encodeURIComponent(sessionId)}&reason=${encodeURIComponent(reason)}`).catch(() => {});
+}
+
+/** Post a perception signal to the Cortex (working memory). */
+export async function cortexSignal(
+  sessionId: string,
+  type: string,
+  region: string,
+  content: string,
+  tags: string[] = [],
+): Promise<void> {
+  await send("POST", "/cortex/signal", {
+    sessionId,
+    type,
+    region,
+    content,
+    tags,
+    author: "claude-code",
+    salience: 0.5,
+  }).catch(() => {});
+}
+
 // ── Chunk Storage ───────────────────────────────────────────────────────────
 
 export async function storeChunks(sessionId: string, chunks: any[]): Promise<any> {

@@ -42,6 +42,16 @@ export interface SessionState {
   /** Progressive disclosure: signal -> turns since referenced */
   signalAges: Map<string, number>;
   createdAt: number;
+  /** Wall-clock time of the current turn's start (set on UserPromptSubmit). */
+  turnStartedAt: number;
+  /** The user's message for the in-flight turn (used for turn:start emission). */
+  turnUserMessage: string;
+  /** Pending tool calls in the current round, keyed by tool_use_id. */
+  pendingToolCalls: Map<string, { name: string; id: string }>;
+  /** Tool results captured for the current round (paired with pendingToolCalls). */
+  pendingToolResults: Map<string, { toolCallId: string; isError: boolean; contentPreview: string }>;
+  /** Monotonic round counter for tool:round-complete events. */
+  toolRoundCount: number;
 }
 
 const sessions = new Map<string, SessionState>();
@@ -69,6 +79,11 @@ export function getSession(sessionId: string): SessionState {
       compactionCount: 0,
       postCompaction: false,
       lastActivityAt: Date.now(),
+      turnStartedAt: 0,
+      turnUserMessage: "",
+      pendingToolCalls: new Map(),
+      pendingToolResults: new Map(),
+      toolRoundCount: 0,
       signalAges: new Map(),
       createdAt: Date.now(),
     };

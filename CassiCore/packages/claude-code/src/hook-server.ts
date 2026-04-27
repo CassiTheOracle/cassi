@@ -96,6 +96,10 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
   state.turnCount++;
   state.largeOutputsThisTurn = 0;
+  state.turnStartedAt = Date.now();
+  state.turnUserMessage = input.prompt ?? "";
+  state.pendingToolCalls.clear();
+  state.pendingToolResults.clear();
 
   // Update pressure from transcript
   if (input.transcript_path) {
@@ -115,6 +119,31 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
   // Index the prompt in CassiCore
   if (prompt) {
     bridge.index(state.ccSessionId, [{ role: "user", content: prompt }]);
+  }
+
+  // Emit canonical turn:start so Reverie, memory, thinker, and every
+  // BaseCognitiveModule.onTurnStart hook fires for this Claude Code turn.
+  if (prompt) {
+    bridge.emitTurnStart(state.ccSessionId, prompt).catch(() => {});
+
+    // Mirror as a user_message event so the admin-api conversation-history
+    // interceptor captures it on the same path as Opencode sessions.
+    bridge.ingestEvents(state.ccSessionId, [{
+      type: "user_message",
+      content: prompt,
+      source: "claude-code",
+      timestamp: Date.now(),
+    }]).catch(() => {});
+
+    // Mirror perception into the Cortex working memory region so spreading
+    // activation can pick it up on the next retrieval pass.
+    bridge.cortexSignal(
+      state.ccSessionId,
+      "perception",
+      "sensory",
+      prompt.slice(0, 500),
+      ["claude-code", "user-prompt"],
+    ).catch(() => {});
   }
 
   // Feed prompt to Aurora for concept tracking and shift detection
@@ -144,6 +173,14 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
 async function handlePreToolUse(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
   const toolName = input.tool_name ?? "";
+
+  // Capture the in-flight tool call so the matching PostToolUse can pair it
+  // into a tool:round-complete event for Reverie's tool-log + loop detection.
+  if (toolName) {
+    const id = (input.tool_input?.tool_use_id as string | undefined)
+      ?? `${input.session_id}-${state.toolRoundCount}-${state.toolCallCount}`;
+    state.pendingToolCalls.set(id, { name: toolName, id });
+  }
 
   // Update pressure
   if (input.transcript_path) {
@@ -201,6 +238,34 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
       role: "assistant",
       content: `[${toolName}] ${output.slice(0, 5000)}`,
     }]);
+  }
+
+  // Emit canonical tool:round-complete so Reverie's sliding tool-log,
+  // loop detection, Reflex, and Aurora's tool-affect tracking all fire.
+  const toolUseId = (input.tool_input?.tool_use_id as string | undefined);
+  let pairedId: string | undefined;
+  if (toolUseId && state.pendingToolCalls.has(toolUseId)) {
+    pairedId = toolUseId;
+  } else {
+    const lastKey = Array.from(state.pendingToolCalls.keys()).pop();
+    if (lastKey) pairedId = lastKey;
+  }
+  if (pairedId) {
+    const call = state.pendingToolCalls.get(pairedId);
+    state.pendingToolCalls.delete(pairedId);
+    state.toolRoundCount += 1;
+    if (call) {
+      bridge.emitToolRound(
+        state.ccSessionId,
+        state.toolRoundCount,
+        [call],
+        [{
+          toolCallId: pairedId,
+          isError: /error/i.test(output.slice(0, 200)),
+          contentPreview: output.slice(0, 1000),
+        }],
+      ).catch(() => {});
+    }
   }
 
   // Check for pressure warning
@@ -322,6 +387,32 @@ async function handleStop(input: HookInput): Promise<HookOutput> {
     activeFiles: state.activeFiles.slice(0, 10),
     estimatedPressure: state.estimatedPressure,
     largeOutputs: state.largeOutputsThisTurn,
+    timestamp: Date.now(),
+  }]).catch(() => {});
+
+  // Emit canonical turn:end so Reverie.onTurnEnd, memory consolidation, and
+  // every BaseCognitiveModule lifecycle hook fires for this Claude Code turn.
+  // The "response" is best-effort — we don't have the assistant text here, so
+  // pass the user message + a turn-stats sentinel as the payload Reverie uses
+  // for change detection.
+  const durationMs = state.turnStartedAt > 0 ? Date.now() - state.turnStartedAt : 0;
+  bridge.emitTurnEnd(
+    state.ccSessionId,
+    `[claude-code turn ${state.turnCount} complete: ${state.toolCallCount} tools, ${state.activeFiles.slice(0, 3).join(", ")}]`,
+    durationMs,
+  ).catch(() => {});
+
+  // Direct Reverie ping as a belt-and-suspenders backup — guarantees an
+  // ambient curation pass even if the bus event is lost or filtered.
+  bridge.reveriePing(state.ccSessionId, "claude-code-turn-end").catch(() => {});
+
+  // Mirror as assistant_message for the conversation-history interceptor.
+  // Best-effort summary — full assistant text isn't available at hook time,
+  // but the user_message+turn-stats pair is enough for cross-session memory.
+  bridge.ingestEvents(state.ccSessionId, [{
+    type: "assistant_message",
+    content: `[claude-code turn ${state.turnCount} complete]`,
+    source: "claude-code",
     timestamp: Date.now(),
   }]).catch(() => {});
 
