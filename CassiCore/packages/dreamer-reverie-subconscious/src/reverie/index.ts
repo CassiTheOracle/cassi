@@ -141,7 +141,9 @@ export class ReverieModule extends BaseCognitiveModule {
 
   async summarizeSessionNow(sessionId: string): Promise<Engram | null> {
     if (!this.mnemic || !this.provider) return null
-    const events = this.mnemic.replaySession(sessionId, { limit: this.cfg.summaryMaxEvents })
+    const events = this.mnemic
+      .replaySession(sessionId, { limit: this.cfg.summaryMaxEvents })
+      .filter(e => e.kind !== 'session_summary')
     if (events.length === 0) return null
 
     const compactEvents = events.map(e => ({
