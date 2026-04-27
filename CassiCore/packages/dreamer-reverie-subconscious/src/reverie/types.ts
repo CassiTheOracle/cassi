@@ -69,6 +69,10 @@ export interface ReverieConfig {
   slowSkipCount: number
   /** Per-session minimum interval between Reverie runs (debounce) */
   minIntervalMs: number
+  /** Inactivity window before generating a replay session summary. */
+  summaryInactivityMs: number
+  /** Max replay events included in a summary prompt. */
+  summaryMaxEvents: number
 }
 
 export const DEFAULT_REVERIE_CONFIG: ReverieConfig = {
@@ -78,4 +82,6 @@ export const DEFAULT_REVERIE_CONFIG: ReverieConfig = {
   slowThresholdMs: 5_000,
   slowSkipCount: 3,
   minIntervalMs: 2_000,
+  summaryInactivityMs: 30 * 60 * 1000,
+  summaryMaxEvents: 80,
 }

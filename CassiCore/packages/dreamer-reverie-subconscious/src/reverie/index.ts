@@ -32,6 +32,7 @@ interface ToolRoundEntry {
 import type { ILogger } from '../../../types/interfaces.js'
 import type { LaminaField } from '../lamina/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
+import type { Engram } from '../mnemic-field/types.js'
 import type { AuditStore } from '../../runtime/audit/index.js'
 import { withStep } from '../../runtime/audit/index.js'
 
@@ -74,6 +75,7 @@ export class ReverieModule extends BaseCognitiveModule {
   private exchanges = new Map<string, { lastUser?: string; lastAssistant?: string }>()
   /** Sliding window of recent tool rounds — what the primary actually did. */
   private toolRoundLog = new Map<string, ToolRoundEntry[]>()
+  private summaryTimers = new Map<string, NodeJS.Timeout>()
   /** Max tool rounds to retain in the sliding window. Generous — input tokens are cheap. */
   private readonly maxToolRounds = 24
 
@@ -91,10 +93,17 @@ export class ReverieModule extends BaseCognitiveModule {
   setMnemicField(mnemic: MnemicField): void { this.mnemic = mnemic }
   setToolFilter(filter: ToolFilterRegistry): void { this.filter = filter }
 
+  override async stop(): Promise<void> {
+    for (const timer of this.summaryTimers.values()) clearTimeout(timer)
+    this.summaryTimers.clear()
+    await super.stop()
+  }
+
   protected async onTurnStart(sessionId: string, message: string): Promise<void> {
     const e = this.exchanges.get(sessionId) ?? {}
     e.lastUser = message
     this.exchanges.set(sessionId, e)
+    this.markSessionSummaryStale(sessionId, 'turn-start')
   }
 
   protected async onTurnEnd(sessionId: string, response: string): Promise<void> {
@@ -104,6 +113,7 @@ export class ReverieModule extends BaseCognitiveModule {
     // Schedule a step credit for the primary's turn-end so Reverie can fire.
     const trig = this.trigger.recordStep(sessionId, 'primary')
     if (trig) await this.runOnce(sessionId, trig)
+    this.scheduleSessionSummary(sessionId)
   }
 
   protected async onToolRound(
@@ -120,11 +130,85 @@ export class ReverieModule extends BaseCognitiveModule {
 
     const trig = this.trigger.recordStep(sessionId, 'primary')
     if (trig) await this.runOnce(sessionId, trig)
+    this.markSessionSummaryStale(sessionId, 'tool-round')
+    this.scheduleSessionSummary(sessionId)
   }
 
   /** Public hook — manual ping (e.g. from another module or admin endpoint). */
   ping(sessionId: string, reason: string): void {
     this.trigger.ping(sessionId, reason)
+  }
+
+  async summarizeSessionNow(sessionId: string): Promise<Engram | null> {
+    if (!this.mnemic || !this.provider) return null
+    const events = this.mnemic.replaySession(sessionId, { limit: this.cfg.summaryMaxEvents })
+    if (events.length === 0) return null
+
+    const compactEvents = events.map(e => ({
+      id: e.id,
+      kind: e.kind,
+      timestamp: e.timestamp,
+      content: e.content.slice(0, 800),
+      metadata: e.metadata,
+    }))
+    const prompt = [
+      'Summarize this CassiCore replay event stream into a concise session summary.',
+      'Return plain text only. Include goal, completed work, current state, blockers, and next actions when available.',
+      JSON.stringify(compactEvents),
+    ].join('\n\n')
+
+    const summary = await this.infer([
+      { role: 'system', content: 'You summarize CassiCore session replay events faithfully and concisely.' },
+      { role: 'user', content: prompt },
+    ], { maxTokens: 1200, temperature: 0.2 })
+
+    const rootId = sessionId.startsWith('session:') ? sessionId : `session:${sessionId}`
+    const summaryId = `session_summary:${rootId.slice('session:'.length)}`
+    const existing = this.mnemic.get(summaryId)
+    const content = JSON.stringify({ summary, eventCount: events.length, generatedAt: new Date().toISOString() })
+    if (existing) {
+      return this.mnemic.update(summaryId, {
+        content,
+        nodeType: 'abstraction',
+        tags: ['session-replay', 'session-summary', 'reverie'],
+        metadata: { sessionId: rootId, stale: false, generatedAt: Date.now(), eventCount: events.length },
+      })
+    }
+    const engram = this.mnemic.store({
+      id: summaryId,
+      content,
+      nodeType: 'abstraction',
+      tags: ['session-replay', 'session-summary', 'reverie'],
+      provenance: 'reverie',
+      metadata: { sessionId: rootId, stale: false, generatedAt: Date.now(), eventCount: events.length },
+    })
+    if (this.mnemic.get(rootId)) this.mnemic.connect({ sourceId: summaryId, targetId: rootId, edgeType: 'part_of' })
+    return engram
+  }
+
+  private scheduleSessionSummary(sessionId: string): void {
+    if (!this.mnemic || !this.provider || this.cfg.summaryInactivityMs <= 0) return
+    const existing = this.summaryTimers.get(sessionId)
+    if (existing) clearTimeout(existing)
+    const timer = setTimeout(() => {
+      this.summaryTimers.delete(sessionId)
+      this.summarizeSessionNow(sessionId).catch(err => {
+        this.logger.warn('[reverie] session summary failed', { sessionId, error: String(err) })
+      })
+    }, this.cfg.summaryInactivityMs)
+    timer.unref?.()
+    this.summaryTimers.set(sessionId, timer)
+  }
+
+  private markSessionSummaryStale(sessionId: string, reason: string): void {
+    if (!this.mnemic) return
+    const summaryId = `session_summary:${sessionId.startsWith('session:') ? sessionId.slice('session:'.length) : sessionId}`
+    const existing = this.mnemic.get(summaryId)
+    if (!existing) return
+    this.mnemic.update(summaryId, {
+      metadata: { ...existing.metadata, stale: true, staleReason: reason, staleAt: Date.now() },
+      tags: Array.from(new Set([...existing.tags, 'stale'])),
+    })
   }
 
   /**
