@@ -72,6 +72,7 @@ function replayKindForId(id: string): ReplayEventKind {
   if (id.startsWith('tc:')) return 'tool_call'
   if (id.startsWith('tr:')) return 'tool_result'
   if (id.startsWith('session_result:')) return 'session_result'
+  if (id.startsWith('session_summary:')) return 'session_summary'
   if (id.startsWith('err:')) return 'error'
   if (id.startsWith('artifact:')) return 'artifact'
   return 'unknown'

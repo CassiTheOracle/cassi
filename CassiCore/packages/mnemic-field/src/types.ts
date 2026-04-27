@@ -158,6 +158,7 @@ export const REPLAY_ID_PREFIXES = {
   toolCall: 'tc:',
   toolResult: 'tr:',
   sessionResult: 'session_result:',
+  sessionSummary: 'session_summary:',
   error: 'err:',
   artifact: 'artifact:',
 } as const
@@ -191,6 +192,7 @@ export type ReplayEventKind =
   | 'tool_call'
   | 'tool_result'
   | 'session_result'
+  | 'session_summary'
   | 'error'
   | 'artifact'
   | 'unknown'
