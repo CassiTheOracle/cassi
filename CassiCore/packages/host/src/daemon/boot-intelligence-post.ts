@@ -258,7 +258,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           // ReverieModule exposes inferForObserver() which matches ReverieInferenceProvider.
           if (intelligence.reverie) {
             try {
-              const reverieProvider: import('../intelligence/aurora/reverie-reasoning-observer.js').ReverieInferenceProvider = {
+              const reverieProvider: import('../intelligence/aurora/types.js').ReverieInferenceProvider = {
                 infer: (messages, options) => intelligence.reverie!.inferForObserver(messages, options),
               }
               thalamus.setReverieInferenceProvider(reverieProvider)
