@@ -218,7 +218,7 @@ export class ToolExecutor {
 
     if (!entry) {
       this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
-      return { toolCallId: call.id, content: `Unknown tool: ${call.name}`, isError: true }
+      return { toolCallId: call.id, toolName: call.name, content: `Unknown tool: ${call.name}`, isError: true }
     }
 
     let actualToolName = call.name
@@ -246,6 +246,7 @@ export class ToolExecutor {
           this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
+            toolName: actualToolName,
             content: `[circuit-open] Tool '${call.name}' is temporarily unavailable due to repeated failures. Try again later.`,
             isError: true,
           }
@@ -268,6 +269,7 @@ export class ToolExecutor {
         this.emitToolExecuted(sessionId, actualToolName, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
+          toolName: call.name,
           content: `Safety check failed: ${inputValidation.errors.join(', ')}`,
           isError: true
         }
@@ -291,6 +293,7 @@ export class ToolExecutor {
         this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
+          toolName: call.name,
           content: `Permission denied (cached): ${cached.reasoning}`,
           isError: true,
         }
@@ -310,6 +313,7 @@ export class ToolExecutor {
           this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
+            toolName: call.name,
             content: `Permission denied: ${verdict.reasoning}` +
               ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
             isError: true,
@@ -333,6 +337,7 @@ export class ToolExecutor {
             this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
             return {
               toolCallId: call.id,
+              toolName: call.name,
               content: `Permission denied (human rejected or timed out): ${verdict.reasoning}` +
                 ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
               isError: true,
@@ -365,6 +370,7 @@ export class ToolExecutor {
           this.emitToolExecuted(sessionId, actualToolName, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
+            toolName: actualToolName,
             content: denyMessage,
             isError: true,
           }
@@ -388,6 +394,7 @@ export class ToolExecutor {
           this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
           return {
             toolCallId: call.id,
+            toolName: actualToolName,
             content: `Tool failed: ${safeResult.error || 'Unknown error'} (${safeResult.errorType || 'execution'})`,
             isError: true
           }
@@ -401,6 +408,7 @@ export class ToolExecutor {
           this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
           return {
             toolCallId: call.id,
+            toolName: actualToolName,
             content: `Output validation failed: ${outputValidation.errors.join(', ')}`,
             isError: true
           }
@@ -429,6 +437,7 @@ export class ToolExecutor {
 
         return {
           toolCallId: call.id,
+          toolName: actualToolName,
           content: enrichment ? finalContent + enrichment : finalContent,
           isError: false,
           rawContent: presented.rawContent,
@@ -454,6 +463,7 @@ export class ToolExecutor {
         const presented = this.applyPresentation(result, actualToolName, durationMs)
         return {
           toolCallId: call.id,
+          toolName: actualToolName,
           content: enrichment ? presented.content + enrichment : presented.content,
           isError: false,
           rawContent: presented.rawContent,
@@ -467,7 +477,7 @@ export class ToolExecutor {
       this.recordToolOutcome(actualToolName, false, sessionId, `Exception: ${String(err).slice(0, 200)}`)
       this.recordReliabilityOutcome(actualToolName, durationMs, false)
       this.emitToolExecuted(sessionId, actualToolName, durationMs, true)
-      return { toolCallId: call.id, content: String(err), isError: true }
+      return { toolCallId: call.id, toolName: call.name, content: String(err), isError: true }
     }
   }
 
@@ -772,6 +782,7 @@ export class ToolExecutor {
           })
           results.push({
             toolCallId: call.id,
+            toolName: call.name,
             content: `Tool execution failed: ${String(outcome.reason)}`,
             isError: true,
           })
