@@ -351,6 +351,52 @@ export class SystemModel {
       this.anomalies.shift();
     }
     this.invalidateContextCacheAll();
+
+    this.bridgeAnomalyToMnemic(annotated);
+  }
+
+  /**
+   * Mirror a newly-added anomaly into the Mnemic Field so spreading-activation
+   * retrieval can surface it. The engram id is `memory:<anomaly.id>`, which lets
+   * the acknowledge handler (admin API) update its metadata in-place.
+   *
+   * Fail-open: anomaly stays in the in-memory array regardless of mnemic outcome.
+   */
+  private bridgeAnomalyToMnemic(anomaly: Anomaly): void {
+    const mnemicField = (this.memory as { getMnemicField?: () => unknown } | undefined)?.getMnemicField?.();
+    if (!mnemicField) return;
+    try {
+      const tags = ["anomaly:consciousness", `severity:${anomaly.severity}`];
+      (mnemicField as {
+        store: (input: {
+          id: string;
+          content: string;
+          nodeType: string;
+          provenance?: string;
+          tags?: string[];
+          metadata?: Record<string, unknown>;
+        }) => unknown;
+      }).store({
+        id: `memory:${anomaly.id}`,
+        content: anomaly.description,
+        nodeType: "anomaly",
+        provenance: "system-model:addAnomaly",
+        tags,
+        metadata: {
+          severity: anomaly.severity,
+          eventTypes: anomaly.eventTypes,
+          suggestedAction: anomaly.suggestedAction,
+          sessionId: anomaly.sessionId,
+          sessionRef: anomaly.sessionRef,
+          timestamp: anomaly.timestamp,
+        },
+      });
+    } catch (err) {
+      this.logger.debug("MnemicField anomaly dual-write failed (non-fatal)", {
+        anomalyId: anomaly.id,
+        error: String(err),
+      });
+    }
   }
 
   /**
@@ -504,6 +550,25 @@ export class SystemModel {
     if (anomaly) {
       anomaly.acknowledged = true;
       this.invalidateContextCacheAll();
+
+      const mnemicField = (this.memory as { getMnemicField?: () => unknown } | undefined)?.getMnemicField?.();
+      if (mnemicField) {
+        try {
+          (mnemicField as {
+            update: (id: string, update: { metadata?: Record<string, unknown> }) => unknown;
+          }).update(`memory:${anomalyId}`, {
+            metadata: {
+              acknowledged: true,
+              acknowledgedAt: new Date().toISOString(),
+            },
+          });
+        } catch (err) {
+          this.logger.debug("MnemicField anomaly acknowledge update failed (non-fatal)", {
+            anomalyId,
+            error: String(err),
+          });
+        }
+      }
       return true;
     }
     return false;
