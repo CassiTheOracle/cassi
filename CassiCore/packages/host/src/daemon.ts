@@ -1782,6 +1782,18 @@ export class Daemon {
         this.logger.info('Memory MnemicField bridge wired')
       }
 
+      // Wire MnemicField into Archivist so each archive write produces an engram
+      // inline (fail-open). Replaces the old ArchiveIngestionBridge polling path.
+      try {
+        const archivist = (this.intelligence?.memory as any)?.getArchivist?.()
+        if (archivist && typeof archivist.setMnemicField === 'function') {
+          archivist.setMnemicField(field)
+          this.logger.info('Archivist MnemicField bridge wired')
+        }
+      } catch (err) {
+        this.logger.warn('Archivist MnemicField wiring failed', { error: String(err) })
+      }
+
       // Store MnemicField on intelligence layer for post-boot wiring (e.g. Thalamus)
       ;(this.intelligence as any).__mnemicField = field
 
@@ -1851,27 +1863,9 @@ export class Daemon {
 
       // MnemicField injection — now handled by Thalamus via Aurora cognitive state
 
-      // Wire ArchiveIngestionBridge — automatic sync from Archivist to MnemicField.
-      // Runs as a cycle hook in the unified loop, checking for new archives each cycle.
-      try {
-        const archiveDbPath = path.join(
-          String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data')),
-          'memory.db',
-        )
-        if (this.unifiedLoop && fs.existsSync(archiveDbPath)) {
-          const { ArchiveIngestionBridge } = await import('./intelligence/mnemic-field/archive-ingestion-bridge.js')
-          const bridge = new ArchiveIngestionBridge(
-            field,
-            this.logger.child('archive-ingestion'),
-            { archiveDbPath },
-          )
-          bridge.start()
-          this.unifiedLoop.addCycleHook(bridge)
-          this.logger.info('ArchiveIngestionBridge started', { intervalMs: 10000 })
-        }
-      } catch (err) {
-        this.logger.warn('ArchiveIngestionBridge not available', { error: String(err) })
-      }
+      // ArchiveIngestionBridge is no longer wired into the unified loop. Live
+      // engram creation now happens inline inside Archivist via setMnemicField
+      // above; the bridge module remains as a one-shot backfill utility.
 
       // Initialize Self-Model Field — a second Mnemic Field for architectural self-knowledge.
       // Stores semantic understanding of the codebase (modules, capabilities, weaknesses)
