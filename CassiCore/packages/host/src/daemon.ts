@@ -1780,6 +1780,22 @@ export class Daemon {
       if (this.intelligence?.memory && typeof (this.intelligence.memory as any).setMnemicField === 'function') {
         (this.intelligence.memory as any).setMnemicField(field)
         this.logger.info('Memory MnemicField bridge wired')
+
+        try {
+          const dualWriteTurns = this.config.get<boolean>('intelligence.memory.dualWriteTurns')
+          if (typeof dualWriteTurns === 'boolean' && typeof (this.intelligence.memory as any).setDualWriteTurns === 'function') {
+            ;(this.intelligence.memory as any).setDualWriteTurns(dualWriteTurns)
+          }
+        } catch (err) {
+          this.logger.debug('Memory dualWriteTurns config read failed', { error: String(err) })
+        }
+
+        const memoryAny = this.intelligence.memory as { getConsolidationEngine?: () => { setMnemicConsolidation?: (r: unknown) => void } }
+        const consolidation = memoryAny.getConsolidationEngine?.()
+        if (consolidation && typeof consolidation.setMnemicConsolidation === 'function') {
+          consolidation.setMnemicConsolidation(field)
+          this.logger.info('Consolidation receiver wired (legacy → mnemic)')
+        }
       }
 
       // Wire MnemicField into Archivist so each archive write produces an engram
