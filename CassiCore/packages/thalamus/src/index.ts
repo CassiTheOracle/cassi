@@ -149,7 +149,8 @@ export class ThalamusModule extends BaseCognitiveModule {
   ): any {
     const temporal = this.getTemporalRegistry(sessionId)
     const timestamp = new Date().toISOString()
-    const slotType = classifyMessage(msg)
+    const session = this.getSession(sessionId)
+    const slotType = classifyMessage(msg, session.toolUseMap)
     const isUser = slotType === 'user'
 
     temporal.recordMessage(index, timestamp, isUser)

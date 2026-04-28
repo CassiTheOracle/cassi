@@ -220,7 +220,10 @@ export function classifyTool(toolName: string): string {
 /**
  * Determine which slot type a message should be routed to.
  */
-export function classifyMessage(msg: any): MessageSlotType {
+export function classifyMessage(
+  msg: any,
+  toolUseMap?: Map<string, string>,
+): MessageSlotType {
   if (!msg) return 'system'
 
   const role = msg.role as string
@@ -238,7 +241,9 @@ export function classifyMessage(msg: any): MessageSlotType {
   if (role === 'user') {
     // AskUserQuestion answers arrive as tool_result blocks but are
     // semantically user input, so they classify as 'user'.
-    if (hasQuestionResult(msg)) return 'user'
+    // Pass toolUseMap so we can resolve tool_use_id → tool_name when
+    // the block itself doesn't carry a tool_name field.
+    if (hasQuestionResult(msg, { toolUseMap })) return 'user'
     if (Array.isArray(content) && content.some((c: any) => c?.type === 'tool_result')) {
       return 'tool_result'
     }

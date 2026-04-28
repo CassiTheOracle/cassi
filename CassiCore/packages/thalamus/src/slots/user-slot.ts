@@ -60,11 +60,15 @@ export class UserSlot implements MessageSlot {
       0.40 * score.relevance +
       0.15 * adjustedCred +
       0.20 * resonance
+    // User messages carry instructions and answers — they must survive
+    // phase transitions where focus/cortex relevance gets suppressed.
+    // Floor composite above the default ignition threshold (0.20) so
+    // user intent is never lost during topic shifts.
     return {
       ...score,
       sourceCredibility: adjustedCred,
       urgency: adjustedUrg,
-      composite: Math.max(score.composite, composite),
+      composite: Math.max(score.composite, composite, 0.25),
     }
   }
 
