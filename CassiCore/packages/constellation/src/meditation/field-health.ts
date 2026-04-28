@@ -83,6 +83,11 @@ export interface OrganizingSessionRecord {
 
 const FRAGMENTATION_THRESHOLD = 0.6
 
+const ORGANIZING_HARD_FLOOR_MS = 15 * 60 * 1000
+const WEAK_DELTA_THRESHOLD = 0.02
+const WEAK_STREAK_STEP = 0.05
+const MAX_BACKOFF_INCREMENT = 0.20
+
 const META_KEY_LAST_HEALTH = 'organizing_last_health'
 const META_KEY_REGION_HISTORY = 'organizing_region_history'
 const META_KEY_SESSION_HISTORY = 'organizing_session_history'
@@ -254,10 +259,23 @@ export class FieldHealthAnalyzer {
       return { trigger: false, reason: 'field too small', score: current.fragmentationScore }
     }
 
-    if (current.fragmentationScore > FRAGMENTATION_THRESHOLD) {
+    const backoff = this.computeOrganizingBackoff()
+    if (backoff.lastSessionAgeMs < ORGANIZING_HARD_FLOOR_MS) {
+      const minutesAgo = Math.round(backoff.lastSessionAgeMs / 60_000)
+      return {
+        trigger: false,
+        reason: `cooldown (last organized ${minutesAgo}m ago)`,
+        score: current.fragmentationScore,
+      }
+    }
+
+    if (current.fragmentationScore > backoff.threshold) {
+      const noteSuffix = backoff.weakStreak > 0
+        ? ` — threshold raised to ${backoff.threshold.toFixed(2)} after ${backoff.weakStreak} weak sessions`
+        : ''
       return {
         trigger: true,
-        reason: `high fragmentation (${current.fragmentationScore.toFixed(2)})`,
+        reason: `high fragmentation (${current.fragmentationScore.toFixed(2)})${noteSuffix}`,
         score: current.fragmentationScore,
       }
     }
@@ -286,7 +304,57 @@ export class FieldHealthAnalyzer {
       }
     }
 
+    if (backoff.weakStreak > 0 && current.fragmentationScore > FRAGMENTATION_THRESHOLD) {
+      return {
+        trigger: false,
+        reason: `below threshold ${backoff.threshold.toFixed(2)} — threshold raised to ${backoff.threshold.toFixed(2)} after ${backoff.weakStreak} weak sessions`,
+        score: current.fragmentationScore,
+      }
+    }
+
     return { trigger: false, reason: 'field healthy', score: current.fragmentationScore }
+  }
+
+
+  /**
+   * Compute organizing-mode backoff state from recent session history.
+   *
+   * Two protections against runaway organizing:
+   *   1. Hard floor — never re-fire within ORGANIZING_HARD_FLOOR_MS of the last
+   *      session, regardless of fragmentation.
+   *   2. Weak-streak threshold raise — when consecutive recent sessions failed
+   *      to reduce fragmentation by at least WEAK_DELTA_THRESHOLD, raise the
+   *      trigger threshold by WEAK_STREAK_STEP per weak session (capped).
+   *      A successful session resets the streak.
+   */
+  private computeOrganizingBackoff(): {
+    lastSessionAgeMs: number
+    weakStreak: number
+    threshold: number
+  } {
+    const sessions = this.getRecentSessions(50)
+    if (sessions.length === 0) {
+      return { lastSessionAgeMs: Infinity, weakStreak: 0, threshold: FRAGMENTATION_THRESHOLD }
+    }
+
+    const last = sessions[sessions.length - 1]
+    const lastSessionAgeMs = Date.now() - last.timestamp
+
+    let weakStreak = 0
+    for (let i = sessions.length - 1; i >= 0; i--) {
+      const s = sessions[i]
+      const delta = s.before.fragmentationScore - s.after.fragmentationScore
+      if (delta < WEAK_DELTA_THRESHOLD) {
+        weakStreak++
+      } else {
+        break
+      }
+    }
+
+    const increment = Math.min(weakStreak * WEAK_STREAK_STEP, MAX_BACKOFF_INCREMENT)
+    const threshold = FRAGMENTATION_THRESHOLD + increment
+
+    return { lastSessionAgeMs, weakStreak, threshold }
   }
 
 
