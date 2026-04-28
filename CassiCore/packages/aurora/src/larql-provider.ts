@@ -23,6 +23,7 @@ import type {
   ModelEdge,
   ModelPath,
 } from './types.js'
+import type { ClaustrumRecorder, ClaustrumGateHit } from './claustrum-recorder.js'
 
 interface VindexHandle {
   readonly id: number
@@ -89,12 +90,21 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
   // Feature fingerprints per entity (for similarity search). Capped alongside cache.
   private fingerprints = new Map<string, Map<string, number>>()
 
+  // Optional provenance sink — every gate-KNN hit gets recorded for the
+  // claustrum-vindex snapshotter. Null = recording disabled.
+  private recorder: ClaustrumRecorder | null = null
+
   constructor(
     logger: ILogger,
     config?: Partial<LarqlProviderConfig>,
   ) {
     this.logger = logger.child ? logger.child('larql-provider') : logger
     this.config = { ...LARQL_PROVIDER_DEFAULTS, ...config }
+  }
+
+  /** Attach a recorder so that future gate-KNN hits are persisted. */
+  setRecorder(recorder: ClaustrumRecorder | null): void {
+    this.recorder = recorder
   }
 
   /**
@@ -183,6 +193,22 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
         queryToken,
         this.config.featuresPerLayer,
       )
+
+      if (this.recorder !== null && hits.length > 0) {
+        const filtered: ClaustrumGateHit[] = []
+        for (const hit of hits) {
+          if (hit.score < this.config.minGateScore) continue
+          filtered.push({ layer, featureIndex: hit.featureIndex, score: hit.score })
+        }
+        if (filtered.length > 0) {
+          this.recorder.recordGateHits({
+            cycleId: null,
+            queryConcept: entity,
+            trigger: 'larql_gate_knn',
+            hits: filtered,
+          })
+        }
+      }
 
       for (const hit of hits) {
         if (hit.score < this.config.minGateScore) continue
