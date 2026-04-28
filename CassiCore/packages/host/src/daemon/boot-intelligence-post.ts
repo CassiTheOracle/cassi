@@ -233,6 +233,19 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                 if (loaded) {
                   modelProvider = provider
                   logger.info('LarqlKnowledgeProvider loaded', { vindex: vindexes[0].name })
+
+                  try {
+                    const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
+                    const recorder = new ClaustrumRecorder(logger, vindexes[0].path)
+                    provider.setRecorder(recorder)
+                    logger.info('ClaustrumRecorder attached — gate-KNN provenance will be logged for snapshotting', {
+                      source: vindexes[0].name,
+                    })
+                  } catch (err) {
+                    logger.warn('Failed to attach ClaustrumRecorder — Aurora will run without provenance logging', {
+                      error: String(err),
+                    })
+                  }
                 } else {
                   logger.warn('LarqlKnowledgeProvider load returned false', { vindex: vindexes[0].name })
                 }
