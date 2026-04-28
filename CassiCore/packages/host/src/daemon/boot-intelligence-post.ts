@@ -228,26 +228,49 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                 .map(n => ({ name: n, path: join(modelsDir, n), mtime: statSync(join(modelsDir, n)).mtimeMs }))
                 .sort((a, b) => b.mtime - a.mtime)
               if (vindexes.length > 0) {
-                const provider = new LarqlKnowledgeProvider(logger)
-                const loaded = await provider.load(vindexes[0].path)
-                if (loaded) {
-                  modelProvider = provider
-                  logger.info('LarqlKnowledgeProvider loaded', { vindex: vindexes[0].name })
-
+                const attempted: Array<{ name: string; reason: string }> = []
+                let chosen: { name: string; path: string } | null = null
+                for (const candidate of vindexes) {
+                  const provider = new LarqlKnowledgeProvider(logger)
+                  let loaded = false
                   try {
-                    const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
-                    const recorder = new ClaustrumRecorder(logger, vindexes[0].path)
-                    provider.setRecorder(recorder)
-                    logger.info('ClaustrumRecorder attached — gate-KNN provenance will be logged for snapshotting', {
-                      source: vindexes[0].name,
-                    })
+                    loaded = await provider.load(candidate.path)
                   } catch (err) {
-                    logger.warn('Failed to attach ClaustrumRecorder — Aurora will run without provenance logging', {
-                      error: String(err),
-                    })
+                    attempted.push({ name: candidate.name, reason: `threw: ${String(err)}` })
+                    continue
                   }
-                } else {
-                  logger.warn('LarqlKnowledgeProvider load returned false', { vindex: vindexes[0].name })
+                  if (loaded) {
+                    modelProvider = provider
+                    chosen = { name: candidate.name, path: candidate.path }
+                    logger.info('LarqlKnowledgeProvider loaded', {
+                      vindex: candidate.name,
+                      attemptedBefore: attempted.length,
+                    })
+                    try {
+                      const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
+                      const recorder = new ClaustrumRecorder(logger, candidate.path)
+                      provider.setRecorder(recorder)
+                      logger.info('ClaustrumRecorder attached — gate-KNN provenance will be logged for snapshotting', {
+                        source: candidate.name,
+                      })
+                    } catch (err) {
+                      logger.warn('Failed to attach ClaustrumRecorder — Aurora will run without provenance logging', {
+                        error: String(err),
+                      })
+                    }
+                    break
+                  }
+                  attempted.push({ name: candidate.name, reason: 'load returned false (likely unsupported architecture for browse-only mode)' })
+                }
+                if (!chosen) {
+                  logger.warn('No vindex could be loaded — Aurora will run without model knowledge', {
+                    attempted: attempted.map(a => `${a.name}: ${a.reason}`),
+                  })
+                } else if (attempted.length > 0) {
+                  logger.info('Skipped earlier vindexes before loading a compatible one', {
+                    skipped: attempted.map(a => a.name),
+                    loaded: chosen.name,
+                  })
                 }
               }
             }
