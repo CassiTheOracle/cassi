@@ -35,10 +35,13 @@ export async function buildCognitiveContext(
     return true;
   };
 
-  // Aurora: unified mental state (memory + model knowledge + affect + cortex)
-  const aurora = await bridge.auroraState().catch(() => null);
-  if (aurora?.serialized) {
-    push(aurora.serialized);
+  // Aurora: unified mental state (memory + model knowledge + affect + cortex).
+  // Prefer the serialized narrative over the raw state object because the
+  // narrative is what's tuned for prompt injection and includes coherence,
+  // integration, knowledge-landscape gaps, and trending concepts in one block.
+  const auroraText = await bridge.auroraSerialized().catch(() => null);
+  if (auroraText && auroraText.trim().length > 0) {
+    push(`<aurora>\n${auroraText}\n</aurora>`);
   } else {
     // GWT fallback when Aurora isn't wired up yet
     const workspace = await bridge.workspaceContext("*");
