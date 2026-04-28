@@ -48,6 +48,22 @@ const LAMINA_CHAR_LIMIT = 4_000
 const MAX_SESSIONS = 100
 const MAX_CONTEXT_CHARS = 9_500
 
+// Preflight context safety. This runs before the model request; if the context
+// is already too large, reactive overflow warnings will never fire because the
+// model won't produce a response. Keep a generous reserve for system prompt,
+// tool schemas, provider overhead, and the model's response.
+const APPROX_CHARS_PER_TOKEN = 4
+const PREFLIGHT_TARGET_FRACTION = 0.72
+const PREFLIGHT_HARD_FRACTION = 0.86
+const PREFLIGHT_MIN_RESPONSE_RESERVE = 8_000
+const PREFLIGHT_MAX_RESPONSE_RESERVE = 60_000
+const PREFLIGHT_RECENT_MESSAGE_GRACE = 8
+const PREFLIGHT_OLD_TEXT_LIMIT = 4_000
+const PREFLIGHT_RECENT_TEXT_LIMIT = 16_000
+const PREFLIGHT_OLD_TOOL_LIMIT = 1_500
+const PREFLIGHT_RECENT_TOOL_LIMIT = 6_000
+const PREFLIGHT_DEFAULT_CONTEXT_LIMIT = 128_000
+
 // Pressure thresholds (fraction of model context used)
 const PRESSURE_TIERS = [
   { name: "overflow",  min: 0.92 },
@@ -86,8 +102,66 @@ export const CassiCorePlugin = async (input) => {
       if (!await canReachCassi()) return
       const sessionId = hookInput?.sessionID
       const sid = sessionId ? cassiSessionId(sessionId) : null
+
+      // If preflight pruning already detected a near-overflow context, don't
+      // add another ~10k chars of CassiCore narrative to the prompt. The next
+      // model call needs to succeed more than it needs fresh Aurora context.
+      const meta = sessionId ? getSession(sessionId) : null
+      if (meta?.suppressCassiContextOnce) {
+        meta.suppressCassiContextOnce = false
+        return
+      }
+
       const ctx = await buildCognitiveContext(sid)
       if (ctx) output.system.push(ctx)
+    },
+
+    /**
+     * Preflight overflow protection. This is the hook that matters when the
+     * conversation is already too big for the target model: without a model
+     * response, neither session.turn.complete nor reactive warnings fire.
+     *
+     * We estimate outgoing message size, compact/ignore older bulky parts in
+     * place, and suppress the next Aurora system injection if needed. This is
+     * intentionally conservative: preserve the most recent messages and the
+     * current user request, shrink old file/tool/read outputs first.
+     */
+    async "experimental.chat.messages.transform"(hookInput, output) {
+      if (!Array.isArray(output?.messages)) return
+      const sessionId = hookInput?.sessionID ?? sessionIdFromMessages(output.messages)
+      if (!sessionId) return
+      const meta = getSession(sessionId)
+      const report = preflightPruneMessages(hookInput, output.messages)
+      meta.preflightPressure = report.pressure
+      meta.pressure = Math.max(meta.pressure ?? 0, report.pressure)
+
+      if (report.changed) {
+        meta.suppressCassiContextOnce = true
+        ingest(meta.cassiSessionId, [{
+          type: "preflight_context_pruned",
+          sessionId: meta.cassiSessionId,
+          source: SOURCE,
+          pressure: report.pressure,
+          beforeChars: report.beforeChars,
+          afterChars: report.afterChars,
+          changedMessages: report.changedMessages,
+          droppedParts: report.droppedParts,
+          truncatedParts: report.truncatedParts,
+        }])
+        cortexSignal(
+          meta.cassiSessionId,
+          "decision", "executive",
+          `OpenCode preflight pruned context before model call: ${report.beforeChars} → ${report.afterChars} chars (${Math.round(report.pressure * 100)}% estimated pre-prune).`,
+          [SOURCE, "preflight-prune", classifyTier(report.pressure)],
+          0.82,
+        )
+        laminaAppend(
+          meta.cassiSessionId,
+          "session-decisions",
+          `Preflight context pruning preserved generation viability: ${report.beforeChars} → ${report.afterChars} chars; changed messages=${report.changedMessages}, dropped parts=${report.droppedParts}, truncated parts=${report.truncatedParts}.`,
+          "opencode-preflight-prune",
+        )
+      }
     },
 
     /**
@@ -332,6 +406,8 @@ function getSession(sessionId) {
       handoffWritten: false,
       postCompaction: false,
       largeOutputsThisTurn: 0,
+      preflightPressure: 0,
+      suppressCassiContextOnce: false,
     }
     sessions.set(key, meta)
   }
@@ -357,6 +433,261 @@ function classifyTier(pressure) {
     if (pressure >= tier.min) return tier.name
   }
   return "healthy"
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Preflight context pruning
+// ──────────────────────────────────────────────────────────────────────────────
+
+function preflightPruneMessages(hookInput, messages) {
+  const contextLimit = Number(hookInput?.model?.limit?.context ?? PREFLIGHT_DEFAULT_CONTEXT_LIMIT)
+  if (!contextLimit || contextLimit <= 0 || messages.length === 0) {
+    return {
+      changed: false,
+      beforeChars: estimateMessagesChars(messages),
+      afterChars: estimateMessagesChars(messages),
+      pressure: 0,
+      changedMessages: 0,
+      droppedParts: 0,
+      truncatedParts: 0,
+    }
+  }
+
+  const reserveTokens = Math.min(
+    PREFLIGHT_MAX_RESPONSE_RESERVE,
+    Math.max(PREFLIGHT_MIN_RESPONSE_RESERVE, Math.floor(contextLimit * 0.12)),
+  )
+  const targetTokens = Math.max(1, Math.floor(contextLimit * PREFLIGHT_TARGET_FRACTION) - reserveTokens)
+  const hardTokens = Math.max(1, Math.floor(contextLimit * PREFLIGHT_HARD_FRACTION) - reserveTokens)
+  const targetChars = targetTokens * APPROX_CHARS_PER_TOKEN
+  const hardChars = hardTokens * APPROX_CHARS_PER_TOKEN
+
+  const beforeChars = estimateMessagesChars(messages)
+  const pressure = beforeChars / Math.max(1, contextLimit * APPROX_CHARS_PER_TOKEN)
+
+  if (beforeChars <= hardChars) {
+    return { changed: false, beforeChars, afterChars: beforeChars, pressure, changedMessages: 0, droppedParts: 0, truncatedParts: 0 }
+  }
+
+  let changedMessages = 0
+  let droppedParts = 0
+  let truncatedParts = 0
+  const recentCutoff = Math.max(0, messages.length - PREFLIGHT_RECENT_MESSAGE_GRACE)
+
+  // Phase 1: compact individual bulky parts. Preserve all message records, but
+  // replace old huge tool/file/text content with compact synthetic summaries.
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (!msg || !Array.isArray(msg.parts)) continue
+    const isRecent = i >= recentCutoff
+    const partLimit = isRecent ? PREFLIGHT_RECENT_TEXT_LIMIT : PREFLIGHT_OLD_TEXT_LIMIT
+    const toolLimit = isRecent ? PREFLIGHT_RECENT_TOOL_LIMIT : PREFLIGHT_OLD_TOOL_LIMIT
+    let msgChanged = false
+
+    for (let p = 0; p < msg.parts.length; p++) {
+      const part = msg.parts[p]
+      const compacted = compactPartForPreflight(part, partLimit, toolLimit, isRecent)
+      if (compacted !== part) {
+        msg.parts[p] = compacted
+        msgChanged = true
+        truncatedParts += 1
+      }
+    }
+    if (msgChanged) changedMessages += 1
+  }
+
+  let afterChars = estimateMessagesChars(messages)
+  if (afterChars <= targetChars) {
+    return { changed: true, beforeChars, afterChars, pressure, changedMessages, droppedParts, truncatedParts }
+  }
+
+  // Phase 2: drop old non-essential parts by marking them ignored. This is
+  // safer than deleting because opencode can still retain UI history while the
+  // outgoing model call excludes ignored parts.
+  for (let i = 0; i < recentCutoff && afterChars > targetChars; i++) {
+    const msg = messages[i]
+    if (!msg || !Array.isArray(msg.parts)) continue
+    let msgChanged = false
+    for (let p = msg.parts.length - 1; p >= 0; p--) {
+      const part = msg.parts[p]
+      if (afterChars <= targetChars) break
+      if (shouldPreservePart(part)) continue
+      const chars = estimatePartChars(part)
+      if (dropPartFromMessage(msg, p, "preflight-overflow")) {
+        afterChars -= chars
+        droppedParts += 1
+        msgChanged = true
+      }
+    }
+    if (msgChanged) changedMessages += 1
+  }
+
+  // Phase 3: if still too big, add a compact synthetic summary at the oldest
+  // kept boundary and aggressively ignore all but the recent window. Better a
+  // lossy successful turn than no response at all.
+  afterChars = estimateMessagesChars(messages)
+  if (afterChars > targetChars && recentCutoff > 0) {
+    const summaryPart = {
+      id: `cassicore-preflight-summary-${Date.now()}`,
+      type: "text",
+      text: `[CassiCore preflight overflow guard: older transcript parts were omitted before this model call because the outgoing context exceeded the model limit. Recover details from persistent memory/KV if needed.]`,
+      synthetic: true,
+      metadata: { source: SOURCE, reason: "preflight-overflow-summary" },
+    }
+    const boundary = messages[Math.max(0, recentCutoff - 1)]
+    if (boundary && Array.isArray(boundary.parts)) boundary.parts.push(summaryPart)
+
+    for (let i = 0; i < recentCutoff && afterChars > targetChars; i++) {
+      const msg = messages[i]
+      if (!msg || !Array.isArray(msg.parts)) continue
+      let msgChanged = false
+      for (let p = msg.parts.length - 1; p >= 0; p--) {
+        const part = msg.parts[p]
+        if (afterChars <= targetChars) break
+        const chars = estimatePartChars(part)
+        if (dropPartFromMessage(msg, p, "preflight-hard-overflow")) {
+          afterChars -= chars
+          droppedParts += 1
+          msgChanged = true
+        }
+      }
+      if (msgChanged) changedMessages += 1
+    }
+  }
+
+  afterChars = estimateMessagesChars(messages)
+  return { changed: true, beforeChars, afterChars, pressure, changedMessages, droppedParts, truncatedParts }
+}
+
+function compactPartForPreflight(part, textLimit, toolLimit, isRecent) {
+  if (!part || typeof part !== "object") return part
+  if (part.ignored === true) return part
+
+  if (typeof part.text === "string" && part.text.length > textLimit) {
+    return {
+      ...part,
+      text: summarizeLongText(part.text, textLimit, part.type ?? "text", isRecent),
+      metadata: { ...(part.metadata ?? {}), cassicorePreflight: "truncated" },
+    }
+  }
+
+  if (part.type === "tool" && part.state && typeof part.state === "object") {
+    const state = part.state
+    if (typeof state.output === "string" && state.output.length > toolLimit) {
+      return {
+        ...part,
+        state: {
+          ...state,
+          output: summarizeLongText(state.output, toolLimit, `tool:${part.tool ?? "unknown"}`, isRecent),
+        },
+        metadata: { ...(part.metadata ?? {}), cassicorePreflight: "tool-output-truncated" },
+      }
+    }
+    if (typeof state.error === "string" && state.error.length > toolLimit) {
+      return {
+        ...part,
+        state: {
+          ...state,
+          error: summarizeLongText(state.error, toolLimit, `tool-error:${part.tool ?? "unknown"}`, isRecent),
+        },
+        metadata: { ...(part.metadata ?? {}), cassicorePreflight: "tool-error-truncated" },
+      }
+    }
+  }
+
+  if (part.type === "file" && part.source?.text?.value && part.source.text.value.length > textLimit) {
+    return {
+      ...part,
+      source: {
+        ...part.source,
+        text: {
+          ...part.source.text,
+          value: summarizeLongText(part.source.text.value, textLimit, `file:${part.source.path ?? part.filename ?? "unknown"}`, isRecent),
+        },
+      },
+      metadata: { ...(part.metadata ?? {}), cassicorePreflight: "file-truncated" },
+    }
+  }
+
+  return part
+}
+
+function summarizeLongText(text, limit, label, isRecent) {
+  if (text.length <= limit) return text
+  const head = Math.max(500, Math.floor(limit * (isRecent ? 0.7 : 0.55)))
+  const tail = Math.max(500, limit - head - 400)
+  return [
+    `[CassiCore preflight truncated ${label}: original ${text.length} chars. ` +
+      `Keeping ${head} head chars + ${tail} tail chars so the model can respond.]`,
+    text.slice(0, head),
+    "\n[… omitted for preflight context budget …]\n",
+    text.slice(-tail),
+  ].join("\n")
+}
+
+function shouldPreservePart(part) {
+  if (!part || typeof part !== "object") return true
+  // Preserve user text until phase 3. Assistant text/reasoning/tool output can
+  // be pruned in old messages; user intent is usually the more important side
+  // of the historical transcript.
+  if (part.type === "text" && !part.synthetic) return true
+  if (part.type === "agent") return true
+  if (part.type === "subtask") return true
+  if (part.type === "compaction") return true
+  return false
+}
+
+function dropPartFromMessage(msg, partIndex, reason) {
+  const part = msg.parts?.[partIndex]
+  if (!part || typeof part !== "object") return false
+
+  // For user text, `ignored` is the supported way to keep UI history while
+  // excluding it from the model request. For assistant/tool/reasoning, opencode
+  // does not honor ignored, so remove the part from the transient copy.
+  if (msg.info?.role === "user" && part.type === "text") {
+    if (part.ignored === true) return false
+    part.ignored = true
+    part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: reason }
+    return true
+  }
+
+  msg.parts.splice(partIndex, 1)
+  return true
+}
+
+function estimateMessagesChars(messages) {
+  let total = 0
+  for (const msg of messages) {
+    if (!msg || !Array.isArray(msg.parts)) continue
+    total += estimateMessageInfoChars(msg.info)
+    for (const part of msg.parts) {
+      if (part?.ignored === true) continue
+      total += estimatePartChars(part)
+    }
+  }
+  return total
+}
+
+function estimateMessageInfoChars(info) {
+  if (!info || typeof info !== "object") return 0
+  return 80
+}
+
+function estimatePartChars(part) {
+  if (!part || typeof part !== "object") return 0
+  let total = 40
+  if (typeof part.text === "string") total += part.text.length
+  if (typeof part.content === "string") total += part.content.length
+  if (typeof part.prompt === "string") total += part.prompt.length
+  if (typeof part.description === "string") total += part.description.length
+  if (part.type === "tool" && part.state && typeof part.state === "object") {
+    if (typeof part.state.raw === "string") total += part.state.raw.length
+    if (typeof part.state.output === "string") total += part.state.output.length
+    if (typeof part.state.error === "string") total += part.state.error.length
+    if (part.state.input) total += stringifyBrief(part.state.input).length
+  }
+  if (part.type === "file" && part.source?.text?.value) total += String(part.source.text.value).length
+  return total
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -1065,4 +1396,19 @@ function sessionIdFrom(info) {
   return typeof record.sessionID === "string" ? record.sessionID
     : typeof record.sessionId === "string" ? record.sessionId
     : undefined
+}
+
+function sessionIdFromMessages(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    const fromInfo = sessionIdFrom(msg?.info)
+    if (fromInfo) return fromInfo
+    if (Array.isArray(msg?.parts)) {
+      for (const part of msg.parts) {
+        if (typeof part?.sessionID === "string") return part.sessionID
+        if (typeof part?.sessionId === "string") return part.sessionId
+      }
+    }
+  }
+  return undefined
 }

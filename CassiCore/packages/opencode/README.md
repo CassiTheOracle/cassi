@@ -11,6 +11,7 @@ A single ES module loaded by opencode at startup. Communicates with the CassiCor
 │ opencode │  chat.message                       → user prompt → cortex/lamina/mnemic + Aurora observe
 │          │  tool.execute.before/after          → tool tracking + round-complete pairing
 │          │  session.turn.complete              → emit turn:end + token-based pressure
+│          │  experimental.chat.messages.transform → preflight overflow pruning
 │          │  experimental.session.compacting    → checkpoint + handoff
 │          │  session.compaction.complete        → recovery context (next turn)
 │          │  event (session.*, message.*)       → lifecycle journalling
@@ -71,6 +72,7 @@ This is the same gateway the claude-code integration uses — single source of t
 | Canonical `turn:end` event | `emitTurnEnd` | Same, in `recordTurnComplete` | ✓ |
 | Pressure-tier classification | Estimated from transcript size | Computed from real token counts | ✓ (more accurate) |
 | Pressure warnings | Injected via additionalContext | Injected via `<cassicore-context>` block | ✓ |
+| Context-too-large protection | No true preflight path | `experimental.chat.messages.transform` prunes before model call | ✓ (better) |
 | Pre-compaction checkpoint + handoff | `saveCheckpoint` + `kvSet` | Same in `recordPreCompact` | ✓ |
 | Post-compaction recovery context | `buildRecoveryContext` injected on PostCompact | `meta.postCompaction` flag → next system transform | ✓ |
 | Active file tracking | from `tool_input.file_path` | Same, from `output.args.filePath` | ✓ |
@@ -86,8 +88,27 @@ This is the same gateway the claude-code integration uses — single source of t
 The opencode plugin gains three things claude-code doesn't have:
 
 1. **Real token counts for pressure** — `session.turn.complete` provides actual `tokens.input/output` and `model.limit.context`, so pressure tiers reflect reality instead of a transcript-size heuristic.
-2. **Assistant message observation** — `event: message.completed` gives us the assistant's response text. We feed it back into Aurora for next-turn cognitive state. claude-code has no equivalent because the hook server doesn't see assistant text.
-3. **Permission request tracking** — `permission.ask` is an opencode-only hook that lets us log permission events as cortex anomalies.
+2. **Preflight overflow pruning** — `experimental.chat.messages.transform` can shrink old bulky transcript parts *before* the model request. This matters because if the outgoing context is too big, there is no model response and reactive warnings never fire.
+3. **Assistant message observation** — `event: message.completed` gives us the assistant's response text. We feed it back into Aurora for next-turn cognitive state. claude-code has no equivalent because the hook server doesn't see assistant text.
+4. **Permission request tracking** — `permission.ask` is an opencode-only hook that lets us log permission events as cortex anomalies.
+
+## Overflow Handling
+
+The plugin has two layers of context-pressure handling:
+
+1. **Reactive pressure tracking** after successful turns: `session.turn.complete` records real token usage and updates session pressure tiers.
+2. **Preflight overflow guard** before model calls: `experimental.chat.messages.transform` estimates outgoing context size and, when it exceeds a safe fraction of the model window, mutates the transient message list so opencode can still generate a response.
+
+The preflight guard is intentionally conservative:
+
+- Preserves the most recent messages and current user request.
+- Truncates old bulky text/tool/file/reasoning parts first.
+- Removes old assistant/tool/reasoning parts from the transient model-call copy if truncation is not enough.
+- Marks old user text as `ignored` where supported rather than deleting UI history.
+- Suppresses CassiCore's Aurora system injection for that one model call so we don't worsen an overflow.
+- Emits `preflight_context_pruned` into CassiCore events and cortex so the intervention is observable.
+
+This is a viability guard, not a substitute for real compaction. If you see repeated preflight pruning, run opencode compaction or delegate the remainder to Constellation.
 
 ## Files
 
@@ -126,3 +147,5 @@ This returns the same narrative that gets injected into opencode's system prompt
 **Double-recorded events:** You probably have both `cassicore.mjs` and `cassicore-footprint.mjs` installed. Re-run `install.sh` — it removes the legacy file.
 
 **High latency on first turn:** Aurora's narrative serialization is cached for 2 seconds and re-fetched on session start, user prompts, assistant messages, and post-compact. The first call after daemon startup may take ~500ms while Aurora builds its initial graph; subsequent calls are sub-100ms.
+
+**No response when context is huge:** The preflight guard should now prune the outgoing message list before the model call. Restart opencode after updating the plugin. Then watch for `preflight_context_pruned` events or cortex signals tagged `opencode, preflight-prune`. If the model still fails, the session likely needs explicit compaction or the target model has an unusually small context window.
