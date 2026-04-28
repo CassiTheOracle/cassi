@@ -258,9 +258,9 @@ export async function executeWithTimeout<T>(
     const errorMessage = error instanceof Error ? error.message : String(error);
     
     let errorType: SafeResult['errorType'] = 'execution';
-    if (errorMessage.includes('timeout')) {
+    if (errorMessage.toLowerCase().includes('timeout')) {
       errorType = 'timeout';
-    } else if (errorMessage.includes('validation')) {
+    } else if (errorMessage.toLowerCase().includes('validation')) {
       errorType = 'validation';
     }
     

@@ -230,7 +230,7 @@ export const readFileDefinition: ToolDefinition = {
     },
     required: ['path'],
   },
-  timeoutMs: 10_000,
+  timeoutMs: 15_000,
   readOnly: true,
   category: 'core',
   requiredPermission: 'read-only',
