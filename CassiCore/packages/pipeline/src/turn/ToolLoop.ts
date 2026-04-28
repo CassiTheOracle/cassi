@@ -174,19 +174,33 @@ export class ToolLoop {
         timestamp: Date.now(),
         toolCalls: streamResult.toolCalls
       });
-      
+
+      // Build reasoning prefix from accumulated thinking blocks for this round
+      const reasoningPrefix = lastThinkingBlocks.length > 0
+        ? `[Previous reasoning: ${lastThinkingBlocks.join('').trim()}]\n\n`
+        : ''
+
       // Add tool results as user message
       messages.push({
         role: 'user',
         content: '',
         timestamp: Date.now(),
-        toolResults: results.map(r => ({
-          toolCallId: r.toolCallId,
-          toolName: r.toolName,
-          content: r.content,
-          isError: r.isError
-        }))
+        toolResults: results.map((r, idx) => {
+          const tc = streamResult.toolCalls![idx]
+          const isQuestion = tc?.name === 'question' || tc?.name === 'AskUserQuestion'
+          return {
+            toolCallId: r.toolCallId,
+            toolName: r.toolName,
+            content: isQuestion && reasoningPrefix
+              ? `${reasoningPrefix}${r.content}`
+              : r.content,
+            isError: r.isError
+          }
+        })
       });
+
+      // Clear thinking blocks for this round so they don't accumulate into future rounds
+      lastThinkingBlocks.length = 0
 
       // Mid-loop context trim: drop oldest tool pairs when over budget
       const midLoopMaxChars = this.options.midLoopMaxChars ?? 120_000
