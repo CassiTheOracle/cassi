@@ -102,7 +102,7 @@ const DEFAULT_PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
  * Can be tuned via runtime config (preferred) or environment variables for quick experiments.
  */
 const DEFAULT_PER_REQUEST_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_TIMEOUT_MS || '1200000', 10)
-const DEFAULT_INACTIVITY_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_INACTIVITY_TIMEOUT_MS || '60000', 10)
+const DEFAULT_INACTIVITY_TIMEOUT_MS = parseInt(process.env.CASSI_PROVIDER_INACTIVITY_TIMEOUT_MS || '120000', 10)
 
 logger.debug(`Default per-request timeout: ${DEFAULT_PER_REQUEST_TIMEOUT_MS / 1000}s`)
 
