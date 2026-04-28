@@ -24,6 +24,7 @@ import type { WorkStream } from './work-stream.js'
 import type { DialecticChannel } from './dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
+import type { HelixSynapseLLM } from './helix-synapse.js'
 import { runHelixPipeline } from './helix-pipeline.js'
 import { HelixWorkStream, HelixCoordinator } from './helix-coordinator.js'
 
@@ -499,9 +500,11 @@ export function createHelix(
         const mentorHandle: undefined = undefined
 
         let brainstemDeps: import('./brainstem-types.js').BrainstemDeps | undefined
+        let synapseDeps: { llm: HelixSynapseLLM } | undefined
         if (effectiveModelPool) {
           try {
             const brainstemHandle = await effectiveModelPool.acquire('brainstem', undefined, sessionId)
+            const synapseHandle = await effectiveModelPool.acquire('synapse', undefined, sessionId)
             brainstemDeps = {
               llm: {
                 async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
@@ -524,6 +527,17 @@ export function createHelix(
                   if (!resolved.startsWith(process.cwd())) return null
                   return await fsRead(resolved, 'utf-8')
                 } catch { return null }
+              },
+            }
+            synapseDeps = {
+              llm: {
+                async complete(opts: { prompt: string; modelTier: string; maxTokens: number; timeoutMs: number }) {
+                  const messages = [{ role: 'user' as const, content: opts.prompt }]
+                  const result = await synapseHandle.complete(messages as any, {
+                    maxTokens: opts.maxTokens,
+                  } as any)
+                  return { content: result.response, truncated: false }
+                },
               },
             }
             logger.info('helix:brainstem:adapter-created', { sessionId })
@@ -588,6 +602,7 @@ export function createHelix(
             researchSpawner,
             useNativeCoordinator: true,
             brainstemDeps,
+            synapseDeps,
             thalamus: storedThalamus,
             onCancelRegistered: (cancelFn) => {
               activeSessions.set(sessionId, cancelFn)

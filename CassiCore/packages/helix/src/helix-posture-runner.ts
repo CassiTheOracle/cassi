@@ -41,6 +41,7 @@ import type { HelixTelemetry } from './helix-telemetry.js'
 import type { Aurora } from '../aurora/index.js'
 import type { HelixJournal } from './helix-journal.js'
 import type { PendingGuidance } from './brainstem-types.js'
+import type { HelixSynapse } from './helix-synapse.js'
 import { HelixResearcher } from './helix-researcher.js'
 import {
   isHelixMetaTool,
@@ -220,6 +221,8 @@ export interface HelixPostureRunnerOpts {
   unityStatusThresholds?: UnityStatusThresholds
   /** Brainstem — cognitive organizer (replaces Mentor) */
   brainstem?: HelixBrainstem
+  /** New Helix-level Synapse observer — watches all posture context slices and broadcasts observations. */
+  helixSynapse?: HelixSynapse
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Thalamus for context curation during long-running sessions */
@@ -299,6 +302,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly researchSpawner?: ResearchSpawner
   private readonly unityStatusThresholds?: UnityStatusThresholds
   private readonly brainstem?: HelixBrainstem
+  private readonly helixSynapse?: HelixSynapse
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
@@ -375,6 +379,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.researchSpawner = opts.researchSpawner
     this.unityStatusThresholds = opts.unityStatusThresholds
     this.brainstem = opts.brainstem
+    this.helixSynapse = opts.helixSynapse
     this.contextChunkIndex = opts.contextChunkIndex
     this.onWorkUnit = opts.onWorkUnit
     this.onStreamActivity = opts.onStreamActivity
@@ -481,6 +486,29 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   }
 
   /**
+   * New Helix-level Synapse injection. The Synapse observes rolling context
+   * windows from all postures and broadcasts concise observations back to the
+   * postures. These observations are direct context injections, not commands.
+   */
+  private injectHelixSynapseBroadcasts(): void {
+    if (!this.helixSynapse) return
+    const broadcasts = this.helixSynapse.drainBroadcasts(this.role)
+    if (broadcasts.length === 0) return
+
+    const lines: string[] = ['## Shared observations']
+    for (const b of broadcasts) {
+      lines.push(`- [${b.priority}] ${b.content}`)
+      this.helixSynapse.appendInjection(this.role, b)
+    }
+
+    this.messages.push({ role: 'user', content: lines.join('\n') })
+    this.logger.debug('Injected Helix Synapse broadcasts', {
+      role: this.role,
+      count: broadcasts.length,
+    })
+  }
+
+  /**
    * Phase E — pipe posture reasoning text through Aurora so the unified
    * mental-state graph grows while the session runs. No-op when Aurora
    * isn't attached. Emits an `aurora.observe` journal entry when a journal
@@ -547,6 +575,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    */
   protected override pushMessage(msg: import('../../../types/runtime.js').Message): void {
     super.pushMessage(msg)
+    this.helixSynapse?.appendMessage(this.role, msg)
     // Persist to HelixStore for forensic analysis
     if (this.store) {
       try {
@@ -573,6 +602,13 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     const snippet = textAccumulated.length > 3000
       ? textAccumulated.slice(-3000)
       : textAccumulated
+
+    this.helixSynapse?.appendStreamDelta(this.role, snippet, {
+      tokensSoFar,
+      hasToolUse,
+      isReasoning: !hasToolUse && textAccumulated.length > 0,
+      iteration: this.iterationCount,
+    })
 
     this.onStreamActivity?.({
       posture: this.role,
@@ -609,6 +645,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Phase C — pull cross-posture signals from the GlobalWorkspace
         // (reviewer findings/challenges, suggestion nudges, etc.). No-op
         // when brainIntegration is off.
+        this.injectHelixSynapseBroadcasts()
         this.injectWorkspaceBroadcasts()
 
         // Backpressure — wait if reviewers are falling behind
@@ -745,6 +782,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Phase C — pull cross-posture signals from the GlobalWorkspace.
         // Reviewers see Unity's work units and the other reviewer's
         // findings/challenges here when brainIntegration is on.
+        this.injectHelixSynapseBroadcasts()
         this.injectWorkspaceBroadcasts()
 
         // Posture independence: reviewers no longer auto-exit when Unity finishes.
@@ -1016,6 +1054,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private async processToolCalls(toolCalls: ParsedToolCall[]): Promise<ContentBlock[]> {
     const results: ContentBlock[] = []
 
+    for (const tc of toolCalls) {
+      this.helixSynapse?.appendToolCall(this.role, {
+        id: tc.id,
+        name: tc.name,
+        input: tc.input,
+      })
+    }
+
     // Classify each tool call
     const metaCalls: ParsedToolCall[] = []
     const blackboardCalls: ParsedToolCall[] = []
@@ -1136,6 +1182,16 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     for (const tc of toolCalls) {
       const argsSummary = this.extractArgsSummary(tc.name, tc.input)
       this.workStream.recordToolCall(this.role as any, tc.name, false, argsSummary)
+    }
+
+    for (const result of results) {
+      if (result.type === 'tool_result') {
+        this.helixSynapse?.appendToolResult(this.role, {
+          callId: result.tool_use_id,
+          content: String(result.content ?? ''),
+          isError: result.is_error ?? false,
+        })
+      }
     }
 
     return results
@@ -2361,6 +2417,11 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * One-shot: consumes the latest pending guidance from the Brainstem.
    */
   private injectBrainstemGuidance(toolResults: ContentBlock[]): ContentBlock[] {
+    // New observer-layer coordination path: when HelixSynapse is present, it
+    // replaces legacy Brainstem guidance injection. The Brainstem may still run
+    // temporarily for tree/training compatibility, but it no longer pushes
+    // tactical guidance into posture context.
+    if (this.helixSynapse) return toolResults
     if (!this.brainstem) return toolResults
 
     const guidance = this.brainstem.getLatestGuidance()

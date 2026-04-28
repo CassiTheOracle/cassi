@@ -35,6 +35,8 @@ import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './t
 import { signalPromise } from '../../utils/abort.js'
 import { HelixBrainstem, createHelixBrainstem } from './brainstem.js'
 import type { BrainstemDeps } from './brainstem-types.js'
+import { HelixSynapse } from './helix-synapse.js'
+import type { HelixSynapseConfig, HelixSynapseLLM } from './helix-synapse.js'
 import { PostureModule } from './posture-module.js'
 import { HelixTelemetry } from './helix-telemetry.js'
 import { HelixConductor, shouldUseConductor } from './helix-conductor.js'
@@ -93,6 +95,7 @@ export interface HelixPipelineOpts {
   onDialecticChannelCreated?: (dc: DialecticChannel) => void
   onCoordinatorCreated?: (coordinator: HelixCoordinator) => void
   onBrainstemCreated?: (brainstem: HelixBrainstem) => void
+  onSynapseCreated?: (synapse: HelixSynapse) => void
   onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
 
   // Artifact/session context
@@ -115,6 +118,16 @@ export interface HelixPipelineOpts {
 
   /** Brainstem dependencies — if provided, Brainstem replaces Mentor */
   brainstemDeps?: BrainstemDeps
+
+  /**
+   * New Helix-level Synapse observer. When provided, the pipeline starts an
+   * always-active observer that watches rolling context slices from Unity/Yang/Yin
+   * and broadcasts direct observations back into those posture contexts.
+   */
+  synapseDeps?: {
+    llm: HelixSynapseLLM
+    config?: Partial<HelixSynapseConfig>
+  }
 
   /** Configurable inactivity thresholds (ms). Defaults: warn=120s, escalate=240s, kill=360s. */
   inactivityThresholds?: {
@@ -283,6 +296,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   const useBrainstem = !!opts.brainstemDeps
   let brainstem: HelixBrainstem | undefined
+  let helixSynapse: HelixSynapse | undefined
 
   // Create Unity's chunk index early so brainstem can reference it
   const unityChunkIndex = new ContextChunkIndex(log)
@@ -309,6 +323,21 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     brainstem.start()
     opts.onBrainstemCreated?.(brainstem)
     log.info('Brainstem started (replacing Mentor)')
+  }
+
+  if (opts.synapseDeps) {
+    helixSynapse = new HelixSynapse({
+      helixId: sessionId,
+      goal: opts.goal,
+      logger: log,
+      eventBus: opts.eventBus,
+      llm: opts.synapseDeps.llm,
+      memory: opts.mnemicField,
+      config: opts.synapseDeps.config,
+    })
+    helixSynapse.start()
+    opts.onSynapseCreated?.(helixSynapse)
+    log.info('Helix Synapse started (observer-layer coordination)')
   }
 
 
@@ -446,6 +475,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     toolProfile: opts.toolProfiles?.unity ?? 'implementation',
     contextBudgetCoordinator,
     brainstem,
+    helixSynapse,
     contextChunkIndex: unityChunkIndex,
     thalamus: opts.thalamus,
     postureModule: unityPostureModule,
@@ -465,6 +495,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
+    helixSynapse,
     contextChunkIndex: yangChunkIndex,
     thalamus: opts.thalamus,
     postureModule: yangPostureModule,
@@ -484,6 +515,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     dialecticChannel,
     contextBudgetCoordinator,
     brainstem,
+    helixSynapse,
     contextChunkIndex: yinChunkIndex,
     thalamus: opts.thalamus,
     postureModule: yinPostureModule,
@@ -882,6 +914,15 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         log.info('Brainstem stopped')
       } catch (err) {
         log.warn('Brainstem stop failed', { error: String(err) })
+      }
+    }
+
+    if (helixSynapse) {
+      try {
+        await helixSynapse.stop()
+        log.info('Helix Synapse stopped')
+      } catch (err) {
+        log.warn('Helix Synapse stop failed', { error: String(err) })
       }
     }
 
