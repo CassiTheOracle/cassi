@@ -485,45 +485,56 @@ export class Aurora {
   private extractConcepts(text: string): string[] {
     const concepts = new Set<string>()
 
-    // Capitalized phrases (e.g., "Phase Coherence", "Brain Context")
+    const inAlnumRun = (m: RegExpExecArray): boolean => {
+      const before = m.index > 0 ? text[m.index - 1] : ''
+      const after = text[m.index + m[0].length] ?? ''
+      const isAlnum = (ch: string) => /[A-Za-z0-9]/.test(ch)
+      return isAlnum(before) || isAlnum(after)
+    }
+
+    const looksLikeRandomToken = (term: string): boolean => {
+      const lower = term.toLowerCase()
+      const vowels = (lower.match(/[aeiouy]/g) ?? []).length
+      const letters = (lower.match(/[a-z]/g) ?? []).length
+      if (letters >= 4 && vowels === 0) return true
+      if (/[bcdfghjklmnpqrstvwxz]{5,}/i.test(lower)) return true
+      return false
+    }
+
     const capitalizedPattern = /[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g
     let match: RegExpExecArray | null = null
     while ((match = capitalizedPattern.exec(text)) !== null) {
       const term = match[0].trim()
-      if (term.length >= 3 && term.length <= 50) {
-        concepts.add(term)
-      }
+      if (term.length < 3 || term.length > 50) continue
+      if (inAlnumRun(match)) continue
+      if (looksLikeRandomToken(term)) continue
+      concepts.add(term)
     }
 
-    // Quoted strings
     const quotedPattern = /"([^"]{3,50})"/g
     while ((match = quotedPattern.exec(text)) !== null) {
       concepts.add(match[1])
     }
 
-    // Backtick code references (e.g., `buildBrainContext`, `phase_coherence`)
     const backtickPattern = /`([^`]{2,40})`/g
     while ((match = backtickPattern.exec(text)) !== null) {
       concepts.add(match[1])
     }
 
-    // camelCase identifiers (e.g., buildBrainContext, phaseCoherence)
-    // Must have at least one lowercase→uppercase transition and be 6+ chars
     const camelCasePattern = /\b[a-z][a-zA-Z0-9]*[A-Z][a-zA-Z0-9]*\b/g
     while ((match = camelCasePattern.exec(text)) !== null) {
-      if (match[0].length >= 6 && match[0].length <= 50) {
-        concepts.add(match[0])
-      }
+      if (match[0].length < 6 || match[0].length > 50) continue
+      if (inAlnumRun(match)) continue
+      if (looksLikeRandomToken(match[0])) continue
+      concepts.add(match[0])
     }
 
-    // PascalCase identifiers (e.g., ThalamusModule, BrainContext)
-    // Already partially covered by capitalizedPattern, but this catches
-    // single-word PascalCase like "ThalamusModule" more reliably
     const pascalCasePattern = /\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g
     while ((match = pascalCasePattern.exec(text)) !== null) {
-      if (match[0].length >= 6 && match[0].length <= 50) {
-        concepts.add(match[0])
-      }
+      if (match[0].length < 6 || match[0].length > 50) continue
+      if (inAlnumRun(match)) continue
+      if (looksLikeRandomToken(match[0])) continue
+      concepts.add(match[0])
     }
 
     // snake_case identifiers (e.g., build_brain_context, phase_coherence)
