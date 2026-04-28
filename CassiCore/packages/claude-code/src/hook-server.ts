@@ -104,6 +104,14 @@ async function handleSessionStart(input: HookInput): Promise<HookOutput> {
   ).catch(() => {});
   bridge.reveriePing(state.ccSessionId, "claude-code-session-start").catch(() => {});
 
+  const workspace = input.cwd || "unknown workspace";
+  const projectName = workspace.split("/").filter(Boolean).pop() || "unknown";
+  await bridge.auroraObserve(
+    `Claude Code session started in workspace ${workspace}. ` +
+    `Working on the ${projectName} project. ` +
+    `Awaiting a prompt from Valerie.`,
+  ).catch(() => {});
+
   const context = await buildCognitiveContext(state, { compact: false });
 
   return context
