@@ -593,6 +593,22 @@ export class MeditationController extends BaseCognitiveModule {
             }))
           }
 
+          // Feed explorer transcripts into Aurora's cognitive graph so meditation
+          // findings shape my mental state, not just Mnemic Field engrams.
+          // Routed through Thalamus so Aurora's reasoning observer + Reverie sampling stay centralized.
+          if (this.thalamus && typeof (this.thalamus as any).observeReasoning === 'function') {
+            for (const r of soloResults) {
+              if (!r.transcript || r.transcript.length < 200) continue
+              try {
+                ;(this.thalamus as any).observeReasoning(r.transcript)
+              } catch (err) {
+                this.logger.debug('[Meditation] aurora.observeReasoning failed', {
+                  explorer: r.name, error: String(err),
+                })
+              }
+            }
+          }
+
           this.logger.info('[Meditation] All explorers completed', {
             constellationId,
             explorers: soloResults.map(r => ({
