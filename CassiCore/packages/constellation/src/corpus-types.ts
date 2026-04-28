@@ -1004,6 +1004,12 @@ export interface CorpusDeps {
   topology?: import('./topology/topology-graph.js').TopologyGraph
   /** When true, the CorpusMiniHelix handles strategic LLM analysis — skip internal LLM calls */
   miniHelixActive?: boolean
+  /**
+   * Observer coordination mode disables legacy command/directive governance.
+   * The Corpus remains available for passive tree/progress state, while active
+   * coordination is handled by observer layers broadcasting through Synapses.
+   */
+  observerCoordination?: boolean
 }
 
 /**

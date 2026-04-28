@@ -562,7 +562,7 @@ export class Corpus {
         let newPatterns: CrossHelixPattern[] = []
         let lastLocusSweep: LocusSweepResult | undefined
 
-        if (!isMeditation) {
+        if (!isMeditation && !this.deps.observerCoordination) {
           this.trackBudgets()
 
           if (this.config.proactive.enableDiscoveryRouting) {
@@ -625,7 +625,7 @@ export class Corpus {
             crossPatterns: newPatterns,
             topology: this.deps.topology ?? undefined,
             assessments: this.state.branchAssessments,
-            injectGuidance: isMeditation ? undefined : (this.deps.injectGuidance ?? undefined),
+            injectGuidance: (isMeditation || this.deps.observerCoordination) ? undefined : (this.deps.injectGuidance ?? undefined),
           })
 
           if (lastLocusSweep.sparksExtracted > 0 || lastLocusSweep.kindlingEvents.length > 0) {
@@ -885,6 +885,10 @@ export class Corpus {
     // WHY: When an external agent holds the Corpus role, the internal LLM
     // should not run analysis — the external agent makes strategic decisions.
     if (this.externalProtocol.isAssumed()) {
+      return false
+    }
+
+    if (this.deps.observerCoordination) {
       return false
     }
 
@@ -1815,6 +1819,14 @@ Guidelines:
    * Send a directive to a child Brainstem
    */
    private sendDirective(directive: CorpusDirective): void {
+    if (this.deps.observerCoordination) {
+      this.logger.debug('Legacy Corpus directive suppressed in observer coordination mode', {
+        helixId: directive.targetHelixId,
+        type: directive.type,
+        urgency: directive.urgency,
+      })
+      return
+    }
     if (this.deps.meditationMode) return
     const brainstem = this.childBrainstems.get(directive.targetHelixId)
     if (!brainstem) {

@@ -21,8 +21,12 @@ import type { HelixResult } from '../helix/types.js'
 import type { ConstellationStore, ProgressSnapshot } from './constellation-store.js'
 import type { BrainstemDeps, BrainstemAnnotation, SharedTreeReader } from '../helix/brainstem-types.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
+import type { HelixSynapse } from '../helix/helix-synapse.js'
 import { BrainstemMiniHelix } from '../helix/brainstem-mini-helix.js'
 import { CorpusMiniHelix } from './corpus-mini-helix.js'
+import { ClusterObserverLayer } from './cluster-observer-layer.js'
+import { CorpusObserverLayer } from './corpus-observer-layer.js'
+import { ObserverBranchState } from './observer-branch-state.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
 import { Blackboard } from '../flux-team/blackboard.js'
 import { BlackboardBridge } from './blackboard-bridge.js'
@@ -305,6 +309,7 @@ interface RunningHelix {
   cancel: () => void
   handles: ModelHandle[]
   brainstem?: HelixBrainstem
+  helixSynapse?: HelixSynapse
   brainstemMiniHelix?: BrainstemMiniHelix
   parentId?: string
   depth: number
@@ -347,6 +352,7 @@ export async function runConstellationPipeline(
   } = opts
 
   const costEffective = opts.costEffective ?? false
+  const observerCoordination = !opts.meditationMode
   const log = logger.child('constellation-pipeline')
 
   // Fallback counter for helix IDs when constellation store is unavailable
@@ -436,7 +442,7 @@ export async function runConstellationPipeline(
 
   // Create cross-Helix dialectic for inter-branch communication
   // Skip in meditation — single-branch exploration has no inter-branch communication
-  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false && !opts.meditationMode)
+  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false && !opts.meditationMode && !observerCoordination)
     ? new CrossHelixDialectic(log)
     : undefined
 
@@ -447,7 +453,7 @@ export async function runConstellationPipeline(
 
   // Skip topology/gravity engine in meditation — no multi-branch spatial coordination needed
   if (opts.embeddingService && !opts.meditationMode) {
-    brainstemBridge = new BrainstemBridge({
+    brainstemBridge = observerCoordination ? undefined : new BrainstemBridge({
       tree: corpusTree,
       logger,
       injectGuidance: (helixId, content, urgency) => {
@@ -513,7 +519,8 @@ export async function runConstellationPipeline(
       crossHelixDialectic,
       meditationMode: opts.meditationMode,
       meditationStyle: opts.meditationStyle,
-      miniHelixActive: !!opts.useMiniHelixCorpus,
+      miniHelixActive: !observerCoordination && !!opts.useMiniHelixCorpus,
+      observerCoordination,
       mnemicField: opts.mnemicField,
       memory: opts.memory,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
@@ -643,7 +650,7 @@ export async function runConstellationPipeline(
 
   let corpusMiniHelix: CorpusMiniHelix | undefined
 
-  if (opts.useMiniHelixCorpus) {
+  if (opts.useMiniHelixCorpus && !observerCoordination) {
     corpusMiniHelix = new CorpusMiniHelix(
       corpusTree,
       {
@@ -755,6 +762,37 @@ export async function runConstellationPipeline(
   // WHY: Maps helixId -> feedbackId so we can close the feedback loop
   // when the branch completes and we know which files were actually used.
   const contextFeedbackIds = new Map<string, string>()
+
+  const clusterObserverLayer = topologyGraph?.enabled && !opts.meditationMode
+    ? new ClusterObserverLayer({
+        constellationId,
+        goal,
+        logger,
+        eventBus,
+        llm: brainstemLLM,
+        memory: opts.mnemicField,
+        getTopologySnapshot: () => topologyGraph?.getSnapshot(),
+        getHelixSynapse: (helixId: string) => runningHelixes.get(helixId)?.helixSynapse,
+      })
+    : undefined
+  clusterObserverLayer?.start()
+
+  const corpusObserverLayer = !opts.meditationMode
+    ? new CorpusObserverLayer({
+        constellationId,
+        goal,
+        logger,
+        eventBus,
+        llm: brainstemLLM,
+        memory: opts.mnemicField,
+        getActiveHelixIds: () => Array.from(runningHelixes.values())
+          .filter(h => h.node.status === 'running')
+          .map(h => h.helixId),
+        getHelixSynapse: (helixId: string) => runningHelixes.get(helixId)?.helixSynapse,
+        getTopologySnapshot: () => topologyGraph?.getSnapshot(),
+      })
+    : undefined
+  corpusObserverLayer?.start()
 
   // Helper: Resolve Postures
 
@@ -1120,7 +1158,16 @@ export async function runConstellationPipeline(
 
     // Meditation mode: skip Brainstem entirely — the Corpus reads raw posture output.
     // WorkUnits are pushed directly to the CorpusTree as pass-through annotations.
-    const brainstemDeps: BrainstemDeps | undefined = opts.meditationMode
+    const observerBranchState = observerCoordination
+      ? new ObserverBranchState({
+          helixId,
+          goal: helixGoal,
+          corpusTree,
+          sharedTree: sharedTreeReader,
+        })
+      : undefined
+
+    const brainstemDeps: BrainstemDeps | undefined = (opts.meditationMode || observerCoordination)
       ? undefined
       : {
           llm: brainstemLLM,
@@ -1156,8 +1203,15 @@ export async function runConstellationPipeline(
           },
         }
 
+    const synapseDeps = opts.meditationMode
+      ? undefined
+      : {
+          llm: brainstemLLM,
+        }
+
     // HOW: The actual brainstem reference — set by onBrainstemCreated when the pipeline starts it
     let activeBrainstem: HelixBrainstem | undefined
+    let activeHelixSynapse: HelixSynapse | undefined
 
     let cancelFn: (() => void) | undefined
     const cancelPromise = new Promise<never>((_, reject) => {
@@ -1189,6 +1243,7 @@ export async function runConstellationPipeline(
       eventBus,
       useNativeCoordinator: true,
       brainstemDeps,
+      synapseDeps,
       brainIntegration: Boolean(opts.globalWorkspace),
       globalWorkspace: opts.globalWorkspace,
       mnemicField: opts.mnemicField,
@@ -1248,6 +1303,8 @@ export async function runConstellationPipeline(
           }
           const toolCalls = wu.toolCalls.map(tc => ({ name: tc.name, args: JSON.stringify(tc.input).slice(0, 500) }))
           corpusTree.pushAnnotation(helixId, rawAnnotation, toolCalls)
+        } else if (observerBranchState) {
+          observerBranchState.onWorkUnit(wu, iteration)
         } else if (activeBrainstem) {
           activeBrainstem.onWorkUnit(wu, iteration)
         }
@@ -1309,7 +1366,7 @@ export async function runConstellationPipeline(
         // Optionally start a Brainstem mini-Helix sidecar
         // WHY: Meditation mode skips Brainstem entirely — the Corpus reads raw posture
         // output directly via the onWorkUnit pass-through above.
-        if (opts.useMiniHelixBrainstem && !opts.meditationMode) {
+        if (opts.useMiniHelixBrainstem && !opts.meditationMode && !observerCoordination) {
           // WHY: Brainstem needs the tool list to generate valid tool_use blocks
           const workerToolNames = toolRegistry
             ? toolRegistry.list().map((t) => t.name)
@@ -1363,6 +1420,12 @@ export async function runConstellationPipeline(
           })
         }
       },
+      onSynapseCreated: (synapse) => {
+        activeHelixSynapse = synapse
+        const rh = runningHelixes.get(helixId)
+        if (rh) rh.helixSynapse = synapse
+        helixLog.info('Pipeline Helix Synapse registered for cluster observation')
+      },
     })
 
     // Race between completion and cancellation
@@ -1378,6 +1441,7 @@ export async function runConstellationPipeline(
       cancel: cancelFn || (() => {}),
       handles,
       brainstem: activeBrainstem,
+      helixSynapse: activeHelixSynapse,
       parentId,
       depth,
       template,
@@ -2269,6 +2333,24 @@ export async function runConstellationPipeline(
         log.info('Corpus mini-Helix stopped')
       } catch (err) {
         log.warn('Error stopping Corpus mini-Helix', { error: String(err) })
+      }
+    }
+
+    if (clusterObserverLayer) {
+      try {
+        await clusterObserverLayer.stop()
+        log.info('Cluster observer layer stopped')
+      } catch (err) {
+        log.warn('Error stopping cluster observer layer', { error: String(err) })
+      }
+    }
+
+    if (corpusObserverLayer) {
+      try {
+        await corpusObserverLayer.stop()
+        log.info('Corpus observer layer stopped')
+      } catch (err) {
+        log.warn('Error stopping Corpus observer layer', { error: String(err) })
       }
     }
 
