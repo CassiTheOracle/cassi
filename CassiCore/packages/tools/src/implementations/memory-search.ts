@@ -27,7 +27,7 @@ export const memorySearchDefinition: ToolDefinition = {
     },
     required: ['query'],
   },
-  timeoutMs: 10_000,
+  timeoutMs: 15_000,
   category: 'cognitive',
   requiredPermission: 'read-only',
 }

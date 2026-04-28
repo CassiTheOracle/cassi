@@ -34,7 +34,7 @@ export const spawnSubagentDefinition: ToolDefinition = {
     },
     required: ['task', 'label'],
   },
-  timeoutMs: 10_000, // Just for the spawn operation itself
+  timeoutMs: 15_000, // Just for the spawn operation itself
   requiredPermission: 'full-access',
 }
 

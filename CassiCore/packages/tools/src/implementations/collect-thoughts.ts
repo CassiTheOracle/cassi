@@ -146,7 +146,7 @@ export const collectThoughtsDefinition: ToolDefinition = {
     },
     required: ['thought', 'step', 'estimated_steps', 'continue_thinking'],
   },
-  timeoutMs: 10_000,
+  timeoutMs: 30_000,
   category: 'cognitive',
   requiredPermission: 'read-only',
 }
