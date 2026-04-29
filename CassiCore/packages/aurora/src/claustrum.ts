@@ -127,6 +127,9 @@ export class Claustrum {
 
     if (observerCollector && observerCollector.size > 0) {
       this.seedFromObservers(observerCollector, nodes, edges, reverseEdges)
+      observerCollector.drain() // one-shot: each insight is folded at most once per
+      // dedup-window cycle. Observer layers re-emit on their next poll, so the
+      // insight will re-enter the collector and be folded again when appropriate.
     }
 
     this.resolveOverlappingEntities(nodes)

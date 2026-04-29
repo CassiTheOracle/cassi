@@ -30,6 +30,7 @@ import type {
   CognitiveEdge,
   ReasoningRecord,
   ReverieInsight,
+  UnifiedGraph,
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
 import type { ReverieInferenceProvider } from './types.js'
@@ -220,18 +221,24 @@ export class Aurora {
     const cycleId = `aur_${(this.cycleCounter += 1)}`
     this.applyCycleId(cycleId)
 
-    const graph = this.claustrum.buildFocusedGraph(
-      foci,
-      this.cortex,
-      this.modelProvider,
-      this.knowledgeProvider,
-      this.portalBridge,
-      recentDiscoveries,
-      this.observerCollector,
-    )
-
-    // Clear cycle stamp now that the gate-KNN burst for this cycle is done.
-    this.applyCycleId(null)
+    // Always clear the cycle stamp after the gate-KNN burst completes, even if
+    // buildFocusedGraph throws. Without this, a provider would retain a stale
+    // cycleId and subsequent non-Aurora code paths could incorrectly attribute
+    // gate-KNN hits to this cycle.
+    let graph: UnifiedGraph
+    try {
+      graph = this.claustrum.buildFocusedGraph(
+        foci,
+        this.cortex,
+        this.modelProvider,
+        this.knowledgeProvider,
+        this.portalBridge,
+        recentDiscoveries,
+        this.observerCollector,
+      )
+    } finally {
+      this.applyCycleId(null)
+    }
 
     const resonanceHubs = this.claustrum.getResonanceHubs(graph)
     const gaps = this.claustrum.findGaps(graph)
