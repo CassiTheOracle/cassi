@@ -2370,81 +2370,8 @@ export class Daemon {
           this.intelligence.droneSwarm.setToolExecutor?.(toolExecutor)
         }
 
-        // The TriadTeamOrchestrator needs multi-provider resolution, tool
-        // executor, and tool registry for its cells.
-        if (this.intelligence?.triadTeam) {
-          const tt = this.intelligence.triadTeam
-          tt.setProviderResolver((providerId: string) => providers.get(providerId))
-          tt.setToolExecutor(toolExecutor)
-          tt.setToolRegistry(toolRegistry)
-          this.wireModule(tt, this.bus)
-          this.logger.info('Triad-team orchestrator wired')
-        }
-
-        // FluxTeamOrchestrator needs event bus and a data directory for its outcome ledger.
-        if (this.intelligence?.fluxTeam) {
-          const ft = this.intelligence.fluxTeam
-          ft.setEventBus(this.bus)
-          // Wire ModelDirective for job-scoped model selection
-          if (this.modelDirective) {
-            ft.setModelDirective(this.modelDirective)
-          }
-          // Set data directory for outcome ledger
-          const dataDir = String(this.config?.get?.('dataDir') ?? join(homedir(), '.cassicore', 'data'))
-          ft.setDataDir(dataDir)
-
-          // Integration 1: Wire OutcomeLedger → ImprovementOrchestrator
-          // Allows the ledger to submit improvement proposals when topology
-          // failure patterns are detected (>40% failure rate over 10+ runs).
-          if (this.intelligence.improvementOrchestrator) {
-            try {
-              const ledger = (ft as any).outcomeLedger
-              if (ledger && 'setImprovementOrchestrator' in ledger) {
-                ledger.setImprovementOrchestrator(this.intelligence.improvementOrchestrator)
-                this.logger.info('FluxTeam outcome ledger wired to ImprovementOrchestrator')
-              }
-            } catch (err) {
-              this.logger.warn('Failed to wire outcome ledger to ImprovementOrchestrator', { error: String(err) })
-            }
-          }
-
-          // Integration 4: Wire GenomeRegistry → AIEngineer evolution
-          // Registers genome directives as evolvable UpgradeTargets so the
-          // AIEngineer can trial and evolve genome prompts based on performance.
-          if (this.intelligence.aiEngineer) {
-            try {
-              const catalog = (this.intelligence.aiEngineer as any).catalog
-              if (catalog && 'registerGenomeUpgradeTargets' in ft) {
-                ft.registerGenomeUpgradeTargets(catalog)
-                this.logger.info('FluxTeam genome upgrade targets registered in AIEngineer catalog')
-              }
-            } catch (err) {
-              this.logger.warn('Failed to register genome upgrade targets', { error: String(err) })
-            }
-          }
-
-          // Integration 5: Wire Memory → FluxTeam for cross-team learning
-          // Persists blackboard findings to memory after execution and queries
-          // memory for relevant past patterns when creating new teams.
-          if (this.intelligence.memory) {
-            ft.setMemory(this.intelligence.memory)
-            this.logger.info('FluxTeam memory wired for cross-team pattern persistence')
-          }
-
-          // Wire ContextDistiller for Phase Zero context injection
-          if (this.contextDistiller) {
-            ft.setContextDistiller(this.contextDistiller)
-            this.logger.info('FluxTeam ContextDistiller wired for Phase Zero')
-          }
-
-          if (fileArtifactStore) {
-            ft.setFileArtifactStore(fileArtifactStore)
-            this.logger.info('FluxTeam FileArtifactStore wired for Blackboard persistence')
-          }
-
-          this.wireModule(ft, this.bus)
-          this.logger.info('FluxTeam orchestrator wired')
-        }
+        // REMOVED: Triad Team and Flux Team orchestrator wiring — deprecated systems deleted.
+        // All orchestration now uses Helix and Constellation, which are wired separately.
 
         // Wire Helix tools, store, and context distiller
         if (this.intelligence?.helix) {
