@@ -188,6 +188,48 @@ export class MemoryInjectionService {
   }
 
   /**
+   * WHY: Added secondary search with the raw goal text when the keyword
+   * search returns no relevant results. The stop-word extraction can strip
+   * important compound technical terms (e.g., "claustrum-vindex" becomes
+   * two separate tokens that don't match). (c-36 postmortem BUG L)
+   */
+  async injectForBranchWithFallback(
+    helixId: string,
+    goal: string,
+    parentId?: string
+  ): Promise<BranchMemoryContext | undefined> {
+    // Try primary search first
+    const primary = await this.injectForBranch(helixId, goal, parentId)
+    if (primary && primary.memories.length > 0) return primary
+
+    // Fallback: try the raw goal text as the search query
+    const fallbackQuery = goal.slice(0, 300)
+    this.logger.info('Primary memory search returned nothing, trying raw goal fallback', {
+      helixId,
+      fallbackQuery: fallbackQuery.slice(0, 100),
+    })
+    try {
+      const rawResults = await this.memory.search(fallbackQuery, {
+        limit: this.config.maxMemories * 2,
+      })
+      if (rawResults.length === 0) return undefined
+      const filtered = rawResults
+        .filter(r => r.score >= (this.config.minRelevance * 0.6))  // Lower threshold for fallback
+        .slice(0, this.config.maxMemories)
+        .map(r => this.convertToInjectedMemory(r))
+      if (filtered.length === 0) return undefined
+      return {
+        memories: filtered,
+        injectedAt: Date.now(),
+        searchQuery: `[fallback] ${fallbackQuery}`,
+        totalAvailable: rawResults.length,
+      }
+    } catch {
+      return undefined
+    }
+  }
+
+  /**
    * Filter and rank search results by relevance, importance, and recency.
    */
   private filterAndRankMemories(searchResults: SearchResult[]): SearchResult[] {

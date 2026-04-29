@@ -1,6 +1,7 @@
 import type { WorkUnit } from '../helix/work-types.js'
 import type { BrainstemAnnotation, SharedTreeReader } from '../helix/brainstem-types.js'
-import type { BranchApproach, ICorpusTree } from './corpus-types.js'
+import type { BranchApproach, ICorpusTree, CorpusDirective } from './corpus-types.js'
+import type { CrossBranchDeliveryTarget } from './cross-helix-dialectic.js'
 
 
 export interface ObserverBranchStateOpts {
@@ -11,7 +12,7 @@ export interface ObserverBranchStateOpts {
 }
 
 
-export class ObserverBranchState {
+export class ObserverBranchState implements CrossBranchDeliveryTarget {
   private helixId: string
   private goal: string
   private corpusTree: ICorpusTree
@@ -23,6 +24,10 @@ export class ObserverBranchState {
   private blockers: string[] = []
   private lastReasoning = ''
   private currentApproach: BranchApproach = 'exploration'
+  // WHY: Queue of cross-branch directives from CrossHelixDialectic.
+  // These get included in the next digest so the Corpus and other observers
+  // can see inter-branch communication. (c-36 postmortem Root Cause A)
+  private pendingDirectives: string[] = []
 
   constructor(opts: ObserverBranchStateOpts) {
     this.helixId = opts.helixId
@@ -45,7 +50,10 @@ export class ObserverBranchState {
     for (const result of workUnit.toolResults ?? []) {
       if (result.isError) this.blockers.push(result.content.slice(0, 200))
     }
-    if (workUnit.reasoning) this.discoveries.push(workUnit.reasoning.slice(0, 400))
+    if (workUnit.reasoning) {
+      const factual = extractFactualContent(workUnit.reasoning)
+      if (factual) this.discoveries.push(factual)
+    }
 
     this.discoveries = this.discoveries.slice(-12)
     this.outputs = this.outputs.slice(-12)
@@ -63,6 +71,32 @@ export class ObserverBranchState {
 
   updateLiveStreamSnippet(snippet: string): void {
     this.sharedTree.updateLiveStreamSnippet(snippet)
+  }
+
+  /**
+   * Receive a cross-branch directive from CrossHelixDialectic.
+   * WHY: Implements CrossBranchDeliveryTarget so ObserverBranchState can
+   * participate in inter-branch communication without requiring a Brainstem.
+   * (c-36 postmortem Root Cause A)
+   */
+  onCorpusDirective(directive: CorpusDirective): void {
+    const label = `[${directive.urgency?.toUpperCase() ?? 'MEDIUM'} ${directive.reason ?? 'cross-branch'}]`
+    const text = `${label} ${directive.text}`
+    this.pendingDirectives.push(text.slice(0, 500))
+    // Keep only the most recent 10 directives
+    this.pendingDirectives = this.pendingDirectives.slice(-10)
+    // Update the live stream so the Corpus sees the directive immediately
+    this.sharedTree.updateLiveStreamSnippet(text.slice(0, 1000))
+  }
+
+  /**
+   * Drain pending cross-branch directives. Called by the pipeline after
+   * injecting them into the posture context so they're not re-delivered.
+   */
+  drainDirectives(): string[] {
+    const pending = this.pendingDirectives
+    this.pendingDirectives = []
+    return pending
   }
 
   private toAnnotation(workUnit: WorkUnit, iteration: number, toolNames: string[]): BrainstemAnnotation {
@@ -98,19 +132,22 @@ export class ObserverBranchState {
 
   private publishDigest(): void {
     const progress = Math.min(0.95, this.workUnits / 12)
+    // WHY: Include cross-branch directives in keyFindings so the Corpus and
+    // other consumers can see inter-branch communication in the digest.
+    const combinedFindings = [...this.discoveries, ...this.pendingDirectives]
     this.sharedTree.updateDigest({
       helixId: this.helixId,
       goalSummary: this.goal,
       approach: this.currentApproach,
       progress,
       filesActive: Array.from(this.filesActive).slice(-20),
-      keyFindings: this.discoveries.slice(-8),
+      keyFindings: combinedFindings.slice(-8),
       blockers: this.blockers.slice(-5),
       currentStrategy: describeStrategy(this.currentApproach),
       rollingScore: 0.55 + Math.min(0.25, progress * 0.25),
       workUnitsProcessed: this.workUnits,
       updatedAt: Date.now(),
-      allDiscoveries: this.discoveries.slice(-10),
+      allDiscoveries: combinedFindings.slice(-10),
       recentOutputs: this.outputs.slice(-10),
       liveStreamSnippet: this.lastReasoning.slice(-1000),
       currentBlockers: this.blockers.slice(-5).map(b => ({
@@ -150,4 +187,41 @@ function describeStrategy(approach: BranchApproach): string {
     case 'coordinating': return 'Integrating nearby work.'
     default: return 'Exploring the problem space.'
   }
+}
+
+
+/**
+ * Filter agent monologue from reasoning to extract factual content only.
+ * WHY: Previously the digest extractor pushed raw reasoning into discoveries,
+ * resulting in entries like "Iteration 5: 1 tool calls" and "Let me start my
+ * investigation" instead of actual findings. (c-36 postmortem BUG I)
+ */
+const MONOLOGUE_PATTERNS = [
+  /^Iteration \d+:\s*\d+\s*tool\s*calls?$/im,
+  /^Let me\s/im,
+  /^I need to\s/im,
+  /^I should\s/im,
+  /^I will\s/im,
+  /^I'm going to\s/im,
+  /^Now I\s/im,
+  /^Next,?\s*I\s/im,
+  /^I'll\s/im,
+  /^I can\s/im,
+  /^I want to\s/im,
+  /^My (?:next|first|current)\s/im,
+  /^Based on\s+my\s/im,
+  /^I think I\s/im,
+  /^Let's\s/im,
+]
+
+function extractFactualContent(reasoning: string): string | null {
+  if (reasoning.length < 20) return null
+  const sentences = reasoning.split(/(?<=[.!?])\s+/)
+  const factual = sentences.filter(s => {
+    const trimmed = s.trim()
+    if (trimmed.length < 15) return false
+    return !MONOLOGUE_PATTERNS.some(p => p.test(trimmed))
+  })
+  if (factual.length === 0) return null
+  return factual.join(' ').slice(0, 400)
 }

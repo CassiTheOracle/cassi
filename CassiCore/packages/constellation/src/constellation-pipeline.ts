@@ -441,8 +441,11 @@ export async function runConstellationPipeline(
   constellationBlackboard.initReport(goal)
 
   // Create cross-Helix dialectic for inter-branch communication
-  // Skip in meditation — single-branch exploration has no inter-branch communication
-  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false && !opts.meditationMode && !observerCoordination)
+  // WHY: Previously disabled by `!observerCoordination` which is always true in
+  // normal mode. This was the single biggest bug — all branches ran in complete
+  // isolation with no cross-branch communication. (c-36 postmortem Root Cause A)
+  // Skip only in meditation — single-branch exploration has no inter-branch communication.
+  const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false && !opts.meditationMode)
     ? new CrossHelixDialectic(log)
     : undefined
 
@@ -862,7 +865,7 @@ export async function runConstellationPipeline(
     // Memory injection runs in all modes — it's the only context meditation agents receive
     if (memoryInjectionService) {
       try {
-        const memoryContext = await memoryInjectionService.injectForBranch(helixId, helixGoal, parentId)
+        const memoryContext = await memoryInjectionService.injectForBranchWithFallback(helixId, helixGoal, parentId)
         if (memoryContext && memoryContext.memories.length > 0) {
           const memoryBlock = memoryInjectionService.formatMemoriesForContext(memoryContext)
           enrichedContext = helixContext ? `${helixContext}\n${memoryBlock}` : memoryBlock
@@ -1166,6 +1169,13 @@ export async function runConstellationPipeline(
           sharedTree: sharedTreeReader,
         })
       : undefined
+
+    // WHY: Register ObserverBranchState with CrossHelixDialectic so inter-branch
+    // messages can flow. In non-Brainstem mode, the ObserverBranchState acts as
+    // the delivery target. (c-36 postmortem Root Cause A)
+    if (crossHelixDialectic && observerBranchState) {
+      crossHelixDialectic.registerBranch(helixId, observerBranchState, helixGoal)
+    }
 
     const brainstemDeps: BrainstemDeps | undefined = (opts.meditationMode || observerCoordination)
       ? undefined
@@ -1885,6 +1895,7 @@ export async function runConstellationPipeline(
     // (user action or constellation timeout) should force-kill branches.
     const softStepBudget = opts.maxTotalSteps ?? 200
     let softBudgetReached = false
+    let tripwireEscalated = false
     if (constellationStore && !opts.meditationMode) {
       checkpointHandle = setInterval(() => {
         try {
@@ -1921,6 +1932,39 @@ export async function runConstellationPipeline(
             // sweep cycle naturally handles budget pressure — it tracks step counts
             // and will throttle new spawns when the budget is tight.
             log.warn('Corpus notified: prioritize completion over new spawns')
+          }
+
+          // WHY: Executive tripwire — detect runs burning tokens with zero output.
+          // Prevents another 3M-token / zero-deliverable run like c-36.
+          // The escalation threshold warns the Corpus; the hard threshold terminates.
+          const tokensUsed = nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0)
+          const hasAnyFileOutput = corpusTree.getSnapshot().branches.some(
+            b => b.digest?.filesActive && b.digest.filesActive.length > 0
+          )
+          if (!hasAnyFileOutput && tokensUsed > 0) {
+            const TRIPWIRE_ESCALATE_TOKENS = 500_000   // 500K tokens → warn Corpus
+            const TRIPWIER_HARD_TOKENS = 2_000_000     // 2M tokens → terminate
+            const elapsedMs = Date.now() - startTime
+
+            if (tokensUsed >= TRIPWIER_HARD_TOKENS && elapsedMs > 180_000) {
+              log.error('Executive tripwire: hard termination — excessive tokens with zero file output', {
+                tokensUsed,
+                elapsedMs,
+                branches: nodeArr.length,
+              })
+              externalCancel()
+            } else if (tokensUsed >= TRIPWIRE_ESCALATE_TOKENS && !tripwireEscalated) {
+              tripwireEscalated = true
+              log.warn('Executive tripwire: escalating to Corpus — high token usage with zero file output', {
+                tokensUsed,
+                elapsedMs,
+                branches: nodeArr.length,
+              })
+              corpus.receiveEscalation('tripwire:zero-output', {
+                tokensUsed,
+                durationMs: elapsedMs,
+              })
+            }
           }
         } catch (err) {
           log.warn('Checkpoint save failed', { error: String(err) })
@@ -2047,17 +2091,41 @@ export async function runConstellationPipeline(
       failedNodes: Array.from(nodes.values()).filter((n) => n.status === 'failed').length,
     })
 
+    // WHY: Compute a meaningful outcome instead of always reporting "completed".
+    // Previously the top-level status was set unconditionally after allSettled,
+    // even when all branches degraded and zero deliverables were produced.
+    // (c-36 postmortem BUG E)
+    const nodeArr = Array.from(nodes.values())
+    const completedBranches = nodeArr.filter(n => n.status === 'completed').length
+    const degradedBranches = nodeArr.filter(n => n.status === 'degraded').length
+    const failedBranches = nodeArr.filter(n => n.status === 'failed').length
+    const hasDeliverables = nodeArr.some(n => {
+      const ur = n.postureResults.get('unity')
+      return ur && ur.conclusion && ur.conclusion !== 'unity stopped' && ur.conclusion !== 'unity completed'
+    })
+    const outcome: 'success' | 'degraded' | 'failed' =
+      failedBranches === nodeArr.length ? 'failed' :
+      degradedBranches > 0 || !hasDeliverables ? 'degraded' :
+      'success'
+    const outcomeReason = outcome === 'failed'
+      ? `All ${failedBranches} branches failed`
+      : outcome === 'degraded'
+        ? `${degradedBranches}/${nodeArr.length} branches degraded, deliverables: ${hasDeliverables}`
+        : `All ${completedBranches} branches completed successfully`
+
     result = {
       constellationId,
       rootHelixId: rootHelixId!,
       nodes,
       constellationBlackboard: constellationBlackboard.getSnapshot(),
-      totalTokensUsed: Array.from(nodes.values()).reduce((sum, n) => sum + n.tokensUsed, 0),
+      totalTokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
       totalDurationMs: Date.now() - startTime,
       corpus: corpus.getResult(),
       spawnRequests: [],
       decompositionTracker: tracker?.getSnapshot(),
       topology: topologyGraph?.enabled ? topologyGraph.getSnapshot() : undefined,
+      outcome,
+      outcomeReason,
     }
 
     eventBus?.emit({

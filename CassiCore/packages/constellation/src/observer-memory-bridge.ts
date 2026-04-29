@@ -35,6 +35,23 @@ export function extractConceptHints(text: string, max = 8): string[] {
 }
 
 
+/**
+ * Map observer broadcast priority to a 0–1 confidence score for the
+ * Claustrum node. Extracted here so all three observer layers share one
+ * mapping and callers can't accidentally drift.
+ */
+export function priorityToConfidence(
+  priority: string,
+  fallback = 0.65,
+): number {
+  switch (priority) {
+    case 'urgent': return 0.85
+    case 'ambient': return 0.45
+    default: return fallback
+  }
+}
+
+
 export interface ObserverMemoryHit {
   id?: string
   content: string
@@ -265,9 +282,12 @@ export class ObserverMemoryBridge {
       insight.content,
       insight.constellationId ?? '',
     ].join('\u0001')
+    // Uses FNV-1a 32-bit: http://www.isthe.com/chongo/tech/comp/fnv/
     let hash = 0x811c9dc5
     for (let i = 0; i < parts.length; i++) {
       hash ^= parts.charCodeAt(i)
+      // FNV prime 0x01000193 expressed as shift-add for readability:
+      //   0x01000193 = (1<<0) + (1<<4) + (1<<7) + (1<<8) + (1<<24)
       hash = (hash + ((hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24))) >>> 0
     }
     return `obs_${hash.toString(16).padStart(8, '0')}`

@@ -167,7 +167,13 @@ export function createConstellationOrchestrator(
     const lines: string[] = []
     lines.push(`### Constellation Progress: ${sessionId}`)
     lines.push('')
-    lines.push(`**Goal:** ${liveState.goal}`)
+    // WHY: Truncate goal preview to avoid context bloat on every status poll.
+    // Previously the full goal (potentially 4KB+) was emitted verbatim each time.
+    // (c-36 postmortem BUG F)
+    const goalPreview = liveState.goal.length > 200
+      ? liveState.goal.slice(0, 200) + '...'
+      : liveState.goal
+    lines.push(`**Goal:** ${goalPreview}`)
     lines.push(`**Branches:** ${snapshot.activeBranches} active / ${snapshot.branches.length} total`)
     lines.push(`**Total Steps:** ${snapshot.totalSteps}`)
     lines.push('')

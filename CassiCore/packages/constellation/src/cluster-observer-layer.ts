@@ -1,7 +1,7 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from '../helix/helix-synapse.js'
 import type { TopologyCluster, TopologySnapshot } from './topology/topology-types.js'
-import { ObserverMemoryBridge, extractConceptHints } from './observer-memory-bridge.js'
+import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
 
@@ -190,10 +190,8 @@ export class ClusterObserverLayer {
       layer: 'cluster',
       constellationId: this.constellationId,
       subjectHelixIds: cluster.members,
-      // First few capitalised tokens make a cheap-but-useful concept hint
-      // that lets the Claustrum link this insight to existing nodes.
       concepts: extractConceptHints(parsed.content),
-      confidence: parsed.priority === 'urgent' ? 0.85 : parsed.priority === 'ambient' ? 0.45 : 0.65,
+      confidence: priorityToConfidence(parsed.priority),
       tags: ['cluster-observer', `cluster:${cluster.clusterId}`],
     })
 

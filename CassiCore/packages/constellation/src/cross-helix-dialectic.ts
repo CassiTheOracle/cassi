@@ -21,6 +21,19 @@ import type { HelixBrainstem } from '../helix/brainstem.js'
 import type { CorpusDirective } from './corpus-types.js'
 
 
+/**
+ * Minimal delivery target for cross-branch messages.
+ * WHY: CrossHelixDialectic originally required a full HelixBrainstem, but in
+ * observer-coordination mode the Brainstem is replaced by ObserverBranchState.
+ * This interface decouples cross-branch delivery from the Brainstem dependency,
+ * allowing any branch state tracker to receive inter-branch messages.
+ * (c-36 postmortem Root Cause A)
+ */
+export interface CrossBranchDeliveryTarget {
+  /** Receive a cross-branch directive (finding, challenge, mediation, etc.) */
+  onCorpusDirective(directive: CorpusDirective): void
+}
+
 export type CrossHelixParticipant = string  // helixId
 
 export type CrossHelixMessageType =
@@ -116,7 +129,7 @@ export class CrossHelixDialectic {
   private messages: CrossHelixMessage[] = []
   private convergencePoints: CrossHelixConvergencePoint[] = []
   private unresolvedTensions: CrossHelixTension[] = []
-  private participants = new Map<string, { brainstem: HelixBrainstem; goal: string }>()
+  private participants = new Map<string, { target: CrossBranchDeliveryTarget; goal: string }>()
   private cursors = new Map<string, number>()  // per-branch read cursor
   private messageIdCounter = 0
   private sweepsSinceMediation = 0
@@ -131,10 +144,15 @@ export class CrossHelixDialectic {
 
   /**
    * Register a branch as a participant in the cross-Helix dialectic.
-   * Must be called after the Brainstem is created and started.
+   * Accepts either a CrossBranchDeliveryTarget or a HelixBrainstem (which
+   * implements the same interface via onCorpusDirective).
    */
-  registerBranch(helixId: string, brainstem: HelixBrainstem, goal: string): void {
-    this.participants.set(helixId, { brainstem, goal })
+  registerBranch(helixId: string, target: CrossBranchDeliveryTarget | HelixBrainstem, goal: string): void {
+    // HelixBrainstem satisfies CrossBranchDeliveryTarget (has onCorpusDirective)
+    const deliveryTarget: CrossBranchDeliveryTarget = 'onCorpusDirective' in target
+      ? (target as CrossBranchDeliveryTarget)
+      : target
+    this.participants.set(helixId, { target: deliveryTarget, goal })
     this.cursors.set(helixId, 0)
     this.logger.info('Branch registered for cross-Helix dialectic', {
       helixId,
@@ -367,9 +385,9 @@ export class CrossHelixDialectic {
    * Injected as Brainstem guidance so it reaches the posture runners.
    */
   private deliverToOtherBranches(senderHelixId: string, msg: CrossHelixMessage): void {
-    for (const [helixId, { brainstem }] of this.participants) {
+    for (const [helixId, { target }] of this.participants) {
       if (helixId === senderHelixId) continue
-      this.injectIntoBrainstem(brainstem, helixId, msg)
+      this.injectIntoBranch(target, helixId, msg)
     }
   }
 
@@ -379,15 +397,15 @@ export class CrossHelixDialectic {
   private deliverToBranch(helixId: string, msg: CrossHelixMessage): void {
     const participant = this.participants.get(helixId)
     if (!participant) return
-    this.injectIntoBrainstem(participant.brainstem, helixId, msg)
+    this.injectIntoBranch(participant.target, helixId, msg)
   }
 
   /**
-   * Inject a cross-branch message into a Brainstem's guidance queue.
+   * Inject a cross-branch message into a branch's delivery target.
    * The message is formatted to be recognizable as a cross-branch dialectic message.
    */
-  private injectIntoBrainstem(
-    brainstem: HelixBrainstem,
+  private injectIntoBranch(
+    target: CrossBranchDeliveryTarget,
     targetHelixId: string,
     msg: CrossHelixMessage,
   ): void {
@@ -406,7 +424,7 @@ export class CrossHelixDialectic {
       (msg.referencesId ? `\n(Re: message ${msg.referencesId})` : '')
 
     // Use onCorpusDirective to inject — this bypasses cooldown for high urgency
-    brainstem.onCorpusDirective({
+    target.onCorpusDirective({
       targetHelixId,
       type: 'guidance',
       urgency,

@@ -1,7 +1,7 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from '../helix/helix-synapse.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
-import { ObserverMemoryBridge, extractConceptHints } from './observer-memory-bridge.js'
+import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
 
@@ -184,7 +184,7 @@ export class CorpusObserverLayer {
       constellationId: this.constellationId,
       subjectHelixIds: parsed.targetHelixes.length > 0 ? parsed.targetHelixes : helixIds,
       concepts: extractConceptHints(parsed.content),
-      confidence: parsed.priority === 'urgent' ? 0.85 : parsed.priority === 'ambient' ? 0.45 : 0.65,
+      confidence: priorityToConfidence(parsed.priority),
       tags: ['corpus-observer', `constellation:${this.constellationId}`],
     })
 

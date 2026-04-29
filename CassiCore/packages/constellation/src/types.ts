@@ -498,6 +498,17 @@ export interface ConstellationResult {
 
   /** Error message if the Constellation failed. */
   error?: string
+
+  /**
+   * Meaningful outcome classification — unlike the pipeline's "completed" status
+   * which fires unconditionally when all branches settle.
+   * WHY: Added because `status: "completed"` was meaningless — it returned even
+   * when all branches degraded, the blackboard was empty, and 0 deliverables
+   * were produced. (c-36 postmortem BUG E)
+   */
+  outcome?: 'success' | 'degraded' | 'failed'
+  /** Human-readable explanation of the outcome classification. */
+  outcomeReason?: string
 }
 
 
