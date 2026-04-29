@@ -156,38 +156,9 @@ export function makeSystemHealthHandler(deps: SystemHealthDeps): ToolHandler {
       }
     }
 
-    // Teams
-    if (params.includeTeams !== false && daemon) {
-      try {
-        const tt = daemon.intelligence?.triadTeam
-        if (tt) {
-          const teams = tt.listTeams()
-          const recent = teams
-            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .slice(0, 10)
-            .map((t: any) => ({
-              id: t.id,
-              name: t.name || 'Unnamed',
-              status: t.status,
-              cellCount: t.cellCount,
-              tokensUsed: t.tokensUsed,
-            }))
-
-          response.teams = {
-            total: teams.length,
-            active: teams.filter((t: any) => t.status === 'running' || t.status === 'paused' || t.status === 'planning').length,
-            running: teams.filter((t: any) => t.status === 'running').length,
-            completed: teams.filter((t: any) => t.status === 'completed').length,
-            failed: teams.filter((t: any) => t.status === 'failed').length,
-            recent,
-          }
-        } else {
-          response.teams = { total: 0, active: 0, running: 0, completed: 0, failed: 0, recent: [] }
-        }
-      } catch (err) {
-        response.teams = { error: 'Failed to get team status' }
-      }
-    }
+    // REMOVED: Teams section — deprecated TriadTeam orchestrator deleted
+    // Constellation/Helix orchestration status is available via their own APIs
+    response.teams = { total: 0, active: 0, running: 0, completed: 0, failed: 0, recent: [], note: 'TriadTeam deprecated - use constellation status' }
 
     // Memory
     if (params.includeMemory !== false) {

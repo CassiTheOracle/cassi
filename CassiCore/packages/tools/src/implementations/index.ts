@@ -45,10 +45,6 @@ import { runBackgroundDefinition, makeRunBackgroundHandler } from './run-backgro
 import { checkJobDefinition, makeCheckJobHandler } from './check-job.js'
 import { waitJobDefinition, makeWaitJobHandler } from './wait-job.js'
 import {
-  teamDashboardDefinition, makeTeamDashboardHandler,
-  type TeamDashboardDeps,
-} from './team-dashboard.js'
-import {
   systemHealthDefinition, makeSystemHealthHandler,
   type SystemHealthDeps,
 } from './system-health.js'
@@ -314,23 +310,8 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     // Event bus not available, skip registration
   }
 
-  // Composite Tools - Aggregated views across multiple data sources
-  // These tools aggregate data from multiple sources into unified responses
-  
-  // Get daemon reference for composite tools
-  const daemon = (deps as any).daemon
-
-  // team_dashboard: Unified team status, goal tree, budget, and events
-  const triadTeam = daemon?.intelligence?.triadTeam
-  if (triadTeam || deps.sessionManager) {
-    const teamDashboardDeps: TeamDashboardDeps = {
-      getTriadTeam: () => triadTeam,
-      getEventBus: () => deps.bus,
-    }
-    registry.register(teamDashboardDefinition, makeTeamDashboardHandler(teamDashboardDeps))
-  }
-
-  // system_health: Comprehensive system status with providers, sessions, teams, and memory
+  // REMOVED: team_dashboard tool — deprecated TriadTeam orchestrator deleted
+  // system_health: Comprehensive system status with providers, sessions, and memory
   const systemHealthDeps: SystemHealthDeps = {
     daemon: daemon,
     sessionManager: deps.sessionManager,
