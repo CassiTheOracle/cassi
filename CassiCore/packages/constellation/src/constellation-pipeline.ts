@@ -372,9 +372,14 @@ export async function runConstellationPipeline(
   // WHY: Resolve brainstem LLM — falls back to corpusLLM when not explicitly provided
   const brainstemLLM = brainstemLLMOpt ?? corpusLLM
 
-  // Used to inject relevant past-run memories into each new Helix branch.
-  const memoryInjectionService = opts.memory
-    ? new MemoryInjectionService(opts.memory, log.child('memory-injection'))
+  // WHY: Prefer MnemicField (associative retrieval via kindling) over the
+  // deprecated IMemory (stop-word FTS5) for branch memory injection.
+  // (c-36 postmortem BUG L redesign)
+  const memoryInjectionService = (opts.mnemicField || opts.memory)
+    ? new MemoryInjectionService(
+        (opts.mnemicField ?? opts.memory!) as any,
+        log.child('memory-injection'),
+      )
     : undefined
   log.info('Constellation pipeline starting', {
     constellationId,
@@ -865,7 +870,7 @@ export async function runConstellationPipeline(
     // Memory injection runs in all modes — it's the only context meditation agents receive
     if (memoryInjectionService) {
       try {
-        const memoryContext = await memoryInjectionService.injectForBranchWithFallback(helixId, helixGoal, parentId)
+        const memoryContext = await memoryInjectionService.injectForBranch(helixId, helixGoal, parentId)
         if (memoryContext && memoryContext.memories.length > 0) {
           const memoryBlock = memoryInjectionService.formatMemoriesForContext(memoryContext)
           enrichedContext = helixContext ? `${helixContext}\n${memoryBlock}` : memoryBlock
@@ -1895,7 +1900,21 @@ export async function runConstellationPipeline(
     // (user action or constellation timeout) should force-kill branches.
     const softStepBudget = opts.maxTotalSteps ?? 200
     let softBudgetReached = false
-    let tripwireEscalated = false
+    // WHY: Stagnation tracking — replaces the blunt token-count tripwire.
+    // Tracks per-branch momentum (files explored, files written, tool diversity)
+    // across checkpoints. Only escalates when branches are truly stuck, not just
+    // slow. Never auto-cancels — the Corpus decides. (c-36 postmortem BUG J redesign)
+    let stagnationState: {
+      prevFilesExplored: Map<string, Set<string>>
+      prevFilesWritten: Map<string, Set<string>>
+      consecutiveStagnantChecks: number
+      lastEscalationLevel: number
+    } = {
+      prevFilesExplored: new Map(),
+      prevFilesWritten: new Map(),
+      consecutiveStagnantChecks: 0,
+      lastEscalationLevel: 0,
+    }
     if (constellationStore && !opts.meditationMode) {
       checkpointHandle = setInterval(() => {
         try {
@@ -1934,33 +1953,101 @@ export async function runConstellationPipeline(
             log.warn('Corpus notified: prioritize completion over new spawns')
           }
 
-          // WHY: Executive tripwire — detect runs burning tokens with zero output.
-          // Prevents another 3M-token / zero-deliverable run like c-36.
-          // The escalation threshold warns the Corpus; the hard threshold terminates.
-          const tokensUsed = nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0)
-          const hasAnyFileOutput = corpusTree.getSnapshot().branches.some(
-            b => b.digest?.filesActive && b.digest.filesActive.length > 0
+          // WHY: Stagnation sentinel — graduated response to branches burning tokens
+          // without making measurable progress. Replaces the blunt token-count tripwire
+          // that would hard-cancel work mid-flight. (c-36 postmortem BUG J redesign)
+          //
+          // A branch has momentum if any of: new files explored, new files written,
+          // or new tool diversity since last checkpoint. A branch is stagnant only
+          // when ALL three are flat. The response escalates gradually:
+          //   Level 1: Log warning (first stagnant checkpoint)
+          //   Level 2: Escalate to Corpus (second consecutive)
+          //   Level 3: Inject "produce_output" directive (third + >500K tokens)
+          //   Level 4: Inject "conclude" directive (fourth+ + >1M tokens)
+          // Never auto-cancels — the Corpus decides whether to kill branches.
+          const snapshot = corpusTree.getSnapshot()
+          const activeBranches = nodeArr.filter(n =>
+            n.status !== 'completed' && n.status !== 'failed' && n.status !== 'degraded'
           )
-          if (!hasAnyFileOutput && tokensUsed > 0) {
-            const TRIPWIRE_ESCALATE_TOKENS = 500_000   // 500K tokens → warn Corpus
-            const TRIPWIER_HARD_TOKENS = 2_000_000     // 2M tokens → terminate
-            const elapsedMs = Date.now() - startTime
+          if (activeBranches.length > 0) {
+            let anyBranchHasMomentum = false
+            for (const branch of activeBranches) {
+              const branchSnap = snapshot.branches.find(b => b.helixId === branch.helixId)
+              const digest = branchSnap?.digest
+              const currentFilesExplored = new Set<string>(digest?.filesActive ?? [])
+              const currentFilesWritten = new Set<string>(
+                (digest?.recentOutputs ?? []).filter((o: string) => /wrote|edited|created|modified/i.test(o))
+              )
+              const prevExplored = stagnationState.prevFilesExplored.get(branch.helixId)
+              const prevWritten = stagnationState.prevFilesWritten.get(branch.helixId)
 
-            if (tokensUsed >= TRIPWIER_HARD_TOKENS && elapsedMs > 180_000) {
-              log.error('Executive tripwire: hard termination — excessive tokens with zero file output', {
+              // Check for new files explored or written since last checkpoint
+              const newExplored = prevExplored
+                ? [...currentFilesExplored].some(f => !prevExplored.has(f))
+                : currentFilesExplored.size > 0
+              const newWritten = prevWritten
+                ? [...currentFilesWritten].some(f => !prevWritten.has(f))
+                : currentFilesWritten.size > 0
+
+              if (newExplored || newWritten) {
+                anyBranchHasMomentum = true
+              }
+
+              // Update tracked state
+              stagnationState.prevFilesExplored.set(branch.helixId, currentFilesExplored)
+              stagnationState.prevFilesWritten.set(branch.helixId, currentFilesWritten)
+            }
+
+            if (!anyBranchHasMomentum) {
+              stagnationState.consecutiveStagnantChecks++
+            } else {
+              stagnationState.consecutiveStagnantChecks = 0
+            }
+
+            const tokensUsed = nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0)
+            const elapsedMs = Date.now() - startTime
+            const level = stagnationState.consecutiveStagnantChecks
+
+            if (level === 1) {
+              log.warn('Stagnation sentinel: all branches flat — monitoring', {
+                activeBranches: activeBranches.length,
                 tokensUsed,
                 elapsedMs,
-                branches: nodeArr.length,
               })
-              externalCancel()
-            } else if (tokensUsed >= TRIPWIRE_ESCALATE_TOKENS && !tripwireEscalated) {
-              tripwireEscalated = true
-              log.warn('Executive tripwire: escalating to Corpus — high token usage with zero file output', {
+            } else if (level === 2 && stagnationState.lastEscalationLevel < 2) {
+              stagnationState.lastEscalationLevel = 2
+              log.warn('Stagnation sentinel: escalating to Corpus — 2 consecutive flat checkpoints', {
                 tokensUsed,
                 elapsedMs,
-                branches: nodeArr.length,
+                activeBranches: activeBranches.length,
               })
-              corpus.receiveEscalation('tripwire:zero-output', {
+              corpus.receiveEscalation('stagnation:all-branches-flat', {
+                consecutiveChecks: level,
+                tokensUsed,
+                durationMs: elapsedMs,
+                activeBranches: activeBranches.map(b => b.helixId),
+              })
+            } else if (level >= 3 && tokensUsed > 500_000 && stagnationState.lastEscalationLevel < 3) {
+              stagnationState.lastEscalationLevel = 3
+              log.warn('Stagnation sentinel: injecting produce_output directive', {
+                tokensUsed,
+                elapsedMs,
+                consecutiveChecks: level,
+              })
+              corpus.receiveEscalation('stagnation:produce-output', {
+                consecutiveChecks: level,
+                tokensUsed,
+                durationMs: elapsedMs,
+              })
+            } else if (level >= 4 && tokensUsed > 1_000_000 && stagnationState.lastEscalationLevel < 4) {
+              stagnationState.lastEscalationLevel = 4
+              log.warn('Stagnation sentinel: injecting conclude directive', {
+                tokensUsed,
+                elapsedMs,
+                consecutiveChecks: level,
+              })
+              corpus.receiveEscalation('stagnation:conclude', {
+                consecutiveChecks: level,
                 tokensUsed,
                 durationMs: elapsedMs,
               })

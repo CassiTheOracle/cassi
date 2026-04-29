@@ -1,21 +1,18 @@
 /**
  * Memory Injection Service — Branch-level Memory Continuity for Helix Startup
  *
- * This service provides memory injection capabilities for the Constellation
- * framework. When a new Helix branch is registered, it searches CassiCore
- * memory for relevant context and injects it into the branch, providing
- * continuity instead of cold starts.
+ * Uses the MnemicField for associative retrieval: when a new Helix branch is
+ * spawned, the goal text is used as a kindling query. The MnemicField generates
+ * an embedding, performs spreading activation across the engram graph, and
+ * optionally reranks candidates via LLM. This replaces the deprecated stop-word
+ * heuristic that produced 0% relevant results. (c-36 postmortem BUG L redesign)
  *
- * The service:
- *   1. Extracts search keywords from the branch goal
- *   2. Searches CassiCore memory for relevant entries
- *   3. Filters and ranks results by relevance
- *   4. Formats memories for injection into the Helix context
- *
- * Named after the personified system "Cassi" — bringing memory to life.
+ * Fallback: if MnemicField is unavailable, falls back to the deprecated IMemory
+ * interface with the raw goal as the search query.
  */
 
-import type { IMemory, SearchResult, MemoryEntry } from '../../../types/intelligence.js'
+import type { IMemory } from '../../../types/intelligence.js'
+import type { MnemicField, MnemicRetrievalHit } from '../mnemic-field/index.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { BranchMemoryContext, InjectedMemory } from './corpus-types.js'
 
@@ -25,53 +22,49 @@ import type { BranchMemoryContext, InjectedMemory } from './corpus-types.js'
 export interface MemoryInjectionConfig {
   /** Maximum memories to inject per branch. Default: 5 */
   maxMemories: number
-  /** Minimum relevance score (0-1) for injection. Default: 0.4 */
-  minRelevance: number
-  /** Maximum age of memories in days (0 = no limit). Default: 90 */
-  maxAgeDays: number
-  /** Whether to include pinned memories regardless of age. Default: true */
-  includePinned: boolean
-  /** Whether to prioritize high-importance memories. Default: true */
-  prioritizeImportance: boolean
   /** Max memory content length (chars). Default: 2000 */
   maxContentLength: number
 }
 
 export const DEFAULT_MEMORY_INJECTION_CONFIG: MemoryInjectionConfig = {
   maxMemories: 5,
-  minRelevance: 0.4,
-  maxAgeDays: 90,
-  includePinned: true,
-  prioritizeImportance: true,
   maxContentLength: 2000,
 }
 
 /**
- * Meditation memory injection — broader associations, no age limit.
- * Meditation agents receive whatever the memory system naturally surfaces
- * with minimal filtering. Old memories are as interesting as new ones.
+ * Meditation memory injection — broader associations.
  */
 export const MEDITATION_MEMORY_INJECTION_CONFIG: Partial<MemoryInjectionConfig> = {
   maxMemories: 10,
-  minRelevance: 0.15,
-  maxAgeDays: 0,
-  includePinned: true,
-  prioritizeImportance: false,
   maxContentLength: 3000,
 }
 
 /**
  * Memory Injection Service — Provides branch-level memory continuity.
+ *
+ * Primary path: MnemicField.retrieve() — associative retrieval via kindling.
+ * Fallback path: IMemory.search() with raw goal text (deprecated).
  */
 export class MemoryInjectionService {
-  private memory: IMemory
+  private mnemicField: MnemicField | undefined
+  private legacyMemory: IMemory | undefined
   private config: MemoryInjectionConfig
   private logger: ILogger
 
-  constructor(memory: IMemory, logger: ILogger, config?: Partial<MemoryInjectionConfig>) {
-    this.memory = memory
+  constructor(
+    fieldOrMemory: MnemicField | IMemory,
+    logger: ILogger,
+    config?: Partial<MemoryInjectionConfig>,
+  ) {
     this.config = { ...DEFAULT_MEMORY_INJECTION_CONFIG, ...config }
     this.logger = logger.child('MemoryInjection')
+
+    // Discriminate: MnemicField has a `retrieve` method; IMemory has `store` + `search`.
+    if ('retrieve' in fieldOrMemory && typeof fieldOrMemory.retrieve === 'function') {
+      this.mnemicField = fieldOrMemory as MnemicField
+    } else {
+      this.legacyMemory = fieldOrMemory as IMemory
+    }
   }
 
   /**
@@ -83,60 +76,70 @@ export class MemoryInjectionService {
     goal: string,
     parentId?: string
   ): Promise<BranchMemoryContext | undefined> {
+    if (this.mnemicField) {
+      return this.injectViaMnemicField(helixId, goal, parentId)
+    }
+    if (this.legacyMemory) {
+      return this.injectViaLegacyMemory(helixId, goal, parentId)
+    }
+    return undefined
+  }
+
+  /**
+   * WHY: Primary path — associative retrieval via MnemicField kindling.
+   * The goal text is used as a kindling query. The MnemicField generates an
+   * embedding, performs spreading activation across the engram graph, and
+   * optionally reranks candidates via the LLM reranker. This is topology-aware,
+   * embedding-based retrieval that naturally finds related concepts even when
+   * keyword overlap is zero. (c-36 postmortem BUG L redesign)
+   */
+  private async injectViaMnemicField(
+    helixId: string,
+    goal: string,
+    parentId?: string,
+  ): Promise<BranchMemoryContext | undefined> {
     const startTime = Date.now()
 
-    // Extract search query from goal
-    const searchQuery = this.extractSearchQuery(goal)
-    this.logger.info('Injecting memories for branch', {
+    this.logger.info('Injecting memories for branch via MnemicField', {
       helixId,
-      searchQuery,
+      goalPreview: goal.slice(0, 100),
       parentId,
     })
 
     try {
-      // Search memory
-      const searchResults = await this.memory.search(searchQuery, {
-        limit: this.config.maxMemories * 2, // Fetch extra for filtering
+      const hits = await this.mnemicField!.retrieve(goal, {
+        limit: this.config.maxMemories,
       })
 
-      if (searchResults.length === 0) {
-        this.logger.info('No memories found for branch', { helixId, searchQuery })
+      if (hits.length === 0) {
+        this.logger.info('No engrams kindled for branch', { helixId })
         return undefined
       }
 
-      // Filter and rank memories
-      const filteredMemories = this.filterAndRankMemories(searchResults)
-
-      if (filteredMemories.length === 0) {
-        this.logger.info('No memories passed filter for branch', { helixId, searchQuery })
-        return undefined
-      }
-
-      // Convert to injected memory format
-      const injectedMemories: InjectedMemory[] = filteredMemories
+      const injectedMemories: InjectedMemory[] = hits
         .slice(0, this.config.maxMemories)
-        .map(result => this.convertToInjectedMemory(result))
+        .map(hit => this.convertHitToInjectedMemory(hit))
 
       const context: BranchMemoryContext = {
         memories: injectedMemories,
         injectedAt: Date.now(),
-        searchQuery,
-        totalAvailable: searchResults.length,
+        searchQuery: goal.slice(0, 200),
+        totalAvailable: hits.length,
       }
 
-      this.logger.info('Memory injection complete', {
+      this.logger.info('MnemicField injection complete', {
         helixId,
         injectedCount: injectedMemories.length,
-        totalAvailable: searchResults.length,
+        totalAvailable: hits.length,
         durationMs: Date.now() - startTime,
+        topScore: hits[0]?.score?.toFixed(3) ?? 'n/a',
+        topCharge: hits[0]?.charge?.toFixed(3) ?? 'n/a',
       })
 
       return context
-
     } catch (error) {
-      this.logger.error('Memory injection failed', {
+      this.logger.error('MnemicField injection failed', {
         helixId,
-        searchQuery,
         error: String(error),
       })
       return undefined
@@ -144,174 +147,80 @@ export class MemoryInjectionService {
   }
 
   /**
-   * Extract search keywords from a goal string.
-   * Removes common stop words and focuses on technical terms.
+   * Fallback path — deprecated IMemory FTS5 search.
+   * Uses the raw goal text as the query (no stop-word stripping).
    */
-  private extractSearchQuery(goal: string): string {
-    // Common stop words to remove
-    const stopWords = new Set([
-      'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
-      'of', 'with', 'by', 'from', 'as', 'is', 'are', 'was', 'were', 'be',
-      'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
-      'would', 'could', 'should', 'may', 'might', 'must', 'can', 'this',
-      'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
-      'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'her', 'its',
-      'our', 'their', 'what', 'which', 'who', 'when', 'where', 'why', 'how',
-      'all', 'each', 'every', 'both', 'few', 'more', 'most', 'other', 'some',
-      'such', 'no', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very',
-      'just', 'now', 'then', 'here', 'there', 'up', 'down', 'out', 'off',
-      'over', 'under', 'again', 'further', 'once', 'during', 'before',
-      'after', 'above', 'below', 'between', 'through', 'into', 'onto',
-      'upon', 'within', 'without', 'across', 'around', 'behind', 'beyond',
-      'except', 'inside', 'outside', 'until', 'via', 'per', 'among', 'toward',
-      'towards', 'across', 'along', 'amid', 'amongst', 'beside', 'besides',
-      'concerning', 'considering', 'despite', 'following', 'like', 'minus',
-      'near', 'past', 'regarding', 'round', 'save', 'since', 'till', 'upon',
-      'versus', 'worth',
-    ])
-
-    // Extract words, keeping technical terms and file paths
-    const words = goal
-      .toLowerCase()
-      .replace(/[\/\\]([\w\-\.\/\\]+)/g, ' $1 ') // Preserve file paths
-      .replace(/[^\w\s\/\._\-]/g, ' ') // Remove punctuation except path chars
-      .split(/\s+/)
-      .filter(word => word.length > 2) // Skip short words
-      .filter(word => !stopWords.has(word)) // Skip stop words
-      .filter((word, index, arr) => arr.indexOf(word) === index) // Deduplicate
-
-    // Join top keywords (limit to avoid overly specific queries)
-    const query = words.slice(0, 10).join(' ')
-
-    // If we have very few keywords, use the original goal
-    return query.length > 10 ? query : goal.slice(0, 200)
-  }
-
-  /**
-   * WHY: Added secondary search with the raw goal text when the keyword
-   * search returns no relevant results. The stop-word extraction can strip
-   * important compound technical terms (e.g., "claustrum-vindex" becomes
-   * two separate tokens that don't match). (c-36 postmortem BUG L)
-   */
-  async injectForBranchWithFallback(
+  private async injectViaLegacyMemory(
     helixId: string,
     goal: string,
-    parentId?: string
+    parentId?: string,
   ): Promise<BranchMemoryContext | undefined> {
-    // Try primary search first
-    const primary = await this.injectForBranch(helixId, goal, parentId)
-    if (primary && primary.memories.length > 0) return primary
+    const startTime = Date.now()
 
-    // Fallback: try the raw goal text as the search query
-    const fallbackQuery = goal.slice(0, 300)
-    this.logger.info('Primary memory search returned nothing, trying raw goal fallback', {
-      helixId,
-      fallbackQuery: fallbackQuery.slice(0, 100),
-    })
     try {
-      const rawResults = await this.memory.search(fallbackQuery, {
+      const searchResults = await this.legacyMemory!.search(goal.slice(0, 300), {
         limit: this.config.maxMemories * 2,
       })
-      if (rawResults.length === 0) return undefined
-      const filtered = rawResults
-        .filter(r => r.score >= (this.config.minRelevance * 0.6))  // Lower threshold for fallback
-        .slice(0, this.config.maxMemories)
-        .map(r => this.convertToInjectedMemory(r))
-      if (filtered.length === 0) return undefined
-      return {
-        memories: filtered,
-        injectedAt: Date.now(),
-        searchQuery: `[fallback] ${fallbackQuery}`,
-        totalAvailable: rawResults.length,
+
+      if (searchResults.length === 0) {
+        this.logger.info('No memories found for branch (legacy)', { helixId })
+        return undefined
       }
-    } catch {
+
+      const injectedMemories: InjectedMemory[] = searchResults
+        .filter(r => r.score >= 0.2)
+        .slice(0, this.config.maxMemories)
+        .map(r => ({
+          content: r.entry.content.length > this.config.maxContentLength
+            ? r.entry.content.slice(0, this.config.maxContentLength) + '...'
+            : r.entry.content,
+          type: r.entry.type,
+          relevance: r.score,
+          createdAt: r.entry.createdAt.getTime(),
+          tags: r.entry.metadata?.tags as string[] | undefined,
+          importance: r.entry.importance,
+          pinned: r.entry.pinned,
+        }))
+
+      if (injectedMemories.length === 0) return undefined
+
+      this.logger.info('Legacy memory injection complete', {
+        helixId,
+        injectedCount: injectedMemories.length,
+        durationMs: Date.now() - startTime,
+      })
+
+      return {
+        memories: injectedMemories,
+        injectedAt: Date.now(),
+        searchQuery: goal.slice(0, 200),
+        totalAvailable: searchResults.length,
+      }
+    } catch (error) {
+      this.logger.error('Legacy memory injection failed', {
+        helixId,
+        error: String(error),
+      })
       return undefined
     }
   }
 
   /**
-   * Filter and rank search results by relevance, importance, and recency.
+   * Convert a MnemicRetrievalHit to an InjectedMemory.
    */
-  private filterAndRankMemories(searchResults: SearchResult[]): SearchResult[] {
-    const now = Date.now()
-    const maxAgeMs = this.config.maxAgeDays * 24 * 60 * 60 * 1000
-
-    return searchResults
-      .filter(result => {
-        const entry = result.entry
-
-        // Check minimum relevance
-        if (result.score < this.config.minRelevance) {
-          return false
-        }
-
-        // Check age (unless pinned and includePinned is true)
-        const ageMs = now - entry.createdAt.getTime()
-        const isPinned = entry.pinned ?? false
-        if (this.config.maxAgeDays > 0 && ageMs > maxAgeMs) {
-          if (!isPinned || !this.config.includePinned) {
-            return false
-          }
-        }
-
-        return true
-      })
-      .sort((a, b) => {
-        // Composite score: relevance * importance * recency_boost
-        const scoreA = this.computeCompositeScore(a, now)
-        const scoreB = this.computeCompositeScore(b, now)
-        return scoreB - scoreA // Descending
-      })
-  }
-
-  /**
-   * Compute a composite score for ranking memories.
-   */
-  private computeCompositeScore(result: SearchResult, now: number): number {
-    const entry = result.entry
-
-    // Base relevance from search
-    let score = result.score
-
-    // Importance boost (if available and prioritized)
-    if (this.config.prioritizeImportance && entry.importance !== undefined) {
-      score *= (0.5 + entry.importance / 20) // Scale 0-10 to 0.5-1.0 multiplier
-    }
-
-    // Recency boost (exponential decay)
-    const ageMs = now - entry.createdAt.getTime()
-    const ageDays = ageMs / (24 * 60 * 60 * 1000)
-    const recencyBoost = Math.exp(-ageDays / 30) // Half-life of ~30 days
-    score *= (0.5 + 0.5 * recencyBoost) // Scale 0.5-1.0
-
-    // Pinned bonus
-    if (entry.pinned) {
-      score *= 1.2
-    }
-
-    return score
-  }
-
-  /**
-   * Convert a SearchResult to an InjectedMemory.
-   */
-  private convertToInjectedMemory(result: SearchResult): InjectedMemory {
-    const entry = result.entry
-
-    // Truncate content if needed
-    let content = entry.content
-    if (content.length > this.config.maxContentLength) {
-      content = content.slice(0, this.config.maxContentLength) + '...'
-    }
-
+  private convertHitToInjectedMemory(hit: MnemicRetrievalHit): InjectedMemory {
+    const content = hit.filamentExcerpt ?? hit.content
     return {
-      content,
-      type: entry.type,
-      relevance: result.score,
-      createdAt: entry.createdAt.getTime(),
-      tags: entry.metadata?.tags as string[] | undefined,
-      importance: entry.importance,
-      pinned: entry.pinned,
+      content: content.length > this.config.maxContentLength
+        ? content.slice(0, this.config.maxContentLength) + '...'
+        : content,
+      // WHY: Use kindling charge as relevance — it reflects how strongly the
+      // engram activated in response to the goal's embedding. The LLM reranker
+      // score (if enabled) is already folded into the final ranking order.
+      relevance: Math.min(1, hit.charge + hit.potentiation * 0.1),
+      type: hit.nodeType ?? 'fact',
+      createdAt: new Date(hit.provenance).getTime() || Date.now(),
+      tags: hit.tags,
     }
   }
 
@@ -360,9 +269,9 @@ export class MemoryInjectionService {
  * Create a memory injection service instance.
  */
 export function createMemoryInjectionService(
-  memory: IMemory,
+  fieldOrMemory: MnemicField | IMemory,
   logger: ILogger,
   config?: Partial<MemoryInjectionConfig>
 ): MemoryInjectionService {
-  return new MemoryInjectionService(memory, logger, config)
+  return new MemoryInjectionService(fieldOrMemory, logger, config)
 }

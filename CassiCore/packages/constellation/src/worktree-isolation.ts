@@ -19,7 +19,7 @@
 
 import { execSync } from 'node:child_process'
 
-import { WorktreeManager } from '../triad-team/worktree-manager.js'
+import { WorktreeManager } from './worktree-manager.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
 
