@@ -19,6 +19,7 @@ import type { PortalBridge } from '../memory-bridge/portal-bridge.js'
 import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
 import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
 import { Claustrum, ObserverInsightCollector } from './claustrum.js'
+import type { CycleIdAware } from './larql-provider.js'
 import { StateProjector } from './state-projector.js'
 import type {
   MentalState,
@@ -159,7 +160,7 @@ export class Aurora {
   private applyCycleId(cycleId: string | null): void {
     for (const provider of [this.modelProvider, this.knowledgeProvider]) {
       if (!provider) continue
-      const setter = (provider as { setCycleId?: (id: string | null) => void }).setCycleId
+      const setter = (provider as unknown as CycleIdAware).setCycleId
       if (typeof setter === 'function') {
         try {
           setter.call(provider, cycleId)
@@ -227,15 +228,15 @@ export class Aurora {
     // gate-KNN hits to this cycle.
     let graph: UnifiedGraph
     try {
-      graph = this.claustrum.buildFocusedGraph(
+      graph = this.claustrum.buildFocusedGraph({
         foci,
-        this.cortex,
-        this.modelProvider,
-        this.knowledgeProvider,
-        this.portalBridge,
+        cortex: this.cortex,
+        modelProvider: this.modelProvider,
+        knowledgeProvider: this.knowledgeProvider,
+        portalBridge: this.portalBridge,
         recentDiscoveries,
-        this.observerCollector,
-      )
+        observerCollector: this.observerCollector,
+      })
     } finally {
       this.applyCycleId(null)
     }

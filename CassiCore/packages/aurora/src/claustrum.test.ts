@@ -89,12 +89,11 @@ describe('Claustrum.buildFocusedGraph + observer source', () => {
       confidence: 0.7,
     })
 
-    const graph = claustrum.buildFocusedGraph(
-      ['anything'],
-      (mnemic as any).cortex,
-      null, null, null, [],
-      collector,
-    )
+    const graph = claustrum.buildFocusedGraph({
+      foci: ['anything'],
+      cortex: (mnemic as any).cortex,
+      observerCollector: collector,
+    })
 
     expect(graph.sourceBreakdown.observer).toBe(1)
     const node = graph.nodes.get('observer:obs_1')
@@ -125,12 +124,11 @@ describe('Claustrum.buildFocusedGraph + observer source', () => {
       confidence: 0.8,
     })
 
-    const graph = claustrum.buildFocusedGraph(
-      ['authentication'],
-      (mnemic as any).cortex,
-      null, null, null, [],
-      collector,
-    )
+    const graph = claustrum.buildFocusedGraph({
+      foci: ['authentication'],
+      cortex: (mnemic as any).cortex,
+      observerCollector: collector,
+    })
 
     const observerNode = graph.nodes.get('observer:obs_auth')
     expect(observerNode).toBeDefined()
@@ -154,12 +152,11 @@ describe('Claustrum.buildFocusedGraph + observer source', () => {
       concepts: ['xenobiology'], // nothing matches
     })
 
-    const graph = claustrum.buildFocusedGraph(
-      ['unrelated'],
-      (mnemic as any).cortex,
-      null, null, null, [],
-      collector,
-    )
+    const graph = claustrum.buildFocusedGraph({
+      foci: ['unrelated'],
+      cortex: (mnemic as any).cortex,
+      observerCollector: collector,
+    })
 
     const node = graph.nodes.get('observer:obs_lonely')
     expect(node).toBeDefined()
@@ -168,24 +165,21 @@ describe('Claustrum.buildFocusedGraph + observer source', () => {
 
   it('omits the observer step entirely when no collector is provided (back-compat)', () => {
     const claustrum = new Claustrum(mockLogger())
-    const graph = claustrum.buildFocusedGraph(
-      ['anything'],
-      (mnemic as any).cortex,
-      null, null, null, [],
-      // no collector
-    )
+    const graph = claustrum.buildFocusedGraph({
+      foci: ['anything'],
+      cortex: (mnemic as any).cortex,
+    })
     expect(graph.sourceBreakdown.observer).toBe(0)
   })
 
   it('collector-empty short-circuits the observer step', () => {
     const claustrum = new Claustrum(mockLogger())
     const empty = new ObserverInsightCollector()
-    const graph = claustrum.buildFocusedGraph(
-      ['anything'],
-      (mnemic as any).cortex,
-      null, null, null, [],
-      empty,
-    )
+    const graph = claustrum.buildFocusedGraph({
+      foci: ['anything'],
+      cortex: (mnemic as any).cortex,
+      observerCollector: empty,
+    })
     expect(graph.sourceBreakdown.observer).toBe(0)
   })
 })

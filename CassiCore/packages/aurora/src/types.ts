@@ -73,13 +73,7 @@ export interface UnifiedGraph {
   reverseEdges: Map<string, CognitiveEdge[]>
 
   /** How many nodes came from each source. */
-  sourceBreakdown: {
-    model: number
-    memory: number
-    knowledge: number
-    observer: number
-    both: number
-  }
+  sourceBreakdown: Record<CognitiveNodeSource, number>
 
   /** Total edge count. */
   edgeCount: number

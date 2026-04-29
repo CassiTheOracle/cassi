@@ -18,6 +18,7 @@ import type {
 import type {
   CognitiveNode,
   CognitiveEdge,
+  CognitiveNodeSource,
   UnifiedGraph,
   CognitivePath,
   KnowledgeGap,
@@ -42,13 +43,17 @@ export class ObserverInsightCollector implements ClaustrumInsightSink {
   private buffer: ObserverInsight[] = []
   private byId = new Map<string, ObserverInsight>()
   private readonly maxBuffered: number
+  private _droppedCount = 0
 
   constructor(maxBuffered = 64) {
     this.maxBuffered = Math.max(8, maxBuffered)
   }
 
   ingest(insight: ObserverInsight): void {
-    if (!insight.id) return
+    if (!insight.id) {
+      this._droppedCount++
+      return
+    }
     if (this.byId.has(insight.id)) return
     this.byId.set(insight.id, insight)
     this.buffer.push(insight)
@@ -74,6 +79,25 @@ export class ObserverInsightCollector implements ClaustrumInsightSink {
   get size(): number {
     return this.buffer.length
   }
+
+  /** How many insights were silently dropped due to missing id (diagnostic). */
+  get droppedCount(): number {
+    return this._droppedCount
+  }
+}
+
+/**
+ * Options for {@link Claustrum.buildFocusedGraph}.
+ * All fields except `foci` and `cortex` are optional — null is the default.
+ */
+export interface BuildGraphOptions {
+  foci: string[]
+  cortex: Cortex
+  modelProvider?: ModelKnowledgeProvider | null
+  knowledgeProvider?: ModelKnowledgeProvider | null
+  portalBridge?: PortalBridge | null
+  recentDiscoveries?: DreamDiscovery[]
+  observerCollector?: ObserverInsightCollector | null
 }
 
 export class Claustrum {
@@ -93,15 +117,17 @@ export class Claustrum {
    * Extracts the neighborhood around what we're paying attention to
    * rather than merging entire graphs.
    */
-  buildFocusedGraph(
-    foci: string[],
-    cortex: Cortex,
-    modelProvider: ModelKnowledgeProvider | null,
-    knowledgeProvider: ModelKnowledgeProvider | null,
-    portalBridge: PortalBridge | null,
-    recentDiscoveries: DreamDiscovery[] = [],
-    observerCollector: ObserverInsightCollector | null = null,
-  ): UnifiedGraph {
+  buildFocusedGraph(opts: BuildGraphOptions): UnifiedGraph {
+    const {
+      foci,
+      cortex,
+      modelProvider = null,
+      knowledgeProvider = null,
+      portalBridge = null,
+      recentDiscoveries = [],
+      observerCollector = null,
+    } = opts
+
     const start = Date.now()
 
     const nodes = new Map<string, CognitiveNode>()
@@ -135,7 +161,7 @@ export class Claustrum {
     this.resolveOverlappingEntities(nodes)
     this.computePageRank(nodes, edges, reverseEdges)
 
-    const sourceBreakdown = { model: 0, memory: 0, knowledge: 0, observer: 0, both: 0 }
+    const sourceBreakdown: Record<CognitiveNodeSource, number> = { model: 0, memory: 0, knowledge: 0, observer: 0, both: 0 }
     for (const node of nodes.values()) {
       sourceBreakdown[node.source]++
     }

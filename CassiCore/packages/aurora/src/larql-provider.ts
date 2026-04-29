@@ -74,9 +74,18 @@ export const LARQL_PROVIDER_DEFAULTS: LarqlProviderConfig = {
 }
 
 /**
+ * Marker interface for providers that support Aurora cycle-id provenance.
+ * Aurora's `applyCycleId` uses structural typing to detect this capability
+ * without modifying the shared `ModelKnowledgeProvider` interface.
+ */
+export interface CycleIdAware {
+  setCycleId(cycleId: string | null): void
+}
+
+/**
  * LarqlKnowledgeProvider — queries model knowledge via vindex gate KNN.
  */
-export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
+export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAware {
   private config: LarqlProviderConfig
   private logger: ILogger
   private handle: VindexHandle | null = null
