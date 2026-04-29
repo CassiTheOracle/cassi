@@ -1816,6 +1816,37 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       } catch {}
     }
 
+    // HOW: Thalamus-curated injections take priority over the raw mem.search
+    // fallback below. aggregateForExternal runs the registered InjectionSources
+    // (Pineal, Cortex, Mnemic Field, ContextRepo, etc.) with per-source caps and
+    // posture-aware scoring; the inline search loop bypasses all of that.
+    // We populate sessions[sid] from Thalamus first; the search-based fallback
+    // then only fills sessions where Thalamus produced nothing (e.g. aggregator
+    // unavailable, or no source had content for that session).
+    const aggregator = daemon.intelligence?.injectionAggregator as
+      | { aggregateForExternal?: (sid: string) => Promise<Array<{ source: string; content: string; charCount?: number }>> }
+      | undefined
+    if (aggregator?.aggregateForExternal) {
+      for (const sid of allSessionIds) {
+        if (!sid.startsWith('oc:') || sessions[sid]) continue
+        try {
+          const parts = await aggregator.aggregateForExternal(sid)
+          if (Array.isArray(parts) && parts.length > 0) {
+            const items = parts
+              .filter(p => p && typeof p.content === 'string' && p.content.trim().length > 0)
+              .map(p => ({
+                source: p.source,
+                content: p.content.slice(0, 500),
+                relevance: 1,
+              }))
+            if (items.length > 0) sessions[sid] = { items }
+          }
+        } catch (err) {
+          logger.warn?.('aggregateForExternal failed in buildInjectPayload', { sid: sid.slice(-8), error: String(err) })
+        }
+      }
+    }
+
     if (mem?.search) {
       for (const sid of allSessionIds) {
         if (!sid.startsWith('oc:') || sessions[sid]) continue
