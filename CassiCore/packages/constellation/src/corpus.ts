@@ -54,7 +54,8 @@ import type {
   PendingExternalSpawnRequest,
 } from './corpus-types.js'
 import type { DecompositionTracker } from './decomposition-tracker.js'
-import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState } from './corpus-types.js'
+import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState, DEFAULT_LLM_HEALTH_CONFIG } from './corpus-types.js'
+import type { LLMHealthState, LLMHealthConfig, LLMHealthStatus } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
 import { getTemplateCapabilities, listTemplateCapabilities } from './templates.js'
 import {
@@ -109,11 +110,12 @@ export class Corpus {
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
 
-  // LLM health tracking
-  private llmHealthy = true
-  private llmFailureCount = 0
-  private static readonly LLM_FAILURE_THRESHOLD = 2 // Mark unhealthy after 2 consecutive failures
-  
+  // LLM health tracking (3-state: primary | fallback | rule_based)
+  private llmHealthState: LLMHealthState = 'primary'
+  private llmConsecFailures = 0
+  private llmNextProbeAt = 0
+  private llmRecoverySweepsLeft = 0
+
   // Adaptive cadence tracking
   private consecutiveFailures = 0
 
@@ -482,8 +484,9 @@ export class Corpus {
       parallelSplits: [...this.parallelSplits],
       contextInjections: [...this.contextInjections],
       sweepCount: this.state.sweepCount,
-      llmHealthy: this.llmHealthy,
-      llmFailureCount: this.llmFailureCount,
+      llmHealthy: this.isLLMHealthy(),
+      llmHealthState: this.llmHealthState,
+      llmConsecFailures: this.llmConsecFailures,
       durationMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
       locusSnapshot: this.locus.enabled ? this.locus.getSnapshot() : undefined,
     }
@@ -493,7 +496,28 @@ export class Corpus {
    * Check if Corpus LLM is healthy (able to make strategic decisions)
    */
   isLLMHealthy(): boolean {
-    return this.llmHealthy
+    return this.llmHealthState !== 'rule_based'
+  }
+
+  getLLMHealthStatus(): LLMHealthStatus {
+    return {
+      state: this.llmHealthState,
+      consecutiveFailures: this.llmConsecFailures,
+      nextProbeAt: this.llmNextProbeAt > 0 ? this.llmNextProbeAt : null,
+      recoverySweepsLeft: this.llmRecoverySweepsLeft,
+      hasFallback: !!this.deps.fallbackLLM,
+    }
+  }
+
+  private getEffectiveLLMHealthConfig(): LLMHealthConfig {
+    return { ...DEFAULT_LLM_HEALTH_CONFIG, ...this.config.llmHealth }
+  }
+
+  private getActiveLLM() {
+    if (this.llmHealthState === 'fallback' && this.deps.fallbackLLM) {
+      return this.deps.fallbackLLM
+    }
+    return this.deps.llm
   }
 
   /**
@@ -572,11 +596,11 @@ export class Corpus {
           await this.evaluateAllEscalations()
           await this.checkStuckBranchesForReDecomposition()
 
-          if (this.config.proactive.enableReDecomposition && this.llmHealthy) {
+          if (this.config.proactive.enableReDecomposition && this.llmHealthState !== 'rule_based') {
             await this.evaluateReDecomposition()
           }
 
-          if (this.config.proactive.enableParallelAcceleration && this.llmHealthy) {
+          if (this.config.proactive.enableParallelAcceleration && this.llmHealthState !== 'rule_based') {
             await this.evaluateParallelAcceleration()
           }
 
@@ -594,15 +618,25 @@ export class Corpus {
 
           newPatterns = this.patternDetector.detect()
 
-          if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
-            if (this.llmHealthy) {
+          // During recovery window, only run analysis for critical patterns (gradual re-engagement).
+          const hasCriticalPattern = newPatterns.some(p => p.severity === 'critical')
+          const inRecovery = this.llmRecoverySweepsLeft > 0
+          if (inRecovery) this.llmRecoverySweepsLeft--
+
+          const shouldAnalyze = newPatterns.length > 0 || this.shouldRunLLMAnalysis()
+          const analysisGated = inRecovery && !hasCriticalPattern
+
+          if (shouldAnalyze && !analysisGated) {
+            if (this.llmHealthState !== 'rule_based') {
               await this.runLLMAnalysis(newPatterns)
             } else {
               this.sendFallbackDirectives(newPatterns)
-              if (this.state.sweepCount % 3 === 0) {
-                await this.probeLLMHealth()
-              }
             }
+          }
+
+          // Probe primary LLM health on every sweep when degraded (backoff enforced inside probeLLMHealth)
+          if (this.llmHealthState !== 'primary' || this.llmRecoverySweepsLeft > 0) {
+            await this.probeLLMHealth()
           }
 
           if (newPatterns.length > 0) {
@@ -1139,42 +1173,42 @@ export class Corpus {
    * then iterates through tool calls until it calls signal_done.
    */
   private async runToolBasedAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
-    const systemPrompt = buildCorpusSystemPrompt(
-      this.deps.goal,
-      this.state,
-      this.tree,
-      newPatterns,
-      undefined,
-      this.deps.meditationMode,
-      this.deps.meditationStyle,
-    )
-
-    // Include escalation context if any
-    let userMessage = 'Analyze the current constellation state.'
-    if (this.escalationQueue.length > 0) {
-      userMessage += '\n\nESCALATION FROM BRAINSTEMS (self-organization could not resolve):\n'
-      for (const esc of this.escalationQueue) {
-        userMessage += `- ${esc.reason}\n`
-      }
-      this.escalationQueue = [] // Clear after including
-    }
-
-    const toolDefs = this.deps.meditationMode
-      ? getMeditationToolSet(this.deps.meditationStyle ?? 'passive')
-      : getCorpusToolDefinitions()
-
-    const ctx: CorpusToolContext = {
-      tree: this.tree,
-      state: this.state,
-      deps: this.deps,
-      config: this.config,
-      logger: this.logger,
-      crossHelixDialectic: this.deps.crossHelixDialectic as any,
-      sendDirective: (directive) => this.sendDirective(directive),
-      requestSpawn: (request) => this.deps.onSpawnRequest?.(request),
-    }
-
     try {
+      const systemPrompt = buildCorpusSystemPrompt(
+        this.deps.goal,
+        this.state,
+        this.tree,
+        newPatterns,
+        undefined,
+        this.deps.meditationMode,
+        this.deps.meditationStyle,
+      )
+
+      // Include escalation context if any
+      let userMessage = 'Analyze the current constellation state.'
+      if (this.escalationQueue.length > 0) {
+        userMessage += '\n\nESCALATION FROM BRAINSTEMS (self-organization could not resolve):\n'
+        for (const esc of this.escalationQueue) {
+          userMessage += `- ${esc.reason}\n`
+        }
+        this.escalationQueue = [] // Clear after including
+      }
+
+      const toolDefs = this.deps.meditationMode
+        ? getMeditationToolSet(this.deps.meditationStyle ?? 'passive')
+        : getCorpusToolDefinitions()
+
+      const ctx: CorpusToolContext = {
+        tree: this.tree,
+        state: this.state,
+        deps: this.deps,
+        config: this.config,
+        logger: this.logger,
+        crossHelixDialectic: this.deps.crossHelixDialectic as any,
+        sendDirective: (directive) => this.sendDirective(directive),
+        requestSpawn: (request) => this.deps.onSpawnRequest?.(request),
+      }
+
       // Build conversation with tool definitions
       const fullPrompt =
         `${systemPrompt}\n\n` +
@@ -1186,7 +1220,7 @@ export class Corpus {
       // For now, we use the existing LLM.complete() interface but parse tool calls
       // from the response. When the mini-Helix migration happens, this becomes
       // a proper tool-calling loop.
-      const response = await this.deps.llm.complete({
+      const response = await this.getActiveLLM().complete({
         prompt: fullPrompt,
         modelTier: this.config.modelTier,
         maxTokens: this.config.maxTokens,
@@ -1221,15 +1255,7 @@ export class Corpus {
       }
 
       this.newStepsSinceLLM = 0
-
-      // Reset failure tracking on success
-      if (!this.llmHealthy) {
-        this.logger.info('Corpus LLM recovered after previous failures', {
-          previousFailures: this.llmFailureCount,
-        })
-      }
-      this.llmHealthy = true
-      this.llmFailureCount = 0
+      this.llmConsecFailures = 0
     } catch (error) {
       this.handleLLMFailure(error)
     }
@@ -1277,7 +1303,7 @@ export class Corpus {
     const prompt = this.buildLLMPrompt(newPatterns)
 
     try {
-      const response = await this.deps.llm.complete({
+      const response = await this.getActiveLLM().complete({
         prompt,
         modelTier: this.config.modelTier,
         maxTokens: this.config.maxTokens,
@@ -1286,15 +1312,7 @@ export class Corpus {
 
       this.parseAndApplyLLMResponse(response.content)
       this.newStepsSinceLLM = 0
-
-      // Reset failure tracking on success
-      if (!this.llmHealthy) {
-        this.logger.info('Corpus LLM recovered after previous failures', {
-          previousFailures: this.llmFailureCount,
-        })
-      }
-      this.llmHealthy = true
-      this.llmFailureCount = 0
+      this.llmConsecFailures = 0
     } catch (error) {
       this.handleLLMFailure(error)
     }
@@ -1304,28 +1322,56 @@ export class Corpus {
    * Common error handling for LLM failures.
    */
   private handleLLMFailure(error: unknown): void {
-    this.llmFailureCount++
+    this.llmConsecFailures++
     const errorMsg = error instanceof Error ? error.message : String(error)
+    const cfg = this.getEffectiveLLMHealthConfig()
 
-    if (this.llmFailureCount >= Corpus.LLM_FAILURE_THRESHOLD && this.llmHealthy) {
-      // Mark unhealthy and emit critical event
-      this.llmHealthy = false
-      this.logger.error('Corpus LLM is unhealthy — constellation running without strategic oversight', {
+    this.logger.warn('Corpus LLM analysis failed', {
+      error: errorMsg,
+      consecutiveFailures: this.llmConsecFailures,
+      threshold: cfg.failureThreshold,
+      state: this.llmHealthState,
+    })
+
+    if (this.llmConsecFailures < cfg.failureThreshold) return
+
+    // Compute exponential backoff with proportional jitter (max 20% of base interval).
+    // Jitter scales with base so tests using probeBackoffBase: 0 get zero jitter.
+    const rawBackoff = Math.min(
+      cfg.probeBackoffBase * Math.pow(2, this.llmConsecFailures - cfg.failureThreshold),
+      cfg.probeBackoffMax,
+    )
+    const jitter = rawBackoff * 0.2 * Math.random()
+    this.llmNextProbeAt = Date.now() + rawBackoff + jitter
+
+    if (this.llmHealthState === 'primary' && this.deps.fallbackLLM) {
+      this.llmHealthState = 'fallback'
+      this.llmConsecFailures = 0
+      this.logger.error('Corpus LLM primary failed — escalating to fallback adapter', {
         error: errorMsg,
-        failureCount: this.llmFailureCount,
+        nextProbeAt: new Date(this.llmNextProbeAt).toISOString(),
+        sweepCount: this.state.sweepCount,
+      })
+      this.emitEvent('corpus:degraded', {
+        reason: 'llm_failure_escalated_to_fallback',
+        error: errorMsg,
+        nextProbeAt: this.llmNextProbeAt,
+      })
+    } else {
+      this.llmHealthState = 'rule_based'
+      this.logger.error('Corpus LLM is unhealthy — running without strategic oversight', {
+        error: errorMsg,
+        consecutiveFailures: this.llmConsecFailures,
+        hasFallback: !!this.deps.fallbackLLM,
+        nextProbeAt: new Date(this.llmNextProbeAt).toISOString(),
         sweepCount: this.state.sweepCount,
       })
       this.emitEvent('corpus:unhealthy', {
         reason: 'llm_failure',
         error: errorMsg,
-        failureCount: this.llmFailureCount,
+        consecutiveFailures: this.llmConsecFailures,
+        nextProbeAt: this.llmNextProbeAt,
         message: 'Corpus LLM failed repeatedly. Constellation Helix branches are running without strategic planning, intervention, or spawn decisions.',
-      })
-    } else {
-      this.logger.warn('Corpus LLM analysis failed, continuing loop', {
-        error: errorMsg,
-        failureCount: this.llmFailureCount,
-        threshold: Corpus.LLM_FAILURE_THRESHOLD,
       })
     }
   }
@@ -1336,10 +1382,20 @@ export class Corpus {
    * strategic analysis resumes. If it fails, remain unhealthy (no penalty).
    */
   private async probeLLMHealth(): Promise<void> {
-    if (this.llmHealthy) return
+    if (this.llmHealthState === 'primary' && this.llmRecoverySweepsLeft === 0) return
+
+    if (Date.now() < this.llmNextProbeAt) {
+      this.logger.debug('Corpus LLM probe skipped (backoff active)', {
+        nextProbeAt: new Date(this.llmNextProbeAt).toISOString(),
+        state: this.llmHealthState,
+      })
+      return
+    }
+
+    // Always probe the primary — the goal is to recover to primary, not to confirm the fallback works.
     try {
-      this.logger.info('Probing LLM health (recovery check)', {
-        failureCount: this.llmFailureCount,
+      this.logger.info('Probing primary LLM health (recovery check)', {
+        state: this.llmHealthState,
         sweepCount: this.state.sweepCount,
       })
       const result = await this.deps.llm.complete({
@@ -1348,23 +1404,36 @@ export class Corpus {
         maxTokens: 10,
         timeoutMs: 15_000,
       })
-      // Success — mark healthy
-      this.llmHealthy = true
-      this.llmFailureCount = 0
-      this.logger.info('Corpus LLM recovered (health probe succeeded)', {
+
+      const cfg = this.getEffectiveLLMHealthConfig()
+      const prevState = this.llmHealthState
+      this.llmHealthState = 'primary'
+      this.llmConsecFailures = 0
+      this.llmNextProbeAt = 0
+      this.llmRecoverySweepsLeft = cfg.recoveryWindow
+
+      this.logger.info('Corpus LLM primary recovered — entering recovery window', {
         response: result.content.slice(0, 50),
+        recoveryWindow: cfg.recoveryWindow,
+        previousState: prevState,
         sweepCount: this.state.sweepCount,
       })
       this.emitEvent('corpus:healthy', {
         reason: 'health_probe_succeeded',
-        previousFailures: this.llmFailureCount,
+        previousState: prevState,
+        recoveryWindow: cfg.recoveryWindow,
       })
     } catch (err) {
-      this.logger.debug('LLM health probe failed (staying unhealthy)', {
+      this.logger.debug('Corpus LLM primary probe failed (staying in current state)', {
         error: String(err),
-        failureCount: this.llmFailureCount,
+        state: this.llmHealthState,
       })
-      // DON'T increment llmFailureCount — this is a probe, not a real analysis
+      // Extend backoff on repeated probe failure without inflating consecutiveFailures
+      const cfg = this.getEffectiveLLMHealthConfig()
+      const current = this.llmNextProbeAt > 0 ? this.llmNextProbeAt - Date.now() : cfg.probeBackoffBase
+      const extended = Math.min(current * 1.5, cfg.probeBackoffMax)
+      const jitter = extended * 0.2 * Math.random()
+      this.llmNextProbeAt = Date.now() + extended + jitter
     }
   }
 
@@ -1404,9 +1473,9 @@ export class Corpus {
     }
 
     if (newPatterns.length > 0) {
-      this.logger.info('Sent fallback directives (LLM unhealthy)', {
+      this.logger.info('Sent fallback directives (LLM rule_based)', {
         patternCount: newPatterns.length,
-        failureCount: this.llmFailureCount,
+        consecutiveFailures: this.llmConsecFailures,
       })
     }
   }
@@ -2358,7 +2427,7 @@ Guidelines:
         evaluatedAt: Date.now(),
       }
     } catch (error) {
-      this.llmFailureCount++
+      this.handleLLMFailure(error)
       this.logger.error('Spawn evaluation failed, defaulting to rejected', {
         error: error instanceof Error ? error.message : String(error),
         requestId: request.requestId,

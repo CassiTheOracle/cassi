@@ -1,0 +1,153 @@
+import type { WorkUnit } from '../helix/work-types.js'
+import type { BrainstemAnnotation, SharedTreeReader } from '../helix/brainstem-types.js'
+import type { BranchApproach, ICorpusTree } from './corpus-types.js'
+
+
+export interface ObserverBranchStateOpts {
+  helixId: string
+  goal: string
+  corpusTree: ICorpusTree
+  sharedTree: SharedTreeReader
+}
+
+
+export class ObserverBranchState {
+  private helixId: string
+  private goal: string
+  private corpusTree: ICorpusTree
+  private sharedTree: SharedTreeReader
+  private workUnits = 0
+  private filesActive = new Set<string>()
+  private discoveries: string[] = []
+  private outputs: string[] = []
+  private blockers: string[] = []
+  private lastReasoning = ''
+  private currentApproach: BranchApproach = 'exploration'
+
+  constructor(opts: ObserverBranchStateOpts) {
+    this.helixId = opts.helixId
+    this.goal = opts.goal
+    this.corpusTree = opts.corpusTree
+    this.sharedTree = opts.sharedTree
+  }
+
+  onWorkUnit(workUnit: WorkUnit, iteration: number): void {
+    this.workUnits++
+    this.lastReasoning = workUnit.reasoning ?? ''
+    this.currentApproach = inferApproach(workUnit)
+
+    for (const f of workUnit.filesModified ?? []) {
+      if (f.path) this.filesActive.add(f.path)
+      if (f.summary) this.outputs.push(f.summary)
+    }
+
+    const toolNames = workUnit.toolCalls.map(t => t.name)
+    for (const result of workUnit.toolResults ?? []) {
+      if (result.isError) this.blockers.push(result.content.slice(0, 200))
+    }
+    if (workUnit.reasoning) this.discoveries.push(workUnit.reasoning.slice(0, 400))
+
+    this.discoveries = this.discoveries.slice(-12)
+    this.outputs = this.outputs.slice(-12)
+    this.blockers = this.blockers.slice(-6)
+
+    const annotation = this.toAnnotation(workUnit, iteration, toolNames)
+    const toolCalls = workUnit.toolCalls.map(tc => ({
+      name: tc.name,
+      args: JSON.stringify(tc.input ?? {}).slice(0, 500),
+    }))
+
+    this.corpusTree.pushAnnotation(this.helixId, annotation, toolCalls)
+    this.publishDigest()
+  }
+
+  updateLiveStreamSnippet(snippet: string): void {
+    this.sharedTree.updateLiveStreamSnippet(snippet)
+  }
+
+  private toAnnotation(workUnit: WorkUnit, iteration: number, toolNames: string[]): BrainstemAnnotation {
+    const hasOutput = (workUnit.filesModified?.length ?? 0) > 0 || toolNames.some(t => /test|bash|write|edit|file|code/.test(t))
+    const progress = hasOutput ? 0.6 : 0.25
+    const novelty = workUnit.toolCalls.length > 0 ? 0.55 : 0.35
+    const goalAlignment = 0.6
+    const score = goalAlignment * 0.3 + novelty * 0.3 + progress * 0.4
+
+    return {
+      workUnitId: workUnit.id,
+      score,
+      annotation: this.currentApproach === 'debugging' ? 'revision' : this.currentApproach as any,
+      synthesis: workUnit.reasoning ?? '',
+      pattern: 'none' as any,
+      guidance: null,
+      guidanceUrgency: 'low' as any,
+      trainingNote: 'Observer-native raw work unit annotation; no Brainstem LLM scoring.',
+      axonStep: iteration,
+      timestamp: workUnit.timestamp,
+      goalAlignment,
+      novelty,
+      progress,
+      discoveries: workUnit.reasoning ? [workUnit.reasoning.slice(0, 400)] : [],
+      decisions: [],
+      hypothesis: '',
+      outputs: workUnit.filesModified.map(f => `${f.action}: ${f.path}`),
+      blockers: workUnit.toolResults.filter(r => r.isError).map(r => r.content.slice(0, 200)),
+      nextSteps: [],
+      knowledgeDelta: workUnit.toolResults.map(r => r.content.slice(0, 200)).join('\n'),
+    }
+  }
+
+  private publishDigest(): void {
+    const progress = Math.min(0.95, this.workUnits / 12)
+    this.sharedTree.updateDigest({
+      helixId: this.helixId,
+      goalSummary: this.goal,
+      approach: this.currentApproach,
+      progress,
+      filesActive: Array.from(this.filesActive).slice(-20),
+      keyFindings: this.discoveries.slice(-8),
+      blockers: this.blockers.slice(-5),
+      currentStrategy: describeStrategy(this.currentApproach),
+      rollingScore: 0.55 + Math.min(0.25, progress * 0.25),
+      workUnitsProcessed: this.workUnits,
+      updatedAt: Date.now(),
+      allDiscoveries: this.discoveries.slice(-10),
+      recentOutputs: this.outputs.slice(-10),
+      liveStreamSnippet: this.lastReasoning.slice(-1000),
+      currentBlockers: this.blockers.slice(-5).map(b => ({
+        description: b,
+        detectedAt: Date.now(),
+        severity: 'medium' as const,
+      })),
+      confidenceLevel: {
+        score: Math.min(0.8, 0.35 + progress * 0.45),
+        trend: 'stable',
+        factors: ['observer-native digest'],
+        updatedAt: Date.now(),
+      },
+    })
+  }
+}
+
+
+function inferApproach(workUnit: WorkUnit): BranchApproach {
+  const toolNames = workUnit.toolCalls.map(t => t.name).join(' ').toLowerCase()
+  const reasoning = (workUnit.reasoning ?? '').toLowerCase()
+  if (/test|verify|pytest|vitest/.test(toolNames + reasoning)) return 'testing'
+  if (/write|edit|replace|insert|code/.test(toolNames)) return 'implementation'
+  if (/error|failed|fix|debug/.test(reasoning) || workUnit.toolResults.some(r => r.isError)) return 'debugging'
+  if (/review|risk|edge|concern/.test(reasoning)) return 'research'
+  return 'exploration'
+}
+
+
+function describeStrategy(approach: BranchApproach): string {
+  switch (approach) {
+    case 'implementation': return 'Producing or changing concrete artifacts.'
+    case 'testing': return 'Checking behavior and validating results.'
+    case 'debugging': return 'Investigating errors or failed assumptions.'
+    case 'research': return 'Reviewing risks, evidence, and alternatives.'
+    case 'revision': return 'Revising prior work.'
+    case 'coordinating': return 'Integrating nearby work.'
+    default: return 'Exploring the problem space.'
+  }
+}

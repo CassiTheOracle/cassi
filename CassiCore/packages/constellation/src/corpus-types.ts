@@ -929,6 +929,8 @@ export interface CorpusConfig {
   maxToolCallsPerCycle: number
   proactive: CorpusProactiveConfig
   adaptiveCadence: AdaptiveCadenceConfig
+  /** LLM health tuning — optional, defaults applied by Corpus at construction. */
+  llmHealth?: Partial<LLMHealthConfig>
 }
 
 /**
@@ -963,6 +965,43 @@ export const DEFAULT_CORPUS_CONFIG: CorpusConfig = {
 }
 
 
+/**
+ * Three-state LLM health model for the Corpus.
+ *
+ * 'primary'   — full strategic analysis on the primary LLM adapter
+ * 'fallback'  — full strategic analysis on the fallback LLM adapter (primary failed ≥ threshold)
+ * 'rule_based' — no LLM; rule-based fallback directives only (no fallback adapter or both failed)
+ */
+export type LLMHealthState = 'primary' | 'fallback' | 'rule_based'
+
+/** Tuning knobs for Corpus LLM health tracking and recovery. */
+export interface LLMHealthConfig {
+  /** Consecutive failures before flipping to fallback/rule_based. Default: 2 */
+  failureThreshold: number
+  /** Base ms for exponential probe backoff. Default: 10_000 (10s) */
+  probeBackoffBase: number
+  /** Max probe backoff ms. Default: 300_000 (5 min) */
+  probeBackoffMax: number
+  /** Sweeps to stay in recovery mode after a successful probe. Default: 3 */
+  recoveryWindow: number
+}
+
+export const DEFAULT_LLM_HEALTH_CONFIG: LLMHealthConfig = {
+  failureThreshold: 2,
+  probeBackoffBase: 10_000,
+  probeBackoffMax: 300_000,
+  recoveryWindow: 3,
+}
+
+/** Structured snapshot of Corpus LLM health — returned by getLLMHealthStatus(). */
+export interface LLMHealthStatus {
+  state: LLMHealthState
+  consecutiveFailures: number
+  nextProbeAt: number | null
+  recoverySweepsLeft: number
+  hasFallback: boolean
+}
+
 /** Minimal LLM interface for Corpus (same shape as BrainstemLLM) */
 export interface CorpusLLM {
   complete(opts: {
@@ -975,6 +1014,8 @@ export interface CorpusLLM {
 
 export interface CorpusDeps {
   llm: CorpusLLM
+  /** Optional cheaper LLM to try when primary fails ≥ failureThreshold. */
+  fallbackLLM?: CorpusLLM
   logger: ILogger
   goal: string
   constellationId: string
@@ -1062,7 +1103,8 @@ export interface CorpusResult {
   contextInjections: ContextInjection[]
   sweepCount: number
   llmHealthy: boolean
-  llmFailureCount: number
+  llmHealthState: LLMHealthState
+  llmConsecFailures: number
   durationMs: number
   /** Dual-ledger final state (post-mortem analysis) */
   taskLedger?: TaskLedger
