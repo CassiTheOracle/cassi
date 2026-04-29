@@ -107,7 +107,7 @@ describe('ReverieReasoningObserver', () => {
     }
 
     const state: MentalState = {
-      graph: { nodes: new Map(), edges: new Map(), reverseEdges: new Map(), sourceBreakdown: { model: 0, memory: 0, both: 0 }, edgeCount: 0, builtAt: Date.now() },
+      graph: { nodes: new Map(), edges: new Map(), reverseEdges: new Map(), sourceBreakdown: { model: 0, memory: 0, knowledge: 0, observer: 0, both: 0 }, edgeCount: 0, builtAt: Date.now() },
       resonanceHubs: [],
       gaps: [],
       recentDiscoveries: [],

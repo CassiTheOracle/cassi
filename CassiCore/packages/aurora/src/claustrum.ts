@@ -12,6 +12,10 @@ import type { Engram } from '../mnemic-field/types.js'
 import type { PortalBridge } from '../memory-bridge/portal-bridge.js'
 import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
 import type {
+  ClaustrumInsightSink,
+  ObserverInsight,
+} from '../constellation/observer-memory-bridge.js'
+import type {
   CognitiveNode,
   CognitiveEdge,
   UnifiedGraph,
@@ -21,6 +25,56 @@ import type {
   AuroraConfig,
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
+
+/**
+ * Buffers typed observer insights as they're emitted by constellation
+ * observer layers. Aurora's `Claustrum.buildFocusedGraph` reads from this
+ * buffer on each rebuild and folds the insights into the unified graph as
+ * `source: 'observer'` nodes.
+ *
+ * Implements `ClaustrumInsightSink` so it can be passed straight into an
+ * `ObserverMemoryBridge`. Bounded by `maxBuffered` to keep memory steady
+ * during long sessions — oldest insights are dropped when the cap is hit.
+ *
+ * See: docs/design/aurora-extensions-roadmap.md §A3
+ */
+export class ObserverInsightCollector implements ClaustrumInsightSink {
+  private buffer: ObserverInsight[] = []
+  private byId = new Map<string, ObserverInsight>()
+  private readonly maxBuffered: number
+
+  constructor(maxBuffered = 64) {
+    this.maxBuffered = Math.max(8, maxBuffered)
+  }
+
+  ingest(insight: ObserverInsight): void {
+    if (!insight.id) return
+    if (this.byId.has(insight.id)) return
+    this.byId.set(insight.id, insight)
+    this.buffer.push(insight)
+    while (this.buffer.length > this.maxBuffered) {
+      const dropped = this.buffer.shift()
+      if (dropped?.id) this.byId.delete(dropped.id)
+    }
+  }
+
+  /** Snapshot the currently-buffered insights (most recent last). */
+  snapshot(): ReadonlyArray<ObserverInsight> {
+    return this.buffer.slice()
+  }
+
+  /** Clear the buffer — typically called by Aurora after folding into the graph if a one-shot policy is desired. */
+  drain(): ObserverInsight[] {
+    const out = this.buffer
+    this.buffer = []
+    this.byId = new Map()
+    return out
+  }
+
+  get size(): number {
+    return this.buffer.length
+  }
+}
 
 export class Claustrum {
   private config: AuroraConfig
@@ -46,6 +100,7 @@ export class Claustrum {
     knowledgeProvider: ModelKnowledgeProvider | null,
     portalBridge: PortalBridge | null,
     recentDiscoveries: DreamDiscovery[] = [],
+    observerCollector: ObserverInsightCollector | null = null,
   ): UnifiedGraph {
     const start = Date.now()
 
@@ -69,10 +124,15 @@ export class Claustrum {
     }
 
     this.addDreamEdges(recentDiscoveries, nodes, edges, reverseEdges)
+
+    if (observerCollector && observerCollector.size > 0) {
+      this.seedFromObservers(observerCollector, nodes, edges, reverseEdges)
+    }
+
     this.resolveOverlappingEntities(nodes)
     this.computePageRank(nodes, edges, reverseEdges)
 
-    const sourceBreakdown = { model: 0, memory: 0, knowledge: 0, both: 0 }
+    const sourceBreakdown = { model: 0, memory: 0, knowledge: 0, observer: 0, both: 0 }
     for (const node of nodes.values()) {
       sourceBreakdown[node.source]++
     }
@@ -526,6 +586,76 @@ export class Claustrum {
         edgeType: 'dream_discovered',
         weight: discovery.combinedScore,
       })
+    }
+  }
+
+  /**
+   * Fold buffered observer insights into the focused graph.
+   *
+   * Each insight becomes a `source: 'observer'` node (id `observer:<insightId>`).
+   * If the insight carries `concepts`, we look for existing nodes whose label
+   * contains any concept (case-insensitive) and link them with `origin: 'observer'`
+   * edges weighted by the insight's confidence.
+   *
+   * Insights about helices/clusters/constellations don't usually overlap with
+   * the existing memory/model node labels, so most observer nodes start as
+   * free-standing islands. They become connected over time as the same
+   * concepts surface in conversation/memory.
+   *
+   * See: docs/design/aurora-extensions-roadmap.md §A3
+   */
+  private seedFromObservers(
+    collector: ObserverInsightCollector,
+    nodes: Map<string, CognitiveNode>,
+    edges: Map<string, CognitiveEdge[]>,
+    reverseEdges: Map<string, CognitiveEdge[]>,
+  ): void {
+    const insights = collector.snapshot()
+    if (insights.length === 0) return
+
+    // Index existing nodes by lowercased label for cheap concept matching.
+    const labelIndex: Array<{ id: string; lower: string }> = []
+    for (const [id, node] of nodes) {
+      if (node.label) labelIndex.push({ id, lower: node.label.toLowerCase() })
+    }
+
+    for (const insight of insights) {
+      if (nodes.size >= this.config.maxGraphNodes) break
+
+      const id = `observer:${insight.id}`
+      if (!nodes.has(id)) {
+        nodes.set(id, {
+          id,
+          label: insight.label,
+          source: 'observer',
+          content: insight.content,
+          resonance: insight.confidence ?? 0.5,
+          centrality: 0,
+          activated: true,
+        })
+      }
+
+      const concepts = insight.concepts ?? []
+      if (concepts.length === 0) continue
+
+      const seenTargets = new Set<string>()
+      for (const concept of concepts) {
+        const needle = concept.toLowerCase()
+        if (needle.length < 3) continue
+        for (const candidate of labelIndex) {
+          if (candidate.id === id) continue
+          if (seenTargets.has(candidate.id)) continue
+          if (!candidate.lower.includes(needle)) continue
+          seenTargets.add(candidate.id)
+          this.addEdge(edges, reverseEdges, {
+            sourceId: id,
+            targetId: candidate.id,
+            origin: 'observer',
+            edgeType: 'observed_about',
+            weight: insight.confidence ?? 0.5,
+          })
+        }
+      }
     }
   }
 

@@ -268,7 +268,7 @@ export class StateProjector {
    */
   private serializeGraphDetail(state: MentalState, budget: number): string | null {
     const g = state.graph
-    const line = `Graph: ${g.nodes.size} nodes (${g.sourceBreakdown.model} model, ${g.sourceBreakdown.memory} memory, ${g.sourceBreakdown.both} shared), ${g.edgeCount} edges`
+    const line = `Graph: ${g.nodes.size} nodes (${g.sourceBreakdown.model} model, ${g.sourceBreakdown.memory} memory, ${g.sourceBreakdown.observer} observer, ${g.sourceBreakdown.both} shared), ${g.edgeCount} edges`
 
     return line.length <= budget ? line : null
   }

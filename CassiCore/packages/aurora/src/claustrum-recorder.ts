@@ -52,6 +52,18 @@ export interface RetainedFeature {
   readonly lastSeen: string
 }
 
+/**
+ * Compact per-layer summary used by the snapshot builder to size output
+ * buffers in a single round-trip to the recorder DB.
+ */
+export interface LayerFeatureSummary {
+  readonly layer: number
+  /** Number of distinct feature_index values retained in the window. */
+  readonly distinctFeatures: number
+  /** Total provenance row count for the layer (>= distinctFeatures). */
+  readonly totalHits: number
+}
+
 export class ClaustrumRecorder {
   private readonly logger: ILogger
   private readonly db: Database.Database
@@ -201,6 +213,37 @@ export class ClaustrumRecorder {
       `SELECT COUNT(*) AS n FROM claustrum_recorder ${where}`,
     ).get(params) as { n: number } | undefined
     return row?.n ?? 0
+  }
+
+  /**
+   * Per-layer summary in the window — distinct feature count plus total hit
+   * count. Used by the snapshot builder to size per-layer output buffers
+   * (`gate_L<N>.bin`, `down_meta_L<N>.bin`, `feature_index_map_L<N>.bin`)
+   * in a single query, before streaming the actual features.
+   *
+   * See: docs/design/claustrum-vindex.md §7 (Build Process)
+   */
+  distinctFeaturesByLayer(window: ClaustrumWindow = {}): LayerFeatureSummary[] {
+    if (this.closed) return []
+    const conditions: string[] = []
+    const params: Record<string, string> = {}
+    if (window.startTs) { conditions.push('ts >= @startTs'); params.startTs = window.startTs }
+    if (window.endTs) { conditions.push('ts <= @endTs'); params.endTs = window.endTs }
+    const sourcePath = window.sourcePath ?? this.sourcePath
+    conditions.push('source_path = @sourcePath')
+    params.sourcePath = sourcePath
+    const where = `WHERE ${conditions.join(' AND ')}`
+    const sql = `
+      SELECT
+        layer,
+        COUNT(DISTINCT feature_index) AS distinctFeatures,
+        COUNT(*) AS totalHits
+      FROM claustrum_recorder
+      ${where}
+      GROUP BY layer
+      ORDER BY layer ASC
+    `
+    return this.db.prepare(sql).all(params) as LayerFeatureSummary[]
   }
 
   close(): void {

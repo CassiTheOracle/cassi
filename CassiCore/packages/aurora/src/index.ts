@@ -18,7 +18,7 @@ import type { Cortex } from '../mnemic-field/cortex.js'
 import type { PortalBridge } from '../memory-bridge/portal-bridge.js'
 import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
 import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
-import { Claustrum } from './claustrum.js'
+import { Claustrum, ObserverInsightCollector } from './claustrum.js'
 import { StateProjector } from './state-projector.js'
 import type {
   MentalState,
@@ -35,7 +35,7 @@ import { AURORA_DEFAULTS } from './types.js'
 import type { ReverieInferenceProvider } from './types.js'
 import { ReverieReasoningObserver, makeReasoningRecordId } from './reverie-reasoning-observer.js'
 
-export { Claustrum } from './claustrum.js'
+export { Claustrum, ObserverInsightCollector } from './claustrum.js'
 export { StateProjector } from './state-projector.js'
 export { LarqlKnowledgeProvider } from './larql-provider.js'
 export type {
@@ -56,6 +56,21 @@ export class Aurora {
   private logger: ILogger
   private claustrum: Claustrum
   private projector: StateProjector
+
+  /**
+   * Buffer of typed observer insights from constellation/cluster/corpus
+   * observers. Folded into the focused graph on each `buildState`.
+   * Accessed externally via `getObserverSink()` so the constellation layer
+   * can hand it to its `ObserverMemoryBridge`.
+   */
+  private observerCollector = new ObserverInsightCollector()
+
+  /**
+   * Monotonic Aurora cycle counter. Stamped onto every gate-KNN provenance
+   * row so the claustrum-vindex snapshotter can attribute features to the
+   * cycle that surfaced them. See docs/design/claustrum-vindex.md §6.
+   */
+  private cycleCounter = 0
 
   private currentState: MentalState | null = null
   private lastFingerprint: string | null = null
@@ -123,6 +138,37 @@ export class Aurora {
     this.logger.info('Reverie reasoning observer wired')
   }
 
+  /**
+   * Sink for typed observer insights — hand this to an `ObserverMemoryBridge`
+   * so cluster/corpus/synapse observers can publish findings into Aurora's
+   * Claustrum (in addition to the Mnemic store).
+   *
+   * See: docs/design/aurora-extensions-roadmap.md §A3
+   */
+  getObserverSink(): ObserverInsightCollector {
+    return this.observerCollector
+  }
+
+  /**
+   * Stamp `cycleId` onto any provider that supports `setCycleId` (currently
+   * `LarqlKnowledgeProvider`). Other providers are a silent no-op. Called
+   * from `buildState` so all gate-KNN hits during one Aurora cycle share
+   * a provenance group.
+   */
+  private applyCycleId(cycleId: string | null): void {
+    for (const provider of [this.modelProvider, this.knowledgeProvider]) {
+      if (!provider) continue
+      const setter = (provider as { setCycleId?: (id: string | null) => void }).setCycleId
+      if (typeof setter === 'function') {
+        try {
+          setter.call(provider, cycleId)
+        } catch (err) {
+          this.logger.debug?.('applyCycleId provider rejected', { error: String(err) })
+        }
+      }
+    }
+  }
+
   /** Set session ID for reasoning records. */
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId
@@ -168,6 +214,12 @@ export class Aurora {
   ): MentalState {
     const start = Date.now()
 
+    // Stamp the active cycle on any provider that supports recorder provenance,
+    // so the claustrum-vindex snapshotter can attribute gate-KNN hits to a
+    // specific Aurora cycle (see docs/design/claustrum-vindex.md §6).
+    const cycleId = `aur_${(this.cycleCounter += 1)}`
+    this.applyCycleId(cycleId)
+
     const graph = this.claustrum.buildFocusedGraph(
       foci,
       this.cortex,
@@ -175,7 +227,11 @@ export class Aurora {
       this.knowledgeProvider,
       this.portalBridge,
       recentDiscoveries,
+      this.observerCollector,
     )
+
+    // Clear cycle stamp now that the gate-KNN burst for this cycle is done.
+    this.applyCycleId(null)
 
     const resonanceHubs = this.claustrum.getResonanceHubs(graph)
     const gaps = this.claustrum.findGaps(graph)

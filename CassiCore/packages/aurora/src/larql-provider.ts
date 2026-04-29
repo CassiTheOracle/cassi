@@ -94,6 +94,10 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
   // claustrum-vindex snapshotter. Null = recording disabled.
   private recorder: ClaustrumRecorder | null = null
 
+  // Currently active Aurora cycle, stamped on each gate-KNN provenance row.
+  // Aurora calls setCycleId() at the top of each `buildState`. Null between cycles.
+  private currentCycleId: string | null = null
+
   constructor(
     logger: ILogger,
     config?: Partial<LarqlProviderConfig>,
@@ -105,6 +109,22 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
   /** Attach a recorder so that future gate-KNN hits are persisted. */
   setRecorder(recorder: ClaustrumRecorder | null): void {
     this.recorder = recorder
+  }
+
+  /**
+   * Stamp every subsequent gate-KNN provenance row with this cycle id, so
+   * the snapshotter can group features by the Aurora cycle that surfaced them.
+   * Pass `null` between cycles.
+   *
+   * See: docs/design/claustrum-vindex.md §6 (Recording Protocol)
+   */
+  setCycleId(cycleId: string | null): void {
+    this.currentCycleId = cycleId
+  }
+
+  /** Currently-active cycle id (mainly useful for tests + diagnostics). */
+  getCycleId(): string | null {
+    return this.currentCycleId
   }
 
   /**
@@ -202,7 +222,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider {
         }
         if (filtered.length > 0) {
           this.recorder.recordGateHits({
-            cycleId: null,
+            cycleId: this.currentCycleId,
             queryConcept: entity,
             trigger: 'larql_gate_knn',
             hits: filtered,

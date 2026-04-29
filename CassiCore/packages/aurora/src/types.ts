@@ -15,8 +15,8 @@ import type { Affect, AffectLabel, EngramType, SynapseType } from '../mnemic-fie
 import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
 import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
 
-export type CognitiveNodeSource = 'model' | 'memory' | 'knowledge' | 'both'
-export type CognitiveEdgeOrigin = 'model' | 'memory' | 'portal' | 'dream'
+export type CognitiveNodeSource = 'model' | 'memory' | 'knowledge' | 'observer' | 'both'
+export type CognitiveEdgeOrigin = 'model' | 'memory' | 'portal' | 'dream' | 'observer'
 
 export interface CognitiveNode {
   id: string
@@ -76,6 +76,8 @@ export interface UnifiedGraph {
   sourceBreakdown: {
     model: number
     memory: number
+    knowledge: number
+    observer: number
     both: number
   }
 
