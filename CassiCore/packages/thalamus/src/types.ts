@@ -51,6 +51,14 @@ export interface ThalamusAnnotation {
   hasCode?: boolean
   /** Source tag for system messages (e.g. 'pineal', 'context-injection') */
   source?: string
+  /**
+   * If true, the message is force-included during assembly regardless of luminance.
+   * Set during processAll for AskUserQuestion answers (which carry standing user
+   * directives) and may be set explicitly via the cassi_context tool.
+   */
+  pinned?: boolean
+  /** Why the message was pinned — used in drop receipts and audit output */
+  pinReason?: string
 }
 
 /** Context passed to slot.augment() during real-time processing */
@@ -161,6 +169,7 @@ export interface CurationMeta {
   durationMs: number
   skipped?: boolean
   reason?: string
+  receipt?: import('./drop-receipt.js').DropReceipt | null
 }
 
 export interface CurationResult {

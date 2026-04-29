@@ -29,6 +29,8 @@ import type {
   TopicArchiveStructured,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS } from './types.js'
+import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
+import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 
 /** A function that acquires a model handle for background LLM calls. */
 type HandleFactory = (config: { tier: string; purpose: string; sessionId: string }) => Promise<{
@@ -240,6 +242,20 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Ensure all messages have _thalamus annotations (backward compatibility)
     const annotated = this.processAll(sessionId, messages)
 
+    // Mark AskUserQuestion answers as pinned — these encode operator intent
+    // and must survive curation regardless of luminance score, even when older
+    // than the recent-window. Without immunity, long sessions look like
+    // assistant-drift when they were actually user-directed.
+    {
+      const toolUseMap = buildToolUseMapFromMessages(annotated)
+      for (const msg of annotated) {
+        if (hasQuestionResult(msg, { toolUseMap }) && msg?._thalamus) {
+          msg._thalamus.pinned = true
+          msg._thalamus.pinReason = 'AskUserQuestion answer'
+        }
+      }
+    }
+
     const originalChars = annotated.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
@@ -296,6 +312,19 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     const dropped = compressed.length - assembled.messages.length
 
+    const protectedIndices = new Set<number>()
+    for (let i = protectedStart; i < compressed.length; i++) {
+      protectedIndices.add(i)
+    }
+    const receipt = buildDropReceipt({
+      before: compressed,
+      scored,
+      includedIndices: assembled.includedIndices,
+      protectedIndices,
+      charBudget: cfg.charBudget,
+      charsUsed: curatedChars,
+    })
+
     const meta = {
       originalCount: messages.length,
       curatedCount: assembled.messages.length,
@@ -305,6 +334,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       deduped: dedupedCount,
       dropped,
       gapNotes: assembled.gapNotes,
+      receipt,
       durationMs: Date.now() - start,
     }
 
@@ -806,7 +836,13 @@ export class ThalamusModule extends BaseCognitiveModule {
     config: CurationConfig,
     topicClusters?: TopicCluster[],
     sessionId?: string,
-  ): { messages: any[]; gapNotes: number } {
+  ): {
+    messages: any[]
+    gapNotes: number
+    includedIndices: Set<number>
+    charsUsed: number
+    pinnedOverrides: number
+  } {
     let threshold = config.ignitionThreshold
 
     // Protected messages always included
@@ -816,9 +852,14 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     let remainingBudget = config.charBudget - protectedChars
     if (remainingBudget <= 0) {
+      const protectedSet = new Set<number>()
+      for (let i = protectedStart; i < messages.length; i++) protectedSet.add(i)
       return {
         messages: messages.slice(protectedStart),
         gapNotes: 0,
+        includedIndices: protectedSet,
+        charsUsed: protectedChars,
+        pinnedOverrides: 0,
       }
     }
 
@@ -831,10 +872,22 @@ export class ThalamusModule extends BaseCognitiveModule {
     let included = new Set<number>()
     let usedChars = 0
 
+    const isPinned = (s: ScoredMessage): boolean =>
+      messages[s.messageIndex]?._thalamus?.pinned === true
+
     const selectByThreshold = (t: number): { set: Set<number>; chars: number } => {
       const set = new Set<number>()
       let chars = 0
+      // Phase A: pinned messages bypass threshold (still respect budget)
       for (const s of candidates) {
+        if (!isPinned(s)) continue
+        if (chars + s.estimatedChars > remainingBudget) continue
+        set.add(s.messageIndex)
+        chars += s.estimatedChars
+      }
+      // Phase B: high-luminance candidates fill remaining budget
+      for (const s of candidates) {
+        if (set.has(s.messageIndex)) continue
         if (s.luminance.composite < t) continue
         if (chars + s.estimatedChars > remainingBudget) continue
         set.add(s.messageIndex)
@@ -932,7 +985,14 @@ export class ThalamusModule extends BaseCognitiveModule {
       assembled.push(messages[idx])
     }
 
-    return { messages: assembled, gapNotes }
+    const includedIndices = new Set<number>(allIndices)
+    const scoredLookup = new Map(scored.map(s => [s.messageIndex, s]))
+    let pinnedOverrides = 0
+    for (const idx of included) {
+      const s = scoredLookup.get(idx)
+      if (s && messages[idx]?._thalamus?.pinned && s.luminance.composite < threshold) pinnedOverrides++
+    }
+    return { messages: assembled, gapNotes, includedIndices, charsUsed: usedChars, pinnedOverrides }
   }
 
   private ensureAlternation(
