@@ -102,6 +102,12 @@ export interface SmartRecallResult {
   confidence?: RetrievalConfidence;
 }
 
+/**
+ * @deprecated Use MnemicField (core/intelligence/mnemic-field) instead.
+ * The IMemory interface is the legacy flat-key-value + FTS5 memory system.
+ * MnemicField provides associative retrieval via kindling (spreading activation),
+ * embedding-based similarity, and optional LLM reranking.
+ */
 export interface IMemory {
   /** Store a memory entry. Returns the generated id. */
   store(entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<string>;
