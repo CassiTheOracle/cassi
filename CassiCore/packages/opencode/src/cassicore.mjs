@@ -48,21 +48,21 @@ const LAMINA_CHAR_LIMIT = 4_000
 const MAX_SESSIONS = 100
 const MAX_CONTEXT_CHARS = 9_500
 
-// Preflight context safety. This runs before the model request; if the context
-// is already too large, reactive overflow warnings will never fire because the
-// model won't produce a response. Keep a generous reserve for system prompt,
-// tool schemas, provider overhead, and the model's response.
+// Preflight context safety. This runs before the model request; if the request
+// body is already too large, reactive overflow warnings will never fire because
+// the model won't produce a response. We therefore prune against serialized
+// request bytes, not token/char estimates.
 const APPROX_CHARS_PER_TOKEN = 4
-const PREFLIGHT_TARGET_FRACTION = 0.72
-const PREFLIGHT_HARD_FRACTION = 0.86
-const PREFLIGHT_MIN_RESPONSE_RESERVE = 8_000
-const PREFLIGHT_MAX_RESPONSE_RESERVE = 60_000
 const PREFLIGHT_RECENT_MESSAGE_GRACE = 8
 const PREFLIGHT_OLD_TEXT_LIMIT = 4_000
 const PREFLIGHT_RECENT_TEXT_LIMIT = 16_000
 const PREFLIGHT_OLD_TOOL_LIMIT = 1_500
 const PREFLIGHT_RECENT_TOOL_LIMIT = 6_000
 const PREFLIGHT_DEFAULT_CONTEXT_LIMIT = 128_000
+const PREFLIGHT_ANTHROPIC_HARD_BYTES = 2_097_152
+const PREFLIGHT_ANTHROPIC_TARGET_BYTES = 1_900_000
+const PREFLIGHT_GENERIC_HARD_BYTES = 1_572_864
+const PREFLIGHT_GENERIC_TARGET_BYTES = 1_450_000
 
 // Pressure thresholds (fraction of model context used)
 const PRESSURE_TIERS = [
@@ -134,32 +134,57 @@ export const CassiCorePlugin = async (input) => {
       const report = preflightPruneMessages(hookInput, output.messages)
       meta.preflightPressure = report.pressure
       meta.pressure = Math.max(meta.pressure ?? 0, report.pressure)
+      if (report.changed || report.afterBytes > report.targetBytes) {
+        meta.suppressCassiContextOnce = true
+      }
 
       if (report.changed) {
-        meta.suppressCassiContextOnce = true
         ingest(meta.cassiSessionId, [{
           type: "preflight_context_pruned",
           sessionId: meta.cassiSessionId,
           source: SOURCE,
           pressure: report.pressure,
-          beforeChars: report.beforeChars,
-          afterChars: report.afterChars,
+          budgetKind: report.budgetKind,
+          hardBytes: report.hardBytes,
+          targetBytes: report.targetBytes,
+          beforeBytes: report.beforeBytes,
+          afterBytes: report.afterBytes,
           changedMessages: report.changedMessages,
+          droppedMessages: report.droppedMessages,
           droppedParts: report.droppedParts,
           truncatedParts: report.truncatedParts,
         }])
         cortexSignal(
           meta.cassiSessionId,
           "decision", "executive",
-          `OpenCode preflight pruned context before model call: ${report.beforeChars} → ${report.afterChars} chars (${Math.round(report.pressure * 100)}% estimated pre-prune).`,
+          `OpenCode preflight pruned request before model call: ${report.beforeBytes} → ${report.afterBytes} bytes (${Math.round(report.pressure * 100)}% of ${report.budgetKind} hard cap).`,
           [SOURCE, "preflight-prune", classifyTier(report.pressure)],
           0.82,
         )
         laminaAppend(
           meta.cassiSessionId,
           "session-decisions",
-          `Preflight context pruning preserved generation viability: ${report.beforeChars} → ${report.afterChars} chars; changed messages=${report.changedMessages}, dropped parts=${report.droppedParts}, truncated parts=${report.truncatedParts}.`,
+          `Preflight request pruning preserved generation viability: ${report.beforeBytes} → ${report.afterBytes} bytes (${report.budgetKind} budget target ${report.targetBytes}, hard cap ${report.hardBytes}); changed messages=${report.changedMessages}, dropped messages=${report.droppedMessages}, dropped parts=${report.droppedParts}, truncated parts=${report.truncatedParts}.`,
           "opencode-preflight-prune",
+        )
+      }
+
+      if (report.afterBytes > report.hardBytes) {
+        ingest(meta.cassiSessionId, [{
+          type: "preflight_context_still_oversized",
+          sessionId: meta.cassiSessionId,
+          source: SOURCE,
+          budgetKind: report.budgetKind,
+          hardBytes: report.hardBytes,
+          targetBytes: report.targetBytes,
+          afterBytes: report.afterBytes,
+        }])
+        cortexSignal(
+          meta.cassiSessionId,
+          "anomaly", "executive",
+          `OpenCode request is still oversized after preflight pruning (${report.afterBytes} bytes > ${report.hardBytes} hard cap) while preserving the newest user turn.`,
+          [SOURCE, "preflight-oversized", report.budgetKind],
+          0.9,
         )
       }
     },
@@ -440,176 +465,77 @@ function classifyTier(pressure) {
 // ──────────────────────────────────────────────────────────────────────────────
 
 function preflightPruneMessages(hookInput, messages) {
+  const budget = resolvePreflightByteBudget(hookInput)
   const contextLimit = Number(hookInput?.model?.limit?.context ?? PREFLIGHT_DEFAULT_CONTEXT_LIMIT)
-  if (!contextLimit || contextLimit <= 0 || messages.length === 0) {
-    return {
-      changed: false,
-      beforeChars: estimateMessagesChars(messages),
-      afterChars: estimateMessagesChars(messages),
-      pressure: 0,
-      changedMessages: 0,
-      droppedParts: 0,
-      truncatedParts: 0,
-    }
+  const report = {
+    changed: false,
+    budgetKind: budget.kind,
+    hardBytes: budget.hardBytes,
+    targetBytes: budget.targetBytes,
+    beforeBytes: estimatePromptBytes(messages),
+    afterBytes: 0,
+    pressure: 0,
+    changedMessages: 0,
+    droppedMessages: 0,
+    droppedParts: 0,
+    truncatedParts: 0,
+    _changedMessageKeys: new Set(),
   }
 
-  const reserveTokens = Math.min(
-    PREFLIGHT_MAX_RESPONSE_RESERVE,
-    Math.max(PREFLIGHT_MIN_RESPONSE_RESERVE, Math.floor(contextLimit * 0.12)),
+  report.afterBytes = report.beforeBytes
+  report.pressure = Math.max(
+    report.beforeBytes / Math.max(1, budget.hardBytes),
+    report.beforeBytes / Math.max(1, contextLimit * APPROX_CHARS_PER_TOKEN),
   )
-  const targetTokens = Math.max(1, Math.floor(contextLimit * PREFLIGHT_TARGET_FRACTION) - reserveTokens)
-  const hardTokens = Math.max(1, Math.floor(contextLimit * PREFLIGHT_HARD_FRACTION) - reserveTokens)
-  const targetChars = targetTokens * APPROX_CHARS_PER_TOKEN
-  const hardChars = hardTokens * APPROX_CHARS_PER_TOKEN
 
-  const beforeChars = estimateMessagesChars(messages)
-  const pressure = beforeChars / Math.max(1, contextLimit * APPROX_CHARS_PER_TOKEN)
-
-  if (beforeChars <= hardChars) {
-    return { changed: false, beforeChars, afterChars: beforeChars, pressure, changedMessages: 0, droppedParts: 0, truncatedParts: 0 }
+  if (messages.length === 0 || report.beforeBytes <= budget.targetBytes) {
+    report.changedMessages = 0
+    delete report._changedMessageKeys
+    return report
   }
 
-  let changedMessages = 0
-  let droppedParts = 0
-  let truncatedParts = 0
   const recentCutoff = Math.max(0, messages.length - PREFLIGHT_RECENT_MESSAGE_GRACE)
+  const latestUserIndex = findLastUserMessageIndex(messages)
+  const passes = [
+    () => compactBulkyParts(messages, recentCutoff, {
+      oldTextLimit: PREFLIGHT_OLD_TEXT_LIMIT,
+      recentTextLimit: PREFLIGHT_RECENT_TEXT_LIMIT,
+      oldToolLimit: PREFLIGHT_OLD_TOOL_LIMIT,
+      recentToolLimit: PREFLIGHT_RECENT_TOOL_LIMIT,
+    }, report, latestUserIndex),
+    () => compactBulkyParts(messages, recentCutoff, {
+      oldTextLimit: 2_000,
+      recentTextLimit: 6_000,
+      oldToolLimit: 800,
+      recentToolLimit: 2_500,
+    }, report, latestUserIndex),
+    () => dropOldNonEssentialParts(messages, recentCutoff, report, "preflight-overflow"),
+    () => dropOldUserText(messages, recentCutoff, report, "preflight-overflow-user"),
+    () => dropOldMessagesAtTurnBoundary(messages, 4, 12, report, "preflight-turn-drop"),
+    () => dropOldMessagesAtTurnBoundary(messages, 2, 8, report, "preflight-emergency-drop"),
+    () => dropBeforeLatestUserTurn(messages, report, "preflight-preserve-latest-user"),
+  ]
 
-  // Phase 1: compact individual bulky parts. Preserve all message records, but
-  // replace old huge tool/file/text content with compact synthetic summaries.
-  for (let i = 0; i < messages.length; i++) {
-    const msg = messages[i]
-    if (!msg || !Array.isArray(msg.parts)) continue
-    const isRecent = i >= recentCutoff
-    const partLimit = isRecent ? PREFLIGHT_RECENT_TEXT_LIMIT : PREFLIGHT_OLD_TEXT_LIMIT
-    const toolLimit = isRecent ? PREFLIGHT_RECENT_TOOL_LIMIT : PREFLIGHT_OLD_TOOL_LIMIT
-    let msgChanged = false
-
-    for (let p = 0; p < msg.parts.length; p++) {
-      const part = msg.parts[p]
-      const compacted = compactPartForPreflight(part, partLimit, toolLimit, isRecent)
-      if (compacted !== part) {
-        msg.parts[p] = compacted
-        msgChanged = true
-        truncatedParts += 1
-      }
-    }
-    if (msgChanged) changedMessages += 1
-  }
-
-  let afterChars = estimateMessagesChars(messages)
-  if (afterChars <= targetChars) {
-    return { changed: true, beforeChars, afterChars, pressure, changedMessages, droppedParts, truncatedParts }
-  }
-
-  // Phase 2: drop old non-essential parts by marking them ignored. This is
-  // safer than deleting because opencode can still retain UI history while the
-  // outgoing model call excludes ignored parts.
-  for (let i = 0; i < recentCutoff && afterChars > targetChars; i++) {
-    const msg = messages[i]
-    if (!msg || !Array.isArray(msg.parts)) continue
-    let msgChanged = false
-    for (let p = msg.parts.length - 1; p >= 0; p--) {
-      const part = msg.parts[p]
-      if (afterChars <= targetChars) break
-      if (shouldPreservePart(part)) continue
-      const chars = estimatePartChars(part)
-      if (dropPartFromMessage(msg, p, "preflight-overflow")) {
-        afterChars -= chars
-        droppedParts += 1
-        msgChanged = true
-      }
-    }
-    if (msgChanged) changedMessages += 1
-  }
-
-  // Phase 3: if still too big, add a compact synthetic summary at the oldest
-  // kept boundary and aggressively ignore all but the recent window. Better a
-  // lossy successful turn than no response at all.
-  afterChars = estimateMessagesChars(messages)
-  if (afterChars > targetChars && recentCutoff > 0) {
-    const summaryPart = {
-      id: `cassicore-preflight-summary-${Date.now()}`,
-      type: "text",
-      text: `[CassiCore preflight overflow guard: older transcript parts were omitted before this model call because the outgoing context exceeded the model limit. Recover details from persistent memory/KV if needed.]`,
-      synthetic: true,
-      metadata: { source: SOURCE, reason: "preflight-overflow-summary" },
-    }
-    const boundary = messages[Math.max(0, recentCutoff - 1)]
-    if (boundary && Array.isArray(boundary.parts)) boundary.parts.push(summaryPart)
-
-    for (let i = 0; i < recentCutoff && afterChars > targetChars; i++) {
-      const msg = messages[i]
-      if (!msg || !Array.isArray(msg.parts)) continue
-      let msgChanged = false
-      for (let p = msg.parts.length - 1; p >= 0; p--) {
-        const part = msg.parts[p]
-        if (afterChars <= targetChars) break
-        const chars = estimatePartChars(part)
-        if (dropPartFromMessage(msg, p, "preflight-hard-overflow")) {
-          afterChars -= chars
-          droppedParts += 1
-          msgChanged = true
-        }
-      }
-      if (msgChanged) changedMessages += 1
+  for (const pass of passes) {
+    if (report.afterBytes <= budget.targetBytes) break
+    const changed = pass()
+    if (changed) {
+      report.changed = true
+      report.afterBytes = estimatePromptBytes(messages)
     }
   }
 
-  afterChars = estimateMessagesChars(messages)
-  return { changed: true, beforeChars, afterChars, pressure, changedMessages, droppedParts, truncatedParts }
-}
-
-function compactPartForPreflight(part, textLimit, toolLimit, isRecent) {
-  if (!part || typeof part !== "object") return part
-  if (part.ignored === true) return part
-
-  if (typeof part.text === "string" && part.text.length > textLimit) {
-    return {
-      ...part,
-      text: summarizeLongText(part.text, textLimit, part.type ?? "text", isRecent),
-      metadata: { ...(part.metadata ?? {}), cassicorePreflight: "truncated" },
+  if (report.afterBytes > budget.targetBytes) {
+    const changed = emergencyKeepRecent(messages, report)
+    if (changed) {
+      report.changed = true
+      report.afterBytes = estimatePromptBytes(messages)
     }
   }
 
-  if (part.type === "tool" && part.state && typeof part.state === "object") {
-    const state = part.state
-    if (typeof state.output === "string" && state.output.length > toolLimit) {
-      return {
-        ...part,
-        state: {
-          ...state,
-          output: summarizeLongText(state.output, toolLimit, `tool:${part.tool ?? "unknown"}`, isRecent),
-        },
-        metadata: { ...(part.metadata ?? {}), cassicorePreflight: "tool-output-truncated" },
-      }
-    }
-    if (typeof state.error === "string" && state.error.length > toolLimit) {
-      return {
-        ...part,
-        state: {
-          ...state,
-          error: summarizeLongText(state.error, toolLimit, `tool-error:${part.tool ?? "unknown"}`, isRecent),
-        },
-        metadata: { ...(part.metadata ?? {}), cassicorePreflight: "tool-error-truncated" },
-      }
-    }
-  }
-
-  if (part.type === "file" && part.source?.text?.value && part.source.text.value.length > textLimit) {
-    return {
-      ...part,
-      source: {
-        ...part.source,
-        text: {
-          ...part.source.text,
-          value: summarizeLongText(part.source.text.value, textLimit, `file:${part.source.path ?? part.filename ?? "unknown"}`, isRecent),
-        },
-      },
-      metadata: { ...(part.metadata ?? {}), cassicorePreflight: "file-truncated" },
-    }
-  }
-
-  return part
+  report.changedMessages = report._changedMessageKeys.size
+  delete report._changedMessageKeys
+  return report
 }
 
 function summarizeLongText(text, limit, label, isRecent) {
@@ -625,69 +551,248 @@ function summarizeLongText(text, limit, label, isRecent) {
   ].join("\n")
 }
 
-function shouldPreservePart(part) {
-  if (!part || typeof part !== "object") return true
-  // Preserve user text until phase 3. Assistant text/reasoning/tool output can
-  // be pruned in old messages; user intent is usually the more important side
-  // of the historical transcript.
-  if (part.type === "text" && !part.synthetic) return true
-  if (part.type === "agent") return true
-  if (part.type === "subtask") return true
-  if (part.type === "compaction") return true
-  return false
+function resolvePreflightByteBudget(hookInput) {
+  const provider = String(hookInput?.model?.providerID ?? hookInput?.provider?.id ?? "").toLowerCase()
+  const model = String(hookInput?.model?.modelID ?? hookInput?.model?.id ?? "").toLowerCase()
+  const fingerprint = `${provider}/${model}`
+  const anthropicLike = /anthropic|claude/.test(fingerprint)
+  return anthropicLike
+    ? { kind: "anthropic", hardBytes: PREFLIGHT_ANTHROPIC_HARD_BYTES, targetBytes: PREFLIGHT_ANTHROPIC_TARGET_BYTES }
+    : { kind: "generic", hardBytes: PREFLIGHT_GENERIC_HARD_BYTES, targetBytes: PREFLIGHT_GENERIC_TARGET_BYTES }
 }
 
-function dropPartFromMessage(msg, partIndex, reason) {
-  const part = msg.parts?.[partIndex]
-  if (!part || typeof part !== "object") return false
+function estimatePromptBytes(messages) {
+  return Buffer.byteLength(JSON.stringify(buildPromptByteShape(messages)), "utf8")
+}
 
-  // For user text, `ignored` is the supported way to keep UI history while
-  // excluding it from the model request. For assistant/tool/reasoning, opencode
-  // does not honor ignored, so remove the part from the transient copy.
-  if (msg.info?.role === "user" && part.type === "text") {
-    if (part.ignored === true) return false
-    part.ignored = true
-    part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: reason }
-    return true
+function buildPromptByteShape(messages) {
+  return messages
+    .map((msg) => ({
+      role: msg?.info?.role ?? "unknown",
+      parts: Array.isArray(msg?.parts)
+        ? msg.parts.map(part => buildPartByteShape(part, msg?.info?.role)).filter(Boolean)
+        : [],
+    }))
+    .filter(msg => msg.parts.length > 0)
+}
+
+function buildPartByteShape(part, role) {
+  if (!part || typeof part !== "object") return null
+  if (role === "user" && part.type === "text" && part.ignored === true) return null
+
+  switch (part.type) {
+    case "text":
+      return { type: "text", text: part.text ?? "" }
+    case "reasoning":
+      return { type: "reasoning", text: part.text ?? "" }
+    case "tool":
+      return {
+        type: "tool",
+        tool: part.tool ?? "tool",
+        input: part.state?.input ?? null,
+        output: part.state?.output ?? null,
+        error: part.state?.error ?? null,
+      }
+    case "file":
+      return {
+        type: "file",
+        mime: part.mime ?? null,
+        filename: part.filename ?? null,
+        url: part.url ?? null,
+        sourceText: part.source?.text?.value ?? null,
+      }
+    case "agent":
+      return { type: "agent", name: part.name ?? "agent" }
+    case "subtask":
+      return { type: "subtask", prompt: part.prompt ?? "", description: part.description ?? "" }
+    case "compaction":
+      return { type: "compaction", auto: part.auto ?? false }
+    default:
+      return { type: part.type ?? "unknown", text: part.text ?? part.content ?? null }
+  }
+}
+
+function compactBulkyParts(messages, recentCutoff, limits, report, latestUserIndex) {
+  let changed = false
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (!msg || !Array.isArray(msg.parts)) continue
+    if (i === latestUserIndex && msg.info?.role === "user") continue
+    const isRecent = i >= recentCutoff
+    const textLimit = isRecent ? limits.recentTextLimit : limits.oldTextLimit
+    const toolLimit = isRecent ? limits.recentToolLimit : limits.oldToolLimit
+
+    for (const part of msg.parts) {
+      if (compactPartInPlace(part, textLimit, toolLimit, isRecent)) {
+        report.truncatedParts += 1
+        markMessageChanged(report, msg, i)
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+function findLastUserMessageIndex(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.info?.role === "user") return i
+  }
+  return -1
+}
+
+function compactPartInPlace(part, textLimit, toolLimit, isRecent) {
+  if (!part || typeof part !== "object") return false
+  let changed = false
+
+  if (typeof part.text === "string" && part.text.length > textLimit) {
+    part.text = summarizeLongText(part.text, textLimit, part.type ?? "text", isRecent)
+    part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: "truncated" }
+    changed = true
   }
 
-  msg.parts.splice(partIndex, 1)
+  if (part.type === "tool" && part.state && typeof part.state === "object") {
+    if (typeof part.state.output === "string" && part.state.output.length > toolLimit) {
+      part.state.output = summarizeLongText(part.state.output, toolLimit, `tool:${part.tool ?? "unknown"}`, isRecent)
+      part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: "tool-output-truncated" }
+      changed = true
+    }
+    if (typeof part.state.error === "string" && part.state.error.length > toolLimit) {
+      part.state.error = summarizeLongText(part.state.error, toolLimit, `tool-error:${part.tool ?? "unknown"}`, isRecent)
+      part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: "tool-error-truncated" }
+      changed = true
+    }
+    if (part.state.input && typeof part.state.input === "object") {
+      for (const [key, value] of Object.entries(part.state.input)) {
+        if (typeof value === "string" && value.length > toolLimit) {
+          part.state.input[key] = summarizeLongText(value, Math.max(400, Math.floor(toolLimit / 2)), `tool-arg:${key}`, isRecent)
+          part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: "tool-input-truncated" }
+          changed = true
+        }
+      }
+    }
+  }
+
+  if (part.type === "file" && part.source?.text?.value && part.source.text.value.length > textLimit) {
+    part.source.text.value = summarizeLongText(
+      part.source.text.value,
+      textLimit,
+      `file:${part.source.path ?? part.filename ?? "unknown"}`,
+      isRecent,
+    )
+    part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: "file-truncated" }
+    changed = true
+  }
+
+  return changed
+}
+
+function dropOldNonEssentialParts(messages, recentCutoff, report, reason) {
+  let changed = false
+  for (let i = 0; i < recentCutoff; i++) {
+    const msg = messages[i]
+    if (!msg || !Array.isArray(msg.parts)) continue
+    for (let p = msg.parts.length - 1; p >= 0; p--) {
+      const part = msg.parts[p]
+      if (!isDroppableNonUserPart(part)) continue
+      msg.parts.splice(p, 1)
+      annotateRemainingParts(msg, reason)
+      report.droppedParts += 1
+      markMessageChanged(report, msg, i)
+      changed = true
+    }
+  }
+  return changed
+}
+
+function dropOldUserText(messages, recentCutoff, report, reason) {
+  let changed = false
+  for (let i = 0; i < recentCutoff; i++) {
+    const msg = messages[i]
+    if (!msg || msg.info?.role !== "user" || !Array.isArray(msg.parts)) continue
+    for (const part of msg.parts) {
+      if (part?.type === "text" && part.ignored !== true) {
+        part.ignored = true
+        part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: reason }
+        report.droppedParts += 1
+        markMessageChanged(report, msg, i)
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+function dropOldMessagesAtTurnBoundary(messages, turnsToKeep, fallbackMessages, report, reason) {
+  if (messages.length <= fallbackMessages) return false
+  const keepStart = findRecentTurnBoundary(messages, turnsToKeep, fallbackMessages)
+  if (keepStart <= 0) return false
+  const dropped = messages.splice(0, keepStart)
+  if (dropped.length === 0) return false
+  report.droppedMessages += dropped.length
+  for (const msg of dropped) markMessageChanged(report, msg, `dropped:${report.droppedMessages}`)
+
+  const boundary = messages[0]
+  if (boundary && Array.isArray(boundary.parts)) {
+    boundary.parts.unshift({
+      id: `cassicore-preflight-summary-${Date.now()}`,
+      type: "text",
+      text: `[CassiCore preflight overflow guard: ${dropped.length} older messages were omitted before this model call (${reason}). Recover details from persistent memory/KV if needed.]`,
+      synthetic: true,
+      metadata: { source: SOURCE, reason },
+    })
+    markMessageChanged(report, boundary, 0)
+  }
   return true
 }
 
-function estimateMessagesChars(messages) {
-  let total = 0
-  for (const msg of messages) {
-    if (!msg || !Array.isArray(msg.parts)) continue
-    total += estimateMessageInfoChars(msg.info)
-    for (const part of msg.parts) {
-      if (part?.ignored === true) continue
-      total += estimatePartChars(part)
-    }
-  }
-  return total
+function emergencyKeepRecent(messages, report) {
+  if (messages.length <= 4) return false
+  const keepStart = findRecentTurnBoundary(messages, 1, 4)
+  if (keepStart <= 0) return false
+  const dropped = messages.splice(0, keepStart)
+  if (dropped.length === 0) return false
+  report.droppedMessages += dropped.length
+  for (const msg of dropped) markMessageChanged(report, msg, `emergency:${report.droppedMessages}`)
+  return true
 }
 
-function estimateMessageInfoChars(info) {
-  if (!info || typeof info !== "object") return 0
-  return 80
+function dropBeforeLatestUserTurn(messages, report, reason) {
+  const latestUserIndex = findLastUserMessageIndex(messages)
+  if (latestUserIndex <= 0) return false
+  const dropped = messages.splice(0, latestUserIndex)
+  if (dropped.length === 0) return false
+  report.droppedMessages += dropped.length
+  for (const msg of dropped) markMessageChanged(report, msg, `${reason}:${report.droppedMessages}`)
+  return true
 }
 
-function estimatePartChars(part) {
-  if (!part || typeof part !== "object") return 0
-  let total = 40
-  if (typeof part.text === "string") total += part.text.length
-  if (typeof part.content === "string") total += part.content.length
-  if (typeof part.prompt === "string") total += part.prompt.length
-  if (typeof part.description === "string") total += part.description.length
-  if (part.type === "tool" && part.state && typeof part.state === "object") {
-    if (typeof part.state.raw === "string") total += part.state.raw.length
-    if (typeof part.state.output === "string") total += part.state.output.length
-    if (typeof part.state.error === "string") total += part.state.error.length
-    if (part.state.input) total += stringifyBrief(part.state.input).length
+function findRecentTurnBoundary(messages, turnsToKeep, fallbackMessages) {
+  const userIndices = []
+  for (let i = 0; i < messages.length; i++) {
+    if (messages[i]?.info?.role === "user") userIndices.push(i)
   }
-  if (part.type === "file" && part.source?.text?.value) total += String(part.source.text.value).length
-  return total
+  if (userIndices.length > turnsToKeep) return userIndices[userIndices.length - turnsToKeep]
+  return Math.max(0, messages.length - fallbackMessages)
+}
+
+function isDroppableNonUserPart(part) {
+  if (!part || typeof part !== "object") return false
+  if (part.type === "text" && !part.synthetic) return false
+  if (part.type === "agent" || part.type === "subtask" || part.type === "compaction") return false
+  return true
+}
+
+function annotateRemainingParts(msg, reason) {
+  if (!Array.isArray(msg?.parts)) return
+  for (const part of msg.parts) {
+    if (!part || typeof part !== "object") continue
+    part.metadata = { ...(part.metadata ?? {}), cassicorePreflight: reason }
+  }
+}
+
+function markMessageChanged(report, msg, fallback) {
+  const key = msg?.info?.id ?? String(fallback)
+  report._changedMessageKeys.add(String(key))
 }
 
 // ──────────────────────────────────────────────────────────────────────────────

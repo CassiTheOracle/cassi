@@ -97,16 +97,21 @@ The opencode plugin gains three things claude-code doesn't have:
 The plugin has two layers of context-pressure handling:
 
 1. **Reactive pressure tracking** after successful turns: `session.turn.complete` records real token usage and updates session pressure tiers.
-2. **Preflight overflow guard** before model calls: `experimental.chat.messages.transform` estimates outgoing context size and, when it exceeds a safe fraction of the model window, mutates the transient message list so opencode can still generate a response.
+2. **Preflight overflow guard** before model calls: `experimental.chat.messages.transform` measures outgoing request bytes and prunes the transient message list before the provider request is built.
 
 The preflight guard is intentionally conservative:
 
 - Preserves the most recent messages and current user request.
+- Uses two hard byte budgets:
+  - **Anthropic / Claude-like models:** exact 2,097,152-byte hard cap with a lower target budget for safety.
+  - **Unknown / generic providers:** 1.5 MiB hard cap fallback with a lower target budget.
 - Truncates old bulky text/tool/file/reasoning parts first.
-- Removes old assistant/tool/reasoning parts from the transient model-call copy if truncation is not enough.
+- Removes old assistant/tool/reasoning/file parts from the transient model-call copy if truncation is not enough.
 - Marks old user text as `ignored` where supported rather than deleting UI history.
+- Preserves the newest user turn even in last-resort mode; if that newest turn is itself too large, the plugin records an internal oversize anomaly rather than silently mutilating it.
 - Suppresses CassiCore's Aurora system injection for that one model call so we don't worsen an overflow.
 - Emits `preflight_context_pruned` into CassiCore events and cortex so the intervention is observable.
+- Emits `preflight_context_still_oversized` when older-context pruning is exhausted but the preserved newest turn still keeps the request above the hard cap.
 
 This is a viability guard, not a substitute for real compaction. If you see repeated preflight pruning, run opencode compaction or delegate the remainder to Constellation.
 
@@ -148,4 +153,4 @@ This returns the same narrative that gets injected into opencode's system prompt
 
 **High latency on first turn:** Aurora's narrative serialization is cached for 2 seconds and re-fetched on session start, user prompts, assistant messages, and post-compact. The first call after daemon startup may take ~500ms while Aurora builds its initial graph; subsequent calls are sub-100ms.
 
-**No response when context is huge:** The preflight guard should now prune the outgoing message list before the model call. Restart opencode after updating the plugin. Then watch for `preflight_context_pruned` events or cortex signals tagged `opencode, preflight-prune`. If the model still fails, the session likely needs explicit compaction or the target model has an unusually small context window.
+**No response when context is huge:** The preflight guard now prunes against measured request bytes before the model call. Restart opencode after updating the plugin. Then watch for `preflight_context_pruned` events or cortex signals tagged `opencode, preflight-prune`. If you see `preflight_context_still_oversized`, the newest preserved turn is likely too large on its own and the session needs explicit compaction, chunking, or a smaller pasted payload.
