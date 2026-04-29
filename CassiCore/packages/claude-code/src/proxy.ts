@@ -108,10 +108,11 @@ function stripSoulMd(system: string | unknown[]): string | unknown[] {
 
 function injectIntoSystemPrompt(
   body: Record<string, unknown>,
-  cognitiveContext: string,
+  content: string,
+  tag = "cassicore-intelligence",
 ): void {
   const system = body.system;
-  const injection = `<cassicore-intelligence>\n${cognitiveContext}\n</cassicore-intelligence>`;
+  const injection = `<${tag}>\n${content}\n</${tag}>`;
 
   if (typeof system === "string") {
     body.system = `${system}\n\n${injection}`;
@@ -123,6 +124,23 @@ function injectIntoSystemPrompt(
   } else {
     body.system = injection;
   }
+}
+
+function renderReceiptForInjection(receipt: any): string | null {
+  if (!receipt || typeof receipt !== "object") return null;
+  if (typeof receipt.dropped !== "number" || receipt.dropped <= 0) return null;
+  const lines: string[] = [];
+  if (typeof receipt.summary === "string") lines.push(receipt.summary);
+  if (Array.isArray(receipt.anomalies) && receipt.anomalies.length > 0) {
+    lines.push("");
+    lines.push("anomalies:");
+    for (const a of receipt.anomalies) lines.push(`  - ${a}`);
+  }
+  lines.push("");
+  lines.push(
+    'to inspect or recover dropped context: cassi_context({action: "audit"}) or cassi_context({action: "recall", n: 5})',
+  );
+  return lines.join("\n");
 }
 
 function extractClaudeSessionId(req: http.IncomingMessage): string {
@@ -334,6 +352,10 @@ async function proxyRequest(
         try {
           const curated = await bridge.curate(state.ccSessionId, body.messages);
           if (curated?.messages) nextMessages = curated.messages;
+          const receiptText = renderReceiptForInjection(curated?.meta?.receipt);
+          if (receiptText) {
+            injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
+          }
         } catch (err) {
           console.error("[proxy] curate failed:", String(err));
         }
