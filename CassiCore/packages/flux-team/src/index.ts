@@ -1,54 +1,25 @@
 /**
- * DEPRECATED: FluxTeam is deprecated.
+ * FluxTeam Blackboard Components (Phase 2 - Pending Removal)
  *
- * Do not build new features on FluxTeam. Prefer Constellation and Helix for
- * all new orchestration work. This module remains only for compatibility and
- * migration support while dependent code is retired.
+ * REMOVED: FluxTeamOrchestrator, FluxCell, TopologyEngine, Topology,
+ * GenomeRegistry, TaskAnalyzer, SkillRouter, OutcomeLedger, Conditions
+ * are all deleted. All orchestration now uses Helix and Constellation.
  *
- * FluxTeam — Next-generation dynamic multi-agent team architecture.
+ * Remaining components (Blackboard ecosystem):
+ *   - **Blackboard**: Enhanced shared workspace with channels
+ *   - **GlobalBlackboardRegistry**: Named global blackboard management
+ *   - **Blackboard Tools**: Plan and report tools for postures
  *
- * Replaces the rigid TriadCell (Proposer→Critic→Executor) pipeline with
- * Lumen-centric execution, graph-based topologies, and learning-driven routing.
- *
- * Core components:
- *   - **FluxTeamOrchestrator**: Top-level team lifecycle management
- *   - **FluxCell**: Atomic execution unit (topology + blackboard + Lumen)
- *   - **TopologyEngine**: Graph traversal executor with conditional transitions
- *   - **Blackboard**: Enhanced shared workspace with channels and reactive subscriptions
- *   - **GenomeRegistry**: Configurable agent blueprints with Lumen posture directives
- *   - **TaskAnalyzer**: Heuristic task signature analysis
- *   - **SkillRouter**: Capability-aware genome/topology selection
- *   - **OutcomeLedger**: SQLite-backed learning store for routing optimization
+ * NOTE: Blackboard is deprecated per docs/design/constellation-enhancements-roadmap.md.
+ * Migration to GlobalWorkspace + HelixSynapse is pending (Phase 2).
  *
  * @module flux-team
  */
 
-export {
-  FluxTeamOrchestrator,
-  createFluxTeamOrchestrator,
-} from './flux-team-orchestrator.js'
-export type { FluxTeamOrchestratorConfig } from './flux-team-orchestrator.js'
-
-export { FluxCell, createFluxCell } from './flux-cell.js'
-export type { FluxCellConfig } from './flux-cell.js'
-
-export { TopologyEngine, createTopologyEngine } from './topology-engine.js'
-export type {
-  TopologyExecutionOptions,
-  TopologyExecutionResult,
-} from './topology-engine.js'
-
-export {
-  TOPOLOGY_TEMPLATES,
-  getTopology,
-  getAvailableTemplates,
-  validateTopology,
-} from './topology.js'
-
-export { ConditionEvaluator, createConditionEvaluator } from './conditions.js'
-export type { ConditionContext } from './conditions.js'
-
+// Blackboard core
 export { Blackboard } from './blackboard.js'
+
+// Blackboard tools (used by Helix postures)
 export {
   handleBlackboardToolCall,
   isBlackboardMetaTool,
@@ -63,15 +34,16 @@ export {
   EXECUTIVE_PLAN_TOOLS,
 } from './blackboard-tools.js'
 
-export { GENOME_TEMPLATES, createGenome } from './genome.js'
-export { GenomeRegistry } from './genome-registry.js'
-
-export { TaskAnalyzer } from './task-analyzer.js'
-export { SkillRouter } from './skill-router.js'
-export type { FluxRoutingResult } from './skill-router.js'
-
-export { OutcomeLedger } from './outcome-ledger.js'
-export type { OutcomeLedgerStats } from './outcome-ledger.js'
-
+// Global blackboard registry (used by multiple modules)
 export { GlobalBlackboardRegistry } from './global-blackboard-registry.js'
 export type { GlobalBlackboardEntry } from './global-blackboard-registry.js'
+
+// REMOVED exports (deprecated - deleted):
+// - FluxTeamOrchestrator, createFluxTeamOrchestrator, FluxTeamOrchestratorConfig
+// - FluxCell, createFluxCell, FluxCellConfig
+// - TopologyEngine, createTopologyEngine, TopologyExecutionOptions, TopologyExecutionResult
+// - TOPOLOGY_TEMPLATES, getTopology, getAvailableTemplates, validateTopology
+// - ConditionEvaluator, createConditionEvaluator, ConditionContext
+// - GENOME_TEMPLATES, createGenome, GenomeRegistry
+// - TaskAnalyzer, SkillRouter, FluxRoutingResult
+// - OutcomeLedger, OutcomeLedgerStats
