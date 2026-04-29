@@ -359,8 +359,12 @@ export async function executeConstellationTool(
       }
 
       case 'constellation_status': {
+        // WHY: Accept both sessionId and jobId for backward compat. They're
+        // typically the same value, but the schema inconsistency was confusing.
+        // (c-36 postmortem BUG G)
+        const statusId = args.sessionId ?? args.jobId
         const res = await fetchWithTimeout(
-          `${adminBaseUrl}/constellation/${args.jobId}`,
+          `${adminBaseUrl}/constellation/${statusId}`,
           { timeoutMs: 10_000 },
         )
         if (!res.ok) throw new Error(`Status ${res.status}`)

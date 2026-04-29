@@ -267,10 +267,13 @@ async function executeHelixAgentTool(
   const toolName = `helix_${action}`;
 
   // Map consolidated action to legacy tool name
+  // WHY: Removed 'helix_events' and 'helix_postures' from valid set — they had
+  // no handlers in executeHelixTool and would always throw "Unknown Helix tool".
+  // (c-36 postmortem BUG H)
   const validHelixTools = new Set([
     'helix_project', 'helix_status', 'helix_cancel', 'helix_health',
     'helix_jobs', 'helix_watch', 'helix_sessions', 'helix_messages',
-    'helix_tool_calls', 'helix_events', 'helix_postures', 'helix_progress',
+    'helix_tool_calls', 'helix_progress',
   ]);
 
   if (!validHelixTools.has(toolName)) {
