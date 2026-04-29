@@ -786,6 +786,16 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         ? `Brainstem: ${brainstemResult.annotations.length} annotations, avg score ${brainstemResult.averageScore.toFixed(2)}`
         : '',
 
+      // WHY: Copy confidence and keyPoints from posture results so callers
+      // (Constellation, status endpoints) get real values instead of undefined.
+      // Previously these declared fields were never populated (c-36 postmortem Root Cause C).
+      unityConfidence: unityResult.confidence,
+      yangConfidence: yangResult.confidence,
+      yinConfidence: yinResult.confidence,
+      unityKeyPoints: unityResult.keyPoints,
+      yangKeyPoints: yangResult.keyPoints,
+      yinKeyPoints: yinResult.keyPoints,
+
       convergencePoints,
       unresolvedTensions: unresolvedChallenges.map(c => ({
         yangPosition: c.from === 'yang' ? c.counterargument : '',

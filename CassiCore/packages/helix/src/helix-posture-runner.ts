@@ -338,6 +338,12 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private signalDoneConfidence?: number
   private signalDoneKeyPoints?: string[]
 
+  // signal_conclusion data — reviewers call signal_conclusion instead of signal_done;
+  // without these fields their conclusions were logged but discarded (c-36 postmortem).
+  private signalConclusionConclusion?: string
+  private signalConclusionConfidence?: number
+  private signalConclusionKeyPoints?: string[]
+
   // Conversation persistence turn counter
   private conversationTurnIndex = 0
 
@@ -1917,6 +1923,15 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     const conclusion = String(input.conclusion ?? '')
     const confidence = typeof input.confidence === 'number' ? input.confidence : 0.5
+    const keyPoints = Array.isArray(input.key_points) ? input.key_points.map(String) : []
+
+    // WHY: Store reviewer conclusions in instance fields so buildPostureResult
+    // can return the actual conclusion text, not a generic fallback.
+    // Previously these were only logged, causing confidence=0.7/keyPoints=[]
+    // for all yang/yin results (c-36 postmortem Root Cause B).
+    this.signalConclusionConclusion = conclusion
+    this.signalConclusionConfidence = confidence
+    this.signalConclusionKeyPoints = keyPoints
 
     this.concluded = true
     this.workStream.recordRoleConclusion(this.role as any, false)
@@ -2769,9 +2784,18 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     // Legacy mentorSynthesis field retained for backward compat but unused
 
     return {
-      conclusion: this.signalDoneConclusion || (this.concluded ? `${this.role} completed` : `${this.role} stopped`),
-      confidence: this.signalDoneConfidence ?? 0.7,
-      keyPoints: this.signalDoneKeyPoints ?? [],
+      // WHY: Merge signal_done (unity) and signal_conclusion (yang/yin) paths.
+      // signal_done stores into signalDone* fields; signal_conclusion stores into
+      // signalConclusion* fields. Fall through to generic strings when neither was called.
+      conclusion: this.signalDoneConclusion
+        || this.signalConclusionConclusion
+        || (this.concluded ? `${this.role} completed` : `${this.role} stopped`),
+      confidence: this.signalDoneConfidence
+        ?? this.signalConclusionConfidence
+        ?? 0.7,
+      keyPoints: this.signalDoneKeyPoints
+        ?? this.signalConclusionKeyPoints
+        ?? [],
       iterationCount: this.iterationCount,
       toolCallCount: this.toolCallCount,
       tokensUsed: this.tokensUsed,

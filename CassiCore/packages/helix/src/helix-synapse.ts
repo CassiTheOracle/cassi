@@ -1,7 +1,7 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { ContentBlock, Message } from '../../../types/runtime.js'
 import type { HelixRole } from './types.js'
-import { ObserverMemoryBridge, extractConceptHints } from '../constellation/observer-memory-bridge.js'
+import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from '../constellation/observer-memory-bridge.js'
 import type { ObserverMemorySource } from '../constellation/observer-memory-bridge.js'
 import { BroadcastDedupe, normalizeForDedupe } from '../constellation/observer-broadcast-dedupe.js'
 
@@ -458,7 +458,7 @@ export class HelixSynapse {
       layer: 'synapse',
       subjectHelixIds: [this.helixId],
       concepts: extractConceptHints(parsed.content),
-      confidence: parsed.priority === 'urgent' ? 0.85 : parsed.priority === 'ambient' ? 0.45 : 0.65,
+      confidence: priorityToConfidence(parsed.priority),
       tags: ['helix-synapse', `helix:${this.helixId}`],
     })
     this.emitBroadcastEvent(broadcast)
