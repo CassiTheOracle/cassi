@@ -21,7 +21,6 @@
 
 import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { ThoughtObserver, CognitiveSignal, SignalKind } from '../../intelligence/thought-observer.js'
-import type { InjectionAggregator } from '../../intelligence/injection-aggregator.js'
 import type { CognitiveBridge, ResonancePattern } from '../../intelligence/cognitive-bridge.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
