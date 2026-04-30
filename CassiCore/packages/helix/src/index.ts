@@ -357,6 +357,7 @@ export function createHelix(
                   const messages = [{ role: 'user' as const, content: opts.prompt }]
                   const result = await brainstemHandle.complete(messages as any, {
                     maxTokens: opts.maxTokens,
+                    thinking: 'none',
                   } as any)
                   return { content: result.response, truncated: false }
                 },
@@ -381,6 +382,7 @@ export function createHelix(
                   const messages = [{ role: 'user' as const, content: opts.prompt }]
                   const result = await synapseHandle.complete(messages as any, {
                     maxTokens: opts.maxTokens,
+                    thinking: 'none',
                   } as any)
                   return { content: result.response, truncated: false }
                 },
