@@ -72,8 +72,7 @@ export interface SessionPipelineOptions {
     };
   };
   eventBus?: IEventBus;
-  /** Unified injection aggregator for Corpus, SessionDigest, Optimizer, Dreamer, etc. */
-  injectionAggregator?: { aggregate(sessionId: string, turnContext?: unknown): Promise<Array<{ content: string; source: string }>> };
+  // REMOVED: injectionAggregator — deprecated. Now uses Thalamus/GlobalWorkspace.
 }
 
 // Shared options for both processMessage and processTurn
@@ -440,9 +439,8 @@ export class SessionPipeline {
           error: String(err),
         });
       }
-    } else if (this.options.injectionAggregator) {
-      await this.applyLegacyInjections(session, content);
     }
+    // REMOVED: injectionAggregator legacy injections — InjectionAggregator deleted.
 
     // Emit stream start event if streaming is requested
     const shouldStream = !!(options?.stream || options?.onStreamEvent);
@@ -651,35 +649,6 @@ export class SessionPipeline {
         const idx = session.messages.indexOf(injectedThoughtMsg);
         if (idx !== -1) session.messages.splice(idx, 1);
       }
-    }
-  }
-
-  /**
-   * Apply injections via the legacy static-cap aggregator path.
-   * Used as the default when GWT workspace is disabled, or as a fallback
-   * when workspace assembly fails.
-   */
-  private async applyLegacyInjections(session: SessionState, content: string): Promise<void> {
-    if (!this.options.injectionAggregator) return;
-    try {
-      const turnContext = { session, userMessage: content, timestamp: Date.now() };
-      const injections = await this.options.injectionAggregator.aggregate(session.id, turnContext);
-      if (injections.length > 0) {
-        if (!session.context) {
-          session.context = { updatedAt: Date.now() };
-        }
-        session.context.injections = injections.map(i => i.content);
-        this.logger.debug('InjectionAggregator applied', {
-          sessionId: session.id,
-          sources: injections.map(i => i.source),
-          totalChars: injections.reduce((s, i) => s + i.content.length, 0),
-        });
-      }
-    } catch (err) {
-      this.logger.debug('InjectionAggregator failed (non-fatal)', {
-        sessionId: session.id,
-        error: String(err),
-      });
     }
   }
 
