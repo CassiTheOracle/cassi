@@ -510,7 +510,7 @@ import {
   isMentorMetaTool,
 } from './helix-mentor-tools.js'
 
-export { isPlanMetaTool, REPORT_TOOL_NAMES, MENTOR_TOOLS, MENTOR_TOOL_NAMES, isMentorMetaTool, REPORT_TO_BRAINSTEM_TOOL, BRAINSTEM_REVIEWER_TOOLS }
+export { isPlanMetaTool, REPORT_TOOL_NAMES, MENTOR_TOOLS, MENTOR_TOOL_NAMES, isMentorMetaTool }
 
 /** Plan tools available to all Helix postures */
 export const HELIX_PLAN_TOOLS = ALL_POSTURES_PLAN_TOOLS
