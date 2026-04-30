@@ -455,6 +455,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       telemetry: opts.telemetry,
       mnemicField: opts.mnemicField,
       aurora: opts.aurora,
+      quiescence: false,  // Disabled — activity tracking is incomplete (doesn't see
+                          // tool calls or LLM turns), kills active branches prematurely.
+                          // Constellation uses stagnation sentinel instead.
     })
     await conductor.start()
     helixTelemetry = conductor.telemetry
@@ -467,19 +470,6 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     log.info('HelixConductor started — postures publishing to GlobalWorkspace', {
       sessionId,
       journal: conductor.journal.getDbPath(),
-    })
-
-    // Phase F — quiescence triggers orderly cancellation when the
-    // GlobalWorkspace has been quiet for long enough or the hard-cutoff
-    // fires. Runner-level termination still runs; this just short-circuits.
-    conductor.setOnQuiescence((report) => {
-      log.info('Helix quiescence triggered termination', {
-        sessionId,
-        reason: report.reason,
-        idleDurationMs: report.idleDurationMs,
-        sessionAgeMs: report.sessionAgeMs,
-      })
-      cancelAll()
     })
   }
 
