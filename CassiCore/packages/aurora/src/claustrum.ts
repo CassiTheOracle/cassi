@@ -158,6 +158,17 @@ export class Claustrum {
       // insight will re-enter the collector and be folded again when appropriate.
     }
 
+    // Merge hydrated state from persistence (B6.1). These are pre-populated
+    // nodes/edges from a prior session that survived decay — they enrich the
+    // graph without requiring re-derivation from providers.
+    if (this._hydratedNodes.length > 0 || this._hydratedEdges.length > 0) {
+      this.mergeHydratedState(nodes, edges, reverseEdges)
+      // Clear after merging — subsequent buildFocusedGraph calls only get
+      // fresh provider data unless persistence re-seeds.
+      this._hydratedNodes = []
+      this._hydratedEdges = []
+    }
+
     this.resolveOverlappingEntities(nodes)
     this.computePageRank(nodes, edges, reverseEdges)
 
@@ -279,6 +290,31 @@ export class Claustrum {
 
     return hubs.slice(0, this.config.maxResonanceHubs)
   }
+
+  /**
+   * Seed the claustrum with nodes and edges hydrated from AuroraPersistence.
+   * This is called at boot when cross-session continuity (B6) is enabled.
+   *
+   * The seeded nodes/edges become part of the next `buildFocusedGraph` result
+   * — they're pre-populated so the graph doesn't start empty on a fresh boot.
+   * When `buildFocusedGraph` runs, it will merge these with whatever the
+   * providers discover for the current turn's foci.
+   *
+   * See: docs/design/aurora-cross-session-continuity.md §5
+   */
+  seedFromPersistence(nodes: CognitiveNode[], edges: CognitiveEdge[]): void {
+    // Store for merging on next buildFocusedGraph call
+    this._hydratedNodes = nodes
+    this._hydratedEdges = edges
+    this.logger.info('Seeded from persistence', {
+      nodes: nodes.length,
+      edges: edges.length,
+    })
+  }
+
+  /** Hydrated state from persistence, merged into the next buildFocusedGraph. */
+  private _hydratedNodes: CognitiveNode[] = []
+  private _hydratedEdges: CognitiveEdge[] = []
 
   /**
    * Compute coherence and integration in a single pass over the graph.
@@ -430,6 +466,35 @@ export class Claustrum {
 
       frontier = nextFrontier
       if (nodes.size >= this.config.maxGraphNodes) break
+    }
+  }
+
+  /**
+   * Merge hydrated nodes and edges from AuroraPersistence into the graph
+   * being built. Existing nodes (from providers this turn) take precedence
+   * over hydrated ones — hydration fills gaps, it doesn't overwrite fresh data.
+   */
+  private mergeHydratedState(
+    nodes: Map<string, CognitiveNode>,
+    edges: Map<string, CognitiveEdge[]>,
+    reverseEdges: Map<string, CognitiveEdge[]>,
+  ): void {
+    for (const node of this._hydratedNodes) {
+      if (!nodes.has(node.id)) {
+        nodes.set(node.id, node)
+      }
+    }
+    for (const edge of this._hydratedEdges) {
+      if (!nodes.has(edge.sourceId) || !nodes.has(edge.targetId)) continue
+      const list = edges.get(edge.sourceId) ?? []
+      const exists = list.some(e => e.targetId === edge.targetId && e.edgeType === edge.edgeType)
+      if (!exists) {
+        list.push(edge)
+        edges.set(edge.sourceId, list)
+        const revList = reverseEdges.get(edge.targetId) ?? []
+        revList.push(edge)
+        reverseEdges.set(edge.targetId, revList)
+      }
     }
   }
 

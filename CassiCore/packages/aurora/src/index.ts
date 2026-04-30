@@ -36,10 +36,13 @@ import type {
 import { AURORA_DEFAULTS } from './types.js'
 import type { ReverieInferenceProvider } from './types.js'
 import { ReverieReasoningObserver, makeReasoningRecordId } from './reverie-reasoning-observer.js'
+import type { AuroraPersistence, SessionHandle } from './persistence.js'
 
 export { Claustrum, ObserverInsightCollector } from './claustrum.js'
 export { StateProjector } from './state-projector.js'
 export { LarqlKnowledgeProvider } from './larql-provider.js'
+export { AuroraPersistence } from './persistence.js'
+export type { SessionHandle, SessionMetadata, AuroraPersistenceConfig } from './persistence.js'
 export type {
   MentalState,
   MentalStateUpdate,
@@ -98,6 +101,10 @@ export class Aurora {
   /** Optional session ID for reasoning records. */
   private sessionId?: string
 
+  /** Optional persistence layer for cross-session continuity (B6). */
+  private persistence?: AuroraPersistence
+  private persistenceSession?: SessionHandle
+
   /** Active task for context in Reverie analysis (wired from lamina). */
   private activeTask: string | null = null
 
@@ -115,6 +122,7 @@ export class Aurora {
     private portalBridge: PortalBridge | null,
     logger: ILogger,
     config?: Partial<AuroraConfig>,
+    persistence?: AuroraPersistence,
   ) {
     this.logger = logger.child ? logger.child('aurora') : logger
     this.maxConceptsPerTurn = config?.maxConceptsPerTurn ?? AURORA_DEFAULTS.maxConceptsPerTurn
@@ -125,10 +133,34 @@ export class Aurora {
     this.claustrum = new Claustrum(logger, config)
     this.projector = new StateProjector(logger, config)
 
+    // Optional persistence: hydrate prior state if available (B6.1)
+    if (persistence) {
+      this.persistence = persistence
+      this.persistenceSession = persistence.beginSession()
+      const { nodes, edges } = persistence.hydrateClaustrum()
+      if (nodes.length > 0) {
+        this.claustrum.seedFromPersistence(nodes, edges)
+      }
+      const priorLog = persistence.hydrateReasoningLog()
+      if (priorLog.length > 0) {
+        this.reasoningLog = priorLog
+      }
+      const priorMomentum = persistence.hydrateMomentum()
+      if (priorMomentum) {
+        // We'll use this as initial momentum context
+        this.recentConcepts = new Map(
+          priorMomentum.trendingConcepts.map(c => [c, 5] as [string, number]),
+        )
+      }
+    }
+
     this.logger.info('Aurora initialized', {
       hasModelProvider: !!modelProvider,
       hasKnowledgeProvider: !!knowledgeProvider,
       hasPortalBridge: !!portalBridge,
+      hasPersistence: !!persistence,
+      hydratedNodes: persistence ? persistence.hydrateClaustrum().nodes.length : 0,
+      hydratedRecords: persistence ? persistence.hydrateReasoningLog(0).length : 0,
       reverieSamplingRate: this.reverieSamplingRate,
       reverieMinTextLength: this.reverieMinTextLength,
     })
@@ -188,6 +220,10 @@ export class Aurora {
 
   /** Dispose Aurora and cancel pending operations. */
   dispose(): void {
+    // End persistence session gracefully (B6.1)
+    if (this.persistence && this.persistenceSession) {
+      this.persistence.endSession(this.persistenceSession, 'graceful')
+    }
     this.reverieObserver = null
     this.inFlightAnalyses.clear()
     this.reasoningLog = []
@@ -541,6 +577,11 @@ export class Aurora {
     this.reasoningLog.push(record)
     if (this.reasoningLog.length > MAX_REASONING_RECORDS) {
       this.reasoningLog.shift()
+    }
+
+    // Persist to SQLite if persistence is wired (B6.1)
+    if (this.persistence && this.persistenceSession) {
+      this.persistence.writeReasoning(this.persistenceSession, record)
     }
 
     return record

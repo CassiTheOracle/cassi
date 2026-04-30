@@ -1,6 +1,6 @@
 import type { SignalType } from './types.js'
 import type { CortexSession } from './session.js'
-import type { BrainstemBlackboard } from '../helix/brainstem-types.js'
+import type { BrainstemContextSources } from '../helix/brainstem-types.js'
 
 type PostChannel = 'findings' | 'concerns' | 'bugs'
 type ReadChannel = 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests' | 'bugs'
@@ -32,53 +32,57 @@ function salienceToPriority(salience: number): number {
   return 0
 }
 
-export class CortexSessionBlackboardAdapter implements BrainstemBlackboard {
+/**
+ * REMOVED: CortexSessionBlackboardAdapter — Blackboard deprecated.
+ *
+ * Replacement: CortexContextSourcesAdapter implements BrainstemContextSources.
+ * Adapts a CortexSession into the new context sources interface:
+ *   - globalWorkspace: broadcasts cortex signals
+ *   - cortex: reads active signals from regions
+ */
+export class CortexContextSourcesAdapter implements BrainstemContextSources {
   constructor(private session: CortexSession) {}
 
-  post(
-    channel: PostChannel,
-    entry: {
-      author: string
-      content: string
-      structured?: Record<string, unknown>
-      priority?: number
-      tags?: string[]
-    },
-  ): unknown {
-    const mapping = CHANNEL_MAP[channel]
-    if (!mapping) return null
-
-    return this.session.signal(mapping.region, {
-      type: mapping.type,
-      content: entry.content,
-      author: entry.author,
-      salience: priorityToSalience(entry.priority),
-      tags: entry.tags ?? [],
-      structured: entry.structured,
-    })
+  get globalWorkspace() {
+    return {
+      broadcast: (signal: { type: string; content: string; author: string; salience: number }) => {
+        const mapping = CHANNEL_MAP[signal.type as string]
+        if (!mapping) return
+        this.session.signal(mapping.region, {
+          type: mapping.type,
+          content: signal.content,
+          author: signal.author,
+          salience: signal.salience,
+          tags: [],
+        })
+      },
+      getRecentSignals: (limit = 10) => {
+        return this.session.read('sensory', { limit })
+          .map(s => ({
+            type: s.type,
+            content: s.content,
+            author: s.author,
+            timestamp: s.createdAt,
+          }))
+      },
+    }
   }
 
-  read(
-    channel: ReadChannel,
-    limit?: number,
-  ): Array<{ id: string; channel: string; content: string; author: string; priority: number; tags: string[]; timestamp: number }> {
-    const mapping = CHANNEL_MAP[channel]
-    if (!mapping) return []
-
-    return this.session.read(mapping.region, { types: [mapping.type], limit })
-      .map(signal => ({
-        id: signal.id,
-        channel,
-        content: signal.content,
-        author: signal.author,
-        priority: salienceToPriority(signal.salience),
-        tags: signal.tags,
-        timestamp: signal.createdAt,
-      }))
+  get cortex() {
+    return {
+      getActiveSignals: (region?: string) => {
+        return this.session.read(region ?? 'association', { limit: 10 })
+          .map(s => ({
+            type: s.type,
+            content: s.content,
+            salience: s.salience,
+          }))
+      },
+    }
   }
 
-  getPlan() { return null }
-  getReport() { return null }
+  // Lamina not supported via cortex adapter
+  get lamina() { return undefined }
 }
 
 export { CHANNEL_MAP, priorityToSalience, salienceToPriority }
