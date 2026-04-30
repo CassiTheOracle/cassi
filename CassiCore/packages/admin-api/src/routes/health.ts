@@ -124,7 +124,7 @@ export async function handleHealthRoutes(
       recover: !!(intel.recover),
       reflect: !!(intel.reflect),
       thinker: !!(intel.thinker),
-      optimizer: !!(intel.optimizer),
+      // REMOVED: optimizer — OptimizerModule deleted
       dialectic: !!(intel.dialectic),
       multiAgent: false,
       ruleEnforcer: !!(intel.ruleEnforcer),

@@ -732,14 +732,7 @@ export async function handleIntelligenceRoutes(
       let unresolvedPatterns = null
       try { unresolvedPatterns = intel.reflect?.unresolved?.(5) ?? null } catch {}
 
-      const optimizerHealth: Record<string, any> = {}
-      try {
-        const sessions = Array.from(daemon.sessions?.['sessions']?.values?.() || [])
-        for (const s of sessions.slice(0, 5)) {
-          const score = intel.optimizer?.scoreSession?.((s as any).id)
-          if (score) optimizerHealth[(s as any).id] = score
-        }
-      } catch {}
+      // REMOVED: optimizer session-health block — OptimizerModule deleted
 
       let dialecticSummary = null
       try {
@@ -769,7 +762,7 @@ export async function handleIntelligenceRoutes(
         memory: memoryStats,
         archive: archiveStats,
         reflect: { unresolvedPatterns },
-        optimizer: { sessionHealth: optimizerHealth },
+        // REMOVED: optimizer field — OptimizerModule deleted
         dialectic: dialecticSummary,
         aiScientist: { recentStudies, ...(scientistSummary ?? {}) },
         aiEngineer: engineerSummary,

@@ -287,7 +287,8 @@ export async function handleEventsRoutes(
       // This listener must skip them to avoid duplicates on the SSE stream.
       const COGNITIVE_PREFIXES = [
         'thinker:', 'dialectic:', 'consciousness:', 'subconscious:',
-        'turn:', 'agent:', 'team:', 'drone:', 'reflect:', 'optimizer:',
+        'turn:', 'agent:', 'team:', 'drone:', 'reflect:',
+        // REMOVED: 'optimizer:' — OptimizerModule deleted
         'autonomy:', 'memory:',
         'scout:',
         'provider:',
