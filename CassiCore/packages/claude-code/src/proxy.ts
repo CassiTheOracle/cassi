@@ -1,40 +1,56 @@
 #!/usr/bin/env npx tsx
 /**
- * CassiCore Anthropic API Proxy for Claude Code
+ * CassiCore Multi-Provider API Proxy for Claude Code
  *
- * Sits between Claude Code and the Anthropic API, intercepting /v1/messages
- * requests to inject CassiCore intelligence and manage context.
+ * Sits between Claude Code and API providers, intercepting /v1/messages
+ * requests to inject CassiCore intelligence, manage context, and dynamically
+ * route to the correct provider based on the requested model.
  *
  * Architecture:
  *   Claude Code  ──ANTHROPIC_BASE_URL──>  This Proxy (port 7435)
+ *                                           ├─ Resolve provider from model name
  *                                           ├─ Rewrite system prompt (inject cognitive signals)
  *                                           ├─ Manage context (collapse, summarize, budget)
  *                                           ├─ Track sessions and token usage
- *                                           └──>  Real Anthropic API
+ *                                           └──>  Provider A (z.ai — GLM models)
+ *                                             └──>  Provider B (Anthropic — Claude models)
  *                                                  └── Stream response back
+ *
+ * Provider routing:
+ *   - Model names are matched against a routing table (glob patterns)
+ *   - glm-* → z.ai, claude-* → Anthropic direct, * → z.ai (default)
+ *   - Circuit breaker skips unhealthy providers
+ *   - Credentials loaded from .env file or environment variables
  *
  * What this gives us over hooks alone:
  *   - Modify/remove context (hooks can only add)
  *   - Inject intelligence into the system prompt
  *   - Accurate token counting (not file-size estimates)
  *   - Full message array rewriting before it hits the model
+ *   - Multi-provider routing without changing Claude Code settings
  *
  * Complementary to the hook server (port 7434):
- *   - Proxy modifies what the MODEL sees
+ *   - Proxy modifies what the MODEL sees and WHERE the request goes
  *   - Hooks modify what CLAUDE CODE adds to the transcript
  *
  * Setup:
- *   export ANTHROPIC_BASE_URL=http://localhost:7435
- *   export CASSICORE_PROXY_ANTHROPIC_KEY=sk-ant-...  (or reads from Claude Code's key)
+ *   1. Create .env file with provider credentials (see .env.example)
+ *   2. Run: npx tsx src/proxy.ts
+ *   3. The proxy auto-migrates ~/.claude/settings.json to point ANTHROPIC_BASE_URL here
  */
 
 import http from "node:http";
 import https from "node:https";
 import { URL } from "node:url";
 import * as bridge from "./bridge.js";
+import { initFromEnv, recordSuccess, recordFailure, getHealthSummary } from "./provider-registry.js";
+import { resolveRoute, resolveUpstreamUrl, getRoutingTableSummary, initRoutes, getRouteSource, type ResolvedRoute } from "./model-router.js";
+import { syncSettings, extractCredentialsFromSettings } from "./settings-sync.js";
+import { integrationLogger } from "./logger.js";
+
+const logger = integrationLogger.child("proxy");
 
 const PORT = parseInt(process.env.CASSICORE_PROXY_PORT ?? "7435", 10);
-const UPSTREAM_BASE = process.env.CASSICORE_PROXY_UPSTREAM ?? "https://api.anthropic.com";
 
 const MAX_INJECTION_CHARS = 12_000;
 const INJECTION_COOLDOWN_MS = 2000;
@@ -322,44 +338,66 @@ async function proxyRequest(
   res: http.ServerResponse,
   rawBody: Buffer,
 ): Promise<void> {
-  const targetUrl = new URL(req.url ?? "/", UPSTREAM_BASE);
+  const requestPath = req.url ?? "/";
 
-  const isMessages = /^\/v1\/messages/.test(targetUrl.pathname);
-  const isCountTokens = targetUrl.pathname.endsWith("/count_tokens");
+  const isMessages = /^\/v1\/messages/.test(requestPath);
+  const isCountTokens = requestPath.endsWith("/count_tokens");
 
   let bodyToSend = rawBody;
   let state: ProxySessionState | undefined;
   let isStreaming = false;
+  let route: ResolvedRoute | null = null;
+  let requestedModel = "";
 
-  if (isMessages && !isCountTokens && req.method === "POST") {
+  if (isMessages && req.method === "POST") {
     try {
       const body = JSON.parse(rawBody.toString("utf-8"));
       isStreaming = body.stream === true;
-      const claudeSessionId = extractClaudeSessionId(req);
-      state = getProxySession(claudeSessionId);
-      state.requestCount++;
+      requestedModel = body.model ?? "";
 
-      const cognitive = await buildCognitiveInjection(state);
-      if (cognitive) {
-        if (body.system) {
-          body.system = stripSoulMd(body.system as string | unknown[]);
+      route = resolveRoute(requestedModel);
+      if (route) {
+        logger.debug(
+          `Routing model="${requestedModel}" → ${route.provider.id} (${route.provider.baseUrl})` +
+          (route.isFallback ? " [fallback]" : "") +
+          (route.model !== route.originalModel ? ` aliased="${route.model}"` : ""),
+        );
+        // Rewrite model name if aliased
+        if (route.model !== route.originalModel) {
+          body.model = route.model;
         }
-        injectIntoSystemPrompt(body, cognitive);
+      } else {
+        logger.error(`No route for model "${requestedModel}" — forwarding to default upstream`);
       }
 
-      if (Array.isArray(body.messages)) {
-        let nextMessages = body.messages;
-        try {
-          const curated = await bridge.curate(state.ccSessionId, body.messages);
-          if (curated?.messages) nextMessages = curated.messages;
-          const receiptText = renderReceiptForInjection(curated?.meta?.receipt);
-          if (receiptText) {
-            injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
+      // Only inject cognitive context + curate for actual message requests, not count_tokens
+      if (!isCountTokens) {
+        const claudeSessionId = extractClaudeSessionId(req);
+        state = getProxySession(claudeSessionId);
+        state.requestCount++;
+
+        const cognitive = await buildCognitiveInjection(state);
+        if (cognitive) {
+          if (body.system) {
+            body.system = stripSoulMd(body.system as string | unknown[]);
           }
-        } catch (err) {
-          console.error("[proxy] curate failed:", String(err));
+          injectIntoSystemPrompt(body, cognitive);
         }
-        body.messages = sanitizeToolPairs(nextMessages);
+
+        if (Array.isArray(body.messages)) {
+          let nextMessages = body.messages;
+          try {
+            const curated = await bridge.curate(state.ccSessionId, body.messages);
+            if (curated?.messages) nextMessages = curated.messages;
+            const receiptText = renderReceiptForInjection(curated?.meta?.receipt);
+            if (receiptText) {
+              injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
+            }
+          } catch (err) {
+            logger.error("curate failed", { error: String(err) });
+          }
+          body.messages = sanitizeToolPairs(nextMessages);
+        }
       }
 
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
@@ -368,13 +406,43 @@ async function proxyRequest(
     }
   }
 
+  let targetUrl: URL;
+  let providerHeaders: Record<string, string> = {};
+
+  if (route) {
+    // Dynamic routing: use resolved provider
+    targetUrl = new URL(resolveUpstreamUrl(route.provider, requestPath));
+    // Only override auth if the provider has its own key.
+    // If the provider has no key (empty string), keep whatever the client sent
+    // (Claude Code sends its own OAuth token in x-api-key).
+    if (route.provider.apiKey) {
+      providerHeaders["x-api-key"] = route.provider.apiKey;
+    }
+    if (route.provider.anthropicVersion) {
+      providerHeaders["anthropic-version"] = route.provider.anthropicVersion;
+    }
+  } else {
+    // Fallback: use the original request path with the old UPSTREAM_BASE logic
+    const fallbackBase = process.env.CASSICORE_PROXY_UPSTREAM ?? "https://api.anthropic.com";
+    targetUrl = new URL(requestPath, fallbackBase);
+  }
+
   const headers: Record<string, string | string[]> = {};
   for (const [key, value] of Object.entries(req.headers)) {
     if (key === "host" || key === "connection" || key === "content-length") continue;
+    // Only strip incoming auth if the provider has its own key to replace it with.
+    // Claude Code may send both x-api-key and Authorization bearer auth; z.ai will
+    // reject the request with 401 if an expired/incorrect bearer token is forwarded
+    // alongside the correct provider-managed x-api-key.
+    if ((key === "x-api-key" || key === "authorization") && route?.provider.apiKey) continue;
+    if (key === "anthropic-version" && route?.provider.anthropicVersion) continue;
     if (value !== undefined) headers[key] = value as string | string[];
   }
   headers["content-length"] = String(bodyToSend.length);
   headers["host"] = targetUrl.host;
+
+  // Apply provider-specific headers (API key, version)
+  Object.assign(headers, providerHeaders);
 
   const isHttps = targetUrl.protocol === "https:";
   const transport = isHttps ? https : http;
@@ -388,7 +456,18 @@ async function proxyRequest(
       headers,
     },
     (proxyRes) => {
-      res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+      const statusCode = proxyRes.statusCode ?? 502;
+
+      // Track provider health
+      if (route) {
+        if (statusCode >= 500 || statusCode === 429) {
+          recordFailure(route.provider.id);
+        } else if (statusCode < 400) {
+          recordSuccess(route.provider.id);
+        }
+      }
+
+      res.writeHead(statusCode, proxyRes.headers);
 
       if (state && isStreaming) {
         let sseBuffer = "";
@@ -438,7 +517,11 @@ async function proxyRequest(
   );
 
   proxyReq.on("error", (err) => {
-    console.error("Proxy upstream error:", String(err));
+    // Record failure for circuit breaker
+    if (route) {
+      recordFailure(route.provider.id);
+    }
+    logger.error(`Proxy upstream error: ${String(err)}`);
     if (!res.headersSent) {
       res.writeHead(502, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: { type: "proxy_error", message: String(err) } }));
@@ -452,14 +535,31 @@ async function proxyRequest(
 const server = http.createServer(async (req, res) => {
   if (req.url === "/health" && req.method === "GET") {
     const cassiUp = await bridge.available();
+    const health = getHealthSummary();
     res.writeHead(200, { "Content-Type": "application/json" });
     res.end(JSON.stringify({
       status: "ok",
-      proxy: "cassicore-anthropic-proxy",
+      proxy: "cassicore-multi-provider-proxy",
       cassicore: cassiUp,
-      upstream: UPSTREAM_BASE,
+      providers: Object.fromEntries(
+        Object.entries(health).map(([id, h]) => [id, { available: h.available, circuitOpen: h.circuitOpen }]),
+      ),
       sessions: sessions.size,
     }));
+    return;
+  }
+
+  if (req.url === "/providers" && req.method === "GET") {
+    const health = getHealthSummary();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ providers: health }, null, 2));
+    return;
+  }
+
+  if (req.url === "/providers/routes" && req.method === "GET") {
+    const routes = getRoutingTableSummary();
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ routes }, null, 2));
     return;
   }
 
@@ -491,12 +591,47 @@ const isMain = (() => {
   return url.pathname === arg || url.pathname.endsWith("/" + arg.split("/").pop());
 })();
 
-if (isMain) {
+async function boot(): Promise<void> {
+  // Load provider credentials from .env file if present
+  try {
+    const dotenv = await import("dotenv");
+    dotenv.config({ path: new URL("../.env", import.meta.url).pathname });
+  } catch {
+    // dotenv not installed — rely on environment variables directly
+  }
+
+  // Seed credentials from existing settings.json on first run
+  const creds = extractCredentialsFromSettings();
+  if (creds.zAiApiKey && !process.env.Z_AI_API_KEY && !process.env.ANTHROPIC_AUTH_TOKEN) {
+    process.env.ANTHROPIC_AUTH_TOKEN = creds.zAiApiKey;
+  }
+  if (creds.zAiBaseUrl && !process.env.Z_AI_BASE_URL) {
+    process.env.Z_AI_BASE_URL = creds.zAiBaseUrl;
+  }
+
+  // Initialize provider registry from environment
+  initFromEnv();
+
+  // Initialize routing table (daemon → config file → defaults)
+  await initRoutes();
+
+  // Auto-migrate ~/.claude/settings.json
+  syncSettings();
+
   server.listen(PORT, "127.0.0.1", () => {
-    console.log(`CassiCore Anthropic proxy listening on http://127.0.0.1:${PORT}`);
-    console.log(`Upstream: ${UPSTREAM_BASE}`);
+    const routes = getRoutingTableSummary();
+    const providers = getHealthSummary();
+    logger.info(`CassiCore multi-provider proxy listening on http://127.0.0.1:${PORT}`);
+    logger.info(`Routing table:`);
+    for (const r of routes) {
+      logger.info(`  ${r.pattern.padEnd(20)} → ${r.providerId}${r.modelAlias ? ` (alias: ${r.modelAlias})` : ""} [${r.providerAvailable ? "up" : "down"}]`);
+    }
+    logger.info(`Provider auth:`);
+    for (const [id, p] of Object.entries(providers)) {
+      logger.info(`  ${id.padEnd(20)} key=${p.hasApiKey ? p.apiKeyPreview : 'MISSING'} via ${p.apiKeyHeader}`);
+    }
     bridge.available().then(up => {
-      console.log(`CassiCore daemon: ${up ? "connected" : "unavailable (will retry)"}`);
+      logger.info(`CassiCore daemon: ${up ? "connected" : "unavailable (will retry)"}`);
     });
   });
 
@@ -509,4 +644,11 @@ if (isMain) {
 
   process.on("SIGINT", () => { server.close(); process.exit(0); });
   process.on("SIGTERM", () => { server.close(); process.exit(0); });
+}
+
+if (isMain) {
+  boot().catch(err => {
+    logger.error("Proxy boot failed", { error: String(err) });
+    process.exit(1);
+  });
 }

@@ -1,6 +1,8 @@
 {
   "$comment": "Claude Code settings for CassiCore integration. Copy relevant sections to the appropriate files.",
 
+  "$comment_env": "Provider credentials are now managed in integrations/claude-code/.env — the proxy auto-migrates settings.json to set ANTHROPIC_BASE_URL=http://localhost:7435",
+
   "mcpServers": {
     "$comment_mcp": "Add to ~/.claude/settings.json — provides all CassiCore tools via the main MCP gateway",
     "cassicore": {
@@ -89,7 +91,5 @@
         "timeout": 3000
       }]
     }]
-  },
-
-  "$comment_proxy": "Set ANTHROPIC_BASE_URL=http://localhost:7435 in your shell to route Claude Code API requests through the CassiCore proxy. The proxy injects intelligence into the system prompt and tracks token usage."
+  }
 }

@@ -63,7 +63,7 @@ function request(
   });
 }
 
-async function send(method: string, pathname: string, body?: unknown, ms?: number): Promise<any> {
+export async function send(method: string, pathname: string, body?: unknown, ms?: number): Promise<any> {
   const timeout = ms ?? DEFAULT_TIMEOUT;
   // Try Unix socket first, fall back to TCP
   const result = await request(method, pathname, body, timeout, SOCKET_PATH);

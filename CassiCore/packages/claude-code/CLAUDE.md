@@ -6,7 +6,7 @@ CassiCore is a local AI daemon providing intelligence services: a parallel Think
 
 The integration has three components:
 
-1. **API Proxy** (port 7435) — intercepts Claude Code's API requests, injects CassiCore intelligence into the system prompt, and tracks token usage
+1. **Multi-Provider API Proxy** (port 7435) — intercepts Claude Code's API requests, routes them to the correct provider (z.ai, Anthropic direct, etc.) based on model name, injects CassiCore intelligence into the system prompt, and tracks token usage
 2. **MCP Server** (stdio) — provides the full CassiCore tool suite (code intelligence, memory, blackboard, agents, etc.)
 3. **Hook Server** (port 7434) — injects cognitive context into Claude Code's transcript on each turn
 
@@ -14,11 +14,46 @@ The integration has three components:
 
 | Layer | What it controls | How |
 |-------|-----------------|-----|
-| API Proxy | What the **model** sees | Rewrites the system prompt before it reaches the Anthropic API |
+| API Proxy | What the **model** sees & **where** requests go | Rewrites the system prompt, routes to the correct provider based on model name |
 | MCP Server | What **tools** are available | Exposes CassiCore's tools via MCP protocol |
 | Hook Server | What **Claude Code** adds to the transcript | Returns `additionalContext` on each hook event |
 
 The proxy gives us context modification — hooks can only add context, not modify or remove it.
+
+## Multi-Provider Routing
+
+The proxy dynamically routes API requests to different providers based on the requested model:
+
+| Model Pattern | Provider | Description |
+|---------------|----------|-------------|
+| `claude-*` | Anthropic | All Claude models → Anthropic direct |
+| `glm-*` | z.ai | All GLM models → z.ai gateway |
+| `*` (default) | z.ai | Catch-all fallback |
+
+### Route Resolution (Hybrid)
+
+Routes are resolved with a 3-tier fallback:
+
+1. **CassiCore daemon** — If the daemon is running, queries its `ModelDirective` for live tier→provider mappings. This means adding a new provider in CassiCore's config automatically updates the proxy.
+2. **routes.json** — A `routes.json` file next to the proxy can define custom pattern→provider rules.
+3. **Defaults** — `claude-*` → Anthropic, `glm-*` → z.ai, `*` → z.ai.
+
+### Provider Configuration
+
+Provider credentials are managed in `.env` (not in `~/.claude/settings.json`):
+
+```env
+Z_AI_API_KEY=your-z-ai-key
+ANTHROPIC_API_KEY=sk-ant-your-anthropic-key  # optional
+```
+
+The proxy auto-migrates `~/.claude/settings.json` on startup to:
+- Remove hardcoded `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_DEFAULT_*`, `API_TIMEOUT_MS`
+- Set `ANTHROPIC_BASE_URL=http://localhost:7435` (pointing to the proxy)
+
+### Circuit Breaker
+
+If a provider fails 3 consecutive times, the circuit breaker opens and requests are routed to the next available provider. After 60 seconds, the circuit half-opens to allow a probe request.
 
 ## Available MCP Tools
 
@@ -86,22 +121,24 @@ cd /home/valerie/workspaces/cassicore
 ./bin/cassicore boot start
 ```
 
-### 2. Start the API proxy:
+### 2. Configure provider credentials:
+```bash
+cd /home/valerie/workspaces/cassicore/integrations/claude-code
+cp .env.example .env
+# Edit .env with your API keys (Z_AI_API_KEY, ANTHROPIC_API_KEY, etc.)
+```
+
+### 3. Start the API proxy:
 ```bash
 cd /home/valerie/workspaces/cassicore/integrations/claude-code
 npx tsx src/proxy.ts &
 ```
+The proxy will automatically migrate `~/.claude/settings.json` to route through it.
 
-### 3. Start the hook server:
+### 4. Start the hook server:
 ```bash
 cd /home/valerie/workspaces/cassicore/integrations/claude-code
 npx tsx src/hook-server.ts &
-```
-
-### 4. Configure Claude Code to use the proxy:
-Add to your shell profile or run before starting Claude Code:
-```bash
-export ANTHROPIC_BASE_URL=http://localhost:7435
 ```
 
 ### 5. Add MCP server to Claude Code settings (`~/.claude/settings.json`):
@@ -161,8 +198,14 @@ The hooks use a command wrapper (`hook-command.cjs`) that forwards requests to t
 
 Check that all components are running:
 ```bash
-# API Proxy health
+# API Proxy health (shows provider status)
 curl http://localhost:7435/health
+
+# Provider details (health, circuit breaker, request counts)
+curl http://localhost:7435/providers
+
+# Routing table (model patterns → providers)
+curl http://localhost:7435/providers/routes
 
 # Hook server health
 curl http://localhost:7434/health
