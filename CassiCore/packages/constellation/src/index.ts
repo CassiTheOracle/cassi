@@ -147,7 +147,7 @@ export type { CorpusMiniHelixConfig } from './corpus-mini-helix.js'
 
 
 
-export { ConstellationRegistry, ConstellationInjectionSource } from './constellation-injection.js'
+export { ConstellationRegistry } from './constellation-injection.js'
 export type { ConstellationLiveState } from './constellation-injection.js'
 
 
