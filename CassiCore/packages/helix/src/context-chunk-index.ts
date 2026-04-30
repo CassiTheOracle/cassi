@@ -205,7 +205,14 @@ function splitParagraphs(text: string): string[] {
  * Import classifyParagraph from session-indexer for text classification.
  * We re-declare here to avoid circular imports at type level.
  */
-import { classifyParagraph as classifyTextParagraph } from '../memory/session-indexer.js'
+/**
+ * classifyParagraph used to live in core/intelligence/memory/session-indexer.ts
+ * but that module was a no-op stub returning []. Replaced with a local no-op
+ * to preserve behavior while removing the dead dependency.
+ */
+function classifyTextParagraph(_text: string): string[] {
+  return []
+}
 
 /**
  * Generate a stable chunk ID from indices.
