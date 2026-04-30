@@ -154,7 +154,7 @@ export interface WiringDependencies {
   modelRouter?: unknown;
   consequenceEstimator?: unknown;
   trustLedger?: unknown;
-  injectionAggregator?: unknown;
+  // REMOVED: injectionAggregator — deprecated. Now uses Thalamus/GlobalWorkspace.
   cognitiveBridge?: unknown;
   globalBlackboardRegistry?: unknown;
   pipelineGetter?: () => unknown;
