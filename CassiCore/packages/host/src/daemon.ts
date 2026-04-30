@@ -2473,17 +2473,6 @@ export class Daemon {
           }
         }
 
-        // Initialize ProactiveEnricher — listens for ThoughtObserver intent
-        // signals and spawns a Helix co-pilot to gather context proactively
-        if (this.intelligence?.proactiveEnricher) {
-          try {
-            this.intelligence.proactiveEnricher.init()
-            this.logger.info('ProactiveEnricher initialized')
-          } catch (peErr) {
-            this.logger.warn('ProactiveEnricher init failed', { error: String(peErr) })
-          }
-        }
-
         // Wire Training Warehouse tagger adapter.
         // Uses the background tier (gpt-4o) for batch tagging operations since
         // it is unlimited and tagging is non-interactive background work.
@@ -3656,11 +3645,6 @@ export class Daemon {
     // stop embedding stack child processes (llama.cpp + zerank)
     try {
       this.embeddingStackLauncher?.stop()
-    } catch { /* ignore */ }
-
-    // stop ProactiveEnricher — unsubscribe listeners, clean up session state
-    try {
-      this.intelligence?.proactiveEnricher?.cleanup()
     } catch { /* ignore */ }
 
     // stop warm provider manager — destroys OpenCode warm sessions to release resources
