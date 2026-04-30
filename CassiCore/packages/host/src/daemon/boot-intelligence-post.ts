@@ -372,8 +372,9 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
   }
 
   intelligence.optimizer.setSessions(sessions)
-  intelligence.optimizer.setPipeline(pipeline)
-  logger.info('Optimizer wired to session manager and pipeline')
+  // setPipeline() was removed from the optimizer (see core/intelligence/optimizer/index.ts);
+  // injectOnNextTurn() never worked with SessionPipeline. Optimizer no longer needs the pipeline.
+  logger.info('Optimizer wired to session manager')
 
   try {
     const scoutEnabled = config.get<boolean>('intelligence.scout.enabled', true)
@@ -482,7 +483,8 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
   let autonomousLoop: AutonomousAgentLoop | undefined
   try {
     autonomousLoop = new AutonomousAgentLoop(logger.child('autonomous-loop'))
-    autonomousLoop.setPipeline(pipeline)
+    // setPipeline() was removed from AutonomousAgentLoop — execution is now driven via setBackend()
+    // (CassiCoreExecutionBackend wrapping SessionPipeline). Backend is wired below.
     autonomousLoop.setEventBus(bus)
     if (intelligence.memory) autonomousLoop.setMemory(intelligence.memory)
     if (sessionDigestStore) autonomousLoop.setDigestStore(sessionDigestStore)
