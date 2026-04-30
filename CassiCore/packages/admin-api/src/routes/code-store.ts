@@ -148,7 +148,7 @@ export async function handleCodeStoreRoutes(
 
     // POST /code/extract — trigger extraction + build
     if (parts[1] === 'extract' && method === 'POST') {
-      const { extractAndBuild } = await import('../../src/code-extractor.js')
+      const { extractAndBuild } = await import('../entry/code-extractor.js')
       const { getRepoRoot } = await import('../utils/paths.js')
       const result = extractAndBuild(getRepoRoot())
       return sendJSON(res, result.success ? 200 : 500, result), true
