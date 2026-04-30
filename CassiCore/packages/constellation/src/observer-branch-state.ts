@@ -197,7 +197,9 @@ function describeStrategy(approach: BranchApproach): string {
  * investigation" instead of actual findings. (c-36 postmortem BUG I)
  */
 const MONOLOGUE_PATTERNS = [
+  // Iteration counters
   /^Iteration \d+:\s*\d+\s*tool\s*calls?$/im,
+  // Process narration — "Let me start", "I need to check"
   /^Let me\s/im,
   /^I need to\s/im,
   /^I should\s/im,
@@ -212,16 +214,32 @@ const MONOLOGUE_PATTERNS = [
   /^Based on\s+my\s/im,
   /^I think I\s/im,
   /^Let's\s/im,
+  // First-person state reports — "I've read both files", "I see the issue"
+  /^I've\s/im,
+  /^I (?:read|see|notice|observe|found|checked|looked|examined|reviewed|analyzed|completed|finished|done)\s/im,
+  /^I (?:also|already|just|still|now|then|first|finally)\s/im,
+  // Acknowledgments and confirmations
+  /^(?:OK|Okay|Got it|Understood|Sure|Right|Yes|No)\b/im,
+  // Hedging and uncertainty narration
+  /^(?:Hmm|Huh|Wait|Actually|Well|So)\b/im,
+  // Meta-commentary about process
+  /^(?:Looking|Checking|Searching|Reading|Examining|Analyzing|Investigating|Starting|Moving|Continuing|Going)\s/im,
 ]
 
 function extractFactualContent(reasoning: string): string | null {
-  if (reasoning.length < 20) return null
+  if (reasoning.length < 30) return null
   const sentences = reasoning.split(/(?<=[.!?])\s+/)
   const factual = sentences.filter(s => {
     const trimmed = s.trim()
-    if (trimmed.length < 15) return false
-    return !MONOLOGUE_PATTERNS.some(p => p.test(trimmed))
+    // Skip very short sentences — almost always narration, never findings
+    if (trimmed.length < 25) return false
+    // Skip first-person process narration
+    if (MONOLOGUE_PATTERNS.some(p => p.test(trimmed))) return false
+    // Skip sentences that are just "X does Y" single-clause observations
+    // without specific detail (file paths, function names, error messages)
+    if (trimmed.length < 50 && !/[./\\_]/.test(trimmed) && !/\d{2,}/.test(trimmed)) return false
+    return true
   })
   if (factual.length === 0) return null
-  return factual.join(' ').slice(0, 400)
+  return factual.join(' ').slice(0, 500)
 }
