@@ -249,53 +249,9 @@ export interface IThinker {
 }
 
 
-export type OptimizationAction =
-  | "summarize"
-  | "steer"
-  | "context-reset"
-  | "kill"
-  | "none"
-
-export interface SessionHealth {
-  sessionKey: string
-  label?: string
-  model: string
-  estimatedTokens: number
-  tokenVelocity: number
-  outputVelocity: number
-  loopScore: number
-  stuckScore: number
-  lastProgressAt: Date
-  runtime: number
-  interventionCount: number
-  lastAction?: OptimizationAction
-}
-
-export interface OptimizationDecision {
-  sessionKey: string
-  action: OptimizationAction
-  reason: string
-  confidence: number
-  estimatedSavings?: number
-}
-
-export interface OptimizationOutcome {
-  decisionId: string
-  sessionKey: string
-  action: OptimizationAction
-  tokensBefore: number
-  tokensAfter: number
-  sessionCompleted: boolean
-  sessionSuccess: boolean
-  timestamp: Date
-}
-
-export interface IOptimizer {
-  optimize(): Promise<OptimizationDecision[]>
-  scoreSession(sessionKey: string): Promise<SessionHealth | null>
-  strategyWeights(): Promise<Record<OptimizationAction, number>>
-  history(limit?: number): Promise<OptimizationOutcome[]>
-}
+// REMOVED: OptimizationAction / SessionHealth / OptimizationDecision /
+// OptimizationOutcome / IOptimizer — OptimizerModule deleted. All actions were
+// no-ops or destructive after SessionPipeline migration.
 
 
 /**
