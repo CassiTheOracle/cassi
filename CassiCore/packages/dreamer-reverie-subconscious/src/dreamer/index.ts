@@ -12,7 +12,8 @@
 import { MODEL_DEFAULTS } from '../../config/system-settings.js'
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import { isGamingMode } from '../gaming-mode.js'
-import type { MemoryModule } from '../memory/index.js'
+// REMOVED: MemoryModule import — now uses IMemory via MemoryShim
+import type { IMemory } from '../../../types/intelligence.js'
 import type { ReasoningBank } from '../reasoning-bank/index.js'
 import type { InjectionAggregator, InjectionSource } from '../injection-aggregator.js'
 import { DreamCycleEngine } from './dream-engine.js'
@@ -49,8 +50,8 @@ export class DreamerModule extends BaseCognitiveModule {
 
   private checkTimer?: NodeJS.Timeout
 
-  /** Full MemoryModule reference (extends IMemory with dream-specific methods). */
-  private fullMemory?: MemoryModule
+  /** Full memory reference (IMemory via MemoryShim). */
+  private fullMemory?: IMemory
 
   /** Reasoning Bank for cross-session reasoning synthesis. */
   private reasoningBank?: ReasoningBank
@@ -91,7 +92,7 @@ export class DreamerModule extends BaseCognitiveModule {
    * Wire in the full MemoryModule (not just IMemory) for dream-specific methods.
    * Called by createIntelligence() after module instantiation.
    */
-  setFullMemory(module: MemoryModule): void {
+  setFullMemory(module: IMemory): void {
     this.fullMemory = module
     // Also set the base class IMemory reference
     this.setMemory(module)
@@ -187,10 +188,18 @@ export class DreamerModule extends BaseCognitiveModule {
   private async runDreamCycle(): Promise<DreamRecord | null> {
     this.state = 'dreaming'
 
+    // REMOVED: DreamCycleEngine requires MemoryModule (deleted). Skip dream cycle with MemoryShim.
+    const mem = this.fullMemory as any
+    if (!mem?.sampleForDream || !mem?.archiveDream) {
+      this.logger.info('[Dreamer] MemoryShim detected — dream cycle skipped (MemoryModule deleted)')
+      this.state = 'idle'
+      return null
+    }
+
     const engine = new DreamCycleEngine(
       (prompt) => this.infer(prompt),
       <T>(prompt: string) => this.inferJSON<T>(prompt),
-      this.fullMemory!,
+      mem,
       this.logger,
       this.reasoningBank,
     )
@@ -208,16 +217,19 @@ export class DreamerModule extends BaseCognitiveModule {
       this.dreamHistory.unshift(record)
       if (this.dreamHistory.length > 20) this.dreamHistory.pop()
 
-      // Store dream record in archive
+      // Store dream record in archive (only with full MemoryModule, not MemoryShim)
       const content = this.buildDreamSummary(record)
-      this.fullMemory!.archiveDream(content, {
-        insightsCreated: record.insightsCreated,
-        episodicsRetired: record.episodicsRetired,
-        linksCreated: record.linksCreated,
-        archiveEntriesProcessed: record.archiveEntriesProcessed,
-        durationMs: record.durationMs,
-        startedAt: record.startedAt,
-      })
+      const memAny = this.fullMemory as any
+      if (typeof memAny?.archiveDream === 'function') {
+        memAny.archiveDream(content, {
+          insightsCreated: record.insightsCreated,
+          episodicsRetired: record.episodicsRetired,
+          linksCreated: record.linksCreated,
+          archiveEntriesProcessed: record.archiveEntriesProcessed,
+          durationMs: record.durationMs,
+          startedAt: record.startedAt,
+        })
+      }
 
       // Update latest insight for context injection
       if (record.topInsightContent) {

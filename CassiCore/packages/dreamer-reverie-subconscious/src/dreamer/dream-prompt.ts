@@ -7,7 +7,15 @@
  *   3. garden            — identify episodic clusters for retirement (JSON)
  */
 
-import type { ArchiveEntry } from '../memory/archivist.js'
+// REMOVED: ArchiveEntry from memory/archivist.js — MemoryModule deleted.
+interface ArchiveEntry {
+  id: string
+  content: string
+  type: string
+  createdAt: number
+  timestamp?: number
+  metadata?: Record<string, unknown>
+}
 import type { DreamInsight } from './types.js'
 
 
@@ -23,7 +31,7 @@ import type { DreamInsight } from './types.js'
 function renderEntries(entries: ArchiveEntry[]): string {
   return entries
     .map((e, i) => {
-      const date = new Date(e.timestamp).toISOString().slice(0, 16).replace('T', ' ')
+      const date = new Date(e.timestamp ?? e.createdAt ?? Date.now()).toISOString().slice(0, 16).replace('T', ' ')
       const preview = e.content.length > 400 ? `${e.content.slice(0, 400)}…` : e.content
       return `[${i + 1}] id=${e.id} type=${e.type} date=${date}\n${preview}`
     })

@@ -6,8 +6,17 @@
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
-import type { ArchiveEntry } from '../memory/archivist.js'
-import type { MemoryModule } from '../memory/index.js'
+// REMOVED: MemoryModule import — deleted. DreamEngine now uses IMemory with optional methods.
+import type { IMemory } from '../../../types/intelligence.js'
+
+/** Minimal ArchiveEntry shape for dream engine */
+interface ArchiveEntry {
+  id: string
+  content: string
+  type: string
+  createdAt: number
+  metadata?: Record<string, unknown>
+}
 import type { ReasoningBank } from '../reasoning-bank/index.js'
 import type { SearchResult } from '../reasoning-bank/types.js'
 import {
@@ -40,7 +49,7 @@ export class DreamCycleEngine {
   constructor(
     private readonly inferFn: InferFn,
     private readonly inferJSONFn: InferJSONFn,
-    private readonly memory: MemoryModule,
+    private readonly memory: IMemory & { sampleForDream?(opts: any): any[]; archiveDream?(content: string, metadata: any): void },
     private readonly logger: ILogger,
     private readonly reasoningBank?: ReasoningBank,
   ) {}
@@ -55,7 +64,9 @@ export class DreamCycleEngine {
 
     this.logger.info('[DreamEngine] Starting dream cycle', { dreamId })
 
-    const entries = this.memory.sampleForDream({
+    // REMOVED: MemoryModule methods — cast to any for backward compat. MemoryShim skips dream cycles.
+    const memoryAny = this.memory as any
+    const entries = memoryAny.sampleForDream({
       sampleSize: config.archiveSampleSize,
       recentWindowHours: config.recentWindowHours,
       lookbackDays: config.archiveLookbackDays,
@@ -75,7 +86,7 @@ export class DreamCycleEngine {
     const insightMemoryIds: string[] = []
     for (const insight of insights) {
       try {
-        const memId = await this.memory.store({
+        const memId = await memoryAny.store({
           type: 'insight',
           content: insight.content,
           metadata: {
@@ -122,7 +133,7 @@ export class DreamCycleEngine {
       }
     }
 
-    this.memory.markArchiveEntriesDreamed(entries.map(e => e.id))
+    memoryAny.markArchiveEntriesDreamed(entries.map((e: any) => e.id))
 
     const completedAt = Date.now()
     const topInsight = insights.sort((a, b) => b.confidence - a.confidence)[0]
@@ -131,7 +142,7 @@ export class DreamCycleEngine {
       startedAt,
       completedAt,
       durationMs: completedAt - startedAt,
-      archiveEntriesProcessed: entries.map(e => e.id),
+      archiveEntriesProcessed: entries.map((e: any) => e.id),
       insightsCreated: insightMemoryIds,
       episodicsRetired,
       linksCreated,
@@ -305,14 +316,15 @@ Return JSON: { "synthesis": "...", "approach_pattern": "...", "applicable_contex
 
     // sourceEntryIds are archive entry IDs, not memory IDs — we need episodic
     // memory entries that are thematically similar. Query recent episodic memories.
-    const episodics = this.memory.getEpisodicMemoriesByIds
-      ? this.memory.getEpisodicMemoriesByIds(candidateIds)
+    const memAny = this.memory as any
+    const episodics = memAny.getEpisodicMemoriesByIds
+      ? memAny.getEpisodicMemoriesByIds(candidateIds)
       : []
 
     if (episodics.length < minClusterSize) return []
 
     const prompt = buildGardenPrompt(
-      episodics.map(e => ({ id: e.id, content: e.content, createdAt: e.createdAt })),
+      episodics.map((e: any) => ({ id: e.id, content: e.content, createdAt: e.createdAt })),
       insights,
       minClusterSize,
     )
@@ -325,10 +337,10 @@ Return JSON: { "synthesis": "...", "approach_pattern": "...", "applicable_contex
       const ids = Array.isArray(cluster?.episodicIds) ? cluster.episodicIds.map(String) : []
       if (ids.length < minClusterSize) continue
       // Verify all IDs exist in our episodic list (guard against hallucination)
-      const validIds = ids.filter(id => episodics.some(e => e.id === id))
+      const validIds = ids.filter((id: string) => episodics.some((e: any) => e.id === id))
       if (validIds.length >= minClusterSize) {
         const reasoning = typeof cluster.reasoning === 'string' ? cluster.reasoning : 'distilled by dreamer'
-        this.memory.archiveDeep(validIds, reasoning)
+        memAny.archiveDeep(validIds, reasoning)
         allRetiredIds.push(...validIds)
       }
     }
