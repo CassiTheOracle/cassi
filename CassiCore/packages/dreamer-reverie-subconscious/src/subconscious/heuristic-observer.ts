@@ -40,7 +40,7 @@ const HEARTBEAT_MODULES: ReadonlyArray<{
 }> = [
   { name: 'thinker',    prefix: 'thinker:',    silenceThresholdMs: 30 * 60_000 },
   { name: 'dialectic',  prefix: 'dialectic:',  silenceThresholdMs: 20 * 60_000 },
-  { name: 'optimizer',  prefix: 'optimizer:',  silenceThresholdMs: 30 * 60_000 },
+  // REMOVED: optimizer entry — OptimizerModule deleted
   { name: 'error-learner', prefix: 'error-learner:', silenceThresholdMs: 30 * 60_000 },
 ]
 
