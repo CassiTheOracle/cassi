@@ -47,7 +47,7 @@ export interface ToolGuardrails {
 /**
  * Default timeout for tool calls (ms)
  */
-const DEFAULT_TOOL_TIMEOUT = 30000; // 30 seconds
+const DEFAULT_TOOL_TIMEOUT = 60_000; // 60 seconds — must accommodate LLM-backed tool handlers
 
 /**
  * Maximum output size (chars)

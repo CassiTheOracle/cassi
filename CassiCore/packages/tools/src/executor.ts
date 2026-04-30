@@ -238,7 +238,7 @@ export class ToolExecutor {
       }
     }
 
-    const timeout = actualEntry.definition.timeoutMs ?? 30_000
+    const timeout = actualEntry.definition.timeoutMs ?? 60_000
     const ctx: ToolExecutionContext = {
       ...this.defaultContext,
       sessionId,
