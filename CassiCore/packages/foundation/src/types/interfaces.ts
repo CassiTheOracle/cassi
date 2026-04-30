@@ -205,7 +205,6 @@ export interface IntelligenceModule {
   }): void;
   setConsequenceEstimator?(estimator: unknown): void;
   setTrustLedger?(ledger: unknown): void;
-  setInjectionAggregator?(aggregator: unknown): void;
 
   /** Called for every runtime event (optional — implement for side effects) */
   onEvent?(event: RuntimeEvent): Promise<void>;
