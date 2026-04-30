@@ -71,6 +71,7 @@ export const SIGNAL_DONE_TOOL: ToolSchema = {
 /** Core Unity meta-tools */
 export const UNITY_TOOLS: ToolSchema[] = [
   SIGNAL_DONE_TOOL,
+  ACKNOWLEDGE_NUDGE_TOOL,
 ]
 
 
@@ -471,18 +472,23 @@ export const REVIEWER_DIALECTIC_TOOLS: ToolSchema[] = [
   SHARE_FINDING_TOOL,
   CHALLENGE_TOOL,
   CONCEDE_TOOL,
-  REQUEST_INVESTIGATION_TOOL,
-  STREAM_RESEARCH_FINDING_TOOL,
-  POST_RESEARCH_SIGNAL_TOOL,
 ]
 
-/** Core reviewer meta-tools (dialectic + nudge + progress + conclusion + guidance gate) */
+/** Core reviewer meta-tools — always available (dialectic + nudge + progress + conclusion) */
 export const REVIEWER_TOOLS: ToolSchema[] = [
   ...REVIEWER_DIALECTIC_TOOLS,
-  ...EDIT_PROPOSAL_TOOLS,
   SEND_NUDGE_TOOL,
   REVIEW_PROGRESS_TOOL,
   SIGNAL_CONCLUSION_TOOL,
+]
+
+/** Brainstem-dependent reviewer tools — only inject when Brainstem is active.
+ *  Edit proposals require Brainstem for final approval + application.
+ *  Guidance gate requires Brainstem to generate proposals.
+ *  Request investigation posts to Blackboard via HelixResearcher (deprecated). */
+export const BRAINSTEM_REVIEWER_TOOLS: ToolSchema[] = [
+  REQUEST_INVESTIGATION_TOOL,
+  ...EDIT_PROPOSAL_TOOLS,
   ...GUIDANCE_GATE_TOOLS,
 ]
 
@@ -504,7 +510,7 @@ import {
   isMentorMetaTool,
 } from './helix-mentor-tools.js'
 
-export { isPlanMetaTool, REPORT_TOOL_NAMES, MENTOR_TOOLS, MENTOR_TOOL_NAMES, isMentorMetaTool }
+export { isPlanMetaTool, REPORT_TOOL_NAMES, MENTOR_TOOLS, MENTOR_TOOL_NAMES, isMentorMetaTool, REPORT_TO_BRAINSTEM_TOOL, BRAINSTEM_REVIEWER_TOOLS }
 
 /** Plan tools available to all Helix postures */
 export const HELIX_PLAN_TOOLS = ALL_POSTURES_PLAN_TOOLS
@@ -514,10 +520,9 @@ export const HELIX_REPORT_TOOLS = REPORT_TOOLS
 
 
 
-/** All tools available to Unity (base set — plan/report tools added separately in buildToolSchemas) */
+/** All tools available to Unity (base set — report_to_brainstem added conditionally in buildToolSchemas) */
 export const ALL_UNITY_TOOLS: ToolSchema[] = [
   ...UNITY_TOOLS,
-  REPORT_TO_BRAINSTEM_TOOL,
   ...UNITY_TESTLOCK_TOOLS,
 ]
 
@@ -543,7 +548,13 @@ export const ALL_MENTOR_TOOLS: ToolSchema[] = [
 
 export const UNITY_TOOL_NAMES = new Set([...UNITY_TOOLS.map(t => t.name), REPORT_TO_BRAINSTEM_TOOL.name, ...TESTLOCK_TOOL_NAMES])
 
-export const REVIEWER_TOOL_NAMES = new Set([...REVIEWER_TOOLS.map(t => t.name), ...TESTLOCK_TOOL_NAMES])
+export const REVIEWER_TOOL_NAMES = new Set([
+  ...REVIEWER_TOOLS.map(t => t.name),
+  ...TESTLOCK_TOOL_NAMES,
+  // Brainstem-dependent tools — included in routing set so handleMetaTool handles them
+  // (even though schemas are only injected when Brainstem is active)
+  ...BRAINSTEM_REVIEWER_TOOLS.map(t => t.name),
+])
 
 export const EDIT_PROPOSAL_TOOL_NAMES = new Set(EDIT_PROPOSAL_TOOLS.map(t => t.name))
 
@@ -587,19 +598,19 @@ type HelixToolProfile = 'full' | 'implementation' | 'review' | 'exploration'
  */
 const PROFILE_ALLOWED_TOOL_NAMES: Record<Exclude<HelixToolProfile, 'full'>, Record<'unity' | 'yang' | 'yin' | 'mentor', string[]>> = {
   implementation: {
-    unity: ['signal_done', 'acknowledge_nudge', 'report_to_brainstem', 'list_test_locks'],
-    yang: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance'],
-    yin: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance', 'seal_test_spec', 'list_test_locks'],
+    unity: ['signal_done', 'acknowledge_nudge', 'list_test_locks'],
+    yang: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion'],
+    yin: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'seal_test_spec', 'list_test_locks'],
     mentor: ['review_progress'],
   },
   review: {
-    unity: ['signal_done', 'acknowledge_nudge', 'report_to_brainstem'],
-    yang: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance'],
-    yin: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'approve_guidance', 'reject_guidance', 'seal_test_spec', 'list_test_locks'],
+    unity: ['signal_done', 'acknowledge_nudge'],
+    yang: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion'],
+    yin: ['share_finding', 'challenge', 'concede', 'send_nudge', 'review_progress', 'signal_conclusion', 'seal_test_spec', 'list_test_locks'],
     mentor: ['review_progress'],
   },
   exploration: {
-    unity: ['report_to_brainstem'],
+    unity: [],
     yang: ['share_finding', 'challenge', 'concede'],
     yin: ['share_finding', 'challenge', 'concede'],
     mentor: ['review_progress'],

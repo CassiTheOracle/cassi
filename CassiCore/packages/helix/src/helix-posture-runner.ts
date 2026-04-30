@@ -49,6 +49,8 @@ import {
   UNITY_TOOL_NAMES,
   REVIEWER_TOOL_NAMES,
   TESTLOCK_TOOL_NAMES,
+  REPORT_TO_BRAINSTEM_TOOL,
+  BRAINSTEM_REVIEWER_TOOLS,
 } from './helix-tools.js'
 import {
   handleBlackboardToolCall,
@@ -136,6 +138,13 @@ const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
   // Unused blackboard tools — minimal usage across c-26/27/28, add noise to tool list
   'bb_scratch_list',
   'bb_search_report',
+  // Blackboard-dependent research tools — hard-require Blackboard which is deprecated
+  // in Constellation (SessionState stub doesn't implement Blackboard API).
+  'stream_research_finding',
+  'post_research_signal',
+  // request_investigation — its HelixResearcher path requires deprecated Blackboard.
+  // Use share_finding with tags=['investigation-request'] for the same effect.
+  'request_investigation',
   // TestLock verification — never called (blocked signal_done in c-23).
   // Yin seals specs but Unity never verifies, permanently blocking completion.
   // Disabled to remove the blocking path; TestLock remains for sealing only.
@@ -2316,19 +2325,34 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     // Add role-specific meta-tools (filtered by tool profile)
     tools.push(...getHelixToolSchemas(role, this.toolProfile))
 
-    // Add blackboard tools (only when using 'full' profile — hard cut for focused profiles)
-    if (!this.toolProfile || this.toolProfile === 'full') {
+    // Blackboard tools are deprecated — replaced by GlobalWorkspace/ObserverBranchState.
+    // Only inject when explicitly using a blackboard instance (back-compat for FluxTeam).
+    if (this.blackboard && (!this.toolProfile || this.toolProfile === 'full')) {
       tools.push(...this.getBlackboardSchemas())
     }
 
-    // Add plan tools (only when using 'full' profile)
+    // Plan tools — only when planHandler is provided (FluxTeam only)
     if (this.planHandler && (!this.toolProfile || this.toolProfile === 'full')) {
       tools.push(...getPlanToolSchemas(role))
     }
 
-    // Add report tools (only when using 'full' profile)
+    // Report tools — only when using 'full' profile (Lumen/Dyad contexts)
     if (REPORT_TOOLS.length > 0 && (!this.toolProfile || this.toolProfile === 'full')) {
       tools.push(...REPORT_TOOLS)
+    }
+
+    // Brainstem-dependent tools — only when Brainstem is active.
+    // In Constellation observer mode, Brainstem is undefined so these are omitted:
+    //   - report_to_brainstem: agent thinks it's reporting but Brainstem isn't listening
+    //   - approve_guidance / reject_guidance: guidance proposals don't exist without Brainstem
+    //   - propose_edit / review_edit_proposal: edits need Brainstem for final approval + application
+    //   - request_investigation: HelixResearcher path requires deprecated Blackboard
+    if (this.brainstem) {
+      if (role === 'unity') {
+        tools.push(REPORT_TO_BRAINSTEM_TOOL)
+      } else if (role === 'yang' || role === 'yin') {
+        tools.push(...BRAINSTEM_REVIEWER_TOOLS)
+      }
     }
 
     // Add real tools (filtered by access level)
