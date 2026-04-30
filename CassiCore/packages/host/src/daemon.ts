@@ -616,13 +616,7 @@ export class Daemon {
         void (this.intelligence.reflect as EventHandler).onEvent?.(e)
       })
 
-      // WHY: Optimizer lifecycle tied to daemon readiness — starts/stops optimization loop
-      bus.on("daemon:ready", (e) => {
-        void (this.intelligence.optimizer as EventHandler).onEvent?.(e)
-      })
-      bus.on("daemon:shutdown", (e) => {
-        void (this.intelligence.optimizer as EventHandler).onEvent?.(e)
-      })
+      // REMOVED: Optimizer daemon:ready / daemon:shutdown handlers — OptimizerModule deleted
 
       // Wire DialecticSystem to event bus for streaming
       this.wireModule(this.intelligence.dialectic, bus)
@@ -667,7 +661,7 @@ export class Daemon {
         unifiedLoop.wire({
           subconscious: this.intelligence.subconscious as SubconsciousWithLoop,
           memory: this.intelligence.memory as MemoryWithLoop,
-          optimizer: this.intelligence.optimizer as OptimizerWithLoop,
+          // REMOVED: optimizer wiring — OptimizerModule deleted
           all: this.intelligence.all,
         })
 
@@ -1033,9 +1027,7 @@ export class Daemon {
       interface ThinkerEarlyWarningEvent {
         warning: string
       }
-      interface OptimizerWithEarlyWarning {
-        handleEarlyWarning?(e: ThinkerEarlyWarningEvent): void
-      }
+      // REMOVED: OptimizerWithEarlyWarning — OptimizerModule deleted
       bus.on('thinker:inject-insight', (e) => {
         const event = e as ThinkerInjectInsightEvent
         this.logger.info('Thinker injecting insight', { urgency: event.urgency })
@@ -1057,10 +1049,7 @@ export class Daemon {
       bus.on('thinker:early-warning', (e) => {
         const event = e as ThinkerEarlyWarningEvent
         this.logger.warn('Thinker early warning', { pattern: event.warning })
-        // Trigger optimizer early intervention
-        if (this.intelligence?.optimizer) {
-          ;(this.intelligence.optimizer as OptimizerWithEarlyWarning).handleEarlyWarning?.(event)
-        }
+        // REMOVED: optimizer.handleEarlyWarning — OptimizerModule deleted
       })
 
       bus.on('thinker:self-modified', (e) => {

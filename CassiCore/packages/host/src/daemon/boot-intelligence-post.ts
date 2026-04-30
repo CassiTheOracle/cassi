@@ -371,10 +371,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.warn('failed to wire context manager', { error: String(err) })
   }
 
-  intelligence.optimizer.setSessions(sessions)
-  // setPipeline() was removed from the optimizer (see core/intelligence/optimizer/index.ts);
-  // injectOnNextTurn() never worked with SessionPipeline. Optimizer no longer needs the pipeline.
-  logger.info('Optimizer wired to session manager')
+  // REMOVED: optimizer wiring — OptimizerModule deleted
 
   try {
     const scoutEnabled = config.get<boolean>('intelligence.scout.enabled', true)
