@@ -30,7 +30,7 @@ export type SignalType =
   | 'convergence'   // CognitiveBridge: cross-session agreement
   | 'suggestion'    // Optimizer, Reflex: behavioral guidance
   | 'context'       // Session-digest, Blackboard: background information
-  | 'enrichment'    // ProactiveEnricher: gathered external information
+  | 'enrichment'    // RadianceLoop: novelty/external observation
 
 
 /**
