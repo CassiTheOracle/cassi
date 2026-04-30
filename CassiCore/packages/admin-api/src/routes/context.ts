@@ -194,23 +194,11 @@ export async function handleContextRoutes(
     }
   }
 
-  // GET /context/inject/:sessionId — aggregated cognitive signals for injection
+  // GET /context/inject/:sessionId — REMOVED: InjectionAggregator deleted.
+  // Use /context/thalamus or /context/workspace for injection assembly.
   if (method === 'GET' && parts[0] === 'context' && parts[1] === 'inject' && parts.length === 3) {
-    try {
-      const sessionId = parts[2]
-      const aggregator = runtime.getIntelligence()?.injectionAggregator as any
-      if (!aggregator || typeof aggregator.aggregateForExternal !== 'function') {
-        sendJSON(res, 503, { error: 'InjectionAggregator not available' })
-        return true
-      }
-
-      const injections = await aggregator.aggregateForExternal(sessionId)
-      sendJSON(res, 200, { sessionId, parts: injections })
-      return true
-    } catch (err) {
-      sendJSON(res, 500, { error: String(err) })
-      return true
-    }
+    sendJSON(res, 410, { error: 'Deprecated: InjectionAggregator removed. Use /context/thalamus instead.' })
+    return true
   }
 
   // POST /context/index — index session messages for FTS scoring
@@ -323,22 +311,8 @@ export async function handleContextRoutes(
         // Non-fatal — archive is best-effort; compaction proceeds regardless
       }
 
-      // Gather CassiCore cognitive signals
+      // REMOVED: cognitive signals via injectionAggregator — InjectionAggregator deleted.
       let cognitiveContext = ''
-      try {
-        const aggregator = runtime.getIntelligence()?.injectionAggregator as any
-        if (aggregator && typeof aggregator.aggregateForExternal === 'function') {
-          const externalParts = await aggregator.aggregateForExternal(sessionId)
-          if (Array.isArray(externalParts) && externalParts.length > 0) {
-            cognitiveContext = externalParts
-              .filter((p: any) => p.content && p.charCount > 0)
-              .map((p: any) => String(p.content))
-              .join('\n\n')
-          }
-        }
-      } catch {
-        // Cognitive signals are optional — continue without them
-      }
 
       // Search memory for relevant past context
       let memoryContext = ''

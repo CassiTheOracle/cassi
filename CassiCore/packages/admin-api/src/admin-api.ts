@@ -761,17 +761,10 @@ export function createAdminApi(daemon: any, logger: ILogger) {
 
   async function contextCompact(sessionId: string, messages: unknown[]): Promise<unknown> {
     const memory = daemon.intelligence?.memory as any
-    const aggregator = daemon.intelligence?.injectionAggregator as any
+    // REMOVED: injectionAggregator — deprecated. Now uses Thalamus/GlobalWorkspace.
 
-    const cognitiveParts = aggregator?.aggregateForExternal
-      ? await aggregator.aggregateForExternal(sessionId)
-      : []
-    const cognitiveContext = Array.isArray(cognitiveParts)
-      ? cognitiveParts
-          .filter((p: any) => p.content && p.charCount > 0)
-          .map((p: any) => String(p.content))
-          .join('\n\n')
-      : ''
+    const cognitiveContext = ''
+    // REMOVED: aggregator.aggregateForExternal — InjectionAggregator deleted.
 
     let memoryContext = ''
     let lastUserQuery = ''
@@ -948,11 +941,9 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     },
     context: {
       fetchContext: buildInjectPayload,
-      inject: async (sessionId: string) => {
-        const aggregator = daemon.intelligence?.injectionAggregator as any
-        if (!aggregator?.aggregateForExternal) return []
-        const parts = await aggregator.aggregateForExternal(sessionId)
-        return Array.isArray(parts) ? parts.filter((p: any) => p.content && p.charCount > 0).map((p: any) => p.content) : []
+      inject: async (_sessionId: string) => {
+        // REMOVED: injectionAggregator.aggregateForExternal — InjectionAggregator deleted.
+        return []
       },
       cognitiveStatus: async () => buildCognitiveStatus(),
       storeChunks: async (sessionId: string, chunks: unknown[]) => {
@@ -1821,31 +1812,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
     // (Pineal, Cortex, Mnemic Field, ContextRepo, etc.) with per-source caps and
     // posture-aware scoring; the inline search loop bypasses all of that.
     // We populate sessions[sid] from Thalamus first; the search-based fallback
-    // then only fills sessions where Thalamus produced nothing (e.g. aggregator
-    // unavailable, or no source had content for that session).
-    const aggregator = daemon.intelligence?.injectionAggregator as
-      | { aggregateForExternal?: (sid: string) => Promise<Array<{ source: string; content: string; charCount?: number }>> }
-      | undefined
-    if (aggregator?.aggregateForExternal) {
-      for (const sid of allSessionIds) {
-        if (!sid.startsWith('oc:') || sessions[sid]) continue
-        try {
-          const parts = await aggregator.aggregateForExternal(sid)
-          if (Array.isArray(parts) && parts.length > 0) {
-            const items = parts
-              .filter(p => p && typeof p.content === 'string' && p.content.trim().length > 0)
-              .map(p => ({
-                source: p.source,
-                content: p.content.slice(0, 500),
-                relevance: 1,
-              }))
-            if (items.length > 0) sessions[sid] = { items }
-          }
-        } catch (err) {
-          logger.warn?.('aggregateForExternal failed in buildInjectPayload', { sid: sid.slice(-8), error: String(err) })
-        }
-      }
-    }
+    // REMOVED: injectionAggregator.aggregateForExternal — InjectionAggregator deleted.
+    // Thalamus now handles injection assembly directly.
 
     if (mem?.search) {
       for (const sid of allSessionIds) {
