@@ -1049,8 +1049,28 @@ export interface CorpusDeps {
    * Observer coordination mode disables legacy command/directive governance.
    * The Corpus remains available for passive tree/progress state, while active
    * coordination is handled by observer layers broadcasting through Synapses.
+    */
+   observerCoordination?: boolean
+  /**
+   * WHY: Map of helixId → ObserverBranchState instances. Enables the Corpus to
+   * deliver directives to branches in observer coordination mode (where there's
+   * no Brainstem to receive them). (c-36 fix)
    */
-  observerCoordination?: boolean
+  observerBranchStates?: Map<string, import('./observer-branch-state.js').ObserverBranchState>
+  /**
+   * WHY: GlobalWorkspace for publishing directives so the posture runner's
+   * injectWorkspaceBroadcasts() delivers them to the LLM. (c-36 fix)
+   */
+   globalWorkspace?: import('../workspace/index.js').GlobalWorkspace
+  /**
+   * WHY: When the CorpusObserverLayer is active, it performs cross-Helix LLM
+   * analysis with actual SynapseRollingSlice data (superior to BranchDigest).
+   * The Corpus should skip its own runLLMAnalysis() to avoid redundant LLM
+   * calls with worse input data. The Corpus still runs pattern detection,
+   * budget tracking, escalation evaluation, and fallback directives — these
+   * don't require LLM. (observer consolidation)
+   */
+  corpusObserverActive?: boolean
 }
 
 /**

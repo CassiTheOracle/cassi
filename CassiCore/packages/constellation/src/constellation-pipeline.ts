@@ -27,6 +27,7 @@ import { CorpusMiniHelix } from './corpus-mini-helix.js'
 import { ClusterObserverLayer } from './cluster-observer-layer.js'
 import { CorpusObserverLayer } from './corpus-observer-layer.js'
 import { ObserverBranchState } from './observer-branch-state.js'
+import { TopologyContextBridge } from './topology/topology-context-bridge.js'
 import { runHelixPipeline } from '../helix/helix-pipeline.js'
 import { Blackboard } from '../flux-team/blackboard.js'
 import { BlackboardBridge } from './blackboard-bridge.js'
@@ -454,17 +455,39 @@ export async function runConstellationPipeline(
     ? new CrossHelixDialectic(log)
     : undefined
 
+  // WHY: Map of ObserverBranchState instances keyed by helixId. Enables the Corpus
+  // to deliver directives in observer coordination mode and the pipeline to drain
+  // pending directives into the GlobalWorkspace for LLM delivery. (c-36 fix)
+  const observerBranchStates = new Map<string, ObserverBranchState>()
+
   // Create TopologyGraph + BrainstemBridge (if embedding service provided)
 
   let topologyGraph: TopologyGraph | undefined
   let brainstemBridge: BrainstemBridge | undefined
+  let topologyContextBridge: TopologyContextBridge | undefined
 
   // Skip topology/gravity engine in meditation — no multi-branch spatial coordination needed
   if (opts.embeddingService && !opts.meditationMode) {
-    brainstemBridge = observerCoordination ? undefined : new BrainstemBridge({
-      tree: corpusTree,
-      logger,
-      injectGuidance: (helixId, content, urgency) => {
+    if (observerCoordination) {
+      // WHY: In observer mode, BrainstemBridge is disabled (no Brainstem to inject into).
+      // TopologyContextBridge replaces its data-sharing function by reading digests
+      // from the CorpusTree and injecting linked context via GlobalWorkspace.
+      // No LLM calls — pure data forwarding. (observer consolidation)
+      if (opts.globalWorkspace) {
+        topologyContextBridge = new TopologyContextBridge({
+          constellationId,
+          goal,
+          logger,
+          getTopologySnapshot: () => topologyGraph?.getSnapshot(),
+          getCorpusTree: () => corpusTree,
+          globalWorkspace: opts.globalWorkspace,
+        })
+      }
+    } else {
+      brainstemBridge = new BrainstemBridge({
+        tree: corpusTree,
+        logger,
+        injectGuidance: (helixId, content, urgency) => {
         // Deferred — Corpus registers brainstems dynamically, so use the Corpus
         // directive path which buffers until the brainstem is available.
         const rh = runningHelixes.get(helixId)
@@ -490,10 +513,11 @@ export async function runConstellationPipeline(
         return {
           getCognitiveModel: () => bs.state?.cognitiveModel ?? { allDiscoveries: [], allDecisions: [], currentNextSteps: [], recentOutputs: [], pendingBlockers: [] },
           getQualityTrajectory: () => bs.state?.qualityTrajectory ?? [],
-          getBlackboard: () => bs.deps?.blackboard,
+          getContextSources: () => bs.deps?.contextSources,
         }
       },
     })
+    }
 
     topologyGraph = new TopologyGraph({
       embeddingService: opts.embeddingService,
@@ -513,6 +537,9 @@ export async function runConstellationPipeline(
     topologyGraph.setConstellationId(constellationId)
 
     log.info('Topology Graph initialized', { constellationId })
+
+    // Start the context bridge in observer mode for linked helix data sharing
+    topologyContextBridge?.start()
   }
 
   const corpus = new Corpus(
@@ -529,6 +556,11 @@ export async function runConstellationPipeline(
       meditationStyle: opts.meditationStyle,
       miniHelixActive: !observerCoordination && !!opts.useMiniHelixCorpus,
       observerCoordination,
+      // WHY: Enables Corpus to deliver directives to branches in observer mode,
+      // and pipeline to drain directives into GlobalWorkspace for LLM delivery.
+      // (c-36 fix — broadcasts working)
+      observerBranchStates,
+      globalWorkspace: opts.globalWorkspace,
       mnemicField: opts.mnemicField,
       memory: opts.memory,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
@@ -793,14 +825,26 @@ export async function runConstellationPipeline(
         eventBus,
         llm: brainstemLLM,
         memory: opts.mnemicField,
+        // WHY: Nodes start as 'pending' and are never set to 'running' — they
+        // jump directly to 'completed'/'failed'/'degraded'. Filtering by 'running'
+        // meant the CorpusObserverLayer always saw zero active helixes and was
+        // effectively blind. (c-36 fix)
         getActiveHelixIds: () => Array.from(runningHelixes.values())
-          .filter(h => h.node.status === 'running')
+          .filter(h => h.node.status !== 'completed' && h.node.status !== 'failed' && h.node.status !== 'degraded')
           .map(h => h.helixId),
         getHelixSynapse: (helixId: string) => runningHelixes.get(helixId)?.helixSynapse,
         getTopologySnapshot: () => topologyGraph?.getSnapshot(),
       })
     : undefined
   corpusObserverLayer?.start()
+
+  // WHY: Tell the Corpus that the CorpusObserverLayer handles cross-Helix LLM
+  // analysis, so it can skip its own redundant runLLMAnalysis(). The Corpus
+  // still runs pattern detection, budget tracking, and fallback directives.
+  // (observer consolidation)
+  if (corpusObserverLayer) {
+    corpus.setCorpusObserverActive(true)
+  }
 
   // Helper: Resolve Postures
 
@@ -1175,6 +1219,13 @@ export async function runConstellationPipeline(
         })
       : undefined
 
+    // WHY: Store reference so the Corpus can deliver directives to this branch
+    // in observer coordination mode, and so the pipeline can drain directives
+    // into the GlobalWorkspace for LLM delivery. (c-36 fix)
+    if (observerBranchState) {
+      observerBranchStates.set(helixId, observerBranchState)
+    }
+
     // WHY: Register ObserverBranchState with CrossHelixDialectic so inter-branch
     // messages can flow. In non-Brainstem mode, the ObserverBranchState acts as
     // the delivery target. (c-36 postmortem Root Cause A)
@@ -1320,38 +1371,72 @@ export async function runConstellationPipeline(
           corpusTree.pushAnnotation(helixId, rawAnnotation, toolCalls)
         } else if (observerBranchState) {
           observerBranchState.onWorkUnit(wu, iteration)
+
+          // WHY: Feed findings to CrossHelixDialectic for cross-branch communication.
+          // Extract meaningful content from tool results and post as findings.
+          // This replaces the deprecated blackboard-based forwarding that was
+          // the only trigger for crossHelixDialectic.postFinding(). (c-36 fix)
+          if (crossHelixDialectic) {
+            const hasSubstantiveResults = wu.toolResults.some(
+              r => !r.isError && r.content.length > 50
+            )
+            if (hasSubstantiveResults && wu.toolCalls.length > 0) {
+              const toolNames = wu.toolCalls.map(t => t.name)
+              const isResearchTool = toolNames.some(n => /read|search|find|grep|glob|inspect/i.test(n))
+              if (isResearchTool) {
+                // Research tools produce findings worth sharing
+                const resultContent = wu.toolResults
+                  .filter(r => !r.isError)
+                  .map(r => r.content.slice(0, 300))
+                  .join('\n')
+                if (resultContent.length > 30) {
+                  crossHelixDialectic.postFinding(helixId, resultContent, {
+                    tags: ['auto-finding'],
+                  })
+                }
+              }
+            }
+          }
+
+          // WHY: Drain pending cross-branch directives from ObserverBranchState
+          // and publish to GlobalWorkspace so the posture runner's
+          // injectWorkspaceBroadcasts() picks them up at the start of the next
+          // iteration. Without this, directives arrive at ObserverBranchState but
+          // never reach the LLM context. (c-36 fix)
+          const pending = observerBranchState.drainDirectives()
+          if (pending.length > 0 && opts.globalWorkspace) {
+            for (const directiveText of pending) {
+              opts.globalWorkspace.submit({
+                signalId: `cross-branch-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                source: `helix:${helixId}`,
+                sessionId: helixId,
+                type: 'suggestion',
+                content: directiveText,
+                createdAt: Date.now(),
+                luminance: {
+                  novelty: 0.3,
+                  urgency: 0.5,
+                  relevance: 0.7,
+                  sourceCredibility: 0.5,
+                  composite: 0.5,
+                },
+                urgencyHint: 0.5,
+                metadata: {
+                  helix: true,
+                  posture: 'cross-branch',
+                  kind: 'finding',
+                },
+              })
+            }
+          }
         } else if (activeBrainstem) {
           activeBrainstem.onWorkUnit(wu, iteration)
         }
       },
-      onBlackboardCreated: (childBlackboard) => {
-        // Skip bridge in meditation — no cross-branch governance infrastructure to feed
-        if (opts.meditationMode) return
-
-        // Wire a BlackboardBridge between the constellation blackboard and this Helix's blackboard
-        const bridge = new BlackboardBridge({
-          parent: constellationBlackboard,
-          child: childBlackboard,
-          childHelixId: helixId,
-          logger,
-        })
-        bridge.start()
-        blackboardBridges.set(helixId, bridge)
-        helixLog.debug('Blackboard bridge started', { helixId })
-
-        // When this branch posts a finding, forward it to other branches.
-        if (crossHelixDialectic) {
-          childBlackboard.subscribe('findings', undefined, (entry: { content: string; tags?: string[] }) => {
-            crossHelixDialectic.postFinding(helixId, entry.content, {
-              tags: entry.tags,
-            })
-          })
-          childBlackboard.subscribe('concerns', undefined, (entry: { content: string; tags?: string[] }) => {
-            crossHelixDialectic.postFinding(helixId, `[CONCERN] ${entry.content}`, {
-              tags: [...(entry.tags ?? []), 'concern'],
-            })
-          })
-        }
+      // REMOVED: onBlackboardCreated — Blackboard deprecated
+      // Cross-Helix communication now uses GlobalWorkspace + Corpus tree
+      onBlackboardCreated: (_childBlackboard) => {
+        // Stub — Blackboard removed. Cross-Helix communication via GlobalWorkspace
       },
       onCancelRegistered: (fn) => {
         if (cancelFn) {
@@ -1804,7 +1889,7 @@ export async function runConstellationPipeline(
               progress: {
                 markdown: `Cancelled: ${nodeArr.length} nodes at cancellation time`,
                 data: {
-                  activeBranches: nodeArr.filter(n => n.status === 'running').length,
+                  activeBranches: nodeArr.filter(n => n.status !== 'completed' && n.status !== 'failed' && n.status !== 'degraded').length,
                   totalBranches: nodeArr.length,
                   completedBranches: nodeArr.filter(n => n.status === 'completed').length,
                   failedBranches: nodeArr.filter(n => n.status === 'failed').length,
@@ -2497,6 +2582,15 @@ export async function runConstellationPipeline(
         log.info('Cluster observer layer stopped')
       } catch (err) {
         log.warn('Error stopping cluster observer layer', { error: String(err) })
+      }
+    }
+
+    if (topologyContextBridge) {
+      try {
+        await topologyContextBridge.stop()
+        log.info('Topology context bridge stopped')
+      } catch (err) {
+        log.warn('Error stopping topology context bridge', { error: String(err) })
       }
     }
 

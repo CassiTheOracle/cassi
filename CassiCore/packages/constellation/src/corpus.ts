@@ -219,6 +219,15 @@ export class Corpus {
   }
 
   /**
+   * WHY: Inform the Corpus that CorpusObserverLayer handles cross-Helix LLM
+   * analysis. The Corpus skips its own runLLMAnalysis() to avoid redundant
+   * LLM calls with worse input data. (observer consolidation)
+   */
+  setCorpusObserverActive(active: boolean): void {
+    this.deps = { ...this.deps, corpusObserverActive: active }
+  }
+
+  /**
    * Start the async Corpus loop
    */
   async start(): Promise<void> {
@@ -586,36 +595,48 @@ export class Corpus {
         let newPatterns: CrossHelixPattern[] = []
         let lastLocusSweep: LocusSweepResult | undefined
 
-        if (!isMeditation && !this.deps.observerCoordination) {
-          this.trackBudgets()
+        if (!isMeditation) {
+          // WHY: Split governance into Brainstem-specific (gated) and
+          // observer-compatible (always runs). The analysis, pattern detection,
+          // and cross-Helix mediation produce directives that now flow through
+          // sendDirective() → ObserverBranchState → GlobalWorkspace → LLM.
+          // Previously the entire block was gated by !observerCoordination,
+          // meaning no cross-Helix intelligence ever ran in normal mode.
+          // (c-36 fix — observers working)
 
-          if (this.config.proactive.enableDiscoveryRouting) {
-            this.routeDiscoveries()
+          if (!this.deps.observerCoordination) {
+            // Brainstem-specific governance — only when Brainstem is active
+            this.trackBudgets()
+
+            if (this.config.proactive.enableDiscoveryRouting) {
+              this.routeDiscoveries()
+            }
+
+            await this.evaluateAllEscalations()
+            await this.checkStuckBranchesForReDecomposition()
+
+            if (this.config.proactive.enableReDecomposition && this.llmHealthState !== 'rule_based') {
+              await this.evaluateReDecomposition()
+            }
+
+            if (this.config.proactive.enableParallelAcceleration && this.llmHealthState !== 'rule_based') {
+              await this.evaluateParallelAcceleration()
+            }
+
+            if (this.config.proactive.enableContextInjection) {
+              await this.evaluateContextInjection()
+            }
+
+            if (this.config.proactive.enableQualityGates) {
+              await this.runQualityGates()
+            }
+
+            if (this.config.proactive.enableResearchCaching) {
+              this.buildResearchDigests()
+            }
           }
 
-          await this.evaluateAllEscalations()
-          await this.checkStuckBranchesForReDecomposition()
-
-          if (this.config.proactive.enableReDecomposition && this.llmHealthState !== 'rule_based') {
-            await this.evaluateReDecomposition()
-          }
-
-          if (this.config.proactive.enableParallelAcceleration && this.llmHealthState !== 'rule_based') {
-            await this.evaluateParallelAcceleration()
-          }
-
-          if (this.config.proactive.enableContextInjection) {
-            await this.evaluateContextInjection()
-          }
-
-          if (this.config.proactive.enableQualityGates) {
-            await this.runQualityGates()
-          }
-
-          if (this.config.proactive.enableResearchCaching) {
-            this.buildResearchDigests()
-          }
-
+          // Cross-Helix intelligence — runs in ALL non-meditation modes
           newPatterns = this.patternDetector.detect()
 
           // During recovery window, only run analysis for critical patterns (gradual re-engagement).
@@ -623,7 +644,14 @@ export class Corpus {
           const inRecovery = this.llmRecoverySweepsLeft > 0
           if (inRecovery) this.llmRecoverySweepsLeft--
 
-          const shouldAnalyze = newPatterns.length > 0 || this.shouldRunLLMAnalysis()
+          // WHY: Skip Corpus LLM analysis when CorpusObserverLayer is active.
+          // The observer has superior input data (SynapseRollingSlice vs BranchDigest)
+          // and already performs cross-Helix analysis every 12s. Running both is
+          // redundant and costs 2x LLM calls. The Corpus still handles governance
+          // via pattern detection + fallback directives. (observer consolidation)
+          const observerHandlesAnalysis = !!this.deps.corpusObserverActive
+          const shouldAnalyze = !observerHandlesAnalysis &&
+            (newPatterns.length > 0 || this.shouldRunLLMAnalysis())
           const analysisGated = inRecovery && !hasCriticalPattern
 
           if (shouldAnalyze && !analysisGated) {
@@ -655,11 +683,27 @@ export class Corpus {
             .filter(b => b.status === 'active')
             .map(b => b.helixId)
 
+          // WHY: Provide guidance injection in observer mode via sendDirective
+          // (which now routes to ObserverBranchState + GlobalWorkspace).
+          // Previously undefined in observer mode, so Locus findings never reached branches.
+          // (c-36 fix)
+          const locusGuidance: typeof this.deps.injectGuidance = this.deps.observerCoordination
+            ? (helixId, content, urgency) => {
+                this.sendDirective({
+                  targetHelixId: helixId,
+                  type: 'context-inject',
+                  urgency,
+                  text: content,
+                  reason: 'locus-guidance',
+                  timestamp: Date.now(),
+                })
+              }
+            : this.deps.injectGuidance
           lastLocusSweep = this.locus.sweep(allDigests, activeHelixIds, {
             crossPatterns: newPatterns,
             topology: this.deps.topology ?? undefined,
             assessments: this.state.branchAssessments,
-            injectGuidance: (isMeditation || this.deps.observerCoordination) ? undefined : (this.deps.injectGuidance ?? undefined),
+            injectGuidance: isMeditation ? undefined : locusGuidance,
           })
 
           if (lastLocusSweep.sparksExtracted > 0 || lastLocusSweep.kindlingEvents.length > 0) {
@@ -922,7 +966,10 @@ export class Corpus {
       return false
     }
 
-    if (this.deps.observerCoordination) {
+    // WHY: When CorpusObserverLayer is active, it handles cross-Helix LLM analysis
+    // with superior input data (SynapseRollingSlice vs BranchDigest). Skip the
+    // Corpus's own LLM analysis to avoid redundant calls. (observer consolidation)
+    if (this.deps.corpusObserverActive) {
       return false
     }
 
@@ -1885,15 +1932,56 @@ Guidelines:
   }
 
   /**
-   * Send a directive to a child Brainstem
+   * Send a directive to a child Brainstem or ObserverBranchState.
+   * WHY: In observer coordination mode, branches use ObserverBranchState instead of
+   * Brainstem. Previously this method returned early in observer mode, meaning all
+   * directives were silently dropped — including those from the CrossHelixDialectic
+   * and stagnation sentinel. Now it delivers via ObserverBranchState.onCorpusDirective()
+   * and publishes to the GlobalWorkspace so the LLM sees the directive. (c-36 fix)
    */
    private sendDirective(directive: CorpusDirective): void {
     if (this.deps.observerCoordination) {
-      this.logger.debug('Legacy Corpus directive suppressed in observer coordination mode', {
-        helixId: directive.targetHelixId,
-        type: directive.type,
-        urgency: directive.urgency,
-      })
+      const obs = this.deps.observerBranchStates?.get(directive.targetHelixId)
+      if (obs) {
+        obs.onCorpusDirective(directive)
+        // WHY: Also publish to GlobalWorkspace so the posture runner's
+        // injectWorkspaceBroadcasts() picks it up and delivers to the LLM.
+        // Without this, the directive reaches the Corpus tree but never the LLM.
+        const ws = this.deps.globalWorkspace
+        if (ws) {
+          ws.submit({
+            signalId: `corpus-directive-${Date.now()}`,
+            source: 'corpus',
+            sessionId: directive.targetHelixId,
+            type: 'suggestion',
+            content: `[CORPUS DIRECTIVE · ${directive.urgency}] ${directive.text}`,
+            createdAt: Date.now(),
+            luminance: {
+              novelty: 0.3,
+              urgency: directive.urgency === 'critical' ? 1 : directive.urgency === 'high' ? 0.8 : 0.5,
+              relevance: 0.8,
+              sourceCredibility: 0.9,
+              composite: 0.7,
+            },
+            urgencyHint: directive.urgency === 'critical' ? 1.0 : directive.urgency === 'high' ? 0.8 : 0.5,
+            metadata: {
+              helix: true,
+              posture: 'corpus',
+              kind: 'directive',
+              reason: directive.reason,
+            },
+          })
+        }
+        this.logger.debug('Directive delivered to ObserverBranchState', {
+          helixId: directive.targetHelixId,
+          type: directive.type,
+          urgency: directive.urgency,
+        })
+      } else {
+        this.logger.debug('Observer directive: no ObserverBranchState for target', {
+          helixId: directive.targetHelixId,
+        })
+      }
       return
     }
     if (this.deps.meditationMode) return

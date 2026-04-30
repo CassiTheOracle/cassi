@@ -24,7 +24,7 @@
 
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { BranchDigest, ICorpusTree } from '../corpus-types.js'
-import type { CognitiveModel, BrainstemBlackboard } from '../../helix/brainstem-types.js'
+import type { CognitiveModel, BrainstemContextSources } from '../../helix/brainstem-types.js'
 import type { MergeDepth } from './topology-types.js'
 
 
@@ -121,7 +121,7 @@ export interface BrainstemBridgeDeps {
 export interface BrainstemStateAccessor {
   getCognitiveModel(): CognitiveModel
   getQualityTrajectory(): number[]
-  getBlackboard(): BrainstemBlackboard | undefined
+  getContextSources(): BrainstemContextSources | undefined
 }
 
 
@@ -323,16 +323,17 @@ export class BrainstemBridge {
     const accessor = this.deps.getBrainstemState?.(helixId)
     const cogModel = accessor?.getCognitiveModel()
     const trajectory = accessor?.getQualityTrajectory()
-    const bb = accessor?.getBlackboard()
+    const cs = accessor?.getContextSources()
 
     const deep: DeepContextPack = {
       ...medium,
       fullDiscoveries: cogModel?.allDiscoveries || medium.recentDiscoveries,
       fullDecisions: cogModel?.allDecisions || medium.recentDecisions,
       recentOutputs: cogModel?.recentOutputs?.slice(-10) || [],
-      blackboardFindings: bb?.read('findings', 5)?.map(e => e.content) || [],
-      blackboardConcerns: bb?.read('concerns', 5)?.map(e => e.content) || [],
-      blackboardDecisions: bb?.read('decisions', 5)?.map(e => e.content) || [],
+      // REMOVED: blackboardFindings — Blackboard deprecated. Now uses GlobalWorkspace signals
+      blackboardFindings: cs?.globalWorkspace?.getRecentSignals(5)?.map(s => s.content) || [],
+      blackboardConcerns: [],
+      blackboardDecisions: [],
       qualityTrajectory: trajectory?.slice(-20) || [],
     }
 
