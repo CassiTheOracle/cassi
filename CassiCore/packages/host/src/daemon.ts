@@ -1039,9 +1039,7 @@ export class Daemon {
       bus.on('thinker:inject-insight', (e) => {
         const event = e as ThinkerInjectInsightEvent
         this.logger.info('Thinker injecting insight', { urgency: event.urgency })
-        if (event.insight && this.intelligence?.injectionAggregator) {
-          this.intelligence.injectionAggregator.setThinkerInsight(event.insight)
-        }
+        // REMOVED: injectionAggregator.setThinkerInsight — InjectionAggregator deleted.
         if (event.insight && this.intelligence?.globalWorkspace) {
           this.intelligence.globalWorkspace.submit({
             signalId: `thinker-insight-${Date.now()}`,
@@ -1825,33 +1823,8 @@ export class Daemon {
         this.intelligence.constellation.setMnemicField(field)
       }
 
-      // Register MnemicField as an injection source so kindled engrams reach
-      // every turn's <cassicore-intelligence> block. Blends the active-task
-      // lamina goal into the seed query so retrieval follows current focus.
-      try {
-        const aggregator = (this.intelligence as any)?.injectionAggregator
-        if (aggregator && typeof aggregator.register === 'function') {
-          const { MnemicFieldInjectionSource } = await import('./intelligence/mnemic-field/injection.js')
-          const lamina = (this.intelligence as any)?.lamina
-          const activeTaskProvider: (() => string | null) | undefined = lamina
-            ? () => {
-                try {
-                  const task = lamina.read?.('active-task')
-                  return typeof task?.content === 'string' ? task.content : null
-                } catch { return null }
-              }
-            : undefined
-          aggregator.register(new MnemicFieldInjectionSource(field, this.logger, {
-            maxHits: this.config.get<number>('intelligence.mnemic.injection.maxHits', 6),
-            minCharge: this.config.get<number>('intelligence.mnemic.injection.minCharge', 0.15),
-            maxContentChars: this.config.get<number>('intelligence.mnemic.injection.maxChars', 280),
-            activeTaskProvider,
-          }))
-          this.logger.info('MnemicField injection source registered')
-        }
-      } catch (err) {
-        this.logger.warn('Failed to register MnemicField injection source', { error: String(err) })
-      }
+      // REMOVED: MnemicField injection source registration — InjectionAggregator deleted.
+      // MnemicField content is now accessed directly by Thalamus.
 
       // Wire LLM reranker into MnemicField (alternative to filament kindling).
       // Uses gpt-5-mini for fast (~1s) cross-encoder reranking vs ~30s for kindling.
@@ -2091,7 +2064,6 @@ export class Daemon {
       subagentTracker: this.subagentTracker,
       cognitiveToolDeps: this.intelligence ? {
         thoughtObserver: this.intelligence.thoughtObserver,
-        injectionAggregator: this.intelligence.injectionAggregator,
         cognitiveBridge: this.intelligence.cognitiveBridge,
         contextManager: this.intelligence.contextManager as any,
         subconscious: this.intelligence.subconscious as any,
@@ -2099,7 +2071,6 @@ export class Daemon {
       } : undefined,
       probeDeps: this.intelligence ? {
         thoughtObserver: this.intelligence.thoughtObserver,
-        injectionAggregator: this.intelligence.injectionAggregator,
         cognitiveBridge: this.intelligence.cognitiveBridge,
         contextManager: this.intelligence.contextManager as any,
         subconscious: this.intelligence.subconscious as any,
@@ -2656,21 +2627,8 @@ export class Daemon {
       this.pipeline.setSubconscious(this.intelligence.subconscious)
     }
 
-    // Wire intelligent context window — scores + selects history by recency + FTS relevance
-    try {
-      const memory = this.intelligence?.memory
-      const archivist = memory?.getArchivist?.()
-      if (archivist?.sessionIndexer) {
-        const icw = new IntelligentContextWindow(archivist.sessionIndexer, this.logger)
-        this.pipeline.setContextWindow(icw.asMiddleware())
-        this.contextWindow = icw
-        this.logger.info('IntelligentContextWindow wired')
-      }
-    } catch (err) {
-      this.logger.warn('IntelligentContextWindow wiring failed, using default trim', {
-        error: String(err),
-      })
-    }
+    // REMOVED: IntelligentContextWindow via archivist.sessionIndexer — MemoryModule deleted.
+    // Context window uses default trim. Reimplementation with MnemicField in Phase 5.
 
     completePhase('pipeline-tools', {
       tools: toolRegistry.list().length,
@@ -2833,7 +2791,7 @@ export class Daemon {
           thalamus: (this as any).intelligence?.registry?.get('thalamus'),
         },
         eventBus: this.bus,
-        injectionAggregator: (this as any).intelligence?.injectionAggregator,
+        // REMOVED: injectionAggregator — deprecated. Now uses Thalamus/GlobalWorkspace.
       }
       const pipeline = new SessionPipeline(v2Options as any)
       await pipeline.initialize()

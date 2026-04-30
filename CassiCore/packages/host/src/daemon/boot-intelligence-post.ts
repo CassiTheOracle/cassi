@@ -2,7 +2,7 @@ import { AutonomousAgentLoop } from '../intelligence/autonomous-loop.js'
 import { createExecutionBackend } from '../intelligence/execution-backends/index.js'
 import { ScoutModule } from '../scout/index.js'
 import { registerDroneTools } from '../tools/implementations/drone-swarm.js'
-import { registerTeamTools } from '../tools/implementations/team-coordinator.js'
+// REMOVED: registerTeamTools — team-coordinator.ts deleted with TriadTeam
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
 import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
@@ -63,19 +63,10 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     contextDistiller,
   } = deps
 
-  try {
-    intelligence.injectionAggregator.setDependencies({
-      pipeline,
-      dialectic: intelligence.dialectic as any,
-      subconscious: intelligence.subconscious,
-      digestStore: sessionDigestStore!,
-      contextManager: intelligence.contextManager as any,
-      eventBus: bus,
-    })
-    pipeline.setInjectionAggregator(intelligence.injectionAggregator)
-    logger.info('InjectionAggregator wired to pipeline')
+  // REMOVED: InjectionAggregator wiring — deprecated. Now uses Thalamus/GlobalWorkspace.
 
-    if (intelligence.globalWorkspace) {
+  try {
+  if (intelligence.globalWorkspace) {
       const useGwt = config?.get?.('intelligence.workspace.enabled') === true
       pipeline.setGlobalWorkspace(intelligence.globalWorkspace, useGwt)
       logger.info('GlobalWorkspace wired to pipeline', { enabled: useGwt })
@@ -118,7 +109,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       intelligence.pineal = pineal
     }
   } catch (err) {
-    logger.warn(`Failed to wire InjectionAggregator: ${String(err)}`)
+    logger.warn(`GlobalWorkspace/RadianceLoop wiring failed: ${String(err)}`)
   }
 
   try {
@@ -522,32 +513,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     autonomousLoop = undefined
   }
 
-  try {
-    const triadTeam = intelligence.triadTeam
-    if (triadTeam) {
-      // TriadTeamOrchestrator is not registered in the IntelligenceRegistry
-      // (it's in intelligence.all but created separately), so its lifecycle
-      // methods aren't called by registry.initAll()/startAll(). Call them explicitly.
-      await triadTeam.init()
-      await triadTeam.start()
-
-      // TriadTeamOrchestrator inherits eventBus from BaseCognitiveModule via the registry.
-      // Wire optional dependencies that are only available post-boot.
-      if (sessionDigestStore) (triadTeam as any).setDigestStore?.(sessionDigestStore)
-      if (autonomousLoop) (triadTeam as any).setAutonomousLoop?.(autonomousLoop)
-      if (intelligence.droneSwarm) (triadTeam as any).setDroneSwarm?.(intelligence.droneSwarm)
-      logger.info('TriadTeamOrchestrator wired with available post-boot dependencies')
-
-      registerTeamTools(toolRegistry, {
-        triadTeam,
-        digestStore: sessionDigestStore,
-        logger,
-      })
-      logger.info('Team tools registered: check_team_status, send_team_message, get_cell_result, list_team_cells, update_team_plan, complete_team_goal, get_team_cell_tree, approve_checkpoint')
-    }
-  } catch (err) {
-    logger.warn('Failed to wire TriadTeamOrchestrator', { error: String(err) })
-  }
+  // REMOVED: TriadTeam wiring — deprecated system deleted.
 
   try {
     if (intelligence.droneSwarm) {
