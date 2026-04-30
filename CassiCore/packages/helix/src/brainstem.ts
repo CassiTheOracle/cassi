@@ -36,7 +36,7 @@ import type {
   BrainstemState,
   BrainstemResult,
   BrainstemAnnotation,
-  BrainstemBlackboard,
+  BrainstemContextSources,
   BrainstemLLM,
   PendingGuidance,
   WorkUnitAnnotation,
@@ -219,10 +219,15 @@ export class HelixBrainstem {
   }
 
   /**
-   * Get the number of work units processed so far.
+   * Notify the brainstem that Unity posted something significant to the workspace.
+   * (Replaces deprecated Blackboard trigger — now uses GlobalWorkspace signals.)
    */
-  getWorkUnitsProcessed(): number {
-    return this.state.workUnitsProcessed
+  onSignificantWorkspacePost(channel: string, content: string): void {
+    this.state.pendingWorkspaceTrigger = true
+    this.logger.debug('Brainstem flagged for workspace-triggered heartbeat', {
+      channel,
+      contentLength: content.length,
+    })
   }
 
   /**
@@ -312,7 +317,7 @@ export class HelixBrainstem {
   onSignificantBlackboardPost(channel: string, content: string): void {
     if (!this.config.enabled) return
     if (!['decisions', 'findings', 'concerns', 'bugs'].includes(channel)) return
-    this.state.pendingBlackboardTrigger = true
+    this.state.pendingWorkspaceTrigger = true
     this.logger.debug('Brainstem flagged for Blackboard-triggered heartbeat', {
       channel,
       contentPreview: content.slice(0, 80),
@@ -333,11 +338,11 @@ export class HelixBrainstem {
     const timeTriggered = timeSinceLastMs >= this.config.heartbeatIntervalMs
     const longReasoningTriggered = this.state.longReasoningCount > 0 &&
       this.state.streamTokensThisStep >= this.config.longReasoningTokenThreshold
-    const blackboardTriggered = this.state.pendingBlackboardTrigger
+    const workspaceTriggered = this.state.pendingWorkspaceTrigger
 
-    if (!timeTriggered && !longReasoningTriggered && !blackboardTriggered) return
+    if (!timeTriggered && !longReasoningTriggered && !workspaceTriggered) return
 
-    const trigger = blackboardTriggered ? 'blackboard'
+    const trigger = workspaceTriggered ? 'workspace'
       : longReasoningTriggered ? 'long-reasoning'
       : 'time'
 
@@ -345,11 +350,11 @@ export class HelixBrainstem {
       trigger,
       timeSinceLastMs,
       longReasoningCount: this.state.longReasoningCount,
-      blackboardTrigger: this.state.pendingBlackboardTrigger,
+      workspaceTrigger: this.state.pendingWorkspaceTrigger,
     })
 
     // Reset trigger flags
-    this.state.pendingBlackboardTrigger = false
+    this.state.pendingWorkspaceTrigger = false
     this.state.streamTokensThisStep = 0
     this.state.longReasoningCount = 0
 
@@ -360,7 +365,7 @@ export class HelixBrainstem {
    * Process a heartbeat annotation — a broad state reflection not tied to a specific work unit.
    * Produces a richer annotation than a work unit step since it can see the full session state.
    */
-  private async processHeartbeat(trigger: 'time' | 'long-reasoning' | 'blackboard'): Promise<void> {
+  private async processHeartbeat(trigger: 'time' | 'long-reasoning' | 'workspace'): Promise<void> {
     this.state.currentAxonStep++
     const heartbeatId = `heartbeat-${trigger}-${this.state.currentAxonStep}`
 
@@ -399,7 +404,7 @@ export class HelixBrainstem {
    * Build a broad context prompt for a heartbeat annotation.
    * No work unit — uses session state, cognitive model, and Blackboard.
    */
-  private buildHeartbeatPrompt(trigger: 'time' | 'long-reasoning' | 'blackboard'): string {
+   private buildHeartbeatPrompt(trigger: 'time' | 'long-reasoning' | 'workspace'): string {
     const elapsed = this.startTime > 0 ? Math.round((Date.now() - this.startTime) / 60_000) : 0
     const lastAnnotation = this.state.annotations.at(-1)
     const rollingScore = this.state.qualityTrajectory.slice(-5).reduce((a, b) => a + b, 0) /
@@ -408,7 +413,7 @@ export class HelixBrainstem {
     const triggerDescription = {
       'time': `${elapsed} minutes have passed since the last annotation — periodic state check`,
       'long-reasoning': `I have been reasoning for an extended period without tool calls — checking current state`,
-      'blackboard': `I just posted a significant update to the Blackboard — recording the current cognitive state`,
+      'workspace': `I just posted a significant update to the workspace — recording the current cognitive state`,
     }[trigger]
 
     const allAnnotations = this.state.annotations
@@ -430,7 +435,7 @@ export class HelixBrainstem {
       (cogModel.currentNextSteps.length > 0 ? `Planned next steps:\n${cogModel.currentNextSteps.map(s => `- ${s}`).join('\n')}\n` : '') +
       (cogModel.recentOutputs.length > 0 ? `Recent outputs:\n${cogModel.recentOutputs.slice(-5).map(o => `- ${o}`).join('\n')}\n` : '')
 
-    const blackboardSection = this.buildBlackboardSection()
+    const contextSection = this.buildContextSection()
 
     // Live stream — what is currently being generated, if anything
     const liveStreamSection = this.liveStreamBuffer.trim()
@@ -454,7 +459,7 @@ ${this.deps.goal}
 - Steps taken: ${this.state.annotations.length}
 - Rolling quality (last 5): ${rollingScore.toFixed(2)}
 - Long reasoning sequences: ${this.state.longReasoningCount}
-- ${lastStep}${trajectorySection}${cognitiveModelSection}${blackboardSection}
+- ${lastStep}${trajectorySection}${cognitiveModelSection}${contextSection}
 </session_context>
 
 <instructions>
@@ -1057,8 +1062,8 @@ PROGRESS: <number 0-1>
       this.selfOrganize()
 
       // Post to blackboard if configured
-      if (this.config.postToBlackboard) {
-        this.postAnnotationToBlackboard(annotation)
+      if (this.config.postToContext) {
+        this.postAnnotationToContext(annotation)
       }
 
       // Auto-generate report section from work unit (Brainstem auto-synthesis)
@@ -1172,7 +1177,7 @@ PROGRESS: <number 0-1>
       : ''
 
     // Blackboard state section — include plan, channels, report
-    const blackboardSection = this.buildBlackboardSection()
+    const contextSection = this.buildContextSection()
 
     return `<identity>
 I am this session's self-observation — the cognitive organizer that watches the execution loop, the reviewer dialectic, and the evolving thought chain. I score on multiple dimensions, annotate the current state, detect patterns, and provide self-guidance when needed.
@@ -1183,7 +1188,7 @@ I am this session's self-observation — the cognitive organizer that watches th
 ${this.deps.goal}
 
 ## Current Step
-${this.state.currentAxonStep}${trajectorySection}${cognitiveModelSection}${blackboardSection}
+${this.state.currentAxonStep}${trajectorySection}${cognitiveModelSection}${contextSection}
 </session_context>
 
 <work_unit>
@@ -1287,49 +1292,48 @@ Scoring guidance:
   }
 
   /**
-   * Build the Blackboard state section for the brainstem prompt.
-   * Reads from the injected blackboard to give context on plans, decisions, and findings.
+   * Build the context state section for the brainstem prompt.
+   * Reads from contextSources (GlobalWorkspace + Lamina) to give context on plans, decisions, and findings.
+   *
+   * REMOVED: Blackboard dependency — now uses LaminaField for structured state and GlobalWorkspace for signals.
    */
-  private buildBlackboardSection(): string {
-    const bb = this.deps.blackboard
-    if (!bb) return ''
+  private buildContextSection(): string {
+    const cs = this.deps.contextSources
+    if (!cs) return ''
 
-    const parts: string[] = ['\n## Blackboard State']
+    const parts: string[] = ['\n## Context State']
 
-    // Plan board
-    if (bb.getPlan) {
+    // Plan from LaminaField
+    if (cs.lamina) {
       try {
-        const plan = bb.getPlan()
-        if (plan && plan.steps.length > 0) {
-          parts.push(`\n### Plan (${plan.status})\nGoal: ${plan.goal}`)
-          for (const step of plan.steps) {
-            parts.push(`- [${step.status}] (order ${step.order}) ${step.title}: ${step.description}`)
+        const planEntry = cs.lamina.read('session-plan')
+        if (planEntry?.content) {
+          parts.push(`\n### Plan\n${planEntry.content.slice(0, 1000)}`)
+        }
+      } catch { /* non-fatal */ }
+    }
+
+    // Recent signals from GlobalWorkspace
+    if (cs.globalWorkspace) {
+      try {
+        const signals = cs.globalWorkspace.getRecentSignals(5)
+        if (signals.length > 0) {
+          parts.push(`\n### Recent Signals`)
+          for (const s of signals) {
+            parts.push(`- [${s.type}] ${s.content.slice(0, 200)}`)
           }
         }
       } catch { /* non-fatal */ }
     }
 
-    // Recent channel entries
-    for (const channel of ['findings', 'decisions', 'concerns', 'bugs'] as const) {
+    // Active cortical signals
+    if (cs.cortex) {
       try {
-        const entries = bb.read(channel, 5)
-        if (entries.length > 0) {
-          parts.push(`\n### Recent ${channel}`)
-          for (const e of entries) {
-            parts.push(`- ${e.content}`)
-          }
-        }
-      } catch { /* non-fatal */ }
-    }
-
-    // Report sections
-    if (bb.getReport) {
-      try {
-        const report = bb.getReport()
-        if (report && report.sections.length > 0) {
-          parts.push(`\n### Report Sections (${report.sections.length})`)
-          for (const s of report.sections.slice(-5)) {
-            parts.push(`- [${s.type}] ${s.title}: ${s.content.slice(0, 200)}`)
+        const cortexSignals = cs.cortex.getActiveSignals('association')
+        if (cortexSignals.length > 0) {
+          parts.push(`\n### Active Cortex Signals`)
+          for (const s of cortexSignals.slice(-5)) {
+            parts.push(`- [${s.type}] ${s.content.slice(0, 200)}`)
           }
         }
       } catch { /* non-fatal */ }
@@ -3007,10 +3011,10 @@ Scoring guidance:
   /**
    * Post annotation to blackboard for cross-posture visibility and training data.
    */
-  private postAnnotationToBlackboard(annotation: BrainstemAnnotation): void {
-    const bb = this.deps.blackboard
-    if (!bb) {
-      this.logger.debug('Annotation ready for blackboard (no blackboard wired)', {
+  private postAnnotationToContext(annotation: BrainstemAnnotation): void {
+    const cs = this.deps.contextSources
+    if (!cs) {
+      this.logger.debug('Annotation ready (no contextSources wired)', {
         workUnitId: annotation.workUnitId,
         score: annotation.score,
       })
@@ -3018,32 +3022,37 @@ Scoring guidance:
     }
 
     try {
-      // Patterns and low scores go to 'concerns', everything else to 'findings'
-      const channel = annotation.pattern !== 'none' || annotation.score < 0.4
-        ? 'concerns' as const
-        : 'findings' as const
-
       const scoreEmoji = annotation.score >= 0.7 ? '🟢' : annotation.score >= 0.5 ? '🟡' : '🔴'
+      const signalType = annotation.pattern !== 'none' || annotation.score < 0.4 ? 'concern' : 'finding'
+      const content = `${scoreEmoji} **${annotation.annotation}** (${annotation.score.toFixed(2)}) — ${annotation.trainingNote}${annotation.synthesis ? `\n_Dialectic:_ ${annotation.synthesis}` : ''}${annotation.guidance ? `\n_Guidance:_ ${annotation.guidance}` : ''}`
 
-      bb.post(channel, {
-        author: 'brainstem',
-        content: `${scoreEmoji} **${annotation.annotation}** (${annotation.score.toFixed(2)}) — ${annotation.trainingNote}${annotation.synthesis ? `\n_Dialectic:_ ${annotation.synthesis}` : ''}${annotation.guidance ? `\n_Guidance:_ ${annotation.guidance}` : ''}`,
-        structured: {
-          workUnitId: annotation.workUnitId,
-          score: annotation.score,
-          annotation: annotation.annotation,
-          pattern: annotation.pattern,
-          axonStep: annotation.axonStep,
-        },
-        priority: annotation.pattern !== 'none' ? 2 : annotation.score < 0.5 ? 1 : 0,
-        tags: [
-          'brainstem',
-          annotation.annotation,
-          ...(annotation.pattern !== 'none' ? [annotation.pattern] : []),
-        ],
-      })
+      // Broadcast to GlobalWorkspace if available
+      if (cs.globalWorkspace) {
+        cs.globalWorkspace.broadcast({
+          type: signalType,
+          content,
+          author: 'brainstem',
+          salience: annotation.pattern !== 'none' ? 0.8 : annotation.score < 0.5 ? 0.5 : 0.3,
+        })
+      }
+
+      // Also store structured data in Lamina if available
+      if (cs.lamina) {
+        try {
+          const label = `brainstem-annotation-${annotation.workUnitId}`
+          cs.lamina.replace(label, JSON.stringify({
+            workUnitId: annotation.workUnitId,
+            score: annotation.score,
+            annotation: annotation.annotation,
+            pattern: annotation.pattern,
+            axonStep: annotation.axonStep,
+            guidance: annotation.guidance,
+            synthesis: annotation.synthesis,
+          }))
+        } catch { /* non-fatal */ }
+      }
     } catch (err) {
-      this.logger.warn('Failed to post annotation to blackboard', {
+      this.logger.warn('Failed to post annotation to context', {
         error: String(err),
         workUnitId: annotation.workUnitId,
       })

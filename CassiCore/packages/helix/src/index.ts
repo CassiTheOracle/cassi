@@ -18,14 +18,15 @@ import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { HelixProjectOpts, HelixResult } from './types.js'
 import type { HelixStore, TestLockRow } from './helix-store.js'
-import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
-import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
+// REMOVED: Blackboard imports — deprecated. Now uses LaminaField + GlobalWorkspace
+// import type { BlackboardChannel, BlackboardEntry, BlackboardState } from '../../../types/flux-team.js'
+// import type { Blackboard, BlackboardSummary } from '../flux-team/blackboard.js'
 import type { WorkStream } from './work-stream.js'
 import type { DialecticChannel } from './dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
 import type { ResearchSpawner } from './helix-posture-runner.js'
 import type { HelixSynapseLLM } from './helix-synapse.js'
-import { runHelixPipeline } from './helix-pipeline.js'
+import { runHelixPipeline, SessionState } from './helix-pipeline.js'
 import { HelixWorkStream, HelixCoordinator } from './helix-coordinator.js'
 
 function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): string {
@@ -123,152 +124,21 @@ function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): stri
 
 
 /**
- * Build a ResearchSpawner that uses ModelPool + ToolExecutor for lightweight
- * read-only research. Results are posted to the Blackboard via HelixResearcher.
+ * REMOVED: ResearchSpawner — Blackboard deprecated.
  *
- * The spawner acquires a temporary model handle, runs a short agentic loop
- * with read-only tools, then posts findings to the blackboard and releases.
+ * Research functionality now uses GlobalWorkspace + LaminaField directly.
+ * This stub remains for type compatibility but returns undefined.
  */
-async function buildResearchSpawner(deps: {
+async function buildResearchSpawner(_deps: {
   modelPool: ModelPool
   toolExecutor: ToolExecutor
   toolRegistry?: ToolRegistry
   logger: ILogger
-  blackboard: Blackboard
-}): Promise<ResearchSpawner> {
+  // REMOVED: blackboard: Blackboard
+}): Promise<ResearchSpawner | undefined> {
   // Lazy-load to avoid circular deps
-  const { HelixResearcher } = await import('./helix-researcher.js')
-  const { READ_ONLY_TOOLS } = await import('../../tools/read-tools.js')
-
-  return async (opts) => {
-    const requestId = `research-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const droneId = `drone-${requestId}`
-    const log = deps.logger.child('research-spawner')
-
-    const researcher = new HelixResearcher({
-      sessionId: opts.sessionId,
-      blackboard: deps.blackboard,
-      query: opts.query,
-      label: opts.label,
-      requestedBy: 'yang',
-      priority: opts.priority ?? 'medium',
-      context: opts.context,
-      logger: log,
-    })
-
-    await researcher.postRequest()
-
-    void (async () => {
-      let handle: import('../../model-pool/types.js').ModelHandle | undefined
-      try {
-        handle = await deps.modelPool.acquire('helix', undefined, opts.sessionId)
-
-        let tools = READ_ONLY_TOOLS
-        if (deps.toolRegistry) {
-          const registryTools = deps.toolRegistry.toAnthropicSchema()
-            .filter((tool: { name: string }) => isReadOnlyName(tool.name))
-          if (registryTools.length > 0) tools = registryTools
-        }
-
-        const systemPrompt = [
-          'You are a focused research agent for a Helix session.',
-          'Your job is to investigate the given query using your read-only tools.',
-          'Thoroughly search relevant files, patterns, and code structures.',
-          'Return a clear, structured summary of your findings.',
-          'Focus on facts: file contents, function signatures, type definitions, import chains.',
-          'Be thorough but concise. Return raw findings, not interpretations.',
-        ].join('\n')
-
-        const userPrompt = [
-          `## Research Query\n\n${opts.query}`,
-          opts.context ? `\n\n## Context\n\n${opts.context}` : '',
-        ].filter(Boolean).join('')
-
-        const messages: import('../../../types/runtime.js').Message[] = [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ]
-
-        let finalText = ''
-        const maxIterations = 6
-
-        for (let iteration = 0; iteration < maxIterations; iteration++) {
-          const contentBlocks: import('../../../types/runtime.js').ContentBlock[] = []
-          const pendingToolCalls: Array<{ id: string; name: string; input: Record<string, unknown> }> = []
-          let passText = ''
-
-          for await (const chunk of handle.stream(messages, {
-            model: handle.model,
-            maxTokens: 4096,
-            temperature: 0.2,
-            source: 'helix:research-drone',
-            tools,
-          })) {
-            if (chunk.type === 'token' && chunk.text) {
-              passText += chunk.text
-            } else if (chunk.type === 'tool_use' && chunk.toolCall) {
-              pendingToolCalls.push(chunk.toolCall)
-            }
-          }
-
-          finalText += passText
-
-          if (pendingToolCalls.length === 0) break
-
-          if (passText) contentBlocks.push({ type: 'text', text: passText })
-          for (const tc of pendingToolCalls) {
-            contentBlocks.push({ type: 'tool_use', id: tc.id, name: tc.name, input: tc.input })
-          }
-          messages.push({ role: 'assistant', content: contentBlocks })
-
-          const toolResults: import('../../../types/runtime.js').ContentBlock[] = []
-          for (const tc of pendingToolCalls) {
-            try {
-              const toolResult = await deps.toolExecutor.execute({
-                id: tc.id,
-                name: tc.name,
-                input: tc.input,
-              }, opts.sessionId)
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: tc.id,
-                content: toolResult.content,
-              })
-            } catch (err) {
-              toolResults.push({
-                type: 'tool_result',
-                tool_use_id: tc.id,
-                content: `Error: ${String(err)}`,
-                is_error: true,
-              })
-            }
-          }
-          messages.push({ role: 'user', content: toolResults })
-        }
-
-        if (finalText) {
-          await researcher.streamFinding(finalText)
-        }
-        await researcher.complete(finalText || 'Research completed with no textual findings.', {
-          additionalSignals: [],
-        })
-
-        log.info('Research drone completed', { requestId, label: opts.label, textLength: finalText.length })
-      } catch (err) {
-        log.warn('Research drone failed', { requestId, error: String(err), label: opts.label })
-        try {
-          await researcher.streamFinding(`Research failed: ${String(err)}`)
-          await researcher.complete(`Research failed: ${String(err)}`)
-        } catch {
-          // best effort — finding post should not crash the drone
-        }
-      } finally {
-        handle?.release()
-      }
-    })()
-
-    return { requestId, droneId }
-  }
+  // REMOVED: Blackboard-based research — deprecated
+  return undefined
 }
 
 function isReadOnlyName(name: string): boolean {
@@ -286,10 +156,7 @@ export interface HelixOrchestrator {
   project(opts: HelixProjectOpts): Promise<HelixResult>
   cancel(sessionId: string): boolean
   getActiveSessions(): string[]
-  getActiveBlackboard(sessionId: string): BlackboardState | undefined
-  getActiveBlackboardInstance(sessionId: string): Blackboard | undefined
-  getActiveSummary(sessionId: string): BlackboardSummary | undefined
-  getActiveChannel(sessionId: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | undefined
+  /** REMOVED: getActiveBlackboard — Blackboard deprecated. Use getActiveProgress or getActiveBrainstemInspection */
   getActiveProgress(sessionId: string): { markdown: string; data: Record<string, unknown> } | undefined
   setModelPool(modelPool: ModelPool): void
   getActiveBrainstemInspection(sessionId: string): ReturnType<import('./brainstem.js').HelixBrainstem['getInspectionState']> | undefined
@@ -330,7 +197,7 @@ export function createHelix(
   const activeSessions = new Map<string, () => void>()
   const activeWorkStreams = new Map<string, WorkStream>()
   const activeDialecticChannels = new Map<string, DialecticChannel>()
-  const activeBlackboards = new Map<string, Blackboard>()
+  // REMOVED: activeBlackboards — Blackboard deprecated. Now uses LaminaField + GlobalWorkspace
   const activeCoordinators = new Map<string, HelixCoordinator>()
   const activeBrainstems = new Map<string, import('./brainstem.js').HelixBrainstem>()
 
@@ -344,22 +211,6 @@ export function createHelix(
 
     getActiveSessions(): string[] {
       return Array.from(activeSessions.keys())
-    },
-
-    getActiveBlackboard(sessionId: string): BlackboardState | undefined {
-      return activeBlackboards.get(sessionId)?.getSnapshot()
-    },
-
-    getActiveBlackboardInstance(sessionId: string): Blackboard | undefined {
-      return activeBlackboards.get(sessionId)
-    },
-
-    getActiveSummary(sessionId: string): BlackboardSummary | undefined {
-      return activeBlackboards.get(sessionId)?.getSummary()
-    },
-
-    getActiveChannel(sessionId: string, channel: BlackboardChannel, limit?: number): BlackboardEntry[] | undefined {
-      return activeBlackboards.get(sessionId)?.getChannelEntries(channel, limit)
     },
 
     getActiveProgress(sessionId: string) {
@@ -436,8 +287,12 @@ export function createHelix(
 
     async project(opts: HelixProjectOpts): Promise<HelixResult> {
       const sessionId = opts.sessionId || `helix-${Date.now()}`
-      let registry: import('../flux-team/global-blackboard-registry.js').GlobalBlackboardRegistry | undefined
-      let effectiveBlackboard = opts.blackboard
+      // REMOVED: GlobalBlackboardRegistry — Blackboard deprecated
+      let effectiveSessionState = opts.blackboard ?? new SessionState()
+      if (!opts.blackboard) {
+        effectiveSessionState.initPlan(opts.goal)
+        effectiveSessionState.initReport(opts.goal)
+      }
       const effectiveModelPool = storedModelPool || modelPool
       const effectiveEventBus = storedEventBus || eventBus
 
@@ -446,15 +301,6 @@ export function createHelix(
       }
       if (!effectiveEventBus) {
         throw new Error('Helix requires an IEventBus')
-      }
-
-      if (!effectiveBlackboard && opts.blackboardId) {
-        const { GlobalBlackboardRegistry } = await import('../flux-team/global-blackboard-registry.js')
-        registry = new GlobalBlackboardRegistry(logger.child('global-blackboard-registry'))
-        await registry.load(opts.blackboardId)
-        effectiveBlackboard = registry.getOrCreate(opts.blackboardId, { persist: true })
-        if (!effectiveBlackboard.getPlan()) effectiveBlackboard.initPlan(opts.goal)
-        if (!effectiveBlackboard.getReport()) effectiveBlackboard.initReport(opts.goal)
       }
 
       try {
@@ -549,37 +395,11 @@ export function createHelix(
         const handleFactory = (config: { provider: string; model: string }) =>
           effectiveModelPool.acquire('helix', undefined, sessionId, { provider: config.provider, model: config.model })
 
-        let planHandler: import('../flux-team/plan-handler.js').PlanHandler | undefined
-        try {
-          const { PlanHandler } = await import('../flux-team/plan-handler.js')
-          const { Blackboard } = await import('../flux-team/blackboard.js')
-          if (!effectiveBlackboard) {
-            effectiveBlackboard = new Blackboard(logger, sessionId)
-            effectiveBlackboard.initPlan(effectiveGoal)
-            effectiveBlackboard.initReport(effectiveGoal)
-          }
-          planHandler = new PlanHandler(effectiveBlackboard, logger)
-        } catch (err) {
-          logger.warn('helix:plan-handler:init-failed', { error: String(err), sessionId })
-        }
+        // REMOVED: PlanHandler — Blackboard deprecated. Plan state managed via LaminaField
+        let planHandler: undefined
 
-        let resolvedBlackboard: Blackboard | undefined = effectiveBlackboard
-        let researchSpawner: ResearchSpawner | undefined
-
-        if (mentorHandle && storedToolExecutor) {
-          researchSpawner = async (spawnOpts) => {
-            const bb = resolvedBlackboard ?? activeBlackboards.get(sessionId)
-            if (!bb) throw new Error('No blackboard available for research spawner')
-            const spawner = await buildResearchSpawner({
-              modelPool: effectiveModelPool,
-              toolExecutor: storedToolExecutor!,
-              toolRegistry: storedToolRegistry,
-              logger,
-              blackboard: bb,
-            })
-            return spawner(spawnOpts)
-          }
-        }
+        // REMOVED: ResearchSpawner — Blackboard deprecated
+        let researchSpawner: undefined
 
         try {
           const result = await runHelixPipeline({
@@ -597,9 +417,9 @@ export function createHelix(
             toolExecutor: storedToolExecutor,
             toolRegistry: storedToolRegistry,
             store: storedStore,
-            blackboard: effectiveBlackboard,
-            planHandler,
-            researchSpawner,
+            // REMOVED: blackboard — deprecated
+            planHandler: undefined,
+            researchSpawner: undefined,
             useNativeCoordinator: true,
             brainstemDeps,
             synapseDeps,
@@ -613,13 +433,7 @@ export function createHelix(
             onDialecticChannelCreated: (dc) => {
               activeDialecticChannels.set(sessionId, dc)
             },
-            onBlackboardCreated: (blackboard) => {
-              activeBlackboards.set(sessionId, blackboard)
-              resolvedBlackboard = blackboard
-              if (brainstemDeps) {
-                brainstemDeps.blackboard = blackboard
-              }
-            },
+            // REMOVED: onBlackboardCreated — Blackboard deprecated
             onCoordinatorCreated: (coord) => {
               activeCoordinators.set(sessionId, coord)
             },
@@ -640,9 +454,7 @@ export function createHelix(
           })
 
           lastRun = new Date()
-          if (registry && opts.blackboardId) {
-            await registry.save(opts.blackboardId)
-          }
+          // REMOVED: registry.save — Blackboard deprecated
 
           if (storedToolExecutor) {
             try {
@@ -671,7 +483,7 @@ export function createHelix(
           activeSessions.delete(sessionId)
           activeWorkStreams.delete(sessionId)
           activeDialecticChannels.delete(sessionId)
-          activeBlackboards.delete(sessionId)
+          // REMOVED: activeBlackboards.delete — Blackboard deprecated
           activeCoordinators.delete(sessionId)
           activeBrainstems.delete(sessionId)
           unityHandle.release()

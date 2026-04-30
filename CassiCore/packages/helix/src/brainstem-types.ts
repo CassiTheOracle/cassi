@@ -82,7 +82,7 @@ export interface BrainstemConfig {
   /** Hard wall-clock limit in milliseconds — injects 'stop now' guidance. Default: 120 min */
   wallClockHardLimitMs: number
   /** Whether to post annotations to blackboard. Default: true */
-  postToBlackboard: boolean
+  postToContext: boolean
   /** Whether to persist to training warehouse on completion. Default: true */
   persistTrainingData: boolean
   /** Whether Brainstem is enabled. Default: true */
@@ -120,7 +120,7 @@ export const DEFAULT_BRAINSTEM_CONFIG: BrainstemConfig = {
   wallClockBudgetMs: 90 * 60 * 1000,
   // 120 minutes hard wall-clock limit
   wallClockHardLimitMs: 120 * 60 * 1000,
-  postToBlackboard: true,
+  postToContext: true,
   persistTrainingData: true,
   enabled: true,
   heartbeatIntervalMs: 90_000,
@@ -320,7 +320,7 @@ export interface BrainstemState {
   /** Running cognitive model — accumulated knowledge state across all steps */
   cognitiveModel: CognitiveModel
   /** Flag set when Unity posts a significant Blackboard entry — triggers next heartbeat */
-  pendingBlackboardTrigger: boolean
+  pendingWorkspaceTrigger: boolean
   /** Tokens consumed by each reviewer posture */
   reviewerTokens: { yang: number, yin: number }
   /** Findings produced by each reviewer */
@@ -374,7 +374,7 @@ export function createInitialBrainstemState(): BrainstemState {
     streamTokensThisStep: 0,
     longReasoningCount: 0,
     cognitiveModel: createInitialCognitiveModel(),
-    pendingBlackboardTrigger: false,
+    pendingWorkspaceTrigger: false,
     reviewerTokens: { yang: 0, yin: 0 },
     reviewerFindings: { yang: 0, yin: 0 },
     // WHY: 0 means no limit; Corpus directives may cap this to enforce conclusion
@@ -449,8 +449,8 @@ export interface BrainstemDeps {
   sessionId: string
   /** Event bus for emitting brainstem events to the cognitive feed */
   eventBus?: IEventBus
-  /** Blackboard for posting annotations */
-  blackboard?: BrainstemBlackboard
+  /** Context sources for brainstem state (replaces deprecated Blackboard) */
+  contextSources?: BrainstemContextSources
   /** Corpus tree to push annotations into — only present in Constellation mode */
   corpusTree?: ICorpusTree
   /** This Helix's ID in the Constellation — for Corpus tree branch identification */
@@ -550,42 +550,34 @@ export interface SharedTreeReader {
 }
 
 /**
- * Minimal blackboard interface for Brainstem posting and reading.
+ * REMOVED: BrainstemBlackboard interface — Blackboard deprecated.
  *
- * HOW: Avoids importing the full Blackboard class — any object with compatible
- * methods satisfies this contract.
+ * Replacement: GlobalWorkspace for signals + LaminaField for structured state.
+ * The brainstem now uses:
+ *   - GlobalWorkspace.onBroadcast() for findings/concerns as signals
+ *   - LaminaField.read('session-plan') for plan state
+ *   - LaminaField.read('session-report') for report state
+ *   - CorticalField for working memory signals
  */
-export interface BrainstemBlackboard {
-  /**
-   * Post an entry to a channel.
-   */
-  post(
-    channel: 'findings' | 'concerns' | 'bugs',
-    entry: {
-      author: string
-      content: string
-      structured?: Record<string, unknown>
-      priority?: number
-      tags?: string[]
-    },
-  ): unknown
-  /**
-   * Read recent entries from a channel for inclusion in the brainstem prompt.
-   */
-  read(
-    channel: 'findings' | 'concerns' | 'decisions' | 'artifacts' | 'requests' | 'bugs',
-    limit?: number,
-  ): Array<{ id: string; channel: string; content: string; author: string; priority: number; tags: string[]; timestamp: number }>
-  /** Get the current plan, if any */
-  getPlan?(): {
-    goal: string
-    status: string
-    steps: Array<{ title: string; description: string; status: string; order: number }>
-  } | null
-  /** Get the current report, if any */
-  getReport?(): {
-    sections: Array<{ type: string; title: string; content: string; author?: string; status?: string }>
-  } | null
+
+/**
+ * Minimal interface for brainstem context sources (post-Blackboard removal).
+ */
+export interface BrainstemContextSources {
+  /** GlobalWorkspace for broadcasting signals */
+  globalWorkspace?: {
+    broadcast(signal: { type: string; content: string; author: string; salience: number }): void
+    getRecentSignals(limit?: number): Array<{ type: string; content: string; author: string; timestamp: number }>
+  }
+  /** LaminaField for structured labeled blocks */
+  lamina?: {
+    read(label: string): { content: string } | null
+    replace(label: string, content: string): void
+  }
+  /** CorticalField for working memory */
+  cortex?: {
+    getActiveSignals(region?: string): Array<{ type: string; content: string; salience: number }>
+  }
 }
 
 

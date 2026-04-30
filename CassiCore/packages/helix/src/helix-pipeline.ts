@@ -10,7 +10,8 @@
  * Channels:
  *   - WorkStream: Unity ↔ reviewers (work units up, nudges down)
  *   - DialecticChannel: Yang ↔ Yin (findings, challenges, concessions)
- *   - Blackboard: Brainstem → Unity (guidance, flags, annotations)
+ *   - ContextSources: Brainstem → Unity (guidance, flags, annotations)
+ *   REMOVED: Blackboard deprecated — now uses GlobalWorkspace + LaminaField
  *
  * Watchdog: steer-then-kill (2min warn → 4min escalate → 6min kill)
  */
@@ -22,7 +23,26 @@ import type { ToolExecutor } from '../../tools/executor.js'
 import type { ToolRegistry } from '../../tools/registry.js'
 import type { PlanHandler } from '../flux-team/plan-handler.js'
 import type { HelixStore } from './helix-store.js'
-import { Blackboard } from '../flux-team/blackboard.js'
+// REMOVED: Blackboard import — deprecated. Now uses LaminaField + GlobalWorkspace
+// SessionState replaces deprecated Blackboard for plan/report tracking
+
+/** Minimal session state tracker (replaces Blackboard) */
+export class SessionState {
+  private plan: { goal: string; steps: Array<{ title: string; status: string }> } | null = null
+  private report: { sections: Array<{ type: string; title: string; content: string }> } = { sections: [] }
+
+  initPlan(goal: string) {
+    this.plan = { goal, steps: [] }
+  }
+  initReport(goal: string) {
+    this.report = { sections: [{ type: 'summary', title: 'Goal', content: goal }] }
+  }
+  getPlan() { return this.plan }
+  getReport() { return this.report }
+  getSnapshot() {
+    return { plan: this.plan, report: this.report }
+  }
+}
 import { WorkStream } from './work-stream.js'
 import { ContextBudgetCoordinator } from '../cassi-agent/context-budget-coordinator.js'
 import { DialecticChannel } from './dialectic-channel.js'
@@ -84,13 +104,15 @@ export interface HelixPipelineOpts {
   store?: HelixStore
   eventBus?: IEventBus
   planHandler?: PlanHandler
-  blackboard?: Blackboard
+  /** @deprecated Blackboard removed — use contextSources in brainstemDeps */
+  blackboard?: SessionState
   modelDirective?: IModelDirective
   handleFactory?: (config: ModelConfig) => Promise<ModelHandle>
 
   // Callbacks
   onCancelRegistered?: (cancelFn: () => void) => void
-  onBlackboardCreated?: (bb: Blackboard) => void
+  /** @deprecated Blackboard removed — use onContextSourcesCreated */
+  onBlackboardCreated?: (bb: SessionState) => void
   onWorkStreamCreated?: (ws: WorkStream) => void
   onDialecticChannelCreated?: (dc: DialecticChannel) => void
   onCoordinatorCreated?: (coordinator: HelixCoordinator) => void
@@ -281,12 +303,12 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     dialecticChannel = new DialecticChannel(500, opts.eventBus, sessionId)
   }
 
-  // Auto-create Blackboard if not provided
-  const blackboard = opts.blackboard ?? new Blackboard(log, sessionId)
-  opts.onBlackboardCreated?.(blackboard)
+  // Auto-create session state if not provided (replaces deprecated Blackboard)
+  const sessionState = opts.blackboard ?? new SessionState()
+  opts.onBlackboardCreated?.(sessionState)
   if (!opts.blackboard) {
-    blackboard.initPlan(opts.goal)
-    blackboard.initReport(opts.goal)
+    sessionState.initPlan(opts.goal)
+    sessionState.initReport(opts.goal)
   }
 
   opts.onWorkStreamCreated?.(workStream)
@@ -302,12 +324,8 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   const unityChunkIndex = new ContextChunkIndex(log)
 
   if (useBrainstem) {
-    // Inject the Helix blackboard into brainstemDeps so the Brainstem can
-    // post annotations to the findings/concerns channels. Without this,
-    // postToBlackboard silently no-ops when deps.blackboard is undefined.
-    if (!opts.brainstemDeps!.blackboard) {
-      opts.brainstemDeps!.blackboard = blackboard
-    }
+    // REMOVED: Blackboard injection — now uses contextSources (GlobalWorkspace + LaminaField)
+    // Brainstem posts annotations via contextSources.globalWorkspace.broadcast()
     // Wire dialectic channel and tool executor for edit proposal approval
     if (!opts.brainstemDeps!.dialecticChannel) {
       opts.brainstemDeps!.dialecticChannel = dialecticChannel
@@ -391,7 +409,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     jobId: opts.jobId,
     workStream,
     dialecticChannel,
-    blackboard,
+    sessionState,
     logger: log,
     toolExecutor: opts.toolExecutor,
     toolRegistry: opts.toolRegistry,
@@ -845,9 +863,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       // Brainstem result (replaces/supersedes mentor)
       brainstem: brainstemResult,
 
-      report: blackboard.getReport() ?? undefined,
+      report: sessionState.getReport() ?? undefined,
       autoReport: autoReport.length > 0 ? autoReport : undefined,
-      blackboard: blackboard.getSnapshot(),
+      sessionState: sessionState.getSnapshot(),
     }
 
     // Persist

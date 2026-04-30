@@ -15,7 +15,8 @@
  */
 
 import type { ConvergencePoint, UnresolvedTension } from './dialectic-channel.js'
-import type { Blackboard } from '../flux-team/blackboard.js'
+// REMOVED: Blackboard import — deprecated. Now uses LaminaField + GlobalWorkspace
+// import type { Blackboard } from '../flux-team/blackboard.js'
 import type { DyadRole } from './work-types.js'
 import type { UnityStatusThresholds } from './work-stream.js'
 import type { GlobalWorkspace } from '../workspace/index.js'
@@ -55,15 +56,12 @@ export interface HelixProjectOpts {
   jobId?: string
   toolAccessOverride?: 'read-only' | 'read-only+memory' | 'full'
   /**
-   * Shared Blackboard for this session.
-   * When provided, passed directly to all postures — no new Blackboard is created.
-   * When absent, a fresh Blackboard is auto-created by the pipeline.
+   * REMOVED: blackboard and blackboardId deprecated.
+   * Session state is now managed via LaminaField + GlobalWorkspace.
    */
-  blackboard?: Blackboard
-  /**
-   * If no blackboard is provided, use this ID when auto-creating one.
-   * Defaults to sessionId when absent.
-   */
+  /** @deprecated Use contextSources in brainstemDeps instead */
+  blackboard?: any
+  /** @deprecated No longer used */
   blackboardId?: string
   /** Override artifact namespace for file sharing (set by parent orchestrator) */
   artifactNamespace?: string
@@ -231,5 +229,6 @@ export interface HelixResult {
   /** Incremental report built by all postures */
   report?: import('../../../types/flux-team.js').Report
   /** Blackboard snapshot at completion */
-  blackboard?: import('../../../types/flux-team.js').BlackboardState
+  /** Session state snapshot at completion (replaces deprecated Blackboard) */
+  sessionState?: { plan: unknown; report: unknown }
 }
