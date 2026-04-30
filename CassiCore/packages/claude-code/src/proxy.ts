@@ -187,6 +187,33 @@ function postSessionMetrics(state: ProxySessionState): void {
   });
 }
 
+function buildRequestDiagnostics(
+  req: http.IncomingMessage,
+  state: ProxySessionState | undefined,
+  route: ResolvedRoute | null,
+  requestPath: string,
+  requestedModel: string,
+  bodyToSend: Buffer,
+): Record<string, unknown> {
+  return {
+    method: req.method,
+    path: requestPath,
+    requestedModel,
+    routedProvider: route?.provider.id,
+    routedBaseUrl: route?.provider.baseUrl,
+    routedModel: route?.model,
+    isFallbackRoute: route?.isFallback ?? false,
+    claudeSessionId: state?.sessionId,
+    ccSessionId: state?.ccSessionId,
+    requestCount: state?.requestCount,
+    totalInputTokensSoFar: state?.totalInputTokens,
+    totalOutputTokensSoFar: state?.totalOutputTokens,
+    bodyBytes: bodyToSend.length,
+    hasClientAuthorizationHeader: typeof req.headers['authorization'] !== 'undefined',
+    hasClientApiKeyHeader: typeof req.headers['x-api-key'] !== 'undefined',
+  };
+}
+
 export function sanitizeToolPairs(messages: any[]): any[] {
   if (!Array.isArray(messages) || messages.length === 0) return messages;
 
@@ -370,34 +397,36 @@ async function proxyRequest(
         logger.error(`No route for model "${requestedModel}" — forwarding to default upstream`);
       }
 
-      // Only inject cognitive context + curate for actual message requests, not count_tokens
+      const claudeSessionId = extractClaudeSessionId(req);
+      state = getProxySession(claudeSessionId);
       if (!isCountTokens) {
-        const claudeSessionId = extractClaudeSessionId(req);
-        state = getProxySession(claudeSessionId);
         state.requestCount++;
+      }
 
-        const cognitive = await buildCognitiveInjection(state);
-        if (cognitive) {
-          if (body.system) {
-            body.system = stripSoulMd(body.system as string | unknown[]);
-          }
-          injectIntoSystemPrompt(body, cognitive);
+      // Apply the same context expansion to both /messages and /messages/count_tokens
+      // so Claude Code's usage meter reflects the real payload sent upstream.
+      // Count-tokens requests must NOT increment requestCount or pollute token metrics.
+      const cognitive = await buildCognitiveInjection(state);
+      if (cognitive) {
+        if (body.system) {
+          body.system = stripSoulMd(body.system as string | unknown[]);
         }
+        injectIntoSystemPrompt(body, cognitive);
+      }
 
-        if (Array.isArray(body.messages)) {
-          let nextMessages = body.messages;
-          try {
-            const curated = await bridge.curate(state.ccSessionId, body.messages);
-            if (curated?.messages) nextMessages = curated.messages;
-            const receiptText = renderReceiptForInjection(curated?.meta?.receipt);
-            if (receiptText) {
-              injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
-            }
-          } catch (err) {
-            logger.error("curate failed", { error: String(err) });
+      if (Array.isArray(body.messages)) {
+        let nextMessages = body.messages;
+        try {
+          const curated = await bridge.curate(state.ccSessionId, body.messages);
+          if (curated?.messages) nextMessages = curated.messages;
+          const receiptText = renderReceiptForInjection(curated?.meta?.receipt);
+          if (receiptText) {
+            injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
           }
-          body.messages = sanitizeToolPairs(nextMessages);
+        } catch (err) {
+          logger.error("curate failed", { error: String(err) });
         }
+        body.messages = sanitizeToolPairs(nextMessages);
       }
 
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
@@ -457,6 +486,14 @@ async function proxyRequest(
     },
     (proxyRes) => {
       const statusCode = proxyRes.statusCode ?? 502;
+      const requestDiagnostics = buildRequestDiagnostics(
+        req,
+        state,
+        route,
+        requestPath,
+        requestedModel,
+        bodyToSend,
+      );
 
       // Track provider health
       if (route) {
@@ -467,9 +504,18 @@ async function proxyRequest(
         }
       }
 
+      if (statusCode >= 400) {
+        logger.warn("Upstream returned error status", {
+          ...requestDiagnostics,
+          statusCode,
+          responseHeaders: proxyRes.headers,
+          isStreaming,
+        });
+      }
+
       res.writeHead(statusCode, proxyRes.headers);
 
-      if (state && isStreaming) {
+      if (state && isStreaming && !isCountTokens) {
         let sseBuffer = "";
         proxyRes.on("data", (chunk) => {
           res.write(chunk);
@@ -496,7 +542,7 @@ async function proxyRequest(
           postSessionMetrics(state!);
           res.end();
         });
-      } else if (state && !isStreaming) {
+      } else if (state && !isStreaming && !isCountTokens) {
         const chunks: Buffer[] = [];
         proxyRes.on("data", (chunk) => {
           chunks.push(chunk as Buffer);
@@ -505,6 +551,14 @@ async function proxyRequest(
         proxyRes.on("end", () => {
           try {
             const data = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+            if (statusCode >= 400) {
+              logger.error("Upstream error payload", {
+                ...requestDiagnostics,
+                statusCode,
+                upstreamError: data?.error ?? data,
+                usage: data?.usage,
+              });
+            }
             trackTokenUsage(state!, data.usage);
             postSessionMetrics(state!);
           } catch { /* non-JSON response */ }
