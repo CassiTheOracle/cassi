@@ -312,6 +312,7 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
 
   // REMOVED: team_dashboard tool — deprecated TriadTeam orchestrator deleted
   // system_health: Comprehensive system status with providers, sessions, and memory
+  const daemon = (deps as any).daemon
   const systemHealthDeps: SystemHealthDeps = {
     daemon: daemon,
     sessionManager: deps.sessionManager,

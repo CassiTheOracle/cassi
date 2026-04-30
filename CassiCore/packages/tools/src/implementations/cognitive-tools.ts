@@ -110,7 +110,7 @@ function formatSignalGroup(signals: CognitiveSignal[]): string {
 
 export interface CognitiveToolDeps {
   thoughtObserver?: ThoughtObserver
-  injectionAggregator?: InjectionAggregator
+  // REMOVED: injectionAggregator — deprecated. Now uses GlobalWorkspace/Thalamus.
   cognitiveBridge?: CognitiveBridge
   contextManager?: {
     getEffectiveContext(sessionId: string, opts?: { query?: string; charBudget?: number }): Promise<{ merged: string }>
@@ -296,18 +296,8 @@ export function makeCognitiveRememberHandler(deps: CognitiveToolDeps): ToolHandl
       return 'No valid observations provided. Each observation needs at least a "text" field.'
     }
 
-    // Route to injection aggregator (next turn's context)
-    let injected = 0
-    if (deps.injectionAggregator) {
-      for (const obs of observations) {
-        deps.injectionAggregator.queueDialecticSignal(context.sessionId, {
-          content: obs.text,
-          type: obs.kind,
-          confidence: obs.confidence,
-        })
-        injected++
-      }
-    }
+    // REMOVED: injectionAggregator routing — deprecated. Observations are now
+    // stored via MemoryShim and accessed by Thalamus/GlobalWorkspace.
 
     log.info(`[_remember] Stored ${observations.length} observation(s)`, {
       sessionId: context.sessionId.slice(-8),

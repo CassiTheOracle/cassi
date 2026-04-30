@@ -19,7 +19,7 @@ import type { IEventBus, ILogger } from '../../types/interfaces.js'
 import type { PermissionOracle } from '../intelligence/permission-oracle/index.js'
 import type { TrustLedger } from '../intelligence/trust-ledger/index.js'
 import { ToolReliabilityTracker } from './reliability.js'
-import type { ToolCallOrchestrator } from '../intelligence/triad-team/tool-orchestrator.js'
+// REMOVED: ToolCallOrchestrator import — deprecated TriadTeam deleted
 
 
 const MAX_CONCURRENT = 20
@@ -45,7 +45,7 @@ export class ToolExecutor {
   private permissionOracle?: PermissionOracle
   private trustLedger?: TrustLedger
   private reliabilityTracker?: ToolReliabilityTracker
-  private orchestrator?: ToolCallOrchestrator
+  // REMOVED: orchestrator — deprecated TriadTeam deleted
   private hookRunner?: ExternalHookRunner
   private logger: ILogger
 
@@ -179,13 +179,7 @@ export class ToolExecutor {
     return this.sessionContextOverrides.has(sessionId)
   }
 
-  setOrchestrator(orchestrator: ToolCallOrchestrator): void {
-    this.orchestrator = orchestrator
-  }
-
-  getOrchestrator(): ToolCallOrchestrator | undefined {
-    return this.orchestrator
-  }
+  // REMOVED: setOrchestrator and getOrchestrator — deprecated TriadTeam deleted
 
   /**
    * Wire external shell hooks for PreToolUse/PostToolUse interception.
@@ -200,17 +194,7 @@ export class ToolExecutor {
     sessionId: string,
     opts?: { workingDir?: string },
   ): Promise<ToolResult> {
-    // HOW: Temporarily clear this.orchestrator to prevent infinite recursion
-    // when orchestrator delegates back to execute()
-    if (this.orchestrator && call.name !== 'batch_tools') {
-      const orch = this.orchestrator
-      this.orchestrator = undefined // Prevent recursion
-      try {
-        return await orch.execute(call, sessionId, this.execute.bind(this), opts)
-      } finally {
-        this.orchestrator = orch
-      }
-    }
+    // REMOVED: orchestrator delegation — deprecated TriadTeam deleted
 
     const executeStartMs = Date.now()
 
