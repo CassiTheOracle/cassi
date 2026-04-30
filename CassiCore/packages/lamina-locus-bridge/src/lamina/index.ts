@@ -4,14 +4,12 @@
  * Public API:
  *   - `LaminaField` — the high-level facade
  *   - `LaminaStore` — direct SQLite access (advanced)
- *   - `LaminaInjectionSource` — adapter for InjectionAggregator
  *
  * See `project_lamina_primitive_design.md` for the architectural rationale.
  */
 
 export { LaminaField } from './lamina-field.js'
 export { LaminaStore } from './lamina-store.js'
-export { LaminaInjectionSource } from './lamina-injection.js'
 export {
   LaminaCasConflict,
   LaminaOverflow,

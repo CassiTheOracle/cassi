@@ -15,7 +15,6 @@ import { isGamingMode } from '../gaming-mode.js'
 // REMOVED: MemoryModule import — now uses IMemory via MemoryShim
 import type { IMemory } from '../../../types/intelligence.js'
 import type { ReasoningBank } from '../reasoning-bank/index.js'
-import type { InjectionAggregator, InjectionSource } from '../injection-aggregator.js'
 import { DreamCycleEngine } from './dream-engine.js'
 import type { DreamRecord, DreamerConfig } from './types.js'
 import { DEFAULT_DREAMER_CONFIG } from './types.js'
@@ -107,17 +106,10 @@ export class DreamerModule extends BaseCognitiveModule {
   }
 
   /**
-   * Register this module as an InjectionSource so recent dream insights
-   * are surfaced in the turn context window.
+   * REMOVED: registerWithInjectionAggregator — InjectionAggregator deleted.
+   * Dream insights are now surfaced via getContextInjection() pulled by Thalamus
+   * or other injection assemblers when they are reintroduced.
    */
-  registerWithInjectionAggregator(aggregator: InjectionAggregator): void {
-    const source: InjectionSource = {
-      name: 'dreamer',
-      priority: 20,
-      getInjection: async (_sessionId: string) => this.getContextInjection(),
-    }
-    aggregator.register(source)
-  }
 
 
   protected override async onTurnEnd(
