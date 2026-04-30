@@ -5,7 +5,7 @@
  * measure performance differences, regression detection, and improvement tracking.
  */
 
-import type { ScenarioResult, WorkflowScenario } from '../src/testing/verification/scenario-types.js'
+import type { ScenarioResult, WorkflowScenario } from '../core/testing/verification/scenario-types.js'
 
 /** Configuration for replay execution */
 export interface ReplayConfig {
