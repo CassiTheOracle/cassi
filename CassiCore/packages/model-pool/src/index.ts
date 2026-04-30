@@ -22,7 +22,7 @@ import { FallbackManager } from './fallback-manager.js'
 import { BudgetManager } from './budget-manager.js'
 import { CapabilityCache } from './capability-cache.js'
 import { ModelHandleImpl } from './model-handle.js'
-import { ModelCapabilitiesFetcher } from '../intelligence/triad-team/model-capabilities.js'
+import { ModelCapabilitiesFetcher } from './model-capabilities.js'
 
 /**
  * ModelPool - Central orchestrator for model management.

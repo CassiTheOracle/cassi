@@ -12,7 +12,7 @@
  * All imports use .js extensions (TypeScript ESM).
  */
 
-import { ModelCapabilitiesFetcher, type ModelCapabilities } from '../intelligence/triad-team/model-capabilities.js'
+import { ModelCapabilitiesFetcher, type ModelCapabilities } from './model-capabilities.js'
 import { TTLCache } from '../utils/ttl-cache.js'
 import type { IProvider } from '../../types/runtime.js'
 import type { ILogger } from '../../types/interfaces.js'
