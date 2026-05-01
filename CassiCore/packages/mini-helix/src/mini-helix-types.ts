@@ -116,7 +116,7 @@ export const MINI_HELIX_DEFAULTS: Record<MiniHelixConsumer, Partial<MiniHelixCon
     maxIterationsPerCycle: 50,
     maxTokens: 2048,
     cycleTimeoutMs: 120_000,
-    modelTier: 'qwen',       // Qwen3 Max via alibaba-coding
+    modelTier: 'qwenMax',       // Qwen3 Max via alibaba-coding
   },
   brainstem: {
     maxIterationsPerCycle: 30,
