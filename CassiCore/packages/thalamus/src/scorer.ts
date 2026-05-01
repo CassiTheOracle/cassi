@@ -62,7 +62,7 @@ export class MessageLuminanceScorer {
       if (i >= protectedStart) {
         scored.push({
           messageIndex: i,
-          luminance: { novelty: 1, urgency: 1, relevance: 1, sourceCredibility: 1, strategicImportance: 1, composite: 1 },
+          luminance: { novelty: 1, urgency: 1, relevance: 1, sourceCredibility: 1, cognitiveResonance: 1, strategicImportance: 1, composite: 1 },
           estimatedChars: this.estimateChars(msg),
         })
         continue
@@ -92,6 +92,7 @@ export class MessageLuminanceScorer {
         urgency: urg,
         relevance: rel,
         sourceCredibility: cred,
+        cognitiveResonance: res,
         strategicImportance: strat,
         composite,
       }

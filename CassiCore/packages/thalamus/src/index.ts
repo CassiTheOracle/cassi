@@ -267,6 +267,25 @@ export class ThalamusModule extends BaseCognitiveModule {
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
 
+    // Inject pending recall queue — synthetic messages re-injected by cassi_context recall_inject
+    const pendingRecall = this.getPendingRecall(sessionId)
+    if (pendingRecall.length > 0) {
+      for (const r of pendingRecall) {
+        annotated.push({
+          role: r.role,
+          content: r.content,
+          _thalamus: {
+            pinned: true,
+            pinReason: `recall: ${r.label ?? 'user-requested'}`,
+            source: r.source,
+            slot: 'recalled',
+          },
+        })
+      }
+      this.clearRecall(sessionId, pendingRecall.map(r => r.id))
+      this.logger.info('Injected pending recall messages', { sessionId, count: pendingRecall.length })
+    }
+
     // Identify latest reads per file — non-latest reads are suppressed during scoring
     // so they get dropped entirely instead of being summarized.
     // Detect topic clusters before read suppression so we can scope dedup per-topic
@@ -371,6 +390,9 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Detect tool repetition — same (tool, target) appearing 3+ times
     const repetitionWarning = this.detectToolRepetition(compressed)
 
+    // Extract topic summaries for cross-session sharing
+    const topicSummaries = this.extractTopicSummaries(session, scored)
+
     const meta = {
       originalCount: messages.length,
       curatedCount: assembled.messages.length,
@@ -383,6 +405,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       receipt,
       repetitionWarning,
       durationMs: Date.now() - start,
+      topicSummaries,
     }
 
     this.logger.info('Thalamus curated', {
@@ -419,6 +442,8 @@ export class ThalamusModule extends BaseCognitiveModule {
             urgency: sm.luminance.urgency,
             relevance: sm.luminance.relevance,
             sourceCredibility: sm.luminance.sourceCredibility,
+            cognitiveResonance: sm.luminance.cognitiveResonance ?? 0,
+            strategicImportance: sm.luminance.strategicImportance ?? 0,
             composite: sm.luminance.composite,
           },
           kept,
@@ -441,6 +466,16 @@ export class ThalamusModule extends BaseCognitiveModule {
             cfg.ignitionThreshold, meta.durationMs,
             session.dropHistory.filter(r => r.curationPass === session.totalCurations),
           )
+          const dropped = session.dropHistory
+            .filter(r => r.curationPass === session.totalCurations && !r.kept)
+            .map(r => ({
+              index: r.msgIndex,
+              role: r.role,
+              content: r.preview,
+              slot: r.slot,
+              composite: r.luminance.composite,
+            }))
+          this.store.storeDroppedMessages(sessionId, session.totalCurations, dropped)
         } catch (err) {
           this.logger.warn('ThalamusStore recordPass failed', { error: String(err) })
         }
@@ -524,6 +559,8 @@ export class ThalamusModule extends BaseCognitiveModule {
             urgency: sm.luminance.urgency,
             relevance: sm.luminance.relevance,
             sourceCredibility: sm.luminance.sourceCredibility,
+            cognitiveResonance: sm.luminance.cognitiveResonance ?? 0,
+            strategicImportance: sm.luminance.strategicImportance ?? 0,
             composite: sm.luminance.composite,
           },
           kept: true,
@@ -534,6 +571,45 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
     return null
+  }
+
+  recall(sessionId: string, query: string, limit: number = 5): Array<{
+    id: number; passNumber: number; msgIndex: number
+    role: string; content: string; slot: string; composite: number
+  }> {
+    if (!this.store) return []
+    try {
+      return this.store.searchDropped(sessionId, query, limit)
+    } catch {
+      return []
+    }
+  }
+
+  recallInject(sessionId: string, content: string, role: string, label?: string): number {
+    if (!this.store) return -1
+    try {
+      return this.store.enqueueRecall(sessionId, content, role, label)
+    } catch {
+      return -1
+    }
+  }
+
+  getPendingRecall(sessionId: string, limit: number = 5): Array<{
+    id: number; content: string; role: string; source: string; label: string | null
+  }> {
+    if (!this.store) return []
+    try {
+      return this.store.dequeueRecall(sessionId, limit)
+    } catch {
+      return []
+    }
+  }
+
+  clearRecall(sessionId: string, ids: number[]): void {
+    if (!this.store) return
+    try {
+      this.store.clearRecallQueue(sessionId, ids)
+    } catch {}
   }
 
   /**
@@ -1364,6 +1440,82 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
   }
 
+  /**
+   * Extract TopicSummary[] from active topic clusters and archived topics.
+   * Used to feed the CrossSessionTopicIndex after each curation pass.
+   * Computes per-topic importance as the average luminance composite of
+   * messages belonging to each topic.
+   */
+  private extractTopicSummaries(
+    session: CurationSession,
+    scored: ScoredMessage[],
+  ): import('./types.js').TopicSummary[] {
+    const summaries: import('./types.js').TopicSummary[] = []
+
+    // Archived topics — have labels and summaries from async LLM calls
+    for (const archive of session.topicArchive) {
+      const keyTerms = archive.keyTerms ?? [...(archive.structured?.filesTouched ?? [])]
+      // Estimate importance from archived topic's message range
+      const importance = this.computeTopicImportance(
+        archive.originalIndices, scored,
+      )
+      summaries.push({
+        id: archive.id,
+        label: archive.label || archive.summary?.slice(0, 50) || 'Untitled topic',
+        summary: archive.summary || '',
+        status: 'archived',
+        keyTerms,
+        importanceScore: importance,
+      })
+    }
+
+    // Active topic clusters — skip any that have already been archived
+    // (archived topics remain in topicClusters until the session advances
+    // past them, so we dedupe by ID to avoid duplicate index entries).
+    const archivedIds = new Set(session.topicArchive.map(a => a.id))
+    for (const cluster of session.topicClusters) {
+      if (archivedIds.has(cluster.id)) continue
+      const keyTerms = [...cluster.termSet].slice(0, 12)
+      const importance = this.computeTopicImportance(
+        cluster.messageIndices, scored,
+      )
+      summaries.push({
+        id: cluster.id,
+        label: cluster.label || keyTerms.slice(0, 3).join(' ') || `Topic ${cluster.id}`,
+        summary: cluster.summary || `Working on: ${keyTerms.slice(0, 5).join(', ')}`,
+        status: 'active',
+        keyTerms,
+        importanceScore: importance,
+      })
+    }
+
+    return summaries
+  }
+
+  /**
+   * Compute average luminance composite for messages belonging to a topic.
+   * Returns 0 if no scored messages overlap.
+   */
+  private computeTopicImportance(
+    messageIndices: number[],
+    scored: ScoredMessage[],
+  ): number {
+    if (scored.length === 0) return 0.3
+    // Compute session-wide average luminance as the fallback default
+    const globalAvg = scored.reduce((sum, sm) => sum + sm.luminance.composite, 0) / scored.length
+    if (messageIndices.length === 0) return globalAvg
+    const indexSet = new Set(messageIndices)
+    let total = 0
+    let count = 0
+    for (const sm of scored) {
+      if (indexSet.has(sm.messageIndex)) {
+        total += sm.luminance.composite
+        count++
+      }
+    }
+    return count > 0 ? total / count : globalAvg
+  }
+
   private getSession(sessionId: string): CurationSession {
     let session = this.sessions.get(sessionId)
     if (!session) {
@@ -1809,6 +1961,7 @@ export class ThalamusModule extends BaseCognitiveModule {
           urgency: 0,
           relevance: 0,
           sourceCredibility: 0,
+          cognitiveResonance: 0,
           strategicImportance: 0,
           composite: 0,
         }

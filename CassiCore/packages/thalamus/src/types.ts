@@ -175,12 +175,32 @@ export interface CurationMeta {
    * 3+ times in the conversation. The proxy injects this as a system block
    * to break the agent out of a re-read/re-run loop.
    */
-  repetitionWarning?: string
+   repetitionWarning?: string
+  /**
+   * Topic summaries extracted from this curation pass.
+   * Populated when a CrossSessionTopicIndex is in use.
+   * Contains both active topic clusters and archived topics with their
+   * summaries, key terms, and importance scores.
+   */
+  topicSummaries?: TopicSummary[]
 }
 
 export interface CurationResult {
   messages: any[]
   meta: CurationMeta
+}
+
+/**
+ * A distilled summary of a topic cluster or archived topic, suitable
+ * for cross-session sharing via CrossSessionTopicIndex.
+ */
+export interface TopicSummary {
+  id: string
+  label: string
+  summary: string
+  status: 'active' | 'archived'
+  keyTerms: string[]
+  importanceScore: number
 }
 
 /**
@@ -255,6 +275,8 @@ export interface DropRecord {
     urgency: number
     relevance: number
     sourceCredibility: number
+    cognitiveResonance: number
+    strategicImportance: number
     composite: number
   }
   /** Whether this message was dropped or kept */
