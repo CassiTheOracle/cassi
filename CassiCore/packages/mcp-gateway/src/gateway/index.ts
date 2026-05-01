@@ -180,6 +180,13 @@ export {
 } from './consolidated-intelligence-tools.js';
 
 export {
+  CONTEXT_CONSOLIDATED_TOOL,
+  CONTEXT_CONSOLIDATED_TOOL_NAME,
+  executeContextAction,
+  getContextConsolidatedTool,
+} from './consolidated-context-tools.js';
+
+export {
   ARTIFACT_CONSOLIDATED_TOOL,
   ARTIFACT_CONSOLIDATED_TOOL_NAME,
   executeArtifactConsolidatedTool,
