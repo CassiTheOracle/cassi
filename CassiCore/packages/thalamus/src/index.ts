@@ -30,8 +30,9 @@ import type {
   TopicArchiveStructured,
   DropRecord,
   PinnedPattern,
+  ThoughtCommand,
 } from './types.js'
-import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS } from './types.js'
+import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS, parseThoughtCommands } from './types.js'
 import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
 import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 
@@ -213,6 +214,51 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
+   * Extract and route thought-commands from assistant messages.
+   * Commands: <pin>, <recall>, <note>, <flag> — parsed from message content.
+   * Runs during curate(), after processAll and AQ pinning, before compression.
+   */
+  processThoughtCommands(sessionId: string, messages: any[]): void {
+    const session = this.getSession(sessionId)
+    for (const msg of messages) {
+      if (msg?.role !== 'assistant') continue
+      const content = typeof msg.content === 'string' ? msg.content
+        : Array.isArray(msg.content) ? msg.content.map((b: any) => b?.text ?? '').join('')
+        : ''
+      if (!content) continue
+
+      const commands = parseThoughtCommands(content)
+      for (const cmd of commands) {
+        session.thoughtCommandLog.push({ command: cmd, processedAt: Date.now() })
+        switch (cmd.type) {
+          case 'pin':
+            this.pin(sessionId, cmd.target, cmd.reason ?? 'thought-command')
+            break
+          case 'recall':
+            this.recallInject(sessionId, cmd.query)
+            break
+          case 'note': {
+            const label = `thought-note:${cmd.recipient}`
+            this.logger.info('Thought-command note', {
+              sessionId: sessionId.slice(-8),
+              recipient: cmd.recipient,
+              msgLen: cmd.message.length,
+            })
+            break
+          }
+          case 'flag':
+            this.pin(sessionId, cmd.content, 'thought-command flag')
+            break
+        }
+      }
+    }
+    // Trim log
+    if (session.thoughtCommandLog.length > 100) {
+      session.thoughtCommandLog = session.thoughtCommandLog.slice(-50)
+    }
+  }
+
+  /**
    * Get the temporal registry for a session.
    */
   getTemporalRegistry(sessionId: string): TemporalRegistry {
@@ -262,6 +308,9 @@ export class ThalamusModule extends BaseCognitiveModule {
         }
       }
     }
+
+    // Process thought-commands from assistant messages (<pin>, <recall>, <note>, <flag>)
+    this.processThoughtCommands(sessionId, annotated)
 
     const originalChars = annotated.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0

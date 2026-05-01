@@ -332,6 +332,8 @@ export interface CurationSession {
   lastThreshold: number
   /** Active pinned patterns — messages matching these are immune */
   pinnedPatterns: PinnedPattern[]
+  /** Log of thought-commands (<pin>, <recall>, <note>, <flag>) processed this session */
+  thoughtCommandLog: ThoughtCommandLogEntry[]
 }
 
 
@@ -433,4 +435,79 @@ export const MESSAGE_CREDIBILITY_PRIORS: Record<string, number> = {
 
 export interface CompressionConfig {
   toolResultMaxChars: number
+}
+
+
+export type ThoughtCommandType = 'pin' | 'recall' | 'note' | 'flag'
+
+export interface PinCommand {
+  type: 'pin'
+  /** Content pattern to pin */
+  target: string
+  /** Why this was pinned */
+  reason?: string
+}
+
+export interface RecallCommand {
+  type: 'recall'
+  /** Search query for BM25 recall */
+  query: string
+  /** Optional context for the recall request */
+  context?: string
+}
+
+export interface NoteCommand {
+  type: 'note'
+  /** Intended recipient (e.g. 'reverie') */
+  recipient: string
+  /** The note message */
+  message: string
+}
+
+export interface FlagCommand {
+  type: 'flag'
+  /** Content being flagged as important */
+  content: string
+}
+
+export type ThoughtCommand = PinCommand | RecallCommand | NoteCommand | FlagCommand
+
+const THOUGHT_CMD_RE = /<(?<type>pin|recall|note|flag)(?<attrs>[^>]*)>(?<body>[\s\S]*?)<\/\1>/g
+
+const ATTR_RE = /(?<key>\w+)="(?<value>[^"]*)"/g
+
+export function parseThoughtCommands(text: string): ThoughtCommand[] {
+  const commands: ThoughtCommand[] = []
+  let match: RegExpExecArray | null
+
+  THOUGHT_CMD_RE.lastIndex = 0
+  while ((match = THOUGHT_CMD_RE.exec(text)) !== null) {
+    const type = match.groups!.type as ThoughtCommandType
+    const body = match.groups!.body.trim()
+    const attrsRaw = match.groups!.attrs || ''
+
+    const attrs: Record<string, string> = {}
+    ATTR_RE.lastIndex = 0
+    let attrMatch: RegExpExecArray | null
+    while ((attrMatch = ATTR_RE.exec(attrsRaw)) !== null) {
+      attrs[attrMatch.groups!.key] = attrMatch.groups!.value
+    }
+
+    switch (type) {
+      case 'pin':
+        commands.push({ type: 'pin', target: body, reason: attrs.reason })
+        break
+      case 'recall':
+        commands.push({ type: 'recall', query: attrs.query || body, context: attrs.query ? body : undefined })
+        break
+      case 'note':
+        commands.push({ type: 'note', recipient: attrs.for || 'reverie', message: body })
+        break
+      case 'flag':
+        commands.push({ type: 'flag', content: body })
+        break
+    }
+  }
+
+  return commands
 }
