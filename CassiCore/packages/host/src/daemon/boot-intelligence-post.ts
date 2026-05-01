@@ -332,6 +332,18 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         logger.info('Thalamus handleFactory wired for background LLM topic archiving')
       }
 
+      // Wire ThalamusStore for drop history persistence (SQLite)
+      if (typeof thalamus.setStore === 'function') {
+        try {
+          const { ThalamusStore } = await import('../intelligence/thalamus/thalamus-store.js')
+          const thalamusStore = ThalamusStore.open(logger.child('thalamus-store'))
+          thalamus.setStore(thalamusStore)
+          logger.info('ThalamusStore wired (SQLite persistence)')
+        } catch (err) {
+          logger.warn('ThalamusStore failed to initialize', { error: String(err) })
+        }
+      }
+
       logger.info('Thalamus wired', {
         gwt: !!intelligence.globalWorkspace,
         locus: !!intelligence.locusBridge,
