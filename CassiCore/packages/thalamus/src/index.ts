@@ -3,7 +3,8 @@ import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageC
 import { ToolResultCompressor } from './compressor.js'
 import { TemporalRegistry } from './temporal.js'
 import { createSlots } from './slots/index.js'
-import { classifyMessage } from './classifier.js'
+import { classifyMessage, isWriteTool, isReadTool, isShellTool, extractFilePath, extractSearchTarget, shortenPath } from './classifier.js'
+import type { ThalamusStore } from './thalamus-store.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
@@ -27,6 +28,8 @@ import type {
   MessageSlotType,
   TopicCluster,
   TopicArchiveStructured,
+  DropRecord,
+  PinnedPattern,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS } from './types.js'
 import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
@@ -40,6 +43,7 @@ type HandleFactory = (config: { tier: string; purpose: string; sessionId: string
 }>
 
 const SESSION_EVICT_MS = 2 * 60 * 60 * 1000
+const MAX_DROP_HISTORY = 200
 
 /** Format a duration in ms to a human-readable string for gap notes. */
 function formatGapDuration(ms: number): string {
@@ -101,7 +105,10 @@ export class ThalamusModule extends BaseCognitiveModule {
   private lastPinealFacetIds: string[] = []
   /** Factory for background LLM calls (topic archiving, gap summaries) */
   private handleFactory: HandleFactory | null = null
+  /** Persistent store for curation audit data (drop history, pass metadata) */
+  private store: ThalamusStore | null = null
 
+  setStore(store: ThalamusStore): void { this.store = store }
   setLocusBridge(lb: LocusBridge): void { this.locusBridge = lb }
   setCortex(c: CorticalField): void { this.cortex = c }
   setMnemicField(mf: MnemicField): void { this.mnemicField = mf }
@@ -284,7 +291,15 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     // Phase 3: Score with GWT luminance and select by ignition threshold
     const brainContext = await this.getBrainContext(sessionId, compressed)
-    const protectedStart = Math.max(0, compressed.length - cfg.recentWindowSize)
+
+    // Adaptive protected window: expand when the recent segment is tool-dense.
+    // Long tool chains (many consecutive tool_call/tool_result pairs with minimal
+    // assistant text between them) need a larger window so the model retains
+    // enough context to avoid re-reading files or re-running commands it already
+    // executed. Without expansion, the fixed window (default 6 messages) covers
+    // only ~2-3 tool rounds, causing context loss and agent loops.
+    const effectiveWindowSize = this.computeAdaptiveWindow(compressed, cfg.recentWindowSize)
+    const protectedStart = Math.max(0, compressed.length - effectiveWindowSize)
 
     const scored = this.scorer.scoreAll(compressed, brainContext, protectedStart)
 
@@ -303,6 +318,34 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Phase 3b: Zero out scores for redundant (non-latest) file reads.
     // Past reads are dropped entirely during assembly instead of being summarized.
     const dedupedCount = this.suppressRedundantReads(scored, compressed, nonLatestToolUseIds)
+
+    // Phase 3c: Pin tool results related to detected loops.
+    // Reverie's detectAutoLoops() posts [loop] entries to the open-hypotheses lamina
+    // and cortex concern signals. When loop signals are active, pin the most recent
+    // tool results to prevent them from being dropped — losing context during a loop
+    // makes it worse. Pin only the last 2 tool results to be targeted and avoid
+    // consuming too much of the char budget.
+    const loopSignals = brainContext.cortexIndex.threats
+      .filter(ws => /loop|circular|stuck|repeated.*error/i.test(ws.signal.content))
+    if (loopSignals.length > 0) {
+      let pinnedCount = 0
+      // Walk backwards from the end, pinning up to 2 tool_result messages
+      for (let i = compressed.length - 1; i >= 0 && pinnedCount < 2; i--) {
+        const annotation: ThalamusAnnotation | undefined = compressed[i]?._thalamus
+        if (annotation?.slot === 'tool_result' && !annotation.pinned) {
+          annotation.pinned = true
+          annotation.pinReason = 'loop-detection: cortex loop signal active'
+          pinnedCount++
+        }
+      }
+      if (pinnedCount > 0) {
+        this.logger.info('Loop-detection: pinned recent tool results due to cortex loop signals', {
+          sessionId,
+          pinnedCount,
+          loopSignals: loopSignals.length,
+        })
+      }
+    }
 
     const assembled = this.assembleByThreshold(compressed, scored, protectedStart, cfg, topicClusters, sessionId)
 
@@ -325,6 +368,9 @@ export class ThalamusModule extends BaseCognitiveModule {
       charsUsed: curatedChars,
     })
 
+    // Detect tool repetition — same (tool, target) appearing 3+ times
+    const repetitionWarning = this.detectToolRepetition(compressed)
+
     const meta = {
       originalCount: messages.length,
       curatedCount: assembled.messages.length,
@@ -335,6 +381,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       dropped,
       gapNotes: assembled.gapNotes,
       receipt,
+      repetitionWarning,
       durationMs: Date.now() - start,
     }
 
@@ -350,6 +397,56 @@ export class ThalamusModule extends BaseCognitiveModule {
       durationMs: meta.durationMs,
     })
 
+    // Persist introspection state for cassi_context
+    session.lastScored = scored
+    session.lastThreshold = cfg.ignitionThreshold
+
+    // Append drop records (capped at MAX_DROP_HISTORY)
+    if (receipt) {
+      const includedSet = assembled.includedIndices
+      for (const sm of scored) {
+        const kept = includedSet.has(sm.messageIndex)
+        const msg = compressed[sm.messageIndex]
+        const annotation: ThalamusAnnotation | undefined = msg?._thalamus
+        const content = extractMessageContent(msg)
+        const isPinned = annotation?.pinned === true
+        session.dropHistory.push({
+          curationPass: session.totalCurations,
+          msgIndex: sm.messageIndex,
+          role: msg?.role ?? 'unknown',
+          luminance: {
+            novelty: sm.luminance.novelty,
+            urgency: sm.luminance.urgency,
+            relevance: sm.luminance.relevance,
+            sourceCredibility: sm.luminance.sourceCredibility,
+            composite: sm.luminance.composite,
+          },
+          kept,
+          pinned: isPinned,
+          preview: content.slice(0, 80),
+          slot: annotation?.slot ?? 'unknown',
+        })
+      }
+      if (session.dropHistory.length > MAX_DROP_HISTORY) {
+        session.dropHistory = session.dropHistory.slice(-MAX_DROP_HISTORY)
+      }
+
+      // Persist to SQLite if store is wired
+      if (this.store) {
+        try {
+          this.store.recordPass(
+            sessionId, session.totalCurations,
+            messages.length, assembled.messages.length,
+            originalChars - meta.curatedChars,
+            cfg.ignitionThreshold, meta.durationMs,
+            session.dropHistory.filter(r => r.curationPass === session.totalCurations),
+          )
+        } catch (err) {
+          this.logger.warn('ThalamusStore recordPass failed', { error: String(err) })
+        }
+      }
+    }
+
     // Invalidate brain context cache after curation — each turn gets fresh context
     this.cachedBrainContext = null
 
@@ -362,6 +459,81 @@ export class ThalamusModule extends BaseCognitiveModule {
       totalCurations += s.totalCurations
     }
     return { sessions: this.sessions.size, totalCurations }
+  }
+
+  audit(sessionId: string, window: number = 5): DropRecord[] {
+    const session = this.sessions.get(sessionId)
+    if (session && session.dropHistory.length > 0) {
+      const passes = new Set<number>()
+      for (let i = session.dropHistory.length - 1; i >= 0; i--) {
+        passes.add(session.dropHistory[i].curationPass)
+        if (passes.size > window) break
+      }
+      return session.dropHistory.filter(r => passes.has(r.curationPass))
+    }
+    // Fall back to persistent store after restart
+    if (this.store) {
+      try {
+        return this.store.getDropRecords(sessionId, window)
+      } catch (err) {
+        this.logger.warn('ThalamusStore audit fallback failed', { error: String(err) })
+      }
+    }
+    return []
+  }
+
+  pin(sessionId: string, target: string, reason: string, pinClass: string = 'episode'): string {
+    const session = this.getSession(sessionId)
+    const id = `pin_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`
+    session.pinnedPatterns.push({
+      id,
+      target,
+      reason,
+      pinnedAt: new Date().toISOString(),
+      pinClass,
+    })
+    return id
+  }
+
+  unpin(sessionId: string, pinId: string): boolean {
+    const session = this.sessions.get(sessionId)
+    if (!session) return false
+    const idx = session.pinnedPatterns.findIndex(p => p.id === pinId)
+    if (idx === -1) return false
+    session.pinnedPatterns.splice(idx, 1)
+    return true
+  }
+
+  why(sessionId: string, msgIndex: number): DropRecord | null {
+    const session = this.sessions.get(sessionId)
+    if (!session) return null
+    for (let i = session.dropHistory.length - 1; i >= 0; i--) {
+      if (session.dropHistory[i].msgIndex === msgIndex) {
+        return session.dropHistory[i]
+      }
+    }
+    if (session.lastScored.length > 0) {
+      const sm = session.lastScored.find(s => s.messageIndex === msgIndex)
+      if (sm) {
+        return {
+          curationPass: session.totalCurations,
+          msgIndex: sm.messageIndex,
+          role: 'unknown',
+          luminance: {
+            novelty: sm.luminance.novelty,
+            urgency: sm.luminance.urgency,
+            relevance: sm.luminance.relevance,
+            sourceCredibility: sm.luminance.sourceCredibility,
+            composite: sm.luminance.composite,
+          },
+          kept: true,
+          pinned: false,
+          preview: '',
+          slot: 'unknown',
+        }
+      }
+    }
+    return null
   }
 
   /**
@@ -455,6 +627,15 @@ export class ThalamusModule extends BaseCognitiveModule {
       recentMessageTerms, focusTerms, cortexIndex,
     )
 
+    // Strategic importance: terms appearing in multiple archived topic clusters
+    const topicArchiveTerms = new Map<string, number>()
+    const session = this.getSession(sessionId)
+    for (const archive of session.topicArchive) {
+      for (const term of archive.keyTerms ?? []) {
+        topicArchiveTerms.set(term, (topicArchiveTerms.get(term) ?? 0) + 1)
+      }
+    }
+
     return {
       foci,
       workspaceSignals,
@@ -473,6 +654,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       recentMessageTerms,
       recentMessageFiles,
       phaseCoherence,
+      topicArchiveTerms,
     }
   }
 
@@ -1192,6 +1374,10 @@ export class ThalamusModule extends BaseCognitiveModule {
         totalCurations: 0,
         topicClusters: [],
         topicArchive: [],
+        dropHistory: [],
+        lastScored: [],
+        lastThreshold: 0,
+        pinnedPatterns: [],
       }
       this.sessions.set(sessionId, session)
     }
@@ -1623,6 +1809,7 @@ export class ThalamusModule extends BaseCognitiveModule {
           urgency: 0,
           relevance: 0,
           sourceCredibility: 0,
+          strategicImportance: 0,
           composite: 0,
         }
         suppressed++
@@ -1686,9 +1873,31 @@ export class ThalamusModule extends BaseCognitiveModule {
       return ThalamusModule.renderStructuredGap(turnsLabel, elapsedLabel, logicalTools, matchingArchive.structured)
     }
 
+    // Enriched gap: include tool-chain metadata so the model knows what was
+    // accomplished in the dropped segment. This prevents re-exploration loops
+    // where the agent re-reads files or re-runs commands it already executed.
+    const toolMeta = this.extractGapToolMetadata(messages, fromIdx, toIdx)
+
     const parts = [turnsLabel]
     if (elapsedLabel) parts.push(`~${elapsedLabel}`)
-    if (logicalTools > 0) parts.push(`${logicalTools} tool call${logicalTools > 1 ? 's' : ''}`)
+
+    // Include tool metadata if available
+    if (toolMeta.toolsUsed.length > 0) {
+      parts.push(`tools: ${toolMeta.toolsUsed.join(', ')}`)
+    }
+    if (toolMeta.filesRead.length > 0) {
+      parts.push(`read: ${toolMeta.filesRead.slice(0, 6).join(', ')}`)
+    }
+    if (toolMeta.filesWritten.length > 0) {
+      parts.push(`wrote: ${toolMeta.filesWritten.slice(0, 4).join(', ')}`)
+    }
+    if (toolMeta.errors.length > 0) {
+      parts.push(`errors: ${toolMeta.errors.slice(0, 3).join('; ')}`)
+    }
+    if (toolMeta.keyFindings.length > 0) {
+      parts.push(`found: ${toolMeta.keyFindings.slice(0, 3).join('; ')}`)
+    }
+
     if (matchingArchive) {
       const brief = matchingArchive.summary.slice(0, 100)
       parts.push(`topic: ${matchingArchive.label} — ${brief}`)
@@ -1730,6 +1939,260 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
     lines.push(`</archived-segment>`)
     return lines.join('\n')
+  }
+
+  /**
+   * Compute an adaptive protected window size based on tool-chain density.
+   *
+   * When the recent segment has a high ratio of tool_call/tool_result messages
+   * (i.e., the agent is in a long tool chain with minimal assistant prose),
+   * the fixed `recentWindowSize` is too small — it covers only 2-3 tool rounds.
+   * This causes the model to lose context about what it already did and repeat
+   * tool calls (the "tool loop" problem).
+   *
+   * Strategy: scan the last `baseWindow * 3` messages for tool density. If >60%
+   * are tool pairs, expand the window up to 3x. This is cheap (O(n) scan) and
+   * directly addresses the sliding-window problem during active tool chains.
+   */
+  private computeAdaptiveWindow(messages: any[], baseWindow: number): number {
+    if (messages.length <= baseWindow) return messages.length
+
+    const scanRange = Math.min(baseWindow * 3, messages.length)
+    const scanStart = messages.length - scanRange
+    let toolCount = 0
+    let total = 0
+
+    for (let i = scanStart; i < messages.length; i++) {
+      const annotation: ThalamusAnnotation | undefined = messages[i]?._thalamus
+      if (!annotation) continue
+      const slot = annotation.slot
+      if (slot === 'tool_call' || slot === 'tool_result') {
+        toolCount++
+      }
+      total++
+    }
+
+    if (total === 0) return baseWindow
+
+    const toolDensity = toolCount / total
+
+    // Dense tool chain: expand window to preserve more tool context
+    if (toolDensity > 0.6) {
+      const expanded = Math.min(baseWindow * 3, messages.length)
+      this.logger.debug('Adaptive window: tool-dense segment detected, expanding protected window', {
+        baseWindow,
+        expanded,
+        toolDensity: toolDensity.toFixed(2),
+        total,
+        toolCount,
+      })
+      return expanded
+    }
+
+    // Moderate tool density: modest expansion
+    if (toolDensity > 0.4) {
+      const expanded = Math.min(Math.ceil(baseWindow * 1.5), messages.length)
+      this.logger.debug('Adaptive window: moderate tool density, modestly expanding', {
+        baseWindow,
+        expanded,
+        toolDensity: toolDensity.toFixed(2),
+      })
+      return expanded
+    }
+
+    return baseWindow
+  }
+
+  /**
+   * Extract tool-chain metadata from a gap segment for enriched gap descriptions.
+   * Scans dropped messages for tool names, file paths, errors, and key findings.
+   * This is purely heuristic — no LLM call needed.
+   */
+  private extractGapToolMetadata(
+    messages: any[],
+    fromIdx: number,
+    toIdx: number,
+  ): {
+    toolsUsed: string[]
+    filesRead: string[]
+    filesWritten: string[]
+    errors: string[]
+    keyFindings: string[]
+  } {
+    const toolsUsed = new Set<string>()
+    const filesRead: string[] = []
+    const filesWritten: string[] = []
+    const errors: string[] = []
+    const keyFindings: string[] = []
+
+    const seenFilesRead = new Set<string>()
+    const seenFilesWritten = new Set<string>()
+
+    for (let i = fromIdx + 1; i < toIdx; i++) {
+      const msg = messages[i]
+      if (!msg) continue
+      const annotation: ThalamusAnnotation | undefined = msg._thalamus
+      const slot = annotation?.slot
+
+      // Extract from tool_use blocks (tool_call messages)
+      if (slot === 'tool_call' || (Array.isArray(msg.content) && msg.content.some((c: any) => c?.type === 'tool_use'))) {
+        if (Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block?.type === 'tool_use') {
+              const toolName = block.name ?? ''
+              if (toolName) toolsUsed.add(toolName)
+
+              // Extract file paths from tool inputs
+              const input = block.input
+              if (input && typeof input === 'object') {
+                const filePath = extractFilePath(input as Record<string, unknown>)
+                if (filePath) {
+                  if (isWriteTool(toolName)) {
+                    if (!seenFilesWritten.has(filePath)) {
+                      seenFilesWritten.add(filePath)
+                      filesWritten.push(shortenPath(filePath))
+                    }
+                  } else if (isReadTool(toolName)) {
+                    if (!seenFilesRead.has(filePath)) {
+                      seenFilesRead.add(filePath)
+                      filesRead.push(shortenPath(filePath))
+                    }
+                  }
+                }
+                // Extract search patterns
+                const pattern = extractSearchTarget(input as Record<string, unknown>)
+                if (pattern && pattern.length > 2 && pattern.length < 80) {
+                  keyFindings.push(`searched "${pattern}"`)
+                }
+                // Extract command from bash
+                if (isShellTool(toolName) && (input as any).command) {
+                  const cmd = String((input as any).command).split('\n')[0]?.slice(0, 60)
+                  if (cmd) toolsUsed.add(`${toolName}: ${cmd}`)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Extract from tool_result blocks
+      if (slot === 'tool_result' || (Array.isArray(msg.content) && msg.content.some((c: any) => c?.type === 'tool_result'))) {
+        if (annotation?.tool?.isError) {
+          if (Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if (block?.type === 'tool_result') {
+                const text = typeof block.content === 'string' ? block.content : ''
+                const firstLine = text.split('\n')[0]?.slice(0, 80) ?? ''
+                if (firstLine && errors.length < 3) {
+                  errors.push(firstLine)
+                }
+              }
+            }
+          }
+        } else {
+          // Extract key findings from successful results
+          if (Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if (block?.type === 'tool_result') {
+                const text = typeof block.content === 'string' ? block.content : ''
+                // Look for line-number references (e.g., "42:" in code output)
+                const lineRef = text.match(/^(\S+):(\d+)/m)
+                if (lineRef) {
+                  const finding = `${lineRef[1]}:${lineRef[2]}`
+                  if (keyFindings.length < 5 && !keyFindings.some(f => f.includes(finding))) {
+                    keyFindings.push(finding)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return {
+      toolsUsed: Array.from(toolsUsed).slice(0, 8),
+      filesRead: filesRead.slice(0, 8),
+      filesWritten: filesWritten.slice(0, 4),
+      errors: errors.slice(0, 3),
+      keyFindings: keyFindings.slice(0, 4),
+    }
+  }
+
+  /**
+   * Detect tool repetition — same (tool, target) appearing 3+ times.
+   * Returns a warning string suitable for injection as a system block,
+   * or undefined if no repetition detected.
+   *
+   * This breaks agent loops where the model keeps re-reading the same file
+   * or re-running the same command because it lost context about what it
+   * already did.
+   */
+  private detectToolRepetition(messages: any[]): string | undefined {
+    // Track (toolName, target) → count
+    const invocations = new Map<string, { tool: string; target: string; count: number }>()
+
+    for (const msg of messages) {
+      if (!Array.isArray(msg?.content)) continue
+
+      for (const block of msg.content) {
+        if (block?.type !== 'tool_use') continue
+        const toolName = block.name ?? ''
+        const input = block.input
+        if (!input || typeof input !== 'object') continue
+
+        // Extract the primary target parameter based on tool class
+        let target = ''
+        if (isReadTool(toolName) || isWriteTool(toolName)) {
+          target = extractFilePath(input as Record<string, unknown>)
+        } else if (/^(grep|cassi_grep|glob|cassi_glob)$/i.test(toolName)) {
+          target = extractSearchTarget(input as Record<string, unknown>)
+        } else if (isShellTool(toolName)) {
+          target = String(input.command ?? '')
+        } else if (/^(webfetch|cassi_web)$/i.test(toolName)) {
+          target = String(input.url ?? '')
+        } else {
+          // Generic: use first string input > 5 chars
+          for (const val of Object.values(input)) {
+            if (typeof val === 'string' && val.length > 5) {
+              target = val.slice(0, 80)
+              break
+            }
+          }
+        }
+
+        if (!target) continue
+        // Normalize target: trim and lowercase for matching
+        const normalizedTarget = String(target).trim().toLowerCase().slice(0, 100)
+        if (!normalizedTarget) continue
+
+        const key = `${toolName}::${normalizedTarget}`
+        const existing = invocations.get(key)
+        if (existing) {
+          existing.count++
+        } else {
+          invocations.set(key, { tool: toolName, target: String(target).trim().slice(0, 80), count: 1 })
+        }
+      }
+    }
+
+    // Find repeated invocations (3+ times)
+    const repeated = Array.from(invocations.values())
+      .filter(inv => inv.count >= 3)
+      .sort((a, b) => b.count - a.count)
+
+    if (repeated.length === 0) return undefined
+
+    const warnings = repeated.slice(0, 3).map(inv =>
+      `${inv.tool}("${inv.target}") called ${inv.count} times`
+    )
+
+    const message = warnings.length === 1
+      ? `Repeated tool call detected: ${warnings[0]}. Consider using information you already have.`
+      : `Repeated tool calls detected: ${warnings.join('; ')}. Consider using information you already have.`
+
+    this.logger.debug('Tool repetition detected', { repeated: repeated.length, worst: repeated[0] })
+    return message
   }
 
   private getConfigOverrides(): Partial<CurationConfig> {

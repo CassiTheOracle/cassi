@@ -316,3 +316,47 @@ export function buildToolResultPrefix(
   const status = isError ? '✗' : '✓'
   return `[${displayName} · ${durationMs}ms · ${size} · ${status}]`
 }
+
+/* ------------------------------------------------------------------ */
+/*  Shared tool-metadata helpers                                       */
+/* ------------------------------------------------------------------ */
+
+/** Whether a tool name represents a write/edit operation. */
+export function isWriteTool(toolName: string): boolean {
+  return /^(write|edit|cassi_write|cassi_edit|serena_replace_content|serena_replace_symbol_body|serena_insert_after_symbol|serena_insert_before_symbol|mcp__\w+__(write|edit))$/i.test(toolName)
+}
+
+/** Whether a tool name represents a read/search operation. */
+export function isReadTool(toolName: string): boolean {
+  return /^(read|glob|grep|cassi_read|cassi_file|cassi_glob|serena_find_file|serena_search_for_pattern|serena_get_symbols_overview|serena_find_symbol|serena_find_referencing_symbols|mcp__\w+__(read|glob|grep))$/i.test(toolName)
+}
+
+/** Whether a tool name is a shell/command execution tool. */
+export function isShellTool(toolName: string): boolean {
+  return /^(bash|cassi_bash|shell)$/i.test(toolName)
+}
+
+/**
+ * Extract the primary file path from a tool input object.
+ * Tries common parameter names across tool schemas.
+ */
+export function extractFilePath(input: Record<string, unknown>): string {
+  const fp = input.filePath ?? input.path ?? input.file_path ?? input.relative_path ?? ''
+  return typeof fp === 'string' ? fp : ''
+}
+
+/**
+ * Extract the primary search target from a tool input object.
+ * Returns the search pattern, query, or command depending on tool class.
+ */
+export function extractSearchTarget(input: Record<string, unknown>): string {
+  const pattern = input.pattern ?? input.substring_pattern ?? input.query ?? input.search ?? ''
+  return typeof pattern === 'string' ? pattern : ''
+}
+
+/** Shorten a file path to its last 2 components for compact display. */
+export function shortenPath(fp: string): string {
+  const parts = fp.split('/')
+  if (parts.length > 2) return parts.slice(-2).join('/')
+  return fp
+}

@@ -9,7 +9,39 @@
  */
 
 import type { ScoredMessage, ThalamusAnnotation } from './types.js'
+import { isWriteTool, isReadTool, shortenPath } from './classifier.js'
 import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
+
+export interface TopicCluster {
+  /** Short label derived from content keywords */
+  topic: string
+  /** Number of dropped messages in this cluster */
+  count: number
+}
+
+export interface ClosestMiss {
+  /** Index of the highest-scoring dropped message */
+  msgIndex: number
+  /** Slot/role of the message */
+  slot: string
+  /** Composite luminance score (0-1) */
+  luminance: number
+  /** Per-axis breakdown */
+  axes: Record<string, number>
+  /** First 80 chars of content for identification */
+  snippet: string
+}
+
+export interface BudgetInfo {
+  /** Total char budget for this curation pass */
+  budget: number
+  /** Chars consumed by included messages */
+  used: number
+  /** Chars freed by dropping */
+  freed: number
+  /** Utilization ratio (used / budget) */
+  utilization: number
+}
 
 export interface DropReceipt {
   /** Total messages dropped this curation pass */
@@ -27,6 +59,35 @@ export interface DropReceipt {
   summary: string
   /** ISO 8601 UTC timestamp the receipt was built */
   ts: string
+  /**
+   * Tool-chain metadata from dropped messages — tool names, file paths touched,
+   * errors encountered. Used by the proxy to enrich the system-block injection
+   * so the model knows what work was removed and can avoid repeating it.
+   */
+  toolChainSummary?: ToolChainSummary
+  /** Topic clusters extracted from dropped content (top 5 by count) */
+  topics: TopicCluster[]
+  /** The highest-scoring message that still got dropped */
+  closestMiss?: ClosestMiss
+  /** Budget utilization for this curation pass */
+  budget?: BudgetInfo
+}
+
+/**
+ * Structured summary of tool-chain metadata from dropped messages.
+ * Extracted heuristically — no LLM call needed.
+ */
+export interface ToolChainSummary {
+  /** Unique tool names that were called in the dropped segment */
+  toolsUsed: string[]
+  /** File paths read by dropped tool calls */
+  filesRead: string[]
+  /** File paths written/edited by dropped tool calls */
+  filesWritten: string[]
+  /** Error snippets from dropped tool results */
+  errors: string[]
+  /** Count of tool_call/tool_result pairs dropped */
+  toolPairCount: number
 }
 
 export interface BuildReceiptInput {
@@ -46,12 +107,14 @@ export interface BuildReceiptInput {
 
 /** Build a receipt or return null when nothing was dropped. */
 export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
-  const { before, scored, includedIndices, protectedIndices } = input
+  const { before, scored, includedIndices, protectedIndices, charBudget, charsUsed } = input
   const droppedIndices: number[] = []
+  const droppedScores = new Map<number, ScoredMessage>()
   for (const s of scored) {
     if (includedIndices.has(s.messageIndex)) continue
     if (protectedIndices.has(s.messageIndex)) continue
     droppedIndices.push(s.messageIndex)
+    droppedScores.set(s.messageIndex, s)
   }
 
   if (droppedIndices.length === 0) return null
@@ -94,6 +157,21 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
 
   const summary = `thalamus dropped ${droppedIndices.length} message(s) (${charsFreed} chars): ${slotParts}`
 
+  // Extract tool-chain metadata from dropped messages
+  const toolChainSummary = buildToolChainSummary(before, droppedIndices)
+  const topics = extractTopics(before, droppedIndices)
+  const closestMiss = findClosestMiss(before, droppedScores)
+
+  let budget: BudgetInfo | undefined
+  if (charBudget > 0) {
+    budget = {
+      budget: charBudget,
+      used: charsUsed,
+      freed: charsFreed,
+      utilization: Math.round((charsUsed / charBudget) * 100) / 100,
+    }
+  }
+
   return {
     dropped: droppedIndices.length,
     bySlot,
@@ -101,12 +179,108 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
     anomalies,
     summary,
     ts: new Date().toISOString(),
+    toolChainSummary,
+    topics,
+    closestMiss,
+    budget,
+  }
+}
+
+/**
+ * Extract tool-chain metadata from dropped messages. Scans for tool names,
+ * file paths, and errors so the model can see what work was removed and
+ * avoid re-executing the same tool calls.
+ */
+function buildToolChainSummary(messages: any[], droppedIndices: number[]): ToolChainSummary | undefined {
+  const toolsUsed = new Set<string>()
+  const filesReadSet = new Set<string>()
+  const filesWrittenSet = new Set<string>()
+  const errors: string[] = []
+  let toolPairCount = 0
+
+  const droppedSet = new Set(droppedIndices)
+
+  for (const idx of droppedIndices) {
+    const msg = messages[idx]
+    if (!msg) continue
+    const annotation: ThalamusAnnotation | undefined = msg?._thalamus
+    const slot = annotation?.slot
+
+    // Count tool pairs
+    if (slot === 'tool_call' || slot === 'tool_result') {
+      toolPairCount++
+    }
+
+    // Extract from tool_use blocks
+    if (Array.isArray(msg.content)) {
+      for (const block of msg.content) {
+        if (block?.type === 'tool_use') {
+          const toolName = block.name ?? ''
+          if (toolName) toolsUsed.add(toolName)
+
+          const input = block.input
+          if (input && typeof input === 'object') {
+            const filePath = (input as any).filePath ?? (input as any).path ?? (input as any).file_path ?? (input as any).relative_path ?? ''
+            if (filePath && typeof filePath === 'string') {
+              if (isWriteTool(toolName)) {
+                filesWrittenSet.add(shortenPath(filePath))
+              } else if (isReadTool(toolName)) {
+                filesReadSet.add(shortenPath(filePath))
+              }
+            }
+          }
+        }
+
+        // Extract from tool_result blocks
+        if (block?.type === 'tool_result') {
+          if (block.is_error) {
+            const text = typeof block.content === 'string' ? block.content : ''
+            const firstLine = text.split('\n')[0]?.slice(0, 80) ?? ''
+            if (firstLine && errors.length < 3) errors.push(firstLine)
+          }
+        }
+      }
+    }
+  }
+
+  // Deduplicated tool pair count (each pair = tool_call + tool_result)
+  const logicalToolCalls = Math.ceil(toolPairCount / 2)
+
+  const tools = Array.from(toolsUsed)
+  const filesRead = Array.from(filesReadSet)
+  const filesWritten = Array.from(filesWrittenSet)
+
+  // Only return if we found meaningful tool metadata
+  if (tools.length === 0 && filesRead.length === 0 && filesWritten.length === 0) {
+    return undefined
+  }
+
+  return {
+    toolsUsed: tools.slice(0, 8),
+    filesRead: filesRead.slice(0, 6),
+    filesWritten: filesWritten.slice(0, 4),
+    errors: errors.slice(0, 3),
+    toolPairCount: logicalToolCalls,
   }
 }
 
 /** Render the receipt as a system-block payload for proxy injection. */
 export function renderDropReceiptBlock(receipt: DropReceipt): string {
   const lines = [receipt.summary]
+
+  // Include tool-chain metadata so the model knows what was removed
+  const tcs = receipt.toolChainSummary
+  if (tcs && (tcs.toolsUsed.length > 0 || tcs.filesRead.length > 0 || tcs.filesWritten.length > 0)) {
+    const parts: string[] = []
+    if (tcs.toolPairCount > 0) parts.push(`${tcs.toolPairCount} tool call${tcs.toolPairCount > 1 ? 's' : ''}`)
+    if (tcs.filesRead.length > 0) parts.push(`read: ${tcs.filesRead.join(', ')}`)
+    if (tcs.filesWritten.length > 0) parts.push(`wrote: ${tcs.filesWritten.join(', ')}`)
+    if (tcs.errors.length > 0) parts.push(`errors: ${tcs.errors.join('; ')}`)
+    if (parts.length > 0) {
+      lines.push(`work dropped: ${parts.join(' · ')}`)
+    }
+  }
+
   if (receipt.anomalies.length > 0) {
     lines.push('')
     lines.push('anomalies:')
@@ -138,4 +312,82 @@ function findLastUserDropped(messages: any[], droppedIndices: number[]): number 
     if (messages[i]?.role === 'user') return i
   }
   return -1
+}
+
+function extractTopics(messages: any[], droppedIndices: number[]): TopicCluster[] {
+  const topicCounts = new Map<string, number>()
+  for (const idx of droppedIndices) {
+    const msg = messages[idx]
+    const content = msg?._thalamus?.compressedContent ?? extractContent(msg)
+    if (!content || typeof content !== 'string') continue
+
+    const label = deriveTopicLabel(msg, content)
+    topicCounts.set(label, (topicCounts.get(label) ?? 0) + 1)
+  }
+
+  return Array.from(topicCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([topic, count]) => ({ topic, count }))
+}
+
+function deriveTopicLabel(msg: any, content: string): string {
+  const role = msg?.role ?? 'unknown'
+  const annotation: ThalamusAnnotation | undefined = msg?._thalamus
+
+  if (role === 'tool_result' || role === 'tool_call') {
+    const toolName = annotation?.tool?.name ?? extractToolName(content)
+    if (toolName) return toolName
+  }
+
+  if (role === 'assistant') {
+    if (content.includes('★ Insight')) return 'insight-blocks'
+    if (content.includes('AskUserQuestion')) return 'qa-responses'
+    return 'assistant-text'
+  }
+
+  if (role === 'user') return 'user-directives'
+
+  const truncated = content.slice(0, 60).replace(/\n/g, ' ').trim()
+  return truncated.length < content.length ? truncated + '…' : truncated
+}
+
+function extractToolName(content: string): string {
+  const match = content.match(/"name"\s*:\s*"([^"]+)"/)
+  return match?.[1] ?? ''
+}
+
+function findClosestMiss(
+  messages: any[],
+  droppedScores: Map<number, ScoredMessage>,
+): ClosestMiss | undefined {
+  let best: { idx: number; score: ScoredMessage } | undefined
+
+  for (const [idx, score] of droppedScores) {
+    if (!best || score.luminance.composite > best.score.luminance.composite) {
+      best = { idx, score }
+    }
+  }
+
+  if (!best) return undefined
+
+  const msg = messages[best.idx]
+  const slot = msg?._thalamus?.slot ?? msg?.role ?? 'unknown'
+  const content = extractContent(msg)
+  const preview = content.length > 80 ? content.slice(0, 80).replace(/\n/g, ' ').trim() + '…' : content
+  const lum = best.score.luminance
+
+  return {
+    msgIndex: best.idx,
+    slot,
+    luminance: lum.composite,
+    axes: {
+      novelty: lum.novelty,
+      urgency: lum.urgency,
+      relevance: lum.relevance,
+      sourceCredibility: lum.sourceCredibility,
+      strategicImportance: lum.strategicImportance,
+    },
+    snippet: preview,
+  }
 }

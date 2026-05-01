@@ -4,20 +4,22 @@ import type { BrainContext, ScoredMessage } from './types.js'
 import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 
 /**
- * Five-axis luminance scoring:
- * - novelty (12%): unique information, self-model-aware
- * - urgency (13%): recency decay + role boost
- * - relevance (40%): focus + recent conversation + workspace + file + architectural + cortex-weighted,
+ * Six-axis luminance scoring:
+ * - novelty (10%): unique information, self-model-aware
+ * - urgency (12%): recency decay + role boost
+ * - relevance (35%): focus + recent conversation + workspace + file + architectural + cortex-weighted,
  *                     with phase-coherence modulation to suppress stale signals
- * - sourceCredibility (15%): dynamic, pineal + architectural concept modulated
- * - cognitiveResonance (20%): alignment with brain state (executive goals, affect, insights, identity)
+ * - sourceCredibility (13%): dynamic, pineal + architectural concept modulated
+ * - cognitiveResonance (15%): alignment with brain state (executive goals, affect, insights, identity)
+ * - strategicImportance (15%): enduring significance — user decisions, cross-topic landmarks, error anchors
  */
 const THALAMUS_WEIGHTS = {
-  novelty: 0.12,
-  urgency: 0.13,
-  relevance: 0.40,
-  sourceCredibility: 0.15,
-  cognitiveResonance: 0.20,
+  novelty: 0.10,
+  urgency: 0.12,
+  relevance: 0.35,
+  sourceCredibility: 0.13,
+  cognitiveResonance: 0.15,
+  strategicImportance: 0.15,
 } as const
 import { MESSAGE_CREDIBILITY_PRIORS } from './types.js'
 
@@ -60,7 +62,7 @@ export class MessageLuminanceScorer {
       if (i >= protectedStart) {
         scored.push({
           messageIndex: i,
-          luminance: { novelty: 1, urgency: 1, relevance: 1, sourceCredibility: 1, composite: 1 },
+          luminance: { novelty: 1, urgency: 1, relevance: 1, sourceCredibility: 1, strategicImportance: 1, composite: 1 },
           estimatedChars: this.estimateChars(msg),
         })
         continue
@@ -75,19 +77,22 @@ export class MessageLuminanceScorer {
       const rel = this.relevance(msg, content, ctx)
       const cred = this.credibility(msg, content, ctx)
       const res = this.cognitiveResonance(content, ctx)
+      const strat = this.strategicImportance(msg, content, terms, i, messages, ctx)
 
       const composite =
         THALAMUS_WEIGHTS.novelty * nov +
         THALAMUS_WEIGHTS.urgency * urg +
         THALAMUS_WEIGHTS.relevance * rel +
         THALAMUS_WEIGHTS.sourceCredibility * cred +
-        THALAMUS_WEIGHTS.cognitiveResonance * res
+        THALAMUS_WEIGHTS.cognitiveResonance * res +
+        THALAMUS_WEIGHTS.strategicImportance * strat
 
       const luminance: SystemLuminanceScore = {
         novelty: nov,
         urgency: urg,
         relevance: rel,
         sourceCredibility: cred,
+        strategicImportance: strat,
         composite,
       }
 
@@ -428,6 +433,94 @@ export class MessageLuminanceScorer {
     }
 
     return Math.min(1.0, score)
+  }
+
+  /**
+   * Strategic importance: enduring significance independent of current topic.
+   * Three signals: user decisions (lexical), cross-topic landmarks, error/commit anchors.
+   */
+  private strategicImportance(
+    msg: any,
+    content: string,
+    terms: string[],
+    index: number,
+    allMessages: any[],
+    ctx: BrainContext,
+  ): number {
+    let decision = 0
+    let landmark = 0
+    let anchor = 0
+
+    // Signal 1: User decision/directive (lexical classifier over user messages)
+    const role = (msg.role ?? '').toLowerCase()
+    if (role === 'user') {
+      decision = this.classifyUserDecision(content)
+    }
+
+    // Signal 2: Cross-topic landmark — terms appearing in multiple archived topic clusters
+    const archiveTerms = ctx.topicArchiveTerms
+    if (archiveTerms && archiveTerms.size > 0) {
+      let clusterHits = 0
+      for (const term of terms) {
+        const count = archiveTerms.get(term)
+        if (count && count >= 2) clusterHits++
+      }
+      if (clusterHits >= 2) landmark = 0.7
+      else if (clusterHits >= 1) landmark = 0.4
+    }
+
+    // Signal 3: Error/commit anchor — proximity to errors or git commits
+    const window = 2
+    for (let j = Math.max(0, index - window); j <= Math.min(allMessages.length - 1, index + window); j++) {
+      if (j === index) continue
+      const neighbor = allMessages[j]
+      const nRole = (neighbor.role ?? '').toLowerCase()
+      if (nRole === 'tool') {
+        // Tool errors
+        const nContent = extractMessageContent(neighbor).toLowerCase()
+        if (nContent.includes('"iserror":true') || nContent.includes('"iserror": true')
+          || nContent.includes('error:') || nContent.includes('failed')
+          || nContent.includes('assertion') || nContent.includes('panic')) {
+          anchor = 0.5
+        }
+        // Git commits
+        const toolName = this.currentToolUseMap.get(neighbor.tool_use_id ?? '') ?? ''
+        if (toolName === 'bash') {
+          if (nContent.includes('git commit') || nContent.includes('git push')) {
+            anchor = Math.max(anchor, 0.4)
+          }
+        }
+      }
+    }
+
+    const raw = 0.50 * decision + 0.30 * landmark + 0.20 * anchor
+    return Math.min(1.0, raw)
+  }
+
+  /** Lexical classifier for user decision/directive language. */
+  private classifyUserDecision(content: string): number {
+    // Imperative verbs
+    const imperatives = [
+      /\b(use|don't|skip|go with|commit|ship|always|never|avoid|prefer|choose|select)\b/i,
+      /\b(implement|build|create|delete|remove|rename|move|extract|refactor)\b/i,
+    ]
+    // Preference/commitment markers
+    const preferences = [
+      /\b(i want|i prefer|let's do|the right approach|we should|i'd like|make it)\b/i,
+      /\b(yes|confirmed|do it|proceed|go ahead|sounds good|that works|correct)\b/i,
+    ]
+    // Negation/correction
+    const negations = [
+      /\b(not that|no not|no,? not|stop doing|don't do|wrong|incorrect|not what i)\b/i,
+      /\b(instead|rather|actually|i meant|what i meant)\b/i,
+    ]
+
+    let score = 0
+    for (const re of imperatives) if (re.test(content)) { score = Math.max(score, 0.6); break }
+    for (const re of preferences) if (re.test(content)) { score = Math.max(score, 0.8); break }
+    for (const re of negations) if (re.test(content)) { score = Math.max(score, 0.9); break }
+
+    return score
   }
 
   private termOverlap(content: string, terms: Set<string>, files: Set<string>): number {

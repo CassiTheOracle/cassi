@@ -170,6 +170,12 @@ export interface CurationMeta {
   skipped?: boolean
   reason?: string
   receipt?: import('./drop-receipt.js').DropReceipt | null
+  /**
+   * Tool repetition warning — set when the same (tool, target) pair appears
+   * 3+ times in the conversation. The proxy injects this as a system block
+   * to break the agent out of a re-read/re-run loop.
+   */
+  repetitionWarning?: string
 }
 
 export interface CurationResult {
@@ -234,6 +240,51 @@ export interface TopicArchiveStructured {
   openThreads: string[]
 }
 
+/**
+ * A single per-message drop/keep decision from a curate() pass.
+ * Stored in CurationSession.dropHistory for cassi_context.audit/why.
+ */
+export interface DropRecord {
+  /** Opaque message identifier from the session */
+  msgIndex: number
+  /** Message role (user, assistant, tool_result, etc.) */
+  role: string
+  /** Luminance scores from the scorer */
+  luminance: {
+    novelty: number
+    urgency: number
+    relevance: number
+    sourceCredibility: number
+    composite: number
+  }
+  /** Whether this message was dropped or kept */
+  kept: boolean
+  /** Monotonically increasing curation pass counter */
+  curationPass: number
+  /** First ~80 chars of content for audit readability */
+  preview: string
+  /** Slot type the message was classified into */
+  slot: string
+  /** Whether this message was pinned (immune to scoring) */
+  pinned: boolean
+}
+
+/**
+ * An active pin pattern — matches messages by content substring or msgId.
+ * Messages matching any active pattern are treated as composite=1.0 by the scorer.
+ */
+export interface PinnedPattern {
+  id: string
+  /** Content substring or msgIndex-as-string to match */
+  target: string
+  /** Human-readable justification */
+  reason: string
+  /** ISO timestamp when pinned */
+  pinnedAt: string
+  /** Engram class for TTL decay (episode, decision, goal, anomaly, concern) */
+  pinClass: string
+}
+
 export interface CurationSession {
   sessionId: string
   /** tool_use_id → tool name, accumulated across the session */
@@ -247,6 +298,18 @@ export interface CurationSession {
    * LLM topic-archive call resolves. Used to enrich gap descriptions.
    */
   topicArchive: TopicArchive[]
+  /**
+   * Capped history of drop/keep decisions from recent curate() passes.
+   * Used by cassi_context.audit and cassi_context.why.
+   * Circular buffer — oldest entries pruned at MAX_DROP_HISTORY.
+   */
+  dropHistory: DropRecord[]
+  /** Scored messages from the most recent curate() pass */
+  lastScored: ScoredMessage[]
+  /** Threshold used in the most recent curate() pass */
+  lastThreshold: number
+  /** Active pinned patterns — messages matching these are immune */
+  pinnedPatterns: PinnedPattern[]
 }
 
 
@@ -333,6 +396,9 @@ export interface BrainContext {
    * so the thalamus doesn't keep resurfacing completed work phases.
    */
   phaseCoherence: number
+
+  /** Term → count of distinct topic archive clusters containing that term. Used by strategicImportance. */
+  topicArchiveTerms: Map<string, number>
 }
 
 export const MESSAGE_CREDIBILITY_PRIORS: Record<string, number> = {
