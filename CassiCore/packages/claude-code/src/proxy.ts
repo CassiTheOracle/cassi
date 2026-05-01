@@ -147,6 +147,50 @@ function renderReceiptForInjection(receipt: any): string | null {
   if (typeof receipt.dropped !== "number" || receipt.dropped <= 0) return null;
   const lines: string[] = [];
   if (typeof receipt.summary === "string") lines.push(receipt.summary);
+
+  // Include tool-chain metadata so the model knows what work was removed
+  const tcs = receipt.toolChainSummary;
+  if (tcs && typeof tcs === "object") {
+    const parts: string[] = [];
+    if (typeof tcs.toolPairCount === "number" && tcs.toolPairCount > 0) {
+      parts.push(`${tcs.toolPairCount} tool call${tcs.toolPairCount > 1 ? "s" : ""}`);
+    }
+    if (Array.isArray(tcs.filesRead) && tcs.filesRead.length > 0) {
+      parts.push(`read: ${tcs.filesRead.join(", ")}`);
+    }
+    if (Array.isArray(tcs.filesWritten) && tcs.filesWritten.length > 0) {
+      parts.push(`wrote: ${tcs.filesWritten.join(", ")}`);
+    }
+    if (Array.isArray(tcs.errors) && tcs.errors.length > 0) {
+      parts.push(`errors: ${tcs.errors.join("; ")}`);
+    }
+    if (parts.length > 0) {
+      lines.push(`work dropped: ${parts.join(" · ")}`);
+    }
+  }
+
+  // Topic clusters — show what subject areas were removed
+  const topics = receipt.topics;
+  if (Array.isArray(topics) && topics.length > 0) {
+    lines.push("");
+    lines.push("topics dropped:");
+    for (const t of topics) lines.push(`  - ${t.topic} (${t.count} msg${t.count > 1 ? "s" : ""})`);
+  }
+
+  // Closest miss — the highest-scoring message that still got dropped
+  const cm = receipt.closestMiss;
+  if (cm && typeof cm === "object") {
+    lines.push("");
+    const delta = (cm.threshold - cm.luminance).toFixed(3);
+    lines.push(`closest miss: "${cm.snippet}" (luminance ${cm.luminance.toFixed(3)}, needed ${cm.threshold.toFixed(3)}, gap ${delta})`);
+  }
+
+  // Budget utilization — show how tight the curation was
+  const budget = receipt.budget;
+  if (budget && typeof budget === "object" && typeof budget.utilization === "number") {
+    lines.push(`budget: ${Math.round(budget.used / 1000)}k/${Math.round(budget.budget / 1000)}k chars (${Math.round(budget.utilization * 100)}% used)`);
+  }
+
   if (Array.isArray(receipt.anomalies) && receipt.anomalies.length > 0) {
     lines.push("");
     lines.push("anomalies:");
@@ -422,6 +466,10 @@ async function proxyRequest(
           const receiptText = renderReceiptForInjection(curated?.meta?.receipt);
           if (receiptText) {
             injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
+          }
+          // Inject tool repetition warning if detected — breaks agent loops
+          if (curated?.meta?.repetitionWarning) {
+            injectIntoSystemPrompt(body, curated.meta.repetitionWarning, "thalamus-loop-warning");
           }
         } catch (err) {
           logger.error("curate failed", { error: String(err) });
