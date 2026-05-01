@@ -1418,6 +1418,7 @@ export async function runConstellationPipeline(
                   urgency: 0.5,
                   relevance: 0.7,
                   sourceCredibility: 0.5,
+                  strategicImportance: 0,
                   composite: 0.5,
                 },
                 urgencyHint: 0.5,

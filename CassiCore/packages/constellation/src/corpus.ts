@@ -1961,6 +1961,7 @@ Guidelines:
               urgency: directive.urgency === 'critical' ? 1 : directive.urgency === 'high' ? 0.8 : 0.5,
               relevance: 0.8,
               sourceCredibility: 0.9,
+              strategicImportance: 0,
               composite: 0.7,
             },
             urgencyHint: directive.urgency === 'critical' ? 1.0 : directive.urgency === 'high' ? 0.8 : 0.5,
