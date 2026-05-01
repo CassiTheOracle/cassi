@@ -50,6 +50,8 @@ export interface SystemLuminanceScore {
   relevance: number
   /** 0-1: Track record of this source producing useful signals. Learned from feedback. */
   sourceCredibility: number
+  /** 0-1: Alignment with current cognitive state — focus terms, cortex resonance. */
+  cognitiveResonance: number
   /** 0-1: Enduring significance — user decisions, cross-topic landmarks, error anchors. */
   strategicImportance: number
   /** Weighted composite — the actual competition score. */

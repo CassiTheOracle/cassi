@@ -99,7 +99,7 @@ export class SystemLuminanceScorer {
       sourceCredibility * this.weights.sourceCredibility,
     ))
 
-    return { novelty, urgency, relevance, sourceCredibility, strategicImportance: 0, composite }
+    return { novelty, urgency, relevance, sourceCredibility, cognitiveResonance: 0, strategicImportance: 0, composite }
   }
 
 
