@@ -1039,7 +1039,7 @@ export class Daemon {
             sessionId: (event as any).sessionId ?? '*',
             type: 'insight',
             content: event.insight,
-            luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+            luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, strategicImportance: 0, composite: 0 },
             createdAt: Date.now(),
             urgencyHint: (event as any).urgency === 'high' ? 0.15 : 0,
           })
@@ -3078,7 +3078,7 @@ export class Daemon {
                   sessionId: sid,
                   type: 'observation' as const,
                   content: userMessage.slice(0, 500),
-                  luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+                  luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, strategicImportance: 0, composite: 0 },
                   createdAt: Date.now(),
                 })
                 if (assistantResponse) {
@@ -3088,7 +3088,7 @@ export class Daemon {
                     sessionId: sid,
                     type: 'context' as const,
                     content: assistantResponse.slice(0, 500),
-                    luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+                    luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, strategicImportance: 0, composite: 0 },
                     createdAt: Date.now(),
                   })
                 }
@@ -3108,7 +3108,7 @@ export class Daemon {
                         sessionId: sid,
                         type: 'memory' as const,
                         content: hit.content.slice(0, 400),
-                        luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+                        luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, strategicImportance: 0, composite: 0 },
                         createdAt: Date.now(),
                         metadata: { engram: hit.id, score: hit.score },
                       })
