@@ -466,16 +466,21 @@ export class ThalamusModule extends BaseCognitiveModule {
             cfg.ignitionThreshold, meta.durationMs,
             session.dropHistory.filter(r => r.curationPass === session.totalCurations),
           )
-          const dropped = session.dropHistory
-            .filter(r => r.curationPass === session.totalCurations && !r.kept)
-            .map(r => ({
-              index: r.msgIndex,
-              role: r.role,
-              content: r.preview,
-              slot: r.slot,
-              composite: r.luminance.composite,
-            }))
-          this.store.storeDroppedMessages(sessionId, session.totalCurations, dropped)
+          // Store full content (not preview) for recall search
+          const includedSet = assembled.includedIndices
+          const droppedFull = scored
+            .filter(sm => !includedSet.has(sm.messageIndex))
+            .map(sm => {
+              const msg = compressed[sm.messageIndex]
+              return {
+                index: sm.messageIndex,
+                role: msg?.role ?? 'unknown',
+                content: extractMessageContent(msg),
+                slot: msg?._thalamus?.slot ?? 'unknown',
+                composite: sm.luminance.composite,
+              }
+            })
+          this.store.storeDroppedMessages(sessionId, session.totalCurations, droppedFull)
         } catch (err) {
           this.logger.warn('ThalamusStore recordPass failed', { error: String(err) })
         }
