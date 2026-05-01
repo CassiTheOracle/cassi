@@ -93,14 +93,14 @@ export interface HelixSynapseConfig {
 
 export const DEFAULT_HELIX_SYNAPSE_CONFIG: HelixSynapseConfig = {
   enabled: true,
-  modelTier: 'qwenPlus',
+  modelTier: 'qwenMax',
   maxTokens: 1_200,
   timeoutMs: 30_000,
   pollIntervalMs: 5_000,
   maxEventsPerSlice: 24,
   overlapEvents: 6,
-  maxCharsPerPosture: 6_000,
-  broadcastTtlTurns: 3,
+  maxCharsPerPosture: 1_800,
+  broadcastTtlTurns: 8,
   minBroadcastChars: 40,
 }
 
