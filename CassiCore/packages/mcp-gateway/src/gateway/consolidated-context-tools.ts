@@ -27,9 +27,9 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
     properties: {
       action: {
         type: 'string',
-        enum: ['audit', 'pin', 'unpin', 'why', 'stats'],
+        enum: ['audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject'],
         description:
-          'Context operation: audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats)',
+          'Context operation: audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection)',
       },
       sessionId: {
         type: 'string',
@@ -54,6 +54,26 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
       pinId: {
         type: 'string',
         description: 'Pin ID to remove (from audit response).',
+      },
+      query: {
+        type: 'string',
+        description: 'Search query for recall action — matches against dropped message content.',
+      },
+      limit: {
+        type: 'number',
+        description: 'Max results for recall (default 5) or recall_inject batch size.',
+      },
+      content: {
+        type: 'string',
+        description: 'Content to inject via recall_inject.',
+      },
+      role: {
+        type: 'string',
+        description: 'Role for recall_inject (default "user").',
+      },
+      label: {
+        type: 'string',
+        description: 'Label for recall_inject — describes what was recalled.',
       },
     },
     required: ['action'],
@@ -123,8 +143,39 @@ export async function executeContextAction(
       return formatJsonResponse(data)
     }
 
+    case 'recall': {
+      if (!sessionId) return formatTextResponse('sessionId is required for recall')
+      const query = args.query as string | undefined
+      const limit = (args.limit as number) ?? 5
+      const data = await fetchIntelligence(adminBase, '/context/recall', {
+        sessionId,
+        query: query ?? '',
+        limit: String(limit),
+      })
+      return formatContextRecall(data)
+    }
+
+    case 'recall_inject': {
+      if (!sessionId) return formatTextResponse('sessionId is required for recall_inject')
+      const content = args.content as string | undefined
+      if (!content) return formatTextResponse('content is required for recall_inject')
+      const url = `${adminBase}/context/recall_inject`
+      const res = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          content,
+          role: args.role ?? 'user',
+          label: args.label ?? 'manual recall_inject',
+        }),
+      })
+      const data = await res.json()
+      return formatJsonResponse(data)
+    }
+
     default:
-      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: audit, pin, unpin, why, stats`)
+      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: audit, pin, unpin, why, stats, recall, recall_inject`)
   }
 }
 
@@ -201,6 +252,27 @@ function formatChars(n: number | undefined): string {
   if (n === undefined) return '? chars'
   if (n < 1024) return `${n} chars`
   return `${(n / 1024).toFixed(1)}k chars`
+}
+
+function formatContextRecall(data: any): { content: Array<{ type: 'text'; text: string }> } {
+  if (data.error) return formatTextResponse(`Error: ${data.error}`)
+  if (!data.results || data.results.length === 0) {
+    return formatTextResponse(`No matching dropped messages found for query "${data.query ?? ''}".`)
+  }
+
+  const lines = [`Recall results for "${data.query}" (${data.results.length} matches):\n`]
+  for (const r of data.results) {
+    const role = r.role ?? 'unknown'
+    const idx = r.msgIndex ?? '?'
+    const preview = (r.preview ?? '').slice(0, 120)
+    lines.push(`  [${idx}] ${role}: "${preview}${preview.length >= 120 ? '...' : ''}"`)
+    if (r.luminance) {
+      lines.push(`    composite=${r.luminance.composite?.toFixed(2)} strat=${r.luminance.strategicImportance?.toFixed(2) ?? 'n/a'}`)
+    }
+  }
+  lines.push(`\nTo re-inject content, use cassi_context({action: "recall_inject", sessionId, content, label})`)
+
+  return formatTextResponse(lines.join('\n'))
 }
 
 export function getContextConsolidatedTool(): typeof CONTEXT_CONSOLIDATED_TOOL {
