@@ -357,7 +357,7 @@ export abstract class BaseCognitiveModule implements IntelligenceModule {
       sessionId,
       type,
       content,
-      luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+      luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, strategicImportance: 0, composite: 0 },
       createdAt: Date.now(),
       urgencyHint: opts?.urgencyHint,
       metadata: opts?.metadata,
