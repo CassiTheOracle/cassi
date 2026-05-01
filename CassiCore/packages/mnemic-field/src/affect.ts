@@ -1,6 +1,6 @@
 import type { Affect, AffectConfig, AffectLabel, AffectState } from './types.js'
 import { AFFECT_DEFAULTS } from './types.js'
-import { lerp, clamp } from '../../../src/math.js'
+import { lerp, clamp } from '../../utils/math.js'
 
 
 interface MarkerSet {
