@@ -54,11 +54,67 @@ export async function handleThalamusRoutes(
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`)
   const pathname = url.pathname
 
-  if (!pathname.startsWith('/context/curate')) return false
+  if (!pathname.startsWith('/context/')) return false
 
   const thalamus = getThalamus(deps.daemon)
   if (!thalamus) {
     deps.sendJSON(res, 503, { error: 'Thalamus not available' })
+    return true
+  }
+
+  // GET /context/audit?sessionId=X&window=5 — Recent drop history
+  if (method === 'GET' && pathname === '/context/audit') {
+    const sessionId = url.searchParams.get('sessionId')
+    if (!sessionId) {
+      deps.sendJSON(res, 400, { error: 'sessionId query param required' })
+      return true
+    }
+    const window = parseInt(url.searchParams.get('window') ?? '5', 10)
+    const records = thalamus.audit(sessionId, window)
+    deps.sendJSON(res, 200, { sessionId, window, records })
+    return true
+  }
+
+  // GET /context/why?sessionId=X&msgIndex=N — Luminance breakdown for one message
+  if (method === 'GET' && pathname === '/context/why') {
+    const sessionId = url.searchParams.get('sessionId')
+    const msgIndex = parseInt(url.searchParams.get('msgIndex') ?? '', 10)
+    if (!sessionId || isNaN(msgIndex)) {
+      deps.sendJSON(res, 400, { error: 'sessionId and msgIndex query params required' })
+      return true
+    }
+    const record = thalamus.why(sessionId, msgIndex)
+    if (!record) {
+      deps.sendJSON(res, 404, { error: 'No score record found for that message' })
+      return true
+    }
+    deps.sendJSON(res, 200, record)
+    return true
+  }
+
+  // POST /context/pin — Pin a message pattern
+  if (method === 'POST' && pathname === '/context/pin') {
+    const body = await deps.parseBody(req)
+    const { sessionId, target, reason, pinClass } = body
+    if (!sessionId || !target || !reason) {
+      deps.sendJSON(res, 400, { error: 'sessionId, target, and reason are required' })
+      return true
+    }
+    const pinId = thalamus.pin(sessionId, target, reason, pinClass)
+    deps.sendJSON(res, 200, { pinId, sessionId, target })
+    return true
+  }
+
+  // DELETE /context/pin?sessionId=X&pinId=Y — Remove a pin
+  if (method === 'DELETE' && pathname === '/context/pin') {
+    const sessionId = url.searchParams.get('sessionId')
+    const pinId = url.searchParams.get('pinId')
+    if (!sessionId || !pinId) {
+      deps.sendJSON(res, 400, { error: 'sessionId and pinId query params required' })
+      return true
+    }
+    const removed = thalamus.unpin(sessionId, pinId)
+    deps.sendJSON(res, removed ? 200 : 404, { removed })
     return true
   }
 
