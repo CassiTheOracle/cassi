@@ -118,6 +118,33 @@ export async function handleThalamusRoutes(
     return true
   }
 
+  // GET /context/recall?sessionId=X&query=Y&limit=N — Search dropped messages
+  if (method === 'GET' && pathname === '/context/recall') {
+    const sessionId = url.searchParams.get('sessionId')
+    const query = url.searchParams.get('query') ?? ''
+    const limit = parseInt(url.searchParams.get('limit') ?? '5', 10)
+    if (!sessionId) {
+      deps.sendJSON(res, 400, { error: 'sessionId query param required' })
+      return true
+    }
+    const results = thalamus.recall(sessionId, query, limit)
+    deps.sendJSON(res, 200, { sessionId, query, results })
+    return true
+  }
+
+  // POST /context/recall_inject — Queue content for re-injection on next curate
+  if (method === 'POST' && pathname === '/context/recall_inject') {
+    const body = await deps.parseBody(req)
+    const { sessionId, content, role, label } = body
+    if (!sessionId || !content) {
+      deps.sendJSON(res, 400, { error: 'sessionId and content are required' })
+      return true
+    }
+    thalamus.recallInject(sessionId, content, role ?? 'user', label ?? 'manual recall_inject')
+    deps.sendJSON(res, 200, { queued: true, sessionId, label })
+    return true
+  }
+
   // POST /context/curate — Direct thalamus curation (full message objects)
   if (method === 'POST' && pathname === '/context/curate') {
     const body = await deps.parseBody(req)
