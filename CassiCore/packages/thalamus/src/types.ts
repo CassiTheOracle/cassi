@@ -59,6 +59,8 @@ export interface ThalamusAnnotation {
   pinned?: boolean
   /** Why the message was pinned — used in drop receipts and audit output */
   pinReason?: string
+  /** If true, thought-commands in this message have already been processed */
+  tcProcessed?: boolean
 }
 
 /** Context passed to slot.augment() during real-time processing */
@@ -144,7 +146,7 @@ export interface CurationConfig {
 
 export const DEFAULT_CURATION_CONFIG: CurationConfig = {
   charBudget: 80_000,
-  recentWindowSize: 6,
+  recentWindowSize: 12,
   toolResultMaxChars: 2000,
   ignitionThreshold: 0.20,
   excludeSessionPrefixes: ['meditation:', 'module:', 'helix-review:'],
@@ -201,6 +203,8 @@ export interface TopicSummary {
   status: 'active' | 'archived'
   keyTerms: string[]
   importanceScore: number
+  /** Files touched during this topic's work phase (from TopicArchiveStructured) */
+  filesTouched?: string[]
 }
 
 /**
@@ -334,6 +338,8 @@ export interface CurationSession {
   pinnedPatterns: PinnedPattern[]
   /** Log of thought-commands (<pin>, <recall>, <note>, <flag>) processed this session */
   thoughtCommandLog: ThoughtCommandLogEntry[]
+  /** tool_use_id → distilled summary for file-read results. Populated by background distillation. */
+  distilledSummaries: Map<string, { summary: string; originalChars: number; goalHash: string }>
 }
 
 
@@ -471,6 +477,13 @@ export interface FlagCommand {
 }
 
 export type ThoughtCommand = PinCommand | RecallCommand | NoteCommand | FlagCommand
+
+export interface ThoughtCommandLogEntry {
+  type: ThoughtCommandType
+  raw: string
+  timestamp: string
+  result?: string
+}
 
 const THOUGHT_CMD_RE = /<(?<type>pin|recall|note|flag)(?<attrs>[^>]*)>(?<body>[\s\S]*?)<\/\1>/g
 

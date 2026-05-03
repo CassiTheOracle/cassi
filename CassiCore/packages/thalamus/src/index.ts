@@ -1,6 +1,7 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
 import { ToolResultCompressor } from './compressor.js'
+import { ToolResultDistiller, type DistillationResult } from './distiller.js'
 import { TemporalRegistry } from './temporal.js'
 import { createSlots } from './slots/index.js'
 import { classifyMessage, isWriteTool, isReadTool, isShellTool, extractFilePath, extractSearchTarget, shortenPath } from './classifier.js'
@@ -80,6 +81,7 @@ export class ThalamusModule extends BaseCognitiveModule {
 
   private scorer!: MessageLuminanceScorer
   private compressor!: ToolResultCompressor
+  private distiller!: ToolResultDistiller
   private sessions = new Map<string, CurationSession>()
   private evictionTimer: ReturnType<typeof setInterval> | null = null
 
@@ -106,6 +108,8 @@ export class ThalamusModule extends BaseCognitiveModule {
   private lastPinealFacetIds: string[] = []
   /** Factory for background LLM calls (topic archiving, gap summaries) */
   private handleFactory: HandleFactory | null = null
+  /** Factory for distillation — may use a different provider than general background tasks */
+  private distillationFactory: HandleFactory | null = null
   /** Persistent store for curation audit data (drop history, pass metadata) */
   private store: ThalamusStore | null = null
 
@@ -118,6 +122,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   setAurora(a: Aurora): void { this.aurora = a }
   setPinealAssembler(pa: PinealAssembler): void { this.pinealAssembler = pa }
   setHandleFactory(fn: HandleFactory): void { this.handleFactory = fn }
+  setDistillationFactory(fn: HandleFactory): void { this.distillationFactory = fn }
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
   setReverieInferenceProvider(provider: import('../aurora/types.js').ReverieInferenceProvider): void {
@@ -128,6 +133,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
     this.compressor = new ToolResultCompressor(this.logger)
+    this.distiller = new ToolResultDistiller(this.logger)
     this.slots = createSlots()
     this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 2)
   }
@@ -218,34 +224,52 @@ export class ThalamusModule extends BaseCognitiveModule {
    * Commands: <pin>, <recall>, <note>, <flag> — parsed from message content.
    * Runs during curate(), after processAll and AQ pinning, before compression.
    */
+  /**
+   * Process thought-commands (<pin>, <recall>, <note>, <flag>) from assistant messages.
+   * Only processes messages that haven't been processed yet (tracked via _thalamus.tcProcessed).
+   * Skips content inside code blocks and inline code to prevent false matches from examples.
+   */
   processThoughtCommands(sessionId: string, messages: any[]): void {
     const session = this.getSession(sessionId)
-    for (const msg of messages) {
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
       if (msg?.role !== 'assistant') continue
-      const content = typeof msg.content === 'string' ? msg.content
+      // Skip already-processed messages
+      const ann: ThalamusAnnotation | undefined = msg._thalamus
+      if (ann?.tcProcessed) continue
+
+      const raw = typeof msg.content === 'string' ? msg.content
         : Array.isArray(msg.content) ? msg.content.map((b: any) => b?.text ?? '').join('')
         : ''
-      if (!content) continue
+      if (!raw) continue
+
+      // Strip code blocks and inline code to prevent false matches from examples
+      const content = raw
+        .replace(/```[\s\S]*?```/g, '')
+        .replace(/`[^`]+`/g, '')
 
       const commands = parseThoughtCommands(content)
+      // Mark as processed regardless of whether commands were found
+      if (ann) ann.tcProcessed = true
+      if (!commands.length) continue
+
       for (const cmd of commands) {
-        session.thoughtCommandLog.push({ command: cmd, processedAt: Date.now() })
+        const body = 'target' in cmd ? (cmd as any).target : 'message' in cmd ? (cmd as any).message : 'content' in cmd ? (cmd as any).content : ''
+        session.thoughtCommandLog.push({ type: cmd.type, raw: `<${cmd.type}>${body}</${cmd.type}>`, timestamp: new Date().toISOString() })
         switch (cmd.type) {
           case 'pin':
             this.pin(sessionId, cmd.target, cmd.reason ?? 'thought-command')
             break
           case 'recall':
-            this.recallInject(sessionId, cmd.query)
+            this.recallInject(sessionId, cmd.query, 'user', `thought-recall:${cmd.query.slice(0, 40)}`)
             break
-          case 'note': {
-            const label = `thought-note:${cmd.recipient}`
+          case 'note':
             this.logger.info('Thought-command note', {
               sessionId: sessionId.slice(-8),
               recipient: cmd.recipient,
               msgLen: cmd.message.length,
             })
             break
-          }
           case 'flag':
             this.pin(sessionId, cmd.content, 'thought-command flag')
             break
@@ -341,9 +365,29 @@ export class ThalamusModule extends BaseCognitiveModule {
     const topicClusters = this.detectTopicClusters(sessionId, annotated)
     const { nonLatestToolUseIds } = this.computeReadSuppression(annotated, topicClusters)
 
-    // Phase 1: Slot-aware compression — uses _thalamus.tool.class for strategy selection
+    // Phase 0b: Apply distilled summaries — replace read tool_result content with
+    // LLM-distilled findings if a summary exists. This runs BEFORE compression so
+    // the compressor sees shorter content and the char budget goes further.
+    const distiller = this.distiller
+    if (distiller) {
+      const summaries = session.distilledSummaries
+      for (const msg of annotated) {
+        const ann = msg?._thalamus
+        if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
+        const toolUseId = this.extractToolUseId(msg)
+        if (!toolUseId || !summaries.has(toolUseId)) continue
+        const summary = summaries.get(toolUseId)!
+        ann._distilledFrom = extractMessageContent(msg).length
+        this.replaceToolResultContent(msg, `[distilled] ${summary.summary}`)
+      }
+    }
+
+    // Phase 1: Slot-aware compression — uses _thalamus.tool.class for strategy selection.
+    // Protect the recent window from compression; older messages get compressed
+    // to reduce their char footprint so more messages fit in the budget.
+    const compressionBoundary = Math.max(0, annotated.length - cfg.recentWindowSize)
     const { messages: compressed, compressed: compressedCount } =
-      this.compressor.compress(annotated, annotated.length, { toolResultMaxChars: cfg.toolResultMaxChars })
+      this.compressor.compress(annotated, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars })
 
     // Phase 2: Enrich with temporal context for scoring
     const temporal = this.getTemporalRegistry(sessionId)
@@ -379,6 +423,34 @@ export class ThalamusModule extends BaseCognitiveModule {
         const slot = this.slots.find(s => s.type === annotation.slot)
         if (slot) {
           sm.luminance = slot.adjustScore(sm.luminance, annotation)
+        }
+      }
+    }
+
+    // Phase 3a: Boost read-class tool results that contain terms relevant to the
+    // current focus. When the model reads multiple files as part of investigating
+    // a problem, those reads form a cohesive context — dropping any of them breaks
+    // the chain and forces the model to re-read, creating agent loops.
+    {
+      const focusTerms = brainContext.focusTerms
+      const recentTerms = brainContext.recentMessageTerms
+      const allRelevantTerms = new Set([...focusTerms, ...recentTerms])
+      if (allRelevantTerms.size > 0) {
+        for (const sm of scored) {
+          if (sm.luminance.composite >= 0.30) continue
+          const annotation: ThalamusAnnotation | undefined = compressed[sm.messageIndex]?._thalamus
+          if (annotation?.slot !== 'tool_result' || annotation.tool?.class !== 'read') continue
+          const content = extractMessageContent(compressed[sm.messageIndex]).toLowerCase()
+          let overlap = 0
+          for (const term of allRelevantTerms) {
+            if (term.length >= 4 && content.includes(term)) overlap++
+          }
+          if (overlap >= 2) {
+            sm.luminance.relevance = Math.max(sm.luminance.relevance, 0.40)
+            sm.luminance.composite = Math.max(sm.luminance.composite, 0.25)
+          } else if (overlap >= 1) {
+            sm.luminance.composite = Math.max(sm.luminance.composite, 0.20)
+          }
         }
       }
     }
@@ -536,6 +608,72 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
+    // Background distillation: queue read tool results for async LLM summarization.
+    // Results land in session.distilledSummaries and are applied on the next curate() pass.
+    if (distiller && this.handleFactory) {
+      const readResults = scored
+        .filter(sm => {
+          const msg = compressed[sm.messageIndex]
+          const ann = msg?._thalamus
+          return ann?.slot === 'tool_result' && ann.tool?.class === 'read'
+        })
+        .map(sm => {
+          const msg = compressed[sm.messageIndex]
+          const toolUseId = this.extractToolUseId(msg)
+          return { toolUseId, content: extractMessageContent(msg), index: sm.messageIndex }
+        })
+        .filter(r => r.toolUseId && r.content.length > 2000 && !session.distilledSummaries.has(r.toolUseId))
+
+      if (readResults.length > 0) {
+        const sessionIdCapture = sessionId
+        const goal = brainContext.focusTerms.size > 0
+          ? [...brainContext.focusTerms].slice(0, 5).join(', ')
+          : 'general'
+        const distillPromise = async () => {
+          const factory = this.distillationFactory ?? this.handleFactory
+          if (!factory) {
+            this.logger.warn('Thalamus distillation skipped — no handle factory available')
+            return
+          }
+          const handle = await factory({ tier: 'background', purpose: 'distillation', sessionId: sessionIdCapture })
+          try {
+            let distilled = 0
+            for (const r of readResults) {
+              const pending: import('./distiller.js').PendingDistillation = {
+                toolUseId: r.toolUseId!,
+                filePath: '',
+                content: r.content,
+                goalContext: goal,
+              }
+              const result = await distiller.distill(pending, async (msgs) => {
+                const resp = await handle.complete(msgs as any, {} as any)
+                const text = resp.response ?? (resp as any)?.content?.[0]?.text ?? String(resp)
+                return { response: text }
+              })
+              if (result?.summary) {
+                session.distilledSummaries.set(r.toolUseId!, {
+                  summary: result.summary,
+                  originalChars: result.originalChars,
+                  goalHash: result.goalHash,
+                })
+                distilled++
+              }
+            }
+            this.logger.debug('Thalamus distillation complete', {
+              sessionId: sessionIdCapture.slice(-8),
+              distilled,
+              queued: readResults.length,
+            })
+          } catch (err) {
+            this.logger.warn('Thalamus distillation failed', { error: String(err) })
+          } finally {
+            handle.release()
+          }
+        }
+        distillPromise().catch(() => {})
+      }
+    }
+
     // Invalidate brain context cache after curation — each turn gets fresh context
     this.cachedBrainContext = null
 
@@ -548,6 +686,30 @@ export class ThalamusModule extends BaseCognitiveModule {
       totalCurations += s.totalCurations
     }
     return { sessions: this.sessions.size, totalCurations }
+  }
+
+  private extractToolUseId(msg: any): string | undefined {
+    const ann = msg?._thalamus
+    if (ann?.toolUseId) return ann.toolUseId
+    if (ann?.tool?.toolUseId) return ann.tool.toolUseId
+    if (typeof msg?.tool_use_id === 'string') return msg.tool_use_id
+    // tool_result blocks carry tool_use_id inside the content array
+    if (Array.isArray(msg?.content)) {
+      for (const block of msg.content) {
+        if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
+          return block.tool_use_id
+        }
+      }
+    }
+    return undefined
+  }
+
+  private replaceToolResultContent(msg: any, newContent: string): void {
+    if (Array.isArray(msg?.content)) {
+      msg.content = [{ type: 'text', text: newContent }]
+    } else if (typeof msg?.content === 'string') {
+      msg.content = newContent
+    }
   }
 
   audit(sessionId: string, window: number = 5): DropRecord[] {
@@ -1520,6 +1682,7 @@ export class ThalamusModule extends BaseCognitiveModule {
         status: 'archived',
         keyTerms,
         importanceScore: importance,
+        filesTouched: archive.structured?.filesTouched,
       })
     }
 
@@ -1533,6 +1696,9 @@ export class ThalamusModule extends BaseCognitiveModule {
       const importance = this.computeTopicImportance(
         cluster.messageIndices, scored,
       )
+      // Heuristic: extract path-like terms from keyTerms so ongoing work
+      // surfaces in file conflict detection before the topic is archived.
+      const filesTouched = this.extractFilePathsFromTerms(keyTerms)
       summaries.push({
         id: cluster.id,
         label: cluster.label || keyTerms.slice(0, 3).join(' ') || `Topic ${cluster.id}`,
@@ -1540,10 +1706,30 @@ export class ThalamusModule extends BaseCognitiveModule {
         status: 'active',
         keyTerms,
         importanceScore: importance,
+        filesTouched: filesTouched.length > 0 ? filesTouched : undefined,
       })
     }
 
     return summaries
+  }
+
+  /**
+   * Heuristic extraction of file paths from topic key terms.
+   * Scans terms for path-like strings (containing '/' or ending with
+   * known extensions) so ongoing work surfaces in conflict detection
+   * before the topic is archived.
+   */
+  private extractFilePathsFromTerms(terms: string[]): string[] {
+    const files: string[] = []
+    const extPattern = /\.(ts|tsx|js|jsx|py|rb|go|rs|java|kt|swift|c|cpp|h|hpp|cs|fs|scala|clj|erl|ex|php|pl|lua|r|m|mm|json|yaml|yml|toml|xml|md|txt|sql|sh|bash|zsh|fish|ps1|bat|cmd|dockerfile|makefile|gradle|svelte|vue|html|css|scss|sass|less|wasm)$/i
+    for (const term of terms) {
+      if (term.includes('/') || term.startsWith('./') || term.startsWith('../')) {
+        files.push(term)
+      } else if (extPattern.test(term) && term.length > 3) {
+        files.push(term)
+      }
+    }
+    return [...new Set(files)].slice(0, 8)
   }
 
   /**
@@ -1584,10 +1770,12 @@ export class ThalamusModule extends BaseCognitiveModule {
         lastScored: [],
         lastThreshold: 0,
         pinnedPatterns: [],
+        thoughtCommandLog: [],
+        distilledSummaries: new Map(),
       }
       this.sessions.set(sessionId, session)
     }
-    return session
+    return session!
   }
 
   /**
