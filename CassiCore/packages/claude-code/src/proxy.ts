@@ -258,6 +258,17 @@ function buildRequestDiagnostics(
   };
 }
 
+function stripThinkingSignatures(messages: any[]): void {
+  for (const msg of messages) {
+    if (!msg?.content || !Array.isArray(msg.content)) continue;
+    for (const block of msg.content) {
+      if ((block?.type === "thinking" || block?.type === "redacted_thinking") && "signature" in block) {
+        delete block.signature;
+      }
+    }
+  }
+}
+
 export function sanitizeToolPairs(messages: any[]): any[] {
   if (!Array.isArray(messages) || messages.length === 0) return messages;
 
@@ -475,6 +486,10 @@ async function proxyRequest(
           logger.error("curate failed", { error: String(err) });
         }
         body.messages = sanitizeToolPairs(nextMessages);
+      }
+
+      if (route?.provider.id !== "anthropic" && Array.isArray(body.messages)) {
+        stripThinkingSignatures(body.messages);
       }
 
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
