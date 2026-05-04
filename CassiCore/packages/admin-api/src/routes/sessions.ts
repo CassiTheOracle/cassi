@@ -63,6 +63,7 @@ export async function handleSessionsRoutes(
           content,
           attachments: body?.attachments,
           model: body?.model,
+          maxToolRounds: body?.maxToolRounds,
         })
         const durationMs = Date.now() - startTime
 
@@ -807,6 +808,12 @@ async function handleSseStream(
   const body = await parseBody(req)
   const content: string = body?.content
   const model: string = body?.model || 'unknown'
+  logger.info('SSE stream options', {
+    sessionId: sessionId.slice(0, 8),
+    channelId: body?.channelId,
+    senderId: body?.senderId,
+    maxToolRounds: body?.maxToolRounds,
+  })
   if (!content) {
     logger.error('SSE stream rejected: missing content')
     sendJSON(res, 400, { error: 'missing content' })
@@ -938,6 +945,7 @@ async function handleSseStream(
         attachments: body?.attachments,
         stream: true,
         model,
+        maxToolRounds: body?.maxToolRounds,
       })
 
       logger.info(`SSE stream completed: ${tokenCount} tokens, response=${result?.response?.slice(0, 50)}...`)

@@ -26,6 +26,7 @@ interface SessionPipelineLike {
       stream?: boolean
       onStreamEvent?: StreamEventCallback
       model?: string
+      maxToolRounds?: number
     },
   ): Promise<SessionPipelineResult>
 
@@ -41,6 +42,7 @@ interface SessionPipelineLike {
       stream?: boolean
       onStreamEvent?: StreamEventCallback
       model?: string
+      maxToolRounds?: number
     },
   ): Promise<SessionPipelineResult>
 
@@ -122,6 +124,7 @@ export interface TurnExecutionRequest {
   content: string
   attachments?: Attachment[]
   model?: string
+  maxToolRounds?: number
   signal?: AbortSignal
   stream?: boolean
   onStreamEvent?: StreamEventCallback
@@ -409,6 +412,7 @@ export async function executeTurn(
               stream: request.stream,
               onStreamEvent: request.onStreamEvent,
               model: request.model && request.model !== 'unknown' ? request.model : undefined,
+              maxToolRounds: request.maxToolRounds,
             },
           )
         : await runtime.sessionPipeline.processMessage(
@@ -421,6 +425,7 @@ export async function executeTurn(
               stream: request.stream,
               onStreamEvent: request.onStreamEvent,
               model: request.model && request.model !== 'unknown' ? request.model : undefined,
+              maxToolRounds: request.maxToolRounds,
             },
           )
 
