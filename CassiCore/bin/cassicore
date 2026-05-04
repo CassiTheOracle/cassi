@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 TSX="$ROOT_DIR/node_modules/.bin/tsx"
-ENTRY="$ROOT_DIR/src/cli.ts"
+ENTRY="$ROOT_DIR/core/cli/index.ts"
 
 if [[ ! -x "$TSX" ]]; then
   echo "Missing tsx launcher at $TSX. Run npm install." >&2

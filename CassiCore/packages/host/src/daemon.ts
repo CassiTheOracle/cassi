@@ -2664,6 +2664,7 @@ export class Daemon {
         ? (config: { tier: string; purpose: string; sessionId: string }) =>
           this.helixModelPool!.acquire('unity', config.tier, config.sessionId)
         : undefined,
+      modelPool: this.helixModelPool,
     })
 
     // Register workflow templates now that intelligence modules are wired
@@ -2801,7 +2802,6 @@ export class Daemon {
       if (this.autonomousLoop) {
         const { createExecutionBackend } = await import('./intelligence/execution-backends/index.js')
         const backend = createExecutionBackend('cassicore', this.logger.child('execution-backend'), {
-          pipeline: this.pipeline,
           sessionPipeline: this.sessionPipeline,
         })
         this.autonomousLoop.setBackend(backend)
