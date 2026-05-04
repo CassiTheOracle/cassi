@@ -191,7 +191,7 @@ export function createProviders(
     try {
       const claudeCodeProvider = new ClaudeCodeProvider({
         cliPath: config.get<string>('providers.claudeCode.cliPath', '') || undefined,
-        defaultModel: config.get<string>('providers.claudeCode.model', 'claude-sonnet-4-6'),
+        defaultModel: config.get<string>('providers.claudeCode.model', 'claude-sonnet-4-7'),
         workingDirectory: config.get<string>('providers.claudeCode.workingDirectory', '') || undefined,
         logger,
       })

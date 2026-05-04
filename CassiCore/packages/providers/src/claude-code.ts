@@ -11,8 +11,8 @@ import type { ILogger } from '../../types/interfaces.js'
 import type { CompletionChunk, CompletionOpts, IProvider, ImageAttachment, Message } from '../../types/runtime.js'
 
 const DEFAULT_MODELS = [
-  'claude-sonnet-4-6',
-  'claude-opus-4-6',
+  'claude-sonnet-4-7',
+  'claude-opus-4-7',
   'claude-haiku-4-5',
 ] as const
 
@@ -22,14 +22,14 @@ const MODEL_INFO: Record<string, {
   contextWindow: number
   maxTokens: number
 }> = {
-  'claude-sonnet-4-6': {
-    name: 'Claude Sonnet 4.6 (Claude Code CLI)',
+  'claude-sonnet-4-7': {
+    name: 'Claude Sonnet 4.7 (Claude Code CLI)',
     reasoning: true,
     contextWindow: 200000,
     maxTokens: 32000,
   },
-  'claude-opus-4-6': {
-    name: 'Claude Opus 4.6 (Claude Code CLI)',
+  'claude-opus-4-7': {
+    name: 'Claude Opus 4.7 (Claude Code CLI)',
     reasoning: true,
     contextWindow: 1000000,
     maxTokens: 64000,
@@ -520,8 +520,8 @@ export class ClaudeCodeProvider extends BaseProvider implements IProvider {
 
   private normalizeModel(model: string): string {
     const trimmed = model.replace(/^claude-code\//, '')
-    if (trimmed === 'sonnet') return 'claude-sonnet-4-6'
-    if (trimmed === 'opus') return 'claude-opus-4-6'
+    if (trimmed === 'sonnet') return 'claude-sonnet-4-7'
+    if (trimmed === 'opus') return 'claude-opus-4-7'
     if (trimmed === 'haiku') return 'claude-haiku-4-5'
     return trimmed
   }
