@@ -22,6 +22,7 @@ import type {
   UnifiedGraph,
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
+import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
 
 /**
  * StateProjector — converts mental state to injectable formats.
@@ -29,6 +30,7 @@ import { AURORA_DEFAULTS } from './types.js'
 export class StateProjector {
   private config: AuroraConfig
   private logger: ILogger
+  private narrative: SelfNarrativeRenderer
 
   constructor(
     logger: ILogger,
@@ -36,6 +38,7 @@ export class StateProjector {
   ) {
     this.logger = logger.child ? logger.child('state-projector') : logger
     this.config = { ...AURORA_DEFAULTS, ...config }
+    this.narrative = new SelfNarrativeRenderer(logger, this.config)
   }
 
   /**
@@ -54,6 +57,13 @@ export class StateProjector {
     const header = '[Aurora — Cognitive State]'
     sections.push(header)
     charCount += header.length + 1
+
+    // Narrative section (N1 — first-person rendering)
+    const narr = this.narrative.render(state)
+    if (narr) {
+      sections.push(narr.text)
+      charCount += narr.charCount + 1
+    }
 
     // Section 1: Focus (always included, very compact)
     if (state.foci.length > 0) {

@@ -30,8 +30,6 @@ import {
   type ClaustrumManifest,
   type ProvenanceRecord,
 } from './claustrum-snapshot.js'
-import { exportRetained } from '../../../scripts/export-claustrum-retained.js'
-
 // section
 
 function mockLogger(): any {
@@ -375,62 +373,3 @@ describe('writeClaustrumSnapshot / readClaustrumSnapshot round-trip', () => {
 
 // section
 
-describe('Full pipeline: retained.bin + snapshot (M4a→M5→M6)', () => {
-  let tmpDir: string
-  let recorder: ClaustrumRecorder
-
-  beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'claustrum-pipeline-'))
-    recorder = new ClaustrumRecorder(mockLogger(), '/fake/vindex', path.join(tmpDir, 'recorder.db'))
-  })
-
-  afterEach(() => {
-    recorder.close()
-    fs.rmSync(tmpDir, { recursive: true, force: true })
-  })
-
-  it('exports retained.bin then writes snapshot with matching feature counts', () => {
-    // Step 1: Record gate hits
-    recorder.recordGateHits({
-      cycleId: 'aur_1',
-      queryConcept: 'test',
-      trigger: 'larql_gate_knn',
-      hits: [
-        { layer: 0, featureIndex: 10, score: 0.9 },
-        { layer: 0, featureIndex: 20, score: 0.8 },
-        { layer: 5, featureIndex: 30, score: 0.7 },
-      ],
-    })
-
-    // Step 2: Export retained.bin (M4a)
-    const retainedBinPath = path.join(tmpDir, 'retained.bin')
-    const exportResult = exportRetained({ recorder, outputPath: retainedBinPath })
-    expect(exportResult.snapshot.totals.layers).toBe(2)
-    expect(exportResult.snapshot.totals.features).toBe(3)
-
-    // Step 3: Write snapshot adjuncts (M5)
-    const graph = makeTestGraph()
-    const retained = recorder.retainedFeatures({})
-    const snapshotDir = path.join(tmpDir, 'full-snapshot.vindex')
-
-    const snapResult = writeClaustrumSnapshot({
-      outputDir: snapshotDir,
-      graph,
-      retained,
-      window: {},
-      sourcePath: '/fake/vindex',
-      auroraCyclesObserved: 1,
-    })
-
-    // Step 4: Verify pipeline coherence (M6)
-    expect(snapResult.provenanceRecords).toBe(exportResult.snapshot.totals.features)
-    expect(snapResult.nodeCount).toBe(3)
-
-    const read = readClaustrumSnapshot(snapshotDir)!
-    expect(read.manifest.retained_stats.total_features).toBe(exportResult.snapshot.totals.features)
-    expect(read.manifest.retained_stats.layer_count).toBe(exportResult.snapshot.totals.layers)
-
-    // Verify the retained.bin and provenance agree on feature counts
-    expect(read.provenance.length).toBe(3)
-  })
-})

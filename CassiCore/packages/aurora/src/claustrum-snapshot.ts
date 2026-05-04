@@ -107,7 +107,7 @@ export function serializeGraph(
       concept: node.label,
       sources: [...sources],
       model_features: modelFeatures,
-      mnemic_engram_ids: node.nodeType === 'episodic' ? [id] : [],
+      mnemic_engram_ids: node.nodeType === 'episode' ? [id] : [],
       first_seen_ts: new Date(graph.builtAt - 86_400_000).toISOString(), // approximate
       last_seen_ts: new Date(graph.builtAt).toISOString(),
       activation_count: node.activated ? 1 : 0,
@@ -388,7 +388,7 @@ export async function fileSha256(filePath: string): Promise<string> {
   const hash = crypto.createHash('sha256')
   const stream = fs.createReadStream(filePath)
   return new Promise((resolve, reject) => {
-    stream.on('data', (chunk: Buffer) => hash.update(chunk))
+    stream.on('data', (chunk: string | Buffer<ArrayBufferLike>) => hash.update(chunk))
     stream.on('end', () => resolve(hash.digest('hex')))
     stream.on('error', reject)
   })

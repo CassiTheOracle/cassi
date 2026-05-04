@@ -24,6 +24,7 @@ import type {
   ModelPath,
 } from './types.js'
 import type { ClaustrumRecorder, ClaustrumGateHit } from './claustrum-recorder.js'
+import type { OverlayLayer, OverlayFeatureHit } from './overlay-layer.js'
 
 interface VindexHandle {
   readonly id: number
@@ -107,6 +108,10 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   // Aurora calls setCycleId() at the top of each `buildState`. Null between cycles.
   private currentCycleId: string | null = null
 
+  // Optional overlay layer — when set, describe() with applyOverlay:true merges
+  // overlay patches into base vindex results. See C3 (Bidirectional Claustrum Surgery).
+  private overlay: OverlayLayer | null = null
+
   constructor(
     logger: ILogger,
     config?: Partial<LarqlProviderConfig>,
@@ -118,6 +123,11 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   /** Attach a recorder so that future gate-KNN hits are persisted. */
   setRecorder(recorder: ClaustrumRecorder | null): void {
     this.recorder = recorder
+  }
+
+  /** Attach an overlay layer for bidirectional claustrum surgery (C3). */
+  setOverlay(overlay: OverlayLayer | null): void {
+    this.overlay = overlay
   }
 
   /**
@@ -190,12 +200,13 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
-   * Describe an entity: what does the model know about it?
+   * Options for describe() queries.
    *
-   * Tokenizes the entity, runs gate KNN across knowledge layers,
-   * and aggregates labeled features into relations.
+   * applyOverlay: when true and an overlay layer is attached, merges overlay
+   * patches into the base vindex results. Overlay-sourced entries carry
+   * provenance metadata. Default: false.
    */
-  describe(entity: string): ModelEntity | null {
+  describe(entity: string, opts?: { applyOverlay?: boolean }): ModelEntity | null {
     if (!this.loaded || !this.handle || !this.larql) return null
 
     // Check cache
@@ -263,6 +274,38 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
       }
     }
 
+    // Overlay layer merging (C3): when applyOverlay is true and an overlay exists,
+    // inject overlay-sourced feature hits into the fingerprint and relations.
+    const overlayAttribution = new Map<string, string>()
+    if (opts?.applyOverlay && this.overlay) {
+      const overlayHits = this.overlay.queryOverlay(
+        this.config.knowledgeLayers,
+        this.config.featuresPerLayer,
+      )
+      for (const hit of overlayHits) {
+        const key = `L${hit.layer}:F${hit.featureIndex}`
+        const pid = hit.patchId ?? 'unknown'
+        if (!fingerprint.has(key)) {
+          fingerprint.set(key, hit.score)
+          overlayAttribution.set(key, pid)
+        } else if (fingerprint.get(key)! < hit.score) {
+          fingerprint.set(key, hit.score)
+          overlayAttribution.set(key, pid)
+        }
+        if (hit.label) {
+          const existing = labeledRelations.get(hit.label)
+          if (!existing) {
+            labeledRelations.set(hit.label, { maxScore: hit.score, layerMin: hit.layer, layerMax: hit.layer, count: 1 })
+          } else {
+            existing.maxScore = Math.max(existing.maxScore, hit.score)
+            existing.layerMin = Math.min(existing.layerMin, hit.layer)
+            existing.layerMax = Math.max(existing.layerMax, hit.layer)
+            existing.count++
+          }
+        }
+      }
+    }
+
     if (fingerprint.size === 0) {
       this.cacheResult(entity, null)
       return null
@@ -319,6 +362,7 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
       name: entity,
       relations: capped,
       totalRelations: modelRelations.length,
+      ...(overlayAttribution.size > 0 ? { overlayAttribution } : {}),
     }
 
     this.cacheResult(entity, result)

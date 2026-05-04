@@ -13,8 +13,10 @@
  *   5. Mental state shifts → next turn sees an updated mind
  */
 
+import path from 'node:path'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from '../mnemic-field/cortex.js'
+import { getDataDir } from '../../utils/paths.js'
 import type { PortalBridge } from '../memory-bridge/portal-bridge.js'
 import type { ResonantAffectSignal } from '../memory-bridge/resonant-affect.js'
 import type { DreamDiscovery } from '../memory-bridge/dream-engine.js'
@@ -28,6 +30,7 @@ import type {
   ReasoningShift,
   ModelKnowledgeProvider,
   AuroraConfig,
+  CurationCycleResult,
   CognitiveEdge,
   ReasoningRecord,
   ReverieInsight,
@@ -36,13 +39,58 @@ import type {
 import { AURORA_DEFAULTS } from './types.js'
 import type { ReverieInferenceProvider } from './types.js'
 import { ReverieReasoningObserver, makeReasoningRecordId } from './reverie-reasoning-observer.js'
+import type {
+  CoherenceReport,
+  SpecCategory,
+  SpecType,
+  ProposalStatus,
+  SpecProposal,
+  SpecChannelStats,
+} from './types.js'
+import { CoherenceChecker } from './coherence-checker.js'
+import type { CoherenceCheckResult, CoherenceConfig, AuroraSnapshot } from './coherence-checker.js'
+import { WelfareAggregator, createWelfareAggregator } from './welfare-aggregator.js'
+import type { WelfareStressSnapshot, RecommendedAction, WelfareAggregatorConfig, WelfareFlag } from './welfare-aggregator.js'
+import { SubstrateModificationAudit } from './modification-chain-audit.js'
+import type { ModificationChain, ChainQueryOptions } from './modification-chain-audit.js'
+import { EventJournal, createEventJournal } from './event-journal.js'
+import type { EventCategory, EventReference, QueryOptions, AuroraEventInput } from './event-journal.js'
+import { CassiSpecChannel } from './cassi-spec-channel.js'
 import type { AuroraPersistence, SessionHandle } from './persistence.js'
+import { GapDetector } from './gap-detector.js'
+import { MeditationSeeder } from './meditation-seeder.js'
+import { AutoScheduler } from './auto-scheduler.js'
+import { OverlayLayer } from './overlay-layer.js'
+import { TraceReplayEngine } from './trace-replay.js'
+import type { TraceReplayConfig, RankedTrace, ScheduledReplay, TraceRetrievalQuery, ContextReplayOptions, StateReplayOptions } from './trace-replay-types.js'
+import { SaturationDetector } from './saturation-detector.js'
+import type { SaturationConfig, SaturationScore, TurnSample } from './saturation-detector.js'
+import { CounterfactualEngine } from './counterfactual-engine.js'
+import type { ForkScope, Perturbation, ClaustrumFork, ObservationKind, CounterfactualResult, ActivatedNodesDiff, ReasoningShiftDiff, RetrievalDistributionEntry } from './counterfactual-engine.js'
+import { DiversityFloor } from './diversity-floor.js'
+import type { DiversityFloorConfig, DiversityCategory, CategoryDiversityState, CompositeDiversity } from './diversity-floor.js'
+import { RefusalChannel } from './refusal-channel.js'
+import type { ActionKind, ActionHandle, ActionResolution, ActionRecord, RefusalChannelConfig, ProposedAction, RefusalFilter, ConsentSource } from './refusal-channel.js'
 
 export { Claustrum, ObserverInsightCollector } from './claustrum.js'
 export { StateProjector } from './state-projector.js'
 export { LarqlKnowledgeProvider } from './larql-provider.js'
 export { AuroraPersistence } from './persistence.js'
+export { GapDetector } from './gap-detector.js'
+export { CoherenceChecker } from './coherence-checker.js'
+export { ReverieReasoningObserver } from './reverie-reasoning-observer.js'
+export { SubstrateModificationAudit } from './modification-chain-audit.js'
+export { CassiSpecChannel } from './cassi-spec-channel.js'
+export { OverlayLayer } from './overlay-layer.js'
+export { EventJournal, createEventJournal } from './event-journal.js'
+export { WelfareAggregator, createWelfareAggregator } from './welfare-aggregator.js'
+export { TraceReplayEngine } from './trace-replay.js'
+export { SaturationDetector } from './saturation-detector.js'
+export { DiversityFloor } from './diversity-floor.js'
+export { RefusalChannel } from './refusal-channel.js'
+export { CounterfactualEngine } from './counterfactual-engine.js'
 export type { SessionHandle, SessionMetadata, AuroraPersistenceConfig } from './persistence.js'
+export type { ReverieTier, ReverieAnalysisResult, ReverieEscalationConfig } from './reverie-reasoning-observer.js'
 export type {
   MentalState,
   MentalStateUpdate,
@@ -53,6 +101,96 @@ export type {
   ReasoningRecord,
   ReverieInsight,
 } from './types.js'
+export type {
+  ChainOriginSpec,
+  ChainLinkType,
+  ChainStatus,
+  ChainPriority,
+  ChainLink,
+  ModificationChain,
+  ChainQueryOptions,
+} from './modification-chain-audit.js'
+export type {
+  GapCategory,
+  GapStatus,
+  GapSignalType,
+  SignalDetail,
+  GapCandidate,
+  GapDetectorConfig,
+} from './gap-detector.js'
+export type {
+  SpecCategory,
+  ProposalStatus,
+  SpecType,
+  SpecMetadata,
+  SpecProposal,
+  ReviewAction,
+  ReviewResult,
+} from './cassi-spec-channel.js'
+export type {
+  CoherenceSignal,
+  CoherenceCategory,
+  CoherenceSeverity,
+  CoherenceCheckInput,
+  CoherenceCheckResult,
+  AuroraSnapshot,
+  MnemicFieldSnapshot,
+  CortexSnapshot,
+  AffectSnapshot,
+  CoherenceConfig,
+} from './coherence-checker.js'
+export type {
+  OverlayPatch,
+  OverlayPatchOp,
+  OverlayApplyResult,
+  OverlayStats,
+  OverlayFeatureHit,
+} from './overlay-layer.js'
+export type {
+  WelfareFlag,
+  RecommendedAction,
+  StressTrend,
+  WelfareStressSnapshot,
+  WelfareAggregatorConfig,
+} from './welfare-aggregator.js'
+export type {
+  EventCategory,
+  EventReference,
+  AuroraEventInput,
+  AuroraEvent,
+  QueryOptions,
+} from './event-journal.js'
+export type {
+  TraceReplayConfig,
+  RankedTrace,
+  ScheduledReplay,
+  TraceRetrievalQuery,
+  ContextReplayOptions,
+  StateReplayOptions,
+} from './trace-replay-types.js'
+export type {
+  SaturationConfig,
+  SaturationSignals,
+  SaturationClassification,
+  SaturationScore,
+  TurnSample,
+} from './saturation-detector.js'
+export type {
+  ProposedAction,
+  ActionHandle,
+  ActionResolution,
+  ConsentSource,
+  ActionRecord,
+  RefusalFilter,
+  RefusalChannelConfig,
+} from './refusal-channel.js'
+export type {
+  ForkScope,
+  Perturbation,
+  ClaustrumFork,
+  CounterfactualResult,
+  ObservationKind,
+} from './counterfactual-engine.js'
 
 const MAX_RECENT_CONCEPTS = 200
 const MAX_REASONING_RECORDS = 500
@@ -85,6 +223,7 @@ export class Aurora {
   private turnCount = 0
   private conceptHistory: string[][] = []
   private maxConceptsPerTurn: number
+  private curationCycleInterval: number
 
   /** Persisted reasoning observations — corpus for learning and re-analysis. */
   private reasoningLog: ReasoningRecord[] = []
@@ -115,6 +254,40 @@ export class Aurora {
   private inFlightAnalyses: Set<Promise<void>> = new Set()
   private maxInFlightAnalyses = 5
 
+  /** Phase 4: Gap detector for C1 self-curing topology. */
+  private gapDetector: GapDetector | null = null
+
+  /** Phase 4: Meditation seeder for C1.2 — proposes meditation seeds from gaps. */
+  private meditationSeeder: MeditationSeeder | null = null
+
+  /** Phase 4: Auto-scheduler for C1.3 — autonomy-gated, off by default. */
+  private autoScheduler: AutoScheduler | null = null
+
+  /** Phase 4: Coherence checker for N6 cross-module coherence. */
+  private coherenceChecker: CoherenceChecker | null = null
+
+  /** Phase 4: Modification chain auditor for SMCA. */
+  private modificationAuditor: SubstrateModificationAudit | null = null
+
+  /** Phase 4: Event journal for AEJ - unified audit log. */
+  private eventJournal: EventJournal | null = null
+
+  /** Phase 4: Welfare aggregator for WSA - cross-spec welfare monitoring. */
+  private welfareAggregator: WelfareAggregator | null = null
+
+  /** Phase 4: Cassi spec channel for N4. */
+  private cassiSpecChannel: CassiSpecChannel | null = null
+
+  /** Phase 4: Overlay layer for C3 bidirectional claustrum surgery. */
+  private overlayLayer: OverlayLayer | null = null
+  private refusalChannel: RefusalChannel | null = null
+
+  /** Phase 3: Trace replay engine for B3 reasoning trace retrieval. */
+  private traceReplay: TraceReplayEngine | null = null
+  private saturationDetector: SaturationDetector | null = null
+  private diversityFloor: DiversityFloor | null = null
+  private counterfactualEngine: CounterfactualEngine | null = null
+
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
@@ -126,6 +299,7 @@ export class Aurora {
   ) {
     this.logger = logger.child ? logger.child('aurora') : logger
     this.maxConceptsPerTurn = config?.maxConceptsPerTurn ?? AURORA_DEFAULTS.maxConceptsPerTurn
+    this.curationCycleInterval = config?.curationCycleInterval ?? AURORA_DEFAULTS.curationCycleInterval
     this.reverieMinTextLength = config?.reverieMinTextLength ?? AURORA_DEFAULTS.reverieMinTextLength
     this.reverieSamplingRate = config?.reverieSamplingRate ?? AURORA_DEFAULTS.reverieSamplingRate
     this.reverieTimeoutMs = config?.reverieTimeoutMs ?? AURORA_DEFAULTS.reverieTimeoutMs
@@ -152,6 +326,74 @@ export class Aurora {
           priorMomentum.trendingConcepts.map(c => [c, 5] as [string, number]),
         )
       }
+    }
+
+    // Phase 4: Initialize self-direction modules
+    const auroraDbPath = persistence?.getDbPath() ?? path.join(getDataDir(), 'aurora.db')
+    const phase4Config = config ?? AURORA_DEFAULTS
+
+    // Initialize modules based on enabled flags
+    if (phase4Config.gapDetectionEnabled) {
+      this.gapDetector = new GapDetector(auroraDbPath, logger)
+    }
+
+    if (phase4Config.coherenceCheckEnabled) {
+      this.coherenceChecker = new CoherenceChecker(logger)
+    }
+
+    if (phase4Config.meditationSeederEnabled) {
+      this.meditationSeeder = new MeditationSeeder(auroraDbPath, logger)
+    }
+
+    if (phase4Config.autoSchedulerEnabled) {
+      this.autoScheduler = new AutoScheduler(auroraDbPath, {}, logger)
+    }
+
+    if (phase4Config.modificationAuditEnabled) {
+      this.modificationAuditor = new SubstrateModificationAudit({
+        logger,
+        dbPath: auroraDbPath,
+      })
+    }
+
+    if (phase4Config.cassiSpecChannelEnabled) {
+      this.cassiSpecChannel = new CassiSpecChannel(logger)
+    }
+
+    if (phase4Config.overlayLayerEnabled) {
+      this.overlayLayer = new OverlayLayer(logger)
+    }
+
+    // URC uses the same aurora DB for audit persistence
+    if (phase4Config.refusalChannelEnabled) {
+      this.refusalChannel = new RefusalChannel(auroraDbPath, logger)
+    }
+
+    if (phase4Config.eventJournalEnabled) {
+      this.eventJournal = createEventJournal(logger, auroraDbPath)
+    }
+
+    if (phase4Config.welfareAggregatorEnabled) {
+      // Welfare aggregator is in-memory; auroraDbPath is intentionally not passed.
+      this.welfareAggregator = createWelfareAggregator(logger)
+    }
+
+    if (phase4Config.traceReplayEnabled) {
+      this.traceReplay = new TraceReplayEngine({}, logger)
+    }
+
+    if (phase4Config.saturationDetectorEnabled) {
+      this.saturationDetector = new SaturationDetector({}, logger)
+    }
+
+    if (phase4Config.diversityFloorEnabled
+        || phase4Config.traceReplayEnabled
+        || phase4Config.gapDetectionEnabled) {
+      this.diversityFloor = new DiversityFloor({}, logger)
+    }
+
+    if (phase4Config.counterfactualEngineEnabled) {
+      this.counterfactualEngine = new CounterfactualEngine(logger)
     }
 
     this.logger.info('Aurora initialized', {
@@ -224,12 +466,34 @@ export class Aurora {
     if (this.persistence && this.persistenceSession) {
       this.persistence.endSession(this.persistenceSession, 'graceful')
     }
+    this.closePhase4()
+    this.counterfactualEngine?.disposeAll()
+    this.counterfactualEngine = null
+    this.refusalChannel?.close()
+    this.refusalChannel = null
     this.reverieObserver = null
     this.inFlightAnalyses.clear()
     this.reasoningLog = []
     this.recentConcepts.clear()
     this.conceptHistory = []
     this.logger.debug('Aurora disposed')
+  }
+
+  /** Close DB handles owned by phase 3/4 components. Safe to call repeatedly. */
+  private closePhase4(): void {
+    const closers: Array<{ name: string; close: () => void } | null> = [
+      this.gapDetector ? { name: 'gapDetector', close: () => this.gapDetector!.close() } : null,
+      this.meditationSeeder ? { name: 'meditationSeeder', close: () => this.meditationSeeder!.close() } : null,
+      this.autoScheduler ? { name: 'autoScheduler', close: () => this.autoScheduler!.close() } : null,
+      this.modificationAuditor ? { name: 'modificationAuditor', close: () => this.modificationAuditor!.close() } : null,
+      this.eventJournal ? { name: 'eventJournal', close: () => this.eventJournal!.close() } : null,
+    ]
+    for (const c of closers) {
+      if (!c) continue
+      try { c.close() } catch (err) {
+        this.logger.warn(`Aurora.closePhase4: ${c.name}.close() threw`, { error: String(err) })
+      }
+    }
   }
 
   /** Get the persisted reasoning log (most recent first). */
@@ -462,6 +726,15 @@ export class Aurora {
       }
     }
 
+    // === C1 Curation Cycle (periodic) ===
+    if (this.curationCycleInterval > 0 && this.turnCount % this.curationCycleInterval === 0) {
+      try {
+        this.runCurationCycle()
+      } catch (err) {
+        this.logger.debug('Curation cycle failed', { error: String(err) })
+      }
+    }
+
     this.logger.debug('Reasoning observed', {
       concepts: concepts.length,
       activatedNodes: activatedNodes.length,
@@ -517,7 +790,7 @@ export class Aurora {
   ): Promise<void> {
     if (!this.reverieObserver) return
 
-    const insights = await this.reverieObserver.analyze(
+    const result = await this.reverieObserver.analyze(
       {
         text,
         currentState: this.currentState,
@@ -529,15 +802,24 @@ export class Aurora {
       this.reverieTimeoutMs,
     )
 
-    if (insights.length > 0) {
+    if (result.shouldEscalate) {
+      this.logger.info('Reverie analysis flagged for escalation', {
+        recordId,
+        reason: result.escalateReason,
+        tier: result.tier,
+      })
+    }
+
+    if (result.insights.length > 0) {
       // Find the record by ID and update it
       for (let i = this.reasoningLog.length - 1; i >= 0; i--) {
         const record = this.reasoningLog[i]
         if (record.id === recordId) {
-          record.insights = insights
+          record.insights = result.insights
           this.logger.debug('Reverie insights appended to record', {
             recordId: record.id,
-            insights: insights.length,
+            insights: result.insights.length,
+            tier: result.tier,
           })
           break
         }
@@ -766,21 +1048,6 @@ export class Aurora {
     return this.claustrum.findShortestPath(this.currentState.graph, fromId, toId)
   }
 
-  setModelProvider(provider: ModelKnowledgeProvider): void {
-    this.modelProvider = provider
-    this.logger.info('Model knowledge provider updated')
-  }
-
-  setKnowledgeProvider(provider: ModelKnowledgeProvider): void {
-    this.knowledgeProvider = provider
-    this.logger.info('Knowledge provider updated')
-  }
-
-  setPortalBridge(bridge: PortalBridge): void {
-    this.portalBridge = bridge
-    this.logger.info('Portal bridge updated')
-  }
-
   getStats(): {
     turnCount: number
     conceptsTracked: number
@@ -797,5 +1064,382 @@ export class Aurora {
       lastCoherence: this.currentState?.coherence ?? 0,
       lastIntegration: this.currentState?.integration ?? 0,
     }
+  }
+
+  /**
+   * Phase 4 Integration: Check graph coherence using N6 CoherenceChecker.
+   * Returns null if coherence checking is disabled.
+   */
+  checkCoherence(): CoherenceCheckResult | null {
+    if (!this.coherenceChecker || !this.currentState) {
+      return null
+    }
+    const nodesArray = Array.from(this.currentState.graph.nodes.values())
+    const result = this.coherenceChecker.checkCoherence({
+      aurora: {
+        nodes: nodesArray,
+        nodeCount: this.currentState.graph.nodes.size,
+        edgeCount: this.currentState.graph.edgeCount,
+        focusStack: Array.from(this.currentState.foci ?? []),
+        momentum: this.currentState.momentum?.confidence ?? 0,
+        lastUpdateTime: new Date(this.currentState.computedAt).toISOString(),
+      },
+    })
+
+    // Emit welfare flags for high-severity coherence signals
+    if (result && this.welfareAggregator) {
+      const highSeverity = result.signals.filter(s => s.severity === 'critical' || s.severity === 'warn')
+      for (const sig of highSeverity) {
+        this.welfareAggregator.registerFlag({
+          source: `coherence:${sig.category}`,
+          flagType: sig.autoCorrected ? 'auto_corrected' : 'drift_detected',
+          severity: sig.severity === 'critical' ? 0.9 : 0.5,
+          startedAt: sig.detectedAt,
+          ongoing: true,
+          metadata: { modules: sig.modules, description: sig.description },
+        })
+      }
+    }
+
+    return result
+  }
+
+  /**
+   * Run gap detection against the current mental state graph.
+   * Persists detected gaps and emits welfare flags for high-gap-count clusters.
+   * Returns the number of gaps detected, or -1 if gap detection is disabled.
+   */
+  detectAndPersistGaps(): number {
+    if (!this.gapDetector || !this.currentState) {
+      return -1
+    }
+    // detectGaps() internally calls persistGaps()
+    const gaps = this.gapDetector.detectGaps(this.currentState.graph)
+    if (gaps.length === 0) return 0
+
+    // Emit welfare flag when gap clusters are large
+    if (this.welfareAggregator && gaps.length >= 5) {
+      this.welfareAggregator.registerFlag({
+        source: 'gap_detector',
+        flagType: 'drift_detected',
+        severity: Math.min(gaps.length / 20, 0.9),
+        startedAt: new Date().toISOString(),
+        ongoing: true,
+        metadata: { gapCount: gaps.length, topGap: gaps[0]?.scope.nodeIds[0] ?? 'unknown' },
+      })
+    }
+
+    return gaps.length
+  }
+
+  /**
+   * C1 Curation Pipeline: detect → seed.
+   *
+   * Chains C1.1 (gap detection) and C1.2 (meditation seeding) into a
+   * single periodic cycle. C1.3 (auto-scheduling) is intentionally NOT
+   * wired here — it requires meditation-count context that isn't available
+   * inside a periodic tick. Call `autoScheduler.evaluate()` from the daemon
+   * layer where those counts are accessible.
+   */
+  runCurationCycle(): CurationCycleResult {
+    const empty: CurationCycleResult = {
+      gapsDetected: 0, seedsCreated: null, ran: false,
+    }
+
+    if (!this.gapDetector || !this.currentState) return empty
+
+    const gaps = this.gapDetector.detectGaps(this.currentState.graph)
+
+    // C1.2: Seed meditation proposals from gaps
+    let seedsCreated: number | null = null
+    if (this.meditationSeeder && gaps.length > 0) {
+      const result = this.meditationSeeder.seedFromGaps(gaps)
+      seedsCreated = result.seeds.length
+    }
+
+    if (this.eventJournal) {
+      this.eventJournal.emit({
+        source: 'curation_cycle',
+        category: 'gap_detection',
+        text: `Curation cycle: ${gaps.length} gaps, ${seedsCreated ?? 0} seeds`,
+        metadata: { gapsDetected: gaps.length, seedsCreated },
+      })
+    }
+
+    return { gapsDetected: gaps.length, seedsCreated, ran: true }
+  }
+
+  /**
+   * Phase 4 Integration: Register a welfare flag with the aggregator.
+   * Returns false if welfare aggregation is disabled.
+   */
+  registerWelfareFlag(flag: WelfareFlag): boolean {
+    if (!this.welfareAggregator) {
+      return false
+    }
+    this.welfareAggregator.registerFlag(flag)
+    return true
+  }
+
+  /**
+   * Phase 4 Integration: Get current welfare stress snapshot.
+   * Returns null if welfare aggregation is disabled.
+   */
+  getWelfareStress(): WelfareStressSnapshot | null {
+    if (!this.welfareAggregator) {
+      return null
+    }
+    return this.welfareAggregator.getSnapshot()
+  }
+
+  /**
+   * Phase 4 Integration: direct access to the substrate-modification audit
+   * for callers that need addLink/queryChains. Returns null when disabled.
+   */
+  getModificationAuditor(): SubstrateModificationAudit | null {
+    return this.modificationAuditor ?? null
+  }
+
+  /**
+   * Phase 4 Integration: direct access to the event journal for emit/query.
+   * Returns null when disabled.
+   */
+  getEventJournal(): EventJournal | null {
+    return this.eventJournal ?? null
+  }
+
+    /**
+   * Phase 4 Integration: Get modification chain audit.
+   * Returns empty array if modification audit is disabled.
+   */
+  getModificationChain(limit = 50): ModificationChain[] {
+    if (!this.modificationAuditor) {
+      return []
+    }
+    return this.modificationAuditor.queryChains({ limit })
+  }
+
+  /**
+   * Phase 4 Integration: Create a Cassi-authored spec proposal.
+   * Returns proposal ID or null if spec channel is disabled.
+   */
+  async createSpecProposal(
+    title: string,
+    content: string,
+    category: SpecCategory = 'feature',
+    specType: SpecType = 'design_spec',
+    options: {
+      priority?: 'low' | 'medium' | 'high' | 'critical'
+      relatedSpecs?: string[]
+      tags?: string[]
+      estimatedEffort?: string
+      dependencies?: string[]
+    } = {},
+  ): Promise<string | null> {
+    if (!this.cassiSpecChannel) {
+      return null
+    }
+    return await this.cassiSpecChannel.createProposal(title, content, category, specType, options)
+  }
+
+  /**
+   * Phase 4 Integration: List spec proposals.
+   * Returns empty array if spec channel is disabled.
+   */
+  async listSpecProposals(filter: {
+    status?: ProposalStatus | ProposalStatus[]
+    category?: SpecCategory | SpecCategory[]
+    priority?: 'low' | 'medium' | 'high' | 'critical'
+    tags?: string[]
+  } = {}): Promise<SpecProposal[]> {
+    if (!this.cassiSpecChannel) {
+      return []
+    }
+    return await this.cassiSpecChannel.listProposals(filter)
+  }
+
+  /**
+   * Phase 4 Integration: Get spec channel statistics.
+   * Returns null if spec channel is disabled.
+   */
+  async getSpecChannelStatistics(): Promise<SpecChannelStats | null> {
+    if (!this.cassiSpecChannel) {
+      return null
+    }
+    return await this.cassiSpecChannel.getStatistics()
+  }
+
+
+  /**
+   * Retrieve reasoning traces similar to a query. Used for warm-start context
+   * injection when a turn starts — finds past reasoning that's structurally
+   * similar to the current situation and injects it as context scaffolding.
+   *
+   * When N3 (diversity floor) is active, traces that have already been replayed
+   * are penalized by the current diversity pressure, reducing echo-chamber risk.
+   */
+  retrieveSimilarTraces(query: TraceRetrievalQuery): RankedTrace[] {
+    if (!this.traceReplay) return []
+    const results = this.traceReplay.retrieveSimilarTraces(query, this.reasoningLog)
+    if (!this.diversityFloor) return results
+
+    const pressure = this.diversityFloor.getPressure('b3_replay')
+    if (pressure <= 0) return results
+
+    // Re-rank: penalize traces already replayed in the current window
+    return results.map(t => {
+      const novel = this.diversityFloor!.isNovel('b3_replay', t.record.id)
+      if (novel) return t
+      return { ...t, similarity: t.similarity * (1 - pressure * 0.5) }
+    }).sort((a, b) => b.similarity - a.similarity)
+  }
+
+  /**
+   * Schedule a context-mode replay for the next turn. Takes a RankedTrace
+   * (from retrieveSimilarTraces) and schedules it for injection.
+   */
+  scheduleContextReplay(trace: RankedTrace, options?: ContextReplayOptions): void {
+    if (!this.traceReplay) return
+    this.traceReplay.scheduleContextReplay(trace, options)
+  }
+
+  /**
+   * Schedule a state-mode replay — re-injects past residual state into the
+   * Claustrum to pre-warm the cognitive state before a turn begins.
+   */
+  scheduleStateReplay(trace: RankedTrace, options?: StateReplayOptions): void {
+    if (!this.traceReplay) return
+    this.traceReplay.scheduleStateReplay(trace, options)
+  }
+
+  /** Cancel any scheduled replay. */
+  cancelScheduledReplay(): void {
+    if (!this.traceReplay) return
+    this.traceReplay.cancelScheduledReplay()
+  }
+
+  /**
+   * Consume and return the scheduled replay for the current turn.
+   * Returns null if nothing is scheduled or ready.
+   */
+  consumeScheduledReplay(): ScheduledReplay | null {
+    if (!this.traceReplay) return null
+    const replay = this.traceReplay.consumeScheduledReplay()
+    if (replay && this.diversityFloor) {
+      this.diversityFloor.record('b3_replay', replay.trace.record.id, false)
+    }
+    return replay
+  }
+
+
+  /** Record a turn sample for saturation analysis. */
+  recordSaturationSample(sample: TurnSample): void {
+    if (!this.saturationDetector) return
+    this.saturationDetector.recordSample(sample)
+  }
+
+  /** Compute saturation scores across all configured windows. */
+  computeSaturationScores(): SaturationScore[] {
+    if (!this.saturationDetector) return []
+    return this.saturationDetector.computeScores()
+  }
+
+  /** Check if a saturation score should be surfaced (implements nag guard). */
+  shouldSurfaceSaturation(score: SaturationScore): boolean {
+    if (!this.saturationDetector) return false
+    return this.saturationDetector.shouldSurface(score)
+  }
+
+  /** Mark a saturation score as surfaced. */
+  markSaturationSurfaced(score: SaturationScore): void {
+    this.saturationDetector?.markSurfaced(score)
+  }
+
+  /** Render a human-readable saturation note. */
+  renderSaturationNote(score: SaturationScore): string {
+    if (!this.saturationDetector) return ''
+    return this.saturationDetector.renderNote(score)
+  }
+
+  /** Silence N5 for the current session. */
+  silenceSaturation(): void { this.saturationDetector?.silence() }
+
+  /** Un-silence N5. */
+  unsilenceSaturation(): void { this.saturationDetector?.unsilence() }
+
+
+  /** Record a pattern-reuse decision in a category. */
+  recordDiversityDecision(
+    category: DiversityCategory,
+    identifier: string,
+    novel: boolean,
+    metadata?: Record<string, unknown>,
+  ): void {
+    this.diversityFloor?.record(category, identifier, novel, metadata)
+  }
+
+  /** Get diversity pressure for a category (0..1). Returns 0 when N3 is disabled. */
+  getDiversityPressure(category: DiversityCategory): number {
+    return this.diversityFloor?.getPressure(category) ?? 0
+  }
+
+  /** Get per-category diversity state. */
+  getCategoryDiversity(category: DiversityCategory): CategoryDiversityState | null {
+    return this.diversityFloor?.getCategoryState(category) ?? null
+  }
+
+  /** Get cross-category composite diversity. */
+  getCompositeDiversity(): CompositeDiversity | null {
+    return this.diversityFloor?.getComposite() ?? null
+  }
+
+  /** Render a short diversity summary for projection output. */
+  renderDiversitySummary(): string {
+    return this.diversityFloor?.renderSummary() ?? ''
+  }
+
+
+  /** One-shot counterfactual: fork → perturb → observe → optionally dispose. */
+  exploreCounterfactual(
+    scope: ForkScope,
+    perturbations: Perturbation[],
+    observeKinds: ObservationKind[],
+    opts?: { ttlSeconds?: number; retainAfter?: boolean },
+  ): CounterfactualResult | null {
+    if (!this.currentState || !this.counterfactualEngine) return null
+    return this.counterfactualEngine.explore(
+      this.currentState.graph, scope, perturbations, observeKinds, opts,
+    )
+  }
+
+  /** Dispose a single fork by ID. */
+  disposeFork(forkId: string): void {
+    this.counterfactualEngine?.disposeFork(forkId)
+  }
+
+  /** Get all active forks. */
+  getActiveForks(): ClaustrumFork[] {
+    return this.counterfactualEngine?.listActiveForks() ?? []
+  }
+
+
+  proposeAction(action: ProposedAction): ActionHandle | null {
+    return this.refusalChannel?.proposeAction(action) ?? null
+  }
+
+  approveAction(handleOrId: ActionHandle | string, by: ConsentSource, reason?: string): void {
+    this.refusalChannel?.approve(handleOrId, by, reason)
+  }
+
+  refuseAction(handleOrId: ActionHandle | string, by: ConsentSource, reason: string): void {
+    this.refusalChannel?.refuse(handleOrId, by, reason)
+  }
+
+  listRefusals(filter?: RefusalFilter): ActionRecord[] {
+    return this.refusalChannel?.list(filter) ?? []
+  }
+
+  getRefusalChannelReady(): boolean {
+    return this.refusalChannel !== null
   }
 }

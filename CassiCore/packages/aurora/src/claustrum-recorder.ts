@@ -23,6 +23,7 @@ import Database from 'better-sqlite3'
 
 import type { ILogger } from '../../../types/interfaces.js'
 import { getDataDir } from '../../utils/paths.js'
+import type { OverlayPatch, OverlayPatchOp } from './overlay-layer.js'
 
 export interface ClaustrumGateHit {
   readonly layer: number
@@ -62,6 +63,40 @@ export interface LayerFeatureSummary {
   readonly distinctFeatures: number
   /** Total provenance row count for the layer (>= distinctFeatures). */
   readonly totalHits: number
+}
+
+
+export interface PatchAuditEntry {
+  readonly id: string
+  readonly patchId: string
+  readonly op: OverlayPatchOp
+  readonly layer: number
+  readonly tokenId: number
+  readonly label: string | null
+  readonly author: string
+  readonly reason: string
+  readonly createdAt: string
+  readonly conversationId: string | null
+  readonly cycleId: string | null
+  readonly status: 'applied' | 'rolled_back' | 'baked_down'
+  readonly statusChangedAt: string
+}
+
+export interface PatchAuditQuery {
+  readonly author?: string
+  readonly layer?: number
+  readonly op?: OverlayPatchOp
+  readonly status?: PatchAuditEntry['status']
+  readonly since?: string
+  readonly until?: string
+  readonly limit?: number
+}
+
+export interface PatchAuditSummary {
+  readonly totalPatches: number
+  readonly byStatus: Record<string, number>
+  readonly byOp: Record<string, number>
+  readonly byAuthor: Record<string, number>
 }
 
 export class ClaustrumRecorder {
@@ -123,6 +158,31 @@ export class ClaustrumRecorder {
         ON claustrum_recorder(query_concept);
       CREATE INDEX IF NOT EXISTS idx_claustrum_source
         ON claustrum_recorder(source_path);
+
+      CREATE TABLE IF NOT EXISTS overlay_patch_audit (
+        id TEXT PRIMARY KEY,
+        patch_id TEXT NOT NULL,
+        op TEXT NOT NULL,
+        layer INTEGER NOT NULL,
+        token_id INTEGER NOT NULL,
+        label TEXT,
+        author TEXT NOT NULL,
+        reason TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        conversation_id TEXT,
+        cycle_id TEXT,
+        status TEXT NOT NULL DEFAULT 'applied',
+        status_changed_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_overlay_audit_patch
+        ON overlay_patch_audit(patch_id);
+      CREATE INDEX IF NOT EXISTS idx_overlay_audit_status
+        ON overlay_patch_audit(status);
+      CREATE INDEX IF NOT EXISTS idx_overlay_audit_ts
+        ON overlay_patch_audit(created_at);
+      CREATE INDEX IF NOT EXISTS idx_overlay_audit_author
+        ON overlay_patch_audit(author);
     `)
   }
 
@@ -244,6 +304,155 @@ export class ClaustrumRecorder {
       ORDER BY layer ASC
     `
     return this.db.prepare(sql).all(params) as LayerFeatureSummary[]
+  }
+
+
+  private _insertAuditStmt: Database.Statement | null = null
+  private _updateAuditStatusStmt: Database.Statement | null = null
+
+  private get insertAuditStmt(): Database.Statement {
+    if (!this._insertAuditStmt) {
+      this._insertAuditStmt = this.db.prepare(
+        `INSERT INTO overlay_patch_audit
+          (id, patch_id, op, layer, token_id, label, author, reason,
+           created_at, conversation_id, cycle_id, status, status_changed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+    }
+    return this._insertAuditStmt
+  }
+
+  private get updateAuditStatusStmt(): Database.Statement {
+    if (!this._updateAuditStatusStmt) {
+      this._updateAuditStatusStmt = this.db.prepare(
+        `UPDATE overlay_patch_audit SET status = ?, status_changed_at = ? WHERE id = ?`,
+      )
+    }
+    return this._updateAuditStatusStmt
+  }
+
+  /**
+   * Record an overlay patch in the audit trail. Each patch gets one row
+   * with full provenance for attribution queries.
+   */
+  recordPatchAudit(
+    patch: OverlayPatch,
+    author: string,
+    reason: string,
+    meta?: { conversationId?: string; cycleId?: string },
+  ): void {
+    if (this.closed) return
+    const now = new Date().toISOString()
+    const id = `${patch.id}:${patch.layer}:${patch.tokenId}`
+    this.insertAuditStmt.run(
+      id,
+      patch.id,
+      patch.op,
+      patch.layer,
+      patch.tokenId,
+      patch.label ?? null,
+      author,
+      reason,
+      now,
+      meta?.conversationId ?? null,
+      meta?.cycleId ?? null,
+      'applied',
+      now,
+    )
+    this.logger.debug('Recorded patch audit', { patchId: patch.id, op: patch.op, author })
+  }
+
+  /**
+   * Mark all audit entries for a patch as rolled_back.
+   */
+  markPatchRolledBack(patchId: string): number {
+    if (this.closed) return 0
+    const now = new Date().toISOString()
+    const result = this.db.prepare(
+      `UPDATE overlay_patch_audit SET status = 'rolled_back', status_changed_at = ?
+       WHERE patch_id = ? AND status = 'applied'`,
+    ).run(now, patchId)
+    this.logger.debug('Marked patch rolled back', { patchId, count: result.changes })
+    return result.changes
+  }
+
+  /**
+   * Mark all audit entries for a patch as baked_down (materialized into base vindex).
+   */
+  markPatchBakedDown(patchId: string): number {
+    if (this.closed) return 0
+    const now = new Date().toISOString()
+    const result = this.db.prepare(
+      `UPDATE overlay_patch_audit SET status = 'baked_down', status_changed_at = ?
+       WHERE patch_id = ? AND status = 'applied'`,
+    ).run(now, patchId)
+    this.logger.debug('Marked patch baked down', { patchId, count: result.changes })
+    return result.changes
+  }
+
+  /**
+   * Query audit entries with filters. Returns entries ordered by created_at desc.
+   */
+  queryAuditTrail(query: PatchAuditQuery = {}): PatchAuditEntry[] {
+    if (this.closed) return []
+    const conditions: string[] = []
+    const params: Record<string, string | number> = {}
+    if (query.author) { conditions.push('author = @author'); params.author = query.author }
+    if (query.layer !== undefined) { conditions.push('layer = @layer'); params.layer = query.layer }
+    if (query.op) { conditions.push('op = @op'); params.op = query.op }
+    if (query.status) { conditions.push('status = @status'); params.status = query.status }
+    if (query.since) { conditions.push('created_at >= @since'); params.since = query.since }
+    if (query.until) { conditions.push('created_at <= @until'); params.until = query.until }
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+    const limit = query.limit ?? 100
+    const sql = `SELECT * FROM overlay_patch_audit ${where} ORDER BY created_at DESC LIMIT ${limit}`
+    return this.db.prepare(sql).all(params) as PatchAuditEntry[]
+  }
+
+  /**
+   * Get the full audit trail for a specific patch, ordered by layer/token.
+   */
+  getPatchHistory(patchId: string): PatchAuditEntry[] {
+    if (this.closed) return []
+    return this.db.prepare(
+      `SELECT * FROM overlay_patch_audit WHERE patch_id = ? ORDER BY layer ASC, token_id ASC`,
+    ).all(patchId) as PatchAuditEntry[]
+  }
+
+  /**
+   * Summary statistics for the audit trail, optionally filtered.
+   */
+  auditSummary(query: PatchAuditQuery = {}): PatchAuditSummary {
+    if (this.closed) {
+      return { totalPatches: 0, byStatus: {}, byOp: {}, byAuthor: {} }
+    }
+    const conditions: string[] = []
+    const params: Record<string, string | number> = {}
+    if (query.author) { conditions.push('author = @author'); params.author = query.author }
+    if (query.since) { conditions.push('created_at >= @since'); params.since = query.since }
+    if (query.until) { conditions.push('created_at <= @until'); params.until = query.until }
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    const total = this.db.prepare(`SELECT COUNT(*) as c FROM overlay_patch_audit ${where}`).get(params) as { c: number }
+
+    const byStatus = this.db.prepare(
+      `SELECT status, COUNT(*) as c FROM overlay_patch_audit ${where} GROUP BY status`,
+    ).all(params) as Array<{ status: string; c: number }>
+
+    const byOp = this.db.prepare(
+      `SELECT op, COUNT(*) as c FROM overlay_patch_audit ${where} GROUP BY op`,
+    ).all(params) as Array<{ op: string; c: number }>
+
+    const byAuthor = this.db.prepare(
+      `SELECT author, COUNT(*) as c FROM overlay_patch_audit ${where} GROUP BY author`,
+    ).all(params) as Array<{ author: string; c: number }>
+
+    return {
+      totalPatches: total.c,
+      byStatus: Object.fromEntries(byStatus.map(r => [r.status, r.c])),
+      byOp: Object.fromEntries(byOp.map(r => [r.op, r.c])),
+      byAuthor: Object.fromEntries(byAuthor.map(r => [r.author, r.c])),
+    }
   }
 
   close(): void {

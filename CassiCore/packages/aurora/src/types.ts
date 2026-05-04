@@ -155,6 +155,14 @@ export interface ModelEntity {
 
   /** Total relation count. */
   totalRelations: number
+
+  /**
+   * Overlay attribution map: feature key (e.g. "L14:F237") → patchId.
+   * Present only when describe() was called with applyOverlay:true and
+   * overlay-sourced features were found. Consumers can use this to
+   * distinguish base-vindex knowledge from Aurora-authored edits.
+   */
+  overlayAttribution?: Map<string, string>
 }
 
 /**
@@ -435,6 +443,72 @@ export interface AuroraConfig {
 
   /** Reverie integration: timeout for LLM analysis in ms. */
   reverieTimeoutMs: number
+
+  /** Phase 4 (C1): Enable gap detector for self-curing topology. */
+  gapDetectionEnabled: boolean
+
+  /** Phase 4 (C1): Minimum gap persistence threshold before suggesting meditation. */
+  gapPersistenceThreshold: number
+
+  /** Phase 4 (C1): Maximum gap age before marking as stale. */
+  gapStaleAgeHours: number
+
+  /** Phase 4 (C1): Run curation cycle every N turns (0 = disabled, manual only). */
+  curationCycleInterval: number
+
+  /** Phase 4 (N6): Enable cross-module coherence checker. */
+  coherenceCheckEnabled: boolean
+
+  /** Phase 4 (N6): Coherence check interval (turns). */
+  coherenceCheckInterval: number
+
+  /** Phase 4 (SMCA): Enable modification chain auditor. */
+  modificationAuditEnabled: boolean
+
+  /** Phase 4 (SMCA): Max audit trail length. */
+  maxAuditTrailLength: number
+
+  /** Phase 4 (N4): Enable Cassi spec channel. */
+  cassiSpecChannelEnabled: boolean
+
+  /** Phase 4 (C3): Enable overlay layer for bidirectional claustrum surgery. */
+  overlayLayerEnabled: boolean
+
+  /** Phase 4 (C3): Overlay persistence path. */
+  overlayPersistencePath: string
+
+  /** Phase 4 (AEJ): Enable event journal for cross-spec audit unification. */
+  eventJournalEnabled: boolean
+
+  /** Phase 4 (WSA): Enable welfare stress aggregator. */
+  welfareAggregatorEnabled: boolean
+
+  /** Phase 4 (C1.2): Enable meditation seeder for gap-directed meditations. */
+  meditationSeederEnabled: boolean
+
+  /** Phase 4 (C1.3): Enable auto-scheduler for meditation scheduling. */
+  autoSchedulerEnabled: boolean
+
+  /** Phase 3 (B3): Enable reasoning trace replay. */
+  traceReplayEnabled: boolean
+
+  /** Phase 3 (N5): Enable saturation detector. */
+  saturationDetectorEnabled: boolean
+
+  /** Gap 1 (URC): Enable unified refusal channel. */
+  refusalChannelEnabled: boolean
+
+  /** Phase 3 (B7): Enable counterfactual gate exploration. */
+  counterfactualEngineEnabled: boolean
+
+  /** Phase 3 (N3): Enable replay diversity floor (auto-enabled if B3 or C1 is on). */
+  diversityFloorEnabled: boolean
+
+  /** Phase 1 (N1): Enable self-narrative layer (first-person rendering). */
+  narrativeEnabled: boolean
+
+  /** Phase 1 (N1): Maximum characters for narrative section. */
+  narrativeMaxChars: number
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -451,6 +525,38 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   reverieMinTextLength: 200,
   reverieSamplingRate: 3,
   reverieTimeoutMs: 8_000,
+  gapDetectionEnabled: true,
+  gapPersistenceThreshold: 3,
+  gapStaleAgeHours: 24,
+  curationCycleInterval: 30,
+  coherenceCheckEnabled: false,
+  coherenceCheckInterval: 10,
+  modificationAuditEnabled: true,
+  maxAuditTrailLength: 1000,
+  cassiSpecChannelEnabled: true,
+  overlayLayerEnabled: false,
+  overlayPersistencePath: '~/.cassicore/data/aurora-overlays',
+  eventJournalEnabled: true,
+  welfareAggregatorEnabled: true,
+  meditationSeederEnabled: false,
+  autoSchedulerEnabled: false,
+  traceReplayEnabled: true,
+  saturationDetectorEnabled: true,
+  refusalChannelEnabled: true,
+  counterfactualEngineEnabled: true,
+  diversityFloorEnabled: true,
+  narrativeEnabled: true,
+  narrativeMaxChars: 800,
+}
+
+/** Result of a single C1 curation cycle (detect → seed → schedule). */
+export interface CurationCycleResult {
+  /** Gaps detected in this cycle. */
+  gapsDetected: number
+  /** Meditation seeds created (null if seeder disabled). */
+  seedsCreated: number | null
+  /** Whether this cycle ran at all. */
+  ran: boolean
 }
 
 // contributing:ignore — ReverieReasoningObserver types
@@ -483,4 +589,72 @@ export interface ReasoningAnalysisInput {
 
   /** Whether a reasoning shift was detected. */
   shiftDetected: boolean
+}
+
+// contributing:ignore — Phase 4 Cross-Module Coherence types
+
+/** Coherence check result for a module pair. */
+export interface CoherenceReport {
+  moduleA: string
+  moduleB: string
+  coherenceScore: number
+  consistencyIssues: string[]
+  lastChecked: string
+}
+
+// Welfare-related types now in welfare-aggregator.ts
+// Substrate modification types now in modification-chain-audit.ts
+// Event journal types now in event-journal.ts
+
+// contributing:ignore — Phase 4 N4 Cassi Spec Channel types
+
+/** Spec categories for Cassi-authored proposals. */
+export type SpecCategory =
+  | 'feature'
+  | 'refactor'
+  | 'bugfix'
+  | 'welfare'
+  | 'architecture'
+  | 'performance'
+  | 'security'
+  | 'meta'
+
+/** Spec type — the kind of document being proposed. */
+export type SpecType = 'design_spec' | 'feature_request' | 'refactor_plan' | 'bug_report' | 'meta_proposal'
+
+/** Proposal status — lifecycle of a Cassi-authored spec. */
+export type ProposalStatus = 'pending' | 'under_review' | 'accepted' | 'declined' | 'deferred' | 'withdrawn'
+
+/** A complete Cassi-authored spec proposal. */
+export interface SpecProposal {
+  id: string
+  title: string
+  category: SpecCategory
+  specType: SpecType
+  status: ProposalStatus
+  createdAt: string
+  updatedAt: string
+  author: 'cassi' | 'cassi-human'
+  priority: 'low' | 'medium' | 'high' | 'critical'
+  relatedSpecs: string[]
+  tags: string[]
+  estimatedEffort?: string
+  dependencies: string[]
+  deferredUntil?: string
+  reviewedBy?: string
+  reviewComment?: string
+  content: string
+  contentHash: string
+}
+
+/** Statistics for the Cassi Spec Channel. */
+export interface SpecChannelStats {
+  pending: number
+  underReview: number
+  accepted: number
+  declined: number
+  withdrawn: number
+  total: number
+  byCategory: Record<string, number>
+  byPriority: Record<string, number>
 }

@@ -1,19 +1,51 @@
 /**
- * ReverieReasoningObserver — LLM-powered semantic analysis of reasoning text.
+ * ReverieReasoningObserver — multi-tier LLM-powered semantic analysis.
  *
  * Bridges Aurora's fast-path concept extraction with Reverie's slow-path
  * semantic curation. Analyzes reasoning text for contradictions, gaps,
  * assumptions, confidence, task-alignment, and breakthroughs.
  *
- * This is a lightweight observer that uses Reverie's inference infrastructure
- * but is specialized for reasoning analysis (not lamina curation).
+ * Tiers (B5):
+ *   1 — Haiku: cheap, fast, reduced output budget (max 3 insights, 80 chars each)
+ *   2 — Sonnet: thorough analysis, the current default
+ *   3 — Opus: deep investigation for escalated or high-stakes turns
+ *
+ * Escalation rules:
+ *   - If max insight confidence < lowConfidenceThreshold → flag for escalation
+ *   - If a contradiction insight has confidence < threshold → flag for escalation
+ *   - High-stakes turns bypass lower tiers
+ *
+ * See: docs/design/aurora-reverie-escalation-tiers.md
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { MentalState, ReverieInsight, ReverieInferenceProvider, ReasoningAnalysisInput } from './types.js'
 
-const OBSERVER_SYSTEM_PROMPT = `I am observing my own reasoning. I analyze the reasoning text for semantic patterns that regex-based concept extraction cannot detect.
+/** Reverie analysis tier levels. */
+export type ReverieTier = 1 | 2 | 3
 
+export interface ReverieAnalysisResult {
+  insights: ReverieInsight[]
+  tier: ReverieTier
+  shouldEscalate: boolean
+  escalateReason?: string
+  durationMs: number
+}
+
+export interface ReverieEscalationConfig {
+  lowConfidenceThreshold: number
+  contradictionThreshold: number
+  highStakesMinTier: ReverieTier
+}
+
+const TIER_PROMPTS: Record<ReverieTier, string> = {
+  1: `I am performing a quick sanity check on reasoning. Look for obvious contradictions and clear gaps only.
+Return at most 3 insights, each under 80 characters.`,
+  2: `I am observing my own reasoning. I analyze the reasoning text for semantic patterns that regex-based concept extraction cannot detect.`,
+  3: `I am performing a deep investigation of reasoning quality. Examine every claim, trace logical chains, and identify subtle inconsistencies that cheaper analysis might miss. Be thorough.`,
+}
+
+const BASE_PROMPT = `
 What I look for:
 1. Contradictions — does the reasoning conflict with stated decisions or prior conclusions?
 2. Gaps — what important aspects are missing from the analysis?
@@ -40,6 +72,12 @@ Rules:
 - Confidence should reflect how certain I am about the observation, not the reasoning's confidence.
 - Prefer silence over noise. Quality over quantity.`
 
+const DEFAULT_ESCALATION: ReverieEscalationConfig = {
+  lowConfidenceThreshold: 0.4,
+  contradictionThreshold: 0.5,
+  highStakesMinTier: 2,
+}
+
 let ridCounter = 0
 function makeId(): string {
   return `rro_${Date.now().toString(36)}_${(ridCounter++).toString(36)}`
@@ -47,50 +85,79 @@ function makeId(): string {
 
 export class ReverieReasoningObserver {
   private logger: ILogger
+  private escalationConfig: ReverieEscalationConfig
 
   constructor(
     private inference: ReverieInferenceProvider,
     logger: ILogger,
+    escalationConfig?: Partial<ReverieEscalationConfig>,
   ) {
     this.logger = logger.child ? logger.child('reverie-reasoning-observer') : logger
+    this.escalationConfig = { ...DEFAULT_ESCALATION, ...escalationConfig }
   }
 
   /**
-   * Analyze reasoning text for semantic patterns.
-   * Returns insights within the configured timeout.
+   * Analyze reasoning text for semantic patterns at a specific tier.
+   * Returns a structured result with escalation recommendation.
    */
   async analyze(
     input: ReasoningAnalysisInput,
     timeoutMs: number,
-  ): Promise<ReverieInsight[]> {
+    tier: ReverieTier = 2,
+  ): Promise<ReverieAnalysisResult> {
     const start = Date.now()
 
-    // Build context about current mental state
     const stateContext = this.buildStateContext(input)
-
     const userPrompt = this.buildPrompt(input, stateContext)
+    const systemPrompt = TIER_PROMPTS[tier] + BASE_PROMPT
+
+    // Tier-aware token budget
+    const maxTokens = tier === 1 ? 256 : tier === 2 ? 1024 : 2048
 
     let raw = ''
     try {
       const ctrl = new AbortController()
       const timer = setTimeout(() => ctrl.abort(), timeoutMs)
       raw = await this.inference.infer([
-        { role: 'system', content: OBSERVER_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
-      ], { maxTokens: 1024, temperature: 0.3, signal: ctrl.signal })
+      ], { maxTokens, temperature: tier === 3 ? 0.2 : 0.3, signal: ctrl.signal })
       clearTimeout(timer)
     } catch (err) {
-      this.logger.debug('Reverie reasoning analysis failed', { error: String(err), durationMs: Date.now() - start })
-      return []
+      this.logger.debug('Reverie reasoning analysis failed', { error: String(err), durationMs: Date.now() - start, tier })
+      return { insights: [], tier, shouldEscalate: false, durationMs: Date.now() - start }
     }
 
     const insights = this.parseInsights(raw)
+    const durationMs = Date.now() - start
+
+    // B5 §6.1 — confidence-based escalation rule
+    const { shouldEscalate, escalateReason } = this.evaluateEscalation(insights, tier)
+
     this.logger.debug('Reverie reasoning analysis complete', {
       insights: insights.length,
-      durationMs: Date.now() - start,
+      tier,
+      shouldEscalate,
+      durationMs,
     })
 
-    return insights
+    return { insights, tier, shouldEscalate, escalateReason, durationMs }
+  }
+
+  private evaluateEscalation(insights: ReverieInsight[], tier: ReverieTier): { shouldEscalate: boolean; escalateReason?: string } {
+    if (insights.length === 0 || tier >= 3) return { shouldEscalate: false }
+
+    const maxConf = Math.max(...insights.map(i => i.confidence))
+    if (maxConf < this.escalationConfig.lowConfidenceThreshold) {
+      return { shouldEscalate: true, escalateReason: `max confidence ${maxConf.toFixed(2)} < ${this.escalationConfig.lowConfidenceThreshold}` }
+    }
+
+    const contradictions = insights.filter(i => i.kind === 'contradiction')
+    if (contradictions.some(i => i.confidence < this.escalationConfig.contradictionThreshold)) {
+      return { shouldEscalate: true, escalateReason: `uncertain contradiction (confidence < ${this.escalationConfig.contradictionThreshold})` }
+    }
+
+    return { shouldEscalate: false }
   }
 
   private buildStateContext(input: ReasoningAnalysisInput): string {

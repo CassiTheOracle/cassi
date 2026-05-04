@@ -183,6 +183,7 @@ export class AuroraPersistence {
   private readonly db: Database.Database
   private readonly config: Required<AuroraPersistenceConfig>
   private readonly ownsDb: boolean
+  private readonly dbPath?: string
   private closed = false
 
   /** Dirty tracking for periodic checkpoint. */
@@ -205,12 +206,18 @@ export class AuroraPersistence {
       this.db.pragma('busy_timeout = 5000')
       this.db.pragma('synchronous = NORMAL')
       this.ownsDb = true
+      this.dbPath = dbOrPath
     } else {
       this.db = dbOrPath
       this.ownsDb = false
     }
 
     this.applyMigrations()
+  }
+
+  /** Returns the database path if this instance owns the DB, otherwise undefined. */
+  getDbPath(): string | undefined {
+    return this.dbPath
   }
 
   // section
