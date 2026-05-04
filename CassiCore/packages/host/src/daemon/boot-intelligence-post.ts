@@ -43,6 +43,7 @@ export interface IntelligencePostBootDeps {
   toolExecutor: ToolExecutor
   pluginHost?: IPluginHost
   compactionProvider?: IProvider
+  modelPool?: any
   contextDistiller?: ContextDistiller
   handleFactory?: (config: { tier: string; purpose: string; sessionId: string }) => Promise<any>
 }
@@ -330,6 +331,23 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       if (deps.handleFactory && typeof thalamus.setHandleFactory === 'function') {
         thalamus.setHandleFactory(deps.handleFactory)
         logger.info('Thalamus handleFactory wired for background LLM topic archiving')
+
+        // Wire distillation factory — uses kimi-for-coding provider specifically
+        // ModelPool only exposes acquire(), not getProvider(). Probe with a
+        // speculative acquire/release cycle to confirm availability.
+        if (typeof thalamus.setDistillationFactory === 'function' && deps.modelPool) {
+          try {
+            const probe = await deps.modelPool!.acquire('unity', 'background', '__probe__', { provider: 'kimi-coding', model: 'kimi-for-coding' })
+            probe.release()
+            const distillationFactory: typeof deps.handleFactory = async (cfg) => {
+              return deps.modelPool!.acquire('unity', cfg.tier, cfg.sessionId, { provider: 'kimi-coding', model: 'kimi-for-coding' })
+            }
+            thalamus.setDistillationFactory(distillationFactory)
+            logger.info('Thalamus distillationFactory wired (kimi-coding / kimi-for-coding)')
+          } catch {
+            logger.info('Thalamus distillationFactory: kimi-coding provider not available, falling back to handleFactory')
+          }
+        }
       }
 
       // Wire ThalamusStore for drop history persistence (SQLite)
@@ -504,7 +522,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     if (backendType !== 'cassicore') {
       const openCodeConfig = config.get<OpenCodeBackendConfig>('intelligence.executionBackend.opencode', {})
       const executionBackend = createExecutionBackend(backendType, logger.child('execution-backend'), {
-        pipeline,
         sessionPipeline: deps.sessionPipeline,
         openCodeConfig,
       })
