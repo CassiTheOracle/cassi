@@ -32,6 +32,13 @@ export interface ReverieAnalysisResult {
   durationMs: number
 }
 
+export interface EscalationChainResult {
+  finalResult: ReverieAnalysisResult
+  chain: ReverieAnalysisResult[]
+  escalated: boolean
+  totalDurationMs: number
+}
+
 export interface ReverieEscalationConfig {
   lowConfidenceThreshold: number
   contradictionThreshold: number
@@ -142,6 +149,49 @@ export class ReverieReasoningObserver {
     })
 
     return { insights, tier, shouldEscalate, escalateReason, durationMs }
+  }
+
+  /**
+   * Analyze with auto-escalation: cascades from a starting tier up through tier 3,
+   * stopping when the result no longer recommends escalation or tier 3 is reached.
+   * Each tier gets its own full timeoutMs budget.
+   */
+  async analyzeWithEscalation(
+    input: ReasoningAnalysisInput,
+    timeoutMs: number,
+    options?: { startTier?: ReverieTier; isHighStakes?: boolean },
+  ): Promise<EscalationChainResult> {
+    const start = Date.now()
+    const startTier: ReverieTier = options?.isHighStakes
+      ? this.escalationConfig.highStakesMinTier
+      : (options?.startTier ?? 1)
+
+    const chain: ReverieAnalysisResult[] = []
+    let tier: ReverieTier = startTier
+
+    while (true) {
+      const result = await this.analyze(input, timeoutMs, tier)
+      chain.push(result)
+
+      if (!result.shouldEscalate || tier >= 3) break
+      tier = (tier + 1) as ReverieTier
+    }
+
+    const finalResult = chain[chain.length - 1]
+    const escalated = chain.length > 1
+    const totalDurationMs = Date.now() - start
+
+    const tierPath = chain.map(r => r.tier).join('->')
+    this.logger.info('Reverie escalation chain complete', {
+      tierPath,
+      escalated,
+      finalTier: finalResult.tier,
+      finalShouldEscalate: finalResult.shouldEscalate,
+      finalEscalateReason: finalResult.escalateReason,
+      totalDurationMs,
+    })
+
+    return { finalResult, chain, escalated, totalDurationMs }
   }
 
   private evaluateEscalation(insights: ReverieInsight[], tier: ReverieTier): { shouldEscalate: boolean; escalateReason?: string } {
