@@ -144,9 +144,20 @@ function injectIntoSystemPrompt(
 
 function renderReceiptForInjection(receipt: any): string | null {
   if (!receipt || typeof receipt !== "object") return null;
-  if (typeof receipt.dropped !== "number" || receipt.dropped <= 0) return null;
+  const dropped = typeof receipt.dropped === "number" ? receipt.dropped : 0;
+  const protectedSummary = receipt.protected && typeof receipt.protected === "object"
+    ? receipt.protected
+    : null;
+  const protectedTotal = protectedSummary && typeof protectedSummary.total === "number"
+    ? protectedSummary.total
+    : 0;
+  if (dropped <= 0 && protectedTotal <= 0) return null;
   const lines: string[] = [];
-  if (typeof receipt.summary === "string") lines.push(receipt.summary);
+  if (dropped > 0 && typeof receipt.summary === "string" && receipt.summary.length > 0) {
+    lines.push(receipt.summary);
+  } else if (dropped <= 0) {
+    lines.push("thalamus dropped 0 messages this turn");
+  }
 
   // Include tool-chain metadata so the model knows what work was removed
   const tcs = receipt.toolChainSummary;
@@ -181,8 +192,14 @@ function renderReceiptForInjection(receipt: any): string | null {
   const cm = receipt.closestMiss;
   if (cm && typeof cm === "object") {
     lines.push("");
-    const delta = (cm.threshold - cm.luminance).toFixed(3);
-    lines.push(`closest miss: "${cm.snippet}" (luminance ${cm.luminance.toFixed(3)}, needed ${cm.threshold.toFixed(3)}, gap ${delta})`);
+    const lum = typeof cm.luminance === "number" ? cm.luminance.toFixed(3) : "?";
+    const thr = typeof cm.threshold === "number" ? cm.threshold.toFixed(3) : "?";
+    const gap = (typeof cm.luminance === "number" && typeof cm.threshold === "number")
+      ? (cm.threshold - cm.luminance).toFixed(3) : "?";
+    const axes = cm.axes && typeof cm.axes === "object"
+      ? Object.entries(cm.axes).filter(([, v]) => typeof v === "number" && v > 0).map(([k, v]) => `${k}=${(v as number).toFixed(2)}`).join(", ")
+      : "";
+    lines.push(`closest miss: "${cm.snippet}" (luminance ${lum}, needed ${thr}, gap ${gap}${axes ? `, ${axes}` : ""})`);
   }
 
   // Budget utilization — show how tight the curation was
@@ -196,9 +213,13 @@ function renderReceiptForInjection(receipt: any): string | null {
     lines.push("anomalies:");
     for (const a of receipt.anomalies) lines.push(`  - ${a}`);
   }
+  if (protectedSummary && typeof protectedSummary.summary === "string" && protectedSummary.summary.length > 0) {
+    lines.push("");
+    lines.push(`protected: ${protectedSummary.summary}`);
+  }
   lines.push("");
   lines.push(
-    'to inspect or recover dropped context: cassi_context({action: "audit"}) or cassi_context({action: "recall", n: 5})',
+    'to see full context map or inspect drops: cassi_context({action: "map"}), {action: "audit"}, {action: "recall", n: 5}',
   );
   return lines.join("\n");
 }
@@ -478,7 +499,6 @@ async function proxyRequest(
           if (receiptText) {
             injectIntoSystemPrompt(body, receiptText, "thalamus-receipt");
           }
-          // Inject tool repetition warning if detected — breaks agent loops
           if (curated?.meta?.repetitionWarning) {
             injectIntoSystemPrompt(body, curated.meta.repetitionWarning, "thalamus-loop-warning");
           }
@@ -493,6 +513,33 @@ async function proxyRequest(
       }
 
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
+
+      // Dump the exact request payload for debugging 400 errors
+      try {
+        const fs = await import("node:fs/promises");
+        const path = await import("node:path");
+        const dumpDir = path.join(import.meta.dirname ?? ".", "..", "..", "..", "tmp");
+        await fs.mkdir(dumpDir, { recursive: true });
+        const dumpFile = path.join(dumpDir, `proxy-request-${Date.now()}.json`);
+        const dumpBody = { ...body };
+        // Truncate large tool_result contents for readability
+        if (Array.isArray(dumpBody.messages)) {
+          dumpBody.messages = dumpBody.messages.map((m: any) => {
+            if (!Array.isArray(m?.content)) return m;
+            return {
+              ...m,
+              content: m.content.map((b: any) => {
+                if (b?.type === "tool_result" && typeof b.content === "string" && b.content.length > 500) {
+                  return { ...b, content: b.content.slice(0, 500) + `... [truncated ${b.content.length} chars]` };
+                }
+                return b;
+              }),
+            };
+          });
+        }
+        await fs.writeFile(dumpFile, JSON.stringify(dumpBody, null, 2), "utf-8");
+        logger.debug(`Request dumped to ${dumpFile}`);
+      } catch { /* dump failure is non-critical */ }
     } catch {
       // Parse failure — forward unchanged
     }
@@ -583,7 +630,6 @@ async function proxyRequest(
         proxyRes.on("data", (chunk) => {
           res.write(chunk);
           sseBuffer += (chunk as Buffer).toString("utf-8");
-          // Parse SSE events for token usage from message_delta
           const lines = sseBuffer.split("\n");
           sseBuffer = lines.pop() ?? "";
           for (const line of lines) {

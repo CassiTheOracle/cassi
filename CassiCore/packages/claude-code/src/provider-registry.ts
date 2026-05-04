@@ -93,19 +93,21 @@ export function initFromEnv(): void {
   const anthropicKey = process.env.ANTHROPIC_API_KEY ?? "";
   const anthropicUrl = process.env.ANTHROPIC_BASE_URL_DIRECT ?? "https://api.anthropic.com";
 
+  // Always register anthropic — when ANTHROPIC_API_KEY is not set,
+  // the proxy passes through the client's x-api-key header instead.
+  registerProvider({
+    id: "anthropic",
+    baseUrl: anthropicUrl,
+    apiKey: anthropicKey,
+    apiKeyHeader: "x-api-key",
+    anthropicVersion: "2023-06-01",
+    label: "Anthropic Direct (Claude models)",
+    enabled: true,
+  });
   if (anthropicKey) {
-    registerProvider({
-      id: "anthropic",
-      baseUrl: anthropicUrl,
-      apiKey: anthropicKey,
-      apiKeyHeader: "x-api-key",
-      anthropicVersion: "2023-06-01",
-      label: "Anthropic Direct (Claude models)",
-      enabled: true,
-    });
     logger.info(`Provider anthropic registered (${maskKey(anthropicKey)}) → ${anthropicUrl}`);
   } else {
-    logger.info("No ANTHROPIC_API_KEY set — Anthropic direct provider unavailable (z.ai will be used for all models)");
+    logger.info(`Provider anthropic registered (pass-through mode, no static key) → ${anthropicUrl}`);
   }
 
   // If neither provider is configured but CASSICORE_PROXY_UPSTREAM is set,
