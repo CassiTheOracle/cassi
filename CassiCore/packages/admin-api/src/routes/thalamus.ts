@@ -92,6 +92,39 @@ export async function handleThalamusRoutes(
     return true
   }
 
+  // GET /context/map?sessionId=X[&since=N&limit=K] — Per-message visibility roster
+  if (method === 'GET' && pathname === '/context/map') {
+    const sessionId = url.searchParams.get('sessionId')
+    if (!sessionId) {
+      deps.sendJSON(res, 400, { error: 'sessionId query param required' })
+      return true
+    }
+    const sinceRaw = url.searchParams.get('since')
+    const limitRaw = url.searchParams.get('limit')
+    const since = sinceRaw === null ? undefined : parseInt(sinceRaw, 10)
+    const limit = limitRaw === null ? undefined : parseInt(limitRaw, 10)
+    const snapshot = thalamus.getContextMap(sessionId, {
+      since: typeof since === 'number' && !isNaN(since) ? since : undefined,
+      limit: typeof limit === 'number' && !isNaN(limit) && limit > 0 ? limit : undefined,
+    })
+    if (!snapshot) {
+      deps.sendJSON(res, 404, { error: 'No curated state for that session yet' })
+      return true
+    }
+    const rows = snapshot.rows
+    deps.sendJSON(res, 200, {
+      sessionId,
+      pass: snapshot.pass,
+      curatedAt: snapshot.curatedAt,
+      charBudget: snapshot.charBudget,
+      charsUsed: snapshot.charsUsed,
+      annotatedCount: snapshot.annotatedCount,
+      visibleCount: snapshot.visibleCount,
+      rows,
+    })
+    return true
+  }
+
   // POST /context/pin — Pin a message pattern
   if (method === 'POST' && pathname === '/context/pin') {
     const body = await deps.parseBody(req)
@@ -129,6 +162,53 @@ export async function handleThalamusRoutes(
     }
     const results = thalamus.recall(sessionId, query, limit)
     deps.sendJSON(res, 200, { sessionId, query, results })
+    return true
+  }
+
+  // POST /context/drop — mark indices to exclude on next curate
+  if (method === 'POST' && pathname === '/context/drop') {
+    const body = await deps.parseBody(req)
+    const { sessionId, indices } = body
+    if (!sessionId || !Array.isArray(indices)) {
+      deps.sendJSON(res, 400, { error: 'sessionId and indices[] are required' })
+      return true
+    }
+    const numeric = indices.filter((n: any) => Number.isInteger(n))
+    const result = thalamus.markDrop(sessionId, numeric)
+    deps.sendJSON(res, 200, { sessionId, ...result })
+    return true
+  }
+
+  // POST /context/collapse — replace a message's content with a summary on next curate
+  if (method === 'POST' && pathname === '/context/collapse') {
+    const body = await deps.parseBody(req)
+    const { sessionId, index, summary } = body
+    if (!sessionId || !Number.isInteger(index) || typeof summary !== 'string') {
+      deps.sendJSON(res, 400, { error: 'sessionId, integer index, and summary string required' })
+      return true
+    }
+    const result = thalamus.markCollapse(sessionId, index, summary)
+    deps.sendJSON(res, 200, { sessionId, index, ...result })
+    return true
+  }
+
+  // DELETE /context/directives?sessionId=X — clear all drop+collapse directives
+  if (method === 'DELETE' && pathname === '/context/directives') {
+    const sessionId = url.searchParams.get('sessionId')
+    if (!sessionId) {
+      deps.sendJSON(res, 400, { error: 'sessionId query param required' })
+      return true
+    }
+    thalamus.clearDirectives(sessionId)
+    deps.sendJSON(res, 200, { cleared: true, sessionId })
+    return true
+  }
+
+  // GET /context/active — most-recently-curated session id
+  if (method === 'GET' && pathname === '/context/active') {
+    const windowMs = parseInt(url.searchParams.get('windowMs') ?? '300000', 10)
+    const sessionId = thalamus.getActiveSessionId(windowMs)
+    deps.sendJSON(res, 200, { sessionId })
     return true
   }
 

@@ -16,14 +16,16 @@ const CATWALK_ID_MAP: Record<string, string> = {
   'github-copilot/gpt-4o': 'openai:gpt-4o',
   'github-copilot/gpt-4o-mini': 'openai:gpt-4o-mini',
   'github-copilot/gpt-5-mini': 'openai:gpt-5-mini',
+  'github-copilot/claude-sonnet-4.7': 'anthropic:claude-sonnet-4-7',
   'github-copilot/claude-sonnet-4.6': 'anthropic:claude-sonnet-4-6',
   'github-copilot/claude-sonnet-4.5': 'anthropic:claude-sonnet-4-5',
+  'github-copilot/claude-opus-4.7': 'anthropic:claude-opus-4-7',
   'github-copilot/claude-opus-4.6': 'anthropic:claude-opus-4-6',
   'github-copilot/claude-haiku-4.5': 'anthropic:claude-haiku-4-5',
   'github-copilot/gemini-3-flash-preview': 'google:gemini-3-flash-preview',
   'github-copilot/gemini-3-pro-preview': 'google:gemini-3-pro-preview',
-  'claude-code/claude-sonnet-4-6': 'anthropic:claude-sonnet-4-6',
-  'claude-code/claude-opus-4-6': 'anthropic:claude-opus-4-6',
+  'claude-code/claude-sonnet-4-7': 'anthropic:claude-sonnet-4-7',
+  'claude-code/claude-opus-4-7': 'anthropic:claude-opus-4-7',
   'claude-code/claude-haiku-4-5': 'anthropic:claude-haiku-4-5',
 }
 
