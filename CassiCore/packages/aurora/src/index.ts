@@ -71,6 +71,9 @@ import { DiversityFloor } from './diversity-floor.js'
 import type { DiversityFloorConfig, DiversityCategory, CategoryDiversityState, CompositeDiversity } from './diversity-floor.js'
 import { RefusalChannel } from './refusal-channel.js'
 import type { ActionKind, ActionHandle, ActionResolution, ActionRecord, RefusalChannelConfig, ProposedAction, RefusalFilter, ConsentSource } from './refusal-channel.js'
+import type { OverlayPatch, OverlayApplyResult, OverlayStats } from './overlay-layer.js'
+import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
+import type { SelfNarrative } from './self-narrative-renderer.js'
 
 export { Claustrum, ObserverInsightCollector } from './claustrum.js'
 export { StateProjector } from './state-projector.js'
@@ -87,6 +90,8 @@ export { WelfareAggregator, createWelfareAggregator } from './welfare-aggregator
 export { TraceReplayEngine } from './trace-replay.js'
 export { SaturationDetector } from './saturation-detector.js'
 export { DiversityFloor } from './diversity-floor.js'
+export { SelfNarrativeRenderer } from './self-narrative-renderer.js'
+export type { SelfNarrative } from './self-narrative-renderer.js'
 export { RefusalChannel } from './refusal-channel.js'
 export { CounterfactualEngine } from './counterfactual-engine.js'
 export type { SessionHandle, SessionMetadata, AuroraPersistenceConfig } from './persistence.js'
@@ -287,6 +292,7 @@ export class Aurora {
   private saturationDetector: SaturationDetector | null = null
   private diversityFloor: DiversityFloor | null = null
   private counterfactualEngine: CounterfactualEngine | null = null
+  private selfNarrativeRenderer: SelfNarrativeRenderer | null = null
 
   constructor(
     private cortex: Cortex,
@@ -394,6 +400,10 @@ export class Aurora {
 
     if (phase4Config.counterfactualEngineEnabled) {
       this.counterfactualEngine = new CounterfactualEngine(logger)
+    }
+
+    if (phase4Config.narrativeEnabled) {
+      this.selfNarrativeRenderer = new SelfNarrativeRenderer(logger, { ...AURORA_DEFAULTS, ...config })
     }
 
     this.logger.info('Aurora initialized', {
@@ -587,11 +597,20 @@ export class Aurora {
       return this.lastSerialization
     }
 
-    const text = this.projector.serializeForContext(target)
+    const factText = this.projector.serializeForContext(target)
+    const narrative = this.selfNarrativeRenderer?.render(target) ?? null
+    const text = narrative ? `${narrative.text}\n\n${factText}` : factText
+
     this.lastFingerprint = fingerprint
     this.lastSerialization = text
 
     return text
+  }
+
+  renderSelfNarrative(state?: MentalState): SelfNarrative | null {
+    const target = state ?? this.currentState
+    if (!target || !this.selfNarrativeRenderer) return null
+    return this.selfNarrativeRenderer.render(target)
   }
 
   private topFoci(n: number): string[] {
@@ -1269,6 +1288,38 @@ export class Aurora {
     return await this.cassiSpecChannel.getStatistics()
   }
 
+  applyOverlay(patch: OverlayPatch): OverlayApplyResult | null {
+    return this.overlayLayer?.apply(patch) ?? null
+  }
+
+  rollbackOverlay(patchId: string): boolean {
+    return this.overlayLayer?.rollback(patchId) ?? false
+  }
+
+  reactivateOverlay(patchId: string): boolean {
+    return this.overlayLayer?.reactivate(patchId) ?? false
+  }
+
+  getOverlayPatch(patchId: string): OverlayPatch | null {
+    return this.overlayLayer?.getPatch(patchId) ?? null
+  }
+
+  getActiveOverlayPatches(): OverlayPatch[] {
+    return this.overlayLayer?.getActivePatches() ?? []
+  }
+
+  getOverlayStats(): OverlayStats | null {
+    return this.overlayLayer?.getStats() ?? null
+  }
+
+  hasOverlayLayerEdits(layer: number): boolean {
+    return this.overlayLayer?.hasLayerEdits(layer) ?? false
+  }
+
+  getOverlayLayerFeatures(layer: number): number[] {
+    return this.overlayLayer?.getLayerFeatures(layer) ?? []
+  }
+
 
   /**
    * Retrieve reasoning traces similar to a query. Used for warm-start context
@@ -1435,8 +1486,29 @@ export class Aurora {
     this.refusalChannel?.refuse(handleOrId, by, reason)
   }
 
+  deferAction(handleOrId: ActionHandle | string, by: ConsentSource, reason: string, untilSecondsLater: number): void {
+    this.refusalChannel?.defer(handleOrId, by, reason, untilSecondsLater)
+  }
+
+  async awaitAction(handleOrId: ActionHandle | string): Promise<ActionResolution | null> {
+    if (!this.refusalChannel) return null
+    return await this.refusalChannel.await(handleOrId)
+  }
+
   listRefusals(filter?: RefusalFilter): ActionRecord[] {
     return this.refusalChannel?.list(filter) ?? []
+  }
+
+  getAction(handleOrId: ActionHandle | string): ActionRecord | null {
+    return this.refusalChannel?.get(handleOrId) ?? null
+  }
+
+  getPendingActions(): ActionRecord[] {
+    return this.refusalChannel?.getPending() ?? []
+  }
+
+  getRefusalStatistics(): { total: number; byStatus: Record<string, number>; byKind: Record<string, number> } | null {
+    return this.refusalChannel?.getStatistics() ?? null
   }
 
   getRefusalChannelReady(): boolean {

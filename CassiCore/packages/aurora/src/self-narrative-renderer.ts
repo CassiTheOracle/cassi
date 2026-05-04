@@ -35,10 +35,8 @@ function classifyAffect(valence: number, arousal: number): AffectQuadrant {
 }
 
 function momentumLabel(momentum: MentalState['momentum']): string {
-  if (momentum.shifts.length === 0) return 'steady'
-  const latest = momentum.shifts[momentum.shifts.length - 1]
-  if (latest.magnitude > 0.6) return 'shifting'
-  if (latest.magnitude > 0.3) return 'drifting'
+  if (momentum.topicShift && momentum.novelty > 0.6) return 'shifting'
+  if (momentum.novelty > 0.3) return 'drifting'
   return 'steady'
 }
 
@@ -82,13 +80,13 @@ const TEMPLATES = {
     if (trending.length === 0) {
       return {
         text: `My thinking is ${label}.`,
-        sourceFacts: ['momentum.shifts'],
+        sourceFacts: ['momentum.topicShift'],
       }
     }
     const joined = trending.join(', ')
     return {
       text: `My thinking is ${label}, gravitating toward ${joined}.`,
-      sourceFacts: ['momentum.trendingConcepts', 'momentum.shifts'],
+      sourceFacts: ['momentum.trendingConcepts', 'momentum.topicShift'],
     }
   },
 
