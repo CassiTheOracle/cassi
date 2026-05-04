@@ -58,8 +58,10 @@ import type { EventCategory, EventReference, QueryOptions, AuroraEventInput } fr
 import { CassiSpecChannel } from './cassi-spec-channel.js'
 import type { AuroraPersistence, SessionHandle } from './persistence.js'
 import { GapDetector } from './gap-detector.js'
+import type { GapCategory as GapCategoryT, GapStatus as GapStatusT } from './gap-detector.js'
 import { MeditationSeeder } from './meditation-seeder.js'
 import { AutoScheduler } from './auto-scheduler.js'
+import type { SchedulingResult } from './auto-scheduler.js'
 import { OverlayLayer } from './overlay-layer.js'
 import { TraceReplayEngine } from './trace-replay.js'
 import type { TraceReplayConfig, RankedTrace, ScheduledReplay, TraceRetrievalQuery, ContextReplayOptions, StateReplayOptions } from './trace-replay-types.js'
@@ -1186,6 +1188,80 @@ export class Aurora {
     }
 
     return { gapsDetected: gaps.length, seedsCreated, ran: true }
+  }
+
+  /**
+   * C1.3 Auto-scheduling step.
+   *
+   * Loads pending meditation seeds, joins each with its source GapCandidate
+   * to assemble the (category, priority, status) metadata the scheduler needs,
+   * then calls `AutoScheduler.evaluate()` with the daemon-provided meditation
+   * counts. Seeds whose decision is `auto_schedule` are marked as scheduled on
+   * the seeder so the same seed is not re-evaluated on the next tick.
+   *
+   * Returns `[]` when any of the three Phase-4 modules are disabled. Callers
+   * (typically the daemon layer that has total/directed counts in scope) can
+   * forward the SchedulingResult[] to the meditation orchestrator.
+   */
+  evaluateAutoScheduling(
+    totalMeditationCount: number,
+    directedMeditationCount: number,
+  ): SchedulingResult[] {
+    if (!this.meditationSeeder || !this.gapDetector || !this.autoScheduler) {
+      return []
+    }
+
+    const seeds = this.meditationSeeder.getPendingSeeds()
+    if (seeds.length === 0) {
+      this.logger.debug('[Aurora] evaluateAutoScheduling: no pending seeds', {
+        totalMeditationCount,
+        directedMeditationCount,
+      })
+      return []
+    }
+
+    const gapMeta = new Map<string, { category: GapCategoryT; priority: number; status: GapStatusT }>()
+    for (const seed of seeds) {
+      const gap = this.gapDetector.getGap(seed.gapId)
+      if (!gap) continue
+      gapMeta.set(seed.id, {
+        category: gap.category,
+        priority: gap.priority,
+        status: gap.status,
+      })
+    }
+
+    const results = this.autoScheduler.evaluate(
+      seeds,
+      gapMeta,
+      totalMeditationCount,
+      directedMeditationCount,
+    )
+
+    let scheduled = 0
+    let flagged = 0
+    let deferred = 0
+    for (const r of results) {
+      if (r.decision === 'auto_schedule') {
+        this.meditationSeeder.markScheduled(r.seedId)
+        scheduled++
+      } else if (r.decision === 'flag_for_review') {
+        flagged++
+      } else if (r.decision === 'defer') {
+        deferred++
+      }
+    }
+
+    this.logger.debug('[Aurora] evaluateAutoScheduling complete', {
+      totalMeditationCount,
+      directedMeditationCount,
+      seedsConsidered: seeds.length,
+      scheduled,
+      flagged,
+      deferred,
+    })
+
+    return results
   }
 
   /**
