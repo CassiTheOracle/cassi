@@ -285,7 +285,7 @@ export class RadianceLoop {
             : obs.observationType === 'self-reference' ? 'observation'
             : 'insight',
           content: obs.narrative,
-          luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, composite: 0 },
+          luminance: { novelty: 0, urgency: 0, relevance: 0, sourceCredibility: 0, cognitiveResonance: 0, strategicImportance: 0, composite: 0 },
           createdAt: Date.now(),
           metadata: {
             observationType: obs.observationType,

@@ -18,8 +18,15 @@ import type {
   SystemLuminanceScore,
   SystemLuminanceWeights,
   WorkspaceSlot,
+  TraitVector,
 } from './cognitive-signal.js'
-import { BASE_URGENCY, DEFAULT_LUMINANCE_WEIGHTS } from './cognitive-signal.js'
+import {
+  BASE_URGENCY,
+  DEFAULT_LUMINANCE_WEIGHTS,
+  UNITY_PRESET,
+  TRAIT_AXES,
+  traitDistance,
+} from './cognitive-signal.js'
 import type { WorkspaceMemory } from './workspace-memory.js'
 
 
@@ -67,9 +74,18 @@ export function keywordOverlap(a: Set<string>, b: Set<string>): number {
 
 export class SystemLuminanceScorer {
   private weights: SystemLuminanceWeights
+  private workspaceTraitVector: TraitVector
 
   constructor(weights?: SystemLuminanceWeights) {
     this.weights = weights ?? DEFAULT_LUMINANCE_WEIGHTS
+    this.workspaceTraitVector = UNITY_PRESET
+  }
+
+  /**
+   * Update the workspace trait vector for trait-aware credibility scoring (C-POLY-1).
+   */
+  updateWorkspaceTraitVector(traitVector: TraitVector): void {
+    this.workspaceTraitVector = traitVector
   }
 
 
@@ -90,7 +106,14 @@ export class SystemLuminanceScorer {
     const novelty = this.scoreNovelty(signal, currentSlots)
     const urgency = this.scoreUrgency(signal)
     const relevance = this.scoreRelevance(signal, activeSessionCount)
-    const sourceCredibility = memory.getCredibility(signal.source)
+
+    // C-POLY-1: Trait-aware credibility scoring
+    let sourceCredibility = memory.getCredibility(signal.source)
+    const publisherTraits = signal.metadata?.publisherTraitVector as TraitVector | undefined
+    if (publisherTraits) {
+      const traitMultiplier = this.computeTraitMultiplier(publisherTraits)
+      sourceCredibility *= traitMultiplier
+    }
 
     const composite = Math.max(0, Math.min(1,
       novelty * this.weights.novelty +
@@ -100,6 +123,16 @@ export class SystemLuminanceScorer {
     ))
 
     return { novelty, urgency, relevance, sourceCredibility, cognitiveResonance: 0, strategicImportance: 0, composite }
+  }
+
+  /**
+   * Compute trait distance and return credibility multiplier (C-POLY-1).
+   * Aligned traits get a boost (up to 1.20x), divergent traits get a penalty (down to 0.80x).
+   */
+  private computeTraitMultiplier(signalTraits: TraitVector): number {
+    const distance = traitDistance(this.workspaceTraitVector, signalTraits)
+    // Map 0-1 distance to 1.20-0.80 multiplier
+    return 1.20 - distance * 0.40
   }
 
 

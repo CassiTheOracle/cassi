@@ -197,7 +197,7 @@ export const DEFAULT_RADIANCE_LOOP_CONFIG: RadianceLoopConfig = {
   responseWindowMs: 5_000,
   warmupCycles: 10,
   learningRate: 0.1,
-  observerModelTier: 'background',
+  observerModelTier: 'qwenMax',
   maxObserverIterations: 3,
   postToMonitor: true,
   submitToWorkspace: true,

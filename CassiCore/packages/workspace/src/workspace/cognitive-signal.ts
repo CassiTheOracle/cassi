@@ -18,6 +18,113 @@
 
 
 /**
+ * Trait vector for polyphonic posture space (C-POLY-1).
+ * Eight axes representing cognitive disposition.
+ */
+export interface TraitVector {
+  /** Structural: emphasis on organization, architecture, modularity */
+  structural: number
+  /** Pragmatic: emphasis on code that works, tests pass, ship it */
+  pragmatic: number
+  /** Generative: emphasis on exploration, alternatives, creativity */
+  generative: number
+  /** Analytical: emphasis on rigor, correctness, edge cases */
+  analytical: number
+  /** Collaborative: emphasis on Yang/Yin dialectic, synthesis */
+  collaborative: number
+  /** Adaptive: emphasis on flexibility, iteration, learning */
+  adaptive: number
+  /** Decisive: emphasis on choosing, committing, forward progress */
+  decisive: number
+  /** Focused: emphasis on depth, thoroughness, completeness */
+  focused: number
+}
+
+/**
+ * Array of trait axis names for iteration (C-POLY-1).
+ */
+export const TRAIT_AXES: (keyof TraitVector)[] = [
+  'structural',
+  'pragmatic',
+  'generative',
+  'analytical',
+  'collaborative',
+  'adaptive',
+  'decisive',
+  'focused',
+]
+
+
+/**
+ * Default trait vector for general-purpose cognitive work.
+ * Balanced across all axes — the "unity" posture equivalent.
+ */
+export const UNITY_PRESET: TraitVector = {
+  structural: 0.70,
+  pragmatic: 0.80,
+  generative: 0.60,
+  analytical: 0.75,
+  collaborative: 0.70,
+  adaptive: 0.70,
+  decisive: 0.60,
+  focused: 0.70,
+}
+
+
+/**
+ * Yang posture preset — high structural, analytical, decisive.
+ * Emphasis on code quality, correctness, and forward progress.
+ */
+export const YANG_PRESET: TraitVector = {
+  structural: 0.90,
+  pragmatic: 0.80,
+  generative: 0.40,
+  analytical: 0.90,
+  collaborative: 0.60,
+  adaptive: 0.50,
+  decisive: 0.85,
+  focused: 0.85,
+}
+
+
+/**
+ * Yin posture preset — high generative, adaptive, collaborative.
+ * Emphasis on exploration, alternatives, and synthesis.
+ */
+export const YIN_PRESET: TraitVector = {
+  structural: 0.50,
+  pragmatic: 0.70,
+  generative: 0.90,
+  analytical: 0.60,
+  collaborative: 0.90,
+  adaptive: 0.90,
+  decisive: 0.40,
+  focused: 0.60,
+}
+
+
+/**
+ * Compute Euclidean distance between two trait vectors (C-POLY-1).
+ *
+ * Distance range is [0, sqrt(8)] ≈ [0, 2.83].
+ * Used for trait-aware credibility scoring — smaller distance = higher credibility.
+ */
+export function traitDistance(a: TraitVector, b: TraitVector): number {
+  const sq = (x: number) => x * x
+  return Math.sqrt(
+    sq(a.structural - b.structural) +
+    sq(a.pragmatic - b.pragmatic) +
+    sq(a.generative - b.generative) +
+    sq(a.analytical - b.analytical) +
+    sq(a.collaborative - b.collaborative) +
+    sq(a.adaptive - b.adaptive) +
+    sq(a.decisive - b.decisive) +
+    sq(a.focused - b.focused)
+  )
+}
+
+
+/**
  * Signal categories produced by cognitive modules.
  * Maps to the functional role of the signal in the workspace.
  */
@@ -119,6 +226,12 @@ export interface CognitiveSignal {
   urgencyHint?: number
   /** Module-specific metadata for downstream tracing */
   metadata?: Record<string, unknown>
+  /**
+   * Trait vector of the signal's publisher (C-POLY-1).
+   * Used for trait-aware credibility scoring — signals from traits
+   * aligned with workspace context get a credibility boost.
+   */
+  publisherTraitVector?: TraitVector
 }
 
 
@@ -168,6 +281,8 @@ export interface GlobalWorkspaceConfig {
   feedbackEnabled: boolean
   /** Inject attention schema into LLM context. Default: false */
   injectAttentionSchema: boolean
+  /** C-POLY-1: Workspace trait vector for trait-aware credibility scoring. Default: UNITY_PRESET */
+  workspaceTraitVector?: TraitVector
 }
 
 export const DEFAULT_WORKSPACE_CONFIG: GlobalWorkspaceConfig = {

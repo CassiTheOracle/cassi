@@ -26,8 +26,9 @@ import type {
   CognitiveSignal,
   WorkspaceSlot,
   GlobalWorkspaceConfig,
+  TraitVector,
 } from './cognitive-signal.js'
-import { DEFAULT_WORKSPACE_CONFIG } from './cognitive-signal.js'
+import { DEFAULT_WORKSPACE_CONFIG, UNITY_PRESET } from './cognitive-signal.js'
 import { SystemLuminanceScorer } from './luminance.js'
 import { CoalitionDetector } from './coalition.js'
 import type { Coalition } from './coalition.js'
@@ -59,6 +60,9 @@ export class GlobalWorkspace {
   private feedback: FeedbackTracker
   private logger: ILogger
   private eventBus?: IEventBus
+
+  // C-POLY-1: Workspace trait vector for trait-aware credibility scoring
+  private workspaceTraitVector: TraitVector
 
   // Pending signals below ignition threshold (for coalition detection)
   private pendingSignals: CognitiveSignal[] = []
@@ -95,7 +99,8 @@ export class GlobalWorkspace {
   constructor(logger: ILogger, config?: Partial<GlobalWorkspaceConfig>) {
     this.config = { ...DEFAULT_WORKSPACE_CONFIG, ...config }
     this.logger = logger.child ? logger.child('workspace') : logger
-    this.scorer = new SystemLuminanceScorer(this.config.weights)
+    this.workspaceTraitVector = this.config.workspaceTraitVector ?? UNITY_PRESET
+    this.scorer = new SystemLuminanceScorer(this.config.weights, this.workspaceTraitVector)
     this.coalitions = new CoalitionDetector()
     this.memory = new WorkspaceMemory()
     this.feedback = new FeedbackTracker(this.memory)
@@ -112,6 +117,7 @@ export class GlobalWorkspace {
     this.logger.info('[Workspace] Initialized', {
       slots: this.config.slots,
       threshold: this.config.ignitionThreshold,
+      workspaceTraitVector: this.workspaceTraitVector,
     })
   }
 
@@ -124,8 +130,17 @@ export class GlobalWorkspace {
     this.activeSessionCount = Math.max(1, count)
   }
 
+  /**
+   * Update the workspace trait vector for trait-aware credibility scoring (C-POLY-1).
+   * Signals from traits aligned with workspace context get a credibility boost.
+   */
+  setTraitVector(traitVector: TraitVector): void {
+    this.workspaceTraitVector = traitVector
+    this.scorer.updateWorkspaceTraitVector(traitVector)
+    this.logger.debug('[Workspace] Trait vector updated', { traitVector })
+  }
 
-  // ── Signal Submission ───────────────────────────────────────────
+
 
   /**
    * Submit a signal for workspace competition.
@@ -243,7 +258,6 @@ export class GlobalWorkspace {
   }
 
 
-  // ── Assembly (for Turn Pipeline) ────────────────────────────────
 
   /**
    * Assemble workspace content for injection into the LLM context.
@@ -292,7 +306,6 @@ export class GlobalWorkspace {
   }
 
 
-  // ── Broadcasting ────────────────────────────────────────────────
 
   /**
    * Broadcast current workspace state to all subscribers.
@@ -444,7 +457,6 @@ export class GlobalWorkspace {
   }
 
 
-  // ── Feedback ────────────────────────────────────────────────────
 
   /**
    * Process turn-end feedback: detect which signals were incorporated.
@@ -456,7 +468,6 @@ export class GlobalWorkspace {
   }
 
 
-  // ── Tick (Per-Turn Maintenance) ─────────────────────────────────
 
   /**
    * Run per-turn maintenance: decay occupancy, adapt threshold, clean up.
@@ -529,7 +540,6 @@ export class GlobalWorkspace {
   }
 
 
-  // ── Introspection ───────────────────────────────────────────────
 
   /**
    * Get the current workspace state as a snapshot.
@@ -615,7 +625,6 @@ export class GlobalWorkspace {
   }
 
 
-  // ── Event Emission ──────────────────────────────────────────────
 
   private emitIgnition(signal: CognitiveSignal): void {
     if (!this.eventBus) return
