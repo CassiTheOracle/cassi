@@ -20,6 +20,12 @@
 
 import type { HelixPosture } from './types.js'
 import { composeSystemPrompt } from '../shared/posture-store.js'
+import { UNITY_PRESET, YANG_PRESET, YIN_PRESET, traitDistance } from './types.js'
+
+
+// C-POLY-1: Re-export trait vector types for downstream use
+export type { TraitVector } from './types.js'
+export { UNITY_PRESET, YANG_PRESET, YIN_PRESET, traitDistance } from './types.js'
 
 
 export const UNITY_POSTURE: HelixPosture = {
@@ -30,6 +36,7 @@ export const UNITY_POSTURE: HelixPosture = {
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('unity', 'helix'),
   pinealScope: 'helix:unity',
+  traitVector: UNITY_PRESET,
 }
 
 
@@ -41,6 +48,7 @@ export const YANG_POSTURE: HelixPosture = {
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('yang', 'helix'),
   pinealScope: 'helix:yang',
+  traitVector: YANG_PRESET,
 }
 
 
@@ -52,6 +60,7 @@ export const YIN_POSTURE: HelixPosture = {
   maxIterations: 500,
   systemPrompt: composeSystemPrompt('yin', 'helix'),
   pinealScope: 'helix:yin',
+  traitVector: YIN_PRESET,
 }
 
 

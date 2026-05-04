@@ -132,6 +132,12 @@ export interface HelixPipelineOpts {
   /** Thalamus for context curation during long-running sessions */
   thalamus?: import('../thalamus/index.js').ThalamusModule
 
+  /** Cross-session topic index for sharing Thalamus insights across sessions */
+  crossSessionIndex?: import('../thalamus/cross-session-index.js').CrossSessionTopicIndex
+
+  /** Constellation ID this Helix session belongs to (for cross-session scoping) */
+  constellationId?: string
+
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: import('./work-stream.js').UnityStatusThresholds
 
@@ -351,6 +357,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       eventBus: opts.eventBus,
       llm: opts.synapseDeps.llm,
       memory: opts.mnemicField,
+      crossSessionIndex: opts.crossSessionIndex,
       config: opts.synapseDeps.config,
     })
     helixSynapse.start()
@@ -486,6 +493,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     helixSynapse,
     contextChunkIndex: unityChunkIndex,
     thalamus: opts.thalamus,
+    crossSessionIndex: opts.crossSessionIndex,
     postureModule: unityPostureModule,
     telemetry: helixTelemetry,
     aurora: conductor?.aurora,
@@ -506,6 +514,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     helixSynapse,
     contextChunkIndex: yangChunkIndex,
     thalamus: opts.thalamus,
+    crossSessionIndex: opts.crossSessionIndex,
     postureModule: yangPostureModule,
     telemetry: helixTelemetry,
     aurora: conductor?.aurora,
@@ -526,6 +535,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     helixSynapse,
     contextChunkIndex: yinChunkIndex,
     thalamus: opts.thalamus,
+    crossSessionIndex: opts.crossSessionIndex,
     postureModule: yinPostureModule,
     telemetry: helixTelemetry,
     aurora: conductor?.aurora,

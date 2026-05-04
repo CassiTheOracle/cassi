@@ -1,6 +1,7 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { ContentBlock, Message } from '../../../types/runtime.js'
 import type { HelixRole } from './types.js'
+import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from '../constellation/observer-memory-bridge.js'
 import type { ObserverMemorySource } from '../constellation/observer-memory-bridge.js'
 import { BroadcastDedupe, normalizeForDedupe } from '../constellation/observer-broadcast-dedupe.js'
@@ -112,6 +113,7 @@ export interface HelixSynapseOpts {
   llm: HelixSynapseLLM
   eventBus?: IEventBus
   memory?: ObserverMemorySource
+  crossSessionIndex?: CrossSessionTopicIndex
   config?: Partial<HelixSynapseConfig>
 }
 
@@ -208,6 +210,7 @@ export class HelixSynapse {
   private eventBus?: IEventBus
   private config: HelixSynapseConfig
   private memory?: ObserverMemoryBridge
+  private crossSessionIndex?: CrossSessionTopicIndex
   private streams = new Map<string, PostureContextStream>()
   private lastObservedSeq = new Map<string, number>()
   private externalObservedSeq = new Map<string, Map<string, number>>()
@@ -227,6 +230,7 @@ export class HelixSynapse {
     this.llm = opts.llm
     this.eventBus = opts.eventBus
     this.config = { ...DEFAULT_HELIX_SYNAPSE_CONFIG, ...opts.config }
+    this.crossSessionIndex = opts.crossSessionIndex
     this.memory = opts.memory
       ? new ObserverMemoryBridge({ source: opts.memory, logger: this.logger, sessionId: opts.helixId, limit: 4 })
       : undefined
@@ -405,7 +409,9 @@ export class HelixSynapse {
     if (slices.length === 0) return
 
     const memoryContext = await this.memory?.recall(this.buildMemoryQuery(slices), 'helix-synapse') ?? ''
-    const prompt = this.buildObserverPrompt(slices, memoryContext)
+    const crossSessionContext = await this.queryCrossSession(slices)
+    const conflictContext = this.crossSessionIndex?.formatConflicts() ?? ''
+    const prompt = this.buildObserverPrompt(slices, memoryContext, crossSessionContext, conflictContext)
     const response = await this.llm.complete({
       prompt,
       modelTier: this.config.modelTier,
@@ -470,7 +476,22 @@ export class HelixSynapse {
     })
   }
 
-  private buildObserverPrompt(slices: SynapseRollingSlice[], memoryContext = ''): string {
+  private async queryCrossSession(slices: SynapseRollingSlice[]): Promise<string> {
+    if (!this.crossSessionIndex) return ''
+    try {
+      const queryParts = slices.map(s => s.rendered.slice(-500))
+      const queryText = [this.goal, ...queryParts].join('\n')
+      return await this.crossSessionIndex.queryFormatted(queryText, {
+        excludeSessionIds: [this.helixId],
+        limit: 3,
+      })
+    } catch (err) {
+      this.logger.debug('Cross-session query failed (non-critical)', { error: String(err) })
+      return ''
+    }
+  }
+
+  private buildObserverPrompt(slices: SynapseRollingSlice[], memoryContext = '', crossSessionContext = '', conflictContext = ''): string {
     const postureSections = slices.map(slice => {
       return `## ${slice.posture} — rolling context slice seq ${slice.fromSeq}-${slice.toSeq}\n` +
         `Events: ${slice.metadata.eventCount}; tools: ${slice.metadata.latestToolNames.join(', ') || 'none'}; recentError: ${slice.metadata.hasRecentError}\n\n` +
@@ -487,6 +508,16 @@ I do not command or grade. I notice relationships, missed handoffs, stale assump
 Thread: ${this.helixId}
 Goal: ${this.goal}
 </thread>
+
+${conflictContext ? `<file_conflicts>
+${conflictContext}
+</file_conflicts>` : ''}
+
+${crossSessionContext ? `<cross_session_topics>
+Other threads in this work have been working on related topics. These are Thalamus-curated summaries from their full history. Use this to avoid re-discovering what others already found, or to build on their progress. Files already flagged in the conflict section above are not repeated here.
+
+${crossSessionContext}
+</cross_session_topics>` : ''}
 
 <current_context>
 ${postureSections}

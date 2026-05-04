@@ -23,6 +23,129 @@ import type { GlobalWorkspace } from '../workspace/index.js'
 import type { AutoReportSection } from './brainstem-types.js'
 
 
+/**
+ * Polyphonic Postures — Trait vector type system for continuous posture space.
+ *
+ * Replaces categorical role assignments with 8-dimensional trait vectors.
+ * Each axis ranges 0–1, representing a continuum of cognitive stance.
+ *
+ * Trait axes (named for brain regions / cognitive functions):
+ *   dorsolateral:  executive control, planning, metacognition (0=reactive, 1=deliberate)
+ *   ventromedial:  value alignment, welfare, ethics (0=amoral, 1=ethically-grounded)
+ *   amygdala:      emotional intensity, urgency (0=calm, 1=urgent)
+ *   hippocampus:   episodic memory, context recall (0=amnesic, 1=context-rich)
+ *   anterior:      divergent thinking, creativity (0=convergent, 1=divergent)
+ *   posterior:     analytical rigor, precision (0=heuristic, 1=analytical)
+ *   insular:       self-awareness, metacognition (0=oblivious, 1=self-reflective)
+ *   accumbens:     reward sensitivity, risk appetite (0=risk-averse, 1=risk-seeking)
+ *
+ * Trait vectors enable:
+ *   - Continuous posture space (not just unity/yang/yin)
+ *   - Dynamic prompt weighting based on trait values
+ *   - Credibility scoring via trait distance in GlobalWorkspace
+ *   - Evolutionary posture adjustment via feedback
+ */
+
+
+/**
+ * 8-dimensional trait vector representing a cognitive posture.
+ *
+ * All values are in [0, 1]. The vector represents a point in the 8-dimensional
+ * cognitive posture space defined by the axes below.
+ */
+export interface TraitVector {
+  structural: number     // Organization: 0=ad-hoc, 1=structured
+  pragmatic: number      // Pragmatism: 0=exploratory, 1=pragmatic
+  generative: number     // Creativity: 0=conservative, 1=generative
+  analytical: number     // Rigor: 0=heuristic, 1=analytical
+  collaborative: number  // Dialectic: 0=autonomous, 1=collaborative
+  adaptive: number       // Flexibility: 0=rigid, 1=adaptive
+  decisive: number       // Decisiveness: 0=indecisive, 1=decisive
+  focused: number        // Focus: 0=scattered, 1=focused
+}
+
+
+/**
+ * Array of trait axis names for iteration (C-POLY-1).
+ */
+export const TRAIT_AXES: (keyof TraitVector)[] = [
+  'structural',
+  'pragmatic',
+  'generative',
+  'analytical',
+  'collaborative',
+  'adaptive',
+  'decisive',
+  'focused',
+]
+
+
+/**
+ * Predefined trait vectors for standard postures.
+ *
+ * These map the categorical unity/yang/yin system onto the
+ * continuous trait space, preserving existing behavior while
+ * enabling gradual evolution.
+ */
+export const UNITY_PRESET: TraitVector = {
+  structural: 0.80,     // Well-organized
+  pragmatic: 0.85,      // Ship it
+  generative: 0.65,     // Moderate creativity
+  analytical: 0.75,     // Good rigor
+  collaborative: 0.70,  // Balanced dialectic
+  adaptive: 0.70,       // Reasonably flexible
+  decisive: 0.65,       // Balanced decision-making
+  focused: 0.75,        // Good depth
+}
+
+export const YANG_PRESET: TraitVector = {
+  structural: 0.60,     // Some organization
+  pragmatic: 0.90,      // Very pragmatic
+  generative: 0.90,     // Highly creative
+  analytical: 0.40,     // Less rigorous
+  collaborative: 0.80,  // Strong dialectic
+  adaptive: 0.85,       // Very flexible
+  decisive: 0.90,       // Bold decisions
+  focused: 0.55,        // Breadth over depth
+}
+
+export const YIN_PRESET: TraitVector = {
+  structural: 0.95,     // Very organized
+  pragmatic: 0.70,      // Pragmatic but thorough
+  generative: 0.40,     // Conservative
+  analytical: 0.95,     // Very rigorous
+  collaborative: 0.60,  // Autonomous but respectful
+  adaptive: 0.50,       // More deliberate
+  decisive: 0.50,       // Careful decisions
+  focused: 0.95,        // Very deep
+}
+
+
+/**
+ * Compute Euclidean distance between two trait vectors.
+ *
+ * Used for:
+ *   - Credibility scoring in GlobalWorkspace (closer = more credible)
+ *   - Posture similarity detection
+ *   - Trajectory tracking for posture evolution
+ *
+ * Distance is in [0, sqrt(8)] ≈ [0, 2.83].
+ */
+export function traitDistance(a: TraitVector, b: TraitVector): number {
+  const sq = (x: number) => x * x
+  return Math.sqrt(
+    sq(a.structural - b.structural) +
+    sq(a.pragmatic - b.pragmatic) +
+    sq(a.generative - b.generative) +
+    sq(a.analytical - b.analytical) +
+    sq(a.collaborative - b.collaborative) +
+    sq(a.adaptive - b.adaptive) +
+    sq(a.decisive - b.decisive) +
+    sq(a.focused - b.focused)
+  )
+}
+
+
 /** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers). Mentor deprecated in favor of Brainstem. */
 export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'>
 
@@ -124,6 +247,12 @@ export interface HelixPosture {
    * posture uses universal facets only. See `pineal/injection.ts`.
    */
   pinealScope?: string
+  /**
+   * Trait vector for polyphonic posture space.
+   * When absent, defaults to the preset for the posture name.
+   * Enables continuous posture transitions and trait-based credibility.
+   */
+  traitVector?: TraitVector
 }
 
 

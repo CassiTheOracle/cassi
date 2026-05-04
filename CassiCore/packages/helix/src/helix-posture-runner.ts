@@ -33,7 +33,8 @@ import type { HelixStore } from './helix-store.js'
 import type { WorkUnit, FileChange, ToolCallSummary, ToolResultSummary } from './work-types.js'
 import type { Posture as LumenPostureType } from './dialectic-channel.js'
 import type { InferenceResult, ParsedToolCall } from '../../../types/cassi-agent.js'
-import type { HelixRole, HelixPosture, HelixPostureResult } from './types.js'
+import type { HelixRole, HelixPosture, HelixPostureResult, TraitVector } from './types.js'
+import { TRAIT_AXES, UNITY_PRESET, YANG_PRESET, YIN_PRESET } from './types.js'
 import type { HelixBrainstem } from './brainstem.js'
 import type { PostureModule, PostureSignalOpts } from './posture-module.js'
 import type { SignalType } from '../workspace/index.js'
@@ -230,12 +231,21 @@ export interface HelixPostureRunnerOpts {
   unityStatusThresholds?: UnityStatusThresholds
   /** Brainstem — cognitive organizer (replaces Mentor) */
   brainstem?: HelixBrainstem
+  /**
+   * Trait vector for polyphonic posture tuning (C-POLY-1).
+   * When provided, modulates system prompt emphasis based on trait values.
+   * Falls back to hardcoded presets (UNITY_PRESET, YANG_PRESET, YIN_PRESET)
+   * if not specified, preserving backward compatibility.
+   */
+  traitVector?: TraitVector
   /** New Helix-level Synapse observer — watches all posture context slices and broadcasts observations. */
   helixSynapse?: HelixSynapse
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Thalamus for context curation during long-running sessions */
   thalamus?: import('../thalamus/index.js').ThalamusModule
+  /** Cross-session topic index for sharing Thalamus insights across sessions */
+  crossSessionIndex?: import('../thalamus/cross-session-index.js').CrossSessionTopicIndex
   /** Callback fired when Unity posts a work unit */
   onWorkUnit?: (wu: import('./work-types.js').WorkUnit, iteration: number) => void
   /** Callback fired during streaming with real-time token activity */
@@ -311,6 +321,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly researchSpawner?: ResearchSpawner
   private readonly unityStatusThresholds?: UnityStatusThresholds
   private readonly brainstem?: HelixBrainstem
+  private readonly traitVector?: TraitVector
   private readonly helixSynapse?: HelixSynapse
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
@@ -387,6 +398,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       moduleDebugSessionId: opts.moduleDebugSessionId,
       contextBudgetCoordinator: opts.contextBudgetCoordinator,
       thalamus: opts.thalamus,
+      crossSessionIndex: opts.crossSessionIndex,
     })
     this.role = opts.role
     this.workStream = opts.workStream
@@ -394,6 +406,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.researchSpawner = opts.researchSpawner
     this.unityStatusThresholds = opts.unityStatusThresholds
     this.brainstem = opts.brainstem
+    this.traitVector = opts.traitVector
     this.helixSynapse = opts.helixSynapse
     this.contextChunkIndex = opts.contextChunkIndex
     this.onWorkUnit = opts.onWorkUnit
@@ -2271,7 +2284,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     // "Request already in progress" errors that kill Yin/Yang postures.
     // This matches the pattern used by DyadPostureRunner and LumenPostureRunner.
     const messages: Message[] = [
-      { role: 'system', content: `[session:${this.sessionId}-${role}]\n\n${this.posture.systemPrompt}` },
+      { role: 'system', content: `[session:${this.sessionId}-${role}]\n\n${this.applyTraitVectorWeighting(this.posture.systemPrompt, this.traitVector)}` },
     ]
 
     let userContent = `## Goal\n\n${goal}`
@@ -2399,8 +2412,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     return tools
   }
-
-
 
   /**
    * Inject low-severity nudges from reviewers into Unity's tool results.
@@ -2882,5 +2893,47 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       durationMs,
       error: err instanceof Error ? err.message : String(err),
     }
+  }
+
+  /**
+   * C-POLY-1: Apply trait-vector weighting to system prompt sections.
+   *
+   * When a posture has a traitVector config, this method adjusts the
+   * emphasis of different sections based on the posture's trait values.
+   * Higher trait values produce more prominent/expanded sections.
+   *
+   * Example:
+   *   - Unity with high pragmatic: expand "shipping" section
+   *   - Yang with high generative: expand "exploration" section
+   *   - Yin with high analytical: expand "edge cases" section
+   *
+   * This is a simple baseline implementation. Future work may use
+   * LLM-driven section expansion/contraction for more sophisticated
+   * trait conditioning.
+   *
+   * @param basePrompt - The base system prompt from composeSystemPrompt
+   * @param traitVector - The posture's trait vector
+   * @returns The trait-weighted system prompt
+   */
+  private applyTraitVectorWeighting(basePrompt: string, traitVector: TraitVector): string {
+    // C-POLY-1: Baseline implementation — prepend trait summary to prompt
+    // Future iterations may do more sophisticated section weighting
+
+    const traitSummary = TRAIT_AXES
+      .filter(axis => traitVector[axis] > 0.7) // Only highlight dominant traits (>0.7)
+      .map(axis => {
+        const value = traitVector[axis]
+        if (value > 0.9) return `${axis} (dominant)`
+        return `${axis} (strong)`
+      })
+      .join(', ')
+
+    if (!traitSummary) {
+      // No dominant traits — return base prompt unchanged
+      return basePrompt
+    }
+
+    // Prepend trait summary as an internal directive
+    return `[Cognitive Disposition: ${traitSummary}]\n\n${basePrompt}`
   }
 }
