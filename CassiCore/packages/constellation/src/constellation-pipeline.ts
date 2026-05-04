@@ -57,6 +57,7 @@ import { TopologyGraph } from './topology/topology-graph.js'
 import { BrainstemBridge } from './topology/brainstem-bridge.js'
 import { serializeTopologySnapshot } from './topology/topology-types.js'
 import type { EmbeddingService } from '../embeddings/embedding-service.js'
+import { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { createConstellationGuidanceProvider } from './guidance-provider.js'
 import { scoreSpecificity } from '../code-analysis/specificity-scorer.js'
 
@@ -803,6 +804,15 @@ export async function runConstellationPipeline(
   // when the branch completes and we know which files were actually used.
   const contextFeedbackIds = new Map<string, string>()
 
+  // Cross-session topic index — shares Thalamus-curated topic summaries
+  // across all Helix sessions in this Constellation. Observer layers and
+  // HelixSynapse query it for cross-session awareness.
+  const crossSessionIndex = new CrossSessionTopicIndex({
+    constellationId,
+    embeddingService: opts.embeddingService,
+    logger,
+  })
+
   const clusterObserverLayer = topologyGraph?.enabled && !opts.meditationMode
     ? new ClusterObserverLayer({
         constellationId,
@@ -811,6 +821,7 @@ export async function runConstellationPipeline(
         eventBus,
         llm: brainstemLLM,
         memory: opts.mnemicField,
+        crossSessionIndex,
         getTopologySnapshot: () => topologyGraph?.getSnapshot(),
         getHelixSynapse: (helixId: string) => runningHelixes.get(helixId)?.helixSynapse,
       })
@@ -825,6 +836,7 @@ export async function runConstellationPipeline(
         eventBus,
         llm: brainstemLLM,
         memory: opts.mnemicField,
+        crossSessionIndex,
         // WHY: Nodes start as 'pending' and are never set to 'running' — they
         // jump directly to 'completed'/'failed'/'degraded'. Filtering by 'running'
         // meant the CorpusObserverLayer always saw zero active helixes and was
@@ -1060,6 +1072,33 @@ export async function runConstellationPipeline(
     } catch (err) {
       helixLog.warn('Elevated pattern injection failed', { error: String(err) })
       // Continue with existing context — don't block launch
+    }
+
+    // Predictive topic pre-loading: query cross-session index for related
+    // work from sibling branches and inject as a briefing. This prevents
+    // new branches from re-discovering what others already found.
+    if (!opts.meditationMode && crossSessionIndex.size > 0) {
+      try {
+        const relatedTopics = await crossSessionIndex.query(helixGoal, {
+          excludeSessionIds: [helixId],
+          limit: 3,
+        })
+        if (relatedTopics.length > 0) {
+          const briefing = relatedTopics.map(t =>
+            `- ${t.label} (${t.status}, importance: ${t.importanceScore.toFixed(2)})\n  ${t.summary}`
+          ).join('\n\n')
+          const preLoadContext = `## Related Work From Sibling Threads\nBefore starting, here is what other threads in this constellation have already discovered on related topics:\n\n${briefing}\n\nBuild on this rather than re-discovering.`
+          enrichedContext = enrichedContext
+            ? `${enrichedContext}\n\n${preLoadContext}`
+            : preLoadContext
+          helixLog.info('Cross-session topic pre-load injected for new branch', {
+            topics: relatedTopics.length,
+            branch: helixId,
+          })
+        }
+      } catch (err) {
+        helixLog.debug('Topic pre-load failed (non-critical)', { error: String(err) })
+      }
     }
 
     } // end of !meditationMode guard
@@ -1313,6 +1352,8 @@ export async function runConstellationPipeline(
       brainIntegration: Boolean(opts.globalWorkspace),
       globalWorkspace: opts.globalWorkspace,
       mnemicField: opts.mnemicField,
+      crossSessionIndex,
+      constellationId,
       // WHY: Flex postures from the template define per-role tool access levels
       // (e.g., 'read-only' for meditation explorers). Without this, the pipeline
       // falls back to UNITY_POSTURE.toolAccess ('full'), ignoring the template.
@@ -1418,7 +1459,7 @@ export async function runConstellationPipeline(
                   urgency: 0.5,
                   relevance: 0.7,
                   sourceCredibility: 0.5,
-                  strategicImportance: 0,
+                  cognitiveResonance: 0, strategicImportance: 0,
                   composite: 0.5,
                 },
                 urgencyHint: 0.5,
@@ -1764,6 +1805,9 @@ export async function runConstellationPipeline(
           })
         }
         runningHelixes.delete(helixId)
+        // Evict this session's topics from the cross-session index so
+        // completed sessions don't crowd out active ones.
+        crossSessionIndex?.evictSession(helixId)
       })
 
     return runningHelix

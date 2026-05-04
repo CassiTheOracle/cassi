@@ -1,6 +1,7 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from '../helix/helix-synapse.js'
 import type { TopologyCluster, TopologySnapshot } from './topology/topology-types.js'
+import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
@@ -56,6 +57,7 @@ export interface ClusterObserverLayerOpts {
   getTopologySnapshot: () => TopologySnapshot | undefined
   getHelixSynapse: (helixId: string) => HelixSynapse | undefined
   memory?: ObserverMemorySource
+  crossSessionIndex?: CrossSessionTopicIndex
   eventBus?: IEventBus
   config?: Partial<ClusterObserverLayerConfig>
 }
@@ -78,6 +80,7 @@ export class ClusterObserverLayer {
   private getHelixSynapse: (helixId: string) => HelixSynapse | undefined
   private config: ClusterObserverLayerConfig
   private memory?: ObserverMemoryBridge
+  private crossSessionIndex?: CrossSessionTopicIndex
   private running = false
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
@@ -92,6 +95,7 @@ export class ClusterObserverLayer {
     this.getTopologySnapshot = opts.getTopologySnapshot
     this.getHelixSynapse = opts.getHelixSynapse
     this.config = { ...DEFAULT_CLUSTER_OBSERVER_LAYER_CONFIG, ...opts.config }
+    this.crossSessionIndex = opts.crossSessionIndex
     this.memory = opts.memory
       ? new ObserverMemoryBridge({ source: opts.memory, logger: this.logger, sessionId: opts.constellationId, limit: 5 })
       : undefined
@@ -157,7 +161,9 @@ export class ClusterObserverLayer {
     if (entries.length < this.config.minClusterMembers) return
 
     const memoryContext = await this.memory?.recall(this.buildMemoryQuery(cluster, entries), 'cluster-observer') ?? ''
-    const prompt = this.buildPrompt(cluster, entries, memoryContext)
+    const crossSessionContext = await this.queryCrossSession(cluster, entries)
+    const conflictContext = this.crossSessionIndex?.formatConflicts(cluster.members) ?? ''
+    const prompt = this.buildPrompt(cluster, entries, memoryContext, crossSessionContext, conflictContext)
     const response = await this.llm.complete({
       prompt,
       modelTier: this.config.modelTier,
@@ -221,10 +227,32 @@ export class ClusterObserverLayer {
     })
   }
 
+  private async queryCrossSession(
+    cluster: TopologyCluster,
+    entries: Array<{ helixId: string; slices: SynapseRollingSlice[] }>,
+  ): Promise<string> {
+    if (!this.crossSessionIndex) return ''
+    try {
+      const queryParts = entries.flatMap(entry =>
+        entry.slices.map(s => s.rendered.slice(-500))
+      )
+      const queryText = [this.goal, `cluster ${cluster.clusterId}`, ...queryParts].join('\n')
+      return await this.crossSessionIndex.queryFormatted(queryText, {
+        excludeSessionIds: cluster.members,
+        limit: 3,
+      })
+    } catch (err) {
+      this.logger.debug('Cross-session query failed (non-critical)', { error: String(err) })
+      return ''
+    }
+  }
+
   private buildPrompt(
     cluster: TopologyCluster,
     entries: Array<{ helixId: string; slices: SynapseRollingSlice[] }>,
     memoryContext = '',
+    crossSessionContext = '',
+    conflictContext = '',
   ): string {
     const body = entries.map(entry => {
       const sliceText = entry.slices.map(slice => {
@@ -258,6 +286,16 @@ Steadiness: ${cluster.ticksStable}
 Relationships:
 ${links || '(none)'}
 </nearby_threads>
+
+${conflictContext ? `<file_conflicts>
+${conflictContext}
+</file_conflicts>` : ''}
+
+${crossSessionContext ? `<cross_session_topics>
+These are distilled summaries of work in other threads outside this cluster, curated by the Thalamus. Use this to spot handoff opportunities, conflicts, or convergent findings that the cluster's threads need to know about. Files already flagged in the conflict section above are not repeated here.
+
+${crossSessionContext}
+</cross_session_topics>` : ''}
 
 <current_context>
 ${body}

@@ -238,7 +238,7 @@ export class TopologyContextBridge {
         urgency: 0.2,
         relevance: 0.6,
         sourceCredibility: 0.7,
-        strategicImportance: 0,
+        cognitiveResonance: 0, strategicImportance: 0,
         composite: 0.4,
       },
       urgencyHint: 0.15,

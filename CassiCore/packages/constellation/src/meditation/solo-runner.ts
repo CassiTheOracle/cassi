@@ -57,6 +57,8 @@ export interface SoloRunnerOpts {
   customToolSchemas?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
   /** Thalamus for context curation during long-running sessions */
   thalamus?: ThalamusModule
+  /** Cross-session topic index for sharing Thalamus insights across sessions */
+  crossSessionIndex?: import('../../thalamus/cross-session-index.js').CrossSessionTopicIndex
 }
 
 export interface ToolCallResult {
@@ -127,6 +129,12 @@ export async function runSoloExplorer(opts: SoloRunnerOpts): Promise<SoloRunnerR
               compressed: curation.meta.compressed,
               dropped: curation.meta.dropped,
             })
+          }
+          // Publish topic summaries to cross-session index
+          if (opts.crossSessionIndex && curation.meta.topicSummaries?.length) {
+            try {
+              await opts.crossSessionIndex.publish(sessionId, curation.meta.topicSummaries)
+            } catch { /* non-critical */ }
           }
         } catch (err) {
           log.debug('Thalamus curation failed, using full messages', { error: String(err) })

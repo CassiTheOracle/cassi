@@ -1,6 +1,7 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
 import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from '../helix/helix-synapse.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
+import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
@@ -55,6 +56,7 @@ export interface CorpusObserverLayerOpts {
   getHelixSynapse: (helixId: string) => HelixSynapse | undefined
   getTopologySnapshot?: () => TopologySnapshot | undefined
   memory?: ObserverMemorySource
+  crossSessionIndex?: CrossSessionTopicIndex
   eventBus?: IEventBus
   config?: Partial<CorpusObserverLayerConfig>
 }
@@ -78,6 +80,7 @@ export class CorpusObserverLayer {
   private getTopologySnapshot?: () => TopologySnapshot | undefined
   private config: CorpusObserverLayerConfig
   private memory?: ObserverMemoryBridge
+  private crossSessionIndex?: CrossSessionTopicIndex
   private running = false
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
@@ -93,6 +96,7 @@ export class CorpusObserverLayer {
     this.getHelixSynapse = opts.getHelixSynapse
     this.getTopologySnapshot = opts.getTopologySnapshot
     this.config = { ...DEFAULT_CORPUS_OBSERVER_LAYER_CONFIG, ...opts.config }
+    this.crossSessionIndex = opts.crossSessionIndex
     this.memory = opts.memory
       ? new ObserverMemoryBridge({ source: opts.memory, logger: this.logger, sessionId: opts.constellationId, limit: 6 })
       : undefined
@@ -150,7 +154,9 @@ export class CorpusObserverLayer {
     if (entries.length === 0) return
 
     const memoryContext = await this.memory?.recall(this.buildMemoryQuery(entries), 'corpus-observer') ?? ''
-    const prompt = this.buildPrompt(entries, memoryContext)
+    const crossSessionContext = await this.queryCrossSession(entries)
+    const conflictContext = this.crossSessionIndex?.formatConflicts(helixIds) ?? ''
+    const prompt = this.buildPrompt(entries, memoryContext, crossSessionContext, conflictContext)
     const response = await this.llm.complete({
       prompt,
       modelTier: this.config.modelTier,
@@ -213,7 +219,22 @@ export class CorpusObserverLayer {
     })
   }
 
-  private buildPrompt(entries: Array<{ helixId: string; slices: SynapseRollingSlice[] }>, memoryContext = ''): string {
+  private async queryCrossSession(entries: Array<{ helixId: string; slices: SynapseRollingSlice[] }>): Promise<string> {
+    if (!this.crossSessionIndex) return ''
+    try {
+      // Build query text from slice content
+      const queryParts = entries.flatMap(entry =>
+        entry.slices.map(s => s.rendered.slice(-500))
+      )
+      const queryText = [this.goal, ...queryParts].join('\n')
+      return await this.crossSessionIndex.queryFormatted(queryText, { limit: 5 })
+    } catch (err) {
+      this.logger.debug('Cross-session query failed (non-critical)', { error: String(err) })
+      return ''
+    }
+  }
+
+  private buildPrompt(entries: Array<{ helixId: string; slices: SynapseRollingSlice[] }>, memoryContext = '', crossSessionContext = '', conflictContext = ''): string {
     const topology = this.getTopologySnapshot?.()
     const topologySection = topology
       ? `Nearby groups: ${topology.clusters.map(c => `${c.clusterId}[${c.members.join(',')}; closeness=${c.effectiveMergeDepth}; steady=${c.ticksStable}]`).join('; ') || '(none)'}\nThread relationships: ${topology.links.slice(0, 12).map(l => `${l.helixIdA}<->${l.helixIdB} ${l.mergeDepth} sim=${l.similarity.toFixed(2)} dist=${l.distance.toFixed(2)}`).join('; ') || '(none)'}`
@@ -242,6 +263,16 @@ Goal: ${this.goal}
 <nearness>
 ${topologySection}
 </nearness>
+
+${conflictContext ? `<file_conflicts>
+${conflictContext}
+</file_conflicts>` : ''}
+
+${crossSessionContext ? `<cross_session_topics>
+These are distilled summaries of what other threads have been working on, curated by the Thalamus from the full history of all sessions. Use this to spot duplication, convergence, or gaps across the whole effort. Files already flagged in the conflict section above are not repeated here.
+
+${crossSessionContext}
+</cross_session_topics>` : ''}
 
 <current_context>
 ${body}
