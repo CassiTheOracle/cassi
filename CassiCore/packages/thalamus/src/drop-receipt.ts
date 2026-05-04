@@ -26,6 +26,8 @@ export interface ClosestMiss {
   slot: string
   /** Composite luminance score (0-1) */
   luminance: number
+  /** Ignition threshold that this message failed to meet */
+  threshold: number
   /** Per-axis breakdown */
   axes: Record<string, number>
   /** First 80 chars of content for identification */
@@ -41,6 +43,31 @@ export interface BudgetInfo {
   freed: number
   /** Utilization ratio (used / budget) */
   utilization: number
+}
+
+export interface ProtectionCounts {
+  /** Pinned messages (explicit pin, askuserquestion auto-pin, loop-detection, thought-command) */
+  pin: number
+  /** Last reads of files not yet written to since */
+  liveRead: number
+  /** System-slot messages */
+  system: number
+  /** Last N messages held by the protected window */
+  recentWindow: number
+}
+
+export interface ProtectionSummary {
+  /** Total protected (sum of categories) */
+  total: number
+  /** Per-category counts */
+  counts: ProtectionCounts
+  /** First live-read file path, when one exists, for the one-line summary */
+  firstLiveReadPath?: string
+  /**
+   * Single-line human summary, e.g.
+   * "14 (4 pinned · 8 recent-window · 1 live-read drop-receipt.ts · 1 system)"
+   */
+  summary: string
 }
 
 export interface DropReceipt {
@@ -71,6 +98,12 @@ export interface DropReceipt {
   closestMiss?: ClosestMiss
   /** Budget utilization for this curation pass */
   budget?: BudgetInfo
+  /**
+   * Protection summary — what's force-included and why. Always present.
+   * Fires even when nothing was dropped, because Cassi needs continuous
+   * visibility into which messages will survive the next curation pass.
+   */
+  protected: ProtectionSummary
 }
 
 /**
@@ -103,10 +136,42 @@ export interface BuildReceiptInput {
   charBudget: number
   /** Chars actually consumed by included messages */
   charsUsed: number
+  /** Ignition threshold — required for closestMiss gap calculation */
+  threshold: number
 }
 
-/** Build a receipt or return null when nothing was dropped. */
-export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
+function summarizeProtections(messages: any[], includedIndices: Set<number>): ProtectionSummary {
+  const counts: ProtectionCounts = { pin: 0, liveRead: 0, system: 0, recentWindow: 0 }
+  let firstLiveReadPath: string | undefined
+  for (const idx of includedIndices) {
+    const annotation: ThalamusAnnotation | undefined = messages[idx]?._thalamus
+    const tag = annotation?.protectedBy
+    if (!tag) continue
+    if (tag === 'pin') counts.pin++
+    else if (tag === 'live-read') {
+      counts.liveRead++
+      if (!firstLiveReadPath && annotation?.protectedReason) {
+        firstLiveReadPath = shortenPath(annotation.protectedReason)
+      }
+    } else if (tag === 'system') counts.system++
+    else if (tag === 'recent-window') counts.recentWindow++
+  }
+  const total = counts.pin + counts.liveRead + counts.system + counts.recentWindow
+  const parts: string[] = []
+  if (counts.pin > 0) parts.push(`${counts.pin} pinned`)
+  if (counts.recentWindow > 0) parts.push(`${counts.recentWindow} recent-window`)
+  if (counts.liveRead > 0) {
+    parts.push(firstLiveReadPath
+      ? `${counts.liveRead} live-read ${firstLiveReadPath}${counts.liveRead > 1 ? ' …' : ''}`
+      : `${counts.liveRead} live-read`)
+  }
+  if (counts.system > 0) parts.push(`${counts.system} system`)
+  const summary = parts.length > 0 ? `${total} (${parts.join(' · ')})` : `${total}`
+  return { total, counts, firstLiveReadPath, summary }
+}
+
+/** Build a receipt summarizing drops and protection state for this curation pass. */
+export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
   const { before, scored, includedIndices, protectedIndices, charBudget, charsUsed } = input
   const droppedIndices: number[] = []
   const droppedScores = new Map<number, ScoredMessage>()
@@ -117,7 +182,20 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
     droppedScores.set(s.messageIndex, s)
   }
 
-  if (droppedIndices.length === 0) return null
+  const protectedSummary = summarizeProtections(before, includedIndices)
+
+  if (droppedIndices.length === 0) {
+    return {
+      dropped: 0,
+      bySlot: {},
+      charsFreed: 0,
+      anomalies: [],
+      summary: '',
+      ts: new Date().toISOString(),
+      topics: [],
+      protected: protectedSummary,
+    }
+  }
 
   const bySlot: Record<string, number> = {}
   let charsFreed = 0
@@ -160,7 +238,7 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
   // Extract tool-chain metadata from dropped messages
   const toolChainSummary = buildToolChainSummary(before, droppedIndices)
   const topics = extractTopics(before, droppedIndices)
-  const closestMiss = findClosestMiss(before, droppedScores)
+  const closestMiss = findClosestMiss(before, droppedScores, input.threshold)
 
   let budget: BudgetInfo | undefined
   if (charBudget > 0) {
@@ -183,6 +261,7 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt | null {
     topics,
     closestMiss,
     budget,
+    protected: protectedSummary,
   }
 }
 
@@ -360,6 +439,7 @@ function extractToolName(content: string): string {
 function findClosestMiss(
   messages: any[],
   droppedScores: Map<number, ScoredMessage>,
+  threshold: number,
 ): ClosestMiss | undefined {
   let best: { idx: number; score: ScoredMessage } | undefined
 
@@ -381,6 +461,7 @@ function findClosestMiss(
     msgIndex: best.idx,
     slot,
     luminance: lum.composite,
+    threshold,
     axes: {
       novelty: lum.novelty,
       urgency: lum.urgency,

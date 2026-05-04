@@ -7,6 +7,20 @@ import type { BridgeFocus } from '../locus-bridge/types.js'
 /** The five slot types, one per message category */
 export type MessageSlotType = 'user' | 'tool_call' | 'tool_result' | 'assistant' | 'system'
 
+/**
+ * Why a message was force-included by the curator regardless of luminance.
+ *
+ * Resolution priority when multiple apply: pin > live-read > system > recent-window.
+ * (A pinned message in the recent window is reported as `pin` because the pin is
+ * the durable reason — it would survive even outside the window.)
+ *
+ * - `pin`           explicit pin (user pattern, AskUserQuestion answer, loop-detection auto-pin, <pin> thought-command)
+ * - `live-read`     latest read of a file not yet written to since (reason = file path)
+ * - `system`        system-slot message; slot budget is uncapped
+ * - `recent-window` last N messages (configured by recentWindowSize, adaptive)
+ */
+export type ProtectionSource = 'pin' | 'recent-window' | 'live-read' | 'system'
+
 /** Tool-level metadata attached by ToolCallSlot and ToolResultSlot */
 export interface ThalamusToolMeta {
   /** Resolved tool name (e.g. 'bash', 'read') */
@@ -61,6 +75,35 @@ export interface ThalamusAnnotation {
   pinReason?: string
   /** If true, thought-commands in this message have already been processed */
   tcProcessed?: boolean
+  /**
+   * Set during curate() when the message was force-included independently of
+   * its luminance score. Read by the drop receipt and the cassi_context.map
+   * action so Cassi can see why each visible message survives.
+   *
+   * Distinct from `pinned`: a pinned message has `protectedBy='pin'`, but
+   * recent-window / live-read / system messages also need a tag and were
+   * previously indistinguishable from "kept by high luminance" in the audit
+   * surface. See ProtectionSource for the categories.
+   */
+  protectedBy?: ProtectionSource
+  /**
+   * Free-form reason — file path for live-read, pin-pattern id or auto-pin
+   * trigger ('askuserquestion-answer', 'loop-detection') for pin, source tag
+   * for system. Empty when protectedBy is undefined.
+   */
+  protectedReason?: string
+  /**
+   * Original index into the session's full message array. Stable across curate
+   * passes — this is the durable ID used by drop/collapse directives and
+   * displayed in inline markers as `#N`.
+   */
+  index?: number
+  /** Set when a Cassi-issued drop directive matches this message in the current pass. */
+  directiveDropped?: boolean
+  /** Set when a Cassi-issued collapse directive replaced this message's content. */
+  directiveCollapsed?: boolean
+  /** Summary text that replaced the original content when collapsed. */
+  directiveSummary?: string
 }
 
 /** Context passed to slot.augment() during real-time processing */
@@ -146,8 +189,8 @@ export interface CurationConfig {
 
 export const DEFAULT_CURATION_CONFIG: CurationConfig = {
   charBudget: 80_000,
-  recentWindowSize: 12,
-  toolResultMaxChars: 2000,
+  recentWindowSize: 8,
+  toolResultMaxChars: 1200,
   ignitionThreshold: 0.20,
   excludeSessionPrefixes: ['meditation:', 'module:', 'helix-review:'],
   slotBudgets: DEFAULT_SLOT_BUDGETS,
@@ -340,6 +383,70 @@ export interface CurationSession {
   thoughtCommandLog: ThoughtCommandLogEntry[]
   /** tool_use_id → distilled summary for file-read results. Populated by background distillation. */
   distilledSummaries: Map<string, { summary: string; originalChars: number; goalHash: string }>
+  /**
+   * Snapshot of the most recent curate()'s assembled output, captured for the
+   * cassi_context.map action. Updated atomically at the end of every curate().
+   * Holds rows for all currently-visible messages, not historical drops —
+   * dropHistory covers the latter.
+   */
+  lastMap?: ContextMapSnapshot
+  /**
+   * Cassi-issued directives consumed by curate(). Indices are stable
+   * original-session indices, the same `#N` shown in inline markers.
+   * dropDirectives: messages to force-exclude (treated as dropped, never assembled).
+   * collapseDirectives: messages whose content is replaced by `[collapsed: summary]`
+   *   so the position remains but the bulk shrinks.
+   */
+  dropDirectives: Set<number>
+  collapseDirectives: Map<number, string>
+}
+
+/**
+ * Per-message row produced by the most recent curate(). Lightweight projection
+ * of the assembled output so cassi_context.map can render without re-curating.
+ */
+export interface ContextMapRow {
+  /** 0-indexed position in the assembled message array */
+  msgIndex: number
+  /** Message role (user, assistant, tool, system) */
+  role: string
+  /** Slot classification from the annotation */
+  slot: MessageSlotType
+  /** ISO 8601 UTC timestamp from the annotation */
+  ts: string
+  /** Current char count (after compression if any) */
+  chars: number
+  /** Original char count when the message was processed; equals chars for non-compressed */
+  originalChars: number
+  /** True when chars < originalChars by more than a trivial margin */
+  compressed: boolean
+  /** Tool metadata when slot is tool_call or tool_result */
+  tool?: { name: string; class: string; isError: boolean; durationMs: number }
+  /** Why this row survived assembly, when force-included */
+  protectedBy?: ProtectionSource
+  /** Reason string for the protection — file path, pin pattern, source tag */
+  protectedReason?: string
+  /** Composite luminance score when not protected; undefined for protected rows */
+  composite?: number
+  /** First ~80 chars of content for orientation */
+  preview: string
+}
+
+export interface ContextMapSnapshot {
+  /** Curation pass number when this snapshot was taken */
+  pass: number
+  /** ISO 8601 UTC of the curate() call */
+  curatedAt: string
+  /** Char budget configured for this pass */
+  charBudget: number
+  /** Chars actually used by the assembled output */
+  charsUsed: number
+  /** Number of messages annotated in the pre-assembly array (visible + dropped) */
+  annotatedCount: number
+  /** Number of rows in this snapshot (matches rows.length, included for header rendering) */
+  visibleCount: number
+  /** Per-message rows for visible messages only */
+  rows: ContextMapRow[]
 }
 
 

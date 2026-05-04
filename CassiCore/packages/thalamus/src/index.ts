@@ -32,6 +32,8 @@ import type {
   DropRecord,
   PinnedPattern,
   ThoughtCommand,
+  ContextMapRow,
+  ContextMapSnapshot,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS, parseThoughtCommands } from './types.js'
 import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
@@ -60,6 +62,88 @@ function formatGapDuration(ms: number): string {
 /** Escape `<`, `>`, and `&` so structured archive content can't break the wrapping XML block. */
 function escapeXml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+const INLINE_MARKER_RE = /^\[#\d+ \d{2}:\d{2}:\d{2}[^\]]*\]\n/
+
+function formatBytes(n: number): string {
+  if (n < 1000) return `${n}`
+  if (n < 10000) return `${(n / 1000).toFixed(1)}k`
+  return `${Math.round(n / 1000)}k`
+}
+
+function formatTimeOfDay(iso: string | undefined): string {
+  if (!iso) return '?'
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return '?'
+  return d.toISOString().slice(11, 19)
+}
+
+function shortReason(reason: string | undefined, max = 20): string {
+  if (!reason) return ''
+  let s = reason
+  if (s.includes('/')) {
+    const base = s.split('/').pop() ?? s
+    if (base.length <= max) return base
+    s = base
+  }
+  if (s.length <= max) return s
+  return s.slice(0, max - 1) + '…'
+}
+
+function buildInlineMarker(msg: any, index: number): string | null {
+  const ann = msg?._thalamus
+  if (!ann) return null
+  const t = formatTimeOfDay(ann.ts)
+  const chars = formatBytes(ann.chars ?? 0)
+  let tag = ''
+  if (ann.protectedBy === 'pin') tag = ` pin:${shortReason(ann.protectedReason ?? ann.pinReason, 15)}`
+  else if (ann.protectedBy === 'recent-window') tag = ' recent'
+  else if (ann.protectedBy === 'live-read') tag = ` live:${shortReason(ann.protectedReason, 20)}`
+  else if (ann.protectedBy === 'system') tag = ' system'
+  else if (ann.protectedBy === 'slot-budget') tag = ' slot'
+  return `[#${index} ${t}${tag} ${chars}]`
+}
+
+/**
+ * Prepend a compact metadata marker to each message's first text block so Cassi
+ * can see protection state, timestamp, and char count in the message stream itself.
+ * Format: `[#idx HH:MM:SS [tag] chars]\n` — stable across turns for cache stability.
+ */
+function attachInlineMarkers(messages: any[]): any[] {
+  return messages.map((msg, i) => {
+    const ann = msg?._thalamus
+    const stableIdx = (ann && typeof ann.index === 'number') ? ann.index : i
+    const marker = buildInlineMarker(msg, stableIdx)
+    if (!marker) return msg
+    if (typeof msg.content === 'string') {
+      const stripped = msg.content.replace(INLINE_MARKER_RE, '')
+      return { ...msg, content: `${marker}\n${stripped}` }
+    }
+    if (Array.isArray(msg.content)) {
+      const newContent = msg.content.slice()
+      const idx = newContent.findIndex((b: any) => b?.type === 'text' && typeof b.text === 'string')
+      if (idx >= 0) {
+        const existing = newContent[idx].text as string
+        const stripped = existing.replace(INLINE_MARKER_RE, '')
+        newContent[idx] = { ...newContent[idx], text: `${marker}\n${stripped}` }
+      } else {
+        // Insert after any thinking/redacted_thinking blocks — Anthropic
+        // requires thinking blocks to precede all other content types.
+        let insertAt = 0
+        for (let k = 0; k < newContent.length; k++) {
+          if (newContent[k]?.type === 'thinking' || newContent[k]?.type === 'redacted_thinking') {
+            insertAt = k + 1
+          } else {
+            break
+          }
+        }
+        newContent.splice(insertAt, 0, { type: 'text', text: marker })
+      }
+      return { ...msg, content: newContent }
+    }
+    return msg
+  })
 }
 
 /**
@@ -164,12 +248,13 @@ export class ThalamusModule extends BaseCognitiveModule {
     toolMetrics?: Map<string, { durationMs: number; outputBytes: number }>,
   ): any {
     const temporal = this.getTemporalRegistry(sessionId)
-    const timestamp = new Date().toISOString()
+    const existingTs = temporal.getTimestamp(index)
+    const timestamp = existingTs ?? new Date().toISOString()
     const session = this.getSession(sessionId)
     const slotType = classifyMessage(msg, session.toolUseMap)
     const isUser = slotType === 'user'
 
-    temporal.recordMessage(index, timestamp, isUser)
+    if (!existingTs) temporal.recordMessage(index, timestamp, isUser)
 
     // Record tool metrics if provided (from the executor)
     if (toolMetrics) {
@@ -189,15 +274,17 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     // Route to the matching slot
     const slot = this.slots.find(s => s.matches(msg, ctx))
+    let augmented: any
     if (!slot) {
-      // Fallback: attach minimal annotation
-      return {
+      augmented = {
         ...msg,
         _thalamus: { ts: timestamp, slot: slotType, chars: extractMessageContent(msg).length },
       }
+    } else {
+      augmented = slot.augment(msg, ctx)
     }
-
-    return slot.augment(msg, ctx)
+    if (augmented?._thalamus) augmented._thalamus.index = index
+    return augmented
   }
 
   /**
@@ -319,6 +406,31 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Ensure all messages have _thalamus annotations (backward compatibility)
     const annotated = this.processAll(sessionId, messages)
 
+    // Apply Cassi-issued directives (drop / collapse) keyed by stable original index.
+    // Collapse mutates content immediately so scoring/budget see the shrunken size.
+    // Drop is tagged here and excluded in assembleByThreshold.
+    {
+      const drops = session.dropDirectives
+      const collapses = session.collapseDirectives
+      if (drops.size > 0 || collapses.size > 0) {
+        for (const msg of annotated) {
+          const idx = msg?._thalamus?.index
+          if (typeof idx !== 'number' || !msg._thalamus) continue
+          if (drops.has(idx)) {
+            msg._thalamus.directiveDropped = true
+          }
+          const summary = collapses.get(idx)
+          if (summary) {
+            const replacement = `[collapsed by cassi: ${summary}]`
+            msg.content = replacement
+            msg._thalamus.directiveCollapsed = true
+            msg._thalamus.directiveSummary = summary
+            msg._thalamus.chars = replacement.length
+          }
+        }
+      }
+    }
+
     // Mark AskUserQuestion answers as pinned — these encode operator intent
     // and must survive curation regardless of luminance score, even when older
     // than the recent-window. Without immunity, long sessions look like
@@ -383,11 +495,16 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     // Phase 1: Slot-aware compression — uses _thalamus.tool.class for strategy selection.
-    // Protect the recent window from compression; older messages get compressed
-    // to reduce their char footprint so more messages fit in the budget.
+    // Two protection mechanisms:
+    //   1. Recent window — last N messages are kept verbatim (in-flight context)
+    //   2. Live reads — latest read of each path with no later write to that path
+    //      survives compression even when older than the recent window. Captures
+    //      the "I read the file to prepare an edit" pattern: compressing those
+    //      reads forces a re-read and breaks the edit chain.
     const compressionBoundary = Math.max(0, annotated.length - cfg.recentWindowSize)
+    const liveReadMap = this.computeLiveReadIndices(annotated, cfg.recentWindowSize)
     const { messages: compressed, compressed: compressedCount } =
-      this.compressor.compress(annotated, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars })
+      this.compressor.compress(annotated, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars }, new Set(liveReadMap.keys()))
 
     // Phase 2: Enrich with temporal context for scoring
     const temporal = this.getTemporalRegistry(sessionId)
@@ -447,9 +564,9 @@ export class ThalamusModule extends BaseCognitiveModule {
           }
           if (overlap >= 2) {
             sm.luminance.relevance = Math.max(sm.luminance.relevance, 0.40)
-            sm.luminance.composite = Math.max(sm.luminance.composite, 0.25)
+            sm.luminance.composite = Math.max(sm.luminance.composite, 0.22)
           } else if (overlap >= 1) {
-            sm.luminance.composite = Math.max(sm.luminance.composite, 0.20)
+            sm.luminance.composite = Math.max(sm.luminance.composite, 0.18)
           }
         }
       }
@@ -487,7 +604,16 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
-    const assembled = this.assembleByThreshold(compressed, scored, protectedStart, cfg, topicClusters, sessionId)
+    // Cap protected segment to half the char budget so the budget remains a real
+    // ceiling. Without this, a tool-dense recent window can blow past charBudget
+    // entirely (assembleByThreshold's protectedChars > charBudget early-return).
+    // Live-read protection (set during compression) and Phase 3a's read boost
+    // already ensure relevant older reads survive, so demoted protected reads
+    // either survive via candidate selection or were not load-bearing anyway.
+    // Floor: always keep the last 2 messages protected (in-flight tool pair).
+    const cappedProtectedStart = this.capProtectedWindow(scored, protectedStart, compressed.length, Math.floor(cfg.charBudget * 0.5))
+
+    const assembled = this.assembleByThreshold(compressed, scored, cappedProtectedStart, cfg, topicClusters, sessionId)
 
     const curatedChars = assembled.messages.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
@@ -496,9 +622,39 @@ export class ThalamusModule extends BaseCognitiveModule {
     const dropped = compressed.length - assembled.messages.length
 
     const protectedIndices = new Set<number>()
-    for (let i = protectedStart; i < compressed.length; i++) {
+    for (let i = cappedProtectedStart; i < compressed.length; i++) {
       protectedIndices.add(i)
     }
+
+    for (let i = 0; i < compressed.length; i++) {
+      const msg = compressed[i]
+      const annotation: ThalamusAnnotation | undefined = msg?._thalamus
+      if (!annotation) continue
+
+      annotation.protectedBy = undefined
+      annotation.protectedReason = undefined
+
+      if (annotation.pinned) {
+        annotation.protectedBy = 'pin'
+        annotation.protectedReason = annotation.pinReason
+        continue
+      }
+      const liveReadPath = liveReadMap.get(i)
+      if (liveReadPath !== undefined) {
+        annotation.protectedBy = 'live-read'
+        annotation.protectedReason = liveReadPath
+        continue
+      }
+      if (annotation.slot === 'system') {
+        annotation.protectedBy = 'system'
+        annotation.protectedReason = annotation.source ?? 'system'
+        continue
+      }
+      if (i >= cappedProtectedStart) {
+        annotation.protectedBy = 'recent-window'
+      }
+    }
+
     const receipt = buildDropReceipt({
       before: compressed,
       scored,
@@ -506,6 +662,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       protectedIndices,
       charBudget: cfg.charBudget,
       charsUsed: curatedChars,
+      threshold: cfg.ignitionThreshold,
     })
 
     // Detect tool repetition — same (tool, target) appearing 3+ times
@@ -536,14 +693,61 @@ export class ThalamusModule extends BaseCognitiveModule {
       originalChars,
       curatedChars,
       threshold: cfg.ignitionThreshold,
-      phaseCoherence: brainContext.phaseCoherence.toFixed(2),
+      phaseCoherence: brainContext.phaseCoherence?.toFixed(2) ?? "?",
       dropped,
       durationMs: meta.durationMs,
     })
 
-    // Persist introspection state for cassi_context
     session.lastScored = scored
     session.lastThreshold = cfg.ignitionThreshold
+
+    const scoredByIdx = new Map<number, typeof scored[number]>()
+    for (const sm of scored) scoredByIdx.set(sm.messageIndex, sm)
+    const includedSorted = [...assembled.includedIndices].sort((a, b) => a - b)
+    const mapRows: ContextMapRow[] = []
+    for (const idx of includedSorted) {
+      const msg = compressed[idx]
+      const annotation: ThalamusAnnotation | undefined = msg?._thalamus
+      if (!annotation) continue
+      const content = extractMessageContent(msg)
+      const chars = content.length
+      const distilledFrom = (annotation as any)._distilledFrom
+      const originalChars =
+        typeof distilledFrom === 'number' && distilledFrom > 0
+          ? distilledFrom
+          : typeof msg?._originalChars === 'number' && msg._originalChars > 0
+            ? msg._originalChars
+            : chars
+      const sm = scoredByIdx.get(idx)
+      mapRows.push({
+        msgIndex: idx,
+        role: msg?.role ?? 'unknown',
+        slot: annotation.slot,
+        ts: annotation.ts,
+        chars,
+        originalChars,
+        compressed: originalChars > chars * 1.05,
+        tool: annotation.tool ? {
+          name: annotation.tool.name,
+          class: annotation.tool.class,
+          isError: annotation.tool.isError,
+          durationMs: annotation.tool.durationMs,
+        } : undefined,
+        protectedBy: annotation.protectedBy,
+        protectedReason: annotation.protectedReason,
+        composite: annotation.protectedBy ? undefined : sm?.luminance.composite,
+        preview: content.slice(0, 80),
+      })
+    }
+    session.lastMap = {
+      pass: session.totalCurations,
+      curatedAt: new Date().toISOString(),
+      charBudget: cfg.charBudget,
+      charsUsed: curatedChars,
+      annotatedCount: annotated.length,
+      visibleCount: mapRows.length,
+      rows: mapRows,
+    }
 
     // Append drop records (capped at MAX_DROP_HISTORY)
     if (receipt) {
@@ -677,7 +881,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Invalidate brain context cache after curation — each turn gets fresh context
     this.cachedBrainContext = null
 
-    return { messages: stripThalamusAnnotations(assembled.messages), meta }
+    return { messages: stripThalamusAnnotations(attachInlineMarkers(assembled.messages)), meta }
   }
 
   getStats(): { sessions: number; totalCurations: number } {
@@ -686,6 +890,55 @@ export class ThalamusModule extends BaseCognitiveModule {
       totalCurations += s.totalCurations
     }
     return { sessions: this.sessions.size, totalCurations }
+  }
+
+  /**
+   * Most-recently-curated session within `windowMs` (default 5 min).
+   * Used by `cassi_context` to default sessionId to the originating session.
+   */
+  getActiveSessionId(windowMs = 5 * 60_000): string | null {
+    let best: { id: string; ts: number } | null = null
+    const now = Date.now()
+    for (const s of this.sessions.values()) {
+      if (now - s.lastCuratedAt > windowMs) continue
+      if (!best || s.lastCuratedAt > best.ts) best = { id: s.sessionId, ts: s.lastCuratedAt }
+    }
+    return best?.id ?? null
+  }
+
+  /**
+   * Mark message indices for exclusion on the next curate pass.
+   * Idempotent. Caller is responsible for clearing via `clearDirectives`.
+   */
+  markDrop(sessionId: string, indices: number[]): { dropped: number[] } {
+    const session = this.getSession(sessionId)
+    for (const i of indices) session.dropDirectives.add(i)
+    return { dropped: Array.from(session.dropDirectives).sort((a, b) => a - b) }
+  }
+
+  /**
+   * Replace a message's content with a short summary on the next curate pass.
+   * Empty summary clears the directive for that index.
+   */
+  markCollapse(sessionId: string, index: number, summary: string): { collapsed: number[] } {
+    const session = this.getSession(sessionId)
+    if (summary && summary.trim().length > 0) {
+      session.collapseDirectives.set(index, summary.trim())
+    } else {
+      session.collapseDirectives.delete(index)
+    }
+    return { collapsed: Array.from(session.collapseDirectives.keys()).sort((a, b) => a - b) }
+  }
+
+  clearDirectives(sessionId: string, opts?: { drops?: number[]; collapses?: number[] }): void {
+    const session = this.getSession(sessionId)
+    if (!opts) {
+      session.dropDirectives.clear()
+      session.collapseDirectives.clear()
+      return
+    }
+    if (opts.drops) for (const i of opts.drops) session.dropDirectives.delete(i)
+    if (opts.collapses) for (const i of opts.collapses) session.collapseDirectives.delete(i)
   }
 
   private extractToolUseId(msg: any): string | undefined {
@@ -787,6 +1040,17 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
     return null
+  }
+
+  getContextMap(sessionId: string, opts?: { since?: number; limit?: number }): ContextMapSnapshot | null {
+    const session = this.sessions.get(sessionId)
+    if (!session || !session.lastMap) return null
+    const snap = session.lastMap
+    let rows = snap.rows
+    if (typeof opts?.since === 'number') rows = rows.filter(r => r.msgIndex >= opts.since!)
+    if (typeof opts?.limit === 'number' && rows.length > opts.limit) rows = rows.slice(-opts.limit)
+    if (rows === snap.rows) return snap
+    return { ...snap, rows, visibleCount: rows.length }
   }
 
   recall(sessionId: string, query: string, limit: number = 5): Array<{
@@ -1431,7 +1695,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     const allIndices = [
       ...Array.from(included).sort((a, b) => a - b),
       ...Array.from({ length: messages.length - protectedStart }, (_, i) => protectedStart + i),
-    ]
+    ].filter(idx => !messages[idx]?._thalamus?.directiveDropped)
 
     const assembled: any[] = []
     let gapNotes = 0
@@ -1772,6 +2036,8 @@ export class ThalamusModule extends BaseCognitiveModule {
         pinnedPatterns: [],
         thoughtCommandLog: [],
         distilledSummaries: new Map(),
+        dropDirectives: new Set(),
+        collapseDirectives: new Map(),
       }
       this.sessions.set(sessionId, session)
     }
@@ -2172,6 +2438,73 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
+   * Identify "live" read tool_results — the latest read of a file path that
+   * has not been written to since. These are reads the agent likely made in
+   * preparation for an Edit/Write/MultiEdit and needs verbatim. Compressing
+   * them mid-edit-prep forces a re-read and breaks the chain.
+   *
+   * Returned indices point at the user message containing the tool_result.
+   * Pass this set to ToolResultCompressor.compress as protectedIndices so
+   * those results survive even when they fall outside the recentWindow.
+   *
+   * Detection is path-based and includes MultiEdit/NotebookEdit beyond the
+   * global isWriteTool list — those rewrite files but don't match the regex.
+   * Bash and other path-opaque writes are not tracked; the worst case is a
+   * read stays "live" longer than strictly needed (a benign over-protection).
+   */
+  private computeLiveReadIndices(messages: any[], recentWindowSize: number): Map<number, string> {
+    const live = new Map<number, string>()
+    const readPattern = /^(Read|cassi_read|cassi_file.*read|mcp__\w+__read)$/i
+    const writePattern = /^(write|edit|multiedit|notebookedit|cassi_write|cassi_edit|serena_replace_content|serena_replace_symbol_body|serena_insert_after_symbol|serena_insert_before_symbol|mcp__\w+__(write|edit|multiedit))$/i
+
+    const useIdToResultIdx = new Map<string, number>()
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg?.role !== 'user' || !Array.isArray(msg.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_result' && block.tool_use_id) {
+          useIdToResultIdx.set(block.tool_use_id, i)
+        }
+      }
+    }
+
+    const latestReadResultIdxByPath = new Map<string, number>()
+    const latestWriteIdxByPath = new Map<string, number>()
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue
+      for (const block of msg.content) {
+        if (block?.type !== 'tool_use' || !block.id) continue
+        const toolName = block.name ?? ''
+        const fp = block.input?.filePath ?? block.input?.path ?? block.input?.file_path ?? ''
+        if (!fp) continue
+
+        if (writePattern.test(toolName)) {
+          latestWriteIdxByPath.set(fp, i)
+        } else if (readPattern.test(toolName)) {
+          const resultIdx = useIdToResultIdx.get(block.id)
+          if (resultIdx !== undefined) {
+            latestReadResultIdxByPath.set(fp, resultIdx)
+          }
+        }
+      }
+    }
+
+    const horizon = Math.max(1, recentWindowSize * 2)
+    const minIdx = Math.max(0, messages.length - horizon)
+
+    for (const [fp, readResultIdx] of latestReadResultIdxByPath) {
+      if (readResultIdx < minIdx) continue
+      const lastWriteIdx = latestWriteIdxByPath.get(fp)
+      if (lastWriteIdx === undefined || lastWriteIdx < readResultIdx) {
+        live.set(readResultIdx, fp)
+      }
+    }
+
+    return live
+  }
+
+  /**
    * Zero out luminance scores for non-latest file reads.
    * Both the tool_result and its paired tool_use are suppressed so that
    * assembly drops them entirely instead of keeping a summary.
@@ -2346,8 +2679,10 @@ export class ThalamusModule extends BaseCognitiveModule {
    * tool calls (the "tool loop" problem).
    *
    * Strategy: scan the last `baseWindow * 3` messages for tool density. If >60%
-   * are tool pairs, expand the window up to 3x. This is cheap (O(n) scan) and
-   * directly addresses the sliding-window problem during active tool chains.
+   * are tool pairs, expand 1.5x; >40%, expand 1.25x. The cap is intentionally
+   * conservative — live-read protection (computeLiveReadIndices) handles the
+   * "I read the file 20 messages ago and still need it" case without forcing
+   * a wide window over every recent tool result.
    */
   private computeAdaptiveWindow(messages: any[], baseWindow: number): number {
     if (messages.length <= baseWindow) return messages.length
@@ -2371,9 +2706,8 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     const toolDensity = toolCount / total
 
-    // Dense tool chain: expand window to preserve more tool context
     if (toolDensity > 0.6) {
-      const expanded = Math.min(baseWindow * 3, messages.length)
+      const expanded = Math.min(Math.ceil(baseWindow * 1.5), messages.length)
       this.logger.debug('Adaptive window: tool-dense segment detected, expanding protected window', {
         baseWindow,
         expanded,
@@ -2384,9 +2718,8 @@ export class ThalamusModule extends BaseCognitiveModule {
       return expanded
     }
 
-    // Moderate tool density: modest expansion
     if (toolDensity > 0.4) {
-      const expanded = Math.min(Math.ceil(baseWindow * 1.5), messages.length)
+      const expanded = Math.min(Math.ceil(baseWindow * 1.25), messages.length)
       this.logger.debug('Adaptive window: moderate tool density, modestly expanding', {
         baseWindow,
         expanded,
@@ -2396,6 +2729,65 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     return baseWindow
+  }
+
+  /**
+   * Cap the protected segment so its char total does not exceed `protectedCap`.
+   * Walks newest-first, accumulating estimated chars; when adding the next
+   * (older) protected message would exceed the cap, stops and returns that
+   * boundary as the new protectedStart.
+   *
+   * Floor: always keeps the last 2 messages protected, even if they alone
+   * exceed the cap. This preserves the in-flight tool_use+tool_result pair
+   * the model is mid-turn on.
+   *
+   * Demoted messages (those raised out of protection) become candidates in
+   * assembleByThreshold and survive only if their composite ignites. This is
+   * what makes charBudget a real ceiling rather than a lower-bound suggestion.
+   */
+  private capProtectedWindow(
+    scored: ScoredMessage[],
+    protectedStart: number,
+    totalLength: number,
+    protectedCap: number,
+  ): number {
+    if (protectedStart >= totalLength) return protectedStart
+
+    const charsByIdx = new Map<number, number>()
+    for (const s of scored) charsByIdx.set(s.messageIndex, s.estimatedChars)
+
+    let totalProtectedChars = 0
+    for (let i = protectedStart; i < totalLength; i++) {
+      totalProtectedChars += charsByIdx.get(i) ?? 0
+    }
+    if (totalProtectedChars <= protectedCap) return protectedStart
+
+    const minProtectedStart = Math.max(protectedStart, totalLength - 2)
+    let chars = 0
+    let newStart = totalLength
+    for (let i = totalLength - 1; i >= protectedStart; i--) {
+      const sz = charsByIdx.get(i) ?? 0
+      if (i >= minProtectedStart) {
+        chars += sz
+        newStart = i
+        continue
+      }
+      if (chars + sz > protectedCap) break
+      chars += sz
+      newStart = i
+    }
+
+    if (newStart !== protectedStart) {
+      this.logger.debug('Protected window capped to budget*0.5', {
+        originalStart: protectedStart,
+        cappedStart: newStart,
+        originalChars: totalProtectedChars,
+        cappedChars: chars,
+        cap: protectedCap,
+      })
+    }
+
+    return newStart
   }
 
   /**

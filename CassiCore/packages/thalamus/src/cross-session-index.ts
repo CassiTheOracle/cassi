@@ -35,6 +35,8 @@ export interface CrossSessionTopicEntry {
   status: 'active' | 'archived'
   /** Key terms extracted from the topic's messages */
   keyTerms: string[]
+  /** Files touched during this work phase (from TopicArchiveStructured) */
+  filesTouched: string[]
   /** Average luminance (composite) of messages in this topic, 0-1 */
   importanceScore: number
   /** Unix ms when this entry was last updated */
@@ -47,6 +49,16 @@ export interface CrossSessionTopicEntry {
 export interface CrossSessionIndexConfig {
   /** Maximum entries per constellation before LRU eviction. Default: 100 */
   maxEntriesPerConstellation: number
+}
+
+
+export interface FileConflict {
+  /** File path with overlapping access */
+  file: string
+  /** Session IDs that have touched this file */
+  sessions: string[]
+  /** Map of sessionId → topic labels for that session touching this file */
+  sessionTopics: Record<string, string[]>
 }
 
 
@@ -81,6 +93,8 @@ export class CrossSessionTopicIndex {
   private entries: CrossSessionTopicEntry[] = []
   /** Insertion order for LRU eviction */
   private insertionOrder: string[] = []
+  /** File path → Set of session IDs that have touched it */
+  private fileSessions = new Map<string, Set<string>>()
 
   constructor(opts: {
     constellationId: string
@@ -142,12 +156,20 @@ export class CrossSessionTopicIndex {
         summary: topic.summary,
         status: topic.status,
         keyTerms: topic.keyTerms,
+        filesTouched: topic.filesTouched ?? [],
         importanceScore: topic.importanceScore,
         timestamp: now,
         vector: vectors[i],
       }
 
       this.entries.push(entry)
+
+      // Track file → session mappings for conflict detection
+      for (const file of entry.filesTouched) {
+        const sessions = this.fileSessions.get(file) ?? new Set<string>()
+        sessions.add(sessionId)
+        this.fileSessions.set(file, sessions)
+      }
 
       // Track insertion order for LRU
       const orderIdx = this.insertionOrder.indexOf(id)
@@ -160,7 +182,18 @@ export class CrossSessionTopicIndex {
       const evictId = this.insertionOrder.shift()
       if (!evictId) break
       const idx = this.entries.findIndex(e => e.id === evictId)
-      if (idx !== -1) this.entries.splice(idx, 1)
+      if (idx !== -1) {
+        const evicted = this.entries.splice(idx, 1)[0]
+        if (evicted) {
+          for (const file of evicted.filesTouched) {
+            const sessions = this.fileSessions.get(file)
+            if (sessions) {
+              sessions.delete(evicted.sessionId)
+              if (sessions.size === 0) this.fileSessions.delete(file)
+            }
+          }
+        }
+      }
     }
   }
 
@@ -169,8 +202,23 @@ export class CrossSessionTopicIndex {
    * Remove all entries for a session (e.g., when a session ends).
    */
   evictSession(sessionId: string): void {
+    // Remove entries for this session
+    const removedEntries = this.entries.filter(e => e.sessionId === sessionId)
     this.entries = this.entries.filter(e => e.sessionId !== sessionId)
     this.insertionOrder = this.insertionOrder.filter(id => !id.startsWith(`${sessionId}::`))
+
+    // Clean up file → session mappings
+    for (const entry of removedEntries) {
+      for (const file of entry.filesTouched) {
+        const sessions = this.fileSessions.get(file)
+        if (sessions) {
+          sessions.delete(sessionId)
+          if (sessions.size === 0) {
+            this.fileSessions.delete(file)
+          }
+        }
+      }
+    }
   }
 
 
@@ -187,11 +235,16 @@ export class CrossSessionTopicIndex {
     const limit = opts?.limit ?? 5
     const minScore = opts?.minScore ?? 0.05
 
+    // Cap query text before embedding — very long slices can exceed the
+    // embedding model's context window and waste compute. 2000 chars captures
+    // the gist while staying well within zembed-1's limit.
+    const cappedQuery = queryText.slice(0, 2000)
+
     // Embed the query
     let queryVec: number[] | null = null
     if (this.embeddingService) {
       try {
-        queryVec = await this.embeddingService.embed(queryText, 'query')
+        queryVec = await this.embeddingService.embed(cappedQuery, 'query')
       } catch {
         // Fall back to term overlap
       }
@@ -277,6 +330,82 @@ export class CrossSessionTopicIndex {
   /** Get all entries (for debugging / admin API) */
   getAll(): CrossSessionTopicEntry[] {
     return [...this.entries]
+  }
+
+
+  /**
+   * Detect files that are being touched by multiple sessions.
+   *
+   * Returns files where ≥2 distinct sessions (from the given set) have
+   * active or recently-archived topics referencing the file. This is a
+   * lightweight early-warning signal for edit conflicts and duplicated
+   * effort.
+   */
+  detectFileConflicts(sessionIds?: string[]): FileConflict[] {
+    const conflicts: FileConflict[] = []
+    const idSet = sessionIds ? new Set(sessionIds) : null
+
+    for (const [file, sessions] of this.fileSessions) {
+      const relevantSessions = idSet
+        ? [...sessions].filter(s => idSet.has(s))
+        : [...sessions]
+      if (relevantSessions.length < 2) continue
+
+      // Gather topic labels for each session touching this file
+      const sessionTopics = new Map<string, string[]>()
+      for (const entry of this.entries) {
+        if (!entry.filesTouched.includes(file)) continue
+        if (idSet && !idSet.has(entry.sessionId)) continue
+        const topics = sessionTopics.get(entry.sessionId) ?? []
+        topics.push(entry.label)
+        sessionTopics.set(entry.sessionId, topics)
+      }
+
+      conflicts.push({
+        file,
+        sessions: relevantSessions,
+        sessionTopics: Object.fromEntries(sessionTopics),
+      })
+    }
+
+    // Sort by number of conflicting sessions descending
+    conflicts.sort((a, b) => b.sessions.length - a.sessions.length)
+    return conflicts
+  }
+
+
+  /**
+   * Format file conflicts into a compact human-readable string for
+   * prompt injection. Returns empty string if no conflicts.
+   */
+  formatConflicts(sessionIds?: string[]): string {
+    const conflicts = this.detectFileConflicts(sessionIds)
+    if (conflicts.length === 0) return ''
+
+    const MAX_CONFLICTS = 5
+    const MAX_CHARS = 800
+    const lines: string[] = []
+    let chars = 0
+
+    for (const c of conflicts.slice(0, MAX_CONFLICTS)) {
+      const sessionTags = c.sessions.map(s =>
+        s.length > 12 ? s.slice(0, 12) : s
+      )
+      const topicHints = Object.entries(c.sessionTopics)
+        .map(([sid, topics]) => {
+          const tag = sid.length > 8 ? sid.slice(0, 8) : sid
+          return `${tag}: ${topics.slice(0, 2).join(', ')}`
+        })
+        .join('; ')
+      const line = `  ${c.file}\n    Threads: ${sessionTags.join(', ')}\n    Work: ${topicHints}`
+
+      if (chars + line.length + 2 > MAX_CHARS && lines.length > 0) break
+      lines.push(line)
+      chars += line.length + 2
+    }
+
+    if (lines.length === 0) return ''
+    return `FILE OVERLAP WARNING\nThe following files are being touched by multiple threads simultaneously. Consider coordinating or splitting responsibility to avoid conflicts and duplicated effort.\n\n${lines.join('\n\n')}`
   }
 
 

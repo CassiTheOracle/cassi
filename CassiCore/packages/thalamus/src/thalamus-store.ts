@@ -330,6 +330,15 @@ export class ThalamusStore {
   }
 
   searchDropped(sessionId: string, query: string, limit: number = 5): Array<{ id: number; passNumber: number; msgIndex: number; role: string; content: string; slot: string; composite: number }> {
+    // Sanitize for FTS5: strip special chars, split into AND terms
+    const safeQuery = query
+      .replace(/["'*:^+\-\\(){}[\]~!@#%&=;|<>?/]/g, ' ')
+      .split(/\s+/)
+      .filter(t => t.length > 0)
+      .map(t => `"${t}"`)
+      .join(' ')
+    if (!safeQuery) return []
+
     const rows = this.db.prepare(`
       SELECT dm.id, dm.pass_number, dm.msg_index, dm.role, dm.content, dm.slot, dm.composite
       FROM dropped_messages_fts fts
@@ -337,7 +346,7 @@ export class ThalamusStore {
       WHERE fts.content MATCH ? AND dm.session_id = ?
       ORDER BY dm.composite DESC
       LIMIT ?
-    `).all(query, sessionId, limit)
+    `).all(safeQuery, sessionId, limit)
     return (rows as any[]).map(r => ({
       id: r.id,
       passNumber: r.pass_number,

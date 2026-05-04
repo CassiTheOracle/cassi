@@ -500,26 +500,23 @@ export class MessageLuminanceScorer {
 
   /** Lexical classifier for user decision/directive language. */
   private classifyUserDecision(content: string): number {
-    // Imperative verbs
-    const imperatives = [
-      /\b(use|don't|skip|go with|commit|ship|always|never|avoid|prefer|choose|select)\b/i,
-      /\b(implement|build|create|delete|remove|rename|move|extract|refactor)\b/i,
-    ]
-    // Preference/commitment markers
-    const preferences = [
+    // Strong signals — multi-word phrases that clearly indicate decisions
+    const strong = [
       /\b(i want|i prefer|let's do|the right approach|we should|i'd like|make it)\b/i,
-      /\b(yes|confirmed|do it|proceed|go ahead|sounds good|that works|correct)\b/i,
-    ]
-    // Negation/correction
-    const negations = [
       /\b(not that|no not|no,? not|stop doing|don't do|wrong|incorrect|not what i)\b/i,
       /\b(instead|rather|actually|i meant|what i meant)\b/i,
+      /\bgo with (?:approach|method|option|design|pattern)\b/i,
+      /\b(yes,?\s+(?:commit|ship|proceed|do it|go ahead)|confirmed|sounds good|that works)\b/i,
+    ]
+    // Moderate signals — require sentence-initial position to avoid false positives
+    const moderate = [
+      /(?:^|[.!?]\s+)(use|skip|avoid|never|always|prefer|choose|select|delete|remove|rename|extract)\b/i,
+      /\b(commit|ship|implement|refactor|create)\s+(?:this|the|a|an|it|now)\b/i,
     ]
 
     let score = 0
-    for (const re of imperatives) if (re.test(content)) { score = Math.max(score, 0.6); break }
-    for (const re of preferences) if (re.test(content)) { score = Math.max(score, 0.8); break }
-    for (const re of negations) if (re.test(content)) { score = Math.max(score, 0.9); break }
+    for (const re of strong) if (re.test(content)) { score = Math.max(score, 0.8); break }
+    for (const re of moderate) if (re.test(content)) { score = Math.max(score, 0.5); break }
 
     return score
   }
