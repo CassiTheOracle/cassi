@@ -13,12 +13,12 @@
 import type { ILogger } from '../../types/interfaces.js'
 import type http from 'node:http'
 
-import { ScenarioRunner } from '../../src/testing/verification/scenario-runner.js'
-import { LiveWorkflowHarness } from '../../src/testing/live/live-harness.js'
-import { StateSnapshot } from '../../src/testing/verification/state-snapshot.js'
-import { getScenario, listScenarios } from '../../src/testing/scenarios/index.js'
-import { sessionExportToScenario } from '../../src/testing/replay/session-replay-adapter.js'
-import { ReplayRunner } from '../../src/testing/replay/replay-runner.js'
+import { ScenarioRunner } from '../testing/verification/scenario-runner.js'
+import { LiveWorkflowHarness } from '../testing/live/live-harness.js'
+import { StateSnapshot } from '../testing/verification/state-snapshot.js'
+import { getScenario, listScenarios } from '../testing/scenarios/index.js'
+import { sessionExportToScenario } from '../testing/replay/session-replay-adapter.js'
+import { ReplayRunner } from '../testing/replay/replay-runner.js'
 
 export interface VerificationRoutesDeps {
   daemon: any
