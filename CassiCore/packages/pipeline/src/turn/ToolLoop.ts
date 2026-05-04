@@ -19,6 +19,7 @@ import type {
 
 import { ContextOverflowError, isOverflowError, reclassifyAsOverflow, stripToolFiller, hasQuestionResult, buildToolUseMapFromMessages } from './overflow.js'
 import { CHARS_PER_TOKEN } from '../../intelligence/shared/token-estimation.js'
+import { isWriteTool, isReadTool, isShellTool, shortenPath } from '../../intelligence/thalamus/classifier.js'
 
 export interface ToolLoopOptions {
   maxRounds: number;
@@ -517,17 +518,141 @@ export class ToolLoop {
     }
 
     if (toRemove.length > 0) {
+      // Generate a synthetic summary of the work being dropped so the model
+      // retains context about what it already did. This prevents the agent
+      // from re-reading files or re-running commands it already executed.
+      const summary = this.buildMidLoopSummary(messages, toRemove)
+
       const removeSet = new Set(toRemove)
       const trimmed = messages.filter((_, idx) => !removeSet.has(idx))
+
+      // Find a safe insertion point that preserves the user/assistant alternation.
+      // Look for a user→assistant boundary and insert after the assistant message.
+      let insertIdx = -1
+      for (let i = 0; i < trimmed.length - 1; i++) {
+        if (trimmed[i].role === 'user' && trimmed[i + 1].role === 'assistant') {
+          // Insert after this assistant message
+          insertIdx = i + 1
+          break
+        }
+      }
+      // Fallback: insert after the first non-system message
+      if (insertIdx < 0) {
+        insertIdx = trimmed.findIndex(m => m.role !== 'system')
+        if (insertIdx < 0) insertIdx = trimmed.length - 1
+      }
+
+      const summaryMsg: Message = {
+        role: 'user',
+        content: summary,
+        timestamp: Date.now(),
+      }
+
+      // Insert after the found boundary. If the boundary is an assistant message,
+      // inserting a user message after it preserves alternation.
+      // If the next message is also user, we merge or skip to avoid breaking alternation.
+      const nextMsg = insertIdx + 1 < trimmed.length ? trimmed[insertIdx + 1] : null
+      if (nextMsg && nextMsg.role === 'user') {
+        // Can't insert a user message between user messages.
+        // If the next message has toolResults, prepend as a synthetic system-style
+        // note in the content string. If it's plain text, prepend directly.
+        if (nextMsg.toolResults && nextMsg.toolResults.length > 0) {
+          // Prepend to the first tool result's content
+          nextMsg.toolResults[0].content = `${summary}\n\n${nextMsg.toolResults[0].content ?? ''}`
+        } else if (typeof nextMsg.content === 'string') {
+          nextMsg.content = `${summary}\n\n${nextMsg.content}`
+        } else if (Array.isArray(nextMsg.content)) {
+          // Insert a text block at the front
+          nextMsg.content = [{ type: 'text' as const, text: summary }, ...nextMsg.content]
+        }
+      } else {
+        // Safe to insert as a user message after the assistant boundary
+        trimmed.splice(insertIdx + 1, 0, summaryMsg)
+      }
+
       messages.length = 0
       messages.push(...trimmed)
 
-      this.logger.debug('Mid-loop context trim: dropped tool pairs', {
+      this.logger.debug('Mid-loop context trim: dropped tool pairs with summary injection', {
         removed: toRemove.length,
+        summaryChars: summary.length,
         oldChars: chars,
         newChars: this.estimateChars(messages),
       })
     }
+  }
+
+  /**
+   * Build a compact summary of tool pairs being dropped in mid-loop trim.
+   * Extracts tool names, file paths, and key findings so the model has
+   * enough context to continue without re-doing work.
+   */
+  private buildMidLoopSummary(messages: Message[], removedIndices: number[]): string {
+    const tools = new Set<string>()
+    const filesRead: string[] = []
+    const filesWritten: string[] = []
+    const errors: string[] = []
+    const seenFilesRead = new Set<string>()
+    const seenFilesWritten = new Set<string>()
+    let pairCount = 0
+
+    for (const idx of removedIndices) {
+      const m = messages[idx]
+      if (!m) continue
+
+      // Extract from tool_call messages
+      if (m.role === 'assistant' && m.toolCalls) {
+        for (const tc of m.toolCalls) {
+          const name = tc.name ?? ''
+          if (name) tools.add(name)
+          pairCount++
+
+          // Extract file paths from tool input
+          const input = tc.input
+          if (input && typeof input === 'object') {
+            const fp = (input as any).filePath ?? (input as any).path ?? (input as any).file_path ?? (input as any).relative_path ?? ''
+            if (fp && typeof fp === 'string') {
+              const short = shortenPath(fp)
+              if (isWriteTool(name)) {
+                if (!seenFilesWritten.has(fp)) { seenFilesWritten.add(fp); filesWritten.push(short) }
+              } else if (isReadTool(name)) {
+                if (!seenFilesRead.has(fp)) { seenFilesRead.add(fp); filesRead.push(short) }
+              }
+            }
+            // Extract command
+            if (isShellTool(name) && (input as any).command) {
+              tools.add(`${name}: ${String((input as any).command).split('\n')[0]?.slice(0, 40)}`)
+            }
+          }
+        }
+      }
+
+      // Extract from tool_result messages
+      if (m.role === 'user' && m.toolResults) {
+        for (const tr of m.toolResults) {
+          if (tr.isError) {
+            const firstLine = tr.content?.split('\n')[0]?.slice(0, 80) ?? ''
+            if (firstLine && errors.length < 2) errors.push(firstLine)
+          }
+        }
+      }
+    }
+
+    const parts: string[] = []
+    const callCount = Math.ceil(pairCount / 2)
+    if (filesRead.length > 0) parts.push(`read ${filesRead.slice(0, 5).join(', ')}`)
+    if (filesWritten.length > 0) parts.push(`wrote ${filesWritten.slice(0, 3).join(', ')}`)
+    if (errors.length > 0) parts.push(`errors: ${errors.join('; ')}`)
+
+    const toolNames = Array.from(tools).slice(0, 5)
+    if (toolNames.length > 0 && filesRead.length === 0 && filesWritten.length === 0) {
+      parts.push(`tools used: ${toolNames.join(', ')}`)
+    }
+
+    if (parts.length === 0) {
+      return `[Prior work: ${callCount} tool call${callCount !== 1 ? 's' : ''} completed. Do not repeat these operations unless the context has changed.]`
+    }
+    return `[Prior work: ${callCount} tool call${callCount !== 1 ? 's' : ''} — ${parts.join('. ')}. Do not repeat these operations unless the context has changed.]`
   }
 
   private estimateChars(messages: Message[]): number {

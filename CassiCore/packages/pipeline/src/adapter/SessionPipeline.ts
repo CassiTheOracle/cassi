@@ -82,6 +82,7 @@ interface TurnOptions {
   stream?: boolean;
   onStreamEvent?: StreamEventCallback;
   model?: string;
+  maxToolRounds?: number;
   timeoutMs?: number;
 }
 
@@ -552,7 +553,20 @@ export class SessionPipeline {
     }
 
     try {
-      const result = await this.turnHandler!.process(session, request, onStreamEvent);
+      if (options?.maxToolRounds !== undefined) {
+        this.logger.info('Applying per-turn maxToolRounds override', {
+          sessionId: session.id,
+          maxToolRounds: options.maxToolRounds,
+        })
+      }
+      const result = options?.maxToolRounds !== undefined
+        ? await this.turnHandler!.processWithOptions(
+            session,
+            request,
+            { maxToolRounds: options.maxToolRounds },
+            onStreamEvent,
+          )
+        : await this.turnHandler!.process(session, request, onStreamEvent);
 
       // Emit done event (bookend) if streaming
       if (shouldStream && this.eventBus) {
