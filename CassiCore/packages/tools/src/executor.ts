@@ -76,6 +76,10 @@ export class ToolExecutor {
   }
 
   private resolveToolCached(toolName: string): RegistryEntry | undefined {
+    if (typeof toolName !== 'string' || toolName.length === 0) {
+      return undefined
+    }
+
     const cached = this.resolvedToolCache.get(toolName)
     if (cached) {
       return cached
@@ -91,6 +95,10 @@ export class ToolExecutor {
   }
 
   private resolveToolFull(toolName: string): RegistryEntry | undefined {
+    if (typeof toolName !== 'string' || toolName.length === 0) {
+      return undefined
+    }
+
     let entry = this.registry.get(toolName)
     if (entry) return entry
 
@@ -127,7 +135,7 @@ export class ToolExecutor {
     if (fileOps.has(toolName)) {
       const list = this.registry.list()
 
-      const serenaMatch = list.find(d => d.name.startsWith('serena__') && (
+      const serenaMatch = list.find(d => typeof d?.name === 'string' && d.name.startsWith('serena__') && (
         (toolName.includes('read') && d.name.includes('read')) ||
         ((toolName.includes('write') || toolName.includes('create')) && (d.name.includes('write') || d.name.includes('create') || d.name.includes('replace') || d.name.includes('insert'))) ||
         (toolName.includes('exists') && d.name.includes('exists')) ||
@@ -136,7 +144,7 @@ export class ToolExecutor {
       ))
       if (serenaMatch) return this.registry.get(serenaMatch.name)
 
-      const suffixMatch = list.find(d => d.name.endsWith(`__${toolName}`))
+      const suffixMatch = list.find(d => typeof d?.name === 'string' && d.name.endsWith(`__${toolName}`))
       if (suffixMatch) return this.registry.get(suffixMatch.name)
     }
 
@@ -197,41 +205,42 @@ export class ToolExecutor {
     // REMOVED: orchestrator delegation — deprecated TriadTeam deleted
 
     const executeStartMs = Date.now()
+    const requestedToolName = typeof call.name === 'string' && call.name.length > 0 ? call.name : '(unknown)'
 
-    const entry = this.resolveToolCached(call.name)
+    const entry = this.resolveToolCached(requestedToolName)
 
     if (!entry) {
-      this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
-      return { toolCallId: call.id, toolName: call.name, content: `Unknown tool: ${call.name}`, isError: true }
+      this.emitToolExecuted(sessionId, requestedToolName, Date.now() - executeStartMs, true)
+      return { toolCallId: call.id, toolName: requestedToolName, content: `Unknown tool: ${requestedToolName}`, isError: true }
     }
 
-    let actualToolName = call.name
+    let actualToolName = requestedToolName
     let actualEntry = entry
     if (this.reliabilityTracker) {
-      if (!this.reliabilityTracker.canExecute(call.name)) {
+      if (!this.reliabilityTracker.canExecute(requestedToolName)) {
         const fallbackTool = entry.definition.fallbackTool
         if (fallbackTool) {
           const fallbackEntry = this.registry.get(fallbackTool)
           if (fallbackEntry) {
-            this.logger.info(`Circuit OPEN for tool '${call.name}' — routing to fallback '${fallbackTool}'`, {
-              originalTool: call.name,
+            this.logger.info(`Circuit OPEN for tool '${requestedToolName}' — routing to fallback '${fallbackTool}'`, {
+              originalTool: requestedToolName,
               fallbackTool,
             })
             actualToolName = fallbackTool
             actualEntry = fallbackEntry
           } else {
-            this.logger.warn(`Circuit OPEN for tool '${call.name}' — fallback '${fallbackTool}' not found`, {
-              originalTool: call.name,
+            this.logger.warn(`Circuit OPEN for tool '${requestedToolName}' — fallback '${fallbackTool}' not found`, {
+              originalTool: requestedToolName,
               fallbackTool,
             })
           }
         }
-        if (actualToolName === call.name) {
-          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+        if (actualToolName === requestedToolName) {
+          this.emitToolExecuted(sessionId, requestedToolName, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
             toolName: actualToolName,
-            content: `[circuit-open] Tool '${call.name}' is temporarily unavailable due to repeated failures. Try again later.`,
+            content: `[circuit-open] Tool '${requestedToolName}' is temporarily unavailable due to repeated failures. Try again later.`,
             isError: true,
           }
         }
@@ -270,21 +279,21 @@ export class ToolExecutor {
     // WHY: 5-second cache prevents redundant risk assessment for repetitive calls
     // (e.g., reading 10 files in a loop) — collisions just re-run judge()
     if (this.permissionOracle && !skipPermissionCheck) {
-      const cacheKey = permissionCacheKey(call.name, call.input)
+      const cacheKey = permissionCacheKey(requestedToolName, call.input)
       const cached = this.permissionCache.get(cacheKey)
 
       if (cached?.decision === 'deny') {
-        this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+        this.emitToolExecuted(sessionId, requestedToolName, Date.now() - executeStartMs, true)
         return {
           toolCallId: call.id,
-          toolName: call.name,
+          toolName: requestedToolName,
           content: `Permission denied (cached): ${cached.reasoning}`,
           isError: true,
         }
       }
 
       if (!cached || cached.decision !== 'allow') {
-        const verdict = this.permissionOracle.judge(call.name, call.input, sessionId, {
+        const verdict = this.permissionOracle.judge(requestedToolName, call.input, sessionId, {
           sessionType: ctx.sessionType,
         })
 
@@ -294,10 +303,10 @@ export class ToolExecutor {
         })
 
         if (verdict.decision === 'deny') {
-          this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
+          this.emitToolExecuted(sessionId, requestedToolName, Date.now() - executeStartMs, true)
           return {
             toolCallId: call.id,
-            toolName: call.name,
+            toolName: requestedToolName,
             content: `Permission denied: ${verdict.reasoning}` +
               ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
             isError: true,
@@ -308,7 +317,7 @@ export class ToolExecutor {
           this.permissionCache.delete(cacheKey)
 
           // WHY: escalate never cached — human must approve each occurrence
-          this.emitSafetyEvent(sessionId, call.name, 'permission_escalated', [
+          this.emitSafetyEvent(sessionId, requestedToolName, 'permission_escalated', [
             verdict.reasoning,
             `risk=${verdict.riskAssessment.riskScore.toFixed(2)}`,
             `trust=${verdict.trustScore.score.toFixed(2)}`,
@@ -321,7 +330,7 @@ export class ToolExecutor {
             this.emitToolExecuted(sessionId, call.name, Date.now() - executeStartMs, true)
             return {
               toolCallId: call.id,
-              toolName: call.name,
+              toolName: requestedToolName,
               content: `Permission denied (human rejected or timed out): ${verdict.reasoning}` +
                 ` (risk=${verdict.riskAssessment.riskScore.toFixed(2)}, trust=${verdict.trustScore.score.toFixed(2)})`,
               isError: true,
@@ -591,6 +600,7 @@ export class ToolExecutor {
   ): void {
     const cortex = this.defaultContext._cortex as CorticalField | undefined
     if (!cortex) return
+    if (typeof toolName !== 'string' || toolName.length === 0) return
 
     // Strip MCP server prefixes (serena__, gitnexus__) to find the base tool
     const baseName = toolName.replace(/^[a-z]+__/, '')
@@ -666,6 +676,7 @@ export class ToolExecutor {
 
   private trackSkillInvocation(call: ToolCall, sessionId: string): void {
     if (!this.eventBus) return
+    if (typeof call.name !== 'string' || call.name.length === 0) return
 
     const isReadTool = call.name === 'read' || call.name === 'read_file' ||
                        call.name.endsWith('__read') || call.name.endsWith('__read_file')
