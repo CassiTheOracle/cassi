@@ -56,8 +56,8 @@ export const MODEL_DEFAULTS = {
 
   /** Background — cheap/free model for drones, scouts, and low-priority work */
   background: {
-    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'github-copilot'),
-    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'gpt-5-mini'),
+    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'alibaba-coding'),
+    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'qwen3.6-plus'),
   },
 } as const
 
@@ -72,9 +72,9 @@ export const MODEL_DIRECTIVE_TIER_DEFAULTS = {
   glm:        { provider: 'alibaba-coding', model: 'glm-5' },
   kimi:       { provider: 'alibaba-coding', model: 'kimi-k2.5' },
   qwenMax:    { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' },
-  sonnet:     { provider: 'claude-code',    model: 'claude-sonnet-4-6' },
-  opus:       { provider: 'claude-code',    model: 'claude-opus-4-6' },
-  background: { provider: 'github-copilot', model: 'gpt-5-mini' },
+  sonnet:     { provider: 'claude-code',    model: 'claude-sonnet-4-7' },
+  opus:       { provider: 'claude-code',    model: 'claude-opus-4-7' },
+  background: { provider: 'alibaba-coding', model: 'qwen3.6-plus' },
 } as const
 
 /**
