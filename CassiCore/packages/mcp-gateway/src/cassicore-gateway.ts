@@ -83,6 +83,9 @@ import {
   KNOWLEDGE_TOOL_NAME,
   executeKnowledgeTool,
   getKnowledgeTool,
+  CONTEXT_CONSOLIDATED_TOOL_NAME,
+  getContextConsolidatedTool,
+  executeContextAction,
   postToolBrainSignal,
 } from './gateway/index.js';
 import { resolveToolAlias, unknownToolError } from './gateway/tool-aliases.js';
@@ -191,6 +194,7 @@ function getAllTools() {
     getMemoryConsolidatedTool(),
     getSessionConsolidatedTool(),
     getIntelligenceConsolidatedTool(),
+    getContextConsolidatedTool(),
     getConfigConsolidatedTool(),
     getModelConsolidatedTool(),
     getTrainingConsolidatedTool(),
@@ -324,14 +328,14 @@ async function routeToolCall(name: string, args: any, progressToken?: string | n
 
       case INTELLIGENCE_CONSOLIDATED_TOOL_NAME: {
         const result = await executeIntelligenceConsolidatedTool(CASSICORE_URL, args, logger);
-        // HOW: Standard intelligence actions return markdown strings; schema, context_feedback,
-        // and meditation actions return objects. formatTextResponse requires a string — passing
-        // an object causes MCP error -32602 ("expected string, received object").
         if (typeof result === 'string') {
           return formatTextResponse(result);
         }
         return formatJsonResponse(result);
       }
+
+      case CONTEXT_CONSOLIDATED_TOOL_NAME:
+        return formatJsonResponse(await executeContextAction(CASSICORE_URL, args, logger));
 
       case CONFIG_CONSOLIDATED_TOOL_NAME:
         return formatJsonResponse(await executeConfigConsolidatedTool(CASSICORE_URL, args, logger));

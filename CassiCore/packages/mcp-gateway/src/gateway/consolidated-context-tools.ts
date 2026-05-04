@@ -2,6 +2,7 @@
  * Consolidated Context Tools Module
  *
  * Provides cassi_context tool for Thalamus visibility and control:
+ * - map: per-message visibility roster — what's protected, what's at-risk
  * - audit: recent drop history with luminance breakdowns
  * - pin: protect messages matching a pattern from future drops
  * - why: introspect the 5-axis luminance score for a specific message
@@ -27,13 +28,30 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
     properties: {
       action: {
         type: 'string',
-        enum: ['audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject'],
+        enum: ['map', 'audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject', 'drop', 'collapse', 'clear_directives'],
         description:
-          'Context operation: audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection)',
+          'Context operation: map (visibility roster — what is protected and why), audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection), drop (exclude messages by index on next curate), collapse (replace a message with a summary on next curate), clear_directives (cancel all pending drop/collapse).',
       },
       sessionId: {
         type: 'string',
-        description: 'Session ID to inspect. Required for audit, pin, unpin, why.',
+        description: 'Session ID to inspect. If omitted, defaults to the most-recently-active session in the last 5 minutes.',
+      },
+      indices: {
+        type: 'array',
+        items: { type: 'number' },
+        description: 'Message indices for drop action. Use the `#N` numbers shown in inline markers or cassi_context map.',
+      },
+      index: {
+        type: 'number',
+        description: 'Message index for collapse action.',
+      },
+      summary: {
+        type: 'string',
+        description: 'Replacement text for collapse action — kept short to free up budget.',
+      },
+      since: {
+        type: 'number',
+        description: 'For map: only include messages with msgIndex >= this value.',
       },
       window: {
         type: 'number',
@@ -80,16 +98,35 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
   },
 } as const
 
+async function resolveSessionId(adminBase: string, explicit: string | undefined): Promise<string | undefined> {
+  if (explicit) return explicit
+  try {
+    const data = await fetchIntelligence(adminBase, '/context/active')
+    return (data?.sessionId as string | undefined) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 export async function executeContextAction(
   baseUrl: string,
   args: Record<string, unknown>,
   logger: ILogger,
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const action = args.action as string
-  const sessionId = args.sessionId as string | undefined
   const adminBase = baseUrl || ADMIN_BASE
+  const sessionId = await resolveSessionId(adminBase, args.sessionId as string | undefined)
 
   switch (action) {
+    case 'map': {
+      if (!sessionId) return formatTextResponse('sessionId is required for map')
+      const params: Record<string, string> = { sessionId }
+      if (typeof args.since === 'number') params.since = String(args.since)
+      if (typeof args.limit === 'number') params.limit = String(args.limit)
+      const data = await fetchIntelligence(adminBase, '/context/map', params)
+      return formatContextMap(data)
+    }
+
     case 'audit': {
       if (!sessionId) return formatTextResponse('sessionId is required for audit')
       const window = (args.window as number) ?? 5
@@ -174,8 +211,53 @@ export async function executeContextAction(
       return formatJsonResponse(data)
     }
 
+    case 'drop': {
+      if (!sessionId) return formatTextResponse('No active session — pass sessionId explicitly.')
+      const indices = (args.indices as number[] | undefined) ?? []
+      const numeric = indices.filter(n => Number.isInteger(n))
+      if (numeric.length === 0) return formatTextResponse('indices[] of integers required for drop')
+      const url = `${adminBase}/context/drop`
+      const res = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId, indices: numeric }),
+      })
+      const data = await res.json()
+      const queued = (data?.dropped as number[] | undefined) ?? []
+      return formatTextResponse(
+        `Drop directive queued for ${sessionId}. Pending drops: ${queued.length === 0 ? '(none)' : queued.map(i => `#${i}`).join(', ')}. Effective on next curate.`,
+      )
+    }
+
+    case 'collapse': {
+      if (!sessionId) return formatTextResponse('No active session — pass sessionId explicitly.')
+      const index = args.index as number | undefined
+      const summary = args.summary as string | undefined
+      if (!Number.isInteger(index)) return formatTextResponse('integer index required for collapse')
+      if (typeof summary !== 'string') return formatTextResponse('summary string required for collapse')
+      const url = `${adminBase}/context/collapse`
+      const res = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ sessionId, index, summary }),
+      })
+      const data = await res.json()
+      const queued = (data?.collapsed as number[] | undefined) ?? []
+      return formatTextResponse(
+        `Collapse directive queued for #${index} (${summary.length} char summary). Pending collapses: ${queued.map(i => `#${i}`).join(', ') || '(none)'}. Effective on next curate.`,
+      )
+    }
+
+    case 'clear_directives': {
+      if (!sessionId) return formatTextResponse('No active session — pass sessionId explicitly.')
+      const url = `${adminBase}/context/directives?sessionId=${encodeURIComponent(sessionId)}`
+      const res = await fetchWithTimeout(url, { method: 'DELETE' })
+      const data = await res.json()
+      return formatJsonResponse(data)
+    }
+
     default:
-      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: audit, pin, unpin, why, stats, recall, recall_inject`)
+      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: map, audit, pin, unpin, why, stats, recall, recall_inject, drop, collapse, clear_directives`)
   }
 }
 
@@ -243,6 +325,68 @@ function formatContextWhy(data: any): { content: Array<{ type: 'text'; text: str
   }
   if (data.preview) {
     lines.push(`\n  Preview: "${data.preview}"`)
+  }
+
+  return formatTextResponse(lines.join('\n'))
+}
+
+function formatRelativeTime(iso: string | undefined, nowMs: number): string {
+  if (!iso) return '?'
+  const t = Date.parse(iso)
+  if (isNaN(t)) return '?'
+  const dMs = Math.max(0, nowMs - t)
+  const s = Math.floor(dMs / 1000)
+  if (s < 60) return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h${m % 60 > 0 ? ` ${m % 60}m` : ''} ago`
+  const d = Math.floor(h / 24)
+  return `${d}d ago`
+}
+
+function formatProtectionTag(row: any): string {
+  if (!row.protectedBy) {
+    if (typeof row.composite === 'number') return `score=${row.composite.toFixed(2)}`
+    return 'unscored'
+  }
+  switch (row.protectedBy) {
+    case 'pin':           return `pin${row.protectedReason ? `:${row.protectedReason}` : ''}`
+    case 'live-read':     return `live-read${row.protectedReason ? `:${row.protectedReason}` : ''}`
+    case 'system':        return `system${row.protectedReason && row.protectedReason !== 'system' ? `:${row.protectedReason}` : ''}`
+    case 'recent-window': return 'recent-window'
+    case 'slot-budget':   return 'slot-budget'
+    default:              return String(row.protectedBy)
+  }
+}
+
+function formatContextMap(data: any): { content: Array<{ type: 'text'; text: string }> } {
+  if (data?.error) return formatTextResponse(`Error: ${data.error}`)
+  if (!data || !Array.isArray(data.rows)) {
+    return formatTextResponse('No curated state available for that session yet.')
+  }
+
+  const nowMs = Date.now()
+  const lines: string[] = []
+  const budgetPct = data.charBudget > 0 ? Math.round((data.charsUsed / data.charBudget) * 100) : 0
+  lines.push(
+    `Context map · session ${(data.sessionId ?? '').slice(0, 12)} · ` +
+    `${data.visibleCount}/${data.annotatedCount} visible · ` +
+    `${formatChars(data.charsUsed)}/${formatChars(data.charBudget)} (${budgetPct}%) · pass #${data.pass}`,
+  )
+  lines.push('')
+
+  for (const row of data.rows) {
+    const idx = String(row.msgIndex).padStart(3)
+    const slot = (row.slot ?? row.role ?? '?').padEnd(11)
+    const ts = formatRelativeTime(row.ts, nowMs).padStart(10)
+    const tool = row.tool ? ` · ${row.tool.name}${row.tool.isError ? '!' : ''}` : ''
+    const chars = formatChars(row.chars).padStart(10)
+    const compressed = row.compressed && row.originalChars > row.chars
+      ? ` (was ${formatChars(row.originalChars)})`
+      : ''
+    const tag = formatProtectionTag(row)
+    lines.push(`[${idx}] ${slot} · ${ts}${tool} · ${chars}${compressed} · ${tag}`)
   }
 
   return formatTextResponse(lines.join('\n'))
