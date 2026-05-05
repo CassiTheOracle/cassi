@@ -22,7 +22,7 @@ import type { ILogger } from '../../types/interfaces.js'
 import { getDataDir } from '../utils/paths.js'
 
 
-const DB_FILENAME = 'rate-limits.db'
+const DB_FILENAME = 'system-state.db'
 const SCHEMA_VERSION = 1
 
 /** Entries not hit within this many days are considered stale and pruned. */
