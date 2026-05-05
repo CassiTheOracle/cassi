@@ -28,9 +28,9 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
     properties: {
       action: {
         type: 'string',
-        enum: ['map', 'audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject', 'drop', 'collapse', 'clear_directives'],
+        enum: ['map', 'audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject', 'drop', 'collapse', 'clear_directives', 'expand'],
         description:
-          'Context operation: map (visibility roster — what is protected and why), audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection), drop (exclude messages by index on next curate), collapse (replace a message with a summary on next curate), clear_directives (cancel all pending drop/collapse).',
+          'Context operation: map (visibility roster — what is protected and why), audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection), drop (exclude messages by index on next curate), collapse (replace a message with a summary on next curate), clear_directives (cancel all pending drop/collapse), expand (recover original uncompressed content for a reranker-compressed tool result).',
       },
       sessionId: {
         type: 'string',
@@ -56,6 +56,10 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
       window: {
         type: 'number',
         description: 'Number of recent curation rounds for audit (default 5).',
+      },
+      tool_use_id: {
+        type: 'string',
+        description: 'Tool use ID for expand action — the tool_use_id of the compressed tool result to recover.',
       },
       msgIndex: {
         type: 'number',
@@ -256,8 +260,21 @@ export async function executeContextAction(
       return formatJsonResponse(data)
     }
 
+    case 'expand': {
+      if (!sessionId) return formatTextResponse('No active session — pass sessionId explicitly.')
+      const toolUseId = args.tool_use_id as string | undefined
+      if (!toolUseId) return formatTextResponse('tool_use_id is required for expand action')
+      const url = `${adminBase}/context/expand?sessionId=${encodeURIComponent(sessionId)}&toolUseId=${encodeURIComponent(toolUseId)}`
+      const res = await fetchWithTimeout(url, { method: 'GET' })
+      if (res.status === 404) {
+        return formatTextResponse(`Tool result ${toolUseId} not found in session reranker cache. It may have been evicted or was never compressed.`)
+      }
+      const data = await res.json()
+      return formatJsonResponse(data)
+    }
+
     default:
-      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: map, audit, pin, unpin, why, stats, recall, recall_inject, drop, collapse, clear_directives`)
+      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: map, audit, pin, unpin, why, stats, recall, recall_inject, drop, collapse, clear_directives, expand`)
   }
 }
 
