@@ -104,6 +104,16 @@ cassi_blackboard({ action: "post", name: "session-handoff", channel: "artifacts"
 cassi_agent({ type: "constellation", action: "project", goal: "Continue: <remaining work>" })
 ```
 
+### Recovering compressed content
+
+When tool results are large, the Thalamus may compress them using a reranker to keep only the most relevant chunks. If you need the full original content, use:
+
+```
+cassi_context({ action: "expand", tool_use_id: "toolu_abc123..." })
+```
+
+This returns the original uncompressed content from the session cache instantly (no LLM call).
+
 ## Blackboard Channels
 
 - `findings` — analysis results, progress

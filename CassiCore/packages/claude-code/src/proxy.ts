@@ -419,7 +419,10 @@ export function sanitizeToolPairs(messages: any[]): any[] {
         };
       }
     }
-    if (out.length > 0 && out[out.length - 1].role === msg.role) {
+    // Never merge assistant messages — their thinking signatures are bound to
+    // block structure, and concatenating content arrays invalidates signatures
+    // ( Anthropic 400: "Invalid signature in thinking block" ).
+    if (out.length > 0 && out[out.length - 1].role === msg.role && msg.role !== 'assistant') {
       const prev = out[out.length - 1];
       const bothStrings = typeof prev.content === "string" && typeof msg.content === "string";
       if (bothStrings) {
@@ -502,6 +505,9 @@ async function proxyRequest(
           if (curated?.meta?.repetitionWarning) {
             injectIntoSystemPrompt(body, curated.meta.repetitionWarning, "thalamus-loop-warning");
           }
+          if (curated?.meta?.contextMap) {
+            injectIntoSystemPrompt(body, curated.meta.contextMap, "thalamus-map");
+          }
         } catch (err) {
           logger.error("curate failed", { error: String(err) });
         }
@@ -513,33 +519,6 @@ async function proxyRequest(
       }
 
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
-
-      // Dump the exact request payload for debugging 400 errors
-      try {
-        const fs = await import("node:fs/promises");
-        const path = await import("node:path");
-        const dumpDir = path.join(import.meta.dirname ?? ".", "..", "..", "..", "tmp");
-        await fs.mkdir(dumpDir, { recursive: true });
-        const dumpFile = path.join(dumpDir, `proxy-request-${Date.now()}.json`);
-        const dumpBody = { ...body };
-        // Truncate large tool_result contents for readability
-        if (Array.isArray(dumpBody.messages)) {
-          dumpBody.messages = dumpBody.messages.map((m: any) => {
-            if (!Array.isArray(m?.content)) return m;
-            return {
-              ...m,
-              content: m.content.map((b: any) => {
-                if (b?.type === "tool_result" && typeof b.content === "string" && b.content.length > 500) {
-                  return { ...b, content: b.content.slice(0, 500) + `... [truncated ${b.content.length} chars]` };
-                }
-                return b;
-              }),
-            };
-          });
-        }
-        await fs.writeFile(dumpFile, JSON.stringify(dumpBody, null, 2), "utf-8");
-        logger.debug(`Request dumped to ${dumpFile}`);
-      } catch { /* dump failure is non-critical */ }
     } catch {
       // Parse failure — forward unchanged
     }

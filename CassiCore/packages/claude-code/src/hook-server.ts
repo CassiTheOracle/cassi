@@ -33,7 +33,6 @@ import {
   type SessionState,
 } from "./state.js";
 import {
-  buildCognitiveContext,
   buildPressureWarning,
 } from "./context-builder.js";
 
@@ -112,11 +111,7 @@ async function handleSessionStart(input: HookInput): Promise<HookOutput> {
     `Awaiting a prompt from Valerie.`,
   ).catch(() => {});
 
-  const context = await buildCognitiveContext(state, { compact: false });
-
-  return context
-    ? { additionalContext: context }
-    : {};
+  return {};
 }
 
 async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
@@ -189,16 +184,9 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
     bridge.workspaceEnrich(prompt, state.ccSessionId).catch(() => {});
   }
 
-  const context = await buildCognitiveContext(state, {
-    includeRecovery: state.postCompaction,
-    compact: state.estimatedPressure > 0.5,
-  });
-
   if (state.postCompaction) state.postCompaction = false;
 
-  return context
-    ? { additionalContext: context }
-    : {};
+  return {};
 }
 
 async function handlePreToolUse(input: HookInput): Promise<HookOutput> {
@@ -419,11 +407,6 @@ async function handlePostCompact(input: HookInput): Promise<HookOutput> {
   state.postCompaction = true;
   state.handoffWritten = false;
 
-  const recovery = await buildCognitiveContext(state, {
-    includeRecovery: true,
-    compact: false,
-  });
-
   bridge.ingestEvents(state.ccSessionId, [{
     type: "compaction_complete",
     sessionId: state.ccSessionId,
@@ -453,9 +436,7 @@ async function handlePostCompact(input: HookInput): Promise<HookOutput> {
   ).catch(() => {});
   bridge.reveriePing(state.ccSessionId, "claude-code-post-compact").catch(() => {});
 
-  return recovery
-    ? { additionalContext: recovery }
-    : {};
+  return {};
 }
 
 async function handleStop(input: HookInput): Promise<HookOutput> {
