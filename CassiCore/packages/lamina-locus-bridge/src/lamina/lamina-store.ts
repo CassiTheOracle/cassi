@@ -26,7 +26,7 @@ import type {
   LaminaScope,
 } from './types.js'
 
-const DB_NAME = 'lamina.db'
+const DB_NAME = 'system-state.db'
 
 const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS laminae (
