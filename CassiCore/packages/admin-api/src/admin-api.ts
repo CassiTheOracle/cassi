@@ -52,6 +52,7 @@ import { handlePromptLogRoutes } from './admin-api/prompt-log.js'
 import { handleTimelineRoutes } from './admin-api/timeline.js'
 import { handleWarmProviderRoutes, shutdownWarmProvider } from './admin-api/warm-provider.js'
 import { handlePrismRoutes } from './admin-api/prism.js'
+import { handleMaintenanceRoutes, startPeriodicCheckpoint } from './admin-api/maintenance.js'
 import { createAdminRuntimeFacade } from './admin-api/runtime.js'
 import { getModelSpec } from './config/system-settings.js'
 import { assembleContext } from './intelligence/context-assembler.js'
@@ -2396,6 +2397,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handlePromptLogRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
          () => handleTimelineRoutes({ daemon, logger, sendJSON, parseBody, url, pathname, sseConnections, sseConnectionId }, req, res, method),
          () => handlePrismRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
+          () => handleMaintenanceRoutes({ daemon, logger, sendJSON, parseBody }, req, res, method),
       ]
 
       for (const routeHandler of routeHandlers) {
@@ -2491,6 +2493,8 @@ export function createAdminApi(daemon: any, logger: ILogger) {
       // HOW: WebSocket support pending implementation (Lumen design complete, see /tmp/lumen-ws-design.json)
 
       logger.info('context available via GET /context on unix socket')
+
+      startPeriodicCheckpoint(daemon, logger)
 
       return { tcpPort: boundPort, unixPath, tcpServer, unixServer }
     },

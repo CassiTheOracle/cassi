@@ -342,6 +342,19 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/backfill-all
+  if (parts[1] === 'mnemic' && parts[2] === 'backfill-all' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const result = await field.backfillAllEmbeddings()
+      sendJSON(res, 200, { ok: true, result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/reproject
   if (parts[1] === 'mnemic' && parts[2] === 'reproject' && method === 'POST') {
     const field = getMnemicField(deps.logger, daemon)

@@ -277,5 +277,22 @@ export async function handleThalamusRoutes(
     return true
   }
 
+  // GET /context/expand?sessionId=X&toolUseId=Y — Recover original content for a compressed tool result
+  if (method === 'GET' && pathname === '/context/expand') {
+    const sessionId = url.searchParams.get('sessionId')
+    const toolUseId = url.searchParams.get('toolUseId')
+    if (!sessionId || !toolUseId) {
+      deps.sendJSON(res, 400, { error: 'sessionId and toolUseId are required' })
+      return true
+    }
+    const result = thalamus.expandToolResult(sessionId, toolUseId)
+    if (!result) {
+      deps.sendJSON(res, 404, { error: 'toolUseId not found in session reranker cache', sessionId, toolUseId })
+      return true
+    }
+    deps.sendJSON(res, 200, result)
+    return true
+  }
+
   return false
 }
