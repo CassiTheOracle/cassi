@@ -213,6 +213,10 @@ function createSeedingTools(ctx: SeedingContext): MiniHelixTool[] {
 /**
  * Run focused seeding before a meditation session.
  * Cassi identifies areas of interest and kindles the mnemic field.
+ *
+ * If `seedTopics` is provided (length 1-8), the LLM mini-helix is skipped
+ * entirely. Topics are kindled directly via the same path used by the
+ * `kindle_concepts` tool, and become the session's focus topics.
  */
 export async function runFocusedSeeding(opts: {
   mnemicField: MnemicField
@@ -220,8 +224,9 @@ export async function runFocusedSeeding(opts: {
   handleFactory: MiniHelixDeps['handleFactory']
   logger: ILogger
   eventBus?: IEventBus
+  seedTopics?: string[]
 }): Promise<SeedingResult> {
-  const { mnemicField, memory, handleFactory, logger, eventBus } = opts
+  const { mnemicField, memory, handleFactory, logger, eventBus, seedTopics } = opts
   const startTime = Date.now()
 
   const ctx: SeedingContext = {
@@ -230,6 +235,28 @@ export async function runFocusedSeeding(opts: {
     logger,
     focusTopics: [],
     engramsKindled: 0,
+  }
+
+  // Aurora-driven path: pre-determined topics, no LLM mini-helix.
+  if (seedTopics && seedTopics.length > 0) {
+    const clamped = seedTopics.slice(0, 8)
+    logger.info('[FocusedSeeding] Using Aurora-provided topics', { topics: seedTopics })
+
+    for (const topic of clamped) {
+      try {
+        const hits = await mnemicField.retrieve(topic, { limit: 10 })
+        ctx.engramsKindled += hits.length
+      } catch (err) {
+        logger.debug('[FocusedSeeding] Kindling failed for topic (non-fatal)', { topic, error: String(err) })
+      }
+    }
+
+    ctx.focusTopics = clamped.slice(0, 5)
+    return {
+      focusTopics: ctx.focusTopics,
+      engramsKindled: ctx.engramsKindled,
+      durationMs: Date.now() - startTime,
+    }
   }
 
   const tools = createSeedingTools(ctx)

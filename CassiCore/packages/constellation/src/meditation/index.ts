@@ -233,9 +233,12 @@ export class MeditationController extends BaseCognitiveModule {
    *
    * When modelTier is specified, overrides the default model tier for all
    * explorers (e.g., 'opus' for deep introspection).
+   *
+   * When seedTopics is provided, forces focused style and uses those topics
+   * directly (Aurora-driven path). Takes precedence over followUp.
    */
-  async triggerMeditation(style?: MeditationStyle, followUp?: boolean, modelTier?: string): Promise<MeditationSession | null> {
-    this.logger.info('[Meditation] triggerMeditation called', { style, followUp, modelTier })
+  async triggerMeditation(style?: MeditationStyle, followUp?: boolean, modelTier?: string, seedTopics?: string[]): Promise<MeditationSession | null> {
+    this.logger.info('[Meditation] triggerMeditation called', { style, followUp, modelTier, seedTopics })
     if (this.state === 'meditating') {
       this.logger.info('[Meditation] Already meditating — ignoring trigger')
       return this.activeSession ?? null
@@ -244,6 +247,11 @@ export class MeditationController extends BaseCognitiveModule {
     if (!this.orchestrator || !this.registry) {
       this.logger.warn('[Meditation] Cannot meditate — orchestrator or registry not wired')
       return null
+    }
+
+    // seedTopics takes precedence: forces focused style, bypasses followUp
+    if (seedTopics && seedTopics.length > 0) {
+      return this.startMeditation('focused', modelTier, seedTopics)
     }
 
     if (followUp) {

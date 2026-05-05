@@ -570,7 +570,7 @@ export async function analyzeConstellation(
   depth: AnalysisDepth = 'summary',
 ): Promise<ConstellationAnalysis> {
   const dataDir = getDataDir()
-  const helixDbPath = path.join(dataDir, 'helix.db')
+  const helixDbPath = path.join(dataDir, 'constellation.db')
   const constellationDbPath = path.join(dataDir, 'constellation.db')
 
   const helixDb = openReadOnly(helixDbPath)
