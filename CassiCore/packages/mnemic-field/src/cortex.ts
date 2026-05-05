@@ -593,6 +593,18 @@ export class Cortex {
     }
   }
 
+  bulkUpdateEmbeddings(updates: Array<{ id: string; embedding: Float32Array }>): void {
+    const updateStmt = this.db.prepare(`UPDATE engrams SET embedding = ? WHERE id = ?`)
+
+    const tx = this.db.transaction((items: typeof updates) => {
+      for (const { id, embedding } of items) {
+        updateStmt.run(fromFloatArray(embedding), id)
+      }
+    })
+    tx(updates)
+    this.logger.debug('Bulk embedding update', { count: updates.length })
+  }
+
   getAllEngrams(): Engram[] {
     return (this.db.prepare(`SELECT * FROM engrams`).all() as Record<string, unknown>[]).map(rowToEngram)
   }

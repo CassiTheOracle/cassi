@@ -317,7 +317,7 @@ export class KindlingEngine {
     }
 
     // Fallback: brute-force with reduced limit
-    // At 640 dims: 5000 embeddings = 5000 × 640 × 4 = 12.5MB vs 125MB for 50k
+    // At 1024 dims: 5000 embeddings = 5000 × 1024 × 4 = ~20MB vs ~200MB for 50k
     this.logger.debug('Using brute-force seed search (ANN not ready)')
     const embData = this.cortex.getEmbeddingVectors(5000)
 

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import type { DreamEngine } from '../memory-bridge/dream-engine.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
+import { getRerankerService } from '../embeddings/reranker-service.js'
 import { getDataDir } from '../../utils/paths.js'
 import { Cortex, computeSpikeImportance, computeAlpha } from './cortex.js'
 import { FilamentCortex } from './filament-cortex.js'
@@ -19,7 +20,7 @@ import { segmentEngram } from './segmentation.js'
 import { EntityLinker } from './filament-entities.js'
 import { FilamentConsolidator } from './filament-consolidation.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
-import type { AffectState, LightningRetrievalMode } from './types.js'
+import type { AffectState, LightningRetrievalMode, RerankerMode } from './types.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
 import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
@@ -34,7 +35,7 @@ import type {
   ActivationSpike, SpikeCreate,
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,
-  TaskComplexity, LuminalSet, KindlingOptions, SpikeOutcome,
+  TaskComplexity, LuminalSet, KindlingOptions, SpikeOutcome, ChargedEngram,
   Filament, FilamentAnnotation, EngramPosition,
   FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
   ZoomEntry, RenderOptions,
@@ -49,6 +50,21 @@ const REPROJECTION = {
   cooldownMs: 30 * 60 * 1000,    // 30 min between runs
   maxFailures: 2,                 // block after this many consecutive failures
 } as const
+
+function kindlingHit(hit: ChargedEngram): MnemicRetrievalHit {
+  return {
+    id: hit.engram.id,
+    content: hit.engram.content,
+    nodeType: hit.engram.nodeType,
+    score: hit.charge,
+    charge: hit.charge,
+    potentiation: hit.engram.potentiation,
+    provenance: hit.engram.provenance,
+    tags: hit.engram.tags,
+    metadata: hit.engram.metadata,
+    filamentExcerpt: undefined,
+  }
+}
 
 function compareReplayEngrams(a: Engram, b: Engram): number {
   const byT = a.t - b.t
@@ -165,6 +181,7 @@ export class MnemicField {
   // LLM-based reranker (alternative to filament kindling). Set via setRerankerProvider.
   private reranker: LLMReranker | null = null
   private rerankerModel: string = 'github-copilot/gpt-5-mini'
+  private rerankerMode: RerankerMode = 'local'
   private lightningIndexer: LightningIndexer | null = null
   // Cached after each retrieve() so recordEnrichFeedback can convert
   // helpful/unhelpful into Lightning Indexer training triples without a
@@ -202,6 +219,19 @@ export class MnemicField {
       this.rerankerEnabled = false
       this.logger.info('LLM reranker disabled')
     }
+  }
+
+  setRerankerMode(mode: RerankerMode): void {
+    this.rerankerMode = mode
+    if (mode === 'off') {
+      this.rerankerEnabled = false
+      this.reranker = null
+    } else if (mode === 'llm') {
+      this.rerankerEnabled = !!this.reranker
+    } else {
+      this.rerankerEnabled = false
+    }
+    this.logger.info('MnemicField reranker mode set', { mode, llmAvailable: !!this.reranker })
   }
 
   setLightningShadowMode(enabled: boolean): void {
@@ -718,7 +748,7 @@ export class MnemicField {
     const embSvc = getEmbeddingService(this.logger)
     const queryEmbedding = embSvc.available ? await embSvc.embed(query, 'query') : null
 
-    let hits: MnemicRetrievalHit[]
+    let hits: MnemicRetrievalHit[] = []
 
     // Step 1: Kindling generates candidate engrams via engram ANN + synapse spread.
     // This is the "candidate generation" phase — no filaments involved.
@@ -764,57 +794,61 @@ export class MnemicField {
         }
       }
 
-      // Step 2: LLM reranker selects relevant sentences from candidate engrams.
-      // This replaces the old filament-based excerpt generation.
-      if (this.rerankerEnabled && this.reranker) {
+      // Step 2: Rerank candidates using the configured reranker mode.
+      // - 'local': cross-encoder (Qwen3-Reranker-0.6B) scores whole engrams, ~50-100ms
+      // - 'llm': cloud LLM picks relevant sentences, ~1-2s, produces excerpts
+      // - 'off': use kindling charge-based ranking directly
+      if (this.rerankerMode === 'local') {
+        try {
+          const localReranker = getRerankerService(this.logger)
+          if (localReranker.available && candidates.length > 0) {
+            const docTexts = candidates.map(e => (e.content || '').slice(0, 500))
+            const reranked = await localReranker.rerank(query, docTexts, limit)
+            if (reranked.length > 0) {
+              const byIndex = new Map(reranked.map(r => [r.index, r]))
+              hits = candidates
+                .map((eng, i) => {
+                  const score = byIndex.get(i)?.relevanceScore ?? 0
+                  return { eng, score }
+                })
+                .filter(e => e.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, limit)
+                .map(e => ({
+                  id: e.eng.id,
+                  content: e.eng.content,
+                  nodeType: e.eng.nodeType,
+                  score: e.score,
+                  charge: e.score,
+                  potentiation: e.eng.potentiation,
+                  provenance: e.eng.provenance,
+                  tags: e.eng.tags,
+                  metadata: e.eng.metadata,
+                  filamentExcerpt: undefined,
+                }))
+            }
+          }
+          if (!hits || hits.length === 0) {
+            hits = luminal.engrams.map(hit => kindlingHit(hit))
+          }
+        } catch (err) {
+          this.logger.warn('Local reranker failed, using kindling charges', { error: String(err) })
+          hits = luminal.engrams.map(hit => kindlingHit(hit))
+        }
+      } else if (this.rerankerMode === 'llm' && this.reranker) {
         try {
           const ranked = await this.reranker.rerank(query, candidates, limit, undefined)
           if (ranked.length > 0) {
             hits = LLMReranker.toRetrievalHits(candidates, ranked, limit)
           } else {
-            // Reranker returned empty — fall back to kindling's charge-based ranking
-            hits = luminal.engrams.map(hit => ({
-              id: hit.engram.id,
-              content: hit.engram.content,
-              nodeType: hit.engram.nodeType,
-              score: hit.charge,
-              charge: hit.charge,
-              potentiation: hit.engram.potentiation,
-              provenance: hit.engram.provenance,
-              tags: hit.engram.tags,
-              metadata: hit.engram.metadata,
-              filamentExcerpt: undefined,
-            }))
+            hits = luminal.engrams.map(hit => kindlingHit(hit))
           }
         } catch (err) {
           this.logger.warn('LLM reranker failed, using kindling charges', { error: String(err) })
-          hits = luminal.engrams.map(hit => ({
-            id: hit.engram.id,
-            content: hit.engram.content,
-            nodeType: hit.engram.nodeType,
-            score: hit.charge,
-            charge: hit.charge,
-            potentiation: hit.engram.potentiation,
-            provenance: hit.engram.provenance,
-            tags: hit.engram.tags,
-            metadata: hit.engram.metadata,
-            filamentExcerpt: undefined,
-          }))
+          hits = luminal.engrams.map(hit => kindlingHit(hit))
         }
       } else {
-        // Reranker disabled — use kindling's charge-based ranking directly
-        hits = luminal.engrams.map(hit => ({
-          id: hit.engram.id,
-          content: hit.engram.content,
-          nodeType: hit.engram.nodeType,
-          score: hit.charge,
-          charge: hit.charge,
-          potentiation: hit.engram.potentiation,
-          provenance: hit.engram.provenance,
-          tags: hit.engram.tags,
-          metadata: hit.engram.metadata,
-          filamentExcerpt: undefined,
-        }))
+        hits = luminal.engrams.map(hit => kindlingHit(hit))
       }
     }
 
@@ -847,12 +881,15 @@ export class MnemicField {
           }))
         : undefined
 
-      // Position-based reranker proxy: top hit = 1, last hit = 1/N.
-      const rerankerScoresArr = hits.length > 0
-        ? new Float32Array(hits.map((_, i) => 1 - (i / hits.length)))
-        : undefined
+      const rerankerScoresArr = this.rerankerMode === 'local'
+        ? new Float32Array(hits.map(h => h.score))
+        : hits.length > 0
+          ? new Float32Array(hits.map((_, i) => 1 - (i / hits.length)))
+          : undefined
 
-      const mode: LightningRetrievalMode = lightningRanked ? 'shadow' : 'kindle-only'
+      const mode: LightningRetrievalMode = this.rerankerMode === 'local'
+        ? (lightningRanked ? 'shadow' : 'kindle-only')
+        : lightningRanked ? 'shadow' : (this.rerankerMode === 'llm' ? 'shadow' : 'kindle-only')
 
       this.lastRetrievalId = retrievalId
       this.lastRetrievalCandidates = candidateIds
@@ -1248,6 +1285,71 @@ export class MnemicField {
       remaining: this.cortex.countMissingEmbeddings(),
     })
     return { embedded, reprojected, filamentEmbeddings }
+  }
+
+  /**
+   * Bulk backfill all engrams missing embeddings using batch embedding and
+   * bulk SQL updates. After completion, triggers a full reprojection.
+   * Returns the total number of engrams embedded and elapsed time.
+   */
+  async backfillAllEmbeddings(): Promise<{ embedded: number; reprojected: number; durationMs: number }> {
+    const startMs = Date.now()
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) {
+      throw new Error('Embedding service not available')
+    }
+
+    let totalEmbedded = 0
+    const BATCH_SIZE = 1000
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const missing = this.cortex.getEngramsWithoutEmbedding(BATCH_SIZE)
+      if (missing.length === 0) break
+
+      const texts = missing.map(e => e.content)
+      const vecs = await embSvc.embedBatch(texts, 'document')
+
+      const updates: Array<{ id: string; embedding: Float32Array }> = []
+      for (let i = 0; i < missing.length; i++) {
+        const vec = vecs[i]
+        if (vec) {
+          updates.push({ id: missing[i].id, embedding: new Float32Array(vec) })
+        }
+      }
+
+      if (updates.length > 0) {
+        this.cortex.bulkUpdateEmbeddings(updates)
+        totalEmbedded += updates.length
+      }
+
+      this.logger.info('Backfill batch complete', {
+        batchSize: missing.length,
+        embedded: updates.length,
+        totalSoFar: totalEmbedded,
+        remaining: this.cortex.countMissingEmbeddings(),
+      })
+
+      // Yield to event loop between batches
+      if (missing.length === BATCH_SIZE) {
+        await new Promise<void>(resolve => setImmediate(resolve))
+      }
+    }
+
+    // Full reprojection after all embeddings are in place
+    let reprojected = 0
+    if (totalEmbedded > 0) {
+      reprojected = await this.reprojectAllAsync()
+    }
+
+    const durationMs = Date.now() - startMs
+    this.logger.info('Backfill all complete', {
+      embedded: totalEmbedded,
+      reprojected,
+      durationMs,
+    })
+
+    return { embedded: totalEmbedded, reprojected, durationMs }
   }
 
   /**

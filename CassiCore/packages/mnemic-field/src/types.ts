@@ -1,3 +1,5 @@
+export type RerankerMode = 'local' | 'llm' | 'off'
+
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',
   'abstraction', 'goal', 'file', 'tool', 'session', 'outcome',
@@ -777,7 +779,7 @@ export interface LightningIndexerConfig {
 }
 
 export const LIGHTNING_INDEXER_DEFAULTS: LightningIndexerConfig = {
-  dEmb: 640,
+  dEmb: 1024,
   dC: 128,
   nH: 8,
   dIdx: 32,
