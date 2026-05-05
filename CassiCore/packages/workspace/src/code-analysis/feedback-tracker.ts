@@ -16,7 +16,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { ContextFeedbackRecord } from './types.js'
 
 /** Database file location under CassiCore data dir. */
-const DB_FILENAME = 'context-feedback.db'
+const DB_FILENAME = 'system-state.db'
 
 /** Bayesian prior: weak prior (Beta(1,1) = uniform). */
 const PRIOR_ALPHA = 1

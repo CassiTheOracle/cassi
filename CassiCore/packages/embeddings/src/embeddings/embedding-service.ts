@@ -12,14 +12,13 @@ import { join, dirname } from 'path'
 import type { ILogger } from '../../../types/interfaces.js'
 import { getInferenceStackLauncher, MANAGED_EMBEDDING } from './inference-stack-launcher.js'
 
-const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://localhost:18820'
-const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'zembed-1'
+const EMBEDDING_SERVER_URL = process.env.EMBEDDING_SERVER_URL || 'http://127.0.0.1:18820'
+const EMBEDDING_MODEL_TAG = process.env.EMBEDDING_MODEL_TAG || 'qwen3-embedding-0.6b'
 const EMB_TIMEOUT_MS = Number(process.env.EMBEDDING_TIMEOUT_MS || '5000')
-const EMB_BATCH_SIZE = Number(process.env.EMBEDDING_BATCH_SIZE || '32')
+const EMB_BATCH_SIZE = Number(process.env.EMBEDDING_BATCH_SIZE || '512')
 
-// Truncate embeddings to this dimension (zembed-1 supports 2560, 1280, 640, 320, 160, 80, 40)
-// Using 640 for 4x storage reduction while preserving semantic quality via Matryoshka learning
-const EMBEDDING_DIM = Number(process.env.EMBEDDING_DIM || '640')
+// Truncate embeddings to this dimension (Qwen3-Embedding-0.6B supports 32–1024 via MRL)
+const EMBEDDING_DIM = Number(process.env.EMBEDDING_DIM || '1024')
 
 // Cache tuning
 const CACHE_MAX_ENTRIES = Number(process.env.EMB_CACHE_MAX_ENTRIES || '4000')
@@ -47,7 +46,7 @@ export interface EmbeddingServiceConfig {
 
 export class EmbeddingService {
   private logger: ILogger
-  private serverUrl: string
+  private serverUrls: string[]
   private modelTag: string
   private timeoutMs: number
   private batchSize: number
@@ -63,11 +62,16 @@ export class EmbeddingService {
   private dirty = false
   private noPersist: boolean
 
-  private cb = { failures: 0, openUntil: 0, trippedLogged: false }
+  // Per-URL circuit breakers for multi-instance load balancing
+  private cbs: Array<{ failures: number; openUntil: number; trippedLogged: boolean }>
+  private rrIndex = 0  // round-robin counter
 
   constructor(logger: ILogger, config?: EmbeddingServiceConfig) {
     this.logger = logger.child?.('embedding-service') ?? logger
-    this.serverUrl = config?.serverUrl || EMBEDDING_SERVER_URL
+
+    // Use single vLLM endpoint (external Docker container)
+    this.serverUrls = config?.serverUrl ? [config.serverUrl] : [EMBEDDING_SERVER_URL]
+
     this.modelTag = config?.modelTag || EMBEDDING_MODEL_TAG
     this.timeoutMs = config?.timeoutMs || EMB_TIMEOUT_MS
     this.batchSize = config?.batchSize || EMB_BATCH_SIZE
@@ -75,12 +79,15 @@ export class EmbeddingService {
     this.maxBytes = config?.cacheMaxBytes || CACHE_MAX_BYTES
     this.noPersist = config?.noPersist || false
 
+    this.cbs = (this.serverUrls ?? []).map(() => ({ failures: 0, openUntil: 0, trippedLogged: false }))
+
     const home = process.env.HOME || require('os').homedir()
     this.persistPath = config?.cachePath || join(home, '.cassicore', 'data', 'embedding-cache.json')
 
     this.loadCache()
     this.logger.info('EmbeddingService initialized', {
-      serverUrl: this.serverUrl,
+      instances: this.serverUrls.length,
+      urls: this.serverUrls,
       modelTag: this.modelTag,
       cachedEntries: this.cache.size,
     })
@@ -176,9 +183,10 @@ export class EmbeddingService {
     return this.cosineSimilarity(vecA, vecB)
   }
 
-  /** Check if the embedding server is available (circuit breaker not tripped). */
+  /** Check if any embedding server instance is available. */
   get available(): boolean {
-    return this.cb.openUntil <= Date.now()
+    if (!this.cbs || this.cbs.length === 0) return false
+    return this.cbs.some(cb => cb.openUntil <= Date.now())
   }
 
   /** Model tag used for cache key differentiation. */
@@ -198,30 +206,47 @@ export class EmbeddingService {
 
 
   /**
-   * Wrap text in zembed-1's chat template for asymmetric embedding.
-   * Queries and documents get different system prompts for optimal retrieval.
+   * Format text for Qwen3-Embedding asymmetric retrieval.
+   * Queries get an instruction prefix; documents are passed as plain text.
    */
-  private formatInput(text: string, mode: EmbeddingMode): string {
-    const cleaned = (text || '').replace(/\n/g, ' ').trim()
-    return `<|im_start|>system\n${mode}<|im_end|>\n<|im_start|>user\n${cleaned}<|im_end|>`
+  private formatInput(text: string, _mode: EmbeddingMode): string {
+    // vLLM with --runner pooling handles instruction formatting internally
+    // for Qwen3-Embedding. Just send raw cleaned text.
+    return (text || '').replace(/\n/g, ' ').trim()
   }
 
-  /** Fetch embeddings from the server, chunking if needed. */
+  /** Pick the next healthy embedding server via round-robin. */
+  private pickServer(): { url: string; idx: number } | null {
+    if (!this.cbs || this.cbs.length === 0 || this.serverUrls.length === 0) return null
+    const n = this.serverUrls.length
+    for (let i = 0; i < n; i++) {
+      const idx = (this.rrIndex + i) % n
+      const cb = this.cbs[idx]
+      if (!cb) continue
+      if (cb.openUntil <= Date.now()) {
+        this.rrIndex = (idx + 1) % n
+        return { url: this.serverUrls[idx], idx }
+      }
+    }
+    return null
+  }
+
+  /** Fetch embeddings from the server, chunking if needed.
+   *  Distributes batches across multiple server instances via round-robin. */
   private async fetchBatch(texts: string[], mode: EmbeddingMode): Promise<Array<number[] | null>> {
     // Demand-load: restart the server if it was idle-unloaded
     const launcher = getInferenceStackLauncher()
     if (launcher) {
       const restarted = await launcher.ensureRunning(MANAGED_EMBEDDING)
-      if (restarted) this.cb = { failures: 0, openUntil: 0, trippedLogged: false }
+      if (restarted) this.cbs = this.serverUrls.map(() => ({ failures: 0, openUntil: 0, trippedLogged: false }))
     }
 
-    // Circuit breaker check
-    if (this.cb.openUntil > Date.now()) {
-      this.logger.debug('EmbeddingService: circuit breaker open, skipping', {
-        reopensIn: `${Math.round((this.cb.openUntil - Date.now()) / 1000)  }s`,
-      })
+    const picked = this.pickServer()
+    if (!picked) {
+      this.logger.debug('EmbeddingService: all circuit breakers open, skipping')
       return new Array(texts.length).fill(null)
     }
+    const { url: serverUrl, idx: urlIdx } = picked
 
     // Chunk large batches
     if (texts.length > this.batchSize) {
@@ -234,13 +259,13 @@ export class EmbeddingService {
       return out
     }
 
-    // Single HTTP request
+    // Single HTTP request to the picked server instance
     try {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), this.timeoutMs + Math.min(2000, texts.length * 60))
       const formatted = texts.map(t => this.formatInput(t, mode))
 
-      const res = await fetch(`${this.serverUrl}/v1/embeddings`, {
+      const res = await fetch(`${serverUrl}/v1/embeddings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: formatted }),
@@ -249,8 +274,8 @@ export class EmbeddingService {
       clearTimeout(timer)
 
       if (res.ok) {
-        this.cb.failures = 0
-        this.cb.trippedLogged = false
+        this.cbs[urlIdx].failures = 0
+        this.cbs[urlIdx].trippedLogged = false
         if (launcher) launcher.notifyActivity(MANAGED_EMBEDDING)
         const data = await res.json() as any
         if (Array.isArray(data?.data)) {
@@ -258,50 +283,53 @@ export class EmbeddingService {
           return sorted.map((d: any) => Array.isArray(d?.embedding) ? d.embedding : null)
         }
       }
-      // Non-200 response — log and fall through to sequential
-      this.logger.debug('EmbeddingService: batch request returned non-OK', { status: res.status })
+      this.logger.debug('EmbeddingService: batch request returned non-OK', { status: res.status, url: serverUrl })
     } catch (err) {
-      this.cb.failures++
-      if (this.cb.failures >= CB_MAX_FAILURES) {
-        this.cb.openUntil = Date.now() + CB_COOLDOWN_MS
-        if (!this.cb.trippedLogged) {
+      this.cbs[urlIdx].failures++
+      if (this.cbs[urlIdx].failures >= CB_MAX_FAILURES) {
+        this.cbs[urlIdx].openUntil = Date.now() + CB_COOLDOWN_MS
+        if (!this.cbs[urlIdx].trippedLogged) {
           this.logger.warn('EmbeddingService: circuit breaker TRIPPED', {
-            failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
+            url: serverUrl, failures: this.cbs[urlIdx].failures, cooldownMs: CB_COOLDOWN_MS,
           })
-          this.cb.trippedLogged = true
+          this.cbs[urlIdx].trippedLogged = true
         }
-        this.cb.failures = 0
+        this.cbs[urlIdx].failures = 0
       }
-      this.logger.debug('EmbeddingService: batch request failed', { error: String(err) })
+      this.logger.debug('EmbeddingService: batch request failed', { url: serverUrl, error: String(err) })
     }
 
-    // Fallback: sequential fetch
+    // Fallback: try each remaining server sequentially, one text at a time
     const out: Array<number[] | null> = []
     for (const t of texts) {
-      try {
-        const controller = new AbortController()
-        const timer = setTimeout(() => controller.abort(), this.timeoutMs)
-        const formatted = this.formatInput(t, mode)
-        const res = await fetch(`${this.serverUrl}/v1/embeddings`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input: formatted }),
-          signal: controller.signal,
-        })
-        clearTimeout(timer)
-        if (res.ok) {
-          this.cb.failures = 0
-          if (launcher) launcher.notifyActivity(MANAGED_EMBEDDING)
-          const data = await res.json() as any
-          if (Array.isArray(data?.data) && data.data.length > 0) {
-            out.push(Array.isArray(data.data[0]?.embedding) ? data.data[0].embedding : null)
-            continue
+      let success = false
+      for (let i = 0; i < this.serverUrls.length; i++) {
+        if (this.cbs[i].openUntil > Date.now()) continue
+        const fallbackUrl = this.serverUrls[i]
+        try {
+          const controller = new AbortController()
+          const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+          const formatted = this.formatInput(t, mode)
+          const res = await fetch(`${fallbackUrl}/v1/embeddings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ input: formatted }),
+            signal: controller.signal,
+          })
+          clearTimeout(timer)
+          if (res.ok) {
+            this.cbs[i].failures = 0
+            if (launcher) launcher.notifyActivity(MANAGED_EMBEDDING)
+            const data = await res.json() as any
+            if (Array.isArray(data?.data) && data.data.length > 0) {
+              out.push(Array.isArray(data.data[0]?.embedding) ? data.data[0].embedding : null)
+              success = true
+              break
+            }
           }
-        }
-        out.push(null)
-      } catch {
-        out.push(null)
+        } catch { /* try next server */ }
       }
+      if (!success) out.push(null)
     }
     return out
   }

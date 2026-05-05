@@ -19,7 +19,7 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import { getInferenceStackLauncher, MANAGED_RERANKER } from './inference-stack-launcher.js'
 
-const RERANKER_SERVER_URL = process.env.RERANKER_SERVER_URL || 'http://localhost:18821'
+const RERANKER_SERVER_URL = process.env.RERANKER_SERVER_URL || 'http://127.0.0.1:18821'
 // zerank-2 with GGUF on GPU: typically <50ms/doc; 30s covers worst-case batches.
 // Override with RERANKER_TIMEOUT_MS.
 const RERANKER_TIMEOUT_MS = Number(process.env.RERANKER_TIMEOUT_MS || '30000')
@@ -77,13 +77,21 @@ export class RerankerService {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
+    // Qwen3-Reranker prompt formatting for vLLM
+    const prefix = '<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n'
+    const suffix = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n'
+    const instruction = 'Given a search query, retrieve relevant passages that answer the query'
+
+    const formattedQuery = `${prefix}<Instruct>: ${instruction}\n<Query>: ${query.trim()}\n`
+    const formattedDocs = documents.map(doc => `<Document>: ${doc.trim()}${suffix}`)
+
     try {
       const res = await fetch(`${this.serverUrl}/v1/rerank`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query,
-          documents,
+          query: formattedQuery,
+          documents: formattedDocs,
           top_n: topN ?? documents.length,
         }),
         signal: controller.signal,

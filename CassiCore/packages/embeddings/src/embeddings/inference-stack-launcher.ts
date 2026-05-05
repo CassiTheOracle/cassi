@@ -3,7 +3,7 @@
  * child processes when the daemon starts.
  *
  * Managed processes:
- *   1. zembed-1   — embedding server    (llama.cpp, port 18820, Q4_K_M GGUF)
+  *   1. zembed-1   — embedding server    (llama.cpp, port 18820, Qwen3-Embedding-0.6B Q8_0)
  *   2. reranker   — reranker server     (zerank-server + llama-cpp-python, port 18821, Qwen3-Reranker-0.6B Q8_0)
  *   3. generative — smartrecall model   (llama.cpp, port 18822, Q8_0 GGUF)
  *
@@ -39,7 +39,7 @@ export const DEFAULT_RERANKER_PORT = 18821
 export const DEFAULT_GENERATIVE_PORT = 18822
 
 /** Stable logical names for managed processes — use these in service call sites. */
-export const MANAGED_EMBEDDING = 'zembed-1'
+export const MANAGED_EMBEDDING = 'qwen3-embedding'
 export const MANAGED_RERANKER = 'reranker'
 export const MANAGED_GENERATIVE = 'qwen3.5-0.8b'
 
@@ -97,6 +97,8 @@ export interface InferenceStackLauncherConfig {
   embeddingBatchSize?: number
   /** llama.cpp micro-batch size for the embedding server. Default: 128 */
   embeddingUbatchSize?: number
+  /** Number of embedding server instances to spawn for parallel throughput. Default: 4 */
+  embeddingInstances?: number
   /** Disable auto-start entirely (e.g. for tests). */
   disabled?: boolean
   /** Port for the local generative model server. Default: 18822 */
@@ -161,7 +163,7 @@ export class InferenceStackLauncher {
         ?? Number(process.env.RERANKER_PORT || String(DEFAULT_RERANKER_PORT)),
       embeddingModelPath: config?.embeddingModelPath
         ?? process.env.EMBEDDING_MODEL_PATH
-        ?? join(home, 'models', 'zembed-1-Q4_K_M.gguf'),
+        ?? join(home, 'models', 'qwen3-embedding-0.6b-q8_0.gguf'),
       rerankerPython: config?.rerankerPython
         ?? process.env.ZERANK_PYTHON
         ?? join(home, '.venvs', 'reranker', 'bin', 'python'),
@@ -184,6 +186,8 @@ export class InferenceStackLauncher {
         ?? Number(process.env.EMBEDDING_SERVER_BATCH_SIZE || '512'),
       embeddingUbatchSize: config?.embeddingUbatchSize
         ?? Number(process.env.EMBEDDING_SERVER_UBATCH_SIZE || '128'),
+      embeddingInstances: config?.embeddingInstances
+        ?? Number(process.env.EMBEDDING_INSTANCES || '4'),
       disabled: config?.disabled ?? false,
       generativePort: config?.generativePort
         ?? Number(process.env.GENERATIVE_PORT || String(DEFAULT_GENERATIVE_PORT)),
@@ -334,6 +338,15 @@ export class InferenceStackLauncher {
 
     const { embeddingPort, rerankerPort, generativePort, backend } = this.config
 
+    // Check if vLLM endpoints are already running (managed externally via Docker/Podman)
+    const vllmEmbeddingHealthy = await this.isHealthy(embeddingPort)
+    const vllmRerankerHealthy = await this.isHealthy(rerankerPort)
+
+    if (vllmEmbeddingHealthy && vllmRerankerHealthy) {
+      this.logger.info('vLLM embedding and reranker servers detected — skipping local inference stack spawn')
+      return
+    }
+
     // Resolve llama-server binary path (shared by embedding + generative)
     const llamaServer = join(
       homedir(), 'workspaces', 'llama.cpp', `build-${backend}`, 'bin', 'llama-server',
@@ -347,33 +360,40 @@ export class InferenceStackLauncher {
       // Already warned above
     } else if (!existsSync(this.config.embeddingModelPath)) {
       this.logger.warn(`Embedding model not found at ${this.config.embeddingModelPath} — skipped`)
-    } else if (await this.isHealthy(embeddingPort)) {
-      this.logger.info(`Embedding server already running on :${embeddingPort}`)
     } else {
-      // GPU contention guard: only spawn if no external GPU usage
-      if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
-        this.logger.info('GPU in use by another application — deferring embedding server startup')
-        this.gpuDeferred = true
-        setGamingMode(true, true)
-        this.startGpuGuardLoop()
-        return
+      // Spawn N embedding server instances for parallel throughput
+      const n = this.config.embeddingInstances
+      for (let i = 0; i < n; i++) {
+        const port = embeddingPort + i
+        if (await this.isHealthy(port)) {
+          this.logger.info(`Embedding server ${i + 1}/${n} already running on :${port}`)
+          continue
+        }
+        // GPU contention guard: only spawn if no external GPU usage
+        if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+          this.logger.info('GPU in use by another application — deferring embedding server startup')
+          this.gpuDeferred = true
+          setGamingMode(true, true)
+          this.startGpuGuardLoop()
+          return
+        }
+        this.spawnManaged({
+          name: `${MANAGED_EMBEDDING}-${i}`,
+          port,
+          buildArgs: () => ({
+            command: llamaServer,
+            args: [
+              '--model', this.config.embeddingModelPath,
+              '--port', String(port),
+              '--embeddings',
+              '--gpu-layers', String(this.config.embeddingGpuLayers),
+              '--ctx-size', String(this.config.embeddingCtxSize),
+              '--batch-size', String(this.config.embeddingBatchSize),
+              '--ubatch-size', String(this.config.embeddingUbatchSize),
+            ],
+          }),
+        })
       }
-      this.spawnManaged({
-        name: MANAGED_EMBEDDING,
-        port: embeddingPort,
-        buildArgs: () => ({
-          command: llamaServer,
-          args: [
-            '--model', this.config.embeddingModelPath,
-            '--port', String(embeddingPort),
-            '--embeddings',
-            '--gpu-layers', String(this.config.embeddingGpuLayers),
-            '--ctx-size', String(this.config.embeddingCtxSize),
-            '--batch-size', String(this.config.embeddingBatchSize),
-            '--ubatch-size', String(this.config.embeddingUbatchSize),
-          ],
-        }),
-      })
     }
 
     const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -497,44 +517,59 @@ export class InferenceStackLauncher {
    *   their circuit breaker), `false` if it was already running.
    */
   async ensureRunning(name: string): Promise<boolean> {
-    const m = this.managed.find(p => p.name === name)
-    if (!m || m.dead || this.stopped) return false
+    // Support multi-instance groups: if name is the base name (e.g. zembed-1),
+    // check all instances (zembed-1-0, zembed-1-1, ...)
+    const instances = this.managed.filter(p => p.name === name || p.name.startsWith(`${name}-`))
+    if (instances.length === 0 || this.stopped) return false
 
-    // Process is alive and not unloaded — nothing to do
-    if (!m.unloaded && m.proc && m.proc.exitCode === null) return false
+    let anyRestarted = false
+    for (const m of instances) {
+      if (m.dead) continue
+      if (!m.unloaded && m.proc && m.proc.exitCode === null) continue
+      if (!m.unloaded) continue
 
-    // If not unloaded (e.g., in a crash-restart cycle), let maybeRestart handle it
-    if (!m.unloaded) return false
+      if (m.startingPromise) {
+        await m.startingPromise
+        anyRestarted = true
+        continue
+      }
 
-    // Guard against concurrent restarts
-    if (m.startingPromise) {
-      await m.startingPromise
-      return true
+      if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
+        this.logger.debug(`GPU guard: GPU busy — skipping demand restart for ${m.name}`)
+        continue
+      }
+
+      this.logger.info(`Reloading ${m.name} on demand`)
+      m.startingPromise = this.demandRestart(m)
+      try {
+        await m.startingPromise
+        anyRestarted = true
+      } finally {
+        m.startingPromise = null
+      }
     }
-
-    // GPU contention guard: don't demand-restart if another app is using the GPU
-    if (this.config.gpuGuardEnabled && this.gpuTool && await this.isGpuBusy()) {
-      this.logger.debug(`GPU guard: GPU busy — skipping demand restart for ${name}`)
-      return false
-    }
-
-    this.logger.info(`Reloading ${m.name} on demand`)
-    m.startingPromise = this.demandRestart(m)
-    try {
-      await m.startingPromise
-    } finally {
-      m.startingPromise = null
-    }
-    return true
+    return anyRestarted
   }
 
   /**
    * Notify that a service made a successful request to the named process.
-   * Resets the idle timer for that process.
+   * Resets the idle timer for that process (and all instances if multi-instance).
    */
   notifyActivity(name: string): void {
-    const m = this.managed.find(p => p.name === name)
-    if (m) m.lastActivity = Date.now()
+    for (const m of this.managed) {
+      if (m.name === name || m.name.startsWith(`${name}-`)) {
+        m.lastActivity = Date.now()
+      }
+    }
+  }
+
+  /**
+   * Return all embedding server URLs for round-robin load balancing.
+   */
+  getEmbeddingUrls(): string[] {
+    const basePort = this.config.embeddingPort
+    const n = this.config.embeddingInstances
+    return Array.from({ length: n }, (_, i) => `http://127.0.0.1:${basePort + i}`)
   }
 
 
