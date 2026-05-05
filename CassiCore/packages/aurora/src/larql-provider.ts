@@ -25,6 +25,8 @@ import type {
 } from './types.js'
 import type { ClaustrumRecorder, ClaustrumGateHit } from './claustrum-recorder.js'
 import type { OverlayLayer, OverlayFeatureHit } from './overlay-layer.js'
+import type { Affect } from '../mnemic-field/types.js'
+import { affectSimilarity } from '../mnemic-field/affect.js'
 
 interface VindexHandle {
   readonly id: number
@@ -39,11 +41,46 @@ interface VindexHandle {
   }
 }
 
-interface FeatureHit {
+export interface FeatureHit {
   featureIndex: number
   score: number
   label: string | null
+  /** When affectBias is applied, the original gate-KNN score is preserved here. */
+  baseScore?: number
+  /** Similarity in [0,1] between the query affectBias and this feature's affect. */
+  affectAlignment?: number
 }
+
+/**
+ * Optional affect-conditioned re-weighting for gate-KNN queries.
+ *
+ * When supplied, the base gate-KNN score for each hit is blended with an
+ * "affect alignment" similarity between this bias and the feature's stored
+ * affect. High-arousal queries thus preferentially surface emotionally
+ * charged expert features over neutral ones.
+ *
+ *   newScore = (1 - weight) * baseScore + weight * affectAlignment
+ *
+ * `weight` defaults to 0.3 if omitted. `weight: 0` is an explicit no-op.
+ */
+export interface AffectBias {
+  valence: number
+  arousal: number
+  weight?: number
+}
+
+/**
+ * Resolves the affect attached to a (layer, featureIndex) pair, if any.
+ * Returns `null` when the feature has no known affect — callers fall back
+ * to a neutral alignment so the bias term contributes nothing.
+ *
+ * V4 INTEGRATION POINT: once expert features expose affect (e.g. via
+ * Mnemic Field engram lookup keyed by feature ID, or via a future vindex
+ * affect sidecar), wire this provider via `setFeatureAffectProvider`.
+ */
+export type FeatureAffectProvider = (layer: number, featureIndex: number) => Affect | null
+
+const DEFAULT_AFFECT_BIAS_WEIGHT = 0.3
 
 interface CassiLarqlModule {
   loadVindexOnly(path: string): Promise<VindexHandle>
@@ -112,6 +149,10 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   // overlay patches into base vindex results. See C3 (Bidirectional Claustrum Surgery).
   private overlay: OverlayLayer | null = null
 
+  // Optional resolver: maps (layer, featureIndex) → Affect for affect-biased gate-KNN.
+  // V4 features don't yet expose affect on this codebase; tests stub this directly.
+  private featureAffectProvider: FeatureAffectProvider | null = null
+
   constructor(
     logger: ILogger,
     config?: Partial<LarqlProviderConfig>,
@@ -128,6 +169,14 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   /** Attach an overlay layer for bidirectional claustrum surgery (C3). */
   setOverlay(overlay: OverlayLayer | null): void {
     this.overlay = overlay
+  }
+
+  /**
+   * Attach a feature-affect resolver used by `gateKnn` when an `affectBias`
+   * is supplied. Pass `null` to disable. See FeatureAffectProvider.
+   */
+  setFeatureAffectProvider(provider: FeatureAffectProvider | null): void {
+    this.featureAffectProvider = provider
   }
 
   /**
@@ -510,10 +559,59 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   /**
    * Get raw gate KNN features for a token at a layer.
    * Useful for DreamEngine's VindexGateKnnProvider interface.
+   *
+   * Optional `affectBias` re-weights and re-sorts hits by blending each
+   * feature's stored affect (resolved via the feature-affect provider) with
+   * the base gate-KNN score. When the provider is absent or returns null
+   * for a feature, alignment falls back to 0 — that hit gets no bias.
+   * When `affectBias` is omitted entirely, hits pass through unchanged
+   * (preserving the existing DreamEngine call-site contract).
    */
-  gateKnn(layer: number, tokenId: number, topK: number): FeatureHit[] {
+  gateKnn(
+    layer: number,
+    tokenId: number,
+    topK: number,
+    affectBias?: AffectBias,
+  ): FeatureHit[] {
     if (!this.loaded || !this.handle || !this.larql) return []
-    return this.larql.vindexGateKnn(this.handle, layer, tokenId, topK)
+    const baseHits = this.larql.vindexGateKnn(this.handle, layer, tokenId, topK)
+    if (!affectBias) return baseHits
+    return this.applyAffectBias(baseHits, layer, affectBias)
+  }
+
+  /**
+   * Re-score and re-sort gate-KNN hits with an affect bias.
+   *
+   *   newScore = (1 - weight) * baseScore + weight * affectAlignment
+   *
+   * affectAlignment is `affectSimilarity(bias, featureAffect)` in [0,1] when
+   * the resolver returns affect for a feature, otherwise 0 (no bias).
+   * Returns a new array; does not mutate inputs.
+   */
+  private applyAffectBias(
+    hits: FeatureHit[],
+    layer: number,
+    affectBias: AffectBias,
+  ): FeatureHit[] {
+    const weight = affectBias.weight ?? DEFAULT_AFFECT_BIAS_WEIGHT
+    const biasAffect: Affect = { valence: affectBias.valence, arousal: affectBias.arousal }
+    const provider = this.featureAffectProvider
+
+    const rescored = hits.map((hit) => {
+      const featureAffect = provider ? provider(layer, hit.featureIndex) : null
+      const alignment = featureAffect ? affectSimilarity(biasAffect, featureAffect) : 0
+      const baseScore = hit.score
+      const newScore = (1 - weight) * baseScore + weight * alignment
+      return {
+        ...hit,
+        score: newScore,
+        baseScore,
+        affectAlignment: alignment,
+      }
+    })
+
+    rescored.sort((a, b) => b.score - a.score)
+    return rescored
   }
 
   /**

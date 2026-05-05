@@ -184,7 +184,7 @@ export class GapDetector {
 
   /** Factory that creates a detector at the standard path. */
   static create(logger: ILogger, config?: Partial<GapDetectorConfig>): GapDetector {
-    const dbPath = path.join(getDataDir(), 'aurora-gaps.db')
+    const dbPath = path.join(getDataDir(), 'system-state.db')
     return new GapDetector(dbPath, logger, config)
   }
 

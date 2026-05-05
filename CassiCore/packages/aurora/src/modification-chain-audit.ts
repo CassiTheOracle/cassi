@@ -120,7 +120,7 @@ export class SubstrateModificationAudit {
   constructor(options: SMCAOptions) {
     this.logger = options.logger
 
-    this.dbPath = options.dbPath ?? path.join(getDataDir(), 'aurora.db')
+    this.dbPath = options.dbPath ?? path.join(getDataDir(), 'system-state.db')
 
     const exists = fs.existsSync(this.dbPath)
 

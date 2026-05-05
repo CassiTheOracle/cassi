@@ -116,7 +116,7 @@ export class ClaustrumRecorder {
     this.sourcePath = sourcePath
 
     if (typeof dbOrPath === 'string' || dbOrPath === undefined) {
-      const dbPath = dbOrPath ?? path.join(getDataDir(), 'aurora-claustrum.db')
+      const dbPath = dbOrPath ?? path.join(getDataDir(), 'system-state.db')
       const dir = path.dirname(dbPath)
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
       this.db = new Database(dbPath)

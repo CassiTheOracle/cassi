@@ -337,7 +337,7 @@ export class Aurora {
     }
 
     // Phase 4: Initialize self-direction modules
-    const auroraDbPath = persistence?.getDbPath() ?? path.join(getDataDir(), 'aurora.db')
+    const auroraDbPath = persistence?.getDbPath() ?? path.join(getDataDir(), 'system-state.db')
     const phase4Config = config ?? AURORA_DEFAULTS
 
     // Initialize modules based on enabled flags

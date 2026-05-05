@@ -9,7 +9,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, DomainStats, Domain, SkillSummary } from './types.js'
 import { DOMAIN_INITIAL_CONVICTION } from './types.js'
 
-const DB_NAME = 'pineal.db'
+const DB_NAME = 'system-state.db'
 
 const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS pineal_facets (

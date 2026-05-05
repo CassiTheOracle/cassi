@@ -594,6 +594,6 @@ export function createAutoScheduler(
   config: Partial<AutoSchedulerConfig> = {},
   logger: ILogger,
 ): AutoScheduler {
-  const dbPath = path.join(getDataDir(), 'aurora-scheduler.db')
+  const dbPath = path.join(getDataDir(), 'system-state.db')
   return new AutoScheduler(dbPath, config, logger)
 }

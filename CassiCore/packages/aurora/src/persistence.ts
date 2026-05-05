@@ -58,6 +58,26 @@ export interface AffectSample {
   metadata?: Record<string, unknown>
 }
 
+/**
+ * A reasoning record that has been moved out of the live `aurora_reasoning`
+ * table into the long-arc archive. Mirrors the live row plus an `archived_at`
+ * stamp and a denormalised `session_id` (the archive has no FK back to
+ * `aurora_sessions`, so archived rows survive session deletion).
+ */
+export interface ArchivedRecord {
+  id: number
+  sessionId: string
+  turnCount: number
+  occurredAt: string
+  archivedAt: string
+  concepts: string[]
+  coherence: number | null
+  integration: number | null
+  insights: unknown[]
+  textExcerpt: string | null
+  metadata: Record<string, unknown>
+}
+
 export interface AuroraPersistenceConfig {
   /** Max reasoning records to load on hydration. Default: 200. */
   reasoningHydrationLimit?: number
@@ -172,6 +192,31 @@ const MIGRATIONS: Migration[] = [
       );
 
       INSERT INTO aurora_schema_version (version, applied_at) VALUES (1, ?);
+    `,
+  },
+  {
+    version: 2,
+    sql: `
+      CREATE TABLE IF NOT EXISTS aurora_archived_reasoning (
+        id INTEGER PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        turn_count INTEGER NOT NULL,
+        occurred_at TEXT NOT NULL,
+        concepts TEXT NOT NULL,
+        coherence REAL,
+        integration REAL,
+        insights TEXT DEFAULT '[]',
+        text_excerpt TEXT,
+        metadata TEXT DEFAULT '{}',
+        archived_at TEXT NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_aurora_archived_reasoning_archived
+        ON aurora_archived_reasoning(archived_at);
+      CREATE INDEX IF NOT EXISTS idx_aurora_archived_reasoning_occurred
+        ON aurora_archived_reasoning(occurred_at);
+
+      INSERT INTO aurora_schema_version (version, applied_at) VALUES (2, ?);
     `,
   },
 ]
@@ -603,6 +648,117 @@ export class AuroraPersistence {
 
     this.logger.info('Decay pass complete', { nodesDropped, edgesDropped })
     return { nodesDropped, edgesDropped }
+  }
+
+  /**
+   * Long-arc decay + archival pass for `aurora_reasoning` (B6.2).
+   *
+   * Runs as a single SQLite transaction:
+   *  1. Decays the `coherence` score on every live reasoning row by
+   *     `(1 - activationDecayRate)`. (Reasoning rows have no `activation`
+   *     column, so we decay `coherence` — the closest score field.
+   *     Coherence is NULL until populated post-observation, in which case
+   *     the multiplication is a no-op and only age-based archival applies.)
+   *  2. Archives rows whose `occurred_at` is older than `archiveAfterDays`,
+   *     OR whose decayed `coherence` falls below `archiveActivationFloor`
+   *     (NULL coherence is treated as not-below-floor, so it never triggers
+   *     the floor branch on its own).
+   *  3. Archived rows are inserted into `aurora_archived_reasoning` with
+   *     their original `id` preserved and a fresh `archived_at` stamp,
+   *     then deleted from the live table.
+   *
+   * The archive table has no FK to `aurora_sessions`, so archived rows
+   * survive deletion of the session that produced them — that's the whole
+   * point of long-arc memory.
+   */
+  runDecayAndArchive(options: {
+    activationDecayRate?: number
+    archiveAfterDays?: number
+    archiveActivationFloor?: number
+    now?: Date
+  } = {}): { decayed: number; archived: number } {
+    this.assertOpen()
+
+    const decayRate = options.activationDecayRate ?? 0.05
+    const archiveAfterDays = options.archiveAfterDays ?? 30
+    const floor = options.archiveActivationFloor ?? 0.05
+    const now = options.now ?? new Date()
+    const cutoffIso = new Date(now.getTime() - archiveAfterDays * 86_400_000).toISOString()
+    const archivedAt = now.toISOString()
+
+    const tx = this.db.transaction((): { decayed: number; archived: number } => {
+      const decayResult = this.db.prepare(
+        `UPDATE aurora_reasoning
+           SET coherence = coherence * ?
+         WHERE coherence IS NOT NULL`,
+      ).run(1 - decayRate)
+      const decayed = Number(decayResult.changes ?? 0)
+
+      this.db.prepare(
+        `INSERT INTO aurora_archived_reasoning
+           (id, session_id, turn_count, occurred_at, concepts, coherence,
+            integration, insights, text_excerpt, metadata, archived_at)
+         SELECT id, session_id, turn_count, occurred_at, concepts, coherence,
+                integration, insights, text_excerpt, metadata, ?
+           FROM aurora_reasoning
+          WHERE occurred_at < ?
+             OR (coherence IS NOT NULL AND coherence < ?)`,
+      ).run(archivedAt, cutoffIso, floor)
+
+      const deleteResult = this.db.prepare(
+        `DELETE FROM aurora_reasoning
+          WHERE occurred_at < ?
+             OR (coherence IS NOT NULL AND coherence < ?)`,
+      ).run(cutoffIso, floor)
+      const archived = Number(deleteResult.changes ?? 0)
+
+      return { decayed, archived }
+    })
+
+    const result = tx()
+    this.logger.info('Aurora decay+archive complete', {
+      decayed: result.decayed,
+      archived: result.archived,
+      decayRate,
+      archiveAfterDays,
+      floor,
+    })
+    return result
+  }
+
+  /**
+   * Read archived reasoning records (B6.2). Defaults to the 100 most-recently
+   * archived rows; pass `since` to filter by `archived_at` lower bound.
+   */
+  queryArchive(options: { since?: string; limit?: number } = {}): ArchivedRecord[] {
+    this.assertOpen()
+    const limit = options.limit ?? 100
+    const since = options.since ?? null
+
+    const sql = since
+      ? `SELECT * FROM aurora_archived_reasoning
+           WHERE archived_at >= ?
+           ORDER BY archived_at DESC LIMIT ?`
+      : `SELECT * FROM aurora_archived_reasoning
+           ORDER BY archived_at DESC LIMIT ?`
+
+    const rows = (since
+      ? this.db.prepare(sql).all(since, limit)
+      : this.db.prepare(sql).all(limit)) as any[]
+
+    return rows.map(row => ({
+      id: row.id,
+      sessionId: row.session_id,
+      turnCount: row.turn_count,
+      occurredAt: row.occurred_at,
+      archivedAt: row.archived_at,
+      concepts: safeParseJson(row.concepts, []),
+      coherence: row.coherence ?? null,
+      integration: row.integration ?? null,
+      insights: safeParseJson(row.insights, []),
+      textExcerpt: row.text_excerpt ?? null,
+      metadata: safeParseJson(row.metadata, {}),
+    }))
   }
 
   close(): void {
