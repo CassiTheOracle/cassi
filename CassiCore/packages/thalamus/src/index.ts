@@ -1,6 +1,6 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
-import { ToolResultCompressor } from './compressor.js'
+import { ToolResultCompressor, RerankerCompressor } from './compressor.js'
 import { ToolResultDistiller, type DistillationResult } from './distiller.js'
 import { TemporalRegistry } from './temporal.js'
 import { createSlots } from './slots/index.js'
@@ -112,6 +112,9 @@ function buildInlineMarker(msg: any, index: number): string | null {
  */
 function attachInlineMarkers(messages: any[]): any[] {
   return messages.map((msg, i) => {
+    // Assistant messages carry thinking signatures bound to block structure.
+    // Mutating their content blocks invalidates signatures → Anthropic 400.
+    if (msg?.role === 'assistant') return msg
     const ann = msg?._thalamus
     const stableIdx = (ann && typeof ann.index === 'number') ? ann.index : i
     const marker = buildInlineMarker(msg, stableIdx)
@@ -165,6 +168,7 @@ export class ThalamusModule extends BaseCognitiveModule {
 
   private scorer!: MessageLuminanceScorer
   private compressor!: ToolResultCompressor
+  private rerankerCompressor!: RerankerCompressor
   private distiller!: ToolResultDistiller
   private sessions = new Map<string, CurationSession>()
   private evictionTimer: ReturnType<typeof setInterval> | null = null
@@ -217,6 +221,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
     this.compressor = new ToolResultCompressor(this.logger)
+    this.rerankerCompressor = new RerankerCompressor(this.logger)
     this.distiller = new ToolResultDistiller(this.logger)
     this.slots = createSlots()
     this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 2)
@@ -615,6 +620,26 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     const assembled = this.assembleByThreshold(compressed, scored, cappedProtectedStart, cfg, topicClusters, sessionId)
 
+    // Phase 4b: Reranker compression for included messages with large tool results.
+    // Uses local cross-encoder to select the most contextually relevant chunks,
+    // preserving semantic coherence instead of naive head+tail truncation.
+    let rerankerCompressed = 0
+    if (cfg.rerankerCompressionEnabled) {
+      const recentUserPrompt = this.getRecentUserPrompt(compressed)
+      const recentAssistantThinking = this.getRecentAssistantThinking(compressed)
+      const rerankerResult = await this.rerankerCompressor.compress(
+        assembled.messages,
+        assembled.includedIndices,
+        session.rerankerCache,
+        cfg,
+        { userPrompt: recentUserPrompt, assistantThinking: recentAssistantThinking },
+      )
+      if (rerankerResult.rerankerCompressed > 0) {
+        assembled.messages = rerankerResult.messages
+        rerankerCompressed = rerankerResult.rerankerCompressed
+      }
+    }
+
     const curatedChars = assembled.messages.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
@@ -663,6 +688,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       charBudget: cfg.charBudget,
       charsUsed: curatedChars,
       threshold: cfg.ignitionThreshold,
+      rerankerCache: session.rerankerCache,
     })
 
     // Detect tool repetition — same (tool, target) appearing 3+ times
@@ -670,6 +696,8 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     // Extract topic summaries for cross-session sharing
     const topicSummaries = this.extractTopicSummaries(session, scored)
+
+    const contextMap = this.buildContextMap(assembled.messages)
 
     const meta = {
       originalCount: messages.length,
@@ -682,8 +710,10 @@ export class ThalamusModule extends BaseCognitiveModule {
       gapNotes: assembled.gapNotes,
       receipt,
       repetitionWarning,
+      contextMap,
       durationMs: Date.now() - start,
       topicSummaries,
+      rerankerCompressed,
     }
 
     this.logger.info('Thalamus curated', {
@@ -695,6 +725,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       threshold: cfg.ignitionThreshold,
       phaseCoherence: brainContext.phaseCoherence?.toFixed(2) ?? "?",
       dropped,
+      rerankerCompressed,
       durationMs: meta.durationMs,
     })
 
@@ -939,6 +970,22 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
     if (opts.drops) for (const i of opts.drops) session.dropDirectives.delete(i)
     if (opts.collapses) for (const i of opts.collapses) session.collapseDirectives.delete(i)
+  }
+
+  /**
+   * Recover the original uncompressed content for a tool result that was
+   * compressed by the reranker. Returns undefined if the tool_use_id is not
+   * found in the session's reranker cache.
+   */
+  expandToolResult(sessionId: string, toolUseId: string): { original: string; compressed: string; toolUseId: string } | undefined {
+    const session = this.getSession(sessionId)
+    const entry = session.rerankerCache.entries.get(toolUseId)
+    if (!entry) return undefined
+    return {
+      toolUseId,
+      original: entry.originalContent,
+      compressed: entry.compressedContent,
+    }
   }
 
   private extractToolUseId(msg: any): string | undefined {
@@ -2038,6 +2085,7 @@ export class ThalamusModule extends BaseCognitiveModule {
         distilledSummaries: new Map(),
         dropDirectives: new Set(),
         collapseDirectives: new Map(),
+        rerankerCache: { entries: new Map(), expansions: new Map() },
       }
       this.sessions.set(sessionId, session)
     }
@@ -2980,6 +3028,48 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     this.logger.debug('Tool repetition detected', { repeated: repeated.length, worst: repeated[0] })
     return message
+  }
+
+  private buildContextMap(messages: any[]): string {
+    return messages.map((msg, i) => {
+      const ann = msg?._thalamus
+      const idx = ann?.index ?? i
+      const t = formatTimeOfDay(ann?.ts)
+      const chars = formatBytes(ann?.chars ?? 0)
+      const role = msg?.role ?? '?'
+      const blocks = Array.isArray(msg?.content)
+        ? msg.content.map((b: any) => b?.type).filter(Boolean).join('+')
+        : 'text'
+      let tag = ''
+      if (ann?.protectedBy === 'pin') tag = ' pin'
+      else if (ann?.protectedBy === 'live-read') tag = ' live'
+      else if (ann?.protectedBy === 'recent-window') tag = ' recent'
+      else if (ann?.protectedBy === 'system') tag = ' sys'
+      return `[#${idx} ${t} ${role} ${blocks} ${chars}${tag}]`
+    }).join(' ')
+  }
+
+  private getRecentUserPrompt(messages: any[]): string {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg?.role !== 'user') continue
+      const content = extractMessageContent(msg)
+      if (content.length > 10 && !content.includes('[#')) return content.slice(0, 300)
+    }
+    return ''
+  }
+
+  private getRecentAssistantThinking(messages: any[]): string {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg?.role !== 'assistant' || !Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'thinking' && typeof block.thinking === 'string' && block.thinking.length > 20) {
+          return block.thinking.slice(0, 300)
+        }
+      }
+    }
+    return ''
   }
 
   private getConfigOverrides(): Partial<CurationConfig> {

@@ -183,8 +183,11 @@ export interface CurationConfig {
   toolResultMaxChars: number
   ignitionThreshold: number
   excludeSessionPrefixes: string[]
-  /** Per-type budget allocation fractions */
   slotBudgets: SlotBudgets
+  rerankerCompressionEnabled: boolean
+  rerankerMinChars: number
+  rerankerTargetChars: number
+  rerankerChunkSize: number
 }
 
 export const DEFAULT_CURATION_CONFIG: CurationConfig = {
@@ -194,6 +197,10 @@ export const DEFAULT_CURATION_CONFIG: CurationConfig = {
   ignitionThreshold: 0.20,
   excludeSessionPrefixes: ['meditation:', 'module:', 'helix-review:'],
   slotBudgets: DEFAULT_SLOT_BUDGETS,
+  rerankerCompressionEnabled: true,
+  rerankerMinChars: 5000,
+  rerankerTargetChars: 2400,
+  rerankerChunkSize: 400,
 }
 
 export interface ScoredMessage {
@@ -399,6 +406,33 @@ export interface CurationSession {
    */
   dropDirectives: Set<number>
   collapseDirectives: Map<number, string>
+  rerankerCache: RerankerCompressionCache
+}
+
+export interface RerankerChunk {
+  text: string
+  startLine: number
+  endLine: number
+  score: number
+  summary: string
+}
+
+export interface RerankerCacheEntry {
+  toolUseId: string
+  contentHash: string
+  originalContent: string
+  compressedContent: string
+  keptChunks: RerankerChunk[]
+  droppedChunks: RerankerChunk[]
+  totalChunks: number
+  originalChars: number
+  compressedChars: number
+  timestamp: number
+}
+
+export interface RerankerCompressionCache {
+  entries: Map<string, RerankerCacheEntry>
+  expansions: Map<string, string>
 }
 
 /**

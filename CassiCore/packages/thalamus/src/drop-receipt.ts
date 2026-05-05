@@ -8,7 +8,7 @@
  * cassi-context-awareness spec calls out.
  */
 
-import type { ScoredMessage, ThalamusAnnotation } from './types.js'
+import type { ScoredMessage, ThalamusAnnotation, RerankerCompressionCache } from './types.js'
 import { isWriteTool, isReadTool, shortenPath } from './classifier.js'
 import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 
@@ -104,6 +104,8 @@ export interface DropReceipt {
    * visibility into which messages will survive the next curation pass.
    */
   protected: ProtectionSummary
+  /** Reranker compression metadata — shows which tool results were compressed and by how much */
+  rerankerSummary?: string
 }
 
 /**
@@ -138,6 +140,8 @@ export interface BuildReceiptInput {
   charsUsed: number
   /** Ignition threshold — required for closestMiss gap calculation */
   threshold: number
+  /** Reranker compression cache for showing compression metadata */
+  rerankerCache?: RerankerCompressionCache
 }
 
 function summarizeProtections(messages: any[], includedIndices: Set<number>): ProtectionSummary {
@@ -185,6 +189,7 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
   const protectedSummary = summarizeProtections(before, includedIndices)
 
   if (droppedIndices.length === 0) {
+    const rerankerSummary = buildRerankerSummary(input.rerankerCache)
     return {
       dropped: 0,
       bySlot: {},
@@ -194,6 +199,7 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
       ts: new Date().toISOString(),
       topics: [],
       protected: protectedSummary,
+      rerankerSummary,
     }
   }
 
@@ -250,6 +256,8 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
     }
   }
 
+  const rerankerSummary = buildRerankerSummary(input.rerankerCache)
+
   return {
     dropped: droppedIndices.length,
     bySlot,
@@ -262,6 +270,7 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
     closestMiss,
     budget,
     protected: protectedSummary,
+    rerankerSummary,
   }
 }
 
@@ -471,4 +480,21 @@ function findClosestMiss(
     },
     snippet: preview,
   }
+}
+
+function buildRerankerSummary(cache: RerankerCompressionCache | undefined): string | undefined {
+  if (!cache || cache.entries.size === 0) return undefined
+  const lines: string[] = []
+  for (const [toolUseId, entry] of cache.entries) {
+    const ratio = `${Math.round(entry.originalChars / 1000)}K → ${Math.round(entry.compressedChars / 1000)}K`
+    const kept = `${entry.keptChunks.length}/${entry.totalChunks}`
+    lines.push(`[${toolUseId.slice(0, 12)}…] ${ratio}, ${kept} chunks`)
+    if (entry.keptChunks.length > 0) {
+      const top = entry.keptChunks.slice(0, 3).map(c => c.summary).filter(Boolean).join(', ')
+      if (top) lines.push(`  top: ${top}`)
+    }
+  }
+  if (lines.length === 0) return undefined
+  lines.push('Use cassi_context({action: "expand", tool_use_id: "…"}) to recover full content')
+  return lines.join('\n')
 }
