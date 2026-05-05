@@ -23,7 +23,7 @@ import { getDataDir } from '../utils/paths.js'
 
 const SCHEMA_VERSION = 1
 const DEFAULT_MAX_AGE_DAYS = 30
-const DB_FILENAME = 'workflows.db'
+const DB_FILENAME = 'system-state.db'
 
 // Row types
 

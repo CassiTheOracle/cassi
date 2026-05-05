@@ -31,7 +31,7 @@ import type {
 import { getDataDir } from '../utils/paths.js'
 
 const TRIGGER_SCHEMA_VERSION = 1
-const DB_FILENAME = 'workflows.db'
+const DB_FILENAME = 'system-state.db'
 
 interface TriggerRow {
   id: string

@@ -26,7 +26,7 @@ import type {
 import { getDataDir } from '../utils/paths.js'
 
 const DEF_SCHEMA_VERSION = 1
-const DB_FILENAME = 'workflows.db'
+const DB_FILENAME = 'system-state.db'
 
 interface DefRow {
   id: string
