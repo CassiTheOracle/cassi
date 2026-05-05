@@ -1,7 +1,7 @@
 /**
  * HelixStore — SQLite-backed persistence for Helix agent sessions.
  *
- * Lives at ~/.cassicore/data/helix.db (separate from dyad.db and lumen.db)
+ * Lives at ~/.cassicore/data/constellation.db (shared with Constellation)
  * Persists Helix session state, work stream messages, role conversations,
  * tool calls, and events.
  *
@@ -192,7 +192,7 @@ export class HelixStore {
   static open(logger: ILogger, dataDir?: string, maxAgeDays = DEFAULT_MAX_AGE_DAYS): HelixStore {
     const dir = dataDir ?? getDataDir()
     fs.mkdirSync(dir, { recursive: true })
-    const dbPath = path.join(dir, 'helix.db')
+    const dbPath = path.join(dir, 'constellation.db')
     const store = new HelixStore(dbPath, logger)
     const pruned = store.prune(maxAgeDays)
     if (pruned > 0) store.logger.info(`Pruned ${pruned} stale helix session(s) (>${maxAgeDays}d old)`)

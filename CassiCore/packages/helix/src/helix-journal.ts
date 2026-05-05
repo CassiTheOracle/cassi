@@ -125,7 +125,7 @@ export class HelixJournal {
     } else {
       const dir = getDataDir()
       fs.mkdirSync(dir, { recursive: true })
-      this.dbPath = path.join(dir, 'helix-journal.db')
+      this.dbPath = path.join(dir, 'constellation.db')
     }
 
     this.db = new Database(this.dbPath)
