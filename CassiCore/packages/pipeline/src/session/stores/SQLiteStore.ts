@@ -333,7 +333,7 @@ export function createDefaultSQLiteStore(
   logger?: ILogger
 ): SQLiteSessionStore {
   return new SQLiteSessionStore({
-    dbPath: join(baseDir, 'sessions.db'),
+    dbPath: join(baseDir, 'system-state.db'),
     logger,
     walMode: true
   });

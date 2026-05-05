@@ -147,7 +147,7 @@ export class SessionPipeline {
     this.logger.info('Initializing session pipeline');
 
     // 1. Create store
-    const dbPath = join(homedir(), '.cassicore', 'sessions.db');
+    const dbPath = join(homedir(), '.cassicore', 'system-state.db');
     this.store = new SQLiteSessionStore({
       dbPath,
       logger: this.logger.child('store'),
