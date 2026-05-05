@@ -325,9 +325,11 @@ export class Daemon {
       const { InferenceStackLauncher } = await import('./intelligence/embeddings/inference-stack-launcher.js')
       const gpuGuardEnabled = this.config.get<boolean>('intelligence.inferenceStack.gpuGuard', true)
       const gpuGuardIntervalMs = this.config.get<number>('intelligence.inferenceStack.gpuGuardIntervalMs', 60_000)
+      const generativeDisabled = this.config.get<boolean>('intelligence.inferenceStack.generativeDisabled', true)
       this.embeddingStackLauncher = new InferenceStackLauncher(this.logger, {
         gpuGuardEnabled,
         gpuGuardIntervalMs,
+        generativeDisabled,
       })
       this.embeddingStackLauncher.start()
         .then(() => {
@@ -1815,19 +1817,23 @@ export class Daemon {
       // REMOVED: MnemicField injection source registration — InjectionAggregator deleted.
       // MnemicField content is now accessed directly by Thalamus.
 
-      // Wire LLM reranker into MnemicField (alternative to filament kindling).
-      // Uses gpt-5-mini for fast (~1s) cross-encoder reranking vs ~30s for kindling.
-      const rerankerProviderId = this.config.get<string>('intelligence.mnemic.rerankerProvider', 'github-copilot')
-      const rerankerModel = this.config.get<string>('intelligence.mnemic.rerankerModel', 'gpt-5-mini')
-      const rerankerProvider = providers.get(rerankerProviderId) ?? providers.values().next().value
-      const rerankerEnabled = this.config.get<boolean>('intelligence.mnemic.rerankerEnabled', true)
-      if (rerankerProvider && rerankerEnabled) {
-        field.setRerankerProvider(rerankerProvider, rerankerModel, true)
-        this.logger.info(`MnemicField LLM reranker wired: ${rerankerProviderId}/${rerankerModel}`)
-      } else if (!rerankerEnabled) {
-        this.logger.info('MnemicField LLM reranker disabled by config')
+      // Wire reranker mode into MnemicField: 'local' (cross-encoder), 'llm' (cloud LLM), or 'off'.
+      const rerankerMode = this.config.get<string>('intelligence.mnemic.rerankerType', 'local') as 'local' | 'llm' | 'off'
+      field.setRerankerMode(rerankerMode)
+
+      if (rerankerMode === 'llm') {
+        const rerankerProviderId = this.config.get<string>('intelligence.mnemic.rerankerProvider', 'github-copilot')
+        const rerankerModel = this.config.get<string>('intelligence.mnemic.rerankerModel', 'gpt-5-mini')
+        const rerankerProvider = providers.get(rerankerProviderId) ?? providers.values().next().value
+        if (rerankerProvider) {
+          field.setRerankerProvider(rerankerProvider, rerankerModel, true)
+          this.logger.info(`MnemicField LLM reranker wired: ${rerankerProviderId}/${rerankerModel}`)
+        } else {
+          this.logger.warn('MnemicField LLM reranker: no provider available, falling back to local')
+          field.setRerankerMode('local')
+        }
       } else {
-        this.logger.warn('MnemicField LLM reranker: no provider available')
+        this.logger.info(`MnemicField reranker mode: ${rerankerMode}`)
       }
 
       const lightningShadow = this.config.get<boolean>('intelligence.mnemic.lightningShadow', false)
