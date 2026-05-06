@@ -454,6 +454,14 @@ export interface VectorProjectionOptions {
   magnitudeScale?: number
   /** Top-N salience cap (default 32). */
   maxNodes?: number
+  /**
+   * Calibration target: rescale each layer's accumulated vector so its L2
+   * norm is `targetResidualFraction × baselineNorm(layer)`. Spec §4.3
+   * recommends 0.05–0.15. Requires the caller to also supply a
+   * `baselineNormSource` (otherwise the option is silently ignored — the
+   * raw `salience × magnitudeScale` composition is used as-is).
+   */
+  targetResidualFraction?: number
 }
 
 /**

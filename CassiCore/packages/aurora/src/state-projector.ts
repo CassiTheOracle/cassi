@@ -25,7 +25,7 @@ import type {
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
 import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
-import { composeVectorProjection, type ProjectionContext, type GateVectorSource } from './projection/vector-projection.js'
+import { composeVectorProjection, type ProjectionContext, type GateVectorSource, type BaselineNormSource } from './projection/vector-projection.js'
 import { renderActiveGateAnnotation } from './projection/active-gate-annotation.js'
 
 /**
@@ -176,8 +176,9 @@ export class StateProjector {
     options?: VectorProjectionOptions,
     ctx?: ProjectionContext,
     vectorSource?: GateVectorSource,
+    baselineNormSource?: BaselineNormSource,
   ): VectorProjection | null {
-    return composeVectorProjection(state, options, ctx, vectorSource)
+    return composeVectorProjection(state, options, ctx, vectorSource, baselineNormSource)
   }
 
   /**

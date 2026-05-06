@@ -50,6 +50,18 @@ export interface ProjectionContext {
 export type GateVectorSource = (node: import('../types.js').CognitiveNode, layer: number) => Float32Array | null
 
 /**
+ * Caller-provided lookup that returns the typical residual L2 norm at the
+ * given layer (e.g. measured during vindex build or via a probe pass). When
+ * supplied alongside `targetResidualFraction`, the composer rescales each
+ * layer's accumulated vector so its L2 = `target_fraction * baseline_norm`.
+ * This implements spec §4.3 static calibration.
+ *
+ * Returns `null` when the norm is unknown for that layer; the composer
+ * falls back to the un-rescaled vector in that case.
+ */
+export type BaselineNormSource = (layer: number) => number | null
+
+/**
  * Compose a vector projection from the current mental state.
  *
  * Pure function — caller passes the state plus an optional context with
@@ -67,10 +79,12 @@ export function composeVectorProjection(
   options: VectorProjectionOptions = {},
   ctx: ProjectionContext = {},
   vectorSource?: GateVectorSource,
+  baselineNormSource?: BaselineNormSource,
 ): VectorProjection | null {
   const magnitudeScale = options.magnitudeScale ?? DEFAULT_MAGNITUDE_SCALE
   const maxNodes = options.maxNodes ?? DEFAULT_MAX_NODES
   const layerSubset = options.layerSubset ? new Set(options.layerSubset) : null
+  const targetFraction = options.targetResidualFraction
 
   const activated = activatedNodes(state.graph)
   if (activated.length === 0) return null
@@ -127,6 +141,10 @@ export function composeVectorProjection(
 
   if (contributions.length === 0) return null
 
+  if (targetFraction !== undefined && baselineNormSource && targetFraction > 0) {
+    rescaleToCalibrationTarget(perLayer, baselineNormSource, targetFraction)
+  }
+
   return {
     perLayer,
     contributions,
@@ -137,6 +155,35 @@ export function composeVectorProjection(
       composedAt: new Date().toISOString(),
     },
   }
+}
+
+/**
+ * Rescale each layer's accumulated vector to `target_fraction × baseline`
+ * (per spec §4.3 static calibration). Mutates the map in place. Layers
+ * with empty placeholders (length 0) and layers whose baseline norm comes
+ * back null are left untouched.
+ */
+function rescaleToCalibrationTarget(
+  perLayer: Map<number, Float32Array>,
+  baselineNormSource: BaselineNormSource,
+  targetFraction: number,
+): void {
+  for (const [layer, vec] of perLayer) {
+    if (vec.length === 0) continue
+    const baseline = baselineNormSource(layer)
+    if (baseline === null || !Number.isFinite(baseline) || baseline <= 0) continue
+    const currentNorm = l2Norm(vec)
+    if (currentNorm === 0) continue
+    const target = targetFraction * baseline
+    const scale = target / currentNorm
+    for (let i = 0; i < vec.length; i++) vec[i] *= scale
+  }
+}
+
+function l2Norm(vec: Float32Array): number {
+  let sum = 0
+  for (let i = 0; i < vec.length; i++) sum += vec[i] * vec[i]
+  return Math.sqrt(sum)
 }
 
 function activatedNodes(graph: UnifiedGraph): CognitiveNode[] {

@@ -1637,6 +1637,7 @@ export class Aurora {
     options?: import('./types.js').VectorProjectionOptions,
     state?: MentalState,
     vectorSource?: import('./projection/vector-projection.js').GateVectorSource,
+    baselineNormSource?: import('./projection/vector-projection.js').BaselineNormSource,
   ): import('./types.js').VectorProjection | null {
     if (!this.vectorProjectionEnabled) return null
     const target = state ?? this.currentState
@@ -1644,7 +1645,7 @@ export class Aurora {
     return this.projector.projectVector(target, options, {
       vindexId: this.knowledgeProvider ? (this.knowledgeProvider as { vindexId?: string }).vindexId ?? null : null,
       targetModelId: null,
-    }, vectorSource)
+    }, vectorSource, baselineNormSource)
   }
 
   /** N2: Top-N coherence checks for projection rendering. */

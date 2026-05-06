@@ -238,3 +238,100 @@ describe('composeVectorProjection — vectorSource callback', () => {
     expect(p.perLayer.get(20)![1]).toBeGreaterThan(0)
   })
 })
+
+describe('composeVectorProjection — targetResidualFraction calibration', () => {
+  function l2(v: Float32Array): number {
+    let s = 0
+    for (let i = 0; i < v.length; i++) s += v[i] * v[i]
+    return Math.sqrt(s)
+  }
+
+  it('rescales each layer to target_fraction × baseline_norm', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    const source = () => new Float32Array([3, 4])
+    const baseline = (layer: number) => (layer === 14 ? 100 : null)
+    const p = composeVectorProjection(
+      state,
+      { targetResidualFraction: 0.1 },
+      {},
+      source,
+      baseline,
+    )!
+    const v14 = p.perLayer.get(14)!
+    expect(l2(v14)).toBeCloseTo(10, 4)
+    expect(v14[1] / v14[0]).toBeCloseTo(4 / 3, 4)
+  })
+
+  it('leaves layer untouched when baselineNormSource returns null', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    const source = () => new Float32Array([3, 4])
+    const baseline = () => null
+    const p = composeVectorProjection(
+      state,
+      { targetResidualFraction: 0.1, magnitudeScale: 1.0 },
+      {},
+      source,
+      baseline,
+    )!
+    const v14 = p.perLayer.get(14)!
+    const norm = l2(v14)
+    expect(norm).toBeGreaterThan(0)
+    expect(norm).not.toBeCloseTo(10, 4)
+  })
+
+  it('is a no-op when baselineNormSource is omitted', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    const source = () => new Float32Array([3, 4])
+    const p = composeVectorProjection(
+      state,
+      { targetResidualFraction: 0.05 },
+      {},
+      source,
+    )!
+    const v14 = p.perLayer.get(14)!
+    expect(l2(v14)).toBeGreaterThan(0)
+    expect(l2(v14)).toBeLessThan(5)
+  })
+
+  it('rescales independently per layer', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14, 20] }),
+    ]))
+    const source = () => new Float32Array([3, 4])
+    const baseline = (layer: number) => layer === 14 ? 100 : 50
+    const p = composeVectorProjection(
+      state,
+      { targetResidualFraction: 0.1 },
+      {},
+      source,
+      baseline,
+    )!
+    expect(l2(p.perLayer.get(14)!)).toBeCloseTo(10, 4)
+    expect(l2(p.perLayer.get(20)!)).toBeCloseTo(5, 4)
+  })
+
+  it('rejects negative or zero baseline norms (treats as unknown)', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    const source = () => new Float32Array([3, 4])
+    const baseline = () => 0
+    const p = composeVectorProjection(
+      state,
+      { targetResidualFraction: 0.1, magnitudeScale: 1.0 },
+      {},
+      source,
+      baseline,
+    )!
+    const v14 = p.perLayer.get(14)!
+    // Untouched (no rescale): weight × [3,4]; weight is salience-bound.
+    expect(l2(v14)).toBeGreaterThan(0)
+    expect(l2(v14)).not.toBeCloseTo(10, 4)
+  })
+})
