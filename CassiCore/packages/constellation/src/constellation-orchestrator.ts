@@ -71,6 +71,7 @@ export interface ConstellationOrchestrator {
   setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
   setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
   setGlobalWorkspace(workspace: import('../workspace/index.js').GlobalWorkspace): void
+  setLamina(field: import('../lamina/index.js').LaminaField): void
   /** True when any non-meditation constellation is running or launching. */
   hasActiveWork(): boolean
 
@@ -123,6 +124,7 @@ export function createConstellationOrchestrator(
   let reasoningBank: import('../reasoning-bank/index.js').ReasoningBank | undefined
   let mnemicField: import('../mnemic-field/index.js').MnemicField | undefined
   let globalWorkspace: import('../workspace/index.js').GlobalWorkspace | undefined
+  let lamina: import('../lamina/index.js').LaminaField | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -299,6 +301,7 @@ export function createConstellationOrchestrator(
       meditationStyle: (session.meditationStyle as import('./meditation/styles.js').MeditationStyle | null) ?? undefined,
       mnemicField: (session.meditationMode || globalWorkspace) ? mnemicField : undefined,
       globalWorkspace,
+      lamina,
       logger,
       eventBus,
       toolExecutor: effectiveExecutor,
@@ -433,6 +436,7 @@ export function createConstellationOrchestrator(
         meditationStyle,
         mnemicField: (meditationMode || globalWorkspace) ? mnemicField : undefined,
       globalWorkspace,
+        lamina,
         logger,
         eventBus,
         toolExecutor: effectiveExecutor,
@@ -606,6 +610,7 @@ export function createConstellationOrchestrator(
     setReasoningBank(bank) { reasoningBank = bank },
     setMnemicField(field) { mnemicField = field },
     setGlobalWorkspace(workspace) { globalWorkspace = workspace },
+    setLamina(field) { lamina = field },
     generateId() { return constellationStore?.generateConstellationId() },
 
     // External Corpus Protocol

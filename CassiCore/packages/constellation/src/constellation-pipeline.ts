@@ -37,7 +37,8 @@ import { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
-import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
+import type { GoalDecomposition } from './corpus-types.js'
+import { seedHelixGoalLamina, rethinkHelixGoalLamina } from './helix-goal-lamina.js'
 import type { IMemory, SearchResult } from '../../../types/intelligence.js'
 import { MemoryInjectionService } from './memory-injection.js'
 import type {
@@ -291,6 +292,14 @@ export interface ConstellationPipelineOpts {
 
   /** MnemicField for meditation Corpus tools (consolidation, kindling, engram creation) */
   mnemicField?: import('../mnemic-field/index.js').MnemicField
+
+  /**
+   * LaminaField — when provided, each spawned Helix gets a session-scoped
+   * 'helix-goal' lamina seeded from its assigned subTask, rendered into the
+   * brainstem's prompt, and rethought on terminal status.
+   * See `docs/design/cassi-proposed/pending/2026-05-06-helix-goal-lamina.md`.
+   */
+  lamina?: import('../lamina/index.js').LaminaField
 
   /**
    * Global Workspace — when provided, spawned Helix sessions boot in
@@ -1636,8 +1645,10 @@ export async function runConstellationPipeline(
           if (trackedTask) {
             if (node.status === 'completed' || node.status === 'degraded') {
               tracker.completeTask(trackedTask.id, result.unityConclusion?.slice(0, 500))
+              rethinkHelixGoalLamina(opts.lamina, helixId, trackedTask.originalTask, 'completed', result.unityConclusion)
             } else {
               tracker.failTask(trackedTask.id, 'Helix failed')
+              rethinkHelixGoalLamina(opts.lamina, helixId, trackedTask.originalTask, 'failed')
             }
           }
         }
@@ -2228,6 +2239,7 @@ export async function runConstellationPipeline(
         ].filter(Boolean).join('\n\n')
 
         const h = await launchHelix(trackedTask.originalTask.goal, subContext || undefined, trackedTask.originalTask.template, 0)
+        seedHelixGoalLamina(opts.lamina, h.helixId, trackedTask.originalTask)
         tracker.assignTask(trackedTask.id, h.helixId)
         tracker.startTask(trackedTask.id)
         helixPromises.push(h)
