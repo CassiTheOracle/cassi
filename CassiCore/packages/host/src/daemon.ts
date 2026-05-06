@@ -17,12 +17,6 @@ export const CASSICORE_BUILD_STRING: string = formatBuildId(_BUILD)
 import { createAdminApi } from './admin-api.js'
 import { createBridge } from './bridge/openai.js'
 import { CommandDispatcher } from './commands.js'
-import { createSkillMetricsTracker, type SkillMetricsTracker } from './intelligence/skill-metrics.js'
-import { createCrossSessionCorrelator, type CrossSessionCorrelator } from './intelligence/cross-session-correlator.js'
-import { createStrategyTracker, type StrategyTracker } from './intelligence/strategy-tracker.js'
-import { createProviderProfiler, type ProviderProfiler } from './intelligence/provider-profiler.js'
-import { createAdaptiveBehavior, type AdaptiveBehavior } from './intelligence/adaptive-behavior.js'
-import { createSelfVerification, type SelfVerification } from './intelligence/self-verification.js'
 import { createMonitoringHook, type MonitoringHook } from './monitoring-hook.js'
 import { bootIntelligencePostPipeline } from './daemon/boot-intelligence-post.js'
 import { PrimarySessionRouter, createPrimarySessionRouter } from './daemon/primary-session-router.js'
@@ -34,7 +28,6 @@ import { createSynapse } from './intelligence/synapse/index.js'
 import { MODEL_DEFAULTS, getModelSpec } from './config/system-settings.js'
 import { HealthMonitor } from './health-monitor.js'
 import { createIntelligence } from "./intelligence/index.js"
-import { createOutcomeTracker, type OutcomeTracker } from './intelligence/outcome-tracker.js'
 import { GlobalBlackboardRegistry } from './intelligence/flux-team/global-blackboard-registry.js'
 import { MCPRegistry } from './mcp/registry.js'
 import { createOrchestrationBus } from './orchestration-bus.js'
@@ -197,15 +190,8 @@ export class Daemon {
   public healthMonitor!: HealthMonitor
   private commands!: CommandDispatcher
   public subagentTracker!: SubagentTracker
-  public skillMetricsTracker?: SkillMetricsTracker
-  public outcomeTracker?: OutcomeTracker
-  public crossSessionCorrelator?: CrossSessionCorrelator
-  public strategyTracker?: StrategyTracker
-  public providerProfiler?: ProviderProfiler
-  public adaptiveBehavior?: AdaptiveBehavior
-   public selfVerification?: SelfVerification
-   /** Runtime self-monitoring — tool latency, context pressure, loop detection. */
-   public monitoringHook?: MonitoringHook
+  /** Runtime self-monitoring — tool latency, context pressure, loop detection. */
+  public monitoringHook?: MonitoringHook
    public sessionDigestStore?: SessionDigestStore
     /** Background embedding pre-computation worker. */
    public bgEmbeddingWorker?: import('./intelligence/embeddings/background-worker.js').BackgroundEmbeddingWorker
@@ -245,7 +231,7 @@ export class Daemon {
   /** IntelligentContextWindow instance — available after daemon start(). */
   public contextWindow?: IntelligentContextWindow
   /** Global Blackboard Registry — shared singleton for daemon-scoped modules. */
-  public globalBlackboardRegistry?: GlobalBlackboardRegistry
+  // REMOVED: globalBlackboardRegistry — GlobalBlackboardRegistry deprecated
   // expose orchestration bus for external use
   public orchestration?: ReturnType<typeof createOrchestrationBus>
   private bootSequence = 0
@@ -584,18 +570,6 @@ export class Daemon {
     try {
       this.intelligence = createIntelligence(this.logger, this.config, this.bus)
 
-      // Create shared GlobalBlackboardRegistry for daemon-scoped modules
-      this.globalBlackboardRegistry = new GlobalBlackboardRegistry(this.logger.child('global-blackboard-registry'))
-
-      // WHY: BaseCognitiveModule subclasses need blackboard registry for cross-module communication
-      if (this.globalBlackboardRegistry) {
-        for (const mod of Object.values(this.intelligence)) {
-          if (mod && typeof (mod as any).setGlobalBlackboardRegistry === 'function') {
-            (mod as any).setGlobalBlackboardRegistry(this.globalBlackboardRegistry)
-          }
-        }
-      }
-
       // Start cortex oscillation — periodic decay, prune, consolidate, bind
       if (this.intelligence.cortex) {
         this.intelligence.cortex.startOscillation()
@@ -625,12 +599,6 @@ export class Daemon {
 
       // WHY: Thinker listens for turn:end to trigger proactive thinking cycles
       this.wireModule(this.intelligence.thinker, bus)
-
-      // WHY: AI Scientist collects metrics for research analysis
-      this.wireModule(this.intelligence.aiScientist, bus)
-
-      // Start AI Scientist monitoring
-      this.startModule(this.intelligence.aiScientist)
 
       // Initialize and start Unified Intelligence Loop
       try {
@@ -735,200 +703,6 @@ export class Daemon {
          this.logger.info('DroneSwarm event bus wired')
        }
 
-       // Wire SelfHealingAgent — give it the EventBus and a repair provider
-       // that delegates to the Thinker's repair-request/response event pair.
-       this.wireModule(this.intelligence.selfHealer, bus)
-       ;(this.intelligence.selfHealer as IntelligenceModule).setRepairProvider?.(
-             async (prompt: string): Promise<string> => {
-                // WHY: Strategy 1 = github-copilot direct call (fallback independent of Thinker health)
-                 const gcProvider = this.providers.get('github-copilot')
-                if (gcProvider) {
-                  try {
-                    let text = ''
-                    const stream = gcProvider.complete(
-                      [{ role: 'user', content: prompt }],
-                      { model: 'gpt-4.1', stream: true, maxTokens: 4000, thinking: 'none' }
-                    )
-                   for await (const chunk of stream) {
-                     if (chunk.type === 'token' && chunk.text) text += chunk.text
-                     else if (chunk.type === 'done') break
-                     else if (chunk.type === 'error') { text = ''; break }
-                   }
-                   if (text.trim()) {
-                     this.logger.info('SelfHealingAgent: repair generated via github-copilot')
-                     return text.trim()
-                   }
-                  } catch (err) {
-                    this.logger.warn('SelfHealingAgent: github-copilot repair failed', { error: String(err) })
-                  }
-                }
-                // WHY: Strategy 2 = Thinker event chain with 90s timeout (primary repair mechanism)
-                return new Promise((resolve) => {
-                 const id = `repair:${Date.now()}:${Math.random().toString(36).slice(2)}`
-                 const timer = setTimeout(() => {
-                   bus.off('thinker:repair-response', handler)
-                   this.logger.warn('SelfHealingAgent: repair timed out (90s)', { id })
-                   resolve('')
-                 }, 90_000)
-                 const handler = (e: { id: string; text: string; error?: string }) => {
-                   if (e?.id !== id) return
-                   clearTimeout(timer)
-                   bus.off('thinker:repair-response', handler)
-                   if (e?.error) {
-                     this.logger.warn('SelfHealingAgent: Thinker repair error', { id, error: e.error })
-                   }
-                   resolve(e?.text ?? '')
-                 }
-                 bus.on('thinker:repair-response', handler)
-                 bus.emit({ type: 'thinker:repair-request', id, prompt })
-               })
-             }
-           )
-         await (this.intelligence.selfHealer as IntelligenceModule).start?.()
-          this.logger.info('SelfHealingAgent wired and started')
-
-        // WHY: ConsequenceEstimator + TrustLedger + PermissionOracle = graduated autonomy system
-        try {
-          this.wireModule(this.intelligence.consequenceEstimator, bus)
-          this.wireModule(this.intelligence.trustLedger, bus)
-          // WHY: Trust Ledger needs Memory DB for persisting trust scores across restarts
-          const memoryDb = (this.intelligence.memory as { getDb?: () => import('better-sqlite3').Database }).getDb?.()
-          interface AutonomyModule {
-            setMemory?(memory: unknown): void
-            init?(): Promise<void>
-            start?(): void
-          }
-          if (memoryDb) {
-            const trustLedger = this.intelligence.trustLedger as AutonomyModule
-            trustLedger.setMemory?.(this.intelligence.memory)
-          }
-          this.wireModule(this.intelligence.permissionOracle, bus)
-          // Init and start
-          await (this.intelligence.consequenceEstimator as AutonomyModule).init?.()
-          await (this.intelligence.trustLedger as AutonomyModule).init?.()
-          await (this.intelligence.permissionOracle as AutonomyModule).init?.()
-         await (this.intelligence.consequenceEstimator as IntelligenceModule).start?.()
-         await (this.intelligence.trustLedger as IntelligenceModule).start?.()
-         await (this.intelligence.permissionOracle as IntelligenceModule).start?.()
-         this.logger.info('Graduated autonomy modules wired: ConsequenceEstimator, TrustLedger, PermissionOracle')
-       } catch (err) {
-         this.logger.warn(`Failed to wire autonomy modules: ${String(err)}`)
-       }
-
-      // Initialize Skill Metrics Tracker
-      try {
-        this.skillMetricsTracker = createSkillMetricsTracker(this.logger.child('skill-metrics'), bus)
-        await this.skillMetricsTracker.initialize()
-        this.logger.info('Skill Metrics Tracker initialized')
-      } catch (err) {
-        this.logger.warn(`Failed to initialize Skill Metrics Tracker: ${String(err)}`)
-      }
-
-      // Initialize Outcome Tracker (Phase 1 — feedback detection + tool outcome scoring)
-      try {
-        const tracker = createOutcomeTracker(this.logger.child('outcome-tracker'), bus)
-        const memoryDb = (this.intelligence.memory as { getDb?: () => import('better-sqlite3').Database }).getDb?.()
-        if (memoryDb) {
-          tracker.initialize(memoryDb)
-          // WHY: cycle hook enables per-turn outcome scoring during unified loop execution
-          const loop = this.unifiedLoop
-          if (loop?.addCycleHook) {
-            loop.addCycleHook(tracker)
-            this.logger.debug('OutcomeTracker registered as unified loop cycle hook')
-          }
-          this.outcomeTracker = tracker
-          this.logger.debug('OutcomeTracker initialized')
-        } else {
-          this.logger.warn('OutcomeTracker skipped — memory DB not available')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize OutcomeTracker: ${String(err)}`)
-      }
-
-      // Initialize Phase 2 modules (Cross-Session Intelligence)
-      const memoryDb2 = (this.intelligence.memory as { getDb?: () => import('better-sqlite3').Database }).getDb?.()
-      const loop2 = this.unifiedLoop
-
-      // Phase 2.1: Cross-Session Pattern Correlator
-      try {
-        if (memoryDb2) {
-          const correlator = createCrossSessionCorrelator(this.logger.child('cross-session-correlator'))
-          correlator.initialize(memoryDb2)
-          if (loop2?.addCycleHook) {
-            loop2.addCycleHook(correlator)
-            this.logger.debug('CrossSessionCorrelator registered as unified loop cycle hook')
-          }
-          this.crossSessionCorrelator = correlator
-          this.logger.debug('CrossSessionCorrelator initialized')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize CrossSessionCorrelator: ${String(err)}`)
-      }
-
-      // Phase 2.2: Strategy Effectiveness Tracker
-      try {
-        if (memoryDb2) {
-          const stratTracker = createStrategyTracker(this.logger.child('strategy-tracker'), bus)
-          stratTracker.initialize(memoryDb2)
-          if (loop2?.addCycleHook) {
-            loop2.addCycleHook(stratTracker)
-            this.logger.debug('StrategyTracker registered as unified loop cycle hook')
-          }
-          this.strategyTracker = stratTracker
-          this.logger.debug('StrategyTracker initialized')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize StrategyTracker: ${String(err)}`)
-      }
-
-      // Phase 2.3: Provider Performance Profiler
-      try {
-        if (memoryDb2) {
-          const profiler = createProviderProfiler(this.logger.child('provider-profiler'), bus)
-          profiler.initialize(memoryDb2)
-          if (loop2?.addCycleHook) {
-            loop2.addCycleHook(profiler)
-            this.logger.debug('ProviderProfiler registered as unified loop cycle hook')
-          }
-          this.providerProfiler = profiler
-          this.logger.debug('ProviderProfiler initialized')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize ProviderProfiler: ${String(err)}`)
-      }
-
-      // Phase 3: Adaptive Behavior Engine
-      try {
-        if (memoryDb2) {
-          const adaptive = createAdaptiveBehavior(this.logger.child('adaptive-behavior'), bus)
-          adaptive.initialize(memoryDb2)
-          if (loop2?.addCycleHook) {
-            loop2.addCycleHook(adaptive)
-            this.logger.debug('AdaptiveBehavior registered as unified loop cycle hook')
-          }
-          this.adaptiveBehavior = adaptive
-          this.logger.debug('AdaptiveBehavior initialized')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize AdaptiveBehavior: ${String(err)}`)
-      }
-
-      // Phase 4: Self-Verification Engine
-      try {
-        if (memoryDb2) {
-          const verification = createSelfVerification(this.logger.child('self-verification'), bus)
-          verification.initialize(memoryDb2)
-          if (loop2?.addCycleHook) {
-            loop2.addCycleHook(verification)
-            this.logger.debug('SelfVerification registered as unified loop cycle hook')
-          }
-          this.selfVerification = verification
-          this.logger.debug('SelfVerification initialized')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize SelfVerification: ${String(err)}`)
-      }
-
       // Phase 5b: Runtime Self-Monitoring Hook
       try {
         const monitor = createMonitoringHook()
@@ -961,64 +735,6 @@ export class Daemon {
         this.logger.info('MonitoringHook initialized and wired to EventBus')
       } catch (err) {
         this.logger.warn(`Failed to initialize MonitoringHook: ${String(err)}`)
-      }
-
-      // Phase 5: Wire Improvement Orchestrator into adaptor modules
-      try {
-        const orch = this.intelligence?.improvementOrchestrator
-        if (orch) {
-          // Wire event bus for scenario generation triggers
-          if ('setEventBus' in orch && bus) {
-            orch.setEventBus(bus)
-          }
-          // Start the orchestrator (initializes persistence)
-          if ('start' in orch) orch.start()
-          // Register as cycle hook
-          if (loop2?.addCycleHook) {
-            loop2.addCycleHook(orch)
-            this.logger.debug('ImprovementOrchestrator registered as unified loop cycle hook')
-          }
-          // Wire into AdaptiveBehavior
-          if (this.adaptiveBehavior && 'setImprovementOrchestrator' in this.adaptiveBehavior) {
-            (this.adaptiveBehavior as any).setImprovementOrchestrator(orch)
-          }
-          // Wire into AIEngineer
-          if ('setImprovementOrchestrator' in this.intelligence.aiEngineer) {
-            (this.intelligence.aiEngineer as any).setImprovementOrchestrator(orch)
-          }
-          // Wire into AIScientist
-          if ('setImprovementOrchestrator' in this.intelligence.aiScientist) {
-            (this.intelligence.aiScientist as any).setImprovementOrchestrator(orch)
-          }
-          this.logger.info('ImprovementOrchestrator initialized and wired')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to initialize ImprovementOrchestrator: ${String(err)}`)
-      }
-
-      // Wire introspection sources into Thinker for self-aware thinking cycles
-      // The Thinker uses these during deep think() to ground reflections in real metrics
-      interface ThinkerWithIntrospection {
-        setIntrospectionSources?(sources: {
-          outcomeTracker?: unknown
-          strategyTracker?: unknown
-          crossSessionCorrelator?: unknown
-          providerProfiler?: unknown
-        }): void
-      }
-      try {
-        const thinker = this.intelligence.thinker as ThinkerWithIntrospection
-        if (thinker?.setIntrospectionSources) {
-          thinker.setIntrospectionSources({
-            outcomeTracker: this.outcomeTracker,
-            strategyTracker: this.strategyTracker,
-            crossSessionCorrelator: this.crossSessionCorrelator,
-            providerProfiler: this.providerProfiler,
-          })
-          this.logger.info('Thinker wired with introspection sources')
-        }
-      } catch (err) {
-        this.logger.warn(`Failed to wire Thinker introspection sources: ${String(err)}`)
       }
 
       // Listen for Thinker's proactive events
@@ -1063,19 +779,6 @@ export class Daemon {
       })
 
       this.logger.info(`Intelligence layer loaded`, { modules: this.intelligence.all.length })
-      // Summarize cycle hooks attached to unified loop
-      if (this.unifiedLoop) {
-        const hooks: string[] = []
-        if (this.outcomeTracker) hooks.push('OutcomeTracker')
-        if (this.crossSessionCorrelator) hooks.push('CrossSessionCorrelator')
-        if (this.strategyTracker) hooks.push('StrategyTracker')
-        if (this.providerProfiler) hooks.push('ProviderProfiler')
-        if (this.adaptiveBehavior) hooks.push('AdaptiveBehavior')
-        if (this.selfVerification) hooks.push('SelfVerification')
-        if (hooks.length > 0) {
-          this.logger.info(`Unified Loop hooks: ${hooks.join(', ')}`)
-        }
-      }
     } catch (err) {
       this.logger.warn(`failed to initialize intelligence layer: ${String(err)}`)
     }
@@ -2163,7 +1866,7 @@ export class Daemon {
       _fileArtifactStore: fileArtifactStore,
       _fileVault: fileVault,
       _codeStore: codeStore,
-      _globalBlackboardRegistry: this.globalBlackboardRegistry,
+      // REMOVED: _globalBlackboardRegistry — GlobalBlackboardRegistry deprecated
       _cortex: this.intelligence?.cortex,
       _memory: this.intelligence?.memory as any,
     }, this.bus)
@@ -3323,24 +3026,6 @@ export class Daemon {
         }
       } catch (err) {
         this.logger.warn(`failed to finalize stream for ${sid}: ${String(err)}`)
-      }
-    })
-
-    // Detect feedback signals in every user message.
-    // WHY: runs on turn:start to capture signals from previous turn response before current turn context assembly
-    this.bus.on("turn:start", (e) => {
-      if (!this.outcomeTracker) return
-      const { sessionId, message } = e as { sessionId: string; message: string }
-      if (!message) return
-      try {
-        const signals = this.outcomeTracker.detectFeedback(message, sessionId)
-        if (signals.length > 0) {
-          this.logger.debug(`Detected ${signals.length} feedback signal(s) in ${sessionId.slice(-8)}`, {
-            types: signals.map(s => s.type),
-          })
-        }
-      } catch (err) {
-        this.logger.warn(`Feedback detection failed: ${String(err)}`)
       }
     })
 
