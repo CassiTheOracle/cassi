@@ -571,7 +571,7 @@ export interface BrainstemContextSources {
   }
   /** LaminaField for structured labeled blocks */
   lamina?: {
-    read(label: string): { content: string } | null
+    read(label: string, scope?: { kind: 'global' } | { kind: 'session'; sessionId: string } | { kind: 'channel'; channel: string } | { kind: 'agent'; agentId: string }): { content: string } | null
     replace(label: string, content: string): void
   }
   /** CorticalField for working memory */

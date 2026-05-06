@@ -1303,8 +1303,14 @@ Scoring guidance:
 
     const parts: string[] = ['\n## Context State']
 
-    // Plan from LaminaField
+    // Goal + Plan from LaminaField
     if (cs.lamina) {
+      try {
+        const goalEntry = cs.lamina.read('helix-goal', { kind: 'session', sessionId: this.deps.sessionId })
+        if (goalEntry?.content) {
+          parts.push(`\n### Goal\n${goalEntry.content.slice(0, 1500)}`)
+        }
+      } catch { /* non-fatal */ }
       try {
         const planEntry = cs.lamina.read('session-plan')
         if (planEntry?.content) {
