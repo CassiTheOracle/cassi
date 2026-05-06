@@ -282,6 +282,13 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           thalamus.setAurora(aurora)
           intelligence.aurora = aurora
 
+          // C1.3 Sub6 inlet: meditation drains Aurora's auto-scheduled seeds
+          // each idle tick and runs focused sessions against their topics.
+          if (intelligence.meditation && typeof (intelligence.meditation as any).setAurora === 'function') {
+            (intelligence.meditation as any).setAurora(aurora)
+            logger.info('Aurora wired to MeditationController (auto-schedule inlet)')
+          }
+
           // Wire Reverie inference provider into Aurora for the reasoning slow path.
           // ReverieModule exposes inferForObserver() which matches ReverieInferenceProvider.
           if (intelligence.reverie) {
