@@ -39,6 +39,282 @@ import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_S
 import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
 import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
 
+/**
+ * Deep clone a message to prevent in-place mutations from leaking
+ * to the caller (critical for Anthropic thinking signatures).
+ */
+function deepCloneMessage(msg: any): any {
+  if (!msg || typeof msg !== 'object') return msg
+  const cloned: any = { ...msg }
+  if (Array.isArray(msg.content)) {
+    cloned.content = msg.content.map((block: any) => {
+      if (!block || typeof block !== 'object') return block
+      const blockClone = { ...block }
+      // Deep clone nested content (for tool_result with array content)
+      if (Array.isArray(block.content)) {
+        blockClone.content = block.content.map((b: any) =>
+          b && typeof b === 'object' ? { ...b } : b,
+        )
+      }
+      return blockClone
+    })
+  }
+  return cloned
+}
+
+/**
+ * Validate assembled messages before returning to the caller.
+ * 
+ * FATAL checks (trigger fallback):
+ * - Corrupted thinking signatures (our #1 bug)
+ * - Duplicate tool_use IDs (API error)
+ * - Truly orphan tool_use with no matching tool_result anywhere
+ * 
+ * WARNING checks (logged but don't trigger fallback):
+ * - Consecutive same-role messages (ensureAlternation may not catch all)
+ * - Orphan tool_result when tool_use exists (sanitizeToolPairs handles this)
+ */
+function validateMessages(messages: any[]): { valid: boolean; errors: string[]; fatal: boolean } {
+  const errors: string[] = []
+  let fatal = false
+
+  // 0. First message MUST be user (Anthropic API requirement)
+  if (messages.length > 0 && messages[0].role !== 'user') {
+    errors.push(`First message is ${messages[0].role}, must be user`)
+    fatal = true
+  }
+
+  // 1. Tool pairs — check for TRULY orphan tool_use (no matching tool_result anywhere)
+  const toolUseIds = new Set<string>()
+  const toolResultIds = new Set<string>()
+  for (const msg of messages) {
+    if (!Array.isArray(msg?.content)) continue
+    for (const block of msg.content) {
+      if (block?.type === 'tool_use' && block.id) toolUseIds.add(block.id)
+      if (block?.type === 'tool_result' && block.tool_use_id) toolResultIds.add(block.tool_use_id)
+    }
+  }
+  for (const id of toolUseIds) {
+    if (!toolResultIds.has(id)) {
+      errors.push(`Orphan tool_use: ${id}`)
+      fatal = true
+    }
+  }
+
+  // 2. No duplicate tool_use IDs
+  const seenIds = new Set<string>()
+  for (const msg of messages) {
+    if (!Array.isArray(msg?.content)) continue
+    for (const block of msg.content) {
+      if (block?.type === 'tool_use' && block.id) {
+        if (seenIds.has(block.id)) {
+          errors.push(`Duplicate tool_use: ${block.id}`)
+          fatal = true
+        }
+        seenIds.add(block.id)
+      }
+    }
+  }
+
+  // 3. Assistant thinking blocks are intact — THIS IS THE CRITICAL CHECK
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i]
+    if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue
+    for (const block of msg.content) {
+      if (block?.type === 'thinking') {
+        if (!block.signature || typeof block.thinking !== 'string') {
+          errors.push(`Corrupted thinking block at msg ${i}: signature=${JSON.stringify(block.signature)} thinking_type=${typeof block.thinking}`)
+          fatal = true
+        }
+      }
+    }
+  }
+
+  // 4. Strict alternation — WARNING only (don't trigger fallback)
+  for (let i = 1; i < messages.length; i++) {
+    if (messages[i].role === messages[i - 1].role) {
+      errors.push(`Consecutive ${messages[i].role} at ${i - 1},${i}`)
+    }
+  }
+
+  return { valid: errors.length === 0, errors, fatal }
+}
+
+/**
+ * Sanitize tool pairs: deduplicate tool_use IDs, strip orphan tool_uses,
+ * convert orphan tool_results to text, and merge consecutive same-role
+ * messages (except assistant — preserves thinking signatures).
+ *
+ * Run this AFTER assembly but BEFORE returning to the caller.
+ */
+export function sanitizeToolPairs(messages: any[]): any[] {
+  if (!Array.isArray(messages) || messages.length === 0) return messages
+
+  // Pre-scan: find all tool_use and tool_result IDs across the entire array.
+  // After curation, tool pairs may not be adjacent, so adjacency checks alone
+  // are insufficient.
+  const allToolUseIds = new Set<string>()
+  const allToolResultIds = new Set<string>()
+  for (const msg of messages) {
+    if (!Array.isArray(msg?.content)) continue
+    for (const block of msg.content) {
+      if (block?.type === 'tool_use' && typeof block.id === 'string') {
+        allToolUseIds.add(block.id)
+      }
+      if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
+        allToolResultIds.add(block.tool_use_id)
+      }
+    }
+  }
+
+  // Deduplicate tool_use IDs (first occurrence wins).
+  const seenToolUseIds = new Set<string>()
+  const deduped: any[] = []
+  for (const msg of messages) {
+    if (!msg || !Array.isArray(msg.content)) {
+      deduped.push(msg)
+      continue
+    }
+    let changed = false
+    const kept: any[] = []
+    for (const block of msg.content) {
+      if (block?.type === 'tool_use' && typeof block.id === 'string') {
+        if (seenToolUseIds.has(block.id)) {
+          changed = true
+          continue
+        }
+        seenToolUseIds.add(block.id)
+      }
+      kept.push(block)
+    }
+    if (!changed) {
+      deduped.push(msg)
+    } else if (kept.length > 0) {
+      deduped.push({ ...msg, content: kept })
+    }
+  }
+  messages = deduped
+
+  const toolUseIds = (msg: any): string[] => {
+    if (!msg || !Array.isArray(msg.content)) return []
+    return msg.content
+      .filter((b: any) => b?.type === 'tool_use' && typeof b.id === 'string')
+      .map((b: any) => b.id)
+  }
+  const toolResultIds = (msg: any): Set<string> => {
+    const ids = new Set<string>()
+    if (!msg || !Array.isArray(msg.content)) return ids
+    for (const b of msg.content) {
+      if (b?.type === 'tool_result' && typeof b.tool_use_id === 'string') {
+        ids.add(b.tool_use_id)
+      }
+    }
+    return ids
+  }
+  const stripToolUse = (msg: any): any => {
+    if (!msg || !Array.isArray(msg.content)) return msg
+    const kept = msg.content.filter((b: any) => b?.type !== 'tool_use')
+    if (kept.length === 0) return null
+    return { ...msg, content: kept }
+  }
+  const stripToolResult = (msg: any): any => {
+    if (!msg || !Array.isArray(msg.content)) return msg
+    const kept = msg.content.filter((b: any) => b?.type !== 'tool_result')
+    if (kept.length === 0) return null
+    return { ...msg, content: kept }
+  }
+  const orphanToolResultToText = (msg: any, orphanIds: string[]): any => {
+    if (!msg || !Array.isArray(msg.content)) return msg
+    return {
+      ...msg,
+      content: msg.content.map((b: any) => {
+        if (b?.type === 'tool_result' && orphanIds.includes(b.tool_use_id)) {
+          const text = typeof b.content === 'string' ? b.content : JSON.stringify(b.content)
+          return {
+            type: 'text',
+            text: `[Orphaned tool result for ${b.tool_use_id}]:\n${text}`,
+          }
+        }
+        return b
+      }),
+    }
+  }
+
+  const out: any[] = []
+  const strippedToolUseIds = new Set<string>()
+  for (let i = 0; i < messages.length; i++) {
+    let msg = messages[i]
+
+    // Handle tool_use: if no matching tool_result ANYWHERE in the array,
+    // the tool_use is truly orphaned and should be stripped.
+    const uses = toolUseIds(msg)
+    if (uses.length > 0) {
+      const orphans = uses.filter((id) => !allToolResultIds.has(id))
+      if (orphans.length === uses.length) {
+        const stripped = stripToolUse(msg)
+        for (const id of uses) strippedToolUseIds.add(id)
+        if (!stripped) continue
+        msg = stripped
+      } else if (orphans.length > 0) {
+        for (const id of orphans) strippedToolUseIds.add(id)
+        msg = {
+          ...msg,
+          content: msg.content.filter(
+            (b: any) => b?.type !== 'tool_use' || !orphans.includes(b.id),
+          ),
+        }
+      }
+    }
+
+    // Handle tool_result: if no matching tool_use ANYWHERE in the array,
+    // the tool_result is truly orphaned and should be converted to text.
+    const results = toolResultIds(msg)
+    if (results.size > 0) {
+      const orphanResults = [...results].filter((id) => !allToolUseIds.has(id) || strippedToolUseIds.has(id))
+      if (orphanResults.length === results.size) {
+        const stripped = stripToolResult(msg)
+        if (!stripped) {
+          msg = orphanToolResultToText(msg, orphanResults)
+        } else {
+          msg = stripped
+        }
+      } else if (orphanResults.length > 0) {
+        msg = {
+          ...msg,
+          content: msg.content.map((b: any) => {
+            if (b?.type === 'tool_result' && orphanResults.includes(b.tool_use_id)) {
+              const text = typeof b.content === 'string' ? b.content : JSON.stringify(b.content)
+              return {
+                type: 'text',
+                text: `[Orphaned tool result for ${b.tool_use_id}]:\n${text}`,
+              }
+            }
+            return b
+          }),
+        }
+      }
+    }
+
+    // Never merge assistant messages — their thinking signatures are bound to
+    // block structure, and concatenating content arrays invalidates signatures
+    // (Anthropic 400: "Invalid signature in thinking block").
+    if (out.length > 0 && out[out.length - 1].role === msg.role && msg.role !== 'assistant') {
+      const prev = out[out.length - 1]
+      const bothStrings = typeof prev.content === 'string' && typeof msg.content === 'string'
+      if (bothStrings) {
+        out[out.length - 1] = { ...prev, content: `${prev.content}\n\n${msg.content}` }
+      } else {
+        const prevContent = Array.isArray(prev.content) ? prev.content : [{ type: 'text', text: String(prev.content ?? '') }]
+        const curContent = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: String(msg.content ?? '') }]
+        out[out.length - 1] = { ...prev, content: [...prevContent, ...curContent] }
+      }
+      continue
+    }
+    out.push(msg)
+  }
+  return out
+}
+
 /** A function that acquires a model handle for background LLM calls. */
 type HandleFactory = (config: { tier: string; purpose: string; sessionId: string }) => Promise<{
   complete(messages: Array<{ role: string; content: string }>, opts: Record<string, unknown>): Promise<{ response: string }>
@@ -297,10 +573,32 @@ export class ThalamusModule extends BaseCognitiveModule {
    * Used when curate() receives un-processed messages (backward compatibility).
    */
   processAll(sessionId: string, messages: any[]): any[] {
-    return messages.map((msg, i) => {
+    const processed = messages.map((msg, i) => {
       if (msg?._thalamus) return msg // already processed
       return this.process(sessionId, msg, i)
     })
+
+    // Pin the first substantive user message — this is the original task request.
+    // Without it, the model loses the task context when curation drops old messages.
+    // Skip tool_result messages — they're not user instructions.
+    for (const msg of processed) {
+      if (msg?.role === 'user') {
+        // Skip tool_result messages — they're assistant tool outputs, not user requests
+        const hasToolResult = Array.isArray(msg.content) && msg.content.some((b: any) => b?.type === 'tool_result')
+        if (hasToolResult) continue
+        
+        const content = extractMessageContent(msg)
+        const isSubstantive = content.length > 20 || /\b(fix|implement|add|create|update|refactor|debug|test|build|design|plan|review|analyze|solve|change|move|extract|merge|split|optimize|clean|document|deploy|configure|integrate|migrate|upgrade|downgrade|patch|release|launch|setup|install|uninstall|enable|disable|rename|delete|remove|replace|convert|transform|generate|compute|calculate|validate|verify|check|audit|monitor|track|search|find|locate|identify|detect|discover|explore|investigate|research|study|compare|contrast|measure|assess|evaluate|rate|score|rank|classify|categorize|organize|structure|arrange|format|parse|serialize|deserialize|encode|decode|encrypt|decrypt|compress|decompress|upload|download|import|export|sync|backup|restore|revert|reset|refresh|reload|restart|reboot|shutdown|startup|initialize|finalize|cleanup|destroy|terminate|kill|abort|cancel|retry|retry|resume|pause|suspend|resume|continue|proceed|advance|progress|step|stage|phase|cycle|iteration|loop|recursion|iteration|batch|job|task|workflow|pipeline|chain|sequence|series|parallel|concurrent|synchronized|asynchronous|synchronous|real-time|live|interactive|batch|offline|online|remote|local|internal|external|public|private|secure|insecure|trusted|untrusted|safe|unsafe|stable|unstable|volatile|persistent|transient|temporary|permanent|static|dynamic|active|inactive|enabled|disabled|available|unavailable|ready|not-ready|waiting|pending|runn|ing|complete|completed|done|finished|incomplete|partial|full|empty|null|undefined|zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.test(content)
+        if (isSubstantive) {
+          if (!msg._thalamus) msg._thalamus = {}
+          msg._thalamus.pinned = true
+          msg._thalamus.pinReason = 'original-task'
+          break
+        }
+      }
+    }
+
+    return processed
   }
 
   /**
@@ -411,6 +709,10 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Ensure all messages have _thalamus annotations (backward compatibility)
     const annotated = this.processAll(sessionId, messages)
 
+    // Deep clone before any mutations to prevent signature invalidation
+    // (Anthropic thinking signatures are bound to exact block structure)
+    const cloned = annotated.map(m => deepCloneMessage(m))
+
     // Apply Cassi-issued directives (drop / collapse) keyed by stable original index.
     // Collapse mutates content immediately so scoring/budget see the shrunken size.
     // Drop is tagged here and excluded in assembleByThreshold.
@@ -418,7 +720,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       const drops = session.dropDirectives
       const collapses = session.collapseDirectives
       if (drops.size > 0 || collapses.size > 0) {
-        for (const msg of annotated) {
+        for (const msg of cloned) {
           const idx = msg?._thalamus?.index
           if (typeof idx !== 'number' || !msg._thalamus) continue
           if (drops.has(idx)) {
@@ -441,8 +743,8 @@ export class ThalamusModule extends BaseCognitiveModule {
     // than the recent-window. Without immunity, long sessions look like
     // assistant-drift when they were actually user-directed.
     {
-      const toolUseMap = buildToolUseMapFromMessages(annotated)
-      for (const msg of annotated) {
+      const toolUseMap = buildToolUseMapFromMessages(cloned)
+      for (const msg of cloned) {
         if (hasQuestionResult(msg, { toolUseMap }) && msg?._thalamus) {
           msg._thalamus.pinned = true
           msg._thalamus.pinReason = 'AskUserQuestion answer'
@@ -451,9 +753,9 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     // Process thought-commands from assistant messages (<pin>, <recall>, <note>, <flag>)
-    this.processThoughtCommands(sessionId, annotated)
+    this.processThoughtCommands(sessionId, cloned)
 
-    const originalChars = annotated.reduce(
+    const originalChars = cloned.reduce(
       (sum: number, m: any) => sum + extractMessageContent(m).length, 0
     )
 
@@ -461,7 +763,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     const pendingRecall = this.getPendingRecall(sessionId)
     if (pendingRecall.length > 0) {
       for (const r of pendingRecall) {
-        annotated.push({
+        cloned.push({
           role: r.role,
           content: r.content,
           _thalamus: {
@@ -479,8 +781,8 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Identify latest reads per file — non-latest reads are suppressed during scoring
     // so they get dropped entirely instead of being summarized.
     // Detect topic clusters before read suppression so we can scope dedup per-topic
-    const topicClusters = this.detectTopicClusters(sessionId, annotated)
-    const { nonLatestToolUseIds } = this.computeReadSuppression(annotated, topicClusters)
+    const topicClusters = this.detectTopicClusters(sessionId, cloned)
+    const { nonLatestToolUseIds } = this.computeReadSuppression(cloned, topicClusters)
 
     // Phase 0b: Apply distilled summaries — replace read tool_result content with
     // LLM-distilled findings if a summary exists. This runs BEFORE compression so
@@ -488,7 +790,7 @@ export class ThalamusModule extends BaseCognitiveModule {
     const distiller = this.distiller
     if (distiller) {
       const summaries = session.distilledSummaries
-      for (const msg of annotated) {
+      for (const msg of cloned) {
         const ann = msg?._thalamus
         if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
         const toolUseId = this.extractToolUseId(msg)
@@ -506,10 +808,10 @@ export class ThalamusModule extends BaseCognitiveModule {
     //      survives compression even when older than the recent window. Captures
     //      the "I read the file to prepare an edit" pattern: compressing those
     //      reads forces a re-read and breaks the edit chain.
-    const compressionBoundary = Math.max(0, annotated.length - cfg.recentWindowSize)
-    const liveReadMap = this.computeLiveReadIndices(annotated, cfg.recentWindowSize)
+    const compressionBoundary = Math.max(0, cloned.length - cfg.recentWindowSize)
+    const liveReadMap = this.computeLiveReadIndices(cloned, cfg.recentWindowSize)
     const { messages: compressed, compressed: compressedCount } =
-      this.compressor.compress(annotated, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars }, new Set(liveReadMap.keys()))
+      this.compressor.compress(cloned, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars }, new Set(liveReadMap.keys()))
 
     // Phase 2: Enrich with temporal context for scoring
     const temporal = this.getTemporalRegistry(sessionId)
@@ -775,7 +1077,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       curatedAt: new Date().toISOString(),
       charBudget: cfg.charBudget,
       charsUsed: curatedChars,
-      annotatedCount: annotated.length,
+      annotatedCount: cloned.length,
       visibleCount: mapRows.length,
       rows: mapRows,
     }
@@ -912,7 +1214,68 @@ export class ThalamusModule extends BaseCognitiveModule {
     // Invalidate brain context cache after curation — each turn gets fresh context
     this.cachedBrainContext = null
 
-    return { messages: stripThalamusAnnotations(attachInlineMarkers(assembled.messages)), meta }
+    // DEBUG: Log thinking block signatures at each step
+    const logThinkingSigs = (label: string, msgs: any[]) => {
+      const thinkingBlocks: any[] = []
+      for (let i = 0; i < msgs.length; i++) {
+        const msg = msgs[i]
+        if (msg?.role === 'assistant' && Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block?.type === 'thinking') {
+              thinkingBlocks.push({ msgIndex: i, sigLen: block.signature?.length ?? 0, sigType: typeof block.signature, thinkingLen: block.thinking?.length ?? 0 })
+            }
+          }
+        }
+      }
+      if (thinkingBlocks.length > 0) {
+        this.logger.info(`Thinking signatures ${label}`, { sessionId, count: thinkingBlocks.length, blocks: thinkingBlocks })
+      }
+    }
+    
+    logThinkingSigs('before markers', assembled.messages)
+    const afterMarkers = attachInlineMarkers(assembled.messages)
+    logThinkingSigs('after markers', afterMarkers)
+    const afterStrip = stripThalamusAnnotations(afterMarkers)
+    logThinkingSigs('after strip', afterStrip)
+    let finalMessages = sanitizeToolPairs(afterStrip)
+    logThinkingSigs('after sanitize', finalMessages)
+
+    // Sanitize thinking blocks with empty/missing signatures.
+    // Claude Code sometimes sends thinking blocks with empty signatures (bug).
+    // Anthropic rejects these with 400, so convert them to text blocks.
+    finalMessages = finalMessages.map((msg: any) => {
+      if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) return msg
+      const newContent = msg.content.map((block: any) => {
+        if (block?.type === 'thinking' && (!block.signature || block.signature === '')) {
+          return { type: 'text', text: block.thinking ?? '' }
+        }
+        return block
+      })
+      return { ...msg, content: newContent }
+    })
+
+    // Validate before returning. Fatal errors trigger fallback to protected window.
+    const validation = validateMessages(finalMessages)
+    if (validation.fatal) {
+      this.logger.error('Curation produced fatally invalid messages, falling back to protected window', {
+        sessionId,
+        errors: validation.errors,
+        originalCount: messages.length,
+      })
+      const protectedWindow = this.extractProtectedWindow(cloned, cfg)
+      const fallbackMeta = {
+        ...meta,
+        fallback: 'protected_window' as const,
+        validationErrors: validation.errors,
+      }
+      const sanitizedFallback = sanitizeToolPairs(stripThalamusAnnotations(protectedWindow))
+      return { messages: sanitizedFallback, meta: fallbackMeta }
+    }
+    if (!validation.valid) {
+      this.logger.warn('Curation has warnings', { sessionId, errors: validation.errors })
+    }
+
+    return { messages: finalMessages, meta }
   }
 
   getStats(): { sessions: number; totalCurations: number } {
@@ -1821,27 +2184,87 @@ export class ThalamusModule extends BaseCognitiveModule {
     const msg = messages[bridge]
     if (!msg) return false
     const content = Array.isArray(msg.content) ? msg.content : null
-    const hasToolUse = !!content?.some((c: any) => c?.type === 'tool_use')
-    const hasToolResult = !!content?.some((c: any) => c?.type === 'tool_result')
-
-    if (hasToolUse) {
-      const partnerIdx = bridge + 1
-      if (partnerIdx >= messages.length) return false
-      const partner = messages[partnerIdx]
-      const partnerOk = Array.isArray(partner?.content) &&
-        partner.content.some((c: any) => c?.type === 'tool_result')
-      if (!partnerOk) return false
-      if (partnerIdx < protectedStart) included.add(partnerIdx)
+    if (!content) {
+      included.add(bridge)
+      return true
     }
 
-    if (hasToolResult) {
-      const partnerIdx = bridge - 1
-      if (partnerIdx < 0) return false
-      const partner = messages[partnerIdx]
-      const partnerOk = Array.isArray(partner?.content) &&
-        partner.content.some((c: any) => c?.type === 'tool_use')
-      if (!partnerOk) return false
-      if (partnerIdx < protectedStart) included.add(partnerIdx)
+    const hasToolUse = content.some((c: any) => c?.type === 'tool_use')
+    const hasToolResult = content.some((c: any) => c?.type === 'tool_result')
+
+    if (!hasToolUse && !hasToolResult) {
+      included.add(bridge)
+      return true
+    }
+
+    // Check if tools are orphans (no matching partner in adjacent messages).
+    // If so, convert them to text to avoid breaking tool-pair invariants.
+    let needsConversion = false
+    for (const block of content) {
+      if (block?.type === 'tool_use') {
+        const partnerIdx = bridge + 1
+        if (partnerIdx >= messages.length) {
+          needsConversion = true
+          break
+        }
+        const partner = messages[partnerIdx]
+        const hasPartner = Array.isArray(partner?.content) &&
+          partner.content.some((c: any) => c?.type === 'tool_result' && c?.tool_use_id === block.id)
+        if (!hasPartner) {
+          needsConversion = true
+          break
+        }
+      }
+      if (block?.type === 'tool_result') {
+        const partnerIdx = bridge - 1
+        if (partnerIdx < 0) {
+          needsConversion = true
+          break
+        }
+        const partner = messages[partnerIdx]
+        const hasPartner = Array.isArray(partner?.content) &&
+          partner.content.some((c: any) => c?.type === 'tool_use' && c?.id === block.tool_use_id)
+        if (!hasPartner) {
+          needsConversion = true
+          break
+        }
+      }
+    }
+
+    if (needsConversion) {
+      const newContent = content.map((block: any) => {
+        if (block?.type === 'tool_use') {
+          return {
+            type: 'text',
+            text: `[tool_use: ${block.name ?? 'unknown'} (${block.id})] ${JSON.stringify(block.input ?? {})}`,
+          }
+        }
+        if (block?.type === 'tool_result') {
+          const inner = typeof block.content === 'string'
+            ? block.content
+            : JSON.stringify(block.content)
+          return {
+            type: 'text',
+            text: `[tool_result: ${block.tool_use_id}]:\n${inner}`,
+          }
+        }
+        return block
+      })
+      msg.content = newContent
+      included.add(bridge)
+      return true
+    }
+
+    // All tools have valid partners — add the bridge and its partners
+    for (const block of content) {
+      if (block?.type === 'tool_use') {
+        const partnerIdx = bridge + 1
+        if (partnerIdx < protectedStart) included.add(partnerIdx)
+      }
+      if (block?.type === 'tool_result') {
+        const partnerIdx = bridge - 1
+        if (partnerIdx < protectedStart) included.add(partnerIdx)
+      }
     }
 
     included.add(bridge)
@@ -1965,6 +2388,60 @@ export class ThalamusModule extends BaseCognitiveModule {
         reason,
       },
     }
+  }
+
+  /**
+   * Deep clone a message to prevent in-place mutations from leaking
+   * to the caller (critical for Anthropic thinking signatures).
+   */
+  private extractProtectedWindow(messages: any[], cfg: CurationConfig): any[] {
+    const windowSize = cfg.recentWindowSize ?? 8
+    let start = Math.max(0, messages.length - windowSize)
+    
+    // Ensure the protected window starts with a user message.
+    // Anthropic API requires the first message to be from the user.
+    while (start > 0 && messages[start]?.role !== 'user') {
+      start--
+    }
+    
+    // Also ensure any tool_result in the window has its matching tool_use.
+    // Build a set of tool_use IDs in the window, and tool_result IDs that need them.
+    const window = messages.slice(start)
+    const neededToolUseIds = new Set<string>()
+    const presentToolUseIds = new Set<string>()
+    
+    for (const msg of window) {
+      if (!Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_use' && block.id) {
+          presentToolUseIds.add(block.id)
+        }
+        if (block?.type === 'tool_result' && block.tool_use_id) {
+          neededToolUseIds.add(block.tool_use_id)
+        }
+      }
+    }
+    
+    // Find missing tool_use IDs and include their messages
+    const missingIds = [...neededToolUseIds].filter(id => !presentToolUseIds.has(id))
+    if (missingIds.length > 0) {
+      // Find the messages containing the missing tool_use IDs
+      const extraMessages: any[] = []
+      for (let i = start - 1; i >= 0; i--) {
+        const msg = messages[i]
+        if (!Array.isArray(msg?.content)) continue
+        for (const block of msg.content) {
+          if (block?.type === 'tool_use' && missingIds.includes(block.id)) {
+            extraMessages.unshift(msg)
+            break
+          }
+        }
+      }
+      // Prepend the extra messages to the window
+      return [...extraMessages.map(m => deepCloneMessage(m)), ...window.map(m => deepCloneMessage(m))]
+    }
+    
+    return window.map(m => deepCloneMessage(m))
   }
 
   /**
