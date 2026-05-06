@@ -509,6 +509,9 @@ export interface AuroraConfig {
 
   /** Phase 1 (N1): Maximum characters for narrative section. */
   narrativeMaxChars: number
+
+  /** Phase 2 (B1): Enable concept-arithmetic compositions (named steering primitives). */
+  compositionEnabled: boolean
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -547,6 +550,7 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   diversityFloorEnabled: true,
   narrativeEnabled: true,
   narrativeMaxChars: 800,
+  compositionEnabled: false,
 }
 
 /** Result of a single C1 curation cycle (detect → seed → schedule). */

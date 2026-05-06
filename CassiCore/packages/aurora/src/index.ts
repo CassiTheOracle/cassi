@@ -76,6 +76,20 @@ import type { ActionKind, ActionHandle, ActionResolution, ActionRecord, RefusalC
 import type { OverlayPatch, OverlayApplyResult, OverlayStats } from './overlay-layer.js'
 import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
 import type { SelfNarrative } from './self-narrative-renderer.js'
+import { CompositionStore } from './composition/store.js'
+import { parseComposition, detectSuppressive, layerSpecToString } from './composition/parser.js'
+import {
+  DEFAULT_TTL_TURNS,
+  DEFAULT_MAGNITUDE_SCALE,
+  DEFAULT_VINDEX_ID,
+} from './composition/types.js'
+import type {
+  CompositionRecord,
+  ActiveComposition,
+  DefineCompositionOptions,
+  InvokeCompositionOptions,
+  InvocationRecord,
+} from './composition/types.js'
 
 export { Claustrum, ObserverInsightCollector } from './claustrum.js'
 export { StateProjector } from './state-projector.js'
@@ -296,6 +310,10 @@ export class Aurora {
   private counterfactualEngine: CounterfactualEngine | null = null
   private selfNarrativeRenderer: SelfNarrativeRenderer | null = null
 
+  /** Phase 2 (B1): Concept-arithmetic composition store + active invocation list. */
+  private compositionStore: CompositionStore | null = null
+  private activeCompositionsList: ActiveComposition[] = []
+
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
@@ -406,6 +424,10 @@ export class Aurora {
 
     if (phase4Config.narrativeEnabled) {
       this.selfNarrativeRenderer = new SelfNarrativeRenderer(logger, { ...AURORA_DEFAULTS, ...config })
+    }
+
+    if (phase4Config.compositionEnabled) {
+      this.compositionStore = new CompositionStore(auroraDbPath, logger)
     }
 
     this.logger.info('Aurora initialized', {
@@ -1337,6 +1359,126 @@ export class Aurora {
    */
   getEventJournal(): EventJournal | null {
     return this.eventJournal ?? null
+  }
+
+  /**
+   * B1: Define a named composition from DSL source. Parses the DSL, detects
+   * the suppressive welfare flag, refuses on suppressive without explicit
+   * opt-in, and persists the AST.
+   *
+   * The resolver-to-vectors path is deferred until A2 lands; for now the
+   * stored composition is consumed by `invokeComposition` for audit and
+   * by future A2 projection pipelines.
+   *
+   * Returns the persisted CompositionRecord. Throws on parse failure or
+   * suppressive-without-opt-in.
+   */
+  defineComposition(dsl: string, opts: DefineCompositionOptions = {}): CompositionRecord {
+    if (!this.compositionStore) {
+      throw new Error('compositionStore disabled (set compositionEnabled in AuroraConfig)')
+    }
+    const parsed = parseComposition(dsl)
+    if (parsed.name === null) {
+      throw new Error('defineComposition requires a named definition (e.g. "calm_focus = ...")')
+    }
+    const suppressive = detectSuppressive(parsed.ast)
+    if (suppressive && !opts.allowSuppressive) {
+      throw new Error(
+        `composition "${parsed.name}" subtracts a suppressive affect label; pass { allowSuppressive: true } to opt in`,
+      )
+    }
+    const layerPolicy = parsed.ast.kind === 'layered' ? layerSpecToString(parsed.ast.layers) : parsed.layerPolicy
+    return this.compositionStore.upsertComposition({
+      name: parsed.name,
+      dsl,
+      ast: parsed.ast,
+      layerPolicy,
+      affectModulated: parsed.ast.kind === 'modulated',
+      suppressive,
+      vindexId: opts.vindexId ?? DEFAULT_VINDEX_ID,
+      description: opts.description ?? null,
+      metadata: opts.metadata ?? {},
+    })
+  }
+
+  /**
+   * B1: Invoke a stored composition for the next N turns. Adds it to the
+   * active list (multiple compositions can stack), records an audit row, and
+   * returns the InvocationRecord.
+   *
+   * When the composition is suppressive and `allowSuppressive` was passed at
+   * define-time, invocation succeeds (the consent already happened); the
+   * record carries `suppressive: true` so downstream observers can react.
+   */
+  invokeComposition(name: string, opts: InvokeCompositionOptions = {}): InvocationRecord {
+    if (!this.compositionStore) {
+      throw new Error('compositionStore disabled (set compositionEnabled in AuroraConfig)')
+    }
+    const rec = this.compositionStore.getComposition(name)
+    if (!rec) throw new Error(`composition "${name}" not found`)
+
+    const ttlTurns = opts.ttlTurns ?? DEFAULT_TTL_TURNS
+    const magnitudeScale = opts.magnitudeScale ?? DEFAULT_MAGNITUDE_SCALE
+    const trigger = opts.trigger ?? 'manual'
+    const invokedAt = new Date().toISOString()
+
+    this.activeCompositionsList.push({
+      name,
+      ast: rec.ast,
+      invokedAt,
+      ttlTurns,
+      remainingTurns: ttlTurns,
+      magnitudeScale,
+      trigger,
+    })
+
+    return this.compositionStore.recordInvocation({
+      name,
+      invokedAt,
+      sessionId: opts.sessionId ?? null,
+      trigger,
+      metadata: { suppressive: rec.suppressive, magnitudeScale, ttlTurns },
+    })
+  }
+
+  /** B1: Active compositions and their decay state. */
+  activeCompositions(): ActiveComposition[] {
+    return this.activeCompositionsList.map(c => ({ ...c }))
+  }
+
+  /**
+   * B1: Drop a composition from the active list before its TTL expires. Returns
+   * true if a matching composition was found and removed.
+   */
+  deactivateComposition(name: string): boolean {
+    const before = this.activeCompositionsList.length
+    this.activeCompositionsList = this.activeCompositionsList.filter(c => c.name !== name)
+    return this.activeCompositionsList.length < before
+  }
+
+  /**
+   * B1: Tick the active composition list — each call decrements remainingTurns
+   * on every entry by 1 and removes any that hit zero. Compositions with
+   * `trigger: 'affect_predicate'` are exempt from countdown (they live as long
+   * as the predicate holds; B1.2 owns predicate lifecycle).
+   */
+  tickCompositions(): { active: number; expired: string[] } {
+    const expired: string[] = []
+    this.activeCompositionsList = this.activeCompositionsList.filter(c => {
+      if (c.trigger === 'affect_predicate') return true
+      c.remainingTurns -= 1
+      if (c.remainingTurns <= 0) {
+        expired.push(c.name)
+        return false
+      }
+      return true
+    })
+    return { active: this.activeCompositionsList.length, expired }
+  }
+
+  /** B1: Direct read access to the composition store (null when disabled). */
+  getCompositionStore(): CompositionStore | null {
+    return this.compositionStore
   }
 
     /**
