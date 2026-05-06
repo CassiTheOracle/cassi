@@ -164,3 +164,77 @@ describe('composeVectorProjection', () => {
     expect(composeVectorProjection(state)).toBeNull()
   })
 })
+
+describe('composeVectorProjection — vectorSource callback', () => {
+  it('fills perLayer with weighted Float32Array when vectorSource resolves', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    // Source returns [1, 2, 3, 4] for any (node, layer) — easy to verify.
+    const source = () => new Float32Array([1, 2, 3, 4])
+    const p = composeVectorProjection(state, { magnitudeScale: 0.5 }, {}, source)!
+    const layer14 = p.perLayer.get(14)!
+    expect(layer14.length).toBe(4)
+    // Weight = salience * 0.5; for a single node we just need positive non-zero
+    expect(layer14[0]).toBeGreaterThan(0)
+    expect(layer14[1] / layer14[0]).toBeCloseTo(2, 5)
+    expect(layer14[2] / layer14[0]).toBeCloseTo(3, 5)
+  })
+
+  it('accumulates weighted sums across multiple nodes at the same layer', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+      node({ id: 'b', label: 'b', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    let calls = 0
+    const source = () => {
+      calls++
+      return new Float32Array([1, 1, 1])
+    }
+    const p = composeVectorProjection(state, { magnitudeScale: 0.5 }, {}, source)!
+    const layer14 = p.perLayer.get(14)!
+    expect(layer14.length).toBe(3)
+    expect(calls).toBe(2)
+    // Both nodes contribute weight w each; layer14[i] = 2*w
+    const expected = p.contributions[0].weight + p.contributions[1].weight
+    expect(layer14[0]).toBeCloseTo(expected, 5)
+  })
+
+  it('falls back to placeholder when vectorSource returns null', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    const p = composeVectorProjection(state, undefined, {}, () => null)!
+    const layer14 = p.perLayer.get(14)!
+    expect(layer14.length).toBe(0)
+  })
+
+  it('keeps existing accumulator when a later vector mismatches dimensions', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+      node({ id: 'b', label: 'b', modelConfidence: 1.0, modelLayers: [14] }),
+    ]))
+    let n = 0
+    const source = (): Float32Array => {
+      n++
+      return n === 1 ? new Float32Array([1, 2, 3, 4]) : new Float32Array([5, 5]) // mismatch
+    }
+    const p = composeVectorProjection(state, undefined, {}, source)!
+    const layer14 = p.perLayer.get(14)!
+    expect(layer14.length).toBe(4) // first contribution preserved
+  })
+
+  it('separately keys layers when nodes contribute to different layers', () => {
+    const state = buildState(buildGraph([
+      node({ id: 'a', label: 'a', modelConfidence: 1.0, modelLayers: [14] }),
+      node({ id: 'b', label: 'b', modelConfidence: 1.0, modelLayers: [20] }),
+    ]))
+    const source = (_n: any, layer: number) =>
+      new Float32Array([layer === 14 ? 1.0 : 0.0, layer === 14 ? 0.0 : 1.0])
+    const p = composeVectorProjection(state, undefined, {}, source)!
+    expect(p.perLayer.get(14)![0]).toBeGreaterThan(0)
+    expect(p.perLayer.get(14)![1]).toBe(0)
+    expect(p.perLayer.get(20)![0]).toBe(0)
+    expect(p.perLayer.get(20)![1]).toBeGreaterThan(0)
+  })
+})

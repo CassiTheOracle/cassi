@@ -82,12 +82,38 @@ export type FeatureAffectProvider = (layer: number, featureIndex: number) => Aff
 
 const DEFAULT_AFFECT_BIAS_WEIGHT = 0.3
 
+/**
+ * Per-layer steering payload for `generateWithSteering`. Bytes are LE f32
+ * of length `hidden_size * 4`. `alpha` is the scalar gain (Aurora's
+ * calibration aims for total injection at ~5-15% of the residual norm).
+ */
+export interface LayerSteer {
+  layer: number
+  alpha: number
+  vectorBytes: Uint8Array
+}
+
+export interface GenerationResult {
+  text: string
+  tokens: number[]
+  durationMs: number
+}
+
 interface CassiLarqlModule {
   loadVindexOnly(path: string): Promise<VindexHandle>
   unloadVindexOnly(handle: VindexHandle): void
   getVindexConfig(handle: VindexHandle): VindexHandle['config']
   vindexTokenize(handle: VindexHandle, text: string): number[]
   vindexGateKnn(handle: VindexHandle, layer: number, tokenId: number, topK: number): FeatureHit[]
+  /** A2 Slice 2: raw f32 bytes of one gate vector at (layer, feature_index). */
+  gateVector(handle: VindexHandle, layer: number, featureIndex: number): Uint8Array
+  /** A2 Slice 1: steered autoregressive generation via upstream's SteerHook. */
+  generateWithSteering(
+    handle: VindexHandle,
+    promptTokens: number[],
+    steers: LayerSteer[],
+    maxNewTokens: number,
+  ): GenerationResult
 }
 
 export interface LarqlProviderConfig {
@@ -620,6 +646,33 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   tokenize(text: string): number[] {
     if (!this.loaded || !this.handle || !this.larql) return []
     return this.larql.vindexTokenize(this.handle, text)
+  }
+
+  /**
+   * A2 Slice 2: fetch one gate vector at (layer, featureIndex) as a Float32Array.
+   *
+   * Returns `null` when the vindex isn't loaded or the (layer, featureIndex)
+   * pair is out of range. Aurora's `composeVectorProjection` calls this
+   * through the `GateVectorSource` callback to fill real f32 bytes into
+   * `VectorProjection.perLayer`, which then drive `generate_with_steering`.
+   */
+  gateVector(layer: number, featureIndex: number): Float32Array | null {
+    if (!this.loaded || !this.handle || !this.larql) return null
+    try {
+      const bytes = this.larql.gateVector(this.handle, layer, featureIndex)
+      // Use the underlying ArrayBuffer view directly without copying when
+      // the offset/length permit it.
+      if (bytes.byteLength % 4 !== 0) return null
+      const f32 = new Float32Array(bytes.byteLength / 4)
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+      for (let i = 0; i < f32.length; i++) {
+        f32[i] = view.getFloat32(i * 4, true)
+      }
+      return f32
+    } catch (err) {
+      this.logger.debug?.('gateVector lookup failed', { layer, featureIndex, error: String(err) })
+      return null
+    }
   }
 
   /**

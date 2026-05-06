@@ -37,16 +37,36 @@ export interface ProjectionContext {
 }
 
 /**
+ * Caller-provided lookup that resolves a `(node, layer)` pair into a raw
+ * gate-vector Float32Array. When supplied to `composeVectorProjection`,
+ * the composer accumulates `vec * weight` per-layer into the projection's
+ * `perLayer` map, replacing the empty-Float32Array placeholder behavior.
+ *
+ * The callback is intentionally per-(node, layer) so callers control HOW
+ * to pick a feature index for each contributing node — Aurora's typical
+ * impl uses gate_knn against the node's tokenized label; tests can hand
+ * back synthetic vectors keyed by node/layer; etc.
+ */
+export type GateVectorSource = (node: import('../types.js').CognitiveNode, layer: number) => Float32Array | null
+
+/**
  * Compose a vector projection from the current mental state.
  *
  * Pure function — caller passes the state plus an optional context with
  * vindex / target-model ids for the projection metadata. Returns `null`
  * when the state has no activated nodes (caller should treat as no-op).
+ *
+ * When `vectorSource` is supplied, the composer accumulates real
+ * `Float32Array` content into `perLayer` (weighted sum across all
+ * contributing nodes at each layer). Without it, `perLayer` carries
+ * length-zero Float32Array placeholders at each contributing layer —
+ * the contributions[] array is still meaningful and feeds A2.4 annotation.
  */
 export function composeVectorProjection(
   state: MentalState,
   options: VectorProjectionOptions = {},
   ctx: ProjectionContext = {},
+  vectorSource?: GateVectorSource,
 ): VectorProjection | null {
   const magnitudeScale = options.magnitudeScale ?? DEFAULT_MAGNITUDE_SCALE
   const maxNodes = options.maxNodes ?? DEFAULT_MAX_NODES
@@ -83,8 +103,24 @@ export function composeVectorProjection(
     })
 
     for (const layer of layers) {
-      if (!perLayer.has(layer)) {
-        perLayer.set(layer, new Float32Array(0))
+      const vec = vectorSource ? vectorSource(node, layer) : null
+      if (vec === null) {
+        // Placeholder: ensure layer is keyed in the map even though no
+        // real bytes were resolved.
+        if (!perLayer.has(layer)) perLayer.set(layer, new Float32Array(0))
+        continue
+      }
+      const existing = perLayer.get(layer)
+      if (!existing || existing.length === 0) {
+        const fresh = new Float32Array(vec.length)
+        for (let i = 0; i < vec.length; i++) fresh[i] = vec[i] * weight
+        perLayer.set(layer, fresh)
+      } else if (existing.length === vec.length) {
+        for (let i = 0; i < vec.length; i++) existing[i] += vec[i] * weight
+      } else {
+        // Dimension mismatch — refuse to mix; keep existing.
+        // (This shouldn't happen across layers from the same vindex; if it
+        // does, the caller's vectorSource is producing inconsistent output.)
       }
     }
   }
