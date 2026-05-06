@@ -80,6 +80,9 @@ import { CompositionStore } from './composition/store.js'
 import { PostureCoherenceDetector } from './coherence-detector/index.js'
 import type { CoherenceCheck } from './coherence-detector/types.js'
 import type { DetectorInputs } from './coherence-detector/index.js'
+import { CalibrationManager } from './calibration/manager.js'
+import { CalibrationStore } from './calibration/store.js'
+import type { CalibrationProbeSet, CalibrationResult, DriftReport, RunOptions } from './calibration/types.js'
 import { parseComposition, detectSuppressive, layerSpecToString } from './composition/parser.js'
 import { evaluatePredicate, evaluateStrength } from './composition/predicate.js'
 import type { Affect, AffectLabel } from '../mnemic-field/types.js'
@@ -323,6 +326,10 @@ export class Aurora {
   /** Phase 2 (N2): Posture coherence detector. */
   private postureCoherenceDetector: PostureCoherenceDetector | null = null
 
+  /** Phase 2 (Gap 3): Universal Calibration Framework. */
+  private calibrationManager: CalibrationManager | null = null
+  private calibrationStore: CalibrationStore | null = null
+
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
@@ -441,6 +448,15 @@ export class Aurora {
 
     if (phase4Config.postureCoherenceEnabled) {
       this.postureCoherenceDetector = new PostureCoherenceDetector(logger)
+    }
+
+    if (phase4Config.calibrationEnabled) {
+      this.calibrationStore = new CalibrationStore(auroraDbPath, logger)
+      this.calibrationManager = new CalibrationManager({
+        store: this.calibrationStore,
+        logger,
+        eventJournal: this.eventJournal,
+      })
     }
 
     this.logger.info('Aurora initialized', {
@@ -1541,6 +1557,58 @@ export class Aurora {
       }
     }
     return checks
+  }
+
+  /**
+   * Gap 3 (UCF): Register a probe set with the calibration framework.
+   * Per-spec adapters call this at boot to plug into shared scheduling +
+   * drift surveillance. Re-registering the same id replaces the runtime
+   * MeasurementFn / DriftMetricFn callbacks and updates persisted probes.
+   */
+  registerCalibrationProbeSet(probeSet: CalibrationProbeSet): void {
+    if (!this.calibrationManager) {
+      throw new Error('calibrationManager disabled (set calibrationEnabled in AuroraConfig)')
+    }
+    this.calibrationManager.registerProbeSet(probeSet)
+  }
+
+  /**
+   * Gap 3 (UCF): Run a single registered probe set's calibration. The first
+   * run for a probe set should pass `skipDriftComparison: true` so the
+   * baseline doesn't trigger a spurious drift event.
+   */
+  async runCalibration(probeSetId: string, opts?: RunOptions): Promise<CalibrationResult> {
+    if (!this.calibrationManager) {
+      throw new Error('calibrationManager disabled (set calibrationEnabled in AuroraConfig)')
+    }
+    return this.calibrationManager.runCalibration(probeSetId, opts)
+  }
+
+  /**
+   * Gap 3 (UCF): Run every registered probe set whose schedule isn't
+   * 'manual' only. Daemon ticks call this; per-spec adapters can also drive
+   * runCalibration directly.
+   */
+  async runScheduledCalibrations(opts?: RunOptions): Promise<CalibrationResult[]> {
+    if (!this.calibrationManager) return []
+    return this.calibrationManager.runScheduled(opts)
+  }
+
+  /** Gap 3 (UCF): Drift surveillance over recent stored history (no measurement re-run). */
+  surveillCalibrationDrift(probeSetId: string): DriftReport | null {
+    if (!this.calibrationManager) return null
+    return this.calibrationManager.surveillDrift(probeSetId)
+  }
+
+  /** Gap 3 (UCF): Run history for a probe set. */
+  calibrationHistory(probeSetId: string, opts?: { since?: string; limit?: number }): CalibrationResult[] {
+    if (!this.calibrationManager) return []
+    return this.calibrationManager.history(probeSetId, opts)
+  }
+
+  /** Gap 3 (UCF): Direct manager access (null when disabled). */
+  getCalibrationManager(): CalibrationManager | null {
+    return this.calibrationManager
   }
 
   /** N2: Top-N coherence checks for projection rendering. */

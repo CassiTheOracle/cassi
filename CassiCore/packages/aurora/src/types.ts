@@ -515,6 +515,9 @@ export interface AuroraConfig {
 
   /** Phase 2 (N2): Enable posture coherence detector. */
   postureCoherenceEnabled: boolean
+
+  /** Phase 2 (Gap 3): Enable Universal Calibration Framework. */
+  calibrationEnabled: boolean
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -555,6 +558,7 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   narrativeMaxChars: 800,
   compositionEnabled: false,
   postureCoherenceEnabled: false,
+  calibrationEnabled: false,
 }
 
 /** Result of a single C1 curation cycle (detect → seed → schedule). */
