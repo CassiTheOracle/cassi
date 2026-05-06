@@ -20,9 +20,13 @@ import type {
   KnowledgeGap,
   AuroraConfig,
   UnifiedGraph,
+  VectorProjection,
+  VectorProjectionOptions,
 } from './types.js'
 import { AURORA_DEFAULTS } from './types.js'
 import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
+import { composeVectorProjection, type ProjectionContext } from './projection/vector-projection.js'
+import { renderActiveGateAnnotation } from './projection/active-gate-annotation.js'
 
 /**
  * StateProjector — converts mental state to injectable formats.
@@ -98,6 +102,21 @@ export class StateProjector {
       }
     }
 
+    // Section 4b: Active steering (A2.4 — surfaces vector-projection
+    // contributions as text steering metadata for runtimes that can't
+    // accept residual injection. No-op when projection is disabled or
+    // empty.)
+    if (this.config.vectorProjectionEnabled) {
+      const projection = composeVectorProjection(state, undefined)
+      const annotation = renderActiveGateAnnotation(projection, {
+        maxGates: this.config.vectorProjectionMaxGates,
+      })
+      if (annotation && annotation.length < budgetRemaining() * 0.2) {
+        sections.push(annotation)
+        charCount += annotation.length + 1
+      }
+    }
+
     // Section 5: Knowledge gaps (what I know that the model doesn't, and vice versa)
     if (state.gaps.length > 0) {
       const gaps = this.serializeGaps(state, budgetRemaining() * 0.25)
@@ -142,6 +161,22 @@ export class StateProjector {
     })
 
     return result
+  }
+
+  /**
+   * A2 vector projection — sibling to `serializeForContext`. Returns the
+   * structured projection (per-layer placeholders + contributions intent +
+   * metadata) for residual-stream injection or downstream annotation.
+   *
+   * Returns `null` when no nodes are activated or when the projection has
+   * no contributions after layer/weight filtering.
+   */
+  projectVector(
+    state: MentalState,
+    options?: VectorProjectionOptions,
+    ctx?: ProjectionContext,
+  ): VectorProjection | null {
+    return composeVectorProjection(state, options, ctx)
   }
 
   /**

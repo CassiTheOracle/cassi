@@ -402,6 +402,61 @@ export interface MentalStateUpdate {
 }
 
 /**
+ * A2 vector projection — Aurora-side scaffolding for residual-stream
+ * injection. The `perLayer` Float32Arrays are placeholders until the
+ * Rust-side `ActivationHook` lands and the cassi-larql N-API exposes raw
+ * gate vectors to TypeScript. The `contributions` array is meaningful
+ * today: it captures which gates would inject at which layers and with
+ * what salience weight, and feeds the A2.4 active-gate annotation
+ * rendered into the text projection.
+ */
+export interface VectorProjection {
+  /**
+   * Per-layer injection vector. Today these are zero-length Float32Arrays
+   * tagged at each layer that has at least one contributing gate; once the
+   * Rust hook is wired, the entries hold the actual residual-stream delta.
+   * The shape is stable across that transition so callers don't churn.
+   */
+  perLayer: Map<number, Float32Array>
+
+  /** Structured intent: which gates are composing the projection. */
+  contributions: GateContribution[]
+
+  metadata: {
+    /** Aurora node ids that contributed. */
+    contributingNodes: string[]
+    /** Logical model id the projection targets (vindex/runtime hint). */
+    targetModelId: string | null
+    /** Source vindex id. */
+    vindexId: string | null
+    /** ISO timestamp. */
+    composedAt: string
+  }
+}
+
+export interface GateContribution {
+  /** CognitiveNode id. */
+  nodeId: string
+  /** Display label for the annotation block. */
+  label: string
+  /** Layers this contribution spans (from `node.modelLayers` when present). */
+  layers: number[]
+  /** Salience in [0, 1] before magnitude calibration. */
+  salience: number
+  /** Final weight after calibration; equal to salience × magnitudeScale. */
+  weight: number
+}
+
+export interface VectorProjectionOptions {
+  /** Restrict to specific layers (intersect with each contribution's layers). */
+  layerSubset?: number[]
+  /** Override the calibrated default magnitude (default 0.1 — 10% of residual). */
+  magnitudeScale?: number
+  /** Top-N salience cap (default 32). */
+  maxNodes?: number
+}
+
+/**
  * Configuration for the Aurora module.
  */
 export interface AuroraConfig {
@@ -518,6 +573,17 @@ export interface AuroraConfig {
 
   /** Phase 2 (Gap 3): Enable Universal Calibration Framework. */
   calibrationEnabled: boolean
+
+  /**
+   * Phase 2 (A2): Enable vector projection scaffolding + active-gate
+   * annotation rendering in serialized state. Real residual-stream
+   * injection (A2.1 Rust hook) is gated separately at the runtime side;
+   * this flag controls only the Aurora-side surface.
+   */
+  vectorProjectionEnabled: boolean
+
+  /** Phase 2 (A2.4): Maximum gates surfaced in the active-gate annotation block. */
+  vectorProjectionMaxGates: number
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -559,6 +625,8 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   compositionEnabled: false,
   postureCoherenceEnabled: false,
   calibrationEnabled: false,
+  vectorProjectionEnabled: false,
+  vectorProjectionMaxGates: 8,
 }
 
 /** Result of a single C1 curation cycle (detect → seed → schedule). */

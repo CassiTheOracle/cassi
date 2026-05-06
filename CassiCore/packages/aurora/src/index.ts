@@ -319,6 +319,9 @@ export class Aurora {
   private counterfactualEngine: CounterfactualEngine | null = null
   private selfNarrativeRenderer: SelfNarrativeRenderer | null = null
 
+  /** Phase 2 (A2): vector projection scaffolding gate. */
+  private vectorProjectionEnabled = false
+
   /** Phase 2 (B1): Concept-arithmetic composition store + active invocation list. */
   private compositionStore: CompositionStore | null = null
   private activeCompositionsList: ActiveComposition[] = []
@@ -342,6 +345,7 @@ export class Aurora {
     this.logger = logger.child ? logger.child('aurora') : logger
     this.maxConceptsPerTurn = config?.maxConceptsPerTurn ?? AURORA_DEFAULTS.maxConceptsPerTurn
     this.curationCycleInterval = config?.curationCycleInterval ?? AURORA_DEFAULTS.curationCycleInterval
+    this.vectorProjectionEnabled = config?.vectorProjectionEnabled ?? AURORA_DEFAULTS.vectorProjectionEnabled
     this.reverieMinTextLength = config?.reverieMinTextLength ?? AURORA_DEFAULTS.reverieMinTextLength
     this.reverieSamplingRate = config?.reverieSamplingRate ?? AURORA_DEFAULTS.reverieSamplingRate
     this.reverieTimeoutMs = config?.reverieTimeoutMs ?? AURORA_DEFAULTS.reverieTimeoutMs
@@ -1609,6 +1613,28 @@ export class Aurora {
   /** Gap 3 (UCF): Direct manager access (null when disabled). */
   getCalibrationManager(): CalibrationManager | null {
     return this.calibrationManager
+  }
+
+  /**
+   * A2: Compose a vector projection from the current mental state. The
+   * `perLayer` Float32Arrays are placeholders today (cassi-larql N-API
+   * doesn't surface raw gate vectors yet); the `contributions` array is
+   * meaningful and feeds the A2.4 active-gate annotation rendering.
+   *
+   * Returns `null` when vector projection is disabled, no current state
+   * exists, or no nodes are activated.
+   */
+  getVectorProjection(
+    options?: import('./types.js').VectorProjectionOptions,
+    state?: MentalState,
+  ): import('./types.js').VectorProjection | null {
+    if (!this.vectorProjectionEnabled) return null
+    const target = state ?? this.currentState
+    if (!target) return null
+    return this.projector.projectVector(target, options, {
+      vindexId: this.knowledgeProvider ? (this.knowledgeProvider as { vindexId?: string }).vindexId ?? null : null,
+      targetModelId: null,
+    })
   }
 
   /** N2: Top-N coherence checks for projection rendering. */
