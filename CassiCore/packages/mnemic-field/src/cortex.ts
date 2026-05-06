@@ -813,6 +813,17 @@ export class Cortex {
 
 
   /**
+   * Migrate bridge engrams from nodeType 'pattern' to 'bridge'.
+   * Returns the number of engrams updated.
+   */
+  migrateBridgeNodeTypes(): number {
+    const result = this.db.prepare(
+      `UPDATE engrams SET node_type = 'bridge' WHERE node_type = 'pattern' AND tags LIKE '%bridge%'`
+    ).run()
+    return result.changes
+  }
+
+  /**
    * Sample random orphan engrams (those not assigned to any nucleus).
    * Content is truncated to keep results lightweight for batch analysis.
    */

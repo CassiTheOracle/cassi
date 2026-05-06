@@ -5,6 +5,7 @@ export const ENGRAM_TYPES = [
   'abstraction', 'goal', 'file', 'tool', 'session', 'outcome',
   'source_file', 'changeset', 'artifact', 'concern', 'anomaly',
   'module', 'capability', 'principle', 'weakness', 'evolution', 'portal',
+  'bridge',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]

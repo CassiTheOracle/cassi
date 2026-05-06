@@ -277,6 +277,12 @@ export class MnemicField {
       projectionStateRestored: this.projectionState !== null,
       validPositions: this.cortex.countValidPositions(),
     })
+
+    // Migrate bridge engrams from old 'pattern' nodeType to 'bridge'
+    const migrated = this.cortex.migrateBridgeNodeTypes()
+    if (migrated > 0) {
+      this.logger.info('Migrated bridge engrams to nodeType bridge', { count: migrated })
+    }
   }
 
   /**
@@ -661,7 +667,8 @@ export class MnemicField {
    * Full-text search over engram content, tags, provenance.
    */
   searchText(query: string, limit?: number): EngramSearchResult[] {
-    return this.cortex.searchText(query, limit)
+    const results = this.cortex.searchText(query, limit)
+    return results.filter(r => r.engram.nodeType !== 'bridge')
   }
 
   /**
@@ -916,14 +923,17 @@ export class MnemicField {
       this.logger.debug('Failed to persist retrieval event', { error: String(err) })
     }
 
+    // Filter bridge engrams from results — they're structural, not content.
+    const contentHits = hits.filter(h => h.nodeType !== 'bridge')
+
     // Cache result. Evict oldest if over capacity (Map iteration order is insertion order).
-    this.retrieveCache.set(cacheKey, { hits, ts: now })
+    this.retrieveCache.set(cacheKey, { hits: contentHits, ts: now })
     while (this.retrieveCache.size > MnemicField.RETRIEVE_CACHE_MAX) {
       const oldest = this.retrieveCache.keys().next().value
       if (oldest === undefined) break
       this.retrieveCache.delete(oldest)
     }
-    return hits
+    return contentHits
   }
 
   createMigrationJob(spec: MigrationJobSpec): MigrationJobRecord {

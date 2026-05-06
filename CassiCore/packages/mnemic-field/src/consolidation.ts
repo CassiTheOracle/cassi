@@ -262,6 +262,21 @@ export class ConsolidationEngine {
       return norm
     })
 
+    // Override bridge engram potentiation from their synapse links (capped at 0.3)
+    for (let i = 0; i < engrams.length; i++) {
+      if (engrams[i].nodeType === 'bridge') {
+        const bridgeSynapses = synapses.filter(
+          s => s.sourceId === engrams[i].id || s.targetId === engrams[i].id,
+        )
+        if (bridgeSynapses.length > 0) {
+          const avgWeight = bridgeSynapses.reduce((sum, s) => sum + s.weight, 0) / bridgeSynapses.length
+          normalized[i] = Math.min(avgWeight, 0.3)
+        } else {
+          normalized[i] = 0
+        }
+      }
+    }
+
     const updates = engrams
       .map((e, i) => ({ id: e.id, potentiation: normalized[i] }))
       .filter((u, i) => Math.abs(u.potentiation - engrams[i].potentiation) > 0.001)

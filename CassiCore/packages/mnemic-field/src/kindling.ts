@@ -127,6 +127,11 @@ export class KindlingEngine {
     this.neuralConfig = { ...this.neuralConfig, ...config }
   }
 
+  /** Check if an engram is a bridge (structural, not content). */
+  private isBridge(engram: Engram | null | undefined): boolean {
+    return engram?.nodeType === 'bridge'
+  }
+
   /**
    * Run the full kindling process: seed → spread → ignite → return Luminal Set.
    *
@@ -220,11 +225,15 @@ export class KindlingEngine {
       }
     }
 
+    // Filter bridge engrams from results — they're structural, not content.
+    const contentEngrams = luminal.filter(e => !this.isBridge(e.engram))
+
     const durationMs = Date.now() - start
     this.logger.debug('Kindling complete', {
       seeds: seeds.length,
       iterations,
       luminalSize: luminal.length,
+      contentSize: contentEngrams.length,
       filamentMatches: this.matchedFilaments.size,
       neural,
       traceRecorded: shouldRecordTrace && traceRecords.length > 0,
@@ -232,8 +241,8 @@ export class KindlingEngine {
     })
 
     return {
-      engrams: luminal,
-      totalCharge: luminal.reduce((s, e) => s + e.charge, 0),
+      engrams: contentEngrams,
+      totalCharge: contentEngrams.reduce((s, e) => s + e.charge, 0),
       seedCount: seeds.length,
       iterationsUsed: iterations,
       sparkPoint,
@@ -371,7 +380,9 @@ export class KindlingEngine {
         const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
         const temporalRelevance = 1 / (1 + KINDLING_DEFAULTS.temporalDecayRate * tDist)
 
-        const potBoost = 1 + KINDLING_DEFAULTS.potentiationBoostScale * neighborEngram.potentiation
+        const potBoost = this.isBridge(neighborEngram)
+          ? 1.0
+          : 1 + KINDLING_DEFAULTS.potentiationBoostScale * neighborEngram.potentiation
 
         let emotionalDamping = 1.0
         if (this.currentAffect) {
@@ -440,7 +451,9 @@ export class KindlingEngine {
         const tDist = Math.abs(sourceEngram.t - neighborEngram.t)
         const temporalRelevance = 1 / (1 + KINDLING_DEFAULTS.temporalDecayRate * tDist)
 
-        const potBoost = 1 + KINDLING_DEFAULTS.potentiationBoostScale * neighborEngram.potentiation
+        const potBoost = this.isBridge(neighborEngram)
+          ? 1.0
+          : 1 + KINDLING_DEFAULTS.potentiationBoostScale * neighborEngram.potentiation
 
         let emotionalDamping = 1.0
         if (this.currentAffect) {
@@ -482,7 +495,7 @@ export class KindlingEngine {
     let totalDelta = 0
     for (const [id, rawInput] of aggregated) {
       const engram = this.cortex.getEngram(id)
-      const bias = (engram?.potentiation ?? 0) * biasScale
+      const bias = this.isBridge(engram) ? 0 : (engram?.potentiation ?? 0) * biasScale
       const dampened = rawInput * KINDLING_DEFAULTS.spreadDampening
       const oldCharge = chargeMap.get(id) ?? 0
       const preActivation = oldCharge + dampened + bias
