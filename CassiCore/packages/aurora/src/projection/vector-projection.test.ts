@@ -44,10 +44,10 @@ function buildGraph(nodes: CognitiveNode[]): UnifiedGraph {
 
 const baselineMomentum: ReasoningMomentum = {
   trendingConcepts: [],
-  shifts: [],
-  topicShift: 0,
   novelty: 0,
-  intensity: 0,
+  confidence: 0,
+  topicShift: false,
+  turnsInDirection: 0,
 }
 
 function buildState(graph: UnifiedGraph): MentalState {

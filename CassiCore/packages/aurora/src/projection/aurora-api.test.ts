@@ -59,10 +59,10 @@ function buildAurora(dbPath: string, overrides?: Partial<AuroraConfig>): Aurora 
 
 const baselineMomentum: ReasoningMomentum = {
   trendingConcepts: [],
-  shifts: [],
-  topicShift: 0,
   novelty: 0,
-  intensity: 0,
+  confidence: 0,
+  topicShift: false,
+  turnsInDirection: 0,
 }
 
 function activatedState(): MentalState {
