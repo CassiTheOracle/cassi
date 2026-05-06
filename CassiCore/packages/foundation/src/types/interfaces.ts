@@ -159,12 +159,7 @@ export interface WiringDependencies {
   globalBlackboardRegistry?: unknown;
   pipelineGetter?: () => unknown;
   repairProvider?: (prompt: string) => Promise<string>;
-  introspectionSources?: {
-    outcomeTracker?: unknown;
-    strategyTracker?: unknown;
-    crossSessionCorrelator?: unknown;
-    providerProfiler?: unknown;
-  };
+  introspectionSources?: Record<string, unknown>;
 }
 
 export interface ThinkerDeferredWiring {
@@ -197,12 +192,7 @@ export interface IntelligenceModule {
   setModelRouter?(router: unknown): void;
   setSessionManager?(sessionManager: unknown, sessionStore?: unknown): void;
   setPipelineGetter?(getPipeline: () => unknown): void;
-  setIntrospectionSources?(sources: {
-    outcomeTracker?: unknown;
-    strategyTracker?: unknown;
-    crossSessionCorrelator?: unknown;
-    providerProfiler?: unknown;
-  }): void;
+  setIntrospectionSources?(sources: Record<string, unknown>): void;
   setConsequenceEstimator?(estimator: unknown): void;
   setTrustLedger?(ledger: unknown): void;
 
