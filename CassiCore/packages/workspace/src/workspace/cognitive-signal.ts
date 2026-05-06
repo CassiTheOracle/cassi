@@ -138,6 +138,7 @@ export type SignalType =
   | 'suggestion'    // Optimizer, Reflex: behavioral guidance
   | 'context'       // Session-digest, Blackboard: background information
   | 'enrichment'    // RadianceLoop: novelty/external observation
+  | 'goal'          // Helix lamina lifecycle: prospective state — what a Helix is working on
 
 
 /**
@@ -195,6 +196,7 @@ export const BASE_URGENCY: Record<SignalType, number> = {
   insight: 0.60,
   convergence: 0.55,
   observation: 0.50,
+  goal: 0.50,
   suggestion: 0.45,
   enrichment: 0.40,
   memory: 0.35,
