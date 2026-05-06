@@ -25,6 +25,7 @@ export type CompositionAst =
   | { kind: 'sum'; operands: CompositionAst[] }
   | { kind: 'layered'; operand: CompositionAst; layers: LayerSpec }
   | { kind: 'modulated'; operand: CompositionAst; predicate: AffectPredicate }
+  | { kind: 'scaledModulated'; operand: CompositionAst; expression: AffectExpr }
 
 export type LayerSpec =
   | { all: true }
@@ -37,6 +38,25 @@ export type AffectPredicate =
   | { kind: 'label'; equals: AffectLabel }
   | { kind: 'and'; preds: AffectPredicate[] }
   | { kind: 'or'; preds: AffectPredicate[] }
+
+/**
+ * Tiny linear expression over affect dimensions, used by `| scaled_by(...)`.
+ * Resolves to a scalar in `[0, 1]` (clamped) that scales composition strength.
+ * Grammar mirrors the same +/- linear form as the main DSL but with the
+ * variable set restricted to {valence, arousal} and constants.
+ */
+export type AffectExpr =
+  | { kind: 'number'; value: number }
+  | { kind: 'var'; name: 'valence' | 'arousal' }
+  | { kind: 'add'; left: AffectExpr; right: AffectExpr }
+  | { kind: 'sub'; left: AffectExpr; right: AffectExpr }
+
+/**
+ * Tolerance band for the `~` (approximately equal) operator. A predicate like
+ * `valence ~ 0.5` is true when the dimension is within +/- this band of the
+ * threshold. Set on the predicate via `kind === '~'`.
+ */
+export const AFFECT_APPROX_BAND = 0.1
 
 /**
  * The set of affect-state labels whose subtraction triggers the suppressive

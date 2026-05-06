@@ -78,6 +78,8 @@ import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
 import type { SelfNarrative } from './self-narrative-renderer.js'
 import { CompositionStore } from './composition/store.js'
 import { parseComposition, detectSuppressive, layerSpecToString } from './composition/parser.js'
+import { evaluatePredicate, evaluateStrength } from './composition/predicate.js'
+import type { Affect, AffectLabel } from '../mnemic-field/types.js'
 import {
   DEFAULT_TTL_TURNS,
   DEFAULT_MAGNITUDE_SCALE,
@@ -89,6 +91,7 @@ import type {
   DefineCompositionOptions,
   InvokeCompositionOptions,
   InvocationRecord,
+  InvocationTrigger,
 } from './composition/types.js'
 
 export { Claustrum, ObserverInsightCollector } from './claustrum.js'
@@ -1393,7 +1396,7 @@ export class Aurora {
       dsl,
       ast: parsed.ast,
       layerPolicy,
-      affectModulated: parsed.ast.kind === 'modulated',
+      affectModulated: parsed.ast.kind === 'modulated' || parsed.ast.kind === 'scaledModulated',
       suppressive,
       vindexId: opts.vindexId ?? DEFAULT_VINDEX_ID,
       description: opts.description ?? null,
@@ -1447,12 +1450,19 @@ export class Aurora {
   }
 
   /**
-   * B1: Drop a composition from the active list before its TTL expires. Returns
-   * true if a matching composition was found and removed.
+   * B1: Drop a composition from the active list before its TTL expires.
+   * When `trigger` is supplied, only entries with that trigger are removed
+   * (this is how affect-predicate deactivation avoids touching parallel
+   * manual invocations of the same composition). Returns true when at least
+   * one entry was removed.
    */
-  deactivateComposition(name: string): boolean {
+  deactivateComposition(name: string, trigger?: InvocationTrigger): boolean {
     const before = this.activeCompositionsList.length
-    this.activeCompositionsList = this.activeCompositionsList.filter(c => c.name !== name)
+    this.activeCompositionsList = this.activeCompositionsList.filter(c => {
+      if (c.name !== name) return true
+      if (trigger !== undefined && c.trigger !== trigger) return true
+      return false
+    })
     return this.activeCompositionsList.length < before
   }
 
@@ -1479,6 +1489,65 @@ export class Aurora {
   /** B1: Direct read access to the composition store (null when disabled). */
   getCompositionStore(): CompositionStore | null {
     return this.compositionStore
+  }
+
+  /**
+   * B1.2: Drive auto-activation of affect-modulated compositions.
+   *
+   * Walks every stored composition whose AST kind is 'modulated' or
+   * 'scaledModulated', evaluates its predicate / scaled_by expression
+   * against the current affect, and edges the active list:
+   *   - 'modulated' (when predicate flips false→true): activate via
+   *     invokeComposition with trigger='affect_predicate'
+   *   - 'modulated' (true→false): deactivate
+   *   - 'scaledModulated': activate when strength > 0; deactivate when
+   *     strength returns to 0; update magnitudeScale in place when strength
+   *     changes meaningfully (>0.001 delta) without re-invoking
+   *
+   * Predicate-triggered compositions are exempt from TTL countdown
+   * (tickCompositions skips them), so they live exactly as long as the
+   * predicate holds.
+   *
+   * Returns a summary of the transitions for the caller (typically a daemon
+   * tick) to log or surface to Cassi's narrative.
+   */
+  evaluateAffectPredicates(
+    affect: Affect,
+    label?: AffectLabel,
+    opts: { sessionId?: string | null } = {},
+  ): { activated: string[]; deactivated: string[]; updated: Array<{ name: string; magnitudeScale: number }> } {
+    const result = { activated: [] as string[], deactivated: [] as string[], updated: [] as Array<{ name: string; magnitudeScale: number }> }
+    if (!this.compositionStore) return result
+
+    const modulated = this.compositionStore.listCompositions().filter(c => c.affectModulated)
+    for (const comp of modulated) {
+      const ast = comp.ast
+      const existing = this.activeCompositionsList.find(a => a.name === comp.name && a.trigger === 'affect_predicate')
+
+      if (ast.kind === 'modulated') {
+        const pass = evaluatePredicate(ast.predicate, affect, label)
+        if (pass && !existing) {
+          this.invokeComposition(comp.name, { trigger: 'affect_predicate', ttlTurns: 1, sessionId: opts.sessionId ?? null })
+          result.activated.push(comp.name)
+        } else if (!pass && existing) {
+          this.deactivateComposition(comp.name, 'affect_predicate')
+          result.deactivated.push(comp.name)
+        }
+      } else if (ast.kind === 'scaledModulated') {
+        const strength = evaluateStrength(ast.expression, affect)
+        if (strength > 0 && !existing) {
+          this.invokeComposition(comp.name, { trigger: 'affect_predicate', ttlTurns: 1, magnitudeScale: strength, sessionId: opts.sessionId ?? null })
+          result.activated.push(comp.name)
+        } else if (strength <= 0 && existing) {
+          this.deactivateComposition(comp.name, 'affect_predicate')
+          result.deactivated.push(comp.name)
+        } else if (existing && Math.abs(existing.magnitudeScale - strength) > 0.001) {
+          existing.magnitudeScale = strength
+          result.updated.push({ name: comp.name, magnitudeScale: strength })
+        }
+      }
+    }
+    return result
   }
 
     /**

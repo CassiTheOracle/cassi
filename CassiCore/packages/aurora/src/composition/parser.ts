@@ -19,6 +19,8 @@
  */
 
 import type {
+  AffectExpr,
+  AffectPredicate,
   CompositionAst,
   LayerSpec,
 } from './types.js'
@@ -46,9 +48,10 @@ export class CompositionParseError extends Error {
 
 type TokenKind =
   | 'ident' | 'number' | 'string'
-  | 'plus' | 'minus' | 'star' | 'eq'
+  | 'plus' | 'minus' | 'star' | 'eq' | 'eqeq'
   | 'lparen' | 'rparen'
   | 'at' | 'dotdot'
+  | 'pipe' | 'lt' | 'gt' | 'approx'
   | 'eof'
 
 interface Token {
@@ -71,7 +74,12 @@ function tokenize(src: string): Token[] {
     if (ch === '+') { tokens.push({ kind: 'plus', value: ch, pos: start }); i++; continue }
     if (ch === '-' || ch === '−') { tokens.push({ kind: 'minus', value: '-', pos: start }); i++; continue }
     if (ch === '*' || ch === '×') { tokens.push({ kind: 'star', value: '*', pos: start }); i++; continue }
+    if (ch === '=' && src[i + 1] === '=') { tokens.push({ kind: 'eqeq', value: '==', pos: start }); i += 2; continue }
     if (ch === '=') { tokens.push({ kind: 'eq', value: ch, pos: start }); i++; continue }
+    if (ch === '|') { tokens.push({ kind: 'pipe', value: ch, pos: start }); i++; continue }
+    if (ch === '<') { tokens.push({ kind: 'lt', value: ch, pos: start }); i++; continue }
+    if (ch === '>') { tokens.push({ kind: 'gt', value: ch, pos: start }); i++; continue }
+    if (ch === '~' || ch === '≈') { tokens.push({ kind: 'approx', value: '~', pos: start }); i++; continue }
     if (ch === '(') { tokens.push({ kind: 'lparen', value: ch, pos: start }); i++; continue }
     if (ch === ')') { tokens.push({ kind: 'rparen', value: ch, pos: start }); i++; continue }
     if (ch === '@') { tokens.push({ kind: 'at', value: ch, pos: start }); i++; continue }
@@ -230,13 +238,109 @@ function parseLayerSpec(s: TokenStream): LayerSpec {
 }
 
 function parseExpression(s: TokenStream): CompositionAst {
-  const sum = parseSum(s)
+  let result: CompositionAst = parseSum(s)
   if (s.match('at')) {
     s.next()
     const layers = parseLayerSpec(s)
-    return { kind: 'layered', operand: sum, layers }
+    result = { kind: 'layered', operand: result, layers }
   }
-  return sum
+  if (s.match('pipe')) {
+    s.next()
+    const kw = s.expect('ident')
+    if (kw.value === 'when') {
+      const predicate = parseAffectPredicate(s)
+      result = { kind: 'modulated', operand: result, predicate }
+    } else if (kw.value === 'scaled_by') {
+      s.expect('lparen')
+      const expression = parseAffectExpr(s)
+      s.expect('rparen')
+      result = { kind: 'scaledModulated', operand: result, expression }
+    } else {
+      throw new CompositionParseError(`expected 'when' or 'scaled_by' after '|', got '${kw.value}'`, kw.pos)
+    }
+  }
+  return result
+}
+
+function parseAffectPredicate(s: TokenStream): AffectPredicate {
+  let left = parseAffectComparison(s)
+  while (s.match('ident', 'and') || s.match('ident', 'or')) {
+    const op = s.next().value as 'and' | 'or'
+    const right = parseAffectComparison(s)
+    if (left.kind === op) {
+      left.preds.push(right)
+    } else {
+      left = { kind: op, preds: [left, right] }
+    }
+  }
+  return left
+}
+
+function parseAffectComparison(s: TokenStream): AffectPredicate {
+  if (s.match('lparen')) {
+    s.next()
+    const inner = parseAffectPredicate(s)
+    s.expect('rparen')
+    return inner
+  }
+  const tok = s.expect('ident')
+  if (tok.value === 'valence' || tok.value === 'arousal') {
+    const opTok = s.next()
+    let op: '<' | '>' | '~'
+    if (opTok.kind === 'lt') op = '<'
+    else if (opTok.kind === 'gt') op = '>'
+    else if (opTok.kind === 'approx') op = '~'
+    else throw new CompositionParseError(`expected '<', '>', or '~', got ${opTok.kind} '${opTok.value}'`, opTok.pos)
+    const negate = s.match('minus')
+    if (negate) s.next()
+    const numTok = s.expect('number')
+    const threshold = (negate ? -1 : 1) * Number(numTok.value)
+    if (!Number.isFinite(threshold)) {
+      throw new CompositionParseError(`invalid threshold '${numTok.value}'`, numTok.pos)
+    }
+    return { kind: tok.value, op, threshold }
+  }
+  if (tok.value === 'label') {
+    s.expect('eqeq')
+    const labelTok = s.expect('string')
+    if (!AFFECT_LABELS.has(labelTok.value as AffectLabel)) {
+      throw new CompositionParseError(`unknown affect label '${labelTok.value}'`, labelTok.pos)
+    }
+    return { kind: 'label', equals: labelTok.value as AffectLabel }
+  }
+  throw new CompositionParseError(`expected 'valence', 'arousal', or 'label', got '${tok.value}'`, tok.pos)
+}
+
+function parseAffectExpr(s: TokenStream): AffectExpr {
+  let left = parseAffectTerm(s)
+  while (s.match('plus') || s.match('minus')) {
+    const op = s.next().kind === 'minus' ? 'sub' : 'add'
+    const right = parseAffectTerm(s)
+    left = { kind: op, left, right } as AffectExpr
+  }
+  return left
+}
+
+function parseAffectTerm(s: TokenStream): AffectExpr {
+  if (s.match('lparen')) {
+    s.next()
+    const inner = parseAffectExpr(s)
+    s.expect('rparen')
+    return inner
+  }
+  if (s.match('number')) {
+    return { kind: 'number', value: Number(s.next().value) }
+  }
+  if (s.match('minus')) {
+    s.next()
+    const inner = parseAffectTerm(s)
+    return { kind: 'sub', left: { kind: 'number', value: 0 }, right: inner }
+  }
+  const t = s.expect('ident')
+  if (t.value !== 'valence' && t.value !== 'arousal') {
+    throw new CompositionParseError(`expected number, 'valence', or 'arousal', got '${t.value}'`, t.pos)
+  }
+  return { kind: 'var', name: t.value }
 }
 
 export interface ParseResult {
@@ -294,6 +398,7 @@ export function detectSuppressive(ast: CompositionAst, sign = 1): boolean {
       return ast.operands.some(o => detectSuppressive(o, sign))
     case 'layered':
     case 'modulated':
+    case 'scaledModulated':
       return detectSuppressive(ast.operand, sign)
   }
 }
