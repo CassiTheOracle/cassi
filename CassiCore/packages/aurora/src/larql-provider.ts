@@ -114,6 +114,17 @@ interface CassiLarqlModule {
     steers: LayerSteer[],
     maxNewTokens: number,
   ): GenerationResult
+  /**
+   * A2 calibration: measure typical residual L2 norms at the requested
+   * layers via a single forward pass. Aurora's BaselineNormSource wraps
+   * this to scale composed steering vectors to spec §4.3's recommended
+   * 5–15% of residual.
+   */
+  measureResidualNorms(
+    handle: VindexHandle,
+    promptTokens: number[],
+    layers: number[],
+  ): { norms: Array<{ layer: number; norm: number }>; durationMs: number }
 }
 
 export interface LarqlProviderConfig {
@@ -673,6 +684,53 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
       this.logger.debug?.('gateVector lookup failed', { layer, featureIndex, error: String(err) })
       return null
     }
+  }
+
+  /**
+   * A2 calibration: measure typical residual L2 norm at the requested
+   * layers via one forward pass over `promptText`. Returns a Map<layer,
+   * norm> for the caller to cache and use as a `BaselineNormSource`.
+   *
+   * Returns an empty map when the vindex isn't loaded, the handle is
+   * browse-only, or the underlying call fails (logged at debug level).
+   *
+   * Cost: one prefill + 1-token decode pass through generate_cached_hooked.
+   * On Gemma 3 4B this is ~30 s on CPU, ~3 s on GPU (warm).
+   */
+  measureResidualNorms(
+    promptText: string,
+    layers: number[],
+  ): Map<number, number> {
+    const out = new Map<number, number>()
+    if (!this.loaded || !this.handle || !this.larql) return out
+    if (typeof this.larql.measureResidualNorms !== 'function') return out
+    try {
+      const promptTokens = this.larql.vindexTokenize(this.handle, promptText)
+      if (promptTokens.length === 0) return out
+      const result = this.larql.measureResidualNorms(this.handle, promptTokens, layers)
+      for (const { layer, norm } of result.norms) {
+        if (Number.isFinite(norm) && norm > 0) out.set(layer, norm)
+      }
+    } catch (err) {
+      this.logger.debug?.('measureResidualNorms failed', { layers, error: String(err) })
+    }
+    return out
+  }
+
+  /**
+   * Compose a `BaselineNormSource` callback from a previously-measured
+   * norm map. Pair with `composeVectorProjection`'s
+   * `targetResidualFraction` to get spec §4.3 static calibration.
+   *
+   *   const norms = provider.measureResidualNorms('the lazy fox.', [20, 22, 24])
+   *   const baselineNormSource = provider.makeBaselineNormSource(norms)
+   *   aurora.getVectorProjection({ targetResidualFraction: 0.1 }, state,
+   *     vectorSource, baselineNormSource)
+   */
+  makeBaselineNormSource(
+    norms: Map<number, number>,
+  ): (layer: number) => number | null {
+    return (layer: number) => norms.get(layer) ?? null
   }
 
   /**
