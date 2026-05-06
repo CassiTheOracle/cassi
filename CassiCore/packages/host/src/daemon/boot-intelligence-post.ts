@@ -272,12 +272,30 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
           const knowledgeField = (intelligence as any).__knowledgeField ?? null
 
+          let auroraPersistence: import('../intelligence/aurora/persistence.js').AuroraPersistence | undefined
+          if (config?.get?.('intelligence.aurora.persistence.enabled') === true) {
+            try {
+              const { AuroraPersistence } = await import('../intelligence/aurora/persistence.js')
+              const { getDataDir } = await import('../utils/paths.js')
+              const path = await import('node:path')
+              const dbPath = path.join(getDataDir(), 'aurora.db')
+              auroraPersistence = new AuroraPersistence(dbPath, logger)
+              logger.info('AuroraPersistence wired (cross-session continuity B6.1 active)', { dbPath })
+            } catch (err) {
+              logger.warn('Failed to construct AuroraPersistence — Aurora will run in-memory', {
+                error: String(err),
+              })
+            }
+          }
+
           const aurora = new Aurora(
             mnemicField.getCortex(),
             modelProvider,
             knowledgeField,
             null,
             logger,
+            undefined,
+            auroraPersistence,
           )
           thalamus.setAurora(aurora)
           intelligence.aurora = aurora
