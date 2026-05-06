@@ -1265,6 +1265,42 @@ export class Aurora {
   }
 
   /**
+   * C1.3 Sub6 inlet: snapshot pending seeds, run auto-scheduling, then return
+   * the topics of seeds that landed on `auto_schedule`. Topics flow into
+   * MeditationController.startMeditation so focused sessions follow Aurora's
+   * gap analysis instead of the LLM mini-helix discovery path.
+   *
+   * Sequencing matters: `evaluateAutoScheduling` calls `markScheduled` on the
+   * seeder, which moves seeds out of the `pending` query. We snapshot the
+   * pending list first so topic resolution still works after the mark.
+   *
+   * Returns `[]` when any of the three Phase-4 modules are disabled.
+   */
+  collectAutoScheduledTopics(
+    totalMeditationCount: number,
+    directedMeditationCount: number,
+  ): string[] {
+    if (!this.meditationSeeder || !this.gapDetector || !this.autoScheduler) {
+      return []
+    }
+
+    const seedById = new Map<string, string>()
+    for (const seed of this.meditationSeeder.getPendingSeeds()) {
+      seedById.set(seed.id, seed.topic)
+    }
+    if (seedById.size === 0) return []
+
+    const results = this.evaluateAutoScheduling(totalMeditationCount, directedMeditationCount)
+    const topics: string[] = []
+    for (const r of results) {
+      if (r.decision !== 'auto_schedule') continue
+      const topic = seedById.get(r.seedId)
+      if (topic) topics.push(topic)
+    }
+    return topics
+  }
+
+  /**
    * Phase 4 Integration: Register a welfare flag with the aggregator.
    * Returns false if welfare aggregation is disabled.
    */

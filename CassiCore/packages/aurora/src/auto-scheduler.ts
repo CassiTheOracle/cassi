@@ -167,7 +167,7 @@ interface RetryRow {
 
 
 
-const DEFAULT_CONFIG: AutoSchedulerConfig = {
+export const DEFAULT_AUTOSCHEDULER_CONFIG: AutoSchedulerConfig = {
   maxDailyAutoScheduled: 6,
   maxFractionOfMeditationTime: 0.4,
   totalDailyCostCapUsd: 1.0,
@@ -212,9 +212,9 @@ export class AutoScheduler {
     config: Partial<AutoSchedulerConfig> = {},
     logger: ILogger,
   ) {
-    this.config = { ...DEFAULT_CONFIG, ...config }
+    this.config = { ...DEFAULT_AUTOSCHEDULER_CONFIG, ...config }
     // Merge category caps individually so partial overrides work
-    this.config.categoryCaps = { ...DEFAULT_CONFIG.categoryCaps, ...(config.categoryCaps ?? {}) }
+    this.config.categoryCaps = { ...DEFAULT_AUTOSCHEDULER_CONFIG.categoryCaps, ...(config.categoryCaps ?? {}) }
     this.logger = logger.child ? logger.child('aurora:auto-scheduler') : logger
 
     if (typeof dbPathOrDb === 'string') {
