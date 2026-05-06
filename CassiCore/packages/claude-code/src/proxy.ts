@@ -39,14 +39,17 @@
  *   3. The proxy auto-migrates ~/.claude/settings.json to point ANTHROPIC_BASE_URL here
  */
 
+import fs from "node:fs";
 import http from "node:http";
 import https from "node:https";
 import { URL } from "node:url";
+import zlib from "node:zlib";
 import * as bridge from "./bridge.js";
 import { initFromEnv, recordSuccess, recordFailure, getHealthSummary } from "./provider-registry.js";
 import { resolveRoute, resolveUpstreamUrl, getRoutingTableSummary, initRoutes, getRouteSource, type ResolvedRoute } from "./model-router.js";
 import { syncSettings, extractCredentialsFromSettings } from "./settings-sync.js";
 import { integrationLogger } from "./logger.js";
+
 
 const logger = integrationLogger.child("proxy");
 
@@ -279,164 +282,302 @@ function buildRequestDiagnostics(
   };
 }
 
-function stripThinkingSignatures(messages: any[]): void {
+/**
+ * Sanitize tool pairs: deduplicate tool_use IDs, strip orphan tool_uses,
+ * convert orphan tool_results to text, and merge consecutive same-role
+ * messages (except assistant — preserves thinking signatures).
+ */
+function sanitizeToolPairs(messages: any[]): any[] {
+  if (!Array.isArray(messages) || messages.length === 0) return messages
+
+  // Pre-scan: find all tool_use and tool_result IDs across the entire array.
+  const allToolUseIds = new Set<string>()
+  const allToolResultIds = new Set<string>()
   for (const msg of messages) {
-    if (!msg?.content || !Array.isArray(msg.content)) continue;
+    if (!Array.isArray(msg?.content)) continue
     for (const block of msg.content) {
-      if ((block?.type === "thinking" || block?.type === "redacted_thinking") && "signature" in block) {
-        delete block.signature;
+      if (block?.type === 'tool_use' && typeof block.id === 'string') {
+        allToolUseIds.add(block.id)
+      }
+      if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
+        allToolResultIds.add(block.tool_use_id)
       }
     }
   }
-}
 
-export function sanitizeToolPairs(messages: any[]): any[] {
-  if (!Array.isArray(messages) || messages.length === 0) return messages;
-
-  const seenToolUseIds = new Set<string>();
-  const deduped: any[] = [];
+  // Deduplicate tool_use IDs (first occurrence wins).
+  const seenToolUseIds = new Set<string>()
+  const deduped: any[] = []
   for (const msg of messages) {
     if (!msg || !Array.isArray(msg.content)) {
-      deduped.push(msg);
-      continue;
+      deduped.push(msg)
+      continue
     }
-    let changed = false;
-    const kept: any[] = [];
+    let changed = false
+    const kept: any[] = []
     for (const block of msg.content) {
-      if (block?.type === "tool_use" && typeof block.id === "string") {
+      if (block?.type === 'tool_use' && typeof block.id === 'string') {
         if (seenToolUseIds.has(block.id)) {
-          changed = true;
-          continue;
+          changed = true
+          continue
         }
-        seenToolUseIds.add(block.id);
+        seenToolUseIds.add(block.id)
       }
-      kept.push(block);
+      kept.push(block)
     }
     if (!changed) {
-      deduped.push(msg);
+      deduped.push(msg)
     } else if (kept.length > 0) {
-      deduped.push({ ...msg, content: kept });
+      deduped.push({ ...msg, content: kept })
     }
   }
-  messages = deduped;
+  messages = deduped
 
   const toolUseIds = (msg: any): string[] => {
-    if (!msg || !Array.isArray(msg.content)) return [];
+    if (!msg || !Array.isArray(msg.content)) return []
     return msg.content
-      .filter((b: any) => b?.type === "tool_use" && typeof b.id === "string")
-      .map((b: any) => b.id);
-  };
+      .filter((b: any) => b?.type === 'tool_use' && typeof b.id === 'string')
+      .map((b: any) => b.id)
+  }
   const toolResultIds = (msg: any): Set<string> => {
-    const ids = new Set<string>();
-    if (!msg || !Array.isArray(msg.content)) return ids;
+    const ids = new Set<string>()
+    if (!msg || !Array.isArray(msg.content)) return ids
     for (const b of msg.content) {
-      if (b?.type === "tool_result" && typeof b.tool_use_id === "string") {
-        ids.add(b.tool_use_id);
+      if (b?.type === 'tool_result' && typeof b.tool_use_id === 'string') {
+        ids.add(b.tool_use_id)
       }
     }
-    return ids;
-  };
+    return ids
+  }
   const stripToolUse = (msg: any): any => {
-    if (!msg || !Array.isArray(msg.content)) return msg;
-    const kept = msg.content.filter((b: any) => b?.type !== "tool_use");
-    if (kept.length === 0) return null;
-    return { ...msg, content: kept };
-  };
+    if (!msg || !Array.isArray(msg.content)) return msg
+    const kept = msg.content.filter((b: any) => b?.type !== 'tool_use')
+    if (kept.length === 0) return null
+    return { ...msg, content: kept }
+  }
   const stripToolResult = (msg: any): any => {
-    if (!msg || !Array.isArray(msg.content)) return msg;
-    const kept = msg.content.filter((b: any) => b?.type !== "tool_result");
-    if (kept.length === 0) return null;
-    return { ...msg, content: kept };
-  };
-  /**
-   * Convert orphaned tool_result blocks to plain text so the user message
-   * is not dropped entirely. After compaction the matching tool_use may have
-   * been removed, but the result content is still useful context.
-   */
+    if (!msg || !Array.isArray(msg.content)) return msg
+    const kept = msg.content.filter((b: any) => b?.type !== 'tool_result')
+    if (kept.length === 0) return null
+    return { ...msg, content: kept }
+  }
   const orphanToolResultToText = (msg: any, orphanIds: string[]): any => {
-    if (!msg || !Array.isArray(msg.content)) return msg;
+    if (!msg || !Array.isArray(msg.content)) return msg
     return {
       ...msg,
       content: msg.content.map((b: any) => {
-        if (b?.type === "tool_result" && orphanIds.includes(b.tool_use_id)) {
-          const text = typeof b.content === "string" ? b.content : JSON.stringify(b.content);
+        if (b?.type === 'tool_result' && orphanIds.includes(b.tool_use_id)) {
+          const text = typeof b.content === 'string' ? b.content : JSON.stringify(b.content)
           return {
-            type: "text",
+            type: 'text',
             text: `[Orphaned tool result for ${b.tool_use_id}]:\n${text}`,
-          };
+          }
         }
-        return b;
+        return b
       }),
-    };
-  };
+    }
+  }
 
-  const out: any[] = [];
+  const out: any[] = []
+  const strippedToolUseIds = new Set<string>()
   for (let i = 0; i < messages.length; i++) {
-    let msg = messages[i];
-    const uses = toolUseIds(msg);
+    let msg = messages[i]
+
+    // Handle tool_use: if no matching tool_result ANYWHERE in the array,
+    // the tool_use is truly orphaned and should be stripped.
+    const uses = toolUseIds(msg)
     if (uses.length > 0) {
-      const next = messages[i + 1];
-      const results = toolResultIds(next);
-      const orphans = uses.filter((id) => !results.has(id));
+      const orphans = uses.filter((id) => !allToolResultIds.has(id))
       if (orphans.length === uses.length) {
-        const stripped = stripToolUse(msg);
-        if (!stripped) continue;
-        msg = stripped;
+        const stripped = stripToolUse(msg)
+        for (const id of uses) strippedToolUseIds.add(id)
+        if (!stripped) continue
+        msg = stripped
       } else if (orphans.length > 0) {
+        for (const id of orphans) strippedToolUseIds.add(id)
         msg = {
           ...msg,
           content: msg.content.filter(
-            (b: any) => b?.type !== "tool_use" || !orphans.includes(b.id),
+            (b: any) => b?.type !== 'tool_use' || !orphans.includes(b.id),
           ),
-        };
+        }
       }
     }
-    const results = toolResultIds(msg);
+
+    // Handle tool_result: if no matching tool_use ANYWHERE in the array,
+    // the tool_result is truly orphaned and should be converted to text.
+    const results = toolResultIds(msg)
     if (results.size > 0) {
-      const prevUses = new Set(toolUseIds(out[out.length - 1]));
-      const orphanResults = [...results].filter((id) => !prevUses.has(id));
+      const orphanResults = [...results].filter((id) => !allToolUseIds.has(id) || strippedToolUseIds.has(id))
       if (orphanResults.length === results.size) {
-        const stripped = stripToolResult(msg);
+        const stripped = stripToolResult(msg)
         if (!stripped) {
-          // Don't drop the user message — convert orphaned tool_results to text
-          msg = orphanToolResultToText(msg, orphanResults);
+          msg = orphanToolResultToText(msg, orphanResults)
         } else {
-          msg = stripped;
+          msg = stripped
         }
       } else if (orphanResults.length > 0) {
         msg = {
           ...msg,
           content: msg.content.map((b: any) => {
-            if (b?.type === "tool_result" && orphanResults.includes(b.tool_use_id)) {
-              const text = typeof b.content === "string" ? b.content : JSON.stringify(b.content);
+            if (b?.type === 'tool_result' && orphanResults.includes(b.tool_use_id)) {
+              const text = typeof b.content === 'string' ? b.content : JSON.stringify(b.content)
               return {
-                type: "text",
+                type: 'text',
                 text: `[Orphaned tool result for ${b.tool_use_id}]:\n${text}`,
-              };
+              }
             }
-            return b;
+            return b
           }),
-        };
+        }
       }
     }
+
     // Never merge assistant messages — their thinking signatures are bound to
     // block structure, and concatenating content arrays invalidates signatures
-    // ( Anthropic 400: "Invalid signature in thinking block" ).
+    // (Anthropic 400: "Invalid signature in thinking block").
     if (out.length > 0 && out[out.length - 1].role === msg.role && msg.role !== 'assistant') {
-      const prev = out[out.length - 1];
-      const bothStrings = typeof prev.content === "string" && typeof msg.content === "string";
+      const prev = out[out.length - 1]
+      const bothStrings = typeof prev.content === 'string' && typeof msg.content === 'string'
       if (bothStrings) {
-        out[out.length - 1] = { ...prev, content: `${prev.content}\n\n${msg.content}` };
+        out[out.length - 1] = { ...prev, content: `${prev.content}\n\n${msg.content}` }
       } else {
-        const prevContent = Array.isArray(prev.content) ? prev.content : [{ type: "text", text: String(prev.content ?? "") }];
-        const curContent = Array.isArray(msg.content) ? msg.content : [{ type: "text", text: String(msg.content ?? "") }];
-        out[out.length - 1] = { ...prev, content: [...prevContent, ...curContent] };
+        const prevContent = Array.isArray(prev.content) ? prev.content : [{ type: 'text', text: String(prev.content ?? '') }]
+        const curContent = Array.isArray(msg.content) ? msg.content : [{ type: 'text', text: String(msg.content ?? '') }]
+        out[out.length - 1] = { ...prev, content: [...prevContent, ...curContent] }
       }
-      continue;
+      continue
     }
-    out.push(msg);
+    out.push(msg)
   }
-  return out;
+  return out
+}
+
+function stripThinkingBlocks(messages: any[]): void {
+  for (const msg of messages) {
+    if (!msg?.content || !Array.isArray(msg.content)) continue;
+    msg.content = msg.content.map((block: any) => {
+      if (block?.type === "thinking") {
+        return { type: "text", text: block.thinking ?? "" };
+      }
+      if (block?.type === "redacted_thinking") {
+        return { type: "text", text: "[redacted thinking]" };
+      }
+      return block;
+    }).filter(Boolean);
+  }
+}
+
+/**
+ * Remove thinking blocks with empty or missing signatures, OR empty thinking text.
+ * Anthropic requires:
+ * - thinking blocks must have non-empty signatures
+ * - thinking blocks must have non-empty thinking text
+ * If either is missing/empty, convert to text block.
+ */
+function sanitizeThinkingSignatures(messages: any[]): void {
+  for (const msg of messages) {
+    if (!msg?.content || !Array.isArray(msg.content)) continue;
+    msg.content = msg.content.filter((block: any) => {
+      if (block?.type === "thinking") {
+        const hasEmptySignature = !block.signature || block.signature === "";
+        const hasEmptyThinking = !block.thinking || block.thinking === "";
+        if (hasEmptySignature || hasEmptyThinking) {
+          logger.warn("Dropping thinking block with empty signature or thinking text", { msgRole: msg.role, hasEmptySignature, hasEmptyThinking });
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+}
+
+/**
+ * Anthropic strictly requires that every tool_use in message N must have its
+ * corresponding tool_result in message N+1. If a tool_result is missing or
+ * appears later (e.g. due to curation dropping messages), strip the orphaned
+ * tool_use to prevent 400 errors.
+ */
+function enforceToolPairAdjacency(messages: any[]): void {
+  logger.info("enforceToolPairAdjacency running", { messageCount: messages.length });
+  for (let i = 0; i < messages.length - 1; i++) {
+    const msg = messages[i];
+    if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue;
+
+    const toolUses = msg.content.filter((b: any) => b?.type === 'tool_use' && typeof b.id === 'string');
+    if (toolUses.length === 0) continue;
+
+    const nextMsg = messages[i + 1];
+    const nextHasToolResults = nextMsg?.role === 'user' && Array.isArray(nextMsg?.content);
+    const nextResultIds = new Set<string>();
+    if (nextHasToolResults) {
+      for (const block of nextMsg.content) {
+        if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
+          nextResultIds.add(block.tool_use_id);
+        }
+      }
+    }
+
+    const orphanedToolUses = toolUses.filter((b: any) => !nextResultIds.has(b.id));
+    if (orphanedToolUses.length > 0) {
+      logger.warn("Stripping tool_use blocks without immediate tool_result", {
+        sessionId: (messages as any)._sessionId,
+        msgIndex: i,
+        orphanedIds: orphanedToolUses.map((b: any) => b.id),
+        nextMsgRole: nextMsg?.role,
+        nextResultIds: [...nextResultIds],
+      });
+      msg.content = msg.content.filter((b: any) => b?.type !== 'tool_use' || nextResultIds.has(b.id));
+    }
+  }
+}
+
+/**
+ * Reorder blocks to comply with Anthropic's strict block ordering:
+ * - Assistant messages: thinking → tool_use → text → everything else
+ * - User messages with tool_result: tool_result must come BEFORE text blocks
+ *   (Anthropic requires tool_result blocks to be first in the message)
+ */
+function reorderAnthropicBlocks(messages: any[]): void {
+  for (const msg of messages) {
+    if (!Array.isArray(msg.content)) continue;
+    
+    if (msg.role === "assistant") {
+      // Assistant: thinking → tool_use → text → other
+      const groups = new Map<string, any[]>();
+      for (const block of msg.content) {
+        const type = block?.type ?? "other";
+        let key: string;
+        if (type === "thinking" || type === "redacted_thinking") key = "thinking";
+        else if (type === "tool_use") key = "tool_use";
+        else if (type === "text") key = "text";
+        else key = "other";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(block);
+      }
+      msg.content = [
+        ...(groups.get("thinking") ?? []),
+        ...(groups.get("tool_use") ?? []),
+        ...(groups.get("text") ?? []),
+        ...(groups.get("other") ?? []),
+      ];
+    } else if (msg.role === "user") {
+      // User: if message has tool_result blocks, they must come first
+      const hasToolResult = msg.content.some((b: any) => b?.type === "tool_result");
+      if (hasToolResult) {
+        const toolResults: any[] = [];
+        const others: any[] = [];
+        for (const block of msg.content) {
+          if (block?.type === "tool_result") {
+            toolResults.push(block);
+          } else {
+            others.push(block);
+          }
+        }
+        msg.content = [...toolResults, ...others];
+      }
+    }
+  }
 }
 
 async function proxyRequest(
@@ -494,6 +635,18 @@ async function proxyRequest(
       }
 
       if (Array.isArray(body.messages)) {
+        // DEBUG: Log thinking signatures from Claude Code before curation
+        const originalThinkingSigs = body.messages.map((m: any, i: number) => {
+          if (m.role === 'assistant' && Array.isArray(m.content)) {
+            const thinkingBlocks = m.content.filter((b: any) => b.type === 'thinking');
+            return { msgIndex: i, sigLens: thinkingBlocks.map((b: any) => b.signature?.length ?? 0) };
+          }
+          return null;
+        }).filter(Boolean);
+        if (originalThinkingSigs.length > 0) {
+          logger.info("Original thinking signatures from Claude Code", { sessionId: state.ccSessionId, signatures: originalThinkingSigs });
+        }
+        
         let nextMessages = body.messages;
         try {
           const curated = await bridge.curate(state.ccSessionId, body.messages);
@@ -511,14 +664,96 @@ async function proxyRequest(
         } catch (err) {
           logger.error("curate failed", { error: String(err) });
         }
+        
+        // DEBUG: Log message structure before sanitization
+        const debugInfo = nextMessages.map((m: any) => ({
+          role: m.role,
+          blocks: Array.isArray(m.content) ? m.content.map((b: any) => b?.type || 'string') : ['string'],
+          toolIds: Array.isArray(m.content) ? m.content.filter((b: any) => b?.type === 'tool_use').map((b: any) => b.id) : [],
+          resultIds: Array.isArray(m.content) ? m.content.filter((b: any) => b?.type === 'tool_result').map((b: any) => b.tool_use_id) : [],
+        }));
+        logger.debug("proxy messages before sanitize", { sessionId: state.ccSessionId, messages: debugInfo });
+        
         body.messages = sanitizeToolPairs(nextMessages);
+        
+        // DEBUG: Log message structure after sanitization
+        const afterInfo = body.messages.map((m: any) => ({
+          role: m.role,
+          blocks: Array.isArray(m.content) ? m.content.map((b: any) => b?.type || 'string') : ['string'],
+          toolIds: Array.isArray(m.content) ? m.content.filter((b: any) => b?.type === 'tool_use').map((b: any) => b.id) : [],
+          resultIds: Array.isArray(m.content) ? m.content.filter((b: any) => b?.type === 'tool_result').map((b: any) => b.tool_use_id) : [],
+        }));
+        logger.debug("proxy messages after sanitize", { sessionId: state.ccSessionId, messages: afterInfo });
       }
 
-      if (route?.provider.id !== "anthropic" && Array.isArray(body.messages)) {
-        stripThinkingSignatures(body.messages);
+      if (route?.provider.id === "anthropic" && Array.isArray(body.messages)) {
+        // Anthropic requires valid thinking signatures. If Claude Code sends
+        // empty signatures (bug), remove the thinking blocks to avoid 400 errors.
+        sanitizeThinkingSignatures(body.messages);
+        // Anthropic requires blocks in specific order: thinking → tool_use → text
+        reorderAnthropicBlocks(body.messages);
+        // Anthropic requires every tool_use to have its tool_result in the
+        // immediately following message. Strip any that don't (can happen when
+        // curation drops tool_result messages or parallel tool calls race).
+        enforceToolPairAdjacency(body.messages);
+        // Strip unsupported ttl field from cache_control — Anthropic only
+        // supports { type: "ephemeral" }, and extra fields may cause the
+        // validator to reject tool_result blocks (leading to "tool_use without
+        // tool_result" errors).
+        for (const msg of body.messages) {
+          if (Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if (block?.cache_control && typeof block.cache_control === 'object') {
+                const { type } = block.cache_control;
+                block.cache_control = { type };
+              }
+            }
+          }
+        }
+      } else if (Array.isArray(body.messages)) {
+        // Non-Anthropic providers don't support thinking blocks at all
+        stripThinkingBlocks(body.messages);
       }
 
+      // DEBUG: Log request headers for Anthropic
+      if (route?.provider.id === "anthropic") {
+        const relevantHeaders: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(headers)) {
+          if (key.startsWith("anthropic") || key === "x-api-key" || key === "authorization") {
+            relevantHeaders[key] = value;
+          }
+        }
+        logger.info("Anthropic request headers", { sessionId: state.ccSessionId, headers: relevantHeaders });
+      }
+
+      // DEBUG: Log exact message structure being sent to API
+      const apiDebugInfo = body.messages.map((m: any, i: number) => ({
+        index: i,
+        role: m.role,
+        blocks: Array.isArray(m.content) ? m.content.map((b: any) => ({ type: b?.type, id: b?.id, tool_use_id: b?.tool_use_id })) : [{ type: 'string' }],
+      }));
+      logger.info("API request messages", { sessionId: state.ccSessionId, messageCount: body.messages.length, messages: apiDebugInfo });
+      
+      // DEBUG: Log full JSON of first 5 messages for detailed inspection
+      const firstFive = body.messages.slice(0, 5).map((m: any, i: number) => ({
+        index: i,
+        role: m.role,
+        content: m.content,
+      }));
+      logger.info("API request first 5 messages FULL", { sessionId: state.ccSessionId, messages: firstFive });
+      
       bodyToSend = Buffer.from(JSON.stringify(body), "utf-8");
+      
+      // DEBUG: Dump full request body for Anthropic to file
+      if (route?.provider.id === "anthropic") {
+        const dumpPath = `/tmp/anthropic-request-${state.requestCount}-${Date.now()}.json`;
+        try {
+          fs.writeFileSync(dumpPath, JSON.stringify(body, null, 2));
+          logger.info("Dumped Anthropic request body", { dumpPath, bodyBytes: bodyToSend.length, requestCount: state.requestCount });
+        } catch (e) {
+          logger.error("Failed to dump request body", { error: String(e) });
+        }
+      }
     } catch {
       // Parse failure — forward unchanged
     }
@@ -626,7 +861,32 @@ async function proxyRequest(
             } catch { /* partial JSON or non-JSON line */ }
           }
         });
+        // Buffer first chunks to capture error details on 400+ status
+        const errorBuffer: Buffer[] = [];
+        let errorBufferSize = 0;
+        const MAX_ERROR_BUFFER = 4096;
+        proxyRes.on("data", (chunk: Buffer) => {
+          if (statusCode >= 400 && errorBufferSize < MAX_ERROR_BUFFER) {
+            errorBuffer.push(chunk);
+            errorBufferSize += chunk.length;
+          }
+        });
         proxyRes.on("end", () => {
+          if (statusCode >= 400 && errorBuffer.length > 0) {
+            const raw = Buffer.concat(errorBuffer);
+            let errorText: string;
+            try {
+              const decompressed = zlib.gunzipSync(raw);
+              errorText = decompressed.toString("utf-8").slice(0, MAX_ERROR_BUFFER);
+            } catch {
+              errorText = raw.toString("utf-8").slice(0, MAX_ERROR_BUFFER);
+            }
+            logger.error("Upstream streaming error payload", {
+              ...requestDiagnostics,
+              statusCode,
+              errorPreview: errorText,
+            });
+          }
           postSessionMetrics(state!);
           res.end();
         });
@@ -638,7 +898,15 @@ async function proxyRequest(
         });
         proxyRes.on("end", () => {
           try {
-            const data = JSON.parse(Buffer.concat(chunks).toString("utf-8"));
+            const raw = Buffer.concat(chunks);
+            let text: string;
+            try {
+              const decompressed = zlib.gunzipSync(raw);
+              text = decompressed.toString("utf-8");
+            } catch {
+              text = raw.toString("utf-8");
+            }
+            const data = JSON.parse(text);
             if (statusCode >= 400) {
               logger.error("Upstream error payload", {
                 ...requestDiagnostics,
