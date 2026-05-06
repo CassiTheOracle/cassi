@@ -53,6 +53,7 @@ import type { ILogger } from '../../../../types/interfaces.js'
 import type { CorticalField } from '../../cortex/index.js'
 import type { ICorpusTree } from '../corpus-types.js'
 import type { ThalamusModule } from '../../thalamus/index.js'
+import type { Aurora } from '../../aurora/index.js'
 import { runSoloExplorer } from './solo-runner.js'
 import type { SoloRunnerResult } from './solo-runner.js'
 
@@ -87,6 +88,8 @@ export class MeditationController extends BaseCognitiveModule {
   /** Cached by checkAndMeditate when health-based organizing is triggered */
   private cachedHealthSnapshot?: FieldHealthSnapshot
   private thalamus?: ThalamusModule
+  private aurora?: Aurora
+  private directedMeditationCount = 0
 
 
   constructor(logger: ILogger, config?: Partial<MeditationConfig>) {
@@ -128,6 +131,15 @@ export class MeditationController extends BaseCognitiveModule {
 
   setThalamus(thalamus: ThalamusModule): void {
     this.thalamus = thalamus
+  }
+
+  /**
+   * C1.3 Sub6 inlet: when Aurora has auto-scheduled meditation seeds, the idle
+   * loop drains their topics here and runs a focused session against them
+   * instead of LLM-discovered focus topics.
+   */
+  setAurora(aurora: Aurora): void {
+    this.aurora = aurora
   }
 
   /**
@@ -312,6 +324,29 @@ export class MeditationController extends BaseCognitiveModule {
     const effectiveCooldown = this.sessionCount > 0 ? 60_000 : this.meditationConfig.cooldownMs
     if (this.lastMeditationAt > 0 && sinceLast < effectiveCooldown) return
 
+    // C1.3 Sub6: Aurora-scheduled seeds preempt idle-driven style selection.
+    // Topics from auto_schedule decisions feed directly into a focused session;
+    // the seeder's own anxious-loop guard already throttles thrash.
+    if (this.aurora) {
+      try {
+        const topics = this.aurora.collectAutoScheduledTopics(this.sessionCount, this.directedMeditationCount)
+        if (topics.length > 0) {
+          this.directedMeditationCount++
+          emitMeditationEvent(this.eventBus, {
+            type: 'meditation:style-selected',
+            style: 'focused',
+            reason: 'aurora auto-schedule',
+            idleMs,
+            timestamp: Date.now(),
+          })
+          await this.startMeditation('focused', undefined, topics)
+          return
+        }
+      } catch (err) {
+        this.logger.debug('[Meditation] Aurora auto-schedule probe failed (non-fatal)', { error: String(err) })
+      }
+    }
+
     const affect = this.cortex?.getAffectState() ?? undefined
     let style = selectStyle(this.lastTurnAt, this.meditationConfig.idleThresholdMs, this.meditationConfig.defaultStyle, affect, this.sessionCount)
 
@@ -370,8 +405,12 @@ export class MeditationController extends BaseCognitiveModule {
   }
 
 
-  private async startMeditation(style?: MeditationStyle, modelTier?: string): Promise<MeditationSession | null> {
-    this.logger.info('[Meditation] startMeditation called', { style, modelTier })
+  private async startMeditation(
+    style?: MeditationStyle,
+    modelTier?: string,
+    seedTopics?: string[],
+  ): Promise<MeditationSession | null> {
+    this.logger.info('[Meditation] startMeditation called', { style, modelTier, seedTopics })
     if (!this.handleFactory || !this.toolExecutor || !this.toolRegistry) {
       this.logger.warn('[Meditation] Cannot meditate — missing handleFactory, toolExecutor, or toolRegistry')
       return null
@@ -410,7 +449,9 @@ export class MeditationController extends BaseCognitiveModule {
       promptAssignments.push({ explorer: posture.name, promptId: picked.id, prompt: picked.prompt })
     })
 
-    // Focused mode: seed the mnemic field before launching explorers
+    // Focused mode: seed the mnemic field before launching explorers.
+    // When Aurora supplied topics, runFocusedSeeding skips its mini-helix
+    // discovery and kindles those topics directly.
     if (resolvedStyle === 'focused' && this.mnemicField && this.memory && this.handleFactory) {
       try {
         const seedResult = await runFocusedSeeding({
@@ -419,6 +460,7 @@ export class MeditationController extends BaseCognitiveModule {
           handleFactory: this.handleFactory,
           logger: this.logger,
           eventBus: this.eventBus,
+          seedTopics,
         })
         emitMeditationEvent(this.eventBus, {
           type: 'meditation:focused-seeding',
