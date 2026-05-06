@@ -38,7 +38,7 @@ import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
 import type { GoalDecomposition } from './corpus-types.js'
-import { seedHelixGoalLamina, rethinkHelixGoalLamina } from './helix-goal-lamina.js'
+import { seedHelixGoalLamina, rethinkHelixGoalLamina, publishHelixGoalSignal } from './helix-goal-lamina.js'
 import type { IMemory, SearchResult } from '../../../types/intelligence.js'
 import { MemoryInjectionService } from './memory-injection.js'
 import type {
@@ -1646,9 +1646,11 @@ export async function runConstellationPipeline(
             if (node.status === 'completed' || node.status === 'degraded') {
               tracker.completeTask(trackedTask.id, result.unityConclusion?.slice(0, 500))
               rethinkHelixGoalLamina(opts.lamina, helixId, trackedTask.originalTask, 'completed', result.unityConclusion)
+              publishHelixGoalSignal(opts.globalWorkspace, constellationId, helixId, trackedTask.originalTask, 'completed', result.unityConclusion)
             } else {
               tracker.failTask(trackedTask.id, 'Helix failed')
               rethinkHelixGoalLamina(opts.lamina, helixId, trackedTask.originalTask, 'failed')
+              publishHelixGoalSignal(opts.globalWorkspace, constellationId, helixId, trackedTask.originalTask, 'failed')
             }
           }
         }
@@ -2240,6 +2242,7 @@ export async function runConstellationPipeline(
 
         const h = await launchHelix(trackedTask.originalTask.goal, subContext || undefined, trackedTask.originalTask.template, 0)
         seedHelixGoalLamina(opts.lamina, h.helixId, trackedTask.originalTask)
+        publishHelixGoalSignal(opts.globalWorkspace, constellationId, h.helixId, trackedTask.originalTask, 'seed')
         tracker.assignTask(trackedTask.id, h.helixId)
         tracker.startTask(trackedTask.id)
         helixPromises.push(h)
