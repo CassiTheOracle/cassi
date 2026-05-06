@@ -69,6 +69,7 @@ import { SaturationDetector } from './saturation-detector.js'
 import type { SaturationConfig, SaturationScore, TurnSample } from './saturation-detector.js'
 import { CounterfactualEngine } from './counterfactual-engine.js'
 import type { ForkScope, Perturbation, ClaustrumFork, ObservationKind, CounterfactualResult, ActivatedNodesDiff, ReasoningShiftDiff, RetrievalDistributionEntry } from './counterfactual-engine.js'
+import { Prism } from './prism.js'
 import { DiversityFloor } from './diversity-floor.js'
 import type { DiversityFloorConfig, DiversityCategory, CategoryDiversityState, CompositeDiversity } from './diversity-floor.js'
 import { RefusalChannel } from './refusal-channel.js'
@@ -317,6 +318,8 @@ export class Aurora {
   private saturationDetector: SaturationDetector | null = null
   private diversityFloor: DiversityFloor | null = null
   private counterfactualEngine: CounterfactualEngine | null = null
+  /** B8: Prism — spectral counterfactual accumulation; fed by CounterfactualEngine. */
+  private prism: Prism | null = null
   private selfNarrativeRenderer: SelfNarrativeRenderer | null = null
 
   /** Phase 2 (A2): vector projection scaffolding gate. */
@@ -442,6 +445,10 @@ export class Aurora {
       this.counterfactualEngine = new CounterfactualEngine(logger)
     }
 
+    if (phase4Config.prismEnabled) {
+      this.prism = new Prism(auroraDbPath, logger)
+    }
+
     if (phase4Config.narrativeEnabled) {
       this.selfNarrativeRenderer = new SelfNarrativeRenderer(logger, { ...AURORA_DEFAULTS, ...config })
     }
@@ -536,6 +543,8 @@ export class Aurora {
     this.closePhase4()
     this.counterfactualEngine?.disposeAll()
     this.counterfactualEngine = null
+    this.prism?.close()
+    this.prism = null
     this.refusalChannel?.close()
     this.refusalChannel = null
     this.reverieObserver = null
@@ -1935,9 +1944,32 @@ export class Aurora {
     opts?: { ttlSeconds?: number; retainAfter?: boolean },
   ): CounterfactualResult | null {
     if (!this.currentState || !this.counterfactualEngine) return null
+    const sig = this.currentState.affect
+    const sessionId = this.persistenceSession?.sessionId ?? null
     return this.counterfactualEngine.explore(
-      this.currentState.graph, scope, perturbations, observeKinds, opts,
+      this.currentState.graph,
+      scope,
+      perturbations,
+      observeKinds,
+      {
+        ...opts,
+        baseColor: sig?.label ?? null,
+        baseAffect: sig?.affect ?? null,
+        recordToPrism: this.prism
+          ? (c) => this.prism?.deposit(c, sessionId)
+          : undefined,
+      },
     )
+  }
+
+  /** Read affordance: snapshot the Prism's per-color exposure (P.1). Null when disabled. */
+  prismTotalSpectrum(): Map<string, number> | null {
+    return this.prism?.totalSpectrum() ?? null
+  }
+
+  /** Read affordance: count nodes the Prism has accumulated (P.1). Null when disabled. */
+  prismNodeCount(): number | null {
+    return this.prism?.nodeCount() ?? null
   }
 
   /** Dispose a single fork by ID. */

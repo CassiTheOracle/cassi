@@ -556,6 +556,14 @@ export interface AuroraConfig {
   /** Phase 3 (B7): Enable counterfactual gate exploration. */
   counterfactualEngineEnabled: boolean
 
+  /**
+   * Phase 3 (B8): Enable the Prism — spectral counterfactual accumulation.
+   * The Prism persists fork contributions in `aurora.db`; default `false`
+   * because cross-session continuity (B6) is not yet wired at the boot
+   * site, so persistence is dormant until that sibling task lands.
+   */
+  prismEnabled: boolean
+
   /** Phase 3 (N3): Enable replay diversity floor (auto-enabled if B3 or C1 is on). */
   diversityFloorEnabled: boolean
 
@@ -619,6 +627,7 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   saturationDetectorEnabled: true,
   refusalChannelEnabled: true,
   counterfactualEngineEnabled: true,
+  prismEnabled: false,
   diversityFloorEnabled: true,
   narrativeEnabled: true,
   narrativeMaxChars: 800,

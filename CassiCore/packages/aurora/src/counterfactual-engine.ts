@@ -21,6 +21,8 @@ import type {
   ReasoningMomentum,
   MentalState,
 } from './types.js'
+import type { AffectLabel } from '../mnemic-field/types.js'
+import { resolveLabel } from '../mnemic-field/affect.js'
 
 
 
@@ -157,6 +159,40 @@ export interface RetrievalDistributionEntry {
 }
 
 /**
+ * A node activated by a fork and contributed to the Prism's spectral record.
+ */
+export interface ContributedNode {
+  nodeId: string
+  /** Resonance at observation time, used as deposit weight. */
+  salience: number
+  /** True if this node was introduced by an `add_nodes` perturbation. */
+  forkOnly: boolean
+  /** True if `node.activated` was true at observation time. */
+  activated: boolean
+}
+
+/**
+ * Per-fork contribution log emitted at observation time, ingested by the
+ * Prism (B8). Encodes one resolved color and the activated-node spectrum
+ * the fork witnessed under that color. Produced by
+ * `CounterfactualEngine.emitContribution()`.
+ *
+ * Timestamp convention: `observedAt` is ms epoch at the runtime layer;
+ * the Prism converts to ISO 8601 at the SQL boundary.
+ */
+export interface ForkContribution {
+  forkId: string
+  /** Resolved AffectLabel: from the fork's affect override if set, else baseColor. */
+  color: AffectLabel
+  /** Raw coordinates that produced `color`, kept for audit. */
+  effectiveAffect: { valence: number; arousal: number }
+  /** Perturbations applied to this fork in order, for audit and W3 diversity. */
+  perturbations: Perturbation[]
+  contributedNodes: ContributedNode[]
+  observedAt: number
+}
+
+/**
  * Default fork scope parameters.
  */
 const DEFAULT_FORK_SCOPE: Omit<ForkScope, 'anchors'> = {
@@ -179,6 +215,12 @@ const MAX_CONCURRENT_FORKS = 10
 export class CounterfactualEngine {
   private forks = new Map<string, ForkState>()
   private ttlTimers = new Map<string, ReturnType<typeof setTimeout>>()
+  /**
+   * Per-fork log of perturbations applied, in order. Populated on each
+   * `applyPerturbation()`, cleared on `disposeFork()`. Read by
+   * `emitContribution()` for B8 audit + W3 perturbation-kind diversity.
+   */
+  private perturbationLog = new Map<string, Perturbation[]>()
 
   constructor(
     private logger: ILogger,
@@ -338,6 +380,7 @@ export class CounterfactualEngine {
     }
 
     this.forks.delete(forkId)
+    this.perturbationLog.delete(forkId)
 
     this.logger.debug('Fork disposed', {
       forkId,
@@ -391,10 +434,68 @@ export class CounterfactualEngine {
 
     state.handle.perturbationsApplied += 1
 
+    const log = this.perturbationLog.get(forkId) ?? []
+    log.push(perturbation)
+    this.perturbationLog.set(forkId, log)
+
     this.logger.debug('Perturbation applied', {
       forkId,
       type: perturbation.type,
     })
+  }
+
+  /**
+   * Extract a B8 contribution log from a live fork. Pairs with `Prism.deposit()`:
+   * after `observe()` and before `disposeFork()`, the caller invokes
+   * `emitContribution(forkId, baseColor, baseAffect)` to package up the fork's
+   * activated-node spectrum under one resolved color.
+   *
+   * Color resolution order:
+   *   1. If the fork has an `affect` perturbation override, resolve via `resolveLabel`
+   *      against the override coordinates; `effectiveAffect` records those coordinates.
+   *   2. Else if `baseColor` and `baseAffect` are both supplied, use them.
+   *   3. Else: return `null` — color is required for a deposit to be meaningful.
+   */
+  emitContribution(
+    forkId: string,
+    baseColor: AffectLabel | null,
+    baseAffect: { valence: number; arousal: number } | null,
+  ): ForkContribution | null {
+    const state = this.forks.get(forkId)
+    if (!state) return null
+
+    let color: AffectLabel
+    let effectiveAffect: { valence: number; arousal: number }
+    if (state.affectOverride) {
+      color = resolveLabel(state.affectOverride)
+      effectiveAffect = state.affectOverride
+    } else if (baseColor && baseAffect) {
+      color = baseColor
+      effectiveAffect = baseAffect
+    } else {
+      this.logger.debug('Prism contribution skipped (no resolvable color)', { forkId })
+      return null
+    }
+
+    const contributedNodes: ContributedNode[] = []
+    for (const [nodeId, node] of state.nodes) {
+      if (!node.activated && node.resonance < 0.1) continue
+      contributedNodes.push({
+        nodeId,
+        salience: node.resonance,
+        forkOnly: state.forkOnlyNodes.has(nodeId),
+        activated: node.activated,
+      })
+    }
+
+    return {
+      forkId,
+      color,
+      effectiveAffect,
+      perturbations: this.perturbationLog.get(forkId) ?? [],
+      contributedNodes,
+      observedAt: Date.now(),
+    }
   }
 
 
@@ -447,6 +548,12 @@ export class CounterfactualEngine {
       retainAfter?: boolean
       baseReasoning?: ReasoningRecord | null
       baseMomentum?: ReasoningMomentum | null
+      /** B8 sink: receives the fork's contribution log before dispose. */
+      recordToPrism?: (contribution: ForkContribution) => void
+      /** B8 color fallback: resolved AffectLabel for the live state. */
+      baseColor?: AffectLabel | null
+      /** B8 audit: raw coordinates that produced `baseColor`. */
+      baseAffect?: { valence: number; arousal: number } | null
     },
   ): CounterfactualResult {
     const start = Date.now()
@@ -469,13 +576,24 @@ export class CounterfactualEngine {
       opts?.baseMomentum ?? null,
     )
 
-    // 4. Optionally dispose
+    // 4. Emit Prism contribution (B8) if a sink is wired
+    if (opts?.recordToPrism) {
+      const contribution = this.emitContribution(
+        forkHandle.id,
+        opts.baseColor ?? null,
+        opts.baseAffect ?? null,
+      )
+      if (contribution) opts.recordToPrism(contribution)
+    }
+
+    // 5. Capture state before potential disposal so result counts stay accurate
+    const stateBeforeDispose = this.forks.get(forkHandle.id)
+    const perturbedNodeCount = stateBeforeDispose?.nodes.size ?? forkHandle.nodeCount
+
+    // 6. Optionally dispose
     if (!opts?.retainAfter) {
       this.disposeFork(forkHandle.id)
     }
-
-    const state = this.forks.get(forkHandle.id)
-    const perturbedNodeCount = state?.nodes.size ?? forkHandle.nodeCount
 
     return {
       forkId: forkHandle.id,

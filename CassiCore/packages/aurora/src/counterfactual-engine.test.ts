@@ -503,4 +503,124 @@ describe('CounterfactualEngine', () => {
       expect(handle.perturbationsApplied).toBe(2)
     })
   })
+
+
+  describe('emitContribution (B8)', () => {
+    it('uses the affect-override path when an affect perturbation is set', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'] })
+      engine.applyPerturbation(handle.id, { type: 'affect', valence: 0.5, arousal: 0.6 })
+
+      const contribution = engine.emitContribution(handle.id, 'neutral', { valence: 0, arousal: 0 })
+      expect(contribution).not.toBeNull()
+      expect(contribution!.color).toBe('excited')
+      expect(contribution!.effectiveAffect).toEqual({ valence: 0.5, arousal: 0.6 })
+      expect(contribution!.perturbations).toHaveLength(1)
+      expect(contribution!.perturbations[0].type).toBe('affect')
+    })
+
+    it('falls back to baseColor + baseAffect when no affect override is present', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'] })
+      engine.applyPerturbation(handle.id, { type: 'concept_prime', concepts: ['alpha'], salience: 0.4 })
+
+      const contribution = engine.emitContribution(handle.id, 'calm', { valence: 0.3, arousal: 0.1 })
+      expect(contribution).not.toBeNull()
+      expect(contribution!.color).toBe('calm')
+      expect(contribution!.effectiveAffect).toEqual({ valence: 0.3, arousal: 0.1 })
+    })
+
+    it('returns null when neither override nor baseColor is available', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'] })
+      const contribution = engine.emitContribution(handle.id, null, null)
+      expect(contribution).toBeNull()
+    })
+
+    it('returns null for an unknown forkId', () => {
+      const contribution = engine.emitContribution('does-not-exist', 'calm', { valence: 0.3, arousal: 0.1 })
+      expect(contribution).toBeNull()
+    })
+
+    it('captures activated nodes with their resonance as salience', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'], hops: 2 })
+      const contribution = engine.emitContribution(handle.id, 'calm', { valence: 0.3, arousal: 0.1 })
+      expect(contribution).not.toBeNull()
+      const activatedNodeIds = contribution!.contributedNodes.filter(n => n.activated).map(n => n.nodeId)
+      expect(activatedNodeIds.sort()).toEqual(['a', 'b', 'c'])
+    })
+
+    it('flags forkOnly nodes introduced by add_nodes perturbations', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'] })
+      engine.applyPerturbation(handle.id, { type: 'add_nodes', nodes: [
+        { id: 'novel', label: 'novel-concept', resonance: 0.7, centrality: 0.1, activated: true },
+      ]})
+
+      const contribution = engine.emitContribution(handle.id, 'engaged', { valence: 0.4, arousal: 0.5 })
+      expect(contribution).not.toBeNull()
+      const novel = contribution!.contributedNodes.find(n => n.nodeId === 'novel')
+      expect(novel).toBeDefined()
+      expect(novel!.forkOnly).toBe(true)
+    })
+
+    it('clears the perturbation log on disposeFork', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'] })
+      engine.applyPerturbation(handle.id, { type: 'affect', valence: 0.4, arousal: 0.3 })
+      const before = engine.emitContribution(handle.id, 'neutral', { valence: 0, arousal: 0 })
+      expect(before!.perturbations).toHaveLength(1)
+
+      engine.disposeFork(handle.id)
+      const after = engine.emitContribution(handle.id, 'neutral', { valence: 0, arousal: 0 })
+      expect(after).toBeNull()
+    })
+  })
+
+
+  describe('explore() with recordToPrism (B8 wiring)', () => {
+    it('invokes the sink before disposing the fork', () => {
+      const graph = buildTestGraph()
+      const sink = vi.fn()
+
+      engine.explore(
+        graph,
+        { anchors: ['a'], hops: 1 },
+        [{ type: 'affect', valence: 0.4, arousal: 0.5 }],
+        ['activated_nodes'],
+        {
+          recordToPrism: sink,
+          baseColor: 'calm',
+          baseAffect: { valence: 0.3, arousal: 0.1 },
+        },
+      )
+
+      expect(sink).toHaveBeenCalledOnce()
+      const contribution = sink.mock.calls[0][0]
+      expect(contribution.color).toBe('engaged')
+      expect(contribution.contributedNodes.length).toBeGreaterThan(0)
+    })
+
+    it('does not invoke the sink when recordToPrism is omitted', () => {
+      const graph = buildTestGraph()
+      const result = engine.explore(graph, { anchors: ['a'] }, [], ['activated_nodes'])
+      expect(result.observations.length).toBe(1)
+    })
+
+    it('does not invoke the sink when no resolvable color is available', () => {
+      const graph = buildTestGraph()
+      const sink = vi.fn()
+
+      engine.explore(
+        graph,
+        { anchors: ['a'] },
+        [{ type: 'concept_prime', concepts: ['alpha'], salience: 0.5 }],
+        ['activated_nodes'],
+        { recordToPrism: sink, baseColor: null, baseAffect: null },
+      )
+
+      expect(sink).not.toHaveBeenCalled()
+    })
+  })
 })
