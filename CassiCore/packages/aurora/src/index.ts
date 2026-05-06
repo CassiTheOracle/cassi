@@ -77,6 +77,9 @@ import type { OverlayPatch, OverlayApplyResult, OverlayStats } from './overlay-l
 import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
 import type { SelfNarrative } from './self-narrative-renderer.js'
 import { CompositionStore } from './composition/store.js'
+import { PostureCoherenceDetector } from './coherence-detector/index.js'
+import type { CoherenceCheck } from './coherence-detector/types.js'
+import type { DetectorInputs } from './coherence-detector/index.js'
 import { parseComposition, detectSuppressive, layerSpecToString } from './composition/parser.js'
 import { evaluatePredicate, evaluateStrength } from './composition/predicate.js'
 import type { Affect, AffectLabel } from '../mnemic-field/types.js'
@@ -317,6 +320,9 @@ export class Aurora {
   private compositionStore: CompositionStore | null = null
   private activeCompositionsList: ActiveComposition[] = []
 
+  /** Phase 2 (N2): Posture coherence detector. */
+  private postureCoherenceDetector: PostureCoherenceDetector | null = null
+
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
@@ -431,6 +437,10 @@ export class Aurora {
 
     if (phase4Config.compositionEnabled) {
       this.compositionStore = new CompositionStore(auroraDbPath, logger)
+    }
+
+    if (phase4Config.postureCoherenceEnabled) {
+      this.postureCoherenceDetector = new PostureCoherenceDetector(logger)
     }
 
     this.logger.info('Aurora initialized', {
@@ -1489,6 +1499,55 @@ export class Aurora {
   /** B1: Direct read access to the composition store (null when disabled). */
   getCompositionStore(): CompositionStore | null {
     return this.compositionStore
+  }
+
+  /**
+   * N2: Detect incoherent posture across active compositions and (when their
+   * inputs are wired) retrieval policies, scheduled replays, and the
+   * claustrum activation timeline. Pulls state from the composition store and
+   * meditation seeder; the four under-supplied categories return [] until
+   * their inputs land.
+   *
+   * Returns the full check list. Callers wanting a projection-friendly slice
+   * use `topPostureCoherenceChecks(n)` instead.
+   *
+   * Side-effect: when an EventJournal (Gap 2 / AEJ) is configured, every
+   * detected check writes one event row keyed by category + severity.
+   */
+  detectPostureCoherence(extraInputs?: Partial<DetectorInputs>): CoherenceCheck[] {
+    if (!this.postureCoherenceDetector) return []
+    const records = this.compositionStore?.listCompositions() ?? []
+    const pendingSeeds = this.meditationSeeder?.getPendingSeeds() ?? []
+    const inputs: DetectorInputs = {
+      active: this.activeCompositionsList.map(c => ({ ...c })),
+      records,
+      pendingSeeds,
+      ...extraInputs,
+    }
+    const checks = this.postureCoherenceDetector.detect(inputs)
+    if (this.eventJournal && checks.length > 0) {
+      for (const check of checks) {
+        this.eventJournal.emit({
+          source: 'posture_coherence',
+          category: check.category,
+          text: check.message,
+          tags: ['n2', `severity:${check.severity}`],
+          metadata: {
+            severity: check.severity,
+            involvedElements: check.involvedElements,
+            recommendation: check.recommendation,
+          },
+        })
+      }
+    }
+    return checks
+  }
+
+  /** N2: Top-N coherence checks for projection rendering. */
+  topPostureCoherenceChecks(n?: number): CoherenceCheck[] {
+    if (!this.postureCoherenceDetector) return []
+    const all = this.detectPostureCoherence()
+    return this.postureCoherenceDetector.topN(all, n)
   }
 
   /**

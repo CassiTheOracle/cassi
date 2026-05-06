@@ -187,10 +187,15 @@ function parseTerm(s: TokenStream): CompositionAst {
   const left = parsePrimary(s)
   if (s.match('star')) {
     s.next()
+    const negate = s.match('minus')
+    if (negate) s.next()
     const numTok = s.expect('number')
-    const factor = Number(numTok.value)
+    const factor = (negate ? -1 : 1) * Number(numTok.value)
     if (!Number.isFinite(factor)) {
       throw new CompositionParseError(`invalid scalar '${numTok.value}'`, numTok.pos)
+    }
+    if (left.kind === 'scaled') {
+      return { kind: 'scaled', operand: left.operand, factor: left.factor * factor }
     }
     return { kind: 'scaled', operand: left, factor }
   }

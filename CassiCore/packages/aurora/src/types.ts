@@ -512,6 +512,9 @@ export interface AuroraConfig {
 
   /** Phase 2 (B1): Enable concept-arithmetic compositions (named steering primitives). */
   compositionEnabled: boolean
+
+  /** Phase 2 (N2): Enable posture coherence detector. */
+  postureCoherenceEnabled: boolean
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -551,6 +554,7 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   narrativeEnabled: true,
   narrativeMaxChars: 800,
   compositionEnabled: false,
+  postureCoherenceEnabled: false,
 }
 
 /** Result of a single C1 curation cycle (detect → seed → schedule). */
