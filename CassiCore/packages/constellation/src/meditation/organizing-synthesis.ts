@@ -785,7 +785,7 @@ export function buildOrganizingHandlers(
 
         mnemicField.store({
           content: bridgeContent,
-          nodeType: 'pattern',
+          nodeType: 'bridge',
           provenance: 'meditation:organizing',
           tags: ['bridge', 'organizing', domain_a.toLowerCase(), domain_b.toLowerCase()],
         })
@@ -1231,7 +1231,7 @@ export function buildOrganizingHandlers(
             : `Bridge: "${pair.domain_a}" and "${pair.domain_b}" are related domains.`
           mnemicField.store({
             content: bridgeContent,
-            nodeType: 'pattern',
+            nodeType: 'bridge',
             provenance: 'meditation:organizing',
             tags: ['bridge', 'organizing', pair.domain_a.toLowerCase(), pair.domain_b.toLowerCase()],
           })
