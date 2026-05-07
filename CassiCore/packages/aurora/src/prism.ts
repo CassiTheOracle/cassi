@@ -113,6 +113,35 @@ export interface WhiteRecord {
   metadata: Record<string, unknown>
 }
 
+/**
+ * B8.P.3 — Reverie-synthesized invariant engram payload. Lands in
+ * Mnemic Field as `engramType: 'synthesized_invariant'`. Citation
+ * chain: invariant → witness fork ids → trace records (B3).
+ *
+ * `affectSignature: 'balanced'` for white-standing concepts;
+ * degrades to a single AffectColor when synthesized on a non-white
+ * (lower-confidence) node — though gatherSynthesisInputs throws on
+ * non-white inputs by default.
+ */
+export interface SynthesizedInvariant {
+  engramType: 'synthesized_invariant'
+  concept: string
+  /** Text claims that hold across all colors in the spectrum. */
+  invariants: string[]
+  /** Affect colors present in the spectrum at synthesis time. */
+  spectralProvenance: AffectColor[]
+  /** Witness fork ids whose contributions sourced this invariant. */
+  sourceContributions: string[]
+  /** 'balanced' for white nodes; otherwise the dominant color. */
+  affectSignature: 'balanced' | AffectColor
+  /** Reverie's stated confidence in [0, 1]. */
+  confidence: number
+  /** Concept id for cross-engram lookup; matches `concept`. */
+  conceptId: string
+  /** ISO timestamp the synthesis was produced. */
+  synthesizedAt: string
+}
+
 export interface PrismNode {
   conceptId: string
   spectrum: Spectrum
@@ -627,6 +656,112 @@ export class Prism {
       WHERE concept_id = ? AND demoted_at IS NULL AND contested_since IS NULL
     `).run(new Date(now).toISOString(), conceptId)
     return result.changes > 0
+  }
+
+  /**
+   * B8.P.3 — synthesize an invariant engram for a white concept.
+   *
+   * Pure-function shape: caller supplies an `llmCallback` that turns
+   * the gathered inputs into invariant text + confidence. Prism
+   * assembles the SynthesizedInvariant from the callback's output
+   * plus the spectral provenance + witness citation chain.
+   *
+   * The callback is intentionally async to accommodate real Reverie
+   * LLM calls, but tests can pass a sync mock that returns a
+   * `Promise.resolve(...)`. Default behavior on callback throw: error
+   * propagates; no partial engram is created.
+   *
+   * Caller is responsible for landing the result in the Mnemic Field
+   * — Prism doesn't import the field directly to keep the dependency
+   * direction clean.
+   */
+  async synthesizeWhiteInvariant(
+    conceptId: string,
+    llmCallback: (inputs: {
+      conceptId: string
+      spectrum: Spectrum
+      balanceScore: number
+      totalWeight: number
+      record: WhiteRecord
+      contributions: Array<{ forkId: string; color: AffectColor; observedAt: string; perturbationKinds: string[] }>
+    }) => Promise<{ invariants: string[]; confidence: number }>,
+    now: number = Date.now(),
+  ): Promise<SynthesizedInvariant> {
+    const inputs = this.gatherSynthesisInputs(conceptId, now)
+    const llmResult = await llmCallback(inputs)
+    if (!Array.isArray(llmResult.invariants)) {
+      throw new Error('synthesizeWhiteInvariant: llmCallback must return invariants array')
+    }
+    return {
+      engramType: 'synthesized_invariant',
+      concept: conceptId,
+      conceptId,
+      invariants: llmResult.invariants,
+      spectralProvenance: [...inputs.spectrum.keys()],
+      sourceContributions: [...inputs.record.witness],
+      affectSignature: 'balanced',
+      confidence: Math.max(0, Math.min(1, llmResult.confidence)),
+      synthesizedAt: new Date(now).toISOString(),
+    }
+  }
+
+  /**
+   * B8.P.3 — gather the inputs Reverie needs to synthesize an
+   * invariant for a white-standing concept. Returns:
+   *  - spectrum + balance + per-color weights at `now`
+   *  - the white record (errors if not currently white — synthesis
+   *    on non-white nodes degrades affectSignature, see spec §5.1)
+   *  - witness fork ids + their full contribution rows for citation
+   *
+   * This is the read-only data assembly step. The Reverie LLM call
+   * is the caller's responsibility — synthesizeWhiteInvariant takes
+   * a callback that turns these inputs into invariant text.
+   */
+  gatherSynthesisInputs(conceptId: string, now: number = Date.now()): {
+    conceptId: string
+    spectrum: Spectrum
+    balanceScore: number
+    totalWeight: number
+    record: WhiteRecord
+    contributions: Array<{
+      forkId: string
+      color: AffectColor
+      observedAt: string
+      perturbationKinds: string[]
+    }>
+  } {
+    if (this.closed) throw new Error('Prism closed')
+    const recordRow = this.db.prepare(`
+      SELECT * FROM prism_white_records
+      WHERE concept_id = ? AND demoted_at IS NULL
+    `).get(conceptId) as Parameters<typeof this.whiteRowToRecord>[0] | undefined
+    if (!recordRow) {
+      throw new Error(`gatherSynthesisInputs: '${conceptId}' is not currently white`)
+    }
+    const record = this.whiteRowToRecord(recordRow)
+    const spectrum = this.spectrumAt(conceptId, now)
+    const totalWeight = sumSpectrum(spectrum)
+    const balanceScore = computeBalance(spectrum, totalWeight)
+
+    const placeholders = record.witness.map(() => '?').join(',')
+    const contribRows = record.witness.length === 0 ? [] : this.db.prepare(`
+      SELECT fork_id, color, observed_at, perturbation_kinds
+      FROM prism_fork_contributions
+      WHERE fork_id IN (${placeholders})
+    `).all(...record.witness) as Array<{
+      fork_id: string; color: string; observed_at: string; perturbation_kinds: string;
+    }>
+
+    const contributions = contribRows.map(r => ({
+      forkId: r.fork_id,
+      color: r.color as AffectColor,
+      observedAt: r.observed_at,
+      perturbationKinds: (() => {
+        try { return JSON.parse(r.perturbation_kinds) as string[] } catch { return [] }
+      })(),
+    }))
+
+    return { conceptId, spectrum, balanceScore, totalWeight, record, contributions }
   }
 
   private whiteRowToRecord(row: {

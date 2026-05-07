@@ -553,6 +553,86 @@ describe('Prism', () => {
       expect(prism.contestedNodes()).toHaveLength(1)
     })
 
+    it('B8.P.3 — gatherSynthesisInputs throws on non-white concept', () => {
+      expect(() => prism.gatherSynthesisInputs('not-promoted'))
+        .toThrow(/not currently white/)
+    })
+
+    it('B8.P.3 — gatherSynthesisInputs returns spectrum + witness contributions', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      const inputs = prism.gatherSynthesisInputs('concept')
+      expect(inputs.conceptId).toBe('concept')
+      expect(inputs.spectrum.size).toBeGreaterThan(0)
+      expect(inputs.record.demotedAt).toBeNull()
+      expect(inputs.contributions).toHaveLength(3)
+      const forkIds = inputs.contributions.map(c => c.forkId).sort()
+      expect(forkIds).toEqual(['f1', 'f2', 'f3'])
+    })
+
+    it('B8.P.3 — synthesizeWhiteInvariant calls callback + assembles engram', async () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+
+      const llm = vi.fn(async (_inputs) => ({
+        invariants: ['holds across colors', 'consistent under perturbation'],
+        confidence: 0.85,
+      }))
+      const engram = await prism.synthesizeWhiteInvariant('concept', llm)
+      expect(llm).toHaveBeenCalledOnce()
+      expect(engram.engramType).toBe('synthesized_invariant')
+      expect(engram.concept).toBe('concept')
+      expect(engram.invariants).toHaveLength(2)
+      expect(engram.affectSignature).toBe('balanced')
+      expect(engram.sourceContributions.sort()).toEqual(['f1', 'f2', 'f3'])
+      expect(engram.spectralProvenance.length).toBeGreaterThan(0)
+      expect(engram.confidence).toBeCloseTo(0.85, 5)
+    })
+
+    it('B8.P.3 — synthesizeWhiteInvariant clamps confidence to [0,1]', async () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      const engram = await prism.synthesizeWhiteInvariant('concept', async () => ({
+        invariants: ['x'], confidence: 5.0,
+      }))
+      expect(engram.confidence).toBe(1)
+
+      const negative = await prism.synthesizeWhiteInvariant('concept', async () => ({
+        invariants: ['y'], confidence: -0.5,
+      }))
+      expect(negative.confidence).toBe(0)
+    })
+
+    it('B8.P.3 — synthesizeWhiteInvariant rejects non-array invariants', async () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      await expect(
+        prism.synthesizeWhiteInvariant('concept', async () => ({
+          invariants: 'not an array' as any, confidence: 0.5,
+        })),
+      ).rejects.toThrow(/invariants array/)
+    })
+
     it('whiteCandidates excludes already-promoted nodes', () => {
       const colors = ['excited', 'delighted', 'engaged', 'content', 'warm', 'calm', 'curiosity']
       for (const c of colors) {
