@@ -45,6 +45,13 @@ export interface DetectorInputs {
 export class PostureCoherenceDetector {
   private readonly logger: ILogger
   private readonly config: CoherenceDetectorConfig
+  /**
+   * Acknowledgment registry (N2.W4 — "Acknowledged-as-intentional
+   * checks don't re-fire"). Keyed by check signature, value is the
+   * stored `ignored` payload that gets attached if/when the same check
+   * tries to fire again.
+   */
+  private readonly acknowledged = new Map<string, NonNullable<CoherenceCheck['ignored']>>()
 
   constructor(logger: ILogger, config?: Partial<CoherenceDetectorConfig>) {
     this.logger = logger.child ? logger.child('aurora:posture-coherence') : logger
@@ -59,7 +66,38 @@ export class PostureCoherenceDetector {
     checks.push(...this.detectReplayAffectMismatch(inputs))
     checks.push(...this.detectMeditationEntrypointCold(inputs))
     checks.push(...this.detectCompositionMeditationColdTopic(inputs))
-    return checks
+    return checks.filter(c => !this.acknowledged.has(signatureOf(c)))
+  }
+
+  /**
+   * Mark a coherence check as acknowledged so it doesn't re-fire on
+   * subsequent `detect()` calls (N2.W4). Acknowledgment is keyed by the
+   * check's stable signature — `(category, sorted-element-ids)` — so
+   * the same incoherence between the same elements stays silenced even
+   * when the underlying state mutates in ways that don't change the
+   * involved set. A change to the involved set produces a new signature
+   * and the check fires again.
+   *
+   * In-memory only by default (per-detector lifetime). Persistence
+   * across sessions is a separate concern; callers can serialize
+   * `acknowledged` if needed.
+   */
+  acknowledge(check: CoherenceCheck, opts: { reason: string; by: 'cassi' | 'operator' }): void {
+    this.acknowledged.set(signatureOf(check), {
+      reason: opts.reason,
+      ignoredAt: new Date().toISOString(),
+      ignoredBy: opts.by,
+    })
+  }
+
+  /** Forget a previously-acknowledged check; it can fire again on next detect. */
+  unacknowledge(check: CoherenceCheck): boolean {
+    return this.acknowledged.delete(signatureOf(check))
+  }
+
+  /** All currently-acknowledged signatures. Useful for serialization/inspection. */
+  acknowledgedSignatures(): string[] {
+    return [...this.acknowledged.keys()]
   }
 
   /**
@@ -375,4 +413,18 @@ export class PostureCoherenceDetector {
       recommendation: opts.recommendation,
     }
   }
+}
+
+/**
+ * Stable signature for a coherence check — `category|element1|element2|...`
+ * with element ids sorted lexicographically. Used by the acknowledgment
+ * registry: the *same incoherence between the same elements* must produce
+ * the same signature across detect cycles, even if message/timestamp differ.
+ *
+ * Exported for callers that want to persist acknowledgments across sessions
+ * (the in-memory acknowledgment registry is detector-instance-scoped).
+ */
+export function signatureOf(check: Pick<CoherenceCheck, 'category' | 'involvedElements'>): string {
+  const ids = check.involvedElements.map(e => `${e.kind}:${e.id}`).sort()
+  return `${check.category}|${ids.join('|')}`
 }

@@ -379,3 +379,86 @@ describe('PostureCoherenceDetector — composition vs meditation cold-topic', ()
     expect(detector.topN(checks, 2)).toHaveLength(2)
   })
 })
+
+describe('PostureCoherenceDetector — acknowledgment persistence', () => {
+  function buildAndFire() {
+    const detector = new PostureCoherenceDetector(makeLogger())
+    const inputs = {
+      active: [active('warm'), active('cold')],
+      records: [
+        rec('warm', 'warm = gate("warmth") + gate("kindness")'),
+        rec('cold', 'cold = gate("coldness") - gate("warmth") - gate("kindness")'),
+      ],
+      pendingSeeds: [],
+    }
+    const fire1 = detector.detect(inputs)
+    return { detector, inputs, fire1 }
+  }
+
+  it('does not re-fire an acknowledged check on subsequent detect()', () => {
+    const { detector, inputs, fire1 } = buildAndFire()
+    const target = fire1.find(c => c.category === 'composition_pair_contradictory')
+    expect(target).toBeDefined()
+
+    detector.acknowledge(target!, { reason: 'intentional contrast', by: 'cassi' })
+
+    const fire2 = detector.detect(inputs)
+    expect(fire2.find(c => c.category === 'composition_pair_contradictory')).toBeUndefined()
+  })
+
+  it('unacknowledge re-enables firing', () => {
+    const { detector, inputs, fire1 } = buildAndFire()
+    const target = fire1.find(c => c.category === 'composition_pair_contradictory')!
+    detector.acknowledge(target, { reason: 'oops', by: 'operator' })
+    expect(detector.detect(inputs).find(c => c.category === 'composition_pair_contradictory')).toBeUndefined()
+
+    detector.unacknowledge(target)
+    expect(detector.detect(inputs).find(c => c.category === 'composition_pair_contradictory')).toBeDefined()
+  })
+
+  it('signature differs across categories on the same elements', () => {
+    const { detector, inputs, fire1 } = buildAndFire()
+    const target = fire1[0]
+    detector.acknowledge(target, { reason: 'this category only', by: 'cassi' })
+    // If a different category fires on these same elements, it should NOT be silenced.
+    const fire2 = detector.detect(inputs)
+    const otherCategoryStillFiring = fire2.some(c => c.category !== target.category)
+    if (fire1.length > 1) {
+      expect(otherCategoryStillFiring).toBe(true)
+    }
+  })
+
+  it('signature is stable across detect() calls (same elements → same key)', () => {
+    const { detector, inputs, fire1 } = buildAndFire()
+    detector.acknowledge(fire1[0], { reason: 'noted', by: 'cassi' })
+    const sigsBefore = detector.acknowledgedSignatures()
+    detector.detect(inputs)
+    detector.detect(inputs)
+    const sigsAfter = detector.acknowledgedSignatures()
+    expect(sigsAfter).toEqual(sigsBefore)
+  })
+
+  it('changing involved elements creates a new signature (does fire)', () => {
+    const detector = new PostureCoherenceDetector(makeLogger())
+    const fire1 = detector.detect({
+      active: [active('a'), active('b')],
+      records: [
+        rec('a', 'a = gate("warmth") + gate("kindness")'),
+        rec('b', 'b = gate("coldness") - gate("warmth") - gate("kindness")'),
+      ],
+      pendingSeeds: [],
+    })
+    const target = fire1.find(c => c.category === 'composition_pair_contradictory')!
+    detector.acknowledge(target, { reason: 'this pair only', by: 'cassi' })
+
+    const fire2 = detector.detect({
+      active: [active('c'), active('d')],
+      records: [
+        rec('c', 'c = gate("warmth") + gate("kindness")'),
+        rec('d', 'd = gate("coldness") - gate("warmth") - gate("kindness")'),
+      ],
+      pendingSeeds: [],
+    })
+    expect(fire2.find(c => c.category === 'composition_pair_contradictory')).toBeDefined()
+  })
+})
