@@ -2926,7 +2926,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
    * @param traitVector - The posture's trait vector
    * @returns The trait-weighted system prompt
    */
-  private applyTraitVectorWeighting(basePrompt: string, traitVector: TraitVector): string {
+  private applyTraitVectorWeighting(basePrompt: string, traitVector: TraitVector | undefined): string {
+    if (!traitVector) return basePrompt
     // C-POLY-1: Baseline implementation — prepend trait summary to prompt
     // Future iterations may do more sophisticated section weighting
 
