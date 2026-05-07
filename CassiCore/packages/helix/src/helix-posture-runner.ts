@@ -42,6 +42,7 @@ import type { HelixTelemetry } from './helix-telemetry.js'
 import type { Aurora } from '../aurora/index.js'
 import type { HelixJournal } from './helix-journal.js'
 import type { PendingGuidance } from './brainstem-types.js'
+import { appendMentorFlagLine } from '../constellation/helix-goal-lamina.js'
 import type { HelixSynapse } from './helix-synapse.js'
 import { HelixResearcher } from './helix-researcher.js'
 import {
@@ -240,6 +241,11 @@ export interface HelixPostureRunnerOpts {
   traitVector?: TraitVector
   /** New Helix-level Synapse observer — watches all posture context slices and broadcasts observations. */
   helixSynapse?: HelixSynapse
+  /**
+   * LaminaField — when provided, mentor flag events append a "Mentor noted: ..."
+   * line to this Helix's `helix-goal` lamina. PR-2 of helix-goal-lamina spec.
+   */
+  lamina?: import('../lamina/index.js').LaminaField
   /** ContextChunkIndex for intelligent context management (pinning, eviction, scoring) */
   contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   /** Thalamus for context curation during long-running sessions */
@@ -323,6 +329,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly brainstem?: HelixBrainstem
   private readonly traitVector?: TraitVector
   private readonly helixSynapse?: HelixSynapse
+  private readonly lamina?: import('../lamina/index.js').LaminaField
   private readonly contextChunkIndex?: import('./context-chunk-index.js').ContextChunkIndex
   private readonly onWorkUnit?: (wu: WorkUnit, iteration: number) => void
   private readonly onStreamActivity?: (event: StreamActivityEvent) => void
@@ -408,6 +415,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.brainstem = opts.brainstem
     this.traitVector = opts.traitVector
     this.helixSynapse = opts.helixSynapse
+    this.lamina = opts.lamina
     this.contextChunkIndex = opts.contextChunkIndex
     this.onWorkUnit = opts.onWorkUnit
     this.onStreamActivity = opts.onStreamActivity
@@ -2087,6 +2095,9 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
           urgencyHint: 0.25,
           extra: { issueType, source: 'mentor-flag' },
         })
+        if (this.sessionId) {
+          appendMentorFlagLine(this.lamina, this.sessionId, issueType, this.iterationCount)
+        }
       } catch (nudgeErr) {
         this.logger.warn('Mentor flag nudge rejected', { error: String(nudgeErr) })
       }

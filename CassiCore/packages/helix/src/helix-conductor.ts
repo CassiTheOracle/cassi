@@ -40,6 +40,8 @@ import type { HelixLocusOpts } from './helix-locus.js'
 import { HelixMnemicBridge } from './helix-mnemic-bridge.js'
 import type { MnemicField } from '../mnemic-field/index.js'
 import type { Aurora } from '../aurora/index.js'
+import type { LaminaField } from '../lamina/index.js'
+import { appendCoordinationLine } from '../constellation/helix-goal-lamina.js'
 import { HelixQuiescenceDetector } from './helix-quiescence.js'
 import type { HelixQuiescenceConfig, HelixQuiescenceReport } from './helix-quiescence.js'
 
@@ -79,6 +81,12 @@ export interface HelixConductorOpts {
    */
   mnemicField?: MnemicField
   /**
+   * LaminaField — when provided, bridge signals received from the workspace
+   * cause a Coordinating-with-Helix entry to be appended to this Helix's
+   * `helix-goal` lamina (intra-Helix territory awareness).
+   */
+  lamina?: LaminaField
+  /**
    * Aurora — when provided, the runner pipes posture reasoning text
    * through `aurora.observeReasoning()` at turn boundaries. The
    * conductor holds the reference so the pipeline can thread it down.
@@ -115,6 +123,7 @@ export class HelixConductor {
   private onQuiescenceCb?: (report: HelixQuiescenceReport) => void
   private globalWorkspace: GlobalWorkspace
   private eventBus?: IEventBus
+  private lamina?: LaminaField
   private postures: HelixPosture[]
   private modules: Map<string, PostureModule> = new Map()
   private broadcastUnsub?: () => void
@@ -136,6 +145,7 @@ export class HelixConductor {
       : opts.logger
     this.globalWorkspace = opts.globalWorkspace
     this.eventBus = opts.eventBus
+    this.lamina = opts.lamina
     this.postures = opts.postures ?? [UNITY_POSTURE, YANG_POSTURE, YIN_POSTURE]
     this.snapshotIntervalMs = opts.snapshotIntervalMs ?? 30_000
     this.roleId = opts.roleId ?? opts.sessionId.slice(0, 8)
@@ -493,6 +503,22 @@ export class HelixConductor {
         try { this.locus.observe(signal) } catch (err) {
           this.logger.debug('locus.observe failed', { error: String(err) })
         }
+      }
+    }
+
+    // Territory awareness (PR-2 of helix-goal-lamina): bridge signals from the
+    // Corpus get a Coordinating-with-Helix line appended to this Helix's goal
+    // lamina. FIFO-capped at 5 augmentation lines combined with mentor flags.
+    if (this.lamina) {
+      for (const signal of relevant) {
+        if (signal.type !== 'bridge') continue
+        const md = signal.metadata as Record<string, unknown> | undefined
+        const peerHelixId = typeof md?.peerHelixId === 'string' ? md.peerHelixId : undefined
+        const sharedFiles = Array.isArray(md?.sharedFiles)
+          ? md.sharedFiles.filter((f): f is string => typeof f === 'string')
+          : []
+        if (!peerHelixId) continue
+        appendCoordinationLine(this.lamina, this.sessionId, peerHelixId, sharedFiles)
       }
     }
   }

@@ -138,6 +138,14 @@ export interface HelixPipelineOpts {
   /** Constellation ID this Helix session belongs to (for cross-session scoping) */
   constellationId?: string
 
+  /**
+   * LaminaField — when provided, the conductor + posture runners write
+   * coordination/mentor entries to this Helix's `helix-goal` lamina.
+   * Threaded through from the Constellation; standalone Helix invocations
+   * can omit it.
+   */
+  lamina?: import('../lamina/index.js').LaminaField
+
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: import('./work-stream.js').UnityStatusThresholds
 
@@ -428,6 +436,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     onWorkUnit: opts.onWorkUnit,
     onActivity,
     toolFilter: opts.toolFilter,
+    lamina: opts.lamina,
     // Forward stream activity to Brainstem for real-time token stream visibility
     onStreamActivity: brainstem
       ? (event: import('./helix-posture-runner.js').StreamActivityEvent) => brainstem!.onStreamActivity(event)
@@ -461,6 +470,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       eventBus: opts.eventBus,
       telemetry: opts.telemetry,
       mnemicField: opts.mnemicField,
+      lamina: opts.lamina,
       aurora: opts.aurora,
       quiescence: false,  // Disabled — activity tracking is incomplete (doesn't see
                           // tool calls or LLM turns), kills active branches prematurely.
