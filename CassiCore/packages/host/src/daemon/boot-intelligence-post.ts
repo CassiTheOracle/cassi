@@ -121,10 +121,55 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
 
   // DMN — Default Mode Network. Attaches to user-facing main sessions on
   // session:created, records turn-end events into the activity gate, and
-  // detaches on session:ended. Fires the dialectic via PR 3 wiring; PR 2
-  // ships a no-op stub so the substrate is exercised without LLM cost.
+  // detaches on session:ended. Late-bound onFire calls the dialectic with
+  // the recent session window when the activity gate trips.
   if (intelligence.dmn?.enabled) {
     try {
+      // Late-binding fire handler: load the session history, run the
+      // dialectic with the most recent user message as the focal point and
+      // the recent window as sessionHistory, harvest the serenity synthesis.
+      // Errors degrade to no-signal so the cache never holds stale data.
+      const HISTORY_WINDOW = 24
+      intelligence.dmn.setOnFire(async (_reason, sessionId) => {
+        try {
+          const session = sessionStore.load(sessionId)
+          const history = session?.history ?? []
+          if (history.length === 0) return null
+
+          const recent = history.slice(-HISTORY_WINDOW)
+          const lastUser = [...recent].reverse().find(m => (m as any).role === 'user')
+          const userMessage = (() => {
+            const c = (lastUser as any)?.content
+            if (typeof c === 'string') return c
+            if (Array.isArray(c)) {
+              return c.map((b: any) => b?.text ?? '').filter(Boolean).join('\n')
+            }
+            return ''
+          })()
+          if (!userMessage) return null
+
+          const result = await intelligence.dialectic.processTurn(
+            sessionId,
+            `dmn-${Date.now()}`,
+            userMessage,
+            {
+              recentMemories: [],
+              availableTools: [],
+              sessionHistory: recent as any,
+              taskGuide: 'DMN observation pass: surface what is most load-bearing about the recent conversation state.',
+            } as any,
+            { skipCache: true } as any,
+          ) as any
+
+          const synthesis = result?.serenity?.synthesis
+          if (!synthesis) return null
+          return synthesis
+        } catch (err) {
+          logger.debug('DMN onFire failed', { error: String(err), sessionId })
+          return null
+        }
+      })
+
       bus.on('session:created' as any, (e: any) => {
         try {
           const sessionId = e?.sessionId
