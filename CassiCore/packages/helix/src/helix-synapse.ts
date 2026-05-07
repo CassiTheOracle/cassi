@@ -94,7 +94,7 @@ export interface HelixSynapseConfig {
 
 export const DEFAULT_HELIX_SYNAPSE_CONFIG: HelixSynapseConfig = {
   enabled: true,
-  modelTier: 'qwenMax',
+  modelTier: 'opus',
   maxTokens: 1_200,
   timeoutMs: 30_000,
   pollIntervalMs: 5_000,
