@@ -150,10 +150,10 @@ export class CorpusObserverLayer {
 
   private activityConfig(): ObserverActivityConfig {
     return {
-      cooldownMs: 90_000,
-      maxIdleMs: 600_000,
-      materialThreshold: 8,
-      warmupEvents: 4,
+      cooldownMs: 480_000,
+      maxIdleMs: 2_400_000,
+      materialThreshold: 16,
+      warmupEvents: 8,
       observerId: `corpus-observer:${this.constellationId}`,
     }
   }

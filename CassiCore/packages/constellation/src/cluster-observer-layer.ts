@@ -141,10 +141,10 @@ export class ClusterObserverLayer {
 
   private activityConfig(): ObserverActivityConfig {
     return {
-      cooldownMs: 45_000,
-      maxIdleMs: 300_000,
-      materialThreshold: 6,
-      warmupEvents: 3,
+      cooldownMs: 240_000,
+      maxIdleMs: 1_200_000,
+      materialThreshold: 12,
+      warmupEvents: 6,
       observerId: `cluster-observer:${this.constellationId}`,
     }
   }
