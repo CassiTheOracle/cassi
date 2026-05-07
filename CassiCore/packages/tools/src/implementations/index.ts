@@ -4,14 +4,9 @@ import { registerCassandraEventTools } from './cassandra-event.js'
 import {
   reflectDefinition, makeReflectHandler,
   cognitiveRememberDefinition, makeCognitiveRememberHandler,
-  probeDefinition, makeProbeHandler,
-  type CognitiveToolDeps, type ProbeDeps,
+  type CognitiveToolDeps,
 } from './cognitive-tools.js'
 import { listToolsDefinition, listToolsHandler } from './list-tools.js'
-import {
-  autofixDefinition, makeAutofixHandler,
-  type AutofixDeps,
-} from './autofix-tool.js'
 import {
   coordinateDefinition, makeCoordinateHandler,
   checkPeersDefinition, makeCheckPeersHandler,
@@ -88,10 +83,6 @@ export interface CoreToolDeps {
   eventHistory?: EventHistory
   /** Dependencies for cognitive tools (_reflect, _remember) */
   cognitiveToolDeps?: CognitiveToolDeps
-  /** Dependencies for probe tool (_probe) — extends cognitive deps with drone swarm */
-  probeDeps?: ProbeDeps
-  /** Dependencies for autofix tool (_autofix) — full autonomous fix pipeline */
-  autofixDeps?: AutofixDeps
   /** Dependencies for peer coordination tools (_coordinate, _check_peers) */
   peerToolDeps?: PeerToolDeps
   /** Lazy getter for the background job manager */
@@ -258,21 +249,6 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   if (deps.cognitiveToolDeps) {
     registry.register(reflectDefinition, makeReflectHandler(deps.cognitiveToolDeps))
     registry.register(cognitiveRememberDefinition, makeCognitiveRememberHandler(deps.cognitiveToolDeps))
-  }
-
-  // Cognitive probe tool — _probe
-  // Dispatches targeted drone swarms to investigate cognitive signals.
-  // Maps signal kinds to investigation strategies, spawns free scout drones,
-  // and returns aggregated findings + resonance patterns.
-  if (deps.probeDeps) {
-    registry.register(probeDefinition, makeProbeHandler(deps.probeDeps))
-  }
-
-  // Autofix tool — _autofix
-  // Full autonomous bug fix pipeline: investigate → generate patch → validate → apply → journal.
-  // Composes drone swarm (free), tsc validation, test runner, and improvement journal.
-  if (deps.autofixDeps) {
-    registry.register(autofixDefinition, makeAutofixHandler(deps.autofixDeps))
   }
 
   // Peer coordination tools — CONSOLIDATED (Phase 1)
