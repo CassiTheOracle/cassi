@@ -192,6 +192,7 @@ export class MnemicField {
   private lastRetrievalRerankerScores: Float32Array | null = null
   private lightningShadowEnabled: boolean = false
   private rerankerEnabled: boolean = false
+  private foreshadow: { observe: (args: { query: string; sessionId?: string; wasCacheHit: boolean }) => Promise<void> } | null = null
 
   // Retrieval result cache. Kindling does 5 iterations of spreading activation
   // across ~800k filaments and takes 10-30s. Repeated identical queries (very
@@ -232,6 +233,10 @@ export class MnemicField {
       this.rerankerEnabled = false
     }
     this.logger.info('MnemicField reranker mode set', { mode, llmAvailable: !!this.reranker })
+  }
+
+  setForeshadow(fs: { observe: (args: { query: string; sessionId?: string; wasCacheHit: boolean }) => Promise<void> } | null): void {
+    this.foreshadow = fs
   }
 
   setLightningShadowMode(enabled: boolean): void {
@@ -739,11 +744,12 @@ export class MnemicField {
     const cacheKey = `${query}\u0000${limit}\u0000${options?.complexity ?? ''}\u0000${options?.maxIterations ?? ''}`
     const now = Date.now()
     const cached = this.retrieveCache.get(cacheKey)
-    if (cached && (now - cached.ts) < MnemicField.RETRIEVE_CACHE_TTL_MS) {
-      // Move to end for LRU recency
+    const wasCacheHit = !!(cached && (now - cached.ts) < MnemicField.RETRIEVE_CACHE_TTL_MS)
+    this.foreshadow?.observe({ query, sessionId: options?.sessionId, wasCacheHit }).catch(() => { /* never blocks retrieve */ })
+    if (wasCacheHit) {
       this.retrieveCache.delete(cacheKey)
-      this.retrieveCache.set(cacheKey, cached)
-      return cached.hits
+      this.retrieveCache.set(cacheKey, cached!)
+      return cached!.hits
     }
 
     // Retrieval event ID — fresh on each cache miss so Reverie can correlate
