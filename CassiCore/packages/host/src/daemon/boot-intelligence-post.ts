@@ -1,7 +1,6 @@
 import { AutonomousAgentLoop } from '../intelligence/autonomous-loop.js'
 import { createExecutionBackend } from '../intelligence/execution-backends/index.js'
 import { ScoutModule } from '../scout/index.js'
-import { registerDroneTools } from '../tools/implementations/drone-swarm.js'
 // REMOVED: registerTeamTools — team-coordinator.ts deleted with TriadTeam
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
@@ -533,9 +532,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     if (typeof intelligence.helix?.setModuleRegistry === 'function') {
       intelligence.helix.setModuleRegistry(moduleRegistry)
     }
-    if (typeof (intelligence as any).droneSwarm?.setModuleRegistry === 'function') {
-      ;(intelligence as any).droneSwarm.setModuleRegistry(moduleRegistry)
-    }
     // Triad team member sessions are created dynamically — wire registry via fleet coordinator
     if (typeof (intelligence as any).triadTeam?.setModuleRegistry === 'function') {
       ;(intelligence as any).triadTeam.setModuleRegistry(moduleRegistry)
@@ -552,10 +548,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.warn('Failed to initialize ModuleSessionRegistry', { error: String(err) })
   }
 
-  if (intelligence.droneSwarm && typeof intelligence.thinker.setDroneSwarm === 'function') {
-    intelligence.thinker.setDroneSwarm(intelligence.droneSwarm)
-    logger.info('Thinker wired to drone swarm controller')
-  }
   await intelligence.thinker.start?.()
 
   let autonomousLoop: AutonomousAgentLoop | undefined
@@ -593,18 +585,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
   }
 
   // REMOVED: TriadTeam wiring — deprecated system deleted.
-
-  try {
-    if (intelligence.droneSwarm) {
-      registerDroneTools(toolRegistry, {
-        droneSwarm: intelligence.droneSwarm,
-        logger,
-      })
-      logger.info('Drone tools registered: drone_swarm, drone_scout, drone_cancel')
-    }
-  } catch (err) {
-    logger.warn('Failed to register drone tools', { error: String(err) })
-  }
+  // REMOVED: drone tools registration — DroneSwarm removed.
 
   return autonomousLoop
 }

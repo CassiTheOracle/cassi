@@ -697,12 +697,6 @@ export class Daemon {
       // Wire Rule Enforcer to event bus
       this.wireModule(this.intelligence.ruleEnforcer, bus)
 
-      // WHY: DroneSwarm needs event bus for mission coordination
-       if (this.intelligence.droneSwarm?.setEventBus) {
-         this.intelligence.droneSwarm.setEventBus(bus)
-         this.logger.info('DroneSwarm event bus wired')
-       }
-
       // Phase 5b: Runtime Self-Monitoring Hook
       try {
         const monitor = createMonitoringHook()
@@ -1165,34 +1159,6 @@ export class Daemon {
         this.logger.info('Thinker model router wired')
       }
       await thinker.init?.()
-    }
-
-    // Wire the provider into the Drone Swarm Controller
-    // Drones use the fallback tier (github-copilot/gpt-5-mini) by default — free on request-based billing.
-    if (this.intelligence?.droneSwarm) {
-      const droneProviderId = this.config.get<string>('intelligence.droneSwarm.provider', '') || 'github-copilot'
-      const droneProvider = providers.get(droneProviderId) ?? providers.get('github-copilot') ?? providers.values().next().value
-      if (droneProvider) {
-        this.intelligence.droneSwarm.setProvider(droneProvider)
-        this.logger.info(`DroneSwarm provider wired: ${droneProvider.id}`)
-      } else {
-        this.logger.warn('DroneSwarm: no provider available — drone swarms will be unavailable')
-      }
-
-      // WHY: Each drone tier specifies its own providerId via MODEL_DEFAULTS (e.g. 'alibaba-coding'
-      // for the fallback tier). Without a resolver, drones send the wrong model name to the
-      // default provider, producing empty results.
-      this.intelligence.droneSwarm.setProviderResolver((providerId: string) => providers.get(providerId))
-
-      // Wire cognitive modules into DroneSwarm for signal extraction from drone outputs.
-      // This enables: drone output → ThoughtObserver → CognitiveBridge → parent session.
-      // All processing is local — zero additional LLM requests.
-      if (this.intelligence.thoughtObserver) {
-        this.intelligence.droneSwarm.setThoughtObserver(this.intelligence.thoughtObserver)
-      }
-      if (this.intelligence.cognitiveBridge) {
-        this.intelligence.droneSwarm.setCognitiveBridge(this.intelligence.cognitiveBridge)
-      }
     }
 
     // Wire the provider into the DialecticSystem (Yang, Yin, Serenity)
@@ -1796,22 +1762,6 @@ export class Daemon {
         subconscious: this.intelligence.subconscious as any,
         logger: this.logger,
       } : undefined,
-      probeDeps: this.intelligence ? {
-        thoughtObserver: this.intelligence.thoughtObserver,
-        cognitiveBridge: this.intelligence.cognitiveBridge,
-        contextManager: this.intelligence.contextManager as any,
-        subconscious: this.intelligence.subconscious as any,
-        logger: this.logger,
-        droneSwarm: this.intelligence.droneSwarm as any,
-      } : undefined,
-      autofixDeps: this.intelligence ? {
-        thoughtObserver: this.intelligence.thoughtObserver,
-        cognitiveBridge: this.intelligence.cognitiveBridge,
-        logger: this.logger,
-        droneSwarm: this.intelligence.droneSwarm as any,
-        improvementOrchestrator: this.intelligence.improvementOrchestrator as any,
-        projectRoot: process.cwd(),
-      } : undefined,
       peerToolDeps: (this.intelligence && this.sessionDigestStore) ? {
         digestStore: this.sessionDigestStore as any,
         memory: this.intelligence.memory as any,
@@ -2063,12 +2013,7 @@ export class Daemon {
         await registry.initAll()
         await registry.startAll()
 
-        if (this.intelligence?.droneSwarm) {
-          this.intelligence.droneSwarm.setToolRegistry?.(toolRegistry)
-          this.intelligence.droneSwarm.setToolExecutor?.(toolExecutor)
-        }
-
-        // REMOVED: Triad Team and Flux Team orchestrator wiring — deprecated systems deleted.
+        // REMOVED: Triad Team, Flux Team, and DroneSwarm orchestrator wiring — deprecated systems deleted.
         // All orchestration now uses Helix and Constellation, which are wired separately.
 
         // Wire Helix tools, store, and context distiller
