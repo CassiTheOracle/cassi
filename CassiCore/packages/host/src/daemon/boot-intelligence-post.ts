@@ -119,34 +119,22 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.warn(`Failed to wire ThoughtObserver: ${String(err)}`)
   }
 
-  // DMN — Default Mode Network. Each attached session runs an AGOP tick
-  // loop that samples the session substrate at pollIntervalMs cadence
-  // (matching the constellation cluster/corpus observer-layer pattern).
-  // Turn boundaries are not the trigger — the loop is autonomous and
-  // ambient. session:created/session:ended carry the lifecycle.
+  // DMN — Default Mode Network. Autonomous AGOP tick loop per session;
+  // turn boundaries are not the trigger.
   if (intelligence.dmn?.enabled) {
     try {
-      // Substrate sampler: returns a snapshot of the session's current
-      // observable state. The tick loop tracks deltas internally.
+      // Substrate sampler: SessionManager.get is the in-memory accessor
+      // — avoids an SQLite hit + JSON parse on every tick.
       intelligence.dmn.setActivitySnapshotProvider((sessionId) => {
-        try {
-          const session = sessionStore.load(sessionId)
-          if (!session) return null
-          return { historyLength: session.history?.length ?? 0 }
-        } catch {
-          return null
-        }
+        const session = sessions.get(sessionId)
+        if (!session) return null
+        return { historyLength: session.history?.length ?? 0 }
       })
 
-      // Late-binding fire handler. Loads the session history, runs the
-      // dialectic with the most recent user message as the focal point
-      // and the recent window as sessionHistory, harvests the serenity
-      // synthesis. Errors degrade to no-signal so the cache never holds
-      // stale data.
       const HISTORY_WINDOW = 24
       intelligence.dmn.setOnFire(async (_reason, sessionId) => {
         try {
-          const session = sessionStore.load(sessionId)
+          const session = sessions.get(sessionId)
           const history = session?.history ?? []
           if (history.length === 0) return null
 
