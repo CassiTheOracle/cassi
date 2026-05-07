@@ -73,6 +73,47 @@ export const SUPPRESSIVE_AFFECT_LABELS = new Set<AffectLabel>([
 ])
 
 /**
+ * B1.3 — invocation rule. Binds a composition to a topical-context
+ * trigger so the composition activates automatically when at least one
+ * of `topicKeywords` appears in the current active-concept set.
+ *
+ * Edge-triggered: the rule fires when the trigger flips false→true,
+ * not on every evaluation tick. The evaluator tracks each rule's
+ * `lastSatisfiedAt` to suppress repeat-firings while the trigger
+ * stays satisfied.
+ *
+ * Match policy is case-insensitive substring against active concept
+ * labels — same heuristic the N2 detector uses for meditation seed
+ * topic matching. A rule with `topicKeywords: ['review', 'feedback']`
+ * fires when any active concept contains "review" or "feedback".
+ */
+export interface InvocationRule {
+  /** Unique rule id. Used for upsert + audit. */
+  id: string
+  /** Substring keywords matched (case-insensitive) against active concept labels. */
+  topicKeywords: string[]
+  /** Composition name to invoke when the rule fires. Must already be in the store. */
+  composition: string
+  /** TTL passed to invokeComposition. Default 5. */
+  ttlTurns?: number
+  /** magnitudeScale passed to invokeComposition. Default 1.0. */
+  magnitudeScale?: number
+  /** Free-form description for operator audit. */
+  description?: string
+  /** ISO timestamp the rule was last upserted. */
+  updatedAt: string
+}
+
+export interface InvocationRuleEvaluation {
+  /** Rule ids that fired this tick (false→true edge). */
+  fired: string[]
+  /** Rule ids whose trigger is now false (true→false edge). */
+  unfired: string[]
+  /** Rule ids whose trigger remained satisfied (suppressed re-fire). */
+  stillSatisfied: string[]
+}
+
+/**
  * B2 retrieval-policy spec attached to a composition (parse form).
  *
  * The DSL `with retrieval(<mode>[, <strength>])` lands here. `directed`

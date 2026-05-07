@@ -16,6 +16,7 @@ import type {
   CompositionAst,
   CompositionRecord,
   InvocationRecord,
+  InvocationRule,
   InvocationTrigger,
 } from './types.js'
 
@@ -63,6 +64,25 @@ const SCHEMA_V1 = `
 const SCHEMA_V2_MIGRATION = `
   ALTER TABLE aurora_compositions
     ADD COLUMN retrieval_policy_json TEXT;
+`
+
+/**
+ * B1.3 schema bump — add aurora_invocation_rules table for topical-context
+ * rule-based composition activation.
+ */
+const SCHEMA_V3_MIGRATION = `
+  CREATE TABLE IF NOT EXISTS aurora_invocation_rules (
+    id              TEXT PRIMARY KEY,
+    topic_keywords  TEXT NOT NULL,
+    composition     TEXT NOT NULL,
+    ttl_turns       INTEGER,
+    magnitude_scale REAL,
+    description     TEXT,
+    updated_at      TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_invocation_rules_composition
+    ON aurora_invocation_rules(composition);
 `
 
 interface CompositionRow {
@@ -139,6 +159,10 @@ export class CompositionStore {
         if (!String(err?.message ?? '').includes('duplicate column')) throw err
       }
       this.db.prepare(`INSERT OR IGNORE INTO aurora_compositions_schema_version (version) VALUES (2)`).run()
+    }
+    if (current < 3) {
+      this.db.exec(SCHEMA_V3_MIGRATION)
+      this.db.prepare(`INSERT OR IGNORE INTO aurora_compositions_schema_version (version) VALUES (3)`).run()
     }
   }
 
@@ -268,6 +292,77 @@ export class CompositionStore {
       resolvedNorm: r.resolved_norm,
       metadata: parseJsonOr(r.metadata, {}),
     }))
+  }
+
+  /**
+   * B1.3 — upsert an invocation rule (topical-context activation trigger).
+   * Replaces any existing rule with the same id.
+   */
+  upsertInvocationRule(rule: Omit<InvocationRule, 'updatedAt'> & { updatedAt?: string }): InvocationRule {
+    const updatedAt = rule.updatedAt ?? new Date().toISOString()
+    this.db.prepare(`
+      INSERT INTO aurora_invocation_rules
+        (id, topic_keywords, composition, ttl_turns, magnitude_scale, description, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        topic_keywords  = excluded.topic_keywords,
+        composition     = excluded.composition,
+        ttl_turns       = excluded.ttl_turns,
+        magnitude_scale = excluded.magnitude_scale,
+        description     = excluded.description,
+        updated_at      = excluded.updated_at
+    `).run(
+      rule.id,
+      JSON.stringify(rule.topicKeywords),
+      rule.composition,
+      rule.ttlTurns ?? null,
+      rule.magnitudeScale ?? null,
+      rule.description ?? null,
+      updatedAt,
+    )
+    return { ...rule, updatedAt }
+  }
+
+  /** Get a single rule by id, or null if absent. */
+  getInvocationRule(id: string): InvocationRule | null {
+    const row = this.db.prepare(`SELECT * FROM aurora_invocation_rules WHERE id = ?`).get(id) as {
+      id: string; topic_keywords: string; composition: string;
+      ttl_turns: number | null; magnitude_scale: number | null;
+      description: string | null; updated_at: string;
+    } | undefined
+    if (!row) return null
+    return this.ruleRowToRecord(row)
+  }
+
+  /** List all rules, sorted by id ascending. */
+  listInvocationRules(): InvocationRule[] {
+    const rows = this.db.prepare(`SELECT * FROM aurora_invocation_rules ORDER BY id ASC`).all() as Array<{
+      id: string; topic_keywords: string; composition: string;
+      ttl_turns: number | null; magnitude_scale: number | null;
+      description: string | null; updated_at: string;
+    }>
+    return rows.map(r => this.ruleRowToRecord(r))
+  }
+
+  /** Delete a rule by id. Returns true when a row was deleted. */
+  deleteInvocationRule(id: string): boolean {
+    return this.db.prepare(`DELETE FROM aurora_invocation_rules WHERE id = ?`).run(id).changes > 0
+  }
+
+  private ruleRowToRecord(row: {
+    id: string; topic_keywords: string; composition: string;
+    ttl_turns: number | null; magnitude_scale: number | null;
+    description: string | null; updated_at: string;
+  }): InvocationRule {
+    return {
+      id: row.id,
+      topicKeywords: parseJsonOr<string[]>(row.topic_keywords, []),
+      composition: row.composition,
+      ttlTurns: row.ttl_turns ?? undefined,
+      magnitudeScale: row.magnitude_scale ?? undefined,
+      description: row.description ?? undefined,
+      updatedAt: row.updated_at,
+    }
   }
 
   close(): void {

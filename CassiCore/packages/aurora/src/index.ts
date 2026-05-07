@@ -85,6 +85,7 @@ import { CalibrationManager } from './calibration/manager.js'
 import { CalibrationStore } from './calibration/store.js'
 import type { CalibrationProbeSet, CalibrationResult, DriftReport, RunOptions } from './calibration/types.js'
 import { parseComposition, detectSuppressive, layerSpecToString } from './composition/parser.js'
+import { evaluateInvocationRules as evaluateInvocationRulesPure } from './composition/rule-evaluator.js'
 import { evaluatePredicate, evaluateStrength } from './composition/predicate.js'
 import type { Affect, AffectLabel } from '../mnemic-field/types.js'
 import {
@@ -328,6 +329,8 @@ export class Aurora {
   /** Phase 2 (B1): Concept-arithmetic composition store + active invocation list. */
   private compositionStore: CompositionStore | null = null
   private activeCompositionsList: ActiveComposition[] = []
+  /** B1.3 — set of invocation-rule ids whose trigger was satisfied at last evaluate. */
+  private invocationRuleSatisfied = new Set<string>()
 
   /** Phase 2 (N2): Posture coherence detector. */
   private postureCoherenceDetector: PostureCoherenceDetector | null = null
@@ -1509,6 +1512,65 @@ export class Aurora {
       if (!best || p.strength > best.strength) best = p
     }
     return best
+  }
+
+  /**
+   * B1.3 — invocation-rule registry and edge-triggered evaluation.
+   *
+   * `defineInvocationRule` upserts a topical-context rule. When the
+   * rule's `topicKeywords` start matching active concepts (rising edge),
+   * `evaluateInvocationRules` invokes the bound composition with the
+   * configured ttlTurns/magnitudeScale. Falling edges don't auto-
+   * deactivate — the composition runs through its TTL.
+   */
+  defineInvocationRule(rule: import('./composition/types.js').InvocationRule): import('./composition/types.js').InvocationRule {
+    if (!this.compositionStore) {
+      throw new Error('compositionStore disabled (set compositionEnabled in AuroraConfig)')
+    }
+    return this.compositionStore.upsertInvocationRule(rule)
+  }
+
+  listInvocationRules(): import('./composition/types.js').InvocationRule[] {
+    if (!this.compositionStore) return []
+    return this.compositionStore.listInvocationRules()
+  }
+
+  deleteInvocationRule(id: string): boolean {
+    if (!this.compositionStore) return false
+    return this.compositionStore.deleteInvocationRule(id)
+  }
+
+  /**
+   * Evaluate every registered rule against the current active-concept
+   * set; for each rising edge, invoke the bound composition. Returns
+   * the evaluation result so callers can audit fired/unfired/sustained
+   * rules.
+   *
+   * Caller supplies `activeConcepts` — typically derived from the live
+   * MentalState's activated nodes' labels.
+   */
+  evaluateInvocationRules(activeConcepts: ReadonlyArray<string>): import('./composition/types.js').InvocationRuleEvaluation {
+    if (!this.compositionStore) return { fired: [], unfired: [], stillSatisfied: [] }
+    const rules = this.compositionStore.listInvocationRules()
+    const result = evaluateInvocationRulesPure(rules, activeConcepts, this.invocationRuleSatisfied)
+    for (const id of result.fired) {
+      const rule = rules.find(r => r.id === id)
+      if (!rule) continue
+      try {
+        this.invokeComposition(rule.composition, {
+          ttlTurns: rule.ttlTurns,
+          magnitudeScale: rule.magnitudeScale,
+          trigger: `rule:${rule.id}`,
+        })
+      } catch (err) {
+        this.logger.warn?.('Invocation rule fired but composition invocation failed', {
+          ruleId: rule.id,
+          composition: rule.composition,
+          error: String(err),
+        })
+      }
+    }
+    return result
   }
 
   /**

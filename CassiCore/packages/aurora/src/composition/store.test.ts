@@ -190,4 +190,48 @@ describe('CompositionStore', () => {
     const got = store.getComposition('p')!
     expect(got.retrievalPolicy).toEqual({ mode: 'complementary', strength: 0.5 })
   })
+
+  it('B1.3 — upserts and retrieves an invocation rule', () => {
+    const r = store.upsertInvocationRule({
+      id: 'feedback_review_mode',
+      topicKeywords: ['review', 'feedback', 'critique'],
+      composition: 'honest_but_kind',
+      ttlTurns: 10,
+      magnitudeScale: 0.8,
+      description: 'Activate honest_but_kind during reviews',
+    })
+    expect(r.updatedAt).toBeTruthy()
+
+    const got = store.getInvocationRule('feedback_review_mode')!
+    expect(got.topicKeywords).toEqual(['review', 'feedback', 'critique'])
+    expect(got.composition).toBe('honest_but_kind')
+    expect(got.ttlTurns).toBe(10)
+    expect(got.magnitudeScale).toBeCloseTo(0.8, 6)
+    expect(got.description).toBe('Activate honest_but_kind during reviews')
+  })
+
+  it('B1.3 — getInvocationRule returns null for unknown id', () => {
+    expect(store.getInvocationRule('does-not-exist')).toBeNull()
+  })
+
+  it('B1.3 — listInvocationRules returns sorted-by-id', () => {
+    store.upsertInvocationRule({ id: 'b', topicKeywords: ['x'], composition: 'c1', updatedAt: '2026-01-01T00:00:00Z' })
+    store.upsertInvocationRule({ id: 'a', topicKeywords: ['y'], composition: 'c2', updatedAt: '2026-01-01T00:00:00Z' })
+    expect(store.listInvocationRules().map(r => r.id)).toEqual(['a', 'b'])
+  })
+
+  it('B1.3 — deleteInvocationRule reports success/failure', () => {
+    store.upsertInvocationRule({ id: 'r', topicKeywords: ['x'], composition: 'c', updatedAt: '2026-01-01T00:00:00Z' })
+    expect(store.deleteInvocationRule('r')).toBe(true)
+    expect(store.deleteInvocationRule('r')).toBe(false)
+    expect(store.getInvocationRule('r')).toBeNull()
+  })
+
+  it('B1.3 — upsert replaces an existing rule on conflict', () => {
+    store.upsertInvocationRule({ id: 'r', topicKeywords: ['old'], composition: 'c-old', updatedAt: '2026-01-01T00:00:00Z' })
+    store.upsertInvocationRule({ id: 'r', topicKeywords: ['new'], composition: 'c-new', updatedAt: '2026-02-01T00:00:00Z' })
+    const got = store.getInvocationRule('r')!
+    expect(got.topicKeywords).toEqual(['new'])
+    expect(got.composition).toBe('c-new')
+  })
 })
