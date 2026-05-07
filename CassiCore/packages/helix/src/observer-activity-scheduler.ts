@@ -50,14 +50,21 @@ interface SchedulerLogger {
   warn?: (msg: string, meta?: Record<string, unknown>) => void
 }
 
+const LOG_FIRE = '[observer-cadence] fire'
+const LOG_FIRE_COMPLETE = '[observer-cadence] fire-complete'
+const LOG_FIRE_ERROR = '[observer-cadence] fire-error'
+
 export class ObserverActivityScheduler {
   private activityCount = 0
   private lastFireAt: number | null = null
-  private warmedUp = false
   private warmedUpAt: number | null = null
   private idleCheckTimer?: ReturnType<typeof setInterval>
   private firing = false
   private stopped = false
+
+  private get warmedUp(): boolean {
+    return this.warmedUpAt !== null
+  }
 
   constructor(
     private readonly config: ObserverActivityConfig,
@@ -81,8 +88,7 @@ export class ObserverActivityScheduler {
   recordEvent(): void {
     if (this.stopped) return
     this.activityCount++
-    if (!this.warmedUp && this.activityCount >= this.config.warmupEvents) {
-      this.warmedUp = true
+    if (this.warmedUpAt === null && this.activityCount >= this.config.warmupEvents) {
       this.warmedUpAt = Date.now()
     }
     void this.maybeFire()
@@ -116,6 +122,12 @@ export class ObserverActivityScheduler {
     }
   }
 
+  private msSinceLastFireOrWarmup(now: number): number {
+    if (this.lastFireAt !== null) return now - this.lastFireAt
+    if (this.warmedUpAt !== null) return now - this.warmedUpAt
+    return 0
+  }
+
   private async maybeFire(): Promise<void> {
     if (this.firing || this.stopped) return
     if (!this.warmedUp) return
@@ -128,26 +140,18 @@ export class ObserverActivityScheduler {
       return
     }
 
-    // Idle gate: measured from last fire if any; otherwise from warmup completion.
-    // Fires periodically post-warmup to confirm equanimity even on quiet fields.
-    const idleSinceReference = this.lastFireAt !== null
-      ? now - this.lastFireAt
-      : this.warmedUpAt !== null ? now - this.warmedUpAt : 0
-    if (idleSinceReference >= this.config.maxIdleMs) {
+    // Post-warmup idle floor measured from last fire (or warmup completion when nothing has fired yet).
+    if (this.msSinceLastFireOrWarmup(now) >= this.config.maxIdleMs) {
       await this.runFire('idle')
     }
   }
 
   private checkIdle(): void {
     if (this.stopped || this.firing || !this.warmedUp) return
-    if (!Number.isFinite(this.config.maxIdleMs)) return
     const now = Date.now()
     const idleSinceFire = this.lastFireAt === null ? Infinity : now - this.lastFireAt
     if (idleSinceFire < this.config.cooldownMs) return
-    const idleSinceReference = this.lastFireAt !== null
-      ? now - this.lastFireAt
-      : this.warmedUpAt !== null ? now - this.warmedUpAt : 0
-    if (idleSinceReference >= this.config.maxIdleMs) {
+    if (this.msSinceLastFireOrWarmup(now) >= this.config.maxIdleMs) {
       void this.runFire('idle')
     }
   }
@@ -162,9 +166,9 @@ export class ObserverActivityScheduler {
       : fireAt - this.lastFireAt
     this.lastFireAt = fireAt
     this.activityCount = 0
-    const startedAt = Date.now()
-    this.logger?.info?.('[observer-cadence] fire', {
-      observerId: this.config.observerId ?? 'observer',
+    const observerId = this.config.observerId ?? 'observer'
+    this.logger?.info?.(LOG_FIRE, {
+      observerId,
       reason,
       activityAtFire,
       msSinceLastFire,
@@ -173,16 +177,16 @@ export class ObserverActivityScheduler {
     })
     try {
       await this.fireFn(reason)
-      this.logger?.info?.('[observer-cadence] fire-complete', {
-        observerId: this.config.observerId ?? 'observer',
+      this.logger?.info?.(LOG_FIRE_COMPLETE, {
+        observerId,
         reason,
-        durationMs: Date.now() - startedAt,
+        durationMs: Date.now() - fireAt,
       })
     } catch (err) {
-      this.logger?.warn?.('[observer-cadence] fire-error', {
-        observerId: this.config.observerId ?? 'observer',
+      this.logger?.warn?.(LOG_FIRE_ERROR, {
+        observerId,
         reason,
-        durationMs: Date.now() - startedAt,
+        durationMs: Date.now() - fireAt,
         error: String(err),
       })
     } finally {
