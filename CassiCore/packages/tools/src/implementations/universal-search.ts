@@ -1,7 +1,6 @@
 import { createHash } from 'node:crypto'
 import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { IMemory } from '../../../types/intelligence.js'
-import type { FileArtifactStore } from '../../file-artifact-store.js'
 
 export interface UniversalSearchDeps {
   memory?: IMemory
@@ -9,12 +8,11 @@ export interface UniversalSearchDeps {
     search: (query: string, options?: any) => Promise<any[]>
     getStats?: () => Promise<any>
   }
-  fileArtifactStore?: FileArtifactStore
 }
 
 export const universalSearchDefinition: ToolDefinition = {
   name: 'universal_search',
-  description: 'Unified search across memory, archive, and file artifacts with intelligent deduplication. Searches CassiCore memory (conversations, facts, insights), session archive (historical turns, tool calls), and shared file artifacts returning consolidated, ranked results.',
+  description: 'Unified search across memory and the session archive with intelligent deduplication. Searches CassiCore memory (conversations, facts, insights) and session archive (historical turns, tool calls), returning consolidated, ranked results.',
   parameters: {
     type: 'object',
     properties: {
@@ -315,61 +313,9 @@ export function makeUniversalSearchHandler(deps: UniversalSearchDeps): ToolHandl
       response.sources.archive.error = 'Archive module not available'
     }
 
-    // Search file artifacts
-    if (searchArtifacts && deps.fileArtifactStore) {
-      try {
-        response.sources.artifacts.searched = true
-
-        // List artifacts with path prefix matching the query terms
-        const artifactResults = deps.fileArtifactStore.list({
-          pathPrefix: undefined,    // search all paths
-          includePublic: true,
-          includeShared: true,
-          sessionId: context.sessionId,
-          limit: archiveLimit,
-        })
-
-        // Filter by query relevance: match path, tags, or namespace
-        const queryLower = query.toLowerCase()
-        const queryTerms = queryLower.split(/\s+/)
-        const matchedArtifacts = artifactResults.filter(file => {
-          const searchText = [
-            file.path,
-            file.namespace,
-            ...file.tags,
-            file.mimeType ?? '',
-          ].join(' ').toLowerCase()
-          return queryTerms.some(term => searchText.includes(term))
-        })
-
-        const formattedArtifacts: SearchResult[] = matchedArtifacts.map((file, idx) => ({
-          id: file.id,
-          source: 'artifacts' as const,
-          type: 'file-artifact',
-          content: `cassi://files/${file.namespace}/${file.path} [v${file.currentVersionNumber}] (${file.visibility}, tags: ${file.tags.join(', ') || 'none'})`,
-          score: (1 - (idx / Math.max(matchedArtifacts.length, 1))) * 0.7,
-          timestamp: new Date(file.updatedAt).toISOString(),
-          sessionId: file.ownerSessionId ?? undefined,
-          metadata: {
-            namespace: file.namespace,
-            path: file.path,
-            version: file.currentVersionNumber,
-            visibility: file.visibility,
-            tags: file.tags,
-            mimeType: file.mimeType,
-            uri: `cassi://files/${file.namespace}/${file.path}`,
-          },
-          contentHash: computeContentHash(file.id),
-        }))
-
-        response.sources.artifacts.resultsFound = formattedArtifacts.length
-        allResults.push(...formattedArtifacts)
-      } catch (err) {
-        response.sources.artifacts.error = String(err)
-        context.logger.error('universal_search artifacts query failed', { error: String(err), query })
-      }
-    } else if (searchArtifacts) {
-      response.sources.artifacts.error = 'FileArtifactStore not available'
+    // Artifact search removed: FileArtifactStore deleted (cassi://files/ retired).
+    if (searchArtifacts) {
+      response.sources.artifacts.error = 'Artifact search removed — FileArtifactStore retired'
     }
 
     // Deduplicate if enabled

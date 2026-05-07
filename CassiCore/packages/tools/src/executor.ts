@@ -1,8 +1,6 @@
 import { resolveToolDomain } from '../intelligence/permission-oracle/types.js'
 import { TTLCache } from '../utils/ttl-cache.js'
 import { presentForLLM } from './presentation.js'
-import { commitSessionChanges } from './git-session-tracker.js'
-import type { SessionCommitOpts, SessionCommitResult } from './git-session-tracker.js'
 
 import { validateToolInput, validateToolOutput, executeToolSafe } from './safety.js'
 import { ExternalHookRunner, mergeHookFeedback, EMPTY_HOOK_CONFIG } from './hooks/external-hook-runner.js'
@@ -788,26 +786,4 @@ export class ToolExecutor {
   }
 
 
-  /**
-   * Commit workspace files as a single git commit with session attribution.
-   * Called when a delegated agent session (Helix/Dyad/Lumen/Flux) completes.
-   */
-  async commitSession(
-    opts: Omit<SessionCommitOpts, 'workingDir'>,
-  ): Promise<SessionCommitResult> {
-    const store = this.defaultContext._fileArtifactStore
-    if (!store) {
-      return {
-        committed: false,
-        fileCount: 0,
-        files: [],
-        reason: 'FileArtifactStore not available',
-      }
-    }
-
-    return commitSessionChanges(store, {
-      ...opts,
-      workingDir: this.defaultContext.workingDir,
-    }, this.logger)
-  }
 }

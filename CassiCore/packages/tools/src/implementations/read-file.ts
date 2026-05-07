@@ -8,15 +8,12 @@
  * - Single-pass line counting
  * - LRU cache for small files
  * - No existsSync (handle error instead)
- * - cassi://files/ URI support for FileArtifactStore integration
  */
 
 import { open, stat, readdir } from 'node:fs/promises'
 import { resolve, dirname, basename } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
-import { parseFileVaultUri } from '../../intelligence/file-vault/index.js'
 import { getRepoRoot } from '../../utils/paths.js'
 
 const MAX_BYTES = 1024 * 1024  // 1MB max
@@ -220,11 +217,11 @@ function extractLinesScan(
 
 export const readFileDefinition: ToolDefinition = {
   name: 'read_file',
-  description: 'Read the contents of a file. Supports optional line offset and limit. Also reads cassi://files/ URIs from the shared FileArtifactStore. (Optimized: async I/O, caching)',
+  description: 'Read the contents of a file. Supports optional line offset and limit. (Optimized: async I/O, caching)',
   parameters: {
     type: 'object',
     properties: {
-      path:   { type: 'string', description: 'Path to the file (absolute, relative to workspace, or cassi://files/{namespace}/{path}[@v{version}])' },
+      path:   { type: 'string', description: 'Path to the file (absolute or relative to workspace)' },
       offset: { type: 'number', description: 'Line number to start reading from (1-indexed, optional)' },
       limit:  { type: 'number', description: 'Maximum number of lines to read (optional)' },
     },
@@ -273,50 +270,7 @@ export const readFileHandler: ToolHandler = async (
     return `Error: CodeVault read not yet wired. Use cassi://self/ for CassiCore source or filesystem paths for external projects.`
   }
 
-  // cassi://files/ URIs route to FileVault (preferred) or FileArtifactStore (fallback)
-  const vaultUri = parseFileVaultUri(rawPath) ?? parseFileArtifactUri(rawPath)
-  if (vaultUri) {
-    try {
-      const vault = ctx._fileVault
-      if (vault) {
-        const result = vault.read({
-          namespace: vaultUri.namespace,
-          path: vaultUri.path,
-          version: vaultUri.version,
-          sessionId: ctx.sessionId,
-          admin: false,
-        })
-        let content = result.content.toString('utf-8')
-        if (offset > 1 || limit !== undefined) {
-          content = extractLines(Buffer.from(content), offset, limit)
-        }
-        const versionTag = `@v${result.version.versionNumber}`
-        return `[vault: ${vaultUri.namespace}/${vaultUri.path}${versionTag} | ${result.version.size} bytes | ${result.file.visibility}]\n\n${content}`
-      }
-      // Fallback to legacy FileArtifactStore
-      const store = ctx._fileArtifactStore
-      if (!store) {
-        return `Error: No file store available. Cannot read cassi:// URIs.`
-      }
-      const result = store.read({
-        namespace: vaultUri.namespace,
-        path: vaultUri.path,
-        version: vaultUri.version,
-        sessionId: ctx.sessionId,
-        admin: false,
-      })
-      let content = result.content.toString('utf-8')
-      if (offset > 1 || limit !== undefined) {
-        content = extractLines(Buffer.from(content), offset, limit)
-      }
-      const versionTag = `@v${result.version.versionNumber}`
-      return `[artifact: ${vaultUri.namespace}/${vaultUri.path}${versionTag} | ${result.version.size} bytes | ${result.file.visibility}]\n\n${content}`
-    } catch (err) {
-      return `Error reading artifact: ${String(err)}`
-    }
-  }
-  
-  const absPath = rawPath.startsWith('/') 
+  const absPath = rawPath.startsWith('/')
     ? rawPath 
     : resolve(ctx.workingDir, rawPath)
   

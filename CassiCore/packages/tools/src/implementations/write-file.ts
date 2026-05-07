@@ -7,7 +7,6 @@
  * - Atomic writes (write to temp, then rename)
  * - Directory caching to avoid redundant mkdir calls
  * - Stream-based writes for large files
- * - cassi://files/ URI support for FileArtifactStore integration
  */
 
 import { createWriteStream } from 'node:fs'
@@ -18,8 +17,6 @@ import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
-import { parseFileArtifactUri, FileArtifactStore } from '../../file-artifact-store.js'
-import { parseFileVaultUri } from '../../intelligence/file-vault/index.js'
 import { getRepoRoot } from '../../utils/paths.js'
 
 
@@ -40,55 +37,6 @@ function gitStage(absPath: string, workingDir: string, logger: ToolExecutionCont
     })
   } catch {
     // execFile itself threw — git not available, etc.  Silently ignore.
-  }
-}
-
-/**
- * Mirror a filesystem write into the FileArtifactStore under the `workspace:`
- * namespace.  This provides attribution (who wrote what, when) and version
- * history for every agent file-write.  Fire-and-forget — failures are logged
- * but never block the write.
- * @dep callers: writeFileHandler (core/tools/implementations/write-file.ts), writeFilesBatch (core/tools/implementations/write-file.ts)
- * @dep module: Implementations
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
- */
-function mirrorToArtifactStore(
-  absPath: string,
-  content: string,
-  ctx: ToolExecutionContext,
-): void {
-  const relPath = relative(ctx.workingDir, absPath)
-  if (relPath.startsWith('..')) return
-
-  const writeOpts = {
-    namespace: 'workspace',
-    path: relPath,
-    content,
-    sessionId: ctx.sessionId,
-    agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
-    message: `write_file: ${relPath}`,
-    visibility: 'public' as const,
-    tags: ['workspace-mirror', ctx.sessionType ?? 'unknown'].filter(Boolean),
-  }
-
-  // Prefer FileVault (topology-aware), fall back to FileArtifactStore
-  const vault = ctx._fileVault
-  if (vault) {
-    try {
-      vault.write(writeOpts)
-      return
-    } catch (err) {
-      ctx.logger.debug?.('[write_file] file-vault mirror failed (non-fatal)', { path: relPath, error: String(err) })
-    }
-  }
-
-  const store = ctx._fileArtifactStore
-  if (store) {
-    try {
-      store.write(writeOpts)
-    } catch (err) {
-      ctx.logger.debug?.('[write_file] artifact-store mirror failed (non-fatal)', { path: relPath, error: String(err) })
-    }
   }
 }
 
@@ -301,60 +249,6 @@ export async function checkEditMagnitude(
 
 // WHY: Files above this line count are worth snapshotting before overwrite.
 // Below this threshold, git recovery is sufficient.
-const MIN_LINES_FOR_BACKUP = 50
-
-/**
- * Snapshot the existing file content into the FileArtifactStore under the
- * `backup:` namespace before overwriting. Fire-and-forget — failures are
- * logged but never block the write.
- *
- * Only backs up when:
- * - FileArtifactStore is available
- * - The existing file has >= MIN_LINES_FOR_BACKUP lines
- * - The write involves net deletion (newLines < oldLines)
- */
-function backupBeforeOverwrite(
-  absPath: string,
-  existingContent: string,
-  oldLines: number,
-  newLines: number,
-  ctx: ToolExecutionContext,
-): void {
-  const store = ctx._fileArtifactStore
-  if (!store) return
-
-  // Only backup if the file is large enough and content is being removed
-  if (oldLines < MIN_LINES_FOR_BACKUP) return
-  if (newLines >= oldLines) return
-
-  const relPath = relative(ctx.workingDir, absPath)
-  if (relPath.startsWith('..')) return
-
-  try {
-    store.write({
-      namespace: 'backup',
-      path: relPath,
-      content: existingContent,
-      sessionId: ctx.sessionId,
-      agentId: ctx.sessionType ? `${ctx.sessionType}/${ctx.sessionId}` : ctx.sessionId,
-      message: `pre-overwrite backup: ${oldLines}→${newLines} lines (${relPath})`,
-      visibility: 'public',
-      tags: ['pre-overwrite-backup', ctx.sessionType ?? 'unknown'].filter(Boolean),
-    })
-    ctx.logger.debug?.('[write_file] pre-overwrite backup stored', {
-      path: relPath,
-      oldLines,
-      newLines,
-      namespace: 'backup',
-    })
-  } catch (err) {
-    ctx.logger.debug?.('[write_file] pre-overwrite backup failed (non-fatal)', {
-      path: relPath,
-      error: String(err),
-    })
-  }
-}
-
 // Constants
 
 const MAX_SYNC_SIZE = 1024 * 1024  // 1MB - sync writes below this
@@ -485,20 +379,17 @@ async function writeStreaming(
 
 export const writeFileDefinition: ToolDefinition = {
   name: 'write_file',
-  description: 'Write content to a file. Creates parent directories automatically. Uses atomic writes for data safety. Also writes to cassi://files/ URIs in the shared FileArtifactStore.',
+  description: 'Write content to a file. Creates parent directories automatically. Uses atomic writes for data safety.',
   parameters: {
     type: 'object',
     properties: {
-      path:    { type: 'string', description: 'Destination path (absolute, relative to workspace, or cassi://files/{namespace}/{path})' },
+      path:    { type: 'string', description: 'Destination path (absolute or relative to workspace)' },
       content: { type: 'string', description: 'Content to write' },
       atomic:  { type: 'boolean', description: 'Use atomic write (default: true)' },
-      message: { type: 'string', description: 'Commit message (for cassi://files/ writes only)' },
-      visibility: { type: 'string', enum: ['private', 'shared', 'public'], description: 'Access visibility (for cassi://files/ writes only, default: private)' },
-      tags:    { type: 'array', items: { type: 'string' }, description: 'Tags (for cassi://files/ writes only)' },
     },
     required: ['path', 'content'],
   },
-  timeoutMs: 60_000,
+  timeoutMs: 15_000,
   category: 'core',
   requiredPermission: 'workspace-write',
 }
@@ -514,45 +405,6 @@ export const writeFileHandler: ToolHandler = async (
   const content = input['content'] as string
   const atomic = (input['atomic'] as boolean | undefined) ?? ATOMIC_WRITE
 
-  // Routes cassi://files/ URIs to FileVault (preferred) or FileArtifactStore (fallback)
-  const vaultUri = parseFileVaultUri(rawPath) ?? parseFileArtifactUri(rawPath)
-  if (vaultUri) {
-    try {
-      const vault = ctx._fileVault
-      if (vault) {
-        const result = vault.write({
-          namespace: vaultUri.namespace,
-          path: vaultUri.path,
-          content,
-          sessionId: ctx.sessionId,
-          message: input['message'] as string | undefined,
-          visibility: input['visibility'] as 'private' | 'shared' | 'public' | undefined,
-          tags: input['tags'] as string[] | undefined,
-        })
-        const uri = `cassi://files/${result.file.namespace}/${result.file.path}@v${result.version.versionNumber}`
-        return `${result.created ? 'Created' : 'Updated'} artifact: ${uri} (${result.version.size} bytes, v${result.version.versionNumber})`
-      }
-      // Fallback to legacy FileArtifactStore
-      const store = ctx._fileArtifactStore
-      if (!store) {
-        return `Error: No file store available. Cannot write cassi:// URIs.`
-      }
-      const result = store.write({
-        namespace: vaultUri.namespace,
-        path: vaultUri.path,
-        content,
-        sessionId: ctx.sessionId,
-        message: input['message'] as string | undefined,
-        visibility: input['visibility'] as 'private' | 'shared' | 'public' | undefined,
-        tags: input['tags'] as string[] | undefined,
-      })
-      const uri = `cassi://files/${result.file.namespace}/${result.file.path}@v${result.version.versionNumber}`
-      return `${result.created ? 'Created' : 'Updated'} artifact: ${uri} (${result.version.size} bytes, v${result.version.versionNumber})`
-    } catch (err) {
-      return `Error writing artifact: ${String(err)}`
-    }
-  }
-  
   // Path resolution
   const absPath = rawPath.startsWith('/') ? rawPath : resolve(ctx.workingDir, rawPath)
 
@@ -601,17 +453,6 @@ export const writeFileHandler: ToolHandler = async (
     return `Error: ${magnitudeCheck.reason}`
   }
 
-  // Pre-write backup — snapshot existing content before overwriting
-  if (magnitudeCheck.existingContent && magnitudeCheck.oldLines > 0) {
-    backupBeforeOverwrite(
-      absPath,
-      magnitudeCheck.existingContent,
-      magnitudeCheck.oldLines,
-      magnitudeCheck.newLines,
-      ctx,
-    )
-  }
-
   try {
     const result = await writeFileOptimized(
       { path: absPath, content, atomic },
@@ -625,8 +466,6 @@ export const writeFileHandler: ToolHandler = async (
       duration: `${result.durationMs}ms`
     })
 
-    // Mirror into FileArtifactStore (attribution, version history, recovery)
-    mirrorToArtifactStore(absPath, content, ctx)
     // Stage in git (protection against accidental deletion)
     gitStage(absPath, ctx.workingDir, ctx.logger)
 
@@ -703,7 +542,6 @@ export async function writeFilesBatch(
 
         const result = await writeFileOptimized(options, ctx)
         results.set(key, { success: true, bytesWritten: result.bytesWritten })
-        mirrorToArtifactStore(absPath, options.content, ctx)
         gitStage(absPath, ctx.workingDir, ctx.logger)
       } catch (err) {
         results.set(key, { success: false, bytesWritten: 0, error: String(err) })

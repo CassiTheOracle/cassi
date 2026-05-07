@@ -83,10 +83,6 @@ export interface ToolExecutionContext {
   networkAllowlist: string[];  // allowed URL domains; ['*'] = unrestricted
   logger: import('../../types/interfaces.js').ILogger;
   registry?: import('./registry.js').ToolRegistry;
-  /** Shared file artifact store — injected by daemon for cassi:// URI support */
-  _fileArtifactStore?: import('../file-artifact-store.js').FileArtifactStore;
-  /** File Vault — topology-aware replacement for FileArtifactStore */
-  _fileVault?: import('../intelligence/file-vault/index.js').FileVault;
   /** Code store for CassiCore source files in the mnemic field */
   _codeStore?: import('../intelligence/mnemic-field/code-store.js').CodeStore;
   /** Global blackboard registry — injected by daemon for cross-session todo/plan sharing */

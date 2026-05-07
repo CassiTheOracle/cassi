@@ -60,7 +60,6 @@ import type { TurnPipeline } from '../../turn-pipeline.js'
 import type { IEventBus, ILogger } from '../../../types/interfaces.js'
 import type { SessionStore } from '../../session-store.js'
 import type { EventHistory } from '../../event-history.js'
-import type { FileArtifactStore } from '../../file-artifact-store.js'
 
 
 
@@ -87,8 +86,6 @@ export interface CoreToolDeps {
   peerToolDeps?: PeerToolDeps
   /** Lazy getter for the background job manager */
   getJobManager?: () => import('../../jobs/job-manager.js').JobManager | undefined
-  /** Shared file artifact store for agent file sharing */
-  fileArtifactStore?: FileArtifactStore
   /** Dependencies for collect_thoughts tool */
   collectThoughtsDeps?: CollectThoughtsDeps
 
@@ -300,14 +297,12 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
     registry.register(debugSessionDefinition, makeDebugSessionHandler(debugSessionDeps))
   }
 
-  // universal_search: Unified memory, archive, and artifact search with deduplication
+  // universal_search: Unified memory + archive search with deduplication
   if (deps.memory) {
-    // Archive and fileArtifactStore are optional - tool handles gracefully if not available
     const archive = daemon?.archive
     const universalSearchDeps: UniversalSearchDeps = {
       memory: deps.memory,
       archive: archive || undefined,
-      fileArtifactStore: deps.fileArtifactStore,
     }
     registry.register(universalSearchDefinition, makeUniversalSearchHandler(universalSearchDeps))
   }
