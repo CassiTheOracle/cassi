@@ -269,10 +269,10 @@ export class HelixSynapse {
 
   private activityConfig(): ObserverActivityConfig {
     return {
-      cooldownMs: 20_000,
-      maxIdleMs: 120_000,
-      materialThreshold: 4,
-      warmupEvents: 2,
+      cooldownMs: 90_000,
+      maxIdleMs: 480_000,
+      materialThreshold: 8,
+      warmupEvents: 4,
       observerId: `helix-synapse:${this.helixId.slice(0, 8)}`,
     }
   }
