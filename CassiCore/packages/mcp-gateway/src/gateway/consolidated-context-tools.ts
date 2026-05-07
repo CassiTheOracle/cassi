@@ -11,6 +11,7 @@
 
 import { fetchWithTimeout, fetchIntelligence, formatJsonResponse, formatTextResponse } from './helpers.js'
 import type { ILogger } from '../../types/interfaces.js'
+import { ALL_TIER_NAMES } from '../../core/model-routing/model-directive.js'
 
 const ADMIN_BASE = 'http://localhost:7433'
 
@@ -99,7 +100,7 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
       },
       tier: {
         type: 'string',
-        enum: ['minimax', 'qwenPlus', 'glm', 'kimi', 'qwenMax', 'sonnet', 'opus', 'background'],
+        enum: [...ALL_TIER_NAMES],
         description: 'Tier name for next_tier action. background is the cheap eco tier; sonnet/opus are primary; others are alternates configured in ModelDirective.',
       },
     },
