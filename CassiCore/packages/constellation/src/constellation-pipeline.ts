@@ -2248,7 +2248,8 @@ export async function runConstellationPipeline(
 
       const helixPromises: Array<{ helixId: string; promise: Promise<HelixResult> }> = []
       const pendingTasks = tracker.getPendingTasks()
-      
+      const isSequential = decomposition.strategy === 'sequential'
+
       for (const trackedTask of pendingTasks) {
         const subContext = [
           decomposition.sharedContext,
@@ -2264,15 +2265,24 @@ export async function runConstellationPipeline(
         tracker.assignTask(trackedTask.id, h.helixId)
         tracker.startTask(trackedTask.id)
         helixPromises.push(h)
+        // Sequential strategy: serialize subtasks. The for-loop blocks here until
+        // this subtask's Helix completes (or fails) before launching the next one.
+        // Parallel/tree strategies fall through and continue spawning in the loop.
+        if (isSequential) {
+          // Allow the sequential chain to be aborted by external cancel.
+          await Promise.race([h.promise.catch(() => undefined), cancelPromise])
+        }
       }
       rootHelixId = helixPromises[0]?.helixId ?? ''
 
       const spawnPoller = pollSpawnRequests()
 
-      log.info('Waiting for decomposed sub-task Helixes', { count: helixPromises.length })
+      log.info('Waiting for decomposed sub-task Helixes', { count: helixPromises.length, strategy: decomposition.strategy })
       // WHY: Use allSettled so a single branch failure doesn't cascade-kill the
       // entire constellation. Individual branch failures are handled by the
       // .catch() handler on each promise. The Corpus manages lifecycle decisions.
+      // For sequential strategy, every promise has already settled by this point;
+      // allSettled reduces to a no-op log line, which is fine.
       const settledPromise = Promise.allSettled(helixPromises.map(h => h.promise))
         .then((results) => {
           const fulfilled = results.filter(r => r.status === 'fulfilled').length
