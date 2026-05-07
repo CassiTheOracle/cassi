@@ -34,7 +34,7 @@ export interface CorpusObserverLayerConfig {
 
 export const DEFAULT_CORPUS_OBSERVER_LAYER_CONFIG: CorpusObserverLayerConfig = {
   enabled: true,
-  modelTier: 'qwenMax',
+  modelTier: 'opus',
   maxTokens: 2_000,
   timeoutMs: 60_000,
   pollIntervalMs: 12_000,

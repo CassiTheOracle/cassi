@@ -35,7 +35,7 @@ export interface ClusterObserverLayerConfig {
 
 export const DEFAULT_CLUSTER_OBSERVER_LAYER_CONFIG: ClusterObserverLayerConfig = {
   enabled: true,
-  modelTier: 'qwenMax',
+  modelTier: 'opus',
   maxTokens: 1_500,
   timeoutMs: 45_000,
   pollIntervalMs: 8_000,
