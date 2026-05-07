@@ -2100,6 +2100,41 @@ export class Aurora {
   }
 
   /**
+   * C3.2 — propose an overlay-patch candidate from a Reverie/observer
+   * insight. Returns null when overlay is disabled. Throws when the
+   * patch op is outside the Insert/InsertKnn allowlist.
+   */
+  proposeOverlayCandidate(opts: {
+    patch: OverlayPatch
+    source: import('./overlay-layer.js').OverlayCandidate['source']
+    rationale: string
+    confidence: number
+    evidence?: Record<string, unknown>
+  }): import('./overlay-layer.js').OverlayCandidate | null {
+    return this.overlayLayer?.proposeOverlayCandidate(opts) ?? null
+  }
+
+  /** C3.2 — list pending proposed-patch candidates, highest confidence first. */
+  listOverlayCandidates(): import('./overlay-layer.js').OverlayCandidate[] {
+    return this.overlayLayer?.listOverlayCandidates() ?? []
+  }
+
+  /** C3.2 — accept a proposed candidate: applies its patch + clears the candidate. */
+  acceptOverlayCandidate(id: string): OverlayApplyResult | null {
+    return this.overlayLayer?.acceptOverlayCandidate(id) ?? null
+  }
+
+  /** C3.2 — reject a proposed candidate without applying. */
+  rejectOverlayCandidate(id: string, reason?: string): boolean {
+    return this.overlayLayer?.rejectOverlayCandidate(id, reason) ?? false
+  }
+
+  /** C3.2 — modify a pending candidate's patch (operator tweak). */
+  modifyOverlayCandidate(id: string, patch: OverlayPatch): import('./overlay-layer.js').OverlayCandidate | null {
+    return this.overlayLayer?.modifyOverlayCandidate(id, patch) ?? null
+  }
+
+  /**
    * B7.4 — counterfactual projection summary (active forks).
    * Returns null when counterfactual exploration is disabled.
    */

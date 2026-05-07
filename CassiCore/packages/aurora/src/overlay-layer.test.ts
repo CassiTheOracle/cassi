@@ -478,4 +478,108 @@ describe('OverlayLayer', () => {
       expect(layer.rejectReversalCandidate('nope')).toBe(false)
     })
   })
+
+  describe('C3.2 proposed-patch candidates', () => {
+    it('proposeOverlayCandidate creates and returns a candidate', () => {
+      const c = layer.proposeOverlayCandidate({
+        patch: makeInsertPatch(),
+        source: 'reverie',
+        rationale: 'High-confidence observation',
+        confidence: 0.85,
+      })
+      expect(c.id).toMatch(/^oc-/)
+      expect(c.source).toBe('reverie')
+      expect(c.confidence).toBe(0.85)
+    })
+
+    it('proposeOverlayCandidate rejects disallowed op (Update/Delete)', () => {
+      const badPatch = { ...makeInsertPatch(), op: 'update' as any }
+      expect(() =>
+        layer.proposeOverlayCandidate({
+          patch: badPatch,
+          source: 'cassi',
+          rationale: 'test',
+          confidence: 0.7,
+        }),
+      ).toThrow(/not allowed/)
+    })
+
+    it('proposeOverlayCandidate rejects out-of-range confidence', () => {
+      expect(() =>
+        layer.proposeOverlayCandidate({
+          patch: makeInsertPatch(),
+          source: 'cassi',
+          rationale: 'r',
+          confidence: 1.5,
+        }),
+      ).toThrow(/confidence/)
+    })
+
+    it('listOverlayCandidates sorts by confidence descending', () => {
+      layer.proposeOverlayCandidate({ patch: makeInsertPatch({ id: 'p1' }), source: 'cassi', rationale: 'r', confidence: 0.4 })
+      layer.proposeOverlayCandidate({ patch: makeKnnPatch({ id: 'p2' }), source: 'cassi', rationale: 'r', confidence: 0.9 })
+      layer.proposeOverlayCandidate({ patch: makeInsertPatch({ id: 'p3' }), source: 'cassi', rationale: 'r', confidence: 0.7 })
+      const list = layer.listOverlayCandidates()
+      expect(list.map(c => c.confidence)).toEqual([0.9, 0.7, 0.4])
+    })
+
+    it('acceptOverlayCandidate applies the patch + clears', () => {
+      const c = layer.proposeOverlayCandidate({
+        patch: makeInsertPatch({ id: 'accept-me' }),
+        source: 'reverie',
+        rationale: 'apply this',
+        confidence: 0.85,
+      })
+      const result = layer.acceptOverlayCandidate(c.id)
+      expect(result).not.toBeNull()
+      expect(result!.applied).toBe(true)
+      expect(result!.patchId).toBe('accept-me')
+      expect(layer.listOverlayCandidates()).toEqual([])
+    })
+
+    it('rejectOverlayCandidate clears without applying', () => {
+      const c = layer.proposeOverlayCandidate({
+        patch: makeInsertPatch({ id: 'reject-me' }),
+        source: 'observer',
+        rationale: 'maybe later',
+        confidence: 0.6,
+      })
+      expect(layer.rejectOverlayCandidate(c.id, 'too-low-confidence')).toBe(true)
+      expect(layer.listOverlayCandidates()).toEqual([])
+      // Patch was NOT applied
+      expect(layer.getPatch('reject-me')).toBeNull()
+    })
+
+    it('modifyOverlayCandidate updates patch in place', () => {
+      const c = layer.proposeOverlayCandidate({
+        patch: makeInsertPatch({ id: 'orig' }),
+        source: 'cassi',
+        rationale: 'r',
+        confidence: 0.7,
+      })
+      const newPatch = makeKnnPatch({ id: 'modified' })
+      const updated = layer.modifyOverlayCandidate(c.id, newPatch)
+      expect(updated).not.toBeNull()
+      expect(updated!.id).toBe(c.id) // Same candidate id
+      expect(updated!.patch.id).toBe('modified')
+      expect(updated!.patch.op).toBe('insert_knn')
+    })
+
+    it('modifyOverlayCandidate rejects disallowed op', () => {
+      const c = layer.proposeOverlayCandidate({
+        patch: makeInsertPatch(),
+        source: 'cassi',
+        rationale: 'r',
+        confidence: 0.7,
+      })
+      expect(() => layer.modifyOverlayCandidate(c.id, { ...makeInsertPatch(), op: 'delete' as any }))
+        .toThrow(/not allowed/)
+    })
+
+    it('accept/reject/modify return null/false on unknown id', () => {
+      expect(layer.acceptOverlayCandidate('nope')).toBeNull()
+      expect(layer.rejectOverlayCandidate('nope')).toBe(false)
+      expect(layer.modifyOverlayCandidate('nope', makeInsertPatch())).toBeNull()
+    })
+  })
 })

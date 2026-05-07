@@ -114,6 +114,27 @@ export interface DriftFinding {
 }
 
 /**
+ * C3.2 — proposed-patch candidate from Reverie / observer / manual
+ * source. Registered as advisory; accept materializes into apply().
+ *
+ * Source provenance (`reverie` / `observer` / `cassi` / `operator`)
+ * is preserved for audit; the OverlayPatch's own `provenance` field
+ * carries the apply-time source once accepted.
+ */
+export interface OverlayCandidate {
+  id: string
+  patch: OverlayPatch
+  source: 'reverie' | 'observer' | 'cassi' | 'operator'
+  /** Proposer's rationale: why this patch should be applied. */
+  rationale: string
+  /** Confidence in [0, 1]. Per spec §C3.2, Reverie sources should be Tier 2+ ≥ 0.7. */
+  confidence: number
+  proposedAt: string
+  /** Optional evidence payload (linked observation id, Reverie insight id, etc.). */
+  evidence?: Record<string, unknown>
+}
+
+/**
  * C3.3 — reversal candidate registered against a specific patch id,
  * with a reason and optional evidence payload (e.g., the drift finding
  * or new-finding contradiction that triggered the candidate).
@@ -152,6 +173,8 @@ export class OverlayLayer {
   private nextPatchSeq = 0
   /** C3.3 — pending reversal candidates keyed by candidate id. */
   private readonly reversalCandidates = new Map<string, ReversalCandidate>()
+  /** C3.2 — pending proposed-patch candidates keyed by candidate id. */
+  private readonly proposedCandidates = new Map<string, OverlayCandidate>()
 
   constructor(logger: ILogger) {
     this.logger = logger.child ? logger.child('overlay-layer') : logger
@@ -517,6 +540,97 @@ export class OverlayLayer {
     this.reversalCandidates.delete(id)
     this.logger.info?.('Reversal candidate rejected', { id, patchId: candidate.patchId, reason })
     return true
+  }
+
+  /**
+   * C3.2 — register a proposed-patch candidate. Caller (Reverie /
+   * observer / operator) supplies the patch + provenance; Aurora
+   * surfaces these in projection for confirmation.
+   *
+   * Spec C3.2: only Insert / InsertKnn ops are valid in this phase
+   * (Update / Delete / DeleteKnn are gated to research-only C3.4 /
+   * C3.5). Candidates carrying disallowed ops are rejected
+   * immediately with a clear error so misconfigured proposers can't
+   * sneak in upgrades.
+   */
+  proposeOverlayCandidate(opts: {
+    patch: OverlayPatch
+    source: OverlayCandidate['source']
+    rationale: string
+    confidence: number
+    evidence?: Record<string, unknown>
+  }): OverlayCandidate {
+    if (!ALLOWED_OPS.has(opts.patch.op)) {
+      throw new Error(`proposeOverlayCandidate: op '${opts.patch.op}' not allowed in this phase (Insert/InsertKnn only)`)
+    }
+    if (!Number.isFinite(opts.confidence) || opts.confidence < 0 || opts.confidence > 1) {
+      throw new Error(`proposeOverlayCandidate: confidence must be in [0, 1], got ${opts.confidence}`)
+    }
+    const id = `oc-${Date.now()}-${this.nextPatchSeq++}`
+    const candidate: OverlayCandidate = {
+      id,
+      patch: opts.patch,
+      source: opts.source,
+      rationale: opts.rationale,
+      confidence: opts.confidence,
+      proposedAt: new Date().toISOString(),
+      evidence: opts.evidence,
+    }
+    this.proposedCandidates.set(id, candidate)
+    this.logger.info?.('Overlay candidate proposed', {
+      id, source: opts.source, op: opts.patch.op, layer: opts.patch.layer, confidence: opts.confidence,
+    })
+    return candidate
+  }
+
+  /**
+   * C3.2 — list pending proposed-patch candidates, sorted by
+   * confidence descending so the most-actionable surface first.
+   */
+  listOverlayCandidates(): OverlayCandidate[] {
+    return [...this.proposedCandidates.values()].sort((a, b) => b.confidence - a.confidence)
+  }
+
+  /**
+   * C3.2 — accept a candidate: applies the patch and consumes the
+   * candidate. Returns the apply result, or null when the candidate
+   * id is unknown.
+   */
+  acceptOverlayCandidate(id: string): OverlayApplyResult | null {
+    const candidate = this.proposedCandidates.get(id)
+    if (!candidate) return null
+    const result = this.apply(candidate.patch)
+    this.proposedCandidates.delete(id)
+    return result
+  }
+
+  /**
+   * C3.2 — reject a candidate without applying. Optional reason
+   * threads through to the audit log for review.
+   */
+  rejectOverlayCandidate(id: string, reason?: string): boolean {
+    const candidate = this.proposedCandidates.get(id)
+    if (!candidate) return false
+    this.proposedCandidates.delete(id)
+    this.logger.info?.('Overlay candidate rejected', { id, source: candidate.source, reason })
+    return true
+  }
+
+  /**
+   * C3.2 — modify a pending candidate's patch in place (e.g., the
+   * operator wants to apply a tweaked version). Returns the updated
+   * candidate, or null if the id is unknown. The candidate retains
+   * its id and provenance; only the patch shape changes.
+   */
+  modifyOverlayCandidate(id: string, patch: OverlayPatch): OverlayCandidate | null {
+    const existing = this.proposedCandidates.get(id)
+    if (!existing) return null
+    if (!ALLOWED_OPS.has(patch.op)) {
+      throw new Error(`modifyOverlayCandidate: op '${patch.op}' not allowed in this phase`)
+    }
+    const updated: OverlayCandidate = { ...existing, patch }
+    this.proposedCandidates.set(id, updated)
+    return updated
   }
 
   /**
