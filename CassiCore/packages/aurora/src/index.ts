@@ -1343,6 +1343,28 @@ export class Aurora {
    *
    * Returns `[]` when any of the three Phase-4 modules are disabled.
    */
+  /**
+   * C1.4 — `leave_open` workflow. Mark a meditation seed as a
+   * productive uncertainty rather than abandoned: it stops appearing
+   * in scheduling candidates but surfaces in the projection's
+   * "currently held questions" section.
+   *
+   * Returns `false` when the seeder is disabled.
+   */
+  markSeedLeftOpen(seedId: string, rationale: string): boolean {
+    if (!this.meditationSeeder) return false
+    this.meditationSeeder.markLeftOpen(seedId, rationale)
+    return true
+  }
+
+  /**
+   * C1.4 — list seeds in left_open state with their stored rationale.
+   * Returns [] when the seeder is disabled.
+   */
+  listOpenQuestions(): Array<import('./meditation-seeder.js').MeditationSeed & { rationale: string | null }> {
+    return this.meditationSeeder?.getOpenQuestions() ?? []
+  }
+
   collectAutoScheduledTopics(
     totalMeditationCount: number,
     directedMeditationCount: number,

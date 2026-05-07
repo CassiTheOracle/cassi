@@ -48,7 +48,7 @@ export interface SeedingResult {
   skipped: Array<{ gapId: string; reason: string }>
 }
 
-type SeedStatus = 'pending' | 'scheduled' | 'running' | 'resolved' | 'expired' | 'abandoned'
+type SeedStatus = 'pending' | 'scheduled' | 'running' | 'resolved' | 'expired' | 'abandoned' | 'left_open'
 
 interface SeedRow {
   id: string
@@ -280,6 +280,35 @@ export class MeditationSeeder {
   /** Mark a seed as abandoned (operator decision or productive uncertainty). */
   markAbandoned(seedId: string): void {
     this.stmtUpdateStatus.run('abandoned', null, null, null, seedId)
+  }
+
+
+  /**
+   * C1.4 — mark a seed as `left_open`: a productive uncertainty the
+   * curator has decided NOT to resolve, retained for projection
+   * rendering as a "currently held question". Distinct from
+   * `abandoned` (which suggests giving up); left_open is intentional
+   * retention. The `rationale` is stored in result_summary for audit.
+   */
+  markLeftOpen(seedId: string, rationale: string): void {
+    this.stmtUpdateStatus.run('left_open', null, null, new Date().toISOString(), seedId)
+    this.db.prepare(`UPDATE meditation_seeds SET result_summary = ? WHERE id = ?`).run(rationale, seedId)
+  }
+
+
+  /**
+   * C1.4 — list seeds currently in `left_open` state, for projection
+   * rendering of "currently held questions". Returns seeds with
+   * their stored rationale (in `metadata.rationale`).
+   */
+  getOpenQuestions(): Array<MeditationSeed & { rationale: string | null }> {
+    const rows = this.db.prepare(`
+      SELECT * FROM meditation_seeds WHERE status = 'left_open' ORDER BY resolved_at DESC
+    `).all() as SeedRow[]
+    return rows.map(row => ({
+      ...this.rowToSeed(row),
+      rationale: row.result_summary,
+    }))
   }
 
 

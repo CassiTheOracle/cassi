@@ -192,6 +192,36 @@ describe('MeditationSeeder', () => {
       seeder.markAbandoned(seed.id)
       expect(seeder.getPendingSeeds()).toHaveLength(0)
     })
+
+    it('C1.4 — markLeftOpen moves seed out of pending and stores rationale', () => {
+      const gap = makeGap()
+      seeder.seedFromGaps([gap])
+      const [seed] = seeder.getPendingSeeds()
+
+      seeder.markLeftOpen(seed.id, 'Productive uncertainty — keep exploring without resolving')
+      expect(seeder.getPendingSeeds()).toHaveLength(0)
+    })
+
+    it('C1.4 — getOpenQuestions returns only left_open seeds with their rationale', () => {
+      const gap1 = makeGap({ id: 'gap-1' })
+      const gap2 = makeGap({ id: 'gap-2' })
+      seeder.seedFromGaps([gap1, gap2])
+      const seeds = seeder.getPendingSeeds()
+
+      seeder.markLeftOpen(seeds[0].id, 'rationale-A')
+      seeder.markAbandoned(seeds[1].id)
+
+      const open = seeder.getOpenQuestions()
+      expect(open).toHaveLength(1)
+      expect(open[0].id).toBe(seeds[0].id)
+      expect(open[0].rationale).toBe('rationale-A')
+    })
+
+    it('C1.4 — getOpenQuestions returns empty list when none left_open', () => {
+      const gap = makeGap()
+      seeder.seedFromGaps([gap])
+      expect(seeder.getOpenQuestions()).toHaveLength(0)
+    })
   })
 
 
