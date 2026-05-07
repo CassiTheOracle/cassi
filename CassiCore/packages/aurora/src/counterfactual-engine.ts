@@ -608,6 +608,75 @@ export class CounterfactualEngine {
 
 
   /**
+   * B7.4 projection summary — render-ready snapshot of currently-active
+   * forks. Cheap to call each turn from Aurora's StateProjector.
+   *
+   * Returns one entry per fork with: id, age in seconds, expires-at
+   * delta, perturbation count (best-effort, by counting mutated state),
+   * and node count. Sorted by age descending so callers can render
+   * longest-running first.
+   */
+  getProjectionSummary(nowMs: number = Date.now()): Array<{
+    forkId: string
+    ageSec: number
+    expiresInSec: number
+    nodeCount: number
+    hasAffectOverride: boolean
+  }> {
+    const out: Array<{
+      forkId: string
+      ageSec: number
+      expiresInSec: number
+      nodeCount: number
+      hasAffectOverride: boolean
+    }> = []
+    for (const [id, state] of this.forks) {
+      if (state.disposed) continue
+      const createdAtMs = new Date(state.handle.createdAt).getTime()
+      const expiresAtMs = new Date(state.handle.expiresAt).getTime()
+      out.push({
+        forkId: id,
+        ageSec: Math.max(0, Math.round((nowMs - createdAtMs) / 1000)),
+        expiresInSec: Math.max(0, Math.round((expiresAtMs - nowMs) / 1000)),
+        nodeCount: state.nodes.size,
+        hasAffectOverride: state.affectOverride !== null,
+      })
+    }
+    out.sort((a, b) => b.ageSec - a.ageSec)
+    return out
+  }
+
+  /**
+   * B7.4 cross-feature helper — convenience wrapper for "what if affect
+   * had been X?" counterfactuals. Shapes for B3's quality-attribution
+   * hook (low-quality trace → automatic affect-perturbation
+   * counterfactual) and for any caller that wants to ask the
+   * affect-as-cause question without composing the full explore() args.
+   *
+   * Returns the diff under the perturbed affect. Disposes the fork
+   * after observation; pass `retainAfter: true` to inspect manually.
+   */
+  exploreAffectPerturbation(
+    graph: UnifiedGraph,
+    scope: ForkScope,
+    perturbed: { valence: number; arousal: number },
+    observe: ObservationKind[] = ['activated_nodes'],
+    opts?: { ttlSeconds?: number; retainAfter?: boolean; baseReasoning?: ReasoningRecord | null },
+  ): CounterfactualResult {
+    return this.explore(
+      graph,
+      scope,
+      [{ type: 'affect', valence: perturbed.valence, arousal: perturbed.arousal }],
+      observe,
+      {
+        ttlSeconds: opts?.ttlSeconds,
+        retainAfter: opts?.retainAfter,
+        baseReasoning: opts?.baseReasoning ?? null,
+      },
+    )
+  }
+
+  /**
    * Get the affect override for a fork, if set.
    */
   getForkAffect(forkId: string): { valence: number; arousal: number } | null {

@@ -623,4 +623,65 @@ describe('CounterfactualEngine', () => {
       expect(sink).not.toHaveBeenCalled()
     })
   })
+
+  describe('B7.4 — projection summary + cross-feature helpers', () => {
+    it('getProjectionSummary returns empty array when no forks are active', () => {
+      expect(engine.getProjectionSummary()).toEqual([])
+    })
+
+    it('getProjectionSummary lists active forks with age + nodeCount', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'], hops: 1 })
+      const summary = engine.getProjectionSummary()
+      expect(summary).toHaveLength(1)
+      expect(summary[0].forkId).toBe(handle.id)
+      expect(summary[0].nodeCount).toBe(2)
+      expect(summary[0].hasAffectOverride).toBe(false)
+      expect(summary[0].ageSec).toBeGreaterThanOrEqual(0)
+      expect(summary[0].expiresInSec).toBeGreaterThan(0)
+    })
+
+    it('getProjectionSummary excludes disposed forks', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'], hops: 1 })
+      engine.disposeFork(handle.id)
+      expect(engine.getProjectionSummary()).toEqual([])
+    })
+
+    it('getProjectionSummary flags hasAffectOverride after applyPerturbation', () => {
+      const graph = buildTestGraph()
+      const handle = engine.fork(graph, { anchors: ['a'], hops: 1 })
+      engine.applyPerturbation(handle.id, { type: 'affect', valence: 0.5, arousal: 0.5 })
+      const summary = engine.getProjectionSummary()
+      expect(summary[0].hasAffectOverride).toBe(true)
+    })
+
+    it('exploreAffectPerturbation runs explore() with an affect perturbation and disposes', () => {
+      const graph = buildTestGraph()
+      const result = engine.exploreAffectPerturbation(
+        graph,
+        { anchors: ['a'], hops: 1 },
+        { valence: -0.4, arousal: 0.7 },
+      )
+      expect(result.perturbationsApplied).toEqual([
+        { type: 'affect', valence: -0.4, arousal: 0.7 },
+      ])
+      expect(result.observations.length).toBeGreaterThan(0)
+      // Default behavior is to dispose; subsequent getProjectionSummary should be empty.
+      expect(engine.getProjectionSummary()).toEqual([])
+    })
+
+    it('exploreAffectPerturbation honors retainAfter so callers can inspect', () => {
+      const graph = buildTestGraph()
+      engine.exploreAffectPerturbation(
+        graph,
+        { anchors: ['a'], hops: 1 },
+        { valence: -0.4, arousal: 0.7 },
+        ['activated_nodes'],
+        { retainAfter: true },
+      )
+      // Fork persists for inspection when retainAfter=true
+      expect(engine.getProjectionSummary()).toHaveLength(1)
+    })
+  })
 })
