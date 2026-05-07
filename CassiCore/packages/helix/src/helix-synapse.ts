@@ -5,6 +5,7 @@ import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from '../constellation/observer-memory-bridge.js'
 import type { ObserverMemorySource } from '../constellation/observer-memory-bridge.js'
 import { BroadcastDedupe, normalizeForDedupe } from '../constellation/observer-broadcast-dedupe.js'
+import { ObserverActivityScheduler, type ObserverActivityConfig, type ObserverFireReason } from './observer-activity-scheduler.js'
 
 
 export type SynapseContextEventType =
@@ -219,9 +220,9 @@ export class HelixSynapse {
   private feedbackRecords = new Map<string, BroadcastFeedbackRecord>()
   private running = false
   private shutdownRequested = false
-  private loopPromise: Promise<void> | null = null
   private broadcastCounter = 0
   private lastBroadcastText = ''
+  private scheduler?: ObserverActivityScheduler
 
   constructor(opts: HelixSynapseOpts) {
     this.helixId = opts.helixId
@@ -240,19 +241,45 @@ export class HelixSynapse {
     if (!this.config.enabled || this.running) return
     this.running = true
     this.shutdownRequested = false
-    this.loopPromise = this.runLoop()
-    this.logger.info('Helix Synapse observer started', { helixId: this.helixId })
+    this.scheduler = new ObserverActivityScheduler(
+      this.activityConfig(),
+      (reason: ObserverFireReason) => this.fireOnce(reason),
+      this.logger,
+    )
+    this.logger.info('Helix Synapse observer started (activity-gated)', {
+      helixId: this.helixId,
+      cooldownMs: this.activityConfig().cooldownMs,
+      maxIdleMs: this.activityConfig().maxIdleMs,
+      materialThreshold: this.activityConfig().materialThreshold,
+    })
   }
 
   async stop(): Promise<void> {
     if (!this.running) return
     this.shutdownRequested = true
-    if (this.loopPromise) {
-      await this.loopPromise
-      this.loopPromise = null
+    if (this.scheduler) {
+      this.scheduler.fireTerminal()
+      this.scheduler.stop()
+      this.scheduler = undefined
     }
     this.running = false
     this.logger.info('Helix Synapse observer stopped', { helixId: this.helixId })
+  }
+
+  private activityConfig(): ObserverActivityConfig {
+    return {
+      cooldownMs: 20_000,
+      maxIdleMs: 120_000,
+      materialThreshold: 4,
+      warmupEvents: 2,
+    }
+  }
+
+  private async fireOnce(reason: ObserverFireReason): Promise<void> {
+    if (this.shutdownRequested && reason !== 'terminal') return
+    if (!this.hasNewContext()) return
+    await this.observeOnce()
+    this.logger.debug?.('Helix Synapse fired', { helixId: this.helixId, reason })
   }
 
   appendMessage(posture: HelixRole | string, message: Message): void {
@@ -376,20 +403,9 @@ export class HelixSynapse {
       stream = new PostureContextStream(posture)
       this.streams.set(key, stream)
     }
-    return stream.append(event)
-  }
-
-  private async runLoop(): Promise<void> {
-    while (!this.shutdownRequested) {
-      try {
-        await this.sleep(this.config.pollIntervalMs)
-        if (this.shutdownRequested) break
-        if (!this.hasNewContext()) continue
-        await this.observeOnce()
-      } catch (err) {
-        this.logger.warn('Helix Synapse observer loop failed', { error: String(err) })
-      }
-    }
+    const recorded = stream.append(event)
+    this.scheduler?.recordEvent()
+    return recorded
   }
 
   private hasNewContext(): boolean {
@@ -662,9 +678,6 @@ BROADCAST: <1-4 sentences to show to the named voices>
     }
   }
 
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
 }
 
 
