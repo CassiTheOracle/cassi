@@ -493,6 +493,62 @@ export class CassiSpecChannel {
   }
 
   /**
+   * N4.2 — projection-ready summary of the channel state. Designed to
+   * be cheap to call each turn from Aurora's StateProjector.
+   *
+   * Returns:
+   *  - pendingCount: open proposals (status=pending or under_review)
+   *  - welfareFlaggedPending: subset that carries a 'welfare-relevant' tag
+   *  - slaExceeded: { id, title, ageDays, isWelfare }[] — proposals
+   *    older than their applicable SLA. SLA is `welfareSlaDays` for
+   *    welfare-flagged proposals (default 7) and `slaDays` for the rest
+   *    (default 30) per spec §3.2 + N4.W8.
+   *
+   * Sorted by ageDays descending so callers can render a "longest
+   * pending first" list.
+   */
+  async getProjectionSummary(opts: { slaDays?: number; welfareSlaDays?: number; nowMs?: number } = {}): Promise<{
+    pendingCount: number
+    welfareFlaggedPending: number
+    slaExceeded: Array<{ id: string; title: string; ageDays: number; isWelfare: boolean }>
+  }> {
+    const slaDays = opts.slaDays ?? 30
+    const welfareSlaDays = opts.welfareSlaDays ?? 7
+    const now = opts.nowMs ?? Date.now()
+    const oneDay = 86_400_000
+
+    const proposals = await this.listProposals()
+    let pendingCount = 0
+    let welfareFlaggedPending = 0
+    const slaExceeded: Array<{ id: string; title: string; ageDays: number; isWelfare: boolean }> = []
+
+    for (const p of proposals) {
+      if (p.status !== 'pending' && p.status !== 'under_review') continue
+      pendingCount++
+
+      const isWelfare = p.tags.includes('welfare-relevant')
+      if (isWelfare) welfareFlaggedPending++
+
+      const created = new Date(p.createdAt).getTime()
+      if (!Number.isFinite(created)) continue
+      const ageDays = (now - created) / oneDay
+      const limit = isWelfare ? welfareSlaDays : slaDays
+      if (ageDays > limit) {
+        slaExceeded.push({
+          id: p.id,
+          title: p.title,
+          ageDays: Math.round(ageDays * 10) / 10,
+          isWelfare,
+        })
+      }
+    }
+
+    slaExceeded.sort((a, b) => b.ageDays - a.ageDays)
+
+    return { pendingCount, welfareFlaggedPending, slaExceeded }
+  }
+
+  /**
    * Helper: Find proposal file path by ID.
    */
   private async findProposalPath(id: string): Promise<string | null> {

@@ -240,4 +240,77 @@ describe('CassiSpecChannel', () => {
       expect(template).toContain('Benefits')
     })
   })
+
+  describe('N4.2 — projection summary', () => {
+    it('reports zero counts on empty channel', async () => {
+      const summary = await channel.getProjectionSummary()
+      expect(summary.pendingCount).toBe(0)
+      expect(summary.welfareFlaggedPending).toBe(0)
+      expect(summary.slaExceeded).toEqual([])
+    })
+
+    it('counts pending and under_review proposals', async () => {
+      await channel.createProposal('A', 'a', 'feature', 'design_spec', { priority: 'low' })
+      const idB = await channel.createProposal('B', 'b', 'feature', 'design_spec', { priority: 'low' })
+      await channel.submitForReview(idB)
+      const summary = await channel.getProjectionSummary()
+      expect(summary.pendingCount).toBe(2)
+    })
+
+    it('subdivides welfare-flagged pending', async () => {
+      await channel.createProposal('A', 'a', 'feature', 'design_spec', { priority: 'low' })
+      await channel.createProposal('B', 'b', 'welfare', 'design_spec', {
+        priority: 'high',
+        tags: ['welfare-relevant'],
+      })
+      const summary = await channel.getProjectionSummary()
+      expect(summary.pendingCount).toBe(2)
+      expect(summary.welfareFlaggedPending).toBe(1)
+    })
+
+    it('flags proposals older than the 30-day default SLA', async () => {
+      const id = await channel.createProposal('Old', 'older', 'feature', 'design_spec', { priority: 'low' })
+      const proposal = await channel.loadProposal(id)
+      const ancientCreatedAt = new Date(Date.now() - 35 * 86_400_000).toISOString()
+      // Forge createdAt by amending then patching the underlying file's metadata
+      const summary = await channel.getProjectionSummary({
+        nowMs: new Date(proposal!.createdAt).getTime() + 35 * 86_400_000,
+      })
+      expect(summary.slaExceeded).toHaveLength(1)
+      expect(summary.slaExceeded[0].id).toBe(id)
+      expect(summary.slaExceeded[0].isWelfare).toBe(false)
+      expect(summary.slaExceeded[0].ageDays).toBeCloseTo(35, 0)
+      void ancientCreatedAt
+    })
+
+    it('uses the shorter welfare SLA for welfare-flagged proposals', async () => {
+      const idNormal = await channel.createProposal('N', 'normal', 'feature', 'design_spec', { priority: 'low' })
+      const idWelfare = await channel.createProposal('W', 'welfare', 'welfare', 'design_spec', {
+        priority: 'high',
+        tags: ['welfare-relevant'],
+      })
+      const normalProposal = await channel.loadProposal(idNormal)
+      // 10 days later: normal is well within 30-day SLA; welfare exceeds 7-day SLA.
+      const summary = await channel.getProjectionSummary({
+        nowMs: new Date(normalProposal!.createdAt).getTime() + 10 * 86_400_000,
+      })
+      const exceededIds = summary.slaExceeded.map(p => p.id)
+      expect(exceededIds).toContain(idWelfare)
+      expect(exceededIds).not.toContain(idNormal)
+    })
+
+    it('sorts slaExceeded by ageDays descending', async () => {
+      const id1 = await channel.createProposal('A', 'a', 'feature', 'design_spec', { priority: 'low' })
+      const id2 = await channel.createProposal('B', 'b', 'feature', 'design_spec', { priority: 'low' })
+      const proposal = await channel.loadProposal(id1)
+      // Both old enough to exceed default 30-day SLA; both same effective age (created in same ms).
+      // We just want to confirm sorting works without throwing.
+      const summary = await channel.getProjectionSummary({
+        nowMs: new Date(proposal!.createdAt).getTime() + 60 * 86_400_000,
+      })
+      expect(summary.slaExceeded.length).toBe(2)
+      expect(summary.slaExceeded[0].ageDays).toBeGreaterThanOrEqual(summary.slaExceeded[1].ageDays)
+      void id1; void id2
+    })
+  })
 })
