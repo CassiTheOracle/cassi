@@ -72,9 +72,18 @@ export class CassiAgent implements Agent {
     try {
       for await (const event of this.client.executeTurnStream(sessionId, text, controller.signal)) {
         if (event.type === 'error') {
+          this.log(`event error: ${event.error}`)
           streamFailed = event.error
           stopReason = event.error === 'cancelled' ? 'cancelled' : 'end_turn'
           break
+        }
+        if (event.type === 'tool_call') {
+          this.log(`tool_call: id=${event.toolCallId ?? '(none)'} tool=${event.tool}`)
+        } else if (event.type === 'tool_result') {
+          const preview = typeof event.content === 'string'
+            ? event.content.slice(0, 200)
+            : JSON.stringify(event.content ?? '').slice(0, 200)
+          this.log(`tool_result: id=${event.toolCallId ?? '(none)'} isError=${event.isError} content=${preview}`)
         }
         const update = chatEventToSessionUpdate(event, sessionId)
         if (update) await this.conn.sessionUpdate(update)

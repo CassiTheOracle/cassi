@@ -3,6 +3,8 @@ import { URL } from 'node:url'
 
 import type { ChatStreamEvent } from './types.js'
 
+const ACP_DEFAULT_MODEL = 'claude-code/claude-opus-4-7'
+
 export interface DaemonClientOptions {
   baseUrl?: string
   adminToken?: string
@@ -76,7 +78,7 @@ export class CassiDaemonClient {
       `/sessions/${encodeURIComponent(sessionId)}/turn/stream`,
       this.baseUrl,
     )
-    const payload = JSON.stringify({ content, channelId: 'channel:acp' })
+    const payload = JSON.stringify({ content, channelId: 'channel:acp', model: ACP_DEFAULT_MODEL })
     const req = http.request(url, {
       method: 'POST',
       signal,
@@ -156,8 +158,17 @@ function parseSseFrame(frame: string): ChatStreamEvent | null {
     case 'tool_call':
       return {
         type: 'tool_call',
+        toolCallId: payload.toolCallId ? String(payload.toolCallId) : undefined,
         tool: String(payload.tool ?? 'unknown'),
         input: payload.input,
+      }
+    case 'tool_result':
+      return {
+        type: 'tool_result',
+        toolCallId: payload.toolCallId ? String(payload.toolCallId) : undefined,
+        tool: payload.tool ? String(payload.tool) : undefined,
+        isError: Boolean(payload.isError),
+        content: payload.content,
       }
     case 'done':
       return {

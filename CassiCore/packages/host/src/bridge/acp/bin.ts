@@ -1,3 +1,6 @@
+import { appendFileSync } from 'node:fs'
+import { homedir } from 'node:os'
+import { join } from 'node:path'
 import { Readable, Writable } from 'node:stream'
 
 import {
@@ -9,9 +12,12 @@ import { CassiAgent } from './server.js'
 
 const baseUrl = process.env.CASSICORE_ADMIN_URL || 'http://127.0.0.1:7433'
 const adminToken = process.env.CASSI_ADMIN_TOKEN || process.env.CASSICORE_ADMIN_TOKEN
+const logPath = process.env.CASSI_ACP_LOG || join(homedir(), '.cassicore', 'cassi-acp.log')
 
 function logToStderr(msg: string): void {
-  process.stderr.write(`[cassi-acp] ${msg}\n`)
+  const line = `[cassi-acp ${new Date().toISOString()}] ${msg}\n`
+  process.stderr.write(line)
+  try { appendFileSync(logPath, line) } catch { /* best effort */ }
 }
 
 async function main(): Promise<void> {
