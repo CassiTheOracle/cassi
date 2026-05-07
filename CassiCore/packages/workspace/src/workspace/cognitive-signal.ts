@@ -139,6 +139,7 @@ export type SignalType =
   | 'context'       // Session-digest, Blackboard: background information
   | 'enrichment'    // RadianceLoop: novelty/external observation
   | 'goal'          // Helix lamina lifecycle: prospective state — what a Helix is working on
+  | 'bridge'        // Corpus: territory overlap detected with sibling Helix
 
 
 /**
@@ -193,6 +194,7 @@ export const DEFAULT_LUMINANCE_WEIGHTS: SystemLuminanceWeights = {
 export const BASE_URGENCY: Record<SignalType, number> = {
   warning: 0.85,
   tension: 0.75,
+  bridge: 0.65,
   insight: 0.60,
   convergence: 0.55,
   observation: 0.50,
