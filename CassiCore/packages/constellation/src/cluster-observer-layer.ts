@@ -5,6 +5,7 @@ import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
+import { ObserverActivityScheduler, type ObserverActivityConfig, type ObserverFireReason } from '../helix/observer-activity-scheduler.js'
 
 
 export interface ClusterObserverLLM {
@@ -85,6 +86,7 @@ export class ClusterObserverLayer {
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
   private dedupe = new BroadcastDedupe({ ttlMs: 120_000, similarityThreshold: 0.82 })
+  private scheduler?: ObserverActivityScheduler
 
   constructor(opts: ClusterObserverLayerOpts) {
     this.constellationId = opts.constellationId
@@ -105,8 +107,18 @@ export class ClusterObserverLayer {
     if (!this.config.enabled || this.running) return
     this.running = true
     this.shutdownRequested = false
-    this.loopPromise = this.runLoop()
-    this.logger.info('Cluster observer layer started', { constellationId: this.constellationId })
+    this.scheduler = new ObserverActivityScheduler(
+      this.activityConfig(),
+      (reason: ObserverFireReason) => this.fireOnce(reason),
+      this.logger,
+    )
+    this.loopPromise = this.tickLoop()
+    this.logger.info('Cluster observer layer started (activity-gated)', {
+      constellationId: this.constellationId,
+      cooldownMs: this.activityConfig().cooldownMs,
+      maxIdleMs: this.activityConfig().maxIdleMs,
+      materialThreshold: this.activityConfig().materialThreshold,
+    })
   }
 
   async stop(): Promise<void> {
@@ -116,18 +128,48 @@ export class ClusterObserverLayer {
       await this.loopPromise
       this.loopPromise = null
     }
+    if (this.scheduler) {
+      this.scheduler.fireTerminal()
+      this.scheduler.stop()
+      this.scheduler = undefined
+    }
     this.running = false
     this.logger.info('Cluster observer layer stopped', { constellationId: this.constellationId })
   }
 
-  private async runLoop(): Promise<void> {
+  private activityConfig(): ObserverActivityConfig {
+    return {
+      cooldownMs: 45_000,
+      maxIdleMs: 300_000,
+      materialThreshold: 6,
+      warmupEvents: 3,
+    }
+  }
+
+  private async fireOnce(reason: ObserverFireReason): Promise<void> {
+    if (this.shutdownRequested && reason !== 'terminal') return
+    try {
+      await this.observeClusters()
+    } catch (err) {
+      this.logger.warn('Cluster observer sweep failed', { error: String(err), reason })
+    }
+  }
+
+  private async tickLoop(): Promise<void> {
     while (!this.shutdownRequested) {
       await this.sleep(this.config.pollIntervalMs)
       if (this.shutdownRequested) break
-      try {
-        await this.observeClusters()
-      } catch (err) {
-        this.logger.warn('Cluster observer sweep failed', { error: String(err) })
+      this.discoverActivity()
+    }
+  }
+
+  private discoverActivity(): void {
+    const snapshot = this.getTopologySnapshot()
+    if (!snapshot || snapshot.clusters.length === 0) return
+    for (const cluster of snapshot.clusters) {
+      if (cluster.members.length >= this.config.minClusterMembers && cluster.ticksStable >= this.config.minStabilityTicks) {
+        this.scheduler?.recordEvent()
+        return
       }
     }
   }
