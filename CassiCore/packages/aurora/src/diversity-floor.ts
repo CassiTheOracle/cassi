@@ -285,4 +285,53 @@ export class DiversityFloor {
     this.config.categories[category] = { ...current, ...patch }
     this.logger.info(`[N3] Category floor updated`, { category, ...patch })
   }
+
+  /**
+   * N3.2 — bias-aware candidate selection.
+   *
+   * Generic adapter callers (B3 trace replay, C1 seed proposal, C3
+   * overlay candidate, B1 auto-composition) use to translate the
+   * current pressure for their category into a probabilistic selection
+   * weighted toward novel candidates.
+   *
+   * The math (deliberately simple, spec §3 doesn't specify a curve):
+   *
+   *     weight(c) = 1 + pressure * (c.isNovel ?  alpha : -alpha)
+   *     weight(c) = max(weight(c), epsilon)   // never zero — always reachable
+   *
+   * - alpha is the bias strength (default 1.0 = full pressure ⇒ novel
+   *   weights 2×, reused weights ε)
+   * - epsilon = 1e-3 keeps reused candidates barely-reachable so the
+   *   bias is a tilt, not a hard cutoff
+   *
+   * Pass a deterministic `random()` for tests; defaults to Math.random.
+   * Returns the selected candidate or null when the candidate list is
+   * empty.
+   */
+  selectWithBias<T extends { isNovel: boolean }>(
+    category: DiversityCategory,
+    candidates: T[],
+    opts: { alpha?: number; epsilon?: number; random?: () => number } = {},
+  ): T | null {
+    if (candidates.length === 0) return null
+    const alpha = opts.alpha ?? 1.0
+    const epsilon = opts.epsilon ?? 1e-3
+    const random = opts.random ?? Math.random
+    const pressure = this.getPressure(category)
+
+    const weights: number[] = []
+    let total = 0
+    for (const c of candidates) {
+      const raw = 1 + pressure * (c.isNovel ? alpha : -alpha)
+      const w = Math.max(raw, epsilon)
+      weights.push(w)
+      total += w
+    }
+    let r = random() * total
+    for (let i = 0; i < candidates.length; i++) {
+      r -= weights[i]
+      if (r <= 0) return candidates[i]
+    }
+    return candidates[candidates.length - 1]
+  }
 }

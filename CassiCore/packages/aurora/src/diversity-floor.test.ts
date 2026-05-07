@@ -210,3 +210,87 @@ describe('DiversityFloor', () => {
     expect(b3.pressure).toBeGreaterThan(c1.pressure)
   })
 })
+
+describe('DiversityFloor.selectWithBias (N3.2)', () => {
+  it('returns null on empty candidate list', () => {
+    const floor = makeFloor()
+    expect(floor.selectWithBias('b3_replay', [])).toBeNull()
+  })
+
+  it('uniform selection at zero pressure', () => {
+    const floor = makeFloor()
+    const candidates = [
+      { id: 'a', isNovel: true },
+      { id: 'b', isNovel: false },
+      { id: 'c', isNovel: true },
+    ]
+    const pick = floor.selectWithBias('b3_replay', candidates, { random: () => 0.5 })
+    expect(pick!.id).toBe('b')
+  })
+
+  it('biases toward novel under high pressure', () => {
+    const floor = makeFloor()
+    for (let i = 0; i < 50; i++) {
+      floor.record('b3_replay', `t${i}`, false)
+    }
+    expect(floor.getPressure('b3_replay')).toBeGreaterThan(0.5)
+
+    const candidates = [
+      { id: 'reused', isNovel: false },
+      { id: 'novel', isNovel: true },
+    ]
+    let novelCount = 0
+    for (let r = 0; r < 100; r++) {
+      const random = (() => { let n = r; return () => n / 100 })()
+      const pick = floor.selectWithBias('b3_replay', candidates, { random })
+      if (pick!.id === 'novel') novelCount++
+    }
+    expect(novelCount).toBeGreaterThan(90)
+  })
+
+  it('reused candidates remain reachable at maximum pressure (epsilon floor)', () => {
+    const floor = makeFloor()
+    for (let i = 0; i < 50; i++) {
+      floor.record('b3_replay', `t${i}`, false)
+    }
+    const candidates = [
+      { id: 'reused', isNovel: false },
+      { id: 'novel', isNovel: true },
+    ]
+    let sawReused = false
+    for (let r = 0; r < 1000; r++) {
+      const random = () => r / 1_000_000
+      const pick = floor.selectWithBias('b3_replay', candidates, { random })
+      if (pick!.id === 'reused') { sawReused = true; break }
+    }
+    expect(sawReused).toBe(true)
+  })
+
+  it('alpha=0 disables the bias entirely', () => {
+    const floor = makeFloor()
+    for (let i = 0; i < 50; i++) {
+      floor.record('b3_replay', `t${i}`, false)
+    }
+    const candidates = [
+      { id: 'reused', isNovel: false },
+      { id: 'novel', isNovel: true },
+    ]
+    let novel = 0, reused = 0
+    for (let r = 0; r < 100; r++) {
+      const random = () => r / 100
+      const pick = floor.selectWithBias('b3_replay', candidates, { alpha: 0, random })
+      if (pick!.id === 'novel') novel++; else reused++
+    }
+    expect(Math.abs(novel - reused)).toBeLessThan(20)
+  })
+
+  it('preserves caller object shape (type pass-through)', () => {
+    const floor = makeFloor()
+    interface MyTrace { id: string; isNovel: boolean; payload: { score: number } }
+    const candidates: MyTrace[] = [
+      { id: 't1', isNovel: true, payload: { score: 0.8 } },
+    ]
+    const pick = floor.selectWithBias('b3_replay', candidates, { random: () => 0 })
+    expect(pick!.payload.score).toBe(0.8)
+  })
+})
