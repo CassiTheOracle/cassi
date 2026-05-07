@@ -1521,7 +1521,24 @@ export class Daemon {
       // MnemicField content is now accessed directly by Thalamus.
 
       // Wire reranker mode into MnemicField: 'local' (cross-encoder), 'llm' (cloud LLM), or 'off'.
-      const rerankerMode = this.config.get<string>('intelligence.mnemic.rerankerType', 'local') as 'local' | 'llm' | 'off'
+      // Unified key `intelligence.reranker.mode` is the new home; the legacy
+      // `intelligence.mnemic.rerankerType` is read as a fallback so existing
+      // configs keep working. Both consumers (MnemicField + Thalamus's
+      // RerankerCompressor) should converge on the unified key over time.
+      const rerankerModeUnified = this.config.get<string>('intelligence.reranker.mode', '')
+      const rerankerModeLegacy = this.config.get<string>('intelligence.mnemic.rerankerType', 'local')
+      const rerankerMode = (rerankerModeUnified || rerankerModeLegacy) as 'local' | 'llm' | 'off'
+      if (rerankerModeUnified && rerankerModeLegacy && rerankerModeUnified !== rerankerModeLegacy) {
+        this.logger.warn(
+          'Reranker mode config conflict — using unified key (intelligence.reranker.mode)',
+          { unified: rerankerModeUnified, legacy: rerankerModeLegacy },
+        )
+      } else if (!rerankerModeUnified && rerankerModeLegacy && rerankerModeLegacy !== 'local') {
+        this.logger.info(
+          'Using legacy reranker config key intelligence.mnemic.rerankerType — consider migrating to intelligence.reranker.mode',
+          { mode: rerankerModeLegacy },
+        )
+      }
       field.setRerankerMode(rerankerMode)
 
       if (rerankerMode === 'llm') {

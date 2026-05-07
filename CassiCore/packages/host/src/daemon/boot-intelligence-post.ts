@@ -202,6 +202,32 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         (intelligence.helix as any).setThalamus(thalamus)
       }
 
+      // Wire <note for="reverie"> thought-command handoff. Without this, the
+      // 'note' branch in Thalamus.processThoughtCommands logs and drops the
+      // message — Reverie never sees it. Closes the design contract from
+      // cassi-context-awareness.md (note routing).
+      if (intelligence.reverie && typeof (thalamus as any).setReverieNoteSink === 'function') {
+        (thalamus as any).setReverieNoteSink(
+          (sid: string, rec: string, msg: string) => intelligence.reverie!.receiveNote(sid, rec, msg),
+        )
+      }
+
+      // Hand distillation triggering to Reverie. The design assigns Reverie
+      // ownership of stateful background work; Thalamus retains queue + summary
+      // storage but Reverie decides WHEN to fire. enableExternalDistillationTrigger
+      // suppresses Thalamus.curate's inline spawn so we don't double-queue.
+      if (
+        intelligence.reverie &&
+        typeof (intelligence.reverie as any).setDistillationTrigger === 'function' &&
+        typeof (thalamus as any).queueBackgroundDistillations === 'function' &&
+        typeof (thalamus as any).enableExternalDistillationTrigger === 'function'
+      ) {
+        (intelligence.reverie as any).setDistillationTrigger(
+          (sid: string) => (thalamus as any).queueBackgroundDistillations(sid),
+        )
+        ;(thalamus as any).enableExternalDistillationTrigger()
+      }
+
       // Wire Aurora (cognitive state loop) into Thalamus
       if (mnemicField && typeof mnemicField.getCortex === 'function') {
         try {
