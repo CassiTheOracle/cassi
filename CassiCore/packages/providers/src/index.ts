@@ -5,6 +5,7 @@ import {
   KimiCodingProvider,
   OpenRouterProvider,
   QwenProvider,
+  ZaiProvider,
 } from '@cassicore/ai'
 
 import { getCassiCoreHome } from '../utils/paths.js'
@@ -25,7 +26,7 @@ export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
-export { AlibabaCodingProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider } from '@cassicore/ai'
+export { AlibabaCodingProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '@cassicore/ai'
 
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
 export type { RequestCost, CostRule } from './cost-classifier.js'
@@ -183,6 +184,21 @@ export function createProviders(
       logger.info('Provider loaded: openrouter')
     } catch (err) {
       logger.warn(`failed to load openrouter provider: ${String(err)}`)
+    }
+  }
+
+  const zaiKey =
+    config.get<string>('providers.zAi.apiKey', '') ||
+    process.env.ZAI_API_KEY ||
+    process.env.Z_AI_API_KEY ||
+    ''
+  if (zaiKey) {
+    try {
+      const zaiProv = new ZaiProvider(zaiKey)
+      rawProviders.set('z-ai', zaiProv)
+      logger.info('Provider loaded: z-ai')
+    } catch (err) {
+      logger.warn(`failed to load z-ai provider: ${String(err)}`)
     }
   }
 
