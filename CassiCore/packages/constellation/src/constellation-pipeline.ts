@@ -38,7 +38,12 @@ import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
 import type { GoalDecomposition } from './corpus-types.js'
-import { seedHelixGoalLamina, rethinkHelixGoalLamina, publishHelixGoalSignal } from './helix-goal-lamina.js'
+import {
+  seedHelixGoalLamina,
+  rethinkHelixGoalLamina,
+  rethinkHelixGoalMidFlight,
+  publishHelixGoalSignal,
+} from './helix-goal-lamina.js'
 import type { IMemory, SearchResult } from '../../../types/intelligence.js'
 import { MemoryInjectionService } from './memory-injection.js'
 import type {
@@ -1362,6 +1367,7 @@ export async function runConstellationPipeline(
       brainIntegration: Boolean(opts.globalWorkspace),
       globalWorkspace: opts.globalWorkspace,
       mnemicField: opts.mnemicField,
+      lamina: opts.lamina,
       crossSessionIndex,
       constellationId,
       // WHY: Flex postures from the template define per-role tool access levels
@@ -2015,6 +2021,17 @@ export async function runConstellationPipeline(
 
     // Create tracker for task lifecycle management
     tracker = new DecompositionTracker(constellationId, decomposition, log.child('tracker'))
+    tracker.onTransition(event => {
+      // Mid-flight rethink only — terminal completed/failed are handled at the
+      // Helix-result site and would otherwise double-rethink. The split parent
+      // also gets a 'split' status that we don't rethink (its lamina is no
+      // longer authoritative; children get their own seeds).
+      if (event.to === 'completed' || event.to === 'failed' || event.to === 'cancelled' || event.to === 'split') return
+      if (!event.task.helixSessionId) return
+      const reason = event.reason ?? `transition:${event.from}->${event.to}`
+      rethinkHelixGoalMidFlight(opts.lamina, event.task.helixSessionId, event.task.originalTask, reason)
+      publishHelixGoalSignal(opts.globalWorkspace, constellationId, event.task.helixSessionId, event.task.originalTask, 'progress', reason)
+    })
 
     // Write decomposition plan to audit trail
     if (opts.auditTrail) {

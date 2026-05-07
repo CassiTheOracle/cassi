@@ -55,6 +55,20 @@ interface TaskTransition {
 }
 
 /**
+ * Transition handler — invoked synchronously after each tracker mutation.
+ * The handler sees the post-transition view of the task. Single-subscriber by
+ * design (matches today's actual use); convert to Set<Handler> if a second
+ * consumer ever needs in. Mirrors GlobalWorkspace.onBroadcast pattern.
+ */
+export type TransitionHandler = (event: {
+  taskId: string
+  task: TrackedTask
+  from: TaskStatus
+  to: TaskStatus
+  reason?: string
+}) => void
+
+/**
  * Generates a short hash for task IDs
  */
 function generateShortHash(): string {
@@ -73,6 +87,7 @@ export class DecompositionTracker {
   private readonly transitions: Map<string, TaskTransition[]> = new Map()
   private readonly createdAt: number
   private lastUpdatedAt: number
+  private transitionHandler?: TransitionHandler
 
   constructor(
     private readonly constellationId: string,
@@ -129,6 +144,37 @@ export class DecompositionTracker {
     })
     this.transitions.set(taskId, transitions)
     this.lastUpdatedAt = Date.now()
+    this.emitTransition(taskId, from, to, reason)
+  }
+
+  /**
+   * Subscribe to task lifecycle transitions. Single-subscriber — the most
+   * recent handler wins. Returns an unsubscribe function. Handlers are invoked
+   * synchronously after each transition is recorded; misbehaving handlers are
+   * caught so they cannot break tracker state.
+   */
+  onTransition(handler: TransitionHandler): () => void {
+    this.transitionHandler = handler
+    return () => {
+      if (this.transitionHandler === handler) this.transitionHandler = undefined
+    }
+  }
+
+  private emitTransition(taskId: string, from: TaskStatus, to: TaskStatus, reason?: string): void {
+    const handler = this.transitionHandler
+    if (!handler) return
+    const task = this.tasks.get(taskId)
+    if (!task) return
+    try {
+      handler({ taskId, task, from, to, reason })
+    } catch (err) {
+      this.log.warn('[DecompositionTracker] Transition handler threw', {
+        taskId,
+        from,
+        to,
+        error: String(err),
+      })
+    }
   }
 
   /**
@@ -532,14 +578,15 @@ export class DecompositionTracker {
       this.log.warn('[DecompositionTracker] Attempted to record deviation for unknown task', { taskId })
       return
     }
-    
+
     task.actualGoal = actualGoal
-    
+
     this.log.info('[DecompositionTracker] Goal deviation recorded', {
       taskId,
       planned: task.originalTask.goal,
       actual: actualGoal,
     })
+    this.emitTransition(taskId, task.status, task.status, `deviation: ${actualGoal}`)
   }
 
   /**
