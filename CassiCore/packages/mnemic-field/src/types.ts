@@ -6,6 +6,8 @@ export const ENGRAM_TYPES = [
   'source_file', 'changeset', 'artifact', 'concern', 'anomaly',
   'module', 'capability', 'principle', 'weakness', 'evolution', 'portal',
   'bridge',
+  // B8.P.3 — Reverie-synthesized invariant from a white-standing Prism node
+  'synthesized_invariant',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
