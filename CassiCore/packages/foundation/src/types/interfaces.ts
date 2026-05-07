@@ -150,7 +150,6 @@ export interface WiringDependencies {
   contextManager?: unknown;
   dialectic?: unknown;
   multiAgent?: unknown;
-  droneSwarm?: unknown;
   modelRouter?: unknown;
   consequenceEstimator?: unknown;
   trustLedger?: unknown;
@@ -188,7 +187,6 @@ export interface IntelligenceModule {
   setAutonomousLoop?(loop: unknown): void;
   setDigestStore?(store: unknown): void;
   setPipeline?(pipeline: unknown): void;
-  setDroneSwarm?(droneSwarm: unknown): void;
   setModelRouter?(router: unknown): void;
   setSessionManager?(sessionManager: unknown, sessionStore?: unknown): void;
   setPipelineGetter?(getPipeline: () => unknown): void;
