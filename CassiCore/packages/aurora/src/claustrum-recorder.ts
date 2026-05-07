@@ -29,6 +29,26 @@ export interface ClaustrumGateHit {
   readonly layer: number
   readonly featureIndex: number
   readonly score: number
+  /** B2.3 — pre-bias score, present only when a RetrievalPolicy was applied. */
+  readonly rawScore?: number
+  /** B2.3 — clamped [-1, +1] dot product of feature signature vs policy target. */
+  readonly affectCompat?: number
+  /** B2.3 — bias mode applied: 'consonant' / 'complementary' / 'directed'. */
+  readonly biasMode?: 'consonant' | 'complementary' | 'directed'
+  /** B2.3 — strength used (post welfare-cap). */
+  readonly biasStrength?: number
+}
+
+/**
+ * B2.3 retrieval-stats output: per-quadrant breakdown of which
+ * feature-layer pairs were retrieved under which bias mode.
+ */
+export interface RetrievalStatsRow {
+  readonly biasMode: string | null
+  readonly hitCount: number
+  readonly distinctFeatures: number
+  readonly meanScore: number
+  readonly meanAffectCompat: number | null
 }
 
 export interface ClaustrumRecordOptions {
@@ -132,8 +152,9 @@ export class ClaustrumRecorder {
     this.ensureSchema()
     this.insertStmt = this.db.prepare(
       `INSERT INTO claustrum_recorder
-        (ts, source_path, cycle_id, query_concept, trigger, layer, feature_index, score)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (ts, source_path, cycle_id, query_concept, trigger, layer, feature_index, score,
+         raw_score, affect_compat, bias_mode, bias_strength)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
   }
 
@@ -184,6 +205,22 @@ export class ClaustrumRecorder {
       CREATE INDEX IF NOT EXISTS idx_overlay_audit_author
         ON overlay_patch_audit(author);
     `)
+
+    // B2.3 — affect-context columns. ALTER TABLE is idempotent-safe via
+    // try/catch on duplicate-column errors so re-running after a partial
+    // migration is harmless.
+    for (const column of [
+      'raw_score REAL',
+      'affect_compat REAL',
+      'bias_mode TEXT',
+      'bias_strength REAL',
+    ]) {
+      try {
+        this.db.exec(`ALTER TABLE claustrum_recorder ADD COLUMN ${column}`)
+      } catch (err: any) {
+        if (!String(err?.message ?? '').includes('duplicate column')) throw err
+      }
+    }
   }
 
   /**
@@ -206,6 +243,10 @@ export class ClaustrumRecorder {
           hit.layer,
           hit.featureIndex,
           hit.score,
+          hit.rawScore ?? null,
+          hit.affectCompat ?? null,
+          hit.biasMode ?? null,
+          hit.biasStrength ?? null,
         )
       }
     })
@@ -219,6 +260,50 @@ export class ClaustrumRecorder {
         count: opts.hits.length,
       })
     }
+  }
+
+  /**
+   * B2.3 retrieval stats — per-bias-mode breakdown of recorded gate hits
+   * within an optional time window. The `null` row covers hits recorded
+   * without affect bias (legacy or policy-disabled retrievals); other
+   * rows correspond to the bias mode that was active.
+   *
+   * Returns rows sorted by hit count descending so callers can render
+   * "what bias dominates this window" without further sorting.
+   */
+  retrievalStats(window: { startTs?: string; endTs?: string } = {}): RetrievalStatsRow[] {
+    if (this.closed) return []
+    const conditions: string[] = []
+    const params: unknown[] = []
+    if (window.startTs) { conditions.push('ts >= ?'); params.push(window.startTs) }
+    if (window.endTs)   { conditions.push('ts <= ?'); params.push(window.endTs) }
+    const where = conditions.length === 0 ? '' : `WHERE ${conditions.join(' AND ')}`
+    const sql = `
+      SELECT
+        bias_mode AS biasMode,
+        COUNT(*) AS hitCount,
+        COUNT(DISTINCT (layer || ':' || feature_index)) AS distinctFeatures,
+        AVG(score) AS meanScore,
+        AVG(affect_compat) AS meanAffectCompat
+      FROM claustrum_recorder
+      ${where}
+      GROUP BY bias_mode
+      ORDER BY hitCount DESC
+    `
+    const rows = this.db.prepare(sql).all(...params) as Array<{
+      biasMode: string | null
+      hitCount: number
+      distinctFeatures: number
+      meanScore: number
+      meanAffectCompat: number | null
+    }>
+    return rows.map(r => ({
+      biasMode: r.biasMode,
+      hitCount: r.hitCount,
+      distinctFeatures: r.distinctFeatures,
+      meanScore: r.meanScore,
+      meanAffectCompat: r.meanAffectCompat,
+    }))
   }
 
   /**
