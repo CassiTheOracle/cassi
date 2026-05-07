@@ -1906,6 +1906,59 @@ export class Aurora {
     return this.overlayLayer?.getLayerFeatures(layer) ?? []
   }
 
+  /**
+   * C3.3 — drift surveillance: caller supplies probe descriptors with
+   * both base and overlay hits already computed; returns per-probe
+   * divergence. Returns [] when overlay is disabled.
+   */
+  surveyOverlayDrift(probes: ReadonlyArray<import('./overlay-layer.js').DriftProbe>): import('./overlay-layer.js').DriftFinding[] {
+    return this.overlayLayer?.surveyDrift(probes) ?? []
+  }
+
+  /**
+   * C3.3 — propose a reversal candidate against an active patch.
+   * Returns null when overlay is disabled.
+   */
+  proposeOverlayReversal(opts: {
+    patchId: string
+    reason: import('./overlay-layer.js').ReversalCandidate['reason']
+    proposer: import('./overlay-layer.js').ReversalCandidate['proposer']
+    rationale: string
+    evidence?: Record<string, unknown>
+  }): import('./overlay-layer.js').ReversalCandidate | null {
+    return this.overlayLayer?.proposeReversalCandidate(opts) ?? null
+  }
+
+  /** C3.3 — list pending reversal candidates. */
+  listOverlayReversalCandidates(): import('./overlay-layer.js').ReversalCandidate[] {
+    return this.overlayLayer?.listReversalCandidates() ?? []
+  }
+
+  /** C3.3 — accept (rollback patch + clear) or reject a reversal candidate. */
+  acceptOverlayReversal(id: string): boolean {
+    return this.overlayLayer?.acceptReversalCandidate(id) ?? false
+  }
+
+  rejectOverlayReversal(id: string, reason?: string): boolean {
+    return this.overlayLayer?.rejectReversalCandidate(id, reason) ?? false
+  }
+
+  /**
+   * B7.4 — counterfactual projection summary (active forks).
+   * Returns null when counterfactual exploration is disabled.
+   */
+  getCounterfactualProjectionSummary(): ReturnType<CounterfactualEngine['getProjectionSummary']> | null {
+    return this.counterfactualEngine?.getProjectionSummary() ?? null
+  }
+
+  /**
+   * B8.P.4 — Prism projection summary (top stark concepts +
+   * total-spectrum exposure). Returns null when Prism is disabled.
+   */
+  getPrismProjectionSummary(opts?: { topN?: number }): ReturnType<Prism['getProjectionSummary']> | null {
+    return this.prism?.getProjectionSummary(opts) ?? null
+  }
+
 
   /**
    * Retrieve reasoning traces similar to a query. Used for warm-start context
