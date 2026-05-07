@@ -141,21 +141,208 @@ describe('PostureCoherenceDetector', () => {
     expect(checks.filter(c => c.category === 'composition_meditation_suppression')).toHaveLength(0)
   })
 
-  it('stub categories return [] until their inputs land', () => {
-    // Explicitly wire all stub-category inputs and confirm no check fires.
+  it('does not fire any of the optional-input categories when inputs are absent', () => {
     const checks = detector.detect({
       active: [active('a')],
       records: [rec('a', 'a = gate("x")')],
       pendingSeeds: [],
-      retrievalPolicy: { affectBias: 'complementary' },
-      scheduledReplays: [{ id: 'r1', sourceAffect: { valence: 0.5, arousal: 0.2 } }],
-      currentAffect: { valence: -0.5, arousal: 0.8 },
-      claustrumActivations: new Map([['x', 0.1]]),
     })
-    const stubCategories = ['composition_retrieval_mismatch', 'replay_affect_mismatch', 'meditation_entrypoint_cold', 'composition_meditation_cold_topic']
-    for (const cat of stubCategories) {
+    const optionalCategories = ['composition_retrieval_mismatch', 'replay_affect_mismatch', 'meditation_entrypoint_cold', 'composition_meditation_cold_topic']
+    for (const cat of optionalCategories) {
       expect(checks.filter(c => c.category === cat)).toHaveLength(0)
     }
+  })
+})
+
+describe('PostureCoherenceDetector — composition × retrieval policy', () => {
+  const detector = new PostureCoherenceDetector(makeLogger())
+
+  it('flags composition_retrieval_mismatch when suppressive composition meets non-neutral policy', () => {
+    const checks = detector.detect({
+      active: [active('quiet')],
+      records: [rec('quiet', 'quiet = gate("calm") - gate("loud") - gate("frenetic")', true)],
+      pendingSeeds: [],
+      retrievalPolicy: { affectBias: 'complementary' },
+    })
+    const c = checks.find(x => x.category === 'composition_retrieval_mismatch')
+    expect(c).toBeDefined()
+    expect(c!.severity).toBe('warning')
+    expect(c!.message).toContain('complementary')
+    expect(c!.involvedElements.some(e => e.kind === 'retrieval_policy')).toBe(true)
+  })
+
+  it('does not flag when policy is neutral', () => {
+    const checks = detector.detect({
+      active: [active('quiet')],
+      records: [rec('quiet', 'quiet = gate("calm") - gate("loud")', true)],
+      pendingSeeds: [],
+      retrievalPolicy: { affectBias: 'neutral' },
+    })
+    expect(checks.filter(c => c.category === 'composition_retrieval_mismatch')).toHaveLength(0)
+  })
+
+  it('does not flag when no composition is suppressive', () => {
+    const checks = detector.detect({
+      active: [active('plain')],
+      records: [rec('plain', 'plain = gate("focus")', false)],
+      pendingSeeds: [],
+      retrievalPolicy: { affectBias: 'similar' },
+    })
+    expect(checks.filter(c => c.category === 'composition_retrieval_mismatch')).toHaveLength(0)
+  })
+})
+
+describe('PostureCoherenceDetector — replay × affect', () => {
+  const detector = new PostureCoherenceDetector(makeLogger())
+
+  it('flags replay_affect_mismatch when distance exceeds threshold', () => {
+    const checks = detector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [],
+      currentAffect: { valence: -0.5, arousal: 0.8 },
+      scheduledReplays: [{ id: 'r1', sourceAffect: { valence: 0.5, arousal: 0.2 } }],
+    })
+    const c = checks.find(x => x.category === 'replay_affect_mismatch')
+    expect(c).toBeDefined()
+    expect(c!.severity).toBe('warning')
+    expect(c!.involvedElements.some(e => e.kind === 'replay' && e.id === 'r1')).toBe(true)
+  })
+
+  it('does not flag when affect distance is below threshold', () => {
+    const checks = detector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [],
+      currentAffect: { valence: 0.4, arousal: 0.3 },
+      scheduledReplays: [{ id: 'r1', sourceAffect: { valence: 0.5, arousal: 0.2 } }],
+    })
+    expect(checks.filter(c => c.category === 'replay_affect_mismatch')).toHaveLength(0)
+  })
+
+  it('does not flag when sourceAffect is absent', () => {
+    const checks = detector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [],
+      currentAffect: { valence: 0, arousal: 0 },
+      scheduledReplays: [{ id: 'r1' }],
+    })
+    expect(checks.filter(c => c.category === 'replay_affect_mismatch')).toHaveLength(0)
+  })
+
+  it('honors a custom replayAffectMismatchThreshold', () => {
+    const tightDetector = new PostureCoherenceDetector(makeLogger(), { replayAffectMismatchThreshold: 2.0 })
+    const checks = tightDetector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [],
+      currentAffect: { valence: -0.5, arousal: 0.8 },
+      scheduledReplays: [{ id: 'r1', sourceAffect: { valence: 0.5, arousal: 0.2 } }],
+    })
+    expect(checks.filter(c => c.category === 'replay_affect_mismatch')).toHaveLength(0)
+  })
+})
+
+describe('PostureCoherenceDetector — meditation entry-points cold', () => {
+  const detector = new PostureCoherenceDetector(makeLogger())
+
+  function seed(id: string, topic: string): any {
+    return {
+      id, gapId: 'g1', topic, entryPoints: [], expectedRefinement: '',
+      proposedAt: '', proposedBy: 'curator', status: 'pending',
+      budget: { maxTurns: 10, maxCostUsd: 0.25 }, metadata: {},
+    }
+  }
+
+  it('flags meditation_entrypoint_cold when topic mentions only cold nodes', () => {
+    const checks = detector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [seed('s1', 'Investigate frustrated reasoning patterns')],
+      claustrumActivations: new Map([['frustrated', 0.05], ['reasoning', 0.08]]),
+    })
+    const c = checks.find(x => x.category === 'meditation_entrypoint_cold')
+    expect(c).toBeDefined()
+    expect(c!.severity).toBe('warning')
+    expect(c!.involvedElements.some(e => e.kind === 'meditation_seed')).toBe(true)
+  })
+
+  it('does not flag when topic has at least one warm node', () => {
+    const checks = detector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [seed('s1', 'frustrated reasoning')],
+      claustrumActivations: new Map([['frustrated', 0.05], ['reasoning', 0.6]]),
+    })
+    expect(checks.filter(c => c.category === 'meditation_entrypoint_cold')).toHaveLength(0)
+  })
+
+  it('flags when topic has no matching claustrum nodes at all', () => {
+    const checks = detector.detect({
+      active: [],
+      records: [],
+      pendingSeeds: [seed('s1', 'completely unrelated topic')],
+      claustrumActivations: new Map([['warmth', 0.9], ['rigor', 0.5]]),
+    })
+    const c = checks.find(x => x.category === 'meditation_entrypoint_cold')
+    expect(c).toBeDefined()
+    expect(c!.message).toContain('no claustrum nodes in topic')
+  })
+})
+
+describe('PostureCoherenceDetector — composition vs meditation cold-topic', () => {
+  const detector = new PostureCoherenceDetector(makeLogger())
+
+  function seed(id: string, topic: string): any {
+    return {
+      id, gapId: 'g1', topic, entryPoints: [], expectedRefinement: '',
+      proposedAt: '', proposedBy: 'curator', status: 'pending',
+      budget: { maxTurns: 10, maxCostUsd: 0.25 }, metadata: {},
+    }
+  }
+
+  it('flags composition_meditation_cold_topic when boost lands on cold concept', () => {
+    const checks = detector.detect({
+      active: [active('booster')],
+      records: [rec('booster', 'booster = gate("frustrated") + gate("doubt")', false)],
+      pendingSeeds: [seed('s1', 'frustrated reasoning')],
+      claustrumActivations: new Map([['frustrated', 0.05], ['doubt', 0.0]]),
+    })
+    const c = checks.find(x => x.category === 'composition_meditation_cold_topic')
+    expect(c).toBeDefined()
+    expect(c!.severity).toBe('info')
+    expect(c!.message).toContain('frustrated')
+  })
+
+  it('does not flag when boosted label is warm in claustrum', () => {
+    const checks = detector.detect({
+      active: [active('booster')],
+      records: [rec('booster', 'booster = gate("frustrated")', false)],
+      pendingSeeds: [seed('s1', 'frustrated reasoning')],
+      claustrumActivations: new Map([['frustrated', 0.6]]),
+    })
+    expect(checks.filter(c => c.category === 'composition_meditation_cold_topic')).toHaveLength(0)
+  })
+
+  it('does not flag when boost label not in topic', () => {
+    const checks = detector.detect({
+      active: [active('booster')],
+      records: [rec('booster', 'booster = gate("warmth")', false)],
+      pendingSeeds: [seed('s1', 'rigor focus')],
+      claustrumActivations: new Map([['warmth', 0.0]]),
+    })
+    expect(checks.filter(c => c.category === 'composition_meditation_cold_topic')).toHaveLength(0)
+  })
+
+  it('only counts positive (boosting) contributions, not suppressive ones', () => {
+    const checks = detector.detect({
+      active: [active('quiet')],
+      records: [rec('quiet', 'quiet = -gate("frustrated")', true)],
+      pendingSeeds: [seed('s1', 'frustrated reasoning')],
+      claustrumActivations: new Map([['frustrated', 0.0]]),
+    })
+    expect(checks.filter(c => c.category === 'composition_meditation_cold_topic')).toHaveLength(0)
   })
 
   it('rankChecks orders serious > warning > info', () => {

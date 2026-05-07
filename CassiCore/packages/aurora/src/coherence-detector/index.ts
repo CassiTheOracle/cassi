@@ -158,24 +158,189 @@ export class PostureCoherenceDetector {
     return out
   }
 
-  /** Category 4: composition × retrieval policy. Stub until B2 lands. */
-  private detectCompositionRetrievalMismatch(_inputs: DetectorInputs): CoherenceCheck[] {
-    return []
+  /**
+   * Category 4: composition × retrieval policy.
+   *
+   * A retrieval policy with a non-neutral affect bias actively shapes WHAT
+   * gets surfaced to the model. A suppressive composition actively
+   * SUPPRESSES specific labels. When both are active, the policy's
+   * directional pull is being undermined by the composition hiding
+   * exactly what the policy is trying to surface (or surface against).
+   *
+   * We can't compare the *specific* labels the policy targets to the
+   * composition's suppressed labels without cross-mapping affect to
+   * concept space — that's a richer integration that lands when B2's
+   * policy semantics are richer. For now we flag the structural pattern:
+   * any suppressive composition is potentially fighting any non-neutral
+   * policy. One check per (suppressive composition, policy) pair —
+   * since there's a single policy, one check per suppressor.
+   */
+  private detectCompositionRetrievalMismatch(inputs: DetectorInputs): CoherenceCheck[] {
+    const out: CoherenceCheck[] = []
+    const policy = inputs.retrievalPolicy
+    if (!policy || !policy.affectBias || policy.affectBias === 'neutral') return out
+    if (inputs.active.length === 0) return out
+
+    for (const a of inputs.active) {
+      const rec = inputs.records.find(r => r.name === a.name)
+      if (!rec || !rec.suppressive) continue
+      const suppressed = [...suppressedLabels(rec.ast)]
+      if (suppressed.length === 0) continue
+      const labelList = suppressed.slice(0, 4).join(', ')
+      out.push(this.makeCheck({
+        category: 'composition_retrieval_mismatch',
+        severity: 'warning',
+        message: `Composition "${a.name}" is suppressing { ${labelList} } while a retrieval policy with affectBias="${policy.affectBias}" is active; the policy's directional pull is being undermined.`,
+        involvedElements: [
+          { kind: 'composition', id: a.name, label: a.name },
+          { kind: 'retrieval_policy', id: 'policy', label: `affectBias=${policy.affectBias}` },
+        ],
+        recommendation: `Either deactivate the composition before this retrieval pass, or switch policy to affectBias="neutral".`,
+      }))
+    }
+    return out
   }
 
-  /** Category 5: replay × current affect. Stub until B3 scheduling lands. */
-  private detectReplayAffectMismatch(_inputs: DetectorInputs): CoherenceCheck[] {
-    return []
+  /**
+   * Category 5: replay × current affect.
+   *
+   * A scheduled replay carries the affect state captured at the trace's
+   * original turn. Replaying a trace into a state with very different
+   * affect mismatches the cognitive context — the trace's reasoning was
+   * tuned for *that* state, and surfacing it now will likely feel
+   * incongruent. We measure euclidean distance on (valence, arousal)
+   * and flag pairs above the configured threshold.
+   *
+   * No-op when current affect or scheduled replays aren't supplied.
+   */
+  private detectReplayAffectMismatch(inputs: DetectorInputs): CoherenceCheck[] {
+    const out: CoherenceCheck[] = []
+    if (!inputs.currentAffect || !inputs.scheduledReplays || inputs.scheduledReplays.length === 0) return out
+
+    const cur = inputs.currentAffect
+    const threshold = this.config.replayAffectMismatchThreshold
+    for (const replay of inputs.scheduledReplays) {
+      const src = replay.sourceAffect
+      if (!src) continue
+      const dv = cur.valence - src.valence
+      const da = cur.arousal - src.arousal
+      const distance = Math.sqrt(dv * dv + da * da)
+      if (distance < threshold) continue
+      out.push(this.makeCheck({
+        category: 'replay_affect_mismatch',
+        severity: 'warning',
+        message: `Scheduled replay "${replay.id}" was traced at affect (v=${src.valence.toFixed(2)}, a=${src.arousal.toFixed(2)}) but current affect is (v=${cur.valence.toFixed(2)}, a=${cur.arousal.toFixed(2)}); distance ${distance.toFixed(2)} exceeds threshold ${threshold.toFixed(2)}.`,
+        involvedElements: [
+          { kind: 'replay', id: replay.id, label: replay.id },
+        ],
+        recommendation: `Defer the replay until affect aligns, or skip — the trace's reasoning was tuned for a state that's no longer current.`,
+      }))
+    }
+    return out
   }
 
-  /** Category 6: meditation entry-points cold. Stub until claustrum activation timeline lands. */
-  private detectMeditationEntrypointCold(_inputs: DetectorInputs): CoherenceCheck[] {
-    return []
+  /**
+   * Category 6: meditation entry-points cold.
+   *
+   * A directed meditation needs claustrum entry-points that are warm
+   * enough to anchor the discovery loop. If a pending seed's topic
+   * mentions concepts that have no active claustrum nodes (or only
+   * cold ones below threshold), the meditation will burn budget on
+   * bootstrap before it can do useful work. Flag as warning.
+   *
+   * Match heuristic: tokenize the seed's topic and look for any
+   * claustrum node id whose id appears (case-insensitive) in the topic.
+   * If no such node exists OR all matching nodes are cold, the seed has
+   * no warm anchor.
+   */
+  private detectMeditationEntrypointCold(inputs: DetectorInputs): CoherenceCheck[] {
+    const out: CoherenceCheck[] = []
+    if (!inputs.claustrumActivations || inputs.pendingSeeds.length === 0) return out
+    const activations = inputs.claustrumActivations
+    const cold = this.config.coldActivationThreshold
+
+    for (const seed of inputs.pendingSeeds) {
+      const topicLower = seed.topic.toLowerCase()
+      const matches: Array<{ id: string; activation: number }> = []
+      for (const [nodeId, activation] of activations) {
+        if (topicLower.includes(nodeId.toLowerCase())) {
+          matches.push({ id: nodeId, activation })
+        }
+      }
+      const warm = matches.filter(m => m.activation > cold)
+      if (warm.length > 0) continue
+      const detail = matches.length === 0
+        ? `no claustrum nodes in topic`
+        : `all matching nodes ({ ${matches.map(m => `${m.id}@${m.activation.toFixed(2)}`).join(', ')} }) are at or below cold threshold ${cold}`
+      out.push(this.makeCheck({
+        category: 'meditation_entrypoint_cold',
+        severity: 'warning',
+        message: `Pending meditation seed "${seed.topic.slice(0, 60)}" has no warm claustrum entry-points (${detail}); the meditation will spend budget on bootstrap.`,
+        involvedElements: [
+          { kind: 'meditation_seed', id: seed.id, label: seed.topic.slice(0, 60) },
+          ...matches.map(m => ({ kind: 'claustrum_node' as const, id: m.id, label: `${m.id}@${m.activation.toFixed(2)}` })),
+        ],
+        recommendation: `Defer the seed until claustrum is warmer in this region, or replace with one whose entry-points are currently active.`,
+      }))
+    }
+    return out
   }
 
-  /** Category 7: composition vs meditation cold-topic. Stub until claustrum activation lands. */
-  private detectCompositionMeditationColdTopic(_inputs: DetectorInputs): CoherenceCheck[] {
-    return []
+  /**
+   * Category 7: composition vs meditation cold-topic.
+   *
+   * A composition that BOOSTS labels (positive contributions) the
+   * meditation seed targets — but those labels have no warm claustrum
+   * support — is amplifying noise. The composition's effect won't
+   * ground out into anything the model can build on; it'll just
+   * inflate magnitude on a region the model has no traction in.
+   *
+   * Severity is `info` — this isn't a blocker, just a heads-up that the
+   * composition's boost isn't doing useful work for the upcoming
+   * meditation.
+   */
+  private detectCompositionMeditationColdTopic(inputs: DetectorInputs): CoherenceCheck[] {
+    const out: CoherenceCheck[] = []
+    if (!inputs.claustrumActivations || inputs.pendingSeeds.length === 0 || inputs.active.length === 0) return out
+    const activations = inputs.claustrumActivations
+    const cold = this.config.coldActivationThreshold
+
+    const boosters = inputs.active
+      .map(a => {
+        const rec = inputs.records.find(r => r.name === a.name)
+        const ast = rec?.ast ?? a.ast
+        const weights = gateWeights(ast)
+        const boostedLabels = [...weights.entries()]
+          .filter(([, w]) => w > 0)
+          .map(([label]) => label)
+        return { name: a.name, boosted: boostedLabels }
+      })
+      .filter(b => b.boosted.length > 0)
+    if (boosters.length === 0) return out
+
+    for (const seed of inputs.pendingSeeds) {
+      const topicLower = seed.topic.toLowerCase()
+      for (const booster of boosters) {
+        const overlap = booster.boosted.filter(label => topicLower.includes(label.toLowerCase()))
+        if (overlap.length === 0) continue
+        const coldHits = overlap.filter(label => {
+          const act = activations.get(label)
+          return act === undefined || act <= cold
+        })
+        if (coldHits.length === 0) continue
+        out.push(this.makeCheck({
+          category: 'composition_meditation_cold_topic',
+          severity: 'info',
+          message: `Composition "${booster.name}" is boosting { ${coldHits.join(', ')} } in the topic of seed "${seed.topic.slice(0, 60)}" but those concepts are cold in claustrum; the boost won't ground out.`,
+          involvedElements: [
+            { kind: 'composition', id: booster.name, label: booster.name },
+            { kind: 'meditation_seed', id: seed.id, label: seed.topic.slice(0, 60) },
+          ],
+          recommendation: `Acceptable — informational. The composition will still steer for other turns; the seed will just have to bootstrap that region itself.`,
+        }))
+      }
+    }
+    return out
   }
 
   /** Sort checks by severity (serious > warning > info), most recent first within ties. */

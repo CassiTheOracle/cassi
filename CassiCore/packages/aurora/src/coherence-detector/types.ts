@@ -48,10 +48,26 @@ export interface CoherenceDetectorConfig {
   contradictoryFraction: number
   /** Maximum top-N coherence checks to render in projection. */
   projectionTopN: number
+  /**
+   * Euclidean distance on (valence, arousal) above which a scheduled
+   * replay's source-affect is flagged as mismatched with current affect.
+   * Default 0.7: mild drift (≤ 0.5 in either dim) ignored; strong drift
+   * flagged. Range is approximately 0–√(4+1) ≈ 2.24 with valence ∈ [-1,1]
+   * and arousal ∈ [0,1].
+   */
+  replayAffectMismatchThreshold: number
+  /**
+   * Claustrum activation level at or below which a node is considered
+   * "cold" — too inactive to anchor a meditation entry-point or to
+   * ground a composition's amplification. Default 0.1.
+   */
+  coldActivationThreshold: number
 }
 
 export const COHERENCE_DEFAULTS: CoherenceDetectorConfig = {
   cancellingThreshold: 0.3,
   contradictoryFraction: 0.5,
   projectionTopN: 3,
+  replayAffectMismatchThreshold: 0.7,
+  coldActivationThreshold: 0.1,
 }
