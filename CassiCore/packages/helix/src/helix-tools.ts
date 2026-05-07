@@ -113,7 +113,6 @@ import {
   SHARE_FINDING_TOOL,
   CHALLENGE_TOOL,
   CONCEDE_TOOL,
-  REQUEST_INVESTIGATION_TOOL,
   SIGNAL_CONCLUSION_TOOL,
 } from './dialectic-tools.js'
 
@@ -121,63 +120,14 @@ export {
   SHARE_FINDING_TOOL,
   CHALLENGE_TOOL,
   CONCEDE_TOOL,
-  REQUEST_INVESTIGATION_TOOL,
   SIGNAL_CONCLUSION_TOOL,
 }
 
-// Research streaming tools — lets reviewers post research findings to the blackboard
-export const STREAM_RESEARCH_FINDING_TOOL: ToolSchema = {
-  name: 'stream_research_finding',
-  description:
-    'Stream a research finding to the blackboard for shared visibility. Use this when you discover something ' +
-    'during an investigation that all postures should see. This is the incremental version of share_finding ' +
-    'for research-in-progress.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      content: {
-        type: 'string',
-        description: 'The finding content — what you discovered.',
-      },
-      source: {
-        type: 'string',
-        description: 'Source reference — file path, URL, or line number.',
-      },
-      confidence: {
-        type: 'number',
-        description: 'Confidence score from 0.0 to 1.0.',
-      },
-    },
-    required: ['content'],
-  },
-}
-
-export const POST_RESEARCH_SIGNAL_TOOL: ToolSchema = {
-  name: 'post_research_signal',
-  description:
-    'Post a dialectic signal discovered during research to the concerns channel. ' +
-    'Use when your research reveals an edge case, assumption, tension, gap, or alternative. ' +
-    'This makes the signal visible to all postures via the blackboard.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      signal_type: {
-        type: 'string',
-        enum: ['edge_case', 'assumption', 'tension', 'gap', 'alternative'],
-        description: 'The type of dialectic signal.',
-      },
-      content: {
-        type: 'string',
-        description: 'The signal content — what was discovered.',
-      },
-      references: {
-        type: 'string',
-        description: 'Comma-separated references (file paths, line numbers).',
-      },
-    },
-    required: ['signal_type', 'content'],
-  },
-}
+// REMOVED: STREAM_RESEARCH_FINDING_TOOL, POST_RESEARCH_SIGNAL_TOOL,
+// REQUEST_INVESTIGATION_TOOL — all Blackboard-dependent. Blackboard is
+// deprecated in Constellation; the exclusion list at
+// helix-posture-runner.ts already disabled them. Now removed entirely.
+// Use share_finding for the same effect.
 
 // Nudge tool — adapted from Dyad but with reviewer-to-Unity semantics
 export const SEND_NUDGE_TOOL: ToolSchema = {
@@ -484,10 +434,8 @@ export const REVIEWER_TOOLS: ToolSchema[] = [
 
 /** Brainstem-dependent reviewer tools — only inject when Brainstem is active.
  *  Edit proposals require Brainstem for final approval + application.
- *  Guidance gate requires Brainstem to generate proposals.
- *  Request investigation posts to Blackboard via HelixResearcher (deprecated). */
+ *  Guidance gate requires Brainstem to generate proposals. */
 export const BRAINSTEM_REVIEWER_TOOLS: ToolSchema[] = [
-  REQUEST_INVESTIGATION_TOOL,
   ...EDIT_PROPOSAL_TOOLS,
   ...GUIDANCE_GATE_TOOLS,
 ]

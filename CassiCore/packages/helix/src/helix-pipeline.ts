@@ -49,7 +49,6 @@ import { DialecticChannel } from './dialectic-channel.js'
 import { HelixCoordinator, HelixWorkStream, HelixDialecticMesh } from './helix-coordinator.js'
 import { HelixPostureRunner } from './helix-posture-runner.js'
 import { ContextChunkIndex } from './context-chunk-index.js'
-import type { ResearchSpawner } from './helix-posture-runner.js'
 import { UNITY_POSTURE, YANG_REVIEWER_POSTURE, YIN_REVIEWER_POSTURE } from './helix-postures.js'
 import type { HelixResult, HelixCompletionStatus, HelixPostureResult } from './types.js'
 import { signalPromise } from '../../utils/abort.js'
@@ -125,9 +124,6 @@ export interface HelixPipelineOpts {
   sessionType?: 'dyad' | 'lumen' | 'flux' | 'helix' | 'standalone'
   teamId?: string
   moduleDebugSessionId?: string
-
-  /** Optional research spawner — passed to mentor for eager research execution */
-  researchSpawner?: ResearchSpawner
 
   /** Thalamus for context curation during long-running sessions */
   thalamus?: import('../thalamus/index.js').ThalamusModule

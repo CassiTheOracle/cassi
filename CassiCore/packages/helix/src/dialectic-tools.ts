@@ -91,33 +91,11 @@ export const CONCEDE_TOOL: ToolSchema = {
   },
 }
 
-export const REQUEST_INVESTIGATION_TOOL: ToolSchema = {
-  name: 'request_investigation',
-  description:
-    'Ask the other specialist to investigate a specific area. ' +
-    'Use when you find something in their analytical domain that needs their perspective.',
-  input_schema: {
-    type: 'object',
-    properties: {
-      area: {
-        type: 'string',
-        description: 'What to investigate — file path, concept, module, or specific question.',
-      },
-      reason: {
-        type: 'string',
-        description: 'Why this needs their attention — what you found that triggered this request.',
-      },
-    },
-    required: ['area', 'reason'],
-  },
-}
-
 /** All Yang/Yin dialectic tools (excluding signal_conclusion) */
 export const YANG_YIN_DIALECTIC_TOOLS: ToolSchema[] = [
   SHARE_FINDING_TOOL,
   CHALLENGE_TOOL,
   CONCEDE_TOOL,
-  REQUEST_INVESTIGATION_TOOL,
 ]
 
 // Executive Moderation Tools
@@ -234,7 +212,6 @@ export const YANG_YIN_META_TOOL_NAMES = new Set([
   'share_finding',
   'challenge',
   'concede',
-  'request_investigation',
   'signal_conclusion',
 ])
 

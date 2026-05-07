@@ -24,7 +24,6 @@ import type { HelixStore, TestLockRow } from './helix-store.js'
 import type { WorkStream } from './work-stream.js'
 import type { DialecticChannel } from './dialectic-channel.js'
 import type { ModuleSessionRegistry } from '../module-session-registry.js'
-import type { ResearchSpawner } from './helix-posture-runner.js'
 import type { HelixSynapseLLM } from './helix-synapse.js'
 import { runHelixPipeline, SessionState } from './helix-pipeline.js'
 import { HelixWorkStream, HelixCoordinator } from './helix-coordinator.js'
@@ -122,24 +121,6 @@ function buildHelixProgressMarkdown(ws: WorkStream, dc?: DialecticChannel): stri
   return lines.join('\n')
 }
 
-
-/**
- * REMOVED: ResearchSpawner — Blackboard deprecated.
- *
- * Research functionality now uses GlobalWorkspace + LaminaField directly.
- * This stub remains for type compatibility but returns undefined.
- */
-async function buildResearchSpawner(_deps: {
-  modelPool: ModelPool
-  toolExecutor: ToolExecutor
-  toolRegistry?: ToolRegistry
-  logger: ILogger
-  // REMOVED: blackboard: Blackboard
-}): Promise<ResearchSpawner | undefined> {
-  // Lazy-load to avoid circular deps
-  // REMOVED: Blackboard-based research — deprecated
-  return undefined
-}
 
 function isReadOnlyName(name: string): boolean {
   const readPrefixes = [
@@ -400,9 +381,6 @@ export function createHelix(
         // REMOVED: PlanHandler — Blackboard deprecated. Plan state managed via LaminaField
         let planHandler: undefined
 
-        // REMOVED: ResearchSpawner — Blackboard deprecated
-        let researchSpawner: undefined
-
         try {
           const result = await runHelixPipeline({
             goal: effectiveGoal,
@@ -421,7 +399,6 @@ export function createHelix(
             store: storedStore,
             // REMOVED: blackboard — deprecated
             planHandler: undefined,
-            researchSpawner: undefined,
             useNativeCoordinator: true,
             brainstemDeps,
             synapseDeps,
@@ -497,8 +474,6 @@ export type {
   HelixPostureResult,
   HelixCompletionStatus,
 } from './types.js'
-
-export type { ResearchSpawner } from './helix-posture-runner.js'
 
 export {
   UNITY_POSTURE,

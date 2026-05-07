@@ -893,7 +893,7 @@ export class WorkStream {
     if (status.toolPatternSummary) {
       lines.push(`  Pattern detected: ${status.toolPatternSummary}`)
     }
-    lines.push('  Consider: Is Unity stuck? Use request_investigation before sending a nudge.')
+    lines.push('  Consider: Is Unity stuck? Share findings with the other reviewer before sending a nudge.')
     return lines.join('\n')
   }
 

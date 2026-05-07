@@ -44,7 +44,6 @@ import type { HelixJournal } from './helix-journal.js'
 import type { PendingGuidance } from './brainstem-types.js'
 import { appendMentorFlagLine } from '../constellation/helix-goal-lamina.js'
 import type { HelixSynapse } from './helix-synapse.js'
-import { HelixResearcher } from './helix-researcher.js'
 import {
   isHelixMetaTool,
   getHelixToolSchemas,
@@ -140,13 +139,6 @@ const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
   // Unused blackboard tools — minimal usage across c-26/27/28, add noise to tool list
   'bb_scratch_list',
   'bb_search_report',
-  // Blackboard-dependent research tools — hard-require Blackboard which is deprecated
-  // in Constellation (SessionState stub doesn't implement Blackboard API).
-  'stream_research_finding',
-  'post_research_signal',
-  // request_investigation — its HelixResearcher path requires deprecated Blackboard.
-  // Use share_finding with tags=['investigation-request'] for the same effect.
-  'request_investigation',
   // TestLock verification — never called (blocked signal_done in c-23).
   // Yin seals specs but Unity never verifies, permanently blocking completion.
   // Disabled to remove the blocking path; TestLock remains for sealing only.
@@ -192,17 +184,6 @@ const REVIEWER_IDLE_DELAY_MS = 1_000
 
 
 
-/**
- * Callback for spawning a research agent from the Mentor.
- * Fires asynchronously — results are posted to the Blackboard.
- */
-export type ResearchSpawner = (opts: {
-  query: string
-  label: string
-  context?: string
-  priority?: 'low' | 'medium' | 'high'
-  sessionId: string
-}) => Promise<{ requestId: string; droneId: string }>
 
 export interface HelixPostureRunnerOpts {
   role: HelixRole
@@ -226,8 +207,6 @@ export interface HelixPostureRunnerOpts {
   postureSlot?: string
   moduleDebugSessionId?: string
   contextBudgetCoordinator?: import('../cassi-agent/context-budget-coordinator.js').ContextBudgetCoordinator
-  /** Optional callback to spawn a research drone when the Mentor dispatches research */
-  researchSpawner?: ResearchSpawner
   /** Configurable thresholds for UnityStatus proactive signals to reviewers */
   unityStatusThresholds?: UnityStatusThresholds
   /** Brainstem — cognitive organizer (replaces Mentor) */
@@ -324,7 +303,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
   private readonly role: HelixRole
   private readonly workStream: WorkStream
   private readonly dialecticChannel?: DialecticChannel
-  private readonly researchSpawner?: ResearchSpawner
   private readonly unityStatusThresholds?: UnityStatusThresholds
   private readonly brainstem?: HelixBrainstem
   private readonly traitVector?: TraitVector
@@ -410,7 +388,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     this.role = opts.role
     this.workStream = opts.workStream
     this.dialecticChannel = opts.dialecticChannel
-    this.researchSpawner = opts.researchSpawner
     this.unityStatusThresholds = opts.unityStatusThresholds
     this.brainstem = opts.brainstem
     this.traitVector = opts.traitVector
@@ -1386,14 +1363,10 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       case 'share_finding': return this.handleShareFinding(input)
       case 'challenge': return this.handleChallenge(input)
       case 'concede': return this.handleConcede(input)
-      case 'request_investigation': return this.handleRequestInvestigation(input)
-      case 'stream_research_finding': return this.handleStreamResearchFinding(input)
-      case 'post_research_signal': return this.handlePostResearchSignal(input)
       // Mentor tools
       case 'mentor_steer': return this.handleMentorSteer(input)
       case 'mentor_flag': return this.handleMentorFlag(input)
       case 'mentor_force_conclusion': return this.handleMentorForceConclusion(input)
-      case 'mentor_dispatch_research': return this.handleMentorDispatchResearch(input)
       case 'mentor_synthesize': return this.handleMentorSynthesize(input)
       // Reviewer tools (WorkStream)
       case 'send_nudge': return this.handleSendNudge(input)
@@ -1829,117 +1802,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     }
   }
 
-  private handleRequestInvestigation(input: Record<string, unknown>): string {
-    if (!this.dialecticChannel) return 'ERROR: No dialectic channel available.'
-
-    const area = String(input.area ?? '')
-    const reason = String(input.reason ?? '')
-
-    // Post as a finding tagged as an investigation request so the other reviewer sees it
-    const id = this.dialecticChannel.postFinding(
-      this.role as any,
-      `[Investigation Request] ${area}: ${reason}`,
-      undefined,
-      ['investigation-request'],
-    )
-    this.publishSignal('observation', `[Investigation Request] ${area}: ${reason}`.slice(0, 2000), {
-      kind: 'investigation-request',
-      correlation: String(id),
-      extra: { findingId: String(id), area, reason },
-    })
-
-    // Also post to blackboard via HelixResearcher for shared visibility
-    if (this.blackboard) {
-      try {
-        const researcher = new HelixResearcher({
-          sessionId: this.sessionId,
-          blackboard: this.blackboard,
-          query: area,
-          label: `investigation-${this.role}`,
-          requestedBy: this.role as 'yang' | 'yin',
-          priority: 'high',
-          context: reason,
-          logger: this.logger,
-        })
-
-        // Fire-and-forget: post request to blackboard and log findings
-        researcher.postRequest().catch((err) =>
-          this.logger.warn('Failed to post research request to blackboard', { error: String(err) })
-        )
-      } catch (err) {
-        this.logger.warn('Failed to create HelixResearcher', { error: String(err) })
-      }
-    }
-
-    return `Investigation request posted as #${id}. The other reviewer will see your request to investigate "${area}" in their next dialectic injection. A research request has been posted to the blackboard for shared visibility.`
-  }
-
-  private handleStreamResearchFinding(input: Record<string, unknown>): string {
-    if (!this.blackboard) return 'ERROR: No blackboard available.'
-
-    const content = String(input.content ?? '')
-    const source = input.source ? String(input.source) : undefined
-    const confidence = typeof input.confidence === 'number' ? input.confidence : undefined
-
-    try {
-      const researcher = new HelixResearcher({
-        sessionId: this.sessionId,
-        blackboard: this.blackboard,
-        query: 'active-investigation',
-        label: `research-${this.role}`,
-        requestedBy: this.role as 'yang' | 'yin',
-        logger: this.logger,
-      })
-
-      // Post the finding directly to blackboard findings channel
-      researcher.postFinding(content, { source, confidence }).catch((err) =>
-        this.logger.warn('Failed to stream research finding', { error: String(err) })
-      )
-
-      return `Research finding posted to blackboard findings channel. ${source ? `Source: ${source}` : ''}`
-    } catch (err) {
-      this.logger.error('Failed to stream research finding', { error: String(err) })
-      return `ERROR: ${String(err)}`
-    }
-  }
-
-  private handlePostResearchSignal(input: Record<string, unknown>): string {
-    if (!this.blackboard) return 'ERROR: No blackboard available.'
-
-    const signalType = String(input.signal_type ?? 'assumption')
-    const content = String(input.content ?? '')
-    const references = input.references ? String(input.references).split(',').map(s => s.trim()) : undefined
-
-    const validTypes = ['edge_case', 'assumption', 'tension', 'gap', 'alternative']
-    if (!validTypes.includes(signalType)) {
-      return `ERROR: Invalid signal type "${signalType}". Must be one of: ${validTypes.join(', ')}`
-    }
-
-    try {
-      const researcher = new HelixResearcher({
-        sessionId: this.sessionId,
-        blackboard: this.blackboard,
-        query: 'active-investigation',
-        label: `signal-${this.role}`,
-        requestedBy: this.role as 'yang' | 'yin',
-        logger: this.logger,
-      })
-
-      researcher.postSignal({
-        type: signalType as any,
-        content,
-        references,
-      }).catch((err) =>
-        this.logger.warn('Failed to post research signal', { error: String(err) })
-      )
-
-      return `Dialectic signal (${signalType}) posted to blackboard concerns channel. All postures will see this.`
-    } catch (err) {
-      this.logger.error('Failed to post research signal', { error: String(err) })
-      return `ERROR: ${String(err)}`
-    }
-  }
-
   private handleSignalConclusion(input: Record<string, unknown>): string {
     // Check for unresolved challenges (hard-gate from DialecticChannel)
     if (this.dialecticChannel) {
@@ -2158,67 +2020,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     return `Conclusion forced. Decision posted, dialectic steered, nudge sent to Unity.`
   }
 
-  private handleMentorDispatchResearch(input: Record<string, unknown>): string {
-    if (!this.blackboard || !this.dialecticChannel) return 'ERROR: Blackboard and dialectic channel required.'
-
-    const query = String(input.query ?? '').trim()
-    const target = (String(input.target ?? 'both') as 'yang' | 'yin' | 'both')
-    const rationale = String(input.rationale ?? '').trim()
-    const priority = (String(input.priority ?? 'medium') as 'low' | 'medium' | 'high')
-
-    if (!query) return 'ERROR: query is required.'
-
-    try {
-      const targets = target === 'both' ? (['yang', 'yin'] as const) : ([target] as const)
-      for (const requestedBy of targets) {
-        const researcher = new HelixResearcher({
-          sessionId: this.sessionId,
-          blackboard: this.blackboard,
-          query,
-          label: `mentor-${requestedBy}`,
-          requestedBy,
-          priority,
-          context: rationale || 'Mentor-directed research mission',
-          logger: this.logger,
-        })
-        void researcher.postRequest().catch((err) =>
-          this.logger.warn('Failed to post mentor research request', { error: String(err), requestedBy })
-        )
-
-        // Spawn a research drone if the spawner is wired
-        if (this.researchSpawner) {
-          const label = `mentor-research-${requestedBy}-${Date.now()}`
-          void this.researchSpawner({
-            query,
-            label,
-            context: rationale || `Mentor-directed research for ${requestedBy}: ${query}`,
-            priority,
-            sessionId: this.sessionId,
-          }).then(({ requestId, droneId }) => {
-            this.logger.info('Research drone spawned', { requestId, droneId, query: query.slice(0, 100), requestedBy })
-          }).catch((err) => {
-            this.logger.warn('Research drone spawn failed — falling back to blackboard request only', {
-              error: String(err), query: query.slice(0, 100), requestedBy,
-            })
-          })
-        }
-      }
-
-      this.dialecticChannel.injectMentorSteering(
-        target,
-        `Research mission assigned: ${query}${rationale ? `\nWhy: ${rationale}` : ''}`,
-        'steer',
-        'research_dispatch',
-      )
-    } catch (err) {
-      this.logger.error('Mentor research dispatch failed', { error: String(err) })
-      return `ERROR: ${String(err)}`
-    }
-
-    const spawnerStatus = this.researchSpawner ? ' A research drone has been dispatched to execute the investigation.' : ' (No research drone available — request posted to blackboard only.)'
-    return `Research mission dispatched to ${target}: ${query}${spawnerStatus}`
-  }
-
   private handleMentorSynthesize(input: Record<string, unknown>): string {
     if (!this.blackboard) return 'ERROR: No blackboard available.'
 
@@ -2370,7 +2171,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
     //   - report_to_brainstem: agent thinks it's reporting but Brainstem isn't listening
     //   - approve_guidance / reject_guidance: guidance proposals don't exist without Brainstem
     //   - propose_edit / review_edit_proposal: edits need Brainstem for final approval + application
-    //   - request_investigation: HelixResearcher path requires deprecated Blackboard
     if (this.brainstem) {
       if (role === 'unity') {
         tools.push(REPORT_TO_BRAINSTEM_TOOL)
@@ -2625,7 +2425,7 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       role: 'user',
       content: `--- Status Signal (Proactive) ---\n\n${WorkStream.formatUnityStatus(status)}\n\n---\n\n` +
         'The worker may be stuck or off-track. Review the status above and decide whether to ' +
-        'investigate further (use request_investigation) or send a nudge (use send_nudge).',
+        'flag the issue (use share_finding) or send a nudge (use send_nudge).',
     })
 
     return true
