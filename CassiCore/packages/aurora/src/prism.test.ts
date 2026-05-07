@@ -357,4 +357,68 @@ describe('Prism', () => {
       expect(prism.spectrumAt('lamina').size).toBe(1)
     })
   })
+
+  describe('B8.P.4 getProjectionSummary', () => {
+    it('returns zero counts on empty Prism', () => {
+      const summary = prism.getProjectionSummary()
+      expect(summary.nodeCount).toBe(0)
+      expect(summary.starkConcepts).toEqual([])
+      expect(summary.totalSpectrum.size).toBe(0)
+    })
+
+    it('reports stark concepts dominated by a single color', () => {
+      // Deposit only `calm`-color contributions to `lamina`
+      for (let i = 0; i < 3; i++) {
+        prism.deposit(makeContribution({ forkId: `fork-${i}`, color: 'calm' }))
+      }
+      const summary = prism.getProjectionSummary()
+      expect(summary.nodeCount).toBeGreaterThan(0)
+      expect(summary.starkConcepts.length).toBeGreaterThan(0)
+      const lamina = summary.starkConcepts.find(c => c.conceptId === 'lamina')
+      expect(lamina).toBeDefined()
+      expect(lamina!.dominantColor).toBe('calm')
+      expect(lamina!.missing.length).toBeGreaterThan(0)
+      expect(lamina!.missing).not.toContain('calm')
+    })
+
+    it('respects topN cap', () => {
+      // Deposit 6 distinct stark concepts
+      for (let i = 0; i < 6; i++) {
+        prism.deposit(makeContribution({
+          forkId: `fork-${i}`,
+          color: 'calm',
+          contributedNodes: [{ nodeId: `concept-${i}`, salience: 0.7, forkOnly: false, activated: true }],
+        }))
+      }
+      const summary = prism.getProjectionSummary({ topN: 3 })
+      expect(summary.starkConcepts).toHaveLength(3)
+    })
+
+    it('totalSpectrum reflects per-color exposure across the prism', () => {
+      prism.deposit(makeContribution({ color: 'calm' }))
+      prism.deposit(makeContribution({ color: 'engaged', forkId: 'fork-2' }))
+      const summary = prism.getProjectionSummary()
+      expect(summary.totalSpectrum.has('calm')).toBe(true)
+      expect(summary.totalSpectrum.has('engaged')).toBe(true)
+    })
+
+    it('starkConcepts sorted by totalWeight descending', () => {
+      // High-salience concept
+      prism.deposit(makeContribution({
+        forkId: 'fork-h',
+        color: 'calm',
+        contributedNodes: [{ nodeId: 'high', salience: 1.0, forkOnly: false, activated: true }],
+      }))
+      // Low-salience concept
+      prism.deposit(makeContribution({
+        forkId: 'fork-l',
+        color: 'calm',
+        contributedNodes: [{ nodeId: 'low', salience: 0.1, forkOnly: false, activated: true }],
+      }))
+      const summary = prism.getProjectionSummary()
+      const high = summary.starkConcepts.findIndex(c => c.conceptId === 'high')
+      const low = summary.starkConcepts.findIndex(c => c.conceptId === 'low')
+      expect(high).toBeLessThan(low)
+    })
+  })
 })

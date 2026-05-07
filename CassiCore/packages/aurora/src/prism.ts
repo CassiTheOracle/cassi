@@ -357,6 +357,67 @@ export class Prism {
     return row.n
   }
 
+  /**
+   * B8.P.4 — projection-ready summary for Aurora's text projection.
+   *
+   * Returns the top-N stark concepts (single-color-dominated) plus
+   * total-color exposure breakdown and node count. Stark concepts
+   * surface in the projection as "gap candidates" — concepts the
+   * model has only seen in one affective register and could be
+   * usefully explored under a contrasting color.
+   *
+   * Sorted by `totalWeight` descending so the most-exposed stark
+   * concepts come first (those most worth a counterfactual
+   * exploration via B7).
+   */
+  getProjectionSummary(opts: { topN?: number; now?: number } = {}): {
+    nodeCount: number
+    totalSpectrum: Map<AffectColor, number>
+    starkConcepts: Array<{
+      conceptId: string
+      dominantColor: AffectColor | null
+      missing: AffectColor[]
+      totalWeight: number
+      balanceScore: number
+    }>
+  } {
+    const topN = opts.topN ?? 5
+    const now = opts.now ?? Date.now()
+    if (this.closed) {
+      return { nodeCount: 0, totalSpectrum: new Map(), starkConcepts: [] }
+    }
+    const stark = this.starkConcepts(0.4, 0.1, now)
+      .sort((a, b) => b.totalWeight - a.totalWeight)
+      .slice(0, topN)
+    const summarized = stark.map(node => {
+      // Find dominant color (highest decayed weight) and missing colors.
+      let dominant: AffectColor | null = null
+      let dominantWeight = -Infinity
+      for (const [color, w] of node.spectrum) {
+        if (w.weight > dominantWeight) {
+          dominantWeight = w.weight
+          dominant = color
+        }
+      }
+      const missing: AffectColor[] = []
+      for (const c of ALL_AFFECT_COLORS) {
+        if (!node.spectrum.has(c)) missing.push(c)
+      }
+      return {
+        conceptId: node.conceptId,
+        dominantColor: dominant,
+        missing,
+        totalWeight: node.totalWeight,
+        balanceScore: node.balanceScore,
+      }
+    })
+    return {
+      nodeCount: this.nodeCount(),
+      totalSpectrum: this.totalSpectrum(now),
+      starkConcepts: summarized,
+    }
+  }
+
   close(): void {
     if (this.closed) return
     this.db.close()
