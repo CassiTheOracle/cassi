@@ -660,6 +660,25 @@ async function proxyRequest(
         injectIntoSystemPrompt(body, cognitive);
       }
 
+      // DMN — pull the cached observers digest from the daemon and inject as
+      // a separate <observers> block. Empty when no signal is cached or DMN
+      // is disabled. Already-formatted as `<observers>...</observers>` on the
+      // daemon side, so we strip the wrapping tags before re-injecting under
+      // the existing tag-wrapping path.
+      try {
+        const observersBlock = await bridge.dmnDigest(state.ccSessionId);
+        if (observersBlock && observersBlock.length > 0) {
+          const inner = observersBlock
+            .replace(/^<observers>\s*/, "")
+            .replace(/\s*<\/observers>\s*$/, "");
+          if (inner.length > 0) {
+            injectIntoSystemPrompt(body, inner, "observers");
+          }
+        }
+      } catch (err) {
+        logger.debug("dmnDigest fetch failed", { error: String(err) });
+      }
+
       if (Array.isArray(body.messages)) {
         // DEBUG: Log thinking signatures from Claude Code before curation
         const originalThinkingSigs = body.messages.map((m: any, i: number) => {

@@ -118,6 +118,29 @@ export async function workspaceEnrich(query: string, sessionId: string): Promise
   return send("POST", "/intelligence/workspace/enrich", { query, sessionId });
 }
 
+/**
+ * Fetch the cached DMN observers digest for a session. Returns empty string
+ * when no signal is cached, the session is not attached, or DMN is disabled.
+ * Cached briefly so per-turn build doesn't pound the daemon.
+ */
+let dmnCache: { sessionId: string; digest: string; ts: number } | null = null;
+const DMN_CACHE_TTL = 1500;
+
+export async function dmnDigest(sessionId: string): Promise<string> {
+  const now = Date.now();
+  if (dmnCache && dmnCache.sessionId === sessionId && now - dmnCache.ts < DMN_CACHE_TTL) {
+    return dmnCache.digest;
+  }
+  try {
+    const res = await send("GET", `/dmn/sessions/${encodeURIComponent(sessionId)}/digest`);
+    const digest = typeof res?.digest === "string" ? res.digest : "";
+    dmnCache = { sessionId, digest, ts: now };
+    return digest;
+  } catch {
+    return dmnCache?.sessionId === sessionId ? dmnCache.digest : "";
+  }
+}
+
 export async function inject(sessionId: string): Promise<string[]> {
   const res = await send("GET", `/context/inject/${sessionId}`);
   if (!res || !Array.isArray(res.parts)) return [];
