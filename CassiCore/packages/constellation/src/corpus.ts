@@ -76,6 +76,8 @@ import {
 } from './corpus/corpus-utils.js'
 import { PatternDetector } from './corpus/corpus-patterns.js'
 import { ExternalCorpusProtocol } from './corpus/corpus-external.js'
+import { BridgeDedupe, handleWorkspaceBroadcastForTerritory, type SiblingGoalEntry } from './territory-bridge.js'
+import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
@@ -175,6 +177,12 @@ export class Corpus {
   // PatternDetector — Cross-branch pattern detection
   private patternDetector: PatternDetector
 
+  // Territory awareness (PR-2 of cross-helix-territory-awareness spec):
+  // index of sibling goal signals + cooldown dedupe for bridge-signal emission.
+  private siblingGoalIndex: Map<string, SiblingGoalEntry> = new Map()
+  private bridgeDedupe?: BridgeDedupe
+  private workspaceUnsubscribe?: () => void
+
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
     this.deps = deps
@@ -247,6 +255,14 @@ export class Corpus {
 
     this.logger.info('Corpus loop starting')
 
+    if (this.deps.globalWorkspace) {
+      this.bridgeDedupe = new BridgeDedupe(30_000)
+      this.workspaceUnsubscribe = this.deps.globalWorkspace.onBroadcast(
+        signals => this.onWorkspaceBroadcast(signals),
+      )
+      this.logger.debug('Corpus subscribed to GlobalWorkspace broadcasts for territory awareness')
+    }
+
     this.loopPromise = this.runLoop()
   }
 
@@ -261,6 +277,12 @@ export class Corpus {
     this.logger.info('Corpus shutdown requested')
     this.shutdownRequested = true
     this.stopped = true
+
+    if (this.workspaceUnsubscribe) {
+      try { this.workspaceUnsubscribe() } catch { /* non-fatal */ }
+      this.workspaceUnsubscribe = undefined
+    }
+    this.siblingGoalIndex.clear()
 
     // Release external Corpus if assumed
     if (this.externalProtocol.isAssumed()) {
@@ -292,6 +314,29 @@ export class Corpus {
    */
   isRunning(): boolean {
     return this.running
+  }
+
+  /**
+   * Workspace broadcast handler — PR-2 of cross-helix-territory-awareness spec.
+   * Filters incoming `goal` signals by membership in childBrainstems, maintains
+   * the sibling goal index, and emits `bridge` signals on territorial overlap.
+   *
+   * Bridge signals (source: 'corpus', type: 'bridge') flow back through
+   * onBroadcast and re-enter this handler — the `if (sig.type !== 'goal')` guard
+   * makes that loop a no-op.
+   */
+  private onWorkspaceBroadcast(signals: CognitiveSignal[]): void {
+    if (!this.deps.globalWorkspace || !this.bridgeDedupe) return
+    handleWorkspaceBroadcastForTerritory(
+      signals,
+      {
+        siblingGoalIndex: this.siblingGoalIndex,
+        isMember: id => this.childBrainstems.has(id),
+      },
+      this.deps.globalWorkspace,
+      this.bridgeDedupe,
+      this.deps.constellationId,
+    )
   }
 
   // --- External Corpus Protocol ---
