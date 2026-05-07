@@ -408,8 +408,8 @@ export class ToolExecutor {
         this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully`)
         this.recordReliabilityOutcome(actualToolName, durationMs, true)
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
-        const enrichment = this.enrichToolResult(sessionId, actualToolName, durationMs, false)
-        
+        this.enrichToolResult(sessionId, actualToolName, durationMs, false)
+
         const presented = this.applyPresentation(String(safeResult.data), actualToolName, durationMs)
 
         let finalContent = presented.content
@@ -429,7 +429,7 @@ export class ToolExecutor {
         return {
           toolCallId: call.id,
           toolName: actualToolName,
-          content: enrichment ? finalContent + enrichment : finalContent,
+          content: finalContent,
           isError: false,
           rawContent: presented.rawContent,
           exitCode: presented.exitCode,
@@ -449,13 +449,13 @@ export class ToolExecutor {
         this.recordToolOutcome(actualToolName, true, sessionId, `Executed successfully (legacy)`)
         this.recordReliabilityOutcome(actualToolName, durationMs, true)
         this.emitToolExecuted(sessionId, actualToolName, durationMs, false)
-        const enrichment = this.enrichToolResult(sessionId, actualToolName, durationMs, false)
-        
+        this.enrichToolResult(sessionId, actualToolName, durationMs, false)
+
         const presented = this.applyPresentation(result, actualToolName, durationMs)
         return {
           toolCallId: call.id,
           toolName: actualToolName,
-          content: enrichment ? presented.content + enrichment : presented.content,
+          content: presented.content,
           isError: false,
           rawContent: presented.rawContent,
           exitCode: presented.exitCode,
@@ -624,12 +624,20 @@ export class ToolExecutor {
     }
   }
 
+  /**
+   * WHY: Surfaces trust/risk metadata via the tool:enriched event so observers
+   * (UI status bars, metric collectors) can render it through their own channel.
+   * The metadata is intentionally NOT concatenated into result content — that
+   * contaminated structured tool output and forced consumers like
+   * gitnexus-bridge.safeParseJson to strip the banner before parsing.
+   * Agents that want trust state should call cassi_intelligence({action:'trust'}).
+   */
   private enrichToolResult(
     sessionId: string,
     toolName: string,
     durationMs: number,
     isError: boolean,
-  ): string | null {
+  ): void {
     let trustScore: number | undefined
     let riskScore: number | undefined
 
@@ -658,18 +666,6 @@ export class ToolExecutor {
         timestamp: new Date(),
       })
     }
-
-    const parts: string[] = []
-    if (trustScore !== undefined) {
-      const bar = trustScore >= 0.8 ? '████' : trustScore >= 0.6 ? '███░' : trustScore >= 0.4 ? '██░░' : '█░░░'
-      parts.push(`trust ${bar} ${trustScore.toFixed(2)}`)
-    }
-    if (riskScore !== undefined) {
-      const label = riskScore < 0.3 ? 'low' : riskScore < 0.6 ? 'med' : riskScore < 0.8 ? 'high' : 'crit'
-      parts.push(`risk ${label} ${riskScore.toFixed(2)}`)
-    }
-    if (parts.length === 0) return null
-    return `\n━━ CassiCore ━ ${parts.join(' · ')} ━━`
   }
 
   private trackSkillInvocation(call: ToolCall, sessionId: string): void {
