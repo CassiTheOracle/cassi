@@ -154,7 +154,12 @@ function renderReceiptForInjection(receipt: any): string | null {
   const protectedTotal = protectedSummary && typeof protectedSummary.total === "number"
     ? protectedSummary.total
     : 0;
-  if (dropped <= 0 && protectedTotal <= 0) return null;
+  const distillation = receipt.distillation;
+  const hasDistillationActivity = !!(distillation && typeof distillation === "object" && (
+    (Array.isArray(distillation.completed) && distillation.completed.length > 0) ||
+    (typeof distillation.pending === "number" && distillation.pending > 0)
+  ));
+  if (dropped <= 0 && protectedTotal <= 0 && !hasDistillationActivity) return null;
   const lines: string[] = [];
   if (dropped > 0 && typeof receipt.summary === "string" && receipt.summary.length > 0) {
     lines.push(receipt.summary);
@@ -209,6 +214,27 @@ function renderReceiptForInjection(receipt: any): string | null {
   const budget = receipt.budget;
   if (budget && typeof budget === "object" && typeof budget.utilization === "number") {
     lines.push(`budget: ${Math.round(budget.used / 1000)}k/${Math.round(budget.budget / 1000)}k chars (${Math.round(budget.utilization * 100)}% used)`);
+  }
+
+  // Distillation activity — closes the design gap from cassi-context-awareness
+  // §"Async tool-result distillation". Pending = queued for background LLM
+  // compression; completed = finished since last receipt.
+  const distillation = receipt.distillation;
+  if (distillation && typeof distillation === "object") {
+    const pending = typeof distillation.pending === "number" ? distillation.pending : 0;
+    const completed = Array.isArray(distillation.completed) ? distillation.completed : [];
+    if (completed.length > 0 || pending > 0) {
+      const parts: string[] = [];
+      if (completed.length > 0) {
+        const freed = typeof distillation.charsFreed === "number" ? distillation.charsFreed : 0;
+        const fmt = (n: number) => n >= 1024 ? `${(n / 1024).toFixed(1)}KB` : `${n}ch`;
+        const samples = completed.slice(0, 3).map((c: any) => `#${c.msgIndex} ${fmt(c.originalChars)}→${fmt(c.summaryChars)}`).join(", ");
+        const more = completed.length > 3 ? ` +${completed.length - 3} more` : "";
+        parts.push(`${completed.length} completed (-${fmt(freed)} freed): ${samples}${more}`);
+      }
+      if (pending > 0) parts.push(`${pending} queued`);
+      lines.push(`distillation: ${parts.join(" · ")}`);
+    }
   }
 
   if (Array.isArray(receipt.anomalies) && receipt.anomalies.length > 0) {

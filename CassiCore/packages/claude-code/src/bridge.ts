@@ -451,3 +451,20 @@ export async function auroraObserve(text: string): Promise<any> {
 export async function compact(sessionId: string, messages: any[]): Promise<any> {
   return send("POST", `/context/compact/${sessionId}`, { messages }, LONG_TIMEOUT);
 }
+
+/**
+ * Set a one-shot routing override on ModelDirective. The next request the
+ * daemon serves uses the given tier (e.g. "background" for the cheap eco
+ * tier); the override is consumed on use and routing returns to the session
+ * default automatically. Closes the eco-mode gap without an in-band tag —
+ * see docs/design/eco-mode-delegation.md for the full discussion.
+ */
+export async function modelDirectiveSetNextTier(tier: string): Promise<any> {
+  return send("POST", "/model-directive/set", { scope: "next", tier });
+}
+
+/** List the routing tiers ModelDirective knows about (and their provider/model bindings). */
+export async function modelDirectiveTiers(): Promise<Record<string, { provider: string; model: string }> | null> {
+  const res = await send("GET", "/model-directive/tiers");
+  return res?.tiers ?? null;
+}
