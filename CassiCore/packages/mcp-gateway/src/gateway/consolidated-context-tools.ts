@@ -28,9 +28,9 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
     properties: {
       action: {
         type: 'string',
-        enum: ['map', 'audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject', 'drop', 'collapse', 'clear_directives', 'expand'],
+        enum: ['map', 'audit', 'pin', 'unpin', 'why', 'stats', 'recall', 'recall_inject', 'drop', 'collapse', 'clear_directives', 'expand', 'next_tier'],
         description:
-          'Context operation: map (visibility roster — what is protected and why), audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection), drop (exclude messages by index on next curate), collapse (replace a message with a summary on next curate), clear_directives (cancel all pending drop/collapse), expand (recover original uncompressed content for a reranker-compressed tool result).',
+          'Context operation: map (visibility roster — what is protected and why), audit (recent drops), pin (protect pattern), unpin (remove pin), why (score breakdown), stats (curation stats), recall (search dropped messages), recall_inject (queue content for re-injection), drop (exclude messages by index on next curate), collapse (replace a message with a summary on next curate), clear_directives (cancel all pending drop/collapse), expand (recover original uncompressed content for a reranker-compressed tool result), next_tier (route the next bridge request to a different model tier — one-shot, consumed on use; useful for delegating bulk-output turns to a cheaper tier without changing session defaults).',
       },
       sessionId: {
         type: 'string',
@@ -96,6 +96,11 @@ export const CONTEXT_CONSOLIDATED_TOOL = {
       label: {
         type: 'string',
         description: 'Label for recall_inject — describes what was recalled.',
+      },
+      tier: {
+        type: 'string',
+        enum: ['minimax', 'qwenPlus', 'glm', 'kimi', 'qwenMax', 'sonnet', 'opus', 'background'],
+        description: 'Tier name for next_tier action. background is the cheap eco tier; sonnet/opus are primary; others are alternates configured in ModelDirective.',
       },
     },
     required: ['action'],
@@ -273,8 +278,25 @@ export async function executeContextAction(
       return formatJsonResponse(data)
     }
 
+    case 'next_tier': {
+      const tier = args.tier as string | undefined
+      if (!tier) return formatTextResponse('tier is required for next_tier action (e.g. "background" for cheap eco tier)')
+      const url = `${adminBase}/model-directive/set`
+      const res = await fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ scope: 'next', tier }),
+      })
+      const data = await res.json()
+      if (data?.error) return formatTextResponse(`next_tier failed: ${data.error}`)
+      return formatTextResponse(
+        `Next bridge request will route to tier "${tier}" → ${data?.provider}/${data?.model}. ` +
+        `One-shot — consumed on use, then routing returns to the session default.`,
+      )
+    }
+
     default:
-      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: map, audit, pin, unpin, why, stats, recall, recall_inject, drop, collapse, clear_directives, expand`)
+      return formatTextResponse(`Unknown cassi_context action: ${action}. Valid: map, audit, pin, unpin, why, stats, recall, recall_inject, drop, collapse, clear_directives, expand, next_tier`)
   }
 }
 
