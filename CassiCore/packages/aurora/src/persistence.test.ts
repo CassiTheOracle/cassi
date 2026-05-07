@@ -381,4 +381,104 @@ describe('AuroraPersistence', () => {
       p.close()
     })
   })
+
+  describe('B6.3 cross-session queries', () => {
+    let p: AuroraPersistence
+
+    beforeEach(() => {
+      p = new AuroraPersistence(dbPath, mockLogger())
+    })
+
+    afterEach(() => {
+      p.close()
+    })
+
+    it('recurringConceptsAcrossSessions returns empty when no records', () => {
+      expect(p.recurringConceptsAcrossSessions()).toEqual([])
+    })
+
+    it('recurringConceptsAcrossSessions counts concepts per session', () => {
+      const s1 = p.beginSession()
+      p.writeReasoning(s1, { ...makeReasoningRecord(1), concepts: ['shared', 'only_in_s1'] })
+      p.writeReasoning(s1, { ...makeReasoningRecord(2), concepts: ['shared', 'only_in_s1'] })
+      p.endSession(s1)
+
+      const s2 = p.beginSession()
+      p.writeReasoning(s2, { ...makeReasoningRecord(1), concepts: ['shared', 'only_in_s2'] })
+      p.writeReasoning(s2, { ...makeReasoningRecord(2), concepts: ['shared', 'only_in_s2'] })
+      p.endSession(s2)
+
+      const recurring = p.recurringConceptsAcrossSessions({ minSessions: 2 })
+      const shared = recurring.find(r => r.concept === 'shared')
+      expect(shared).toBeDefined()
+      expect(shared!.sessionCount).toBe(2)
+      expect(shared!.totalOccurrences).toBe(4)
+      expect(recurring.find(r => r.concept === 'only_in_s1')).toBeUndefined()
+      expect(recurring.find(r => r.concept === 'only_in_s2')).toBeUndefined()
+    })
+
+    it('recurringConceptsAcrossSessions sorts by sessionCount descending', () => {
+      const s1 = p.beginSession()
+      const s2 = p.beginSession()
+      const s3 = p.beginSession()
+      p.writeReasoning(s1, { ...makeReasoningRecord(1), concepts: ['x', 'y'] })
+      p.writeReasoning(s2, { ...makeReasoningRecord(2), concepts: ['x', 'y'] })
+      p.writeReasoning(s3, { ...makeReasoningRecord(3), concepts: ['x'] })
+      const recurring = p.recurringConceptsAcrossSessions({ minSessions: 2 })
+      expect(recurring[0].concept).toBe('x')
+      expect(recurring[0].sessionCount).toBe(3)
+      expect(recurring[1].concept).toBe('y')
+      expect(recurring[1].sessionCount).toBe(2)
+    })
+
+    it('similarReasoningRecordsAcrossSessions returns [] for empty concept query', () => {
+      expect(p.similarReasoningRecordsAcrossSessions({ concepts: [] })).toEqual([])
+    })
+
+    it('similarReasoningRecordsAcrossSessions returns Jaccard-similar records', () => {
+      const s1 = p.beginSession()
+      p.writeReasoning(s1, { ...makeReasoningRecord(1), concepts: ['a', 'b', 'c'] })
+      p.writeReasoning(s1, { ...makeReasoningRecord(2), concepts: ['x', 'y', 'z'] })
+      p.writeReasoning(s1, { ...makeReasoningRecord(3), concepts: ['a', 'b', 'd'] })
+
+      const similar = p.similarReasoningRecordsAcrossSessions({
+        concepts: ['a', 'b'],
+        minSimilarity: 0.3,
+      })
+      // 'a,b,c' has Jaccard(['a','b'], ['a','b','c']) = 2/3 ≈ 0.67 — over threshold
+      // 'a,b,d' has Jaccard(['a','b'], ['a','b','d']) = 2/3 ≈ 0.67 — over threshold
+      // 'x,y,z' has Jaccard 0 — under threshold
+      expect(similar.length).toBe(2)
+      expect(similar.every(r => r.similarity > 0.3)).toBe(true)
+    })
+
+    it('similarReasoningRecordsAcrossSessions sorts by similarity descending', () => {
+      const s1 = p.beginSession()
+      p.writeReasoning(s1, { ...makeReasoningRecord(1), concepts: ['a', 'b', 'c', 'd'] })
+      p.writeReasoning(s1, { ...makeReasoningRecord(2), concepts: ['a', 'b'] })
+      p.writeReasoning(s1, { ...makeReasoningRecord(3), concepts: ['a'] })
+
+      const similar = p.similarReasoningRecordsAcrossSessions({
+        concepts: ['a', 'b'],
+        minSimilarity: 0.1,
+      })
+      // 'a,b' has Jaccard 1.0 — top
+      // 'a,b,c,d' has Jaccard 2/4 = 0.5
+      // 'a' has Jaccard 1/2 = 0.5
+      expect(similar[0].similarity).toBe(1.0)
+    })
+
+    it('similarReasoningRecordsAcrossSessions honors limit', () => {
+      const s1 = p.beginSession()
+      for (let i = 0; i < 5; i++) {
+        p.writeReasoning(s1, { ...makeReasoningRecord(i), concepts: ['a', `b${i}`] })
+      }
+      const similar = p.similarReasoningRecordsAcrossSessions({
+        concepts: ['a'],
+        minSimilarity: 0.1,
+        limit: 2,
+      })
+      expect(similar.length).toBe(2)
+    })
+  })
 })

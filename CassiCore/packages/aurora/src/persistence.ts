@@ -794,6 +794,123 @@ export class AuroraPersistence {
     }))
   }
 
+  /**
+   * B6.3 — concepts that recur across N or more distinct sessions.
+   *
+   * Walks aurora_reasoning + aurora_archived_reasoning, aggregates
+   * concept frequency by session, returns concepts seen in at least
+   * `minSessions` sessions, sorted by sessionCount descending.
+   *
+   * Used by C1 (self-curing topology) to find longitudinally-active
+   * concepts that warrant deeper investigation, and by Aurora's
+   * narrative layer for "concepts I keep coming back to".
+   */
+  recurringConceptsAcrossSessions(opts: { minSessions?: number; limit?: number } = {}): Array<{
+    concept: string
+    sessionCount: number
+    totalOccurrences: number
+  }> {
+    this.assertOpen()
+    const minSessions = opts.minSessions ?? 2
+    const limit = opts.limit ?? 50
+
+    const aggregate = new Map<string, { sessions: Set<string>; total: number }>()
+    const liveRows = this.db.prepare(
+      `SELECT session_id, concepts FROM aurora_reasoning`,
+    ).all() as Array<{ session_id: string; concepts: string }>
+    const archivedRows = this.db.prepare(
+      `SELECT session_id, concepts FROM aurora_archived_reasoning`,
+    ).all() as Array<{ session_id: string; concepts: string }>
+
+    for (const row of [...liveRows, ...archivedRows]) {
+      const concepts = safeParseJson(row.concepts, []) as string[]
+      for (const concept of concepts) {
+        let entry = aggregate.get(concept)
+        if (!entry) {
+          entry = { sessions: new Set(), total: 0 }
+          aggregate.set(concept, entry)
+        }
+        entry.sessions.add(row.session_id)
+        entry.total++
+      }
+    }
+
+    const out: Array<{ concept: string; sessionCount: number; totalOccurrences: number }> = []
+    for (const [concept, entry] of aggregate) {
+      if (entry.sessions.size < minSessions) continue
+      out.push({
+        concept,
+        sessionCount: entry.sessions.size,
+        totalOccurrences: entry.total,
+      })
+    }
+    out.sort((a, b) => b.sessionCount - a.sessionCount || b.totalOccurrences - a.totalOccurrences)
+    return out.slice(0, limit)
+  }
+
+  /**
+   * B6.3 — reasoning records similar to a current concept set across
+   * all sessions. Similarity = Jaccard over the concept sets, with a
+   * `minSimilarity` floor. Returns records sorted by similarity
+   * descending, limited.
+   *
+   * Feeds B3 (reasoning trace replay): when a new turn's concepts
+   * resemble a past turn's concepts, that's a candidate for replay.
+   */
+  similarReasoningRecordsAcrossSessions(opts: {
+    concepts: ReadonlyArray<string>
+    minSimilarity?: number
+    limit?: number
+  }): Array<{
+    sessionId: string
+    occurredAt: string
+    concepts: string[]
+    similarity: number
+    coherence: number | null
+    integration: number | null
+  }> {
+    this.assertOpen()
+    if (opts.concepts.length === 0) return []
+    const querySet = new Set(opts.concepts.map(c => c.toLowerCase()))
+    const minSim = opts.minSimilarity ?? 0.2
+    const limit = opts.limit ?? 20
+
+    const rows = this.db.prepare(`
+      SELECT session_id, occurred_at, concepts, coherence, integration
+      FROM aurora_reasoning
+    `).all() as Array<{
+      session_id: string; occurred_at: string; concepts: string;
+      coherence: number | null; integration: number | null;
+    }>
+
+    const scored: Array<{
+      sessionId: string; occurredAt: string; concepts: string[]; similarity: number;
+      coherence: number | null; integration: number | null;
+    }> = []
+
+    for (const row of rows) {
+      const recordConcepts = safeParseJson(row.concepts, []) as string[]
+      if (recordConcepts.length === 0) continue
+      const recordSet = new Set(recordConcepts.map((c: string) => c.toLowerCase()))
+      let intersection = 0
+      for (const c of querySet) if (recordSet.has(c)) intersection++
+      const union = querySet.size + recordSet.size - intersection
+      const similarity = union === 0 ? 0 : intersection / union
+      if (similarity < minSim) continue
+      scored.push({
+        sessionId: row.session_id,
+        occurredAt: row.occurred_at,
+        concepts: recordConcepts,
+        similarity,
+        coherence: row.coherence,
+        integration: row.integration,
+      })
+    }
+
+    scored.sort((a, b) => b.similarity - a.similarity)
+    return scored.slice(0, limit)
+  }
+
   close(): void {
     if (this.closed) return
     this.closed = true
