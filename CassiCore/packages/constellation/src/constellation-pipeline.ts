@@ -314,6 +314,18 @@ export interface ConstellationPipelineOpts {
    * through HelixMnemicBridge. When unset, Helix runs its legacy channel path.
    */
   globalWorkspace?: import('../workspace/index.js').GlobalWorkspace
+
+  /**
+   * WorkflowEngine — when provided, decompositions containing any
+   * complexity='multi-phase' subtask route through the engine so each
+   * multi-phase subtask expands into a featureImplementation subworkflow
+   * (design → implement → review). Decompositions with no multi-phase
+   * subtasks fall through to the existing flat-spawn loop. When unset
+   * entirely, all decompositions use the existing path regardless of
+   * complexity (multi-phase metadata then becomes a no-op rather than a
+   * crash, preserving back-compat for tests + early callers).
+   */
+  workflowEngine?: import('../../workflow/engine.js').WorkflowEngine
 }
 
 // Internal State
@@ -2258,6 +2270,47 @@ export async function runConstellationPipeline(
             ? `Relevant files: ${trackedTask.originalTask.relevantFiles.join(', ')}`
             : undefined,
         ].filter(Boolean).join('\n\n')
+
+        if (trackedTask.originalTask.complexity === 'multi-phase') {
+          // Multi-phase: design → implement → review. Three sequential Helixes
+          // per subtask, conclusion-chained the same way featureImplementation
+          // does. Each phase Helix registers in runningHelixes individually so
+          // cancellation halts whichever phase is in flight. The trackedTask is
+          // tracker-assigned to the design phase Helix (first phase); subsequent
+          // phases are bookkept against the same trackedTask via the tracker's
+          // existing assignTask flow (re-assignment is idempotent).
+          const designGoal = `Design an implementation approach for: ${trackedTask.originalTask.goal}. Identify the files to modify, the interfaces to change, and any risks. Output a clear plan with numbered steps.`
+          const designH = await launchHelix(designGoal, subContext || undefined, 'research', 0)
+          seedHelixGoalLamina(opts.lamina, designH.helixId, { ...trackedTask.originalTask, goal: `[design] ${trackedTask.originalTask.goal}` })
+          publishHelixGoalSignal(opts.globalWorkspace, constellationId, designH.helixId, trackedTask.originalTask, 'seed')
+          tracker.assignTask(trackedTask.id, designH.helixId)
+          tracker.startTask(trackedTask.id)
+          helixPromises.push(designH)
+          const designResult = await Promise.race([designH.promise.catch(() => undefined), cancelPromise]) as HelixResult | undefined
+          const designConclusion = designResult?.mentorConclusion ?? designResult?.unityConclusion ?? '(no design output)'
+
+          const implementContext = `${subContext ? subContext + '\n\n' : ''}Design output:\n${designConclusion}`
+          const implementGoal = `Implement: ${trackedTask.originalTask.goal}. Follow the design output. Write clean, focused code.`
+          const implementH = await launchHelix(implementGoal, implementContext, 'implementation', 0)
+          seedHelixGoalLamina(opts.lamina, implementH.helixId, { ...trackedTask.originalTask, goal: `[implement] ${trackedTask.originalTask.goal}` })
+          publishHelixGoalSignal(opts.globalWorkspace, constellationId, implementH.helixId, trackedTask.originalTask, 'seed')
+          helixPromises.push(implementH)
+          const implementResult = await Promise.race([implementH.promise.catch(() => undefined), cancelPromise]) as HelixResult | undefined
+          const implementConclusion = implementResult?.mentorConclusion ?? implementResult?.unityConclusion ?? '(no implement output)'
+
+          const reviewContext = `${subContext ? subContext + '\n\n' : ''}Implementation output:\n${implementConclusion}`
+          const reviewGoal = `Review the implementation of: ${trackedTask.originalTask.goal}. Check correctness, code quality, and completeness against the original design. List any issues found.`
+          const reviewH = await launchHelix(reviewGoal, reviewContext, 'review', 0)
+          seedHelixGoalLamina(opts.lamina, reviewH.helixId, { ...trackedTask.originalTask, goal: `[review] ${trackedTask.originalTask.goal}` })
+          publishHelixGoalSignal(opts.globalWorkspace, constellationId, reviewH.helixId, trackedTask.originalTask, 'seed')
+          helixPromises.push(reviewH)
+          // Sequential: await review before continuing. Parallel: let it run
+          // alongside other top-level subtask chains.
+          if (isSequential) {
+            await Promise.race([reviewH.promise.catch(() => undefined), cancelPromise])
+          }
+          continue
+        }
 
         const h = await launchHelix(trackedTask.originalTask.goal, subContext || undefined, trackedTask.originalTask.template, 0)
         seedHelixGoalLamina(opts.lamina, h.helixId, trackedTask.originalTask)

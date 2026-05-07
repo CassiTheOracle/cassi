@@ -72,6 +72,7 @@ export interface ConstellationOrchestrator {
   setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
   setGlobalWorkspace(workspace: import('../workspace/index.js').GlobalWorkspace): void
   setLamina(field: import('../lamina/index.js').LaminaField): void
+  setWorkflowEngine(engine: import('../../workflow/engine.js').WorkflowEngine): void
   /** True when any non-meditation constellation is running or launching. */
   hasActiveWork(): boolean
 
@@ -125,6 +126,7 @@ export function createConstellationOrchestrator(
   let mnemicField: import('../mnemic-field/index.js').MnemicField | undefined
   let globalWorkspace: import('../workspace/index.js').GlobalWorkspace | undefined
   let lamina: import('../lamina/index.js').LaminaField | undefined
+  let workflowEngine: import('../../workflow/engine.js').WorkflowEngine | undefined
 
   const running = new Map<string, RunningConstellation>()
 
@@ -302,6 +304,7 @@ export function createConstellationOrchestrator(
       mnemicField: (session.meditationMode || globalWorkspace) ? mnemicField : undefined,
       globalWorkspace,
       lamina,
+      workflowEngine,
       logger,
       eventBus,
       toolExecutor: effectiveExecutor,
@@ -437,6 +440,7 @@ export function createConstellationOrchestrator(
         mnemicField: (meditationMode || globalWorkspace) ? mnemicField : undefined,
       globalWorkspace,
         lamina,
+        workflowEngine,
         logger,
         eventBus,
         toolExecutor: effectiveExecutor,
@@ -611,6 +615,7 @@ export function createConstellationOrchestrator(
     setMnemicField(field) { mnemicField = field },
     setGlobalWorkspace(workspace) { globalWorkspace = workspace },
     setLamina(field) { lamina = field },
+    setWorkflowEngine(engine) { workflowEngine = engine },
     generateId() { return constellationStore?.generateConstellationId() },
 
     // External Corpus Protocol
