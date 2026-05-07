@@ -34,12 +34,19 @@ export interface ObserverActivityConfig {
   materialThreshold: number
   /** Min events that must arrive before the first fire ever happens. */
   warmupEvents: number
+  /**
+   * Identifier emitted with every telemetry log line — consumers (operator
+   * dashboards, post-hoc analysis) use this to attribute fires per observer.
+   * Optional; defaults to 'observer'.
+   */
+  observerId?: string
 }
 
 export type FireFn = (reason: ObserverFireReason) => Promise<void> | void
 
 interface SchedulerLogger {
   debug?: (msg: string, meta?: Record<string, unknown>) => void
+  info?: (msg: string, meta?: Record<string, unknown>) => void
   warn?: (msg: string, meta?: Record<string, unknown>) => void
 }
 
@@ -148,19 +155,34 @@ export class ObserverActivityScheduler {
   private async runFire(reason: ObserverFireReason): Promise<void> {
     if (this.firing) return
     this.firing = true
+    const fireAt = Date.now()
     const activityAtFire = this.activityCount
-    this.lastFireAt = Date.now()
+    const msSinceLastFire = this.lastFireAt === null
+      ? (this.warmedUpAt !== null ? fireAt - this.warmedUpAt : -1)
+      : fireAt - this.lastFireAt
+    this.lastFireAt = fireAt
     this.activityCount = 0
-    this.logger?.debug?.('[scheduler] firing', {
+    const startedAt = Date.now()
+    this.logger?.info?.('[observer-cadence] fire', {
+      observerId: this.config.observerId ?? 'observer',
       reason,
       activityAtFire,
+      msSinceLastFire,
       cooldownMs: this.config.cooldownMs,
+      maxIdleMs: this.config.maxIdleMs,
     })
     try {
       await this.fireFn(reason)
-    } catch (err) {
-      this.logger?.warn?.('[scheduler] fireFn threw — observer call lost but counter preserved', {
+      this.logger?.info?.('[observer-cadence] fire-complete', {
+        observerId: this.config.observerId ?? 'observer',
         reason,
+        durationMs: Date.now() - startedAt,
+      })
+    } catch (err) {
+      this.logger?.warn?.('[observer-cadence] fire-error', {
+        observerId: this.config.observerId ?? 'observer',
+        reason,
+        durationMs: Date.now() - startedAt,
         error: String(err),
       })
     } finally {

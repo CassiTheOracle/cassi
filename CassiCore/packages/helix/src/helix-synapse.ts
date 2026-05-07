@@ -272,6 +272,7 @@ export class HelixSynapse {
       maxIdleMs: 120_000,
       materialThreshold: 4,
       warmupEvents: 2,
+      observerId: `helix-synapse:${this.helixId.slice(0, 8)}`,
     }
   }
 
