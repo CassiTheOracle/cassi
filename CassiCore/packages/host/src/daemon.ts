@@ -1472,7 +1472,7 @@ export class Daemon {
       // Unified key `intelligence.reranker.mode` is the new home; the legacy
       // `intelligence.mnemic.rerankerType` is read as a fallback so existing
       // configs keep working. Both consumers (MnemicField + Thalamus's
-      // RerankerCompressor) should converge on the unified key over time.
+      // ToolResultDistiller) should converge on the unified key over time.
       const rerankerModeUnified = this.config.get<string>('intelligence.reranker.mode', '')
       const rerankerModeLegacy = this.config.get<string>('intelligence.mnemic.rerankerType', 'local')
       const rerankerMode = (rerankerModeUnified || rerankerModeLegacy) as 'local' | 'llm' | 'off'
@@ -2150,13 +2150,17 @@ export class Daemon {
           }
         }
 
-        // Wire BrainstemLLM adapter for Helix per-branch annotation.
-        // Uses ModelPool 'mini-helix:brainstem' slot (haiku with gpt-5-mini fallback).
+        // Wire BrainstemLLM adapter for Helix per-branch annotation + the three
+        // observer layers (HelixSynapse, ClusterObserverLayer, CorpusObserverLayer)
+        // which all consume brainstemLLM. Routed to GLM-5.1 on z-ai — observers
+        // need fast, cheap-per-token reasoning since they fire periodically and
+        // the previous opus routing was burning tokens for marginal benefit.
         if (this.intelligence?.setBrainstemLLMProvider && this.helixModelPool) {
           try {
-            const bsHandle = await this.helixModelPool.acquire('mini-helix:brainstem', undefined, 'brainstem-llm')
-            this.intelligence.setBrainstemLLMProvider(bsHandle)
-            this.logger.info('BrainstemLLM handle wired', { provider: bsHandle.provider, model: bsHandle.model })
+            const glmCfg = { provider: 'z-ai', model: 'glm-5.1' }
+            const bsHandle = await this.helixModelPool.acquire('mini-helix:brainstem', undefined, 'brainstem-llm', glmCfg)
+            this.intelligence.setBrainstemLLMProvider(bsHandle, glmCfg.model)
+            this.logger.info('BrainstemLLM handle wired', { provider: bsHandle.provider, model: glmCfg.model })
           } catch (err) {
             this.logger.warn('Failed to wire BrainstemLLM handle', { error: String(err) })
           }
