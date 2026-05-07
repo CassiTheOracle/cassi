@@ -78,7 +78,9 @@ export interface IntelligenceContext {
   subconsciousSignals?: string[];
   /** Injections from InjectionAggregator (Corpus, SessionDigest, Optimizer, Dreamer, etc.) */
   injections?: string[];
-  
+  /** Pre-formatted `<observers>` block from the Default Mode Network (DMN). */
+  observersBlock?: string;
+
   // Timestamps for freshness
   updatedAt?: number;
 }

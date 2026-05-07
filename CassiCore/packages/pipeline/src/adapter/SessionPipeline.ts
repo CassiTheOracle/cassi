@@ -47,6 +47,11 @@ interface SubconsciousModule {
   getContextInjection?(sessionId: string): string | undefined;
 }
 
+interface DmnModule {
+  /** Returns the formatted `<observers>` block, or empty string when no signal is cached. */
+  getContextInjection(sessionId: string): string;
+}
+
 export interface SessionPipelineOptions {
   config: IConfig;
   logger: ILogger;
@@ -63,6 +68,7 @@ export interface SessionPipelineOptions {
     dialectic: DialecticSystem;
     thinker: ThinkerModule;
     subconscious: SubconsciousModule;
+    dmn?: DmnModule;
     locusBridge?: { sparkFromUserPrompt(sessionId: string, content: string, goal?: string): unknown };
     thalamus?: {
       buildDialecticContext(sessionId: string, messages: any[]): string;
@@ -724,6 +730,18 @@ export class SessionPipeline {
           const injection = subconscious.getContextInjection(sessionId);
           if (injection) {
             context.subconsciousSignals = [injection];
+            hasContent = true;
+          }
+        }
+      })(),
+
+      // 4. DMN observers digest
+      (async () => {
+        const dmn = (this.options as any).intelligence?.dmn as DmnModule | undefined;
+        if (dmn?.getContextInjection) {
+          const block = dmn.getContextInjection(sessionId);
+          if (block && block.length > 0) {
+            context.observersBlock = block;
             hasContent = true;
           }
         }
