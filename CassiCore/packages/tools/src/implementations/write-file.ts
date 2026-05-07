@@ -498,7 +498,7 @@ export const writeFileDefinition: ToolDefinition = {
     },
     required: ['path', 'content'],
   },
-  timeoutMs: 15_000,
+  timeoutMs: 60_000,
   category: 'core',
   requiredPermission: 'workspace-write',
 }
