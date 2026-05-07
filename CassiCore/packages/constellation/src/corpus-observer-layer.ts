@@ -55,6 +55,12 @@ export interface CorpusObserverLayerOpts {
   getActiveHelixIds: () => string[]
   getHelixSynapse: (helixId: string) => HelixSynapse | undefined
   getTopologySnapshot?: () => TopologySnapshot | undefined
+  /**
+   * C-OBS-1 GWT-grounding supplement — provides the signal-pattern digest
+   * rendered by the Corpus from its onWorkspaceBroadcast buffer. Returns
+   * undefined when the buffer is empty or in meditation mode.
+   */
+  getSignalPatternDigest?: () => string | undefined
   memory?: ObserverMemorySource
   crossSessionIndex?: CrossSessionTopicIndex
   eventBus?: IEventBus
@@ -78,6 +84,7 @@ export class CorpusObserverLayer {
   private getActiveHelixIds: () => string[]
   private getHelixSynapse: (helixId: string) => HelixSynapse | undefined
   private getTopologySnapshot?: () => TopologySnapshot | undefined
+  private getSignalPatternDigest?: () => string | undefined
   private config: CorpusObserverLayerConfig
   private memory?: ObserverMemoryBridge
   private crossSessionIndex?: CrossSessionTopicIndex
@@ -95,6 +102,7 @@ export class CorpusObserverLayer {
     this.getActiveHelixIds = opts.getActiveHelixIds
     this.getHelixSynapse = opts.getHelixSynapse
     this.getTopologySnapshot = opts.getTopologySnapshot
+    this.getSignalPatternDigest = opts.getSignalPatternDigest
     this.config = { ...DEFAULT_CORPUS_OBSERVER_LAYER_CONFIG, ...opts.config }
     this.crossSessionIndex = opts.crossSessionIndex
     this.memory = opts.memory
@@ -249,6 +257,11 @@ export class CorpusObserverLayer {
       return `## Thread ${entry.helixId}\n${slices}`
     }).join('\n\n---\n\n')
 
+    const digest = this.getSignalPatternDigest?.()
+    const digestSection = digest
+      ? `<workspace_signal_patterns>\n${digest}\n</workspace_signal_patterns>`
+      : ''
+
     return `<identity>
 I am watching the whole field of work at once. I see the recent current of each active thread and can notice the shape of the effort as a whole: what is converging, what is missing, what is duplicated, what is blocked, and what needs shared awareness.
 
@@ -267,6 +280,8 @@ ${topologySection}
 ${conflictContext ? `<file_conflicts>
 ${conflictContext}
 </file_conflicts>` : ''}
+
+${digestSection}
 
 ${crossSessionContext ? `<cross_session_topics>
 These are distilled summaries of what other threads have been working on, curated by the Thalamus from the full history of all sessions. Use this to spot duplication, convergence, or gaps across the whole effort. Files already flagged in the conflict section above are not repeated here.

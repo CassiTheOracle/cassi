@@ -77,6 +77,7 @@ import {
 import { PatternDetector } from './corpus/corpus-patterns.js'
 import { ExternalCorpusProtocol } from './corpus/corpus-external.js'
 import { BridgeDedupe, handleWorkspaceBroadcastForTerritory, type SiblingGoalEntry } from './territory-bridge.js'
+import { SignalPatternBuffer, renderDigestMarkdown, shouldRecordForDigest } from './signal-pattern-digest.js'
 import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
@@ -182,6 +183,10 @@ export class Corpus {
   private siblingGoalIndex: Map<string, SiblingGoalEntry> = new Map()
   private bridgeDedupe?: BridgeDedupe
   private workspaceUnsubscribe?: () => void
+
+  // C-OBS-1 GWT-grounding supplement: rolling digest of recent qualifying
+  // signals, fed from the same onWorkspaceBroadcast handler as territory awareness.
+  private signalPatternBuffer: SignalPatternBuffer = new SignalPatternBuffer()
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -337,6 +342,23 @@ export class Corpus {
       this.bridgeDedupe,
       this.deps.constellationId,
     )
+
+    for (const sig of signals) {
+      if (!shouldRecordForDigest(sig)) continue
+      if (!this.childBrainstems.has(sig.sessionId)) continue
+      this.signalPatternBuffer.record(sig)
+    }
+  }
+
+  /**
+   * C-OBS-1 GWT-grounding: rendered digest of recent workspace signals from
+   * sibling Helixes. Returned as advisory input for both runLLMAnalysis (via
+   * buildCorpusSystemPrompt) and CorpusObserverLayer (via its own prompt builder).
+   * Returns undefined in meditation mode and when buffer is empty.
+   */
+  getSignalPatternDigest(): string | undefined {
+    if (this.deps.meditationMode) return undefined
+    return renderDigestMarkdown(this.signalPatternBuffer)
   }
 
   // --- External Corpus Protocol ---
@@ -1274,6 +1296,7 @@ export class Corpus {
         undefined,
         this.deps.meditationMode,
         this.deps.meditationStyle,
+        this.getSignalPatternDigest(),
       )
 
       // Include escalation context if any

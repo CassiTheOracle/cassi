@@ -855,6 +855,7 @@ export async function runConstellationPipeline(
           .map(h => h.helixId),
         getHelixSynapse: (helixId: string) => runningHelixes.get(helixId)?.helixSynapse,
         getTopologySnapshot: () => topologyGraph?.getSnapshot(),
+        getSignalPatternDigest: () => corpus.getSignalPatternDigest(),
       })
     : undefined
   corpusObserverLayer?.start()

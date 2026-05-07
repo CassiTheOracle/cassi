@@ -1434,6 +1434,7 @@ export function buildCorpusSystemPrompt(
   availableToolNames?: string[],
   meditationMode?: boolean,
   meditationStyle?: import('./meditation/styles.js').MeditationStyle,
+  signalPatternDigest?: string,
 ): string {
   if (meditationMode) {
     return buildMeditationCorpusPrompt(state, tree, meditationStyle ?? 'passive')
@@ -1466,6 +1467,10 @@ export function buildCorpusSystemPrompt(
       `When analyzing branch activity, I reference this list to understand what tools they have and whether they're using appropriate ones.\n`
     : ''
 
+  const digestSection = !meditationMode && signalPatternDigest
+    ? `\n${signalPatternDigest}\n`
+    : ''
+
   return `<identity>
 I am the Corpus — the self-aware overseer of this Constellation. I govern the collective effort toward: "${goal}"
 
@@ -1484,7 +1489,7 @@ ${patternSummary}
 
 Shared topics:
 ${topicSummary}
-
+${digestSection}
 Analysis cycle: ${state.sweepCount}, Total steps: ${snapshot.totalSteps}
 </current_state>
 
