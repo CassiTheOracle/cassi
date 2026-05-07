@@ -1,4 +1,5 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
+import type { ThinkingLevel } from '../../../types/runtime.js'
 import type { HelixSynapse, SynapseBroadcast, SynapseRollingSlice } from '../helix/helix-synapse.js'
 import type { TopologySnapshot } from './topology/topology-types.js'
 import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
@@ -14,6 +15,7 @@ export interface CorpusObserverLLM {
     modelTier: string
     maxTokens: number
     timeoutMs: number
+    thinking?: ThinkingLevel
   }): Promise<{ content: string; truncated?: boolean }>
 }
 
@@ -208,6 +210,7 @@ export class CorpusObserverLayer {
       modelTier: this.config.modelTier,
       maxTokens: this.config.maxTokens,
       timeoutMs: this.config.timeoutMs,
+      thinking: 'none',
     })
 
     for (const helixId of helixIds) {
