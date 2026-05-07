@@ -180,12 +180,4 @@ export { getTemplateCapabilities, listTemplateCapabilities } from './templates.j
 export type { PostureCapabilities, TemplateCapabilities } from './types.js'
 
 
-// Audit Trail — Event-driven decision logging
-
-export { createConstellationAuditTrail } from './constellation-audit-trail.js'
-export type {
-  ConstellationAuditTrail,
-  AuditDecision,
-  AuditPlan,
-  AuditSummary,
-} from './constellation-audit-trail.js'
+// REMOVED: Constellation Audit Trail — wrote to FileArtifactStore which is gone.

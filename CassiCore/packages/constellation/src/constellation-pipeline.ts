@@ -250,9 +250,6 @@ export interface ConstellationPipelineOpts {
     cyclePollMs?: number
   }
 
-  /** Audit trail for writing decomposition plans and completion summaries */
-  auditTrail?: import('./constellation-audit-trail.js').ConstellationAuditTrail
-
   /**
    * Cost-effective mode. When true, posture model tiers are downgraded
    * to cheaper alternatives (e.g. kimi → qwenPlus, qwenPlus → minimax).
@@ -2045,24 +2042,6 @@ export async function runConstellationPipeline(
       publishHelixGoalSignal(opts.globalWorkspace, constellationId, event.task.helixSessionId, event.task.originalTask, 'progress', reason)
     })
 
-    // Write decomposition plan to audit trail
-    if (opts.auditTrail) {
-      try {
-        opts.auditTrail.writeDecompositionPlan(
-          constellationId,
-          goal,
-          decomposition.strategy,
-          decomposition.subTasks.map(t => ({
-            goal: t.goal,
-            template: t.template,
-            priority: t.priority,
-          })),
-        )
-      } catch (err) {
-        log.warn('Failed to write decomposition plan to audit trail', { error: String(err) })
-      }
-    }
-
     // WHY: Periodic checkpointing for crash recovery. The Corpus handles branch
     // lifecycle through per-branch budgets (BRANCH_BUDGET_DEFAULTS) and escalation
     // levels. No global step kill switch — that's a blunt instrument that undermines
@@ -2523,21 +2502,6 @@ export async function runConstellationPipeline(
         log.info('Archived completed session to ConstellationStore', { constellationId })
       } catch (err) {
         log.warn('Failed to archive session to ConstellationStore', { error: String(err) })
-      }
-    }
-
-    // Write completion summary to audit trail
-    if (opts.auditTrail) {
-      try {
-        opts.auditTrail.writeCompletionSummary(constellationId, {
-          goal,
-          status: result.error ? 'failed' : 'completed',
-          totalNodes: nodes.size,
-          totalDurationMs: result.totalDurationMs,
-          totalTokensUsed: result.totalTokensUsed,
-        })
-      } catch (err) {
-        log.warn('Failed to write completion summary to audit trail', { error: String(err) })
       }
     }
 

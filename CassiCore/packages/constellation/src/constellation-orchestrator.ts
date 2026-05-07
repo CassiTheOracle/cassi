@@ -67,7 +67,6 @@ export interface ConstellationOrchestrator {
   setContextDistiller(distiller: ContextDistiller): void
   setModuleRegistry(registry: ModuleSessionRegistry): void
   setMemory(memory: IMemory): void
-  setAuditTrail(trail: import('./constellation-audit-trail.js').ConstellationAuditTrail): void
   setReasoningBank(bank: import('../reasoning-bank/index.js').ReasoningBank): void
   setMnemicField(field: import('../mnemic-field/index.js').MnemicField): void
   setGlobalWorkspace(workspace: import('../workspace/index.js').GlobalWorkspace): void
@@ -121,7 +120,6 @@ export function createConstellationOrchestrator(
   let contextDistiller: ContextDistiller | undefined
   let moduleRegistry: ModuleSessionRegistry | undefined
   let memory: IMemory | undefined
-  let auditTrail: import('./constellation-audit-trail.js').ConstellationAuditTrail | undefined
   let reasoningBank: import('../reasoning-bank/index.js').ReasoningBank | undefined
   let mnemicField: import('../mnemic-field/index.js').MnemicField | undefined
   let globalWorkspace: import('../workspace/index.js').GlobalWorkspace | undefined
@@ -316,7 +314,6 @@ export function createConstellationOrchestrator(
       brainstemLLM,
       memory,
       embeddingService: getEmbeddingService(logger),
-      auditTrail,
       guidanceRegistry,
       reasoningBank,
       useMiniHelixCorpus: true,
@@ -453,7 +450,6 @@ export function createConstellationOrchestrator(
         memory,
         embeddingService: getEmbeddingService(logger),
 
-        auditTrail,
         guidanceRegistry,
         reasoningBank,
 
@@ -610,7 +606,6 @@ export function createConstellationOrchestrator(
     setStore(s) { store = s },
     setConstellationStore(s) { constellationStore = s },
     setMemory(mem) { memory = mem },
-    setAuditTrail(trail) { auditTrail = trail },
     setReasoningBank(bank) { reasoningBank = bank },
     setMnemicField(field) { mnemicField = field },
     setGlobalWorkspace(workspace) { globalWorkspace = workspace },
