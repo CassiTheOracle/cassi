@@ -2222,12 +2222,15 @@ export class Daemon {
         }
 
         // Wire CorpusLLM adapter for Constellation Corpus strategic analysis.
-        // Uses ModelPool 'unity' slot (qwenPlus tier) for high-capability synthesis.
+        // Routed to opus until decomposer migrates to tool-use — qwenPlus's free-form
+        // JSON output didn't reliably satisfy FastDecomposer's structured-validator,
+        // collapsing every Constellation goal to a single subtask.
         if (this.intelligence?.setCorpusLLMProvider && this.helixModelPool) {
           try {
-            const corpusHandle = await this.helixModelPool.acquire('unity', undefined, 'corpus-llm')
-            this.intelligence.setCorpusLLMProvider(corpusHandle)
-            this.logger.info('CorpusLLM handle wired', { provider: corpusHandle.provider, model: corpusHandle.model })
+            const opusCfg = this.modelDirective ? this.modelDirective.resolveTier('opus') : { provider: 'claude-code', model: 'claude-opus-4-7' }
+            const corpusHandle = await this.helixModelPool.acquire('unity', undefined, 'corpus-llm', opusCfg)
+            this.intelligence.setCorpusLLMProvider(corpusHandle, opusCfg.model)
+            this.logger.info('CorpusLLM handle wired', { provider: corpusHandle.provider, model: opusCfg.model })
           } catch (err) {
             this.logger.warn('Failed to wire CorpusLLM handle', { error: String(err) })
           }
