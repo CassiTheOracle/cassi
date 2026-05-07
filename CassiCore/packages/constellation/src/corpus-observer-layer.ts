@@ -5,6 +5,7 @@ import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from './observer-memory-bridge.js'
 import type { ObserverMemorySource } from './observer-memory-bridge.js'
 import { BroadcastDedupe } from './observer-broadcast-dedupe.js'
+import { ObserverActivityScheduler, type ObserverActivityConfig, type ObserverFireReason } from '../helix/observer-activity-scheduler.js'
 
 
 export interface CorpusObserverLLM {
@@ -92,6 +93,7 @@ export class CorpusObserverLayer {
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
   private dedupe = new BroadcastDedupe({ ttlMs: 180_000, similarityThreshold: 0.80 })
+  private scheduler?: ObserverActivityScheduler
 
   constructor(opts: CorpusObserverLayerOpts) {
     this.constellationId = opts.constellationId
@@ -114,8 +116,18 @@ export class CorpusObserverLayer {
     if (!this.config.enabled || this.running) return
     this.running = true
     this.shutdownRequested = false
-    this.loopPromise = this.runLoop()
-    this.logger.info('Corpus observer layer started', { constellationId: this.constellationId })
+    this.scheduler = new ObserverActivityScheduler(
+      this.activityConfig(),
+      (reason: ObserverFireReason) => this.fireOnce(reason),
+      this.logger,
+    )
+    this.loopPromise = this.tickLoop()
+    this.logger.info('Corpus observer layer started (activity-gated)', {
+      constellationId: this.constellationId,
+      cooldownMs: this.activityConfig().cooldownMs,
+      maxIdleMs: this.activityConfig().maxIdleMs,
+      materialThreshold: this.activityConfig().materialThreshold,
+    })
   }
 
   async stop(): Promise<void> {
@@ -125,20 +137,45 @@ export class CorpusObserverLayer {
       await this.loopPromise
       this.loopPromise = null
     }
+    if (this.scheduler) {
+      this.scheduler.fireTerminal()
+      this.scheduler.stop()
+      this.scheduler = undefined
+    }
     this.running = false
     this.logger.info('Corpus observer layer stopped', { constellationId: this.constellationId })
   }
 
-  private async runLoop(): Promise<void> {
+  private activityConfig(): ObserverActivityConfig {
+    return {
+      cooldownMs: 90_000,
+      maxIdleMs: 600_000,
+      materialThreshold: 8,
+      warmupEvents: 4,
+    }
+  }
+
+  private async fireOnce(reason: ObserverFireReason): Promise<void> {
+    if (this.shutdownRequested && reason !== 'terminal') return
+    try {
+      await this.observeOnce()
+    } catch (err) {
+      this.logger.warn('Corpus observer sweep failed', { error: String(err), reason })
+    }
+  }
+
+  private async tickLoop(): Promise<void> {
     while (!this.shutdownRequested) {
       await this.sleep(this.config.pollIntervalMs)
       if (this.shutdownRequested) break
-      try {
-        await this.observeOnce()
-      } catch (err) {
-        this.logger.warn('Corpus observer sweep failed', { error: String(err) })
-      }
+      this.discoverActivity()
     }
+  }
+
+  private discoverActivity(): void {
+    const helixIds = this.getActiveHelixIds()
+    if (helixIds.length === 0) return
+    this.scheduler?.recordEvent()
   }
 
   private async observeOnce(): Promise<void> {
