@@ -1562,6 +1562,18 @@ export class Daemon {
         this.logger.info('MnemicField Lightning Indexer shadow mode enabled')
       }
 
+      const foreshadowEnabled = this.config.get<boolean>('intelligence.foreshadow.enabled', false)
+      if (foreshadowEnabled) {
+        try {
+          const { Foreshadow } = await import('./intelligence/foreshadow/index.js')
+          const fs = new Foreshadow(this.logger)
+          field.setForeshadow(fs)
+          this.logger.info('Foreshadow Phase 1a instrumentation enabled')
+        } catch (err) {
+          this.logger.warn('Foreshadow init failed (non-fatal)', { error: String(err) })
+        }
+      }
+
       // Wire GlobalWorkspace into constellation orchestrator so spawned Helix
       // sessions boot in brain-integrated mode (Conductor + journal + locus).
       if (
@@ -2482,7 +2494,13 @@ export class Daemon {
         providers,
         toolExecutor: {
           execute: async (name: string, input: unknown, context: unknown) => {
-            const result = await (this as any).toolExecutor.execute(name, input, context)
+            const ctx = (context ?? {}) as { toolCallId?: string; sessionId?: string }
+            const call = {
+              id: ctx.toolCallId ?? `cassi-${Date.now()}`,
+              name,
+              input: (input ?? {}) as Record<string, unknown>,
+            }
+            const result = await (this as any).toolExecutor.execute(call, ctx.sessionId ?? 'unknown')
             return { content: result.content, isError: result.isError }
           },
           isAvailable: (name: string) => (this as any).toolExecutor.isAvailable(name)
