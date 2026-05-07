@@ -63,6 +63,67 @@ describe('ObserverInsightCollector', () => {
   })
 })
 
+describe('ObserverInsightCollector — A3.4 cleanup integration', () => {
+  it('pruneOlderThan drops insights older than cutoff with no active concepts', () => {
+    const c = new ObserverInsightCollector(8)
+    const now = 1_000_000_000
+    c.ingest({ id: 'old', label: 'a', content: '', layer: 'cluster', concepts: ['decayed'], observedAt: now - 100_000 })
+    c.ingest({ id: 'fresh', label: 'b', content: '', layer: 'cluster', concepts: ['decayed'], observedAt: now - 10 })
+    const dropped = c.pruneOlderThan(50_000, () => false, now)
+    expect(dropped).toBe(1)
+    expect(c.size).toBe(1)
+    expect(c.snapshot()[0].id).toBe('fresh')
+  })
+
+  it('pruneOlderThan keeps old insights whose concepts are still active', () => {
+    const c = new ObserverInsightCollector(8)
+    const now = 1_000_000_000
+    c.ingest({ id: 'old', label: 'a', content: '', layer: 'cluster', concepts: ['warmth'], observedAt: now - 100_000 })
+    const dropped = c.pruneOlderThan(50_000, label => label === 'warmth', now)
+    expect(dropped).toBe(0)
+    expect(c.size).toBe(1)
+  })
+
+  it('pruneOlderThan handles missing observedAt by using nowMs (insight stays as fresh)', () => {
+    const c = new ObserverInsightCollector(8)
+    const now = 1_000_000_000
+    c.ingest({ id: 'no-ts', label: 'a', content: '', layer: 'cluster' })
+    expect(c.pruneOlderThan(1, () => false, now)).toBe(0)
+    expect(c.size).toBe(1)
+  })
+
+  it('pruneOlderThan removes ids from the dedup map so re-ingest works', () => {
+    const c = new ObserverInsightCollector(8)
+    const now = 1_000_000_000
+    c.ingest({ id: 'old', label: 'a', content: '', layer: 'cluster', concepts: [], observedAt: now - 100_000 })
+    c.pruneOlderThan(50_000, () => false, now)
+    c.ingest({ id: 'old', label: 'a-revived', content: '', layer: 'cluster', concepts: [], observedAt: now })
+    expect(c.size).toBe(1)
+    expect(c.snapshot()[0].label).toBe('a-revived')
+  })
+
+  it('inspect returns size, capacity, layer breakdown, and time bounds', () => {
+    const c = new ObserverInsightCollector(8)
+    c.ingest({ id: 'a1', label: 'a', content: '', layer: 'cluster', observedAt: 100 })
+    c.ingest({ id: 'a2', label: 'a', content: '', layer: 'cluster', observedAt: 300 })
+    c.ingest({ id: 'b1', label: 'b', content: '', layer: 'corpus',  observedAt: 200 })
+    const i = c.inspect()
+    expect(i.size).toBe(3)
+    expect(i.capacity).toBe(8)
+    expect(i.byLayer).toEqual({ cluster: 2, corpus: 1 })
+    expect(i.oldestObservedAt).toBe(100)
+    expect(i.newestObservedAt).toBe(300)
+  })
+
+  it('inspect on empty buffer returns null time bounds', () => {
+    const c = new ObserverInsightCollector(8)
+    const i = c.inspect()
+    expect(i.size).toBe(0)
+    expect(i.oldestObservedAt).toBeNull()
+    expect(i.newestObservedAt).toBeNull()
+  })
+})
+
 describe('Claustrum.buildFocusedGraph + observer source', () => {
   let tmpDir: string
   let mnemic: MnemicField

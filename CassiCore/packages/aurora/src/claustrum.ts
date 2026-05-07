@@ -84,6 +84,77 @@ export class ObserverInsightCollector implements ClaustrumInsightSink {
   get droppedCount(): number {
     return this._droppedCount
   }
+
+  /**
+   * A3.4 cleanup integration — drop insights older than `maxAgeMs` ms,
+   * UNLESS at least one of their concept hints is still active (per the
+   * caller's `isConceptActive` predicate). Concepts that have decayed
+   * out of the claustrum lose their anchor; insights that reference
+   * only decayed concepts get pruned. Insights still tied to active
+   * concepts stay regardless of age — they remain useful for Aurora's
+   * merge step.
+   *
+   * `nowMs` defaults to Date.now(); pass a fixed value in tests for
+   * determinism. Returns the number of insights dropped.
+   */
+  pruneOlderThan(
+    maxAgeMs: number,
+    isConceptActive: (label: string) => boolean,
+    nowMs: number = Date.now(),
+  ): number {
+    const cutoff = nowMs - maxAgeMs
+    const kept: ObserverInsight[] = []
+    let dropped = 0
+    for (const insight of this.buffer) {
+      const observedAt = insight.observedAt ?? nowMs
+      if (observedAt >= cutoff) {
+        kept.push(insight)
+        continue
+      }
+      const concepts = insight.concepts ?? []
+      if (concepts.some(c => isConceptActive(c))) {
+        kept.push(insight)
+        continue
+      }
+      if (insight.id) this.byId.delete(insight.id)
+      dropped++
+    }
+    this.buffer = kept
+    return dropped
+  }
+
+  /**
+   * A3.4 admin endpoint — diagnostic summary of buffer state without
+   * exposing insight contents. Intended for operator inspection: how
+   * old is the data, what layers contributed, how full is the buffer.
+   */
+  inspect(): {
+    size: number
+    capacity: number
+    droppedCount: number
+    oldestObservedAt: number | null
+    newestObservedAt: number | null
+    byLayer: Record<string, number>
+  } {
+    const byLayer: Record<string, number> = {}
+    let oldest: number | null = null
+    let newest: number | null = null
+    for (const insight of this.buffer) {
+      byLayer[insight.layer] = (byLayer[insight.layer] ?? 0) + 1
+      if (typeof insight.observedAt === 'number') {
+        if (oldest === null || insight.observedAt < oldest) oldest = insight.observedAt
+        if (newest === null || insight.observedAt > newest) newest = insight.observedAt
+      }
+    }
+    return {
+      size: this.buffer.length,
+      capacity: this.maxBuffered,
+      droppedCount: this._droppedCount,
+      oldestObservedAt: oldest,
+      newestObservedAt: newest,
+      byLayer,
+    }
+  }
 }
 
 /**
