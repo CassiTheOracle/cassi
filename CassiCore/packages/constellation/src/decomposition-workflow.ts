@@ -14,13 +14,26 @@
  *   - 'tree'        → degrades to parallel with a logger.warn until the
  *                     decomposition schema actually carries dependsOn edges.
  *
- * Single-subtask decompositions are emitted as a single then(helixBranch) — the
+ * Complexity mapping (per-subtask):
+ *   - 'flat' / unset   → emit one helixBranch step. One Helix runs the subtask
+ *                        end-to-end. Today's behavior.
+ *   - 'multi-phase'    → expand into a featureImplementation subworkflow
+ *                        (design → implement → review). Each phase is its own
+ *                        Helix; HelixResult.conclusion auto-feeds the next
+ *                        phase's goal builder. Reserved for substantial
+ *                        subtasks (the decomposer's content validator already
+ *                        rejected ones that don't meet the cost-discipline
+ *                        gate, so by the time we see 'multi-phase' here it's
+ *                        legitimate).
+ *
+ * Single-subtask decompositions are emitted as a single then() — the
  * parallel() wrapper would add a node layer for no behavioural reason.
  */
 
 import { createWorkflow } from '../../workflow/builder.js'
 import { helixBranch, type IHelixRunner } from '../../workflow/steps.js'
-import type { WorkflowDefinition } from '../../../types/workflow.js'
+import { featureImplementation } from '../../workflow/templates.js'
+import type { WorkflowDefinition, WorkflowStep } from '../../../types/workflow.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
 
@@ -81,25 +94,39 @@ function toBranchTemplate(t: GoalSubTask['template']): HelixBranchTemplate {
   return t
 }
 
+function packContext(subtask: GoalSubTask): string | undefined {
+  const parts: string[] = []
+  if (subtask.context) parts.push(subtask.context)
+  if (subtask.relevantFiles && subtask.relevantFiles.length > 0) {
+    parts.push(`Relevant files: ${subtask.relevantFiles.join(', ')}`)
+  }
+  return parts.length > 0 ? parts.join('\n\n') : undefined
+}
+
 function buildSubtaskStep(
   subtask: GoalSubTask,
   index: number,
   runner: IHelixRunner,
   timeoutMs: number,
-): ReturnType<typeof helixBranch> {
+): WorkflowStep | WorkflowDefinition {
   const id = `subtask-${index + 1}`
-  const contextParts: string[] = []
-  if (subtask.context) contextParts.push(subtask.context)
-  if (subtask.relevantFiles && subtask.relevantFiles.length > 0) {
-    contextParts.push(`Relevant files: ${subtask.relevantFiles.join(', ')}`)
+
+  if (subtask.complexity === 'multi-phase') {
+    return featureImplementation({
+      id: `${id}-feature`,
+      feature: subtask.goal,
+      includeTests: false,
+      includeReview: true,
+      stepTimeoutMs: timeoutMs,
+      runner,
+    })
   }
-  const context = contextParts.length > 0 ? contextParts.join('\n\n') : undefined
 
   return helixBranch({
     id,
     description: `Subtask ${index + 1} (priority ${subtask.priority}): ${subtask.goal.slice(0, 60)}`,
     goal: subtask.goal,
-    context,
+    context: packContext(subtask),
     template: toBranchTemplate(subtask.template),
     runner,
     timeoutMs,

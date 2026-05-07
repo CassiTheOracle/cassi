@@ -1169,6 +1169,16 @@ export interface GoalDecomposition {
 
 /**
  * A single sub-task from goal decomposition.
+ *
+ * complexity gates how the workflow runtime executes the subtask:
+ *   - 'flat' (default): a single Helix runs the subtask end-to-end.
+ *   - 'multi-phase':    the subtask expands into a featureImplementation
+ *                       workflow (design → implement → review). Reserved
+ *                       for substantial subtasks; the translator enforces
+ *                       a hard rule (relevantFiles.length>=3 ||
+ *                       goal.length>=200 || template==='implementation')
+ *                       to keep cost in check, since multi-phase costs ~3×
+ *                       a flat Helix.
  */
 export interface GoalSubTask {
   goal: string
@@ -1177,6 +1187,7 @@ export interface GoalSubTask {
   priority: number
   relevantFiles?: string[]
   budgetSteps?: number
+  complexity?: 'flat' | 'multi-phase'
 }
 
 

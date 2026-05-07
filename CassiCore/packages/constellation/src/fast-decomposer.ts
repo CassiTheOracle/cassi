@@ -52,6 +52,7 @@ interface DecompositionJSON {
     priority: number
     relevantFiles?: string[]
     budgetSteps?: number
+    complexity?: 'flat' | 'multi-phase'
   }>
 }
 
@@ -110,6 +111,12 @@ const DECOMPOSE_GOAL_TOOL = {
               type: 'integer',
               minimum: 1,
               description: 'Optional step-budget estimate.',
+            },
+            complexity: {
+              type: 'string',
+              enum: ['flat', 'multi-phase'],
+              description:
+                "'flat' (default): one Helix runs the subtask end-to-end. 'multi-phase': expand into a design → implement → review chain (~3× cost). Use multi-phase ONLY for substantial subtasks: ≥3 relevantFiles, ≥200 chars in goal, or template='implementation'. Trivial subtasks MUST be flat.",
             },
           },
         },
@@ -365,6 +372,13 @@ ${buildTemplateGuidance()}
 7. Each task should list relevant files it needs to touch (file paths)
 8. Priority: 1 = highest priority, higher numbers = lower priority
 9. Budget steps: optional estimate of how many steps the task will take
+10. complexity: default to 'flat' (one Helix end-to-end). Use 'multi-phase' ONLY
+    for substantial subtasks that genuinely benefit from a separate planning
+    phase before implementation. Multi-phase costs ~3× a flat Helix because it
+    spawns design → implement → review chains. The runtime enforces a hard
+    rule: 'multi-phase' is silently downgraded to 'flat' unless the subtask has
+    ≥3 relevantFiles, ≥200 chars in goal, OR template='implementation'.
+    Trivial subtasks (typos, single-line tweaks, doc updates) MUST be 'flat'.
 
 EXAMPLE DECOMPOSITIONS:
 
@@ -528,19 +542,52 @@ function createFallbackDecomposition(goal: string, startTime: number): GoalDecom
 /**
  * Convert validated DecompositionJSON to GoalDecomposition.
  */
+/**
+ * Cost-discipline rule for multi-phase complexity.
+ *
+ * Multi-phase subtasks cost ~3× a flat Helix because they spawn
+ * design + implement + review phases. The decomposer's prompt asks for
+ * restraint, but prompt politeness is not a hard rule. This is.
+ *
+ * Returns true when the subtask is substantial enough to justify multi-phase:
+ *   - explicitly an implementation template, OR
+ *   - touches ≥3 files (multi-file scope hint), OR
+ *   - long goal description (≥200 chars suggests non-trivial work).
+ */
+function meetsMultiPhaseGate(task: DecompositionJSON['tasks'][number]): boolean {
+  if (task.template === 'implementation') return true
+  if ((task.relevantFiles?.length ?? 0) >= 3) return true
+  if (task.goal.length >= 200) return true
+  return false
+}
+
 function toGoalDecomposition(
   json: DecompositionJSON,
   originalGoal: string,
   durationMs: number,
+  log?: ILogger,
 ): GoalDecomposition {
-  const subTasks: GoalSubTask[] = json.tasks.map(task => ({
-    goal: task.goal,
-    context: task.context,
-    template: task.template as ConstellationTemplate | undefined,
-    priority: task.priority,
-    relevantFiles: task.relevantFiles,
-    budgetSteps: task.budgetSteps,
-  }))
+  const subTasks: GoalSubTask[] = json.tasks.map(task => {
+    let complexity = task.complexity
+    if (complexity === 'multi-phase' && !meetsMultiPhaseGate(task)) {
+      log?.warn?.('Demoting multi-phase subtask to flat — fails cost-discipline gate', {
+        goal: task.goal.slice(0, 100),
+        template: task.template,
+        relevantFileCount: task.relevantFiles?.length ?? 0,
+        goalLength: task.goal.length,
+      })
+      complexity = 'flat'
+    }
+    return {
+      goal: task.goal,
+      context: task.context,
+      template: task.template as ConstellationTemplate | undefined,
+      priority: task.priority,
+      relevantFiles: task.relevantFiles,
+      budgetSteps: task.budgetSteps,
+      complexity,
+    }
+  })
 
   return {
     decomposed: true,
@@ -666,7 +713,7 @@ export async function fastDecompose(opts: FastDecomposerOpts): Promise<GoalDecom
   }
 
   // Step 8: Convert to GoalDecomposition and return
-  const result = toGoalDecomposition(parsed, goal, Date.now() - startTime)
+  const result = toGoalDecomposition(parsed, goal, Date.now() - startTime, log)
 
   log.info('Goal decomposition complete', {
     decomposed: result.decomposed,
