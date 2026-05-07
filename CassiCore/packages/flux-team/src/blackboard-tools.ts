@@ -41,57 +41,15 @@ const MAX_PERSIST_SIZE = 5 * 1024 * 1024
 const SENSITIVE_PATTERNS = [/\.env$/i, /credentials\./i, /secret/i, /\.key$/i, /\.pem$/i, /password/i]
 
 function tryPersistArtifact(
-  blackboard: Blackboard,
-  filePath: string,
-  author: string,
-  notes?: string,
+  _blackboard: Blackboard,
+  _filePath: string,
+  _author: string,
+  _notes?: string,
 ): { uri?: string; error?: string } {
-  const store = blackboard.getFileArtifactStore()
-  const namespace = blackboard.getArtifactNamespace()
-  if (!store || !namespace) return { error: 'No artifact store or namespace configured' }
-
-  const basename = path.basename(filePath)
-  if (SENSITIVE_PATTERNS.some(p => p.test(basename))) {
-    return { error: `Sensitive file pattern detected, skipping persist: ${basename}` }
-  }
-
-  let content: Buffer
-  try {
-    const resolvedPath = path.resolve(filePath)
-    const stat = fs.statSync(resolvedPath)
-    if (stat.size > MAX_PERSIST_SIZE) {
-      return { error: `File too large for auto-persist: ${stat.size} bytes` }
-    }
-    content = fs.readFileSync(resolvedPath)
-  } catch (err) {
-    return { error: `Cannot read file for persist: ${String(err)}` }
-  }
-
-  const artifactPath = basename
-  try {
-    const existing = store.read({ namespace, path: artifactPath, admin: true })
-    const existingHash = createHash('sha256').update(existing.content).digest('hex')
-    const newHash = createHash('sha256').update(content).digest('hex')
-    if (existingHash === newHash) {
-      return { uri: `cassi://files/${namespace}/${artifactPath}@v${existing.version.versionNumber}` }
-    }
-  } catch {
-    // File does not exist yet
-  }
-
-  try {
-    const result = store.write({
-      namespace,
-      path: artifactPath,
-      content,
-      message: notes ?? `Auto-persisted by ${author}`,
-      agentId: author,
-      visibility: 'shared',
-    })
-    return { uri: `cassi://files/${result.file.namespace}/${result.file.path}@v${result.version.versionNumber}` }
-  } catch (err) {
-    return { error: `Persist failed: ${String(err)}` }
-  }
+  // FileArtifactStore removed — blackboard-level artifact persistence is a no-op.
+  // Flux-team is itself deprecated; keeping this stub only to avoid breaking
+  // callers within the deprecated subsystem until those go too.
+  return { error: 'Artifact persistence removed' }
 }
 
 // Channel Tools
