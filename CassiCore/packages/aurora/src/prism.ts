@@ -59,6 +59,60 @@ export interface ColorWeight {
 
 export type Spectrum = Map<AffectColor, ColorWeight>
 
+/**
+ * B8.P.2 — criteria for white standing. Defaults are conservative
+ * (spec §5 + W2): high balance, substantial weight, broad color
+ * coverage, witnesses spread temporally + structurally.
+ */
+export interface WhitePromotionCriteria {
+  /** Min balance score in [0, 1]. Default 0.85. */
+  minBalance: number
+  /** Min total decayed weight summed across all colors. Default 30. */
+  minTotalWeight: number
+  /** Min number of distinct colors with any weight. Default 6 (of 12). */
+  minColors: number
+  /** Whether to exclude already-contested nodes. Default true. */
+  contestedExcluded: boolean
+  /** Min days between earliest and latest witness. W3 temporal spread guard. Default 7. */
+  witnessTemporalSpreadDaysMin: number
+  /** Min distinct perturbation kinds across witnesses. W3 structural diversity. Default 3. */
+  witnessKindDiversityMin: number
+}
+
+export const DEFAULT_WHITE_CRITERIA: WhitePromotionCriteria = {
+  minBalance: 0.85,
+  minTotalWeight: 30,
+  minColors: 6,
+  contestedExcluded: true,
+  witnessTemporalSpreadDaysMin: 7,
+  witnessKindDiversityMin: 3,
+}
+
+/**
+ * B8.P.2 — record of a promotion-to-white event. Demotion preserves
+ * the record (sets demoted_at + demoted_reason) — white is reversible
+ * but the history persists for audit (W4).
+ */
+export interface WhiteRecord {
+  conceptId: string
+  promotedAt: string
+  promotedBy: 'cassi' | 'operator'
+  /** Fork ids whose contributions counted as witnesses for promotion. */
+  witness: string[]
+  /** The criteria values that were met at promotion time, for audit. */
+  criteriaSnapshot: {
+    balance: number
+    totalWeight: number
+    colorCount: number
+    witnessTemporalSpreadDays: number
+    witnessKindDiversity: number
+  }
+  demotedAt: string | null
+  demotedReason: 'contested' | 'decay' | 'manual' | null
+  contestedSince: string | null
+  metadata: Record<string, unknown>
+}
+
 export interface PrismNode {
   conceptId: string
   spectrum: Spectrum
@@ -122,6 +176,23 @@ export const PRISM_SCHEMA_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_prism_fork_contributions_observed_at
     ON prism_fork_contributions(observed_at);
+
+  -- B8.P.2 white-standing tracking. Promotion is rare + recorded;
+  -- demotion is automatic on contest. demoted_at NULL → currently white.
+  CREATE TABLE IF NOT EXISTS prism_white_records (
+    concept_id        TEXT PRIMARY KEY,
+    promoted_at       TEXT NOT NULL,
+    promoted_by       TEXT NOT NULL DEFAULT 'cassi',
+    witness_json      TEXT NOT NULL,
+    criteria_json     TEXT NOT NULL,
+    demoted_at        TEXT,
+    demoted_reason    TEXT,
+    contested_since   TEXT,
+    metadata          TEXT NOT NULL DEFAULT '{}'
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_prism_white_active
+    ON prism_white_records(demoted_at) WHERE demoted_at IS NULL;
 `
 
 
@@ -355,6 +426,226 @@ export class Prism {
     if (this.closed) return 0
     const row = this.db.prepare(`SELECT COUNT(*) AS n FROM prism_nodes`).get() as { n: number }
     return row.n
+  }
+
+  /**
+   * B8.P.2 — list candidates eligible for white promotion. Scans
+   * non-promoted nodes that meet the criteria's spectral thresholds
+   * (balance, total weight, color count). Witness validation
+   * (temporal spread + kind diversity) is checked at promotion time,
+   * not here, so candidates may still fail promotion if their
+   * contribution log is too narrow.
+   */
+  whiteCandidates(criteria: Partial<WhitePromotionCriteria> = {}, now: number = Date.now()): PrismNode[] {
+    if (this.closed) return []
+    const c = { ...DEFAULT_WHITE_CRITERIA, ...criteria }
+    const promoted = new Set(
+      (this.db.prepare(`SELECT concept_id FROM prism_white_records WHERE demoted_at IS NULL`)
+        .all() as Array<{ concept_id: string }>).map(r => r.concept_id),
+    )
+    const out: PrismNode[] = []
+    for (const node of this.scanNodes(now)) {
+      if (promoted.has(node.conceptId)) continue
+      if (node.totalWeight < c.minTotalWeight) continue
+      if (node.balanceScore < c.minBalance) continue
+      if (node.spectrum.size < c.minColors) continue
+      out.push(node)
+    }
+    return out
+  }
+
+  /**
+   * B8.P.2 — promote a concept to white. Validates the witness set
+   * against temporal-spread + kind-diversity gates (W3). Throws on
+   * failed validation; succeeds with a stored WhiteRecord otherwise.
+   *
+   * Caller is responsible for spectral re-check (call whiteCandidates
+   * first, or accept the risk that decay has moved the node out of
+   * candidate range between scan and promotion).
+   */
+  promoteToWhite(
+    conceptId: string,
+    witness: string[],
+    opts: { promotedBy?: 'cassi' | 'operator'; criteria?: Partial<WhitePromotionCriteria>; now?: number } = {},
+  ): WhiteRecord {
+    if (this.closed) throw new Error('Prism closed')
+    const c = { ...DEFAULT_WHITE_CRITERIA, ...opts.criteria }
+    const now = opts.now ?? Date.now()
+
+    if (witness.length === 0) {
+      throw new Error('promoteToWhite requires at least one witness fork')
+    }
+
+    // Pull witness contributions to check temporal spread + kind diversity.
+    const placeholders = witness.map(() => '?').join(',')
+    const rows = this.db.prepare(`
+      SELECT fork_id, observed_at, perturbation_kinds
+      FROM prism_fork_contributions
+      WHERE fork_id IN (${placeholders})
+    `).all(...witness) as Array<{ fork_id: string; observed_at: string; perturbation_kinds: string }>
+
+    if (rows.length === 0) {
+      throw new Error(`promoteToWhite: none of the ${witness.length} witness fork ids found in fork_contributions`)
+    }
+
+    const observedAtMs = rows.map(r => Date.parse(r.observed_at)).filter(Number.isFinite)
+    const earliest = Math.min(...observedAtMs)
+    const latest = Math.max(...observedAtMs)
+    const spreadDays = (latest - earliest) / 86_400_000
+    if (spreadDays < c.witnessTemporalSpreadDaysMin) {
+      throw new Error(
+        `promoteToWhite: witness temporal spread ${spreadDays.toFixed(1)} days < required ${c.witnessTemporalSpreadDaysMin}`,
+      )
+    }
+
+    const distinctKinds = new Set<string>()
+    for (const row of rows) {
+      try {
+        for (const k of JSON.parse(row.perturbation_kinds) as string[]) distinctKinds.add(k)
+      } catch { /* skip malformed */ }
+    }
+    if (distinctKinds.size < c.witnessKindDiversityMin) {
+      throw new Error(
+        `promoteToWhite: witness kind diversity ${distinctKinds.size} < required ${c.witnessKindDiversityMin}`,
+      )
+    }
+
+    // Snapshot current spectrum + balance for audit.
+    const spectrum = this.spectrumAt(conceptId, now)
+    const totalWeight = sumSpectrum(spectrum)
+    const balance = computeBalance(spectrum, totalWeight)
+
+    const record: WhiteRecord = {
+      conceptId,
+      promotedAt: new Date(now).toISOString(),
+      promotedBy: opts.promotedBy ?? 'cassi',
+      witness,
+      criteriaSnapshot: {
+        balance,
+        totalWeight,
+        colorCount: spectrum.size,
+        witnessTemporalSpreadDays: Math.round(spreadDays * 10) / 10,
+        witnessKindDiversity: distinctKinds.size,
+      },
+      demotedAt: null,
+      demotedReason: null,
+      contestedSince: null,
+      metadata: {},
+    }
+
+    this.db.prepare(`
+      INSERT INTO prism_white_records
+        (concept_id, promoted_at, promoted_by, witness_json, criteria_json, metadata)
+      VALUES (?, ?, ?, ?, ?, '{}')
+      ON CONFLICT(concept_id) DO UPDATE SET
+        promoted_at     = excluded.promoted_at,
+        promoted_by     = excluded.promoted_by,
+        witness_json    = excluded.witness_json,
+        criteria_json   = excluded.criteria_json,
+        demoted_at      = NULL,
+        demoted_reason  = NULL,
+        contested_since = NULL
+    `).run(
+      record.conceptId,
+      record.promotedAt,
+      record.promotedBy,
+      JSON.stringify(record.witness),
+      JSON.stringify(record.criteriaSnapshot),
+    )
+    this.logger.info?.('Prism: promoted to white', {
+      conceptId, balance, totalWeight, colorCount: spectrum.size,
+    })
+    return record
+  }
+
+  /**
+   * B8.P.2 — demote a previously-white node. Preserves the record
+   * (W4 — reversibility): sets demoted_at + demoted_reason without
+   * deleting the row. A subsequent promoteToWhite can re-promote
+   * (clears the demotion fields).
+   */
+  demoteFromWhite(conceptId: string, reason: 'contested' | 'decay' | 'manual', now: number = Date.now()): boolean {
+    if (this.closed) return false
+    const result = this.db.prepare(`
+      UPDATE prism_white_records
+      SET demoted_at = ?, demoted_reason = ?
+      WHERE concept_id = ? AND demoted_at IS NULL
+    `).run(new Date(now).toISOString(), reason, conceptId)
+    if (result.changes > 0) {
+      this.logger.info?.('Prism: demoted from white', { conceptId, reason })
+    }
+    return result.changes > 0
+  }
+
+  /**
+   * B8.P.2 — list currently-white nodes (demoted_at IS NULL).
+   */
+  whiteNodes(): WhiteRecord[] {
+    if (this.closed) return []
+    const rows = this.db.prepare(`
+      SELECT * FROM prism_white_records WHERE demoted_at IS NULL ORDER BY promoted_at DESC
+    `).all() as Array<{
+      concept_id: string; promoted_at: string; promoted_by: string;
+      witness_json: string; criteria_json: string;
+      demoted_at: string | null; demoted_reason: string | null;
+      contested_since: string | null; metadata: string;
+    }>
+    return rows.map(r => this.whiteRowToRecord(r))
+  }
+
+  /**
+   * B8.P.2 — list nodes promoted to white but flagged as contested
+   * (contested_since IS NOT NULL). Caller flags via `flagContested`
+   * when dissonance signals fire (e.g., spectrum suddenly stark
+   * after extended balanced period).
+   */
+  contestedNodes(): WhiteRecord[] {
+    if (this.closed) return []
+    const rows = this.db.prepare(`
+      SELECT * FROM prism_white_records
+      WHERE demoted_at IS NULL AND contested_since IS NOT NULL
+      ORDER BY contested_since DESC
+    `).all() as Array<{
+      concept_id: string; promoted_at: string; promoted_by: string;
+      witness_json: string; criteria_json: string;
+      demoted_at: string | null; demoted_reason: string | null;
+      contested_since: string | null; metadata: string;
+    }>
+    return rows.map(r => this.whiteRowToRecord(r))
+  }
+
+  /**
+   * B8.P.2 — flag a white node as contested. Doesn't auto-demote;
+   * caller observes the flag, decides whether to demote. Setting
+   * contestedSince on an already-contested node is a no-op.
+   */
+  flagContested(conceptId: string, now: number = Date.now()): boolean {
+    if (this.closed) return false
+    const result = this.db.prepare(`
+      UPDATE prism_white_records
+      SET contested_since = ?
+      WHERE concept_id = ? AND demoted_at IS NULL AND contested_since IS NULL
+    `).run(new Date(now).toISOString(), conceptId)
+    return result.changes > 0
+  }
+
+  private whiteRowToRecord(row: {
+    concept_id: string; promoted_at: string; promoted_by: string;
+    witness_json: string; criteria_json: string;
+    demoted_at: string | null; demoted_reason: string | null;
+    contested_since: string | null; metadata: string;
+  }): WhiteRecord {
+    return {
+      conceptId: row.concept_id,
+      promotedAt: row.promoted_at,
+      promotedBy: row.promoted_by as 'cassi' | 'operator',
+      witness: JSON.parse(row.witness_json) as string[],
+      criteriaSnapshot: JSON.parse(row.criteria_json) as WhiteRecord['criteriaSnapshot'],
+      demotedAt: row.demoted_at,
+      demotedReason: row.demoted_reason as WhiteRecord['demotedReason'],
+      contestedSince: row.contested_since,
+      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+    }
   }
 
   /**

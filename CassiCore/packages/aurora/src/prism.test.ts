@@ -340,7 +340,7 @@ describe('Prism', () => {
           SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'prism_%'
         `).all() as Array<{ name: string }>
         const names = tables.map(t => t.name).sort()
-        expect(names).toEqual(['prism_fork_contributions', 'prism_nodes', 'prism_spectra'])
+        expect(names).toEqual(['prism_fork_contributions', 'prism_nodes', 'prism_spectra', 'prism_white_records'])
       } finally {
         db.close()
       }
@@ -419,6 +419,169 @@ describe('Prism', () => {
       const high = summary.starkConcepts.findIndex(c => c.conceptId === 'high')
       const low = summary.starkConcepts.findIndex(c => c.conceptId === 'low')
       expect(high).toBeLessThan(low)
+    })
+  })
+
+  describe('B8.P.2 white promotion', () => {
+    /** Helper: deposit a balanced-spectrum node 'concept' across N colors with N witnesses. */
+    function depositBalanced(opts: {
+      colors: string[]
+      forkIds: string[]
+      perturbationKinds?: string[][]
+      observedAtSpacing?: number   // ms between observedAt timestamps
+      conceptId?: string
+      salience?: number
+    }) {
+      const { colors, forkIds } = opts
+      const conceptId = opts.conceptId ?? 'concept'
+      const salience = opts.salience ?? 0.7
+      const baseTime = Date.now() - 30 * 86_400_000
+      const spacing = opts.observedAtSpacing ?? 86_400_000 * 3 // 3 days
+      for (let i = 0; i < forkIds.length; i++) {
+        prism.deposit(makeContribution({
+          forkId: forkIds[i],
+          color: colors[i % colors.length] as any,
+          perturbations: (opts.perturbationKinds?.[i] ?? ['affect']).map(k => ({ type: k })) as any,
+          observedAt: baseTime + i * spacing,
+          contributedNodes: [{ nodeId: conceptId, salience, forkOnly: false, activated: true }],
+        }))
+      }
+    }
+
+    it('whiteCandidates returns empty when no nodes meet criteria', () => {
+      expect(prism.whiteCandidates()).toEqual([])
+    })
+
+    it('whiteCandidates surfaces nodes meeting balance + weight + colors', () => {
+      // Deposit across 7 colors with high salience to clear the criteria thresholds.
+      const colors = ['excited', 'delighted', 'engaged', 'content', 'warm', 'calm', 'curiosity']
+      const forks = colors.map((_, i) => `fork-${i}`)
+      // 8 deposits per color to push total weight past 30
+      for (const c of colors) {
+        for (let j = 0; j < 8; j++) {
+          prism.deposit(makeContribution({
+            forkId: `fork-${c}-${j}`,
+            color: c as any,
+            contributedNodes: [{ nodeId: 'concept', salience: 0.8, forkOnly: false, activated: true }],
+          }))
+        }
+      }
+      const candidates = prism.whiteCandidates({ minColors: 5, minBalance: 0.5, minTotalWeight: 5 })
+      expect(candidates.length).toBeGreaterThan(0)
+      expect(candidates[0].conceptId).toBe('concept')
+    })
+
+    it('promoteToWhite refuses witness set with insufficient temporal spread', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        observedAtSpacing: 60_000, // 1 minute apart — fails 7-day spread
+      })
+      expect(() => prism.promoteToWhite('concept', ['f1', 'f2', 'f3']))
+        .toThrow(/temporal spread/)
+    })
+
+    it('promoteToWhite refuses witness set with insufficient kind diversity', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['affect'], ['affect']], // only one kind
+        observedAtSpacing: 86_400_000 * 4, // 8 days total spread → passes spread gate
+      })
+      expect(() => prism.promoteToWhite('concept', ['f1', 'f2', 'f3']))
+        .toThrow(/kind diversity/)
+    })
+
+    it('promoteToWhite succeeds with valid witness, returns WhiteRecord', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm', 'content'],
+        forkIds: ['f1', 'f2', 'f3', 'f4'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes'], ['affect']],
+        observedAtSpacing: 86_400_000 * 3, // 3 days each → spread 9 days
+      })
+      const record = prism.promoteToWhite('concept', ['f1', 'f2', 'f3', 'f4'])
+      expect(record.conceptId).toBe('concept')
+      expect(record.demotedAt).toBeNull()
+      expect(record.criteriaSnapshot.witnessKindDiversity).toBeGreaterThanOrEqual(3)
+      expect(record.criteriaSnapshot.witnessTemporalSpreadDays).toBeGreaterThanOrEqual(7)
+    })
+
+    it('promoteToWhite throws on empty witness set', () => {
+      expect(() => prism.promoteToWhite('concept', [])).toThrow(/at least one witness/)
+    })
+
+    it('promoteToWhite throws when none of the witness fork ids are recorded', () => {
+      expect(() => prism.promoteToWhite('concept', ['nope-1', 'nope-2'])).toThrow(/none.*found/)
+    })
+
+    it('whiteNodes lists currently-white nodes; demoted excluded', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      expect(prism.whiteNodes()).toHaveLength(1)
+      prism.demoteFromWhite('concept', 'manual')
+      expect(prism.whiteNodes()).toHaveLength(0)
+    })
+
+    it('demoteFromWhite preserves the row + sets reason; re-promotion clears demotion', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      expect(prism.demoteFromWhite('concept', 'contested')).toBe(true)
+      // Re-promote
+      const record = prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      expect(record.demotedAt).toBeNull()
+    })
+
+    it('flagContested marks node + contestedNodes returns it', () => {
+      depositBalanced({
+        colors: ['calm', 'engaged', 'warm'],
+        forkIds: ['f1', 'f2', 'f3'],
+        perturbationKinds: [['affect'], ['concept_prime'], ['add_nodes']],
+        observedAtSpacing: 86_400_000 * 4,
+      })
+      prism.promoteToWhite('concept', ['f1', 'f2', 'f3'])
+      expect(prism.flagContested('concept')).toBe(true)
+      expect(prism.contestedNodes()).toHaveLength(1)
+    })
+
+    it('whiteCandidates excludes already-promoted nodes', () => {
+      const colors = ['excited', 'delighted', 'engaged', 'content', 'warm', 'calm', 'curiosity']
+      for (const c of colors) {
+        for (let j = 0; j < 8; j++) {
+          prism.deposit(makeContribution({
+            forkId: `fork-${c}-${j}-A`,
+            color: c as any,
+            contributedNodes: [{ nodeId: 'concept', salience: 0.8, forkOnly: false, activated: true }],
+          }))
+        }
+      }
+      // Need diverse witnesses for promotion to succeed
+      const witnessForks = ['w1', 'w2', 'w3']
+      let baseTime = Date.now() - 30 * 86_400_000
+      const witnessKinds = [['affect'], ['concept_prime'], ['add_nodes']]
+      for (let i = 0; i < witnessForks.length; i++) {
+        prism.deposit(makeContribution({
+          forkId: witnessForks[i],
+          color: 'calm',
+          perturbations: witnessKinds[i].map(k => ({ type: k })) as any,
+          observedAt: baseTime + i * 86_400_000 * 4,
+          contributedNodes: [{ nodeId: 'concept', salience: 0.8, forkOnly: false, activated: true }],
+        }))
+      }
+      const initialCandidates = prism.whiteCandidates({ minColors: 5, minBalance: 0.5, minTotalWeight: 5 })
+      expect(initialCandidates.find(c => c.conceptId === 'concept')).toBeDefined()
+      prism.promoteToWhite('concept', witnessForks)
+      const afterCandidates = prism.whiteCandidates({ minColors: 5, minBalance: 0.5, minTotalWeight: 5 })
+      expect(afterCandidates.find(c => c.conceptId === 'concept')).toBeUndefined()
     })
   })
 })
