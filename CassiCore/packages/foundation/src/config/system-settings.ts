@@ -74,6 +74,7 @@ export const MODEL_DIRECTIVE_TIER_DEFAULTS = {
   qwenMax:    { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' },
   sonnet:     { provider: 'claude-code',    model: 'claude-sonnet-4-7' },
   opus:       { provider: 'claude-code',    model: 'claude-opus-4-7' },
+  zAi:        { provider: 'z-ai',           model: 'glm-5.1' },
   background: { provider: 'alibaba-coding', model: 'qwen3.6-plus' },
 } as const
 
