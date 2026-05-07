@@ -114,6 +114,35 @@ export interface InvocationRuleEvaluation {
 }
 
 /**
+ * B1.4 — composition proposal authored by Cassi (or operator on her behalf).
+ *
+ * Stays in `pending` until reviewed; `approve` promotes it to a
+ * proper CompositionRecord via the regular upsertComposition path,
+ * `reject` discards it with a reason. Provenance is preserved via
+ * `proposer` and `rationale`.
+ */
+export type CompositionProposalStatus = 'pending' | 'approved' | 'rejected' | 'withdrawn'
+
+export interface CompositionProposal {
+  id: string
+  /** The DSL string to be parsed when approved. */
+  dsl: string
+  /** Composition name; must be present in the DSL (`name = ...`). */
+  proposedName: string
+  /** Why Cassi/operator proposed this composition. */
+  rationale: string
+  /** Who proposed: 'cassi' (in-conversation) or 'operator'. */
+  proposer: 'cassi' | 'operator'
+  status: CompositionProposalStatus
+  proposedAt: string
+  reviewedAt?: string
+  reviewedBy?: 'cassi' | 'operator'
+  reviewComment?: string
+  /** Optional metadata payload (links to the conversation, observation, etc.). */
+  metadata: Record<string, unknown>
+}
+
+/**
  * B2 retrieval-policy spec attached to a composition (parse form).
  *
  * The DSL `with retrieval(<mode>[, <strength>])` lands here. `directed`

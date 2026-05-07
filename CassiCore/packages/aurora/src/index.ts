@@ -1549,6 +1549,140 @@ export class Aurora {
    * Caller supplies `activeConcepts` — typically derived from the live
    * MentalState's activated nodes' labels.
    */
+  /**
+   * B1.4 — record a Cassi-authored composition proposal. Returns the
+   * persisted proposal (status='pending'). Throws when the spec channel
+   * is disabled.
+   *
+   * The DSL is NOT parsed at proposal time — that defers parse errors
+   * to the review step, which lets the caller capture proposals
+   * mid-conversation without forcing them to be syntactically perfect
+   * first. `reviewCompositionProposal({status:'approved'})` validates
+   * + commits via `defineComposition`.
+   */
+  proposeComposition(opts: {
+    dsl: string
+    proposedName: string
+    rationale: string
+    proposer: 'cassi' | 'operator'
+    metadata?: Record<string, unknown>
+  }): import('./composition/types.js').CompositionProposal {
+    if (!this.compositionStore) {
+      throw new Error('compositionStore disabled (set compositionEnabled in AuroraConfig)')
+    }
+    const id = `prop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    return this.compositionStore.insertCompositionProposal({
+      id,
+      dsl: opts.dsl,
+      proposedName: opts.proposedName,
+      rationale: opts.rationale,
+      proposer: opts.proposer,
+      metadata: opts.metadata ?? {},
+    })
+  }
+
+  /** B1.4 — list pending (or filtered) composition proposals. */
+  listComposedProposals(filter?: { status?: import('./composition/types.js').CompositionProposalStatus }): import('./composition/types.js').CompositionProposal[] {
+    if (!this.compositionStore) return []
+    return this.compositionStore.listCompositionProposals(filter)
+  }
+
+  /**
+   * B1.4 — review a proposal. On approval, parses the DSL via
+   * `defineComposition` and commits the composition; on rejection or
+   * withdrawal, just marks the proposal terminal. Returns the resulting
+   * CompositionRecord on approval, or null otherwise.
+   *
+   * Approval failures (parse errors, suppressive without opt-in) leave
+   * the proposal in 'pending' so the proposer can correct + re-submit.
+   */
+  reviewProposedComposition(opts: {
+    id: string
+    decision: 'approve' | 'reject' | 'withdraw'
+    reviewedBy: 'cassi' | 'operator'
+    reviewComment?: string
+    allowSuppressive?: boolean
+  }): import('./composition/types.js').CompositionRecord | null {
+    if (!this.compositionStore) return null
+    const proposal = this.compositionStore.getCompositionProposal(opts.id)
+    if (!proposal || proposal.status !== 'pending') return null
+
+    if (opts.decision === 'approve') {
+      try {
+        const rec = this.defineComposition(proposal.dsl, {
+          description: proposal.rationale,
+          metadata: { ...proposal.metadata, fromProposal: opts.id, proposer: proposal.proposer },
+          allowSuppressive: opts.allowSuppressive,
+        })
+        this.compositionStore.reviewCompositionProposal({
+          id: opts.id,
+          status: 'approved',
+          reviewedBy: opts.reviewedBy,
+          reviewComment: opts.reviewComment,
+        })
+        return rec
+      } catch (err) {
+        this.logger.warn?.('Composition proposal approval failed at parse/define', {
+          proposalId: opts.id,
+          error: String(err),
+        })
+        // Leave proposal in pending so the proposer can revise.
+        return null
+      }
+    }
+
+    const targetStatus = opts.decision === 'reject' ? 'rejected' : 'withdrawn'
+    this.compositionStore.reviewCompositionProposal({
+      id: opts.id,
+      status: targetStatus,
+      reviewedBy: opts.reviewedBy,
+      reviewComment: opts.reviewComment,
+    })
+    return null
+  }
+
+  /**
+   * B1.4 — seed a small set of canonical built-in compositions. Idempotent:
+   * skips any name that already exists in the store. Returns the names
+   * that were newly seeded.
+   *
+   * The defaults are intentionally minimal — three canonical postures
+   * Cassi can invoke or operators can wire to rules. Real production
+   * compositions will be authored over time via `proposeComposition` +
+   * approval flow.
+   */
+  seedBuiltInCompositions(): string[] {
+    if (!this.compositionStore) return []
+    const seeded: string[] = []
+    const builtIns = [
+      {
+        name: 'careful_focus',
+        dsl: 'careful_focus = gate("rigor") + gate("clarity") - gate("haste")',
+        description: 'Steady, low-arousal posture for careful analysis.',
+      },
+      {
+        name: 'warm_inquiry',
+        dsl: 'warm_inquiry = gate("warmth") + gate("curiosity")',
+        description: 'Open, engaged posture for exploratory conversation.',
+      },
+      {
+        name: 'honest_review',
+        dsl: 'honest_review = gate("rigor") + gate("clarity") + gate("warmth")',
+        description: 'Honest-but-kind posture for code review and critique.',
+      },
+    ]
+    for (const b of builtIns) {
+      if (this.compositionStore.getComposition(b.name)) continue
+      try {
+        this.defineComposition(b.dsl, { description: b.description })
+        seeded.push(b.name)
+      } catch (err) {
+        this.logger.warn?.('Built-in composition seed failed', { name: b.name, error: String(err) })
+      }
+    }
+    return seeded
+  }
+
   evaluateInvocationRules(activeConcepts: ReadonlyArray<string>): import('./composition/types.js').InvocationRuleEvaluation {
     if (!this.compositionStore) return { fired: [], unfired: [], stillSatisfied: [] }
     const rules = this.compositionStore.listInvocationRules()

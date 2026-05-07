@@ -14,6 +14,8 @@ import Database from 'better-sqlite3'
 import type { ILogger } from '../../../../types/interfaces.js'
 import type {
   CompositionAst,
+  CompositionProposal,
+  CompositionProposalStatus,
   CompositionRecord,
   InvocationRecord,
   InvocationRule,
@@ -83,6 +85,31 @@ const SCHEMA_V3_MIGRATION = `
 
   CREATE INDEX IF NOT EXISTS idx_invocation_rules_composition
     ON aurora_invocation_rules(composition);
+`
+
+/**
+ * B1.4 schema bump — add aurora_composition_proposals table for Cassi-
+ * authored composition proposal flow.
+ */
+const SCHEMA_V4_MIGRATION = `
+  CREATE TABLE IF NOT EXISTS aurora_composition_proposals (
+    id              TEXT PRIMARY KEY,
+    dsl             TEXT NOT NULL,
+    proposed_name   TEXT NOT NULL,
+    rationale       TEXT NOT NULL,
+    proposer        TEXT NOT NULL,
+    status          TEXT NOT NULL DEFAULT 'pending',
+    proposed_at     TEXT NOT NULL,
+    reviewed_at     TEXT,
+    reviewed_by     TEXT,
+    review_comment  TEXT,
+    metadata        TEXT NOT NULL DEFAULT '{}'
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_composition_proposals_status
+    ON aurora_composition_proposals(status);
+  CREATE INDEX IF NOT EXISTS idx_composition_proposals_proposed_at
+    ON aurora_composition_proposals(proposed_at);
 `
 
 interface CompositionRow {
@@ -163,6 +190,10 @@ export class CompositionStore {
     if (current < 3) {
       this.db.exec(SCHEMA_V3_MIGRATION)
       this.db.prepare(`INSERT OR IGNORE INTO aurora_compositions_schema_version (version) VALUES (3)`).run()
+    }
+    if (current < 4) {
+      this.db.exec(SCHEMA_V4_MIGRATION)
+      this.db.prepare(`INSERT OR IGNORE INTO aurora_compositions_schema_version (version) VALUES (4)`).run()
     }
   }
 
@@ -362,6 +393,91 @@ export class CompositionStore {
       magnitudeScale: row.magnitude_scale ?? undefined,
       description: row.description ?? undefined,
       updatedAt: row.updated_at,
+    }
+  }
+
+  /**
+   * B1.4 — record a Cassi-authored composition proposal. Status starts
+   * at 'pending'; caller invokes `reviewCompositionProposal` to move
+   * to approved/rejected.
+   */
+  insertCompositionProposal(p: Omit<CompositionProposal, 'status' | 'proposedAt'> & { proposedAt?: string }): CompositionProposal {
+    const proposedAt = p.proposedAt ?? new Date().toISOString()
+    this.db.prepare(`
+      INSERT INTO aurora_composition_proposals
+        (id, dsl, proposed_name, rationale, proposer, status, proposed_at, metadata)
+      VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
+    `).run(
+      p.id, p.dsl, p.proposedName, p.rationale, p.proposer, proposedAt,
+      JSON.stringify(p.metadata ?? {}),
+    )
+    return { ...p, status: 'pending', proposedAt, metadata: p.metadata ?? {} }
+  }
+
+  /** B1.4 — fetch a proposal by id. */
+  getCompositionProposal(id: string): CompositionProposal | null {
+    const row = this.db.prepare(`SELECT * FROM aurora_composition_proposals WHERE id = ?`).get(id) as {
+      id: string; dsl: string; proposed_name: string; rationale: string;
+      proposer: string; status: string; proposed_at: string;
+      reviewed_at: string | null; reviewed_by: string | null;
+      review_comment: string | null; metadata: string;
+    } | undefined
+    return row ? this.proposalRowToRecord(row) : null
+  }
+
+  /** B1.4 — list proposals, optionally filtered by status. Newest first. */
+  listCompositionProposals(filter?: { status?: CompositionProposalStatus }): CompositionProposal[] {
+    const rows = filter?.status
+      ? this.db.prepare(`SELECT * FROM aurora_composition_proposals WHERE status = ? ORDER BY proposed_at DESC`).all(filter.status)
+      : this.db.prepare(`SELECT * FROM aurora_composition_proposals ORDER BY proposed_at DESC`).all()
+    return (rows as Array<{
+      id: string; dsl: string; proposed_name: string; rationale: string;
+      proposer: string; status: string; proposed_at: string;
+      reviewed_at: string | null; reviewed_by: string | null;
+      review_comment: string | null; metadata: string;
+    }>).map(r => this.proposalRowToRecord(r))
+  }
+
+  /**
+   * B1.4 — review a proposal. Updates status, reviewer, comment, and
+   * timestamp. Returns true on success; false when the proposal isn't
+   * present or is already in a terminal state.
+   */
+  reviewCompositionProposal(opts: {
+    id: string
+    status: 'approved' | 'rejected' | 'withdrawn'
+    reviewedBy: 'cassi' | 'operator'
+    reviewComment?: string
+  }): boolean {
+    const existing = this.getCompositionProposal(opts.id)
+    if (!existing) return false
+    if (existing.status !== 'pending') return false
+    this.db.prepare(`
+      UPDATE aurora_composition_proposals
+      SET status = ?, reviewed_at = ?, reviewed_by = ?, review_comment = ?
+      WHERE id = ?
+    `).run(opts.status, new Date().toISOString(), opts.reviewedBy, opts.reviewComment ?? null, opts.id)
+    return true
+  }
+
+  private proposalRowToRecord(row: {
+    id: string; dsl: string; proposed_name: string; rationale: string;
+    proposer: string; status: string; proposed_at: string;
+    reviewed_at: string | null; reviewed_by: string | null;
+    review_comment: string | null; metadata: string;
+  }): CompositionProposal {
+    return {
+      id: row.id,
+      dsl: row.dsl,
+      proposedName: row.proposed_name,
+      rationale: row.rationale,
+      proposer: row.proposer as 'cassi' | 'operator',
+      status: row.status as CompositionProposalStatus,
+      proposedAt: row.proposed_at,
+      reviewedAt: row.reviewed_at ?? undefined,
+      reviewedBy: row.reviewed_by ? row.reviewed_by as 'cassi' | 'operator' : undefined,
+      reviewComment: row.review_comment ?? undefined,
+      metadata: parseJsonOr(row.metadata, {}),
     }
   }
 

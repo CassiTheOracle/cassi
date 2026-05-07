@@ -234,4 +234,51 @@ describe('CompositionStore', () => {
     expect(got.topicKeywords).toEqual(['new'])
     expect(got.composition).toBe('c-new')
   })
+
+  it('B1.4 — inserts and reads back a composition proposal', () => {
+    const p = store.insertCompositionProposal({
+      id: 'prop-1',
+      dsl: 'mode = gate("a")',
+      proposedName: 'mode',
+      rationale: 'because',
+      proposer: 'cassi',
+      metadata: { conversationId: 'c-1' },
+    })
+    expect(p.status).toBe('pending')
+    const got = store.getCompositionProposal('prop-1')!
+    expect(got.dsl).toBe('mode = gate("a")')
+    expect(got.proposer).toBe('cassi')
+    expect(got.metadata.conversationId).toBe('c-1')
+  })
+
+  it('B1.4 — listCompositionProposals returns all + filter by status', () => {
+    store.insertCompositionProposal({ id: 'p1', dsl: 'a = gate("x")', proposedName: 'a', rationale: '', proposer: 'cassi', metadata: {} })
+    store.insertCompositionProposal({ id: 'p2', dsl: 'b = gate("y")', proposedName: 'b', rationale: '', proposer: 'operator', metadata: {} })
+    expect(store.listCompositionProposals()).toHaveLength(2)
+    store.reviewCompositionProposal({ id: 'p1', status: 'approved', reviewedBy: 'operator' })
+    const pending = store.listCompositionProposals({ status: 'pending' })
+    expect(pending).toHaveLength(1)
+    expect(pending[0].id).toBe('p2')
+  })
+
+  it('B1.4 — reviewCompositionProposal updates status + reviewer fields', () => {
+    store.insertCompositionProposal({ id: 'p1', dsl: 'a = gate("x")', proposedName: 'a', rationale: 'r', proposer: 'cassi', metadata: {} })
+    expect(store.reviewCompositionProposal({ id: 'p1', status: 'rejected', reviewedBy: 'operator', reviewComment: 'no thanks' })).toBe(true)
+    const got = store.getCompositionProposal('p1')!
+    expect(got.status).toBe('rejected')
+    expect(got.reviewedBy).toBe('operator')
+    expect(got.reviewComment).toBe('no thanks')
+    expect(got.reviewedAt).toBeTruthy()
+  })
+
+  it('B1.4 — reviewCompositionProposal rejects a non-pending proposal', () => {
+    store.insertCompositionProposal({ id: 'p1', dsl: 'a = gate("x")', proposedName: 'a', rationale: 'r', proposer: 'cassi', metadata: {} })
+    store.reviewCompositionProposal({ id: 'p1', status: 'approved', reviewedBy: 'operator' })
+    // Already-approved cannot be re-reviewed
+    expect(store.reviewCompositionProposal({ id: 'p1', status: 'rejected', reviewedBy: 'operator' })).toBe(false)
+  })
+
+  it('B1.4 — reviewCompositionProposal returns false on missing id', () => {
+    expect(store.reviewCompositionProposal({ id: 'nope', status: 'approved', reviewedBy: 'operator' })).toBe(false)
+  })
 })
