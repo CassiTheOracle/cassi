@@ -139,4 +139,55 @@ describe('CompositionStore', () => {
     store.deleteComposition('p')
     expect(store.listInvocations()).toEqual([])
   })
+
+  it('B2.2 — persists and retrieves a retrieval policy', () => {
+    store.upsertComposition({
+      name: 'careful',
+      dsl: 'careful = gate("rigor") with retrieval(consonant, 0.3)',
+      ast: sampleAst,
+      layerPolicy: 'all',
+      affectModulated: false,
+      suppressive: false,
+      vindexId: 'default',
+      description: null,
+      metadata: {},
+      retrievalPolicy: { mode: 'consonant', strength: 0.3 },
+    })
+    const got = store.getComposition('careful')!
+    expect(got.retrievalPolicy).toEqual({ mode: 'consonant', strength: 0.3 })
+  })
+
+  it('B2.2 — null retrievalPolicy roundtrips as null', () => {
+    store.upsertComposition({
+      name: 'plain',
+      dsl: 'plain = gate("a")',
+      ast: sampleAst,
+      layerPolicy: 'all',
+      affectModulated: false,
+      suppressive: false,
+      vindexId: 'default',
+      description: null,
+      metadata: {},
+      retrievalPolicy: null,
+    })
+    expect(store.getComposition('plain')!.retrievalPolicy).toBeNull()
+  })
+
+  it('B2.2 — upsert replaces retrieval policy on conflict', () => {
+    const base = {
+      name: 'p',
+      dsl: '',
+      ast: sampleAst,
+      layerPolicy: 'all',
+      affectModulated: false,
+      suppressive: false,
+      vindexId: 'default',
+      description: null,
+      metadata: {},
+    }
+    store.upsertComposition({ ...base, retrievalPolicy: { mode: 'consonant', strength: 0.3 } })
+    store.upsertComposition({ ...base, retrievalPolicy: { mode: 'complementary', strength: 0.5 } })
+    const got = store.getComposition('p')!
+    expect(got.retrievalPolicy).toEqual({ mode: 'complementary', strength: 0.5 })
+  })
 })

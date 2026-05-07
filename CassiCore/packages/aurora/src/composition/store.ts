@@ -56,6 +56,15 @@ const SCHEMA_V1 = `
   INSERT OR IGNORE INTO aurora_compositions_schema_version (version) VALUES (1);
 `
 
+/**
+ * B2.2 schema bump — add retrieval_policy_json column to aurora_compositions
+ * (NULL = no policy, JSON-serialized RetrievalPolicySpec otherwise).
+ */
+const SCHEMA_V2_MIGRATION = `
+  ALTER TABLE aurora_compositions
+    ADD COLUMN retrieval_policy_json TEXT;
+`
+
 interface CompositionRow {
   name: string
   dsl: string
@@ -68,6 +77,7 @@ interface CompositionRow {
   created_at: string
   updated_at: string
   metadata: string
+  retrieval_policy_json: string | null
 }
 
 interface InvocationRow {
@@ -114,24 +124,41 @@ export class CompositionStore {
 
   private initSchema(): void {
     this.db.exec(SCHEMA_V1)
+    const versionRow = this.db
+      .prepare(`SELECT MAX(version) AS v FROM aurora_compositions_schema_version`)
+      .get() as { v: number | null }
+    const current = versionRow.v ?? 1
+    if (current < 2) {
+      // ALTER TABLE is idempotent-safe via try/catch on the duplicate-column
+      // error: when the column already exists (e.g. if the row never made it
+      // to the version table after a prior migration attempt), we tolerate
+      // it and just bump the version row.
+      try {
+        this.db.exec(SCHEMA_V2_MIGRATION)
+      } catch (err: any) {
+        if (!String(err?.message ?? '').includes('duplicate column')) throw err
+      }
+      this.db.prepare(`INSERT OR IGNORE INTO aurora_compositions_schema_version (version) VALUES (2)`).run()
+    }
   }
 
   private prepareStatements(): void {
     this.stmtUpsertComposition = this.db.prepare(`
       INSERT INTO aurora_compositions
         (name, dsl, ast, layer_policy, affect_modulated, suppressive, vindex_id,
-         description, created_at, updated_at, metadata)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         description, created_at, updated_at, metadata, retrieval_policy_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(name) DO UPDATE SET
-        dsl              = excluded.dsl,
-        ast              = excluded.ast,
-        layer_policy     = excluded.layer_policy,
-        affect_modulated = excluded.affect_modulated,
-        suppressive      = excluded.suppressive,
-        vindex_id        = excluded.vindex_id,
-        description      = excluded.description,
-        updated_at       = excluded.updated_at,
-        metadata         = excluded.metadata
+        dsl                   = excluded.dsl,
+        ast                   = excluded.ast,
+        layer_policy          = excluded.layer_policy,
+        affect_modulated      = excluded.affect_modulated,
+        suppressive           = excluded.suppressive,
+        vindex_id             = excluded.vindex_id,
+        description           = excluded.description,
+        updated_at            = excluded.updated_at,
+        metadata              = excluded.metadata,
+        retrieval_policy_json = excluded.retrieval_policy_json
     `)
     this.stmtGetComposition = this.db.prepare(
       `SELECT * FROM aurora_compositions WHERE name = ?`,
@@ -171,8 +198,17 @@ export class CompositionStore {
       createdAt,
       updatedAt,
       JSON.stringify(rec.metadata ?? {}),
+      rec.retrievalPolicy === null || rec.retrievalPolicy === undefined
+        ? null
+        : JSON.stringify(rec.retrievalPolicy),
     )
-    return { ...rec, createdAt, updatedAt, metadata: rec.metadata ?? {} }
+    return {
+      ...rec,
+      createdAt,
+      updatedAt,
+      metadata: rec.metadata ?? {},
+      retrievalPolicy: rec.retrievalPolicy ?? null,
+    }
   }
 
   getComposition(name: string): CompositionRecord | null {
@@ -251,6 +287,9 @@ export class CompositionStore {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       metadata: parseJsonOr(row.metadata, {}),
+      retrievalPolicy: row.retrieval_policy_json
+        ? parseJsonOr<import('./types.js').RetrievalPolicySpec | null>(row.retrieval_policy_json, null)
+        : null,
     }
   }
 }

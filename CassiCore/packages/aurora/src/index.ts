@@ -1440,6 +1440,7 @@ export class Aurora {
       vindexId: opts.vindexId ?? DEFAULT_VINDEX_ID,
       description: opts.description ?? null,
       metadata: opts.metadata ?? {},
+      retrievalPolicy: parsed.retrievalPolicy,
     })
   }
 
@@ -1472,6 +1473,7 @@ export class Aurora {
       remainingTurns: ttlTurns,
       magnitudeScale,
       trigger,
+      retrievalPolicy: rec.retrievalPolicy ?? null,
     })
 
     return this.compositionStore.recordInvocation({
@@ -1486,6 +1488,27 @@ export class Aurora {
   /** B1: Active compositions and their decay state. */
   activeCompositions(): ActiveComposition[] {
     return this.activeCompositionsList.map(c => ({ ...c }))
+  }
+
+  /**
+   * B2.2: Resolve the strongest currently-active retrieval policy across
+   * all active compositions. Returns `null` when no active composition
+   * carries a retrieval policy. Highest-strength wins on ties; mode
+   * choice (consonant vs complementary) follows the strongest, not
+   * blended.
+   *
+   * Callers (LarqlKnowledgeProvider) read this once per retrieval pass
+   * and pass it to `gateKnnWithPolicy`. Spec §6: "B1 compositions can
+   * pair posture and retrieval shape coherently."
+   */
+  getActiveRetrievalPolicy(): import('./composition/types.js').RetrievalPolicySpec | null {
+    let best: import('./composition/types.js').RetrievalPolicySpec | null = null
+    for (const c of this.activeCompositionsList) {
+      const p = c.retrievalPolicy
+      if (!p) continue
+      if (!best || p.strength > best.strength) best = p
+    }
+    return best
   }
 
   /**

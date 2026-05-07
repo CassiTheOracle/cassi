@@ -49,7 +49,7 @@ export class CompositionParseError extends Error {
 type TokenKind =
   | 'ident' | 'number' | 'string'
   | 'plus' | 'minus' | 'star' | 'eq' | 'eqeq'
-  | 'lparen' | 'rparen'
+  | 'lparen' | 'rparen' | 'comma'
   | 'at' | 'dotdot'
   | 'pipe' | 'lt' | 'gt' | 'approx'
   | 'eof'
@@ -82,6 +82,7 @@ function tokenize(src: string): Token[] {
     if (ch === '~' || ch === '≈') { tokens.push({ kind: 'approx', value: '~', pos: start }); i++; continue }
     if (ch === '(') { tokens.push({ kind: 'lparen', value: ch, pos: start }); i++; continue }
     if (ch === ')') { tokens.push({ kind: 'rparen', value: ch, pos: start }); i++; continue }
+    if (ch === ',') { tokens.push({ kind: 'comma', value: ch, pos: start }); i++; continue }
     if (ch === '@') { tokens.push({ kind: 'at', value: ch, pos: start }); i++; continue }
     if (ch === '.' && src[i + 1] === '.') { tokens.push({ kind: 'dotdot', value: '..', pos: start }); i += 2; continue }
     if (ch === '"' || ch === "'") {
@@ -267,6 +268,45 @@ function parseExpression(s: TokenStream): CompositionAst {
   return result
 }
 
+/**
+ * Parse the optional B2.2 postfix `with retrieval(<mode>[, <strength>])`.
+ *
+ *   <mode> ∈ { consonant, complementary }
+ *   <strength> ∈ [0, 1] (numeric, default 0.3)
+ *
+ * Returns null if no `with` keyword is present at the current position.
+ * Throws a CompositionParseError on malformed clauses.
+ */
+function parseRetrievalPostfix(s: TokenStream): import('./types.js').RetrievalPolicySpec | null {
+  if (!s.match('ident', 'with')) return null
+  s.next()
+  const fnTok = s.expect('ident', 'retrieval')
+  s.expect('lparen')
+  const modeTok = s.expect('ident')
+  if (modeTok.value !== 'consonant' && modeTok.value !== 'complementary') {
+    throw new CompositionParseError(
+      `expected 'consonant' or 'complementary' for retrieval mode, got '${modeTok.value}'`,
+      modeTok.pos,
+    )
+  }
+  let strength = 0.3
+  if (s.match('comma')) {
+    s.next()
+    const numTok = s.expect('number')
+    const parsed = Number(numTok.value)
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) {
+      throw new CompositionParseError(
+        `retrieval strength must be in [0,1], got ${numTok.value}`,
+        numTok.pos,
+      )
+    }
+    strength = parsed
+  }
+  s.expect('rparen')
+  void fnTok
+  return { mode: modeTok.value as 'consonant' | 'complementary', strength }
+}
+
 function parseAffectPredicate(s: TokenStream): AffectPredicate {
   let left = parseAffectComparison(s)
   while (s.match('ident', 'and') || s.match('ident', 'or')) {
@@ -352,6 +392,8 @@ export interface ParseResult {
   name: string | null
   ast: CompositionAst
   layerPolicy: string
+  /** B2.2: optional retrieval policy from the `with retrieval(...)` postfix. */
+  retrievalPolicy: import('./types.js').RetrievalPolicySpec | null
 }
 
 /**
@@ -367,12 +409,13 @@ export function parseComposition(src: string): ParseResult {
     stream.next()
   }
   const ast = parseExpression(stream)
+  const retrievalPolicy = parseRetrievalPostfix(stream)
   if (!stream.match('eof')) {
     const t = stream.peek()
     throw new CompositionParseError(`unexpected trailing token ${t.kind} '${t.value}'`, t.pos)
   }
   const layerPolicy = ast.kind === 'layered' ? layerSpecToString(ast.layers) : 'all'
-  return { name, ast, layerPolicy }
+  return { name, ast, layerPolicy, retrievalPolicy }
 }
 
 export function layerSpecToString(spec: LayerSpec): string {

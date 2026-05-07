@@ -72,6 +72,21 @@ export const SUPPRESSIVE_AFFECT_LABELS = new Set<AffectLabel>([
   'alarmed',
 ])
 
+/**
+ * B2 retrieval-policy spec attached to a composition (parse form).
+ *
+ * The DSL `with retrieval(<mode>[, <strength>])` lands here. `directed`
+ * mode requires a vector and isn't parser-expressible at this phase —
+ * inline directed policies are a runtime concern set programmatically
+ * by callers, not via the DSL. The DSL only exposes `consonant` and
+ * `complementary`, which resolve at runtime against current affect.
+ */
+export interface RetrievalPolicySpec {
+  mode: 'consonant' | 'complementary'
+  /** Strength in [0,1]. Default 0.3 if omitted in the DSL. */
+  strength: number
+}
+
 export interface CompositionRecord {
   name: string
   dsl: string
@@ -84,6 +99,8 @@ export interface CompositionRecord {
   createdAt: string
   updatedAt: string
   metadata: Record<string, unknown>
+  /** B2.2: optional affect-conditioned retrieval policy applied while this composition is active. */
+  retrievalPolicy: RetrievalPolicySpec | null
 }
 
 export interface ActiveComposition {
@@ -94,6 +111,8 @@ export interface ActiveComposition {
   remainingTurns: number
   magnitudeScale: number
   trigger: InvocationTrigger
+  /** B2.2: retrieval policy attached at definition time, carried into the active window. */
+  retrievalPolicy?: RetrievalPolicySpec | null
 }
 
 export type InvocationTrigger = 'manual' | 'affect_predicate' | `rule:${string}`

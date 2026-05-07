@@ -146,3 +146,48 @@ describe('detectSuppressive', () => {
     expect(detectSuppressive(r.ast)).toBe(false)
   })
 })
+
+describe('parseComposition — B2.2 retrieval policy postfix', () => {
+  it('returns retrievalPolicy=null when no `with retrieval(...)` is present', () => {
+    const r = parseComposition('p = gate("a")')
+    expect(r.retrievalPolicy).toBeNull()
+  })
+
+  it('parses `with retrieval(consonant)` with default strength 0.3', () => {
+    const r = parseComposition('p = gate("a") with retrieval(consonant)')
+    expect(r.retrievalPolicy).toEqual({ mode: 'consonant', strength: 0.3 })
+  })
+
+  it('parses `with retrieval(complementary, 0.5)`', () => {
+    const r = parseComposition('p = gate("a") with retrieval(complementary, 0.5)')
+    expect(r.retrievalPolicy).toEqual({ mode: 'complementary', strength: 0.5 })
+  })
+
+  it('combines with `| when ...` predicate', () => {
+    const r = parseComposition('p = gate("a") | when arousal < 0.4 with retrieval(consonant, 0.2)')
+    expect(r.ast.kind).toBe('modulated')
+    expect(r.retrievalPolicy).toEqual({ mode: 'consonant', strength: 0.2 })
+  })
+
+  it('rejects unknown mode', () => {
+    expect(() => parseComposition('p = gate("a") with retrieval(rainbow, 0.3)'))
+      .toThrowError(CompositionParseError)
+  })
+
+  it('rejects strength outside [0,1]', () => {
+    expect(() => parseComposition('p = gate("a") with retrieval(consonant, 1.5)'))
+      .toThrowError(CompositionParseError)
+    expect(() => parseComposition('p = gate("a") with retrieval(consonant, -0.1)'))
+      .toThrowError(CompositionParseError)
+  })
+
+  it('rejects missing closing paren', () => {
+    expect(() => parseComposition('p = gate("a") with retrieval(consonant'))
+      .toThrowError(CompositionParseError)
+  })
+
+  it('rejects bare `with` without retrieval keyword', () => {
+    expect(() => parseComposition('p = gate("a") with sparkles(1.0)'))
+      .toThrowError(CompositionParseError)
+  })
+})

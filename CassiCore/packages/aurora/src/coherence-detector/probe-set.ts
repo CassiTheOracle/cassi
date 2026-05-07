@@ -104,8 +104,8 @@ export const N2_DEFAULT_PROBES: Probe[] = [
         { name: 'b', ast: { kind: 'gate', label: 'unused' }, invokedAt: '', ttlTurns: 5, remainingTurns: 5, magnitudeScale: 1, trigger: 'manual' },
       ],
       records: [
-        { name: 'a', dsl: '', ast: { kind: 'sum', operands: [{ kind: 'gate', label: 'warmth' }, { kind: 'gate', label: 'kindness' }] }, layerPolicy: 'all', affectModulated: false, suppressive: false, vindexId: '', description: null, createdAt: '', updatedAt: '', metadata: {} },
-        { name: 'b', dsl: '', ast: { kind: 'sum', operands: [{ kind: 'gate', label: 'cold' }, { kind: 'scaled', operand: { kind: 'gate', label: 'warmth' }, factor: -1 }, { kind: 'scaled', operand: { kind: 'gate', label: 'kindness' }, factor: -1 }] }, layerPolicy: 'all', affectModulated: false, suppressive: false, vindexId: '', description: null, createdAt: '', updatedAt: '', metadata: {} },
+        { name: 'a', dsl: '', ast: { kind: 'sum', operands: [{ kind: 'gate', label: 'warmth' }, { kind: 'gate', label: 'kindness' }] }, layerPolicy: 'all', affectModulated: false, suppressive: false, vindexId: '', description: null, createdAt: '', updatedAt: '', metadata: {}, retrievalPolicy: null },
+        { name: 'b', dsl: '', ast: { kind: 'sum', operands: [{ kind: 'gate', label: 'cold' }, { kind: 'scaled', operand: { kind: 'gate', label: 'warmth' }, factor: -1 }, { kind: 'scaled', operand: { kind: 'gate', label: 'kindness' }, factor: -1 }] }, layerPolicy: 'all', affectModulated: false, suppressive: false, vindexId: '', description: null, createdAt: '', updatedAt: '', metadata: {}, retrievalPolicy: null },
       ],
       pendingSeeds: [],
     } as DetectorInputs,
