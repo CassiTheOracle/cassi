@@ -219,6 +219,39 @@ const MIGRATIONS: Migration[] = [
       INSERT INTO aurora_schema_version (version, applied_at) VALUES (2, ?);
     `,
   },
+  {
+    version: 3,
+    sql: `
+      -- B2 affect-conditioned retrieval (spec §4.1):
+      -- per-feature sparse affect signature, used by RetrievalPolicy's
+      -- mode-driven re-scoring path. One row per (vindex, layer, feature).
+      CREATE TABLE IF NOT EXISTS feature_affect_signatures (
+        vindex_id TEXT NOT NULL,
+        layer INTEGER NOT NULL,
+        feature_index INTEGER NOT NULL,
+        labels_json TEXT NOT NULL,
+        magnitude REAL NOT NULL,
+        computed_at TEXT NOT NULL,
+        probe_set_id TEXT NOT NULL,
+        PRIMARY KEY (vindex_id, layer, feature_index)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_fas_vindex_magnitude
+        ON feature_affect_signatures(vindex_id, magnitude DESC);
+
+      CREATE TABLE IF NOT EXISTS feature_affect_probe_sets (
+        id TEXT PRIMARY KEY,
+        vindex_id TEXT NOT NULL,
+        description TEXT,
+        probe_count_per_quadrant INTEGER NOT NULL,
+        total_probes INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        metadata TEXT DEFAULT '{}'
+      );
+
+      INSERT INTO aurora_schema_version (version, applied_at) VALUES (3, ?);
+    `,
+  },
 ]
 
 // section
