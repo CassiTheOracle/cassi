@@ -306,11 +306,13 @@ export async function withAutoReindex<T>(
 }
 
 /**
- * Safely parse JSON from a string that may have trailing non-JSON content
- * (e.g., the daemon appends a trust bar like "━━ CassiCore ━ trust ████ 0.92 ━━").
+ * Safely parse JSON from a string that may have trailing non-JSON content.
  *
- * WHY: The daemon's tool executor appends metadata after the JSON response,
- * which causes JSON.parse() to fail with "Extra data". We try three strategies:
+ * WHY: Older tool results (e.g., cached responses, replayed prompt logs) may
+ * have a trust banner like "━━ CassiCore ━ trust ████ 0.92 ━━" appended. The
+ * banner is no longer emitted by the tool executor (trust state is delivered
+ * via the tool:enriched event sidecar instead), but defensive parsing remains
+ * to handle legacy artifacts and other trailing-noise sources. Strategies:
  *  1. Direct JSON.parse (fastest, works for clean JSON)
  *  2. Strip after common separators (--- or ━━)
  *  3. Find the last balanced brace/bracket
