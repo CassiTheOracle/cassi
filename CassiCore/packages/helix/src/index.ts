@@ -458,28 +458,6 @@ export function createHelix(
           lastRun = new Date()
           // REMOVED: registry.save — Blackboard deprecated
 
-          if (storedToolExecutor) {
-            try {
-              const commitResult = await storedToolExecutor.commitSession({
-                sessionId,
-                sessionType: 'helix',
-                goal: opts.goal,
-                success: result.completionStatus.unityStatus === 'completed',
-                durationMs: result.durationMs,
-                toolCalls: result.toolCallCounts?.unity,
-              })
-              if (commitResult.committed) {
-                logger.info('helix:session-committed', {
-                  sessionId,
-                  sha: commitResult.sha,
-                  fileCount: commitResult.fileCount,
-                })
-              }
-            } catch (commitErr) {
-              logger.debug('helix:session-commit-failed', { sessionId, error: String(commitErr) })
-            }
-          }
-
           return result
         } finally {
           activeSessions.delete(sessionId)
