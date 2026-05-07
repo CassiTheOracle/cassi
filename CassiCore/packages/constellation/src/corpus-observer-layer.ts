@@ -152,6 +152,7 @@ export class CorpusObserverLayer {
       maxIdleMs: 600_000,
       materialThreshold: 8,
       warmupEvents: 4,
+      observerId: `corpus-observer:${this.constellationId}`,
     }
   }
 

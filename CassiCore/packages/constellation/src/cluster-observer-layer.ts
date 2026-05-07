@@ -143,6 +143,7 @@ export class ClusterObserverLayer {
       maxIdleMs: 300_000,
       materialThreshold: 6,
       warmupEvents: 3,
+      observerId: `cluster-observer:${this.constellationId}`,
     }
   }
 
