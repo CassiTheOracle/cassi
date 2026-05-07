@@ -17,7 +17,6 @@
  * Request savings: 3-7 requests → 1 request per turn.
  */
 
-import type { PromptOptimizer } from './prompt-optimizer.js'
 import type {
   YangOutput,
   YangBranch,
@@ -73,7 +72,6 @@ export class ConsolidatedDialecticProcessor {
   private provider: IProvider | undefined
   private eventBus: IEventBus | undefined
   private memory: IMemory | undefined
-  private promptOptimizer: PromptOptimizer | undefined
   private moduleRegistry: ModuleSessionRegistry | undefined
 
   constructor(logger: ILogger, config?: Partial<ConsolidatedConfig>) {
@@ -85,7 +83,6 @@ export class ConsolidatedDialecticProcessor {
   setProvider(provider: IProvider): void { this.provider = provider }
   setEventBus(bus: IEventBus): void { this.eventBus = bus }
   setMemory(memory: IMemory): void { this.memory = memory }
-  setPromptOptimizer(optimizer: PromptOptimizer): void { this.promptOptimizer = optimizer }
 
   /** Wire the module session registry for persistent debug sessions. */
   setModuleRegistry(registry: ModuleSessionRegistry): void {
@@ -232,22 +229,6 @@ export class ConsolidatedDialecticProcessor {
         } catch (err) {
           this.logger.warn('ConsolidatedDialecticProcessor: failed to archive', { error: String(err) })
         }
-      }
-
-      if (this.promptOptimizer?.enabled) {
-        this.promptOptimizer.recordFeedback({
-          quality: {
-            yangYinAgreement: result.quality.yangYinAgreement,
-            dialecticTension: result.quality.dialecticTension,
-            synthesisConfidence: result.quality.synthesisConfidence,
-            hasSignal: result.signalInjected,
-          },
-          selectedVariants: {
-            yang: 'consolidated-v1',
-            yin: 'consolidated-v1',
-            serenity: 'consolidated-v1',
-          },
-        })
       }
 
       emitStreamEvent({ timestamp: Date.now(), turnId, stage: 'complete' })

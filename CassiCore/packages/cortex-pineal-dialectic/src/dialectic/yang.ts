@@ -6,11 +6,11 @@
  */
 
 import { getModelSpec } from '../../config/system-settings.js';
+import { composeSystemPrompt } from '../shared/posture-store.js';
 
 import { DialecticVoiceBase, type BaseDialecticConfig } from './dialectic-voice-base.js';
-import { fillTemplate } from './prompt-optimizer.js';
+import { YANG_SCHEMA, JSON_INSTRUCTION } from './prompt-templates.js';
 
-import type { PromptOptimizer } from './prompt-optimizer.js';
 import type { IYangObserver, YangOutput, YangContext, YangBranch } from '../../../types/dialectic.js';
 import type { ILogger } from '../../../types/interfaces.js';
 import type { IProvider } from '../../../types/runtime.js';
@@ -54,18 +54,6 @@ export class YangObserver extends DialecticVoiceBase<YangConfig> implements IYan
       },
       'yang',
     );
-  }
-
-  /**
-   * Wire the prompt optimizer for variant selection
-   *
-   * Overrides base to add type-specific logging
-   *
-   * @param optimizer - Prompt optimizer instance
-   */
-  override setPromptOptimizer(optimizer: PromptOptimizer): void {
-    this.promptOptimizer = optimizer;
-    this.logger.info('YangObserver: prompt optimizer wired');
   }
 
   /**
@@ -257,31 +245,26 @@ export class YangObserver extends DialecticVoiceBase<YangConfig> implements IYan
    * @param context - Observation context
    * @returns Formatted prompt string
    */
-  private buildPrompt(sessionId: string, userMessage: string, context: YangContext): string {
-    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}\n\n` : '';
+  private buildPrompt(_sessionId: string, userMessage: string, context: YangContext): string {
+    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}` : '';
+    const memoryBlock = context.recentMemories.length > 0
+      ? `Recent conversation context:\n${context.recentMemories.map(m => `- ${m}`).join('\n')}`
+      : '';
+    const toolsBlock = context.availableTools.length > 0
+      ? `Available tools: ${context.availableTools.join(', ')}`
+      : '';
 
-    const memoryBlock =
-      context.recentMemories.length > 0
-        ? `Recent conversation context:\n${context.recentMemories.map(m => `- ${m}`).join('\n')}\n\n`
-        : '';
+    const sessionContext = [
+      guideBlock,
+      memoryBlock,
+      toolsBlock,
+      `USER MESSAGE:\n"""${userMessage}"""`,
+      `Generate ${this.config.maxBranches} branches for this user message. Each branch uses a different type lens.`,
+      `OUTPUT JSON SCHEMA:\n${YANG_SCHEMA}`,
+      JSON_INSTRUCTION,
+    ].filter(s => s.length > 0).join('\n\n');
 
-    const toolsBlock =
-      context.availableTools.length > 0 ? `Available tools: ${context.availableTools.join(', ')}\n\n` : '';
-
-    // Use optimizer variant if available and enabled
-    if (this.promptOptimizer?.enabled) {
-      const variant = this.promptOptimizer.selectYang();
-      return fillTemplate(variant.template, {
-        guideBlock,
-        memoryBlock,
-        toolsBlock,
-        userMessage,
-        maxBranches: String(this.config.maxBranches),
-        sessionId,
-      });
-    }
-
-    return `${guideBlock}${memoryBlock}${toolsBlock}You are YANG — systematic analytical expansion.\n\nUSER MESSAGE:\n"""${userMessage}"""\n\nGenerate ${this.config.maxBranches} observations. For each, pick ONE analytical lens:\n- assumption_challenge: What unstated assumption could be wrong?\n- edge_case: What boundary condition or corner case exists?\n- alternative_interpretation: What else could this mean?\n- cross_domain: What structural parallel from another domain applies?\n- what_if: What changes if a key constraint is removed/inverted?\n\nQUALITY GATE: Would this observation change how the AI responds? If not, skip it.\n\nEnsure each branch uses a different lens. Each observation: 2-4 sentences. Assign confidence (how likely relevant) and noveltyScore (how non-obvious) as 0.0-1.0.\n\nOUTPUT (JSON):\n{\n  "branches": [\n    {\n      "id": "yang-1",\n      "type": "alternative_interpretation|edge_case|cross_domain|what_if|assumption_challenge",\n      "content": "2-4 sentences",\n      "confidence": 0.0-1.0,\n      "noveltyScore": 0.0-1.0\n    }\n  ]\n}\n\nReturn ONLY valid JSON. No markdown fences, no explanation, no extra text.`;
+    return composeSystemPrompt('yang', 'dialectic', sessionContext);
   }
 
   /**
@@ -297,7 +280,7 @@ export class YangObserver extends DialecticVoiceBase<YangConfig> implements IYan
    * @returns Formatted prompt string
    */
   private buildBranchPrompt(
-    sessionId: string,
+    _sessionId: string,
     userMessage: string,
     context: YangContext,
     branchIndex: number,
@@ -305,19 +288,30 @@ export class YangObserver extends DialecticVoiceBase<YangConfig> implements IYan
     preferredType: YangBranch['type'],
     otherTypes: YangBranch['type'][] = [],
   ): string {
-    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}\n\n` : '';
-    const memoryBlock =
-      context.recentMemories.length > 0
-        ? `Recent context:\n${context.recentMemories.map(m => `- ${m}`).join('\n')}\n\n`
-        : '';
+    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}` : '';
+    const memoryBlock = context.recentMemories.length > 0
+      ? `Recent context:\n${context.recentMemories.map(m => `- ${m}`).join('\n')}`
+      : '';
 
     const otherPerspectives = [...new Set(otherTypes)].filter(t => t !== preferredType);
-    const diversityNote =
-      otherPerspectives.length > 0
-        ? `Other perspectives being explored in parallel: ${otherPerspectives.join(', ')}. Stay distinctly within your assigned angle — do NOT overlap with or paraphrase those perspectives.\n\n`
-        : '';
+    const diversityNote = otherPerspectives.length > 0
+      ? `Other perspectives being explored in parallel: ${otherPerspectives.join(', ')}. Stay distinctly within my assigned angle. I do not overlap with or paraphrase those perspectives.`
+      : '';
 
-    return `${guideBlock}${memoryBlock}You are YANG (branch ${branchIndex}/${totalBranches}) — perspective: ${preferredType}.\n\n${diversityNote}USER MESSAGE:\n"""${userMessage}"""\n\nQUALITY GATE: Would this observation change how the AI responds to the message above? If not, skip it.\n\nGenerate ONE non-obvious observation specifically from the ${preferredType} angle.\n\nOUTPUT (JSON):\n{"id":"yang-${branchIndex}","type":"${preferredType}","content":"2-4 sentences","confidence":0.0-1.0,"noveltyScore":0.0-1.0}\n\nReturn ONLY valid JSON. No markdown fences, no explanation.`;
+    const branchSchema = `{"id":"yang-${branchIndex}","type":"${preferredType}","content":"2-4 sentences","confidence":0.0-1.0,"noveltyScore":0.0-1.0}`;
+
+    const sessionContext = [
+      guideBlock,
+      memoryBlock,
+      diversityNote,
+      `USER MESSAGE:\n"""${userMessage}"""`,
+      `This is branch ${branchIndex} of ${totalBranches}. My assigned perspective for this branch: ${preferredType}.`,
+      `Generate ONE non-obvious observation from the ${preferredType} angle.`,
+      `OUTPUT JSON SCHEMA (single branch):\n${branchSchema}`,
+      JSON_INSTRUCTION,
+    ].filter(s => s.length > 0).join('\n\n');
+
+    return composeSystemPrompt('yang', 'dialectic', sessionContext);
   }
 
   /**

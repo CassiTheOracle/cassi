@@ -12,7 +12,6 @@ import { Serenity, type SerenityConfig } from './serenity.js';
 import { YangObserver, type YangConfig } from './yang.js';
 import { YinObserver, type YinConfig } from './yin.js';
 
-import type { PromptOptimizer } from './prompt-optimizer.js';
 import type { 
   YangOutput, 
   YinOutput, 
@@ -51,7 +50,6 @@ export class ParallelDialecticProcessor {
   private yang: YangObserver;
   private yin: YinObserver;
   private serenity: Serenity;
-  private promptOptimizer?: PromptOptimizer;
 
   constructor(
     logger: ILogger,
@@ -108,14 +106,6 @@ export class ParallelDialecticProcessor {
   setMemory(memory: IMemory): void {
     this.memory = memory;
     this.logger.info('ParallelDialecticProcessor: memory wired');
-  }
-
-  setPromptOptimizer(optimizer: PromptOptimizer): void {
-    this.promptOptimizer = optimizer;
-    this.yang.setPromptOptimizer(optimizer);
-    this.yin.setPromptOptimizer(optimizer);
-    this.serenity.setPromptOptimizer(optimizer);
-    this.logger.info('ParallelDialecticProcessor: prompt optimizer wired to all observers');
   }
 
   setProvider(provider: IProvider): void {
@@ -274,22 +264,6 @@ export class ParallelDialecticProcessor {
           synthesisConfidence: serenityResult.meta.dialecticQuality,
         },
       };
-
-      if (this.promptOptimizer?.enabled) {
-        this.promptOptimizer.recordFeedback({
-          quality: {
-            yangYinAgreement: result.quality.yangYinAgreement,
-            dialecticTension: result.quality.dialecticTension,
-            synthesisConfidence: result.quality.synthesisConfidence,
-            hasSignal: result.signalInjected,
-          },
-          selectedVariants: {
-            yang: this.promptOptimizer.getLastSelected('yang') || 'yang-v1-structured',
-            yin: this.promptOptimizer.getLastSelected('yin') || 'yin-v1-structured',
-            serenity: this.promptOptimizer.getLastSelected('serenity') || 'serenity-v1-structured',
-          },
-        });
-      }
 
       // Emit completion
       emitStreamEvent({

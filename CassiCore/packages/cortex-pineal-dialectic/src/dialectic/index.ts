@@ -14,7 +14,6 @@ import Database from 'better-sqlite3';
 import { ConsolidatedDialecticProcessor } from './consolidated-processor.js';
 import { DialecticEngine } from './engine.js';
 import { formatDialecticAsThoughts } from './thought-formatter.js';
-import { type PromptOptimizer, createPromptOptimizer } from './prompt-optimizer.js';
 import { getDataDir } from '../../utils/paths.js'
 
 import type {
@@ -24,7 +23,7 @@ import type {
   YangContext,
   DialecticStreamEvent,
   DialecticSignal,
- PromptOptimizerConfig } from '../../../types/dialectic.js';
+} from '../../../types/dialectic.js';
 import type { IMemory } from '../../../types/intelligence.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
 import type { CorticalField } from '../cortex/index.js';
@@ -74,7 +73,6 @@ export interface DialecticSystemConfig {
     timeoutMs?: number;
     model?: string;
   };
-  promptOptimizer?: Partial<PromptOptimizerConfig>;
   /**
    * When enabled, the dialectic engine runs synchronously on the user message
    * and injects its full reasoning as an assistant message — as if the model
@@ -173,7 +171,6 @@ export class DialecticSystem implements IDialecticSystem {
   private consolidatedProcessor: ConsolidatedDialecticProcessor;
   /** The new pure reasoning engine — string in → string out */
   readonly engine: DialecticEngine;
-  private promptOptimizer?: PromptOptimizer;
   private db?: Database.Database;
   private streamCallbacks: Map<string, Set<(event: DialecticStreamEvent) => void>> = new Map();
   private resultCache?: ResultCache;
@@ -229,18 +226,6 @@ export class DialecticSystem implements IDialecticSystem {
       postureTimeoutMs: this.config.parallel?.observerTimeoutMs ?? 30_000,
     });
 
-    // Create and wire prompt optimizer if enabled
-    const optimizerConfig = this.config.promptOptimizer;
-    if (optimizerConfig?.enabled !== false) {
-      const persistPath = optimizerConfig?.persistPath ||
-        path.join(this.config.dataDir!, 'prompt-optimizer.json');
-      this.promptOptimizer = createPromptOptimizer(this.logger, {
-        ...optimizerConfig,
-        persistPath,
-      });
-      this.consolidatedProcessor.setPromptOptimizer(this.promptOptimizer);
-    }
-
     if (this.config.cache?.enabled) {
       this.resultCache = new ResultCache(
         this.config.cache.ttlMs,
@@ -250,12 +235,6 @@ export class DialecticSystem implements IDialecticSystem {
 
     if (this.config.enabled) {
       this.initPersistence();
-      // Initialize prompt optimizer (loads persisted scores, starts auto-save)
-      if (this.promptOptimizer) {
-        this.promptOptimizer.init().catch(err => {
-          this.logger.warn('DialecticSystem: prompt optimizer init failed', { error: String(err) });
-        });
-      }
       this.logger.info('DialecticSystem: enabled (parallel mode)');
     } else {
       this.logger.info('DialecticSystem: disabled');
@@ -358,13 +337,9 @@ export class DialecticSystem implements IDialecticSystem {
   }
 
   /**
-   * Stop the dialectic system — flush optimizer state and clean up timers.
+   * Stop the dialectic system. Closes persistence; no-op when already stopped.
    */
   async stop(): Promise<void> {
-    if (this.promptOptimizer) {
-      await this.promptOptimizer.stop();
-      this.logger.info('DialecticSystem: prompt optimizer stopped');
-    }
     if (this.db) {
       try { this.db.close(); } catch {}
       this.db = undefined;

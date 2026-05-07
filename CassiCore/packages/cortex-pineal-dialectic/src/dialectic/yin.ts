@@ -6,11 +6,11 @@
  */
 
 import { getModelSpec } from '../../config/system-settings.js';
+import { composeSystemPrompt } from '../shared/posture-store.js';
 
 import { DialecticVoiceBase, type BaseDialecticConfig } from './dialectic-voice-base.js';
-import { fillTemplate } from './prompt-optimizer.js';
+import { YIN_CRITIQUE_SCHEMA, YIN_BASELINE_SCHEMA, JSON_INSTRUCTION } from './prompt-templates.js';
 
-import type { PromptOptimizer } from './prompt-optimizer.js';
 import type {
   IYinObserver,
   YinOutput,
@@ -62,16 +62,6 @@ export class YinObserver extends DialecticVoiceBase<YinConfig> implements IYinOb
       },
       'yin',
     );
-  }
-
-  /**
-   * Wire the prompt optimizer for variant selection
-   *
-   * @param optimizer - Prompt optimizer instance
-   */
-  override setPromptOptimizer(optimizer: PromptOptimizer): void {
-    this.promptOptimizer = optimizer;
-    this.logger.info('YinObserver: prompt optimizer wired');
   }
 
   /**
@@ -332,32 +322,31 @@ export class YinObserver extends DialecticVoiceBase<YinConfig> implements IYinOb
    * @returns Formatted prompt string
    */
   private buildPrompt(
-    sessionId: string,
+    _sessionId: string,
     userMessage: string,
     branches: YangBranch[],
     context?: YangContext,
   ): string {
-    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}\n\n` : '';
+    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}` : '';
 
-    const branchesBlock = branches
+    const branchesBlock = `YANG'S EXPANSIONS:\n` + branches
       .map(
         (b, idx) =>
-          `\nBRANCH ${idx + 1} [${b.id}]:\n- Type: ${b.type}\n- Content: ${b.content}\n- Yang Confidence: ${b.confidence}\n- Yang Novelty: ${b.noveltyScore}\n`,
+          `\nBRANCH ${idx + 1} [${b.id}]:\n- Type: ${b.type}\n- Content: ${b.content}\n- Yang Confidence: ${b.confidence}\n- Yang Novelty: ${b.noveltyScore}`,
       )
       .join('\n');
 
-    if (this.promptOptimizer?.enabled) {
-      const variant = this.promptOptimizer.selectYinCritique();
-      return fillTemplate(variant.template, {
-        guideBlock,
-        userMessage,
-        branchesBlock,
-        branchCount: String(branches.length),
-        sessionId,
-      });
-    }
+    const sessionContext = [
+      guideBlock,
+      `MODE: critique`,
+      `USER MESSAGE:\n"""${userMessage}"""`,
+      branchesBlock,
+      `Provide exactly ${branches.length} critiques in order, one per Yang branch. Verdict per branch: surface, compress, or discard.`,
+      `OUTPUT JSON SCHEMA:\n${YIN_CRITIQUE_SCHEMA}`,
+      JSON_INSTRUCTION,
+    ].filter(s => s.length > 0).join('\n\n');
 
-    return `${guideBlock}You are YIN — evidence-based validation.\n\nUSER MESSAGE:\n"""${userMessage}"""\n\nYANG'S EXPANSIONS:\n${branchesBlock}\n\nFor EACH branch, classify using a 3-tier verdict:\n- surface: Has clear merit AND changes how the AI responds — include as-is\n- compress: Has some merit but needs trimming — include a compressed 1-sentence essence\n- discard: Flawed reasoning, irrelevant, or does not change the response — exclude\n\nProvide exactly ${branches.length} critiques in order.\n\nOUTPUT (JSON):\n{\n  "critiques": [\n    {\n      "yangBranchId": "yang-1",\n      "essence": "Core insight in 1 sentence (required when action is surface or compress)",\n      "critique": "Reasoning for verdict",\n      "relevance": 0.0-1.0,\n      "action": "surface|compress|discard"\n    }\n  ]\n}\n\nReturn ONLY valid JSON. No markdown fences, no explanation, no extra text.`;
+    return composeSystemPrompt('yin', 'dialectic', sessionContext);
   }
 
   /**
@@ -368,25 +357,23 @@ export class YinObserver extends DialecticVoiceBase<YinConfig> implements IYinOb
    * @param context - Observation context
    * @returns Formatted prompt string
    */
-  private buildBaselinePrompt(sessionId: string, userMessage: string, context: YangContext): string {
-    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}\n\n` : '';
+  private buildBaselinePrompt(_sessionId: string, userMessage: string, context: YangContext): string {
+    const guideBlock = context?.taskGuide ? `TASK GUIDE:\n${context.taskGuide}` : '';
+    const memoryBlock = context?.recentMemories?.length
+      ? `Recent context:\n${context.recentMemories.map(m => `- ${m.slice(0, 200)}`).join('\n')}`
+      : '';
 
-    const memoryBlock =
-      context?.recentMemories?.length
-        ? `Recent context:\n${context.recentMemories.map(m => `- ${m.slice(0, 200)}`).join('\n')}\n\n`
-        : '';
+    const sessionContext = [
+      guideBlock,
+      memoryBlock,
+      `MODE: baseline`,
+      `USER MESSAGE:\n"""${userMessage}"""`,
+      `Generate 3-5 baseline observations of what is missing or unstated in the user's message.`,
+      `OUTPUT JSON SCHEMA:\n${YIN_BASELINE_SCHEMA}`,
+      JSON_INSTRUCTION,
+    ].filter(s => s.length > 0).join('\n\n');
 
-    if (this.promptOptimizer?.enabled) {
-      const variant = this.promptOptimizer.selectYinBaseline();
-      return fillTemplate(variant.template, {
-        guideBlock,
-        memoryBlock,
-        userMessage,
-        sessionId,
-      });
-    }
-
-    return `${guideBlock}${memoryBlock}You are YIN — constraint extractor.\n\nUSER MESSAGE:\n"""${userMessage}"""\n\nGenerate 3-5 analyses extracting what the user hasn't explicitly stated:\n- grounding: What concrete facts/context are assumed?\n- constraint: What boundaries or limitations exist but aren't mentioned?\n- reality_check: What assumption should be verified before proceeding?\n- prioritization: What matters most based on emphasis and ordering?\n- risk_assessment: What could go wrong that the user hasn't considered?\n\nQUALITY GATE: "What unstated constraint, if violated, would invalidate the user's approach?"\n\nEach analysis: 2-4 sentences. Assign confidence and relevanceScore as 0.0-1.0.\n\nOUTPUT (JSON):\n{\n  "baselineBranches": [\n    {\n      "id": "yin-1",\n      "type": "grounding|constraint|reality_check|prioritization|risk_assessment",\n      "content": "2-4 sentences",\n      "confidence": 0.0-1.0,\n      "relevanceScore": 0.0-1.0\n    }\n  ]\n}\n\nReturn ONLY valid JSON. No markdown fences, no explanation, no extra text.`;
+    return composeSystemPrompt('yin', 'dialectic', sessionContext);
   }
 
   /**

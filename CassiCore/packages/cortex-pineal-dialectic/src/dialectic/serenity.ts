@@ -6,11 +6,11 @@
  */
 
 import { getModelSpec } from '../../config/system-settings.js';
+import { composeSystemPrompt } from '../shared/posture-store.js';
 
 import { DialecticVoiceBase, type BaseDialecticConfig } from './dialectic-voice-base.js';
-import { fillTemplate } from './prompt-optimizer.js';
+import { SERENITY_SCHEMA, JSON_INSTRUCTION } from './prompt-templates.js';
 
-import type { PromptOptimizer } from './prompt-optimizer.js';
 import type {
   ISerenity,
   SerenityOutput,
@@ -66,16 +66,6 @@ export class Serenity extends DialecticVoiceBase<SerenityConfig> implements ISer
       },
       'serenity',
     );
-  }
-
-  /**
-   * Wire the prompt optimizer for variant selection
-   *
-   * @param optimizer - Prompt optimizer instance
-   */
-  override setPromptOptimizer(optimizer: PromptOptimizer): void {
-    this.promptOptimizer = optimizer;
-    this.logger.info('Serenity: prompt optimizer wired');
   }
 
   /**
@@ -379,28 +369,41 @@ export class Serenity extends DialecticVoiceBase<SerenityConfig> implements ISer
    * @returns Formatted prompt string
    */
   private buildPrompt(
-    sessionId: string,
+    _sessionId: string,
     userMessage: string,
     yangOutput: YangOutput,
     yinOutput: YinOutput,
     validBranches: Array<{ yang: any; yin: any }>,
     relevantMemories: string[],
   ): string {
-    const yangBlock = yangOutput.branches
-      .map(b => `\n[${b.id}] ${b.type} (novelty: ${b.noveltyScore}, confidence: ${b.confidence})\n${b.content}\n`)
+    const yangBlock = `YANG'S EXPANSIONS:\n` + yangOutput.branches
+      .map(b => `\n[${b.id}] ${b.type} (novelty: ${b.noveltyScore}, confidence: ${b.confidence})\n${b.content}`)
       .join('\n');
 
-    const yinBlock = yinOutput.critiques
-      .map(c => {
-        const branch = yangOutput.branches.find(b => b.id === c.yangBranchId);
-        return `\n[${c.yangBranchId}] ${c.valid ? 'VALID' : 'INVALID'} — relevance: ${c.relevance}, action: ${c.action}\nEssence: ${c.essence || 'N/A'}\nCritique: ${c.critique}\n`;
-      })
+    const yinBlock = `YIN'S CRITIQUES:\n` + yinOutput.critiques
+      .map(c => `\n[${c.yangBranchId}] ${c.valid ? 'VALID' : 'INVALID'}. relevance: ${c.relevance}, action: ${c.action}\nEssence: ${c.essence || 'N/A'}\nCritique: ${c.critique}`)
       .join('\n');
 
-    const memoryBlock =
-      relevantMemories.length > 0 ? `Relevant memories:\n${relevantMemories.map(m => `- ${m}`).join('\n')}\n\n` : '';
+    const memoryBlock = relevantMemories.length > 0
+      ? `Relevant memories:\n${relevantMemories.map(m => `- ${m}`).join('\n')}`
+      : '';
 
-    return `You are SERENITY — synthesizer of Yang (expansion) and Yin (refinement).\n\nUSER MESSAGE:\n"""${userMessage}"""\n\n${memoryBlock}YANG'S EXPANSIONS:\n${yangBlock}\n\nYIN'S CRITIQUES:\n${yinBlock}\n\nVALID BRANCHES TO CONSIDER (${validBranches.length}):\n${validBranches.map(({ yang, yin }) => `- ${yang.id}: ${yin.essence || yang.content}`).join('\n')}\n\nFind the single most valuable insight by comparing Yang and Yin:\n- CONVERGENCE: Both identified the same point → high confidence\n- TENSION: Creative vs. grounded conflict → reveals assumptions\n- GAP: One sees what the other misses → complementary insight\n\nThresholds: novelty > ${this.config.noveltyThreshold} AND relevance > ${this.config.relevanceThreshold} → surface.\n\nA signal that merely RESTATES the user's message is worthless. Only surface what changes the response.\n\nIf no genuine insight exists, set hasSignal: false.\n\nIMPORTANT: Frame the signal content as guidance for the AI assistant — what should it do differently or consider because of this insight? Do NOT describe the user. Write as: "Consider X because Y" or "Watch for Z" or "The approach may need to account for W".\n\nOUTPUT (JSON):\n{\n  "hasSignal": true,\n  "signal": {\n    "type": "edge_case|alternative|assumption|connection|contradiction|convergence|tension|gap",\n    "content": "What the AI should do differently or consider — 1-2 sentences of guidance, not a user description",\n    "confidence": 0.0-1.0,\n    "urgency": "immediate|background"\n  },\n  "branchesConsidered": 4,\n  "branchesSurfaced": 1\n}\n\nReturn ONLY valid JSON. No markdown fences, no explanation, no extra text.`;
+    const validBlock = `VALID BRANCHES TO CONSIDER (${validBranches.length}):\n` +
+      validBranches.map(({ yang, yin }) => `- ${yang.id}: ${yin.essence || yang.content}`).join('\n');
+
+    const sessionContext = [
+      `MODE: sequential synthesis`,
+      `USER MESSAGE:\n"""${userMessage}"""`,
+      memoryBlock,
+      yangBlock,
+      yinBlock,
+      validBlock,
+      `Thresholds for surfacing: novelty > ${this.config.noveltyThreshold} AND relevance > ${this.config.relevanceThreshold}.`,
+      `OUTPUT JSON SCHEMA:\n${SERENITY_SCHEMA}`,
+      JSON_INSTRUCTION,
+    ].filter(s => s.length > 0).join('\n\n');
+
+    return composeSystemPrompt('unity', 'dialectic', sessionContext);
   }
 
   /**
@@ -411,35 +414,31 @@ export class Serenity extends DialecticVoiceBase<SerenityConfig> implements ISer
    * @param relevantMemories - Relevant memories
    * @returns Formatted prompt string
    */
-  private buildDualPrompt(sessionId: string, input: DualSynthesisInput, relevantMemories: string[]): string {
-    const yangBlock = input.yang.branches
-      .map(b => `\n[${b.id}] ${b.type} (novelty: ${b.noveltyScore}, confidence: ${b.confidence})\n${b.content}\n`)
+  private buildDualPrompt(_sessionId: string, input: DualSynthesisInput, relevantMemories: string[]): string {
+    const yangBlock = `YANG (${input.yang.branches.length} branches):\n` + input.yang.branches
+      .map(b => `\n[${b.id}] ${b.type} (novelty: ${b.noveltyScore}, confidence: ${b.confidence})\n${b.content}`)
       .join('\n');
 
-    const yinBlock = input.yin.baselineBranches
-      .map(b => `\n[${b.id}] ${b.type} (relevance: ${b.relevanceScore}, confidence: ${b.confidence})\n${b.content}\n`)
+    const yinBlock = `YIN (${input.yin.baselineBranches.length} branches):\n` + input.yin.baselineBranches
+      .map(b => `\n[${b.id}] ${b.type} (relevance: ${b.relevanceScore}, confidence: ${b.confidence})\n${b.content}`)
       .join('\n');
 
-    const memoryBlock =
-      relevantMemories.length > 0 ? `Relevant memories:\n${relevantMemories.map(m => `- ${m}`).join('\n')}\n\n` : '';
+    const memoryBlock = relevantMemories.length > 0
+      ? `Relevant memories:\n${relevantMemories.map(m => `- ${m}`).join('\n')}`
+      : '';
 
-    if (this.promptOptimizer?.enabled) {
-      const variant = this.promptOptimizer.selectSerenity();
-      return fillTemplate(variant.template, {
-        userMessage: input.userMessage,
-        memoryBlock,
-        yangBlock,
-        yinBlock,
-        yangBranchCount: String(input.yang.branches.length),
-        yinBranchCount: String(input.yin.baselineBranches.length),
-        noveltyThreshold: String(this.config.noveltyThreshold),
-        relevanceThreshold: String(this.config.relevanceThreshold),
-        branchesConsidered: String(input.yang.branches.length + input.yin.baselineBranches.length),
-        sessionId,
-      });
-    }
+    const sessionContext = [
+      `MODE: dual synthesis (parallel)`,
+      `USER MESSAGE:\n"""${input.userMessage}"""`,
+      memoryBlock,
+      yangBlock,
+      yinBlock,
+      `Thresholds for surfacing: novelty > ${this.config.noveltyThreshold} AND relevance > ${this.config.relevanceThreshold}.`,
+      `OUTPUT JSON SCHEMA:\n${SERENITY_SCHEMA}`,
+      JSON_INSTRUCTION,
+    ].filter(s => s.length > 0).join('\n\n');
 
-    return `You are SERENITY — synthesizer of Yang (expansion) and Yin (grounding).\n\nUSER MESSAGE:\n"""${input.userMessage}"""\n\n${memoryBlock}YANG (${input.yang.branches.length} branches):\n${yangBlock}\n\nYIN (${input.yin.baselineBranches.length} branches):\n${yinBlock}\n\nFind the single most valuable insight by comparing Yang and Yin:\n- CONVERGENCE: Both independently identified the same point → high confidence\n- TENSION: Creative vs. grounded conflict → reveals hidden assumptions\n- GAP: One sees what the other misses → complementary insight\n\nThresholds: novelty > ${this.config.noveltyThreshold} AND relevance > ${this.config.relevanceThreshold} → surface.\n\nA signal that merely RESTATES the user's message is worthless. Only surface what changes the response.\n\nIf no genuine insight exists, set hasSignal: false.\n\nIMPORTANT: Frame the signal content as guidance for the AI assistant — what should it do differently or consider because of this insight? Do NOT describe the user. Write as: "Consider X because Y" or "Watch for Z" or "The approach may need to account for W".\n\nOUTPUT (JSON):\n{\n  "hasSignal": true,\n  "signal": {\n    "type": "edge_case|alternative|assumption|connection|contradiction|convergence|tension|gap",\n    "content": "What the AI should do differently or consider — 1-2 sentences of guidance, not a user description",\n    "confidence": 0.0-1.0,\n    "urgency": "immediate|background"\n  },\n  "branchesConsidered": ${input.yang.branches.length + input.yin.baselineBranches.length},\n  "branchesSurfaced": 1\n}\n\nReturn ONLY valid JSON. No markdown fences, no explanation, no extra text.`;
+    return composeSystemPrompt('unity', 'dialectic', sessionContext);
   }
 
   /**

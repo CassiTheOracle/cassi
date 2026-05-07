@@ -5,7 +5,6 @@
  * and dependency wiring. Voice-specific logic remains in subclasses.
  */
 
-import type { PromptOptimizer } from './prompt-optimizer.js';
 import type { ILogger , IEventBus } from '../../../types/interfaces.js';
 import type { IProvider } from '../../../types/runtime.js';
 import type { ModuleSessionRegistry } from '../module-session-registry.js';
@@ -64,9 +63,6 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
   /** Event bus for emitting signals and repairs */
   protected eventBus?: IEventBus;
 
-  /** Prompt optimizer for variant selection */
-  protected promptOptimizer?: PromptOptimizer;
-
   /** Module session registry for persistent debug sessions */
   protected moduleRegistry?: ModuleSessionRegistry;
 
@@ -120,16 +116,6 @@ export abstract class DialecticVoiceBase<TConfig extends BaseDialecticConfig> {
   setEventBus(bus: IEventBus): void {
     this.eventBus = bus;
     this.logger.info(`${this.constructor.name}: event bus wired`);
-  }
-
-  /**
-   * Wire the prompt optimizer for variant selection
-   *
-   * @param optimizer - Prompt optimizer instance
-   */
-  setPromptOptimizer(optimizer: PromptOptimizer): void {
-    this.promptOptimizer = optimizer;
-    this.logger.info(`${this.constructor.name}: prompt optimizer wired`);
   }
 
   /**
