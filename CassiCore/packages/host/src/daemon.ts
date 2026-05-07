@@ -2182,6 +2182,15 @@ export class Daemon {
               this.intelligence.constellation.setReasoningBank(this.intelligence.reasoningBank)
             }
 
+            // Wire WorkflowEngine into Constellation orchestrator so
+            // multi-phase decompositions can expand into featureImplementation
+            // subworkflows. Decompositions with no multi-phase subtasks fall
+            // through to the existing flat-spawn path; this binding is purely
+            // additive.
+            if (this.workflowEngine && typeof this.intelligence.constellation.setWorkflowEngine === 'function') {
+              this.intelligence.constellation.setWorkflowEngine(this.workflowEngine)
+            }
+
             this.logger.info('Constellation tool access wired')
           } catch (constErr) {
             this.logger.warn('Failed to wire Constellation tools', { error: String(constErr) })
