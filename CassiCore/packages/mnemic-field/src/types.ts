@@ -1,4 +1,10 @@
-export type RerankerMode = 'local' | 'llm' | 'off'
+/**
+ * RerankerMode now lives in the shared embeddings/types.ts so both
+ * MnemicField retrieval and Thalamus's RerankerCompressor reference the
+ * same identity. Re-exported here for backward compat with existing
+ * imports (`from '../mnemic-field/types.js'`).
+ */
+export type { RerankerMode } from '../embeddings/types.js'
 
 export const ENGRAM_TYPES = [
   'fact', 'episode', 'decision', 'pattern',
