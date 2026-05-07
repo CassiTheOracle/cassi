@@ -135,13 +135,6 @@ export {
 } from './resources.js';
 
 // File Artifact Tools (Agent file sharing)
-export {
-  FILE_ARTIFACT_TOOLS,
-  FILE_ARTIFACT_TOOL_NAMES,
-  getFileArtifactMcpTools,
-  executeFileArtifactTool,
-} from './file-artifact-tools.js';
-
 // Training Warehouse Tools
 export {
   TRAINING_TOOLS,
@@ -185,13 +178,6 @@ export {
   executeContextAction,
   getContextConsolidatedTool,
 } from './consolidated-context-tools.js';
-
-export {
-  ARTIFACT_CONSOLIDATED_TOOL,
-  ARTIFACT_CONSOLIDATED_TOOL_NAME,
-  executeArtifactConsolidatedTool,
-  getArtifactConsolidatedTool,
-} from './consolidated-file-tools.js';
 
 export {
   WEB_CONSOLIDATED_TOOL,
