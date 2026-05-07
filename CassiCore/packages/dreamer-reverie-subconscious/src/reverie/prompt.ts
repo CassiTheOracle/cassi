@@ -21,6 +21,8 @@ export interface ReveriePromptInput {
     results: Array<{ toolCallId: string; isError: boolean; contentPreview: string }>
   }>
   budgetTokensRemaining: number
+  /** Notes left for me by Cassi via <note for="reverie">. Consumed each pass. */
+  cassiNotes?: string[]
 }
 
 /** Hard ceiling on the user prompt to prevent context-window explosion. */
@@ -94,6 +96,10 @@ export function buildReveriePrompt(input: ReveriePromptInput): { system: string;
     ? '(no recent signals)'
     : input.recentSignals.map((s, i) => `${i + 1}. ${s}`).join('\n')
 
+  const notesBlock = (input.cassiNotes && input.cassiNotes.length > 0)
+    ? `\n## Notes from Cassi (via <note for="reverie">)\n${input.cassiNotes.map((n, i) => `${i + 1}. ${n}`).join('\n')}\n`
+    : ''
+
   // Build tool rounds oldest-first so we can drop the oldest if over budget
   const toolRoundsParts: string[] = []
   for (const tr of input.recentToolRounds) {
@@ -118,7 +124,7 @@ ${laminaSummary}
 
 ## Recent cortex signals
 ${signals}
-
+${notesBlock}
 ## Recent tool rounds (what the primary just did)
 ${toolRoundsText}
 

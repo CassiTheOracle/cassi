@@ -78,6 +78,18 @@ export class ReverieModule extends BaseCognitiveModule {
   private summaryTimers = new Map<string, NodeJS.Timeout>()
   /** Max tool rounds to retain in the sliding window. Generous — input tokens are cheap. */
   private readonly maxToolRounds = 24
+  /** Pending <note for="reverie"> messages from Thalamus thought-commands, per session. */
+  private pendingNotes = new Map<string, Array<{ message: string; at: number }>>()
+  /** Cap on buffered notes per session — drop oldest beyond this. */
+  private readonly maxPendingNotes = 20
+  /**
+   * Trigger for Thalamus's background distillation queue. Set by the daemon
+   * so Reverie owns the WHEN (turn-end) while Thalamus owns the HOW (queue +
+   * storage). The design specifies Reverie as owner of stateful background
+   * work; this is the minimal coupling that delivers that without moving
+   * queue state across modules.
+   */
+  private distillationTrigger: ((sessionId: string) => void) | null = null
 
   constructor(logger: ILogger, config?: Partial<ReverieConfig>) {
     super(logger, {
@@ -92,6 +104,28 @@ export class ReverieModule extends BaseCognitiveModule {
   setAudit(audit: AuditStore): void { this.audit = audit }
   setMnemicField(mnemic: MnemicField): void { this.mnemic = mnemic }
   setToolFilter(filter: ToolFilterRegistry): void { this.filter = filter }
+
+  /**
+   * Wire the distillation trigger callback. The daemon connects this to
+   * Thalamus.queueBackgroundDistillations so Reverie's onTurnEnd hook can
+   * fire the queue at a consistent point in the turn lifecycle.
+   */
+  setDistillationTrigger(fn: (sessionId: string) => void): void {
+    this.distillationTrigger = fn
+  }
+
+  /**
+   * Receive a <note for="reverie"> thought-command from Thalamus. Cassi uses
+   * these to hint upcoming distillation goal-context, suppress false-positive
+   * loop flags, or leave intent for the next ambient curation pass. The note
+   * is buffered and consumed on the next runOnce.
+   */
+  receiveNote(sessionId: string, recipient: string, message: string): void {
+    if (recipient !== 'reverie' && recipient !== '*') return
+    const arr = this.pendingNotes.get(sessionId) ?? []
+    arr.push({ message, at: Date.now() })
+    this.pendingNotes.set(sessionId, arr.slice(-this.maxPendingNotes))
+  }
 
   override async stop(): Promise<void> {
     for (const timer of this.summaryTimers.values()) clearTimeout(timer)
@@ -110,6 +144,15 @@ export class ReverieModule extends BaseCognitiveModule {
     const e = this.exchanges.get(sessionId) ?? {}
     e.lastAssistant = response
     this.exchanges.set(sessionId, e)
+    // Fire the Thalamus distillation queue if wired. Non-blocking — the
+    // queueBackgroundDistillations method spawns its own promise. We do
+    // this BEFORE runOnce so distillation LLM calls can run in parallel
+    // with Reverie's own ambient inference.
+    if (this.distillationTrigger) {
+      try { this.distillationTrigger(sessionId) } catch (err) {
+        this.logger.debug('[reverie] distillation trigger threw', { error: String(err) })
+      }
+    }
     // Schedule a step credit for the primary's turn-end so Reverie can fire.
     const trig = this.trigger.recordStep(sessionId, 'primary')
     if (trig) await this.runOnce(sessionId, trig)
@@ -282,6 +325,8 @@ export class ReverieModule extends BaseCognitiveModule {
     const recentExchange = `User: ${ex.lastUser ?? '(n/a)'}
 Assistant: ${ex.lastAssistant ?? '(n/a)'}`
     const toolRounds = this.toolRoundLog.get(sessionId) ?? []
+    const cassiNotes = (this.pendingNotes.get(sessionId) ?? []).map(n => n.message)
+    if (cassiNotes.length > 0) this.pendingNotes.delete(sessionId)
     const prompt = buildReveriePrompt({
       sessionId,
       triggerReason: trigger.reason,
@@ -290,6 +335,7 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
       recentExchange,
       recentToolRounds: toolRounds,
       budgetTokensRemaining: this.cfg.sessionTokenBudget,
+      cassiNotes,
     })
 
     let raw = ''
