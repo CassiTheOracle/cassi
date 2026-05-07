@@ -517,4 +517,66 @@ describe('CoherenceChecker', () => {
     expect(mismatch).toBeDefined()
     expect(mismatch?.description).toContain('low arousal')
   })
+
+  describe('N6.2 corrector callbacks', () => {
+    function makeMnemicCortexLatencyInput() {
+      const now = new Date()
+      const engTime = new Date(now.getTime() - 10_000).toISOString()
+      return {
+        mnemicField: makeMnemic({
+          engrams: [{
+            id: 'eng-lat',
+            content: 'some-topic',
+            tags: [],
+            createdAt: engTime,
+            potentiation: 0.5,
+          }],
+          lastUpdateTime: engTime,
+        }),
+        cortex: makeCortex({
+          signals: [],
+          lastUpdateTime: new Date().toISOString(),
+        }),
+      }
+    }
+
+    it('invokes the mnemicCortexLatency corrector when auto-correcting that pattern', () => {
+      const calls: string[] = []
+      const c = new CoherenceChecker(makeLogger(), {
+        correctors: {
+          mnemicCortexLatency: (sig) => { calls.push(sig.id) },
+        },
+      })
+      const result = c.checkCoherence(makeMnemicCortexLatencyInput())
+      expect(result.autoCorrectedCount).toBeGreaterThanOrEqual(1)
+      expect(calls.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('does not invoke a corrector when auto-correction is disabled', () => {
+      const calls: string[] = []
+      const c = new CoherenceChecker(makeLogger(), {
+        autoCorrectLatencyPatterns: false,
+        correctors: {
+          mnemicCortexLatency: (sig) => { calls.push(sig.id) },
+        },
+      })
+      c.checkCoherence(makeMnemicCortexLatencyInput())
+      expect(calls).toEqual([])
+    })
+
+    it('catches corrector errors without breaking the flag', () => {
+      const c = new CoherenceChecker(makeLogger(), {
+        correctors: {
+          mnemicCortexLatency: () => { throw new Error('sync failed') },
+        },
+      })
+      const result = c.checkCoherence(makeMnemicCortexLatencyInput())
+      // Despite the corrector throwing, the signal still got flagged
+      const mcSig = result.signals.find(s =>
+        s.modules.includes('mnemic-field') && s.modules.includes('cortex')
+        && s.description.includes('recent engrams')
+      )
+      expect(mcSig?.autoCorrected).toBe(true)
+    })
+  })
 })

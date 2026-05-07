@@ -111,6 +111,25 @@ export interface CoherenceCheckResult {
 }
 
 
+/**
+ * N6.2 — corrector callback. Invoked when a known latency pattern is
+ * detected and auto-correction is enabled. The corrector is responsible
+ * for the actual sync action (e.g., trigger claustrum re-merge,
+ * publish a Cortex signal). Synchronous return — async work should be
+ * fire-and-forget or queued.
+ *
+ * Errors thrown by the corrector are caught and logged; they don't
+ * block the auto-correction flag from landing on the signal.
+ */
+export type CoherenceCorrector = (signal: CoherenceSignal) => void
+
+export interface CoherenceCorrectors {
+  /** Invoked when Mnemic→Cortex latency auto-correction fires. */
+  mnemicCortexLatency?: CoherenceCorrector
+  /** Invoked when Aurora↔Cortex latency auto-correction fires. */
+  auroraCortexLatency?: CoherenceCorrector
+}
+
 export interface CoherenceConfig {
   /** Max staleness in seconds before flagging TEMPORAL_DRIFT. Default: 300 (5 min). */
   temporalDriftThresholdSec: number
@@ -122,6 +141,8 @@ export interface CoherenceConfig {
   maxSignalsPerCheck: number
   /** Whether to auto-correct known latency patterns. Default: true. */
   autoCorrectLatencyPatterns: boolean
+  /** N6.2 — optional sync triggers invoked by auto-correction. */
+  correctors?: CoherenceCorrectors
 }
 
 const COHERENCE_DEFAULTS: CoherenceConfig = {
@@ -611,6 +632,7 @@ export class CoherenceChecker {
 
   private autoCorrectLatencySignals(signals: CoherenceSignal[]): number {
     let corrected = 0
+    const correctors = this.config.correctors
     for (let i = 0; i < signals.length; i++) {
       const sig = signals[i]
       if (sig.autoCorrected) continue
@@ -627,6 +649,7 @@ export class CoherenceChecker {
         signals[i] = { ...sig, autoCorrected: true }
         corrected++
         this.logger.debug('Auto-corrected Mnemic-Cortex latency signal', { signalId: sig.id })
+        this.invokeCorrector('mnemicCortexLatency', correctors?.mnemicCortexLatency, signals[i])
         continue
       }
 
@@ -641,9 +664,28 @@ export class CoherenceChecker {
         signals[i] = { ...sig, autoCorrected: true }
         corrected++
         this.logger.debug('Auto-corrected Aurora-Cortex latency signal', { signalId: sig.id })
+        this.invokeCorrector('auroraCortexLatency', correctors?.auroraCortexLatency, signals[i])
       }
     }
     return corrected
+  }
+
+  /** Wrap corrector invocation in try/catch — corrector failures don't block flagging. */
+  private invokeCorrector(
+    name: string,
+    fn: CoherenceCorrector | undefined,
+    signal: CoherenceSignal,
+  ): void {
+    if (!fn) return
+    try {
+      fn(signal)
+    } catch (err) {
+      this.logger.warn('Coherence corrector threw', {
+        corrector: name,
+        signalId: signal.id,
+        error: String(err),
+      })
+    }
   }
 
 
