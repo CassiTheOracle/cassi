@@ -88,6 +88,21 @@ const WEAK_DELTA_THRESHOLD = 0.02
 const WEAK_STREAK_STEP = 0.05
 const MAX_BACKOFF_INCREMENT = 0.20
 
+/**
+ * Stop firing organizing entirely after this many consecutive weak sessions,
+ * regardless of which trigger path (high fragmentation / growth / neglected
+ * regions) wants to fire. The high-fragmentation path uses the threshold
+ * raise above; the growth and neglected-regions paths bypass that, so this
+ * floor catches them.
+ *
+ * Background: the daemon was firing through the neglected-regions path
+ * every cooldown window (~30 min), each session doing zero useful work
+ * (`regionsOrganized=0`, `bridgesCreated=0`, fragmentation unchanged), and
+ * eating 85-300s of event-loop time per session — long enough to queue
+ * unrelated HTTP requests behind it for tens of seconds.
+ */
+const NOOP_SUPPRESSION_FLOOR = 3
+
 const META_KEY_LAST_HEALTH = 'organizing_last_health'
 const META_KEY_REGION_HISTORY = 'organizing_region_history'
 const META_KEY_SESSION_HISTORY = 'organizing_session_history'
@@ -269,6 +284,14 @@ export class FieldHealthAnalyzer {
       }
     }
 
+    if (backoff.weakStreak >= NOOP_SUPPRESSION_FLOOR) {
+      return {
+        trigger: false,
+        reason: `suppressed: ${backoff.weakStreak} consecutive weak sessions (organizing isn't helping)`,
+        score: current.fragmentationScore,
+      }
+    }
+
     if (current.fragmentationScore > backoff.threshold) {
       const noteSuffix = backoff.weakStreak > 0
         ? ` — threshold raised to ${backoff.threshold.toFixed(2)} after ${backoff.weakStreak} weak sessions`
@@ -319,13 +342,24 @@ export class FieldHealthAnalyzer {
   /**
    * Compute organizing-mode backoff state from recent session history.
    *
-   * Two protections against runaway organizing:
+   * Three protections against runaway organizing:
    *   1. Hard floor — never re-fire within ORGANIZING_HARD_FLOOR_MS of the last
    *      session, regardless of fragmentation.
    *   2. Weak-streak threshold raise — when consecutive recent sessions failed
    *      to reduce fragmentation by at least WEAK_DELTA_THRESHOLD, raise the
    *      trigger threshold by WEAK_STREAK_STEP per weak session (capped).
    *      A successful session resets the streak.
+   *   3. NOOP_SUPPRESSION_FLOOR — once the weak streak crosses this floor,
+   *      `shouldOrganize()` suppresses **all** trigger paths (high-frag,
+   *      growth, neglected-regions). Closes the gap where the
+   *      neglected-regions path bypassed the threshold raise and kept firing
+   *      every cooldown window with zero useful work done.
+   *
+   * **Weak session definition:** either fragmentation moved by less than
+   * `WEAK_DELTA_THRESHOLD` *or* the session reported `regionsOrganized=0`.
+   * The latter catches "explorer ran but found nothing to do" sessions
+   * which can't possibly have moved fragmentation but were observable in
+   * the live daemon log as repeated 85-300s no-ops.
    */
   private computeOrganizingBackoff(): {
     lastSessionAgeMs: number
@@ -344,7 +378,8 @@ export class FieldHealthAnalyzer {
     for (let i = sessions.length - 1; i >= 0; i--) {
       const s = sessions[i]
       const delta = s.before.fragmentationScore - s.after.fragmentationScore
-      if (delta < WEAK_DELTA_THRESHOLD) {
+      const touchedNothing = (s.regionsOrganized?.length ?? 0) === 0
+      if (delta < WEAK_DELTA_THRESHOLD || touchedNothing) {
         weakStreak++
       } else {
         break
