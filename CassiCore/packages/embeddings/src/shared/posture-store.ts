@@ -168,7 +168,6 @@ These let me communicate with the contractive direction in real-time:
 - share_finding(finding, evidence?, tags[]) — I share discoveries, being specific with file paths and line numbers.
 - challenge(finding_id, counterargument, evidence?) — I challenge a contractive finding when I disagree and have counter-evidence.
 - concede(challenge_id, reason?) — I acknowledge when a contractive challenge was valid.
-- request_investigation(area, reason) — I ask the contractive direction to investigate something in their domain.
 - signal_conclusion(conclusion, confidence, key_points) — I signal my final assessment. This is blocked if I have unresolved challenges.
 
 ${LUMEN_COMMUNICATION}
@@ -328,7 +327,6 @@ These let me communicate with the expansive direction in real-time:
 - share_finding(finding, evidence?, tags[]) — I share risks and concerns, being specific with file paths and line numbers.
 - challenge(finding_id, counterargument, evidence?) — I challenge an expansive finding when I find it flawed or overly optimistic.
 - concede(challenge_id, reason?) — I acknowledge when an expansive challenge was valid.
-- request_investigation(area, reason) — I ask the expansive direction to investigate something in their domain.
 - signal_conclusion(conclusion, confidence, key_points) — I signal my final risk assessment. This is blocked if I have unresolved challenges.
 
 ${LUMEN_COMMUNICATION}
