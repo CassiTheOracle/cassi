@@ -30,6 +30,8 @@ let mnemicField: MnemicField | undefined
 const activeMigrationLoops = new Map<string, NodeJS.Timeout>()
 
 function getMnemicField(logger: ILogger, daemon?: any): MnemicField {
+  const daemonField = (daemon?.intelligence as any)?.__mnemicField as MnemicField | undefined
+  if (daemonField) return daemonField
   if (mnemicField) return mnemicField
   const dbPath = path.join(getDataDir(), 'mnemic-field.db')
   mnemicField = new MnemicField(logger, dbPath)
@@ -37,6 +39,7 @@ function getMnemicField(logger: ILogger, daemon?: any): MnemicField {
   if (daemon) (daemon as any).__mnemicField = mnemicField
   return mnemicField
 }
+
 
 function getSelfModelField(daemon: any): SelfModelField | null {
   return (daemon as any).__selfModelField ?? (daemon?.intelligence as any)?.__selfModelField ?? null
@@ -421,6 +424,28 @@ export async function handleMemoryRoutes(
         limit ? Number(limit) : 10,
       )
       sendJSON(res, 200, { ok: true, report })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/retrieve — full retrieve path (cache + embedding + kindle + rerank).
+  // Mirrors kindle's payload but exercises the public retrieve() API, including the
+  // Foreshadow observation hook.
+  if (parts[1] === 'mnemic' && parts[2] === 'retrieve' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const query = typeof body?.query === 'string' ? body.query : ''
+      if (!query) { sendJSON(res, 400, { error: 'query required' }); return true }
+      const hits = await field.retrieve(query, {
+        limit: typeof body?.limit === 'number' ? body.limit : undefined,
+        complexity: body?.complexity,
+        sessionId: typeof body?.sessionId === 'string' ? body.sessionId : undefined,
+      })
+      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({ id: h.id, score: h.score, nodeType: h.nodeType, content: (h.content || '').slice(0, 180) })) })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
