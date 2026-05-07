@@ -1,17 +1,11 @@
 /**
- * Reranker service — wraps zerank-server /v1/rerank endpoint.
- * Uses zerank-2 (Qwen3-based decoder, yes/no logit scoring via
- * sigmoid(logit_Yes / 5.0)) to precisely score query–document pairs
- * for the final stage of the retrieval pipeline.
+ * Reranker service — wraps zerank-server /v1/rerank or vLLM /v1/completions.
+ * Uses Qwen3-based decoder (yes/no logit scoring) to precisely score
+ * query–document pairs for the final stage of the retrieval pipeline.
  *
- * The zerank-server backend supports two modes:
- *   1. GGUF via llama-cpp-python (default) — zerank-server --gguf <path>
- *   2. HuggingFace Transformers (legacy) — zerank-server --model zerank-2
- *
- * Both backends expose the same /v1/rerank HTTP API, so this client
- * works with either backend transparently.
- *
- * See bin/zerank-server for the server implementation.
+ * Supports two backends:
+ *   1. zerank-server — POST /v1/rerank (GGUF or HF Transformers)
+ *   2. vLLM — POST /v1/completions with logprobs (when /v1/rerank unavailable)
  *
  * Singleton: import { getRerankerService } from './reranker-service.js'
  */
@@ -40,6 +34,8 @@ export class RerankerService {
   private serverUrl: string
   private timeoutMs: number
   private cb = { failures: 0, openUntil: 0, trippedLogged: false }
+  /** Cached: true if backend is vLLM (not zerank-server) */
+  private isVllm: boolean | null = null
 
   constructor(logger: ILogger) {
     this.logger = logger.child?.('reranker-service') ?? logger
@@ -63,7 +59,10 @@ export class RerankerService {
     const launcher = getInferenceStackLauncher()
     if (launcher) {
       const restarted = await launcher.ensureRunning(MANAGED_RERANKER)
-      if (restarted) this.cb = { failures: 0, openUntil: 0, trippedLogged: false }
+      if (restarted) {
+        this.cb = { failures: 0, openUntil: 0, trippedLogged: false }
+        this.isVllm = null // Re-probe backend on restart
+      }
     }
 
     // Circuit breaker check
@@ -74,10 +73,73 @@ export class RerankerService {
       return []
     }
 
+    // Detect backend type on first call (or after restart)
+    if (this.isVllm === null) {
+      this.isVllm = await this.probeVllm()
+      this.logger.debug('RerankerService: backend probe', { isVllm: this.isVllm })
+    }
+
+    try {
+      const results = this.isVllm
+        ? await this.rerankVllm(query, documents)
+        : await this.rerankZerank(query, documents, topN)
+
+      if (results.length) {
+        // Reset circuit breaker on success
+        this.cb.failures = 0
+        this.cb.trippedLogged = false
+        if (launcher) launcher.notifyActivity(MANAGED_RERANKER)
+      }
+
+      // Sort by relevance (highest first) and apply topN
+      results.sort((a, b) => b.relevanceScore - a.relevanceScore)
+      const limit = topN ?? documents.length
+      return results.slice(0, limit)
+    } catch (err) {
+      this.cb.failures++
+      if (this.cb.failures >= CB_MAX_FAILURES) {
+        this.cb.openUntil = Date.now() + CB_COOLDOWN_MS
+        if (!this.cb.trippedLogged) {
+          this.logger.warn('RerankerService: circuit breaker TRIPPED', {
+            failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
+          })
+          this.cb.trippedLogged = true
+        }
+        this.cb.failures = 0
+      }
+      this.logger.debug('RerankerService: request failed', { error: String(err) })
+    }
+
+    return []  // Graceful degradation
+  }
+
+  /** Probe whether the backend is vLLM (returns 400 "does not support" for /v1/rerank). */
+  private async probeVllm(): Promise<boolean> {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
+    try {
+      const res = await fetch(`${this.serverUrl}/v1/rerank`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: 'probe', documents: ['probe'], top_n: 1 }),
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      const body = await res.text()
+      if (body.includes('does not support')) return true
+      return false
+    } catch {
+      clearTimeout(timer)
+      return false
+    }
+  }
+
+  /** Use zerank-server /v1/rerank endpoint. */
+  private async rerankZerank(query: string, documents: string[], topN?: number): Promise<RerankResult[]> {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), this.timeoutMs)
 
-    // Qwen3-Reranker prompt formatting for vLLM
+    // Qwen3-Reranker prompt formatting for zerank-server
     const prefix = '<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n'
     const suffix = '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n'
     const instruction = 'Given a search query, retrieve relevant passages that answer the query'
@@ -109,32 +171,100 @@ export class RerankerService {
 
       if (!data.results?.length) return []
 
-      // Reset circuit breaker on success
-      this.cb.failures = 0
-      this.cb.trippedLogged = false
-      if (launcher) launcher.notifyActivity(MANAGED_RERANKER)
-
       return data.results.map(r => ({
         index: r.index,
         relevanceScore: r.relevance_score ?? 0,
       }))
     } catch (err) {
       clearTimeout(timer)
-      this.cb.failures++
-      if (this.cb.failures >= CB_MAX_FAILURES) {
-        this.cb.openUntil = Date.now() + CB_COOLDOWN_MS
-        if (!this.cb.trippedLogged) {
-          this.logger.warn('RerankerService: circuit breaker TRIPPED', {
-            failures: this.cb.failures, cooldownMs: CB_COOLDOWN_MS,
-          })
-          this.cb.trippedLogged = true
+      throw err
+    }
+  }
+
+  /** Use vLLM /v1/completions endpoint with logprobs. */
+  private async rerankVllm(query: string, documents: string[]): Promise<RerankResult[]> {
+    const results: RerankResult[] = []
+    const instruction = 'Given a search query, retrieve relevant passages that answer the query'
+
+    for (let i = 0; i < documents.length; i++) {
+      const doc = documents[i]
+      const prompt = (
+        '<|im_start|>system\n'
+        + 'Judge whether the Document meets the requirements based on the Query '
+        + 'and the Instruct provided. Note that the answer can only be "yes" or "no".'
+        + '<|im_end|>\n<|im_start|>user\n'
+        + `<Instruct>: ${instruction}\n`
+        + `<Query>: ${query.trim()}\n`
+        + `<Document>: ${doc.trim()}`
+        + '<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n'
+      )
+
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), this.timeoutMs)
+
+      try {
+        const res = await fetch(`${this.serverUrl}/v1/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'Qwen/Qwen3-Reranker-0.6B',
+            prompt,
+            max_tokens: 1,
+            temperature: 0,
+            logprobs: 10,
+          }),
+          signal: controller.signal,
+        })
+        clearTimeout(timer)
+
+        if (!res.ok) {
+          this.logger.debug('RerankerService: vLLM non-OK response', { status: res.status, index: i })
+          continue
         }
-        this.cb.failures = 0
+
+        const data = await res.json() as {
+          choices?: Array<{
+            logprobs?: {
+              top_logprobs?: Array<Record<string, number>>
+            }
+          }>
+        }
+
+        const topLogprobs = data.choices?.[0]?.logprobs?.top_logprobs?.[0]
+        if (!topLogprobs) {
+          this.logger.debug('RerankerService: vLLM missing logprobs', { index: i })
+          continue
+        }
+
+        // Find best logprob for yes/no variants (case-insensitive)
+        let yesLogprob = -Infinity
+        let noLogprob = -Infinity
+        for (const [token, logprob] of Object.entries(topLogprobs)) {
+          const lower = token.toLowerCase().trim()
+          if (lower === 'yes' && logprob > yesLogprob) yesLogprob = logprob
+          if (lower === 'no' && logprob > noLogprob) noLogprob = logprob
+        }
+
+        if (yesLogprob === -Infinity && noLogprob === -Infinity) {
+          this.logger.debug('RerankerService: vLLM no yes/no in logprobs', { index: i, tokens: Object.keys(topLogprobs) })
+          continue
+        }
+
+        // Default missing side to very low probability
+        if (yesLogprob === -Infinity) yesLogprob = -20
+        if (noLogprob === -Infinity) noLogprob = -20
+
+        // sigmoid(yes - no) in log space = 1 / (1 + exp(no - yes))
+        const score = 1.0 / (1.0 + Math.exp(noLogprob - yesLogprob))
+
+        results.push({ index: i, relevanceScore: score })
+      } catch (err) {
+        clearTimeout(timer)
+        this.logger.debug('RerankerService: vLLM request failed', { error: String(err), index: i })
       }
-      this.logger.debug('RerankerService: request failed', { error: String(err) })
     }
 
-    return []  // Graceful degradation — caller uses embedding scores alone
+    return results
   }
 
   /** Check if the reranker server is available (circuit breaker not tripped). */
