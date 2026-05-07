@@ -1006,45 +1006,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
-    // Compute distillation activity for this pass: pending (read tool_results
-    // above 2KB without a summary yet) and completed-since-last-receipt
-    // (summaries that landed in the background between the previous and
-    // current curate). Both are diffed against session state, not recomputed
-    // from scratch — no extra LLM calls, just bookkeeping.
-    const distillationSummary = (() => {
-      const completedEntries: Array<{ msgIndex: number; toolUseId: string; originalChars: number; summaryChars: number }> = []
-      let charsFreed = 0
-      let pending = 0
-      const seenInThisPass = new Set<string>()
-      for (let i = 0; i < compressed.length; i++) {
-        const msg = compressed[i]
-        const ann = msg?._thalamus
-        if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
-        const toolUseId = this.extractToolUseId(msg)
-        if (!toolUseId) continue
-        seenInThisPass.add(toolUseId)
-        const summary = session.distilledSummaries.get(toolUseId)
-        if (summary) {
-          if (!session.lastReceiptDistilledIds.has(toolUseId)) {
-            const summaryChars = `[distilled] ${summary.summary}`.length
-            completedEntries.push({
-              msgIndex: i,
-              toolUseId,
-              originalChars: summary.originalChars,
-              summaryChars,
-            })
-            charsFreed += Math.max(0, summary.originalChars - summaryChars)
-          }
-        } else {
-          // Mirrors the queue filter at the bottom of curate(): same
-          // 2000-char threshold the distiller uses for enqueue eligibility.
-          const content = extractMessageContent(msg)
-          if (content.length > 2000) pending++
-        }
-      }
-      if (completedEntries.length === 0 && pending === 0) return undefined
-      return { pending, completed: completedEntries, charsFreed }
-    })()
+    const distillationSummary = this.buildDistillationSummary(compressed, session)
 
     const receipt = buildDropReceipt({
       before: compressed,
@@ -1379,6 +1341,44 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
+   * Compute distillation activity for the current curate pass: pending (read
+   * tool_results above 2KB without a summary yet) and completed-since-last-
+   * receipt (summaries that landed in the background between the previous
+   * and current curate). Both are derived from session state — no extra LLM
+   * calls, just bookkeeping.
+   */
+  private buildDistillationSummary(
+    compressed: any[],
+    session: CurationSession,
+  ): { pending: number; completed: Array<{ msgIndex: number; toolUseId: string; originalChars: number; summaryChars: number }>; charsFreed: number } | undefined {
+    const completed: Array<{ msgIndex: number; toolUseId: string; originalChars: number; summaryChars: number }> = []
+    let charsFreed = 0
+    let pending = 0
+    for (let i = 0; i < compressed.length; i++) {
+      const msg = compressed[i]
+      const ann = msg?._thalamus
+      if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
+      const toolUseId = this.extractToolUseId(msg)
+      if (!toolUseId) continue
+      const summary = session.distilledSummaries.get(toolUseId)
+      if (summary) {
+        if (!session.lastReceiptDistilledIds.has(toolUseId)) {
+          const summaryChars = `[distilled] ${summary.summary}`.length
+          completed.push({ msgIndex: i, toolUseId, originalChars: summary.originalChars, summaryChars })
+          charsFreed += Math.max(0, summary.originalChars - summaryChars)
+        }
+      } else {
+        // Mirrors the queue filter at the bottom of curate(): same
+        // 2000-char threshold the distiller uses for enqueue eligibility.
+        const content = extractMessageContent(msg)
+        if (content.length > 2000) pending++
+      }
+    }
+    if (completed.length === 0 && pending === 0) return undefined
+    return { pending, completed, charsFreed }
+  }
+
+  /**
    * Spawn background LLM distillation for the candidates staged by the most
    * recent curate() pass. Public so Reverie can call it on its own schedule
    * (the design assigns Reverie ownership of stateful background work; this
@@ -1411,8 +1411,11 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
       const handle = await factory({ tier: 'background', purpose: 'distillation', sessionId: sessionIdCapture })
       try {
-        let distilled = 0
-        for (const r of filtered) {
+        // Each candidate's distillation is an independent LLM round-trip.
+        // Mirrors the parallelism of RerankerCompressor — Promise.allSettled
+        // so one slow/failed call doesn't stall the others, and so an LLM
+        // error on candidate #2 still lets candidates #1 and #3 land.
+        const results = await Promise.allSettled(filtered.map(async (r) => {
           const pending: import('./distiller.js').PendingDistillation = {
             toolUseId: r.toolUseId,
             filePath: '',
@@ -1424,14 +1427,19 @@ export class ThalamusModule extends BaseCognitiveModule {
             const text = resp.response ?? (resp as any)?.content?.[0]?.text ?? String(resp)
             return { response: text }
           })
-          if (result?.summary) {
-            session.distilledSummaries.set(r.toolUseId, {
-              summary: result.summary,
-              originalChars: result.originalChars,
-              goalHash: result.goalHash,
-            })
-            distilled++
-          }
+          return { toolUseId: r.toolUseId, summary: result }
+        }))
+        let distilled = 0
+        for (const settled of results) {
+          if (settled.status !== 'fulfilled') continue
+          const { toolUseId, summary } = settled.value
+          if (!summary?.summary) continue
+          session.distilledSummaries.set(toolUseId, {
+            summary: summary.summary,
+            originalChars: summary.originalChars,
+            goalHash: summary.goalHash,
+          })
+          distilled++
         }
         this.logger.debug('Thalamus distillation complete', {
           sessionId: sessionIdCapture.slice(-8),
