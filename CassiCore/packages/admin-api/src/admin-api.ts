@@ -16,6 +16,7 @@ import { handlePluginsRoutes } from './admin-api/plugins.js'
 import { handleDebugRoutes } from './admin-api/debug.js'
 import { handleDelegationRoutes } from './admin-api/delegation.js'
 import { handleDialecticRoutes } from './admin-api/dialectic.js'
+import { handleDmnRoutes } from './admin-api/dmn.js'
 import { handleEventsRoutes } from './admin-api/events.js'
 import { handleHealthRoutes } from './admin-api/health.js'
 import { handleIntelligenceRoutes } from './admin-api/intelligence.js'
@@ -2356,6 +2357,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleModulesRoutes({ runtime, logger, sendJSON, parseBody }, req, res, method, pathname, parts),
          () => handleMemoryRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleDialecticRoutes({ runtime, logger, sendJSON, parseBody, url, parts }, req, res, method),
+        () => handleDmnRoutes({ runtime, logger, sendJSON, url, parts }, req, res, method),
         () => handleObservabilityRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
         () => handleChatRoutes({ runtime, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
         () => handleModelsRoutes({ runtime, logger, sendJSON }, req, res, method, pathname),
