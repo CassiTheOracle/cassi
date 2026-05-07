@@ -150,6 +150,17 @@ const EXTERNAL_MCP_SERVER_PREFIXES = ['serena__', 'gitnexus__', 'playwright__', 
 const CONSOLIDATED_GATEWAY_TOOL_NAMES = new Set(['code', 'file', 'web', 'browser'])
 
 /**
+ * Direct fs tools (`read_file`, `write_file`, `read_files`) are filtered from
+ * the Helix posture tool surface because the consolidated `file` tool covers
+ * the same operations plus directory listing, regex search, symbols, and
+ * find-and-replace. Showing both caused LLMs to call `file` with empty input
+ * expecting `read_file`-style behavior, then trip on the action enum (real
+ * evidence in prompt-log of constellation jay3kg). The direct tools remain
+ * registered for non-Helix paths (thinker-tools, etc.).
+ */
+const HELIX_FS_DIRECT_TOOL_NAMES = new Set(['read_file', 'write_file', 'read_files'])
+
+/**
  * @dep callers: isBlockedForAutonomousPostures (core/intelligence/helix/helix-posture-runner.ts), isExternalMcpTool (core/intelligence/helix/helix-posture-runner.ts)
  * @dep module: Helix
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
@@ -2199,6 +2210,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Hide raw external MCP tools and consolidated gateway tools; inject curated variants below
         if (isExternalMcpTool(schema.name)) continue
         if (CONSOLIDATED_GATEWAY_TOOL_NAMES.has(schema.name)) continue
+        // Hide direct fs tools — the consolidated `file` tool below covers them and avoids dual-surface LLM confusion
+        if (HELIX_FS_DIRECT_TOOL_NAMES.has(schema.name)) continue
 
         // Apply toolFilter allow/deny lists (from Constellation or Helix pipeline)
         if (this.toolFilter) {
