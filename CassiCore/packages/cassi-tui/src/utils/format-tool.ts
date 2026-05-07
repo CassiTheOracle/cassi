@@ -137,11 +137,6 @@ const extractors: Record<string, Extractor> = {
   // Cognitive internals — show a brief hint
   _reflect: (i) => String(i.focus ?? ''),
   _remember: () => 'storing observations',
-  _probe: (i) => String(i.signal_kind ?? ''),
-  _autofix: (i) => {
-    const file = String(i.target_file ?? '')
-    return shortenPath(file)
-  },
 }
 
 
