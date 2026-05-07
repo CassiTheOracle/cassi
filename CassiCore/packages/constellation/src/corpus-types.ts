@@ -1009,7 +1009,15 @@ export interface CorpusLLM {
     modelTier: string
     maxTokens: number
     timeoutMs: number
-  }): Promise<{ content: string; truncated: boolean }>
+    /** Tool schemas to request structured output from the model. */
+    tools?: Array<{
+      name: string
+      description: string
+      input_schema: Record<string, unknown>
+    }>
+    /** Force the model to use a specific tool. e.g. { type: 'tool', name: 'decompose_goal' } */
+    toolChoice?: { type: 'tool'; name: string } | { type: 'auto' } | { type: 'none' }
+  }): Promise<{ content: string; truncated: boolean; toolCalls?: Array<{ id: string; name: string; input: Record<string, unknown> }> }>
 }
 
 export interface CorpusDeps {
