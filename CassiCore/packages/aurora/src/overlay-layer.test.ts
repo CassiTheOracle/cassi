@@ -369,4 +369,113 @@ describe('OverlayLayer', () => {
       expect(stats.layersAffected).toBe(2)
     })
   })
+
+  describe('C3.3 surveyDrift', () => {
+    it('returns zero magnitude when overlay matches base exactly', () => {
+      const findings = layer.surveyDrift([
+        {
+          id: 'p1',
+          baseHits: [{ featureIndex: 1, score: 0.9 }, { featureIndex: 2, score: 0.5 }],
+          overlayHits: [{ featureIndex: 1, score: 0.9 }, { featureIndex: 2, score: 0.5 }],
+        },
+      ])
+      expect(findings).toHaveLength(1)
+      expect(findings[0].magnitude).toBe(0)
+      expect(findings[0].overlayAdded).toEqual([])
+      expect(findings[0].overlayRemoved).toEqual([])
+    })
+
+    it('reports added + removed feature indices', () => {
+      const findings = layer.surveyDrift([
+        {
+          id: 'p1',
+          baseHits: [{ featureIndex: 1, score: 0.9 }, { featureIndex: 2, score: 0.5 }],
+          overlayHits: [{ featureIndex: 2, score: 0.5 }, { featureIndex: 99, score: 0.7 }],
+        },
+      ])
+      expect(findings[0].overlayAdded).toEqual([99])
+      expect(findings[0].overlayRemoved).toEqual([1])
+      expect(findings[0].magnitude).toBeGreaterThan(0)
+    })
+
+    it('sorts findings by magnitude descending', () => {
+      const findings = layer.surveyDrift([
+        { id: 'low', baseHits: [{ featureIndex: 1, score: 1 }], overlayHits: [{ featureIndex: 1, score: 1 }] },
+        { id: 'high', baseHits: [{ featureIndex: 1, score: 1 }], overlayHits: [{ featureIndex: 99, score: 1 }] },
+      ])
+      expect(findings[0].probeId).toBe('high')
+      expect(findings[1].probeId).toBe('low')
+    })
+
+    it('handles empty probe list', () => {
+      expect(layer.surveyDrift([])).toEqual([])
+    })
+  })
+
+  describe('C3.3 reversal candidates', () => {
+    let patchId: string
+    beforeEach(() => {
+      const patch = makeInsertPatch()
+      patchId = layer.apply(patch).patchId!
+    })
+
+    it('proposeReversalCandidate creates and returns a candidate', () => {
+      const c = layer.proposeReversalCandidate({
+        patchId,
+        reason: 'drift_surveillance',
+        proposer: 'system',
+        rationale: 'overlay diverging from base on probe set',
+      })
+      expect(c.id).toMatch(/^rc-/)
+      expect(c.patchId).toBe(patchId)
+      expect(c.reason).toBe('drift_surveillance')
+    })
+
+    it('proposeReversalCandidate throws on unknown patch', () => {
+      expect(() =>
+        layer.proposeReversalCandidate({
+          patchId: 'no-such-patch',
+          reason: 'manual',
+          proposer: 'operator',
+          rationale: 'oops',
+        }),
+      ).toThrow(/not found/)
+    })
+
+    it('listReversalCandidates returns proposed candidates', () => {
+      layer.proposeReversalCandidate({
+        patchId, reason: 'manual', proposer: 'operator', rationale: 'r1',
+      })
+      layer.proposeReversalCandidate({
+        patchId, reason: 'drift_surveillance', proposer: 'system', rationale: 'r2',
+      })
+      expect(layer.listReversalCandidates()).toHaveLength(2)
+    })
+
+    it('acceptReversalCandidate rolls back the patch', () => {
+      const c = layer.proposeReversalCandidate({
+        patchId, reason: 'manual', proposer: 'cassi', rationale: 'wrong direction',
+      })
+      const accepted = layer.acceptReversalCandidate(c.id)
+      expect(accepted).toBe(true)
+      const patch = layer.getAllPatches().find(p => p.id === patchId)
+      expect(patch?.active).toBe(false)
+      expect(layer.listReversalCandidates()).toEqual([])
+    })
+
+    it('rejectReversalCandidate discards without touching the patch', () => {
+      const c = layer.proposeReversalCandidate({
+        patchId, reason: 'manual', proposer: 'operator', rationale: 'looks wrong',
+      })
+      expect(layer.rejectReversalCandidate(c.id, 'review-deferred')).toBe(true)
+      expect(layer.listReversalCandidates()).toEqual([])
+      const patch = layer.getAllPatches().find(p => p.id === patchId)
+      expect(patch?.active).toBe(true)
+    })
+
+    it('accept/reject return false on unknown candidate id', () => {
+      expect(layer.acceptReversalCandidate('nope')).toBe(false)
+      expect(layer.rejectReversalCandidate('nope')).toBe(false)
+    })
+  })
 })

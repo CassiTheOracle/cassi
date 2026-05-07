@@ -83,6 +83,56 @@ export interface OverlayStats {
   readonly patchesByLayer: Map<number, number>
 }
 
+/**
+ * C3.3 — drift surveillance probe. Caller supplies a probe query
+ * descriptor (layer + tokenId or arbitrary string label) plus two
+ * functions that produce hit lists for that probe with overlay on
+ * and off. Drift is computed by comparing the two hit sets.
+ */
+export interface DriftProbe {
+  /** Caller-defined label for audit + projection. */
+  id: string
+  /** Hits the base vindex would return for this probe (overlay off). */
+  baseHits: ReadonlyArray<{ featureIndex: number; score: number }>
+  /** Hits the overlay-augmented surface returns for this probe (overlay on). */
+  overlayHits: ReadonlyArray<{ featureIndex: number; score: number }>
+}
+
+/**
+ * C3.3 — per-probe drift finding from surveyDrift. Reports the IoU-style
+ * divergence between base and overlay hit sets. magnitude == 0 means
+ * the overlay didn't move the result; magnitude == 1 means complete
+ * disagreement on which features are surfaced.
+ */
+export interface DriftFinding {
+  probeId: string
+  magnitude: number
+  /** Feature indices present in overlay results but not base results. */
+  overlayAdded: number[]
+  /** Feature indices present in base results but missing from overlay. */
+  overlayRemoved: number[]
+}
+
+/**
+ * C3.3 — reversal candidate registered against a specific patch id,
+ * with a reason and optional evidence payload (e.g., the drift finding
+ * or new-finding contradiction that triggered the candidate).
+ *
+ * Candidates are advisory — the operator/Cassi reviews and either
+ * `acceptReversalCandidate` (which calls `rollback`) or
+ * `rejectReversalCandidate` (which discards the candidate without
+ * touching the patch).
+ */
+export interface ReversalCandidate {
+  id: string
+  patchId: string
+  reason: 'drift_surveillance' | 'conflict_with_new_finding' | 'counterfactual_destabilization' | 'manual'
+  proposedAt: string
+  proposer: 'cassi' | 'operator' | 'reverie' | 'system'
+  rationale: string
+  evidence?: Record<string, unknown>
+}
+
 
 const ALLOWED_OPS: ReadonlySet<OverlayPatchOp> = new Set(['insert', 'insert_knn'])
 
@@ -100,6 +150,8 @@ export class OverlayLayer {
   private readonly patches = new Map<string, ActivePatch>()
   private readonly logger: ILogger
   private nextPatchSeq = 0
+  /** C3.3 — pending reversal candidates keyed by candidate id. */
+  private readonly reversalCandidates = new Map<string, ReversalCandidate>()
 
   constructor(logger: ILogger) {
     this.logger = logger.child ? logger.child('overlay-layer') : logger
@@ -363,6 +415,108 @@ export class OverlayLayer {
       patchesByOp: byOp,
       patchesByLayer: byLayer,
     }
+  }
+
+  /**
+   * C3.3 drift surveillance — compute per-probe magnitude of overlay
+   * impact. Caller supplies probe descriptors with both overlay-on
+   * and overlay-off result sets (the caller already has the base
+   * vindex query path; we don't run queries here). For each probe we
+   * compute:
+   *
+   *     overlayAdded = features in overlay-hits not in base-hits
+   *     overlayRemoved = features in base-hits not in overlay-hits
+   *     magnitude = (added + removed) / max(unique features in either set, 1)
+   *
+   * magnitude is in [0, 2] in pathological cases but typically ∈ [0, 1].
+   * Findings are sorted by magnitude descending so the most-divergent
+   * probes surface first.
+   */
+  surveyDrift(probes: ReadonlyArray<DriftProbe>): DriftFinding[] {
+    const findings: DriftFinding[] = []
+    for (const probe of probes) {
+      const baseSet = new Set(probe.baseHits.map(h => h.featureIndex))
+      const overlaySet = new Set(probe.overlayHits.map(h => h.featureIndex))
+      const added: number[] = []
+      const removed: number[] = []
+      for (const fi of overlaySet) if (!baseSet.has(fi)) added.push(fi)
+      for (const fi of baseSet) if (!overlaySet.has(fi)) removed.push(fi)
+      const denom = Math.max(1, baseSet.size + overlaySet.size - added.length - removed.length + added.length + removed.length)
+      const magnitude = denom === 0 ? 0 : (added.length + removed.length) / Math.max(1, baseSet.size + overlaySet.size - Math.max(added.length, removed.length))
+      findings.push({
+        probeId: probe.id,
+        magnitude: Math.min(1, magnitude),
+        overlayAdded: added.sort((a, b) => a - b),
+        overlayRemoved: removed.sort((a, b) => a - b),
+      })
+    }
+    findings.sort((a, b) => b.magnitude - a.magnitude)
+    return findings
+  }
+
+  /**
+   * C3.3 — register a reversal candidate against a patch. Advisory only;
+   * does not modify the patch. Caller (Cassi via review, operator via
+   * CLI) decides whether to `acceptReversalCandidate` (which calls
+   * `rollback`) or `rejectReversalCandidate`.
+   *
+   * Returns the created candidate. Throws when patchId is unknown
+   * (can't propose reversal of something that doesn't exist).
+   */
+  proposeReversalCandidate(opts: {
+    patchId: string
+    reason: ReversalCandidate['reason']
+    proposer: ReversalCandidate['proposer']
+    rationale: string
+    evidence?: Record<string, unknown>
+  }): ReversalCandidate {
+    if (!this.patches.has(opts.patchId)) {
+      throw new Error(`Cannot propose reversal: patch '${opts.patchId}' not found`)
+    }
+    const id = `rc-${Date.now()}-${this.nextPatchSeq++}`
+    const candidate: ReversalCandidate = {
+      id,
+      patchId: opts.patchId,
+      reason: opts.reason,
+      proposedAt: new Date().toISOString(),
+      proposer: opts.proposer,
+      rationale: opts.rationale,
+      evidence: opts.evidence,
+    }
+    this.reversalCandidates.set(id, candidate)
+    this.logger.info?.('Reversal candidate proposed', {
+      id, patchId: opts.patchId, reason: opts.reason, proposer: opts.proposer,
+    })
+    return candidate
+  }
+
+  /** List currently-pending reversal candidates, sorted by proposedAt (newest first). */
+  listReversalCandidates(): ReversalCandidate[] {
+    return [...this.reversalCandidates.values()].sort(
+      (a, b) => b.proposedAt.localeCompare(a.proposedAt),
+    )
+  }
+
+  /**
+   * Accept a reversal candidate: rolls back the patch and discards the
+   * candidate. Returns true on success; false when the candidate or
+   * patch can't be found.
+   */
+  acceptReversalCandidate(id: string): boolean {
+    const candidate = this.reversalCandidates.get(id)
+    if (!candidate) return false
+    const ok = this.rollback(candidate.patchId)
+    this.reversalCandidates.delete(id)
+    return ok
+  }
+
+  /** Reject a reversal candidate without touching the patch. */
+  rejectReversalCandidate(id: string, reason?: string): boolean {
+    const candidate = this.reversalCandidates.get(id)
+    if (!candidate) return false
+    this.reversalCandidates.delete(id)
+    this.logger.info?.('Reversal candidate rejected', { id, patchId: candidate.patchId, reason })
+    return true
   }
 
   /**
