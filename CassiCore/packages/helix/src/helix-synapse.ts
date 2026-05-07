@@ -1,5 +1,5 @@
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'
-import type { ContentBlock, Message } from '../../../types/runtime.js'
+import type { ContentBlock, Message, ThinkingLevel } from '../../../types/runtime.js'
 import type { HelixRole } from './types.js'
 import type { CrossSessionTopicIndex } from '../thalamus/cross-session-index.js'
 import { ObserverMemoryBridge, extractConceptHints, priorityToConfidence } from '../constellation/observer-memory-bridge.js'
@@ -75,6 +75,7 @@ export interface HelixSynapseLLM {
     modelTier: string
     maxTokens: number
     timeoutMs: number
+    thinking?: ThinkingLevel
   }): Promise<{ content: string; truncated?: boolean }>
 }
 
@@ -434,6 +435,7 @@ export class HelixSynapse {
       modelTier: this.config.modelTier,
       maxTokens: this.config.maxTokens,
       timeoutMs: this.config.timeoutMs,
+      thinking: 'none',
     })
 
     for (const [posture, stream] of this.streams) {
