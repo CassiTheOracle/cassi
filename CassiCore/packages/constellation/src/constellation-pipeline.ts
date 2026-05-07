@@ -1502,9 +1502,6 @@ export async function runConstellationPipeline(
       },
       // REMOVED: onBlackboardCreated — Blackboard deprecated
       // Cross-Helix communication now uses GlobalWorkspace + Corpus tree
-      onBlackboardCreated: (_childBlackboard) => {
-        // Stub — Blackboard removed. Cross-Helix communication via GlobalWorkspace
-      },
       onCancelRegistered: (fn) => {
         if (cancelFn) {
           const originalCancel = cancelFn
