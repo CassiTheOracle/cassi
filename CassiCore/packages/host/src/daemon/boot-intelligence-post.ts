@@ -119,6 +119,56 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.warn(`Failed to wire ThoughtObserver: ${String(err)}`)
   }
 
+  // DMN — Default Mode Network. Attaches to user-facing main sessions on
+  // session:created, records turn-end events into the activity gate, and
+  // detaches on session:ended. Fires the dialectic via PR 3 wiring; PR 2
+  // ships a no-op stub so the substrate is exercised without LLM cost.
+  if (intelligence.dmn?.enabled) {
+    try {
+      bus.on('session:created' as any, (e: any) => {
+        try {
+          const sessionId = e?.sessionId
+          const channelId: string | undefined = e?.channelId
+          if (!sessionId) return
+          if (channelId && !channelId.startsWith('channel:')) return
+          intelligence.dmn!.attachSession(sessionId)
+        } catch (err) {
+          logger.debug('DMN session:created handler error', { error: String(err) })
+        }
+      })
+
+      bus.on('session:ended' as any, (e: any) => {
+        try {
+          const sessionId = e?.sessionId
+          if (sessionId) intelligence.dmn!.detachSession(sessionId)
+        } catch (err) {
+          logger.debug('DMN session:ended handler error', { error: String(err) })
+        }
+      })
+
+      bus.on('turn:end', (e: any) => {
+        try {
+          const sessionId = e?.sessionId
+          if (!sessionId) return
+          const contentChars = typeof e?.contentChars === 'number' ? e.contentChars
+            : typeof e?.content === 'string' ? e.content.length
+            : 0
+          const toolCallCount = Array.isArray(e?.toolCalls) ? e.toolCalls.length
+            : typeof e?.toolCallCount === 'number' ? e.toolCallCount
+            : 0
+          const thinkingChars = typeof e?.thinkingChars === 'number' ? e.thinkingChars : 0
+          intelligence.dmn!.recordTurnEnd(sessionId, { contentChars, toolCallCount, thinkingChars })
+        } catch (err) {
+          logger.debug('DMN turn:end handler error', { error: String(err) })
+        }
+      })
+
+      logger.info('DMN wired to event bus (session:created, session:ended, turn:end)')
+    } catch (err) {
+      logger.warn(`Failed to wire DMN: ${String(err)}`)
+    }
+  }
+
   try {
     if (intelligence.locusBridge) {
       intelligence.locusBridge.onEventBus(bus)

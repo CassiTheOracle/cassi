@@ -2415,6 +2415,7 @@ export class Daemon {
           dialectic: (this as any).intelligence?.dialectic,
           thinker: (this as any).intelligence?.thinker,
           subconscious: (this as any).intelligence?.subconscious,
+          dmn: (this as any).intelligence?.dmn,
           locusBridge: (this as any).intelligence?.locusBridge,
           thalamus: (this as any).intelligence?.registry?.get('thalamus'),
         },
