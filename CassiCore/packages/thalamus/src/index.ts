@@ -476,6 +476,15 @@ export class ThalamusModule extends BaseCognitiveModule {
   private distillationFactory: HandleFactory | null = null
   /** Persistent store for curation audit data (drop history, pass metadata) */
   private store: ThalamusStore | null = null
+  /** Sink for <note for="..."> thought-commands. Set by the daemon to route notes to Reverie. */
+  private reverieNoteSink: ((sessionId: string, recipient: string, message: string) => void) | null = null
+  /**
+   * When true, Thalamus.curate() suppresses its inline distillation spawn —
+   * an external owner (Reverie) is expected to call queueBackgroundDistillations()
+   * on its own schedule. Default false preserves legacy behavior when the
+   * external trigger isn't wired.
+   */
+  private externalDistillationTrigger = false
 
   setStore(store: ThalamusStore): void { this.store = store }
   setLocusBridge(lb: LocusBridge): void { this.locusBridge = lb }
@@ -487,6 +496,13 @@ export class ThalamusModule extends BaseCognitiveModule {
   setPinealAssembler(pa: PinealAssembler): void { this.pinealAssembler = pa }
   setHandleFactory(fn: HandleFactory): void { this.handleFactory = fn }
   setDistillationFactory(fn: HandleFactory): void { this.distillationFactory = fn }
+  setReverieNoteSink(fn: (sessionId: string, recipient: string, message: string) => void): void { this.reverieNoteSink = fn }
+  /**
+   * Tell Thalamus that an external owner (Reverie) will fire distillation —
+   * curate() should stop its inline spawn so the same work doesn't queue
+   * twice. Idempotent.
+   */
+  enableExternalDistillationTrigger(): void { this.externalDistillationTrigger = true }
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
   setReverieInferenceProvider(provider: import('../aurora/types.js').ReverieInferenceProvider): void {
@@ -659,6 +675,7 @@ export class ThalamusModule extends BaseCognitiveModule {
               recipient: cmd.recipient,
               msgLen: cmd.message.length,
             })
+            this.reverieNoteSink?.(sessionId, cmd.recipient, cmd.message)
             break
           case 'flag':
             this.pin(sessionId, cmd.content, 'thought-command flag')
@@ -929,12 +946,19 @@ export class ThalamusModule extends BaseCognitiveModule {
     if (cfg.rerankerCompressionEnabled) {
       const recentUserPrompt = this.getRecentUserPrompt(compressed)
       const recentAssistantThinking = this.getRecentAssistantThinking(compressed)
+      // Protected from reranker compression: same set as Phase 1 heuristic
+      // protection — live reads (latest read of a file with no later write)
+      // need byte-exact survival because the next edit's match-string must
+      // align. Without this, a reranker-compressed read forces re-reading
+      // and breaks the read-then-edit chain.
+      const rerankerProtectedIndices = new Set(liveReadMap.keys())
       const rerankerResult = await this.rerankerCompressor.compress(
         assembled.messages,
         assembled.includedIndices,
         session.rerankerCache,
         cfg,
         { userPrompt: recentUserPrompt, assistantThinking: recentAssistantThinking },
+        rerankerProtectedIndices,
       )
       if (rerankerResult.rerankerCompressed > 0) {
         assembled.messages = rerankerResult.messages
@@ -982,6 +1006,46 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
+    // Compute distillation activity for this pass: pending (read tool_results
+    // above 2KB without a summary yet) and completed-since-last-receipt
+    // (summaries that landed in the background between the previous and
+    // current curate). Both are diffed against session state, not recomputed
+    // from scratch — no extra LLM calls, just bookkeeping.
+    const distillationSummary = (() => {
+      const completedEntries: Array<{ msgIndex: number; toolUseId: string; originalChars: number; summaryChars: number }> = []
+      let charsFreed = 0
+      let pending = 0
+      const seenInThisPass = new Set<string>()
+      for (let i = 0; i < compressed.length; i++) {
+        const msg = compressed[i]
+        const ann = msg?._thalamus
+        if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
+        const toolUseId = this.extractToolUseId(msg)
+        if (!toolUseId) continue
+        seenInThisPass.add(toolUseId)
+        const summary = session.distilledSummaries.get(toolUseId)
+        if (summary) {
+          if (!session.lastReceiptDistilledIds.has(toolUseId)) {
+            const summaryChars = `[distilled] ${summary.summary}`.length
+            completedEntries.push({
+              msgIndex: i,
+              toolUseId,
+              originalChars: summary.originalChars,
+              summaryChars,
+            })
+            charsFreed += Math.max(0, summary.originalChars - summaryChars)
+          }
+        } else {
+          // Mirrors the queue filter at the bottom of curate(): same
+          // 2000-char threshold the distiller uses for enqueue eligibility.
+          const content = extractMessageContent(msg)
+          if (content.length > 2000) pending++
+        }
+      }
+      if (completedEntries.length === 0 && pending === 0) return undefined
+      return { pending, completed: completedEntries, charsFreed }
+    })()
+
     const receipt = buildDropReceipt({
       before: compressed,
       scored,
@@ -991,7 +1055,18 @@ export class ThalamusModule extends BaseCognitiveModule {
       charsUsed: curatedChars,
       threshold: cfg.ignitionThreshold,
       rerankerCache: session.rerankerCache,
+      distillation: distillationSummary,
     })
+
+    // Snapshot the distilledSummaries keys we just reported on, so the next
+    // receipt only shows newly-completed entries. Use union with previous
+    // snapshot to keep historical IDs stable (in case a summary is evicted
+    // and re-distilled later, we'd still consider it "old" — fine for V1).
+    if (distillationSummary && distillationSummary.completed.length > 0) {
+      for (const entry of distillationSummary.completed) {
+        session.lastReceiptDistilledIds.add(entry.toolUseId)
+      }
+    }
 
     // Detect tool repetition — same (tool, target) appearing 3+ times
     const repetitionWarning = this.detectToolRepetition(compressed)
@@ -1145,10 +1220,17 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
-    // Background distillation: queue read tool results for async LLM summarization.
-    // Results land in session.distilledSummaries and are applied on the next curate() pass.
-    if (distiller && this.handleFactory) {
-      const readResults = scored
+    // Stage read tool_results that will need background distillation. We
+    // compute the candidates here (curate has the brainContext + scored
+    // record) and stash them on the session so the trigger doesn't need
+    // re-access to those locals. Then either curate() spawns inline (legacy)
+    // or Reverie fires queueBackgroundDistillations on its own schedule
+    // (when externalDistillationTrigger is enabled).
+    {
+      const goal = brainContext.focusTerms.size > 0
+        ? [...brainContext.focusTerms].slice(0, 5).join(', ')
+        : 'general'
+      const candidates = scored
         .filter(sm => {
           const msg = compressed[sm.messageIndex]
           const ann = msg?._thalamus
@@ -1157,58 +1239,19 @@ export class ThalamusModule extends BaseCognitiveModule {
         .map(sm => {
           const msg = compressed[sm.messageIndex]
           const toolUseId = this.extractToolUseId(msg)
-          return { toolUseId, content: extractMessageContent(msg), index: sm.messageIndex }
+          return { toolUseId, content: extractMessageContent(msg) }
         })
-        .filter(r => r.toolUseId && r.content.length > 2000 && !session.distilledSummaries.has(r.toolUseId))
+        .filter(r => r.toolUseId && r.content.length > 2000 && !session.distilledSummaries.has(r.toolUseId!))
+        .map(r => ({ toolUseId: r.toolUseId!, content: r.content, goalContext: goal }))
 
-      if (readResults.length > 0) {
-        const sessionIdCapture = sessionId
-        const goal = brainContext.focusTerms.size > 0
-          ? [...brainContext.focusTerms].slice(0, 5).join(', ')
-          : 'general'
-        const distillPromise = async () => {
-          const factory = this.distillationFactory ?? this.handleFactory
-          if (!factory) {
-            this.logger.warn('Thalamus distillation skipped — no handle factory available')
-            return
-          }
-          const handle = await factory({ tier: 'background', purpose: 'distillation', sessionId: sessionIdCapture })
-          try {
-            let distilled = 0
-            for (const r of readResults) {
-              const pending: import('./distiller.js').PendingDistillation = {
-                toolUseId: r.toolUseId!,
-                filePath: '',
-                content: r.content,
-                goalContext: goal,
-              }
-              const result = await distiller.distill(pending, async (msgs) => {
-                const resp = await handle.complete(msgs as any, {} as any)
-                const text = resp.response ?? (resp as any)?.content?.[0]?.text ?? String(resp)
-                return { response: text }
-              })
-              if (result?.summary) {
-                session.distilledSummaries.set(r.toolUseId!, {
-                  summary: result.summary,
-                  originalChars: result.originalChars,
-                  goalHash: result.goalHash,
-                })
-                distilled++
-              }
-            }
-            this.logger.debug('Thalamus distillation complete', {
-              sessionId: sessionIdCapture.slice(-8),
-              distilled,
-              queued: readResults.length,
-            })
-          } catch (err) {
-            this.logger.warn('Thalamus distillation failed', { error: String(err) })
-          } finally {
-            handle.release()
-          }
-        }
-        distillPromise().catch(() => {})
-      }
+      session.lastReadCandidatesForDistillation = candidates.length > 0 ? candidates : undefined
+    }
+
+    // Fire distillation inline only when no external trigger is wired —
+    // otherwise Reverie owns the schedule (avoids double-spawn race against
+    // a still-in-flight LLM call writing to distilledSummaries).
+    if (!this.externalDistillationTrigger) {
+      this.queueBackgroundDistillations(sessionId)
     }
 
     // Invalidate brain context cache after curation — each turn gets fresh context
@@ -1333,6 +1376,75 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
     if (opts.drops) for (const i of opts.drops) session.dropDirectives.delete(i)
     if (opts.collapses) for (const i of opts.collapses) session.collapseDirectives.delete(i)
+  }
+
+  /**
+   * Spawn background LLM distillation for the candidates staged by the most
+   * recent curate() pass. Public so Reverie can call it on its own schedule
+   * (the design assigns Reverie ownership of stateful background work; this
+   * method keeps the storage in Thalamus session — single source of truth —
+   * while letting Reverie own the WHEN). Fire-and-forget; does not throw.
+   * Idempotent: candidates are consumed (cleared from session state) on call.
+   */
+  queueBackgroundDistillations(sessionId: string): void {
+    const session = this.sessions.get(sessionId)
+    if (!session) return
+    const candidates = session.lastReadCandidatesForDistillation
+    if (!candidates || candidates.length === 0) return
+    // Consume — clear before spawning so a parallel call doesn't double-fire
+    session.lastReadCandidatesForDistillation = undefined
+
+    const distiller = this.distiller
+    if (!distiller || !this.handleFactory) return
+
+    // Re-filter against the current summaries map in case a prior in-flight
+    // distillation completed between staging and this call.
+    const filtered = candidates.filter(r => !session.distilledSummaries.has(r.toolUseId))
+    if (filtered.length === 0) return
+
+    const sessionIdCapture = sessionId
+    const distillPromise = async () => {
+      const factory = this.distillationFactory ?? this.handleFactory
+      if (!factory) {
+        this.logger.warn('Thalamus distillation skipped — no handle factory available')
+        return
+      }
+      const handle = await factory({ tier: 'background', purpose: 'distillation', sessionId: sessionIdCapture })
+      try {
+        let distilled = 0
+        for (const r of filtered) {
+          const pending: import('./distiller.js').PendingDistillation = {
+            toolUseId: r.toolUseId,
+            filePath: '',
+            content: r.content,
+            goalContext: r.goalContext,
+          }
+          const result = await distiller.distill(pending, async (msgs) => {
+            const resp = await handle.complete(msgs as any, {} as any)
+            const text = resp.response ?? (resp as any)?.content?.[0]?.text ?? String(resp)
+            return { response: text }
+          })
+          if (result?.summary) {
+            session.distilledSummaries.set(r.toolUseId, {
+              summary: result.summary,
+              originalChars: result.originalChars,
+              goalHash: result.goalHash,
+            })
+            distilled++
+          }
+        }
+        this.logger.debug('Thalamus distillation complete', {
+          sessionId: sessionIdCapture.slice(-8),
+          distilled,
+          queued: filtered.length,
+        })
+      } catch (err) {
+        this.logger.warn('Thalamus distillation failed', { error: String(err) })
+      } finally {
+        handle.release()
+      }
+    }
+    distillPromise().catch(() => {})
   }
 
   /**
@@ -2101,6 +2213,64 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
+    // Phase 3c: Hard budget enforcement. After repair passes and diversity
+    // injection, the actual char count can exceed charBudget because those
+    // passes add messages without recalculating the budget. Trim the
+    // lowest-luminance droppable messages until we're under budget.
+    const scoredByIndex = new Map(scored.map(s => [s.messageIndex, s]))
+    const calcTotalChars = (): number => {
+      let total = 0
+      for (let i = 0; i < messages.length; i++) {
+        if (i >= protectedStart || included.has(i)) {
+          total += scoredByIndex.get(i)?.estimatedChars ?? extractMessageContent(messages[i]).length
+        }
+      }
+      return total
+    }
+    let totalChars = calcTotalChars()
+    if (totalChars > config.charBudget) {
+      const overage = totalChars - config.charBudget
+      this.logger.warn('Post-assembly budget overrun, trimming', {
+        sessionId,
+        totalChars,
+        charBudget: config.charBudget,
+        overage,
+      })
+      // Collect droppable indices: in included, not pinned, not protected
+      const droppable = Array.from(included)
+        .filter(idx => {
+          if (idx >= protectedStart) return false
+          if (messages[idx]?._thalamus?.pinned) return false
+          return true
+        })
+        .map(idx => {
+          const s = scoredByIndex.get(idx)
+          return { idx, score: s?.luminance.composite ?? 0, chars: s?.estimatedChars ?? 0 }
+        })
+        .sort((a, b) => a.score - b.score)
+      let trimmed = 0
+      for (const d of droppable) {
+        if (totalChars <= config.charBudget) break
+        included.delete(d.idx)
+        totalChars -= d.chars
+        trimmed++
+      }
+      if (trimmed > 0) {
+        this.logger.info('Budget trim complete', { sessionId, trimmed, newTotalChars: totalChars })
+        // Re-run repair passes: trimming may have broken alternation or pairs
+        for (let pass = 0; pass < 5; pass++) {
+          const before = Array.from(included).sort((a, b) => a - b).join(',')
+          this.ensureToolPairs(messages, included, protectedStart)
+          this.ensureAlternation(messages, included, protectedStart)
+          const after = Array.from(included).sort((a, b) => a - b).join(',')
+          if (before === after) break
+        }
+        usedChars = Array.from(included).reduce((sum, idx) => {
+          return sum + (scoredByIndex.get(idx)?.estimatedChars ?? 0)
+        }, 0)
+      }
+    }
+
     // Merge included older messages with protected recent messages, in order
     const allIndices = [
       ...Array.from(included).sort((a, b) => a - b),
@@ -2560,6 +2730,7 @@ export class ThalamusModule extends BaseCognitiveModule {
         pinnedPatterns: [],
         thoughtCommandLog: [],
         distilledSummaries: new Map(),
+        lastReceiptDistilledIds: new Set(),
         dropDirectives: new Set(),
         collapseDirectives: new Map(),
         rerankerCache: { entries: new Map(), expansions: new Map() },
@@ -2590,6 +2761,32 @@ export class ThalamusModule extends BaseCognitiveModule {
     const WINDOW = 6          // sliding-window size (3 look-back + 3 look-ahead)
     const HALF = WINDOW / 2
     const BOUNDARY_THRESHOLD = 0.12  // Jaccard below this at a user turn → new topic
+
+    const session = this.getSession(sessionId)
+
+    // Cache short-circuit: per-turn topic clustering is expensive (O(n) term
+    // extraction + sliding-window walk) and most curate() calls see the same
+    // history with one new message appended. If the signature is unchanged
+    // from the last call, return the cached clusters but still re-fire any
+    // newly-eligible archive jobs (the existence-check inside fireTopicArchive
+    // ensures idempotence).
+    const sig = this.buildClusterCacheSignature(messages)
+    if (
+      session.clusterCache &&
+      session.clusterCache.messageCount === messages.length &&
+      session.clusterCache.signature === sig
+    ) {
+      const cached = session.clusterCache.clusters
+      session.topicClusters = cached
+      for (let k = 0; k < cached.length - 1; k++) {
+        const c = cached[k]
+        const existing = session.topicArchive.find(a => a.id === c.id)
+        if (!existing && !c.asyncPending) {
+          this.fireTopicArchive(sessionId, c, messages)
+        }
+      }
+      return cached
+    }
 
     // Build term sets per message
     const termSets: Set<string>[] = messages.map(msg => {
@@ -2635,9 +2832,15 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
     if (current.messageIndices.length > 0) clusters.push(current)
 
-    // Persist on session; fire async archiving for completed (non-last) clusters
-    const session = this.getSession(sessionId)
+    // Persist on session; fire async archiving for completed (non-last) clusters.
+    // Update the per-session cache so the next curate() with an unchanged
+    // history can short-circuit at the top of this method.
     session.topicClusters = clusters
+    session.clusterCache = {
+      messageCount: messages.length,
+      signature: sig,
+      clusters,
+    }
     for (let k = 0; k < clusters.length - 1; k++) {
       const c = clusters[k]
       const existing = session.topicArchive.find(a => a.id === c.id)
@@ -2801,6 +3004,31 @@ export class ThalamusModule extends BaseCognitiveModule {
     const seed = userMsgs.find(t => t.length > 10)
     if (seed) return seed.split(/[.!?\n]/)[0].slice(0, 60)
     return Array.from(cluster.termSet).slice(0, 4).join(', ').slice(0, 60)
+  }
+
+  /**
+   * Cheap signature for the message array used by the topic-cluster cache.
+   * Boundaries depend on content of every message but in practice only the
+   * tail changes turn-to-turn (new messages append). We sample length + role
+   * + a small content prefix from the last few messages — enough to detect
+   * append, edit, or roll-back without rehashing the whole array.
+   */
+  private buildClusterCacheSignature(messages: any[]): string {
+    const n = messages.length
+    if (n === 0) return '0:'
+    // Sample the tail (last 4) plus message count. Hash a short prefix of
+    // each sampled message's content + role.
+    const samples: string[] = [String(n)]
+    const start = Math.max(0, n - 4)
+    for (let i = start; i < n; i++) {
+      const msg = messages[i]
+      const role = msg?.role ?? '?'
+      const content = extractMessageContent(msg)
+      // 64-char prefix is enough to distinguish appends from edits while
+      // staying cheap. extractMessageContent already handles complex content.
+      samples.push(`${i}:${role}:${content.length}:${content.slice(0, 64)}`)
+    }
+    return samples.join('|')
   }
 
   private fireTopicArchive(sessionId: string, cluster: TopicCluster, messages: any[]): void {

@@ -171,7 +171,7 @@ export class MessageLuminanceScorer {
       // AskUserQuestion answers arrive as tool_result blocks but are semantically
       // user input — they must receive the same urgency floor as plain user messages.
       if (msg?.role === 'user' && (!msg._thalamus?.tool || hasQuestionResult(msg, { toolUseMap: this.currentToolUseMap }))) {
-        return Math.max(0.15, temporalUrgency)
+        return Math.max(0.25, temporalUrgency)
       }
       return Math.max(0.02, temporalUrgency)
     }
@@ -181,7 +181,7 @@ export class MessageLuminanceScorer {
     const recency = Math.pow(position, 2.5)
 
     const role = msg?.role
-    if (role === 'user') return Math.max(0.15, recency)
+    if (role === 'user') return Math.max(0.25, recency)
 
     return Math.max(0.02, recency)
   }

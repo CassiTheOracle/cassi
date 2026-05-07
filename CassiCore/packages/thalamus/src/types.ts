@@ -391,6 +391,36 @@ export interface CurationSession {
   /** tool_use_id → distilled summary for file-read results. Populated by background distillation. */
   distilledSummaries: Map<string, { summary: string; originalChars: number; goalHash: string }>
   /**
+   * Snapshot of distilledSummaries keys at the previous receipt build.
+   * Used to compute "completed since last receipt" for the receipt's
+   * distillation summary. Without this, every receipt would show every
+   * historical distillation again.
+   */
+  lastReceiptDistilledIds: Set<string>
+  /**
+   * Read tool_results queued for distillation by the most recent curate()
+   * pass. Consumed by queueBackgroundDistillations (called inline by curate()
+   * legacy-path or by Reverie's onTurnEnd trigger). Cleared after consumption.
+   * Holding the candidates here lets Reverie own the WHEN of distillation
+   * without needing a reference to the message array.
+   */
+  lastReadCandidatesForDistillation?: Array<{
+    toolUseId: string
+    content: string
+    goalContext: string
+  }>
+  /**
+   * Per-turn cache for detectTopicClusters output. Skipping the O(n) term-set
+   * + sliding-window walk when the message array hasn't changed since the
+   * last curate() saves real time on long sessions. Invalidated by signature
+   * mismatch (count + last-message hash).
+   */
+  clusterCache?: {
+    messageCount: number
+    signature: string
+    clusters: TopicCluster[]
+  }
+  /**
    * Snapshot of the most recent curate()'s assembled output, captured for the
    * cassi_context.map action. Updated atomically at the end of every curate().
    * Holds rows for all currently-visible messages, not historical drops —

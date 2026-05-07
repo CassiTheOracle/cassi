@@ -291,6 +291,7 @@ export class RerankerCompressor {
     cache: RerankerCompressionCache,
     config: CurationConfig,
     recentContext: { userPrompt: string; assistantThinking: string },
+    protectedIndices: Set<number> = new Set(),
   ): Promise<{ messages: any[]; rerankerCompressed: number }> {
     if (!config.rerankerCompressionEnabled) return { messages, rerankerCompressed: 0 }
     const reranker = getRerankerService(this.logger)
@@ -301,64 +302,126 @@ export class RerankerCompressor {
 
     const toolUseMap = this.buildToolUseMap(messages)
     const result = [...messages]
-    let rerankerCompressed = 0
+
+    // Gather phase: identify every (msgIdx, blockIdx) pair that needs a fresh
+    // rerank call. Cache hits are applied immediately — no point queuing
+    // synchronous work. Each pending task carries the inputs the rerank()
+    // call needs. The async work is independent across tasks (different
+    // tool_use_ids, separate chunk arrays), so we Promise.all them.
+    interface PendingTask {
+      msgIdx: number
+      blockIdx: number
+      content: string
+      toolUseId: string
+      toolName: string
+      toolClass: string
+    }
+    interface ImmediateReplacement {
+      msgIdx: number
+      blockIdx: number
+      newContent: string
+    }
+    const pending: PendingTask[] = []
+    const immediate: ImmediateReplacement[] = []
+    const touchedMsgIdx = new Set<number>()
 
     for (const idx of includedIndices) {
+      // Live-reads (and other protected indices) must survive both heuristic
+      // and reranker compression. The next edit's exact-match step requires
+      // the original byte-for-byte content. Compressing here would force a
+      // re-read on the next turn and break the read-then-edit chain.
+      if (protectedIndices.has(idx)) continue
       const msg = messages[idx]
       if (msg?.role !== 'user' || !Array.isArray(msg.content)) continue
-
-      let modified = false
-      const newContent = []
-      for (const block of msg.content) {
-        if (block?.type !== 'tool_result') {
-          newContent.push(block)
-          continue
-        }
+      for (let blockIdx = 0; blockIdx < msg.content.length; blockIdx++) {
+        const block = msg.content[blockIdx]
+        if (block?.type !== 'tool_result') continue
         const content = typeof block.content === 'string' ? block.content : ''
-        if (content.length < config.rerankerMinChars) {
-          newContent.push(block)
-          continue
-        }
+        if (content.length < config.rerankerMinChars) continue
 
         const cached = this.getCached(cache, block.tool_use_id, content)
         if (cached) {
-          newContent.push({ ...block, content: cached.compressedContent })
-          modified = true
+          immediate.push({ msgIdx: idx, blockIdx, newContent: cached.compressedContent })
+          touchedMsgIdx.add(idx)
           continue
         }
 
-        try {
-          const toolName = toolUseMap.get(block.tool_use_id) ?? ''
-          const toolClass = msg._thalamus?.tool?.class ?? classifyTool(toolName)
-          const entry = await this.rerank(
-            content,
-            block.tool_use_id,
-            toolName,
-            toolClass,
-            config,
-            recentContext,
-            reranker,
-          )
-          if (entry) {
-            this.setCache(cache, entry)
-            newContent.push({ ...block, content: entry.compressedContent })
-            rerankerCompressed++
-            modified = true
-          } else {
-            newContent.push(block)
-          }
-        } catch (err) {
-          this.logger.warn('Reranker compression failed, keeping naive fallback', {
-            toolUseId: block.tool_use_id,
-            error: String(err),
-          })
-          newContent.push(block)
-        }
-      }
-      if (modified) {
-        result[idx] = { ...msg, content: newContent }
+        const toolName = toolUseMap.get(block.tool_use_id) ?? ''
+        const toolClass = msg._thalamus?.tool?.class ?? classifyTool(toolName)
+        pending.push({
+          msgIdx: idx,
+          blockIdx,
+          content,
+          toolUseId: block.tool_use_id,
+          toolName,
+          toolClass,
+        })
       }
     }
+
+    // Dispatch phase: run all rerank() calls in parallel. Each call hits the
+    // local zerank-server independently; the server handles concurrency and
+    // the circuit-breaker in RerankerService trips uniformly across tasks
+    // if it's overloaded.
+    type RankResolution = { task: PendingTask; entry: import('./types.js').RerankerCacheEntry | null }
+    const rankSettled = await Promise.allSettled(
+      pending.map(async (task): Promise<RankResolution> => {
+        const entry = await this.rerank(
+          task.content,
+          task.toolUseId,
+          task.toolName,
+          task.toolClass,
+          config,
+          recentContext,
+          reranker,
+        )
+        return { task, entry }
+      }),
+    )
+
+    let rerankerCompressed = 0
+    const computed: ImmediateReplacement[] = []
+    for (const settled of rankSettled) {
+      if (settled.status === 'rejected') {
+        this.logger.warn('Reranker compression failed, keeping naive fallback', {
+          error: String(settled.reason),
+        })
+        continue
+      }
+      const { task, entry } = settled.value
+      if (!entry) continue
+      this.setCache(cache, entry)
+      computed.push({ msgIdx: task.msgIdx, blockIdx: task.blockIdx, newContent: entry.compressedContent })
+      touchedMsgIdx.add(task.msgIdx)
+      rerankerCompressed++
+    }
+
+    // Apply phase: rebuild only the messages that have replacements. For each,
+    // walk the original content[] in order and substitute by blockIdx. Order
+    // is preserved by indexing — Set iteration order doesn't influence the
+    // final layout.
+    const replacementMap = new Map<number, Map<number, string>>()
+    for (const r of immediate) {
+      if (!replacementMap.has(r.msgIdx)) replacementMap.set(r.msgIdx, new Map())
+      replacementMap.get(r.msgIdx)!.set(r.blockIdx, r.newContent)
+    }
+    for (const r of computed) {
+      if (!replacementMap.has(r.msgIdx)) replacementMap.set(r.msgIdx, new Map())
+      replacementMap.get(r.msgIdx)!.set(r.blockIdx, r.newContent)
+    }
+
+    for (const msgIdx of touchedMsgIdx) {
+      const msg = messages[msgIdx]
+      const blockReplacements = replacementMap.get(msgIdx)
+      if (!blockReplacements) continue
+      const newContent = msg.content.map((block: any, blockIdx: number) => {
+        const replaced = blockReplacements.get(blockIdx)
+        if (replaced === undefined) return block
+        return { ...block, content: replaced }
+      })
+      result[msgIdx] = { ...msg, content: newContent }
+    }
+
     return { messages: result, rerankerCompressed }
   }
 
