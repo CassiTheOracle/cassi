@@ -41,7 +41,7 @@ import type { PreparedContext, PrepareContextOptions } from '../code-analysis/ty
 import { prepareContext } from '../code-analysis/context-assembler.js'
 import { listTemplateCapabilities } from './templates.js'
 
-/** JSON schema the LLM must produce */
+/** Shape of the tool-call input that the LLM produces via decompose_goal. */
 interface DecompositionJSON {
   strategy: 'sequential' | 'parallel' | 'tree'
   sharedContext?: string
@@ -54,6 +54,69 @@ interface DecompositionJSON {
     budgetSteps?: number
   }>
 }
+
+/**
+ * Tool schema for structured goal decomposition. The provider enforces shape
+ * before we ever see the response, removing the validate-then-fallback
+ * pathology that silently collapsed Constellation goals to single subtasks.
+ */
+const DECOMPOSE_GOAL_TOOL = {
+  name: 'decompose_goal',
+  description:
+    'Decompose a software development goal into independent, actionable sub-tasks for parallel or sequential execution by Constellation Helix branches.',
+  input_schema: {
+    type: 'object',
+    required: ['strategy', 'tasks'],
+    properties: {
+      strategy: {
+        type: 'string',
+        enum: ['sequential', 'parallel', 'tree'],
+        description:
+          "'parallel' for independent tasks; 'sequential' for ordered dependencies; 'tree' for tasks that will spawn sub-tasks.",
+      },
+      sharedContext: {
+        type: 'string',
+        description: 'Optional context shared across all sub-tasks (assumptions, constraints, design decisions).',
+      },
+      tasks: {
+        type: 'array',
+        minItems: 1,
+        items: {
+          type: 'object',
+          required: ['goal', 'priority'],
+          properties: {
+            goal: {
+              type: 'string',
+              minLength: 1,
+              description: 'Concrete, independently-executable subtask.',
+            },
+            context: { type: 'string' },
+            template: {
+              type: 'string',
+              enum: ['implementation', 'research', 'review', 'minimal', 'standard'],
+              description: 'Constellation template tuned for this subtask shape.',
+            },
+            priority: {
+              type: 'integer',
+              minimum: 1,
+              description: '1 = highest priority; larger numbers = lower.',
+            },
+            relevantFiles: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'File paths the subtask will likely touch.',
+            },
+            budgetSteps: {
+              type: 'integer',
+              minimum: 1,
+              description: 'Optional step-budget estimate.',
+            },
+          },
+        },
+      },
+    },
+  },
+} as const
 
 export interface FastDecomposerOpts {
   goal: string
@@ -395,55 +458,10 @@ Response:
   ]
 }
 
-OUTPUT FORMAT:
-You MUST output valid JSON matching this schema:
-{
-  "strategy": "sequential" | "parallel" | "tree",
-  "sharedContext": string (optional),
-  "tasks": [
-    {
-      "goal": string,
-      "context": string (optional),
-      "template": "implementation" | "research" | "review" | "minimal" (optional),
-      "priority": number,
-      "relevantFiles": string[] (optional),
-      "budgetSteps": number (optional)
-    }
-  ]
-}
-
-Respond ONLY with the JSON object. Do not include any explanation, markdown formatting, or other text.`)
+OUTPUT:
+Call the decompose_goal tool with your decomposition. Do not respond with prose; the tool schema is the only valid output channel.`)
 
   return sections.join('\n\n')
-}
-
-/**
- * Parse JSON from LLM response, handling markdown code blocks.
- * @dep callers: fastDecompose (core/intelligence/constellation/fast-decomposer.ts), retryWithCorrection (core/intelligence/constellation/fast-decomposer.ts)
- * @dep calls: match
- * @dep module: Constellation
- * @dep risk: LOW | 2 callers, 0 flows, 1 module
- */
-function parseJSONFromResponse(content: string): DecompositionJSON | null {
-  // Try to extract JSON from markdown code blocks first
-  const codeBlockMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/)
-  const jsonStr = codeBlockMatch ? codeBlockMatch[1].trim() : content.trim()
-
-  try {
-    const parsed = JSON.parse(jsonStr)
-    return parsed as DecompositionJSON
-  } catch {
-    // Try to find JSON object in the response
-    const jsonMatch = content.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[0]) as DecompositionJSON
-      } catch {
-        return null
-      }
-    }
-    return null
-  }
 }
 
 /**
@@ -535,62 +553,6 @@ function toGoalDecomposition(
 }
 
 /**
- * Retry decomposition with a corrective prompt when JSON parsing fails.
- */
-async function retryWithCorrection(
-  llm: CorpusLLM,
-  originalGoal: string,
-  failedContent: string,
-  log: ILogger,
-): Promise<DecompositionJSON | null> {
-  const correctivePrompt = `Your previous response could not be parsed as valid JSON.
-
-ORIGINAL GOAL:
-${originalGoal}
-
-YOUR PREVIOUS RESPONSE:
-${failedContent.slice(0, 1000)}${failedContent.length > 1000 ? '...' : ''}
-
-The response must be valid JSON matching this exact schema:
-{
-  "strategy": "sequential" | "parallel" | "tree",
-  "sharedContext": string (optional),
-  "tasks": [
-    {
-      "goal": string (required),
-      "context": string (optional),
-      "template": "implementation" | "research" | "review" | "minimal" (optional),
-      "priority": number (required, 1 = highest),
-      "relevantFiles": string[] (optional),
-      "budgetSteps": number (optional)
-    }
-  ]
-}
-
-Respond ONLY with the JSON object. No markdown, no explanation.`
-
-  try {
-    const response = await llm.complete({
-      prompt: correctivePrompt,
-      modelTier: 'qwenPlus',
-      maxTokens: 2000,
-      timeoutMs: 30_000,
-    })
-
-    const parsed = parseJSONFromResponse(response.content)
-    if (parsed && validateDecomposition(parsed).valid) {
-      return parsed
-    }
-
-    log.warn('Corrective decomposition also failed validation')
-    return null
-  } catch (err) {
-    log.warn('Corrective decomposition failed', { error: String(err) })
-    return null
-  }
-}
-
-/**
  * Main decomposition function.
  *
  * @param opts - Decomposition options including goal, LLM, logger, and optional contexts
@@ -659,53 +621,51 @@ export async function fastDecompose(opts: FastDecomposerOpts): Promise<GoalDecom
   // Step 4: Build the decomposition prompt
   const prompt = buildDecompositionPrompt(goal, codebaseContextStr, memoryContextStr)
 
-  // Step 5: Make the LLM call
-  log.info('Decomposing goal via direct LLM call', {
+  // Step 5: Make the LLM call with tool-use forcing
+  log.info('Decomposing goal via tool-use LLM call', {
     goal: goal.slice(0, 100),
     mode: decompositionMode,
     hasCodebaseContext: !!codebaseContextStr,
     hasMemoryContext: !!memoryContextStr,
   })
 
-  let response: { content: string; truncated: boolean }
+  let response: Awaited<ReturnType<CorpusLLM['complete']>>
 
   try {
     response = await llm.complete({
       prompt,
-      modelTier: 'qwenPlus',
+      modelTier: 'opus',
       maxTokens: 2000,
       timeoutMs: 60_000,
+      tools: [DECOMPOSE_GOAL_TOOL as unknown as { name: string; description: string; input_schema: Record<string, unknown> }],
+      toolChoice: { type: 'tool', name: 'decompose_goal' },
     })
   } catch (err) {
     log.error('LLM call failed during decomposition', { error: String(err) })
     return createFallbackDecomposition(goal, startTime)
   }
 
-  // Step 6: Parse and validate JSON response
-  let parsed = parseJSONFromResponse(response.content)
-
-  if (!parsed) {
-    log.warn('Initial JSON parse failed, attempting corrective retry', {
-      responsePreview: response.content.slice(0, 200),
+  // Step 6: Extract tool-call input. The provider enforces schema; if no
+  // tool call came back, treat as a true exceptional path and fall back.
+  const call = response.toolCalls?.find(c => c.name === 'decompose_goal')
+  if (!call) {
+    log.warn('Decomposition LLM produced no decompose_goal tool call', {
+      toolCallCount: response.toolCalls?.length ?? 0,
+      contentPreview: response.content.slice(0, 200),
     })
-
-    // Step 7: Retry with corrective prompt
-    parsed = await retryWithCorrection(llm, goal, response.content, log)
-
-    if (!parsed) {
-      log.warn('Corrective decomposition failed, falling back to single task')
-      return createFallbackDecomposition(goal, startTime)
-    }
-  }
-
-  // Step 8: Validate the parsed structure
-  const validation = validateDecomposition(parsed)
-  if (!validation.valid) {
-    log.warn('Decomposition validation failed', { error: validation.error })
     return createFallbackDecomposition(goal, startTime)
   }
 
-  // Step 9: Convert to GoalDecomposition and return
+  // Step 7: Defense-in-depth content validation. Schema covers shape; this
+  // catches schema-passing-but-semantically-bad responses (empty goals etc.).
+  const parsed = call.input as unknown as DecompositionJSON
+  const validation = validateDecomposition(parsed)
+  if (!validation.valid) {
+    log.warn('Decomposition validation failed (schema-passing but content-bad)', { error: validation.error })
+    return createFallbackDecomposition(goal, startTime)
+  }
+
+  // Step 8: Convert to GoalDecomposition and return
   const result = toGoalDecomposition(parsed, goal, Date.now() - startTime)
 
   log.info('Goal decomposition complete', {
