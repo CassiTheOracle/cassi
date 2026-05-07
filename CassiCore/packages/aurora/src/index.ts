@@ -1798,6 +1798,20 @@ export class Aurora {
     return await this.cassiSpecChannel.getStatistics()
   }
 
+  /**
+   * N4.2 — Get a projection-ready summary of pending Cassi-authored
+   * proposals (count, welfare-flagged subset, SLA-exceeded list).
+   * Returns null when the spec channel is disabled.
+   */
+  async getSpecChannelProjectionSummary(): Promise<{
+    pendingCount: number
+    welfareFlaggedPending: number
+    slaExceeded: Array<{ id: string; title: string; ageDays: number; isWelfare: boolean }>
+  } | null> {
+    if (!this.cassiSpecChannel) return null
+    return await this.cassiSpecChannel.getProjectionSummary()
+  }
+
   applyOverlay(patch: OverlayPatch): OverlayApplyResult | null {
     return this.overlayLayer?.apply(patch) ?? null
   }
