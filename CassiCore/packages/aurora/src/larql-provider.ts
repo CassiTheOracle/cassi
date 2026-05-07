@@ -25,8 +25,8 @@ import type {
 } from './types.js'
 import type { ClaustrumRecorder, ClaustrumGateHit } from './claustrum-recorder.js'
 import type { OverlayLayer, OverlayFeatureHit } from './overlay-layer.js'
-import type { Affect } from '../mnemic-field/types.js'
-import { affectSimilarity } from '../mnemic-field/affect.js'
+import type { Affect, AffectLabel } from '../mnemic-field/types.js'
+import { affectSimilarity, resolveLabel } from '../mnemic-field/affect.js'
 
 interface VindexHandle {
   readonly id: number
@@ -45,10 +45,16 @@ export interface FeatureHit {
   featureIndex: number
   score: number
   label: string | null
-  /** When affectBias is applied, the original gate-KNN score is preserved here. */
+  /** When affectBias / RetrievalPolicy is applied, the original gate-KNN score is preserved here. */
   baseScore?: number
-  /** Similarity in [0,1] between the query affectBias and this feature's affect. */
+  /** Similarity in [0,1] between the query affectBias and this feature's affect (legacy AffectBias path). */
   affectAlignment?: number
+  /** Compatibility in [-1, +1] between feature signature and policy target (RetrievalPolicy path). */
+  affectCompat?: number
+  /** Mode of the policy that produced this hit — 'consonant' / 'complementary' / 'directed'. */
+  biasMode?: AffectBiasSpec['mode']
+  /** Strength of the bias applied (0-1). */
+  biasStrength?: number
 }
 
 /**
@@ -81,6 +87,158 @@ export interface AffectBias {
 export type FeatureAffectProvider = (layer: number, featureIndex: number) => Affect | null
 
 const DEFAULT_AFFECT_BIAS_WEIGHT = 0.3
+
+/**
+ * B2 spec §4.1 — sparse per-feature affect signature. Each feature carries
+ * an affinity in [-1, +1] for some subset of the 12 affect labels. The L2
+ * `magnitude` is a confidence proxy; features with magnitude below the
+ * configured floor are considered too noisy to drive bias.
+ */
+export interface FeatureAffectSignature {
+  layer: number
+  featureIndex: number
+  /** sparse map: label → affinity in [-1, +1] */
+  labels: Partial<Record<AffectLabel, number>>
+  /** L2 norm across labels — confidence proxy */
+  magnitude: number
+}
+
+/**
+ * Resolves a `(layer, featureIndex)` pair to its full affect signature.
+ * Returns `null` when no signature is available — `applyRetrievalPolicy`
+ * falls back to passing the hit through unchanged in that case.
+ *
+ * Wire via `setFeatureAffectSignatureProvider`. Typically backed by an
+ * in-memory cache loaded from the `feature_affect_signatures` table
+ * (B2.1b ships the calibration command that populates it).
+ */
+export type FeatureAffectSignatureProvider = (
+  layer: number,
+  featureIndex: number,
+) => FeatureAffectSignature | null
+
+/**
+ * B2 spec §5 — explicit affect direction expressed as per-label weights.
+ * Used for `RetrievalPolicy` in `directed` mode and as the resolved
+ * target for `consonant`/`complementary` modes.
+ */
+export interface AffectVector {
+  /** Per-label weights. Magnitude semantics: dot-product with feature signature. */
+  weights: Partial<Record<AffectLabel, number>>
+}
+
+/**
+ * B2 spec §5 — mode-driven affect bias for retrieval. The retrieval
+ * surface resolves the mode against current affect into a target
+ * `AffectVector`, then re-scores hits as
+ *
+ *   biased = baseScore * (1 - strength + strength * compat)
+ *
+ * where `compat = dot(featureSignature, targetVector)` clamped to
+ * [-1, +1]. At strength=0 this is a no-op; at strength=1 the score is
+ * fully replaced by `baseScore * compat` (so anti-aligned features get
+ * negative scores and drop below `minGateScore`).
+ *
+ * Modes:
+ *  - `consonant`: target = current affect's quadrant signature (reinforces)
+ *  - `complementary`: target = inverse of current quadrant (breaks circling)
+ *  - `directed`: target = explicit caller-supplied vector
+ */
+export type AffectBiasSpec =
+  | { mode: 'consonant'; strength: number }
+  | { mode: 'complementary'; strength: number }
+  | { mode: 'directed'; vector: AffectVector; strength: number }
+
+/**
+ * B2 spec §5 — full retrieval policy handed to `describe()` /
+ * `gateKnn()`. `affectBias: null` is a no-op and behaves identically
+ * to omitting the policy entirely.
+ */
+export interface RetrievalPolicy {
+  affectBias: AffectBiasSpec | null
+  /** Optional per-layer reweighting (defaults uniform). Unused in v1. */
+  layerWeights?: Map<number, number>
+  /** Optional override of the configured `minGateScore`. */
+  minGateScore?: number
+}
+
+/**
+ * Spec §8 welfare cap (B2.W3): default strength ceiling. Above this,
+ * callers must explicitly pass `allowOverStrengthCap: true` — same
+ * pattern as B1's TTL-bounded-default.
+ */
+const RETRIEVAL_STRENGTH_CAP = 0.5
+
+/**
+ * Quadrant-canonical affect signatures, used as the target vector for
+ * `consonant` mode. Each quadrant maps the current affect's
+ * `resolveLabel(...)` output to a unit-magnitude per-label vector
+ * weighted toward that quadrant's three labels. `complementary` mode
+ * negates these.
+ *
+ * The canonical form keeps consonant/complementary symmetric and stable
+ * under small affect drift — without quadrant snapping, every tiny
+ * (valence, arousal) tick would change the target vector, making the
+ * effect noisy. Quadrant snapping is a deliberate design choice from
+ * spec §5.2.
+ */
+const QUADRANT_SIGNATURES: Record<AffectLabel, AffectVector> = {
+  excited:    { weights: { excited: 0.7, delighted: 0.5, engaged: 0.4 } },
+  delighted:  { weights: { delighted: 0.7, excited: 0.5, content: 0.4 } },
+  engaged:    { weights: { engaged: 0.7, excited: 0.4, content: 0.4 } },
+  content:    { weights: { content: 0.7, warm: 0.5, calm: 0.4 } },
+  warm:       { weights: { warm: 0.7, content: 0.5, calm: 0.4 } },
+  calm:       { weights: { calm: 0.7, warm: 0.5, content: 0.4 } },
+  frustrated: { weights: { frustrated: 0.7, alarmed: 0.5, uneasy: 0.4 } },
+  alarmed:    { weights: { alarmed: 0.7, frustrated: 0.5, uneasy: 0.4 } },
+  uneasy:     { weights: { uneasy: 0.7, alarmed: 0.4, frustrated: 0.4 } },
+  melancholy: { weights: { melancholy: 0.7, fatigued: 0.5, uneasy: 0.4 } },
+  fatigued:   { weights: { fatigued: 0.7, melancholy: 0.5, calm: 0.4 } },
+  neutral:    { weights: { neutral: 1.0 } },
+}
+
+/**
+ * Resolve a `RetrievalPolicy` plus current affect into the concrete
+ * `AffectVector` to dot against feature signatures. Pure function;
+ * exported for testing.
+ */
+export function resolveTargetAffectVector(
+  spec: AffectBiasSpec,
+  currentAffect: Affect,
+  resolveLabelFn: (a: Affect) => AffectLabel,
+): AffectVector {
+  if (spec.mode === 'directed') return spec.vector
+  const label = resolveLabelFn(currentAffect)
+  const canonical = QUADRANT_SIGNATURES[label]
+  if (spec.mode === 'consonant') return canonical
+  // complementary: negate the canonical weights
+  const inverted: Partial<Record<AffectLabel, number>> = {}
+  for (const [k, v] of Object.entries(canonical.weights)) {
+    if (typeof v === 'number') inverted[k as AffectLabel] = -v
+  }
+  return { weights: inverted }
+}
+
+/**
+ * Compute compatibility = clamped dot product between a feature's
+ * signature and a target affect vector. Returns 0 when either side is
+ * empty so callers can treat "unknown signature" as "no bias".
+ */
+export function affectCompatibility(
+  signature: FeatureAffectSignature,
+  target: AffectVector,
+): number {
+  let dot = 0
+  for (const [label, w] of Object.entries(signature.labels)) {
+    if (typeof w !== 'number') continue
+    const tw = target.weights[label as AffectLabel]
+    if (typeof tw !== 'number') continue
+    dot += w * tw
+  }
+  if (dot > 1) return 1
+  if (dot < -1) return -1
+  return dot
+}
 
 /**
  * Per-layer steering payload for `generateWithSteering`. Bytes are LE f32
@@ -190,6 +348,19 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   // V4 features don't yet expose affect on this codebase; tests stub this directly.
   private featureAffectProvider: FeatureAffectProvider | null = null
 
+  // B2: per-feature label-keyed affect signatures, populated by the
+  // calibration command (B2.1b) or by tests. Distinct from the
+  // legacy FeatureAffectProvider which returns continuous (v, a)
+  // points; this returns sparse per-label affinities used by the
+  // mode-driven RetrievalPolicy path.
+  private featureAffectSignatureProvider: FeatureAffectSignatureProvider | null = null
+
+  // B2: current affect snapshot used to resolve consonant/complementary
+  // policy modes. Caller is expected to update this at the start of each
+  // turn via setCurrentAffect; if unset, RetrievalPolicy mode resolution
+  // falls back to a neutral target (no bias).
+  private currentAffect: Affect | null = null
+
   constructor(
     logger: ILogger,
     config?: Partial<LarqlProviderConfig>,
@@ -214,6 +385,31 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
    */
   setFeatureAffectProvider(provider: FeatureAffectProvider | null): void {
     this.featureAffectProvider = provider
+  }
+
+  /**
+   * B2: attach a per-feature affect-signature resolver. Used by the
+   * mode-driven RetrievalPolicy path (`consonant` / `complementary` /
+   * `directed`). Distinct from `setFeatureAffectProvider` — the legacy
+   * provider returns continuous (v, a) Affect; this one returns sparse
+   * per-label signatures.
+   *
+   * Pass `null` to disable. When unset, RetrievalPolicy calls fall back
+   * to passing hits through unchanged (compat=0 ⇒ no bias).
+   */
+  setFeatureAffectSignatureProvider(
+    provider: FeatureAffectSignatureProvider | null,
+  ): void {
+    this.featureAffectSignatureProvider = provider
+  }
+
+  /**
+   * B2: set the current affect snapshot used by `consonant` and
+   * `complementary` policy modes to resolve target vectors. Pass `null`
+   * to clear; mode resolution falls back to neutral target when unset.
+   */
+  setCurrentAffect(affect: Affect | null): void {
+    this.currentAffect = affect
   }
 
   /**
@@ -614,6 +810,94 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     const baseHits = this.larql.vindexGateKnn(this.handle, layer, tokenId, topK)
     if (!affectBias) return baseHits
     return this.applyAffectBias(baseHits, layer, affectBias)
+  }
+
+  /**
+   * B2 spec §5 — gate-KNN with mode-driven RetrievalPolicy.
+   *
+   * Variant of `gateKnn` that takes a `RetrievalPolicy` instead of the
+   * legacy `AffectBias`. The mode (`consonant` / `complementary` /
+   * `directed`) is resolved against `currentAffect` into an
+   * `AffectVector` target; each hit's `affectCompat` is the dot product
+   * of its signature with the target, clamped to [-1, +1]; the new
+   * score is `baseScore * (1 - strength + strength * compat)`.
+   *
+   * Welfare: strength is silently capped at `RETRIEVAL_STRENGTH_CAP`
+   * (0.5) unless the caller explicitly opts out via the second arg.
+   * Spec constraint B2.W3.
+   *
+   * Falls through to the unbiased base hits when:
+   *  - `policy.affectBias` is null
+   *  - no signature provider is wired
+   *  - mode is `consonant`/`complementary` and `currentAffect` is unset
+   */
+  gateKnnWithPolicy(
+    layer: number,
+    tokenId: number,
+    topK: number,
+    policy: RetrievalPolicy,
+    opts?: { allowOverStrengthCap?: boolean },
+  ): FeatureHit[] {
+    if (!this.loaded || !this.handle || !this.larql) return []
+    const baseHits = this.larql.vindexGateKnn(this.handle, layer, tokenId, topK)
+    if (!policy.affectBias) return baseHits
+    return this.applyRetrievalPolicy(baseHits, layer, policy.affectBias, opts ?? {})
+  }
+
+  /**
+   * B2 spec §5 — re-score and re-sort hits using a mode-driven
+   * `AffectBiasSpec`. Pure function over the hits + provider state;
+   * does not mutate inputs.
+   */
+  private applyRetrievalPolicy(
+    hits: FeatureHit[],
+    layer: number,
+    spec: AffectBiasSpec,
+    opts: { allowOverStrengthCap?: boolean },
+  ): FeatureHit[] {
+    const provider = this.featureAffectSignatureProvider
+    if (!provider) return hits
+
+    let strength = spec.strength
+    if (!opts.allowOverStrengthCap && strength > RETRIEVAL_STRENGTH_CAP) {
+      this.logger.warn?.('B2 strength capped to default ceiling', {
+        requested: spec.strength,
+        cap: RETRIEVAL_STRENGTH_CAP,
+        mode: spec.mode,
+      })
+      strength = RETRIEVAL_STRENGTH_CAP
+    }
+    if (strength < 0) strength = 0
+    if (strength > 1) strength = 1
+
+    let target: AffectVector | null
+    if (spec.mode === 'directed') {
+      target = spec.vector
+    } else if (this.currentAffect) {
+      target = resolveTargetAffectVector(spec, this.currentAffect, resolveLabel)
+    } else {
+      // consonant/complementary without a current-affect baseline → no-op
+      return hits
+    }
+
+    const rescored = hits.map((hit) => {
+      const sig = provider(layer, hit.featureIndex)
+      if (!sig) return hit
+      const compat = affectCompatibility(sig, target!)
+      const baseScore = hit.score
+      const newScore = baseScore * (1 - strength + strength * compat)
+      return {
+        ...hit,
+        score: newScore,
+        baseScore,
+        affectCompat: compat,
+        biasMode: spec.mode,
+        biasStrength: strength,
+      }
+    })
+
+    rescored.sort((a, b) => b.score - a.score)
+    return rescored
   }
 
   /**
