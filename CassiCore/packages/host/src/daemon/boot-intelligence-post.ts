@@ -119,16 +119,30 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
     logger.warn(`Failed to wire ThoughtObserver: ${String(err)}`)
   }
 
-  // DMN — Default Mode Network. Attaches to user-facing main sessions on
-  // session:created, records turn-end events into the activity gate, and
-  // detaches on session:ended. Late-bound onFire calls the dialectic with
-  // the recent session window when the activity gate trips.
+  // DMN — Default Mode Network. Each attached session runs an AGOP tick
+  // loop that samples the session substrate at pollIntervalMs cadence
+  // (matching the constellation cluster/corpus observer-layer pattern).
+  // Turn boundaries are not the trigger — the loop is autonomous and
+  // ambient. session:created/session:ended carry the lifecycle.
   if (intelligence.dmn?.enabled) {
     try {
-      // Late-binding fire handler: load the session history, run the
-      // dialectic with the most recent user message as the focal point and
-      // the recent window as sessionHistory, harvest the serenity synthesis.
-      // Errors degrade to no-signal so the cache never holds stale data.
+      // Substrate sampler: returns a snapshot of the session's current
+      // observable state. The tick loop tracks deltas internally.
+      intelligence.dmn.setActivitySnapshotProvider((sessionId) => {
+        try {
+          const session = sessionStore.load(sessionId)
+          if (!session) return null
+          return { historyLength: session.history?.length ?? 0 }
+        } catch {
+          return null
+        }
+      })
+
+      // Late-binding fire handler. Loads the session history, runs the
+      // dialectic with the most recent user message as the focal point
+      // and the recent window as sessionHistory, harvests the serenity
+      // synthesis. Errors degrade to no-signal so the cache never holds
+      // stale data.
       const HISTORY_WINDOW = 24
       intelligence.dmn.setOnFire(async (_reason, sessionId) => {
         try {
@@ -185,30 +199,15 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       bus.on('session:ended' as any, (e: any) => {
         try {
           const sessionId = e?.sessionId
-          if (sessionId) intelligence.dmn!.detachSession(sessionId)
+          if (sessionId) {
+            void intelligence.dmn!.detachSession(sessionId)
+          }
         } catch (err) {
           logger.debug('DMN session:ended handler error', { error: String(err) })
         }
       })
 
-      bus.on('turn:end', (e: any) => {
-        try {
-          const sessionId = e?.sessionId
-          if (!sessionId) return
-          const contentChars = typeof e?.contentChars === 'number' ? e.contentChars
-            : typeof e?.content === 'string' ? e.content.length
-            : 0
-          const toolCallCount = Array.isArray(e?.toolCalls) ? e.toolCalls.length
-            : typeof e?.toolCallCount === 'number' ? e.toolCallCount
-            : 0
-          const thinkingChars = typeof e?.thinkingChars === 'number' ? e.thinkingChars : 0
-          intelligence.dmn!.recordTurnEnd(sessionId, { contentChars, toolCallCount, thinkingChars })
-        } catch (err) {
-          logger.debug('DMN turn:end handler error', { error: String(err) })
-        }
-      })
-
-      logger.info('DMN wired to event bus (session:created, session:ended, turn:end)')
+      logger.info('DMN wired (AGOP tick loop, session:created, session:ended)')
     } catch (err) {
       logger.warn(`Failed to wire DMN: ${String(err)}`)
     }
