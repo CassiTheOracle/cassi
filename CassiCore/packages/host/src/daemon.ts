@@ -38,9 +38,7 @@ import { type ModelRouter, createModelRouter } from './providers/model-router.js
 import { createSessionBridge } from './session-bridge.js'
 import { createSessionManager } from './session-manager.js'
 import { SessionStore } from './session-store.js'
-import { FileArtifactStore } from './file-artifact-store.js'
 import { MnemicField, CodeStore } from './intelligence/mnemic-field/index.js'
-import { FileVault } from './intelligence/file-vault/index.js'
 import { createSubagentTracker, type SubagentTracker } from './subagent-tracker.js'
 import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
@@ -1349,13 +1347,6 @@ export class Daemon {
           contextDistiller.setMemory(this.intelligence.memory)
         }
 
-        try {
-          const artifactStore = FileArtifactStore.open(this.logger)
-          contextDistiller.setFileArtifactStore(artifactStore)
-        } catch (err) {
-          this.logger.warn('Failed to wire FileArtifactStore into ContextDistiller', { error: String(err) })
-        }
-
         // Wire EventBus for parent session auto-detection via tool-call fingerprinting.
         // Cast needed because IEventBus doesn't expose getGlobalEventsSince(),
         // but the concrete EventBus (which the daemon always creates) does.
@@ -1390,15 +1381,6 @@ export class Daemon {
     const systemPrompt = buildSystemPrompt(this.logger)
     this.logger.info(`System prompt built (${systemPrompt.length} chars)`)
     const sessionStore = SessionStore.open(this.logger)
-
-    // Initialize FileArtifactStore for agent file sharing
-    let fileArtifactStore: FileArtifactStore | undefined
-    try {
-      fileArtifactStore = FileArtifactStore.open(this.logger)
-      this.logger.info('FileArtifactStore initialized for agent file sharing')
-    } catch (err) {
-      this.logger.warn('FileArtifactStore not available', { error: String(err) })
-    }
 
     // Initialize CodeStore for CassiCore source files in the mnemic field
     let codeStore: CodeStore | undefined
@@ -1659,32 +1641,6 @@ export class Daemon {
       this.logger.warn('CodeStore not available', { error: String(err) })
     }
 
-    // Initialize FileVault (topology-aware replacement for FileArtifactStore)
-    let fileVault: FileVault | undefined
-    try {
-      fileVault = FileVault.open(this.logger)
-      ;(this as any).__fileVault = fileVault
-      this.logger.info('FileVault initialized for topology-aware file storage')
-    } catch (err) {
-      this.logger.warn('FileVault not available', { error: String(err) })
-    }
-
-    // Initialize Constellation audit trail (bridges EventBus events to FileArtifactStore)
-    if (fileArtifactStore) {
-      try {
-        const { createConstellationAuditTrail } = await import('./intelligence/constellation/constellation-audit-trail.js')
-        const auditTrail = createConstellationAuditTrail({
-          eventBus: this.bus,
-          artifactStore: fileArtifactStore,
-          logger: this.logger,
-        })
-        auditTrail.start()
-        this.intelligence.constellationAuditTrail = auditTrail
-        this.logger.info('Constellation audit trail started')
-      } catch (err) {
-        this.logger.warn('Constellation audit trail not available', { error: String(err) })
-      }
-    }
     const defaultProvider = this.config.get<string>('intelligence.defaultProvider', MODEL_DEFAULTS.main.provider)
     const configuredModel = this.config.get<string>('intelligence.defaultModel', MODEL_DEFAULTS.main.model)
     const defaultModel = configuredModel
@@ -1768,7 +1724,6 @@ export class Daemon {
         cognitiveBridge: this.intelligence.cognitiveBridge,
         logger: this.logger,
       } : undefined,
-      fileArtifactStore,
       collectThoughtsDeps: this.intelligence ? (() => {
         const synapseLogger = this.logger.child?.('synapse') ?? this.logger
         const firstProvider = this.providers.values().next().value
@@ -1842,8 +1797,6 @@ export class Daemon {
       allowedPaths,
       networkAllowlist,
       logger: this.logger,
-      _fileArtifactStore: fileArtifactStore,
-      _fileVault: fileVault,
       _codeStore: codeStore,
       // REMOVED: _globalBlackboardRegistry — GlobalBlackboardRegistry deprecated
       _cortex: this.intelligence?.cortex,
@@ -2114,11 +2067,6 @@ export class Daemon {
 
             if (this.contextDistiller) {
               this.intelligence.constellation.setContextDistiller(this.contextDistiller)
-            }
-
-            // Wire audit trail into Constellation orchestrator
-            if (this.intelligence.constellationAuditTrail) {
-              this.intelligence.constellation.setAuditTrail(this.intelligence.constellationAuditTrail)
             }
 
             // Wire Reasoning Bank into Constellation orchestrator so traces
@@ -3409,11 +3357,6 @@ export class Daemon {
       const mnemicField = (this as any).__mnemicFieldForCode as { close(): void } | undefined
       mnemicField?.close()
     } catch { /* ignore */ }
-    try {
-      const vault = (this as any).__fileVault as { close(): void } | undefined
-      vault?.close()
-    } catch { /* ignore */ }
-
     // Close prompt log store
     try {
       this.promptLogStore?.close()
