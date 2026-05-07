@@ -244,62 +244,57 @@ export const readFileHandler: ToolHandler = async (
 
   // WHY: cassi://self/ URIs read from the CodeStore (CassiCore's own source in mnemic field)
   if (rawPath.startsWith('cassi://self/')) {
-    try {
-      const codeStore = ctx._codeStore
-      if (!codeStore) {
-        return `Error: CodeStore not available. Cannot read cassi://self/ URIs.`
-      }
-      const filePath = rawPath.slice('cassi://self/'.length)
-      const engram = codeStore.getFileByPath(filePath)
-      if (!engram) {
-        return `Error: source file not found in code store: ${filePath}`
-      }
-      let content = engram.content
-      if (offset > 1 || limit !== undefined) {
-        content = extractLines(Buffer.from(content), offset, limit)
-      }
-      const meta = engram.metadata as Record<string, unknown>
-      return `[code-store: ${filePath} | ${meta.sizeBytes ?? content.length} bytes | potentiation: ${engram.potentiation.toFixed(3)}]\n\n${content}`
-    } catch (err) {
-      return `Error reading from code store: ${String(err)}`
+    const codeStore = ctx._codeStore
+    if (!codeStore) {
+      throw new Error('CodeStore not available — cannot read cassi://self/ URIs')
     }
+    const filePath = rawPath.slice('cassi://self/'.length)
+    const engram = codeStore.getFileByPath(filePath)
+    if (!engram) {
+      throw new Error(`source file not found in code store: ${filePath}`)
+    }
+    let content = engram.content
+    if (offset > 1 || limit !== undefined) {
+      content = extractLines(Buffer.from(content), offset, limit)
+    }
+    const meta = engram.metadata as Record<string, unknown>
+    return `[code-store: ${filePath} | ${meta.sizeBytes ?? content.length} bytes | potentiation: ${engram.potentiation.toFixed(3)}]\n\n${content}`
   }
 
   // cassi://code/{path} URIs read from the CodeVault (external projects)
   if (rawPath.startsWith('cassi://code/')) {
-    return `Error: CodeVault read not yet wired. Use cassi://self/ for CassiCore source or filesystem paths for external projects.`
+    throw new Error('CodeVault read not yet wired — use cassi://self/ for CassiCore source or filesystem paths for external projects')
   }
 
   const absPath = rawPath.startsWith('/')
-    ? rawPath 
+    ? rawPath
     : resolve(ctx.workingDir, rawPath)
-  
+
   const allowed = ctx.allowedPaths.some(p => absPath.startsWith(p))
   if (!allowed) {
-    return `Error: access denied — ${absPath} is outside allowed paths`
+    throw new Error(`access denied — ${absPath} is outside allowed paths`)
   }
-  
-  try {
-    const { content, truncated, fromCache } = await readFileOptimized(
-      absPath,
-      offset,
-      limit,
-      MAX_BYTES
-    )
-    
-    ctx.logger.debug?.('[read_file] completed', {
-      path: absPath,
-      size: content.length,
-      truncated,
-      fromCache,
-      cacheStats: globalCache.stats()
-    })
-    
-    const dirContext = await buildDirContext(absPath)
-    return content + dirContext
-  } catch (err) {
-    return `Error reading file: ${String(err)}`
-  }
+
+  // WHY: errors from readFileOptimized (file not found, not a file, EACCES, etc.)
+  // must propagate so the executor can mark isError=true. Returning the error
+  // as a string would mislead LLMs into treating the prefix as content.
+  const { content, truncated, fromCache } = await readFileOptimized(
+    absPath,
+    offset,
+    limit,
+    MAX_BYTES
+  )
+
+  ctx.logger.debug?.('[read_file] completed', {
+    path: absPath,
+    size: content.length,
+    truncated,
+    fromCache,
+    cacheStats: globalCache.stats()
+  })
+
+  const dirContext = await buildDirContext(absPath)
+  return content + dirContext
 }
 
 /**
