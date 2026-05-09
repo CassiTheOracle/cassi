@@ -360,3 +360,4 @@ export function shortenPath(fp: string): string {
   if (parts.length > 2) return parts.slice(-2).join('/')
   return fp
 }
+

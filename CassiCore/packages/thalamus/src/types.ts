@@ -73,6 +73,8 @@ export interface ThalamusAnnotation {
   pinned?: boolean
   /** Why the message was pinned — used in drop receipts and audit output */
   pinReason?: string
+  /** Pin priority for hard-budget trimming: critical > high > normal */
+  pinPriority?: 'critical' | 'high' | 'normal'
   /** If true, thought-commands in this message have already been processed */
   tcProcessed?: boolean
   /**
@@ -184,10 +186,12 @@ export interface CurationConfig {
   ignitionThreshold: number
   excludeSessionPrefixes: string[]
   slotBudgets: SlotBudgets
-  rerankerCompressionEnabled: boolean
-  rerankerMinChars: number
-  rerankerTargetChars: number
-  rerankerChunkSize: number
+  distillationEnabled: boolean
+  distillationMinChars: number
+  distillationTargetChars: number
+  distillationChunkSize: number
+  /** Max distinct tool_use_id entries cached per session before FIFO eviction. */
+  distillationCacheMaxEntries: number
 }
 
 export const DEFAULT_CURATION_CONFIG: CurationConfig = {
@@ -197,10 +201,11 @@ export const DEFAULT_CURATION_CONFIG: CurationConfig = {
   ignitionThreshold: 0.20,
   excludeSessionPrefixes: ['meditation:', 'module:', 'helix-review:'],
   slotBudgets: DEFAULT_SLOT_BUDGETS,
-  rerankerCompressionEnabled: true,
-  rerankerMinChars: 5000,
-  rerankerTargetChars: 2400,
-  rerankerChunkSize: 400,
+  distillationEnabled: true,
+  distillationMinChars: 5000,
+  distillationTargetChars: 2400,
+  distillationChunkSize: 400,
+  distillationCacheMaxEntries: 200,
 }
 
 export interface ScoredMessage {
@@ -361,6 +366,17 @@ export interface PinnedPattern {
   pinClass: string
 }
 
+export interface IntentSpan {
+  /** Stable ID for this intent span */
+  id: string
+  /** Message indices belonging to this span (user + assistant context) */
+  messageIndices: number[]
+  /** Index of the substantive user message that anchors this span */
+  anchorIndex: number
+  /** When this span was created */
+  createdAt: number
+}
+
 export interface CurationSession {
   sessionId: string
   /** tool_use_id → tool name, accumulated across the session */
@@ -374,6 +390,8 @@ export interface CurationSession {
    * LLM topic-archive call resolves. Used to enrich gap descriptions.
    */
   topicArchive: TopicArchive[]
+  /** Intent spans detected in the most recent curate() call */
+  intentSpans: IntentSpan[]
   /**
    * Capped history of drop/keep decisions from recent curate() passes.
    * Used by cassi_context.audit and cassi_context.why.
@@ -388,27 +406,6 @@ export interface CurationSession {
   pinnedPatterns: PinnedPattern[]
   /** Log of thought-commands (<pin>, <recall>, <note>, <flag>) processed this session */
   thoughtCommandLog: ThoughtCommandLogEntry[]
-  /** tool_use_id → distilled summary for file-read results. Populated by background distillation. */
-  distilledSummaries: Map<string, { summary: string; originalChars: number; goalHash: string }>
-  /**
-   * Snapshot of distilledSummaries keys at the previous receipt build.
-   * Used to compute "completed since last receipt" for the receipt's
-   * distillation summary. Without this, every receipt would show every
-   * historical distillation again.
-   */
-  lastReceiptDistilledIds: Set<string>
-  /**
-   * Read tool_results queued for distillation by the most recent curate()
-   * pass. Consumed by queueBackgroundDistillations (called inline by curate()
-   * legacy-path or by Reverie's onTurnEnd trigger). Cleared after consumption.
-   * Holding the candidates here lets Reverie own the WHEN of distillation
-   * without needing a reference to the message array.
-   */
-  lastReadCandidatesForDistillation?: Array<{
-    toolUseId: string
-    content: string
-    goalContext: string
-  }>
   /**
    * Per-turn cache for detectTopicClusters output. Skipping the O(n) term-set
    * + sliding-window walk when the message array hasn't changed since the
@@ -462,7 +459,6 @@ export interface RerankerCacheEntry {
 
 export interface RerankerCompressionCache {
   entries: Map<string, RerankerCacheEntry>
-  expansions: Map<string, string>
 }
 
 /**

@@ -1,7 +1,7 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
-import { ToolResultCompressor, RerankerCompressor } from './compressor.js'
-import { ToolResultDistiller, type DistillationResult } from './distiller.js'
+import { ToolResultCompressor } from './compressor.js'
+import { ToolResultDistiller } from './distiller.js'
 import { TemporalRegistry } from './temporal.js'
 import { createSlots } from './slots/index.js'
 import { classifyMessage, isWriteTool, isReadTool, isShellTool, extractFilePath, extractSearchTarget, shortenPath } from './classifier.js'
@@ -34,6 +34,7 @@ import type {
   ThoughtCommand,
   ContextMapRow,
   ContextMapSnapshot,
+  IntentSpan,
 } from './types.js'
 import { DEFAULT_CURATION_CONFIG, SIGNAL_TYPE_WEIGHTS, REGION_WEIGHTS, DEFAULT_SLOT_BUDGETS, parseThoughtCommands } from './types.js'
 import { buildDropReceipt, type DropReceipt } from './drop-receipt.js'
@@ -373,7 +374,10 @@ function buildInlineMarker(msg: any, index: number): string | null {
   const t = formatTimeOfDay(ann.ts)
   const chars = formatBytes(ann.chars ?? 0)
   let tag = ''
-  if (ann.protectedBy === 'pin') tag = ` pin:${shortReason(ann.protectedReason ?? ann.pinReason, 15)}`
+  if (ann.protectedBy === 'pin') {
+    const priorityTag = ann.pinPriority === 'critical' ? '!' : ann.pinPriority === 'high' ? '+' : ''
+    tag = ` pin${priorityTag}:${shortReason(ann.protectedReason ?? ann.pinReason, 15)}`
+  }
   else if (ann.protectedBy === 'recent-window') tag = ' recent'
   else if (ann.protectedBy === 'live-read') tag = ` live:${shortReason(ann.protectedReason, 20)}`
   else if (ann.protectedBy === 'system') tag = ' system'
@@ -444,7 +448,6 @@ export class ThalamusModule extends BaseCognitiveModule {
 
   private scorer!: MessageLuminanceScorer
   private compressor!: ToolResultCompressor
-  private rerankerCompressor!: RerankerCompressor
   private distiller!: ToolResultDistiller
   private sessions = new Map<string, CurationSession>()
   private evictionTimer: ReturnType<typeof setInterval> | null = null
@@ -472,19 +475,10 @@ export class ThalamusModule extends BaseCognitiveModule {
   private lastPinealFacetIds: string[] = []
   /** Factory for background LLM calls (topic archiving, gap summaries) */
   private handleFactory: HandleFactory | null = null
-  /** Factory for distillation — may use a different provider than general background tasks */
-  private distillationFactory: HandleFactory | null = null
   /** Persistent store for curation audit data (drop history, pass metadata) */
   private store: ThalamusStore | null = null
   /** Sink for <note for="..."> thought-commands. Set by the daemon to route notes to Reverie. */
   private reverieNoteSink: ((sessionId: string, recipient: string, message: string) => void) | null = null
-  /**
-   * When true, Thalamus.curate() suppresses its inline distillation spawn —
-   * an external owner (Reverie) is expected to call queueBackgroundDistillations()
-   * on its own schedule. Default false preserves legacy behavior when the
-   * external trigger isn't wired.
-   */
-  private externalDistillationTrigger = false
 
   setStore(store: ThalamusStore): void { this.store = store }
   setLocusBridge(lb: LocusBridge): void { this.locusBridge = lb }
@@ -495,14 +489,7 @@ export class ThalamusModule extends BaseCognitiveModule {
   setAurora(a: Aurora): void { this.aurora = a }
   setPinealAssembler(pa: PinealAssembler): void { this.pinealAssembler = pa }
   setHandleFactory(fn: HandleFactory): void { this.handleFactory = fn }
-  setDistillationFactory(fn: HandleFactory): void { this.distillationFactory = fn }
   setReverieNoteSink(fn: (sessionId: string, recipient: string, message: string) => void): void { this.reverieNoteSink = fn }
-  /**
-   * Tell Thalamus that an external owner (Reverie) will fire distillation —
-   * curate() should stop its inline spawn so the same work doesn't queue
-   * twice. Idempotent.
-   */
-  enableExternalDistillationTrigger(): void { this.externalDistillationTrigger = true }
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
   setReverieInferenceProvider(provider: import('../aurora/types.js').ReverieInferenceProvider): void {
@@ -513,7 +500,6 @@ export class ThalamusModule extends BaseCognitiveModule {
     await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
     this.compressor = new ToolResultCompressor(this.logger)
-    this.rerankerCompressor = new RerankerCompressor(this.logger)
     this.distiller = new ToolResultDistiller(this.logger)
     this.slots = createSlots()
     this.evictionTimer = setInterval(() => this.evictStaleSessions(), SESSION_EVICT_MS / 2)
@@ -594,27 +580,189 @@ export class ThalamusModule extends BaseCognitiveModule {
       return this.process(sessionId, msg, i)
     })
 
-    // Pin the first substantive user message — this is the original task request.
-    // Without it, the model loses the task context when curation drops old messages.
-    // Skip tool_result messages — they're not user instructions.
-    for (const msg of processed) {
-      if (msg?.role === 'user') {
-        // Skip tool_result messages — they're assistant tool outputs, not user requests
-        const hasToolResult = Array.isArray(msg.content) && msg.content.some((b: any) => b?.type === 'tool_result')
-        if (hasToolResult) continue
-        
-        const content = extractMessageContent(msg)
-        const isSubstantive = content.length > 20 || /\b(fix|implement|add|create|update|refactor|debug|test|build|design|plan|review|analyze|solve|change|move|extract|merge|split|optimize|clean|document|deploy|configure|integrate|migrate|upgrade|downgrade|patch|release|launch|setup|install|uninstall|enable|disable|rename|delete|remove|replace|convert|transform|generate|compute|calculate|validate|verify|check|audit|monitor|track|search|find|locate|identify|detect|discover|explore|investigate|research|study|compare|contrast|measure|assess|evaluate|rate|score|rank|classify|categorize|organize|structure|arrange|format|parse|serialize|deserialize|encode|decode|encrypt|decrypt|compress|decompress|upload|download|import|export|sync|backup|restore|revert|reset|refresh|reload|restart|reboot|shutdown|startup|initialize|finalize|cleanup|destroy|terminate|kill|abort|cancel|retry|retry|resume|pause|suspend|resume|continue|proceed|advance|progress|step|stage|phase|cycle|iteration|loop|recursion|iteration|batch|job|task|workflow|pipeline|chain|sequence|series|parallel|concurrent|synchronized|asynchronous|synchronous|real-time|live|interactive|batch|offline|online|remote|local|internal|external|public|private|secure|insecure|trusted|untrusted|safe|unsafe|stable|unstable|volatile|persistent|transient|temporary|permanent|static|dynamic|active|inactive|enabled|disabled|available|unavailable|ready|not-ready|waiting|pending|runn|ing|complete|completed|done|finished|incomplete|partial|full|empty|null|undefined|zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/i.test(content)
-        if (isSubstantive) {
-          if (!msg._thalamus) msg._thalamus = {}
-          msg._thalamus.pinned = true
-          msg._thalamus.pinReason = 'original-task'
-          break
+    // Detect intent spans and pin the most recent ones.
+    // Intent spans group a substantive user message + its continuations +
+    // assistant context messages. Recent spans are pinned with priority so
+    // active instructions survive curation.
+    const spans = this.detectIntentSpans(processed)
+    const session = this.getSession(sessionId)
+    session.intentSpans = spans
+
+    // Pin messages from the last 3 intent spans
+    const spansToPin = spans.slice(-3)
+    for (const span of spansToPin) {
+      for (const idx of span.messageIndices) {
+        const msg = processed[idx]
+        if (!msg) continue
+        if (!msg._thalamus) msg._thalamus = {}
+        msg._thalamus.pinned = true
+
+        if (idx === span.anchorIndex) {
+          // Substantive user message — high priority
+          msg._thalamus.pinPriority = 'high'
+          msg._thalamus.pinReason = 'intent-anchor'
+        } else if (msg.role === 'assistant' && idx === span.anchorIndex - 1) {
+          // Assistant message directly preceding the anchor — high priority
+          msg._thalamus.pinPriority = 'high'
+          msg._thalamus.pinReason = 'intent-context'
+        } else {
+          // Continuations or other context — normal priority
+          msg._thalamus.pinPriority = 'normal'
+          msg._thalamus.pinReason = 'intent-context'
         }
       }
     }
 
+    // Also pin AskUserQuestion answers (existing behavior, now with priority)
+    const toolUseMap = buildToolUseMapFromMessages(processed)
+    for (const msg of processed) {
+      if (hasQuestionResult(msg, { toolUseMap }) && msg?._thalamus && !msg._thalamus.pinned) {
+        msg._thalamus.pinned = true
+        msg._thalamus.pinPriority = 'high'
+        msg._thalamus.pinReason = 'AskUserQuestion answer'
+      }
+    }
+
     return processed
+  }
+
+  /**
+   * Detect intent spans in the message array.
+   * An intent span = substantive user message + continuations + assistant context.
+   * Walks backwards to group continuations with their substantive anchor.
+   */
+  private detectIntentSpans(messages: any[]): IntentSpan[] {
+    if (!messages || messages.length === 0) return []
+
+    const spans: IntentSpan[] = []
+    let currentSpan: { anchorIndex: number; indices: number[] } | null = null
+
+    // Heuristic terms for identifying continuations
+    const continuationWords = new Set(['continue', 'go on', 'keep going', 'ok', 'okay', 'yes', 'sure', 'proceed', 'next', 'more'])
+
+    // Walk backwards to build spans
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i]
+      if (msg?.role !== 'user') continue
+
+      // Skip tool_result messages
+      const hasToolResult = Array.isArray(msg.content) && msg.content.some((b: any) => b?.type === 'tool_result')
+      if (hasToolResult) continue
+
+      const content = extractMessageContent(msg)
+      const terms = extractTerms(content)
+
+      // Check if this is a continuation
+      const isContinuation = this.isContinuationMessage(content, terms, messages, i, continuationWords)
+
+      if (isContinuation) {
+        // Add to current span if one exists
+        if (currentSpan) {
+          currentSpan.indices.unshift(i)
+        }
+      } else {
+        // This is a substantive message — start a new span
+        if (currentSpan) {
+          spans.unshift(this.buildIntentSpan(currentSpan, messages))
+        }
+        currentSpan = { anchorIndex: i, indices: [i] }
+      }
+    }
+
+    // Don't forget the last span
+    if (currentSpan) {
+      spans.unshift(this.buildIntentSpan(currentSpan, messages))
+    }
+
+    return spans
+  }
+
+  private isContinuationMessage(
+    content: string,
+    terms: string[],
+    messages: any[],
+    index: number,
+    continuationWords: Set<string>,
+  ): boolean {
+    const lower = content.toLowerCase()
+
+    // Short messages with ONLY continuation words → continuation
+    if (content.length < 15 && content.length > 0) {
+      // But not if they contain action verbs (substantive)
+      const actionVerbs = /\b(fix|implement|add|create|update|refactor|debug|test|build|design|plan|review|analyze|solve|change|move|extract|merge|split|optimize|clean|document|deploy|configure|integrate|migrate|upgrade|downgrade|patch|release|launch|setup|install|uninstall|enable|disable|rename|delete|remove|replace|convert|transform|generate|compute|calculate|validate|verify|check|audit|monitor|track|search|find|locate|identify|detect|discover|explore|investigate|research|study|compare|contrast|measure|assess|evaluate|rate|score|rank|classify|categorize|organize|structure|arrange|format|parse|serialize|deserialize|encode|decode|encrypt|decrypt|compress|decompress|upload|download|import|export|sync|backup|restore|revert|reset|refresh|reload|restart|reboot|shutdown|startup|initialize|finalize|cleanup|destroy|terminate|kill|abort|cancel|retry|resume|pause|suspend|continue|proceed|advance|progress|step|stage|phase|cycle|iteration|loop|recursion|batch|job|task|workflow|pipeline|chain|sequence|series|parallel|concurrent|synchronized|asynchronous|synchronous|real-time|live|interactive|batch|offline|online|remote|local|internal|external|public|private|secure|insecure|trusted|untrusted|safe|unsafe|stable|unstable|volatile|persistent|transient|temporary|permanent|static|dynamic|active|inactive|enabled|disabled|available|unavailable|ready|not-ready|waiting|pending|runn|ing|complete|completed|done|finished|incomplete|partial|full|empty|null|undefined|zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/
+      if (!actionVerbs.test(lower)) return true
+    }
+
+    // Check for explicit continuation words that STAND ALONE (not embedded in substantive text)
+    // e.g. "ok" or "continue" but not "confirmation" or "continuing"
+    const standaloneContinuation = /\b(continue|go on|keep going|ok|okay|yes|sure|proceed|next|more)\b/
+    const matches = lower.match(standaloneContinuation)
+    if (matches && matches.length === 1 && content.length < 30) return true
+
+    // Check similarity to previous user message (within 3 messages)
+    let prevUserMsg: any = null
+    for (let j = index - 1; j >= Math.max(0, index - 3); j--) {
+      if (messages[j]?.role === 'user') {
+        prevUserMsg = messages[j]
+        break
+      }
+    }
+
+    if (prevUserMsg) {
+      const prevContent = extractMessageContent(prevUserMsg)
+      const prevTerms = extractTerms(prevContent)
+      const similarity = this.jaccardSimilarity(new Set(terms), new Set(prevTerms))
+      // Only mark as continuation if very high similarity AND short
+      if (similarity > 0.85 && content.length < 30) return true
+    }
+
+    return false
+  }
+
+  private jaccardSimilarity(a: Set<string>, b: Set<string>): number {
+    if (a.size === 0 && b.size === 0) return 1.0
+    const intersection = new Set([...a].filter(x => b.has(x)))
+    const union = new Set([...a, ...b])
+    return intersection.size / union.size
+  }
+
+  private buildIntentSpan(
+    span: { anchorIndex: number; indices: number[] },
+    messages: any[],
+  ): IntentSpan {
+    const indices = [...span.indices]
+    let minIdx = span.anchorIndex
+    let maxIdx = span.anchorIndex
+
+    // Find min/max efficiently (no spread)
+    for (const idx of span.indices) {
+      if (idx < minIdx) minIdx = idx
+      if (idx > maxIdx) maxIdx = idx
+    }
+
+    // Include assistant messages that are DIRECTLY ADJACENT to user messages
+    // in the span. Don't pull in unrelated assistants from gaps.
+    for (const userIdx of span.indices) {
+      // Assistant before this user message
+      const before = userIdx - 1
+      if (before >= minIdx && messages[before]?.role === 'assistant' && !indices.includes(before)) {
+        indices.push(before)
+      }
+      // Assistant after this user message
+      const after = userIdx + 1
+      if (after <= maxIdx && messages[after]?.role === 'assistant' && !indices.includes(after)) {
+        indices.push(after)
+      }
+    }
+
+    indices.sort((a, b) => a - b)
+
+    return {
+      id: `intent-${span.anchorIndex}`,
+      messageIndices: indices,
+      anchorIndex: span.anchorIndex,
+      createdAt: Date.now(),
+    }
   }
 
   /**
@@ -801,23 +949,6 @@ export class ThalamusModule extends BaseCognitiveModule {
     const topicClusters = this.detectTopicClusters(sessionId, cloned)
     const { nonLatestToolUseIds } = this.computeReadSuppression(cloned, topicClusters)
 
-    // Phase 0b: Apply distilled summaries — replace read tool_result content with
-    // LLM-distilled findings if a summary exists. This runs BEFORE compression so
-    // the compressor sees shorter content and the char budget goes further.
-    const distiller = this.distiller
-    if (distiller) {
-      const summaries = session.distilledSummaries
-      for (const msg of cloned) {
-        const ann = msg?._thalamus
-        if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
-        const toolUseId = this.extractToolUseId(msg)
-        if (!toolUseId || !summaries.has(toolUseId)) continue
-        const summary = summaries.get(toolUseId)!
-        ann._distilledFrom = extractMessageContent(msg).length
-        this.replaceToolResultContent(msg, `[distilled] ${summary.summary}`)
-      }
-    }
-
     // Phase 1: Slot-aware compression — uses _thalamus.tool.class for strategy selection.
     // Two protection mechanisms:
     //   1. Recent window — last N messages are kept verbatim (in-flight context)
@@ -939,30 +1070,30 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     const assembled = this.assembleByThreshold(compressed, scored, cappedProtectedStart, cfg, topicClusters, sessionId)
 
-    // Phase 4b: Reranker compression for included messages with large tool results.
-    // Uses local cross-encoder to select the most contextually relevant chunks,
-    // preserving semantic coherence instead of naive head+tail truncation.
-    let rerankerCompressed = 0
-    if (cfg.rerankerCompressionEnabled) {
+    // Phase 4b: Extractive distillation for included messages with large tool
+    // results. Uses the local cross-encoder reranker to select the most
+    // contextually relevant chunks, preserving semantic coherence instead of
+    // naive head+tail truncation.
+    let distilled = 0
+    if (cfg.distillationEnabled) {
       const recentUserPrompt = this.getRecentUserPrompt(compressed)
       const recentAssistantThinking = this.getRecentAssistantThinking(compressed)
-      // Protected from reranker compression: same set as Phase 1 heuristic
-      // protection — live reads (latest read of a file with no later write)
-      // need byte-exact survival because the next edit's match-string must
-      // align. Without this, a reranker-compressed read forces re-reading
-      // and breaks the read-then-edit chain.
-      const rerankerProtectedIndices = new Set(liveReadMap.keys())
-      const rerankerResult = await this.rerankerCompressor.compress(
+      // Protected from distillation: same set as Phase 1 heuristic protection —
+      // live reads (latest read of a file with no later write) need byte-exact
+      // survival because the next edit's match-string must align. Without this,
+      // a distilled read forces re-reading and breaks the read-then-edit chain.
+      const distillProtectedIndices = new Set(liveReadMap.keys())
+      const distillResult = await this.distiller.distill(
         assembled.messages,
         assembled.includedIndices,
         session.rerankerCache,
         cfg,
         { userPrompt: recentUserPrompt, assistantThinking: recentAssistantThinking },
-        rerankerProtectedIndices,
+        distillProtectedIndices,
       )
-      if (rerankerResult.rerankerCompressed > 0) {
-        assembled.messages = rerankerResult.messages
-        rerankerCompressed = rerankerResult.rerankerCompressed
+      if (distillResult.distilled > 0) {
+        assembled.messages = distillResult.messages
+        distilled = distillResult.distilled
       }
     }
 
@@ -1006,8 +1137,6 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
-    const distillationSummary = this.buildDistillationSummary(compressed, session)
-
     const receipt = buildDropReceipt({
       before: compressed,
       scored,
@@ -1017,18 +1146,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       charsUsed: curatedChars,
       threshold: cfg.ignitionThreshold,
       rerankerCache: session.rerankerCache,
-      distillation: distillationSummary,
     })
-
-    // Snapshot the distilledSummaries keys we just reported on, so the next
-    // receipt only shows newly-completed entries. Use union with previous
-    // snapshot to keep historical IDs stable (in case a summary is evicted
-    // and re-distilled later, we'd still consider it "old" — fine for V1).
-    if (distillationSummary && distillationSummary.completed.length > 0) {
-      for (const entry of distillationSummary.completed) {
-        session.lastReceiptDistilledIds.add(entry.toolUseId)
-      }
-    }
 
     // Detect tool repetition — same (tool, target) appearing 3+ times
     const repetitionWarning = this.detectToolRepetition(compressed)
@@ -1052,7 +1170,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       contextMap,
       durationMs: Date.now() - start,
       topicSummaries,
-      rerankerCompressed,
+      distilled,
     }
 
     this.logger.info('Thalamus curated', {
@@ -1064,7 +1182,7 @@ export class ThalamusModule extends BaseCognitiveModule {
       threshold: cfg.ignitionThreshold,
       phaseCoherence: brainContext.phaseCoherence?.toFixed(2) ?? "?",
       dropped,
-      rerankerCompressed,
+      distilled,
       durationMs: meta.durationMs,
     })
 
@@ -1081,13 +1199,10 @@ export class ThalamusModule extends BaseCognitiveModule {
       if (!annotation) continue
       const content = extractMessageContent(msg)
       const chars = content.length
-      const distilledFrom = (annotation as any)._distilledFrom
       const originalChars =
-        typeof distilledFrom === 'number' && distilledFrom > 0
-          ? distilledFrom
-          : typeof msg?._originalChars === 'number' && msg._originalChars > 0
-            ? msg._originalChars
-            : chars
+        typeof msg?._originalChars === 'number' && msg._originalChars > 0
+          ? msg._originalChars
+          : chars
       const sm = scoredByIdx.get(idx)
       mapRows.push({
         msgIndex: idx,
@@ -1180,40 +1295,6 @@ export class ThalamusModule extends BaseCognitiveModule {
           this.logger.warn('ThalamusStore recordPass failed', { error: String(err) })
         }
       }
-    }
-
-    // Stage read tool_results that will need background distillation. We
-    // compute the candidates here (curate has the brainContext + scored
-    // record) and stash them on the session so the trigger doesn't need
-    // re-access to those locals. Then either curate() spawns inline (legacy)
-    // or Reverie fires queueBackgroundDistillations on its own schedule
-    // (when externalDistillationTrigger is enabled).
-    {
-      const goal = brainContext.focusTerms.size > 0
-        ? [...brainContext.focusTerms].slice(0, 5).join(', ')
-        : 'general'
-      const candidates = scored
-        .filter(sm => {
-          const msg = compressed[sm.messageIndex]
-          const ann = msg?._thalamus
-          return ann?.slot === 'tool_result' && ann.tool?.class === 'read'
-        })
-        .map(sm => {
-          const msg = compressed[sm.messageIndex]
-          const toolUseId = this.extractToolUseId(msg)
-          return { toolUseId, content: extractMessageContent(msg) }
-        })
-        .filter(r => r.toolUseId && r.content.length > 2000 && !session.distilledSummaries.has(r.toolUseId!))
-        .map(r => ({ toolUseId: r.toolUseId!, content: r.content, goalContext: goal }))
-
-      session.lastReadCandidatesForDistillation = candidates.length > 0 ? candidates : undefined
-    }
-
-    // Fire distillation inline only when no external trigger is wired —
-    // otherwise Reverie owns the schedule (avoids double-spawn race against
-    // a still-in-flight LLM call writing to distilledSummaries).
-    if (!this.externalDistillationTrigger) {
-      this.queueBackgroundDistillations(sessionId)
     }
 
     // Invalidate brain context cache after curation — each turn gets fresh context
@@ -1341,124 +1422,9 @@ export class ThalamusModule extends BaseCognitiveModule {
   }
 
   /**
-   * Compute distillation activity for the current curate pass: pending (read
-   * tool_results above 2KB without a summary yet) and completed-since-last-
-   * receipt (summaries that landed in the background between the previous
-   * and current curate). Both are derived from session state — no extra LLM
-   * calls, just bookkeeping.
-   */
-  private buildDistillationSummary(
-    compressed: any[],
-    session: CurationSession,
-  ): { pending: number; completed: Array<{ msgIndex: number; toolUseId: string; originalChars: number; summaryChars: number }>; charsFreed: number } | undefined {
-    const completed: Array<{ msgIndex: number; toolUseId: string; originalChars: number; summaryChars: number }> = []
-    let charsFreed = 0
-    let pending = 0
-    for (let i = 0; i < compressed.length; i++) {
-      const msg = compressed[i]
-      const ann = msg?._thalamus
-      if (ann?.slot !== 'tool_result' || ann.tool?.class !== 'read') continue
-      const toolUseId = this.extractToolUseId(msg)
-      if (!toolUseId) continue
-      const summary = session.distilledSummaries.get(toolUseId)
-      if (summary) {
-        if (!session.lastReceiptDistilledIds.has(toolUseId)) {
-          const summaryChars = `[distilled] ${summary.summary}`.length
-          completed.push({ msgIndex: i, toolUseId, originalChars: summary.originalChars, summaryChars })
-          charsFreed += Math.max(0, summary.originalChars - summaryChars)
-        }
-      } else {
-        // Mirrors the queue filter at the bottom of curate(): same
-        // 2000-char threshold the distiller uses for enqueue eligibility.
-        const content = extractMessageContent(msg)
-        if (content.length > 2000) pending++
-      }
-    }
-    if (completed.length === 0 && pending === 0) return undefined
-    return { pending, completed, charsFreed }
-  }
-
-  /**
-   * Spawn background LLM distillation for the candidates staged by the most
-   * recent curate() pass. Public so Reverie can call it on its own schedule
-   * (the design assigns Reverie ownership of stateful background work; this
-   * method keeps the storage in Thalamus session — single source of truth —
-   * while letting Reverie own the WHEN). Fire-and-forget; does not throw.
-   * Idempotent: candidates are consumed (cleared from session state) on call.
-   */
-  queueBackgroundDistillations(sessionId: string): void {
-    const session = this.sessions.get(sessionId)
-    if (!session) return
-    const candidates = session.lastReadCandidatesForDistillation
-    if (!candidates || candidates.length === 0) return
-    // Consume — clear before spawning so a parallel call doesn't double-fire
-    session.lastReadCandidatesForDistillation = undefined
-
-    const distiller = this.distiller
-    if (!distiller || !this.handleFactory) return
-
-    // Re-filter against the current summaries map in case a prior in-flight
-    // distillation completed between staging and this call.
-    const filtered = candidates.filter(r => !session.distilledSummaries.has(r.toolUseId))
-    if (filtered.length === 0) return
-
-    const sessionIdCapture = sessionId
-    const distillPromise = async () => {
-      const factory = this.distillationFactory ?? this.handleFactory
-      if (!factory) {
-        this.logger.warn('Thalamus distillation skipped — no handle factory available')
-        return
-      }
-      const handle = await factory({ tier: 'background', purpose: 'distillation', sessionId: sessionIdCapture })
-      try {
-        // Each candidate's distillation is an independent LLM round-trip.
-        // Mirrors the parallelism of RerankerCompressor — Promise.allSettled
-        // so one slow/failed call doesn't stall the others, and so an LLM
-        // error on candidate #2 still lets candidates #1 and #3 land.
-        const results = await Promise.allSettled(filtered.map(async (r) => {
-          const pending: import('./distiller.js').PendingDistillation = {
-            toolUseId: r.toolUseId,
-            filePath: '',
-            content: r.content,
-            goalContext: r.goalContext,
-          }
-          const result = await distiller.distill(pending, async (msgs) => {
-            const resp = await handle.complete(msgs as any, {} as any)
-            const text = resp.response ?? (resp as any)?.content?.[0]?.text ?? String(resp)
-            return { response: text }
-          })
-          return { toolUseId: r.toolUseId, summary: result }
-        }))
-        let distilled = 0
-        for (const settled of results) {
-          if (settled.status !== 'fulfilled') continue
-          const { toolUseId, summary } = settled.value
-          if (!summary?.summary) continue
-          session.distilledSummaries.set(toolUseId, {
-            summary: summary.summary,
-            originalChars: summary.originalChars,
-            goalHash: summary.goalHash,
-          })
-          distilled++
-        }
-        this.logger.debug('Thalamus distillation complete', {
-          sessionId: sessionIdCapture.slice(-8),
-          distilled,
-          queued: filtered.length,
-        })
-      } catch (err) {
-        this.logger.warn('Thalamus distillation failed', { error: String(err) })
-      } finally {
-        handle.release()
-      }
-    }
-    distillPromise().catch(() => {})
-  }
-
-  /**
-   * Recover the original uncompressed content for a tool result that was
-   * compressed by the reranker. Returns undefined if the tool_use_id is not
-   * found in the session's reranker cache.
+   * Recover the original content for a tool result that was extractively
+   * distilled. Returns undefined if the tool_use_id is not found in the
+   * session's distillation cache.
    */
   expandToolResult(sessionId: string, toolUseId: string): { original: string; compressed: string; toolUseId: string } | undefined {
     const session = this.getSession(sessionId)
@@ -2113,51 +2079,50 @@ export class ThalamusModule extends BaseCognitiveModule {
   } {
     let threshold = config.ignitionThreshold
 
+    const isPinned = (s: ScoredMessage): boolean =>
+      messages[s.messageIndex]?._thalamus?.pinned === true
+
+    // Pinned messages are unconditionally included — they never compete
+    // for budget. Reserve their chars first, then compute what's left for
+    // the protected window and candidate selection.
+    const allCandidates = scored
+      .filter(s => s.messageIndex < protectedStart)
+      .sort((a, b) => b.luminance.composite - a.luminance.composite)
+
+    const pinnedCandidates = allCandidates.filter(isPinned)
+    const pinnedChars = pinnedCandidates.reduce((sum, s) => sum + s.estimatedChars, 0)
+    const pinnedSet = new Set<number>(pinnedCandidates.map(s => s.messageIndex))
+    let pinnedOverrides = pinnedSet.size
+
     // Protected messages always included
     const protectedChars = scored
       .filter(s => s.messageIndex >= protectedStart)
       .reduce((sum, s) => sum + s.estimatedChars, 0)
 
-    let remainingBudget = config.charBudget - protectedChars
-    if (remainingBudget <= 0) {
-      const protectedSet = new Set<number>()
-      for (let i = protectedStart; i < messages.length; i++) protectedSet.add(i)
-      return {
-        messages: messages.slice(protectedStart),
-        gapNotes: 0,
-        includedIndices: protectedSet,
-        charsUsed: protectedChars,
-        pinnedOverrides: 0,
-      }
+    let remainingBudget = config.charBudget - pinnedChars - protectedChars
+
+    // If budget is exhausted after reserving chars for pinned + protected,
+    // set remainingBudget to 0 so no candidates are added. The protected
+    // window is never shrunk — recent context is more valuable than old
+    // candidates that might fit by squeezing the protected zone.
+    if (remainingBudget < 0) {
+      remainingBudget = 0
     }
 
-    // Candidates: older messages that must compete for inclusion
-    const candidates = scored
-      .filter(s => s.messageIndex < protectedStart)
-      .sort((a, b) => b.luminance.composite - a.luminance.composite)
+    // Candidates: older messages that must compete for inclusion (excluding pinned, already included)
+    const candidates = allCandidates.filter(s => !pinnedSet.has(s.messageIndex))
 
     // Ignition: select candidates above threshold, within budget
-    let included = new Set<number>()
-    let usedChars = 0
-
-    const isPinned = (s: ScoredMessage): boolean =>
-      messages[s.messageIndex]?._thalamus?.pinned === true
+    let included = new Set<number>(pinnedSet)
+    let usedChars = pinnedChars
 
     const selectByThreshold = (t: number): { set: Set<number>; chars: number } => {
-      const set = new Set<number>()
-      let chars = 0
-      // Phase A: pinned messages bypass threshold (still respect budget)
+      const set = new Set<number>(pinnedSet)
+      let chars = pinnedChars
+      // High-luminance candidates fill remaining budget
       for (const s of candidates) {
-        if (!isPinned(s)) continue
-        if (chars + s.estimatedChars > remainingBudget) continue
-        set.add(s.messageIndex)
-        chars += s.estimatedChars
-      }
-      // Phase B: high-luminance candidates fill remaining budget
-      for (const s of candidates) {
-        if (set.has(s.messageIndex)) continue
         if (s.luminance.composite < t) continue
-        if (chars + s.estimatedChars > remainingBudget) continue
+        if (chars + s.estimatedChars > remainingBudget + pinnedChars) continue
         set.add(s.messageIndex)
         chars += s.estimatedChars
       }
@@ -2180,6 +2145,82 @@ export class ThalamusModule extends BaseCognitiveModule {
       }
     }
 
+    // Build bidirectional maps for tool pair lookups (used by diversity and repair)
+    const toolUseIdxById = new Map<string, number>()
+    const toolResultIdxById = new Map<string, number>()
+    for (let i = 0; i < messages.length; i++) {
+      const msg = messages[i]
+      if (!Array.isArray(msg?.content)) continue
+      for (const block of msg.content) {
+        if (block?.type === 'tool_use' && typeof block.id === 'string') {
+          toolUseIdxById.set(block.id, i)
+        }
+        if (block?.type === 'tool_result' && typeof block.tool_use_id === 'string') {
+          toolResultIdxById.set(block.tool_use_id, i)
+        }
+      }
+    }
+
+    // Diversity pass: ensure at least one representative per completed topic cluster.
+    // This prevents older work phases from being completely erased when their messages
+    // all score below the ignition threshold.
+    // Runs BEFORE repair passes so that injected representatives can be validated and
+    // paired by ensureToolPairs/ensureAlternation, avoiding orphaned tool blocks.
+    const scoredByIndex = new Map(scored.map(s => [s.messageIndex, s]))
+    if (topicClusters && topicClusters.length > 1) {
+      // Skip the last (active) cluster — it's covered by protectedStart
+      for (let ci = 0; ci < topicClusters.length - 1; ci++) {
+        const cluster = topicClusters[ci]
+        const clusterOldIndices = cluster.messageIndices.filter(idx => idx < protectedStart)
+        if (clusterOldIndices.length === 0) continue
+        const hasRepresentative = clusterOldIndices.some(idx => included.has(idx))
+        if (!hasRepresentative) {
+          // Pick the highest-scored message in this cluster that fits in budget
+          // and does not create unpaired tool blocks.
+          const candidates2 = clusterOldIndices
+            .map(idx => scoredByIndex.get(idx))
+            .filter((s): s is ScoredMessage => s !== undefined && s.luminance.composite > 0)
+            .sort((a, b) => b.luminance.composite - a.luminance.composite)
+          for (const s of candidates2) {
+            if (s.estimatedChars > remainingBudget - usedChars) continue
+            // Skip if injecting this message would create unpaired tool blocks
+            // that cannot be resolved by adding the partner message.
+            const msg = messages[s.messageIndex]
+            if (Array.isArray(msg?.content)) {
+              const hasToolUse = msg.content.some((c: any) => c?.type === 'tool_use')
+              const hasToolResult = msg.content.some((c: any) => c?.type === 'tool_result')
+              if (hasToolUse || hasToolResult) {
+                const partnerResolvable = msg.content.every((c: any) => {
+                  if (c?.type === 'tool_use') {
+                    const resultIdx = toolResultIdxById.get(c.id)
+                    if (resultIdx === undefined) return false
+                    // Partner must fit in budget or already be included
+                    if (!included.has(resultIdx)) {
+                      const partnerChars = scoredByIndex.get(resultIdx)?.estimatedChars ?? 0
+                      if (usedChars + s.estimatedChars + partnerChars > remainingBudget) return false
+                    }
+                  }
+                  if (c?.type === 'tool_result') {
+                    const useIdx = toolUseIdxById.get(c.tool_use_id)
+                    if (useIdx === undefined) return false
+                    if (!included.has(useIdx)) {
+                      const partnerChars = scoredByIndex.get(useIdx)?.estimatedChars ?? 0
+                      if (usedChars + s.estimatedChars + partnerChars > remainingBudget) return false
+                    }
+                  }
+                  return true
+                })
+                if (!partnerResolvable) continue
+              }
+            }
+            included.add(s.messageIndex)
+            usedChars += s.estimatedChars
+            break
+          }
+        }
+      }
+    }
+
     // Iterate both repair passes to fixpoint. Each pass can create work for
     // the other: ensureAlternation may bridge a gap with an assistant tool_use
     // whose tool_result isn't included (alternation fixed, pairing broken);
@@ -2191,41 +2232,16 @@ export class ThalamusModule extends BaseCognitiveModule {
       this.ensureAlternation(messages, included, protectedStart)
       const after = Array.from(included).sort((a, b) => a - b).join(',')
       if (before === after) break
-    }
-
-    // Diversity pass: ensure at least one representative per completed topic cluster.
-    // This prevents older work phases from being completely erased when their messages
-    // all score below the ignition threshold.
-    if (topicClusters && topicClusters.length > 1) {
-      const scoredByIndex = new Map(scored.map(s => [s.messageIndex, s]))
-      // Skip the last (active) cluster — it's covered by protectedStart
-      for (let ci = 0; ci < topicClusters.length - 1; ci++) {
-        const cluster = topicClusters[ci]
-        const clusterOldIndices = cluster.messageIndices.filter(idx => idx < protectedStart)
-        if (clusterOldIndices.length === 0) continue
-        const hasRepresentative = clusterOldIndices.some(idx => included.has(idx))
-        if (!hasRepresentative) {
-          // Pick the highest-scored message in this cluster that fits in budget
-          const candidates2 = clusterOldIndices
-            .map(idx => scoredByIndex.get(idx))
-            .filter((s): s is ScoredMessage => s !== undefined && s.luminance.composite > 0)
-            .sort((a, b) => b.luminance.composite - a.luminance.composite)
-          for (const s of candidates2) {
-            if (s.estimatedChars <= remainingBudget - usedChars) {
-              included.add(s.messageIndex)
-              usedChars += s.estimatedChars
-              break
-            }
-          }
-        }
-      }
+      // Recalc usedChars after each repair pass since it adds partners
+      usedChars = Array.from(included).reduce((sum, idx) => {
+        return sum + (scoredByIndex.get(idx)?.estimatedChars ?? extractMessageContent(messages[idx]).length)
+      }, 0)
     }
 
     // Phase 3c: Hard budget enforcement. After repair passes and diversity
     // injection, the actual char count can exceed charBudget because those
     // passes add messages without recalculating the budget. Trim the
     // lowest-luminance droppable messages until we're under budget.
-    const scoredByIndex = new Map(scored.map(s => [s.messageIndex, s]))
     const calcTotalChars = (): number => {
       let total = 0
       for (let i = 0; i < messages.length; i++) {
@@ -2244,18 +2260,27 @@ export class ThalamusModule extends BaseCognitiveModule {
         charBudget: config.charBudget,
         overage,
       })
-      // Collect droppable indices: in included, not pinned, not protected
+      // Collect droppable indices: in included, not protected.
+      // Priority-aware trimming: normal first, then high (if severe), never critical.
       const droppable = Array.from(included)
         .filter(idx => {
           if (idx >= protectedStart) return false
-          if (messages[idx]?._thalamus?.pinned) return false
+          const priority = messages[idx]?._thalamus?.pinPriority
+          if (priority === 'critical') return false
+          if (priority === 'high' && overage < 5000) return false
           return true
         })
         .map(idx => {
           const s = scoredByIndex.get(idx)
-          return { idx, score: s?.luminance.composite ?? 0, chars: s?.estimatedChars ?? 0 }
+          const priority = messages[idx]?._thalamus?.pinPriority ?? 'normal'
+          // Sort by priority (normal first) then by score
+          const priorityRank = priority === 'high' ? 1 : 0
+          return { idx, score: s?.luminance.composite ?? 0, chars: s?.estimatedChars ?? 0, priorityRank }
         })
-        .sort((a, b) => a.score - b.score)
+        .sort((a, b) => {
+          if (a.priorityRank !== b.priorityRank) return a.priorityRank - b.priorityRank
+          return a.score - b.score
+        })
       let trimmed = 0
       for (const d of droppable) {
         if (totalChars <= config.charBudget) break
@@ -2313,12 +2338,12 @@ export class ThalamusModule extends BaseCognitiveModule {
 
     const includedIndices = new Set<number>(allIndices)
     const scoredLookup = new Map(scored.map(s => [s.messageIndex, s]))
-    let pinnedOverrides = 0
+    let finalPinnedOverrides = 0
     for (const idx of included) {
       const s = scoredLookup.get(idx)
-      if (s && messages[idx]?._thalamus?.pinned && s.luminance.composite < threshold) pinnedOverrides++
+      if (s && messages[idx]?._thalamus?.pinned && s.luminance.composite < threshold) finalPinnedOverrides++
     }
-    return { messages: assembled, gapNotes, includedIndices, charsUsed: usedChars, pinnedOverrides }
+    return { messages: assembled, gapNotes, includedIndices, charsUsed: usedChars, pinnedOverrides: finalPinnedOverrides }
   }
 
   private ensureAlternation(
@@ -2375,34 +2400,33 @@ export class ThalamusModule extends BaseCognitiveModule {
       return true
     }
 
-    // Check if tools are orphans (no matching partner in adjacent messages).
+    // Build maps to find partners anywhere in the array (not just adjacent).
+    // After curation drops messages, partners are often non-consecutive.
+    const toolUseIdxById = new Map<string, number>()
+    const toolResultIdxById = new Map<string, number>()
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i]
+      if (!Array.isArray(m?.content)) continue
+      for (const b of m.content) {
+        if (b?.type === 'tool_use' && typeof b.id === 'string') toolUseIdxById.set(b.id, i)
+        if (b?.type === 'tool_result' && typeof b.tool_use_id === 'string') toolResultIdxById.set(b.tool_use_id, i)
+      }
+    }
+
+    // Check if tools are orphans (no matching partner anywhere).
     // If so, convert them to text to avoid breaking tool-pair invariants.
     let needsConversion = false
     for (const block of content) {
       if (block?.type === 'tool_use') {
-        const partnerIdx = bridge + 1
-        if (partnerIdx >= messages.length) {
-          needsConversion = true
-          break
-        }
-        const partner = messages[partnerIdx]
-        const hasPartner = Array.isArray(partner?.content) &&
-          partner.content.some((c: any) => c?.type === 'tool_result' && c?.tool_use_id === block.id)
-        if (!hasPartner) {
+        const partnerIdx = toolResultIdxById.get(block.id)
+        if (partnerIdx === undefined) {
           needsConversion = true
           break
         }
       }
       if (block?.type === 'tool_result') {
-        const partnerIdx = bridge - 1
-        if (partnerIdx < 0) {
-          needsConversion = true
-          break
-        }
-        const partner = messages[partnerIdx]
-        const hasPartner = Array.isArray(partner?.content) &&
-          partner.content.some((c: any) => c?.type === 'tool_use' && c?.id === block.tool_use_id)
-        if (!hasPartner) {
+        const partnerIdx = toolUseIdxById.get(block.tool_use_id)
+        if (partnerIdx === undefined) {
           needsConversion = true
           break
         }
@@ -2433,15 +2457,15 @@ export class ThalamusModule extends BaseCognitiveModule {
       return true
     }
 
-    // All tools have valid partners — add the bridge and its partners
+    // All tools have valid partners — add the bridge and its actual partners
     for (const block of content) {
       if (block?.type === 'tool_use') {
-        const partnerIdx = bridge + 1
-        if (partnerIdx < protectedStart) included.add(partnerIdx)
+        const partnerIdx = toolResultIdxById.get(block.id)
+        if (partnerIdx !== undefined && partnerIdx < protectedStart) included.add(partnerIdx)
       }
       if (block?.type === 'tool_result') {
-        const partnerIdx = bridge - 1
-        if (partnerIdx < protectedStart) included.add(partnerIdx)
+        const partnerIdx = toolUseIdxById.get(block.tool_use_id)
+        if (partnerIdx !== undefined && partnerIdx < protectedStart) included.add(partnerIdx)
       }
     }
 
@@ -2527,23 +2551,29 @@ export class ThalamusModule extends BaseCognitiveModule {
     }
 
     // Protected boundary: fix pairs that cross the protected/candidate line.
+    // Scan ALL protected messages, not just messages[protectedStart], because
+    // a tool pair may span the boundary without touching the first protected msg.
     // Case A: tool_result in protected region, tool_use in candidate region
     if (protectedStart > 0 && protectedStart < messages.length) {
-      const msg = messages[protectedStart]
-      for (const id of idsInMessage(msg, 'tool_result')) {
-        const useIdx = toolUseIdxById.get(id)
-        if (useIdx !== undefined && useIdx < protectedStart && !included.has(useIdx)) {
-          included.add(useIdx)
+      for (let i = protectedStart; i < messages.length; i++) {
+        const msg = messages[i]
+        for (const id of idsInMessage(msg, 'tool_result')) {
+          const useIdx = toolUseIdxById.get(id)
+          if (useIdx !== undefined && useIdx < protectedStart && !included.has(useIdx)) {
+            included.add(useIdx)
+          }
         }
       }
     }
     // Case B: tool_use in protected region, tool_result in candidate region
     if (protectedStart > 0 && protectedStart < messages.length) {
-      const msg = messages[protectedStart]
-      for (const id of idsInMessage(msg, 'tool_use')) {
-        const resultIdx = toolResultIdxById.get(id)
-        if (resultIdx !== undefined && resultIdx < protectedStart && !included.has(resultIdx)) {
-          included.add(resultIdx)
+      for (let i = protectedStart; i < messages.length; i++) {
+        const msg = messages[i]
+        for (const id of idsInMessage(msg, 'tool_use')) {
+          const resultIdx = toolResultIdxById.get(id)
+          if (resultIdx !== undefined && resultIdx < protectedStart && !included.has(resultIdx)) {
+            included.add(resultIdx)
+          }
         }
       }
     }
@@ -2732,16 +2762,15 @@ export class ThalamusModule extends BaseCognitiveModule {
         totalCurations: 0,
         topicClusters: [],
         topicArchive: [],
+        intentSpans: [],
         dropHistory: [],
         lastScored: [],
         lastThreshold: 0,
         pinnedPatterns: [],
         thoughtCommandLog: [],
-        distilledSummaries: new Map(),
-        lastReceiptDistilledIds: new Set(),
         dropDirectives: new Set(),
         collapseDirectives: new Map(),
-        rerankerCache: { entries: new Map(), expansions: new Map() },
+        rerankerCache: { entries: new Map() },
       }
       this.sessions.set(sessionId, session)
     }

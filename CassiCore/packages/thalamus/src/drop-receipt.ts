@@ -70,30 +70,6 @@ export interface ProtectionSummary {
   summary: string
 }
 
-/**
- * Distillation activity for this curate pass. Surfaces background LLM
- * compression so Cassi can see what's queued vs completed and reason
- * about budget impact. Closes the design gap from
- * cassi-context-awareness.md §"Async tool-result distillation":
- * "Receipts body: distillation completion notes — one line per turn."
- */
-export interface DistillationSummary {
-  /** Read tool_results above the 2KB threshold without a completed summary yet. */
-  pending: number
-  /**
-   * Distillations completed since the previous receipt — i.e. summaries
-   * that newly landed in session.distilledSummaries this pass.
-   */
-  completed: Array<{
-    msgIndex: number
-    toolUseId: string
-    originalChars: number
-    summaryChars: number
-  }>
-  /** Total chars freed by completed distillations this pass. */
-  charsFreed: number
-}
-
 export interface DropReceipt {
   /** Total messages dropped this curation pass */
   dropped: number
@@ -128,10 +104,8 @@ export interface DropReceipt {
    * visibility into which messages will survive the next curation pass.
    */
   protected: ProtectionSummary
-  /** Reranker compression metadata — shows which tool results were compressed and by how much */
+  /** Distillation metadata — shows which tool results were extractively distilled (reranker-selected chunks) and by how much */
   rerankerSummary?: string
-  /** Distillation activity (queued + completed since last receipt). Present when distiller is wired. */
-  distillation?: DistillationSummary
 }
 
 /**
@@ -166,10 +140,8 @@ export interface BuildReceiptInput {
   charsUsed: number
   /** Ignition threshold — required for closestMiss gap calculation */
   threshold: number
-  /** Reranker compression cache for showing compression metadata */
+  /** Distillation cache for showing extractive-compression metadata */
   rerankerCache?: RerankerCompressionCache
-  /** Distillation activity for this pass (computed by caller). */
-  distillation?: DistillationSummary
 }
 
 function summarizeProtections(messages: any[], includedIndices: Set<number>): ProtectionSummary {
@@ -228,7 +200,6 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
       topics: [],
       protected: protectedSummary,
       rerankerSummary,
-      distillation: input.distillation,
     }
   }
 
@@ -300,7 +271,6 @@ export function buildDropReceipt(input: BuildReceiptInput): DropReceipt {
     budget,
     protected: protectedSummary,
     rerankerSummary,
-    distillation: input.distillation,
   }
 }
 
