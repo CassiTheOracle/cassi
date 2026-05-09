@@ -4,7 +4,7 @@ import { ScoutModule } from '../scout/index.js'
 // REMOVED: registerTeamTools — team-coordinator.ts deleted with TriadTeam
 import { ModuleSessionRegistry } from '../intelligence/module-session-registry.js'
 import { ModuleSessionCompactor } from '../intelligence/module-session-compactor.js'
-import { SkillEffectivenessSource } from '../intelligence/skill-metrics.js'
+
 // PinealInjectionSource deprecated — Thalamus now owns Pineal injection via PinealAssembler
 import { PinealAssembler } from '../intelligence/pineal/assembler.js'
 import type { PinealModule } from '../intelligence/pineal/index.js'
@@ -177,6 +177,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           const sessionId = e?.sessionId
           const channelId: string | undefined = e?.channelId
           if (!sessionId) return
+          if (sessionId.startsWith('module:')) return
           if (channelId && !channelId.startsWith('channel:')) return
           intelligence.dmn!.attachSession(sessionId)
         } catch (err) {
@@ -291,22 +292,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         (thalamus as any).setReverieNoteSink(
           (sid: string, rec: string, msg: string) => intelligence.reverie!.receiveNote(sid, rec, msg),
         )
-      }
-
-      // Hand distillation triggering to Reverie. The design assigns Reverie
-      // ownership of stateful background work; Thalamus retains queue + summary
-      // storage but Reverie decides WHEN to fire. enableExternalDistillationTrigger
-      // suppresses Thalamus.curate's inline spawn so we don't double-queue.
-      if (
-        intelligence.reverie &&
-        typeof (intelligence.reverie as any).setDistillationTrigger === 'function' &&
-        typeof (thalamus as any).queueBackgroundDistillations === 'function' &&
-        typeof (thalamus as any).enableExternalDistillationTrigger === 'function'
-      ) {
-        (intelligence.reverie as any).setDistillationTrigger(
-          (sid: string) => (thalamus as any).queueBackgroundDistillations(sid),
-        )
-        ;(thalamus as any).enableExternalDistillationTrigger()
       }
 
       // Wire Aurora (cognitive state loop) into Thalamus
@@ -463,23 +448,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       if (deps.handleFactory && typeof thalamus.setHandleFactory === 'function') {
         thalamus.setHandleFactory(deps.handleFactory)
         logger.info('Thalamus handleFactory wired for background LLM topic archiving')
-
-        // Wire distillation factory — uses kimi-for-coding provider specifically
-        // ModelPool only exposes acquire(), not getProvider(). Probe with a
-        // speculative acquire/release cycle to confirm availability.
-        if (typeof thalamus.setDistillationFactory === 'function' && deps.modelPool) {
-          try {
-            const probe = await deps.modelPool!.acquire('unity', 'background', '__probe__', { provider: 'kimi-coding', model: 'kimi-for-coding' })
-            probe.release()
-            const distillationFactory: typeof deps.handleFactory = async (cfg) => {
-              return deps.modelPool!.acquire('unity', cfg.tier, cfg.sessionId, { provider: 'kimi-coding', model: 'kimi-for-coding' })
-            }
-            thalamus.setDistillationFactory(distillationFactory)
-            logger.info('Thalamus distillationFactory wired (kimi-coding / kimi-for-coding)')
-          } catch {
-            logger.info('Thalamus distillationFactory: kimi-coding provider not available, falling back to handleFactory')
-          }
-        }
       }
 
       // Wire ThalamusStore for drop history persistence (SQLite)
