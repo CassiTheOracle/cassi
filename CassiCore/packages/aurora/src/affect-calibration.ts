@@ -14,7 +14,17 @@
 
 import type { AffectLabel } from '../mnemic-field/types.js'
 import type { FeatureAffectSignature } from './larql-provider.js'
-import type { AffectProbe } from './affect-probes/v1.js'
+
+/**
+ * Minimal probe shape the calibrator depends on. Both v1 (`AffectProbe`)
+ * and v2 (`AffectProbeV2`) satisfy this — keeps the calibration pipeline
+ * decoupled from probe-set provenance metadata.
+ */
+export interface CalibrationProbe {
+  id: string
+  text: string
+  label: AffectLabel
+}
 
 export interface CalibrationOptions {
   /** Knowledge layers to scan. Default: 14..27 (Gemma 3 4B canonical). */
@@ -24,7 +34,7 @@ export interface CalibrationOptions {
   /** Minimum distinct probes that must hit a feature for it to be kept. Default 3. */
   minActivations?: number
   /** Optional callback fired after each probe completes (progress reporting). */
-  onProbeProgress?: (i: number, total: number, probe: AffectProbe) => void
+  onProbeProgress?: (i: number, total: number, probe: CalibrationProbe) => void
 }
 
 export interface CalibrationResult {
@@ -48,7 +58,7 @@ export interface CalibrationResult {
  * nothing at that layer; calibration handles it gracefully.
  */
 export type ProbeGateKnnFn = (
-  probe: AffectProbe,
+  probe: CalibrationProbe,
   layer: number,
   topK: number,
 ) => Array<{ featureIndex: number; score: number }>
@@ -67,7 +77,7 @@ const DEFAULT_TOP_K = 32
 const DEFAULT_MIN_ACTIVATIONS = 3
 
 export function calibrateAffectSignatures(
-  probes: AffectProbe[],
+  probes: CalibrationProbe[],
   gateKnn: ProbeGateKnnFn,
   opts: CalibrationOptions = {},
 ): CalibrationResult {
