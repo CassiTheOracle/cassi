@@ -100,7 +100,8 @@ export class GlobalWorkspace {
     this.config = { ...DEFAULT_WORKSPACE_CONFIG, ...config }
     this.logger = logger.child ? logger.child('workspace') : logger
     this.workspaceTraitVector = this.config.workspaceTraitVector ?? UNITY_PRESET
-    this.scorer = new SystemLuminanceScorer(this.config.weights, this.workspaceTraitVector)
+    this.scorer = new SystemLuminanceScorer(this.config.weights)
+    this.scorer.updateWorkspaceTraitVector(this.workspaceTraitVector)
     this.coalitions = new CoalitionDetector()
     this.memory = new WorkspaceMemory()
     this.feedback = new FeedbackTracker(this.memory)
