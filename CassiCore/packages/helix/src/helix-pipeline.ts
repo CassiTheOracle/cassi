@@ -103,15 +103,11 @@ export interface HelixPipelineOpts {
   store?: HelixStore
   eventBus?: IEventBus
   planHandler?: PlanHandler
-  /** @deprecated Blackboard removed — use contextSources in brainstemDeps */
-  blackboard?: SessionState
   modelDirective?: IModelDirective
   handleFactory?: (config: ModelConfig) => Promise<ModelHandle>
 
   // Callbacks
   onCancelRegistered?: (cancelFn: () => void) => void
-  /** @deprecated Blackboard removed — use onContextSourcesCreated */
-  onBlackboardCreated?: (bb: SessionState) => void
   onWorkStreamCreated?: (ws: WorkStream) => void
   onDialecticChannelCreated?: (dc: DialecticChannel) => void
   onCoordinatorCreated?: (coordinator: HelixCoordinator) => void
@@ -314,12 +310,9 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
   }
 
   // Auto-create session state if not provided (replaces deprecated Blackboard)
-  const sessionState = opts.blackboard ?? new SessionState()
-  opts.onBlackboardCreated?.(sessionState)
-  if (!opts.blackboard) {
-    sessionState.initPlan(opts.goal)
-    sessionState.initReport(opts.goal)
-  }
+  const sessionState = new SessionState()
+  sessionState.initPlan(opts.goal)
+  sessionState.initReport(opts.goal)
 
   opts.onWorkStreamCreated?.(workStream)
   opts.onDialecticChannelCreated?.(dialecticChannel)
@@ -685,7 +678,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
         await new Promise(resolve => setTimeout(resolve, REVIEWER_ACTIVATION_CHECK_MS))
         if (cancelled) return false
         // Once brainstem has processed enough work units, call shouldActivateReviewers() fresh
-        const workUnits = brainstem.getWorkUnitsProcessed()
+        const workUnits = brainstem.getState().workUnitsProcessed
         const threshold = brainstem.getReviewerActivationThreshold()
         if (workUnits >= threshold) {
           return brainstem.shouldActivateReviewers()
@@ -869,7 +862,7 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
       // Brainstem result (replaces/supersedes mentor)
       brainstem: brainstemResult,
 
-      report: sessionState.getReport() ?? undefined,
+      report: (sessionState.getReport() as any) ?? undefined,
       autoReport: autoReport.length > 0 ? autoReport : undefined,
       sessionState: sessionState.getSnapshot(),
     }
