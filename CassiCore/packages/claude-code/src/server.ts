@@ -25,41 +25,6 @@ function ccSessionId(id?: string): string {
   return id ?? currentSessionId;
 }
 
-// ── Pressure Tracking (lightweight, no messages.transform available) ────────
-
-interface PressureState {
-  lastToolOutput: number;
-  toolCallCount: number;
-  largeOutputCount: number;
-  estimatedTokens: number;
-  contextLimit: number;
-}
-
-const pressureState: PressureState = {
-  lastToolOutput: 0,
-  toolCallCount: 0,
-  largeOutputCount: 0,
-  estimatedTokens: 0,
-  contextLimit: 1_000_000, // Claude Code default context
-};
-
-function estimatePressure(): number {
-  return pressureState.contextLimit > 0
-    ? pressureState.estimatedTokens / pressureState.contextLimit
-    : 0;
-}
-
-function classifyTier(pressure: number): string {
-  if (pressure > 0.92) return "overflow";
-  if (pressure > 0.85) return "critical";
-  if (pressure > 0.78) return "high";
-  if (pressure > 0.70) return "elevated";
-  if (pressure > 0.50) return "warming";
-  return "healthy";
-}
-
-// ── Working State Posting ───────────────────────────────────────────────────
-
 let lastWorkingStatePost = 0;
 const WORKING_STATE_COOLDOWN = 15_000;
 
@@ -68,37 +33,17 @@ async function postWorkingState(): Promise<void> {
   if (now - lastWorkingStatePost < WORKING_STATE_COOLDOWN) return;
   lastWorkingStatePost = now;
 
-  const pressure = estimatePressure();
-  const tier = classifyTier(pressure);
   const sid = ccSessionId();
-
-  const state = {
+  bridge.kvSet(`working-state:${sid}`, {
     sessionId: sid,
     timestamp: now,
-    turnCount: pressureState.toolCallCount,
-    pressure,
-    tier,
     mode: "working",
     focusTopic: "",
     activeFiles: [],
     topConsumers: [],
     collapseCandidates: [],
     chunkCount: 0,
-    activeTokens: pressureState.estimatedTokens,
-  };
-
-  bridge.kvSet(`working-state:${sid}`, state);
-
-  if (tier !== "healthy" && tier !== "warming") {
-    bridge.ingestEvents(sid, [{
-      type: "opencode:context:pressure",
-      sessionId: sid,
-      tier,
-      pressure,
-      activeTokens: pressureState.estimatedTokens,
-      timestamp: now,
-    }]).catch(() => {});
-  }
+  });
 }
 
 // ── MCP Server ──────────────────────────────────────────────────────────────
@@ -165,15 +110,6 @@ server.tool(
         parts.push(`## Relevant Memories\n${memories.map((m: any) =>
           `- ${m.content ?? m.entry?.content ?? JSON.stringify(m)}`
         ).join("\n")}`);
-      }
-    }
-
-    // Context status
-    if (includeAll || include === "context") {
-      const pressure = estimatePressure();
-      const tier = classifyTier(pressure);
-      if (tier !== "healthy") {
-        parts.push(`## Context Pressure\n**${Math.round(pressure * 100)}%** — Tier: ${tier}`);
       }
     }
 

@@ -90,6 +90,12 @@ export function getSession(sessionId: string): SessionState {
       createdAt: Date.now(),
     };
     sessions.set(sessionId, s);
+    void bridge.ingestEvents(ccId, [{
+      type: "session:created",
+      sessionId: ccId,
+      channelId: "channel:claude-code",
+      timestamp: Date.now(),
+    }]);
   }
   s.lastActivityAt = Date.now();
   return s;
@@ -127,25 +133,35 @@ export function classifyToolImportance(toolName: string): ToolImportance {
   return "default";
 }
 
-/**
- * Estimate context pressure from transcript file size.
- * This is a rough heuristic since we can't access the actual token count.
- * Assumes ~4 chars per token and a 200K token context window.
- */
 import fs from "node:fs";
+import * as bridge from "./bridge.js";
 
-export function estimatePressureFromTranscript(transcriptPath: string): number {
+const DEFAULT_CONTEXT_LIMIT = 1_000_000;
+const PROXY_STATE_STALE_MS = 30_000;
+
+export function estimatePressureFromTranscript(transcriptPath: string, contextLimit = DEFAULT_CONTEXT_LIMIT): number {
   try {
     const stats = fs.statSync(transcriptPath);
     const bytes = stats.size;
-    // Rough: JSONL transcript bytes -> estimated tokens in context
-    // Transcript includes metadata, so actual context is ~60% of transcript
     const estimatedTokens = (bytes * 0.6) / 4;
-    const contextLimit = 200_000; // Claude default
     return Math.min(1.0, estimatedTokens / contextLimit);
   } catch {
     return 0;
   }
+}
+
+export async function estimatePressureFromProxyState(
+  ccSessionId: string,
+  contextLimit = DEFAULT_CONTEXT_LIMIT,
+  staleMs = PROXY_STATE_STALE_MS,
+): Promise<number | null> {
+  const record = await bridge.kvGet(`proxy-state:${ccSessionId}`);
+  const value = record?.value ?? record;
+  const lastInputTokens = value?.lastInputTokens;
+  const lastUsageAt = value?.lastUsageAt;
+  if (typeof lastInputTokens !== "number" || lastInputTokens <= 0) return null;
+  if (typeof lastUsageAt !== "number" || Date.now() - lastUsageAt > staleMs) return null;
+  return Math.min(1.0, lastInputTokens / contextLimit);
 }
 
 // Cleanup idle sessions every 30 minutes

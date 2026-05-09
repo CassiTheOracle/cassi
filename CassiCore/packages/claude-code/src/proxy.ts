@@ -64,6 +64,8 @@ interface ProxySessionState {
   requestCount: number;
   totalInputTokens: number;
   totalOutputTokens: number;
+  lastInputTokens: number;
+  lastUsageAt: number;
   lastInjectionAt: number;
   lastCognitiveContext: string;
   createdAt: number;
@@ -74,13 +76,17 @@ const sessions = new Map<string, ProxySessionState>();
 function getProxySession(claudeSessionId: string): ProxySessionState {
   let s = sessions.get(claudeSessionId);
   if (!s) {
-    const ccId = `cc:${claudeSessionId.slice(0, 12) || Date.now().toString(36)}`;
+    const ccId = claudeSessionId.startsWith("cc:")
+      ? claudeSessionId
+      : `cc:${claudeSessionId || Date.now().toString(36)}`;
     s = {
       sessionId: claudeSessionId,
       ccSessionId: ccId,
       requestCount: 0,
       totalInputTokens: 0,
       totalOutputTokens: 0,
+      lastInputTokens: 0,
+      lastUsageAt: 0,
       lastInjectionAt: 0,
       lastCognitiveContext: "",
       createdAt: Date.now(),
@@ -219,7 +225,6 @@ function renderReceiptForInjection(receipt: any): string | null {
   // Distillation activity — closes the design gap from cassi-context-awareness
   // §"Async tool-result distillation". Pending = queued for background LLM
   // compression; completed = finished since last receipt.
-  const distillation = receipt.distillation;
   if (distillation && typeof distillation === "object") {
     const pending = typeof distillation.pending === "number" ? distillation.pending : 0;
     const completed = Array.isArray(distillation.completed) ? distillation.completed : [];
@@ -266,7 +271,11 @@ function extractClaudeSessionId(req: http.IncomingMessage): string {
 
 function trackTokenUsage(state: ProxySessionState, usage: any): void {
   if (!usage) return;
-  if (typeof usage.input_tokens === "number") state.totalInputTokens += usage.input_tokens;
+  if (typeof usage.input_tokens === "number") {
+    state.totalInputTokens += usage.input_tokens;
+    state.lastInputTokens = usage.input_tokens;
+    state.lastUsageAt = Date.now();
+  }
   if (typeof usage.output_tokens === "number") state.totalOutputTokens += usage.output_tokens;
 }
 
@@ -277,6 +286,8 @@ function postSessionMetrics(state: ProxySessionState): void {
     requestCount: state.requestCount,
     totalInputTokens: state.totalInputTokens,
     totalOutputTokens: state.totalOutputTokens,
+    lastInputTokens: state.lastInputTokens,
+    lastUsageAt: state.lastUsageAt,
     timestamp: Date.now(),
   });
 }
@@ -479,21 +490,6 @@ function sanitizeToolPairs(messages: any[]): any[] {
   return out
 }
 
-function stripThinkingBlocks(messages: any[]): void {
-  for (const msg of messages) {
-    if (!msg?.content || !Array.isArray(msg.content)) continue;
-    msg.content = msg.content.map((block: any) => {
-      if (block?.type === "thinking") {
-        return { type: "text", text: block.thinking ?? "" };
-      }
-      if (block?.type === "redacted_thinking") {
-        return { type: "text", text: "[redacted thinking]" };
-      }
-      return block;
-    }).filter(Boolean);
-  }
-}
-
 /**
  * Remove thinking blocks with empty or missing signatures, OR empty thinking text.
  * Anthropic requires:
@@ -569,7 +565,8 @@ function reorderAnthropicBlocks(messages: any[]): void {
     if (!Array.isArray(msg.content)) continue;
     
     if (msg.role === "assistant") {
-      // Assistant: thinking → tool_use → text → other
+      // Assistant: thinking → text → tool_use → other
+      // tool_use must be last so Anthropic can match it to tool_result in the next message
       const groups = new Map<string, any[]>();
       for (const block of msg.content) {
         const type = block?.type ?? "other";
@@ -583,8 +580,8 @@ function reorderAnthropicBlocks(messages: any[]): void {
       }
       msg.content = [
         ...(groups.get("thinking") ?? []),
-        ...(groups.get("tool_use") ?? []),
         ...(groups.get("text") ?? []),
+        ...(groups.get("tool_use") ?? []),
         ...(groups.get("other") ?? []),
       ];
     } else if (msg.role === "user") {
@@ -731,20 +728,16 @@ async function proxyRequest(
         logger.debug("proxy messages after sanitize", { sessionId: state.ccSessionId, messages: afterInfo });
       }
 
-      if (route?.provider.id === "anthropic" && Array.isArray(body.messages)) {
-        // Anthropic requires valid thinking signatures. If Claude Code sends
-        // empty signatures (bug), remove the thinking blocks to avoid 400 errors.
+      if (Array.isArray(body.messages)) {
+        // Claude Code always uses the Anthropic API format regardless of
+        // provider. All providers need the same sanitization: valid thinking
+        // signatures, correct block ordering, and tool pair adjacency.
         sanitizeThinkingSignatures(body.messages);
-        // Anthropic requires blocks in specific order: thinking → tool_use → text
         reorderAnthropicBlocks(body.messages);
-        // Anthropic requires every tool_use to have its tool_result in the
-        // immediately following message. Strip any that don't (can happen when
-        // curation drops tool_result messages or parallel tool calls race).
         enforceToolPairAdjacency(body.messages);
         // Strip unsupported ttl field from cache_control — Anthropic only
         // supports { type: "ephemeral" }, and extra fields may cause the
-        // validator to reject tool_result blocks (leading to "tool_use without
-        // tool_result" errors).
+        // validator to reject tool_result blocks.
         for (const msg of body.messages) {
           if (Array.isArray(msg.content)) {
             for (const block of msg.content) {
@@ -755,15 +748,12 @@ async function proxyRequest(
             }
           }
         }
-      } else if (Array.isArray(body.messages)) {
-        // Non-Anthropic providers don't support thinking blocks at all
-        stripThinkingBlocks(body.messages);
       }
 
       // DEBUG: Log request headers for Anthropic
       if (route?.provider.id === "anthropic") {
         const relevantHeaders: Record<string, unknown> = {};
-        for (const [key, value] of Object.entries(headers)) {
+        for (const [key, value] of Object.entries(req.headers)) {
           if (key.startsWith("anthropic") || key === "x-api-key" || key === "authorization") {
             relevantHeaders[key] = value;
           }

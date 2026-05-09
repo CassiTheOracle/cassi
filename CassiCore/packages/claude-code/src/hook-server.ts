@@ -30,8 +30,20 @@ import {
   classifyTier,
   classifyToolImportance,
   estimatePressureFromTranscript,
+  estimatePressureFromProxyState,
   type SessionState,
 } from "./state.js";
+
+async function updatePressureEstimate(state: SessionState, transcriptPath?: string): Promise<void> {
+  const fromProxy = await estimatePressureFromProxyState(state.ccSessionId);
+  if (fromProxy !== null) {
+    state.estimatedPressure = fromProxy;
+    return;
+  }
+  if (transcriptPath) {
+    state.estimatedPressure = estimatePressureFromTranscript(transcriptPath);
+  }
+}
 import {
   buildPressureWarning,
 } from "./context-builder.js";
@@ -69,10 +81,7 @@ interface HookOutput {
 async function handleSessionStart(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
-  // Update pressure estimate from transcript
-  if (input.transcript_path) {
-    state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
-  }
+  await updatePressureEstimate(state, input.transcript_path);
 
   bridge.ingestEvents(state.ccSessionId, [{
     type: "session_start",
@@ -123,9 +132,7 @@ async function handleUserPromptSubmit(input: HookInput): Promise<HookOutput> {
   state.pendingToolCalls.clear();
   state.pendingToolResults.clear();
 
-  if (input.transcript_path) {
-    state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
-  }
+  await updatePressureEstimate(state, input.transcript_path);
 
   for (const [key, age] of state.signalAges) {
     state.signalAges.set(key, age + 1);
@@ -215,9 +222,7 @@ async function handlePreToolUse(input: HookInput): Promise<HookOutput> {
     }]).catch(() => {});
   }
 
-  if (input.transcript_path) {
-    state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
-  }
+  await updatePressureEstimate(state, input.transcript_path);
 
   state.usedTools.add(toolName);
   state.toolCallCount++;
@@ -251,9 +256,7 @@ async function handlePostToolUse(input: HookInput): Promise<HookOutput> {
   const toolName = input.tool_name ?? "";
   const output = input.tool_output ?? "";
 
-  if (input.transcript_path) {
-    state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
-  }
+  await updatePressureEstimate(state, input.transcript_path);
 
   if (output.length > 10_000) {
     state.largeOutputsThisTurn++;
@@ -442,9 +445,7 @@ async function handlePostCompact(input: HookInput): Promise<HookOutput> {
 async function handleStop(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
-  if (input.transcript_path) {
-    state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
-  }
+  await updatePressureEstimate(state, input.transcript_path);
 
   postWorkingState(state, true);
 
@@ -611,9 +612,7 @@ async function handleSubagentStop(input: HookInput): Promise<HookOutput> {
 async function handleSessionEnd(input: HookInput): Promise<HookOutput> {
   const state = getSession(input.session_id);
 
-  if (input.transcript_path) {
-    state.estimatedPressure = estimatePressureFromTranscript(input.transcript_path);
-  }
+  await updatePressureEstimate(state, input.transcript_path);
 
   postWorkingState(state, true);
 
