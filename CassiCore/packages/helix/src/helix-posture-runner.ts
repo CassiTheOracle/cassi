@@ -70,11 +70,9 @@ import type { TestLockPersistence, SealedTestSpec, TestLockVerificationStatus, T
 import { estimateTokens } from '../shared/token-estimation.js'
 import {
   getCodeConsolidatedToolSchema,
-  getFilesystemConsolidatedToolSchema,
   WEB_CONSOLIDATED_TOOL,
   BROWSER_CONSOLIDATED_TOOL,
   executeCodeConsolidatedTool,
-  executeFilesystemConsolidatedTool,
   executeBrowserConsolidatedTool,
   executeWebConsolidatedTool,
 } from '../../../mcp/gateway/index.js'
@@ -147,18 +145,7 @@ const BLOCKED_TOOLS_FOR_AUTONOMOUS = new Set([
 
 const EXTERNAL_MCP_PREFIXES = ['serena_', 'gitnexus_', 'playwright_browser_', 'duckduckgo_']
 const EXTERNAL_MCP_SERVER_PREFIXES = ['serena__', 'gitnexus__', 'playwright__', 'playwright_browser__', 'duckduckgo__']
-const CONSOLIDATED_GATEWAY_TOOL_NAMES = new Set(['code', 'file', 'web', 'browser'])
-
-/**
- * Direct fs tools (`read_file`, `write_file`, `read_files`) are filtered from
- * the Helix posture tool surface because the consolidated `file` tool covers
- * the same operations plus directory listing, regex search, symbols, and
- * find-and-replace. Showing both caused LLMs to call `file` with empty input
- * expecting `read_file`-style behavior, then trip on the action enum (real
- * evidence in prompt-log of constellation jay3kg). The direct tools remain
- * registered for non-Helix paths (thinker-tools, etc.).
- */
-const HELIX_FS_DIRECT_TOOL_NAMES = new Set(['read_file', 'write_file', 'read_files'])
+const CONSOLIDATED_GATEWAY_TOOL_NAMES = new Set(['code', 'web', 'browser'])
 
 /**
  * @dep callers: isBlockedForAutonomousPostures (core/intelligence/helix/helix-posture-runner.ts), isExternalMcpTool (core/intelligence/helix/helix-posture-runner.ts)
@@ -1269,10 +1256,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
             const result = await executeCodeConsolidatedTool(tc.input, this.logger, routeTool)
             content = JSON.stringify(result)
             isError = !!result?.isError
-          } else if (tc.name === 'file') {
-            const result = await executeFilesystemConsolidatedTool(tc.input, this.logger, routeTool)
-            content = JSON.stringify(result)
-            isError = !!result?.isError
           } else if (tc.name === 'browser') {
             const result = await executeBrowserConsolidatedTool(tc.input, this.logger, routeTool)
             content = JSON.stringify(result)
@@ -2210,8 +2193,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Hide raw external MCP tools and consolidated gateway tools; inject curated variants below
         if (isExternalMcpTool(schema.name)) continue
         if (CONSOLIDATED_GATEWAY_TOOL_NAMES.has(schema.name)) continue
-        // Hide direct fs tools — the consolidated `file` tool below covers them and avoids dual-surface LLM confusion
-        if (HELIX_FS_DIRECT_TOOL_NAMES.has(schema.name)) continue
 
         // Apply toolFilter allow/deny lists (from Constellation or Helix pipeline)
         if (this.toolFilter) {
@@ -2227,7 +2208,6 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
       const readOnly = !hasFullAccess
       tools.push(getCodeConsolidatedToolSchema(readOnly) as any)
-      tools.push(getFilesystemConsolidatedToolSchema(readOnly) as any)
       tools.push(WEB_CONSOLIDATED_TOOL as any)
       if (hasFullAccess) {
         tools.push(BROWSER_CONSOLIDATED_TOOL as any)
@@ -2459,14 +2439,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
     for (const tc of toolCalls) {
       if (
-        tc.name === 'write' || tc.name === 'edit' ||
+        tc.name === 'write' || tc.name === 'edit' || tc.name === 'edit_file' ||
         tc.name === 'write_file' || tc.name === 'file_artifact_write' ||
         tc.name === 'cassi_write' || tc.name === 'cassi_edit'
       ) {
         const path = String(tc.input?.path ?? tc.input?.filePath ?? 'unknown')
         filesModified.push({
           path,
-          action: (tc.name === 'edit' || tc.name === 'cassi_edit') ? 'modified' : 'created',
+          action: (tc.name === 'edit' || tc.name === 'edit_file' || tc.name === 'cassi_edit') ? 'modified' : 'created',
           summary: `${tc.name} on ${path}`,
         })
       }
