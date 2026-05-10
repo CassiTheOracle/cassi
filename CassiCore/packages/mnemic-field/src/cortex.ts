@@ -2,6 +2,7 @@ import Database from 'better-sqlite3'
 import { randomUUID } from 'node:crypto'
 import type { ILogger } from '../../../types/interfaces.js'
 import { initMnemicFieldSchema } from './schema.js'
+import { PolarQuantCodec, isPolarQuantBlob } from './polar-quant.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -22,8 +23,33 @@ const FORWARD_TRACE_AUTO_PRUNE_INTERVAL = 100
 const FORWARD_TRACE_AUTO_MAX_AGE_MS = 3_600_000
 const FORWARD_TRACE_AUTO_MAX_ROWS = 5_000
 
+const DEFAULT_EMBEDDING_DIM = 1024
+const EMBEDDING_QUANT_BITS = 3
+
+const _pqCodecs = new Map<string, PolarQuantCodec>()
+function getPqCodec(dim: number, bits: number = EMBEDDING_QUANT_BITS): PolarQuantCodec {
+  const key = `${dim}:${bits}`
+  let codec = _pqCodecs.get(key)
+  if (!codec) {
+    codec = new PolarQuantCodec(dim, bits)
+    _pqCodecs.set(key, codec)
+  }
+  return codec
+}
+
+const PQ_HEADER_LEN = 10  // magic(4) + version(1) + bits(1) + dimension(2) + norm(4)
+
 export function toFloatArray(buf: Buffer | null): Float32Array | null {
   if (!buf || buf.length === 0) return null
+  // PolarQuant blobs start with the 4-byte magic "PLQT" (1 in 2^32 false
+  // positive rate). For raw Float32 BLOBs the first 4 bytes are the LSBs of
+  // the first float, so collision is astronomically unlikely.
+  if (isPolarQuantBlob(buf) && buf.length >= PQ_HEADER_LEN) {
+    // Self-describing header: read dimension and bit-width from the blob.
+    const dim = buf.readUInt16LE(6)
+    const bits = buf[5]
+    return getPqCodec(dim, bits).decode(buf)
+  }
   return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4)
 }
 
@@ -31,6 +57,12 @@ export function fromFloatArray(arr: Float32Array | number[] | null | undefined):
   if (!arr) return null
   const f32 = arr instanceof Float32Array ? arr : new Float32Array(arr)
   return Buffer.from(f32.buffer, f32.byteOffset, f32.byteLength)
+}
+
+export function compressEmbedding(arr: Float32Array | number[] | null | undefined): Buffer | null {
+  if (!arr) return null
+  const f32 = arr instanceof Float32Array ? arr : new Float32Array(arr)
+  return getPqCodec(f32.length).encode(f32)
 }
 
 export function parseJsonSafe<T>(raw: string | null | undefined, fallback: T): T {
@@ -269,7 +301,7 @@ export class Cortex {
       node_type: input.nodeType,
       x, y, t,
       potentiation,
-      embedding: fromFloatArray(input.embedding ?? null),
+      embedding: compressEmbedding(input.embedding ?? null),
       tags: JSON.stringify(input.tags ?? []),
       provenance: input.provenance ?? '',
       created_at: input.createdAt ?? now,
@@ -304,7 +336,7 @@ export class Cortex {
     if (update.t !== undefined) { setClauses.push('t = @t'); params.t = update.t }
     if (update.potentiation !== undefined) { setClauses.push('potentiation = @potentiation'); params.potentiation = update.potentiation }
     if (update.clusterId !== undefined) { setClauses.push('cluster_id = @cluster_id'); params.cluster_id = update.clusterId }
-    if (update.embedding !== undefined) { setClauses.push('embedding = @embedding'); params.embedding = fromFloatArray(update.embedding) }
+    if (update.embedding !== undefined) { setClauses.push('embedding = @embedding'); params.embedding = compressEmbedding(update.embedding) }
     if (update.tags !== undefined) { setClauses.push('tags = @tags'); params.tags = JSON.stringify(update.tags) }
     if (update.accessedAt !== undefined) { setClauses.push('accessed_at = @accessed_at'); params.accessed_at = update.accessedAt }
     if (update.metadata !== undefined) { setClauses.push('metadata = @metadata'); params.metadata = JSON.stringify(update.metadata) }
@@ -598,7 +630,7 @@ export class Cortex {
 
     const tx = this.db.transaction((items: typeof updates) => {
       for (const { id, embedding } of items) {
-        updateStmt.run(fromFloatArray(embedding), id)
+        updateStmt.run(compressEmbedding(embedding), id)
       }
     })
     tx(updates)
@@ -700,10 +732,15 @@ export class Cortex {
    */
   getEmbeddingDim(): number {
     const row = this.db.prepare(
-      `SELECT LENGTH(embedding) as len FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT 1`
-    ).get() as { len: number } | undefined
+      `SELECT embedding FROM engrams WHERE embedding IS NOT NULL AND LENGTH(embedding) > 0 LIMIT 1`
+    ).get() as { embedding: Buffer } | undefined
     if (!row) return 0
-    return row.len / 4  // Float32 = 4 bytes per dim
+    const buf = row.embedding
+    if (isPolarQuantBlob(buf)) {
+      // PolarQuant blobs store dim in the header at offset 6 (uint16 LE)
+      return buf.readUInt16LE(6)
+    }
+    return buf.length / 4
   }
 
   /**
@@ -1171,7 +1208,7 @@ export class Cortex {
     return out
   }
 
-  bulkUpsertLightningKeys(entries: Array<{ engramId: string; keys: Float32Array; version: number }>): number {
+  bulkUpsertLightningKeys(entries: Array<{ engramId: string; keys: Float32Array | Buffer; version: number }>): number {
     if (entries.length === 0) return 0
     const now = new Date().toISOString()
     const stmt = this.db.prepare(
@@ -1182,15 +1219,14 @@ export class Cortex {
          version = excluded.version,
          updated_at = excluded.updated_at`
     )
-    let count = 0
     const tx = this.db.transaction((items: typeof entries) => {
       for (const e of items) {
-        stmt.run(e.engramId, fromFloatArray(e.keys), e.version, now)
-        count++
+        const keysBuf = e.keys instanceof Buffer ? e.keys : fromFloatArray(e.keys as Float32Array)
+        stmt.run(e.engramId, keysBuf, e.version, now)
       }
     })
     tx(entries)
-    return count
+    return entries.length
   }
 
   lightningKeysCount(): number {
@@ -1198,7 +1234,7 @@ export class Cortex {
   }
 
   recordLightningRetrievalEvent(ev: LightningRetrievalEvent): void {
-    const queryEmbBlob = ev.queryEmbedding ? fromFloatArray(ev.queryEmbedding) : null
+    const queryEmbBlob = ev.queryEmbedding ? compressEmbedding(ev.queryEmbedding) : null
     this.db.prepare(
       `INSERT INTO lightning_retrieval_events
         (retrieval_id, session_id, query_text, query_embedding, candidate_ids,

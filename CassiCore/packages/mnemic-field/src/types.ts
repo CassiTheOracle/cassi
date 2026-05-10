@@ -1,6 +1,6 @@
 /**
  * RerankerMode now lives in the shared embeddings/types.ts so both
- * MnemicField retrieval and Thalamus's RerankerCompressor reference the
+ * MnemicField retrieval and Thalamus's ToolResultDistiller reference the
  * same identity. Re-exported here for backward compat with existing
  * imports (`from '../mnemic-field/types.js'`).
  */
@@ -785,6 +785,10 @@ export interface LightningIndexerConfig {
   nH: number
   dIdx: number
   seed: number
+  /** Whether to PolarQuant-compress lightning keys before storing.
+   *  Saves ~17× disk space (1024 bytes → 58 bytes per 256-dim key)
+   *  at the cost of decode overhead on load. Default: false. */
+  compressKeys: boolean
 }
 
 export const LIGHTNING_INDEXER_DEFAULTS: LightningIndexerConfig = {
@@ -793,6 +797,7 @@ export const LIGHTNING_INDEXER_DEFAULTS: LightningIndexerConfig = {
   nH: 8,
   dIdx: 32,
   seed: 0xC0FFEE,
+  compressKeys: false,
 }
 
 export interface LightningIndexerGlobal {

@@ -1,5 +1,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Cortex } from './cortex.js'
+import { compressEmbedding } from './cortex.js'
 import {
   LIGHTNING_INDEXER_VERSION,
   LIGHTNING_INDEXER_DEFAULTS,
@@ -79,7 +80,7 @@ export class LightningIndexer {
 
     const ids = candidates.map((c) => c.engramId)
     const existingKeys = this.cortex.getLightningKeys(ids)
-    const toPersist: Array<{ engramId: string; keys: Float32Array; version: number }> = []
+    const toPersist: Array<{ engramId: string; keys: Float32Array | Buffer; version: number }> = []
 
     const ranked: LightningRanked[] = []
     for (const cand of candidates) {
@@ -92,7 +93,8 @@ export class LightningIndexer {
           continue
         }
         keys = projectToIndex(cand.embedding, g)
-        toPersist.push({ engramId: cand.engramId, keys, version: g.version })
+        const storeKeys = this.config.compressKeys ? compressEmbedding(keys) : keys
+        toPersist.push({ engramId: cand.engramId, keys: storeKeys!, version: g.version })
       }
       const score = scoreCandidate(qI, keys, g.wI, g.nH, g.dIdx)
       ranked.push({ engramId: cand.engramId, score })
