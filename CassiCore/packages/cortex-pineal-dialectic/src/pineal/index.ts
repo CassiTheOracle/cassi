@@ -7,6 +7,7 @@ import { SEED_FACETS, CHANNEL_SEED_FACETS } from './seed.js'
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain, DomainStats, PinealSnapshot, SkillSummary } from './types.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 export class PinealModule extends BaseCognitiveModule {
   readonly name = 'pineal'
@@ -15,6 +16,9 @@ export class PinealModule extends BaseCognitiveModule {
   private store!: PinealStore
   private facets!: FacetManager
   private skills!: SkillLoader
+  private mnemicField: MnemicField | null = null
+
+  setMnemicField(mf: MnemicField): void { this.mnemicField = mf }
 
   constructor(logger: ILogger) {
     super(logger)
@@ -24,7 +28,7 @@ export class PinealModule extends BaseCognitiveModule {
     await super.init()
 
     this.store = new PinealStore(this.logger)
-    this.facets = new FacetManager(this.store, this.logger)
+    this.facets = new FacetManager(this.store, this.logger, this.mnemicField)
     this.skills = new SkillLoader(this.store, this.logger)
 
     // Seed channel-scoped facets on every boot (additive, idempotent by content)
