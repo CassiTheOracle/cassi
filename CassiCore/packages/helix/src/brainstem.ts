@@ -66,11 +66,18 @@ interface WorkUnitQueueItem {
  * HelixBrainstem — Cognitive organizer that scores work units,
  * detects patterns, and produces guidance for Unity.
  */
+import {
+  WORK_UNIT_ANNOTATION_PHRASES,
+  DRIFT_TYPE_PHRASES,
+} from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
+
 export class HelixBrainstem {
   private deps: BrainstemDeps
   private config: BrainstemConfig
   private state: BrainstemState
   private logger: ILogger
+  private mnemicField?: MnemicField
 
   // Async loop control
   private running = false
@@ -132,6 +139,10 @@ export class HelixBrainstem {
       sessionId: deps.sessionId,
       enabled: this.config.enabled,
     })
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
   }
 
   /**
@@ -1011,7 +1022,44 @@ PROGRESS: <number 0-1>
     }
 
     try {
-      // Build prompt
+      const preAnnotation = await this.preAnnotateWorkUnit(workUnit)
+      if (preAnnotation) {
+        const annotation: BrainstemAnnotation = {
+          workUnitId: workUnit.id,
+          score: 0.5,
+          annotation: preAnnotation,
+          pattern: 'none' as DetectedPattern,
+          guidance: null,
+          guidanceUrgency: 'low' as GuidanceUrgency,
+          synthesis: '',
+          trainingNote: '',
+          axonStep: this.state.currentAxonStep,
+          timestamp: Date.now(),
+          goalAlignment: 0.5,
+          novelty: 0.3,
+          progress: 0.3,
+          discoveries: [],
+          decisions: [],
+          hypothesis: '',
+          outputs: [],
+          blockers: [],
+          nextSteps: [],
+          knowledgeDelta: '',
+        }
+        if (preAnnotation === 'drift') {
+          await this.classifyDriftType(workUnit)
+        }
+        this.updateState(annotation)
+        this.emitAnnotationEvent(annotation)
+        const tcSummaries = workUnit.toolCalls.map((tc) => ({
+          name: tc.name,
+          args: JSON.stringify(tc.input ?? {}).slice(0, 200),
+        }))
+        this.pushToCorpusTree(annotation, tcSummaries)
+        this.publishDigest(annotation)
+        return
+      }
+
       const prompt = this.buildPrompt(workUnit, unityIteration, dialecticBatch)
 
       // Call LLM
@@ -1120,6 +1168,27 @@ PROGRESS: <number 0-1>
   /**
    * Build LLM prompt for work unit analysis
    */
+   private async preAnnotateWorkUnit(workUnit: WorkUnit): Promise<WorkUnitAnnotation | null> {
+    if (!this.mnemicField) return null
+    const content = workUnit.reasoning?.slice(0, 300) ?? ''
+    if (!content.trim()) return null
+
+    const result = await this.mnemicField.classifyPhrase(content, WORK_UNIT_ANNOTATION_PHRASES).catch(() => null)
+    if (!result || !result.label || result.score < 0.45) return null
+
+    const valid: WorkUnitAnnotation[] = ['exploration', 'research', 'implementation', 'testing', 'revision', 'drift']
+    return valid.includes(result.label as WorkUnitAnnotation) ? (result.label as WorkUnitAnnotation) : null
+  }
+
+  private async classifyDriftType(workUnit: WorkUnit): Promise<void> {
+    if (!this.mnemicField) return
+    const content = workUnit.reasoning?.slice(0, 300) ?? ''
+    const result = await this.mnemicField.classifyPhrase(content, DRIFT_TYPE_PHRASES).catch(() => null)
+    if (result?.label) {
+      this.logger.info('drift type classified', { type: result.label, score: result.score.toFixed(2) })
+    }
+  }
+
    private buildPrompt(
     workUnit: WorkUnit,
     unityIteration: number,
