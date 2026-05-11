@@ -22,6 +22,8 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CognitiveNode } from './types.js'
+import { COHERENCE_MISMATCH_PHRASES } from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 
 export type CoherenceCategory =
@@ -196,10 +198,24 @@ export class CoherenceChecker {
   private readonly config: CoherenceConfig
   private readonly history: CoherenceSignal[] = []
   private readonly maxHistory = 100
+  private mnemicField?: MnemicField
 
   constructor(logger: ILogger, config?: Partial<CoherenceConfig>) {
     this.logger = logger.child ? logger.child('coherence-checker') : logger
     this.config = { ...COHERENCE_DEFAULTS, ...config }
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
+  }
+
+  async classifyMismatch(signal: CoherenceSignal): Promise<void> {
+    if (!this.mnemicField || !signal.description) return
+    const result = await this.mnemicField.classifyPhrase(signal.description, COHERENCE_MISMATCH_PHRASES).catch(() => null)
+    if (result?.label && result.score > 0.35) {
+      ;(signal.details as Record<string, unknown>).mismatchType = result.label
+      ;(signal.details as Record<string, unknown>).mismatchScore = result.score
+    }
   }
 
 

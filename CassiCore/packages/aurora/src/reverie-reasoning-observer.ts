@@ -20,6 +20,8 @@
 
 import type { ILogger } from '../../../types/interfaces.js'
 import type { MentalState, ReverieInsight, ReverieInferenceProvider, ReasoningAnalysisInput } from './types.js'
+import { REVERIE_HAS_INSIGHT_PHRASES } from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 /** Reverie analysis tier levels. */
 export type ReverieTier = 1 | 2 | 3
@@ -93,6 +95,7 @@ function makeId(): string {
 export class ReverieReasoningObserver {
   private logger: ILogger
   private escalationConfig: ReverieEscalationConfig
+  private mnemicField?: MnemicField
 
   constructor(
     private inference: ReverieInferenceProvider,
@@ -101,6 +104,10 @@ export class ReverieReasoningObserver {
   ) {
     this.logger = logger.child ? logger.child('reverie-reasoning-observer') : logger
     this.escalationConfig = { ...DEFAULT_ESCALATION, ...escalationConfig }
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
   }
 
   /**
@@ -113,6 +120,16 @@ export class ReverieReasoningObserver {
     tier: ReverieTier = 2,
   ): Promise<ReverieAnalysisResult> {
     const start = Date.now()
+
+    if (this.mnemicField && tier === 1 && input.text) {
+      const pre = await this.mnemicField.classifyPhrase(input.text, REVERIE_HAS_INSIGHT_PHRASES).catch(() => null)
+      if (pre?.label === 'no_insight' && pre.score > 0.40) {
+        return { insights: [], tier: 1, shouldEscalate: false, durationMs: Date.now() - start }
+      }
+      if (pre?.label === 'has_insight' && pre.score > 0.50) {
+        return this.analyze(input, timeoutMs, 2)
+      }
+    }
 
     const stateContext = this.buildStateContext(input)
     const userPrompt = this.buildPrompt(input, stateContext)

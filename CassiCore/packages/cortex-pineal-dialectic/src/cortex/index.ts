@@ -17,6 +17,8 @@ import { oscillate } from './dynamics.js'
 import { computeActivation } from './signal.js'
 import { CortexSession } from './session.js'
 import type { AffectRegister } from '../mnemic-field/affect.js'
+import { SIGNAL_TYPE_PHRASES } from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 const MAX_OSCILLATION_HISTORY = 100
 
@@ -92,6 +94,7 @@ export class CorticalField {
   private sessions = new Map<string, CortexSession>()
   private oscillationHistory: OscillationHistoryEntry[] = []
   private cumulativeOscillation = { ticks: 0, decayed: 0, pruned: 0, consolidated: 0, bound: 0, totalDurationMs: 0 }
+  private mnemicField?: MnemicField
 
   constructor(logger: ILogger, config?: CorticalFieldConfig) {
     this.logger = logger.child('cortex')
@@ -123,6 +126,10 @@ export class CorticalField {
 
   setAffectRegister(register: AffectRegister): void {
     this.affectRegister = register
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
   }
 
   setConsolidationCallback(cb: ConsolidationCallback): void {
@@ -174,6 +181,18 @@ export class CorticalField {
     }
 
     this.cascadePropagate(sig)
+
+    if (this.mnemicField && sig.content) {
+      this.mnemicField.classifyPhrase(sig.content, SIGNAL_TYPE_PHRASES).then(result => {
+        if (result?.label && result.label !== sig.type && result.score > 0.45) {
+          this.logger.warn('signal type mismatch', {
+            declared: sig.type,
+            classified: result.label,
+            score: result.score.toFixed(2),
+          })
+        }
+      }).catch(() => {})
+    }
 
     return sig
   }
