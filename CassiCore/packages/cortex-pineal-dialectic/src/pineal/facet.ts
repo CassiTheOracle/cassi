@@ -2,11 +2,13 @@ import type { PinealStore } from './store.js'
 import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain } from './types.js'
 import { REINFORCEMENT_RATE } from './types.js'
 import type { ILogger } from '../../../types/interfaces.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 export class FacetManager {
   constructor(
     private store: PinealStore,
     private logger: ILogger,
+    private mnemicField: MnemicField | null = null,
   ) {}
 
   create(input: FacetInput): Facet {
@@ -17,6 +19,27 @@ export class FacetManager {
       category: facet.category,
       conviction: facet.conviction,
     })
+    if (this.mnemicField) {
+      this.mnemicField.store({
+        id: `pineal:${facet.id}`,
+        content: facet.content,
+        nodeType: 'expert_summary' as const,
+        provenance: 'pineal',
+        metadata: {
+          expertId: facet.id,
+          expertKind: facet.domain === 'identity' ? 'identity' : facet.domain === 'wisdom' ? 'meta_cognitive' : facet.domain === 'philosophy' ? 'principle' : 'skill',
+          expertDomain: facet.domain,
+          expertConviction: facet.conviction,
+          expertPinned: facet.pinned,
+          expertScope: facet.scope,
+          expertVersion: facet.version,
+          expertProvenance: 'soul.md',
+          expertLastReinforced: new Date().toISOString(),
+          expertReinforcements: 0,
+          expertSourceIds: [],
+        },
+      })
+    }
     return facet
   }
 
