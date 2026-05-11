@@ -528,7 +528,6 @@ function migrateSchema(db: Database.Database): void {
     db.exec(`ALTER TABLE migration_jobs ADD COLUMN phase TEXT NOT NULL DEFAULT 'memories'`)
   }
 
-  // Rename forward_tapes → forward_traces (and tape_id → trace_id in gradient_requests)
   const hasOldTable = db.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name='forward_tapes'`).get()
   if (hasOldTable) {
     db.exec(`ALTER TABLE forward_tapes RENAME TO forward_traces`)
@@ -536,6 +535,47 @@ function migrateSchema(db: Database.Database): void {
   }
 
   remediateMigrationTimestamps(db)
+  migrateSessionIdColumn(db)
+  migrateExpertIndexes(db)
+}
+
+function migrateSessionIdColumn(db: Database.Database): void {
+  const cols = db.prepare(`PRAGMA table_info(engrams)`).all() as Array<{ name: string }>
+  const names = new Set(cols.map(c => c.name))
+  if (names.has('session_id')) return
+
+  db.exec(`ALTER TABLE engrams ADD COLUMN session_id TEXT`)
+
+  db.exec(`
+    UPDATE engrams
+    SET session_id = json_extract(metadata, '$.sessionId')
+    WHERE json_extract(metadata, '$.sessionId') IS NOT NULL
+  `)
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_engrams_session_id_col
+      ON engrams(session_id)
+      WHERE session_id IS NOT NULL;
+    CREATE INDEX IF NOT EXISTS idx_engrams_session_t_col
+      ON engrams(session_id, t)
+      WHERE session_id IS NOT NULL;
+  `)
+}
+
+function migrateExpertIndexes(db: Database.Database): void {
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_engrams_expert_kind
+      ON engrams(json_extract(metadata, '$.expertKind'))
+      WHERE json_extract(metadata, '$.expertKind') IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_engrams_expert_domain
+      ON engrams(json_extract(metadata, '$.expertDomain'))
+      WHERE json_extract(metadata, '$.expertDomain') IS NOT NULL;
+
+    CREATE INDEX IF NOT EXISTS idx_engrams_expert_id
+      ON engrams(json_extract(metadata, '$.expertId'))
+      WHERE json_extract(metadata, '$.expertId') IS NOT NULL;
+  `)
 }
 
 function remediateMigrationTimestamps(db: Database.Database): void {
