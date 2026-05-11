@@ -1037,6 +1037,38 @@ private countDiscoveries(transcript?: string): number {
         }
       }
 
+      // Expert enrichment: strengthen expert clusters that need updating
+      if (this.mnemicField) {
+        try {
+          const { dormant, archived, hot } = this.mnemicField.checkExpertLifecycle()
+          if (hot.length > 0) {
+            this.logger.info('[Meditation] Enriching hot experts', { count: hot.length })
+            for (const expertId of hot.slice(0, 3)) {
+              const experts = this.mnemicField.findExpertEngrams({ limit: 50 })
+              const target = experts.find(e => (e.metadata as any)?.expertId === expertId)
+              if (target) {
+                const richContent = `${target.content}\nMeditation enrichment pass at ${new Date().toISOString()}`
+                this.mnemicField.store({
+                  content: richContent,
+                  nodeType: 'expert_summary' as const,
+                  provenance: 'meditation.enrich',
+                  metadata: {
+                    ...target.metadata,
+                    expertNewSinceSummary: 0,
+                    enrichedAt: new Date().toISOString(),
+                  },
+                })
+              }
+            }
+          }
+          if (dormant.length > 0) {
+            this.logger.debug('[Meditation] Dormant experts detected', { count: dormant.length })
+          }
+        } catch (err) {
+          this.logger.warn('[Meditation] Expert enrichment failed', { error: String(err) })
+        }
+      }
+
       // Evaluation — score the organizing prompts
       if (this.meditationStore) {
         await this.runEvaluation(constellationId, [organizerResult])
