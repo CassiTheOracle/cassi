@@ -1,5 +1,15 @@
 import type { SynapseType } from './types.js'
 
+export interface PhrasePrototypeSet {
+  phrases: Record<string, string[]>
+  labels: string[]
+}
+
+export interface ClassificationResult {
+  label: string | null
+  score: number
+}
+
 export const RELATIONAL_PHRASES: Record<string, string[]> = {
   contradicts: [
     'this contradicts the previous finding',
@@ -81,21 +91,72 @@ export const RELATIONAL_PHRASE_EDGE_TYPES: SynapseType[] = [
   'depends_on', 'mitigates',
 ]
 
+export const EDGE_RELATORS_PHRASE_SET: PhrasePrototypeSet = {
+  phrases: RELATIONAL_PHRASES,
+  labels: RELATIONAL_PHRASE_EDGE_TYPES as unknown as string[],
+}
+
 export interface EdgeClassification {
   edgeType: SynapseType | null
   score: number
 }
 
-export function extractRelationalKeywords(content: string): string[] {
+function extractKeywords(content: string, phrases: Record<string, string[]>, labels: string[]): string[] {
   const keywords = new Set<string>()
-  for (const edgeType of RELATIONAL_PHRASE_EDGE_TYPES) {
-    for (const phrase of RELATIONAL_PHRASES[edgeType]) {
+  for (const label of labels) {
+    for (const phrase of phrases[label] ?? []) {
       if (content.toLowerCase().includes(phrase)) {
         keywords.add(phrase)
       }
     }
   }
   return Array.from(keywords)
+}
+
+export function extractRelationalKeywords(content: string): string[] {
+  return extractKeywords(content, RELATIONAL_PHRASES, RELATIONAL_PHRASE_EDGE_TYPES as unknown as string[])
+}
+
+export function classifyWithPhrases(
+  text: string,
+  prototypeSet: PhrasePrototypeSet,
+  phraseEmbeddings: Map<string, Float32Array>,
+  textEmbedding: Float32Array | null,
+  cosineSimilarity: (a: ArrayLike<number>, b: ArrayLike<number>) => number,
+  threshold = 0.35,
+): ClassificationResult {
+  if (!textEmbedding || phraseEmbeddings.size === 0) {
+    return { label: null, score: 0 }
+  }
+
+  let bestLabel: string | null = null
+  let bestScore = threshold
+
+  for (const label of prototypeSet.labels) {
+    const emb = phraseEmbeddings.get(`embed:${label}`)
+    if (!emb) continue
+
+    const score = cosineSimilarity(textEmbedding, emb)
+    if (score > bestScore) {
+      bestScore = score
+      bestLabel = label
+    }
+  }
+
+  if (bestLabel === null) {
+    const lexicalHits = extractKeywords(text, prototypeSet.phrases, prototypeSet.labels)
+    for (const label of prototypeSet.labels) {
+      const phrases = prototypeSet.phrases[label] ?? []
+      const matched = lexicalHits.some(h => phrases.includes(h))
+      if (matched) {
+        bestLabel = label
+        bestScore = threshold + 0.05
+        break
+      }
+    }
+  }
+
+  return { label: bestLabel, score: bestScore }
 }
 
 export function classifyEdge(
@@ -106,41 +167,14 @@ export function classifyEdge(
   cosineSimilarity: (a: ArrayLike<number>, b: ArrayLike<number>) => number,
   threshold = 0.35,
 ): EdgeClassification {
-  if (!combinedEmbedding || phraseEmbeddings.size === 0) {
-    return { edgeType: null, score: 0 }
-  }
-
-  let bestType: SynapseType | null = null
-  let bestScore = threshold
-
   const combined = `${sourceContent.slice(0, 200)} ${targetContent.slice(0, 200)}`
-
-  for (const edgeType of RELATIONAL_PHRASE_EDGE_TYPES) {
-    const prototypes = phraseEmbeddings.get(edgeType)
-    if (!prototypes) continue
-
-    const emb = phraseEmbeddings.get(`embed:${edgeType}`)
-    if (!emb) continue
-
-    const score = cosineSimilarity(combinedEmbedding, emb)
-    if (score > bestScore) {
-      bestScore = score
-      bestType = edgeType
-    }
-  }
-
-  if (bestType === null) {
-    const lexicalHits = extractRelationalKeywords(combined)
-    for (const edgeType of RELATIONAL_PHRASE_EDGE_TYPES) {
-      const phrases = RELATIONAL_PHRASES[edgeType]
-      const matched = lexicalHits.some(h => phrases.includes(h))
-      if (matched) {
-        bestType = edgeType
-        bestScore = threshold + 0.05
-        break
-      }
-    }
-  }
-
-  return { edgeType: bestType, score: bestScore }
+  const result = classifyWithPhrases(
+    combined,
+    EDGE_RELATORS_PHRASE_SET,
+    phraseEmbeddings,
+    combinedEmbedding,
+    cosineSimilarity,
+    threshold,
+  )
+  return { edgeType: result.label as SynapseType | null, score: result.score }
 }

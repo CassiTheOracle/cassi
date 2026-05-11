@@ -29,7 +29,7 @@ import type { IProvider } from '../../../types/runtime.js'
 import { FilamentAnalyzer } from './filament-llm.js'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'
-import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES } from './edge-relators.js'
+import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES, classifyWithPhrases, type PhrasePrototypeSet, type ClassificationResult, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -169,6 +169,8 @@ export {
   AFFECT_DEFAULTS, BACKPROP_DEFAULTS,
 } from './types.js'
 export { attune, AffectRegister, resolveLabel, affectSimilarity, emotionalIntensity } from './affect.js'
+export { classifyWithPhrases, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
+export type { PhrasePrototypeSet, ClassificationResult } from './edge-relators.js'
 
 export class MnemicField {
   private cortex: Cortex
@@ -257,6 +259,8 @@ export class MnemicField {
   private db: Database.Database  // Store for persistence operations
   /** Cached edge classification phrase embeddings — built once at first call */
   private _phraseEmbeddings: Map<string, Float32Array> | null = null
+  /** Generic phrase embedding cache keyed by prototype set identity */
+  private _genericPhraseCaches: Map<string, Map<string, Float32Array>> = new Map()
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -1991,6 +1995,84 @@ export class MnemicField {
     }
 
     return result.edgeType
+  }
+
+  async classifyPhrase(
+    text: string,
+    prototypeSet: PhrasePrototypeSet,
+    threshold = 0.35,
+  ): Promise<ClassificationResult> {
+    const cache = await this.ensurePhraseEmbeddingsForSet(prototypeSet)
+    if (!cache) return { label: null, score: 0 }
+
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return { label: null, score: 0 }
+
+    const embedding = await embSvc.embed(text)
+    if (!embedding) return { label: null, score: 0 }
+
+    return classifyWithPhrases(
+      text,
+      prototypeSet,
+      cache,
+      new Float32Array(embedding),
+      cosineSimilarity,
+      threshold,
+    )
+  }
+
+  async ensurePhraseEmbeddingsForSet(
+    prototypeSet: PhrasePrototypeSet,
+  ): Promise<Map<string, Float32Array> | null> {
+    const cacheKey = prototypeSet.labels.join('\0')
+    const cached = this._genericPhraseCaches.get(cacheKey)
+    if (cached) return cached
+
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return null
+
+    const allPhrases: string[] = []
+    const phraseIndex: { label: string; indices: number[] }[] = []
+
+    for (const label of prototypeSet.labels) {
+      const phrases = prototypeSet.phrases[label] ?? []
+      const start = allPhrases.length
+      allPhrases.push(...phrases)
+      phraseIndex.push({ label, indices: Array.from({ length: phrases.length }, (_, i) => start + i) })
+    }
+
+    if (allPhrases.length === 0) return null
+
+    const batchSize = 10
+    const allEmbeddings: Float32Array[] = []
+    for (let i = 0; i < allPhrases.length; i += batchSize) {
+      const batch = allPhrases.slice(i, i + batchSize)
+      const results = await Promise.all(batch.map(p => embSvc.embed(p)))
+      for (const r of results) {
+        if (r) allEmbeddings.push(new Float32Array(r))
+      }
+    }
+
+    const dim = allEmbeddings[0]?.length ?? 1024
+    const cache = new Map<string, Float32Array>()
+
+    for (const { label, indices } of phraseIndex) {
+      const centroid = new Float32Array(dim)
+      let count = 0
+      for (const idx of indices) {
+        if (idx < allEmbeddings.length) {
+          for (let d = 0; d < dim; d++) centroid[d] += allEmbeddings[idx][d]
+          count++
+        }
+      }
+      if (count > 0) {
+        for (let d = 0; d < dim; d++) centroid[d] /= count
+        cache.set(`embed:${label}`, centroid)
+      }
+    }
+
+    this._genericPhraseCaches.set(cacheKey, cache)
+    return cache
   }
 
   close(): void {
