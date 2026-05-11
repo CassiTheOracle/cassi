@@ -2,6 +2,8 @@ import type { ILogger } from '../../../types/interfaces.js'
 import type { SystemLuminanceScore } from '../workspace/cognitive-signal.js'
 import type { BrainContext, ScoredMessage } from './types.js'
 import { hasQuestionResult, buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
+import { EPISTEMIC_SHIFT_PHRASES } from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 /**
  * Six-axis luminance scoring:
@@ -42,9 +44,37 @@ const STOP_WORDS = new Set([
 export class MessageLuminanceScorer {
   private logger: ILogger
   private currentToolUseMap: Map<string, string> = new Map()
+  private mnemicField?: MnemicField
 
   constructor(logger: ILogger) {
     this.logger = logger.child('thalamus-scorer')
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
+  }
+
+  async applyEpistemicBoosts(scored: ScoredMessage[], messages: any[]): Promise<void> {
+    if (!this.mnemicField) return
+    for (const sm of scored) {
+      if (sm.luminance.composite >= 1) continue
+      const content = extractMessageContent(messages[sm.messageIndex]).toLowerCase()
+      if (!content) continue
+      const result = await this.mnemicField.classifyPhrase(content, EPISTEMIC_SHIFT_PHRASES).catch(() => null)
+      if (!result || !result.label || result.score < 0.40) continue
+
+      const multipliers: Record<string, number> = {
+        reversal: 0.30,
+        revelation: 0.25,
+        resolution: 0.15,
+        confirmation: 0.08,
+      }
+      const boost = (multipliers[result.label] ?? 0) * result.score
+      if (boost > 0) {
+        sm.luminance.cognitiveResonance = Math.min(1, sm.luminance.cognitiveResonance + boost)
+        sm.luminance.composite = Math.min(1, sm.luminance.composite + boost * 0.5)
+      }
+    }
   }
 
   scoreAll(

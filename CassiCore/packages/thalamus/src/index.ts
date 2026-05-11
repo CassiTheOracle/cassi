@@ -9,6 +9,8 @@ import type { ThalamusStore } from './thalamus-store.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
+import type { EngramCreate, ExpertKind } from '../mnemic-field/types.js'
+import { cosineSimilarity } from '../mnemic-field/cortex.js'
 import type { SelfModelField } from '../mnemic-field/self-model/self-model-field.js'
 import type { LocusBridge } from '../locus-bridge/index.js'
 import type { FacetManager } from '../pineal/facet.js'
@@ -493,7 +495,149 @@ export class ThalamusModule extends BaseCognitiveModule {
 
   /** Wire a Reverie inference provider into Aurora for the reasoning slow path. */
   setReverieInferenceProvider(provider: import('../aurora/types.js').ReverieInferenceProvider): void {
-    this.aurora?.setReverieInferenceProvider(provider)
+this.aurora?.setReverieInferenceProvider(provider)
+  }
+
+  /** Expert cluster thresholds — messages before summary regenerates */
+  private expertRegenThreshold = 10
+  /** Replay buffers per session — map of sessionId → buffer of turn data */
+  private replayBuffers = new Map<string, any[]>()
+  /** Replay flush size — flush to MnemicField when buffer exceeds this */
+  private replayFlushSize = 20
+
+  writeMessageEngram(
+    sessionId: string,
+    msg: any,
+    index: number,
+    slotType: string,
+    options?: { expertId?: string; intentSpanId?: string; thoughtCommands?: any[] },
+  ): void {
+    if (!this.mnemicField) return
+    const content = extractMessageContent(msg)
+    if (!content) return
+    const input: EngramCreate & { sessionId: string } = {
+      sessionId,
+      content: typeof content === 'string' ? content : JSON.stringify(content),
+      nodeType: 'fact' as import('../mnemic-field/types.js').EngramType,
+      tags: [slotType, `session:${sessionId}`],
+      provenance: 'thalamus',
+      metadata: {
+        sessionId,
+        messageIndex: index,
+        slotType,
+        intentSpanId: options?.intentSpanId,
+        expertId: options?.expertId,
+        thoughtCommands: options?.thoughtCommands,
+        createdAt: new Date().toISOString(),
+      },
+    }
+    this.mnemicField.storeForSession(input)
+  }
+
+  assignExpertId(embedding: Float32Array | number[] | null): string | null {
+    if (!this.mnemicField || !embedding || embedding.length === 0) return null
+    const experts = this.mnemicField.findExpertEngrams({ limit: 50 })
+    if (experts.length === 0) return null
+    let bestId: string | null = null
+    let bestScore = 0.3
+    for (const expert of experts) {
+      const centroid: number[] | undefined = (expert.metadata as any)?.expertCentroid
+      if (!centroid || centroid.length === 0) continue
+      const score = cosineSimilarity(embedding, centroid)
+      if (score > bestScore) {
+        bestScore = score
+        bestId = (expert.metadata as any)?.expertId ?? expert.id
+      }
+    }
+    return bestId
+  }
+
+  updateEngramCuration(sessionId: string, msgIndex: number, curationData: { luminance?: number; isPinned?: boolean; kept?: boolean }): void {
+    if (!this.mnemicField) return
+    const content = this.mnemicField.getTrace({ sessionIds: [sessionId], limit: 100 })
+    const target = content.find(
+      e => e.engram.metadata?.messageIndex === msgIndex && e.engram.metadata?.sessionId === sessionId,
+    )
+    if (!target) return
+    const existingMeta = target.engram.metadata ?? {}
+    this.mnemicField.update(target.engram.id, {
+      metadata: {
+        ...existingMeta,
+        luminance: curationData.luminance ?? existingMeta.luminance,
+        isPinned: curationData.isPinned ?? existingMeta.isPinned ?? false,
+        kept: curationData.kept ?? existingMeta.kept ?? true,
+      },
+    })
+  }
+
+  async queryContext(sessionId: string, intent: string, options?: { kind?: ExpertKind }): Promise<any[]> {
+    if (!this.mnemicField) return []
+    const contextMessages: any[] = []
+
+    try {
+      const hits = await this.mnemicField.retrieve(intent, { limit: 5 })
+      for (const hit of hits) {
+        if (hit.nodeType === 'expert_summary') {
+          contextMessages.push({
+            role: 'system',
+            content: `[Knowledge: ${hit.content.slice(0, 500)}]`,
+          })
+        }
+      }
+      if (contextMessages.length === 0) {
+        for (const hit of hits.slice(0, 3)) {
+          contextMessages.push({
+            role: 'system',
+            content: `[Related: ${hit.content.slice(0, 300)}]`,
+          })
+        }
+      }
+    } catch {
+      // Best-effort
+    }
+
+    return contextMessages
+  }
+
+  captureReplaySegment(sessionId: string, turnData: any): void {
+    const buffer = this.replayBuffers.get(sessionId) ?? []
+    buffer.push({ ...turnData, capturedAt: new Date().toISOString() })
+    this.replayBuffers.set(sessionId, buffer)
+    if (buffer.length >= this.replayFlushSize) {
+      this.flushReplayBuffer(sessionId)
+    }
+  }
+
+  flushReplayBuffer(sessionId: string): void {
+    if (!this.mnemicField) return
+    const buffer = this.replayBuffers.get(sessionId)
+    if (!buffer || buffer.length === 0) return
+    const content = JSON.stringify(buffer)
+    this.mnemicField.store({
+      nodeType: 'replay_segment' as import('../mnemic-field/types.js').EngramType,
+      content,
+      tags: [`session:${sessionId}`],
+      provenance: 'thalamus.replay',
+      metadata: { sessionId, eventCount: buffer.length, flushedAt: new Date().toISOString() },
+    })
+    this.replayBuffers.set(sessionId, [])
+  }
+
+  writeIntentSpanEngram(sessionId: string, intentSpan: import('./types.js').IntentSpan): void {
+    if (!this.mnemicField) return
+    this.flushReplayBuffer(sessionId)
+    this.mnemicField.store({
+      nodeType: 'intent_span' as import('../mnemic-field/types.js').EngramType,
+      content: `Intent span ${intentSpan.id} at message ${intentSpan.anchorIndex}`,
+      tags: [`session:${sessionId}`, 'intent_span'],
+      provenance: 'thalamus',
+      metadata: {
+        sessionId,
+        intentSpanId: intentSpan.id,
+        anchorIndex: intentSpan.anchorIndex,
+        messageCount: intentSpan.messageIndices.length,
+      },
+    })
   }
 
   async init(): Promise<void> {
@@ -513,6 +657,10 @@ export class ThalamusModule extends BaseCognitiveModule {
     this.sessions.clear()
     this.temporalRegistries.clear()
     this.cachedBrainContext = null
+    for (const sid of this.replayBuffers.keys()) {
+      this.flushReplayBuffer(sid)
+    }
+    this.replayBuffers.clear()
     await super.stop()
   }
 
@@ -567,6 +715,12 @@ export class ThalamusModule extends BaseCognitiveModule {
       augmented = slot.augment(msg, ctx)
     }
     if (augmented?._thalamus) augmented._thalamus.index = index
+
+    // Write message to Mnemic Field
+    if (this.mnemicField) {
+      this.writeMessageEngram(sessionId, msg, index, slotType)
+    }
+
     return augmented
   }
 
@@ -1830,6 +1984,27 @@ export class ThalamusModule extends BaseCognitiveModule {
           injections.push({ content: `<pineal>\n${text}\n</pineal>`, source: 'pineal' })
         }
       }
+
+      // Mnemic Field: assemble expert context
+      if (this.mnemicField) {
+        const lastMsg = messages[messages.length - 1]
+        const intent = typeof lastMsg?.content === 'string'
+          ? lastMsg.content.slice(0, 200)
+          : ''
+        if (intent) {
+          try {
+            const expertMessages = await this.queryContext(sessionId, intent)
+            for (const msg of expertMessages) {
+              injections.push({
+                content: `<knowledge>\n${msg.content}\n</knowledge>`,
+                source: 'expert',
+              })
+            }
+          } catch {
+            // Best-effort
+          }
+        }
+      }
     } catch (err) {
       this.logger.warn('Thalamus injection assembly failed (non-fatal)', {
         sessionId: sessionId.slice(-8),
@@ -1871,6 +2046,11 @@ export class ThalamusModule extends BaseCognitiveModule {
   observeReasoning(text: string): void {
     if (!this.aurora) return
     this.aurora.observeReasoning(text)
+  }
+
+  async updateFeatureNarrative(contextText: string): Promise<void> {
+    if (!this.aurora) return
+    await this.aurora.updateFeatureNarrative(contextText)
   }
 
   /**
