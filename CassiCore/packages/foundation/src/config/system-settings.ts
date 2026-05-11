@@ -26,38 +26,38 @@
 export const MODEL_DEFAULTS = {
   /** Main agent — the user-facing conversational model */
   main: {
-    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_MAIN', 'qwen3.6-plus'),
+    provider: getEnvString('CASSICORE_MODEL_MAIN_PROVIDER', 'z-ai'),
+    model: getEnvString('CASSICORE_MODEL_MAIN', 'glm-5.1'),
   },
 
   /** Background reasoning — intelligence modules (thinker, dialectic, memory, subconscious) */
   reasoning: {
-    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_REASONING', 'qwen3.6-plus'),
+    provider: getEnvString('CASSICORE_MODEL_REASONING_PROVIDER', 'z-ai'),
+    model: getEnvString('CASSICORE_MODEL_REASONING', 'glm-5.1'),
   },
 
   /** Spawned agents — team members, sub-agents, coordinators */
   agent: {
-    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_AGENT', 'qwen3.6-plus'),
+    provider: getEnvString('CASSICORE_MODEL_AGENT_PROVIDER', 'z-ai'),
+    model: getEnvString('CASSICORE_MODEL_AGENT', 'glm-5.1'),
   },
 
   /** Fast — quick intent parsing, low-latency operations */
   fast: {
-    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_FAST', 'qwen3.6-plus'),
+    provider: getEnvString('CASSICORE_MODEL_FAST_PROVIDER', 'z-ai'),
+    model: getEnvString('CASSICORE_MODEL_FAST', 'glm-5.1'),
   },
 
   /** Fallback — used when provider resolution fails entirely */
   fallback: {
-    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'qwen3.6-plus'),
+    provider: getEnvString('CASSICORE_MODEL_FALLBACK_PROVIDER', 'z-ai'),
+    model: getEnvString('CASSICORE_MODEL_FALLBACK', 'glm-5.1'),
   },
 
   /** Background — cheap/free model for drones, scouts, and low-priority work */
   background: {
-    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'alibaba-coding'),
-    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'qwen3.6-plus'),
+    provider: getEnvString('CASSICORE_MODEL_BACKGROUND_PROVIDER', 'z-ai'),
+    model: getEnvString('CASSICORE_MODEL_BACKGROUND', 'glm-5.1'),
   },
 } as const
 
@@ -67,15 +67,15 @@ export const MODEL_DEFAULTS = {
  * via config at intelligence.modelDirective.tiers.*
  */
 export const MODEL_DIRECTIVE_TIER_DEFAULTS = {
-  minimax:    { provider: 'alibaba-coding', model: 'MiniMax-M2.5' },
-  qwenPlus:   { provider: 'alibaba-coding', model: 'qwen3.6-plus' },
-  glm:        { provider: 'alibaba-coding', model: 'glm-5' },
-  kimi:       { provider: 'alibaba-coding', model: 'kimi-k2.5' },
-  qwenMax:    { provider: 'alibaba-coding', model: 'qwen3-max-2026-01-23' },
-  sonnet:     { provider: 'claude-code',    model: 'claude-sonnet-4-7' },
-  opus:       { provider: 'claude-code',    model: 'claude-opus-4-7' },
-  zAi:        { provider: 'z-ai',           model: 'glm-5.1' },
-  background: { provider: 'alibaba-coding', model: 'qwen3.6-plus' },
+  minimax:    { provider: 'z-ai', model: 'glm-5.1' },
+  qwenPlus:   { provider: 'z-ai', model: 'glm-5.1' },
+  glm:        { provider: 'z-ai', model: 'glm-5.1' },
+  kimi:       { provider: 'z-ai', model: 'glm-5.1' },
+  qwenMax:    { provider: 'z-ai', model: 'glm-5.1' },
+  sonnet:     { provider: 'z-ai', model: 'glm-5.1' },
+  opus:       { provider: 'z-ai', model: 'glm-5.1' },
+  zAi:        { provider: 'z-ai', model: 'glm-5.1' },
+  background: { provider: 'z-ai', model: 'glm-5.1' },
 } as const
 
 /**
