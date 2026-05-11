@@ -390,6 +390,12 @@ export class ConstellationWorktreeIsolation {
     return this.branches.has(helixId)
   }
 
+  getFullDiff(helixId: string): string | null {
+    const branch = this.branches.get(helixId)
+    if (!branch) return null
+    return this.worktreeManager.getFullDiff(branch.branchName)
+  }
+
   /**
    * Generate a path translation prompt fragment for isolated branches.
    * Adapted from Claude Code's buildWorktreeNotice pattern.

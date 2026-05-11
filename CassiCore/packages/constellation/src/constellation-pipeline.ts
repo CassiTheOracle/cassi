@@ -383,6 +383,9 @@ export async function runConstellationPipeline(
   // Fallback counter for helix IDs when constellation store is unavailable
   let helixCounter = 0
 
+  let constellationEngramId: string | undefined
+  const branchEngramIds = new Map<string, string>()
+
   // WHY: Worktree isolation gives each branch its own working copy.
   // Prevents file conflicts when multiple branches edit the same files.
   const worktreeIsolation = opts.isolation === 'worktree'
@@ -430,6 +433,29 @@ export async function runConstellationPipeline(
       log.debug('Created ConstellationStore session', { constellationId })
     } catch (err) {
       log.warn('Failed to create ConstellationStore session', { error: String(err) })
+    }
+  }
+
+  if (opts.mnemicField) {
+    try {
+      const sessionEngram = opts.mnemicField.store({
+        nodeType: 'session',
+        content: goal.slice(0, 1000),
+        tags: ['constellation', `template:${template}`],
+        metadata: {
+          constellationId,
+          template,
+          maxHelixes,
+          maxDepth,
+          context: context?.slice(0, 500),
+          status: 'running',
+          startedAt: new Date().toISOString(),
+        },
+        provenance: `constellation:${constellationId}`,
+      })
+      constellationEngramId = sessionEngram.id
+    } catch (err) {
+      log.warn('Failed to write constellation engram to MnemicField', { error: String(err) })
     }
   }
 
@@ -1179,6 +1205,44 @@ export async function runConstellationPipeline(
       }
     }
 
+    if (opts.mnemicField) {
+      try {
+        const branchEngram = opts.mnemicField.store({
+          nodeType: 'episode',
+          content: `Branch: ${helixGoal.slice(0, 500)}`,
+          tags: ['constellation', 'branch', `depth:${depth}`],
+          metadata: {
+            constellationId,
+            helixId,
+            parentHelixId: parentId,
+            depth,
+            status: 'active',
+            startedAt: new Date().toISOString(),
+          },
+          provenance: `constellation:${constellationId}`,
+        })
+        branchEngramIds.set(helixId, branchEngram.id)
+
+        if (parentId && branchEngramIds.has(parentId)) {
+          opts.mnemicField.connect({
+            edgeType: 'spawned_from',
+            sourceId: branchEngram.id,
+            targetId: branchEngramIds.get(parentId)!,
+            metadata: { constellationId },
+          })
+        } else if (constellationEngramId) {
+          opts.mnemicField.connect({
+            edgeType: 'spawned_from',
+            sourceId: branchEngram.id,
+            targetId: constellationEngramId,
+            metadata: { constellationId, rootBranch: true },
+          })
+        }
+      } catch (err) {
+        helixLog.warn('Failed to write branch engram to MnemicField', { error: String(err) })
+      }
+    }
+
     const node: ConstellationNode = {
        helixId,
        config: {
@@ -1499,6 +1563,36 @@ export async function runConstellationPipeline(
         } else if (activeBrainstem) {
           activeBrainstem.onWorkUnit(wu, iteration)
         }
+
+        if (opts.mnemicField && wu.reasoning && wu.reasoning.length > 50 && iteration % 3 === 0) {
+          try {
+            const discoveryEngram = opts.mnemicField.store({
+              nodeType: 'episode',
+              content: `[${wu.posture ?? 'unity'}] ${wu.reasoning.slice(0, 500)}`,
+              tags: ['helix-discovery', wu.posture ?? 'unity', `helix:${helixId}`],
+              metadata: {
+                constellationId,
+                helixId,
+                posture: wu.posture ?? 'unity',
+                iteration,
+                toolNames: wu.toolCalls.map((tc: { name: string }) => tc.name),
+                filesModified: wu.filesModified?.map((f: { path: string }) => f.path) ?? [],
+              },
+              provenance: `discovery:${helixId}:${iteration}`,
+            })
+            const branchEid = branchEngramIds.get(helixId)
+            if (branchEid) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: discoveryEngram.id,
+                targetId: branchEid,
+                metadata: { constellationId },
+              })
+            }
+          } catch (err) {
+            helixLog.warn('Failed to write discovery engram', { error: String(err) })
+          }
+        }
       },
       // REMOVED: onBlackboardCreated — Blackboard deprecated
       // Cross-Helix communication now uses GlobalWorkspace + Corpus tree
@@ -1757,6 +1851,102 @@ export async function runConstellationPipeline(
           }
         }
 
+        // WHY: Write Helix session + changeset engrams to MnemicField before the
+        // worktree is merged back (which destroys the diff source).
+        if (opts.mnemicField) {
+          try {
+            const fileList = result.filesModified?.map(f => f.path) ?? []
+            const conclusions = [
+              `[unity] ${result.unityConclusion?.slice(0, 500) ?? ''}`,
+              `[yang]  ${result.yangConclusion?.slice(0, 500) ?? ''}`,
+              `[yin]   ${result.yinConclusion?.slice(0, 500) ?? ''}`,
+            ].join('\n')
+
+            const helixEngram = opts.mnemicField.store({
+              nodeType: 'session',
+              content: conclusions,
+              tags: ['helix', 'completed'],
+              metadata: {
+                constellationId,
+                helixId,
+                completionStatus: result.completionStatus,
+                qualityScore: result.qualityScore,
+                filesModified: fileList,
+                convergencePoints: result.convergencePoints?.length ?? 0,
+                tensions: result.unresolvedTensions?.length ?? 0,
+              },
+              provenance: `helix:${helixId}`,
+            })
+
+            const branchEid = branchEngramIds.get(helixId)
+            if (branchEid) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: helixEngram.id,
+                targetId: branchEid,
+                metadata: { constellationId },
+              })
+            }
+            if (constellationEngramId) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: helixEngram.id,
+                targetId: constellationEngramId,
+                metadata: { constellationId },
+              })
+            }
+
+            const fullDiff = worktreeIsolation?.isIsolated(helixId)
+              ? worktreeIsolation.getFullDiff(helixId)
+              : null
+
+            if (fullDiff && fullDiff.length > 10) {
+              const changesetEngram = opts.mnemicField.store({
+                nodeType: 'changeset',
+                content: fullDiff.length > 2000
+                  ? `Changed ${fileList.length} files: ${fileList.slice(0, 20).join(', ')}`
+                  : fullDiff,
+                tags: ['diff', `files:${fileList.length}`],
+                metadata: {
+                  constellationId,
+                  helixId,
+                  completionStatus: result.completionStatus,
+                  qualityScore: result.qualityScore,
+                  paths: fileList,
+                },
+                provenance: `diff:${helixId}`,
+              })
+              if (branchEid) {
+                opts.mnemicField.connect({
+                  edgeType: 'part_of',
+                  sourceId: changesetEngram.id,
+                  targetId: branchEid,
+                  metadata: { constellationId },
+                })
+              }
+            } else if (fileList.length > 0) {
+              const changesetEngram = opts.mnemicField.store({
+                nodeType: 'changeset',
+                content: `Changed ${fileList.length} files: ${fileList.join(', ')}`,
+                tags: ['files', `count:${fileList.length}`],
+                metadata: { constellationId, helixId, paths: fileList },
+                provenance: `diff:${helixId}`,
+              })
+              const branchEid = branchEngramIds.get(helixId)
+              if (branchEid) {
+                opts.mnemicField.connect({
+                  edgeType: 'part_of',
+                  sourceId: changesetEngram.id,
+                  targetId: branchEid,
+                  metadata: { constellationId },
+                })
+              }
+            }
+          } catch (err) {
+            helixLog.warn('Failed to write helix engrams to MnemicField', { error: String(err) })
+          }
+        }
+
         // Merge worktree changes back to main branch (if isolated)
         if (worktreeIsolation?.isIsolated(helixId)) {
           const skipMerge = node.status === 'failed'
@@ -1821,6 +2011,23 @@ export async function runConstellationPipeline(
             })
           } catch (err) {
             helixLog.warn('Failed to persist branch completion', { error: String(err) })
+          }
+        }
+
+        if (opts.mnemicField) {
+          try {
+            const branchEid = branchEngramIds.get(helixId)
+            if (branchEid) {
+              opts.mnemicField.update(branchEid, {
+                metadata: {
+                  status: branchStatus,
+                  completedAt: new Date().toISOString(),
+                  tokensUsed: node.tokensUsed,
+                },
+              })
+            }
+          } catch (err) {
+            helixLog.warn('Failed to update branch engram outcome', { error: String(err) })
           }
         }
 
@@ -2500,6 +2707,111 @@ export async function runConstellationPipeline(
       } catch (err) {
         log.warn('Failed to archive session to ConstellationStore', { error: String(err) })
       }
+    }
+
+    if (opts.mnemicField) {
+      try {
+        const succeeded = Array.from(nodes.values()).filter(n => n.status === 'completed').length
+        const failed = Array.from(nodes.values()).filter(n => n.status === 'failed').length
+
+        if (constellationEngramId) {
+          opts.mnemicField.update(constellationEngramId, {
+            content: `Constellation complete: ${succeeded} succeeded, ${failed} failed`,
+            metadata: {
+              status: 'completed',
+              branchesSucceeded: succeeded,
+              branchesFailed: failed,
+              durationMs: result.totalDurationMs,
+              completedAt: new Date().toISOString(),
+            },
+          })
+        }
+
+        const snapshot = crossHelixDialectic?.getSnapshot()
+        if (snapshot) {
+          for (const cp of snapshot.convergencePoints) {
+            const convEngram = opts.mnemicField.store({
+              nodeType: 'pattern',
+              content: `Convergence: ${cp.topic}`,
+              tags: ['convergence', 'dialectic'],
+              metadata: {
+                constellationId,
+                participants: cp.participants,
+                timestamp: cp.timestamp,
+              },
+              provenance: `dialectic:${constellationId}`,
+            })
+            if (constellationEngramId) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: convEngram.id,
+                targetId: constellationEngramId,
+                metadata: { constellationId },
+              })
+            }
+            for (const pid of cp.participants) {
+              const branchEid = branchEngramIds.get(pid)
+              if (branchEid) {
+                opts.mnemicField.connect({
+                  edgeType: 'part_of',
+                  sourceId: convEngram.id,
+                  targetId: branchEid,
+                  metadata: { constellationId },
+                })
+              }
+            }
+          }
+          for (const tension of snapshot.unresolvedTensions) {
+            const tensionEngram = opts.mnemicField.store({
+              nodeType: 'concern',
+              content: `Tension: ${tension.positionA.text.slice(0, 300)} vs ${tension.positionB.text.slice(0, 300)}`,
+              tags: ['tension', 'dialectic'],
+              metadata: {
+                constellationId,
+                branchA: tension.positionA.branchId,
+                branchB: tension.positionB.branchId,
+                escalatedToCorpus: tension.escalatedToCorpus,
+              },
+              provenance: `dialectic:${constellationId}`,
+            })
+            if (constellationEngramId) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: tensionEngram.id,
+                targetId: constellationEngramId,
+                metadata: { constellationId },
+              })
+            }
+            const aEid = branchEngramIds.get(tension.positionA.branchId)
+            if (aEid) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: tensionEngram.id,
+                targetId: aEid,
+                metadata: { constellationId, role: 'positionA' },
+              })
+            }
+            const bEid = branchEngramIds.get(tension.positionB.branchId)
+            if (bEid) {
+              opts.mnemicField.connect({
+                edgeType: 'part_of',
+                sourceId: tensionEngram.id,
+                targetId: bEid,
+                metadata: { constellationId, role: 'positionB' },
+              })
+            }
+          }
+        }
+
+        log.info('Wrote constellation completion + dialectic engrams', {
+          convergences: snapshot?.convergencePoints?.length ?? 0,
+          tensions: snapshot?.unresolvedTensions?.length ?? 0,
+        })
+      } catch (err) {
+        log.warn('Failed to write completion engrams', { error: String(err) })
+      }
+      branchEngramIds.clear()
+      constellationEngramId = undefined
     }
 
     if (opts.memory) {
