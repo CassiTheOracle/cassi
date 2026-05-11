@@ -1,5 +1,7 @@
 /**
- * HelixMnemicBridge — Writes Mnemic Field engrams for milestone events in
+ * HelixMnemicBridge — DEPRECATED. Use Thalamus write path instead.
+ *
+ * Writes Mnemic Field engrams for milestone events in
  * brain-integrated Helix sessions.
  *
  * Mirrors the existing meditation MnemicBridge pattern (core/intelligence/
