@@ -221,6 +221,12 @@ export class Cortex {
       getEngramsByIdPrefixDesc: this.db.prepare(`
         SELECT * FROM engrams WHERE id LIKE ? || '%' ORDER BY t DESC, id DESC LIMIT ? OFFSET ?
       `),
+      getEngramsBySessionId: this.db.prepare(`
+        SELECT * FROM engrams WHERE session_id = ? ORDER BY t ASC LIMIT ?
+      `),
+      getEngramsBySessionIdOffset: this.db.prepare(`
+        SELECT * FROM engrams WHERE session_id = ? ORDER BY t ASC LIMIT ? OFFSET ?
+      `),
       getOutgoingTypedSynapses: this.db.prepare(`
         SELECT * FROM mnemic_synapses WHERE source_id = ? AND edge_type = ?
       `),
@@ -363,6 +369,10 @@ export class Cortex {
     }
     const result = this.stmts.deleteEngram.run(id)
     return result.changes > 0
+  }
+
+  setEngramSessionId(id: string, sessionId: string): void {
+    this.db.prepare(`UPDATE engrams SET session_id = ? WHERE id = ?`).run(sessionId, id)
   }
 
   listEngrams(limit = 100, nodeType?: string): Engram[] {
@@ -806,6 +816,15 @@ export class Cortex {
       ? this.stmts.getEngramsByIdPrefixAsc
       : this.stmts.getEngramsByIdPrefixDesc
     const rows = stmt.all(prefix, limit, offset) as Record<string, unknown>[]
+    return rows.map(rowToEngram)
+  }
+
+  getEngramsBySessionId(sessionId: string, limit = 1000, offset = 0): Engram[] {
+    if (offset > 0) {
+      const rows = this.stmts.getEngramsBySessionIdOffset.all(sessionId, limit, offset) as Record<string, unknown>[]
+      return rows.map(rowToEngram)
+    }
+    const rows = this.stmts.getEngramsBySessionId.all(sessionId, limit) as Record<string, unknown>[]
     return rows.map(rowToEngram)
   }
 

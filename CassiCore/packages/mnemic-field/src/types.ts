@@ -12,8 +12,11 @@ export const ENGRAM_TYPES = [
   'source_file', 'changeset', 'artifact', 'concern', 'anomaly',
   'module', 'capability', 'principle', 'weakness', 'evolution', 'portal',
   'bridge',
-  // B8.P.3 — Reverie-synthesized invariant from a white-standing Prism node
   'synthesized_invariant',
+  'intent_span',
+  'thought_command',
+  'replay_segment',
+  'expert_summary',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
@@ -25,6 +28,11 @@ export const SYNAPSE_TYPES = [
   'imports', 'modified_by', 'co_changed', 'contains_symbol',
   'depends_on', 'implements', 'uses_pattern', 'governed_by',
   'evolved_from', 'enables', 'constrains', 'mitigates', 'portal_link',
+  'responds_to',
+  'triggered_by',
+  'commands',
+  'expert_summary',
+  'injected_for',
 ] as const
 
 export type SynapseType = typeof SYNAPSE_TYPES[number]
@@ -286,6 +294,11 @@ export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   constrains: 0.5,
   mitigates: 0.7,
   portal_link: 0.6,
+  responds_to: 0.5,
+  triggered_by: 0.4,
+  commands: 0.3,
+  expert_summary: 0.9,
+  injected_for: 0.7,
 }
 
 export const POTENTIATION_DEFAULTS = {
@@ -847,4 +860,66 @@ export interface LightningRetrievalEventQuery {
   since?: string
   mode?: LightningRetrievalMode
   limit?: number
+}
+
+export type ExpertKind =
+  | 'topic'
+  | 'principle'
+  | 'skill'
+  | 'self_model'
+  | 'relationship'
+  | 'meta_cognitive'
+  | 'identity'
+  | 'factual'
+  | 'aesthetic'
+  | 'heuristic'
+
+export type ExpertDomain = 'identity' | 'wisdom' | 'philosophy' | 'praxis'
+
+export type ExpertProvenance = 'soul.md' | 'agents.md' | 'skill-file' | 'user' | 'meditation' | 'self'
+
+export interface ExpertMetadata {
+  expertId: string
+  expertKind: ExpertKind
+  expertDomain: ExpertDomain
+  expertConviction: number
+  expertSalience: number
+  expertPinned: boolean
+  expertScope: string | null
+  expertEvolvedFrom: string | null
+  expertVersion: number
+  expertProvenance: ExpertProvenance
+  expertLastReinforced: string
+  expertReinforcements: number
+  expertNewSinceSummary: number
+  expertCentroid: number[]
+  expertSourceIds: string[]
+}
+
+export type ExpertLifecycleState = 'active' | 'dormant' | 'archived' | 'hot'
+
+export interface ExpertQuery {
+  expertKind?: ExpertKind
+  expertDomain?: ExpertDomain
+  expertPinned?: boolean
+  expertScope?: string | null
+  minConviction?: number
+  lifecycleState?: ExpertLifecycleState
+  limit?: number
+}
+
+export interface TraceOptions {
+  sessionIds?: string[]
+  expertId?: string
+  from?: string
+  to?: string
+  limit?: number
+}
+
+export interface TraceEvent {
+  sessionId: string
+  timestamp: string
+  engram: Engram
+  edges: MnemicSynapse[]
+  expertInjections?: string[]
 }

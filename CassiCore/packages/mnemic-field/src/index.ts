@@ -7,7 +7,7 @@ import type { ILogger } from '../../../types/interfaces.js'
 import { getEmbeddingService } from '../embeddings/embedding-service.js'
 import { getRerankerService } from '../embeddings/reranker-service.js'
 import { getDataDir } from '../../utils/paths.js'
-import { Cortex, computeSpikeImportance, computeAlpha } from './cortex.js'
+import { Cortex, cosineSimilarity, computeSpikeImportance, computeAlpha } from './cortex.js'
 import { FilamentCortex } from './filament-cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
@@ -29,6 +29,7 @@ import type { IProvider } from '../../../types/runtime.js'
 import { FilamentAnalyzer } from './filament-llm.js'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'
+import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES, classifyWithPhrases, type PhrasePrototypeSet, type ClassificationResult, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -133,6 +134,8 @@ export { FilamentConsolidator } from './filament-consolidation.js'
 export { FilamentAnalyzer } from './filament-llm.js'
 export { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
 export { renderWithZoom } from './filament-renderer.js'
+export { GraphAttnPropagator } from './graph-attn-propagator.js'
+export type { PropagatedEngram, PropagationPath, PropagationHop, GraphAttnPropagatorOpts } from './graph-attn-propagator.js'
 export type { FilamentSpan } from './segmentation.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
@@ -154,6 +157,8 @@ export type {
   Affect, AffectState, AffectLabel, AffectConfig,
   NeuralKindlingConfig, ForwardTrace, ForwardRecord, GradientRequest,
   BackpropConfig, BackpropResult, TraceGradientResult, SynapseOptimizerState,
+  ExpertKind, ExpertDomain, ExpertProvenance, ExpertMetadata,
+  ExpertLifecycleState, ExpertQuery, TraceOptions, TraceEvent,
 } from './types.js'
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
@@ -164,6 +169,8 @@ export {
   AFFECT_DEFAULTS, BACKPROP_DEFAULTS,
 } from './types.js'
 export { attune, AffectRegister, resolveLabel, affectSimilarity, emotionalIntensity } from './affect.js'
+export { classifyWithPhrases, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
+export type { PhrasePrototypeSet, ClassificationResult } from './edge-relators.js'
 
 export class MnemicField {
   private cortex: Cortex
@@ -248,8 +255,12 @@ export class MnemicField {
   }
 
   private corticalField?: CorticalField
-  private db: Database.Database  // Store for persistence operations
   private dreamEngine: DreamEngine | null = null
+  private db: Database.Database  // Store for persistence operations
+  /** Cached edge classification phrase embeddings — built once at first call */
+  private _phraseEmbeddings: Map<string, Float32Array> | null = null
+  /** Generic phrase embedding cache keyed by prototype set identity */
+  private _genericPhraseCaches: Map<string, Map<string, Float32Array>> = new Map()
 
   constructor(logger: ILogger, dbOrPath?: Database.Database | string) {
     this.logger = logger.child ? logger.child('mnemic-field') : logger
@@ -1699,7 +1710,6 @@ export class MnemicField {
    */
   setDreamEngine(engine: DreamEngine): void {
     this.dreamEngine = engine
-    // Recreate consolidation engine with the dream engine
     this.consolidationEngine = new ConsolidationEngine(
       this.cortex,
       this.logger,
@@ -1708,6 +1718,361 @@ export class MnemicField {
       this.dreamEngine,
     )
     this.logger.info('Dream engine connected to consolidation pipeline')
+  }
+
+  storeForSession(input: EngramCreate & { sessionId?: string }): Engram {
+    const sessionId = input.sessionId
+    if (sessionId) {
+      const metadata = { ...(input.metadata ?? {}), sessionId }
+      const { sessionId: _sid, ...rest } = input
+      const result = this.store({ ...rest, metadata })
+      try {
+        this.cortex.setEngramSessionId(result.id, sessionId)
+      } catch {
+        // Non-fatal — sessionId is in metadata
+      }
+      return result
+    }
+    return this.store(input)
+  }
+
+  findExpertEngrams(query: import('./types.js').ExpertQuery = {}): Engram[] {
+    const all = this.cortex.listEngrams(query.limit ?? 500, 'expert_summary')
+    return all.filter(e => {
+      const m = e.metadata ?? {}
+      if (query.expertKind && (m as any).expertKind !== query.expertKind) return false
+      if (query.expertDomain && (m as any).expertDomain !== query.expertDomain) return false
+      if (query.expertPinned !== undefined && (m as any).expertPinned !== query.expertPinned) return false
+      if (query.minConviction !== undefined && ((m as any).expertConviction ?? 0) < query.minConviction) return false
+      if (query.expertScope !== undefined) {
+        const scope = (m as any).expertScope ?? null
+        if (query.expertScope !== scope && scope !== null) return false
+      }
+      return true
+    }).sort((a, b) => ((b.metadata as any)?.expertConviction ?? 0) - ((a.metadata as any)?.expertConviction ?? 0))
+  }
+
+  getTrace(options: import('./types.js').TraceOptions = {}): import('./types.js').TraceEvent[] {
+    const limit = options.limit ?? 1000
+    let engrams: import('./types.js').Engram[]
+
+    if (options.sessionIds?.length === 1) {
+      engrams = this.cortex.getEngramsBySessionId(options.sessionIds[0], limit)
+    } else {
+      const all = this.cortex.listEngrams(options.limit ?? 10000)
+      engrams = all.filter(e => !options.sessionIds?.length || (options.sessionIds as string[]).includes((e.metadata as any)?.sessionId ?? ''))
+    }
+
+    if (options.expertId) {
+      engrams = engrams.filter(e => (e.metadata as any)?.expertId === options.expertId)
+    }
+    if (options.from) {
+      const from = new Date(options.from).getTime()
+      engrams = engrams.filter(e => e.t >= from)
+    }
+    if (options.to) {
+      const to = new Date(options.to).getTime()
+      engrams = engrams.filter(e => e.t <= to)
+    }
+
+    engrams.sort((a, b) => a.t - b.t)
+    const slice = engrams.slice(0, limit)
+
+    const events: import('./types.js').TraceEvent[] = []
+    for (const engram of slice) {
+      const sid = (engram.metadata as any)?.sessionId as string | undefined
+      if (!sid) continue
+      events.push({
+        sessionId: sid,
+        timestamp: engram.createdAt,
+        engram,
+        edges: [],
+        expertInjections: (engram.metadata as any)?.expertInjections as string[] | undefined,
+      })
+    }
+    return events
+  }
+
+  reinforceExpert(expertId: string): Engram | null {
+    const all = this.cortex.listEngrams(1000, 'expert_summary')
+    const target = all.find(e => (e.metadata as any)?.expertId === expertId)
+    if (!target) return null
+    const m = target.metadata as any
+    const conviction = (m.expertConviction ?? 0.2) as number
+    const increment = 0.02 * (1 - conviction)
+    const newConviction = Math.min(1, conviction + increment)
+    const updated = this.cortex.updateEngram(target.id, {
+      metadata: {
+        ...m,
+        expertConviction: newConviction,
+        expertLastReinforced: new Date().toISOString(),
+        expertReinforcements: (m.expertReinforcements ?? 0) + 1,
+      },
+    })
+    if (updated) {
+      this.logger.debug('Expert reinforced', {
+        expertId,
+        conviction: `${conviction.toFixed(3)} → ${newConviction.toFixed(3)}`,
+      })
+    }
+    return updated
+  }
+
+  evolveExpert(expertId: string, newContent: string, input?: Partial<import('./types.js').EngramCreate>): Engram | null {
+    const all = this.cortex.listEngrams(1000, 'expert_summary')
+    const target = all.find(e => (e.metadata as any)?.expertId === expertId)
+    if (!target) return null
+    const oldActive = (target.metadata as any)?.active
+    if (oldActive === false) return null
+    const oldMeta = target.metadata as any
+    const newMeta = {
+      ...oldMeta,
+      expertEvolvedFrom: target.id,
+      expertVersion: (oldMeta.expertVersion ?? 1) + 1,
+      expertConviction: 0.2,
+      expertLastReinforced: new Date().toISOString(),
+      expertReinforcements: 0,
+      active: true,
+    }
+    const updated = this.cortex.updateEngram(target.id, {
+      metadata: { ...oldMeta, active: false },
+    })
+    if (!updated) return null
+    const evolved = this.store({
+      ...(input ?? {}),
+      content: newContent,
+      nodeType: 'expert_summary',
+      provenance: input?.provenance ?? 'thalamus.evolve',
+      metadata: newMeta,
+    })
+    this.logger.info('Expert evolved', {
+      fromId: target.id,
+      toId: evolved.id,
+      version: newMeta.expertVersion,
+    })
+    return evolved
+  }
+
+  checkExpertLifecycle(): { dormant: string[]; archived: string[]; hot: string[] } {
+    const all = this.cortex.listEngrams(10000, 'expert_summary')
+    const now = new Date()
+    const dormant: string[] = []
+    const archived: string[] = []
+    const hot: string[] = []
+    for (const e of all) {
+      const m = e.metadata as any
+      if (!m?.expertId) continue
+      const lastMsg = m.expertLastReinforced ? new Date(m.expertLastReinforced) : null
+      const msgCount = m.expertSourceIds?.length ?? 0
+      if (lastMsg) {
+        const daysOld = (now.getTime() - lastMsg.getTime()) / 86400000
+        if (daysOld > 90 && msgCount < 5) archived.push(m.expertId)
+        else if (daysOld > 30) dormant.push(m.expertId)
+      }
+      if ((m.expertReinforcements ?? 0) > 50) hot.push(m.expertId)
+    }
+    return { dormant, archived, hot }
+  }
+
+  private async _ensurePhraseEmbeddings(): Promise<Map<string, Float32Array> | null> {
+    if (this._phraseEmbeddings) return this._phraseEmbeddings
+
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return null
+
+    const allPhrases: string[] = []
+    const phraseIndex: { edgeType: string; indices: number[] }[] = []
+
+    for (const edgeType of Object.keys(RELATIONAL_PHRASES)) {
+      const start = allPhrases.length
+      const phrases = RELATIONAL_PHRASES[edgeType]
+      let count = 0
+      for (const p of phrases) {
+        allPhrases.push(p)
+        count++
+      }
+      phraseIndex.push({ edgeType, indices: Array.from({ length: count }, (_, i) => start + i) })
+    }
+
+    const batchSize = 10
+    const allEmbeddings: Float32Array[] = []
+    for (let i = 0; i < allPhrases.length; i += batchSize) {
+      const batch = allPhrases.slice(i, i + batchSize)
+      const results = await Promise.all(batch.map(p => embSvc.embed(p)))
+      for (const r of results) {
+        if (r) {
+          allEmbeddings.push(new Float32Array(r))
+        }
+      }
+    }
+
+    const dim = allEmbeddings[0]?.length ?? 1024
+    this._phraseEmbeddings = new Map()
+
+    for (const { edgeType, indices } of phraseIndex) {
+      const centroid = new Float32Array(dim)
+      let count = 0
+      for (const idx of indices) {
+        if (idx < allEmbeddings.length) {
+          for (let d = 0; d < dim; d++) centroid[d] += allEmbeddings[idx][d]
+          count++
+        }
+      }
+      if (count > 0) {
+        for (let d = 0; d < dim; d++) centroid[d] /= count
+        this._phraseEmbeddings.set(edgeType, centroid)
+      }
+    }
+
+    return this._phraseEmbeddings
+  }
+
+  private outcomeLog: Array<{ expertId: string; outcome: 'positive' | 'negative' | 'missing'; turn: number }> = []
+  private outcomeLogCapacity = 500
+
+  recordExpertOutcome(expertId: string, outcome: 'positive' | 'negative' | 'missing'): void {
+    this.outcomeLog.push({ expertId, outcome, turn: this.outcomeLog.length })
+    if (this.outcomeLog.length > this.outcomeLogCapacity) {
+      this.outcomeLog.splice(0, this.outcomeLog.length - this.outcomeLogCapacity)
+    }
+    if (outcome === 'positive') {
+      this.reinforceExpert(expertId)
+    }
+  }
+
+  adjustPropagationWeights(): Record<string, number> {
+    if (this.outcomeLog.length < 10) return {}
+    const positiveCount = new Map<string, number>()
+    const negativeCount = new Map<string, number>()
+    for (const entry of this.outcomeLog) {
+      const map = entry.outcome === 'negative' ? negativeCount : positiveCount
+      map.set(entry.expertId, (map.get(entry.expertId) ?? 0) + 1)
+    }
+    const adjustments: Record<string, number> = {}
+    for (const [expertId, pos] of positiveCount) {
+      const neg = negativeCount.get(expertId) ?? 0
+      const total = pos + neg
+      if (total >= 5) {
+        const rate = pos / total
+        adjustments[expertId] = rate
+      }
+    }
+    return adjustments
+  }
+
+  async classifyEdgePair(sourceId: string, targetId: string): Promise<import('./types.js').SynapseType | null> {
+    const source = this.get(sourceId)
+    const target = this.get(targetId)
+    if (!source || !target) return null
+
+    const phraseEmbeddings = await this._ensurePhraseEmbeddings()
+    if (!phraseEmbeddings) return null
+
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return null
+
+    const combined = `${source.content.slice(0, 200)}\n${target.content.slice(0, 200)}`
+    const embedding = await embSvc.embed(combined)
+    if (!embedding) return null
+
+    const result = classifyEdge(
+      source.content,
+      target.content,
+      phraseEmbeddings,
+      new Float32Array(embedding),
+      cosineSimilarity,
+      0.35,
+    )
+
+    if (result.edgeType) {
+      this.cortex.createSynapse({
+        sourceId,
+        targetId,
+        edgeType: result.edgeType,
+        weight: result.score,
+        metadata: { classifier: 'edge-relators', confidence: result.score },
+      })
+    }
+
+    return result.edgeType
+  }
+
+  async classifyPhrase(
+    text: string,
+    prototypeSet: PhrasePrototypeSet,
+    threshold = 0.35,
+  ): Promise<ClassificationResult> {
+    const cache = await this.ensurePhraseEmbeddingsForSet(prototypeSet)
+    if (!cache) return { label: null, score: 0 }
+
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return { label: null, score: 0 }
+
+    const embedding = await embSvc.embed(text)
+    if (!embedding) return { label: null, score: 0 }
+
+    return classifyWithPhrases(
+      text,
+      prototypeSet,
+      cache,
+      new Float32Array(embedding),
+      cosineSimilarity,
+      threshold,
+    )
+  }
+
+  async ensurePhraseEmbeddingsForSet(
+    prototypeSet: PhrasePrototypeSet,
+  ): Promise<Map<string, Float32Array> | null> {
+    const cacheKey = prototypeSet.labels.join('\0')
+    const cached = this._genericPhraseCaches.get(cacheKey)
+    if (cached) return cached
+
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) return null
+
+    const allPhrases: string[] = []
+    const phraseIndex: { label: string; indices: number[] }[] = []
+
+    for (const label of prototypeSet.labels) {
+      const phrases = prototypeSet.phrases[label] ?? []
+      const start = allPhrases.length
+      allPhrases.push(...phrases)
+      phraseIndex.push({ label, indices: Array.from({ length: phrases.length }, (_, i) => start + i) })
+    }
+
+    if (allPhrases.length === 0) return null
+
+    const batchSize = 10
+    const allEmbeddings: Float32Array[] = []
+    for (let i = 0; i < allPhrases.length; i += batchSize) {
+      const batch = allPhrases.slice(i, i + batchSize)
+      const results = await Promise.all(batch.map(p => embSvc.embed(p)))
+      for (const r of results) {
+        if (r) allEmbeddings.push(new Float32Array(r))
+      }
+    }
+
+    const dim = allEmbeddings[0]?.length ?? 1024
+    const cache = new Map<string, Float32Array>()
+
+    for (const { label, indices } of phraseIndex) {
+      const centroid = new Float32Array(dim)
+      let count = 0
+      for (const idx of indices) {
+        if (idx < allEmbeddings.length) {
+          for (let d = 0; d < dim; d++) centroid[d] += allEmbeddings[idx][d]
+          count++
+        }
+      }
+      if (count > 0) {
+        for (let d = 0; d < dim; d++) centroid[d] /= count
+        cache.set(`embed:${label}`, centroid)
+      }
+    }
+
+    this._genericPhraseCaches.set(cacheKey, cache)
+    return cache
   }
 
   close(): void {

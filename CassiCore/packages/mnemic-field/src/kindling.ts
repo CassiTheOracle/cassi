@@ -374,6 +374,9 @@ export class KindlingEngine {
         if (!sourceEngram) continue
 
         const propagation = SYNAPSE_PROPAGATION[syn.edgeType] ?? 0.5
+        const signedPropagation = syn.edgeType === 'contradicts'
+          ? -Math.abs(propagation)
+          : propagation
         const xyDist = euclideanDistance(sourceEngram, neighborEngram)
         const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -395,7 +398,7 @@ export class KindlingEngine {
           }
         }
 
-        const spread = charge * syn.weight * propagation * distDecay * temporalRelevance * potBoost * emotionalDamping
+        const spread = charge * syn.weight * signedPropagation * distDecay * temporalRelevance * potBoost * emotionalDamping
 
         const existing = updates.get(neighborId) ?? 0
         updates.set(neighborId, existing + spread)
@@ -445,6 +448,9 @@ export class KindlingEngine {
         if (!sourceEngram) continue
 
         const propagation = SYNAPSE_PROPAGATION[syn.edgeType] ?? 0.5
+        const signedPropagation = syn.edgeType === 'contradicts'
+          ? -Math.abs(propagation)
+          : propagation
         const xyDist = euclideanDistance(sourceEngram, neighborEngram)
         const distDecay = 1 / (1 + KINDLING_DEFAULTS.distanceDecayRate * xyDist)
 
@@ -466,7 +472,7 @@ export class KindlingEngine {
           }
         }
 
-        const rawContribution = charge * syn.weight * propagation * distDecay * temporalRelevance * potBoost * emotionalDamping
+        const rawContribution = charge * syn.weight * signedPropagation * distDecay * temporalRelevance * potBoost * emotionalDamping
 
         const existing = aggregated.get(neighborId) ?? 0
         aggregated.set(neighborId, existing + rawContribution)

@@ -188,6 +188,11 @@ export const KNOWLEDGE_SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   mitigates: 0.7,
   portal_link: 0.6,
   imports: 0.7,
+  responds_to: 0.5,
+  triggered_by: 0.4,
+  commands: 0.3,
+  expert_summary: 0.9,
+  injected_for: 0.7,
 } as const
 
 /**
