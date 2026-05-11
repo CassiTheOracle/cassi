@@ -415,8 +415,12 @@ export const writeFileHandler: ToolHandler = async (
   }
 
   // DB-authoritative path: CassiCore source files write to code store
+  // WHY: When running in a worktree (e.g. constellation branch isolation),
+  // skip the code store and write directly to the filesystem. The code store
+  // is DB-authoritative for the main repo only; worktrees need real files.
   const codeCheck = isCassiCoreSourceFile(absPath)
-  if (codeCheck.is && ctx._codeStore) {
+  const isWorktree = ctx.workingDir !== getRepoRoot()
+  if (codeCheck.is && ctx._codeStore && !isWorktree) {
     // EditMagnitudeGuard still runs — compare against code store content
     const existingEngram = ctx._codeStore.getFileByPath(codeCheck.relPath)
     if (existingEngram) {
@@ -530,9 +534,10 @@ export async function writeFilesBatch(
     
     await Promise.all(batch.map(async ({ key, absPath, options }) => {
       try {
-        // DB-authoritative path for CassiCore source files
+        // DB-authoritative path for CassiCore source files (skip in worktrees)
         const codeCheck = isCassiCoreSourceFile(absPath)
-        if (codeCheck.is && ctx._codeStore) {
+        const isWorktreeBatch = ctx.workingDir !== getRepoRoot()
+        if (codeCheck.is && ctx._codeStore && !isWorktreeBatch) {
           const csResult = writeToCodeStore(absPath, codeCheck.relPath, options.content, ctx)
           if (csResult) {
             results.set(key, { success: true, bytesWritten: Buffer.byteLength(options.content, 'utf8') })

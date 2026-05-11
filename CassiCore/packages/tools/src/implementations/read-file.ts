@@ -11,7 +11,7 @@
  */
 
 import { open, stat, readdir } from 'node:fs/promises'
-import { resolve, dirname, basename } from 'node:path'
+import { resolve, dirname, basename, relative } from 'node:path'
 
 import type { ToolDefinition, ToolHandler, ToolExecutionContext } from '../types.js'
 import { getRepoRoot } from '../../utils/paths.js'
@@ -278,23 +278,42 @@ export const readFileHandler: ToolHandler = async (
   // WHY: errors from readFileOptimized (file not found, not a file, EACCES, etc.)
   // must propagate so the executor can mark isError=true. Returning the error
   // as a string would mislead LLMs into treating the prefix as content.
-  const { content, truncated, fromCache } = await readFileOptimized(
-    absPath,
-    offset,
-    limit,
-    MAX_BYTES
-  )
+  try {
+    const { content, truncated, fromCache } = await readFileOptimized(
+      absPath,
+      offset,
+      limit,
+      MAX_BYTES
+    )
 
-  ctx.logger.debug?.('[read_file] completed', {
-    path: absPath,
-    size: content.length,
-    truncated,
-    fromCache,
-    cacheStats: globalCache.stats()
-  })
+    ctx.logger.debug?.('[read_file] completed', {
+      path: absPath,
+      size: content.length,
+      truncated,
+      fromCache,
+      cacheStats: globalCache.stats()
+    })
 
-  const dirContext = await buildDirContext(absPath)
-  return content + dirContext
+    const dirContext = await buildDirContext(absPath)
+    return content + dirContext
+  } catch (err) {
+    // Fallback: if file not found and we're in a worktree, check code store
+    const isWorktree = ctx.workingDir !== getRepoRoot()
+    if (isWorktree && ctx._codeStore) {
+      const relPath = relative(getRepoRoot(), absPath)
+      const engram = ctx._codeStore.getFileByPath(relPath)
+      if (engram) {
+        ctx.logger.debug?.('[read_file] code store fallback', { path: relPath })
+        let content = engram.content
+        if (offset > 1 || limit !== undefined) {
+          content = extractLines(Buffer.from(content), offset, limit)
+        }
+        const meta = engram.metadata as Record<string, unknown>
+        return `[code-store: ${relPath} | ${meta.sizeBytes ?? content.length} bytes | potentiation: ${engram.potentiation.toFixed(3)}]\n\n${content}`
+      }
+    }
+    throw err
+  }
 }
 
 /**
