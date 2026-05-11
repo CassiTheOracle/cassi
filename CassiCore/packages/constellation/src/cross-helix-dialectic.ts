@@ -19,6 +19,8 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import type { HelixBrainstem } from '../helix/brainstem.js'
 import type { CorpusDirective } from './corpus-types.js'
+import { DIALECTIC_TYPE_PHRASES, DIALECTIC_QUALITY_PHRASES } from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 
 /**
@@ -135,10 +137,15 @@ export class CrossHelixDialectic {
   private sweepsSinceMediation = 0
   private readonly config: CrossHelixDialecticConfig
   private readonly logger: ILogger
+  private mnemicField?: MnemicField
 
   constructor(logger: ILogger, config?: Partial<CrossHelixDialecticConfig>) {
     this.config = { ...DEFAULT_CROSS_HELIX_DIALECTIC_CONFIG, ...config }
     this.logger = logger
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
   }
 
 
@@ -191,8 +198,11 @@ export class CrossHelixDialectic {
     const msg = this.createMessage('cross-finding', fromHelixId, 'all', text, opts)
     this.addMessage(msg)
 
-    // Deliver to all other branches' Brainstems as guidance
     this.deliverToOtherBranches(fromHelixId, msg)
+
+    this.verifyMessageType(msg).catch(err =>
+      this.logger.warn('dialectic verification failed', { error: String(err) })
+    )
 
     return msg.id
   }
@@ -213,11 +223,13 @@ export class CrossHelixDialectic {
     })
     this.addMessage(msg)
 
-    // Deliver directly to the challenged branch's Brainstem
     this.deliverToBranch(targetHelixId, msg)
 
-    // Check for tension pattern (challenge-counter-challenge)
     this.detectTensions(msg)
+
+    this.verifyMessageType(msg).catch(err =>
+      this.logger.warn('dialectic verification failed', { error: String(err) })
+    )
 
     return msg.id
   }
@@ -515,6 +527,35 @@ export class CrossHelixDialectic {
         branchA: tension.positionA.branchId,
         branchB: tension.positionB.branchId,
       })
+
+      if (this.mnemicField) {
+        this.classifyTensionQuality(tension).catch(err =>
+          this.logger.warn('tension quality classification failed', { error: String(err) })
+        )
+      }
+    }
+  }
+
+  private async verifyMessageType(msg: CrossHelixMessage): Promise<void> {
+    if (!this.mnemicField) return
+    const result = await this.mnemicField.classifyPhrase(msg.text, DIALECTIC_TYPE_PHRASES)
+    const expected = msg.type.replace('cross-', '')
+    if (result.label && result.label !== expected && result.score > 0.50) {
+      this.logger.warn('dialectic type mismatch', {
+        declared: msg.type,
+        classified: result.label,
+        score: result.score.toFixed(2),
+      })
+    }
+  }
+
+  private async classifyTensionQuality(tension: CrossHelixTension): Promise<void> {
+    if (!this.mnemicField) return
+    const combined = `${tension.positionA.text}\n---\n${tension.positionB.text}`
+    const result = await this.mnemicField.classifyPhrase(combined, DIALECTIC_QUALITY_PHRASES)
+    if (result.label && result.score > 0.35) {
+      ;(tension as any).quality = result.label
+      ;(tension as any).qualityScore = result.score
     }
   }
 }

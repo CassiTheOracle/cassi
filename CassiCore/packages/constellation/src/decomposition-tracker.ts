@@ -13,6 +13,8 @@
 import { randomBytes } from 'crypto'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { GoalDecomposition, GoalSubTask } from './corpus-types.js'
+import { DEVIATION_REASON_PHRASES } from '../phrase-prototypes.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 
 export type TaskStatus = 'planned' | 'assigned' | 'in-progress' | 'completed' | 'failed' | 'cancelled' | 'split'
 
@@ -25,6 +27,8 @@ export interface TrackedTask {
   completedAt?: number
   /** Actual goal if it deviated from planned */
   actualGoal?: string
+  deviationReason?: string
+  deviationConfidence?: number
   /** Sub-tasks spawned from this task (for incremental re-decomposition) */
   childTaskIds?: string[]
   /** Parent task ID if this was spawned by re-decomposition */
@@ -88,6 +92,7 @@ export class DecompositionTracker {
   private readonly createdAt: number
   private lastUpdatedAt: number
   private transitionHandler?: TransitionHandler
+  private mnemicField?: MnemicField
 
   constructor(
     private readonly constellationId: string,
@@ -97,6 +102,10 @@ export class DecompositionTracker {
     this.createdAt = Date.now()
     this.lastUpdatedAt = this.createdAt
     this.initializeFromDecomposition()
+  }
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
   }
 
   /**
@@ -264,7 +273,17 @@ export class DecompositionTracker {
     task.status = 'completed'
     task.completedAt = Date.now()
     task.outcome = outcome
-    
+
+    if (outcome && this.mnemicField && task.actualGoal) {
+      const combined = `Original: ${task.originalTask.goal}\nActual: ${outcome}`
+      this.mnemicField.classifyPhrase(combined, DEVIATION_REASON_PHRASES).then(result => {
+        if (result?.label) {
+          task.deviationReason = result.label
+          task.deviationConfidence = result.score
+        }
+      }).catch(() => {})
+    }
+
     this.recordTransition(taskId, previousStatus, 'completed', outcome)
     
     this.log.info('[DecompositionTracker] Task completed', {
