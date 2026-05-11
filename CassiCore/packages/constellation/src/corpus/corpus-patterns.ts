@@ -11,9 +11,12 @@ import type {
   ICorpusTree,
   CorpusProcessedState,
   CrossHelixPattern,
+  CrossHelixPatternType,
   BranchAssessment,
 } from '../corpus-types.js'
 import type { TopologyGraph } from '../topology/topology-graph.js'
+import { CORPUS_BRANCH_RELATION_PHRASES } from '../../phrase-prototypes.js'
+import type { MnemicField } from '../../mnemic-field/index.js'
 
 
 /**
@@ -44,6 +47,12 @@ export class PatternDetector {
     this.logger = deps.logger.child('PatternDetector')
   }
 
+  private mnemicField?: MnemicField
+
+  setMnemicField(field: MnemicField): void {
+    this.mnemicField = field
+  }
+
   /**
    * Detect cross-branch patterns.
    *
@@ -56,35 +65,49 @@ export class PatternDetector {
    *
    * @returns New patterns detected this sweep (de-duplicated against existing)
    */
-  detect(): CrossHelixPattern[] {
+   detect(): CrossHelixPattern[] {
     const patterns: CrossHelixPattern[] = []
     const assessments = Array.from(this.state.branchAssessments.values())
     const branches = this.tree.getAllBranches()
 
-    // 1. Conflict: filesModified Set intersection across branches
     this.detectFileConflicts(assessments, patterns)
-
-    // 2. Asymmetric progress: one branch has 3+ more steps than sibling
     this.detectAsymmetricProgress(branches, patterns)
-
-    // 3. Cascade failure: 2+ branches 'failed'/'struggling' created within 30s
     this.detectCascadeFailure(branches, patterns)
-
-    // 4. Convergence: 2+ branches with dominantPattern 'implementation' and rollingScore > 0.7
     this.detectConvergence(assessments, patterns)
-
-    // 5. Topology-enhanced pattern detection
     this.detectTopologyPatterns(patterns)
 
-    // De-duplicate against existing patterns (5-minute window prevents spam)
     const newPatterns = this.deduplicatePatterns(patterns)
-
-    // Prune old patterns to prevent unbounded growth (keep last 50)
     if (this.state.crossPatterns.length > 50) {
       this.state.crossPatterns = this.state.crossPatterns.slice(-50)
     }
 
+    if (this.mnemicField) {
+      this.detectSemanticPatternsAsync(assessments).catch(() => {})
+    }
+
     return newPatterns
+  }
+
+  private async detectSemanticPatternsAsync(assessments: BranchAssessment[]): Promise<void> {
+    if (!this.mnemicField) return
+    for (let i = 0; i < assessments.length; i++) {
+      for (let j = i + 1; j < assessments.length; j++) {
+        const a = assessments[i], b = assessments[j]
+        const combined = `Branch ${a.helixId}: ${a.dominantPattern}\nBranch ${b.helixId}: ${b.dominantPattern}`
+        const result = await this.mnemicField.classifyPhrase(combined, CORPUS_BRANCH_RELATION_PHRASES)
+        if (result.label && result.score > 0.35) {
+          const pattern = {
+            type: `semantic_${result.label}` as CrossHelixPatternType,
+            helixIds: [a.helixId, b.helixId],
+            severity: 'low' as const,
+            description: `Semantic ${result.label.replace(/_/g, ' ')} between branches`,
+            detectedAt: Date.now(),
+            actedUpon: false,
+          }
+          this.state.crossPatterns.push(pattern)
+        }
+      }
+    }
   }
 
   /**

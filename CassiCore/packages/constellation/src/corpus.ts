@@ -83,6 +83,7 @@ import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
 import type { LocusSnapshot } from './locus/locus-types.js'
+import { SPAWN_EVALUATION_PHRASES, DIRECTIVE_QUALITY_PHRASES } from '../phrase-prototypes.js'
 
 /**
  * Minimal interface for child Brainstem to avoid circular imports.
@@ -496,8 +497,6 @@ export class Corpus {
    * Evaluate a spawn request via LLM (or queue for external agent)
    */
   async evaluateSpawnRequest(request: SpawnRequest): Promise<SpawnDecision> {
-    // WHY: When an external agent holds the Corpus role, spawn decisions
-    // are queued for the external agent rather than auto-evaluated by LLM.
     if (this.externalProtocol.isAssumed()) {
       this.externalProtocol.queueSpawnRequest({
         requestId: request.requestId,
@@ -507,7 +506,6 @@ export class Corpus {
         template: request.template,
         targetDepth: request.targetDepth,
       })
-      // Return a "pending" decision — the external agent will decide later
       return {
         requestId: request.requestId,
         requestingHelixId: request.requestingHelixId,
@@ -518,6 +516,17 @@ export class Corpus {
       }
     }
 
+    const preDecision = await this.preEvaluateSpawn(request)
+    if (preDecision) {
+      this.state.spawnDecisions.push(preDecision)
+      this.emitEvent('corpus:spawn-decision', {
+        requestId: request.requestId,
+        approved: preDecision.approved,
+        reason: preDecision.reason,
+      })
+      return preDecision
+    }
+
     const decision = await this.runSpawnEvaluation(request)
     this.state.spawnDecisions.push(decision)
     this.emitEvent('corpus:spawn-decision', {
@@ -526,6 +535,73 @@ export class Corpus {
       reason: decision.reason,
     })
     return decision
+  }
+
+  private async preEvaluateSpawn(request: SpawnRequest): Promise<SpawnDecision | null> {
+    const mf = this.deps.mnemicField
+    if (!mf) return null
+
+    const combined = `Goal: ${request.goal}\nContext: ${request.context ?? ''}`
+    const result = await mf.classifyPhrase(combined, SPAWN_EVALUATION_PHRASES).catch(() => null)
+    if (!result || !result.label || result.score < 0.45) return null
+
+    if (result.label === 'duplicate_work' && result.score > 0.55) {
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved: false,
+        reason: `duplicate_work (score=${result.score.toFixed(2)})`,
+        evaluatedAt: Date.now(),
+      }
+    }
+    if (result.label === 'out_of_scope' && result.score > 0.50) {
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved: false,
+        reason: `out_of_scope (score=${result.score.toFixed(2)})`,
+        evaluatedAt: Date.now(),
+      }
+    }
+    if (result.label === 'natural_subtask' && result.score > 0.45 && request.targetDepth <= 1) {
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved: true,
+        reason: `natural_subtask_auto (score=${result.score.toFixed(2)})`,
+        evaluatedAt: Date.now(),
+      }
+    }
+    if (result.label === 'high_dependency' && result.score > 0.50) {
+      return {
+        requestId: request.requestId,
+        requestingHelixId: request.requestingHelixId,
+        goal: request.goal,
+        approved: true,
+        reason: `critical_path (score=${result.score.toFixed(2)})`,
+        evaluatedAt: Date.now(),
+      }
+    }
+
+    return null
+  }
+
+  async preCheckDirectiveQuality(content: string, targetHelixId: string): Promise<void> {
+    const mf = this.deps.mnemicField
+    if (!mf) return
+
+    const result = await mf.classifyPhrase(content, DIRECTIVE_QUALITY_PHRASES).catch(() => null)
+    if (!result || !result.label || result.score < 0.50) return
+
+    if (result.label === 'vague') {
+      this.logger.warn('vague Corpus directive', { targetHelixId, score: result.score.toFixed(2) })
+    }
+    if (result.label === 'contradictory') {
+      this.logger.warn('contradictory Corpus directive', { targetHelixId, score: result.score.toFixed(2) })
+    }
   }
 
   /**

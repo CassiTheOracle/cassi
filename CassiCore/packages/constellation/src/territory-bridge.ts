@@ -12,6 +12,8 @@
 
 import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
 import type { GlobalWorkspace } from '../workspace/global-workspace.js'
+import type { PhrasePrototypeSet } from '../mnemic-field/edge-relators.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 import { extractKeywords, keywordOverlap } from '../workspace/luminance.js'
 
 const MIN_CONCEPT_OVERLAP = 0.25
@@ -95,13 +97,73 @@ export function computeConceptOverlap(a: SiblingGoalEntry, b: SiblingGoalEntry):
   return shared.length >= MIN_SHARED_KEYWORDS ? shared : []
 }
 
-export function computeTerritorialOverlap(a: SiblingGoalEntry, b: SiblingGoalEntry): OverlapResult {
+export const TERRITORY_RELATION_PHRASES: PhrasePrototypeSet = {
+  phrases: {
+    same_domain: [
+      'both of these changes touch the same subsystem',
+      'both branches are working on the authentication layer',
+      'these modifications share the same architectural concern',
+      'both approaches target the same abstraction boundary',
+      'the two branches operate in the same problem domain',
+    ],
+    contradictory: [
+      'these two approaches would conflict with each other',
+      'the design axioms assumed by each branch are incompatible',
+      'merging both changes would create contradictory behavior',
+      'one branch assumes something the other is about to remove',
+      'the implementations cannot coexist without reconciliation',
+    ],
+    enables_other: [
+      'this branch will need the output of the other branch',
+      'completing this unlocks the work in the sibling branch',
+      'the downstream work cannot start until this one finishes',
+      'one branch is building on infrastructure the other is creating',
+      'there is a causal dependency between these two efforts',
+    ],
+    independent: [
+      'the two branches address entirely separate concerns',
+      'these changes operate in unrelated code domains',
+      'no dependency exists in either direction between them',
+      'the work can proceed independently and merge cleanly',
+      'the branches are orthogonal and do not interact',
+    ],
+  },
+  labels: ['same_domain', 'contradictory', 'enables_other', 'independent'],
+}
+
+export function computeTerritorialOverlap(
+  a: SiblingGoalEntry,
+  b: SiblingGoalEntry,
+): OverlapResult {
   const sharedFiles = computeFileOverlap(a, b)
   const sharedKeywords = computeConceptOverlap(a, b)
   return {
     hasOverlap: sharedFiles.length > 0 || sharedKeywords.length > 0,
     sharedFiles,
     sharedKeywords,
+  }
+}
+
+export async function computeTerritorialOverlapSemantic(
+  a: SiblingGoalEntry,
+  b: SiblingGoalEntry,
+  phraseClassifier: MnemicField,
+): Promise<OverlapResult> {
+  const structural = computeTerritorialOverlap(a, b)
+  if (structural.hasOverlap) return structural
+
+  const combined = `${a.goalText}\n---\n${b.goalText}`
+  const result = await phraseClassifier.classifyPhrase(
+    combined, TERRITORY_RELATION_PHRASES,
+  )
+  const hasSemanticOverlap = result.label !== null
+    && result.label !== 'independent'
+    && result.score > 0.35
+
+  return {
+    hasOverlap: hasSemanticOverlap,
+    sharedFiles: [],
+    sharedKeywords: [],
   }
 }
 
