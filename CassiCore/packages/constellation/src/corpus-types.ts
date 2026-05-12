@@ -1044,6 +1044,10 @@ export interface CorpusDeps {
   meditationStyle?: import('./meditation/styles.js').MeditationStyle
   /** MnemicField for meditation Corpus tools */
   mnemicField?: import('../mnemic-field/index.js').MnemicField
+  /** Constellation session engram ID in MnemicField — for locus memory edge creation */
+  constellationEngramId?: string
+  /** Map of helixId → branch engram ID for locus memory edge creation */
+  branchEngramIds?: Map<string, string>
   /** Memory system for meditation insight storage */
   memory?: import('../../../types/intelligence.js').IMemory
   getHelixTemplate?: (helixId: string) => ConstellationTemplate | undefined

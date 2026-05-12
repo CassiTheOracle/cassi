@@ -212,6 +212,18 @@ export class Corpus {
     })
 
     this.locusPersistence = locusPersistence
+
+    // Pass constellation engram IDs through to the persistence so locus
+    // memories are connected via spawned_from / part_of edges to their
+    // parent engrams. branchEngramIds is populated incrementally during
+    // branch creation — the persistence holds a reference to the same Map.
+    if (locusPersistence && deps.constellationEngramId) {
+      (locusPersistence as any).setConstellationEngramId?.(deps.constellationEngramId)
+    }
+    if (locusPersistence && deps.branchEngramIds) {
+      (locusPersistence as any).setBranchEngramIds?.(deps.branchEngramIds)
+    }
+
     this.patternDetector = new PatternDetector({
       tree,
       state: this.state,

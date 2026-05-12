@@ -640,6 +640,8 @@ export async function runConstellationPipeline(
       observerBranchStates,
       globalWorkspace: opts.globalWorkspace,
       mnemicField: opts.mnemicField,
+      constellationEngramId,
+      branchEngramIds,
       memory: opts.memory,
       readFile: (path: string) => safeReadFile(path, process.cwd()),
       onSpawnRequest: (req) => {
@@ -1251,14 +1253,12 @@ export async function runConstellationPipeline(
         })
         branchEngramIds.set(helixId, branchEngram.id)
 
-        // Sync engram IDs to MnemicLocusMemoryPersistence for locus memory edge creation.
-        // constellationEngramId is set earlier (during session engram storage).
+        // Sync branch engram IDs to MnemicLocusMemoryPersistence for locus
+        // memory edge creation. constellationEngramId is set via CorpusDeps
+        // at Corpus construction time — no need to re-set it here.
         const lp = corpus.getLocusMemoryPersistence()
         if (lp) {
           ;(lp as any).setBranchEngramIds?.(branchEngramIds)
-          if (constellationEngramId) {
-            ;(lp as any).setConstellationEngramId?.(constellationEngramId)
-          }
         }
 
         if (parentId && branchEngramIds.has(parentId)) {
