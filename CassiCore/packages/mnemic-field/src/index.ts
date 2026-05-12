@@ -461,6 +461,10 @@ export class MnemicField {
     return this.cortex.getEngramsByIdPrefix(prefix, opts)
   }
 
+  getEngramsBySessionId(sessionId: string, limit = 1000, offset = 0): Engram[] {
+    return this.cortex.getEngramsBySessionId(sessionId, limit, offset)
+  }
+
   getTypedSynapses(engramId: string, edgeType: string, direction: 'in' | 'out'): MnemicSynapse[] {
     return this.cortex.getTypedSynapses(engramId, edgeType, direction)
   }
