@@ -17,7 +17,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import * as bridge from "./bridge.js";
 
-// ── Session Management ──────────────────────────────────────────────────────
+
 
 let currentSessionId = `cc:${Date.now().toString(36)}`;
 
@@ -46,14 +46,14 @@ async function postWorkingState(): Promise<void> {
   });
 }
 
-// ── MCP Server ──────────────────────────────────────────────────────────────
+
 
 const server = new McpServer({
   name: "cassicore",
   version: "0.1.0",
 });
 
-// ── Tool: cassi_enrich ──────────────────────────────────────────────────────
+
 
 server.tool(
   "cassi_enrich",
@@ -103,12 +103,12 @@ server.tool(
       }
     }
 
-    // Memory search
+    // Memory search (MnemicField-powered)
     if ((includeAll || include === "memory") && query) {
-      const memories = await bridge.memorySearch(query, 5);
-      if (memories.length) {
-        parts.push(`## Relevant Memories\n${memories.map((m: any) =>
-          `- ${m.content ?? m.entry?.content ?? JSON.stringify(m)}`
+      const hits = await bridge.mnemicRetrieve(query, 5);
+      if (hits.length) {
+        parts.push(`## Relevant Memories\n${hits.map((h: any) =>
+          `- [${h.nodeType}] ${(h.content ?? '').slice(0, 300)}`
         ).join("\n")}`);
       }
     }
@@ -120,34 +120,136 @@ server.tool(
   },
 );
 
-// ── Tool: cassi_memory ──────────────────────────────────────────────────────
+
 
 server.tool(
   "cassi_memory",
-  "Search, store, and manage persistent memories in CassiCore. Memories persist across sessions and are searchable by content.",
+  "Memory operations backed by MnemicField — vector search, graph traversal, and persistent storage. Prefer 'retrieve' for semantic understanding; use 'search' for exact text matches.",
   {
-    action: z.enum(["search", "store", "kv_get", "kv_set"]).describe("Action to perform"),
-    query: z.string().optional().describe("Search query (for search action)"),
-    content: z.string().optional().describe("Content to store (for store action)"),
-    tags: z.array(z.string()).optional().describe("Tags for the memory (for store action)"),
-    key: z.string().optional().describe("KV key (for kv_get/kv_set actions)"),
-    value: z.string().optional().describe("KV value as JSON string (for kv_set action)"),
+    action: z.enum([
+      "search", "store", "retrieve", "universal_search",
+      "graph_search", "graph_traverse",
+      "kv_get", "kv_set", "kv_del",
+      "archive_get", "archive_search", "stats", "delete",
+    ]).describe("Action to perform"),
+    // Search / retrieve
+    query: z.string().optional().describe("Search query"),
+    limit: z.number().optional().describe("Max results (default: 10)"),
+    nodeType: z.string().optional().describe("Filter by engram type: fact, episode, decision, pattern, outcome, etc."),
+    // Store
+    content: z.string().optional().describe("Content to store"),
+    tags: z.array(z.string()).optional().describe("Tags for categorization"),
+    key: z.string().optional().describe("Unique key/identifier"),
+    // Graph
+    engramId: z.string().optional().describe("Starting engram ID for graph traversal"),
+    edgeType: z.string().optional().describe("Synapse edge type filter: spawned_from, part_of, supports, contradicts, etc."),
+    direction: z.enum(["in", "out", "both"]).optional().describe("Traversal direction (default: both)"),
+    maxDepth: z.number().optional().describe("Max graph hop depth (default: 3, max: 5)"),
+    // KV
+    value: z.string().optional().describe("KV value as JSON string (for kv_set)"),
+    ttl: z.number().optional().describe("TTL in seconds (for kv_set)"),
+    // Archive
+    id: z.string().optional().describe("Memory/engram ID"),
+    sessionId: z.string().optional().describe("Session ID for archive search"),
   },
-  async ({ action, query, content, tags, key, value }) => {
+  async ({ action, query, content, tags, key, value, ttl, limit,
+           nodeType, engramId, edgeType, direction, maxDepth, id, sessionId }) => {
     switch (action) {
+      // MnemicField retrieve (kindling — vector + semantic)
+      case "retrieve": {
+        if (!query) return { content: [{ type: "text", text: "Query required." }] };
+        const hits = await bridge.mnemicRetrieve(query, limit ?? 10, { sessionId, nodeType });
+        if (!hits.length) {
+          // Fall back to text search
+          const textHits = await bridge.mnemicSearch(query, limit ?? 10);
+          if (!textHits.length) return { content: [{ type: "text", text: "No results found." }] };
+          return { content: [{ type: "text", text: `Text matches for "${query}":\n${textHits.map((h: any, i: number) =>
+            `[${i + 1}] ${h.nodeType} (${(h.score * 100).toFixed(0)}%) ${h.content.slice(0, 400)}`
+          ).join('\n')}` }] };
+        }
+        return { content: [{ type: "text", text: `Results for "${query}":\n${hits.map((h: any, i: number) =>
+          `[${i + 1}] ${h.nodeType} (${(h.score * 100).toFixed(0)}%)\n    ${h.content.slice(0, 400)}`
+        ).join('\n')}` }] };
+      }
+
+      
+      case "universal_search": {
+        if (!query) return { content: [{ type: "text", text: "Query required." }] };
+        const hits = await bridge.mnemicUniversalSearch(query, limit ?? 10);
+        if (!hits.length) return { content: [{ type: "text", text: "No results found." }] };
+        return { content: [{ type: "text", text: `[${hits.length}] results for "${query}":\n${hits.map((h: any, i: number) =>
+          `[${i + 1}] ${h.nodeType} ${(h.score * 100).toFixed(0)}%\n    ${h.content.slice(0, 400)}`
+        ).join('\n')}` }] };
+      }
+
+      
       case "search": {
-        if (!query) return { content: [{ type: "text", text: "Query required for search." }] };
-        const results = await bridge.memorySearch(query);
+        if (!query) return { content: [{ type: "text", text: "Query required." }] };
+        // Try MnemicField search first, fall back to legacy memory
+        try {
+          const hits = await bridge.mnemicSearch(query, limit ?? 10, nodeType);
+          if (hits.length) {
+            return { content: [{ type: "text", text: `[${hits.length}] results for "${query}":\n${hits.map((h: any, i: number) =>
+              `[${i + 1}] ${h.nodeType} ${(h.score * 100).toFixed(0)}%\n    ${h.content.slice(0, 400)}`
+            ).join('\n')}` }] };
+          }
+        } catch { /* fall through */ }
+        // Legacy fallback
+        const results = await bridge.memorySearch(query, limit ?? 5);
         if (!results.length) return { content: [{ type: "text", text: "No memories found." }] };
         return { content: [{ type: "text", text: results.map((r: any) =>
           `- ${r.content ?? r.entry?.content ?? JSON.stringify(r)}`
         ).join("\n") }] };
       }
+
+      
       case "store": {
-        if (!content) return { content: [{ type: "text", text: "Content required for store." }] };
-        const id = await bridge.memoryStore(content, tags);
-        return { content: [{ type: "text", text: `Stored memory: ${id}` }] };
+        if (!content) return { content: [{ type: "text", text: "Content required." }] };
+        if (key) {
+          // Keyed storage: use KV with MnemicField metadata
+          bridge.kvSet(key, { content, tags, storedAt: Date.now(), _mnemic: true });
+          return { content: [{ type: "text", text: `Stored key: ${key}` }] };
+        }
+        // Use MnemicField-native store when available, fall back to legacy
+        try {
+          const id = await bridge.mnemicStore(content, nodeType ?? 'fact', tags);
+          return { content: [{ type: "text", text: `Stored memory: ${id} (nodeType: ${nodeType ?? 'fact'})` }] };
+        } catch {
+          const id = await bridge.memoryStore(content, tags);
+          return { content: [{ type: "text", text: `Stored memory: ${id}` }] };
+        }
       }
+
+      
+      case "graph_search": {
+        if (!engramId) return { content: [{ type: "text", text: "engramId required." }] };
+        const result = await bridge.mnemicGraphSearch(engramId, {
+          maxDepth: maxDepth ?? 3,
+          edgeTypes: edgeType ? [edgeType] : undefined,
+        });
+        if (!result?.nodes?.length) return { content: [{ type: "text", text: `No graph neighbors found for ${engramId}.` }] };
+        const lines = [`Graph from ${engramId} (${result.nodes.length} nodes, ${result.edges?.length ?? 0} edges, depth ${result.maxDepth}):`];
+        for (const n of result.nodes) {
+          lines.push(`  [d${n.depth}] ${n.nodeType}: ${n.content.slice(0, 200)}`);
+        }
+        return { content: [{ type: "text", text: lines.join('\n') }] };
+      }
+
+      
+      case "graph_traverse": {
+        if (!engramId) return { content: [{ type: "text", text: "engramId required." }] };
+        const synapses = await bridge.mnemicGetSynapses(engramId, {
+          edgeType, direction: direction ?? 'both', limit: limit ?? 20,
+        });
+        if (!synapses.length) return { content: [{ type: "text", text: `No synapses for ${engramId}.` }] };
+        const lines = [`Synapses for ${engramId}:`];
+        for (const s of synapses) {
+          lines.push(`  ${s.edgeType}: ${s.sourceId.slice(0, 12)} → ${s.targetId.slice(0, 12)} (w:${s.weight?.toFixed(2) ?? '?'})`);
+        }
+        return { content: [{ type: "text", text: lines.join('\n') }] };
+      }
+
+      
       case "kv_get": {
         if (!key) return { content: [{ type: "text", text: "Key required." }] };
         const val = await bridge.kvGet(key);
@@ -157,14 +259,74 @@ server.tool(
         if (!key) return { content: [{ type: "text", text: "Key required." }] };
         let parsed: unknown;
         try { parsed = value ? JSON.parse(value) : null; } catch { parsed = value; }
-        bridge.kvSet(key, parsed);
+        const entry: any = { value: parsed };
+        if (ttl) entry.ttl = ttl;
+        bridge.kvSet(key, entry);
         return { content: [{ type: "text", text: `Set ${key}` }] };
       }
+      case "kv_del": {
+        if (!key) return { content: [{ type: "text", text: "Key required." }] };
+        bridge.kvSet(key, null);  // daemon DELETE endpoint handles null = delete
+        return { content: [{ type: "text", text: `Deleted ${key}` }] };
+      }
+
+      
+      case "archive_get": {
+        if (!id) return { content: [{ type: "text", text: "ID required." }] };
+        try {
+          const engram = await bridge.mnemicGetEngram(id);
+          if (!engram || !engram.id) {
+            return { content: [{ type: "text", text: `Not found: ${id}` }] };
+          }
+          const lines = [
+            `Engram ${engram.id}:`,
+            `  type: ${engram.nodeType}  potentiation: ${engram.potentiation ?? 0}`,
+            `  tags: ${(engram.tags ?? []).join(', ') || '(none)'}`,
+            `  provenance: ${engram.provenance ?? '(none)'}`,
+            `  created: ${engram.createdAt ?? '(unknown)'}`,
+            `  content: ${(engram.content ?? '').slice(0, 2000)}`,
+          ];
+          return { content: [{ type: "text", text: lines.join('\n') }] };
+        } catch {
+          return { content: [{ type: "text", text: `Not found: ${id}` }] };
+        }
+      }
+      case "archive_search": {
+        if (!query) return { content: [{ type: "text", text: "Query required." }] };
+        const hits = await bridge.mnemicSearch(query, limit ?? 10);
+        if (!hits.length) return { content: [{ type: "text", text: "No archive matches." }] };
+        return { content: [{ type: "text", text: hits.map((h: any, i: number) =>
+          `[${i + 1}] ${h.nodeType} ${h.id} (${(h.score * 100).toFixed(0)}%)\n    ${(h.content ?? '').slice(0, 300)}`
+        ).join('\n') }] };
+      }
+
+      
+      case "stats": {
+        try {
+          const stats = await bridge.mnemicStats();
+          const lines = [`MnemicField: ${stats?.engramCount ?? '?'} engrams, ${stats?.synapseCount ?? '?'} synapses`];
+          if (stats?.nucleiCount) lines.push(`  nuclei: ${stats.nucleiCount}`);
+          if (stats?.avgPotentiation) lines.push(`  avg potentiation: ${stats.avgPotentiation.toFixed(3)}`);
+          return { content: [{ type: "text", text: lines.join('\n') }] };
+        } catch {
+          return { content: [{ type: "text", text: "MnemicField stats unavailable." }] };
+        }
+      }
+
+      
+      case "delete": {
+        if (!id) return { content: [{ type: "text", text: "ID required." }] };
+        await bridge.send("DELETE", `/memory/${encodeURIComponent(id)}`);
+        return { content: [{ type: "text", text: `Deleted ${id}` }] };
+      }
+
+      default:
+        return { content: [{ type: "text", text: `Unknown action: ${action}` }] };
     }
   },
 );
 
-// ── Tool: cassi_blackboard ──────────────────────────────────────────────────
+
 
 server.tool(
   "cassi_blackboard",
@@ -199,7 +361,7 @@ server.tool(
   },
 );
 
-// ── Tool: cassi_agent ───────────────────────────────────────────────────────
+
 
 server.tool(
   "cassi_agent",
@@ -227,7 +389,7 @@ server.tool(
   },
 );
 
-// ── Tool: cassi_intelligence ────────────────────────────────────────────────
+
 
 server.tool(
   "cassi_intelligence",
@@ -245,7 +407,7 @@ server.tool(
   },
 );
 
-// ── Tool: cassi_session ─────────────────────────────────────────────────────
+
 
 server.tool(
   "cassi_session",
@@ -265,7 +427,7 @@ server.tool(
   },
 );
 
-// ── Tool: context_status ────────────────────────────────────────────────────
+
 
 server.tool(
   "context_status",
@@ -307,7 +469,7 @@ server.tool(
   },
 );
 
-// ── Resource: Cognitive Signals ─────────────────────────────────────────────
+
 
 server.resource(
   "cognitive-signals",
@@ -330,7 +492,7 @@ server.resource(
   },
 );
 
-// ── Resource: Context Health ────────────────────────────────────────────────
+
 
 server.resource(
   "context-health",
@@ -343,7 +505,7 @@ server.resource(
   },
 );
 
-// ── Start Server ────────────────────────────────────────────────────────────
+
 
 async function main() {
   // Verify CassiCore is available

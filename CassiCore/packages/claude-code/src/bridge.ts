@@ -121,23 +121,38 @@ export async function workspaceEnrich(query: string, sessionId: string): Promise
 /**
  * Fetch the cached DMN observers digest for a session. Returns empty string
  * when no signal is cached, the session is not attached, or DMN is disabled.
- * Cached briefly so per-turn build doesn't pound the daemon.
+ * Uses a per-session Map cache so concurrent CC sessions don't thrash each
+ * other's entries. 5s TTL — digests only change on DMN firings (seconds apart).
  */
-let dmnCache: { sessionId: string; digest: string; ts: number } | null = null;
-const DMN_CACHE_TTL = 1500;
+const dmnCache = new Map<string, { digest: string; ts: number }>();
+const DMN_CACHE_TTL = 5000;
+
+export async function pushDmnActivity(
+  sessionId: string,
+  snapshot: { historyLength: number; toolCallCount?: number; thinkingChars?: number; lastUserMessage?: string; lastAssistantText?: string },
+): Promise<void> {
+  send("POST", `/dmn/sessions/${encodeURIComponent(sessionId)}/activity`, snapshot).catch(() => {});
+}
 
 export async function dmnDigest(sessionId: string): Promise<string> {
   const now = Date.now();
-  if (dmnCache && dmnCache.sessionId === sessionId && now - dmnCache.ts < DMN_CACHE_TTL) {
-    return dmnCache.digest;
+  const cached = dmnCache.get(sessionId);
+  if (cached && now - cached.ts < DMN_CACHE_TTL) {
+    return cached.digest;
   }
   try {
     const res = await send("GET", `/dmn/sessions/${encodeURIComponent(sessionId)}/digest`);
     const digest = typeof res?.digest === "string" ? res.digest : "";
-    dmnCache = { sessionId, digest, ts: now };
+    dmnCache.set(sessionId, { digest, ts: now });
+    // Prune stale entries if the cache grows large (many concurrent sessions)
+    if (dmnCache.size > 100) {
+      for (const [key, val] of dmnCache) {
+        if (now - val.ts > DMN_CACHE_TTL * 10) dmnCache.delete(key);
+      }
+    }
     return digest;
   } catch {
-    return dmnCache?.sessionId === sessionId ? dmnCache.digest : "";
+    return cached?.digest ?? "";
   }
 }
 
@@ -194,6 +209,68 @@ export async function kvGet(key: string): Promise<any> {
 
 export function kvSet(key: string, value: unknown): void {
   send("POST", "/memory/kv", { key, value }).catch(() => {});
+}
+
+// MnemicField (graph-native memory) methods
+
+export async function mnemicRetrieve(query: string, limit = 10, opts?: { sessionId?: string; nodeType?: string }): Promise<any[]> {
+  const res = await send("POST", "/memory/mnemic/retrieve", {
+    query,
+    limit,
+    sessionId: opts?.sessionId,
+    nodeType: opts?.nodeType,
+  });
+  return res?.hits ?? [];
+}
+
+export async function mnemicSearch(query: string, limit = 10, nodeType?: string): Promise<any[]> {
+  const params = new URLSearchParams({ q: query, limit: String(limit) });
+  if (nodeType) params.set('node_type', nodeType);
+  const res = await send("GET", `/memory/mnemic/search?${params.toString()}`);
+  return res?.hits ?? [];
+}
+
+export async function mnemicUniversalSearch(query: string, limit = 10): Promise<any[]> {
+  const params = new URLSearchParams({ q: query, limit: String(limit) });
+  const res = await send("GET", `/memory/mnemic/universal-search?${params.toString()}`);
+  return res?.hits ?? [];
+}
+
+export async function mnemicGetEngram(id: string): Promise<any> {
+  return send("GET", `/memory/mnemic/engram/${encodeURIComponent(id)}`);
+}
+
+export async function mnemicGetSynapses(engramId: string, opts?: { edgeType?: string; direction?: string; limit?: number }): Promise<any[]> {
+  const params = new URLSearchParams();
+  if (opts?.edgeType) params.set('edge_type', opts.edgeType);
+  if (opts?.direction) params.set('direction', opts.direction);
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  const qs = params.toString();
+  const res = await send("GET", `/memory/mnemic/engram/${encodeURIComponent(engramId)}/synapses${qs ? '?' + qs : ''}`);
+  return res?.synapses ?? [];
+}
+
+export async function mnemicGraphSearch(startId: string, opts?: { maxDepth?: number; edgeTypes?: string[] }): Promise<any> {
+  return send("POST", "/memory/mnemic/graph-search", {
+    startId,
+    maxDepth: opts?.maxDepth ?? 3,
+    edgeTypes: opts?.edgeTypes,
+  });
+}
+
+export async function mnemicStats(): Promise<any> {
+  return send("GET", "/memory/mnemic/stats");
+}
+
+export async function mnemicStore(content: string, nodeType = 'fact', tags?: string[]): Promise<string> {
+  // Uses the old /memory/store route; MnemicField engrams are created
+  // via migration or direct mnemicField.store() in the daemon.
+  const res = await send("POST", "/memory/store", {
+    type: nodeType,
+    content,
+    metadata: { tags: tags ?? [], source: 'claude-code', mnemic: true },
+  });
+  return res?.id ?? '';
 }
 
 export async function blackboardRead(name: string, channel?: string): Promise<any> {
