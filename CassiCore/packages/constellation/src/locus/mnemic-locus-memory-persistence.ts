@@ -34,14 +34,19 @@ export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
 
   saveMemory(entry: LocusMemoryEntry): void {
     try {
-      this.field.store({
-        id: entry.id,
-        nodeType: MEMORY_NODE_TYPE,
-        content: entry.content,
-        tags: [MEMORY_TAG, `phase:${entry.phase}`],
-        provenance: `constellation:${entry.originSessionId}`,
-        metadata: entryToMetadata(entry),
-      })
+      const existing = this.field.get(entry.id)
+      if (existing) {
+        this.updateMemory(entry)
+      } else {
+        this.field.store({
+          id: entry.id,
+          nodeType: MEMORY_NODE_TYPE,
+          content: entry.content,
+          tags: [MEMORY_TAG, `phase:${entry.phase}`],
+          provenance: `constellation:${entry.originSessionId}`,
+          metadata: entryToMetadata(entry),
+        })
+      }
       this.logger.debug('Saved locus memory to MnemicField', {
         memoryId: entry.id,
         phase: entry.phase,

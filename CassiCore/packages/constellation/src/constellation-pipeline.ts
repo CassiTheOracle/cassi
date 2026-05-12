@@ -3189,30 +3189,27 @@ export async function runConstellationPipeline(
           edgesUpdated: cs.edgesUpdated,
           branchesProcessed: cs.branchesProcessed,
         })
+
+        // Store training signal with actual consolidation stats so
+        // the meditation Thompson sampler can read graph activity levels.
+        if (opts.memory) {
+          try {
+            opts.memory.store({
+              type: 'insight',
+              content: `Graph consolidation: ${cs.edgesUpdated} edges updated across ${cs.branchesProcessed} branches`,
+              metadata: {
+                tags: ['constellation-outcome', 'training-signal'],
+                constellationId,
+                edgesUpdated: cs.edgesUpdated,
+                branchesProcessed: cs.branchesProcessed,
+              },
+            })
+          } catch {
+            // Non-fatal
+          }
+        }
       } catch (err) {
         log.warn('Outcome consolidation failed (non-critical)', { error: String(err) })
-      }
-    }
-    // Store training signal for meditation Thompson sampling.
-    // Tells the meditation system how active the graph was during this
-    // constellation so it can adjust exploration vs. exploitation balance.
-    if (opts.memory) {
-      try {
-        const wasConsolidated = nodes.size > 0 && opts.mnemicField
-        opts.memory.store({
-          type: 'insight',
-          content: wasConsolidated
-            ? `Graph consolidation ran for constellation. Edges updated indicates graph activity level.`
-            : `Constellation completed without graph consolidation.`,
-          metadata: {
-            tags: ['constellation-outcome', 'training-signal'],
-            constellationId,
-            outcome: outcome ?? 'unknown',
-            branchesTotal: nodes.size,
-          },
-        })
-      } catch {
-        // Non-fatal
       }
     }
   } catch (err) {
