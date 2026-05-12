@@ -59,6 +59,8 @@ export interface GraphAttnPropagatorOpts {
   seedCharge?: number
   recordSpikes?: boolean
   taskContext?: string
+  /** Hard cap on BFS frontier size. Default: 1000 */
+  maxFrontierSize?: number
 }
 
 
@@ -79,6 +81,7 @@ const DEFAULT_OPTS = {
   seedCharge: 1.0,
   recordSpikes: false,
   taskContext: 'graph-attn-propagation',
+  maxFrontierSize: 1000,
 } as const
 
 
@@ -130,6 +133,7 @@ export class GraphAttnPropagator {
       seedCharge,
       recordSpikes,
       taskContext,
+      maxFrontierSize,
     } = {
       ...DEFAULT_OPTS,
       ...opts,
@@ -159,6 +163,8 @@ export class GraphAttnPropagator {
     let head = 0
 
     while (head < frontier.length) {
+      if (head >= maxFrontierSize) break
+
       const entry = frontier[head]!
       head++
 
