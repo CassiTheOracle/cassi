@@ -482,6 +482,170 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // GET /memory/mnemic/engram/:id/synapses — must precede generic engram GET
+  if (parts[1] === 'mnemic' && parts[2] === 'engram' && parts[4] === 'synapses' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const edgeType = url.searchParams.get('edge_type') || undefined
+      const direction = (url.searchParams.get('direction') || 'both') as 'in' | 'out' | 'both'
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+
+      const result: Array<{ sourceId: string; targetId: string; edgeType: string; weight: number }> = []
+      if (direction === 'out' || direction === 'both') {
+        const out = edgeType
+          ? field.getTypedSynapses(parts[3], edgeType, 'out')
+          : (field.neighbors(parts[3])?.synapses ?? []).filter(s => s.sourceId === parts[3])
+        result.push(...out.slice(0, limit))
+      }
+      if (direction === 'in' || direction === 'both') {
+        const incoming = edgeType
+          ? field.getTypedSynapses(parts[3], edgeType, 'in')
+          : (field.neighbors(parts[3])?.synapses ?? []).filter(s => s.targetId === parts[3])
+        result.push(...incoming.slice(0, limit))
+      }
+      sendJSON(res, 200, { ok: true, engramId: parts[3], synapses: result.slice(0, limit) })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/engram/:id
+  if (parts[1] === 'mnemic' && parts[2] === 'engram' && parts[3] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const engram = field.get(parts[3])
+      if (!engram) { sendJSON(res, 404, { error: 'engram not found' }); return true }
+      const includeContent = url.searchParams.get('content') !== 'false'
+      sendJSON(res, 200, {
+        id: engram.id,
+        nodeType: engram.nodeType,
+        potentiation: engram.potentiation,
+        content: includeContent ? engram.content.slice(0, 4000) : undefined,
+        provenance: engram.provenance,
+        tags: engram.tags,
+        createdAt: engram.createdAt,
+        metadata: engram.metadata,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/graph-search — typed graph traversal with depth limit
+  if (parts[1] === 'mnemic' && parts[2] === 'graph-search' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const startId = typeof body?.startId === 'string' ? body.startId : ''
+      if (!startId) { sendJSON(res, 400, { error: 'startId required' }); return true }
+      const maxDepth = Math.min(body?.maxDepth ?? 3, 5)
+      const edgeTypes: string[] | undefined = Array.isArray(body?.edgeTypes) ? body.edgeTypes : undefined
+
+      // BFS traversal
+      const visited = new Set<string>()
+      const queue: Array<{ id: string; depth: number }> = [{ id: startId, depth: 0 }]
+      const nodes: Array<{ id: string; depth: number; nodeType: string; content: string }> = []
+      const edges: Array<{ sourceId: string; targetId: string; edgeType: string }> = []
+
+      while (queue.length > 0) {
+        const { id, depth } = queue.shift()!
+        if (visited.has(id) || depth > maxDepth) continue
+        visited.add(id)
+
+        const engram = field.get(id)
+        if (engram) {
+          nodes.push({
+            id: engram.id,
+            depth,
+            nodeType: engram.nodeType,
+            content: (engram.content || '').slice(0, 300),
+          })
+        }
+
+        if (depth < maxDepth) {
+          const outSynapses = field.neighbors(id)?.synapses ?? []
+          for (const s of outSynapses) {
+            if (edgeTypes && !edgeTypes.includes(s.edgeType)) continue
+            const neighborId = s.sourceId === id ? s.targetId : s.sourceId
+            if (!visited.has(neighborId)) {
+              edges.push({ sourceId: s.sourceId, targetId: s.targetId, edgeType: s.edgeType })
+              queue.push({ id: neighborId, depth: depth + 1 })
+            }
+          }
+        }
+      }
+      sendJSON(res, 200, { ok: true, startId, maxDepth, nodes, edges, totalVisited: visited.size })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/universal-search — combined text search with optional kindling
+  if (parts[1] === 'mnemic' && parts[2] === 'universal-search' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const query = url.searchParams.get('q') ?? url.searchParams.get('query') ?? ''
+      if (!query) { sendJSON(res, 400, { error: 'query required' }); return true }
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+
+      // Text search is fast and reliable; use it as the primary path.
+      // Kindling is async and requires embedding service availability.
+      const textHits = field.searchText(query, limit * 2)
+        .filter(r => r.engram.nodeType !== 'bridge')
+        .slice(0, limit)
+      sendJSON(res, 200, {
+        ok: true,
+        source: 'text',
+        hits: textHits.map(r => ({
+          id: r.engram.id, score: r.score, nodeType: r.engram.nodeType,
+          content: (r.engram.content || '').slice(0, 300),
+          potentiation: r.engram.potentiation, tags: r.engram.tags,
+          provenance: r.engram.provenance, createdAt: r.engram.createdAt,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/mnemic/search — text-based search over engram content
+  if (parts[1] === 'mnemic' && parts[2] === 'search' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const query = url.searchParams.get('q') ?? url.searchParams.get('query') ?? ''
+      if (!query) { sendJSON(res, 400, { error: 'query required' }); return true }
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+      const nodeType = url.searchParams.get('node_type') || undefined
+
+      const results = field.searchText(query, limit)
+      let filtered = results.filter(r => r.engram.nodeType !== 'bridge')
+      if (nodeType) filtered = filtered.filter(r => r.engram.nodeType === nodeType)
+
+      sendJSON(res, 200, {
+        ok: true,
+        hits: filtered.map(r => ({
+          id: r.engram.id, score: r.score, nodeType: r.engram.nodeType,
+          content: (r.engram.content || '').slice(0, 300),
+          potentiation: r.engram.potentiation, tags: r.engram.tags,
+          provenance: r.engram.provenance,
+          createdAt: r.engram.createdAt,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // Self-Model Field routes
   // The self-model stores semantic understanding of the codebase architecture.
 
