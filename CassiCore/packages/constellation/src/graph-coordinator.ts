@@ -55,7 +55,7 @@ export class CrossBranchGraphCoordinator {
   ) {
     this.logger = logger.child('graph-coordinator')
     this.config = { ...DEFAULT_CONFIG, ...config }
-    this.propagator = propagator ?? new GraphAttnPropagator(field as any)
+    this.propagator = propagator ?? new GraphAttnPropagator(field.getCortex())
   }
 
   /**

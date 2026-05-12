@@ -522,7 +522,7 @@ export async function runConstellationPipeline(
     : undefined
 
   const graphPropagator = opts.mnemicField
-    ? new GraphAttnPropagator(opts.mnemicField as any)
+    ? new GraphAttnPropagator(opts.mnemicField.getCortex())
     : undefined
 
   const graphCoordinator = graphPropagator

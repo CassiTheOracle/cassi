@@ -64,7 +64,7 @@ export class MemoryInjectionService {
     // Discriminate: MnemicField has a `retrieve` method; IMemory has `store` + `search`.
     if ('retrieve' in fieldOrMemory && typeof fieldOrMemory.retrieve === 'function') {
       this.mnemicField = fieldOrMemory as MnemicField
-      this.graphPropagator = new GraphAttnPropagator(this.mnemicField as any)
+      this.graphPropagator = new GraphAttnPropagator(this.mnemicField.getCortex())
     } else {
       this.legacyMemory = fieldOrMemory as IMemory
     }
