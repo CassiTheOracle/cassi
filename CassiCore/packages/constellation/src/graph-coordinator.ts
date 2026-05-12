@@ -47,10 +47,15 @@ export class CrossBranchGraphCoordinator {
   private discoveryTimestamps = new Map<string, number>()
   private engramToBranch = new Map<string, string>()
 
-  constructor(field: MnemicField, logger: ILogger, config?: Partial<CrossBranchGraphCoordinatorConfig>) {
+  constructor(
+    field: MnemicField,
+    logger: ILogger,
+    config?: Partial<CrossBranchGraphCoordinatorConfig>,
+    propagator?: GraphAttnPropagator,
+  ) {
     this.logger = logger.child('graph-coordinator')
     this.config = { ...DEFAULT_CONFIG, ...config }
-    this.propagator = new GraphAttnPropagator(field as any)
+    this.propagator = propagator ?? new GraphAttnPropagator(field as any)
   }
 
   /**

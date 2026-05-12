@@ -58,9 +58,8 @@ export class GraphAttentionBridge {
   injectToWorkspace(
     helixId: string,
     workspace: GlobalWorkspace,
-    goal: string,
   ): string | null {
-    const ctx = this.compute(helixId, goal)
+    const ctx = this.compute(helixId)
     if (!ctx) return null
 
     const signalId = `graph-attn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
@@ -97,6 +96,7 @@ export class GraphAttentionBridge {
         helixId,
         error: String(err),
       })
+      this.lastInjectionTimestamps.set(helixId, Date.now())
       return null
     }
 
@@ -117,7 +117,7 @@ export class GraphAttentionBridge {
     this.invalidatedBranches.add(helixId)
   }
 
-  private compute(helixId: string, goal: string): AttentionContext | null {
+  private compute(helixId: string): AttentionContext | null {
     const lastTs = this.lastInjectionTimestamps.get(helixId)
     if (lastTs && !this.invalidatedBranches.has(helixId)) {
       const elapsed = Date.now() - lastTs
@@ -145,7 +145,7 @@ export class GraphAttentionBridge {
     const filtered = propagated.filter(p => p.engram.id !== branchId)
     if (filtered.length === 0) return null
 
-    const formatted = this.format(filtered, goal)
+    const formatted = this.format(filtered)
 
     const engramTypes = Array.from(new Set(filtered.map(p => p.engram.nodeType ?? 'fact')))
 
@@ -157,7 +157,7 @@ export class GraphAttentionBridge {
     }
   }
 
-  private format(results: PropagatedEngram[], goal: string): string {
+  private format(results: PropagatedEngram[]): string {
     const lines: string[] = [
       '[MnemicGraph Attention — related engrams surfaced from knowledge graph]',
       '',

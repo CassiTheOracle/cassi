@@ -519,16 +519,16 @@ export async function runConstellationPipeline(
     ? new CrossHelixDialectic(log)
     : undefined
 
-  const graphCoordinator = opts.mnemicField
-    ? new CrossBranchGraphCoordinator(opts.mnemicField, log)
+  const graphPropagator = opts.mnemicField
+    ? new GraphAttnPropagator(opts.mnemicField as any)
     : undefined
 
-  const graphAttentionBridge = opts.mnemicField && opts.globalWorkspace
-    ? new GraphAttentionBridge(
-        new GraphAttnPropagator(opts.mnemicField as any),
-        branchEngramIds,
-        log,
-      )
+  const graphCoordinator = graphPropagator
+    ? new CrossBranchGraphCoordinator(opts.mnemicField!, log, undefined, graphPropagator)
+    : undefined
+
+  const graphAttentionBridge = graphPropagator && opts.globalWorkspace
+    ? new GraphAttentionBridge(graphPropagator, branchEngramIds, log)
     : undefined
 
   // WHY: Map of ObserverBranchState instances keyed by helixId. Enables the Corpus
@@ -1665,7 +1665,7 @@ export async function runConstellationPipeline(
         // Posture runners drain these signals at the start of each turn so the
         // LLM sees graph-surfaced context across all postures (Unity, Yang, Yin).
         if (graphAttentionBridge && opts.globalWorkspace) {
-          graphAttentionBridge.injectToWorkspace(helixId, opts.globalWorkspace, helixGoal)
+          graphAttentionBridge.injectToWorkspace(helixId, opts.globalWorkspace)
         }
       },
       // REMOVED: onBlackboardCreated — Blackboard deprecated
