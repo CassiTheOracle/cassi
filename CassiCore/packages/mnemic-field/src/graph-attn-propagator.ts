@@ -99,6 +99,7 @@ interface FrontierEntry {
 
 export class GraphAttnPropagator {
   private readonly cortex: Cortex
+  private spikeFailures = 0
 
   constructor(cortex: Cortex) {
     this.cortex = cortex
@@ -215,6 +216,7 @@ export class GraphAttnPropagator {
     }
 
     if (recordSpikes) {
+      let failed = 0
       for (const [id, charge] of charges) {
         if (seedIds.includes(id)) continue
         try {
@@ -224,8 +226,11 @@ export class GraphAttnPropagator {
             taskContext,
             outcome: 'unknown',
           })
-        } catch { }
+        } catch {
+          failed++
+        }
       }
+      this.spikeFailures += failed
     }
 
     const results: PropagatedEngram[] = []
@@ -292,6 +297,13 @@ export class GraphAttnPropagator {
     overrides?: Partial<Omit<GraphAttnPropagatorOpts, 'seedIds' | 'edgeTypes'>>,
   ): PropagatedEngram[] {
     return this.propagate({ seedIds, edgeTypes, ...overrides })
+  }
+
+  /**
+   * Total spike-recording failures since construction (informational).
+   */
+  getSpikeFailureCount(): number {
+    return this.spikeFailures
   }
 
   // ---- private -----------------------------------------------------------
