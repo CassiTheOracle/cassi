@@ -859,6 +859,12 @@ export class Corpus {
           try {
             const snapshot = this.tree.getSnapshot()
             this.deps.store?.saveTreeCheckpoint(this.deps.constellationId, snapshot)
+            this.emitEvent('corpus:checkpoint', {
+              branches: snapshot.branches.length,
+              interventions: this.state.interventions.length,
+              spawnDecisions: this.state.spawnDecisions.length,
+              sweepCount: this.state.sweepCount,
+            })
           } catch (err) {
             this.logger.warn('Failed to save tree checkpoint', { error: String(err) })
           }
@@ -2935,6 +2941,14 @@ Guidelines:
 
           this.discoveries.set(discoveryId, discovery)
           this.discoveryCounter++
+
+          this.emitEvent('corpus:discovery', {
+            discoveryId,
+            sourceHelixId: branch.helixId,
+            content: ann.synthesis.slice(0, 300),
+            type: discovery.type,
+            relatedFiles: discovery.relatedFiles,
+          })
 
           // Push to all other active branches
           for (const other of branches) {
