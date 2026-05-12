@@ -47,6 +47,10 @@ export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
           metadata: entryToMetadata(entry),
         })
       }
+
+      // Connect memory to parent constellation and source branch via edges
+      // so it's reachable via graph propagation from related engrams.
+      this.connectMemoryEdges(entry)
       this.logger.debug('Saved locus memory to MnemicField', {
         memoryId: entry.id,
         phase: entry.phase,
@@ -86,6 +90,54 @@ export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
     } catch (err) {
       this.logger.warn('Failed to delete locus memory from MnemicField', {
         memoryId: id,
+        error: String(err),
+      })
+    }
+  }
+
+  private connectMemoryEdges(entry: LocusMemoryEntry): void {
+    try {
+      const engrams = this.field.getEngramsBySessionId(entry.originSessionId, 100, 0)
+      let constellationEngramId: string | undefined
+      let branchEngramId: string | undefined
+
+      for (const e of engrams) {
+        const meta = e.metadata as Record<string, unknown> | undefined
+        if (meta?.helixId === entry.sourceHelixId) {
+          branchEngramId = e.id
+        }
+        if (e.provenance === `constellation:${entry.originSessionId}` && !constellationEngramId) {
+          constellationEngramId = e.id
+        }
+      }
+
+      if (constellationEngramId) {
+        this.field.connect({
+          sourceId: entry.id,
+          targetId: constellationEngramId,
+          edgeType: 'spawned_from',
+          weight: 0.6,
+          metadata: { provenance: 'locus-memory' },
+        })
+      }
+      if (branchEngramId) {
+        this.field.connect({
+          sourceId: entry.id,
+          targetId: branchEngramId,
+          edgeType: 'part_of',
+          weight: 0.6,
+          metadata: { provenance: 'locus-memory' },
+        })
+      }
+
+      this.logger.debug('Connected memory via edges', {
+        memoryId: entry.id,
+        constellationEdge: Boolean(constellationEngramId),
+        branchEdge: Boolean(branchEngramId),
+      })
+    } catch (err) {
+      this.logger.debug('Failed to connect memory edges', {
+        memoryId: entry.id,
         error: String(err),
       })
     }
