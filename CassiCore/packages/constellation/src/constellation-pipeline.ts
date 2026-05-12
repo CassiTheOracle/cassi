@@ -3167,7 +3167,7 @@ export async function runConstellationPipeline(
     if (opts.mnemicField && nodes.size > 0) {
       try {
         const consolidator = new OutcomeConsolidator(opts.mnemicField, log)
-        const cs = consolidator.consolidate(result, nodes, branchEngramIds)
+        const cs = consolidator.consolidate(nodes, branchEngramIds)
         log.info('Outcome consolidation complete', {
           edgesConsidered: cs.edgesConsidered,
           edgesUpdated: cs.edgesUpdated,

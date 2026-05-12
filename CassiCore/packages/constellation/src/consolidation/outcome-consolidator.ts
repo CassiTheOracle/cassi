@@ -1,7 +1,7 @@
 import type { ILogger } from '../../../../types/interfaces.js'
 import type { MnemicField } from '../../mnemic-field/index.js'
 import type { SynapseType } from '../../mnemic-field/types.js'
-import type { ConstellationNode, ConstellationResult } from '../types.js'
+import type { ConstellationNode } from '../types.js'
 
 export interface OutcomeConsolidatorConfig {
   learningRate?: number
@@ -9,6 +9,7 @@ export interface OutcomeConsolidatorConfig {
   maxWeight?: number
   neutralScore?: number
   edgeTypes?: SynapseType[]
+  maxEdgesPerBranch?: number
 }
 
 const DEFAULT_CONFIG = {
@@ -17,6 +18,7 @@ const DEFAULT_CONFIG = {
   maxWeight: 1.0,
   neutralScore: 0.5,
   edgeTypes: ['spawned_from', 'part_of', 'similar_to', 'temporal_neighbor'] as SynapseType[],
+  maxEdgesPerBranch: 200,
 }
 
 export interface OutcomeConsolidationResult {
@@ -42,7 +44,6 @@ export class OutcomeConsolidator {
   }
 
   consolidate(
-    result: ConstellationResult,
     nodes: Map<string, ConstellationNode>,
     branchEngramIds: Map<string, string>,
     clusterNodeScores?: Map<string, number>,
@@ -70,41 +71,13 @@ export class OutcomeConsolidator {
       r.branchesProcessed++
 
       for (const edgeType of this.config.edgeTypes) {
-        try {
-          const outgoing = this.field.getTypedSynapses(branchId, edgeType, 'out')
-          for (const syn of outgoing) {
-            const delta = (score - this.config.neutralScore) * this.config.learningRate
-            const newWeight = clamp(syn.weight + delta, this.config.minWeight, this.config.maxWeight)
-            r.edgesConsidered++
-            if (Math.abs(newWeight - syn.weight) < 0.001) continue
-            updates.push({
-              sourceId: syn.sourceId,
-              targetId: syn.targetId,
-              edgeType: syn.edgeType,
-              weight: newWeight,
-            })
-          }
+        const count = this.processEdges(branchId, edgeType, 'out', score, updates)
+        r.edgesConsidered += count
 
-          const incoming = this.field.getTypedSynapses(branchId, edgeType, 'in')
-          for (const syn of incoming) {
-            const delta = (score - this.config.neutralScore) * this.config.learningRate
-            const newWeight = clamp(syn.weight + delta, this.config.minWeight, this.config.maxWeight)
-            r.edgesConsidered++
-            if (Math.abs(newWeight - syn.weight) < 0.001) continue
-            updates.push({
-              sourceId: syn.sourceId,
-              targetId: syn.targetId,
-              edgeType: syn.edgeType,
-              weight: newWeight,
-            })
-          }
-        } catch (err) {
-          this.logger.debug('Failed to gather synapses for edge type', {
-            branchId,
-            edgeType,
-            error: String(err),
-          })
-        }
+        const inCount = this.processEdges(branchId, edgeType, 'in', score, updates)
+        r.edgesConsidered += inCount
+
+        if (updates.length >= this.config.maxEdgesPerBranch) break
       }
     }
 
@@ -134,6 +107,35 @@ export class OutcomeConsolidator {
     const confidence = unityResult?.confidence ?? this.config.neutralScore
 
     return clamp(confidence * bonus, 0, 1)
+  }
+
+  private processEdges(
+    branchId: string,
+    edgeType: SynapseType,
+    direction: 'in' | 'out',
+    score: number,
+    updates: Array<{ sourceId: string; targetId: string; edgeType: string; weight: number }>,
+  ): number {
+    let count = 0
+    try {
+      const synapses = this.field.getTypedSynapses(branchId, edgeType, direction)
+      for (const syn of synapses) {
+        if (updates.length >= this.config.maxEdgesPerBranch) break
+        const delta = (score - this.config.neutralScore) * this.config.learningRate
+        const newWeight = clamp(syn.weight + delta, this.config.minWeight, this.config.maxWeight)
+        count++
+        if (Math.abs(newWeight - syn.weight) < 0.001) continue
+        updates.push({
+          sourceId: syn.sourceId,
+          targetId: syn.targetId,
+          edgeType: syn.edgeType,
+          weight: newWeight,
+        })
+      }
+    } catch (err) {
+      this.logger.debug('Failed to gather synapses', { branchId, edgeType, direction, error: String(err) })
+    }
+    return count
   }
 }
 
