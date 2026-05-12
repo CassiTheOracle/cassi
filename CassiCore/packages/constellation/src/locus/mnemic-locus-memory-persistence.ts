@@ -10,10 +10,20 @@ const MEMORY_TAG = 'locus-memory'
 export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
   private field: MnemicField
   private logger: ILogger
+  private constellationEngramId: string | undefined
+  private branchEngramIds = new Map<string, string>()
 
   constructor(field: MnemicField, logger: ILogger) {
     this.field = field
     this.logger = logger.child('mnemic-locus-memory')
+  }
+
+  setConstellationEngramId(id: string): void {
+    this.constellationEngramId = id
+  }
+
+  setBranchEngramIds(ids: Map<string, string>): void {
+    this.branchEngramIds = new Map(ids)
   }
 
   loadMemories(): LocusMemoryEntry[] {
@@ -96,34 +106,23 @@ export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
   }
 
   private connectMemoryEdges(entry: LocusMemoryEntry): void {
+    if (!this.constellationEngramId && this.branchEngramIds.size === 0) return
+
     try {
-      const engrams = this.field.getEngramsBySessionId(entry.originSessionId, 100, 0)
-      let constellationEngramId: string | undefined
-      let branchEngramId: string | undefined
-
-      for (const e of engrams) {
-        const meta = e.metadata as Record<string, unknown> | undefined
-        if (meta?.helixId === entry.sourceHelixId) {
-          branchEngramId = e.id
-        }
-        if (e.provenance === `constellation:${entry.originSessionId}` && !constellationEngramId) {
-          constellationEngramId = e.id
-        }
-      }
-
-      if (constellationEngramId) {
+      if (this.constellationEngramId) {
         this.field.connect({
           sourceId: entry.id,
-          targetId: constellationEngramId,
+          targetId: this.constellationEngramId,
           edgeType: 'spawned_from',
           weight: 0.6,
           metadata: { provenance: 'locus-memory' },
         })
       }
-      if (branchEngramId) {
+      const branchId = this.branchEngramIds.get(entry.sourceHelixId)
+      if (branchId) {
         this.field.connect({
           sourceId: entry.id,
-          targetId: branchEngramId,
+          targetId: branchId,
           edgeType: 'part_of',
           weight: 0.6,
           metadata: { provenance: 'locus-memory' },
@@ -132,8 +131,8 @@ export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
 
       this.logger.debug('Connected memory via edges', {
         memoryId: entry.id,
-        constellationEdge: Boolean(constellationEngramId),
-        branchEdge: Boolean(branchEngramId),
+        constellationEdge: Boolean(this.constellationEngramId),
+        branchEdge: Boolean(branchId),
       })
     } catch (err) {
       this.logger.debug('Failed to connect memory edges', {

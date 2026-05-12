@@ -176,8 +176,7 @@ export class Corpus {
   // Locus — Global Workspace (attention layer between Corpus and Brainstems)
   private locus: Locus
   private locusSweepResults: LocusSweepResult[] = []
-
-  // PatternDetector — Cross-branch pattern detection
+  private locusPersistence: import('./locus/constellation-memory.js').LocusMemoryPersistence | undefined
   private patternDetector: PatternDetector
 
   // Territory awareness (PR-2 of cross-helix-territory-awareness spec):
@@ -202,13 +201,17 @@ export class Corpus {
       enabled: this.config.enabled,
     })
 
+    const locusPersistence = deps.mnemicField
+      ? new MnemicLocusMemoryPersistence(deps.mnemicField, this.logger)
+      : deps.store?.getLocusMemoryPersistence()
+
     this.locus = new Locus({
       logger: this.logger,
       sessionId: deps.constellationId,
-      memoryPersistence: deps.mnemicField
-        ? new MnemicLocusMemoryPersistence(deps.mnemicField, this.logger)
-        : deps.store?.getLocusMemoryPersistence(),
+      memoryPersistence: locusPersistence,
     })
+
+    this.locusPersistence = locusPersistence
 
     this.patternDetector = new PatternDetector({
       tree,
@@ -394,6 +397,10 @@ export class Corpus {
    */
   getLocusMemories(): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined {
     return this.locus.enabled ? this.locus.getMemory().getActive() : undefined
+  }
+
+  getLocusMemoryPersistence(): import('./locus/constellation-memory.js').LocusMemoryPersistence | undefined {
+    return this.locusPersistence
   }
 
   /**
