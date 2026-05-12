@@ -465,6 +465,10 @@ export class MnemicField {
     return this.cortex.getTypedSynapses(engramId, edgeType, direction)
   }
 
+  bulkUpdateSynapseWeights(updates: Array<{ sourceId: string; targetId: string; edgeType: string; weight: number }>): number {
+    return this.cortex.bulkUpdateSynapseWeights(updates)
+  }
+
   getReplayChildren(parentId: string, opts: { limit?: number } = {}): Engram[] {
     const limit = Math.max(1, Math.min(opts.limit ?? 500, 5000))
     return this.getTypedSynapses(parentId, 'part_of', 'in')
