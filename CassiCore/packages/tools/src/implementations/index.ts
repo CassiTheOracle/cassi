@@ -43,6 +43,7 @@ import {
   systemHealthDefinition, makeSystemHealthHandler,
   type SystemHealthDeps,
 } from './system-health.js'
+import { graphDiscoverDefinition, graphDiscoverHandler } from './graph-discover.js'
 import {
   debugSessionDefinition, makeDebugSessionHandler,
   type DebugSessionDeps,
@@ -246,6 +247,7 @@ export function registerCoreTools(registry: ToolRegistry, deps: CoreToolDeps): v
   if (deps.cognitiveToolDeps) {
     registry.register(reflectDefinition, makeReflectHandler(deps.cognitiveToolDeps))
     registry.register(cognitiveRememberDefinition, makeCognitiveRememberHandler(deps.cognitiveToolDeps))
+    registry.register(graphDiscoverDefinition, graphDiscoverHandler)
   }
 
   // Peer coordination tools — CONSOLIDATED (Phase 1)
