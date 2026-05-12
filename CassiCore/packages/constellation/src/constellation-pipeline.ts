@@ -37,6 +37,7 @@ import { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
 import { GraphAttentionBridge } from './locus/graph-attention-bridge.js'
 import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
+import { OutcomeConsolidator } from './consolidation/outcome-consolidator.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
@@ -3156,6 +3157,24 @@ export async function runConstellationPipeline(
       } catch (memErr) {
         log.warn('Failed to store post-run memory', { error: String(memErr) })
         // Non-fatal — don't let memory failures affect constellation result
+      }
+    }
+
+    // Consolidate constellation outcomes into MnemicField graph.
+    // Adjusts synapse weights so the graph learns which edges led to
+    // success vs failure. Runs after every constellation (not just meditation).
+    // Non-fatal — errors are logged and never crash the pipeline.
+    if (opts.mnemicField && nodes.size > 0) {
+      try {
+        const consolidator = new OutcomeConsolidator(opts.mnemicField, log)
+        const cs = consolidator.consolidate(result, nodes, branchEngramIds)
+        log.info('Outcome consolidation complete', {
+          edgesConsidered: cs.edgesConsidered,
+          edgesUpdated: cs.edgesUpdated,
+          branchesProcessed: cs.branchesProcessed,
+        })
+      } catch (err) {
+        log.warn('Outcome consolidation failed (non-critical)', { error: String(err) })
       }
     }
   } catch (err) {
