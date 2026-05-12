@@ -35,6 +35,8 @@ import { Corpus } from './corpus.js'
 import { CorpusTree } from './corpus-tree.js'
 import { CrossHelixDialectic } from './cross-helix-dialectic.js'
 import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
+import { GraphAttentionBridge } from './locus/graph-attention-bridge.js'
+import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
@@ -519,6 +521,14 @@ export async function runConstellationPipeline(
 
   const graphCoordinator = opts.mnemicField
     ? new CrossBranchGraphCoordinator(opts.mnemicField, log)
+    : undefined
+
+  const graphAttentionBridge = opts.mnemicField && opts.globalWorkspace
+    ? new GraphAttentionBridge(
+        new GraphAttnPropagator(opts.mnemicField as any),
+        branchEngramIds,
+        log,
+      )
     : undefined
 
   // WHY: Map of ObserverBranchState instances keyed by helixId. Enables the Corpus
@@ -1291,6 +1301,8 @@ export async function runConstellationPipeline(
     const postures = resolvePostures()
     const handles: ModelHandle[] = []
 
+    let posedModelInfo: { energy: string; tier: string; model?: string; provider?: string }[] = []
+
     try {
       // HOW: Acquire handles for each posture that needs one.
       // Tier is derived from posture capability metadata, with cost-effective
@@ -1319,6 +1331,12 @@ export async function runConstellationPipeline(
         sessionId: helixId,
       })
       handles.push(yinHandle)
+
+      posedModelInfo = [
+        { energy: 'unity', tier: resolveTier(unityPosture), model: (unityHandle as any).model, provider: (unityHandle as any).provider },
+        { energy: 'yang', tier: resolveTier(yangPosture ?? unityPosture), model: (yangHandle as any).model, provider: (yangHandle as any).provider },
+        { energy: 'yin', tier: resolveTier(yinPosture ?? unityPosture), model: (yinHandle as any).model, provider: (yinHandle as any).provider },
+      ]
 
       if (costEffective) {
         helixLog.info('Cost-effective mode active', {
@@ -1634,9 +1652,20 @@ export async function runConstellationPipeline(
                 }
               }
             }
+            // WHY: Invalidate attention cache so next graph walk includes
+            // the discovery just written.
+            graphAttentionBridge?.invalidateBranch(helixId)
           } catch (err) {
             helixLog.warn('Failed to write discovery engram', { error: String(err) })
           }
+        }
+
+        // WHY: Walk the MnemicField graph from this branch's engram and
+        // inject related engrams as attention context into the GlobalWorkspace.
+        // Posture runners drain these signals at the start of each turn so the
+        // LLM sees graph-surfaced context across all postures (Unity, Yang, Yin).
+        if (graphAttentionBridge && opts.globalWorkspace) {
+          graphAttentionBridge.injectToWorkspace(helixId, opts.globalWorkspace, helixGoal)
         }
       },
       // REMOVED: onBlackboardCreated — Blackboard deprecated
@@ -1756,7 +1785,8 @@ export async function runConstellationPipeline(
       type: 'constellation:branch:launched',
       constellationId,
       helixId,
-      postures: postures.map(p => ({ energy: p.energy, tier: resolveTier(p) })),
+      goal: helixGoal.slice(0, 300),
+      postures: posedModelInfo,
       timestamp: Date.now(),
     } as any)
 
@@ -1786,6 +1816,12 @@ export async function runConstellationPipeline(
             helixId,
             durationMs: branchDurationMs,
             tokensUsed: branchTokens,
+            tokensByPosture: {
+              unity: (result.tokensUsed.unity ?? 0),
+              yang: (result.tokensUsed.yang ?? 0),
+              yin: (result.tokensUsed.yin ?? 0),
+              mentor: (result.tokensUsed.mentor ?? 0),
+            },
             completionStatus: result.completionStatus,
             timestamp: Date.now(),
           } as any)
@@ -1796,7 +1832,14 @@ export async function runConstellationPipeline(
             helixId,
             durationMs: branchDurationMs,
             tokensUsed: branchTokens,
+            tokensByPosture: {
+              unity: (result.tokensUsed.unity ?? 0),
+              yang: (result.tokensUsed.yang ?? 0),
+              yin: (result.tokensUsed.yin ?? 0),
+              mentor: (result.tokensUsed.mentor ?? 0),
+            },
             unityConclusion: result.unityConclusion?.slice(0, 300),
+            score: result.qualityScore ?? undefined,
             timestamp: Date.now(),
           } as any)
         }
