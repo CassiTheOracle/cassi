@@ -83,6 +83,7 @@ import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
 import type { LocusSnapshot } from './locus/locus-types.js'
+import { MnemicLocusMemoryPersistence } from './locus/mnemic-locus-memory-persistence.js'
 import { SPAWN_EVALUATION_PHRASES, DIRECTIVE_QUALITY_PHRASES } from '../phrase-prototypes.js'
 
 /**
@@ -204,7 +205,9 @@ export class Corpus {
     this.locus = new Locus({
       logger: this.logger,
       sessionId: deps.constellationId,
-      memoryPersistence: deps.store?.getLocusMemoryPersistence(),
+      memoryPersistence: deps.mnemicField
+        ? new MnemicLocusMemoryPersistence(deps.mnemicField, this.logger)
+        : deps.store?.getLocusMemoryPersistence(),
     })
 
     this.patternDetector = new PatternDetector({
