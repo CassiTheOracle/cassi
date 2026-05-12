@@ -11,6 +11,8 @@
 
 import type { RuntimeEvent } from '../../../types/events.js'
 
+const TEAM_EVENT_TYPE = 'team:event'
+
 // Types
 
 export interface CuratedEvent {
@@ -24,6 +26,8 @@ export interface CuratedEvent {
   isHighlight: boolean
   /** Display priority for rate limiter */
   priority: 'high' | 'medium' | 'low'
+  /** Constellation session ID for per-session routing */
+  constellationSessionId?: string
 }
 
 export interface CuratorConfig {
@@ -129,9 +133,45 @@ const EXACT_ROUTES: Record<string, RouteRule> = {
   'multi-agent:spawn-failed':  { topicKey: 'constellation', highlight: true, priority: 'high' },
 
   'constellation:started':     { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'constellation:decomposing': { topicKey: 'constellation', highlight: false },
+  'constellation:decomposed':  { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'constellation:executing':   { topicKey: 'constellation', highlight: false },
+  'constellation:checkpoint':  { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'constellation:stagnation':  { topicKey: 'constellation', highlight: true, priority: 'high' },
   'constellation:completed':   { topicKey: 'constellation', highlight: true, priority: 'high' },
   'constellation:failed':      { topicKey: 'constellation', highlight: true, priority: 'high' },
-  'constellation:checkpoint':  { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'constellation:cancelled':   { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'constellation:branch:created':   { topicKey: 'constellation', highlight: false },
+  'constellation:branch:launched':  { topicKey: 'constellation', highlight: false },
+  'constellation:branch:completed': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'constellation:branch:degraded':  { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'constellation:branch:failed':    { topicKey: 'constellation', highlight: true, priority: 'high' },
+
+  'helix:started':   { topicKey: 'constellation', highlight: false },
+  'helix:completed': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'helix:failed':    { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'helix:iteration:complete': { topicKey: 'constellation', highlight: false },
+
+  'helix:synapse:started':   { topicKey: 'constellation', highlight: false },
+  'helix:synapse:stopped':   { topicKey: 'constellation', highlight: false },
+  'helix:synapse:fired':     { topicKey: 'constellation', highlight: false },
+  'helix:synapse:broadcast': { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'helix:synapse:feedback':  { topicKey: 'constellation', highlight: false },
+
+  'corpus:intervention':     { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'corpus:spawn-decision':   { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'corpus:escalation':       { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'corpus:discovery':        { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'corpus:synthesis':        { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'corpus:checkpoint':       { topicKey: 'constellation', highlight: false },
+  'corpus:external-assumed':        { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'corpus:external-released':       { topicKey: 'constellation', highlight: true, priority: 'medium' },
+  'corpus:external-directive':      { topicKey: 'constellation', highlight: true, priority: 'high' },
+  'corpus:external-spawn-decision': { topicKey: 'constellation', highlight: true, priority: 'high' },
+
+  'topology:updated':      { topicKey: 'constellation', highlight: false },
+  'constellation:corpus-observer:broadcast':  { topicKey: 'constellation', highlight: false },
+  'constellation:cluster-observer:broadcast': { topicKey: 'constellation', highlight: false },
 
   // Intelligence — reasoning and awareness
   'thinker:insight-applied':   { topicKey: 'intelligence', highlight: true, priority: 'high' },
@@ -245,6 +285,7 @@ const PREFIX_ROUTES: Array<{ prefix: string; rule: RouteRule }> = [
   { prefix: 'corpus:',         rule: { topicKey: 'constellation', highlight: true, priority: 'medium' } },
   { prefix: 'brainstem:',      rule: { topicKey: 'constellation', highlight: false } },
   { prefix: 'team:',           rule: { topicKey: 'constellation', highlight: false } },
+  { prefix: 'drone:',          rule: { topicKey: 'constellation', highlight: true } },
 
   // Intelligence — reasoning, awareness, adaptation
   { prefix: 'thinker:',        rule: { topicKey: 'intelligence', highlight: false } },
@@ -303,9 +344,28 @@ export class EventCurator {
   curate(event: RuntimeEvent): CuratedEvent | null {
     const type = event.type as string
 
+    if (type === TEAM_EVENT_TYPE) {
+      const e = event as any
+      const innerEvent = e.data?.event ?? ''
+      if (innerEvent) {
+        const innerRule = this.resolveRule(innerEvent)
+        if (innerRule) {
+          if (innerRule.topicKey && !this.config.enabledTopics[innerRule.topicKey]) return null
+          return {
+            event,
+            topicKey: innerRule.topicKey,
+            mirrorTopics: [],
+            isHighlight: innerRule.highlight,
+            priority: innerRule.priority ?? 'medium',
+            constellationSessionId: e.teamId ?? e.sessionId ?? undefined,
+          }
+        }
+      }
+    }
+
     // Look up routing rule
     const rule = this.resolveRule(type)
-    if (!rule) return null // Unrecognized event type — drop
+    if (!rule) return null
 
     // Check if the target topic is enabled
     if (rule.topicKey && !this.config.enabledTopics[rule.topicKey]) return null
@@ -319,10 +379,13 @@ export class EventCurator {
     // Blackboard events from orchestration systems mirror to the constellation topic
     if (type === 'blackboard:entry' && rule.topicKey !== 'constellation') {
       const e = event as any
-      if (e.teamId || e.source === 'flux' || e.source === 'lumen' || e.lumenId || e.source === 'dyad' || e.dyadId) {
+      if (e.teamId || e.constellationId || e.source === 'flux' || e.source === 'lumen' || e.lumenId || e.source === 'dyad' || e.dyadId) {
         mirrorTopics.push('constellation')
       }
     }
+
+    // Extract constellation session ID
+    const constellationSessionId = (event as any).constellationId ?? (event as any).teamId ?? (event as any).sessionId ?? undefined
 
     return {
       event,
@@ -330,6 +393,7 @@ export class EventCurator {
       mirrorTopics: mirrorTopics.filter(t => this.config.enabledTopics[t]),
       isHighlight: rule.highlight,
       priority: rule.priorityFn ? rule.priorityFn(event) : (rule.priority ?? 'medium'),
+      constellationSessionId,
     }
   }
 

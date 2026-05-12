@@ -191,6 +191,24 @@ export class TelegramClient {
     return false
   }
 
+  async pinMessage(chatId: number, messageId: number): Promise<boolean> {
+    try {
+      await this.call('pinChatMessage', { chat_id: chatId, message_id: messageId })
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async deleteMessage(chatId: number, messageId: number): Promise<boolean> {
+    try {
+      await this.call('deleteMessage', { chat_id: chatId, message_id: messageId })
+      return true
+    } catch {
+      return false
+    }
+  }
+
 
   /**
    * Create a forum topic in a supergroup.

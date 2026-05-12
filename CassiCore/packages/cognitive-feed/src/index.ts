@@ -29,6 +29,7 @@ import { ModuleChatHandler } from './module-chat-handler.js'
 import { RateLimiter, type QueuedMessage } from './rate-limiter.js'
 import { EventAccumulator, type AccumulatorEvent } from './event-accumulator.js'
 import { DeliveryBatcher } from './delivery-batcher.js'
+import { WindowManager } from './window-manager.js'
 import type { DeliveryConfig } from './delivery-types.js'
 import { DEFAULT_DELIVERY_CONFIG } from './delivery-types.js'
 import type { CuratedEvent } from './event-curator.js'
@@ -144,6 +145,8 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
   private rateLimiter!: RateLimiter
   private accumulator!: EventAccumulator
   private deliveryBatcher!: DeliveryBatcher
+  private windowManager!: WindowManager
+  private windowFlushTimer: ReturnType<typeof setInterval> | null = null
   private activeToolSessions = new Map<number, InteractiveToolSession>()
 
   private pollTimer: ReturnType<typeof setInterval> | null = null
@@ -221,6 +224,23 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       (msg) => this.sendMessage(msg),
       this.logger,
     )
+
+    // Window manager — 4 editable rolling windows replacing per-event messages
+    this.windowManager = new WindowManager({
+      formatter: this.formatter,
+      rateLimiter: this.rateLimiter,
+      client: this.client,
+      chatId: this.feedConfig.telegram.chatId,
+      logger: this.logger,
+    })
+    await this.windowManager.init()
+
+    // Flush windows every 3 seconds
+    this.windowFlushTimer = setInterval(() => {
+      this.windowManager.flush().catch(err => {
+        this.logger.warn('[cognitive-feed] Window flush failed', { error: String(err) })
+      })
+    }, 3_000)
 
     // Event accumulator for batching high-volume events (dialectic messages, iterations, work units)
     this.accumulator = new EventAccumulator({
@@ -369,6 +389,15 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       this.accumulator.stop()
     }
 
+    // Stop window manager (persists state, updates messages)
+    if (this.windowFlushTimer) {
+      clearInterval(this.windowFlushTimer)
+      this.windowFlushTimer = null
+    }
+    if (this.windowManager) {
+      await this.windowManager.shutdown().catch(() => {})
+    }
+
     // Send shutdown notification
     if (this.feedConfig.enabled && this.client) {
       const chatId = this.feedConfig.telegram.chatId
@@ -458,8 +487,13 @@ export class CognitiveFeedModule extends BaseCognitiveModule {
       topicDef?.displayName ?? 'Highlights',
     )
 
-    // Route through the delivery batcher (load-aware batching)
-    this.deliveryBatcher.accept(curated)
+    // Route constellation events through the rolling window manager
+    this.windowManager.accept(curated)
+
+    // Non-constellation events still get individual messages in their topics
+    if (curated.topicKey !== 'constellation') {
+      this.deliveryBatcher.accept(curated)
+    }
   }
 
   /**

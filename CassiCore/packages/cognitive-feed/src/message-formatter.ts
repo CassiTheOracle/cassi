@@ -10,6 +10,7 @@
 
 import type { RuntimeEvent } from '../../../types/events.js'
 import type { CuratedEvent } from './event-curator.js'
+import type { ConstellationState, ActivityEntry, HelixState, CorpusEntry } from './window-manager.js'
 
 // Constants
 
@@ -62,7 +63,7 @@ function truncate(text: unknown, max: number): string {
  * @dep risk: LOW | 2 callers, 0 flows, 1 module
  */
 
-function fmtDuration(ms: number): string {
+export function fmtDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`
   if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
   return `${(ms / 60_000).toFixed(1)}m`
@@ -76,7 +77,7 @@ function fmtDuration(ms: number): string {
  * @dep risk: LOW | 2 callers, 1 flow, 1 module
  */
 
-function fmtTokens(tokens: number): string {
+export function fmtTokens(tokens: number): string {
   if (tokens < 1000) return `${tokens}`
   return `${(tokens / 1000).toFixed(1)}k`
 }
@@ -352,6 +353,76 @@ export class MessageFormatter {
     }
     if (type === 'meditation:self-modeling-complete') {
       return `🔮 Self-modeling complete — ${e.modulesReclassified ?? 0} reclassified, ${e.patternsCreated ?? 0} patterns, ${e.weaknessesCreated ?? 0} weaknesses`
+    }
+
+    // GWT Constellation events
+    if (type === 'constellation:started') {
+      return `🌌 Constellation started: <i>${esc(truncate(e.goal ?? '', 100))}</i> (${esc(e.template ?? 'standard')})`
+    }
+    if (type === 'constellation:decomposed') {
+      return `🌌 Decomposed: ${e.subTaskCount} subtasks, ${esc(e.strategy ?? 'parallel')}`
+    }
+    if (type === 'constellation:completed') {
+      const dur = e.durationMs ? ` in ${fmtDuration(e.durationMs)}` : ''
+      const tok = e.totalTokens ? ` (${fmtTokens(e.totalTokens)} tokens)` : ''
+      const icon = e.outcome === 'success' ? '✅' : e.outcome === 'degraded' ? '⚠️' : '❌'
+      return `${icon} Constellation completed${dur}${tok}: ${esc(e.outcome ?? 'unknown')}`
+    }
+    if (type === 'constellation:failed' || type === 'constellation:cancelled') {
+      const icon = type === 'constellation:failed' ? '❌' : '🛑'
+      const dur = e.durationMs ? ` after ${fmtDuration(e.durationMs)}` : ''
+      return `${icon} Constellation ${type.split(':')[1]}${dur}: ${esc(truncate(e.error ?? e.reason ?? '', 100))}`
+    }
+    if (type === 'constellation:stagnation') {
+      const tag = e.forcedKill ? '🔴' : '⚠️'
+      return `${tag} Stagnation level ${e.level}: ${e.activeBranches} branches flat, ${fmtTokens(e.tokensUsed)} tokens`
+    }
+    if (type === 'constellation:checkpoint') {
+      return `📊 Checkpoint: ${e.totalSteps} steps, ${e.activeBranches ?? 0}/${e.totalBranches ?? 0} active, ${fmtTokens(e.tokensUsed)} tokens`
+    }
+    if (type === 'constellation:branch:completed') {
+      return `✅ Branch completed: ${esc(e.helixId ?? '?')} in ${e.durationMs ? fmtDuration(e.durationMs) : '?'} (${fmtTokens(e.tokensUsed)} tok)`
+    }
+    if (type === 'constellation:branch:degraded') {
+      return `⚠️ Branch degraded: ${esc(e.helixId ?? '?')}`
+    }
+    if (type === 'constellation:branch:failed') {
+      return `❌ Branch failed: ${esc(e.helixId ?? '?')}`
+    }
+
+    // Helix events
+    if (type === 'helix:started') {
+      const goal = e.goal ? `: <i>${esc(truncate(e.goal, 100))}</i>` : ''
+      return `🔬 Helix started${goal}`
+    }
+    if (type === 'helix:completed') {
+      return `🔬 Helix completed: ${fmtTokens(e.tokensUsed?.unity ?? 0)} tok`
+    }
+    if (type === 'helix:failed') {
+      return `🔬 Helix failed: ${esc(truncate(e.error ?? '', 100))}`
+    }
+
+    // Helix Synapse
+    if (type === 'helix:synapse:broadcast') {
+      return `👁️ Synapse [${esc(e.priority ?? '?')}]: ${esc(truncate(e.preview ?? '', 120))}`
+    }
+
+    // Corpus events
+    if (type === 'corpus:intervention') {
+      return `🎯 Corpus → ${esc(e.targetHelixId ?? '?')} [${esc(e.urgency ?? '?')}]: ${esc(e.directiveType ?? '?')}`
+    }
+    if (type === 'corpus:spawn-decision') {
+      const icon = e.approved ? '✅' : '❌'
+      return `🎯 Spawn ${icon}: ${esc(e.reason?.slice(0, 120) ?? '')}`
+    }
+    if (type === 'corpus:escalation') {
+      return `🚨 Escalation: ${esc(e.reason ?? '?')}`
+    }
+    if (type === 'corpus:discovery') {
+      return `💡 Discovery: ${esc(truncate(e.content ?? '', 120))}`
+    }
+    if (type === 'corpus:synthesis') {
+      return `📝 Synthesis: ${esc(truncate(e.synthesis ?? '', 120))}`
     }
 
     return `${esc(type)}`
@@ -973,6 +1044,91 @@ export class MessageFormatter {
       return parts.join('\n') || this.formatGenericVerbose(e)
     }
 
+    // GWT Constellation verbose
+    if (type === 'constellation:started') {
+      parts.push(`🌌 <b>Constellation Started</b>`)
+      parts.push(`<b>ID:</b> <code>${esc(e.constellationId ?? '?')}</code>`)
+      if (e.goal) parts.push(`<b>Goal:</b> <i>${esc(truncate(e.goal, 500))}</i>`)
+      if (e.template) parts.push(`<b>Template:</b> ${esc(e.template)}`)
+      if (e.maxHelixes) parts.push(`<b>Max branches:</b> ${e.maxHelixes}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'constellation:completed') {
+      parts.push(`✅ <b>Constellation Complete</b>`)
+      parts.push(`<b>Outcome:</b> ${esc(e.outcome ?? '?')}`)
+      if (e.outcomeReason) parts.push(`<b>Reason:</b> ${esc(e.outcomeReason)}`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
+      if (e.totalTokens) parts.push(`<b>Tokens:</b> ${fmtTokens(e.totalTokens)}`)
+      parts.push(`<b>Branches:</b> ${e.completedBranches ?? 0}/${e.totalBranches ?? 0} done, ${e.failedBranches ?? 0} failed`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'constellation:failed') {
+      parts.push(`❌ <b>Constellation Failed</b>`)
+      if (e.error) parts.push(`<b>Error:</b> ${esc(truncate(e.error, 500))}`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'constellation:stagnation') {
+      const header = e.forcedKill ? '🔴' : '⚠️'
+      parts.push(`${header} <b>${e.forcedKill ? 'Stagnation Force-Kill' : 'Stagnation Detected'}</b>`)
+      parts.push(`<b>Level:</b> ${e.level ?? '?'} (${e.consecutiveChecks ?? 0} consecutive checks)`)
+      parts.push(`<b>Active branches:</b> ${e.activeBranches ?? '?'}`)
+      if (e.tokensUsed) parts.push(`<b>Tokens used:</b> ${fmtTokens(e.tokensUsed)}`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'constellation:checkpoint') {
+      parts.push(`📊 <b>Checkpoint</b>`)
+      parts.push(`<b>Steps:</b> ${e.totalSteps ?? '?'}`)
+      parts.push(`<b>Branches:</b> ${e.activeBranches ?? 0}/${e.totalBranches ?? 0} active`)
+      if (e.tokensUsed) parts.push(`<b>Tokens:</b> ${fmtTokens(e.tokensUsed)}`)
+      if (e.durationMs) parts.push(`<b>Elapsed:</b> ${fmtDuration(e.durationMs)}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'constellation:branch:completed') {
+      parts.push(`✅ <b>Branch Complete</b>`)
+      parts.push(`<b>Helix:</b> <code>${esc(e.helixId ?? '?')}</code>`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
+      if (e.tokensUsed) parts.push(`<b>Tokens:</b> ${fmtTokens(e.tokensUsed)}`)
+      if (e.unityConclusion) parts.push(`<b>Conclusion:</b> <i>${esc(truncate(e.unityConclusion, 500))}</i>`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'corpus:intervention') {
+      parts.push(`🎯 <b>Corpus Intervention</b>`)
+      parts.push(`<b>Target:</b> <code>${esc(e.targetHelixId ?? '?')}</code>`)
+      parts.push(`<b>Type:</b> ${esc(e.directiveType ?? '?')} | <b>Urgency:</b> ${esc(e.urgency ?? '?')}`)
+      if (e.reason) parts.push(`<b>Reason:</b> ${esc(truncate(e.reason, 300))}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'corpus:spawn-decision') {
+      parts.push(`${e.approved ? '✅' : '❌'} <b>Spawn Decision</b>`)
+      parts.push(`<b>Request:</b> <code>${esc(e.requestId ?? '?')}</code>`)
+      if (e.reason) parts.push(`<b>Reason:</b> ${esc(truncate(e.reason, 300))}`)
+      if (e.modifiedGoal) parts.push(`<b>Modified goal:</b> <i>${esc(truncate(e.modifiedGoal, 200))}</i>`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'corpus:discovery') {
+      parts.push(`💡 <b>Discovery</b>`)
+      parts.push(`<b>ID:</b> <code>${esc(e.discoveryId ?? '?')}</code>`)
+      parts.push(`<b>Source:</b> <code>${esc(e.sourceHelixId ?? '?')}</code>`)
+      if (e.type) parts.push(`<b>Type:</b> ${esc(e.type)}`)
+      if (e.content) parts.push(`<b>Content:</b> <i>${esc(truncate(e.content, 500))}</i>`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'helix:started') {
+      parts.push(`🔬 <b>Helix Started</b>`)
+      parts.push(`<b>ID:</b> <code>${esc(e.sessionId ?? '?')}</code>`)
+      if (e.goal) parts.push(`<b>Goal:</b> <i>${esc(truncate(e.goal, 500))}</i>`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+    if (type === 'helix:completed') {
+      parts.push(`🔬 <b>Helix Complete</b>`)
+      parts.push(`<b>ID:</b> <code>${esc(e.sessionId ?? '?')}</code>`)
+      if (e.durationMs) parts.push(`<b>Duration:</b> ${fmtDuration(e.durationMs)}`)
+      if (e.tokensUsed) parts.push(`<b>Tokens:</b> U:${fmtTokens((e.tokensUsed as any).unity ?? 0)} Y:${fmtTokens((e.tokensUsed as any).yang ?? 0)} I:${fmtTokens((e.tokensUsed as any).yin ?? 0)}`)
+      return parts.join('\n') || this.formatGenericVerbose(e)
+    }
+
     return this.formatGenericVerbose(e)
   }
 
@@ -1049,6 +1205,217 @@ export class MessageFormatter {
 
     parts.push('')
     parts.push(`<i>${fmtTime()}</i>`)
+
+    return parts.join('\n')
+  }
+
+  formatDashboard(constellations: Map<string, ConstellationState>): string {
+    const parts: string[] = []
+    parts.push(`📊 <b>Constellation Dashboard</b>`)
+
+    const running = [...constellations.values()].filter(c => c.status === 'running')
+    const done = [...constellations.values()].filter(c => c.status !== 'running')
+
+    if (running.length === 0 && done.length === 0) {
+      parts.push('')
+      parts.push('No constellations yet. Activity will appear here.')
+      return parts.join('\n')
+    }
+
+    parts.push(`Active: ${running.length} | Completed: ${done.length}`)
+    parts.push(`<i>Last updated: ${fmtTime()}</i>`)
+    parts.push('')
+
+    const hasAlerts = running.some(c => c.stagnationLevel && c.stagnationLevel >= 4) ||
+      done.some(c => c.status === 'failed')
+
+    for (const c of running) {
+      const dur = c.durationMs ? fmtDuration(c.durationMs) : ''
+      const tok = c.totalTokens ? fmtTokens(c.totalTokens) : ''
+      const burn = c.durationMs && c.totalTokens ? fmtTokens(Math.round(c.totalTokens / (c.durationMs / 60000))) + '/min' : ''
+      parts.push(`▶ <b>${esc(c.id)}</b>  ${esc(c.goal.slice(0, 100))}`)
+      parts.push(`   ⏳ <i>active</i> · ${c.totalBranches} branches · ${tok} · ${dur} · ${burn}`)
+
+      for (const [, b] of c.branches) {
+        const statusIcon = b.status === 'completed' ? '✅' : b.status === 'failed' ? '❌' : b.status === 'degraded' ? '⚠️' : ' 🔬'
+        const score = b.score !== undefined ? `score ${b.score.toFixed(2)}` : ''
+        const steps = b.steps ? `${b.steps} steps` : ''
+        const annotation = b.annotation ? `· ${esc(b.annotation)}` : ''
+        const strategy = b.strategy ? `· ${esc(b.strategy.slice(0, 60))}` : ''
+        const blocker = b.blockers?.length ? `· ⛔ ${b.blockers.length} blockers` : ''
+        const live = b.liveStreamSnippet ? `· <i>"${esc(b.liveStreamSnippet.slice(0, 80))}"</i>` : ''
+        const tokB = b.tokensUsed ? fmtTokens(b.tokensUsed) : ''
+        const tokBreakdown = [b.tokensUnity ? `U:${fmtTokens(b.tokensUnity)}` : '', b.tokensYang ? `Y:${fmtTokens(b.tokensYang)}` : '', b.tokensYin ? `I:${fmtTokens(b.tokensYin)}` : '', b.tokensMentor ? `M:${fmtTokens(b.tokensMentor)}` : ''].filter(Boolean).join(' ')
+        const models = [
+          b.tierUnity ? `U:${esc(b.tierUnity)}${b.modelUnity ? ` (${esc(b.modelUnity)})` : ''}` : '',
+          b.tierYang ? `Y:${esc(b.tierYang)}${b.modelYang ? ` (${esc(b.modelYang)})` : ''}` : '',
+          b.tierYin ? `I:${esc(b.tierYin)}${b.modelYin ? ` (${esc(b.modelYin)})` : ''}` : '',
+        ].filter(Boolean).join(' · ')
+        const stagnation = b.stagnationLevel ? `· ⚠️ stagnation ${b.stagnationLevel}` : ''
+
+        parts.push(`   ${statusIcon} <code>${esc(b.helixId)}</code> ${score} ${steps} ${annotation}${stagnation}`)
+        if (tokBreakdown || tokB) parts.push(`      Tokens: ${tokBreakdown || tokB}`)
+        if (models) parts.push(`      Models: ${models}`)
+        if (strategy) parts.push(`      ${strategy}`)
+        if (blocker) parts.push(`      ${blocker}`)
+        if (live) parts.push(`      ${live}`)
+      }
+      parts.push('')
+    }
+
+    for (const c of done) {
+      const icon = c.status === 'completed' ? '✅' : c.status === 'failed' ? '❌' : '🛑'
+      const dur = c.durationMs ? fmtDuration(c.durationMs) : ''
+      const tok = c.totalTokens ? fmtTokens(c.totalTokens) : ''
+      const burn = c.durationMs && c.totalTokens ? fmtTokens(Math.round(c.totalTokens / (c.durationMs / 60000))) + '/min' : ''
+      const err = c.error ? `· Error: ${esc(c.error.slice(0, 100))}` : ''
+      const outcome = c.outcomeReason ? `· ${esc(c.outcomeReason.slice(0, 100))}` : ''
+      parts.push(`${icon} <b>${esc(c.id)}</b>  ${esc(c.goal.slice(0, 100))}`)
+      parts.push(`   ${c.status} · ${c.completedBranches}/${c.totalBranches} branches · ${tok} · ${dur} · ${burn}${err}${outcome}`)
+      for (const [, b] of c.branches) {
+        const bi = b.status === 'completed' ? '✅' : b.status === 'failed' ? '❌' : '⚠️'
+        const sc = b.score !== undefined ? `score ${b.score.toFixed(2)}` : ''
+        const tb = b.tokensUsed ? `· ${fmtTokens(b.tokensUsed)}` : ''
+        parts.push(`   ${bi} <code>${esc(b.helixId)}</code> ${sc}${tb}`)
+      }
+      parts.push('')
+    }
+
+    if (hasAlerts) {
+      parts.push(`<b>⚠️ Alerts</b>`)
+      for (const c of running) {
+        if (c.stagnationLevel && c.stagnationLevel >= 4) {
+          parts.push(`   ⚠️ ${esc(c.id)} stagnation level ${c.stagnationLevel} · ${fmtTokens(c.totalTokens)} · ${fmtDuration(c.durationMs)}`)
+        }
+        if (c.error) {
+          parts.push(`   ❌ ${esc(c.id)} error: ${esc(c.error.slice(0, 100))}`)
+        }
+      }
+      for (const c of done) {
+        if (c.status === 'failed') {
+          parts.push(`   ❌ ${esc(c.id)} failed: ${esc((c.error ?? c.outcomeReason ?? '').slice(0, 100))}`)
+        }
+      }
+    }
+
+    return parts.join('\n')
+  }
+
+  formatActivity(entries: ActivityEntry[]): string {
+    if (entries.length === 0) {
+      return `📌 <b>Activity Timeline</b>\n\nWaiting for events...\n<i>${fmtTime()}</i>`
+    }
+
+    const parts: string[] = []
+    parts.push(`📌 <b>Activity Timeline</b> — Last ${entries.length} events`)
+    parts.push(`<i>${fmtTime()}</i>`)
+    parts.push('')
+
+    for (const entry of entries) {
+      parts.push(`${entry.icon} ${entry.title}`)
+      if (entry.description) parts.push(`   ${esc(entry.description.slice(0, 200))}`)
+      for (const d of entry.details) {
+        if (d) parts.push(`   ${d}`)
+      }
+      parts.push('')
+    }
+
+    return parts.join('\n')
+  }
+
+  formatHelix(helixes: Map<string, HelixState>): string {
+    if (helixes.size === 0) {
+      return `🔬 <b>Helix Activity</b>\n\nNo active branches.\n<i>${fmtTime()}</i>`
+    }
+
+    const parts: string[] = []
+    parts.push(`🔬 <b>Helix Activity</b>`)
+    parts.push(`<i>${fmtTime()}</i>`)
+    parts.push('')
+
+    const active = [...helixes.values()].filter(h => h.status === 'active' || h.inProgress)
+    const completed = [...helixes.values()].filter(h => h.status !== 'active')
+
+    for (const h of active) {
+      const score = h.score !== undefined ? `· score ${h.score.toFixed(2)}` : ''
+      const iter = h.iterations ? `iter ${h.iterations}` : ''
+      const tok = h.tokensUsed ? fmtTokens(h.tokensUsed) : ''
+      const conf = h.confidence ? `· confidence ${h.confidence}` : ''
+      const dur = h.durationMs ? `· ${fmtDuration(h.durationMs)}` : ''
+
+      parts.push(`🔬 <b>${esc(h.helixId)}</b> ${iter}${score}${conf}${dur}`)
+      if (h.goal) parts.push(`   Goal: <i>${esc(h.goal.slice(0, 200))}</i>`)
+
+      if (h.liveStreamSnippet) {
+        parts.push(`   💭 <i>"${esc(h.liveStreamSnippet.slice(0, 200))}"</i>`)
+      }
+
+      if (h.postureStatuses && h.postureStatuses.length > 0) {
+        const lines = h.postureStatuses.map(p => {
+          const model = p.model ? `${esc(p.tier ?? '?')} (${esc(p.model)})` : esc(p.tier ?? '?')
+          return `${p.energy}: ${esc(p.status)} · ${model}`
+        })
+        parts.push(`   ⚡ ${lines.join(' | ')}`)
+      }
+
+      if (h.tokensUnity || h.tokensYang || h.tokensYin) {
+        const breakdown = [
+          h.tokensUnity ? `U:${fmtTokens(h.tokensUnity)}` : '',
+          h.tokensYang ? `Y:${fmtTokens(h.tokensYang)}` : '',
+          h.tokensYin ? `I:${fmtTokens(h.tokensYin)}` : '',
+        ].filter(Boolean).join(' ')
+        parts.push(`   Tokens: ${breakdown}`)
+      }
+
+      if (h.brainstemAnnotations && h.brainstemAnnotations.length > 0) {
+        for (const a of h.brainstemAnnotations.slice(-3)) {
+          parts.push(`   🧠 ${esc(a.type)} ${a.score.toFixed(2)} — ${esc(a.description.slice(0, 100))}`)
+        }
+      }
+
+      if (h.blockers && h.blockers.length > 0) {
+        for (const b of h.blockers.slice(0, 3)) {
+          parts.push(`   ⛔ ${esc(b.slice(0, 120))}`)
+        }
+      }
+
+      parts.push('')
+    }
+
+    for (const h of completed) {
+      const icon = h.status === 'completed' ? '✅' : '❌'
+      const iter = h.iterations ? `${h.iterations} iters` : ''
+      const tok = h.tokensUsed ? `${fmtTokens(h.tokensUsed)}` : ''
+      const dur = h.durationMs ? fmtDuration(h.durationMs) : ''
+      const conclusion = h.unityConclusion ? `"${esc(h.unityConclusion.slice(0, 200))}"` : ''
+      parts.push(`${icon} <b>${esc(h.helixId)}</b> · ${dur} · ${tok} · ${iter}`)
+      if (conclusion) parts.push(`   ${conclusion}`)
+      if (h.filesModified && h.filesModified.length > 0) {
+        parts.push(`   Files: ${h.filesModified.slice(0, 5).map(f => esc(f)).join(', ')}${h.filesModified.length > 5 ? ` +${h.filesModified.length - 5} more` : ''}`)
+      }
+      parts.push('')
+    }
+
+    return parts.join('\n')
+  }
+
+  formatCorpus(entries: CorpusEntry[]): string {
+    if (entries.length === 0) {
+      return `🎯 <b>Corpus Coordination</b>\n\nWaiting for decisions...\n<i>${fmtTime()}</i>`
+    }
+
+    const parts: string[] = []
+    parts.push(`🎯 <b>Corpus Coordination</b>`)
+    parts.push(`<i>${fmtTime()}</i>`)
+    parts.push('')
+
+    for (const entry of entries) {
+      parts.push(`${entry.icon} ${entry.title}`)
+      for (const d of entry.details) {
+        if (d) parts.push(`   ${d}`)
+      }
+      parts.push('')
+    }
 
     return parts.join('\n')
   }
