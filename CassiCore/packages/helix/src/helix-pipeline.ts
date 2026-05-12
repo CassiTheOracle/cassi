@@ -270,9 +270,11 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
 
   // Emit start event
   opts.eventBus?.emit({
-    type: 'team:event' as any,
-    teamId: sessionId,
-    data: { event: 'helix:started', goal: opts.goal, timestamp: Date.now() },
+    type: 'helix:started',
+    sessionId,
+    goal: opts.goal.slice(0, 500),
+    constellationId: opts.constellationId,
+    timestamp: Date.now(),
   } as any)
 
   // Persist session
@@ -872,9 +874,13 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     opts.store?.saveWorkStreamMessages(sessionId, workStream.getFullLog())
     opts.store?.appendEvent(sessionId, 'helix:completed', 'session', 'Pipeline completed')
     opts.eventBus?.emit({
-      type: 'team:event' as any,
-      teamId: sessionId,
-      data: { event: 'helix:completed', durationMs: result.durationMs, timestamp: Date.now() },
+      type: 'helix:completed',
+      sessionId,
+      durationMs: result.durationMs,
+      tokensUsed: result.tokensUsed,
+      completionStatus: result.completionStatus,
+      unityConclusion: result.unityConclusion?.slice(0, 300),
+      timestamp: Date.now(),
     } as any)
 
     log.info('Helix pipeline completed', {
@@ -921,6 +927,16 @@ export async function runHelixPipeline(opts: HelixPipelineOpts): Promise<HelixRe
     opts.store?.failSession(sessionId, String(pipelineError), partialStats as any)
     opts.store?.appendEvent(sessionId, 'helix:failed', 'session',
       `Pipeline failed: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`)
+
+    opts.eventBus?.emit({
+      type: 'helix:failed',
+      sessionId,
+      error: String(pipelineError).slice(0, 300),
+      durationMs: partialStats.durationMs as number ?? Date.now() - startTime,
+      partialTokens: partialStats.tokensUsed as Record<string, number> ?? { unity: 0, yang: 0, yin: 0 },
+      constellationId: opts.constellationId,
+      timestamp: Date.now(),
+    } as any)
 
     log.error('Helix pipeline failed', {
       sessionId,

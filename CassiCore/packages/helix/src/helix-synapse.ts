@@ -253,6 +253,12 @@ export class HelixSynapse {
       maxIdleMs: this.activityConfig().maxIdleMs,
       materialThreshold: this.activityConfig().materialThreshold,
     })
+
+    this.emitEvent('helix:synapse:started', {
+      helixId: this.helixId,
+      config: { enabled: this.config.enabled, modelTier: this.config.modelTier, pollIntervalMs: this.config.pollIntervalMs },
+      timestamp: Date.now(),
+    })
   }
 
   async stop(): Promise<void> {
@@ -265,6 +271,12 @@ export class HelixSynapse {
     }
     this.running = false
     this.logger.info('Helix Synapse observer stopped', { helixId: this.helixId })
+
+    this.emitEvent('helix:synapse:stopped', {
+      helixId: this.helixId,
+      observationsCount: this.broadcastCounter,
+      timestamp: Date.now(),
+    })
   }
 
   private activityConfig(): ObserverActivityConfig {
@@ -280,8 +292,16 @@ export class HelixSynapse {
   private async fireOnce(reason: ObserverFireReason): Promise<void> {
     if (this.shutdownRequested && reason !== 'terminal') return
     if (!this.hasNewContext()) return
+    const slicesBefore = this.getSliceCount()
     await this.observeOnce()
     this.logger.debug?.('Helix Synapse fired', { helixId: this.helixId, reason })
+
+    this.emitEvent('helix:synapse:fired', {
+      helixId: this.helixId,
+      reason: typeof reason === 'string' ? reason : (reason as any).type ?? 'unknown',
+      slicesCount: slicesBefore,
+      timestamp: Date.now(),
+    })
   }
 
   appendMessage(posture: HelixRole | string, message: Message): void {
@@ -679,6 +699,28 @@ BROADCAST: <1-4 sentences to show to the named voices>
     } catch {
       // Observability must never crash the observer.
     }
+  }
+
+  private emitEvent(type: string, data: Record<string, unknown>): void {
+    if (!this.eventBus) return
+    try {
+      void (this.eventBus as any).emit({
+        type,
+        sessionId: this.helixId,
+        helixId: this.helixId,
+        ...data,
+      })
+    } catch {
+      // Observability must not affect execution.
+    }
+  }
+
+  private getSliceCount(): number {
+    let count = 0
+    for (const stream of this.streams.values()) {
+      if (stream.latestSeq > 0) count++
+    }
+    return count
   }
 
 }
