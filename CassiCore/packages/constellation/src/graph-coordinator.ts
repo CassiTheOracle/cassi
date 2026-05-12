@@ -14,7 +14,7 @@
  */
 
 import type { MnemicField } from '../mnemic-field/index.js'
-import type { Engram } from '../mnemic-field/types.js'
+import type { Engram, SynapseType } from '../mnemic-field/types.js'
 import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
 import type { ILogger } from '../../../types/interfaces.js'
 
@@ -38,7 +38,6 @@ const DEFAULT_CONFIG: CrossBranchGraphCoordinatorConfig = {
 }
 
 export class CrossBranchGraphCoordinator {
-  private field: MnemicField
   private logger: ILogger
   private config: CrossBranchGraphCoordinatorConfig
   private propagator: GraphAttnPropagator
@@ -46,9 +45,9 @@ export class CrossBranchGraphCoordinator {
   /** helixId → [engramId, ...] — recent discovery engrams written by each branch */
   private branchDiscoveries = new Map<string, string[]>()
   private discoveryTimestamps = new Map<string, number>()
+  private engramToBranch = new Map<string, string>()
 
   constructor(field: MnemicField, logger: ILogger, config?: Partial<CrossBranchGraphCoordinatorConfig>) {
-    this.field = field
     this.logger = logger.child('graph-coordinator')
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.propagator = new GraphAttnPropagator(field as any)
@@ -63,6 +62,7 @@ export class CrossBranchGraphCoordinator {
     discoveries.push(engramId)
     this.branchDiscoveries.set(helixId, discoveries)
     this.discoveryTimestamps.set(engramId, Date.now())
+    this.engramToBranch.set(engramId, helixId)
 
     this.evictStale()
 
@@ -80,82 +80,24 @@ export class CrossBranchGraphCoordinator {
     const seedId = seedEngramId ?? this.findBranchEngramId(helixId)
     if (!seedId) {
       // No engram yet — try propagating from sibling discovery engrams directly
-      return this.broadPhaseDiscoveryScan(helixId)
-    }
-
-    return this.propagateFromSeed(helixId, seedId)
-  }
-
-  /**
-   * Perform a broad scan: propagate from sibling branches' discovery engrams
-   * to find anything that might be relevant to the querying branch.
-   */
-  private broadPhaseDiscoveryScan(excludeHelixId: string): SiblingDiscovery[] {
-    const seedIds: string[] = []
-    for (const [hid, discoveryIds] of this.branchDiscoveries) {
-      if (hid === excludeHelixId) continue
-      seedIds.push(...discoveryIds.slice(-3))
-    }
-    if (seedIds.length === 0) return []
-
-    try {
-      const results = this.propagator.propagate({
-        seedIds,
+      return this.runPropagation({
+        seedIds: this.collectSiblingSeedIds(helixId),
         edgeTypes: ['spawned_from', 'part_of', 'similar_to'],
         maxHops: 2,
         topN: 5,
         minCharge: 0.03,
-        hopDecay: this.config.decay,
+        excludeHelixId: helixId,
       })
-      return this.shapeResults(results, excludeHelixId)
-    } catch (err) {
-      this.logger.warn('Broad phase discovery scan failed', { error: String(err) })
-      return []
     }
-  }
 
-  /**
-   * Propagate from the branch's seed engram to find sibling discoveries.
-   */
-  private propagateFromSeed(helixId: string, seedId: string): SiblingDiscovery[] {
-    try {
-      const results = this.propagator.propagate({
-        seedIds: [seedId],
-        edgeTypes: ['spawned_from', 'part_of', 'similar_to', 'temporal_neighbor'],
-        maxHops: this.config.maxHops,
-        topN: 8,
-        minCharge: 0.02,
-        hopDecay: this.config.decay,
-      })
-      return this.shapeResults(results, helixId)
-    } catch (err) {
-      this.logger.warn('Propagation from seed failed', { helixId, error: String(err) })
-      return []
-    }
-  }
-
-  /**
-   * Propagate a freshly written discovery to sibling branches.
-   */
-  private propagateToSiblings(helixId: string, discoveryId: string): SiblingDiscovery[] {
-    const siblingIds = this.getSiblingBranchIds(helixId)
-    if (siblingIds.length === 0) return []
-
-    try {
-      const results = this.propagator.propagate({
-        seedIds: [discoveryId],
-        edgeTypes: ['spawned_from', 'part_of', 'similar_to'],
-        maxHops: 2,
-        topN: 6,
-        minCharge: 0.03,
-        hopDecay: this.config.decay,
-      })
-      return this.shapeResults(results, helixId)
-        .filter(d => siblingIds.includes(d.sourceBranch))
-    } catch (err) {
-      this.logger.warn('Propagation to siblings failed', { helixId, error: String(err) })
-      return []
-    }
+    return this.runPropagation({
+      seedIds: [seedId],
+      edgeTypes: ['spawned_from', 'part_of', 'similar_to', 'temporal_neighbor'],
+      maxHops: this.config.maxHops,
+      topN: 8,
+      minCharge: 0.02,
+      excludeHelixId: helixId,
+    })
   }
 
   /**
@@ -192,6 +134,61 @@ export class CrossBranchGraphCoordinator {
     return lines.join('\n')
   }
 
+  /**
+   * Run typed-edge propagation from seed engrams, shape results into
+   * SiblingDiscovery[], and optionally filter by excludeHelixId.
+   */
+  private runPropagation(opts: {
+    seedIds: string[]
+    edgeTypes?: SynapseType[]
+    maxHops?: number
+    topN?: number
+    minCharge?: number
+    excludeHelixId?: string
+  }): SiblingDiscovery[] {
+    if (opts.seedIds.length === 0) return []
+    try {
+      const results = this.propagator.propagate({
+        seedIds: opts.seedIds,
+        edgeTypes: opts.edgeTypes,
+        maxHops: opts.maxHops,
+        topN: opts.topN,
+        minCharge: opts.minCharge,
+        hopDecay: this.config.decay,
+      })
+      return this.shapeResults(results, opts.excludeHelixId)
+    } catch (err) {
+      this.logger.warn('Graph propagation failed', { error: String(err) })
+      return []
+    }
+  }
+
+  private collectSiblingSeedIds(excludeHelixId: string): string[] {
+    const ids: string[] = []
+    for (const [hid, discoveryIds] of this.branchDiscoveries) {
+      if (hid === excludeHelixId) continue
+      ids.push(...discoveryIds.slice(-3))
+    }
+    return ids
+  }
+
+  /**
+   * Propagate a freshly written discovery to sibling branches.
+   */
+  private propagateToSiblings(helixId: string, discoveryId: string): SiblingDiscovery[] {
+    const siblingIds = this.getSiblingBranchIds(helixId)
+    if (siblingIds.length === 0) return []
+
+    return this.runPropagation({
+      seedIds: [discoveryId],
+      edgeTypes: ['spawned_from', 'part_of', 'similar_to'],
+      maxHops: 2,
+      topN: 6,
+      minCharge: 0.03,
+      excludeHelixId: helixId,
+    }).filter(d => siblingIds.includes(d.sourceBranch))
+  }
+
   private getSiblingBranchIds(excludeHelixId: string): string[] {
     const ids: string[] = []
     for (const hid of this.branchDiscoveries.keys()) {
@@ -207,7 +204,7 @@ export class CrossBranchGraphCoordinator {
 
   private shapeResults(
     propagated: Array<{ engram: Engram; charge: number; paths: Array<{ hops: Array<{ edgeType: string }> }> }>,
-    excludeHelixId: string,
+    excludeHelixId?: string,
   ): SiblingDiscovery[] {
     const results: SiblingDiscovery[] = []
     for (const pe of propagated) {
@@ -233,25 +230,24 @@ export class CrossBranchGraphCoordinator {
   }
 
   private findOwningBranch(engramId: string): string | undefined {
-    for (const [hid, ids] of this.branchDiscoveries) {
-      if (ids.includes(engramId)) return hid
-    }
-    return undefined
+    return this.engramToBranch.get(engramId)
   }
 
   private evictStale(): void {
     const cutoff = Date.now() - this.config.discoveryTTLMs
     for (const [engramId, ts] of this.discoveryTimestamps) {
-      if (ts < cutoff) {
-        for (const [hid, ids] of this.branchDiscoveries) {
+      if (ts >= cutoff) continue
+      const helixId = this.engramToBranch.get(engramId)
+      if (helixId) {
+        const ids = this.branchDiscoveries.get(helixId)
+        if (ids) {
           const idx = ids.indexOf(engramId)
-          if (idx >= 0) {
-            ids.splice(idx, 1)
-            if (ids.length === 0) this.branchDiscoveries.delete(hid)
-          }
+          if (idx >= 0) ids.splice(idx, 1)
+          if (ids.length === 0) this.branchDiscoveries.delete(helixId)
         }
-        this.discoveryTimestamps.delete(engramId)
       }
+      this.engramToBranch.delete(engramId)
+      this.discoveryTimestamps.delete(engramId)
     }
   }
 }

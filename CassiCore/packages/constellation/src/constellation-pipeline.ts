@@ -1624,15 +1624,13 @@ export async function runConstellationPipeline(
                   siblingDiscoveries: sibDiscoveries.length,
                   topCharge: sibDiscoveries[0]?.charge?.toFixed(3),
                 })
-                // WHY: Deliver sibling discoveries to the current branch by posting
-                // findings from the sibling branches through the CrossHelixDialectic.
+                // WHY: Deliver sibling discoveries as a single cross-finding
+                // from the current branch so other branches are informed.
                 const siblingContext = graphCoordinator.formatDiscoveriesForContext(sibDiscoveries)
                 if (siblingContext && crossHelixDialectic) {
-                  for (const d of sibDiscoveries.slice(0, 2)) {
-                    crossHelixDialectic.postFinding(d.sourceBranch, siblingContext, {
-                      tags: ['graph-discovered', `charge:${d.charge.toFixed(2)}`],
-                    })
-                  }
+                  crossHelixDialectic.postFinding(helixId, siblingContext, {
+                    tags: ['graph-discovered', `sources:${sibDiscoveries.length}`],
+                  })
                 }
               }
             }

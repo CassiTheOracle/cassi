@@ -49,6 +49,7 @@ export const MEDITATION_MEMORY_INJECTION_CONFIG: Partial<MemoryInjectionConfig> 
 export class MemoryInjectionService {
   private mnemicField: MnemicField | undefined
   private legacyMemory: IMemory | undefined
+  private graphPropagator: GraphAttnPropagator | undefined
   private config: MemoryInjectionConfig
   private logger: ILogger
 
@@ -63,6 +64,7 @@ export class MemoryInjectionService {
     // Discriminate: MnemicField has a `retrieve` method; IMemory has `store` + `search`.
     if ('retrieve' in fieldOrMemory && typeof fieldOrMemory.retrieve === 'function') {
       this.mnemicField = fieldOrMemory as MnemicField
+      this.graphPropagator = new GraphAttnPropagator(this.mnemicField as any)
     } else {
       this.legacyMemory = fieldOrMemory as IMemory
     }
@@ -133,10 +135,9 @@ export class MemoryInjectionService {
       // the best-matching engram to find structurally related sessions and
       // findings that kindling (embedding-only) might miss.
       const topId = hits[0]?.id
-      if (topId && context.memories.length < this.config.maxMemories) {
+      if (topId && context.memories.length < this.config.maxMemories && this.graphPropagator) {
         try {
-          const propagator = new GraphAttnPropagator(this.mnemicField! as any)
-          const propagated = propagator.propagate({
+          const propagated = this.graphPropagator.propagate({
             seedIds: [topId],
             edgeTypes: ['spawned_from', 'part_of', 'temporal_neighbor'],
             maxHops: 2,
@@ -150,9 +151,7 @@ export class MemoryInjectionService {
               .map(p => p.hops.map(h => h.edgeType).join(' → '))
               .join(', ')
             context.memories.push({
-              content: content.length > this.config.maxContentLength
-                ? content.slice(0, this.config.maxContentLength) + '...'
-                : content,
+              content,
               relevance: Math.min(1, pe.charge),
               type: pe.engram.nodeType ?? 'fact',
               createdAt: new Date(pe.engram.createdAt).getTime(),
