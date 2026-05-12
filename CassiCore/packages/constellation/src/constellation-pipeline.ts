@@ -38,7 +38,6 @@ import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
 import { GraphAttentionBridge } from './locus/graph-attention-bridge.js'
 import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
 import { OutcomeConsolidator } from './consolidation/outcome-consolidator.js'
-import { MnemicLocusMemoryPersistence } from './locus/mnemic-locus-memory-persistence.js'
 import { setGraphDiscoverDeps } from '../../tools/implementations/graph-discover.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
@@ -819,16 +818,6 @@ export async function runConstellationPipeline(
       toolRegistry ? toolRegistry.list().map((t) => t.name) : [],
     )
 
-    // Pass constellation engram IDs to MnemicLocusMemoryPersistence so
-    // locus memories are connected via edges to their parent engrams.
-    if (constellationEngramId) {
-      const lp = corpus.getLocusMemoryPersistence()
-      if (lp instanceof MnemicLocusMemoryPersistence) {
-        lp.setConstellationEngramId(constellationEngramId)
-        lp.setBranchEngramIds(branchEngramIds)
-      }
-    }
-
     if (opts.meditationMode) {
       // Fire-and-forget — meditation Corpus observes as branches come online
       corpusMiniHelix.start().catch((err) => {
@@ -1262,11 +1251,14 @@ export async function runConstellationPipeline(
         })
         branchEngramIds.set(helixId, branchEngram.id)
 
-        // Keep the MnemicLocusMemoryPersistence branch IDs in sync
-        // so newly created locus memories can be connected to branch engrams.
+        // Sync engram IDs to MnemicLocusMemoryPersistence for locus memory edge creation.
+        // constellationEngramId is set earlier (during session engram storage).
         const lp = corpus.getLocusMemoryPersistence()
-        if (lp instanceof MnemicLocusMemoryPersistence) {
-          lp.setBranchEngramIds(branchEngramIds)
+        if (lp) {
+          ;(lp as any).setBranchEngramIds?.(branchEngramIds)
+          if (constellationEngramId) {
+            ;(lp as any).setConstellationEngramId?.(constellationEngramId)
+          }
         }
 
         if (parentId && branchEngramIds.has(parentId)) {

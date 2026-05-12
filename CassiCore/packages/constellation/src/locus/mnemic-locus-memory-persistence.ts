@@ -129,7 +129,7 @@ export class MnemicLocusMemoryPersistence implements LocusMemoryPersistence {
         })
       }
 
-      this.logger.debug('Connected memory via edges', {
+      this.logger.info('Connected memory via edges', {
         memoryId: entry.id,
         constellationEdge: Boolean(this.constellationEngramId),
         branchEdge: Boolean(branchId),

@@ -212,7 +212,6 @@ export class Corpus {
     })
 
     this.locusPersistence = locusPersistence
-
     this.patternDetector = new PatternDetector({
       tree,
       state: this.state,
