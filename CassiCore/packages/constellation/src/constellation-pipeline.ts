@@ -38,6 +38,7 @@ import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
 import { GraphAttentionBridge } from './locus/graph-attention-bridge.js'
 import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
 import { OutcomeConsolidator } from './consolidation/outcome-consolidator.js'
+import { setGraphDiscoverDeps } from '../../tools/implementations/graph-discover.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
@@ -2280,6 +2281,21 @@ export async function runConstellationPipeline(
 
   // Main Execution
 
+  // Make graph tools available to branches during this constellation
+  if (graphPropagator) {
+    setGraphDiscoverDeps({
+      getPropagator: () => graphPropagator,
+      getBranchEngramIds: () => branchEngramIds,
+      getBranchGoals: () => {
+        const goals = new Map<string, string>()
+        for (const [hid, n] of nodes) {
+          goals.set(hid, n.config.goal ?? '')
+        }
+        return goals
+      },
+    })
+  }
+
   let result: ConstellationResult
   let checkpointHandle: ReturnType<typeof setInterval> | undefined
 
@@ -3177,6 +3193,28 @@ export async function runConstellationPipeline(
         log.warn('Outcome consolidation failed (non-critical)', { error: String(err) })
       }
     }
+    // Store training signal for meditation Thompson sampling.
+    // Tells the meditation system how active the graph was during this
+    // constellation so it can adjust exploration vs. exploitation balance.
+    if (opts.memory) {
+      try {
+        const wasConsolidated = nodes.size > 0 && opts.mnemicField
+        opts.memory.store({
+          type: 'insight',
+          content: wasConsolidated
+            ? `Graph consolidation ran for constellation. Edges updated indicates graph activity level.`
+            : `Constellation completed without graph consolidation.`,
+          metadata: {
+            tags: ['constellation-outcome', 'training-signal'],
+            constellationId,
+            outcome: outcome ?? 'unknown',
+            branchesTotal: nodes.size,
+          },
+        })
+      } catch {
+        // Non-fatal
+      }
+    }
   } catch (err) {
 
     result = {
@@ -3228,6 +3266,9 @@ export async function runConstellationPipeline(
     throw err
   } finally {
     completed = true
+
+    // Cleanup graph discovery deps so stale references aren't used post-constellation
+    setGraphDiscoverDeps(undefined)
 
     if (checkpointHandle) {
       clearInterval(checkpointHandle)
