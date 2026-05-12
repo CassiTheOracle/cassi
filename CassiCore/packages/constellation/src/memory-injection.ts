@@ -13,6 +13,7 @@
 
 import type { IMemory } from '../../../types/intelligence.js'
 import type { MnemicField, MnemicRetrievalHit } from '../mnemic-field/index.js'
+import { GraphAttnPropagator } from '../mnemic-field/graph-attn-propagator.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { BranchMemoryContext, InjectedMemory } from './corpus-types.js'
 
@@ -125,6 +126,41 @@ export class MemoryInjectionService {
         injectedAt: Date.now(),
         searchQuery: goal.slice(0, 200),
         totalAvailable: hits.length,
+      }
+
+      // WHY: Supplement kindling with graph-walked propagation from the top hit.
+      // The GraphAttnPropagator walks typed edges (spawned_from, part_of) from
+      // the best-matching engram to find structurally related sessions and
+      // findings that kindling (embedding-only) might miss.
+      const topId = hits[0]?.id
+      if (topId && context.memories.length < this.config.maxMemories) {
+        try {
+          const propagator = new GraphAttnPropagator(this.mnemicField! as any)
+          const propagated = propagator.propagate({
+            seedIds: [topId],
+            edgeTypes: ['spawned_from', 'part_of', 'temporal_neighbor'],
+            maxHops: 2,
+            topN: 3,
+            minCharge: 0.05,
+          })
+          for (const pe of propagated) {
+            if (pe.engram.id === topId) continue
+            const content = pe.engram.content.slice(0, this.config.maxContentLength)
+            const pathSummary = pe.paths
+              .map(p => p.hops.map(h => h.edgeType).join(' → '))
+              .join(', ')
+            context.memories.push({
+              content: content.length > this.config.maxContentLength
+                ? content.slice(0, this.config.maxContentLength) + '...'
+                : content,
+              relevance: Math.min(1, pe.charge),
+              type: pe.engram.nodeType ?? 'fact',
+              createdAt: new Date(pe.engram.createdAt).getTime(),
+              tags: [...(pe.engram.tags ?? []), `graph:${pathSummary}`],
+            })
+            context.totalAvailable!++
+          }
+        } catch { }
       }
 
       this.logger.info('MnemicField injection complete', {
