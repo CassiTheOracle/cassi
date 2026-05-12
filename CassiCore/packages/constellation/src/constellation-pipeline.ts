@@ -34,6 +34,7 @@ import { BlackboardBridge } from './blackboard-bridge.js'
 import { Corpus } from './corpus.js'
 import { CorpusTree } from './corpus-tree.js'
 import { CrossHelixDialectic } from './cross-helix-dialectic.js'
+import { CrossBranchGraphCoordinator } from './graph-coordinator.js'
 import { readFile as fsReadFile } from 'node:fs/promises'
 import { resolve as pathResolve } from 'node:path'
 import type { CorpusLLM } from './corpus-types.js'
@@ -417,6 +418,17 @@ export async function runConstellationPipeline(
     maxDepth,
   })
 
+  eventBus?.emit({
+    type: 'constellation:started',
+    constellationId,
+    goal: goal.slice(0, 500),
+    template,
+    maxHelixes,
+    maxDepth,
+    meditationMode: opts.meditationMode ?? false,
+    timestamp: Date.now(),
+  } as any)
+
   // Create session in ConstellationStore (if provided)
 
   if (constellationStore) {
@@ -503,6 +515,10 @@ export async function runConstellationPipeline(
   // Skip only in meditation — single-branch exploration has no inter-branch communication.
   const crossHelixDialectic = (opts.enableCrossHelixDialectic !== false && !opts.meditationMode)
     ? new CrossHelixDialectic(log)
+    : undefined
+
+  const graphCoordinator = opts.mnemicField
+    ? new CrossBranchGraphCoordinator(opts.mnemicField, log)
     : undefined
 
   // WHY: Map of ObserverBranchState instances keyed by helixId. Enables the Corpus
@@ -1262,6 +1278,16 @@ export async function runConstellationPipeline(
     nodes.set(helixId, node)
     onNodeCreated?.(node)
 
+    eventBus?.emit({
+      type: 'constellation:branch:created',
+      constellationId,
+      helixId,
+      goal: helixGoal.slice(0, 200),
+      depth,
+      parentId,
+      timestamp: Date.now(),
+    } as any)
+
     const postures = resolvePostures()
     const handles: ModelHandle[] = []
 
@@ -1589,6 +1615,27 @@ export async function runConstellationPipeline(
                 metadata: { constellationId },
               })
             }
+            // WHY: Notify the graph coordinator so sibling branches can find
+            // this discovery in real-time via cross-branch graph propagation.
+            if (graphCoordinator) {
+              const sibDiscoveries = graphCoordinator.onBranchDiscovery(helixId, discoveryEngram.id)
+              if (sibDiscoveries.length > 0) {
+                helixLog.debug('Cross-branch graph propagation found sibling resonance', {
+                  siblingDiscoveries: sibDiscoveries.length,
+                  topCharge: sibDiscoveries[0]?.charge?.toFixed(3),
+                })
+                // WHY: Deliver sibling discoveries to the current branch by posting
+                // findings from the sibling branches through the CrossHelixDialectic.
+                const siblingContext = graphCoordinator.formatDiscoveriesForContext(sibDiscoveries)
+                if (siblingContext && crossHelixDialectic) {
+                  for (const d of sibDiscoveries.slice(0, 2)) {
+                    crossHelixDialectic.postFinding(d.sourceBranch, siblingContext, {
+                      tags: ['graph-discovered', `charge:${d.charge.toFixed(2)}`],
+                    })
+                  }
+                }
+              }
+            }
           } catch (err) {
             helixLog.warn('Failed to write discovery engram', { error: String(err) })
           }
@@ -1707,6 +1754,14 @@ export async function runConstellationPipeline(
 
     runningHelixes.set(helixId, runningHelix)
 
+    eventBus?.emit({
+      type: 'constellation:branch:launched',
+      constellationId,
+      helixId,
+      postures: postures.map(p => ({ energy: p.energy, tier: resolveTier(p) })),
+      timestamp: Date.now(),
+    } as any)
+
     // WHY: Wake the Corpus immediately so it can observe and assess the new
     // branch within ~50ms instead of waiting up to 10s for the next poll cycle.
     corpus.wake()
@@ -1722,6 +1777,31 @@ export async function runConstellationPipeline(
         const producedOutput = !!(result.unityConclusion && result.tokensUsed &&
           ((result.tokensUsed.unity ?? 0) + (result.tokensUsed.yang ?? 0) + (result.tokensUsed.yin ?? 0) > 0))
         const cancelledWithOutput = wasCancelled && producedOutput
+
+        const branchDurationMs = Date.now() - (node.startedAt ?? Date.now())
+        const branchTokens = (result.tokensUsed.unity ?? 0) + (result.tokensUsed.yang ?? 0) + (result.tokensUsed.yin ?? 0) + (result.tokensUsed.mentor ?? 0)
+
+        if (cancelledWithOutput || isDegraded) {
+          eventBus?.emit({
+            type: 'constellation:branch:degraded',
+            constellationId,
+            helixId,
+            durationMs: branchDurationMs,
+            tokensUsed: branchTokens,
+            completionStatus: result.completionStatus,
+            timestamp: Date.now(),
+          } as any)
+        } else {
+          eventBus?.emit({
+            type: 'constellation:branch:completed',
+            constellationId,
+            helixId,
+            durationMs: branchDurationMs,
+            tokensUsed: branchTokens,
+            unityConclusion: result.unityConclusion?.slice(0, 300),
+            timestamp: Date.now(),
+          } as any)
+        }
 
         helixLog.info('Helix completed', {
           completionStatus: result.completionStatus,
@@ -1968,6 +2048,16 @@ export async function runConstellationPipeline(
         node.status = 'failed'
         node.completedAt = Date.now()
 
+        eventBus?.emit({
+          type: 'constellation:branch:failed',
+          constellationId,
+          helixId,
+          error: String(err).slice(0, 300),
+          durationMs: Date.now() - (node.startedAt ?? Date.now()),
+          partialTokens: node.tokensUsed,
+          timestamp: Date.now(),
+        } as any)
+
         // WHY: Recover partial token stats from the Helix store so failed/cancelled
         // branches report actual work done instead of 0. The .then() path populates
         // this from HelixResult, but cancellation rejects before that runs.
@@ -2158,6 +2248,15 @@ export async function runConstellationPipeline(
       externalCancel = () => {
         log.info('Constellation cancelled externally')
 
+        eventBus?.emit({
+          type: 'constellation:cancelled',
+          constellationId,
+          reason: 'external',
+          branchesAtCancel: runningHelixes.size,
+          durationMs: Date.now() - startTime,
+          timestamp: Date.now(),
+        } as any)
+
         // Save a final checkpoint before cancelling so we don't lose progress
         if (constellationStore) {
           try {
@@ -2207,6 +2306,14 @@ export async function runConstellationPipeline(
     const decompositionMode = decision.mode
     let decomposition: GoalDecomposition
 
+    eventBus?.emit({
+      type: 'constellation:decomposing',
+      constellationId,
+      mode: decompositionMode,
+      hasCodebaseContext: !!opts.codebaseContext,
+      timestamp: Date.now(),
+    } as any)
+
     if (decompositionMode === 'skip') {
       if (decision.vague) {
         log.warn('Goal appears vague — no specific targets, files, or modules detected. Consider providing more detail.', {
@@ -2231,6 +2338,16 @@ export async function runConstellationPipeline(
         codebaseContext: decompositionMode === 'full' ? opts.codebaseContext : undefined,
       })
     }
+
+    eventBus?.emit({
+      type: 'constellation:decomposed',
+      constellationId,
+      decomposed: decomposition.decomposed,
+      subTaskCount: decomposition.subTasks.length,
+      strategy: decomposition.strategy,
+      durationMs: decomposition.durationMs,
+      timestamp: Date.now(),
+    } as any)
 
     // Create tracker for task lifecycle management
     tracker = new DecompositionTracker(constellationId, decomposition, log.child('tracker'))
@@ -2271,6 +2388,11 @@ export async function runConstellationPipeline(
       consecutiveStagnantChecks: 0,
       lastEscalationLevel: 0,
     }
+    // WHY: Rate-limit the checkpoint eventBus event to every 5min.
+    // The saveCheckpoint still runs every 30s for crash recovery;
+    // the eventBus event is purely for observability.
+    let lastCheckpointEventAt = 0
+    const CHECKPOINT_EVENT_INTERVAL_MS = 300_000
     if (constellationStore && !opts.meditationMode) {
       checkpointHandle = setInterval(() => {
         try {
@@ -2294,6 +2416,23 @@ export async function runConstellationPipeline(
             totalSteps,
             branches: nodeArr.length,
           })
+
+          const now = Date.now()
+          if (now - lastCheckpointEventAt > CHECKPOINT_EVENT_INTERVAL_MS) {
+            lastCheckpointEventAt = now
+            eventBus?.emit({
+              type: 'constellation:checkpoint',
+              constellationId,
+              totalSteps,
+              totalBranches: nodeArr.length,
+              activeBranches: nodeArr.filter(n => n.status !== 'completed' && n.status !== 'failed' && n.status !== 'degraded').length,
+              completedBranches: nodeArr.filter((n) => n.status === 'completed').length,
+              failedBranches: nodeArr.filter((n) => n.status === 'failed').length,
+              tokensUsed: nodeArr.reduce((sum, n) => sum + n.tokensUsed, 0),
+              durationMs: now - startTime,
+              timestamp: now,
+            } as any)
+          }
 
           if (totalSteps >= softStepBudget && !softBudgetReached) {
             softBudgetReached = true
@@ -2365,6 +2504,17 @@ export async function runConstellationPipeline(
             const level = stagnationState.consecutiveStagnantChecks
 
             if (level === 1) {
+              eventBus?.emit({
+                type: 'constellation:stagnation',
+                constellationId,
+                level,
+                tokensUsed,
+                durationMs: elapsedMs,
+                activeBranches: activeBranches.length,
+                consecutiveChecks: level,
+                timestamp: Date.now(),
+              } as any)
+
               log.warn('Stagnation sentinel: all branches flat — monitoring', {
                 activeBranches: activeBranches.length,
                 tokensUsed,
@@ -2383,6 +2533,17 @@ export async function runConstellationPipeline(
                 durationMs: elapsedMs,
                 activeBranches: activeBranches.map(b => b.helixId),
               })
+
+              eventBus?.emit({
+                type: 'constellation:stagnation',
+                constellationId,
+                level,
+                tokensUsed,
+                durationMs: elapsedMs,
+                activeBranches: activeBranches.length,
+                consecutiveChecks: level,
+                timestamp: Date.now(),
+              } as any)
             } else if (level >= 3 && tokensUsed > 500_000 && stagnationState.lastEscalationLevel < 3) {
               stagnationState.lastEscalationLevel = 3
               log.warn('Stagnation sentinel: injecting produce_output directive', {
@@ -2395,6 +2556,17 @@ export async function runConstellationPipeline(
                 tokensUsed,
                 durationMs: elapsedMs,
               })
+
+              eventBus?.emit({
+                type: 'constellation:stagnation',
+                constellationId,
+                level,
+                tokensUsed,
+                durationMs: elapsedMs,
+                activeBranches: activeBranches.length,
+                consecutiveChecks: level,
+                timestamp: Date.now(),
+              } as any)
             } else if (level >= 4 && tokensUsed > 1_000_000 && stagnationState.lastEscalationLevel < 4) {
               stagnationState.lastEscalationLevel = 4
               log.warn('Stagnation sentinel: injecting conclude directive', {
@@ -2407,6 +2579,65 @@ export async function runConstellationPipeline(
                 tokensUsed,
                 durationMs: elapsedMs,
               })
+
+              eventBus?.emit({
+                type: 'constellation:stagnation',
+                constellationId,
+                level: 4,
+                tokensUsed,
+                durationMs: elapsedMs,
+                activeBranches: activeBranches.length,
+                consecutiveChecks: level,
+                timestamp: Date.now(),
+              } as any)
+            } else if (stagnationState.lastEscalationLevel >= 4) {
+              // Post-level-4: throttled events + force-kill if stuck too long
+              if (level >= 100 && level % 50 === 0) {
+                // After 50 minutes of continuous stagnation, force-kill branches
+                log.error('Stagnation sentinel: force-killing all branches after 100+ flat checkpoints', {
+                  consecutiveChecks: level,
+                  tokensUsed,
+                  durationMs: elapsedMs,
+                  activeBranches: activeBranches.map(b => b.helixId),
+                })
+                for (const branch of activeBranches) {
+                  const rh = runningHelixes.get(branch.helixId)
+                  try { rh?.cancel() } catch { /* best effort */ }
+                }
+                eventBus?.emit({
+                  type: 'constellation:stagnation',
+                  constellationId,
+                  level: 4,
+                  tokensUsed,
+                  durationMs: elapsedMs,
+                  activeBranches: activeBranches.length,
+                  consecutiveChecks: level,
+                  forcedKill: true,
+                  timestamp: Date.now(),
+                } as any)
+              } else if (level >= 20 && level < 100 && level % 10 === 0) {
+                // Every 10 checkpoints after level 20, re-escalate
+                log.warn('Stagnation sentinel: prolonged stagnation, re-escalating conclude directive', {
+                  consecutiveChecks: level,
+                  tokensUsed,
+                  elapsedMs,
+                })
+                corpus.receiveEscalation('stagnation:conclude', {
+                  consecutiveChecks: level,
+                  tokensUsed,
+                  durationMs: elapsedMs,
+                })
+                eventBus?.emit({
+                  type: 'constellation:stagnation',
+                  constellationId,
+                  level: 4,
+                  tokensUsed,
+                  durationMs: elapsedMs,
+                  activeBranches: activeBranches.length,
+                  consecutiveChecks: level,
+                  timestamp: Date.now(),
+                } as any)
+              }
             }
           }
         } catch (err) {
@@ -2433,6 +2664,14 @@ export async function runConstellationPipeline(
         } catch (_e) { /* best-effort */ }
       }, 10_000)
     }
+
+    eventBus?.emit({
+      type: 'constellation:executing',
+      constellationId,
+      branchCount: decomposition.subTasks.length,
+      strategy: decomposition.strategy,
+      timestamp: Date.now(),
+    } as any)
 
     if (decomposition.decomposed && decomposition.subTasks.length > 1) {
       log.info('Goal decomposed into sub-tasks', {
@@ -2625,14 +2864,17 @@ export async function runConstellationPipeline(
     }
 
     eventBus?.emit({
-      type: 'team:event' as any,
-      teamId: constellationId,
-      data: {
-        event: 'constellation:completed',
-        durationMs: result.totalDurationMs,
-        nodeCount: nodes.size,
-        timestamp: Date.now(),
-      },
+      type: 'constellation:completed',
+      constellationId,
+      outcome,
+      outcomeReason,
+      durationMs: result.totalDurationMs,
+      totalTokens: result.totalTokensUsed,
+      totalBranches: nodes.size,
+      completedBranches,
+      degradedBranches,
+      failedBranches,
+      timestamp: Date.now(),
     } as any)
 
     // Persist completion event
@@ -2892,13 +3134,11 @@ export async function runConstellationPipeline(
     }
 
     eventBus?.emit({
-      type: 'team:event' as any,
-      teamId: constellationId,
-      data: {
-        event: 'constellation:failed',
-        error: String(err),
-        timestamp: Date.now(),
-      },
+      type: 'constellation:failed',
+      constellationId,
+      error: String(err).slice(0, 500),
+      durationMs: Date.now() - startTime,
+      timestamp: Date.now(),
     } as any)
 
     // Archive failure to ConstellationStore (if provided)
