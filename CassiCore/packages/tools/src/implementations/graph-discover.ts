@@ -1,6 +1,5 @@
 import type { ToolDefinition, ToolHandler } from '../types.js'
 import type { GraphAttnPropagator } from '../../intelligence/mnemic-field/graph-attn-propagator.js'
-import { SYNAPSE_PROPAGATION } from '../../intelligence/mnemic-field/types.js'
 
 export interface GraphDiscoverDeps {
   getPropagator: () => GraphAttnPropagator | undefined
