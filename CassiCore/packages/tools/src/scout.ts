@@ -20,13 +20,13 @@
  * web_extract, and terminal.  No session_search (privacy boundary).
  */
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { getHermesMcpClient } from './hermes-mcp-client.js'
 import { rootLogger } from '../logger.js'
 import type { ILogger } from '../../types/interfaces.js'
 
 const logger: ILogger = rootLogger.child('scout')
-
 
 export interface ScoutInvestigation {
   /** What to research — the observer's question. */
@@ -66,15 +66,13 @@ export interface ScoutOptions {
   sessionContextProvider?: SessionContextProvider
 }
 
-
 const DEFAULT_MAX_ITERATIONS = 12
 const DEFAULT_TIMEOUT_MS = 120_000
 const DEFAULT_MAX_CONCURRENT = 3
-const MAX_FILE_CHARS = 8_000       // per injected file
-const MAX_INJECTED_CHARS = 20_000  // total injected context cap
+const MAX_FILE_CHARS = 8_000
+const MAX_INJECTED_CHARS = 20_000
 const MAX_SESSION_CONTEXT_CHARS = 6_000
 
-/** Read-only tools the scout subagent can use. */
 const SCOUT_TOOLS = [
   'web_search',
   'web_extract',
@@ -83,24 +81,17 @@ const SCOUT_TOOLS = [
   'terminal',
 ]
 
-/** Cache TTL: identical topic queries within this window return cached results. */
-const CACHE_TTL_MS = 120_000  // 2 minutes
-
+const CACHE_TTL_MS = 120_000
 
 /**
  * Extract probable file paths from a free-text context string.
- * Matches:
- *   - Absolute paths: /home/user/file.ts
- *   - Relative paths with extensions: src/bridge.py, file.js
- *   - Quoted paths: "src/foo.ts" or 'src/foo.ts'
- *   - Backtick paths: `src/foo.ts`
+ * Matches absolute and relative paths ending in a known extension.
  */
-const FILE_PATH_RE = /(?:(?:[\w/.-]*\/)+[\w.-]+\.\w{1,10})|(?:\/[\w.-][\w\/.-]*\.\w{1,10})/g
+const FILE_PATH_RE = /(?:\/[\w.~-][\w\/.~-]*\.\w{1,10})|(?:[\w.-]+(?:\/[\w.-]+)+\.\w{1,10})/g
 
 function extractFilePaths(text: string): string[] {
   const matches = text.match(FILE_PATH_RE)
   if (!matches) return []
-  // Deduplicate, filter to ones that look like actual files (have an extension)
   const seen = new Set<string>()
   const paths: string[] = []
   for (const m of matches) {
@@ -110,9 +101,8 @@ function extractFilePaths(text: string): string[] {
       paths.push(clean)
     }
   }
-  return paths.slice(0, 5)  // max 5 auto-extracted
+  return paths.slice(0, 5)
 }
-
 
 function buildScoutPrompt(
   topic: string,
@@ -150,7 +140,6 @@ function buildScoutPrompt(
   return parts.join('\n')
 }
 
-
 async function enrichContext(
   params: ScoutInvestigation,
   sessionProvider?: SessionContextProvider,
@@ -158,7 +147,6 @@ async function enrichContext(
   const sections: string[] = []
   let totalChars = 0
 
-  // 1. Extract and read files from context string
   const extractedPaths = extractFilePaths(params.context)
   const allFilePaths = dedupePaths([...extractedPaths, ...(params.files ?? [])])
 
@@ -166,7 +154,7 @@ async function enrichContext(
     const fileContents: string[] = []
     for (const filePath of allFilePaths) {
       if (totalChars >= MAX_INJECTED_CHARS) break
-      const content = readFileForInjection(filePath)
+      const content = await readFileForInjection(filePath)
       if (content) {
         const chunk = content.slice(0, Math.min(MAX_FILE_CHARS, MAX_INJECTED_CHARS - totalChars))
         fileContents.push(`### File: ${filePath}\n\`\`\`\n${chunk}\n\`\`\``)
@@ -178,7 +166,6 @@ async function enrichContext(
     }
   }
 
-  // 2. Session context
   if (params.sessionId && sessionProvider) {
     try {
       const sessionCtx = await sessionProvider(params.sessionId, 20)
@@ -203,10 +190,10 @@ function dedupePaths(paths: string[]): string[] {
   })
 }
 
-function readFileForInjection(filePath: string): string | null {
+async function readFileForInjection(filePath: string): Promise<string | null> {
   try {
     if (!existsSync(filePath)) return null
-    const content = readFileSync(filePath, 'utf-8')
+    const content = await readFile(filePath, 'utf-8')
     if (content.length === 0) return null
     return content
   } catch {
@@ -214,19 +201,18 @@ function readFileForInjection(filePath: string): string | null {
   }
 }
 
-
 interface CacheEntry {
   topic: string
   findings: ScoutFindings
   cachedAt: number
 }
 
-
 export class Scout {
   private active = 0
   private maxConcurrent: number
   private cache = new Map<string, CacheEntry>()
   private sessionContextProvider?: SessionContextProvider
+  private queue: Array<() => void> = []
 
   constructor(opts: ScoutOptions = {}) {
     this.maxConcurrent = opts.maxConcurrent ?? DEFAULT_MAX_CONCURRENT
@@ -235,7 +221,8 @@ export class Scout {
 
   /**
    * Dispatch a research investigation.  Returns cached results if the
-   * same topic was investigated recently.  Queues when the pool is full.
+   * same topic was investigated recently.  Queues when the pool is full
+   * (event-driven, no spin-wait).
    *
    * Context enrichment is transparent:
    *   - File paths in `context` or `files` are read and injected.
@@ -245,7 +232,6 @@ export class Scout {
    * Throws on timeout or subagent failure.
    */
   async investigate(params: ScoutInvestigation): Promise<ScoutFindings> {
-    // Check cache
     const cacheKey = this.cacheKey(params.topic, params.context)
     const cached = this.cache.get(cacheKey)
     if (cached && (Date.now() - cached.cachedAt) < CACHE_TTL_MS) {
@@ -253,7 +239,6 @@ export class Scout {
       return cached.findings
     }
 
-    // Wait for pool slot
     await this.acquireSlot()
 
     const startTime = Date.now()
@@ -261,13 +246,12 @@ export class Scout {
       const findings = await this.runInvestigation(params)
       findings.timestamp = Date.now()
 
-      // Cache the result
       this.cache.set(cacheKey, { topic: params.topic, findings, cachedAt: Date.now() })
       this.pruneCache()
 
       return findings
     } finally {
-      this.active--
+      this.releaseSlot()
       logger.debug('Scout investigation complete', {
         topic: params.topic.slice(0, 80),
         durationMs: Date.now() - startTime,
@@ -276,16 +260,13 @@ export class Scout {
     }
   }
 
-  /** Number of currently active investigations. */
   get activeCount(): number {
     return this.active
   }
 
-  /** Clear the findings cache. */
   clearCache(): void {
     this.cache.clear()
   }
-
 
   private cacheKey(topic: string, context: string): string {
     const key = `${topic.slice(0, 200)}|${context.slice(0, 200)}`
@@ -298,17 +279,28 @@ export class Scout {
   }
 
   private async acquireSlot(): Promise<void> {
-    while (this.active >= this.maxConcurrent) {
-      await this.sleep(250)
+    if (this.active < this.maxConcurrent) {
+      this.active++
+      return
     }
-    this.active++
+    return new Promise<void>(resolve => {
+      this.queue.push(() => {
+        this.active++
+        resolve()
+      })
+    })
+  }
+
+  private releaseSlot(): void {
+    this.active--
+    const next = this.queue.shift()
+    if (next) next()
   }
 
   private async runInvestigation(params: ScoutInvestigation): Promise<ScoutFindings> {
     const maxIterations = params.maxIterations ?? DEFAULT_MAX_ITERATIONS
     const timeoutMs = params.timeoutMs ?? DEFAULT_TIMEOUT_MS
 
-    // Enrich context: read files, pull session context
     const enriched = await enrichContext(params, this.sessionContextProvider)
 
     const prompt = buildScoutPrompt(params.topic, params.context, enriched)
@@ -320,10 +312,16 @@ export class Scout {
     })
 
     const client = getHermesMcpClient()
-    const rawResult = await client.callTool('delegate_task', {
-      goal: prompt,
-      toolsets: SCOUT_TOOLS,
-    })
+
+    const rawResult = await Promise.race([
+      client.callTool('delegate_task', {
+        goal: prompt,
+        toolsets: SCOUT_TOOLS,
+      }),
+      new Promise<string>((_, reject) =>
+        setTimeout(() => reject(new Error('Scout investigation timed out')), timeoutMs),
+      ),
+    ])
 
     return this.parseFindings(rawResult, Date.now())
   }
@@ -335,12 +333,14 @@ export class Scout {
 
     try {
       const parsed = JSON.parse(raw)
-      if (parsed && typeof parsed === 'object') {
+      if (parsed && typeof parsed === 'object' && !parsed.error) {
         summary = parsed.summary ?? parsed.result ?? parsed.content ?? raw
         sources = Array.isArray(parsed.sources) ? parsed.sources : []
         confidence = typeof parsed.confidence === 'number'
           ? Math.max(0, Math.min(1, parsed.confidence))
           : 0.5
+      } else if (parsed?.error) {
+        summary = `Scout error: ${String(parsed.error).slice(0, 500)}`
       }
     } catch {
       const lines = raw.split('\n')
@@ -405,12 +405,7 @@ export class Scout {
       }
     })
   }
-
-  private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
 }
-
 
 let _instance: Scout | null = null
 

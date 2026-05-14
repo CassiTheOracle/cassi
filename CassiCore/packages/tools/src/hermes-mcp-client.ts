@@ -6,13 +6,9 @@
  * a subprocess and discovers all Hermes tools dynamically — including
  * delegate_task, which was not available through the old bridge.
  *
- * Protocol:
- *   CassiCore (MCP client) → stdin → Hermes ACP server
- *   CassiCore (MCP client) ← stdout ← Hermes ACP server
- *
- * The ACP server uses the `acp` Python package which speaks standard
- * JSON-RPC 2.0 over stdio.  Method names follow the MCP spec:
- *   initialize → tools/list → tools/call
+ * Auto-reconnect: if the subprocess dies, the next callTool() will
+ * transparently restart it.  Tool call results are always returned as
+ * plain strings (callers call JSON.parse themselves if needed).
  */
 
 import { spawn, type ChildProcess } from 'node:child_process'
@@ -23,13 +19,11 @@ import type { ILogger } from '../../types/interfaces.js'
 
 const logger: ILogger = rootLogger.child('hermes-mcp-client')
 
-/** Path to the Hermes Agent venv Python interpreter. */
 const HERMES_PYTHON = resolve(
   process.env.HOME ?? '/home/valerie',
   '.hermes/hermes-agent/venv/bin/python3',
 )
 
-/** Path to the Hermes Agent project root (for sys.path). */
 const HERMES_PROJECT = resolve(
   process.env.HOME ?? '/home/valerie',
   '.hermes/hermes-agent',
@@ -64,8 +58,6 @@ interface McpCallResult {
   isError?: boolean
 }
 
-
-
 export class HermesMcpClient {
   private proc: ChildProcess | null = null
   private nextId = 1
@@ -79,7 +71,6 @@ export class HermesMcpClient {
   private tools: ToolDefinition[] = []
   private serverCapabilities: Record<string, unknown> = {}
 
-  /** Start the Hermes ACP server and perform the MCP handshake. */
   async start(): Promise<void> {
     if (this.startPromise) return this.startPromise
     if (this.started) return
@@ -90,6 +81,60 @@ export class HermesMcpClient {
     } finally {
       this.startPromise = null
     }
+  }
+
+  getTools(): ToolDefinition[] {
+    return this.tools
+  }
+
+  /**
+   * Call a Hermes tool via MCP.  Auto-starts the client if not yet
+   * connected.  Returns the raw result string on success; throws on
+   * transport or tool-call error.
+   */
+  async callTool(name: string, args: Record<string, unknown>): Promise<string> {
+    await this.ensureStarted()
+
+    const result = await this.sendRequest('tools/call', { name, arguments: args })
+    const callResult = result as McpCallResult | undefined
+
+    if (callResult?.isError) {
+      const errText = (callResult.content?.[0] as any)?.text ?? 'Tool call returned error'
+      throw new Error(errText)
+    }
+
+    const textParts: string[] = []
+    for (const c of (callResult?.content ?? [])) {
+      if ('text' in c && typeof c.text === 'string') {
+        textParts.push(c.text)
+      }
+    }
+    return textParts.length > 0 ? textParts.join('\n') : JSON.stringify(result)
+  }
+
+  async stop(): Promise<void> {
+    if (this.proc) {
+      this.proc.stdin?.end()
+      this.proc.kill()
+      this.proc = null
+    }
+    this.started = false
+    this.tools = []
+    this.pending.clear()
+    this.buffer = ''
+  }
+
+  private async ensureStarted(): Promise<void> {
+    if (this.started && this.proc) return
+    // Reset and reconnect
+    if (this.proc) {
+      this.proc.kill()
+      this.proc = null
+    }
+    this.started = false
+    this.pending.clear()
+    this.buffer = ''
+    await this.start()
   }
 
   private async doStart(): Promise<void> {
@@ -121,28 +166,20 @@ export class HermesMcpClient {
       this.rejectAllPending(new Error(`MCP process exited (code=${code})`))
     })
 
-    // Read stdout line by line (JSON-RPC is newline-delimited)
     proc.stdout!.on('data', (chunk: Buffer) => {
       this.buffer += chunk.toString()
       this.flushBuffer()
     })
 
-    // Log stderr for debugging
     proc.stderr!.on('data', (chunk: Buffer) => {
       const text = chunk.toString().trim()
       if (text) logger.debug('[hermes-mcp stderr]', { text: text.slice(0, 500) })
     })
 
-    // MCP handshake: initialize
     const initResult = await this.sendRequest('initialize', {
       protocolVersion: '2024-11-05',
-      capabilities: {
-        tools: {},
-      },
-      clientInfo: {
-        name: 'cassicore',
-        version: '0.4.0',
-      },
+      capabilities: { tools: {} },
+      clientInfo: { name: 'cassicore', version: '0.4.0' },
     })
 
     this.serverCapabilities = (initResult?.capabilities as Record<string, unknown>) ?? {}
@@ -151,62 +188,13 @@ export class HermesMcpClient {
       serverVersion: initResult?.serverInfo?.version,
     })
 
-    // Send initialized notification
     this.sendNotification('notifications/initialized', {})
 
-    // Discover tools
     await this.discoverTools()
     this.started = true
     logger.info('Hermes MCP client ready', { toolCount: this.tools.length })
   }
 
-  /** List all tools discovered from the Hermes ACP server. */
-  getTools(): ToolDefinition[] {
-    return this.tools
-  }
-
-  /** Call a Hermes tool via MCP. */
-  async callTool(name: string, args: Record<string, unknown>): Promise<string> {
-    if (!this.started || !this.proc) {
-      return JSON.stringify({ error: 'Hermes MCP client not connected' })
-    }
-
-    const result = await this.sendRequest('tools/call', {
-      name,
-      arguments: args,
-    })
-
-    const callResult = result as McpCallResult | undefined
-    if (callResult?.isError) {
-      const errText = (callResult.content?.[0] as any)?.text ?? 'Tool call returned error'
-      return JSON.stringify({ error: errText })
-    }
-
-    const textParts: string[] = []
-    for (const c of (callResult?.content ?? [])) {
-      if ('text' in c && typeof c.text === 'string') {
-        textParts.push(c.text)
-      }
-    }
-    const text = textParts.length > 0 ? textParts.join('\n') : JSON.stringify(result)
-
-    return text
-  }
-
-  /** Stop the MCP client and terminate the subprocess. */
-  async stop(): Promise<void> {
-    if (this.proc) {
-      this.proc.stdin?.end()
-      this.proc.kill()
-      this.proc = null
-    }
-    this.started = false
-    this.tools = []
-    this.pending.clear()
-    this.buffer = ''
-  }
-
-  
   private async discoverTools(): Promise<void> {
     const result = await this.sendRequest('tools/list', {})
     const tools = (result?.tools as McpToolDef[]) ?? []
@@ -226,7 +214,7 @@ export class HermesMcpClient {
         properties: (mcp.inputSchema?.properties ?? {}) as Record<string, any>,
         required: mcp.inputSchema?.required ?? [],
       },
-      timeoutMs: 300_000,  // Hermes tools handle their own timeouts
+      timeoutMs: 300_000,
       readOnly: false,
       category: 'core',
       requiredPermission: 'full-access',
@@ -235,12 +223,7 @@ export class HermesMcpClient {
 
   private sendRequest(method: string, params?: Record<string, unknown>): Promise<any> {
     const id = this.nextId++
-    const request: JsonRpcRequest = {
-      jsonrpc: '2.0',
-      id,
-      method,
-      params,
-    }
+    const request: JsonRpcRequest = { jsonrpc: '2.0', id, method, params }
 
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject })
@@ -250,11 +233,7 @@ export class HermesMcpClient {
   }
 
   private sendNotification(method: string, params?: Record<string, unknown>): void {
-    const notification = {
-      jsonrpc: '2.0',
-      method,
-      params,
-    }
+    const notification = { jsonrpc: '2.0', method, params }
     const line = JSON.stringify(notification) + '\n'
     this.proc?.stdin?.write(line)
   }
@@ -288,13 +267,10 @@ export class HermesMcpClient {
   }
 
   private rejectAllPending(err: Error): void {
-    this.pending.forEach((pending) => {
-      pending.reject(err)
-    })
+    this.pending.forEach((pending) => { pending.reject(err) })
     this.pending.clear()
   }
 }
-
 
 let _instance: HermesMcpClient | null = null
 
