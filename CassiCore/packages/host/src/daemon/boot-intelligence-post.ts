@@ -269,16 +269,12 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
               sessionId,
               logger,
               llm: observerLLM,
-              getSessionContext: () => ({
-                observationPrompt,
-                recentHistory,
-              }),
               eventBus: bus as any,
             })
             dmnObservers.set(sessionId, observer)
           }
 
-          return await observer.fire(String(reason))
+          return await observer.fire(String(reason), observationPrompt)
         } catch (err) {
           logger.debug('DMN onFire failed', { error: String(err), sessionId })
           return null
