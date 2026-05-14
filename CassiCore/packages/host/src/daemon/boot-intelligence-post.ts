@@ -20,6 +20,13 @@ import type { ContextDistiller } from '../intelligence/context-distiller.js'
 import type { ExecutionBackendType, OpenCodeBackendConfig } from '../../types/execution-backend.js'
 import type { SessionManager } from '../session-manager.js'
 import type { IProvider } from '../../types/runtime.js'
+import { DmnObserver, type DmnObserverLLM } from '../intelligence/dmn/observer.js'
+
+function extractObservation(raw: string): string {
+  const re = /<observation>[\s\S]*?<\/observation>/i
+  const m = raw.match(re)
+  return m ? m[0] : ''
+}
 
 export interface IntelligencePostBootDeps {
   bus: IEventBus
@@ -132,40 +139,146 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       })
 
       const HISTORY_WINDOW = 24
-      intelligence.dmn.setOnFire(async (_reason, sessionId) => {
+      const mnemicField = (intelligence as any).__mnemicField as
+        { getCortex(): { getEngramsBySessionId(sessionId: string, limit?: number): any[] } } | undefined
+
+      const fetchSessionEngrams = (sessionId: string): any[] => {
+        if (!mnemicField) return []
+        try {
+          const engrams = mnemicField.getCortex().getEngramsBySessionId(sessionId, HISTORY_WINDOW)
+          if (!engrams || engrams.length === 0) return []
+          return engrams.map(e => ({
+            id: e.id,
+            content: e.content,
+            nodeType: e.nodeType,
+            tags: e.tags,
+            potentiation: e.potentiation,
+            provenance: e.provenance,
+          }))
+        } catch {
+          return []
+        }
+      }
+
+      // Per-session DMN observers (two-layer: scout + synthesis)
+      const dmnObservers = new Map<string, DmnObserver>()
+
+      // LLM adapter wrapping the model pool for observer synthesis.
+      const observerLLM: DmnObserverLLM = {
+        async complete(opts) {
+          const handle = await deps.modelPool?.acquire('dmn-observer', undefined, '')
+          if (!handle) throw new Error('ModelPool unavailable for DMN observer')
+          try {
+            const messages = [{ role: 'user' as const, content: opts.prompt }]
+            const result = await handle.complete(messages as any, {
+              maxTokens: opts.maxTokens,
+              thinking: opts.thinking ?? 'none',
+            } as any)
+            return { content: result?.content ?? '' }
+          } finally {
+            handle.release?.()
+          }
+        },
+      }
+
+      intelligence.dmn.setOnFire(async (reason, sessionId) => {
         try {
           const session = sessions.get(sessionId)
           const history = session?.history ?? []
-          if (history.length === 0) return null
 
           const recent = history.slice(-HISTORY_WINDOW)
-          const lastUser = [...recent].reverse().find(m => (m as any).role === 'user')
-          const userMessage = (() => {
-            const c = (lastUser as any)?.content
-            if (typeof c === 'string') return c
-            if (Array.isArray(c)) {
-              return c.map((b: any) => b?.text ?? '').filter(Boolean).join('\n')
+          let observationPrompt: string | null = null
+          const recentHistory: unknown[] = []
+
+          if (session && recent.length > 0) {
+            const lastUser = [...recent].reverse().find(m => (m as any).role === 'user')
+            const userMessage = (() => {
+              const c = (lastUser as any)?.content
+              if (typeof c === 'string') return c
+              if (Array.isArray(c)) {
+                return c.map((b: any) => b?.text ?? '').filter(Boolean).join('\n')
+              }
+              return ''
+            })()
+            if (!userMessage) return null
+
+            const recentAssistantMessages = recent
+              .filter(m => (m as any).role === 'assistant')
+              .slice(-4)
+            const assistantOutput = recentAssistantMessages
+              .map(m => {
+                const c = (m as any).content
+                if (typeof c === 'string') return c.slice(0, 600)
+                if (Array.isArray(c)) {
+                  return c
+                    .map((b: any) => {
+                      if (b.type === 'tool_use') return `[Tool call: ${b.name}(${JSON.stringify(b.input).slice(0, 120)})]`
+                      if (b.type === 'tool_result') return `[Tool result: ${(b.content ?? '').slice(0, 200)}${(b as any).isError ? ' ERROR' : ''}]`
+                      return (b.text ?? '').slice(0, 300)
+                    })
+                    .filter(Boolean)
+                    .join('\n')
+                    .slice(0, 800)
+                }
+                return ''
+              })
+              .filter(Boolean)
+              .join('\n---\n')
+              .slice(0, 2000)
+
+            const toolCallsInWindow = recent
+              .flatMap(m => {
+                const c = (m as any).content
+                if (Array.isArray(c)) return c.filter((b: any) => b.type === 'tool_use')
+                return []
+              })
+            const toolSummary = toolCallsInWindow.length > 0
+              ? `\n${toolCallsInWindow.length} tool calls in window: ${toolCallsInWindow.map((t: any) => t.name).join(', ')}`
+              : ''
+
+            observationPrompt = [
+              `User message: ${userMessage.slice(0, 1000)}`,
+              assistantOutput ? `\nAssistant recent output:\n${assistantOutput}` : '',
+              toolSummary,
+              `\nSession engram context: ${fetchSessionEngrams(sessionId).map((e: any) => `[${e.nodeType}] ${e.content.slice(0, 200)}`).join('\n').slice(0, 1500) || '(none yet)'}`,
+            ].join('\n')
+
+            recentHistory.push(...recent as unknown[])
+          } else {
+            const ext = intelligence.dmn!.getExternalSnapshot(sessionId)
+            if (!ext) return null
+
+            const parts: string[] = []
+            if (ext.lastUserMessage) {
+              parts.push(`User message: ${ext.lastUserMessage.slice(0, 1000)}`)
             }
-            return ''
-          })()
-          if (!userMessage) return null
+            if (ext.lastAssistantText) {
+              parts.push(`\nAssistant recent output:\n${ext.lastAssistantText.slice(0, 2000)}`)
+            }
+            if (ext.toolCallCount != null && ext.toolCallCount > 0) {
+              parts.push(`\nTool calls tracked: ${ext.toolCallCount}`)
+            }
+            observationPrompt = parts.join('\n') || null
+          }
 
-          const result = await intelligence.dialectic.processTurn(
-            sessionId,
-            `dmn-${Date.now()}`,
-            userMessage,
-            {
-              recentMemories: [],
-              availableTools: [],
-              sessionHistory: recent as any,
-              taskGuide: 'DMN observation pass: surface what is most load-bearing about the recent conversation state.',
-            } as any,
-            { skipCache: true } as any,
-          ) as any
+          if (!observationPrompt) return null
 
-          const synthesis = result?.serenity?.synthesis
-          if (!synthesis) return null
-          return synthesis
+          let observer = dmnObservers.get(sessionId)
+          if (!observer) {
+            observer = new DmnObserver({
+              sessionId,
+              logger,
+              llm: observerLLM,
+              getSessionContext: () => ({
+                observationPrompt,
+                recentHistory,
+              }),
+              eventBus: bus as any,
+            })
+            dmnObservers.set(sessionId, observer)
+          }
+
+          return await observer.fire(String(reason))
         } catch (err) {
           logger.debug('DMN onFire failed', { error: String(err), sessionId })
           return null
@@ -309,18 +422,47 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             if (existsSync(modelsDir)) {
               const vindexes = readdirSync(modelsDir)
                 .filter(n => n.endsWith('.vindex'))
-                .map(n => ({ name: n, path: join(modelsDir, n), mtime: statSync(join(modelsDir, n)).mtimeMs }))
-                .sort((a, b) => b.mtime - a.mtime)
+                .map(n => {
+                  const p = join(modelsDir, n)
+                  // Heuristic: browse-only vindexes (no weights files) load in
+                  // seconds; weights-bearing ones can take 60+s or hang. Prefer
+                  // browse-only so boot completes fast.
+                  const hasWeights = existsSync(join(p, 'down_weights.bin')) ||
+                    existsSync(join(p, 'attn_weights_q4k.bin'))
+                  return { name: n, path: p, mtime: statSync(p).mtimeMs, hasWeights }
+                })
+                .sort((a, b) => {
+                  if (a.hasWeights !== b.hasWeights) return a.hasWeights ? 1 : -1
+                  return b.mtime - a.mtime
+                })
               if (vindexes.length > 0) {
                 const attempted: Array<{ name: string; reason: string }> = []
                 let chosen: { name: string; path: string } | null = null
+                // Each vindex gets a time budget so a slow/frozen load
+                // (e.g. Q4K, dense weights) doesn't block the daemon boot.
+                const VINDEX_LOAD_TIMEOUT_MS = 25_000
                 for (const candidate of vindexes) {
                   const provider = new LarqlKnowledgeProvider(logger)
-                  let loaded = false
+                  let loaded: boolean | null = null
                   try {
-                    loaded = await provider.load(candidate.path)
+                    const timedOut = Symbol('timedOut')
+                    const result = await Promise.race([
+                      provider.load(candidate.path),
+                      new Promise<symbol>(resolve =>
+                        setTimeout(() => resolve(timedOut), VINDEX_LOAD_TIMEOUT_MS),
+                      ),
+                    ])
+                    loaded = result === timedOut ? null : Boolean(result)
                   } catch (err) {
                     attempted.push({ name: candidate.name, reason: `threw: ${String(err)}` })
+                    continue
+                  }
+                  if (loaded === null) {
+                    attempted.push({ name: candidate.name, reason: `timed out after ${VINDEX_LOAD_TIMEOUT_MS}ms` })
+                    continue
+                  }
+                  if (!loaded) {
+                    attempted.push({ name: candidate.name, reason: 'load returned false (likely unsupported architecture for browse-only mode)' })
                     continue
                   }
                   if (loaded) {
@@ -344,7 +486,6 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                     }
                     break
                   }
-                  attempted.push({ name: candidate.name, reason: 'load returned false (likely unsupported architecture for browse-only mode)' })
                 }
                 if (!chosen) {
                   logger.warn('No vindex could be loaded — Aurora will run without model knowledge', {
@@ -418,6 +559,23 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             hasKnowledgeProvider: !!knowledgeField,
             hasReverie: !!intelligence.reverie,
           })
+
+          // C5 Resonance pipeline: observe each completed turn's response
+          // through Aurora, then run steered generation from the updated
+          // mental state and observe the steered text back into the graph.
+          if (bus && typeof thalamus.observeReasoning === 'function') {
+            bus.onAll((event: any) => {
+              if (event?.type !== 'turn:end') return
+              const text: string = event?.response ?? ''
+              if (text.length > 20) {
+                queueMicrotask(() => {
+                  try { thalamus.observeReasoning(text) }
+                  catch { /* best-effort */ }
+                })
+              }
+            })
+            logger.info('Resonance pipeline wired to turn:end')
+          }
         } catch (err) {
           logger.warn('Failed to wire Aurora to Thalamus', { error: String(err) })
         }
