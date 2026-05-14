@@ -44,6 +44,8 @@ import { ToolExecutor } from './tools/executor.js'
 import { registerCoreTools } from './tools/implementations/index.js'
 import { ToolRegistry } from './tools/registry.js'
 import { ToolReliabilityTracker } from './tools/reliability.js'
+import { registerHermesTools } from './tools/hermes-tools.js'
+import { getHermesMcpClient, shutdownHermesMcpClient } from './tools/hermes-mcp-client.js'
 import { WorkflowEngine } from './workflow/engine.js'
 import { WorkflowRegistry } from './workflow/registry.js'
 import { WorkflowStore } from './workflow/persistence.js'
@@ -193,10 +195,8 @@ export class Daemon {
    public sessionDigestStore?: SessionDigestStore
     /** Background embedding pre-computation worker. */
    public bgEmbeddingWorker?: import('./intelligence/embeddings/background-worker.js').BackgroundEmbeddingWorker
-   /** Background tagger worker for autonomous LLM annotation. */
-   public bgTaggerWorker?: import('./intelligence/training/background-tagger-worker.js').BackgroundTaggerWorker
-   /** Embedding stack launcher (auto-starts llama.cpp + zerank servers). */
-    public embeddingStackLauncher?: import('./intelligence/embeddings/inference-stack-launcher.js').InferenceStackLauncher
+  /** Background tagger worker for autonomous LLM annotation. */
+  public bgTaggerWorker?: import('./intelligence/training/background-tagger-worker.js').BackgroundTaggerWorker
   /** Loaded provider map — available after daemon start(). */
   public providers: Map<string, IProvider> = new Map()
   /** Prompt log store — persistent SQLite storage of every prompt sent to providers. */
@@ -236,8 +236,6 @@ export class Daemon {
   private latestBootSnapshot: DaemonBootSnapshot | null = null
   private bootHistory: DaemonBootSnapshot[] = []
   private deferredStartupTimer: NodeJS.Timeout | null = null
-  /** Tracks whether the inference stack (llama.cpp servers) is currently running. */
-  private inferenceStackEnabled = false
 
   constructor(busInstance: IEventBus = bus, logger: ILogger = rootLogger) {
     this.bus = busInstance
@@ -297,47 +295,10 @@ export class Daemon {
     this.deferredStartupTimer.unref?.()
   }
 
-  /**
-   * Start (or restart) the local inference stack — llama.cpp embedding server,
-   * reranker, and generative model. Idempotent: safe to call when already running.
-   *
-   * Controlled by `intelligence.inferenceStack.enabled` (default: true).
-   * Set to `false` via `cassi_config_set` to free GPU VRAM (e.g. when gaming).
-   */
-  private async startInferenceStackLauncher(): Promise<void> {
-    try {
-      const { InferenceStackLauncher } = await import('./intelligence/embeddings/inference-stack-launcher.js')
-      const gpuGuardEnabled = this.config.get<boolean>('intelligence.inferenceStack.gpuGuard', true)
-      const gpuGuardIntervalMs = this.config.get<number>('intelligence.inferenceStack.gpuGuardIntervalMs', 60_000)
-      const generativeDisabled = this.config.get<boolean>('intelligence.inferenceStack.generativeDisabled', true)
-      this.embeddingStackLauncher = new InferenceStackLauncher(this.logger, {
-        gpuGuardEnabled,
-        gpuGuardIntervalMs,
-        generativeDisabled,
-      })
-      this.embeddingStackLauncher.start()
-        .then(() => {
-          this.logger.info('InferenceStackLauncher ready')
-        })
-        .catch((err: unknown) => {
-          this.logger.warn(`Failed to start inference stack: ${String(err)}`)
-        })
-      this.inferenceStackEnabled = true
-      this.logger.info('InferenceStackLauncher starting')
-    } catch (err) {
-      this.logger.warn(`Failed to start embedding stack: ${String(err)}`)
-    }
-  }
-
   private async startDeferredStartup(): Promise<void> {
     const deferredStart = performance.now()
 
-    const inferenceStackEnabled = this.config.get<boolean>('intelligence.inferenceStack.enabled', true)
-    if (inferenceStackEnabled) {
-      await this.startInferenceStackLauncher()
-    } else {
-      this.logger.info('InferenceStack disabled by config (intelligence.inferenceStack.enabled=false)')
-    }
+    this.logger.info('InferenceStack: skipped — using external vLLM for embeddings and reranking')
 
     const backgroundEmbeddingEnabled = this.config.get<boolean>('intelligence.backgroundEmbedding.enabled', false)
     if (backgroundEmbeddingEnabled) {
@@ -375,7 +336,6 @@ export class Daemon {
 
     this.logger.info('Deferred startup completed', {
       durationMs: roundDurationMs(performance.now() - deferredStart),
-      inferenceStackEnabled,
       backgroundEmbeddingEnabled,
     })
   }
@@ -445,9 +405,12 @@ export class Daemon {
     this.logger.info(`PID file written: ${process.pid}`)
 
     // Register cleanup on exit
-    process.on('exit', cleanupPidFile)
-    process.on('SIGTERM', () => { cleanupPidFile(); process.exit(0) })
-    process.on('SIGINT', () => { cleanupPidFile(); process.exit(0) })
+    process.on('exit', () => {
+      cleanupPidFile()
+      shutdownHermesMcpClient().catch(() => {})
+    })
+    process.on('SIGTERM', () => { cleanupPidFile(); shutdownHermesMcpClient().catch(() => {}); process.exit(0) })
+    process.on('SIGINT', () => { cleanupPidFile(); shutdownHermesMcpClient().catch(() => {}); process.exit(0) })
 
     this.logger.info('── Phase 1: Configuration ──────────────────────────────')
 
@@ -1782,6 +1745,15 @@ export class Daemon {
       getWorkflowStore: () => workflowStore ?? null,
       getWorkflowDefStore: () => workflowDefStore ?? null,
     })
+    
+    // Register Hermes-compatible tools (backed by Hermes ACP MCP server)
+    try {
+      registerHermesTools(toolRegistry)
+      this.logger.info('Hermes tools registered (MCP client auto-starts)')
+    } catch (err) {
+      this.logger.warn('Hermes tool registration failed', { error: String(err) })
+    }
+    
     const allowedPaths = this.config.get<string[]>('tools.allowedPaths', [
       join(homedir(), 'workspaces'),
       join(homedir(), '.cassicore'),
@@ -3267,11 +3239,6 @@ export class Daemon {
       this.bgTaggerWorker?.stop()
     } catch { /* ignore */ }
 
-    // stop embedding stack child processes (llama.cpp + zerank)
-    try {
-      this.embeddingStackLauncher?.stop()
-    } catch { /* ignore */ }
-
     // stop warm provider manager — destroys OpenCode warm sessions to release resources
     await timedStep('warm-provider', async () => {
       const { shutdownWarmProvider } = await import('./admin-api/warm-provider.js')
@@ -3441,21 +3408,7 @@ export class Daemon {
       return
     }
 
-    // Hot-toggle inference stack (llama.cpp GPU processes) based on config change.
-    // WHY: set intelligence.inferenceStack.enabled=false to free GPU VRAM (e.g. when gaming)
-    const inferenceStackEnabled = this.config.get<boolean>('intelligence.inferenceStack.enabled', true)
-    if (this.inferenceStackEnabled && !inferenceStackEnabled) {
-      this.logger.info('InferenceStack disabled via config — stopping local inference processes to free GPU')
-      try {
-        this.embeddingStackLauncher?.stop()
-      } catch (err) {
-        this.logger.warn(`Failed to stop embedding stack: ${String(err)}`)
-      }
-      this.inferenceStackEnabled = false
-    } else if (!this.inferenceStackEnabled && inferenceStackEnabled) {
-      this.logger.info('InferenceStack enabled via config — starting local inference processes')
-      await this.startInferenceStackLauncher()
-    }
+    // Inference stack hot-toggle removed — using external vLLM for embeddings/reranking.
 
     const all = this.pluginHost.all()
     for (const p of all) {
