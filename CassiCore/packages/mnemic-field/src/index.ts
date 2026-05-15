@@ -449,6 +449,17 @@ export class MnemicField {
   }
 
   /**
+   * Find engrams by exact provenance match.
+   * Used for idempotent Pineal facet seeding and other provenance-based
+   * deduplication. Returns empty array if none found.
+   */
+  searchByProvenance(provenance: string): Engram[] {
+    return this.cortex.listEngrams(1000).filter(
+      e => (e.provenance ?? '') === provenance
+    )
+  }
+
+  /**
    * Find a file engram by its filePath.
    * Returns null if no file engram exists for the given path.
    */
@@ -1428,7 +1439,7 @@ export class MnemicField {
    * labels to each engram's metadata. After classification, runs the full
    * consolidation cycle so potentiation, drift, and dreaming incorporate labels.
    */
-  async classifyAll(limit = 500): Promise<{ classified: number; remaining: number; durationMs: number }> {
+  async classifyAll(limit = 100): Promise<{ classified: number; remaining: number; durationMs: number }> {
     const startMs = Date.now()
     const embSvc = getEmbeddingService(this.logger)
     if (!embSvc.available) {

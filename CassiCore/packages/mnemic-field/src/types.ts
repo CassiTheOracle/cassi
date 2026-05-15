@@ -17,6 +17,11 @@ export const ENGRAM_TYPES = [
   'thought_command',
   'replay_segment',
   'expert_summary',
+  'file_version',
+  'file_read',
+  'tool_invocation',
+  'message',
+  'pineal_facet',
 ] as const
 
 export type EngramType = typeof ENGRAM_TYPES[number]
@@ -33,6 +38,10 @@ export const SYNAPSE_TYPES = [
   'commands',
   'expert_summary',
   'injected_for',
+  'contains',
+  'created_in',
+  'produces',
+  'operated_on',
 ] as const
 
 export type SynapseType = typeof SYNAPSE_TYPES[number]
@@ -251,9 +260,6 @@ export interface FieldStats {
   nucleusCount: number
   avgPotentiation: number
   topEngramsByPotentiation: Array<{ id: string; content: string; potentiation: number }>
-  filamentCount?: number
-  filamentSynapseCount?: number
-  filamentEntityCount?: number
 }
 
 export interface MnemicRetrievalHit {
@@ -266,7 +272,6 @@ export interface MnemicRetrievalHit {
   provenance: string
   tags: string[]
   metadata: Record<string, unknown>
-  filamentExcerpt?: string
 }
 
 export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
@@ -299,6 +304,10 @@ export const SYNAPSE_PROPAGATION: Record<SynapseType, number> = {
   commands: 0.3,
   expert_summary: 0.9,
   injected_for: 0.7,
+  contains: 0.7,
+  created_in: 0.5,
+  produces: 0.85,
+  operated_on: 0.8,
 }
 
 export const POTENTIATION_DEFAULTS = {
@@ -315,10 +324,10 @@ export const SPARK_POINT_DEFAULTS = {
   baseThreshold: 0.5,
   potentiationScale: 0.3,
   taskModifiers: {
-    simple: 1.2,
-    normal: 1.0,
-    complex: 0.7,
-    delegation: 0.5,
+    simple: 0.9,      // more permissive for simple lookups
+    normal: 1.0,      // baseline
+    complex: 1.2,     // stricter — complex tasks need precision, not noise
+    delegation: 1.5,  // tightest — delegated agents get clean, focused context
   },
 } as const
 
@@ -337,7 +346,6 @@ export interface LuminalSet {
   sparkPoint: number
   taskComplexity: TaskComplexity
   durationMs: number
-  filamentAnnotations?: FilamentAnnotation[]
   trace?: KindlingTrace[]
 }
 
@@ -363,11 +371,6 @@ export interface KindlingOptions {
   maxSeeds?: number
   maxLuminalSize?: number
   includeText?: boolean
-  enableFilaments?: boolean
-  maxFilamentSeeds?: number
-  maxFilamentExpansions?: number
-  chaseSupersessions?: boolean
-  filamentPrecisionBoost?: number
   recordTrace?: boolean
   currentAffect?: Affect
 }
@@ -427,187 +430,64 @@ export interface SourceFileMetadata {
   buildable: boolean
 }
 
-export const FILAMENT_SYNAPSE_TYPES = [
-  'references', 'contradicts', 'elaborates', 'supersedes',
-  'derives_from', 'confirms', 'co_activated',
-] as const
-
-export type FilamentSynapseType = typeof FILAMENT_SYNAPSE_TYPES[number]
-
-export const FILAMENT_SYNAPSE_PROPAGATION: Record<FilamentSynapseType, number> = {
-  supersedes: 0.9,
-  references: 0.8,
-  elaborates: 0.75,
-  contradicts: 0.7,
-  derives_from: 0.7,
-  confirms: 0.5,
-  co_activated: 0.3,
+/**
+ * Metadata for a `file` engram — the anchor engram for a tracked filesystem path.
+ * Replaces SourceFileMetadata for new file tracking; `source_file` engrams
+ * retain SourceFileMetadata for backward compatibility.
+ */
+export interface FileMetadata {
+  filePath: string
+  language: string
+  currentChecksum: string
+  sizeBytes: number
+  versionCount: number
+  readCount: number
+  lastReadAt: string | null
+  lastModifiedAt: string | null
 }
 
-export interface Filament {
-  id: number
-  engramId: string
-  spanStart: number
-  spanEnd: number
-  content: string
-  embedding: Float32Array | null
-  createdAt: string
+/**
+ * Metadata for a `file_version` engram — one snapshot of a file's content.
+ * v1 stores full content; v2+ store a diff from v1's full content so any
+ * version can be reconstructed by applying one diff (no chained diffs).
+ */
+export interface FileVersionMetadata {
+  filePath: string
+  checksum: string
+  sizeBytes: number
+  versionIndex: number
+  toolInvocationId: string | null    // tool_invocation engram that produced this version
+  supersedesId: string | null         // engram ID of the previous file_version
+  diffFromBaseVersionId: string | null // engram ID of v1 (diff base)
+  isDiff: boolean                     // true if content is a diff from v1
 }
 
-export interface FilamentCreate {
-  engramId: string
-  spanStart: number
-  spanEnd: number
-  content: string
-  embedding?: Float32Array | number[] | null
+/**
+ * Metadata for a `file_read` engram — records that a session read a file.
+ */
+export interface FileReadMetadata {
+  filePath: string
+  sessionId: string
+  timestamp: string
+  readCount: number
+  toolInvocationId: string | null
 }
 
-export interface FilamentSynapse {
-  sourceId: number
-  targetId: number
-  edgeType: FilamentSynapseType
-  weight: number
-  confidence: number
-  provenance: string
-  createdAt: string
-  metadata: Record<string, unknown>
+/**
+ * Metadata for a `tool_invocation` engram — full tool call + result.
+ */
+export interface ToolInvocationMetadata {
+  toolName: string
+  toolClass: string
+  input: Record<string, unknown>
+  durationMs: number
+  outputBytes: number
+  isError: boolean
+  sessionId: string
+  messageIndex: number
+  filePath: string | null   // for fs tools that operate on a file
+  searchTarget: string | null  // for search/grep tools
 }
-
-export interface FilamentSynapseCreate {
-  sourceId: number
-  targetId: number
-  edgeType: FilamentSynapseType
-  weight?: number
-  confidence?: number
-  provenance: string
-  metadata?: Record<string, unknown>
-}
-
-export interface FilamentEntity {
-  filamentId: number
-  entity: string
-  entityType: string
-}
-
-export type FilamentMatchType = 'direct_embedding' | 'direct_text' | 'synapse_expansion' | 'supersession_chase'
-
-export interface FilamentAnnotation {
-  filamentId: number
-  engramId: string
-  content: string
-  matchType: FilamentMatchType
-  similarity: number
-  expansionPath?: {
-    sourceFilamentId: number
-    edgeType: FilamentSynapseType
-    sourceContent: string
-  }
-}
-
-export interface SegmentationConfig {
-  minFilamentLength: number
-  maxFilamentLength: number
-  minContentLength: number
-  skipNodeTypes: EngramType[]
-  abbreviations: string[]
-  fileExtensions: string[]
-}
-
-export const SEGMENTATION_DEFAULTS: SegmentationConfig = {
-  minFilamentLength: 20,
-  maxFilamentLength: 500,
-  minContentLength: 50,
-  skipNodeTypes: ['source_file', 'changeset'],
-  abbreviations: ['e.g.', 'i.e.', 'etc.', 'vs.', 'approx.', 'cf.', 'al.', 'Dr.', 'Mr.', 'Mrs.', 'Ms.', 'Jr.', 'Sr.', 'No.', 'Vol.'],
-  fileExtensions: ['ts', 'js', 'tsx', 'jsx', 'sql', 'md', 'json', 'yaml', 'yml', 'toml', 'py', 'rs', 'go', 'rb', 'html', 'css', 'sh', 'txt', 'log', 'env', 'xml', 'csv'],
-} as const
-
-export const FILAMENT_KINDLING_DEFAULTS = {
-  precisionBoost: 1.15,
-  contextPenalty: 0.9,
-  lazyThreshold: 1.5,  // Always check filaments (charge rarely exceeds 1.5)
-  maxFilamentSeeds: 20,
-  maxFilamentExpansions: 10,
-  maxSupersessionHops: 5,
-  coActivationMinSimilarity: 0.6,
-  coActivationMaxPerFilament: 20,
-  coActivationInitialWeightScale: 0.4,
-  coActivationMaxInitialWeight: 0.5,
-  coActivationReinforcementStep: 0.05,
-  coActivationWeightCap: 0.8,
-} as const
-
-export interface FilamentChain {
-  filaments: Array<{ id: number; engramId: string; content: string; createdAt: string }>
-  edgeTypes: FilamentSynapseType[]
-  length: number
-}
-
-export type CrystallizationStatus = 'crystallized' | 'contested' | 'isolated'
-
-export interface CrystallizationScore {
-  filamentId: number
-  content: string
-  confirmCount: number
-  contradictCount: number
-  status: CrystallizationStatus
-}
-
-export type ExpertiseLevel = 'deep' | 'moderate' | 'surface'
-
-export interface ExpertiseMetrics {
-  nucleusId: string
-  label: string
-  filamentDensity: number
-  synapseDensity: number
-  chainDepth: number
-  status: ExpertiseLevel
-}
-
-export interface DelegationContext {
-  renderedText: string
-  filamentGraph?: {
-    matchedFilaments: FilamentAnnotation[]
-    chains: FilamentChain[]
-    contradictions: Array<{ claimA: string; claimB: string; engramIds: [string, string] }>
-  }
-}
-
-export type ZoomLevel = 'full' | 'excerpt' | 'chain'
-
-export interface ZoomEntry {
-  engramId: string
-  zoom: ZoomLevel
-  rendered: string
-  tokenEstimate: number
-}
-
-export interface RenderOptions {
-  tokenBudget: number
-  chainBudgetShare?: number
-  fullBudgetShare?: number
-}
-
-export const RENDER_DEFAULTS = {
-  chainBudgetShare: 0.3,
-  fullBudgetShare: 0.6,
-} as const
-
-export interface Tier3Config {
-  maxLlmCallsPerCycle: number
-  maxPairsPerCall: number
-  cooldownMs: number
-  potentiationThreshold: number
-}
-
-export const TIER3_DEFAULTS: Tier3Config = {
-  maxLlmCallsPerCycle: 5,
-  maxPairsPerCall: 15,
-  cooldownMs: 600_000,
-  potentiationThreshold: 0.8,
-} as const
-
-export const CHAIN_EDGE_TYPES = ['derives_from', 'supersedes', 'elaborates'] as const satisfies readonly FilamentSynapseType[]
 
 export interface Affect {
   valence: number   // -1 (negative) to +1 (positive)
@@ -671,7 +551,7 @@ export interface NeuralKindlingConfig {
 }
 
 export const NEURAL_KINDLING_DEFAULTS: NeuralKindlingConfig = {
-  enabled: false,
+  enabled: true,
   activationFn: 'leaky_relu',
   biasScale: 0.3,
   traceRecording: true,
