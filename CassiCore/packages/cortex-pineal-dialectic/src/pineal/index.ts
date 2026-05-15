@@ -231,6 +231,49 @@ export class PinealModule extends BaseCognitiveModule {
   }
 
   /**
+   * Reconcile PinealStore from MnemicField — reads all pineal_facet engrams
+   * from the field and updates PinealStore entries where the field has newer
+   * content or conviction. Used on boot to recover from field-first state
+   * (e.g. after a rebuild). Does NOT create new facets — seeding handles that.
+   *
+   * Returns the number of facets updated from the field.
+   */
+  reconcileFromField(): number {
+    if (!this.mnemicField) return 0
+
+    const fieldFacets = this.mnemicField.list(10000).filter(
+      e => e.nodeType === 'pineal_facet' && (e.provenance ?? '').startsWith('pineal:'),
+    )
+
+    let synced = 0
+    for (const engram of fieldFacets) {
+      const pinealId = (engram.metadata as any)?.pinealId as string | undefined
+      if (!pinealId) continue
+
+      const existing = this.store.get(pinealId)
+      if (!existing) continue  // Not in store — seeding will handle creation
+
+      const fieldConviction = (engram.metadata as any)?.conviction as number | undefined
+      if (existing.content !== engram.content || (fieldConviction !== undefined && existing.conviction !== fieldConviction)) {
+        this.store.update(pinealId, {
+          content: engram.content,
+          conviction: fieldConviction,
+        })
+        synced++
+      }
+    }
+
+    if (synced > 0) {
+      this.logger.info('[pineal] Reconciled facets from MnemicField', {
+        synced,
+        fieldTotal: fieldFacets.length,
+      })
+    }
+
+    return synced
+  }
+
+  /**
    * Parse skill files from skill directories into praxis facets.
    * Idempotent by skill category — re-parsing retires old facets and creates new ones.
    */

@@ -3,13 +3,90 @@ import type { Facet, FacetInput, FacetUpdate, FacetQuery, Domain } from './types
 import { REINFORCEMENT_RATE } from './types.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { MnemicField } from '../mnemic-field/index.js'
+import type { Engram } from '../mnemic-field/types.js'
 
 export class FacetManager {
+  private pinealEngramMap = new Map<string, string>()  // facetId → engramId
+
   constructor(
     private store: PinealStore,
     private logger: ILogger,
     private mnemicField: MnemicField | null = null,
   ) {}
+
+  /** Find the MnemicField engram for a facet. */
+  private findEngram(facetId: string): Engram | null {
+    if (!this.mnemicField) return null
+    // Check cache first
+    const cached = this.pinealEngramMap.get(facetId)
+    if (cached) {
+      const engram = this.mnemicField.get(cached)
+      if (engram) return engram
+      this.pinealEngramMap.delete(facetId)
+    }
+    // Search by provenance
+    const matches = this.mnemicField.searchByProvenance(`pineal:${facetId}`)
+    if (matches.length > 0) {
+      this.pinealEngramMap.set(facetId, matches[0].id)
+      return matches[0]
+    }
+    return null
+  }
+
+  /** Sync a facet to its MnemicField engram (create or update). */
+  private syncToField(facet: Facet): void {
+    if (!this.mnemicField) return
+
+    const existing = this.findEngram(facet.id)
+    if (existing) {
+      // Update existing
+      this.mnemicField.update(existing.id, {
+        content: facet.content,
+        metadata: {
+          pinealId: facet.id,
+          domain: facet.domain,
+          category: facet.category,
+          conviction: facet.conviction,
+          salience: facet.salience,
+          pinned: facet.pinned,
+          scope: facet.scope,
+          version: facet.version,
+          provenance: facet.provenance,
+          active: facet.active,
+          createdAt: facet.createdAt,
+          lastReinforced: facet.lastReinforced,
+          reinforcements: facet.reinforcements,
+        },
+        tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
+      })
+    } else {
+      // Create new at origin
+      const engram = this.mnemicField.store({
+        content: facet.content,
+        nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
+        x: 0,
+        y: 0,
+        provenance: `pineal:${facet.id}`,
+        tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
+        metadata: {
+          pinealId: facet.id,
+          domain: facet.domain,
+          category: facet.category,
+          conviction: facet.conviction,
+          salience: facet.salience,
+          pinned: facet.pinned,
+          scope: facet.scope,
+          version: facet.version,
+          provenance: facet.provenance,
+          active: facet.active,
+          createdAt: facet.createdAt,
+          lastReinforced: facet.lastReinforced,
+          reinforcements: facet.reinforcements,
+        },
+      })
+      this.pinealEngramMap.set(facet.id, engram.id)
+    }
+  }
 
   create(input: FacetInput): Facet {
     const facet = this.store.create(input)
@@ -19,27 +96,7 @@ export class FacetManager {
       category: facet.category,
       conviction: facet.conviction,
     })
-    if (this.mnemicField) {
-      this.mnemicField.store({
-        id: `pineal:${facet.id}`,
-        content: facet.content,
-        nodeType: 'expert_summary' as const,
-        provenance: 'pineal',
-        metadata: {
-          expertId: facet.id,
-          expertKind: facet.domain === 'identity' ? 'identity' : facet.domain === 'wisdom' ? 'meta_cognitive' : facet.domain === 'philosophy' ? 'principle' : 'skill',
-          expertDomain: facet.domain,
-          expertConviction: facet.conviction,
-          expertPinned: facet.pinned,
-          expertScope: facet.scope,
-          expertVersion: facet.version,
-          expertProvenance: 'soul.md',
-          expertLastReinforced: new Date().toISOString(),
-          expertReinforcements: 0,
-          expertSourceIds: [],
-        },
-      })
-    }
+    this.syncToField(facet)
     return facet
   }
 
@@ -51,6 +108,7 @@ export class FacetManager {
     const facet = this.store.update(id, updates)
     if (facet) {
       this.logger.debug('[pineal] Facet updated', { id, updates: Object.keys(updates) })
+      this.syncToField(facet)
     }
     return facet
   }
@@ -77,6 +135,7 @@ export class FacetManager {
         delta: `+${increment.toFixed(4)}`,
         reinforcements: updated.reinforcements,
       })
+      this.syncToField(updated)
     }
     return updated
   }
@@ -106,6 +165,17 @@ export class FacetManager {
         domain: evolved.domain,
         version: evolved.version,
       })
+      // Sync new evolved facet to field at origin
+      this.syncToField(evolved)
+      // Retire old facet's field engram
+      const oldEngram = this.findEngram(id)
+      if (oldEngram && this.mnemicField) {
+        this.mnemicField.update(oldEngram.id, {
+          metadata: { active: false },
+          tags: ['pineal', 'retired'],
+        })
+        this.pinealEngramMap.delete(id)
+      }
     }
     return evolved
   }
@@ -114,6 +184,14 @@ export class FacetManager {
     const result = this.store.retire(id)
     if (result) {
       this.logger.info('[pineal] Facet retired', { id })
+      const engram = this.findEngram(id)
+      if (engram && this.mnemicField) {
+        this.mnemicField.update(engram.id, {
+          metadata: { active: false },
+          tags: ['pineal', 'retired'],
+        })
+        this.pinealEngramMap.delete(id)
+      }
     }
     return result
   }
@@ -132,32 +210,30 @@ export class FacetManager {
 
   /**
    * Explicitly set conviction (bypass organic growth).
-   * Used by Valerie or meditation to directly assert conviction.
    */
   setConviction(id: string, conviction: number): Facet | null {
     const clamped = Math.max(0, Math.min(1, conviction))
-    return this.store.update(id, { conviction: clamped })
+    const facet = this.store.update(id, { conviction: clamped })
+    if (facet) this.syncToField(facet)
+    return facet
   }
 
-  /**
-   * Pin a facet — guarantees it will always be included in the assembled
-   * pineal injection, exempt from budget constraints.
-   */
   pin(id: string): boolean {
     const result = this.store.pin(id, true)
     if (result) {
       this.logger.info('[pineal] Facet pinned', { id })
+      const facet = this.store.get(id)
+      if (facet) this.syncToField(facet)
     }
     return result
   }
 
-  /**
-   * Unpin a facet — returns it to normal budget-constrained assembly.
-   */
   unpin(id: string): boolean {
     const result = this.store.pin(id, false)
     if (result) {
       this.logger.info('[pineal] Facet unpinned', { id })
+      const facet = this.store.get(id)
+      if (facet) this.syncToField(facet)
     }
     return result
   }
