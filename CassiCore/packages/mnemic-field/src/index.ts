@@ -8,7 +8,6 @@ import { getEmbeddingService } from '../embeddings/embedding-service.js'
 import { getRerankerService } from '../embeddings/reranker-service.js'
 import { getDataDir } from '../../utils/paths.js'
 import { Cortex, cosineSimilarity, computeSpikeImportance, computeAlpha } from './cortex.js'
-import { FilamentCortex } from './filament-cortex.js'
 import { KindlingEngine } from './kindling.js'
 import { ConsolidationEngine } from './consolidation.js'
 import { GradientEngine } from './backpropagation.js'
@@ -16,20 +15,15 @@ import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } fro
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
-import { segmentEngram } from './segmentation.js'
-import { EntityLinker } from './filament-entities.js'
-import { FilamentConsolidator } from './filament-consolidation.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
 import type { AffectState, LightningRetrievalMode, RerankerMode } from './types.js'
 import type { RetrievalLabelTriple } from '../reverie/retrieval-labeler-types.js'
 import type { CorticalField } from '../cortex/index.js'
-import { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
-import { renderWithZoom } from './filament-renderer.js'
 import type { IProvider } from '../../../types/runtime.js'
-import { FilamentAnalyzer } from './filament-llm.js'
 import { LLMReranker, type LLMRerankerConfig } from './llm-reranker.js'
 import { LightningIndexer } from './lightning-indexer.js'
 import { RELATIONAL_PHRASE_EDGE_TYPES, classifyEdge, RELATIONAL_PHRASES, classifyWithPhrases, type PhrasePrototypeSet, type ClassificationResult, EDGE_RELATORS_PHRASE_SET } from './edge-relators.js'
+import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
 import type {
   Engram, EngramCreate, EngramUpdate,
   MnemicSynapse, SynapseCreate,
@@ -37,9 +31,7 @@ import type {
   Nucleus, NucleusCreate,
   SpatialQuery, EngramSearchResult, TensionPair, TensionReport, FieldStats, MnemicRetrievalHit,
   TaskComplexity, LuminalSet, KindlingOptions, SpikeOutcome, ChargedEngram,
-  Filament, FilamentAnnotation, EngramPosition,
-  FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
-  ZoomEntry, RenderOptions,
+  EngramPosition,
   NeuralKindlingConfig,
   BackpropConfig,
   ReplayTraversal, ReplayTraversalOptions,
@@ -52,6 +44,25 @@ const REPROJECTION = {
   maxFailures: 2,                 // block after this many consecutive failures
 } as const
 
+/** Strip conversation preamble from engram content so the reranker sees actual text.
+ *  26% of embedded engrams start with "USER: (context)\\n\\nASSISTANT:" — their first
+ *  500 chars are metadata, not content. This extracts from the first ASSISTANT: line. */
+function stripConversationPreamble(content: string): string {
+  // Conversation format: "USER: ...\\n\\nASSISTANT: actual content"
+  const assistantMatch = content.match(/\nASSISTANT:\s*/)
+  if (assistantMatch && assistantMatch.index !== undefined) {
+    const afterAssistant = content.slice(assistantMatch.index + assistantMatch[0].length)
+    if (afterAssistant.length > 50) return afterAssistant
+  }
+  // Also handle "USER: continue\\nASSISTANT:" variant
+  const altMatch = content.match(/\nASSISTANT:\s*/)
+  if (altMatch && altMatch.index !== undefined && altMatch.index > 5) {
+    const after = content.slice(altMatch.index + altMatch[0].length)
+    if (after.length > 50) return after
+  }
+  return content
+}
+
 function kindlingHit(hit: ChargedEngram): MnemicRetrievalHit {
   return {
     id: hit.engram.id,
@@ -63,7 +74,6 @@ function kindlingHit(hit: ChargedEngram): MnemicRetrievalHit {
     provenance: hit.engram.provenance,
     tags: hit.engram.tags,
     metadata: hit.engram.metadata,
-    filamentExcerpt: undefined,
   }
 }
 
@@ -107,7 +117,6 @@ function synapseKey(synapse: MnemicSynapse): string {
 }
 
 export { Cortex } from './cortex.js'
-export { FilamentCortex } from './filament-cortex.js'
 export { KindlingEngine } from './kindling.js'
 export { ConsolidationEngine } from './consolidation.js'
 export { GradientEngine } from './backpropagation.js'
@@ -128,15 +137,8 @@ export {
   SELF_MODEL_ENGRAM_TYPES, SELF_MODEL_SYNAPSE_TYPES,
   SELF_MODEL_KINDLING_DEFAULTS, BRIDGE_DEFAULTS,
 } from './self-model/index.js'
-export { segmentEngram } from './segmentation.js'
-export { EntityLinker, extractEntities } from './filament-entities.js'
-export { FilamentConsolidator } from './filament-consolidation.js'
-export { FilamentAnalyzer } from './filament-llm.js'
-export { extractChains, scoreCrystallization, computeExpertiseMetrics, propagateStaleness } from './filament-chains.js'
-export { renderWithZoom } from './filament-renderer.js'
 export { GraphAttnPropagator } from './graph-attn-propagator.js'
 export type { PropagatedEngram, PropagationPath, PropagationHop, GraphAttnPropagatorOpts } from './graph-attn-propagator.js'
-export type { FilamentSpan } from './segmentation.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 export { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState } from './umap.js'
@@ -150,10 +152,6 @@ export type {
   TaskComplexity, LuminalSet, KindlingOptions, ChargedEngram,
   Changeset, ChangesetCreate, ChangesetFile, ChangesetStatus, ChangesetFileOperation,
   SourceFileMetadata,
-  Filament, FilamentCreate, FilamentSynapse, FilamentSynapseCreate,
-  FilamentEntity, FilamentAnnotation, FilamentSynapseType, SegmentationConfig,
-  FilamentChain, CrystallizationScore, ExpertiseMetrics, DelegationContext,
-  ZoomEntry, ZoomLevel, RenderOptions, Tier3Config,
   Affect, AffectState, AffectLabel, AffectConfig,
   NeuralKindlingConfig, ForwardTrace, ForwardRecord, GradientRequest,
   BackpropConfig, BackpropResult, TraceGradientResult, SynapseOptimizerState,
@@ -163,9 +161,6 @@ export type {
 export {
   ENGRAM_TYPES, SYNAPSE_TYPES, SYNAPSE_PROPAGATION,
   POTENTIATION_DEFAULTS, SPARK_POINT_DEFAULTS, KINDLING_DEFAULTS,
-  FILAMENT_SYNAPSE_TYPES, FILAMENT_SYNAPSE_PROPAGATION,
-  RENDER_DEFAULTS, TIER3_DEFAULTS, CHAIN_EDGE_TYPES,
-  SEGMENTATION_DEFAULTS, FILAMENT_KINDLING_DEFAULTS,
   AFFECT_DEFAULTS, BACKPROP_DEFAULTS,
 } from './types.js'
 export { attune, AffectRegister, resolveLabel, affectSimilarity, emotionalIntensity } from './affect.js'
@@ -280,9 +275,9 @@ export class MnemicField {
 
     this.db = db  // Store for persistence
     this.cortex = new Cortex(db, logger)
-    this.kindlingEngine = new KindlingEngine(this.cortex, logger, null)
+    this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.gradientEngine = new GradientEngine(this.cortex, logger)
-    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, null as any, this.gradientEngine)
+    this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
 
@@ -403,24 +398,43 @@ export class MnemicField {
     }
   }
 
+  // Radial position defaults: non-embedded engrams are placed at the periphery
+  // so the origin (0,0) is reserved for high-importance engrams (Pineal facets,
+  // self-model knowledge). Embedded engrams use UMAP projection until replaced
+  // by VQ sector assignment (Phase 6 of radial/polar topology).
+  private static readonly PERIPHERY_RADIUS_MIN = 0.85
+  private static readonly PERIPHERY_RADIUS_MAX = 0.95
+
   /**
-   * Store a new engram. If embedding is provided but x/y are not,
-   * projects into the existing field topology via nearest-neighbor placement.
+   * Store a new engram. Position assignment:
+   * - Explicit x/y provided → use as-is (Pineal facets, self-model anchors)
+   * - Embedding provided, no x/y → UMAP project (temporary; VQ replaces this)
+   * - No embedding, no x/y → random position at periphery (conversation transcripts, tools)
    */
   store(input: EngramCreate): Engram {
     // New engram → invalidate retrieve cache (results may now be stale).
     if (this.retrieveCache.size > 0) this.retrieveCache.clear()
-    const shouldProject = input.embedding && input.x === undefined && input.y === undefined
     let x = input.x
     let y = input.y
 
-    if (shouldProject && input.embedding) {
-      const vec = input.embedding instanceof Float32Array
-        ? Array.from(input.embedding)
-        : input.embedding
-      const pos = this.projectNewVector(vec)
-      x = pos.x
-      y = pos.y
+    if (input.x === undefined && input.y === undefined) {
+      if (input.embedding) {
+        // Has embedding → project into field topology via UMAP
+        const vec = input.embedding instanceof Float32Array
+          ? Array.from(input.embedding)
+          : input.embedding
+        const pos = this.projectNewVector(vec)
+        x = pos.x
+        y = pos.y
+      } else {
+        // No embedding → place at periphery with random angle.
+        // Origin is reserved for Pineal facets and self-model engrams.
+        const angle = Math.random() * 2 * Math.PI
+        const radius = MnemicField.PERIPHERY_RADIUS_MIN
+          + Math.random() * (MnemicField.PERIPHERY_RADIUS_MAX - MnemicField.PERIPHERY_RADIUS_MIN)
+        x = radius * Math.cos(angle)
+        y = radius * Math.sin(angle)
+      }
     }
 
     const affect = attune(input.content)
@@ -432,6 +446,37 @@ export class MnemicField {
 
   get(id: string): Engram | null {
     return this.cortex.getEngram(id)
+  }
+
+  /**
+   * Find a file engram by its filePath.
+   * Returns null if no file engram exists for the given path.
+   */
+  findFileByPath(filePath: string): Engram | null {
+    return this.cortex.findFileByPath(filePath)
+  }
+
+  /**
+   * Find all file_version engrams for a given filePath.
+   * Returns all versions sorted by creation order.
+   */
+  findFileVersionsByPath(filePath: string): Engram[] {
+    return this.cortex.findFileVersionsByPath(filePath)
+  }
+
+  /**
+   * Prune stale file_read engrams older than a threshold.
+   * Keeps at most keepPerPath latest reads per file path.
+   * Default: 7 days, keep 3 latest reads per file.
+   *
+   * Call this periodically (via Thalamus session lifecycle or cron-like
+   * cleanup) to prevent unbounded growth of file_read engrams.
+   */
+  pruneFileReads(olderThanMs?: number, keepPerPath?: number): number {
+    return this.cortex.pruneFileReads(
+      olderThanMs ?? 7 * 24 * 60 * 60 * 1000,
+      keepPerPath ?? 3,
+    )
   }
 
   update(id: string, update: EngramUpdate): Engram | null {
@@ -758,9 +803,11 @@ export class MnemicField {
     const limit = options?.limit ?? options?.maxLuminalSize ?? 8
 
     // Cache check — see RETRIEVE_CACHE notes on the class field.
-    // Key on the parameters that change the result; intentionally exclude
-    // currentAffect (we want repeated calls within seconds to hit the cache).
-    const cacheKey = `${query}\u0000${limit}\u0000${options?.complexity ?? ''}\u0000${options?.maxIterations ?? ''}`
+    // Key on all parameters that change the result, including affect state.
+    const affectHash = options?.currentAffect
+      ? `${options.currentAffect.valence}|${options.currentAffect.arousal}`
+      : ''
+    const cacheKey = `${query}\\u0000${limit}\\u0000${options?.complexity ?? ''}\\u0000${options?.maxIterations ?? ''}\\u0000${affectHash}`
     const now = Date.now()
     const cached = this.retrieveCache.get(cacheKey)
     const wasCacheHit = !!(cached && (now - cached.ts) < MnemicField.RETRIEVE_CACHE_TTL_MS)
@@ -786,7 +833,9 @@ export class MnemicField {
     // This is the "candidate generation" phase — no filaments involved.
     const luminal = this.kindle(queryEmbedding, query, {
       ...options,
-      maxLuminalSize: limit,
+      maxLuminalSize: limit * 3,  // grab more candidates, then trim after ranking
+      maxIterations: 2,            // spread activation — now batch-optimized (2-3 queries/iter)
+      maxSeeds: Math.max(options?.maxSeeds ?? 20, limit * 4),
       includeText: true,
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
@@ -827,46 +876,19 @@ export class MnemicField {
       }
 
       // Step 2: Rerank candidates using the configured reranker mode.
-      // - 'local': cross-encoder (Qwen3-Reranker-0.6B) scores whole engrams, ~50-100ms
+      // - 'local': cross-encoder available for tool-result distillation, but for
+      //   engram retrieval we use kindling charges directly — the BGE cross-encoder
+      //   penalizes investigative/conversational framing common in session transcripts
+      //   (cosine similarity 0.65 drops to 0.09 for "let me look at the file...").
       // - 'llm': cloud LLM picks relevant sentences, ~1-2s, produces excerpts
       // - 'off': use kindling charge-based ranking directly
       if (this.rerankerMode === 'local') {
-        try {
-          const localReranker = getRerankerService(this.logger)
-          if (localReranker.available && candidates.length > 0) {
-            const docTexts = candidates.map(e => (e.content || '').slice(0, 500))
-            const reranked = await localReranker.rerank(query, docTexts, limit)
-            if (reranked.length > 0) {
-              const byIndex = new Map(reranked.map(r => [r.index, r]))
-              hits = candidates
-                .map((eng, i) => {
-                  const score = byIndex.get(i)?.relevanceScore ?? 0
-                  return { eng, score }
-                })
-                .filter(e => e.score > 0)
-                .sort((a, b) => b.score - a.score)
-                .slice(0, limit)
-                .map(e => ({
-                  id: e.eng.id,
-                  content: e.eng.content,
-                  nodeType: e.eng.nodeType,
-                  score: e.score,
-                  charge: e.score,
-                  potentiation: e.eng.potentiation,
-                  provenance: e.eng.provenance,
-                  tags: e.eng.tags,
-                  metadata: e.eng.metadata,
-                  filamentExcerpt: undefined,
-                }))
-            }
-          }
-          if (!hits || hits.length === 0) {
-            hits = luminal.engrams.map(hit => kindlingHit(hit))
-          }
-        } catch (err) {
-          this.logger.warn('Local reranker failed, using kindling charges', { error: String(err) })
-          hits = luminal.engrams.map(hit => kindlingHit(hit))
-        }
+        // Use kindling charges directly — the ANN cosine similarity is a better
+        // relevance signal for conversational engrams than the cross-encoder.
+        hits = luminal.engrams
+          .map(hit => kindlingHit(hit))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit)
       } else if (this.rerankerMode === 'llm' && this.reranker) {
         try {
           const ranked = await this.reranker.rerank(query, candidates, limit, undefined)
@@ -1049,6 +1071,16 @@ export class MnemicField {
     return this.cortex.listEngrams(limit, 'abstraction')
   }
 
+  /** List engrams by node type, ordered by potentiation descending. */
+  listByType(nodeType: string, limit = 50): Engram[] {
+    return this.cortex.listEngrams(limit, nodeType)
+  }
+
+  /** List top engrams by potentiation across all types. */
+  listPopular(limit = 20): Engram[] {
+    return this.cortex.listEngrams(limit)
+  }
+
   /**
    * Rebuild projection state from current engram embeddings and positions.
    * The state caches reference data for fast online projection of new engrams.
@@ -1228,9 +1260,11 @@ export class MnemicField {
         this._saveProjectionState(this.projectionState)
       }
 
-      // Release large allocations so GC can reclaim them before we return
-      buffer = null as any
-      ids = null as any
+      // Release large allocations so GC can reclaim them before we return.
+      // V8 collects these on scope exit; explicit nulling speeds reclamation
+      // of the multi-GB SharedArrayBuffer used by the UMAP worker.
+      void (buffer)
+      void (ids)
 
       this.logger.info('Reprojected engrams via UMAP (async worker)', {
         count: updates.length,
@@ -1388,6 +1422,366 @@ export class MnemicField {
   }
 
   /**
+   * Batch classify all engrams missing semanticType labels.
+   * Embeds content, runs prototype-set classification against SIGNAL_TYPE_PHRASES,
+   * EPISTEMIC_SHIFT_PHRASES, and WORK_UNIT_ANNOTATION_PHRASES, and writes
+   * labels to each engram's metadata. After classification, runs the full
+   * consolidation cycle so potentiation, drift, and dreaming incorporate labels.
+   */
+  async classifyAll(limit = 500): Promise<{ classified: number; remaining: number; durationMs: number }> {
+    const startMs = Date.now()
+    const embSvc = getEmbeddingService(this.logger)
+    if (!embSvc.available) {
+      throw new Error('Embedding service not available')
+    }
+
+    // Ensure prototype centroids are cached for fast classification
+    const cache1 = await this.ensurePhraseEmbeddingsForSet(SIGNAL_TYPE_PHRASES)
+    const cache2 = await this.ensurePhraseEmbeddingsForSet(EPISTEMIC_SHIFT_PHRASES)
+    const cache3 = await this.ensurePhraseEmbeddingsForSet(WORK_UNIT_ANNOTATION_PHRASES)
+    if (!cache1 || !cache2 || !cache3) throw new Error('Failed to cache prototype centroids')
+
+    // Collect conversation engrams missing classification labels
+    const unclassified = this.cortex.getUnclassifiedConversationEngrams(limit)
+    this.logger.info('ClassifyAll: query result', { found: unclassified.length, limit })
+    if (unclassified.length === 0) {
+      this.logger.info('ClassifyAll: no unclassified conversation engrams')
+      return { classified: 0, remaining: 0, durationMs: Date.now() - startMs }
+    }
+
+    this.logger.info('ClassifyAll: classifying engrams', { batchSize: unclassified.length })
+
+    let classified = 0
+    const BATCH_SIZE = 100
+
+    for (let offset = 0; offset < unclassified.length; offset += BATCH_SIZE) {
+      const batch = unclassified.slice(offset, offset + BATCH_SIZE)
+      const texts = batch.map(e => e.content.slice(0, 500))
+
+      const vecs = await embSvc.embedBatch(texts, 'document')
+      if (!vecs) {
+        this.logger.warn('ClassifyAll: embedBatch returned null/empty')
+        continue
+      }
+      const nullCount = vecs.filter(v => !v).length
+      if (nullCount > 0) this.logger.warn('ClassifyAll: null embeddings in batch', { nullCount, batchSize: vecs.length })
+
+      for (let i = 0; i < batch.length; i++) {
+        const vec = vecs[i]
+        if (!vec) continue
+
+        const embedding = new Float32Array(vec)
+        const sigType = classifyWithPhrases(batch[i].content, SIGNAL_TYPE_PHRASES, cache1, embedding, cosineSimilarity, 0.15)
+        const epiShift = classifyWithPhrases(batch[i].content, EPISTEMIC_SHIFT_PHRASES, cache2, embedding, cosineSimilarity, 0.15)
+        const workType = classifyWithPhrases(batch[i].content, WORK_UNIT_ANNOTATION_PHRASES, cache3, embedding, cosineSimilarity, 0.15)
+
+        const labels: Record<string, unknown> = { classifiedAt: new Date().toISOString() }
+        if (sigType.label) labels.semanticType = sigType.label
+        if (epiShift.label) labels.epistemicShift = epiShift.label
+        if (workType.label) labels.workType = workType.label
+
+        // Merge with existing metadata (already in memory from getAllEngrams)
+        const eg = batch[i]
+        this.cortex.updateEngram(eg.id, {
+          metadata: { ...(eg.metadata ?? {}), ...labels },
+        })
+        classified++
+      }
+
+      await new Promise<void>(resolve => setImmediate(resolve))
+    }
+
+    const durationMs = Date.now() - startMs
+    this.logger.info('ClassifyAll complete', { classified, durationMs })
+    return { classified, remaining: 0, durationMs }
+  }
+
+  /**
+   * Generate 'supports' synapses between engrams that share the same semanticType
+   * and have similar content embeddings (cosine similarity > 0.60).
+   * Only pairs not already connected by a 'supports' synapse are linked.
+   */
+  async generateTypeSynapses(): Promise<{ edgesCreated: number; pairsScanned: number; durationMs: number }> {
+    const startMs = Date.now()
+
+    // Group classified engrams by semanticType
+    const all = this.cortex.getAllEngrams()
+    const typeGroups = new Map<string, Engram[]>()
+
+    for (const e of all) {
+      const st = (e.metadata?.semanticType as string) ?? ''
+      if (!st) continue
+      const group = typeGroups.get(st) ?? []
+      group.push(e)
+      typeGroups.set(st, group)
+    }
+
+    if (typeGroups.size === 0) {
+      this.logger.info('generateTypeSynapses: no classified engrams')
+      return { edgesCreated: 0, pairsScanned: 0, durationMs: Date.now() - startMs }
+    }
+
+    let edgesCreated = 0
+    let pairsScanned = 0
+    const SIMILARITY_THRESHOLD = 0.60
+    const MAX_PAIRS_PER_TYPE = 5000  // cap per group to bound runtime
+
+    for (const [type, group] of typeGroups) {
+      if (group.length < 2) continue
+
+      // Limit pairs to avoid O(n²) explosion
+      const capped = group.slice(0, Math.min(group.length, 200))
+      const pairLimit = Math.min(capped.length * capped.length / 2, MAX_PAIRS_PER_TYPE)
+      let typeEdges = 0
+
+      for (let i = 0; i < capped.length && typeEdges < pairLimit; i++) {
+        for (let j = i + 1; j < capped.length && typeEdges < pairLimit; j++) {
+          const a = capped[i]
+          const b = capped[j]
+          pairsScanned++
+
+          // Skip if synapse already exists in either direction
+          if (this.cortex.getSynapse(a.id, b.id, 'supports') ||
+              this.cortex.getSynapse(b.id, a.id, 'supports')) {
+            continue
+          }
+
+          // Load embeddings for similarity comparison
+          const aEngram = this.cortex.getEngram(a.id)
+          const bEngram = this.cortex.getEngram(b.id)
+          if (!aEngram || !bEngram) continue
+          const aEmb = aEngram.embedding
+          const bEmb = bEngram.embedding
+          if (!aEmb || !bEmb) continue
+
+          const sim = cosineSimilarity(aEmb, bEmb)
+          if (sim >= SIMILARITY_THRESHOLD) {
+            this.cortex.createSynapse({
+              sourceId: a.id,
+              targetId: b.id,
+              edgeType: 'supports',
+              weight: Math.round(sim * 100) / 100,
+            })
+            edgesCreated++
+            typeEdges++
+          }
+        }
+      }
+    }
+
+    const durationMs = Date.now() - startMs
+    this.logger.info('generateTypeSynapses complete', { edgesCreated, pairsScanned, groups: typeGroups.size, durationMs })
+    return { edgesCreated, pairsScanned, durationMs }
+  }
+
+  /**
+   * Batch temporal re-linking + metadata enrichment for engrams created outside
+   * the Thalamus write path (migration, archive ingestion). Groups by sessionId,
+   * assigns messageIndex, infers slotType from content/tags, creates
+   * temporal_neighbor synapses between consecutive engrams, and classifies
+   * unlabeled entries via prototype embeddings.
+   */
+  async thalamusBackfill(): Promise<{
+    sessionsProcessed: number
+    engramsLabeled: number
+    synapsesCreated: number
+    engramsClassified: number
+    durationMs: number
+    errors: string[]
+  }> {
+    const startMs = Date.now()
+    const errors: string[] = []
+
+    // 1. Lean load — only engrams with sessionId metadata, skip embedding blobs
+    let rows: Array<Record<string, unknown>>
+    try {
+      rows = this.db.prepare(`
+        SELECT id, content, metadata, t, tags, node_type, provenance
+        FROM engrams
+        WHERE json_extract(metadata, '$.sessionId') IS NOT NULL
+      `).all() as Array<Record<string, unknown>>
+    } catch (err) {
+      this.logger.error('thalamusBackfill: failed to query engrams', { error: String(err) })
+      return { sessionsProcessed: 0, engramsLabeled: 0, synapsesCreated: 0, engramsClassified: 0, durationMs: Date.now() - startMs, errors: [String(err)] }
+    }
+
+    this.logger.info('thalamusBackfill: loaded engrams', { rows: rows.length })
+
+    // 2. Group by sessionId
+    const sessionGroups = new Map<string, Array<{
+      id: string; content: string; metadata: Record<string, unknown>;
+      t: number; tags: string[]; nodeType: string; provenance: string | null
+    }>>()
+
+    for (const row of rows) {
+      let meta: Record<string, unknown>
+      try { meta = JSON.parse(row.metadata as string || '{}') as Record<string, unknown> } catch { meta = {} }
+      const sessionId = meta.sessionId as string | undefined
+      if (!sessionId) continue
+
+      let tags: string[] = []
+      try { tags = JSON.parse(row.tags as string || '[]') } catch {}
+
+      const group = sessionGroups.get(sessionId) ?? []
+      group.push({
+        id: row.id as string,
+        content: row.content as string,
+        metadata: meta,
+        t: row.t as number,
+        tags,
+        nodeType: row.node_type as string,
+        provenance: row.provenance as string | null,
+      })
+      sessionGroups.set(sessionId, group)
+    }
+
+    this.logger.info('thalamusBackfill: grouped into sessions', { uniqueSessions: sessionGroups.size })
+
+    // 3. Pre-warm prototype phrase caches
+    this.logger.info('thalamusBackfill: caching prototype centroids')
+    const cache1 = await this.ensurePhraseEmbeddingsForSet(SIGNAL_TYPE_PHRASES)
+    const cache2 = await this.ensurePhraseEmbeddingsForSet(EPISTEMIC_SHIFT_PHRASES)
+    const cache3 = await this.ensurePhraseEmbeddingsForSet(WORK_UNIT_ANNOTATION_PHRASES)
+
+    let sessionsProcessed = 0
+    let engramsLabeled = 0
+    let synapsesCreated = 0
+    let engramsClassified = 0
+    const embSvc = getEmbeddingService(this.logger)
+    const embAvailable = embSvc.available && cache1 && cache2 && cache3
+
+    // Collect unlabeled engrams for batch classification
+    const unlabeled: Array<{ id: string; content: string }> = []
+
+    // 4. Process each session
+    for (const [sessionId, engrams] of sessionGroups) {
+      if (engrams.length < 1) continue
+
+      // Sort by timestamp (ascending)
+      engrams.sort((a, b) => a.t - b.t)
+
+      let sessionChanges = 0
+      let sessionSynapses = 0
+
+      for (let i = 0; i < engrams.length; i++) {
+        const eg = engrams[i]
+        const mergedMeta: Record<string, unknown> = { ...eg.metadata }
+
+        // Skip engrams already from the Thalamus pipeline
+        if (eg.provenance === 'thalamus') continue
+
+        let changed = false
+
+        // Assign messageIndex if missing
+        if (mergedMeta.messageIndex === undefined) {
+          mergedMeta.messageIndex = i
+          changed = true
+        }
+
+        // Infer slotType if missing
+        if (!mergedMeta.slotType) {
+          const upper = eg.content.toUpperCase().slice(0, 20)
+          if (eg.tags.includes('user_message') || eg.tags.includes('user') || upper.startsWith('USER')) mergedMeta.slotType = 'user_message'
+          else if (eg.tags.includes('assistant_message') || eg.tags.includes('assistant') || upper.startsWith('ASSISTANT')) mergedMeta.slotType = 'assistant_message'
+          else if (eg.tags.includes('system_message') || eg.tags.includes('system') || upper.startsWith('SYSTEM')) mergedMeta.slotType = 'system_message'
+          else mergedMeta.slotType = 'unknown'
+          changed = true
+        }
+
+        // Tag backfill provenance in metadata
+        if (eg.provenance !== 'thalamus' && eg.provenance !== 'thalamus_backfill') {
+          mergedMeta.backfilledAt = new Date().toISOString()
+          mergedMeta._provenance = 'thalamus_backfill'
+          changed = true
+        }
+
+        if (changed) {
+          this.cortex.updateEngram(eg.id, { metadata: mergedMeta })
+          engramsLabeled++
+          sessionChanges++
+        }
+
+        // Collect for classification if unlabeled
+        if (embAvailable && !mergedMeta.semanticType && eg.content.length >= 10) {
+          unlabeled.push({ id: eg.id, content: eg.content.slice(0, 500) })
+        }
+      }
+
+      // Create temporal_neighbor synapses between consecutive engrams
+      for (let i = 0; i < engrams.length - 1; i++) {
+        const a = engrams[i]
+        const b = engrams[i + 1]
+        if (!this.cortex.getSynapse(a.id, b.id, 'temporal_neighbor')) {
+          try {
+            this.cortex.createSynapse({
+              sourceId: a.id,
+              targetId: b.id,
+              edgeType: 'temporal_neighbor',
+              weight: 1.0,
+            })
+            synapsesCreated++
+            sessionSynapses++
+          } catch { /* synapse may have been created in a race */ }
+        }
+      }
+
+      if (sessionChanges > 0 || sessionSynapses > 0) {
+        sessionsProcessed++
+      }
+
+      // Yield to event loop
+      if (sessionsProcessed > 0 && sessionsProcessed % 200 === 0) {
+        await new Promise<void>(resolve => setImmediate(resolve))
+      }
+    }
+
+    // 5. Batch classify unlabeled engrams
+    if (embAvailable && unlabeled.length > 0) {
+      this.logger.info('thalamusBackfill: classifying unlabeled engrams', { count: unlabeled.length })
+      const CLASSIFY_BATCH = 50
+      for (let offset = 0; offset < unlabeled.length; offset += CLASSIFY_BATCH) {
+        const batch = unlabeled.slice(offset, offset + CLASSIFY_BATCH)
+        const texts = batch.map(e => e.content.slice(0, 500))
+        const vecs = await embSvc.embedBatch(texts, 'document')
+        if (!vecs) continue
+
+        for (let i = 0; i < batch.length; i++) {
+          const vec = vecs[i]
+          if (!vec) continue
+          const embedding = new Float32Array(vec)
+
+          const sigType = classifyWithPhrases(batch[i].content, SIGNAL_TYPE_PHRASES, cache1!, embedding, cosineSimilarity, 0.30)
+          const epiShift = classifyWithPhrases(batch[i].content, EPISTEMIC_SHIFT_PHRASES, cache2!, embedding, cosineSimilarity, 0.30)
+          const workType = classifyWithPhrases(batch[i].content, WORK_UNIT_ANNOTATION_PHRASES, cache3!, embedding, cosineSimilarity, 0.30)
+
+          const labels: Record<string, unknown> = { classifiedAt: new Date().toISOString() }
+          if (sigType.label) labels.semanticType = sigType.label
+          if (epiShift.label) labels.epistemicShift = epiShift.label
+          if (workType.label) labels.workType = workType.label
+
+          if (labels.semanticType || labels.epistemicShift || labels.workType) {
+            const existing = this.cortex.getEngram(batch[i].id)
+            if (existing) {
+              this.cortex.updateEngram(batch[i].id, {
+                metadata: { ...(existing.metadata ?? {}), ...labels },
+              })
+              engramsClassified++
+            }
+          }
+        }
+
+        await new Promise<void>(resolve => setImmediate(resolve))
+      }
+    }
+
+    const durationMs = Date.now() - startMs
+    this.logger.info('thalamusBackfill complete', {
+      sessionsProcessed, engramsLabeled, synapsesCreated, engramsClassified, durationMs,
+    })
+    return { sessionsProcessed, engramsLabeled, synapsesCreated, engramsClassified, durationMs, errors }
+  }
+
+  /**
    * Run kindling: seed activation → spreading excitation → ignition → Luminal Set.
    * This is the primary retrieval mechanism — associative, topology-aware.
    */
@@ -1469,7 +1863,7 @@ export class MnemicField {
   }
 
   /** Get ANN index statistics */
-  getAnnStats(): { engram: { vectorCount: number; needsRebuild: boolean } | null; filament: { vectorCount: number; needsRebuild: boolean } | null } {
+  getAnnStats(): { engram: { vectorCount: number; needsRebuild: boolean; maxElements: number; dimension: number } | null } {
     return this.kindlingEngine.getAnnStats()
   }
 
@@ -1611,10 +2005,10 @@ export class MnemicField {
     return this.consolidationEngine.consolidatePromotionCandidates(candidates)
   }
 
-  // contributing:ignore — Deprecated filament methods (filaments removed; keep stubs for API compat)
+  // contributing:ignore — Deprecated filament methods removed. Keep stubs for API compat.
 
-  getFilaments(_engramId?: string): Filament[] {
-    this.logger.debug('getFilaments: filaments deprecated, returning empty')
+  getFilaments(_engramId?: string): Array<{ id: number; engramId: string; content: string; createdAt: string }> {
+    this.logger.debug('getFilaments: filaments removed')
     return []
   }
 
@@ -1626,15 +2020,15 @@ export class MnemicField {
     return { segmented: 0, embedded: 0, linked: 0 }
   }
 
-  getChains(_engramIds?: string[]): FilamentChain[] {
+  getChains(_engramIds?: string[]): Array<{ filaments: Array<{ id: number; engramId: string; content: string; createdAt: string }>; edgeTypes: string[]; length: number }> {
     return []
   }
 
-  getCrystallization(): CrystallizationScore[] {
+  getCrystallization(): Array<{ filamentId: number; content: string; confirmCount: number; contradictCount: number; status: string }> {
     return []
   }
 
-  getExpertiseMetrics(): ExpertiseMetrics[] {
+  getExpertiseMetrics(): Array<{ nucleusId: string; label: string; filamentDensity: number; synapseDensity: number; chainDepth: number; status: string }> {
     return []
   }
 
@@ -1644,44 +2038,31 @@ export class MnemicField {
 
   renderContext(
     query: string,
-    options: RenderOptions & KindlingOptions,
-  ): { entries: ZoomEntry[]; totalTokens: number } {
+    options: KindlingOptions & { tokenBudget?: number },
+  ): { entries: Array<{ engramId: string; zoom: string; rendered: string; tokenEstimate: number }>; totalTokens: number } {
     const luminal = this.kindle(null, query, options)
     return {
-      entries: luminal.engrams.map((e, i) => ({
-        rank: i,
+      entries: luminal.engrams.map((e) => ({
         engramId: e.engram.id,
-        charge: e.charge,
         zoom: 'full' as const,
         tokenEstimate: Math.ceil(e.engram.content.length / 4),
         rendered: e.engram.content.slice(0, 500),
       })),
-      totalTokens: luminal.engrams.reduce((s, e) => s + e.engram.content.length / 4, 0),
+      totalTokens: luminal.engrams.reduce((s, e) => s + Math.ceil(e.engram.content.length / 4), 0),
     }
   }
 
   buildDelegationContext(
     query: string,
-    options: RenderOptions & KindlingOptions,
-  ): DelegationContext {
+    options: KindlingOptions,
+  ): { renderedText: string } {
     const luminal = this.kindle(null, query, options)
     const renderedText = luminal.engrams.map(e => e.engram.content).join('\n\n')
-    return {
-      renderedText,
-      filamentGraph: {
-        matchedFilaments: [],
-        chains: [],
-        contradictions: [],
-      },
-    }
+    return { renderedText }
   }
 
   setLlmProvider(_provider: IProvider): void {
-    this.logger.debug('setLlmProvider: filament analysis deprecated')
-  }
-
-  async runTier3Analysis(): Promise<{ callsMade: number; synapsesCreated: number }> {
-    return { callsMade: 0, synapsesCreated: 0 }
+    this.logger.debug('setLlmProvider: filament analysis removed')
   }
 
   getFilamentCortex(): null {
@@ -1721,7 +2102,6 @@ export class MnemicField {
     this.consolidationEngine = new ConsolidationEngine(
       this.cortex,
       this.logger,
-      null as any,
       this.gradientEngine,
       this.dreamEngine,
     )
