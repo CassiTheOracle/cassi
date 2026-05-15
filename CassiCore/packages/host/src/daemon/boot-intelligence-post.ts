@@ -626,6 +626,10 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         if (seeded > 0) {
           logger.info('Pineal facets seeded into MnemicField at origin', { count: seeded })
         }
+        const reconciled = pinealModule.reconcileFromField()
+        if (reconciled > 0) {
+          logger.info('Pineal facets reconciled from MnemicField', { count: reconciled })
+        }
 
         const assembler = new PinealAssembler(pinealModule.getStore(), logger.child('pineal-assembler'))
         thalamus.setPinealAssembler(assembler)
