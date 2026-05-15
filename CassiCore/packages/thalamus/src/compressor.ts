@@ -10,9 +10,9 @@ interface CompressionResult {
 
 type ToolStrategy = (content: string, maxChars: number) => string
 
-const READ_PATTERN = /^(Read|cassi_read|cassi_file.*read|mcp__\w+__read)$/i
-const SEARCH_PATTERN = /^(Grep|Glob|mcp__\w+__search|mcp__\w+__file)$/i
-const BASH_PATTERN = /^(Bash|cassi_bash|mcp__\w+__bash)$/i
+const READ_PATTERN = /^(Read|cassi_read|read_file|write_file|patch|search_files|mcp__\w+__(read|write_file|patch))$/i
+const SEARCH_PATTERN = /^(Grep|Glob|web_search|web_extract|browser_navigate|browser_click|browser_snapshot|browser_type|browser_scroll|browser_vision|browser_back|browser_press|browser_console|browser_get_images|vision_analyze|video_analyze|skill_view|skills_list|session_search|memory|mcp__\w+__(search|file|web))$/i
+const BASH_PATTERN = /^(Bash|cassi_bash|terminal|execute_code|process|mcp__\w+__bash)$/i
 
 function compressRead(content: string, maxChars: number): string {
   const lines = content.split('\n')

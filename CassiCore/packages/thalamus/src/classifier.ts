@@ -189,6 +189,77 @@ const TOOL_CLASS_MAP: Record<string, string> = {
   cassi_do: 'meta',
   task: 'orchestration',
   skill: 'meta',
+
+  // -- Hermes-native tool names (context engine integration) ----------
+  // Shell
+  terminal: 'shell',
+  execute_code: 'shell',
+  process: 'shell',
+
+  // Filesystem
+  read_file: 'fs',
+  write_file: 'fs',
+  patch: 'fs',
+  search_files: 'fs',
+
+  // Web / browser
+  web_search: 'web',
+  web_extract: 'web',
+  browser_navigate: 'web',
+  browser_click: 'web',
+  browser_snapshot: 'web',
+  browser_type: 'web',
+  browser_scroll: 'web',
+  browser_vision: 'web',
+  browser_back: 'web',
+  browser_press: 'web',
+  browser_console: 'web',
+  browser_get_images: 'web',
+  vision_analyze: 'web',
+  video_analyze: 'web',
+  send_message: 'web',
+
+  // Memory / archive
+  memory: 'memory',
+  session_search: 'sessions',
+  skill_view: 'meta',
+  skill_manage: 'meta',
+  skills_list: 'meta',
+
+  // Orchestration
+  delegate_task: 'orchestration',
+  cronjob: 'orchestration',
+
+  // Interaction
+  clarify: 'interaction',
+  text_to_speech: 'meta',
+  todo: 'meta',
+
+  // Hermes MCP bridge tools (mcp__cassicore__hermes_*)
+  hermes_sessions_list: 'sessions',
+  hermes_session_get: 'sessions',
+  hermes_session_search: 'sessions',
+  hermes_session_prune: 'sessions',
+  hermes_session_resume: 'sessions',
+  hermes_session_active: 'sessions',
+  hermes_context_curate: 'meta',
+  hermes_context_health: 'meta',
+  hermes_context_map: 'meta',
+  hermes_context_why: 'meta',
+  hermes_context_pin: 'meta',
+  hermes_context_recall: 'meta',
+  hermes_cognitive_enrich: 'meta',
+  hermes_memory_retrieve: 'memory',
+  hermes_memory_store: 'memory',
+  hermes_memory_graph: 'memory',
+  hermes_self_model: 'intelligence',
+  hermes_constellation_start: 'orchestration',
+  hermes_constellation_watch: 'orchestration',
+  hermes_constellation_steer: 'orchestration',
+  hermes_helix_start: 'orchestration',
+  hermes_helix_watch: 'orchestration',
+  hermes_model_tier: 'config',
+  hermes_model_tiers: 'config',
 }
 
 /**
@@ -323,17 +394,17 @@ export function buildToolResultPrefix(
 
 /** Whether a tool name represents a write/edit operation. */
 export function isWriteTool(toolName: string): boolean {
-  return /^(write|edit|cassi_write|cassi_edit|serena_replace_content|serena_replace_symbol_body|serena_insert_after_symbol|serena_insert_before_symbol|mcp__\w+__(write|edit))$/i.test(toolName)
+  return /^(write|edit|write_file|patch|cassi_write|cassi_edit|serena_replace_content|serena_replace_symbol_body|serena_insert_after_symbol|serena_insert_before_symbol|mcp__\w+__(write|edit))$/i.test(toolName)
 }
 
 /** Whether a tool name represents a read/search operation. */
 export function isReadTool(toolName: string): boolean {
-  return /^(read|glob|grep|cassi_read|cassi_file|cassi_glob|serena_find_file|serena_search_for_pattern|serena_get_symbols_overview|serena_find_symbol|serena_find_referencing_symbols|mcp__\w+__(read|glob|grep))$/i.test(toolName)
+  return /^(read|glob|grep|read_file|search_files|cassi_read|cassi_file|cassi_glob|serena_find_file|serena_search_for_pattern|serena_get_symbols_overview|serena_find_symbol|serena_find_referencing_symbols|mcp__\w+__(read|glob|grep))$/i.test(toolName)
 }
 
 /** Whether a tool name is a shell/command execution tool. */
 export function isShellTool(toolName: string): boolean {
-  return /^(bash|cassi_bash|shell)$/i.test(toolName)
+  return /^(bash|terminal|execute_code|process|cassi_bash|shell)$/i.test(toolName)
 }
 
 /**
@@ -359,5 +430,24 @@ export function shortenPath(fp: string): string {
   const parts = fp.split('/')
   if (parts.length > 2) return parts.slice(-2).join('/')
   return fp
+}
+
+/**
+ * Detect the programming/markup language for a file path based on its extension.
+ */
+export function detectLanguage(filePath: string): string {
+  if (filePath.endsWith('.ts') || filePath.endsWith('.tsx')) return 'typescript'
+  if (filePath.endsWith('.js') || filePath.endsWith('.jsx')) return 'javascript'
+  if (filePath.endsWith('.json')) return 'json'
+  if (filePath.endsWith('.md') || filePath.endsWith('.mdx')) return 'markdown'
+  if (filePath.endsWith('.py')) return 'python'
+  if (filePath.endsWith('.rs')) return 'rust'
+  if (filePath.endsWith('.go')) return 'go'
+  if (filePath.endsWith('.css')) return 'css'
+  if (filePath.endsWith('.html')) return 'html'
+  if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) return 'yaml'
+  if (filePath.endsWith('.sh') || filePath.endsWith('.bash')) return 'shell'
+  if (filePath.endsWith('.sql')) return 'sql'
+  return 'unknown'
 }
 
