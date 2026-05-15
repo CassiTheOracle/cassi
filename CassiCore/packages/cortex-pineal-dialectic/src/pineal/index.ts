@@ -176,6 +176,61 @@ export class PinealModule extends BaseCognitiveModule {
   }
 
   /**
+   * Mirror all active Pineal facets into the MnemicField as engrams at (0, 0).
+   * This is the foundation of the radial/polar topology — the Pineal's identity
+   * facets become the tonic center of the field's attention.
+   *
+   * Idempotent: checks for existing engrams with matching pineal provenance
+   * before creating. Safe to call on every boot.
+   *
+   * Returns the number of new engrams created.
+   */
+  seedMnemicFieldFacets(): number {
+    if (!this.mnemicField) return 0
+
+    const facets = this.store.list({ active: true })
+    let created = 0
+
+    for (const facet of facets) {
+      // Check for existing engram by provenance
+      const provenance = `pineal:${facet.id}`
+      const existing = this.mnemicField.searchByProvenance(provenance)
+      if (existing.length > 0) continue
+
+      this.mnemicField.store({
+        content: facet.content,
+        nodeType: 'pineal_facet' as import('../mnemic-field/types.js').EngramType,
+        x: 0,
+        y: 0,
+        provenance,
+        tags: ['pineal', facet.domain, facet.category, ...(facet.tags ?? [])],
+        metadata: {
+          pinealId: facet.id,
+          domain: facet.domain,
+          category: facet.category,
+          conviction: facet.conviction,
+          salience: facet.salience,
+          pinned: facet.pinned,
+          scope: facet.scope,
+          version: facet.version,
+          provenance: facet.provenance,
+          createdAt: facet.createdAt,
+        },
+      })
+      created++
+    }
+
+    if (created > 0) {
+      this.logger.info('[pineal] Seeded facets into MnemicField at origin', {
+        created,
+        total: facets.length,
+      })
+    }
+
+    return created
+  }
+
+  /**
    * Parse skill files from skill directories into praxis facets.
    * Idempotent by skill category — re-parsing retires old facets and creates new ones.
    */
