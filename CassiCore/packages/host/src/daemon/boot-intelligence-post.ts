@@ -517,13 +517,21 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             }
           }
 
+          const auroraConfig: Partial<import('../intelligence/aurora/types.js').AuroraConfig> = {}
+
+          // Self-model knowledge bridge: vindex → Mnemic architectural awareness
+          if (config?.get?.('intelligence.aurora.selfModelKnowledge.enabled') === true) {
+            auroraConfig.selfModelKnowledgeEnabled = true
+            logger.info('SelfModelKnowledge bridge enabled (vindex → Mnemic)')
+          }
+
           const aurora = new Aurora(
             mnemicField.getCortex(),
             modelProvider,
             knowledgeField,
             null,
             logger,
-            undefined,
+            auroraConfig,
             auroraPersistence,
           )
           thalamus.setAurora(aurora)
@@ -556,6 +564,36 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             hasReverie: !!intelligence.reverie,
           })
 
+          // Boot-time self-model probe: discover what the vindex model
+          // knows about CassiCore's architecture. Runs async.
+          if (aurora.hasSelfModelKnowledge) {
+            queueMicrotask(() => {
+              try {
+                const probe = aurora.refreshSelfModelKnowledge()
+                if (probe) {
+                  logger.info('Self-model knowledge probed at boot', {
+                    concepts: probe.concepts.length,
+                    selfAware: probe.concepts.filter(c => c.selfAware).length,
+                  })
+                }
+              } catch (err) {
+                logger.debug('Boot-time self-model probe failed', { error: String(err) })
+              }
+            })
+            // Gap 4: Periodic self-model refresh every 30 minutes
+            const REFRESH_INTERVAL_MS = 30 * 60 * 1000
+            setInterval(() => {
+              try { aurora.refreshSelfModelKnowledge() }
+              catch { /* best-effort */ }
+            }, REFRESH_INTERVAL_MS)
+            logger.info('Self-model periodic refresh scheduled', { intervalMs: REFRESH_INTERVAL_MS })
+          }
+
+          // Wire MnemicField to Aurora for persistence (Gap 1)
+          if (mnemicField && typeof aurora.setMnemicField === 'function') {
+            aurora.setMnemicField(mnemicField)
+          }
+
           // C5 Resonance pipeline: observe each completed turn's response
           // through Aurora, then run steered generation from the updated
           // mental state and observe the steered text back into the graph.
@@ -581,6 +619,14 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
       const pinealModule = intelligence.registry.get('pineal') as
         import('../intelligence/pineal/index.js').PinealModule | undefined
       if (pinealModule) {
+        // Wire MnemicField into Pineal for radial topology — Pineal facets
+        // are stored as engrams at (0,0), anchoring the tonic center.
+        pinealModule.setMnemicField(mnemicField)
+        const seeded = pinealModule.seedMnemicFieldFacets()
+        if (seeded > 0) {
+          logger.info('Pineal facets seeded into MnemicField at origin', { count: seeded })
+        }
+
         const assembler = new PinealAssembler(pinealModule.getStore(), logger.child('pineal-assembler'))
         thalamus.setPinealAssembler(assembler)
         logger.info('Pineal assembler wired to Thalamus with turn reinforcement')
