@@ -23,7 +23,7 @@ type ToolSchema = NonNullable<CompletionOpts['tools']>[number]
 export const ACKNOWLEDGE_NUDGE_TOOL: ToolSchema = {
   name: 'acknowledge_nudge',
   description:
-    'Acknowledge a nudge from a reviewer (Yang or Yin). High-severity nudges BLOCK you until acknowledged. ' +
+    'Acknowledge a nudge from another posture. High-severity nudges BLOCK you until acknowledged. ' +
     'Provide a brief acknowledgment message confirming you understand and will address it.',
   input_schema: {
     type: 'object',
@@ -44,7 +44,7 @@ export const ACKNOWLEDGE_NUDGE_TOOL: ToolSchema = {
 export const SIGNAL_DONE_TOOL: ToolSchema = {
   name: 'signal_done',
   description:
-    'Signal that you have completed your work. This opens a final review window for the reviewers. ' +
+    'Signal that you have completed your work. This opens a final review window for the other postures. ' +
     'They may send blocking nudges during this window if they find critical issues. ' +
     'Provide your conclusion, confidence, and key points.',
   input_schema: {
@@ -68,7 +68,7 @@ export const SIGNAL_DONE_TOOL: ToolSchema = {
   },
 }
 
-/** Core Unity meta-tools */
+/** Core posture meta-tools — available to all postures */
 export const UNITY_TOOLS: ToolSchema[] = [
   SIGNAL_DONE_TOOL,
   ACKNOWLEDGE_NUDGE_TOOL,
@@ -129,19 +129,19 @@ export {
 // helix-posture-runner.ts already disabled them. Now removed entirely.
 // Use share_finding for the same effect.
 
-// Nudge tool — adapted from Dyad but with reviewer-to-Unity semantics
+// Nudge tool — adapted from Dyad but with posture-to-posture semantics
 export const SEND_NUDGE_TOOL: ToolSchema = {
   name: 'send_nudge',
   description:
-    'Send a nudge to Unity (the worker). Low-severity nudges are advisory (injected into Unity\'s next tool result). ' +
-    'High-severity nudges BLOCK Unity until acknowledged — use sparingly for critical issues only.',
+    'Send a nudge to another posture. Low-severity nudges are advisory (injected into the other posture\'s next tool result). ' +
+    'High-severity nudges BLOCK the other posture until acknowledged — use sparingly for critical issues only.',
   input_schema: {
     type: 'object',
     properties: {
       severity: {
         type: 'string',
         enum: ['low', 'high'],
-        description: 'Severity level: low=advisory (non-blocking), high=blocking (Unity must acknowledge).',
+        description: 'Severity level: low=advisory (non-blocking), high=blocking (the target posture must acknowledge).',
       },
       content: {
         type: 'string',
@@ -156,12 +156,12 @@ export const SEND_NUDGE_TOOL: ToolSchema = {
   },
 }
 
-// Review progress tool — lets reviewers see Unity's progress
+// Review progress tool — lets any posture see work progress
 export const REVIEW_PROGRESS_TOOL: ToolSchema = {
   name: 'review_progress',
   description:
-    'Get a live view of Unity\'s work progress — all work units, your dialectic state with the other reviewer, ' +
-    'and whether Unity has signaled done. Call this to monitor the pipeline.',
+    'Get a live view of work progress — all work units, your dialectic state with the other postures, ' +
+    'and whether any posture has signaled done. Call this to monitor the pipeline.',
   input_schema: {
     type: 'object',
     properties: {},
@@ -171,14 +171,14 @@ export const REVIEW_PROGRESS_TOOL: ToolSchema = {
 
 
 /**
- * propose_edit — Yang or Yin can propose a file edit through the dialectic.
+ * propose_edit — Any posture can propose a file edit through the dialectic.
  * The edit must be approved by the peer posture and then the Brainstem.
  */
 export const PROPOSE_EDIT_TOOL: ToolSchema = {
   name: 'propose_edit',
   description:
     'Propose a file edit through the dialectic approval process. ' +
-    'Your proposal will be reviewed by the other reviewer, then by the Brainstem before being applied. ' +
+    'Your proposal will be reviewed by the other postures, then by the Brainstem before being applied. ' +
     'Use this when you identify a concrete change that should be made. ' +
     'Provide the exact old content to replace and the new content.',
   input_schema: {

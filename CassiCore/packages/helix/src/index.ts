@@ -1,13 +1,13 @@
 /**
- * Helix — Inverted-Pyramid Agent Pattern
+ * Helix — Three-Posture Collaborative Agent Pattern
  *
- * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
- * and a Brainstem serving as cognitive organizer.
+ * Three equally capable postures (Unity, Yang, Yin) collaborating,
+ * with a Brainstem serving as cognitive organizer.
  *
  * Communication topology:
- *   Unity <-> Reviewers: WorkStream (work units, nudges)
- *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
- *   Brainstem -> Unity:  Guidance injection, annotations, pattern detection
+ *   Postures <-> Postures: WorkStream (work units, nudges)
+ *   Yang  <-> Yin:         DialecticChannel (findings, challenges, concessions)
+ *   Brainstem -> Postures: Guidance injection, annotations, pattern detection
  */
 
 import type { ILogger, IEventBus } from '../../../types/interfaces.js'

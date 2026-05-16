@@ -1101,16 +1101,16 @@ export class WorkStream {
     return this.yangDone
   }
 
-  // In Helix, the primary worker is Unity (not Yang), but WorkStream is shared.
+  // WorkStream is shared across all three postures.
   // These aliases make Helix call-sites self-documenting.
 
-  /** Alias for signalYangDone() — used by Helix where Unity is the worker. */
+  /** Alias for signalYangDone() — used by Helix for Unity posture signaling. */
   signalWorkerDone(): void { this.signalYangDone() }
 
-  /** Alias for isYangDone() — used by Helix where Unity is the worker. */
+  /** Alias for isYangDone() — used by Helix for Unity posture signaling. */
   isWorkerDone(): boolean { return this.isYangDone() }
 
-  /** Alias for waitForYangDone() — used by Helix where Unity is the worker. */
+  /** Alias for waitForYangDone() — used by Helix for Unity posture signaling. */
   waitForWorkerDone(): Promise<void> { return this.waitForYangDone() }
 
   waitForYangDone(): Promise<void> {

@@ -1,17 +1,16 @@
 /**
  * Helix Type Definitions
  *
- * Core types for the inverted-pyramid agent pattern.
- * One worker (Unity) at the base, two concurrent reviewers (Yang + Yin) above,
- * and a Brainstem serving as cognitive organizer.
+ * Core types for the three-posture collaborative agent pattern.
+ * Three equally capable postures (Unity, Yang, Yin) collaborating,
+ * with a Brainstem serving as cognitive organizer.
  *
  * Communication topology:
- *   Unity <-> Reviewers: WorkStream (work units, nudges)
- *   Yang  <-> Yin:       DialecticChannel (findings, challenges, concessions)
- *   Brainstem -> Unity:  Guidance injection, annotations, pattern detection
+ *   Postures <-> Postures: WorkStream (work units, nudges)
+ *   Yang  <-> Yin:         DialecticChannel (findings, challenges, concessions)
+ *   Brainstem -> Postures: Guidance injection, annotations, pattern detection
  *
- * Named after the double helix trail of binary stars — Unity is the barycenter,
- * Yang and Yin are the orbiting stars, Brainstem is the cognitive organizer.
+ * Named after the double helix trail of binary stars.
  */
 
 import type { ConvergencePoint, UnresolvedTension } from './dialectic-channel.js'
@@ -146,7 +145,7 @@ export function traitDistance(a: TraitVector, b: TraitVector): number {
 }
 
 
-/** Helix uses a subset of DyadRole — unity (worker) + yang/yin (reviewers). Mentor deprecated in favor of Brainstem. */
+/** Helix uses three equally capable postures (unity, yang, yin). Mentor deprecated in favor of Brainstem. */
 export type HelixRole = Extract<DyadRole, 'unity' | 'yang' | 'yin'>
 
 

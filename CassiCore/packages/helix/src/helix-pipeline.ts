@@ -1,16 +1,16 @@
 /**
- * Helix Pipeline — Orchestrator for the inverted-triangle agent pattern.
+ * Helix Pipeline — Orchestrator for the three-posture collaborative agent pattern.
  *
- * Wires three concurrent postures plus Brainstem:
- *   - Unity (worker): Full tools, posts work units via WorkStream
- *   - Yang (assertive reviewer): Read-only tools, DialecticChannel + WorkStream
- *   - Yin (cautious reviewer): Read-only tools, DialecticChannel + WorkStream
- *   - Brainstem (cognitive organizer): Replaces Mentor, scores work units, detects patterns
+ * Wires three equally capable postures plus Brainstem:
+ *   - Unity: Full tools, posts work units via WorkStream
+ *   - Yang: Read-only tools, DialecticChannel + WorkStream
+ *   - Yin: Read-only tools, DialecticChannel + WorkStream
+ *   - Brainstem (cognitive organizer): Scores work units, detects patterns
  *
  * Channels:
- *   - WorkStream: Unity ↔ reviewers (work units up, nudges down)
+ *   - WorkStream: Postures ↔ Postures (work units up, nudges down)
  *   - DialecticChannel: Yang ↔ Yin (findings, challenges, concessions)
- *   - ContextSources: Brainstem → Unity (guidance, flags, annotations)
+ *   - ContextSources: Brainstem → Postures (guidance, flags, annotations)
  *   REMOVED: Blackboard deprecated — now uses GlobalWorkspace + LaminaField
  *
  * Watchdog: steer-then-kill (2min warn → 4min escalate → 6min kill)
@@ -172,8 +172,8 @@ export interface HelixPipelineOpts {
   workingDir?: string
 
   /**
-   * Separate context for reviewer postures (Yang/Yin).
-   * @why Reviewers only need editing rules and review criteria, not full file
+   * Separate review context for other postures.
+   * @why Other postures only need editing rules and review criteria, not full file
    *      assignments. Splitting context saves tokens when the goal is large
    *      (e.g., mass-edit tasks with hundreds of file assignments).
    */

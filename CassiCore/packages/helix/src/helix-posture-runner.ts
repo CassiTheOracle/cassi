@@ -755,17 +755,17 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
 
 
   /**
-   * Run as a reviewer (Yang or Yin).
+   * Run as a collaborating posture (Yang or Yin).
    *
-   * Active investigation mode: the reviewer independently investigates the goal
+   * Active investigation mode: the posture independently investigates the goal
    * using read-only tools, posts findings and challenges through the dialectic,
-   * and uses Unity's work units as investigation seeds (not as the sole trigger).
+   * and uses work units as investigation seeds (not as the sole trigger).
    *
    * Loop structure:
-   *   1. Run LLM inference — reviewer investigates independently
+   *   1. Run LLM inference — posture investigates independently
    *   2. Process tool calls (read-only investigation + dialectic meta-tools)
-   *   3. Inject new work units from Unity as additional context
-   *   4. Inject dialectic messages from the other reviewer
+   *   3. Inject new work units from other postures as additional context
+   *   4. Inject dialectic messages from the peer posture
    *   5. Inject brainstem guidance when available
    *   6. Continue until concluded or cancelled
    */
@@ -2173,6 +2173,17 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       }
     }
 
+    // Tools that are replaced by Hermes equivalents — no longer injected for Helix postures.
+    // The old implementations still exist for backward compat (other consumers), but Helix
+    // uses Hermes-backed tools instead.
+    const OBSOLETE_TOOL_NAMES = new Set([
+      'shell_exec', 'cassi-shell',
+      'read', 'write', 'edit', 'read_files',
+      'todo_write', 'web_fetch',
+      // Consolidated gateway tools — split into individual Hermes tools
+      'cassi_file', 'cassi_web', 'cassi_code', 'cassi_browser',
+    ])
+
     // Add real tools (filtered by access level)
     if (this.toolRegistry) {
       // WHY: Use flexToolAccess from posture config when available, falling back to
@@ -2193,6 +2204,8 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
         // Hide raw external MCP tools and consolidated gateway tools; inject curated variants below
         if (isExternalMcpTool(schema.name)) continue
         if (CONSOLIDATED_GATEWAY_TOOL_NAMES.has(schema.name)) continue
+        // Filter out old CassiCore tools replaced by Hermes equivalents
+        if (OBSOLETE_TOOL_NAMES.has(schema.name)) continue
 
         // Apply toolFilter allow/deny lists (from Constellation or Helix pipeline)
         if (this.toolFilter) {
@@ -2441,12 +2454,14 @@ export class HelixPostureRunner extends BasePostureRunner<HelixPosture> {
       if (
         tc.name === 'write' || tc.name === 'edit' || tc.name === 'edit_file' ||
         tc.name === 'write_file' || tc.name === 'file_artifact_write' ||
-        tc.name === 'cassi_write' || tc.name === 'cassi_edit'
+        tc.name === 'cassi_write' || tc.name === 'cassi_edit' ||
+        // Hermes tool names
+        tc.name === 'patch' || tc.name === 'browser_navigate'
       ) {
         const path = String(tc.input?.path ?? tc.input?.filePath ?? 'unknown')
         filesModified.push({
           path,
-          action: (tc.name === 'edit' || tc.name === 'edit_file' || tc.name === 'cassi_edit') ? 'modified' : 'created',
+          action: (tc.name === 'edit' || tc.name === 'edit_file' || tc.name === 'cassi_edit' || tc.name === 'patch') ? 'modified' : 'created',
           summary: `${tc.name} on ${path}`,
         })
       }
