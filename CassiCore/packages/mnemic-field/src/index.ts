@@ -2151,8 +2151,35 @@ export class MnemicField {
     this.logger.info('Dream engine connected to consolidation pipeline')
   }
 
+  /**
+   * Default radial distance for engram types when no position is specified.
+   * Lower = closer to center = higher attentional priority.
+   * Returns undefined to let store() apply the standard periphery fallback.
+   */
+  private static getDefaultRadial(nodeType: string): number | undefined {
+    if (nodeType === 'pineal_facet') return 0
+    if (nodeType === 'fact' || nodeType === 'decision') return 0.15 + Math.random() * 0.1
+    if (nodeType === 'insight' || nodeType === 'pattern') return 0.20 + Math.random() * 0.1
+    if (nodeType === 'expert_summary' || nodeType === 'abstraction') return 0.12 + Math.random() * 0.1
+    if (nodeType === 'goal') return 0.18 + Math.random() * 0.1
+    if (nodeType === 'tool' || nodeType === 'tool_invocation') return 0.55 + Math.random() * 0.1
+    if (nodeType === 'file' || nodeType === 'file_version') return 0.50 + Math.random() * 0.1
+    if (nodeType === 'message' || nodeType === 'episode') return 0.80 + Math.random() * 0.1
+    if (nodeType === 'file_read') return 0.90 + Math.random() * 0.05
+    if (nodeType === 'bridge') return 0.75 + Math.random() * 0.1
+    return undefined
+  }
+
   storeForSession(input: EngramCreate & { sessionId?: string }): Engram {
     const sessionId = input.sessionId
+    // Auto-assign radial position from nodeType when no position specified
+    if (input.x === undefined && input.y === undefined
+        && input.r === undefined && input.theta === undefined) {
+      const r = MnemicField.getDefaultRadial(input.nodeType)
+      if (r !== undefined) {
+        input = { ...input, r }
+      }
+    }
     if (sessionId) {
       const metadata = { ...(input.metadata ?? {}), sessionId }
       const { sessionId: _sid, ...rest } = input
