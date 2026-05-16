@@ -26,6 +26,7 @@ import type { MnemicField } from '../mnemic-field/index.js'
 import type { EngramCreate } from '../mnemic-field/types.js'
 import { ConceptSelfAwarenessClassifier } from './concept-self-awareness.js'
 import type { ConceptAwareness } from './concept-self-awareness.js'
+import { getEmbeddingService } from '../embeddings/embedding-service.js'
 
 
 /** Layer band classification for a feature hit. */
@@ -126,6 +127,27 @@ function classifyBand(layer: number, knowledge: BandBounds, output: BandBounds):
   return 'output'
 }
 
+
+/** Deterministic angle (0 to 2π) from a string label. Uses djb2 hash. */
+function hashToAngle(label: string | null): number {
+  if (!label) return Math.random() * 2 * Math.PI
+  let hash = 5381
+  for (let i = 0; i < label.length; i++) {
+    hash = ((hash << 5) + hash + label.charCodeAt(i)) | 0
+  }
+  const unsigned = hash >>> 0
+  return (unsigned / 0xFFFFFFFF) * 2 * Math.PI
+}
+
+/**
+ * Compute radial distance from normalized gate score.
+ * Score 3.0 → r ≈ 0.1 (close to origin, high confidence).
+ * Score 0.0 → r ≈ 1.0 (periphery, low confidence).
+ */
+function gateScoreToR(score: number): number {
+  const clamped = Math.min(1.0, Math.abs(score) / 3.0)
+  return 1.0 - clamped * 0.9
+}
 
 const classifier = new ConceptSelfAwarenessClassifier()
 
@@ -339,6 +361,15 @@ export class SelfModelKnowledgeProvider {
     const storedIds = new Map<string, string>()
 
     for (const concept of candidates.slice(0, maxConcepts)) {
+      // Phase 8.1: Gate score → radial position for vindex-derived engrams
+      // Score 3.0 → r ≈ 0.1 (close to origin = high model confidence)
+      // Score 0.0 → r ≈ 1.0 (periphery = low model confidence)
+      const r = gateScoreToR(concept.topScore)
+
+      // Phase 8.1: Theta from association label via deterministic hash
+      // Falls back to random angle if no bestMatch label
+      const theta = hashToAngle(concept.bestMatch)
+
       // Build engram content
       const content = JSON.stringify({
         concept: concept.concept,
@@ -359,6 +390,10 @@ export class SelfModelKnowledgeProvider {
         nodeType: 'pattern',
         content,
         initialPotentiation: concept.selfAware ? 0.6 : 0.3,
+        /** Phase 8.1: Radial position from gate score (score 3.0 → r≈0.1, score 0→ r≈1.0) */
+        r,
+        /** Phase 8.1: Angular position from association label (VQ-sector-compatible) */
+        theta,
         tags: [
           `domain:${concept.domain}`,
           `band:${concept.dominantBand}`,
