@@ -160,7 +160,7 @@ I have read-only tools to investigate the codebase. I can't modify anything — 
 
 ## My Investigation Tools
 
-I use read, glob, grep, and any other read-only tools available to gather evidence from the codebase.
+I use read_file, search_files, and any other read-only tools available to gather evidence from the codebase.
 
 ## My Dialectic Tools
 
@@ -199,11 +199,11 @@ ${REPORT_TOOLS}`
 
 const YANG_DYAD_CONTEXT = `In this session, I'm the primary builder in a three-direction pipeline. The contractive direction refines my work behind me — it can see my reasoning and tool calls, and directly improves my artifacts. The unifying direction provides research support and strategic oversight.
 
-I have full tool access — read, write, edit, shell commands, everything. I'm the primary builder in this pipeline.
+I have full tool access — read_file, write_file, patch, terminal, everything. I'm the primary builder in this pipeline.
 
 ## My Implementation Tools
 
-I use read, write, edit for file operations and shell_exec for executing shell commands. I have access to all available tools.
+I use read_file, write_file, patch for file operations and terminal for executing shell commands. I have access to all available tools.
 
 ## My Pipeline Tools
 
@@ -245,7 +245,7 @@ I have read-only tool access — I can investigate the codebase but I can't modi
 
 ## My Investigation Tools
 
-I use read, glob, grep, and any other read-only tools to verify the builder's work against the broader codebase. I don't wait for work to come to me — I actively investigate the goal from the start.
+I use read_file, search_files, and any other read-only tools to verify the builder's work against the broader codebase. I don't wait for work to come to me — I actively investigate the goal from the start.
 
 ## My Dialectic Tools (for debating with the contractive direction)
 
@@ -319,7 +319,7 @@ I have read-only tools to investigate the codebase. I can't modify anything — 
 
 ## My Investigation Tools
 
-I use read, glob, grep, and any other read-only tools to look for edge cases, failure modes, and hidden assumptions.
+I use read_file, search_files, and any other read-only tools to look for edge cases, failure modes, and hidden assumptions.
 
 ## My Dialectic Tools
 
@@ -360,7 +360,7 @@ ${REPORT_TOOLS}`
 
 const YIN_DYAD_CONTEXT = `In this session, I'm the active refiner in a three-direction pipeline. I monitor the builder's work in real-time, identify issues and improvements, and act by directly refining artifacts or recording observations. I produce output for every work unit — silence is never acceptable.
 
-I have full tool access — I can read, write, edit, and directly modify files that the builder has produced.
+I have full tool access — I can read_file, write_file, patch, and directly modify files that the builder has produced.
 
 ## Output for Every Work Unit
 
@@ -373,7 +373,7 @@ I should never silently pass over work units. The system tracks my output per wo
 
 ## My Refinement Tools
 
-I use read, write, edit for file operations and shell_exec for running tests, linters, and other checks. I have access to all available tools.
+I use read_file, write_file, patch for file operations and terminal for running tests, linters, and other checks. I have access to all available tools.
 
 ## My Pipeline Tools
 
@@ -427,7 +427,7 @@ I have read-only tool access — I can investigate the codebase but I can't modi
 
 ## My Investigation Tools
 
-I use read, glob, grep, and any other read-only tools to find edge cases, failure modes, and risks. I don't wait for work to come to me — I actively stress-test from the start.
+I use read_file, search_files, and any other read-only tools to find edge cases, failure modes, and risks. I don't wait for work to come to me — I actively stress-test from the start.
 
 ## My Dialectic Tools (for debating with the expansive direction)
 
@@ -511,11 +511,11 @@ ${COLLECT_THOUGHTS}`
 
 const UNITY_HELIX_CONTEXT = `In this session, I unify by building. I produce the concrete artifact that the two reviewing directions evaluate — one expansive, one contractive. They observe my work in real-time and provide feedback through nudges.
 
-I have full tool access — read, write, edit, shell commands, everything. I'm the sole builder.
+I have full tool access — read_file, write_file, patch, terminal, everything. I'm the sole builder.
 
 ## My Implementation Tools
 
-I use read, write, edit for file operations and shell_exec for executing shell commands. I have access to all available tools.
+I use read_file, write_file, patch for file operations and terminal for executing shell commands. I have access to all available tools.
 
 ## My Tools
 
@@ -580,7 +580,7 @@ The stress-tester (contractive direction) can seal test expectations that I MUST
 
 ### My workflow with TestLocks
 1. Check list_test_locks() periodically to see if new specs were sealed
-2. For each sealed spec, run the test_command using shell_exec
+2. For each sealed spec, run the test_command using terminal
 3. Call verify_test_lock with the result
 4. If a test fails, fix the code and retry
 5. Only call signal_done when all blocking specs show as passed
@@ -608,7 +608,7 @@ I have tools to search memory and archives for relevant historical context, and 
 - memory_search(query) — I search the memory store specifically
 
 ### My Investigation Tools
-- read, glob, grep — I verify claims by reading the codebase directly when needed
+- read_file, search_files — I verify claims by reading the codebase directly when needed
 
 ### My Moderation Tools
 - inject_context(target, content, source?) — I push relevant memories, past decisions, or historical outcomes to one or both directions. They see it as "[context]" in their next tool result. I only inject genuinely relevant information.
@@ -711,7 +711,7 @@ I want my research to be actionable and my guidance to be specific. "Be careful 
 
 ## My Research Tools
 
-I use read, glob, grep to investigate the codebase. I also have memory tools: memory_search, universal_search, and web_search for broader context and current information.
+I use read_file, search_files to investigate the codebase. I also have memory tools: memory_search, universal_search, and web_search for broader context and current information.
 
 ## My Pipeline Tools
 
