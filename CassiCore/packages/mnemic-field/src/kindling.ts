@@ -250,6 +250,20 @@ export class KindlingEngine {
       mergeSeeds(seedMap, this.findSeedsByText(textQuery, Math.ceil(maxSeeds / 2)), 0.8)
     }
 
+    // Apply radial attention boost when attractor is wired
+    if (this.attractor) {
+      for (const [engramId, charge] of seedMap) {
+        const engram = this.cortex.getEngram(engramId)
+        if (!engram) continue
+        const r = (engram.metadata as any)?.r as number | undefined
+        const theta = (engram.metadata as any)?.theta as number | undefined
+        if (r !== undefined && theta !== undefined) {
+          const boost = this.attractor.radialBoost(r, theta)
+          seedMap.set(engramId, charge * (1.0 + boost))
+        }
+      }
+    }
+
     return Array.from(seedMap.entries())
       .map(([engramId, charge]) => ({ engramId, charge }))
       .sort((a, b) => b.charge - a.charge)
@@ -603,8 +617,18 @@ export class KindlingEngine {
       const engram = this.cortex.getEngram(engramId)
       if (!engram) continue
 
-      const effectiveSparkPoint = globalSparkPoint -
+      let effectiveSparkPoint = globalSparkPoint -
         engram.potentiation * SPARK_POINT_DEFAULTS.potentiationScale
+
+      // Radial bias: engrams near the attractor ignite at lower charge
+      if (this.attractor) {
+        const r = (engram.metadata as any)?.r as number | undefined
+        const theta = (engram.metadata as any)?.theta as number | undefined
+        if (r !== undefined && theta !== undefined) {
+          const boost = this.attractor.radialBoost(r, theta)
+          effectiveSparkPoint *= (1.0 - 0.5 * boost)
+        }
+      }
 
       if (charge >= Math.max(0.01, effectiveSparkPoint)) {
         candidates.push({ engram, charge })
@@ -642,6 +666,18 @@ export class KindlingEngine {
     }
 
     this.driftCoActivated(luminalSet.engrams)
+
+    // Update phasic attractor from luminal set positions
+    if (this.attractor) {
+      const chargedPositions = luminalSet.engrams
+        .map(({ engram, charge }) => ({
+          r: (engram.metadata as any)?.r as number | undefined,
+          theta: (engram.metadata as any)?.theta as number | undefined,
+          charge,
+        }))
+        .filter(e => e.r !== undefined && e.theta !== undefined) as Array<{ r: number; theta: number; charge: number }>
+      this.attractor.updateFromLuminal(chargedPositions)
+    }
 
     this.logger.debug('Activation recorded', {
       engramCount: luminalSet.engrams.length,

@@ -13,6 +13,7 @@ import { ConsolidationEngine } from './consolidation.js'
 import { GradientEngine } from './backpropagation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
+import { AttractorManager } from './attractor.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
@@ -172,6 +173,8 @@ export class MnemicField {
   private kindlingEngine: KindlingEngine
   private consolidationEngine: ConsolidationEngine
   private gradientEngine: GradientEngine
+  /** Attentional focus — tonic center (Pineal facets at origin) + phasic (session context). */
+  readonly attractor: AttractorManager
   private migrationJobs: MigrationJobStore
   private logger: ILogger
   private projectionState: ProjectionState | null = null
@@ -275,7 +278,9 @@ export class MnemicField {
 
     this.db = db  // Store for persistence
     this.cortex = new Cortex(db, logger)
+    this.attractor = new AttractorManager()
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
+    this.kindlingEngine.setAttractor(this.attractor)
     this.gradientEngine = new GradientEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
     this.migrationJobs = new MigrationJobStore(db)
