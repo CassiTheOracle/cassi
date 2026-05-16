@@ -17,7 +17,7 @@
  *   - No codebook needed (angles are naturally bounded in [0, 2π))
  *   - High cosine similarity on reconstruction (~0.90+ for dim ≥ 128)
  *
- * Wire format v1 (10-byte header + packed angles):
+ * Wire format v1 (12-byte header + packed angles):
  *   [magic: "PLQT" = 4 bytes]
  *   [version: 1 byte = 0x01]
  *   [bits: 1 byte]
@@ -33,7 +33,7 @@ const TWO_PI = 2 * Math.PI
 
 /** Wire format magic bytes: "PLQT" */
 const MAGIC = Buffer.from('PLQT', 'ascii')
-const HEADER_LEN = 10  // magic(4) + version(1) + bits(1) + dimension(2) + norm(4)
+const HEADER_LEN = 12  // magic(4) + version(1) + bits(1) + dimension(2) + norm(4)
 const WIRE_VERSION = 0x01
 
 function assertPowerOfTwo(d: number): void {

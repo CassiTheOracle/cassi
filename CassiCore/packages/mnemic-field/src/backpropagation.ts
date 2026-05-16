@@ -158,6 +158,17 @@ export class GradientEngine {
       if (!contributions) continue
 
       for (const record of contributions) {
+        // Skip records from non-neural kindling where preActivation defaults to 0.
+        // With zero preActivation, the gradient becomes zero regardless of output
+        // charge, producing silent learning failures that waste compute.
+        if (record.preActivation === 0 && record.activatedOutput === 0) {
+          this.logger?.debug('Skipping zero-activation trace record', {
+            traceId: trace.id,
+            sourceId: record.sourceId,
+            targetId: record.targetId,
+          })
+          continue
+        }
         const dOutput_dPreAct = this.activationDerivative(record.preActivation)
 
         const dPreAct_dWeight = record.sourceCharge

@@ -37,7 +37,7 @@ function getPqCodec(dim: number, bits: number = EMBEDDING_QUANT_BITS): PolarQuan
   return codec
 }
 
-const PQ_HEADER_LEN = 10  // magic(4) + version(1) + bits(1) + dimension(2) + norm(4)
+const PQ_HEADER_LEN = 12  // magic(4) + version(1) + bits(1) + dimension(2) + norm(4)
 
 export function toFloatArray(buf: Buffer | null): Float32Array | null {
   if (!buf || buf.length === 0) return null
@@ -62,6 +62,14 @@ export function fromFloatArray(arr: Float32Array | number[] | null | undefined):
 export function compressEmbedding(arr: Float32Array | number[] | null | undefined): Buffer | null {
   if (!arr) return null
   const f32 = arr instanceof Float32Array ? arr : new Float32Array(arr)
+  // PolarQuant requires power-of-2 dimension for the Walsh-Hadamard
+  // transform and needs sufficient dimension (>= DEFAULT_EMBEDDING_DIM)
+  // for 3-bit quantization to preserve per-element precision well enough
+  // to maintain meaningful cosine similarity. For small or odd dimensions,
+  // fall back to raw Float32Array storage.
+  if (f32.length < DEFAULT_EMBEDDING_DIM || (f32.length & (f32.length - 1)) !== 0) {
+    return fromFloatArray(f32)
+  }
   return getPqCodec(f32.length).encode(f32)
 }
 
@@ -175,8 +183,8 @@ export class Cortex {
   private prepareStatements() {
     return {
       insertEngram: this.db.prepare(`
-        INSERT INTO engrams (id, content, node_type, x, y, t, potentiation, cluster_id, embedding, tags, provenance, created_at, accessed_at, metadata)
-        VALUES (@id, @content, @node_type, @x, @y, @t, @potentiation, NULL, @embedding, @tags, @provenance, @created_at, NULL, @metadata)
+        INSERT INTO engrams (id, content, node_type, x, y, t, potentiation, cluster_id, embedding, tags, provenance, created_at, accessed_at, metadata, file_path, content_hash)
+        VALUES (@id, @content, @node_type, @x, @y, @t, @potentiation, NULL, @embedding, @tags, @provenance, @created_at, NULL, @metadata, @file_path, @content_hash)
       `),
       getEngram: this.db.prepare(`SELECT * FROM engrams WHERE id = ?`),
       deleteEngram: this.db.prepare(`DELETE FROM engrams WHERE id = ?`),
@@ -290,6 +298,36 @@ export class Cortex {
         ORDER BY MIN(ea.potentiation, eb.potentiation) * s.weight DESC
         LIMIT ?
       `),
+
+      findFileByPath: this.db.prepare(`
+        SELECT * FROM engrams
+        WHERE node_type = 'file' AND file_path = ?
+        LIMIT 1
+      `),
+
+      findFileVersionsByPath: this.db.prepare(`
+        SELECT * FROM engrams
+        WHERE node_type = 'file_version'
+          AND json_extract(metadata, '$.filePath') = ?
+        ORDER BY t ASC
+      `),
+
+      pruneFileReads: this.db.prepare(`
+        DELETE FROM engrams
+        WHERE rowid IN (
+          SELECT rowid FROM (
+            SELECT e.rowid,
+              ROW_NUMBER() OVER (
+                PARTITION BY json_extract(e.metadata, '$.filePath')
+                ORDER BY e.t DESC
+              ) AS rn
+            FROM engrams e
+            WHERE e.node_type = 'file_read'
+              AND e.created_at < ?
+          )
+          WHERE rn > ?
+        )
+      `),
     }
   }
 
@@ -312,6 +350,8 @@ export class Cortex {
       provenance: input.provenance ?? '',
       created_at: input.createdAt ?? now,
       metadata: JSON.stringify(input.metadata ?? {}),
+      file_path: (input.metadata as any)?.filePath ?? null,
+      content_hash: (input.metadata as any)?.checksum ?? (input.metadata as any)?.currentChecksum ?? null,
     })
 
     const rowid = (this.db.prepare(`SELECT rowid FROM engrams WHERE id = ?`).get(id) as { rowid: number })?.rowid
@@ -326,6 +366,21 @@ export class Cortex {
   getEngram(id: string): Engram | null {
     const row = this.stmts.getEngram.get(id) as Record<string, unknown> | undefined
     return row ? rowToEngram(row) : null
+  }
+
+  /** Batch-fetch engrams by ID. Spread loop hot path — avoids N individual queries. */
+  getEngrams(ids: string[]): Map<string, Engram> {
+    if (ids.length === 0) return new Map()
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT * FROM engrams WHERE id IN (${placeholders})`
+    ).all(...ids) as Record<string, unknown>[]
+    const result = new Map<string, Engram>()
+    for (const row of rows) {
+      const e = rowToEngram(row)
+      result.set(e.id, e)
+    }
+    return result
   }
 
   updateEngram(id: string, update: EngramUpdate): Engram | null {
@@ -461,6 +516,50 @@ export class Cortex {
     return (this.stmts.getSpikeCount.get(engramId) as { count: number }).count
   }
 
+  /**
+   * Batch fetch spikes for many engrams in a single query.
+   * Returns a Map keyed by engram_id with arrays of {timestamp, magnitude, taskContext}.
+   */
+  getAllSpikesForEngrams(ids: string[], limit: number): Map<string, Array<{ timestamp: number; magnitude: number; taskContext: string | null }>> {
+    const result = new Map<string, Array<{ timestamp: number; magnitude: number; taskContext: string | null }>>()
+    if (ids.length === 0) return result
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT engram_id, timestamp, magnitude, task_context FROM (
+         SELECT engram_id, timestamp, magnitude, task_context,
+                ROW_NUMBER() OVER (PARTITION BY engram_id ORDER BY timestamp DESC) AS rn
+         FROM activation_spikes WHERE engram_id IN (${placeholders})
+       ) WHERE rn <= ?`
+    ).all(...ids, limit) as Array<{ engram_id: string; timestamp: number; magnitude: number; task_context: string | null }>
+    for (const row of rows) {
+      const list = result.get(row.engram_id)
+      const entry = { timestamp: row.timestamp, magnitude: row.magnitude, taskContext: row.task_context ?? null }
+      if (list) {
+        list.push(entry)
+      } else {
+        result.set(row.engram_id, [entry])
+      }
+    }
+    return result
+  }
+
+  /**
+   * Batch fetch spike counts for many engrams in a single query.
+   * Returns a Map keyed by engram_id with the spike count.
+   */
+  getAllSpikeCountsForEngrams(ids: string[]): Map<string, number> {
+    const result = new Map<string, number>()
+    if (ids.length === 0) return result
+    const placeholders = ids.map(() => '?').join(',')
+    const rows = this.db.prepare(
+      `SELECT engram_id, COUNT(*) as count FROM activation_spikes WHERE engram_id IN (${placeholders}) GROUP BY engram_id`
+    ).all(...ids) as Array<{ engram_id: string; count: number }>
+    for (const row of rows) {
+      result.set(row.engram_id, row.count)
+    }
+    return result
+  }
+
   pruneSpikes(engramId: string, keepCount = 100): number {
     const result = this.stmts.pruneSpikes.run(engramId, engramId, keepCount)
     return result.changes
@@ -567,6 +666,41 @@ export class Cortex {
       const tension = Math.min(engramA.potentiation, engramB.potentiation) * synapse.weight
       return { engramA, engramB, synapse, tension }
     })
+  }
+
+  /**
+   * Find a file engram by its filePath.
+   * Uses json_extract(metadata, '$.filePath') — fast enough for the
+   * hot path because the engrams table is indexed by node_type and
+   * json_extract is optimized in recent SQLite versions.
+   */
+  findFileByPath(filePath: string): Engram | null {
+    const row = this.stmts.findFileByPath.get(filePath) as Record<string, unknown> | undefined
+    return row ? rowToEngram(row) : null
+  }
+
+  /**
+   * Find all file_version engrams for a given filePath.
+   * Returns all versions sorted by t (creation order) so the caller can
+   * pick v1 (first), vN-1 (penultimate), etc. in a single DB round-trip.
+   */
+  findFileVersionsByPath(filePath: string): Engram[] {
+    const rows = this.stmts.findFileVersionsByPath.all(filePath) as Record<string, unknown>[]
+    return rows.map(rowToEngram)
+  }
+
+  /**
+   * Prune stale file_read engrams older than a given threshold.
+   * Keeps at most `keepPerPath` latest file_read engrams per file path.
+   * Returns the number of deleted engrams.
+   *
+   * Safe to call periodically (every few hours) — uses a single DELETE
+   * with a subquery to identify candidates.
+   */
+  pruneFileReads(olderThanMs: number, keepPerPath = 3): number {
+    const olderThanIso = new Date(Date.now() - olderThanMs).toISOString()
+    const result = this.stmts.pruneFileReads.run(olderThanIso, keepPerPath)
+    return result.changes
   }
 
   bulkUpdatePotentiation(updates: Array<{ id: string; potentiation: number }>): void {
@@ -693,6 +827,26 @@ export class Cortex {
     return this.db.prepare(
       `SELECT id, content FROM engrams WHERE embedding IS NULL LIMIT ?`
     ).all(limit) as Array<{ id: string; content: string }>
+  }
+
+  /**
+   * Return conversation engrams missing semanticType classification.
+   * Filters to engrams with conversation-relevant provenance (thalamus, hermes)
+   * and short text content (not code blobs). Maximizes embedding ROI.
+   */
+  getUnclassifiedConversationEngrams(limit = 500): Engram[] {
+    const all = this.db.prepare(
+      `SELECT * FROM engrams
+       WHERE (provenance LIKE 'thalamus%' OR provenance LIKE 'hermes%'
+              OR provenance LIKE 'conversation%' OR provenance LIKE 'turn-pipeline%'
+              OR provenance LIKE 'dialectic%' OR provenance LIKE 'memory:%'
+              OR provenance LIKE 'system:%')
+       AND metadata NOT LIKE '%"semanticType"%'
+       AND LENGTH(content) BETWEEN 10 AND 2000
+       ORDER BY t DESC
+       LIMIT ?`
+    ).all(limit) as Record<string, unknown>[]
+    return all.map(rowToEngram)
   }
 
   /**

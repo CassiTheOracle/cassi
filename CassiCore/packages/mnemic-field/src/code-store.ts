@@ -201,6 +201,27 @@ export class CodeStore {
       metadata: JSON.stringify(input.metadata ?? {}),
     })
 
+    // Dual-write: store as engram for the pure-engram model
+    if (input.authorSessionId) {
+      this.field.storeForSession({
+        sessionId: input.authorSessionId,
+        content: input.description,
+        nodeType: 'changeset',
+        tags: ['changeset', `session:${input.authorSessionId}`, 'status:pending'],
+        provenance: 'code-store',
+        metadata: {
+          changesetId: id,
+          description: input.description,
+          authorSessionId: input.authorSessionId,
+          authorAgentId: input.authorAgentId,
+          parentChangesetId: input.parentChangesetId,
+          status: 'pending',
+          fileCount: 0,
+          createdAt: now,
+        },
+      })
+    }
+
     return this.getChangeset(id)!
   }
 
@@ -353,6 +374,28 @@ export class CodeStore {
     })
 
     this.recordFileChange(changesetId, engram.id, operation, previousContent, previousChecksum)
+
+    // Dual-write: also store a file_version engram for the pure-engram model
+    const cs = this.getChangeset(changesetId)
+    if (cs?.authorSessionId) {
+      const checksum = sha256(content)
+      this.field.storeForSession({
+        sessionId: cs.authorSessionId,
+        content,
+        nodeType: 'file_version',
+        tags: ['file_version', `file:${filePath}`, `session:${cs.authorSessionId}`],
+        provenance: 'code-store',
+        metadata: {
+          filePath,
+          checksum,
+          sizeBytes: Buffer.byteLength(content, 'utf8'),
+          versionIndex: 0,
+          changesetId,
+          operation,
+        },
+      })
+      // Phase 6 will wire contains/created_in synapses from changeset → file_version
+    }
 
     return { engram, operation }
   }

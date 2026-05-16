@@ -1,7 +1,6 @@
 import type { ILogger } from '../../../types/interfaces.js'
 import { computeSpikeImportance, computeAlpha } from './cortex.js'
 import type { Cortex } from './cortex.js'
-import type { FilamentConsolidator } from './filament-consolidation.js'
 import type { GradientEngine } from './backpropagation.js'
 import type { Engram, MnemicSynapse, Nucleus, BackpropResult } from './types.js'
 import {
@@ -18,8 +17,6 @@ export interface ConsolidationResult {
   abstractionsCreated: number
   spikesPruned: number
   forwardTracesPruned: number
-  filamentSynapsesCreated: number
-  filamentSynapsesDecayed: number
   gradientResult?: BackpropResult
   dreamResult?: DreamResult
   durationMs: number
@@ -32,7 +29,6 @@ export interface ConsolidationOptions {
   skipAbstractions?: boolean
   skipPruning?: boolean
   skipForwardTracePrune?: boolean
-  skipFilamentConsolidation?: boolean
   skipGradients?: boolean
   skipDreaming?: boolean
   pruneKeepCount?: number
@@ -58,10 +54,25 @@ function yieldToEventLoop(): Promise<void> {
 export class ConsolidationEngine {
   private logger: ILogger
 
+  /**
+   * Type-specific potentiation multipliers for semantic classification labels.
+   * Decisions and insights retain near-full strength; concerns and anomalies
+   * decay faster so retrieval naturally favors durable facts.
+   */
+  private static TYPE_POTENTIATION: Record<string, number> = {
+    decision: 1.0,      // full retention — decisions define the project
+    insight: 0.85,       // high retention — understanding persists
+    resolution: 0.8,     // high — resolved questions are valuable context
+    revelation: 0.8,     // high — revelations shift the mental model
+    confirmation: 0.75,  // moderate-high — validates working hypotheses
+    reversal: 0.85,      // high — corrections are crucial for accuracy
+    concern: 0.5,        // moderate — risks fade if not revisited
+    anomaly: 0.35,       // low — one-off surprises don't need long life
+  }
+
   constructor(
     private cortex: Cortex,
     logger: ILogger,
-    private filamentConsolidator: FilamentConsolidator | null = null,
     private gradientEngine: GradientEngine | null = null,
     private dreamEngine: DreamEngine | null = null,
   ) {
@@ -83,101 +94,109 @@ export class ConsolidationEngine {
     let nucleiDetected = 0
     let abstractionsCreated = 0
     let spikesPruned = 0
-    let filamentSynapsesCreated = 0
-    let filamentSynapsesDecayed = 0
     let gradientResult: BackpropResult | undefined
     let dreamResult: DreamResult | undefined
-
-    // Load the full dataset once — computeRadiance, applyCoActivationDrift,
-    // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
-    // instead of three times cuts ~2/3 of the SQLite I/O per consolidation.
-    const needsFullDataset = !options.skipRadiance || !options.skipDrift || !options.skipPruning
-    const dataset = needsFullDataset ? this.cortex.getAllEngramsWithSynapses() : undefined
-    if (needsFullDataset) await yieldToEventLoop()
-
-    if (!options.skipRadiance) {
-      potentiationUpdates = await this.computeRadiance(dataset)
-      await yieldToEventLoop()
-    }
-
-    if (!options.skipDrift) {
-      positionDrifts = await this.applyCoActivationDrift(dataset)
-      await yieldToEventLoop()
-    }
-
-    // Dreaming: discover hidden connections via vindex feature overlap
-    if (!options.skipDreaming && this.dreamEngine) {
-      dreamResult = await this.dreamEngine.dream()
-      await yieldToEventLoop()
-    }
-
-    if (!options.skipNuclei) {
-      nucleiDetected = this.detectNuclei(
-        options.nucleiMinClusterSize ?? 3,
-        options.nucleiEpsilon ?? 0.015,
-      )
-      await yieldToEventLoop()
-    }
-
-    if (!options.skipAbstractions) {
-      abstractionsCreated = this.generateAbstractions(
-        options.abstractionMinMembers ?? 5,
-        options.abstractionMinPotentiation ?? 0.3,
-      )
-      await yieldToEventLoop()
-    }
-
-    if (!options.skipPruning) {
-      spikesPruned = await this.pruneSpikeHistories(options.pruneKeepCount ?? 100, dataset?.engrams)
-      await yieldToEventLoop()
-    }
-
-    if (!options.skipFilamentConsolidation && this.filamentConsolidator) {
-      const decay = this.filamentConsolidator.decayCoActivation()
-      filamentSynapsesDecayed = decay.deleted
-      await yieldToEventLoop()
-      const tier2 = this.filamentConsolidator.runTier2()
-      filamentSynapsesCreated = tier2.synapsesCreated
-      await yieldToEventLoop()
-    }
-
-    if (!options.skipGradients && this.gradientEngine) {
-      gradientResult = await this.gradientEngine.processGradients()
-      await yieldToEventLoop()
-    }
-
     let forwardTracesPruned = 0
-    if (!options.skipForwardTracePrune) {
-      const maxAgeMs = options.forwardTracePruneAgeMs ?? DEFAULT_FORWARD_TRACE_MAX_AGE_MS
-      forwardTracesPruned = this.cortex.pruneOldTraces(maxAgeMs)
-      await yieldToEventLoop()
+    let durationMs = 0
+
+    try {
+      // Load the full dataset once — computeRadiance, applyCoActivationDrift,
+      // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
+      // instead of three times cuts ~2/3 of the SQLite I/O per consolidation.
+      const needsFullDataset = !options.skipRadiance || !options.skipDrift || !options.skipPruning
+      const dataset = needsFullDataset ? this.cortex.getAllEngramsWithSynapses() : undefined
+      if (needsFullDataset) await yieldToEventLoop()
+
+      if (!options.skipRadiance) {
+        potentiationUpdates = await this.computeRadiance(dataset)
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipDrift) {
+        positionDrifts = await this.applyCoActivationDrift(dataset)
+        await yieldToEventLoop()
+      }
+
+      // Dreaming: discover hidden connections via vindex feature overlap
+      if (!options.skipDreaming && this.dreamEngine) {
+        dreamResult = await this.dreamEngine.dream()
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipNuclei) {
+        nucleiDetected = this.detectNuclei(
+          options.nucleiMinClusterSize ?? 3,
+          options.nucleiEpsilon ?? 0.015,
+        )
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipAbstractions) {
+        abstractionsCreated = this.generateAbstractions(
+          options.abstractionMinMembers ?? 5,
+          options.abstractionMinPotentiation ?? 0.3,
+        )
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipPruning) {
+        spikesPruned = await this.pruneSpikeHistories(options.pruneKeepCount ?? 100, dataset?.engrams)
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipGradients && this.gradientEngine) {
+        gradientResult = await this.gradientEngine.processGradients()
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipForwardTracePrune) {
+        const maxAgeMs = options.forwardTracePruneAgeMs ?? DEFAULT_FORWARD_TRACE_MAX_AGE_MS
+        forwardTracesPruned = this.cortex.pruneOldTraces(maxAgeMs)
+        await yieldToEventLoop()
+      }
+
+      durationMs = Date.now() - start
+      this.logger.info('Consolidation complete', {
+        potentiationUpdates,
+        positionDrifts,
+        nucleiDetected,
+        abstractionsCreated,
+        spikesPruned,
+        forwardTracesPruned,
+        dreamResult: dreamResult ? {
+          seeds: dreamResult.seedCount,
+          fingerprints: dreamResult.fingerprintsComputed,
+          discoveries: dreamResult.discoveries.length,
+          synapsesCreated: dreamResult.synapsesCreated,
+          durationMs: dreamResult.durationMs,
+        } : undefined,
+        gradientResult: gradientResult ? {
+          synapsesUpdated: gradientResult.synapsesUpdated,
+          requestsProcessed: gradientResult.requestsProcessed,
+        } : undefined,
+        durationMs,
+      })
+
+      return buildResult()
+    } catch (err) {
+      durationMs = Date.now() - start
+      this.logger.error('Consolidation cycle failed', {
+        error: String(err),
+        phaseStatus: {
+          radiance:     options.skipRadiance     ? 'skipped' : potentiationUpdates > 0 ? 'updated' : 'ran',
+          drift:        options.skipDrift        ? 'skipped' : positionDrifts     > 0 ? 'updated' : 'ran',
+          nuclei:       options.skipNuclei       ? 'skipped' : nucleiDetected     > 0 ? 'updated' : 'ran',
+          abstractions: options.skipAbstractions ? 'skipped' : abstractionsCreated > 0 ? 'updated' : 'ran',
+          pruning:      options.skipPruning      ? 'skipped' : spikesPruned       > 0 ? 'updated' : 'ran',
+        },
+        durationMs,
+      })
+      return buildResult()
     }
 
-    const durationMs = Date.now() - start
-    this.logger.info('Consolidation complete', {
-      potentiationUpdates,
-      positionDrifts,
-      nucleiDetected,
-      abstractionsCreated,
-      spikesPruned,
-      forwardTracesPruned,
-      filamentSynapsesCreated,
-      filamentSynapsesDecayed,
-      dreamResult: dreamResult ? {
-        seeds: dreamResult.seedCount,
-        fingerprints: dreamResult.fingerprintsComputed,
-        discoveries: dreamResult.discoveries.length,
-        synapsesCreated: dreamResult.synapsesCreated,
-        durationMs: dreamResult.durationMs,
-      } : undefined,
-      gradientResult: gradientResult ? {
-        synapsesUpdated: gradientResult.synapsesUpdated,
-        requestsProcessed: gradientResult.requestsProcessed,
-      } : undefined,
-      durationMs,
-    })
-
-    return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, forwardTracesPruned, filamentSynapsesCreated, filamentSynapsesDecayed, gradientResult, dreamResult, durationMs }
+    function buildResult(): ConsolidationResult {
+      return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, forwardTracesPruned, gradientResult, dreamResult, durationMs }
+    }
   }
 
   /**
@@ -199,8 +218,12 @@ export class ConsolidationEngine {
     const idToIdx = new Map<string, number>()
     engrams.forEach((e, i) => idToIdx.set(e.id, i))
 
-    const spikeImportances = engrams.map(e => computeSpikeImportance(this.cortex.getSpikes(e.id, 200), POTENTIATION_DEFAULTS.decayRate))
-    const alphas = engrams.map(e => computeAlpha(this.cortex.getSpikeCount(e.id), POTENTIATION_DEFAULTS))
+    // Batch-fetch spikes and spike counts for all engrams in single queries
+    const engramIds = engrams.map(e => e.id)
+    const allSpikes = this.cortex.getAllSpikesForEngrams(engramIds, 200)
+    const allSpikeCounts = this.cortex.getAllSpikeCountsForEngrams(engramIds)
+    const spikeImportances = engrams.map(e => computeSpikeImportance(allSpikes.get(e.id) ?? [], POTENTIATION_DEFAULTS.decayRate))
+    const alphas = engrams.map(e => computeAlpha(allSpikeCounts.get(e.id) ?? 0, POTENTIATION_DEFAULTS))
 
     await yieldToEventLoop()
 
@@ -258,6 +281,13 @@ export class ConsolidationEngine {
       if (affect) {
         const intensity = emotionalIntensity(affect)
         norm *= 1 + AFFECT_DEFAULTS.warmthScale * intensity
+      }
+      // Type-specific decay: durable facts (decision, insight) retain
+      // more potentiation; ephemeral signals (anomaly, concern) decay faster.
+      const semanticType = engrams[i].metadata?.semanticType as string | undefined
+      if (semanticType) {
+        const multiplier = ConsolidationEngine.TYPE_POTENTIATION[semanticType] ?? 0.7
+        norm *= multiplier
       }
       return norm
     })
@@ -342,16 +372,22 @@ export class ConsolidationEngine {
 
       const rate = KINDLING_DEFAULTS.driftLearningRate * Math.min(count * 0.1, 0.5)
 
+      // Type affinity: engrams of the same semantic type attract each other
+      // an additional 25%, pulling decision clusters together spatially.
+      const aType = (a.metadata?.semanticType as string) ?? null
+      const bType = (b.metadata?.semanticType as string) ?? null
+      const affinity = (aType && aType === bType) ? 1.25 : 1.0
+
       const pullA = pullVectors.get(idA) ?? { dx: 0, dy: 0, totalWeight: 0 }
-      pullA.dx += rate * (b.x - a.x)
-      pullA.dy += rate * (b.y - a.y)
-      pullA.totalWeight += rate
+      pullA.dx += rate * affinity * (b.x - a.x)
+      pullA.dy += rate * affinity * (b.y - a.y)
+      pullA.totalWeight += rate * affinity
       pullVectors.set(idA, pullA)
 
       const pullB = pullVectors.get(idB) ?? { dx: 0, dy: 0, totalWeight: 0 }
-      pullB.dx += rate * (a.x - b.x)
-      pullB.dy += rate * (a.y - b.y)
-      pullB.totalWeight += rate
+      pullB.dx += rate * affinity * (a.x - b.x)
+      pullB.dy += rate * affinity * (a.y - b.y)
+      pullB.totalWeight += rate * affinity
       pullVectors.set(idB, pullB)
     }
 
@@ -380,8 +416,11 @@ export class ConsolidationEngine {
   private findCoActivationPairs(engrams: Engram[]): Map<string, number> {
     const taskEngrams = new Map<string, string[]>()
 
+    // Batch-fetch spikes for all engrams in a single query
+    const engramIds = engrams.map(e => e.id)
+    const allSpikes = this.cortex.getAllSpikesForEngrams(engramIds, 20)
     for (const engram of engrams) {
-      const spikes = this.cortex.getSpikes(engram.id, 20)
+      const spikes = allSpikes.get(engram.id) ?? []
       for (const spike of spikes) {
         if (!spike.taskContext) continue
         const existing = taskEngrams.get(spike.taskContext) ?? []
