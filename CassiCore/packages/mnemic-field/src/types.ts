@@ -379,6 +379,9 @@ export interface KindlingOptions {
   includeText?: boolean
   recordTrace?: boolean
   currentAffect?: Affect
+  /** Shadow mode (Phase 2: Yin/Yang): invert radial seed bias to surface
+   *  engrams in neglected sectors far from the attractor. */
+  shadow?: boolean
 }
 
 export const KINDLING_DEFAULTS = {

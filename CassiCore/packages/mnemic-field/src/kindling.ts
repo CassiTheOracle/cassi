@@ -268,7 +268,14 @@ export class KindlingEngine {
         const theta = (engram.metadata as any)?.theta as number | undefined
         if (r !== undefined && theta !== undefined) {
           const boost = this.attractor.radialBoost(r, theta)
-          seedMap.set(engram.id, charge * (1.0 + boost))
+          if (options.shadow) {
+            // Shadow mode (Phase 2: Yin/Yang): invert bias.
+            // Boost engrams FAR from attractor. boost ∈ [0,1], so 2.0−boost ∈ [1,2].
+            seedMap.set(engram.id, charge * (2.0 - boost))
+          } else {
+            // Normal mode: near engrams get boosted.
+            seedMap.set(engram.id, charge * (1.0 + boost))
+          }
         }
       }
     }
