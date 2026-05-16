@@ -305,6 +305,7 @@ export class MnemicField {
     this.kindlingEngine.setHarmonyProvider(() => this.getHarmony())
     this.gradientEngine = new GradientEngine(this.cortex, logger)
     this.consolidationEngine = new ConsolidationEngine(this.cortex, logger, this.gradientEngine, null)
+    this.consolidationEngine.setHarmonyProvider(() => this.getHarmony())
     this.migrationJobs = new MigrationJobStore(db)
     this.affectRegister = new AffectRegister()
 

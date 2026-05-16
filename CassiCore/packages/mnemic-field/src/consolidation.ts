@@ -100,6 +100,13 @@ export class ConsolidationEngine {
     this.logger = logger.child ? logger.child('consolidation') : logger
   }
 
+  /** Optional: provides the current harmony metric for drift modulation. */
+  private harmonyProvider: (() => number) | null = null
+
+  setHarmonyProvider(provider: (() => number) | null): void {
+    this.harmonyProvider = provider
+  }
+
   /**
    * Run a full consolidation cycle.
    *
@@ -542,8 +549,18 @@ export class ConsolidationEngine {
       const theta = (engram.metadata?.theta as number | undefined) ?? Math.atan2(engram.y, engram.x)
 
       const pinealWeight = pinealWeights.get(engram.id) ?? 0
-      const inwardForce = pinealWeight * 0.01
+      let inwardForce = pinealWeight * 0.01
       const outwardPressure = 0.002
+
+      // Harmony modulation (Phase 3: Yin/Yang homeostatic topology)
+      // harmony < 0.5 (Yang-dominated, too clustered): weaken centripetal pull
+      // harmony > 0.5 (Yin-dominated, too dispersed): strengthen centripetal pull
+      if (this.harmonyProvider) {
+        const harmony = this.harmonyProvider()
+        const harmonyFactor = 1.0 + (0.5 - harmony) * 1.0  // range 0.5–1.5
+        inwardForce *= Math.max(0.5, Math.min(1.5, harmonyFactor))
+      }
+
       let newR = r - inwardForce + outwardPressure
       newR = Math.max(0.01, Math.min(1.0, newR))
 
@@ -617,7 +634,18 @@ export class ConsolidationEngine {
       const avgTheta = Math.atan2(sumSin, sumCos)
       const normalizedAvg = avgTheta < 0 ? avgTheta + 2 * Math.PI : avgTheta
       const currentTheta = (engram.metadata?.theta as number | undefined) ?? Math.atan2(engram.y, engram.x)
-      const newTheta = lerpAngle(currentTheta, normalizedAvg, 0.05)
+      let lerpRate = 0.05
+
+      // Harmony modulation (Phase 3: Yin/Yang homeostatic topology)
+      // harmony < 0.5 (Yang-dominated): strengthen angular drift to spread engrams
+      // harmony > 0.5 (Yin-dominated): weaken angular drift to let clusters stay
+      if (this.harmonyProvider) {
+        const harmony = this.harmonyProvider()
+        const angularFactor = 1.0 - (0.5 - harmony) * 1.0  // range 0.5–1.5
+        lerpRate *= Math.max(0.5, Math.min(1.5, angularFactor))
+      }
+
+      const newTheta = lerpAngle(currentTheta, normalizedAvg, lerpRate)
 
       // Preserve radial distance
       const r = (engram.metadata?.r as number | undefined) ?? Math.sqrt(engram.x * engram.x + engram.y * engram.y)
