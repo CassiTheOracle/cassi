@@ -18,7 +18,9 @@ import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 
 import { rootLogger } from '../logger.js'
+import { rotateLogByVersion } from '../logger.js'
 import { checkForUpdates, extractAndBuild } from './code-extractor.js'
+import { getBuildIdentifier, formatBuildId } from '../build-id.js'
 
 process.title = 'cassi:supervisor'
 
@@ -241,6 +243,11 @@ export class Supervisor {
       const daemonArgs = process.argv.slice(2)
 
       this.log('info', `Spawning daemon: ${this.daemonMainPath}`)
+
+      // Version-based log rotation: archive daemon.log if version changed
+      const buildId = getBuildIdentifier()
+      const version = formatBuildId(buildId)
+      rotateLogByVersion(this.logFile, version)
 
       const logFd = fs.openSync(this.logFile, 'a')
 
