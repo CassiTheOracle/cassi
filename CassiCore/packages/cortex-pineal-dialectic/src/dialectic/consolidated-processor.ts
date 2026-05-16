@@ -185,6 +185,7 @@ export class ConsolidatedDialecticProcessor {
         signalInjected,
         totalLatencyMs,
         totalCostUsd: 0, // Consolidated call — cost tracked at provider level
+        rawResponse: response,
         requestId,
         timing: {
           yangDuration: callDuration,
