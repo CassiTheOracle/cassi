@@ -2224,6 +2224,12 @@ export class MnemicField {
    * heartbeats and IPC when processing large datasets.
    */
   async consolidate(options?: ConsolidationOptions): Promise<ConsolidationResult> {
+    // Refresh sector density before consolidation — the topology may have
+    // changed since the last scan (new engrams, potentiation shifts).
+    try {
+      this.computeSectorDensity()
+    } catch { /* never block consolidation for density scan failures */ }
+
     return this.consolidationEngine.consolidate(options)
   }
 
