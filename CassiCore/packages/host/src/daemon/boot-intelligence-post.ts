@@ -54,6 +54,12 @@ export interface IntelligencePostBootDeps {
   handleFactory?: (config: { tier: string; purpose: string; sessionId: string }) => Promise<any>
 }
 
+/**
+ * @dep flows: BootIntelligencePostPipeline → CalculatePercentUsed (1/8), BootIntelligencePostPipeline → GetLimit (1/8), BootIntelligencePostPipeline → IsVisibleToAgent (1/7) [+8]
+ * @dep module: Unknown
+ * @dep risk: CRITICAL | 0 callers, 11 flows, 1 module
+ */
+
 export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDeps): Promise<AutonomousAgentLoop | undefined> {
   const {
     bus,
@@ -578,22 +584,10 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
             hasReverie: !!intelligence.reverie,
           })
 
-          // Boot-time self-model probe: discover what the vindex model
-          // knows about CassiCore's architecture. Runs async.
+          // WHY: Deferred — boot-time probe removed (saved ~17 min). The periodic
+          // refresh below covers the same ground within 30 min, and vindex gate-KNN
+          // is too slow (2.2s/call × 462 calls) to block the event loop on boot.
           if (aurora.hasSelfModelKnowledge) {
-            queueMicrotask(() => {
-              try {
-                const probe = aurora.refreshSelfModelKnowledge()
-                if (probe) {
-                  logger.info('Self-model knowledge probed at boot', {
-                    concepts: probe.concepts.length,
-                    selfAware: probe.concepts.filter(c => c.selfAware).length,
-                  })
-                }
-              } catch (err) {
-                logger.debug('Boot-time self-model probe failed', { error: String(err) })
-              }
-            })
             // Gap 4: Periodic self-model refresh every 30 minutes
             const REFRESH_INTERVAL_MS = 30 * 60 * 1000
             setInterval(() => {
