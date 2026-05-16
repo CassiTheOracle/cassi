@@ -17,6 +17,7 @@ import path from 'node:path'
 
 import { Daemon } from '../daemon.js'
 import { rootLogger } from '../logger.js'
+import { CASSICORE_BUILD_STRING } from '../daemon.js'
 
 const logger = rootLogger.child('daemon-main')
 
@@ -106,7 +107,7 @@ const daemon = new Daemon()
       // We must write raw JSON to stdout — the structured logger output isn't
       // parseable as JSON by the supervisor's detection logic.
       process.stdout.write(JSON.stringify(ready) + '\n')
-      logger.info('Daemon ready', { pid: info?.pid || process.pid, admin: info?.admin ?? null })
+      logger.info('Daemon ready', { pid: info?.pid || process.pid, build: CASSICORE_BUILD_STRING, admin: info?.admin ?? null })
     }
 
     // --exit-after-startup: validate startup then exit immediately
