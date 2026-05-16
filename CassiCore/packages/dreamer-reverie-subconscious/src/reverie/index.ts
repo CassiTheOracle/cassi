@@ -452,6 +452,7 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
     // Count errors per tool
     const errorCounts = new Map<string, number>()
     for (const tr of log) {
+      if (!Array.isArray(tr.results)) continue
       for (const r of tr.results) {
         if (r.isError) {
           const key = `${tr.toolCalls.find(tc => tc.id === r.toolCallId)?.name ?? 'unknown'}:${r.contentPreview.slice(0, 60)}`
@@ -466,13 +467,14 @@ Assistant: ${ex.lastAssistant ?? '(n/a)'}`
     // Detect circular file edits (file A read → file A written → file A read again)
     const fileOps: Array<{ file: string; op: 'read' | 'write' }> = []
     for (const tr of log) {
+      const results = Array.isArray(tr.results) ? tr.results : []
       for (const tc of tr.toolCalls) {
         if (tc.name === 'read' || tc.name === 'cassi_read') {
-          const m = tr.results.find(r => r.toolCallId === tc.id)?.contentPreview.match(/path["']?\s*:\s*["']([^"']+)/)
+          const m = results.find(r => r.toolCallId === tc.id)?.contentPreview.match(/path["']?\s*:\s*["']([^"']+)/)
           if (m) fileOps.push({ file: m[1], op: 'read' })
         }
         if (tc.name === 'write' || tc.name === 'cassi_write') {
-          const m = tr.results.find(r => r.toolCallId === tc.id)?.contentPreview.match(/path["']?\s*:\s*["']([^"']+)/)
+          const m = results.find(r => r.toolCallId === tc.id)?.contentPreview.match(/path["']?\s*:\s*["']([^"']+)/)
           if (m) fileOps.push({ file: m[1], op: 'write' })
         }
       }

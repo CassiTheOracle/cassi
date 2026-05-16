@@ -104,7 +104,8 @@ export function buildReveriePrompt(input: ReveriePromptInput): { system: string;
   const toolRoundsParts: string[] = []
   for (const tr of input.recentToolRounds) {
     const calls = tr.toolCalls.map(tc => `  - ${tc.name}`).join('\n')
-    const res = tr.results.map(r =>
+    const results = Array.isArray(tr.results) ? tr.results : []
+    const res = results.map(r =>
       `  - ${r.toolCallId} ${r.isError ? '[ERR]' : '[OK]'}: ${r.contentPreview}`
     ).join('\n')
     toolRoundsParts.push(`Round ${tr.round}:\nTools called:\n${calls}\nResults:\n${res}`)
