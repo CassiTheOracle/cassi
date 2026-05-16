@@ -1,0 +1,26 @@
+{
+  "name": "@cassicore/hermes-agent-gateway",
+  "version": "0.1.0",
+  "description": "CassiCore MCP Gateway for Hermes Agent: Thalamus-managed context, session enumeration, cognitive enrichment, and multi-agent orchestration",
+  "type": "module",
+  "main": "src/server.ts",
+  "bin": {
+    "cassicore-hermes": "src/server.ts"
+  },
+  "scripts": {
+    "start": "npx tsx src/server.ts",
+    "dev": "npx tsx --watch src/server.ts",
+    "build": "tsc",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "better-sqlite3": "^12.9.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

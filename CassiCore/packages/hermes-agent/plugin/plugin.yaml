@@ -1,0 +1,8 @@
+name: cassicore
+version: 1.0.0
+description: "Bridges Hermes session lifecycle events into CassiCore for cognitive enrichment, context management, and cross-session recall. Fires on_session_start, on_session_end, and post_tool_call hooks to the CassiCore daemon."
+author: "CassiCore"
+hooks:
+  - on_session_start
+  - on_session_end
+  - post_tool_call
