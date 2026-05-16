@@ -202,8 +202,10 @@ export class SelfModelKnowledgeProvider {
 
       const associations: SelfModelAssociation[] = []
 
-      // Knowledge band
-      for (let l = knowledge.start; l <= knowledge.end; l++) {
+      // Knowledge band — sample every 3rd layer (adjacent layers have
+      // highly correlated gate features; full enumeration is ~2.2s/call × 462 = 17 min)
+      const KNOWLEDGE_STRIDE = 3
+      for (let l = knowledge.start; l <= knowledge.end; l += KNOWLEDGE_STRIDE) {
         const hits = this.larqlProvider.gateKnn(l, queryToken, 2)
         for (const h of hits) {
           if (Math.abs(h.score) > 3.0) {
@@ -219,8 +221,9 @@ export class SelfModelKnowledgeProvider {
         }
       }
 
-      // Output band
-      for (let l = output.start; l <= output.end; l++) {
+      // Output band — sample every 2nd layer
+      const OUTPUT_STRIDE = 2
+      for (let l = output.start; l <= output.end; l += OUTPUT_STRIDE) {
         const hits = this.larqlProvider.gateKnn(l, queryToken, 2)
         for (const h of hits) {
           if (Math.abs(h.score) > 3.0) {
