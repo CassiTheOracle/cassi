@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 import {
   AlibabaCodingProvider,
+  DeepSeekProvider,
   KimiCodingProvider,
   OpenRouterProvider,
   QwenProvider,
@@ -26,7 +27,7 @@ export { CentralizedProvider, wrapProvidersWithCentralized }
 export { QwenLoadBalancer, createQwenLoadBalancer }
 export type { QwenAccount }
 
-export { AlibabaCodingProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '@cassicore/ai'
+export { AlibabaCodingProvider, DeepSeekProvider, KimiCodingProvider, OpenRouterProvider, QwenProvider, ZaiProvider } from '@cassicore/ai'
 
 export { CostClassifier, getCostClassifier, DEFAULT_COST_RULES } from './cost-classifier.js'
 export type { RequestCost, CostRule } from './cost-classifier.js'
@@ -199,6 +200,20 @@ export function createProviders(
       logger.info('Provider loaded: z-ai')
     } catch (err) {
       logger.warn(`failed to load z-ai provider: ${String(err)}`)
+    }
+  }
+
+  const deepseekKey =
+    config.get<string>('providers.deepseek.apiKey', '') ||
+    process.env.DEEPSEEK_API_KEY ||
+    ''
+  if (deepseekKey) {
+    try {
+      const deepseekProv = new DeepSeekProvider(deepseekKey)
+      rawProviders.set('deepseek', deepseekProv)
+      logger.info('Provider loaded: deepseek')
+    } catch (err) {
+      logger.warn(`failed to load deepseek provider: ${String(err)}`)
     }
   }
 
