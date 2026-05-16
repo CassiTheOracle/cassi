@@ -1154,38 +1154,6 @@ this.aurora?.setReverieInferenceProvider(provider)
     })
   }
 
-  /**
-   * Assign initial radial position (r) for an engram based on its type.
-   * Used to seed the polar field topology. theta is left undefined so
-   * the MnemicField.store() assigns a random angle.
-   *
-   * Lower r = closer to center = higher attentional priority.
-   */
-  private static getRadialPosition(nodeType: string, provenance?: string): number | undefined {
-    // Pineal facets are pinned at origin — never positioned here (handled by PinealModule)
-    if (provenance?.startsWith('pineal:')) return undefined
-    // Self-model engrams near center
-    if (nodeType === 'fact') return 0.15 + Math.random() * 0.1
-    if (nodeType === 'decision') return 0.15 + Math.random() * 0.1
-    if (nodeType === 'insight') return 0.20 + Math.random() * 0.1
-    if (nodeType === 'expert_summary') return 0.10 + Math.random() * 0.1
-    if (nodeType === 'abstraction') return 0.12 + Math.random() * 0.1
-    if (nodeType === 'pattern') return 0.18 + Math.random() * 0.1
-    if (nodeType === 'goal') return 0.15 + Math.random() * 0.1
-    // Operational engrams in middle shell
-    if (nodeType === 'tool') return 0.55 + Math.random() * 0.1
-    if (nodeType === 'tool_invocation') return 0.55 + Math.random() * 0.1
-    if (nodeType === 'file') return 0.50 + Math.random() * 0.1
-    if (nodeType === 'file_version') return 0.50 + Math.random() * 0.1
-    // Ephemeral engrams at periphery
-    if (nodeType === 'message') return 0.80 + Math.random() * 0.1
-    if (nodeType === 'episode') return 0.75 + Math.random() * 0.1
-    if (nodeType === 'file_read') return 0.90 + Math.random() * 0.05
-    if (nodeType === 'bridge') return 0.75 + Math.random() * 0.1
-    // Undefined = let MnemicField.store() handle default (periphery)
-    return undefined
-  }
-
   async init(): Promise<void> {
     await super.init()
     this.scorer = new MessageLuminanceScorer(this.logger)
