@@ -2357,7 +2357,7 @@ export function createAdminApi(daemon: any, logger: ILogger) {
          () => handleModulesRoutes({ runtime, logger, sendJSON, parseBody }, req, res, method, pathname, parts),
          () => handleMemoryRoutes({ daemon, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleDialecticRoutes({ runtime, logger, sendJSON, parseBody, url, parts }, req, res, method),
-        () => handleDmnRoutes({ runtime, logger, sendJSON, url, parts }, req, res, method),
+        () => handleDmnRoutes({ runtime, logger, sendJSON, parseBody, url, parts }, req, res, method),
         () => handleObservabilityRoutes({ daemon, logger, sendJSON, url, pathname }, req, res, method),
         () => handleChatRoutes({ runtime, logger, sendJSON, parseBody, parts }, req, res, method, pathname),
         () => handleModelsRoutes({ runtime, logger, sendJSON }, req, res, method, pathname),

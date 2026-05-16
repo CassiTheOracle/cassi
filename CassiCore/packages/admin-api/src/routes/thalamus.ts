@@ -238,6 +238,20 @@ export async function handleThalamusRoutes(
     return true
   }
 
+  // POST /context/import — Import historical session transcripts into MnemicField.
+  // Stores everything (no budget filtering). Returns import stats.
+  if (method === 'POST' && pathname === '/context/import') {
+    const body = await deps.parseBody(req)
+    const { sessionId, messages, metadata } = body
+    if (!sessionId || !Array.isArray(messages)) {
+      deps.sendJSON(res, 400, { error: 'sessionId and messages[] are required' })
+      return true
+    }
+    const result = await thalamus.importMessages(sessionId, messages, metadata)
+    deps.sendJSON(res, 200, result)
+    return true
+  }
+
   // POST /context/curate/external — Index-only curation for external editor clients.
   // Accepts lightweight message digests, returns kept indices + gap annotations.
   // This is the primary integration point for OpenCode, Claude Code, Cursor, etc.

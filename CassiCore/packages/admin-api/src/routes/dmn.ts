@@ -21,6 +21,7 @@ export interface DmnRoutesDeps {
   runtime: AdminRuntimeFacade
   logger: ILogger
   sendJSON: (res: http.ServerResponse, code: number, obj: unknown) => void
+  parseBody: (req: http.IncomingMessage) => Promise<any>
   url: URL
   parts: string[]
 }
@@ -32,7 +33,7 @@ export async function handleDmnRoutes(
   res: http.ServerResponse,
   method: string,
 ): Promise<boolean> {
-  const { runtime, sendJSON, parts } = deps
+  const { runtime, sendJSON, parseBody, logger, parts } = deps
 
   if (parts[0] !== 'dmn') return false
 
@@ -45,6 +46,34 @@ export async function handleDmnRoutes(
       return true
     }
     sendJSON(res, 200, dmn.stats())
+    return true
+  }
+
+  // POST /dmn/sessions/:sessionId/activity
+  if (parts.length === 4 && parts[1] === 'sessions' && parts[3] === 'activity' && method === 'POST') {
+    const sessionId = decodeURIComponent(parts[2] ?? '')
+    if (!sessionId) {
+      sendJSON(res, 400, { error: 'missing sessionId' })
+      return true
+    }
+    if (!dmn) {
+      sendJSON(res, 503, { error: 'DMN not available (disabled or not initialised)' })
+      return true
+    }
+    try {
+      const body = await parseBody(_req)
+      dmn.recordActivity(sessionId, {
+        historyLength: body.historyLength ?? 0,
+        toolCallCount: body.toolCallCount ?? 0,
+        thinkingChars: body.thinkingChars ?? 0,
+        lastUserMessage: body.lastUserMessage,
+        lastAssistantText: body.lastAssistantText,
+      })
+      sendJSON(res, 200, { ok: true })
+    } catch (err) {
+      logger.warn('DMN activity push parse error', { sessionId, error: String(err) })
+      sendJSON(res, 400, { error: 'Bad request' })
+    }
     return true
   }
 

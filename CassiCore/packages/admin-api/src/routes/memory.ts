@@ -7,11 +7,13 @@ import type { SelfModelField } from '../intelligence/mnemic-field/self-model/sel
 import type { InterFieldBridge } from '../intelligence/mnemic-field/self-model/inter-field-bridge.js'
 import {
   findNextUnannotated,
+  findByName,
   annotateEngram,
   skipEngram,
   countUnannotated,
   buildInstruction,
   type AnnotationResponse,
+  type AnnotationCandidate,
 } from '../intelligence/mnemic-field/self-model/annotation.js'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -126,13 +128,297 @@ export async function handleMemoryRoutes(
     return true
   }
 
+  // GET /memory/stats — mnemic field statistics
   if (parts[1] === 'stats' && method === 'GET') {
-    if (!memory) return noMemory()
-    const memStats = await memory.stats()
-    const archiveStats = memory.getArchiveStats?.() ?? null
-    const queueStats = memory.getArchiveQueueStats?.() ?? null
-    sendJSON(res, 200, { memory: memStats, archives: archiveStats, queue: queueStats })
-    return true
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/by-type/:nodeType — list engrams by node type
+  if (parts[1] === 'by-type' && parts[2] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const limit = parseInt(url.searchParams.get('limit') ?? '50', 10)
+      const engrams = field.listByType(parts[2], limit)
+      sendJSON(res, 200, {
+        ok: true,
+        nodeType: parts[2],
+        engrams: engrams.map(e => ({
+          id: e.id, nodeType: e.nodeType, content: (e.content || '').slice(0, 500),
+          potentiation: e.potentiation, tags: e.tags,
+          provenance: e.provenance, createdAt: e.createdAt,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/popular — top engrams by potentiation
+  if (parts[1] === 'popular' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+      const engrams = field.listPopular(limit)
+      sendJSON(res, 200, {
+        ok: true,
+        engrams: engrams.map(e => ({
+          id: e.id, nodeType: e.nodeType, content: (e.content || '').slice(0, 500),
+          potentiation: e.potentiation, tags: e.tags,
+          provenance: e.provenance, createdAt: e.createdAt,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+
+  // GET /memory/nuclei — list nuclei
+  if (parts[1] === 'nuclei' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, nuclei: field.listNuclei() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/abstractions — list abstractions
+  if (parts[1] === 'abstractions' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      sendJSON(res, 200, { ok: true, abstractions: field.listAbstractions() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/tensions — tension report
+  if (parts[1] === 'tensions' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const minPotentiation = url.searchParams.get('minPotentiation')
+      const limit = url.searchParams.get('limit')
+      const report = field.tensionReport(
+        minPotentiation ? Number(minPotentiation) : 0.3,
+        limit ? Number(limit) : 10,
+      )
+      sendJSON(res, 200, { ok: true, report })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/graph-search — typed graph traversal from startId
+  if (parts[1] === 'graph-search' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const startId = typeof body?.startId === 'string' ? body.startId : ''
+      if (!startId) { sendJSON(res, 400, { error: 'startId required' }); return true }
+      const maxDepth = Math.min(body?.maxDepth ?? 3, 5)
+      const edgeTypes: string[] | undefined = Array.isArray(body?.edgeTypes) ? body.edgeTypes : undefined
+
+      const visited = new Set<string>()
+      const queue: Array<{ id: string; depth: number }> = [{ id: startId, depth: 0 }]
+      const nodes: Array<{ id: string; depth: number; nodeType: string; content: string }> = []
+      const edges: Array<{ sourceId: string; targetId: string; edgeType: string }> = []
+
+      while (queue.length > 0) {
+        const { id, depth } = queue.shift()!
+        if (visited.has(id) || depth > maxDepth) continue
+        visited.add(id)
+
+        const engram = field.get(id)
+        if (engram) {
+          nodes.push({
+            id: engram.id,
+            depth,
+            nodeType: engram.nodeType,
+            content: (engram.content || '').slice(0, 300),
+          })
+        }
+
+        if (depth < maxDepth) {
+          const outSynapses = field.neighbors(id)?.synapses ?? []
+          for (const s of outSynapses) {
+            if (edgeTypes && !edgeTypes.includes(s.edgeType)) continue
+            const neighborId = s.sourceId === id ? s.targetId : s.sourceId
+            if (!visited.has(neighborId)) {
+              edges.push({ sourceId: s.sourceId, targetId: s.targetId, edgeType: s.edgeType })
+              queue.push({ id: neighborId, depth: depth + 1 })
+            }
+          }
+        }
+      }
+      sendJSON(res, 200, { ok: true, startId, maxDepth, nodes, edges, totalVisited: visited.size })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/universal-search — combined text search (alias)
+  if (parts[1] === 'universal-search' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const query = url.searchParams.get('q') ?? url.searchParams.get('query') ?? ''
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+      const nodeType = url.searchParams.get('node_type') || undefined
+
+      if (!query) {
+        if (nodeType) {
+          const engrams = field.listByType(nodeType, limit)
+          sendJSON(res, 200, {
+            ok: true, source: 'browse',
+            hits: engrams.map(e => ({
+              id: e.id, score: e.potentiation, nodeType: e.nodeType,
+              content: (e.content || '').slice(0, 300),
+              potentiation: e.potentiation, tags: e.tags,
+              provenance: e.provenance, createdAt: e.createdAt,
+            })),
+          })
+          return true
+        }
+        sendJSON(res, 400, { error: 'query required' }); return true
+      }
+
+      let textHits = field.searchText(query, limit * 2)
+        .filter(r => r.engram.nodeType !== 'bridge')
+      if (nodeType) textHits = textHits.filter(r => r.engram.nodeType === nodeType)
+      textHits = textHits.slice(0, limit)
+      sendJSON(res, 200, {
+        ok: true, source: 'text',
+        hits: textHits.map(r => ({
+          id: r.engram.id, score: r.score, nodeType: r.engram.nodeType,
+          content: (r.engram.content || '').slice(0, 300),
+          potentiation: r.engram.potentiation, tags: r.engram.tags,
+          provenance: r.engram.provenance, createdAt: r.engram.createdAt,
+          metadata: r.engram.metadata ?? {},
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/search — text search (alias)
+  if (parts[1] === 'search' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const query = url.searchParams.get('q') ?? url.searchParams.get('query') ?? ''
+      if (!query) { sendJSON(res, 400, { error: 'query required' }); return true }
+      const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+      const nodeType = url.searchParams.get('node_type') || undefined
+
+      const results = field.searchText(query, limit)
+      let filtered = results.filter(r => r.engram.nodeType !== 'bridge')
+      if (nodeType) filtered = filtered.filter(r => r.engram.nodeType === nodeType)
+
+      sendJSON(res, 200, {
+        ok: true,
+        hits: filtered.map(r => ({
+          id: r.engram.id, score: r.score, nodeType: r.engram.nodeType,
+          content: (r.engram.content || '').slice(0, 300),
+          potentiation: r.engram.potentiation, tags: r.engram.tags,
+          provenance: r.engram.provenance, createdAt: r.engram.createdAt,
+        })),
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/engram/:id/synapses — must precede GET /memory/engram/:id
+  if (parts[1] === 'engram' && parts[3] === 'synapses' && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const edgeType = url.searchParams.get('edge_type') || undefined
+      const direction = (url.searchParams.get('direction') || 'both') as 'in' | 'out' | 'both'
+      const limit = parseInt(url.searchParams.get('limit') ?? '20', 10)
+
+      const result: Array<{ sourceId: string; targetId: string; edgeType: string; weight: number }> = []
+      if (direction === 'out' || direction === 'both') {
+        const out = edgeType
+          ? field.getTypedSynapses(parts[2], edgeType, 'out')
+          : (field.neighbors(parts[2])?.synapses ?? []).filter(s => s.sourceId === parts[2])
+        result.push(...out.slice(0, limit))
+      }
+      if (direction === 'in' || direction === 'both') {
+        const incoming = edgeType
+          ? field.getTypedSynapses(parts[2], edgeType, 'in')
+          : (field.neighbors(parts[2])?.synapses ?? []).filter(s => s.targetId === parts[2])
+        result.push(...incoming.slice(0, limit))
+      }
+      sendJSON(res, 200, { ok: true, engramId: parts[2], synapses: result.slice(0, limit) })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/engram/:id (alias)
+  if (parts[1] === 'engram' && parts[2] && method === 'GET') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const engram = field.get(parts[2])
+      if (!engram) { sendJSON(res, 404, { error: 'engram not found' }); return true }
+      const includeContent = url.searchParams.get('content') !== 'false'
+      sendJSON(res, 200, {
+        id: engram.id, nodeType: engram.nodeType,
+        potentiation: engram.potentiation,
+        content: includeContent ? engram.content.slice(0, 4000) : undefined,
+        provenance: engram.provenance, tags: engram.tags,
+        createdAt: engram.createdAt, metadata: engram.metadata,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/retrieve — full retrieve (alias, cache + embedding + kindle + rerank)
+  if (parts[1] === 'retrieve' && method === 'POST') {
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const field = getMnemicField(logger, daemon)
+      const query = typeof body?.query === 'string' ? body.query : ''
+      if (!query) { sendJSON(res, 400, { error: 'query required' }); return true }
+      const hits = await field.retrieve(query, {
+        limit: typeof body?.limit === 'number' ? body.limit : undefined,
+        complexity: body?.complexity,
+        sessionId: typeof body?.sessionId === 'string' ? body.sessionId : undefined,
+      })
+      sendJSON(res, 200, { ok: true, hits: hits.map(h => ({ id: h.id, score: h.score, nodeType: h.nodeType, content: (h.content || '').slice(0, 180) })) })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
   }
 
   // POST /memory/mnemic/migrate
@@ -385,6 +671,46 @@ export async function handleMemoryRoutes(
     }
   }
 
+  // POST /memory/mnemic/classify — batch classify all unlabeled engrams
+  if (parts[1] === 'mnemic' && parts[2] === 'classify' && method === 'POST' && !parts[3]) {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const result = await field.classifyAll()
+      sendJSON(res, 200, { ok: true, ...result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/classify-edges — classify + generate type-based synapses
+  if (parts[1] === 'mnemic' && parts[2] === 'classify-edges' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const classify = await field.classifyAll()
+      const edges = await field.generateTypeSynapses()
+      sendJSON(res, 200, { ok: true, ...classify, edges, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/mnemic/thalamus-backfill — temporal relinking + metadata enrichment
+  if (parts[1] === 'mnemic' && parts[2] === 'thalamus-backfill' && method === 'POST') {
+    try {
+      const field = getMnemicField(logger, daemon)
+      const result = await field.thalamusBackfill()
+      sendJSON(res, 200, { ok: true, ...result, stats: field.stats() })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   // POST /memory/mnemic/chains
   if (parts[1] === 'mnemic' && parts[2] === 'chains' && method === 'POST') {
     try {
@@ -591,14 +917,34 @@ export async function handleMemoryRoutes(
     try {
       const field = getMnemicField(logger, daemon)
       const query = url.searchParams.get('q') ?? url.searchParams.get('query') ?? ''
-      if (!query) { sendJSON(res, 400, { error: 'query required' }); return true }
       const limit = parseInt(url.searchParams.get('limit') ?? '10', 10)
+      const nodeType = url.searchParams.get('node_type') || undefined
+
+      // Allow empty query when node_type is set (browse by type)
+      if (!query) {
+        if (nodeType) {
+          const engrams = field.listByType(nodeType, limit)
+          sendJSON(res, 200, {
+            ok: true,
+            source: 'browse',
+            hits: engrams.map(e => ({
+              id: e.id, score: e.potentiation, nodeType: e.nodeType,
+              content: (e.content || '').slice(0, 300),
+              potentiation: e.potentiation, tags: e.tags,
+              provenance: e.provenance, createdAt: e.createdAt,
+            })),
+          })
+          return true
+        }
+        sendJSON(res, 400, { error: 'query required' }); return true
+      }
 
       // Text search is fast and reliable; use it as the primary path.
       // Kindling is async and requires embedding service availability.
-      const textHits = field.searchText(query, limit * 2)
+      let textHits = field.searchText(query, limit * 2)
         .filter(r => r.engram.nodeType !== 'bridge')
-        .slice(0, limit)
+      if (nodeType) textHits = textHits.filter(r => r.engram.nodeType === nodeType)
+      textHits = textHits.slice(0, limit)
       sendJSON(res, 200, {
         ok: true,
         source: 'text',
@@ -607,6 +953,7 @@ export async function handleMemoryRoutes(
           content: (r.engram.content || '').slice(0, 300),
           potentiation: r.engram.potentiation, tags: r.engram.tags,
           provenance: r.engram.provenance, createdAt: r.engram.createdAt,
+          metadata: r.engram.metadata ?? {},
         })),
       })
       return true
@@ -847,13 +1194,81 @@ export async function handleMemoryRoutes(
       if (body.metadata !== undefined) patch.metadata = body.metadata
       if (body.tags !== undefined) patch.tags = body.tags
 
-      const updated = smf.update(id, patch)
+      const updated = await smf.update(id, patch)
       if (!updated) {
         sendJSON(res, 404, { error: 'Engram not found' })
         return true
       }
 
       sendJSON(res, 200, { ok: true, engram: { id: updated.id, content: updated.content, nodeType: updated.nodeType, tags: updated.tags } })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/link — create synapse between self-model engrams
+  if (parts[1] === 'self-model' && parts[2] === 'link' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const sourceId = body?.sourceId as string | undefined
+      const targetId = body?.targetId as string | undefined
+      const edgeType = (body?.edgeType as string) || 'implements'
+      const weight = typeof body?.edgeWeight === 'number' ? body.edgeWeight : 1.0
+
+      if (!sourceId || !targetId) {
+        sendJSON(res, 400, { error: 'sourceId and targetId are required' })
+        return true
+      }
+
+      const synapse = smf.connect(sourceId, targetId, edgeType as any, weight)
+
+      sendJSON(res, 200, { ok: true, synapse })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/purge-deprecated — remove deprecated team/feature engrams
+  if (parts[1] === 'self-model' && parts[2] === 'purge-deprecated' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const modules: string[] = Array.isArray(body?.modules) && body.modules.length > 0
+        ? body.modules
+        : ['flux-team', 'triad-team']
+      const dryRun = body?.dryRun !== false
+
+      const all = smf.list(undefined, 10000)
+      const candidates = all.filter(e => {
+        const lowerContent = (e.content || '').toLowerCase()
+        const lowerTags = (e.tags || []).map((t: string) => t.toLowerCase())
+        return modules.some(m =>
+          lowerContent.includes(m.toLowerCase()) ||
+          lowerTags.some(t => t.includes(m.toLowerCase()))
+        )
+      })
+
+      let purged = 0
+      if (!dryRun) {
+        for (const e of candidates) {
+          if (smf.delete(e.id)) purged++
+        }
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        dryRun,
+        candidatesFound: candidates.length,
+        purged,
+        modules,
+      })
       return true
     } catch (err) {
       sendJSON(res, 500, { error: String(err) })
@@ -870,21 +1285,38 @@ export async function handleMemoryRoutes(
       const engramId = body?.engramId as string | undefined
       const summary = body?.summary as string | undefined
       const skip = body?.skip as boolean | undefined
+      const target = body?.target as string | undefined
+      const force = body?.force as boolean | undefined
 
       // Store annotation if provided
       if (engramId && summary && summary.trim()) {
-        annotateEngram(smf, engramId, summary.trim())
-        logger.info('Stored self-model annotation', { engramId, summaryLength: summary.length })
+        await annotateEngram(smf, engramId, summary.trim())
+        logger.info('Stored self-model annotation', { engramId, summaryLength: summary.length, force })
       }
 
       // Skip if requested
       if (engramId && skip) {
-        skipEngram(smf, engramId)
+        await skipEngram(smf, engramId)
         logger.info('Skipped self-model annotation', { engramId })
       }
 
-      // Find next unannotated
-      const next = findNextUnannotated(smf)
+      // Targeted lookup: if target name provided, find matching engram
+      let next: AnnotationCandidate | null = null
+      if (target && !engramId) {
+        next = findByName(smf, target)
+        if (!next) {
+          sendJSON(res, 404, {
+            status: 'error',
+            error: `No unannotated engram matching "${target}" found`,
+          } as AnnotationResponse)
+          return true
+        }
+      }
+
+      // Find next unannotated (unless target was used)
+      if (!next) {
+        next = findNextUnannotated(smf)
+      }
       const progress = countUnannotated(smf)
 
       if (!next) {
@@ -915,7 +1347,336 @@ export async function handleMemoryRoutes(
     }
   }
 
-  // ─── Knowledge Field Routes ───
+  // POST /memory/self-model/reclassify — reclassify "other" domain modules via neighbor-majority
+  if (parts[1] === 'self-model' && parts[2] === 'reclassify' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const fromDomain = (body?.domain as string) || 'other'
+      const threshold = (body?.threshold as number) || 0.6
+      const dryRun = body?.dryRun !== false  // default true for safety
+
+      const all = smf.list('module', 5000)
+      const targets = all.filter(e => (e.metadata?.domain as string) === fromDomain)
+
+      const changes: Array<{ id: string; name: string; from: string; to: string; confidence: number }> = []
+
+      for (const engram of targets) {
+        const neighbors = smf.getField().neighbors(engram.id)
+        const domainCounts = new Map<string, number>()
+
+        for (const n of neighbors.engrams) {
+          const d = n.metadata?.domain as string | undefined
+          if (d && d !== fromDomain && d !== 'unknown') {
+            domainCounts.set(d, (domainCounts.get(d) || 0) + 1)
+          }
+        }
+
+        if (domainCounts.size === 0) continue
+
+        let bestDomain = ''
+        let bestCount = 0
+        for (const [d, c] of domainCounts) {
+          if (c > bestCount) { bestDomain = d; bestCount = c }
+        }
+
+        const total = [...domainCounts.values()].reduce((a, b) => a + b, 0)
+        const confidence = total > 0 ? bestCount / total : 0
+
+        if (confidence >= threshold && bestDomain) {
+          changes.push({
+            id: engram.id,
+            name: engram.content.split(' — ')[0],
+            from: fromDomain,
+            to: bestDomain,
+            confidence: Math.round(confidence * 100) / 100,
+          })
+
+          if (!dryRun) {
+            const updatedMeta = { ...engram.metadata, domain: bestDomain }
+            const updatedTags = engram.tags
+              .filter(t => t !== `domain:${fromDomain}`)
+              .concat(`domain:${bestDomain}`)
+            await smf.update(engram.id, { metadata: updatedMeta, tags: updatedTags })
+          }
+        }
+      }
+
+      changes.sort((a, b) => b.confidence - a.confidence)
+
+      sendJSON(res, 200, {
+        ok: true,
+        dryRun,
+        fromDomain,
+        threshold,
+        candidatesFound: targets.length,
+        reclassified: changes.length,
+        changes,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/validate-annotations — find misannotated engrams
+  if (parts[1] === 'self-model' && parts[2] === 'validate-annotations' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const all = smf.list(undefined, 5000)
+      const issues: Array<{ id: string; name: string; summaryStart: string; issue: string }> = []
+
+      for (const engram of all) {
+        const summary = engram.metadata?.llm_summary as string | undefined
+        if (!summary || summary.trim().length === 0) continue
+
+        const engramName = engram.content.split(' — ')[0].trim().toLowerCase()
+        const summaryFirstWord = summary.trim().split(' ')[0].toLowerCase()
+
+        if (!engramName || !summaryFirstWord) continue
+
+        const commonModulePrefixes = ['the', 'this', 'a', 'an']
+        if (commonModulePrefixes.includes(summaryFirstWord)) continue
+
+        if (summaryFirstWord.length > 3 &&
+            summaryFirstWord !== engramName &&
+            !engramName.includes(summaryFirstWord) &&
+            !summaryFirstWord.includes(engramName)) {
+          issues.push({
+            id: engram.id,
+            name: engram.content.split(' — ')[0],
+            summaryStart: summary.slice(0, 80),
+            issue: `Summary starts with "${summaryFirstWord}" but engram is named "${engramName}" — possible misattribution`,
+          })
+        }
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        annotatedCount: all.filter(e => {
+          const s = e.metadata?.llm_summary as string | undefined
+          return typeof s === 'string' && s.trim().length > 0
+        }).length,
+        issuesFound: issues.length,
+        issues,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // GET /memory/self-model/audit-coverage — find known intelligence modules missing from self-model
+  if (parts[1] === 'self-model' && parts[2] === 'audit-coverage' && !parts[3] && method === 'GET') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const knownModules = [
+        'Thalamus', 'Cortex', 'Thinker', 'Dialectic', 'Subconscious',
+        'Mnemic-field', 'Lamina', 'Workspace', 'Locus-bridge',
+        'Pineal', 'Aurora', 'Dreamer', 'Reverie', 'Helix',
+        'Constellation', 'Dmn', 'Heart', 'Meditation',
+        'AI-engineer', 'AI-scientist', 'Error-learner',
+        'Consequence-estimator', 'Trust-ledger', 'Permission-oracle',
+        'Rule-enforcer', 'Context-window', 'Context-repo', 'Synapse',
+        'Training', 'Reasoning-bank', 'Continuity',
+        'Branching-conversation', 'Code-analysis', 'Code-vault',
+        'Embeddings', 'Improvement', 'Execution-backends',
+        'Cognitive-feed', 'Memory-bridge', 'Foreshadow',
+        'Smart-rules', 'Self-healer', 'Reflex',
+      ]
+
+      const all = smf.list(undefined, 5000)
+      const found = new Set<string>()
+
+      for (const engram of all) {
+        const content = engram.content.toLowerCase()
+        for (const name of knownModules) {
+          if (content.includes(name.toLowerCase())) {
+            found.add(name)
+          }
+        }
+      }
+
+      const missing = knownModules.filter(n => !found.has(n))
+      const present = knownModules.filter(n => found.has(n))
+
+      sendJSON(res, 200, {
+        ok: true,
+        knownModules: knownModules.length,
+        presentInSelfModel: present.length,
+        missingFromSelfModel: missing.length,
+        present,
+        missing,
+        coverage: `${Math.round((present.length / knownModules.length) * 100)}%`,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/wire-capabilities — create implements synapses
+  if (parts[1] === 'self-model' && parts[2] === 'wire-capabilities' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const dryRun = body?.dryRun !== false
+
+      const capabilities = smf.list('capability', 500)
+      const modules = smf.list('module', 5000)
+
+      // Build community → module ID map
+      const commToModule = new Map<string, string>()
+      for (const mod of modules) {
+        const cluster = mod.metadata?.cluster as string | undefined
+        if (cluster && !commToModule.has(cluster)) {
+          commToModule.set(cluster, mod.id)
+        }
+      }
+
+      let created = 0, skipped = 0, noImpl = 0
+      const createdPairs: Array<{ cap: string; mod: string; comm: string }> = []
+
+      for (const cap of capabilities) {
+        const implBy = (cap.metadata as any)?.implementedBy as string[] | undefined
+        if (!implBy || implBy.length === 0) { noImpl++; continue }
+
+        for (const comm of implBy) {
+          const modId = commToModule.get(comm)
+          if (!modId) { skipped++; continue }
+
+          // Check if synapse already exists
+          const existing = smf.getField().getTypedSynapses(cap.id, 'implements', 'out')
+          if (existing.some(s => s.targetId === modId)) { skipped++; continue }
+
+          if (!dryRun) {
+            try {
+              smf.connect(cap.id, modId, 'implements')
+            } catch {
+              skipped++
+              continue
+            }
+          }
+          created++
+          if (createdPairs.length < 20) {
+            createdPairs.push({
+              cap: cap.content.split(' — ')[0],
+              mod: modules.find(m => m.id === modId)?.content.split(' — ')[0] ?? modId,
+              comm,
+            })
+          }
+        }
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        dryRun,
+        capabilitiesFound: capabilities.length,
+        capabilitiesWithoutImpl: noImpl,
+        modulesFound: modules.length,
+        communitiesMapped: commToModule.size,
+        synapsesCreated: created,
+        synapsesSkipped: skipped,
+        samplePairs: createdPairs,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
+  // POST /memory/self-model/embed-flows — embed execution flow descriptions into module engrams
+  if (parts[1] === 'self-model' && parts[2] === 'embed-flows' && !parts[3] && method === 'POST') {
+    const smf = requireSelfModel(daemon, res, sendJSON)
+    if (!smf) return true
+    try {
+      const body = await parseBody(req).catch(() => ({}))
+      const dryRun = body?.dryRun !== false
+
+      // Get all capability engrams (they hold the flow descriptions)
+      const capabilities = smf.list('capability', 500)
+      const modules = smf.list('module', 5000)
+
+      // Build community → module map
+      const commToModule = new Map<string, { id: string; name: string }>()
+      for (const mod of modules) {
+        const cluster = mod.metadata?.cluster as string | undefined
+        if (cluster && !commToModule.has(cluster)) {
+          commToModule.set(cluster, { id: mod.id, name: mod.content.split(' — ')[0] })
+        }
+      }
+
+      // Build module → flows map
+      const moduleFlows = new Map<string, string[]>()
+      for (const cap of capabilities) {
+        const implBy = (cap.metadata as any)?.implementedBy as string[] | undefined
+        if (!implBy || implBy.length === 0) continue
+
+        const flowDesc = cap.content
+        for (const comm of implBy) {
+          const mod = commToModule.get(comm)
+          if (!mod) continue
+          const flows = moduleFlows.get(mod.id) || []
+          if (!flows.includes(flowDesc)) {
+            flows.push(flowDesc)
+            moduleFlows.set(mod.id, flows)
+          }
+        }
+      }
+
+      let embedded = 0
+      let skipped = 0
+      const samples: Array<{ module: string; flowCount: number }> = []
+
+      for (const [modId, flows] of moduleFlows) {
+        if (flows.length === 0) { skipped++; continue }
+
+        if (!dryRun) {
+          const existing = modules.find(m => m.id === modId)
+          if (!existing) { skipped++; continue }
+
+          // Prepend flow descriptions to module content
+          const flowSection = flows
+            .map(f => `[flow] ${f}`)
+            .join('\n')
+          const newContent = existing.content + '\n\n' + flowSection
+
+          await smf.update(modId, { content: newContent })
+        }
+
+        embedded++
+        if (samples.length < 10) {
+          const mod = modules.find(m => m.id === modId)
+          samples.push({
+            module: mod?.content.split(' — ')[0] ?? modId,
+            flowCount: flows.length,
+          })
+        }
+      }
+
+      sendJSON(res, 200, {
+        ok: true,
+        dryRun,
+        capabilitiesFound: capabilities.length,
+        modulesWithFlows: embedded,
+        modulesWithoutFlows: skipped,
+        samples,
+      })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
 
   // GET /memory/knowledge/stats
   if (parts[1] === 'knowledge' && parts[2] === 'stats' && !parts[3] && method === 'GET') {
@@ -1437,16 +2198,72 @@ export async function handleMemoryRoutes(
   }
 
 
-  // POST /memory/universal-search
+  // POST /memory/universal-search — search memory + archive, return combined results
   if (parts[1] === 'universal-search' && method === 'POST') {
     if (!memory) return noMemory()
     const body = await parseBody(req)
-    const results = await memory.universalSearch(body?.query ?? '', {
-      includeMemories: body?.includeMemories,
-      includeArchives: body?.includeArchives,
-      limit: body?.limit,
+    const query = body?.query ?? ''
+    const limit = body?.limit ?? 10
+    const includeMemories = body?.includeMemories !== false
+    const includeArchives = body?.includeArchives !== false
+
+    const hits: any[] = []
+
+    // Search memory — uses MnemicField FTS5 (the MemoryShim is in-memory only, always empty)
+    if (includeMemories && query.trim()) {
+      try {
+        const field = getMnemicField(logger, daemon)
+        const textHits = field.searchText(query, limit * 2)
+          .filter(r => r.engram.nodeType !== 'bridge')
+        for (const r of textHits) {
+          hits.push({
+            id: r.engram.id,
+            source: 'memory',
+            type: r.engram.nodeType || 'fact',
+            content: r.engram.content || '',
+            score: r.score,
+            metadata: r.engram.metadata ?? {},
+          })
+        }
+      } catch (err: any) {
+        logger.warn('universal-search memory query failed', { error: String(err), query })
+      }
+    }
+
+    // Search archive (daemon.archive if available)
+    const archive = (daemon as any)?.archive
+    if (includeArchives && query.trim() && archive?.search) {
+      try {
+        const archResults = await archive.search(query, { limit: limit * 2 })
+        for (const r of (archResults || [])) {
+          hits.push({
+            id: r.id,
+            source: 'archive',
+            type: r.type || r.entry?.type || 'turn',
+            content: r.content || r.response || r.entry?.content || '',
+            score: r.score ?? 0.5,
+            metadata: r.metadata || r.entry?.metadata,
+          })
+        }
+      } catch (err: any) {
+        logger.warn('universal-search archive query failed', { error: String(err), query })
+      }
+    }
+
+    // Deduplicate by content hash
+    const seen = new Set<string>()
+    const deduped = hits.filter(h => {
+      const key = (h.content || '').slice(0, 200)
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
     })
-    sendJSON(res, 200, results)
+
+    // Sort by score descending, apply limit
+    deduped.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
+    const results = deduped.slice(0, limit)
+
+    sendJSON(res, 200, { ok: true, query, count: results.length, hits: results })
     return true
   }
 
