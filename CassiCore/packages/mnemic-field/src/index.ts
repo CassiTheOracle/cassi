@@ -416,13 +416,20 @@ export class MnemicField {
     if (this.retrieveCache.size > 0) this.retrieveCache.clear()
     let x = input.x
     let y = input.y
+    let r = input.r
+    let theta = input.theta
 
     // Resolve position: x/y explicit → polar → UMAP → periphery fallback
     if (input.x === undefined && input.y === undefined) {
-      if (input.r !== undefined && input.theta !== undefined) {
+      if (r !== undefined && theta !== undefined) {
         // Polar coordinates provided → convert to Cartesian
-        x = input.r * Math.cos(input.theta)
-        y = input.r * Math.sin(input.theta)
+        x = r * Math.cos(theta)
+        y = r * Math.sin(theta)
+      } else if (r !== undefined && theta === undefined) {
+        // Radial distance without angle — assign random angle
+        theta = Math.random() * 2 * Math.PI
+        x = r * Math.cos(theta)
+        y = r * Math.sin(theta)
       } else if (input.embedding) {
         // Has embedding → project into field topology via UMAP
         const vec = input.embedding instanceof Float32Array
@@ -431,19 +438,25 @@ export class MnemicField {
         const pos = this.projectNewVector(vec)
         x = pos.x
         y = pos.y
+        // Compute polar from UMAP position for metadata
+        r = Math.sqrt(x * x + y * y)
+        theta = Math.atan2(y, x)
       } else {
         // No embedding → place at periphery with random angle.
-        // Origin is reserved for Pineal facets and self-model engrams.
-        const angle = Math.random() * 2 * Math.PI
-        const radius = MnemicField.PERIPHERY_RADIUS_MIN
+        theta = Math.random() * 2 * Math.PI
+        r = MnemicField.PERIPHERY_RADIUS_MIN
           + Math.random() * (MnemicField.PERIPHERY_RADIUS_MAX - MnemicField.PERIPHERY_RADIUS_MIN)
-        x = radius * Math.cos(angle)
-        y = radius * Math.sin(angle)
+        x = r * Math.cos(theta)
+        y = r * Math.sin(theta)
       }
+    } else {
+      // Explicit x/y provided — compute polar for metadata
+      if (r === undefined) r = Math.sqrt(x! * x! + y! * y!)
+      if (theta === undefined) theta = Math.atan2(y!, x!)
     }
 
     const affect = attune(input.content)
-    const metadata = { ...input.metadata, affect }
+    const metadata = { ...input.metadata, affect, r, theta }
 
     const engram = this.cortex.createEngram({ ...input, x, y, metadata })
     return engram
