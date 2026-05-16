@@ -1538,9 +1538,11 @@ export class Daemon {
 
         this.logger.info('Self-Model Field initialized with InterFieldBridge')
 
-        // Run ingestion from GitNexus in background (non-blocking)
+        // Run ingestion from GitNexus in background (5 min delayed — avoids
+        // competing with post-boot initialization; 17.8 min runtime is fine async)
         const repoRoot = process.cwd()
-        setImmediate(async () => {
+        const INGESTION_DELAY_MS = 5 * 60 * 1000
+        setTimeout(async () => {
           try {
             const { SelfModelIngestor } = await import('./intelligence/mnemic-field/self-model/ingestor.js')
             const ingestor = new SelfModelIngestor(selfModelField, this.logger, repoRoot, interFieldBridge)
@@ -1587,7 +1589,7 @@ export class Daemon {
         const dataDir = (await import('./utils/paths.js')).getDataDir()
         const papersDir = path.join(dataDir, 'papers')
         if (fs.existsSync(papersDir)) {
-          setImmediate(async () => {
+          setTimeout(async () => {
             try {
               const { KnowledgeIngestor } = await import('./intelligence/mnemic-field/knowledge/ingestor.js')
               const ingestor = new KnowledgeIngestor(knowledgeField, this.logger)
@@ -1838,29 +1840,9 @@ export class Daemon {
       this.logger.info('No MCP servers configured')
     }
 
-    // Start Copilot SDK init early — runs in parallel with intelligence
-    // registry init below. They share no mutual dependency: SDK needs
-    // toolRegistry + providers (both ready), registry needs the same.
-    // The SDK spawns a CLI server + auth (network I/O), while the registry
-    // discovers/wires modules (CPU + dynamic imports). Parallelizing saves ~1.5s.
-    const copilotSdkPromise = (async () => {
-      try {
-        const { initCopilotSdkProvider } = await import('./providers/index.js')
-        const sdkManager = await initCopilotSdkProvider(
-          providers, this.config, this.logger, this.bus,
-          toolRegistry, toolExecutor,
-        )
-        if (sdkManager) {
-          ;(this as unknown as Record<string, unknown>).__copilotSdkManager = sdkManager
-          if (this.helixModelPool) {
-            this.helixModelPool.setProviders(providers)
-            this.logger.info('Helix ModelPool re-wired after copilot-sdk init')
-          }
-        }
-      } catch (err) {
-        this.logger.warn('Copilot SDK provider init skipped', { error: String(err) })
-      }
-    })()
+    // WHY: Copilot SDK disabled — network I/O (60-90s auth + CLI spawn) was the
+    // primary boot bottleneck after self-model probe removal. Other providers
+    // (github-copilot, alibaba-coding, z-ai, claude-code) cover all model needs.
 
     // This runs after all dependencies (bus, memory, providers, tools) are available.
     try {
@@ -2160,9 +2142,6 @@ export class Daemon {
     } catch (err) {
       this.logger.warn('IntelligenceRegistry initialization failed — auto-discovered modules will not be available', { error: String(err) })
     }
-
-    // Wait for Copilot SDK init that was started in parallel with intelligence registry
-    await copilotSdkPromise
 
     this.pipeline = new TurnPipeline(
       providers, this.sessions, this.bus, this.logger,
