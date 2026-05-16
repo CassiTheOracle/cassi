@@ -1,16 +1,18 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
+import { createHash } from 'node:crypto'
 import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
 import { ToolResultCompressor } from './compressor.js'
 import { ToolResultDistiller } from './distiller.js'
 import { TemporalRegistry } from './temporal.js'
 import { createSlots } from './slots/index.js'
-import { classifyMessage, isWriteTool, isReadTool, isShellTool, extractFilePath, extractSearchTarget, shortenPath } from './classifier.js'
+import { classifyMessage, isWriteTool, isReadTool, isShellTool, extractFilePath, extractSearchTarget, shortenPath, classifyTool, extractToolUses, extractToolResults, detectLanguage } from './classifier.js'
 import type { ThalamusStore } from './thalamus-store.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
 import type { EngramCreate, ExpertKind } from '../mnemic-field/types.js'
 import { cosineSimilarity } from '../mnemic-field/cortex.js'
+import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
 import type { SelfModelField } from '../mnemic-field/self-model/self-model-field.js'
 import type { LocusBridge } from '../locus-bridge/index.js'
 import type { FacetManager } from '../pineal/facet.js'
@@ -444,6 +446,86 @@ function stripThalamusAnnotations(messages: any[]): any[] {
   })
 }
 
+/**
+ * Compute a minimal line-based diff between two strings.
+ * Returns a compact, unified-diff-like string suitable for storing in
+ * file_version engrams. Uses common-prefix/suffix matching — simpler
+ * than full Myers diff but captures the most common case (localized edits).
+ *
+ * Format: `@@ -oldStart,oldCount +newStart,newCount @@` followed by
+ * context lines (leading space), removed lines (`-`), and added lines (`+`).
+ *
+ * First version of a file stores full content; subsequent versions store
+ * a diff against the first version's content so any version can be
+ * reconstructed by applying one diff (no chained diffs-on-diffs).
+ */
+export function computeLineDiff(oldContent: string, newContent: string): string {
+  if (!oldContent) return newContent
+  
+  const oldLines = oldContent.split('\n')
+  const newLines = newContent.split('\n')
+  
+  // Simple common-prefix / common-suffix diff
+  let prefix = 0
+  while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) {
+    prefix++
+  }
+  
+  let oldSuffix = oldLines.length - 1
+  let newSuffix = newLines.length - 1
+  while (oldSuffix >= prefix && newSuffix >= prefix && oldLines[oldSuffix] === newLines[newSuffix]) {
+    oldSuffix--
+    newSuffix--
+  }
+  
+  const parts: string[] = []
+  const contextStart = Math.max(0, prefix - 2)
+  const contextEnd = Math.min(oldLines.length, oldSuffix + 3)
+  
+  // Range header
+  parts.push(`@@ -${contextStart + 1},${oldSuffix - prefix + 1} +${contextStart + 1},${newSuffix - prefix + 1} @@`)
+  
+  // Context lines before change
+  for (let i = contextStart; i < prefix; i++) {
+    parts.push(` ${oldLines[i]}`)
+  }
+  
+  // Removed lines
+  for (let i = prefix; i <= oldSuffix; i++) {
+    parts.push(`-${oldLines[i]}`)
+  }
+  
+  // Added lines
+  for (let i = prefix; i <= newSuffix; i++) {
+    parts.push(`+${newLines[i]}`)
+  }
+  
+  // Context lines after change
+  for (let i = oldSuffix + 1; i < contextEnd; i++) {
+    parts.push(` ${oldLines[i]}`)
+  }
+  
+  return parts.join('\n')
+}
+
+/**
+ * Create a synapse, silently ignoring failures.
+ * Best-effort utility — never crash for synapse wiring.
+ * Extracted from ThalamusModule so other modules (e.g. DMN, Locus Bridge)
+ * with a MnemicField reference can wire best-effort synapses.
+ */
+export function safeConnect(
+  mnemicField: import('../mnemic-field/index.js').MnemicField | null,
+  sourceId: string,
+  targetId: string,
+  edgeType: string,
+): void {
+  if (!mnemicField || !sourceId || !targetId) return
+  try {
+    mnemicField.connect({ sourceId, targetId, edgeType: edgeType as any, weight: 0.8 })
+  } catch { /* best-effort */ }
+}
+
 export class ThalamusModule extends BaseCognitiveModule {
   readonly name = 'thalamus'
   readonly priority = 85
@@ -466,6 +548,11 @@ export class ThalamusModule extends BaseCognitiveModule {
    * assembleInjections call.
    */
   private cachedBrainContext: { sessionId: string; messageCount: number; ctx: BrainContext } | null = null
+
+  /** In-memory cache: filePath → file engram ID */
+  private fileEngramCache = new Map<string, string>()
+  /** Max entries before FIFO eviction */
+  private fileEngramCacheMax = 5000
 
   private locusBridge: LocusBridge | null = null
   private cortex: CorticalField | null = null
@@ -504,6 +591,8 @@ this.aurora?.setReverieInferenceProvider(provider)
   private replayBuffers = new Map<string, any[]>()
   /** Replay flush size — flush to MnemicField when buffer exceeds this */
   private replayFlushSize = 20
+  /** Tracks engram IDs by session → messageIndex for the worthiness post-filter */
+  private _engramIdByIndex = new Map<string, Map<number, string>>()
 
   writeMessageEngram(
     sessionId: string,
@@ -513,25 +602,450 @@ this.aurora?.setReverieInferenceProvider(provider)
     options?: { expertId?: string; intentSpanId?: string; thoughtCommands?: any[] },
   ): void {
     if (!this.mnemicField) return
+
+    const session = this.getSession(sessionId)
+    const now = new Date().toISOString()
+
+    // Buffer tool_use blocks and store them as `tool` engrams.
+    // Text content in the same message is stored as `message` engrams.
+    // tool_invocation engrams are created when the tool_result arrives.
+    if (slotType === 'tool_call') {
+      if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          if (block?.type === 'tool_use' && block.id && block.name) {
+            // Buffer for later pairing with tool_result
+            session.pendingToolCalls.set(block.id, {
+              toolName: block.name,
+              toolClass: classifyTool(block.name),
+              input: block.input ?? {},
+              messageIndex: index,
+              timestamp: now,
+            })
+            session.toolUseMap.set(block.id, block.name)
+
+            // Store as a `tool` engram
+            const toolInput: EngramCreate & { sessionId: string } = {
+              sessionId,
+              content: JSON.stringify(block.input ?? {}),
+              nodeType: 'tool' as import('../mnemic-field/types.js').EngramType,
+              tags: ['tool', `session:${sessionId}`, `tool_name:${block.name}`],
+              provenance: 'thalamus',
+              metadata: {
+                toolName: block.name,
+                toolClass: classifyTool(block.name),
+                input: block.input ?? {},
+                messageIndex: index,
+                createdAt: now,
+              },
+            }
+            this.mnemicField.storeForSession(toolInput)
+          } else if (block?.type === 'text' && block.text) {
+            // Store text reasoning alongside tool calls
+            const textInput: EngramCreate & { sessionId: string } = {
+              sessionId,
+              content: block.text,
+              nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
+              tags: ['assistant', `session:${sessionId}`],
+              provenance: 'thalamus',
+              metadata: {
+                sessionId,
+                messageIndex: index,
+                role: 'assistant',
+                slotType: 'assistant',
+                createdAt: now,
+              },
+            }
+            this.mnemicField.storeForSession(textInput)
+          }
+        }
+      }
+      return
+    }
+
+    if (slotType === 'tool_result') {
+      const toolResults = extractToolResults(msg)
+      for (const tr of toolResults) {
+        const pending = session.pendingToolCalls.get(tr.toolUseId)
+        if (!pending) continue  // orphaned result (shouldn't happen)
+
+        const toolName = pending.toolName
+        const toolClass = pending.toolClass
+        const filePath = extractFilePath(pending.input) || null
+        const searchTarget = extractSearchTarget(pending.input) || null
+
+        // Build the tool_invocation engram
+        const input: EngramCreate & { sessionId: string } = {
+          sessionId,
+          content: tr.isError ? `[ERROR] ${tr.content}` : tr.content,
+          nodeType: 'tool_invocation' as import('../mnemic-field/types.js').EngramType,
+          tags: ['tool_invocation', `tool:${toolName}`, `class:${toolClass}`, `session:${sessionId}`],
+          provenance: 'thalamus',
+          metadata: {
+            toolName,
+            toolClass,
+            input: pending.input,
+            durationMs: 0,
+            outputBytes: Buffer.byteLength(tr.content, 'utf8'),
+            isError: tr.isError,
+            sessionId,
+            messageIndex: pending.messageIndex,
+            filePath,
+            searchTarget,
+            createdAt: now,
+          } satisfies Record<string, unknown>,
+        }
+        this.mnemicField.storeForSession(input)
+
+        // Track for worthiness post-filter
+        let sessionMap = this._engramIdByIndex.get(sessionId)
+        if (!sessionMap) {
+          sessionMap = new Map()
+          this._engramIdByIndex.set(sessionId, sessionMap)
+        }
+        sessionMap.set(pending.messageIndex, input.id ?? '')
+
+        // Route file operations to the file-engram interceptor
+        if (filePath && !tr.isError && (toolClass === 'fs' || isReadTool(toolName) || isWriteTool(toolName))) {
+          const resultContent = tr.isError ? '' : tr.content
+          const tiId = input.id ?? ''
+          this.writeFileEngramsForTool(sessionId, toolName, toolClass, filePath, resultContent, now, tiId)
+        }
+
+        session.pendingToolCalls.delete(tr.toolUseId)
+      }
+      return
+    }
+
+    // user, assistant, system — store as message engrams
     const content = extractMessageContent(msg)
     if (!content) return
     const input: EngramCreate & { sessionId: string } = {
       sessionId,
       content: typeof content === 'string' ? content : JSON.stringify(content),
-      nodeType: 'fact' as import('../mnemic-field/types.js').EngramType,
+      nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
       tags: [slotType, `session:${sessionId}`],
       provenance: 'thalamus',
       metadata: {
         sessionId,
         messageIndex: index,
+        role: slotType,
         slotType,
         intentSpanId: options?.intentSpanId,
         expertId: options?.expertId,
         thoughtCommands: options?.thoughtCommands,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
       },
     }
-    this.mnemicField.storeForSession(input)
+    const engram = this.mnemicField.storeForSession(input)
+
+    // Track engram ID by session + messageIndex for the async worthiness post-filter
+    let sessionMap2 = this._engramIdByIndex.get(sessionId)
+    if (!sessionMap2) {
+      sessionMap2 = new Map()
+      this._engramIdByIndex.set(sessionId, sessionMap2)
+    }
+    sessionMap2.set(index, engram.id)
+  }
+
+  /**
+   * Create file, file_version, and file_read engrams for file-related tool invocations.
+   * Called from writeMessageEngram after a tool_invocation is stored.
+   */
+  private writeFileEngramsForTool(
+    sessionId: string,
+    toolName: string,
+    toolClass: string,
+    filePath: string,
+    content: string,
+    now: string,
+    toolInvocationId: string,
+  ): void {
+    if (!filePath) return
+
+    try {
+      const mf = this.mnemicField!  // guarded by findOrCreateFileEngram below
+      const checksum = createHash('sha256').update(content, 'utf8').digest('hex')
+      const language = detectLanguage(filePath)
+
+      if (isReadTool(toolName) || toolName === 'read' || toolName === 'cassi_read') {
+        // Read: create file_read engram, create/update file engram
+        const fileEngram = this.findOrCreateFileEngram(sessionId, filePath, content, language, checksum, now)
+        const existingMeta = (fileEngram.metadata ?? {}) as Record<string, unknown>
+        const readCount = ((existingMeta.readCount as number) ?? 0) + 1
+        mf.update(fileEngram.id, {
+          accessedAt: now,
+          metadata: {
+            ...existingMeta,
+            readCount,
+            lastReadAt: now,
+            sizeBytes: Buffer.byteLength(content, 'utf8'),
+          },
+        })
+
+        // Create file_read engram
+        const readEngram = mf.storeForSession({
+          sessionId,
+          content: '',
+          nodeType: 'file_read' as import('../mnemic-field/types.js').EngramType,
+          tags: ['file_read', `session:${sessionId}`, `file:${filePath}`],
+          provenance: 'thalamus',
+          metadata: {
+            filePath,
+            sessionId,
+            timestamp: now,
+            readCount,
+            toolInvocationId,
+          } satisfies Record<string, unknown>,
+        } as any)
+
+        // Wire part_of: file_read → file
+        safeConnect(mf, readEngram.id, fileEngram.id, 'part_of')
+        // Wire operated_on: tool_invocation → file
+        if (toolInvocationId) {
+          safeConnect(mf, toolInvocationId, fileEngram.id, 'operated_on')
+        }
+      } else if (isWriteTool(toolName) || toolName === 'write' || toolName === 'edit' || toolName === 'cassi_write' || toolName === 'cassi_edit') {
+        const fileEngram = this.findOrCreateFileEngram(sessionId, filePath, content, language, checksum, now)
+        const existingMeta = (fileEngram.metadata ?? {}) as Record<string, unknown>
+        const existingChecksum = existingMeta.currentChecksum as string | undefined
+        const versionCount = ((existingMeta.versionCount as number) ?? 0)
+
+        if (checksum !== existingChecksum) {
+          const newVersionIndex = versionCount + 1
+
+          // For versions beyond the first, compute a line-based diff
+          // against v1's full content so every version can be reconstructed
+          // by applying one diff (no chained diffs-on-diffs).
+          let versionContent: string
+          let diffFromBaseVersionId: string | null = null
+          let supersedesId: string | null = null
+          if (newVersionIndex > 1) {
+            const allVersions = this.getFileVersionsByPath(filePath)
+            // v1 is the first entry (oldest, sorted by t ASC), but verify
+            // by checking versionIndex metadata in case of manual inserts
+            // or migration artifacts that may not follow strict t-ordering.
+            const firstVersion = allVersions.find(v => {
+              const meta = v.metadata as Record<string, unknown> | undefined
+              return meta?.versionIndex === 1 || meta?.isDiff === false
+            }) ?? allVersions[0]
+            if (firstVersion && firstVersion.content) {
+              diffFromBaseVersionId = firstVersion.id
+              versionContent = computeLineDiff(firstVersion.content, content)
+            } else {
+              versionContent = content
+            }
+            // Find the immediately previous version (vN-1) for the supersedes chain.
+            // With versionIndex metadata, we look for version N-1; as a fallback
+            // on unversioned records, the last array entry (most recent existing) is vN-1.
+            let prevVersion: import('../mnemic-field/types.js').Engram | undefined
+            for (const v of allVersions) {
+              const meta = v.metadata as Record<string, unknown> | undefined
+              if (meta?.versionIndex === newVersionIndex - 1) {
+                prevVersion = v
+                break
+              }
+            }
+            if (!prevVersion && allVersions.length > 1) {
+              prevVersion = allVersions[allVersions.length - 1]
+            }
+            if (prevVersion) {
+              supersedesId = prevVersion.id
+            } else {
+              this.logger?.debug('File version chain degraded — no previous version found', {
+                filePath,
+                newVersionIndex,
+                existingCount: allVersions.length,
+              })
+            }
+          } else {
+            versionContent = content
+          }
+
+          const versionEngram = mf.storeForSession({
+            sessionId,
+            content: versionContent,
+            nodeType: 'file_version' as import('../mnemic-field/types.js').EngramType,
+            tags: ['file_version', `file:${filePath}`, `session:${sessionId}`],
+            provenance: 'thalamus',
+            metadata: {
+              filePath,
+              checksum,
+              sizeBytes: Buffer.byteLength(content, 'utf8'),
+              versionIndex: newVersionIndex,
+              toolInvocationId,
+              supersedesId,
+              diffFromBaseVersionId,
+              isDiff: newVersionIndex > 1,
+            } satisfies Record<string, unknown>,
+          } as any)
+
+          safeConnect(mf, versionEngram.id, fileEngram.id, 'part_of')
+          if (toolInvocationId) {
+            safeConnect(mf, toolInvocationId, fileEngram.id, 'operated_on')
+          }
+          if (supersedesId) {
+            // Wire supersedes: new version supersedes the immediate previous version
+            safeConnect(mf, versionEngram.id, supersedesId, 'supersedes')
+          }
+
+          mf.update(fileEngram.id, {
+            // Anchor content is truncated — full content lives in file_version
+            content: content.slice(0, 500),
+            accessedAt: now,
+            metadata: {
+              ...existingMeta,
+              currentChecksum: checksum,
+              sizeBytes: Buffer.byteLength(content, 'utf8'),
+              versionCount: newVersionIndex,
+              lastModifiedAt: now,
+            },
+          })
+        }
+      }
+    } catch (err) {
+      // File engram creation is best-effort — never crash message processing.
+      // Log at debug level: file engram failures are expected during DB migrations
+      // or when the MnemicField is temporarily unavailable.
+      this.logger?.debug('File engram creation failed', {
+        error: String(err),
+        filePath,
+        toolName,
+        sessionId: sessionId.slice(-8),
+      })
+    }
+  }
+
+  /**
+   * Find all file_version engrams for a given filePath via a single DB query.
+   * Returns all versions sorted by creation order. The caller can pick
+   * v1 (index 0), vN-1 (penultimate), etc. without repeated scans.
+   *
+   * Uses the dedicated json_extract(metadata, '$.filePath') query on the
+   * MnemicField — no JS filtering over a broad list() call.
+   */
+  private getFileVersionsByPath(filePath: string): import('../mnemic-field/types.js').Engram[] {
+    if (!this.mnemicField) return []
+    return this.mnemicField.findFileVersionsByPath(filePath)
+  }
+
+  /**
+   * Find or create a file engram for the given path.
+   * Scans existing engrams by metadata.filePath.
+   */
+  private findOrCreateFileEngram(
+    sessionId: string,
+    filePath: string,
+    content: string,
+    language: string,
+    checksum: string,
+    now: string,
+  ): import('../mnemic-field/types.js').Engram {
+    if (!this.mnemicField) {
+      // Best-effort — file engrams are an optimization, never a critical path.
+      // The outer caller (writeFileEngramsForTool) also guards, but we guard
+      // here so findOrCreateFileEngram is safe to call from any context.
+      throw new Error('MnemicField not set — file engram creation skipped')
+    }
+
+    // 1. Check in-memory cache first (fast path)
+    const cachedId = this.fileEngramCache.get(filePath)
+    if (cachedId) {
+      const engram = this.mnemicField.get(cachedId)
+      if (engram) return engram
+      // engram was deleted — clear cache, fall through to DB query
+      this.fileEngramCache.delete(filePath)
+    }
+
+    // 2. DB query — fallback for cache misses (cross-session, cold start)
+    const existing = this.mnemicField.findFileByPath(filePath)
+    if (existing) {
+      this.fileEngramCache.set(filePath, existing.id)
+      return existing
+    }
+
+    // 3. Create new file engram
+    const pathSegments = filePath.split('/').filter(Boolean)
+    const engram = this.mnemicField.storeForSession({
+      sessionId,
+      content: content.slice(0, 500),
+      nodeType: 'file' as import('../mnemic-field/types.js').EngramType,
+      tags: ['file', `file:${filePath}`, language, ...pathSegments.slice(0, -1)],
+      provenance: 'thalamus',
+      metadata: {
+        filePath,
+        language,
+        currentChecksum: checksum,
+        sizeBytes: Buffer.byteLength(content, 'utf8'),
+        versionCount: 0,
+        readCount: 0,
+        lastReadAt: null,
+        lastModifiedAt: null,
+        createdAt: now,
+      } satisfies Record<string, unknown>,
+    } as any)
+    // Evict oldest if at capacity.
+    // Map iteration is insertion-order by spec (ES6 §23.1.3.5), so
+    // keys().next().value gives the first-inserted entry → FIFO eviction.
+    if (this.fileEngramCache.size >= this.fileEngramCacheMax) {
+      const firstKey = this.fileEngramCache.keys().next().value
+      if (firstKey) this.fileEngramCache.delete(firstKey)
+    }
+    this.fileEngramCache.set(filePath, engram.id)
+    return engram
+  }
+
+  /**
+   * MemRouter-inspired write-side classification: labels each engram with
+   * semanticType, epistemicShift, and workType dimensions via prototype embeddings.
+   * Runs during curate() after processAll(). Silently skips if the embedding
+   * service is unavailable (engram is stored raw and classified on next pass).
+   */
+  private async classifyEngram(sessionId: string, annotated: any[]): Promise<void> {
+    if (!this.mnemicField) return
+    const sessionMap = this._engramIdByIndex.get(sessionId)
+    if (!sessionMap || sessionMap.size === 0) return
+
+    let tagged = 0
+    for (const msg of annotated) {
+      const msgIndex = msg._thalamus?.index
+      if (typeof msgIndex !== 'number') continue
+
+      const engramId = sessionMap.get(msgIndex)
+      if (!engramId) continue  // Already filtered by Gate 1 (tool role filter)
+
+      const content = extractMessageContent(msg)
+      if (!content || content.length < 10) continue
+
+      // Multi-dimensional label classification — inspired by MemRouter's
+      // write-side content-type routing (key_facts, preference, plan, etc.).
+      // Runs in parallel: one embed, four cosine-similarity lookups.
+      try {
+        const [sigType, epiShift, workType] = await Promise.all([
+          this.mnemicField.classifyPhrase(content, SIGNAL_TYPE_PHRASES, 0.30),
+          this.mnemicField.classifyPhrase(content, EPISTEMIC_SHIFT_PHRASES, 0.30),
+          this.mnemicField.classifyPhrase(content, WORK_UNIT_ANNOTATION_PHRASES, 0.30),
+        ])
+
+        const labels: Record<string, unknown> = {}
+        if (sigType.label) labels.semanticType = sigType.label
+        if (epiShift.label) labels.epistemicShift = epiShift.label
+        if (workType.label) labels.workType = workType.label
+        labels.classifiedAt = new Date().toISOString()
+
+        // Merge with existing metadata (preserves sessionId, messageIndex, slotType, etc.)
+        const existing = this.mnemicField.get(engramId)
+        const mergedMeta = { ...(existing?.metadata ?? {}), ...labels }
+        this.mnemicField.update(engramId, { metadata: mergedMeta })
+        tagged++
+      } catch {
+        // Embedding service unavailable — skip classification, keep engram raw
+        continue
+      }
+    }
+
+    if (tagged > 0) {
+      this.logger.debug('Engram classification', { sessionId, tagged })
+    }
   }
 
   assignExpertId(embedding: Float32Array | number[] | null): string | null {
@@ -638,6 +1152,38 @@ this.aurora?.setReverieInferenceProvider(provider)
         messageCount: intentSpan.messageIndices.length,
       },
     })
+  }
+
+  /**
+   * Assign initial radial position (r) for an engram based on its type.
+   * Used to seed the polar field topology. theta is left undefined so
+   * the MnemicField.store() assigns a random angle.
+   *
+   * Lower r = closer to center = higher attentional priority.
+   */
+  private static getRadialPosition(nodeType: string, provenance?: string): number | undefined {
+    // Pineal facets are pinned at origin — never positioned here (handled by PinealModule)
+    if (provenance?.startsWith('pineal:')) return undefined
+    // Self-model engrams near center
+    if (nodeType === 'fact') return 0.15 + Math.random() * 0.1
+    if (nodeType === 'decision') return 0.15 + Math.random() * 0.1
+    if (nodeType === 'insight') return 0.20 + Math.random() * 0.1
+    if (nodeType === 'expert_summary') return 0.10 + Math.random() * 0.1
+    if (nodeType === 'abstraction') return 0.12 + Math.random() * 0.1
+    if (nodeType === 'pattern') return 0.18 + Math.random() * 0.1
+    if (nodeType === 'goal') return 0.15 + Math.random() * 0.1
+    // Operational engrams in middle shell
+    if (nodeType === 'tool') return 0.55 + Math.random() * 0.1
+    if (nodeType === 'tool_invocation') return 0.55 + Math.random() * 0.1
+    if (nodeType === 'file') return 0.50 + Math.random() * 0.1
+    if (nodeType === 'file_version') return 0.50 + Math.random() * 0.1
+    // Ephemeral engrams at periphery
+    if (nodeType === 'message') return 0.80 + Math.random() * 0.1
+    if (nodeType === 'episode') return 0.75 + Math.random() * 0.1
+    if (nodeType === 'file_read') return 0.90 + Math.random() * 0.05
+    if (nodeType === 'bridge') return 0.75 + Math.random() * 0.1
+    // Undefined = let MnemicField.store() handle default (periphery)
+    return undefined
   }
 
   async init(): Promise<void> {
@@ -1028,6 +1574,12 @@ this.aurora?.setReverieInferenceProvider(provider)
     // Ensure all messages have _thalamus annotations (backward compatibility)
     const annotated = this.processAll(sessionId, messages)
 
+    // Multi-dimensional label classification (MemRouter-inspired write-side routing).
+    // Runs after processAll so engram IDs are tracked. Stores semanticType,
+    // epistemicShift, and workType labels on each engram's metadata for
+    // downstream retrieval-time routing and filtering.
+    await this.classifyEngram(sessionId, annotated)
+
     // Deep clone before any mutations to prevent signature invalidation
     // (Anthropic thinking signatures are bound to exact block structure)
     const cloned = annotated.map(m => deepCloneMessage(m))
@@ -1111,7 +1663,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     //      the "I read the file to prepare an edit" pattern: compressing those
     //      reads forces a re-read and breaks the edit chain.
     const compressionBoundary = Math.max(0, cloned.length - cfg.recentWindowSize)
-    const liveReadMap = this.computeLiveReadIndices(cloned, cfg.recentWindowSize)
+    const liveReadMap = this.computeLiveReadIndices(sessionId, cloned, cfg.recentWindowSize)
     const { messages: compressed, compressed: compressedCount } =
       this.compressor.compress(cloned, compressionBoundary, { toolResultMaxChars: cfg.toolResultMaxChars }, new Set(liveReadMap.keys()))
 
@@ -1516,6 +2068,135 @@ this.aurora?.setReverieInferenceProvider(provider)
     }
 
     return { messages: finalMessages, meta }
+  }
+
+  /**
+   * Import historical session transcripts into the MnemicField.
+   *
+   * Runs the full classify → score → store pipeline (processAll) but skips
+   * budget-based filtering, compression, directive application, and
+   * ThalamusStore audit recording. Everything is stored; nothing is dropped.
+   *
+   * Callers should manage idempotency — this method stores all messages
+   * unconditionally.
+   */
+  async importMessages(
+    sessionId: string,
+    messages: any[],
+    metadata?: { source?: string; project?: string; model?: string },
+  ): Promise<{ sessionId: string; imported: number; skippedToolMessages: number; toolChainCount: number; durationMs: number; alreadyImported?: boolean }> {
+    const start = Date.now()
+
+    if (!messages || messages.length === 0) {
+      return { sessionId, imported: 0, skippedToolMessages: 0, toolChainCount: 0, durationMs: Date.now() - start }
+    }
+
+    // Run the standard classify + score + store pipeline.
+    // processAll calls process() for each message, which:
+    //   1. classifyMessage() → slot type
+    //   2. Temporal registry timestamp recording
+    //   3. Slot-based augmentation (scoring, _thalamus annotations)
+    //   4. writeMessageEngram() → MnemicField storage (Gate 1 filters tool msgs)
+    const annotated = this.processAll(sessionId, messages)
+
+    // Track how many were tool messages (skipped by Gate 1 in writeMessageEngram)
+    let skippedToolMessages = 0
+    for (const msg of annotated) {
+      const slot = msg?._thalamus?.slot
+      if (slot === 'tool_result' || slot === 'tool_call') {
+        skippedToolMessages++
+      }
+    }
+
+    const imported = annotated.length - skippedToolMessages
+
+    // Post-processing pass: attach tool chains to user engrams.
+    // For each user message, collect all subsequent tool_call + tool_result
+    // pairs (the assistant-with-tools messages + their tool_results) until
+    // the next substantive user message. Store inline as metadata.
+    let toolChainCount = 0
+    if (this.mnemicField) {
+      const sessionMap = this._engramIdByIndex.get(sessionId)
+      for (let i = 0; i < annotated.length; i++) {
+        const msg = annotated[i]
+        if (msg?._thalamus?.slot !== 'user') continue
+
+        const chain: Array<{ tool: string; class?: string; target?: string; evidence?: string }> = []
+        const filePaths: string[] = []
+
+        // Collect all tool_call/tool_result pairs until next user message
+        let j = i + 1
+        while (j < annotated.length) {
+          const next = annotated[j]
+          const nextSlot = next?._thalamus?.slot
+          if (nextSlot === 'user') break
+
+          if (nextSlot === 'tool_call') {
+            const content = Array.isArray(next.content) ? next.content : []
+            // Find the tool_use blocks in this tool_call message
+            for (const tu of content.filter((b: any) => b?.type === 'tool_use')) {
+              const toolName = tu.name ?? 'unknown'
+              const toolClass = classifyTool(toolName)
+              const target = extractFilePath(tu.input ?? {}) || extractSearchTarget(tu.input ?? {})
+              // Look ahead for matching tool_result in the next tool_result message
+              let evidence: string | undefined
+              for (let k = j + 1; k < annotated.length; k++) {
+                const tr = annotated[k]
+                if (tr?._thalamus?.slot === 'user' || tr?._thalamus?.slot === 'tool_call') break
+                if (tr?._thalamus?.slot !== 'tool_result') continue
+                const trContent = Array.isArray(tr.content) ? tr.content : []
+                const trBlock = trContent.find((b: any) => b?.type === 'tool_result' && b?.tool_use_id === tu.id)
+                if (trBlock) {
+                  evidence = (typeof trBlock.content === 'string' ? trBlock.content : JSON.stringify(trBlock.content ?? '')).slice(0, 800)
+                  break
+                }
+              }
+              chain.push({ tool: toolName, class: toolClass, target, evidence })
+              if (target && !filePaths.includes(target)) filePaths.push(target)
+              toolChainCount++
+            }
+          }
+          j++
+        }
+
+        if (chain.length > 0) {
+          const engramId = sessionMap?.get(i)
+          if (engramId) {
+            const existing = this.mnemicField.get(engramId)
+            const existingMeta = existing?.metadata ?? {}
+            const existingTags = existing?.tags ?? []
+            this.mnemicField.update(engramId, {
+              metadata: { ...existingMeta, toolChain: chain },
+              tags: [...new Set([...existingTags, ...filePaths.map(p => `file:${shortenPath(p)}`)])],
+            })
+          }
+        }
+      }
+    }
+
+    // Store import marker engram for discovery
+    if (this.mnemicField && imported > 0) {
+      this.mnemicField.store({
+        nodeType: 'fact' as any,
+        content: `Imported ${imported} messages from ${metadata?.source ?? 'unknown'} session ${sessionId}`,
+        tags: ['thalamus:import', `source:${metadata?.source ?? 'unknown'}`, `session:${sessionId}`],
+        provenance: 'thalamus.import',
+        metadata: {
+          sessionId,
+          imported,
+          skippedToolMessages,
+          source: metadata?.source,
+          project: metadata?.project,
+          model: metadata?.model,
+          importedAt: new Date().toISOString(),
+        },
+      })
+    }
+
+    const durationMs = Date.now() - start
+    this.logger.info('Thalamus import complete', { sessionId, imported, skippedToolMessages, toolChainCount, durationMs })
+
+    return { sessionId, imported, skippedToolMessages, toolChainCount, durationMs }
   }
 
   getStats(): { sessions: number; totalCurations: number } {
@@ -2938,6 +3619,7 @@ this.aurora?.setReverieInferenceProvider(provider)
       session = {
         sessionId,
         toolUseMap: new Map(),
+        pendingToolCalls: new Map(),
         lastCuratedAt: Date.now(),
         totalCurations: 0,
         topicClusters: [],
@@ -3408,25 +4090,24 @@ this.aurora?.setReverieInferenceProvider(provider)
   }
 
   /**
-   * Identify "live" read tool_results — the latest read of a file path that
-   * has not been written to since. These are reads the agent likely made in
-   * preparation for an Edit/Write/MultiEdit and needs verbatim. Compressing
-   * them mid-edit-prep forces a re-read and breaks the chain.
+  /**
+   * Identifies file-read messages whose results should survive compression
+   * because no subsequent write has invalidated them.
+   *
+   * Uses MnemicField file_read and file_version engrams as the source of truth
+   * instead of regex-based message scanning. For each file path read in this
+   * session, checks whether a more recent write exists — if not, the read
+   * result is "live" and should be preserved.
    *
    * Returned indices point at the user message containing the tool_result.
    * Pass this set to ToolResultCompressor.compress as protectedIndices so
    * those results survive even when they fall outside the recentWindow.
    *
-   * Detection is path-based and includes MultiEdit/NotebookEdit beyond the
-   * global isWriteTool list — those rewrite files but don't match the regex.
-   * Bash and other path-opaque writes are not tracked; the worst case is a
-   * read stays "live" longer than strictly needed (a benign over-protection).
+   * Falls back gracefully to the old regex-based approach if MnemicField
+   * is unavailable (best-effort).
    */
-  private computeLiveReadIndices(messages: any[], recentWindowSize: number): Map<number, string> {
-    const live = new Map<number, string>()
-    const readPattern = /^(Read|cassi_read|cassi_file.*read|mcp__\w+__read)$/i
-    const writePattern = /^(write|edit|multiedit|notebookedit|cassi_write|cassi_edit|serena_replace_content|serena_replace_symbol_body|serena_insert_after_symbol|serena_insert_before_symbol|mcp__\w+__(write|edit|multiedit))$/i
-
+  private computeLiveReadIndices(sessionId: string, messages: any[], recentWindowSize: number): Map<number, string> {
+    // Build tool_use_id → message index map from tool_result messages
     const useIdToResultIdx = new Map<string, number>()
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i]
@@ -3438,8 +4119,9 @@ this.aurora?.setReverieInferenceProvider(provider)
       }
     }
 
-    const latestReadResultIdxByPath = new Map<string, number>()
-    const latestWriteIdxByPath = new Map<string, number>()
+    // Build tool_name → filePath map from tool_use messages
+    const useIdToPath = new Map<string, string>()
+    const readPattern = /^(Read|cassi_read|cassi_file.*read|mcp__\\w+__read)$/i
     for (let i = 0; i < messages.length; i++) {
       const msg = messages[i]
       if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue
@@ -3448,30 +4130,105 @@ this.aurora?.setReverieInferenceProvider(provider)
         const toolName = block.name ?? ''
         const fp = block.input?.filePath ?? block.input?.path ?? block.input?.file_path ?? ''
         if (!fp) continue
-
-        if (writePattern.test(toolName)) {
-          latestWriteIdxByPath.set(fp, i)
-        } else if (readPattern.test(toolName)) {
-          const resultIdx = useIdToResultIdx.get(block.id)
-          if (resultIdx !== undefined) {
-            latestReadResultIdxByPath.set(fp, resultIdx)
-          }
+        if (readPattern.test(toolName)) {
+          useIdToPath.set(block.id, fp)
         }
       }
     }
 
+    // Query MnemicField for file_read engrams scoped to this session
+    let livePaths = new Set<string>()
+    if (this.mnemicField) {
+      const sessionFileReads = this.getSessionFileReadPaths(sessionId)
+      // For each read path, check if there's a newer write
+      const fileVersionTimestamps = this.getLatestFileVersionTimestamps([...sessionFileReads.keys()])
+      for (const [fp, readTs] of sessionFileReads) {
+        const writeTs = fileVersionTimestamps.get(fp)
+        if (writeTs === undefined || readTs > writeTs) {
+          livePaths.add(fp)
+        }
+      }
+    } else {
+      // Fallback: use old regex-based write detection
+      const writePattern = /^(write|edit|multiedit|notebookedit|cassi_write|cassi_edit|serena_replace_content|serena_replace_symbol_body|serena_insert_after_symbol|serena_insert_before_symbol|mcp__\w+__(write|edit|multiedit))$/i
+      const writePaths = new Set<string>()
+      for (let i = 0; i < messages.length; i++) {
+        const msg = messages[i]
+        if (msg?.role !== 'assistant' || !Array.isArray(msg.content)) continue
+        for (const block of msg.content) {
+          if (block?.type !== 'tool_use' || !block.id) continue
+          const toolName = block.name ?? ''
+          const fp = block.input?.filePath ?? block.input?.path ?? block.input?.file_path ?? ''
+          if (!fp) continue
+          if (writePattern.test(toolName)) writePaths.add(fp)
+        }
+      }
+      // Use all read paths as live (conservative fallback)
+      for (const fp of useIdToPath.values()) {
+        if (!writePaths.has(fp)) livePaths.add(fp)
+      }
+    }
+
+    // Map live paths back to message indices
+    const live = new Map<number, string>()
     const horizon = Math.max(1, recentWindowSize * 2)
     const minIdx = Math.max(0, messages.length - horizon)
-
-    for (const [fp, readResultIdx] of latestReadResultIdxByPath) {
-      if (readResultIdx < minIdx) continue
-      const lastWriteIdx = latestWriteIdxByPath.get(fp)
-      if (lastWriteIdx === undefined || lastWriteIdx < readResultIdx) {
-        live.set(readResultIdx, fp)
+    for (const [useId, fp] of useIdToPath) {
+      if (!livePaths.has(fp)) continue
+      const resultIdx = useIdToResultIdx.get(useId)
+      if (resultIdx !== undefined && resultIdx >= minIdx) {
+        live.set(resultIdx, fp)
       }
     }
 
     return live
+  }
+
+  /**
+   * Query the MnemicField for file_read engrams in a specific session.
+   * Returns a map of filePath → timestamp (Unix ms) for each file path
+   * that has been read in the given session.
+   */
+  private getSessionFileReadPaths(sessionId: string): Map<string, number> {
+    const paths = new Map<string, number>()
+    if (!this.mnemicField || !sessionId) return paths
+    // List file_read engrams and filter by sessionId in metadata.
+    // Caps at 500 to bound cost; a single session rarely has more than
+    // a few dozen file reads.
+    const reads = this.mnemicField.list(500, 'file_read')
+    for (const read of reads) {
+      const meta = read.metadata as Record<string, unknown> | undefined
+      if (meta?.sessionId !== sessionId) continue
+      const fp = meta?.filePath as string | undefined
+      if (!fp) continue
+      // Keep the latest timestamp per path
+      const existing = paths.get(fp)
+      if (existing === undefined || read.t > existing) {
+        paths.set(fp, read.t)
+      }
+    }
+    return paths
+  }
+
+  /**
+   * Get the latest file_version engram timestamp for each file path.
+   * Returns a map of filePath → timestamp (Unix ms).
+   */
+  private getLatestFileVersionTimestamps(filePaths: string[]): Map<string, number> {
+    const timestamps = new Map<string, number>()
+    if (!this.mnemicField || filePaths.length === 0) return timestamps
+    const pathSet = new Set(filePaths)
+    const versions = this.mnemicField.list(500, 'file_version')
+    for (const version of versions) {
+      const meta = version.metadata as Record<string, unknown> | undefined
+      const fp = meta?.filePath as string | undefined
+      if (!fp || !pathSet.has(fp)) continue
+      const existing = timestamps.get(fp)
+      if (existing === undefined || version.t > existing) {
+        timestamps.set(fp, version.t)
+      }
+    }
+    return timestamps
   }
 
   /**
@@ -3527,6 +4284,16 @@ this.aurora?.setReverieInferenceProvider(provider)
           this.cachedBrainContext = null
         }
       }
+    }
+    // Periodic file_read pruning — prevents unbounded growth.
+    // Runs on the same timer as session eviction (hourly).
+    if (this.mnemicField) {
+      try {
+        const pruned = this.mnemicField.pruneFileReads()
+        if (pruned > 0) {
+          this.logger.debug('Pruned stale file_read engrams', { pruned })
+        }
+      } catch { /* best-effort */ }
     }
   }
 
