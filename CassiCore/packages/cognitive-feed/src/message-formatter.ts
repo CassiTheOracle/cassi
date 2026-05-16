@@ -90,6 +90,14 @@ export function fmtTokens(tokens: number): string {
  * @dep risk: MEDIUM | 4 callers, 1 flow, 1 module
  */
 
+function fmtTokenBreakdown(parts: Record<string, number | undefined>): string {
+  const entries: string[] = []
+  for (const [label, value] of Object.entries(parts)) {
+    if (value) entries.push(`${label}:${fmtTokens(value)}`)
+  }
+  return entries.join(' ')
+}
+
 function fmtTime(ts?: number): string {
   const d = ts ? new Date(ts) : new Date()
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -1245,7 +1253,7 @@ export class MessageFormatter {
         const blocker = b.blockers?.length ? `· ⛔ ${b.blockers.length} blockers` : ''
         const live = b.liveStreamSnippet ? `· <i>"${esc(b.liveStreamSnippet.slice(0, 80))}"</i>` : ''
         const tokB = b.tokensUsed ? fmtTokens(b.tokensUsed) : ''
-        const tokBreakdown = [b.tokensUnity ? `U:${fmtTokens(b.tokensUnity)}` : '', b.tokensYang ? `Y:${fmtTokens(b.tokensYang)}` : '', b.tokensYin ? `I:${fmtTokens(b.tokensYin)}` : '', b.tokensMentor ? `M:${fmtTokens(b.tokensMentor)}` : ''].filter(Boolean).join(' ')
+        const tokBreakdown = fmtTokenBreakdown({ U: b.tokensUnity, Y: b.tokensYang, I: b.tokensYin, M: b.tokensMentor })
         const models = [
           b.tierUnity ? `U:${esc(b.tierUnity)}${b.modelUnity ? ` (${esc(b.modelUnity)})` : ''}` : '',
           b.tierYang ? `Y:${esc(b.tierYang)}${b.modelYang ? ` (${esc(b.modelYang)})` : ''}` : '',
@@ -1359,11 +1367,7 @@ export class MessageFormatter {
       }
 
       if (h.tokensUnity || h.tokensYang || h.tokensYin) {
-        const breakdown = [
-          h.tokensUnity ? `U:${fmtTokens(h.tokensUnity)}` : '',
-          h.tokensYang ? `Y:${fmtTokens(h.tokensYang)}` : '',
-          h.tokensYin ? `I:${fmtTokens(h.tokensYin)}` : '',
-        ].filter(Boolean).join(' ')
+        const breakdown = fmtTokenBreakdown({ U: h.tokensUnity, Y: h.tokensYang, I: h.tokensYin })
         parts.push(`   Tokens: ${breakdown}`)
       }
 
