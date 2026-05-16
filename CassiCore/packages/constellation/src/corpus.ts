@@ -54,8 +54,7 @@ import type {
   PendingExternalSpawnRequest,
 } from './corpus-types.js'
 import type { DecompositionTracker } from './decomposition-tracker.js'
-import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState, DEFAULT_LLM_HEALTH_CONFIG } from './corpus-types.js'
-import type { LLMHealthState, LLMHealthConfig, LLMHealthStatus } from './corpus-types.js'
+import { ESCALATION_DEFAULTS, BRANCH_BUDGET_DEFAULTS, createInitialExternalCorpusState } from './corpus-types.js'
 import type { SpawnRequest, ConstellationTemplate } from './types.js'
 import { getTemplateCapabilities, listTemplateCapabilities } from './templates.js'
 import {
@@ -76,15 +75,10 @@ import {
 } from './corpus/corpus-utils.js'
 import { PatternDetector } from './corpus/corpus-patterns.js'
 import { ExternalCorpusProtocol } from './corpus/corpus-external.js'
-import { BridgeDedupe, handleWorkspaceBroadcastForTerritory, type SiblingGoalEntry } from './territory-bridge.js'
-import { SignalPatternBuffer, renderDigestMarkdown, shouldRecordForDigest } from './signal-pattern-digest.js'
-import type { CognitiveSignal } from '../workspace/cognitive-signal.js'
 import type { CorpusToolContext, ToolCallResult } from './corpus-tools.js'
 import { Locus } from './locus/index.js'
 import type { LocusSweepResult } from './locus/index.js'
 import type { LocusSnapshot } from './locus/locus-types.js'
-import { MnemicLocusMemoryPersistence } from './locus/mnemic-locus-memory-persistence.js'
-import { SPAWN_EVALUATION_PHRASES, DIRECTIVE_QUALITY_PHRASES } from '../phrase-prototypes.js'
 
 /**
  * Minimal interface for child Brainstem to avoid circular imports.
@@ -115,12 +109,11 @@ export class Corpus {
   private shutdownRequested = false
   private loopPromise: Promise<void> | null = null
 
-  // LLM health tracking (3-state: primary | fallback | rule_based)
-  private llmHealthState: LLMHealthState = 'primary'
-  private llmConsecFailures = 0
-  private llmNextProbeAt = 0
-  private llmRecoverySweepsLeft = 0
-
+  // LLM health tracking
+  private llmHealthy = true
+  private llmFailureCount = 0
+  private static readonly LLM_FAILURE_THRESHOLD = 2 // Mark unhealthy after 2 consecutive failures
+  
   // Adaptive cadence tracking
   private consecutiveFailures = 0
 
@@ -176,18 +169,9 @@ export class Corpus {
   // Locus — Global Workspace (attention layer between Corpus and Brainstems)
   private locus: Locus
   private locusSweepResults: LocusSweepResult[] = []
-  private locusPersistence: import('./locus/constellation-memory.js').LocusMemoryPersistence | undefined
+
+  // PatternDetector — Cross-branch pattern detection
   private patternDetector: PatternDetector
-
-  // Territory awareness (PR-2 of cross-helix-territory-awareness spec):
-  // index of sibling goal signals + cooldown dedupe for bridge-signal emission.
-  private siblingGoalIndex: Map<string, SiblingGoalEntry> = new Map()
-  private bridgeDedupe?: BridgeDedupe
-  private workspaceUnsubscribe?: () => void
-
-  // C-OBS-1 GWT-grounding supplement: rolling digest of recent qualifying
-  // signals, fed from the same onWorkspaceBroadcast handler as territory awareness.
-  private signalPatternBuffer: SignalPatternBuffer = new SignalPatternBuffer()
 
   constructor(tree: ICorpusTree, deps: CorpusDeps, config?: Partial<CorpusConfig>) {
     this.tree = tree
@@ -201,28 +185,11 @@ export class Corpus {
       enabled: this.config.enabled,
     })
 
-    const locusPersistence = deps.mnemicField
-      ? new MnemicLocusMemoryPersistence(deps.mnemicField, this.logger)
-      : deps.store?.getLocusMemoryPersistence()
-
     this.locus = new Locus({
       logger: this.logger,
       sessionId: deps.constellationId,
-      memoryPersistence: locusPersistence,
+      memoryPersistence: deps.store?.getLocusMemoryPersistence(),
     })
-
-    this.locusPersistence = locusPersistence
-
-    // Pass constellation engram IDs through to the persistence so locus
-    // memories are connected via spawned_from / part_of edges to their
-    // parent engrams. branchEngramIds is populated incrementally during
-    // branch creation — the persistence holds a reference to the same Map.
-    if (locusPersistence && deps.constellationEngramId) {
-      (locusPersistence as any).setConstellationEngramId?.(deps.constellationEngramId)
-    }
-    if (locusPersistence && deps.branchEngramIds) {
-      (locusPersistence as any).setBranchEngramIds?.(deps.branchEngramIds)
-    }
 
     this.patternDetector = new PatternDetector({
       tree,
@@ -250,15 +217,6 @@ export class Corpus {
   }
 
   /**
-   * WHY: Inform the Corpus that CorpusObserverLayer handles cross-Helix LLM
-   * analysis. The Corpus skips its own runLLMAnalysis() to avoid redundant
-   * LLM calls with worse input data. (observer consolidation)
-   */
-  setCorpusObserverActive(active: boolean): void {
-    this.deps = { ...this.deps, corpusObserverActive: active }
-  }
-
-  /**
    * Start the async Corpus loop
    */
   async start(): Promise<void> {
@@ -278,14 +236,6 @@ export class Corpus {
 
     this.logger.info('Corpus loop starting')
 
-    if (this.deps.globalWorkspace) {
-      this.bridgeDedupe = new BridgeDedupe(30_000)
-      this.workspaceUnsubscribe = this.deps.globalWorkspace.onBroadcast(
-        signals => this.onWorkspaceBroadcast(signals),
-      )
-      this.logger.debug('Corpus subscribed to GlobalWorkspace broadcasts for territory awareness')
-    }
-
     this.loopPromise = this.runLoop()
   }
 
@@ -301,17 +251,11 @@ export class Corpus {
     this.shutdownRequested = true
     this.stopped = true
 
-    if (this.workspaceUnsubscribe) {
-      try { this.workspaceUnsubscribe() } catch { /* non-fatal */ }
-      this.workspaceUnsubscribe = undefined
-    }
-    this.siblingGoalIndex.clear()
-
     // Release external Corpus if assumed
-    if (this.externalProtocol.isAssumed()) {
+    if (this.externalState.assumed) {
       this.release('corpus shutting down')
     }
-    this.externalProtocol.stop()
+    this.stopHeartbeatMonitor()
 
     if (this.loopPromise) {
       await this.loopPromise
@@ -339,110 +283,8 @@ export class Corpus {
     return this.running
   }
 
-  /**
-   * Workspace broadcast handler — PR-2 of cross-helix-territory-awareness spec.
-   * Filters incoming `goal` signals by membership in childBrainstems, maintains
-   * the sibling goal index, and emits `bridge` signals on territorial overlap.
-   *
-   * Bridge signals (source: 'corpus', type: 'bridge') flow back through
-   * onBroadcast and re-enter this handler — the `if (sig.type !== 'goal')` guard
-   * makes that loop a no-op.
-   */
-  private onWorkspaceBroadcast(signals: CognitiveSignal[]): void {
-    if (!this.deps.globalWorkspace || !this.bridgeDedupe) return
-    handleWorkspaceBroadcastForTerritory(
-      signals,
-      {
-        siblingGoalIndex: this.siblingGoalIndex,
-        isMember: id => this.childBrainstems.has(id),
-      },
-      this.deps.globalWorkspace,
-      this.bridgeDedupe,
-      this.deps.constellationId,
-    )
-
-    for (const sig of signals) {
-      if (!shouldRecordForDigest(sig)) continue
-      if (!this.childBrainstems.has(sig.sessionId)) continue
-      this.signalPatternBuffer.record(sig)
-    }
-  }
-
-  /**
-   * C-OBS-1 GWT-grounding: rendered digest of recent workspace signals from
-   * sibling Helixes. Returned as advisory input for both runLLMAnalysis (via
-   * buildCorpusSystemPrompt) and CorpusObserverLayer (via its own prompt builder).
-   * Returns undefined in meditation mode and when buffer is empty.
-   */
-  getSignalPatternDigest(): string | undefined {
-    if (this.deps.meditationMode) return undefined
-    return renderDigestMarkdown(this.signalPatternBuffer)
-  }
-
   // --- External Corpus Protocol ---
   // All external protocol methods delegate to ExternalCorpusProtocol instance
-
-  /**
-   * Check if an external agent currently holds the Corpus role.
-   */
-  isExternallyAssumed(): boolean {
-    return this.externalProtocol.isAssumed()
-  }
-
-  /**
-   * Get the external Corpus state (for status queries).
-   */
-  getExternalState(): ExternalCorpusState {
-    return this.externalProtocol.getState()
-  }
-
-  /**
-   * Get the Locus snapshot for external introspection.
-   */
-  getLocusSnapshot(): LocusSnapshot | undefined {
-    return this.locus.enabled ? this.locus.getSnapshot() : undefined
-  }
-
-  /**
-   * Get active Locus memories for external introspection.
-   */
-  getLocusMemories(): import('./locus/memory-types.js').LocusMemoryEntry[] | undefined {
-    return this.locus.enabled ? this.locus.getMemory().getActive() : undefined
-  }
-
-  getLocusMemoryPersistence(): import('./locus/constellation-memory.js').LocusMemoryPersistence | undefined {
-    return this.locusPersistence
-  }
-
-  /**
-   * Get a full snapshot of the Corpus state for an external agent.
-   */
-  getExternalSnapshot(): ExternalCorpusSnapshot {
-    const assessments = Array.from(this.state.branchAssessments.values()).map((ba) => ({
-      helixId: ba.helixId,
-      status: ba.status,
-      rollingScore: ba.rollingScore,
-      dominantPattern: typeof ba.dominantPattern === 'string' ? ba.dominantPattern : String(ba.dominantPattern),
-      avgGoalAlignment: ba.avgGoalAlignment,
-      avgNovelty: ba.avgNovelty,
-      avgProgress: ba.avgProgress,
-      escalationLevel: ba.escalationLevel,
-      ignoredDirectiveStreak: ba.ignoredDirectiveStreak,
-      budgetConsumedSteps: ba.budget?.consumedSteps,
-      budgetMaxSteps: ba.budget?.maxSteps,
-    }))
-
-    return {
-      tree: this.tree.getSnapshot(),
-      branchAssessments: assessments,
-      crossPatterns: [...this.state.crossPatterns],
-      pendingSpawnRequests: this.externalProtocol.getPendingSpawnRequests(),
-      recentInterventions: [...this.state.interventions.slice(-10)],
-      sweepCount: this.state.sweepCount,
-      goal: this.deps.goal,
-      locusSnapshot: this.locus.enabled ? this.locus.getSnapshot() : undefined,
-    }
-  }
 
   /**
    * Allow an external agent to assume the Corpus role.
@@ -479,18 +321,6 @@ export class Corpus {
     return this.externalProtocol.postSynthesis(content, priority, tags)
   }
 
-  // Internal helpers for ExternalCorpusProtocol callbacks
-
-  /** Internal helper for ExternalCorpusProtocol callback */
-  private getExternalSnapshotInternal(): ExternalCorpusSnapshot {
-    return this.getExternalSnapshot()
-  }
-
-  /** Internal helper for ExternalCorpusProtocol callback */
-  private sendDirectiveInternal(directive: CorpusDirective): void {
-    this.sendDirective(directive)
-  }
-
   /**
    * Register a child Brainstem for directive delivery
    */
@@ -518,8 +348,10 @@ export class Corpus {
    * Evaluate a spawn request via LLM (or queue for external agent)
    */
   async evaluateSpawnRequest(request: SpawnRequest): Promise<SpawnDecision> {
-    if (this.externalProtocol.isAssumed()) {
-      this.externalProtocol.queueSpawnRequest({
+    // WHY: When an external agent holds the Corpus role, spawn decisions
+    // are queued for the external agent rather than auto-evaluated by LLM.
+    if (this.externalState.assumed) {
+      this.queueSpawnForExternalDecision({
         requestId: request.requestId,
         requestingHelixId: request.requestingHelixId,
         goal: request.goal,
@@ -527,6 +359,7 @@ export class Corpus {
         template: request.template,
         targetDepth: request.targetDepth,
       })
+      // Return a "pending" decision — the external agent will decide later
       return {
         requestId: request.requestId,
         requestingHelixId: request.requestingHelixId,
@@ -537,17 +370,6 @@ export class Corpus {
       }
     }
 
-    const preDecision = await this.preEvaluateSpawn(request)
-    if (preDecision) {
-      this.state.spawnDecisions.push(preDecision)
-      this.emitEvent('corpus:spawn-decision', {
-        requestId: request.requestId,
-        approved: preDecision.approved,
-        reason: preDecision.reason,
-      })
-      return preDecision
-    }
-
     const decision = await this.runSpawnEvaluation(request)
     this.state.spawnDecisions.push(decision)
     this.emitEvent('corpus:spawn-decision', {
@@ -556,73 +378,6 @@ export class Corpus {
       reason: decision.reason,
     })
     return decision
-  }
-
-  private async preEvaluateSpawn(request: SpawnRequest): Promise<SpawnDecision | null> {
-    const mf = this.deps.mnemicField
-    if (!mf) return null
-
-    const combined = `Goal: ${request.goal}\nContext: ${request.context ?? ''}`
-    const result = await mf.classifyPhrase(combined, SPAWN_EVALUATION_PHRASES).catch(() => null)
-    if (!result || !result.label || result.score < 0.45) return null
-
-    if (result.label === 'duplicate_work' && result.score > 0.55) {
-      return {
-        requestId: request.requestId,
-        requestingHelixId: request.requestingHelixId,
-        goal: request.goal,
-        approved: false,
-        reason: `duplicate_work (score=${result.score.toFixed(2)})`,
-        evaluatedAt: Date.now(),
-      }
-    }
-    if (result.label === 'out_of_scope' && result.score > 0.50) {
-      return {
-        requestId: request.requestId,
-        requestingHelixId: request.requestingHelixId,
-        goal: request.goal,
-        approved: false,
-        reason: `out_of_scope (score=${result.score.toFixed(2)})`,
-        evaluatedAt: Date.now(),
-      }
-    }
-    if (result.label === 'natural_subtask' && result.score > 0.45 && request.targetDepth <= 1) {
-      return {
-        requestId: request.requestId,
-        requestingHelixId: request.requestingHelixId,
-        goal: request.goal,
-        approved: true,
-        reason: `natural_subtask_auto (score=${result.score.toFixed(2)})`,
-        evaluatedAt: Date.now(),
-      }
-    }
-    if (result.label === 'high_dependency' && result.score > 0.50) {
-      return {
-        requestId: request.requestId,
-        requestingHelixId: request.requestingHelixId,
-        goal: request.goal,
-        approved: true,
-        reason: `critical_path (score=${result.score.toFixed(2)})`,
-        evaluatedAt: Date.now(),
-      }
-    }
-
-    return null
-  }
-
-  async preCheckDirectiveQuality(content: string, targetHelixId: string): Promise<void> {
-    const mf = this.deps.mnemicField
-    if (!mf) return
-
-    const result = await mf.classifyPhrase(content, DIRECTIVE_QUALITY_PHRASES).catch(() => null)
-    if (!result || !result.label || result.score < 0.50) return
-
-    if (result.label === 'vague') {
-      this.logger.warn('vague Corpus directive', { targetHelixId, score: result.score.toFixed(2) })
-    }
-    if (result.label === 'contradictory') {
-      this.logger.warn('contradictory Corpus directive', { targetHelixId, score: result.score.toFixed(2) })
-    }
   }
 
   /**
@@ -657,9 +412,8 @@ export class Corpus {
       parallelSplits: [...this.parallelSplits],
       contextInjections: [...this.contextInjections],
       sweepCount: this.state.sweepCount,
-      llmHealthy: this.isLLMHealthy(),
-      llmHealthState: this.llmHealthState,
-      llmConsecFailures: this.llmConsecFailures,
+      llmHealthy: this.llmHealthy,
+      llmFailureCount: this.llmFailureCount,
       durationMs: this.startTime > 0 ? Date.now() - this.startTime : 0,
       locusSnapshot: this.locus.enabled ? this.locus.getSnapshot() : undefined,
     }
@@ -669,28 +423,7 @@ export class Corpus {
    * Check if Corpus LLM is healthy (able to make strategic decisions)
    */
   isLLMHealthy(): boolean {
-    return this.llmHealthState !== 'rule_based'
-  }
-
-  getLLMHealthStatus(): LLMHealthStatus {
-    return {
-      state: this.llmHealthState,
-      consecutiveFailures: this.llmConsecFailures,
-      nextProbeAt: this.llmNextProbeAt > 0 ? this.llmNextProbeAt : null,
-      recoverySweepsLeft: this.llmRecoverySweepsLeft,
-      hasFallback: !!this.deps.fallbackLLM,
-    }
-  }
-
-  private getEffectiveLLMHealthConfig(): LLMHealthConfig {
-    return { ...DEFAULT_LLM_HEALTH_CONFIG, ...this.config.llmHealth }
-  }
-
-  private getActiveLLM() {
-    if (this.llmHealthState === 'fallback' && this.deps.fallbackLLM) {
-      return this.deps.fallbackLLM
-    }
-    return this.deps.llm
+    return this.llmHealthy
   }
 
   /**
@@ -760,75 +493,46 @@ export class Corpus {
         let lastLocusSweep: LocusSweepResult | undefined
 
         if (!isMeditation) {
-          // WHY: Split governance into Brainstem-specific (gated) and
-          // observer-compatible (always runs). The analysis, pattern detection,
-          // and cross-Helix mediation produce directives that now flow through
-          // sendDirective() → ObserverBranchState → GlobalWorkspace → LLM.
-          // Previously the entire block was gated by !observerCoordination,
-          // meaning no cross-Helix intelligence ever ran in normal mode.
-          // (c-36 fix — observers working)
+          this.trackBudgets()
 
-          if (!this.deps.observerCoordination) {
-            // Brainstem-specific governance — only when Brainstem is active
-            this.trackBudgets()
-
-            if (this.config.proactive.enableDiscoveryRouting) {
-              this.routeDiscoveries()
-            }
-
-            await this.evaluateAllEscalations()
-            await this.checkStuckBranchesForReDecomposition()
-
-            if (this.config.proactive.enableReDecomposition && this.llmHealthState !== 'rule_based') {
-              await this.evaluateReDecomposition()
-            }
-
-            if (this.config.proactive.enableParallelAcceleration && this.llmHealthState !== 'rule_based') {
-              await this.evaluateParallelAcceleration()
-            }
-
-            if (this.config.proactive.enableContextInjection) {
-              await this.evaluateContextInjection()
-            }
-
-            if (this.config.proactive.enableQualityGates) {
-              await this.runQualityGates()
-            }
-
-            if (this.config.proactive.enableResearchCaching) {
-              this.buildResearchDigests()
-            }
+          if (this.config.proactive.enableDiscoveryRouting) {
+            this.routeDiscoveries()
           }
 
-          // Cross-Helix intelligence — runs in ALL non-meditation modes
+          await this.evaluateAllEscalations()
+          await this.checkStuckBranchesForReDecomposition()
+
+          if (this.config.proactive.enableReDecomposition && this.llmHealthy) {
+            await this.evaluateReDecomposition()
+          }
+
+          if (this.config.proactive.enableParallelAcceleration && this.llmHealthy) {
+            await this.evaluateParallelAcceleration()
+          }
+
+          if (this.config.proactive.enableContextInjection) {
+            await this.evaluateContextInjection()
+          }
+
+          if (this.config.proactive.enableQualityGates) {
+            await this.runQualityGates()
+          }
+
+          if (this.config.proactive.enableResearchCaching) {
+            this.buildResearchDigests()
+          }
+
           newPatterns = this.patternDetector.detect()
 
-          // During recovery window, only run analysis for critical patterns (gradual re-engagement).
-          const hasCriticalPattern = newPatterns.some(p => p.severity === 'critical')
-          const inRecovery = this.llmRecoverySweepsLeft > 0
-          if (inRecovery) this.llmRecoverySweepsLeft--
-
-          // WHY: Skip Corpus LLM analysis when CorpusObserverLayer is active.
-          // The observer has superior input data (SynapseRollingSlice vs BranchDigest)
-          // and already performs cross-Helix analysis every 12s. Running both is
-          // redundant and costs 2x LLM calls. The Corpus still handles governance
-          // via pattern detection + fallback directives. (observer consolidation)
-          const observerHandlesAnalysis = !!this.deps.corpusObserverActive
-          const shouldAnalyze = !observerHandlesAnalysis &&
-            (newPatterns.length > 0 || this.shouldRunLLMAnalysis())
-          const analysisGated = inRecovery && !hasCriticalPattern
-
-          if (shouldAnalyze && !analysisGated) {
-            if (this.llmHealthState !== 'rule_based') {
+          if (newPatterns.length > 0 || this.shouldRunLLMAnalysis()) {
+            if (this.llmHealthy) {
               await this.runLLMAnalysis(newPatterns)
             } else {
               this.sendFallbackDirectives(newPatterns)
+              if (this.state.sweepCount % 3 === 0) {
+                await this.probeLLMHealth()
+              }
             }
-          }
-
-          // Probe primary LLM health on every sweep when degraded (backoff enforced inside probeLLMHealth)
-          if (this.llmHealthState !== 'primary' || this.llmRecoverySweepsLeft > 0) {
-            await this.probeLLMHealth()
           }
 
           if (newPatterns.length > 0) {
@@ -847,27 +551,11 @@ export class Corpus {
             .filter(b => b.status === 'active')
             .map(b => b.helixId)
 
-          // WHY: Provide guidance injection in observer mode via sendDirective
-          // (which now routes to ObserverBranchState + GlobalWorkspace).
-          // Previously undefined in observer mode, so Locus findings never reached branches.
-          // (c-36 fix)
-          const locusGuidance: typeof this.deps.injectGuidance = this.deps.observerCoordination
-            ? (helixId, content, urgency) => {
-                this.sendDirective({
-                  targetHelixId: helixId,
-                  type: 'context-inject',
-                  urgency,
-                  text: content,
-                  reason: 'locus-guidance',
-                  timestamp: Date.now(),
-                })
-              }
-            : this.deps.injectGuidance
           lastLocusSweep = this.locus.sweep(allDigests, activeHelixIds, {
             crossPatterns: newPatterns,
             topology: this.deps.topology ?? undefined,
             assessments: this.state.branchAssessments,
-            injectGuidance: isMeditation ? undefined : locusGuidance,
+            injectGuidance: isMeditation ? undefined : (this.deps.injectGuidance ?? undefined),
           })
 
           if (lastLocusSweep.sparksExtracted > 0 || lastLocusSweep.kindlingEvents.length > 0) {
@@ -880,12 +568,6 @@ export class Corpus {
           try {
             const snapshot = this.tree.getSnapshot()
             this.deps.store?.saveTreeCheckpoint(this.deps.constellationId, snapshot)
-            this.emitEvent('corpus:checkpoint', {
-              branches: snapshot.branches.length,
-              interventions: this.state.interventions.length,
-              spawnDecisions: this.state.spawnDecisions.length,
-              sweepCount: this.state.sweepCount,
-            })
           } catch (err) {
             this.logger.warn('Failed to save tree checkpoint', { error: String(err) })
           }
@@ -1132,14 +814,7 @@ export class Corpus {
   private shouldRunLLMAnalysis(): boolean {
     // WHY: When an external agent holds the Corpus role, the internal LLM
     // should not run analysis — the external agent makes strategic decisions.
-    if (this.externalProtocol.isAssumed()) {
-      return false
-    }
-
-    // WHY: When CorpusObserverLayer is active, it handles cross-Helix LLM analysis
-    // with superior input data (SynapseRollingSlice vs BranchDigest). Skip the
-    // Corpus's own LLM analysis to avoid redundant calls. (observer consolidation)
-    if (this.deps.corpusObserverActive) {
+    if (this.externalState.assumed) {
       return false
     }
 
@@ -1390,43 +1065,42 @@ export class Corpus {
    * then iterates through tool calls until it calls signal_done.
    */
   private async runToolBasedAnalysis(newPatterns: CrossHelixPattern[]): Promise<void> {
+    const systemPrompt = buildCorpusSystemPrompt(
+      this.deps.goal,
+      this.state,
+      this.tree,
+      newPatterns,
+      undefined,
+      this.deps.meditationMode,
+      this.deps.meditationStyle,
+    )
+
+    // Include escalation context if any
+    let userMessage = 'Analyze the current constellation state.'
+    if (this.escalationQueue.length > 0) {
+      userMessage += '\n\nESCALATION FROM BRAINSTEMS (self-organization could not resolve):\n'
+      for (const esc of this.escalationQueue) {
+        userMessage += `- ${esc.reason}\n`
+      }
+      this.escalationQueue = [] // Clear after including
+    }
+
+    const toolDefs = this.deps.meditationMode
+      ? getMeditationToolSet(this.deps.meditationStyle ?? 'passive')
+      : getCorpusToolDefinitions()
+
+    const ctx: CorpusToolContext = {
+      tree: this.tree,
+      state: this.state,
+      deps: this.deps,
+      config: this.config,
+      logger: this.logger,
+      crossHelixDialectic: this.deps.crossHelixDialectic as any,
+      sendDirective: (directive) => this.sendDirective(directive),
+      requestSpawn: (request) => this.deps.onSpawnRequest?.(request),
+    }
+
     try {
-      const systemPrompt = buildCorpusSystemPrompt(
-        this.deps.goal,
-        this.state,
-        this.tree,
-        newPatterns,
-        undefined,
-        this.deps.meditationMode,
-        this.deps.meditationStyle,
-        this.getSignalPatternDigest(),
-      )
-
-      // Include escalation context if any
-      let userMessage = 'Analyze the current constellation state.'
-      if (this.escalationQueue.length > 0) {
-        userMessage += '\n\nESCALATION FROM BRAINSTEMS (self-organization could not resolve):\n'
-        for (const esc of this.escalationQueue) {
-          userMessage += `- ${esc.reason}\n`
-        }
-        this.escalationQueue = [] // Clear after including
-      }
-
-      const toolDefs = this.deps.meditationMode
-        ? getMeditationToolSet(this.deps.meditationStyle ?? 'passive')
-        : getCorpusToolDefinitions()
-
-      const ctx: CorpusToolContext = {
-        tree: this.tree,
-        state: this.state,
-        deps: this.deps,
-        config: this.config,
-        logger: this.logger,
-        crossHelixDialectic: this.deps.crossHelixDialectic as any,
-        sendDirective: (directive) => this.sendDirective(directive),
-        requestSpawn: (request) => this.deps.onSpawnRequest?.(request),
-      }
-
       // Build conversation with tool definitions
       const fullPrompt =
         `${systemPrompt}\n\n` +
@@ -1438,7 +1112,7 @@ export class Corpus {
       // For now, we use the existing LLM.complete() interface but parse tool calls
       // from the response. When the mini-Helix migration happens, this becomes
       // a proper tool-calling loop.
-      const response = await this.getActiveLLM().complete({
+      const response = await this.deps.llm.complete({
         prompt: fullPrompt,
         modelTier: this.config.modelTier,
         maxTokens: this.config.maxTokens,
@@ -1473,7 +1147,15 @@ export class Corpus {
       }
 
       this.newStepsSinceLLM = 0
-      this.llmConsecFailures = 0
+
+      // Reset failure tracking on success
+      if (!this.llmHealthy) {
+        this.logger.info('Corpus LLM recovered after previous failures', {
+          previousFailures: this.llmFailureCount,
+        })
+      }
+      this.llmHealthy = true
+      this.llmFailureCount = 0
     } catch (error) {
       this.handleLLMFailure(error)
     }
@@ -1521,7 +1203,7 @@ export class Corpus {
     const prompt = this.buildLLMPrompt(newPatterns)
 
     try {
-      const response = await this.getActiveLLM().complete({
+      const response = await this.deps.llm.complete({
         prompt,
         modelTier: this.config.modelTier,
         maxTokens: this.config.maxTokens,
@@ -1530,7 +1212,15 @@ export class Corpus {
 
       this.parseAndApplyLLMResponse(response.content)
       this.newStepsSinceLLM = 0
-      this.llmConsecFailures = 0
+
+      // Reset failure tracking on success
+      if (!this.llmHealthy) {
+        this.logger.info('Corpus LLM recovered after previous failures', {
+          previousFailures: this.llmFailureCount,
+        })
+      }
+      this.llmHealthy = true
+      this.llmFailureCount = 0
     } catch (error) {
       this.handleLLMFailure(error)
     }
@@ -1540,56 +1230,28 @@ export class Corpus {
    * Common error handling for LLM failures.
    */
   private handleLLMFailure(error: unknown): void {
-    this.llmConsecFailures++
+    this.llmFailureCount++
     const errorMsg = error instanceof Error ? error.message : String(error)
-    const cfg = this.getEffectiveLLMHealthConfig()
 
-    this.logger.warn('Corpus LLM analysis failed', {
-      error: errorMsg,
-      consecutiveFailures: this.llmConsecFailures,
-      threshold: cfg.failureThreshold,
-      state: this.llmHealthState,
-    })
-
-    if (this.llmConsecFailures < cfg.failureThreshold) return
-
-    // Compute exponential backoff with proportional jitter (max 20% of base interval).
-    // Jitter scales with base so tests using probeBackoffBase: 0 get zero jitter.
-    const rawBackoff = Math.min(
-      cfg.probeBackoffBase * Math.pow(2, this.llmConsecFailures - cfg.failureThreshold),
-      cfg.probeBackoffMax,
-    )
-    const jitter = rawBackoff * 0.2 * Math.random()
-    this.llmNextProbeAt = Date.now() + rawBackoff + jitter
-
-    if (this.llmHealthState === 'primary' && this.deps.fallbackLLM) {
-      this.llmHealthState = 'fallback'
-      this.llmConsecFailures = 0
-      this.logger.error('Corpus LLM primary failed — escalating to fallback adapter', {
+    if (this.llmFailureCount >= Corpus.LLM_FAILURE_THRESHOLD && this.llmHealthy) {
+      // Mark unhealthy and emit critical event
+      this.llmHealthy = false
+      this.logger.error('Corpus LLM is unhealthy — constellation running without strategic oversight', {
         error: errorMsg,
-        nextProbeAt: new Date(this.llmNextProbeAt).toISOString(),
-        sweepCount: this.state.sweepCount,
-      })
-      this.emitEvent('corpus:degraded', {
-        reason: 'llm_failure_escalated_to_fallback',
-        error: errorMsg,
-        nextProbeAt: this.llmNextProbeAt,
-      })
-    } else {
-      this.llmHealthState = 'rule_based'
-      this.logger.error('Corpus LLM is unhealthy — running without strategic oversight', {
-        error: errorMsg,
-        consecutiveFailures: this.llmConsecFailures,
-        hasFallback: !!this.deps.fallbackLLM,
-        nextProbeAt: new Date(this.llmNextProbeAt).toISOString(),
+        failureCount: this.llmFailureCount,
         sweepCount: this.state.sweepCount,
       })
       this.emitEvent('corpus:unhealthy', {
         reason: 'llm_failure',
         error: errorMsg,
-        consecutiveFailures: this.llmConsecFailures,
-        nextProbeAt: this.llmNextProbeAt,
+        failureCount: this.llmFailureCount,
         message: 'Corpus LLM failed repeatedly. Constellation Helix branches are running without strategic planning, intervention, or spawn decisions.',
+      })
+    } else {
+      this.logger.warn('Corpus LLM analysis failed, continuing loop', {
+        error: errorMsg,
+        failureCount: this.llmFailureCount,
+        threshold: Corpus.LLM_FAILURE_THRESHOLD,
       })
     }
   }
@@ -1600,20 +1262,10 @@ export class Corpus {
    * strategic analysis resumes. If it fails, remain unhealthy (no penalty).
    */
   private async probeLLMHealth(): Promise<void> {
-    if (this.llmHealthState === 'primary' && this.llmRecoverySweepsLeft === 0) return
-
-    if (Date.now() < this.llmNextProbeAt) {
-      this.logger.debug('Corpus LLM probe skipped (backoff active)', {
-        nextProbeAt: new Date(this.llmNextProbeAt).toISOString(),
-        state: this.llmHealthState,
-      })
-      return
-    }
-
-    // Always probe the primary — the goal is to recover to primary, not to confirm the fallback works.
+    if (this.llmHealthy) return
     try {
-      this.logger.info('Probing primary LLM health (recovery check)', {
-        state: this.llmHealthState,
+      this.logger.info('Probing LLM health (recovery check)', {
+        failureCount: this.llmFailureCount,
         sweepCount: this.state.sweepCount,
       })
       const result = await this.deps.llm.complete({
@@ -1622,36 +1274,23 @@ export class Corpus {
         maxTokens: 10,
         timeoutMs: 15_000,
       })
-
-      const cfg = this.getEffectiveLLMHealthConfig()
-      const prevState = this.llmHealthState
-      this.llmHealthState = 'primary'
-      this.llmConsecFailures = 0
-      this.llmNextProbeAt = 0
-      this.llmRecoverySweepsLeft = cfg.recoveryWindow
-
-      this.logger.info('Corpus LLM primary recovered — entering recovery window', {
+      // Success — mark healthy
+      this.llmHealthy = true
+      this.llmFailureCount = 0
+      this.logger.info('Corpus LLM recovered (health probe succeeded)', {
         response: result.content.slice(0, 50),
-        recoveryWindow: cfg.recoveryWindow,
-        previousState: prevState,
         sweepCount: this.state.sweepCount,
       })
       this.emitEvent('corpus:healthy', {
         reason: 'health_probe_succeeded',
-        previousState: prevState,
-        recoveryWindow: cfg.recoveryWindow,
+        previousFailures: this.llmFailureCount,
       })
     } catch (err) {
-      this.logger.debug('Corpus LLM primary probe failed (staying in current state)', {
+      this.logger.debug('LLM health probe failed (staying unhealthy)', {
         error: String(err),
-        state: this.llmHealthState,
+        failureCount: this.llmFailureCount,
       })
-      // Extend backoff on repeated probe failure without inflating consecutiveFailures
-      const cfg = this.getEffectiveLLMHealthConfig()
-      const current = this.llmNextProbeAt > 0 ? this.llmNextProbeAt - Date.now() : cfg.probeBackoffBase
-      const extended = Math.min(current * 1.5, cfg.probeBackoffMax)
-      const jitter = extended * 0.2 * Math.random()
-      this.llmNextProbeAt = Date.now() + extended + jitter
+      // DON'T increment llmFailureCount — this is a probe, not a real analysis
     }
   }
 
@@ -1691,9 +1330,9 @@ export class Corpus {
     }
 
     if (newPatterns.length > 0) {
-      this.logger.info('Sent fallback directives (LLM rule_based)', {
+      this.logger.info('Sent fallback directives (LLM unhealthy)', {
         patternCount: newPatterns.length,
-        consecutiveFailures: this.llmConsecFailures,
+        failureCount: this.llmFailureCount,
       })
     }
   }
@@ -2103,59 +1742,9 @@ Guidelines:
   }
 
   /**
-   * Send a directive to a child Brainstem or ObserverBranchState.
-   * WHY: In observer coordination mode, branches use ObserverBranchState instead of
-   * Brainstem. Previously this method returned early in observer mode, meaning all
-   * directives were silently dropped — including those from the CrossHelixDialectic
-   * and stagnation sentinel. Now it delivers via ObserverBranchState.onCorpusDirective()
-   * and publishes to the GlobalWorkspace so the LLM sees the directive. (c-36 fix)
+   * Send a directive to a child Brainstem
    */
    private sendDirective(directive: CorpusDirective): void {
-    if (this.deps.observerCoordination) {
-      const obs = this.deps.observerBranchStates?.get(directive.targetHelixId)
-      if (obs) {
-        obs.onCorpusDirective(directive)
-        // WHY: Also publish to GlobalWorkspace so the posture runner's
-        // injectWorkspaceBroadcasts() picks it up and delivers to the LLM.
-        // Without this, the directive reaches the Corpus tree but never the LLM.
-        const ws = this.deps.globalWorkspace
-        if (ws) {
-          ws.submit({
-            signalId: `corpus-directive-${Date.now()}`,
-            source: 'corpus',
-            sessionId: directive.targetHelixId,
-            type: 'suggestion',
-            content: `[CORPUS DIRECTIVE · ${directive.urgency}] ${directive.text}`,
-            createdAt: Date.now(),
-            luminance: {
-              novelty: 0.3,
-              urgency: directive.urgency === 'critical' ? 1 : directive.urgency === 'high' ? 0.8 : 0.5,
-              relevance: 0.8,
-              sourceCredibility: 0.9,
-              cognitiveResonance: 0, strategicImportance: 0,
-              composite: 0.7,
-            },
-            urgencyHint: directive.urgency === 'critical' ? 1.0 : directive.urgency === 'high' ? 0.8 : 0.5,
-            metadata: {
-              helix: true,
-              posture: 'corpus',
-              kind: 'directive',
-              reason: directive.reason,
-            },
-          })
-        }
-        this.logger.debug('Directive delivered to ObserverBranchState', {
-          helixId: directive.targetHelixId,
-          type: directive.type,
-          urgency: directive.urgency,
-        })
-      } else {
-        this.logger.debug('Observer directive: no ObserverBranchState for target', {
-          helixId: directive.targetHelixId,
-        })
-      }
-      return
-    }
     if (this.deps.meditationMode) return
     const brainstem = this.childBrainstems.get(directive.targetHelixId)
     if (!brainstem) {
@@ -2687,7 +2276,7 @@ Guidelines:
         evaluatedAt: Date.now(),
       }
     } catch (error) {
-      this.handleLLMFailure(error)
+      this.llmFailureCount++
       this.logger.error('Spawn evaluation failed, defaulting to rejected', {
         error: error instanceof Error ? error.message : String(error),
         requestId: request.requestId,
@@ -2962,14 +2551,6 @@ Guidelines:
 
           this.discoveries.set(discoveryId, discovery)
           this.discoveryCounter++
-
-          this.emitEvent('corpus:discovery', {
-            discoveryId,
-            sourceHelixId: branch.helixId,
-            content: ann.synthesis.slice(0, 300),
-            type: discovery.type,
-            relatedFiles: discovery.relatedFiles,
-          })
 
           // Push to all other active branches
           for (const other of branches) {
