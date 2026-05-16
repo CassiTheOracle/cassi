@@ -440,7 +440,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
               const preferredVindex = config?.get?.('intelligence.aurora.vindex') as string | undefined
               const VINDEX_LOAD_TIMEOUT_MS = 10_000  // browse-only loads in <5s
               
-              const tryLoad = async (candidatePath: string, candidateName: string): Promise<{ provider: any; name: string; path: string } | null> => {
+              const tryLoad = async (candidatePath: string, candidateName: string): Promise<{ provider: any; name: string; path: string } | { error: string }> => {
                 const provider = new LarqlKnowledgeProvider(logger)
                 const timedOut = Symbol('timedOut')
                 try {
@@ -450,10 +450,12 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                       setTimeout(() => resolve(timedOut), VINDEX_LOAD_TIMEOUT_MS),
                     ),
                   ])
-                  const loaded = result === timedOut ? null : Boolean(result)
-                  if (loaded) return { provider, name: candidateName, path: candidatePath }
-                } catch { /* fall through */ }
-                return null
+                  if (result === timedOut) return { error: `timed out after ${VINDEX_LOAD_TIMEOUT_MS}ms` }
+                  if (result) return { provider, name: candidateName, path: candidatePath }
+                  return { error: 'load returned false (unsupported architecture or missing files)' }
+                } catch (err) {
+                  return { error: `threw: ${String(err)}` }
+                }
               }
               
               // 1. Try preferred vindex first if configured
@@ -462,12 +464,12 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                 const preferredPath = join(modelsDir, preferredVindex)
                 if (existsSync(preferredPath)) {
                   const result = await tryLoad(preferredPath, preferredVindex)
-                  if (result) {
+                  if ('provider' in result) {
                     modelProvider = result.provider
                     chosen = { name: result.name, path: result.path }
                     logger.info('LarqlKnowledgeProvider loaded (preferred)', { vindex: preferredVindex })
                   } else {
-                    logger.warn('Preferred vindex failed to load, falling back to auto-discovery', { vindex: preferredVindex })
+                    logger.warn('Preferred vindex failed to load, falling back to auto-discovery', { vindex: preferredVindex, reason: result.error })
                   }
                 } else {
                   logger.warn('Preferred vindex not found', { vindex: preferredVindex, modelsDir })
@@ -491,7 +493,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                 const attempted: Array<{ name: string; reason: string }> = []
                 for (const candidate of vindexes) {
                   const result = await tryLoad(candidate.path, candidate.name)
-                  if (result) {
+                  if ('provider' in result) {
                     modelProvider = result.provider
                     chosen = { name: result.name, path: result.path }
                     logger.info('LarqlKnowledgeProvider loaded', {
@@ -500,7 +502,7 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                     })
                     break
                   }
-                  attempted.push({ name: candidate.name, reason: `failed to load within ${VINDEX_LOAD_TIMEOUT_MS}ms` })
+                  attempted.push({ name: candidate.name, reason: result.error })
                 }
                 if (!chosen) {
                   logger.warn('No vindex could be loaded — Aurora will run without model knowledge', {
@@ -604,10 +606,11 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
           if (aurora.hasSelfModelKnowledge) {
             // Gap 4: Periodic self-model refresh every 30 minutes
             const REFRESH_INTERVAL_MS = 30 * 60 * 1000
-            setInterval(() => {
+            const interval = setInterval(() => {
               try { aurora.refreshSelfModelKnowledge() }
               catch { /* best-effort */ }
             }, REFRESH_INTERVAL_MS)
+            interval.unref()  // don't keep process alive for this
             logger.info('Self-model periodic refresh scheduled', { intervalMs: REFRESH_INTERVAL_MS })
           }
 

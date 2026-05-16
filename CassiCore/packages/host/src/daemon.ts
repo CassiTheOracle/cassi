@@ -1568,7 +1568,7 @@ export class Daemon {
           } catch (err) {
             this.logger.warn('Self-Model ingestion failed (GitNexus may not be indexed)', { error: String(err) })
           }
-        })
+        }, INGESTION_DELAY_MS)
       } catch (err) {
         this.logger.warn('Self-Model Field not available', { error: String(err) })
       }
@@ -1589,6 +1589,7 @@ export class Daemon {
         const dataDir = (await import('./utils/paths.js')).getDataDir()
         const papersDir = path.join(dataDir, 'papers')
         if (fs.existsSync(papersDir)) {
+          const KNOWLEDGE_INGESTION_DELAY_MS = 5 * 60 * 1000
           setTimeout(async () => {
             try {
               const { KnowledgeIngestor } = await import('./intelligence/mnemic-field/knowledge/ingestor.js')
@@ -1606,7 +1607,7 @@ export class Daemon {
             } catch (err) {
               this.logger.warn('Knowledge ingestion failed', { error: String(err) })
             }
-          })
+          }, KNOWLEDGE_INGESTION_DELAY_MS)
         }
       } catch (err) {
         this.logger.warn('Knowledge Field not available', { error: String(err) })
