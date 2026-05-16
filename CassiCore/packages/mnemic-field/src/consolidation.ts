@@ -13,10 +13,13 @@ import type { DreamEngine, DreamResult } from '../memory-bridge/dream-engine.js'
 export interface ConsolidationResult {
   potentiationUpdates: number
   positionDrifts: number
+  centripetalDrifts: number
+  angularDrifts: number
   nucleiDetected: number
   abstractionsCreated: number
   spikesPruned: number
   forwardTracesPruned: number
+  contrastiveFeedbackDrifts: number
   gradientResult?: BackpropResult
   dreamResult?: DreamResult
   durationMs: number
@@ -25,12 +28,15 @@ export interface ConsolidationResult {
 export interface ConsolidationOptions {
   skipRadiance?: boolean
   skipDrift?: boolean
+  skipCentripetalDrift?: boolean
+  skipAngularDrift?: boolean
   skipNuclei?: boolean
   skipAbstractions?: boolean
   skipPruning?: boolean
   skipForwardTracePrune?: boolean
   skipGradients?: boolean
   skipDreaming?: boolean
+  skipContrastiveFeedback?: boolean
   pruneKeepCount?: number
   /** Matches NeuralKindlingConfig.maxTraceAge default (1 hour). Traces older than this are garbage — their gradient feedback will never arrive. */
   forwardTracePruneAgeMs?: number
@@ -41,6 +47,21 @@ export interface ConsolidationOptions {
 }
 
 const DEFAULT_FORWARD_TRACE_MAX_AGE_MS = 3_600_000
+
+/**
+ * Lerp between two angles (in radians), handling wrap-around at 2π.
+ * Both input and output are normalized to [0, 2π).
+ * Exported so Phase 7 (radial/polar topology) can reuse it.
+ */
+export function lerpAngle(a: number, b: number, t: number): number {
+  let diff = b - a
+  while (diff > Math.PI) diff -= 2 * Math.PI
+  while (diff < -Math.PI) diff += 2 * Math.PI
+  let result = a + t * diff
+  if (result < 0) result += 2 * Math.PI
+  if (result >= 2 * Math.PI) result -= 2 * Math.PI
+  return result
+}
 
 /** Yield control back to the event loop so heartbeats and IPC stay responsive. */
 function yieldToEventLoop(): Promise<void> {
@@ -91,6 +112,9 @@ export class ConsolidationEngine {
     const start = Date.now()
     let potentiationUpdates = 0
     let positionDrifts = 0
+    let centripetalDrifts = 0
+    let angularDrifts = 0
+    let contrastiveFeedbackDrifts = 0
     let nucleiDetected = 0
     let abstractionsCreated = 0
     let spikesPruned = 0
@@ -101,9 +125,12 @@ export class ConsolidationEngine {
 
     try {
       // Load the full dataset once — computeRadiance, applyCoActivationDrift,
+      // applyCentripetalDrift, applyAngularDrift, applyContrastiveFeedback,
       // and pruneSpikeHistories all need engrams (125K+ rows). Loading once
-      // instead of three times cuts ~2/3 of the SQLite I/O per consolidation.
-      const needsFullDataset = !options.skipRadiance || !options.skipDrift || !options.skipPruning
+      // instead of six times cuts ~5/6 of the SQLite I/O per consolidation.
+      const needsFullDataset = !options.skipRadiance || !options.skipDrift
+        || !options.skipCentripetalDrift || !options.skipAngularDrift
+        || !options.skipContrastiveFeedback || !options.skipPruning
       const dataset = needsFullDataset ? this.cortex.getAllEngramsWithSynapses() : undefined
       if (needsFullDataset) await yieldToEventLoop()
 
@@ -114,6 +141,24 @@ export class ConsolidationEngine {
 
       if (!options.skipDrift) {
         positionDrifts = await this.applyCoActivationDrift(dataset)
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipCentripetalDrift) {
+        centripetalDrifts = await this.applyCentripetalDrift(dataset)
+        await yieldToEventLoop()
+      }
+
+      if (!options.skipAngularDrift) {
+        angularDrifts = await this.applyAngularDrift(dataset)
+        await yieldToEventLoop()
+      }
+
+      // Contrastive retrieval feedback: self-supervised position learning
+      // from spike outcomes. Engrams that produce useful offspring drift
+      // inward; engrams retrieved but never used drift outward.
+      if (!options.skipContrastiveFeedback) {
+        contrastiveFeedbackDrifts = await this.applyContrastiveFeedback(dataset)
         await yieldToEventLoop()
       }
 
@@ -195,7 +240,7 @@ export class ConsolidationEngine {
     }
 
     function buildResult(): ConsolidationResult {
-      return { potentiationUpdates, positionDrifts, nucleiDetected, abstractionsCreated, spikesPruned, forwardTracesPruned, gradientResult, dreamResult, durationMs }
+      return { potentiationUpdates, positionDrifts, centripetalDrifts, angularDrifts, contrastiveFeedbackDrifts, nucleiDetected, abstractionsCreated, spikesPruned, forwardTracesPruned, gradientResult, dreamResult, durationMs }
     }
   }
 
@@ -442,6 +487,236 @@ export class ConsolidationEngine {
     }
 
     return pairCounts
+  }
+
+  /**
+   * Centripetal Drift: radial attractor force that pulls engrams inward
+   * based on their Pineal synapse connectivity. Engrams strongly connected
+   * to pineal_facet engrams drift toward the origin (lower r); disconnected
+   * engrams drift outward due to a small constant pressure.
+   *
+   * This self-organizes the field so core semantic knowledge (pineal facets)
+   * anchors the center and less-relevant engrams migrate to the periphery.
+   */
+  async applyCentripetalDrift(
+    preloaded?: { engrams: Engram[]; synapses: MnemicSynapse[] },
+  ): Promise<number> {
+    const { engrams, synapses } = preloaded ?? this.cortex.getAllEngramsWithSynapses()
+    if (engrams.length === 0) return 0
+
+    await yieldToEventLoop()
+
+    // Build a set of pineal_facet engram IDs
+    const pinealIds = new Set<string>()
+    for (const e of engrams) {
+      if (e.nodeType === 'pineal_facet') pinealIds.add(e.id)
+    }
+    if (pinealIds.size === 0) return 0
+
+    // Compute pineal synapse weight for each non-pineal engram.
+    // A synapse is "pineal-connected" if either endpoint is a pineal_facet.
+    const pinealWeights = new Map<string, number>()
+    for (const syn of synapses) {
+      const srcPineal = pinealIds.has(syn.sourceId)
+      const tgtPineal = pinealIds.has(syn.targetId)
+      if (srcPineal && !tgtPineal) {
+        pinealWeights.set(syn.targetId, (pinealWeights.get(syn.targetId) ?? 0) + syn.weight)
+      } else if (!srcPineal && tgtPineal) {
+        pinealWeights.set(syn.sourceId, (pinealWeights.get(syn.sourceId) ?? 0) + syn.weight)
+      }
+    }
+
+    await yieldToEventLoop()
+
+    const updates: Array<{ id: string; x: number; y: number }> = []
+
+    for (const engram of engrams) {
+      // Do not drift pineal_facet engrams — they are the anchors
+      if (engram.nodeType === 'pineal_facet') continue
+
+      // Read current radial distance from metadata, or compute from x,y
+      let r = (engram.metadata?.r as number | undefined) ?? Math.sqrt(engram.x * engram.x + engram.y * engram.y)
+      if (isNaN(r) || r <= 0) r = 0.5
+
+      // Read current angle from metadata, or compute from x,y
+      const theta = (engram.metadata?.theta as number | undefined) ?? Math.atan2(engram.y, engram.x)
+
+      const pinealWeight = pinealWeights.get(engram.id) ?? 0
+      const inwardForce = pinealWeight * 0.01
+      const outwardPressure = 0.002
+      let newR = r - inwardForce + outwardPressure
+      newR = Math.max(0.01, Math.min(1.0, newR))
+
+      const newX = newR * Math.cos(theta)
+      const newY = newR * Math.sin(theta)
+
+      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001) {
+        updates.push({ id: engram.id, x: newX, y: newY })
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.cortex.bulkUpdatePositionsBatched(updates)
+    }
+
+    this.logger.debug('Centripetal drift applied', { drifted: updates.length })
+    return updates.length
+  }
+
+  /**
+   * Angular Drift: engrams align their angle (theta) toward the weighted
+   * average angle of their connected neighbors. Over time this pulls
+   * topically-related engrams into the same angular sectors.
+   */
+  async applyAngularDrift(
+    preloaded?: { engrams: Engram[]; synapses: MnemicSynapse[] },
+  ): Promise<number> {
+    const { engrams, synapses } = preloaded ?? this.cortex.getAllEngramsWithSynapses()
+    if (engrams.length === 0) return 0
+
+    await yieldToEventLoop()
+
+    // Build bidirectional adjacency from synapses
+    const adjacency = new Map<string, Array<{ neighborId: string; weight: number }>>()
+    for (const syn of synapses) {
+      if (!adjacency.has(syn.sourceId)) adjacency.set(syn.sourceId, [])
+      if (!adjacency.has(syn.targetId)) adjacency.set(syn.targetId, [])
+      adjacency.get(syn.sourceId)!.push({ neighborId: syn.targetId, weight: syn.weight })
+      adjacency.get(syn.targetId)!.push({ neighborId: syn.sourceId, weight: syn.weight })
+    }
+
+    const engramMap = new Map(engrams.map(e => [e.id, e]))
+
+    await yieldToEventLoop()
+
+    const updates: Array<{ id: string; x: number; y: number }> = []
+
+    for (const engram of engrams) {
+      // Do not drift pineal_facet engrams — they anchor their sectors
+      if (engram.nodeType === 'pineal_facet') continue
+
+      const neighbors = adjacency.get(engram.id)
+      if (!neighbors || neighbors.length === 0) continue
+
+      // Weighted circular mean of neighbor angles
+      let sumSin = 0
+      let sumCos = 0
+      let totalWeight = 0
+
+      for (const { neighborId, weight } of neighbors) {
+        const neighbor = engramMap.get(neighborId)
+        if (!neighbor) continue
+        const nTheta = (neighbor.metadata?.theta as number | undefined) ?? Math.atan2(neighbor.y, neighbor.x)
+        sumSin += Math.sin(nTheta) * weight
+        sumCos += Math.cos(nTheta) * weight
+        totalWeight += weight
+      }
+
+      if (totalWeight === 0) continue
+
+      const avgTheta = Math.atan2(sumSin, sumCos)
+      const normalizedAvg = avgTheta < 0 ? avgTheta + 2 * Math.PI : avgTheta
+      const currentTheta = (engram.metadata?.theta as number | undefined) ?? Math.atan2(engram.y, engram.x)
+      const newTheta = lerpAngle(currentTheta, normalizedAvg, 0.05)
+
+      // Preserve radial distance
+      const r = (engram.metadata?.r as number | undefined) ?? Math.sqrt(engram.x * engram.x + engram.y * engram.y)
+
+      const newX = r * Math.cos(newTheta)
+      const newY = r * Math.sin(newTheta)
+
+      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001) {
+        updates.push({ id: engram.id, x: newX, y: newY })
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.cortex.bulkUpdatePositionsBatched(updates)
+    }
+
+    this.logger.debug('Angular drift applied', { drifted: updates.length })
+    return updates.length
+  }
+
+  /**
+   * Contrastive Retrieval Feedback: self-supervised radial position learning
+   * from spike outcomes. Engrams that produce consistently useful offspring
+   * (high success-to-failure ratio) drift inward toward the origin; engrams
+   * that are retrieved but never used drift outward toward the periphery.
+   *
+   * Reads spike outcomes (success/failure/unknown) from the cortex,
+   * computes a utility score per engram, and applies a small radial drift
+   * proportional to that utility. Pineal facet engrams are skipped — they
+   * are semantic anchors and must not drift.
+   */
+  async applyContrastiveFeedback(
+    preloaded?: { engrams: Engram[]; synapses: MnemicSynapse[] },
+  ): Promise<number> {
+    const { engrams } = preloaded ?? this.cortex.getAllEngramsWithSynapses()
+    if (engrams.length === 0) return 0
+
+    await yieldToEventLoop()
+
+    // Batch-fetch spike outcome distributions for all engrams in 2 queries
+    const engramIds = engrams.map(e => e.id)
+    const spikeOutcomes = this.cortex.getAllSpikeOutcomesForEngrams(engramIds)
+    const spikeCounts = this.cortex.getAllSpikeCountsForEngrams(engramIds)
+
+    await yieldToEventLoop()
+
+    const updates: Array<{ id: string; x: number; y: number }> = []
+    const MIN_SPIKES = 5
+    const DRIFT_FACTOR = 0.005
+
+    for (const engram of engrams) {
+      // Pineal facet engrams are semantic anchors — never drift them
+      if (engram.nodeType === 'pineal_facet') continue
+
+      const outcomes = spikeOutcomes.get(engram.id)
+      const totalSpikes = spikeCounts.get(engram.id) ?? 0
+
+      // Only apply when sufficient evidence exists
+      if (totalSpikes < MIN_SPIKES) continue
+
+      // Compute utility: (success - failure) / (success + failure + 1)
+      // Positive utility → engram produces useful offspring → drift inward
+      // Negative utility → engram retrieved but unused → drift outward
+      let utility = 0
+      if (outcomes) {
+        const successCount = outcomes.success
+        const failureCount = outcomes.failure
+        const total = successCount + failureCount
+        if (total > 0) {
+          utility = (successCount - failureCount) / (total + 1)
+        }
+      }
+
+      // Read current radial distance from metadata, or compute from Cartesian
+      let r = (engram.metadata?.r as number | undefined)
+        ?? Math.sqrt(engram.x * engram.x + engram.y * engram.y)
+      if (isNaN(r) || r <= 0) r = 0.5
+
+      // Apply drift: positive utility pulls inward, negative pushes outward
+      const newR = Math.max(0.01, Math.min(1.0, r - utility * DRIFT_FACTOR))
+
+      // Preserve current angular position
+      const theta = (engram.metadata?.theta as number | undefined)
+        ?? Math.atan2(engram.y, engram.x)
+
+      const newX = newR * Math.cos(theta)
+      const newY = newR * Math.sin(theta)
+
+      if (Math.abs(newX - engram.x) > 0.0001 || Math.abs(newY - engram.y) > 0.0001) {
+        updates.push({ id: engram.id, x: newX, y: newY })
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.cortex.bulkUpdatePositionsBatched(updates)
+    }
+
+    this.logger.debug('Contrastive feedback drift applied', { drifted: updates.length })
+    return updates.length
   }
 
   /**
