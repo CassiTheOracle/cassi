@@ -14,6 +14,7 @@ import { GradientEngine } from './backpropagation.js'
 import { MigrationJobStore, type MigrationJobRecord, type MigrationJobSpec } from './migration-jobs.js'
 import { migrateChunk, migrateMemoryAndArchives, migrateMemoryOnly } from './migrate-memory.js'
 import { AttractorManager } from './attractor.js'
+import { VQSectorPrototypes } from './vq-prototypes.js'
 import type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 import { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState, type ProjectionState } from './umap.js'
 import { attune, AffectRegister, affectSimilarity } from './affect.js'
@@ -140,6 +141,8 @@ export {
 } from './self-model/index.js'
 export { GraphAttnPropagator } from './graph-attn-propagator.js'
 export type { PropagatedEngram, PropagationPath, PropagationHop, GraphAttnPropagatorOpts } from './graph-attn-propagator.js'
+export { VQSectorPrototypes, cosineSimilarity, cosineDistance } from './vq-prototypes.js'
+export type { AssignResult } from './vq-prototypes.js'
 export type { IngestOptions, IngestResult } from './code-ingestor.js'
 export type { ConsolidationResult, ConsolidationOptions } from './consolidation.js'
 export { projectTo2D, projectTo2DAsync, projectTo2DFromSAB, projectSingle, buildProjectionState } from './umap.js'
@@ -175,6 +178,8 @@ export class MnemicField {
   private gradientEngine: GradientEngine
   /** Attentional focus — tonic center (Pineal facets at origin) + phasic (session context). */
   readonly attractor: AttractorManager
+  /** VQ Sector Prototypes for automatic domain discovery beyond Pineal domains. */
+  readonly vqPrototypes: VQSectorPrototypes
   private migrationJobs: MigrationJobStore
   private logger: ILogger
   private projectionState: ProjectionState | null = null
@@ -206,6 +211,10 @@ export class MnemicField {
   private retrieveCache = new Map<string, { hits: MnemicRetrievalHit[]; ts: number }>()
   private static readonly RETRIEVE_CACHE_TTL_MS = 5 * 60 * 1000  // 5 min
   private static readonly RETRIEVE_CACHE_MAX = 64
+
+  /** Luminal engram IDs from the most recent retrieval — consumed by store()
+   *  to annotate newly created engrams with their retrieval trigger chain. */
+  private lastLuminalIds: string[] = []
 
   /** Enable the LLM reranker. Call during daemon startup after providers are wired. */
   setRerankerProvider(provider: IProvider, model?: string, enabled?: boolean): void {
@@ -279,6 +288,7 @@ export class MnemicField {
     this.db = db  // Store for persistence
     this.cortex = new Cortex(db, logger)
     this.attractor = new AttractorManager()
+    this.vqPrototypes = new VQSectorPrototypes(1024)  // matches Qwen3-Embedding-0.6B dim
     this.kindlingEngine = new KindlingEngine(this.cortex, logger)
     this.kindlingEngine.setAttractor(this.attractor)
     this.gradientEngine = new GradientEngine(this.cortex, logger)
@@ -413,7 +423,7 @@ export class MnemicField {
   /**
    * Store a new engram. Position assignment:
    * - Explicit x/y provided → use as-is (Pineal facets, self-model anchors)
-   * - Embedding provided, no x/y → UMAP project (temporary; VQ replaces this)
+   * - Embedding provided, no x/y → VQ Sector Prototypes assign domain-aware position
    * - No embedding, no x/y → random position at periphery (conversation transcripts, tools)
    */
   store(input: EngramCreate): Engram {
@@ -424,7 +434,7 @@ export class MnemicField {
     let r = input.r
     let theta = input.theta
 
-    // Resolve position: x/y explicit → polar → UMAP → periphery fallback
+    // Resolve position: x/y explicit → polar → VQ → periphery fallback
     if (input.x === undefined && input.y === undefined) {
       if (r !== undefined && theta !== undefined) {
         // Polar coordinates provided → convert to Cartesian
@@ -436,16 +446,18 @@ export class MnemicField {
         x = r * Math.cos(theta)
         y = r * Math.sin(theta)
       } else if (input.embedding) {
-        // Has embedding → project into field topology via UMAP
-        const vec = input.embedding instanceof Float32Array
-          ? Array.from(input.embedding)
-          : input.embedding
-        const pos = this.projectNewVector(vec)
-        x = pos.x
-        y = pos.y
-        // Compute polar from UMAP position for metadata
-        r = Math.sqrt(x * x + y * y)
-        theta = Math.atan2(y, x)
+        // Has embedding → VQ Sector Prototypes assign domain-aware θ and radial r
+        const emb = input.embedding instanceof Float32Array
+          ? input.embedding
+          : new Float32Array(input.embedding)
+        const { prototypeIdx, distance } = this.vqPrototypes.assign(emb)
+        const assignedIdx = this.vqPrototypes.maybeCreatePrototype(emb)
+        theta = this.vqPrototypes.prototypeAngle(assignedIdx)
+        // Radial distance encodes semantic proximity to prototype
+        // Close to prototype → near center (0.15); far → periphery (0.85)
+        r = 0.15 + distance * 0.7
+        x = r * Math.cos(theta)
+        y = r * Math.sin(theta)
       } else {
         // No embedding → place at periphery with random angle.
         theta = Math.random() * 2 * Math.PI
@@ -461,7 +473,14 @@ export class MnemicField {
     }
 
     const affect = attune(input.content)
-    const metadata = { ...input.metadata, affect, r, theta }
+    let metadata: Record<string, unknown> = { ...input.metadata ?? {}, affect, r, theta }
+
+    // Contrastive retrieval feedback: link new engrams to the luminal
+    // engrams that triggered their creation via the most recent retrieval.
+    if (this.lastLuminalIds.length > 0) {
+      metadata = { ...metadata, triggeredBy: [...this.lastLuminalIds] }
+      this.lastLuminalIds = []
+    }
 
     const engram = this.cortex.createEngram({ ...input, x, y, metadata })
     return engram
@@ -882,6 +901,11 @@ export class MnemicField {
       includeText: true,
       currentAffect: options?.currentAffect ?? this.affectRegister.getAffect(),
     })
+
+    // Track luminal engram IDs for retrieval chain continuity.
+    // New engrams created this turn will carry triggeredBy metadata
+    // linking them to the engrams that triggered their creation.
+    this.lastLuminalIds = luminal.engrams.map(e => e.engram.id)
 
     let lightningRanked: Array<{ engramId: string; score: number }> | null = null
 
