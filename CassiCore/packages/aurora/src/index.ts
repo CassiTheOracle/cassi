@@ -75,6 +75,10 @@ import type { DiversityFloorConfig, DiversityCategory, CategoryDiversityState, C
 import { RefusalChannel } from './refusal-channel.js'
 import type { ActionKind, ActionHandle, ActionResolution, ActionRecord, RefusalChannelConfig, ProposedAction, RefusalFilter, ConsentSource } from './refusal-channel.js'
 import type { OverlayPatch, OverlayApplyResult, OverlayStats } from './overlay-layer.js'
+import { SelfModelKnowledgeProvider } from './self-model-knowledge.js'
+import type { SelfModelProbe } from './self-model-knowledge.js'
+import { InferenceTraceProvider } from './inference-trace.js'
+import type { MnemicField } from '../mnemic-field/index.js'
 import { SelfNarrativeRenderer } from './self-narrative-renderer.js'
 import type { SelfNarrative } from './self-narrative-renderer.js'
 import { CompositionStore } from './composition/store.js'
@@ -339,6 +343,15 @@ export class Aurora {
   private calibrationManager: CalibrationManager | null = null
   private calibrationStore: CalibrationStore | null = null
 
+  /** Self-model: Vindex→Mnemic bridge for architectural self-awareness. */
+  private selfModelKnowledge: SelfModelKnowledgeProvider | null = null
+
+  /** Multi-token inference trace provider for bridge enrichment. */
+  private inferenceTrace: import('./inference-trace.js').InferenceTraceProvider | null = null
+
+  /** Mnemic Field reference for persisting self-model knowledge (Gap 2). */
+  private mnemicField: MnemicField | null = null
+
   constructor(
     private cortex: Cortex,
     private modelProvider: ModelKnowledgeProvider | null,
@@ -473,11 +486,56 @@ export class Aurora {
       })
     }
 
+    // Self-model: Vindex→Mnemic bridge
+    // Uses modelProvider (LarqlKnowledgeProvider), not knowledgeField (KnowledgeField)
+    if (phase4Config.selfModelKnowledgeEnabled && this.modelProvider) {
+      // Extract band config from the vindex for accurate band classification
+      const mph = (this.modelProvider as any).vindexHandle
+      const numLayers = mph?.config?.numLayers ?? 30
+      const phaseTransition = mph?.config?.phaseTransitionLayers
+      const knowledgeBand = phaseTransition
+        ? { start: phaseTransition[0] ?? 14, end: phaseTransition[1] ?? 27 }
+        : { start: 14, end: 27 }
+      const outputBand = { start: (phaseTransition?.[1] ?? 28), end: numLayers - 1 }
+      const vindexName = mph?.path?.split('/').pop()?.replace('.vindex', '') ?? 'unknown'
+
+      this.selfModelKnowledge = new SelfModelKnowledgeProvider(
+        this.modelProvider as any,
+        logger,
+        { knowledgeBand, outputBand, vindexName },
+      )
+
+      // Wire inference trace provider for bridge enrichment
+      if (phase4Config.selfModelKnowledgeEnabled) {
+        // Access vindex path and config from the LarqlKnowledgeProvider
+        const mph = (this.modelProvider as any).vindexHandle
+        if (mph) {
+          this.inferenceTrace = new InferenceTraceProvider({
+            logger,
+            vindexPath: mph.path,
+            numLayers: mph.config.numLayers,
+          })
+          // Wire N-API backend for fast multi-token gate KNN
+          const lqp = this.modelProvider as any
+          if (lqp.larql && typeof lqp.larql.traceForward === 'function') {
+            this.inferenceTrace.setNapiBackend({
+              handle: mph,
+              tokenize: (text: string) => lqp.larql.vindexTokenize(mph, text),
+              traceForward: (tokens, start, end, k) =>
+                lqp.larql.traceForward(mph, tokens, start, end, k),
+            })
+          }
+          this.selfModelKnowledge!.setInferenceTraceProvider(this.inferenceTrace)
+        }
+      }
+    }
+
     this.logger.info('Aurora initialized', {
       hasModelProvider: !!modelProvider,
       hasKnowledgeProvider: !!knowledgeProvider,
       hasPortalBridge: !!portalBridge,
       hasPersistence: !!persistence,
+      hasSelfModelKnowledge: !!this.selfModelKnowledge,
       hydratedNodes: persistence ? persistence.hydrateClaustrum().nodes.length : 0,
       hydratedRecords: persistence ? persistence.hydrateReasoningLog(0).length : 0,
       reverieSamplingRate: this.reverieSamplingRate,
@@ -522,9 +580,49 @@ export class Aurora {
     }
   }
 
+  private seedMemoryFromGraph(graph: UnifiedGraph): void {
+    const seeded = new Set<string>()
+    for (const [nodeId, node] of graph.nodes) {
+      if (node.source !== 'model') continue
+      const confidence = node.modelConfidence ?? 0
+      if (confidence <= 0) continue
+
+      const label = node.label?.toLowerCase().trim()
+      if (!label || label.length < 2 || seeded.has(label)) continue
+      seeded.add(label)
+
+      const edges = graph.edges.get(nodeId) ?? []
+      const relations = edges
+        .filter(e => e.origin === 'model')
+        .slice(0, 5)
+        .map(e => {
+          const target = graph.nodes.get(e.targetId)
+          return `${e.edgeType || 'related_to'} ${target?.label || e.targetId}`
+        })
+
+      const content = `[vindex] ${node.label}${relations.length > 0 ? ': ' + relations.join(', ') : ''}`
+      try {
+        (this.cortex as any).signal('association', {
+          type: 'association',
+          content,
+          author: 'aurora:vindex',
+          salience: Math.min(0.7, Math.max(0.15, confidence)),
+          tags: ['vindex', 'model', label],
+        })
+      } catch (err) {
+        this.logger?.debug?.('seedMemoryFromGraph: cortex.signal failed', { error: String(err) })
+      }
+    }
+  }
+
   /** Set session ID for reasoning records. */
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId
+  }
+
+  /** Wire Mnemic Field for persisting self-model knowledge. */
+  setMnemicField(mf: MnemicField): void {
+    this.mnemicField = mf
   }
 
   /** Set active task for Reverie analysis context (wired from lamina). */
@@ -620,6 +718,11 @@ export class Aurora {
       this.applyCycleId(null)
     }
 
+    // Persist vindex-derived model knowledge as cortical signals so it
+    // survives graph rebuilds.  Future observations about the same concept
+    // find both a model node AND a memory entry → real resonance forms.
+    this.seedMemoryFromGraph(graph)
+
     const resonanceHubs = this.claustrum.getResonanceHubs(graph)
     const gaps = this.claustrum.findGaps(graph)
     const { coherence, integration } = this.claustrum.computeGraphMetrics(graph)
@@ -680,6 +783,134 @@ export class Aurora {
     const target = state ?? this.currentState
     if (!target || !this.selfNarrativeRenderer) return null
     return this.selfNarrativeRenderer.render(target)
+  }
+
+  /**
+   * Probe the vindex for model-internal associations about CassiCore
+   * architectural concepts. Used by cron-driven self-model refresh cycles.
+   *
+   * Returns null when the bridge is disabled or knowledge provider unavailable.
+   */
+  probeSelfModel(): SelfModelProbe | null {
+    if (!this.selfModelKnowledge) return null
+    try {
+      return this.selfModelKnowledge.probe()
+    } catch (err) {
+      this.logger.warn('probeSelfModel failed', { error: String(err) })
+      return null
+    }
+  }
+
+  /**
+   * Ingest the latest self-model probe results into the Mnemic Field.
+   * Should be called after probeSelfModel() to persist the knowledge.
+   *
+   * Requires the Mnemic Field to be accessible. Currently wired through
+   * the Cortex signal path; full Mnemic integration via `ingestIntoMnemic`
+   * requires the MnemicField reference to be exposed.
+   */
+  refreshSelfModelKnowledge(): SelfModelProbe | null {
+    if (!this.selfModelKnowledge) return null
+    try {
+      const probe = this.selfModelKnowledge.probe()
+
+      // Gap 2: Persist probe results into Mnemic Field as engrams + synapses
+      if (this.mnemicField) {
+        try {
+          const ingested = this.selfModelKnowledge.ingestIntoMnemic(probe, this.mnemicField)
+          this.logger.debug('Self-model knowledge persisted', { ingested })
+        } catch (err) {
+          this.logger.warn('Failed to persist self-model knowledge', { error: String(err) })
+        }
+      }
+
+      this.logger.info('Self-model knowledge refreshed', {
+        conceptsProbed: probe.concepts.length,
+        selfAware: probe.concepts.filter(c => c.selfAware).length,
+        bridges: probe.bridges.length,
+        persisted: !!this.mnemicField,
+      })
+      // Wire into self-narrative for I-voice narration
+      this.selfNarrativeRenderer?.setSelfModelProbe(probe)
+      // Enrich top bridges with multi-token inference traces
+      if (this.inferenceTrace && probe.bridges.length > 0) {
+        queueMicrotask(() => {
+          try {
+            const traces = this.selfModelKnowledge?.enrichBridgesWithInference(probe.bridges, 3)
+            if (traces) {
+              this.logger.info('Inference traces enriched', {
+                pairs: traces.traces.length,
+                totalMs: traces.totalDurationMs,
+              })
+              // Gap 3: Persist inference traces as enriched engrams with synapses
+              if (this.mnemicField) {
+                const traceIds = new Map<string, string>()
+                for (const trace of traces.traces) {
+                  try {
+                    const metadata = this.inferenceTrace!.traceMetadata(trace)
+                    const stored = this.mnemicField.store({
+                      nodeType: 'pattern',
+                      content: JSON.stringify({
+                        bridge: `${trace.conceptA}↔${trace.conceptB}`,
+                        prompt: trace.prompt,
+                        amplificationRatio: trace.amplificationRatio,
+                        topFeatures: trace.features
+                          .sort((a, b) => Math.abs(b.gate) - Math.abs(a.gate))
+                          .slice(0, 5)
+                          .map(f => ({ layer: f.layer, gate: f.gate, token: f.topToken })),
+                      }),
+                      initialPotentiation: 0.5,
+                      tags: ['inference-trace', 'vindex-self-model', `bridge:${trace.conceptA}↔${trace.conceptB}`],
+                      metadata: { ...metadata, probedAt: traces.probedAt },
+                    })
+                    traceIds.set(trace.conceptA, stored.id)
+                    // Store the second concept too for synapse creation
+                    const storedB = this.mnemicField.store({
+                      nodeType: 'pattern',
+                      content: JSON.stringify({ pairedWith: trace.conceptA, bridge: `${trace.conceptA}↔${trace.conceptB}` }),
+                      initialPotentiation: 0.4,
+                      tags: ['inference-trace', 'bridge-target'],
+                      metadata: { probedAt: traces.probedAt },
+                    })
+                    traceIds.set(trace.conceptB, storedB.id)
+                  } catch (err) {
+                    this.logger.debug('Failed to store inference trace engram', { error: String(err) })
+                  }
+                }
+                // Create co_activated synapses between bridged concept pairs
+                for (const trace of traces.traces) {
+                  const aId = traceIds.get(trace.conceptA)
+                  const bId = traceIds.get(trace.conceptB)
+                  if (aId && bId) {
+                    try {
+                      this.mnemicField.connect({
+                        sourceId: aId, targetId: bId,
+                        edgeType: 'similar_to',
+                        weight: trace.amplificationRatio / 5, // normalized to 0-1 range
+                        metadata: { source: 'vindex-inference-trace', probedAt: traces.probedAt },
+                      })
+                    } catch { /* best-effort */ }
+                  }
+                }
+              }
+              // Feed traces into self-narrative
+              this.selfNarrativeRenderer?.setSelfModelProbe(probe)
+            }
+          } catch (err) {
+            this.logger.debug('Bridge enrichment failed', { error: String(err) })
+          }
+        })
+      }
+      return probe
+    } catch (err) {
+      this.logger.warn('refreshSelfModelKnowledge failed', { error: String(err) })
+      return null
+    }
+  }
+
+  /** Whether the self-model bridge is active. */
+  get hasSelfModelKnowledge(): boolean {
+    return !!this.selfModelKnowledge
   }
 
   private topFoci(n: number): string[] {
@@ -822,6 +1053,18 @@ export class Aurora {
         this.logger.debug('Curation cycle failed', { error: String(err) })
       }
     }
+
+    // === C5 Resonance tick (every observation) ===
+    try {
+      this.logger.info('[resonance] tick at turn ' + this.turnCount, {
+        modelNodes: this.currentState ? [...this.currentState.graph.nodes.values()].filter(n => (n.modelConfidence ?? 0) > 0).length : -1,
+        hasProvider: !!(this.modelProvider as any)?.runSteeredGeneration,
+        hasState: !!this.currentState,
+      })
+      if (this.currentState) {
+        this.runResonanceTick(undefined, 5)
+      }
+    } catch { /* best-effort */ }
 
     this.logger.debug('Reasoning observed', {
       concepts: concepts.length,
@@ -1955,7 +2198,74 @@ export class Aurora {
     return result
   }
 
-    /**
+  /**
+   * C5 Resonance pipeline — steered generation from mental state.
+   *
+   * Checks whether the current mental state has model-confident nodes
+   * (via the vindex), composes residual-stream steering vectors from
+   * those nodes, and runs steered generation. The generated text is
+   * then observed back into the graph, closing the loop.
+   *
+   * Designed to be called from the daemon turn boundary
+   * (e.g. `helix-posture-runner.ts` after each `observeReasoning`).
+   *
+   * Cost: one residual-norm probe prefill + one generation. On GPU
+   * this is ~3s per generated token. Short generations (5-10 tokens)
+   * keep the cost reasonable. Returns null when there are no model-
+   * confident nodes or the vindex isn't loaded.
+   */
+  runResonanceTick(prompt?: string, maxNewTokens: number = 8): { text: string; contributions: number } | null {
+    const prov = this.modelProvider as { runSteeredGeneration?: Function } | null
+    if (!prov?.runSteeredGeneration) {
+      this.logger.info('[resonance] no steered generation provider')
+      return null
+    }
+    if (!this.currentState) {
+      this.logger.info('[resonance] no current state')
+      return null
+    }
+
+    const modelNodes = [...this.currentState.graph.nodes.values()]
+      .filter(n => (n.modelConfidence ?? 0) > 0 && n.label)
+    if (modelNodes.length === 0) {
+      this.logger.info('[resonance] no model-confident nodes', {
+        totalNodes: this.currentState.graph.nodes.size,
+      })
+      return null
+    }
+
+    try {
+      const result = (prov.runSteeredGeneration as Function)(
+        prompt ?? `Reflecting on ${modelNodes.slice(0, 3).map(n => n.label).join(', ')}`,
+        this.currentState,
+        maxNewTokens,
+        { targetResidualFraction: 0.05, layerSubset: undefined },
+      )
+      if (!result) return null
+
+      const { generation, projection } = result as { generation: { text: string }; projection: { contributions: Array<{ nodeId: string; label: string }> } }
+
+      // Observe the steered output back into the mental state
+      if (generation.text.length > 10) {
+        try {
+          this.observeReasoning(generation.text)
+        } catch { /* silent — observation is best-effort */ }
+      }
+
+      this.logger.info('[resonance] steered generation', {
+        text: generation.text.slice(0, 80),
+        contributingNodes: projection.contributions.length,
+        modelNodes: modelNodes.length,
+      })
+
+      return { text: generation.text, contributions: projection.contributions.length }
+    } catch (err) {
+      this.logger.debug('[resonance] pipeline failed', { error: String(err) })
+      return null
+    }
+  }
+
+  /**
    * Phase 4 Integration: Get modification chain audit.
    * Returns empty array if modification audit is disabled.
    */
@@ -2367,4 +2677,7 @@ export class Aurora {
   getRefusalChannelReady(): boolean {
     return this.refusalChannel !== null
   }
+
+  /** Stub — narrative update from Thalamus (not yet wired to a backing store). */
+  async updateFeatureNarrative(_contextText: string): Promise<void> {}
 }

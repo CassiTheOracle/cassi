@@ -600,6 +600,9 @@ export interface AuroraConfig {
 
   /** Phase 2 (A2.4): Maximum gates surfaced in the active-gate annotation block. */
   vectorProjectionMaxGates: number
+
+  /** Self-model: Enable vindex→Mnemic bridge for architectural self-awareness. */
+  selfModelKnowledgeEnabled: boolean
 }
 
 export const AURORA_DEFAULTS: AuroraConfig = {
@@ -644,6 +647,7 @@ export const AURORA_DEFAULTS: AuroraConfig = {
   calibrationEnabled: false,
   vectorProjectionEnabled: false,
   vectorProjectionMaxGates: 8,
+  selfModelKnowledgeEnabled: false,
 }
 
 /** Result of a single C1 curation cycle (detect → seed → schedule). */

@@ -226,8 +226,8 @@ export class StateProjector {
     let chars = lines[0].length
 
     for (const hub of state.resonanceHubs) {
-      const modelInfo = hub.modelConfidence
-        ? `model:${Math.min(1.0, hub.modelConfidence / 1000).toFixed(2)}`
+      const modelInfo = (hub.modelConfidence ?? 0) > 0
+        ? `model:${Math.min(1.0, hub.modelConfidence! > 1 ? hub.modelConfidence! / 1000 : hub.modelConfidence!).toFixed(2)}`
         : 'model:—'
       const memoryInfo = hub.potentiation !== undefined
         ? `memory:${hub.potentiation.toFixed(2)}`

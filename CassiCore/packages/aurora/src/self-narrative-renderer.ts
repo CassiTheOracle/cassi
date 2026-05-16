@@ -112,19 +112,45 @@ const TEMPLATES = {
     if (state.integration < 0.3) return { text: `My knowledge is spread thin at the moment.`, sourceFacts: ['integration'] }
     return null
   },
+
+  /**
+   * Self-model knowledge: what the vindex model understands about
+   * CassiCore's architecture. Populated by SelfModelKnowledgeProvider.
+   */
+  selfModel(_state: MentalState): NarrativeClause | null {
+    const probe = (this as any).__selfModelProbe as import('./self-model-knowledge.js').SelfModelProbe | undefined
+    if (!probe) return null
+    const selfAware = probe.concepts.filter(c => c.selfAware)
+    if (selfAware.length === 0) return null
+    const names = selfAware.slice(0, 4).map(c => c.concept).join(', ')
+    const more = selfAware.length > 4 ? ` and ${selfAware.length - 4} more` : ''
+    return {
+      text: `My underlying model has internal representations of: ${names}${more}.`,
+      sourceFacts: ['selfModel.concepts'],
+    }
+  },
 } as const
 
 type TemplateName = keyof typeof TEMPLATES
 
-const DEFAULT_ORDER: TemplateName[] = ['focus', 'affect', 'momentum', 'coherence', 'gaps', 'discoveries', 'integration']
+const DEFAULT_ORDER: TemplateName[] = ['focus', 'affect', 'momentum', 'coherence', 'gaps', 'discoveries', 'integration', 'selfModel']
 
 export class SelfNarrativeRenderer {
   private config: AuroraConfig
   private logger: ILogger
+  /** Latest self-model probe, set by Aurora.refreshSelfModelKnowledge(). */
+  private _selfModelProbe: any = undefined
 
   constructor(logger: ILogger, config: AuroraConfig) {
     this.logger = logger.child ? logger.child('self-narrative') : logger
     this.config = config
+  }
+
+  /** Feed the latest vindex→Mnemic probe results into the narrative. */
+  setSelfModelProbe(probe: any): void {
+    this._selfModelProbe = probe
+    // Attach to TEMPLATES.selfModel so the closure can access it
+    ;(TEMPLATES as any).__selfModelProbe = probe
   }
 
   render(state: MentalState): SelfNarrative | null {

@@ -23,10 +23,16 @@ import type {
   ModelEdge,
   ModelPath,
 } from './types.js'
+import type {
+  MentalState,
+  VectorProjectionOptions,
+  VectorProjection,
+} from './types.js'
 import type { ClaustrumRecorder, ClaustrumGateHit } from './claustrum-recorder.js'
 import type { OverlayLayer, OverlayFeatureHit } from './overlay-layer.js'
 import type { Affect, AffectLabel } from '../mnemic-field/types.js'
 import { affectSimilarity, resolveLabel } from '../mnemic-field/affect.js'
+import { composeVectorProjection } from './projection/vector-projection.js'
 
 interface VindexHandle {
   readonly id: number
@@ -322,6 +328,9 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   private config: LarqlProviderConfig
   private logger: ILogger
   private handle: VindexHandle | null = null
+
+  /** Expose vindex handle for introspection (used by InferenceTraceProvider). */
+  get vindexHandle(): VindexHandle | null { return this.handle }
   private larql: CassiLarqlModule | null = null
   private loaded = false
 
@@ -490,13 +499,15 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
    */
   describe(entity: string, opts?: { applyOverlay?: boolean }): ModelEntity | null {
     if (!this.loaded || !this.handle || !this.larql) return null
+    const handle = this.handle
+    const larql = this.larql
 
     // Check cache
     if (this.cache.has(entity)) {
       return this.cache.get(entity) ?? null
     }
 
-    const tokens = this.larql.vindexTokenize(this.handle, entity)
+    const tokens = larql.vindexTokenize(handle, entity)
     if (tokens.length === 0) {
       this.cacheResult(entity, null)
       return null
@@ -508,50 +519,69 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     const fingerprint = new Map<string, number>()
     const labeledRelations = new Map<string, { maxScore: number; layerMin: number; layerMax: number; count: number }>()
 
-    for (const layer of this.config.knowledgeLayers) {
-      const hits = this.larql.vindexGateKnn(
-        this.handle,
-        layer,
-        queryToken,
-        this.config.featuresPerLayer,
-      )
+    // Collect features for the primary query token.
+    const collectFeatures = (token: number, concept: string) => {
+      for (const layer of this.config.knowledgeLayers) {
+        const hits = larql.vindexGateKnn(
+          handle, layer, token, this.config.featuresPerLayer,
+        )
 
-      if (this.recorder !== null && hits.length > 0) {
-        const filtered: ClaustrumGateHit[] = []
-        for (const hit of hits) {
-          if (hit.score < this.config.minGateScore) continue
-          filtered.push({ layer, featureIndex: hit.featureIndex, score: hit.score })
-        }
-        if (filtered.length > 0) {
-          this.recorder.recordGateHits({
-            cycleId: this.currentCycleId,
-            queryConcept: entity,
-            trigger: 'larql_gate_knn',
-            hits: filtered,
-          })
-        }
-      }
-
-      for (const hit of hits) {
-        if (hit.score < this.config.minGateScore) continue
-        const key = `L${layer}:F${hit.featureIndex}`
-        fingerprint.set(key, hit.score)
-
-        if (hit.label) {
-          const existing = labeledRelations.get(hit.label)
-          if (existing) {
-            existing.maxScore = Math.max(existing.maxScore, hit.score)
-            existing.layerMin = Math.min(existing.layerMin, layer)
-            existing.layerMax = Math.max(existing.layerMax, layer)
-            existing.count++
-          } else {
-            labeledRelations.set(hit.label, {
-              maxScore: hit.score,
-              layerMin: layer,
-              layerMax: layer,
-              count: 1,
+        if (this.recorder !== null && hits.length > 0) {
+          const filtered: ClaustrumGateHit[] = []
+          for (const hit of hits) {
+            if (hit.score < this.config.minGateScore) continue
+            filtered.push({ layer, featureIndex: hit.featureIndex, score: hit.score })
+          }
+          if (filtered.length > 0) {
+            this.recorder.recordGateHits({
+              cycleId: this.currentCycleId,
+              queryConcept: concept,
+              trigger: 'larql_gate_knn',
+              hits: filtered,
             })
           }
+        }
+
+        for (const hit of hits) {
+          if (hit.score < this.config.minGateScore) continue
+          const key = `L${layer}:F${hit.featureIndex}`
+          const existing = fingerprint.get(key)
+          fingerprint.set(key, existing !== undefined ? Math.max(existing, hit.score) : hit.score)
+
+          if (hit.label) {
+            const existing = labeledRelations.get(hit.label)
+            if (existing) {
+              existing.maxScore = Math.max(existing.maxScore, hit.score)
+              existing.layerMin = Math.min(existing.layerMin, layer)
+              existing.layerMax = Math.max(existing.layerMax, layer)
+              existing.count++
+            } else {
+              labeledRelations.set(hit.label, {
+                maxScore: hit.score,
+                layerMin: layer,
+                layerMax: layer,
+                count: 1,
+              })
+            }
+          }
+        }
+      }
+    }
+
+    // Collect primary features using the entity's own token.
+    collectFeatures(queryToken, entity)
+
+    // Always merge lowercase features when capitalization differs — the vindex
+    // tokenizer maps "Cats" → 153637 (unrelated features) whereas "cat" → 9307
+    // (rich, coherent features).  Using Math.max for overlapping features preserves
+    // the best from both.
+    const lower = entity.toLowerCase()
+    if (lower !== entity) {
+      const lowerTokens = larql.vindexTokenize(handle, lower)
+      if (lowerTokens.length > 0) {
+        const lowerToken = lowerTokens[lowerTokens.length - 1]
+        if (lowerToken !== queryToken) {
+          collectFeatures(lowerToken, lower)
         }
       }
     }
@@ -1002,6 +1032,111 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
   }
 
   /**
+   * A2 Slice 1: steered autoregressive generation.
+   *
+   * Runs a forward pass over `promptText` (or `promptTokens`, whichever is
+   * supplied) while adding `alpha * vector` to the last-token position of
+   * the post-layer residual at each requested layer. Returns the generated
+   * text, token ids, and wall-clock duration.
+   *
+   * Returns `null` when the vindex isn't loaded, the handle is browse-only
+   * (no model weights), or the underlying call fails (logged at debug level).
+*
+   * Cost: one prefill + up to `maxNewTokens` decode steps. On Gemma 3 4B
+   * this is ~30 s/token on CPU, ~1–2 s/token on GPU.
+   *
+   * The `steers` array can be built directly from a `VectorProjection`:
+   *
+   *   const projection = aurora.getVectorProjection(undefined, state, vectorSource)
+   *   if (projection) {
+   *     const steers: LayerSteer[] = []
+   *     for (const [layer, vec] of projection.perLayer) {
+   *       if (vec.length > 0) {
+   *         steers.push({
+   *           layer,
+   *           alpha: 0.1,
+   *           vectorBytes: new Uint8Array(vec.buffer, vec.byteOffset, vec.byteLength),
+   *         })
+   *       }
+   *     }
+   *     const result = provider.generateWithSteering('The quick brown fox.', steers, 50)
+   *   }
+   */
+  generateWithSteering(
+    prompt: string | number[],
+    steers: LayerSteer[],
+    maxNewTokens: number,
+    // When true, the BOS token (<bos>, id 2 for Gemma) is prepended
+    // automatically so the model starts from a valid distribution.
+    // Set false when the prompt token array already includes BOS.
+    autoBos: boolean = true,
+  ): GenerationResult | null {
+    if (!this.loaded || !this.handle || !this.larql) return null
+    if (typeof this.larql.generateWithSteering !== 'function') return null
+    try {
+      let promptTokens = Array.isArray(prompt)
+        ? prompt
+        : this.larql.vindexTokenize(this.handle, prompt)
+      if (promptTokens.length === 0) return null
+
+      // Auto-prepend BOS token for models that need it (Gemma 3/4, Llama, etc.)
+      // BOS token id is model-specific; we detect it by tokenizing '<bos>'.
+      if (autoBos && promptTokens[0] !== 1 && promptTokens[0] !== 2) {
+        const bosTokens = this.larql.vindexTokenize(this.handle, '<bos>')
+        if (bosTokens.length === 1 && bosTokens[0] > 0 && bosTokens[0] < 10) {
+          promptTokens = [bosTokens[0], ...promptTokens]
+        }
+      }
+
+      const result = this.larql.generateWithSteering(
+        this.handle, promptTokens, steers, maxNewTokens,
+      )
+      return result
+    } catch (err) {
+      this.logger.debug?.('generateWithSteering failed', {
+        maxNewTokens,
+        steeringLayers: steers.map(s => s.layer),
+        error: String(err),
+      })
+      return null
+    }
+  }
+
+  /**
+   * Build a `GateVectorSource` callback for `composeVectorProjection`.
+   *
+   * The returned function can be passed directly to Aurora's
+   * `getVectorProjection(options, state, vectorSource, baselineNormSource)`:
+   *
+   *   const projection = aurora.getVectorProjection(
+   *     { targetResidualFraction: 0.05 },
+   *     aurora.currentState,
+   *     provider.makeGateVectorSource(),
+   *     provider.makeBaselineNormSource(residualNorms),
+   *   )
+   *
+   * Each call to the source callback tokenizes the node's label, runs gate
+   * KNN at the requested layer, and returns the top feature's gate vector
+   * as a Float32Array. Returns `null` when the node has no label, the
+   * layer has no matching feature, or the vindex isn't loaded.
+   */
+  makeGateVectorSource(): import('./projection/vector-projection.js').GateVectorSource {
+    const provider = this
+    return (node: import('./types.js').CognitiveNode, layer: number): Float32Array | null => {
+      if (!provider.loaded || !provider.handle || !provider.larql) return null
+      if (!node.label) return null
+      const tokens = provider.larql.vindexTokenize(provider.handle, node.label)
+      if (tokens.length === 0) return null
+      const queryToken = tokens[tokens.length - 1]
+      const hits = provider.larql.vindexGateKnn(provider.handle, layer, queryToken, 1)
+      if (!hits || hits.length === 0) return null
+      const bytes = provider.larql.gateVector(provider.handle, layer, hits[0].featureIndex)
+      if (!bytes) return null
+      return new Float32Array(bytes.buffer, bytes.byteOffset, bytes.byteLength / 4)
+    }
+  }
+
+  /**
    * Compose a `BaselineNormSource` callback from a previously-measured
    * norm map. Pair with `composeVectorProjection`'s
    * `targetResidualFraction` to get spec §4.3 static calibration.
@@ -1015,6 +1150,109 @@ export class LarqlKnowledgeProvider implements ModelKnowledgeProvider, CycleIdAw
     norms: Map<number, number>,
   ): (layer: number) => number | null {
     return (layer: number) => norms.get(layer) ?? null
+  }
+
+  /**
+   * Full Aurora integration: compose residual steering vectors from the
+   * current mental state and run steered generation in one call.
+   *
+   * Steps:
+   *   1. Build a `GateVectorSource` from this provider (tokenize + gate KNN
+   *      each activated node at its contributing layers)
+   *   2. Run `composeVectorProjection` with the state + options
+   *   3. Convert each layer's accumulated vector into `LayerSteer[]`
+   *   4. Call `generateWithSteering` with the composited steers
+   *
+   * Returns both the generation result and the projection metadata so
+   * callers can inspect what was injected (contributions, layer budget).
+   *
+   * Example (Aurora orchestration tick):
+   *
+   *   const result = provider.runSteeredGeneration(
+   *     'Tell me about',
+   *     aurora.currentState,
+   *     50,
+   *     {
+   *       layerSubset: [20, 22, 24, 26],
+   *       targetResidualFraction: 0.05,
+   *       calibrationPrompt: 'The quick brown fox',
+   *     },
+   *   )
+   *   if (result) {
+   *     console.log(result.generation.text) // contributing:ignore
+   *     // proyecto n.contributions — which nodes and how
+   *   }
+   */
+  runSteeredGeneration(
+    prompt: string,
+    state: MentalState,
+    maxNewTokens: number = 30,
+    options?: {
+      /** Only these layers receive steering vectors (default: all model layers) */
+      layerSubset?: number[]
+      /** Fraction of the residual norm to target (default: 0.05 = 5%) */
+      targetResidualFraction?: number
+      /** Prompt to use for residual-norm calibration probe (default: same as prompt) */
+      calibrationPrompt?: string
+      /** Layers to probe during calibration (default: all layers in layerSubset) */
+      calibrationLayers?: number[]
+      /** Options forwarded to `generateWithSteering` */
+      autoBos?: boolean
+    },
+  ): { generation: GenerationResult; projection: VectorProjection } | null {
+    if (!this.loaded || !this.handle || !this.larql) {
+      process.stderr.write(`[LARQL] runSteeredGeneration: loaded=${this.loaded} handle=${!!this.handle} larql=${!!this.larql}\n`)
+      return null
+    }
+
+    const {
+      layerSubset,
+      targetResidualFraction = 0.05,
+      calibrationPrompt = prompt,
+      calibrationLayers,
+      autoBos = true,
+    } = options ?? {}
+
+    // Measure residual norms for calibration
+    const normLayers = calibrationLayers ?? layerSubset ?? [20, 22, 24, 26]
+    const norms = this.measureResidualNorms(calibrationPrompt, normLayers)
+    const baselineNormSource = this.makeBaselineNormSource(norms)
+
+    // Compose vector projection from the mental state
+    const projection = composeVectorProjection(
+      state,
+      { layerSubset, targetResidualFraction },
+      {},
+      this.makeGateVectorSource(),
+      baselineNormSource,
+    )
+    if (!projection) {
+      process.stderr.write(`[LARQL] composeVectorProjection returned null (state nodes=${state.graph.nodes.size})\n`)
+      return null
+    }
+
+    // Convert projection to LayerSteer[]
+    const steers: LayerSteer[] = []
+    for (const [layer, vec] of projection.perLayer) {
+      if (vec.length === 0) continue
+      steers.push({
+        layer,
+        // alpha = 1.0 because the projection already includes
+        // salience * magnitudeScale via GateVectorSource + options.
+        // The `targetResidualFraction` option in composeVectorProjection
+        // rescales each layer's vector to `fraction * residual_norm`
+        // via rescaleToCalibrationTarget, so alpha=1.0 applies it at
+        // the calibrated strength.
+        alpha: 1.0,
+        vectorBytes: new Uint8Array(vec.buffer, vec.byteOffset, vec.byteLength),
+      })
+    }
+    if (steers.length === 0) return null
+
+    const generation = this.generateWithSteering(prompt, steers, maxNewTokens, autoBos)
+    if (!generation) return null
+
+    return { generation, projection }
   }
 
   /**

@@ -315,7 +315,7 @@ export class Claustrum {
             entity: node.label,
             knownBy: 'model',
             knowledge: `${node.label} → ${topEdge.edgeType} → ${graph.nodes.get(topEdge.targetId)?.label ?? topEdge.targetId}`,
-            strength: node.modelConfidence ? Math.min(1.0, node.modelConfidence / 1000) : 0.5,
+            strength: Claustrum.clampConfidence(node.modelConfidence),
             gapType: 'missing',
           })
         }
@@ -620,7 +620,7 @@ export class Claustrum {
             targetId,
             origin: 'model',
             edgeType: rel.relation,
-            weight: Math.min(1.0, rel.confidence / 1000),
+            weight: Claustrum.clampConfidence(rel.confidence),
             modelConfidence: rel.confidence,
             modelLayers: [rel.layerMin, rel.layerMax],
           })
@@ -836,9 +836,7 @@ export class Claustrum {
 
       for (const mem of memoryNodesWithLower) {
         if (mem.lower.includes(entityName)) {
-          const modelStrength = modelNode.modelConfidence
-            ? Math.min(1.0, modelNode.modelConfidence / 1000)
-            : 0.5
+const modelStrength = Claustrum.clampConfidence(modelNode.modelConfidence)
           const memoryStrength = mem.node.potentiation ?? 0.5
           const resonance = Math.sqrt(modelStrength * memoryStrength)
 
@@ -972,6 +970,13 @@ export class Claustrum {
       crossesSourceBoundary: crossesBoundary,
       length: pathEdges.length,
     }
+  }
+
+  /** Normalize a confidence value from either [0, 1000] or [0, 1] range into [0, 1]. */
+  private static clampConfidence(v: number | undefined, fallback = 0): number {
+    const c = v ?? fallback
+    if (c <= 0) return 0
+    return Math.min(1.0, c > 1 ? c / 1000 : c)
   }
 
   private addEdge(
