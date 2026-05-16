@@ -617,5 +617,35 @@ export async function handleContextRoutes(
     }
   }
 
+  // POST /context/inject — Hermes memory-provider injection
+  // Searches MnemicField via kindling, filters/deduplicates/formats results
+  // for direct <memory-context> injection into the Hermes agent loop.
+  if (method === 'POST' && pathname === '/context/inject') {
+    try {
+      const body = await parseBody(req)
+      const query = typeof body?.query === 'string' ? body.query : ''
+      const sessionId = typeof body?.sessionId === 'string' ? body.sessionId : ''
+      const limit = typeof body?.limit === 'number' ? body.limit : 5
+
+      if (!query || !sessionId) {
+        sendJSON(res, 400, { error: 'query and sessionId required' })
+        return true
+      }
+
+      const thalamus = runtime.getIntelligence()?.registry?.get?.('thalamus')
+      if (!thalamus?.injectForMemory) {
+        sendJSON(res, 503, { error: 'Thalamus not available' })
+        return true
+      }
+
+      const result = await thalamus.injectForMemory(query, sessionId, limit)
+      sendJSON(res, 200, { ok: true, ...result })
+      return true
+    } catch (err) {
+      sendJSON(res, 500, { error: String(err) })
+      return true
+    }
+  }
+
   return false
 }
