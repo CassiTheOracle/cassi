@@ -381,6 +381,14 @@ export interface CurationSession {
   sessionId: string
   /** tool_use_id → tool name, accumulated across the session */
   toolUseMap: Map<string, string>
+  /** tool_use_id → tool call data buffered until result arrives */
+  pendingToolCalls: Map<string, {
+    toolName: string
+    toolClass: string
+    input: Record<string, unknown>
+    messageIndex: number
+    timestamp: string
+  }>
   lastCuratedAt: number
   totalCurations: number
   /** Topic clusters detected in the most recent curate() call */

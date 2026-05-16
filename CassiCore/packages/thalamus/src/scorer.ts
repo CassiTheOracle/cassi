@@ -86,6 +86,17 @@ export class MessageLuminanceScorer {
     const total = messages.length
     const scored: ScoredMessage[] = []
 
+    // Pre-build architectural concept map for O(1) lookup in credibility scoring.
+    // Only pattern/principle hits with concept names longer than 3 characters
+    // contribute to credibility boosts, so we filter and index once.
+    const archConceptMap = new Map<string, { nodeType: string; conceptName: string }>()
+    for (const hit of ctx.architecturalHits) {
+      if ((hit.nodeType === 'pattern' || hit.nodeType === 'principle') &&
+          hit.conceptName.length > 3) {
+        archConceptMap.set(hit.conceptName, { nodeType: hit.nodeType, conceptName: hit.conceptName })
+      }
+    }
+
     for (let i = 0; i < total; i++) {
       const msg = messages[i]
 
@@ -105,7 +116,7 @@ export class MessageLuminanceScorer {
       const nov = this.novelty(content, terms, ctx)
       const urg = this.urgency(msg, i, total)
       const rel = this.relevance(msg, content, ctx)
-      const cred = this.credibility(msg, content, ctx)
+      const cred = this.credibility(msg, content, ctx, archConceptMap)
       const res = this.cognitiveResonance(content, ctx)
       const strat = this.strategicImportance(msg, content, terms, i, messages, ctx)
 
@@ -341,7 +352,7 @@ export class MessageLuminanceScorer {
    * - Pineal conviction boost: messages aligned with high-conviction identity concepts
    * - Architectural concept boost: messages discussing known patterns/principles
    */
-  private credibility(msg: any, content: string, ctx: BrainContext): number {
+  private credibility(msg: any, content: string, ctx: BrainContext, archConceptMap?: Map<string, { nodeType: string; conceptName: string }>): number {
     const role = msg?.role ?? ''
 
     let base: number
@@ -375,11 +386,12 @@ export class MessageLuminanceScorer {
       }
     }
 
-    // Architectural concept boost: messages discussing known patterns/principles
-    if (ctx.architecturalHits.length > 0) {
-      for (const hit of ctx.architecturalHits) {
-        if ((hit.nodeType === 'pattern' || hit.nodeType === 'principle') &&
-            hit.conceptName.length > 3 && content.includes(hit.conceptName)) {
+    // Architectural concept boost: O(1) lookup via pre-built map.
+    // If archConceptMap is provided, iterate the message content's terms
+    // and check for matches against known pattern/principle concept names.
+    if (archConceptMap && archConceptMap.size > 0) {
+      for (const term of extractTerms(content)) {
+        if (archConceptMap.has(term)) {
           base = Math.min(1.0, base + 0.08)
           break
         }

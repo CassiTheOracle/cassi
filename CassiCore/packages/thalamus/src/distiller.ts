@@ -15,16 +15,13 @@
  * empirical evaluation that showed model quality varied too sharply for
  * production reliability — Sonnet/Opus 89% planted-ID recall vs GLM-5.1
  * 33% with two outright failures).
- *
- * Cache: results keyed by (toolUseId, contentHash). Cache hits are applied
- * immediately; misses are dispatched in parallel to the reranker service.
- *
  * Live-reads (the latest read of a file with no later write to that path)
  * must survive distillation byte-for-byte — the next edit's match string
  * needs them. The caller passes those indices in `protectedIndices`.
  */
 
 import type { ILogger } from '../../../types/interfaces.js'
+import { createHash } from 'node:crypto'
 import type { CurationConfig, RerankerCacheEntry, RerankerChunk, RerankerCompressionCache } from './types.js'
 import { classifyTool } from './classifier.js'
 import { buildToolUseMapFromMessages } from '../../pipeline/turn/overflow.js'
@@ -38,11 +35,7 @@ interface ContentChunk {
 }
 
 function hashContent(content: string): string {
-  let h = 0
-  for (let i = 0; i < content.length; i++) {
-    h = ((h << 5) - h + content.charCodeAt(i)) | 0
-  }
-  return h.toString(36)
+  return createHash('sha256').update(content, 'utf8').digest('hex').slice(0, 12)
 }
 
 function chunkByCodeBlocks(content: string, chunkSize: number): ContentChunk[] {
