@@ -78,6 +78,53 @@ export class AttractorManager {
     return counts
   }
 
+  /**
+   * Yin phase (Phase 4): gently nudge the phasic attractor toward the
+   * least-visited sector that has engrams in it. This is the system
+   * "acknowledging" neglected regions of the field — not forcing retrieval,
+   * just tilting attention slightly so shadows become visible.
+   *
+   * @param sectorDensity Map of sector index → engram count (from MnemicField)
+   * @param sectorCount Number of sectors (default 12)
+   * @returns The sector index nudged toward, or -1 if nothing to nudge
+   */
+  attractorYinPhase(
+    sectorDensity: Map<number, number>,
+    sectorCount: number = DEFAULT_SECTOR_COUNT,
+  ): number {
+    if (this.positionHistory.length === 0) return -1
+    if (sectorDensity.size === 0) return -1
+
+    const visitCounts = this.getSectorVisitCount(sectorCount)
+
+    // Find the least-visited sector among those with engrams
+    let leastVisited = -1
+    let minVisits = Infinity
+    for (const [sector, engramCount] of sectorDensity) {
+      if (engramCount === 0) continue
+      const visits = visitCounts.get(sector) ?? 0
+      if (visits < minVisits) {
+        minVisits = visits
+        leastVisited = sector
+      }
+    }
+
+    if (leastVisited < 0) return -1
+    if (minVisits > 10) return -1  // all sectors well-visited, nothing to nudge
+
+    // Nudge phasic attractor theta toward the neglected sector's center
+    const sectorSize = (2 * Math.PI) / sectorCount
+    const targetTheta = (leastVisited + 0.5) * sectorSize
+    const nudgeRate = 0.05  // weak force — acknowledment, not compulsion
+    this.state.phasic.theta += nudgeRate * angularDelta(this.state.phasic.theta, targetTheta)
+
+    // Also nudge r slightly outward to broaden attention scope
+    this.state.phasic.r = Math.min(1.0, this.state.phasic.r + 0.01)
+
+    this.lastUpdateMs = Date.now()
+    return leastVisited
+  }
+
   /** Weighted distance from an engram to the combined attractor. */
   effectiveDistance(engramR: number, engramTheta: number): number {
     const dTonic = polarDistance(engramR, engramTheta, this.state.tonic.r, this.state.tonic.theta)

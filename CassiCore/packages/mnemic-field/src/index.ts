@@ -227,6 +227,10 @@ export class MnemicField {
   /** Cached total count of engrams with theta metadata (valid field positions). */
   private validPositionCount: number = 0
 
+  /** Counter for periodic attractor Yin phase (runs every N retrievals). */
+  private yinPhaseCounter: number = 0
+  private static readonly YIN_PHASE_INTERVAL = 10
+
   /** Enable the LLM reranker. Call during daemon startup after providers are wired. */
   setRerankerProvider(provider: IProvider, model?: string, enabled?: boolean): void {
     this.rerankerModel = model ?? this.rerankerModel
@@ -925,6 +929,19 @@ export class MnemicField {
     try {
       this.computeHarmony()
     } catch { /* never block retrieval for harmony failures */ }
+
+    // Periodic Yin phase: acknowledge neglected sectors
+    try {
+      this.yinPhaseCounter++
+      if (this.yinPhaseCounter >= MnemicField.YIN_PHASE_INTERVAL) {
+        this.yinPhaseCounter = 0
+        if (this.sectorDensityCache.size === 0) this.computeSectorDensity()
+        const sector = this.attractor.attractorYinPhase(this.sectorDensityCache)
+        if (sector >= 0) {
+          this.logger.debug('Attractor Yin phase nudged toward shadow sector', { sector })
+        }
+      }
+    } catch { /* never block retrieval for Yin phase failures */ }
 
     let lightningRanked: Array<{ engramId: string; score: number }> | null = null
 
