@@ -1267,6 +1267,13 @@ export class Daemon {
             makeHelixChain('apex', qwenPlusCfg),
             makeHelixChain('unity', qwenPlusCfg),
             makeHelixChain('helix', qwenPlusCfg),
+            {
+              slotName: 'dmn-observer',
+              chain: [
+                { role: 'dmn-observer', provider: bgConfig.provider, model: bgConfig.model, priority: 10 },
+              ],
+              triggers: ['rate_limit' as const, 'timeout' as const, 'model_unavailable' as const, 'error' as const],
+            },
             brainstemChain,
             miniHelixCorpusChain,
             miniHelixBrainstemChain,

@@ -10,4 +10,4 @@ if [[ ! -x "$TSX" ]]; then
   exit 1
 fi
 
-exec "$TSX" "$ENTRY" "$@"
+NODE_OPTIONS='--no-deprecation' exec "$TSX" "$ENTRY" "$@"
