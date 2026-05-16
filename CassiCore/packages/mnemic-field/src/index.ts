@@ -934,14 +934,19 @@ export class MnemicField {
     try {
       this.yinPhaseCounter++
       if (this.yinPhaseCounter >= MnemicField.YIN_PHASE_INTERVAL) {
+        this.logger.info('Attractor Yin phase — trigger', { counter: this.yinPhaseCounter })
         this.yinPhaseCounter = 0
         if (this.sectorDensityCache.size === 0) this.computeSectorDensity()
         const sector = this.attractor.attractorYinPhase(this.sectorDensityCache)
         if (sector >= 0) {
-          this.logger.debug('Attractor Yin phase nudged toward shadow sector', { sector })
+          this.logger.info('Attractor Yin phase — acknowledged shadow sector', { sector, theta: `${(sector * 30)}°–${((sector + 1) * 30)}°` })
+        } else {
+          this.logger.info('Attractor Yin phase — nothing to nudge', { reason: sector === -1 ? 'no candidates' : 'min visits > 10' })
         }
       }
-    } catch { /* never block retrieval for Yin phase failures */ }
+    } catch (err) { /* never block retrieval for Yin phase failures */
+      this.logger.warn('Attractor Yin phase failed', { error: String(err) })
+    }
 
     let lightningRanked: Array<{ engramId: string; score: number }> | null = null
 
