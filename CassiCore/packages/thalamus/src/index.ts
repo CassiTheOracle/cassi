@@ -1,6 +1,6 @@
 import { BaseCognitiveModule } from '../base/cognitive-module.js'
 import { createHash } from 'node:crypto'
-import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent } from './scorer.js'
+import { MessageLuminanceScorer, extractTerms, extractFilePaths, extractMessageContent, cleanEngramContent } from './scorer.js'
 import { ToolResultCompressor } from './compressor.js'
 import { ToolResultDistiller } from './distiller.js'
 import { TemporalRegistry } from './temporal.js'
@@ -10,7 +10,7 @@ import type { ThalamusStore } from './thalamus-store.js'
 import type { ILogger } from '../../../types/interfaces.js'
 import type { CorticalField } from '../cortex/index.js'
 import type { MnemicField } from '../mnemic-field/index.js'
-import type { EngramCreate, ExpertKind } from '../mnemic-field/types.js'
+import type { EngramCreate, ExpertKind, MnemicRetrievalHit } from '../mnemic-field/types.js'
 import { cosineSimilarity } from '../mnemic-field/cortex.js'
 import { SIGNAL_TYPE_PHRASES, EPISTEMIC_SHIFT_PHRASES, WORK_UNIT_ANNOTATION_PHRASES } from '../phrase-prototypes.js'
 import type { SelfModelField } from '../mnemic-field/self-model/self-model-field.js'
@@ -643,7 +643,7 @@ this.aurora?.setReverieInferenceProvider(provider)
             // Store text reasoning alongside tool calls
             const textInput: EngramCreate & { sessionId: string } = {
               sessionId,
-              content: block.text,
+              content: cleanEngramContent(block.text),
               nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
               tags: ['assistant', `session:${sessionId}`],
               provenance: 'thalamus',
@@ -721,7 +721,7 @@ this.aurora?.setReverieInferenceProvider(provider)
     if (!content) return
     const input: EngramCreate & { sessionId: string } = {
       sessionId,
-      content: typeof content === 'string' ? content : JSON.stringify(content),
+      content: cleanEngramContent(typeof content === 'string' ? content : JSON.stringify(content)),
       nodeType: 'message' as import('../mnemic-field/types.js').EngramType,
       tags: [slotType, `session:${sessionId}`],
       provenance: 'thalamus',
@@ -4744,4 +4744,127 @@ this.aurora?.setReverieInferenceProvider(provider)
     if (prefixes) overrides.excludeSessionPrefixes = prefixes
     return overrides
   }
+
+  /**
+   * Read-path: search MnemicField and return formatted context for
+   * Hermes memory-provider injection.
+   *
+   * Reuses MnemicField.retrieve() (kindling) with FTS5 fallback,
+   * applies nodeType/provenance/session filtering, content-fingerprint
+   * dedup, and score × potentiation ranking. Returns formatted lines
+   * ready for <memory-context> injection.
+   */
+  async injectForMemory(
+    query: string,
+    sessionId: string,
+    limit = 5,
+  ): Promise<{ context: string; hits: number }> {
+    if (!this.mnemicField || !query.trim()) return { context: '', hits: 0 }
+
+    // Term extraction: CamelCase, snake_case, ALL_CAPS, proper nouns
+    const terms = this.extractKeyTerms(query)
+    const kindlingQuery = terms.length > 0 ? terms.slice(0, 15).join(' ') : query.slice(0, 500)
+
+    // Primary: kindling (embedding → ANN → spread → rerank)
+    let rawHits: MnemicRetrievalHit[] = []
+    try {
+      rawHits = await this.mnemicField.retrieve(kindlingQuery, {
+        limit: limit * 3,
+        sessionId,
+      })
+    } catch { /* best-effort */ }
+
+    // Fallback: FTS5 text search
+    if (rawHits.length === 0) {
+      try {
+        const ftsHits = this.mnemicField.searchText(kindlingQuery, limit * 3)
+        rawHits = ftsHits.map(r => ({
+          id: r.engram.id,
+          content: r.engram.content,
+          nodeType: r.engram.nodeType,
+          score: r.score,
+          charge: 0,
+          potentiation: r.engram.potentiation,
+          provenance: r.engram.provenance ?? '',
+          tags: r.engram.tags ?? [],
+          metadata: r.engram.metadata ?? {},
+        }))
+      } catch { /* best-effort */ }
+    }
+
+    if (rawHits.length === 0) return { context: '', hits: 0 }
+
+    // Filter
+    const filtered = rawHits.filter(h => {
+      if (ThalamusModule.INJECT_SKIP_TYPES.has(h.nodeType)) return false
+      if (ThalamusModule.INJECT_SKIP_PROVENANCE.has(h.provenance)) return false
+      if (h.metadata?.sessionId === sessionId) return false
+      if (!h.content || h.content.length < 10) return false
+      return true
+    })
+
+    // Dedup by content fingerprint (first 100 chars)
+    const seenFps = new Set<string>()
+    const unique: MnemicRetrievalHit[] = []
+    for (const h of filtered) {
+      const fp = h.content.slice(0, 100)
+      if (seenFps.has(fp)) continue
+      seenFps.add(fp)
+      unique.push(h)
+    }
+
+    // Rank: score × (1 + potentiation × 0.3)
+    unique.sort((a, b) =>
+      (b.score * (1 + b.potentiation * 0.3)) - (a.score * (1 + a.potentiation * 0.3))
+    )
+
+    // Format
+    const lines: string[] = []
+    for (const h of unique.slice(0, limit)) {
+      let content = cleanEngramContent(h.content)
+      if (content.length > 200) content = content.slice(0, 197) + '...'
+      if (!content) continue
+      const prefix = h.nodeType ? `[${h.nodeType.replace(/_/g, ' ')}] ` : ''
+      lines.push(`- ${prefix}${content}`)
+    }
+
+    return { context: lines.join('\n'), hits: lines.length }
+  }
+
+  /**
+   * Extract CamelCase, snake_case, ALL_CAPS, and proper-noun identifiers.
+   * Distinctive terms are the strongest FTS5 seed signals.
+   */
+  extractKeyTerms(text: string): string[] {
+    const terms: string[] = []
+
+    // CamelCase (KindlingEngine, MnemicField)
+    for (const m of text.matchAll(/\b[A-Z][a-z]+(?:[A-Z][a-z]+)+\b/g)) terms.push(m[0])
+    // snake_case (embedding_service, max_luminal)
+    for (const m of text.matchAll(/\b[a-z]+(?:_[a-z]+){1,}\b/g)) terms.push(m[0])
+    // ALL_CAPS (FTS5, ANN, GPU)
+    for (const m of text.matchAll(/\b[A-Z]{2,6}\b/g)) terms.push(m[0])
+    // Proper nouns (Helix, Unity, CassiCore)
+    for (const m of text.matchAll(/\b[A-Z][a-z]{2,}(?:\s+[A-Z][a-z]{2,})?\b/g)) terms.push(m[0])
+
+    // Deduplicate case-insensitively, keep longest variant
+    const seen = new Set<string>()
+    const unique: string[] = []
+    for (const t of terms.sort((a, b) => b.length - a.length)) {
+      if (seen.has(t.toLowerCase())) continue
+      seen.add(t.toLowerCase())
+      unique.push(t)
+    }
+    return unique.slice(0, 15)
+  }
+
+  private static readonly INJECT_SKIP_TYPES = new Set([
+    'bridge', 'session', 'file', 'source_file', 'file_version', 'file_read',
+    'changeset', 'message', 'tool_invocation', 'thought_command',
+    'replay_segment', 'expert_summary',
+  ])
+
+  private static readonly INJECT_SKIP_PROVENANCE = new Set([
+    'code-store', 'cortex/claude-code',
+  ])
 }

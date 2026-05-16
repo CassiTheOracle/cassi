@@ -617,6 +617,21 @@ export function extractMessageContent(msg: any): string {
   return ''
 }
 
+/**
+ * Strip conversation preambles and metadata prefixes from engram content
+ * before storage.  These markers are useful in-transit but become noise
+ * once the engram is indexed for cross-session retrieval.
+ */
+export function cleanEngramContent(content: string): string {
+  return content
+    .replace(/^\[reasoning\]\s*/gm, '')
+    .replace(/^\[tool_result:[^\]]*\]\s*/gm, '')
+    .replace(/^\[delegation\]\s*/gm, '')
+    .replace(/^\[memory:[^\]]*\]\s*/gm, '')
+    .replace(/^USER:\s*\([^)]*\)\s*\n+\s*ASSISTANT:\s*/gm, '')
+    .trim()
+}
+
 export function extractTerms(text: string): string[] {
   const lower = text.toLowerCase()
   const words = lower.match(/[a-z_][a-z0-9_]{2,}/g) ?? []
