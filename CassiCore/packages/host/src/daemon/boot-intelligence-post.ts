@@ -428,18 +428,23 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
         try {
           const { Aurora } = await import('../intelligence/aurora/index.js')
 
-          let modelProvider: any = null
-          try {
-            const { LarqlKnowledgeProvider } = await import('../intelligence/aurora/larql-provider.js')
-            const { existsSync, readdirSync, statSync } = await import('node:fs')
-            const { join } = await import('node:path')
-            const { homedir } = await import('node:os')
-            const modelsDir = join(homedir(), '.cassicore', 'models')
-            if (existsSync(modelsDir)) {
-              // Check config for preferred vindex (skips auto-discovery)
+          // WHY: Vindex loading deferred — admin API starts without waiting for the
+          // vindex (10s per candidate). The load function is stored on the intelligence
+          // layer and called from daemon.scheduleDeferredStartup() after the admin API
+          // is live. Aurora starts without a model provider and gets wired later via
+          // aurora.setModelProvider().
+          const loadVindex = async (): Promise<{ provider: any; name: string; path: string } | null> => {
+            try {
+              const { LarqlKnowledgeProvider } = await import('../intelligence/aurora/larql-provider.js')
+              const { existsSync, readdirSync, statSync } = await import('node:fs')
+              const { join } = await import('node:path')
+              const { homedir } = await import('node:os')
+              const modelsDir = join(homedir(), '.cassicore', 'models')
+              if (!existsSync(modelsDir)) return null
+
               const preferredVindex = config?.get?.('intelligence.aurora.vindex') as string | undefined
-              const VINDEX_LOAD_TIMEOUT_MS = 10_000  // browse-only loads in <5s
-              
+              const VINDEX_LOAD_TIMEOUT_MS = 10_000
+
               const tryLoad = async (candidatePath: string, candidateName: string): Promise<{ provider: any; name: string; path: string } | { error: string }> => {
                 const provider = new LarqlKnowledgeProvider(logger)
                 const timedOut = Symbol('timedOut')
@@ -457,9 +462,10 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                   return { error: `threw: ${String(err)}` }
                 }
               }
-              
-              // 1. Try preferred vindex first if configured
+
               let chosen: { name: string; path: string } | null = null
+              let modelProvider: any = null
+
               if (preferredVindex) {
                 const preferredPath = join(modelsDir, preferredVindex)
                 if (existsSync(preferredPath)) {
@@ -469,14 +475,13 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                     chosen = { name: result.name, path: result.path }
                     logger.info('LarqlKnowledgeProvider loaded (preferred)', { vindex: preferredVindex })
                   } else {
-                    logger.warn('Preferred vindex failed to load, falling back to auto-discovery', { vindex: preferredVindex, reason: result.error })
+                    logger.warn('Preferred vindex failed, falling back to auto-discovery', { vindex: preferredVindex, reason: result.error })
                   }
                 } else {
                   logger.warn('Preferred vindex not found', { vindex: preferredVindex, modelsDir })
                 }
               }
-              
-              // 2. Auto-discovery fallback
+
               if (!chosen) {
                 const vindexes = readdirSync(modelsDir)
                   .filter(n => n.endsWith('.vindex'))
@@ -496,44 +501,39 @@ export async function bootIntelligencePostPipeline(deps: IntelligencePostBootDep
                   if ('provider' in result) {
                     modelProvider = result.provider
                     chosen = { name: result.name, path: result.path }
-                    logger.info('LarqlKnowledgeProvider loaded', {
-                      vindex: candidate.name,
-                      attemptedBefore: attempted.length,
-                    })
+                    logger.info('LarqlKnowledgeProvider loaded', { vindex: candidate.name, attemptedBefore: attempted.length })
                     break
                   }
                   attempted.push({ name: candidate.name, reason: result.error })
                 }
                 if (!chosen) {
-                  logger.warn('No vindex could be loaded — Aurora will run without model knowledge', {
-                    attempted: attempted.map(a => `${a.name}: ${a.reason}`),
-                  })
+                  logger.warn('No vindex could be loaded', { attempted: attempted.map(a => `${a.name}: ${a.reason}`) })
                 } else if (attempted.length > 0) {
-                  logger.info('Skipped earlier vindexes before loading a compatible one', {
-                    skipped: attempted.map(a => a.name),
-                    loaded: chosen.name,
-                  })
+                  logger.info('Skipped earlier vindexes', { skipped: attempted.map(a => a.name), loaded: chosen.name })
                 }
               }
-              
-              // Wire ClaustrumRecorder for gate-KNN provenance logging
+
               if (chosen && modelProvider) {
                 try {
                   const { ClaustrumRecorder } = await import('../intelligence/aurora/claustrum-recorder.js')
                   const recorder = new ClaustrumRecorder(logger, chosen.path)
                   modelProvider.setRecorder(recorder)
-                  logger.info('ClaustrumRecorder attached — gate-KNN provenance will be logged for snapshotting', {
-                    source: chosen.name,
-                  })
+                  logger.info('ClaustrumRecorder attached', { source: chosen.name })
                 } catch (err) {
-                  logger.warn('Failed to attach ClaustrumRecorder — Aurora will run without provenance logging', {
-                    error: String(err),
-                  })
+                  logger.warn('ClaustrumRecorder failed', { error: String(err) })
                 }
+                return { provider: modelProvider, name: chosen.name, path: chosen.path }
               }
-          } catch (err) {
-            logger.warn('Failed to load LarqlKnowledgeProvider — Aurora will run without model knowledge', { error: String(err) })
+              return null
+            } catch (err) {
+              logger.warn('Vindex loading failed', { error: String(err) })
+              return null
+            }
           }
+          ;(intelligence as any).__loadVindex = loadVindex
+
+          // Create Aurora without model provider — gets wired later via setModelProvider()
+          let modelProvider: any = null
 
           const knowledgeField = (intelligence as any).__knowledgeField ?? null
 

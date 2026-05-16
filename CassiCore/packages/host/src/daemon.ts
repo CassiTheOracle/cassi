@@ -309,6 +309,24 @@ export class Daemon {
 
     this.logger.info('InferenceStack: skipped — using external vLLM for embeddings and reranking')
 
+    // Load LARQL vindex and wire into Aurora (runs after admin API is available)
+    const loadVindex = (this.intelligence as any).__loadVindex as (() => Promise<{ provider: any; name: string } | null>) | undefined
+    if (loadVindex) {
+      try {
+        const result = await loadVindex()
+        if (result && this.intelligence?.aurora) {
+          this.intelligence.aurora.setModelProvider(result.provider)
+          this.logger.info('Vindex loaded and wired to Aurora post-boot', { vindex: result.name })
+        } else if (result) {
+          this.logger.info('Vindex loaded but Aurora not available', { vindex: result.name })
+        } else {
+          this.logger.info('Vindex loading completed without a provider — Aurora will run without model knowledge')
+        }
+      } catch (err) {
+        this.logger.warn('Deferred vindex loading failed', { error: String(err) })
+      }
+    }
+
     const backgroundEmbeddingEnabled = this.config.get<boolean>('intelligence.backgroundEmbedding.enabled', false)
     if (backgroundEmbeddingEnabled) {
       try {
